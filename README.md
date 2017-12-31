@@ -33,7 +33,7 @@ To run Zilliqa, we recommend the following minimum system requirements:
 * 2 GB RAM
 * A public IP address*
 
-*In order to join the blockchain network, you will need a publicly accessible IP address. As Zilliqa does not support UPnP at the moment, you will need to do port forwarding if you are behind a NAT. For configuration of port forwarding, please refer to your router/gateway manual.  
+*In order to join the testnet, you will need a publicly accessible IP address. As Zilliqa does not support UPnP at the moment, you will need to do port forwarding if you are behind a NAT. For configuration of port forwarding, please refer to your router/gateway manual.  
 
 ## Dependencies
 To compile and run the Zilliqa codebase, you will need the following dependencies to be installed on your machine:
