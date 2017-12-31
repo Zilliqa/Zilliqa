@@ -1,0 +1,2 @@
+/usr/bin/ar qc libConsensus.a  CMakeFiles/Consensus.dir/ConsensusBackup.cpp.o CMakeFiles/Consensus.dir/ConsensusCommon.cpp.o CMakeFiles/Consensus.dir/ConsensusLeader.cpp.o CMakeFiles/Consensus.dir/ConsensusUser.cpp.o
+/usr/bin/ranlib libConsensus.a

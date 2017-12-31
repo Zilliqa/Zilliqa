@@ -1,0 +1,1 @@
+/usr/bin/c++     -pthread -std=c++14 -Wall -DSTAT_TEST -ggdb -g    -pthread -ljsoncpp -lboost_system -lboost_filesystem -std=c++14 -Wall -DSTAT_TEST CMakeFiles/Test_Logger1.dir/Test_Logger1.cpp.o  -o Test_Logger1 -rdynamic ../../src/libUtils/libUtils.a 

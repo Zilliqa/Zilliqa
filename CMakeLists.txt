@@ -1,0 +1,35 @@
+cmake_minimum_required(VERSION 2.8)
+project (nuQoin)
+# detect operating system
+message(STATUS "We are on a ${CMAKE_SYSTEM_NAME} system")
+
+if(IS_LOOKUP_NODE)
+    if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+        SET( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} -pthread -std=c++14 -Wall -DSTAT_TEST -ggdb -DIS_LOOKUP_NODE" )
+        SET( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${GCC_COVERAGE_LINK_FLAGS} -pthread -ljsoncpp -lboost_system -lboost_filesystem -std=c++14 -Wall -DSTAT_TEST -DIS_LOOKUP_NODE" )
+    endif()
+    if(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
+        SET( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} -pthread -stdlib=libc++ -std=c++14 -Wall -DSTAT_TEST -ggdb -DIS_LOOKUP_NODE" )
+        SET( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${GCC_COVERAGE_LINK_FLAGS} -pthread -ljsoncpp -lboost_system -lboost_filesystem -std=c++14 -Wall -DSTAT_TEST -DIS_LOOKUP_NODE" )
+    endif()
+    if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+        # To-do
+    endif()
+endif()
+
+if(NOT IS_LOOKUP_NODE)
+    if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+        SET( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} -pthread -std=c++14 -Wall -DSTAT_TEST -ggdb" )
+        SET( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${GCC_COVERAGE_LINK_FLAGS} -pthread -ljsoncpp -lboost_system -lboost_filesystem -std=c++14 -Wall -DSTAT_TEST" )
+    endif()
+    if(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
+        SET( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} -pthread -stdlib=libc++ -std=c++14 -Wall -DSTAT_TEST -ggdb" )
+        SET( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${GCC_COVERAGE_LINK_FLAGS} -pthread -ljsoncpp -lboost_system -lboost_filesystem -std=c++14 -Wall -DSTAT_TEST" )
+    endif()
+    if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+        # To-do
+    endif()
+endif()
+
+add_subdirectory (src)
+add_subdirectory (tests)

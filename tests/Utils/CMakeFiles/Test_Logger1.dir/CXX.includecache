@@ -1,0 +1,38 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/junhao/Desktop/octcoin/other_br/production/zilliqa/tests/Utils/Test_Logger1.cpp
+libUtils/JoinableFunction.h
+/home/junhao/Desktop/octcoin/other_br/production/zilliqa/tests/Utils/libUtils/JoinableFunction.h
+libUtils/Logger.h
+/home/junhao/Desktop/octcoin/other_br/production/zilliqa/tests/Utils/libUtils/Logger.h
+
+src/libUtils/JoinableFunction.h
+functional
+-
+chrono
+-
+future
+-
+vector
+-
+
+src/libUtils/Logger.h
+fstream
+-
+mutex
+-
+string
+-
+vector
+-
+sstream
+-
+boost/multiprecision/cpp_int.hpp
+-
+

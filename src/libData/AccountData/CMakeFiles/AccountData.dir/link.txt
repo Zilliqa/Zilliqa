@@ -1,0 +1,2 @@
+/usr/bin/ar qc libAccountData.a  CMakeFiles/AccountData.dir/Account.cpp.o CMakeFiles/AccountData.dir/AccountStore.cpp.o CMakeFiles/AccountData.dir/Transaction.cpp.o
+/usr/bin/ranlib libAccountData.a
