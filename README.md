@@ -2,7 +2,7 @@
 ## Overview
 Zilliqa is a new blockchain platform capable of processing thousands of transactions per second with sharding built into it. With sharding, Zilliqa has the potential to match throughput benchmarks set by traditional payment methods (such as VISA and MasterCard). Even more importantly, Zilliqa’s transaction throughput increases (roughly) linearly with its network size.
 
-## Available Feature
+## Available Features
 The current release has the following features implemented:
 * Proof of Work 1 (PoW1) and 2 (PoW2) for joining the network
 * Network sharding
