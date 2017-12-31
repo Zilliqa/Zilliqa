@@ -62,7 +62,7 @@ sudo apt-get install libboost-all-dev libssl-dev libleveldb-dev libjsoncpp-dev c
 Coming soon...
 
 ## For further enquiries
-If you have issues running a node, please feel free to join our [Slack](https://invite.zilliqa.com/) or [Telegram](https://t.me/zilliqachat) and ask questions. You can also submit your issue at our [Github repository](https://github.com/Zilliqa/zilliqa/issues)
+If you have issues running a node, please feel free to join our [Slack](https://invite.zilliqa.com/) and ask questions. You can also submit your issue at our [Github repository](https://github.com/Zilliqa/zilliqa/issues)
 
 ## Licence 
 You can view our [licence here](https://github.com/Zilliqa/zilliqa/blob/master/LICENSE).
