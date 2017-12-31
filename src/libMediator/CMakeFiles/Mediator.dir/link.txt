@@ -1,0 +1,2 @@
+/usr/bin/ar qc libMediator.a  CMakeFiles/Mediator.dir/Mediator.cpp.o
+/usr/bin/ranlib libMediator.a

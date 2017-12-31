@@ -1,0 +1,2 @@
+/usr/bin/ar qc libBlockChainData.a  CMakeFiles/BlockChainData.dir/DSBlockChain.cpp.o CMakeFiles/BlockChainData.dir/TxBlockChain.cpp.o
+/usr/bin/ranlib libBlockChainData.a

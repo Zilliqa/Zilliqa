@@ -1,0 +1,2 @@
+/usr/bin/ar qc libCrypto.a  CMakeFiles/Crypto.dir/Sha3.cpp.o CMakeFiles/Crypto.dir/Schnorr.cpp.o CMakeFiles/Crypto.dir/MultiSig.cpp.o
+/usr/bin/ranlib libCrypto.a
