@@ -47,13 +47,16 @@ For a debian-based system, you can use the following command to install the depe
 `sudo apt-get install libboost-all-dev libssl-dev libleveldb-dev libjsoncpp-dev cmake`
 
 # Running Zilliqa locally (using 10 shard nodes and DS node locally)  
-Build Zilliqa from the source.  
+1. Build Zilliqa from the source.  
 ` ./build.sh`
 
-Run the local testnet script  
+2. Run the local testnet script  
 `./test/Node/test_node_simple.sh`  
 
-Logs of each node can be found at code/local_run
+3. Logs of each node can be found at code/local_run
+
+4. To terminate zilliqa,   
+`pkill zilliqa` 
 
 ## Running a Zilliqa Node on the public testnet 
 Coming soon...
