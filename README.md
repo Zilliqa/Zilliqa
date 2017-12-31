@@ -41,9 +41,10 @@ To compile and run the Zilliqa codebase, you will need the following dependencie
 * OpenSSL
 * Jsoncpp
 * Leveldb
+* Cmake
 
 For a debian-based system, you can use the following command to install the dependencies:  
-`sudo apt-get install libboost-all-dev libssl-dev libleveldb-dev libjsoncpp-dev `
+`sudo apt-get install libboost-all-dev libssl-dev libleveldb-dev libjsoncpp-dev cmake`
 
 # Running Zilliqa locally (using 10 shard nodes and DS node locally)  
 Build Zilliqa from the source.  
