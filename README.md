@@ -45,7 +45,7 @@ To compile and run the Zilliqa codebase, you will need the following dependencie
 For a debian-based system, you can use the following command to install the dependencies:  
 `sudo apt-get install libboost-all-dev libssl-dev libleveldb-dev libjsoncpp-dev `
 
-# Running Zilliqa locally (using a simulated 10 shard nodes)  
+# Running Zilliqa locally (using 10 shard nodes and DS node locally)  
 Build Zilliqa from the source.  
 ` ./build.sh`
 
