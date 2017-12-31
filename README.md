@@ -6,6 +6,7 @@ Zilliqa is a new blockchain platform capable of processing thousands of transact
 The current release has the following features implemented:
 * Proof of Work 1 (PoW1) and 2 (PoW2) for joining the network
 * Network sharding
+* Directory Service
 * Consensus for DS block, Sharding structure, Shard Microblock and Final block 
 * EC-Schnorr signature 
 * Data layer and accounts store 
