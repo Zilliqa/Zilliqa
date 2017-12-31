@@ -1,0 +1,2 @@
+/usr/bin/ar qc libZilliqa.a  CMakeFiles/Zilliqa.dir/Zilliqa.cpp.o
+/usr/bin/ranlib libZilliqa.a

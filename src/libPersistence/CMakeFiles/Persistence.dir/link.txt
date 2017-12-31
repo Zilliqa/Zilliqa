@@ -1,0 +1,2 @@
+/usr/bin/ar qc libPersistence.a  CMakeFiles/Persistence.dir/BlockStorage.cpp.o CMakeFiles/Persistence.dir/DB.cpp.o
+/usr/bin/ranlib libPersistence.a

@@ -1,0 +1,3 @@
+add_library(AccountData Account.cpp AccountStore.cpp Transaction.cpp)
+target_include_directories(AccountData PUBLIC ${PROJECT_SOURCE_DIR}/src)
+target_link_libraries (AccountData LINK_PUBLIC Block BlockHeader Crypto Trie)
