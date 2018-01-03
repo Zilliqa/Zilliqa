@@ -47,22 +47,22 @@ IF (Boost_FOUND)
         set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -std=c++11 ")
     endif()
 
-    add_executable (Test_Sha3_fips Test_Sha3_fips.cpp ${HEADERS})
-    add_executable (Test_Sha3 Test_Sha3.cpp)
+    #add_executable (Test_Sha3_fips Test_Sha3_fips.cpp ${HEADERS})
+    #add_executable (Test_Sha3 Test_Sha3.cpp)
     add_executable (Test_Schnorr Test_Schnorr.cpp)
     add_executable (Test_MultiSig Test_MultiSig.cpp)
 
-    target_link_libraries(Test_Sha3_fips ${Boost_FILESYSTEM_LIBRARIES})
-    target_link_libraries(Test_Sha3_fips ${Boost_SYSTEM_LIBRARIES})
-    target_link_libraries(Test_Sha3_fips ${Boost_UNIT_TEST_FRAMEWORK_LIBRARIES})
-    target_link_libraries(Test_Sha3_fips Sha3)
+    #target_link_libraries(Test_Sha3_fips ${Boost_FILESYSTEM_LIBRARIES})
+    #target_link_libraries(Test_Sha3_fips ${Boost_SYSTEM_LIBRARIES})
+    #target_link_libraries(Test_Sha3_fips ${Boost_UNIT_TEST_FRAMEWORK_LIBRARIES})
+    #target_link_libraries(Test_Sha3_fips Sha3)
 
-    target_link_libraries(Test_Sha3 Utils)
-    target_link_libraries(Test_Sha3 Crypto)
+    #target_link_libraries(Test_Sha3 Utils)
+    #target_link_libraries(Test_Sha3 Crypto)
 
-    target_link_libraries(Test_Sha3 ${Boost_FILESYSTEM_LIBRARIES})
-    target_link_libraries(Test_Sha3 ${Boost_SYSTEM_LIBRARIES})
-    target_link_libraries(Test_Sha3 ${Boost_UNIT_TEST_FRAMEWORK_LIBRARIES})
+    #target_link_libraries(Test_Sha3 ${Boost_FILESYSTEM_LIBRARIES})
+    #target_link_libraries(Test_Sha3 ${Boost_SYSTEM_LIBRARIES})
+    #target_link_libraries(Test_Sha3 ${Boost_UNIT_TEST_FRAMEWORK_LIBRARIES})
 
     target_link_libraries(Test_Schnorr Crypto)
 
