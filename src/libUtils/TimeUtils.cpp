@@ -37,7 +37,7 @@ uint256_t get_time_as_int()
 {
 	struct timespec now_time;
 	clock_gettime(CLOCK_REALTIME, &now_time);
-	uint256_t microsecs = now_time.tv_sec * 100000;
+	uint256_t microsecs = now_time.tv_sec * 1000000;
 	microsecs += now_time.tv_nsec / 1000;
 	return microsecs;
 }
