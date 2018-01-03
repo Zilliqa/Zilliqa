@@ -19,5 +19,5 @@ rm -rf ./txblocks.db
 rm -rf ./test.db
 rm -rf ./txbodies.db
 
-cmake -DCMAKE_BUILD_TYPE=Debug .
+cmake -DCMAKE_BUILD_TYPE=Debug -DOPENSSL_ROOT_DIR=/usr/local/Cellar/openssl/1.0.2/include/openssl/ .
 make -j4
