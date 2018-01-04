@@ -1,1 +1,0 @@
-/usr/bin/c++     -pthread -std=c++14 -Wall -DSTAT_TEST -ggdb -g    -pthread -ljsoncpp -lboost_system -lboost_filesystem -std=c++14 -Wall -DSTAT_TEST CMakeFiles/genkeypair.dir/genkeypair.cpp.o  -o genkeypair -rdynamic ../../src/libCrypto/libCrypto.a ../../src/libUtils/libUtils.a -lcrypto 
