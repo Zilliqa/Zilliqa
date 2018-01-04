@@ -1,2 +1,0 @@
-/usr/bin/ar qc libLookup.a  CMakeFiles/Lookup.dir/Lookup.cpp.o CMakeFiles/Lookup.dir/Synchronizer.cpp.o
-/usr/bin/ranlib libLookup.a

@@ -1,2 +1,0 @@
-/usr/bin/ar qc libBlockHeader.a  CMakeFiles/BlockHeader.dir/BlockHeaderBase.cpp.o CMakeFiles/BlockHeader.dir/DSBlockHeader.cpp.o CMakeFiles/BlockHeader.dir/MicroBlockHeader.cpp.o CMakeFiles/BlockHeader.dir/TxBlockHeader.cpp.o
-/usr/bin/ranlib libBlockHeader.a

@@ -1,1 +1,0 @@
-/usr/bin/cc  -fPIC -g  -shared -Wl,-soname,libminilzo.so -o libminilzo.so CMakeFiles/minilzo.dir/minilzo.c.o 
