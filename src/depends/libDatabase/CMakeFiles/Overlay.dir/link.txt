@@ -1,1 +1,1 @@
-/usr/bin/c++  -fPIC   -pthread -std=c++14 -Wall -DSTAT_TEST -ggdb -g  -shared -Wl,-soname,libOverlay.so -o libOverlay.so CMakeFiles/Overlay.dir/MemoryDB.cpp.o CMakeFiles/Overlay.dir/OverlayDB.cpp.o 
+/usr/bin/c++  -fPIC   -pthread -std=c++14 -Wall -DSTAT_TEST -ggdb -DIS_LOOKUP_NODE -g  -shared -Wl,-soname,libOverlay.so -o libOverlay.so CMakeFiles/Overlay.dir/MemoryDB.cpp.o CMakeFiles/Overlay.dir/OverlayDB.cpp.o 
