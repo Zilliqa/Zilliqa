@@ -1,2 +1,0 @@
-/usr/bin/ar qc libSha3.a  CMakeFiles/Sha3.dir/Sha3.c.o
-/usr/bin/ranlib libSha3.a

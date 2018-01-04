@@ -1,2 +1,0 @@
-/usr/bin/ar qc libDatabase.a  CMakeFiles/Database.dir/LevelDB.cpp.o CMakeFiles/Database.dir/MemoryDB.cpp.o CMakeFiles/Database.dir/OverlayDB.cpp.o
-/usr/bin/ranlib libDatabase.a
