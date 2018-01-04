@@ -1,17 +1,18 @@
-# Zilliqa (codename Chillicrab)
+# Zilliqa (codename _Durian_)
 ## Overview
-Zilliqa is a new blockchain platform capable of processing thousands of transactions per second with sharding built into it. With sharding, Zilliqa has the potential to match throughput benchmarks set by traditional payment methods (such as VISA and MasterCard). Even more importantly, Zilliqa’s transaction throughput increases (roughly) linearly with its network size.
+Zilliqa is a new blockchain platform capable of processing thousands of transactions per second with sharding built into it. With sharding, Zilliqa has the potential to match throughput benchmarks set by traditional payment methods (such as _VISA_ and _MasterCard_). More importantly, Zilliqa’s transaction throughput increases (roughly) linearly with its network size.
 
 ## Available Features
 The current release has the following features implemented:
 * Proof of Work 1 (PoW1) and 2 (PoW2) for joining the network
 * Network sharding
+* Directory Service
 * Consensus for DS block, Sharding structure, Shard Microblock and Final block 
-* EC-Schnorr signature 
+* [EC-Schnorr signature](https://en.wikipedia.org/wiki/Schnorr_signature)
 * Data layer and accounts store 
 * Looking up nodes to allow new nodes to join 
 * Persistent storage for transactions
-* Merkle Patricia tree
+* [Merkle Patricia tree](https://github.com/ethereum/wiki/wiki/Patricia-Tree)
 * Transaction verification
 
 In the coming months, we plan to have the following features:
@@ -28,39 +29,42 @@ In the coming months, we plan to have the following features:
 
 ## Minimum system requirements
 To run Zilliqa, we recommend the following minimum system requirements:
-* x64 Linux operating system such as Ubuntu
+* x64 _Linux_ operating system such as _Ubuntu_
 * Recent dual core processor
 * 2 GB RAM
-* A public IP address*
-
-*In order to join the blockchain network, you will need a publicly accessible IP address. As Zilliqa does not support UPnP at the moment, you will need to do port forwarding if you are behind a NAT. For configuration of port forwarding, please refer to your router/gateway manual.  
 
 ## Dependencies
 To compile and run the Zilliqa codebase, you will need the following dependencies to be installed on your machine:
-* Boost 
-* OpenSSL
-* Jsoncpp
-* Leveldb
-* Cmake
+* `Boost` 
+* `OpenSSL`
+* `Jsoncpp`
+* `Leveldb`
+* `Cmake`
+* `build-essential`
 
-For a debian-based system, you can use the following command to install the dependencies:  
-`sudo apt-get install libboost-all-dev libssl-dev libleveldb-dev libjsoncpp-dev cmake`
+For a _Debian_-based system, you can use the following command to install the dependencies:  
+```bash
+sudo apt-get install libboost-all-dev libssl-dev libleveldb-dev libjsoncpp-dev cmake build-essential
+```
 
 # Running Zilliqa locally (using 10 shard nodes and DS node locally)  
-Build Zilliqa from the source.  
+1. Build Zilliqa from the source.  
 ` ./build.sh`
 
-Run the local testnet script  
+2. Run the local testnet script  
 `./test/Node/test_node_simple.sh`  
 
-Logs of each node can be found at code/local_run
+3. Logs of each node can be found at `code/local_run`
+
+4. To terminate Zilliqa,   
+`pkill zilliqa` 
 
 ## Running a Zilliqa Node on the public testnet 
 Coming soon...
 
 ## For further enquiries
-If you have issues running a node, do join our Zilliqa channel and ask us questions there! Our Slack invite link is https://invite.zilliqa.com/. You can also submit your issue at our github repository https://github.com/Zilliqa/zilliqa/issues 
+If you have issues running a node, please feel free to join our [Slack](https://invite.zilliqa.com/) and ask questions. You can also submit your issue at our [Github repository](https://github.com/Zilliqa/zilliqa/issues)
 
 ## Licence 
-You can view our licence at https://github.com/Zilliqa/zilliqa/blob/master/LICENSE
+You can view our [licence here](https://github.com/Zilliqa/zilliqa/blob/master/LICENSE).
 
