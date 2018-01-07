@@ -45,7 +45,7 @@ class Mediator;
 class DirectoryService : public Executable, public Broadcastable
 {
 #ifdef STAT_TEST
-    timespec m_timespec;
+    std::chrono::system_clock::time_point m_timespec;
 #endif // STAT_TEST
 
     enum Action
