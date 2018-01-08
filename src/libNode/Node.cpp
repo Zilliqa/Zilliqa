@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2018 Zilliqa 
+* Copyright (c) 2017 Zilliqa 
 * This source code is being disclosed to you solely for the purpose of your participation in 
 * testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to 
 * the protocols and algorithms that are programmed into, and intended by, the code. You may 
@@ -99,6 +99,10 @@ bool Node::CheckState(Action action)
                     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Error: Doing STARTPOW1 but already in TX_SUBMISSION");
                     result = false;
                     break;
+                case TX_SUBMISSION_BUFFER:
+                    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Error: Doing STARTPOW1 but already in TX_SUBMISSION_BUFFER");
+                    result = false;
+                    break;
                 case MICROBLOCK_CONSENSUS_PREP:
                     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Error: Doing STARTPOW1 but already in MICROBLOCK_CONSENSUS_PREP");
                     result = false;
@@ -129,6 +133,10 @@ bool Node::CheckState(Action action)
                     break;
                 case TX_SUBMISSION:
                     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Error: Doing STARTPOW2 but already in TX_SUBMISSION");
+                    result = false;
+                    break;
+                case TX_SUBMISSION_BUFFER:
+                    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Error: Doing STARTPOW2 but already in TX_SUBMISSION_BUFFER");
                     result = false;
                     break;
                 case MICROBLOCK_CONSENSUS_PREP:
@@ -162,6 +170,8 @@ bool Node::CheckState(Action action)
                     result = false;
                     break;
                 case TX_SUBMISSION:
+                    break;
+                case TX_SUBMISSION_BUFFER:
                     break;
                 case MICROBLOCK_CONSENSUS_PREP:
                     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Error: Doing PROCESS_SHARDING but already in MICROBLOCK_CONSENSUS_PREP");
@@ -197,6 +207,10 @@ bool Node::CheckState(Action action)
                     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Error: Doing PROCESS_MICROBLOCKCONSENSUS but already in TX_SUBMISSION");
                     result = false;
                     break;
+                case TX_SUBMISSION_BUFFER:
+                    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Error: Doing PROCESS_MICROBLOCKCONSENSUS but already in TX_SUBMISSION_BUFFER");
+                    result = false;
+                    break;
                 case MICROBLOCK_CONSENSUS_PREP:
                     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Error: Doing PROCESS_MICROBLOCKCONSENSUS but already in MICROBLOCK_CONSENSUS_PREP");
                     result = false;
@@ -227,6 +241,10 @@ bool Node::CheckState(Action action)
                     break;
                 case TX_SUBMISSION:
                     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Error: Doing WAITING_FINALBLOCK but already in TX_SUBMISSION");
+                    result = false;
+                    break;
+                case TX_SUBMISSION_BUFFER:
+                    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Error: Doing WAITING_FINALBLOCK but already in TX_SUBMISSION_BUFFER");
                     result = false;
                     break;
                 case MICROBLOCK_CONSENSUS_PREP:
@@ -444,8 +462,6 @@ bool Node::ProcessCreateTransaction(const vector<unsigned char> & message, unsig
 
     lock_guard<mutex> g(m_mutexCreatedTransactions);
 
-    Transaction txn(version, nonce, toAddr, fromAddr, amount, signature);
-
     // if(!CheckCreatedTransaction(txn))
     // {
     //     return false;
@@ -454,6 +470,9 @@ bool Node::ProcessCreateTransaction(const vector<unsigned char> & message, unsig
     //TODO: Remove this before production. This is to reduce time spent on aws testnet. 
     for (unsigned i=0; i < 10000; i++)
     {
+        Transaction txn(version, nonce, toAddr, fromAddr, amount, signature);
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                     "Created txns: " << txn.GetTranID())
         m_createdTransactions.push_back(txn);
         nonce++;
         amount++;
@@ -478,25 +497,26 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char> & message, unsig
         return false;
     }
 
-    if (m_state == MICROBLOCK_CONSENSUS_PREP)
+    while (m_state != TX_SUBMISSION && m_state != TX_SUBMISSION_BUFFER)
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
                      "microblock consensus. sleep and dont process submitted txn till end of consensus")
-        this_thread::sleep_for(chrono::milliseconds(rand() % RECVTXNDELAY_MILLISECONDS));
+        this_thread::sleep_for(chrono::milliseconds(200));
     }
-    else
-    {
-        boost::multiprecision::uint256_t blockNum = (uint256_t) m_mediator.m_currentEpochNum;
-        unsigned int cur_offset = offset;
-        const auto & submittedTransaction = Transaction(message, cur_offset);
-        // if(CheckCreatedTransaction(submittedTransaction))
-        // {
-            lock_guard<mutex> g(m_mutexReceivedTransactions);
-            auto & receivedTransactions = m_receivedTransactions[blockNum];
-            receivedTransactions.insert(make_pair(submittedTransaction.GetTranID(), 
-                                                  submittedTransaction));
-        // }
-    }
+ 
+    boost::multiprecision::uint256_t blockNum = (uint256_t) m_mediator.m_currentEpochNum;
+    unsigned int cur_offset = offset;
+    const auto & submittedTransaction = Transaction(message, cur_offset);
+    // if(CheckCreatedTransaction(submittedTransaction))
+    // {
+        lock_guard<mutex> g(m_mutexReceivedTransactions);
+        auto & receivedTransactions = m_receivedTransactions[blockNum];
+        receivedTransactions.insert(make_pair(submittedTransaction.GetTranID(), 
+                                              submittedTransaction));
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                     "Received txn: " << submittedTransaction.GetTranID())
+    // }
+    
 #endif // IS_LOOKUP_NODE
     return true;
 }
@@ -550,7 +570,9 @@ void Node::SubmitTransactions()
     if (m_consensusMyID >= lower_id_limit && m_consensusMyID <= upper_id_limit)
     {
         boost::multiprecision::uint256_t blockNum = (uint256_t) m_mediator.m_currentEpochNum;
-        while (true)
+        while (true && txn_sent_count < 500) 
+        // TODO: remove the condition on txn_sent_count -- temporary hack to artificially limit number of
+        // txns needed to be shared within shard members so that it completes in the time limit    
         {
             shared_lock<shared_timed_mutex> lock(m_mutexProducerConsumer);
             if(m_state != TX_SUBMISSION)
@@ -578,7 +600,10 @@ void Node::SubmitTransactions()
                                                      NodeInstructionType::SUBMITTRANSACTION };
                 t.Serialize(tx_message, MessageOffset::BODY);
                 P2PComm::GetInstance().SendMessage(m_myShardMembersNetworkInfo, tx_message);
-                
+
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                             "Sent txn: " << t.GetTranID())
+
                 lock_guard<mutex> g(m_mutexSubmittedTransactions);
                 auto & submittedTransactions = m_submittedTransactions[blockNum];
                 submittedTransactions.insert(make_pair(t.GetTranID(), t));

@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2018 Zilliqa 
+* Copyright (c) 2017 Zilliqa 
 * This source code is being disclosed to you solely for the purpose of your participation in 
 * testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to 
 * the protocols and algorithms that are programmed into, and intended by, the code. You may 
@@ -480,6 +480,7 @@ bool Node::ActOnFinalBlock(uint8_t tx_sharing_mode, const vector<Peer> & nodes)
 
         if(sendingAssignment.size() > 0)
         {
+            // TODO: remove the comment, commenting for easier debugging
             BroadcastTransactionsToSendingAssignment(blocknum, sendingAssignment, 
                                                      m_microblock->GetHeader().GetTxRootHash(),
                                                      txns_to_send);
@@ -519,6 +520,7 @@ bool Node::ActOnFinalBlock(uint8_t tx_sharing_mode, vector<Peer> sendingAssignme
 
             if(sendingAssignment.size() > 0)
             {
+                // TODO: remove the comment, commenting for easier debugging
                 BroadcastTransactionsToSendingAssignment(blocknum, sendingAssignment, 
                                                          m_microblock->GetHeader().GetTxRootHash(),
                                                          txns_to_send);
@@ -558,12 +560,13 @@ void Node::InitiatePoW1()
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Soln to pow1 found ");
 }
 
-void Node::BeginNextConsensusRound()
+void Node::UpdateStateForNextConsensusRound()
 {
     // Set state to tx submission
     if (m_isPrimary == true)
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "MS: I am no longer the shard leader ");
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                     "MS: I am no longer the shard leader ");
         m_isPrimary = false;
     }
 
@@ -572,26 +575,55 @@ void Node::BeginNextConsensusRound()
 
     if (m_consensusMyID == m_consensusLeaderID)
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "MS: I am the new shard leader ");
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                     "MS: I am the new shard leader ");
         m_isPrimary = true; 
     }
     else
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "MS: The new shard leader is m_consensusMyID " << m_consensusLeaderID);
-
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                     "MS: The new shard leader is m_consensusMyID " << m_consensusLeaderID);
     }
     
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "MS: Next non-ds epoch begins");
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                 "MS: Next non-ds epoch begins");
 
     SetState(TX_SUBMISSION);
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "[No PoW needed] MS: Start submit txn stage again.");
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                 "[No PoW needed] MS: Start submit txn stage again.");
+}
 
+void Node::ScheduleTxnSubmission()
+{
     auto main_func = [this]() mutable -> void { SubmitTransactions(); };
-    auto expiry_func = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
+    DetachedFunction(1, main_func);
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Waiting " << SUBMIT_TX_WINDOW<< " seconds, accepting Tx submissions for epoch " << m_mediator.m_currentEpochNum);
-    TimeLockedFunction tlf(SUBMIT_TX_WINDOW, main_func, expiry_func, true);
+    LOG_MESSAGE("I am going to sleep for " << SUBMIT_TX_WINDOW << " seconds");
+    this_thread::sleep_for(chrono::seconds(SUBMIT_TX_WINDOW));
+    LOG_MESSAGE("I have woken up from the sleep of " << SUBMIT_TX_WINDOW << " seconds");
 
+    auto main_func2 = [this]() mutable -> void { 
+        unique_lock<shared_timed_mutex> lock(m_mutexProducerConsumer);
+        SetState(TX_SUBMISSION_BUFFER); 
+    };   
+    DetachedFunction(1, main_func2); 
+}
+
+void Node::ScheduleMicroBlockConsensus()
+{
+    LOG_MESSAGE("I am going to sleep for " << SUBMIT_TX_WINDOW_EXTENDED << " seconds");
+    this_thread::sleep_for(chrono::seconds(SUBMIT_TX_WINDOW_EXTENDED));
+    LOG_MESSAGE("I have woken up from the sleep of " << SUBMIT_TX_WINDOW_EXTENDED << " seconds");
+
+    auto main_func3 = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
+    DetachedFunction(1, main_func3);
+}
+
+void Node::BeginNextConsensusRound()
+{
+    UpdateStateForNextConsensusRound();
+    ScheduleTxnSubmission();
+    ScheduleMicroBlockConsensus();
 }
 
 void Node::LoadTxnSharingInfo(const vector<unsigned char> & message, unsigned int & cur_offset,
@@ -906,7 +938,8 @@ bool Node::ProcessFinalBlock(const vector<unsigned char> & message, unsigned int
     }
     else
     {
-        BeginNextConsensusRound();
+        auto main_func = [this]() mutable -> void { BeginNextConsensusRound(); };
+        DetachedFunction(1, main_func);
     }
 
     bool i_am_sender = false;

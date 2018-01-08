@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2018 Zilliqa 
+* Copyright (c) 2017 Zilliqa 
 * This source code is being disclosed to you solely for the purpose of your participation in 
 * testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to 
 * the protocols and algorithms that are programmed into, and intended by, the code. You may 
@@ -93,7 +93,7 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char> & message, uns
     const unsigned int sleep_time_while_waiting = 100;
 
     // Wait for a while in the case that primary sent announcement pretty early
-    if ((m_state == TX_SUBMISSION) || (m_state == MICROBLOCK_CONSENSUS_PREP))
+    if ((m_state == TX_SUBMISSION) || (m_state == TX_SUBMISSION_BUFFER) || (m_state == MICROBLOCK_CONSENSUS_PREP))
     {
         unsigned int time_pass = 0;
         while (m_state != MICROBLOCK_CONSENSUS)
@@ -364,6 +364,8 @@ bool Node::CheckLegitimacyOfTxnHashes()
         // Check if transaction is part of received Tx list
         if(receivedTransactions.find(hash) == receivedTransactions.end())
         {
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                         "Missing txn: " << hash)
             return false;
         }
     }
