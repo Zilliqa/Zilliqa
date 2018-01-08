@@ -43,5 +43,8 @@ endif()
 FIND_PACKAGE(Boost 1.33 REQUIRED COMPONENTS filesystem system unit_test_framework)
 INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS})
 
+FIND_PACKAGE(OpenSSL REQUIRED)
+INCLUDE_DIRECTORIES(${OPENSSL_INCLUDE_DIR})
+
 add_subdirectory (src)
 add_subdirectory (tests)
