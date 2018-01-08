@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2018 Zilliqa 
+* Copyright (c) 2017 Zilliqa 
 * This source code is being disclosed to you solely for the purpose of your participation in 
 * testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to 
 * the protocols and algorithms that are programmed into, and intended by, the code. You may 
@@ -23,6 +23,8 @@
 #include <memory>
 #include <functional>
 #include <chrono>
+
+#include "libUtils/Logger.h"
 
 using namespace std;
 
@@ -70,7 +72,9 @@ public:
         {
             try
             {
+                LOG_MESSAGE("I am going to sleep for " + to_string(expiration_in_seconds) + " seconds");
                 this_thread::sleep_for(chrono::seconds(expiration_in_seconds));
+                LOG_MESSAGE("I have woken up from the sleep of " + to_string(expiration_in_seconds) + " seconds");
                 result_promise->set_value(-1);
                 task_expiry();
             }
