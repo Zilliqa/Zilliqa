@@ -480,7 +480,6 @@ bool Node::ActOnFinalBlock(uint8_t tx_sharing_mode, const vector<Peer> & nodes)
 
         if(sendingAssignment.size() > 0)
         {
-            // TODO: remove the comment, commenting for easier debugging
             BroadcastTransactionsToSendingAssignment(blocknum, sendingAssignment, 
                                                      m_microblock->GetHeader().GetTxRootHash(),
                                                      txns_to_send);
@@ -520,7 +519,6 @@ bool Node::ActOnFinalBlock(uint8_t tx_sharing_mode, vector<Peer> sendingAssignme
 
             if(sendingAssignment.size() > 0)
             {
-                // TODO: remove the comment, commenting for easier debugging
                 BroadcastTransactionsToSendingAssignment(blocknum, sendingAssignment, 
                                                          m_microblock->GetHeader().GetTxRootHash(),
                                                          txns_to_send);
