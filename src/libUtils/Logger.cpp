@@ -97,18 +97,19 @@ void Logger::LogMessage(const char * msg, const char * function)
 
     auto clockNow = std::chrono::system_clock::now();
     std::time_t curTime = std::chrono::system_clock::to_time_t(clockNow);
+    auto gmtTime = gmtime(&curTime);
 
     lock_guard<mutex> guard(m);
 
     if (log_to_file)
     {
         checkLog();
-        logfile << "[TID " << PAD(tid, TID_LEN) << "][" << PAD(std::ctime(&curTime), TID_LEN) 
+        logfile << "[TID " << PAD(tid, TID_LEN) << "][" << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) 
                 << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg << endl << flush;
     }
     else
     {
-        cout << "[TID " << PAD(tid, TID_LEN) << "][" << PAD(std::ctime(&curTime), TID_LEN) << "][" 
+        cout << "[TID " << PAD(tid, TID_LEN) << "][" << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "][" 
              << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg << endl << flush;
     }
 }
@@ -119,19 +120,20 @@ void Logger::LogMessage(const char * msg, const char * function, const char * ep
 
     auto clockNow = std::chrono::system_clock::now();
     std::time_t curTime = std::chrono::system_clock::to_time_t(clockNow);
+    auto gmtTime = gmtime(&curTime);
 
     lock_guard<mutex> guard(m);
 
     if (log_to_file)
     {
         checkLog();
-        logfile << "[TID " << PAD(tid, TID_LEN) << "][" << PAD(std::ctime(&curTime), TID_LEN) 
+        logfile << "[TID " << PAD(tid, TID_LEN) << "][" << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN)
                 << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "]" << "[Epoch " << epoch << "] " 
                 << msg << endl << flush;
     }
     else
     {
-        cout << "[TID " << PAD(tid, TID_LEN) << "][" << PAD(std::ctime(&curTime), TID_LEN)
+        cout << "[TID " << PAD(tid, TID_LEN) << "][" << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN)
              << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "]" << "[Epoch " << epoch << "] " 
              << msg << endl << flush;
     }
@@ -173,7 +175,8 @@ void Logger::LogMessageAndPayload(const char * msg, const vector<unsigned char> 
     payload_string.get()[payload_string_len-1] = '\0';
 
     auto clockNow = std::chrono::system_clock::now();
-    std::time_t curTime = std::chrono::system_clock::to_time_t(clockNow);    
+    std::time_t curTime = std::chrono::system_clock::to_time_t(clockNow); 
+    auto gmtTime = gmtime(&curTime);   
 
     lock_guard<mutex> guard(m);
 
@@ -183,14 +186,14 @@ void Logger::LogMessageAndPayload(const char * msg, const vector<unsigned char> 
 
         if (payload.size() > max_bytes_to_display)
         {
-            logfile << "[TID " << PAD(tid, TID_LEN) << "][" << PAD(std::ctime(&curTime), TID_LEN)
+            logfile << "[TID " << PAD(tid, TID_LEN) << "][" << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN)
                     << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg 
                     << " (Len=" << payload.size() << "): " << payload_string.get() << "..." 
                     << endl << flush;
         }
         else
         {
-            logfile << "[TID " << PAD(tid, TID_LEN) << "][" << PAD(std::ctime(&curTime), TID_LEN)
+            logfile << "[TID " << PAD(tid, TID_LEN) << "][" << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN)
                     << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg 
                     << " (Len=" << payload.size() << "): " << payload_string.get() << endl << flush;
         }
@@ -199,14 +202,14 @@ void Logger::LogMessageAndPayload(const char * msg, const vector<unsigned char> 
     {
         if (payload.size() > max_bytes_to_display)
         {
-            cout << "[TID " << PAD(tid, TID_LEN) << "][" << PAD(std::ctime(&curTime), TID_LEN) 
+            cout << "[TID " << PAD(tid, TID_LEN) << "][" << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN)
                  << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg 
                  << " (Len=" << payload.size() << "): " << payload_string.get() << "..." 
                  << endl << flush;
         }
         else
         {
-            cout << "[TID " << PAD(tid, TID_LEN) << "][" << PAD(std::ctime(&curTime), TID_LEN) 
+            cout << "[TID " << PAD(tid, TID_LEN) << "][" << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN)
                  << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg << " (Len=" 
                  << payload.size() << "): " << payload_string.get() << endl << flush;
         }

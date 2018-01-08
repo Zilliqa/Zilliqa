@@ -55,6 +55,9 @@ public:
     /// Limits the number of digits of the current thread ID to display.
     static const size_t TID_LEN = 5;
 
+    /// Limits the number of digits of the current time to display.
+    static const size_t TIME_LEN = 5;
+
     /// Limits the output file size before rolling over to new output file.
     static const std::streampos MAX_FILE_SIZE;
 
