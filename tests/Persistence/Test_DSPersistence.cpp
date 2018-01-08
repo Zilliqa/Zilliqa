@@ -281,7 +281,7 @@ BOOST_AUTO_TEST_CASE (testThreadSafety)
 
     LOG_MARKER();
 
-    int num_threads = 20;
+    const int num_threads = 20;
 
     bootstrap(num_threads);
 
