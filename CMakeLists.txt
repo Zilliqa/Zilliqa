@@ -31,5 +31,13 @@ if(NOT IS_LOOKUP_NODE)
     endif()
 endif()
 
+if(NOT WIN32)
+    SET( LevelDB_LIBRARIES leveldb )
+endif()
+if(WIN32)
+    FIND_LIBRARY( LevelDB_LIBRARY libleveldb )
+    SET( LevelDB_LIBRARIES ${LevelDB_LIBRARY} shlwapi )
+endif()
+
 add_subdirectory (src)
 add_subdirectory (tests)
