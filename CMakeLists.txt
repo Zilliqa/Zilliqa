@@ -39,5 +39,9 @@ if(WIN32)
     SET( LevelDB_LIBRARIES ${LevelDB_LIBRARY} shlwapi )
 endif()
 
+# Dependencies
+FIND_PACKAGE(Boost 1.33 REQUIRED COMPONENTS filesystem system unit_test_framework)
+INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS})
+
 add_subdirectory (src)
 add_subdirectory (tests)
