@@ -71,7 +71,7 @@ int main()
 
 
     struct in_addr ip_addr;
-    inet_aton("54.169.197.255", &ip_addr);
+    inet_pton(AF_INET, "54.169.197.255", &ip_addr);
 
     uint128_t ipaddr_big = ip_addr.s_addr;
     uint32_t ipaddr_normal = ip_addr.s_addr;

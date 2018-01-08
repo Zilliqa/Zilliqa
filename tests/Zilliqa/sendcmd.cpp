@@ -45,7 +45,7 @@ void process_addpeers(int numargs, const char * progname, const char * cmdname, 
     else
     {
         struct in_addr ip_addr;
-        inet_aton("127.0.0.1", &ip_addr);
+        inet_pton(AF_INET, "127.0.0.1", &ip_addr);
         Peer my_port(uint128_t(ip_addr.s_addr), listen_port);
 
         for (int i = 0; i < numargs; )
@@ -67,7 +67,7 @@ void process_addpeers(int numargs, const char * progname, const char * cmdname, 
             copy(tmp.begin(), tmp.end(), addnode_message.begin() + MessageOffset::BODY);
 
             // IP address
-            inet_aton(args[i++], &ip_addr);
+            inet_pton(AF_INET, args[i++], &ip_addr);
             uint128_t tmp2 = ip_addr.s_addr;
             Serializable::SetNumber<uint128_t>(addnode_message, MessageOffset::BODY + PUB_KEY_SIZE, tmp2, UINT128_SIZE);
 
@@ -91,7 +91,7 @@ void process_broadcast(int numargs, const char * progname, const char * cmdname,
     else
     {
         struct in_addr ip_addr;
-        inet_aton("127.0.0.1", &ip_addr);
+        inet_pton(AF_INET, "127.0.0.1", &ip_addr);
         Peer my_port((uint128_t)ip_addr.s_addr, listen_port);
 
         unsigned int numbytes = static_cast<unsigned int>(atoi(args[0]));
@@ -116,7 +116,7 @@ void process_cmd(int numargs, const char * progname, const char * cmdname, uint3
     else
     {
         struct in_addr ip_addr;
-        inet_aton("127.0.0.1", &ip_addr);
+        inet_pton(AF_INET, "127.0.0.1", &ip_addr);
         Peer my_port((uint128_t)ip_addr.s_addr, listen_port);
 
         // Send the generic message to the local node

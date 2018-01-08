@@ -71,7 +71,7 @@ void Lookup::SetLookupNodes()
         if (v.first == "peer")
         {
             struct in_addr ip_addr;
-            inet_aton(v.second.get<string>("ip").c_str(), &ip_addr);
+            inet_pton(AF_INET, v.second.get<string>("ip").c_str(), &ip_addr);
             Peer lookup_node((uint128_t)ip_addr.s_addr, v.second.get<uint32_t>("port"));
             m_lookupNodes.push_back(lookup_node);
         }

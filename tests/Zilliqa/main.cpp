@@ -88,7 +88,7 @@ int main(int argc, const char * argv[])
         PubKey pubkey(tmppubkey, 0);
 
         struct in_addr ip_addr;
-        inet_aton(argv[3], &ip_addr);
+        inet_pton(AF_INET, argv[3], &ip_addr);
         Peer my_port((uint128_t)ip_addr.s_addr, static_cast<unsigned int>(atoi(argv[4])));
 
         Zilliqa zilliqa(make_pair(privkey, pubkey), my_port, atoi(argv[5]) == 1);

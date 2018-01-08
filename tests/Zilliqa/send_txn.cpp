@@ -43,7 +43,7 @@ int main(int argc, const char * argv[])
 
     uint32_t listen_port = static_cast<unsigned int>(atoi(argv[1])); 
     struct in_addr ip_addr;
-    inet_aton("127.0.0.1", &ip_addr);
+    inet_pton(AF_INET, "127.0.0.1", &ip_addr);
     Peer my_port((uint128_t)ip_addr.s_addr, listen_port);
 
     // Send the generic message to the local node
