@@ -24,6 +24,8 @@
 #include <functional>
 #include <chrono>
 
+#include "libUtils/Logger.h"
+
 using namespace std;
 
 /// Utility class for executing a primary function and a subsequent expiry function in separate join-able threads.
@@ -70,7 +72,9 @@ public:
         {
             try
             {
+                LOG_MESSAGE("I am going to sleep for " + to_string(expiration_in_seconds) + " seconds");
                 this_thread::sleep_for(chrono::seconds(expiration_in_seconds));
+                LOG_MESSAGE("I have woken up from the sleep of " + to_string(expiration_in_seconds) + " seconds");
                 result_promise->set_value(-1);
                 task_expiry();
             }
