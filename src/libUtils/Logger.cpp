@@ -73,7 +73,7 @@ void Logger::newLog()
 
     // Filename = fname_prefix + 5-digit sequence number + "-log.txt"
     char buf[16] = {0};
-    sprintf(buf, "-%05d-log.txt", seqnum);
+    snprintf(buf, sizeof(buf), "-%05d-log.txt", seqnum);
     fname = fname_prefix + buf;
     logfile.open(fname.c_str(), ios_base::app);
 }
