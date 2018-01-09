@@ -30,12 +30,12 @@ TxnHash ComputeTransactionsRoot
     transactionsTrie.init();
 
     int txnCount = 0;
-    dev::RLPStream k;
     for(auto it = transactionHashes.begin(); it != transactionHashes.end(); it++)
     {
         std::vector<unsigned char> serializedTxn;
         serializedTxn.resize(TRAN_HASH_SIZE);
         copy(it->asArray().begin(), it->asArray().end(), serializedTxn.begin());
+        dev::RLPStream k;
         k << txnCount;
         txnCount++;
         transactionsTrie.insert(&k.out(), serializedTxn);
@@ -59,13 +59,13 @@ TxnHash ComputeTransactionsRoot
     transactionsTrie.init();
 
     int txnCount = 0;
-    dev::RLPStream k;
     for(auto it = receivedTransactions.begin(); it != receivedTransactions.end(); it++)
     {
         std::vector<unsigned char> serializedTxn;
         serializedTxn.resize(TRAN_HASH_SIZE);
         copy(it->GetTranID().begin(), it->GetTranID().end(), serializedTxn.begin());
 
+        dev::RLPStream k;
         k << txnCount;
         txnCount++;
 
@@ -78,6 +78,7 @@ TxnHash ComputeTransactionsRoot
         serializedTxn.resize(TRAN_HASH_SIZE);
         copy(it->GetTranID().begin(), it->GetTranID().end(), serializedTxn.begin());
 
+        dev::RLPStream k;
         k << txnCount;
         txnCount++;
 
@@ -103,13 +104,13 @@ TxnHash ComputeTransactionsRoot
     transactionsTrie.init();
 
     int txnCount = 0;
-    dev::RLPStream k;
     for(auto & it : receivedTransactions)
     {
         std::vector<unsigned char> serializedTxn;
         serializedTxn.resize(TRAN_HASH_SIZE);
         copy(it.first.begin(), it.first.end(), serializedTxn.begin());
 
+        dev::RLPStream k;
         k << txnCount;
         txnCount++;
 
@@ -122,6 +123,7 @@ TxnHash ComputeTransactionsRoot
         serializedTxn.resize(TRAN_HASH_SIZE);
         copy(it.first.begin(), it.first.end(), serializedTxn.begin());
 
+        dev::RLPStream k;
         k << txnCount;
         txnCount++;
 
