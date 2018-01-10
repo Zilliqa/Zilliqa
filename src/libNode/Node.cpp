@@ -500,7 +500,7 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char> & message, unsig
     while (m_state != TX_SUBMISSION && m_state != TX_SUBMISSION_BUFFER)
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
-                     "microblock consensus. sleep and dont process submitted txn till end of consensus")
+                     "Not in ProcessSubmitTxn state -- waiting!")
         this_thread::sleep_for(chrono::milliseconds(200));
     }
  
