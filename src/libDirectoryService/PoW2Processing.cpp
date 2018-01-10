@@ -167,7 +167,8 @@ bool DirectoryService::ProcessPoW2Submission(const vector<unsigned char> & messa
     LOG_MARKER();
     shared_lock<shared_timed_mutex> lock(m_mutexProducerConsumer);
     unsigned int sleep_time_while_waiting = 100; 
-    if (m_state == DSBLOCK_CONSENSUS)
+    if (m_state == DSBLOCK_CONSENSUS || 
+        (m_state != POW2_SUBMISSION && m_mode == Mode::IDLE && m_mediator.m_node->m_state == Node::POW2_SUBMISSION))
     {
         for (unsigned int i = 0; i < POW_SUB_BUFFER_TIME; i++)
         {

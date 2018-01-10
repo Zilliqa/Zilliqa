@@ -885,8 +885,22 @@ bool Node::ProcessFinalBlock(const vector<unsigned char> & message, unsigned int
     LOG_MARKER();
 
 #ifndef IS_LOOKUP_NODE
+    if(m_state == MICROBLOCK_CONSENSUS)
+    {
+        unsigned int time_pass = 0;
+        while(m_state != PROCESS_FINALBLOCK)
+        {
+            time_pass++;
+            if (time_pass % 10)
+            {
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), string("Waiting ") +
+                             "for state change from MICROBLOCK_CONSENSUS to PROCESS_FINALBLOCK");
+            }
+            this_thread::sleep_for(chrono::milliseconds(100));
+        }
+    }
     // Checks if (m_state != WAITING_FINALBLOCK)
-    if (!CheckState(PROCESS_FINALBLOCK))
+    else if (!CheckState(PROCESS_FINALBLOCK))
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
                      "Too late - current state is " << m_state << ".");

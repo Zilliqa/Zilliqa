@@ -90,7 +90,7 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char> & message, uns
     // In that case, ANNOUNCE will sleep for a second below
     // If COLLECTIVESIG also comes in, it's then possible COLLECTIVESIG will be processed before ANNOUNCE!
     // So, ANNOUNCE should acquire a lock here
-    const unsigned int sleep_time_while_waiting = 100;
+    const unsigned int sleep_time_while_waiting = 500;
 
     // Wait for a while in the case that primary sent announcement pretty early
     if ((m_state == TX_SUBMISSION) || (m_state == TX_SUBMISSION_BUFFER) || (m_state == MICROBLOCK_CONSENSUS_PREP))
