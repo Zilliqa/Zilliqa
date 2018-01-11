@@ -167,11 +167,17 @@ bool ConsensusBackup::CheckState(Action action)
                     break;
                 case COMMIT_DONE:
                     LOG_MESSAGE("Error: Processing finalcollectivesig but response not yet done");
-                    result = false;
+                    // TODO: check this logic again. 
+                    // Issue #43
+                    // Node cannot proceed if finalcollectivesig arrive earler (and get ignore by the node)
+                    //result = false; 
                     break;
                 case RESPONSE_DONE:
                     LOG_MESSAGE("Error: Processing finalcollectivesig but finalcommit not yet done");
-                    result = false;
+                    // TODO: check this logic again. 
+                    // Issue #43
+                    // Node cannot proceed if finalcollectivesig arrive earler (and get ignore by the node)
+                    //result = false;
                     break;
                 case FINALCOMMIT_DONE:
                     break;
