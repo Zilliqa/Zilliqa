@@ -40,15 +40,16 @@ TxBlockHeader::TxBlockHeader
     const uint256_t & blockNum,
     const uint256_t & timestamp,
     const TxnHash & txRootHash,
+    const StateHash & stateRootHash,
     uint32_t numTxs,
     uint32_t numMicroBlockHashes,
     const PubKey & minerPubKey,
     const uint256_t & dsBlockNum,
     const BlockHash & dsBlockHeader
 ) : m_type(type), m_version(version), m_gasLimit(gasLimit), m_gasUsed(gasUsed), m_prevHash(prevHash), 
-    m_blockNum(blockNum), m_timestamp(timestamp), m_txRootHash(txRootHash), m_numTxs(numTxs), 
-    m_numMicroBlockHashes(numMicroBlockHashes), m_minerPubKey(minerPubKey), m_dsBlockNum(dsBlockNum), 
-    m_dsBlockHeader(dsBlockHeader)
+    m_blockNum(blockNum), m_timestamp(timestamp), m_txRootHash(txRootHash), 
+    m_stateRootHash(stateRootHash), m_numTxs(numTxs), m_numMicroBlockHashes(numMicroBlockHashes), 
+    m_minerPubKey(minerPubKey), m_dsBlockNum(dsBlockNum), m_dsBlockHeader(dsBlockHeader)
 {
 }
 
@@ -58,8 +59,8 @@ unsigned int TxBlockHeader::Serialize(vector<unsigned char> & dst, unsigned int 
 
     unsigned int size_needed = sizeof(uint8_t) + sizeof(uint32_t) + UINT256_SIZE + UINT256_SIZE + 
                                BLOCK_HASH_SIZE + UINT256_SIZE + UINT256_SIZE + TRAN_HASH_SIZE + 
-                               sizeof(uint32_t) + sizeof(uint32_t) + PUB_KEY_SIZE + UINT256_SIZE + 
-                               BLOCK_HASH_SIZE;
+                               TRAN_HASH_SIZE + sizeof(uint32_t) + sizeof(uint32_t) + PUB_KEY_SIZE +
+                               UINT256_SIZE + BLOCK_HASH_SIZE;
     unsigned int size_remaining = dst.size() - offset;
 
     if (size_remaining < size_needed)
@@ -84,6 +85,8 @@ unsigned int TxBlockHeader::Serialize(vector<unsigned char> & dst, unsigned int 
     SetNumber<uint256_t>(dst, curOffset, m_timestamp, UINT256_SIZE);
     curOffset += UINT256_SIZE;
     copy(m_txRootHash.asArray().begin(), m_txRootHash.asArray().end(), dst.begin() + curOffset);
+    curOffset += TRAN_HASH_SIZE;
+    copy(m_stateRootHash.asArray().begin(), m_stateRootHash.asArray().end(), dst.begin() + curOffset);
     curOffset += TRAN_HASH_SIZE;
     SetNumber<uint32_t>(dst, curOffset, m_numTxs, sizeof(uint32_t));
     curOffset += sizeof(uint32_t);
@@ -117,6 +120,8 @@ void TxBlockHeader::Deserialize(const vector<unsigned char> & src, unsigned int 
     m_timestamp = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
     curOffset += UINT256_SIZE;
     copy(src.begin() + curOffset, src.begin() + curOffset + TRAN_HASH_SIZE, m_txRootHash.asArray().begin());
+    curOffset += TRAN_HASH_SIZE;
+    copy(src.begin() + curOffset, src.begin() + curOffset + TRAN_HASH_SIZE, m_stateRootHash.asArray().begin());
     curOffset += TRAN_HASH_SIZE;
     m_numTxs = GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
     curOffset += sizeof(uint32_t);
@@ -169,6 +174,11 @@ const TxnHash & TxBlockHeader::GetTxRootHash() const
     return m_txRootHash;
 }
 
+const StateHash & TxBlockHeader::GetStateRootHash() const
+{   
+    return m_stateRootHash;
+}
+
 const uint32_t & TxBlockHeader::GetNumTxs()  const
 {
     return m_numTxs;
@@ -206,6 +216,7 @@ bool TxBlockHeader::operator==(const TxBlockHeader & header) const
                     (m_blockNum == header.m_blockNum) &&
                     (m_timestamp == header.m_timestamp) &&
                     (m_txRootHash == header.m_txRootHash) &&
+                    (m_stateRootHash == header.m_stateRootHash) &&
                     (m_numTxs == header.m_numTxs) &&
                     (m_numMicroBlockHashes == header.m_numMicroBlockHashes) &&
                     (m_minerPubKey == header.m_minerPubKey) &&
@@ -269,6 +280,14 @@ bool TxBlockHeader::operator<(const TxBlockHeader & header) const
         return true;
     }
     else if (m_txRootHash > header.m_txRootHash)
+    {
+        return false;
+    }
+    else if (m_stateRootHash < header.m_stateRootHash)
+    {
+        return true;
+    }
+    else if (m_stateRootHash > header.m_stateRootHash)
     {
         return false;
     }

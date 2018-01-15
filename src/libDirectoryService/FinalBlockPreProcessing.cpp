@@ -129,7 +129,7 @@ void DirectoryService::ComposeFinalBlockCore()
     m_finalBlock.reset(
         new TxBlock(
             TxBlockHeader(type, version, allGasLimit,
-                          allGasUsed, prevHash, blockNum, timestamp, microblockTrieRoot, numTxs,
+                          allGasUsed, prevHash, blockNum, timestamp, microblockTrieRoot, StateHash(), numTxs,
                           numMicroBlocks, m_mediator.m_selfKey.second, lastDSBlockNum, dsBlockHeader), 
             emptySig, 
             microBlockTxHashes
@@ -435,7 +435,9 @@ bool DirectoryService::CheckPreviousFinalBlockHash()
         sha2.Update(vec);
         vector<unsigned char> hashVec = sha2.Finalize();
         copy(hashVec.begin(), hashVec.end(), expectedPrevHash.asArray().begin());
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "i am here ::");
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                     "m_mediator.m_txBlockChain.GetLastBlock().GetHeader():" <<
+                     m_mediator.m_txBlockChain.GetLastBlock().GetHeader());
     }
     
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),

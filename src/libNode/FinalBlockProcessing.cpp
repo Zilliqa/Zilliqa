@@ -888,7 +888,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char> & message, unsigned int
     if(m_state == MICROBLOCK_CONSENSUS)
     {
         unsigned int time_pass = 0;
-        while(m_state != PROCESS_FINALBLOCK)
+        while(m_state != WAITING_FINALBLOCK)
         {
             time_pass++;
             if (time_pass % 10)
