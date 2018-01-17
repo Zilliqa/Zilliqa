@@ -16,6 +16,7 @@
 #ifndef __NODE_H__
 #define __NODE_H__
 
+#include <condition_variable>
 #include <deque>
 #include <list>
 #include <map>
@@ -93,10 +94,9 @@ class Node : public Executable, public Broadcastable
 
     // Consensus variables
     std::shared_ptr<ConsensusCommon> m_consensusObject;
-    uint32_t m_consensusID;
+    
     std::vector<unsigned char> m_consensusBlockHash;
     std::atomic<uint32_t> m_consensusMyID;
-    std::atomic<uint32_t> m_consensusLeaderID;
     std::shared_ptr<MicroBlock> m_microblock;
 
     const static uint32_t RECVTXNDELAY_MILLISECONDS = 3000;
@@ -120,10 +120,6 @@ class Node : public Executable, public Broadcastable
     std::unordered_map<boost::multiprecision::uint256_t, 
                        std::list<Transaction>> m_committedTransactions;
 
-    // Transaction body sharing variables
-    std::mutex m_mutexUnavailableMicroBlocks;
-    std::unordered_map<boost::multiprecision::uint256_t, 
-                       std::unordered_set<TxnHash>> m_unavailableMicroBlocks;
 
     std::mutex m_mutexForwardingAssignment;
     std::unordered_map<boost::multiprecision::uint256_t, std::vector<Peer>> m_forwardingAssignment;
@@ -182,9 +178,13 @@ class Node : public Executable, public Broadcastable
                                                   vector<Transaction> & txns_to_send) const;
     void LoadUnavailableMicroBlockTxRootHashes(const TxBlock & finalblock, 
                                                const boost::multiprecision::uint256_t & blocknum);
+    bool CheckMicroBlockHash(const TxBlock & finalBlock, 
+                             const boost::multiprecision::uint256_t & blocknum);
     bool IsMicroBlockTxRootHashInFinalBlock(TxnHash microBlockHash,
-                                      const boost::multiprecision::uint256_t & blocknum);
-    bool IsMyShardsMicroBlockTxRootHashInFinalBlock(const boost::multiprecision::uint256_t & blocknum);
+                                            const boost::multiprecision::uint256_t & blocknum,
+                                            bool & isEveryMicroBlockAvailable);
+    bool IsMyShardsMicroBlockTxRootHashInFinalBlock(
+        const boost::multiprecision::uint256_t & blocknum, bool & isEveryMicroBlockAvailable);
     bool ReadAuxilliaryInfoFromFinalBlockMsg(const vector<unsigned char> & message, 
                                              unsigned int & cur_offset, uint8_t & shard_id);
     void StoreFinalBlock(const TxBlock & txBlock);
@@ -264,6 +264,19 @@ public:
         WAITING_FINALBLOCK,
         ERROR
     };
+
+    std::condition_variable m_cvAllMicroBlocksRecvd;
+    std::mutex m_mutexAllMicroBlocksRecvd;
+    bool m_allMicroBlocksRecvd = true;
+   
+    // Transaction body sharing variables
+    std::mutex m_mutexUnavailableMicroBlocks;
+    std::unordered_map<boost::multiprecision::uint256_t, 
+                       std::unordered_set<TxnHash>> m_unavailableMicroBlocks;
+
+    uint32_t m_consensusID;
+
+    std::atomic<uint32_t> m_consensusLeaderID;
 
     /// The current internal state of this Node instance.
     std::atomic<NodeState> m_state;

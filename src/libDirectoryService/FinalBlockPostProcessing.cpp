@@ -249,6 +249,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
 
             POW::GetInstance().EthashConfigureLightClient((uint64_t)m_mediator.m_dsBlockChain.GetBlockCount()); // hack hack hack -- typecasting
             m_consensusID = 0;
+            m_mediator.m_node->m_consensusID = 0;
+            m_mediator.m_node->m_consensusLeaderID = 0;
             if (m_mode == PRIMARY_DS)
             {
                 LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Waiting " << POW1_WINDOW_IN_SECONDS << " seconds, accepting PoW1 submissions...");
