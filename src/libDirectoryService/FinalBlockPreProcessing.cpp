@@ -141,11 +141,14 @@ void DirectoryService::ComposeFinalBlockCore()
     
     array<unsigned char, BLOCK_SIG_SIZE> emptySig = { 0 };
 
+    StateHash stateRoot = AccountStore::GetInstance().GetStateRootHash();
+
     m_finalBlock.reset(
         new TxBlock(
             TxBlockHeader(type, version, allGasLimit,
-                          allGasUsed, prevHash, blockNum, timestamp, microblockTrieRoot, StateHash(), numTxs,
-                          numMicroBlocks, m_mediator.m_selfKey.second, lastDSBlockNum, dsBlockHeader), 
+                          allGasUsed, prevHash, blockNum, timestamp, microblockTrieRoot, stateRoot, 
+                          numTxs, numMicroBlocks, m_mediator.m_selfKey.second, lastDSBlockNum, 
+                          dsBlockHeader), 
             emptySig, 
             microBlockTxHashes
         )
