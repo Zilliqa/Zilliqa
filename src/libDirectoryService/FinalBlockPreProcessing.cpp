@@ -50,6 +50,7 @@ void DirectoryService::ExtractDataFromMicroblocks
 ) const
 {
     unsigned int i = 1;
+    lock_guard<mutex> g(m_mediator.m_node->m_mutexUnavailableMicroBlocks);
     for (auto & microBlock : m_microBlocks)
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Micro block " << i << " has " <<
@@ -67,6 +68,20 @@ void DirectoryService::ExtractDataFromMicroblocks
         numTxs += microBlock.GetHeader().GetNumTxs();
 
         ++numMicroBlocks;
+      
+        auto blockNum = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
+        m_mediator.m_node->m_unavailableMicroBlocks[blockNum]
+                  .insert(microBlock.GetHeader().GetTxRootHash());
+
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "Added " << microBlock.GetHeader().GetTxRootHash() << " for unavailable" <<
+                     " MicroBlock " << blockNum);
+    }
+
+    if(m_microBlocks.size() > 0)
+    {
+        unique_lock<mutex> g(m_mediator.m_node->m_mutexAllMicroBlocksRecvd);
+        m_mediator.m_node->m_allMicroBlocksRecvd = false;
     }
 
     microblockTrieRoot = ComputeTransactionsRoot(microBlockTxHashes);
