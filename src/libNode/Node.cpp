@@ -49,8 +49,8 @@ using namespace boost::multiprecision;
 Node::Node(Mediator & mediator) : m_mediator(mediator)
 {
     // m_state = IDLE;
-    m_consensusID = 0;
-    m_consensusLeaderID = 0;
+    m_consensusID = 1;
+    m_consensusLeaderID = 1;
     m_synchronizer.InitializeGenesisBlocks(m_mediator.m_dsBlockChain, m_mediator.m_txBlockChain);
     m_mediator.m_currentEpochNum = (uint64_t) m_mediator.m_txBlockChain.GetBlockCount();
     m_mediator.UpdateDSBlockRand(true);

@@ -191,6 +191,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char> & message, unsigned int cu
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "I won PoW1 :-) I am now the new DS committee leader!");
         m_mediator.m_ds->m_consensusMyID = 0;
+        m_mediator.m_ds->m_consensusID = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
         m_mediator.m_ds->SetState(DirectoryService::DirState::POW2_SUBMISSION);
         m_mediator.m_ds->m_mode = DirectoryService::Mode::PRIMARY_DS;
 #ifdef STAT_TEST

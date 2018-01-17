@@ -183,36 +183,44 @@ void DirectoryService::AppendSharingSetupToFinalBlockMessage(vector<unsigned cha
 
     // PART 1
     // First version: We just take the first X nodes in DS committee
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "debug " << m_mediator.m_DSCommitteeNetworkInfo.size() << " " << TX_SHARING_CLUSTER_SIZE);
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                 "debug " << m_mediator.m_DSCommitteeNetworkInfo.size() << " " <<
+                 TX_SHARING_CLUSTER_SIZE);
 
-    uint32_t num_ds_nodes = (m_mediator.m_DSCommitteeNetworkInfo.size() < TX_SHARING_CLUSTER_SIZE) ? m_mediator.m_DSCommitteeNetworkInfo.size() : TX_SHARING_CLUSTER_SIZE;
+    uint32_t num_ds_nodes = (m_mediator.m_DSCommitteeNetworkInfo.size() < TX_SHARING_CLUSTER_SIZE) ?
+                            m_mediator.m_DSCommitteeNetworkInfo.size() : TX_SHARING_CLUSTER_SIZE;
     Serializable::SetNumber<uint32_t>(finalBlockMessage, curr_offset, num_ds_nodes, sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Forwarders inside the DS committee (" << num_ds_nodes << "):");
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                 "Forwarders inside the DS committee (" << num_ds_nodes << "):");
 
     for (unsigned int i = 0; i < m_consensusMyID; i++)
     {
         m_mediator.m_DSCommitteeNetworkInfo.at(i).Serialize(finalBlockMessage, curr_offset);
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "  IP: " << m_mediator.m_DSCommitteeNetworkInfo.at(i).GetPrintableIPAddress() << " Port: " << m_mediator.m_DSCommitteeNetworkInfo.at(i).m_listenPortHost);
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                     m_mediator.m_DSCommitteeNetworkInfo.at(i));
         curr_offset += IP_SIZE + PORT_SIZE;
     }
 
-    // when i == m_consensusMyID use m_mediator.m_selfPeer since IP/ port in m_mediator.m_DSCommitteeNetworkInfo.at(m_consensusMyID)
-    // is zeroed out
+    // when i == m_consensusMyID use m_mediator.m_selfPeer since IP/ port in
+    // m_mediator.m_DSCommitteeNetworkInfo.at(m_consensusMyID) is zeroed out
     m_mediator.m_selfPeer.Serialize(finalBlockMessage, curr_offset);
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "  IP: " << m_mediator.m_selfPeer.GetPrintableIPAddress() << " Port: " << m_mediator.m_selfPeer.m_listenPortHost);
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), m_mediator.m_selfPeer);
     curr_offset += IP_SIZE + PORT_SIZE;
 
     for (unsigned int i = m_consensusMyID + 1; i < num_ds_nodes; i++)
     {
         m_mediator.m_DSCommitteeNetworkInfo.at(i).Serialize(finalBlockMessage, curr_offset);
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "  IP: " << m_mediator.m_DSCommitteeNetworkInfo.at(i).GetPrintableIPAddress() << " Port: " << m_mediator.m_DSCommitteeNetworkInfo.at(i).m_listenPortHost);
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                     m_mediator.m_DSCommitteeNetworkInfo.at(i));
         curr_offset += IP_SIZE + PORT_SIZE;
     }
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Number of shards: " << m_shards.size());
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                 "Number of shards: " << m_shards.size());
 
-    Serializable::SetNumber<uint32_t>(finalBlockMessage, curr_offset, (uint32_t) m_shards.size(), sizeof(uint32_t));
+    Serializable::SetNumber<uint32_t>(finalBlockMessage, curr_offset, (uint32_t) m_shards.size(), 
+                                      sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
     // PART 2 and 3
@@ -221,7 +229,8 @@ void DirectoryService::AppendSharingSetupToFinalBlockMessage(vector<unsigned cha
     {
         const map<PubKey, Peer> & shard = m_shards.at(i);
 
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "  Shard " << i << " forwarders:");
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                     "Shard " << i << " forwarders:");
 
         // PART 2
         uint32_t nodes_recv_lo = 0;
@@ -233,7 +242,8 @@ void DirectoryService::AppendSharingSetupToFinalBlockMessage(vector<unsigned cha
 
         unsigned int num_nodes = nodes_recv_hi - nodes_recv_lo + 1;
 
-        Serializable::SetNumber<uint32_t>(finalBlockMessage, curr_offset, num_nodes, sizeof(uint32_t));
+        Serializable::SetNumber<uint32_t>(finalBlockMessage, curr_offset, num_nodes, 
+                                          sizeof(uint32_t));
         curr_offset += sizeof(uint32_t);
 
         map<PubKey, Peer>::const_iterator node_peer = shard.begin();
@@ -242,12 +252,12 @@ void DirectoryService::AppendSharingSetupToFinalBlockMessage(vector<unsigned cha
             node_peer->second.Serialize(finalBlockMessage, curr_offset);
             curr_offset += IP_SIZE + PORT_SIZE;
 
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "    IP: " << node_peer->second.GetPrintableIPAddress() << " Port: " << node_peer->second.m_listenPortHost);
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), node_peer->second);
 
             node_peer++;
         }
 
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "  Shard " << i << " senders:");
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Shard " << i << " senders:");
 
         // PART 3
         uint32_t nodes_send_lo = 0;
@@ -271,11 +281,13 @@ void DirectoryService::AppendSharingSetupToFinalBlockMessage(vector<unsigned cha
 
         num_nodes = nodes_send_hi - nodes_send_lo + 1;
 
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "DEBUG lo " << nodes_send_lo)
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "DEBUG hi " << nodes_send_hi)
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "DEBUG num_nodes " << num_nodes)
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "DEBUG lo " << nodes_send_lo);
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "DEBUG hi " << nodes_send_hi);
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "DEBUG num_nodes " << num_nodes);
 
-        Serializable::SetNumber<uint32_t>(finalBlockMessage, curr_offset, num_nodes, sizeof(uint32_t));
+        Serializable::SetNumber<uint32_t>(finalBlockMessage, curr_offset, num_nodes, 
+                                          sizeof(uint32_t));
         curr_offset += sizeof(uint32_t);
 
         node_peer = shard.begin();
@@ -286,7 +298,7 @@ void DirectoryService::AppendSharingSetupToFinalBlockMessage(vector<unsigned cha
             node_peer->second.Serialize(finalBlockMessage, curr_offset);
             curr_offset += IP_SIZE + PORT_SIZE;
 
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "    IP: " << node_peer->second.GetPrintableIPAddress() << " Port: " << node_peer->second.m_listenPortHost);
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), node_peer->second);
 
             node_peer++;
         }
@@ -310,6 +322,34 @@ vector<unsigned char> DirectoryService::ComposeFinalBlockMessage()
 
     vector<unsigned char> finalBlockMessage;
     unsigned int curr_offset = 0;
+
+    bool isVacuousEpoch = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
+
+    {
+        unique_lock<mutex> g(m_mediator.m_node->m_mutexUnavailableMicroBlocks);
+        unique_lock<mutex> g2(m_mediator.m_node->m_mutexAllMicroBlocksRecvd);
+        if(isVacuousEpoch && !m_mediator.m_node->m_allMicroBlocksRecvd)
+        {
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                         "Waiting for microblocks before composing final block. Count: " <<
+                         m_mediator.m_node->m_unavailableMicroBlocks.size());
+            for(auto it : m_mediator.m_node->m_unavailableMicroBlocks)
+            {
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                             "Waiting for finalblock " << it.first << ". Count " <<
+                             it.second.size());
+                for(auto it2 : it.second)
+                {
+                    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), it2);
+                }
+            }
+
+            m_mediator.m_node->m_cvAllMicroBlocksRecvd
+                      .wait(g, [this]{return m_mediator.m_node->m_allMicroBlocksRecvd;});
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                         "All microblocks recvd, moving to compose final block");
+        }
+    }
 
     ComposeFinalBlockCore(); // stores it in m_finalBlock
 

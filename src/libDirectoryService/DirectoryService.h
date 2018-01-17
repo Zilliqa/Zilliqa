@@ -98,9 +98,7 @@ class DirectoryService : public Executable, public Broadcastable
 
     // Consensus variables
     std::shared_ptr<ConsensusCommon> m_consensusObject;
-    uint32_t m_consensusID;
     std::vector<unsigned char> m_consensusBlockHash;
-    uint16_t m_consensusLeaderID;
 
     // PoW1 (DS block) consensus variables
     std::shared_ptr<DSBlock> m_pendingDSBlock;
@@ -265,6 +263,9 @@ public:
         FINALBLOCK_CONSENSUS,
         ERROR
     };
+
+    uint32_t m_consensusID;
+    uint16_t m_consensusLeaderID;
 
     /// The current role of this Zilliqa instance within the directory service committee.
     std::atomic<Mode> m_mode;
