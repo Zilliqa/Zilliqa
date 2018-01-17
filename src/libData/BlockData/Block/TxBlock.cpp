@@ -26,12 +26,9 @@ unsigned int TxBlock::Serialize(vector<unsigned char> & dst, unsigned int offset
 
     assert(m_header.GetNumMicroBlockHashes() == m_microBlockHashes.size());
 
-    unsigned int header_size_needed = sizeof(uint8_t) + sizeof(uint32_t) + UINT256_SIZE + UINT256_SIZE + 
-                                      BLOCK_HASH_SIZE + UINT256_SIZE + UINT256_SIZE + TRAN_HASH_SIZE + 
-                                      TRAN_HASH_SIZE + sizeof(uint32_t) + sizeof(uint32_t) + PUB_KEY_SIZE + 
-                                      UINT256_SIZE + BLOCK_HASH_SIZE;
-
-    unsigned int size_needed = header_size_needed + BLOCK_SIG_SIZE + m_header.GetNumMicroBlockHashes() * TRAN_HASH_SIZE;
+    unsigned int header_size_needed = TxBlockHeader::SIZE;
+    unsigned int size_needed = header_size_needed + BLOCK_SIG_SIZE + 
+                               m_header.GetNumMicroBlockHashes() * TRAN_HASH_SIZE;
     unsigned int size_remaining = dst.size() - offset;
 
     if (size_remaining < size_needed)
@@ -49,7 +46,8 @@ unsigned int TxBlock::Serialize(vector<unsigned char> & dst, unsigned int offset
     for (unsigned int i = 0; i < m_header.GetNumMicroBlockHashes(); i++)
     {
         const TxnHash & microBlockHash = m_microBlockHashes.at(i);
-        copy(microBlockHash.asArray().begin(), microBlockHash.asArray().end(), dst.begin() + curOffset);
+        copy(microBlockHash.asArray().begin(), microBlockHash.asArray().end(),
+             dst.begin() + curOffset);
         curOffset += TRAN_HASH_SIZE;
     }
 
@@ -60,10 +58,7 @@ void TxBlock::Deserialize(const vector<unsigned char> & src, unsigned int offset
 {
     LOG_MARKER();
 
-    unsigned int header_size_needed = sizeof(uint8_t) + sizeof(uint32_t) + UINT256_SIZE + UINT256_SIZE + 
-                                      BLOCK_HASH_SIZE + UINT256_SIZE + UINT256_SIZE + TRAN_HASH_SIZE + 
-                                      TRAN_HASH_SIZE + sizeof(uint32_t) + sizeof(uint32_t) + PUB_KEY_SIZE + 
-                                      UINT256_SIZE + BLOCK_HASH_SIZE;
+    unsigned int header_size_needed = TxBlockHeader::SIZE;
 
     TxBlockHeader header(src, offset);
     m_header = header;
@@ -76,7 +71,8 @@ void TxBlock::Deserialize(const vector<unsigned char> & src, unsigned int offset
     for (unsigned int i = 0; i < m_header.GetNumMicroBlockHashes(); i++)
     {
         TxnHash microBlockHash;
-        copy(src.begin() + curOffset, src.begin() + curOffset + TRAN_HASH_SIZE, microBlockHash.asArray().begin());
+        copy(src.begin() + curOffset, src.begin() + curOffset + TRAN_HASH_SIZE,
+             microBlockHash.asArray().begin());
         curOffset += TRAN_HASH_SIZE;
         m_microBlockHashes.push_back(microBlockHash);
     }
@@ -85,10 +81,7 @@ void TxBlock::Deserialize(const vector<unsigned char> & src, unsigned int offset
 
 unsigned int TxBlock::GetSerializedSize() const
 {
-    unsigned int header_size_needed = sizeof(uint8_t) + sizeof(uint32_t) + UINT256_SIZE + UINT256_SIZE + 
-                                      BLOCK_HASH_SIZE + UINT256_SIZE + UINT256_SIZE + TRAN_HASH_SIZE + 
-                                      TRAN_HASH_SIZE + sizeof(uint32_t) + sizeof(uint32_t) + PUB_KEY_SIZE + 
-                                      UINT256_SIZE + BLOCK_HASH_SIZE;
+    unsigned int header_size_needed = TxBlockHeader::SIZE;
     unsigned int block_size_needed = BLOCK_SIG_SIZE + (m_microBlockHashes.size() * TRAN_HASH_SIZE);
 
     return header_size_needed + block_size_needed;
@@ -96,10 +89,7 @@ unsigned int TxBlock::GetSerializedSize() const
 
 unsigned int TxBlock::GetMinSize()
 {
-    unsigned int header_size_needed = sizeof(uint8_t) + sizeof(uint32_t) + UINT256_SIZE + UINT256_SIZE + 
-                                      BLOCK_HASH_SIZE + UINT256_SIZE + UINT256_SIZE + TRAN_HASH_SIZE + 
-                                      TRAN_HASH_SIZE + sizeof(uint32_t) + sizeof(uint32_t) + PUB_KEY_SIZE +
-                                      UINT256_SIZE + BLOCK_HASH_SIZE;
+    unsigned int header_size_needed = TxBlockHeader::SIZE;
 
     return header_size_needed;
 }
