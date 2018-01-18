@@ -716,7 +716,7 @@ bool DirectoryService::WaitForTxnBodies()
         if(isVacuousEpoch && !m_mediator.m_node->m_allMicroBlocksRecvd)
         {
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Waiting for microblocks before composing final block. Count: " <<
+                         "Waiting for microblocks before verifying final block. Count: " <<
                          m_mediator.m_node->m_unavailableMicroBlocks.size());
             for(auto it : m_mediator.m_node->m_unavailableMicroBlocks)
             {
@@ -732,7 +732,7 @@ bool DirectoryService::WaitForTxnBodies()
             m_mediator.m_node->m_cvAllMicroBlocksRecvd
                       .wait(g, [this]{return m_mediator.m_node->m_allMicroBlocksRecvd;});
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "All microblocks recvd, moving to compose final block");
+                         "All microblocks recvd, moving to verify final block");
         }
     }
 
