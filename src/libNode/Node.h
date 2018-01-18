@@ -178,8 +178,8 @@ class Node : public Executable, public Broadcastable
                                                   vector<Transaction> & txns_to_send) const;
     void LoadUnavailableMicroBlockTxRootHashes(const TxBlock & finalblock, 
                                                const boost::multiprecision::uint256_t & blocknum);
-    bool CheckMicroBlockHash(const TxBlock & finalBlock, 
-                             const boost::multiprecision::uint256_t & blocknum);
+    bool CheckMicroBlockRootHash(const TxBlock & finalBlock, 
+                                 const boost::multiprecision::uint256_t & blocknum);
     bool IsMicroBlockTxRootHashInFinalBlock(TxnHash microBlockHash,
                                             const boost::multiprecision::uint256_t & blocknum,
                                             bool & isEveryMicroBlockAvailable);

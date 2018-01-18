@@ -130,6 +130,8 @@ bool Node::IsMicroBlockTxRootHashInFinalBlock(TxnHash microBlockTxRootHash,
     auto it = m_unavailableMicroBlocks.find(blocknum); 
     bool found = (it != m_unavailableMicroBlocks.end() && it->second.erase(microBlockTxRootHash));
     isEveryMicroBlockAvailable = found && it->second.empty();
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                 "Found " << microBlockTxRootHash << ": " << isEveryMicroBlockAvailable);
     return found;
 }
 
@@ -156,7 +158,7 @@ void Node::LoadUnavailableMicroBlockTxRootHashes(const TxBlock & finalBlock,
 #endif //IS_LOOKUP_NODE
 }
 
-bool Node::CheckMicroBlockHash(const TxBlock & finalBlock, 
+bool Node::CheckMicroBlockRootHash(const TxBlock & finalBlock, 
                                const boost::multiprecision::uint256_t & blocknum)
 {
     TxnHash microBlocksHash = ComputeTransactionsRoot(finalBlock.GetMicroBlockHashes());
@@ -909,6 +911,9 @@ void Node::LogReceivedFinalBlockDetails(const TxBlock & txblock)
                  "txblock.GetHeader().GetNumMicroBlockHashes(): " << 
                  txblock.GetHeader().GetNumMicroBlockHashes()); 
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                 "txblock.GetHeader().GetStateRootHash(): " <<
+                 txblock.GetHeader().GetStateRootHash()); 
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
                  "txblock.GetHeader().GetNumTxs(): " << txblock.GetHeader().GetNumTxs()); 
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
                  "txblock.GetHeader().GetMinerPubKey(): " << txblock.GetHeader().GetMinerPubKey());                   
@@ -966,10 +971,15 @@ bool Node::ProcessFinalBlock(const vector<unsigned char> & message, unsigned int
               txBlock.GetHeader().GetBlockNum() << "] FRST");
 
 // #ifdef IS_LOOKUP_NODE
-    LoadUnavailableMicroBlockTxRootHashes(txBlock, txBlock.GetHeader().GetBlockNum());
-    if(!CheckMicroBlockHash(txBlock, txBlock.GetHeader().GetBlockNum()))
+    if(!CheckMicroBlockRootHash(txBlock, txBlock.GetHeader().GetBlockNum()))
     {
         return false;
+    }
+
+    bool isVacuousEpoch = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
+    if(!isVacuousEpoch)
+    {
+        LoadUnavailableMicroBlockTxRootHashes(txBlock, txBlock.GetHeader().GetBlockNum());
     }
 // #endif // IS_LOOKUP_NODE    
 
@@ -977,7 +987,9 @@ bool Node::ProcessFinalBlock(const vector<unsigned char> & message, unsigned int
 
     if (txBlock.GetHeader().GetNumMicroBlockHashes() == 1)
     {
-        LOG_STATE("[TXBOD][" << std::setw(15) << std::left << m_mediator.m_selfPeer.GetPrintableIPAddress() << "][" << txBlock.GetHeader().GetBlockNum() << "] LAST");
+        LOG_STATE("[TXBOD][" << std::setw(15) << std::left << 
+                  m_mediator.m_selfPeer.GetPrintableIPAddress() << "][" << 
+                  txBlock.GetHeader().GetBlockNum() << "] LAST");
     }
 
     // Assumption: New PoW1 done after every block committed
@@ -1190,6 +1202,9 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char> & message, unsi
     vector<Peer> forward_list;
     LoadFwdingAssgnForThisBlockNum(blocknum, forward_list);
 #endif // IS_LOOKUP_NODE
+
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                 "isEveryMicroBlockAvailable: " << isEveryMicroBlockAvailable);
 
     if(isEveryMicroBlockAvailable)
     {
