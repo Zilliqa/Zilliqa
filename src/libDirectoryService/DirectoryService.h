@@ -226,8 +226,11 @@ class DirectoryService : public Executable, public Broadcastable
     bool CheckFinalBlockNumber();
     bool CheckFinalBlockTimestamp();
     bool CheckMicroBlockHashesAndRoot();
+    bool CheckStateRoot();
+    void LoadUnavailableMicroBlocks();
     void SaveTxnBodySharingAssignment(const vector<unsigned char> & finalblock, 
                                       unsigned int & curr_offset);
+    bool WaitForTxnBodies();
 
     // DS block consensus validator function
     bool DSBlockValidator(const std::vector<unsigned char> & dsblock);
