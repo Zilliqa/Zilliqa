@@ -25,9 +25,14 @@
 #include "common/Serializable.h"
 #include "common/Constants.h"
 
+#define BOOST_TEST_MODULE utils
+#include <boost/test/included/unit_test.hpp>
+
 using namespace std;
 
-int main()
+BOOST_AUTO_TEST_SUITE(utils)
+
+BOOST_AUTO_TEST_CASE(testBoostBigNum)
 {
     using namespace boost::multiprecision;
 
@@ -95,6 +100,6 @@ int main()
 
     serv_addr.sin_addr.s_addr = ipaddr_normal_2;
     cout << "NORMAL = " << inet_ntoa(serv_addr.sin_addr) << endl;
-
-    return 0;
 }
+
+BOOST_AUTO_TEST_SUITE_END()
