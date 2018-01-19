@@ -71,6 +71,14 @@ IF (Boost_FOUND)
 
     target_link_libraries(Test_MultiSig Crypto)
 
+    if(CMAKE_CONFIGURATION_TYPES)
+        foreach(config ${CMAKE_CONFIGURATION_TYPES})
+            configure_file(${CMAKE_SOURCE_DIR}/constants.xml ${config}/constants.xml COPYONLY)
+        endforeach(config)
+    else(CMAKE_CONFIGURATION_TYPES)
+        configure_file(${CMAKE_SOURCE_DIR}/constants.xml constants.xml COPYONLY)
+    endif(CMAKE_CONFIGURATION_TYPES)
+
     enable_testing ()
     #add_test(NAME Test_Sha3_fips COMMAND Test_Sha3_fips)
     #add_test(NAME Test_Sha3 COMMAND Test_Sha3)
