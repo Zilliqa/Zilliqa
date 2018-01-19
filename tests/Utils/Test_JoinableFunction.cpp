@@ -19,7 +19,12 @@
 #include "libUtils/JoinableFunction.h"
 #include "libUtils/Logger.h"
 
+#define BOOST_TEST_MODULE utils
+#include <boost/test/included/unit_test.hpp>
+
 using namespace std;
+
+BOOST_AUTO_TEST_SUITE(utils)
 
 mutex m;
 
@@ -39,7 +44,7 @@ void test2(shared_ptr<vector<string>> s)
     s->pop_back();
 }
 
-int main()
+BOOST_AUTO_TEST_CASE(testJoinableFunction)
 {
     INIT_STDOUT_LOGGER();
 
@@ -53,6 +58,6 @@ int main()
     s->push_back("three");
 
     JoinableFunction jf2(3, test2, s);
-
-    return 0;
 }
+
+BOOST_AUTO_TEST_SUITE_END()
