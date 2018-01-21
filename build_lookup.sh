@@ -20,7 +20,6 @@ rm -rf ./txblocks.db
 rm -rf ./test.db
 rm -rf ./txbodies.db
 
-find . -name *.cmake | xargs rm -rf
 find . -name CMakeCache.txt | xargs rm -rf 
 find . -name CMakeFiles | xargs rm -rf
 

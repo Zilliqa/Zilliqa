@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 2.8)
 project (nuQoin)
 # detect operating system
 message(STATUS "We are on a ${CMAKE_SYSTEM_NAME} system")
+
+set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMakeModules)
+
 enable_testing()
 
 find_package(Boost COMPONENTS filesystem system unit_test_framework)
@@ -105,6 +108,12 @@ if(NOT IS_LOOKUP_NODE)
     if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
         # To-do
     endif()
+endif()
+
+if (CMAKE_COMPILER_IS_GNUCXX)
+    include(CodeCoverage)
+    add_custom_target(ctest COMMAND ${CMAKE_CTEST_COMMAND})
+    setup_target_for_coverage(${PROJECT_NAME}_coverage ctest coverage)
 endif()
 
 add_subdirectory (src)
