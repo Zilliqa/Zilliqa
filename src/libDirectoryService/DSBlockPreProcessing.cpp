@@ -149,10 +149,17 @@ bool DirectoryService::DSBlockValidator(const vector<unsigned char> & dsblock)
 
     if (m_allPoWConns.find(m_pendingDSBlock->GetHeader().GetMinerPubKey()) == m_allPoWConns.end())
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "To-do: Winning node of PoW1 not inside m_allPoWConns - should do another round of consensus!");
-        throw exception();
-    }
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Winning node of PoW1 not inside m_allPoWConns! Getting from ds leader");
+        
+        m_hasAllPoWconns = false; 
+        std::unique_lock<std::mutex> lk(m_CVAllPowConn);
 
+        RequestAllPoWConn(); 
+        while (!m_hasAllPoWconns)
+        {
+            cv_allPowConns.wait(lk);
+        }
+    }
     return true;
 }
 
