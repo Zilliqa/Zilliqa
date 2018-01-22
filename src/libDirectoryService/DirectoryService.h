@@ -145,6 +145,9 @@ class DirectoryService : public Executable, public Broadcastable
                                      unsigned int offset, const Peer & from);
     bool ProcessFinalBlockConsensus(const std::vector<unsigned char> & message, unsigned int offset, 
                                     const Peer & from);
+    bool ProcessAllPoWConnRequest(const vector<unsigned char> & message, unsigned int offset, const Peer & from); 
+    bool ProcessAllPoWConnResponse(const vector<unsigned char> & message, unsigned int offset, const Peer & from);
+
 #ifndef IS_LOOKUP_NODE
     bool CheckState(Action action);
     bool VerifyPOW2(const vector<unsigned char> &message, unsigned int offset, const Peer &from);
@@ -249,8 +252,6 @@ class DirectoryService : public Executable, public Broadcastable
 
     // Used to reconsile view of m_AllPowConn is different. 
     void RequestAllPoWConn();
-    bool ProcessAllPoWConnRequest(const vector<unsigned char> & message, unsigned int offset, const Peer & from); 
-    bool ProcessAllPoWConnResponse(const vector<unsigned char> & message, unsigned int offset, const Peer & from);
 
 
 #endif // IS_LOOKUP_NODE    
