@@ -74,16 +74,8 @@ bool DirectoryService::VerifyPoW1Submission(const vector<unsigned char> & messag
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Winner Peer ip addr           = " << from.GetPrintableIPAddress() << ":" << portNo);
 
     // Define the PoW1 parameters
-    // if (m_mediator.m_dsBlockChain.GetBlockCount() == 1) //genesis block
-    // {
-    //     rand1 = DataConversion::HexStrToStdArray(RAND1_GENESIS);
-    //     rand2 = DataConversion::HexStrToStdArray(RAND2_GENESIS);
-    // }
-    // else
-    // {
-        rand1 = m_mediator.m_dsBlockRand;
-        rand2 = m_mediator.m_txBlockRand;
-    // }
+    rand1 = m_mediator.m_dsBlockRand;
+    rand2 = m_mediator.m_txBlockRand;
 
     difficulty = POW1_DIFFICULTY; // TODO: Need to get the latest blocknum, diff, rand1, rand2
     // Verify nonce
