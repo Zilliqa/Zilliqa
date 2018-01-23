@@ -47,7 +47,8 @@ bool DirectoryService::ProcessMicroblockSubmission(const vector<unsigned char> &
     // if (m_state != MICROBLOCK_SUBMISSION)
     if (!CheckState(PROCESS_MICROBLOCKSUBMISSION))
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Not at MICROBLOCK_SUBMISSION. Current state is " << m_state);
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "Not at MICROBLOCK_SUBMISSION. Current state is " << m_state);
         return false;
     }
 
@@ -75,7 +76,9 @@ bool DirectoryService::ProcessMicroblockSubmission(const vector<unsigned char> &
 
     if (consensusID != m_consensusID)
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Consensus ID is not correct. Expected ID: " << consensusID << " My Consensus ID: " << m_consensusID);
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                     "Consensus ID is not correct. Expected ID: " << consensusID <<
+                     " My Consensus ID: " << m_consensusID);
         return false;
     }
 
@@ -118,12 +121,15 @@ bool DirectoryService::ProcessMicroblockSubmission(const vector<unsigned char> &
 #ifdef STAT_TEST
         if (m_mode == PRIMARY_DS)
         {
-            LOG_STATE("[MICRO][" << std::setw(15) << std::left << m_mediator.m_selfPeer.GetPrintableIPAddress() << "][" << m_mediator.m_txBlockChain.GetBlockCount() << "] LAST");
+            LOG_STATE("[MICRO][" << std::setw(15) << std::left << 
+                      m_mediator.m_selfPeer.GetPrintableIPAddress() << "][" <<
+                      m_mediator.m_txBlockChain.GetBlockCount() << "] LAST");
         }
 #endif // STAT_TEST
         for (auto & microBlock : m_microBlocks)
         {
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Timestamp: "<< microBlock.GetHeader().GetTimestamp());
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Timestamp: " <<
+                         microBlock.GetHeader().GetTimestamp());
         }
 
         RunConsensusOnFinalBlock();
@@ -131,7 +137,9 @@ bool DirectoryService::ProcessMicroblockSubmission(const vector<unsigned char> &
 #ifdef STAT_TEST
     else if ((m_microBlocks.size() == 1) && (m_mode == PRIMARY_DS))
     {
-        LOG_STATE("[MICRO][" << std::setw(15) << std::left << m_mediator.m_selfPeer.GetPrintableIPAddress() << "][" << m_mediator.m_txBlockChain.GetBlockCount() << "] FRST");
+        LOG_STATE("[MICRO][" << std::setw(15) << std::left << 
+                  m_mediator.m_selfPeer.GetPrintableIPAddress() << "][" << 
+                  m_mediator.m_txBlockChain.GetBlockCount() << "] FRST");
     }
 #endif // STAT_TEST
 

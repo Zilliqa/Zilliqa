@@ -59,6 +59,8 @@ const unsigned int SEED_PEER_LIST_SIZE = 20;
 // Transaction body sharing
 const unsigned int TX_SHARING_CLUSTER_SIZE = 20;
 
+const unsigned int NUM_VACUOUS_EPOCHS = 1;
+
 // Networking and mining 
 const unsigned int POW_SIZE = 32;
 const unsigned int IP_SIZE = 16;

@@ -28,22 +28,6 @@
 
 using namespace std;
 
-static string ConvertUInt256ToString(boost::multiprecision::uint256_t number) 
-{
-    if (number == 0) 
-    {
-        return "0";
-    }
-    string result = "";
-    while (number != 0) 
-    {
-        result += to_string( (unsigned int) number % 10 );
-        number /= 10;
-    }
-    reverse(result.begin(), result.end());
-    return result;
-}
-
 BlockStorage & BlockStorage::GetBlockStorage()
 {
     static BlockStorage bs;
