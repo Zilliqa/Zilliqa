@@ -122,7 +122,7 @@ BOOST_AUTO_TEST_CASE (testTxBlockStoring)
     std::pair<PrivKey, PubKey> pubKey1 = Schnorr::GetInstance().GenKeyPair();
 
     TxBlockHeader header(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1, 1, BlockHash(), 0, 
-                            get_time_as_int(), TxnHash(), 0, 5, pubKey1.second, 0, BlockHash());
+                            get_time_as_int(), TxnHash(), StateHash(), 0, 5, pubKey1.second, 0, BlockHash());
     
     array<unsigned char, BLOCK_SIG_SIZE> emptySig = { 0 };
 
@@ -133,7 +133,7 @@ BOOST_AUTO_TEST_CASE (testTxBlockStoring)
         tranHashes.push_back(TxnHash());
     }
 
-    TxBlock txblock(header, emptySig, tranHashes);
+    TxBlock txblock(header, emptySig, vector<bool>(), tranHashes);
 
     curr_offset += txblock.Serialize(txblockmsg, curr_offset);
 

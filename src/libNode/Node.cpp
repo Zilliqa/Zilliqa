@@ -49,8 +49,8 @@ using namespace boost::multiprecision;
 Node::Node(Mediator & mediator) : m_mediator(mediator)
 {
     // m_state = IDLE;
-    m_consensusID = 0;
-    m_consensusLeaderID = 0;
+    m_consensusID = 1;
+    m_consensusLeaderID = 1;
     m_synchronizer.InitializeGenesisBlocks(m_mediator.m_dsBlockChain, m_mediator.m_txBlockChain);
     m_mediator.m_currentEpochNum = (uint64_t) m_mediator.m_txBlockChain.GetBlockCount();
     m_mediator.UpdateDSBlockRand(true);
@@ -424,7 +424,10 @@ bool Node::ProcessCreateTransaction(const vector<unsigned char> & message, unsig
     // To-do: Put in the checks (e.g., are these pubkeys known, is the amount good, etc)
 
     // 33-byte from pubkey
-    PubKey fromPubkey(message, cur_offset);
+    PubKey fromPubKey(message, cur_offset);
+
+    // TODO: remove this
+    fromPubKey = m_mediator.m_selfKey.second;
 
     // Generate from account
     Address fromAddr;
@@ -467,7 +470,7 @@ bool Node::ProcessCreateTransaction(const vector<unsigned char> & message, unsig
     //     return false;
     // }
 
-    //TODO: Remove this before production. This is to reduce time spent on aws testnet. 
+    // TODO: Remove this before production. This is to reduce time spent on aws testnet. 
     for (unsigned i=0; i < 10000; i++)
     {
         Transaction txn(version, nonce, toAddr, fromAddr, amount, signature);

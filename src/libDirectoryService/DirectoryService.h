@@ -98,9 +98,7 @@ class DirectoryService : public Executable, public Broadcastable
 
     // Consensus variables
     std::shared_ptr<ConsensusCommon> m_consensusObject;
-    uint32_t m_consensusID;
     std::vector<unsigned char> m_consensusBlockHash;
-    uint16_t m_consensusLeaderID;
 
     // PoW1 (DS block) consensus variables
     std::shared_ptr<DSBlock> m_pendingDSBlock;
@@ -217,7 +215,8 @@ class DirectoryService : public Executable, public Broadcastable
                                     std::vector<BlockHash> & microBlockHashes,
                                     boost::multiprecision::uint256_t & allGasLimit,
                                     boost::multiprecision::uint256_t & allGasUsed, 
-                                    uint32_t & numTxs, 
+                                    uint32_t & numTxs,
+                                    std::vector<bool> & isMicroBlockEmpty,
                                     uint32_t & numMicroBlocks) const;
 
     // FinalBlockValidator functions
@@ -227,9 +226,14 @@ class DirectoryService : public Executable, public Broadcastable
     bool CheckPreviousFinalBlockHash();
     bool CheckFinalBlockNumber();
     bool CheckFinalBlockTimestamp();
-    bool CheckMicroBlockHashesAndRoot();
+    bool CheckMicroBlockHashes();
+    bool CheckMicroBlockHashRoot();
+    bool CheckIsMicroBlockEmpty();
+    bool CheckStateRoot();
+    void LoadUnavailableMicroBlocks();
     void SaveTxnBodySharingAssignment(const vector<unsigned char> & finalblock, 
                                       unsigned int & curr_offset);
+    bool WaitForTxnBodies();
 
     // DS block consensus validator function
     bool DSBlockValidator(const std::vector<unsigned char> & dsblock);
@@ -265,6 +269,9 @@ public:
         FINALBLOCK_CONSENSUS,
         ERROR
     };
+
+    uint32_t m_consensusID;
+    uint16_t m_consensusLeaderID;
 
     /// The current role of this Zilliqa instance within the directory service committee.
     std::atomic<Mode> m_mode;

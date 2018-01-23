@@ -34,6 +34,8 @@
 template <class KeyType, class DB> 
 using SecureTrieDB = dev::SpecificTrieDB<dev::HashedGenericTrieDB<DB>, KeyType>;
 
+using StateHash = dev::h256;
+
 /// Maintains the list of accounts.
 class AccountStore
 {
