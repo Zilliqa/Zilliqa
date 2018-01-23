@@ -557,6 +557,8 @@ void DirectoryService::RequestAllPoWConn()
     // TODO: Request from a total of 20 ds members 
 }
 
+#endif // IS_LOOKUP_NODE
+
 
 // Current this is only used by ds. But ideally, 20 ds nodes should
 bool DirectoryService::ProcessAllPoWConnRequest(const vector<unsigned char> & message, unsigned int offset, const Peer & from)
@@ -632,7 +634,6 @@ bool DirectoryService::ProcessAllPoWConnResponse(const vector<unsigned char> & m
     return true; 
 }
 
-#endif // IS_LOOKUP_NODE
 
 bool DirectoryService::Execute(const vector<unsigned char> & message, unsigned int offset, const Peer & from)
 {
