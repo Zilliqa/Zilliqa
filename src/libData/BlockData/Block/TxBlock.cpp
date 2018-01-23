@@ -70,7 +70,7 @@ unsigned int TxBlock::Serialize(vector<unsigned char> & dst, unsigned int offset
 vector<bool> TxBlock::DeserializeIsMicroBlockEmpty(uint32_t arg)
 {
     vector<bool> ret;
-    for (int i=0; i < m_header.GetNumMicroBlockHashes(); ++i)
+    for (uint i=0; i < m_header.GetNumMicroBlockHashes(); ++i)
     {
         ret.push_back((bool)(arg % 2));
         arg /= 2;
