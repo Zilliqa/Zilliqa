@@ -247,6 +247,7 @@ class Node : public Executable, public Broadcastable
     bool CheckMicroBlockHashes();
     bool CheckMicroBlockTxnRootHash();
    
+    bool CheckStateRoot(const TxBlock & finalblock);
     bool ActOnFinalBlock(uint8_t tx_sharing_mode, vector<Peer> my_shard_receivers, 
                          const vector<Peer> & fellowForwarderNodes);
 #endif // IS_LOOKUP_NODE 

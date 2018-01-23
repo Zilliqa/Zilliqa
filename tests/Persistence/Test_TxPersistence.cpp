@@ -71,7 +71,7 @@ TxBlock constructDummyTxBlock(int instanceNum)
         microBlockHashes.push_back(TxnHash());
     }
 
-    return TxBlock(header, emptySig, microBlockHashes);
+    return TxBlock(header, emptySig, vector<bool>(), microBlockHashes);
 }
 
 BOOST_AUTO_TEST_CASE (testSerializationDeserialization)
