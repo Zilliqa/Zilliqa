@@ -90,7 +90,7 @@ class DirectoryService : public Executable, public Broadcastable
     
     bool m_hasAllPoWconns = true; 
     std::condition_variable cv_allPowConns;
-    std::mutex m_CVAllPowConn; 
+    std::mutex m_MutexCVAllPowConn; 
 
     // Sharding committee members
     std::vector<std::map<PubKey, Peer>> m_shards;
