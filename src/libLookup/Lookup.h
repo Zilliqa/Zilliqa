@@ -90,10 +90,10 @@ public:
     bool SetDSCommitteInfo();
 #endif // IS_LOOKUP_NODE
 
-    bool ProcessEntireShardingStructure(const std::vector<unsigned char> & message, unsigned int offset, 
-                                        const Peer & from);
-    bool ProcessGetSeedPeersFromLookup(const std::vector<unsigned char> & message, unsigned int offset, 
-                                       const Peer & from);
+    bool ProcessEntireShardingStructure(const std::vector<unsigned char> & message, 
+                                        unsigned int offset, const Peer & from);
+    bool ProcessGetSeedPeersFromLookup(const std::vector<unsigned char> & message,
+                                       unsigned int offset, const Peer & from);
     bool ProcessGetDSInfoFromSeed(const std::vector<unsigned char> & message, unsigned int offset, 
                                   const Peer & from);
     bool ProcessGetDSBlockFromSeed(const std::vector<unsigned char> & message, unsigned int offset, 
@@ -102,6 +102,8 @@ public:
                                    const Peer & from);
     bool ProcessGetTxBodyFromSeed(const std::vector<unsigned char> & message, unsigned int offset, 
                                   const Peer & from);
+    bool ProcessGetNetworkId(const std::vector<unsigned char> & message, unsigned int offset, 
+                             const Peer &from);
 
     bool ProcessSetSeedPeersFromLookup(const std::vector<unsigned char> & message, 
                                        unsigned int offset, const Peer & from);

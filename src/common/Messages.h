@@ -69,7 +69,9 @@ enum LookupInstructionType : unsigned char
     GETTXBLOCKFROMSEED = 0x07,
     SETTXBLOCKFROMSEED = 0x08,
     GETTXBODYFROMSEED = 0x09,
-    SETTXBODYFROMSEED = 0x10
+    SETTXBODYFROMSEED = 0x0a,
+    GETNETWORKIDFROMSEED = 0x0b,
+    SETNETWORKIDFROMSEED = 0x0c
 };
 
 enum TxSharingMode : unsigned char

@@ -725,6 +725,33 @@ bool Lookup::ProcessGetTxBodyFromSeed(const vector<unsigned char> & message, uns
     return true;
 }
 
+bool Lookup::ProcessGetNetworkId(const vector<unsigned char> & message, unsigned int offset,
+                                 const Peer &from)
+{
+// #ifndef IS_LOOKUP_NODE  
+    LOG_MARKER();
+
+    // 4-byte portNo
+    uint32_t portNo = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
+    offset += sizeof(uint32_t);    
+
+    uint128_t ipAddr = from.m_ipAddress;
+    Peer requestingNode(ipAddr, portNo);
+
+    vector<unsigned char> networkIdMessage = { MessageType::LOOKUP, 
+                                               LookupInstructionType::SETNETWORKIDFROMSEED };
+    unsigned int curr_offset = MessageOffset::BODY;
+
+    string networkId = "TESTNET"; // TODO: later convert it to a enum
+
+    copy(networkId.begin(), networkId.end(), networkIdMessage.begin() + curr_offset);
+
+    P2PComm::GetInstance().SendMessage(requestingNode, networkIdMessage);
+
+    return true;
+// #endif // IS_LOOKUP_NODE
+}
+
 bool Lookup::ProcessSetSeedPeersFromLookup(const vector<unsigned char> &message, 
                                            unsigned int offset, const Peer &from)
 {
@@ -1031,7 +1058,8 @@ bool Lookup::Execute(const vector<unsigned char> & message, unsigned int offset,
         &Lookup::ProcessGetTxBlockFromSeed,
         &Lookup::ProcessSetTxBlockFromSeed,
         &Lookup::ProcessGetTxBodyFromSeed,
-        &Lookup::ProcessSetTxBodyFromSeed
+        &Lookup::ProcessSetTxBodyFromSeed,
+        &Lookup::ProcessGetNetworkId
     };
 
     const unsigned char ins_byte = message.at(offset);

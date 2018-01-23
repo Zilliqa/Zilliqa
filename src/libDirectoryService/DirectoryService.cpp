@@ -46,7 +46,7 @@ DirectoryService::DirectoryService(Mediator & mediator) : m_mediator(mediator)
     m_mode = IDLE;
 
     m_consensusLeaderID = 0;
-    m_consensusID = 0;
+    m_consensusID = 1;
 }
 
 DirectoryService::~DirectoryService()

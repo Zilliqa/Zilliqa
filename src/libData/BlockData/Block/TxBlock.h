@@ -34,6 +34,7 @@ class TxBlock : public BlockBase
 {
     TxBlockHeader m_header;
     std::array<unsigned char, BLOCK_SIG_SIZE> m_headerSig; // Co-signed by: sharding committee (microblock) or DS committee (finalblock)
+    std::vector<bool> m_isMicroBlockEmpty;
     std::vector<TxnHash> m_microBlockHashes;
 
 public:
@@ -49,11 +50,16 @@ public:
     (
         const TxBlockHeader & header,
         const std::array<unsigned char, BLOCK_SIG_SIZE> & signature,
+        const std::vector<bool> & isMicroBlockEmpty,
         const std::vector<TxnHash> & microBlockHashes
     );
 
+    uint32_t SerializeIsMicroBlockEmpty() const;
+
     /// Implements the Serialize function inherited from Serializable.
     unsigned int Serialize(std::vector<unsigned char> & dst, unsigned int offset) const;
+
+    std::vector<bool> DeserializeIsMicroBlockEmpty(uint32_t arg);
 
     /// Implements the Deserialize function inherited from Serializable.
     void Deserialize(const std::vector<unsigned char> & src, unsigned int offset);
@@ -70,6 +76,9 @@ public:
     /// Returns the signature part of the Tx block.
     const std::array<unsigned char, BLOCK_SIG_SIZE> & GetHeaderSig() const;
 
+    /// Returns the vector of isMicroBlockEmpty.
+    const std::vector<bool> & GetIsMicroBlockEmpty() const;
+    
     /// Returns the list of MicroBlockHashes.
     const std::vector<TxnHash> & GetMicroBlockHashes() const;
 
