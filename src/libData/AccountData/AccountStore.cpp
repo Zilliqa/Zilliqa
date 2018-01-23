@@ -83,6 +83,9 @@ void AccountStore::AddAccount(const Address & address,
         Account account(balance, nonce);
         m_addressToAccount.insert(make_pair(address, account));
         UpdateStateTrie(address, account);
+
+        LOG_MESSAGE("Account " << address << " with balance " << balance << ", nonce " << nonce << 
+                     " created");
     }
 }
 
@@ -157,8 +160,17 @@ bool AccountStore::IncreaseBalance(const Address & address,
     if(account != nullptr && account->IncreaseBalance(delta))
     {
         UpdateStateTrie(address, *account);
+        LOG_MESSAGE("Balance for " << address << " increased by " << delta << ". Succeeded!");
         return true;
     }
+    else if(account == nullptr)
+    {
+        AddAccount(address, delta, 0);
+        LOG_MESSAGE("Balance for " << address << " increased by " << delta << ". Succeeded!");
+        return true;
+    }
+
+    LOG_MESSAGE("Balance for " << address << " increased by " << delta << ". Failed!");
     
     return false;
 }
@@ -176,9 +188,22 @@ bool AccountStore::DecreaseBalance(const Address & address,
     if(account != nullptr && account->DecreaseBalance(delta))
     {
         UpdateStateTrie(address, *account);
+        LOG_MESSAGE("Balance for " << address << " decreased by " << delta << ". Succeeded! " <<
+                    "New balance: " << account->GetBalance());
         return true;
     }
-    
+    // TODO: remove this, temporary way to test transactions
+    else if(account == nullptr)
+    {
+        AddAccount(address, 10000000000, 0);
+        LOG_MESSAGE("Balance for " << address << " decreased by " << delta << ". Succeeded! " <<
+                    "New balance: " << GetAccount(address)->GetBalance());
+        return true;
+    }
+
+    LOG_MESSAGE("Balance for " << address << " decreased by " << delta << ". Failed! Balance: " <<
+                account ? account->GetBalance().convert_to<string>() : "? account = nullptr");
+
     return false;
 }
 
@@ -188,9 +213,12 @@ bool AccountStore::TransferBalance(const Address & from,
 {
     if(DecreaseBalance(from, delta) && IncreaseBalance(to, delta))
     {
+        LOG_MESSAGE("Transfer of " << delta << " from " << from << " to " << to << " succeeded");
         return true;
     }
-    
+
+    LOG_MESSAGE("Transfer of " << delta << " from " << from << " to " << to << " failed");
+
     return false;
 }
 

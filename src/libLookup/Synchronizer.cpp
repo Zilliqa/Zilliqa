@@ -104,7 +104,7 @@ TxBlock Synchronizer::ConstructGenesisTxBlock()
         tranHashes.push_back(TxnHash());
     }
 
-    return TxBlock(header, emptySig, tranHashes);
+    return TxBlock(header, emptySig, vector<bool>(), tranHashes);
 }
 
 bool Synchronizer::AddGenesisTxBlockToBlockChain(TxBlockChain & txBlockChain, 

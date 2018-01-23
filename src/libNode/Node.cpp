@@ -424,7 +424,10 @@ bool Node::ProcessCreateTransaction(const vector<unsigned char> & message, unsig
     // To-do: Put in the checks (e.g., are these pubkeys known, is the amount good, etc)
 
     // 33-byte from pubkey
-    PubKey fromPubkey(message, cur_offset);
+    PubKey fromPubKey(message, cur_offset);
+
+    // TODO: remove this
+    fromPubKey = m_mediator.m_selfKey.second;
 
     // Generate from account
     Address fromAddr;
@@ -467,7 +470,7 @@ bool Node::ProcessCreateTransaction(const vector<unsigned char> & message, unsig
     //     return false;
     // }
 
-    //TODO: Remove this before production. This is to reduce time spent on aws testnet. 
+    // TODO: Remove this before production. This is to reduce time spent on aws testnet. 
     for (unsigned i=0; i < 10000; i++)
     {
         Transaction txn(version, nonce, toAddr, fromAddr, amount, signature);

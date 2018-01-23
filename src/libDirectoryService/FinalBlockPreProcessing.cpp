@@ -46,10 +46,12 @@ void DirectoryService::ExtractDataFromMicroblocks
     uint256_t & allGasLimit,
     uint256_t & allGasUsed,
     uint32_t & numTxs,
+    std::vector<bool> & isMicroBlockEmpty,
     uint32_t & numMicroBlocks
 ) const
 {
     bool isVacuousEpoch = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
+    auto blockNum = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
     unsigned int i = 1;
     lock_guard<mutex> g(m_mediator.m_node->m_mutexUnavailableMicroBlocks);
     for (auto & microBlock : m_microBlocks)
@@ -69,10 +71,11 @@ void DirectoryService::ExtractDataFromMicroblocks
         numTxs += microBlock.GetHeader().GetNumTxs();
 
         ++numMicroBlocks;
+
+        bool isEmpty = microBlock.GetHeader().GetNumTxs() == 0;
       
-        if(!isVacuousEpoch)
+        if(!isVacuousEpoch && !isEmpty)
         {
-            auto blockNum = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
             m_mediator.m_node->m_unavailableMicroBlocks[blockNum]
                       .insert(microBlock.GetHeader().GetTxRootHash());
 
@@ -80,9 +83,13 @@ void DirectoryService::ExtractDataFromMicroblocks
                          "Added " << microBlock.GetHeader().GetTxRootHash() << " for unavailable" <<
                          " MicroBlock " << blockNum);
         }
+
+        isMicroBlockEmpty.push_back(isEmpty);
     }
 
-    if(!isVacuousEpoch && m_microBlocks.size() > 0)
+    if (m_mediator.m_node->m_unavailableMicroBlocks.find(blockNum) != 
+        m_mediator.m_node->m_unavailableMicroBlocks.end() &&
+        m_mediator.m_node->m_unavailableMicroBlocks[blockNum].size() > 0)
     {
         unique_lock<mutex> g(m_mediator.m_node->m_mutexAllMicroBlocksRecvd);
         m_mediator.m_node->m_allMicroBlocksRecvd = false;
@@ -105,10 +112,11 @@ void DirectoryService::ComposeFinalBlockCore()
     uint256_t allGasLimit = 0;
     uint256_t allGasUsed = 0;
     uint32_t numTxs = 0;
+    std::vector<bool> isMicroBlockEmpty;
     uint32_t numMicroBlocks = 0;
     
     ExtractDataFromMicroblocks(microblockTrieRoot, microBlockTxHashes, allGasLimit, allGasUsed, 
-                               numTxs, numMicroBlocks);
+                               numTxs, isMicroBlockEmpty, numMicroBlocks);
 
     m_microBlocks.clear();
 
@@ -159,7 +167,8 @@ void DirectoryService::ComposeFinalBlockCore()
                           allGasUsed, prevHash, blockNum, timestamp, microblockTrieRoot, stateRoot, 
                           numTxs, numMicroBlocks, m_mediator.m_selfKey.second, lastDSBlockNum, 
                           dsBlockHeader), 
-            emptySig, 
+            emptySig,
+            isMicroBlockEmpty,
             microBlockTxHashes
         )
     );
@@ -541,8 +550,8 @@ bool DirectoryService::CheckFinalBlockTimestamp()
     return true;
 }
 
-// Check microblock hashes and root
-bool DirectoryService::CheckMicroBlockHashesAndRoot()
+// Check microblock hashes
+bool DirectoryService::CheckMicroBlockHashes()
 {
     auto & txRootHashesInMicroBlocks = m_finalBlock->GetMicroBlockHashes();
    
@@ -565,6 +574,14 @@ bool DirectoryService::CheckMicroBlockHashesAndRoot()
         }
     }
 
+    return true;
+}
+
+// Check microblock hashes root
+bool DirectoryService::CheckMicroBlockHashRoot()
+{
+    auto & txRootHashesInMicroBlocks = m_finalBlock->GetMicroBlockHashes();
+
     TxnHash microBlocksHash = ComputeTransactionsRoot(txRootHashesInMicroBlocks);
 
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -580,18 +597,56 @@ bool DirectoryService::CheckMicroBlockHashesAndRoot()
     return true;
 }
 
+bool DirectoryService::CheckIsMicroBlockEmpty()
+{
+    auto & txRootHashesInMicroBlocks = m_finalBlock->GetMicroBlockHashes();
+
+    for (int i = 0; i < txRootHashesInMicroBlocks.size(); i++)
+    {
+        LOG_MESSAGE(i << " " << txRootHashesInMicroBlocks[i] << m_finalBlock->GetIsMicroBlockEmpty().size()); 
+        for (auto & microBlock : m_microBlocks)
+        {
+            LOG_MESSAGE(microBlock.GetHeader().GetTxRootHash());
+            if(microBlock.GetHeader().GetTxRootHash() == txRootHashesInMicroBlocks[i])
+            {
+                if (m_finalBlock->GetIsMicroBlockEmpty()[i] != 
+                    (microBlock.GetHeader().GetNumTxs() == 0))
+                {
+                    LOG_MESSAGE("Error: IsMicroBlockEmpty in proposed final block is incorrect " <<
+                                i << " Expected: " << (microBlock.GetHeader().GetNumTxs() == 0) <<
+                                " Received: " << m_finalBlock->GetIsMicroBlockEmpty()[i]);
+                    return false;
+                }
+                break;
+            }
+        }
+    }
+
+    return true;
+}
+
 // Check state root
 bool DirectoryService::CheckStateRoot()
 {
     StateHash stateRoot = StateHash();
 
     bool isVacuousEpoch = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
-    if(isVacuousEpoch)
+    if (isVacuousEpoch)
     {
         stateRoot = AccountStore::GetInstance().GetStateRootHash();
     }
 
-    return stateRoot == m_finalBlock->GetHeader().GetStateRootHash();
+    if (stateRoot != m_finalBlock->GetHeader().GetStateRootHash())
+    {
+        LOG_MESSAGE("Error: State root doesn't match. Expected = " << stateRoot << ". " <<
+                    "Received = " << m_finalBlock->GetHeader().GetStateRootHash());
+        return false;
+    }
+
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "State root matched " <<
+                 m_finalBlock->GetHeader().GetStateRootHash());
+
+    return true;
 }
 
 bool DirectoryService::CheckFinalBlockValidity()
@@ -602,7 +657,8 @@ bool DirectoryService::CheckFinalBlockValidity()
     {
         if(!CheckBlockTypeIsFinal() || !CheckFinalBlockVersion() || !CheckFinalBlockNumber() ||
            !CheckPreviousFinalBlockHash() || !CheckFinalBlockTimestamp() || 
-           !CheckMicroBlockHashesAndRoot() || !CheckStateRoot())
+           !CheckMicroBlockHashes() || !CheckMicroBlockHashRoot() || !CheckIsMicroBlockEmpty() ||
+           !CheckStateRoot())
         {
             break;
         }
@@ -746,10 +802,20 @@ void DirectoryService::LoadUnavailableMicroBlocks()
     lock_guard<mutex> g(m_mediator.m_node->m_mutexUnavailableMicroBlocks); 
     for (auto & microBlockTxHash : txRootHashesInMicroBlocks)
     {   
-        m_mediator.m_node->m_unavailableMicroBlocks[blockNum].insert(microBlockTxHash);
+        for (auto & microBlock : m_microBlocks)
+        {
+            if(microBlock.GetHeader().GetTxRootHash() == microBlockTxHash &&
+               microBlock.GetHeader().GetNumTxs() > 0)
+            {
+                m_mediator.m_node->m_unavailableMicroBlocks[blockNum].insert(microBlockTxHash);
+                break;
+            }
+        }
     }
 
-    if(txRootHashesInMicroBlocks.size() > 0)
+    if (m_mediator.m_node->m_unavailableMicroBlocks.find(blockNum) != 
+        m_mediator.m_node->m_unavailableMicroBlocks.end() &&
+        m_mediator.m_node->m_unavailableMicroBlocks[blockNum].size() > 0)
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                      "setting false for unavailable microblock " << m_consensusID);

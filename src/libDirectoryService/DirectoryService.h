@@ -215,7 +215,8 @@ class DirectoryService : public Executable, public Broadcastable
                                     std::vector<BlockHash> & microBlockHashes,
                                     boost::multiprecision::uint256_t & allGasLimit,
                                     boost::multiprecision::uint256_t & allGasUsed, 
-                                    uint32_t & numTxs, 
+                                    uint32_t & numTxs,
+                                    std::vector<bool> & isMicroBlockEmpty,
                                     uint32_t & numMicroBlocks) const;
 
     // FinalBlockValidator functions
@@ -225,7 +226,9 @@ class DirectoryService : public Executable, public Broadcastable
     bool CheckPreviousFinalBlockHash();
     bool CheckFinalBlockNumber();
     bool CheckFinalBlockTimestamp();
-    bool CheckMicroBlockHashesAndRoot();
+    bool CheckMicroBlockHashes();
+    bool CheckMicroBlockHashRoot();
+    bool CheckIsMicroBlockEmpty();
     bool CheckStateRoot();
     void LoadUnavailableMicroBlocks();
     void SaveTxnBodySharingAssignment(const vector<unsigned char> & finalblock, 

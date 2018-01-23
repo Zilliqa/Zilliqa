@@ -133,7 +133,7 @@ BOOST_AUTO_TEST_CASE (testTxBlockStoring)
         tranHashes.push_back(TxnHash());
     }
 
-    TxBlock txblock(header, emptySig, tranHashes);
+    TxBlock txblock(header, emptySig, vector<bool>(), tranHashes);
 
     curr_offset += txblock.Serialize(txblockmsg, curr_offset);
 

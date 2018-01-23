@@ -142,15 +142,20 @@ void Node::LoadUnavailableMicroBlockTxRootHashes(const TxBlock & finalBlock,
                  "Unavailable FinalBlock TxRoot hash : ")
 
     lock_guard<mutex> g(m_mutexUnavailableMicroBlocks);
-    for(const auto & hash : finalBlock.GetMicroBlockHashes())
+    for(int i = 0; i < finalBlock.GetMicroBlockHashes().size(); ++i)
     {
-        m_unavailableMicroBlocks[blocknum].insert(hash);
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     DataConversion::charArrToHexStr(hash.asArray()))        
+        if(!finalBlock.GetIsMicroBlockEmpty()[i])
+        {
+            auto hash = finalBlock.GetMicroBlockHashes()[i];
+            m_unavailableMicroBlocks[blocknum].insert(hash);
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                         DataConversion::charArrToHexStr(hash.asArray()))
+        }
     }
 
 #ifndef IS_LOOKUP_NODE
-    if(finalBlock.GetMicroBlockHashes().size() > 0)
+    if (m_unavailableMicroBlocks.find(blocknum) != m_unavailableMicroBlocks.end() &&
+        m_unavailableMicroBlocks[blocknum].size() > 0)
     {
         lock_guard<mutex> g2(m_mutexAllMicroBlocksRecvd);
         m_allMicroBlocksRecvd = false;
@@ -920,6 +925,23 @@ void Node::LogReceivedFinalBlockDetails(const TxBlock & txblock)
 #endif // IS_LOOKUP_NODE
 }
 
+bool Node::CheckStateRoot(const TxBlock & finalBlock)
+{
+    StateHash stateRoot = AccountStore::GetInstance().GetStateRootHash();
+
+    if(stateRoot != finalBlock.GetHeader().GetStateRootHash())
+    {
+        LOG_MESSAGE("Error: State root doesn't match. Expected = " << stateRoot << ". " <<
+                    "Received = " << finalBlock.GetHeader().GetStateRootHash());
+        return false;
+    }
+
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "State root matched " <<
+                 finalBlock.GetHeader().GetStateRootHash());
+
+    return true;
+}
+
 bool Node::ProcessFinalBlock(const vector<unsigned char> & message, unsigned int offset, 
                              const Peer & from)
 {
@@ -980,6 +1002,13 @@ bool Node::ProcessFinalBlock(const vector<unsigned char> & message, unsigned int
     if(!isVacuousEpoch)
     {
         LoadUnavailableMicroBlockTxRootHashes(txBlock, txBlock.GetHeader().GetBlockNum());
+    }
+    else
+    {
+        if(!CheckStateRoot(txBlock))
+        {
+            return false;
+        }
     }
 // #endif // IS_LOOKUP_NODE    
 
@@ -1078,8 +1107,7 @@ void Node::CommitForwardedTransactions(const vector<Transaction> & txnsInForward
         }
 
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
-                     "[TXN] [" << blocknum << 
-                     "] Body received = 0x" << tx.GetTranID());
+                     "[TXN] [" << blocknum << "] Body received = 0x" << tx.GetTranID());
 
         // Update from and to accounts
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Account store updated");
