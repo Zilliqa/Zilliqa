@@ -178,13 +178,12 @@ bool DirectoryService::ProcessPoW2Submission(const vector<unsigned char> & messa
             }
             if(i % 10 == 0)
             {
-                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Waiting for POW2_SUBMISSION before processing");
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Waiting for POW2_SUBMISSION state before processing. Current state is " << m_state);
             }
             this_thread::sleep_for(chrono::milliseconds(sleep_time_while_waiting));
         }
     }
 
-    // if (m_state != POW2_SUBMISSION)
     if (!CheckState(PROCESS_POW2SUBMISSION))
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Not at POW2_SUBMISSION. Current state is " << m_state);
