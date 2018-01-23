@@ -152,7 +152,7 @@ bool DirectoryService::DSBlockValidator(const vector<unsigned char> & dsblock)
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Winning node of PoW1 not inside m_allPoWConns! Getting from ds leader");
         
         m_hasAllPoWconns = false; 
-        std::unique_lock<std::mutex> lk(m_CVAllPowConn);
+        std::unique_lock<std::mutex> lk(m_MutexCVAllPowConn);
 
         RequestAllPoWConn(); 
         while (!m_hasAllPoWconns)

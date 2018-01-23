@@ -628,9 +628,12 @@ bool DirectoryService::ProcessAllPoWConnResponse(const vector<unsigned char> & m
             m_allPoWConns.insert(make_pair(key, peer));
         }
     }
+    
+    {
+        std::unique_lock<std::mutex> lk(m_MutexCVAllPowConn);
+        m_hasAllPoWconns = true; 
+    }
     cv_allPowConns.notify_all(); 
- 
-    m_hasAllPoWconns = true; 
     return true; 
 }
 

@@ -239,7 +239,7 @@ bool DirectoryService::ShardingValidator(const vector<unsigned char> & sharding_
                 LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Shard node not inside m_allPoWConns. " << memberPeer->second.GetPrintableIPAddress() << " Port: " << memberPeer->second.m_listenPortHost);
                 
                 m_hasAllPoWconns = false; 
-                std::unique_lock<std::mutex> lk(m_CVAllPowConn);
+                std::unique_lock<std::mutex> lk(m_MutexCVAllPowConn);
 
                 RequestAllPoWConn(); 
                 while (!m_hasAllPoWconns)
