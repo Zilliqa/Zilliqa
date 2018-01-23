@@ -142,7 +142,7 @@ void Node::LoadUnavailableMicroBlockTxRootHashes(const TxBlock & finalBlock,
                  "Unavailable FinalBlock TxRoot hash : ")
 
     lock_guard<mutex> g(m_mutexUnavailableMicroBlocks);
-    for(int i = 0; i < finalBlock.GetMicroBlockHashes().size(); ++i)
+    for(uint i = 0; i < finalBlock.GetMicroBlockHashes().size(); ++i)
     {
         if(!finalBlock.GetIsMicroBlockEmpty()[i])
         {

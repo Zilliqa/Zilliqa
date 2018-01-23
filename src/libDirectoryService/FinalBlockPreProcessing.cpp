@@ -601,7 +601,7 @@ bool DirectoryService::CheckIsMicroBlockEmpty()
 {
     auto & txRootHashesInMicroBlocks = m_finalBlock->GetMicroBlockHashes();
 
-    for (int i = 0; i < txRootHashesInMicroBlocks.size(); i++)
+    for (uint i = 0; i < txRootHashesInMicroBlocks.size(); i++)
     {
         LOG_MESSAGE(i << " " << txRootHashesInMicroBlocks[i] << m_finalBlock->GetIsMicroBlockEmpty().size()); 
         for (auto & microBlock : m_microBlocks)
