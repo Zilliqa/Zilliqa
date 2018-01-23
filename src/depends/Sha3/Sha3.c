@@ -156,7 +156,7 @@ static void store64(UINT8 *x, UINT64 u)
     unsigned int i;
 
     for(i=0; i<8; ++i) {
-        x[i] = u;
+        x[i] = (UINT8)u;
         u >>= 8;
     }
 }
@@ -298,7 +298,7 @@ void Keccak(unsigned int rate, unsigned int capacity, const unsigned char *input
 
     /* === Absorb all the input blocks === */
     while(inputByteLen > 0) {
-        blockSize = MIN(inputByteLen, rateInBytes);
+        blockSize = (unsigned)MIN(inputByteLen, rateInBytes);
         for(i=0; i<blockSize; i++)
             state[i] ^= input[i];
         input += blockSize;
@@ -323,7 +323,7 @@ void Keccak(unsigned int rate, unsigned int capacity, const unsigned char *input
 
     /* === Squeeze out all the output blocks === */
     while(outputByteLen > 0) {
-        blockSize = MIN(outputByteLen, rateInBytes);
+        blockSize = (unsigned)MIN(outputByteLen, rateInBytes);
         memcpy(output, state, blockSize);
         output += blockSize;
         outputByteLen -= blockSize;
