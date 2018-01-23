@@ -22,6 +22,7 @@
 
 #include "BlockHeaderBase.h"
 #include "libData/AccountData/Transaction.h"
+#include "libData/AccountData/AccountStore.h"
 #include "common/Serializable.h"
 #include "common/Constants.h"
 #include "libCrypto/Schnorr.h"
@@ -36,7 +37,8 @@ class TxBlockHeader : public BlockHeaderBase
     BlockHash m_prevHash;                                       // Hash of the previous block
     boost::multiprecision::uint256_t m_blockNum;                // Block index, starting from 0 in the genesis block
     boost::multiprecision::uint256_t m_timestamp;
-    TxnHash m_txRootHash;                                       // Tx merkle tree root hash
+    TxnHash m_txRootHash;                                       // Microblock merkle tree root hash
+    StateHash m_stateRootHash;                                  // State merkle tree root hash
     uint32_t m_numTxs;                                          // Total number of txs included in the block
     uint32_t m_numMicroBlockHashes;                             // Total number of microblock hashes included in the block
     PubKey m_minerPubKey;                                       // Leader of the committee who proposed this block
@@ -44,6 +46,12 @@ class TxBlockHeader : public BlockHeaderBase
     BlockHash m_dsBlockHeader;                                  // DS Block hash
 
 public:
+
+    static const unsigned int SIZE = sizeof(uint8_t) + sizeof(uint32_t) + UINT256_SIZE + 
+                                     UINT256_SIZE + BLOCK_HASH_SIZE + UINT256_SIZE + UINT256_SIZE +
+                                     TRAN_HASH_SIZE + TRAN_HASH_SIZE + sizeof(uint32_t) +
+                                     sizeof(uint32_t) + PUB_KEY_SIZE + UINT256_SIZE +
+                                     BLOCK_HASH_SIZE;
 
     /// Default constructor.
     TxBlockHeader();
@@ -62,6 +70,7 @@ public:
         const boost::multiprecision::uint256_t & blockNum,
         const boost::multiprecision::uint256_t & timestamp,
         const TxnHash & txRootHash,
+        const StateHash & stateRootHash,
         const uint32_t numTxs,
         const uint32_t numMicroBlockHashes,
         const PubKey & minerPubKey,
@@ -96,8 +105,11 @@ public:
     /// Returns the Unix time at the time of creation of this block.
     const boost::multiprecision::uint256_t & GetTimestamp() const;
 
-    /// Returns the digest that represents the root of the Merkle tree that stores all transactions in this block.
+    /// Returns the digest that represents the root of the Merkle tree that stores all microblocks in this block.
     const TxnHash & GetTxRootHash() const;
+
+    /// Returns the digest that represents the root of the Merkle tree that stores all state uptil this block.
+    const StateHash & GetStateRootHash() const;
 
     /// Returns the number of transactions in this block.
     const uint32_t & GetNumTxs() const;
@@ -136,6 +148,7 @@ inline std::ostream & operator<<(std::ostream & os, const TxBlockHeader & t)
           "m_blockNum : " << t.m_blockNum.convert_to<std::string>() << std::endl <<          
           "m_timestamp : " << t.m_timestamp.convert_to<std::string>() << std::endl <<
           "m_txRootHash : " << t.m_txRootHash.hex() << std::endl <<
+          "m_stateRootHash : " << t.m_stateRootHash.hex() << std::endl <<
           "m_numTxs : " << t.m_numTxs << std::endl <<
           "m_numMicroBlockHashes : " << t.m_numMicroBlockHashes << std::endl <<
           "m_minerPubKey : " << t.m_minerPubKey << std::endl <<

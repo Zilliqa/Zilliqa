@@ -94,7 +94,7 @@ TxBlock Synchronizer::ConstructGenesisTxBlock()
     std::pair<PrivKey, PubKey> keypair = make_pair(privKey, pubKey);
 
     TxBlockHeader header(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1, 1, BlockHash(), 0, 
-                         151384616955606, TxnHash(), 0, 5, keypair.second, 0, BlockHash());
+                         151384616955606, TxnHash(), StateHash(), 0, 5, keypair.second, 0, BlockHash());
     
     array<unsigned char, BLOCK_SIG_SIZE> emptySig = { 0 };
 
@@ -104,7 +104,7 @@ TxBlock Synchronizer::ConstructGenesisTxBlock()
         tranHashes.push_back(TxnHash());
     }
 
-    return TxBlock(header, emptySig, tranHashes);
+    return TxBlock(header, emptySig, vector<bool>(), tranHashes);
 }
 
 bool Synchronizer::AddGenesisTxBlockToBlockChain(TxBlockChain & txBlockChain, 

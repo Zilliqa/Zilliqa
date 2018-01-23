@@ -87,9 +87,12 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char> &message, unsigned
     m_mediator.UpdateDSBlockRand();
 
     // Log all values
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Public_key             = 0x" << DataConversion::SerializableToHexStr(key));
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Winning IP                = " << peer.GetPrintableIPAddress() << ":" << portNo);
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "dsb size               = " << m_mediator.m_dsBlockChain.GetBlockCount())
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                 "Public_key             = 0x" << DataConversion::SerializableToHexStr(key));
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                 "Winning IP                = " << peer.GetPrintableIPAddress() << ":" << portNo);
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                 "dsb size               = " << m_mediator.m_dsBlockChain.GetBlockCount())
 
     // Define the PoW2 parameters
     array<unsigned char, UINT256_SIZE> rand1, rand2;
