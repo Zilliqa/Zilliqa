@@ -474,6 +474,101 @@ bool ConsensusLeader::ProcessMessageCommit(const vector<unsigned char> & commit,
     return ProcessMessageCommitCore(commit, offset, PROCESS_COMMIT, CHALLENGE, CHALLENGE_DONE);
 }
 
+bool ConsensusLeader::ProcessMessageCommitFailure(const vector<unsigned char> & commitFailureMsg,
+                                                  unsigned int offset)
+{
+    LOG_MARKER();
+
+    if (!CheckState(PROCESS_COMMIT))
+    {
+        return false;
+    }
+
+    m_commitFailureCounter++;
+
+    const unsigned int length_available = commitFailureMsg.size() - offset;
+    const unsigned int length_needed = sizeof(uint32_t) + BLOCK_HASH_SIZE + sizeof(uint16_t);
+
+    if (length_needed > length_available)
+    {
+        LOG_MESSAGE("Error: Malformed message");
+        return false;
+    }
+
+    unsigned int curr_offset = offset;
+
+    // 4-byte consensus id
+    uint32_t consensus_id = Serializable::GetNumber<uint32_t>(commitFailureMsg, curr_offset, 
+                                                              sizeof(uint32_t));
+    curr_offset += sizeof(uint32_t);
+
+    // Check the consensus id
+    if (consensus_id != m_consensusID)
+    {
+        LOG_MESSAGE("Error: Consensus ID in commitment (" << consensus_id << ") does not match " <<
+                    "instance consensus ID (" << m_consensusID << ")");
+        return false;
+    }
+
+    // 32-byte blockhash
+
+    // Check the block hash
+    if (equal(m_blockHash.begin(), m_blockHash.end(), commitFailureMsg.begin() + curr_offset) == false)
+    {
+        LOG_MESSAGE("Error: Block hash in commitment does not match instance block hash");
+        return false;
+    }
+    curr_offset += BLOCK_HASH_SIZE;
+
+    // 2-byte backup id
+    uint16_t backup_id = Serializable::GetNumber<uint16_t>(commitFailureMsg, curr_offset, sizeof(uint16_t));
+    curr_offset += sizeof(uint16_t);
+
+    // Check the backup id
+    if (backup_id >= m_commitFailureMap.size())
+    {
+        LOG_MESSAGE("Error: Backup ID beyond backup count");
+        return false;
+    }
+
+    if (!m_commitFailureMap.at(backup_id).empty())
+    {
+        LOG_MESSAGE("Error: Backup has already sent commit failure message");
+        return false;
+    }
+
+    if (m_commitFailureCounter == m_numForConsensusFailure)
+    {
+        // LOG_MESSAGE("Sufficient " << m_numForConsensus << " commits obtained");
+
+        // vector<unsigned char> challenge = { m_classByte, m_insByte, static_cast<unsigned char>(returnmsgtype) };
+        // result = GenerateChallengeMessage(challenge, MessageOffset::BODY + sizeof(unsigned char));
+        // if (result == true)
+        // {
+        //     // Update internal state
+        //     // =====================
+
+        //     m_state = nextstate;
+
+        //     // Multicast to all nodes who send validated commits
+        //     // =================================================
+
+        //     vector<Peer> commit_peers;
+        //     deque<Peer>::const_iterator j = m_peerInfo.begin();
+        //     for (unsigned int i = 0; i < m_commitMap.size(); i++, j++)
+        //     {
+        //         if (m_commitMap.at(i) == true)
+        //         {
+        //             commit_peers.push_back(*j);
+        //         }
+        //     }
+        //     P2PComm::GetInstance().SendMessage(commit_peers, challenge);
+        // }
+    }
+
+    return true;
+}
+
 bool ConsensusLeader::GenerateChallengeMessage(vector<unsigned char> & challenge, unsigned int offset)
 {
     LOG_MARKER();
@@ -685,6 +780,8 @@ bool ConsensusLeader::ProcessMessageResponseCore(const vector<unsigned char> & r
                 m_commitPoints.clear();
                 fill(m_commitMap.begin(), m_commitMap.end(), false);
 
+                m_commitFailureCounter = 0;
+
                 m_commitRedundantCounter = 0;
                 fill(m_commitRedundantMap.begin(), m_commitRedundantMap.end(), false);
 
@@ -816,23 +913,32 @@ bool ConsensusLeader::ProcessMessageFinalResponse(const vector<unsigned char> & 
 }
 
 ConsensusLeader::ConsensusLeader
-        (
-                uint32_t consensus_id,
-                const vector<unsigned char> & block_hash,
-                uint16_t node_id,
-                const PrivKey & privkey,
-                const deque<PubKey> & pubkeys,
-                const deque<Peer> & peer_info,
-                unsigned char class_byte,
-                unsigned char ins_byte
-        ) : ConsensusCommon(consensus_id, block_hash, node_id, privkey, pubkeys, peer_info, class_byte, ins_byte), m_commitMap(pubkeys.size(), false), m_commitPointMap(pubkeys.size(), CommitPoint()), m_commitRedundantMap(pubkeys.size(), false), m_commitRedundantPointMap(pubkeys.size(), CommitPoint()), m_responseDataMap(pubkeys.size(), Response())
+(
+    uint32_t consensus_id,
+    const vector<unsigned char> & block_hash,
+    uint16_t node_id,
+    const PrivKey & privkey,
+    const deque<PubKey> & pubkeys,
+    const deque<Peer> & peer_info,
+    unsigned char class_byte,
+    unsigned char ins_byte
+) : ConsensusCommon(consensus_id, block_hash, node_id, privkey, pubkeys, peer_info, 
+                    class_byte, ins_byte), m_commitMap(pubkeys.size(), false),
+                    m_commitPointMap(pubkeys.size(), CommitPoint()), 
+                    m_commitRedundantMap(pubkeys.size(), false), 
+                    m_commitRedundantPointMap(pubkeys.size(), CommitPoint()), 
+                    m_commitFailureMap(pubkeys.size(), vector<unsigned char>()), 
+                    m_responseDataMap(pubkeys.size(), Response())
 {
     LOG_MARKER();
 
     m_state = INITIAL;
     // m_numForConsensus = (floor(TOLERANCE_FRACTION * (pubkeys.size() - 1)) + 1);
     m_numForConsensus = pubkeys.size() - (ceil(pubkeys.size() * (1 - TOLERANCE_FRACTION)) - 1) - 1;
-    LOG_MESSAGE("TOLERANCE_FRACTION " << TOLERANCE_FRACTION << " pubkeys.size() " << pubkeys.size() << " m_numForConsensus " << m_numForConsensus);
+    m_numForConsensusFailure = 1 + (pubkeys.size() - m_numForConsensus);
+    LOG_MESSAGE("TOLERANCE_FRACTION " << TOLERANCE_FRACTION << " pubkeys.size() " << 
+                pubkeys.size() << " m_numForConsensus " << m_numForConsensus <<
+                " m_numForConsensusFailure " << m_numForConsensusFailure);
 }
 
 ConsensusLeader::~ConsensusLeader()
@@ -904,6 +1010,7 @@ bool ConsensusLeader::StartConsensus(const vector<unsigned char> & message)
     m_state = ANNOUNCE_DONE;
     m_commitCounter = 0;
     m_commitRedundantCounter = 0;
+    m_commitFailureCounter = 0;
     m_responseCounter = 0;
     m_message = message;
 
@@ -926,6 +1033,9 @@ bool ConsensusLeader::ProcessMessage(const vector<unsigned char> & message, unsi
     {
         case ConsensusMessageType::COMMIT:
             result = ProcessMessageCommit(message, offset + 1);
+            break;
+        case ConsensusMessageType::COMMITFAILURE:
+            result = ProcessMessageCommitFailure(message, offset + 1);
             break;
         case ConsensusMessageType::RESPONSE:
             result = ProcessMessageResponse(message, offset + 1);

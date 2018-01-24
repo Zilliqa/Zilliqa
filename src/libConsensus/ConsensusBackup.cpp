@@ -275,22 +275,25 @@ bool ConsensusBackup::ProcessMessageAnnounce(const vector<unsigned char> & annou
     {
         LOG_MESSAGE("Error: Message validation failed");
 
-        vector<unsigned char> commitFailureMsg = { m_classByte, m_insByte, static_cast<unsigned char>(
-                                                     ConsensusMessageType::COMMITFAILURE) 
-                                                 };
-
-        bool result = GenerateCommitFailureMessage(commitFailureMsg, 
-                                                   MessageOffset::BODY + sizeof(unsigned char));
-
-        if (result == true)
+        if(!errorMsg.empty())
         {
-            // Update internal state
-            // =====================
-            m_state = ERROR; // TODO: replace it by a more specific state
+            vector<unsigned char> commitFailureMsg = { m_classByte, m_insByte, static_cast<unsigned
+                                                       char>(ConsensusMessageType::COMMITFAILURE) 
+                                                     };
 
-            // Unicast to the leader
-            // =====================
-            P2PComm::GetInstance().SendMessage(m_peerInfo.at(m_leaderID), commitFailureMsg);
+            bool result = GenerateCommitFailureMessage(commitFailureMsg, MessageOffset::BODY + 
+                                                       sizeof(unsigned char), errorMsg);
+
+            if (result == true)
+            {
+                // Update internal state
+                // =====================
+                m_state = ERROR; // TODO: replace it by a more specific state
+
+                // Unicast to the leader
+                // =====================
+                P2PComm::GetInstance().SendMessage(m_peerInfo.at(m_leaderID), commitFailureMsg);
+            }
         }
 
         m_state = ERROR;
@@ -333,15 +336,10 @@ bool ConsensusBackup::ProcessMessageAnnounce(const vector<unsigned char> & annou
 }
 
 bool ConsensusBackup::GenerateCommitFailureMessage(vector<unsigned char> & commitFailure,
-                                                   unsigned int offset)
+                                                   unsigned int offset,
+                                                   const vector<unsigned char> & errorMsg)
 {
     LOG_MARKER();
-
-    // Assemble commit message body
-    // ============================
-    
-    // Format: [4-byte consensus id] [32-byte blockhash] [2-byte backup id] [33-byte commit] [64-byte signature]
-    // Signature is over: [4-byte consensus id] [32-byte blockhash] [2-byte backup id] [33-byte commit]
 
     unsigned int curr_offset = offset;
 
@@ -357,19 +355,8 @@ bool ConsensusBackup::GenerateCommitFailureMessage(vector<unsigned char> & commi
     Serializable::SetNumber<uint16_t>(commitFailure, curr_offset, m_myID, sizeof(uint16_t));
     curr_offset += sizeof(uint16_t);
 
-    // 33-byte commit
-    m_commitPoint->Serialize(commitFailure, curr_offset);
-    curr_offset += COMMIT_POINT_SIZE;
-
-    // 64-byte signature
-    Signature signature = SignMessage(commitFailure, offset, curr_offset - offset);
-    if (signature.Initialized() == false)
-    {
-        LOG_MESSAGE("Error: Message signing failed");
-        m_state = ERROR;
-        return false;
-    }
-    signature.Serialize(commitFailure, curr_offset);
+    commitFailure.resize(curr_offset + errorMsg.size());
+    copy(errorMsg.begin(), errorMsg.end(), commitFailure.begin() + offset);
 
     return true;    
 }

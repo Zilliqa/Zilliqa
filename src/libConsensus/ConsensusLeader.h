@@ -43,6 +43,7 @@ class ConsensusLeader : public ConsensusCommon
 
     // Consensus session settings
     unsigned int m_numForConsensus;
+    unsigned int m_numForConsensusFailure;
 
     // Received commits
     std::mutex m_mutex;
@@ -56,6 +57,9 @@ class ConsensusLeader : public ConsensusCommon
     // Generated challenge
     Challenge m_challenge;
 
+    unsigned int m_commitFailureCounter;
+    std::vector<std::vector<unsigned char>> m_commitFailureMap;
+
     // Received responses
     unsigned int m_responseCounter;
     std::vector<Response> m_responseDataMap;
@@ -65,6 +69,7 @@ class ConsensusLeader : public ConsensusCommon
     bool CheckState(Action action);
     bool ProcessMessageCommitCore(const std::vector<unsigned char> & commit, unsigned int offset, Action action, ConsensusMessageType returnmsgtype, State nextstate);
     bool ProcessMessageCommit(const std::vector<unsigned char> & commit, unsigned int offset);
+    bool ProcessMessageCommitFailure(const std::vector<unsigned char> & commit, unsigned int offset);    
     bool GenerateChallengeMessage(std::vector<unsigned char> & challenge, unsigned int offset);
     bool ProcessMessageResponseCore(const std::vector<unsigned char> & response, unsigned int offset, Action action, ConsensusMessageType returnmsgtype, State nextstate);
     bool ProcessMessageResponse(const std::vector<unsigned char> & response, unsigned int offset);
