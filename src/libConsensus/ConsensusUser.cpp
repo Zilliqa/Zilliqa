@@ -98,7 +98,9 @@ bool ConsensusUser::ProcessSetLeader(const vector<unsigned char> & message, unsi
     }
     else // Backup
     {
-        auto func = [this](const vector<unsigned char> & message) mutable -> bool { return MyMsgValidatorFunc(message); };
+        auto func = [this](const vector<unsigned char> & message,
+                           vector<unsigned char> & errorMsg) mutable ->
+                           bool { return MyMsgValidatorFunc(message, errorMsg); };
 
         m_consensus.reset
         (
@@ -228,7 +230,8 @@ bool ConsensusUser::Execute(const vector<unsigned char> & message, unsigned int 
     return result;
 }
 
-bool ConsensusUser::MyMsgValidatorFunc(const vector<unsigned char> & message)
+bool ConsensusUser::MyMsgValidatorFunc(const vector<unsigned char> & message,
+                                       vector<unsigned char> & errorMsg)
 {
     LOG_MARKER();
 

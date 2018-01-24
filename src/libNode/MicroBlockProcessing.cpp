@@ -281,7 +281,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup()
     //m_consensusID = 0;
     m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
-    auto func = [this](const vector<unsigned char> & message) mutable -> bool { return MicroBlockValidator(message); };
+    auto func = [this](const vector<unsigned char> & message, vector<unsigned char> & errorMsg) mutable -> bool { return MicroBlockValidator(message, errorMsg); };
 
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "MS: I am shard backup");
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "MS: m_consensusID: " << m_consensusID << " m_consensusMyID: " << m_consensusMyID);
@@ -474,7 +474,7 @@ bool Node::CheckMicroBlockTxnRootHash()
     return true;      
 }
 
-bool Node::MicroBlockValidator(const vector<unsigned char> & microblock)
+bool Node::MicroBlockValidator(const vector<unsigned char> & microblock, vector<unsigned char> & errorMsg)
 {
     LOG_MARKER();
 

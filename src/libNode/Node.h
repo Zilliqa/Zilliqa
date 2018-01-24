@@ -240,7 +240,8 @@ class Node : public Executable, public Broadcastable
     bool RunConsensusOnMicroBlock();
     bool ComposeMicroBlock();
     void ProcessMicroblockConsensusIfPrimary() const;
-    bool MicroBlockValidator(const std::vector<unsigned char> & sharding_structure);
+    bool MicroBlockValidator(const std::vector<unsigned char> & sharding_structure,
+                             std::vector<unsigned char> & errorMsg);
     bool CheckLegitimacyOfTxnHashes();
     bool CheckBlockTypeIsMicro();
     bool CheckMicroBlockVersion();

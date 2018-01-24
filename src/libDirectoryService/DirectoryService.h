@@ -236,13 +236,13 @@ class DirectoryService : public Executable, public Broadcastable
     bool WaitForTxnBodies();
 
     // DS block consensus validator function
-    bool DSBlockValidator(const std::vector<unsigned char> & dsblock);
+    bool DSBlockValidator(const std::vector<unsigned char> & dsblock, std::vector<unsigned char> & errorMsg);
 
     // Sharding consensus validator function
-    bool ShardingValidator(const std::vector<unsigned char> & sharding_structure);
+    bool ShardingValidator(const std::vector<unsigned char> & sharding_structure, std::vector<unsigned char> & errorMsg);
 
     // Final block consensus validator function
-    bool FinalBlockValidator(const std::vector<unsigned char> & finalblock);
+    bool FinalBlockValidator(const std::vector<unsigned char> & finalblock, std::vector<unsigned char> & errorMsg);
 
     void StoreFinalBlockToDisk();
 

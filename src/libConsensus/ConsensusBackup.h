@@ -59,6 +59,7 @@ private:
     // Internal functions
     bool CheckState(Action action);
     bool ProcessMessageAnnounce(const std::vector<unsigned char> & announcement, unsigned int offset);
+    bool GenerateCommitFailureMessage(vector<unsigned char> & commitFailure, unsigned int offset);
     bool GenerateCommitMessage(std::vector<unsigned char> & commit, unsigned int offset);
     bool ProcessMessageChallengeCore(const std::vector<unsigned char> & challenge, unsigned int offset, Action action, ConsensusMessageType returnmsgtype, State nextstate);
     bool ProcessMessageChallenge(const std::vector<unsigned char> & challenge, unsigned int offset);
