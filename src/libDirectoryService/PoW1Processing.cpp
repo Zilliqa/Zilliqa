@@ -201,7 +201,8 @@ bool DirectoryService::ProcessPoW1Submission(const vector<unsigned char> & messa
 
             if (i % 10 == 0)
             {
-                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Waiting for POW1_SUBMISSION before processing");
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Waiting for POW1_SUBMISSION before processing. Current state is " << m_state);
+
             }
             this_thread::sleep_for(chrono::milliseconds(sleep_time_while_waiting));
         }
