@@ -206,6 +206,7 @@ bool DirectoryService::ShardingValidator(const vector<unsigned char> & sharding_
     //   [33-byte public key]
     //   ...
     // ...
+    lock_guard<mutex> g(m_mutexAllPoWConns);
 
     unsigned int curr_offset = 0;
 
@@ -215,7 +216,6 @@ bool DirectoryService::ShardingValidator(const vector<unsigned char> & sharding_
 
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Number of committees = " << numOfComms);
 
-    lock_guard<mutex> g(m_mutexAllPoWConns);
     for (unsigned int i = 0; i < numOfComms; i++)
     {
         m_shards.push_back(map<PubKey, Peer>());
@@ -232,15 +232,31 @@ bool DirectoryService::ShardingValidator(const vector<unsigned char> & sharding_
             PubKey memberPubkey(sharding_structure, curr_offset);
             curr_offset += PUB_KEY_SIZE; 
 
+
             auto memberPeer = m_allPoWConns.find(memberPubkey);
             if (memberPeer == m_allPoWConns.end())
             {
-                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "To-do: Shard node not inside m_allPoWConns - should ask for nonce and IP info from leader!");
-                throw exception();
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Shard node not inside m_allPoWConns. " << memberPeer->second.GetPrintableIPAddress() << " Port: " << memberPeer->second.m_listenPortHost);
+                
+                m_hasAllPoWconns = false; 
+                std::unique_lock<std::mutex> lk(m_MutexCVAllPowConn);
+
+                RequestAllPoWConn(); 
+                while (!m_hasAllPoWconns)
+                {
+                    cv_allPowConns.wait(lk);
+                }
+                memberPeer = m_allPoWConns.find(memberPubkey);
+                
+                if (memberPeer == m_allPoWConns.end())
+                {
+                    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Sharding validator error");
+                    throw exception(); 
+                }
+
             }
 
             // To-do: Should we check for a public key that's been assigned to more than 1 shard?
-
             m_shards.back().insert(make_pair(memberPubkey, memberPeer->second));
             m_publicKeyToShardIdMap.insert(make_pair(memberPubkey, i));
 
