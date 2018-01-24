@@ -239,24 +239,27 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
     m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "MS: I am shard leader");
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "MS: m_consensusID: " << m_consensusID << " m_consensusMyID: " << m_consensusMyID);
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "MS: m_consensusLeaderID: " << m_consensusLeaderID);
-
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "MS: m_consensusID: " << 
+                 m_consensusID << " m_consensusMyID: " << m_consensusMyID);
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "MS: m_consensusLeaderID: " << 
+                 m_consensusLeaderID);
 
     m_consensusObject.reset
-        (
-            new ConsensusLeader
-                (
-                        m_consensusID,
-                        m_consensusBlockHash,
-                        m_consensusMyID,
-                        m_mediator.m_selfKey.first,
-                        m_myShardMembersPubKeys,
-                        m_myShardMembersNetworkInfo,
-                        static_cast<unsigned char>(NODE),
-                        static_cast<unsigned char>(MICROBLOCKCONSENSUS)
-                )
-        );
+    (
+        new ConsensusLeader
+            (
+                m_consensusID,
+                m_consensusBlockHash,
+                m_consensusMyID,
+                m_mediator.m_selfKey.first,
+                m_myShardMembersPubKeys,
+                m_myShardMembersNetworkInfo,
+                static_cast<unsigned char>(NODE),
+                static_cast<unsigned char>(MICROBLOCKCONSENSUS),
+                std::function<bool()>(),
+                std::function<bool()>()
+            )
+    );
 
     if (m_consensusObject == nullptr)
     {

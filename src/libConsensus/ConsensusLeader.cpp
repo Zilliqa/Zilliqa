@@ -921,7 +921,9 @@ ConsensusLeader::ConsensusLeader
     const deque<PubKey> & pubkeys,
     const deque<Peer> & peer_info,
     unsigned char class_byte,
-    unsigned char ins_byte
+    unsigned char ins_byte,
+    NodeCommitFailureHandlerFunc nodeCommitFailureHandlerFunc,
+    ShardCommitFailureHandlerFunc shardCommitFailureHandlerFunc
 ) : ConsensusCommon(consensus_id, block_hash, node_id, privkey, pubkeys, peer_info, 
                     class_byte, ins_byte), m_commitMap(pubkeys.size(), false),
                     m_commitPointMap(pubkeys.size(), CommitPoint()), 
@@ -939,6 +941,9 @@ ConsensusLeader::ConsensusLeader
     LOG_MESSAGE("TOLERANCE_FRACTION " << TOLERANCE_FRACTION << " pubkeys.size() " << 
                 pubkeys.size() << " m_numForConsensus " << m_numForConsensus <<
                 " m_numForConsensusFailure " << m_numForConsensusFailure);
+
+    m_nodeCommitFailureHandlerFunc = nodeCommitFailureHandlerFunc;
+    m_shardCommitFailureHandlerFunc = shardCommitFailureHandlerFunc;
 }
 
 ConsensusLeader::~ConsensusLeader()

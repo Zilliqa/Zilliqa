@@ -29,6 +29,9 @@
 #include "libNetwork/PeerStore.h"
 #include "libUtils/TimeLockedFunction.h"
 
+typedef std::function<bool()> NodeCommitFailureHandlerFunc;
+typedef std::function<bool()> ShardCommitFailureHandlerFunc;
+
 /// Implements the functionality for the consensus committee leader.
 class ConsensusLeader : public ConsensusCommon
 {
@@ -65,6 +68,9 @@ class ConsensusLeader : public ConsensusCommon
     std::vector<Response> m_responseDataMap;
     std::vector<Response> m_responseData;
 
+    NodeCommitFailureHandlerFunc m_nodeCommitFailureHandlerFunc;
+    ShardCommitFailureHandlerFunc m_shardCommitFailureHandlerFunc;
+
     // Internal functions
     bool CheckState(Action action);
     bool ProcessMessageCommitCore(const std::vector<unsigned char> & commit, unsigned int offset, Action action, ConsensusMessageType returnmsgtype, State nextstate);
@@ -89,7 +95,9 @@ public:
         const std::deque<PubKey> & pubkeys,            // ordered lookup table of pubkeys for this committee (includes leader)
         const std::deque<Peer> & peer_info,            // IP addresses of all peers
         unsigned char class_byte,                      // class byte representing Executable class using this instance of ConsensusLeader
-        unsigned char ins_byte                         // instruction byte representing consensus messages for the Executable class
+        unsigned char ins_byte,                        // instruction byte representing consensus messages for the Executable class
+        NodeCommitFailureHandlerFunc nodeCommitFailureHandlerFunc,
+        ShardCommitFailureHandlerFunc shardCommitFailureHandlerFunc
     );
 
     /// Destructor.
