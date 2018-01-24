@@ -277,37 +277,44 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup()
 {
     LOG_MARKER();
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "I am a backup node. Waiting for microblock announcement for epoch " << m_mediator.m_currentEpochNum);
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                 "I am a backup node. Waiting for microblock announcement for epoch " <<
+                 m_mediator.m_currentEpochNum);
     //m_consensusID = 0;
     m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
-    auto func = [this](const vector<unsigned char> & message, vector<unsigned char> & errorMsg) mutable -> bool { return MicroBlockValidator(message, errorMsg); };
+    auto func = [this](const vector<unsigned char> & message,
+                       vector<unsigned char> & errorMsg) mutable ->
+                       bool { return MicroBlockValidator(message, errorMsg); };
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "MS: I am shard backup");
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "MS: m_consensusID: " << m_consensusID << " m_consensusMyID: " << m_consensusMyID);
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "MS: m_consensusLeaderID: " << m_consensusLeaderID);
-
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                 "MS: I am shard backup");
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                 "MS: m_consensusID: " << m_consensusID << " m_consensusMyID: " << m_consensusMyID);
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                 "MS: m_consensusLeaderID: " << m_consensusLeaderID);
 
     m_consensusObject.reset
     (
         new ConsensusBackup
-            (
-                    m_consensusID,
-                    m_consensusBlockHash,
-                    m_consensusMyID,
-                    m_consensusLeaderID,
-                    m_mediator.m_selfKey.first,
-                    m_myShardMembersPubKeys,
-                    m_myShardMembersNetworkInfo,
-                    static_cast<unsigned char>(NODE),
-                    static_cast<unsigned char>(MICROBLOCKCONSENSUS),
-                    func
-            )
+        (
+            m_consensusID,
+            m_consensusBlockHash,
+            m_consensusMyID,
+            m_consensusLeaderID,
+            m_mediator.m_selfKey.first,
+            m_myShardMembersPubKeys,
+            m_myShardMembersNetworkInfo,
+            static_cast<unsigned char>(NODE),
+            static_cast<unsigned char>(MICROBLOCKCONSENSUS),
+            func
+        )
     );
 
     if (m_consensusObject == nullptr)
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Error: Unable to create consensus object");
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "Error: Unable to create consensus object");
         return false;
     }
 
@@ -342,35 +349,6 @@ bool Node::RunConsensusOnMicroBlock()
     SetState(MICROBLOCK_CONSENSUS);
 
     return true; 
-}
-
-bool Node::CheckLegitimacyOfTxnHashes()
-{
-    lock(m_mutexReceivedTransactions, m_mutexSubmittedTransactions);
-    lock_guard<mutex> g(m_mutexReceivedTransactions, adopt_lock);
-    lock_guard<mutex> g2(m_mutexSubmittedTransactions, adopt_lock);
-
-    auto const & receivedTransactions = m_receivedTransactions[m_mediator.m_currentEpochNum];
-    auto const & submittedTransactions = m_submittedTransactions[m_mediator.m_currentEpochNum];
-
-    for(auto const & hash : m_microblock->GetTranHashes())
-    {   
-        // Check if transaction is part of submitted Tx list
-        if(submittedTransactions.find(hash) != submittedTransactions.end())
-        {
-            continue;
-        }
-
-        // Check if transaction is part of received Tx list
-        if(receivedTransactions.find(hash) == receivedTransactions.end())
-        {
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
-                         "Missing txn: " << hash)
-            return false;
-        }
-    }
-
-    return true;
 }
 
 bool Node::CheckBlockTypeIsMicro()
@@ -426,7 +404,48 @@ bool Node::CheckMicroBlockTimestamp()
     return true;      
 }
 
-bool Node::CheckMicroBlockHashes()
+bool Node::CheckLegitimacyOfTxnHashes(vector<unsigned char> & errorMsg)
+{
+    lock(m_mutexReceivedTransactions, m_mutexSubmittedTransactions);
+    lock_guard<mutex> g(m_mutexReceivedTransactions, adopt_lock);
+    lock_guard<mutex> g2(m_mutexSubmittedTransactions, adopt_lock);
+
+    auto const & receivedTransactions = m_receivedTransactions[m_mediator.m_currentEpochNum];
+    auto const & submittedTransactions = m_submittedTransactions[m_mediator.m_currentEpochNum];
+
+    bool allHashesPresent = true;
+
+    int offset = 0;
+
+    for(auto const & hash : m_microblock->GetTranHashes())
+    {   
+        // Check if transaction is part of submitted Tx list
+        if(submittedTransactions.find(hash) != submittedTransactions.end())
+        {
+            continue;
+        }
+
+        // Check if transaction is part of received Tx list
+        if(receivedTransactions.find(hash) == receivedTransactions.end())
+        {
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                         "Missing txn: " << hash)
+            errorMsg.resize(offset + TRAN_HASH_SIZE);
+            copy(hash.asArray().begin(), hash.asArray().end(), errorMsg.begin() + offset);
+            offset += TRAN_HASH_SIZE;
+            allHashesPresent = false;
+        }
+    }
+
+    if(!allHashesPresent)
+    {
+        return false;
+    }
+
+    return true;
+}
+
+bool Node::CheckMicroBlockHashes(vector<unsigned char> & errorMsg)
 {
     // Check transaction hashes (number of hashes must be = Tx count field)
     uint32_t txhashessize = m_microblock->GetTranHashes().size();
@@ -440,8 +459,8 @@ bool Node::CheckMicroBlockHashes()
    
     LOG_MESSAGE("Hash count check passed");
 
-    // Check if I have the txn bodies corresponding to the hashes included in the microblock 
-    if(!CheckLegitimacyOfTxnHashes())
+    // Check if I have the txn bodies corresponding to the hashes included in the microblock
+    if(!CheckLegitimacyOfTxnHashes(errorMsg))
     {
         LOG_MESSAGE("Error: Missing a txn hash included in proposed microblock");
         return false;
@@ -474,7 +493,8 @@ bool Node::CheckMicroBlockTxnRootHash()
     return true;      
 }
 
-bool Node::MicroBlockValidator(const vector<unsigned char> & microblock, vector<unsigned char> & errorMsg)
+bool Node::MicroBlockValidator(const vector<unsigned char> & microblock,
+                               vector<unsigned char> & errorMsg)
 {
     LOG_MARKER();
 
@@ -487,7 +507,7 @@ bool Node::MicroBlockValidator(const vector<unsigned char> & microblock, vector<
     do
     {
         if (!CheckBlockTypeIsMicro() || !CheckMicroBlockVersion() || !CheckMicroBlockTimestamp() || 
-            !CheckMicroBlockHashes() || !CheckMicroBlockTxnRootHash())
+            !CheckMicroBlockHashes(errorMsg) || !CheckMicroBlockTxnRootHash())
         {
             break;
         }

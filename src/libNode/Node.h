@@ -242,11 +242,11 @@ class Node : public Executable, public Broadcastable
     void ProcessMicroblockConsensusIfPrimary() const;
     bool MicroBlockValidator(const std::vector<unsigned char> & sharding_structure,
                              std::vector<unsigned char> & errorMsg);
-    bool CheckLegitimacyOfTxnHashes();
+    bool CheckLegitimacyOfTxnHashes(std::vector<unsigned char> & errorMsg);
     bool CheckBlockTypeIsMicro();
     bool CheckMicroBlockVersion();
     bool CheckMicroBlockTimestamp();
-    bool CheckMicroBlockHashes();
+    bool CheckMicroBlockHashes(std::vector<unsigned char> & errorMsg);
     bool CheckMicroBlockTxnRootHash();
    
     bool ActOnFinalBlock(uint8_t tx_sharing_mode, vector<Peer> my_shard_receivers, 
