@@ -42,7 +42,9 @@ enum DSInstructionType : unsigned char
     POW2SUBMISSION = 0x03,
     SHARDINGCONSENSUS = 0x04,
     MICROBLOCKSUBMISSION = 0x05,
-    FINALBLOCKCONSENSUS = 0x06
+    FINALBLOCKCONSENSUS = 0x06,
+    AllPoWConnRequest = 0x07,
+    AllPoWConnResponse = 0x08
 };
 
 enum NodeInstructionType : unsigned char

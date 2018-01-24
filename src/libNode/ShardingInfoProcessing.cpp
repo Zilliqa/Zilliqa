@@ -101,7 +101,7 @@ bool Node::ReadVariablesFromShardingMessage(const vector<unsigned char> & messag
         if (m_mediator.m_selfPeer == m_myShardMembersNetworkInfo.back())
         {
             m_consensusMyID = i; // Set my ID
-           //m_myShardMembersNetworkInfo.back().m_ipAddress = 0;
+            //m_myShardMembersNetworkInfo.back().m_ipAddress = 0;
             m_myShardMembersNetworkInfo.back().m_listenPortHost = 0;
         }
 

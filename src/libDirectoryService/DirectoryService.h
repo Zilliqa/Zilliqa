@@ -27,6 +27,7 @@
 #include <shared_mutex>
 #include <boost/multiprecision/cpp_int.hpp>
 #include <libCrypto/Sha2.h>
+#include <condition_variable>
 
 #include "common/Executable.h"
 #include "common/Broadcastable.h"
@@ -86,6 +87,10 @@ class DirectoryService : public Executable, public Broadcastable
 
     std::shared_timed_mutex m_mutexProducerConsumer;
     std::mutex m_mutexConsensus;
+    
+    bool m_hasAllPoWconns = true; 
+    std::condition_variable cv_allPowConns;
+    std::mutex m_MutexCVAllPowConn; 
 
     // Sharding committee members
     std::vector<std::map<PubKey, Peer>> m_shards;
@@ -138,6 +143,9 @@ class DirectoryService : public Executable, public Broadcastable
                                      unsigned int offset, const Peer & from);
     bool ProcessFinalBlockConsensus(const std::vector<unsigned char> & message, unsigned int offset, 
                                     const Peer & from);
+    bool ProcessAllPoWConnRequest(const vector<unsigned char> & message, unsigned int offset, const Peer & from); 
+    bool ProcessAllPoWConnResponse(const vector<unsigned char> & message, unsigned int offset, const Peer & from);
+
 #ifndef IS_LOOKUP_NODE
     bool CheckState(Action action);
     bool VerifyPOW2(const vector<unsigned char> &message, unsigned int offset, const Peer &from);
@@ -245,6 +253,10 @@ class DirectoryService : public Executable, public Broadcastable
     bool FinalBlockValidator(const std::vector<unsigned char> & finalblock);
 
     void StoreFinalBlockToDisk();
+
+    // Used to reconsile view of m_AllPowConn is different. 
+    void RequestAllPoWConn();
+
 
 #endif // IS_LOOKUP_NODE    
 
