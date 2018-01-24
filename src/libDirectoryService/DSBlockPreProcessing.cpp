@@ -136,7 +136,8 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
     return true;
 }
 
-bool DirectoryService::DSBlockValidator(const vector<unsigned char> & dsblock)
+bool DirectoryService::DSBlockValidator(const vector<unsigned char> & dsblock, 
+                                        std::vector<unsigned char> & errorMsg)
 {
     LOG_MARKER();
 
@@ -160,7 +161,8 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup()
 {
     LOG_MARKER();
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "I am a backup DS node. Waiting for DS block announcement.");
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                 "I am a backup DS node. Waiting for DS block announcement.");
 
     // Create new consensus object
 
@@ -169,7 +171,9 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup()
     m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
 
-    auto func = [this](const vector<unsigned char> & message) mutable -> bool { return DSBlockValidator(message); };
+    auto func = [this](const vector<unsigned char> & message, 
+                       vector<unsigned char> & errorMsg) mutable -> 
+                       bool { return DSBlockValidator(message, errorMsg); };
 
     m_consensusObject.reset
     (

@@ -824,7 +824,8 @@ void DirectoryService::LoadUnavailableMicroBlocks()
     }
 }
 
-bool DirectoryService::FinalBlockValidator(const vector<unsigned char> & finalblock)
+bool DirectoryService::FinalBlockValidator(const vector<unsigned char> & finalblock,
+                                           vector<unsigned char> & errorMsg)
 {
     LOG_MARKER();
 
@@ -873,7 +874,9 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup()
     m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
 
-    auto func = [this](const vector<unsigned char> & message) mutable -> bool { return FinalBlockValidator(message); };
+    auto func = [this](const vector<unsigned char> & message, 
+                       vector<unsigned char> & errorMsg) mutable -> 
+                       bool { return FinalBlockValidator(message, errorMsg); };
 
     m_consensusObject.reset
         (

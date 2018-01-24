@@ -28,7 +28,8 @@
 #include "libNetwork/PeerStore.h"
 #include "libUtils/TimeLockedFunction.h"
 
-typedef std::function<bool(const std::vector<unsigned char> &)> MsgContentValidatorFunc;
+typedef std::function<bool(const std::vector<unsigned char> & input, 
+                           std::vector<unsigned char> & errorMsg)> MsgContentValidatorFunc;
 
 unsigned int GetBitVectorLengthInBytes(unsigned int length_in_bits);
 vector<bool> GetBitVector(const vector<unsigned char> & src, 
@@ -69,7 +70,8 @@ protected:
         FINALCOMMIT = 0x05,
         FINALCHALLENGE = 0x06,
         FINALRESPONSE = 0x07,
-        FINALCOLLECTIVESIG = 0x8
+        FINALCOLLECTIVESIG = 0x08,
+        COMMITFAILURE = 0x09
     };
 
     State m_state;
