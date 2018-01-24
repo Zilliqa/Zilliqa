@@ -416,19 +416,21 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
 
     m_consensusObject.reset
+    (
+        new ConsensusLeader
         (
-            new ConsensusLeader
-                (
-                        m_consensusID,
-                        m_consensusBlockHash,
-                        m_consensusMyID,
-                        m_mediator.m_selfKey.first,
-                        m_mediator.m_DSCommitteePubKeys,
-                        m_mediator.m_DSCommitteeNetworkInfo,
-                        static_cast<unsigned char>(DIRECTORY),
-                        static_cast<unsigned char>(FINALBLOCKCONSENSUS)
-                )
-        );
+            m_consensusID,
+            m_consensusBlockHash,
+            m_consensusMyID,
+            m_mediator.m_selfKey.first,
+            m_mediator.m_DSCommitteePubKeys,
+            m_mediator.m_DSCommitteeNetworkInfo,
+            static_cast<unsigned char>(DIRECTORY),
+            static_cast<unsigned char>(FINALBLOCKCONSENSUS),
+            std::function<bool()>(),
+            std::function<bool()>()
+        )
+    );
 
     if (m_consensusObject == nullptr)
     {
