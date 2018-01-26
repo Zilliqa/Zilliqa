@@ -150,33 +150,39 @@ bool DirectoryService::RunConsensusOnShardingWhenDSPrimary()
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
 
     m_consensusObject.reset
+    (
+        new ConsensusLeader
         (
-            new ConsensusLeader
-                (
-                        consensusID,
-                        m_consensusBlockHash,
-                        m_consensusMyID,
-                        m_mediator.m_selfKey.first,
-                        m_mediator.m_DSCommitteePubKeys,
-                        m_mediator.m_DSCommitteeNetworkInfo,
-                        static_cast<unsigned char>(DIRECTORY),
-                        static_cast<unsigned char>(SHARDINGCONSENSUS)
-                )
-        );
+            consensusID,
+            m_consensusBlockHash,
+            m_consensusMyID,
+            m_mediator.m_selfKey.first,
+            m_mediator.m_DSCommitteePubKeys,
+            m_mediator.m_DSCommitteeNetworkInfo,
+            static_cast<unsigned char>(DIRECTORY),
+            static_cast<unsigned char>(SHARDINGCONSENSUS),
+            std::function<bool(const vector<unsigned char> &, unsigned int, const Peer &)>(),
+            std::function<bool()>()
+        )
+    );
 
     if (m_consensusObject == nullptr)
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Error: Unable to create consensus object");
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "Error: Unable to create consensus object");
         return false;
     }
 
     ConsensusLeader * cl = dynamic_cast<ConsensusLeader*>(m_consensusObject.get());
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Waiting " << LEADER_SHARDING_PREPARATION_IN_SECONDS << " seconds before announcing...");
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Waiting " << 
+                 LEADER_SHARDING_PREPARATION_IN_SECONDS << " seconds before announcing...");
     this_thread::sleep_for(chrono::seconds(LEADER_SHARDING_PREPARATION_IN_SECONDS));
 
 #ifdef STAT_TEST
-    LOG_STATE("[SHCON][" << std::setw(15) << std::left << m_mediator.m_selfPeer.GetPrintableIPAddress() << "][" << m_mediator.m_txBlockChain.GetBlockCount() << "] BGIN");
+    LOG_STATE("[SHCON][" << std::setw(15) << std::left << 
+              m_mediator.m_selfPeer.GetPrintableIPAddress() << "][" << 
+              m_mediator.m_txBlockChain.GetBlockCount() << "] BGIN");
 #endif // STAT_TEST
 
     cl->StartConsensus(sharding_structure);
@@ -184,7 +190,8 @@ bool DirectoryService::RunConsensusOnShardingWhenDSPrimary()
     return true;
 }
 
-bool DirectoryService::ShardingValidator(const vector<unsigned char> & sharding_structure)
+bool DirectoryService::ShardingValidator(const vector<unsigned char> & sharding_structure,
+                                         std::vector<unsigned char> & errorMsg)
 {
     LOG_MARKER();
 
@@ -271,7 +278,8 @@ bool DirectoryService::RunConsensusOnShardingWhenDSBackup()
 {
     LOG_MARKER();
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "I am a backup DS node. Waiting for sharding structure announcement.");
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                 "I am a backup DS node. Waiting for sharding structure announcement.");
 
     // Create new consensus object
 
@@ -280,24 +288,26 @@ bool DirectoryService::RunConsensusOnShardingWhenDSBackup()
     m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
 
-    auto func = [this](const vector<unsigned char> & message) mutable -> bool { return ShardingValidator(message); };
+    auto func = [this](const vector<unsigned char> & message,
+                       vector<unsigned char> & errorMsg) mutable -> 
+                       bool { return ShardingValidator(message, errorMsg); };
 
     m_consensusObject.reset
+    (
+        new ConsensusBackup
         (
-            new ConsensusBackup
-                (
-                        consensusID,
-                        m_consensusBlockHash,
-                        m_consensusMyID,
-                        m_consensusLeaderID,
-                        m_mediator.m_selfKey.first,
-                        m_mediator.m_DSCommitteePubKeys,
-                        m_mediator.m_DSCommitteeNetworkInfo,
-                        static_cast<unsigned char>(DIRECTORY),
-                        static_cast<unsigned char>(SHARDINGCONSENSUS),
-                        func
-                )
-        );
+            consensusID,
+            m_consensusBlockHash,
+            m_consensusMyID,
+            m_consensusLeaderID,
+            m_mediator.m_selfKey.first,
+            m_mediator.m_DSCommitteePubKeys,
+            m_mediator.m_DSCommitteeNetworkInfo,
+            static_cast<unsigned char>(DIRECTORY),
+            static_cast<unsigned char>(SHARDINGCONSENSUS),
+            func
+        )
+    );
 
     if (m_consensusObject == nullptr)
     {

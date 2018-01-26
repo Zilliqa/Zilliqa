@@ -202,6 +202,7 @@ bool ConsensusBackup::CheckState(Action action)
 
     return result;
 }
+
 bool ConsensusBackup::ProcessMessageAnnounce(const vector<unsigned char> & announcement, unsigned int offset)
 {
     LOG_MARKER();
@@ -269,10 +270,32 @@ bool ConsensusBackup::ProcessMessageAnnounce(const vector<unsigned char> & annou
     curr_offset += message_size;
 
     // Check the message
-    bool msg_valid = m_msgContentValidator(m_message);
+    std::vector<unsigned char> errorMsg;
+    bool msg_valid = m_msgContentValidator(m_message, errorMsg);
     if (msg_valid == false)
     {
         LOG_MESSAGE("Error: Message validation failed");
+
+        if (!errorMsg.empty())
+        {
+            vector<unsigned char> commitFailureMsg = { m_classByte, m_insByte, static_cast<unsigned
+                                                       char>(ConsensusMessageType::COMMITFAILURE) };
+
+            bool result = GenerateCommitFailureMessage(commitFailureMsg, MessageOffset::BODY + 
+                                                       sizeof(unsigned char), errorMsg);
+
+            if (result == true)
+            {
+                // Update internal state
+                // =====================
+                m_state = ERROR; // TODO: replace it by a more specific state
+
+                // Unicast to the leader
+                // =====================
+                P2PComm::GetInstance().SendMessage(m_peerInfo.at(m_leaderID), commitFailureMsg);
+            }
+        }
+
         m_state = ERROR;
         return false;
     }
@@ -310,6 +333,32 @@ bool ConsensusBackup::ProcessMessageAnnounce(const vector<unsigned char> & annou
     }
 
     return result;
+}
+
+bool ConsensusBackup::GenerateCommitFailureMessage(vector<unsigned char> & commitFailure,
+                                                   unsigned int offset,
+                                                   const vector<unsigned char> & errorMsg)
+{
+    LOG_MARKER();
+
+    unsigned int curr_offset = offset;
+
+    // 4-byte consensus id
+    Serializable::SetNumber<uint32_t>(commitFailure, curr_offset, m_consensusID, sizeof(uint32_t));
+    curr_offset += sizeof(uint32_t);
+
+    // 32-byte blockhash
+    commitFailure.insert(commitFailure.begin() + curr_offset, m_blockHash.begin(), m_blockHash.end());
+    curr_offset += m_blockHash.size();
+
+    // 2-byte backup id
+    Serializable::SetNumber<uint16_t>(commitFailure, curr_offset, m_myID, sizeof(uint16_t));
+    curr_offset += sizeof(uint16_t);
+
+    commitFailure.resize(curr_offset + errorMsg.size());
+    copy(errorMsg.begin(), errorMsg.end(), commitFailure.begin() + curr_offset);
+
+    return true;    
 }
 
 bool ConsensusBackup::GenerateCommitMessage(vector<unsigned char> & commit, unsigned int offset)
@@ -720,7 +769,8 @@ ConsensusBackup::ConsensusBackup
     unsigned char class_byte,
     unsigned char ins_byte,
     MsgContentValidatorFunc msg_validator
-) : ConsensusCommon(consensus_id, block_hash, node_id, privkey, pubkeys, peer_info, class_byte, ins_byte), m_commitSecret(nullptr), m_commitPoint(nullptr)
+) : ConsensusCommon(consensus_id, block_hash, node_id, privkey, pubkeys, peer_info, class_byte, 
+                    ins_byte), m_commitSecret(nullptr), m_commitPoint(nullptr)
 {
     LOG_MARKER();
 
@@ -734,7 +784,8 @@ ConsensusBackup::~ConsensusBackup()
 
 }
 
-bool ConsensusBackup::ProcessMessage(const vector<unsigned char> & message, unsigned int offset)
+bool ConsensusBackup::ProcessMessage(const vector<unsigned char> & message, unsigned int offset, 
+                                     const Peer & from)
 {
     LOG_MARKER();
 
@@ -760,8 +811,7 @@ bool ConsensusBackup::ProcessMessage(const vector<unsigned char> & message, unsi
             result = ProcessMessageFinalCollectiveSig(message, offset + 1);
             break;
         default:
-        LOG_MESSAGE("Error: Unknown consensus message received");
-            break;
+            LOG_MESSAGE("Error: Unknown consensus message received");
     }
 
     return result;

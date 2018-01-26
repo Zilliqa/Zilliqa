@@ -75,7 +75,7 @@ bool ConsensusUser::ProcessSetLeader(const vector<unsigned char> & message, unsi
         my_id++;
     }
 
-    LOG_MESSAGE("The leader is using IP address " << peer_info.at(leader_id).GetPrintableIPAddress() << " and port " << peer_info.at(leader_id).m_listenPortHost);
+    LOG_MESSAGE("The leader is using " << peer_info.at(leader_id));
 
     m_leaderOrBackup = (leader_id != my_id);
 
@@ -92,13 +92,18 @@ bool ConsensusUser::ProcessSetLeader(const vector<unsigned char> & message, unsi
                 pubkeys,
                 peer_info,
                 static_cast<unsigned char>(MessageType::CONSENSUSUSER),
-                static_cast<unsigned char>(InstructionType::CONSENSUS)
+                static_cast<unsigned char>(InstructionType::CONSENSUS),
+                std::function<bool(const vector<unsigned char> & errorMsg, unsigned int, 
+                                   const Peer & from)>(),
+                std::function<bool()>()
             )
         );
     }
     else // Backup
     {
-        auto func = [this](const vector<unsigned char> & message) mutable -> bool { return MyMsgValidatorFunc(message); };
+        auto func = [this](const vector<unsigned char> & message,
+                           vector<unsigned char> & errorMsg) mutable ->
+                           bool { return MyMsgValidatorFunc(message, errorMsg); };
 
         m_consensus.reset
         (
@@ -164,7 +169,7 @@ bool ConsensusUser::ProcessConsensusMessage(const vector<unsigned char> & messag
 {
     LOG_MARKER();
 
-    bool result = m_consensus->ProcessMessage(message, offset);
+    bool result = m_consensus->ProcessMessage(message, offset, from);
 
     if (m_consensus->GetState() == ConsensusCommon::State::DONE)
     {
@@ -228,7 +233,8 @@ bool ConsensusUser::Execute(const vector<unsigned char> & message, unsigned int 
     return result;
 }
 
-bool ConsensusUser::MyMsgValidatorFunc(const vector<unsigned char> & message)
+bool ConsensusUser::MyMsgValidatorFunc(const vector<unsigned char> & message,
+                                       vector<unsigned char> & errorMsg)
 {
     LOG_MARKER();
 
