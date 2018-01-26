@@ -161,24 +161,28 @@ bool DirectoryService::RunConsensusOnShardingWhenDSPrimary()
             m_mediator.m_DSCommitteeNetworkInfo,
             static_cast<unsigned char>(DIRECTORY),
             static_cast<unsigned char>(SHARDINGCONSENSUS),
-            std::function<bool()>(),
+            std::function<bool(const vector<unsigned char> &, unsigned int, const Peer &)>(),
             std::function<bool()>()
         )
     );
 
     if (m_consensusObject == nullptr)
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Error: Unable to create consensus object");
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "Error: Unable to create consensus object");
         return false;
     }
 
     ConsensusLeader * cl = dynamic_cast<ConsensusLeader*>(m_consensusObject.get());
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Waiting " << LEADER_SHARDING_PREPARATION_IN_SECONDS << " seconds before announcing...");
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Waiting " << 
+                 LEADER_SHARDING_PREPARATION_IN_SECONDS << " seconds before announcing...");
     this_thread::sleep_for(chrono::seconds(LEADER_SHARDING_PREPARATION_IN_SECONDS));
 
 #ifdef STAT_TEST
-    LOG_STATE("[SHCON][" << std::setw(15) << std::left << m_mediator.m_selfPeer.GetPrintableIPAddress() << "][" << m_mediator.m_txBlockChain.GetBlockCount() << "] BGIN");
+    LOG_STATE("[SHCON][" << std::setw(15) << std::left << 
+              m_mediator.m_selfPeer.GetPrintableIPAddress() << "][" << 
+              m_mediator.m_txBlockChain.GetBlockCount() << "] BGIN");
 #endif // STAT_TEST
 
     cl->StartConsensus(sharding_structure);

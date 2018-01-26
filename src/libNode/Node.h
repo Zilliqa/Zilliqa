@@ -55,6 +55,12 @@ class Node : public Executable, public Broadcastable
         PROCESS_TXNBODY
     };
 
+    enum SUBMITTRANSACTIONTYPE
+    {
+        TXNSHARING = 0X00,
+        MISSINGTXN
+    };
+
     string ActionString(enum Action action)
     {
         switch(action)
@@ -150,6 +156,10 @@ class Node : public Executable, public Broadcastable
                                              uint8_t difficulty,
                                              const array<unsigned char, 32> & rand1,
                                              const array<unsigned char, 32> & rand2) const;
+    bool ProcessSubmitMissingTxn(const vector<unsigned char> & message, unsigned int offset, 
+                                 const Peer & from);
+    bool ProcessSubmitTxnSharing(const vector<unsigned char> & message, unsigned int offset, 
+                                 const Peer & from);
 #endif // IS_LOOKUP_NODE    
 
     // internal call from ProcessSharding
@@ -234,6 +244,10 @@ class Node : public Executable, public Broadcastable
     // Transaction functions
     void SubmitTransactions();
     bool CheckCreatedTransaction(const Transaction & tx);
+
+    bool OnNodeMissingTxns(const std::vector<unsigned char> & errorMsg, unsigned int offset,
+                           const Peer & from);
+    bool OnCommitFailure();
 
     bool RunConsensusOnMicroBlockWhenShardLeader();
     bool RunConsensusOnMicroBlockWhenShardBackup();

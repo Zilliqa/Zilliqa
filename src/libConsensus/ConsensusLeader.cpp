@@ -475,7 +475,7 @@ bool ConsensusLeader::ProcessMessageCommit(const vector<unsigned char> & commit,
 }
 
 bool ConsensusLeader::ProcessMessageCommitFailure(const vector<unsigned char> & commitFailureMsg,
-                                                  unsigned int offset)
+                                                  unsigned int offset, const Peer & from)
 {
     LOG_MARKER();
 
@@ -513,7 +513,8 @@ bool ConsensusLeader::ProcessMessageCommitFailure(const vector<unsigned char> & 
     // 32-byte blockhash
 
     // Check the block hash
-    if (equal(m_blockHash.begin(), m_blockHash.end(), commitFailureMsg.begin() + curr_offset) == false)
+    if (equal(m_blockHash.begin(), m_blockHash.end(),
+        commitFailureMsg.begin() + curr_offset) == false)
     {
         LOG_MESSAGE("Error: Block hash in commitment does not match instance block hash");
         return false;
@@ -521,7 +522,8 @@ bool ConsensusLeader::ProcessMessageCommitFailure(const vector<unsigned char> & 
     curr_offset += BLOCK_HASH_SIZE;
 
     // 2-byte backup id
-    uint16_t backup_id = Serializable::GetNumber<uint16_t>(commitFailureMsg, curr_offset, sizeof(uint16_t));
+    uint16_t backup_id = Serializable::GetNumber<uint16_t>(commitFailureMsg, curr_offset,
+                                                           sizeof(uint16_t));
     curr_offset += sizeof(uint16_t);
 
     // Check the backup id
@@ -536,6 +538,8 @@ bool ConsensusLeader::ProcessMessageCommitFailure(const vector<unsigned char> & 
         LOG_MESSAGE("Error: Backup has already sent commit failure message");
         return false;
     }
+
+    m_nodeCommitFailureHandlerFunc(commitFailureMsg, curr_offset, from);
 
     if (m_commitFailureCounter == m_numForConsensusFailure)
     {
@@ -1026,7 +1030,8 @@ bool ConsensusLeader::StartConsensus(const vector<unsigned char> & message)
     return true;
 }
 
-bool ConsensusLeader::ProcessMessage(const vector<unsigned char> & message, unsigned int offset)
+bool ConsensusLeader::ProcessMessage(const vector<unsigned char> & message, unsigned int offset, 
+                                     const Peer & from)
 {
     LOG_MARKER();
 
@@ -1040,7 +1045,7 @@ bool ConsensusLeader::ProcessMessage(const vector<unsigned char> & message, unsi
             result = ProcessMessageCommit(message, offset + 1);
             break;
         case ConsensusMessageType::COMMITFAILURE:
-            result = ProcessMessageCommitFailure(message, offset + 1);
+            result = ProcessMessageCommitFailure(message, offset + 1, from);
             break;
         case ConsensusMessageType::RESPONSE:
             result = ProcessMessageResponse(message, offset + 1);
@@ -1052,8 +1057,8 @@ bool ConsensusLeader::ProcessMessage(const vector<unsigned char> & message, unsi
             result = ProcessMessageFinalResponse(message, offset + 1);
             break;
         default:
-        LOG_MESSAGE("Error: Unknown consensus message received. No: "  << (unsigned int) message.at(offset));
-            break;
+            LOG_MESSAGE("Error: Unknown consensus message received. No: "  << 
+                        (unsigned int) message.at(offset));
     }
 
     return result;

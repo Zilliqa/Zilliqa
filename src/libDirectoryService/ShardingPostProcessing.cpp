@@ -234,7 +234,7 @@ bool DirectoryService::ProcessShardingConsensus(const vector<unsigned char> & me
         return false;
     }
     
-    bool result = m_consensusObject->ProcessMessage(message, offset);
+    bool result = m_consensusObject->ProcessMessage(message, offset, from);
     ConsensusCommon::State state = m_consensusObject->GetState();
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Consensus state = " << state);
 
