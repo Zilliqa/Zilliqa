@@ -123,9 +123,17 @@ public:
 
         for (std::thread& thread : _threads)
         {
-            if (thread.joinable())
+            try 
             {
-                thread.join();
+                if (thread.joinable())
+                {
+                    thread.join();
+                }
+            }
+            catch(const std::system_error & e)
+            {
+                LOG_MESSAGE("Error: Caught system_error with code " << 
+                            e.code() << " meaning " << e.what() << '\n');
             }
         }
     }
