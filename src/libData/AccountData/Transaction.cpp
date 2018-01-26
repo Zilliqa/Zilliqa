@@ -76,7 +76,7 @@ Transaction::Transaction
 
 unsigned int Transaction::Serialize(vector<unsigned char> & dst, unsigned int offset) const
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     unsigned int size_needed = TRAN_HASH_SIZE + sizeof(uint32_t) + UINT256_SIZE + ACC_ADDR_SIZE + ACC_ADDR_SIZE + UINT256_SIZE + TRAN_SIG_SIZE;// + predicate_size_needed;
     unsigned int size_remaining = dst.size() - offset;
@@ -107,7 +107,7 @@ unsigned int Transaction::Serialize(vector<unsigned char> & dst, unsigned int of
 
 void Transaction::Deserialize(const vector<unsigned char> & src, unsigned int offset)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     unsigned int curOffset = offset;
 
