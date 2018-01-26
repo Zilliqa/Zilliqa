@@ -360,7 +360,6 @@ bool DirectoryService::ProcessDSBlockConsensus(const vector<unsigned char> & mes
         }
     }
 
-    // if (m_state != DSBLOCK_CONSENSUS)
     if (!CheckState(PROCESS_DSBLOCKCONSENSUS))
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Ignoring consensus message");
