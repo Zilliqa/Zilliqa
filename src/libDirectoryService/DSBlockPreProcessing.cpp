@@ -71,8 +71,8 @@ void DirectoryService::ComposeDSBlock()
         difficulty = lastBlock.GetHeader().GetDifficulty();
     }
 
-    DSBlockHeader newHeader(difficulty, prevHash, winnerNonce, winnerKey, m_mediator.m_selfKey.second, 
-                            blockNum, get_time_as_int());
+    DSBlockHeader newHeader(difficulty, prevHash, winnerNonce, winnerKey, 
+                            m_mediator.m_selfKey.second, blockNum, get_time_as_int());
     
     // Assemble DS block
     array<unsigned char, BLOCK_SIG_SIZE> newSig = { 0 };
@@ -81,14 +81,16 @@ void DirectoryService::ComposeDSBlock()
         m_pendingDSBlock.reset(new DSBlock(newHeader, newSig));
     }
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "New DSBlock created with chosen nonce = 0x" << hex << winnerNonce);
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                 "New DSBlock created with chosen nonce = 0x" << hex << winnerNonce);
 }
 
 bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
 {
     LOG_MARKER();
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "I am the leader DS node. Creating DS block.");
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                 "I am the leader DS node. Creating DS block.");
 
     ComposeDSBlock();
 
@@ -110,14 +112,15 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
             m_mediator.m_DSCommitteeNetworkInfo,
             static_cast<unsigned char>(DIRECTORY),
             static_cast<unsigned char>(DSBLOCKCONSENSUS),
-            std::function<bool()>(),
+            std::function<bool(const vector<unsigned char> &, unsigned int, const Peer &)>(),
             std::function<bool()>()
         )
     );
 
     if (m_consensusObject == nullptr)
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Error: Unable to create consensus object");
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "Error: Unable to create consensus object");
         return false;
     }
 
@@ -130,7 +133,9 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
     }
 
 #ifdef STAT_TEST
-    LOG_STATE("[DSCON][" << std::setw(15) << std::left << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["<< m_mediator.m_txBlockChain.GetBlockCount() << "] BGIN");
+    LOG_STATE("[DSCON][" << std::setw(15) << std::left << 
+              m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["<< 
+              m_mediator.m_txBlockChain.GetBlockCount() << "] BGIN");
 #endif // STAT_TEST
 
     cl->StartConsensus(m);
@@ -152,7 +157,8 @@ bool DirectoryService::DSBlockValidator(const vector<unsigned char> & dsblock,
 
     if (m_allPoWConns.find(m_pendingDSBlock->GetHeader().GetMinerPubKey()) == m_allPoWConns.end())
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "To-do: Winning node of PoW1 not inside m_allPoWConns - should do another round of consensus!");
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "To-do: Winning node of " <<
+                     "PoW1 not inside m_allPoWConns - should do another round of consensus!");
         throw exception();
     }
 

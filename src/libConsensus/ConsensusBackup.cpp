@@ -202,6 +202,7 @@ bool ConsensusBackup::CheckState(Action action)
 
     return result;
 }
+
 bool ConsensusBackup::ProcessMessageAnnounce(const vector<unsigned char> & announcement, unsigned int offset)
 {
     LOG_MARKER();
@@ -275,11 +276,10 @@ bool ConsensusBackup::ProcessMessageAnnounce(const vector<unsigned char> & annou
     {
         LOG_MESSAGE("Error: Message validation failed");
 
-        if(!errorMsg.empty())
+        if (!errorMsg.empty())
         {
             vector<unsigned char> commitFailureMsg = { m_classByte, m_insByte, static_cast<unsigned
-                                                       char>(ConsensusMessageType::COMMITFAILURE) 
-                                                     };
+                                                       char>(ConsensusMessageType::COMMITFAILURE) };
 
             bool result = GenerateCommitFailureMessage(commitFailureMsg, MessageOffset::BODY + 
                                                        sizeof(unsigned char), errorMsg);
@@ -356,7 +356,7 @@ bool ConsensusBackup::GenerateCommitFailureMessage(vector<unsigned char> & commi
     curr_offset += sizeof(uint16_t);
 
     commitFailure.resize(curr_offset + errorMsg.size());
-    copy(errorMsg.begin(), errorMsg.end(), commitFailure.begin() + offset);
+    copy(errorMsg.begin(), errorMsg.end(), commitFailure.begin() + curr_offset);
 
     return true;    
 }
@@ -784,7 +784,8 @@ ConsensusBackup::~ConsensusBackup()
 
 }
 
-bool ConsensusBackup::ProcessMessage(const vector<unsigned char> & message, unsigned int offset)
+bool ConsensusBackup::ProcessMessage(const vector<unsigned char> & message, unsigned int offset, 
+                                     const Peer & from)
 {
     LOG_MARKER();
 
@@ -810,8 +811,7 @@ bool ConsensusBackup::ProcessMessage(const vector<unsigned char> & message, unsi
             result = ProcessMessageFinalCollectiveSig(message, offset + 1);
             break;
         default:
-        LOG_MESSAGE("Error: Unknown consensus message received");
-            break;
+            LOG_MESSAGE("Error: Unknown consensus message received");
     }
 
     return result;

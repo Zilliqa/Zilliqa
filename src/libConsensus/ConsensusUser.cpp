@@ -75,7 +75,7 @@ bool ConsensusUser::ProcessSetLeader(const vector<unsigned char> & message, unsi
         my_id++;
     }
 
-    LOG_MESSAGE("The leader is using IP address " << peer_info.at(leader_id).GetPrintableIPAddress() << " and port " << peer_info.at(leader_id).m_listenPortHost);
+    LOG_MESSAGE("The leader is using " << peer_info.at(leader_id));
 
     m_leaderOrBackup = (leader_id != my_id);
 
@@ -93,7 +93,8 @@ bool ConsensusUser::ProcessSetLeader(const vector<unsigned char> & message, unsi
                 peer_info,
                 static_cast<unsigned char>(MessageType::CONSENSUSUSER),
                 static_cast<unsigned char>(InstructionType::CONSENSUS),
-                std::function<bool()>(),
+                std::function<bool(const vector<unsigned char> & errorMsg, unsigned int, 
+                                   const Peer & from)>(),
                 std::function<bool()>()
             )
         );
@@ -168,7 +169,7 @@ bool ConsensusUser::ProcessConsensusMessage(const vector<unsigned char> & messag
 {
     LOG_MARKER();
 
-    bool result = m_consensus->ProcessMessage(message, offset);
+    bool result = m_consensus->ProcessMessage(message, offset, from);
 
     if (m_consensus->GetState() == ConsensusCommon::State::DONE)
     {

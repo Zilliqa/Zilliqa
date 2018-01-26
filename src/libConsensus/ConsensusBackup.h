@@ -98,7 +98,8 @@ public:
     ~ConsensusBackup();
 
     /// Function to process any consensus message received.
-    bool ProcessMessage(const std::vector<unsigned char> & message, unsigned int offset);
+    bool ProcessMessage(const std::vector<unsigned char> & message, unsigned int offset, 
+                        const Peer & from);
 };
 
 #endif // __CONSENSUSBACKUP_H__

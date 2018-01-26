@@ -404,7 +404,8 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
     LOG_MARKER();
     // Compose the final block from all the microblocks
     // I guess only the leader has to do this
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "I am the leader DS node. Creating final block.");
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                 "I am the leader DS node. Creating final block.");
 
     // finalBlockMessage = serialized final block + tx-body sharing setup
     vector<unsigned char> finalBlockMessage = ComposeFinalBlockMessage();
@@ -427,14 +428,15 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
             m_mediator.m_DSCommitteeNetworkInfo,
             static_cast<unsigned char>(DIRECTORY),
             static_cast<unsigned char>(FINALBLOCKCONSENSUS),
-            std::function<bool()>(),
+            std::function<bool(const vector<unsigned char> &, unsigned int, const Peer &)>(),
             std::function<bool()>()
         )
     );
 
     if (m_consensusObject == nullptr)
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Error: Unable to create consensus object");
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "Error: Unable to create consensus object");
         return false;
     }
 
@@ -442,7 +444,8 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
 #ifdef STAT_TEST
     if (m_mode == PRIMARY_DS)
     {
-        LOG_STATE("[FBCON][" << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress() << "][" << m_mediator.m_txBlockChain.GetBlockCount() << "] BGIN");
+        LOG_STATE("[FBCON][" << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress() << 
+                  "][" << m_mediator.m_txBlockChain.GetBlockCount() << "] BGIN");
     }
 #endif // STAT_TEST
 

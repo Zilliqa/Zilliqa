@@ -29,7 +29,8 @@
 #include "libNetwork/PeerStore.h"
 #include "libUtils/TimeLockedFunction.h"
 
-typedef std::function<bool()> NodeCommitFailureHandlerFunc;
+typedef std::function<bool(const vector<unsigned char> & errorMsg, unsigned int, const Peer & from)>
+        NodeCommitFailureHandlerFunc;
 typedef std::function<bool()> ShardCommitFailureHandlerFunc;
 
 /// Implements the functionality for the consensus committee leader.
@@ -73,15 +74,23 @@ class ConsensusLeader : public ConsensusCommon
 
     // Internal functions
     bool CheckState(Action action);
-    bool ProcessMessageCommitCore(const std::vector<unsigned char> & commit, unsigned int offset, Action action, ConsensusMessageType returnmsgtype, State nextstate);
+    bool ProcessMessageCommitCore(const std::vector<unsigned char> & commit, unsigned int offset, 
+                                  Action action, ConsensusMessageType returnmsgtype, 
+                                  State nextstate);
     bool ProcessMessageCommit(const std::vector<unsigned char> & commit, unsigned int offset);
-    bool ProcessMessageCommitFailure(const std::vector<unsigned char> & commit, unsigned int offset);    
+    bool ProcessMessageCommitFailure(const std::vector<unsigned char> & commit, unsigned int offset, 
+                                     const Peer & from);    
     bool GenerateChallengeMessage(std::vector<unsigned char> & challenge, unsigned int offset);
-    bool ProcessMessageResponseCore(const std::vector<unsigned char> & response, unsigned int offset, Action action, ConsensusMessageType returnmsgtype, State nextstate);
+    bool ProcessMessageResponseCore(const std::vector<unsigned char> & response, 
+                                    unsigned int offset, Action action, 
+                                    ConsensusMessageType returnmsgtype, State nextstate);
     bool ProcessMessageResponse(const std::vector<unsigned char> & response, unsigned int offset);
-    bool GenerateCollectiveSigMessage(std::vector<unsigned char> & collectivesig, unsigned int offset);
-    bool ProcessMessageFinalCommit(const std::vector<unsigned char> & finalcommit, unsigned int offset);
-    bool ProcessMessageFinalResponse(const std::vector<unsigned char> & finalresponse, unsigned int offset);
+    bool GenerateCollectiveSigMessage(std::vector<unsigned char> & collectivesig, 
+                                      unsigned int offset);
+    bool ProcessMessageFinalCommit(const std::vector<unsigned char> & finalcommit, 
+                                   unsigned int offset);
+    bool ProcessMessageFinalResponse(const std::vector<unsigned char> & finalresponse, 
+                                     unsigned int offset);
 
 public:
 
@@ -107,7 +116,8 @@ public:
     bool StartConsensus(const std::vector<unsigned char> & message);
 
     /// Function to process any consensus message received.
-    bool ProcessMessage(const std::vector<unsigned char> & message, unsigned int offset);
+    bool ProcessMessage(const std::vector<unsigned char> & message, unsigned int offset, 
+                        const Peer & from);
 };
 
 #endif // __CONSENSUSLEADER_H__

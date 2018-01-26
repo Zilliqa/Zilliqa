@@ -106,17 +106,22 @@ protected:
 
     ~ConsensusCommon();
 
-    Signature SignMessage(const std::vector<unsigned char> & msg, unsigned int offset, unsigned int size);
-    bool VerifyMessage(const std::vector<unsigned char> & msg, unsigned int offset, unsigned int size, const Signature & toverify, uint16_t peer_id);
+    Signature SignMessage(const std::vector<unsigned char> & msg, unsigned int offset, 
+                          unsigned int size);
+    bool VerifyMessage(const std::vector<unsigned char> & msg, unsigned int offset, 
+                       unsigned int size, const Signature & toverify, uint16_t peer_id);
     PubKey AggregateKeys(const std::vector<bool> peer_map);
     CommitPoint AggregateCommits(const std::vector<CommitPoint> & commits);
     Response AggregateResponses(const std::vector<Response> & responses);
     Signature AggregateSign(const Challenge & challenge, const Response & aggregated_response);
-    Challenge GetChallenge(const std::vector<unsigned char> & msg, unsigned int offset, unsigned int size, const CommitPoint & aggregated_commit, const PubKey & aggregated_key);
+    Challenge GetChallenge(const std::vector<unsigned char> & msg, unsigned int offset, 
+                           unsigned int size, const CommitPoint & aggregated_commit, 
+                           const PubKey & aggregated_key);
 
 public:
 
-    virtual bool ProcessMessage(const std::vector<unsigned char> & message, unsigned int offset)
+    virtual bool ProcessMessage(const std::vector<unsigned char> & message, unsigned int offset, 
+                                const Peer & from)
     {
         return false; // Should be implemented by ConsensusLeader and ConsensusBackup
     }
