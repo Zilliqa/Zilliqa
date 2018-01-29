@@ -229,6 +229,10 @@ bool P2PComm::SendMessageSocketCore(const Peer & peer, const std::vector<unsigne
                 written_length += n;
             }
         }
+        else 
+        {
+            LOG_MESSAGE("DEBUG: not written_length == HDR_LEN");
+        }
 
         if (written_length > 1000000)
         {
@@ -237,7 +241,7 @@ bool P2PComm::SendMessageSocketCore(const Peer & peer, const std::vector<unsigne
     }
     catch( ... ) 
     {
-        LOG_MESSAGE("ERROR: Some error with write socket.");
+        LOG_MESSAGE("ERROR: Error with write socket.");
         return false; 
     }
     return true;
@@ -507,23 +511,31 @@ void P2PComm::StartMessagePump(uint32_t listen_port_host,
     ThreadPool pool(MAXMESSAGE);
     while (true)
     {
-        int cli_sock = accept(serv_sock, (struct sockaddr *) &cli_addr, &cli_len);
-        if (cli_sock < 0)
+        try
         {
-            LOG_MESSAGE("Error: Socket accept failed. Socket ret code: " << cli_sock << 
-                        ". TCP error code = " << errno << " Desc: " << std::strerror(errno) );
-            LOG_MESSAGE("DEBUG: I can't accept any incoming conn. I am sleeping for " << 
-                        PUMPMESSAGE_MILLISECONDS << "ms");
-            this_thread::sleep_for(chrono::milliseconds(rand() % PUMPMESSAGE_MILLISECONDS));
-            continue;
+            int cli_sock = accept(serv_sock, (struct sockaddr *) &cli_addr, &cli_len);
+            if (cli_sock < 0)
+            {
+                LOG_MESSAGE("Error: Socket accept failed. Socket ret code: " << cli_sock << 
+                            ". TCP error code = " << errno << " Desc: " << std::strerror(errno) );
+                LOG_MESSAGE("DEBUG: I can't accept any incoming conn. I am sleeping for " << 
+                            PUMPMESSAGE_MILLISECONDS << "ms");
+                this_thread::sleep_for(chrono::milliseconds(rand() % PUMPMESSAGE_MILLISECONDS));
+                continue;
+            }
+            
+            Peer from(uint128_t(cli_addr.sin_addr.s_addr), cli_addr.sin_port);
+            LOG_MESSAGE("DEBUG: I got an incoming message from " << from.GetPrintableIPAddress());
+            auto func = [this, cli_sock, from, dispatcher, broadcast_list_retriever]() -> void 
+            { 
+                HandleAcceptedConnection(cli_sock, from, dispatcher, broadcast_list_retriever); 
+            };
+            pool.AddJob(func);
         }
-        
-        Peer from(uint128_t(cli_addr.sin_addr.s_addr), cli_addr.sin_port);
-        auto func = [this, cli_sock, from, dispatcher, broadcast_list_retriever]() -> void 
-        { 
-            HandleAcceptedConnection(cli_sock, from, dispatcher, broadcast_list_retriever); 
-        };
-        pool.AddJob(func);
+        catch(...)
+        {
+            LOG_MESSAGE("Error: Socket accept error");
+        }
     }
     pool.WaitAll(); 
     pool.JoinAll();
@@ -549,8 +561,6 @@ void P2PComm::SendMessage(const vector<Peer> & peers, const vector<unsigned char
         {
             SendMessageCore(peer, message, START_BYTE_NORMAL, vector<unsigned char>());
         };
-
-        
         pool.AddJob(func1);
         
     }
