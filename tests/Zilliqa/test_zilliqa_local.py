@@ -204,8 +204,8 @@ def run_connect(numnodes):
 	print 'Total num of edges connected: ' + str(len(edges))
 
 def run_stop():
-	os.system('pkill zilliqa')
-	os.system('pkill sendtxn')
+	os.system('killall zilliqa')
+	os.system('killall sendtxn')
 	testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)
 	count = len(testfolders_list)
 	for x in range(0, count):

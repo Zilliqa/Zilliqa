@@ -12,7 +12,6 @@
 # GPLv3.0 are those programs that are located in the folders src/depends and tests/depends 
 # and which include a reference to GPLv3 in their program files.
 
-pkill -9 zilliqa
 
 sudo sysctl net.core.somaxconn=102400; 
 sudo sysctl net.core.netdev_max_backlog=65536; 
