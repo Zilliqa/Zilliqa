@@ -71,7 +71,8 @@ protected:
         FINALCHALLENGE = 0x06,
         FINALRESPONSE = 0x07,
         FINALCOLLECTIVESIG = 0x08,
-        COMMITFAILURE = 0x09
+        COMMITFAILURE = 0x09,
+        CONSENSUSFAILURE = 0x10,
     };
 
     State m_state;

@@ -38,7 +38,6 @@ class P2PComm
     std::mutex m_startMessagePumpMutex;
     std::mutex m_mutexPool;
 
-
     const static uint32_t MAXRETRYCONN = 3;
     const static uint32_t MAXMESSAGE = 128;
     const static uint32_t MAXPUMPMESSAGE = 128;

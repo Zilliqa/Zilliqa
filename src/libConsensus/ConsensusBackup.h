@@ -62,6 +62,8 @@ private:
                                 unsigned int offset);
     bool GenerateCommitFailureMessage(vector<unsigned char> & commitFailure, unsigned int offset,
                                       const vector<unsigned char> & errorMsg);
+    bool ProcessMessageConsensusFailure(const vector<unsigned char> & consensusFailure,
+                                        unsigned int offset);
     bool GenerateCommitMessage(std::vector<unsigned char> & commit, unsigned int offset);
     bool ProcessMessageChallengeCore(const std::vector<unsigned char> & challenge, 
                                      unsigned int offset, Action action, 
