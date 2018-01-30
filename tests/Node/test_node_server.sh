@@ -11,8 +11,8 @@
 # https://www.gnu.org/licenses/gpl-3.0.en.html) (‘GPLv3’). The programs that are governed by 
 # GPLv3.0 are those programs that are located in the folders src/depends and tests/depends 
 # and which include a reference to GPLv3 in their program files.
-
-pkill -9 zilliqa
+# 
+# This script will run 20 DS and 60 nodes. This script should be run on a high performance machine. 
 
 sudo sysctl net.core.somaxconn=102400; 
 sudo sysctl net.core.netdev_max_backlog=65536; 
@@ -20,10 +20,6 @@ sudo sysctl net.ipv4.tcp_tw_reuse=1;
 sudo sysctl -w net.ipv4.tcp_rmem='65536 873800 1534217728';
 sudo sysctl -w net.ipv4.tcp_wmem='65536 873800 1534217728';
 sudo sysctl -w net.ipv4.tcp_mem='65536 873800 1534217728';
-ulimit -n 65535;
-ulimit -Sc unlimited; 
-ulimit -Hc unlimited;
-ulimit -s unlimited; 
 
 python tests/Zilliqa/test_zilliqa_local.py stop
 python tests/Zilliqa/test_zilliqa_local.py clean
@@ -32,11 +28,6 @@ python tests/Zilliqa/test_zilliqa_local.py start 20
 
 sleep 20
 
-
-echo "starting..."
-echo "block 0"
-echo "diff 3"
-echo "127.0.0.1"
 
 #set primary 
 for ds in {1..20}
