@@ -57,8 +57,8 @@ class Node : public Executable, public Broadcastable
 
     enum SUBMITTRANSACTIONTYPE
     {
-        TXNSHARING = 0X00,
-        MISSINGTXN
+        TXNSHARING = 0x00,
+        MISSINGTXN = 0x01
     };
 
     string ActionString(enum Action action)
@@ -247,7 +247,7 @@ class Node : public Executable, public Broadcastable
 
     bool OnNodeMissingTxns(const std::vector<unsigned char> & errorMsg, unsigned int offset,
                            const Peer & from);
-    bool OnCommitFailure();
+    bool OnCommitFailure(const std::map<unsigned int, std::vector<unsigned char>> &);
 
     bool RunConsensusOnMicroBlockWhenShardLeader();
     bool RunConsensusOnMicroBlockWhenShardBackup();

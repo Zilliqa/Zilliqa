@@ -103,14 +103,16 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char> & message, uns
             time_pass++;
             if (time_pass % 10)
             {
-                LOG_MESSAGE2(to_string( m_mediator.m_currentEpochNum).c_str(), "Waiting for MICROBLOCK_CONSENSUS before processing");
+                LOG_MESSAGE2(to_string( m_mediator.m_currentEpochNum).c_str(), 
+                             "Waiting for MICROBLOCK_CONSENSUS before processing");
             }
         }
     }
     // else if (m_state != MICROBLOCK_CONSENSUS)
     else if (!CheckState(PROCESS_MICROBLOCKCONSENSUS))
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Not in MICROBLOCK_CONSENSUS state");
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "Not in MICROBLOCK_CONSENSUS state");
         return false;
     }
 
@@ -132,12 +134,14 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char> & message, uns
 
         SetState(WAITING_FINALBLOCK);
 
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Micro block consensus is DONE!!! (Epoch " << m_mediator.m_currentEpochNum << ")");
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Micro block consensus" <<
+                     "is DONE!!! (Epoch " << m_mediator.m_currentEpochNum << ")");
     }
     else if (state == ConsensusCommon::State::ERROR)
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Oops, no consensus reached - what to do now???");
-        throw exception();
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                     "Oops, no consensus reached - what to do now???");
+        // throw exception();
     }
     else
     {
@@ -293,11 +297,24 @@ bool Node::OnNodeMissingTxns(const std::vector<unsigned char> & errorMsg, unsign
     return true;
 }
 
-bool Node::OnCommitFailure()
+bool Node::OnCommitFailure(const std::map<unsigned int, std::vector<unsigned char>> &
+                           commitFailureMap)
 {
     LOG_MARKER();
 
+    // for(auto failureEntry: commitFailureMap)
+    // {
+        
+    // }
 
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                 "Going to sleep before restarting consensus");
+
+    std::this_thread::sleep_for(30s);
+    RunConsensusOnMicroBlockWhenShardLeader();
+
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                 "Woke from sleep after consensus restart");
 
     return true;
 }
@@ -328,7 +345,8 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
                                       const Peer & from) mutable -> 
                                       bool { return OnNodeMissingTxns(errorMsg, offset, from); };
 
-    auto commitFailureFunc = [this]() mutable -> bool { return OnCommitFailure(); };                       
+    auto commitFailureFunc = [this](const map<unsigned int, vector<unsigned char>> & m) mutable -> 
+                                    bool { return OnCommitFailure(m); };                       
 
     m_consensusObject.reset
     (

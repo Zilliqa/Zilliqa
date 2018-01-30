@@ -288,11 +288,13 @@ bool ConsensusBackup::ProcessMessageAnnounce(const vector<unsigned char> & annou
             {
                 // Update internal state
                 // =====================
-                m_state = ERROR; // TODO: replace it by a more specific state
+                m_state = INITIAL; // TODO: replace it by a more specific state
 
                 // Unicast to the leader
                 // =====================
                 P2PComm::GetInstance().SendMessage(m_peerInfo.at(m_leaderID), commitFailureMsg);
+
+                return true;
             }
         }
 
@@ -333,6 +335,16 @@ bool ConsensusBackup::ProcessMessageAnnounce(const vector<unsigned char> & annou
     }
 
     return result;
+}
+
+bool ConsensusBackup::ProcessMessageConsensusFailure(const vector<unsigned char> & announcement,
+                                                     unsigned int offset)
+{
+    LOG_MARKER();
+
+    m_state = INITIAL;
+
+    return true;
 }
 
 bool ConsensusBackup::GenerateCommitFailureMessage(vector<unsigned char> & commitFailure,
@@ -595,7 +607,9 @@ bool ConsensusBackup::GenerateResponseMessage(vector<unsigned char> & response, 
     return true;
 }
 
-bool ConsensusBackup::ProcessMessageCollectiveSigCore(const vector<unsigned char> & collectivesig, unsigned int offset, Action action, State nextstate)
+bool ConsensusBackup::ProcessMessageCollectiveSigCore(const vector<unsigned char> & collectivesig, 
+                                                      unsigned int offset, Action action, 
+                                                      State nextstate)
 {
     LOG_MARKER();
 
@@ -797,6 +811,9 @@ bool ConsensusBackup::ProcessMessage(const vector<unsigned char> & message, unsi
     {
         case ConsensusMessageType::ANNOUNCE:
             result = ProcessMessageAnnounce(message, offset + 1);
+            break;
+        case ConsensusMessageType::CONSENSUSFAILURE:
+            result = ProcessMessageConsensusFailure(message, offset + 1);
             break;
         case ConsensusMessageType::CHALLENGE:
             result = ProcessMessageChallenge(message, offset + 1);

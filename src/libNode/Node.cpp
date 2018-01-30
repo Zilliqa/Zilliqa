@@ -524,13 +524,18 @@ bool Node::ProcessSubmitTxnSharing(const vector<unsigned char> & message, unsign
         boost::multiprecision::uint256_t blockNum = (uint256_t) m_mediator.m_currentEpochNum;
         lock_guard<mutex> g(m_mutexReceivedTransactions);
         auto & receivedTransactions = m_receivedTransactions[blockNum];
-        // if(m_mediator.m_selfPeer.m_listenPortHost != 5015)
-        // { 
+        if(m_mediator.m_selfPeer.m_listenPortHost != 5015 &&
+           m_mediator.m_selfPeer.m_listenPortHost != 5016 &&
+           m_mediator.m_selfPeer.m_listenPortHost != 5017 &&
+           m_mediator.m_selfPeer.m_listenPortHost != 5018 &&
+           m_mediator.m_selfPeer.m_listenPortHost != 5019 &&
+           m_mediator.m_selfPeer.m_listenPortHost != 5020)
+        { 
             receivedTransactions.insert(make_pair(submittedTransaction.GetTranID(), 
                                                   submittedTransaction));
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
                          "Received txn: " << submittedTransaction.GetTranID())
-        // }
+        }
     // }
 
     return true;        

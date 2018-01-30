@@ -20,6 +20,7 @@
 #include "common/Messages.h"
 #include "libUtils/Logger.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/DetachedFunction.h"
 #include "libNetwork/P2PComm.h"
 
 using namespace std;
@@ -484,8 +485,6 @@ bool ConsensusLeader::ProcessMessageCommitFailure(const vector<unsigned char> & 
         return false;
     }
 
-    m_commitFailureCounter++;
-
     const unsigned int length_available = commitFailureMsg.size() - offset;
     const unsigned int length_needed = sizeof(uint32_t) + BLOCK_HASH_SIZE + sizeof(uint16_t);
 
@@ -527,22 +526,35 @@ bool ConsensusLeader::ProcessMessageCommitFailure(const vector<unsigned char> & 
     curr_offset += sizeof(uint16_t);
 
     // Check the backup id
-    if (backup_id >= m_commitFailureMap.size())
+    if (backup_id >= m_commitMap.size()) // using commitMap instead of commitFailureMap knowingly since its size = puKeys.size() for sure
     {
         LOG_MESSAGE("Error: Backup ID beyond backup count");
         return false;
     }
-
-    if (!m_commitFailureMap.at(backup_id).empty())
+    
+    if (m_commitFailureMap.find(backup_id) != m_commitFailureMap.end())
     {
         LOG_MESSAGE("Error: Backup has already sent commit failure message");
         return false;
     }
 
+    m_commitFailureCounter++;
+    m_commitFailureMap[backup_id] = vector<unsigned char>(commitFailureMsg.begin() + curr_offset, 
+                                                          commitFailureMsg.end());
+
     m_nodeCommitFailureHandlerFunc(commitFailureMsg, curr_offset, from);
 
     if (m_commitFailureCounter == m_numForConsensusFailure)
     {
+        m_state = INITIAL;
+
+        vector<unsigned char> consensusFailureMsg = { m_classByte, m_insByte, CONSENSUSFAILURE };
+        P2PComm::GetInstance().SendMessage(m_peerInfo, consensusFailureMsg);
+
+        auto main_func = [this]() mutable -> void { 
+            m_shardCommitFailureHandlerFunc(m_commitFailureMap);
+        };   
+        DetachedFunction(1, main_func); 
         // LOG_MESSAGE("Sufficient " << m_numForConsensus << " commits obtained");
 
         // vector<unsigned char> challenge = { m_classByte, m_insByte, static_cast<unsigned char>(returnmsgtype) };
@@ -768,8 +780,10 @@ bool ConsensusLeader::ProcessMessageResponseCore(const vector<unsigned char> & r
     {
         LOG_MESSAGE("Sufficient responses obtained");
 
-        vector<unsigned char> collectivesig = { m_classByte, m_insByte, static_cast<unsigned char>(returnmsgtype) };
-        result = GenerateCollectiveSigMessage(collectivesig, MessageOffset::BODY + sizeof(unsigned char));
+        vector<unsigned char> collectivesig = { m_classByte, m_insByte,
+                                                static_cast<unsigned char>(returnmsgtype) };
+        result = GenerateCollectiveSigMessage(collectivesig, 
+                                              MessageOffset::BODY + sizeof(unsigned char));
 
         if (result == true)
         {
@@ -785,6 +799,7 @@ bool ConsensusLeader::ProcessMessageResponseCore(const vector<unsigned char> & r
                 fill(m_commitMap.begin(), m_commitMap.end(), false);
 
                 m_commitFailureCounter = 0;
+                m_commitFailureMap.clear();
 
                 m_commitRedundantCounter = 0;
                 fill(m_commitRedundantMap.begin(), m_commitRedundantMap.end(), false);
@@ -932,8 +947,7 @@ ConsensusLeader::ConsensusLeader
                     class_byte, ins_byte), m_commitMap(pubkeys.size(), false),
                     m_commitPointMap(pubkeys.size(), CommitPoint()), 
                     m_commitRedundantMap(pubkeys.size(), false), 
-                    m_commitRedundantPointMap(pubkeys.size(), CommitPoint()), 
-                    m_commitFailureMap(pubkeys.size(), vector<unsigned char>()), 
+                    m_commitRedundantPointMap(pubkeys.size(), CommitPoint()),
                     m_responseDataMap(pubkeys.size(), Response())
 {
     LOG_MARKER();

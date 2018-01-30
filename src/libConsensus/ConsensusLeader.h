@@ -31,7 +31,8 @@
 
 typedef std::function<bool(const vector<unsigned char> & errorMsg, unsigned int, const Peer & from)>
         NodeCommitFailureHandlerFunc;
-typedef std::function<bool()> ShardCommitFailureHandlerFunc;
+typedef std::function<bool(std::map<unsigned int, std::vector<unsigned char>>)> 
+        ShardCommitFailureHandlerFunc;
 
 /// Implements the functionality for the consensus committee leader.
 class ConsensusLeader : public ConsensusCommon
@@ -52,6 +53,8 @@ class ConsensusLeader : public ConsensusCommon
     // Received commits
     std::mutex m_mutex;
     unsigned int m_commitCounter;
+
+    // TODO: the vectors should be replaced by more space efficient DS
     std::vector<bool> m_commitMap;
     std::vector<CommitPoint> m_commitPointMap; // ordered list of commits of size = committee size
     std::vector<CommitPoint> m_commitPoints;   // unordered list of commits of size = 2/3 of committee size + 1
@@ -62,7 +65,7 @@ class ConsensusLeader : public ConsensusCommon
     Challenge m_challenge;
 
     unsigned int m_commitFailureCounter;
-    std::vector<std::vector<unsigned char>> m_commitFailureMap;
+    std::map<unsigned int, std::vector<unsigned char>> m_commitFailureMap;
 
     // Received responses
     unsigned int m_responseCounter;

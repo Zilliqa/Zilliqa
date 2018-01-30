@@ -113,7 +113,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
             static_cast<unsigned char>(DIRECTORY),
             static_cast<unsigned char>(DSBLOCKCONSENSUS),
             std::function<bool(const vector<unsigned char> &, unsigned int, const Peer &)>(),
-            std::function<bool()>()
+            std::function<bool(map<unsigned int, vector<unsigned char>>)>()
         )
     );
 
