@@ -954,8 +954,8 @@ ConsensusLeader::ConsensusLeader
 
     m_state = INITIAL;
     // m_numForConsensus = (floor(TOLERANCE_FRACTION * (pubkeys.size() - 1)) + 1);
-    m_numForConsensus = pubkeys.size() - (ceil(pubkeys.size() * (1 - TOLERANCE_FRACTION)) - 1) - 1;
-    m_numForConsensusFailure = 1 + (pubkeys.size() - m_numForConsensus);
+    m_numForConsensus = ceil(pubkeys.size() * TOLERANCE_FRACTION) - 1;
+    m_numForConsensusFailure = pubkeys.size() - m_numForConsensus;
     LOG_MESSAGE("TOLERANCE_FRACTION " << TOLERANCE_FRACTION << " pubkeys.size() " << 
                 pubkeys.size() << " m_numForConsensus " << m_numForConsensus <<
                 " m_numForConsensusFailure " << m_numForConsensusFailure);
