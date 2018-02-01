@@ -428,11 +428,15 @@ bool Node::ProcessCreateTransaction(const vector<unsigned char> & message, unsig
 
     // TODO: remove this
     fromPubKey = m_mediator.m_selfKey.second;
+    vector<unsigned char> msg;
+    fromPubKey.Serialize(msg, 0);
 
     // Generate from account
     Address fromAddr;
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-    sha2.Update(message, cur_offset, PUB_KEY_SIZE);
+    // TODO: replace this by what follows
+    sha2.Update(msg, 0, PUB_KEY_SIZE);
+    // sha2.Update(message, cur_offset, PUB_KEY_SIZE);
     const vector<unsigned char> & tmp1 = sha2.Finalize();
     copy(tmp1.end() - ACC_ADDR_SIZE, tmp1.end(), fromAddr.asArray().begin());
 
@@ -446,7 +450,7 @@ bool Node::ProcessCreateTransaction(const vector<unsigned char> & message, unsig
     sha2.Reset();
     sha2.Update(message, cur_offset, PUB_KEY_SIZE);
     const vector<unsigned char> & tmp2 = sha2.Finalize();
-    copy(tmp2.end() - ACC_ADDR_SIZE, tmp2.end(), fromAddr.asArray().begin());
+    // copy(tmp2.end() - ACC_ADDR_SIZE, tmp2.end(), toAddr.asArray().begin());
 
     cur_offset += PUB_KEY_SIZE;
 
@@ -480,8 +484,6 @@ bool Node::ProcessCreateTransaction(const vector<unsigned char> & message, unsig
         nonce++;
         amount++;
     }
-
-
 #endif // IS_LOOKUP_NODE
     return true;
 }
@@ -635,7 +637,7 @@ void Node::SubmitTransactions()
     if (m_consensusMyID >= lower_id_limit && m_consensusMyID <= upper_id_limit)
     {
         boost::multiprecision::uint256_t blockNum = (uint256_t) m_mediator.m_currentEpochNum;
-        while (true && txn_sent_count < 500) 
+        while (true && txn_sent_count < 4) 
         // TODO: remove the condition on txn_sent_count -- temporary hack to artificially limit number of
         // txns needed to be shared within shard members so that it completes in the time limit    
         {
@@ -679,13 +681,13 @@ void Node::SubmitTransactions()
             }
         }
     }
+
 #ifdef STAT_TEST
     LOG_STATE("[TXNSE][" << std::setw(15) << std::left << 
               m_mediator.m_selfPeer.GetPrintableIPAddress() << "][" << 
               m_mediator.m_currentEpochNum << "][" << m_myShardID << "][" << txn_sent_count << 
               "] CONT");
 #endif // STAT_TEST
-
 }
 #endif // IS_LOOKUP_NODE
 
