@@ -47,6 +47,8 @@ public:
     /// Destructor.
     ~Zilliqa();
 
+    void LogSelfNodeInfo(const std::pair<PrivKey, PubKey> & key, const Peer & peer);
+
     /// Forwards an incoming message for processing by the appropriate subclass.
     void Dispatch(const std::vector<unsigned char> & message, const Peer & from);
 

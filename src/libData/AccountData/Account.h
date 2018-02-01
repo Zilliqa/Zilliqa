@@ -65,6 +65,14 @@ public:
 
     /// Computes an account address from a specified PubKey.
     static Address GetAddressFromPublicKey(const PubKey & pubKey);
+
+    friend inline std::ostream & operator<<(std::ostream & _out, Account const & account);
 };
+
+inline std::ostream & operator<<(std::ostream & _out, Account const & account)
+{
+    _out << account.m_balance << " " << account.m_nonce;
+    return _out;
+}
 
 #endif // __ACCOUNT_H__

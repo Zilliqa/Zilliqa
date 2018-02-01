@@ -638,8 +638,10 @@ bool DirectoryService::CheckStateRoot()
     bool isVacuousEpoch = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
     if (isVacuousEpoch)
     {
+        AccountStore::GetInstance().PrintAccountState();
         stateRoot = AccountStore::GetInstance().GetStateRootHash();
     }
+
 
     if (stateRoot != m_finalBlock->GetHeader().GetStateRootHash())
     {
