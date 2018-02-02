@@ -404,7 +404,8 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
     LOG_MARKER();
     // Compose the final block from all the microblocks
     // I guess only the leader has to do this
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "I am the leader DS node. Creating final block.");
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                 "I am the leader DS node. Creating final block.");
 
     // finalBlockMessage = serialized final block + tx-body sharing setup
     vector<unsigned char> finalBlockMessage = ComposeFinalBlockMessage();
@@ -416,23 +417,26 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
 
     m_consensusObject.reset
+    (
+        new ConsensusLeader
         (
-            new ConsensusLeader
-                (
-                        m_consensusID,
-                        m_consensusBlockHash,
-                        m_consensusMyID,
-                        m_mediator.m_selfKey.first,
-                        m_mediator.m_DSCommitteePubKeys,
-                        m_mediator.m_DSCommitteeNetworkInfo,
-                        static_cast<unsigned char>(DIRECTORY),
-                        static_cast<unsigned char>(FINALBLOCKCONSENSUS)
-                )
-        );
+            m_consensusID,
+            m_consensusBlockHash,
+            m_consensusMyID,
+            m_mediator.m_selfKey.first,
+            m_mediator.m_DSCommitteePubKeys,
+            m_mediator.m_DSCommitteeNetworkInfo,
+            static_cast<unsigned char>(DIRECTORY),
+            static_cast<unsigned char>(FINALBLOCKCONSENSUS),
+            std::function<bool(const vector<unsigned char> &, unsigned int, const Peer &)>(),
+            std::function<bool(map<unsigned int, std::vector<unsigned char>>)>()
+        )
+    );
 
     if (m_consensusObject == nullptr)
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Error: Unable to create consensus object");
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "Error: Unable to create consensus object");
         return false;
     }
 
@@ -440,7 +444,8 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
 #ifdef STAT_TEST
     if (m_mode == PRIMARY_DS)
     {
-        LOG_STATE("[FBCON][" << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress() << "][" << m_mediator.m_txBlockChain.GetBlockCount() << "] BGIN");
+        LOG_STATE("[FBCON][" << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress() << 
+                  "][" << m_mediator.m_txBlockChain.GetBlockCount() << "] BGIN");
     }
 #endif // STAT_TEST
 
@@ -633,8 +638,10 @@ bool DirectoryService::CheckStateRoot()
     bool isVacuousEpoch = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
     if (isVacuousEpoch)
     {
+        AccountStore::GetInstance().PrintAccountState();
         stateRoot = AccountStore::GetInstance().GetStateRootHash();
     }
+
 
     if (stateRoot != m_finalBlock->GetHeader().GetStateRootHash())
     {
@@ -824,7 +831,8 @@ void DirectoryService::LoadUnavailableMicroBlocks()
     }
 }
 
-bool DirectoryService::FinalBlockValidator(const vector<unsigned char> & finalblock)
+bool DirectoryService::FinalBlockValidator(const vector<unsigned char> & finalblock,
+                                           vector<unsigned char> & errorMsg)
 {
     LOG_MARKER();
 
@@ -873,7 +881,9 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup()
     m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
 
-    auto func = [this](const vector<unsigned char> & message) mutable -> bool { return FinalBlockValidator(message); };
+    auto func = [this](const vector<unsigned char> & message, 
+                       vector<unsigned char> & errorMsg) mutable -> 
+                       bool { return FinalBlockValidator(message, errorMsg); };
 
     m_consensusObject.reset
         (

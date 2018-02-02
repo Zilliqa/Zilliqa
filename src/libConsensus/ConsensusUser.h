@@ -50,7 +50,7 @@ public:
 
     bool Execute(const std::vector<unsigned char> & message, unsigned int offset, const Peer & from);
 
-    bool MyMsgValidatorFunc(const std::vector<unsigned char> & message); // Needed by backup
+    bool MyMsgValidatorFunc(const std::vector<unsigned char> & message, std::vector<unsigned char> & errorMsg); // Needed by backup
 };
 
 #endif // __CONSENSUSUSER_H__

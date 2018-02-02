@@ -367,7 +367,7 @@ bool DirectoryService::ProcessDSBlockConsensus(const vector<unsigned char> & mes
     }
 
 
-    bool result = m_consensusObject->ProcessMessage(message, offset);
+    bool result = m_consensusObject->ProcessMessage(message, offset, from);
     ConsensusCommon::State state = m_consensusObject->GetState();
 
     if (state == ConsensusCommon::State::DONE)

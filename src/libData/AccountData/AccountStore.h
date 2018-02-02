@@ -89,6 +89,8 @@ public:
 
     void MoveUpdatesToDisk();
     void DiscardUnsavedUpdates();
+
+    void PrintAccountState();
 };
 
 #endif // __ACCOUNTSTORE_H__

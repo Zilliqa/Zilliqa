@@ -32,8 +32,6 @@ uint32_t TxBlock::SerializeIsMicroBlockEmpty() const
 
 unsigned int TxBlock::Serialize(vector<unsigned char> & dst, unsigned int offset) const
 {
-    LOG_MARKER();
-
     assert(m_header.GetNumMicroBlockHashes() == m_microBlockHashes.size());
 
     unsigned int header_size_needed = TxBlockHeader::SIZE;
@@ -80,8 +78,6 @@ vector<bool> TxBlock::DeserializeIsMicroBlockEmpty(uint32_t arg)
 
 void TxBlock::Deserialize(const vector<unsigned char> & src, unsigned int offset)
 {
-    LOG_MARKER();
-
     unsigned int header_size_needed = TxBlockHeader::SIZE;
 
     TxBlockHeader header(src, offset);
