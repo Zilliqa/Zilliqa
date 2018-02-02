@@ -67,7 +67,8 @@ bool Node::ReadAuxilliaryInfoFromFinalBlockMsg(const vector<unsigned char> & mes
     if (consensusID != m_consensusID)
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
-                     "Consensus ID is not correct.");
+                     "Consensus ID is not correct. Expected ID: " << consensusID <<
+                     " My Consensus ID: " << m_consensusID);
         return false;
     }
 
@@ -124,8 +125,8 @@ bool Node::IsMicroBlockTxRootHashInFinalBlock(TxnHash microBlockTxRootHash,
                                               const uint256_t & blocknum, 
                                               bool & isEveryMicroBlockAvailable)
 {
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "Deleting " << microBlockTxRootHash << " for unavailable microblock " << blocknum);
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Deleting unavailable " <<
+                 "microblock " << microBlockTxRootHash << " for blocknum " << blocknum);
     lock_guard<mutex> g(m_mutexUnavailableMicroBlocks);
     auto it = m_unavailableMicroBlocks.find(blocknum); 
     bool found = (it != m_unavailableMicroBlocks.end() && it->second.erase(microBlockTxRootHash));
@@ -139,7 +140,7 @@ void Node::LoadUnavailableMicroBlockTxRootHashes(const TxBlock & finalBlock,
                                                  const boost::multiprecision::uint256_t & blocknum)
 {
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "Unavailable FinalBlock TxRoot hash : ")
+                 "Unavailable microblock hashes in final block : ")
 
     lock_guard<mutex> g(m_mutexUnavailableMicroBlocks);
     for(uint i = 0; i < finalBlock.GetMicroBlockHashes().size(); ++i)
@@ -864,8 +865,6 @@ void Node::CallActOnFinalBlockBasedOnSenderForwarderAssgn(bool i_am_sender, bool
         // Give myself the list of my fellow forwarders
         const vector<Peer> & my_shard_receivers = nodes.at(shard_id + 1);
 
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "iii amam herehere23");
-
         vector<Peer> fellowForwarderNodes;
 
         // Give myself the list of all receiving nodes in all other committees including DS
@@ -929,6 +928,8 @@ bool Node::CheckStateRoot(const TxBlock & finalBlock)
 {
     StateHash stateRoot = AccountStore::GetInstance().GetStateRootHash();
 
+    AccountStore::GetInstance().PrintAccountState();
+
     if(stateRoot != finalBlock.GetHeader().GetStateRootHash())
     {
         LOG_MESSAGE("Error: State root doesn't match. Expected = " << stateRoot << ". " <<
@@ -956,7 +957,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char> & message, unsigned int
         while(m_state != WAITING_FINALBLOCK)
         {
             time_pass++;
-            if (time_pass % 10)
+            if (time_pass % 10 == 1)
             {
                 LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), string("Waiting ") +
                              "for state change from MICROBLOCK_CONSENSUS to PROCESS_FINALBLOCK");
@@ -1106,17 +1107,17 @@ void Node::CommitForwardedTransactions(const vector<Transaction> & txnsInForward
             AccountStore::GetInstance().UpdateAccounts(tx);
         }
 
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
-                     "[TXN] [" << blocknum << "] Body received = 0x" << tx.GetTranID());
+        // LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+        //              "[TXN] [" << blocknum << "] Body received = 0x" << tx.GetTranID());
 
         // Update from and to accounts
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Account store updated");
+        // LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Account store updated");
 
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
-                     "Storing Transaction: " << tx.GetTranID() <<
-                     " with amount: " << tx.GetAmount() <<
-                     ", to: " << tx.GetToAddr() <<
-                     ", from: " << tx.GetFromAddr());
+        // LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+        //              "Storing Transaction: " << tx.GetTranID() <<
+        //              " with amount: " << tx.GetAmount() <<
+        //              ", to: " << tx.GetToAddr() <<
+        //              ", from: " << tx.GetFromAddr());
 
         // Store TxBody to disk
         vector<unsigned char> serializedTxBody;
@@ -1162,8 +1163,8 @@ void Node::DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(const uint256_t & bl
 
     for(auto it : m_unavailableMicroBlocks)
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Checking for finalblock " << it.first << ". Count " << it.second.size());
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Unavailable"
+                     " microblock bodies in finalblock " << it.first << ": " << it.second.size());
         for(auto it2 : it.second)
         {
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), it2);
@@ -1206,6 +1207,22 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char> & message, unsi
     cur_offset += UINT256_SIZE;
 
     LOG_MESSAGE("Received forwarded txns for block number " << blocknum);
+
+    if (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() < blocknum)
+    {
+        unsigned int time_pass = 0;
+        while(m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() < blocknum)
+        {
+            time_pass++;
+            if (time_pass % 10 == 1)
+            {
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Blocknum " + 
+                             blocknum.convert_to<string>() + " waiting " +
+                             "for state change from WAITING_FINALBLOCK to TX_SUBMISSION");
+            }
+            this_thread::sleep_for(chrono::milliseconds(100));
+        }
+    }
 
     TxnHash microBlockTxRootHash;
     vector<Transaction> txnsInForwardedMessage;

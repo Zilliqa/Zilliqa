@@ -84,8 +84,8 @@ void AccountStore::AddAccount(const Address & address,
         m_addressToAccount.insert(make_pair(address, account));
         UpdateStateTrie(address, account);
 
-        LOG_MESSAGE("Account " << address << " with balance " << balance << ", nonce " << nonce << 
-                     " created");
+        // LOG_MESSAGE("Account " << address << " with balance " << balance << ", nonce " << nonce << 
+        //              " created");
     }
 }
 
@@ -115,7 +115,7 @@ void AccountStore::UpdateAccounts(const Transaction & transaction)
 Account* AccountStore::GetAccount(const Address & address)
 {
     auto it = m_addressToAccount.find(address);
-    LOG_MESSAGE((it != m_addressToAccount.end()));
+    // LOG_MESSAGE((it != m_addressToAccount.end()));
     if(it != m_addressToAccount.end())
     {
         return &it->second;
@@ -277,4 +277,13 @@ void AccountStore::DiscardUnsavedUpdates()
     m_state.setRoot(prevRoot);
     m_addressToAccount.clear();
     // m_state.init();
+}
+
+void AccountStore::PrintAccountState()
+{
+    LOG_MESSAGE("Printing Account State");
+    for(auto entry: m_addressToAccount)
+    {
+        LOG_MESSAGE(entry.first << " " << entry.second);
+    }
 }

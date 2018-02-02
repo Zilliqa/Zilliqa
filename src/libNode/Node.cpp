@@ -428,11 +428,15 @@ bool Node::ProcessCreateTransaction(const vector<unsigned char> & message, unsig
 
     // TODO: remove this
     fromPubKey = m_mediator.m_selfKey.second;
+    vector<unsigned char> msg;
+    fromPubKey.Serialize(msg, 0);
 
     // Generate from account
     Address fromAddr;
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-    sha2.Update(message, cur_offset, PUB_KEY_SIZE);
+    // TODO: replace this by what follows
+    sha2.Update(msg, 0, PUB_KEY_SIZE);
+    // sha2.Update(message, cur_offset, PUB_KEY_SIZE);
     const vector<unsigned char> & tmp1 = sha2.Finalize();
     copy(tmp1.end() - ACC_ADDR_SIZE, tmp1.end(), fromAddr.asArray().begin());
 
@@ -446,7 +450,7 @@ bool Node::ProcessCreateTransaction(const vector<unsigned char> & message, unsig
     sha2.Reset();
     sha2.Update(message, cur_offset, PUB_KEY_SIZE);
     const vector<unsigned char> & tmp2 = sha2.Finalize();
-    copy(tmp2.end() - ACC_ADDR_SIZE, tmp2.end(), fromAddr.asArray().begin());
+    // copy(tmp2.end() - ACC_ADDR_SIZE, tmp2.end(), toAddr.asArray().begin());
 
     cur_offset += PUB_KEY_SIZE;
 
@@ -480,11 +484,65 @@ bool Node::ProcessCreateTransaction(const vector<unsigned char> & message, unsig
         nonce++;
         amount++;
     }
-
-
 #endif // IS_LOOKUP_NODE
     return true;
 }
+
+#ifndef IS_LOOKUP_NODE
+bool Node::ProcessSubmitMissingTxn(const vector<unsigned char> & message, unsigned int offset, 
+                                   const Peer & from)
+{
+    auto msgBlockNum = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
+    offset += sizeof(uint32_t);
+
+    auto localBlockNum = (uint256_t) m_mediator.m_currentEpochNum;;
+
+    if (msgBlockNum != localBlockNum)
+    {
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "untimely delivery of " <<
+                     "missing txns. received: " << msgBlockNum << " , local: " << localBlockNum);
+    }
+
+    const auto & submittedTransaction = Transaction(message, offset);
+
+    // if(CheckCreatedTransaction(submittedTransaction))
+    // {
+        lock_guard<mutex> g(m_mutexReceivedTransactions);
+        auto & receivedTransactions = m_receivedTransactions[msgBlockNum];
+        receivedTransactions.insert(make_pair(submittedTransaction.GetTranID(), 
+                                              submittedTransaction));
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                     "Received missing txn: " << submittedTransaction.GetTranID())
+    // }
+    return true;
+}
+
+bool Node::ProcessSubmitTxnSharing(const vector<unsigned char> & message, unsigned int offset, 
+                                   const Peer & from)
+{
+    const auto & submittedTransaction = Transaction(message, offset);
+    // if(CheckCreatedTransaction(submittedTransaction))
+    // {
+        boost::multiprecision::uint256_t blockNum = (uint256_t) m_mediator.m_currentEpochNum;
+        lock_guard<mutex> g(m_mutexReceivedTransactions);
+        auto & receivedTransactions = m_receivedTransactions[blockNum];
+        // if(m_mediator.m_selfPeer.m_listenPortHost != 5015 &&
+        //    m_mediator.m_selfPeer.m_listenPortHost != 5016 &&
+        //    m_mediator.m_selfPeer.m_listenPortHost != 5017 &&
+        //    m_mediator.m_selfPeer.m_listenPortHost != 5018 &&
+        //    m_mediator.m_selfPeer.m_listenPortHost != 5019 &&
+        //    m_mediator.m_selfPeer.m_listenPortHost != 5020)
+        // { 
+            receivedTransactions.insert(make_pair(submittedTransaction.GetTranID(), 
+                                                  submittedTransaction));
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                         "Received txn: " << submittedTransaction.GetTranID())
+        // }
+    // }
+
+    return true;        
+}
+#endif // IS_LOOKUP_NODE
 
 bool Node::ProcessSubmitTransaction(const vector<unsigned char> & message, unsigned int offset, 
                                     const Peer & from)
@@ -500,26 +558,32 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char> & message, unsig
         return false;
     }
 
-    while (m_state != TX_SUBMISSION && m_state != TX_SUBMISSION_BUFFER)
-    {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
-                     "Not in ProcessSubmitTxn state -- waiting!")
-        this_thread::sleep_for(chrono::milliseconds(200));
-    }
- 
-    boost::multiprecision::uint256_t blockNum = (uint256_t) m_mediator.m_currentEpochNum;
     unsigned int cur_offset = offset;
-    const auto & submittedTransaction = Transaction(message, cur_offset);
-    // if(CheckCreatedTransaction(submittedTransaction))
-    // {
-        lock_guard<mutex> g(m_mutexReceivedTransactions);
-        auto & receivedTransactions = m_receivedTransactions[blockNum];
-        receivedTransactions.insert(make_pair(submittedTransaction.GetTranID(), 
-                                              submittedTransaction));
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
-                     "Received txn: " << submittedTransaction.GetTranID())
-    // }
-    
+
+    auto submitTxnType = Serializable::GetNumber<uint32_t>(message, cur_offset, sizeof(uint32_t));
+    cur_offset += sizeof(uint32_t); 
+
+    if (submitTxnType == SUBMITTRANSACTIONTYPE::MISSINGTXN)
+    {
+        if (m_state != MICROBLOCK_CONSENSUS)
+        {
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                         "Not in a microblock consensus state: don't want missing txns")   
+        }
+
+        ProcessSubmitMissingTxn(message, cur_offset, from);
+    }
+    else if (submitTxnType == SUBMITTRANSACTIONTYPE::TXNSHARING)
+    {
+        while (m_state != TX_SUBMISSION && m_state != TX_SUBMISSION_BUFFER)
+        {
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                         "Not in ProcessSubmitTxn state -- waiting!")
+            this_thread::sleep_for(chrono::milliseconds(200));
+        }
+
+        ProcessSubmitTxnSharing(message, cur_offset, from);
+    }
 #endif // IS_LOOKUP_NODE
     return true;
 }
@@ -573,7 +637,7 @@ void Node::SubmitTransactions()
     if (m_consensusMyID >= lower_id_limit && m_consensusMyID <= upper_id_limit)
     {
         boost::multiprecision::uint256_t blockNum = (uint256_t) m_mediator.m_currentEpochNum;
-        while (true && txn_sent_count < 500) 
+        while (true && txn_sent_count < 4) 
         // TODO: remove the condition on txn_sent_count -- temporary hack to artificially limit number of
         // txns needed to be shared within shard members so that it completes in the time limit    
         {
@@ -601,7 +665,10 @@ void Node::SubmitTransactions()
             {
                 vector<unsigned char> tx_message = { MessageType::NODE, 
                                                      NodeInstructionType::SUBMITTRANSACTION };
-                t.Serialize(tx_message, MessageOffset::BODY);
+                Serializable::SetNumber<uint32_t>(tx_message, MessageOffset::BODY,
+                                                  SUBMITTRANSACTIONTYPE::TXNSHARING, 
+                                                  sizeof(uint32_t));
+                t.Serialize(tx_message, MessageOffset::BODY + sizeof(uint32_t));
                 P2PComm::GetInstance().SendMessage(m_myShardMembersNetworkInfo, tx_message);
 
                 LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
@@ -614,13 +681,13 @@ void Node::SubmitTransactions()
             }
         }
     }
+
 #ifdef STAT_TEST
     LOG_STATE("[TXNSE][" << std::setw(15) << std::left << 
               m_mediator.m_selfPeer.GetPrintableIPAddress() << "][" << 
               m_mediator.m_currentEpochNum << "][" << m_myShardID << "][" << txn_sent_count << 
               "] CONT");
 #endif // STAT_TEST
-
 }
 #endif // IS_LOOKUP_NODE
 
