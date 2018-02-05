@@ -914,6 +914,7 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char> & message, un
     // Message = [32-byte lowBlockNum][32-byte highBlockNum][TxBlock][TxBlock]... (highBlockNum - lowBlockNum + 1) times
 
     LOG_MARKER();
+    unique_lock<mutex> lock(m_mutexSetTxBlockFromSeed);
 
     if (IsMessageSizeInappropriate(message.size(), offset, UINT256_SIZE + UINT256_SIZE))
     {
@@ -933,6 +934,16 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char> & message, un
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
                  "ProcessSetTxBlockFromSeed sent by " << from << " for blocks " <<
                  lowBlockNum.convert_to<string>() << " to " << highBlockNum.convert_to<string>());
+
+
+    uint64_t latestSynBlockNum = (uint64_t) m_mediator.m_txBlockChain.GetBlockCount(); 
+    if (latestSynBlockNum >= highBlockNum)
+    {
+        // TODO: We should get blocks from n nodes.
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                    "I already have the block"); 
+        return false; 
+    }
 
     for(boost::multiprecision::uint256_t blockNum = lowBlockNum; 
         blockNum <= highBlockNum; 
