@@ -94,6 +94,24 @@ def run_start():
 		keypairs.append(output)
 	keypairs.sort()
 
+	nodes = ET.Element("nodes")
+
+	# Store sorted keys list in text file
+	keys_file = open(LOCAL_RUN_FOLDER + 'keys.txt', "w")
+	for x in range(0, count):
+		keys_file.write(keypairs[x] + '\n')
+		keypair = keypairs[x].split(" ")
+		if (x < numdsnodes):
+			peer = ET.SubElement(nodes, "peer")
+			ET.SubElement(peer, "pubk").text = keypair[0]
+			ET.SubElement(peer, "ip").text = '127.0.0.1'
+			ET.SubElement(peer, "port").text = str(NODE_LISTEN_PORT + x)
+	keys_file.close()
+
+	# Create config.xml with pubkey and IP info of all DS nodes
+	tree = ET.ElementTree(nodes)
+	tree.write("config.xml")
+
 	# Store sorted keys list in text file
 	keys_file = open(LOCAL_RUN_FOLDER + 'keys.txt', "w")
 	for x in range(0, count):
