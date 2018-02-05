@@ -24,7 +24,7 @@ import time
 from subprocess import Popen, PIPE
 
 NODE_LISTEN_PORT = 6001
-LOCAL_RUN_FOLDER = './late_local_run1/'
+LOCAL_RUN_FOLDER = './late_local_run/'
 
 def print_usage():
 	print ("Testing multiple Zilliqa nodes in local machine\n"
@@ -68,7 +68,7 @@ def run_setup(numnodes, printnodes):
 	for x in range(0, numnodes):
 		testsubdir = LOCAL_RUN_FOLDER + 'node_' + str(x).zfill(4)
 		os.makedirs(testsubdir)
-		shutil.copyfile('./tests/Zilliqa/latezilliqa', testsubdir + '/latezilliqa')
+		shutil.copyfile('./tests/Zilliqa/zilliqa', testsubdir + '/latezilliqa')
 
 		st = os.stat(testsubdir + '/latezilliqa')
 		os.chmod(testsubdir + '/latezilliqa', st.st_mode | stat.S_IEXEC)
