@@ -24,7 +24,7 @@ import time
 
 from subprocess import Popen, PIPE
 
-NODE_LISTEN_PORT = 5000
+NODE_LISTEN_PORT = 4000
 LOCAL_RUN_FOLDER = './lookup_local_run/'
 
 def print_usage():
