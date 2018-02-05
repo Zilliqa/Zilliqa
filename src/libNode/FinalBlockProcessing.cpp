@@ -388,6 +388,10 @@ void Node::BroadcastTransactionsToSendingAssignment(const uint256_t & blocknum,
         
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
                      "DEBUG: I have broadcasted the txn body!")
+
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                     "I will soon be sending the txn bodies to the lookup nodes");
+        m_mediator.m_lookup->SendMessageToLookupNodes(forwardtxn_message);
     }
     else
     {
