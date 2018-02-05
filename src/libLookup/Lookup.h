@@ -51,6 +51,8 @@ class Lookup : public Executable
     std::mutex m_mutexSetTxBlockFromSeed;
     
     std::vector<unsigned char> ComposeGetDSInfoMessage();
+    std::vector<unsigned char> ComposeGetStateMessage(
+        boost::multiprecision::uint256_t curBlockchainSize);
     std::vector<unsigned char> ComposeGetDSBlockMessage(
         boost::multiprecision::uint256_t lowBlockNum, boost::multiprecision::uint256_t highBlockNum);    
     std::vector<unsigned char> ComposeGetTxBlockMessage(
@@ -87,6 +89,7 @@ public:
     bool GetTxBlockFromLookupNodes(boost::multiprecision::uint256_t lowBlockNum, 
                                    boost::multiprecision::uint256_t highBlockNum);
     bool GetTxBodyFromSeedNodes(std::string txHashStr);
+    bool GetStateFromLookupNodes(boost::multiprecision::uint256_t curBlockchainSize);
 #else // IS_LOOKUP_NODE 
     bool SetDSCommitteInfo();
 #endif // IS_LOOKUP_NODE
@@ -103,6 +106,9 @@ public:
                                    const Peer & from);
     bool ProcessGetTxBodyFromSeed(const std::vector<unsigned char> & message, unsigned int offset, 
                                   const Peer & from);
+    bool ProcessGetStateFromSeed(const std::vector<unsigned char> & message, unsigned int offset, 
+                                 const Peer & from);
+
     bool ProcessGetNetworkId(const std::vector<unsigned char> & message, unsigned int offset, 
                              const Peer &from);
 
@@ -116,6 +122,8 @@ public:
                                    const Peer & from); 
     bool ProcessSetTxBodyFromSeed(const std::vector<unsigned char> & message, unsigned int offset, 
                                   const Peer & from);
+    bool ProcessSetStateFromSeed(const std::vector<unsigned char> & message, unsigned int offset, 
+                                 const Peer & from);
 
     bool Execute(const std::vector<unsigned char> & message, unsigned int offset, 
                  const Peer & from);
