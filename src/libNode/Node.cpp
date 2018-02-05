@@ -70,6 +70,7 @@ void Node::StartSynchronization()
     m_synchronizer.FetchDSInfo(m_mediator.m_lookup);
     m_synchronizer.FetchLatestDSBlocks(m_mediator.m_lookup, 1);
     m_synchronizer.FetchLatestTxBlocks(m_mediator.m_lookup, 1);
+    m_synchronizer.FetchLatestState(m_mediator.m_lookup, 1);
 }
 #endif // IS_LOOKUP_NODE
 
