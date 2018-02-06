@@ -1072,6 +1072,11 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char> & message, un
         synchronizer.FetchLatestDSBlocks(this, m_mediator.m_dsBlockChain.GetBlockCount());
         synchronizer.FetchLatestTxBlocks(this, m_mediator.m_txBlockChain.GetBlockCount());        
     }
+    else
+    {
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "I have successfully join the network`");
+    }
 #endif // IS_LOOKUP_NODE
 
     return true;
