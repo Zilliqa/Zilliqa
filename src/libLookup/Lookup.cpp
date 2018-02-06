@@ -135,6 +135,23 @@ vector<unsigned char> Lookup::ComposeGetDSInfoMessage()
     return getDSNodesMessage;
 }
 
+vector<unsigned char> Lookup::ComposeGetStateMessage(uint256_t curBlockchainSize)
+{
+    vector<unsigned char> getStateMessage = { MessageType::LOOKUP, 
+                                              LookupInstructionType::GETSTATEFROMSEED };
+    unsigned int curr_offset = MessageOffset::BODY;
+
+    Serializable::SetNumber<uint64_t>(getStateMessage, curr_offset, 
+                                      (uint64_t)curBlockchainSize, sizeof(uint64_t));
+    curr_offset += sizeof(uint64_t);
+
+    Serializable::SetNumber<uint32_t>(getStateMessage, curr_offset, 
+                                      m_mediator.m_selfPeer.m_listenPortHost, sizeof(uint32_t));
+    curr_offset += sizeof(uint32_t);
+
+    return getStateMessage;   
+}
+
 bool Lookup::GetDSInfoFromSeedNodes()
 {
     SendMessageToSeedNodes(ComposeGetDSInfoMessage());
@@ -145,6 +162,12 @@ bool Lookup::GetDSInfoFromLookupNodes()
 {
     SendMessageToLookupNodes(ComposeGetDSInfoMessage());
     return true;
+}
+
+bool Lookup::GetStateFromLookupNodes(uint256_t curBlockchainSize)
+{
+    SendMessageToLookupNodes(ComposeGetStateMessage(curBlockchainSize));
+    return true;   
 }
 
 vector<unsigned char> Lookup::ComposeGetDSBlockMessage(uint256_t lowBlockNum, 
@@ -590,6 +613,36 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char> & message, un
     P2PComm::GetInstance().SendMessage(requestingNode, dsBlockMessage);
 
 //#endif // IS_LOOKUP_NODE
+
+    return true;
+}
+
+bool Lookup::ProcessGetStateFromSeed(const vector<unsigned char> & message, unsigned int offset, 
+                                     const Peer & from)
+{
+// #ifndef IS_LOOKUP_NODE
+    // Message = [TRAN_HASH_SIZE txHashStr][Transaction::GetSerializedSize() txbody]
+
+    LOG_MARKER();
+
+    // if (IsMessageSizeInappropriate(message.size(), offset, 
+    //                                TRAN_HASH_SIZE + Transaction::GetSerializedSize()))
+    // {
+    //     return false;
+    // }
+
+    // TxnHash tranHash;
+    // copy(message.begin() + offset, message.begin() + offset + TRAN_HASH_SIZE, 
+    //      tranHash.asArray().begin());
+    // offset += TRAN_HASH_SIZE;
+
+    // Transaction transaction(message, offset);
+
+    // vector<unsigned char> serializedTxBody;
+    // transaction.Serialize(serializedTxBody, 0);
+    // BlockStorage::GetBlockStorage().PutTxBody(tranHash, serializedTxBody);
+
+// #endif // IS_LOOKUP_NODE
 
     return true;
 }
@@ -1051,6 +1104,36 @@ bool Lookup::ProcessSetTxBodyFromSeed(const vector<unsigned char> & message, uns
     return true;
 }
 
+bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char> & message, unsigned int offset, 
+                                      const Peer & from)
+{
+#ifndef IS_LOOKUP_NODE
+    // Message = [TRAN_HASH_SIZE txHashStr][Transaction::GetSerializedSize() txbody]
+
+    LOG_MARKER();
+
+    // if (IsMessageSizeInappropriate(message.size(), offset, 
+    //                                TRAN_HASH_SIZE + Transaction::GetSerializedSize()))
+    // {
+    //     return false;
+    // }
+
+    // TxnHash tranHash;
+    // copy(message.begin() + offset, message.begin() + offset + TRAN_HASH_SIZE, 
+    //      tranHash.asArray().begin());
+    // offset += TRAN_HASH_SIZE;
+
+    // Transaction transaction(message, offset);
+
+    // vector<unsigned char> serializedTxBody;
+    // transaction.Serialize(serializedTxBody, 0);
+    // BlockStorage::GetBlockStorage().PutTxBody(tranHash, serializedTxBody);
+
+#endif // IS_LOOKUP_NODE
+
+    return true;
+}
+
 bool Lookup::Execute(const vector<unsigned char> & message, unsigned int offset, const Peer & from)
 {
     LOG_MARKER();
@@ -1073,7 +1156,10 @@ bool Lookup::Execute(const vector<unsigned char> & message, unsigned int offset,
         &Lookup::ProcessSetTxBlockFromSeed,
         &Lookup::ProcessGetTxBodyFromSeed,
         &Lookup::ProcessSetTxBodyFromSeed,
-        &Lookup::ProcessGetNetworkId
+        &Lookup::ProcessGetNetworkId,
+        &Lookup::ProcessGetNetworkId,
+        &Lookup::ProcessGetStateFromSeed,
+        &Lookup::ProcessSetStateFromSeed
     };
 
     const unsigned char ins_byte = message.at(offset);
