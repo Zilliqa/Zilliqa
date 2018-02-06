@@ -785,6 +785,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char> & message, uns
     // Message = [numDSPeers][DSPeer][DSPeer]... numDSPeers times
 
     LOG_MARKER();
+    unique_lock<mutex> lock(m_mutexSetDSInfoFromSeed);
 
     if (IsMessageSizeInappropriate(message.size(), offset, sizeof(uint32_t)))
     {
@@ -836,6 +837,7 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char> & message, un
     // Message = [32-byte lowBlockNum][32-byte highBlockNum][DSBlock][DSBlock]... (highBlockNum - lowBlockNum + 1) times
 
     LOG_MARKER();
+    unique_lock<mutex> lock(m_mutexSetDSBlockFromSeed);
 
     if (IsMessageSizeInappropriate(message.size(), offset, UINT256_SIZE + UINT256_SIZE))
     {
@@ -1025,6 +1027,7 @@ bool Lookup::ProcessSetTxBodyFromSeed(const vector<unsigned char> & message, uns
     // Message = [TRAN_HASH_SIZE txHashStr][Transaction::GetSerializedSize() txbody]
 
     LOG_MARKER();
+    unique_lock<mutex> lock(m_mutexSetTxBodyFromSeed);
 
     if (IsMessageSizeInappropriate(message.size(), offset, 
                                    TRAN_HASH_SIZE + Transaction::GetSerializedSize()))
