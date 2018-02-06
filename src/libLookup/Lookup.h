@@ -48,7 +48,12 @@ class Lookup : public Executable
     bool m_isDSRandUpdated = false;
     std::mutex m_dsRandUpdationMutex;
     std::condition_variable m_dsRandUpdateCondition;
+
+    std::mutex m_mutexSetDSInfoFromSeed;
+    std::mutex m_mutexSetDSBlockFromSeed;
     std::mutex m_mutexSetTxBlockFromSeed;
+    std::mutex m_mutexSetTxBodyFromSeed;
+
     
     std::vector<unsigned char> ComposeGetDSInfoMessage();
     std::vector<unsigned char> ComposeGetDSBlockMessage(
