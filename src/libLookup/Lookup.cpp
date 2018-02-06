@@ -1052,14 +1052,18 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char> & message, un
     auto dsBlockRand = m_mediator.m_dsBlockRand;
     array<unsigned char, 32> txBlockRand = {0};
 
-    m_mediator.m_node->SetState(Node::POW2_SUBMISSION);
-    POW::GetInstance().EthashConfigureLightClient(m_mediator.m_currentEpochNum);
-    // for(int i=0; i<5; i++)
-    // {
-    m_mediator.m_node->StartPoW2(m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(), 
-                                 uint8_t(0x3), dsBlockRand, txBlockRand);
-    //     this_thread::sleep_for(chrono::seconds(15));
-    // }
+    if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
+    {
+        m_mediator.m_node->SetState(Node::POW2_SUBMISSION);
+        POW::GetInstance().EthashConfigureLightClient(m_mediator.m_currentEpochNum);
+        // for(int i=0; i<5; i++)
+        // {
+        m_mediator.m_node->StartPoW2(m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(), 
+                                     uint8_t(0x3), dsBlockRand, txBlockRand);
+        //     this_thread::sleep_for(chrono::seconds(15));
+        // }
+    }
+
     this_thread::sleep_for(chrono::seconds(NEW_NODE_POW2_TIMEOUT_IN_SECONDS));
     if(!m_mediator.m_isConnectedToNetwork)
     {
