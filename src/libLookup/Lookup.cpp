@@ -1072,7 +1072,13 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char> & message, un
     array<unsigned char, 32> txBlockRand = {0};
 
     if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
-    {
+    {   
+        
+        if (m_mediator.m_currentEpochNum != 0)
+        {
+            m_mediator.m_node->m_consensusID = 0; 
+        }
+
         m_mediator.m_node->SetState(Node::POW2_SUBMISSION);
         POW::GetInstance().EthashConfigureLightClient(m_mediator.m_currentEpochNum);
         // for(int i=0; i<5; i++)

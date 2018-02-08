@@ -49,6 +49,7 @@ using namespace boost::multiprecision;
 Node::Node(Mediator & mediator) : m_mediator(mediator)
 {
     // m_state = IDLE;
+    // First epoch is 1. 
     m_consensusID = 1;
     m_consensusLeaderID = 1;
     m_synchronizer.InitializeGenesisBlocks(m_mediator.m_dsBlockChain, m_mediator.m_txBlockChain);
