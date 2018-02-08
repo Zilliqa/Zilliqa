@@ -64,9 +64,11 @@ public:
 
     /// The current members of the DS committee.
     std::deque<Peer> m_DSCommitteeNetworkInfo;
+    std::mutex m_mutexDSCommitteeNetworkInfo;
 
     /// The public keys of the DS committee members.
     std::deque<PubKey> m_DSCommitteePubKeys;
+    std::mutex m_mutexDSCommitteePubKeys;
 
     /// The current epoch randomness from the DS blockchain.
     std::array<unsigned char, POW_SIZE> m_dsBlockRand;
