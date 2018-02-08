@@ -275,6 +275,12 @@ bool Lookup::GetTxBodyFromSeedNodes(string txHashStr)
         ptree pt;
         read_xml("config.xml", pt);
 
+        lock(m_mediator.m_mutexDSCommitteeNetworkInfo, m_mediator.m_mutexDSCommitteePubKeys);
+        lock_guard<mutex> g(m_mediator.m_mutexDSCommitteeNetworkInfo, adopt_lock);
+        lock_guard<mutex> g2(m_mediator.m_mutexDSCommitteePubKeys, adopt_lock);
+        m_mediator.m_DSCommitteePubKeys = dsPubKeys;
+        m_mediator.m_DSCommitteeNetworkInfo = dsPeers;
+
         for(ptree::value_type const & v : pt.get_child("nodes"))
         {
             if (v.first == "peer")
@@ -486,8 +492,18 @@ bool Lookup::ProcessGetDSInfoFromSeed(const vector<unsigned char> & message, uns
 
     LOG_MARKER();
 
-    deque<PubKey> dsPubKeys = m_mediator.m_DSCommitteePubKeys;
-    deque<Peer> dsPeers = m_mediator.m_DSCommitteeNetworkInfo; // Data::GetInstance().GetDSPeers();
+    deque<PubKey> dsPubKeys;
+    deque<Peer> dsPeers;
+    {
+        lock(m_mediator.m_mutexDSCommitteeNetworkInfo, m_mediator.m_mutexDSCommitteePubKeys);
+        lock_guard<mutex> g(m_mediator.m_mutexDSCommitteeNetworkInfo, adopt_lock);
+        lock_guard<mutex> g2(m_mediator.m_mutexDSCommitteePubKeys, adopt_lock);
+        m_mediator.m_DSCommitteePubKeys = dsPubKeys;
+        m_mediator.m_DSCommitteeNetworkInfo = dsPeers;
+
+        dsPubKeys = m_mediator.m_DSCommitteePubKeys;
+        dsPeers = m_mediator.m_DSCommitteeNetworkInfo; // Data::GetInstance().GetDSPeers();     
+    }
 
     // dsInfoMessage = [num_ds_peers][DSPeer][DSPeer]... num_ds_peers times
     vector<unsigned char> dsInfoMessage = { MessageType::LOOKUP, 
@@ -838,7 +854,6 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char> & message, uns
     // Message = [numDSPeers][DSPeer][DSPeer]... numDSPeers times
 
     LOG_MARKER();
-    unique_lock<mutex> lock(m_mutexSetDSInfoFromSeed);
 
     if (IsMessageSizeInappropriate(message.size(), offset, sizeof(uint32_t)))
     {
@@ -875,8 +890,14 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char> & message, uns
                      "ProcessSetDSInfoFromSeed recvd peer " << i << ": " << peer);
     }
 
-    m_mediator.m_DSCommitteePubKeys = dsPubKeys;
-    m_mediator.m_DSCommitteeNetworkInfo = dsPeers;
+    {
+        lock(m_mediator.m_mutexDSCommitteeNetworkInfo, m_mediator.m_mutexDSCommitteePubKeys);
+        lock_guard<mutex> g(m_mediator.m_mutexDSCommitteeNetworkInfo, adopt_lock);
+        lock_guard<mutex> g2(m_mediator.m_mutexDSCommitteePubKeys, adopt_lock);
+        m_mediator.m_DSCommitteePubKeys = dsPubKeys;
+        m_mediator.m_DSCommitteeNetworkInfo = dsPeers;
+    }
+
 //    Data::GetInstance().SetDSPeers(dsPeers);
 //#endif // IS_LOOKUP_NODE
 
@@ -997,45 +1018,47 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char> & message, un
         // TODO: We should get blocks from n nodes.
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
                     "I already have the block"); 
-        return false; 
     }
-
-    for(boost::multiprecision::uint256_t blockNum = lowBlockNum; 
-        blockNum <= highBlockNum; 
-        blockNum++)
+    else 
     {
-        TxBlock txBlock(message, offset);
-        offset += txBlock.GetSerializedSize();
+        for(boost::multiprecision::uint256_t blockNum = lowBlockNum; 
+            blockNum <= highBlockNum; 
+            blockNum++)
+        {
+            TxBlock txBlock(message, offset);
+            offset += txBlock.GetSerializedSize();
 
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
-                     "I the lookup node have deserialized the TxBlock"); 
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
-                     "txBlock.GetHeader().GetType(): " << txBlock.GetHeader().GetType()); 
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
-                     "txBlock.GetHeader().GetVersion(): " << txBlock.GetHeader().GetVersion()); 
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
-                     "txBlock.GetHeader().GetGasLimit(): " << txBlock.GetHeader().GetGasLimit()); 
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
-                     "txBlock.GetHeader().GetGasUsed(): " << txBlock.GetHeader().GetGasUsed()); 
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
-                     "txBlock.GetHeader().GetBlockNum(): " << txBlock.GetHeader().GetBlockNum());
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
-                     "txBlock.GetHeader().GetNumMicroBlockHashes(): " << 
-                     txBlock.GetHeader().GetNumMicroBlockHashes()); 
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
-                     "txBlock.GetHeader().GetNumTxs(): " << txBlock.GetHeader().GetNumTxs()); 
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
-                     "txBlock.GetHeader().GetMinerPubKey(): " << 
-                     txBlock.GetHeader().GetMinerPubKey());
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                         "I the lookup node have deserialized the TxBlock"); 
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                         "txBlock.GetHeader().GetType(): " << txBlock.GetHeader().GetType()); 
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                         "txBlock.GetHeader().GetVersion(): " << txBlock.GetHeader().GetVersion()); 
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                         "txBlock.GetHeader().GetGasLimit(): " << txBlock.GetHeader().GetGasLimit()); 
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                         "txBlock.GetHeader().GetGasUsed(): " << txBlock.GetHeader().GetGasUsed()); 
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                         "txBlock.GetHeader().GetBlockNum(): " << txBlock.GetHeader().GetBlockNum());
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                         "txBlock.GetHeader().GetNumMicroBlockHashes(): " << 
+                         txBlock.GetHeader().GetNumMicroBlockHashes()); 
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                         "txBlock.GetHeader().GetNumTxs(): " << txBlock.GetHeader().GetNumTxs()); 
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                         "txBlock.GetHeader().GetMinerPubKey(): " << 
+                         txBlock.GetHeader().GetMinerPubKey());
 
-        m_mediator.m_txBlockChain.AddBlock(txBlock);
+            m_mediator.m_txBlockChain.AddBlock(txBlock);
 
-        // Store Tx Block to disk
-        vector<unsigned char> serializedTxBlock;
-        txBlock.Serialize(serializedTxBlock, 0);
-        BlockStorage::GetBlockStorage().PutTxBlock(txBlock.GetHeader().GetBlockNum(), 
-                                                   serializedTxBlock);
+            // Store Tx Block to disk
+            vector<unsigned char> serializedTxBlock;
+            txBlock.Serialize(serializedTxBlock, 0);
+            BlockStorage::GetBlockStorage().PutTxBlock(txBlock.GetHeader().GetBlockNum(), 
+                                                       serializedTxBlock);
+        }
     }
+
 #ifndef IS_LOOKUP_NODE // TODO : remove from here to top
     m_mediator.m_currentEpochNum = (uint64_t) m_mediator.m_txBlockChain.GetBlockCount();
     m_mediator.UpdateTxBlockRand();
@@ -1067,6 +1090,9 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char> & message, un
     this_thread::sleep_for(chrono::seconds(NEW_NODE_POW2_TIMEOUT_IN_SECONDS));
     if(!m_mediator.m_isConnectedToNetwork)
     {
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "Re-syncing with network`");
+
         Synchronizer synchronizer;
         synchronizer.FetchDSInfo(this);
         synchronizer.FetchLatestDSBlocks(this, m_mediator.m_dsBlockChain.GetBlockCount());

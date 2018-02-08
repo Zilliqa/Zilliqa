@@ -49,7 +49,6 @@ class Lookup : public Executable
     std::mutex m_dsRandUpdationMutex;
     std::condition_variable m_dsRandUpdateCondition;
 
-    std::mutex m_mutexSetDSInfoFromSeed;
     std::mutex m_mutexSetDSBlockFromSeed;
     std::mutex m_mutexSetTxBlockFromSeed;
     std::mutex m_mutexSetTxBodyFromSeed;
