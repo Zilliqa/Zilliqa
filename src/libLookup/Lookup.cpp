@@ -278,8 +278,6 @@ bool Lookup::GetTxBodyFromSeedNodes(string txHashStr)
         lock(m_mediator.m_mutexDSCommitteeNetworkInfo, m_mediator.m_mutexDSCommitteePubKeys);
         lock_guard<mutex> g(m_mediator.m_mutexDSCommitteeNetworkInfo, adopt_lock);
         lock_guard<mutex> g2(m_mediator.m_mutexDSCommitteePubKeys, adopt_lock);
-        m_mediator.m_DSCommitteePubKeys = dsPubKeys;
-        m_mediator.m_DSCommitteeNetworkInfo = dsPeers;
 
         for(ptree::value_type const & v : pt.get_child("nodes"))
         {
@@ -498,8 +496,6 @@ bool Lookup::ProcessGetDSInfoFromSeed(const vector<unsigned char> & message, uns
         lock(m_mediator.m_mutexDSCommitteeNetworkInfo, m_mediator.m_mutexDSCommitteePubKeys);
         lock_guard<mutex> g(m_mediator.m_mutexDSCommitteeNetworkInfo, adopt_lock);
         lock_guard<mutex> g2(m_mediator.m_mutexDSCommitteePubKeys, adopt_lock);
-        m_mediator.m_DSCommitteePubKeys = dsPubKeys;
-        m_mediator.m_DSCommitteeNetworkInfo = dsPeers;
 
         dsPubKeys = m_mediator.m_DSCommitteePubKeys;
         dsPeers = m_mediator.m_DSCommitteeNetworkInfo; // Data::GetInstance().GetDSPeers();     
