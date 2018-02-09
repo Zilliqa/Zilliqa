@@ -49,7 +49,8 @@ using namespace boost::multiprecision;
 Node::Node(Mediator & mediator) : m_mediator(mediator)
 {
     // m_state = IDLE;
-    // First epoch is 1. 
+    // Zilliqa first epoch start from 1 not 0. So for the first DS epoch, there will be 1 less mini epoch only for the first DS epoch. 
+    // Hence, we have to set consensusID for first epoch to 1. 
     m_consensusID = 1;
     m_consensusLeaderID = 1;
     m_synchronizer.InitializeGenesisBlocks(m_mediator.m_dsBlockChain, m_mediator.m_txBlockChain);

@@ -968,7 +968,6 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char> & message, un
     }
 
     m_mediator.UpdateDSBlockRand();
-
     {
         unique_lock<mutex> lock(m_dsRandUpdationMutex);
         m_isDSRandUpdated = true;
@@ -1053,42 +1052,40 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char> & message, un
             BlockStorage::GetBlockStorage().PutTxBlock(txBlock.GetHeader().GetBlockNum(), 
                                                        serializedTxBlock);
         }
-    }
+    
 
 #ifndef IS_LOOKUP_NODE // TODO : remove from here to top
-    m_mediator.m_currentEpochNum = (uint64_t) m_mediator.m_txBlockChain.GetBlockCount();
-    m_mediator.UpdateTxBlockRand();
+        m_mediator.m_currentEpochNum = (uint64_t) m_mediator.m_txBlockChain.GetBlockCount();
+        m_mediator.UpdateTxBlockRand();
 
-    {
-        unique_lock<mutex> lock(m_dsRandUpdationMutex);
-        while(!m_isDSRandUpdated)            
         {
-            m_dsRandUpdateCondition.wait(lock);
-        }
-        m_isDSRandUpdated = false;
-    }
-
-    auto dsBlockRand = m_mediator.m_dsBlockRand;
-    array<unsigned char, 32> txBlockRand = {0};
-
-    if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
-    {   
-        
-        if (m_mediator.m_currentEpochNum != 0)
-        {
-            m_mediator.m_node->m_consensusID = 0; 
+            unique_lock<mutex> lock(m_dsRandUpdationMutex);
+            while(!m_isDSRandUpdated)            
+            {
+                m_dsRandUpdateCondition.wait(lock);
+            }
+            m_isDSRandUpdated = false;
         }
 
-        m_mediator.m_node->SetState(Node::POW2_SUBMISSION);
-        POW::GetInstance().EthashConfigureLightClient(m_mediator.m_currentEpochNum);
-        // for(int i=0; i<5; i++)
-        // {
-        m_mediator.m_node->StartPoW2(m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(), 
-                                     uint8_t(0x3), dsBlockRand, txBlockRand);
-        //     this_thread::sleep_for(chrono::seconds(15));
-        // }
+        auto dsBlockRand = m_mediator.m_dsBlockRand;
+        array<unsigned char, 32> txBlockRand = {0};
+
+        if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
+        {   
+
+            if (m_mediator.m_currentEpochNum != 0)
+            {
+                m_mediator.m_node->m_consensusID = 0; 
+            }
+
+            m_mediator.m_node->SetState(Node::POW2_SUBMISSION);
+            POW::GetInstance().EthashConfigureLightClient(m_mediator.m_currentEpochNum);
+            m_mediator.m_node->StartPoW2(m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(), 
+                                         uint8_t(0x3), dsBlockRand, txBlockRand);
+        }
     }
 
+    // Check whether is the new node connected to the network. Else, initiate re-sync process again. 
     this_thread::sleep_for(chrono::seconds(NEW_NODE_POW2_TIMEOUT_IN_SECONDS));
     if(!m_mediator.m_isConnectedToNetwork)
     {
