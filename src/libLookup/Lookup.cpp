@@ -532,7 +532,16 @@ bool Lookup::ProcessGetDSInfoFromSeed(const vector<unsigned char> & message, uns
     uint128_t ipAddr = from.m_ipAddress;
     Peer requestingNode(ipAddr, portNo);
 
-    P2PComm::GetInstance().SendMessage(requestingNode, dsInfoMessage);
+    // TODO: Revamp the sendmessage and sendbroadcastmessage
+    // Currently, we use sendbroadcastmessage instead of sendmessage. The reason is a new node who want to
+    // join will received similar response from mulitple lookup node. It will process them in full. 
+    // Currently, we want the duplicated message to be drop so to ensure it do not do redundant processing. 
+    // In the long term, we need to track all the incoming messages from lookup or seed node more grandularly,.
+    // and ensure 2/3 of such identical message is received in order to move on. 
+    vector<Peer> node;
+    node.push_back(requestingNode); 
+
+    P2PComm::GetInstance().SendBroadcastMessage(node, dsInfoMessage);
 
 //#endif // IS_LOOKUP_NODE
 
@@ -622,7 +631,16 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char> & message, un
     uint128_t ipAddr = from.m_ipAddress;
     Peer requestingNode(ipAddr, portNo);
 
-    P2PComm::GetInstance().SendMessage(requestingNode, dsBlockMessage);
+    // TODO: Revamp the sendmessage and sendbroadcastmessage
+    // Currently, we use sendbroadcastmessage instead of sendmessage. The reason is a new node who want to
+    // join will received similar response from mulitple lookup node. It will process them in full. 
+    // Currently, we want the duplicated message to be drop so to ensure it do not do redundant processing. 
+    // In the long term, we need to track all the incoming messages from lookup or seed node more grandularly,.
+    // and ensure 2/3 of such identical message is received in order to move on. 
+    vector<Peer> node;
+    node.push_back(requestingNode); 
+
+    P2PComm::GetInstance().SendBroadcastMessage(node, dsBlockMessage);
 
 //#endif // IS_LOOKUP_NODE
 
@@ -741,7 +759,16 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char> & message, un
     uint128_t ipAddr = from.m_ipAddress;
     Peer requestingNode(ipAddr, portNo);
 
-    P2PComm::GetInstance().SendMessage(requestingNode, txBlockMessage);
+    // TODO: Revamp the sendmessage and sendbroadcastmessage
+    // Currently, we use sendbroadcastmessage instead of sendmessage. The reason is a new node who want to
+    // join will received similar response from mulitple lookup node. It will process them in full. 
+    // Currently, we want the duplicated message to be drop so to ensure it do not do redundant processing. 
+    // In the long term, we need to track all the incoming messages from lookup or seed node more grandularly,.
+    // and ensure 2/3 of such identical message is received in order to move on. 
+    vector<Peer> node;
+    node.push_back(requestingNode); 
+
+    P2PComm::GetInstance().SendBroadcastMessage(node, txBlockMessage);
 
 // #endif // IS_LOOKUP_NODE
 
@@ -783,7 +810,16 @@ bool Lookup::ProcessGetTxBodyFromSeed(const vector<unsigned char> & message, uns
     uint128_t ipAddr = from.m_ipAddress;
     Peer requestingNode(ipAddr, portNo);
 
-    P2PComm::GetInstance().SendMessage(requestingNode, txBodyMessage);
+    // TODO: Revamp the sendmessage and sendbroadcastmessage
+    // Currently, we use sendbroadcastmessage instead of sendmessage. The reason is a new node who want to
+    // join will received similar response from mulitple lookup node. It will process them in full. 
+    // Currently, we want the duplicated message to be drop so to ensure it do not do redundant processing. 
+    // In the long term, we need to track all the incoming messages from lookup or seed node more grandularly,.
+    // and ensure 2/3 of such identical message is received in order to move on. 
+    vector<Peer> node;
+    node.push_back(requestingNode); 
+
+    P2PComm::GetInstance().SendBroadcastMessage(node, txBodyMessage);
 
 // #endif // IS_LOOKUP_NODE
 
@@ -811,7 +847,16 @@ bool Lookup::ProcessGetNetworkId(const vector<unsigned char> & message, unsigned
 
     copy(networkId.begin(), networkId.end(), networkIdMessage.begin() + curr_offset);
 
-    P2PComm::GetInstance().SendMessage(requestingNode, networkIdMessage);
+    // TODO: Revamp the sendmessage and sendbroadcastmessage
+    // Currently, we use sendbroadcastmessage instead of sendmessage. The reason is a new node who want to
+    // join will received similar response from mulitple lookup node. It will process them in full. 
+    // Currently, we want the duplicated message to be drop so to ensure it do not do redundant processing. 
+    // In the long term, we need to track all the incoming messages from lookup or seed node more grandularly,.
+    // and ensure 2/3 of such identical message is received in order to move on. 
+    vector<Peer> node;
+    node.push_back(requestingNode); 
+
+    P2PComm::GetInstance().SendBroadcastMessage(node, networkIdMessage);
 
     return true;
 // #endif // IS_LOOKUP_NODE
