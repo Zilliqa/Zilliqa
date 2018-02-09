@@ -21,6 +21,7 @@
 #include <map>
 #include <vector>
 
+#include "common/Broadcastable.h"
 #include "common/Executable.h"
 #include "libCrypto/Schnorr.h"
 #include "libNetwork/Peer.h"
@@ -29,7 +30,7 @@
 class Mediator;
 class Synchronizer;
 
-class Lookup : public Executable
+class Lookup : public Executable, public Broadcastable
 {
     Mediator & m_mediator;
 

@@ -120,7 +120,9 @@ vector<Peer> Zilliqa::RetrieveBroadcastList(unsigned char msg_type, unsigned cha
     {
         &m_pm,
         &m_ds,
-        &m_n
+        &m_n,
+        &m_cu,
+        &m_lookup
     };
 
     const unsigned int msg_handlers_count = sizeof(msg_handlers) / sizeof(Broadcastable*);
