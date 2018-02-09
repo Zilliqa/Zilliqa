@@ -1052,6 +1052,10 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char> & message, un
             BlockStorage::GetBlockStorage().PutTxBlock(txBlock.GetHeader().GetBlockNum(), 
                                                        serializedTxBlock);
         }
+
+#ifdef IS_LOOKUP_NODE
+    }
+#endif
     
 
 #ifndef IS_LOOKUP_NODE // TODO : remove from here to top
