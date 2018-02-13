@@ -26,6 +26,7 @@
 #include "libCrypto/Schnorr.h"
 #include "libData/BlockData/BlockHeader/BlockHeaderBase.h"
 
+/// [TODO] Base class for all supported block data types
 class BlockBase : public Serializable
 {
 	// TODO: pull out all common code from ds, micro and tx block

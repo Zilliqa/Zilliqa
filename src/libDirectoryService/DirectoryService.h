@@ -41,8 +41,7 @@
 
 class Mediator;
 
-/// Implements Directory Service functionality including PoW verification, DS, Tx Block Consensus
-/// and sharding management.
+/// Implements Directory Service functionality including PoW verification, DS, Tx Block Consensus and sharding management.
 class DirectoryService : public Executable, public Broadcastable
 {
 #ifdef STAT_TEST
