@@ -22,7 +22,7 @@
 #include "common/Executable.h"
 #include "Consensus.h"
 
-/// Internal class for testing consensus.
+/// [TEST ONLY] Internal class for testing consensus.
 class ConsensusUser : public Executable, public Broadcastable
 {
 private:
