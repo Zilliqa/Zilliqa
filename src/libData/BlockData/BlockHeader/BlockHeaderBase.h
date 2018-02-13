@@ -26,6 +26,7 @@
 #include "common/Constants.h"
 #include "libCrypto/Schnorr.h"
 
+/// [TODO] Base class for all supported block header types
 class BlockHeaderBase : public Serializable
 {
 protected:

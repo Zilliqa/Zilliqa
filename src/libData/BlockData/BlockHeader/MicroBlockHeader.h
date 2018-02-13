@@ -26,6 +26,7 @@
 #include "common/Constants.h"
 #include "libCrypto/Schnorr.h"
 
+/// Stores information on the header part of the microblock.
 class MicroBlockHeader : public BlockHeaderBase
 {
     uint8_t m_type;                                             // 0: microblock proposed by a committee, 1: final tx block
@@ -43,9 +44,13 @@ class MicroBlockHeader : public BlockHeaderBase
 
 public:
     
-    // Constructors
+    /// Default constructor.
     MicroBlockHeader();
+
+    /// Constructor for loading existing microblock header from a byte stream.
     MicroBlockHeader(const std::vector<unsigned char> & src, unsigned int offset);
+
+    /// Constructor with predefined member values.
     MicroBlockHeader
     (
         const uint8_t type,
@@ -62,11 +67,13 @@ public:
         const BlockHash & dsBlockHeader
     );
 
-    // Serialization
+    /// Implements the Serialize function inherited from Serializable.
     unsigned int Serialize(std::vector<unsigned char> & dst, unsigned int offset) const;
+
+    /// Implements the Deserialize function inherited from Serializable.
     void Deserialize(const std::vector<unsigned char> & src, unsigned int offset);
 
-    // Getters
+    // [TODO] These methods are all supposed to be moved into BlockHeaderBase, so no need to add Doxygen tags for now
     const uint8_t & GetType() const;
     const uint32_t & GetVersion() const;
     const boost::multiprecision::uint256_t & GetGasLimit() const;
