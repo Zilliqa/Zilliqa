@@ -14,7 +14,7 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-
+/// [TODO] Currently unused
 template <class T>
 class ReverseLock 
 {

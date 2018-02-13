@@ -29,6 +29,7 @@
 class Mediator;
 class Synchronizer;
 
+/// Processes requests pertaining to network, transaction, or block information
 class Lookup : public Executable
 {
     Mediator & m_mediator;
@@ -56,7 +57,11 @@ class Lookup : public Executable
         boost::multiprecision::uint256_t lowBlockNum, boost::multiprecision::uint256_t highBlockNum);        
 
 public:
+
+    /// Constructor.  
     Lookup(Mediator & mediator);
+
+    /// Destructor.
     ~Lookup();
 
 #ifndef IS_LOOKUP_NODE
