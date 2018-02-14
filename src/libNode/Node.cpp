@@ -483,6 +483,7 @@ bool Node::ProcessCreateTransaction(const vector<unsigned char> & message, unsig
         Transaction txn(version, nonce, toAddr, fromAddr, amount, signature);
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
                      "Created txns: " << txn.GetTranID())
+        LOG_MESSAGE(txn.GetSerializedSize());
         m_createdTransactions.push_back(txn);
         nonce++;
         amount++;
@@ -632,7 +633,7 @@ void Node::SubmitTransactions()
     // TODO: This is a manual trottle of txns rate for stability testing.
     //uint64_t upper_id_limit = m_mediator.m_currentEpochNum * 20 + 20;
     //uint64_t lower_id_limit = m_mediator.m_currentEpochNum * 20;
-    uint64_t upper_id_limit = 500;
+    uint64_t upper_id_limit = 600;
     uint64_t lower_id_limit = 0;
 
     unsigned int txn_sent_count = 0;
