@@ -31,6 +31,9 @@
 #include <boost/property_tree/ptree.hpp>
 
 #include "common/Messages.h"
+#include "libData/AccountData/Account.h"
+#include "libData/AccountData/AccountStore.h"
+#include "libData/AccountData/Transaction.h"
 #include "libData/BlockData/Block.h"
 #include "libData/BlockChainData/DSBlockChain.h"
 #include "libData/BlockChainData/TxBlockChain.h"
@@ -671,6 +674,14 @@ bool Lookup::ProcessGetStateFromSeed(const vector<unsigned char> & message, unsi
     // vector<unsigned char> serializedTxBody;
     // transaction.Serialize(serializedTxBody, 0);
     // BlockStorage::GetBlockStorage().PutTxBody(tranHash, serializedTxBody);
+
+
+    AccountStore::GetInstance().GetStateRootHash();
+    AccountStore::GetInstance().PrintAccountState();
+
+    //P2PComm::GetInstance().SendBroadcastMessage(node, dsBlockMessage);
+
+
 
 // #endif // IS_LOOKUP_NODE
 
