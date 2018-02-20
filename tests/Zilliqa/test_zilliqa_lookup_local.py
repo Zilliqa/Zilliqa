@@ -102,7 +102,7 @@ def run_start():
 	for x in range(0, count):
 		keys_file.write(keypairs[x] + '\n')
 		keypair = keypairs[x].split(" ")
-		if (x < numdsnodes):
+		if (x < count):
 			peer = ET.SubElement(nodes, "peer")
 			ET.SubElement(peer, "pubk").text = keypair[0]
 			ET.SubElement(peer, "ip").text = '127.0.0.1'
