@@ -1,0 +1,126 @@
+<div class="row">
+  <div class="col zblue text-white">
+		<h2 class="text-center">Home</h2>
+  </div>
+</div>
+
+<!-- default view -->
+<div *ngIf="state == 0">
+	<div class="row mt-5">
+		<div class="col text-center">
+			<a class="btn btn-large zblue text-white" (click)="setState(1)"><i class="fa fa-plus"></i>&nbsp;Create New Wallet</a>
+			<a class="btn btn-large zblue text-white" (click)="setState(3)"><i class="fa fa-upload"></i>&nbsp;Access Your Wallet</a>
+		</div>
+	</div>
+</div>
+
+
+<!-- create wallet flow #1 -->
+<!-- enter key view -->
+<div *ngIf="state == 1">
+	<div class="row mt-5">
+		<div class="col text-center">
+			<a class="btn text-white zblue" (click)="generateWallet()">Click to Generate Address</a>
+		</div>
+	</div>
+</div>
+
+
+<!-- create wallet flow #2 -->
+<!-- display generated wallet view -->
+<div *ngIf="state == 2">
+	<div class="row mt-5">
+		<div class="col text-center">
+			<h4>Your Public Address: {{wallet.address}}</h4>
+		</div>
+	</div>
+	<div class="row mt-2">
+		<div class="col text-center">
+			<h4>Your private key (save this somewhere safe): {{generatedPrivateKey}}</h4>
+		</div>
+	</div>
+	<div class="row mt-2">
+		<div class="col text-center">
+			<a class="btn zblue text-white" routerLink="/wallet/base">Continue</a>
+		</div>
+	</div>
+</div>
+
+
+<!-- import wallet flow #1 -->
+<div *ngIf="state == 3">
+	<div class="row mt-5">
+		<div class="col text-center">
+			<a class="btn zblue text-white" (click)="setState(4)">Import JSON</a>
+			<a class="btn zblue text-white" (click)="setState(5)">Enter Private Key</a>
+		</div>
+	</div>
+</div>
+
+
+
+<!-- import wallet flow #2 -->
+<!-- import JSON option -->
+<div *ngIf="state == 4">
+	<div class="row mt-5">
+		<div class="col text-center">
+			<label for="file">Upload wallet file (.json)</label>
+			<input type="file" 
+					id="walletFile" 
+					(change)="selectWalletFile($event.target.files)" />
+			<!-- <a class="btn zblue text-white" (click)="setState(0)">Up</a> -->
+		</div>
+	</div>
+</div>
+
+
+
+<!-- import wallet flow #3 -->
+<!-- enter passphrase option -->
+<div *ngIf="state == 5">
+	<div class="row mt-5">
+		<div class="col text-center">
+			<label>Enter your private key:
+				<input [(ngModel)]="importPrivateKey" placeholder="enter private key here">
+			</label>
+		</div>
+	</div>
+	<div class="row mt-2">
+		<div class="col text-center">
+			<a class="btn zblue text-white" (click)="importWallet()">Import</a>
+		</div>
+	</div>
+</div>
+
+
+
+<!-- import wallet flow #4 -->
+<!-- successfully imported wallet -->
+<div *ngIf="state == 6">
+	<div class="row mt-5">
+		<div class="col text-center">
+			<h4>Successfully imported wallet!</h4>
+		</div>
+	</div>
+	<div class="row mt-2">
+		<div class="col text-center">
+			<a class="btn zblue text-white" routerLink="/wallet/base">Continue</a>
+		</div>
+	</div>
+</div>
+
+
+<!-- import wallet flow #5 -->
+<!-- invalid imported wallet -->
+<div *ngIf="state == 7">
+	<div class="row mt-5">
+		<div class="col text-center">
+			<h4>Sorry, this wallet does not exist.</h4>
+		</div>
+	</div>
+	<div class="row mt-2">
+		<div class="col text-center">
+			<a class="btn zblue text-white" (click)="setState(0)">Back</a>
+		</div>
+	</div>
+</div>

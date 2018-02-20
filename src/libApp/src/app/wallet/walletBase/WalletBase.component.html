@@ -1,0 +1,44 @@
+<div class="row">
+  <div class="col zblue">
+		<a class="btn btn-large btn-block text-white" routerLink="/wallet/send">Send</a>
+  </div>
+  <div class="col zblue">
+  	<a class="btn btn-large btn-block text-white" routerLink="/wallet/history">History</a>
+  </div>
+</div>
+
+<div class="row mt-5">
+	<div class="col text-center">
+		<h4>Address</h4>
+	</div>
+</div>
+<div class="row">
+	<div class="col text-center">
+		<p>{{wallet.address}}</p>
+	</div>
+</div>
+<div class="row mt-2">
+	<div class="col text-center">
+		<h4>Balance:</h4>
+	</div>
+</div>
+<div class="row">
+	<div class="col text-center">
+		<p><span>{{wallet.balance}}</span> ZIL</p>
+	</div>
+</div>
+<div class="row mt-2">
+	<div class="col text-center">
+		<h4>Private Key</h4>
+	</div>
+</div>
+<div class="row">
+	<div class="col text-center">
+		<p><span>{{ privateKey }}</span>&nbsp;&nbsp;&nbsp;&nbsp;<a class="btn zblue text-white" (click)="revealPrivateKey()">Reveal</a></p>
+	</div>
+</div>
+<div class="row mt-2">
+	<div class="col text-center">
+		<h4>Download JSON Keyfile: <a class="btn btn-large zblue text-white" (click)="downloadWallet()">Download</a></h4>
+	</div>
+</div>
