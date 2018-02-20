@@ -56,8 +56,9 @@ unsigned int AccountStore::Serialize(vector<unsigned char> & dst, unsigned int o
     unsigned int curOffset = offset;
 
     // [Total number of accounts]
-
-    SetNumber<uint256_t>(dst, curOffset, GetNumOfAccounts(), UINT256_SIZE);
+    LOG_MESSAGE("Debug: Total number of accounts to serialize: " << GetNumOfAccounts()); 
+    uint256_t totalNumOfAccounts = GetNumOfAccounts();
+    SetNumber<uint256_t>(dst, curOffset, totalNumOfAccounts, UINT256_SIZE);
     curOffset += UINT256_SIZE; 
 
     vector<unsigned char> address_vec; 
@@ -65,12 +66,14 @@ unsigned int AccountStore::Serialize(vector<unsigned char> & dst, unsigned int o
     for(auto entry: m_addressToAccount)
     {
         // Address
+        LOG_MESSAGE("Debug: I am serializing address in account store ");
         address_vec = entry.first.asBytes();
         copy(address_vec.begin(), address_vec.end(), dst.begin() + curOffset);
         curOffset += ACC_ADDR_SIZE;
         totalSerializedSize += ACC_ADDR_SIZE; 
 
         // Account 
+        LOG_MESSAGE("Debug: I am serializing account in account store ");
         size_needed = entry.second.Serialize(dst, curOffset);
         curOffset += size_needed; 
         totalSerializedSize += size_needed; 
@@ -213,6 +216,7 @@ Account* AccountStore::GetAccount(const Address & address)
 
 uint256_t AccountStore::GetNumOfAccounts() const
 {
+    LOG_MARKER(); 
     return m_addressToAccount.size();
 }
 
@@ -339,6 +343,8 @@ boost::multiprecision::uint256_t AccountStore::GetNonce(const Address & address)
 
 dev::h256 AccountStore::GetStateRootHash() const
 {
+    LOG_MARKER(); 
+
     return m_state.root();
 }
 
