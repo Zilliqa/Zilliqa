@@ -1,0 +1,87 @@
+<div class="row">
+  <div class="col zblue">
+		<a class="btn btn-large btn-block text-white" routerLink="/wallet/send">Send</a>
+  </div>
+  <div class="col zblue">
+  	<a class="btn btn-large btn-block text-white" routerLink="/wallet/history">History</a>
+  </div>
+</div>
+
+<!-- send transaction flow #1 -->
+<div *ngIf="state == 0">
+	<div class="row mt-5">
+		<div class="col">
+			<h4>Send Tokens</h4>
+		</div>
+	</div>
+
+	<div class="row mt-2">
+		<div class="col-md-4">
+			<div class="input-group input-group-md">
+			  <span class="input-group-addon">Address: </span>
+			  <input [(ngModel)]="payment.address" type="text" class="form-control" placeholder="Address">
+			</div>
+		</div>
+	</div>
+	<div class="row mt-2">
+		<div class="col-md-4">
+			<div class="input-group input-group-md">
+		  	<span class="input-group-addon">Amount:     </span>
+		  	<input [(ngModel)]="payment.amount" type="number" class="form-control" placeholder="Amount">
+			</div>
+		</div>
+	</div>
+	<div class="row mt-2">
+		<div class="col-md-4">
+			<div class="input-group input-group-md">
+		  	<span class="input-group-addon">Gas Price:     </span>
+		  	<input [(ngModel)]="payment.gasPrice" type="number" class="form-control" placeholder="Gas Price">
+			</div>
+		</div>
+	</div>
+	<div class="row mt-2">
+		<div class="col-md-4">
+			<div class="input-group input-group-md">
+		  	<span class="input-group-addon">Gas Limit:     </span>
+		  	<input [(ngModel)]="payment.gasLimit" type="number" class="form-control" placeholder="Gas Limit">
+			</div>
+		</div>
+	</div>
+	<div class="row">
+		<div class="col">
+			<p>(current balance: {{wallet.balance}} ZIL)</p>
+		</div>
+	</div>
+
+	<div class="row mt-5">
+		<div class="col text-center">
+			<a class="btn btn-success text-white" (click)="onSend()">Send</a>
+		</div>
+	</div>
+</div>
+
+<!-- send transaction flow #2 -->
+<div *ngIf="state == 1">
+	<div class="row mt-5">
+		<div class="col">
+			<h4>Pending Transaction ID : {{pendingTxId}}</h4>
+		</div>
+	</div>
+
+	<div class="row mt-2">
+		<div class="col">
+		  <span class="input-group-addon">Address: {{payment.address}}</span>
+		</div>
+	</div>
+	<div class="row mt-2">
+		<div class="col">
+		  <span class="input-group-addon">Amount: {{payment.amount}}</span>
+		</div>
+	</div>
+
+	<div class="row mt-5">
+		<div class="col text-center">
+			<a class="btn btn-success text-white" routerLink="/wallet">Continue</a>
+		</div>
+	</div>
+</div>
