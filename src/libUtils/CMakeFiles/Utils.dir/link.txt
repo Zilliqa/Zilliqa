@@ -1,2 +1,0 @@
-/usr/bin/ar qc libUtils.a  CMakeFiles/Utils.dir/DataConversion.cpp.o CMakeFiles/Utils.dir/Logger.cpp.o CMakeFiles/Utils.dir/SanityChecks.cpp.o CMakeFiles/Utils.dir/Scheduler.cpp.o CMakeFiles/Utils.dir/TimeUtils.cpp.o CMakeFiles/Utils.dir/TxnRootComputation.cpp.o
-/usr/bin/ranlib libUtils.a

@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2017 Zilliqa 
+* Copyright (c) 2018 Zilliqa 
 * This source code is being disclosed to you solely for the purpose of your participation in 
 * testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to 
 * the protocols and algorithms that are programmed into, and intended by, the code. You may 
@@ -249,6 +249,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
 
             POW::GetInstance().EthashConfigureLightClient((uint64_t)m_mediator.m_dsBlockChain.GetBlockCount()); // hack hack hack -- typecasting
             m_consensusID = 0;
+            m_mediator.m_node->m_consensusID = 0;
+            m_mediator.m_node->m_consensusLeaderID = 0;
             if (m_mode == PRIMARY_DS)
             {
                 LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Waiting " << POW1_WINDOW_IN_SECONDS << " seconds, accepting PoW1 submissions...");
@@ -317,7 +319,7 @@ bool DirectoryService::ProcessFinalBlockConsensus(const vector<unsigned char> & 
     }
     
 
-    bool result = m_consensusObject->ProcessMessage(message, offset);
+    bool result = m_consensusObject->ProcessMessage(message, offset, from);
 
     ConsensusCommon::State state = m_consensusObject->GetState();
 

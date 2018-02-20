@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2017 Zilliqa 
+* Copyright (c) 2018 Zilliqa 
 * This source code is being disclosed to you solely for the purpose of your participation in 
 * testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to 
 * the protocols and algorithms that are programmed into, and intended by, the code. You may 
@@ -101,7 +101,7 @@ bool Node::ReadVariablesFromShardingMessage(const vector<unsigned char> & messag
         if (m_mediator.m_selfPeer == m_myShardMembersNetworkInfo.back())
         {
             m_consensusMyID = i; // Set my ID
-           //m_myShardMembersNetworkInfo.back().m_ipAddress = 0;
+            //m_myShardMembersNetworkInfo.back().m_ipAddress = 0;
             m_myShardMembersNetworkInfo.back().m_listenPortHost = 0;
         }
 
@@ -162,11 +162,41 @@ bool Node::ProcessSharding(const vector<unsigned char> & message, unsigned int o
 
     // SetState(TX_SUBMISSION);
 
-    auto main_func = [this]() mutable -> void { SubmitTransactions(); };
-    auto expiry_func = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
+    // auto main_func = [this]() mutable -> void { SubmitTransactions(); };
+    // auto expiry_func = [this]() mutable -> void { 
+    //   auto main_func = [this]() mutable -> void { 
+    //     unique_lock<shared_timed_mutex> lock(m_mutexProducerConsumer);
+    //     SetState(TX_SUBMISSION_BUFFER);  
+    //   };
+    //   auto expiry_func = [this]() mutable -> void { 
+    //     RunConsensusOnMicroBlock();
+    //   };
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Waiting " << SUBMIT_TX_WINDOW<< " seconds, accepting Tx submissions for epoch " << m_mediator.m_currentEpochNum);
-    TimeLockedFunction tlf(SUBMIT_TX_WINDOW, main_func, expiry_func, true);
+    //   TimeLockedFunction tlf(SUBMIT_TX_WINDOW_EXTENDED, main_func, expiry_func, true);
+    // };
+
+    // TimeLockedFunction tlf(SUBMIT_TX_WINDOW, main_func, expiry_func, true);
+
+    auto main_func = [this]() mutable -> void { SubmitTransactions(); };
+    DetachedFunction(1, main_func);
+
+    LOG_MESSAGE("I am going to sleep for 15 seconds");
+    this_thread::sleep_for(chrono::seconds(15));
+    LOG_MESSAGE("I have woken up from the sleep of 15 seconds");
+
+    auto main_func2 = [this]() mutable -> void { 
+        unique_lock<shared_timed_mutex> lock(m_mutexProducerConsumer);
+        SetState(TX_SUBMISSION_BUFFER); 
+    };   
+    DetachedFunction(1, main_func2); 
+
+    LOG_MESSAGE("I am going to sleep for 30 seconds");
+    this_thread::sleep_for(chrono::seconds(30));
+    LOG_MESSAGE("I have woken up from the sleep of 30 seconds");
+
+    auto main_func3 = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
+    DetachedFunction(1, main_func3);
+
 #endif // IS_LOOKUP_NODE
     return true;
 }

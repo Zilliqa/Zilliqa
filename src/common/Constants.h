@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2017 Zilliqa 
+* Copyright (c) 2018 Zilliqa 
 * This source code is being disclosed to you solely for the purpose of your participation in 
 * testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to 
 * the protocols and algorithms that are programmed into, and intended by, the code. You may 
@@ -58,6 +58,8 @@ const unsigned int SEED_PEER_LIST_SIZE = 20;
 
 // Transaction body sharing
 const unsigned int TX_SHARING_CLUSTER_SIZE = 20;
+
+const unsigned int NUM_VACUOUS_EPOCHS = 1;
 
 // Networking and mining 
 const unsigned int POW_SIZE = 32;

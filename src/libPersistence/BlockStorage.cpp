@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2017 Zilliqa 
+* Copyright (c) 2018 Zilliqa 
 * This source code is being disclosed to you solely for the purpose of your participation in 
 * testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to 
 * the protocols and algorithms that are programmed into, and intended by, the code. You may 
@@ -27,22 +27,6 @@
 #include "BlockStorage.h"
 
 using namespace std;
-
-static string ConvertUInt256ToString(boost::multiprecision::uint256_t number) 
-{
-    if (number == 0) 
-    {
-        return "0";
-    }
-    string result = "";
-    while (number != 0) 
-    {
-        result += to_string( (unsigned int) number % 10 );
-        number /= 10;
-    }
-    reverse(result.begin(), result.end());
-    return result;
-}
 
 BlockStorage & BlockStorage::GetBlockStorage()
 {

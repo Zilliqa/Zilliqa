@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2017 Zilliqa 
+* Copyright (c) 2018 Zilliqa 
 * This source code is being disclosed to you solely for the purpose of your participation in 
 * testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to 
 * the protocols and algorithms that are programmed into, and intended by, the code. You may 
@@ -38,10 +38,9 @@ class P2PComm
     std::mutex m_startMessagePumpMutex;
     std::mutex m_mutexPool;
 
-
     const static uint32_t MAXRETRYCONN = 3;
-    const static uint32_t MAXMESSAGE = 64;
-    const static uint32_t MAXPUMPMESSAGE = 64;
+    const static uint32_t MAXMESSAGE = 128;
+    const static uint32_t MAXPUMPMESSAGE = 128;
     const static uint32_t PUMPMESSAGE_MILLISECONDS = 1000;
     uint32_t m_counterMessagePump;
 

@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2017 Zilliqa 
+* Copyright (c) 2018 Zilliqa 
 * This source code is being disclosed to you solely for the purpose of your participation in 
 * testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to 
 * the protocols and algorithms that are programmed into, and intended by, the code. You may 
@@ -74,16 +74,8 @@ bool DirectoryService::VerifyPoW1Submission(const vector<unsigned char> & messag
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Winner Peer ip addr           = " << from.GetPrintableIPAddress() << ":" << portNo);
 
     // Define the PoW1 parameters
-    // if (m_mediator.m_dsBlockChain.GetBlockCount() == 1) //genesis block
-    // {
-    //     rand1 = DataConversion::HexStrToStdArray(RAND1_GENESIS);
-    //     rand2 = DataConversion::HexStrToStdArray(RAND2_GENESIS);
-    // }
-    // else
-    // {
-        rand1 = m_mediator.m_dsBlockRand;
-        rand2 = m_mediator.m_txBlockRand;
-    // }
+    rand1 = m_mediator.m_dsBlockRand;
+    rand2 = m_mediator.m_txBlockRand;
 
     difficulty = POW1_DIFFICULTY; // TODO: Need to get the latest blocknum, diff, rand1, rand2
     // Verify nonce
@@ -209,7 +201,8 @@ bool DirectoryService::ProcessPoW1Submission(const vector<unsigned char> & messa
 
             if (i % 10 == 0)
             {
-                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Waiting for POW1_SUBMISSION before processing");
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Waiting for POW1_SUBMISSION before processing. Current state is " << m_state);
+
             }
             this_thread::sleep_for(chrono::milliseconds(sleep_time_while_waiting));
         }

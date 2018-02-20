@@ -1,0 +1,22 @@
+{
+  "name": "z-lib",
+  "version": "0.0.1",
+  "description": "zilliqa js library",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "devDependencies": {
+    "chai": "*",
+    "gulp": "^3.9.1",
+    "gulp-uglify": "^3.0.0",
+    "gulp-util": "^3.0.8",
+    "mocha": "*",
+    "vinyl-buffer": "^1.0.0",
+    "vinyl-source-stream": "^1.1.0"
+  },
+  "dependencies": {
+    "browserify": "^16.1.0",
+    "jquery": "^3.3.1"
+  }
+}

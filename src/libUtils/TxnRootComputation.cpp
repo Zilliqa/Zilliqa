@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2017 Zilliqa 
+* Copyright (c) 2018 Zilliqa 
 * This source code is being disclosed to you solely for the purpose of your participation in 
 * testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to 
 * the protocols and algorithms that are programmed into, and intended by, the code. You may 
@@ -30,12 +30,12 @@ TxnHash ComputeTransactionsRoot
     transactionsTrie.init();
 
     int txnCount = 0;
-    dev::RLPStream k;
     for(auto it = transactionHashes.begin(); it != transactionHashes.end(); it++)
     {
         std::vector<unsigned char> serializedTxn;
         serializedTxn.resize(TRAN_HASH_SIZE);
         copy(it->asArray().begin(), it->asArray().end(), serializedTxn.begin());
+        dev::RLPStream k;
         k << txnCount;
         txnCount++;
         transactionsTrie.insert(&k.out(), serializedTxn);
@@ -59,18 +59,18 @@ TxnHash ComputeTransactionsRoot
     transactionsTrie.init();
 
     int txnCount = 0;
-    dev::RLPStream k;
     for(auto it = receivedTransactions.begin(); it != receivedTransactions.end(); it++)
     {
         std::vector<unsigned char> serializedTxn;
         serializedTxn.resize(TRAN_HASH_SIZE);
         copy(it->GetTranID().begin(), it->GetTranID().end(), serializedTxn.begin());
 
+        dev::RLPStream k;
         k << txnCount;
         txnCount++;
 
         transactionsTrie.insert(&k.out(), serializedTxn);
-        LOG_MESSAGE("Inserted to trie" << txnCount);
+        // LOG_MESSAGE("Inserted to trie" << txnCount);
     }
     for(auto it = submittedTransactions.begin(); it != submittedTransactions.end(); it++)
     {
@@ -78,11 +78,12 @@ TxnHash ComputeTransactionsRoot
         serializedTxn.resize(TRAN_HASH_SIZE);
         copy(it->GetTranID().begin(), it->GetTranID().end(), serializedTxn.begin());
 
+        dev::RLPStream k;
         k << txnCount;
         txnCount++;
 
         transactionsTrie.insert(&k.out(), serializedTxn);
-        LOG_MESSAGE("Inserted to trie" << txnCount);
+        // LOG_MESSAGE("Inserted to trie" << txnCount);
     }
 
     TxnHash txnRoot;
@@ -103,18 +104,18 @@ TxnHash ComputeTransactionsRoot
     transactionsTrie.init();
 
     int txnCount = 0;
-    dev::RLPStream k;
     for(auto & it : receivedTransactions)
     {
         std::vector<unsigned char> serializedTxn;
         serializedTxn.resize(TRAN_HASH_SIZE);
         copy(it.first.begin(), it.first.end(), serializedTxn.begin());
 
+        dev::RLPStream k;
         k << txnCount;
         txnCount++;
 
         transactionsTrie.insert(&k.out(), serializedTxn);
-        LOG_MESSAGE("Inserted to trie" << txnCount);
+        // LOG_MESSAGE("Inserted to trie" << txnCount);
     }
     for(auto & it : submittedTransactions)
     {
@@ -122,11 +123,12 @@ TxnHash ComputeTransactionsRoot
         serializedTxn.resize(TRAN_HASH_SIZE);
         copy(it.first.begin(), it.first.end(), serializedTxn.begin());
 
+        dev::RLPStream k;
         k << txnCount;
         txnCount++;
 
         transactionsTrie.insert(&k.out(), serializedTxn);
-        LOG_MESSAGE("Inserted to trie" << txnCount);
+        // LOG_MESSAGE("Inserted to trie" << txnCount);
     }
 
     TxnHash txnRoot;

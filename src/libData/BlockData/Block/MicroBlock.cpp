@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2017 Zilliqa 
+* Copyright (c) 2018 Zilliqa 
 * This source code is being disclosed to you solely for the purpose of your participation in 
 * testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to 
 * the protocols and algorithms that are programmed into, and intended by, the code. You may 
@@ -22,8 +22,6 @@ using namespace boost::multiprecision;
 
 unsigned int MicroBlock::Serialize(vector<unsigned char> & dst, unsigned int offset) const
 {
-    LOG_MARKER();
-
     assert(m_header.GetNumTxs() == m_tranHashes.size());
 
     unsigned int header_size_needed = sizeof(uint8_t) + sizeof(uint32_t) + UINT256_SIZE + UINT256_SIZE + 
@@ -56,8 +54,6 @@ unsigned int MicroBlock::Serialize(vector<unsigned char> & dst, unsigned int off
 
 void MicroBlock::Deserialize(const vector<unsigned char> & src, unsigned int offset)
 {
-    LOG_MARKER();
-
     unsigned int header_size_needed = sizeof(uint8_t) + sizeof(uint32_t) + UINT256_SIZE + UINT256_SIZE + 
                                         BLOCK_HASH_SIZE + UINT256_SIZE + UINT256_SIZE + TRAN_HASH_SIZE + 
                                         sizeof(uint32_t) + PUB_KEY_SIZE + UINT256_SIZE + BLOCK_HASH_SIZE;

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright (c) 2017 Zilliqa 
+# Copyright (c) 2018 Zilliqa 
 # This source code is being disclosed to you solely for the purpose of your participation in 
 # testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to 
 # the protocols and algorithms that are programmed into, and intended by, the code. You may 
@@ -204,8 +204,8 @@ def run_connect(numnodes):
 	print 'Total num of edges connected: ' + str(len(edges))
 
 def run_stop():
-	os.system('pkill zilliqa')
-	os.system('pkill sendtxn')
+	os.system('killall zilliqa')
+	os.system('killall sendtxn')
 	testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)
 	count = len(testfolders_list)
 	for x in range(0, count):

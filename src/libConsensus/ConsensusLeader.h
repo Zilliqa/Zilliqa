@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2017 Zilliqa 
+* Copyright (c) 2018 Zilliqa 
 * This is an alpha (internal) release and is not suitable for production.
 * This source code is being disclosed to you solely for the purpose of your participation in 
 * testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to 
@@ -29,6 +29,11 @@
 #include "libNetwork/PeerStore.h"
 #include "libUtils/TimeLockedFunction.h"
 
+typedef std::function<bool(const vector<unsigned char> & errorMsg, unsigned int, const Peer & from)>
+        NodeCommitFailureHandlerFunc;
+typedef std::function<bool(std::map<unsigned int, std::vector<unsigned char>>)> 
+        ShardCommitFailureHandlerFunc;
+
 /// Implements the functionality for the consensus committee leader.
 class ConsensusLeader : public ConsensusCommon
 {
@@ -43,10 +48,13 @@ class ConsensusLeader : public ConsensusCommon
 
     // Consensus session settings
     unsigned int m_numForConsensus;
+    unsigned int m_numForConsensusFailure;
 
     // Received commits
     std::mutex m_mutex;
     unsigned int m_commitCounter;
+
+    // TODO: the vectors should be replaced by more space efficient DS
     std::vector<bool> m_commitMap;
     std::vector<CommitPoint> m_commitPointMap; // ordered list of commits of size = committee size
     std::vector<CommitPoint> m_commitPoints;   // unordered list of commits of size = 2/3 of committee size + 1
@@ -56,21 +64,36 @@ class ConsensusLeader : public ConsensusCommon
     // Generated challenge
     Challenge m_challenge;
 
+    unsigned int m_commitFailureCounter;
+    std::map<unsigned int, std::vector<unsigned char>> m_commitFailureMap;
+
     // Received responses
     unsigned int m_responseCounter;
     std::vector<Response> m_responseDataMap;
     std::vector<Response> m_responseData;
 
+    NodeCommitFailureHandlerFunc m_nodeCommitFailureHandlerFunc;
+    ShardCommitFailureHandlerFunc m_shardCommitFailureHandlerFunc;
+
     // Internal functions
     bool CheckState(Action action);
-    bool ProcessMessageCommitCore(const std::vector<unsigned char> & commit, unsigned int offset, Action action, ConsensusMessageType returnmsgtype, State nextstate);
+    bool ProcessMessageCommitCore(const std::vector<unsigned char> & commit, unsigned int offset, 
+                                  Action action, ConsensusMessageType returnmsgtype, 
+                                  State nextstate);
     bool ProcessMessageCommit(const std::vector<unsigned char> & commit, unsigned int offset);
+    bool ProcessMessageCommitFailure(const std::vector<unsigned char> & commit, unsigned int offset, 
+                                     const Peer & from);    
     bool GenerateChallengeMessage(std::vector<unsigned char> & challenge, unsigned int offset);
-    bool ProcessMessageResponseCore(const std::vector<unsigned char> & response, unsigned int offset, Action action, ConsensusMessageType returnmsgtype, State nextstate);
+    bool ProcessMessageResponseCore(const std::vector<unsigned char> & response, 
+                                    unsigned int offset, Action action, 
+                                    ConsensusMessageType returnmsgtype, State nextstate);
     bool ProcessMessageResponse(const std::vector<unsigned char> & response, unsigned int offset);
-    bool GenerateCollectiveSigMessage(std::vector<unsigned char> & collectivesig, unsigned int offset);
-    bool ProcessMessageFinalCommit(const std::vector<unsigned char> & finalcommit, unsigned int offset);
-    bool ProcessMessageFinalResponse(const std::vector<unsigned char> & finalresponse, unsigned int offset);
+    bool GenerateCollectiveSigMessage(std::vector<unsigned char> & collectivesig, 
+                                      unsigned int offset);
+    bool ProcessMessageFinalCommit(const std::vector<unsigned char> & finalcommit, 
+                                   unsigned int offset);
+    bool ProcessMessageFinalResponse(const std::vector<unsigned char> & finalresponse, 
+                                     unsigned int offset);
 
 public:
 
@@ -84,7 +107,9 @@ public:
         const std::deque<PubKey> & pubkeys,            // ordered lookup table of pubkeys for this committee (includes leader)
         const std::deque<Peer> & peer_info,            // IP addresses of all peers
         unsigned char class_byte,                      // class byte representing Executable class using this instance of ConsensusLeader
-        unsigned char ins_byte                         // instruction byte representing consensus messages for the Executable class
+        unsigned char ins_byte,                        // instruction byte representing consensus messages for the Executable class
+        NodeCommitFailureHandlerFunc nodeCommitFailureHandlerFunc,
+        ShardCommitFailureHandlerFunc shardCommitFailureHandlerFunc
     );
 
     /// Destructor.
@@ -94,7 +119,8 @@ public:
     bool StartConsensus(const std::vector<unsigned char> & message);
 
     /// Function to process any consensus message received.
-    bool ProcessMessage(const std::vector<unsigned char> & message, unsigned int offset);
+    bool ProcessMessage(const std::vector<unsigned char> & message, unsigned int offset, 
+                        const Peer & from);
 };
 
 #endif // __CONSENSUSLEADER_H__

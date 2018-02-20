@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2017 Zilliqa 
+* Copyright (c) 2018 Zilliqa 
 * This source code is being disclosed to you solely for the purpose of your participation in 
 * testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to 
 * the protocols and algorithms that are programmed into, and intended by, the code. You may 
@@ -150,33 +150,39 @@ bool DirectoryService::RunConsensusOnShardingWhenDSPrimary()
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
 
     m_consensusObject.reset
+    (
+        new ConsensusLeader
         (
-            new ConsensusLeader
-                (
-                        consensusID,
-                        m_consensusBlockHash,
-                        m_consensusMyID,
-                        m_mediator.m_selfKey.first,
-                        m_mediator.m_DSCommitteePubKeys,
-                        m_mediator.m_DSCommitteeNetworkInfo,
-                        static_cast<unsigned char>(DIRECTORY),
-                        static_cast<unsigned char>(SHARDINGCONSENSUS)
-                )
-        );
+            consensusID,
+            m_consensusBlockHash,
+            m_consensusMyID,
+            m_mediator.m_selfKey.first,
+            m_mediator.m_DSCommitteePubKeys,
+            m_mediator.m_DSCommitteeNetworkInfo,
+            static_cast<unsigned char>(DIRECTORY),
+            static_cast<unsigned char>(SHARDINGCONSENSUS),
+            std::function<bool(const vector<unsigned char> &, unsigned int, const Peer &)>(),
+            std::function<bool(map<unsigned int, std::vector<unsigned char>>)>()
+        )
+    );
 
     if (m_consensusObject == nullptr)
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Error: Unable to create consensus object");
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "Error: Unable to create consensus object");
         return false;
     }
 
     ConsensusLeader * cl = dynamic_cast<ConsensusLeader*>(m_consensusObject.get());
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Waiting " << LEADER_SHARDING_PREPARATION_IN_SECONDS << " seconds before announcing...");
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Waiting " << 
+                 LEADER_SHARDING_PREPARATION_IN_SECONDS << " seconds before announcing...");
     this_thread::sleep_for(chrono::seconds(LEADER_SHARDING_PREPARATION_IN_SECONDS));
 
 #ifdef STAT_TEST
-    LOG_STATE("[SHCON][" << std::setw(15) << std::left << m_mediator.m_selfPeer.GetPrintableIPAddress() << "][" << m_mediator.m_txBlockChain.GetBlockCount() << "] BGIN");
+    LOG_STATE("[SHCON][" << std::setw(15) << std::left << 
+              m_mediator.m_selfPeer.GetPrintableIPAddress() << "][" << 
+              m_mediator.m_txBlockChain.GetBlockCount() << "] BGIN");
 #endif // STAT_TEST
 
     cl->StartConsensus(sharding_structure);
@@ -184,7 +190,8 @@ bool DirectoryService::RunConsensusOnShardingWhenDSPrimary()
     return true;
 }
 
-bool DirectoryService::ShardingValidator(const vector<unsigned char> & sharding_structure)
+bool DirectoryService::ShardingValidator(const vector<unsigned char> & sharding_structure,
+                                         std::vector<unsigned char> & errorMsg)
 {
     LOG_MARKER();
 
@@ -206,6 +213,7 @@ bool DirectoryService::ShardingValidator(const vector<unsigned char> & sharding_
     //   [33-byte public key]
     //   ...
     // ...
+    lock_guard<mutex> g(m_mutexAllPoWConns);
 
     unsigned int curr_offset = 0;
 
@@ -215,7 +223,6 @@ bool DirectoryService::ShardingValidator(const vector<unsigned char> & sharding_
 
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Number of committees = " << numOfComms);
 
-    lock_guard<mutex> g(m_mutexAllPoWConns);
     for (unsigned int i = 0; i < numOfComms; i++)
     {
         m_shards.push_back(map<PubKey, Peer>());
@@ -232,15 +239,31 @@ bool DirectoryService::ShardingValidator(const vector<unsigned char> & sharding_
             PubKey memberPubkey(sharding_structure, curr_offset);
             curr_offset += PUB_KEY_SIZE; 
 
+
             auto memberPeer = m_allPoWConns.find(memberPubkey);
             if (memberPeer == m_allPoWConns.end())
             {
-                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "To-do: Shard node not inside m_allPoWConns - should ask for nonce and IP info from leader!");
-                throw exception();
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Shard node not inside m_allPoWConns. " << memberPeer->second.GetPrintableIPAddress() << " Port: " << memberPeer->second.m_listenPortHost);
+                
+                m_hasAllPoWconns = false; 
+                std::unique_lock<std::mutex> lk(m_MutexCVAllPowConn);
+
+                RequestAllPoWConn(); 
+                while (!m_hasAllPoWconns)
+                {
+                    cv_allPowConns.wait(lk);
+                }
+                memberPeer = m_allPoWConns.find(memberPubkey);
+                
+                if (memberPeer == m_allPoWConns.end())
+                {
+                    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Sharding validator error");
+                    throw exception(); 
+                }
+
             }
 
             // To-do: Should we check for a public key that's been assigned to more than 1 shard?
-
             m_shards.back().insert(make_pair(memberPubkey, memberPeer->second));
             m_publicKeyToShardIdMap.insert(make_pair(memberPubkey, i));
 
@@ -255,7 +278,8 @@ bool DirectoryService::RunConsensusOnShardingWhenDSBackup()
 {
     LOG_MARKER();
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "I am a backup DS node. Waiting for sharding structure announcement.");
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                 "I am a backup DS node. Waiting for sharding structure announcement.");
 
     // Create new consensus object
 
@@ -264,24 +288,26 @@ bool DirectoryService::RunConsensusOnShardingWhenDSBackup()
     m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
 
-    auto func = [this](const vector<unsigned char> & message) mutable -> bool { return ShardingValidator(message); };
+    auto func = [this](const vector<unsigned char> & message,
+                       vector<unsigned char> & errorMsg) mutable -> 
+                       bool { return ShardingValidator(message, errorMsg); };
 
     m_consensusObject.reset
+    (
+        new ConsensusBackup
         (
-            new ConsensusBackup
-                (
-                        consensusID,
-                        m_consensusBlockHash,
-                        m_consensusMyID,
-                        m_consensusLeaderID,
-                        m_mediator.m_selfKey.first,
-                        m_mediator.m_DSCommitteePubKeys,
-                        m_mediator.m_DSCommitteeNetworkInfo,
-                        static_cast<unsigned char>(DIRECTORY),
-                        static_cast<unsigned char>(SHARDINGCONSENSUS),
-                        func
-                )
-        );
+            consensusID,
+            m_consensusBlockHash,
+            m_consensusMyID,
+            m_consensusLeaderID,
+            m_mediator.m_selfKey.first,
+            m_mediator.m_DSCommitteePubKeys,
+            m_mediator.m_DSCommitteeNetworkInfo,
+            static_cast<unsigned char>(DIRECTORY),
+            static_cast<unsigned char>(SHARDINGCONSENSUS),
+            func
+        )
+    );
 
     if (m_consensusObject == nullptr)
     {

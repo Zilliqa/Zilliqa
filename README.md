@@ -1,4 +1,6 @@
 # Zilliqa (codename _Durian_)
+[![Build Status](https://travis-ci.org/Zilliqa/Zilliqa.svg?branch=master)](https://travis-ci.org/Zilliqa/Zilliqa)
+
 ## Overview
 Zilliqa is a new blockchain platform capable of processing thousands of transactions per second with sharding built into it. With sharding, Zilliqa has the potential to match throughput benchmarks set by traditional payment methods (such as _VISA_ and _MasterCard_). More importantly, Zilliqa’s transaction throughput increases (roughly) linearly with its network size.
 
@@ -52,9 +54,9 @@ sudo apt-get install libboost-all-dev libssl-dev libleveldb-dev libjsoncpp-dev c
 ` ./build.sh`
 
 2. Run the local testnet script  
-`./test/Node/test_node_simple.sh`  
+`./tests/Node/test_node_simple.sh`  
 
-3. Logs of each node can be found at `code/local_run`
+3. Logs of each node can be found at `./local_run`
 
 4. To terminate Zilliqa,   
 `pkill zilliqa` 
