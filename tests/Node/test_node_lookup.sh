@@ -1,4 +1,5 @@
-# Copyright (c) 2017 Zilliqa 
+#!/bin/bash
+# Copyright (c) 2018 Zilliqa 
 # This source code is being disclosed to you solely for the purpose of your participation in 
 # testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to 
 # the protocols and algorithms that are programmed into, and intended by, the code. You may 
@@ -14,7 +15,6 @@
 
 sudo sysctl net.core.somaxconn=102400; 
 sudo sysctl net.core.netdev_max_backlog=65536; 
-sudo sysctl net.ipv4.tcp_tw_recycle=1; 
 sudo sysctl net.ipv4.tcp_tw_reuse=1; 
 sudo sysctl -w net.ipv4.tcp_rmem='65536 873800 1534217728';
 sudo sysctl -w net.ipv4.tcp_wmem='65536 873800 1534217728';

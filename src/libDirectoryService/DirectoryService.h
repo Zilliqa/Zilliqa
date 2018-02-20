@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2017 Zilliqa 
+* Copyright (c) 2018 Zilliqa 
 * This source code is being disclosed to you solely for the purpose of your participation in 
 * testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to 
 * the protocols and algorithms that are programmed into, and intended by, the code. You may 
@@ -27,6 +27,7 @@
 #include <shared_mutex>
 #include <boost/multiprecision/cpp_int.hpp>
 #include <libCrypto/Sha2.h>
+#include <condition_variable>
 
 #include "common/Executable.h"
 #include "common/Broadcastable.h"
@@ -40,8 +41,7 @@
 
 class Mediator;
 
-/// Implements Directory Service functionality including PoW verification, DS, Tx Block Consensus
-/// and sharding management.
+/// Implements Directory Service functionality including PoW verification, DS, Tx Block Consensus and sharding management.
 class DirectoryService : public Executable, public Broadcastable
 {
 #ifdef STAT_TEST
@@ -86,6 +86,10 @@ class DirectoryService : public Executable, public Broadcastable
 
     std::shared_timed_mutex m_mutexProducerConsumer;
     std::mutex m_mutexConsensus;
+    
+    bool m_hasAllPoWconns = true; 
+    std::condition_variable cv_allPowConns;
+    std::mutex m_MutexCVAllPowConn; 
 
     // Sharding committee members
     std::vector<std::map<PubKey, Peer>> m_shards;
@@ -98,9 +102,7 @@ class DirectoryService : public Executable, public Broadcastable
 
     // Consensus variables
     std::shared_ptr<ConsensusCommon> m_consensusObject;
-    uint32_t m_consensusID;
     std::vector<unsigned char> m_consensusBlockHash;
-    uint16_t m_consensusLeaderID;
 
     // PoW1 (DS block) consensus variables
     std::shared_ptr<DSBlock> m_pendingDSBlock;
@@ -140,6 +142,9 @@ class DirectoryService : public Executable, public Broadcastable
                                      unsigned int offset, const Peer & from);
     bool ProcessFinalBlockConsensus(const std::vector<unsigned char> & message, unsigned int offset, 
                                     const Peer & from);
+    bool ProcessAllPoWConnRequest(const vector<unsigned char> & message, unsigned int offset, const Peer & from); 
+    bool ProcessAllPoWConnResponse(const vector<unsigned char> & message, unsigned int offset, const Peer & from);
+
 #ifndef IS_LOOKUP_NODE
     bool CheckState(Action action);
     bool VerifyPOW2(const vector<unsigned char> &message, unsigned int offset, const Peer &from);
@@ -217,7 +222,8 @@ class DirectoryService : public Executable, public Broadcastable
                                     std::vector<BlockHash> & microBlockHashes,
                                     boost::multiprecision::uint256_t & allGasLimit,
                                     boost::multiprecision::uint256_t & allGasUsed, 
-                                    uint32_t & numTxs, 
+                                    uint32_t & numTxs,
+                                    std::vector<bool> & isMicroBlockEmpty,
                                     uint32_t & numMicroBlocks) const;
 
     // FinalBlockValidator functions
@@ -227,20 +233,29 @@ class DirectoryService : public Executable, public Broadcastable
     bool CheckPreviousFinalBlockHash();
     bool CheckFinalBlockNumber();
     bool CheckFinalBlockTimestamp();
-    bool CheckMicroBlockHashesAndRoot();
+    bool CheckMicroBlockHashes();
+    bool CheckMicroBlockHashRoot();
+    bool CheckIsMicroBlockEmpty();
+    bool CheckStateRoot();
+    void LoadUnavailableMicroBlocks();
     void SaveTxnBodySharingAssignment(const vector<unsigned char> & finalblock, 
                                       unsigned int & curr_offset);
+    bool WaitForTxnBodies();
 
     // DS block consensus validator function
-    bool DSBlockValidator(const std::vector<unsigned char> & dsblock);
+    bool DSBlockValidator(const std::vector<unsigned char> & dsblock, std::vector<unsigned char> & errorMsg);
 
     // Sharding consensus validator function
-    bool ShardingValidator(const std::vector<unsigned char> & sharding_structure);
+    bool ShardingValidator(const std::vector<unsigned char> & sharding_structure, std::vector<unsigned char> & errorMsg);
 
     // Final block consensus validator function
-    bool FinalBlockValidator(const std::vector<unsigned char> & finalblock);
+    bool FinalBlockValidator(const std::vector<unsigned char> & finalblock, std::vector<unsigned char> & errorMsg);
 
     void StoreFinalBlockToDisk();
+
+    // Used to reconsile view of m_AllPowConn is different. 
+    void RequestAllPoWConn();
+
 
 #endif // IS_LOOKUP_NODE    
 
@@ -265,6 +280,9 @@ public:
         FINALBLOCK_CONSENSUS,
         ERROR
     };
+
+    uint32_t m_consensusID;
+    uint16_t m_consensusLeaderID;
 
     /// The current role of this Zilliqa instance within the directory service committee.
     std::atomic<Mode> m_mode;

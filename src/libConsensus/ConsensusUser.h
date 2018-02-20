@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2017 Zilliqa 
+* Copyright (c) 2018 Zilliqa 
 * This is an alpha (internal) release and is not suitable for production.
 * This source code is being disclosed to you solely for the purpose of your participation in 
 * testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to 
@@ -22,7 +22,7 @@
 #include "common/Executable.h"
 #include "Consensus.h"
 
-/// Internal class for testing consensus.
+/// [TEST ONLY] Internal class for testing consensus.
 class ConsensusUser : public Executable, public Broadcastable
 {
 private:
@@ -50,7 +50,7 @@ public:
 
     bool Execute(const std::vector<unsigned char> & message, unsigned int offset, const Peer & from);
 
-    bool MyMsgValidatorFunc(const std::vector<unsigned char> & message); // Needed by backup
+    bool MyMsgValidatorFunc(const std::vector<unsigned char> & message, std::vector<unsigned char> & errorMsg); // Needed by backup
 };
 
 #endif // __CONSENSUSUSER_H__

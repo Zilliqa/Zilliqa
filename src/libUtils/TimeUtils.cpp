@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2017 Zilliqa 
+* Copyright (c) 2018 Zilliqa 
 * This source code is being disclosed to you solely for the purpose of your participation in 
 * testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to 
 * the protocols and algorithms that are programmed into, and intended by, the code. You may 
@@ -37,7 +37,7 @@ uint256_t get_time_as_int()
 {
 	struct timespec now_time;
 	clock_gettime(CLOCK_REALTIME, &now_time);
-	uint256_t microsecs = now_time.tv_sec * 100000;
+	uint256_t microsecs = now_time.tv_sec * 1000000;
 	microsecs += now_time.tv_nsec / 1000;
 	return microsecs;
 }

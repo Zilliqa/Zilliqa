@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2017 Zilliqa 
+* Copyright (c) 2018 Zilliqa 
 * This source code is being disclosed to you solely for the purpose of your participation in 
 * testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to 
 * the protocols and algorithms that are programmed into, and intended by, the code. You may 
@@ -33,15 +33,12 @@
 #include <queue>
 #endif
 
-/**
- *  Simple ThreadPool that creates `threadCount` threads upon its creation,
- *  and pulls from a queue to get new jobs.
- *
- *  This class requires a number of c++11 features be present in your compiler.
- */
-class ThreadPool
+/// Simple thread pool that creates `threadCount` threads upon its creation, and pulls from a queue to get new jobs.
+class ThreadPool // This class requires a number of c++11 features be present in your compiler.
 {
 public:
+
+    /// Constructor.
 #if CONTIGUOUS_JOBS_MEMORY
     explicit ThreadPool(const unsigned int threadCount, const unsigned int jobsReserveCount = 0) :
 #else
@@ -67,19 +64,13 @@ public:
 #endif
     }
 
-    /**
-     *  JoinAll on deconstruction
-     */
+    /// Destructor (JoinAll on deconstruction).
     ~ThreadPool()
     {
         JoinAll();
     }
 
-    /**
-     *  Add a new job to the pool. If there are no jobs in the queue,
-     *  a thread is woken up to take the job. If all threads are busy,
-     *  the job is added to the end of the queue.
-     */
+    /// Adds a new job to the pool. If there are no jobs in the queue, a thread is woken up to take the job. If all threads are busy, the job is added to the end of the queue.
     void AddJob(const std::function<void()>& job)
     {
         // scoped lock
@@ -99,12 +90,7 @@ public:
         _jobAvailableVar.notify_one();
     }
 
-    /**
-     *  Join with all threads. Block until all threads have completed.
-     *  The queue may be filled after this call, but the threads will
-     *  be done. After invoking `ThreadPool::JoinAll`, the pool can no
-     *  longer be used.
-     */
+    /// Joins with all threads. Blocks until all threads have completed. The queue may be filled after this call, but the threads will be done. After invoking JoinAll, the pool can no longer be used.
     void JoinAll()
     {
         // scoped lock
@@ -123,18 +109,22 @@ public:
 
         for (std::thread& thread : _threads)
         {
-            if (thread.joinable())
+            try 
             {
-                thread.join();
+                if (thread.joinable())
+                {
+                    thread.join();
+                }
+            }
+            catch(const std::system_error & e)
+            {
+                LOG_MESSAGE("Error: Caught system_error with code " << 
+                            e.code() << " meaning " << e.what() << '\n');
             }
         }
     }
 
-    /**
-     *  Wait for the pool to empty before continuing.
-     *  This does not call `std::thread::join`, it only waits until
-     *  all jobs have finished executing.
-     */
+    /// Waits for the pool to empty before continuing. This does not call `std::thread::join`, it only waits until all jobs have finished executing.
     void WaitAll()
     {
         std::unique_lock<std::mutex> lock(_jobsLeftMutex);
@@ -147,10 +137,7 @@ public:
         }
     }
 
-    /**
-     *  Get the vector of threads themselves, in order to set the
-     *  affinity, or anything else you might want to do
-     */
+    /// Gets the vector of threads themselves, in order to set the affinity, or anything else you might want to do
     std::vector<std::thread>& GetThreads()
     {
         return _threads;

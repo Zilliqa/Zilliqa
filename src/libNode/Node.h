@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2017 Zilliqa 
+* Copyright (c) 2018 Zilliqa 
 * This source code is being disclosed to you solely for the purpose of your participation in 
 * testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to 
 * the protocols and algorithms that are programmed into, and intended by, the code. You may 
@@ -16,6 +16,7 @@
 #ifndef __NODE_H__
 #define __NODE_H__
 
+#include <condition_variable>
 #include <deque>
 #include <list>
 #include <map>
@@ -52,6 +53,12 @@ class Node : public Executable, public Broadcastable
         PROCESS_MICROBLOCKCONSENSUS,
         PROCESS_FINALBLOCK,
         PROCESS_TXNBODY
+    };
+
+    enum SUBMITTRANSACTIONTYPE
+    {
+        TXNSHARING = 0x00,
+        MISSINGTXN = 0x01
     };
 
     string ActionString(enum Action action)
@@ -93,14 +100,14 @@ class Node : public Executable, public Broadcastable
 
     // Consensus variables
     std::shared_ptr<ConsensusCommon> m_consensusObject;
-    uint32_t m_consensusID;
+    
     std::vector<unsigned char> m_consensusBlockHash;
     std::atomic<uint32_t> m_consensusMyID;
-    std::atomic<uint32_t> m_consensusLeaderID;
     std::shared_ptr<MicroBlock> m_microblock;
 
     const static uint32_t RECVTXNDELAY_MILLISECONDS = 3000;
-    static const unsigned int SUBMIT_TX_WINDOW = 30;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       ;
+    const unsigned int SUBMIT_TX_WINDOW = 15;
+    const unsigned int SUBMIT_TX_WINDOW_EXTENDED = 30;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           ;
     const static unsigned int GOSSIP_RATE = 48;
     
     // Transactions information
@@ -119,10 +126,6 @@ class Node : public Executable, public Broadcastable
     std::unordered_map<boost::multiprecision::uint256_t, 
                        std::list<Transaction>> m_committedTransactions;
 
-    // Transaction body sharing variables
-    std::mutex m_mutexUnavailableMicroBlocks;
-    std::unordered_map<boost::multiprecision::uint256_t, 
-                       std::unordered_set<TxnHash>> m_unavailableMicroBlocks;
 
     std::mutex m_mutexForwardingAssignment;
     std::unordered_map<boost::multiprecision::uint256_t, std::vector<Peer>> m_forwardingAssignment;
@@ -153,6 +156,10 @@ class Node : public Executable, public Broadcastable
                                              uint8_t difficulty,
                                              const array<unsigned char, 32> & rand1,
                                              const array<unsigned char, 32> & rand2) const;
+    bool ProcessSubmitMissingTxn(const vector<unsigned char> & message, unsigned int offset, 
+                                 const Peer & from);
+    bool ProcessSubmitTxnSharing(const vector<unsigned char> & message, unsigned int offset, 
+                                 const Peer & from);
 #endif // IS_LOOKUP_NODE    
 
     // internal call from ProcessSharding
@@ -181,13 +188,20 @@ class Node : public Executable, public Broadcastable
                                                   vector<Transaction> & txns_to_send) const;
     void LoadUnavailableMicroBlockTxRootHashes(const TxBlock & finalblock, 
                                                const boost::multiprecision::uint256_t & blocknum);
+    bool CheckMicroBlockRootHash(const TxBlock & finalBlock, 
+                                 const boost::multiprecision::uint256_t & blocknum);
     bool IsMicroBlockTxRootHashInFinalBlock(TxnHash microBlockHash,
-                                      const boost::multiprecision::uint256_t & blocknum);
-    bool IsMyShardsMicroBlockTxRootHashInFinalBlock(const boost::multiprecision::uint256_t & blocknum);
+                                            const boost::multiprecision::uint256_t & blocknum,
+                                            bool & isEveryMicroBlockAvailable);
+    bool IsMyShardsMicroBlockTxRootHashInFinalBlock(
+        const boost::multiprecision::uint256_t & blocknum, bool & isEveryMicroBlockAvailable);
     bool ReadAuxilliaryInfoFromFinalBlockMsg(const vector<unsigned char> & message, 
                                              unsigned int & cur_offset, uint8_t & shard_id);
     void StoreFinalBlock(const TxBlock & txBlock);
     void InitiatePoW1();
+    void UpdateStateForNextConsensusRound();
+    void ScheduleTxnSubmission();
+    void ScheduleMicroBlockConsensus();
     void BeginNextConsensusRound();
     void LoadTxnSharingInfo(const vector<unsigned char> & message, unsigned int & cur_offset,
                             uint8_t shard_id, bool & i_am_sender, bool & i_am_forwarder, 
@@ -224,23 +238,29 @@ class Node : public Executable, public Broadcastable
     bool ProcessDSBlock(const std::vector<unsigned char> & message, unsigned int offset, const Peer & from);
 
     bool CheckWhetherDSBlockNumIsLatest(const boost::multiprecision::uint256_t dsblock_num);
+    bool CheckStateRoot(const TxBlock & finalblock);
 
 #ifndef IS_LOOKUP_NODE
     // Transaction functions
     void SubmitTransactions();
     bool CheckCreatedTransaction(const Transaction & tx);
 
+    bool OnNodeMissingTxns(const std::vector<unsigned char> & errorMsg, unsigned int offset,
+                           const Peer & from);
+    bool OnCommitFailure(const std::map<unsigned int, std::vector<unsigned char>> &);
+
     bool RunConsensusOnMicroBlockWhenShardLeader();
     bool RunConsensusOnMicroBlockWhenShardBackup();
     bool RunConsensusOnMicroBlock();
     bool ComposeMicroBlock();
     void ProcessMicroblockConsensusIfPrimary() const;
-    bool MicroBlockValidator(const std::vector<unsigned char> & sharding_structure);
-    bool CheckLegitimacyOfTxnHashes();
+    bool MicroBlockValidator(const std::vector<unsigned char> & sharding_structure,
+                             std::vector<unsigned char> & errorMsg);
+    bool CheckLegitimacyOfTxnHashes(std::vector<unsigned char> & errorMsg);
     bool CheckBlockTypeIsMicro();
     bool CheckMicroBlockVersion();
     bool CheckMicroBlockTimestamp();
-    bool CheckMicroBlockHashes();
+    bool CheckMicroBlockHashes(std::vector<unsigned char> & errorMsg);
     bool CheckMicroBlockTxnRootHash();
    
     bool ActOnFinalBlock(uint8_t tx_sharing_mode, vector<Peer> my_shard_receivers, 
@@ -254,11 +274,25 @@ public:
         POW1_SUBMISSION = 0x00,
         POW2_SUBMISSION,
         TX_SUBMISSION,
+        TX_SUBMISSION_BUFFER,
         MICROBLOCK_CONSENSUS_PREP,
         MICROBLOCK_CONSENSUS,
         WAITING_FINALBLOCK,
         ERROR
     };
+
+    std::condition_variable m_cvAllMicroBlocksRecvd;
+    std::mutex m_mutexAllMicroBlocksRecvd;
+    bool m_allMicroBlocksRecvd = true;
+   
+    // Transaction body sharing variables
+    std::mutex m_mutexUnavailableMicroBlocks;
+    std::unordered_map<boost::multiprecision::uint256_t, 
+                       std::unordered_set<TxnHash>> m_unavailableMicroBlocks;
+
+    uint32_t m_consensusID;
+
+    std::atomic<uint32_t> m_consensusLeaderID;
 
     /// The current internal state of this Node instance.
     std::atomic<NodeState> m_state;

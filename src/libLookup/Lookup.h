@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2017 Zilliqa 
+* Copyright (c) 2018 Zilliqa 
 * This source code is being disclosed to you solely for the purpose of your participation in 
 * testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to 
 * the protocols and algorithms that are programmed into, and intended by, the code. You may 
@@ -29,6 +29,7 @@
 class Mediator;
 class Synchronizer;
 
+/// Processes requests pertaining to network, transaction, or block information
 class Lookup : public Executable
 {
     Mediator & m_mediator;
@@ -56,7 +57,11 @@ class Lookup : public Executable
         boost::multiprecision::uint256_t lowBlockNum, boost::multiprecision::uint256_t highBlockNum);        
 
 public:
+
+    /// Constructor.  
     Lookup(Mediator & mediator);
+
+    /// Destructor.
     ~Lookup();
 
 #ifndef IS_LOOKUP_NODE
@@ -90,10 +95,10 @@ public:
     bool SetDSCommitteInfo();
 #endif // IS_LOOKUP_NODE
 
-    bool ProcessEntireShardingStructure(const std::vector<unsigned char> & message, unsigned int offset, 
-                                        const Peer & from);
-    bool ProcessGetSeedPeersFromLookup(const std::vector<unsigned char> & message, unsigned int offset, 
-                                       const Peer & from);
+    bool ProcessEntireShardingStructure(const std::vector<unsigned char> & message, 
+                                        unsigned int offset, const Peer & from);
+    bool ProcessGetSeedPeersFromLookup(const std::vector<unsigned char> & message,
+                                       unsigned int offset, const Peer & from);
     bool ProcessGetDSInfoFromSeed(const std::vector<unsigned char> & message, unsigned int offset, 
                                   const Peer & from);
     bool ProcessGetDSBlockFromSeed(const std::vector<unsigned char> & message, unsigned int offset, 
@@ -102,6 +107,8 @@ public:
                                    const Peer & from);
     bool ProcessGetTxBodyFromSeed(const std::vector<unsigned char> & message, unsigned int offset, 
                                   const Peer & from);
+    bool ProcessGetNetworkId(const std::vector<unsigned char> & message, unsigned int offset, 
+                             const Peer &from);
 
     bool ProcessSetSeedPeersFromLookup(const std::vector<unsigned char> & message, 
                                        unsigned int offset, const Peer & from);

@@ -1,2 +1,0 @@
-/usr/bin/ar qc libNode.a  CMakeFiles/Node.dir/DSBlockProcessing.cpp.o CMakeFiles/Node.dir/FinalBlockProcessing.cpp.o CMakeFiles/Node.dir/MicroBlockProcessing.cpp.o CMakeFiles/Node.dir/Node.cpp.o CMakeFiles/Node.dir/PoW1Processing.cpp.o CMakeFiles/Node.dir/PoW2Processing.cpp.o CMakeFiles/Node.dir/ShardingInfoProcessing.cpp.o
-/usr/bin/ranlib libNode.a

@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2017 Zilliqa 
+* Copyright (c) 2018 Zilliqa 
 * This source code is being disclosed to you solely for the purpose of your participation in 
 * testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to 
 * the protocols and algorithms that are programmed into, and intended by, the code. You may 
@@ -18,7 +18,37 @@
 #include "common/Messages.h"
 #include "libUtils/Logger.h"
 
+#include "libData/AccountData/Address.h"
+#include "common/Serializable.h"
+#include "common/Constants.h"
+#include "libCrypto/Sha2.h"
+#include "libCrypto/Schnorr.h"
+#include "libUtils/DataConversion.h"
+
 using namespace std;
+
+void Zilliqa::LogSelfNodeInfo(const std::pair<PrivKey, PubKey> & key, const Peer & peer)
+{
+    vector<unsigned char> tmp1;
+    vector<unsigned char> tmp2;
+
+    key.first.Serialize(tmp1, 0);
+    key.second.Serialize(tmp2, 0);
+
+    LOG_PAYLOAD("Private Key", tmp1, PRIV_KEY_SIZE*2);
+    LOG_PAYLOAD("Public Key", tmp2, PUB_KEY_SIZE*2);
+
+    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+    sha2.Reset();
+    vector<unsigned char> message;
+    key.second.Serialize(message, 0);
+    sha2.Update(message, 0, PUB_KEY_SIZE);
+    const vector<unsigned char> & tmp3 = sha2.Finalize();
+    Address toAddr;
+    copy(tmp3.end() - ACC_ADDR_SIZE, tmp3.end(), toAddr.asArray().begin());
+
+    LOG_MESSAGE("My address is " << toAddr << " and port is " << peer.m_listenPortHost);
+}
 
 Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey> & key, const Peer & peer, bool loadConfig) :
         m_pm(key, peer, loadConfig), m_mediator(key, peer), m_ds(m_mediator), m_lookup(m_mediator), 
@@ -28,14 +58,7 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey> & key, const Peer & peer, bool
 
     m_mediator.RegisterColleagues(&m_ds, &m_n, &m_lookup);
 
-    vector<unsigned char> tmp1;
-    vector<unsigned char> tmp2;
-
-    key.first.Serialize(tmp1, 0);
-    key.second.Serialize(tmp2, 0);
-
-    LOG_PAYLOAD("Private Key", tmp1, PRIV_KEY_SIZE*2);
-    LOG_PAYLOAD("Public Key", tmp2, PUB_KEY_SIZE*2);
+    LogSelfNodeInfo(key, peer);
 
 #ifdef STAT_TEST
     P2PComm::GetInstance().SetSelfPeer(peer);

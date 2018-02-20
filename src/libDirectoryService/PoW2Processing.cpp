@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2017 Zilliqa 
+* Copyright (c) 2018 Zilliqa 
 * This source code is being disclosed to you solely for the purpose of your participation in 
 * testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to 
 * the protocols and algorithms that are programmed into, and intended by, the code. You may 
@@ -87,9 +87,12 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char> &message, unsigned
     m_mediator.UpdateDSBlockRand();
 
     // Log all values
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Public_key             = 0x" << DataConversion::SerializableToHexStr(key));
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Winning IP                = " << peer.GetPrintableIPAddress() << ":" << portNo);
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "dsb size               = " << m_mediator.m_dsBlockChain.GetBlockCount())
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                 "Public_key             = 0x" << DataConversion::SerializableToHexStr(key));
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                 "Winning IP                = " << peer.GetPrintableIPAddress() << ":" << portNo);
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                 "dsb size               = " << m_mediator.m_dsBlockChain.GetBlockCount())
 
     // Define the PoW2 parameters
     array<unsigned char, UINT256_SIZE> rand1, rand2;
@@ -167,7 +170,8 @@ bool DirectoryService::ProcessPoW2Submission(const vector<unsigned char> & messa
     LOG_MARKER();
     shared_lock<shared_timed_mutex> lock(m_mutexProducerConsumer);
     unsigned int sleep_time_while_waiting = 100; 
-    if (m_state == DSBLOCK_CONSENSUS)
+    if (m_state == DSBLOCK_CONSENSUS || 
+        (m_state != POW2_SUBMISSION && m_mode == Mode::IDLE && m_mediator.m_node->m_state == Node::POW2_SUBMISSION))
     {
         for (unsigned int i = 0; i < POW_SUB_BUFFER_TIME; i++)
         {
@@ -177,13 +181,12 @@ bool DirectoryService::ProcessPoW2Submission(const vector<unsigned char> & messa
             }
             if(i % 10 == 0)
             {
-                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Waiting for POW2_SUBMISSION before processing");
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Waiting for POW2_SUBMISSION state before processing. Current state is " << m_state);
             }
             this_thread::sleep_for(chrono::milliseconds(sleep_time_while_waiting));
         }
     }
 
-    // if (m_state != POW2_SUBMISSION)
     if (!CheckState(PROCESS_POW2SUBMISSION))
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Not at POW2_SUBMISSION. Current state is " << m_state);

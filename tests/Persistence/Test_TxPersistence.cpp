@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2017 Zilliqa 
+* Copyright (c) 2018 Zilliqa 
 * This source code is being disclosed to you solely for the purpose of your participation in 
 * testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to 
 * the protocols and algorithms that are programmed into, and intended by, the code. You may 
@@ -53,7 +53,7 @@ TxBlock constructDummyTxBlock(int instanceNum)
     std::pair<PrivKey, PubKey> pubKey1 = Schnorr::GetInstance().GenKeyPair();
 
     TxBlockHeader header(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1, 1, BlockHash(), instanceNum, 
-                         get_time_as_int(), TxnHash(), 5, 6, pubKey1.second, instanceNum, BlockHash());
+                         get_time_as_int(), TxnHash(), StateHash(), 5, 6, pubKey1.second, instanceNum, BlockHash());
     
     array<unsigned char, BLOCK_SIG_SIZE> emptySig = { 0 };
 
@@ -71,7 +71,7 @@ TxBlock constructDummyTxBlock(int instanceNum)
         microBlockHashes.push_back(TxnHash());
     }
 
-    return TxBlock(header, emptySig, microBlockHashes);
+    return TxBlock(header, emptySig, vector<bool>(), microBlockHashes);
 }
 
 BOOST_AUTO_TEST_CASE (testSerializationDeserialization)
@@ -247,7 +247,7 @@ BOOST_AUTO_TEST_CASE (testThreadSafety)
 
     LOG_MARKER();
 
-    int num_threads = 20;
+    const int num_threads = 20;
 
     bootstrap(num_threads);
 
