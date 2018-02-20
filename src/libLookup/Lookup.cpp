@@ -653,10 +653,11 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char> & message, un
 bool Lookup::ProcessGetStateFromSeed(const vector<unsigned char> & message, unsigned int offset, 
                                      const Peer & from)
 {
+    LOG_MARKER();
+
 // #ifndef IS_LOOKUP_NODE
     // Message = [TRAN_HASH_SIZE txHashStr][Transaction::GetSerializedSize() txbody]
 
-    LOG_MARKER();
 
     // if (IsMessageSizeInappropriate(message.size(), offset, 
     //                                TRAN_HASH_SIZE + Transaction::GetSerializedSize()))
@@ -676,13 +677,27 @@ bool Lookup::ProcessGetStateFromSeed(const vector<unsigned char> & message, unsi
     // BlockStorage::GetBlockStorage().PutTxBody(tranHash, serializedTxBody);
 
 
-    AccountStore::GetInstance().GetStateRootHash();
-    AccountStore::GetInstance().PrintAccountState();
+    // 4-byte listening port
+    uint32_t portNo = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
+    offset += sizeof(uint32_t);   
 
-    //P2PComm::GetInstance().SendBroadcastMessage(node, dsBlockMessage);
+    uint128_t ipAddr = from.m_ipAddress;
+    Peer requestingNode(ipAddr, portNo);
 
+    // TODO: Revamp the sendmessage and sendbroadcastmessage
+    // Currently, we use sendbroadcastmessage instead of sendmessage. The reason is a new node who want to
+    // join will received similar response from mulitple lookup node. It will process them in full. 
+    // Currently, we want the duplicated message to be drop so to ensure it do not do redundant processing. 
+    // In the long term, we need to track all the incoming messages from lookup or seed node more grandularly,.
+    // and ensure 2/3 of such identical message is received in order to move on. 
+    vector<Peer> node;
+    node.push_back(requestingNode); 
 
-
+    vector<unsigned char> setStateMessage = { MessageType::LOOKUP, 
+                                                LookupInstructionType::SETSTATEFROMSEED };
+    unsigned int curr_offset = MessageOffset::BODY;
+    curr_offset += AccountStore::GetInstance().Serialize(setStateMessage, curr_offset);
+    P2PComm::GetInstance().SendBroadcastMessage(node, setStateMessage);
 // #endif // IS_LOOKUP_NODE
 
     return true;
@@ -1206,6 +1221,8 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char> & message, unsi
 
     LOG_MARKER();
 
+
+
     // if (IsMessageSizeInappropriate(message.size(), offset, 
     //                                TRAN_HASH_SIZE + Transaction::GetSerializedSize()))
     // {
@@ -1222,6 +1239,10 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char> & message, unsi
     // vector<unsigned char> serializedTxBody;
     // transaction.Serialize(serializedTxBody, 0);
     // BlockStorage::GetBlockStorage().PutTxBody(tranHash, serializedTxBody);
+
+    unique_lock<mutex> lock(m_mutexSetState);
+    unsigned int curr_offset = offset;
+    AccountStore::GetInstance().Deserialize(message, curr_offset);
 
 #endif // IS_LOOKUP_NODE
 

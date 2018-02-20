@@ -53,6 +53,8 @@ class Lookup : public Executable, public Broadcastable
     std::mutex m_mutexSetDSBlockFromSeed;
     std::mutex m_mutexSetTxBlockFromSeed;
     std::mutex m_mutexSetTxBodyFromSeed;
+    std::mutex m_mutexSetState;
+
 
     
     std::vector<unsigned char> ComposeGetDSInfoMessage();
