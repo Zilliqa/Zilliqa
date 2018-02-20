@@ -1,0 +1,32 @@
+<div class="row">
+  <div class="col zblue">
+		<a class="btn btn-large btn-block text-white" routerLink="/wallet/send">Send</a>
+  </div>
+  <div class="col zblue">
+  	<a class="btn btn-large btn-block text-white" routerLink="/wallet/history">History</a>
+  </div>
+</div>
+
+<div class="row mt-5">
+	<div class="col text-center">
+		<h4>Transaction History</h4>
+	</div>
+</div>
+<table class="table table-striped table-bordered table-sm">
+	<thead>
+		<tr>
+			<th style="width: 25%">Transaction ID</th>
+			<th style="width: 20%">Amount</th>
+			<th style="width: 22.5%">From</th>
+			<th style="width: 22.5%">To</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr *ngFor="let tx of txHistory">
+			<td>{{ tx.id }}</td>
+			<td>{{ tx.amount }}</td>
+			<td>{{ tx.from }}</td>
+			<td>{{ tx.to }}</td>
+		</tr>
+	</tbody>
+</table>

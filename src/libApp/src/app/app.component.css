@@ -1,0 +1,23 @@
+.zblue {
+	background-color: #49c1bf;
+}
+.zblue:hover {
+	background-color: #49C1D3;
+}
+.zblue-font {
+	color: #49c1bf;
+}
+.light-gray {
+	background-color: #dedede;
+}
+a {
+	cursor: pointer;
+}
+.navbar-logo {
+	height: 50px;
+	width: 50px;
+}
+.stats-icon {
+	font-size: 30px; 
+	line-height: 45px;
+}
