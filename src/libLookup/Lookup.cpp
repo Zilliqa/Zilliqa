@@ -64,6 +64,8 @@ Lookup::~Lookup()
 #ifndef IS_LOOKUP_NODE
 void Lookup::SetLookupNodes()
 {
+    LOG_MARKER();
+
     // Populate tree structure pt
     using boost::property_tree::ptree;
     ptree pt;
@@ -83,11 +85,15 @@ void Lookup::SetLookupNodes()
 
 vector<Peer> Lookup::GetLookupNodes()
 {
+    LOG_MARKER();
+
     return m_lookupNodes;
 }
 
 void Lookup::SendMessageToLookupNodes(const std::vector<unsigned char> & message) const
 {
+    LOG_MARKER();
+
     // LOG_MESSAGE("i am here " << to_string(m_mediator.m_currentEpochNum).c_str())
     for(auto node: m_lookupNodes) 
     {
@@ -100,6 +106,8 @@ void Lookup::SendMessageToLookupNodes(const std::vector<unsigned char> & message
 
 void Lookup::SendMessageToSeedNodes(const std::vector<unsigned char> &message) const
 {
+    LOG_MARKER();
+
     for(auto node: m_seedNodes)
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -111,6 +119,8 @@ void Lookup::SendMessageToSeedNodes(const std::vector<unsigned char> &message) c
 
 bool Lookup::GetSeedPeersFromLookup()
 {
+    LOG_MARKER();
+
     vector<unsigned char> getSeedPeersMessage = { MessageType::LOOKUP, 
                                                   LookupInstructionType::GETSEEDPEERS };
     unsigned int curr_offset = MessageOffset::BODY;
@@ -126,6 +136,8 @@ bool Lookup::GetSeedPeersFromLookup()
 
 vector<unsigned char> Lookup::ComposeGetDSInfoMessage()
 {
+    LOG_MARKER();
+
     // getDSNodesMessage = [Port]
     vector<unsigned char> getDSNodesMessage = { MessageType::LOOKUP, 
                                                 LookupInstructionType::GETDSINFOFROMSEED };
@@ -140,6 +152,8 @@ vector<unsigned char> Lookup::ComposeGetDSInfoMessage()
 
 vector<unsigned char> Lookup::ComposeGetStateMessage(uint256_t curBlockchainSize)
 {
+    LOG_MARKER();
+
     vector<unsigned char> getStateMessage = { MessageType::LOOKUP, 
                                               LookupInstructionType::GETSTATEFROMSEED };
     unsigned int curr_offset = MessageOffset::BODY;
@@ -157,18 +171,21 @@ vector<unsigned char> Lookup::ComposeGetStateMessage(uint256_t curBlockchainSize
 
 bool Lookup::GetDSInfoFromSeedNodes()
 {
+    LOG_MARKER();
     SendMessageToSeedNodes(ComposeGetDSInfoMessage());
     return true;
 }
 
 bool Lookup::GetDSInfoFromLookupNodes()
 {
+    LOG_MARKER();
     SendMessageToLookupNodes(ComposeGetDSInfoMessage());
     return true;
 }
 
 bool Lookup::GetStateFromLookupNodes(uint256_t curBlockchainSize)
 {
+    LOG_MARKER();
     SendMessageToLookupNodes(ComposeGetStateMessage(curBlockchainSize));
     return true;   
 }
@@ -176,6 +193,8 @@ bool Lookup::GetStateFromLookupNodes(uint256_t curBlockchainSize)
 vector<unsigned char> Lookup::ComposeGetDSBlockMessage(uint256_t lowBlockNum, 
                                                        uint256_t highBlockNum)
 {
+    LOG_MARKER();
+
     // getDSBlockMessage = [lowBlockNum][highBlockNum][Port]
     vector<unsigned char> getDSBlockMessage = { MessageType::LOOKUP, 
                                                 LookupInstructionType::GETDSBLOCKFROMSEED };
@@ -200,12 +219,14 @@ vector<unsigned char> Lookup::ComposeGetDSBlockMessage(uint256_t lowBlockNum,
 // use 0 to denote the latest blocknumber since obviously no one will request for the genesis block
 bool Lookup::GetDSBlockFromSeedNodes(uint256_t lowBlockNum, uint256_t highBlockNum)
 {
+    LOG_MARKER();
     SendMessageToSeedNodes(ComposeGetDSBlockMessage(lowBlockNum, highBlockNum));
     return true;
 }
 
 bool Lookup::GetDSBlockFromLookupNodes(uint256_t lowBlockNum, uint256_t highBlockNum)
 {
+    LOG_MARKER();
     SendMessageToLookupNodes(ComposeGetDSBlockMessage(lowBlockNum, highBlockNum));
     return true;
 }
@@ -213,6 +234,8 @@ bool Lookup::GetDSBlockFromLookupNodes(uint256_t lowBlockNum, uint256_t highBloc
 vector<unsigned char> Lookup::ComposeGetTxBlockMessage(uint256_t lowBlockNum, 
                                                        uint256_t highBlockNum)
 {
+    LOG_MARKER();
+
     // getTxBlockMessage = [lowBlockNum][highBlockNum][Port]
     vector<unsigned char> getTxBlockMessage = { MessageType::LOOKUP, 
                                                 LookupInstructionType::GETTXBLOCKFROMSEED };
@@ -237,18 +260,22 @@ vector<unsigned char> Lookup::ComposeGetTxBlockMessage(uint256_t lowBlockNum,
 // use 0 to denote the latest blocknumber since obviously no one will request for the genesis block
 bool Lookup::GetTxBlockFromSeedNodes(uint256_t lowBlockNum, uint256_t highBlockNum)
 {
+    LOG_MARKER();
     SendMessageToSeedNodes(ComposeGetTxBlockMessage(lowBlockNum, highBlockNum));
     return true;
 }
 
 bool Lookup::GetTxBlockFromLookupNodes(uint256_t lowBlockNum, uint256_t highBlockNum)
 {
+    LOG_MARKER();
     SendMessageToLookupNodes(ComposeGetTxBlockMessage(lowBlockNum, highBlockNum));
     return true;
 }
 
 bool Lookup::GetTxBodyFromSeedNodes(string txHashStr)
 {
+    LOG_MARKER();
+
     // getTxBodyMessage = [TRAN_HASH_SIZE txHashStr][4-byte Port]
     vector<unsigned char> getTxBodyMessage = { MessageType::LOOKUP, 
                                                LookupInstructionType::GETTXBODYFROMSEED };
@@ -304,6 +331,8 @@ bool Lookup::GetTxBodyFromSeedNodes(string txHashStr)
 bool Lookup::ProcessEntireShardingStructure(const vector<unsigned char> & message, 
                                             unsigned int offset, const Peer & from)
 {
+    LOG_MARKER();
+
 #ifdef IS_LOOKUP_NODE
     // Sharding structure message format:
 
@@ -317,9 +346,6 @@ bool Lookup::ProcessEntireShardingStructure(const vector<unsigned char> & messag
     //   [33-byte public key][16-byte IP][4-byte port]
     //   ...
     // ...
-
-    LOG_MARKER();
-
     LOG_MESSAGE("[LOOKUP received sharding structure]");
 
     unsigned int length_available = message.size() - offset;
@@ -396,10 +422,10 @@ bool Lookup::ProcessEntireShardingStructure(const vector<unsigned char> & messag
 bool Lookup::ProcessGetSeedPeersFromLookup(const vector<unsigned char> & message, 
                                            unsigned int offset, const Peer & from)
 {
+    LOG_MARKER();
+
 #ifdef IS_LOOKUP_NODE
     // Message = [4-byte listening port]
-
-    LOG_MARKER();
 
     const unsigned int length_available = message.size() - offset;
     const unsigned int min_length_needed = sizeof(uint32_t);
@@ -490,7 +516,6 @@ bool Lookup::ProcessGetDSInfoFromSeed(const vector<unsigned char> & message, uns
 {
 //#ifndef IS_LOOKUP_NODE
     // Message = [Port]
-
     LOG_MARKER();
 
     deque<PubKey> dsPubKeys;
@@ -1185,10 +1210,11 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char> & message, un
 bool Lookup::ProcessSetTxBodyFromSeed(const vector<unsigned char> & message, unsigned int offset, 
                                       const Peer & from)
 {
+    LOG_MARKER();
+
 #ifndef IS_LOOKUP_NODE
     // Message = [TRAN_HASH_SIZE txHashStr][Transaction::GetSerializedSize() txbody]
 
-    LOG_MARKER();
     unique_lock<mutex> lock(m_mutexSetTxBodyFromSeed);
 
     if (IsMessageSizeInappropriate(message.size(), offset, 
