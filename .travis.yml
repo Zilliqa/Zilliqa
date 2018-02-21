@@ -6,7 +6,11 @@ os:
   - linux
   - osx
 
-env: LANGUAGE=C++ CXX=g++-5 CC=gcc-5
+env:
+  global: LANGUAGE=C++ CXX=g++-5 CC=gcc-5
+  matrix:
+    - BUILD_COMMAND="./build.sh"
+    - BUILD_COMMAND="./build_lookup.sh"
 
 addons:
   apt:
@@ -26,9 +30,10 @@ before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install pkg-config jsoncpp leveldb; fi
 
+script:
+  - (eval "$BUILD_COMMAND")
+
+# TODO: fix the dependency issue on osx
 matrix:
-  include:
-    - script:
-      - ./build.sh
-    - script:
-      - ./build_lookup.sh
+  allow_failures:
+    - os: osx
