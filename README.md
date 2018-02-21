@@ -49,6 +49,11 @@ For a _Debian_-based system, you can use the following command to install the de
 sudo apt-get install libboost-all-dev libssl-dev libleveldb-dev libjsoncpp-dev cmake build-essential
 ```
 
+For Mac OS X (experimental), you can use the following command to install the dependencies:  
+```bash
+brew install pkg-config jsoncpp leveldb
+```
+
 # Running Zilliqa locally (using 10 shard nodes and DS node locally)  
 1. Build Zilliqa from the source.  
 ` ./build.sh`
