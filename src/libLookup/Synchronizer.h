@@ -40,7 +40,7 @@ public:
   bool FetchDSInfo(Lookup* lookup);  
   bool FetchLatestDSBlocks(Lookup* lookup, boost::multiprecision::uint256_t currentBlockChainSize);
   bool FetchLatestTxBlocks(Lookup* lookup, boost::multiprecision::uint256_t currentBlockChainSize);
-  bool FetchLatestState(Lookup* lookup, boost::multiprecision::uint256_t currentBlockChainSize);
+  bool FetchLatestState(Lookup* lookup);
 #endif // IS_LOOKUP_NODE  
 };
 

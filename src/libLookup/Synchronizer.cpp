@@ -159,9 +159,9 @@ bool Synchronizer::FetchLatestTxBlocks(Lookup* lookup, uint256_t currentBlockCha
     return true;
 }
 
-bool Synchronizer::FetchLatestState(Lookup* lookup, uint256_t currentBlockChainSize)
+bool Synchronizer::FetchLatestState(Lookup* lookup)
 {
-    lookup->GetStateFromLookupNodes(currentBlockChainSize);
+    lookup->GetStateFromLookupNodes();
     // lookup->GetStateFromSeedNodes(currentBlockChainSize, 0);
     return true;
 }
