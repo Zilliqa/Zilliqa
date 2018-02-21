@@ -150,17 +150,13 @@ vector<unsigned char> Lookup::ComposeGetDSInfoMessage()
     return getDSNodesMessage;
 }
 
-vector<unsigned char> Lookup::ComposeGetStateMessage(uint256_t curBlockchainSize)
+vector<unsigned char> Lookup::ComposeGetStateMessage()
 {
     LOG_MARKER();
 
     vector<unsigned char> getStateMessage = { MessageType::LOOKUP, 
                                               LookupInstructionType::GETSTATEFROMSEED };
     unsigned int curr_offset = MessageOffset::BODY;
-
-    Serializable::SetNumber<uint64_t>(getStateMessage, curr_offset, 
-                                      (uint64_t)curBlockchainSize, sizeof(uint64_t));
-    curr_offset += sizeof(uint64_t);
 
     Serializable::SetNumber<uint32_t>(getStateMessage, curr_offset, 
                                       m_mediator.m_selfPeer.m_listenPortHost, sizeof(uint32_t));
@@ -183,10 +179,10 @@ bool Lookup::GetDSInfoFromLookupNodes()
     return true;
 }
 
-bool Lookup::GetStateFromLookupNodes(uint256_t curBlockchainSize)
+bool Lookup::GetStateFromLookupNodes()
 {
     LOG_MARKER();
-    SendMessageToLookupNodes(ComposeGetStateMessage(curBlockchainSize));
+    SendMessageToLookupNodes(ComposeGetStateMessage());
     return true;   
 }
 
@@ -703,6 +699,9 @@ bool Lookup::ProcessGetStateFromSeed(const vector<unsigned char> & message, unsi
 
 
     // 4-byte listening port
+
+    // [Port number]
+
     uint32_t portNo = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
     offset += sizeof(uint32_t);   
 
@@ -1003,6 +1002,12 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char> & message, un
     // Message = [32-byte lowBlockNum][32-byte highBlockNum][DSBlock][DSBlock]... (highBlockNum - lowBlockNum + 1) times
 
     LOG_MARKER();
+
+    if (AlreadyJoinedNetwork())
+    {
+        return true; 
+    }
+
     unique_lock<mutex> lock(m_mutexSetDSBlockFromSeed);
 
     if (IsMessageSizeInappropriate(message.size(), offset, UINT256_SIZE + UINT256_SIZE))
@@ -1079,8 +1084,13 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char> & message, un
 {
 //#ifndef IS_LOOKUP_NODE
     // Message = [32-byte lowBlockNum][32-byte highBlockNum][TxBlock][TxBlock]... (highBlockNum - lowBlockNum + 1) times
-
     LOG_MARKER();
+
+    if (AlreadyJoinedNetwork())
+    {
+        return true; 
+    }
+    
     unique_lock<mutex> lock(m_mutexSetTxBlockFromSeed);
 
     if (IsMessageSizeInappropriate(message.size(), offset, UINT256_SIZE + UINT256_SIZE))
@@ -1190,12 +1200,12 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char> & message, un
     if(!m_mediator.m_isConnectedToNetwork)
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Re-syncing with network`");
+                     "Not yet connected to network");
 
-        Synchronizer synchronizer;
-        synchronizer.FetchDSInfo(this);
-        synchronizer.FetchLatestDSBlocks(this, m_mediator.m_dsBlockChain.GetBlockCount());
-        synchronizer.FetchLatestTxBlocks(this, m_mediator.m_txBlockChain.GetBlockCount());        
+        //Synchronizer synchronizer;
+        //synchronizer.FetchDSInfo(this);
+        //synchronizer.FetchLatestDSBlocks(this, m_mediator.m_dsBlockChain.GetBlockCount());
+        //synchronizer.FetchLatestTxBlocks(this, m_mediator.m_txBlockChain.GetBlockCount());        
     }
     else
     {
@@ -1214,6 +1224,12 @@ bool Lookup::ProcessSetTxBodyFromSeed(const vector<unsigned char> & message, uns
 
 #ifndef IS_LOOKUP_NODE
     // Message = [TRAN_HASH_SIZE txHashStr][Transaction::GetSerializedSize() txbody]
+
+    if (AlreadyJoinedNetwork())
+    {
+        return true; 
+    }
+
 
     unique_lock<mutex> lock(m_mutexSetTxBodyFromSeed);
 
@@ -1265,6 +1281,11 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char> & message, unsi
     // vector<unsigned char> serializedTxBody;
     // transaction.Serialize(serializedTxBody, 0);
     // BlockStorage::GetBlockStorage().PutTxBody(tranHash, serializedTxBody);
+
+    if (AlreadyJoinedNetwork())
+    {
+        return true; 
+    }
 
     unique_lock<mutex> lock(m_mutexSetState);
     unsigned int curr_offset = offset;
@@ -1321,3 +1342,18 @@ bool Lookup::Execute(const vector<unsigned char> & message, unsigned int offset,
 
     return result;
 }
+
+bool Lookup::AlreadyJoinedNetwork()
+{
+    if(m_mediator.m_isConnectedToNetwork)
+    {
+        return true; 
+    }
+    else
+    {
+        return false; 
+    }
+
+}
+
+
