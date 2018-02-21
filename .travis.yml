@@ -2,37 +2,25 @@ language: generic
 sudo: false
 cache: apt
 
+env: LANGUAGE=C++ CXX=g++-5 CC=gcc-5
+
+addons:
+  apt:
+    packages:
+      - g++-5
+      - libboost-all-dev
+      - libleveldb-dev
+      - libjsoncpp-dev
+      - libsnappy-dev
+    sources: &sources
+      - r-packages-trusty
+      - llvm-toolchain-trusty
+      - ubuntu-toolchain-r-test
+      - llvm-toolchain-trusty-5.0
+
 matrix:
   include:
-    - env: LANGUAGE=C++ CXX=g++-5 CC=gcc-5
-      addons:
-        apt:
-          packages:
-            - g++-5
-            - libboost-all-dev
-            - libleveldb-dev
-            - libjsoncpp-dev
-            - libsnappy-dev
-          sources: &sources
-            - r-packages-trusty
-            - llvm-toolchain-trusty
-            - ubuntu-toolchain-r-test
-            - llvm-toolchain-trusty-5.0
-      script:
-        - ./build.sh
-    - env: LANGUAGE=C++ CXX=g++-5 CC=gcc-5
-      addons:
-        apt:
-          packages:
-            - g++-5
-            - libboost-all-dev
-            - libleveldb-dev
-            - libjsoncpp-dev
-            - libsnappy-dev
-          sources: &sources
-            - r-packages-trusty
-            - llvm-toolchain-trusty
-            - ubuntu-toolchain-r-test
-            - llvm-toolchain-trusty-5.0
-      script:
-        - ./build_lookup.sh
+    - script:
+      - ./build.sh
+    - script:
+      - ./build_lookup.sh
