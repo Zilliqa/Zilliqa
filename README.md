@@ -39,9 +39,9 @@ To run Zilliqa, we recommend the following minimum system requirements:
 To compile and run the Zilliqa codebase, you will need the following dependencies to be installed on your machine:
 * `Boost` 
 * `OpenSSL`
-* `Jsoncpp`
-* `Leveldb`
-* `Cmake`
+* `JsonCpp`
+* `LevelDB`
+* `CMake`
 * `build-essential`
 
 For a _Debian_-based system, you can use the following command to install the dependencies:  
