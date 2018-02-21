@@ -54,11 +54,11 @@ IF (Boost_FOUND)
     add_executable (GetAddressFromPubKey GetAddressFromPubKey.cpp)
 
     target_link_libraries(GetAddressFromPubKey Crypto)
-    
-    target_link_libraries(Test_Sha3_fips ${Boost_FILESYSTEM_LIBRARIES})
-    target_link_libraries(Test_Sha3_fips ${Boost_SYSTEM_LIBRARIES})
-    target_link_libraries(Test_Sha3_fips ${Boost_UNIT_TEST_FRAMEWORK_LIBRARIES})
-    target_link_libraries(Test_Sha3_fips Sha3)
+
+    #target_link_libraries(Test_Sha3_fips ${Boost_FILESYSTEM_LIBRARIES})
+    #target_link_libraries(Test_Sha3_fips ${Boost_SYSTEM_LIBRARIES})
+    #target_link_libraries(Test_Sha3_fips ${Boost_UNIT_TEST_FRAMEWORK_LIBRARIES})
+    #target_link_libraries(Test_Sha3_fips Sha3)
 
     #target_link_libraries(Test_Sha3 Utils)
     #target_link_libraries(Test_Sha3 Crypto)
