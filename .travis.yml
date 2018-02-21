@@ -40,5 +40,6 @@ matrix:
             - llvm-toolchain-trusty
             - ubuntu-toolchain-r-test
             - llvm-toolchain-trusty-5.0
+
       script:
-        - ./build_lookup.sh
+        - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./build_lookup.sh; fi
