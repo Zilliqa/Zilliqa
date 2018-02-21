@@ -2,6 +2,10 @@ language: generic
 sudo: false
 cache: apt
 
+os:
+  - linux
+  - osx
+
 env: LANGUAGE=C++ CXX=g++-5 CC=gcc-5
 
 addons:
@@ -17,6 +21,10 @@ addons:
       - llvm-toolchain-trusty
       - ubuntu-toolchain-r-test
       - llvm-toolchain-trusty-5.0
+
+before_install:
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install pkg-config jsoncpp leveldb; fi
 
 matrix:
   include:
