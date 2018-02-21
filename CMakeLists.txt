@@ -3,11 +3,12 @@ project (nuQoin)
 # detect operating system
 message(STATUS "We are on a ${CMAKE_SYSTEM_NAME} system")
 
-find_package(Boost COMPONENTS filesystem system unit_test_framework) 
+find_package(Boost COMPONENTS filesystem system unit_test_framework)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(JSONCPP jsoncpp)
 link_libraries(${JSONCPP_LIBRARIES})
 include_directories(${JSONCPP_INCLUDE_DIRS})
+link_libraries(${SNAPPY_LIBRARIES})
 
 ###################
 
@@ -59,6 +60,22 @@ if(LEVELDB_FOUND)
     set(LevelDB_LIBRARIES ${LevelDB_LIBRARY})
 else()
     message(STATUS "  package 'LevelDB' not found")
+endif()
+
+# Look for the library.
+find_library(SNAPPY_LIBRARY NAMES libsnappy.a
+                             PATHS /usr/lib /usr/local/lib $ENV{LEVELDB_ROOT}/lib
+                             DOC "Path to snappy library." )
+
+if(SNAPPY_LIBRARY)
+    set(SNAPPY_FOUND TRUE)
+endif(SNAPPY_LIBRARY)
+
+if(SNAPPY_FOUND)
+    message(STATUS "Found SNAPPY (library: ${SNAPPY_LIBRARY})")
+    set(SNAPPY_LIBRARIES ${SNAPPY_LIBRARY})
+else()
+    message(STATUS "  package 'SNAPPY' not found")
 endif()
 
 if(IS_LOOKUP_NODE)
