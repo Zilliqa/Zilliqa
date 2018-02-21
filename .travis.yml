@@ -12,6 +12,7 @@ matrix:
             - libboost-all-dev
             - libleveldb-dev
             - libjsoncpp-dev
+            - libsnappy-dev
           sources: &sources
             - r-packages-trusty
             - llvm-toolchain-trusty
@@ -27,6 +28,7 @@ matrix:
             - libboost-all-dev
             - libleveldb-dev
             - libjsoncpp-dev
+            - libsnappy-dev
           sources: &sources
             - r-packages-trusty
             - llvm-toolchain-trusty
