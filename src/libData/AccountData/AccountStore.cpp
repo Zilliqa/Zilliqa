@@ -66,14 +66,13 @@ unsigned int AccountStore::Serialize(vector<unsigned char> & dst, unsigned int o
     for(auto entry: m_addressToAccount)
     {
         // Address
-        LOG_MESSAGE("Debug: I am serializing address in account store ");
         address_vec = entry.first.asBytes();
-        copy(address_vec.begin(), address_vec.end(), dst.begin() + curOffset);
+
+        copy(address_vec.begin(), address_vec.end(), std::back_inserter(dst));
         curOffset += ACC_ADDR_SIZE;
         totalSerializedSize += ACC_ADDR_SIZE; 
 
         // Account 
-        LOG_MESSAGE("Debug: I am serializing account in account store ");
         size_needed = entry.second.Serialize(dst, curOffset);
         curOffset += size_needed; 
         totalSerializedSize += size_needed; 
