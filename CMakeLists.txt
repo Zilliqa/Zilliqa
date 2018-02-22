@@ -84,13 +84,40 @@ if(IS_LOOKUP_NODE)
 endif(IS_LOOKUP_NODE)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-    SET( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} -pthread -std=c++14 -Wall -ggdb" )
-    SET( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${GCC_COVERAGE_LINK_FLAGS} -pthread -ljsoncpp -lboost_system -lboost_filesystem -std=c++14 -Wall" )
+    SET( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} -pthread -std=c++14 -Wall -DSTAT_TEST -ggdb -DIS_LOOKUP_NODE" )
+    SET( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${GCC_COVERAGE_LINK_FLAGS} -pthread -ljsoncpp -lboost_system -lboost_filesystem -std=c++14 -Wall -DSTAT_TEST -DIS_LOOKUP_NODE" )
 endif()
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
-    SET( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} -pthread -stdlib=libc++ -std=c++14 -Wall -ggdb -I/usr/local/Cellar/openssl/1.0.2/include/openssl/ -I/usr/local/Cellar/boost/1.64.0_1/include -I/usr/local/include" )
-    SET( CMAKE_EXE_LINKER_FLAGS "-L/usr/local/opt/boost@1.64/lib ${CMAKE_EXE_LINKER_FLAGS} ${GCC_COVERAGE_LINK_FLAGS} -pthread ${jsoncpp_LIBRARIES}  -lboost_system -lboost_filesystem -std=c++14 -Wall -L/usr/local/Cellar/openssl/1.0.2/lib" )
+    SET( CMAKE_CXX_FLAGS
+        "${CMAKE_CXX_FLAGS} \
+        ${GCC_COVERAGE_COMPILE_FLAGS} \
+        -pthread \
+        -stdlib=libc++ \
+        -std=c++14 \
+        -Wall \
+        -DSTAT_TEST \
+        -DIS_LOOKUP_NODE \
+        -ggdb \
+        -I/usr/local/Cellar/openssl/1.0.2/include \
+        -I/usr/local/Cellar/boost/include \
+        -I/usr/local/include" )
+    SET( CMAKE_EXE_LINKER_FLAGS
+        "-L/usr/local/opt/boost/lib \
+        ${CMAKE_EXE_LINKER_FLAGS} \
+        ${GCC_COVERAGE_LINK_FLAGS} \
+        -pthread ${jsoncpp_LIBRARIES} \
+        -lboost_system \
+        -lboost_filesystem \
+        -std=c++14 \
+        -Wall \
+        -DSTAT_TEST \
+        -DIS_LOOKUP_NODE \
+        -L/usr/local/Cellar/openssl/1.0.2/lib" )
 endif()
+if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+    # To-do
+endif()
+
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     # To-do
 endif()
