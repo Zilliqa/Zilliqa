@@ -1,2 +1,5 @@
-Test_Sha3
-Test_Sha3_fips
+/Test_Sha3
+/Test_Sha3_fips
+/GetAddressFromPubKey
+/Test_MultiSig
+/Test_Schnorr
