@@ -9,7 +9,6 @@ matrix:
         apt:
           packages:
             - g++-5
-            - libboost-all-dev
             - libleveldb-dev
             - libjsoncpp-dev
             - libsnappy-dev
@@ -25,7 +24,6 @@ matrix:
         apt:
           packages:
             - g++-5
-            - libboost-all-dev
             - libleveldb-dev
             - libjsoncpp-dev
             - libsnappy-dev
@@ -36,3 +34,12 @@ matrix:
             - llvm-toolchain-trusty-5.0
       script:
         - ./build_lookup.sh
+
+install:
+  - wget -O boost_1_65_1.tar.gz https://dl.bintray.com/boostorg/release/1.65.1/source/boost_1_65_1.tar.gz
+  - tar xzf boost_1_65_1.tar.gz
+  - cd boost_1_65_1/
+  - ./bootstrap.sh --with-libraries=filesystem,system
+  - ./b2 link=shared threading=multi variant=release -d0
+  - sudo ./b2 install -d0
+  - cd ..

@@ -4,6 +4,10 @@ project (nuQoin)
 message(STATUS "We are on a ${CMAKE_SYSTEM_NAME} system")
 
 find_package(Boost COMPONENTS filesystem system unit_test_framework)
+if (NOT Boost_LIBRARIES)
+    SET(Boost_LIBRARIES ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY})
+endif()
+
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(JSONCPP jsoncpp)
 link_libraries(${JSONCPP_LIBRARIES})

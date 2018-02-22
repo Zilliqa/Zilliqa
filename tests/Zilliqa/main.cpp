@@ -14,12 +14,13 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#include <execinfo.h> // for backtrace
 #include <signal.h>
 
 #include <iostream>
 #include <arpa/inet.h>
 #include <algorithm>
+#include <boost/stacktrace.hpp>
+
 #include "libUtils/Logger.h"
 
 #include "libNetwork/PeerStore.h"
@@ -34,22 +35,7 @@ using namespace boost::multiprecision;
 /* Obtain a backtrace and print it to stdout. */
 void print_trace (void)
 {
-    void *array[10];
-    size_t size;
-    char **strings;
-    size_t i;
-
-    size = backtrace (array, 10);
-    strings = backtrace_symbols (array, size);
-
-    LOG_MESSAGE ("Obtained " << size << " stack frames.\n");
-
-    for (i = 0; i < size; i++)
-    {
-        LOG_MESSAGE(strings[i])
-    }
-     //printf ("%s\n", strings[i]);
-    free (strings);
+    LOG_MESSAGE(boost::stacktrace::stacktrace());
 }
 
 void got_terminated()
