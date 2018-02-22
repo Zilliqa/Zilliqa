@@ -324,7 +324,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
     LOG_MARKER();
 
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
-                 "I am primary. Creating microblock for " << m_mediator.m_currentEpochNum);
+                 "I am primary. Creating microblock for epoch" << m_mediator.m_currentEpochNum);
 
     // composed microblock stored in m_microblock
     ComposeMicroBlock();
