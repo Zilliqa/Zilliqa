@@ -1,4 +1,6 @@
-Test_DSPersistence
-Test_TxPersistence
-./Test_DSPersistence
-./Test_TxPersistence
+/Test_DSPersistence
+/Test_TxPersistence
+/Test_DSPersistence
+/Test_TxPersistence
+/ReadBlock
+/Test_TxBody
