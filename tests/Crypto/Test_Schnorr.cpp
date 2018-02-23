@@ -129,7 +129,7 @@ BOOST_AUTO_TEST_CASE (test_performance)
         Signature signature;
 
         // Generate the signature
-        struct timespec t = r_timer_start();
+        auto t = r_timer_start();
         BOOST_CHECK_MESSAGE(schnorr.Sign(message_rand, keypair.first, keypair.second, signature) == true, "Signing failed");
         LOG_MESSAGE("Message size  = " << printable_sizes[i]);
         LOG_MESSAGE("Sign (usec)   = " << r_timer_end(t));

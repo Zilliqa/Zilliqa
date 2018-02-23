@@ -32,8 +32,9 @@ before_install:
 
 script:
   - (eval "$BUILD_COMMAND")
+  - ctest
 
-# TODO: fix the dependency issue on osx
+# TODO: fix the travis build failure on osx
 matrix:
   allow_failures:
     - os: osx
