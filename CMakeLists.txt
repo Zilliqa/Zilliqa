@@ -12,6 +12,32 @@ link_libraries(${SNAPPY_LIBRARIES})
 
 ###################
 
+message(STATUS "checking for module 'openssl'")
+
+find_path(OPENSSL_INCLUDE_DIR
+    NAMES openssl/opensslv.h
+    PATHS /usr/local/opt/openssl/include /opt/local/include /usr/local/include /usr/include
+    DOC "Path in which openssl headers are located."
+)
+
+find_path(OPENSSL_LIBRARY_DIR
+    NAMES libssl.a libssl.dylib
+    PATHS /usr/local/opt/openssl/lib /usr/lib /usr/local/lib
+    DOC "Path in which openssl library is located."
+)
+
+if(OPENSSL_INCLUDE_DIR AND OPENSSL_LIBRARY_DIR)
+  set(OPENSSL_FOUND TRUE)
+endif()
+
+if(OPENSSL_FOUND)
+    message(STATUS "Found openssl (include: ${OPENSSL_INCLUDE_DIR}, library: ${OPENSSL_LIBRARY_DIR})")
+else()
+    message(STATUS "  package 'openssl' not found")
+endif()
+
+###################
+
 message(STATUS "checking for module 'jsoncpp'")
 
 # Look for the header file.
@@ -84,8 +110,31 @@ if(IS_LOOKUP_NODE)
         SET( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${GCC_COVERAGE_LINK_FLAGS} -pthread -ljsoncpp -lboost_system -lboost_filesystem -std=c++14 -Wall -DSTAT_TEST -DIS_LOOKUP_NODE" )
     endif()
     if(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
-        SET( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} -pthread -stdlib=libc++ -std=c++14 -Wall -DSTAT_TEST -DIS_LOOKUP_NODE -ggdb -I/usr/local/Cellar/openssl/1.0.2/include/openssl/ -I/usr/local/Cellar/boost/1.64.0_1/include -I/usr/local/include" )
-        SET( CMAKE_EXE_LINKER_FLAGS "-L/usr/local/opt/boost@1.64/lib ${CMAKE_EXE_LINKER_FLAGS} ${GCC_COVERAGE_LINK_FLAGS} -pthread ${jsoncpp_LIBRARIES}  -lboost_system -lboost_filesystem -std=c++14 -Wall -DSTAT_TEST -DIS_LOOKUP_NODE -L/usr/local/Cellar/openssl/1.0.2/lib" )
+        SET( CMAKE_CXX_FLAGS
+            "${CMAKE_CXX_FLAGS} \
+            ${GCC_COVERAGE_COMPILE_FLAGS} \
+            -pthread \
+            -stdlib=libc++ \
+            -std=c++14 \
+            -Wall \
+            -DSTAT_TEST \
+            -DIS_LOOKUP_NODE \
+            -ggdb \
+            -I${OPENSSL_INCLUDE_DIR} \
+            -I/usr/local/Cellar/boost/include \
+            -I/usr/local/include" )
+        SET( CMAKE_EXE_LINKER_FLAGS
+            "-L/usr/local/opt/boost/lib \
+            ${CMAKE_EXE_LINKER_FLAGS} \
+            ${GCC_COVERAGE_LINK_FLAGS} \
+            -pthread ${jsoncpp_LIBRARIES} \
+            -lboost_system \
+            -lboost_filesystem \
+            -std=c++14 \
+            -Wall \
+            -DSTAT_TEST \
+            -DIS_LOOKUP_NODE \
+            -L${OPENSSL_LIBRARY_DIR}" )
     endif()
     if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
         # To-do
@@ -98,8 +147,30 @@ if(NOT IS_LOOKUP_NODE)
         SET( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${GCC_COVERAGE_LINK_FLAGS} -pthread -ljsoncpp -lboost_system -lboost_filesystem -std=c++14 -Wall -DSTAT_TEST" )
     endif()
     if(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
-        SET( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} -pthread -stdlib=libc++ -std=c++14 -Wall -DSTAT_TEST -ggdb -I/usr/local/Cellar/openssl/1.0.2/include/openssl/ -I/usr/local/Cellar/boost/1.64.0_1/include -I/usr/local/include" )
-        SET( CMAKE_EXE_LINKER_FLAGS "-L/usr/local/opt/boost@1.64/lib ${CMAKE_EXE_LINKER_FLAGS} ${GCC_COVERAGE_LINK_FLAGS} -pthread ${jsoncpp_LIBRARIES}  -lboost_system -lboost_filesystem -lleveldb -std=c++14 -Wall -DSTAT_TEST  -L/usr/local/Cellar/openssl/1.0.2/lib" )
+        SET( CMAKE_CXX_FLAGS
+            "${CMAKE_CXX_FLAGS} \
+            ${GCC_COVERAGE_COMPILE_FLAGS} \
+            -pthread \
+            -stdlib=libc++ \
+            -std=c++14 \
+            -Wall \
+            -DSTAT_TEST \
+            -ggdb \
+            -I${OPENSSL_INCLUDE_DIR} \
+            -I/usr/local/Cellar/boost/include \
+            -I/usr/local/include" )
+        SET( CMAKE_EXE_LINKER_FLAGS
+            "-L/usr/local/opt/boost/lib \
+            ${CMAKE_EXE_LINKER_FLAGS} \
+            ${GCC_COVERAGE_LINK_FLAGS} \
+            -pthread ${jsoncpp_LIBRARIES} \
+            -lboost_system \
+            -lboost_filesystem \
+            -lleveldb \
+            -std=c++14 \
+            -Wall \
+            -DSTAT_TEST \
+            -L${OPENSSL_LIBRARY_DIR}" )
     endif()
     if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
         # To-do
