@@ -1192,26 +1192,24 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char> & message, un
             POW::GetInstance().EthashConfigureLightClient(m_mediator.m_currentEpochNum);
             m_mediator.m_node->StartPoW2(m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(), 
                                          uint8_t(0x3), dsBlockRand, txBlockRand);
+            
+            this_thread::sleep_for(chrono::seconds(NEW_NODE_POW2_TIMEOUT_IN_SECONDS));
+
+            // Check whether is the new node connected to the network. Else, initiate re-sync process again. 
+            if(!m_mediator.m_isConnectedToNetwork)
+            {
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                             "Not yet connected to network");
+            }
+            else
+            {
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                             "I have successfully join the network`");
+            }
         }
     }
 
-    // Check whether is the new node connected to the network. Else, initiate re-sync process again. 
-    this_thread::sleep_for(chrono::seconds(NEW_NODE_POW2_TIMEOUT_IN_SECONDS));
-    if(!m_mediator.m_isConnectedToNetwork)
-    {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Not yet connected to network");
 
-        //Synchronizer synchronizer;
-        //synchronizer.FetchDSInfo(this);
-        //synchronizer.FetchLatestDSBlocks(this, m_mediator.m_dsBlockChain.GetBlockCount());
-        //synchronizer.FetchLatestTxBlocks(this, m_mediator.m_txBlockChain.GetBlockCount());        
-    }
-    else
-    {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "I have successfully join the network`");
-    }
 #endif // IS_LOOKUP_NODE
 
     return true;
