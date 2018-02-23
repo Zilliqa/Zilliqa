@@ -21,7 +21,12 @@
 #include "common/Serializable.h"
 #include "libUtils/Logger.h"
 
+#define BOOST_TEST_MODULE utils
+#include <boost/test/included/unit_test.hpp>
+
 using namespace std;
+
+BOOST_AUTO_TEST_SUITE(utils)
 
 template<class number_type>
 void test(const char * number_label, unsigned int size)
@@ -40,13 +45,13 @@ void test(const char * number_label, unsigned int size)
     LOG_MESSAGE("deserialized = " << n);
 }
 
-int main()
+BOOST_AUTO_TEST_CASE(testSerializable)
 {
     INIT_STDOUT_LOGGER();
 
     test<unsigned int>("unsigned int", sizeof(unsigned int)); // native, machine-dependent size
     test<uint32_t>("uint32_t", sizeof(uint32_t));             // cstdint, fixed size
     test<boost::multiprecision::uint256_t>("uint256_t", 32);  // boost, fixed size
-
-    return 0;
 }
+
+BOOST_AUTO_TEST_SUITE_END()

@@ -17,7 +17,12 @@
 #include "libUtils/JoinableFunction.h"
 #include "libUtils/Logger.h"
 
+#define BOOST_TEST_MODULE utils
+#include <boost/test/included/unit_test.hpp>
+
 using namespace std;
+
+BOOST_AUTO_TEST_SUITE(utils)
 
 void test()
 {
@@ -25,7 +30,7 @@ void test()
     LOG_MESSAGE("Hello world");
 }
 
-int main()
+BOOST_AUTO_TEST_CASE(testLogger3)
 {
     // Write to stdout
     INIT_STDOUT_LOGGER();
@@ -38,6 +43,6 @@ int main()
 
     // Try in different thread
     JoinableFunction(1, test);
-
-    return 0;
 }
+
+BOOST_AUTO_TEST_SUITE_END()
