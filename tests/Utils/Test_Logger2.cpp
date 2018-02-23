@@ -16,9 +16,14 @@
 
 #include "libUtils/Logger.h"
 
+#define BOOST_TEST_MODULE utils
+#include <boost/test/included/unit_test.hpp>
+
 using namespace std;
 
-int main()
+BOOST_AUTO_TEST_SUITE(utils)
+
+BOOST_AUTO_TEST_CASE(testLogger2)
 {
     // Write to a file and confirm log rolls to new file after max size
 
@@ -28,6 +33,6 @@ int main()
     LOG_MESSAGE("Hello world");
     LOG_MESSAGE("Hello world");
     LOG_MESSAGE("Hello world");
-
-    return 0;
 }
+
+BOOST_AUTO_TEST_SUITE_END()

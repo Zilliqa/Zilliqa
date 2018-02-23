@@ -16,28 +16,22 @@
 
 #include "TimeUtils.h"
 
+using namespace std::chrono;
 using namespace boost::multiprecision;
 
-struct timespec r_timer_start()
+system_clock::time_point r_timer_start()
 {
-    struct timespec start_time;
-    clock_gettime(CLOCK_REALTIME, &start_time);
-    return start_time;
+    return system_clock::now();
 }
 
-double r_timer_end(struct timespec start_time)
+double r_timer_end(system_clock::time_point start_time)
 {
-    struct timespec end_time;
-    clock_gettime(CLOCK_REALTIME, &end_time);
-    double diffInMicroSecs = (end_time.tv_sec - start_time.tv_sec) * 1000000 + (end_time.tv_nsec - start_time.tv_nsec) / 1000;
-    return diffInMicroSecs;
+    duration<double, std::micro> difference = system_clock::now() - start_time;
+    return difference.count();
 }
 
 uint256_t get_time_as_int()
 {
-	struct timespec now_time;
-	clock_gettime(CLOCK_REALTIME, &now_time);
-	uint256_t microsecs = now_time.tv_sec * 1000000;
-	microsecs += now_time.tv_nsec / 1000;
-	return microsecs;
+    microseconds microsecs = duration_cast<microseconds>(system_clock::now().time_since_epoch());
+    return static_cast<uint256_t>(microsecs.count());
 }
