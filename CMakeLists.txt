@@ -13,6 +13,32 @@ link_libraries(${SNAPPY_LIBRARIES})
 
 ###################
 
+message(STATUS "checking for module 'openssl'")
+
+find_path(OPENSSL_INCLUDE_DIR
+    NAMES openssl/opensslv.h
+    PATHS /usr/local/opt/openssl/include /opt/local/include /usr/local/include /usr/include
+    DOC "Path in which openssl headers are located."
+)
+
+find_path(OPENSSL_LIBRARY_DIR
+    NAMES libssl.a libssl.dylib
+    PATHS /usr/local/opt/openssl/lib /usr/lib /usr/local/lib
+    DOC "Path in which openssl library is located."
+)
+
+if(OPENSSL_INCLUDE_DIR AND OPENSSL_LIBRARY_DIR)
+  set(OPENSSL_FOUND TRUE)
+endif()
+
+if(OPENSSL_FOUND)
+    message(STATUS "Found openssl (include: ${OPENSSL_INCLUDE_DIR}, library: ${OPENSSL_LIBRARY_DIR})")
+else()
+    message(STATUS "  package 'openssl' not found")
+endif()
+
+###################
+
 message(STATUS "checking for module 'jsoncpp'")
 
 # Look for the header file.
@@ -98,7 +124,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
         -DSTAT_TEST \
         -DIS_LOOKUP_NODE \
         -ggdb \
-        -I/usr/local/Cellar/openssl/1.0.2/include \
+        -I${OPENSSL_INCLUDE_DIR} \
         -I/usr/local/Cellar/boost/include \
         -I/usr/local/include" )
     SET( CMAKE_EXE_LINKER_FLAGS
@@ -112,15 +138,12 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
         -Wall \
         -DSTAT_TEST \
         -DIS_LOOKUP_NODE \
-        -L/usr/local/Cellar/openssl/1.0.2/lib" )
+        -L${OPENSSL_LIBRARY_DIR}" )
 endif()
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     # To-do
 endif()
 
-if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-    # To-do
-endif()
 
 ADD_DEFINITIONS(-DSTAT_TEST)
 
