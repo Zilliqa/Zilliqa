@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 project (nuQoin)
 # detect operating system
 message(STATUS "We are on a ${CMAKE_SYSTEM_NAME} system")
+enable_testing()
 
 find_package(Boost COMPONENTS filesystem system unit_test_framework)
 find_package(PkgConfig REQUIRED)

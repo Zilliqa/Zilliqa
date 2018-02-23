@@ -1,18 +1,30 @@
+if(CMAKE_CONFIGURATION_TYPES)
+    foreach(config ${CMAKE_CONFIGURATION_TYPES})
+        configure_file(${CMAKE_SOURCE_DIR}/constants.xml ${config}/constants.xml COPYONLY)
+    endforeach(config)
+else(CMAKE_CONFIGURATION_TYPES)
+    configure_file(${CMAKE_SOURCE_DIR}/constants.xml constants.xml COPYONLY)
+endif(CMAKE_CONFIGURATION_TYPES)
+
 add_executable(Test_Account Test_Account.cpp)
 target_include_directories(Test_Account PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(Test_Account LINK_PUBLIC AccountData Utils Crypto)
+add_test(NAME Test_Account COMMAND Test_Account)
 
 add_executable(Test_AccountStore Test_AccountStore.cpp)
 target_include_directories(Test_AccountStore PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(Test_AccountStore LINK_PUBLIC AccountData Trie Utils Crypto)
+add_test(NAME Test_AccountStore COMMAND Test_AccountStore)
 
 add_executable(Test_CircularArray Test_CircularArray.cpp)
 target_include_directories(Test_CircularArray PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(Test_CircularArray LINK_PUBLIC Utils)
+add_test(NAME Test_CircularArray COMMAND Test_CircularArray)
 
 add_executable(Test_Transaction Test_Transaction.cpp)
 target_include_directories(Test_Transaction PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(Test_Transaction LINK_PUBLIC AccountData Utils)
+add_test(NAME Test_Transaction COMMAND Test_Transaction)
 
 #add_executable(Test_Block Test_Block.cpp)
 
