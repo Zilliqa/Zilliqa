@@ -39,6 +39,7 @@
 #include "libPersistence/BlockStorage.h"
 #include "libPOW/pow.h"
 #include "libLookup/Synchronizer.h"
+       
 
 class Mediator;
 
