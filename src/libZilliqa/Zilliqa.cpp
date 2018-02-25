@@ -24,6 +24,7 @@
 #include "libCrypto/Sha2.h"
 #include "libCrypto/Schnorr.h"
 #include "libUtils/DataConversion.h"
+#include <jsonrpccpp/common/exception.h>
 
 using namespace std;
 
@@ -69,6 +70,11 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey> & key, const Peer & peer, bool
     //m_n.StartSynchronization();
 #else   // else for IS_LOOKUP_NODE
     LOG_MESSAGE("I am a lookup node.");
+    if (m_server.StartListening()) {
+        LOG_MESSAGE("1. API Server started successfully");
+    } else {
+        LOG_MESSAGE("2. API Server couldn't start");
+    }
 #endif // IS_LOOKUP_NODE
 }
 

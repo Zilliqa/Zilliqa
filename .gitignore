@@ -97,3 +97,6 @@ dkms.conf
 local_run
 config.xml
 *log.txt
+
+# Mac
+.DS_Store 

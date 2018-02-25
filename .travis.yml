@@ -43,3 +43,10 @@ matrix:
   include:
   allow_failures:
     - os: osx
+
+install:
+  # libmicrohttpd (the one in ubuntu 12.04 is too old)
+  - wget -c http://ftp.gnu.org/gnu/libmicrohttpd/libmicrohttpd-0.9.46.tar.gz
+  - (tar zxf libmicrohttpd-0.9.46.tar.gz; cd libmicrohttpd-0.9.46; ./configure; make; sudo make install; cd ..; rm -fr libmicrohttpd-0.9.46)
+  - wget -O libjson-rpc-cpp-1.1.0.tar.gz https://github.com/cinemast/libjson-rpc-cpp/archive/v1.1.0.tar.gz
+  - (tar xzf libjson-rpc-cpp-1.1.0.tar.gz; cd libjson-rpc-cpp-1.1.0; cmake . && make; sudo make install; sudo ldconfig; cd ..; rm -fr libjson-rpc-cpp-1.1.0)
