@@ -158,4 +158,11 @@ bool Synchronizer::FetchLatestTxBlocks(Lookup* lookup, uint256_t currentBlockCha
     // lookup->GetTxBlockFromSeedNodes(currentBlockChainSize, 0);
     return true;
 }
+
+bool Synchronizer::FetchLatestState(Lookup* lookup)
+{
+    lookup->GetStateFromLookupNodes();
+    // lookup->GetStateFromSeedNodes(currentBlockChainSize, 0);
+    return true;
+}
 #endif // IS_LOOKUP_NODE  

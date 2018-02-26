@@ -63,8 +63,12 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey> & key, const Peer & peer, bool
 #ifdef STAT_TEST
     P2PComm::GetInstance().SetSelfPeer(peer);
 #endif // STAT_TEST
+
 #ifndef IS_LOOKUP_NODE
-    m_n.StartSynchronization();
+    LOG_MESSAGE("I am a normal node.");
+    //m_n.StartSynchronization();
+#else   // else for IS_LOOKUP_NODE
+    LOG_MESSAGE("I am a lookup node.");
 #endif // IS_LOOKUP_NODE
 }
 
@@ -116,7 +120,9 @@ vector<Peer> Zilliqa::RetrieveBroadcastList(unsigned char msg_type, unsigned cha
     {
         &m_pm,
         &m_ds,
-        &m_n
+        &m_n,
+        &m_cu,
+        &m_lookup
     };
 
     const unsigned int msg_handlers_count = sizeof(msg_handlers) / sizeof(Broadcastable*);

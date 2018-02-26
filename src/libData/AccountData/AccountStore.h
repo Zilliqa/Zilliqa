@@ -25,6 +25,8 @@
 
 #include "Account.h"
 #include "Address.h"
+#include "common/Constants.h"
+#include "common/Serializable.h"
 #include "depends/common/FixedHash.h"
 #include "depends/libDatabase/OverlayDB.h"
 #include "depends/libTrie/TrieDB.h"
@@ -37,7 +39,7 @@ using SecureTrieDB = dev::SpecificTrieDB<dev::HashedGenericTrieDB<DB>, KeyType>;
 using StateHash = dev::h256;
 
 /// Maintains the list of accounts.
-class AccountStore
+class AccountStore: public Serializable
 {
     std::unordered_map<Address, Account> m_addressToAccount;
 
@@ -56,7 +58,12 @@ public:
     
     /// Returns the singleton AccountStore instance.
     static AccountStore & GetInstance();
-    
+    /// Implements the Serialize function inherited from Serializable.
+    unsigned int Serialize(std::vector<unsigned char> & dst, unsigned int offset) const;
+
+    /// Implements the Deserialize function inherited from Serializable.
+    void Deserialize(const std::vector<unsigned char> & src, unsigned int offset);
+
     /// Verifies existence of Account in the list.
     bool DoesAccountExist(const Address & address);
 
@@ -74,6 +81,7 @@ public:
     
     /// Returns the Account associated with the specified address.
     Account* GetAccount(const Address & address);
+    boost::multiprecision::uint256_t GetNumOfAccounts() const;
 
     bool IncreaseBalance(const Address & address, const boost::multiprecision::uint256_t & delta);
     bool DecreaseBalance(const Address & address, const boost::multiprecision::uint256_t & delta);

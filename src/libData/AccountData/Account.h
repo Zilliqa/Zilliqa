@@ -33,6 +33,7 @@ class Account: public Serializable
     boost::multiprecision::uint256_t m_nonce;
 
 public:
+    Account();
 
     /// Constructor for loading account information from a byte stream.
     Account(const std::vector<unsigned char> & src, unsigned int offset);

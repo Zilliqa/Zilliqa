@@ -31,6 +31,9 @@
 #include <boost/property_tree/ptree.hpp>
 
 #include "common/Messages.h"
+#include "libData/AccountData/Account.h"
+#include "libData/AccountData/AccountStore.h"
+#include "libData/AccountData/Transaction.h"
 #include "libData/BlockData/Block.h"
 #include "libData/BlockChainData/DSBlockChain.h"
 #include "libData/BlockChainData/TxBlockChain.h"
@@ -61,6 +64,8 @@ Lookup::~Lookup()
 #ifndef IS_LOOKUP_NODE
 void Lookup::SetLookupNodes()
 {
+    LOG_MARKER();
+
     // Populate tree structure pt
     using boost::property_tree::ptree;
     ptree pt;
@@ -80,11 +85,15 @@ void Lookup::SetLookupNodes()
 
 vector<Peer> Lookup::GetLookupNodes()
 {
+    LOG_MARKER();
+
     return m_lookupNodes;
 }
 
 void Lookup::SendMessageToLookupNodes(const std::vector<unsigned char> & message) const
 {
+    LOG_MARKER();
+
     // LOG_MESSAGE("i am here " << to_string(m_mediator.m_currentEpochNum).c_str())
     for(auto node: m_lookupNodes) 
     {
@@ -97,6 +106,8 @@ void Lookup::SendMessageToLookupNodes(const std::vector<unsigned char> & message
 
 void Lookup::SendMessageToSeedNodes(const std::vector<unsigned char> &message) const
 {
+    LOG_MARKER();
+
     for(auto node: m_seedNodes)
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -108,6 +119,8 @@ void Lookup::SendMessageToSeedNodes(const std::vector<unsigned char> &message) c
 
 bool Lookup::GetSeedPeersFromLookup()
 {
+    LOG_MARKER();
+
     vector<unsigned char> getSeedPeersMessage = { MessageType::LOOKUP, 
                                                   LookupInstructionType::GETSEEDPEERS };
     unsigned int curr_offset = MessageOffset::BODY;
@@ -123,6 +136,8 @@ bool Lookup::GetSeedPeersFromLookup()
 
 vector<unsigned char> Lookup::ComposeGetDSInfoMessage()
 {
+    LOG_MARKER();
+
     // getDSNodesMessage = [Port]
     vector<unsigned char> getDSNodesMessage = { MessageType::LOOKUP, 
                                                 LookupInstructionType::GETDSINFOFROMSEED };
@@ -135,21 +150,47 @@ vector<unsigned char> Lookup::ComposeGetDSInfoMessage()
     return getDSNodesMessage;
 }
 
+vector<unsigned char> Lookup::ComposeGetStateMessage()
+{
+    LOG_MARKER();
+
+    vector<unsigned char> getStateMessage = { MessageType::LOOKUP, 
+                                              LookupInstructionType::GETSTATEFROMSEED };
+    unsigned int curr_offset = MessageOffset::BODY;
+
+    Serializable::SetNumber<uint32_t>(getStateMessage, curr_offset, 
+                                      m_mediator.m_selfPeer.m_listenPortHost, sizeof(uint32_t));
+    curr_offset += sizeof(uint32_t);
+
+    return getStateMessage;   
+}
+
 bool Lookup::GetDSInfoFromSeedNodes()
 {
+    LOG_MARKER();
     SendMessageToSeedNodes(ComposeGetDSInfoMessage());
     return true;
 }
 
 bool Lookup::GetDSInfoFromLookupNodes()
 {
+    LOG_MARKER();
     SendMessageToLookupNodes(ComposeGetDSInfoMessage());
     return true;
+}
+
+bool Lookup::GetStateFromLookupNodes()
+{
+    LOG_MARKER();
+    SendMessageToLookupNodes(ComposeGetStateMessage());
+    return true;   
 }
 
 vector<unsigned char> Lookup::ComposeGetDSBlockMessage(uint256_t lowBlockNum, 
                                                        uint256_t highBlockNum)
 {
+    LOG_MARKER();
+
     // getDSBlockMessage = [lowBlockNum][highBlockNum][Port]
     vector<unsigned char> getDSBlockMessage = { MessageType::LOOKUP, 
                                                 LookupInstructionType::GETDSBLOCKFROMSEED };
@@ -174,12 +215,14 @@ vector<unsigned char> Lookup::ComposeGetDSBlockMessage(uint256_t lowBlockNum,
 // use 0 to denote the latest blocknumber since obviously no one will request for the genesis block
 bool Lookup::GetDSBlockFromSeedNodes(uint256_t lowBlockNum, uint256_t highBlockNum)
 {
+    LOG_MARKER();
     SendMessageToSeedNodes(ComposeGetDSBlockMessage(lowBlockNum, highBlockNum));
     return true;
 }
 
 bool Lookup::GetDSBlockFromLookupNodes(uint256_t lowBlockNum, uint256_t highBlockNum)
 {
+    LOG_MARKER();
     SendMessageToLookupNodes(ComposeGetDSBlockMessage(lowBlockNum, highBlockNum));
     return true;
 }
@@ -187,6 +230,8 @@ bool Lookup::GetDSBlockFromLookupNodes(uint256_t lowBlockNum, uint256_t highBloc
 vector<unsigned char> Lookup::ComposeGetTxBlockMessage(uint256_t lowBlockNum, 
                                                        uint256_t highBlockNum)
 {
+    LOG_MARKER();
+
     // getTxBlockMessage = [lowBlockNum][highBlockNum][Port]
     vector<unsigned char> getTxBlockMessage = { MessageType::LOOKUP, 
                                                 LookupInstructionType::GETTXBLOCKFROMSEED };
@@ -211,18 +256,22 @@ vector<unsigned char> Lookup::ComposeGetTxBlockMessage(uint256_t lowBlockNum,
 // use 0 to denote the latest blocknumber since obviously no one will request for the genesis block
 bool Lookup::GetTxBlockFromSeedNodes(uint256_t lowBlockNum, uint256_t highBlockNum)
 {
+    LOG_MARKER();
     SendMessageToSeedNodes(ComposeGetTxBlockMessage(lowBlockNum, highBlockNum));
     return true;
 }
 
 bool Lookup::GetTxBlockFromLookupNodes(uint256_t lowBlockNum, uint256_t highBlockNum)
 {
+    LOG_MARKER();
     SendMessageToLookupNodes(ComposeGetTxBlockMessage(lowBlockNum, highBlockNum));
     return true;
 }
 
 bool Lookup::GetTxBodyFromSeedNodes(string txHashStr)
 {
+    LOG_MARKER();
+
     // getTxBodyMessage = [TRAN_HASH_SIZE txHashStr][4-byte Port]
     vector<unsigned char> getTxBodyMessage = { MessageType::LOOKUP, 
                                                LookupInstructionType::GETTXBODYFROMSEED };
@@ -252,6 +301,10 @@ bool Lookup::GetTxBodyFromSeedNodes(string txHashStr)
         ptree pt;
         read_xml("config.xml", pt);
 
+        lock(m_mediator.m_mutexDSCommitteeNetworkInfo, m_mediator.m_mutexDSCommitteePubKeys);
+        lock_guard<mutex> g(m_mediator.m_mutexDSCommitteeNetworkInfo, adopt_lock);
+        lock_guard<mutex> g2(m_mediator.m_mutexDSCommitteePubKeys, adopt_lock);
+
         for(ptree::value_type const & v : pt.get_child("nodes"))
         {
             if (v.first == "peer")
@@ -274,6 +327,8 @@ bool Lookup::GetTxBodyFromSeedNodes(string txHashStr)
 bool Lookup::ProcessEntireShardingStructure(const vector<unsigned char> & message, 
                                             unsigned int offset, const Peer & from)
 {
+    LOG_MARKER();
+
 #ifdef IS_LOOKUP_NODE
     // Sharding structure message format:
 
@@ -287,9 +342,6 @@ bool Lookup::ProcessEntireShardingStructure(const vector<unsigned char> & messag
     //   [33-byte public key][16-byte IP][4-byte port]
     //   ...
     // ...
-
-    LOG_MARKER();
-
     LOG_MESSAGE("[LOOKUP received sharding structure]");
 
     unsigned int length_available = message.size() - offset;
@@ -366,10 +418,10 @@ bool Lookup::ProcessEntireShardingStructure(const vector<unsigned char> & messag
 bool Lookup::ProcessGetSeedPeersFromLookup(const vector<unsigned char> & message, 
                                            unsigned int offset, const Peer & from)
 {
+    LOG_MARKER();
+
 #ifdef IS_LOOKUP_NODE
     // Message = [4-byte listening port]
-
-    LOG_MARKER();
 
     const unsigned int length_available = message.size() - offset;
     const unsigned int min_length_needed = sizeof(uint32_t);
@@ -460,11 +512,18 @@ bool Lookup::ProcessGetDSInfoFromSeed(const vector<unsigned char> & message, uns
 {
 //#ifndef IS_LOOKUP_NODE
     // Message = [Port]
-
     LOG_MARKER();
 
-    deque<PubKey> dsPubKeys = m_mediator.m_DSCommitteePubKeys;
-    deque<Peer> dsPeers = m_mediator.m_DSCommitteeNetworkInfo; // Data::GetInstance().GetDSPeers();
+    deque<PubKey> dsPubKeys;
+    deque<Peer> dsPeers;
+    {
+        lock(m_mediator.m_mutexDSCommitteeNetworkInfo, m_mediator.m_mutexDSCommitteePubKeys);
+        lock_guard<mutex> g(m_mediator.m_mutexDSCommitteeNetworkInfo, adopt_lock);
+        lock_guard<mutex> g2(m_mediator.m_mutexDSCommitteePubKeys, adopt_lock);
+
+        dsPubKeys = m_mediator.m_DSCommitteePubKeys;
+        dsPeers = m_mediator.m_DSCommitteeNetworkInfo; // Data::GetInstance().GetDSPeers();     
+    }
 
     // dsInfoMessage = [num_ds_peers][DSPeer][DSPeer]... num_ds_peers times
     vector<unsigned char> dsInfoMessage = { MessageType::LOOKUP, 
@@ -497,7 +556,16 @@ bool Lookup::ProcessGetDSInfoFromSeed(const vector<unsigned char> & message, uns
     uint128_t ipAddr = from.m_ipAddress;
     Peer requestingNode(ipAddr, portNo);
 
-    P2PComm::GetInstance().SendMessage(requestingNode, dsInfoMessage);
+    // TODO: Revamp the sendmessage and sendbroadcastmessage
+    // Currently, we use sendbroadcastmessage instead of sendmessage. The reason is a new node who want to
+    // join will received similar response from mulitple lookup node. It will process them in full. 
+    // Currently, we want the duplicated message to be drop so to ensure it do not do redundant processing. 
+    // In the long term, we need to track all the incoming messages from lookup or seed node more grandularly,.
+    // and ensure 2/3 of such identical message is received in order to move on. 
+    vector<Peer> node;
+    node.push_back(requestingNode); 
+
+    P2PComm::GetInstance().SendBroadcastMessage(node, dsInfoMessage);
 
 //#endif // IS_LOOKUP_NODE
 
@@ -587,9 +655,74 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char> & message, un
     uint128_t ipAddr = from.m_ipAddress;
     Peer requestingNode(ipAddr, portNo);
 
-    P2PComm::GetInstance().SendMessage(requestingNode, dsBlockMessage);
+    // TODO: Revamp the sendmessage and sendbroadcastmessage
+    // Currently, we use sendbroadcastmessage instead of sendmessage. The reason is a new node who want to
+    // join will received similar response from mulitple lookup node. It will process them in full. 
+    // Currently, we want the duplicated message to be drop so to ensure it do not do redundant processing. 
+    // In the long term, we need to track all the incoming messages from lookup or seed node more grandularly,.
+    // and ensure 2/3 of such identical message is received in order to move on. 
+    vector<Peer> node;
+    node.push_back(requestingNode); 
+
+    P2PComm::GetInstance().SendBroadcastMessage(node, dsBlockMessage);
 
 //#endif // IS_LOOKUP_NODE
+
+    return true;
+}
+
+bool Lookup::ProcessGetStateFromSeed(const vector<unsigned char> & message, unsigned int offset, 
+                                     const Peer & from)
+{
+    LOG_MARKER();
+
+// #ifndef IS_LOOKUP_NODE
+    // Message = [TRAN_HASH_SIZE txHashStr][Transaction::GetSerializedSize() txbody]
+
+
+    // if (IsMessageSizeInappropriate(message.size(), offset, 
+    //                                TRAN_HASH_SIZE + Transaction::GetSerializedSize()))
+    // {
+    //     return false;
+    // }
+
+    // TxnHash tranHash;
+    // copy(message.begin() + offset, message.begin() + offset + TRAN_HASH_SIZE, 
+    //      tranHash.asArray().begin());
+    // offset += TRAN_HASH_SIZE;
+
+    // Transaction transaction(message, offset);
+
+    // vector<unsigned char> serializedTxBody;
+    // transaction.Serialize(serializedTxBody, 0);
+    // BlockStorage::GetBlockStorage().PutTxBody(tranHash, serializedTxBody);
+
+
+    // 4-byte listening port
+
+    // [Port number]
+
+    uint32_t portNo = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
+    offset += sizeof(uint32_t);   
+
+    uint128_t ipAddr = from.m_ipAddress;
+    Peer requestingNode(ipAddr, portNo);
+
+    // TODO: Revamp the sendmessage and sendbroadcastmessage
+    // Currently, we use sendbroadcastmessage instead of sendmessage. The reason is a new node who want to
+    // join will received similar response from mulitple lookup node. It will process them in full. 
+    // Currently, we want the duplicated message to be drop so to ensure it do not do redundant processing. 
+    // In the long term, we need to track all the incoming messages from lookup or seed node more grandularly,.
+    // and ensure 2/3 of such identical message is received in order to move on. 
+    vector<Peer> node;
+    node.push_back(requestingNode); 
+
+    vector<unsigned char> setStateMessage = { MessageType::LOOKUP, 
+                                                LookupInstructionType::SETSTATEFROMSEED };
+    unsigned int curr_offset = MessageOffset::BODY;
+    curr_offset += AccountStore::GetInstance().Serialize(setStateMessage, curr_offset);
+    P2PComm::GetInstance().SendBroadcastMessage(node, setStateMessage);
+// #endif // IS_LOOKUP_NODE
 
     return true;
 }
@@ -676,7 +809,16 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char> & message, un
     uint128_t ipAddr = from.m_ipAddress;
     Peer requestingNode(ipAddr, portNo);
 
-    P2PComm::GetInstance().SendMessage(requestingNode, txBlockMessage);
+    // TODO: Revamp the sendmessage and sendbroadcastmessage
+    // Currently, we use sendbroadcastmessage instead of sendmessage. The reason is a new node who want to
+    // join will received similar response from mulitple lookup node. It will process them in full. 
+    // Currently, we want the duplicated message to be drop so to ensure it do not do redundant processing. 
+    // In the long term, we need to track all the incoming messages from lookup or seed node more grandularly,.
+    // and ensure 2/3 of such identical message is received in order to move on. 
+    vector<Peer> node;
+    node.push_back(requestingNode); 
+
+    P2PComm::GetInstance().SendBroadcastMessage(node, txBlockMessage);
 
 // #endif // IS_LOOKUP_NODE
 
@@ -718,7 +860,16 @@ bool Lookup::ProcessGetTxBodyFromSeed(const vector<unsigned char> & message, uns
     uint128_t ipAddr = from.m_ipAddress;
     Peer requestingNode(ipAddr, portNo);
 
-    P2PComm::GetInstance().SendMessage(requestingNode, txBodyMessage);
+    // TODO: Revamp the sendmessage and sendbroadcastmessage
+    // Currently, we use sendbroadcastmessage instead of sendmessage. The reason is a new node who want to
+    // join will received similar response from mulitple lookup node. It will process them in full. 
+    // Currently, we want the duplicated message to be drop so to ensure it do not do redundant processing. 
+    // In the long term, we need to track all the incoming messages from lookup or seed node more grandularly,.
+    // and ensure 2/3 of such identical message is received in order to move on. 
+    vector<Peer> node;
+    node.push_back(requestingNode); 
+
+    P2PComm::GetInstance().SendBroadcastMessage(node, txBodyMessage);
 
 // #endif // IS_LOOKUP_NODE
 
@@ -746,7 +897,16 @@ bool Lookup::ProcessGetNetworkId(const vector<unsigned char> & message, unsigned
 
     copy(networkId.begin(), networkId.end(), networkIdMessage.begin() + curr_offset);
 
-    P2PComm::GetInstance().SendMessage(requestingNode, networkIdMessage);
+    // TODO: Revamp the sendmessage and sendbroadcastmessage
+    // Currently, we use sendbroadcastmessage instead of sendmessage. The reason is a new node who want to
+    // join will received similar response from mulitple lookup node. It will process them in full. 
+    // Currently, we want the duplicated message to be drop so to ensure it do not do redundant processing. 
+    // In the long term, we need to track all the incoming messages from lookup or seed node more grandularly,.
+    // and ensure 2/3 of such identical message is received in order to move on. 
+    vector<Peer> node;
+    node.push_back(requestingNode); 
+
+    P2PComm::GetInstance().SendBroadcastMessage(node, networkIdMessage);
 
     return true;
 // #endif // IS_LOOKUP_NODE
@@ -821,8 +981,14 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char> & message, uns
                      "ProcessSetDSInfoFromSeed recvd peer " << i << ": " << peer);
     }
 
-    m_mediator.m_DSCommitteePubKeys = dsPubKeys;
-    m_mediator.m_DSCommitteeNetworkInfo = dsPeers;
+    {
+        lock(m_mediator.m_mutexDSCommitteeNetworkInfo, m_mediator.m_mutexDSCommitteePubKeys);
+        lock_guard<mutex> g(m_mediator.m_mutexDSCommitteeNetworkInfo, adopt_lock);
+        lock_guard<mutex> g2(m_mediator.m_mutexDSCommitteePubKeys, adopt_lock);
+        m_mediator.m_DSCommitteePubKeys = dsPubKeys;
+        m_mediator.m_DSCommitteeNetworkInfo = dsPeers;
+    }
+
 //    Data::GetInstance().SetDSPeers(dsPeers);
 //#endif // IS_LOOKUP_NODE
 
@@ -836,6 +1002,13 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char> & message, un
     // Message = [32-byte lowBlockNum][32-byte highBlockNum][DSBlock][DSBlock]... (highBlockNum - lowBlockNum + 1) times
 
     LOG_MARKER();
+
+    if (AlreadyJoinedNetwork())
+    {
+        return true; 
+    }
+
+    unique_lock<mutex> lock(m_mutexSetDSBlockFromSeed);
 
     if (IsMessageSizeInappropriate(message.size(), offset, UINT256_SIZE + UINT256_SIZE))
     {
@@ -896,7 +1069,6 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char> & message, un
     }
 
     m_mediator.UpdateDSBlockRand();
-
     {
         unique_lock<mutex> lock(m_dsRandUpdationMutex);
         m_isDSRandUpdated = true;
@@ -912,8 +1084,14 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char> & message, un
 {
 //#ifndef IS_LOOKUP_NODE
     // Message = [32-byte lowBlockNum][32-byte highBlockNum][TxBlock][TxBlock]... (highBlockNum - lowBlockNum + 1) times
-
     LOG_MARKER();
+
+    if (AlreadyJoinedNetwork())
+    {
+        return true; 
+    }
+    
+    unique_lock<mutex> lock(m_mutexSetTxBlockFromSeed);
 
     if (IsMessageSizeInappropriate(message.size(), offset, UINT256_SIZE + UINT256_SIZE))
     {
@@ -934,74 +1112,103 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char> & message, un
                  "ProcessSetTxBlockFromSeed sent by " << from << " for blocks " <<
                  lowBlockNum.convert_to<string>() << " to " << highBlockNum.convert_to<string>());
 
-    for(boost::multiprecision::uint256_t blockNum = lowBlockNum; 
-        blockNum <= highBlockNum; 
-        blockNum++)
+
+    uint64_t latestSynBlockNum = (uint64_t) m_mediator.m_txBlockChain.GetBlockCount(); 
+    if (latestSynBlockNum >= highBlockNum)
     {
-        TxBlock txBlock(message, offset);
-        offset += txBlock.GetSerializedSize();
-
+        // TODO: We should get blocks from n nodes.
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
-                     "I the lookup node have deserialized the TxBlock"); 
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
-                     "txBlock.GetHeader().GetType(): " << txBlock.GetHeader().GetType()); 
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
-                     "txBlock.GetHeader().GetVersion(): " << txBlock.GetHeader().GetVersion()); 
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
-                     "txBlock.GetHeader().GetGasLimit(): " << txBlock.GetHeader().GetGasLimit()); 
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
-                     "txBlock.GetHeader().GetGasUsed(): " << txBlock.GetHeader().GetGasUsed()); 
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
-                     "txBlock.GetHeader().GetBlockNum(): " << txBlock.GetHeader().GetBlockNum());
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
-                     "txBlock.GetHeader().GetNumMicroBlockHashes(): " << 
-                     txBlock.GetHeader().GetNumMicroBlockHashes()); 
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
-                     "txBlock.GetHeader().GetNumTxs(): " << txBlock.GetHeader().GetNumTxs()); 
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
-                     "txBlock.GetHeader().GetMinerPubKey(): " << 
-                     txBlock.GetHeader().GetMinerPubKey());
-
-        m_mediator.m_txBlockChain.AddBlock(txBlock);
-
-        // Store Tx Block to disk
-        vector<unsigned char> serializedTxBlock;
-        txBlock.Serialize(serializedTxBlock, 0);
-        BlockStorage::GetBlockStorage().PutTxBlock(txBlock.GetHeader().GetBlockNum(), 
-                                                   serializedTxBlock);
+                    "I already have the block"); 
     }
-#ifndef IS_LOOKUP_NODE // TODO : remove from here to top
-    m_mediator.m_currentEpochNum = (uint64_t) m_mediator.m_txBlockChain.GetBlockCount();
-    m_mediator.UpdateTxBlockRand();
-
+    else 
     {
-        unique_lock<mutex> lock(m_dsRandUpdationMutex);
-        while(!m_isDSRandUpdated)            
+        for(boost::multiprecision::uint256_t blockNum = lowBlockNum; 
+            blockNum <= highBlockNum; 
+            blockNum++)
         {
-            m_dsRandUpdateCondition.wait(lock);
+            TxBlock txBlock(message, offset);
+            offset += txBlock.GetSerializedSize();
+
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                         "I the lookup node have deserialized the TxBlock"); 
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                         "txBlock.GetHeader().GetType(): " << txBlock.GetHeader().GetType()); 
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                         "txBlock.GetHeader().GetVersion(): " << txBlock.GetHeader().GetVersion()); 
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                         "txBlock.GetHeader().GetGasLimit(): " << txBlock.GetHeader().GetGasLimit()); 
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                         "txBlock.GetHeader().GetGasUsed(): " << txBlock.GetHeader().GetGasUsed()); 
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                         "txBlock.GetHeader().GetBlockNum(): " << txBlock.GetHeader().GetBlockNum());
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                         "txBlock.GetHeader().GetNumMicroBlockHashes(): " << 
+                         txBlock.GetHeader().GetNumMicroBlockHashes()); 
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                         "txBlock.GetHeader().GetNumTxs(): " << txBlock.GetHeader().GetNumTxs()); 
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                         "txBlock.GetHeader().GetMinerPubKey(): " << 
+                         txBlock.GetHeader().GetMinerPubKey());
+
+            m_mediator.m_txBlockChain.AddBlock(txBlock);
+
+            // Store Tx Block to disk
+            vector<unsigned char> serializedTxBlock;
+            txBlock.Serialize(serializedTxBlock, 0);
+            BlockStorage::GetBlockStorage().PutTxBlock(txBlock.GetHeader().GetBlockNum(), 
+                                                       serializedTxBlock);
         }
-        m_isDSRandUpdated = false;
+
+#ifdef IS_LOOKUP_NODE
+    }
+#endif
+    
+
+#ifndef IS_LOOKUP_NODE // TODO : remove from here to top
+        m_mediator.m_currentEpochNum = (uint64_t) m_mediator.m_txBlockChain.GetBlockCount();
+        m_mediator.UpdateTxBlockRand();
+
+        {
+            unique_lock<mutex> lock(m_dsRandUpdationMutex);
+            while(!m_isDSRandUpdated)            
+            {
+                m_dsRandUpdateCondition.wait(lock);
+            }
+            m_isDSRandUpdated = false;
+        }
+
+        auto dsBlockRand = m_mediator.m_dsBlockRand;
+        array<unsigned char, 32> txBlockRand = {0};
+
+        if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
+        {   
+
+            if (m_mediator.m_currentEpochNum != 0)
+            {
+                m_mediator.m_node->m_consensusID = 0; 
+            }
+
+            m_mediator.m_node->SetState(Node::POW2_SUBMISSION);
+            POW::GetInstance().EthashConfigureLightClient(m_mediator.m_currentEpochNum);
+            m_mediator.m_node->StartPoW2(m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(), 
+                                         uint8_t(0x3), dsBlockRand, txBlockRand);
+
+            // Check whether is the new node connected to the network. Else, initiate re-sync process again. 
+            this_thread::sleep_for(chrono::seconds(NEW_NODE_POW2_TIMEOUT_IN_SECONDS));
+            if(!m_mediator.m_isConnectedToNetwork)
+            {
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                             "Not yet connected to network");       
+            }
+            else
+            {
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                             "I have successfully join the network`");
+            }
+        }
     }
 
-    auto dsBlockRand = m_mediator.m_dsBlockRand;
-    array<unsigned char, 32> txBlockRand = {0};
 
-    m_mediator.m_node->SetState(Node::POW1_SUBMISSION);
-    POW::GetInstance().EthashConfigureLightClient(m_mediator.m_currentEpochNum);
-    // for(int i=0; i<5; i++)
-    // {
-    m_mediator.m_node->StartPoW2(m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(), 
-                                 uint8_t(0x3), dsBlockRand, txBlockRand);
-    //     this_thread::sleep_for(chrono::seconds(15));
-    // }
-    this_thread::sleep_for(chrono::seconds(NEW_NODE_POW2_TIMEOUT_IN_SECONDS));
-    if(!m_mediator.m_isConnectedToNetwork)
-    {
-        Synchronizer synchronizer;
-        synchronizer.FetchDSInfo(this);
-        synchronizer.FetchLatestDSBlocks(this, m_mediator.m_dsBlockChain.GetBlockCount());
-        synchronizer.FetchLatestTxBlocks(this, m_mediator.m_txBlockChain.GetBlockCount());        
-    }
 #endif // IS_LOOKUP_NODE
 
     return true;
@@ -1010,10 +1217,18 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char> & message, un
 bool Lookup::ProcessSetTxBodyFromSeed(const vector<unsigned char> & message, unsigned int offset, 
                                       const Peer & from)
 {
+    LOG_MARKER();
+
 #ifndef IS_LOOKUP_NODE
     // Message = [TRAN_HASH_SIZE txHashStr][Transaction::GetSerializedSize() txbody]
 
-    LOG_MARKER();
+    if (AlreadyJoinedNetwork())
+    {
+        return true; 
+    }
+
+
+    unique_lock<mutex> lock(m_mutexSetTxBodyFromSeed);
 
     if (IsMessageSizeInappropriate(message.size(), offset, 
                                    TRAN_HASH_SIZE + Transaction::GetSerializedSize()))
@@ -1031,6 +1246,47 @@ bool Lookup::ProcessSetTxBodyFromSeed(const vector<unsigned char> & message, uns
     vector<unsigned char> serializedTxBody;
     transaction.Serialize(serializedTxBody, 0);
     BlockStorage::GetBlockStorage().PutTxBody(tranHash, serializedTxBody);
+
+#endif // IS_LOOKUP_NODE
+
+    return true;
+}
+
+bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char> & message, unsigned int offset, 
+                                      const Peer & from)
+{
+#ifndef IS_LOOKUP_NODE
+    // Message = [TRAN_HASH_SIZE txHashStr][Transaction::GetSerializedSize() txbody]
+
+    LOG_MARKER();
+
+
+
+    // if (IsMessageSizeInappropriate(message.size(), offset, 
+    //                                TRAN_HASH_SIZE + Transaction::GetSerializedSize()))
+    // {
+    //     return false;
+    // }
+
+    // TxnHash tranHash;
+    // copy(message.begin() + offset, message.begin() + offset + TRAN_HASH_SIZE, 
+    //      tranHash.asArray().begin());
+    // offset += TRAN_HASH_SIZE;
+
+    // Transaction transaction(message, offset);
+
+    // vector<unsigned char> serializedTxBody;
+    // transaction.Serialize(serializedTxBody, 0);
+    // BlockStorage::GetBlockStorage().PutTxBody(tranHash, serializedTxBody);
+
+    if (AlreadyJoinedNetwork())
+    {
+        return true; 
+    }
+
+    unique_lock<mutex> lock(m_mutexSetState);
+    unsigned int curr_offset = offset;
+    AccountStore::GetInstance().Deserialize(message, curr_offset);
 
 #endif // IS_LOOKUP_NODE
 
@@ -1059,7 +1315,10 @@ bool Lookup::Execute(const vector<unsigned char> & message, unsigned int offset,
         &Lookup::ProcessSetTxBlockFromSeed,
         &Lookup::ProcessGetTxBodyFromSeed,
         &Lookup::ProcessSetTxBodyFromSeed,
-        &Lookup::ProcessGetNetworkId
+        &Lookup::ProcessGetNetworkId,
+        &Lookup::ProcessGetNetworkId,
+        &Lookup::ProcessGetStateFromSeed,
+        &Lookup::ProcessSetStateFromSeed
     };
 
     const unsigned char ins_byte = message.at(offset);
@@ -1080,3 +1339,18 @@ bool Lookup::Execute(const vector<unsigned char> & message, unsigned int offset,
 
     return result;
 }
+
+bool Lookup::AlreadyJoinedNetwork()
+{
+    if(m_mediator.m_isConnectedToNetwork)
+    {
+        return true; 
+    }
+    else
+    {
+        return false; 
+    }
+
+}
+
+

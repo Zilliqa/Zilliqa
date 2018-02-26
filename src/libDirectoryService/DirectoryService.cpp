@@ -454,6 +454,46 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char> & message, 
     //  1. All peers in the peer list are my fellow DS committee members for this first epoch
     //  2. The list of DS nodes is sorted by PubKey, including my own
     //  3. The peer with the smallest PubKey is also the first leader assigned in this call to ProcessSetPrimary()
+    
+
+
+
+    // Let's notify lookup node of the DS committee during bootstrap 
+    // TODO: Refactor this code
+    if (primary == m_mediator.m_selfPeer)
+    {
+
+        PeerStore & dsstore = PeerStore::GetStore();
+        dsstore.AddPeer(m_mediator.m_selfKey.second, m_mediator.m_selfPeer);                  // Add myself, but with dummy IP info
+
+
+        vector<PubKey> dsPub = dsstore.GetAllKeys();
+        m_mediator.m_DSCommitteePubKeys.resize(dsPub.size());
+        copy(dsPub.begin(), dsPub.end(), m_mediator.m_DSCommitteePubKeys.begin()); // These are the sorted PubKeys
+
+        vector<Peer> dsPeer = dsstore.GetAllPeers();
+        m_mediator.m_DSCommitteeNetworkInfo.resize(dsPeer.size());
+        copy(dsPeer.begin(), dsPeer.end(), m_mediator.m_DSCommitteeNetworkInfo.begin());     // This will be sorted by PubKey
+
+        // Message = [numDSPeers][DSPeer][DSPeer]... numDSPeers times
+        vector<unsigned char> setDSBootstrapNodeMessage = { MessageType::LOOKUP, 
+                                                    LookupInstructionType::SETDSINFOFROMSEED};
+        unsigned int curr_offset = MessageOffset::BODY;
+
+        Serializable::SetNumber<uint32_t>(setDSBootstrapNodeMessage, curr_offset, dsPeer.size(), sizeof(uint32_t));
+        curr_offset += sizeof(uint32_t); 
+
+        for (unsigned int i = 0; i < dsPeer.size(); i++)
+        {
+            // PubKey
+            curr_offset += dsPub.at(i).Serialize(setDSBootstrapNodeMessage, curr_offset);
+            // Peer
+            curr_offset += dsPeer.at(i).Serialize(setDSBootstrapNodeMessage, curr_offset);
+
+        }
+        m_mediator.m_lookup->SendMessageToLookupNodes(setDSBootstrapNodeMessage);
+    }
+
 
     PeerStore & peerstore = PeerStore::GetStore();
     peerstore.AddPeer(m_mediator.m_selfKey.second, Peer());                  // Add myself, but with dummy IP info
@@ -492,6 +532,9 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char> & message, 
         LOG_STATE("[IDENT][" << std::setw(15) << std::left << m_mediator.m_selfPeer.GetPrintableIPAddress() << "][" << std::setw(6) << std::left << m_consensusMyID << "] DSBK");
     }
 #endif // STAT_TEST
+
+
+
 
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Waiting " << POW1_WINDOW_IN_SECONDS << " seconds, accepting PoW1 submissions...");
     this_thread::sleep_for(chrono::seconds(POW1_WINDOW_IN_SECONDS));
