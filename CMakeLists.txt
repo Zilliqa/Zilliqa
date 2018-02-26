@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8)
-project (nuQoin)
+project(Zilliqa)
 # detect operating system
 message(STATUS "We are on a ${CMAKE_SYSTEM_NAME} system")
 enable_testing()
@@ -105,16 +105,18 @@ else()
     message(STATUS "  package 'SNAPPY' not found")
 endif()
 
+add_definitions(-DSTAT_TEST)
+
 if(IS_LOOKUP_NODE)
-    ADD_DEFINITIONS(-DIS_LOOKUP_NODE)
+    add_definitions(-DIS_LOOKUP_NODE)
 endif(IS_LOOKUP_NODE)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-    SET( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} -pthread -std=c++14 -Wall -ggdb")
-    SET( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${GCC_COVERAGE_LINK_FLAGS} -pthread -ljsoncpp -lboost_system -lboost_filesystem -std=c++14 -Wall")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} -pthread -std=c++14 -Wall -ggdb")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${GCC_COVERAGE_LINK_FLAGS} -pthread -ljsoncpp -lboost_system -lboost_filesystem -std=c++14 -Wall")
 endif()
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
-    SET( CMAKE_CXX_FLAGS
+    set(CMAKE_CXX_FLAGS
         "${CMAKE_CXX_FLAGS} \
         ${GCC_COVERAGE_COMPILE_FLAGS} \
         -pthread \
@@ -125,7 +127,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
         -I${OPENSSL_INCLUDE_DIR} \
         -I/usr/local/Cellar/boost/include \
         -I/usr/local/include" )
-    SET( CMAKE_EXE_LINKER_FLAGS
+    set(CMAKE_EXE_LINKER_FLAGS
         "-L/usr/local/opt/boost/lib \
         ${CMAKE_EXE_LINKER_FLAGS} \
         ${GCC_COVERAGE_LINK_FLAGS} \
@@ -134,14 +136,13 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
         -lboost_filesystem \
         -std=c++14 \
         -Wall \
-        -L${OPENSSL_LIBRARY_DIR}" )
+        -L${OPENSSL_LIBRARY_DIR}")
 endif()
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     # To-do
 endif()
 
 
-ADD_DEFINITIONS(-DSTAT_TEST)
 
 add_subdirectory (src)
 add_subdirectory (tests)
