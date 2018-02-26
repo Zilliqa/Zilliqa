@@ -20,6 +20,9 @@
 #include "libUtils/TimeLockedFunction.h"
 #include "libUtils/Logger.h"
 
+#define BOOST_TEST_MODULE utils
+#include <boost/test/included/unit_test.hpp>
+
 using namespace std;
 
 mutex m;
@@ -67,13 +70,15 @@ void test(int target, int delay)
     TimeLockedFunction tlf(delay, main_func, expiry_func, true);
 }
 
-int main()
+BOOST_AUTO_TEST_SUITE(utils)
+
+BOOST_AUTO_TEST_CASE(testTimeLockedFunction)
 {
     INIT_STDOUT_LOGGER();
 
     test(5, 4);
     test(5, 5);
     test(5, 10);
-
-    return 0;
 }
+
+BOOST_AUTO_TEST_SUITE_END()

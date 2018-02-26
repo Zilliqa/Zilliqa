@@ -29,6 +29,7 @@
 // CScheduler::Function serviceLoop = boost::bind(&CScheduler::serviceQueue, &scheduler);
 // threadGroup.create_thread(boost::bind(&TraceThread<CScheduler::Function>, "scheduler", serviceLoop));
 
+/// [TODO] Currently unused
 class Scheduler
 {
 public:

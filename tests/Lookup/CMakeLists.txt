@@ -1,7 +1,17 @@
+if(CMAKE_CONFIGURATION_TYPES)
+    foreach(config ${CMAKE_CONFIGURATION_TYPES})
+        configure_file(${CMAKE_SOURCE_DIR}/constants.xml ${config}/constants.xml COPYONLY)
+    endforeach(config)
+else(CMAKE_CONFIGURATION_TYPES)
+    configure_file(${CMAKE_SOURCE_DIR}/constants.xml constants.xml COPYONLY)
+endif(CMAKE_CONFIGURATION_TYPES)
+
 add_executable(Test_LookupNodeForDSBlock Test_LookupNodeForDSBlock.cpp)
 target_include_directories(Test_LookupNodeForDSBlock PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(Test_LookupNodeForDSBlock LINK_PUBLIC Crypto AccountData Network)
+add_test(NAME Test_LookupNodeForDSBlock COMMAND Test_LookupNodeForDSBlock)
 
 add_executable(Test_LookupNodeForTxBlock Test_LookupNodeForTxBlock.cpp)
 target_include_directories(Test_LookupNodeForTxBlock PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(Test_LookupNodeForTxBlock LINK_PUBLIC Crypto AccountData Network)
+add_test(NAME Test_LookupNodeForTxBlock COMMAND Test_LookupNodeForTxBlock)
