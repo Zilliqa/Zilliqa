@@ -21,6 +21,7 @@
 #include <map>
 #include <vector>
 
+#include "common/Broadcastable.h"
 #include "common/Executable.h"
 #include "libCrypto/Schnorr.h"
 #include "libNetwork/Peer.h"
@@ -30,7 +31,7 @@ class Mediator;
 class Synchronizer;
 
 /// Processes requests pertaining to network, transaction, or block information
-class Lookup : public Executable
+class Lookup : public Executable, public Broadcastable
 {
     Mediator & m_mediator;
 
@@ -50,7 +51,15 @@ class Lookup : public Executable
     std::mutex m_dsRandUpdationMutex;
     std::condition_variable m_dsRandUpdateCondition;
 
+    std::mutex m_mutexSetDSBlockFromSeed;
+    std::mutex m_mutexSetTxBlockFromSeed;
+    std::mutex m_mutexSetTxBodyFromSeed;
+    std::mutex m_mutexSetState;
+
+
+    
     std::vector<unsigned char> ComposeGetDSInfoMessage();
+    std::vector<unsigned char> ComposeGetStateMessage();
     std::vector<unsigned char> ComposeGetDSBlockMessage(
         boost::multiprecision::uint256_t lowBlockNum, boost::multiprecision::uint256_t highBlockNum);    
     std::vector<unsigned char> ComposeGetTxBlockMessage(
@@ -91,6 +100,7 @@ public:
     bool GetTxBlockFromLookupNodes(boost::multiprecision::uint256_t lowBlockNum, 
                                    boost::multiprecision::uint256_t highBlockNum);
     bool GetTxBodyFromSeedNodes(std::string txHashStr);
+    bool GetStateFromLookupNodes();
 #else // IS_LOOKUP_NODE 
     bool SetDSCommitteInfo();
 #endif // IS_LOOKUP_NODE
@@ -107,6 +117,9 @@ public:
                                    const Peer & from);
     bool ProcessGetTxBodyFromSeed(const std::vector<unsigned char> & message, unsigned int offset, 
                                   const Peer & from);
+    bool ProcessGetStateFromSeed(const std::vector<unsigned char> & message, unsigned int offset, 
+                                 const Peer & from);
+
     bool ProcessGetNetworkId(const std::vector<unsigned char> & message, unsigned int offset, 
                              const Peer &from);
 
@@ -120,9 +133,12 @@ public:
                                    const Peer & from); 
     bool ProcessSetTxBodyFromSeed(const std::vector<unsigned char> & message, unsigned int offset, 
                                   const Peer & from);
+    bool ProcessSetStateFromSeed(const std::vector<unsigned char> & message, unsigned int offset, 
+                                 const Peer & from);
 
     bool Execute(const std::vector<unsigned char> & message, unsigned int offset, 
                  const Peer & from);
+    bool AlreadyJoinedNetwork();
 };
 
 #endif // __LOOKUP_H__

@@ -11,6 +11,10 @@
 using namespace std;
 using namespace boost::multiprecision;
 
+Account::Account()
+{
+}
+
 Account::Account(const vector<unsigned char> & src, unsigned int offset)
 {
     Deserialize(src, offset);

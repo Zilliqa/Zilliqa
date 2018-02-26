@@ -49,6 +49,8 @@ using namespace boost::multiprecision;
 Node::Node(Mediator & mediator) : m_mediator(mediator)
 {
     // m_state = IDLE;
+    // Zilliqa first epoch start from 1 not 0. So for the first DS epoch, there will be 1 less mini epoch only for the first DS epoch. 
+    // Hence, we have to set consensusID for first epoch to 1. 
     m_consensusID = 1;
     m_consensusLeaderID = 1;
     m_synchronizer.InitializeGenesisBlocks(m_mediator.m_dsBlockChain, m_mediator.m_txBlockChain);
@@ -65,12 +67,25 @@ Node::~Node()
 }
 
 #ifndef IS_LOOKUP_NODE
+
 void Node::StartSynchronization()
 {
-    m_synchronizer.FetchDSInfo(m_mediator.m_lookup);
-    m_synchronizer.FetchLatestDSBlocks(m_mediator.m_lookup, 1);
-    m_synchronizer.FetchLatestTxBlocks(m_mediator.m_lookup, 1);
+    auto func = [this]() -> void
+    {
+        while (!m_mediator.m_isConnectedToNetwork)
+        {
+            m_synchronizer.FetchDSInfo(m_mediator.m_lookup);
+            m_synchronizer.FetchLatestDSBlocks(m_mediator.m_lookup, m_mediator.m_dsBlockChain.GetBlockCount());
+            m_synchronizer.FetchLatestTxBlocks(m_mediator.m_lookup, m_mediator.m_txBlockChain.GetBlockCount());
+            m_synchronizer.FetchLatestState(m_mediator.m_lookup);
+            //this_thread::sleep_for(chrono::seconds(NEW_NODE_POW2_TIMEOUT_IN_SECONDS));
+            this_thread::sleep_for(chrono::seconds(10));
+        }
+    };
+
+    DetachedFunction(1, func);
 }
+
 #endif // IS_LOOKUP_NODE
 
 bool Node::CheckState(Action action)
@@ -480,6 +495,7 @@ bool Node::ProcessCreateTransaction(const vector<unsigned char> & message, unsig
         Transaction txn(version, nonce, toAddr, fromAddr, amount, signature);
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
                      "Created txns: " << txn.GetTranID())
+        LOG_MESSAGE(txn.GetSerializedSize());
         m_createdTransactions.push_back(txn);
         nonce++;
         amount++;
@@ -629,7 +645,7 @@ void Node::SubmitTransactions()
     // TODO: This is a manual trottle of txns rate for stability testing.
     //uint64_t upper_id_limit = m_mediator.m_currentEpochNum * 20 + 20;
     //uint64_t lower_id_limit = m_mediator.m_currentEpochNum * 20;
-    uint64_t upper_id_limit = 500;
+    uint64_t upper_id_limit = 600;
     uint64_t lower_id_limit = 0;
 
     unsigned int txn_sent_count = 0;

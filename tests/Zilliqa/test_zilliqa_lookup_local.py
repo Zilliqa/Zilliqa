@@ -23,8 +23,9 @@ import stat
 import time 
 
 from subprocess import Popen, PIPE
+import xml.etree.cElementTree as ET
 
-NODE_LISTEN_PORT = 5000
+NODE_LISTEN_PORT = 4000
 LOCAL_RUN_FOLDER = './lookup_local_run/'
 
 def print_usage():
@@ -93,6 +94,24 @@ def run_start():
 		exit_code = process.wait()
 		keypairs.append(output)
 	keypairs.sort()
+
+	nodes = ET.Element("nodes")
+
+	# Store sorted keys list in text file
+	keys_file = open(LOCAL_RUN_FOLDER + 'keys.txt', "w")
+	for x in range(0, count):
+		keys_file.write(keypairs[x] + '\n')
+		keypair = keypairs[x].split(" ")
+		if (x < count):
+			peer = ET.SubElement(nodes, "peer")
+			ET.SubElement(peer, "pubk").text = keypair[0]
+			ET.SubElement(peer, "ip").text = '127.0.0.1'
+			ET.SubElement(peer, "port").text = str(NODE_LISTEN_PORT + x)
+	keys_file.close()
+
+	# Create config.xml with pubkey and IP info of all DS nodes
+	tree = ET.ElementTree(nodes)
+	tree.write("config.xml")
 
 	# Store sorted keys list in text file
 	keys_file = open(LOCAL_RUN_FOLDER + 'keys.txt', "w")
