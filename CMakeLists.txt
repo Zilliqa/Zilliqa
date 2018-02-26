@@ -110,8 +110,8 @@ if(IS_LOOKUP_NODE)
 endif(IS_LOOKUP_NODE)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-    SET( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} -pthread -std=c++14 -Wall -DSTAT_TEST -ggdb -DIS_LOOKUP_NODE" )
-    SET( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${GCC_COVERAGE_LINK_FLAGS} -pthread -ljsoncpp -lboost_system -lboost_filesystem -std=c++14 -Wall -DSTAT_TEST -DIS_LOOKUP_NODE" )
+    SET( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} -pthread -std=c++14 -Wall -ggdb")
+    SET( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${GCC_COVERAGE_LINK_FLAGS} -pthread -ljsoncpp -lboost_system -lboost_filesystem -std=c++14 -Wall")
 endif()
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
     SET( CMAKE_CXX_FLAGS
@@ -121,8 +121,6 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
         -stdlib=libc++ \
         -std=c++14 \
         -Wall \
-        -DSTAT_TEST \
-        -DIS_LOOKUP_NODE \
         -ggdb \
         -I${OPENSSL_INCLUDE_DIR} \
         -I/usr/local/Cellar/boost/include \
@@ -136,8 +134,6 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
         -lboost_filesystem \
         -std=c++14 \
         -Wall \
-        -DSTAT_TEST \
-        -DIS_LOOKUP_NODE \
         -L${OPENSSL_LIBRARY_DIR}" )
 endif()
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
