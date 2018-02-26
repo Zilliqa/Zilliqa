@@ -95,6 +95,7 @@ dkms.conf
 
 # Runtime testing logs and results
 local_run
+lookup_local_run
 config.xml
 *log.txt
 
