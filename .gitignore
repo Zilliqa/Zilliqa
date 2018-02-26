@@ -92,3 +92,8 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+# Runtime testing logs and results
+local_run
+config.xml
+*log.txt
