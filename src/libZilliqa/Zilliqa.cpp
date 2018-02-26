@@ -14,6 +14,8 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
+#include <jsonrpccpp/common/exception.h>
+
 #include "Zilliqa.h"
 #include "common/Messages.h"
 #include "libUtils/Logger.h"
@@ -24,7 +26,6 @@
 #include "libCrypto/Sha2.h"
 #include "libCrypto/Schnorr.h"
 #include "libUtils/DataConversion.h"
-#include <jsonrpccpp/common/exception.h>
 
 using namespace std;
 
