@@ -34,10 +34,7 @@ BOOST_AUTO_TEST_CASE (testBlockStorage)
 
     LOG_MARKER();
 
-    int blocknumber;
-
-    std::cout<<"Enter block number: ";
-    std::cin>>blocknumber;
+    int blocknumber = 0;
 
     DSBlockSharedPtr block;
     BlockStorage::GetBlockStorage().GetDSBlock(blocknumber, block);
