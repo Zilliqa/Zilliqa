@@ -46,10 +46,8 @@ void DirectoryService::ComputeSharding()
     m_publicKeyToShardIdMap.clear();
 
     uint32_t numOfComms = m_allPoW2s.size() / COMM_SIZE;
-    if ((numOfComms * COMM_SIZE) < m_allPoW2s.size())
-    {
-        numOfComms += 1;
-    }
+    
+
     for (unsigned int i = 0; i < numOfComms; i++)
     {
         m_shards.push_back(map<PubKey, Peer>());
