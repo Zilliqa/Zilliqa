@@ -61,7 +61,6 @@ Transaction::Transaction
     copy(m_toAddr.asArray().begin(), m_toAddr.asArray().end(), vec.begin() + curOffset);
     curOffset += ACC_ADDR_SIZE;
     m_senderPubKey.Serialize(vec,curOffset);
-    //copy(m_fromAddr.asArray().begin(), m_fromAddr.asArray().end(), vec.begin() + curOffset);
     curOffset += PUB_KEY_SIZE;
     SetNumber<uint256_t>(vec, curOffset, m_amount, UINT256_SIZE);
 
@@ -78,7 +77,7 @@ unsigned int Transaction::Serialize(vector<unsigned char> & dst, unsigned int of
 {
     // LOG_MARKER();
 
-    unsigned int size_needed = TRAN_HASH_SIZE + sizeof(uint32_t) + UINT256_SIZE + ACC_ADDR_SIZE + ACC_ADDR_SIZE + UINT256_SIZE + TRAN_SIG_SIZE;// + predicate_size_needed;
+    unsigned int size_needed = TRAN_HASH_SIZE + sizeof(uint32_t) + UINT256_SIZE + PUB_KEY_SIZE + ACC_ADDR_SIZE + UINT256_SIZE + TRAN_SIG_SIZE;// + predicate_size_needed;
     unsigned int size_remaining = dst.size() - offset;
 
     if (size_remaining < size_needed)
@@ -150,7 +149,7 @@ const Address & Transaction::GetToAddr() const
     return m_toAddr;
 }
 
-const Address Transaction::GetFromAddr() const
+/*const Address Transaction::GetFromAddr() const
 {
     Address m_fromAddr;
 
@@ -165,7 +164,7 @@ const Address Transaction::GetFromAddr() const
     copy(output.end() - ACC_ADDR_SIZE, output.end(), m_fromAddr.asArray().begin());
     
     return m_fromAddr; 
-}
+}*/
 
 const PubKey& Transaction::GetSenderPubKey() const
 {
