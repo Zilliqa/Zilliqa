@@ -22,6 +22,7 @@
 #include "libData/AccountData/Transaction.h"
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/DB.h"
+#include "libCrypto/Schnorr.h"
 #include "libUtils/TimeUtils.h"
 
 #define BOOST_TEST_MODULE persistencetest
@@ -49,8 +50,9 @@ BOOST_AUTO_TEST_CASE (testReadWriteSimpleStringToDB)
 Transaction constructDummyTxBody(int instanceNum) 
 {
     Address addr;
+    PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
     array<unsigned char, BLOCK_SIG_SIZE> sign;
-    return Transaction(0, instanceNum, addr, addr, 0, sign);
+    return Transaction(0, instanceNum, addr, pubKey, 0, sign);
 }
 
 BOOST_AUTO_TEST_CASE (testSerializationDeserialization)

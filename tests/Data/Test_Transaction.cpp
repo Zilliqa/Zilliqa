@@ -20,6 +20,7 @@
 #include "libData/AccountData/Transaction.h"
 #include "libUtils/Logger.h"
 #include "libUtils/DataConversion.h"
+#include "libCrypto/Schnorr.h"
 
 #define BOOST_TEST_MODULE transactiontest
 #include <boost/test/included/unit_test.hpp>
@@ -55,10 +56,11 @@ BOOST_AUTO_TEST_CASE (test1)
         signature.at(i) = i + 16;
     }
 
+    PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
     // Predicate pred(3, fromAddr, 2, 1, toAddr, fromAddr, 33, 1);
     // Transaction tx1(1, 5, toAddr, fromAddr, 55, signature, pred);
 
-    Transaction tx1(1, 5, toAddr, fromAddr, 55, signature);
+    Transaction tx1(1, 5, toAddr, pubKey, 55, signature);
     std::vector<unsigned char> message1;
     tx1.Serialize(message1, 0);
 
