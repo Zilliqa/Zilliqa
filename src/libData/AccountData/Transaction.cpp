@@ -15,7 +15,6 @@
 **/
 
 #include <algorithm>
-
 #include "Transaction.h"
 #include "libUtils/Logger.h"
 #include "libCrypto/Sha2.h"
@@ -30,7 +29,7 @@ unsigned char TX_COND = 0x2;
 
 Transaction::Transaction()
 {
-
+    PubKey();
 }
 
 Transaction::Transaction(const vector<unsigned char> & src, unsigned int offset)
@@ -43,15 +42,15 @@ Transaction::Transaction
     uint32_t version,
     const uint256_t & nonce,
     const Address & toAddr,
-    const Address & fromAddr,
+    const PubKey & senderPubKey,
     const uint256_t & amount,
     const array<unsigned char, TRAN_SIG_SIZE> & signature
-) : m_version(version), m_nonce(nonce), m_toAddr(toAddr), m_fromAddr(fromAddr), m_amount(amount), m_signature(signature)//, m_pred(pred)
+) : m_version(version), m_nonce(nonce), m_toAddr(toAddr), m_senderPubKey(senderPubKey), m_amount(amount), m_signature(signature)//, m_pred(pred)
 {
     // [TODO] m_signature should be generated from the rest
 
     vector<unsigned char> vec;
-    vec.resize(sizeof(uint32_t) + UINT256_SIZE + ACC_ADDR_SIZE * 2 + UINT256_SIZE);
+    vec.resize(sizeof(uint32_t) + UINT256_SIZE + ACC_ADDR_SIZE + PUB_KEY_SIZE +  UINT256_SIZE);
 
     unsigned int curOffset = 0;
 
@@ -61,8 +60,9 @@ Transaction::Transaction
     curOffset += UINT256_SIZE;
     copy(m_toAddr.asArray().begin(), m_toAddr.asArray().end(), vec.begin() + curOffset);
     curOffset += ACC_ADDR_SIZE;
-    copy(m_fromAddr.asArray().begin(), m_fromAddr.asArray().end(), vec.begin() + curOffset);
-    curOffset += ACC_ADDR_SIZE;
+    m_senderPubKey.Serialize(vec,curOffset);
+    //copy(m_fromAddr.asArray().begin(), m_fromAddr.asArray().end(), vec.begin() + curOffset);
+    curOffset += PUB_KEY_SIZE;
     SetNumber<uint256_t>(vec, curOffset, m_amount, UINT256_SIZE);
 
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
@@ -96,8 +96,10 @@ unsigned int Transaction::Serialize(vector<unsigned char> & dst, unsigned int of
     curOffset += UINT256_SIZE;
     copy(m_toAddr.asArray().begin(), m_toAddr.asArray().end(), dst.begin() + curOffset);
     curOffset += ACC_ADDR_SIZE;
-    copy(m_fromAddr.asArray().begin(), m_fromAddr.asArray().end(), dst.begin() + curOffset);
-    curOffset += ACC_ADDR_SIZE;
+    //copy(m_fromAddr.asArray().begin(), m_fromAddr.asArray().end(), dst.begin() + curOffset);
+    //curOffset += ACC_ADDR_SIZE;
+    m_senderPubKey.Serialize(dst,curOffset);
+    curOffset += PUB_KEY_SIZE;
     SetNumber<uint256_t>(dst, curOffset, m_amount, UINT256_SIZE);
     curOffset += UINT256_SIZE;
     copy(m_signature.begin(), m_signature.end(), dst.begin() + curOffset);
@@ -119,8 +121,10 @@ void Transaction::Deserialize(const vector<unsigned char> & src, unsigned int of
     curOffset += UINT256_SIZE;
     copy(src.begin() + curOffset, src.begin() + curOffset + ACC_ADDR_SIZE, m_toAddr.asArray().begin());
     curOffset += ACC_ADDR_SIZE;
-    copy(src.begin() + curOffset, src.begin() + curOffset + ACC_ADDR_SIZE, m_fromAddr.asArray().begin());
-    curOffset += ACC_ADDR_SIZE;
+    m_senderPubKey.Deserialize(src,curOffset);
+    curOffset+=PUB_KEY_SIZE;
+    //copy(src.begin() + curOffset, src.begin() + curOffset + ACC_ADDR_SIZE, m_fromAddr.asArray().begin());
+    //curOffset += ACC_ADDR_SIZE;
     m_amount = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
     curOffset += UINT256_SIZE;
     copy(src.begin() + curOffset, src.begin() + curOffset + TRAN_SIG_SIZE, m_signature.begin());
@@ -146,9 +150,26 @@ const Address & Transaction::GetToAddr() const
     return m_toAddr;
 }
 
-const Address & Transaction::GetFromAddr() const
+const Address Transaction::GetFromAddr() const
 {
-    return m_fromAddr;
+    Address m_fromAddr;
+
+    vector<unsigned char> vec;
+    m_senderPubKey.Serialize(vec, 0);
+    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+    sha2.Update(vec);
+    
+    const vector<unsigned char> & output = sha2.Finalize();
+    assert(output.size() == 32);
+
+    copy(output.end() - ACC_ADDR_SIZE, output.end(), m_fromAddr.asArray().begin());
+    
+    return m_fromAddr; 
+}
+
+const PubKey& Transaction::GetSenderPubKey() const
+{
+    return m_senderPubKey;
 }
 
 const uint256_t & Transaction::GetAmount() const
@@ -188,7 +209,7 @@ unsigned int Transaction::GetShardIndex(const Address & fromAddr, unsigned int n
 
 unsigned int Transaction::GetSerializedSize()
 {
-    unsigned int size_needed_wo_predicate = TRAN_HASH_SIZE + sizeof(uint32_t) + UINT256_SIZE + ACC_ADDR_SIZE + ACC_ADDR_SIZE + UINT256_SIZE + TRAN_SIG_SIZE;
+    unsigned int size_needed_wo_predicate = TRAN_HASH_SIZE + sizeof(uint32_t) + UINT256_SIZE + ACC_ADDR_SIZE + PUB_KEY_SIZE + UINT256_SIZE + TRAN_SIG_SIZE;
 
     return size_needed_wo_predicate;
 }
@@ -201,7 +222,7 @@ bool Transaction::operator==(const Transaction & tran) const
         (m_version == tran.m_version) &&
         (m_nonce == tran.m_nonce) &&
         (m_toAddr == tran.m_toAddr) &&
-        (m_fromAddr == tran.m_fromAddr) &&
+        (m_senderPubKey == tran.m_senderPubKey) &&
         (m_amount == tran.m_amount) &&
         (m_signature == tran.m_signature)
     );
@@ -241,11 +262,11 @@ bool Transaction::operator<(const Transaction & tran) const
     {
         return false;
     }
-    else if (m_fromAddr < tran.m_fromAddr)
+    else if (m_senderPubKey < tran.m_senderPubKey)
     {
         return true;
     }
-    else if (m_fromAddr > tran.m_fromAddr)
+    else if (m_senderPubKey > tran.m_senderPubKey)
     {
         return false;
     }
@@ -288,7 +309,8 @@ Transaction & Transaction::operator=(const Transaction & src)
     m_version = src.m_version;
     m_nonce = src.m_nonce;
     copy(src.m_toAddr.begin(), src.m_toAddr.end(), m_toAddr.asArray().begin());
-    copy(src.m_fromAddr.begin(), src.m_fromAddr.end(), m_fromAddr.asArray().begin());
+    //copy(src.m_fromAddr.begin(), src.m_fromAddr.end(), m_fromAddr.asArray().begin());
+    m_senderPubKey = src.m_senderPubKey;
     m_amount = src.m_amount;
     copy(src.m_signature.begin(), src.m_signature.end(), m_signature.begin());
 

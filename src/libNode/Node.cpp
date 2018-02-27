@@ -492,7 +492,7 @@ bool Node::ProcessCreateTransaction(const vector<unsigned char> & message, unsig
     // TODO: Remove this before production. This is to reduce time spent on aws testnet. 
     for (unsigned i=0; i < 10000; i++)
     {
-        Transaction txn(version, nonce, toAddr, fromAddr, amount, signature);
+        Transaction txn(version, nonce, toAddr, fromPubKey, amount, signature);
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
                      "Created txns: " << txn.GetTranID())
         LOG_MESSAGE(txn.GetSerializedSize());
