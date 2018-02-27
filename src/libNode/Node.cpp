@@ -353,7 +353,8 @@ bool Node::CheckCreatedTransaction(const Transaction & tx)
     LOG_MARKER();
 
     // Check if from account is sharded here
-    const Address & fromAddr = tx.GetFromAddr();
+    const PubKey& senderPubKey = tx.GetSenderPubKey();
+    Address  fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
     unsigned int correct_shard = Transaction::GetShardIndex(fromAddr, m_numShards);
 
     if (correct_shard != m_myShardID)
