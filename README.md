@@ -43,10 +43,11 @@ To compile and run the Zilliqa codebase, you will need the following dependencie
 * `LevelDB`
 * `CMake`
 * `build-essential`
+*  pkg-config 
 
 For a _Debian_-based system, you can use the following command to install the dependencies:  
 ```bash
-sudo apt-get install libboost-all-dev libssl-dev libleveldb-dev libjsoncpp-dev libsnappy-dev cmake build-essential
+sudo apt-get install libboost-all-dev libssl-dev libleveldb-dev libjsoncpp-dev libsnappy-dev cmake build-essential pkg-config
 ```
 
 For Mac OS X (experimental), you can use the following command to install the dependencies:  
