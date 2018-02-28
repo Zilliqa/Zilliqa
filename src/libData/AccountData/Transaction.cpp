@@ -149,23 +149,6 @@ const Address & Transaction::GetToAddr() const
     return m_toAddr;
 }
 
-/*const Address Transaction::GetFromAddr() const
-{
-    Address m_fromAddr;
-
-    vector<unsigned char> vec;
-    m_senderPubKey.Serialize(vec, 0);
-    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-    sha2.Update(vec);
-    
-    const vector<unsigned char> & output = sha2.Finalize();
-    assert(output.size() == 32);
-
-    copy(output.end() - ACC_ADDR_SIZE, output.end(), m_fromAddr.asArray().begin());
-    
-    return m_fromAddr; 
-}*/
-
 const PubKey& Transaction::GetSenderPubKey() const
 {
     return m_senderPubKey;

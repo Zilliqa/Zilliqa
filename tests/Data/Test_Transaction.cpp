@@ -60,8 +60,9 @@ BOOST_AUTO_TEST_CASE (test1)
     }
 
     PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
-Address fromCheck;
-std::vector<unsigned char> vec;
+    Address fromCheck;
+    //To obtain address
+    std::vector<unsigned char> vec;
     pubKey.Serialize(vec, 0);
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
     sha2.Update(vec);
@@ -69,9 +70,7 @@ std::vector<unsigned char> vec;
     const std::vector<unsigned char> & output = sha2.Finalize();
 
     copy(output.end() - ACC_ADDR_SIZE, output.end(),fromCheck.asArray().begin());
-    // Predicate pred(3, fromAddr, 2, 1, toAddr, fromAddr, 33, 1);
-    // Transaction tx1(1, 5, toAddr, fromAddr, 55, signature, pred);
-
+    
    Transaction tx1(1, 5, toAddr, pubKey, 55, signature);
     std::vector<unsigned char> message1;
     tx1.Serialize(message1, 0);
@@ -87,7 +86,8 @@ std::vector<unsigned char> vec;
 	{
 		LOG_PAYLOAD("SERIALZED",message1,Logger::MAX_BYTES_TO_DISPLAY);
 	}
-   std::vector<unsigned char> message2;
+	LOG_MESSAGE("address 1"<<fromCheck.hex());
+    std::vector<unsigned char> message2;
     tx2.Serialize(message2, 0);
 
     LOG_PAYLOAD("Transaction2 serialized", message2, Logger::MAX_BYTES_TO_DISPLAY);
@@ -107,16 +107,17 @@ std::vector<unsigned char> vec;
     copy(tranID2.begin(), tranID2.end(), byteVec.begin());
     LOG_PAYLOAD("Transaction2 tranID", byteVec, Logger::MAX_BYTES_TO_DISPLAY);
     
-    /*std::string expectedStr = "57B55967946EF01E023F01CEFDCD8C1C69F07ED2F9A6A961525663F6942EAB6F";
-    std::vector<unsigned char> expectedVec = DataConversion::HexStrToUint8Vec(expectedStr);
-    bool is_tranID_equal = std::equal(byteVec.begin(), byteVec.end(), expectedVec.begin());
-    BOOST_CHECK_MESSAGE(is_tranID_equal == true, "expected: " << expectedStr << " actual: " <<
-                        DataConversion::Uint8VecToHexStr(byteVec));*/
+    
+
+    LOG_MESSAGE("Checking Serialization");
+    BOOST_CHECK_MESSAGE(tx1==tx2,"Not serialized properly");
+
     LOG_MESSAGE("Transaction2 version: " << version2);
     BOOST_CHECK_MESSAGE(version2 == 1, "expected: "<<1<<" actual: "<<version2<<"\n");
 
     LOG_MESSAGE("Transaction2 nonce: " << nonce2);
     BOOST_CHECK_MESSAGE(nonce2 == 5, "expected: "<<5<<" actual: "<<nonce2<<"\n");
+
 
     byteVec.clear();
     byteVec.resize(ACC_ADDR_SIZE);
