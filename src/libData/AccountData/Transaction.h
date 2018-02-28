@@ -82,9 +82,6 @@ public:
     /// Returns the transaction destination account address.
     const Address & GetToAddr() const;
 
-    /// Returns the transaction source account address.
-    //const Address GetFromAddr() const;
-
     //// Returns the sender's Public Key.
     const PubKey& GetSenderPubKey() const;
 

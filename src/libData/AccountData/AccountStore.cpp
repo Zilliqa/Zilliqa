@@ -180,7 +180,7 @@ void AccountStore::AddAccount(const PubKey & pubKey,
 void AccountStore::UpdateAccounts(const Transaction & transaction)
 {
     const PubKey& senderPubKey = transaction.GetSenderPubKey();
-    Address  fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
+    Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
     const Address & toAddr = transaction.GetToAddr();
     const uint256_t & amount = transaction.GetAmount();
 
