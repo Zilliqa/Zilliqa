@@ -95,8 +95,6 @@ unsigned int Transaction::Serialize(vector<unsigned char> & dst, unsigned int of
     curOffset += UINT256_SIZE;
     copy(m_toAddr.asArray().begin(), m_toAddr.asArray().end(), dst.begin() + curOffset);
     curOffset += ACC_ADDR_SIZE;
-    //copy(m_fromAddr.asArray().begin(), m_fromAddr.asArray().end(), dst.begin() + curOffset);
-    //curOffset += ACC_ADDR_SIZE;
     m_senderPubKey.Serialize(dst,curOffset);
     curOffset += PUB_KEY_SIZE;
     SetNumber<uint256_t>(dst, curOffset, m_amount, UINT256_SIZE);
@@ -122,8 +120,6 @@ void Transaction::Deserialize(const vector<unsigned char> & src, unsigned int of
     curOffset += ACC_ADDR_SIZE;
     m_senderPubKey.Deserialize(src,curOffset);
     curOffset+=PUB_KEY_SIZE;
-    //copy(src.begin() + curOffset, src.begin() + curOffset + ACC_ADDR_SIZE, m_fromAddr.asArray().begin());
-    //curOffset += ACC_ADDR_SIZE;
     m_amount = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
     curOffset += UINT256_SIZE;
     copy(src.begin() + curOffset, src.begin() + curOffset + TRAN_SIG_SIZE, m_signature.begin());
