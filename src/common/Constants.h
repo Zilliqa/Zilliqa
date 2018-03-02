@@ -100,5 +100,6 @@ static const unsigned int POW_SUB_BUFFER_TIME(ReadFromConstantsFile("POW_SUB_BUF
 static const unsigned int POW1_DIFFICULTY(ReadFromConstantsFile("POW1_DIFFICULTY"));
 static const unsigned int POW2_DIFFICULTY(ReadFromConstantsFile("POW2_DIFFICULTY"));
 static const unsigned int NUM_FINAL_BLOCK_PER_POW(ReadFromConstantsFile("NUM_FINAL_BLOCK_PER_POW"));
+static const uint32_t MAXMESSAGE(ReadFromConstantsFile("MAXMESSAGE"));
 
 #endif // __CONSTANTS_H__
