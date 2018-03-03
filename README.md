@@ -35,6 +35,9 @@ To run Zilliqa, we recommend the following minimum system requirements:
 * Recent dual core processor
 * 2 GB RAM
 
+> Note: Presently we are in active development on Ubuntu 16.04. The support for
+> building on other Ubuntu versions or other OSes is pending.
+
 ## Dependencies
 To compile and run the Zilliqa codebase, you will need the following dependencies to be installed on your machine:
 * `Boost` 
@@ -43,15 +46,17 @@ To compile and run the Zilliqa codebase, you will need the following dependencie
 * `LevelDB`
 * `CMake`
 * `build-essential`
+* `pkg-config` 
+* `json-rpc-cpp`
 
-For a _Debian_-based system, you can use the following command to install the dependencies:  
+For Ubuntu 16.04, you can use the following command to install the dependencies:  
 ```bash
-sudo apt-get install libboost-all-dev libssl-dev libleveldb-dev libjsoncpp-dev libsnappy-dev cmake build-essential
+sudo apt-get install libboost-all-dev libssl-dev libleveldb-dev libjsoncpp-dev libsnappy-dev cmake libmicrohttpd-dev libjsonrpccpp-dev build-essential pkg-config
 ```
 
 For Mac OS X (experimental), you can use the following command to install the dependencies:  
 ```bash
-brew install pkg-config jsoncpp leveldb
+brew install pkg-config jsoncpp leveldb libjson-rpc-cpp
 ```
 
 # Running Zilliqa locally (using 10 shard nodes and DS node locally)  

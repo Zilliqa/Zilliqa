@@ -1,0 +1,107 @@
+[
+	{
+		"name" : "getClientVersion",
+		"params": [],
+		"returns" : ""
+	},
+	{
+		"name" : "getNetworkId",
+		"params": [],
+		"returns" : ""
+	},
+	{
+		"name" : "getProtocolVersion",
+		"params": [],
+		"returns" : ""
+	},
+	{
+		"name" : "createTransaction",
+		"params": [{}],
+		"returns" : ""
+	},
+	{
+		"name" : "getTransaction",
+		"params": [""],
+		"returns" : {}
+	},
+	{
+		"name" : "getDsBlock",
+		"params": [""],
+		"returns" : {}
+	},
+	{
+		"name" : "getTxBlock",
+		"params": [""],
+		"returns" : {}
+	},
+	{
+		"name" : "getLatestDsBlock",
+		"params": [],
+		"returns" : {}
+	},
+	{
+		"name" : "getLatestTxBlock",
+		"params": [],
+		"returns" : {}
+	},
+	{
+		"name" : "getBalance",
+		"params": [""],
+		"returns" : {}
+	},
+	{
+		"name" : "getGasPrice",
+		"params": [],
+		"returns" : ""
+	},
+	{
+		"name" : "getStorageAt",
+		"params": ["", ""],
+		"returns" : ""
+	},
+	{
+		"name" : "getTransactionHistory",
+		"params": [""],
+		"returns" : []
+	},
+	{
+		"name" : "getBlockTransactionCount",
+		"params": [""],
+		"returns" : ""
+	},
+	{
+		"name" : "getCode",
+		"params": [""],
+		"returns" : ""
+	},
+	{
+		"name" : "createMessage",
+		"params": [{}],
+		"returns" : ""
+	},
+	{
+		"name" : "getGasEstimate",
+		"params": [{}],
+		"returns" : ""
+	},
+	{
+		"name" : "getTransactionReceipt",
+		"params": [""],
+		"returns" : {}
+	},
+	{
+		"name" : "isNodeSyncing",
+		"params": [],
+		"returns" : true
+	},
+	{
+		"name" : "isNodeMining",
+		"params": [],
+		"returns" : true
+	},
+	{
+		"name" : "getHashrate",
+		"params": [],
+		"returns" : ""
+	}
+]
