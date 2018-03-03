@@ -16,8 +16,9 @@
 
 #include <algorithm>
 #include "Transaction.h"
-#include "libUtils/Logger.h"
 #include "libCrypto/Sha2.h"
+#include "libUtils/Logger.h"
+
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -29,7 +30,7 @@ unsigned char TX_COND = 0x2;
 
 Transaction::Transaction()
 {
-    PubKey();
+
 }
 
 Transaction::Transaction(const vector<unsigned char> & src, unsigned int offset)
