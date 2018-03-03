@@ -17,12 +17,11 @@
 #include <array>
 #include <string>
 #include <vector>
-
+#include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Address.h"
 #include "libData/AccountData/Transaction.h"
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/DB.h"
-#include "libCrypto/Schnorr.h"
 #include "libUtils/TimeUtils.h"
 
 #define BOOST_TEST_MODULE persistencetest
