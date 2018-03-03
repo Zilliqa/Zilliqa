@@ -32,8 +32,6 @@
 #include "libData/AccountData/Transaction.h"
 #include "libData/BlockData/Block.h"
 
-
-
 using namespace std;
 using namespace boost::multiprecision;
 
