@@ -296,7 +296,8 @@ bool Node::FindTxnInReceivedTxnsList(const TxBlock & finalblock, const uint256_t
                      DataConversion::charArrToHexStr(tx_hash.asArray()) <<
                      " with amount: " << committedTransactions.back().GetAmount() <<
                      ", to: " << committedTransactions.back().GetToAddr() <<
-                     ", from: " << committedTransactions.back().GetFromAddr());
+                     ", from: " << Account::GetAddressFromPublicKey(committedTransactions.back().GetSenderPubKey()));
+
 
         // Store TxBody to disk
         vector<unsigned char> serializedTxBody;
