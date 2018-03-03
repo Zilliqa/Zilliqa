@@ -16,19 +16,22 @@
 
 
 #include <iostream>
-#include "common/Serializable.h"
+
 #include <jsonrpccpp/server.h>
 #include <jsonrpccpp/server/connectors/httpserver.h>
-#include <jsonrpccpp/common/exception.h>
+#include "common/Serializable.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
 #include "libMediator/Mediator.h"
+#include "libUtils/Logger.h"
 #include "Server.h"
 #include "ServerFunc.h"
 
+
+>>>>>>> abecbe526cd3840b1e8e319764d93b1010912f62
+
 using namespace jsonrpc;
 using namespace std;
-using namespace boost::multiprecision;
 
 
 Server::Server(Mediator &mediator) : AbstractZServer(*(new HttpServer(4201))), m_mediator(mediator)
@@ -93,26 +96,13 @@ Json::Value Server::getLatestTxBlock()
 
 Json::Value Server::getBalance(const string & address)
 {
-	return "Hello";
-	// vector<unsigned char> input_address = DataConversion::HexStrToUint8Vec(address);
-	// PrivKey privKey(tmpprivkey, 0);
+	vector<unsigned char> tmpaddr = DataConversion::HexStrToUint8Vec(address);
+	Address addr(tmpaddr);
+	boost::multiprecision::uint256_t balance = AccountStore::GetInstance().GetBalance(addr);
 
-	// std::vector<unsigned char> input_address(address.begin(), address.end());
-	// const PrivKey priv(input_address, 0);
-	// const PubKey pub(priv);
-	// Address addr = Account::GetAddressFromPublicKey(pub);
-	// Account* account = AccountStore::GetInstance().GetAccount(addr);
-
-	// if(account != nullptr)
- //    {
- //    	Json::Value ret;
- //        ret["balance"] = 24;//account->GetBalance();
- //        ret["nonce"] = 0;//account->GetNonce();
-
- //        return ret;
- //    }
-
- //    return 0;
+	Json::Value ret;
+	ret["balance"] = balance.str();
+	return ret;
 }
 
 string Server::getStorageAt(const string & address, const string & position)

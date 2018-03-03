@@ -31,41 +31,6 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-/* Obtain a backtrace and print it to stdout. */
-void print_trace (void)
-{
-    void *array[10];
-    size_t size;
-    char **strings;
-    size_t i;
-
-    size = backtrace (array, 10);
-    strings = backtrace_symbols (array, size);
-
-    LOG_MESSAGE ("Obtained " << size << " stack frames.\n");
-
-    for (i = 0; i < size; i++)
-    {
-        LOG_MESSAGE(strings[i])
-    }
-     //printf ("%s\n", strings[i]);
-    free (strings);
-}
-
-void got_terminated()
-{
-    LOG_MESSAGE("Error: Abort was triggered.")
-    print_trace ();
-    raise (SIGABRT); // generate core dump thru abort
-}
-
-void got_unxpected()
-{
-    LOG_MESSAGE("Error: Unexpected was triggered.")
-    print_trace ();
-    raise (SIGABRT); // generate core dump thru abort
-}
-
 int main(int argc, const char * argv[])
 {
     const int num_args_required = 1 + 5; // first 1 = program name
@@ -78,9 +43,6 @@ int main(int argc, const char * argv[])
     {
         INIT_FILE_LOGGER("zilliqa");
         INIT_STATE_LOGGER("state");
-
-        //std::set_terminate( &got_terminated );
-        //std::set_unexpected( &got_unxpected );
 
         vector<unsigned char> tmpprivkey = DataConversion::HexStrToUint8Vec(argv[1]);
         vector<unsigned char> tmppubkey = DataConversion::HexStrToUint8Vec(argv[2]);
