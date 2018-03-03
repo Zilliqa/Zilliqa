@@ -29,8 +29,9 @@
 #include "libData/BlockChainData/TxBlockChain.h"
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Address.h"
-#include "libData/BlockData/Block.h"
 #include "libData/AccountData/Transaction.h"
+#include "libData/BlockData/Block.h"
+
 
 
 using namespace std;
