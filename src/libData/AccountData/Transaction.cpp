@@ -15,9 +15,9 @@
 **/
 
 #include <algorithm>
-#include "Transaction.h"
 #include "libCrypto/Sha2.h"
 #include "libUtils/Logger.h"
+#include "Transaction.h"
 
 
 using namespace std;
