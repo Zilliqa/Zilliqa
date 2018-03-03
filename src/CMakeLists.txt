@@ -9,6 +9,7 @@ add_subdirectory (libPersistence)
 add_subdirectory (libPOW)
 add_subdirectory (libNetwork)
 add_subdirectory (libNode)
+add_subdirectory (libServer)
 add_subdirectory (libUtils)
 add_subdirectory (libZilliqa)
 

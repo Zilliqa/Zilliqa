@@ -24,7 +24,7 @@ install:
         apt-get -qq update;
         apt-get install -y cmake build-essential pkg-config libssl-dev;
         apt-get install -y libboost-all-dev libleveldb-dev libsnappy-dev;
-        apt-get install -y libjsoncpp-dev;
+        apt-get install -y libjsoncpp-dev libmicrohttpd-dev libjsonrpccpp-dev;
       ";
     else
       brew update;
