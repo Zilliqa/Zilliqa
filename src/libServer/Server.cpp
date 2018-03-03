@@ -16,16 +16,15 @@
 
 
 #include <iostream>
+#include "common/Serializable.h"
 #include <jsonrpccpp/server.h>
 #include <jsonrpccpp/server/connectors/httpserver.h>
 #include <jsonrpccpp/common/exception.h>
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
-#include "common/Serializable.h"
 #include "libMediator/Mediator.h"
-#include "ServerFunc.h"
-
 #include "Server.h"
+#include "ServerFunc.h"
 
 using namespace jsonrpc;
 using namespace std;
