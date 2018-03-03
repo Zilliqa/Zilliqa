@@ -1,40 +1,45 @@
 language: generic
-sudo: false
-cache: apt
 
+# multiplied by platform
 os:
-  - linux
   - osx
+  - linux
 
+# multiplied by BUILD_COMMAND
 env:
-  global: LANGUAGE=C++ CXX=g++-5 CC=gcc-5
   matrix:
-    - BUILD_COMMAND="./build.sh"
-    - BUILD_COMMAND="./build_lookup.sh"
-
-addons:
-  apt:
-    packages:
-      - g++-5
-      - libboost-all-dev
-      - libleveldb-dev
-      - libjsoncpp-dev
-      - libsnappy-dev
-    sources: &sources
-      - r-packages-trusty
-      - llvm-toolchain-trusty
-      - ubuntu-toolchain-r-test
-      - llvm-toolchain-trusty-5.0
+    - BUILD_COMMAND=./build.sh
+    - BUILD_COMMAND=./build_lookup.sh
 
 before_install:
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install pkg-config jsoncpp leveldb; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+      docker pull ubuntu:16.04;
+      docker run -d -v $(pwd):/zilliqa -w /zilliqa --name ci ubuntu:16.04 tail -f /dev/null;
+    fi
+
+install:
+  # note: use option '-t' for 'docker exec' to enable colored output
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+      docker exec -t ci /bin/sh -c "
+        apt-get -qq update;
+        apt-get install -y cmake build-essential pkg-config libssl-dev;
+        apt-get install -y libboost-all-dev libleveldb-dev libsnappy-dev;
+        apt-get install -y libjsoncpp-dev libmicrohttpd-dev libjsonrpccpp-dev;
+      ";
+    else
+      brew update;
+      brew install pkg-config jsoncpp leveldb;
+    fi
 
 script:
-  - (eval "$BUILD_COMMAND")
-  - ctest
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+      docker exec -t ci /bin/sh -c "$BUILD_COMMAND && ctest";
+    else
+      $BUILD_COMMAND && ctest;
+    fi
 
-# TODO: fix the travis build failure on osx
+# TODO: remove when osx is fully supported
 matrix:
+  include:
   allow_failures:
     - os: osx
