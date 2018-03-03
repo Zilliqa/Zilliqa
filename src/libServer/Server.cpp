@@ -28,8 +28,6 @@
 #include "ServerFunc.h"
 
 
->>>>>>> abecbe526cd3840b1e8e319764d93b1010912f62
-
 using namespace jsonrpc;
 using namespace std;
 
