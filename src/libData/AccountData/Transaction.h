@@ -26,8 +26,8 @@
 #include "Address.h"
 #include "common/Serializable.h"
 #include "common/Constants.h"
-#include "libCrypto/Schnorr.h"
 #include "depends/common/FixedHash.h"
+#include "libCrypto/Schnorr.h"
 
 using TxnHash = dev::h256;
 
@@ -83,7 +83,7 @@ public:
     const Address & GetToAddr() const;
 
     //// Returns the sender's Public Key.
-    const PubKey& GetSenderPubKey() const;
+    const PubKey & GetSenderPubKey() const;
 
     /// Returns the transaction amount.
     const boost::multiprecision::uint256_t & GetAmount() const;

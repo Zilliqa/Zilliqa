@@ -60,7 +60,7 @@ Transaction::Transaction
     curOffset += UINT256_SIZE;
     copy(m_toAddr.asArray().begin(), m_toAddr.asArray().end(), vec.begin() + curOffset);
     curOffset += ACC_ADDR_SIZE;
-    m_senderPubKey.Serialize(vec,curOffset);
+    m_senderPubKey.Serialize(vec, curOffset);
     curOffset += PUB_KEY_SIZE;
     SetNumber<uint256_t>(vec, curOffset, m_amount, UINT256_SIZE);
 
@@ -95,7 +95,7 @@ unsigned int Transaction::Serialize(vector<unsigned char> & dst, unsigned int of
     curOffset += UINT256_SIZE;
     copy(m_toAddr.asArray().begin(), m_toAddr.asArray().end(), dst.begin() + curOffset);
     curOffset += ACC_ADDR_SIZE;
-    m_senderPubKey.Serialize(dst,curOffset);
+    m_senderPubKey.Serialize(dst, curOffset);
     curOffset += PUB_KEY_SIZE;
     SetNumber<uint256_t>(dst, curOffset, m_amount, UINT256_SIZE);
     curOffset += UINT256_SIZE;
@@ -118,8 +118,8 @@ void Transaction::Deserialize(const vector<unsigned char> & src, unsigned int of
     curOffset += UINT256_SIZE;
     copy(src.begin() + curOffset, src.begin() + curOffset + ACC_ADDR_SIZE, m_toAddr.asArray().begin());
     curOffset += ACC_ADDR_SIZE;
-    m_senderPubKey.Deserialize(src,curOffset);
-    curOffset+=PUB_KEY_SIZE;
+    m_senderPubKey.Deserialize(src, curOffset);
+    curOffset += PUB_KEY_SIZE;
     m_amount = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
     curOffset += UINT256_SIZE;
     copy(src.begin() + curOffset, src.begin() + curOffset + TRAN_SIG_SIZE, m_signature.begin());
@@ -145,7 +145,7 @@ const Address & Transaction::GetToAddr() const
     return m_toAddr;
 }
 
-const PubKey& Transaction::GetSenderPubKey() const
+const PubKey & Transaction::GetSenderPubKey() const
 {
     return m_senderPubKey;
 }
@@ -287,7 +287,6 @@ Transaction & Transaction::operator=(const Transaction & src)
     m_version = src.m_version;
     m_nonce = src.m_nonce;
     copy(src.m_toAddr.begin(), src.m_toAddr.end(), m_toAddr.asArray().begin());
-    //copy(src.m_fromAddr.begin(), src.m_fromAddr.end(), m_fromAddr.asArray().begin());
     m_senderPubKey = src.m_senderPubKey;
     m_amount = src.m_amount;
     copy(src.m_signature.begin(), src.m_signature.end(), m_signature.begin());

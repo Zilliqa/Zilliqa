@@ -17,13 +17,14 @@
 #include <array>
 #include <string>
 #include <vector>
-#include "libData/AccountData/Address.h"
+#include "libCrypto/Schnorr.h"
+#include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
+#include "libData/AccountData/Address.h"
 #include "libData/AccountData/Transaction.h"
 #include "libUtils/Logger.h"
 #include "libUtils/DataConversion.h"
-#include "libCrypto/Schnorr.h"
-#include "libCrypto/Sha2.h"
+
 
 #define BOOST_TEST_MODULE transactiontest
 #include <boost/test/included/unit_test.hpp>
@@ -127,7 +128,7 @@ BOOST_AUTO_TEST_CASE (test1)
   
     copy(fromAddr2.begin(), fromAddr2.end(), byteVec.begin());
     LOG_PAYLOAD("Transaction2 fromAddr", byteVec, Logger::MAX_BYTES_TO_DISPLAY);
-    BOOST_CHECK_MESSAGE(fromCheck == fromAddr2, "expected: "<<27<<" actual: "<<byteVec.at(19)<<"\n");
+    BOOST_CHECK_MESSAGE(fromCheck == fromAddr2, "PubKey not converted properly");
 
     LOG_MESSAGE("Transaction2 amount: " << amount2);
     BOOST_CHECK_MESSAGE(amount2 == 55, "expected: "<<55<<" actual: "<<amount2<<"\n");
