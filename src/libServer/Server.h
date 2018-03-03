@@ -18,9 +18,11 @@
 #include <jsonrpccpp/server.h>
 
 using namespace jsonrpc;
+class Mediator;
 
 class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer>
 {
+
     public:
         AbstractZServer(jsonrpc::AbstractServerConnector &conn, jsonrpc::serverVersion_t type = jsonrpc::JSONRPC_SERVER_V2) : jsonrpc::AbstractServer<AbstractZServer>(conn, type)
         {
@@ -165,8 +167,9 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer>
 
 class Server: public AbstractZServer
 {
+    Mediator & m_mediator;
     public:
-        Server();
+        Server(Mediator &mediator);
         ~Server();
 
         virtual std::string getClientVersion();

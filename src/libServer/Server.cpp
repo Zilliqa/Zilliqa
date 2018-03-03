@@ -22,6 +22,8 @@
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
 #include "common/Serializable.h"
+#include "libMediator/Mediator.h"
+#include "ServerFunc.h"
 
 #include "Server.h"
 
@@ -30,7 +32,7 @@ using namespace std;
 using namespace boost::multiprecision;
 
 
-Server::Server() : AbstractZServer(*(new HttpServer(4201)))
+Server::Server(Mediator &mediator) : AbstractZServer(*(new HttpServer(4201))), m_mediator(mediator)
 {
 	// constructor
 }
@@ -82,12 +84,12 @@ string Server::getGasPrice()
 
 Json::Value Server::getLatestDsBlock()
 {
-	return "1";
+	return convertDSblocktoJson(m_mediator.m_dsBlockChain.GetLastBlock());
 }
 
 Json::Value Server::getLatestTxBlock()
 {
-	return "Hello";
+	return convertTxBlocktoJson(m_mediator.m_txBlockChain.GetLastBlock());
 }
 
 Json::Value Server::getBalance(const string & address)
