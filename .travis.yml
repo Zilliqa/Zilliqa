@@ -28,7 +28,7 @@ install:
       ";
     else
       brew update;
-      brew install pkg-config jsoncpp leveldb;
+      brew install pkg-config jsoncpp leveldb libjson-rpc-cpp;
     fi
 
 script:
