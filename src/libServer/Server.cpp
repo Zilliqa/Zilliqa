@@ -32,7 +32,7 @@ using namespace jsonrpc;
 using namespace std;
 
 
-Server::Server(Mediator &mediator) : AbstractZServer(*(new HttpServer(4201))), m_mediator(mediator)
+Server::Server(Mediator & mediator) : AbstractZServer(*(new HttpServer(4201))), m_mediator(mediator)
 {
 	// constructor
 }
@@ -86,7 +86,9 @@ Json::Value Server::getLatestDsBlock()
 {
 	LOG_MARKER();
 	DSBlock Latest = m_mediator.m_dsBlockChain.GetLastBlock();
-	LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Call to getLatestDsBlock"<<Latest.GetHeader().GetBlockNum().str()<<"Timestamp: 		"<<Latest.GetHeader().GetTimestamp().str());
+	
+	LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Call to getLatestDsBlock, BlockNum "<<Latest.GetHeader().GetBlockNum().str()<<"  Timestamp: 		"<<Latest.GetHeader().GetTimestamp().str());
+	
 	return convertDSblocktoJson(Latest);
 }
 
@@ -95,7 +97,7 @@ Json::Value Server::getLatestTxBlock()
 	LOG_MARKER();
 	TxBlock Latest = m_mediator.m_txBlockChain.GetLastBlock();
 
-	LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Call to getLatestTxBlock"<<Latest.GetHeader().GetBlockNum().str()<<"Timestamp: 		"<<Latest.GetHeader().GetTimestamp().str());
+	LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Call to getLatestTxBlock, BlockNum "<<Latest.GetHeader().GetBlockNum().str()<<"  Timestamp: 		"<<Latest.GetHeader().GetTimestamp().str());
 	
 	return convertTxBlocktoJson(Latest);
 }
