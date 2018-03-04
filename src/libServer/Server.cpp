@@ -16,9 +16,9 @@
 
 
 #include <iostream>
-
 #include <jsonrpccpp/server.h>
 #include <jsonrpccpp/server/connectors/httpserver.h>
+
 #include "common/Serializable.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
@@ -84,16 +84,25 @@ string Server::getGasPrice()
 
 Json::Value Server::getLatestDsBlock()
 {
-	return convertDSblocktoJson(m_mediator.m_dsBlockChain.GetLastBlock());
+	LOG_MARKER();
+	DSBlock Latest = m_mediator.m_dsBlockChain.GetLastBlock();
+	LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Call to getLatestDsBlock"<<Latest.GetHeader().GetBlockNum().str()<<"Timestamp: 		"<<Latest.GetHeader().GetTimestamp().str());
+	return convertDSblocktoJson(Latest);
 }
 
 Json::Value Server::getLatestTxBlock()
 {
-	return convertTxBlocktoJson(m_mediator.m_txBlockChain.GetLastBlock());
+	LOG_MARKER();
+	TxBlock Latest = m_mediator.m_txBlockChain.GetLastBlock();
+
+	LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Call to getLatestTxBlock"<<Latest.GetHeader().GetBlockNum().str()<<"Timestamp: 		"<<Latest.GetHeader().GetTimestamp().str());
+	
+	return convertTxBlocktoJson(Latest);
 }
 
 Json::Value Server::getBalance(const string & address)
 {
+	LOG_MARKER();
 	vector<unsigned char> tmpaddr = DataConversion::HexStrToUint8Vec(address);
 	Address addr(tmpaddr);
 	boost::multiprecision::uint256_t balance = AccountStore::GetInstance().GetBalance(addr);
