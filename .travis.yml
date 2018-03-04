@@ -37,9 +37,3 @@ script:
     else
       $BUILD_COMMAND && ctest;
     fi
-
-# TODO: remove when osx is fully supported
-matrix:
-  include:
-  allow_failures:
-    - os: osx
