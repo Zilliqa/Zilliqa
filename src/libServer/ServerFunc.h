@@ -19,116 +19,30 @@
 #define __SERVERFUNC_H__
 
 #include <array>
-#include <boost/multiprecision/cpp_int.hpp>
 #include <jsoncpp/json/json.h>
-#include <string>
 #include <vector>
 
 #include "libData/BlockData/Block.h"
 #include "libData/BlockChainData/DSBlockChain.h"
 #include "libData/BlockChainData/TxBlockChain.h"
-#include "libCrypto/Schnorr.h"
-#include "libData/AccountData/Address.h"
-#include "libData/AccountData/Transaction.h"
-#include "libData/BlockData/Block.h"
 
 using namespace std;
 using namespace boost::multiprecision;
 
-
-Json::Value convertBoolArraytoJson(vector<bool> v)
+class ServerFunc
 {
-	Json::Value jsonBool;
-	for(auto i:v)
-	{
-		jsonBool.append(i?1:0);
-	}
-	return jsonBool;
-}
+public:
+	//converts an bool array to JSON array containing 1 and 0
+	static const Json::Value convertBoolArraytoJson(vector<bool> v);
+	//converts a TxnHash array to JSON array containing TxnHash strings
+	static const Json::Value convertTxnHashArraytoJson(vector<TxnHash> v);
+	//converts a TxBlock to JSON object
+	static const Json::Value convertTxBlocktoJson(TxBlock txblock);
+	//converts a DSBlocck to JSON object
+	static const Json::Value convertDSblocktoJson(DSBlock dsblock);
 
+};
 
-Json::Value convertTxnHashArraytoJson(vector<TxnHash> v)
-{
-	Json::Value jsonTxnHash;
-
-	for(auto i:v)
-	{
-		jsonTxnHash.append(i.hex());
-	}
-	return jsonTxnHash;
-}
-
-
-Json::Value convertTxBlocktoJson(TxBlock txblock)
-{
-	Json::Value ret;
-	Json::Value ret_head;
-	Json::Value ret_body;
-
-	TxBlockHeader txheader = txblock.GetHeader();
-
-	ret_head["type"] = txheader.GetType();
-	ret_head["version"] = txheader.GetVersion();
-	ret_head["GasLimit"]= txheader.GetGasLimit().str();
-	ret_head["GasUsed"] = txheader.GetGasUsed().str();
-
-	ret_head["prevBlockHash"]= txheader.GetPrevHash().hex();
-	ret_head["BlockNum"]=txheader.GetBlockNum().str();
-	ret_head["Timestamp"]=txheader.GetTimestamp().str();
-
-	ret_head["TxnHash"] = txheader.GetTxRootHash().hex();
-	ret_head["StateHash"] = txheader.GetStateRootHash().hex();
-	ret_head["NumTxns"] = txheader.GetNumTxs();
-	ret_head["NumMicroBlocks"]=txheader.GetNumMicroBlockHashes();
-
-	ret_head["MinerPubKey"] = static_cast<string>(txheader.GetMinerPubKey());
-	ret_head["DSBlockNum"] = txheader.GetDSBlockNum().str();
-	
-	string str(txblock.GetHeaderSig().begin(),txblock.GetHeaderSig().end());
-	ret_body["HeaderSign"] = str; 
-
-	
-	ret_body["MicroBlockEmpty"] = convertBoolArraytoJson(txblock.GetIsMicroBlockEmpty());
-
-	ret_body["MicroBlockHashes"] = convertTxnHashArraytoJson(txblock.GetMicroBlockHashes());
-
-	ret["header"] = ret_head;
-	ret["body"] = ret_body;
-
-	return ret;
-
-
-}
-
-Json::Value convertDSblocktoJson(DSBlock dsblock)
-{
-
-	Json::Value ret;
-	Json::Value ret_header;
-	Json::Value ret_sign;
-
-	DSBlockHeader dshead = dsblock.GetHeader();
-
-	string sign(dsblock.GetSignature().begin(),dsblock.GetSignature().end());
-
-	ret_sign = sign;
-
-	ret_header["difficulty"] = dshead.GetDifficulty();
-	ret_header["prevhash"]  = dshead.GetPrevHash().hex();
-	ret_header["nonce"] = dshead.GetNonce().str();
-	ret_header["minerPubKey"] = static_cast<string>(dshead.GetMinerPubKey());
-	ret_header["leaderPubKey"] = static_cast<string>(dshead.GetLeaderPubKey());
-	ret_header["blockNum"] = dshead.GetBlockNum().str();
-	ret_header["timestamp"] = dshead.GetTimestamp().str();
-
-
-	ret["header"] = ret_header;
-
-	ret["signature"] = ret_sign;
-
-	return ret;
-
-}
 #endif // __SERVERFUNC_H__
 
 

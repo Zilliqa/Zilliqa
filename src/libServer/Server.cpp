@@ -14,6 +14,7 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
+#include "ServerFunc.h"
 
 #include <iostream>
 #include <jsonrpccpp/server.h>
@@ -25,7 +26,7 @@
 #include "libMediator/Mediator.h"
 #include "libUtils/Logger.h"
 #include "Server.h"
-#include "ServerFunc.h"
+
 
 
 using namespace jsonrpc;
@@ -89,7 +90,7 @@ Json::Value Server::getLatestDsBlock()
 	
 	LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Call to getLatestDsBlock, BlockNum "<<Latest.GetHeader().GetBlockNum().str()<<"  Timestamp: 		"<<Latest.GetHeader().GetTimestamp().str());
 	
-	return convertDSblocktoJson(Latest);
+	return ServerFunc::convertDSblocktoJson(Latest);
 }
 
 Json::Value Server::getLatestTxBlock()
@@ -99,7 +100,7 @@ Json::Value Server::getLatestTxBlock()
 
 	LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Call to getLatestTxBlock, BlockNum "<<Latest.GetHeader().GetBlockNum().str()<<"  Timestamp: 		"<<Latest.GetHeader().GetTimestamp().str());
 	
-	return convertTxBlocktoJson(Latest);
+	return ServerFunc::convertTxBlocktoJson(Latest);
 }
 
 Json::Value Server::getBalance(const string & address)
