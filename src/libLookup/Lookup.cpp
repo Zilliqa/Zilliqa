@@ -90,6 +90,8 @@ vector<Peer> Lookup::GetLookupNodes()
     return m_lookupNodes;
 }
 
+
+
 void Lookup::SendMessageToLookupNodes(const std::vector<unsigned char> & message) const
 {
     LOG_MARKER();
@@ -320,6 +322,13 @@ bool Lookup::GetTxBodyFromSeedNodes(string txHashStr)
         }  
 
         return true;      
+    }
+
+    vector<map<PubKey, Peer>> Lookup::GetShardPeers()
+    {
+        LOG_MARKER();
+
+        return m_shards;
     }
 
 #endif // IS_LOOKUP_NODE

@@ -56,7 +56,8 @@ enum NodeInstructionType : unsigned char
     SUBMITTRANSACTION = 0x04,
     MICROBLOCKCONSENSUS = 0x05,
     FINALBLOCK = 0x06,
-    FORWARDTRANSACTION  = 0x07
+    FORWARDTRANSACTION  = 0x07,
+    CREATETRANSACTIONFROMLOOKUP = 0x08
 };
 
 enum LookupInstructionType : unsigned char
