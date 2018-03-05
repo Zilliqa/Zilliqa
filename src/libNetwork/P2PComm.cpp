@@ -259,7 +259,7 @@ void P2PComm::SendBroadcastMessageCore(const vector<Peer> & peers,
         indexes.at(i) = i;
     }
     random_shuffle(indexes.begin(), indexes.end());
-
+    
     ThreadPool pool(MAXMESSAGE);
     for (vector<unsigned int>::const_iterator curr = indexes.begin(); curr < indexes.end(); curr++)
     {
@@ -609,7 +609,7 @@ void P2PComm::SendBroadcastMessage(const vector<Peer> & peers,
                                    const vector<unsigned char> & message)
 {
     LOG_MARKER();
-
+    
     if (peers.size() > 0)
     {
         SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
@@ -625,8 +625,11 @@ void P2PComm::SendBroadcastMessage(const vector<Peer> & peers,
         LOG_STATE("[BROAD][" << std::setw(15) << std::left << m_selfPeer.GetPrintableIPAddress() <<
                   "][" << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6) << "] BEGN");
 #endif // STAT_TEST
+        {
+            lock_guard<mutex> guard(m_broadcastCoreMutex);
+            SendBroadcastMessageCore(peers, message, this_msg_hash);
+        }
 
-        SendBroadcastMessageCore(peers, message, this_msg_hash);
 
 #ifdef STAT_TEST
         LOG_STATE("[BROAD][" << std::setw(15) << std::left << m_selfPeer.GetPrintableIPAddress() <<
