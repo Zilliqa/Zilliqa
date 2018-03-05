@@ -34,7 +34,7 @@ using namespace std;
 using namespace boost::multiprecision;
 
 
-const Json::Value JSONConversion::convertBoolArraytoJson(vector<bool> v)
+const Json::Value JSONConversion::convertBoolArraytoJson(const vector<bool> &v)
 {
 	Json::Value jsonBool;
 	for(auto i:v)
@@ -45,7 +45,7 @@ const Json::Value JSONConversion::convertBoolArraytoJson(vector<bool> v)
 }
 
 
-const Json::Value JSONConversion::convertTxnHashArraytoJson(vector<TxnHash> v)
+const Json::Value JSONConversion::convertTxnHashArraytoJson(const vector<TxnHash> &v)
 {
 	Json::Value jsonTxnHash;
 
