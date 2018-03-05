@@ -15,11 +15,11 @@
 **/
 
 
-#ifndef __SERVERFUNC_H__
-#define __SERVERFUNC_H__
+#ifndef __JSONCONVERSION_H__
+#define __JSONCONVERSION_H__
 
 #include <array>
-#include <jsoncpp/json/json.h>
+#include <json/json.h>
 #include <vector>
 
 #include "libData/BlockData/Block.h"
@@ -43,6 +43,6 @@ public:
 
 };
 
-#endif // __SERVERFUNC_H__
+#endif // __JSONCONVERSION_H__
 
 
