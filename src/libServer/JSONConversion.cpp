@@ -17,7 +17,6 @@
 
 #include <array>
 #include <boost/multiprecision/cpp_int.hpp>
-#include <jsoncpp/json/json.h>
 #include <string>
 #include <vector>
 
