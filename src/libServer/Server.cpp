@@ -108,10 +108,23 @@ Json::Value Server::getBalance(const string & address)
 	LOG_MARKER();
 	vector<unsigned char> tmpaddr = DataConversion::HexStrToUint8Vec(address);
 	Address addr(tmpaddr);
-	boost::multiprecision::uint256_t balance = AccountStore::GetInstance().GetBalance(addr);
+	const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
 	Json::Value ret;
-	ret["balance"] = balance.str();
+	if(account != nullptr)
+	{
+		boost::multiprecision::uint256_t balance = account->GetBalance();
+		boost::multiprecision::uint256_t nonce = account->GetNonce();
+
+		ret["balance"] = balance.str();
+		ret["nonce"] = nonce.str();
+	}
+	else if(account == nullptr)
+	{
+		ret["balance"] = 0;
+		ret["nonce"] = 0;
+	}
+
 	return ret;
 }
 
@@ -164,14 +177,3 @@ string Server::getHashrate()
 {
 	return "Hello";
 }
-
-
-// int main()
-// {
-// 	HttpServer httpserver(4201);
-// 	Server s(httpserver);
-// 	s.StartListening();
-// 	getchar();
-// 	s.StopListening();
-// 	return 0;
-// }
