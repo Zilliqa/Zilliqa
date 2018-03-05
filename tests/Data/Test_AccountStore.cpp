@@ -18,8 +18,8 @@
 #include <string>
 
 #define BOOST_TEST_MODULE accountstoretest
-
-#include <boost/test/included/unit_test.hpp>
+#define BOOST_TEST_DYN_LINK
+#include <boost/test/unit_test.hpp>
 
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Account.h"
