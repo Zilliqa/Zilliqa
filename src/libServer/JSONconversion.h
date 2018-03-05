@@ -29,7 +29,7 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-class ServerFunc
+class JSONconversion
 {
 public:
 	//converts an bool array to JSON array containing 1 and 0
