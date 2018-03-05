@@ -14,7 +14,7 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#include "JSONconversion.h"
+#include "JSONConversion.h"
 
 #include <iostream>
 #include <jsonrpccpp/server.h>
@@ -90,7 +90,7 @@ Json::Value Server::getLatestDsBlock()
 	
 	LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Call to getLatestDsBlock, BlockNum "<<Latest.GetHeader().GetBlockNum().str()<<"  Timestamp: 		"<<Latest.GetHeader().GetTimestamp().str());
 	
-	return JSONconversion::convertDSblocktoJson(Latest);
+	return JSONConversion::convertDSblocktoJson(Latest);
 }
 
 Json::Value Server::getLatestTxBlock()
@@ -100,7 +100,7 @@ Json::Value Server::getLatestTxBlock()
 
 	LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Call to getLatestTxBlock, BlockNum "<<Latest.GetHeader().GetBlockNum().str()<<"  Timestamp: 		"<<Latest.GetHeader().GetTimestamp().str());
 	
-	return JSONconversion::convertTxBlocktoJson(Latest);
+	return JSONConversion::convertTxBlocktoJson(Latest);
 }
 
 Json::Value Server::getBalance(const string & address)

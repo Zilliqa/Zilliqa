@@ -27,7 +27,7 @@
 #include "libData/BlockChainData/DSBlockChain.h"
 #include "libData/BlockChainData/TxBlockChain.h"
 #include "libData/BlockData/Block.h"
-#include "JSONconversion.h"
+#include "JSONConversion.h"
 
 
 
@@ -35,7 +35,7 @@ using namespace std;
 using namespace boost::multiprecision;
 
 
-const Json::Value JSONconversion::convertBoolArraytoJson(vector<bool> v)
+const Json::Value JSONConversion::convertBoolArraytoJson(vector<bool> v)
 {
 	Json::Value jsonBool;
 	for(auto i:v)
@@ -46,7 +46,7 @@ const Json::Value JSONconversion::convertBoolArraytoJson(vector<bool> v)
 }
 
 
-const Json::Value JSONconversion::convertTxnHashArraytoJson(vector<TxnHash> v)
+const Json::Value JSONConversion::convertTxnHashArraytoJson(vector<TxnHash> v)
 {
 	Json::Value jsonTxnHash;
 
@@ -58,7 +58,7 @@ const Json::Value JSONconversion::convertTxnHashArraytoJson(vector<TxnHash> v)
 }
 
 
-const Json::Value JSONconversion::convertTxBlocktoJson(TxBlock txblock)
+const Json::Value JSONConversion::convertTxBlocktoJson(TxBlock txblock)
 {
 	Json::Value ret;
 	Json::Value ret_head;
@@ -99,7 +99,7 @@ const Json::Value JSONconversion::convertTxBlocktoJson(TxBlock txblock)
 
 }
 
-const Json::Value JSONconversion::convertDSblocktoJson(DSBlock dsblock)
+const Json::Value JSONConversion::convertDSblocktoJson(DSBlock dsblock)
 {
 
 	Json::Value ret;
