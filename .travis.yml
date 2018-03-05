@@ -28,7 +28,7 @@ install:
       ";
     else
       brew update;
-      brew install pkg-config jsoncpp leveldb;
+      brew install pkg-config jsoncpp leveldb libjson-rpc-cpp;
     fi
 
 script:
@@ -37,9 +37,3 @@ script:
     else
       $BUILD_COMMAND && ctest;
     fi
-
-# TODO: remove when osx is fully supported
-matrix:
-  include:
-  allow_failures:
-    - os: osx
