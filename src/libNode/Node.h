@@ -235,6 +235,7 @@ class Node : public Executable, public Broadcastable
     bool ProcessMicroblockConsensus(const std::vector<unsigned char> & message, unsigned int offset, const Peer & from);
     bool ProcessFinalBlock(const std::vector<unsigned char> & message, unsigned int offset, const Peer & from);
     bool ProcessForwardTransaction(const std::vector<unsigned char> & message, unsigned int offset, const Peer & from);
+    bool ProcessCreateTransactionFromLookup(const std::vector<unsigned char> & message, unsigned int offset, const Peer & from);
     // bool ProcessCreateAccounts(const std::vector<unsigned char> & message, unsigned int offset, const Peer & from);
     bool ProcessDSBlock(const std::vector<unsigned char> & message, unsigned int offset, const Peer & from);
 

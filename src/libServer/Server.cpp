@@ -20,16 +20,23 @@
 #include <jsonrpccpp/server/connectors/httpserver.h>
 
 #include "Server.h"
+#include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
+#include "libData/AccountData/Transaction.h"
+#include "libMediator/Mediator.h"
 #include "libUtils/Logger.h"
+#include "libNetwork/P2PComm.h"
+#include "libNetwork/Peer.h"
 #include "common/Serializable.h"
+#include "common/Messages.h"
 
 using namespace jsonrpc;
 using namespace std;
 
+#ifdef IS_LOOKUP_NODE 
 
-Server::Server() : AbstractZServer(*(new HttpServer(4201)))
+Server::Server(Mediator & mediator) : AbstractZServer(*(new HttpServer(4201))), m_mediator(mediator)
 {
 	// constructor
 }
@@ -56,7 +63,66 @@ string Server::getProtocolVersion()
 
 string Server::createTransaction(const Json::Value& _json)
 {
-	return "Hello";
+	LOG_MARKER();
+
+	//dummy transaction
+	uint32_t version = 1;
+	boost::multiprecision::uint256_t nonce = 0;
+	boost::multiprecision::uint256_t amount = 289;
+	Address toAddr;
+	for (unsigned int i = 0; i < toAddr.asArray().size(); i++)
+    {
+        toAddr.asArray().at(i) = i + 4;
+    }
+    std::array<unsigned char, TRAN_SIG_SIZE> signature;
+
+    for (unsigned int i = 0; i < signature.size(); i++)
+    {
+        signature.at(i) = 2;
+    }
+    PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
+
+    Transaction tx(version, nonce, toAddr, pubKey, amount, signature);
+
+    LOG_MESSAGE("Created Dummy Tx");
+
+
+    //[TODO] Function to convert Json to Transaction
+
+    unsigned int num_shards = m_mediator.m_lookup->GetShardPeers().size();
+
+    
+    const PubKey & senderPubKey = tx.GetSenderPubKey();
+    const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
+    unsigned int shard = Transaction::GetShardIndex(fromAddr, num_shards);
+    unsigned int curr_offset = 0;
+    
+    if(num_shards>0)
+    {
+    	map <PubKey, Peer> shardMembers = m_mediator.m_lookup->GetShardPeers()[shard];
+    	LOG_MESSAGE("The Tx Belongs to "<<shard<<" Shard");
+
+    	vector<unsigned char> tx_message = {MessageType::NODE, NodeInstructionType::CREATETRANSACTIONFROMLOOKUP};
+    	curr_offset += MessageOffset::BODY;
+
+    	tx.Serialize(tx_message, curr_offset);
+
+    	LOG_MESSAGE("Tx Serialized");
+
+
+    	P2PComm::GetInstance().SendMessage(shardMembers.begin()->second, tx_message);
+
+    	LOG_MESSAGE("Message sent to "<<shardMembers.begin()->second<<" ");
+    }
+    else
+    {
+    	LOG_MESSAGE("No shards yet");
+
+    	return "Could Not Create Transaction";
+    }
+
+    
+   	return tx.GetTranID().hex(); 
 }
 
 Json::Value Server::getTransaction(const string & transactionHash)
@@ -162,3 +228,6 @@ string Server::getHashrate()
 {
 	return "Hello";
 }
+
+
+#endif //IS_LOOKUP_NODE

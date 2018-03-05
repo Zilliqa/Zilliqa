@@ -78,6 +78,8 @@ public:
 
     // Getter for m_lookupNodes
     std::vector<Peer> GetLookupNodes();
+
+
     
     // Calls P2PComm::SendMessage serially for every Lookup Node
     void SendMessageToLookupNodes(const std::vector<unsigned char> & message) const;
@@ -101,6 +103,10 @@ public:
     bool GetStateFromLookupNodes();
 #else // IS_LOOKUP_NODE 
     bool SetDSCommitteInfo();
+
+    //Getter for m_shards
+    std::vector<std::map<PubKey, Peer>> GetShardPeers();
+
 #endif // IS_LOOKUP_NODE
 
     bool ProcessEntireShardingStructure(const std::vector<unsigned char> & message, 
