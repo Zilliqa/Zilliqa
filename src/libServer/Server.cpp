@@ -14,22 +14,26 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
+#include "JSONConversion.h"
 
 #include <iostream>
 #include <jsonrpccpp/server.h>
 #include <jsonrpccpp/server/connectors/httpserver.h>
 
-#include "Server.h"
+#include "common/Serializable.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
+#include "libMediator/Mediator.h"
 #include "libUtils/Logger.h"
-#include "common/Serializable.h"
+#include "Server.h"
+
+
 
 using namespace jsonrpc;
 using namespace std;
 
 
-Server::Server() : AbstractZServer(*(new HttpServer(4201)))
+Server::Server(Mediator & mediator) : AbstractZServer(*(new HttpServer(4201))), m_mediator(mediator)
 {
 	// constructor
 }
@@ -81,16 +85,27 @@ string Server::getGasPrice()
 
 Json::Value Server::getLatestDsBlock()
 {
-	return "1";
+	LOG_MARKER();
+	DSBlock Latest = m_mediator.m_dsBlockChain.GetLastBlock();
+	
+	LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Call to getLatestDsBlock, BlockNum "<<Latest.GetHeader().GetBlockNum().str()<<"  Timestamp: 		"<<Latest.GetHeader().GetTimestamp().str());
+	
+	return JSONConversion::convertDSblocktoJson(Latest);
 }
 
 Json::Value Server::getLatestTxBlock()
 {
-	return "Hello";
+	LOG_MARKER();
+	TxBlock Latest = m_mediator.m_txBlockChain.GetLastBlock();
+
+	LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Call to getLatestTxBlock, BlockNum "<<Latest.GetHeader().GetBlockNum().str()<<"  Timestamp: 		"<<Latest.GetHeader().GetTimestamp().str());
+	
+	return JSONConversion::convertTxBlocktoJson(Latest);
 }
 
 Json::Value Server::getBalance(const string & address)
 {
+	LOG_MARKER();
 	vector<unsigned char> tmpaddr = DataConversion::HexStrToUint8Vec(address);
 	Address addr(tmpaddr);
 	const Account* account = AccountStore::GetInstance().GetAccount(addr);
