@@ -169,6 +169,7 @@ class Server: public AbstractZServer
 {
     Mediator & m_mediator;
     public:
+
         Server(Mediator & mediator);
         ~Server();
 
