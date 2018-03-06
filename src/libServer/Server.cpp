@@ -89,7 +89,7 @@ string Server::createTransaction(const Json::Value& _json)
     if(num_shards>0)
     {
     	unsigned int shard = Transaction::GetShardIndex(fromAddr, num_shards);
-    	map <PubKey, Peer> shardMembers = m_mediator.m_lookup->GetShardPeers()[shard];
+    	map <PubKey, Peer> shardMembers = m_mediator.m_lookup->GetShardPeers().at(shard);
     	LOG_MESSAGE("The Tx Belongs to "<<shard<<" Shard");
 
     	vector<unsigned char> tx_message = {MessageType::NODE, NodeInstructionType::CREATETRANSACTIONFROMLOOKUP};

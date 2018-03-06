@@ -66,7 +66,6 @@ const unsigned int POW_SIZE = 32;
 const unsigned int IP_SIZE = 16;
 const unsigned int PORT_SIZE = 4;
 
-
 // Testing parameters
 
 
