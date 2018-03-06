@@ -611,7 +611,7 @@ bool Node::ProcessCreateTransactionFromLookup(const vector<unsigned char> & mess
 
     LOG_MARKER();
 
-    if(IsMessageSizeInappropriate(message.size(), offset, TRAN_HASH_SIZE + sizeof(uint32_t) + UINT256_SIZE + PUB_KEY_SIZE + ACC_ADDR_SIZE + UINT256_SIZE + TRAN_SIG_SIZE))
+    if(IsMessageSizeInappropriate(message.size(), offset, Transaction::GetSerializedSize()))
     {
         return false;
     }
@@ -620,13 +620,9 @@ bool Node::ProcessCreateTransactionFromLookup(const vector<unsigned char> & mess
 
     Transaction tx(message, curr_offset);
 
-    string sig(tx.GetSignature().begin(),tx.GetSignature().end());
-
-    
-
     lock_guard<mutex> g(m_mutexCreatedTransactions);
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),"Recvd txns: "<<tx.GetTranID()<<" Signature: "<<sig<<" Amount: "<<tx.GetAmount().str());
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),"Recvd txns: "<<tx.GetTranID()<<" Signature: "<<DataConversion::charArrToHexStr(tx.GetSignature())<<" toAddr: "<<tx.GetToAddr().hex());
 
     m_createdTransactions.push_back(tx);
 
