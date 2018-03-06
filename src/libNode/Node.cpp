@@ -74,12 +74,12 @@ void Node::StartSynchronization()
     {
         while (!m_mediator.m_isConnectedToNetwork)
         {
-            m_synchronizer.FetchDSInfo(m_mediator.m_lookup);
             m_synchronizer.FetchLatestDSBlocks(m_mediator.m_lookup, m_mediator.m_dsBlockChain.GetBlockCount());
+            m_synchronizer.FetchDSInfo(m_mediator.m_lookup);
             m_synchronizer.FetchLatestTxBlocks(m_mediator.m_lookup, m_mediator.m_txBlockChain.GetBlockCount());
             m_synchronizer.FetchLatestState(m_mediator.m_lookup);
             //this_thread::sleep_for(chrono::seconds(NEW_NODE_POW2_TIMEOUT_IN_SECONDS));
-            this_thread::sleep_for(chrono::seconds(10));
+            this_thread::sleep_for(chrono::seconds(30));
         }
     };
 
