@@ -26,6 +26,8 @@
 #include "libData/BlockChainData/DSBlockChain.h"
 #include "libData/BlockChainData/TxBlockChain.h"
 #include "libData/BlockData/Block.h"
+#include "libUtils/DataConversion.h"
+#include "libUtils/Logger.h"
 #include "JSONConversion.h"
 
 
@@ -57,7 +59,7 @@ const Json::Value JSONConversion::convertTxnHashArraytoJson(const vector<TxnHash
 }
 
 
-const Json::Value JSONConversion::convertTxBlocktoJson(TxBlock & txblock)
+const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock & txblock)
 {
 	Json::Value ret;
 	Json::Value ret_head;
@@ -82,8 +84,7 @@ const Json::Value JSONConversion::convertTxBlocktoJson(TxBlock & txblock)
 	ret_head["MinerPubKey"] = static_cast<string>(txheader.GetMinerPubKey());
 	ret_head["DSBlockNum"] = txheader.GetDSBlockNum().str();
 	
-	string str(txblock.GetHeaderSig().begin(),txblock.GetHeaderSig().end());
-	ret_body["HeaderSign"] = str; 
+	ret_body["HeaderSign"] = DataConversion::charArrToHexStr(txblock.GetHeaderSig()); 
 
 	
 	ret_body["MicroBlockEmpty"] = convertBoolArraytoJson(txblock.GetIsMicroBlockEmpty());
@@ -98,7 +99,7 @@ const Json::Value JSONConversion::convertTxBlocktoJson(TxBlock & txblock)
 
 }
 
-const Json::Value JSONConversion::convertDSblocktoJson(DSBlock & dsblock)
+const Json::Value JSONConversion::convertDSblocktoJson(const DSBlock & dsblock)
 {
 
 	Json::Value ret;
@@ -107,9 +108,8 @@ const Json::Value JSONConversion::convertDSblocktoJson(DSBlock & dsblock)
 
 	DSBlockHeader dshead = dsblock.GetHeader();
 
-	string sign(dsblock.GetSignature().begin(),dsblock.GetSignature().end());
 
-	ret_sign = sign;
+	ret_sign = DataConversion::charArrToHexStr(dsblock.GetSignature());
 
 	ret_header["difficulty"] = dshead.GetDifficulty();
 	ret_header["prevhash"]  = dshead.GetPrevHash().hex();
@@ -126,4 +126,87 @@ const Json::Value JSONConversion::convertDSblocktoJson(DSBlock & dsblock)
 
 	return ret;
 
+}
+
+const Transaction JSONConversion::convertJsontoTx(const Json::Value & _json)
+{
+	//LOG_MARKER();
+	
+
+	
+	string nonce_str = _json["nonce"].asString();
+	uint256_t nonce(nonce_str);
+
+	string toAddr_str = _json["to"].asString();
+	vector<unsigned char> toAddr_ser = DataConversion::HexStrToUint8Vec(toAddr_str);
+	Address toAddr(toAddr_ser);
+	//LOG_MESSAGE("toAddr size: "<<toAddr_ser.size());
+		
+	string amount_str = _json["amount"].asString();
+	uint256_t amount(amount_str);
+
+	string pubKey_str = _json["pubKey"].asString();
+	vector <unsigned char> pubKey_ser = DataConversion::HexStrToUint8Vec(pubKey_str);
+	PubKey pubKey(pubKey_ser,0);
+	//LOG_MESSAGE("PubKey size: "<<pubKey_ser.size());
+		
+	string sign_str = _json["signature"].asString();
+	array <unsigned char,TRAN_SIG_SIZE> sign = DataConversion::HexStrToStdArray64(sign_str);
+
+	//LOG_MESSAGE("Sign size: "<<sign.size());
+
+	Transaction tx1(1,nonce,toAddr,pubKey,amount,sign);
+	LOG_MESSAGE("Tx converted");
+
+	return tx1;
+	
+}
+
+const bool JSONConversion::checkJsonTx(const Json::Value & _json)
+{
+	bool ret = true;
+
+	ret &= _json.isObject();
+	ret &= (_json.size() == JSON_TRAN_SIZE);
+	ret &= _json.isMember("nonce");
+	ret &= _json.isMember("to");
+	ret &= _json.isMember("amount");
+	ret &= _json.isMember("pubKey");
+	ret &= _json.isMember("signature");
+	
+	if(ret)
+	{
+		if(!_json["nonce"].isIntegral())
+		{
+			LOG_MESSAGE("Fault in nonce");
+			return false;
+		}
+		if(!_json["amount"].isIntegral())
+		{
+			LOG_MESSAGE("Fault in amount");
+			return false;
+		}
+		if(_json["pubKey"].asString().size() != PUB_KEY_SIZE*2 )
+		{
+			LOG_MESSAGE("PubKey size wrong "<<_json["pubKey"].asString().size());
+			return false;
+		}
+		if(_json["signature"].asString().size() != TRAN_SIG_SIZE*2 )
+		{
+			LOG_MESSAGE("signature size wrong "<<_json["signature"].asString().size());
+			return false;
+		}
+		if(_json["to"].asString().size() != ACC_ADDR_SIZE*2)
+		{
+			LOG_MESSAGE("To Address size wrong "<<_json["signature"].asString().size());
+			return false;
+		}
+
+	}
+	else
+	{
+		LOG_MESSAGE("Json Data Object has missing components");
+	}
+	
+	return ret;
 }
