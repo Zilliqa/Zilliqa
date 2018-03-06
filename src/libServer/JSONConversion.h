@@ -33,13 +33,13 @@ class JSONConversion
 {
 public:
 	//converts an bool array to JSON array containing 1 and 0
-	static const Json::Value convertBoolArraytoJson(const vector<bool> &v);
+	static const Json::Value convertBoolArraytoJson(const vector<bool> & v);
 	//converts a TxnHash array to JSON array containing TxnHash strings
-	static const Json::Value convertTxnHashArraytoJson(const vector<TxnHash> &v);
+	static const Json::Value convertTxnHashArraytoJson(const vector<TxnHash> & v);
 	//converts a TxBlock to JSON object
-	static const Json::Value convertTxBlocktoJson(TxBlock txblock);
+	static const Json::Value convertTxBlocktoJson(TxBlock & txblock);
 	//converts a DSBlocck to JSON object
-	static const Json::Value convertDSblocktoJson(DSBlock dsblock);
+	static const Json::Value convertDSblocktoJson(DSBlock & dsblock);
 
 };
 
