@@ -35,6 +35,15 @@ const std::array<unsigned char, 32> DataConversion::HexStrToStdArray(const std::
     return d; 
 }
 
+const std::array<unsigned char, 64> DataConversion::HexStrToStdArray64(const std::string & hex_input)
+{
+    std::string in(hex_input);
+    std::array<unsigned char, 64> d;
+    std::vector<unsigned char> v = HexStrToUint8Vec(hex_input);
+    std::copy( std::begin(v), std::end(v), std::begin(d)); // this is the recommended way
+    return d; 
+}
+
 const std::string DataConversion::Uint8VecToHexStr(const std::vector<unsigned char> & hex_vec)
 {
     std::string str;

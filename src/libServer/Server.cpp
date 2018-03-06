@@ -19,6 +19,7 @@
 #include "JSONConversion.h"
 
 #include <iostream>
+#include <boost/multiprecision/cpp_int.hpp>
 #include <jsonrpccpp/server.h>
 #include <jsonrpccpp/server/connectors/httpserver.h>
 
@@ -69,40 +70,25 @@ string Server::createTransaction(const Json::Value& _json)
 {
 	LOG_MARKER();
 
-	//dummy transaction
-	uint32_t version = 1;
-	boost::multiprecision::uint256_t nonce = 0;
-	boost::multiprecision::uint256_t amount = 289;
-	Address toAddr;
-	for (unsigned int i = 0; i < toAddr.asArray().size(); i++)
-    {
-        toAddr.asArray().at(i) = i + 4;
-    }
-    std::array<unsigned char, TRAN_SIG_SIZE> signature;
+	if(!JSONConversion::checkJsonTx(_json))
+	{
+		return "Invalid Tx Json";
+	}
 
-    for (unsigned int i = 0; i < signature.size(); i++)
-    {
-        signature.at(i) = 2;
-    }
-    PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
-
-    Transaction tx(version, nonce, toAddr, pubKey, amount, signature);
-
-    LOG_MESSAGE("Created Dummy Tx");
-
-
-    //[TODO] Function to convert Json to Transaction
+	Transaction tx = JSONConversion::convertJsontoTx(_json);
+ 
+	//LOG_MESSAGE("Nonce: "<<tx.GetNonce().str()<<" toAddr: "<<tx.GetToAddr().hex()<<" senderPubKey: "<<static_cast<string>(tx.GetSenderPubKey());<<" amount: "<<tx.GetAmount().str());
 
     unsigned int num_shards = m_mediator.m_lookup->GetShardPeers().size();
 
     
     const PubKey & senderPubKey = tx.GetSenderPubKey();
     const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
-    unsigned int shard = Transaction::GetShardIndex(fromAddr, num_shards);
     unsigned int curr_offset = 0;
     
     if(num_shards>0)
     {
+    	unsigned int shard = Transaction::GetShardIndex(fromAddr, num_shards);
     	map <PubKey, Peer> shardMembers = m_mediator.m_lookup->GetShardPeers()[shard];
     	LOG_MESSAGE("The Tx Belongs to "<<shard<<" Shard");
 
@@ -126,7 +112,8 @@ string Server::createTransaction(const Json::Value& _json)
     }
 
     
-   	return tx.GetTranID().hex(); 
+   	return tx.GetTranID().hex();
+   	
 }
 
 Json::Value Server::getTransaction(const string & transactionHash)

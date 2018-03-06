@@ -66,6 +66,9 @@ const unsigned int POW_SIZE = 32;
 const unsigned int IP_SIZE = 16;
 const unsigned int PORT_SIZE = 4;
 
+//JSON SIZE
+const unsigned int JSON_TRAN_SIZE = 7;
+
 // Testing parameters
 
 
