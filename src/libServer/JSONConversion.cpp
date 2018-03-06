@@ -35,6 +35,7 @@
 using namespace std;
 using namespace boost::multiprecision;
 
+unsigned int JSON_TRAN_OBJECT_SIZE = 8;
 
 const Json::Value JSONConversion::convertBoolArraytoJson(const vector<bool> & v)
 {
@@ -132,7 +133,7 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value & _json)
 {
 	//LOG_MARKER();
 	
-
+	uint32_t version = _json["version"].asUInt();
 	
 	string nonce_str = _json["nonce"].asString();
 	uint256_t nonce(nonce_str);
@@ -155,7 +156,7 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value & _json)
 
 	//LOG_MESSAGE("Sign size: "<<sign.size());
 
-	Transaction tx1(1,nonce,toAddr,pubKey,amount,sign);
+	Transaction tx1(version,nonce,toAddr,pubKey,amount,sign);
 	LOG_MESSAGE("Tx converted");
 
 	return tx1;
@@ -167,12 +168,13 @@ const bool JSONConversion::checkJsonTx(const Json::Value & _json)
 	bool ret = true;
 
 	ret &= _json.isObject();
-	ret &= (_json.size() == JSON_TRAN_SIZE);
+	ret &= (_json.size() == JSON_TRAN_OBJECT_SIZE);
 	ret &= _json.isMember("nonce");
 	ret &= _json.isMember("to");
 	ret &= _json.isMember("amount");
 	ret &= _json.isMember("pubKey");
 	ret &= _json.isMember("signature");
+	ret &= _json.isMember("version");
 	
 	if(ret)
 	{
@@ -184,6 +186,11 @@ const bool JSONConversion::checkJsonTx(const Json::Value & _json)
 		if(!_json["amount"].isIntegral())
 		{
 			LOG_MESSAGE("Fault in amount");
+			return false;
+		}
+		if(!_json["version"].isIntegral())
+		{
+			LOG_MESSAGE("Fault in version");
 			return false;
 		}
 		if(_json["pubKey"].asString().size() != PUB_KEY_SIZE*2 )
