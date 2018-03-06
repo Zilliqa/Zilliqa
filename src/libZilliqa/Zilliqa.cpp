@@ -58,6 +58,7 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey> & key, const Peer & peer, bool
 #ifdef IS_LOOKUP_NODE
 	,m_server(m_mediator)
 #endif // IS_LOOKUP_NODE
+	
 {
     LOG_MARKER();
 
