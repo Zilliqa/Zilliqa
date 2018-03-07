@@ -41,6 +41,7 @@ public:
   bool FetchLatestDSBlocks(Lookup* lookup, boost::multiprecision::uint256_t currentBlockChainSize);
   bool FetchLatestTxBlocks(Lookup* lookup, boost::multiprecision::uint256_t currentBlockChainSize);
   bool FetchLatestState(Lookup* lookup);
+  bool AttemptPoW(Lookup* lookup); 
 #endif // IS_LOOKUP_NODE  
 };
 

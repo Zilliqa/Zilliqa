@@ -1074,15 +1074,6 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char> & message, un
         m_isDSRandUpdated = true;
         m_dsRandUpdateCondition.notify_one();
     }
-#ifndef IS_LOOKUP_NODE
-    bool isStartMining = InitMining();
-    if (isStartMining)
-    {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
-                    "I already participated in mining. Type: PoW1");     
-    } 
-#endif // IS_LOOKUP_NODE
-
     return true;
 }
 
@@ -1183,13 +1174,6 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char> & message, un
             }
             m_isDSRandUpdated = false;
         }
-
-        bool isStartMining = InitMining();
-        if (isStartMining)
-        {
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
-                        "I already participated in mining. Type: PoW1");     
-        } 
     }
 #endif // IS_LOOKUP_NODE
 
@@ -1208,7 +1192,6 @@ bool Lookup::ProcessSetTxBodyFromSeed(const vector<unsigned char> & message, uns
     {
         return true; 
     }
-
 
     unique_lock<mutex> lock(m_mutexSetTxBodyFromSeed);
 
@@ -1282,7 +1265,6 @@ bool Lookup::InitMining()
         POW::GetInstance().EthashConfigureLightClient(m_mediator.m_currentEpochNum);
         m_mediator.m_node->StartPoW2(m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(), 
                                         uint8_t(0x3), dsBlockRand, txBlockRand);
-
     }
     else
     {
@@ -1301,8 +1283,6 @@ bool Lookup::InitMining()
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
          "I have successfully join the network`");
     }
-
-    
 
     return true;  
 }
