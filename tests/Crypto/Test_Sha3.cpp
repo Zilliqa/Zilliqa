@@ -27,8 +27,7 @@
 #include <Shlobj.h>
 #endif
 
-#define BOOST_TEST_MODULE Daggerhashimoto
-#define BOOST_TEST_MAIN
+#define BOOST_TEST_MODULE sha3test
 
 #include <iostream>
 #include <fstream>
