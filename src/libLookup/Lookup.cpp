@@ -1074,6 +1074,12 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char> & message, un
         m_isDSRandUpdated = true;
         m_dsRandUpdateCondition.notify_one();
     }
+    bool isStartMining = InitMining();
+    if (isStartMining)
+    {
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                    "I already participated in mining. Type: PoW1");     
+    } 
 // #endif // IS_LOOKUP_NODE
 
     return true;
@@ -1177,38 +1183,13 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char> & message, un
             m_isDSRandUpdated = false;
         }
 
-        auto dsBlockRand = m_mediator.m_dsBlockRand;
-        array<unsigned char, 32> txBlockRand = {0};
-
-        if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
-        {   
-
-            if (m_mediator.m_currentEpochNum != 0)
-            {
-                m_mediator.m_node->m_consensusID = 0; 
-            }
-
-            m_mediator.m_node->SetState(Node::POW2_SUBMISSION);
-            POW::GetInstance().EthashConfigureLightClient(m_mediator.m_currentEpochNum);
-            m_mediator.m_node->StartPoW2(m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(), 
-                                         uint8_t(0x3), dsBlockRand, txBlockRand);
-
-            // Check whether is the new node connected to the network. Else, initiate re-sync process again. 
-            this_thread::sleep_for(chrono::seconds(NEW_NODE_POW2_TIMEOUT_IN_SECONDS));
-            if(!m_mediator.m_isConnectedToNetwork)
-            {
-                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                             "Not yet connected to network");       
-            }
-            else
-            {
-                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                             "I have successfully join the network`");
-            }
-        }
+        bool isStartMining = InitMining();
+        if (isStartMining)
+        {
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                        "I already participated in mining. Type: PoW1");     
+        } 
     }
-
-
 #endif // IS_LOOKUP_NODE
 
     return true;
@@ -1251,6 +1232,74 @@ bool Lookup::ProcessSetTxBodyFromSeed(const vector<unsigned char> & message, uns
 
     return true;
 }
+
+bool Lookup::InitMining()
+{
+    LOG_MARKER();
+
+    m_mediator.m_currentEpochNum = (uint64_t) m_mediator.m_txBlockChain.GetBlockCount();
+    
+    // General check
+    if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0) 
+    {
+        return false;
+    }
+
+    if (m_mediator.m_currentEpochNum != 0)
+    {
+        m_mediator.m_node->m_consensusID = 0; 
+    }
+
+    uint256_t curDsBlockNum = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(); 
+    auto dsBlockRand = m_mediator.m_dsBlockRand;
+    array<unsigned char, 32> txBlockRand = {0};
+
+    if (m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW == curDsBlockNum -1 )
+    {
+        // DS block for the epoch has not been generated. 
+        // Attempt PoW1
+        m_mediator.UpdateDSBlockRand();
+        m_mediator.UpdateTxBlockRand();
+        m_mediator.m_node->SetState(Node::POW1_SUBMISSION);
+        POW::GetInstance().EthashConfigureLightClient(m_mediator.m_currentEpochNum);
+        m_mediator.m_node->StartPoW1(m_mediator.m_dsBlockChain.GetBlockCount(), 
+                                        uint8_t(0x3), dsBlockRand, m_mediator.m_txBlockRand);
+    }
+    else if (m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW == curDsBlockNum)
+    {
+        // DS block has been generated. 
+        // Attempt PoW2
+        m_mediator.UpdateDSBlockRand();
+        txBlockRand = {0};
+        m_mediator.m_node->SetState(Node::POW2_SUBMISSION);
+        POW::GetInstance().EthashConfigureLightClient(m_mediator.m_currentEpochNum);
+        m_mediator.m_node->StartPoW2(m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(), 
+                                        uint8_t(0x3), dsBlockRand, txBlockRand);
+
+    }
+    else
+    {
+        return false; 
+    }
+
+    // Check whether is the new node connected to the network. Else, initiate re-sync process again. 
+    this_thread::sleep_for(chrono::seconds(NEW_NODE_POW2_TIMEOUT_IN_SECONDS));
+    if(!m_mediator.m_isConnectedToNetwork)
+    {
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                    "Not yet connected to network");       
+    }
+    else
+    {
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+         "I have successfully join the network`");
+    }
+
+    
+
+    return true;  
+}
+
 
 bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char> & message, unsigned int offset, 
                                       const Peer & from)

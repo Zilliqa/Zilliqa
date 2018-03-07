@@ -136,6 +136,8 @@ public:
 
     bool Execute(const std::vector<unsigned char> & message, unsigned int offset, 
                  const Peer & from);
+
+    bool InitMining();              
     bool AlreadyJoinedNetwork();
 };
 
