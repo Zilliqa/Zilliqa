@@ -47,15 +47,16 @@ To compile and run the Zilliqa codebase, you will need the following dependencie
 * `CMake`
 * `build-essential`
 * `pkg-config` 
+* `json-rpc-cpp`
 
 For Ubuntu 16.04, you can use the following command to install the dependencies:  
 ```bash
-sudo apt-get install libboost-all-dev libssl-dev libleveldb-dev libjsoncpp-dev libsnappy-dev cmake build-essential pkg-config
+sudo apt-get install libboost-all-dev libssl-dev libleveldb-dev libjsoncpp-dev libsnappy-dev cmake libmicrohttpd-dev libjsonrpccpp-dev build-essential pkg-config
 ```
 
 For Mac OS X (experimental), you can use the following command to install the dependencies:  
 ```bash
-brew install pkg-config jsoncpp leveldb
+brew install pkg-config jsoncpp leveldb libjson-rpc-cpp
 ```
 
 # Running Zilliqa locally (using 10 shard nodes and DS node locally)  

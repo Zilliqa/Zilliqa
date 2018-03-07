@@ -27,6 +27,7 @@
 #include "common/Serializable.h"
 #include "common/Constants.h"
 #include "depends/common/FixedHash.h"
+#include "libCrypto/Schnorr.h"
 
 using TxnHash = dev::h256;
 
@@ -37,7 +38,7 @@ class Transaction : public Serializable
     uint32_t m_version;
     boost::multiprecision::uint256_t m_nonce; // counter: the number of tx from m_fromAddr
     Address m_toAddr;
-    Address m_fromAddr;
+    PubKey m_senderPubKey;
     boost::multiprecision::uint256_t m_amount;
     std::array<unsigned char, TRAN_SIG_SIZE> m_signature;
 
@@ -52,7 +53,7 @@ public:
         uint32_t version,
         const boost::multiprecision::uint256_t & nonce,
         const Address & toAddr,
-        const Address & fromAddr,
+        const PubKey & senderPubKey,
         const boost::multiprecision::uint256_t & amount,
         const std::array<unsigned char, TRAN_SIG_SIZE> & signature
     );
@@ -81,8 +82,8 @@ public:
     /// Returns the transaction destination account address.
     const Address & GetToAddr() const;
 
-    /// Returns the transaction source account address.
-    const Address & GetFromAddr() const;
+    //// Returns the sender's Public Key.
+    const PubKey & GetSenderPubKey() const;
 
     /// Returns the transaction amount.
     const boost::multiprecision::uint256_t & GetAmount() const;

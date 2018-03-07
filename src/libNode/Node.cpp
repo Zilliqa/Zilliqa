@@ -353,7 +353,8 @@ bool Node::CheckCreatedTransaction(const Transaction & tx)
     LOG_MARKER();
 
     // Check if from account is sharded here
-    const Address & fromAddr = tx.GetFromAddr();
+    const PubKey & senderPubKey = tx.GetSenderPubKey();
+    Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
     unsigned int correct_shard = Transaction::GetShardIndex(fromAddr, m_numShards);
 
     if (correct_shard != m_myShardID)
@@ -492,7 +493,7 @@ bool Node::ProcessCreateTransaction(const vector<unsigned char> & message, unsig
     // TODO: Remove this before production. This is to reduce time spent on aws testnet. 
     for (unsigned i=0; i < 10000; i++)
     {
-        Transaction txn(version, nonce, toAddr, fromAddr, amount, signature);
+        Transaction txn(version, nonce, toAddr, fromPubKey, amount, signature);
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
                      "Created txns: " << txn.GetTranID())
         LOG_MESSAGE(txn.GetSerializedSize());
