@@ -14,6 +14,8 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
+#include <jsonrpccpp/common/exception.h>
+
 #include "Zilliqa.h"
 #include "common/Messages.h"
 #include "libUtils/Logger.h"
@@ -53,6 +55,10 @@ void Zilliqa::LogSelfNodeInfo(const std::pair<PrivKey, PubKey> & key, const Peer
 Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey> & key, const Peer & peer, bool loadConfig) :
         m_pm(key, peer, loadConfig), m_mediator(key, peer), m_ds(m_mediator), m_lookup(m_mediator), 
         m_n(m_mediator), m_cu(key, peer)
+#ifdef IS_LOOKUP_NODE
+	,m_server(m_mediator)
+#endif // IS_LOOKUP_NODE
+	
 {
     LOG_MARKER();
 
@@ -69,6 +75,11 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey> & key, const Peer & peer, bool
     //m_n.StartSynchronization();
 #else   // else for IS_LOOKUP_NODE
     LOG_MESSAGE("I am a lookup node.");
+    if (m_server.StartListening()) {
+        LOG_MESSAGE("1. API Server started successfully");
+    } else {
+        LOG_MESSAGE("2. API Server couldn't start");
+    }
 #endif // IS_LOOKUP_NODE
 }
 

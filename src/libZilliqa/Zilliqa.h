@@ -29,6 +29,10 @@
 #include "libNetwork/PeerManager.h"
 #include "libNode/Node.h"
 
+#ifdef IS_LOOKUP_NODE
+#include "libServer/Server.h"
+#endif
+
 /// Main Zilliqa class.
 class Zilliqa
 {
@@ -38,6 +42,10 @@ class Zilliqa
     Lookup m_lookup;
     Node m_n;
     ConsensusUser m_cu; // Note: This is just a test class to demo Consensus usage
+
+#ifdef IS_LOOKUP_NODE
+    Server m_server;
+#endif
 
 public:
 

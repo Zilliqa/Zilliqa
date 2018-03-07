@@ -14,36 +14,35 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
+
+#ifndef __JSONCONVERSION_H__
+#define __JSONCONVERSION_H__
+
 #include <array>
-#include <string>
+#include <json/json.h>
 #include <vector>
 
 #include "libData/BlockData/Block.h"
-#include "libPersistence/BlockStorage.h"
-#include "libPersistence/DB.h"
-#include "libUtils/TimeUtils.h"
+#include "libData/BlockChainData/DSBlockChain.h"
+#include "libData/BlockChainData/TxBlockChain.h"
 
-#define BOOST_TEST_MODULE persistencetest
-#define BOOST_TEST_DYN_LINK
-#include <boost/test/unit_test.hpp>
+using namespace std;
+using namespace boost::multiprecision;
 
-BOOST_AUTO_TEST_SUITE (persistencetest)
-
-BOOST_AUTO_TEST_CASE (testBlockStorage)
+class JSONConversion
 {
-    INIT_STDOUT_LOGGER();
+public:
+	//converts an bool array to JSON array containing 1 and 0
+	static const Json::Value convertBoolArraytoJson(const vector<bool> & v);
+	//converts a TxnHash array to JSON array containing TxnHash strings
+	static const Json::Value convertTxnHashArraytoJson(const vector<TxnHash> & v);
+	//converts a TxBlock to JSON object
+	static const Json::Value convertTxBlocktoJson(TxBlock & txblock);
+	//converts a DSBlocck to JSON object
+	static const Json::Value convertDSblocktoJson(DSBlock & dsblock);
 
-    LOG_MARKER();
+};
 
-    int blocknumber = 0;
+#endif // __JSONCONVERSION_H__
 
-    DSBlockSharedPtr block;
-    BlockStorage::GetBlockStorage().GetDSBlock(blocknumber, block);
 
-    LOG_MESSAGE("Block2 nonce value retrieved: " << (*block).GetHeader().GetNonce());
-    LOG_MESSAGE("Block2 difficulty value retrieved: " << (int)((*block).GetHeader().GetDifficulty()));
-    LOG_MESSAGE("Block2 blocknum value retrieved: " << (*block).GetHeader().GetBlockNum());
-    LOG_MESSAGE("Block2 timestamp value retrieved: " << (*block).GetHeader().GetTimestamp());
-}
-
-BOOST_AUTO_TEST_SUITE_END ()
