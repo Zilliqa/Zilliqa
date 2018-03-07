@@ -158,10 +158,10 @@ def run_start(numdsnodes):
 		if (x < numdsnodes):
 			shutil.copyfile('config.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/config.xml')
 			shutil.copyfile('constants_local.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml')
-			os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; ./zilliqa ' + keypair[1] + ' ' + keypair[0] + ' ' + '127.0.0.1' +' ' + str(NODE_LISTEN_PORT + x) + ' 1 > ./error_log_zilliqa 2>&1 &')
+			os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; ./zilliqa ' + keypair[1] + ' ' + keypair[0] + ' ' + '127.0.0.1' +' ' + str(NODE_LISTEN_PORT + x) + ' 1 1 > ./error_log_zilliqa 2>&1 &')
 		else:
 			shutil.copyfile('constants_local.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml')
-			os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; ./zilliqa ' + keypair[1] + ' ' + keypair[0] + ' ' + '127.0.0.1' +' ' + str(NODE_LISTEN_PORT + x) + ' 0 > ./error_log_zilliqa 2>&1 &')
+			os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; ./zilliqa ' + keypair[1] + ' ' + keypair[0] + ' ' + '127.0.0.1' +' ' + str(NODE_LISTEN_PORT + x) + ' 0 1 > ./error_log_zilliqa 2>&1 &')
 
 def run_connect(numnodes):
 	testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)
