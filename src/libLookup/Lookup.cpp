@@ -1074,13 +1074,14 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char> & message, un
         m_isDSRandUpdated = true;
         m_dsRandUpdateCondition.notify_one();
     }
+#ifndef IS_LOOKUP_NODE
     bool isStartMining = InitMining();
     if (isStartMining)
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
                     "I already participated in mining. Type: PoW1");     
     } 
-// #endif // IS_LOOKUP_NODE
+#endif // IS_LOOKUP_NODE
 
     return true;
 }
@@ -1233,6 +1234,7 @@ bool Lookup::ProcessSetTxBodyFromSeed(const vector<unsigned char> & message, uns
     return true;
 }
 
+#ifndef IS_LOOKUP_NODE
 bool Lookup::InitMining()
 {
     LOG_MARKER();
@@ -1251,6 +1253,8 @@ bool Lookup::InitMining()
     }
 
     uint256_t curDsBlockNum = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(); 
+    
+    m_mediator.UpdateDSBlockRand();
     auto dsBlockRand = m_mediator.m_dsBlockRand;
     array<unsigned char, 32> txBlockRand = {0};
 
@@ -1258,10 +1262,9 @@ bool Lookup::InitMining()
     {
         // DS block for the epoch has not been generated. 
         // Attempt PoW1
-        m_mediator.UpdateDSBlockRand();
         m_mediator.UpdateTxBlockRand();
         dsBlockRand = m_mediator.m_dsBlockRand;
-        
+
         m_mediator.m_node->SetState(Node::POW1_SUBMISSION);
         POW::GetInstance().EthashConfigureLightClient(m_mediator.m_currentEpochNum);
         m_mediator.m_node->StartPoW1(m_mediator.m_dsBlockChain.GetBlockCount(), 
@@ -1303,6 +1306,7 @@ bool Lookup::InitMining()
 
     return true;  
 }
+#endif // IS_LOOKUP_NODE
 
 
 bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char> & message, unsigned int offset, 
