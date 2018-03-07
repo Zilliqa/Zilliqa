@@ -1260,6 +1260,8 @@ bool Lookup::InitMining()
         // Attempt PoW1
         m_mediator.UpdateDSBlockRand();
         m_mediator.UpdateTxBlockRand();
+        dsBlockRand = m_mediator.m_dsBlockRand;
+        
         m_mediator.m_node->SetState(Node::POW1_SUBMISSION);
         POW::GetInstance().EthashConfigureLightClient(m_mediator.m_currentEpochNum);
         m_mediator.m_node->StartPoW1(m_mediator.m_dsBlockChain.GetBlockCount(), 
@@ -1270,7 +1272,9 @@ bool Lookup::InitMining()
         // DS block has been generated. 
         // Attempt PoW2
         m_mediator.UpdateDSBlockRand();
+        dsBlockRand = m_mediator.m_dsBlockRand;
         txBlockRand = {0};
+
         m_mediator.m_node->SetState(Node::POW2_SUBMISSION);
         POW::GetInstance().EthashConfigureLightClient(m_mediator.m_currentEpochNum);
         m_mediator.m_node->StartPoW2(m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(), 
