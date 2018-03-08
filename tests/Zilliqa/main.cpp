@@ -33,7 +33,7 @@ using namespace boost::multiprecision;
 
 int main(int argc, const char * argv[])
 {
-    const int num_args_required = 1 + 5; // first 1 = program name
+    const int num_args_required = 1 + 6; // first 1 = program name
 
     if (argc != num_args_required)
     {
