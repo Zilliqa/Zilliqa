@@ -599,7 +599,6 @@ void Node::InitiatePoW1()
         StartPoW1(epochNumber, uint8_t(0x3), dsBlockRand, txBlockRand);
     };
     DetachedFunction(1, func);
-//    StartPoW1(m_mediator.m_dsBlockChain.GetBlockCount(), uint8_t(0x3), m_mediator.m_dsBlockRand, m_mediator.m_txBlockRand);
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Soln to pow1 found ");
 }
 
