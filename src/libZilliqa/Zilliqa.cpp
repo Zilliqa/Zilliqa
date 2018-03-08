@@ -52,7 +52,7 @@ void Zilliqa::LogSelfNodeInfo(const std::pair<PrivKey, PubKey> & key, const Peer
     LOG_MESSAGE("My address is " << toAddr << " and port is " << peer.m_listenPortHost);
 }
 
-Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey> & key, const Peer & peer, bool loadConfig) :
+Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey> & key, const Peer & peer, bool loadConfig, bool toSyncWithNetwork) :
         m_pm(key, peer, loadConfig), m_mediator(key, peer), m_ds(m_mediator), m_lookup(m_mediator), 
         m_n(m_mediator), m_cu(key, peer)
 #ifdef IS_LOOKUP_NODE
@@ -72,7 +72,10 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey> & key, const Peer & peer, bool
 
 #ifndef IS_LOOKUP_NODE
     LOG_MESSAGE("I am a normal node.");
-    //m_n.StartSynchronization();
+    if(toSyncWithNetwork)
+    {
+        m_n.StartSynchronization();
+    }
 #else   // else for IS_LOOKUP_NODE
     LOG_MESSAGE("I am a lookup node.");
     if (m_server.StartListening()) {
