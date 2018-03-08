@@ -542,6 +542,9 @@ bool Lookup::ProcessGetDSInfoFromSeed(const vector<unsigned char> & message, uns
         Peer & peer = dsPeers.at(i);     
         peer.Serialize(dsInfoMessage, curr_offset);
         curr_offset += (IP_SIZE + PORT_SIZE);
+
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "IP:" << peer.GetPrintableIPAddress());
+
     }
 
     if (IsMessageSizeInappropriate(message.size(), offset, sizeof(uint32_t)))
@@ -1225,7 +1228,7 @@ bool Lookup::InitMining()
     m_mediator.m_currentEpochNum = (uint64_t) m_mediator.m_txBlockChain.GetBlockCount();
     
     // General check
-    if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0) 
+    if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0) 
     {
         return false;
     }
