@@ -6,5 +6,6 @@ json_spirit_writer.cpp)
 FIND_PACKAGE(Boost 1.34 REQUIRED)
 INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIR})
 
+link_directories(${JSONCPP_LIBDIR})
 ADD_LIBRARY(json_spirit SHARED ${JSON_SPIRIT_SRCS})
 

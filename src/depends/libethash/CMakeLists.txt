@@ -28,6 +28,7 @@ endif()
 include_directories(${CMAKE_SOURCE_DIR}/src/)
 list(APPEND FILES sha3.c sha3.h)
 
+link_directories(${JSONCPP_LIBDIR})
 add_library(ethash SHARED ${FILES})
 
 if (CRYPTOPP_FOUND)

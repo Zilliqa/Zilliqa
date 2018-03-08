@@ -6,6 +6,7 @@ else(CMAKE_CONFIGURATION_TYPES)
     configure_file(${CMAKE_SOURCE_DIR}/constants.xml constants.xml COPYONLY)
 endif(CMAKE_CONFIGURATION_TYPES)
 
+link_directories(${JSONCPP_LIBDIR} /usr/local/Cellar/libjson-rpc-cpp/1.1.0/lib)
 add_executable (Test_TimeLockedFunction Test_TimeLockedFunction.cpp)
 target_include_directories (Test_TimeLockedFunction PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries (Test_TimeLockedFunction LINK_PUBLIC Utils)
