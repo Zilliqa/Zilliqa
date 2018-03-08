@@ -21,32 +21,12 @@
 #include "libCrypto/Sha3.h"
 #include "libUtils/DataConversion.h"
 
-
-#ifdef _WIN32
-#include <windows.h
-#include <Shlobj.h>
-#endif
-
-#define BOOST_TEST_MODULE Daggerhashimoto
-#define BOOST_TEST_MAIN
-
-#include <iostream>
-#include <fstream>
-#include <sstream>
-
-#include <vector>
-#include <array>
-#include <boost/filesystem.hpp>
+#define BOOST_TEST_MODULE sha3test
 #include <boost/test/unit_test.hpp>
 
 using namespace std;
-using byte = uint8_t;
-using bytes = std::vector<byte>;
-namespace fs = boost::filesystem;
 
-// Just an alloca "wrapper" to silence uint64_t to size_t conversion warnings in windows
-// consider replacing alloca calls with something better though!
-#define our_alloca(param__) alloca((size_t)(param__))
+BOOST_AUTO_TEST_SUITE (sha3test)
 
 BOOST_AUTO_TEST_CASE(SHA256_check_896bitsx3) 
 {
@@ -151,3 +131,5 @@ BOOST_AUTO_TEST_CASE(SHA512_check_896bitsx3_updatewithoffset)
     is_equal = std::equal(expected.begin(), expected.end(), output.begin());
     BOOST_CHECK_EQUAL(is_equal, true);
 }
+
+BOOST_AUTO_TEST_SUITE_END ()
