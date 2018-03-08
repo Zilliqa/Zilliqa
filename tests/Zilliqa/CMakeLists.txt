@@ -1,4 +1,4 @@
-link_directories(${JSONCPP_LIBDIR} /usr/local/Cellar/libjson-rpc-cpp/1.1.0/lib)
+link_directories(${JSONCPP_LIBDIR} /usr/local/lib)
 add_executable (zilliqa main.cpp)
 target_include_directories (zilliqa PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries (zilliqa LINK_PUBLIC Consensus Network Utils Zilliqa DirectoryService Node)
