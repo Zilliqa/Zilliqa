@@ -121,7 +121,7 @@ bool Node::ProcessSharding(const vector<unsigned char> & message, unsigned int o
     // [16-byte ip] [4-byte port] ... (all nodes; first entry is leader)
     LOG_MARKER();
 
-    POW::GetInstance().StopMining(); // TODO
+    POW::GetInstance().StopMining(); 
 
     m_mediator.m_isConnectedToNetwork = true;
 
