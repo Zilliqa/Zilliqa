@@ -94,6 +94,9 @@ public:
     /// Identifies the shard number that should process the transaction.
     static unsigned int GetShardIndex(const Address & fromAddr, unsigned int numShards);
 
+    /// Verifies the transaction w.r.t given pubKey and signature
+    static bool Verify(const Transaction & tran);
+
     /// Equality comparison operator.
     bool operator==(const Transaction & tran) const;
 

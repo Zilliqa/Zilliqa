@@ -31,6 +31,7 @@
 #include <boost/test/unit_test.hpp>
 
 using namespace boost::multiprecision;
+using namespace std;
 
 BOOST_AUTO_TEST_SUITE (transactiontest)
 
@@ -139,6 +140,57 @@ BOOST_AUTO_TEST_CASE (test1)
     copy(signature2.begin(), signature2.end(), byteVec.begin());
     LOG_PAYLOAD("Transaction2 signature", byteVec, Logger::MAX_BYTES_TO_DISPLAY);
     BOOST_CHECK_MESSAGE(byteVec.at(63) == 79, "expected: "<<79<<" actual: "<<byteVec.at(63)<<"\n");
+
+    pair<PrivKey, PubKey> KeyPair = Schnorr::GetInstance().GenKeyPair();
+
+    byteVec.clear();
+    byteVec.resize(sizeof(uint32_t) + UINT256_SIZE + ACC_ADDR_SIZE + PUB_KEY_SIZE + UINT256_SIZE);
+    unsigned int curOffset = 0;
+    Serializable::SetNumber<uint32_t>(byteVec, curOffset, 0, sizeof(uint32_t));
+    curOffset += sizeof(uint32_t);
+    Serializable::SetNumber<uint256_t>(byteVec, curOffset, 1, UINT256_SIZE);
+    curOffset += UINT256_SIZE;
+    string str = "1234567890123456789012345678901234567890";
+    array <unsigned char, 32> toAddr_arr  = DataConversion::HexStrToStdArray(str);
+    copy(toAddr_arr.begin(), toAddr_arr.end(), byteVec.begin() + curOffset);
+    curOffset += ACC_ADDR_SIZE;
+
+    Address toAddr3(str);
+    PubKey pbk = KeyPair.second;
+    pbk.Serialize(byteVec, curOffset);
+    curOffset += PUB_KEY_SIZE;
+    Serializable::SetNumber<uint256_t>(byteVec, curOffset, 100, UINT256_SIZE);
+    curOffset += UINT256_SIZE;
+
+    LOG_MESSAGE("Size :"<<byteVec.size()<<" VectorHex: "<<DataConversion::Uint8VecToHexStr(byteVec));
+
+    Signature sign;
+
+    Schnorr::GetInstance().Sign(byteVec, KeyPair.first, KeyPair.second, sign);
+
+    vector <unsigned char> sign_ser;
+    sign.Serialize(sign_ser,0);
+
+    
+
+    array<unsigned char, TRAN_SIG_SIZE> sign_arr;
+
+   
+
+    copy(sign_ser.begin(),sign_ser.end(),sign_arr.begin());
+
+    LOG_MESSAGE(string(sign_arr.begin(),sign_arr.end())<<"    "<<sign_arr.size());
+
+    
+
+    Transaction txv(0,1,toAddr3,pbk,100,sign_arr);
+
+
+
+
+    bool b = Transaction::Verify(txv);
+
+    BOOST_CHECK_MESSAGE(b, "Signature not verified\n");
 
     // byteVec.clear();
     // byteVec.resize(1);
