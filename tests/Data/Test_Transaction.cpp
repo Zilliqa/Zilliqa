@@ -171,22 +171,11 @@ BOOST_AUTO_TEST_CASE (test1)
     vector <unsigned char> sign_ser;
     sign.Serialize(sign_ser,0);
 
-    
-
     array<unsigned char, TRAN_SIG_SIZE> sign_arr;
-
-   
 
     copy(sign_ser.begin(),sign_ser.end(),sign_arr.begin());
 
-    LOG_MESSAGE(string(sign_arr.begin(),sign_arr.end())<<"    "<<sign_arr.size());
-
-    
-
     Transaction txv(0,1,toAddr3,pbk,100,sign_arr);
-
-
-
 
     bool b = Transaction::Verify(txv);
 

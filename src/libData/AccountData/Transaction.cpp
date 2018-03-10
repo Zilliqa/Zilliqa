@@ -220,7 +220,6 @@ bool Transaction::Verify(const Transaction & tran)
     sign_ser.resize(TRAN_SIG_SIZE);
     copy(tran.m_signature.begin(), tran.m_signature.end(), sign_ser.begin());
 
-    LOG_MESSAGE(string(sign_ser.begin(),sign_ser.end()));
 
     Signature sign(sign_ser,0);
 
