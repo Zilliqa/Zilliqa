@@ -20,6 +20,7 @@
 
 #include <iostream>
 #include <boost/multiprecision/cpp_int.hpp>
+#include <deque>
 #include <jsonrpccpp/server.h>
 #include <jsonrpccpp/server/connectors/httpserver.h>
 
@@ -76,6 +77,11 @@ string Server::createTransaction(const Json::Value& _json)
 	}
 
 	Transaction tx = JSONConversion::convertJsontoTx(_json);
+
+	if(!Transaction::Verify(tx))
+	{
+		return "Signature incorrect";
+	}
  
 	//LOG_MESSAGE("Nonce: "<<tx.GetNonce().str()<<" toAddr: "<<tx.GetToAddr().hex()<<" senderPubKey: "<<static_cast<string>(tx.GetSenderPubKey());<<" amount: "<<tx.GetAmount().str());
 
@@ -86,7 +92,7 @@ string Server::createTransaction(const Json::Value& _json)
     const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
     unsigned int curr_offset = 0;
     
-    if(num_shards>0)
+    if( num_shards > 0 )
     {
     	unsigned int shard = Transaction::GetShardIndex(fromAddr, num_shards);
     	map <PubKey, Peer> shardMembers = m_mediator.m_lookup->GetShardPeers().at(shard);
@@ -99,10 +105,20 @@ string Server::createTransaction(const Json::Value& _json)
 
     	LOG_MESSAGE("Tx Serialized");
 
+    	vector<Peer> toSend;
 
-    	P2PComm::GetInstance().SendMessage(shardMembers.begin()->second, tx_message);
+    	auto it = shardMembers.begin();
+    	for(unsigned int i = 0; i < NUM_PEERS_TO_SEND_IN_A_SHARD && it!=shardMembers.end() ; i++, it++ )
+    	{
+    		toSend.push_back(it->second);
 
-    	LOG_MESSAGE("Message sent to "<<shardMembers.begin()->second<<" ");
+    	}
+	
+	
+
+    	P2PComm::GetInstance().SendMessage(toSend, tx_message);
+
+    	
     }
     else
     {

@@ -40,7 +40,7 @@ public:
     static const std::array<unsigned char, 64> HexStrToStdArray64(const std::string & hex_input);
 
     /// Converts byte vector to alphanumeric hex string.
-    static const std::string Uint8VecToHexStr(const std::vector<unsigned char> & hex_vec);;
+    static const std::string Uint8VecToHexStr(const std::vector<unsigned char> & hex_vec);
 
     /// Converts byte vector to alphanumeric hex string.
     static const std::string Uint8VecToHexStr(const std::vector<unsigned char> & hex_vec, unsigned int offset, unsigned int len);
