@@ -90,8 +90,6 @@ void Node::StartPoW2MiningAndShareResultWithDS(const uint256_t & block_num, uint
 {
     LOG_MARKER();
 
-    // Start mining
-    //POW POWClient;
     ethash_mining_result winning_result = POW::GetInstance().PoWMine(block_num, difficulty, rand1, rand2,
                                                                      m_mediator.m_selfPeer.m_ipAddress, m_mediator.m_selfKey.second, false);
 
@@ -107,11 +105,6 @@ bool Node::StartPoW2(uint256_t block_num, uint8_t difficulty, array<unsigned cha
     // Message = [32-byte block num] [1-byte difficulty] [32-byte rand1] [32-byte rand2] [16-byte ip] [4-byte port] ... (all the DS nodes)
 
     LOG_MARKER();
-
-    // m_isDSNode = false;
-
-    // For use in sending txns. hack.
-    // m_mediator.m_currentEpochNum = (uint64_t) block_num; //setting class variable for use else where as a hack.
 
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
                  "blockNum: " << block_num << " Difficulty: " << difficulty);

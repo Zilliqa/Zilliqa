@@ -165,4 +165,17 @@ bool Synchronizer::FetchLatestState(Lookup* lookup)
     // lookup->GetStateFromSeedNodes(currentBlockChainSize, 0);
     return true;
 }
+
+bool Synchronizer::AttemptPoW(Lookup* lookup)
+{
+    if (lookup->InitMining())
+    {
+        LOG_MESSAGE("new node attempted pow");
+    }
+    else
+    {
+        LOG_MESSAGE("new node did not attempt pow")
+    }
+    return true;
+}
 #endif // IS_LOOKUP_NODE  
