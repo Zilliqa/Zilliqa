@@ -90,6 +90,8 @@ vector<Peer> Lookup::GetLookupNodes()
     return m_lookupNodes;
 }
 
+
+
 void Lookup::SendMessageToLookupNodes(const std::vector<unsigned char> & message) const
 {
     LOG_MARKER();
@@ -322,6 +324,13 @@ bool Lookup::GetTxBodyFromSeedNodes(string txHashStr)
         return true;      
     }
 
+    vector<map<PubKey, Peer>> Lookup::GetShardPeers()
+    {
+        LOG_MARKER();
+        lock_guard<mutex> g(m_mutexShards);
+        return m_shards;
+    }
+
 #endif // IS_LOOKUP_NODE
 
 bool Lookup::ProcessEntireShardingStructure(const vector<unsigned char> & message, 
@@ -357,6 +366,8 @@ bool Lookup::ProcessEntireShardingStructure(const vector<unsigned char> & messag
     offset += sizeof(uint32_t);
 
     LOG_MESSAGE("Number of shards: " << to_string(num_shards));
+
+    lock_guard<mutex> g(m_mutexShards);
 
     m_shards.clear();
     m_nodesInNetwork.clear();
