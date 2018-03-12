@@ -33,11 +33,11 @@ using namespace boost::multiprecision;
 
 int main(int argc, const char * argv[])
 {
-    const int num_args_required = 1 + 5; // first 1 = program name
+    const int num_args_required = 1 + 6; // first 1 = program name
 
     if (argc != num_args_required)
     {
-        cout << "[USAGE] " << argv[0] << " <32-byte private_key> <33-byte public_key> <listen_ip_address> <listen_port> <1 if loadConfig, 0 otherwise>" << endl;
+        cout << "[USAGE] " << argv[0] << " <32-byte private_key> <33-byte public_key> <listen_ip_address> <listen_port> <1 if loadConfig, 0 otherwise> <1 if sync, 0 otherwise>" << endl;
     }
     else
     {
@@ -53,7 +53,7 @@ int main(int argc, const char * argv[])
         inet_aton(argv[3], &ip_addr);
         Peer my_port((uint128_t)ip_addr.s_addr, static_cast<unsigned int>(atoi(argv[4])));
 
-        Zilliqa zilliqa(make_pair(privkey, pubkey), my_port, atoi(argv[5]) == 1);
+        Zilliqa zilliqa(make_pair(privkey, pubkey), my_port, atoi(argv[5]) == 1, atoi(argv[6]) == 1);
 
         auto dispatcher = [&zilliqa](const vector<unsigned char> & message, const Peer & from) mutable -> void { zilliqa.Dispatch(message, from); };
         auto broadcast_list_retriever = [&zilliqa](unsigned char msg_type, unsigned char ins_type, const Peer & from) mutable -> vector<Peer> { return zilliqa.RetrieveBroadcastList(msg_type, ins_type, from); };

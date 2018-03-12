@@ -47,6 +47,8 @@ using namespace boost::multiprecision;
 
 void Node::StoreDSBlockToDisk(const DSBlock & dsblock)
 {
+    LOG_MARKER();
+
     m_mediator.m_dsBlockChain.AddBlock(dsblock);
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Storing DS Block Number: "<<dsblock.GetHeader().GetBlockNum()<<
                                            " with Nonce: "<<dsblock.GetHeader().GetNonce()<<
@@ -63,6 +65,8 @@ void Node::StoreDSBlockToDisk(const DSBlock & dsblock)
 
 void Node::UpdateDSCommiteeComposition(const Peer & winnerpeer)
 {
+    LOG_MARKER();
+
     // Update my view of the DS committee
     // 1. Insert new leader at the head of the queue
     // 2. Pop out the oldest backup from the tail of the queue
@@ -83,7 +87,8 @@ void Node::UpdateDSCommiteeComposition(const Peer & winnerpeer)
 
 bool Node::CheckWhetherDSBlockNumIsLatest(const uint256_t dsblockNum)
 {
-    // uint256_t latestBlockNumInBlockchain = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+    LOG_MARKER();
+    
     uint256_t latestBlockNumInBlockchain = m_mediator.m_dsBlockChain.GetBlockCount();
 
     if (dsblockNum < latestBlockNumInBlockchain)
@@ -190,6 +195,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char> & message, unsigned int cu
     if (m_mediator.m_selfKey.second == m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetMinerPubKey())
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "I won PoW1 :-) I am now the new DS committee leader!");
+        m_mediator.m_isConnectedToNetwork = true;
         m_mediator.m_ds->m_consensusMyID = 0;
         m_mediator.m_ds->m_consensusID = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
         m_mediator.m_ds->SetState(DirectoryService::DirState::POW2_SUBMISSION);
