@@ -169,7 +169,8 @@ class Server: public AbstractZServer
 {
     Mediator & m_mediator;
     public:
-        Server(Mediator &mediator);
+
+        Server(Mediator & mediator);
         ~Server();
 
         virtual std::string getClientVersion();

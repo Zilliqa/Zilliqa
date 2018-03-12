@@ -19,6 +19,7 @@
 #define __LOOKUP_H__
 
 #include <map>
+#include <mutex>
 #include <vector>
 
 #include "common/Broadcastable.h"
@@ -43,6 +44,7 @@ class Lookup : public Executable, public Broadcastable
 
 #ifdef IS_LOOKUP_NODE
     // Sharding committee members
+    std::mutex m_mutexShards;
     std::vector<std::map<PubKey, Peer>> m_shards;
     std::vector<Peer> m_nodesInNetwork;
 #endif // IS_LOOKUP_NODE
@@ -78,6 +80,8 @@ public:
 
     // Getter for m_lookupNodes
     std::vector<Peer> GetLookupNodes();
+
+
     
     // Calls P2PComm::SendMessage serially for every Lookup Node
     void SendMessageToLookupNodes(const std::vector<unsigned char> & message) const;
@@ -101,6 +105,9 @@ public:
     bool GetStateFromLookupNodes();
 #else // IS_LOOKUP_NODE 
     bool SetDSCommitteInfo();
+
+    std::vector<std::map<PubKey, Peer>> GetShardPeers();
+
 #endif // IS_LOOKUP_NODE
 
     bool ProcessEntireShardingStructure(const std::vector<unsigned char> & message, 

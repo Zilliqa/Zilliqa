@@ -608,6 +608,33 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char> & message, unsig
     return true;
 }
 
+bool Node::ProcessCreateTransactionFromLookup(const vector<unsigned char> & message, unsigned int offset, const Peer & from)
+{
+#ifndef IS_LOOKUP_NODE
+
+    LOG_MARKER();
+
+    if(IsMessageSizeInappropriate(message.size(), offset, Transaction::GetSerializedSize()))
+    {
+        return false;
+    }
+
+    unsigned int curr_offset = offset;
+
+    Transaction tx(message, curr_offset);
+
+    lock_guard<mutex> g(m_mutexCreatedTransactions);
+
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),"Recvd txns: "<<tx.GetTranID()<<" Signature: "<<DataConversion::charArrToHexStr(tx.GetSignature())<<" toAddr: "<<tx.GetToAddr().hex());
+
+    m_createdTransactions.push_back(tx);
+
+#endif //IS_LOOKUP_NODE
+
+    return true;
+
+}
+
 // Used by Zilliqa in pow branch. This will be useful for us when doing the accounts and wallet in the future.
 // bool Node::ProcessCreateAccounts(const vector<unsigned char> & message, unsigned int offset, const Peer & from)
 // {
@@ -729,7 +756,8 @@ bool Node::Execute(const vector<unsigned char> & message, unsigned int offset, c
         &Node::ProcessSubmitTransaction,
         &Node::ProcessMicroblockConsensus,
         &Node::ProcessFinalBlock,
-        &Node::ProcessForwardTransaction
+        &Node::ProcessForwardTransaction,
+        &Node::ProcessCreateTransactionFromLookup
     };
 
     const unsigned char ins_byte = message.at(offset);
