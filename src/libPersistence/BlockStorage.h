@@ -21,6 +21,7 @@
 #include <mutex>
 #include <shared_mutex>
 #include <vector>
+#include <map>
 
 #include "depends/libDatabase/LevelDB.h"
 #include "libData/BlockData/Block.h"
@@ -74,6 +75,12 @@ public:
 
     // /// Retrieves the requested transaction body.
     // void GetTxBody(const std::string & key, TxBodySharedPtr & body);
+
+    // Retrieves all the DSBlocks
+    bool GetAllDSBlocks(std::list<DSBlockSharedPtr> & blocks);
+
+    // Retrieves all the TxBlocks
+    bool GetAllTxBlocks(std::list<TxBlockSharedPtr> & blocks);
 };
 
 #endif // BLOCKSTORAGE_H

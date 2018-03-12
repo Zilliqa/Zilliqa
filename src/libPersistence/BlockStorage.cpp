@@ -25,6 +25,8 @@
 #include <leveldb/db.h>
 
 #include "BlockStorage.h"
+#include "common/Serializable.h"
+#include "common/Constants.h"
 
 using namespace std;
 
@@ -129,3 +131,75 @@ bool BlockStorage::GetTxBody(const dev::h256 & key, TxBodySharedPtr & body)
 //     body = TxBodySharedPtr( new Transaction(std::vector<unsigned char>(raw_memory, 
 //                                             raw_memory + bodyString.size()), 0) );
 // }
+
+bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr> & blocks)
+{
+    std::map<boost::multiprecision::uint256_t,
+     string, std::less<boost::multiprecision::uint256_t>> t_blocks;
+    leveldb::Iterator* it = m_dsBlockchainDB.GetDB()->NewIterator(leveldb::ReadOptions());
+    for(it->SeekToFirst(); it->Valid(); it->Next())
+    {
+        boost::multiprecision::uint256_t blockNum = 
+            Serializable::GetNumber<boost::multiprecision::uint256_t>(
+                reinterpret_cast<const unsigned char*>(it->key().ToString().c_str()), 
+                0, UINT256_SIZE);
+        string blockString = it->value().ToString();
+
+        if(blockString.empty())
+        {
+            // Missed one block in the chain
+            return false;
+        }
+
+        LOG_MESSAGE(blockString);
+        LOG_MESSAGE(blockString.length());
+        const unsigned char* raw_memory = reinterpret_cast<const unsigned char*>(blockString.c_str());
+        DSBlockSharedPtr block = DSBlockSharedPtr( new DSBlock(std::vector<unsigned char>(raw_memory, 
+                                          raw_memory + blockString.size()), 0) );
+
+        t_blocks.insert(std::make_pair(blockNum, block));
+    }
+
+    for(const auto& p : t_blocks)
+    {
+        blocks.push_back(p.second);
+    }
+
+    return true;
+}
+
+bool BlockStorage::GetAllTxBlocks(std::list<TxBlockSharedPtr> & blocks)
+{
+    std::map<boost::multiprecision::uint256_t,
+     string, std::less<boost::multiprecision::uint256_t>> t_blocks;
+    leveldb::Iterator* it = m_txBlockchainDB.GetDB()->NewIterator(leveldb::ReadOptions());
+    for(it->SeekToFirst(); it->Valid(); it->Next())
+    {
+        boost::multiprecision::uint256_t blockNum = 
+            Serializable::GetNumber<boost::multiprecision::uint256_t>(
+                reinterpret_cast<const unsigned char*>(it->key().ToString().c_str()), 
+                0, UINT256_SIZE);
+        string blockString = it->value().ToString();
+
+        if(blockString.empty())
+        {
+            // Missed one block in the chain
+            return false;
+        }
+
+        LOG_MESSAGE(blockString);
+        LOG_MESSAGE(blockString.length());
+        const unsigned char* raw_memory = reinterpret_cast<const unsigned char*>(blockString.c_str());
+        DSBlockSharedPtr block = DSBlockSharedPtr( new DSBlock(std::vector<unsigned char>(raw_memory, 
+                                          raw_memory + blockString.size()), 0) );
+
+        t_blocks.insert(std::make_pair(blockNum, block));
+    }
+
+    for(const auto& p : t_blocks)
+    {
+        blocks.push_back(p.second);
+    }
+
+    return true;
+}

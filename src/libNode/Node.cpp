@@ -46,14 +46,21 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-Node::Node(Mediator & mediator) : m_mediator(mediator)
+Node::Node(Mediator & mediator, bool toRetrieveHistory) : m_mediator(mediator)
 {
     // m_state = IDLE;
     // Zilliqa first epoch start from 1 not 0. So for the first DS epoch, there will be 1 less mini epoch only for the first DS epoch. 
     // Hence, we have to set consensusID for first epoch to 1. 
     m_consensusID = 1;
     m_consensusLeaderID = 1;
-    m_synchronizer.InitializeGenesisBlocks(m_mediator.m_dsBlockChain, m_mediator.m_txBlockChain);
+    if(toRetrieveHistory)
+    {
+        StartRetrieveHistory();
+    }
+    else
+    {
+        m_synchronizer.InitializeGenesisBlocks(m_mediator.m_dsBlockChain, m_mediator.m_txBlockChain);
+    }
     m_mediator.m_currentEpochNum = (uint64_t) m_mediator.m_txBlockChain.GetBlockCount();
     m_mediator.UpdateDSBlockRand(true);
     m_mediator.UpdateTxBlockRand(true);
@@ -67,6 +74,15 @@ Node::~Node()
 }
 
 #ifndef IS_LOOKUP_NODE
+
+void Node::StartRetrieveHistory()
+{
+    m_retriever = std::make_shared<Retriever>(this);
+    m_retriever.RetrieveDSBlocks();
+    m_retriever.RetrieveTxBlocks();
+    m_retriever.RetrieveTxBodies();
+    m_retriever.RetrieveLastStates();
+}
 
 void Node::StartSynchronization()
 {
