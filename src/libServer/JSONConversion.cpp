@@ -131,7 +131,6 @@ const Json::Value JSONConversion::convertDSblocktoJson(const DSBlock & dsblock)
 
 const Transaction JSONConversion::convertJsontoTx(const Json::Value & _json)
 {
-	//LOG_MARKER();
 	
 	uint32_t version = _json["version"].asUInt();
 	
@@ -141,7 +140,7 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value & _json)
 	string toAddr_str = _json["to"].asString();
 	vector<unsigned char> toAddr_ser = DataConversion::HexStrToUint8Vec(toAddr_str);
 	Address toAddr(toAddr_ser);
-	//LOG_MESSAGE("toAddr size: "<<toAddr_ser.size());
+	
 		
 	string amount_str = _json["amount"].asString();
 	uint256_t amount(amount_str);
@@ -149,12 +148,11 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value & _json)
 	string pubKey_str = _json["pubKey"].asString();
 	vector <unsigned char> pubKey_ser = DataConversion::HexStrToUint8Vec(pubKey_str);
 	PubKey pubKey(pubKey_ser,0);
-	//LOG_MESSAGE("PubKey size: "<<pubKey_ser.size());
+	
 		
 	string sign_str = _json["signature"].asString();
 	array <unsigned char,TRAN_SIG_SIZE> sign = DataConversion::HexStrToStdArray64(sign_str);
 
-	//LOG_MESSAGE("Sign size: "<<sign.size());
 
 	Transaction tx1(version,nonce,toAddr,pubKey,amount,sign);
 	LOG_MESSAGE("Tx converted");
@@ -167,14 +165,14 @@ const bool JSONConversion::checkJsonTx(const Json::Value & _json)
 {
 	bool ret = true;
 
-	ret &= _json.isObject();
-	ret &= (_json.size() == JSON_TRAN_OBJECT_SIZE);
-	ret &= _json.isMember("nonce");
-	ret &= _json.isMember("to");
-	ret &= _json.isMember("amount");
-	ret &= _json.isMember("pubKey");
-	ret &= _json.isMember("signature");
-	ret &= _json.isMember("version");
+	ret = ret && _json.isObject();
+	ret = ret && (_json.size() == JSON_TRAN_OBJECT_SIZE);
+	ret = ret && _json.isMember("nonce");
+	ret = ret && _json.isMember("to");
+	ret = ret && _json.isMember("amount");
+	ret = ret && _json.isMember("pubKey");
+	ret = ret && _json.isMember("signature");
+	ret = ret && _json.isMember("version");
 	
 	if(ret)
 	{

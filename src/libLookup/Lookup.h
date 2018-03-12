@@ -106,7 +106,6 @@ public:
 #else // IS_LOOKUP_NODE 
     bool SetDSCommitteInfo();
 
-    //Getter for m_shards
     std::vector<std::map<PubKey, Peer>> GetShardPeers();
 
 #endif // IS_LOOKUP_NODE
