@@ -39,7 +39,7 @@
 #include "libPersistence/BlockStorage.h"
 #include "libPOW/pow.h"
 #include "libLookup/Synchronizer.h"
-       
+#include "libPersistence/Retriever.h"
 
 class Mediator;
 
@@ -83,6 +83,9 @@ class Node : public Executable, public Broadcastable
     }
 
     Mediator & m_mediator;
+
+    friend class Retriever;
+    std::shared_ptr<Retriever> m_retriever;
 
     Synchronizer m_synchronizer;
 
@@ -299,7 +302,7 @@ public:
     std::atomic<NodeState> m_state;
 
     /// Constructor. Requires mediator reference to access DirectoryService and other global members.
-    Node(Mediator & mediator);
+    Node(Mediator & mediator, bool toRetrieveHistory);
 
     /// Destructor.
     ~Node();
@@ -314,6 +317,8 @@ public:
     std::vector<Peer> GetBroadcastList(unsigned char ins_type, const Peer & broadcast_originator);
 
 #ifndef IS_LOOKUP_NODE
+
+    void StartRetrieveHistory();
 
     void StartSynchronization();
 
