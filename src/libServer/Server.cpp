@@ -42,7 +42,7 @@ using namespace std;
 
 
 
-Server::Server(Mediator & mediator) : AbstractZServer(*(new HttpServer(4201))), m_mediator(mediator)
+Server::Server(Mediator & mediator, HttpServer & httpserver) : AbstractZServer(httpserver), m_mediator(mediator)
 {
 	// constructor
 }
