@@ -363,8 +363,10 @@ vector<unsigned char> DirectoryService::ComposeFinalBlockMessage()
     bool isVacuousEpoch = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
 
     {
-        unique_lock<mutex> g(m_mediator.m_node->m_mutexUnavailableMicroBlocks);
-        unique_lock<mutex> g2(m_mediator.m_node->m_mutexAllMicroBlocksRecvd);
+        unique_lock<mutex> g(m_mediator.m_node->m_mutexUnavailableMicroBlocks, defer_lock);
+        unique_lock<mutex> g2(m_mediator.m_node->m_mutexAllMicroBlocksRecvd, defer_lock);
+        lock(m_mediator.m_node->m_mutexUnavailableMicroBlocks, m_mediator.m_node->m_mutexAllMicroBlocksRecvd);
+
         if(isVacuousEpoch && !m_mediator.m_node->m_allMicroBlocksRecvd)
         {
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -774,8 +776,10 @@ bool DirectoryService::WaitForTxnBodies()
     bool isVacuousEpoch = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
 
     {
-        unique_lock<mutex> g(m_mediator.m_node->m_mutexUnavailableMicroBlocks);
-        unique_lock<mutex> g2(m_mediator.m_node->m_mutexAllMicroBlocksRecvd);
+        unique_lock<mutex> g(m_mediator.m_node->m_mutexUnavailableMicroBlocks, defer_lock);
+        unique_lock<mutex> g2(m_mediator.m_node->m_mutexAllMicroBlocksRecvd, defer_lock);
+        lock(m_mediator.m_node->m_mutexUnavailableMicroBlocks, m_mediator.m_node->m_mutexAllMicroBlocksRecvd);
+
         if(isVacuousEpoch && !m_mediator.m_node->m_allMicroBlocksRecvd)
         {
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
