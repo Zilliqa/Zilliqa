@@ -44,7 +44,7 @@ DirectoryService::DirectoryService(Mediator & mediator) : m_mediator(mediator)
     SetState(POW1_SUBMISSION);
 #endif // IS_LOOKUP_NODE    
     m_mode = IDLE;
-
+    m_requesting_last_ds_block = false;
     m_consensusLeaderID = 0;
     m_consensusID = 1;
 }
@@ -679,6 +679,63 @@ bool DirectoryService::ProcessAllPoWConnResponse(const vector<unsigned char> & m
     cv_allPowConns.notify_all(); 
     return true; 
 }
+void DirectoryService::LastDSBlockRequest()
+{
+    LOG_MARKER();
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "DEBUG: I am requeesting the last ds block from ds leader.");
+    // message: [listening port]
+    m_requesting_last_ds_block = true; 
+    // In this implementation, we are only requesting it from ds leader only. 
+    vector<unsigned char> requestAllPoWConnMsg = { MessageType::DIRECTORY, DSInstructionType::LastDSBlockRequest};
+    unsigned int cur_offset = MessageOffset::BODY;
+
+    Serializable::SetNumber<uint32_t>(requestAllPoWConnMsg, cur_offset, m_mediator.m_selfPeer.m_listenPortHost, sizeof(uint32_t));
+    cur_offset += sizeof(uint32_t);
+
+    P2PComm::GetInstance().SendMessage(m_mediator.m_DSCommitteeNetworkInfo.front(), requestAllPoWConnMsg);
+
+    // TODO: Request from a total of 20 ds members 
+}
+
+bool DirectoryService::ProcessLastDSBlockRequest(const vector<unsigned char> & message, unsigned int offset, const Peer & from)
+{
+    LOG_MARKER();
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "DEBUG: I am sending the last ds block to the requester.");
+
+    // Deserialize the message and get the port 
+    uint32_t requesterListeningPort = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
+
+    // Craft the last block message 
+    vector<unsigned char> lastDSBlockMsg = { MessageType::DIRECTORY, DSInstructionType::LastDSBlockResponse};
+    unsigned int cur_offset = MessageOffset::BODY;
+
+    m_mediator.m_dsBlockChain.GetLastBlock().Serialize(lastDSBlockMsg, cur_offset); 
+
+    Peer peer(from.m_ipAddress, requesterListeningPort);
+    P2PComm::GetInstance().SendMessage(m_mediator.m_DSCommitteeNetworkInfo.front(), lastDSBlockMsg);
+
+    return true; 
+}
+
+
+bool DirectoryService::ProcessLastDSBlockResponse(const vector<unsigned char> & message, unsigned int offset, const Peer & from)
+{
+    LOG_MARKER();
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "DEBUG: I received the last ds block from ds leader.");
+    m_requesting_last_ds_block = false;
+    unsigned int cur_offset = offset;
+    {
+        lock_guard<mutex> g(m_mutexPendingDSBlock);
+        DSBlock dsblock(message, cur_offset);
+        cur_offset += DSBlock::GetSerializedSize();
+        m_pendingDSBlock.reset(&dsblock); 
+    }
+    
+    StoreDSBlockToStorage();
+    SetState(POW2_SUBMISSION);
+    ScheduleShardingConsensus(BACKUP_POW2_WINDOW_IN_SECONDS - BUFFER_TIME_BEFORE_DS_BLOCK_REQUEST);
+    return true; 
+}
 
 
 bool DirectoryService::Execute(const vector<unsigned char> & message, unsigned int offset, const Peer & from)
@@ -699,8 +756,9 @@ bool DirectoryService::Execute(const vector<unsigned char> & message, unsigned i
         &DirectoryService::ProcessMicroblockSubmission,
         &DirectoryService::ProcessFinalBlockConsensus,
         &DirectoryService::ProcessAllPoWConnRequest, 
-        &DirectoryService::ProcessAllPoWConnResponse 
-
+        &DirectoryService::ProcessAllPoWConnResponse, 
+        &DirectoryService::ProcessLastDSBlockRequest, 
+        &DirectoryService::ProcessLastDSBlockResponse
     };
 
     const unsigned char ins_byte = message.at(offset);
