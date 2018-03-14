@@ -112,8 +112,8 @@ if(IS_LOOKUP_NODE)
 endif(IS_LOOKUP_NODE)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} -pthread -std=c++14 -Wall -ggdb")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${GCC_COVERAGE_LINK_FLAGS} -pthread -ljsoncpp -ljsonrpccpp-common -ljsonrpccpp-server -lboost_system -lboost_filesystem -std=c++14 -Wall")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} -pthread -std=c++14 -Wall -ggdb -fext-numeric-literals")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${GCC_COVERAGE_LINK_FLAGS} -pthread -ljsoncpp -ljsonrpccpp-common -ljsonrpccpp-server -lboost_system -lboost_filesystem -std=c++14 -Wall -lquadmath")
 endif()
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
     set(CMAKE_CXX_FLAGS
