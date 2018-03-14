@@ -16,6 +16,7 @@
 
 
 #include <jsonrpccpp/server.h>
+#include <boost/multiprecision/cpp_int.hpp>
 
 using namespace jsonrpc;
 class Mediator;
@@ -47,6 +48,11 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer>
             this->bindAndAddMethod(jsonrpc::Procedure("isNodeSyncing", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_BOOLEAN,  NULL), &AbstractZServer::isNodeSyncingI);
             this->bindAndAddMethod(jsonrpc::Procedure("isNodeMining", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_BOOLEAN,  NULL), &AbstractZServer::isNodeMiningI);
             this->bindAndAddMethod(jsonrpc::Procedure("getHashrate", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,  NULL), &AbstractZServer::getHashrateI);
+            this->bindAndAddMethod(jsonrpc::Procedure("getNumPeers", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_INTEGER,  NULL), &AbstractZServer::getNumPeersI);
+            this->bindAndAddMethod(jsonrpc::Procedure("getNumTxBlocks", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,  NULL), &AbstractZServer::getNumTxBlocksI);
+            this->bindAndAddMethod(jsonrpc::Procedure("getNumDSBlocks", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,  NULL), &AbstractZServer::getNumDSBlocksI);
+            this->bindAndAddMethod(jsonrpc::Procedure("getNumTransactions", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,  NULL), &AbstractZServer::getNumTransactionsI);
+            this->bindAndAddMethod(jsonrpc::Procedure("getTransactionRate", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_REAL,  NULL), &AbstractZServer::getTransactionRateI);
         }
 
         inline virtual void getClientVersionI(const Json::Value &request, Json::Value &response)
@@ -142,6 +148,31 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer>
             (void)request;
             response = this->getHashrate();
         }
+        inline virtual void getNumPeersI(const Json::Value &request, Json::Value &response)
+        {
+            (void)request;
+            response = this->getNumPeers();
+        }
+        inline virtual void getNumTxBlocksI(const Json::Value &request, Json::Value &response)
+        {
+            (void)request;
+            response = this->getNumTxBlocks();
+        }
+        inline virtual void getNumDSBlocksI(const Json::Value &request, Json::Value &response)
+        {
+            (void)request;
+            response = this->getNumDSBlocks();
+        }
+        inline virtual void getNumTransactionsI(const Json::Value &request, Json::Value &response)
+        {
+            (void)request;
+            response = this->getNumTransactions();
+        }
+        inline virtual void getTransactionRateI(const Json::Value &request, Json::Value &response)
+        {
+            (void)request;
+            response = this->getTransactionRate();
+        }
         virtual std::string getClientVersion() = 0;
         virtual std::string getNetworkId() = 0;
         virtual std::string getProtocolVersion() = 0;
@@ -163,11 +194,20 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer>
         virtual bool isNodeSyncing() = 0;
         virtual bool isNodeMining() = 0;
         virtual std::string getHashrate() = 0;
+        virtual unsigned int getNumPeers() = 0;
+        virtual std::string getNumTxBlocks() = 0;
+        virtual std::string getNumDSBlocks() = 0;
+        virtual std::string getNumTransactions() = 0;
+        virtual double getTransactionRate() = 0;
 };
 
 class Server: public AbstractZServer
 {
     Mediator & m_mediator;
+    pair<boost::multiprecision::uint256_t, boost::multiprecision::uint256_t> m_BlockTxPair;
+    boost::multiprecision::uint256_t m_TxBlockStartTime;
+    boost::multiprecision::uint256_t m_DsBlockStartTime;
+    
     public:
 
         Server(Mediator & mediator, HttpServer & httpserver);
@@ -194,4 +234,9 @@ class Server: public AbstractZServer
         virtual bool isNodeSyncing();
         virtual bool isNodeMining();
         virtual std::string getHashrate();
+        virtual unsigned int getNumPeers();
+        virtual std::string getNumTxBlocks();
+        virtual std::string getNumDSBlocks();
+        virtual std::string getNumTransactions();
+        virtual double getTransactionRate();
 };

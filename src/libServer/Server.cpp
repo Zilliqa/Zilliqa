@@ -44,7 +44,9 @@ using namespace std;
 
 Server::Server(Mediator & mediator, HttpServer & httpserver) : AbstractZServer(httpserver), m_mediator(mediator)
 {
-	// constructor
+	m_BlockTxPair = make_pair(0,0);
+	m_TxBlockStartTime = m_mediator.m_txBlockChain.GetBlock(0).GetHeader().GetTimestamp();
+	m_DsBlockStartTime = m_mediator.m_txBlockChain.GetBlock(0).GetHeader().GetTimestamp();
 }
 
 Server::~Server() 
@@ -157,7 +159,7 @@ Json::Value Server::getLatestDsBlock()
 	LOG_MARKER();
 	DSBlock Latest = m_mediator.m_dsBlockChain.GetLastBlock();
 	
-	LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Call to getLatestDsBlock, BlockNum "<<Latest.GetHeader().GetBlockNum().str()<<"  Timestamp: 		"<<Latest.GetHeader().GetTimestamp().str());
+	LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "BlockNum "<<Latest.GetHeader().GetBlockNum().str()<<"  Timestamp: 		"<<Latest.GetHeader().GetTimestamp().str());
 	
 	return JSONConversion::convertDSblocktoJson(Latest);
 }
@@ -167,7 +169,7 @@ Json::Value Server::getLatestTxBlock()
 	LOG_MARKER();
 	TxBlock Latest = m_mediator.m_txBlockChain.GetLastBlock();
 
-	LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Call to getLatestTxBlock, BlockNum "<<Latest.GetHeader().GetBlockNum().str()<<"  Timestamp: 		"<<Latest.GetHeader().GetTimestamp().str());
+	LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "BlockNum "<<Latest.GetHeader().GetBlockNum().str()<<"  Timestamp: 		"<<Latest.GetHeader().GetTimestamp().str());
 	
 	return JSONConversion::convertTxBlocktoJson(Latest);
 }
@@ -247,5 +249,59 @@ string Server::getHashrate()
 	return "Hello";
 }
 
+
+unsigned int Server::getNumPeers()
+{
+	LOG_MARKER();
+	unsigned int numPeers = m_mediator.m_lookup->GetNodePeers().size();
+
+	return numPeers;
+}
+
+string Server::getNumTxBlocks()
+{
+	LOG_MARKER();
+
+	return m_mediator.m_txBlockChain.GetBlockCount().str();
+}
+
+string Server::getNumDSBlocks()
+{
+	LOG_MARKER();
+
+	return m_mediator.m_dsBlockChain.GetBlockCount().str();
+}
+
+string Server::getNumTransactions()
+{
+	LOG_MARKER();
+
+	boost::multiprecision::uint256_t currBlock = m_mediator.m_txBlockChain.GetBlockCount() - 1;
+	if(m_BlockTxPair.first < currBlock)
+	{
+		for(boost::multiprecision::uint256_t i = m_BlockTxPair.first + 1 ; i<currBlock ; i++)
+		{
+			m_BlockTxPair.second += m_mediator.m_txBlockChain.GetBlock(i).GetHeader().GetNumTxs();
+		}
+	}
+	m_BlockTxPair.first = currBlock;
+
+	return m_BlockTxPair.second.str();
+
+}
+
+double Server::getTransactionRate()
+{
+	LOG_MARKER();
+
+	string numTxStr = Server::getNumTransactions();
+	boost::multiprecision::uint256_t numTxns(numTxStr);
+
+	boost::multiprecision::uint256_t TimeDiff = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetTimestamp()-m_TxBlockStartTime;
+
+	//Is there any loss in data?
+	
+	return static_cast<double>(numTxns/TimeDiff);
+}
 
 #endif //IS_LOOKUP_NODE
