@@ -53,6 +53,8 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer>
             this->bindAndAddMethod(jsonrpc::Procedure("getNumDSBlocks", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,  NULL), &AbstractZServer::getNumDSBlocksI);
             this->bindAndAddMethod(jsonrpc::Procedure("getNumTransactions", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,  NULL), &AbstractZServer::getNumTransactionsI);
             this->bindAndAddMethod(jsonrpc::Procedure("getTransactionRate", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_REAL,  NULL), &AbstractZServer::getTransactionRateI);
+            this->bindAndAddMethod(jsonrpc::Procedure("getTxBlockRate", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_REAL,  NULL), &AbstractZServer::getTxBlockRateI);
+            this->bindAndAddMethod(jsonrpc::Procedure("getDSBlockRate", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_REAL,  NULL), &AbstractZServer::getDSBlockRateI);
         }
 
         inline virtual void getClientVersionI(const Json::Value &request, Json::Value &response)
@@ -173,6 +175,16 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer>
             (void)request;
             response = this->getTransactionRate();
         }
+        inline virtual void getTxBlockRateI(const Json::Value &request, Json::Value &response)
+        {
+            (void)request;
+            response = this->getTxBlockRate();
+        }
+        inline virtual void getDSBlockRateI(const Json::Value &request, Json::Value &response)
+        {
+            (void)request;
+            response = this->getDSBlockRate();
+        }
         virtual std::string getClientVersion() = 0;
         virtual std::string getNetworkId() = 0;
         virtual std::string getProtocolVersion() = 0;
@@ -199,14 +211,17 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer>
         virtual std::string getNumDSBlocks() = 0;
         virtual std::string getNumTransactions() = 0;
         virtual double getTransactionRate() = 0;
+        virtual double getTxBlockRate() = 0;
+        virtual double getDSBlockRate() = 0;
+
 };
 
 class Server: public AbstractZServer
 {
     Mediator & m_mediator;
     pair<boost::multiprecision::uint256_t, boost::multiprecision::uint256_t> m_BlockTxPair;
-    boost::multiprecision::uint256_t m_TxBlockStartTime;
-    boost::multiprecision::uint256_t m_DsBlockStartTime;
+    boost::multiprecision::uint256_t m_StartTimeTx;
+    boost::multiprecision::uint256_t m_StartTimeDs;
     
     public:
 
@@ -239,4 +254,6 @@ class Server: public AbstractZServer
         virtual std::string getNumDSBlocks();
         virtual std::string getNumTransactions();
         virtual double getTransactionRate();
+        virtual double getTxBlockRate();
+        virtual double getDSBlockRate();
 };

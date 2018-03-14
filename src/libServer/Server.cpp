@@ -19,10 +19,12 @@
 #include "JSONConversion.h"
 
 #include <iostream>
+#include <boost/multiprecision/float128.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
 #include <deque>
 #include <jsonrpccpp/server.h>
 #include <jsonrpccpp/server/connectors/httpserver.h>
+
 
 
 #include "Server.h"
@@ -34,6 +36,7 @@
 #include "libUtils/Logger.h"
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/Peer.h"
+#include "libUtils/TimeUtils.h"
 #include "common/Serializable.h"
 #include "common/Messages.h"
 
@@ -42,11 +45,10 @@ using namespace std;
 
 
 
-Server::Server(Mediator & mediator, HttpServer & httpserver) : AbstractZServer(httpserver), m_mediator(mediator)
+Server::Server(Mediator & mediator, HttpServer & httpserver) : AbstractZServer(httpserver), m_mediator(mediator), m_BlockTxPair(0,0)
 {
-	m_BlockTxPair = make_pair(0,0);
-	m_TxBlockStartTime = m_mediator.m_txBlockChain.GetBlock(0).GetHeader().GetTimestamp();
-	m_DsBlockStartTime = m_mediator.m_txBlockChain.GetBlock(0).GetHeader().GetTimestamp();
+	m_StartTimeTx = 0;
+	m_StartTimeDs = 0;
 }
 
 Server::~Server() 
@@ -276,12 +278,15 @@ string Server::getNumTransactions()
 {
 	LOG_MARKER();
 
+	
 	boost::multiprecision::uint256_t currBlock = m_mediator.m_txBlockChain.GetBlockCount() - 1;
+	LOG_MESSAGE("currBlock: "<<currBlock.str()<<" State: "<<m_BlockTxPair.first);
 	if(m_BlockTxPair.first < currBlock)
 	{
-		for(boost::multiprecision::uint256_t i = m_BlockTxPair.first + 1 ; i<currBlock ; i++)
+		for(boost::multiprecision::uint256_t i = m_BlockTxPair.first + 1 ; i<=currBlock ; i++)
 		{
 			m_BlockTxPair.second += m_mediator.m_txBlockChain.GetBlock(i).GetHeader().GetNumTxs();
+
 		}
 	}
 	m_BlockTxPair.first = currBlock;
@@ -295,13 +300,128 @@ double Server::getTransactionRate()
 	LOG_MARKER();
 
 	string numTxStr = Server::getNumTransactions();
-	boost::multiprecision::uint256_t numTxns(numTxStr);
+	boost::multiprecision::float128 numTxns(numTxStr);
+	LOG_MESSAGE("Num Txns: "<< numTxns);
 
-	boost::multiprecision::uint256_t TimeDiff = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetTimestamp()-m_TxBlockStartTime;
+	numTxns = numTxns*1000000; // conversion from microseconds to seconds
 
-	//Is there any loss in data?
+	//LOG_MESSAGE("TxBlockStart: "<<m_StartTimeTx<<" NumTxns: "<<numTxns);
+
+	if(m_StartTimeTx == 0) //case when m_StartTime has not been set 
+	{
+		try
+		{
+			TxBlock tx  = m_mediator.m_txBlockChain.GetBlock(1);
+			m_StartTimeTx = tx.GetHeader().GetTimestamp();
+		}
+		catch(const char* msg)
+		{
+			//cannot set
+			if(strcmp(msg,"Blocknumber Absent") == 0)
+			{
+				LOG_MESSAGE("No Tx Block has been mined yet");
+			}
+			return 0;
+		}
+		
+	}
+
+	boost::multiprecision::uint256_t TimeDiff = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetTimestamp()-m_StartTimeTx;
+
 	
-	return static_cast<double>(numTxns/TimeDiff);
+
+	if(TimeDiff == 0)
+	{
+		return 0;
+	}
+
+	boost::multiprecision::float128 TimeDiffFloat(TimeDiff.str());
+	//Is there any loss in data?
+	boost::multiprecision::float128 ans = numTxns/TimeDiffFloat;
+
+	//LOG_MESSAGE("Rate: "<<ans);
+
+	return ans.convert_to<double>();
+	
+	
+}
+
+double Server::getDSBlockRate()
+{
+	LOG_MARKER();
+
+	string numDSblockStr = m_mediator.m_dsBlockChain.GetBlockCount().str();
+	boost::multiprecision::float128 numDs(numDSblockStr);
+
+	if(m_StartTimeDs == 0)
+	{
+		try
+		{
+			DSBlock dsb = m_mediator.m_dsBlockChain.GetBlock(1);
+			m_StartTimeDs = dsb.GetHeader().GetTimestamp();
+		}
+		catch(const char *msg)
+		{
+			if(strcmp(msg, "Blocknumber Absent") == 0)
+			{
+				LOG_MESSAGE("No DSBlock has been mined yet")
+			}
+			return 0;
+		}
+	}
+	boost::multiprecision::uint256_t TimeDiff = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetTimestamp() - m_StartTimeDs;
+
+	if(TimeDiff == 0)
+	{
+		LOG_MESSAGE("Wait till the second block");
+		return 0;
+	}
+
+	boost::multiprecision::float128 TimeDiffFloat(TimeDiff.str());
+	boost::multiprecision::float128 ans = numDs/TimeDiffFloat;
+
+	return ans.convert_to<double>();
+
+
+}
+
+double Server::getTxBlockRate()
+{
+	LOG_MARKER();
+
+	string numTxblockStr = m_mediator.m_txBlockChain.GetBlockCount().str();
+	boost::multiprecision::float128 numTx(numTxblockStr);
+
+	if(m_StartTimeTx == 0)
+	{
+		try
+		{
+			TxBlock txb = m_mediator.m_txBlockChain.GetBlock(1);
+			m_StartTimeTx = txb.GetHeader().GetTimestamp();
+		}
+		catch(const char *msg)
+		{
+			if(strcmp(msg, "Blocknumber Absent") == 0)
+			{
+				LOG_MESSAGE("No TxBlock has been mined yet")
+			}
+			return 0;
+		}
+	}
+	boost::multiprecision::uint256_t TimeDiff = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetTimestamp() - m_StartTimeTx;
+
+	if(TimeDiff == 0)
+	{
+		LOG_MESSAGE("Wait till the second block");
+		return 0;
+	}
+
+	boost::multiprecision::float128 TimeDiffFloat(TimeDiff.str());
+	boost::multiprecision::float128 ans = numTx/TimeDiffFloat;
+
+	return ans.convert_to<double>();
+
+
 }
 
 #endif //IS_LOOKUP_NODE
