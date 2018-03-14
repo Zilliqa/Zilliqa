@@ -147,8 +147,6 @@ class DirectoryService : public Executable, public Broadcastable
                                     const Peer & from);
     bool ProcessAllPoWConnRequest(const vector<unsigned char> & message, unsigned int offset, const Peer & from); 
     bool ProcessAllPoWConnResponse(const vector<unsigned char> & message, unsigned int offset, const Peer & from);
-    bool ProcessLastDSBlockRequest(const vector<unsigned char> & message, unsigned int offset, const Peer & from); 
-    bool ProcessLastDSBlockResponse(const vector<unsigned char> & message, unsigned int offset, const Peer & from);
 
 #ifndef IS_LOOKUP_NODE
     bool CheckState(Action action);
@@ -231,6 +229,8 @@ class DirectoryService : public Executable, public Broadcastable
                                     std::vector<bool> & isMicroBlockEmpty,
                                     uint32_t & numMicroBlocks) const;
 
+
+
     // FinalBlockValidator functions
     bool CheckFinalBlockValidity();
     bool CheckBlockTypeIsFinal();
@@ -261,7 +261,8 @@ class DirectoryService : public Executable, public Broadcastable
     // Used to reconsile view of m_AllPowConn is different. 
     void RequestAllPoWConn();
     void LastDSBlockRequest();
-
+    bool ProcessLastDSBlockRequest(const vector<unsigned char> & message, unsigned int offset, const Peer & from); 
+    bool ProcessLastDSBlockResponse(const vector<unsigned char> & message, unsigned int offset, const Peer & from);
 #endif // IS_LOOKUP_NODE    
 
 public:
