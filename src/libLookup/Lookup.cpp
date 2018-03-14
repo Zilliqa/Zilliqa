@@ -1255,7 +1255,7 @@ bool Lookup::InitMining()
     auto dsBlockRand = m_mediator.m_dsBlockRand;
     array<unsigned char, 32> txBlockRand = {0};
 
-    if (m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW == curDsBlockNum -1 )
+    if (m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW == curDsBlockNum)
     {
         // DS block for the epoch has not been generated. 
         // Attempt PoW1
@@ -1267,7 +1267,7 @@ bool Lookup::InitMining()
         m_mediator.m_node->StartPoW1(m_mediator.m_dsBlockChain.GetBlockCount(), 
                                         uint8_t(0x3), dsBlockRand, m_mediator.m_txBlockRand);
     }
-    else if (m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW == curDsBlockNum)
+    else if (m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW == curDsBlockNum - 1)
     {
         // DS block has been generated. 
         // Attempt PoW2
