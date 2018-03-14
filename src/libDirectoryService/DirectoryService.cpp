@@ -679,6 +679,9 @@ bool DirectoryService::ProcessAllPoWConnResponse(const vector<unsigned char> & m
     cv_allPowConns.notify_all(); 
     return true; 
 }
+
+#ifndef IS_LOOKUP_NODE
+
 void DirectoryService::LastDSBlockRequest()
 {
     LOG_MARKER();
@@ -737,6 +740,7 @@ bool DirectoryService::ProcessLastDSBlockResponse(const vector<unsigned char> & 
     return true; 
 }
 
+#endif // IS_LOOKUP_NODE
 
 bool DirectoryService::Execute(const vector<unsigned char> & message, unsigned int offset, const Peer & from)
 {
