@@ -750,6 +750,7 @@ bool DirectoryService::Execute(const vector<unsigned char> & message, unsigned i
 
     typedef bool(DirectoryService::*InstructionHandler)(const vector<unsigned char> &, unsigned int, const Peer &);
 
+#ifndef IS_LOOKUP_NODE
     InstructionHandler ins_handlers[] =
     {
         &DirectoryService::ProcessSetPrimary,
@@ -764,6 +765,20 @@ bool DirectoryService::Execute(const vector<unsigned char> & message, unsigned i
         &DirectoryService::ProcessLastDSBlockRequest, 
         &DirectoryService::ProcessLastDSBlockResponse
     };
+#else  
+    InstructionHandler ins_handlers[] =
+    {
+        &DirectoryService::ProcessSetPrimary,
+        &DirectoryService::ProcessPoW1Submission,
+        &DirectoryService::ProcessDSBlockConsensus,
+        &DirectoryService::ProcessPoW2Submission,
+        &DirectoryService::ProcessShardingConsensus,
+        &DirectoryService::ProcessMicroblockSubmission,
+        &DirectoryService::ProcessFinalBlockConsensus,
+        &DirectoryService::ProcessAllPoWConnRequest, 
+        &DirectoryService::ProcessAllPoWConnResponse 
+    };
+#endif // IS_LOOKUP_NODE
 
     const unsigned char ins_byte = message.at(offset);
 
