@@ -45,7 +45,7 @@ using namespace std;
 
 
 
-Server::Server(Mediator & mediator, HttpServer & httpserver) : AbstractZServer(httpserver), m_mediator(mediator), m_BlockTxPair(0,0)
+Server::Server(Mediator & mediator, HttpServer & httpserver) : AbstractZServer(httpserver), m_mediator(mediator)
 {
 	m_StartTimeTx = 0;
 	m_StartTimeDs = 0;
@@ -364,7 +364,7 @@ double Server::getDSBlockRate()
 		{
 			if(strcmp(msg, "Blocknumber Absent") == 0)
 			{
-				LOG_MESSAGE("No DSBlock has been mined yet")
+				LOG_MESSAGE("No DSBlock has been mined yet");
 			}
 			return 0;
 		}
@@ -403,7 +403,7 @@ double Server::getTxBlockRate()
 		{
 			if(strcmp(msg, "Blocknumber Absent") == 0)
 			{
-				LOG_MESSAGE("No TxBlock has been mined yet")
+				LOG_MESSAGE("No TxBlock has been mined yet");
 			}
 			return 0;
 		}
@@ -422,6 +422,20 @@ double Server::getTxBlockRate()
 	return ans.convert_to<double>();
 
 
+}
+
+string Server::getCurrentMiniEpoch()
+{
+	LOG_MARKER();
+
+	return to_string(m_mediator.m_currentEpochNum);
+}
+
+string Server::getCurrentDSEpoch()
+{
+	LOG_MARKER();
+
+	return m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum().str();
 }
 
 #endif //IS_LOOKUP_NODE
