@@ -33,7 +33,11 @@ using namespace boost::multiprecision;
 
 int main(int argc, const char * argv[])
 {
-    const int num_args_required = 1 + 6; // first 1 = program name
+#ifndef IS_LOOKUP_NODE
+    const int num_args_required = 1 + 7; // first 1 = program name
+#else
+    const int num_args_required = 1 + 6;
+#endif // IS_LOOKUP_NODE
 
     if (argc != num_args_required)
     {
@@ -53,7 +57,11 @@ int main(int argc, const char * argv[])
         inet_aton(argv[3], &ip_addr);
         Peer my_port((uint128_t)ip_addr.s_addr, static_cast<unsigned int>(atoi(argv[4])));
 
+#ifndef IS_LOOKUP_NODE
+        Zilliqa zilliqa(make_pair(privkey, pubkey), my_port, atoi(argv[5]) == 1, atoi(argv[6]) == 1, atoi(argv[7]) == 1);
+#else
         Zilliqa zilliqa(make_pair(privkey, pubkey), my_port, atoi(argv[5]) == 1, atoi(argv[6]) == 1);
+#endif  // IS_LOOKUP_NODE
 
         auto dispatcher = [&zilliqa](const vector<unsigned char> & message, const Peer & from) mutable -> void { zilliqa.Dispatch(message, from); };
         auto broadcast_list_retriever = [&zilliqa](unsigned char msg_type, unsigned char ins_type, const Peer & from) mutable -> vector<Peer> { return zilliqa.RetrieveBroadcastList(msg_type, ins_type, from); };

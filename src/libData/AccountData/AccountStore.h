@@ -55,7 +55,7 @@ class AccountStore: public Serializable
     bool UpdateStateTrie(const Address & address, const Account & account);
 
     /// Store the trie root to leveldb
-    void MoveRootToDisk();
+    void MoveRootToDisk(const dev::h256 & root);
 
 public:
     

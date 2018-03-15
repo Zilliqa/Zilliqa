@@ -355,10 +355,10 @@ dev::h256 AccountStore::GetStateRootHash() const
     return m_state.root();
 }
 
-void AccountStore::MoveRootToDisk()
+void AccountStore::MoveRootToDisk(const dev::h256 & root)
 {
     //convert h256 to bytes
-    BlockStorage::GetBlockStorage().PutMetadata(STATEROOT, prevRoot.asBytes());
+    BlockStorage::GetBlockStorage().PutMetadata(STATEROOT, root.asBytes());
 }
 
 void AccountStore::MoveUpdatesToDisk()
@@ -366,7 +366,7 @@ void AccountStore::MoveUpdatesToDisk()
     m_state.db()->commit();
     prevRoot = m_state.root();
     // m_state.init();
-    MoveRootToDisk();
+    MoveRootToDisk(prevRoot);
 }
 
 void AccountStore::DiscardUnsavedUpdates()
@@ -388,6 +388,7 @@ void AccountStore::PrintAccountState()
 
 bool AccountStore::RetrieveFromDisk(std::unordered_map<Address, Account> & addressToAccount)
 {
+    LOG_MARKER();
     std::vector<unsigned char> rootBytes;
     if(!BlockStorage::GetBlockStorage().GetMetadata(STATEROOT, rootBytes))
         return false;
@@ -401,7 +402,7 @@ bool AccountStore::RetrieveFromDisk(std::unordered_map<Address, Account> & addre
             = rlp.toVector<uint256_t>();
         if(account_data.size() != 2)
         {
-            LOG_MESSAGE("Account data corrupted");
+            LOG_MESSAGE("ERROR: Account data corrupted");
             return false;
         }
         Account account(account_data[0], account_data[1]);
