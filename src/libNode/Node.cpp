@@ -84,57 +84,26 @@ Node::~Node()
 
 #ifndef IS_LOOKUP_NODE
 
-static void RetrieveDSBlocks(Retriever & retriever, bool & result)
-{
-    std::list<DSBlockSharedPtr> blocks;
-    if(!BlockStorage::GetBlockStorage().GetAllDSBlocks(blocks))
-    {
-        LOG_MESSAGE("RetrieveDSBlocks Incompleted");
-        result = false;
-        return;
-    }
-    for(const auto & block : blocks)
-        retriever.AddDSBlock(*block);
-    result = true;
-}
-
-static void RetrieveTxNSt(Retriever & retriever, bool & result, std::unordered_map<boost::multiprecision::uint256_t, 
-                       std::list<Transaction>> & committedTransactions)
-{
-    LOG_MARKER();
-    result = retriever.RetrieveStates();
-    if(result)
-        result = retriever.RetrieveTxBlocks();
-    else
-        LOG_MESSAGE("Failed to retrieve last states");
-    if(result)
-        result = retriever.RetrieveTxBodies(committedTransactions);
-    if(result)
-        result = retriever.ValidateTxNSt();
-    else
-        LOG_MESSAGE("Result of <RetrieveStates> and <RetrieveTxBlocks/Bodies> doesn't match");
-}
-
 bool Node::StartRetrieveHistory()
 {
-    Retriever retriever(m_mediator);
+    Retriever* retriever = new Retriever(m_mediator);
     
     bool ds_result;
-    std::thread tDS(RetrieveDSBlocks, std::ref(retriever), std::ref(ds_result));
+    std::thread tDS(&Retriever::RetrieveDSBlocks, retriever, std::ref(ds_result));
 
     bool tx_st_result;
-    std::thread tTxSt(RetrieveTxNSt, std::ref(retriever), 
-        std::ref(tx_st_result), std::ref(m_committedTransactions));
+    retriever->RetrieveTxNSt(tx_st_result, m_committedTransactions);
 
-    tTxSt.join();
     if(tx_st_result)
     {
         tDS.join();
         if(ds_result)
         {
+            delete retriever;
             return true;
         }
     }
+    delete retriever;
     return false;
 }
 

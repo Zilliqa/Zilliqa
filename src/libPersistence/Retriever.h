@@ -23,7 +23,6 @@
 
 #include "libData/AccountData/Address.h"
 #include "libData/AccountData/Account.h"
-// #include "libNode/Node.h"
 #include "libMediator/Mediator.h"
 
 class Retriever
@@ -31,15 +30,17 @@ class Retriever
 public:
 #ifndef IS_LOOKUP_NODE
 	Retriever(Mediator& mediator);
+	~Retriever() {m_addressToAccount.clear();}
 	
-
+	void RetrieveDSBlocks(bool & result);
+	void RetrieveTxNSt(bool & result, std::unordered_map<boost::multiprecision::uint256_t, 
+                       std::list<Transaction>> & committedTransactions);
 	
 	bool RetrieveTxBlocks();
 	bool RetrieveTxBodies(std::unordered_map<boost::multiprecision::uint256_t, 
                        std::list<Transaction>> & committedTransactions);
 	bool RetrieveStates();
 	bool ValidateTxNSt();
-	void AddDSBlock(const DSBlock &block);
 private:
 	Mediator & m_mediator;
 	std::unordered_map<Address, Account> m_addressToAccount;
