@@ -42,6 +42,7 @@
 #include "libUtils/SanityChecks.h"
 #include "libUtils/TimeLockedFunction.h"
 #include "libUtils/TimeUtils.h"
+#include "libPersistence/Retriever.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -78,63 +79,57 @@ Node::~Node()
 
 #ifndef IS_LOOKUP_NODE
 
-void Node::RetrieveTxNSt(bool& result)
+static void RetrieveDSBlocks(Retriever & retriever, bool & result)
 {
-    result = RetrieveLastState();
+    std::list<DSBlockSharedPtr> blocks;
+    if(!BlockStorage::GetBlockStorage().GetAllDSBlocks(blocks))
+    {
+        LOG_MESSAGE("RetrieveDSBlocks Incompleted");
+        result = false;
+        return;
+    }
+    for(const auto & block : blocks)
+        retriever.AddDSBlock(*block);
+    result = true;
+}
+
+static void RetrieveTxNSt(Retriever & retriever, bool & result, std::unordered_map<boost::multiprecision::uint256_t, 
+                       std::list<Transaction>> & committedTransactions)
+{
+    LOG_MARKER();
+    result = retriever.RetrieveStates();
     if(result)
-        result = m_retriever->RetrieveTxBlocks();
+        result = retriever.RetrieveTxBlocks();
+    else
+        LOG_MESSAGE("Failed to retrieve last states");
     if(result)
-        result = m_retriever->RetrieveTxBodies();
+        result = retriever.RetrieveTxBodies(committedTransactions);
     if(result)
-        result = m_retriever->ValidateTxNSt();
+        result = retriever.ValidateTxNSt();
+    else
+        LOG_MESSAGE("Result of <RetrieveStates> and <RetrieveTxBlocks/Bodies> doesn't match");
 }
 
 bool Node::StartRetrieveHistory()
 {
-    m_retriever = new Retriever(this);
-    // bool success = true;
-
-    // if(!m_retriever->RetrieveDSBlocks())
-    //     success = false;
-
-    // if(!(success && m_retriever->RetrieveDSBlocks()))
-    //     success = false;
-
-    // if(!(success && m_retriever->RetrieveTxBlocks()))
-    //     success = false;
-
-    // if(!(success && m_retriever->RetrieveTxBodies()))
-    //     success = false;
-
-    // if(!(success && m_retriever->RetrieveLastStates()))
-    //     success = false;
-
-    // return success;
-
+    Retriever retriever(m_mediator);
+    
     bool ds_result;
-    void (Retriever::*ds_fptr)(bool&) = &Retriever::RetrieveDSBlocks;
-    std::thread tDS(m_retriever->*ds_fptr, ds_result);
+    std::thread tDS(RetrieveDSBlocks, std::ref(retriever), std::ref(ds_result));
 
     bool tx_st_result;
-    void (Node::*tx_st_fptr)(bool&) = &Node::RetrieveTxSt;
-    std::thread tTxSt(this->tx_st_fptr, tx_st_result);
-
-    // bool st_result;
-    // void (Retriever::*st_fptr)(bool&) = &Retriever::RetrieveLastStates;
-    // std::thread tSt(m_retriever->*st_fptr, st_result);
+    std::thread tTxSt(RetrieveTxNSt, std::ref(retriever), 
+        std::ref(tx_st_result), std::ref(m_committedTransactions));
 
     tTxSt.join();
-    // tSt.join();
     if(tx_st_result)
     {
         tDS.join();
         if(ds_result)
         {
-            delete m_retriever;
             return true;
         }
     }
-    delete m_retriever;
     return false;
 }
 

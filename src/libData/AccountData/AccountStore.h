@@ -61,6 +61,7 @@ public:
     
     /// Returns the singleton AccountStore instance.
     static AccountStore & GetInstance();
+    /// Empty the state trie
     void Init();
     /// Implements the Serialize function inherited from Serializable.
     unsigned int Serialize(std::vector<unsigned char> & dst, unsigned int offset) const;

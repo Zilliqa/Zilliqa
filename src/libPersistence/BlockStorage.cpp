@@ -149,7 +149,7 @@ bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr> & blocks)
 
         if(blockString.empty())
         {
-            // Missed one block in the chain
+            LOG_MESSAGE("Lost one block in the chain");
             return false;
         }
 
@@ -187,7 +187,7 @@ bool BlockStorage::GetAllTxBlocks(std::list<TxBlockSharedPtr> & blocks)
 
         if(blockString.empty())
         {
-            // Missed one block in the chain
+            LOG_MESSAGE("Lost one block in the chain");
             return false;
         }
 
@@ -219,9 +219,12 @@ bool BlockStorage::GetMetadata(MetaType type, std::vector<unsigned char> & data)
 
     if(metaString.empty())
     {
+        LOG_MESSAGE("Failed to get state trie root")
         return false;
     }
     
-    data = std::copy(metaString.begin(), metaString.end());
+    const unsigned char* raw_memory = reinterpret_cast<const unsigned char*>(metaString.c_str());
+    data = std::vector<unsigned char>(raw_memory, raw_memory + metaString.size());
+
     return true;
 }

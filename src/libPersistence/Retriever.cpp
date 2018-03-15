@@ -15,30 +15,18 @@
 **/
 
 #include "Retriever.h"
-#include "libNode/Node.h"
-#include "libMediator/Mediator.h"
-#include "libData/AccountData/Address.h"
-#include "libData/AccountData/Account.h"
+
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 #include "libPersistence/BlockStorage.h"
 
 
 
-Retriever::Retriever(Node * node) : m_node(node) {}
+Retriever::Retriever(Mediator & mediator) : m_mediator(mediator) {}
 
-void Retriever::RetrieveDSBlocks(bool & result)
+void Retriever::AddDSBlock(const DSBlock &block)
 {
-	std::list<DSBlockSharedPtr> blocks;
-	if(!BlockStorage::GetBlockStorage().GetAllDSBlocks(blocks))
-	{
-		LOG_MESSAGE("RetrieveDSBlocks Incompleted");
-		result = false;
-		return;
-	}
-	for(const auto & block : blocks)
-		m_node->m_mediator.m_dsBlockChain.AddBlock(*block);
-	result = true;
+	m_mediator.m_dsBlockChain.AddBlock(block);
 }
 
 bool Retriever::RetrieveTxBlocks()
@@ -57,18 +45,19 @@ bool Retriever::RetrieveTxBlocks()
 	}
 
 	for(const auto & block : blocks)
-			m_node->m_mediator.m_txBlockChain.AddBlock(*block);
+		m_mediator.m_txBlockChain.AddBlock(*block);
 
 	return true;
 }
 
-bool Retriever::RetrieveTxBodies()
+bool Retriever::RetrieveTxBodies(std::unordered_map<boost::multiprecision::uint256_t, 
+                       std::list<Transaction>> & committedTransactions)
 {
-	boost::multiprecision::uint256_t blockSize = m_node->m_mediator.m_txBlockChain.GetBlockCount();
+	boost::multiprecision::uint256_t blockSize = m_mediator.m_txBlockChain.GetBlockCount();
 
 	for(boost::multiprecision::uint256_t blockNum; blockNum < blockSize; ++blockNum)
 	{
-		std::vector<TxnHash> txnHashes = m_node->m_mediator.m_txBlockChain.GetBlock(blockNum).GetMicroBlockHashes();
+		std::vector<TxnHash> txnHashes = m_mediator.m_txBlockChain.GetBlock(blockNum).GetMicroBlockHashes();
 		std::list<Transaction> transactions;
 		for(auto & txnHash : txnHashes)
 		{
@@ -76,7 +65,7 @@ bool Retriever::RetrieveTxBodies()
 			if(!BlockStorage::GetBlockStorage().GetTxBody(txnHash, txBody))
 			{
 				LOG_MESSAGE("RetrieveTxBodies Incompleted");
-				m_node->m_committedTransactions.clear();
+				committedTransactions.clear();
 				return false;
 			}
 			transactions.push_back(*txBody);
@@ -84,18 +73,19 @@ bool Retriever::RetrieveTxBodies()
 			//Compare with the state retrieved from database directly to make an validation.
 			AccountStore::GetInstance().UpdateAccounts(*txBody);
 		}
-		//m_node->m_committedTransactions.insert(blockNum, transactions);
+		if(blockNum == blockSize - 1)
+			committedTransactions.insert({blockNum, transactions});
 	}
 
 	return true;
 }
 
-bool Retriever::RetrieveLastStates()
+bool Retriever::RetrieveStates()
 {
-	//TODO
+	return AccountStore::GetInstance().RetrieveFromDisk(m_addressToAccount);
 }
 
 bool Retriever::ValidateTxNSt()
 {
-
+	return AccountStore::GetInstance().ValidateStateFromDisk(m_addressToAccount);
 }

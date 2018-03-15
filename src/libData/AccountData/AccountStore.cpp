@@ -30,6 +30,8 @@ using namespace boost::multiprecision;
 AccountStore::AccountStore() : m_db("state")
 {
     m_state = SecureTrieDB<Address, dev::OverlayDB>(&m_db);
+    // m_state.init();
+    // prevRoot = m_state.root();
 }
 
 AccountStore::~AccountStore()
@@ -39,11 +41,8 @@ AccountStore::~AccountStore()
 
 void AccountStore::Init()
 {
-    if(!toRetrieveHistory)
-    {
-        m_state.init();
-        prevRoot = m_state.root();
-    }
+    m_state.init();
+    prevRoot = m_state.root();
 }
 
 unsigned int AccountStore::Serialize(vector<unsigned char> & dst, unsigned int offset) const
@@ -359,7 +358,7 @@ dev::h256 AccountStore::GetStateRootHash() const
 void AccountStore::MoveRootToDisk()
 {
     //convert h256 to bytes
-    BlockStorage::GetInstance().PutMetadata(STATEROOT, prevRoot.asBytes());
+    BlockStorage::GetBlockStorage().PutMetadata(STATEROOT, prevRoot.asBytes());
 }
 
 void AccountStore::MoveUpdatesToDisk()
@@ -390,13 +389,28 @@ void AccountStore::PrintAccountState()
 bool AccountStore::RetrieveFromDisk(std::unordered_map<Address, Account> & addressToAccount)
 {
     std::vector<unsigned char> rootBytes;
-    if(!BlockStorage::GetInstance().GetMetadata(STATEROOT, rootBytes))
+    if(!BlockStorage::GetBlockStorage().GetMetadata(STATEROOT, rootBytes))
         return false;
     dev::h256 root(rootBytes);
-
+    m_state.setRoot(root);
+    for(auto i : m_state)
+    {
+        Address address(i.first);
+        dev::RLP rlp(i.second);
+        std::vector<uint256_t> account_data 
+            = rlp.toVector<uint256_t>();
+        if(account_data.size() != 2)
+        {
+            LOG_MESSAGE("Account data corrupted");
+            return false;
+        }
+        Account account(account_data[0], account_data[1]);
+        addressToAccount.insert({address, account});
+    }
+    return true;
 }
 
 bool AccountStore::ValidateStateFromDisk(const std::unordered_map<Address, Account> & addressToAccount)
 {
-
+    return addressToAccount == m_addressToAccount;
 }
