@@ -135,6 +135,7 @@ bool BlockStorage::GetTxBody(const dev::h256 & key, TxBodySharedPtr & body)
 
 bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr> & blocks)
 {
+    LOG_MARKER();
     std::map<boost::multiprecision::uint256_t,
      DSBlockSharedPtr, std::less<boost::multiprecision::uint256_t>> t_blocks;
     leveldb::Iterator* it = m_dsBlockchainDB.GetDB()->NewIterator(leveldb::ReadOptions());
@@ -149,7 +150,7 @@ bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr> & blocks)
 
         if(blockString.empty())
         {
-            LOG_MESSAGE("Lost one block in the chain");
+            LOG_MESSAGE("ERROR: Lost one block in the chain");
             return false;
         }
 
@@ -162,6 +163,12 @@ bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr> & blocks)
         t_blocks.insert(std::make_pair(blockNum, block));
     }
 
+    if(t_blocks.empty())
+    {
+        LOG_MESSAGE("FAIL: DB is empty")
+        return false;
+    }
+
     for(auto& p : t_blocks)
     {
         blocks.push_back(p.second);
@@ -172,6 +179,7 @@ bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr> & blocks)
 
 bool BlockStorage::GetAllTxBlocks(std::list<TxBlockSharedPtr> & blocks)
 {
+    LOG_MARKER();
     std::map<boost::multiprecision::uint256_t,
      TxBlockSharedPtr, std::less<boost::multiprecision::uint256_t>> t_blocks;
     leveldb::Iterator* it = m_txBlockchainDB.GetDB()->NewIterator(leveldb::ReadOptions());
@@ -187,7 +195,7 @@ bool BlockStorage::GetAllTxBlocks(std::list<TxBlockSharedPtr> & blocks)
 
         if(blockString.empty())
         {
-            LOG_MESSAGE("Lost one block in the chain");
+            LOG_MESSAGE("ERROR: Lost one block in the chain");
             return false;
         }
 
@@ -198,6 +206,12 @@ bool BlockStorage::GetAllTxBlocks(std::list<TxBlockSharedPtr> & blocks)
                                           raw_memory + blockString.size()), 0) );
 
         t_blocks.insert(std::make_pair(blockNum, block));
+    }
+
+    if(t_blocks.empty())
+    {
+        LOG_MESSAGE("FAIL: DB is empty")
+        return false;
     }
 
     for(auto& p : t_blocks)
@@ -219,7 +233,7 @@ bool BlockStorage::GetMetadata(MetaType type, std::vector<unsigned char> & data)
 
     if(metaString.empty())
     {
-        LOG_MESSAGE("Failed to get state trie root")
+        LOG_MESSAGE("ERROR: Failed to get state trie root")
         return false;
     }
     

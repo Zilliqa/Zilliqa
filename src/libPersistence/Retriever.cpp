@@ -26,10 +26,11 @@ Retriever::Retriever(Mediator & mediator) : m_mediator(mediator) {}
 
 bool Retriever::RetrieveTxBlocks()
 {
+	LOG_MARKER();
 	std::list<TxBlockSharedPtr> blocks;
 	if(!BlockStorage::GetBlockStorage().GetAllTxBlocks(blocks))
 	{
-		LOG_MESSAGE("RetrieveTxBlocks Incompleted");
+		LOG_MESSAGE("FAIL: RetrieveTxBlocks Incompleted");
 		return false;
 	}
 
@@ -48,6 +49,7 @@ bool Retriever::RetrieveTxBlocks()
 bool Retriever::RetrieveTxBodies(std::unordered_map<boost::multiprecision::uint256_t, 
                        std::list<Transaction>> & committedTransactions)
 {
+	LOG_MARKER();
 	boost::multiprecision::uint256_t blockSize = m_mediator.m_txBlockChain.GetBlockCount();
 
 	for(boost::multiprecision::uint256_t blockNum; blockNum < blockSize; ++blockNum)
@@ -59,7 +61,7 @@ bool Retriever::RetrieveTxBodies(std::unordered_map<boost::multiprecision::uint2
 			TxBodySharedPtr txBody;
 			if(!BlockStorage::GetBlockStorage().GetTxBody(txnHash, txBody))
 			{
-				LOG_MESSAGE("RetrieveTxBodies Incompleted");
+				LOG_MESSAGE("FAIL: RetrieveTxBodies Incompleted");
 				committedTransactions.clear();
 				return false;
 			}
@@ -87,10 +89,11 @@ bool Retriever::ValidateTxNSt()
 
 void Retriever::RetrieveDSBlocks(bool & result)
 {
+	LOG_MARKER();
 	std::list<DSBlockSharedPtr> blocks;
     if(!BlockStorage::GetBlockStorage().GetAllDSBlocks(blocks))
     {
-        LOG_MESSAGE("RetrieveDSBlocks Incompleted");
+        LOG_MESSAGE("FAIL: RetrieveDSBlocks Incompleted");
         result = false;
         return;
     }
@@ -107,13 +110,13 @@ void Retriever::RetrieveTxNSt(bool & result, std::unordered_map<boost::multiprec
     if(result)
         result = RetrieveTxBlocks();
     else
-        LOG_MESSAGE("Failed to retrieve last states");
+        LOG_MESSAGE("FAIL: Failed to retrieve last states");
     if(result)
         result = RetrieveTxBodies(committedTransactions);
     if(result)
         result = ValidateTxNSt();
     else
-        LOG_MESSAGE("Result of <RetrieveStates> and <RetrieveTxBlocks/Bodies> doesn't match");
+        LOG_MESSAGE("ERROR: Result of <RetrieveStates> and <RetrieveTxBlocks/Bodies> doesn't match");
 }
 
 #endif // IS_LOOKUP_NODE
