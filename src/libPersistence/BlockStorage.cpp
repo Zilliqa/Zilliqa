@@ -20,6 +20,7 @@
 #include <sys/stat.h>
 #include <sys/syscall.h>
 #include <unistd.h>
+#include <algorithm>
 
 #include <boost/filesystem.hpp>
 #include <leveldb/db.h>
@@ -135,13 +136,14 @@ bool BlockStorage::GetTxBody(const dev::h256 & key, TxBodySharedPtr & body)
 bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr> & blocks)
 {
     std::map<boost::multiprecision::uint256_t,
-     string, std::less<boost::multiprecision::uint256_t>> t_blocks;
+     DSBlockSharedPtr, std::less<boost::multiprecision::uint256_t>> t_blocks;
     leveldb::Iterator* it = m_dsBlockchainDB.GetDB()->NewIterator(leveldb::ReadOptions());
     for(it->SeekToFirst(); it->Valid(); it->Next())
     {
+        string bns = it->key().ToString();
+        vector<unsigned char> blockNumString(bns.begin(), bns.end());
         boost::multiprecision::uint256_t blockNum = 
-            Serializable::GetNumber<boost::multiprecision::uint256_t>(
-                reinterpret_cast<const unsigned char*>(it->key().ToString().c_str()), 
+            Serializable::GetNumber<boost::multiprecision::uint256_t>(blockNumString, 
                 0, UINT256_SIZE);
         string blockString = it->value().ToString();
 
@@ -160,7 +162,7 @@ bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr> & blocks)
         t_blocks.insert(std::make_pair(blockNum, block));
     }
 
-    for(const auto& p : t_blocks)
+    for(auto& p : t_blocks)
     {
         blocks.push_back(p.second);
     }
@@ -171,13 +173,15 @@ bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr> & blocks)
 bool BlockStorage::GetAllTxBlocks(std::list<TxBlockSharedPtr> & blocks)
 {
     std::map<boost::multiprecision::uint256_t,
-     string, std::less<boost::multiprecision::uint256_t>> t_blocks;
+     TxBlockSharedPtr, std::less<boost::multiprecision::uint256_t>> t_blocks;
     leveldb::Iterator* it = m_txBlockchainDB.GetDB()->NewIterator(leveldb::ReadOptions());
     for(it->SeekToFirst(); it->Valid(); it->Next())
     {
+        string bns = it->key().ToString();
+        vector<unsigned char> blockNumString(bns.begin(), bns.end());
         boost::multiprecision::uint256_t blockNum = 
             Serializable::GetNumber<boost::multiprecision::uint256_t>(
-                reinterpret_cast<const unsigned char*>(it->key().ToString().c_str()), 
+                blockNumString, 
                 0, UINT256_SIZE);
         string blockString = it->value().ToString();
 
@@ -190,16 +194,34 @@ bool BlockStorage::GetAllTxBlocks(std::list<TxBlockSharedPtr> & blocks)
         LOG_MESSAGE(blockString);
         LOG_MESSAGE(blockString.length());
         const unsigned char* raw_memory = reinterpret_cast<const unsigned char*>(blockString.c_str());
-        DSBlockSharedPtr block = DSBlockSharedPtr( new DSBlock(std::vector<unsigned char>(raw_memory, 
+        TxBlockSharedPtr block = TxBlockSharedPtr( new TxBlock(std::vector<unsigned char>(raw_memory, 
                                           raw_memory + blockString.size()), 0) );
 
         t_blocks.insert(std::make_pair(blockNum, block));
     }
 
-    for(const auto& p : t_blocks)
+    for(auto& p : t_blocks)
     {
         blocks.push_back(p.second);
     }
 
+    return true;
+}
+
+bool BlockStorage::PutMetadata(MetaType type, const std::vector<unsigned char> & data)
+{
+    return m_metadataDB.Insert(std::to_string((int)type), data);
+}
+
+bool BlockStorage::GetMetadata(MetaType type, std::vector<unsigned char> & data)
+{
+    string metaString = m_metadataDB.Lookup(std::to_string((int)type));
+
+    if(metaString.empty())
+    {
+        return false;
+    }
+    
+    data = std::copy(metaString.begin(), metaString.end());
     return true;
 }

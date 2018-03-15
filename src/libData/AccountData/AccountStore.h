@@ -54,10 +54,14 @@ class AccountStore: public Serializable
 
     bool UpdateStateTrie(const Address & address, const Account & account);
 
+    /// Store the trie root to leveldb
+    void MoveRootToDisk();
+
 public:
     
     /// Returns the singleton AccountStore instance.
     static AccountStore & GetInstance();
+    void Init();
     /// Implements the Serialize function inherited from Serializable.
     unsigned int Serialize(std::vector<unsigned char> & dst, unsigned int offset) const;
 
@@ -97,6 +101,11 @@ public:
 
     void MoveUpdatesToDisk();
     void DiscardUnsavedUpdates();
+
+    /// re-construct an addressToAccount from persistence
+    bool RetrieveFromDisk(std::unordered_map<Address, Account> & addressToAccount);
+    /// compare the re-constructed addressToAccount with the local one
+    bool ValidateStateFromDisk(const std::unordered_map<Address, Account> & addressToAccount);
 
     void PrintAccountState();
 };

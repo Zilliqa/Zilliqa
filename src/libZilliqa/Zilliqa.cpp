@@ -52,7 +52,7 @@ void Zilliqa::LogSelfNodeInfo(const std::pair<PrivKey, PubKey> & key, const Peer
     LOG_MESSAGE("My address is " << toAddr << " and port is " << peer.m_listenPortHost);
 }
 
-Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey> & key, const Peer & peer, bool loadConfig, bool toRetrieveHistory, bool toSyncWithNetwork) :
+Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey> & key, const Peer & peer, bool loadConfig, bool toSyncWithNetwork, bool toRetrieveHistory) :
         m_pm(key, peer, loadConfig), m_mediator(key, peer), m_ds(m_mediator), m_lookup(m_mediator), 
         m_n(m_mediator, toRetrieveHistory), m_cu(key, peer)
 #ifdef IS_LOOKUP_NODE

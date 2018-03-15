@@ -85,7 +85,7 @@ class Node : public Executable, public Broadcastable
     Mediator & m_mediator;
 
     friend class Retriever;
-    std::shared_ptr<Retriever> m_retriever;
+    Retriever* m_retriever;
 
     Synchronizer m_synchronizer;
 
@@ -201,6 +201,7 @@ class Node : public Executable, public Broadcastable
         const boost::multiprecision::uint256_t & blocknum, bool & isEveryMicroBlockAvailable);
     bool ReadAuxilliaryInfoFromFinalBlockMsg(const vector<unsigned char> & message, 
                                              unsigned int & cur_offset, uint8_t & shard_id);
+    void StoreState();
     void StoreFinalBlock(const TxBlock & txBlock);
     void InitiatePoW1();
     void UpdateStateForNextConsensusRound();
@@ -318,7 +319,8 @@ public:
 
 #ifndef IS_LOOKUP_NODE
 
-    void StartRetrieveHistory();
+    void Node::RetrieveTx(bool& result);
+    bool StartRetrieveHistory();
 
     void StartSynchronization();
 

@@ -17,45 +17,49 @@
 #include "Retriever.h"
 #include "libNode/Node.h"
 #include "libMediator/Mediator.h"
+#include "libData/AccountData/Address.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 #include "libPersistence/BlockStorage.h"
 
-#include <unordered_map>
+
 
 Retriever::Retriever(Node * node) : m_node(node) {}
 
-bool Retriever::RetrieveDSBlocks()
+void Retriever::RetrieveDSBlocks(bool & result)
 {
 	std::list<DSBlockSharedPtr> blocks;
 	if(!BlockStorage::GetBlockStorage().GetAllDSBlocks(blocks))
 	{
 		LOG_MESSAGE("RetrieveDSBlocks Incompleted");
-		return false;
+		result = false;
+		return;
 	}
 	for(const auto & block : blocks)
 		m_node->m_mediator.m_dsBlockChain.AddBlock(*block);
-	return true;
+	result = true;
 }
 
 bool Retriever::RetrieveTxBlocks()
 {
 	std::list<TxBlockSharedPtr> blocks;
-	if(!BlockStorage::GetBlockStorage().GetAllTXBlocks(blocks))
+	if(!BlockStorage::GetBlockStorage().GetAllTxBlocks(blocks))
 	{
 		LOG_MESSAGE("RetrieveTxBlocks Incompleted");
 		return false;
 	}
 
 	// truncate the extra final blocks at last
-	for(int i = 0; i < blocks.size() % NUM_FINAL_BLOCK_PER_POW; ++i)
+	for(int i = 0; i < (int)(blocks.size() % NUM_FINAL_BLOCK_PER_POW); ++i)
 	{
 		blocks.pop_back();
 	}
 
 	for(const auto & block : blocks)
 			m_node->m_mediator.m_txBlockChain.AddBlock(*block);
+
+	return true;
 }
 
 bool Retriever::RetrieveTxBodies()
@@ -64,12 +68,12 @@ bool Retriever::RetrieveTxBodies()
 
 	for(boost::multiprecision::uint256_t blockNum; blockNum < blockSize; ++blockNum)
 	{
-		std::vector<TxnHash> txnHashes = m_node->m_mediator.m_txBlockChain.GetBlock(blockNum).GetHeader().GetMicroBlockHashes();
+		std::vector<TxnHash> txnHashes = m_node->m_mediator.m_txBlockChain.GetBlock(blockNum).GetMicroBlockHashes();
 		std::list<Transaction> transactions;
 		for(auto & txnHash : txnHashes)
 		{
 			TxBodySharedPtr txBody;
-			if(!GetTxBody(txhHash, txBody))
+			if(!BlockStorage::GetBlockStorage().GetTxBody(txnHash, txBody))
 			{
 				LOG_MESSAGE("RetrieveTxBodies Incompleted");
 				m_node->m_committedTransactions.clear();
@@ -78,13 +82,20 @@ bool Retriever::RetrieveTxBodies()
 			transactions.push_back(*txBody);
 			//Rebuild the AccountStore with UpdateAccounts from these transactions.
 			//Compare with the state retrieved from database directly to make an validation.
-			AccountStore::GetInstancde().UpdateAccounts(*txBody);
+			AccountStore::GetInstance().UpdateAccounts(*txBody);
 		}
 		//m_node->m_committedTransactions.insert(blockNum, transactions);
 	}
+
+	return true;
 }
 
 bool Retriever::RetrieveLastStates()
 {
 	//TODO
+}
+
+bool Retriever::ValidateTxNSt()
+{
+
 }

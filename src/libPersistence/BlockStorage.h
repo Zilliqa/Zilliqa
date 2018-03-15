@@ -76,11 +76,16 @@ public:
     // /// Retrieves the requested transaction body.
     // void GetTxBody(const std::string & key, TxBodySharedPtr & body);
 
-    // Retrieves all the DSBlocks
+    /// Retrieves all the DSBlocks
     bool GetAllDSBlocks(std::list<DSBlockSharedPtr> & blocks);
 
-    // Retrieves all the TxBlocks
+    /// Retrieves all the TxBlocks
     bool GetAllTxBlocks(std::list<TxBlockSharedPtr> & blocks);
+
+    /// Save Last Transactions Trie Root Hash
+    bool PutMetadata(MetaType type, const std::vector<unsigned char> & data);
+    /// Retrieve Last Transactions Trie Root Hash
+    bool GetMetadata(MetaType type, std::vector<unsigned char> & data);
 };
 
 #endif // BLOCKSTORAGE_H
