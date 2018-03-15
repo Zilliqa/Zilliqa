@@ -24,11 +24,6 @@
 
 Retriever::Retriever(Mediator & mediator) : m_mediator(mediator) {}
 
-void Retriever::AddDSBlock(const DSBlock &block)
-{
-	m_mediator.m_dsBlockChain.AddBlock(block);
-}
-
 bool Retriever::RetrieveTxBlocks()
 {
 	std::list<TxBlockSharedPtr> blocks;
@@ -88,6 +83,37 @@ bool Retriever::RetrieveStates()
 bool Retriever::ValidateTxNSt()
 {
 	return AccountStore::GetInstance().ValidateStateFromDisk(m_addressToAccount);
+}
+
+void Retriever::RetrieveDSBlocks(bool & result)
+{
+	std::list<DSBlockSharedPtr> blocks;
+    if(!BlockStorage::GetBlockStorage().GetAllDSBlocks(blocks))
+    {
+        LOG_MESSAGE("RetrieveDSBlocks Incompleted");
+        result = false;
+        return;
+    }
+    for(const auto & block : blocks)
+        m_mediator.m_dsBlockChain.AddBlock(*block);
+    result = true;
+}
+
+void Retriever::RetrieveTxNSt(bool & result, std::unordered_map<boost::multiprecision::uint256_t, 
+                       std::list<Transaction>> & committedTransactions)
+{
+	LOG_MARKER();
+    result = RetrieveStates();
+    if(result)
+        result = RetrieveTxBlocks();
+    else
+        LOG_MESSAGE("Failed to retrieve last states");
+    if(result)
+        result = RetrieveTxBodies(committedTransactions);
+    if(result)
+        result = ValidateTxNSt();
+    else
+        LOG_MESSAGE("Result of <RetrieveStates> and <RetrieveTxBlocks/Bodies> doesn't match");
 }
 
 #endif // IS_LOOKUP_NODE
