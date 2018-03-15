@@ -1,10 +1,6 @@
 # escape=\
 FROM ubuntu:16.04
 
-ARG REPO=https://github.com/Zilliqa/Zilliqa.git
-ARG BRANCH=master
-ARG CONFIG=Debug
-
 #--------------------------------------------------------------------
 # PACKAGES - UPDATE DATABASE
 #--------------------------------------------------------------------
@@ -32,11 +28,16 @@ RUN apt-get install -y libjsonrpccpp-dev
 #--------------------------------------------------------------------
 # GET SOURCES
 #--------------------------------------------------------------------
+ARG REPO=https://github.com/Zilliqa/Zilliqa.git
+ARG BRANCH=master
+
 RUN git clone -b ${BRANCH} ${REPO}
 
 #--------------------------------------------------------------------
 # CONFIGURE
 #--------------------------------------------------------------------
+ARG CONFIG=Debug
+
 WORKDIR Zilliqa
 RUN cmake -DCMAKE_BUILD_TYPE=${CONFIG} .
 RUN cmake --build .
