@@ -256,9 +256,35 @@ int LevelDB::DeleteDB()
     leveldb::Status s = leveldb::DestroyDB(this->m_dbName, leveldb::Options()); 
     if (!s.ok())
     {
-        //LOG_MESSAGE("[DeleteDB] Status: " << s.ToString());
+        LOG_MESSAGE("[DeleteDB] Status: " << s.ToString());
         return -1;
     }
 
     return 0;
+}
+
+
+bool LevelDB::ResetDB()
+{
+    if(DeleteDB()==0)
+    {
+        string path = "./persistence";
+        boost::filesystem::remove_all(path + "/" + this->m_dbName);
+
+        leveldb::Options options;
+        options.max_open_files = 256;
+        options.create_if_missing = true;
+
+        leveldb::DB* db;
+
+        leveldb::Status status = leveldb::DB::Open(options, path + "/" + this->m_dbName, &db);
+        if(!status.ok())
+        {
+            throw exception();
+        }
+
+        m_db.reset(db);
+        return true;
+    }
+    return false;
 }

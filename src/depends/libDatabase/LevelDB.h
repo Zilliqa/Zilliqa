@@ -88,6 +88,9 @@ public:
 
     /// Deletes the entire database.
     int DeleteDB();
+
+    /// Reset the entire database.
+    bool ResetDB();
 };
 
 #endif // __LEVELDB_H__
