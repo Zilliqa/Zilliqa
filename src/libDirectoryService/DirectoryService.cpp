@@ -736,14 +736,24 @@ bool DirectoryService::ProcessLastDSBlockResponse(const vector<unsigned char> & 
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "DEBUG: I received the last ds block from ds leader.");
     m_requesting_last_ds_block = false;
     unsigned int cur_offset = offset;
+
+    DSBlock dsblock(message, cur_offset);
+    int result = m_mediator.m_dsBlockChain.AddBlock(dsblock);
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Storing DS Block Number: "<< dsblock.GetHeader().GetBlockNum() <<
+                " with Nonce: "<< dsblock.GetHeader().GetNonce() <<
+                ", Difficulty: "<< dsblock.GetHeader().GetDifficulty() <<
+                ", Timestamp: "<< dsblock.GetHeader().GetTimestamp());
+    
+    if (result == -1)
     {
-        lock_guard<mutex> g(m_mutexPendingDSBlock);
-        DSBlock dsblock(message, cur_offset);
-        cur_offset += DSBlock::GetSerializedSize();
-        m_pendingDSBlock.reset(&dsblock); 
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Error. We failed to add dsblock to dsblockchain.");
+        throw exception();
     }
     
-    StoreDSBlockToStorage();
+    vector<unsigned char> serializedDSBlock;
+    dsblock.Serialize(serializedDSBlock, 0);
+    BlockStorage::GetBlockStorage().PutDSBlock(dsblock.GetHeader().GetBlockNum(), serializedDSBlock);
+
     SetState(POW2_SUBMISSION);
     ScheduleShardingConsensus(BACKUP_POW2_WINDOW_IN_SECONDS - BUFFER_TIME_BEFORE_DS_BLOCK_REQUEST);
     return true; 
