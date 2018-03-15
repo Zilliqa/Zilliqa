@@ -20,7 +20,7 @@
 #include "libData/AccountData/Transaction.h"
 #include "libPersistence/BlockStorage.h"
 
-
+#ifndef IS_LOOKUP_NODE
 
 Retriever::Retriever(Mediator & mediator) : m_mediator(mediator) {}
 
@@ -89,3 +89,5 @@ bool Retriever::ValidateTxNSt()
 {
 	return AccountStore::GetInstance().ValidateStateFromDisk(m_addressToAccount);
 }
+
+#endif // IS_LOOKUP_NODE

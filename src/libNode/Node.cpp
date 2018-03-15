@@ -54,12 +54,17 @@ Node::Node(Mediator & mediator, bool toRetrieveHistory) : m_mediator(mediator)
     // Hence, we have to set consensusID for first epoch to 1. 
     m_consensusID = 1;
     m_consensusLeaderID = 1;
+    
     bool runInitializeGenesisBlocks = true;
+
+    #ifndef IS_LOOKUP_NODE
     if(toRetrieveHistory)
     {
         if(StartRetrieveHistory())
             runInitializeGenesisBlocks = false;
     }
+    #endif // IS_LOOKUP_NODE
+    
     if(runInitializeGenesisBlocks)
     {
         AccountStore::GetInstance().Init();
