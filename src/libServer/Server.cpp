@@ -398,6 +398,8 @@ double Server::getDSBlockRate()
 		LOG_MESSAGE("Wait till the second block");
 		return 0;
 	}
+	numDs = numDs*1000000;
+
 
 	boost::multiprecision::float128 TimeDiffFloat(TimeDiff.str());
 	boost::multiprecision::float128 ans = numDs/TimeDiffFloat;
@@ -413,6 +415,9 @@ double Server::getTxBlockRate()
 
 	string numTxblockStr = m_mediator.m_txBlockChain.GetBlockCount().str();
 	boost::multiprecision::float128 numTx(numTxblockStr);
+	numTx = numTx*1000000;
+
+
 
 	if(m_StartTimeTx == 0)
 	{
@@ -441,6 +446,7 @@ double Server::getTxBlockRate()
 	boost::multiprecision::float128 TimeDiffFloat(TimeDiff.str());
 	boost::multiprecision::float128 ans = numTx/TimeDiffFloat;
 
+	
 	return ans.convert_to<double>();
 
 
