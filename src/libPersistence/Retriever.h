@@ -21,25 +21,26 @@
 #include <list>
 #include <unordered_map>
 
-class Node;
-class Address;
-class Account;
+#include "libData/AccountData/Address.h"
+#include "libData/AccountData/Account.h"
+// #include "libNode/Node.h"
+#include "libMediator/Mediator.h"
 
 class Retriever
 {
 public:
-	Retriever(Node* node);
+	Retriever(Mediator& mediator);
 	
 #ifndef IS_LOOKUP_NODE
-	~Retriever() {	m_addressToAccount.clear();	}
-	void RetrieveDSBlocks(bool & result);
+	
 	bool RetrieveTxBlocks();
-	bool RetrieveTxBodies();
-	bool RetrieveLastStates();
+	bool RetrieveTxBodies(std::unordered_map<boost::multiprecision::uint256_t, 
+                       std::list<Transaction>> & committedTransactions);
+	bool RetrieveStates();
 	bool ValidateTxNSt();
-
+	void AddDSBlock(const DSBlock &block);
 private:
-	Node* m_node;
+	Mediator & m_mediator;
 	std::unordered_map<Address, Account> m_addressToAccount;
 #endif // IS_LOOKUP_NODE
 };

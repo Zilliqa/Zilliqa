@@ -39,7 +39,6 @@
 #include "libPersistence/BlockStorage.h"
 #include "libPOW/pow.h"
 #include "libLookup/Synchronizer.h"
-#include "libPersistence/Retriever.h"
 
 class Mediator;
 
@@ -83,9 +82,6 @@ class Node : public Executable, public Broadcastable
     }
 
     Mediator & m_mediator;
-
-    friend class Retriever;
-    Retriever* m_retriever;
 
     Synchronizer m_synchronizer;
 
@@ -317,9 +313,11 @@ public:
     /// Implements the GetBroadcastList function inherited from Broadcastable.
     std::vector<Peer> GetBroadcastList(unsigned char ins_type, const Peer & broadcast_originator);
 
+    Mediator & GetMediator() {return m_mediator;}
+
 #ifndef IS_LOOKUP_NODE
 
-    void Node::RetrieveTx(bool& result);
+    
     bool StartRetrieveHistory();
 
     void StartSynchronization();
