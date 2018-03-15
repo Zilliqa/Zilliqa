@@ -46,7 +46,7 @@ enum DSInstructionType : unsigned char
     AllPoWConnRequest = 0x07,
     AllPoWConnResponse = 0x08,
     LastDSBlockRequest = 0x09,
-    LastDSBlockResponse = 0x10
+    LastDSBlockResponse = 0x0A
 };
 
 enum NodeInstructionType : unsigned char
