@@ -22,6 +22,7 @@
 #include "depends/common/RLP.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
+#include "libPersistence/BlockStorage.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -29,13 +30,20 @@ using namespace boost::multiprecision;
 AccountStore::AccountStore() : m_db("state")
 {
     m_state = SecureTrieDB<Address, dev::OverlayDB>(&m_db);
-    m_state.init();
-    prevRoot = m_state.root();
 }
 
 AccountStore::~AccountStore()
 {
     // boost::filesystem::remove_all("./state");
+}
+
+void AccountStore::Init()
+{
+    if(!toRetrieveHistory)
+    {
+        m_state.init();
+        prevRoot = m_state.root();
+    }
 }
 
 unsigned int AccountStore::Serialize(vector<unsigned char> & dst, unsigned int offset) const
@@ -348,11 +356,18 @@ dev::h256 AccountStore::GetStateRootHash() const
     return m_state.root();
 }
 
+void AccountStore::MoveRootToDisk()
+{
+    //convert h256 to bytes
+    BlockStorage::GetInstance().PutMetadata(STATEROOT, prevRoot.asBytes());
+}
+
 void AccountStore::MoveUpdatesToDisk()
 {
     m_state.db()->commit();
     prevRoot = m_state.root();
     // m_state.init();
+    MoveRootToDisk();
 }
 
 void AccountStore::DiscardUnsavedUpdates()
@@ -370,4 +385,18 @@ void AccountStore::PrintAccountState()
     {
         LOG_MESSAGE(entry.first << " " << entry.second);
     }
+}
+
+bool AccountStore::RetrieveFromDisk(std::unordered_map<Address, Account> & addressToAccount)
+{
+    std::vector<unsigned char> rootBytes;
+    if(!BlockStorage::GetInstance().GetMetadata(STATEROOT, rootBytes))
+        return false;
+    dev::h256 root(rootBytes);
+
+}
+
+bool AccountStore::ValidateStateFromDisk(const std::unordered_map<Address, Account> & addressToAccount)
+{
+
 }

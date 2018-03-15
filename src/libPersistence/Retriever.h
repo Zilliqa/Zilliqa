@@ -19,19 +19,28 @@
 
 #include <map>
 #include <list>
+#include <unordered_map>
 
 class Node;
+class Address;
+class Account;
 
 class Retriever
 {
-	Node* m_node;
 public:
 	Retriever(Node* node);
+	
 #ifndef IS_LOOKUP_NODE
-	bool RetrieveDSBlocks();
+	~Retriever() {	m_addressToAccount.clear();	}
+	void RetrieveDSBlocks(bool & result);
 	bool RetrieveTxBlocks();
 	bool RetrieveTxBodies();
 	bool RetrieveLastStates();
+	bool ValidateTxNSt();
+
+private:
+	Node* m_node;
+	std::unordered_map<Address, Account> m_addressToAccount;
 #endif // IS_LOOKUP_NODE
 };
 

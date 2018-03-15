@@ -68,6 +68,12 @@ const unsigned int PORT_SIZE = 4;
 
 // Testing parameters
 
+// Metadata type
+enum MetaType : unsigned char
+{
+	STATEROOT = 0x00,
+};
+
 
 const std::string RAND1_GENESIS = "2b740d75891749f94b6a8ec09f086889066608e4418eda656c93443e8310750a";
 const std::string RAND2_GENESIS = "e8cc9106f8a28671d91e2de07b57b828934481fadf6956563b963bb8e5c266bf";

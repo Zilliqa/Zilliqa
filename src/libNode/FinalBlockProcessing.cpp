@@ -81,6 +81,12 @@ bool Node::ReadAuxilliaryInfoFromFinalBlockMsg(const vector<unsigned char> & mes
     return true;
 }
 
+void Node::StoreState()
+{
+    LOG_MARKER();
+    AccountStore::GetInstance().MoveUpdatesToDisk();
+}
+
 void Node::StoreFinalBlock(const TxBlock & txBlock)
 {
     m_mediator.m_txBlockChain.AddBlock(txBlock);
@@ -1014,6 +1020,9 @@ bool Node::ProcessFinalBlock(const vector<unsigned char> & message, unsigned int
         if(!CheckStateRoot(txBlock))
         {
             return false;
+        }else
+        {
+          StoreState();
         }
     }
 // #endif // IS_LOOKUP_NODE    

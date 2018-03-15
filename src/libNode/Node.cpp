@@ -53,12 +53,15 @@ Node::Node(Mediator & mediator, bool toRetrieveHistory) : m_mediator(mediator)
     // Hence, we have to set consensusID for first epoch to 1. 
     m_consensusID = 1;
     m_consensusLeaderID = 1;
+    bool runInitializeGenesisBlocks = true;
     if(toRetrieveHistory)
     {
-        StartRetrieveHistory();
+        if(StartRetrieveHistory())
+            runInitializeGenesisBlocks = false;
     }
-    else
+    if(runInitializeGenesisBlocks)
     {
+        AccountStore::GetInstance().Init();
         m_synchronizer.InitializeGenesisBlocks(m_mediator.m_dsBlockChain, m_mediator.m_txBlockChain);
     }
     m_mediator.m_currentEpochNum = (uint64_t) m_mediator.m_txBlockChain.GetBlockCount();
@@ -75,13 +78,64 @@ Node::~Node()
 
 #ifndef IS_LOOKUP_NODE
 
-void Node::StartRetrieveHistory()
+void Node::RetrieveTxNSt(bool& result)
 {
-    m_retriever = std::make_shared<Retriever>(this);
-    m_retriever.RetrieveDSBlocks();
-    m_retriever.RetrieveTxBlocks();
-    m_retriever.RetrieveTxBodies();
-    m_retriever.RetrieveLastStates();
+    result = RetrieveLastState();
+    if(result)
+        result = m_retriever->RetrieveTxBlocks();
+    if(result)
+        result = m_retriever->RetrieveTxBodies();
+    if(result)
+        result = m_retriever->ValidateTxNSt();
+}
+
+bool Node::StartRetrieveHistory()
+{
+    m_retriever = new Retriever(this);
+    // bool success = true;
+
+    // if(!m_retriever->RetrieveDSBlocks())
+    //     success = false;
+
+    // if(!(success && m_retriever->RetrieveDSBlocks()))
+    //     success = false;
+
+    // if(!(success && m_retriever->RetrieveTxBlocks()))
+    //     success = false;
+
+    // if(!(success && m_retriever->RetrieveTxBodies()))
+    //     success = false;
+
+    // if(!(success && m_retriever->RetrieveLastStates()))
+    //     success = false;
+
+    // return success;
+
+    bool ds_result;
+    void (Retriever::*ds_fptr)(bool&) = &Retriever::RetrieveDSBlocks;
+    std::thread tDS(m_retriever->*ds_fptr, ds_result);
+
+    bool tx_st_result;
+    void (Node::*tx_st_fptr)(bool&) = &Node::RetrieveTxSt;
+    std::thread tTxSt(this->tx_st_fptr, tx_st_result);
+
+    // bool st_result;
+    // void (Retriever::*st_fptr)(bool&) = &Retriever::RetrieveLastStates;
+    // std::thread tSt(m_retriever->*st_fptr, st_result);
+
+    tTxSt.join();
+    // tSt.join();
+    if(tx_st_result)
+    {
+        tDS.join();
+        if(ds_result)
+        {
+            delete m_retriever;
+            return true;
+        }
+    }
+    delete m_retriever;
+    return false;
 }
 
 void Node::StartSynchronization()
