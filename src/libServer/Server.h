@@ -247,8 +247,8 @@ class Server: public AbstractZServer
         virtual std::string getProtocolVersion();
         virtual std::string createTransaction(const Json::Value & _json);
         virtual Json::Value getTransaction(const std::string & transactionHash);
-        virtual Json::Value getDsBlock(const std::string & blockHash);
-        virtual Json::Value getTxBlock(const std::string & blockHash);
+        virtual Json::Value getDsBlock(const std::string & blockNum);
+        virtual Json::Value getTxBlock(const std::string & blockNum);
         virtual Json::Value getLatestDsBlock();
         virtual Json::Value getLatestTxBlock();
         virtual Json::Value getBalance(const std::string & address);

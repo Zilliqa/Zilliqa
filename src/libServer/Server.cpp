@@ -136,19 +136,41 @@ string Server::createTransaction(const Json::Value& _json)
    	
 }
 
-Json::Value Server::getTransaction(const string & transactionHash)
+Json::Value Server::getTransaction(const string & transactionNum)
 {
 	return "Hello";
 }
 
-Json::Value Server::getDsBlock(const string & blockHash)
+Json::Value Server::getDsBlock(const string & blockNum)
 {
-	return "Hello";
+
+	
+	try
+	{
+		boost::multiprecision::uint256_t BlockNum(blockNum);
+		return JSONConversion::convertDSblocktoJson(m_mediator.m_dsBlockChain.GetBlock(BlockNum));
+	}
+	catch(const char* msg)
+	{
+		Json::Value _json;
+		_json["Error"] = msg;
+		return _json;
+	}
 }
 
-Json::Value Server::getTxBlock(const string & blockHash)
+Json::Value Server::getTxBlock(const string & blockNum)
 {
-	return "Hello";
+	try
+	{
+		boost::multiprecision::uint256_t BlockNum(blockNum);
+		return JSONConversion::convertTxBlocktoJson(m_mediator.m_txBlockChain.GetBlock(BlockNum));
+	}
+	catch(const char* msg)
+	{
+		Json::Value _json;
+		_json["Error"] = msg;
+		return _json;
+	}
 }
 
 string Server::getGasPrice()
@@ -437,5 +459,7 @@ string Server::getCurrentDSEpoch()
 
 	return m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum().str();
 }
+
+
 
 #endif //IS_LOOKUP_NODE
