@@ -300,7 +300,6 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(const vector<unsigned cha
     {
         lock_guard<mutex> g(m_mutexAllPOW1);
         m_allPoW1s.clear();
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "DEBUG: cleared m_mutexAllPOW1");
     }
 
     UpdateDSCommiteeComposition(winnerpeer);
