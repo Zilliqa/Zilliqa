@@ -252,7 +252,8 @@ void P2PComm::SendBroadcastMessageCore(const vector<Peer> & peers,
                                        const vector<unsigned char> & message_hash)
 {
     LOG_MARKER();
- 
+    lock_guard<mutex> guard(m_broadcastCoreMutex);
+
     vector<unsigned int> indexes(peers.size());
     for (unsigned int i = 0; i < indexes.size(); i++)
     {
@@ -544,6 +545,7 @@ void P2PComm::StartMessagePump(uint32_t listen_port_host,
 void P2PComm::SendMessage(const vector<Peer> & peers, const vector<unsigned char> & message)
 {
     LOG_MARKER();
+    lock_guard<mutex> guard(m_sendMessageMutex);
 
     vector<unsigned int> indexes(peers.size());
     for (unsigned int i = 0; i < indexes.size(); i++)
@@ -573,6 +575,7 @@ void P2PComm::SendMessage(const vector<Peer> & peers, const vector<unsigned char
 void P2PComm::SendMessage(const deque<Peer> & peers, const vector<unsigned char> & message)
 {
     LOG_MARKER();
+    lock_guard<mutex> guard(m_sendMessageMutex);
 
     vector<unsigned int> indexes(peers.size());
     for (unsigned int i = 0; i < indexes.size(); i++)
@@ -602,6 +605,7 @@ void P2PComm::SendMessage(const deque<Peer> & peers, const vector<unsigned char>
 void P2PComm::SendMessage(const Peer & peer, const vector<unsigned char> & message)
 {
     LOG_MARKER();
+    lock_guard<mutex> guard(m_sendMessageMutex);
     SendMessageCore(peer, message, START_BYTE_NORMAL, vector<unsigned char>());
 }
 
@@ -625,11 +629,8 @@ void P2PComm::SendBroadcastMessage(const vector<Peer> & peers,
         LOG_STATE("[BROAD][" << std::setw(15) << std::left << m_selfPeer.GetPrintableIPAddress() <<
                   "][" << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6) << "] BEGN");
 #endif // STAT_TEST
-        {
-            lock_guard<mutex> guard(m_broadcastCoreMutex);
-            SendBroadcastMessageCore(peers, message, this_msg_hash);
-        }
 
+        SendBroadcastMessageCore(peers, message, this_msg_hash);
 
 #ifdef STAT_TEST
         LOG_STATE("[BROAD][" << std::setw(15) << std::left << m_selfPeer.GetPrintableIPAddress() <<
