@@ -55,6 +55,8 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer>
             this->bindAndAddMethod(jsonrpc::Procedure("getTransactionRate", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_REAL,  NULL), &AbstractZServer::getTransactionRateI);
             this->bindAndAddMethod(jsonrpc::Procedure("getTxBlockRate", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_REAL,  NULL), &AbstractZServer::getTxBlockRateI);
             this->bindAndAddMethod(jsonrpc::Procedure("getDSBlockRate", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_REAL,  NULL), &AbstractZServer::getDSBlockRateI);
+            this->bindAndAddMethod(jsonrpc::Procedure("getCurrentMiniEpoch", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,  NULL), &AbstractZServer::getCurrentMiniEpochI);
+            this->bindAndAddMethod(jsonrpc::Procedure("getCurrentDSEpoch", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,  NULL), &AbstractZServer::getCurrentDSEpochI);
         }
 
         inline virtual void getClientVersionI(const Json::Value &request, Json::Value &response)
@@ -185,6 +187,16 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer>
             (void)request;
             response = this->getDSBlockRate();
         }
+        inline virtual void getCurrentMiniEpochI(const Json::Value &request, Json::Value &response)
+        {
+            (void)request;
+            response = this->getCurrentMiniEpoch();
+        }
+        inline virtual void getCurrentDSEpochI(const Json::Value &request, Json::Value &response)
+        {
+            (void)request;
+            response = this->getCurrentDSEpoch();
+        }
         virtual std::string getClientVersion() = 0;
         virtual std::string getNetworkId() = 0;
         virtual std::string getProtocolVersion() = 0;
@@ -213,6 +225,8 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer>
         virtual double getTransactionRate() = 0;
         virtual double getTxBlockRate() = 0;
         virtual double getDSBlockRate() = 0;
+        virtual std::string getCurrentMiniEpoch() = 0;
+        virtual std::string getCurrentDSEpoch() = 0;
 
 };
 
@@ -256,4 +270,6 @@ class Server: public AbstractZServer
         virtual double getTransactionRate();
         virtual double getTxBlockRate();
         virtual double getDSBlockRate();
+        virtual std::string getCurrentMiniEpoch();
+        virtual std::string getCurrentDSEpoch();
 };
