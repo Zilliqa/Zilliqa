@@ -36,6 +36,8 @@ BOOST_AUTO_TEST_CASE (commitAndRollback)
 
     LOG_MARKER();
 
+    AccountStore::GetInstance().Init();
+
     // Check account store is initially empty
     BOOST_CHECK_MESSAGE
     (
