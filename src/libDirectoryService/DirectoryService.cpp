@@ -702,7 +702,8 @@ void DirectoryService::LastDSBlockRequest()
 
 bool DirectoryService::ProcessLastDSBlockRequest(const vector<unsigned char> & message, unsigned int offset, const Peer & from)
 {
-    LOG_MARKER();
+    LOG_MARKER(); 
+
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "DEBUG: I am sending the last ds block to the requester.");
 
     // Deserialize the message and get the port 
@@ -715,7 +716,7 @@ bool DirectoryService::ProcessLastDSBlockRequest(const vector<unsigned char> & m
     m_mediator.m_dsBlockChain.GetLastBlock().Serialize(lastDSBlockMsg, cur_offset); 
 
     Peer peer(from.m_ipAddress, requesterListeningPort);
-    P2PComm::GetInstance().SendMessage(m_mediator.m_DSCommitteeNetworkInfo.front(), lastDSBlockMsg);
+    P2PComm::GetInstance().SendMessage(peer, lastDSBlockMsg);
 
     return true; 
 }
@@ -724,6 +725,14 @@ bool DirectoryService::ProcessLastDSBlockRequest(const vector<unsigned char> & m
 bool DirectoryService::ProcessLastDSBlockResponse(const vector<unsigned char> & message, unsigned int offset, const Peer & from)
 {
     LOG_MARKER();
+
+    if (m_state != PROCESS_DSBLOCKCONSENSUS)
+    {
+        // This recovery stage is meant for nodes that may get stuck in ds block consensus only. 
+        return false; 
+    }
+
+    // TODO: Should check whether ds block chain contain this block or not.
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "DEBUG: I received the last ds block from ds leader.");
     m_requesting_last_ds_block = false;
     unsigned int cur_offset = offset;
