@@ -685,9 +685,15 @@ bool DirectoryService::ProcessAllPoWConnResponse(const vector<unsigned char> & m
 void DirectoryService::LastDSBlockRequest()
 {
     LOG_MARKER();
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "DEBUG: I am requeesting the last ds block from ds leader.");
+    if (m_requesting_last_ds_block)
+    {
+        // Already requesting for last ds block. Should re-request again. 
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "DEBUG: I am already waiting for the last ds block from ds leader.");
+    }
+
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "DEBUG: I am requesting the last ds block from ds leader.");
+    
     // message: [listening port]
-    m_requesting_last_ds_block = true; 
     // In this implementation, we are only requesting it from ds leader only. 
     vector<unsigned char> requestAllPoWConnMsg = { MessageType::DIRECTORY, DSInstructionType::LastDSBlockRequest};
     unsigned int cur_offset = MessageOffset::BODY;
@@ -726,9 +732,10 @@ bool DirectoryService::ProcessLastDSBlockResponse(const vector<unsigned char> & 
 {
     LOG_MARKER();
 
-    if (m_state != PROCESS_DSBLOCKCONSENSUS)
+    if (m_state != PROCESS_DSBLOCKCONSENSUS and m_requesting_last_ds_block)
     {
         // This recovery stage is meant for nodes that may get stuck in ds block consensus only. 
+        // Only proceed if I still need the last ds block
         return false; 
     }
 
@@ -747,7 +754,7 @@ bool DirectoryService::ProcessLastDSBlockResponse(const vector<unsigned char> & 
     if (result == -1)
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Error. We failed to add dsblock to dsblockchain.");
-        throw exception();
+        return false; 
     }
     
     vector<unsigned char> serializedDSBlock;
