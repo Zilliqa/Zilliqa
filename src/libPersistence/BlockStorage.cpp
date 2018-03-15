@@ -21,6 +21,7 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 #include <algorithm>
+#include <sstream>
 
 #include <boost/filesystem.hpp>
 #include <leveldb/db.h>
@@ -142,20 +143,15 @@ bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr> & blocks)
     for(it->SeekToFirst(); it->Valid(); it->Next())
     {
         string bns = it->key().ToString();
-        vector<unsigned char> blockNumString(bns.begin(), bns.end());
-        boost::multiprecision::uint256_t blockNum = 
-            Serializable::GetNumber<boost::multiprecision::uint256_t>(blockNumString, 
-                0, UINT256_SIZE);
-        string blockString = it->value().ToString();
+        boost::multiprecision::uint256_t blockNum(bns);
+        LOG_MESSAGE("blockNum: "<<blockNum);
 
+        string blockString = it->value().ToString();
         if(blockString.empty())
         {
             LOG_MESSAGE("ERROR: Lost one block in the chain");
             return false;
         }
-
-        LOG_MESSAGE(blockString);
-        LOG_MESSAGE(blockString.length());
         const unsigned char* raw_memory = reinterpret_cast<const unsigned char*>(blockString.c_str());
         DSBlockSharedPtr block = DSBlockSharedPtr( new DSBlock(std::vector<unsigned char>(raw_memory, 
                                           raw_memory + blockString.size()), 0) );
@@ -165,7 +161,7 @@ bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr> & blocks)
 
     if(t_blocks.empty())
     {
-        LOG_MESSAGE("FAIL: DB is empty")
+        LOG_MESSAGE("FAIL: disk is empty")
         return false;
     }
 
@@ -186,21 +182,15 @@ bool BlockStorage::GetAllTxBlocks(std::list<TxBlockSharedPtr> & blocks)
     for(it->SeekToFirst(); it->Valid(); it->Next())
     {
         string bns = it->key().ToString();
-        vector<unsigned char> blockNumString(bns.begin(), bns.end());
-        boost::multiprecision::uint256_t blockNum = 
-            Serializable::GetNumber<boost::multiprecision::uint256_t>(
-                blockNumString, 
-                0, UINT256_SIZE);
-        string blockString = it->value().ToString();
+        boost::multiprecision::uint256_t blockNum(bns);
+        LOG_MESSAGE("blockNum: "<<blockNum);
 
+        string blockString = it->value().ToString();
         if(blockString.empty())
         {
             LOG_MESSAGE("ERROR: Lost one block in the chain");
             return false;
         }
-
-        LOG_MESSAGE(blockString);
-        LOG_MESSAGE(blockString.length());
         const unsigned char* raw_memory = reinterpret_cast<const unsigned char*>(blockString.c_str());
         TxBlockSharedPtr block = TxBlockSharedPtr( new TxBlock(std::vector<unsigned char>(raw_memory, 
                                           raw_memory + blockString.size()), 0) );
@@ -210,7 +200,7 @@ bool BlockStorage::GetAllTxBlocks(std::list<TxBlockSharedPtr> & blocks)
 
     if(t_blocks.empty())
     {
-        LOG_MESSAGE("FAIL: DB is empty")
+        LOG_MESSAGE("FAIL: disk is empty")
         return false;
     }
 
@@ -241,4 +231,21 @@ bool BlockStorage::GetMetadata(MetaType type, std::vector<unsigned char> & data)
     data = std::vector<unsigned char>(raw_memory, raw_memory + metaString.size());
 
     return true;
+}
+
+bool BlockStorage::ResetDB(DBTYPE type)
+{
+    switch(type)
+    {
+        case META:
+            return m_metadataDB.ResetDB();
+        case DS_BLOCK:
+            return m_dsBlockchainDB.ResetDB();
+        case TX_BLOCK:
+            return m_txBlockchainDB.ResetDB();
+        case TX_BODY:
+            return m_txBodyDB.ResetDB();
+    }
+    LOG_MESSAGE("FAIL: Reset DB " << type << " failed");
+    return false;
 }

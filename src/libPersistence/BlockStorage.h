@@ -46,6 +46,12 @@ class BlockStorage
                   const std::vector<unsigned char> & block, const BlockType & blockType);
 
 public:
+    enum DBTYPE {
+        META = 0x00,
+        DS_BLOCK,
+        TX_BLOCK,
+        TX_BODY
+    };
 
     /// Returns the singleton BlockStorage instance.
     static BlockStorage & GetBlockStorage();
@@ -86,6 +92,8 @@ public:
     bool PutMetadata(MetaType type, const std::vector<unsigned char> & data);
     /// Retrieve Last Transactions Trie Root Hash
     bool GetMetadata(MetaType type, std::vector<unsigned char> & data);
+
+    bool ResetDB(DBTYPE type);
 };
 
 #endif // BLOCKSTORAGE_H
