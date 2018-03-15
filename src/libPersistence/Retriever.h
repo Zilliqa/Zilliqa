@@ -29,9 +29,10 @@
 class Retriever
 {
 public:
+#ifndef IS_LOOKUP_NODE
 	Retriever(Mediator& mediator);
 	
-#ifndef IS_LOOKUP_NODE
+
 	
 	bool RetrieveTxBlocks();
 	bool RetrieveTxBodies(std::unordered_map<boost::multiprecision::uint256_t, 
