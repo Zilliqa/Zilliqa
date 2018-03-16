@@ -73,11 +73,6 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey> & key, const Peer & peer, bool
 #ifndef IS_LOOKUP_NODE
     LOG_MESSAGE("I am a normal node.");
 
-    if(toRetrieveHistory)
-    {
-        // retrieve state here?
-    }
-
     if(toSyncWithNetwork && !toRetrieveHistory)
     {
         m_n.StartSynchronization();

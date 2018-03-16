@@ -210,6 +210,18 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
 
     StoreFinalBlockToDisk();
 
+    bool isVacuousEpoch = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
+    if(isVacuousEpoch)
+    {
+        if(!CheckStateRoot())
+        {
+
+        }else
+        {
+            AccountStore::GetInstance().MoveUpdatesToDisk();
+        }
+    }
+
     m_mediator.UpdateDSBlockRand();
     m_mediator.UpdateTxBlockRand();
 

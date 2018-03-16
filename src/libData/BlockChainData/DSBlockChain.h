@@ -40,6 +40,9 @@ public:
     /// Destructor.
     ~DSBlockChain();
 
+    /// Reset
+    void Reset();
+
     /// Returns the number of blocks.
     boost::multiprecision::uint256_t GetBlockCount();
 

@@ -35,13 +35,15 @@ bool Retriever::RetrieveTxBlocks()
 	}
 
 	// truncate the extra final blocks at last
-	for(int i = 0; i < (int)(blocks.size() % NUM_FINAL_BLOCK_PER_POW); ++i)
+	int extra_txblocks = (int)(blocks.size() % NUM_FINAL_BLOCK_PER_POW);
+	for(int i = 0; i < extra_txblocks; ++i)
 	{
 		blocks.pop_back();
 	}
 
 	for(const auto & block : blocks)
 		m_mediator.m_txBlockChain.AddBlock(*block);
+	// m_mediator.UpdateTxBlockRand();
 
 	return true;
 }
@@ -54,10 +56,12 @@ bool Retriever::RetrieveTxBodies(std::unordered_map<boost::multiprecision::uint2
 
 	for(boost::multiprecision::uint256_t blockNum; blockNum < blockSize; ++blockNum)
 	{
+		LOG_MESSAGE("Withdraw txBodies for txBlockNum:" << blockNum);
 		std::vector<TxnHash> txnHashes = m_mediator.m_txBlockChain.GetBlock(blockNum).GetMicroBlockHashes();
 		std::list<Transaction> transactions;
 		for(auto & txnHash : txnHashes)
 		{
+			LOG_MESSAGE("Withdraw txBody for txHash:" << txnHash);
 			TxBodySharedPtr txBody;
 			if(!BlockStorage::GetBlockStorage().GetTxBody(txnHash, txBody))
 			{
@@ -70,8 +74,8 @@ bool Retriever::RetrieveTxBodies(std::unordered_map<boost::multiprecision::uint2
 			//Compare with the state retrieved from database directly to make an validation.
 			AccountStore::GetInstance().UpdateAccounts(*txBody);
 		}
-		if(blockNum == blockSize - 1)
-			committedTransactions.insert({blockNum, transactions});
+		// if(blockNum == blockSize - 1)
+			// committedTransactions.insert({blockNum, transactions});
 	}
 
 	return true;
@@ -79,11 +83,13 @@ bool Retriever::RetrieveTxBodies(std::unordered_map<boost::multiprecision::uint2
 
 bool Retriever::RetrieveStates()
 {
+	LOG_MARKER();
 	return AccountStore::GetInstance().RetrieveFromDisk(m_addressToAccount);
 }
 
 bool Retriever::ValidateTxNSt()
 {
+	LOG_MARKER();
 	return AccountStore::GetInstance().ValidateStateFromDisk(m_addressToAccount);
 }
 
@@ -99,6 +105,9 @@ void Retriever::RetrieveDSBlocks(bool & result)
     }
     for(const auto & block : blocks)
         m_mediator.m_dsBlockChain.AddBlock(*block);
+
+    // m_mediator.UpdateDSBlockRand();
+
     result = true;
 }
 
@@ -108,15 +117,40 @@ void Retriever::RetrieveTxNSt(bool & result, std::unordered_map<boost::multiprec
 	LOG_MARKER();
     result = RetrieveStates();
     if(result)
+    {
         result = RetrieveTxBlocks();
+    }
     else
+    {
         LOG_MESSAGE("FAIL: Failed to retrieve last states");
+    	return;
+    }
+    // if(result)
+    // {
+    //     result = RetrieveTxBodies(committedTransactions);
+    // }
+    // else
+    // {
+    // 	LOG_MESSAGE("FAIL: Failed to retrieve transaction blocks");
+    // 	return;
+    // }
     if(result)
-        result = RetrieveTxBodies(committedTransactions);
-    if(result)
+    {
         result = ValidateTxNSt();
+    }
     else
-        LOG_MESSAGE("ERROR: Result of <RetrieveStates> and <RetrieveTxBlocks/Bodies> doesn't match");
+    {
+        LOG_MESSAGE("FAIL: Failed to retrieve transaction bodies");
+        return;
+    }
+    if(result)
+    {
+    	LOG_MESSAGE("RetrieveTxNSt is Successful");
+    }
+    else
+    {
+    	LOG_MESSAGE("ERROR: Result of <RetrieveStates> and <RetrieveTxBlocks/Bodies> doesn't match");
+    }
 }
 
 #endif // IS_LOOKUP_NODE

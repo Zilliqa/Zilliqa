@@ -98,22 +98,23 @@ def get_immediate_subdirectories(a_dir):
 # ========================
 
 def run_setup(numnodes, printnodes):
-	if (os.path.exists(LOCAL_RUN_FOLDER)):
-		shutil.rmtree(LOCAL_RUN_FOLDER)
-	os.makedirs(LOCAL_RUN_FOLDER)
+	if os.path.exists(LOCAL_RUN_FOLDER) != True :
+		# shutil.rmtree(LOCAL_RUN_FOLDER)
+		os.makedirs(LOCAL_RUN_FOLDER)
 	for x in range(0, numnodes):
 		testsubdir = LOCAL_RUN_FOLDER + 'node_' + str(x+1).zfill(4)
-		os.makedirs(testsubdir)
-		shutil.copyfile('./tests/Zilliqa/zilliqa', testsubdir + '/zilliqa')
-		shutil.copyfile('./tests/Zilliqa/sendcmd', testsubdir + '/sendcmd')
-		shutil.copyfile('./tests/Zilliqa/sendtxn', testsubdir + '/sendtxn')
+		if os.path.exists(testsubdir) != True :
+			os.makedirs(testsubdir)
+			shutil.copyfile('./tests/Zilliqa/zilliqa', testsubdir + '/zilliqa')
+			shutil.copyfile('./tests/Zilliqa/sendcmd', testsubdir + '/sendcmd')
+			shutil.copyfile('./tests/Zilliqa/sendtxn', testsubdir + '/sendtxn')
 
-		st = os.stat(testsubdir + '/zilliqa')
-		os.chmod(testsubdir + '/zilliqa', st.st_mode | stat.S_IEXEC)
-		st = os.stat(testsubdir + '/sendcmd')
-		os.chmod(testsubdir + '/sendcmd', st.st_mode | stat.S_IEXEC)
-		st = os.stat(testsubdir + '/sendtxn')
-		os.chmod(testsubdir + '/sendtxn', st.st_mode | stat.S_IEXEC)
+			st = os.stat(testsubdir + '/zilliqa')
+			os.chmod(testsubdir + '/zilliqa', st.st_mode | stat.S_IEXEC)
+			st = os.stat(testsubdir + '/sendcmd')
+			os.chmod(testsubdir + '/sendcmd', st.st_mode | stat.S_IEXEC)
+			st = os.stat(testsubdir + '/sendtxn')
+			os.chmod(testsubdir + '/sendtxn', st.st_mode | stat.S_IEXEC)
 
 	if printnodes:
 		testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)
@@ -206,10 +207,11 @@ def run_connect(numnodes):
 def run_stop():
 	os.system('killall zilliqa')
 	os.system('killall sendtxn')
-	testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)
-	count = len(testfolders_list)
-	for x in range(0, count):
-		os.system('fuser -k ' + str(NODE_LISTEN_PORT + x) + '/tcp')
+	if os.path.exists(LOCAL_RUN_FOLDER):
+		testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)
+		count = len(testfolders_list)
+		for x in range(0, count):
+			os.system('fuser -k ' + str(NODE_LISTEN_PORT + x) + '/tcp')
 
 def run_clean():
 	testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)

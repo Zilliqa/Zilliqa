@@ -67,12 +67,17 @@ Node::Node(Mediator & mediator, bool toRetrieveHistory) : m_mediator(mediator)
     
     if(runInitializeGenesisBlocks)
     {
+        m_mediator.m_dsBlockChain.Reset();
+        m_mediator.m_txBlockChain.Reset();
+        m_mediator.m_currentEpochNum = (uint64_t) m_mediator.m_txBlockChain.GetBlockCount();
+        m_committedTransactions.clear();
         AccountStore::GetInstance().Init();
+        
         m_synchronizer.InitializeGenesisBlocks(m_mediator.m_dsBlockChain, m_mediator.m_txBlockChain);
     }
     m_mediator.m_currentEpochNum = (uint64_t) m_mediator.m_txBlockChain.GetBlockCount();
-    m_mediator.UpdateDSBlockRand(true);
-    m_mediator.UpdateTxBlockRand(true);
+    m_mediator.UpdateDSBlockRand(runInitializeGenesisBlocks);
+    m_mediator.UpdateTxBlockRand(runInitializeGenesisBlocks);
     SetState(POW1_SUBMISSION);
     POW::GetInstance().EthashConfigureLightClient(m_mediator.m_currentEpochNum);
 }
@@ -86,6 +91,7 @@ Node::~Node()
 
 bool Node::StartRetrieveHistory()
 {
+    LOG_MARKER();
     Retriever* retriever = new Retriever(m_mediator);
     
     bool ds_result;
@@ -94,17 +100,24 @@ bool Node::StartRetrieveHistory()
     bool tx_st_result;
     retriever->RetrieveTxNSt(tx_st_result, m_committedTransactions);
 
+    tDS.join();
+    bool res;
     if(tx_st_result)
     {
-        tDS.join();
         if(ds_result)
         {
-            delete retriever;
-            return true;
+            LOG_MESSAGE("RetrieveHistory Successed");
+            res = true;
+        }else
+        {
+            res = false;
         }
+    }else
+    {
+        res = false;
     }
     delete retriever;
-    return false;
+    return res;
 }
 
 void Node::StartSynchronization()
