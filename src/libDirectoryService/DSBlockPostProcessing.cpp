@@ -318,7 +318,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(const vector<unsigned cha
         m_mediator.UpdateDSBlockRand();
         array<unsigned char, 32> rand2 = {0};
         m_mediator.m_node->StartPoW2(lastDSBlock.GetHeader().GetBlockNum(),
-                                     3, m_mediator.m_dsBlockRand, rand2);
+                                     POW2_DIFFICULTY, m_mediator.m_dsBlockRand, rand2);
     }
 }
 #endif // IS_LOOKUP_NODE
