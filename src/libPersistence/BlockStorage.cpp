@@ -65,6 +65,11 @@ bool BlockStorage::PutTxBlock(const boost::multiprecision::uint256_t & blockNum,
     return PutBlock(blockNum, body, BlockType::Tx);
 }
 
+bool BlockStorage::PutMicroblockToTxIndex(const std::pair<TxnHash, uint64_t>& index)
+{
+    return m_microBlockToTxIndexDB.Insert(index.first, std::to_string(index.second));
+}
+
 bool BlockStorage::GetDSBlock(const boost::multiprecision::uint256_t & blockNum, 
     DSBlockSharedPtr & block)
 {
@@ -212,6 +217,21 @@ bool BlockStorage::GetAllTxBlocks(std::list<TxBlockSharedPtr> & blocks)
     return true;
 }
 
+bool BlockStorage::GetAllTxBodies(std::list<TxBodySharedPtr> & bodies)
+{
+    LOG_MARKER();
+    leveldb::Iterator* it = m_microBlockToTxIndexDB.GetDB()->NewIterator(leveldb::ReadOptions);
+    for(it->SeekToFirst(); it->Valid(); it->Next())
+    {
+        
+    }
+}
+
+bool BlockStorage::GetAllMicroblockToTxIndexes(std::deque<TxnHash, uint64_t> indexes)
+{
+
+}
+
 bool BlockStorage::PutMetadata(MetaType type, const std::vector<unsigned char> & data)
 {
     return m_metadataDB.Insert(std::to_string((int)type), data);
@@ -235,17 +255,21 @@ bool BlockStorage::GetMetadata(MetaType type, std::vector<unsigned char> & data)
 
 bool BlockStorage::ResetDB(DBTYPE type)
 {
+    bool res;
     switch(type)
     {
         case META:
-            return m_metadataDB.ResetDB();
+            res = m_metadataDB.ResetDB();
         case DS_BLOCK:
-            return m_dsBlockchainDB.ResetDB();
+            res = m_dsBlockchainDB.ResetDB();
         case TX_BLOCK:
-            return m_txBlockchainDB.ResetDB();
+            res = m_txBlockchainDB.ResetDB();
         case TX_BODY:
-            return m_txBodyDB.ResetDB();
+            res = m_txBodyDB.ResetDB();
+        case MICROBLOCK_TX:
+            res = m_microBlockToTxIndexDB.ResetDB();
     }
-    LOG_MESSAGE("FAIL: Reset DB " << type << " failed");
-    return false;
+    if(!res)
+        LOG_MESSAGE("FAIL: Reset DB " << type << " failed");
+    return res;
 }
