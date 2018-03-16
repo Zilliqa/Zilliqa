@@ -514,7 +514,8 @@ Json::Value Server::DSBlockListing(unsigned int page)
 
 		for(unsigned int i = offset ; i<PAGE_SIZE + offset && i > cacheSize  ; i++)
 		{
-			_json["DSHashes"].append(m_DSBlockCache.second[cacheSize-i-1]);
+			_json["Hashes"].append(m_DSBlockCache.second[cacheSize-i-1]);
+			_json["BlockNums"].append(int(currBlockNum-i));
 		}
 	}
 	else
@@ -522,7 +523,8 @@ Json::Value Server::DSBlockListing(unsigned int page)
 		boost::multiprecision::uint256_t startBlockNum = currBlockNum - offset;
 		for(boost::multiprecision::uint256_t i = startBlockNum ; i >= startBlockNum - offset && i >= 0 ; i--)
 		{
-			_json["DSHashes"].append(m_mediator.m_dsBlockChain.GetBlock(i+1).GetHeader().GetPrevHash().hex());
+			_json["Hashes"].append(m_mediator.m_dsBlockChain.GetBlock(i+1).GetHeader().GetPrevHash().hex());
+			_json["BlockNums"].append(int(i));
 		}
 
 	}
@@ -576,8 +578,8 @@ Json::Value Server::TxBlockListing(unsigned int page)
 
 		for(unsigned int i = offset ; i<PAGE_SIZE + offset && i > cacheSize  ; i++)
 		{
-			_json["TxBlockHashes"].append(m_TxBlockCache.second[cacheSize-i-1]);
-			_json["TxBlockNum"].append(currBlockNum-i);
+			_json["Hashes"].append(m_TxBlockCache.second[cacheSize-i-1]);
+			_json["BlockNums"].append(int(currBlockNum-i));
 		}
 	}
 	else
@@ -585,8 +587,8 @@ Json::Value Server::TxBlockListing(unsigned int page)
 		boost::multiprecision::uint256_t startBlockNum = currBlockNum - offset;
 		for(boost::multiprecision::uint256_t i = startBlockNum ; i >= startBlockNum - offset && i >= 0 ; i--)
 		{
-			_json["TxHashes"].append(m_mediator.m_txBlockChain.GetBlock(i+1).GetHeader().GetPrevHash().hex());
-			_json["TxBlockNum"].append(i);
+			_json["Hashes"].append(m_mediator.m_txBlockChain.GetBlock(i+1).GetHeader().GetPrevHash().hex());
+			_json["BlockNum"].append(int(i));
 		}
 
 	}
