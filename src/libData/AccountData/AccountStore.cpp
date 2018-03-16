@@ -41,6 +41,7 @@ AccountStore::~AccountStore()
 
 void AccountStore::Init()
 {
+    m_addressToAccount.clear();
     m_state.init();
     prevRoot = m_state.root();
 }
@@ -186,6 +187,7 @@ void AccountStore::AddAccount(const PubKey & pubKey,
 
 void AccountStore::UpdateAccounts(const Transaction & transaction)
 {
+    LOG_MARKER(); 
     const PubKey & senderPubKey = transaction.GetSenderPubKey();
     const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
     const Address & toAddr = transaction.GetToAddr();
@@ -363,6 +365,7 @@ void AccountStore::MoveRootToDisk(const dev::h256 & root)
 
 void AccountStore::MoveUpdatesToDisk()
 {
+    LOG_MARKER(); 
     m_state.db()->commit();
     prevRoot = m_state.root();
     // m_state.init();

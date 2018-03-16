@@ -40,6 +40,9 @@ public:
     /// Destructor.
     ~TxBlockChain();
 
+    /// Reset
+    void Reset();
+
     /// Returns the number of blocks.
     boost::multiprecision::uint256_t GetBlockCount();
 

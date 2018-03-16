@@ -1017,6 +1017,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char> & message, unsigned int
     }
     else
     {
+        LOG_MESSAGE("isVacuousEpoch now");
         if(!CheckStateRoot(txBlock))
         {
             return false;
