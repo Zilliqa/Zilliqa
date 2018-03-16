@@ -167,6 +167,8 @@ void DirectoryService::SendDSBlockToCluster(const Peer & winnerpeer, unsigned in
     LOG_STATE("[INFOR][" << std::setw(15) << std::left << m_mediator.m_selfPeer.GetPrintableIPAddress() << "][" << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6)  << "][" << DataConversion::charArrToHexStr(m_mediator.m_dsBlockRand).substr(0, 6) << "][" << m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()  << "] DSBLOCKGEN");
 #endif // STAT_TEST
 
+    // Sleep to give sufficient time to other ds node to receive the ds block 
+    this_thread::sleep_for(chrono::seconds(5));
     P2PComm::GetInstance().SendBroadcastMessage(pow1nodes_cluster, dsblock_message);
 }
 
