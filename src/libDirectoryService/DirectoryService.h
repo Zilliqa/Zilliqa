@@ -83,6 +83,9 @@ class DirectoryService : public Executable, public Broadcastable
         }
         return "Unknown Action";
     }
+    std::atomic<bool> m_requesting_last_ds_block;
+    unsigned int BUFFER_TIME_BEFORE_DS_BLOCK_REQUEST = 5; 
+
 
     std::shared_timed_mutex m_mutexProducerConsumer;
     std::mutex m_mutexConsensus;
@@ -226,6 +229,8 @@ class DirectoryService : public Executable, public Broadcastable
                                     std::vector<bool> & isMicroBlockEmpty,
                                     uint32_t & numMicroBlocks) const;
 
+
+
     // FinalBlockValidator functions
     bool CheckFinalBlockValidity();
     bool CheckBlockTypeIsFinal();
@@ -255,8 +260,9 @@ class DirectoryService : public Executable, public Broadcastable
 
     // Used to reconsile view of m_AllPowConn is different. 
     void RequestAllPoWConn();
-
-
+    void LastDSBlockRequest();
+    bool ProcessLastDSBlockRequest(const vector<unsigned char> & message, unsigned int offset, const Peer & from); 
+    bool ProcessLastDSBlockResponse(const vector<unsigned char> & message, unsigned int offset, const Peer & from);
 #endif // IS_LOOKUP_NODE    
 
 public:
