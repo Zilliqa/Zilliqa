@@ -29,6 +29,7 @@
 
 #include "Server.h"
 #include "libCrypto/Schnorr.h"
+#include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
@@ -44,11 +45,17 @@ using namespace jsonrpc;
 using namespace std;
 
 
-
+const unsigned int PAGE_SIZE = 10;
 Server::Server(Mediator & mediator, HttpServer & httpserver) : AbstractZServer(httpserver), m_mediator(mediator)
 {
 	m_StartTimeTx = 0;
 	m_StartTimeDs = 0;
+	m_DSBlockCache.first = 0;
+	m_DSBlockCache.second.resize(2*PAGE_SIZE);
+	m_DSBlockCache.second.push_back("0x0000000000000000000");
+	m_TxBlockCache.first = 0;
+	m_TxBlockCache.second.resize(2*PAGE_SIZE);
+	m_TxBlockCache.second.push_back("000000000000000000000000");
 }
 
 Server::~Server() 
@@ -464,6 +471,130 @@ string Server::getCurrentDSEpoch()
 	LOG_MARKER();
 
 	return m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum().str();
+}
+
+Json::Value Server::DSBlockListing(unsigned int page)
+{
+	boost::multiprecision::uint256_t currBlockNum = m_mediator.m_dsBlockChain.GetBlockCount() - 1;
+	Json::Value _json;
+
+	auto maxPages = (currBlockNum/PAGE_SIZE) + 1;
+
+	_json["maxPages"] = int(maxPages);
+
+	if(page > maxPages)
+	{
+		_json["Error"] = "Pages out of limit";
+		return _json;
+	}
+
+	if(currBlockNum > m_DSBlockCache.first)
+	{
+		for(boost::multiprecision::uint256_t i = m_DSBlockCache.first+1 ; i<currBlockNum; i++)
+		{
+			m_DSBlockCache.second.push_back(m_mediator.m_dsBlockChain.GetBlock(i+1).GetHeader().GetPrevHash().hex());
+		}
+		//for the latest block
+		DSBlockHeader dshead =  m_mediator.m_dsBlockChain.GetBlock(currBlockNum).GetHeader();
+		SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+		vector <unsigned char> vec;
+		dshead.Serialize(vec,0);
+		sha2.Update(vec);
+		const vector<unsigned char> & resVec = sha2.Finalize();
+
+		m_DSBlockCache.second.push_back(DataConversion::Uint8VecToHexStr(resVec));
+		m_DSBlockCache.first = currBlockNum;
+	}
+
+	unsigned int offset = PAGE_SIZE*(page-1);
+	if(page<=2) //can use cache
+	{
+		
+		boost::multiprecision::uint256_t cacheSize = m_DSBlockCache.second.size();
+
+		for(unsigned int i = offset ; i<PAGE_SIZE + offset && i > cacheSize  ; i++)
+		{
+			_json["DSHashes"].append(m_DSBlockCache.second[cacheSize-i-1]);
+		}
+	}
+	else
+	{
+		boost::multiprecision::uint256_t startBlockNum = currBlockNum - offset;
+		for(boost::multiprecision::uint256_t i = startBlockNum ; i >= startBlockNum - offset && i >= 0 ; i--)
+		{
+			_json["DSHashes"].append(m_mediator.m_dsBlockChain.GetBlock(i+1).GetHeader().GetPrevHash().hex());
+		}
+
+	}
+
+
+
+	return _json;
+
+}
+
+
+
+Json::Value Server::TxBlockListing(unsigned int page)
+{
+	boost::multiprecision::uint256_t currBlockNum = m_mediator.m_txBlockChain.GetBlockCount() - 1;
+	Json::Value _json;
+
+	auto maxPages = (currBlockNum/PAGE_SIZE) + 1;
+
+	_json["maxPages"] = int(maxPages);
+
+	if(page > maxPages)
+	{
+		_json["Error"] = "Pages out of limit";
+		return _json;
+	}
+
+	if(currBlockNum > m_TxBlockCache.first)
+	{
+		for(boost::multiprecision::uint256_t i = m_TxBlockCache.first+1 ; i<currBlockNum; i++)
+		{
+			m_TxBlockCache.second.push_back(m_mediator.m_txBlockChain.GetBlock(i+1).GetHeader().GetPrevHash().hex());
+		}
+		//for the latest block
+		TxBlockHeader txhead =  m_mediator.m_txBlockChain.GetBlock(currBlockNum).GetHeader();
+		SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+		vector <unsigned char> vec;
+		txhead.Serialize(vec,0);
+		sha2.Update(vec);
+		const vector<unsigned char> & resVec = sha2.Finalize();
+
+		m_TxBlockCache.second.push_back(DataConversion::Uint8VecToHexStr(resVec));
+		m_TxBlockCache.first = currBlockNum;
+	}
+
+	unsigned int offset = PAGE_SIZE*(page-1);
+	if(page<=2) //can use cache
+	{
+		
+		boost::multiprecision::uint256_t cacheSize = m_TxBlockCache.second.size();
+
+		for(unsigned int i = offset ; i<PAGE_SIZE + offset && i > cacheSize  ; i++)
+		{
+			_json["TxBlockHashes"].append(m_TxBlockCache.second[cacheSize-i-1]);
+			_json["TxBlockNum"].append(currBlockNum-i);
+		}
+	}
+	else
+	{
+		boost::multiprecision::uint256_t startBlockNum = currBlockNum - offset;
+		for(boost::multiprecision::uint256_t i = startBlockNum ; i >= startBlockNum - offset && i >= 0 ; i--)
+		{
+			_json["TxHashes"].append(m_mediator.m_txBlockChain.GetBlock(i+1).GetHeader().GetPrevHash().hex());
+			_json["TxBlockNum"].append(i);
+		}
+
+	}
+
+
+
+	return _json;
+
 }
 
 

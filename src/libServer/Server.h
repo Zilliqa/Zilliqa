@@ -17,6 +17,9 @@
 
 #include <jsonrpccpp/server.h>
 #include <boost/multiprecision/cpp_int.hpp>
+#include "libData/BlockData/BlockHeader/BlockHeaderBase.h"
+#include "libData/DataStructures/CircularArray.h"
+
 
 using namespace jsonrpc;
 class Mediator;
@@ -57,6 +60,8 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer>
             this->bindAndAddMethod(jsonrpc::Procedure("getDSBlockRate", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_REAL,  NULL), &AbstractZServer::getDSBlockRateI);
             this->bindAndAddMethod(jsonrpc::Procedure("getCurrentMiniEpoch", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,  NULL), &AbstractZServer::getCurrentMiniEpochI);
             this->bindAndAddMethod(jsonrpc::Procedure("getCurrentDSEpoch", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,  NULL), &AbstractZServer::getCurrentDSEpochI);
+            this->bindAndAddMethod(jsonrpc::Procedure("DSBlockListing", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_OBJECT,"param01",jsonrpc::JSON_INTEGER, NULL), &AbstractZServer::DSBlockListingI);
+            this->bindAndAddMethod(jsonrpc::Procedure("TxBlockListing", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_OBJECT,"param01",jsonrpc::JSON_INTEGER, NULL), &AbstractZServer::TxBlockListingI);
         }
 
         inline virtual void getClientVersionI(const Json::Value &request, Json::Value &response)
@@ -197,6 +202,16 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer>
             (void)request;
             response = this->getCurrentDSEpoch();
         }
+        inline virtual void DSBlockListingI(const Json::Value &request, Json::Value &response)
+        {
+            (void)request;
+            response = this->DSBlockListing(request[0u].asUInt());
+        }
+        inline virtual void TxBlockListingI(const Json::Value &request, Json::Value &response)
+        {
+            (void)request;
+            response = this->TxBlockListing(request[0u].asUInt());
+        }
         virtual std::string getClientVersion() = 0;
         virtual std::string getNetworkId() = 0;
         virtual std::string getProtocolVersion() = 0;
@@ -227,6 +242,8 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer>
         virtual double getDSBlockRate() = 0;
         virtual std::string getCurrentMiniEpoch() = 0;
         virtual std::string getCurrentDSEpoch() = 0;
+        virtual Json::Value DSBlockListing(unsigned int param01) = 0;
+        virtual Json::Value TxBlockListing(unsigned int param01) = 0;
 
 };
 
@@ -236,6 +253,9 @@ class Server: public AbstractZServer
     pair<boost::multiprecision::uint256_t, boost::multiprecision::uint256_t> m_BlockTxPair;
     boost::multiprecision::uint256_t m_StartTimeTx;
     boost::multiprecision::uint256_t m_StartTimeDs;
+    pair<boost::multiprecision::uint256_t, CircularArray<std::string>> m_DSBlockCache;
+    pair<boost::multiprecision::uint256_t, CircularArray<std::string>> m_TxBlockCache;
+
     
     public:
 
@@ -272,4 +292,6 @@ class Server: public AbstractZServer
         virtual double getDSBlockRate();
         virtual std::string getCurrentMiniEpoch();
         virtual std::string getCurrentDSEpoch();
+        virtual Json::Value DSBlockListing(unsigned int page);
+        virtual Json::Value TxBlockListing(unsigned int page);
 };
