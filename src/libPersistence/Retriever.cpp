@@ -51,32 +51,33 @@ bool Retriever::RetrieveTxBlocks()
 bool Retriever::RetrieveTxBodies(std::unordered_map<boost::multiprecision::uint256_t, 
                        std::list<Transaction>> & committedTransactions)
 {
-	LOG_MARKER();
-	boost::multiprecision::uint256_t blockSize = m_mediator.m_txBlockChain.GetBlockCount();
+	// LOG_MARKER();
+	// boost::multiprecision::uint256_t blockSize = m_mediator.m_txBlockChain.GetBlockCount();
 
-	for(boost::multiprecision::uint256_t blockNum; blockNum < blockSize; ++blockNum)
-	{
-		LOG_MESSAGE("Withdraw txBodies for txBlockNum:" << blockNum);
+	// for(boost::multiprecision::uint256_t blockNum; blockNum < blockSize; ++blockNum)
+	// {
+	// 	LOG_MESSAGE("Withdraw txBodies for txBlockNum:" << blockNum);
 		std::vector<TxnHash> txnHashes = m_mediator.m_txBlockChain.GetBlock(blockNum).GetMicroBlockHashes();
-		std::list<Transaction> transactions;
-		for(auto & txnHash : txnHashes)
-		{
-			LOG_MESSAGE("Withdraw txBody for txHash:" << txnHash);
-			TxBodySharedPtr txBody;
-			if(!BlockStorage::GetBlockStorage().GetTxBody(txnHash, txBody))
-			{
-				LOG_MESSAGE("FAIL: RetrieveTxBodies Incompleted");
-				committedTransactions.clear();
-				return false;
-			}
-			transactions.push_back(*txBody);
-			//Rebuild the AccountStore with UpdateAccounts from these transactions.
-			//Compare with the state retrieved from database directly to make an validation.
-			AccountStore::GetInstance().UpdateAccounts(*txBody);
-		}
-		// if(blockNum == blockSize - 1)
-			// committedTransactions.insert({blockNum, transactions});
-	}
+	// 	std::list<Transaction> transactions;
+	// 	for(auto & txnHash : txnHashes)
+	// 	{
+	// 		LOG_MESSAGE("Withdraw txBody for txHash:" << txnHash);
+	// 		TxBodySharedPtr txBody;
+	// 		if(!BlockStorage::GetBlockStorage().GetTxBody(txnHash, txBody))
+	// 		{
+	// 			LOG_MESSAGE("FAIL: RetrieveTxBodies Incompleted");
+	// 			committedTransactions.clear();
+	// 			return false;
+	// 		}
+	// 		transactions.push_back(*txBody);
+	// 		//Rebuild the AccountStore with UpdateAccounts from these transactions.
+	// 		//Compare with the state retrieved from database directly to make an validation.
+	// 		AccountStore::GetInstance().UpdateAccounts(*txBody);
+	// 	}
+	// 	// if(blockNum == blockSize - 1)
+	// 		// committedTransactions.insert({blockNum, transactions});
+	// }
+	
 
 	return true;
 }
