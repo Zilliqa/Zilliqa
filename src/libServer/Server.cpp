@@ -45,7 +45,7 @@ using namespace jsonrpc;
 using namespace std;
 
 
-const unsigned int PAGE_SIZE = 10;
+const unsigned int PAGE_SIZE = 3;
 Server::Server(Mediator & mediator, HttpServer & httpserver) : AbstractZServer(httpserver), m_mediator(mediator)
 {
 	m_StartTimeTx = 0;
@@ -55,7 +55,7 @@ Server::Server(Mediator & mediator, HttpServer & httpserver) : AbstractZServer(h
 	m_DSBlockCache.second.push_back("0x0000000000000000000");
 	m_TxBlockCache.first = 0;
 	m_TxBlockCache.second.resize(2*PAGE_SIZE);
-	m_TxBlockCache.second.push_back("000000000000000000000000");
+	m_TxBlockCache.second.push_back("32877419b0d2bf10dee7a7d306deddc5d7d972fa69ae7affcec575781002cfc3");
 }
 
 Server::~Server() 
@@ -512,7 +512,7 @@ Json::Value Server::DSBlockListing(unsigned int page)
 		
 		boost::multiprecision::uint256_t cacheSize = m_DSBlockCache.second.size();
 
-		for(unsigned int i = offset ; i<PAGE_SIZE + offset && i > cacheSize  ; i++)
+		for(unsigned int i = offset ; i<PAGE_SIZE + offset && i < cacheSize  ; i++)
 		{
 			_json["Hashes"].append(m_DSBlockCache.second[cacheSize-i-1]);
 			_json["BlockNums"].append(int(currBlockNum-i));
@@ -521,7 +521,7 @@ Json::Value Server::DSBlockListing(unsigned int page)
 	else
 	{
 		boost::multiprecision::uint256_t startBlockNum = currBlockNum - offset;
-		for(boost::multiprecision::uint256_t i = startBlockNum ; i >= startBlockNum - offset && i >= 0 ; i--)
+		for(boost::multiprecision::uint256_t i = startBlockNum + PAGE_SIZE -1 ; i >= startBlockNum  && i >= 0 ; i--)
 		{
 			_json["Hashes"].append(m_mediator.m_dsBlockChain.GetBlock(i+1).GetHeader().GetPrevHash().hex());
 			_json["BlockNums"].append(int(i));
@@ -576,7 +576,7 @@ Json::Value Server::TxBlockListing(unsigned int page)
 		
 		boost::multiprecision::uint256_t cacheSize = m_TxBlockCache.second.size();
 
-		for(unsigned int i = offset ; i<PAGE_SIZE + offset && i > cacheSize  ; i++)
+		for(unsigned int i = offset ; i<PAGE_SIZE + offset && i < cacheSize  ; i++)
 		{
 			_json["Hashes"].append(m_TxBlockCache.second[cacheSize-i-1]);
 			_json["BlockNums"].append(int(currBlockNum-i));
@@ -584,11 +584,11 @@ Json::Value Server::TxBlockListing(unsigned int page)
 	}
 	else
 	{
-		boost::multiprecision::uint256_t startBlockNum = currBlockNum - offset;
-		for(boost::multiprecision::uint256_t i = startBlockNum ; i >= startBlockNum - offset && i >= 0 ; i--)
+		
+		for(boost::multiprecision::uint256_t i = offset ; i < PAGE_SIZE + offset  && i <= currBlockNum ; i++)
 		{
-			_json["Hashes"].append(m_mediator.m_txBlockChain.GetBlock(i+1).GetHeader().GetPrevHash().hex());
-			_json["BlockNum"].append(int(i));
+			_json["Hashes"].append(m_mediator.m_txBlockChain.GetBlock(currBlockNum - i + 1).GetHeader().GetPrevHash().hex());
+			_json["BlockNum"].append(int(currBlockNum-i));
 		}
 
 	}
