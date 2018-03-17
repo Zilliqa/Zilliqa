@@ -62,6 +62,7 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer>
             this->bindAndAddMethod(jsonrpc::Procedure("getCurrentDSEpoch", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,  NULL), &AbstractZServer::getCurrentDSEpochI);
             this->bindAndAddMethod(jsonrpc::Procedure("DSBlockListing", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_OBJECT,"param01",jsonrpc::JSON_INTEGER, NULL), &AbstractZServer::DSBlockListingI);
             this->bindAndAddMethod(jsonrpc::Procedure("TxBlockListing", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_OBJECT,"param01",jsonrpc::JSON_INTEGER, NULL), &AbstractZServer::TxBlockListingI);
+            this->bindAndAddMethod(jsonrpc::Procedure("getBlockchainInfo", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_OBJECT,  NULL), &AbstractZServer::getBlockchainInfoI);
         }
 
         inline virtual void getClientVersionI(const Json::Value &request, Json::Value &response)
@@ -212,6 +213,11 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer>
             (void)request;
             response = this->TxBlockListing(request[0u].asUInt());
         }
+        inline virtual void getBlockchainInfoI(const Json::Value &request, Json::Value &response)
+        {
+            (void)request;
+            response = this->getBlockchainInfo();
+        }
         virtual std::string getClientVersion() = 0;
         virtual std::string getNetworkId() = 0;
         virtual std::string getProtocolVersion() = 0;
@@ -244,6 +250,7 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer>
         virtual std::string getCurrentDSEpoch() = 0;
         virtual Json::Value DSBlockListing(unsigned int param01) = 0;
         virtual Json::Value TxBlockListing(unsigned int param01) = 0;
+        virtual Json::Value getBlockchainInfo() = 0;
 
 };
 
@@ -294,4 +301,5 @@ class Server: public AbstractZServer
         virtual std::string getCurrentDSEpoch();
         virtual Json::Value DSBlockListing(unsigned int page);
         virtual Json::Value TxBlockListing(unsigned int page);
+        virtual Json::Value getBlockchainInfo();
 };

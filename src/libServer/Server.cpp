@@ -475,6 +475,9 @@ string Server::getCurrentDSEpoch()
 
 Json::Value Server::DSBlockListing(unsigned int page)
 {
+
+	LOG_MARKER();
+
 	boost::multiprecision::uint256_t currBlockNum = m_mediator.m_dsBlockChain.GetBlockCount() - 1;
 	Json::Value _json;
 
@@ -539,6 +542,8 @@ Json::Value Server::DSBlockListing(unsigned int page)
 
 Json::Value Server::TxBlockListing(unsigned int page)
 {
+	LOG_MARKER();
+
 	boost::multiprecision::uint256_t currBlockNum = m_mediator.m_txBlockChain.GetBlockCount() - 1;
 	Json::Value _json;
 
@@ -597,6 +602,23 @@ Json::Value Server::TxBlockListing(unsigned int page)
 
 	return _json;
 
+}
+
+
+Json::Value Server::getBlockchainInfo()
+{
+	Json::Value _json;
+	_json["NumPeers"] = Server::getNumPeers();
+    _json["NumTxBlocks"] = Server::getNumTxBlocks();
+    _json["NumDSBlocks"] = Server::getNumDSBlocks();
+    _json["NumTransactions"] = Server::getNumTransactions();
+    _json["TransactionRate"] = Server::getTransactionRate();
+    _json["TxBlockRate"] = Server::getTxBlockRate();
+    _json["DSBlockRate"] = Server::getDSBlockRate();
+    _json["CurrentMiniEpoch"] = Server::getCurrentMiniEpoch();
+    _json["CurrentDSEpoch"] = Server::getCurrentDSEpoch();
+
+    return _json;
 }
 
 
