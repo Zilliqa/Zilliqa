@@ -18,67 +18,12 @@
 #include "ConsensusCommon.h"
 #include "common/Constants.h"
 #include "common/Messages.h"
+#include "libUtils/BitVector.h"
 #include "libUtils/Logger.h"
 #include "libUtils/DataConversion.h"
 #include "libNetwork/P2PComm.h"
 
 using namespace std;
-
-unsigned int GetBitVectorLengthInBytes(unsigned int length_in_bits)
-{
-    return (((length_in_bits & 0x07) > 0) ? (length_in_bits >> 3) + 1 : length_in_bits >> 3);
-}
-
-vector<bool> GetBitVector(const vector<unsigned char> & src, unsigned int offset, unsigned int expected_length)
-{
-    vector<bool> result;
-    unsigned int actual_length = 0;
-    unsigned int actual_length_bytes = 0;
-
-    if ((src.size() - offset) >= 2)
-    {
-        actual_length = (src.at(offset) << 8) + src.at(offset + 1);
-        actual_length_bytes = GetBitVectorLengthInBytes(actual_length);
-    }
-
-    if ((actual_length_bytes == expected_length) && ((src.size() - offset - 2) >= actual_length_bytes))
-    {
-        result.reserve(actual_length);
-        for (unsigned int index = 0; index < actual_length; index++)
-        {
-            result.push_back(src.at(offset + 2 + (index >> 3)) & (1 << (7 - (index & 0x07))));
-        }
-    }
-
-    return result;
-}
-
-unsigned int SetBitVector(vector<unsigned char> & dst, unsigned int offset, const vector<bool> & value)
-{
-    const unsigned int length_available = dst.size() - offset;
-    const unsigned int length_needed = 2 + GetBitVectorLengthInBytes(value.size());
-
-    if (length_available < length_needed)
-    {
-        dst.resize(dst.size() + length_needed - length_available);
-    }
-    fill(dst.begin() + offset, dst.begin() + offset + length_needed, 0x00);
-
-    dst.at(offset) = value.size() >> 8;
-    dst.at(offset + 1) = value.size();
-
-    unsigned int index = 0;
-    for (bool b : value)
-    {
-        if (b)
-        {
-            dst.at(offset + 2 + (index >> 3)) |= (1 << (7 - (index & 0x07)));
-        }
-        index++;
-    }
-
-    return length_needed;
-}
 
 ConsensusCommon::ConsensusCommon
 (
@@ -90,7 +35,7 @@ ConsensusCommon::ConsensusCommon
     const deque<Peer> & peer_info,
     unsigned char class_byte,
     unsigned char ins_byte
-) : TOLERANCE_FRACTION((double) 0.667), m_blockHash(block_hash), m_myPrivKey(privkey), m_pubKeys(pubkeys), m_peerInfo(peer_info), m_responseMap(pubkeys.size(), false)
+) : m_blockHash(block_hash), m_myPrivKey(privkey), m_pubKeys(pubkeys), m_peerInfo(peer_info), m_responseMap(pubkeys.size(), false)
 {
     m_consensusID = consensus_id;
     m_myID = my_id;
@@ -129,7 +74,7 @@ bool ConsensusCommon::VerifyMessage(const vector<unsigned char> & msg, unsigned 
     return result;
 }
 
-PubKey ConsensusCommon::AggregateKeys(const vector<bool> peer_map)
+PubKey ConsensusCommon::AggregateKeys(const vector<bool> & peer_map)
 {
     LOG_MARKER();
 
@@ -228,6 +173,20 @@ uint16_t ConsensusCommon::RetrieveCollectiveSigBitmap(vector<unsigned char> & ds
         return 0;
     }
 
-    return SetBitVector(dst, offset, m_responseMap);
+    return BitVector::SetBitVector(dst, offset, m_responseMap);
 }
 
+const Signature & ConsensusCommon::RetrieveCollectiveSig() const
+{
+    return m_collectiveSig;
+}
+     
+const vector<bool> & ConsensusCommon::RetrieveCollectiveSigBitmap() const
+{
+    return m_responseMap;
+}
+
+unsigned int ConsensusCommon::NumForConsensus(unsigned int shardSize)
+{
+    return ceil(shardSize * TOLERANCE_FRACTION) - 1;
+}
