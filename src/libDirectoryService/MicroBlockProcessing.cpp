@@ -37,6 +37,7 @@
 using namespace std;
 using namespace boost::multiprecision;
 
+#ifndef IS_LOOKUP_NODE
 bool DirectoryService::VerifyMicroblockCoSignature(const MicroBlock & microBlock, uint32_t shardId)
 {
     LOG_MARKER();
@@ -82,6 +83,7 @@ bool DirectoryService::VerifyMicroblockCoSignature(const MicroBlock & microBlock
 
     return true;
 }
+#endif // IS_LOOKUP_NODE
 
 bool DirectoryService::ProcessMicroblockSubmission(const vector<unsigned char> & message, unsigned int offset, const Peer & from)
 {
