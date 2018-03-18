@@ -66,6 +66,9 @@ const unsigned int POW_SIZE = 32;
 const unsigned int IP_SIZE = 16;
 const unsigned int PORT_SIZE = 4;
 
+const unsigned int NUM_PEERS_TO_SEND_IN_A_SHARD = 20;
+const unsigned int SERVER_PORT = 4201;
+
 // Testing parameters
 
 // Metadata type

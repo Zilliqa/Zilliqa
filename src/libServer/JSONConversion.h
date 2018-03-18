@@ -22,9 +22,11 @@
 #include <json/json.h>
 #include <vector>
 
+#include "libData/AccountData/Transaction.h"
 #include "libData/BlockData/Block.h"
 #include "libData/BlockChainData/DSBlockChain.h"
 #include "libData/BlockChainData/TxBlockChain.h"
+
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -37,9 +39,13 @@ public:
 	//converts a TxnHash array to JSON array containing TxnHash strings
 	static const Json::Value convertTxnHashArraytoJson(const vector<TxnHash> & v);
 	//converts a TxBlock to JSON object
-	static const Json::Value convertTxBlocktoJson(TxBlock & txblock);
+	static const Json::Value convertTxBlocktoJson(const TxBlock & txblock);
 	//converts a DSBlocck to JSON object
-	static const Json::Value convertDSblocktoJson(DSBlock & dsblock);
+	static const Json::Value convertDSblocktoJson(const DSBlock & dsblock);
+	//converts a JSON to Tx
+	static const Transaction convertJsontoTx(const Json::Value & _json);
+	//check if a Json is a valid Tx
+	static const bool checkJsonTx(const Json::Value & _json);
 
 };
 

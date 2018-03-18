@@ -193,6 +193,41 @@ unsigned int Transaction::GetSerializedSize()
     return size_needed_wo_predicate;
 }
 
+
+bool Transaction::Verify(const Transaction & tran)
+{
+    
+    vector <unsigned char> data;
+    data.resize(sizeof(uint32_t) + UINT256_SIZE + ACC_ADDR_SIZE + PUB_KEY_SIZE + UINT256_SIZE);
+    unsigned int curOffset = 0;
+    
+    SetNumber<uint32_t>(data, curOffset, tran.m_version, sizeof(uint32_t));
+    curOffset += sizeof(uint32_t);
+    
+    SetNumber<uint256_t>(data, curOffset, tran.m_nonce, UINT256_SIZE);
+    curOffset += UINT256_SIZE;
+    
+    copy(tran.m_toAddr.begin(), tran.m_toAddr.end(), data.begin() + curOffset);
+    curOffset += ACC_ADDR_SIZE;
+   
+    tran.m_senderPubKey.Serialize(data, curOffset);
+    curOffset+=PUB_KEY_SIZE;
+ 
+    SetNumber<uint256_t>(data, curOffset, tran.m_amount, UINT256_SIZE);
+    curOffset += UINT256_SIZE;
+    
+    vector <unsigned char> sign_ser;
+    sign_ser.resize(TRAN_SIG_SIZE);
+    copy(tran.m_signature.begin(), tran.m_signature.end(), sign_ser.begin());
+
+
+    Signature sign(sign_ser,0);
+
+    return Schnorr::GetInstance().Verify(data, sign, tran.m_senderPubKey);
+
+
+}
+
 bool Transaction::operator==(const Transaction & tran) const
 {
     return

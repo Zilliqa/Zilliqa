@@ -44,7 +44,9 @@ enum DSInstructionType : unsigned char
     MICROBLOCKSUBMISSION = 0x05,
     FINALBLOCKCONSENSUS = 0x06,
     AllPoWConnRequest = 0x07,
-    AllPoWConnResponse = 0x08
+    AllPoWConnResponse = 0x08,
+    LastDSBlockRequest = 0x09,
+    LastDSBlockResponse = 0x0A
 };
 
 enum NodeInstructionType : unsigned char
@@ -56,7 +58,8 @@ enum NodeInstructionType : unsigned char
     SUBMITTRANSACTION = 0x04,
     MICROBLOCKCONSENSUS = 0x05,
     FINALBLOCK = 0x06,
-    FORWARDTRANSACTION  = 0x07
+    FORWARDTRANSACTION  = 0x07,
+    CREATETRANSACTIONFROMLOOKUP = 0x08
 };
 
 enum LookupInstructionType : unsigned char

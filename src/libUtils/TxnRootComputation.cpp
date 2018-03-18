@@ -99,6 +99,8 @@ TxnHash ComputeTransactionsRoot
     const std::unordered_map<TxnHash, Transaction> & submittedTransactions
 )
 {
+    LOG_MARKER();
+
     dev::MemoryDB tm;
     dev::GenericTrieDB<dev::MemoryDB> transactionsTrie(&tm);
     transactionsTrie.init();
