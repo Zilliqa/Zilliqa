@@ -14,26 +14,35 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
+#ifdef IS_LOOKUP_NODE 
+
 #include "JSONConversion.h"
 
 #include <iostream>
+#include <boost/multiprecision/cpp_int.hpp>
+#include <deque>
 #include <jsonrpccpp/server.h>
 #include <jsonrpccpp/server/connectors/httpserver.h>
 
-#include "common/Serializable.h"
+
+#include "Server.h"
+#include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
+#include "libData/AccountData/Transaction.h"
 #include "libMediator/Mediator.h"
 #include "libUtils/Logger.h"
-#include "Server.h"
-
-
+#include "libNetwork/P2PComm.h"
+#include "libNetwork/Peer.h"
+#include "common/Serializable.h"
+#include "common/Messages.h"
 
 using namespace jsonrpc;
 using namespace std;
 
 
-Server::Server(Mediator & mediator) : AbstractZServer(*(new HttpServer(4201))), m_mediator(mediator)
+
+Server::Server(Mediator & mediator, HttpServer & httpserver) : AbstractZServer(httpserver), m_mediator(mediator)
 {
 	// constructor
 }
@@ -60,7 +69,67 @@ string Server::getProtocolVersion()
 
 string Server::createTransaction(const Json::Value& _json)
 {
-	return "Hello";
+	LOG_MARKER();
+
+	if(!JSONConversion::checkJsonTx(_json))
+	{
+		return "Invalid Tx Json";
+	}
+
+	Transaction tx = JSONConversion::convertJsontoTx(_json);
+
+	if(!Transaction::Verify(tx))
+	{
+		return "Signature incorrect";
+	}
+ 
+	//LOG_MESSAGE("Nonce: "<<tx.GetNonce().str()<<" toAddr: "<<tx.GetToAddr().hex()<<" senderPubKey: "<<static_cast<string>(tx.GetSenderPubKey());<<" amount: "<<tx.GetAmount().str());
+
+    unsigned int num_shards = m_mediator.m_lookup->GetShardPeers().size();
+
+    
+    const PubKey & senderPubKey = tx.GetSenderPubKey();
+    const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
+    unsigned int curr_offset = 0;
+    
+    if( num_shards > 0 )
+    {
+    	unsigned int shard = Transaction::GetShardIndex(fromAddr, num_shards);
+    	map <PubKey, Peer> shardMembers = m_mediator.m_lookup->GetShardPeers().at(shard);
+    	LOG_MESSAGE("The Tx Belongs to "<<shard<<" Shard");
+
+    	vector<unsigned char> tx_message = {MessageType::NODE, NodeInstructionType::CREATETRANSACTIONFROMLOOKUP};
+    	curr_offset += MessageOffset::BODY;
+
+    	tx.Serialize(tx_message, curr_offset);
+
+    	LOG_MESSAGE("Tx Serialized");
+
+    	vector<Peer> toSend;
+
+    	auto it = shardMembers.begin();
+    	for(unsigned int i = 0; i < NUM_PEERS_TO_SEND_IN_A_SHARD && it!=shardMembers.end() ; i++, it++ )
+    	{
+    		toSend.push_back(it->second);
+
+    	}
+	
+	
+
+    	P2PComm::GetInstance().SendMessage(toSend, tx_message);
+
+    	
+    }
+    else
+    {
+    	LOG_MESSAGE("No shards yet");
+
+    	return "Could Not Create Transaction";
+    }
+
+    
+   	return tx.GetTranID().hex();
+   	
 }
 
 Json::Value Server::getTransaction(const string & transactionHash)
@@ -177,3 +246,6 @@ string Server::getHashrate()
 {
 	return "Hello";
 }
+
+
+#endif //IS_LOOKUP_NODE

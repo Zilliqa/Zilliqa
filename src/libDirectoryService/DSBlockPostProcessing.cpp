@@ -167,6 +167,8 @@ void DirectoryService::SendDSBlockToCluster(const Peer & winnerpeer, unsigned in
     LOG_STATE("[INFOR][" << std::setw(15) << std::left << m_mediator.m_selfPeer.GetPrintableIPAddress() << "][" << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6)  << "][" << DataConversion::charArrToHexStr(m_mediator.m_dsBlockRand).substr(0, 6) << "][" << m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()  << "] DSBLOCKGEN");
 #endif // STAT_TEST
 
+    // Sleep to give sufficient time to other ds node to receive the ds block 
+    this_thread::sleep_for(chrono::seconds(5));
     P2PComm::GetInstance().SendBroadcastMessage(pow1nodes_cluster, dsblock_message);
 }
 
@@ -300,7 +302,6 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(const vector<unsigned cha
     {
         lock_guard<mutex> g(m_mutexAllPOW1);
         m_allPoW1s.clear();
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "DEBUG: cleared m_mutexAllPOW1");
     }
 
     UpdateDSCommiteeComposition(winnerpeer);
@@ -317,7 +318,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(const vector<unsigned cha
         m_mediator.UpdateDSBlockRand();
         array<unsigned char, 32> rand2 = {0};
         m_mediator.m_node->StartPoW2(lastDSBlock.GetHeader().GetBlockNum(),
-                                     3, m_mediator.m_dsBlockRand, rand2);
+                                     POW2_DIFFICULTY, m_mediator.m_dsBlockRand, rand2);
     }
 }
 #endif // IS_LOOKUP_NODE

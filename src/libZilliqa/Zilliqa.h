@@ -19,6 +19,7 @@
 #define __ZILLIQA_H__
 
 #include <vector>
+#include <jsonrpccpp/server/connectors/httpserver.h>
 
 #include "libConsensus/ConsensusUser.h"
 #include "libDirectoryService/DirectoryService.h"
@@ -28,6 +29,7 @@
 #include "libNetwork/PeerStore.h"
 #include "libNetwork/PeerManager.h"
 #include "libNode/Node.h"
+
 
 #ifdef IS_LOOKUP_NODE
 #include "libServer/Server.h"
@@ -44,8 +46,11 @@ class Zilliqa
     ConsensusUser m_cu; // Note: This is just a test class to demo Consensus usage
 
 #ifdef IS_LOOKUP_NODE
+
+    HttpServer m_httpserver;
     Server m_server;
-#endif
+
+#endif//IS_LOOK_UP_NODE
 
 public:
 

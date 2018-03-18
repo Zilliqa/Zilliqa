@@ -162,7 +162,7 @@ bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr> & blocks)
 
     if(blocks.empty())
     {
-        LOG_MESSAGE("Disk has no DSBlock")；
+        LOG_MESSAGE("Disk has no DSBlock");
         return false;
     }
 

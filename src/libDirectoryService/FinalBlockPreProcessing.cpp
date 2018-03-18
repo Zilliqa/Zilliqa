@@ -50,10 +50,12 @@ void DirectoryService::ExtractDataFromMicroblocks
     uint32_t & numMicroBlocks
 ) const
 {
+    LOG_MARKER();
+
     bool isVacuousEpoch = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
     auto blockNum = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
     unsigned int i = 1;
-    lock_guard<mutex> g(m_mediator.m_node->m_mutexUnavailableMicroBlocks);
+
     for (auto & microBlock : m_microBlocks)
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Micro block " << i << 
@@ -220,6 +222,8 @@ void DirectoryService::AppendSharingSetupToFinalBlockMessage(vector<unsigned cha
 
     // PART 1
     // First version: We just take the first X nodes in DS committee
+    LOG_MARKER();
+
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                  "debug " << m_mediator.m_DSCommitteeNetworkInfo.size() << " " <<
                  TX_SHARING_CLUSTER_SIZE);
@@ -363,8 +367,10 @@ vector<unsigned char> DirectoryService::ComposeFinalBlockMessage()
     bool isVacuousEpoch = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
 
     {
-        unique_lock<mutex> g(m_mediator.m_node->m_mutexUnavailableMicroBlocks);
-        unique_lock<mutex> g2(m_mediator.m_node->m_mutexAllMicroBlocksRecvd);
+        unique_lock<mutex> g(m_mediator.m_node->m_mutexUnavailableMicroBlocks, defer_lock);
+        unique_lock<mutex> g2(m_mediator.m_node->m_mutexAllMicroBlocksRecvd, defer_lock);
+        lock(g, g2);
+
         if(isVacuousEpoch && !m_mediator.m_node->m_allMicroBlocksRecvd)
         {
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -402,6 +408,7 @@ vector<unsigned char> DirectoryService::ComposeFinalBlockMessage()
 bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
 {
     LOG_MARKER();
+    
     // Compose the final block from all the microblocks
     // I guess only the leader has to do this
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -457,6 +464,8 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
 // Check type (must be final block type)
 bool DirectoryService::CheckBlockTypeIsFinal()
 {
+    LOG_MARKER();
+   
     if (m_finalBlock->GetHeader().GetType() != TXBLOCKTYPE::FINAL)
     {
         LOG_MESSAGE("Error: Type check failed. Expected: " << (unsigned int)TXBLOCKTYPE::FINAL << 
@@ -470,6 +479,8 @@ bool DirectoryService::CheckBlockTypeIsFinal()
 // Check version (must be most current version)
 bool DirectoryService::CheckFinalBlockVersion()
 {
+    LOG_MARKER();
+
     if (m_finalBlock->GetHeader().GetVersion() != BLOCKVERSION::VERSION1)
     {
         LOG_MESSAGE("Error: Version check failed. Expected: " << (unsigned int)BLOCKVERSION::VERSION1 << 
@@ -483,6 +494,8 @@ bool DirectoryService::CheckFinalBlockVersion()
 // Check block number (must be = 1 + block number of last Tx block header in the Tx blockchain)
 bool DirectoryService::CheckFinalBlockNumber()
 {
+    LOG_MARKER();
+
     const uint256_t & finalblockBlocknum = m_finalBlock->GetHeader().GetBlockNum();
     uint256_t expectedBlocknum = 0;
     if (m_mediator.m_txBlockChain.GetBlockCount() > 0)
@@ -506,6 +519,8 @@ bool DirectoryService::CheckFinalBlockNumber()
 // Check previous hash (must be = sha2-256 digest of last Tx block header in the Tx blockchain)
 bool DirectoryService::CheckPreviousFinalBlockHash()
 {
+    LOG_MARKER();
+
     const BlockHash & finalblockPrevHash = m_finalBlock->GetHeader().GetPrevHash();
     BlockHash expectedPrevHash;
     
@@ -539,6 +554,8 @@ bool DirectoryService::CheckPreviousFinalBlockHash()
 // Check timestamp (must be greater than timestamp of last Tx block header in the Tx blockchain)
 bool DirectoryService::CheckFinalBlockTimestamp()
 {
+    LOG_MARKER();
+
     if (m_mediator.m_txBlockChain.GetBlockCount() > 0)
     {
         const TxBlock & lastTxBlock = m_mediator.m_txBlockChain.GetLastBlock();
@@ -558,6 +575,8 @@ bool DirectoryService::CheckFinalBlockTimestamp()
 // Check microblock hashes
 bool DirectoryService::CheckMicroBlockHashes()
 {
+    LOG_MARKER();
+
     auto & txRootHashesInMicroBlocks = m_finalBlock->GetMicroBlockHashes();
    
     // O(n^2) might be fine since number of shards is low
@@ -585,6 +604,8 @@ bool DirectoryService::CheckMicroBlockHashes()
 // Check microblock hashes root
 bool DirectoryService::CheckMicroBlockHashRoot()
 {
+    LOG_MARKER();
+
     auto & txRootHashesInMicroBlocks = m_finalBlock->GetMicroBlockHashes();
 
     TxnHash microBlocksHash = ComputeTransactionsRoot(txRootHashesInMicroBlocks);
@@ -604,6 +625,8 @@ bool DirectoryService::CheckMicroBlockHashRoot()
 
 bool DirectoryService::CheckIsMicroBlockEmpty()
 {
+    LOG_MARKER();
+
     auto & txRootHashesInMicroBlocks = m_finalBlock->GetMicroBlockHashes();
 
     for (uint i = 0; i < txRootHashesInMicroBlocks.size(); i++)
@@ -633,6 +656,8 @@ bool DirectoryService::CheckIsMicroBlockEmpty()
 // Check state root
 bool DirectoryService::CheckStateRoot()
 {
+    LOG_MARKER();
+
     StateHash stateRoot = StateHash();
 
     bool isVacuousEpoch = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
@@ -658,6 +683,8 @@ bool DirectoryService::CheckStateRoot()
 
 bool DirectoryService::CheckFinalBlockValidity()
 {
+    LOG_MARKER();
+
     bool valid = false;
 
     do
@@ -771,11 +798,15 @@ void DirectoryService::SaveTxnBodySharingAssignment(const vector<unsigned char> 
 
 bool DirectoryService::WaitForTxnBodies()
 {
+    LOG_MARKER();
+
     bool isVacuousEpoch = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
 
     {
-        unique_lock<mutex> g(m_mediator.m_node->m_mutexUnavailableMicroBlocks);
-        unique_lock<mutex> g2(m_mediator.m_node->m_mutexAllMicroBlocksRecvd);
+        unique_lock<mutex> g(m_mediator.m_node->m_mutexUnavailableMicroBlocks, defer_lock);
+        unique_lock<mutex> g2(m_mediator.m_node->m_mutexAllMicroBlocksRecvd, defer_lock);
+        lock(g, g2);
+
         if(isVacuousEpoch && !m_mediator.m_node->m_allMicroBlocksRecvd)
         {
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -804,6 +835,8 @@ bool DirectoryService::WaitForTxnBodies()
 
 void DirectoryService::LoadUnavailableMicroBlocks()
 {
+    LOG_MARKER();
+
     auto blockNum = m_finalBlock->GetHeader().GetBlockNum();
     auto & txRootHashesInMicroBlocks = m_finalBlock->GetMicroBlockHashes();
     lock_guard<mutex> g(m_mediator.m_node->m_mutexUnavailableMicroBlocks); 

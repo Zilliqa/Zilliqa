@@ -213,7 +213,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char> & message, unsigned int cu
         // Tell my Node class to start PoW2 if I didn't win PoW1
         array<unsigned char, 32> rand2 = {0};
         StartPoW2(m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
-                                     3, m_mediator.m_dsBlockRand, rand2);
+                                     POW2_DIFFICULTY, m_mediator.m_dsBlockRand, rand2);
     }
 #endif // IS_LOOKUP_NODE
 

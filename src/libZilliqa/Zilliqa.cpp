@@ -15,6 +15,7 @@
 **/
 
 #include <jsonrpccpp/common/exception.h>
+#include <jsonrpccpp/server/connectors/httpserver.h>
 
 #include "Zilliqa.h"
 #include "common/Messages.h"
@@ -28,6 +29,7 @@
 #include "libUtils/DataConversion.h"
 
 using namespace std;
+
 
 void Zilliqa::LogSelfNodeInfo(const std::pair<PrivKey, PubKey> & key, const Peer & peer)
 {
@@ -56,7 +58,7 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey> & key, const Peer & peer, bool
         m_pm(key, peer, loadConfig), m_mediator(key, peer), m_ds(m_mediator), m_lookup(m_mediator), 
         m_n(m_mediator, toRetrieveHistory), m_cu(key, peer)
 #ifdef IS_LOOKUP_NODE
-	,m_server(m_mediator)
+	, m_httpserver(SERVER_PORT), m_server(m_mediator, m_httpserver)
 #endif // IS_LOOKUP_NODE
 	
 {

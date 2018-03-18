@@ -90,6 +90,8 @@ vector<Peer> Lookup::GetLookupNodes()
     return m_lookupNodes;
 }
 
+
+
 void Lookup::SendMessageToLookupNodes(const std::vector<unsigned char> & message) const
 {
     LOG_MARKER();
@@ -322,6 +324,13 @@ bool Lookup::GetTxBodyFromSeedNodes(string txHashStr)
         return true;      
     }
 
+    vector<map<PubKey, Peer>> Lookup::GetShardPeers()
+    {
+        LOG_MARKER();
+        lock_guard<mutex> g(m_mutexShards);
+        return m_shards;
+    }
+
 #endif // IS_LOOKUP_NODE
 
 bool Lookup::ProcessEntireShardingStructure(const vector<unsigned char> & message, 
@@ -357,6 +366,8 @@ bool Lookup::ProcessEntireShardingStructure(const vector<unsigned char> & messag
     offset += sizeof(uint32_t);
 
     LOG_MESSAGE("Number of shards: " << to_string(num_shards));
+
+    lock_guard<mutex> g(m_mutexShards);
 
     m_shards.clear();
     m_nodesInNetwork.clear();
@@ -1244,7 +1255,7 @@ bool Lookup::InitMining()
     auto dsBlockRand = m_mediator.m_dsBlockRand;
     array<unsigned char, 32> txBlockRand = {0};
 
-    if (m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW == curDsBlockNum -1 )
+    if (m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW == curDsBlockNum)
     {
         // DS block for the epoch has not been generated. 
         // Attempt PoW1
@@ -1254,9 +1265,9 @@ bool Lookup::InitMining()
         m_mediator.m_node->SetState(Node::POW1_SUBMISSION);
         POW::GetInstance().EthashConfigureLightClient(m_mediator.m_currentEpochNum);
         m_mediator.m_node->StartPoW1(m_mediator.m_dsBlockChain.GetBlockCount(), 
-                                        uint8_t(0x3), dsBlockRand, m_mediator.m_txBlockRand);
+                                        POW1_DIFFICULTY, dsBlockRand, m_mediator.m_txBlockRand);
     }
-    else if (m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW == curDsBlockNum)
+    else if (m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW == curDsBlockNum - 1)
     {
         // DS block has been generated. 
         // Attempt PoW2
@@ -1267,7 +1278,7 @@ bool Lookup::InitMining()
         m_mediator.m_node->SetState(Node::POW2_SUBMISSION);
         POW::GetInstance().EthashConfigureLightClient(m_mediator.m_currentEpochNum);
         m_mediator.m_node->StartPoW2(m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(), 
-                                        uint8_t(0x3), dsBlockRand, txBlockRand);
+                                        POW2_DIFFICULTY, dsBlockRand, txBlockRand);
     }
     else
     {
