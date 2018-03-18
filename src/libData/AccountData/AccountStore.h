@@ -103,12 +103,9 @@ public:
     void MoveUpdatesToDisk();
     void DiscardUnsavedUpdates();
 
-    /// re-construct an addressToAccount from persistence
-    bool RetrieveFromDisk(std::unordered_map<Address, Account> & addressToAccount);
-    /// compare the re-constructed addressToAccount with the local one
-    bool ValidateStateFromDisk(const std::unordered_map<Address, Account> & addressToAccount);
-
     void PrintAccountState();
+
+    bool RetrieveFromDisk();
 };
 
 #endif // __ACCOUNTSTORE_H__

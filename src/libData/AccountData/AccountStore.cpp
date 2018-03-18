@@ -389,7 +389,7 @@ void AccountStore::PrintAccountState()
     }
 }
 
-bool AccountStore::RetrieveFromDisk(std::unordered_map<Address, Account> & addressToAccount)
+bool AccountStore::RetrieveFromDisk()
 {
     LOG_MARKER();
     std::vector<unsigned char> rootBytes;
@@ -409,12 +409,7 @@ bool AccountStore::RetrieveFromDisk(std::unordered_map<Address, Account> & addre
             return false;
         }
         Account account(account_data[0], account_data[1]);
-        addressToAccount.insert({address, account});
+        m_addressToAccount.insert({address, account});
     }
     return true;
-}
-
-bool AccountStore::ValidateStateFromDisk(const std::unordered_map<Address, Account> & addressToAccount)
-{
-    return addressToAccount == m_addressToAccount;
 }

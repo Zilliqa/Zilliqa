@@ -18,7 +18,6 @@
 #define __MEDIATOR_H__
 
 #include <deque>
-#include <unordered_map>
 
 #include "libCrypto/Schnorr.h"
 #include "libData/BlockChainData/DSBlockChain.h"
@@ -80,11 +79,6 @@ public:
     /// Used by lookup to determine if it could successfully join the network after sync
     bool m_isConnectedToNetwork;
 
-    /// index of the end of transactions for each microblock in leveldb
-    std::deque<std::pair<TxnHash, uint64_t>> m_microblockToTxIndex;
-    std::mutex m_mutexMicroblockToTxIndex;
-    uint64_t m_lastIndex = 0;
-
     /// Constructor.
     Mediator(const pair<PrivKey, PubKey> & key, const Peer & peer);
 
@@ -99,9 +93,6 @@ public:
 
     /// Updates the Tx blockchain random for PoW.
     void UpdateTxBlockRand(bool isGenesis = false);
-
-    /// Add new microblock to txBody index 
-    void AddMicroblockToTxIndex(const TxnHash & microblockHash, const uint64_t& txNum);
 };
 
 #endif // __MEDIATOR_H__

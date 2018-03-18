@@ -30,20 +30,14 @@ class Retriever
 public:
 #ifndef IS_LOOKUP_NODE
 	Retriever(Mediator& mediator);
-	~Retriever() {m_addressToAccount.clear();}
 	
 	void RetrieveDSBlocks(bool & result);
-	void RetrieveTxNSt(bool & result, std::unordered_map<boost::multiprecision::uint256_t, 
-                       std::list<Transaction>> & committedTransactions);
 	
-	bool RetrieveTxBlocks();
-	bool RetrieveTxBodies(std::unordered_map<boost::multiprecision::uint256_t, 
-                       std::list<Transaction>> & committedTransactions);
+	void RetrieveTxBlocks(bool & result);
 	bool RetrieveStates();
-	bool ValidateTxNSt();
+	bool ValidateStates();
 private:
 	Mediator & m_mediator;
-	std::unordered_map<Address, Account> m_addressToAccount;
 #endif // IS_LOOKUP_NODE
 };
 

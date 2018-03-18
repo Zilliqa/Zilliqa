@@ -26,7 +26,6 @@
 template<class T>
 class CircularArray
 {
-    // T * m_array;
     std::vector<T> m_array;
 
     int m_capacity;
@@ -37,7 +36,6 @@ public:
     /// Default constructor.
     CircularArray()
     {
-        // m_array = nullptr;
         m_capacity = 0;
         m_size = 0;
     }
@@ -47,7 +45,6 @@ public:
     {
         m_array.clear();
         m_array.resize(capacity);
-        // m_array = new T[capacity];
         m_size = 0;
         m_capacity = capacity;
     }
@@ -59,19 +56,14 @@ public:
     /// Destructor.
     ~CircularArray()
     {
-        // if(m_array != nullptr)
-        // {
-        //     delete[] m_array;
-        // }
     }
 
     /// Index operator.
     T & operator[](boost::multiprecision::uint256_t index)
     {
         if(!m_array.size())
-        // if(m_array == nullptr)
         {
-            LOG_MESSAGE("Error: m_array is nullptr")
+            LOG_MESSAGE("Error: m_array is empty")
             throw;
         }
         return m_array[(int)(index % m_capacity)];
@@ -81,9 +73,8 @@ public:
     void insert_new(boost::multiprecision::uint256_t index, const T & element)
     {
         if(!m_array.size())
-        // if(m_array == nullptr)
         {
-            LOG_MESSAGE("Error: m_array is nullptr")
+            LOG_MESSAGE("Error: m_array is empty")
             throw;
         }
         m_array[(int)(index % m_capacity)] = element;
@@ -94,9 +85,8 @@ public:
     T & back()
     {
         if(!m_array.size())
-        // if(m_array == nullptr)
         {
-            LOG_MESSAGE("Error: m_array is nullptr")
+            LOG_MESSAGE("Error: m_array is empty")
             throw;
         }
         return m_array[(int)((m_size-1) % m_capacity)];
@@ -106,9 +96,8 @@ public:
     void push_back(T element)
     {
         if(!m_array.size())
-        // if(m_array == nullptr)
         {
-            LOG_MESSAGE("Error: m_array is nullptr")
+            LOG_MESSAGE("Error: m_array is empty")
             throw;
         }
         // modulo arithmetic of 256-bit will probably be slow

@@ -24,76 +24,6 @@
 
 Retriever::Retriever(Mediator & mediator) : m_mediator(mediator) {}
 
-bool Retriever::RetrieveTxBlocks()
-{
-	LOG_MARKER();
-	std::list<TxBlockSharedPtr> blocks;
-	if(!BlockStorage::GetBlockStorage().GetAllTxBlocks(blocks))
-	{
-		LOG_MESSAGE("FAIL: RetrieveTxBlocks Incompleted");
-		return false;
-	}
-
-	// truncate the extra final blocks at last
-	int extra_txblocks = (int)(blocks.size() % NUM_FINAL_BLOCK_PER_POW);
-	for(int i = 0; i < extra_txblocks; ++i)
-	{
-		blocks.pop_back();
-	}
-
-	for(const auto & block : blocks)
-		m_mediator.m_txBlockChain.AddBlock(*block);
-	// m_mediator.UpdateTxBlockRand();
-
-	return true;
-}
-
-bool Retriever::RetrieveTxBodies(std::unordered_map<boost::multiprecision::uint256_t, 
-                       std::list<Transaction>> & committedTransactions)
-{
-	// LOG_MARKER();
-	// boost::multiprecision::uint256_t blockSize = m_mediator.m_txBlockChain.GetBlockCount();
-
-	// for(boost::multiprecision::uint256_t blockNum; blockNum < blockSize; ++blockNum)
-	// {
-	// 	LOG_MESSAGE("Withdraw txBodies for txBlockNum:" << blockNum);
-		std::vector<TxnHash> txnHashes = m_mediator.m_txBlockChain.GetBlock(blockNum).GetMicroBlockHashes();
-	// 	std::list<Transaction> transactions;
-	// 	for(auto & txnHash : txnHashes)
-	// 	{
-	// 		LOG_MESSAGE("Withdraw txBody for txHash:" << txnHash);
-	// 		TxBodySharedPtr txBody;
-	// 		if(!BlockStorage::GetBlockStorage().GetTxBody(txnHash, txBody))
-	// 		{
-	// 			LOG_MESSAGE("FAIL: RetrieveTxBodies Incompleted");
-	// 			committedTransactions.clear();
-	// 			return false;
-	// 		}
-	// 		transactions.push_back(*txBody);
-	// 		//Rebuild the AccountStore with UpdateAccounts from these transactions.
-	// 		//Compare with the state retrieved from database directly to make an validation.
-	// 		AccountStore::GetInstance().UpdateAccounts(*txBody);
-	// 	}
-	// 	// if(blockNum == blockSize - 1)
-	// 		// committedTransactions.insert({blockNum, transactions});
-	// }
-	
-
-	return true;
-}
-
-bool Retriever::RetrieveStates()
-{
-	LOG_MARKER();
-	return AccountStore::GetInstance().RetrieveFromDisk(m_addressToAccount);
-}
-
-bool Retriever::ValidateTxNSt()
-{
-	LOG_MARKER();
-	return AccountStore::GetInstance().ValidateStateFromDisk(m_addressToAccount);
-}
-
 void Retriever::RetrieveDSBlocks(bool & result)
 {
 	LOG_MARKER();
@@ -107,51 +37,46 @@ void Retriever::RetrieveDSBlocks(bool & result)
     for(const auto & block : blocks)
         m_mediator.m_dsBlockChain.AddBlock(*block);
 
-    // m_mediator.UpdateDSBlockRand();
-
     result = true;
 }
 
-void Retriever::RetrieveTxNSt(bool & result, std::unordered_map<boost::multiprecision::uint256_t, 
-                       std::list<Transaction>> & committedTransactions)
+
+void Retriever::RetrieveTxBlocks(bool & result)
 {
 	LOG_MARKER();
-    result = RetrieveStates();
-    if(result)
-    {
-        result = RetrieveTxBlocks();
-    }
-    else
-    {
-        LOG_MESSAGE("FAIL: Failed to retrieve last states");
-    	return;
-    }
-    // if(result)
-    // {
-    //     result = RetrieveTxBodies(committedTransactions);
-    // }
-    // else
-    // {
-    // 	LOG_MESSAGE("FAIL: Failed to retrieve transaction blocks");
-    // 	return;
-    // }
-    if(result)
-    {
-        result = ValidateTxNSt();
-    }
-    else
-    {
-        LOG_MESSAGE("FAIL: Failed to retrieve transaction bodies");
-        return;
-    }
-    if(result)
-    {
-    	LOG_MESSAGE("RetrieveTxNSt is Successful");
-    }
-    else
-    {
-    	LOG_MESSAGE("ERROR: Result of <RetrieveStates> and <RetrieveTxBlocks/Bodies> doesn't match");
-    }
+	std::list<TxBlockSharedPtr> blocks;
+	if(!BlockStorage::GetBlockStorage().GetAllTxBlocks(blocks))
+	{
+		LOG_MESSAGE("FAIL: RetrieveTxBlocks Incompleted");
+		result = false;
+		return;
+	}
+
+	// truncate the extra final blocks at last
+	int extra_txblocks = blocks.size() % NUM_FINAL_BLOCK_PER_POW;
+	for(int i = 0; i < extra_txblocks; ++i)
+	{
+		blocks.pop_back();
+	}
+
+	for(const auto & block : blocks)
+		m_mediator.m_txBlockChain.AddBlock(*block);
+
+	result = true;
+}
+
+bool Retriever::RetrieveStates()
+{
+	LOG_MARKER();
+	return AccountStore::GetInstance().RetrieveFromDisk();
+}
+
+bool Retriever::ValidateStates()
+{
+	LOG_MARKER();
+	// return AccountStore::GetInstance().ValidateStateFromDisk(m_addressToAccount);
+	return m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetStateRootHash() == 
+		AccountStore::GetInstance().GetStateRootHash();
 }
 
 #endif // IS_LOOKUP_NODE
