@@ -65,9 +65,10 @@ bool BlockStorage::PutTxBlock(const boost::multiprecision::uint256_t & blockNum,
     return PutBlock(blockNum, body, BlockType::Tx);
 }
 
-bool BlockStorage::PutMicroblockToTxIndex(const std::pair<TxnHash, uint64_t>& index)
+bool BlockStorage::PutTxBody(const dev::h256 & key, const vector<unsigned char> & body)
 {
-    return m_microBlockToTxIndexDB.Insert(index.first, std::to_string(index.second));
+    int ret = m_txBodyDB.Insert(key, body);
+    return (ret == 0);
 }
 
 bool BlockStorage::GetDSBlock(const boost::multiprecision::uint256_t & blockNum, 
@@ -104,11 +105,7 @@ bool BlockStorage::GetTxBlock(const boost::multiprecision::uint256_t & blockNum,
     return true;
 }
 
-bool BlockStorage::PutTxBody(const dev::h256 & key, const vector<unsigned char> & body)
-{
-    int ret = m_txBodyDB.Insert(key, body);
-    return (ret == 0);
-}
+
 
 bool BlockStorage::GetTxBody(const dev::h256 & key, TxBodySharedPtr & body)
 {
@@ -142,8 +139,7 @@ bool BlockStorage::GetTxBody(const dev::h256 & key, TxBodySharedPtr & body)
 bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr> & blocks)
 {
     LOG_MARKER();
-    std::map<boost::multiprecision::uint256_t,
-     DSBlockSharedPtr, std::less<boost::multiprecision::uint256_t>> t_blocks;
+
     leveldb::Iterator* it = m_dsBlockchainDB.GetDB()->NewIterator(leveldb::ReadOptions());
     for(it->SeekToFirst(); it->Valid(); it->Next())
     {
@@ -161,18 +157,13 @@ bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr> & blocks)
         DSBlockSharedPtr block = DSBlockSharedPtr( new DSBlock(std::vector<unsigned char>(raw_memory, 
                                           raw_memory + blockString.size()), 0) );
 
-        t_blocks.insert(std::make_pair(blockNum, block));
+        blocks.push_back(block);
     }
 
-    if(t_blocks.empty())
+    if(blocks.empty())
     {
-        LOG_MESSAGE("FAIL: disk is empty")
+        LOG_MESSAGE("Disk has no DSBlock")；
         return false;
-    }
-
-    for(auto& p : t_blocks)
-    {
-        blocks.push_back(p.second);
     }
 
     return true;
@@ -181,8 +172,7 @@ bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr> & blocks)
 bool BlockStorage::GetAllTxBlocks(std::list<TxBlockSharedPtr> & blocks)
 {
     LOG_MARKER();
-    std::map<boost::multiprecision::uint256_t,
-     TxBlockSharedPtr, std::less<boost::multiprecision::uint256_t>> t_blocks;
+
     leveldb::Iterator* it = m_txBlockchainDB.GetDB()->NewIterator(leveldb::ReadOptions());
     for(it->SeekToFirst(); it->Valid(); it->Next())
     {
@@ -199,42 +189,21 @@ bool BlockStorage::GetAllTxBlocks(std::list<TxBlockSharedPtr> & blocks)
         const unsigned char* raw_memory = reinterpret_cast<const unsigned char*>(blockString.c_str());
         TxBlockSharedPtr block = TxBlockSharedPtr( new TxBlock(std::vector<unsigned char>(raw_memory, 
                                           raw_memory + blockString.size()), 0) );
-
-        t_blocks.insert(std::make_pair(blockNum, block));
+        blocks.push_back(block);
     }
 
-    if(t_blocks.empty())
+    if(blocks.empty())
     {
-        LOG_MESSAGE("FAIL: disk is empty")
+        LOG_MESSAGE("Disk has no TxBlock");
         return false;
-    }
-
-    for(auto& p : t_blocks)
-    {
-        blocks.push_back(p.second);
     }
 
     return true;
 }
 
-bool BlockStorage::GetAllTxBodies(std::list<TxBodySharedPtr> & bodies)
-{
-    LOG_MARKER();
-    leveldb::Iterator* it = m_microBlockToTxIndexDB.GetDB()->NewIterator(leveldb::ReadOptions);
-    for(it->SeekToFirst(); it->Valid(); it->Next())
-    {
-        
-    }
-}
-
-bool BlockStorage::GetAllMicroblockToTxIndexes(std::deque<TxnHash, uint64_t> indexes)
-{
-
-}
-
 bool BlockStorage::PutMetadata(MetaType type, const std::vector<unsigned char> & data)
 {
-    return m_metadataDB.Insert(std::to_string((int)type), data);
+    return m_metadataDB.Insert(std::to_string((int)type), data) == 0;
 }
 
 bool BlockStorage::GetMetadata(MetaType type, std::vector<unsigned char> & data)
@@ -266,10 +235,10 @@ bool BlockStorage::ResetDB(DBTYPE type)
             res = m_txBlockchainDB.ResetDB();
         case TX_BODY:
             res = m_txBodyDB.ResetDB();
-        case MICROBLOCK_TX:
-            res = m_microBlockToTxIndexDB.ResetDB();
     }
     if(!res)
+    {
         LOG_MESSAGE("FAIL: Reset DB " << type << " failed");
+    }
     return res;
 }

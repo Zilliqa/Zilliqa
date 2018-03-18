@@ -37,12 +37,9 @@ class BlockStorage
     LevelDB m_txBodyDB;
     LevelDB m_dsBlockchainDB;
     LevelDB m_txBlockchainDB;
-    LevelDB m_microBlockToTxIndexDB;
-    std::shared_timed_mutex m_putBlockMutex;
 
     BlockStorage() : m_metadataDB("metadata"), m_txBodyDB("txBodies"), 
-                     m_dsBlockchainDB("dsBlocks"), m_txBlockchainDB("txBlocks"),
-                     m_microBlockToTxIndexDB("microblockToTx") {};
+                     m_dsBlockchainDB("dsBlocks"), m_txBlockchainDB("txBlocks") {};
     ~BlockStorage() = default;
     bool PutBlock(const boost::multiprecision::uint256_t & blockNum, 
                   const std::vector<unsigned char> & block, const BlockType & blockType);
@@ -53,7 +50,6 @@ public:
         DS_BLOCK,
         TX_BLOCK,
         TX_BODY,
-        MICROBLOCK_TX,
     };
 
     /// Returns the singleton BlockStorage instance.
@@ -67,17 +63,14 @@ public:
     bool PutTxBlock(const boost::multiprecision::uint256_t & blockNum, 
                     const std::vector<unsigned char> & block); 
 
-    /// Adds a microBlockToTxIndex to storage.
-    bool PutMicroblockToTxIndex(const std::pair<TxnHash, uint64_t>& index)
+    /// Adds a transaction body to storage.
+    bool PutTxBody(const dev::h256 & key, const std::vector<unsigned char> & body);
 
     /// Retrieves the requested DS block.
     bool GetDSBlock(const boost::multiprecision::uint256_t & blocknum, DSBlockSharedPtr & block);
 
     /// Retrieves the requested Tx block.
     bool GetTxBlock(const boost::multiprecision::uint256_t & blocknum, TxBlockSharedPtr & block);
-
-    /// Adds a transaction body to storage.
-    bool PutTxBody(const dev::h256 & key, const std::vector<unsigned char> & body);
 
     /// Retrieves the requested transaction body.
     bool GetTxBody(const dev::h256 & key, TxBodySharedPtr & body);
@@ -93,12 +86,6 @@ public:
 
     /// Retrieves all the TxBlocks
     bool GetAllTxBlocks(std::list<TxBlockSharedPtr> & blocks);
-
-    /// Retrieves all the TxBodies
-    bool GetAllTxBodies(std::list<TxBodySharedPtr> & bodies);
-
-    /// Retrieves all the microblockToTxIndex
-    bool GetAllMicroblockToTxIndexes(std::deque<TxnHash, uint64_t> indexes);
 
     /// Save Last Transactions Trie Root Hash
     bool PutMetadata(MetaType type, const std::vector<unsigned char> & data);

@@ -21,7 +21,6 @@
 #include "libData/BlockChainData/DSBlockChain.h"
 #include "libData/BlockChainData/TxBlockChain.h"
 #include "libUtils/DataConversion.h"
-#include "libPersistence/BlockStorage.h"
 #include "Mediator.h"
 
 using namespace std;
@@ -94,16 +93,4 @@ void Mediator::UpdateTxBlockRand(bool isGenesis)
         randVec = sha2.Finalize();
         copy(randVec.begin(), randVec.end(), m_txBlockRand.begin());
     }
-}
-
-void Mediator::AddMicroblockToTxIndex(const TxnHash & microblockHash, const uint64_t& txNum)
-{
-    LOG_MARKER();
-    std::pair<TxnHash, uint64_t> index { microblockHash, m_lastIndex + txNum};
-
-    std::lock_guard<std::mutex> guard(m_mutexMicroblockToTxIndex);
-
-    m_microblockToTxIndex.push_back(index);
-    m_lastIndex += txNum;
-    BlockStorage::GetBlockStorage().PutMicroblockToTxIndex(index);
 }
