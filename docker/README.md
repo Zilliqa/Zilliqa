@@ -1,9 +1,9 @@
-#Zilliqa container
+# Zilliqa container (Experimental)
 
-##Overview
+## Overview
 This repository contains a Dockerfile that can built into a Docker image containing the Zilliqa binaries.
 
-##Building the Docker image
+## Building the Docker image
 Executing the following command will start building a Docker image of Zilliqa:
 
 > docker build --rm -t zilliqa .
@@ -13,7 +13,7 @@ This build step will fetch the Zilliqa sources, gather it's dependencies and bui
 > Note: by default the 'master' branch of the Zilliqa repo will be built in 'Debug' mode. You can specify an other branch and/or configuration by providing build arguments like so:
 > docker build --build-arg BRANCH=<branchname> --build-arg CONFIG=<Debug/Release> --rm -t zilliqa . 
 
-##Running a Docker container
+## Running a Docker container
 To start up a Docker container from the previously built Docker image, you can run the following command:
 
 > docker run --rm -i -t zilliqa
