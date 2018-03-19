@@ -72,7 +72,7 @@ protected:
     State m_state;
 
     /// The minimum fraction of peers necessary to achieve consensus.
-    static constexpr double TOLERANCE_FRACTION = (double) 0.667;
+    static constexpr double TOLERANCE_FRACTION = 0.667;
 
     /// The unique ID assigned to the active consensus session. 
     uint32_t m_consensusID;
