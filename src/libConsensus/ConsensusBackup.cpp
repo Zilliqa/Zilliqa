@@ -630,7 +630,7 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(const vector<unsigned char
     // Note on N-byte bitmap: N = number of bytes needed to represent all nodes (1 bit = 1 node) + 2 (length indicator)
 
     const unsigned int length_available = collectivesig.size() - offset;
-    const unsigned int length_needed = sizeof(uint32_t) + BLOCK_HASH_SIZE + sizeof(uint16_t) + SIGNATURE_CHALLENGE_SIZE + SIGNATURE_RESPONSE_SIZE + BitVector::GetBitVectorLengthInBytes(m_pubKeys.size()) + 2 + SIGNATURE_CHALLENGE_SIZE + SIGNATURE_RESPONSE_SIZE;
+    const unsigned int length_needed = sizeof(uint32_t) + BLOCK_HASH_SIZE + sizeof(uint16_t) + SIGNATURE_CHALLENGE_SIZE + SIGNATURE_RESPONSE_SIZE + BitVector::GetBitVectorSerializedSize(m_pubKeys.size()) + SIGNATURE_CHALLENGE_SIZE + SIGNATURE_RESPONSE_SIZE;
 
     if (length_needed > length_available)
     {
@@ -674,7 +674,7 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(const vector<unsigned char
 
     // N-byte bitmap
     m_responseMap = BitVector::GetBitVector(collectivesig, curr_offset, BitVector::GetBitVectorLengthInBytes(m_pubKeys.size()));
-    curr_offset += BitVector::GetBitVectorLengthInBytes(m_pubKeys.size()) + 2;
+    curr_offset += BitVector::GetBitVectorSerializedSize(m_pubKeys.size());
 
     // Check the bitmap
     if (m_responseMap.empty())
