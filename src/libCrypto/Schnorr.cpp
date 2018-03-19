@@ -536,6 +536,7 @@ const Curve & Schnorr::GetCurve() const
 pair<PrivKey, PubKey> Schnorr::GenKeyPair()
 {
     LOG_MARKER();
+    lock_guard<mutex> g(m_mutexSchnorr);
 
     PrivKey privkey;
     PubKey pubkey(privkey);
@@ -551,6 +552,7 @@ bool Schnorr::Sign(const vector<unsigned char> & message, const PrivKey & privke
 bool Schnorr::Sign(const vector<unsigned char> & message, unsigned int offset, unsigned int size, const PrivKey & privkey, const PubKey & pubkey, Signature & result)
 {
     LOG_MARKER();
+    lock_guard<mutex> g(m_mutexSchnorr);
 
     // Initial checks
 
@@ -717,6 +719,7 @@ bool Schnorr::Verify(const vector<unsigned char> & message, const Signature & to
 bool Schnorr::Verify(const vector<unsigned char> & message, unsigned int offset, unsigned int size, const Signature & toverify, const PubKey & pubkey)
 {
     LOG_MARKER();
+    lock_guard<mutex> g(m_mutexSchnorr);
 
     // Initial checks
 
@@ -856,6 +859,7 @@ bool Schnorr::Verify(const vector<unsigned char> & message, unsigned int offset,
 void Schnorr::PrintPoint(const EC_POINT * point)
 {
     LOG_MARKER();
+    lock_guard<mutex> g(m_mutexSchnorr);
 
     unique_ptr<BIGNUM, void (*)(BIGNUM*)> x(BN_new(), BN_clear_free);
     unique_ptr<BIGNUM, void (*)(BIGNUM*)> y(BN_new(), BN_clear_free);

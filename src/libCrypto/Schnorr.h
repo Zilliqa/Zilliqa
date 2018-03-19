@@ -24,6 +24,7 @@
 #include <memory>
 #include <vector>
 #include <array>
+#include <mutex>
 
 #include "common/Serializable.h"
 #include "common/Constants.h"
@@ -215,6 +216,8 @@ public:
     /// In its compressed form it suffices to store the x co-ordinate and the sign for y.
     /// Hence a total of 33 bytes.
     static const unsigned int PUBKEY_COMPRESSED_SIZE_BYTES = 33;
+
+    std::mutex m_mutexSchnorr;
 
     /// Returns the singleton Schnorr instance.
     static Schnorr & GetInstance();
