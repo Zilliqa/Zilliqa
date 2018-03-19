@@ -105,6 +105,9 @@ else()
     message(STATUS "  package 'SNAPPY' not found")
 endif()
 
+# export compile commands
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 add_definitions(-DSTAT_TEST)
 
 if(IS_LOOKUP_NODE)
