@@ -25,11 +25,7 @@ unsigned int MicroBlock::Serialize(vector<unsigned char> & dst, unsigned int off
 {
     assert(m_header.GetNumTxs() == m_tranHashes.size());
 
-    unsigned int header_size_needed = sizeof(uint8_t) + sizeof(uint32_t) + UINT256_SIZE + UINT256_SIZE + 
-                                        BLOCK_HASH_SIZE + UINT256_SIZE + UINT256_SIZE + TRAN_HASH_SIZE + 
-                                        sizeof(uint32_t) + PUB_KEY_SIZE + UINT256_SIZE + BLOCK_HASH_SIZE;
-
-    unsigned int size_needed = header_size_needed + BLOCK_SIG_SIZE + sizeof(uint16_t) +
+    unsigned int size_needed = HEADER_SIZE_NEEDED + BLOCK_SIG_SIZE + sizeof(uint16_t) +
                                BitVector::GetBitVectorSerializedSize(m_headerSigBitmap.size()) +
                                m_header.GetNumTxs() * TRAN_HASH_SIZE;
 
@@ -42,7 +38,7 @@ unsigned int MicroBlock::Serialize(vector<unsigned char> & dst, unsigned int off
 
     m_header.Serialize(dst, offset);
 
-    unsigned int curOffset = offset + header_size_needed;
+    unsigned int curOffset = offset + HEADER_SIZE_NEEDED;
 
     m_headerSig.Serialize(dst, curOffset);
     curOffset += BLOCK_SIG_SIZE;
