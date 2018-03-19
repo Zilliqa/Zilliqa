@@ -1,4 +1,7 @@
 language: generic
+cache:
+  directories:
+    - $HOME/.ccache/
 
 # multiplied by platform
 os:
