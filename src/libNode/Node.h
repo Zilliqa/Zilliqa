@@ -105,6 +105,7 @@ class Node : public Executable, public Broadcastable
     std::vector<unsigned char> m_consensusBlockHash;
     std::atomic<uint32_t> m_consensusMyID;
     std::shared_ptr<MicroBlock> m_microblock;
+    std::mutex m_mutexMicroBlock;
 
     const static uint32_t RECVTXNDELAY_MILLISECONDS = 3000;
     const unsigned int SUBMIT_TX_WINDOW = 15;
