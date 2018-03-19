@@ -17,7 +17,7 @@ env:
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
       docker pull ubuntu:16.04;
-      docker run -d -v $(pwd):/zilliqa -w /zilliqa --name ci ubuntu:16.04 tail -f /dev/null;
+      docker run -d -v $(pwd):/zilliqa -v $HOME/.ccache:/root/.ccache -w /zilliqa --name ci ubuntu:16.04 tail -f /dev/null;
     fi
 
 install:
@@ -28,6 +28,7 @@ install:
         apt-get install -y cmake build-essential pkg-config libssl-dev;
         apt-get install -y libboost-all-dev libleveldb-dev libsnappy-dev;
         apt-get install -y libjsoncpp-dev libmicrohttpd-dev libjsonrpccpp-dev;
+        apt-get install -y ccache;
       ";
     else
       brew update;
