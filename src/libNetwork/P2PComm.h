@@ -42,7 +42,6 @@ class P2PComm
     const static uint32_t MAXRETRYCONN = 3;
     const static uint32_t MAXPUMPMESSAGE = 128;
     const static uint32_t PUMPMESSAGE_MILLISECONDS = 1000;
-    uint32_t m_counterMessagePump;
 
     void SendMessageCore(const Peer & peer, const std::vector<unsigned char> & message, unsigned char start_byte, const std::vector<unsigned char> & msg_hash);
     bool SendMessageSocketCore(const Peer & peer, const std::vector<unsigned char> & message, unsigned char start_byte, const std::vector<unsigned char> & msg_hash);
