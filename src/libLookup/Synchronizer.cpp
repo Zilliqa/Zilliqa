@@ -96,7 +96,7 @@ TxBlock Synchronizer::ConstructGenesisTxBlock()
     TxBlockHeader header(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1, 1, BlockHash(), 0, 
                          151384616955606, TxnHash(), StateHash(), 0, 5, keypair.second, 0, BlockHash());
     
-    array<unsigned char, BLOCK_SIG_SIZE> emptySig = { 0 };
+    array<unsigned char, BLOCK_SIG_SIZE> emptySig{};
 
     std::vector<TxnHash> tranHashes;
     for(int i=0; i<5; i++)

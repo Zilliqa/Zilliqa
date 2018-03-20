@@ -41,7 +41,7 @@ BlockStorage & BlockStorage::GetBlockStorage()
 bool BlockStorage::PutBlock(const boost::multiprecision::uint256_t & blockNum, 
     const vector<unsigned char> & body, const BlockType & blockType)
 {
-    int ret;
+    int ret = -1; // according to LevelDB::Insert return vale
     if (blockType == BlockType::DS)
     {
         ret = m_dsBlockchainDB.Insert(blockNum, body);

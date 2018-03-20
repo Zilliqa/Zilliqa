@@ -153,7 +153,7 @@ void DirectoryService::ComposeFinalBlockCore()
     BlockHash dsBlockHeader;
     copy(hashVec.begin(), hashVec.end(), dsBlockHeader.asArray().begin());
     
-    array<unsigned char, BLOCK_SIG_SIZE> emptySig = { 0 };
+    array<unsigned char, BLOCK_SIG_SIZE> emptySig{};
 
     StateHash stateRoot = StateHash();
 
