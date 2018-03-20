@@ -16,6 +16,7 @@
 
 
 #include <jsonrpccpp/server.h>
+#include <jsonrpccpp/server/connectors/httpserver.h>
 #include <boost/multiprecision/cpp_int.hpp>
 #include <mutex>
 #include "libData/BlockData/BlockHeader/BlockHeaderBase.h"
@@ -316,5 +317,5 @@ class Server: public AbstractZServer
         virtual Json::Value TxBlockListing(unsigned int page);
         virtual Json::Value getBlockchainInfo();
         virtual Json::Value getRecentTransactions();
-        
+        static void AddToRecentTransactions(const TxnHash & txhash);
 };
