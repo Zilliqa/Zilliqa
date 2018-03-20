@@ -59,7 +59,7 @@ static void close_socket(int *cli_sock)
     }
 }
 
-P2PComm::P2PComm():m_counterMessagePump(0)
+P2PComm::P2PComm()
 {
 
 }
