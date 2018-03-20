@@ -35,6 +35,7 @@
 #include "libData/AccountData/Transaction.h"
 #include "libMediator/Mediator.h"
 #include "libPOW/pow.h"
+#include "libServer/Server.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
@@ -1124,6 +1125,7 @@ void Node::CommitForwardedTransactions(const vector<Transaction> & txnsInForward
         //              ", from: " << tx.GetFromAddr());
 
         // Store TxBody to disk
+        Server::AddToRecentTransactions(tx.GetTranID());
         vector<unsigned char> serializedTxBody;
         tx.Serialize(serializedTxBody, 0);
         BlockStorage::GetBlockStorage().PutTxBody(tx.GetTranID(), serializedTxBody);

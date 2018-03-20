@@ -23,7 +23,7 @@
 #include <boost/multiprecision/cpp_int.hpp>
 #include <deque>
 #include <jsonrpccpp/server.h>
-#include <jsonrpccpp/server/connectors/httpserver.h>
+
 
 
 
@@ -45,6 +45,8 @@
 using namespace jsonrpc;
 using namespace std;
 
+CircularArray <std::string> Server::m_RecentTransactions;
+std::mutex Server::m_mutexRecentTxns;
 
 const unsigned int PAGE_SIZE = 10;
 Server::Server(Mediator & mediator, HttpServer & httpserver) : AbstractZServer(httpserver), m_mediator(mediator)
@@ -642,7 +644,7 @@ Json::Value Server::getBlockchainInfo()
 
 Json::Value Server::getRecentTransactions()
 {
-	/*lock_guard<mutex> g(m_mutexRecentTxns);
+	lock_guard<mutex> g(m_mutexRecentTxns);
 	Json::Value _json;
 	_json["number"] = uint(m_RecentTransactions.size());
 	for(uint i = 0 ; i < m_RecentTransactions.size() ; i++)
@@ -651,9 +653,14 @@ Json::Value Server::getRecentTransactions()
 	}
 
 	return _json;
-*/
-	return "Hello";
+
 }
 
+void Server::AddToRecentTransactions(const TxnHash & txhash)
+{
+	lock_guard<mutex> g(m_mutexRecentTxns);
+
+	m_RecentTransactions.push_back(txhash.hex());
+}
 
 #endif //IS_LOOKUP_NODE
