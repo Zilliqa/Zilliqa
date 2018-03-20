@@ -40,9 +40,9 @@
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SanityChecks.h"
+#include "libPersistence/Retriever.h"
 #include "libUtils/TimeLockedFunction.h"
 #include "libUtils/TimeUtils.h"
-#include "libPersistence/Retriever.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -109,19 +109,13 @@ bool Node::StartRetrieveHistory()
     tDS.join();
     tTx.join();
     bool res = false;
-    if(st_result)
+    if(st_result && ds_result & tx_result)
     {
-        if(ds_result && tx_result)
+        if(retriever->ValidateStates() && retriever->CleanExtraTxBodies())
         {
-            if(retriever->ValidateStates())
-            {
-                if(retriever->CleanExtraTxBodies())
-                {
-                    LOG_MESSAGE("RetrieveHistory Successed");
-                    m_mediator.m_isRetrievedHistory = true;
-                    res = true;
-                }
-            }
+            LOG_MESSAGE("RetrieveHistory Successed");
+            m_mediator.m_isRetrievedHistory = true;
+            res = true;
         }
     }
     delete retriever;
