@@ -536,7 +536,12 @@ Json::Value Server::DSBlockListing(unsigned int page)
 	if(page <= NUM_PAGES_CACHE) //can use cache
 	{
 		
-		boost::multiprecision::uint256_t cacheSize = m_DSBlockCache.second.size();
+		boost::multiprecision::uint256_t cacheSize(m_DSBlockCache.second.capacity());
+		if(cacheSize > m_DSBlockCache.second.size())
+		{
+			cacheSize = m_DSBlockCache.second.size();
+		}
+
 
 		for(unsigned int i = offset ; i<PAGE_SIZE + offset && i < cacheSize  ; i++)
 		{
@@ -601,7 +606,12 @@ Json::Value Server::TxBlockListing(unsigned int page)
 	if(page <= NUM_PAGES_CACHE) //can use cache
 	{
 		
-		boost::multiprecision::uint256_t cacheSize = m_TxBlockCache.second.size();
+		boost::multiprecision::uint256_t cacheSize(m_TxBlockCache.second.capacity());
+		if(cacheSize > m_TxBlockCache.second.size())
+		{
+			cacheSize = m_TxBlockCache.second.size();
+		}
+
 
 		for(unsigned int i = offset ; i<PAGE_SIZE + offset && i < cacheSize  ; i++)
 		{
@@ -651,13 +661,13 @@ Json::Value Server::getRecentTransactions()
 
 	lock_guard<mutex> g(m_mutexRecentTxns);
 	Json::Value _json;
-	int actualSize = m_RecentTransactions.capacity();
-	if(actualSize > int(m_RecentTransactions.size()))
+	boost::multiprecision::uint256_t actualSize(m_RecentTransactions.capacity());
+	if(actualSize > m_RecentTransactions.size())
 	{
-		actualSize = int(m_RecentTransactions.size());
+		actualSize = m_RecentTransactions.size();
 	}
-	_json["number"] = actualSize;
-	for(int i = 0 ; i < actualSize ; i++)
+	_json["number"] = int(actualSize);
+	for(int i = 0 ; i < int(actualSize) ; i++)
 	{
 		_json["TxnHashes"].append(m_RecentTransactions[i]);
 	}
