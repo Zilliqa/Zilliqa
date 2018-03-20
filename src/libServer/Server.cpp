@@ -49,15 +49,16 @@ CircularArray <std::string> Server::m_RecentTransactions;
 std::mutex Server::m_mutexRecentTxns;
 
 const unsigned int PAGE_SIZE = 10;
+const unsigned int NUM_PAGES_CACHE = 2;
 Server::Server(Mediator & mediator, HttpServer & httpserver) : AbstractZServer(httpserver), m_mediator(mediator)
 {
 	m_StartTimeTx = 0;
 	m_StartTimeDs = 0;
 	m_DSBlockCache.first = 0;
-	m_DSBlockCache.second.resize(2*PAGE_SIZE);
+	m_DSBlockCache.second.resize(NUM_PAGES_CACHE*PAGE_SIZE);
 	m_DSBlockCache.second.push_back("0x0000000000000000000");
 	m_TxBlockCache.first = 0;
-	m_TxBlockCache.second.resize(2*PAGE_SIZE);
+	m_TxBlockCache.second.resize(NUM_PAGES_CACHE*PAGE_SIZE);
 	m_TxBlockCache.second.push_back("32877419b0d2bf10dee7a7d306deddc5d7d972fa69ae7affcec575781002cfc3");
 	m_RecentTransactions.resize(PAGE_SIZE);
 }
@@ -149,6 +150,7 @@ string Server::createTransaction(const Json::Value& _json)
 
 Json::Value Server::getTransaction(const string & transactionHash)
 {
+	LOG_MARKER();
 	TxBodySharedPtr tx;
 	TxnHash tranHash(transactionHash);
 
@@ -531,7 +533,7 @@ Json::Value Server::DSBlockListing(unsigned int page)
 	}
 
 	unsigned int offset = PAGE_SIZE*(page-1);
-	if(page<=2) //can use cache
+	if(page <= NUM_PAGES_CACHE) //can use cache
 	{
 		
 		boost::multiprecision::uint256_t cacheSize = m_DSBlockCache.second.size();
@@ -596,7 +598,7 @@ Json::Value Server::TxBlockListing(unsigned int page)
 	}
 
 	unsigned int offset = PAGE_SIZE*(page-1);
-	if(page<=2) //can use cache
+	if(page <= NUM_PAGES_CACHE) //can use cache
 	{
 		
 		boost::multiprecision::uint256_t cacheSize = m_TxBlockCache.second.size();
@@ -644,10 +646,18 @@ Json::Value Server::getBlockchainInfo()
 
 Json::Value Server::getRecentTransactions()
 {
+	LOG_MARKER();
+
+
 	lock_guard<mutex> g(m_mutexRecentTxns);
 	Json::Value _json;
-	_json["number"] = uint(m_RecentTransactions.size());
-	for(uint i = 0 ; i < m_RecentTransactions.size() ; i++)
+	int actualSize = m_RecentTransactions.capacity();
+	if(actualSize > int(m_RecentTransactions.size()))
+	{
+		actualSize = int(m_RecentTransactions.size());
+	}
+	_json["number"] = actualSize;
+	for(int i = 0 ; i < actualSize ; i++)
 	{
 		_json["TxnHashes"].append(m_RecentTransactions[i]);
 	}
