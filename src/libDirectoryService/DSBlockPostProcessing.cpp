@@ -315,7 +315,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(const vector<unsigned cha
     {
         // Tell my Node class to start PoW2
         m_mediator.UpdateDSBlockRand();
-        array<unsigned char, 32> rand2 = {0};
+        array<unsigned char, 32> rand2{};
         m_mediator.m_node->StartPoW2(lastDSBlock.GetHeader().GetBlockNum(),
                                      POW2_DIFFICULTY, m_mediator.m_dsBlockRand, rand2);
     }

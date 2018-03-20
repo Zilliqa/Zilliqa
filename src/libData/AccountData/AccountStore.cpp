@@ -304,7 +304,7 @@ bool AccountStore::DecreaseBalance(const Address & address,
     }
 
     LOG_MESSAGE("Balance for " << address << " decreased by " << delta << ". Failed! Balance: " <<
-                account ? account->GetBalance().convert_to<string>() : "? account = nullptr");
+                (account ? account->GetBalance().convert_to<string>() : "? account = nullptr"));
 
     return false;
 }
