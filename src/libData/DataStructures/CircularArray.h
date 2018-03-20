@@ -117,6 +117,8 @@ public:
     {
         return m_capacity;
     }
+
+
 };
 
 #endif // __CIRCULARARRAY_H__
