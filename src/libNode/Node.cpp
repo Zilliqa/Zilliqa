@@ -52,8 +52,6 @@ Node::Node(Mediator & mediator, bool toRetrieveHistory) : m_mediator(mediator)
     // m_state = IDLE;
     // Zilliqa first epoch start from 1 not 0. So for the first DS epoch, there will be 1 less mini epoch only for the first DS epoch. 
     // Hence, we have to set consensusID for first epoch to 1. 
-    m_consensusID = 1;
-    m_consensusLeaderID = 1;
     
     bool runInitializeGenesisBlocks = true;
 
@@ -61,12 +59,19 @@ Node::Node(Mediator & mediator, bool toRetrieveHistory) : m_mediator(mediator)
     if(toRetrieveHistory)
     {
         if(StartRetrieveHistory())
+        {
+            m_consensusID = 0;
+            m_consensusLeaderID = 0;
             runInitializeGenesisBlocks = false;
+        }
     }
     #endif // IS_LOOKUP_NODE
     
     if(runInitializeGenesisBlocks)
     {
+        m_consensusID = 1;
+        m_consensusLeaderID = 1;
+
         m_mediator.m_dsBlockChain.Reset();
         m_mediator.m_txBlockChain.Reset();
         m_committedTransactions.clear();

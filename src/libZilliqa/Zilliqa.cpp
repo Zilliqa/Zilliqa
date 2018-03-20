@@ -64,6 +64,11 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey> & key, const Peer & peer, bool
 {
     LOG_MARKER();
 
+    if(m_mediator.m_isRetrievedHistory)
+    {
+        m_ds.m_consensusID = 0;
+    }
+
     m_mediator.RegisterColleagues(&m_ds, &m_n, &m_lookup);
 
     LogSelfNodeInfo(key, peer);

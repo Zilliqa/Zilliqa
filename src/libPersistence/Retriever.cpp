@@ -41,7 +41,9 @@ void Retriever::RetrieveDSBlocks(bool & result)
     	dev::bytes t_isDSIncompleted = {'1'};
     	if(isDSIncompleted == t_isDSIncompleted)
     	{
-    		BlockStorage::GetBlockStorage().DeleteDSBlock(blocks.size());
+    		LOG_MESSAGE("Has incompleted DS Block");
+    		BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED, {'0'});
+    		BlockStorage::GetBlockStorage().DeleteDSBlock(blocks.size()-1);
     		blocks.pop_back();
     	}
     }else
