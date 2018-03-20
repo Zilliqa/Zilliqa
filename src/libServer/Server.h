@@ -17,11 +17,14 @@
 
 #include <jsonrpccpp/server.h>
 #include <boost/multiprecision/cpp_int.hpp>
+#include <mutex>
 #include "libData/BlockData/BlockHeader/BlockHeaderBase.h"
 #include "libData/DataStructures/CircularArray.h"
 
 
+
 using namespace jsonrpc;
+using TxnHash = dev::h256;
 class Mediator;
 
 class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer>
@@ -63,6 +66,7 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer>
             this->bindAndAddMethod(jsonrpc::Procedure("DSBlockListing", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_OBJECT,"param01",jsonrpc::JSON_INTEGER, NULL), &AbstractZServer::DSBlockListingI);
             this->bindAndAddMethod(jsonrpc::Procedure("TxBlockListing", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_OBJECT,"param01",jsonrpc::JSON_INTEGER, NULL), &AbstractZServer::TxBlockListingI);
             this->bindAndAddMethod(jsonrpc::Procedure("getBlockchainInfo", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_OBJECT,  NULL), &AbstractZServer::getBlockchainInfoI);
+            this->bindAndAddMethod(jsonrpc::Procedure("getRecentTransactions", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_OBJECT,  NULL), &AbstractZServer::getRecentTransactionsI);
         }
 
         inline virtual void getClientVersionI(const Json::Value &request, Json::Value &response)
@@ -218,6 +222,11 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer>
             (void)request;
             response = this->getBlockchainInfo();
         }
+        inline virtual void getRecentTransactionsI(const Json::Value &request, Json::Value &response)
+        {
+            (void)request;
+            response = this->getRecentTransactions();
+        }
         virtual std::string getClientVersion() = 0;
         virtual std::string getNetworkId() = 0;
         virtual std::string getProtocolVersion() = 0;
@@ -251,6 +260,7 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer>
         virtual Json::Value DSBlockListing(unsigned int param01) = 0;
         virtual Json::Value TxBlockListing(unsigned int param01) = 0;
         virtual Json::Value getBlockchainInfo() = 0;
+        virtual Json::Value getRecentTransactions() = 0;
 
 };
 
@@ -262,6 +272,8 @@ class Server: public AbstractZServer
     boost::multiprecision::uint256_t m_StartTimeDs;
     pair<boost::multiprecision::uint256_t, CircularArray<std::string>> m_DSBlockCache;
     pair<boost::multiprecision::uint256_t, CircularArray<std::string>> m_TxBlockCache;
+    CircularArray <std::string> m_RecentTransactions;
+    std::mutex m_mutexRecentTxns;
 
     
     public:
@@ -302,4 +314,6 @@ class Server: public AbstractZServer
         virtual Json::Value DSBlockListing(unsigned int page);
         virtual Json::Value TxBlockListing(unsigned int page);
         virtual Json::Value getBlockchainInfo();
+        virtual Json::Value getRecentTransactions();
+        
 };
