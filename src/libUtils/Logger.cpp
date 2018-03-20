@@ -20,9 +20,7 @@
 #include <cstring>
 #include <iomanip>
 #include <iostream>
-#include <pthread.h>
-#include <sys/syscall.h>
-#include <unistd.h>
+#include <thread>
 
 using namespace std;
 
@@ -93,7 +91,7 @@ Logger & Logger::GetStateLogger(const char * fname_prefix, bool log_to_file, str
 
 void Logger::LogMessage(const char * msg, const char * function)
 {
-    pid_t tid = syscall(SYS_gettid);
+    std::thread::id tid = std::this_thread::get_id();
 
     auto clockNow = std::chrono::system_clock::now();
     std::time_t curTime = std::chrono::system_clock::to_time_t(clockNow);
@@ -116,7 +114,7 @@ void Logger::LogMessage(const char * msg, const char * function)
 
 void Logger::LogMessage(const char * msg, const char * function, const char * epoch)
 {
-    pid_t tid = syscall(SYS_gettid);
+    std::thread::id tid = std::this_thread::get_id();
 
     auto clockNow = std::chrono::system_clock::now();
     std::time_t curTime = std::chrono::system_clock::to_time_t(clockNow);
@@ -156,7 +154,7 @@ void Logger::LogState(const char * msg, const char * function)
 
 void Logger::LogMessageAndPayload(const char * msg, const vector<unsigned char> & payload, size_t max_bytes_to_display, const char * function)
 {
-    pid_t tid = syscall(SYS_gettid);
+    std::thread::id tid = std::this_thread::get_id();
 
     static const char * hex_table = "0123456789ABCDEF";
 
