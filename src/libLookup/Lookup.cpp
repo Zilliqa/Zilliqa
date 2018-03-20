@@ -1253,7 +1253,7 @@ bool Lookup::InitMining()
     
     m_mediator.UpdateDSBlockRand();
     auto dsBlockRand = m_mediator.m_dsBlockRand;
-    array<unsigned char, 32> txBlockRand = {0};
+    array<unsigned char, 32> txBlockRand{};
 
     if (m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW == curDsBlockNum)
     {
@@ -1273,7 +1273,7 @@ bool Lookup::InitMining()
         // Attempt PoW2
         m_mediator.UpdateDSBlockRand();
         dsBlockRand = m_mediator.m_dsBlockRand;
-        txBlockRand = {0};
+        txBlockRand = {};
 
         m_mediator.m_node->SetState(Node::POW2_SUBMISSION);
         POW::GetInstance().EthashConfigureLightClient(m_mediator.m_currentEpochNum);
