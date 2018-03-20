@@ -59,7 +59,7 @@ bool BlockStorage::PutDSBlock(const boost::multiprecision::uint256_t & blockNum,
     bool ret = false;
     if(PutBlock(blockNum, body, BlockType::DS))
     {
-        if(PutMetadata(MetaType::DSINCOMPLETED, {'1'}))
+        if(PutMetadata(MetaType::DSINCOMPLETED, {'0'}))
         {
             ret = true;
         }
@@ -266,7 +266,7 @@ bool BlockStorage::GetMetadata(MetaType type, std::vector<unsigned char> & data)
 
     if(metaString.empty())
     {
-        LOG_MESSAGE("ERROR: Failed to get state trie root")
+        LOG_MESSAGE("ERROR: Failed to get metadata")
         return false;
     }
     
@@ -274,6 +274,13 @@ bool BlockStorage::GetMetadata(MetaType type, std::vector<unsigned char> & data)
     data = std::vector<unsigned char>(raw_memory, raw_memory + metaString.size());
 
     return true;
+}
+
+bool BlockStorage::DeleteMetadata(const MetaType & type)
+{
+    LOG_MARKER();
+    int ret = m_metadataDB.DeleteKey(std::to_string((int)type));
+    return (ret == 0);
 }
 
 bool BlockStorage::ResetDB(DBTYPE type)

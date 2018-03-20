@@ -119,6 +119,9 @@ public:
     /// Retrieve Last Transactions Trie Root Hash
     bool GetMetadata(MetaType type, std::vector<unsigned char> & data);
 
+    /// Deletes the requested metadata
+    bool DeleteMetadata(const MetaType & metatype);
+
     /// Clean a DB
     bool ResetDB(DBTYPE type);
 };

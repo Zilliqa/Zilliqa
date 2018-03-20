@@ -38,14 +38,10 @@ void Retriever::RetrieveDSBlocks(bool & result)
     std::vector<unsigned char> isDSIncompleted;
     if(BlockStorage::GetBlockStorage().GetMetadata(MetaType::DSINCOMPLETED, isDSIncompleted))
     {
-    	dev::bytes t_isDSIncompleted = {'1'};
-    	if(isDSIncompleted == t_isDSIncompleted)
-    	{
-    		LOG_MESSAGE("Has incompleted DS Block");
-    		BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED, {'0'});
-    		BlockStorage::GetBlockStorage().DeleteDSBlock(blocks.size()-1);
-    		blocks.pop_back();
-    	}
+    	LOG_MESSAGE("Has incompleted DS Block");
+    	BlockStorage::GetBlockStorage().DeleteMetadata(MetaType::DSINCOMPLETED);
+    	BlockStorage::GetBlockStorage().DeleteDSBlock(blocks.size()-1);
+    	blocks.pop_back();
     }else
     {
     	LOG_MESSAGE("FAIL: Retrieve Metadata: DSINCOMPLETED Failed");

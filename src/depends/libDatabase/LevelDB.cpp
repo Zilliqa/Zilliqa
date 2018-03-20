@@ -250,6 +250,12 @@ bool LevelDB::Exists(const boost::multiprecision::uint256_t & blockNum) const
     return !ret.empty();
 }
 
+bool LevelDB::Exists(const std::string & key) const
+{
+    auto ret = Lookup(key);
+    return !ret.empty();
+}
+
 int LevelDB::DeleteKey(const dev::h256 & key)
 {
     leveldb::Status s = m_db->Delete(leveldb::WriteOptions(), ldb::Slice(key.hex()));
@@ -265,6 +271,17 @@ int LevelDB::DeleteKey(const boost::multiprecision::uint256_t & blockNum)
 {
     leveldb::Status s = m_db->Delete(leveldb::WriteOptions(), ldb::Slice(blockNum.convert_to<string>()));
     if (!s.ok())
+    {
+        return -1;
+    }
+
+    return 0;
+}
+
+int LevelDB::DeleteKey(const std::string & key)
+{
+    leveldb::Status s = m_db->Delete(leveldb::WriteOptions(), ldb::Slice(key));
+    if(!s.ok())
     {
         return -1;
     }
