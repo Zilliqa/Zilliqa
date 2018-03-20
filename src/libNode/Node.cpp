@@ -69,7 +69,6 @@ Node::Node(Mediator & mediator, bool toRetrieveHistory) : m_mediator(mediator)
     {
         m_mediator.m_dsBlockChain.Reset();
         m_mediator.m_txBlockChain.Reset();
-        m_mediator.m_currentEpochNum = (uint64_t) m_mediator.m_txBlockChain.GetBlockCount();
         m_committedTransactions.clear();
         AccountStore::GetInstance().Init();
         
@@ -79,7 +78,7 @@ Node::Node(Mediator & mediator, bool toRetrieveHistory) : m_mediator(mediator)
     m_mediator.UpdateDSBlockRand(runInitializeGenesisBlocks);
     m_mediator.UpdateTxBlockRand(runInitializeGenesisBlocks);
     SetState(POW1_SUBMISSION);
-    POW::GetInstance().EthashConfigureLightClient(m_mediator.m_currentEpochNum);
+    POW::GetInstance().EthashConfigureLightClient((uint64_t)m_mediator.m_dsBlockChain.GetBlockCount());
 }
 
 Node::~Node()
@@ -104,27 +103,21 @@ bool Node::StartRetrieveHistory()
 
     tDS.join();
     tTx.join();
-    bool res;
+    bool res = false;
     if(st_result)
     {
         if(ds_result && tx_result)
         {
             if(retriever->ValidateStates())
             {
-                LOG_MESSAGE("RetrieveHistory Successed");
-                res = true;
+                if(retriever->CleanExtraTxBodies())
+                {
+                    LOG_MESSAGE("RetrieveHistory Successed");
+                    m_mediator.m_isRetrievedHistory = true;
+                    res = true;
+                }
             }
-            else
-            {
-                res = false;
-            }
-        }else
-        {
-            res = false;
         }
-    }else
-    {
-        res = false;
     }
     delete retriever;
     return res;
@@ -559,9 +552,9 @@ bool Node::ProcessCreateTransaction(const vector<unsigned char> & message, unsig
     for (unsigned i=0; i < 10000; i++)
     {
         Transaction txn(version, nonce, toAddr, fromPubKey, amount, signature);
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
-                     "Created txns: " << txn.GetTranID())
-        LOG_MESSAGE(txn.GetSerializedSize());
+        // LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                     // "Created txns: " << txn.GetTranID())
+        // LOG_MESSAGE(txn.GetSerializedSize());
         m_createdTransactions.push_back(txn);
         nonce++;
         amount++;

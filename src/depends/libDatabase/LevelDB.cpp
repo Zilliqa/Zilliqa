@@ -261,6 +261,17 @@ int LevelDB::DeleteKey(const dev::h256 & key)
     return 0;
 }
 
+int LevelDB::DeleteKey(const boost::multiprecision::uint256_t & blockNum)
+{
+    leveldb::Status s = m_db->Delete(leveldb::WriteOptions(), ldb::Slice(blockNum.convert_to<string>()));
+    if (!s.ok())
+    {
+        return -1;
+    }
+
+    return 0;
+}
+
 int LevelDB::DeleteDB()
 {
     m_db.reset();

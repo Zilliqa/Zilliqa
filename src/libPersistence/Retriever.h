@@ -36,6 +36,7 @@ public:
 	void RetrieveTxBlocks(bool & result);
 	bool RetrieveStates();
 	bool ValidateStates();
+	bool CleanExtraTxBodies();
 private:
 	Mediator & m_mediator;
 #endif // IS_LOOKUP_NODE

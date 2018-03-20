@@ -97,6 +97,9 @@ public:
     /// Deletes the value at the specified key.
     int DeleteKey(const dev::h256 & key);
 
+    /// Deletes the value at the specified key.
+    int DeleteKey(const boost::multiprecision::uint256_t & blockNum);
+
     /// Deletes the entire database.
     int DeleteDB();
 

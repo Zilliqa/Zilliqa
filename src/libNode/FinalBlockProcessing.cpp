@@ -954,6 +954,27 @@ bool Node::CheckStateRoot(const TxBlock & finalBlock)
     return true;
 }
 
+// void Node::StoreMicroBlocksToDisk()
+// {
+//     LOG_MARKER();
+//     for(auto microBlock : m_microBlocks)
+//     {
+            
+
+//         LOG_MESSAGE( "Storing Micro Block Hash: " << microBlock.GetHeader().GetTxRootHash() <<
+//             " with Type: " << microBlock.GetHeader().GetType() <<
+//             ", Version: " << microBlock.GetHeader().GetVersion() <<
+//             ", Timestamp: " << microBlock.GetHeader().GetTimestamp() <<
+//             ", NumTxs: " << microBlock.GetHeader().GetNumTxs());
+
+//         vector<unsigned char> serializedMicroBlock;
+//         microBlock.Serialize(serializedMicroBlock, 0);
+//         BlockStorage::GetBlockStorage().PutMicroBlock(microBlock.GetHeader().GetTxRootHash(), 
+//                                                serializedMicroBlock);
+//     }
+//     m_microBlocks.clear();
+// }
+
 bool Node::ProcessFinalBlock(const vector<unsigned char> & message, unsigned int offset, 
                              const Peer & from)
 {
@@ -1024,6 +1045,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char> & message, unsigned int
         }else
         {
           StoreState();
+          BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED, {'0'});
         }
     }
 // #endif // IS_LOOKUP_NODE    
@@ -1047,6 +1069,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char> & message, unsigned int
     
     if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
     {
+        BlockStorage::GetBlockStorage().ResetDB(BlockStorage::DBTYPE::TX_BODY_TMP);
         InitiatePoW1();
     }
     else
@@ -1081,6 +1104,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char> & message, unsigned int
 bool Node::LoadForwardedTxnsAndCheckRoot(const vector<unsigned char> & message,
                                          unsigned int cur_offset, TxnHash & microBlockTxHash,
                                          vector<Transaction> & txnsInForwardedMessage)
+                                         // vector<TxnHash> & txnHashesInForwardedMessage)
 {
     LOG_MARKER();
 
@@ -1212,7 +1236,7 @@ void Node::DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(const uint256_t & bl
 bool Node::ProcessForwardTransaction(const vector<unsigned char> & message, unsigned int cur_offset, 
                                      const Peer & from)
 {
-    // Message = [block number] [Transaction] [Transaction] [Transaction] ....
+    // Message = [block number] [microblockhash] [Transaction] [Transaction] [Transaction] ....
     // Received from other shards
 
     LOG_MARKER();
@@ -1241,9 +1265,10 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char> & message, unsi
 
     TxnHash microBlockTxRootHash;
     vector<Transaction> txnsInForwardedMessage;
+    // vector<TxnHash> txnHashesInForwardedMessage;
 
     if (!LoadForwardedTxnsAndCheckRoot(message, cur_offset, microBlockTxRootHash, 
-                                       txnsInForwardedMessage))
+                                       txnsInForwardedMessage/*, txnHashesInForwardedMessage*/))
     {   
         return false;
     }
@@ -1256,6 +1281,9 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char> & message, unsi
         return false;
     }
   
+
+    // StoreTxInMicroBlock(microBlockTxRootHash, txnHashesInForwardedMessage)
+
     CommitForwardedTransactions(txnsInForwardedMessage, blocknum);
 
 #ifndef IS_LOOKUP_NODE

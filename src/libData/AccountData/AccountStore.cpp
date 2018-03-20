@@ -360,7 +360,8 @@ dev::h256 AccountStore::GetStateRootHash() const
 void AccountStore::MoveRootToDisk(const dev::h256 & root)
 {
     //convert h256 to bytes
-    BlockStorage::GetBlockStorage().PutMetadata(STATEROOT, root.asBytes());
+    if(!BlockStorage::GetBlockStorage().PutMetadata(STATEROOT, root.asBytes()))
+        LOG_MESSAGE("FAIL: Put metadata failed");
 }
 
 void AccountStore::MoveUpdatesToDisk()

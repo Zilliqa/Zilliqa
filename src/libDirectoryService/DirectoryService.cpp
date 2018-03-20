@@ -520,7 +520,7 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char> & message, 
         m_consensusMyID++;
     }
     m_consensusLeaderID = 0;
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "START OF EPOCH 0");
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "START OF EPOCH " << m_mediator.m_dsBlockChain.GetBlockCount());
 
 #ifdef STAT_TEST
     if (primary == m_mediator.m_selfPeer)

@@ -198,6 +198,7 @@ class Node : public Executable, public Broadcastable
     bool ReadAuxilliaryInfoFromFinalBlockMsg(const vector<unsigned char> & message, 
                                              unsigned int & cur_offset, uint8_t & shard_id);
     void StoreState();
+    // void StoreMicroBlocks();
     void StoreFinalBlock(const TxBlock & txBlock);
     void InitiatePoW1();
     void UpdateStateForNextConsensusRound();
@@ -217,6 +218,7 @@ class Node : public Executable, public Broadcastable
     bool LoadForwardedTxnsAndCheckRoot(const vector<unsigned char> & message,
                                        unsigned int cur_offset, TxnHash & microBlockTxHash,
                                        vector<Transaction> & txnsInForwardedMessage);
+                                       // vector<TxnHash> & txnHashesInForwardedMessage);
     void CommitForwardedTransactions(const vector<Transaction> & txnsInForwardedMessage,
                                      const boost::multiprecision::uint256_t & blocknum);
     void DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(const boost::multiprecision::uint256_t & blocknum);

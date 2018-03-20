@@ -28,6 +28,7 @@
 
 typedef std::shared_ptr<DSBlock> DSBlockSharedPtr; 
 typedef std::shared_ptr<TxBlock> TxBlockSharedPtr;
+typedef std::shared_ptr<MicroBlock> MicroBlockSharedPtr;
 typedef std::shared_ptr<Transaction> TxBodySharedPtr; 
 
 /// Manages persistent storage of DS and Tx blocks.
@@ -37,9 +38,12 @@ class BlockStorage
     LevelDB m_txBodyDB;
     LevelDB m_dsBlockchainDB;
     LevelDB m_txBlockchainDB;
+    /// To keep track of the txBodies newly generated in the current unfinished DS Epoch
+    LevelDB m_txBodyTmpDB;
 
     BlockStorage() : m_metadataDB("metadata"), m_txBodyDB("txBodies"), 
-                     m_dsBlockchainDB("dsBlocks"), m_txBlockchainDB("txBlocks") {};
+                     m_dsBlockchainDB("dsBlocks"), m_txBlockchainDB("txBlocks"),
+                     m_txBodyTmpDB("txBodiesTmp") {};
     ~BlockStorage() = default;
     bool PutBlock(const boost::multiprecision::uint256_t & blockNum, 
                   const std::vector<unsigned char> & block, const BlockType & blockType);
@@ -50,6 +54,7 @@ public:
         DS_BLOCK,
         TX_BLOCK,
         TX_BODY,
+        TX_BODY_TMP
     };
 
     /// Returns the singleton BlockStorage instance.
@@ -63,6 +68,9 @@ public:
     bool PutTxBlock(const boost::multiprecision::uint256_t & blockNum, 
                     const std::vector<unsigned char> & block); 
 
+    // /// Adds a micro block to storage.
+    // bool PutMicroBlock(const dev::h256 & key, const std::vector<unsigned char> & block);
+
     /// Adds a transaction body to storage.
     bool PutTxBody(const dev::h256 & key, const std::vector<unsigned char> & body);
 
@@ -72,8 +80,23 @@ public:
     /// Retrieves the requested Tx block.
     bool GetTxBlock(const boost::multiprecision::uint256_t & blocknum, TxBlockSharedPtr & block);
 
+    // /// Retrieves the requested Micro block
+    // bool GetMicroBlock(const dev::h256 & key, MicroBlockSharedPtr & block);
+
     /// Retrieves the requested transaction body.
     bool GetTxBody(const dev::h256 & key, TxBodySharedPtr & body);
+
+    /// Deletes the requested DS block
+    bool DeleteDSBlock(const boost::multiprecision::uint256_t & blocknum);
+
+    /// Deletes the requested Tx block
+    bool DeleteTxBlock(const boost::multiprecision::uint256_t & blocknum);
+
+    // /// Deletes the requested Micro block
+    // bool DeleteMicroBlock(const dev::h256 & key);
+
+    /// Deletes the requested transaction body
+    bool DeleteTxBody(const dev::h256 & key);
 
     // /// Adds a transaction body to storage.
     // bool PutTxBody(const std::string & key, const std::vector<unsigned char> & body);
@@ -86,6 +109,9 @@ public:
 
     /// Retrieves all the TxBlocks
     bool GetAllTxBlocks(std::list<TxBlockSharedPtr> & blocks);
+
+    /// Retrieves all the TxBodiesTmp
+    bool GetAllTxBodiesTmp(std::list<TxnHash>& txnHashes);
 
     /// Save Last Transactions Trie Root Hash
     bool PutMetadata(MetaType type, const std::vector<unsigned char> & data);
