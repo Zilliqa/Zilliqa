@@ -1123,9 +1123,11 @@ void Node::CommitForwardedTransactions(const vector<Transaction> & txnsInForward
         //              " with amount: " << tx.GetAmount() <<
         //              ", to: " << tx.GetToAddr() <<
         //              ", from: " << tx.GetFromAddr());
-
-        // Store TxBody to disk
+#ifdef IS_LOOKUP_NODE
         Server::AddToRecentTransactions(tx.GetTranID());
+#endif //IS_LOOKUP_NODE
+        // Store TxBody to disk
+        
         vector<unsigned char> serializedTxBody;
         tx.Serialize(serializedTxBody, 0);
         BlockStorage::GetBlockStorage().PutTxBody(tx.GetTranID(), serializedTxBody);
