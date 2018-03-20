@@ -215,3 +215,18 @@ const bool JSONConversion::checkJsonTx(const Json::Value & _json)
 	
 	return ret;
 }
+
+const Json::Value JSONConversion::convertTxtoJson(const Transaction & tx)
+{
+	Json::Value _json;
+
+	_json["ID"] = tx.GetTranID().hex();
+	_json["version"] = tx.GetVersion();
+	_json["nonce"] = tx.GetNonce().str();
+	_json["toAddr"] = tx.GetToAddr().hex();
+	_json["senderPubKey"] = static_cast<string>(tx.GetSenderPubKey());
+	_json["amount"] = tx.GetAmount().str();
+	_json["signature"] = DataConversion::charArrToHexStr(tx.GetSignature());
+
+	return  _json;
+}

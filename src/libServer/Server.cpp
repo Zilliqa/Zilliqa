@@ -34,10 +34,11 @@
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 #include "libMediator/Mediator.h"
-#include "libUtils/Logger.h"
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/Peer.h"
+#include "libPersistence/BlockStorage.h"
 #include "libUtils/TimeUtils.h"
+#include "libUtils/Logger.h"
 #include "common/Serializable.h"
 #include "common/Messages.h"
 
@@ -45,7 +46,7 @@ using namespace jsonrpc;
 using namespace std;
 
 
-const unsigned int PAGE_SIZE = 3;
+const unsigned int PAGE_SIZE = 10;
 Server::Server(Mediator & mediator, HttpServer & httpserver) : AbstractZServer(httpserver), m_mediator(mediator)
 {
 	m_StartTimeTx = 0;
@@ -56,6 +57,7 @@ Server::Server(Mediator & mediator, HttpServer & httpserver) : AbstractZServer(h
 	m_TxBlockCache.first = 0;
 	m_TxBlockCache.second.resize(2*PAGE_SIZE);
 	m_TxBlockCache.second.push_back("32877419b0d2bf10dee7a7d306deddc5d7d972fa69ae7affcec575781002cfc3");
+	m_RecentTransactions.resize(PAGE_SIZE);
 }
 
 Server::~Server() 
@@ -143,9 +145,26 @@ string Server::createTransaction(const Json::Value& _json)
    	
 }
 
-Json::Value Server::getTransaction(const string & transactionNum)
+Json::Value Server::getTransaction(const string & transactionHash)
 {
-	return "Hello";
+	TxBodySharedPtr tx;
+	TxnHash tranHash(transactionHash);
+
+	bool isPresent = BlockStorage::GetBlockStorage().GetTxBody(tranHash, tx);
+
+	if(!isPresent)
+	{
+		Json::Value _json;
+		_json["error"] = "Txn Hash not Present";
+		return _json;
+	}
+
+
+
+	Transaction txn(tx->GetVersion(), tx->GetNonce(),tx->GetToAddr(), tx->GetSenderPubKey(), tx->GetAmount(), tx->GetSignature());
+
+	return JSONConversion::convertTxtoJson(txn);
+    
 }
 
 Json::Value Server::getDsBlock(const string & blockNum)
@@ -621,6 +640,21 @@ Json::Value Server::getBlockchainInfo()
     return _json;
 }
 
+
+Json::Value Server::getRecentTransactions()
+{
+	/*lock_guard<mutex> g(m_mutexRecentTxns);
+	Json::Value _json;
+	_json["number"] = uint(m_RecentTransactions.size());
+	for(uint i = 0 ; i < m_RecentTransactions.size() ; i++)
+	{
+		_json["TxnHashes"].append(m_RecentTransactions[i]);
+	}
+
+	return _json;
+*/
+	return "Hello";
+}
 
 
 #endif //IS_LOOKUP_NODE
