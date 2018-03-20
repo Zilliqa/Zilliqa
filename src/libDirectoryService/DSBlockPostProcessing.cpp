@@ -158,7 +158,6 @@ void DirectoryService::SendDSBlockToCluster(const Peer & winnerpeer, unsigned in
     }
 
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Multicasting DSBLOCK message to PoW1 nodes " << my_pow1nodes_cluster_lo << " to " << my_pow1nodes_cluster_hi);
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "JH DEBUG " << pow1nodes_cluster.size());
 
 #ifdef STAT_TEST
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
