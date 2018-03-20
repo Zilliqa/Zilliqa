@@ -75,7 +75,7 @@ void DirectoryService::ComposeDSBlock()
                             m_mediator.m_selfKey.second, blockNum, get_time_as_int());
     
     // Assemble DS block
-    array<unsigned char, BLOCK_SIG_SIZE> newSig = { 0 };
+    array<unsigned char, BLOCK_SIG_SIZE> newSig{};
     {
         lock_guard<mutex> g(m_mutexPendingDSBlock);
         m_pendingDSBlock.reset(new DSBlock(newHeader, newSig));

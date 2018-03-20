@@ -211,7 +211,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char> & message, unsigned int cu
         POW::GetInstance().StopMining();
 
         // Tell my Node class to start PoW2 if I didn't win PoW1
-        array<unsigned char, 32> rand2 = {0};
+        array<unsigned char, 32> rand2 = {};
         StartPoW2(m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
                                      POW2_DIFFICULTY, m_mediator.m_dsBlockRand, rand2);
     }

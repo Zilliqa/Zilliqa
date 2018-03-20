@@ -732,7 +732,7 @@ bool DirectoryService::ProcessLastDSBlockResponse(const vector<unsigned char> & 
 {
     LOG_MARKER();
 
-    if (m_state != PROCESS_DSBLOCKCONSENSUS and m_requesting_last_ds_block)
+    if (m_state != DirectoryService::DSBLOCK_CONSENSUS and m_requesting_last_ds_block)
     {
         // This recovery stage is meant for nodes that may get stuck in ds block consensus only. 
         // Only proceed if I still need the last ds block
