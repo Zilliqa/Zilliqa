@@ -272,8 +272,9 @@ class Server: public AbstractZServer
     boost::multiprecision::uint256_t m_StartTimeDs;
     pair<boost::multiprecision::uint256_t, CircularArray<std::string>> m_DSBlockCache;
     pair<boost::multiprecision::uint256_t, CircularArray<std::string>> m_TxBlockCache;
-    CircularArray <std::string> m_RecentTransactions;
-    std::mutex m_mutexRecentTxns;
+    static CircularArray <std::string> m_RecentTransactions;
+    static std::mutex m_mutexRecentTxns;
+
 
     
     public:

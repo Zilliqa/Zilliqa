@@ -542,11 +542,10 @@ Json::Value Server::DSBlockListing(unsigned int page)
 	}
 	else
 	{
-		boost::multiprecision::uint256_t startBlockNum = currBlockNum - offset;
-		for(boost::multiprecision::uint256_t i = startBlockNum + PAGE_SIZE -1 ; i >= startBlockNum  && i >= 0 ; i--)
+		for(boost::multiprecision::uint256_t i = offset ; i < PAGE_SIZE + offset  && i <= currBlockNum ; i++)
 		{
-			_json["Hashes"].append(m_mediator.m_dsBlockChain.GetBlock(i+1).GetHeader().GetPrevHash().hex());
-			_json["BlockNums"].append(int(i));
+			_json["Hashes"].append(m_mediator.m_dsBlockChain.GetBlock(currBlockNum - i + 1).GetHeader().GetPrevHash().hex());
+			_json["BlockNum"].append(int(currBlockNum-i));
 		}
 
 	}
