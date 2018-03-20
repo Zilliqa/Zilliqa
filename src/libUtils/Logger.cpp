@@ -26,6 +26,25 @@
 
 using namespace std;
 
+namespace {
+
+/// helper function to get tid with better cross-platform support
+inline
+pid_t getCurrentPid() {
+#if defined(__linux__)
+    return syscall(SYS_gettid);
+#elif defined(__APPLE__) && defined(__MACH__)
+    uint64_t tid64;
+    pthread_threadid_np(NULL, &tid64);
+    return static_cast<pid_t>(tid64);
+#else
+    #error // not implemented in this platform
+    return 0;
+#endif
+}
+
+};
+
 #define LIMIT(s, len) setw(len) << setfill(' ') << left << string(s).substr(0, len)
 #define PAD(n, len) setw(len) << setfill(' ') << right << n
 
@@ -93,8 +112,7 @@ Logger & Logger::GetStateLogger(const char * fname_prefix, bool log_to_file, str
 
 void Logger::LogMessage(const char * msg, const char * function)
 {
-    pid_t tid = syscall(SYS_gettid);
-
+    pid_t tid = getCurrentPid();
     auto clockNow = std::chrono::system_clock::now();
     std::time_t curTime = std::chrono::system_clock::to_time_t(clockNow);
     auto gmtTime = gmtime(&curTime);
@@ -116,7 +134,7 @@ void Logger::LogMessage(const char * msg, const char * function)
 
 void Logger::LogMessage(const char * msg, const char * function, const char * epoch)
 {
-    pid_t tid = syscall(SYS_gettid);
+    pid_t tid = getCurrentPid();
 
     auto clockNow = std::chrono::system_clock::now();
     std::time_t curTime = std::chrono::system_clock::to_time_t(clockNow);
@@ -139,7 +157,7 @@ void Logger::LogMessage(const char * msg, const char * function, const char * ep
     }
 }
 
-void Logger::LogState(const char * msg, const char * function)
+void Logger::LogState(const char * msg, const char *)
 {
     lock_guard<mutex> guard(m);
 
@@ -156,7 +174,7 @@ void Logger::LogState(const char * msg, const char * function)
 
 void Logger::LogMessageAndPayload(const char * msg, const vector<unsigned char> & payload, size_t max_bytes_to_display, const char * function)
 {
-    pid_t tid = syscall(SYS_gettid);
+    pid_t tid = getCurrentPid();
 
     static const char * hex_table = "0123456789ABCDEF";
 

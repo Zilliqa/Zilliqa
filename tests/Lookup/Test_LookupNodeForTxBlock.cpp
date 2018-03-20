@@ -125,7 +125,7 @@ BOOST_AUTO_TEST_CASE (testTxBlockStoring)
     TxBlockHeader header(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1, 1, BlockHash(), 0, 
                             get_time_as_int(), TxnHash(), StateHash(), 0, 5, pubKey1.second, 0, BlockHash());
     
-    array<unsigned char, BLOCK_SIG_SIZE> emptySig = { 0 };
+    array<unsigned char, BLOCK_SIG_SIZE> emptySig{};
 
     std::vector<TxnHash> tranHashes;
 

@@ -179,9 +179,18 @@ bool DirectoryService::ProcessPoW2Submission(const vector<unsigned char> & messa
             {
                 break;
             }
-            if(i % 10 == 0)
+            if(i % 100 == 0)
             {
                 LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Waiting for POW2_SUBMISSION state before processing. Current state is " << m_state);
+            }
+            
+            // Magic number for now.  
+            // Basically, I want to wait for awhile for the dsblock to arrive before
+            // I request for one. 
+            if (!m_requesting_last_ds_block and i == 300)
+            {            
+                m_requesting_last_ds_block = true; 
+                LastDSBlockRequest();
             }
             this_thread::sleep_for(chrono::milliseconds(sleep_time_while_waiting));
         }
