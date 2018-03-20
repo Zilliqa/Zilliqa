@@ -137,6 +137,7 @@ bool BlockStorage::GetTxBody(const dev::h256 & key, TxBodySharedPtr & body)
 
 bool BlockStorage::DeleteDSBlock(const boost::multiprecision::uint256_t & blocknum)
 {
+    LOG_MESSAGE("Delete DSBlock Num: "<< blocknum);
     int ret = m_dsBlockchainDB.DeleteKey(blocknum);
     return (ret == 0);
 }
