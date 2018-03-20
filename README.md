@@ -50,6 +50,11 @@ To compile and run the Zilliqa codebase, you will need the following dependencie
 * `json-rpc-cpp`
 
 For Ubuntu 16.04, you can use the following command to install the dependencies:  
+
+```bash
+sudo apt-get update
+```
+
 ```bash
 sudo apt-get install libboost-all-dev libssl-dev libleveldb-dev libjsoncpp-dev libsnappy-dev cmake libmicrohttpd-dev libjsonrpccpp-dev build-essential pkg-config
 ```
