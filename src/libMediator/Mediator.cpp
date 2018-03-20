@@ -32,6 +32,7 @@ Mediator::Mediator(const pair<PrivKey, PubKey> & key, const Peer & peer) :
     m_node = nullptr;
     m_currentEpochNum = 0;
     m_isConnectedToNetwork = false;
+    m_isRetrievedHistory = false;
 }
 
 Mediator::~Mediator()

@@ -75,6 +75,7 @@ const unsigned int SERVER_PORT = 4201;
 enum MetaType : unsigned char
 {
 	STATEROOT = 0x00,
+	DSINCOMPLETED,
 };
 
 

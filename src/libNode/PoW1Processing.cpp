@@ -185,8 +185,7 @@ bool Node::ProcessStartPoW1(const vector<unsigned char> & message, unsigned int 
     // Message = [32-byte block num] [1-byte difficulty] [32-byte rand1] [32-byte rand2] [33-byte pubkey] [16-byte ip] [4-byte port] ... (all the DS nodes)
 
     LOG_MARKER();
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "START OF EPOCH " << 
-                 m_mediator.m_dsBlockChain.GetBlockCount());
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "START OF EPOCH " << m_mediator.m_dsBlockChain.GetBlockCount());
 
     uint256_t block_num;
     uint8_t difficulty;
@@ -196,6 +195,14 @@ bool Node::ProcessStartPoW1(const vector<unsigned char> & message, unsigned int 
     if(!ReadVariablesFromStartPoW1Message(message, offset, block_num, difficulty, rand1, rand2))
     {
         return false;
+    }
+
+    if(m_mediator.m_isRetrievedHistory)
+    {
+        block_num = m_mediator.m_dsBlockChain.GetBlockCount();
+        difficulty = POW1_DIFFICULTY;
+        rand1 = m_mediator.m_dsBlockRand;
+        rand2 = m_mediator.m_txBlockRand;
     }
 
     // Start mining

@@ -79,6 +79,9 @@ public:
     /// Used by lookup to determine if it could successfully join the network after sync
     bool m_isConnectedToNetwork;
 
+    /// 
+    bool m_isRetrievedHistory;
+
     /// Constructor.
     Mediator(const pair<PrivKey, PubKey> & key, const Peer & peer);
 
