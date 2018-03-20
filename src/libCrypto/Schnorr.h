@@ -49,6 +49,8 @@ struct Curve
 /// EC-Schnorr utility for serializing BIGNUM data type.
 struct BIGNUMSerialize
 {
+    static std::mutex m_mutexBIGNUM;
+
     /// Deserializes a BIGNUM from specified byte stream.
     static std::shared_ptr<BIGNUM> GetNumber(const std::vector<unsigned char> & src, unsigned int offset, unsigned int size);
 
@@ -59,6 +61,8 @@ struct BIGNUMSerialize
 /// EC-Schnorr utility for serializing ECPOINT data type.
 struct ECPOINTSerialize
 {
+    static std::mutex m_mutexECPOINT;
+
     /// Deserializes an ECPOINT from specified byte stream.
     static std::shared_ptr<EC_POINT> GetNumber(const std::vector<unsigned char> & src, unsigned int offset, unsigned int size);
 
