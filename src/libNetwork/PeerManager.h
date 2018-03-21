@@ -22,8 +22,8 @@
 #include <array>
 
 #include "PeerStore.h"
-#include "common/Executable.h"
 #include "common/Broadcastable.h"
+#include "common/Executable.h"
 
 /// Processes messages related to PeerStore management.
 class PeerManager : public Executable, public Broadcastable

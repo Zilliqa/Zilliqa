@@ -14,8 +14,8 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#include "libUtils/Logger.h"
 #include "MicroBlock.h"
+#include "libUtils/Logger.h"
 
 using namespace std;
 using namespace boost::multiprecision;
