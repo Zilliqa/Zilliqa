@@ -32,8 +32,14 @@
 class MicroBlock : public BlockBase
 {
     MicroBlockHeader m_header;
-    std::array<unsigned char, BLOCK_SIG_SIZE> m_headerSig; // Co-signed by: sharding committee (microblock) or DS committee (finalblock)
+    Signature m_headerSig; // Co-signed by: sharding committee (microblock) or DS committee (finalblock)
+    std::vector<bool> m_headerSigBitmap; // Bitmap for the generated collective signature
     std::vector<TxnHash> m_tranHashes;
+
+    static const unsigned int HEADER_SIZE_NEEDED =
+        sizeof(uint8_t) + sizeof(uint32_t) + UINT256_SIZE + UINT256_SIZE + BLOCK_HASH_SIZE +
+        UINT256_SIZE + UINT256_SIZE + TRAN_HASH_SIZE + sizeof(uint32_t) + PUB_KEY_SIZE +
+        UINT256_SIZE + BLOCK_HASH_SIZE;
 
 public:
 
@@ -47,7 +53,8 @@ public:
     MicroBlock
     (
         const MicroBlockHeader & header,
-        const std::array<unsigned char, BLOCK_SIG_SIZE> & signature,
+        const Signature & signature,
+        const std::vector<bool> & signatureBitmap,
         const std::vector<TxnHash> & tranHashes
     );
 
@@ -66,8 +73,11 @@ public:
     /// Returns the header component of the microblock.
     const MicroBlockHeader & GetHeader() const;
 
-    /// Returns the signature over the microblock header.
-    const std::array<unsigned char, BLOCK_SIG_SIZE> & GetHeaderSig() const;
+    /// Returns the collective signature over the microblock header.
+    const Signature & GetHeaderSig() const;
+
+    /// Returns the response map for the signature.
+    const std::vector<bool> & GetHeaderSigBitmap() const;
 
     /// Returns the list of transaction hashes.
     const std::vector<TxnHash> & GetTranHashes() const;
