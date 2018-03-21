@@ -318,12 +318,11 @@ public:
 
     Mediator & GetMediator() {return m_mediator;}
 
-#ifndef IS_LOOKUP_NODE
-
-    
     bool StartRetrieveHistory();
 
     void StartSynchronization();
+
+#ifndef IS_LOOKUP_NODE
 
     /// Called from DirectoryService during FINALBLOCK processing.
     bool ActOnFinalBlock(uint8_t tx_sharing_mode, const vector<Peer> & nodes);

@@ -93,8 +93,6 @@ Node::~Node()
 
 }
 
-#ifndef IS_LOOKUP_NODE
-
 bool Node::StartRetrieveHistory()
 {
     LOG_MARKER();
@@ -144,8 +142,6 @@ void Node::StartSynchronization()
 
     DetachedFunction(1, func);
 }
-
-#endif // IS_LOOKUP_NODE
 
 bool Node::CheckState(Action action)
 {
