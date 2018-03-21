@@ -18,6 +18,7 @@
 #ifndef __LOOKUP_H__
 #define __LOOKUP_H__
 
+#include <condition_variable>
 #include <map>
 #include <mutex>
 #include <vector>
