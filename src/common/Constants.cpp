@@ -15,6 +15,19 @@
 **/
 #include "Constants.h"
 
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/xml_parser.hpp>
+
+unsigned int ReadFromConstantsFile(std::string propertyName)
+{
+    // Populate tree structure pt
+    using boost::property_tree::ptree;
+    ptree pt;
+    read_xml("constants.xml", pt);
+
+    return pt.get<unsigned int>("node.constants." + propertyName);
+}
+
 const unsigned int DS_MULTICAST_CLUSTER_SIZE{ReadFromConstantsFile("DS_MULTICAST_CLUSTER_SIZE")};
 const unsigned int COMM_SIZE{ReadFromConstantsFile("COMM_SIZE")};
 const unsigned int MAX_POW1_WINNERS{ReadFromConstantsFile("MAX_POW1_WINNERS")};

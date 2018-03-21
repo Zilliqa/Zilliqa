@@ -17,11 +17,6 @@
 #ifndef __CONSTANTS_H__
 #define __CONSTANTS_H__
 
-#include <cstring>
-
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/xml_parser.hpp>
-
 #include "depends/common/FixedHash.h"
 
 using BlockHash = dev::h256;
@@ -61,7 +56,7 @@ const unsigned int TX_SHARING_CLUSTER_SIZE = 20;
 
 const unsigned int NUM_VACUOUS_EPOCHS = 1;
 
-// Networking and mining 
+// Networking and mining
 const unsigned int POW_SIZE = 32;
 const unsigned int IP_SIZE = 16;
 const unsigned int PORT_SIZE = 4;
@@ -74,16 +69,6 @@ const unsigned int SERVER_PORT = 4201;
 
 const std::string RAND1_GENESIS = "2b740d75891749f94b6a8ec09f086889066608e4418eda656c93443e8310750a";
 const std::string RAND2_GENESIS = "e8cc9106f8a28671d91e2de07b57b828934481fadf6956563b963bb8e5c266bf";
-
-static unsigned int ReadFromConstantsFile(std::string propertyName)
-{
-    // Populate tree structure pt
-    using boost::property_tree::ptree;
-    ptree pt;
-    read_xml("constants.xml", pt);
-
-    return pt.get<unsigned int>("node.constants." + propertyName);
-}
 
 extern const unsigned int DS_MULTICAST_CLUSTER_SIZE;
 extern const unsigned int COMM_SIZE;
