@@ -121,8 +121,7 @@ if(IS_LOOKUP_NODE)
     add_definitions(-DIS_LOOKUP_NODE)
 endif(IS_LOOKUP_NODE)
 
-#add_compile_options(-Wall -Werror) #TODO: -Wextra
-add_compile_options(-O2) 
+add_compile_options(-Wall -Werror) #TODO: -Wextra
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} -pthread -std=c++14 -ggdb")
