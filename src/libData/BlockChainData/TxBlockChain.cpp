@@ -32,7 +32,7 @@ TxBlockChain::~TxBlockChain()
 
 void TxBlockChain::Reset()
 {
-    m_txBlocks.resize(DS_BLOCKCHAIN_SIZE);
+    m_txBlocks.resize(TX_BLOCKCHAIN_SIZE);
 }
 
 uint256_t TxBlockChain::GetBlockCount()

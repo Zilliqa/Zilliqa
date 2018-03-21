@@ -27,6 +27,7 @@ Retriever::Retriever(Mediator & mediator) : m_mediator(mediator) {}
 void Retriever::RetrieveDSBlocks(bool & result)
 {
 	LOG_MARKER();
+	
 	std::list<DSBlockSharedPtr> blocks;
     if(!BlockStorage::GetBlockStorage().GetAllDSBlocks(blocks))
     {
@@ -49,11 +50,12 @@ void Retriever::RetrieveDSBlocks(bool & result)
     }
 
     for(const auto & block : blocks)
+    {    
         m_mediator.m_dsBlockChain.AddBlock(*block);
+    }
 
     result = true;
 }
-
 
 void Retriever::RetrieveTxBlocks(bool & result)
 {

@@ -1042,7 +1042,8 @@ bool Node::ProcessFinalBlock(const vector<unsigned char> & message, unsigned int
         if(!CheckStateRoot(txBlock))
         {
             return false;
-        }else
+        }
+        else
         {
           StoreState();
           BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED, {'0'});

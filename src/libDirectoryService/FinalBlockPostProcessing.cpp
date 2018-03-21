@@ -235,10 +235,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
     bool isVacuousEpoch = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
     if(isVacuousEpoch)
     {
-        if(!CheckStateRoot())
-        {
-
-        }else
+        if(CheckStateRoot())
         {
             AccountStore::GetInstance().MoveUpdatesToDisk();
             BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED, {'0'});
