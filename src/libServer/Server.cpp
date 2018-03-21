@@ -19,7 +19,7 @@
 #include "JSONConversion.h"
 
 #include <iostream>
-#include <boost/multiprecision/float128.hpp>
+#include <boost/multiprecision/cpp_dec_float.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
 #include <deque>
 #include <jsonrpccpp/server.h>
@@ -352,7 +352,7 @@ double Server::getTransactionRate()
 	LOG_MARKER();
 
 	string numTxStr = Server::getNumTransactions();
-	boost::multiprecision::float128 numTxns(numTxStr);
+	boost::multiprecision::cpp_dec_float_50 numTxns(numTxStr);
 	LOG_MESSAGE("Num Txns: "<< numTxns);
 
 	numTxns = numTxns*1000000; // conversion from microseconds to seconds
@@ -387,9 +387,8 @@ double Server::getTransactionRate()
 		return 0;
 	}
 
-	boost::multiprecision::float128 TimeDiffFloat(TimeDiff.str());
-	//Is there any loss in data?
-	boost::multiprecision::float128 ans = numTxns/TimeDiffFloat;
+	boost::multiprecision::cpp_dec_float_50 TimeDiffFloat = static_cast<cpp_dec_float_50>(TimeDiff);
+	boost::multiprecision::cpp_dec_float_50 ans = numTxns/TimeDiffFloat;
 
 	//LOG_MESSAGE("Rate: "<<ans);
 
@@ -403,7 +402,7 @@ double Server::getDSBlockRate()
 	LOG_MARKER();
 
 	string numDSblockStr = m_mediator.m_dsBlockChain.GetBlockCount().str();
-	boost::multiprecision::float128 numDs(numDSblockStr);
+	boost::multiprecision::cpp_dec_float_50 numDs(numDSblockStr);
 
 	if(m_StartTimeDs == 0)
 	{
@@ -431,8 +430,8 @@ double Server::getDSBlockRate()
 	numDs = numDs*1000000;
 
 
-	boost::multiprecision::float128 TimeDiffFloat(TimeDiff.str());
-	boost::multiprecision::float128 ans = numDs/TimeDiffFloat;
+	boost::multiprecision::cpp_dec_float_50 TimeDiffFloat = static_cast<cpp_dec_float_50>(TimeDiff);
+	boost::multiprecision::cpp_dec_float_50 ans = numDs/TimeDiffFloat;
 
 	return ans.convert_to<double>();
 
@@ -444,7 +443,7 @@ double Server::getTxBlockRate()
 	LOG_MARKER();
 
 	string numTxblockStr = m_mediator.m_txBlockChain.GetBlockCount().str();
-	boost::multiprecision::float128 numTx(numTxblockStr);
+	boost::multiprecision::cpp_dec_float_50 numTx(numTxblockStr);
 	numTx = numTx*1000000;
 
 
@@ -473,8 +472,8 @@ double Server::getTxBlockRate()
 		return 0;
 	}
 
-	boost::multiprecision::float128 TimeDiffFloat(TimeDiff.str());
-	boost::multiprecision::float128 ans = numTx/TimeDiffFloat;
+	boost::multiprecision::cpp_dec_float_50 TimeDiffFloat(TimeDiff.str());
+	boost::multiprecision::cpp_dec_float_50 ans = numTx/TimeDiffFloat;
 
 	
 	return ans.convert_to<double>();
