@@ -137,6 +137,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
         -stdlib=libc++ \
         -std=c++14 \
         -ggdb \
+	-fext-numeric-literal \
         -I${OPENSSL_INCLUDE_DIR} \
         -I/usr/local/Cellar/boost/include \
         -I/usr/local/include" )
@@ -150,6 +151,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
         -lboost_system \
         -lboost_filesystem \
         -std=c++14 \
+	-lquadmath \
         -L${OPENSSL_LIBRARY_DIR}")
 endif()
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
