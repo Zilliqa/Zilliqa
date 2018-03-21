@@ -28,7 +28,6 @@
 class Retriever
 {
 public:
-#ifndef IS_LOOKUP_NODE
 	Retriever(Mediator& mediator);
 	
 	void RetrieveDSBlocks(bool & result);
@@ -39,7 +38,6 @@ public:
 	bool CleanExtraTxBodies();
 private:
 	Mediator & m_mediator;
-#endif // IS_LOOKUP_NODE
 };
 
 #endif // __RETRIEVER_H__
