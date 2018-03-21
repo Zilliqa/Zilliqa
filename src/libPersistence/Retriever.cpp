@@ -20,8 +20,6 @@
 #include "libData/AccountData/Transaction.h"
 #include "libPersistence/BlockStorage.h"
 
-#ifndef IS_LOOKUP_NODE
-
 Retriever::Retriever(Mediator & mediator) : m_mediator(mediator) {}
 
 void Retriever::RetrieveDSBlocks(bool & result)
@@ -114,5 +112,3 @@ bool Retriever::ValidateStates()
 	return m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetStateRootHash() == 
 		AccountStore::GetInstance().GetStateRootHash();
 }
-
-#endif // IS_LOOKUP_NODE

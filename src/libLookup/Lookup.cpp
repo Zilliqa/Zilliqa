@@ -1225,6 +1225,7 @@ bool Lookup::ProcessSetTxBodyFromSeed(const vector<unsigned char> & message, uns
     vector<unsigned char> serializedTxBody;
     transaction.Serialize(serializedTxBody, 0);
     BlockStorage::GetBlockStorage().PutTxBody(tranHash, serializedTxBody);
+    AccountStore::GetInstance().UpdateAccounts(transaction);
 
 #endif // IS_LOOKUP_NODE
 
