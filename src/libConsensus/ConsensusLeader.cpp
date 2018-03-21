@@ -18,6 +18,7 @@
 #include "ConsensusLeader.h"
 #include "common/Constants.h"
 #include "common/Messages.h"
+#include "libUtils/BitVector.h"
 #include "libUtils/Logger.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -900,7 +901,7 @@ bool ConsensusLeader::GenerateCollectiveSigMessage(vector<unsigned char> & colle
     curr_offset += sizeof(uint16_t);
 
     // N-byte bitmap
-    curr_offset += SetBitVector(collectivesig, curr_offset, m_responseMap);
+    curr_offset += BitVector::SetBitVector(collectivesig, curr_offset, m_responseMap);
 
     // 64-byte collective signature
     m_collectiveSig.Serialize(collectivesig, curr_offset);
@@ -954,7 +955,7 @@ ConsensusLeader::ConsensusLeader
 
     m_state = INITIAL;
     // m_numForConsensus = (floor(TOLERANCE_FRACTION * (pubkeys.size() - 1)) + 1);
-    m_numForConsensus = ceil(pubkeys.size() * TOLERANCE_FRACTION) - 1;
+    m_numForConsensus = ConsensusCommon::NumForConsensus(pubkeys.size());
     m_numForConsensusFailure = pubkeys.size() - m_numForConsensus;
     LOG_MESSAGE("TOLERANCE_FRACTION " << TOLERANCE_FRACTION << " pubkeys.size() " << 
                 pubkeys.size() << " m_numForConsensus " << m_numForConsensus <<
