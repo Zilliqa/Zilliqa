@@ -17,8 +17,8 @@
 #include <algorithm>
 #include <vector>
 
-#include "libPersistence/BlockStorage.h"
 #include "common/Constants.h"
+#include "libPersistence/BlockStorage.h"
 #include "libPersistence/DB.h"
 
 #define BOOST_TEST_MODULE persistencetest

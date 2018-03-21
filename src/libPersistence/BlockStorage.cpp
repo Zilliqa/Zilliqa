@@ -14,17 +14,17 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <sstream>
 #include <sys/stat.h>
 #include <sys/syscall.h>
 #include <unistd.h>
-#include <algorithm>
-#include <sstream>
 
-#include <boost/filesystem.hpp>
 #include <leveldb/db.h>
+#include <boost/filesystem.hpp>
 
 #include "BlockStorage.h"
 #include "common/Constants.h"

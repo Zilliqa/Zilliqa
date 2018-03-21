@@ -21,7 +21,6 @@
 #include <mutex>
 #include <shared_mutex>
 #include <vector>
-#include <map>
 
 #include "depends/libDatabase/LevelDB.h"
 #include "libData/BlockData/Block.h"

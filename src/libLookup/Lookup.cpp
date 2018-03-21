@@ -30,6 +30,7 @@
 #include <boost/property_tree/xml_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
+#include "Lookup.h"
 #include "common/Messages.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
@@ -42,7 +43,6 @@
 #include "libPersistence/BlockStorage.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/SanityChecks.h"
-#include "Lookup.h"
 
 using namespace std;
 using namespace boost::multiprecision;
