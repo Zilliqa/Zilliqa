@@ -320,9 +320,9 @@ public:
 
     bool StartRetrieveHistory();
 
-    void StartSynchronization();
-
 #ifndef IS_LOOKUP_NODE
+
+    void StartSynchronization();
 
     /// Called from DirectoryService during FINALBLOCK processing.
     bool ActOnFinalBlock(uint8_t tx_sharing_mode, const vector<Peer> & nodes);

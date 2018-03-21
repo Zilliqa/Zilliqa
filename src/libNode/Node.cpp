@@ -122,6 +122,8 @@ bool Node::StartRetrieveHistory()
     return res;
 }
 
+#ifndef IS_LOOKUP_NODE
+
 void Node::StartSynchronization()
 {
     auto func = [this]() -> void
@@ -142,6 +144,8 @@ void Node::StartSynchronization()
 
     DetachedFunction(1, func);
 }
+
+#endif //IS_LOOKUP_NODE
 
 bool Node::CheckState(Action action)
 {
