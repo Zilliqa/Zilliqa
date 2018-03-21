@@ -14,7 +14,6 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#include "libUtils/BitVector.h"
 #include "libUtils/Logger.h"
 #include "MicroBlock.h"
 
@@ -25,10 +24,11 @@ unsigned int MicroBlock::Serialize(vector<unsigned char> & dst, unsigned int off
 {
     assert(m_header.GetNumTxs() == m_tranHashes.size());
 
-    unsigned int size_needed = HEADER_SIZE_NEEDED + BLOCK_SIG_SIZE + sizeof(uint16_t) +
-                               BitVector::GetBitVectorSerializedSize(m_headerSigBitmap.size()) +
-                               m_header.GetNumTxs() * TRAN_HASH_SIZE;
+    unsigned int header_size_needed = sizeof(uint8_t) + sizeof(uint32_t) + UINT256_SIZE + UINT256_SIZE + 
+                                        BLOCK_HASH_SIZE + UINT256_SIZE + UINT256_SIZE + TRAN_HASH_SIZE + 
+                                        sizeof(uint32_t) + PUB_KEY_SIZE + UINT256_SIZE + BLOCK_HASH_SIZE;
 
+    unsigned int size_needed = header_size_needed + BLOCK_SIG_SIZE + m_header.GetNumTxs() * TRAN_HASH_SIZE;
     unsigned int size_remaining = dst.size() - offset;
 
     if (size_remaining < size_needed)
@@ -38,17 +38,10 @@ unsigned int MicroBlock::Serialize(vector<unsigned char> & dst, unsigned int off
 
     m_header.Serialize(dst, offset);
 
-    unsigned int curOffset = offset + HEADER_SIZE_NEEDED;
+    unsigned int curOffset = offset + header_size_needed;
 
-    m_headerSig.Serialize(dst, curOffset);
+    copy(m_headerSig.begin(), m_headerSig.end(), dst.begin() + curOffset);
     curOffset += BLOCK_SIG_SIZE;
-
-    uint16_t expectedBitmapSize = m_headerSigBitmap.size();
-    Serializable::SetNumber<uint16_t>(dst, curOffset, expectedBitmapSize, sizeof(uint16_t));
-    curOffset += sizeof(uint16_t);
-
-    curOffset += BitVector::SetBitVector(dst, curOffset, m_headerSigBitmap);
-
     for (unsigned int i = 0; i < m_header.GetNumTxs(); i++)
     {
         const TxnHash & tran_hash = m_tranHashes.at(i);
@@ -61,19 +54,17 @@ unsigned int MicroBlock::Serialize(vector<unsigned char> & dst, unsigned int off
 
 void MicroBlock::Deserialize(const vector<unsigned char> & src, unsigned int offset)
 {
+    unsigned int header_size_needed = sizeof(uint8_t) + sizeof(uint32_t) + UINT256_SIZE + UINT256_SIZE + 
+                                        BLOCK_HASH_SIZE + UINT256_SIZE + UINT256_SIZE + TRAN_HASH_SIZE + 
+                                        sizeof(uint32_t) + PUB_KEY_SIZE + UINT256_SIZE + BLOCK_HASH_SIZE;
+
     MicroBlockHeader header(src, offset);
     m_header = header;
 
-    unsigned int curOffset = offset + HEADER_SIZE_NEEDED;
+    unsigned int curOffset = offset + header_size_needed;
 
-    m_headerSig.Deserialize(src, curOffset);
+    copy(src.begin() + curOffset, src.begin() + curOffset + BLOCK_SIG_SIZE, m_headerSig.begin());
     curOffset += BLOCK_SIG_SIZE;
-
-    uint16_t expectedBitmapSize = Serializable::GetNumber<uint16_t>(src, curOffset, sizeof(uint16_t));
-    curOffset += sizeof(uint16_t);
-
-    m_headerSigBitmap = BitVector::GetBitVector(src, curOffset, expectedBitmapSize);
-
     for (unsigned int i = 0; i < m_header.GetNumTxs(); i++)
     {
         TxnHash tranHash;
@@ -86,16 +77,21 @@ void MicroBlock::Deserialize(const vector<unsigned char> & src, unsigned int off
 
 unsigned int MicroBlock::GetSerializedSize() const
 {
-    unsigned int block_size_needed = BLOCK_SIG_SIZE + sizeof(uint16_t) +
-                                     BitVector::GetBitVectorSerializedSize(m_headerSigBitmap.size()) +
-                                     (m_tranHashes.size() * TRAN_HASH_SIZE);
+    unsigned int header_size_needed = sizeof(uint8_t) + sizeof(uint32_t) + UINT256_SIZE + UINT256_SIZE + 
+                                      BLOCK_HASH_SIZE + UINT256_SIZE + UINT256_SIZE + TRAN_HASH_SIZE + 
+                                      sizeof(uint32_t) + PUB_KEY_SIZE + UINT256_SIZE + BLOCK_HASH_SIZE;
+    unsigned int block_size_needed = BLOCK_SIG_SIZE + (m_tranHashes.size() * TRAN_HASH_SIZE);
 
-    return HEADER_SIZE_NEEDED + block_size_needed;
+    return header_size_needed + block_size_needed;
 }
 
 unsigned int MicroBlock::GetMinSize()
 {
-    return HEADER_SIZE_NEEDED;
+    unsigned int header_size_needed = sizeof(uint8_t) + sizeof(uint32_t) + UINT256_SIZE + UINT256_SIZE + 
+                                      BLOCK_HASH_SIZE + UINT256_SIZE + UINT256_SIZE + TRAN_HASH_SIZE + 
+                                      sizeof(uint32_t) + PUB_KEY_SIZE + UINT256_SIZE + BLOCK_HASH_SIZE;
+
+    return header_size_needed;
 }
 
 // creates a dummy invalid placeholder block -- blocknum is maxsize of uint256
@@ -112,10 +108,9 @@ MicroBlock::MicroBlock(const vector<unsigned char> & src, unsigned int offset)
 MicroBlock::MicroBlock
 (
     const MicroBlockHeader & header,
-    const Signature & signature,
-    const vector<bool> & signatureBitmap,
+    const array<unsigned char, BLOCK_SIG_SIZE> & signature,
     const vector<TxnHash> & tranHashes
-) : m_header(header), m_headerSig(signature), m_headerSigBitmap(signatureBitmap), m_tranHashes(tranHashes)
+) : m_header(header), m_headerSig(signature), m_tranHashes(tranHashes)
 {
     assert(m_header.GetNumTxs() == m_tranHashes.size());
 }
@@ -125,14 +120,9 @@ const MicroBlockHeader & MicroBlock::GetHeader() const
     return m_header;
 }
 
-const Signature & MicroBlock::GetHeaderSig() const
+const array<unsigned char, BLOCK_SIG_SIZE> & MicroBlock::GetHeaderSig() const
 {
     return m_headerSig;
-}
-
-const vector<bool> & MicroBlock::GetHeaderSigBitmap() const
-{
-    return m_headerSigBitmap;
 }
 
 const vector<TxnHash> & MicroBlock::GetTranHashes() const
@@ -160,22 +150,22 @@ bool MicroBlock::operator<(const MicroBlock & block) const
     {
         return false;
     }
-    // else if (m_headerSig < block.m_headerSig)
-    // {
-    //     return true;
-    // }
-    // else if (m_headerSig > block.m_headerSig)
-    // {
-    //     return false;
-    // }
-    // else if (m_tranHashes < block.m_tranHashes)
-    // {
-    //     return true;
-    // }
-    // else if (m_tranHashes > block.m_tranHashes)
-    // {
-    //     return false;
-    // }
+    else if (m_headerSig < block.m_headerSig)
+    {
+        return true;
+    }
+    else if (m_headerSig > block.m_headerSig)
+    {
+        return false;
+    }
+    else if (m_tranHashes < block.m_tranHashes)
+    {
+        return true;
+    }
+    else if (m_tranHashes > block.m_tranHashes)
+    {
+        return false;
+    }
     else
     {
         return false;

@@ -31,6 +31,14 @@
 typedef std::function<bool(const std::vector<unsigned char> & input, 
                            std::vector<unsigned char> & errorMsg)> MsgContentValidatorFunc;
 
+unsigned int GetBitVectorLengthInBytes(unsigned int length_in_bits);
+vector<bool> GetBitVector(const vector<unsigned char> & src, 
+                            unsigned int offset, 
+                            unsigned int expected_length);
+unsigned int SetBitVector(vector<unsigned char> & dst, 
+                            unsigned int offset, 
+                            const vector<bool> & value);
+
 /// Implements base functionality shared between all consensus committee members
 class ConsensusCommon
 {
@@ -72,7 +80,7 @@ protected:
     State m_state;
 
     /// The minimum fraction of peers necessary to achieve consensus.
-    static constexpr double TOLERANCE_FRACTION = 0.667;
+    const double TOLERANCE_FRACTION;
 
     /// The unique ID assigned to the active consensus session. 
     uint32_t m_consensusID;
@@ -132,7 +140,7 @@ protected:
                        unsigned int size, const Signature & toverify, uint16_t peer_id);
 
     /// Aggregates public keys according to the response map.
-    PubKey AggregateKeys(const std::vector<bool> & peer_map);
+    PubKey AggregateKeys(const std::vector<bool> peer_map);
 
     /// Aggregates the list of received commits.
     CommitPoint AggregateCommits(const std::vector<CommitPoint> & commits);
@@ -160,20 +168,11 @@ public:
     /// Returns the state of the active consensus session
     State GetState() const;
 
-    /// Returns the final collective signature (as byte stream)
+    /// Returns the final collective signature
     bool RetrieveCollectiveSig(std::vector<unsigned char> & dst, unsigned int offset);
 
-    /// Returns the final collective signature (as Signature reference)
-    const Signature & RetrieveCollectiveSig() const;
-
-    /// Returns the response map for the generated final collective signature (as byte stream)
+    /// Returns the response map for the generated final collective signature
     uint16_t RetrieveCollectiveSigBitmap(std::vector<unsigned char> & dst, unsigned int offset);
-
-    /// Returns the response map for the generated final collective signature (as bit vector reference)
-    const std::vector<bool> & RetrieveCollectiveSigBitmap() const;
-
-    /// Returns the fraction of the shard required to achieve consensus
-    static unsigned int NumForConsensus(unsigned int shardSize);
 };
 
 #endif // __CONSENSUSCOMMON_H__

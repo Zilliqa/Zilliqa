@@ -45,8 +45,3 @@ add_executable (Test_Serializable Test_Serializable.cpp)
 target_include_directories (Test_Serializable PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries (Test_Serializable LINK_PUBLIC Utils)
 add_test(NAME Test_Serializable COMMAND Test_Serializable)
-
-add_executable (Test_BitVector Test_BitVector.cpp)
-target_include_directories (Test_BitVector PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries (Test_BitVector LINK_PUBLIC Utils)
-add_test(NAME Test_BitVector COMMAND Test_BitVector)
