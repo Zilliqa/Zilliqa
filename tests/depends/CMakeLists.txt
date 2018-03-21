@@ -1,2 +1,2 @@
 add_subdirectory (libDatabase)
-#add_subdirectory (Trie)
+add_subdirectory (Trie)
