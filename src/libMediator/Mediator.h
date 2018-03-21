@@ -79,7 +79,7 @@ public:
     /// Used by lookup to determine if it could successfully join the network after sync
     bool m_isConnectedToNetwork;
 
-    /// 
+    /// To determine if the node successfully recovered from persistence
     bool m_isRetrievedHistory;
 
     /// Constructor.

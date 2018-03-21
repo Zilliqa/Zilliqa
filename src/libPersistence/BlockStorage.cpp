@@ -27,8 +27,8 @@
 #include <leveldb/db.h>
 
 #include "BlockStorage.h"
-#include "common/Serializable.h"
 #include "common/Constants.h"
+#include "common/Serializable.h"
 
 using namespace std;
 
@@ -66,7 +66,9 @@ bool BlockStorage::PutDSBlock(const boost::multiprecision::uint256_t & blockNum,
         else
         {
             if(!DeleteDSBlock(blockNum))
+            {
                 LOG_MESSAGE("FAIL: Delete DSBlock" << blockNum << "Failed");
+            }
         }
     }
     return ret;

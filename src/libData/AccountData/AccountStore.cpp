@@ -369,7 +369,6 @@ void AccountStore::MoveUpdatesToDisk()
     LOG_MARKER(); 
     m_state.db()->commit();
     prevRoot = m_state.root();
-    // m_state.init();
     MoveRootToDisk(prevRoot);
 }
 
@@ -378,7 +377,6 @@ void AccountStore::DiscardUnsavedUpdates()
     m_state.db()->rollback();
     m_state.setRoot(prevRoot);
     m_addressToAccount.clear();
-    // m_state.init();
 }
 
 void AccountStore::PrintAccountState()
