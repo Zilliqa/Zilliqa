@@ -180,7 +180,7 @@ const Signature & ConsensusCommon::RetrieveCollectiveSig() const
 {
     return m_collectiveSig;
 }
-     
+
 const vector<bool> & ConsensusCommon::RetrieveCollectiveSigBitmap() const
 {
     return m_responseMap;
