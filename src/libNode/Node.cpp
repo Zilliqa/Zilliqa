@@ -81,7 +81,7 @@ void Node::StartSynchronization()
             m_synchronizer.FetchLatestState(m_mediator.m_lookup);
             m_synchronizer.AttemptPoW(m_mediator.m_lookup);
 		
-	    this_thread::sleep_for(chrono::seconds(30));
+	    this_thread::sleep_for(chrono::seconds(NEW_NODE_POW2_TIMEOUT_IN_SECONDS));
         }
     };
 
