@@ -349,6 +349,7 @@ double Server::GetTransactionRate()
 	{
 		try
 		{
+			//Refernce time chosen to be the first block's timestamp
 			TxBlock tx  = m_mediator.m_txBlockChain.GetBlock(1);
 			m_StartTimeTx = tx.GetHeader().GetTimestamp();
 		}
@@ -386,10 +387,11 @@ double Server::GetDSBlockRate()
 	string numDSblockStr = m_mediator.m_dsBlockChain.GetBlockCount().str();
 	boost::multiprecision::cpp_dec_float_50 numDs(numDSblockStr);
 
-	if(m_StartTimeDs == 0)
+	if(m_StartTimeDs == 0)  //case when m_StartTime has not been set 
 	{
 		try
 		{
+			//Refernce time chosen to be the first block's timestamp
 			DSBlock dsb = m_mediator.m_dsBlockChain.GetBlock(1);
 			m_StartTimeDs = dsb.GetHeader().GetTimestamp();
 		}
@@ -409,9 +411,8 @@ double Server::GetDSBlockRate()
 		LOG_MESSAGE("Wait till the second block");
 		return 0;
 	}
+	//To convert from microSeconds to seconds
 	numDs = numDs*1000000;
-
-
 	boost::multiprecision::cpp_dec_float_50 TimeDiffFloat = static_cast<cpp_dec_float_50>(TimeDiff);
 	boost::multiprecision::cpp_dec_float_50 ans = numDs/TimeDiffFloat;
 	return ans.convert_to<double>();
@@ -423,14 +424,13 @@ double Server::GetTxBlockRate()
 
 	string numTxblockStr = m_mediator.m_txBlockChain.GetBlockCount().str();
 	boost::multiprecision::cpp_dec_float_50 numTx(numTxblockStr);
-	numTx = numTx*1000000;
-
-
+	
 
 	if(m_StartTimeTx == 0)
 	{
 		try
 		{
+			//Reference Time chosen to be first block's timestamp
 			TxBlock txb = m_mediator.m_txBlockChain.GetBlock(1);
 			m_StartTimeTx = txb.GetHeader().GetTimestamp();
 		}
@@ -450,7 +450,8 @@ double Server::GetTxBlockRate()
 		LOG_MESSAGE("Wait till the second block");
 		return 0;
 	}
-
+	//To convert from microSeconds to seconds
+	numTx = numTx*1000000;
 	boost::multiprecision::cpp_dec_float_50 TimeDiffFloat(TimeDiff.str());
 	boost::multiprecision::cpp_dec_float_50 ans = numTx/TimeDiffFloat;
 	return ans.convert_to<double>();
