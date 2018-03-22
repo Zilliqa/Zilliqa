@@ -333,9 +333,7 @@ bool Lookup::GetTxBodyFromSeedNodes(string txHashStr)
     vector <Peer> Lookup::GetNodePeers()
     {
         lock_guard<mutex> g(m_mutexNodesInNetwork);
-
         return m_nodesInNetwork;
-
     }
 
 #endif // IS_LOOKUP_NODE

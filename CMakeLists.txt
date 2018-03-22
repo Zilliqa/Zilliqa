@@ -115,6 +115,9 @@ endif()
 # export compile commands
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# customize the flags for RELWITHDEBINFO
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -ggdb -DNDEBUG")
+
 add_definitions(-DSTAT_TEST)
 
 if(IS_LOOKUP_NODE)
@@ -124,10 +127,8 @@ endif(IS_LOOKUP_NODE)
 add_compile_options(-Wall -Werror) #TODO: -Wextra
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} -pthread -std=c++14 -ggdb ")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${GCC_COVERAGE_LINK_FLAGS} -pthread -ljsoncpp -ljsonrpccpp-common -ljsonrpccpp-server -lboost_system -lboost_filesystem -std=c++14 ")
-
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} -pthread -std=c++14 -ggdb")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${GCC_COVERAGE_LINK_FLAGS} -pthread -ljsoncpp -ljsonrpccpp-common -ljsonrpccpp-server -lboost_system -lboost_filesystem -std=c++14")
 endif()
 #XXX Assume clang is used on OSX platform, so -pthread is dropped
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")

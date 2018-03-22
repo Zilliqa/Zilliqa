@@ -18,14 +18,10 @@
 
 #include "JSONConversion.h"
 
-#include <iostream>
 #include <boost/multiprecision/cpp_dec_float.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
-#include <deque>
+#include <iostream>
 #include <jsonrpccpp/server.h>
-
-
-
 
 #include "Server.h"
 #include "libCrypto/Schnorr.h"
@@ -103,7 +99,6 @@ string Server::createTransaction(const Json::Value& _json)
 
     unsigned int num_shards = m_mediator.m_lookup->GetShardPeers().size();
 
-    
     const PubKey & senderPubKey = tx.GetSenderPubKey();
     const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
     unsigned int curr_offset = 0;
@@ -153,23 +148,16 @@ Json::Value Server::getTransaction(const string & transactionHash)
 	LOG_MARKER();
 	TxBodySharedPtr tx;
 	TxnHash tranHash(transactionHash);
-
 	bool isPresent = BlockStorage::GetBlockStorage().GetTxBody(tranHash, tx);
-
 	if(!isPresent)
 	{
 		Json::Value _json;
 		_json["error"] = "Txn Hash not Present";
 		return _json;
 	}
-
-
-
 	Transaction txn(tx->GetVersion(), tx->GetNonce(),tx->GetToAddr(), tx->GetSenderPubKey(), tx->GetAmount(), tx->GetSignature());
-
 	return JSONConversion::convertTxtoJson(txn);
-    
-}
+ }
 
 Json::Value Server::getDsBlock(const string & blockNum)
 {
@@ -308,7 +296,6 @@ unsigned int Server::getNumPeers()
 {
 	LOG_MARKER();
 	unsigned int numPeers = m_mediator.m_lookup->GetNodePeers().size();
-
 	return numPeers;
 }
 
@@ -330,7 +317,6 @@ string Server::getNumTransactions()
 {
 	LOG_MARKER();
 
-	
 	boost::multiprecision::uint256_t currBlock = m_mediator.m_txBlockChain.GetBlockCount() - 1;
 	LOG_MESSAGE("currBlock: "<<currBlock.str()<<" State: "<<m_BlockTxPair.first);
 	if(m_BlockTxPair.first < currBlock)
@@ -413,7 +399,7 @@ double Server::getDSBlockRate()
 		}
 		catch(const char *msg)
 		{
-			if(strcmp(msg, "Blocknumber Absent") == 0)
+			if(string(msg) == "Blocknumber Absent")
 			{
 				LOG_MESSAGE("No DSBlock has been mined yet");
 			}
@@ -434,8 +420,6 @@ double Server::getDSBlockRate()
 	boost::multiprecision::cpp_dec_float_50 ans = numDs/TimeDiffFloat;
 
 	return ans.convert_to<double>();
-
-
 }
 
 double Server::getTxBlockRate()
@@ -457,7 +441,7 @@ double Server::getTxBlockRate()
 		}
 		catch(const char *msg)
 		{
-			if(strcmp(msg, "Blocknumber Absent") == 0)
+			if(string(msg) == "Blocknumber Absent")
 			{
 				LOG_MESSAGE("No TxBlock has been mined yet");
 			}
@@ -475,10 +459,7 @@ double Server::getTxBlockRate()
 	boost::multiprecision::cpp_dec_float_50 TimeDiffFloat(TimeDiff.str());
 	boost::multiprecision::cpp_dec_float_50 ans = numTx/TimeDiffFloat;
 
-	
 	return ans.convert_to<double>();
-
-
 }
 
 string Server::getCurrentMiniEpoch()
@@ -562,11 +543,8 @@ Json::Value Server::DSBlockListing(unsigned int page)
 		}
 
 	}
-
-
-
+	
 	return _json;
-
 }
 
 
@@ -639,16 +617,14 @@ Json::Value Server::TxBlockListing(unsigned int page)
 
 	}
 
-
-
 	return _json;
-
 }
 
 
 Json::Value Server::getBlockchainInfo()
 {
 	Json::Value _json;
+	
 	_json["NumPeers"] = Server::getNumPeers();
     _json["NumTxBlocks"] = Server::getNumTxBlocks();
     _json["NumDSBlocks"] = Server::getNumDSBlocks();
@@ -688,7 +664,6 @@ Json::Value Server::getRecentTransactions()
 void Server::AddToRecentTransactions(const TxnHash & txhash)
 {
 	lock_guard<mutex> g(m_mutexRecentTxns);
-
 	m_RecentTransactions.push_back(txhash.hex());
 }
 
