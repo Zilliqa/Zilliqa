@@ -25,7 +25,7 @@ import time
 from subprocess import Popen, PIPE
 import xml.etree.cElementTree as ET
 
-NODE_LISTEN_PORT = 4000
+NODE_LISTEN_PORT = 4001
 LOCAL_RUN_FOLDER = './lookup_local_run/'
 
 def print_usage():
