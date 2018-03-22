@@ -66,11 +66,12 @@ def get_immediate_subdirectories(a_dir):
 def run_setup(numnodes, printnodes):
 	os.system('killall lzilliqa')
 	if (os.path.exists(LOCAL_RUN_FOLDER)):
-		shutil.rmtree(LOCAL_RUN_FOLDER)
-	os.makedirs(LOCAL_RUN_FOLDER)
+		# shutil.rmtree(LOCAL_RUN_FOLDER)
+		os.makedirs(LOCAL_RUN_FOLDER)
 	for x in range(0, numnodes):
 		testsubdir = LOCAL_RUN_FOLDER + 'node_' + str(x).zfill(4)
-		os.makedirs(testsubdir)
+		if os.path.exists(testsubdir) != True :
+			os.makedirs(testsubdir)
 		shutil.copyfile('./tests/Zilliqa/zilliqa', testsubdir + '/lzilliqa')
 
 		st = os.stat(testsubdir + '/lzilliqa')
