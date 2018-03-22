@@ -287,7 +287,7 @@ bool BlockStorage::DeleteMetadata(const MetaType & type)
 
 bool BlockStorage::ResetDB(DBTYPE type)
 {
-    bool ret;
+    bool ret = false;
     switch(type)
     {
         case META:
