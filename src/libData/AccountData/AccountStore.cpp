@@ -118,6 +118,7 @@ void AccountStore::Deserialize(const vector<unsigned char> & src, unsigned int o
         UpdateStateTrie(address, account);
 	// MoveUpdatesToDisk();
     }
+    PrintAccountState();
 }
 
 
