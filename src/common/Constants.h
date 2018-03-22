@@ -17,11 +17,6 @@
 #ifndef __CONSTANTS_H__
 #define __CONSTANTS_H__
 
-#include <cstring>
-
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/xml_parser.hpp>
-
 #include "depends/common/FixedHash.h"
 
 using BlockHash = dev::h256;
@@ -61,7 +56,7 @@ const unsigned int TX_SHARING_CLUSTER_SIZE = 20;
 
 const unsigned int NUM_VACUOUS_EPOCHS = 1;
 
-// Networking and mining 
+// Networking and mining
 const unsigned int POW_SIZE = 32;
 const unsigned int IP_SIZE = 16;
 const unsigned int PORT_SIZE = 4;
@@ -82,34 +77,19 @@ enum MetaType : unsigned char
 const std::string RAND1_GENESIS = "2b740d75891749f94b6a8ec09f086889066608e4418eda656c93443e8310750a";
 const std::string RAND2_GENESIS = "e8cc9106f8a28671d91e2de07b57b828934481fadf6956563b963bb8e5c266bf";
 
-static unsigned int ReadFromConstantsFile(std::string propertyName)
-{
-    // Populate tree structure pt
-    using boost::property_tree::ptree;
-    ptree pt;
-    read_xml("constants.xml", pt);
-
-    return pt.get<unsigned int>("node.constants." + propertyName);
-}
-
-const unsigned int DS_MULTICAST_CLUSTER_SIZE(ReadFromConstantsFile("DS_MULTICAST_CLUSTER_SIZE"));
-const unsigned int COMM_SIZE(ReadFromConstantsFile("COMM_SIZE"));
-static const unsigned int MAX_POW1_WINNERS(ReadFromConstantsFile("MAX_POW1_WINNERS"));
-static const unsigned int POW1_WINDOW_IN_SECONDS(ReadFromConstantsFile("POW1_WINDOW_IN_SECONDS"));
-static const unsigned int POW1_BACKUP_WINDOW_IN_SECONDS(
-	ReadFromConstantsFile("POW1_BACKUP_WINDOW_IN_SECONDS"));
-static const unsigned int LEADER_SHARDING_PREPARATION_IN_SECONDS(
-	ReadFromConstantsFile("LEADER_SHARDING_PREPARATION_IN_SECONDS"));
-static const unsigned int LEADER_POW2_WINDOW_IN_SECONDS(
-	ReadFromConstantsFile("LEADER_POW2_WINDOW_IN_SECONDS"));
-static const unsigned int BACKUP_POW2_WINDOW_IN_SECONDS(
-	ReadFromConstantsFile("BACKUP_POW2_WINDOW_IN_SECONDS"));
-static const unsigned int NEW_NODE_POW2_TIMEOUT_IN_SECONDS(
-	ReadFromConstantsFile("NEW_NODE_POW2_TIMEOUT_IN_SECONDS"));
-static const unsigned int POW_SUB_BUFFER_TIME(ReadFromConstantsFile("POW_SUB_BUFFER_TIME")); //milliseconds
-static const unsigned int POW1_DIFFICULTY(ReadFromConstantsFile("POW1_DIFFICULTY"));
-static const unsigned int POW2_DIFFICULTY(ReadFromConstantsFile("POW2_DIFFICULTY"));
-static const unsigned int NUM_FINAL_BLOCK_PER_POW(ReadFromConstantsFile("NUM_FINAL_BLOCK_PER_POW"));
-static const uint32_t MAXMESSAGE(ReadFromConstantsFile("MAXMESSAGE"));
+extern const unsigned int DS_MULTICAST_CLUSTER_SIZE;
+extern const unsigned int COMM_SIZE;
+extern const unsigned int MAX_POW1_WINNERS;
+extern const unsigned int POW1_WINDOW_IN_SECONDS;
+extern const unsigned int POW1_BACKUP_WINDOW_IN_SECONDS;
+extern const unsigned int LEADER_SHARDING_PREPARATION_IN_SECONDS;
+extern const unsigned int LEADER_POW2_WINDOW_IN_SECONDS;
+extern const unsigned int BACKUP_POW2_WINDOW_IN_SECONDS;
+extern const unsigned int NEW_NODE_POW2_TIMEOUT_IN_SECONDS;
+extern const unsigned int POW_SUB_BUFFER_TIME;
+extern const unsigned int POW1_DIFFICULTY;
+extern const unsigned int POW2_DIFFICULTY;
+extern const unsigned int NUM_FINAL_BLOCK_PER_POW;
+extern const uint32_t MAXMESSAGE;
 
 #endif // __CONSTANTS_H__
