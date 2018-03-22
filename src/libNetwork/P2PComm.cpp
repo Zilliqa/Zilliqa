@@ -1,16 +1,16 @@
 /**
-* Copyright (c) 2018 Zilliqa 
-* This source code is being disclosed to you solely for the purpose of your participation in 
-* testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to 
-* the protocols and algorithms that are programmed into, and intended by, the code. You may 
-* not do anything else with the code without express permission from Zilliqa Research Pte. Ltd., 
-* including modifying or publishing the code (or any part of it), and developing or forming 
-* another public or private blockchain network. This source code is provided ‘as is’ and no 
-* warranties are given as to title or non-infringement, merchantability or fitness for purpose 
-* and, to the extent permitted by law, all liability for your use of the code is disclaimed. 
-* Some programs in this code are governed by the GNU General Public License v3.0 (available at 
-* https://www.gnu.org/licenses/gpl-3.0.en.html) (‘GPLv3’). The programs that are governed by 
-* GPLv3.0 are those programs that are located in the folders src/depends and tests/depends 
+* Copyright (c) 2018 Zilliqa
+* This source code is being disclosed to you solely for the purpose of your participation in
+* testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to
+* the protocols and algorithms that are programmed into, and intended by, the code. You may
+* not do anything else with the code without express permission from Zilliqa Research Pte. Ltd.,
+* including modifying or publishing the code (or any part of it), and developing or forming
+* another public or private blockchain network. This source code is provided ‘as is’ and no
+* warranties are given as to title or non-infringement, merchantability or fitness for purpose
+* and, to the extent permitted by law, all liability for your use of the code is disclaimed.
+* Some programs in this code are governed by the GNU General Public License v3.0 (available at
+* https://www.gnu.org/licenses/gpl-3.0.en.html) (‘GPLv3’). The programs that are governed by
+* GPLv3.0 are those programs that are located in the folders src/depends and tests/depends
 * and which include a reference to GPLv3 in their program files.
 **/
 
@@ -22,7 +22,7 @@
 #include <cstring>
 #include <memory>
 #include <errno.h>
-#include <signal.h> 
+#include <signal.h>
 
 #include "P2PComm.h"
 #include "PeerStore.h"
@@ -76,7 +76,7 @@ P2PComm & P2PComm::GetInstance()
     return comm;
 }
 
-void P2PComm::SendMessageCore(const Peer & peer, const std::vector<unsigned char> & message, 
+void P2PComm::SendMessageCore(const Peer & peer, const std::vector<unsigned char> & message,
                               unsigned char start_byte, const vector<unsigned char> & msg_hash)
 {
     uint32_t retry_counter = 0;
@@ -85,7 +85,7 @@ void P2PComm::SendMessageCore(const Peer & peer, const std::vector<unsigned char
         retry_counter++;
         LOG_MESSAGE("Error: Socket connect failed " << retry_counter  << "/" << MAXRETRYCONN <<
                     ". IP address: " << peer);
-        
+
         if (retry_counter > MAXRETRYCONN)
         {
             LOG_MESSAGE("Error: Socket connect failed over " << MAXRETRYCONN << " times.");
@@ -96,12 +96,12 @@ void P2PComm::SendMessageCore(const Peer & peer, const std::vector<unsigned char
 }
 
 bool P2PComm::SendMessageSocketCore(const Peer & peer, const std::vector<unsigned char> & message,
-                                    unsigned char start_byte, 
+                                    unsigned char start_byte,
                                     const vector<unsigned char> & msg_hash)
 {
     LOG_MARKER();
     LOG_PAYLOAD("Sending message to " << peer, message, Logger::MAX_BYTES_TO_DISPLAY);
-    
+
     if (peer.m_ipAddress == 0 && peer.m_listenPortHost == 0)
     {
         LOG_MESSAGE("I am sending to 0.0.0.0 at port 0. Don't send anything.");
@@ -109,7 +109,7 @@ bool P2PComm::SendMessageSocketCore(const Peer & peer, const std::vector<unsigne
     }
     else if(peer.m_listenPortHost == 0)
     {
-        LOG_MESSAGE("I am sending to " << peer.GetPrintableIPAddress() << 
+        LOG_MESSAGE("I am sending to " << peer.GetPrintableIPAddress() <<
                     " at port 0. Investigate why!");
         return true;
     }
@@ -125,7 +125,7 @@ bool P2PComm::SendMessageSocketCore(const Peer & peer, const std::vector<unsigne
         signal(SIGPIPE, SIG_IGN);
         if (cli_sock < 0)
         {
-            LOG_MESSAGE("Error: Socket creation failed. Code = " << errno << " Desc: " << 
+            LOG_MESSAGE("Error: Socket creation failed. Code = " << errno << " Desc: " <<
                         std::strerror(errno)   << ". IP address: " << peer);
             return false;
         }
@@ -137,7 +137,7 @@ bool P2PComm::SendMessageSocketCore(const Peer & peer, const std::vector<unsigne
 
         if(connect(cli_sock, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
         {
-            LOG_MESSAGE("Error: Socket connect failed. Code = " << errno  << " Desc: " << 
+            LOG_MESSAGE("Error: Socket connect failed. Code = " << errno  << " Desc: " <<
                         std::strerror(errno) << ". IP address: " << peer);
             return false;
         }
@@ -160,8 +160,8 @@ bool P2PComm::SendMessageSocketCore(const Peer & peer, const std::vector<unsigne
             length += HASH_LEN;
         }
         unsigned char buf[HDR_LEN] = {start_byte, (unsigned char)((length >> 24) & 0xFF),
-                                      (unsigned char)((length >> 16) & 0xFF), 
-                                      (unsigned char)((length >> 8) & 0xFF), 
+                                      (unsigned char)((length >> 16) & 0xFF),
+                                      (unsigned char)((length >> 8) & 0xFF),
                                       (unsigned char)(length & 0xFF)};
         uint32_t written_length = 0;
 
@@ -182,7 +182,7 @@ bool P2PComm::SendMessageSocketCore(const Peer & peer, const std::vector<unsigne
             written_length = 0;
             while (written_length != HASH_LEN)
             {
-                int n = write(cli_sock, &msg_hash.at(0) + written_length, 
+                int n = write(cli_sock, &msg_hash.at(0) + written_length,
                               HASH_LEN - written_length);
                 if (n <= 0)
                 {
@@ -213,37 +213,37 @@ bool P2PComm::SendMessageSocketCore(const Peer & peer, const std::vector<unsigne
             {
                 int n = write(cli_sock, &message.at(0) + written_length, length - written_length);
 
-                if (errno == EPIPE) 
+                if (errno == EPIPE)
                 {
                     LOG_MESSAGE(" Error: SIGPIPE detected. Error No: " << errno << " Desc: " <<
-                                std::strerror(errno)); 
-                    return true; 
+                                std::strerror(errno));
+                    return true;
                     // No retry as it is likely the other end terminate the conn due to duplicated msg.
                 }
 
                 if (n <= 0)
                 {
-                    LOG_MESSAGE("Error: Socket write failed in message body. Code = " << 
+                    LOG_MESSAGE("Error: Socket write failed in message body. Code = " <<
                                 errno << " Desc: " << std::strerror(errno) );
                     return false;
                 }
                 written_length += n;
             }
         }
-        else 
+        else
         {
             LOG_MESSAGE("DEBUG: not written_length == HDR_LEN");
         }
 
         if (written_length > 1000000)
         {
-            LOG_MESSAGE("DEBUG: Sent a total of " << written_length << " bytes"); 
-        }     
+            LOG_MESSAGE("DEBUG: Sent a total of " << written_length << " bytes");
+        }
     }
-    catch( ... ) 
+    catch( ... )
     {
         LOG_MESSAGE("ERROR: Error with write socket.");
-        return false; 
+        return false;
     }
     return true;
 }
@@ -264,15 +264,15 @@ void P2PComm::SendBroadcastMessageCore(const vector<Peer> & peers,
         this_thread::sleep_for(chrono::seconds(BROADCAST_EXPIRY_SECONDS));
         lock_guard<mutex> guard(m_broadcastHashesMutex);
         m_broadcastHashes.erase(msg_hash_copy);
-        LOG_PAYLOAD("Removing msg hash from broadcast list", msg_hash_copy, 
+        LOG_PAYLOAD("Removing msg hash from broadcast list", msg_hash_copy,
                     Logger::MAX_BYTES_TO_DISPLAY);
     };
 
     DetachedFunction(1, func2);
 }
 
-void P2PComm::HandleAcceptedConnection(int cli_sock, Peer from, 
-                                       function<void(const vector<unsigned char> &, const Peer &)> dispatcher, 
+void P2PComm::HandleAcceptedConnection(int cli_sock, Peer from,
+                                       function<void(const vector<unsigned char> &, const Peer &)> dispatcher,
                                        broadcast_list_func broadcast_list_retriever)
 {
     LOG_MARKER();
@@ -305,7 +305,7 @@ void P2PComm::HandleAcceptedConnection(int cli_sock, Peer from,
         int n = read(cli_sock, buf + read_length, HDR_LEN - read_length);
         if (n <= 0)
         {
-            LOG_MESSAGE("Error: Socket read failed. Code = " << errno << " Desc: " << 
+            LOG_MESSAGE("Error: Socket read failed. Code = " << errno << " Desc: " <<
                         std::strerror(errno) << ". IP address: " << from);
             return;
         }
@@ -352,7 +352,7 @@ void P2PComm::HandleAcceptedConnection(int cli_sock, Peer from,
                 message.resize(message_length - HASH_LEN);
                 while (read_length != message_length - HASH_LEN)
                 {
-                    int n = read(cli_sock, &message.at(read_length), 
+                    int n = read(cli_sock, &message.at(read_length),
                                  message_length - HASH_LEN - read_length);
                     if (n <= 0)
                     {
@@ -410,7 +410,7 @@ void P2PComm::HandleAcceptedConnection(int cli_sock, Peer from,
             {
                 // Launch a separate thread to forward the message to peers
                 vector<unsigned char> this_msg_hash(hash_buf, hash_buf + HASH_LEN);
-                auto func = [this, &broadcast_list, &message, &this_msg_hash]() -> 
+                auto func = [this, &broadcast_list, &message, &this_msg_hash]() ->
                              void { SendBroadcastMessageCore(broadcast_list, message,
                                                              this_msg_hash); };
                 JoinableFunction jf(1, func);
@@ -418,7 +418,7 @@ void P2PComm::HandleAcceptedConnection(int cli_sock, Peer from,
 
 #ifdef STAT_TEST
             vector<unsigned char> this_msg_hash(hash_buf, hash_buf + HASH_LEN);
-            LOG_STATE("[BROAD][" << std::setw(15) << std::left << m_selfPeer << "][" << 
+            LOG_STATE("[BROAD][" << std::setw(15) << std::left << m_selfPeer << "][" <<
                       DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6) << "] RECV");
 #endif // STAT_TEST
 
@@ -457,7 +457,7 @@ void P2PComm::HandleAcceptedConnection(int cli_sock, Peer from,
     }
 }
 
-void P2PComm::StartMessagePump(uint32_t listen_port_host, 
+void P2PComm::StartMessagePump(uint32_t listen_port_host,
                                function<void(const vector<unsigned char> &, const Peer &)> dispatcher,
                                broadcast_list_func broadcast_list_retriever)
 {
@@ -466,7 +466,7 @@ void P2PComm::StartMessagePump(uint32_t listen_port_host,
     int serv_sock = socket(AF_INET, SOCK_STREAM, 0);
     if (serv_sock < 0)
     {
-        LOG_MESSAGE("Error: Socket creation failed. Code = " << errno << " Desc: " << 
+        LOG_MESSAGE("Error: Socket creation failed. Code = " << errno << " Desc: " <<
                     std::strerror(errno) );
         return;
     }
@@ -480,7 +480,7 @@ void P2PComm::StartMessagePump(uint32_t listen_port_host,
     int bind_ret = ::bind(serv_sock, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
     if (bind_ret < 0)
     {
-        LOG_MESSAGE("Error: Socket bind failed. Code = " << errno << " Desc: " << 
+        LOG_MESSAGE("Error: Socket bind failed. Code = " << errno << " Desc: " <<
                     std::strerror(errno) );
         return;
     }
@@ -498,19 +498,19 @@ void P2PComm::StartMessagePump(uint32_t listen_port_host,
             int cli_sock = accept(serv_sock, (struct sockaddr *) &cli_addr, &cli_len);
             if (cli_sock < 0)
             {
-                LOG_MESSAGE("Error: Socket accept failed. Socket ret code: " << cli_sock << 
+                LOG_MESSAGE("Error: Socket accept failed. Socket ret code: " << cli_sock <<
                             ". TCP error code = " << errno << " Desc: " << std::strerror(errno) );
-                LOG_MESSAGE("DEBUG: I can't accept any incoming conn. I am sleeping for " << 
+                LOG_MESSAGE("DEBUG: I can't accept any incoming conn. I am sleeping for " <<
                             PUMPMESSAGE_MILLISECONDS << "ms");
                 this_thread::sleep_for(chrono::milliseconds(rand() % PUMPMESSAGE_MILLISECONDS));
                 continue;
             }
-            
+
             Peer from(uint128_t(cli_addr.sin_addr.s_addr), cli_addr.sin_port);
             LOG_MESSAGE("DEBUG: I got an incoming message from " << from.GetPrintableIPAddress());
-            auto func = [this, cli_sock, from, dispatcher, broadcast_list_retriever]() -> void 
-            { 
-                HandleAcceptedConnection(cli_sock, from, dispatcher, broadcast_list_retriever); 
+            auto func = [this, cli_sock, from, dispatcher, broadcast_list_retriever]() -> void
+            {
+                HandleAcceptedConnection(cli_sock, from, dispatcher, broadcast_list_retriever);
             };
             pool.AddJob(func);
         }
@@ -519,7 +519,7 @@ void P2PComm::StartMessagePump(uint32_t listen_port_host,
             LOG_MESSAGE("Error: Socket accept error");
         }
     }
-    pool.WaitAll(); 
+    pool.WaitAll();
     pool.JoinAll();
 }
 
@@ -564,16 +564,16 @@ void P2PComm::SendMessage(const vector<Peer> & peers, const vector<unsigned char
     ThreadPool pool(MAXMESSAGE);
     for (vector<unsigned int>::const_iterator curr = indexes.begin(); curr < indexes.end(); curr++)
     {
-            
+
         Peer peer = peers.at(*curr);
         auto func1 = [this, peer, &message]() mutable -> void
         {
             SendMessageCore(peer, message, START_BYTE_NORMAL, vector<unsigned char>());
         };
         pool.AddJob(func1);
-        
+
     }
-    
+
     pool.WaitAll();
     pool.JoinAll();
 
@@ -593,7 +593,7 @@ void P2PComm::SendMessage(const deque<Peer> & peers, const vector<unsigned char>
     ThreadPool pool(MAXMESSAGE);
     for (vector<unsigned int>::const_iterator curr = indexes.begin(); curr < indexes.end(); curr++)
     {
-           
+
         Peer peer = peers.at(*curr);
         auto func1 = [this, peer, &message]() mutable -> void
         {
@@ -601,10 +601,10 @@ void P2PComm::SendMessage(const deque<Peer> & peers, const vector<unsigned char>
         };
 
         pool.AddJob(func1);
-        
+
     }
 
-    pool.WaitAll(); 
+    pool.WaitAll();
     pool.JoinAll();
 
 }
@@ -616,11 +616,11 @@ void P2PComm::SendMessage(const Peer & peer, const vector<unsigned char> & messa
     SendMessageCore(peer, message, START_BYTE_NORMAL, vector<unsigned char>());
 }
 
-void P2PComm::SendBroadcastMessage(const vector<Peer> & peers, 
+void P2PComm::SendBroadcastMessage(const vector<Peer> & peers,
                                    const vector<unsigned char> & message)
 {
     LOG_MARKER();
-    
+
     if (peers.size() > 0)
     {
         SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
