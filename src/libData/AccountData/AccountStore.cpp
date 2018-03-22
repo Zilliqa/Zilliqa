@@ -107,7 +107,7 @@ void AccountStore::Deserialize(const vector<unsigned char> & src, unsigned int o
         curOffset += ACCOUNT_SIZE; 
 
         m_addressToAccount.insert(make_pair(address, account));
-
+	UpdateStateTrie(address, account);
     }
 }
 
