@@ -256,7 +256,7 @@ void P2PComm::SendBroadcastMessageCore(const vector<Peer> & peers,
     LOG_MARKER();
     lock_guard<mutex> guard(m_broadcastCoreMutex);
 
-    SendMessagePoolHelper(peers, message, message_hash);
+    SendMessagePoolHelper<START_BYTE_BROADCAST>(peers, message, message_hash);
     // TODO: are we sure there wont be many threads arising from this, will ThreadPool alleviate it?
     // Launch a separate, detached thread to automatically remove the hash from the list after a long time period has elapsed
     auto func2 = [this, message_hash]() -> void
@@ -525,7 +525,8 @@ void P2PComm::StartMessagePump(uint32_t listen_port_host,
 }
 
 
-template<typename Container>
+/// Send message to the peers using the threads from the pool
+template<unsigned char START_BYTE, typename Container>
 void P2PComm::SendMessagePoolHelper(const Container &peers, const vector<unsigned char> & message, const vector<unsigned char> & message_hash)
 {
     vector<unsigned int> indexes(peers.size());
@@ -544,7 +545,7 @@ void P2PComm::SendMessagePoolHelper(const Container &peers, const vector<unsigne
         Peer peer = peers.at(*curr);
         auto func1 = [this, peer, sharedMessage, sharedMessageHash]() mutable -> void
         {
-            SendMessageCore(peer, *sharedMessage.get(), START_BYTE_BROADCAST, *sharedMessageHash.get());
+            SendMessageCore(peer, *sharedMessage.get(), START_BYTE, *sharedMessageHash.get());
         };
         m_SendPool.AddJob(func1);
     }
@@ -555,29 +556,7 @@ void P2PComm::SendMessage(const vector<Peer> & peers, const vector<unsigned char
     LOG_MARKER();
     lock_guard<mutex> guard(m_sendMessageMutex);
 
-    vector<unsigned int> indexes(peers.size());
-    for (unsigned int i = 0; i < indexes.size(); i++)
-    {
-        indexes.at(i) = i;
-    }
-    random_shuffle(indexes.begin(), indexes.end());
-
-    ThreadPool pool(MAXMESSAGE);
-    for (vector<unsigned int>::const_iterator curr = indexes.begin(); curr < indexes.end(); curr++)
-    {
-
-        Peer peer = peers.at(*curr);
-        auto func1 = [this, peer, &message]() mutable -> void
-        {
-            SendMessageCore(peer, message, START_BYTE_NORMAL, vector<unsigned char>());
-        };
-        pool.AddJob(func1);
-
-    }
-
-    pool.WaitAll();
-    pool.JoinAll();
-
+    SendMessagePoolHelper<START_BYTE_NORMAL>(peers, message, {});
 }
 
 void P2PComm::SendMessage(const deque<Peer> & peers, const vector<unsigned char> & message)
@@ -585,29 +564,7 @@ void P2PComm::SendMessage(const deque<Peer> & peers, const vector<unsigned char>
     LOG_MARKER();
     lock_guard<mutex> guard(m_sendMessageMutex);
 
-    vector<unsigned int> indexes(peers.size());
-    for (unsigned int i = 0; i < indexes.size(); i++)
-    {
-        indexes.at(i) = i;
-    }
-    random_shuffle(indexes.begin(), indexes.end());
-    ThreadPool pool(MAXMESSAGE);
-    for (vector<unsigned int>::const_iterator curr = indexes.begin(); curr < indexes.end(); curr++)
-    {
-
-        Peer peer = peers.at(*curr);
-        auto func1 = [this, peer, &message]() mutable -> void
-        {
-            SendMessageCore(peer, message, START_BYTE_NORMAL, vector<unsigned char>());
-        };
-
-        pool.AddJob(func1);
-
-    }
-
-    pool.WaitAll();
-    pool.JoinAll();
-
+    SendMessagePoolHelper<START_BYTE_NORMAL>(peers, message, {});
 }
 
 void P2PComm::SendMessage(const Peer & peer, const vector<unsigned char> & message)
