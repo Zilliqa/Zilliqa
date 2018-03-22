@@ -58,7 +58,7 @@ Node::Node(Mediator & mediator) : m_mediator(mediator)
     m_mediator.UpdateDSBlockRand(true);
     m_mediator.UpdateTxBlockRand(true);
     SetState(POW1_SUBMISSION);
-    POW::GetInstance().EthashConfigureLightClient(m_mediator.m_currentEpochNum);
+    POW::GetInstance().EthashConfigureLightClient((uint64_t)m_mediator.m_dsBlockChain.GetBlockCount());
 }
 
 Node::~Node()
