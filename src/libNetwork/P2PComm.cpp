@@ -290,6 +290,49 @@ void P2PComm::SendBroadcastMessageCore(const vector<Peer> & peers,
     DetachedFunction(1, func2);
 }
 
+void P2PComm::SendBroadcastMessageCore(const deque<Peer> & peers,
+                                       const vector<unsigned char> & message,
+                                       const vector<unsigned char> & message_hash)
+{
+    LOG_MARKER();
+    lock_guard<mutex> guard(m_broadcastCoreMutex);
+
+    vector<unsigned int> indexes(peers.size());
+    for (unsigned int i = 0; i < indexes.size(); i++)
+    {
+        indexes.at(i) = i;
+    }
+    random_shuffle(indexes.begin(), indexes.end());
+    
+    ThreadPool pool(MAXMESSAGE);
+    for (vector<unsigned int>::const_iterator curr = indexes.begin(); curr < indexes.end(); curr++)
+    {
+            
+        Peer peer = peers.at(*curr);
+        auto func1 = [this, peer, &message, &message_hash]() mutable -> void
+        {
+            SendMessageCore(peer, message, START_BYTE_BROADCAST, message_hash);
+        };
+        pool.AddJob(func1);
+    }
+    pool.WaitAll(); 
+    pool.JoinAll();
+
+    // TODO: are we sure there wont be many threads arising from this, will ThreadPool alleviate it?
+    // Launch a separate, detached thread to automatically remove the hash from the list after a long time period has elapsed
+    auto func2 = [this, message_hash]() -> void
+    {
+        vector<unsigned char> msg_hash_copy(message_hash);
+        this_thread::sleep_for(chrono::seconds(BROADCAST_EXPIRY_SECONDS));
+        lock_guard<mutex> guard(m_broadcastHashesMutex);
+        m_broadcastHashes.erase(msg_hash_copy);
+        LOG_PAYLOAD("Removing msg hash from broadcast list", msg_hash_copy, 
+                    Logger::MAX_BYTES_TO_DISPLAY);
+    };
+
+    DetachedFunction(1, func2);
+}
+
 void P2PComm::HandleAcceptedConnection(int cli_sock, Peer from, 
                                        function<void(const vector<unsigned char> &, const Peer &)> dispatcher, 
                                        broadcast_list_func broadcast_list_retriever)
@@ -638,6 +681,38 @@ void P2PComm::SendBroadcastMessage(const vector<Peer> & peers,
 #endif // STAT_TEST
     }
 }
+
+void P2PComm::SendBroadcastMessage(const deque<Peer> & peers, 
+                                   const vector<unsigned char> & message)
+{
+    LOG_MARKER();
+    
+    if (peers.size() > 0)
+    {
+        SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
+        sha256.Update(message);
+        vector<unsigned char> this_msg_hash = sha256.Finalize();
+
+        {
+            lock_guard<mutex> guard(m_broadcastHashesMutex);
+            m_broadcastHashes.insert(this_msg_hash);
+        }
+
+#ifdef STAT_TEST
+        LOG_STATE("[BROAD][" << std::setw(15) << std::left << m_selfPeer.GetPrintableIPAddress() <<
+                  "][" << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6) << "] BEGN");
+#endif // STAT_TEST
+
+        SendBroadcastMessageCore(peers, message, this_msg_hash);
+
+#ifdef STAT_TEST
+        LOG_STATE("[BROAD][" << std::setw(15) << std::left << m_selfPeer.GetPrintableIPAddress() <<
+                  "][" << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6) << "] DONE");
+#endif // STAT_TEST
+    }
+}
+
+
 
 #ifdef STAT_TEST
 void P2PComm::SetSelfPeer(const Peer & self)
