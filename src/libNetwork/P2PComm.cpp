@@ -240,10 +240,9 @@ bool P2PComm::SendMessageSocketCore(const Peer & peer, const std::vector<unsigne
             LOG_MESSAGE("DEBUG: Sent a total of " << written_length << " bytes");
         }
     }
-    catch(std::exception& e)
+    catch(const std::exception& e)
     {
-        LOG_MESSAGE(e.what());
-        LOG_MESSAGE("ERROR: Error with write socket.");
+        LOG_MESSAGE("ERROR: Error with write socket." << ' ' << e.what());
         return false;
     }
     return true;
@@ -491,7 +490,6 @@ void P2PComm::StartMessagePump(uint32_t listen_port_host,
     uint32_t cli_len = sizeof(struct sockaddr_in);
     struct sockaddr_in cli_addr;
 
-    ThreadPool pool(MAXMESSAGE);
     while (true)
     {
         try
@@ -513,15 +511,13 @@ void P2PComm::StartMessagePump(uint32_t listen_port_host,
             {
                 HandleAcceptedConnection(cli_sock, from, dispatcher, broadcast_list_retriever);
             };
-            pool.AddJob(func);
+            m_RecvPool.AddJob(func);
         }
-        catch(...)
+        catch(const std::exception &e)
         {
-            LOG_MESSAGE("Error: Socket accept error");
+            LOG_MESSAGE("Error: Socket accept error" << ' ' << e.what());
         }
     }
-    pool.WaitAll();
-    pool.JoinAll();
 }
 
 
