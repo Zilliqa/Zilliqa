@@ -20,7 +20,7 @@
 			<ip>127.0.0.1</ip>
 			<port>4000</port>
 		</peer>
-		<peer>
+<!-- 		<peer>
 			<ip>127.0.0.1</ip>
 			<port>4001</port>
 		</peer>
@@ -35,6 +35,6 @@
 		<peer>
 			<ip>127.0.0.1</ip>
 			<port>4004</port>
-		</peer>
+		</peer> -->
 	</lookups>
 </node>
