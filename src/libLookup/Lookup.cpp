@@ -1264,7 +1264,7 @@ bool Lookup::InitMining()
         dsBlockRand = m_mediator.m_dsBlockRand;
 
         m_mediator.m_node->SetState(Node::POW1_SUBMISSION);
-        POW::GetInstance().EthashConfigureLightClient(m_mediator.m_currentEpochNum);
+        POW::GetInstance().EthashConfigureLightClient((uint64_t)m_mediator.m_dsBlockChain.GetBlockCount());
         m_mediator.m_node->StartPoW1(m_mediator.m_dsBlockChain.GetBlockCount(), 
                                         POW1_DIFFICULTY, dsBlockRand, m_mediator.m_txBlockRand);
     }
@@ -1277,7 +1277,7 @@ bool Lookup::InitMining()
         txBlockRand = {};
 
         m_mediator.m_node->SetState(Node::POW2_SUBMISSION);
-        POW::GetInstance().EthashConfigureLightClient(m_mediator.m_currentEpochNum);
+        POW::GetInstance().EthashConfigureLightClient((uint64_t)m_mediator.m_dsBlockChain.GetBlockCount());
         m_mediator.m_node->StartPoW2(m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(), 
                                         POW2_DIFFICULTY, dsBlockRand, txBlockRand);
     }
