@@ -115,6 +115,9 @@ endif()
 # export compile commands
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# customize the flags for RELWITHDEBINFO
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -ggdb -DNDEBUG")
+
 add_definitions(-DSTAT_TEST)
 
 if(IS_LOOKUP_NODE)
