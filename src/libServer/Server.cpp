@@ -56,7 +56,7 @@ Server::Server(Mediator & mediator, HttpServer & httpserver) : AbstractZServer(h
 	m_StartTimeDs = 0;
 	m_DSBlockCache.first = 0;
 	m_DSBlockCache.second.resize(NUM_PAGES_CACHE*PAGE_SIZE);
-	m_DSBlockCache.second.push_back("0x0000000000000000000");
+	m_DSBlockCache.second.push_back("6babe1baa82cf5625c33970b8c7dc0f6ae8f5d0f21575efdf2733e3ecef34c78");
 	m_TxBlockCache.first = 0;
 	m_TxBlockCache.second.resize(NUM_PAGES_CACHE*PAGE_SIZE);
 	m_TxBlockCache.second.push_back("32877419b0d2bf10dee7a7d306deddc5d7d972fa69ae7affcec575781002cfc3");
@@ -532,6 +532,7 @@ Json::Value Server::DSBlockListing(unsigned int page)
 	}
 
 	unsigned int offset = PAGE_SIZE*(page-1);
+	Json::Value tmpJson;
 	if(page <= NUM_PAGES_CACHE) //can use cache
 	{
 		
@@ -541,19 +542,23 @@ Json::Value Server::DSBlockListing(unsigned int page)
 			cacheSize = m_DSBlockCache.second.size();
 		}
 
-
+		
 		for(unsigned int i = offset ; i<PAGE_SIZE + offset && i < cacheSize  ; i++)
 		{
-			_json["Hashes"].append(m_DSBlockCache.second[cacheSize-i-1]);
-			_json["BlockNums"].append(int(currBlockNum-i));
+			tmpJson.clear();
+			tmpJson["Hash"] = m_DSBlockCache.second[cacheSize-i-1];
+			tmpJson["BlockNum"] = int(currBlockNum-i);
+			_json["data"].append(tmpJson);
 		}
 	}
 	else
 	{
 		for(boost::multiprecision::uint256_t i = offset ; i < PAGE_SIZE + offset  && i <= currBlockNum ; i++)
 		{
-			_json["Hashes"].append(m_mediator.m_dsBlockChain.GetBlock(currBlockNum - i + 1).GetHeader().GetPrevHash().hex());
-			_json["BlockNum"].append(int(currBlockNum-i));
+			tmpJson.clear();
+			tmpJson["Hash"] = m_mediator.m_dsBlockChain.GetBlock(currBlockNum - i + 1).GetHeader().GetPrevHash().hex();
+			tmpJson["BlockNum"] = int(currBlockNum-i);
+			_json["data"].append(tmpJson);
 		}
 
 	}
@@ -602,6 +607,7 @@ Json::Value Server::TxBlockListing(unsigned int page)
 	}
 
 	unsigned int offset = PAGE_SIZE*(page-1);
+	Json::Value tmpJson;
 	if(page <= NUM_PAGES_CACHE) //can use cache
 	{
 		
@@ -614,8 +620,10 @@ Json::Value Server::TxBlockListing(unsigned int page)
 
 		for(unsigned int i = offset ; i<PAGE_SIZE + offset && i < cacheSize  ; i++)
 		{
-			_json["Hashes"].append(m_TxBlockCache.second[cacheSize-i-1]);
-			_json["BlockNums"].append(int(currBlockNum-i));
+			tmpJson.clear();
+			tmpJson["Hash"] = m_TxBlockCache.second[cacheSize-i-1];
+			tmpJson["BlockNum"] = int(currBlockNum-i);
+			_json["data"].append(tmpJson);
 		}
 	}
 	else
@@ -623,8 +631,10 @@ Json::Value Server::TxBlockListing(unsigned int page)
 		
 		for(boost::multiprecision::uint256_t i = offset ; i < PAGE_SIZE + offset  && i <= currBlockNum ; i++)
 		{
-			_json["Hashes"].append(m_mediator.m_txBlockChain.GetBlock(currBlockNum - i + 1).GetHeader().GetPrevHash().hex());
-			_json["BlockNum"].append(int(currBlockNum-i));
+			tmpJson.clear();
+			tmpJson["Hash"] = m_mediator.m_txBlockChain.GetBlock(currBlockNum - i + 1).GetHeader().GetPrevHash().hex();
+			tmpJson["BlockNum"] = int(currBlockNum-i);
+			_json["data"].append(tmpJson);
 		}
 
 	}
@@ -666,7 +676,7 @@ Json::Value Server::getRecentTransactions()
 		actualSize = m_RecentTransactions.size();
 	}
 	_json["number"] = int(actualSize);
-	for(int i = 0 ; i < int(actualSize) ; i++)
+	for(int i = static_cast<int>(actualSize)-1 ; i >= 0 ; i--)
 	{
 		_json["TxnHashes"].append(m_RecentTransactions[i]);
 	}
