@@ -106,7 +106,7 @@ public:
         m_size++;
     }
 
-    /// Returns the number of elements currently stored in the array.
+    /// Returns the number of elements stored till now in the array.
     boost::multiprecision::uint256_t size()
     {
         return m_size;
@@ -117,8 +117,6 @@ public:
     {
         return m_capacity;
     }
-
-
 };
 
 #endif // __CIRCULARARRAY_H__
