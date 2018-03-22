@@ -240,8 +240,9 @@ bool P2PComm::SendMessageSocketCore(const Peer & peer, const std::vector<unsigne
             LOG_MESSAGE("DEBUG: Sent a total of " << written_length << " bytes");
         }
     }
-    catch( ... )
+    catch(std::exception& e)
     {
+        LOG_MESSAGE(e.what());
         LOG_MESSAGE("ERROR: Error with write socket.");
         return false;
     }
