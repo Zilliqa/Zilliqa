@@ -735,6 +735,7 @@ bool Lookup::ProcessGetStateFromSeed(const vector<unsigned char> & message, unsi
                                                 LookupInstructionType::SETSTATEFROMSEED };
     unsigned int curr_offset = MessageOffset::BODY;
     curr_offset += AccountStore::GetInstance().Serialize(setStateMessage, curr_offset);
+    AccountStore::GetInstance().PrintAccountState();
     P2PComm::GetInstance().SendBroadcastMessage(node, setStateMessage);
 // #endif // IS_LOOKUP_NODE
 
