@@ -47,6 +47,9 @@ class P2PComm
     bool SendMessageSocketCore(const Peer & peer, const std::vector<unsigned char> & message, unsigned char start_byte, const std::vector<unsigned char> & msg_hash);
     void SendBroadcastMessageCore(const std::vector<Peer> & peers, const std::vector<unsigned char> & message, const std::vector<unsigned char> & message_hash);
 
+    template<typename Container>
+    void SendMessagePoolHelper(const Container &peers, const std::vector<unsigned char> & message, const std::vector<unsigned char> & message_hash);
+
     P2PComm();
     ~P2PComm();
 
