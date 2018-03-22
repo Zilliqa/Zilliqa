@@ -647,6 +647,7 @@ Json::Value Server::GetRecentTransactions()
 		actualSize = m_RecentTransactions.size();
 	}
 	_json["number"] = int(actualSize);
+	_json["TxnHashes"] = Json::Value(Json::arrayValue);
 	for(int i = static_cast<int>(actualSize)-1 ; i >= 0 ; i--)
 	{
 		_json["TxnHashes"].append(m_RecentTransactions[i]);
