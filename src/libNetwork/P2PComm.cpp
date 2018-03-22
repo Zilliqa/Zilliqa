@@ -20,6 +20,7 @@
 #include <unistd.h>
 #include <stdint.h>
 #include <cstring>
+#include <memory>
 #include <errno.h>
 #include <signal.h> 
 
@@ -255,25 +256,26 @@ void P2PComm::SendBroadcastMessageCore(const vector<Peer> & peers,
     lock_guard<mutex> guard(m_broadcastCoreMutex);
 
     vector<unsigned int> indexes(peers.size());
+
+    //TODO: maintain a sync copy of peers as a data member and directly shuffle the copy
     for (unsigned int i = 0; i < indexes.size(); i++)
     {
         indexes.at(i) = i;
     }
     random_shuffle(indexes.begin(), indexes.end());
-    
-    ThreadPool pool(MAXMESSAGE);
+
+    auto sharedMessage = make_shared<vector<unsigned char>>(message);
+    auto sharedMessageHash = make_shared<vector<unsigned char>>(message_hash);
+
     for (vector<unsigned int>::const_iterator curr = indexes.begin(); curr < indexes.end(); curr++)
     {
-            
         Peer peer = peers.at(*curr);
-        auto func1 = [this, peer, &message, &message_hash]() mutable -> void
+        auto func1 = [this, peer, sharedMessage, sharedMessageHash]() mutable -> void
         {
-            SendMessageCore(peer, message, START_BYTE_BROADCAST, message_hash);
+            SendMessageCore(peer, *sharedMessage.get(), START_BYTE_BROADCAST, *sharedMessageHash.get());
         };
-        pool.AddJob(func1);
+        m_SendPool.AddJob(func1);
     }
-    pool.WaitAll(); 
-    pool.JoinAll();
 
     // TODO: are we sure there wont be many threads arising from this, will ThreadPool alleviate it?
     // Launch a separate, detached thread to automatically remove the hash from the list after a long time period has elapsed
