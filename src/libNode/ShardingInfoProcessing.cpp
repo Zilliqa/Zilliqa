@@ -157,6 +157,25 @@ bool Node::ProcessSharding(const vector<unsigned char> & message, unsigned int o
         LOG_STATE("[IDENT][" << std::setw(15) << std::left << m_mediator.m_selfPeer.GetPrintableIPAddress() << "][" << m_myShardID << "][" << std::setw(3) << std::left << m_consensusMyID << "] SCBK");
 #endif // STAT_TEST
     }
+    
+    // Choose 4 other node to be sender of microblock to ds committee. 
+    // TODO: Randomly choose these nodes?
+    m_isMBSender = false; 
+    unsigned int numOfMBSender = 5;
+    if (m_myShardMembersPubKeys.size() < numOfMBSender)
+    {
+        numOfMBSender = m_myShardMembersPubKeys.size();
+    }
+    
+    // Shard leader will not have the flag set
+    for (unsigned int i = 1; i < numOfMBSender; i++)
+    {
+        if (m_mediator.m_selfKey.second == m_myShardMembersPubKeys.at(i))
+        {
+            // Selected node to be sender of its shard's micrblock
+            m_isMBSender = true; 
+        }
+    }
 
     m_consensusLeaderID = 0;
 
