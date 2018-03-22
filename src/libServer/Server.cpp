@@ -64,22 +64,22 @@ Server::~Server()
 	// destructor
 }
 
-string Server::getClientVersion()
+string Server::GetClientVersion()
 {
 	return "Hello";
 }
 
-string Server::getNetworkId()
+string Server::GetNetworkId()
 {
 	return "TestNet";
 }
 
-string Server::getProtocolVersion()
+string Server::GetProtocolVersion()
 {
 	return "Hello";
 }
 
-string Server::createTransaction(const Json::Value& _json)
+string Server::CreateTransaction(const Json::Value& _json)
 {
 	LOG_MARKER();
 
@@ -143,7 +143,7 @@ string Server::createTransaction(const Json::Value& _json)
    	
 }
 
-Json::Value Server::getTransaction(const string & transactionHash)
+Json::Value Server::GetTransaction(const string & transactionHash)
 {
 	LOG_MARKER();
 	TxBodySharedPtr tx;
@@ -159,7 +159,7 @@ Json::Value Server::getTransaction(const string & transactionHash)
 	return JSONConversion::convertTxtoJson(txn);
  }
 
-Json::Value Server::getDsBlock(const string & blockNum)
+Json::Value Server::GetDsBlock(const string & blockNum)
 {
 
 	
@@ -176,7 +176,7 @@ Json::Value Server::getDsBlock(const string & blockNum)
 	}
 }
 
-Json::Value Server::getTxBlock(const string & blockNum)
+Json::Value Server::GetTxBlock(const string & blockNum)
 {
 	try
 	{
@@ -191,12 +191,12 @@ Json::Value Server::getTxBlock(const string & blockNum)
 	}
 }
 
-string Server::getGasPrice()
+string Server::GetGasPrice()
 {
 	return "Hello";
 }
 
-Json::Value Server::getLatestDsBlock()
+Json::Value Server::GetLatestDsBlock()
 {
 	LOG_MARKER();
 	DSBlock Latest = m_mediator.m_dsBlockChain.GetLastBlock();
@@ -206,7 +206,7 @@ Json::Value Server::getLatestDsBlock()
 	return JSONConversion::convertDSblocktoJson(Latest);
 }
 
-Json::Value Server::getLatestTxBlock()
+Json::Value Server::GetLatestTxBlock()
 {
 	LOG_MARKER();
 	TxBlock Latest = m_mediator.m_txBlockChain.GetLastBlock();
@@ -216,7 +216,7 @@ Json::Value Server::getLatestTxBlock()
 	return JSONConversion::convertTxBlocktoJson(Latest);
 }
 
-Json::Value Server::getBalance(const string & address)
+Json::Value Server::GetBalance(const string & address)
 {
 	LOG_MARKER();
 	vector<unsigned char> tmpaddr = DataConversion::HexStrToUint8Vec(address);
@@ -241,37 +241,37 @@ Json::Value Server::getBalance(const string & address)
 	return ret;
 }
 
-string Server::getStorageAt(const string & address, const string & position)
+string Server::GetStorageAt(const string & address, const string & position)
 {
 	return "Hello";
 }
 
-Json::Value Server::getTransactionHistory(const string & transactionHash)
+Json::Value Server::GetTransactionHistory(const string & transactionHash)
 {
 	return "Hello";
 }
 
-string Server::getBlockTransactionCount(const string & blockHash)
+string Server::GetBlockTransactionCount(const string & blockHash)
 {
 	return "Hello";
 }
 
-string Server::getCode(const string & address)
+string Server::GetCode(const string & address)
 {
 	return "Hello";
 }
 
-string Server::createMessage(const Json::Value &_json)
+string Server::CreateMessage(const Json::Value &_json)
 {
 	return "Hello";
 }
 
-string Server::getGasEstimate(const Json::Value &_json)
+string Server::GetGasEstimate(const Json::Value &_json)
 {
 	return "Hello";
 }
 
-Json::Value Server::getTransactionReceipt(const string & transactionHash)
+Json::Value Server::GetTransactionReceipt(const string & transactionHash)
 {
 	return "Hello";
 }
@@ -286,34 +286,34 @@ bool Server::isNodeMining()
 	return "Hello";
 }
 
-string Server::getHashrate()
+string Server::GetHashrate()
 {
 	return "Hello";
 }
 
 
-unsigned int Server::getNumPeers()
+unsigned int Server::GetNumPeers()
 {
 	LOG_MARKER();
 	unsigned int numPeers = m_mediator.m_lookup->GetNodePeers().size();
 	return numPeers;
 }
 
-string Server::getNumTxBlocks()
+string Server::GetNumTxBlocks()
 {
 	LOG_MARKER();
 
 	return m_mediator.m_txBlockChain.GetBlockCount().str();
 }
 
-string Server::getNumDSBlocks()
+string Server::GetNumDSBlocks()
 {
 	LOG_MARKER();
 
 	return m_mediator.m_dsBlockChain.GetBlockCount().str();
 }
 
-string Server::getNumTransactions()
+string Server::GetNumTransactions()
 {
 	LOG_MARKER();
 
@@ -333,11 +333,11 @@ string Server::getNumTransactions()
 
 }
 
-double Server::getTransactionRate()
+double Server::GetTransactionRate()
 {
 	LOG_MARKER();
 
-	string numTxStr = Server::getNumTransactions();
+	string numTxStr = Server::GetNumTransactions();
 	boost::multiprecision::cpp_dec_float_50 numTxns(numTxStr);
 	LOG_MESSAGE("Num Txns: "<< numTxns);
 
@@ -383,7 +383,7 @@ double Server::getTransactionRate()
 	
 }
 
-double Server::getDSBlockRate()
+double Server::GetDSBlockRate()
 {
 	LOG_MARKER();
 
@@ -422,7 +422,7 @@ double Server::getDSBlockRate()
 	return ans.convert_to<double>();
 }
 
-double Server::getTxBlockRate()
+double Server::GetTxBlockRate()
 {
 	LOG_MARKER();
 
@@ -462,14 +462,14 @@ double Server::getTxBlockRate()
 	return ans.convert_to<double>();
 }
 
-string Server::getCurrentMiniEpoch()
+string Server::GetCurrentMiniEpoch()
 {
 	LOG_MARKER();
 
 	return to_string(m_mediator.m_currentEpochNum);
 }
 
-string Server::getCurrentDSEpoch()
+string Server::GetCurrentDSEpoch()
 {
 	LOG_MARKER();
 
@@ -621,25 +621,25 @@ Json::Value Server::TxBlockListing(unsigned int page)
 }
 
 
-Json::Value Server::getBlockchainInfo()
+Json::Value Server::GetBlockchainInfo()
 {
 	Json::Value _json;
 	
-	_json["NumPeers"] = Server::getNumPeers();
-    _json["NumTxBlocks"] = Server::getNumTxBlocks();
-    _json["NumDSBlocks"] = Server::getNumDSBlocks();
-    _json["NumTransactions"] = Server::getNumTransactions();
-    _json["TransactionRate"] = Server::getTransactionRate();
-    _json["TxBlockRate"] = Server::getTxBlockRate();
-    _json["DSBlockRate"] = Server::getDSBlockRate();
-    _json["CurrentMiniEpoch"] = Server::getCurrentMiniEpoch();
-    _json["CurrentDSEpoch"] = Server::getCurrentDSEpoch();
+	_json["NumPeers"] = Server::GetNumPeers();
+	_json["NumTxBlocks"] = Server::GetNumTxBlocks();
+	_json["NumDSBlocks"] = Server::GetNumDSBlocks();
+	_json["NumTransactions"] = Server::GetNumTransactions();
+	_json["TransactionRate"] = Server::GetTransactionRate();
+	_json["TxBlockRate"] = Server::GetTxBlockRate();
+	_json["DSBlockRate"] = Server::GetDSBlockRate();
+	_json["CurrentMiniEpoch"] = Server::GetCurrentMiniEpoch();
+	_json["CurrentDSEpoch"] = Server::GetCurrentDSEpoch();
 
-    return _json;
+	return _json;
 }
 
 
-Json::Value Server::getRecentTransactions()
+Json::Value Server::GetRecentTransactions()
 {
 	LOG_MARKER();
 
