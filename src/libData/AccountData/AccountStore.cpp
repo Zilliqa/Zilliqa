@@ -78,12 +78,14 @@ unsigned int AccountStore::Serialize(vector<unsigned char> & dst, unsigned int o
 
         copy(address_vec.begin(), address_vec.end(), std::back_inserter(dst));
         curOffset += ACC_ADDR_SIZE;
-        totalSerializedSize += ACC_ADDR_SIZE; 
+        totalSerializedSize += ACC_ADDR_SIZE;
 
         // Account 
         size_needed = entry.second.Serialize(dst, curOffset);
         curOffset += size_needed; 
         totalSerializedSize += size_needed; 
+
+        LOG_MESSAGE("AC Serialize: "<< dst);
     }
 
     return totalSerializedSize; 
@@ -116,7 +118,7 @@ void AccountStore::Deserialize(const vector<unsigned char> & src, unsigned int o
 
         m_addressToAccount.insert(make_pair(address, account));
         UpdateStateTrie(address, account);
-	// MoveUpdatesToDisk();
+        // MoveUpdatesToDisk();
     }
     PrintAccountState();
 }
