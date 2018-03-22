@@ -13,12 +13,20 @@
 # GPLv3.0 are those programs that are located in the folders src/depends and tests/depends 
 # and which include a reference to GPLv3 in their program files.
 
-rm -rf ./blocks
-rm -rf ./blocks.db
-rm -rf ./dsblocks.db
-rm -rf ./txblocks.db
-rm -rf ./test.db
-rm -rf ./txbodies.db
+# Usage:
+# 
+#   run this script with 'watch':
+#       watch -n1 tests/Node/watch_node_simple.sh'
 
-cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo .
-make -j4
+for id in {01..20}
+do
+    port=50$id
+    node_cmd_info=$(pgrep -f "zilliqa.*127\.0\.0\.1 $port" -a | cut -f1,5,6 -d" ")  
+    node_log=$(tail -n1 local_run/node_00$id/zilliqa-00001-log.txt)
+    if [[ -z $node_cmd_info ]]
+    then
+        node_cmd_info="dead"
+        node_log=$(tail -n1 local_run/node_00$id/error_log_zilliqa)
+    fi
+    echo node $id: $node_cmd_info $node_log
+done
