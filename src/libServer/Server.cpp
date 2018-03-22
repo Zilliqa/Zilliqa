@@ -376,11 +376,7 @@ double Server::GetTransactionRate()
 	boost::multiprecision::cpp_dec_float_50 TimeDiffFloat = static_cast<cpp_dec_float_50>(TimeDiff);
 	boost::multiprecision::cpp_dec_float_50 ans = numTxns/TimeDiffFloat;
 
-	//LOG_MESSAGE("Rate: "<<ans);
-
 	return ans.convert_to<double>();
-	
-	
 }
 
 double Server::GetDSBlockRate()
@@ -418,7 +414,6 @@ double Server::GetDSBlockRate()
 
 	boost::multiprecision::cpp_dec_float_50 TimeDiffFloat = static_cast<cpp_dec_float_50>(TimeDiff);
 	boost::multiprecision::cpp_dec_float_50 ans = numDs/TimeDiffFloat;
-
 	return ans.convert_to<double>();
 }
 
@@ -458,7 +453,6 @@ double Server::GetTxBlockRate()
 
 	boost::multiprecision::cpp_dec_float_50 TimeDiffFloat(TimeDiff.str());
 	boost::multiprecision::cpp_dec_float_50 ans = numTx/TimeDiffFloat;
-
 	return ans.convert_to<double>();
 }
 
