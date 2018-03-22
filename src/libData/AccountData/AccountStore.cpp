@@ -233,6 +233,7 @@ uint256_t AccountStore::GetNumOfAccounts() const
 bool AccountStore::UpdateStateTrie(const Address & address, const Account & account) 
 {
     dev::RLPStream rlpStream(2);
+    LOG_MESSAGE("Address: " << address.hex() << " balance: " << account.GetBalance() << " nonce: " << account.GetNonce());
     rlpStream << account.GetBalance() << account.GetNonce();
     m_state.insert(address, &rlpStream.out());
 
