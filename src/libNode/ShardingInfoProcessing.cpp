@@ -125,6 +125,12 @@ bool Node::ProcessSharding(const vector<unsigned char> & message, unsigned int o
 
     m_mediator.m_isConnectedToNetwork = true;
 
+    /// if it is a new node joining after finishing pow2, commit the state into db
+    if(m_isNewNode)
+    {
+        AccountStore::GetInstance().MoveUpdatesToDisk();
+    }
+
     // if (m_state != TX_SUBMISSION)
     if (!CheckState(PROCESS_SHARDING))
     {
