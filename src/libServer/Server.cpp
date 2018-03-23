@@ -483,7 +483,7 @@ Json::Value Server::DSBlockListing(unsigned int page)
 
 	_json["maxPages"] = int(maxPages);
 
-	if(page > maxPages)
+	if(page > maxPages || page < 1 )
 	{
 		_json["Error"] = "Pages out of limit";
 		return _json;
@@ -555,7 +555,7 @@ Json::Value Server::TxBlockListing(unsigned int page)
 
 	_json["maxPages"] = int(maxPages);
 
-	if(page > maxPages)
+	if(page > maxPages || page < 1 )
 	{
 		_json["Error"] = "Pages out of limit";
 		return _json;
