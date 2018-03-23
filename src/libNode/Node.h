@@ -92,6 +92,7 @@ class Node : public Executable, public Broadcastable
     std::deque<PubKey> m_myShardMembersPubKeys;
     std::deque<Peer> m_myShardMembersNetworkInfo;
     std::atomic<bool> m_isPrimary;
+    std::atomic<bool> m_isMBSender;
     std::atomic<uint32_t> m_myShardID;
     std::atomic<uint32_t> m_numShards;
 
@@ -107,6 +108,7 @@ class Node : public Executable, public Broadcastable
     std::vector<unsigned char> m_consensusBlockHash;
     std::atomic<uint32_t> m_consensusMyID;
     std::shared_ptr<MicroBlock> m_microblock;
+    std::mutex m_mutexMicroBlock;
 
     const static uint32_t RECVTXNDELAY_MILLISECONDS = 3000;
     const unsigned int SUBMIT_TX_WINDOW = 15;
@@ -128,7 +130,6 @@ class Node : public Executable, public Broadcastable
     std::mutex m_mutexCommittedTransactions;
     std::unordered_map<boost::multiprecision::uint256_t, 
                        std::list<Transaction>> m_committedTransactions;
-
 
     std::mutex m_mutexForwardingAssignment;
     std::unordered_map<boost::multiprecision::uint256_t, std::vector<Peer>> m_forwardingAssignment;
@@ -260,7 +261,7 @@ class Node : public Executable, public Broadcastable
     bool RunConsensusOnMicroBlockWhenShardBackup();
     bool RunConsensusOnMicroBlock();
     bool ComposeMicroBlock();
-    void ProcessMicroblockConsensusIfPrimary() const;
+    void SubmitMicroblockToDSCommittee() const;
     bool MicroBlockValidator(const std::vector<unsigned char> & sharding_structure,
                              std::vector<unsigned char> & errorMsg);
     bool CheckLegitimacyOfTxnHashes(std::vector<unsigned char> & errorMsg);
