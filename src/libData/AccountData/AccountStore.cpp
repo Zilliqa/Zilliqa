@@ -84,8 +84,6 @@ unsigned int AccountStore::Serialize(vector<unsigned char> & dst, unsigned int o
         size_needed = entry.second.Serialize(dst, curOffset);
         curOffset += size_needed; 
         totalSerializedSize += size_needed; 
-
-        LOG_MESSAGE("AC Serialize: "<< dst);
     }
 
     return totalSerializedSize; 
@@ -236,7 +234,6 @@ uint256_t AccountStore::GetNumOfAccounts() const
 bool AccountStore::UpdateStateTrie(const Address & address, const Account & account) 
 {
     dev::RLPStream rlpStream(2);
-    LOG_MESSAGE("Address: " << address.hex() << " balance: " << account.GetBalance() << " nonce: " << account.GetNonce());
     rlpStream << account.GetBalance() << account.GetNonce();
     m_state.insert(address, &rlpStream.out());
 
