@@ -59,11 +59,19 @@ void DSBlock::Deserialize(const vector<unsigned char> & src, unsigned int offset
 {
     LOG_MARKER();
 
-    unsigned int header_size_needed = sizeof(uint8_t) + BLOCK_HASH_SIZE + UINT256_SIZE + PUB_KEY_SIZE + PUB_KEY_SIZE + UINT256_SIZE + UINT256_SIZE;
+    try
+    {
+        unsigned int header_size_needed = sizeof(uint8_t) + BLOCK_HASH_SIZE + UINT256_SIZE + PUB_KEY_SIZE + PUB_KEY_SIZE + UINT256_SIZE + UINT256_SIZE;
 
-    DSBlockHeader header(src, offset);
-    m_header = header;
-    copy(src.begin() + offset + header_size_needed, src.begin() + offset + header_size_needed + BLOCK_SIG_SIZE, m_signature.begin());
+        DSBlockHeader header(src, offset);
+        m_header = header;
+        copy(src.begin() + offset + header_size_needed, src.begin() + offset + header_size_needed + BLOCK_SIG_SIZE, m_signature.begin());
+    }
+    catch(const std::exception& e)
+    {
+        LOG_MESSAGE("ERROR: Error with DSBlock::Deserialize." << ' ' << e.what());
+
+    }
 }
 
 unsigned int DSBlock::GetSerializedSize()
