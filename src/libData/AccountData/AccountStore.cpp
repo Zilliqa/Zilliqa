@@ -116,7 +116,7 @@ void AccountStore::Deserialize(const vector<unsigned char> & src, unsigned int o
 
         m_addressToAccount.insert(make_pair(address, account));
         UpdateStateTrie(address, account);
-        // MoveUpdatesToDisk();
+        MoveUpdatesToDisk();
     }
     PrintAccountState();
 }
@@ -395,7 +395,9 @@ bool AccountStore::RetrieveFromDisk()
     LOG_MARKER();
     std::vector<unsigned char> rootBytes;
     if(!BlockStorage::GetBlockStorage().GetMetadata(STATEROOT, rootBytes))
+    {
         return false;
+    }
     dev::h256 root(rootBytes);
     m_state.setRoot(root);
     for(auto i : m_state)
