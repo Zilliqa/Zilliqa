@@ -24,8 +24,6 @@
 
 
 
-using namespace jsonrpc;
-using TxnHash = dev::h256;
 class Mediator;
 
 class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer>
@@ -268,11 +266,11 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer>
 class Server: public AbstractZServer
 {
     Mediator & m_mediator;
-    pair<boost::multiprecision::uint256_t, boost::multiprecision::uint256_t> m_BlockTxPair;
+    std::pair<boost::multiprecision::uint256_t, boost::multiprecision::uint256_t> m_BlockTxPair;
     boost::multiprecision::uint256_t m_StartTimeTx;
     boost::multiprecision::uint256_t m_StartTimeDs;
-    pair<boost::multiprecision::uint256_t, CircularArray<std::string>> m_DSBlockCache;
-    pair<boost::multiprecision::uint256_t, CircularArray<std::string>> m_TxBlockCache;
+    std::pair<boost::multiprecision::uint256_t, CircularArray<std::string>> m_DSBlockCache;
+    std::pair<boost::multiprecision::uint256_t, CircularArray<std::string>> m_TxBlockCache;
     static CircularArray <std::string> m_RecentTransactions;
     static std::mutex m_mutexRecentTxns;
 
@@ -280,7 +278,7 @@ class Server: public AbstractZServer
     
     public:
 
-        Server(Mediator & mediator, HttpServer & httpserver);
+        Server(Mediator & mediator, jsonrpc::HttpServer & httpserver);
         ~Server();
 
         virtual std::string GetClientVersion();
@@ -317,5 +315,5 @@ class Server: public AbstractZServer
         virtual Json::Value TxBlockListing(unsigned int page);
         virtual Json::Value GetBlockchainInfo();
         virtual Json::Value GetRecentTransactions();
-        static void AddToRecentTransactions(const TxnHash & txhash);
+        static void AddToRecentTransactions(const dev::h256 & txhash);
 };
