@@ -98,6 +98,9 @@ class Node : public Executable, public Broadcastable
     // DS committee information
     bool m_isDSNode = true;
 
+    // Is New Node
+    bool m_isNewNode = false;
+
     // Consensus variables
     std::shared_ptr<ConsensusCommon> m_consensusObject;
     
