@@ -84,7 +84,7 @@ bool BlockStorage::PutTxBody(const dev::h256 & key, const vector<unsigned char> 
 {
     LOG_MARKER();
     
-    int ret = m_txBodyDB.Insert(key, body) && m_txBodyTmpDB.Insert(key, "");
+    int ret = m_txBodyDB.Insert(key, body) && m_txBodyTmpDB.Insert(key, body);
     return (ret == 0);
 }
 
