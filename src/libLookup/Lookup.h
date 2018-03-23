@@ -41,6 +41,8 @@ class Lookup : public Executable, public Broadcastable
     // Info about lookup node
     std::vector<Peer> m_lookupNodes;
     std::vector<Peer> m_seedNodes;
+
+    bool CheckStateRoot();
 #endif // IS_LOOKUP_NODE
 
 #ifdef IS_LOOKUP_NODE
@@ -64,7 +66,10 @@ class Lookup : public Executable, public Broadcastable
     std::vector<unsigned char> ComposeGetDSBlockMessage(
         boost::multiprecision::uint256_t lowBlockNum, boost::multiprecision::uint256_t highBlockNum);    
     std::vector<unsigned char> ComposeGetTxBlockMessage(
-        boost::multiprecision::uint256_t lowBlockNum, boost::multiprecision::uint256_t highBlockNum);        
+        boost::multiprecision::uint256_t lowBlockNum, boost::multiprecision::uint256_t highBlockNum);
+
+    bool receivedLatestTxBlocks = false;
+    bool receivedLastestState = false;
 
 public:
 
