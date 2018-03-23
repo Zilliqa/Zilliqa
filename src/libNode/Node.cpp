@@ -128,6 +128,7 @@ bool Node::StartRetrieveHistory()
 
 void Node::StartSynchronization()
 {
+    m_isNewNode = true;
     auto func = [this]() -> void
     {
         while (!m_mediator.m_isConnectedToNetwork)
