@@ -90,8 +90,6 @@ vector<Peer> Lookup::GetLookupNodes()
     return m_lookupNodes;
 }
 
-
-
 void Lookup::SendMessageToLookupNodes(const std::vector<unsigned char> & message) const
 {
     LOG_MARKER();
