@@ -246,7 +246,10 @@ bool Node::FindTxnInSubmittedTxnsList(const TxBlock & finalblock, const uint256_
         // Store TxBody to disk
         vector<unsigned char> serializedTxBody;
         committedTransactions.back().Serialize(serializedTxBody, 0);
-        BlockStorage::GetBlockStorage().PutTxBody(tx_hash, serializedTxBody);
+        if(BlockStorage::GetBlockStorage().PutTxBody(tx_hash, serializedTxBody))
+        {
+          LOG_MESSAGE("FAIL: PutTxBody Failed");
+        }
 
         // Move on to next transaction in block
         return true;
@@ -309,7 +312,10 @@ bool Node::FindTxnInReceivedTxnsList(const TxBlock & finalblock, const uint256_t
         // Store TxBody to disk
         vector<unsigned char> serializedTxBody;
         committedTransactions.back().Serialize(serializedTxBody, 0);
-        BlockStorage::GetBlockStorage().PutTxBody(tx_hash, serializedTxBody);
+        if(!BlockStorage::GetBlockStorage().PutTxBody(tx_hash, serializedTxBody))
+        {
+          LOG_MESSAGE("FAIL: PutTxBody Failed");
+        }
 
         // Move on to next transaction in block
         return true;
