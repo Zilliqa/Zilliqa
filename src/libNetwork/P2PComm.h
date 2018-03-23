@@ -48,6 +48,9 @@ class P2PComm
     void SendBroadcastMessageCore(const std::vector<Peer> & peers, const std::vector<unsigned char> & message, const std::vector<unsigned char> & message_hash);
     void SendBroadcastMessageCore(const std::deque<Peer> & peers, const std::vector<unsigned char> & message, const std::vector<unsigned char> & message_hash);
 
+    template<unsigned char START_BYTE, typename Container>
+    void SendMessagePoolHelper(const Container &peers, const std::vector<unsigned char> & message, const std::vector<unsigned char> & message_hash);
+
     P2PComm();
     ~P2PComm();
 
@@ -55,6 +58,8 @@ class P2PComm
     Peer m_selfPeer;
 #endif // STAT_TEST
 
+    ThreadPool m_SendPool{MAXMESSAGE};
+    ThreadPool m_RecvPool{MAXMESSAGE};
 public:
 
     /// Returns the singleton P2PComm instance.
