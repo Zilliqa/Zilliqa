@@ -1339,7 +1339,6 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char> & message, unsi
 
     unique_lock<mutex> lock(m_mutexSetState);
     unsigned int curr_offset = offset;
-    AccountStore::GetInstance().Init();
     AccountStore::GetInstance().Deserialize(message, curr_offset);
 
 #endif // IS_LOOKUP_NODE
