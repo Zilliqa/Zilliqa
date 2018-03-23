@@ -248,7 +248,8 @@ bool P2PComm::SendMessageSocketCore(const Peer & peer, const std::vector<unsigne
     return true;
 }
 
-void P2PComm::SendBroadcastMessageCore(const vector<Peer> & peers,
+template<typename Container>
+void P2PComm::SendBroadcastMessageCore(const Container & peers,
                                        const vector<unsigned char> & message,
                                        const vector<unsigned char> & message_hash)
 {
@@ -408,12 +409,8 @@ void P2PComm::HandleAcceptedConnection(int cli_sock, Peer from,
             vector<Peer> broadcast_list = broadcast_list_retriever(msg_type, ins_type, from);
             if (broadcast_list.size() > 0)
             {
-                // Launch a separate thread to forward the message to peers
                 vector<unsigned char> this_msg_hash(hash_buf, hash_buf + HASH_LEN);
-                auto func = [this, &broadcast_list, &message, &this_msg_hash]() ->
-                             void { SendBroadcastMessageCore(broadcast_list, message,
-                                                             this_msg_hash); };
-                JoinableFunction jf(1, func);
+                SendBroadcastMessageCore(broadcast_list, message, this_msg_hash);
             }
 
 #ifdef STAT_TEST
@@ -570,35 +567,51 @@ void P2PComm::SendMessage(const Peer & peer, const vector<unsigned char> & messa
     SendMessageCore(peer, message, START_BYTE_NORMAL, vector<unsigned char>());
 }
 
+template<typename Container>
+void P2PComm::SendBroadcastMessageHelper(const Container & peers, const std::vector<unsigned char> & message)
+{
+    if (peers.empty())
+    {
+        return;
+    }
+
+    SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
+    sha256.Update(message);
+    vector<unsigned char> this_msg_hash = sha256.Finalize();
+
+    {
+        lock_guard<mutex> guard(m_broadcastHashesMutex);
+        m_broadcastHashes.insert(this_msg_hash);
+    }
+
+#ifdef STAT_TEST
+    LOG_STATE("[BROAD][" << std::setw(15) << std::left << m_selfPeer.GetPrintableIPAddress() <<
+              "][" << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6) << "] BEGN");
+#endif // STAT_TEST
+
+    SendBroadcastMessageCore(peers, message, this_msg_hash);
+
+#ifdef STAT_TEST
+    LOG_STATE("[BROAD][" << std::setw(15) << std::left << m_selfPeer.GetPrintableIPAddress() <<
+              "][" << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6) << "] DONE");
+#endif // STAT_TEST
+}
+
 void P2PComm::SendBroadcastMessage(const vector<Peer> & peers,
                                    const vector<unsigned char> & message)
 {
     LOG_MARKER();
-
-    if (peers.size() > 0)
-    {
-        SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
-        sha256.Update(message);
-        vector<unsigned char> this_msg_hash = sha256.Finalize();
-
-        {
-            lock_guard<mutex> guard(m_broadcastHashesMutex);
-            m_broadcastHashes.insert(this_msg_hash);
-        }
-
-#ifdef STAT_TEST
-        LOG_STATE("[BROAD][" << std::setw(15) << std::left << m_selfPeer.GetPrintableIPAddress() <<
-                  "][" << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6) << "] BEGN");
-#endif // STAT_TEST
-
-        SendBroadcastMessageCore(peers, message, this_msg_hash);
-
-#ifdef STAT_TEST
-        LOG_STATE("[BROAD][" << std::setw(15) << std::left << m_selfPeer.GetPrintableIPAddress() <<
-                  "][" << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6) << "] DONE");
-#endif // STAT_TEST
-    }
+    SendBroadcastMessageHelper(peers, message);
 }
+
+void P2PComm::SendBroadcastMessage(const deque<Peer> & peers,
+                                   const vector<unsigned char> & message)
+{
+    LOG_MARKER();
+    SendBroadcastMessageHelper(peers, message);
+}
+
+
 
 #ifdef STAT_TEST
 void P2PComm::SetSelfPeer(const Peer & self)

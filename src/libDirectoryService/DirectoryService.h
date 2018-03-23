@@ -98,6 +98,9 @@ class DirectoryService : public Executable, public Broadcastable
     std::vector<std::map<PubKey, Peer>> m_shards;
     std::map<PubKey, uint32_t> m_publicKeyToShardIdMap;
 
+    std::mutex m_MutexScheduleFinalBlockConsensus;
+    std::condition_variable cv_scheduleFinalBlockConsensus;
+
     // PoW common variables
     std::mutex m_mutexAllPoWs;
     std::map<PubKey, Peer> m_allPoWConns;

@@ -24,6 +24,7 @@
 #include <memory>
 #include <vector>
 #include <array>
+#include <mutex>
 
 #include "common/Serializable.h"
 #include "common/Constants.h"
@@ -48,6 +49,8 @@ struct Curve
 /// EC-Schnorr utility for serializing BIGNUM data type.
 struct BIGNUMSerialize
 {
+    static std::mutex m_mutexBIGNUM;
+
     /// Deserializes a BIGNUM from specified byte stream.
     static std::shared_ptr<BIGNUM> GetNumber(const std::vector<unsigned char> & src, unsigned int offset, unsigned int size);
 
@@ -58,6 +61,8 @@ struct BIGNUMSerialize
 /// EC-Schnorr utility for serializing ECPOINT data type.
 struct ECPOINTSerialize
 {
+    static std::mutex m_mutexECPOINT;
+
     /// Deserializes an ECPOINT from specified byte stream.
     static std::shared_ptr<EC_POINT> GetNumber(const std::vector<unsigned char> & src, unsigned int offset, unsigned int size);
 
@@ -215,6 +220,8 @@ public:
     /// In its compressed form it suffices to store the x co-ordinate and the sign for y.
     /// Hence a total of 33 bytes.
     static const unsigned int PUBKEY_COMPRESSED_SIZE_BYTES = 33;
+
+    std::mutex m_mutexSchnorr;
 
     /// Returns the singleton Schnorr instance.
     static Schnorr & GetInstance();
