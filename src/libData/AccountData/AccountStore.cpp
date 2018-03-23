@@ -199,12 +199,8 @@ void AccountStore::AddAccount(const PubKey & pubKey,
 
 void AccountStore::UpdateAccounts(const Transaction & transaction)
 {
-<<<<<<< HEAD
-    LOG_MARKER(); 
-=======
     LOG_MARKER();
-
->>>>>>> 1e39b692900b59fd4b1c23985512e2edc6ca6f62
+    
     const PubKey & senderPubKey = transaction.GetSenderPubKey();
     const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
     const Address & toAddr = transaction.GetToAddr();
