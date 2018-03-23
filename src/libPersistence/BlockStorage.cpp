@@ -82,6 +82,8 @@ bool BlockStorage::PutTxBlock(const boost::multiprecision::uint256_t & blockNum,
 
 bool BlockStorage::PutTxBody(const dev::h256 & key, const vector<unsigned char> & body)
 {
+    LOG_MARKER();
+    
     int ret = m_txBodyDB.Insert(key, body) && m_txBodyTmpDB.Insert(key, "");
     return (ret == 0);
 }
