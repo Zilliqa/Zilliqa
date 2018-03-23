@@ -121,6 +121,8 @@ AccountStore & AccountStore::GetInstance()
 
 bool AccountStore::DoesAccountExist(const Address & address)
 {
+    LOG_MARKER();
+
     if(GetAccount(address) != nullptr)
     {
         return true;
@@ -131,6 +133,8 @@ bool AccountStore::DoesAccountExist(const Address & address)
 
 void AccountStore::AddAccount(const Address & address, const Account & account)
 {
+    LOG_MARKER();
+
     if (!DoesAccountExist(address))
     {
         m_addressToAccount.insert(make_pair(address, account));
@@ -140,6 +144,8 @@ void AccountStore::AddAccount(const Address & address, const Account & account)
 
 void AccountStore::AddAccount(const PubKey & pubKey, const Account & account)
 {
+    LOG_MARKER();
+
     Address address = Account::GetAddressFromPublicKey(pubKey);
 
     if (!DoesAccountExist(address))
@@ -153,6 +159,8 @@ void AccountStore::AddAccount(const Address & address,
                               const uint256_t & balance, 
                               const uint256_t & nonce)
 {
+    LOG_MARKER();
+
     if (!DoesAccountExist(address))
     {
         Account account(balance, nonce);
@@ -168,6 +176,8 @@ void AccountStore::AddAccount(const PubKey & pubKey,
                               const uint256_t & balance, 
                               const uint256_t & nonce)
 {
+    LOG_MARKER();
+
     Address address = Account::GetAddressFromPublicKey(pubKey);
 
     if (!DoesAccountExist(address))
@@ -180,6 +190,8 @@ void AccountStore::AddAccount(const PubKey & pubKey,
 
 void AccountStore::UpdateAccounts(const Transaction & transaction)
 {
+    LOG_MARKER();
+
     const PubKey & senderPubKey = transaction.GetSenderPubKey();
     const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
     const Address & toAddr = transaction.GetToAddr();
@@ -190,6 +202,8 @@ void AccountStore::UpdateAccounts(const Transaction & transaction)
 
 Account* AccountStore::GetAccount(const Address & address)
 {
+    LOG_MARKER();
+
     auto it = m_addressToAccount.find(address);
     // LOG_MESSAGE((it != m_addressToAccount.end()));
     if(it != m_addressToAccount.end())
@@ -223,6 +237,8 @@ uint256_t AccountStore::GetNumOfAccounts() const
 
 bool AccountStore::UpdateStateTrie(const Address & address, const Account & account) 
 {
+    LOG_MARKER();
+
     dev::RLPStream rlpStream(2);
     rlpStream << account.GetBalance() << account.GetNonce();
     m_state.insert(address, &rlpStream.out());
@@ -233,6 +249,8 @@ bool AccountStore::UpdateStateTrie(const Address & address, const Account & acco
 bool AccountStore::IncreaseBalance(const Address & address, 
                                    const boost::multiprecision::uint256_t & delta)
 {
+    LOG_MARKER();
+
     if(delta == 0)
     {
         return true;
@@ -261,6 +279,8 @@ bool AccountStore::IncreaseBalance(const Address & address,
 bool AccountStore::DecreaseBalance(const Address & address, 
                                    const boost::multiprecision::uint256_t & delta)
 {
+    LOG_MARKER();
+
     if(delta == 0)
     {
         return true;
@@ -294,6 +314,8 @@ bool AccountStore::TransferBalance(const Address & from,
                                    const Address & to, 
                                    const boost::multiprecision::uint256_t & delta)
 {
+    LOG_MARKER();
+
     if(DecreaseBalance(from, delta) && IncreaseBalance(to, delta))
     {
         LOG_MESSAGE("Transfer of " << delta << " from " << from << " to " << to << " succeeded");
@@ -307,6 +329,8 @@ bool AccountStore::TransferBalance(const Address & from,
 
 boost::multiprecision::uint256_t AccountStore::GetBalance(const Address & address)
 {
+    LOG_MARKER();
+
     const Account* account = GetAccount(address);
 
     if(account != nullptr)
@@ -319,6 +343,8 @@ boost::multiprecision::uint256_t AccountStore::GetBalance(const Address & addres
 
 bool AccountStore::IncreaseNonce(const Address & address)
 {
+    LOG_MARKER();
+
     Account* account = GetAccount(address);
 
     if(account != nullptr && account->IncreaseNonce())
@@ -332,6 +358,8 @@ bool AccountStore::IncreaseNonce(const Address & address)
 
 boost::multiprecision::uint256_t AccountStore::GetNonce(const Address & address)
 {
+    LOG_MARKER();
+
     Account* account = GetAccount(address);
 
     if(account != nullptr)
@@ -351,6 +379,8 @@ dev::h256 AccountStore::GetStateRootHash() const
 
 void AccountStore::MoveUpdatesToDisk()
 {
+    LOG_MARKER();
+
     m_state.db()->commit();
     prevRoot = m_state.root();
     // m_state.init();
@@ -358,6 +388,8 @@ void AccountStore::MoveUpdatesToDisk()
 
 void AccountStore::DiscardUnsavedUpdates()
 {
+    LOG_MARKER();
+
     m_state.db()->rollback();
     m_state.setRoot(prevRoot);
     m_addressToAccount.clear();
@@ -366,6 +398,8 @@ void AccountStore::DiscardUnsavedUpdates()
 
 void AccountStore::PrintAccountState()
 {
+    LOG_MARKER();
+
     LOG_MESSAGE("Printing Account State");
     for(auto entry: m_addressToAccount)
     {

@@ -470,6 +470,7 @@ bool Node::ActOnFinalBlock(uint8_t tx_sharing_mode, const vector<Peer> & nodes)
     // If tx_sharing_mode=NODE_FORWARD_ONLY ==> Body = [num fellow forwarders] [IP and node] ... [IP and node]
     LOG_MARKER();
 
+    lock_guard<mutex> g(m_mutexMicroBlock);
     const TxBlock finalblock = m_mediator.m_txBlockChain.GetLastBlock();
     const uint256_t & blocknum = finalblock.GetHeader().GetBlockNum();
 
@@ -542,6 +543,7 @@ bool Node::ActOnFinalBlock(uint8_t tx_sharing_mode, vector<Peer> sendingAssignme
 
     LOG_MARKER();
 
+    lock_guard<mutex> g(m_mutexMicroBlock);
     if (tx_sharing_mode == SEND_AND_FORWARD)
     {
         const TxBlock finalblock = m_mediator.m_txBlockChain.GetLastBlock();
