@@ -38,7 +38,7 @@ int main(int argc, const char * argv[])
     if (argc != num_args_required)
     {
         cout << "Copyright (C) Zilliqa. Version 1.0 (Durian). <https://www.zilliqa.com/> " << endl;
-        cout << "For bug reporting instructions, please create an issue at <https://github.com/Zilliqa/Zilliqa> \n" << endl;
+        cout << "For bug reporting, please create an issue at <https://github.com/Zilliqa/Zilliqa> \n" << endl;
         cout << "[USAGE] " << argv[0] << " <32-byte private_key> <33-byte public_key> <listen_ip_address> <listen_port> <1 if loadConfig, 0 otherwise> <1 if sync, 0 otherwise>" << endl;
     }
     else
