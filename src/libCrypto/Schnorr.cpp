@@ -67,7 +67,7 @@ Curve::~Curve()
 shared_ptr<BIGNUM> BIGNUMSerialize::GetNumber(const vector<unsigned char> & src, unsigned int offset, unsigned int size)
 {
     assert(size > 0);
-    lock_guard<mutex> g(m_mutexBIGNUM);
+    lock_guard<mutex> g(m_mutexBIGNUM, std::adopt_lock);
 
     if (offset + size <= src.size())
     {
@@ -88,7 +88,7 @@ shared_ptr<BIGNUM> BIGNUMSerialize::GetNumber(const vector<unsigned char> & src,
 void BIGNUMSerialize::SetNumber(vector<unsigned char> & dst, unsigned int offset, unsigned int size, shared_ptr<BIGNUM> value)
 {
     assert(size > 0);
-    lock_guard<mutex> g(m_mutexBIGNUM);
+    lock_guard<mutex> g(m_mutexBIGNUM, std::adopt_lock);
 
     const int actual_bn_size = BN_num_bytes(value.get());
 
@@ -125,7 +125,8 @@ void BIGNUMSerialize::SetNumber(vector<unsigned char> & dst, unsigned int offset
 
 shared_ptr<EC_POINT> ECPOINTSerialize::GetNumber(const vector<unsigned char> & src, unsigned int offset, unsigned int size)
 {
-    lock_guard<mutex> g(m_mutexECPOINT);
+    std::lock(m_mutexECPOINT, BIGNUMSerialize::m_mutexBIGNUM);
+    lock_guard<mutex> g(m_mutexECPOINT, std::adopt_lock);
 
     shared_ptr<BIGNUM> bnvalue = BIGNUMSerialize::GetNumber(src, offset, size);
     if (bnvalue != nullptr)
@@ -148,7 +149,8 @@ shared_ptr<EC_POINT> ECPOINTSerialize::GetNumber(const vector<unsigned char> & s
 
 void ECPOINTSerialize::SetNumber(vector<unsigned char> & dst, unsigned int offset, unsigned int size, shared_ptr<EC_POINT> value)
 {
-    std::lock_guard<mutex> g(m_mutexECPOINT);
+    std::lock(m_mutexECPOINT, BIGNUMSerialize::m_mutexBIGNUM);
+    std::lock_guard<mutex> g(m_mutexECPOINT, std::adopt_lock);
 
     unique_ptr<BN_CTX, void (*)(BN_CTX*)> ctx(BN_CTX_new(), BN_CTX_free);
     if (ctx == nullptr)
