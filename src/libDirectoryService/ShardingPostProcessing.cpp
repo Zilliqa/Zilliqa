@@ -277,6 +277,15 @@ bool DirectoryService::ProcessShardingConsensus(const vector<unsigned char> & me
 
         // Start sharding work
         SetState(MICROBLOCK_SUBMISSION);
+
+        // Check for state change. If it get stuck at microblock submission for too long,
+        // Move on to finalblock without the microblock
+        std::unique_lock<std::mutex> cv_lk(m_MutexScheduleFinalBlockConsensus);
+        if(cv_scheduleFinalBlockConsensus.wait_for(cv_lk, std::chrono::seconds(180)) == std::cv_status::timeout )
+        {
+            LOG_MESSAGE("Timeout: Didn't receive all Microblock. Proceeds without it");
+            RunConsensusOnFinalBlock();
+        }
     }
     else if (state == ConsensusCommon::State::ERROR)
     {

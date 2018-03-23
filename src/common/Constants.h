@@ -82,6 +82,7 @@ extern const unsigned int NEW_NODE_POW2_TIMEOUT_IN_SECONDS;
 extern const unsigned int POW_SUB_BUFFER_TIME;
 extern const unsigned int POW1_DIFFICULTY;
 extern const unsigned int POW2_DIFFICULTY;
+extern const unsigned int MICROBLOCK_TIMEOUT;
 extern const unsigned int NUM_FINAL_BLOCK_PER_POW;
 extern const uint32_t MAXMESSAGE;
 
