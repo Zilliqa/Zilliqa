@@ -409,12 +409,8 @@ void P2PComm::HandleAcceptedConnection(int cli_sock, Peer from,
             vector<Peer> broadcast_list = broadcast_list_retriever(msg_type, ins_type, from);
             if (broadcast_list.size() > 0)
             {
-                // Launch a separate thread to forward the message to peers
                 vector<unsigned char> this_msg_hash(hash_buf, hash_buf + HASH_LEN);
-                auto func = [this, &broadcast_list, &message, &this_msg_hash]() ->
-                             void { SendBroadcastMessageCore(broadcast_list, message,
-                                                             this_msg_hash); };
-                JoinableFunction jf(1, func);
+                SendBroadcastMessageCore(broadcast_list, message, this_msg_hash);
             }
 
 #ifdef STAT_TEST
