@@ -45,7 +45,15 @@ class P2PComm
 
     void SendMessageCore(const Peer & peer, const std::vector<unsigned char> & message, unsigned char start_byte, const std::vector<unsigned char> & msg_hash);
     bool SendMessageSocketCore(const Peer & peer, const std::vector<unsigned char> & message, unsigned char start_byte, const std::vector<unsigned char> & msg_hash);
-    void SendBroadcastMessageCore(const std::vector<Peer> & peers, const std::vector<unsigned char> & message, const std::vector<unsigned char> & message_hash);
+
+    template<typename Container>
+    void SendBroadcastMessageCore(const Container & peers, const std::vector<unsigned char> & message, const std::vector<unsigned char> & message_hash);
+
+    template<typename Container>
+    void SendBroadcastMessageHelper(const Container & peers, const std::vector<unsigned char> & message);
+
+    template<unsigned char START_BYTE, typename Container>
+    void SendMessagePoolHelper(const Container &peers, const std::vector<unsigned char> & message, const std::vector<unsigned char> & message_hash);
 
     P2PComm();
     ~P2PComm();
@@ -54,6 +62,8 @@ class P2PComm
     Peer m_selfPeer;
 #endif // STAT_TEST
 
+    ThreadPool m_SendPool{MAXMESSAGE};
+    ThreadPool m_RecvPool{MAXMESSAGE};
 public:
 
     /// Returns the singleton P2PComm instance.
@@ -76,6 +86,9 @@ public:
 
     /// Multicasts message of type=broadcast to specified list of peers.
     void SendBroadcastMessage(const std::vector<Peer> & peers, const std::vector<unsigned char> & message);
+
+    /// Multicasts message of type=broadcast to specified list of peers.
+    void SendBroadcastMessage(const std::deque<Peer> & peers, const std::vector<unsigned char> & message);
 
 #ifdef STAT_TEST
     void SetSelfPeer(const Peer & self);

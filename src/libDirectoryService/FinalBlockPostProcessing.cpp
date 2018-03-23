@@ -303,8 +303,13 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
             SetState(MICROBLOCK_SUBMISSION);
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "[No PoW needed] Waiting for Microblock.");
 
+            std::unique_lock<std::mutex> cv_lk(m_MutexScheduleFinalBlockConsensus);
+            if(cv_scheduleFinalBlockConsensus.wait_for(cv_lk, std::chrono::seconds(MICROBLOCK_TIMEOUT)) == std::cv_status::timeout )
+            {
+                LOG_MESSAGE("Timeout: Didn't receive all Microblock. Proceeds without it");
+                RunConsensusOnFinalBlock();
+            }
         }
-
     };
     DetachedFunction(1, func);
 }

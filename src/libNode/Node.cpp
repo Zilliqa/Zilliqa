@@ -598,6 +598,8 @@ bool Node::ProcessSubmitMissingTxn(const vector<unsigned char> & message, unsign
 bool Node::ProcessSubmitTxnSharing(const vector<unsigned char> & message, unsigned int offset, 
                                    const Peer & from)
 {
+    LOG_MARKER();
+
     const auto & submittedTransaction = Transaction(message, offset);
     // if(CheckCreatedTransaction(submittedTransaction))
     // {
