@@ -132,6 +132,7 @@ bool DirectoryService::ProcessMicroblockSubmission(const vector<unsigned char> &
                          microBlock.GetHeader().GetTimestamp());
         }
 
+        cv_scheduleFinalBlockConsensus.notify_all();
         RunConsensusOnFinalBlock();
     }
 #ifdef STAT_TEST

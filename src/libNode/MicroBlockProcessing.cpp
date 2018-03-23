@@ -48,7 +48,7 @@ using namespace std;
 using namespace boost::multiprecision;
 
 #ifndef IS_LOOKUP_NODE
-void Node::ProcessMicroblockConsensusIfPrimary() const
+void Node::SubmitMicroblockToDSCommittee() const
 {
     // Message = [32-byte DS blocknum] [4-byte consensusid] [4-byte shard ID] [Tx microblock]
     vector<unsigned char> microblock = { MessageType::DIRECTORY, DSInstructionType::MICROBLOCKSUBMISSION };
@@ -74,7 +74,7 @@ void Node::ProcessMicroblockConsensusIfPrimary() const
     LOG_STATE("[MICRO][" << std::setw(15) << std::left << m_mediator.m_selfPeer.GetPrintableIPAddress() << 
               "][" << m_mediator.m_currentEpochNum << "] SENT");
 #endif // STAT_TEST
-    P2PComm::GetInstance().SendMessage(m_mediator.m_DSCommitteeNetworkInfo, microblock);
+    P2PComm::GetInstance().SendBroadcastMessage(m_mediator.m_DSCommitteeNetworkInfo, microblock);
 }
 #endif // IS_LOOKUP_NODE
 
@@ -127,13 +127,18 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char> & message, uns
 #ifdef STAT_TEST
             LOG_STATE("[MICON][" << std::setw(15) << std::left << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["<< m_mediator.m_currentEpochNum << "] DONE");
 #endif // STAT_TEST
-
             // Multicast micro block to all DS nodes
-            ProcessMicroblockConsensusIfPrimary();
+            SubmitMicroblockToDSCommittee();
+        }
+
+        if (m_isMBSender == true)
+        {
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "I am designated as Microblock sender");
+            // Multicast micro block to all DS nodes
+            SubmitMicroblockToDSCommittee();
         }
 
         SetState(WAITING_FINALBLOCK);
-
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Micro block consensus" <<
                      "is DONE!!! (Epoch " << m_mediator.m_currentEpochNum << ")");
     }
