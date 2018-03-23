@@ -1046,7 +1046,8 @@ bool Node::ProcessFinalBlock(const vector<unsigned char> & message, unsigned int
         else
         {
           StoreState();
-          BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED, {'0'});
+          BlockStorage::GetBlockStorage().ResetDB(BlockStorage::DBTYPE::TX_BODY_TMP);
+          BlockStorage::GetBlockStorage().DeleteMetadata(MetaType::DSINCOMPLETED);
         }
     }
 // #endif // IS_LOOKUP_NODE    
@@ -1070,7 +1071,6 @@ bool Node::ProcessFinalBlock(const vector<unsigned char> & message, unsigned int
     
     if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
     {
-        BlockStorage::GetBlockStorage().ResetDB(BlockStorage::DBTYPE::TX_BODY_TMP);
         InitiatePoW1();
     }
     else

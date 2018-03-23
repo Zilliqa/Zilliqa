@@ -116,7 +116,7 @@ void AccountStore::Deserialize(const vector<unsigned char> & src, unsigned int o
 
         m_addressToAccount.insert(make_pair(address, account));
         UpdateStateTrie(address, account);
-        MoveUpdatesToDisk();
+        // MoveUpdatesToDisk();
     }
     PrintAccountState();
 }
