@@ -27,9 +27,6 @@
 #include "libData/BlockChainData/DSBlockChain.h"
 #include "libData/BlockChainData/TxBlockChain.h"
 
-
-
-
 class JSONConversion
 {
 public:
