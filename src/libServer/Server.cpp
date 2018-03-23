@@ -41,7 +41,6 @@
 using namespace jsonrpc;
 using namespace std;
 
-
 CircularArray <std::string> Server::m_RecentTransactions;
 std::mutex Server::m_mutexRecentTxns;
 

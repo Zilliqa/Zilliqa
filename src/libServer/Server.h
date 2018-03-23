@@ -22,8 +22,6 @@
 #include "libData/BlockData/BlockHeader/BlockHeaderBase.h"
 #include "libData/DataStructures/CircularArray.h"
 
-
-
 class Mediator;
 
 class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer>
