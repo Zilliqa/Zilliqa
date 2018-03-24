@@ -236,7 +236,14 @@ bool Transaction::Verify(const Transaction & tran)
     copy(tran.m_signature.begin(), tran.m_signature.end(), sign_ser.begin());
 
 
-    Signature sign(sign_ser,0);
+    // Signature sign(sign_ser,0);
+    Signature sign;
+    if(sign.Deserialize(sign_ser,0) != 0)
+    {
+        LOG_MESSAGE("Error. We failed to deserialize sign.");
+        return false; 
+    }
+
 
     return Schnorr::GetInstance().Verify(data, sign, tran.m_senderPubKey);
 
