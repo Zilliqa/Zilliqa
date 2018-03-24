@@ -82,34 +82,44 @@ unsigned int AccountStore::Serialize(vector<unsigned char> & dst, unsigned int o
 
 }
 
-void AccountStore::Deserialize(const vector<unsigned char> & src, unsigned int offset)
+int AccountStore::Deserialize(const vector<unsigned char> & src, unsigned int offset)
 {
     // [Total number of accounts] [Addr 1] [Account 1] [Addr 2] [Account 2] .... [Addr n] [Account n]
     LOG_MARKER();
 
-    unsigned int curOffset = offset;
-    uint256_t totalNumOfAccounts = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
-    curOffset += UINT256_SIZE;
-
-    Address address; 
-    Account account; 
-    unsigned int numberOfAccountDeserialze = 0;
-    while(numberOfAccountDeserialze < totalNumOfAccounts)
+    try
     {
-        numberOfAccountDeserialze++; 
+        unsigned int curOffset = offset;
+        uint256_t totalNumOfAccounts = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
+        curOffset += UINT256_SIZE;
 
-        // Deserialize address
-        copy(src.begin() + curOffset, src.begin() + curOffset + ACC_ADDR_SIZE, address.asArray().begin());
-        curOffset += ACC_ADDR_SIZE;
+        Address address; 
+        Account account; 
+        unsigned int numberOfAccountDeserialze = 0;
+        while(numberOfAccountDeserialze < totalNumOfAccounts)
+        {
+            numberOfAccountDeserialze++; 
 
-        // Deserialize account
-        account.Deserialize(src, curOffset);
-        curOffset += ACCOUNT_SIZE; 
+            // Deserialize address
+            copy(src.begin() + curOffset, src.begin() + curOffset + ACC_ADDR_SIZE, address.asArray().begin());
+            curOffset += ACC_ADDR_SIZE;
 
-        m_addressToAccount.insert(make_pair(address, account));
-	UpdateStateTrie(address, account);
-	MoveUpdatesToDisk();
+            // Deserialize account
+            account.Deserialize(src, curOffset);
+            curOffset += ACCOUNT_SIZE; 
+
+            m_addressToAccount.insert(make_pair(address, account));
+        UpdateStateTrie(address, account);
+        MoveUpdatesToDisk();
+        }
     }
+    catch(const std::exception& e)
+    {
+        LOG_MESSAGE("ERROR: Error with AccountStore::Deserialize." << ' ' << e.what());
+        return -1;
+
+    }
+    return 0;
 }
 
 
