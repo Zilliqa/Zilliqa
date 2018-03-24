@@ -484,7 +484,10 @@ Response::Response(const CommitSecret & secret, const Challenge & challenge, con
 
 Response::Response(const vector<unsigned char> & src, unsigned int offset)
 {
-    Deserialize(src, offset);
+    if(Deserialize(src, offset) != 0)
+    {
+        LOG_MESSAGE("Error. We failed to init Response.");
+    }
 }
 
 Response::Response(const Response & src) : m_r(BN_new(), BN_clear_free), m_initialized(false)
