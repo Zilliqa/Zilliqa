@@ -105,20 +105,31 @@ unsigned int CommitSecret::Serialize(vector<unsigned char> & dst, unsigned int o
     return COMMIT_SECRET_SIZE;
 }
 
-void CommitSecret::Deserialize(const vector<unsigned char> & src, unsigned int offset)
+int CommitSecret::Deserialize(const vector<unsigned char> & src, unsigned int offset)
 {
     LOG_MARKER();
 
-    m_s = BIGNUMSerialize::GetNumber(src, offset, COMMIT_SECRET_SIZE);
-    if (m_s == nullptr)
+    try
     {
-        LOG_MESSAGE("Error: Deserialization failure");
-        m_initialized = false;
+        m_s = BIGNUMSerialize::GetNumber(src, offset, COMMIT_SECRET_SIZE);
+        if (m_s == nullptr)
+        {
+            LOG_MESSAGE("Error: Deserialization failure");
+            m_initialized = false;
+        }
+        else
+        {
+            m_initialized = true;
+        }    
     }
-    else
+    catch(const std::exception& e)
     {
-        m_initialized = true;
+        LOG_MESSAGE("ERROR: Error with CommitSecret::Deserialize." << ' ' << e.what());
+        return -1;
+
     }
+    return 0;
+
 }
 
 CommitSecret & CommitSecret::operator=(const CommitSecret & src)
@@ -199,7 +210,7 @@ unsigned int CommitPoint::Serialize(vector<unsigned char> & dst, unsigned int of
     return COMMIT_POINT_SIZE;
 }
 
-void CommitPoint::Deserialize(const vector<unsigned char> & src, unsigned int offset)
+int CommitPoint::Deserialize(const vector<unsigned char> & src, unsigned int offset)
 {
     LOG_MARKER();
 
@@ -319,7 +330,7 @@ unsigned int Challenge::Serialize(vector<unsigned char> & dst, unsigned int offs
     return CHALLENGE_SIZE;
 }
 
-void Challenge::Deserialize(const vector<unsigned char> & src, unsigned int offset)
+int Challenge::Deserialize(const vector<unsigned char> & src, unsigned int offset)
 {
     LOG_MARKER();
 
@@ -489,7 +500,7 @@ unsigned int Response::Serialize(vector<unsigned char> & dst, unsigned int offse
     return RESPONSE_SIZE;
 }
 
-void Response::Deserialize(const vector<unsigned char> & src, unsigned int offset)
+int Response::Deserialize(const vector<unsigned char> & src, unsigned int offset)
 {
     LOG_MARKER();
 
