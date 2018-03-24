@@ -25,6 +25,7 @@ int main()
     vector<unsigned char> message;
     string s;
     cin>>s;
+    // TODO: Handle Exceptions
     PubKey key(DataConversion::HexStrToUint8Vec(s), 0);
     key.Serialize(message, 0);
     sha2.Update(message, 0, PUB_KEY_SIZE);
