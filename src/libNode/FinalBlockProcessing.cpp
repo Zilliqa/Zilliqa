@@ -1270,9 +1270,9 @@ void Node::CommitForwardedTransactions(
             //              ", from: " << tx.GetFromAddr());
 #ifdef IS_LOOKUP_NODE
         Server::AddToRecentTransactions(tx.GetTranID());
-#endif //IS_LOOKUP_NODE                                                        \
-    // Store TxBody to disk
+#endif //IS_LOOKUP_NODE
 
+        // Store TxBody to disk
         vector<unsigned char> serializedTxBody;
         tx.Serialize(serializedTxBody, 0);
         BlockStorage::GetBlockStorage().PutTxBody(tx.GetTranID(),
