@@ -68,7 +68,7 @@ int DSBlock::Deserialize(const vector<unsigned char> & src, unsigned int offset)
         unsigned int header_size_needed = sizeof(uint8_t) + BLOCK_HASH_SIZE + UINT256_SIZE + PUB_KEY_SIZE + PUB_KEY_SIZE + UINT256_SIZE + UINT256_SIZE;
 
         DSBlockHeader header;
-        if(Deserialize(src, offset) != 0)
+        if(header.Deserialize(src, offset) != 0)
         {
             LOG_MESSAGE("Error. We failed to init DSBlockHeader.");
             return -1;
