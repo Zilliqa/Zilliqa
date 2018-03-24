@@ -82,7 +82,13 @@ int TxBlock::Deserialize(const vector<unsigned char> & src, unsigned int offset)
     {
         unsigned int header_size_needed = TxBlockHeader::SIZE;
 
-        TxBlockHeader header(src, offset);
+        // TxBlockHeader header(src, offset);
+        TxBlockHeader header;
+        if(header.Deserialize(src, offset) != 0)
+        {
+            LOG_MESSAGE("Error. We failed to deserialize header.");
+            return -1; 
+        }
         m_header = header;
 
         unsigned int curOffset = offset + header_size_needed;
