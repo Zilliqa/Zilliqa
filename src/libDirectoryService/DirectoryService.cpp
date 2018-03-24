@@ -661,7 +661,7 @@ bool DirectoryService::ProcessAllPoWConnResponse(const vector<unsigned char> & m
     {
         // PubKey key(message, cur_offset);
         PubKey key;
-        if(key.Deserialize(message, curr_offset) != 0)
+        if(key.Deserialize(message, cur_offset) != 0)
         {
             LOG_MESSAGE("Error. We failed to deserialize PubKey.");
             return false; 
