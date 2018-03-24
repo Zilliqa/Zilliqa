@@ -105,25 +105,35 @@ unsigned int Transaction::Serialize(vector<unsigned char> & dst, unsigned int of
     return size_needed;
 }
 
-void Transaction::Deserialize(const vector<unsigned char> & src, unsigned int offset)
+int Transaction::Deserialize(const vector<unsigned char> & src, unsigned int offset)
 {
     // LOG_MARKER();
 
     unsigned int curOffset = offset;
 
-    copy(src.begin() + curOffset, src.begin() + curOffset + TRAN_HASH_SIZE, m_tranID.asArray().begin());
-    curOffset += TRAN_HASH_SIZE;
-    m_version = GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
-    curOffset += sizeof(uint32_t);
-    m_nonce = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
-    curOffset += UINT256_SIZE;
-    copy(src.begin() + curOffset, src.begin() + curOffset + ACC_ADDR_SIZE, m_toAddr.asArray().begin());
-    curOffset += ACC_ADDR_SIZE;
-    m_senderPubKey.Deserialize(src, curOffset);
-    curOffset += PUB_KEY_SIZE;
-    m_amount = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
-    curOffset += UINT256_SIZE;
-    copy(src.begin() + curOffset, src.begin() + curOffset + TRAN_SIG_SIZE, m_signature.begin());
+    try
+    {
+        copy(src.begin() + curOffset, src.begin() + curOffset + TRAN_HASH_SIZE, m_tranID.asArray().begin());
+        curOffset += TRAN_HASH_SIZE;
+        m_version = GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
+        curOffset += sizeof(uint32_t);
+        m_nonce = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
+        curOffset += UINT256_SIZE;
+        copy(src.begin() + curOffset, src.begin() + curOffset + ACC_ADDR_SIZE, m_toAddr.asArray().begin());
+        curOffset += ACC_ADDR_SIZE;
+        m_senderPubKey.Deserialize(src, curOffset);
+        curOffset += PUB_KEY_SIZE;
+        m_amount = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
+        curOffset += UINT256_SIZE;
+        copy(src.begin() + curOffset, src.begin() + curOffset + TRAN_SIG_SIZE, m_signature.begin());
+    }
+    catch(const std::exception& e)
+    {
+        LOG_MESSAGE("ERROR: Error with Transaction::Deserialize." << ' ' << e.what());
+        return -1;
+
+    }
+    return 0;
 }
 
 const TxnHash & Transaction::GetTranID() const
