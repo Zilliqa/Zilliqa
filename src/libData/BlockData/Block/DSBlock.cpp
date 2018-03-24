@@ -55,7 +55,7 @@ unsigned int DSBlock::Serialize(vector<unsigned char> & dst, unsigned int offset
     return size_needed;
 }
 
-void DSBlock::Deserialize(const vector<unsigned char> & src, unsigned int offset)
+int DSBlock::Deserialize(const vector<unsigned char> & src, unsigned int offset)
 {
     LOG_MARKER();
 
@@ -70,8 +70,10 @@ void DSBlock::Deserialize(const vector<unsigned char> & src, unsigned int offset
     catch(const std::exception& e)
     {
         LOG_MESSAGE("ERROR: Error with DSBlock::Deserialize." << ' ' << e.what());
+        return -1;
 
     }
+    return 0;
 }
 
 unsigned int DSBlock::GetSerializedSize()
