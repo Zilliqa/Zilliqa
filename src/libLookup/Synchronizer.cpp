@@ -42,6 +42,7 @@ DSBlock Synchronizer::ConstructGenesisDSBlock()
     vector<unsigned char> tmppubkey = 
     	DataConversion::HexStrToUint8Vec(
     		"02AAE728127EB5A30B07D798D5236251808AD2C8BA3F18B230449D0C938969B552");
+    // FIXME: Handle exceptions.
     PrivKey privKey(tmpprivkey, 0);
     PubKey pubKey(tmppubkey, 0);
 
@@ -89,6 +90,7 @@ TxBlock Synchronizer::ConstructGenesisTxBlock()
     vector<unsigned char> tmppubkey = 
     	DataConversion::HexStrToUint8Vec(
     		"02AAE728127EB5A30B07D798D5236251808AD2C8BA3F18B230449D0C938969B552");
+    // FIXME: Handle exceptions.
     PrivKey privKey(tmpprivkey, 0);
     PubKey pubKey(tmppubkey, 0);
 
