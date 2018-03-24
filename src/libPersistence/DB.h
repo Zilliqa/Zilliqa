@@ -14,24 +14,22 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-
 #ifndef DB_H
 #define DB_H
 
-#include <string>
 #include <leveldb/db.h>
 #include <libUtils/Logger.h>
+#include <string>
 
 /// Utility class for providing database-type storage.
 class DB
 {
     std::string m_db_name;
     leveldb::DB* m_db;
-    
-public:
 
+public:
     /// Constructor.
-    DB(const std::string & name = "db.txt");
+    DB(const std::string& name = "db.txt");
 
     /// Destructor.
     ~DB();
@@ -40,13 +38,13 @@ public:
     leveldb::DB* GetDB();
 
     /// Returns the value at the specified key.
-    std::string ReadFromDB(const std::string & key);
+    std::string ReadFromDB(const std::string& key);
 
     /// Sets the value at the specified key.
-    int WriteToDB(const std::string & key, const std::string & value);
+    int WriteToDB(const std::string& key, const std::string& value);
 
     /// Deletes the value at the specified key.
-    int DeleteFromDB(const std::string & key);
+    int DeleteFromDB(const std::string& key);
 
     /// Deletes the entire database.
     int DeleteDB();

@@ -14,15 +14,14 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-
 #ifndef __TIMELOCKEDFUNCTION_H__
 #define __TIMELOCKEDFUNCTION_H__
 
-#include <thread>
+#include <chrono>
+#include <functional>
 #include <future>
 #include <memory>
-#include <functional>
-#include <chrono>
+#include <thread>
 
 #include "libUtils/Logger.h"
 
@@ -39,18 +38,21 @@ private:
     unique_ptr<thread> thread_timer;
 
 public:
-
     /// Template constructor.
-    template <class callable1, class callable2>
-    TimeLockedFunction(unsigned int expiration_in_seconds, callable1&& main_func, callable2&& expiration_func, bool call_expiry_always) : result_promise(new promise<int>)
+    template<class callable1, class callable2>
+    TimeLockedFunction(unsigned int expiration_in_seconds,
+                       callable1&& main_func, callable2&& expiration_func,
+                       bool call_expiry_always)
+        : result_promise(new promise<int>)
     {
         function<typename result_of<callable1()>::type()> task_main(main_func);
-        function<typename result_of<callable2()>::type()> task_expiry(expiration_func);
+        function<typename result_of<callable2()>::type()> task_expiry(
+            expiration_func);
 
         result_future = result_promise->get_future();
 
-        auto func_main = [task_main, task_expiry, call_expiry_always](shared_ptr<promise<int>> result_promise) -> void
-        {
+        auto func_main = [task_main, task_expiry, call_expiry_always](
+                             shared_ptr<promise<int>> result_promise) -> void {
             try
             {
                 task_main();
@@ -60,7 +62,7 @@ public:
                     task_expiry();
                 }
             }
-            catch(future_error &)
+            catch (future_error&)
             {
                 // Function returned too late
             }
@@ -68,17 +70,19 @@ public:
 
         thread_main = make_unique<thread>(func_main, result_promise);
 
-        auto func_timer = [expiration_in_seconds, task_expiry](shared_ptr<promise<int>> result_promise) -> void
-        {
+        auto func_timer = [expiration_in_seconds, task_expiry](
+                              shared_ptr<promise<int>> result_promise) -> void {
             try
             {
-                LOG_MESSAGE("I am going to sleep for " + to_string(expiration_in_seconds) + " seconds");
+                LOG_MESSAGE("I am going to sleep for "
+                            + to_string(expiration_in_seconds) + " seconds");
                 this_thread::sleep_for(chrono::seconds(expiration_in_seconds));
-                LOG_MESSAGE("I have woken up from the sleep of " + to_string(expiration_in_seconds) + " seconds");
+                LOG_MESSAGE("I have woken up from the sleep of "
+                            + to_string(expiration_in_seconds) + " seconds");
                 result_promise->set_value(-1);
                 task_expiry();
             }
-            catch(future_error &)
+            catch (future_error&)
             {
                 // Function returned on time
             }

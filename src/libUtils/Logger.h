@@ -17,23 +17,22 @@
 #ifndef __LOGGER_H__
 #define __LOGGER_H__
 
+#include <boost/multiprecision/cpp_int.hpp>
 #include <fstream>
 #include <mutex>
+#include <sstream>
 #include <string>
 #include <vector>
-#include <sstream>
-#include <boost/multiprecision/cpp_int.hpp>
 
 /// Utility logging class for outputting messages to stdout or file.
 class Logger
 {
 private:
-
     std::mutex m;
     bool log_to_file;
     std::streampos max_file_size;
 
-    Logger(const char * prefix, bool log_to_file, std::streampos max_file_size);
+    Logger(const char* prefix, bool log_to_file, std::streampos max_file_size);
     ~Logger();
 
     void checkLog();
@@ -45,7 +44,6 @@ private:
     unsigned int seqnum;
 
 public:
-
     /// Limits the number of bytes of a payload to display.
     static const size_t MAX_BYTES_TO_DISPLAY = 100;
 
@@ -62,22 +60,28 @@ public:
     static const std::streampos MAX_FILE_SIZE;
 
     /// Returns the singleton instance for the main Logger.
-    static Logger & GetLogger(const char * fname_prefix, bool log_to_file, std::streampos max_file_size = MAX_FILE_SIZE);
+    static Logger& GetLogger(const char* fname_prefix, bool log_to_file,
+                             std::streampos max_file_size = MAX_FILE_SIZE);
 
     /// Returns the singleton instance for the state/reporting Logger.
-    static Logger & GetStateLogger(const char * fname_prefix, bool log_to_file, std::streampos max_file_size = MAX_FILE_SIZE);
+    static Logger& GetStateLogger(const char* fname_prefix, bool log_to_file,
+                                  std::streampos max_file_size = MAX_FILE_SIZE);
 
     /// Outputs the specified message and function name to the main log.
-    void LogMessage(const char * msg, const char * function);
+    void LogMessage(const char* msg, const char* function);
 
     /// Outputs the specified message, function name, and block number to the main log.
-    void LogMessage(const char * msg, const char * function, const char * blockNum);
+    void LogMessage(const char* msg, const char* function,
+                    const char* blockNum);
 
     /// Outputs the specified message and function name to the state/reporting log.
-    void LogState(const char * msg, const char * function);
+    void LogState(const char* msg, const char* function);
 
     /// Outputs the specified message, function name, and payload to the main log.
-    void LogMessageAndPayload(const char * msg, const std::vector<unsigned char> & payload, size_t max_bytes_to_display, const char * function);
+    void LogMessageAndPayload(const char* msg,
+                              const std::vector<unsigned char>& payload,
+                              size_t max_bytes_to_display,
+                              const char* function);
 };
 
 /// Utility class for automatically logging function or code block exit.
@@ -86,9 +90,8 @@ class ScopeMarker
     std::string function;
 
 public:
-
     /// Constructor.
-    ScopeMarker(const char * function);
+    ScopeMarker(const char* function);
 
     /// Destructor.
     ~ScopeMarker();
@@ -96,11 +99,37 @@ public:
 
 #define INIT_FILE_LOGGER(fname_prefix) Logger::GetLogger(fname_prefix, true)
 #define INIT_STDOUT_LOGGER() Logger::GetLogger(NULL, false)
-#define INIT_STATE_LOGGER(fname_prefix) Logger::GetStateLogger(fname_prefix, true)
+#define INIT_STATE_LOGGER(fname_prefix)                                        \
+    Logger::GetStateLogger(fname_prefix, true)
 #define LOG_MARKER() ScopeMarker marker(__FUNCTION__)
-#define LOG_MESSAGE(msg) { std::ostringstream oss; oss << msg; Logger::GetLogger(NULL, true).LogMessage(oss.str().c_str(), __FUNCTION__); }
-#define LOG_MESSAGE2(blockNum, msg) { std::ostringstream oss; oss << msg; Logger::GetLogger(NULL, true).LogMessage(oss.str().c_str(), __FUNCTION__, blockNum); }
-#define LOG_PAYLOAD(msg, payload, max_bytes_to_display) { std::ostringstream oss; oss << msg; Logger::GetLogger(NULL, true).LogMessageAndPayload(oss.str().c_str(), payload, max_bytes_to_display, __FUNCTION__); }
-#define LOG_STATE(msg) { std::ostringstream oss; oss << msg; Logger::GetStateLogger(NULL, true).LogState(oss.str().c_str(), __FUNCTION__); }
+#define LOG_MESSAGE(msg)                                                       \
+    {                                                                          \
+        std::ostringstream oss;                                                \
+        oss << msg;                                                            \
+        Logger::GetLogger(NULL, true)                                          \
+            .LogMessage(oss.str().c_str(), __FUNCTION__);                      \
+    }
+#define LOG_MESSAGE2(blockNum, msg)                                            \
+    {                                                                          \
+        std::ostringstream oss;                                                \
+        oss << msg;                                                            \
+        Logger::GetLogger(NULL, true)                                          \
+            .LogMessage(oss.str().c_str(), __FUNCTION__, blockNum);            \
+    }
+#define LOG_PAYLOAD(msg, payload, max_bytes_to_display)                        \
+    {                                                                          \
+        std::ostringstream oss;                                                \
+        oss << msg;                                                            \
+        Logger::GetLogger(NULL, true)                                          \
+            .LogMessageAndPayload(oss.str().c_str(), payload,                  \
+                                  max_bytes_to_display, __FUNCTION__);         \
+    }
+#define LOG_STATE(msg)                                                         \
+    {                                                                          \
+        std::ostringstream oss;                                                \
+        oss << msg;                                                            \
+        Logger::GetStateLogger(NULL, true)                                     \
+            .LogState(oss.str().c_str(), __FUNCTION__);                        \
+    }
 
 #endif // __LOGGER_H__

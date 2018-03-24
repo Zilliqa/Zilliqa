@@ -20,15 +20,18 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-unsigned int MicroBlock::Serialize(vector<unsigned char> & dst, unsigned int offset) const
+unsigned int MicroBlock::Serialize(vector<unsigned char>& dst,
+                                   unsigned int offset) const
 {
     assert(m_header.GetNumTxs() == m_tranHashes.size());
 
-    unsigned int header_size_needed = sizeof(uint8_t) + sizeof(uint32_t) + UINT256_SIZE + UINT256_SIZE + 
-                                        BLOCK_HASH_SIZE + UINT256_SIZE + UINT256_SIZE + TRAN_HASH_SIZE + 
-                                        sizeof(uint32_t) + PUB_KEY_SIZE + UINT256_SIZE + BLOCK_HASH_SIZE;
+    unsigned int header_size_needed = sizeof(uint8_t) + sizeof(uint32_t)
+        + UINT256_SIZE + UINT256_SIZE + BLOCK_HASH_SIZE + UINT256_SIZE
+        + UINT256_SIZE + TRAN_HASH_SIZE + sizeof(uint32_t) + PUB_KEY_SIZE
+        + UINT256_SIZE + BLOCK_HASH_SIZE;
 
-    unsigned int size_needed = header_size_needed + BLOCK_SIG_SIZE + m_header.GetNumTxs() * TRAN_HASH_SIZE;
+    unsigned int size_needed = header_size_needed + BLOCK_SIG_SIZE
+        + m_header.GetNumTxs() * TRAN_HASH_SIZE;
     unsigned int size_remaining = dst.size() - offset;
 
     if (size_remaining < size_needed)
@@ -44,122 +47,121 @@ unsigned int MicroBlock::Serialize(vector<unsigned char> & dst, unsigned int off
     curOffset += BLOCK_SIG_SIZE;
     for (unsigned int i = 0; i < m_header.GetNumTxs(); i++)
     {
-        const TxnHash & tran_hash = m_tranHashes.at(i);
-        copy(tran_hash.asArray().begin(), tran_hash.asArray().end(), dst.begin() + curOffset);
+        const TxnHash& tran_hash = m_tranHashes.at(i);
+        copy(tran_hash.asArray().begin(), tran_hash.asArray().end(),
+             dst.begin() + curOffset);
         curOffset += TRAN_HASH_SIZE;
     }
 
     return size_needed;
 }
 
-int MicroBlock::Deserialize(const vector<unsigned char> & src, unsigned int offset)
+int MicroBlock::Deserialize(const vector<unsigned char>& src,
+                            unsigned int offset)
 {
     try
     {
-        unsigned int header_size_needed = sizeof(uint8_t) + sizeof(uint32_t) + UINT256_SIZE + UINT256_SIZE + 
-                                            BLOCK_HASH_SIZE + UINT256_SIZE + UINT256_SIZE + TRAN_HASH_SIZE + 
-                                            sizeof(uint32_t) + PUB_KEY_SIZE + UINT256_SIZE + BLOCK_HASH_SIZE;
+        unsigned int header_size_needed = sizeof(uint8_t) + sizeof(uint32_t)
+            + UINT256_SIZE + UINT256_SIZE + BLOCK_HASH_SIZE + UINT256_SIZE
+            + UINT256_SIZE + TRAN_HASH_SIZE + sizeof(uint32_t) + PUB_KEY_SIZE
+            + UINT256_SIZE + BLOCK_HASH_SIZE;
 
         // MicroBlockHeader header(src, offset);
         MicroBlockHeader header;
-        if(header.Deserialize(src, offset) != 0)
+        if (header.Deserialize(src, offset) != 0)
         {
             LOG_MESSAGE("Error. We failed to deserialize MicroBlockHeader.");
-            return -1; 
+            return -1;
         }
         m_header = header;
 
         unsigned int curOffset = offset + header_size_needed;
 
-        copy(src.begin() + curOffset, src.begin() + curOffset + BLOCK_SIG_SIZE, m_headerSig.begin());
+        copy(src.begin() + curOffset, src.begin() + curOffset + BLOCK_SIG_SIZE,
+             m_headerSig.begin());
         curOffset += BLOCK_SIG_SIZE;
         for (unsigned int i = 0; i < m_header.GetNumTxs(); i++)
         {
             TxnHash tranHash;
-            copy(src.begin() + curOffset, src.begin() + curOffset + TRAN_HASH_SIZE, tranHash.asArray().begin());
+            copy(src.begin() + curOffset,
+                 src.begin() + curOffset + TRAN_HASH_SIZE,
+                 tranHash.asArray().begin());
             curOffset += TRAN_HASH_SIZE;
             m_tranHashes.push_back(tranHash);
         }
         assert(m_header.GetNumTxs() == m_tranHashes.size());
     }
-    catch(const std::exception& e)
+    catch (const std::exception& e)
     {
-        LOG_MESSAGE("ERROR: Error with MicroBlock::Deserialize." << ' ' << e.what());
+        LOG_MESSAGE("ERROR: Error with MicroBlock::Deserialize." << ' '
+                                                                 << e.what());
         return -1;
-
     }
     return 0;
 }
 
 unsigned int MicroBlock::GetSerializedSize() const
 {
-    unsigned int header_size_needed = sizeof(uint8_t) + sizeof(uint32_t) + UINT256_SIZE + UINT256_SIZE + 
-                                      BLOCK_HASH_SIZE + UINT256_SIZE + UINT256_SIZE + TRAN_HASH_SIZE + 
-                                      sizeof(uint32_t) + PUB_KEY_SIZE + UINT256_SIZE + BLOCK_HASH_SIZE;
-    unsigned int block_size_needed = BLOCK_SIG_SIZE + (m_tranHashes.size() * TRAN_HASH_SIZE);
+    unsigned int header_size_needed = sizeof(uint8_t) + sizeof(uint32_t)
+        + UINT256_SIZE + UINT256_SIZE + BLOCK_HASH_SIZE + UINT256_SIZE
+        + UINT256_SIZE + TRAN_HASH_SIZE + sizeof(uint32_t) + PUB_KEY_SIZE
+        + UINT256_SIZE + BLOCK_HASH_SIZE;
+    unsigned int block_size_needed
+        = BLOCK_SIG_SIZE + (m_tranHashes.size() * TRAN_HASH_SIZE);
 
     return header_size_needed + block_size_needed;
 }
 
 unsigned int MicroBlock::GetMinSize()
 {
-    unsigned int header_size_needed = sizeof(uint8_t) + sizeof(uint32_t) + UINT256_SIZE + UINT256_SIZE + 
-                                      BLOCK_HASH_SIZE + UINT256_SIZE + UINT256_SIZE + TRAN_HASH_SIZE + 
-                                      sizeof(uint32_t) + PUB_KEY_SIZE + UINT256_SIZE + BLOCK_HASH_SIZE;
+    unsigned int header_size_needed = sizeof(uint8_t) + sizeof(uint32_t)
+        + UINT256_SIZE + UINT256_SIZE + BLOCK_HASH_SIZE + UINT256_SIZE
+        + UINT256_SIZE + TRAN_HASH_SIZE + sizeof(uint32_t) + PUB_KEY_SIZE
+        + UINT256_SIZE + BLOCK_HASH_SIZE;
 
     return header_size_needed;
 }
 
 // creates a dummy invalid placeholder block -- blocknum is maxsize of uint256
-MicroBlock::MicroBlock()
-{
+MicroBlock::MicroBlock() {}
 
-}
-
-MicroBlock::MicroBlock(const vector<unsigned char> & src, unsigned int offset)
+MicroBlock::MicroBlock(const vector<unsigned char>& src, unsigned int offset)
 {
-    if(Deserialize(src, offset) != 0)
+    if (Deserialize(src, offset) != 0)
     {
         LOG_MESSAGE("Error. We failed to init MicroBlock.");
     }
 }
 
-MicroBlock::MicroBlock
-(
-    const MicroBlockHeader & header,
-    const array<unsigned char, BLOCK_SIG_SIZE> & signature,
-    const vector<TxnHash> & tranHashes
-) : m_header(header), m_headerSig(signature), m_tranHashes(tranHashes)
+MicroBlock::MicroBlock(const MicroBlockHeader& header,
+                       const array<unsigned char, BLOCK_SIG_SIZE>& signature,
+                       const vector<TxnHash>& tranHashes)
+    : m_header(header)
+    , m_headerSig(signature)
+    , m_tranHashes(tranHashes)
 {
     assert(m_header.GetNumTxs() == m_tranHashes.size());
 }
 
-const MicroBlockHeader & MicroBlock::GetHeader() const
-{
-    return m_header;
-}
+const MicroBlockHeader& MicroBlock::GetHeader() const { return m_header; }
 
-const array<unsigned char, BLOCK_SIG_SIZE> & MicroBlock::GetHeaderSig() const
+const array<unsigned char, BLOCK_SIG_SIZE>& MicroBlock::GetHeaderSig() const
 {
     return m_headerSig;
 }
 
-const vector<TxnHash> & MicroBlock::GetTranHashes() const
+const vector<TxnHash>& MicroBlock::GetTranHashes() const
 {
     return m_tranHashes;
 }
 
-bool MicroBlock::operator==(const MicroBlock & block) const
+bool MicroBlock::operator==(const MicroBlock& block) const
 {
-    return
-        (
-            (m_header == block.m_header) &&
-            (m_headerSig == block.m_headerSig) &&
-            (m_tranHashes == block.m_tranHashes)
-        );
+    return ((m_header == block.m_header) && (m_headerSig == block.m_headerSig)
+            && (m_tranHashes == block.m_tranHashes));
 }
 
-bool MicroBlock::operator<(const MicroBlock & block) const
+bool MicroBlock::operator<(const MicroBlock& block) const
 {
     if (m_header < block.m_header)
     {
@@ -191,7 +193,7 @@ bool MicroBlock::operator<(const MicroBlock & block) const
     }
 }
 
-bool MicroBlock::operator>(const MicroBlock & block) const
+bool MicroBlock::operator>(const MicroBlock& block) const
 {
     return !((*this == block) || (*this < block));
 }

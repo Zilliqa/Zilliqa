@@ -30,16 +30,19 @@ void test()
     LOG_MESSAGE("Hello world");
 }
 
-BOOST_AUTO_TEST_CASE (testLogger1)
+BOOST_AUTO_TEST_CASE(testLogger1)
 {
     // Write to a file
     INIT_FILE_LOGGER("test1");
-    vector<unsigned char> bytestream = { 0x12, 0x34, 0x56, 0x78, 0x9A };
+    vector<unsigned char> bytestream = {0x12, 0x34, 0x56, 0x78, 0x9A};
 
     LOG_MESSAGE("Hello world");
-    LOG_PAYLOAD("Hello world", bytestream, Logger::MAX_BYTES_TO_DISPLAY); // use default max payload length
-    LOG_PAYLOAD("Hello world", bytestream, 5); // use max payload length = payload length
-    LOG_PAYLOAD("Hello world", bytestream, 4); // use max payload length < payload length
+    LOG_PAYLOAD("Hello world", bytestream,
+                Logger::MAX_BYTES_TO_DISPLAY); // use default max payload length
+    LOG_PAYLOAD("Hello world", bytestream,
+                5); // use max payload length = payload length
+    LOG_PAYLOAD("Hello world", bytestream,
+                4); // use max payload length < payload length
 
     // Try in different thread
     JoinableFunction(1, test);

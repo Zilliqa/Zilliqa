@@ -22,16 +22,16 @@
 #include <shared_mutex>
 #include <vector>
 
-#include "libData/BlockData/Block.h"
 #include "DB.h"
+#include "libData/BlockData/Block.h"
 
 #include "depends/minilzo/minilzo.h"
 
 #define ONE_MEGABYTE 1024 * 1024
 
-typedef std::shared_ptr<DSBlock> DSBlockSharedPtr; 
+typedef std::shared_ptr<DSBlock> DSBlockSharedPtr;
 typedef std::shared_ptr<TxBlock> TxBlockSharedPtr;
-typedef std::shared_ptr<Transaction> TxBodySharedPtr; 
+typedef std::shared_ptr<Transaction> TxBodySharedPtr;
 
 enum BlockStorageType : unsigned int
 {
@@ -58,26 +58,36 @@ class BlockStorage
 
     BlockStorage();
     ~BlockStorage() = default;
-    bool PutBlockToLevelDB(const boost::multiprecision::uint256_t & blockNum, 
-        const std::vector<unsigned char> & block, const BlockType & blockType);
-    bool GetDSBlockFromLevelDB(const boost::multiprecision::uint256_t & blockNum, DSBlockSharedPtr & block);
-    bool GetTxBlockFromLevelDB(const boost::multiprecision::uint256_t & blockNum, TxBlockSharedPtr & block);
-    bool PutBlockToDisk(const boost::multiprecision::uint256_t & blockNum, 
-        const std::vector<unsigned char> & block, const BlockType & blockType); // provide the raw block std::string 
-        // as well, to avoid redundant work when calling to std::string() within this function
-    bool GetDSBlockFromDisk(const boost::multiprecision::uint256_t & blocknum, DSBlockSharedPtr & block);
-    bool GetTxBlockFromDisk(const boost::multiprecision::uint256_t & blocknum, TxBlockSharedPtr & block);
+    bool PutBlockToLevelDB(const boost::multiprecision::uint256_t& blockNum,
+                           const std::vector<unsigned char>& block,
+                           const BlockType& blockType);
+    bool GetDSBlockFromLevelDB(const boost::multiprecision::uint256_t& blockNum,
+                               DSBlockSharedPtr& block);
+    bool GetTxBlockFromLevelDB(const boost::multiprecision::uint256_t& blockNum,
+                               TxBlockSharedPtr& block);
+    bool PutBlockToDisk(
+        const boost::multiprecision::uint256_t& blockNum,
+        const std::vector<unsigned char>& block,
+        const BlockType& blockType); // provide the raw block std::string
+    // as well, to avoid redundant work when calling to std::string() within this function
+    bool GetDSBlockFromDisk(const boost::multiprecision::uint256_t& blocknum,
+                            DSBlockSharedPtr& block);
+    bool GetTxBlockFromDisk(const boost::multiprecision::uint256_t& blocknum,
+                            TxBlockSharedPtr& block);
     std::shared_timed_mutex m_dsBlockCacheMutex;
     std::shared_timed_mutex m_txBlockCacheMutex;
-    std::list<std::pair<boost::multiprecision::uint256_t, DSBlockSharedPtr>> m_dsblock_cache;
-    std::list<std::pair<boost::multiprecision::uint256_t, TxBlockSharedPtr>> m_txblock_cache;
-    void AddBlockToDSCache(const boost::multiprecision::uint256_t & blockNum, const std::vector<unsigned char> & block);
-    void AddBlockToTxCache(const boost::multiprecision::uint256_t & blockNum, const std::vector<unsigned char> & block);    
+    std::list<std::pair<boost::multiprecision::uint256_t, DSBlockSharedPtr>>
+        m_dsblock_cache;
+    std::list<std::pair<boost::multiprecision::uint256_t, TxBlockSharedPtr>>
+        m_txblock_cache;
+    void AddBlockToDSCache(const boost::multiprecision::uint256_t& blockNum,
+                           const std::vector<unsigned char>& block);
+    void AddBlockToTxCache(const boost::multiprecision::uint256_t& blockNum,
+                           const std::vector<unsigned char>& block);
 
 public:
-
     /// Returns the singleton BlockStorage instance.
-    static BlockStorage & GetBlockStorage();
+    static BlockStorage& GetBlockStorage();
 
     /// Sets the file size limit.
     static void SetBlockFileSize(unsigned int blockFileSize);
@@ -89,32 +99,39 @@ public:
     void SetBlockStorageType(BlockStorageType _blockStorageType);
 
     /// Adds a DS block to storage.
-    bool PutDSBlock(const boost::multiprecision::uint256_t & blockNum, 
-        const std::vector<unsigned char> & block); // provide the raw block std::string as well, 
-        // to avoid redundant work when calling to std::string() within this function
+    bool PutDSBlock(const boost::multiprecision::uint256_t& blockNum,
+                    const std::vector<unsigned char>&
+                        block); // provide the raw block std::string as well,
+    // to avoid redundant work when calling to std::string() within this function
 
     /// Adds a Tx block to storage.
-    bool PutTxBlock(const boost::multiprecision::uint256_t & blockNum, 
-        const std::vector<unsigned char> & block); // provide the raw block std::string as well, 
-        // to avoid redundant work when calling to std::string() within this function
+    bool PutTxBlock(const boost::multiprecision::uint256_t& blockNum,
+                    const std::vector<unsigned char>&
+                        block); // provide the raw block std::string as well,
+    // to avoid redundant work when calling to std::string() within this function
 
     /// Retrieves the requested DS block.
-    bool GetDSBlock(const boost::multiprecision::uint256_t & blocknum, DSBlockSharedPtr & block);
+    bool GetDSBlock(const boost::multiprecision::uint256_t& blocknum,
+                    DSBlockSharedPtr& block);
 
     /// Retrieves the requested Tx block.
-    bool GetTxBlock(const boost::multiprecision::uint256_t & blocknum, TxBlockSharedPtr & block);
+    bool GetTxBlock(const boost::multiprecision::uint256_t& blocknum,
+                    TxBlockSharedPtr& block);
 
     /// Adds a transaction body to storage.
-    bool PutTxBody(const std::string & key, const std::vector<unsigned char> & body);
+    bool PutTxBody(const std::string& key,
+                   const std::vector<unsigned char>& body);
 
     /// Retrieves the requested transaction body.
-    void GetTxBody(const std::string & key, TxBodySharedPtr & body);
+    void GetTxBody(const std::string& key, TxBodySharedPtr& body);
 
     /// Utility function for compressing a byte stream.
-    bool Compress(const unsigned char * src, int src_len, std::shared_ptr<unsigned char> & dst, lzo_uint & dst_len);
+    bool Compress(const unsigned char* src, int src_len,
+                  std::shared_ptr<unsigned char>& dst, lzo_uint& dst_len);
 
     /// Utility function for decompressing a byte stream.
-    bool Decompress(const unsigned char * src, const lzo_uint src_len, unsigned char * dst);
+    bool Decompress(const unsigned char* src, const lzo_uint src_len,
+                    unsigned char* dst);
 };
 
 #endif // BLOCKSTORAGE_H

@@ -25,9 +25,9 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 
-BOOST_AUTO_TEST_SUITE (persistencetest)
+BOOST_AUTO_TEST_SUITE(persistencetest)
 
-BOOST_AUTO_TEST_CASE (testReadWriteSimpleStringToDB)
+BOOST_AUTO_TEST_CASE(testReadWriteSimpleStringToDB)
 {
     INIT_STDOUT_LOGGER();
 
@@ -39,10 +39,12 @@ BOOST_AUTO_TEST_CASE (testReadWriteSimpleStringToDB)
 
     std::string ret = db.ReadFromDB("fruit");
 
-    BOOST_CHECK_MESSAGE(ret == "vegetable", "ERROR: return value from DB not equal to inserted value");
+    BOOST_CHECK_MESSAGE(
+        ret == "vegetable",
+        "ERROR: return value from DB not equal to inserted value");
 }
 
-BOOST_AUTO_TEST_CASE (testWriteAndReadSTATEROOT)
+BOOST_AUTO_TEST_CASE(testWriteAndReadSTATEROOT)
 {
     INIT_STDOUT_LOGGER();
 
@@ -56,8 +58,9 @@ BOOST_AUTO_TEST_CASE (testWriteAndReadSTATEROOT)
     BlockStorage::GetBlockStorage().GetMetadata(STATEROOT, rootBytes);
     dev::h256 out_root(rootBytes);
 
-    BOOST_CHECK_MESSAGE(in_root == out_root, 
+    BOOST_CHECK_MESSAGE(
+        in_root == out_root,
         "STATEROOT hash shouldn't change after writing to /reading from disk");
 }
 
-BOOST_AUTO_TEST_SUITE_END ()
+BOOST_AUTO_TEST_SUITE_END()

@@ -14,5 +14,4 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-
 #include "depends/Sha3/Sha3.c"

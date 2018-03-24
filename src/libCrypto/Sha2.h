@@ -14,20 +14,19 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-
 #ifndef __SHA2_H__
 #define __SHA2_H__
 
-#include <vector> 
 #include <cassert>
 #include <openssl/sha.h>
+#include <vector>
 
 /// List of supported hash variants.
 class HASH_TYPE
 {
 public:
-    static const unsigned int HASH_VARIANT_256 = 256; 
-    static const unsigned int HASH_VARIANT_512 = 512; 
+    static const unsigned int HASH_VARIANT_256 = 256;
+    static const unsigned int HASH_VARIANT_512 = 512;
 };
 
 /// Implements SHA2 hash algorithm.
@@ -36,67 +35,64 @@ template<unsigned int SIZE> class SHA2
     static const unsigned int HASH_OUTPUT_SIZE = SIZE / 8;
     std::vector<unsigned char> output, message;
 
-    static bool SHA_256(unsigned char* input, unsigned long length, unsigned char* output)
+    static bool SHA_256(unsigned char* input, unsigned long length,
+                        unsigned char* output)
     {
         SHA256_CTX context;
-        if(!SHA256_Init(&context))
+        if (!SHA256_Init(&context))
             return false;
 
-        if(!SHA256_Update(&context, input, length))
+        if (!SHA256_Update(&context, input, length))
             return false;
 
-        if(!SHA256_Final(output, &context))
+        if (!SHA256_Final(output, &context))
             return false;
 
         return true;
     }
 
 public:
-
     /// Constructor.
-    SHA2() : output(HASH_OUTPUT_SIZE)
+    SHA2()
+        : output(HASH_OUTPUT_SIZE)
     {
         assert((SIZE == HASH_TYPE::HASH_VARIANT_256));
     }
 
     /// Destructor.
-    ~SHA2()
-    {
-
-    }
+    ~SHA2() {}
 
     /// Hash update function.
-    void Update(const std::vector<unsigned char> & input)
+    void Update(const std::vector<unsigned char>& input)
     {
         assert(input.size() > 0);
-        message.insert(message.end(), input.begin(), input.end()); 
+        message.insert(message.end(), input.begin(), input.end());
     }
 
     /// Hash update function.
-    void Update(const std::vector<unsigned char> & input, unsigned int offset, unsigned int size)
+    void Update(const std::vector<unsigned char>& input, unsigned int offset,
+                unsigned int size)
     {
         assert((offset + size) <= input.size());
-        message.insert(message.end(), input.begin() + offset, input.begin() + offset + size);
+        message.insert(message.end(), input.begin() + offset,
+                       input.begin() + offset + size);
     }
 
     /// Resets the algorithm.
-    void Reset()
-    {
-        message.clear(); 
-    }
+    void Reset() { message.clear(); }
 
     /// Hash finalize function.
     std::vector<unsigned char> Finalize()
     {
-        switch(SIZE)
+        switch (SIZE)
         {
-            case 256:
-                SHA_256(message.data(), message.size(), output.data());
-                break; 
-            default:
-                break;
+        case 256:
+            SHA_256(message.data(), message.size(), output.data());
+            break;
+        default:
+            break;
         }
-        return output; 
+        return output;
     }
 };
 

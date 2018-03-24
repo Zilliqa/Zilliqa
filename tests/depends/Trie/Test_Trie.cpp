@@ -17,9 +17,9 @@
 #include "depends/common/CommonIO.h"
 #include "depends/common/FixedHash.h"
 #include "depends/json_spirit/JsonSpiritHeaders.h"
+#include "depends/libDatabase/MemoryDB.h"
 #include "depends/libTrie/TrieDB.h"
 #include "depends/libTrie/TrieHash.h"
-#include "depends/libDatabase/MemoryDB.h"
 #include "libTestUtils/MemTrie.h"
 #include "libTestUtils/TestCommon.h"
 #include "libUtils/Logger.h"
@@ -31,14 +31,11 @@ using namespace dev;
 namespace fs = boost::filesystem;
 namespace js = json_spirit;
 
-static unsigned fac(unsigned _i)
-{
-    return _i > 2 ? _i * fac(_i - 1) : _i;
-}
+static unsigned fac(unsigned _i) { return _i > 2 ? _i * fac(_i - 1) : _i; }
 
-BOOST_AUTO_TEST_SUITE (trietest)
+BOOST_AUTO_TEST_SUITE(trietest)
 
-BOOST_AUTO_TEST_CASE (fat_trie)
+BOOST_AUTO_TEST_CASE(fat_trie)
 {
     INIT_STDOUT_LOGGER();
 
@@ -49,48 +46,55 @@ BOOST_AUTO_TEST_CASE (fat_trie)
     {
         FatGenericTrieDB<MemoryDB> ft(&fm);
         ft.init();
-        ft.insert(h256("69", h256::FromHex, h256::AlignRight).ref(), h256("414243", h256::FromHex, h256::AlignRight).ref());
-        for (auto i: ft)
+        ft.insert(h256("69", h256::FromHex, h256::AlignRight).ref(),
+                  h256("414243", h256::FromHex, h256::AlignRight).ref());
+        for (auto i : ft)
         {
             LOG_MESSAGE(i.first << i.second);
             LOG_MESSAGE("kk");
         }
-//            LOG_MESSAGE(i.first << i.second;
+        //            LOG_MESSAGE(i.first << i.second;
         r = ft.root();
     }
     {
         FatGenericTrieDB<MemoryDB> ft(&fm);
         ft.setRoot(r);
-        for (auto i: ft)
+        for (auto i : ft)
             LOG_MESSAGE(i.first << i.second);
-//            LOG_MESSAGE(i.first << i.second;
+        //            LOG_MESSAGE(i.first << i.second;
     }
 
-//    BOOST_CHECK_MESSAGE("vegetable" == "vegetable", "ERROR: return value from DB not equal to inserted value");
+    //    BOOST_CHECK_MESSAGE("vegetable" == "vegetable", "ERROR: return value from DB not equal to inserted value");
 }
 
 BOOST_AUTO_TEST_CASE(hex_encoded_securetrie_test)
 {
     fs::path const testPath = test::getTestPath() / fs::path("TrieTests");
     LOG_MESSAGE("Testing Secure Trie... " << testPath);
-    string const s = contentsString(testPath / fs::path("hex_encoded_securetrie_test.json"));
-    BOOST_REQUIRE_MESSAGE(s.length() > 0, "Contents of 'hex_encoded_securetrie_test.json' is empty. Have you cloned the 'tests' repo branch develop?");
+    string const s = contentsString(
+        testPath / fs::path("hex_encoded_securetrie_test.json"));
+    BOOST_REQUIRE_MESSAGE(s.length() > 0,
+                          "Contents of 'hex_encoded_securetrie_test.json' is "
+                          "empty. Have you cloned the 'tests' repo branch "
+                          "develop?");
 
     js::mValue v;
     js::read_string(s, v);
-    for (auto& i: v.get_obj())
+    for (auto& i : v.get_obj())
     {
         js::mObject& o = i.second.get_obj();
         vector<pair<string, string>> ss;
-        for (auto i: o["in"].get_obj())
+        for (auto i : o["in"].get_obj())
         {
             ss.push_back(make_pair(i.first, i.second.get_str()));
             if (!ss.back().first.find("0x"))
                 ss.back().first = asString(fromHex(ss.back().first.substr(2)));
             if (!ss.back().second.find("0x"))
-                ss.back().second = asString(fromHex(ss.back().second.substr(2)));
+                ss.back().second
+                    = asString(fromHex(ss.back().second.substr(2)));
         }
-        for (unsigned j = 0; j < min(1000000000u, fac((unsigned)ss.size())); ++j)
+        for (unsigned j = 0; j < min(1000000000u, fac((unsigned)ss.size()));
+             ++j)
         {
             next_permutation(ss.begin(), ss.end());
             MemoryDB m;
@@ -108,7 +112,7 @@ BOOST_AUTO_TEST_CASE(hex_encoded_securetrie_test)
             BOOST_REQUIRE(t.check(true));
             BOOST_REQUIRE(ht.check(true));
             BOOST_REQUIRE(ft.check(true));
-            for (auto const& k: ss)
+            for (auto const& k : ss)
             {
                 t.insert(k.first, k.second);
                 ht.insert(k.first, k.second);
@@ -116,23 +120,26 @@ BOOST_AUTO_TEST_CASE(hex_encoded_securetrie_test)
                 BOOST_REQUIRE(t.check(true));
                 BOOST_REQUIRE(ht.check(true));
                 BOOST_REQUIRE(ft.check(true));
-//                LOG_MESSAGE("was here inserting");
+                //                LOG_MESSAGE("was here inserting");
                 auto i = ft.begin();
                 auto j = t.begin();
                 for (; i != ft.end() && j != t.end(); ++i, ++j)
                 {
-//                    LOG_MESSAGE("was here reading");
+                    //                    LOG_MESSAGE("was here reading");
                     BOOST_CHECK_EQUAL(i != ft.end(), j == t.end());
                     BOOST_REQUIRE((*i).first.toBytes() == (*j).first.toBytes());
-                    BOOST_REQUIRE((*i).second.toBytes() == (*j).second.toBytes());
+                    BOOST_REQUIRE((*i).second.toBytes()
+                                  == (*j).second.toBytes());
                 }
                 BOOST_CHECK_EQUAL(ht.root(), ft.root());
             }
             BOOST_REQUIRE(!o["root"].is_null());
-//            LOG_MESSAGE("o[root] = " << o["root"].get_str());
-//            LOG_MESSAGE("toHexPrefixed(ht.root().asArray()) = " << toHexPrefixed(ht.root().asArray()));
-            BOOST_CHECK_EQUAL(o["root"].get_str(), toHexPrefixed(ht.root().asArray()));
-            BOOST_CHECK_EQUAL(o["root"].get_str(), toHexPrefixed(ft.root().asArray()));
+            //            LOG_MESSAGE("o[root] = " << o["root"].get_str());
+            //            LOG_MESSAGE("toHexPrefixed(ht.root().asArray()) = " << toHexPrefixed(ht.root().asArray()));
+            BOOST_CHECK_EQUAL(o["root"].get_str(),
+                              toHexPrefixed(ht.root().asArray()));
+            BOOST_CHECK_EQUAL(o["root"].get_str(),
+                              toHexPrefixed(ft.root().asArray()));
         }
     }
 }
@@ -142,21 +149,24 @@ BOOST_AUTO_TEST_CASE(trie_test_anyorder)
     fs::path const testPath = test::getTestPath() / fs::path("TrieTests");
     LOG_MESSAGE("Testing Secure Trie... " << testPath);
     string const s = contentsString(testPath / fs::path("trieanyorder.json"));
-    BOOST_REQUIRE_MESSAGE(s.length() > 0, "Contents of 'trieanyorder.json' is empty. Have you cloned the 'tests' repo branch develop?");
+    BOOST_REQUIRE_MESSAGE(s.length() > 0,
+                          "Contents of 'trieanyorder.json' is empty. Have you "
+                          "cloned the 'tests' repo branch develop?");
 
     js::mValue v;
     js::read_string(s, v);
-    for (auto& i: v.get_obj())
+    for (auto& i : v.get_obj())
     {
         js::mObject& o = i.second.get_obj();
         vector<pair<string, string>> ss;
-        for (auto i: o["in"].get_obj())
+        for (auto i : o["in"].get_obj())
         {
             ss.push_back(make_pair(i.first, i.second.get_str()));
             if (!ss.back().first.find("0x"))
                 ss.back().first = asString(fromHex(ss.back().first.substr(2)));
             if (!ss.back().second.find("0x"))
-                ss.back().second = asString(fromHex(ss.back().second.substr(2)));
+                ss.back().second
+                    = asString(fromHex(ss.back().second.substr(2)));
         }
         for (unsigned j = 0; j < min(1000u, fac((unsigned)ss.size())); ++j)
         {
@@ -176,7 +186,7 @@ BOOST_AUTO_TEST_CASE(trie_test_anyorder)
             BOOST_REQUIRE(t.check(true));
             BOOST_REQUIRE(ht.check(true));
             BOOST_REQUIRE(ft.check(true));
-            for (auto const& k: ss)
+            for (auto const& k : ss)
             {
                 t.insert(k.first, k.second);
                 ht.insert(k.first, k.second);
@@ -191,12 +201,14 @@ BOOST_AUTO_TEST_CASE(trie_test_anyorder)
                     LOG_MESSAGE("was here reading");
                     BOOST_CHECK_EQUAL(i == ft.end(), j == t.end());
                     BOOST_REQUIRE((*i).first.toBytes() == (*j).first.toBytes());
-                    BOOST_REQUIRE((*i).second.toBytes() == (*j).second.toBytes());
+                    BOOST_REQUIRE((*i).second.toBytes()
+                                  == (*j).second.toBytes());
                 }
                 BOOST_CHECK_EQUAL(ht.root(), ft.root());
             }
             BOOST_REQUIRE(!o["root"].is_null());
-            BOOST_CHECK_EQUAL(o["root"].get_str(), toHexPrefixed(t.root().asArray()));
+            BOOST_CHECK_EQUAL(o["root"].get_str(),
+                              toHexPrefixed(t.root().asArray()));
             BOOST_CHECK_EQUAL(ht.root(), ft.root());
         }
     }
@@ -207,20 +219,22 @@ BOOST_AUTO_TEST_CASE(trie_tests_ordered)
     fs::path const testPath = test::getTestPath() / fs::path("TrieTests");
     LOG_MESSAGE("Testing Trie..." << testPath);
     string const s = contentsString(testPath / fs::path("trietest.json"));
-    BOOST_REQUIRE_MESSAGE(s.length() > 0, "Contents of 'trietest.json' is empty. Have you cloned the 'tests' repo branch develop?");
+    BOOST_REQUIRE_MESSAGE(s.length() > 0,
+                          "Contents of 'trietest.json' is empty. Have you "
+                          "cloned the 'tests' repo branch develop?");
 
     js::mValue v;
     js::read_string(s, v);
 
-    for (auto& i: v.get_obj())
+    for (auto& i : v.get_obj())
     {
         js::mObject& o = i.second.get_obj();
         vector<pair<string, string>> ss;
         vector<string> keysToBeDeleted;
-        for (auto& i: o["in"].get_array())
+        for (auto& i : o["in"].get_array())
         {
             vector<string> values;
-            for (auto& s: i.get_array())
+            for (auto& s : i.get_array())
             {
                 if (s.type() == json_spirit::str_type)
                     values.push_back(s.get_str());
@@ -241,7 +255,8 @@ BOOST_AUTO_TEST_CASE(trie_tests_ordered)
             if (!ss.back().first.find("0x"))
                 ss.back().first = asString(fromHex(ss.back().first.substr(2)));
             if (!ss.back().second.find("0x"))
-                ss.back().second = asString(fromHex(ss.back().second.substr(2)));
+                ss.back().second
+                    = asString(fromHex(ss.back().second.substr(2)));
         }
 
         MemoryDB m;
@@ -260,12 +275,15 @@ BOOST_AUTO_TEST_CASE(trie_tests_ordered)
         BOOST_REQUIRE(ht.check(true));
         BOOST_REQUIRE(ft.check(true));
 
-        for (auto const& k: ss)
+        for (auto const& k : ss)
         {
-            if (find(keysToBeDeleted.begin(), keysToBeDeleted.end(), k.first) != keysToBeDeleted.end() && k.second.empty())
+            if (find(keysToBeDeleted.begin(), keysToBeDeleted.end(), k.first)
+                    != keysToBeDeleted.end()
+                && k.second.empty())
                 t.remove(k.first), ht.remove(k.first), ft.remove(k.first);
             else
-                t.insert(k.first, k.second), ht.insert(k.first, k.second), ft.insert(k.first, k.second);
+                t.insert(k.first, k.second), ht.insert(k.first, k.second),
+                    ft.insert(k.first, k.second);
             BOOST_REQUIRE(t.check(true));
             BOOST_REQUIRE(ht.check(true));
             BOOST_REQUIRE(ft.check(true));
@@ -281,23 +299,28 @@ BOOST_AUTO_TEST_CASE(trie_tests_ordered)
         }
 
         BOOST_REQUIRE(!o["root"].is_null());
-        BOOST_CHECK_EQUAL(o["root"].get_str(), toHexPrefixed(t.root().asArray()));
+        BOOST_CHECK_EQUAL(o["root"].get_str(),
+                          toHexPrefixed(t.root().asArray()));
     }
 }
 
 h256 stringMapHash256(StringMap const& _s)
 {
     BytesMap bytesMap;
-    for (auto const& _v: _s)
-        bytesMap.insert(std::make_pair(bytes(_v.first.begin(), _v.first.end()), bytes(_v.second.begin(), _v.second.end())));
+    for (auto const& _v : _s)
+        bytesMap.insert(
+            std::make_pair(bytes(_v.first.begin(), _v.first.end()),
+                           bytes(_v.second.begin(), _v.second.end())));
     return hash256(bytesMap);
 }
 
 bytes stringMapRlp256(StringMap const& _s)
 {
     BytesMap bytesMap;
-    for (auto const& _v: _s)
-        bytesMap.insert(std::make_pair(bytes(_v.first.begin(), _v.first.end()), bytes(_v.second.begin(), _v.second.end())));
+    for (auto const& _v : _s)
+        bytesMap.insert(
+            std::make_pair(bytes(_v.first.begin(), _v.first.end()),
+                           bytes(_v.second.begin(), _v.second.end())));
     return rlp256(bytesMap);
 }
 
@@ -308,7 +331,7 @@ BOOST_AUTO_TEST_CASE(moreTrieTests)
     {
         MemoryDB m;
         GenericTrieDB<MemoryDB> t(&m);
-        t.init();	// initialise as empty tree.
+        t.init(); // initialise as empty tree.
         LOG_MESSAGE(t);
         LOG_MESSAGE(m);
         LOG_MESSAGE(t.root());
@@ -342,7 +365,7 @@ BOOST_AUTO_TEST_CASE(moreTrieTests)
     {
         MemoryDB m;
         GenericTrieDB<MemoryDB> t(&m);
-        t.init();	// initialise as empty tree.
+        t.init(); // initialise as empty tree.
         t.insert(string("a"), string("A"));
         t.insert(string("b"), string("B"));
         LOG_MESSAGE(t);
@@ -368,7 +391,8 @@ BOOST_AUTO_TEST_CASE(moreTrieTests)
         LOG_MESSAGE(RLP(r));
     }
     {
-        LOG_MESSAGE(hex << stringMapHash256({{"dog", "puppy"}, {"doe", "reindeer"}}));
+        LOG_MESSAGE(
+            hex << stringMapHash256({{"dog", "puppy"}, {"doe", "reindeer"}}));
         MemTrie t;
         t.insert("dog", "puppy");
         t.insert("doe", "reindeer");
@@ -381,12 +405,11 @@ BOOST_AUTO_TEST_CASE(moreTrieTests)
         MemoryDB m;
         EnforceRefs r(m, true);
         GenericTrieDB<MemoryDB> d(&m);
-        d.init();	// initialise as empty tree.
+        d.init(); // initialise as empty tree.
         MemTrie t;
         StringMap s;
 
-        auto add = [&](char const* a, char const* b)
-        {
+        auto add = [&](char const* a, char const* b) {
             d.insert(string(a), string(b));
             t.insert(a, b);
             s[a] = b;
@@ -401,7 +424,7 @@ BOOST_AUTO_TEST_CASE(moreTrieTests)
             BOOST_REQUIRE(d.check(true));
             BOOST_REQUIRE_EQUAL(t.hash256(), stringMapHash256(s));
             BOOST_REQUIRE_EQUAL(d.root(), stringMapHash256(s));
-            for (auto const& i: s)
+            for (auto const& i : s)
             {
                 (void)i;
                 BOOST_REQUIRE_EQUAL(t.at(i.first), i.second);
@@ -409,8 +432,7 @@ BOOST_AUTO_TEST_CASE(moreTrieTests)
             }
         };
 
-        auto remove = [&](char const* a)
-        {
+        auto remove = [&](char const* a) {
             s.erase(a);
             t.remove(a);
             d.remove(string(a));
@@ -420,14 +442,14 @@ BOOST_AUTO_TEST_CASE(moreTrieTests)
             LOG_MESSAGE(d);
             LOG_MESSAGE(m);
             LOG_MESSAGE(d.root());
-//            LOG_MESSAGE(hash256(s));
+            //            LOG_MESSAGE(hash256(s));
 
             BOOST_REQUIRE(d.check(true));
             BOOST_REQUIRE(t.at(a).empty());
             BOOST_REQUIRE(d.at(string(a)).empty());
             BOOST_REQUIRE_EQUAL(t.hash256(), stringMapHash256(s));
             BOOST_REQUIRE_EQUAL(d.root(), stringMapHash256(s));
-            for (auto const& i: s)
+            for (auto const& i : s)
             {
                 (void)i;
                 BOOST_REQUIRE_EQUAL(t.at(i.first), i.second);
@@ -456,7 +478,7 @@ BOOST_AUTO_TEST_CASE(trieLowerBound)
         MemoryDB dm;
         EnforceRefs e(dm, true);
         GenericTrieDB<MemoryDB> d(&dm);
-        d.init();	// initialise as empty tree.
+        d.init(); // initialise as empty tree.
         for (int a = 0; a < 20; ++a)
         {
             StringMap m;
@@ -468,7 +490,7 @@ BOOST_AUTO_TEST_CASE(trieLowerBound)
                 d.insert(k, v);
             }
 
-            for (auto i: d)
+            for (auto i : d)
             {
                 auto it = d.lower_bound(i.first);
                 for (auto iit = d.begin(); iit != d.end(); ++iit)
@@ -489,7 +511,6 @@ BOOST_AUTO_TEST_CASE(trieLowerBound)
                         break;
                     }
             }
-
         }
     }
 }
@@ -502,7 +523,7 @@ BOOST_AUTO_TEST_CASE(trieStess)
         MemoryDB dm;
         EnforceRefs e(dm, true);
         GenericTrieDB<MemoryDB> d(&dm);
-        d.init();	// initialise as empty tree.
+        d.init(); // initialise as empty tree.
         MemTrie t;
         BOOST_REQUIRE(d.check(true));
         for (int a = 0; a < 20; ++a)
@@ -529,29 +550,31 @@ BOOST_AUTO_TEST_CASE(trieStess)
                 if (!d.check(true))
                 {
                     // cwarn << m;
-                    for (auto i: d)
+                    for (auto i : d)
                         LOG_MESSAGE(i.first.toString() << i.second.toString());
 
                     MemoryDB dm2;
                     EnforceRefs e2(dm2, true);
                     GenericTrieDB<MemoryDB> d2(&dm2);
-                    d2.init();	// initialise as empty tree.
-                    for (auto i: d)
+                    d2.init(); // initialise as empty tree.
+                    for (auto i : d)
                         d2.insert(i.first, i.second);
 
                     LOG_MESSAGE("Good:" << d2.root());
-//					for (auto i: dm2.get())
-//						cwarn << i.first << ": " << RLP(i.second);
+                    //					for (auto i: dm2.get())
+                    //						cwarn << i.first << ": " << RLP(i.second);
                     d2.debugStructure(cerr);
-                    LOG_MESSAGE("Broken:" << d.root());	// Leaves an extension -> extension (3c1... -> 742...)
-//					for (auto i: dm.get())
-//						cwarn << i.first << ": " << RLP(i.second);
+                    LOG_MESSAGE(
+                        "Broken:"
+                        << d.root()); // Leaves an extension -> extension (3c1... -> 742...)
+                    //					for (auto i: dm.get())
+                    //						cwarn << i.first << ": " << RLP(i.second);
                     d.debugStructure(cerr);
 
                     d2.insert(k, v);
                     LOG_MESSAGE("Pres:" << d2.root());
-//					for (auto i: dm2.get())
-//						cwarn << i.first << ": " << RLP(i.second);
+                    //					for (auto i: dm2.get())
+                    //						cwarn << i.first << ": " << RLP(i.second);
                     d2.debugStructure(cerr);
                     d2.remove(k);
 
@@ -567,14 +590,15 @@ BOOST_AUTO_TEST_CASE(trieStess)
 
 template<typename Trie> void perfTestTrie(char const* _name)
 {
-    for (size_t p = 1000; p != 10000; p*=10) // later make the upper bound 1000000
+    for (size_t p = 1000; p != 10000;
+         p *= 10) // later make the upper bound 1000000
     {
         MemoryDB dm;
         Trie d(&dm);
         d.init();
         LOG_MESSAGE("TriePerf " << _name << p);
         std::vector<h256> keys(1000);
-//        Timer t;
+        //        Timer t;
         size_t ki = 0;
         for (size_t i = 0; i < p; ++i)
         {
@@ -585,41 +609,44 @@ template<typename Trie> void perfTestTrie(char const* _name)
             if (i % (p / 1000) == 0)
                 keys[ki++] = k;
         }
-//        LOG_MESSAGE("Insert " << p << "values: " << t.elapsed());
-//        t.restart();
-        for (auto k: keys)
+        //        LOG_MESSAGE("Insert " << p << "values: " << t.elapsed());
+        //        t.restart();
+        for (auto k : keys)
         {
-//            LOG_MESSAGE("key: " << k);
+            //            LOG_MESSAGE("key: " << k);
             d.at(k);
         }
-//        LOG_MESSAGE("Query 1000 values: " << t.elapsed());
-//        t.restart();
+        //        LOG_MESSAGE("Query 1000 values: " << t.elapsed());
+        //        t.restart();
         size_t i = 0;
         for (auto it = d.begin(); i < 1000 && it != d.end(); ++it, ++i)
         {
-//            LOG_MESSAGE("it: ");
+            //            LOG_MESSAGE("it: ");
             *it;
         }
-//        LOG_MESSAGE("Iterate 1000 values: " << t.elapsed());
-//        t.restart();
-        for (auto k: keys)
+        //        LOG_MESSAGE("Iterate 1000 values: " << t.elapsed());
+        //        t.restart();
+        for (auto k : keys)
         {
             d.remove(k);
         }
-//        LOG_MESSAGE("Remove 1000 values:" << t.elapsed() << "\n");
+        //        LOG_MESSAGE("Remove 1000 values:" << t.elapsed() << "\n");
     }
 }
 
 BOOST_AUTO_TEST_CASE(triePerf)
 {
-//    if (test::Options::get().all)
-//    {
-        perfTestTrie<SpecificTrieDB<GenericTrieDB<MemoryDB>, h256>>("GenericTrieDB");
-        perfTestTrie<SpecificTrieDB<HashedGenericTrieDB<MemoryDB>, h256>>("HashedGenericTrieDB");
-        perfTestTrie<SpecificTrieDB<FatGenericTrieDB<MemoryDB>, h256>>("FatGenericTrieDB");
-//    }
-//    else
-//        clog << "Skipping hive test Crypto/Trie/triePerf. Use --all to run it.\n";
+    //    if (test::Options::get().all)
+    //    {
+    perfTestTrie<SpecificTrieDB<GenericTrieDB<MemoryDB>, h256>>(
+        "GenericTrieDB");
+    perfTestTrie<SpecificTrieDB<HashedGenericTrieDB<MemoryDB>, h256>>(
+        "HashedGenericTrieDB");
+    perfTestTrie<SpecificTrieDB<FatGenericTrieDB<MemoryDB>, h256>>(
+        "FatGenericTrieDB");
+    //    }
+    //    else
+    //        clog << "Skipping hive test Crypto/Trie/triePerf. Use --all to run it.\n";
 }
 
-BOOST_AUTO_TEST_SUITE_END ()
+BOOST_AUTO_TEST_SUITE_END()
