@@ -37,7 +37,7 @@ install:
 
 script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-      docker exec -t ci /bin/sh -c "$BUILD_COMMAND && ctest";
+      docker exec -t ci /bin/sh -c "$BUILD_COMMAND && make clang-format && git diff --exit-code && ctest";
     else
-      $BUILD_COMMAND && ctest;
+      $BUILD_COMMAND && make clang-format && git diff --exit-code && ctest;
     fi
