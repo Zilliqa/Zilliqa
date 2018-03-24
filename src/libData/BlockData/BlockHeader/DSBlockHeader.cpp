@@ -29,7 +29,7 @@ DSBlockHeader::DSBlockHeader(const vector<unsigned char> & src, unsigned int off
 {
     if(Deserialize(src, offset) != 0)
     {
-        LOG_MESSAGE2("Error. We failed to init DSBlockHeader.");
+        LOG_MESSAGE("Error. We failed to init DSBlockHeader.");
     }
 }
 
