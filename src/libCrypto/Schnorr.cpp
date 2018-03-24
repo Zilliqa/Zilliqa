@@ -517,29 +517,39 @@ unsigned int Signature::Serialize(vector<unsigned char> & dst, unsigned int offs
     return SIGNATURE_CHALLENGE_SIZE + SIGNATURE_RESPONSE_SIZE;
 }
 
-void Signature::Deserialize(const vector<unsigned char> & src, unsigned int offset)
+int Signature::Deserialize(const vector<unsigned char> & src, unsigned int offset)
 {
     LOG_MARKER();
 
-    m_r = BIGNUMSerialize::GetNumber(src, offset, SIGNATURE_CHALLENGE_SIZE);
-    if (m_r == nullptr)
+    try
     {
-        LOG_MESSAGE("Error: Deserialization failure");
-        m_initialized = false;
-    }
-    else
-    {
-        m_s = BIGNUMSerialize::GetNumber(src, offset + SIGNATURE_CHALLENGE_SIZE, SIGNATURE_RESPONSE_SIZE);
-        if (m_s == nullptr)
+        m_r = BIGNUMSerialize::GetNumber(src, offset, SIGNATURE_CHALLENGE_SIZE);
+        if (m_r == nullptr)
         {
             LOG_MESSAGE("Error: Deserialization failure");
             m_initialized = false;
         }
         else
         {
-            m_initialized = true;
+            m_s = BIGNUMSerialize::GetNumber(src, offset + SIGNATURE_CHALLENGE_SIZE, SIGNATURE_RESPONSE_SIZE);
+            if (m_s == nullptr)
+            {
+                LOG_MESSAGE("Error: Deserialization failure");
+                m_initialized = false;
+            }
+            else
+            {
+                m_initialized = true;
+            }
         }
     }
+    catch(const std::exception& e)
+    {
+        LOG_MESSAGE("ERROR: Error with Signature::Deserialize." << ' ' << e.what());
+        return -1;
+
+    }
+    return 0;
 }
 
 Signature & Signature::operator=(const Signature & src)
