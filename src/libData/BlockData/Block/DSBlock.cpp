@@ -31,7 +31,7 @@ DSBlock::DSBlock(const vector<unsigned char> & src, unsigned int offset)
 {
     if(Deserialize(src, offset) != 0)
     {
-        LOG_MESSAGE2("Error. We failed to init dsblock.");
+        LOG_MESSAGE2("Error. We failed to init DSBlock.");
     }
 }
 
