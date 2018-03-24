@@ -35,6 +35,7 @@
 #include "libData/AccountData/Transaction.h"
 #include "libMediator/Mediator.h"
 #include "libPOW/pow.h"
+#include "libServer/Server.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
@@ -1124,8 +1125,11 @@ void Node::CommitForwardedTransactions(const vector<Transaction> & txnsInForward
         //              " with amount: " << tx.GetAmount() <<
         //              ", to: " << tx.GetToAddr() <<
         //              ", from: " << tx.GetFromAddr());
-
+#ifdef IS_LOOKUP_NODE
+        Server::AddToRecentTransactions(tx.GetTranID());
+#endif //IS_LOOKUP_NODE
         // Store TxBody to disk
+        
         vector<unsigned char> serializedTxBody;
         tx.Serialize(serializedTxBody, 0);
         BlockStorage::GetBlockStorage().PutTxBody(tx.GetTranID(), serializedTxBody);

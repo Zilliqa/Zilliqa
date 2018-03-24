@@ -326,9 +326,14 @@ bool Lookup::GetTxBodyFromSeedNodes(string txHashStr)
 
     vector<map<PubKey, Peer>> Lookup::GetShardPeers()
     {
-        LOG_MARKER();
         lock_guard<mutex> g(m_mutexShards);
         return m_shards;
+    }
+
+    vector <Peer> Lookup::GetNodePeers()
+    {
+        lock_guard<mutex> g(m_mutexNodesInNetwork);
+        return m_nodesInNetwork;
     }
 
 #endif // IS_LOOKUP_NODE
@@ -367,7 +372,9 @@ bool Lookup::ProcessEntireShardingStructure(const vector<unsigned char> & messag
 
     LOG_MESSAGE("Number of shards: " << to_string(num_shards));
 
-    lock_guard<mutex> g(m_mutexShards);
+    lock(m_mutexShards, m_mutexNodesInNetwork);
+    lock_guard<mutex> g(m_mutexShards, adopt_lock);
+    lock_guard<mutex> h(m_mutexNodesInNetwork, adopt_lock);
 
     m_shards.clear();
     m_nodesInNetwork.clear();
@@ -449,6 +456,8 @@ bool Lookup::ProcessGetSeedPeersFromLookup(const vector<unsigned char> & message
 
     uint128_t ipAddr = from.m_ipAddress;
     Peer peer(ipAddr, portNo);
+
+    lock_guard<mutex> g(m_mutexNodesInNetwork);
 
     uint32_t numPeersInNetwork = m_nodesInNetwork.size();
 
