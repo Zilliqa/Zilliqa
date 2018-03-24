@@ -27,7 +27,10 @@ DSBlockHeader::DSBlockHeader()
 
 DSBlockHeader::DSBlockHeader(const vector<unsigned char> & src, unsigned int offset)
 {
-    Deserialize(src, offset);
+    if(Deserialize(src, offset) != 0)
+    {
+        LOG_MESSAGE2("Error. We failed to init DSBlockHeader.");
+    }
 }
 
 DSBlockHeader::DSBlockHeader
@@ -76,25 +79,34 @@ unsigned int DSBlockHeader::Serialize(vector<unsigned char> & dst, unsigned int 
     return size_needed;
 }
 
-void DSBlockHeader::Deserialize(const vector<unsigned char> & src, unsigned int offset)
+int DSBlockHeader::Deserialize(const vector<unsigned char> & src, unsigned int offset)
 {
     LOG_MARKER();
 
     unsigned int curOffset = offset;
+    try
+    {
+        m_difficulty = GetNumber<uint8_t>(src, curOffset, sizeof(uint8_t));
+        curOffset += sizeof(uint8_t);
+        copy(src.begin() + curOffset, src.begin() + curOffset + BLOCK_HASH_SIZE, m_prevHash.asArray().begin());
+        curOffset += BLOCK_HASH_SIZE;
+        m_nonce = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
+        curOffset += UINT256_SIZE;
+        m_minerPubKey.Deserialize(src, curOffset);
+        curOffset += PUB_KEY_SIZE;
+        m_leaderPubKey.Deserialize(src, curOffset);
+        curOffset += PUB_KEY_SIZE;
+        m_blockNum = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
+        curOffset += UINT256_SIZE;
+        m_timestamp = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
+    }
+    catch(const std::exception& e)
+    {
+        LOG_MESSAGE("ERROR: Error with DSBlockHeader::Deserialize." << ' ' << e.what());
+        return -1;
 
-    m_difficulty = GetNumber<uint8_t>(src, curOffset, sizeof(uint8_t));
-    curOffset += sizeof(uint8_t);
-    copy(src.begin() + curOffset, src.begin() + curOffset + BLOCK_HASH_SIZE, m_prevHash.asArray().begin());
-    curOffset += BLOCK_HASH_SIZE;
-    m_nonce = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
-    curOffset += UINT256_SIZE;
-    m_minerPubKey.Deserialize(src, curOffset);
-    curOffset += PUB_KEY_SIZE;
-    m_leaderPubKey.Deserialize(src, curOffset);
-    curOffset += PUB_KEY_SIZE;
-    m_blockNum = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
-    curOffset += UINT256_SIZE;
-    m_timestamp = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
+    }
+    return 0;
 }
 
 const uint8_t & DSBlockHeader::GetDifficulty() const
