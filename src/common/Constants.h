@@ -43,7 +43,7 @@ const unsigned int CHALLENGE_SIZE = 32;
 const unsigned int RESPONSE_SIZE = 32;
 
 // Acount related sizes
-const unsigned int ACCOUNT_SIZE = ACC_ADDR_SIZE + PUB_KEY_SIZE + UINT256_SIZE + UINT256_SIZE;
+const unsigned int ACCOUNT_SIZE = UINT256_SIZE + UINT256_SIZE/* + ACC_ADDR_SIZE + PUB_KEY_SIZE*/;
 
 const unsigned int DS_BLOCKCHAIN_SIZE = 50;
 const unsigned int TX_BLOCKCHAIN_SIZE = 50;
@@ -65,6 +65,13 @@ const unsigned int NUM_PEERS_TO_SEND_IN_A_SHARD = 20;
 const unsigned int SERVER_PORT = 4201;
 
 // Testing parameters
+
+// Metadata type
+enum MetaType : unsigned char
+{
+	STATEROOT = 0x00,
+	DSINCOMPLETED,
+};
 
 
 const std::string RAND1_GENESIS = "2b740d75891749f94b6a8ec09f086889066608e4418eda656c93443e8310750a";

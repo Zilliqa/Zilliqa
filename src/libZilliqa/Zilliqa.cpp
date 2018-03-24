@@ -18,15 +18,14 @@
 #include <jsonrpccpp/server/connectors/httpserver.h>
 
 #include "Zilliqa.h"
-#include "common/Messages.h"
-#include "libUtils/Logger.h"
-
-#include "libData/AccountData/Address.h"
-#include "common/Serializable.h"
 #include "common/Constants.h"
+#include "common/Messages.h"
+#include "common/Serializable.h"
 #include "libCrypto/Sha2.h"
 #include "libCrypto/Schnorr.h"
+#include "libData/AccountData/Address.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/Logger.h"
 
 using namespace std;
 using namespace jsonrpc;
@@ -54,15 +53,20 @@ void Zilliqa::LogSelfNodeInfo(const std::pair<PrivKey, PubKey> & key, const Peer
     LOG_MESSAGE("My address is " << toAddr << " and port is " << peer.m_listenPortHost);
 }
 
-Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey> & key, const Peer & peer, bool loadConfig, bool toSyncWithNetwork) :
+Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey> & key, const Peer & peer, bool loadConfig, bool toSyncWithNetwork, bool toRetrieveHistory) :
         m_pm(key, peer, loadConfig), m_mediator(key, peer), m_ds(m_mediator), m_lookup(m_mediator), 
-        m_n(m_mediator), m_cu(key, peer)
+        m_n(m_mediator, toRetrieveHistory), m_cu(key, peer)
 #ifdef IS_LOOKUP_NODE
 	, m_httpserver(SERVER_PORT), m_server(m_mediator, m_httpserver)
 #endif // IS_LOOKUP_NODE
 	
 {
     LOG_MARKER();
+
+    if(m_mediator.m_isRetrievedHistory)
+    {
+        m_ds.m_consensusID = 0;
+    }
 
     m_mediator.RegisterColleagues(&m_ds, &m_n, &m_lookup);
 
@@ -74,7 +78,8 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey> & key, const Peer & peer, bool
 
 #ifndef IS_LOOKUP_NODE
     LOG_MESSAGE("I am a normal node.");
-    if(toSyncWithNetwork)
+
+    if(toSyncWithNetwork && !toRetrieveHistory)
     {
         m_n.StartSynchronization();
     }

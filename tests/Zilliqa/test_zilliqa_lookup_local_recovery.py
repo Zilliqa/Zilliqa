@@ -65,12 +65,13 @@ def get_immediate_subdirectories(a_dir):
 
 def run_setup(numnodes, printnodes):
 	os.system('killall lzilliqa')
-	if (os.path.exists(LOCAL_RUN_FOLDER)):
-		shutil.rmtree(LOCAL_RUN_FOLDER)
-	os.makedirs(LOCAL_RUN_FOLDER)
+	if os.path.exists(LOCAL_RUN_FOLDER) != True:
+		# shutil.rmtree(LOCAL_RUN_FOLDER)
+		os.makedirs(LOCAL_RUN_FOLDER)
 	for x in range(0, numnodes):
 		testsubdir = LOCAL_RUN_FOLDER + 'node_' + str(x+1).zfill(4)
-		os.makedirs(testsubdir)
+		if os.path.exists(testsubdir) != True :
+			os.makedirs(testsubdir)
 		shutil.copyfile('./tests/Zilliqa/zilliqa', testsubdir + '/lzilliqa')
 
 		st = os.stat(testsubdir + '/lzilliqa')
@@ -124,7 +125,7 @@ def run_start():
 	# Launch node zilliqa process
 	for x in range(0, count):
 		keypair = keypairs[x].split(" ")
-		os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; ./lzilliqa ' + keypair[1] + ' ' + keypair[0] + ' ' + '127.0.0.1' +' ' + str(NODE_LISTEN_PORT + x) + ' 0 0 0 > ./error_log_zilliqa 2>&1 &')
+		os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; ./lzilliqa ' + keypair[1] + ' ' + keypair[0] + ' ' + '127.0.0.1' +' ' + str(NODE_LISTEN_PORT + x) + ' 0 0 1 > ./error_log_zilliqa 2>&1 &')
 
 if __name__ == "__main__":
 	main()

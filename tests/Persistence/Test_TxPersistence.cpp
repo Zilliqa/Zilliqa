@@ -302,4 +302,40 @@ BOOST_AUTO_TEST_CASE (testMultipleBlocksInMultipleFiles)
     // BlockStorage::SetBlockFileSize(128 * ONE_MEGABYTE);
 }
 
+BOOST_AUTO_TEST_CASE (testRetrieveAllTheTxBlocksInDB)
+{
+    INIT_STDOUT_LOGGER();
+
+    LOG_MARKER();
+
+    if(BlockStorage::GetBlockStorage().ResetDB(BlockStorage::DBTYPE::TX_BLOCK))
+    {
+        std::list<TxBlock> in_blocks;
+
+        for(int i = 0; i < 10; i++)
+        {
+            TxBlock block = constructDummyTxBlock(i);
+
+            std::vector<unsigned char> serializedTxBlock;
+
+            block.Serialize(serializedTxBlock, 0);
+
+            BlockStorage::GetBlockStorage().PutTxBlock(i, serializedTxBlock);
+            in_blocks.push_back(block);
+        }
+
+        std::list<TxBlockSharedPtr> ref_blocks;
+        std::list<TxBlock> out_blocks;
+        BOOST_CHECK_MESSAGE(BlockStorage::GetBlockStorage().GetAllTxBlocks(ref_blocks),
+            "GetAllDSBlocks shouldn't fail");
+        for(auto i : ref_blocks)
+        {
+            LOG_MESSAGE(i->GetHeader().GetDSBlockNum());
+            out_blocks.push_back(*i);
+        }
+        BOOST_CHECK_MESSAGE(in_blocks == out_blocks,
+            "DSBlocks shouldn't change after writting to/ reading from disk");
+    }
+}
+
 BOOST_AUTO_TEST_SUITE_END ()

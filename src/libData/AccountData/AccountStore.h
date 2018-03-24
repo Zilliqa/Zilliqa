@@ -54,10 +54,15 @@ class AccountStore: public Serializable
 
     bool UpdateStateTrie(const Address & address, const Account & account);
 
+    /// Store the trie root to leveldb
+    void MoveRootToDisk(const dev::h256 & root);
+
 public:
     
     /// Returns the singleton AccountStore instance.
     static AccountStore & GetInstance();
+    /// Empty the state trie, must be called explicitly otherwise will retrieve the historical data
+    void Init();
     /// Implements the Serialize function inherited from Serializable.
     unsigned int Serialize(std::vector<unsigned char> & dst, unsigned int offset) const;
 
@@ -99,6 +104,8 @@ public:
     void DiscardUnsavedUpdates();
 
     void PrintAccountState();
+
+    bool RetrieveFromDisk();
 };
 
 #endif // __ACCOUNTSTORE_H__

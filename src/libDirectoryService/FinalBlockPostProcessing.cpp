@@ -191,6 +191,27 @@ void DirectoryService::SendFinalBlockToShardNodes(unsigned int my_DS_cluster_num
     m_finalBlockMessage.clear();
 }
 
+// void DirectoryService::StoreMicroBlocksToDisk()
+// {
+//     LOG_MARKER();
+//     for(auto microBlock : m_microBlocks)
+//     {
+            
+
+//         LOG_MESSAGE( "Storing Micro Block Hash: " << microBlock.GetHeader().GetTxRootHash() <<
+//             " with Type: " << microBlock.GetHeader().GetType() <<
+//             ", Version: " << microBlock.GetHeader().GetVersion() <<
+//             ", Timestamp: " << microBlock.GetHeader().GetTimestamp() <<
+//             ", NumTxs: " << microBlock.GetHeader().GetNumTxs());
+
+//         vector<unsigned char> serializedMicroBlock;
+//         microBlock.Serialize(serializedMicroBlock, 0);
+//         BlockStorage::GetBlockStorage().PutMicroBlock(microBlock.GetHeader().GetTxRootHash(), 
+//                                                serializedMicroBlock);
+//     }
+//     m_microBlocks.clear();
+// }
+
 void DirectoryService::ProcessFinalBlockConsensusWhenDone()
 {
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
@@ -208,7 +229,19 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
     m_mediator.m_txBlockChain.AddBlock(*m_finalBlock);
     m_mediator.m_currentEpochNum = (uint64_t) m_mediator.m_txBlockChain.GetBlockCount();
 
+    // StoreMicroBlocksToDisk();
     StoreFinalBlockToDisk();
+
+    bool isVacuousEpoch = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
+    if(isVacuousEpoch)
+    {
+        if(CheckStateRoot())
+        {
+            AccountStore::GetInstance().MoveUpdatesToDisk();
+            BlockStorage::GetBlockStorage().DeleteMetadata(MetaType::DSINCOMPLETED);
+            BlockStorage::GetBlockStorage().ResetDB(BlockStorage::DBTYPE::TX_BODY_TMP);
+        }
+    }
 
     m_mediator.UpdateDSBlockRand();
     m_mediator.UpdateTxBlockRand();

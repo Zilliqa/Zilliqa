@@ -26,9 +26,9 @@
 #include "common/Messages.h"
 #include "common/Constants.h"
 #include "depends/common/RLP.h"
+#include "depends/libDatabase/MemoryDB.h"
 #include "depends/libTrie/TrieDB.h"
 #include "depends/libTrie/TrieHash.h"
-#include "depends/libDatabase/MemoryDB.h"
 #include "libConsensus/ConsensusUser.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
@@ -40,23 +40,50 @@
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SanityChecks.h"
+#include "libPersistence/Retriever.h"
 #include "libUtils/TimeLockedFunction.h"
 #include "libUtils/TimeUtils.h"
 
 using namespace std;
 using namespace boost::multiprecision;
 
-Node::Node(Mediator & mediator) : m_mediator(mediator)
+Node::Node(Mediator & mediator, bool toRetrieveHistory) : m_mediator(mediator)
 {
     // m_state = IDLE;
-    // Zilliqa first epoch start from 1 not 0. So for the first DS epoch, there will be 1 less mini epoch only for the first DS epoch. 
-    // Hence, we have to set consensusID for first epoch to 1. 
-    m_consensusID = 1;
-    m_consensusLeaderID = 1;
-    m_synchronizer.InitializeGenesisBlocks(m_mediator.m_dsBlockChain, m_mediator.m_txBlockChain);
+    bool runInitializeGenesisBlocks = true;
+
+    if(toRetrieveHistory)
+    {
+        if(StartRetrieveHistory())
+        {
+            m_consensusID = 0;
+            m_consensusLeaderID = 0;
+            runInitializeGenesisBlocks = false;
+        }
+        else
+        {
+            LOG_MESSAGE("FAIL: RetrieveHistory Failed");
+        }
+    }
+    
+    if(runInitializeGenesisBlocks)
+    {
+        // Zilliqa first epoch start from 1 not 0. So for the first DS epoch, there will be 1 less mini epoch only for the first DS epoch. 
+        // Hence, we have to set consensusID for first epoch to 1. 
+        m_consensusID = 1;
+        m_consensusLeaderID = 1;
+
+        m_mediator.m_dsBlockChain.Reset();
+        m_mediator.m_txBlockChain.Reset();
+        m_committedTransactions.clear();
+        AccountStore::GetInstance().Init();
+        
+        m_synchronizer.InitializeGenesisBlocks(m_mediator.m_dsBlockChain, m_mediator.m_txBlockChain);
+    }
+    
     m_mediator.m_currentEpochNum = (uint64_t) m_mediator.m_txBlockChain.GetBlockCount();
-    m_mediator.UpdateDSBlockRand(true);
-    m_mediator.UpdateTxBlockRand(true);
+    m_mediator.UpdateDSBlockRand(runInitializeGenesisBlocks);
+    m_mediator.UpdateTxBlockRand(runInitializeGenesisBlocks);
     SetState(POW1_SUBMISSION);
     POW::GetInstance().EthashConfigureLightClient((uint64_t)m_mediator.m_dsBlockChain.GetBlockCount());
 }
@@ -66,10 +93,41 @@ Node::~Node()
 
 }
 
+bool Node::StartRetrieveHistory()
+{
+    LOG_MARKER();
+    auto retriever = make_unique<Retriever>(m_mediator);
+
+    bool ds_result;
+    std::thread tDS(&Retriever::RetrieveDSBlocks, retriever.get(), std::ref(ds_result));
+    // retriever->RetrieveDSBlocks(ds_result);
+
+    bool tx_result;
+    std::thread tTx(&Retriever::RetrieveTxBlocks, retriever.get(), std::ref(tx_result));
+    // retriever->RetrieveTxBlocks(tx_result);
+
+    bool st_result = retriever->RetrieveStates();
+
+    tDS.join();
+    tTx.join();
+    bool res = false;
+    if(st_result && ds_result && tx_result)
+    {
+        if(retriever->ValidateStates() && retriever->CleanExtraTxBodies())
+        {
+            LOG_MESSAGE("RetrieveHistory Successed");
+            m_mediator.m_isRetrievedHistory = true;
+            res = true;
+        }
+    }
+    return res;
+}
+
 #ifndef IS_LOOKUP_NODE
 
 void Node::StartSynchronization()
 {
+    m_isNewNode = true;
     auto func = [this]() -> void
     {
         while (!m_mediator.m_isConnectedToNetwork)
@@ -88,7 +146,7 @@ void Node::StartSynchronization()
     DetachedFunction(1, func);
 }
 
-#endif // IS_LOOKUP_NODE
+#endif //IS_LOOKUP_NODE
 
 bool Node::CheckState(Action action)
 {
@@ -496,9 +554,9 @@ bool Node::ProcessCreateTransaction(const vector<unsigned char> & message, unsig
     for (unsigned i=0; i < 10000; i++)
     {
         Transaction txn(version, nonce, toAddr, fromPubKey, amount, signature);
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
-                     "Created txns: " << txn.GetTranID())
-        LOG_MESSAGE(txn.GetSerializedSize());
+        // LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                     // "Created txns: " << txn.GetTranID())
+        // LOG_MESSAGE(txn.GetSerializedSize());
         m_createdTransactions.push_back(txn);
         nonce++;
         amount++;

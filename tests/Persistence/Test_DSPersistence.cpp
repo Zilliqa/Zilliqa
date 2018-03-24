@@ -28,6 +28,9 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 
+using namespace std;
+using namespace boost::multiprecision;
+
 BOOST_AUTO_TEST_SUITE (persistencetest)
 
 BOOST_AUTO_TEST_CASE (testReadWriteSimpleStringToDB)
@@ -336,6 +339,42 @@ BOOST_AUTO_TEST_CASE (testMultipleBlocksInMultipleFiles)
 
 //     // BlockStorage::m_blockFileSize = 128 * 1024 * 1024;
 //     BlockStorage::SetBlockFileSize(128 * ONE_MEGABYTE);
+}
+
+BOOST_AUTO_TEST_CASE (testRetrieveAllTheDSBlocksInDB)
+{
+    INIT_STDOUT_LOGGER();
+
+    LOG_MARKER();
+
+    if(BlockStorage::GetBlockStorage().ResetDB(BlockStorage::DBTYPE::DS_BLOCK))
+    {
+        std::list<DSBlock> in_blocks;
+
+        for(int i = 0; i < 10; i++)
+        {
+            DSBlock block = constructDummyDSBlock(i);
+
+            std::vector<unsigned char> serializedDSBlock;
+
+            block.Serialize(serializedDSBlock, 0);
+
+            BlockStorage::GetBlockStorage().PutDSBlock(i, serializedDSBlock);
+            in_blocks.push_back(block);
+        }
+
+        std::list<DSBlockSharedPtr> ref_blocks;
+        std::list<DSBlock> out_blocks;
+        BOOST_CHECK_MESSAGE(BlockStorage::GetBlockStorage().GetAllDSBlocks(ref_blocks),
+            "GetAllDSBlocks shouldn't fail");
+        for(auto i : ref_blocks)
+        {
+            LOG_MESSAGE(i->GetHeader().GetNonce());
+            out_blocks.push_back(*i);
+        }
+        BOOST_CHECK_MESSAGE(in_blocks == out_blocks,
+            "DSBlocks shouldn't change after writting to/ reading from disk");
+    }
 }
 
 BOOST_AUTO_TEST_SUITE_END ()
