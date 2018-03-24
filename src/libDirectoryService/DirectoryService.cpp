@@ -744,7 +744,12 @@ bool DirectoryService::ProcessLastDSBlockResponse(const vector<unsigned char> & 
     m_requesting_last_ds_block = false;
     unsigned int cur_offset = offset;
 
-    DSBlock dsblock(message, cur_offset);
+    DSBlock dsblock;
+    if(dsblock.Deserialize(message, cur_offset) != 0)
+    {
+        LOG_MESSAGE2("Error. We failed to init dsblock.");
+        return false; 
+    }
     int result = m_mediator.m_dsBlockChain.AddBlock(dsblock);
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Storing DS Block Number: "<< dsblock.GetHeader().GetBlockNum() <<
                 " with Nonce: "<< dsblock.GetHeader().GetNonce() <<

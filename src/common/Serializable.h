@@ -29,7 +29,7 @@ public:
     virtual unsigned int Serialize(std::vector<unsigned char> & dst, unsigned int offset) const = 0;
 
     /// Deserializes source byte stream into internal state.
-    virtual void Deserialize(const std::vector<unsigned char> & src, unsigned int offset) = 0;
+    virtual int Deserialize(const std::vector<unsigned char> & src, unsigned int offset) = 0;
 
     /// Virtual destructor.
     virtual ~Serializable() {}
