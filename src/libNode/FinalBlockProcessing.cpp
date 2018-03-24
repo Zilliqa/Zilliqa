@@ -965,7 +965,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char> & message, unsigned int
                      "I may have missed the micrblock consensus. However, if I recent a valid finalblock. I will accept it");
         SetState(WAITING_FINALBLOCK)
     }
-    else if (!CheckState(PROCESS_FINALBLOCK))
+    else if (!CheckState(WAITING_FINALBLOCK))
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
                      "Too late - current state is " << m_state << ".");
