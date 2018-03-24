@@ -183,7 +183,6 @@ bool Lookup::GetStateFromLookupNodes()
 {
     LOG_MARKER();
     SendMessageToLookupNodes(ComposeGetStateMessage());
-    receivedLastestState = false;
     return true;   
 }
 
@@ -259,7 +258,6 @@ bool Lookup::GetTxBlockFromSeedNodes(uint256_t lowBlockNum, uint256_t highBlockN
 {
     LOG_MARKER();
     SendMessageToSeedNodes(ComposeGetTxBlockMessage(lowBlockNum, highBlockNum));
-    receivedLatestTxBlocks = false;
     return true;
 }
 
@@ -1220,7 +1218,6 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char> & message, un
         }
     }
 #endif // IS_LOOKUP_NODE
-    receivedLatestTxBlocks = true;
 
     return true;
 }
@@ -1271,22 +1268,6 @@ bool Lookup::ProcessSetTxBodyFromSeed(const vector<unsigned char> & message, uns
 
 #ifndef IS_LOOKUP_NODE
 
-bool Lookup::CheckStateRoot()
-{
-    StateHash stateRoot = AccountStore::GetInstance().GetStateRootHash();
-
-    if(stateRoot == m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetStateRootHash())
-    {
-        LOG_MESSAGE("CheckStateRoot match");
-        return true;
-    }
-    else
-    {
-        LOG_MESSAGE("FAIL: CheckStateRoot doesn't match");
-        return false;
-    }
-}
-
 bool Lookup::InitMining()
 {
     LOG_MARKER();
@@ -1310,38 +1291,30 @@ bool Lookup::InitMining()
     auto dsBlockRand = m_mediator.m_dsBlockRand;
     array<unsigned char, 32> txBlockRand{};
 
-    // if (m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW == curDsBlockNum)
-    // {
-    //     // DS block for the epoch has not been generated. 
-    //     // Attempt PoW1
-    //     m_mediator.UpdateTxBlockRand();
-    //     dsBlockRand = m_mediator.m_dsBlockRand;
-
-    //     m_mediator.m_node->SetState(Node::POW1_SUBMISSION);
-    //     POW::GetInstance().EthashConfigureLightClient((uint64_t)m_mediator.m_dsBlockChain.GetBlockCount());
-    //     m_mediator.m_node->StartPoW1(m_mediator.m_dsBlockChain.GetBlockCount(), 
-    //                                     POW1_DIFFICULTY, dsBlockRand, m_mediator.m_txBlockRand);
-    // }
-    //else if 
-    if (m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW == curDsBlockNum - 1 && 
-        receivedLastestState && receivedLatestTxBlocks)
+    if (m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW == curDsBlockNum)
     {
-        if(CheckStateRoot())
-        {
-            // DS block has been generated. 
-            // Attempt PoW2
-            m_mediator.UpdateDSBlockRand();
-            dsBlockRand = m_mediator.m_dsBlockRand;
-            txBlockRand = {};
+        // DS block for the epoch has not been generated. 
+        // Attempt PoW1
+        m_mediator.UpdateTxBlockRand();
+        dsBlockRand = m_mediator.m_dsBlockRand;
 
-            m_mediator.m_node->SetState(Node::POW2_SUBMISSION);
-            POW::GetInstance().EthashConfigureLightClient((uint64_t)m_mediator.m_dsBlockChain.GetBlockCount());
-            m_mediator.m_node->StartPoW2(m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(), 
-                                            POW2_DIFFICULTY, dsBlockRand, txBlockRand);
-        }else
-        {
-            return false;
-        }
+        m_mediator.m_node->SetState(Node::POW1_SUBMISSION);
+        POW::GetInstance().EthashConfigureLightClient((uint64_t)m_mediator.m_dsBlockChain.GetBlockCount());
+        m_mediator.m_node->StartPoW1(m_mediator.m_dsBlockChain.GetBlockCount(), 
+                                        POW1_DIFFICULTY, dsBlockRand, m_mediator.m_txBlockRand);
+    }
+    else if (m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW == curDsBlockNum - 1)
+    {
+        // DS block has been generated. 
+        // Attempt PoW2
+        m_mediator.UpdateDSBlockRand();
+        dsBlockRand = m_mediator.m_dsBlockRand;
+        txBlockRand = {};
+
+        m_mediator.m_node->SetState(Node::POW2_SUBMISSION);
+        POW::GetInstance().EthashConfigureLightClient((uint64_t)m_mediator.m_dsBlockChain.GetBlockCount());
+        m_mediator.m_node->StartPoW2(m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(), 
+                                        POW2_DIFFICULTY, dsBlockRand, txBlockRand);
     }
     else
     {
@@ -1358,10 +1331,10 @@ bool Lookup::InitMining()
     else
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-         "I have successfully join the network");
+         "I have successfully join the network`");
     }
 
-    return true;  
+    return true;
 }
 #endif // IS_LOOKUP_NODE
 
@@ -1409,7 +1382,6 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char> & message, unsi
 
 #endif // IS_LOOKUP_NODE
 
-    receivedLastestState = true;
     return true;
 }
 
