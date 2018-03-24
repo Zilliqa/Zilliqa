@@ -35,6 +35,7 @@
 #include "libData/AccountData/Transaction.h"
 #include "libMediator/Mediator.h"
 #include "libPOW/pow.h"
+#include "libServer/Server.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
@@ -993,20 +994,13 @@ bool Node::ProcessFinalBlock(const vector<unsigned char> & message, unsigned int
 #ifndef IS_LOOKUP_NODE
     if(m_state == MICROBLOCK_CONSENSUS)
     {
-        unsigned int time_pass = 0;
-        while(m_state != WAITING_FINALBLOCK)
-        {
-            time_pass++;
-            if (time_pass % 10 == 1)
-            {
-                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), string("Waiting ") +
-                             "for state change from MICROBLOCK_CONSENSUS to PROCESS_FINALBLOCK");
-            }
-            this_thread::sleep_for(chrono::milliseconds(100));
-        }
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                     "I may have missed the micrblock consensus. However, if I recent a valid finalblock. I will accept it");
+        // TODO: Optimize state transition.
+        SetState(WAITING_FINALBLOCK);
     }
-    // Checks if (m_state != WAITING_FINALBLOCK)
-    else if (!CheckState(PROCESS_FINALBLOCK))
+    
+    if (!CheckState(PROCESS_FINALBLOCK))
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
                      "Too late - current state is " << m_state << ".");
@@ -1024,7 +1018,13 @@ bool Node::ProcessFinalBlock(const vector<unsigned char> & message, unsigned int
         return false;
     }
 
-    TxBlock txBlock(message, cur_offset);
+    // TxBlock txBlock(message, cur_offset);
+    TxBlock txBlock;
+    if(txBlock.Deserialize(message, cur_offset) != 0)
+    {
+        LOG_MESSAGE("Error. We failed to deserialize TxBlock.");
+        return false; 
+    }
     cur_offset += txBlock.GetSerializedSize();
 
     LogReceivedFinalBlockDetails(txBlock);
@@ -1129,7 +1129,13 @@ bool Node::LoadForwardedTxnsAndCheckRoot(const vector<unsigned char> & message,
     while(cur_offset + length_needed_per_txn <= message.size())
     {
         // reading [Transaction] from received msg
-        Transaction tx(message, cur_offset);
+        // Transaction tx(message, cur_offset);
+        Transaction tx;
+        if(tx.Deserialize(message, cur_offset) != 0)
+        {
+            LOG_MESSAGE("Error. We failed to deserialize Transaction.");
+            return false; 
+        }
         cur_offset += Transaction::GetSerializedSize();
 
         txnsInForwardedMessage.push_back(tx);
@@ -1166,8 +1172,11 @@ void Node::CommitForwardedTransactions(const vector<Transaction> & txnsInForward
         //              " with amount: " << tx.GetAmount() <<
         //              ", to: " << tx.GetToAddr() <<
         //              ", from: " << tx.GetFromAddr());
-
+#ifdef IS_LOOKUP_NODE
+        Server::AddToRecentTransactions(tx.GetTranID());
+#endif //IS_LOOKUP_NODE
         // Store TxBody to disk
+        
         vector<unsigned char> serializedTxBody;
         tx.Serialize(serializedTxBody, 0);
         BlockStorage::GetBlockStorage().PutTxBody(tx.GetTranID(), serializedTxBody);

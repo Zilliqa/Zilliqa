@@ -16,8 +16,12 @@
 
 
 #include <jsonrpccpp/server.h>
+#include <jsonrpccpp/server/connectors/httpserver.h>
+#include <boost/multiprecision/cpp_int.hpp>
+#include <mutex>
+#include "libData/BlockData/BlockHeader/BlockHeaderBase.h"
+#include "libData/DataStructures/CircularArray.h"
 
-using namespace jsonrpc;
 class Mediator;
 
 class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer>
@@ -26,106 +30,119 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer>
     public:
         AbstractZServer(jsonrpc::AbstractServerConnector &conn, jsonrpc::serverVersion_t type = jsonrpc::JSONRPC_SERVER_V2) : jsonrpc::AbstractServer<AbstractZServer>(conn, type)
         {
-            this->bindAndAddMethod(jsonrpc::Procedure("getClientVersion", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,  NULL), &AbstractZServer::getClientVersionI);
-            this->bindAndAddMethod(jsonrpc::Procedure("getNetworkId", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,  NULL), &AbstractZServer::getNetworkIdI);
-            this->bindAndAddMethod(jsonrpc::Procedure("getProtocolVersion", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,  NULL), &AbstractZServer::getProtocolVersionI);
-            this->bindAndAddMethod(jsonrpc::Procedure("createTransaction", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING, "param01",jsonrpc::JSON_OBJECT, NULL), &AbstractZServer::createTransactionI);
-            this->bindAndAddMethod(jsonrpc::Procedure("getTransaction", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_OBJECT, "param01",jsonrpc::JSON_STRING, NULL), &AbstractZServer::getTransactionI);
-            this->bindAndAddMethod(jsonrpc::Procedure("getDsBlock", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_OBJECT, "param01",jsonrpc::JSON_STRING, NULL), &AbstractZServer::getDsBlockI);
-            this->bindAndAddMethod(jsonrpc::Procedure("getTxBlock", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_OBJECT, "param01",jsonrpc::JSON_STRING, NULL), &AbstractZServer::getTxBlockI);
-            this->bindAndAddMethod(jsonrpc::Procedure("getLatestDsBlock", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_OBJECT,  NULL), &AbstractZServer::getLatestDsBlockI);
-            this->bindAndAddMethod(jsonrpc::Procedure("getLatestTxBlock", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_OBJECT,  NULL), &AbstractZServer::getLatestTxBlockI);
-            this->bindAndAddMethod(jsonrpc::Procedure("getBalance", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_OBJECT, "param01",jsonrpc::JSON_STRING, NULL), &AbstractZServer::getBalanceI);
-            this->bindAndAddMethod(jsonrpc::Procedure("getGasPrice", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,  NULL), &AbstractZServer::getGasPriceI);
-            this->bindAndAddMethod(jsonrpc::Procedure("getStorageAt", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING, "param01",jsonrpc::JSON_STRING,"param02",jsonrpc::JSON_STRING, NULL), &AbstractZServer::getStorageAtI);
-            this->bindAndAddMethod(jsonrpc::Procedure("getTransactionHistory", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_ARRAY, "param01",jsonrpc::JSON_STRING, NULL), &AbstractZServer::getTransactionHistoryI);
-            this->bindAndAddMethod(jsonrpc::Procedure("getBlockTransactionCount", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING, "param01",jsonrpc::JSON_STRING, NULL), &AbstractZServer::getBlockTransactionCountI);
-            this->bindAndAddMethod(jsonrpc::Procedure("getCode", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING, "param01",jsonrpc::JSON_STRING, NULL), &AbstractZServer::getCodeI);
-            this->bindAndAddMethod(jsonrpc::Procedure("createMessage", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING, "param01",jsonrpc::JSON_OBJECT, NULL), &AbstractZServer::createMessageI);
-            this->bindAndAddMethod(jsonrpc::Procedure("getGasEstimate", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING, "param01",jsonrpc::JSON_OBJECT, NULL), &AbstractZServer::getGasEstimateI);
-            this->bindAndAddMethod(jsonrpc::Procedure("getTransactionReceipt", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_OBJECT, "param01",jsonrpc::JSON_STRING, NULL), &AbstractZServer::getTransactionReceiptI);
+            this->bindAndAddMethod(jsonrpc::Procedure("GetClientVersion", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,  NULL), &AbstractZServer::GetClientVersionI);
+            this->bindAndAddMethod(jsonrpc::Procedure("GetNetworkId", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,  NULL), &AbstractZServer::GetNetworkIdI);
+            this->bindAndAddMethod(jsonrpc::Procedure("GetProtocolVersion", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,  NULL), &AbstractZServer::GetProtocolVersionI);
+            this->bindAndAddMethod(jsonrpc::Procedure("CreateTransaction", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING, "param01",jsonrpc::JSON_OBJECT, NULL), &AbstractZServer::CreateTransactionI);
+            this->bindAndAddMethod(jsonrpc::Procedure("GetTransaction", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_OBJECT, "param01",jsonrpc::JSON_STRING, NULL), &AbstractZServer::GetTransactionI);
+            this->bindAndAddMethod(jsonrpc::Procedure("GetDsBlock", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_OBJECT, "param01",jsonrpc::JSON_STRING, NULL), &AbstractZServer::GetDsBlockI);
+            this->bindAndAddMethod(jsonrpc::Procedure("GetTxBlock", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_OBJECT, "param01",jsonrpc::JSON_STRING, NULL), &AbstractZServer::GetTxBlockI);
+            this->bindAndAddMethod(jsonrpc::Procedure("GetLatestDsBlock", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_OBJECT,  NULL), &AbstractZServer::GetLatestDsBlockI);
+            this->bindAndAddMethod(jsonrpc::Procedure("GetLatestTxBlock", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_OBJECT,  NULL), &AbstractZServer::GetLatestTxBlockI);
+            this->bindAndAddMethod(jsonrpc::Procedure("GetBalance", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_OBJECT, "param01",jsonrpc::JSON_STRING, NULL), &AbstractZServer::GetBalanceI);
+            this->bindAndAddMethod(jsonrpc::Procedure("GetGasPrice", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,  NULL), &AbstractZServer::GetGasPriceI);
+            this->bindAndAddMethod(jsonrpc::Procedure("GetStorageAt", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING, "param01",jsonrpc::JSON_STRING,"param02",jsonrpc::JSON_STRING, NULL), &AbstractZServer::GetStorageAtI);
+            this->bindAndAddMethod(jsonrpc::Procedure("GetTransactionHistory", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_ARRAY, "param01",jsonrpc::JSON_STRING, NULL), &AbstractZServer::GetTransactionHistoryI);
+            this->bindAndAddMethod(jsonrpc::Procedure("GetBlockTransactionCount", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING, "param01",jsonrpc::JSON_STRING, NULL), &AbstractZServer::GetBlockTransactionCountI);
+            this->bindAndAddMethod(jsonrpc::Procedure("GetCode", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING, "param01",jsonrpc::JSON_STRING, NULL), &AbstractZServer::GetCodeI);
+            this->bindAndAddMethod(jsonrpc::Procedure("CreateMessage", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING, "param01",jsonrpc::JSON_OBJECT, NULL), &AbstractZServer::CreateMessageI);
+            this->bindAndAddMethod(jsonrpc::Procedure("GetGasEstimate", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING, "param01",jsonrpc::JSON_OBJECT, NULL), &AbstractZServer::GetGasEstimateI);
+            this->bindAndAddMethod(jsonrpc::Procedure("GetTransactionReceipt", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_OBJECT, "param01",jsonrpc::JSON_STRING, NULL), &AbstractZServer::GetTransactionReceiptI);
             this->bindAndAddMethod(jsonrpc::Procedure("isNodeSyncing", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_BOOLEAN,  NULL), &AbstractZServer::isNodeSyncingI);
             this->bindAndAddMethod(jsonrpc::Procedure("isNodeMining", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_BOOLEAN,  NULL), &AbstractZServer::isNodeMiningI);
-            this->bindAndAddMethod(jsonrpc::Procedure("getHashrate", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,  NULL), &AbstractZServer::getHashrateI);
+            this->bindAndAddMethod(jsonrpc::Procedure("GetHashrate", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,  NULL), &AbstractZServer::GetHashrateI);
+            this->bindAndAddMethod(jsonrpc::Procedure("GetNumPeers", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_INTEGER,  NULL), &AbstractZServer::GetNumPeersI);
+            this->bindAndAddMethod(jsonrpc::Procedure("GetNumTxBlocks", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,  NULL), &AbstractZServer::GetNumTxBlocksI);
+            this->bindAndAddMethod(jsonrpc::Procedure("GetNumDSBlocks", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,  NULL), &AbstractZServer::GetNumDSBlocksI);
+            this->bindAndAddMethod(jsonrpc::Procedure("GetNumTransactions", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,  NULL), &AbstractZServer::GetNumTransactionsI);
+            this->bindAndAddMethod(jsonrpc::Procedure("GetTransactionRate", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_REAL,  NULL), &AbstractZServer::GetTransactionRateI);
+            this->bindAndAddMethod(jsonrpc::Procedure("GetTxBlockRate", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_REAL,  NULL), &AbstractZServer::GetTxBlockRateI);
+            this->bindAndAddMethod(jsonrpc::Procedure("GetDSBlockRate", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_REAL,  NULL), &AbstractZServer::GetDSBlockRateI);
+            this->bindAndAddMethod(jsonrpc::Procedure("GetCurrentMiniEpoch", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,  NULL), &AbstractZServer::GetCurrentMiniEpochI);
+            this->bindAndAddMethod(jsonrpc::Procedure("GetCurrentDSEpoch", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,  NULL), &AbstractZServer::GetCurrentDSEpochI);
+            this->bindAndAddMethod(jsonrpc::Procedure("DSBlockListing", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_OBJECT,"param01",jsonrpc::JSON_INTEGER, NULL), &AbstractZServer::DSBlockListingI);
+            this->bindAndAddMethod(jsonrpc::Procedure("TxBlockListing", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_OBJECT,"param01",jsonrpc::JSON_INTEGER, NULL), &AbstractZServer::TxBlockListingI);
+            this->bindAndAddMethod(jsonrpc::Procedure("GetBlockchainInfo", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_OBJECT,  NULL), &AbstractZServer::GetBlockchainInfoI);
+            this->bindAndAddMethod(jsonrpc::Procedure("GetRecentTransactions", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_OBJECT,  NULL), &AbstractZServer::GetRecentTransactionsI);
         }
 
-        inline virtual void getClientVersionI(const Json::Value &request, Json::Value &response)
+        inline virtual void GetClientVersionI(const Json::Value &request, Json::Value &response)
         {
             (void)request;
-            response = this->getClientVersion();
+            response = this->GetClientVersion();
         }
-        inline virtual void getNetworkIdI(const Json::Value &request, Json::Value &response)
+        inline virtual void GetNetworkIdI(const Json::Value &request, Json::Value &response)
         {
             (void)request;
-            response = this->getNetworkId();
+            response = this->GetNetworkId();
         }
-        inline virtual void getProtocolVersionI(const Json::Value &request, Json::Value &response)
+        inline virtual void GetProtocolVersionI(const Json::Value &request, Json::Value &response)
         {
             (void)request;
-            response = this->getProtocolVersion();
+            response = this->GetProtocolVersion();
         }
-        inline virtual void createTransactionI(const Json::Value &request, Json::Value &response)
+        inline virtual void CreateTransactionI(const Json::Value &request, Json::Value &response)
         {
-            response = this->createTransaction(request[0u]);
+            response = this->CreateTransaction(request[0u]);
         }
-        inline virtual void getTransactionI(const Json::Value &request, Json::Value &response)
+        inline virtual void GetTransactionI(const Json::Value &request, Json::Value &response)
         {
-            response = this->getTransaction(request[0u].asString());
+            response = this->GetTransaction(request[0u].asString());
         }
-        inline virtual void getDsBlockI(const Json::Value &request, Json::Value &response)
+        inline virtual void GetDsBlockI(const Json::Value &request, Json::Value &response)
         {
-            response = this->getDsBlock(request[0u].asString());
+            response = this->GetDsBlock(request[0u].asString());
         }
-        inline virtual void getTxBlockI(const Json::Value &request, Json::Value &response)
+        inline virtual void GetTxBlockI(const Json::Value &request, Json::Value &response)
         {
-            response = this->getTxBlock(request[0u].asString());
+            response = this->GetTxBlock(request[0u].asString());
         }
-        inline virtual void getLatestDsBlockI(const Json::Value &request, Json::Value &response)
-        {
-            (void)request;
-            response = this->getLatestDsBlock();
-        }
-        inline virtual void getLatestTxBlockI(const Json::Value &request, Json::Value &response)
+        inline virtual void GetLatestDsBlockI(const Json::Value &request, Json::Value &response)
         {
             (void)request;
-            response = this->getLatestTxBlock();
+            response = this->GetLatestDsBlock();
         }
-        inline virtual void getBalanceI(const Json::Value &request, Json::Value &response)
-        {
-            response = this->getBalance(request[0u].asString());
-        }
-        inline virtual void getGasPriceI(const Json::Value &request, Json::Value &response)
+        inline virtual void GetLatestTxBlockI(const Json::Value &request, Json::Value &response)
         {
             (void)request;
-            response = this->getGasPrice();
+            response = this->GetLatestTxBlock();
         }
-        inline virtual void getStorageAtI(const Json::Value &request, Json::Value &response)
+        inline virtual void GetBalanceI(const Json::Value &request, Json::Value &response)
         {
-            response = this->getStorageAt(request[0u].asString(), request[1u].asString());
+            response = this->GetBalance(request[0u].asString());
         }
-        inline virtual void getTransactionHistoryI(const Json::Value &request, Json::Value &response)
+        inline virtual void GetGasPriceI(const Json::Value &request, Json::Value &response)
         {
-            response = this->getTransactionHistory(request[0u].asString());
+            (void)request;
+            response = this->GetGasPrice();
         }
-        inline virtual void getBlockTransactionCountI(const Json::Value &request, Json::Value &response)
+        inline virtual void GetStorageAtI(const Json::Value &request, Json::Value &response)
         {
-            response = this->getBlockTransactionCount(request[0u].asString());
+            response = this->GetStorageAt(request[0u].asString(), request[1u].asString());
         }
-        inline virtual void getCodeI(const Json::Value &request, Json::Value &response)
+        inline virtual void GetTransactionHistoryI(const Json::Value &request, Json::Value &response)
         {
-            response = this->getCode(request[0u].asString());
+            response = this->GetTransactionHistory(request[0u].asString());
         }
-        inline virtual void createMessageI(const Json::Value &request, Json::Value &response)
+        inline virtual void GetBlockTransactionCountI(const Json::Value &request, Json::Value &response)
         {
-            response = this->createMessage(request[0u]);
+            response = this->GetBlockTransactionCount(request[0u].asString());
         }
-        inline virtual void getGasEstimateI(const Json::Value &request, Json::Value &response)
+        inline virtual void GetCodeI(const Json::Value &request, Json::Value &response)
         {
-            response = this->getGasEstimate(request[0u]);
+            response = this->GetCode(request[0u].asString());
         }
-        inline virtual void getTransactionReceiptI(const Json::Value &request, Json::Value &response)
+        inline virtual void CreateMessageI(const Json::Value &request, Json::Value &response)
         {
-            response = this->getTransactionReceipt(request[0u].asString());
+            response = this->CreateMessage(request[0u]);
+        }
+        inline virtual void GetGasEstimateI(const Json::Value &request, Json::Value &response)
+        {
+            response = this->GetGasEstimate(request[0u]);
+        }
+        inline virtual void GetTransactionReceiptI(const Json::Value &request, Json::Value &response)
+        {
+            response = this->GetTransactionReceipt(request[0u].asString());
         }
         inline virtual void isNodeSyncingI(const Json::Value &request, Json::Value &response)
         {
@@ -137,61 +154,164 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer>
             (void)request;
             response = this->isNodeMining();
         }
-        inline virtual void getHashrateI(const Json::Value &request, Json::Value &response)
+        inline virtual void GetHashrateI(const Json::Value &request, Json::Value &response)
         {
             (void)request;
-            response = this->getHashrate();
+            response = this->GetHashrate();
         }
-        virtual std::string getClientVersion() = 0;
-        virtual std::string getNetworkId() = 0;
-        virtual std::string getProtocolVersion() = 0;
-        virtual std::string createTransaction(const Json::Value& param01) = 0;
-        virtual Json::Value getTransaction(const std::string& param01) = 0;
-        virtual Json::Value getDsBlock(const std::string& param01) = 0;
-        virtual Json::Value getTxBlock(const std::string& param01) = 0;
-        virtual Json::Value getLatestDsBlock() = 0;
-        virtual Json::Value getLatestTxBlock() = 0;
-        virtual Json::Value getBalance(const std::string& param01) = 0;
-        virtual std::string getGasPrice() = 0;
-        virtual std::string getStorageAt(const std::string& param01, const std::string& param02) = 0;
-        virtual Json::Value getTransactionHistory(const std::string& param01) = 0;
-        virtual std::string getBlockTransactionCount(const std::string& param01) = 0;
-        virtual std::string getCode(const std::string& param01) = 0;
-        virtual std::string createMessage(const Json::Value& param01) = 0;
-        virtual std::string getGasEstimate(const Json::Value& param01) = 0;
-        virtual Json::Value getTransactionReceipt(const std::string& param01) = 0;
+        inline virtual void GetNumPeersI(const Json::Value &request, Json::Value &response)
+        {
+            (void)request;
+            response = this->GetNumPeers();
+        }
+        inline virtual void GetNumTxBlocksI(const Json::Value &request, Json::Value &response)
+        {
+            (void)request;
+            response = this->GetNumTxBlocks();
+        }
+        inline virtual void GetNumDSBlocksI(const Json::Value &request, Json::Value &response)
+        {
+            (void)request;
+            response = this->GetNumDSBlocks();
+        }
+        inline virtual void GetNumTransactionsI(const Json::Value &request, Json::Value &response)
+        {
+            (void)request;
+            response = this->GetNumTransactions();
+        }
+        inline virtual void GetTransactionRateI(const Json::Value &request, Json::Value &response)
+        {
+            (void)request;
+            response = this->GetTransactionRate();
+        }
+        inline virtual void GetTxBlockRateI(const Json::Value &request, Json::Value &response)
+        {
+            (void)request;
+            response = this->GetTxBlockRate();
+        }
+        inline virtual void GetDSBlockRateI(const Json::Value &request, Json::Value &response)
+        {
+            (void)request;
+            response = this->GetDSBlockRate();
+        }
+        inline virtual void GetCurrentMiniEpochI(const Json::Value &request, Json::Value &response)
+        {
+            (void)request;
+            response = this->GetCurrentMiniEpoch();
+        }
+        inline virtual void GetCurrentDSEpochI(const Json::Value &request, Json::Value &response)
+        {
+            (void)request;
+            response = this->GetCurrentDSEpoch();
+        }
+        inline virtual void DSBlockListingI(const Json::Value &request, Json::Value &response)
+        {
+            (void)request;
+            response = this->DSBlockListing(request[0u].asUInt());
+        }
+        inline virtual void TxBlockListingI(const Json::Value &request, Json::Value &response)
+        {
+            (void)request;
+            response = this->TxBlockListing(request[0u].asUInt());
+        }
+        inline virtual void GetBlockchainInfoI(const Json::Value &request, Json::Value &response)
+        {
+            (void)request;
+            response = this->GetBlockchainInfo();
+        }
+        inline virtual void GetRecentTransactionsI(const Json::Value &request, Json::Value &response)
+        {
+            (void)request;
+            response = this->GetRecentTransactions();
+        }
+        virtual std::string GetClientVersion() = 0;
+        virtual std::string GetNetworkId() = 0;
+        virtual std::string GetProtocolVersion() = 0;
+        virtual std::string CreateTransaction(const Json::Value& param01) = 0;
+        virtual Json::Value GetTransaction(const std::string& param01) = 0;
+        virtual Json::Value GetDsBlock(const std::string& param01) = 0;
+        virtual Json::Value GetTxBlock(const std::string& param01) = 0;
+        virtual Json::Value GetLatestDsBlock() = 0;
+        virtual Json::Value GetLatestTxBlock() = 0;
+        virtual Json::Value GetBalance(const std::string& param01) = 0;
+        virtual std::string GetGasPrice() = 0;
+        virtual std::string GetStorageAt(const std::string& param01, const std::string& param02) = 0;
+        virtual Json::Value GetTransactionHistory(const std::string& param01) = 0;
+        virtual std::string GetBlockTransactionCount(const std::string& param01) = 0;
+        virtual std::string GetCode(const std::string& param01) = 0;
+        virtual std::string CreateMessage(const Json::Value& param01) = 0;
+        virtual std::string GetGasEstimate(const Json::Value& param01) = 0;
+        virtual Json::Value GetTransactionReceipt(const std::string& param01) = 0;
         virtual bool isNodeSyncing() = 0;
         virtual bool isNodeMining() = 0;
-        virtual std::string getHashrate() = 0;
+        virtual std::string GetHashrate() = 0;
+        virtual unsigned int GetNumPeers() = 0;
+        virtual std::string GetNumTxBlocks() = 0;
+        virtual std::string GetNumDSBlocks() = 0;
+        virtual std::string GetNumTransactions() = 0;
+        virtual double GetTransactionRate() = 0;
+        virtual double GetTxBlockRate() = 0;
+        virtual double GetDSBlockRate() = 0;
+        virtual std::string GetCurrentMiniEpoch() = 0;
+        virtual std::string GetCurrentDSEpoch() = 0;
+        virtual Json::Value DSBlockListing(unsigned int param01) = 0;
+        virtual Json::Value TxBlockListing(unsigned int param01) = 0;
+        virtual Json::Value GetBlockchainInfo() = 0;
+        virtual Json::Value GetRecentTransactions() = 0;
+
 };
 
 class Server: public AbstractZServer
 {
     Mediator & m_mediator;
+    std::pair<boost::multiprecision::uint256_t, boost::multiprecision::uint256_t> m_BlockTxPair;
+    boost::multiprecision::uint256_t m_StartTimeTx;
+    boost::multiprecision::uint256_t m_StartTimeDs;
+    std::pair<boost::multiprecision::uint256_t, CircularArray<std::string>> m_DSBlockCache;
+    std::pair<boost::multiprecision::uint256_t, CircularArray<std::string>> m_TxBlockCache;
+    static CircularArray <std::string> m_RecentTransactions;
+    static std::mutex m_mutexRecentTxns;
+
+
+    
     public:
 
-        Server(Mediator & mediator, HttpServer & httpserver);
+        Server(Mediator & mediator, jsonrpc::HttpServer & httpserver);
         ~Server();
 
-        virtual std::string getClientVersion();
-        virtual std::string getNetworkId();
-        virtual std::string getProtocolVersion();
-        virtual std::string createTransaction(const Json::Value & _json);
-        virtual Json::Value getTransaction(const std::string & transactionHash);
-        virtual Json::Value getDsBlock(const std::string & blockHash);
-        virtual Json::Value getTxBlock(const std::string & blockHash);
-        virtual Json::Value getLatestDsBlock();
-        virtual Json::Value getLatestTxBlock();
-        virtual Json::Value getBalance(const std::string & address);
-        virtual std::string getGasPrice();
-        virtual std::string getStorageAt(const std::string & address, const std::string & position);
-        virtual Json::Value getTransactionHistory(const std::string & address);
-        virtual std::string getBlockTransactionCount(const std::string & blockHash);
-        virtual std::string getCode(const std::string & address);
-        virtual std::string createMessage(const Json::Value& _json);
-        virtual std::string getGasEstimate(const Json::Value& _json);
-        virtual Json::Value getTransactionReceipt(const std::string & transactionHash);
+        virtual std::string GetClientVersion();
+        virtual std::string GetNetworkId();
+        virtual std::string GetProtocolVersion();
+        virtual std::string CreateTransaction(const Json::Value & _json);
+        virtual Json::Value GetTransaction(const std::string & transactionHash);
+        virtual Json::Value GetDsBlock(const std::string & blockNum);
+        virtual Json::Value GetTxBlock(const std::string & blockNum);
+        virtual Json::Value GetLatestDsBlock();
+        virtual Json::Value GetLatestTxBlock();
+        virtual Json::Value GetBalance(const std::string & address);
+        virtual std::string GetGasPrice();
+        virtual std::string GetStorageAt(const std::string & address, const std::string & position);
+        virtual Json::Value GetTransactionHistory(const std::string & address);
+        virtual std::string GetBlockTransactionCount(const std::string & blockHash);
+        virtual std::string GetCode(const std::string & address);
+        virtual std::string CreateMessage(const Json::Value& _json);
+        virtual std::string GetGasEstimate(const Json::Value& _json);
+        virtual Json::Value GetTransactionReceipt(const std::string & transactionHash);
         virtual bool isNodeSyncing();
         virtual bool isNodeMining();
-        virtual std::string getHashrate();
+        virtual std::string GetHashrate();
+        virtual unsigned int GetNumPeers();
+        virtual std::string GetNumTxBlocks();
+        virtual std::string GetNumDSBlocks();
+        virtual std::string GetNumTransactions();
+        virtual double GetTransactionRate();
+        virtual double GetTxBlockRate();
+        virtual double GetDSBlockRate();
+        virtual std::string GetCurrentMiniEpoch();
+        virtual std::string GetCurrentDSEpoch();
+        virtual Json::Value DSBlockListing(unsigned int page);
+        virtual Json::Value TxBlockListing(unsigned int page);
+        virtual Json::Value GetBlockchainInfo();
+        virtual Json::Value GetRecentTransactions();
+        static void AddToRecentTransactions(const dev::h256 & txhash);
 };

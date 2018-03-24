@@ -326,9 +326,14 @@ bool Lookup::GetTxBodyFromSeedNodes(string txHashStr)
 
     vector<map<PubKey, Peer>> Lookup::GetShardPeers()
     {
-        LOG_MARKER();
         lock_guard<mutex> g(m_mutexShards);
         return m_shards;
+    }
+
+    vector <Peer> Lookup::GetNodePeers()
+    {
+        lock_guard<mutex> g(m_mutexNodesInNetwork);
+        return m_nodesInNetwork;
     }
 
 #endif // IS_LOOKUP_NODE
@@ -367,7 +372,9 @@ bool Lookup::ProcessEntireShardingStructure(const vector<unsigned char> & messag
 
     LOG_MESSAGE("Number of shards: " << to_string(num_shards));
 
-    lock_guard<mutex> g(m_mutexShards);
+    lock(m_mutexShards, m_mutexNodesInNetwork);
+    lock_guard<mutex> g(m_mutexShards, adopt_lock);
+    lock_guard<mutex> h(m_mutexNodesInNetwork, adopt_lock);
 
     m_shards.clear();
     m_nodesInNetwork.clear();
@@ -407,7 +414,14 @@ bool Lookup::ProcessEntireShardingStructure(const vector<unsigned char> & messag
             offset += PUB_KEY_SIZE;
 
             // 16-byte IP + 4-byte port
-            Peer peer = Peer(message, offset);
+            // Peer peer = Peer(message, offset);
+            Peer peer;
+            if(peer.Deserialize(message, offset) != 0)
+            {
+                LOG_MESSAGE("Error. We failed to deserialize Peer.");
+                return false; 
+            }
+            
             offset += IP_SIZE + PORT_SIZE;
 
             shard.insert(make_pair(key, peer));
@@ -449,6 +463,8 @@ bool Lookup::ProcessGetSeedPeersFromLookup(const vector<unsigned char> & message
 
     uint128_t ipAddr = from.m_ipAddress;
     Peer peer(ipAddr, portNo);
+
+    lock_guard<mutex> g(m_mutexNodesInNetwork);
 
     uint32_t numPeersInNetwork = m_nodesInNetwork.size();
 
@@ -943,7 +959,14 @@ bool Lookup::ProcessSetSeedPeersFromLookup(const vector<unsigned char> &message,
 
     for(unsigned int i = 0; i < SEED_PEER_LIST_SIZE; i++)
     {
-        Peer peer = Peer(message, offset);
+        // Peer peer = Peer(message, offset);
+        Peer peer;
+        if(peer.Deserialize(message, offset) != 0)
+        {
+            LOG_MESSAGE("Error. We failed to deserialize Peer.");
+            return false; 
+        }
+        
         m_seedNodes.push_back(peer);
         LOG_MESSAGE("Peer " + to_string(i) + ": " << string(peer));
         offset += (IP_SIZE + PORT_SIZE);
@@ -1055,7 +1078,13 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char> & message, un
         blockNum <= highBlockNum; 
         blockNum++)
     {
-        DSBlock dsBlock(message, offset);
+        // DSBlock dsBlock(message, offset);
+        DSBlock dsBlock;
+        if(dsBlock.Deserialize(message, offset) != 0)
+        {
+            LOG_MESSAGE("Error. We failed to deserialize dsBlock.");
+            return false; 
+        }
         offset += DSBlock::GetSerializedSize();
 
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
@@ -1222,7 +1251,13 @@ bool Lookup::ProcessSetTxBodyFromSeed(const vector<unsigned char> & message, uns
          tranHash.asArray().begin());
     offset += TRAN_HASH_SIZE;
 
-    Transaction transaction(message, offset);
+    // Transaction transaction(message, offset);
+    Transaction transaction;
+    if(transaction.Deserialize(message, offset) != 0)
+    {
+        LOG_MESSAGE("Error. We failed to deserialize Transaction.");
+        return false; 
+    }
 
     vector<unsigned char> serializedTxBody;
     transaction.Serialize(serializedTxBody, 0);
@@ -1365,7 +1400,12 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char> & message, unsi
 
     unique_lock<mutex> lock(m_mutexSetState);
     unsigned int curr_offset = offset;
-    AccountStore::GetInstance().Deserialize(message, curr_offset);
+    // AccountStore::GetInstance().Deserialize(message, curr_offset);
+    if(AccountStore::GetInstance().Deserialize(message, curr_offset) != 0)
+    {
+        LOG_MESSAGE("Error. We failed to deserialize AccountStore.");
+        return false; 
+    }
 
 #endif // IS_LOOKUP_NODE
 

@@ -202,7 +202,10 @@ PrivKey::PrivKey() : m_d(BN_new(), BN_clear_free), m_initialized(false)
 
 PrivKey::PrivKey(const vector<unsigned char> & src, unsigned int offset)
 {
-    Deserialize(src, offset);
+    if(Deserialize(src, offset) != 0)
+    {
+        LOG_MESSAGE("Error. We failed to init PrivKey.");
+    }
 }
 
 PrivKey::PrivKey(const PrivKey & src) : m_d(BN_new(), BN_clear_free), m_initialized(false)
@@ -247,20 +250,30 @@ unsigned int PrivKey::Serialize(vector<unsigned char> & dst, unsigned int offset
     return PRIV_KEY_SIZE;
 }
 
-void PrivKey::Deserialize(const vector<unsigned char> & src, unsigned int offset)
+int PrivKey::Deserialize(const vector<unsigned char> & src, unsigned int offset)
 {
     LOG_MARKER();
 
-    m_d = BIGNUMSerialize::GetNumber(src, offset, PRIV_KEY_SIZE);
-    if (m_d == nullptr)
+    try
     {
-        LOG_MESSAGE("Error: Deserialization failure");
-        m_initialized = false;
+        m_d = BIGNUMSerialize::GetNumber(src, offset, PRIV_KEY_SIZE);
+        if (m_d == nullptr)
+        {
+            LOG_MESSAGE("Error: Deserialization failure");
+            m_initialized = false;
+        }
+        else
+        {
+            m_initialized = true;
+        }
     }
-    else
+    catch(const std::exception& e)
     {
-        m_initialized = true;
+        LOG_MESSAGE("ERROR: Error with PrivKey::Deserialize." << ' ' << e.what());
+        return -1;
+
     }
+    return 0;
 }
 
 PrivKey & PrivKey::operator=(const PrivKey & src)
@@ -316,7 +329,10 @@ PubKey::PubKey(const PrivKey & privkey) : m_P(EC_POINT_new(Schnorr::GetInstance(
 
 PubKey::PubKey(const vector<unsigned char> & src, unsigned int offset)
 {
-    Deserialize(src, offset);
+    if(Deserialize(src, offset) != 0)
+    {
+        LOG_MESSAGE("Error. We failed to init PubKey.");
+    }
 }
 
 PubKey::PubKey(const PubKey & src) : m_P(EC_POINT_new(Schnorr::GetInstance().GetCurve().m_group.get()), EC_POINT_clear_free), m_initialized(false)
@@ -364,18 +380,30 @@ unsigned int PubKey::Serialize(vector<unsigned char> & dst, unsigned int offset)
     return PUB_KEY_SIZE;
 }
 
-void PubKey::Deserialize(const vector<unsigned char> & src, unsigned int offset)
+int PubKey::Deserialize(const vector<unsigned char> & src, unsigned int offset)
 {
-    m_P = ECPOINTSerialize::GetNumber(src, offset, PUB_KEY_SIZE);
-    if (m_P == nullptr)
-    {
-        LOG_MESSAGE("Error: Deserialization failure");
-        m_initialized = false;
+    LOG_MARKER();
+
+    try
+        {
+        m_P = ECPOINTSerialize::GetNumber(src, offset, PUB_KEY_SIZE);
+        if (m_P == nullptr)
+        {
+            LOG_MESSAGE("Error: Deserialization failure");
+            m_initialized = false;
+        }
+        else
+        {
+            m_initialized = true;
+        }
     }
-    else
+    catch(const std::exception& e)
     {
-        m_initialized = true;
+        LOG_MESSAGE("ERROR: Error with PubKey::Deserialize." << ' ' << e.what());
+        return -1;
+
     }
+    return 0;
 }
 
 PubKey & PubKey::operator=(const PubKey & src)
@@ -438,7 +466,11 @@ Signature::Signature() : m_r(BN_new(), BN_clear_free), m_s(BN_new(), BN_clear_fr
 
 Signature::Signature(const vector<unsigned char> & src, unsigned int offset)
 {
-    Deserialize(src, offset);
+    
+    if(Deserialize(src, offset) != 0)
+    {
+        LOG_MESSAGE("Error. We failed to init Signature.");
+    }
 }
 
 Signature::Signature(const Signature & src) : m_r(BN_new(), BN_clear_free), m_s(BN_new(), BN_clear_free), m_initialized(false)
@@ -489,29 +521,39 @@ unsigned int Signature::Serialize(vector<unsigned char> & dst, unsigned int offs
     return SIGNATURE_CHALLENGE_SIZE + SIGNATURE_RESPONSE_SIZE;
 }
 
-void Signature::Deserialize(const vector<unsigned char> & src, unsigned int offset)
+int Signature::Deserialize(const vector<unsigned char> & src, unsigned int offset)
 {
     LOG_MARKER();
 
-    m_r = BIGNUMSerialize::GetNumber(src, offset, SIGNATURE_CHALLENGE_SIZE);
-    if (m_r == nullptr)
+    try
     {
-        LOG_MESSAGE("Error: Deserialization failure");
-        m_initialized = false;
-    }
-    else
-    {
-        m_s = BIGNUMSerialize::GetNumber(src, offset + SIGNATURE_CHALLENGE_SIZE, SIGNATURE_RESPONSE_SIZE);
-        if (m_s == nullptr)
+        m_r = BIGNUMSerialize::GetNumber(src, offset, SIGNATURE_CHALLENGE_SIZE);
+        if (m_r == nullptr)
         {
             LOG_MESSAGE("Error: Deserialization failure");
             m_initialized = false;
         }
         else
         {
-            m_initialized = true;
+            m_s = BIGNUMSerialize::GetNumber(src, offset + SIGNATURE_CHALLENGE_SIZE, SIGNATURE_RESPONSE_SIZE);
+            if (m_s == nullptr)
+            {
+                LOG_MESSAGE("Error: Deserialization failure");
+                m_initialized = false;
+            }
+            else
+            {
+                m_initialized = true;
+            }
         }
     }
+    catch(const std::exception& e)
+    {
+        LOG_MESSAGE("ERROR: Error with Signature::Deserialize." << ' ' << e.what());
+        return -1;
+
+    }
+    return 0;
 }
 
 Signature & Signature::operator=(const Signature & src)

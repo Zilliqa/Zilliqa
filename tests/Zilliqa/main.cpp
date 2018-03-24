@@ -47,8 +47,20 @@ int main(int argc, const char * argv[])
 
         vector<unsigned char> tmpprivkey = DataConversion::HexStrToUint8Vec(argv[1]);
         vector<unsigned char> tmppubkey = DataConversion::HexStrToUint8Vec(argv[2]);
-        PrivKey privkey(tmpprivkey, 0);
-        PubKey pubkey(tmppubkey, 0);
+        // PrivKey privkey(tmpprivkey, 0);
+        PrivKey privkey;
+        if(privkey.Deserialize(tmpprivkey, 0) != 0)
+        {
+            LOG_MESSAGE("Error. We failed to deserialize PrivKey.");
+            return -1; 
+        }
+        // PubKey pubkey(tmppubkey, 0);
+        PubKey pubkey;
+        if(pubkey.Deserialize(tmppubkey, 0) != 0)
+        {
+            LOG_MESSAGE("Error. We failed to deserialize PubKey.");
+            return -1; 
+        }
 
         struct in_addr ip_addr;
         inet_aton(argv[3], &ip_addr);

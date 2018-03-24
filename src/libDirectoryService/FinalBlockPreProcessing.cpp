@@ -629,12 +629,13 @@ bool DirectoryService::CheckIsMicroBlockEmpty()
 
     auto & txRootHashesInMicroBlocks = m_finalBlock->GetMicroBlockHashes();
 
-    for (uint i = 0; i < txRootHashesInMicroBlocks.size(); i++)
+    for (unsigned int i = 0; i < txRootHashesInMicroBlocks.size(); i++)
     {
-        LOG_MESSAGE(i << " " << txRootHashesInMicroBlocks[i] << m_finalBlock->GetIsMicroBlockEmpty().size()); 
+        LOG_MESSAGE("Microblock" << i << ";" << "Roothash:" << txRootHashesInMicroBlocks[i] << 
+                    ";IsMicroBlockEmpty:" << m_finalBlock->GetIsMicroBlockEmpty().size());
         for (auto & microBlock : m_microBlocks)
         {
-            LOG_MESSAGE(microBlock.GetHeader().GetTxRootHash());
+            LOG_MESSAGE("Checking " << microBlock.GetHeader().GetTxRootHash());
             if(microBlock.GetHeader().GetTxRootHash() == txRootHashesInMicroBlocks[i])
             {
                 if (m_finalBlock->GetIsMicroBlockEmpty()[i] != 
@@ -756,6 +757,13 @@ void DirectoryService::SaveTxnBodySharingAssignment(const vector<unsigned char> 
     bool i_am_forwarder = false;
     for (uint32_t i = 0; i < num_ds_nodes; i++)
     {
+        // Peer tempPeer;
+        // if(tempPeer.Deserialize(finalblock, curr_offset) != 0)
+        // {
+        //     LOG_MESSAGE("Error. We failed to deserialize Peer.");
+        // }
+        // ds_receivers.push_back(tempPeer);
+        // TODO: Handle exceptions
         ds_receivers.push_back(Peer(finalblock, curr_offset));
         curr_offset += IP_SIZE + PORT_SIZE;
 

@@ -47,7 +47,7 @@ class Zilliqa
 
 #ifdef IS_LOOKUP_NODE
 
-    HttpServer m_httpserver;
+    jsonrpc::HttpServer m_httpserver;
     Server m_server;
 
 #endif//IS_LOOK_UP_NODE
