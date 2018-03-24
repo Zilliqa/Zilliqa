@@ -1373,7 +1373,7 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char> & message, unsi
     unique_lock<mutex> lock(m_mutexSetState);
     unsigned int curr_offset = offset;
     // AccountStore::GetInstance().Deserialize(message, curr_offset);
-    if(AccountStore::GetInstance().Deserialize(message, offset) != 0)
+    if(AccountStore::GetInstance().Deserialize(message, curr_offset) != 0)
     {
         LOG_MESSAGE("Error. We failed to deserialize AccountStore.");
         return false; 
