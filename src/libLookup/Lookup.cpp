@@ -1235,7 +1235,13 @@ bool Lookup::ProcessSetTxBodyFromSeed(const vector<unsigned char> & message, uns
          tranHash.asArray().begin());
     offset += TRAN_HASH_SIZE;
 
-    Transaction transaction(message, offset);
+    // Transaction transaction(message, offset);
+    Transaction transaction;
+    if(transaction.Deserialize(message, offset) != 0)
+    {
+        LOG_MESSAGE("Error. We failed to deserialize Transaction.");
+        return false; 
+    }
 
     vector<unsigned char> serializedTxBody;
     transaction.Serialize(serializedTxBody, 0);
