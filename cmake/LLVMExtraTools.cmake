@@ -116,10 +116,12 @@ if(CLANG_TIDY)
         )
         if(CLANG_APPLY_REPLACEMENTS)
             add_custom_target(
-                clang-tidy-apply
+                clang-tidy-fix
                 COMMAND "${RUN_CLANG_TIDY}"
                 -clang-tidy-binary ${CLANG_TIDY}
                 -clang-apply-replacements-binary ${CLANG_APPLY_REPLACEMENTS}
+                -fix
+                -format
                 -config=''
                 -style='file'
                 ${ALL_CXX_SOURCES}
