@@ -43,7 +43,12 @@ bool PeerManager::ProcessHello(const vector<unsigned char> & message, unsigned i
         // Get and store peer information
 
         PubKey key;
-        key.Deserialize(message, offset);
+        // key.Deserialize(message, offset);
+        if(key.Deserialize(message, offset) != 0)
+        {
+            LOG_MESSAGE("Error. We failed to deserialize PubKey.");
+            return false; 
+        }
 
         Peer peer(from.m_ipAddress, Serializable::GetNumber<uint32_t>(message, offset + PUB_KEY_SIZE, sizeof(uint32_t)));
 
@@ -71,7 +76,12 @@ bool PeerManager::ProcessAddPeer(const vector<unsigned char> & message, unsigned
         // Get and store peer information
 
         PubKey key;
-        key.Deserialize(message, offset);
+        // key.Deserialize(message, offset);
+        if(key.Deserialize(message, offset) != 0)
+        {
+            LOG_MESSAGE("Error. We failed to deserialize PubKey.");
+            return false; 
+        }
 
         Peer peer(Serializable::GetNumber<uint128_t>(message, offset + PUB_KEY_SIZE, UINT128_SIZE), Serializable::GetNumber<uint32_t>(message, offset + PUB_KEY_SIZE + UINT128_SIZE, sizeof(uint32_t)));
 
