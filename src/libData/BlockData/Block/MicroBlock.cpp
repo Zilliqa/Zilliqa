@@ -52,27 +52,43 @@ unsigned int MicroBlock::Serialize(vector<unsigned char> & dst, unsigned int off
     return size_needed;
 }
 
-void MicroBlock::Deserialize(const vector<unsigned char> & src, unsigned int offset)
+int MicroBlock::Deserialize(const vector<unsigned char> & src, unsigned int offset)
 {
-    unsigned int header_size_needed = sizeof(uint8_t) + sizeof(uint32_t) + UINT256_SIZE + UINT256_SIZE + 
-                                        BLOCK_HASH_SIZE + UINT256_SIZE + UINT256_SIZE + TRAN_HASH_SIZE + 
-                                        sizeof(uint32_t) + PUB_KEY_SIZE + UINT256_SIZE + BLOCK_HASH_SIZE;
-
-    MicroBlockHeader header(src, offset);
-    m_header = header;
-
-    unsigned int curOffset = offset + header_size_needed;
-
-    copy(src.begin() + curOffset, src.begin() + curOffset + BLOCK_SIG_SIZE, m_headerSig.begin());
-    curOffset += BLOCK_SIG_SIZE;
-    for (unsigned int i = 0; i < m_header.GetNumTxs(); i++)
+    try
     {
-        TxnHash tranHash;
-        copy(src.begin() + curOffset, src.begin() + curOffset + TRAN_HASH_SIZE, tranHash.asArray().begin());
-        curOffset += TRAN_HASH_SIZE;
-        m_tranHashes.push_back(tranHash);
+        unsigned int header_size_needed = sizeof(uint8_t) + sizeof(uint32_t) + UINT256_SIZE + UINT256_SIZE + 
+                                            BLOCK_HASH_SIZE + UINT256_SIZE + UINT256_SIZE + TRAN_HASH_SIZE + 
+                                            sizeof(uint32_t) + PUB_KEY_SIZE + UINT256_SIZE + BLOCK_HASH_SIZE;
+
+        // MicroBlockHeader header(src, offset);
+        MicroBlockHeader header;
+        if(header.Deserialize(src, offset) != 0)
+        {
+            LOG_MESSAGE("Error. We failed to deserialize MicroBlockHeader.");
+            return -1; 
+        }
+        m_header = header;
+
+        unsigned int curOffset = offset + header_size_needed;
+
+        copy(src.begin() + curOffset, src.begin() + curOffset + BLOCK_SIG_SIZE, m_headerSig.begin());
+        curOffset += BLOCK_SIG_SIZE;
+        for (unsigned int i = 0; i < m_header.GetNumTxs(); i++)
+        {
+            TxnHash tranHash;
+            copy(src.begin() + curOffset, src.begin() + curOffset + TRAN_HASH_SIZE, tranHash.asArray().begin());
+            curOffset += TRAN_HASH_SIZE;
+            m_tranHashes.push_back(tranHash);
+        }
+        assert(m_header.GetNumTxs() == m_tranHashes.size());
     }
-    assert(m_header.GetNumTxs() == m_tranHashes.size());
+    catch(const std::exception& e)
+    {
+        LOG_MESSAGE("ERROR: Error with MicroBlock::Deserialize." << ' ' << e.what());
+        return -1;
+
+    }
+    return 0;
 }
 
 unsigned int MicroBlock::GetSerializedSize() const
@@ -102,7 +118,10 @@ MicroBlock::MicroBlock()
 
 MicroBlock::MicroBlock(const vector<unsigned char> & src, unsigned int offset)
 {
-    Deserialize(src, offset);
+    if(Deserialize(src, offset) != 0)
+    {
+        LOG_MESSAGE("Error. We failed to init MicroBlock.");
+    }
 }
 
 MicroBlock::MicroBlock

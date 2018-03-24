@@ -34,7 +34,10 @@ Peer::Peer(const uint128_t & ip_address, uint32_t listen_port_host) : m_ipAddres
 
 Peer::Peer(const vector<unsigned char> & src, unsigned int offset) : m_ipAddress(0), m_listenPortHost(0)
 {
-    Deserialize(src, offset);
+    if(Deserialize(src, offset) != 0)
+    {
+        LOG_MESSAGE("Error. We failed to init Peer.");
+    }
 }
 
 bool Peer::operator==(const Peer & r)
@@ -62,8 +65,18 @@ unsigned int Peer::Serialize(vector<unsigned char> & dst, unsigned int offset) c
     return UINT128_SIZE + sizeof(uint32_t);
 }
 
-void Peer::Deserialize(const vector<unsigned char> & src, unsigned int offset)
+int Peer::Deserialize(const vector<unsigned char> & src, unsigned int offset)
 {
-    m_ipAddress = Serializable::GetNumber<uint128_t>(src, offset, UINT128_SIZE);
-    m_listenPortHost = Serializable::GetNumber<uint32_t>(src, offset + UINT128_SIZE, sizeof(uint32_t));
+    try
+    {
+        m_ipAddress = Serializable::GetNumber<uint128_t>(src, offset, UINT128_SIZE);
+        m_listenPortHost = Serializable::GetNumber<uint32_t>(src, offset + UINT128_SIZE, sizeof(uint32_t));
+    }
+    catch(const std::exception& e)
+    {
+        LOG_MESSAGE("ERROR: Error with Peer::Deserialize." << ' ' << e.what());
+        return -1;
+
+    }
+    return 0;
 }

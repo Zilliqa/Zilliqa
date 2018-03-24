@@ -71,7 +71,7 @@ public:
     unsigned int Serialize(std::vector<unsigned char> & dst, unsigned int offset) const;
 
     /// Implements the Deserialize function inherited from Serializable.
-    void Deserialize(const std::vector<unsigned char> & src, unsigned int offset);
+    int Deserialize(const std::vector<unsigned char> & src, unsigned int offset);
 
     // [TODO] These methods are all supposed to be moved into BlockHeaderBase, so no need to add Doxygen tags for now
     const uint8_t & GetType() const;

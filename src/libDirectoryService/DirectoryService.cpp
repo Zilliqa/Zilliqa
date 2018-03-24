@@ -436,7 +436,13 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char> & message, 
     // Message = [Primary node IP] [Primary node port]
     LOG_MARKER();
 
-    Peer primary(message, offset);
+    // Peer primary(message, offset);
+    Peer primary;
+    if(primary.Deserialize(message, offset) != 0)
+    {
+        LOG_MESSAGE("Error. We failed to deserialize Peer.");
+        return false; 
+    }
 
     if (primary == m_mediator.m_selfPeer)
     {
@@ -659,10 +665,23 @@ bool DirectoryService::ProcessAllPoWConnResponse(const vector<unsigned char> & m
 
     for (uint32_t i = 0; i < sizeeOfAllPowConn; i++)
     {
-        PubKey key(message, cur_offset);
+        // PubKey key(message, cur_offset);
+        PubKey key;
+        if(key.Deserialize(message, cur_offset) != 0)
+        {
+            LOG_MESSAGE("Error. We failed to deserialize PubKey.");
+            return false; 
+        }
         cur_offset += PUB_KEY_SIZE;
 
-        Peer peer(message, cur_offset);
+        // Peer peer(message, cur_offset);
+        Peer peer;
+        if(peer.Deserialize(message, cur_offset) != 0)
+        {
+            LOG_MESSAGE("Error. We failed to deserialize Peer.");
+            return false; 
+        }
+
         cur_offset += IP_SIZE + PORT_SIZE;
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "updating = " << peer.GetPrintableIPAddress() << ":" <<  peer.m_listenPortHost);
 
@@ -744,7 +763,12 @@ bool DirectoryService::ProcessLastDSBlockResponse(const vector<unsigned char> & 
     m_requesting_last_ds_block = false;
     unsigned int cur_offset = offset;
 
-    DSBlock dsblock(message, cur_offset);
+    DSBlock dsblock;
+    if(dsblock.Deserialize(message, cur_offset) != 0)
+    {
+        LOG_MESSAGE("Error. We failed to deserialize dsblock.");
+        return false; 
+    }
     int result = m_mediator.m_dsBlockChain.AddBlock(dsblock);
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Storing DS Block Number: "<< dsblock.GetHeader().GetBlockNum() <<
                 " with Nonce: "<< dsblock.GetHeader().GetNonce() <<

@@ -74,6 +74,7 @@ bool BlockStorage::GetDSBlock(const boost::multiprecision::uint256_t & blockNum,
     LOG_MESSAGE(blockString);
     LOG_MESSAGE(blockString.length());
     const unsigned char* raw_memory = reinterpret_cast<const unsigned char*>(blockString.c_str());
+    // FIXME: Handle exceptions
     block = DSBlockSharedPtr( new DSBlock(std::vector<unsigned char>(raw_memory, 
                                           raw_memory + blockString.size()), 0) );
     return true;
@@ -90,6 +91,7 @@ bool BlockStorage::GetTxBlock(const boost::multiprecision::uint256_t & blockNum,
     }
  
     const unsigned char* raw_memory = reinterpret_cast<const unsigned char*>(blockString.c_str());
+    // FIXME: Handle exceptions
     block = TxBlockSharedPtr( new TxBlock(std::vector<unsigned char>(raw_memory, 
                                           raw_memory + blockString.size()), 0) );
     return true;
@@ -111,6 +113,7 @@ bool BlockStorage::GetTxBody(const dev::h256 & key, TxBodySharedPtr & body)
     }
     
     const unsigned char* raw_memory = reinterpret_cast<const unsigned char*>(bodyString.c_str());
+    // FIXME: Handle exceptions
     body = TxBodySharedPtr( new Transaction(std::vector<unsigned char>(raw_memory, 
                                             raw_memory + bodyString.size()), 0) );
     return true;

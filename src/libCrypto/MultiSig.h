@@ -55,7 +55,7 @@ struct CommitSecret : public Serializable
     unsigned int Serialize(std::vector<unsigned char> & dst, unsigned int offset) const;
 
     /// Implements the Deserialize function inherited from Serializable.
-    void Deserialize(const std::vector<unsigned char> & src, unsigned int offset);
+    int Deserialize(const std::vector<unsigned char> & src, unsigned int offset);
 
     /// Assignment operator.
     CommitSecret & operator=(const CommitSecret &);
@@ -95,7 +95,7 @@ struct CommitPoint : public Serializable
     unsigned int Serialize(std::vector<unsigned char> & dst, unsigned int offset) const;
 
     /// Implements the Deserialize function inherited from Serializable.
-    void Deserialize(const std::vector<unsigned char> & src, unsigned int offset);
+    int Deserialize(const std::vector<unsigned char> & src, unsigned int offset);
 
     /// Sets the commitment point value based on the specified CommitSecret.
     void Set(const CommitSecret & secret);
@@ -138,7 +138,7 @@ struct Challenge : public Serializable
     unsigned int Serialize(std::vector<unsigned char> & dst, unsigned int offset) const;
 
     /// Implements the Deserialize function inherited from Serializable.
-    void Deserialize(const std::vector<unsigned char> & src, unsigned int offset);
+    int Deserialize(const std::vector<unsigned char> & src, unsigned int offset);
 
     /// Sets the challenge value based on the specified input parameters.
     void Set(const CommitPoint & aggregatedCommit, const PubKey & aggregatedPubkey, const std::vector<unsigned char> & message);
@@ -181,7 +181,7 @@ struct Response : public Serializable
     unsigned int Serialize(std::vector<unsigned char> & dst, unsigned int offset) const;
 
     /// Implements the Deserialize function inherited from Serializable.
-    void Deserialize(const std::vector<unsigned char> & src, unsigned int offset);
+    int Deserialize(const std::vector<unsigned char> & src, unsigned int offset);
 
     /// Sets the response value based on the specified input parameters.
     void Set(const CommitSecret & secret, const Challenge & challenge, const PrivKey & privkey);

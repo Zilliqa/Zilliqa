@@ -26,9 +26,13 @@ DSBlock::DSBlock()
 
 }
 
+// To-do: handle exceptions. Will be deprecated.  
 DSBlock::DSBlock(const vector<unsigned char> & src, unsigned int offset)
 {
-    Deserialize(src, offset);
+    if(Deserialize(src, offset) != 0)
+    {
+        LOG_MESSAGE("Error. We failed to init DSBlock.");
+    }
 }
 
 DSBlock::DSBlock(const DSBlockHeader & header, const array<unsigned char, BLOCK_SIG_SIZE> & signature) : m_header(header), m_signature(signature)
@@ -55,15 +59,30 @@ unsigned int DSBlock::Serialize(vector<unsigned char> & dst, unsigned int offset
     return size_needed;
 }
 
-void DSBlock::Deserialize(const vector<unsigned char> & src, unsigned int offset)
+int DSBlock::Deserialize(const vector<unsigned char> & src, unsigned int offset)
 {
     LOG_MARKER();
 
-    unsigned int header_size_needed = sizeof(uint8_t) + BLOCK_HASH_SIZE + UINT256_SIZE + PUB_KEY_SIZE + PUB_KEY_SIZE + UINT256_SIZE + UINT256_SIZE;
+    try
+    {
+        unsigned int header_size_needed = sizeof(uint8_t) + BLOCK_HASH_SIZE + UINT256_SIZE + PUB_KEY_SIZE + PUB_KEY_SIZE + UINT256_SIZE + UINT256_SIZE;
 
-    DSBlockHeader header(src, offset);
-    m_header = header;
-    copy(src.begin() + offset + header_size_needed, src.begin() + offset + header_size_needed + BLOCK_SIG_SIZE, m_signature.begin());
+        DSBlockHeader header;
+        if(header.Deserialize(src, offset) != 0)
+        {
+            LOG_MESSAGE("Error. We failed to init DSBlockHeader.");
+            return -1;
+        }
+        m_header = header;
+        copy(src.begin() + offset + header_size_needed, src.begin() + offset + header_size_needed + BLOCK_SIG_SIZE, m_signature.begin());
+    }
+    catch(const std::exception& e)
+    {
+        LOG_MESSAGE("ERROR: Error with DSBlock::Deserialize." << ' ' << e.what());
+        return -1;
+
+    }
+    return 0;
 }
 
 unsigned int DSBlock::GetSerializedSize()

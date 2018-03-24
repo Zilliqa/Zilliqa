@@ -68,7 +68,13 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char> &message, unsigned
     Peer peer(ipAddr, portNo);
 
     // 33-byte public key
-    PubKey key(message, curr_offset);
+    // PubKey key(message, curr_offset);
+    PubKey key;
+    if(key.Deserialize(message, curr_offset) != 0)
+    {
+        LOG_MESSAGE("Error. We failed to deserialize PubKey.");
+        return false; 
+    }
     curr_offset += PUB_KEY_SIZE;
 
     // To-do: Reject PoW2 submissions from existing members of DS committee

@@ -622,7 +622,13 @@ bool Node::ProcessCreateTransactionFromLookup(const vector<unsigned char> & mess
 
     unsigned int curr_offset = offset;
 
-    Transaction tx(message, curr_offset);
+    // Transaction tx(message, curr_offset);
+    Transaction tx;
+    if(tx.Deserialize(message, curr_offset) != 0)
+    {
+        LOG_MESSAGE("Error. We failed to deserialize Transaction.");
+        return false; 
+    }
 
     lock_guard<mutex> g(m_mutexCreatedTransactions);
 
