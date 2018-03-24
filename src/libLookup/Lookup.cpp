@@ -1063,7 +1063,13 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char> & message, un
         blockNum <= highBlockNum; 
         blockNum++)
     {
-        DSBlock dsBlock(message, offset);
+        // DSBlock dsBlock(message, offset);
+        DSBlock dsBlock;
+        if(dsBlock.Deserialize(message, offset) != 0)
+        {
+            LOG_MESSAGE2("Error. We failed to deserialize dsBlock.");
+            return false; 
+        }
         offset += DSBlock::GetSerializedSize();
 
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 

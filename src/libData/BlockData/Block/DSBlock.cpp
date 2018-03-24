@@ -26,9 +26,13 @@ DSBlock::DSBlock()
 
 }
 
+// To-do: handle exceptions. Will be deprecated.  
 DSBlock::DSBlock(const vector<unsigned char> & src, unsigned int offset)
 {
-    Deserialize(src, offset);
+    if(Deserialize(src, offset) != 0)
+    {
+        LOG_MESSAGE2("Error. We failed to init dsblock.");
+    }
 }
 
 DSBlock::DSBlock(const DSBlockHeader & header, const array<unsigned char, BLOCK_SIG_SIZE> & signature) : m_header(header), m_signature(signature)
