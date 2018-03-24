@@ -533,16 +533,26 @@ int Response::Deserialize(const vector<unsigned char> & src, unsigned int offset
 {
     LOG_MARKER();
 
-    m_r = BIGNUMSerialize::GetNumber(src, offset, RESPONSE_SIZE);
-    if (m_r == nullptr)
+    try
     {
-        LOG_MESSAGE("Error: Deserialization failure");
-        m_initialized = false;
+        m_r = BIGNUMSerialize::GetNumber(src, offset, RESPONSE_SIZE);
+        if (m_r == nullptr)
+        {
+            LOG_MESSAGE("Error: Deserialization failure");
+            m_initialized = false;
+        }
+        else
+        {
+            m_initialized = true;
+        }
     }
-    else
+    catch(const std::exception& e)
     {
-        m_initialized = true;
+        LOG_MESSAGE("ERROR: Error with Response::Deserialize." << ' ' << e.what());
+        return -1;
+
     }
+    return 0;
 }
 
 void Response::Set(const CommitSecret & secret, const Challenge & challenge, const PrivKey & privkey)
