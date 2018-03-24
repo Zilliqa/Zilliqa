@@ -374,18 +374,30 @@ unsigned int PubKey::Serialize(vector<unsigned char> & dst, unsigned int offset)
     return PUB_KEY_SIZE;
 }
 
-void PubKey::Deserialize(const vector<unsigned char> & src, unsigned int offset)
+int PubKey::Deserialize(const vector<unsigned char> & src, unsigned int offset)
 {
-    m_P = ECPOINTSerialize::GetNumber(src, offset, PUB_KEY_SIZE);
-    if (m_P == nullptr)
-    {
-        LOG_MESSAGE("Error: Deserialization failure");
-        m_initialized = false;
+    LOG_MARKER();
+
+    try
+        {
+        m_P = ECPOINTSerialize::GetNumber(src, offset, PUB_KEY_SIZE);
+        if (m_P == nullptr)
+        {
+            LOG_MESSAGE("Error: Deserialization failure");
+            m_initialized = false;
+        }
+        else
+        {
+            m_initialized = true;
+        }
     }
-    else
+    catch(const std::exception& e)
     {
-        m_initialized = true;
+        LOG_MESSAGE("ERROR: Error with PubKey::Deserialize." << ' ' << e.what());
+        return -1;
+
     }
+    return 0;
 }
 
 PubKey & PubKey::operator=(const PubKey & src)

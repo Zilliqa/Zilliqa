@@ -138,7 +138,7 @@ struct PubKey : public Serializable
     unsigned int Serialize(std::vector<unsigned char> & dst, unsigned int offset) const;
 
     /// Implements the Deserialize function inherited from Serializable.
-    void Deserialize(const std::vector<unsigned char> & src, unsigned int offset);
+    int Deserialize(const std::vector<unsigned char> & src, unsigned int offset);
 
     /// Assignment operator.
     PubKey & operator=(const PubKey & src);
