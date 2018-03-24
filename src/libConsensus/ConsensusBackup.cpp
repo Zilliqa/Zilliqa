@@ -688,7 +688,12 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(const vector<unsigned char
     }
 
     // 64-byte collective signature
-    m_collectiveSig.Deserialize(collectivesig, curr_offset);
+    // m_collectiveSig.Deserialize(collectivesig, curr_offset);
+    if(m_collectiveSig.Deserialize(collectivesig, curr_offset) != 0)
+    {
+        LOG_MESSAGE("Error. We failed to deserialize m_collectiveSig.");
+        return false; 
+    }
     curr_offset += SIGNATURE_CHALLENGE_SIZE + SIGNATURE_RESPONSE_SIZE;
 
     // Aggregate keys
