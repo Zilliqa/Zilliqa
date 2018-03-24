@@ -303,7 +303,14 @@ bool ConsensusBackup::ProcessMessageAnnounce(const vector<unsigned char> & annou
     }
 
     // 64-byte signature
-    Signature signature(announcement, curr_offset);
+    // Signature signature(announcement, curr_offset);
+    Signature signature;
+    if(signature.Deserialize(announcement, curr_offset) != 0)
+    {
+        LOG_MESSAGE("Error. We failed to deserialize signature.");
+        return false; 
+    }
+
 
     // Check the signature
     bool sig_valid = VerifyMessage(announcement, offset, curr_offset - offset, signature, m_leaderID);
@@ -530,7 +537,13 @@ bool ConsensusBackup::ProcessMessageChallengeCore(const vector<unsigned char> & 
     }
 
     // 64-byte signature
-    Signature signature(challenge, curr_offset);
+    // Signature signature(challenge, curr_offset);
+    Signature signature;
+    if(signature.Deserialize(challenge, curr_offset) != 0)
+    {
+        LOG_MESSAGE("Error. We failed to deserialize signature.");
+        return false; 
+    }
 
     // Check the signature
     bool sig_valid = VerifyMessage(challenge, offset, curr_offset - offset, signature, m_leaderID);
@@ -713,7 +726,13 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(const vector<unsigned char
     }
 
     // 64-byte signature
-    Signature signature(collectivesig, curr_offset);
+    // Signature signature(collectivesig, curr_offset);
+    Signature signature;
+    if(signature.Deserialize(collectivesig, curr_offset) != 0)
+    {
+        LOG_MESSAGE("Error. We failed to deserialize signature.");
+        return false; 
+    }
 
     // Check the signature
     bool sig_valid = VerifyMessage(collectivesig, offset, curr_offset - offset, signature, m_leaderID);
