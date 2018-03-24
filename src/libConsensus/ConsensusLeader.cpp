@@ -271,7 +271,13 @@ bool ConsensusLeader::ProcessMessageCommitCore(const vector<unsigned char> & com
     curr_offset += COMMIT_POINT_SIZE;
 
     // 64-byte signature
-    Signature signature(commit, curr_offset);
+    // Signature signature(commit, curr_offset);
+    Signature signature;
+    if(signature.Deserialize(commit, curr_offset) != 0)
+    {
+        LOG_MESSAGE("Error. We failed to deserialize signature.");
+        return false; 
+    }
 
     // Check the signature
     bool sig_valid = VerifyMessage(commit, offset, curr_offset - offset, signature, backup_id);
@@ -745,7 +751,14 @@ bool ConsensusLeader::ProcessMessageResponseCore(const vector<unsigned char> & r
     }
 
     // 64-byte signature
-    Signature signature(response, curr_offset);
+    // Signature signature(response, curr_offset);
+    Signature signature;
+    if(signature.Deserialize(response, curr_offset) != 0)
+    {
+        LOG_MESSAGE("Error. We failed to deserialize signature.");
+        return false; 
+    }
+    
 
     // Check the signature
     bool sig_valid = VerifyMessage(response, offset, curr_offset - offset, signature, backup_id);
