@@ -43,7 +43,7 @@ if(CLANG_FORMAT)
 
     string(REGEX REPLACE "^.*version ([^ ]*) .*$" "\\1" CLANG_FORMAT_VERSION ${CLANG_FORMAT_VERSION_OUTPUT})
 
-    if("${CLANG_FORMAT_VERSION}" VERSION_GREATER "5.0.0")
+    if("${CLANG_FORMAT_VERSION}" VERSION_EQUAL "5.0.0" OR "${CLANG_FORMAT_VERSION}" VERSION_GREATER "5.0.0")
         # message(${CLANG_FORMAT_VERSION})
         add_custom_target(
             clang-format
@@ -91,7 +91,7 @@ if(CLANG_TIDY)
 
     string(REGEX REPLACE "^.*version ([^ ]*).*$" "\\1" CLANG_TIDY_VERSION ${CLANG_TIDY_VERSION_OUTPUT})
 
-    if("${CLANG_TIDY_VERSION}" VERSION_GREATER "5.0.0")
+    if("${CLANG_TIDY_VERSION}" VERSION_EQUAL "5.0.0" OR "${CLANG_TIDY_VERSION}" VERSION_GREATER "5.0.0")
         # message(${CLANG_TIDY_VERSION})
         add_custom_target(
             clang-tidy
