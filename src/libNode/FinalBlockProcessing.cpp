@@ -957,21 +957,14 @@ bool Node::ProcessFinalBlock(const vector<unsigned char> & message, unsigned int
     LOG_MARKER();
 
 #ifndef IS_LOOKUP_NODE
-    if(m_state == MICROBLOCK_CONSENSUS)
+    TxBlock txBlock(message, cur_offset);
+
+    if(CheckState(MICROBLOCK_CONSENSUS))
     {
-        unsigned int time_pass = 0;
-        while(m_state != WAITING_FINALBLOCK)
-        {
-            time_pass++;
-            if (time_pass % 10 == 1)
-            {
-                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), string("Waiting ") +
-                             "for state change from MICROBLOCK_CONSENSUS to PROCESS_FINALBLOCK");
-            }
-            this_thread::sleep_for(chrono::milliseconds(100));
-        }
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                     "I may have missed the micrblock consensus. However, if I recent a valid finalblock. I will accept it");
+        SetState(WAITING_FINALBLOCK)
     }
-    // Checks if (m_state != WAITING_FINALBLOCK)
     else if (!CheckState(PROCESS_FINALBLOCK))
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
@@ -990,7 +983,6 @@ bool Node::ProcessFinalBlock(const vector<unsigned char> & message, unsigned int
         return false;
     }
 
-    TxBlock txBlock(message, cur_offset);
     cur_offset += txBlock.GetSerializedSize();
 
     LogReceivedFinalBlockDetails(txBlock);
