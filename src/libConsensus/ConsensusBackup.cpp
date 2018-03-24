@@ -505,7 +505,12 @@ bool ConsensusBackup::ProcessMessageChallengeCore(const vector<unsigned char> & 
     }
 
     // 32-byte challenge
-    m_challenge.Deserialize(challenge, curr_offset);
+    // m_challenge.Deserialize(challenge, curr_offset);
+    if(m_challenge.Deserialize(challenge, curr_offset) != 0)
+    {
+        LOG_MESSAGE("Error. We failed to deserialize m_challenge.");
+        return false; 
+    }
     curr_offset += CHALLENGE_SIZE;
 
     // Check the challenge
