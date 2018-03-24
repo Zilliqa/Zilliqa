@@ -33,7 +33,13 @@ find_program(
     PATHS ${BREW_LLVM5_PATH} # The brew version on MacOS
 )
 
-if(CLANG_FORMAT)
+find_program(
+    RUN_CLANG_FORMAT
+    NAMES run-clang-format.py
+    PATHS ${CMAKE_SOURCE_DIR}/scripts
+)
+
+if(CLANG_FORMAT AND RUN_CLANG_FORMAT)
     execute_process(
         COMMAND "${CLANG_FORMAT}" --version
         OUTPUT_VARIABLE CLANG_FORMAT_VERSION_OUTPUT
@@ -47,6 +53,13 @@ if(CLANG_FORMAT)
         # message(${CLANG_FORMAT_VERSION})
         add_custom_target(
             clang-format
+            COMMAND ${RUN_CLANG_FORMAT}
+            --clang-format-executable ${CLANG_FORMAT}
+            ${ALL_CXX_SOURCES}
+        )
+
+        add_custom_target(
+            clang-format-fix
             COMMAND ${CLANG_FORMAT}
             -i
             -style=file

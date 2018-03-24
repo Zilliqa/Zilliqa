@@ -46,9 +46,9 @@ script:
     fi
   # check format
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-      docker exec -t ci /bin/sh -c "make clang-format && git diff --exit-code";
+      docker exec -t ci /bin/sh -c "make clang-format";
     else
-      make clang-format && git diff --exit-code;
+      make clang-format;
     fi
   # run tests
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
