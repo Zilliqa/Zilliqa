@@ -105,12 +105,17 @@ int AccountStore::Deserialize(const vector<unsigned char> & src, unsigned int of
             curOffset += ACC_ADDR_SIZE;
 
             // Deserialize account
-            account.Deserialize(src, curOffset);
+            // account.Deserialize(src, curOffset);
+            if(account.Deserialize(src, curOffset) != 0)
+            {
+                LOG_MESSAGE("Error. We failed to init account.");
+                return -1;
+            }
             curOffset += ACCOUNT_SIZE; 
 
             m_addressToAccount.insert(make_pair(address, account));
-        UpdateStateTrie(address, account);
-        MoveUpdatesToDisk();
+            UpdateStateTrie(address, account);
+            MoveUpdatesToDisk();
         }
     }
     catch(const std::exception& e)
