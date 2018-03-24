@@ -47,6 +47,7 @@ DSBlock Synchronizer::ConstructGenesisDSBlock()
 
     std::pair<PrivKey, PubKey> keypair = make_pair(privKey, pubKey);
  
+    // FIXME: Handle exceptions.
     DSBlockHeader header(20, prevHash, 12344, keypair.first, keypair.second, 0, 789);
 
     std::array<unsigned char, BLOCK_SIG_SIZE> signature;
@@ -54,7 +55,7 @@ DSBlock Synchronizer::ConstructGenesisDSBlock()
     {
         signature.at(i) = i + 8;
     }
-    // To-do: Handle exceptions.
+    // FIXME: Handle exceptions.
     return DSBlock(header, signature);
 }
 
