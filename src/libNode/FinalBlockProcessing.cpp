@@ -1088,7 +1088,13 @@ bool Node::LoadForwardedTxnsAndCheckRoot(const vector<unsigned char> & message,
     while(cur_offset + length_needed_per_txn <= message.size())
     {
         // reading [Transaction] from received msg
-        Transaction tx(message, cur_offset);
+        // Transaction tx(message, cur_offset);
+        Transaction tx;
+        if(tx.Deserialize(message, cur_offset) != 0)
+        {
+            LOG_MESSAGE("Error. We failed to deserialize Transaction.");
+            return false; 
+        }
         cur_offset += Transaction::GetSerializedSize();
 
         txnsInForwardedMessage.push_back(tx);
