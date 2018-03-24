@@ -92,9 +92,19 @@ int DSBlockHeader::Deserialize(const vector<unsigned char> & src, unsigned int o
         curOffset += BLOCK_HASH_SIZE;
         m_nonce = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
         curOffset += UINT256_SIZE;
-        m_minerPubKey.Deserialize(src, curOffset);
+        // m_minerPubKey.Deserialize(src, curOffset);
+        if(m_minerPubKey.Deserialize(src, curOffset) != 0)
+        {
+            LOG_MESSAGE("Error. We failed to init m_minerPubKey.");
+            return -1;
+        }
         curOffset += PUB_KEY_SIZE;
-        m_leaderPubKey.Deserialize(src, curOffset);
+        // m_leaderPubKey.Deserialize(src, curOffset);
+        if(m_leaderPubKey.Deserialize(src, curOffset) != 0)
+        {
+            LOG_MESSAGE("Error. We failed to init m_minerPubKey.");
+            return -1;
+        }
         curOffset += PUB_KEY_SIZE;
         m_blockNum = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
         curOffset += UINT256_SIZE;
