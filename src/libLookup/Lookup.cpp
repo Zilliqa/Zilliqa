@@ -414,7 +414,14 @@ bool Lookup::ProcessEntireShardingStructure(const vector<unsigned char> & messag
             offset += PUB_KEY_SIZE;
 
             // 16-byte IP + 4-byte port
-            Peer peer = Peer(message, offset);
+            // Peer peer = Peer(message, offset);
+            Peer peer;
+            if(peer.Deserialize(message, offset) != 0)
+            {
+                LOG_MESSAGE("Error. We failed to deserialize Peer.");
+                return false; 
+            }
+            
             offset += IP_SIZE + PORT_SIZE;
 
             shard.insert(make_pair(key, peer));
@@ -951,7 +958,14 @@ bool Lookup::ProcessSetSeedPeersFromLookup(const vector<unsigned char> &message,
 
     for(unsigned int i = 0; i < SEED_PEER_LIST_SIZE; i++)
     {
-        Peer peer = Peer(message, offset);
+        // Peer peer = Peer(message, offset);
+        Peer peer;
+        if(peer.Deserialize(message, offset) != 0)
+        {
+            LOG_MESSAGE("Error. We failed to deserialize Peer.");
+            return false; 
+        }
+        
         m_seedNodes.push_back(peer);
         LOG_MESSAGE("Peer " + to_string(i) + ": " << string(peer));
         offset += (IP_SIZE + PORT_SIZE);
