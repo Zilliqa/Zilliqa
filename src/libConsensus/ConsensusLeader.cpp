@@ -37,28 +37,28 @@ bool ConsensusLeader::CheckState(Action action)
                 case INITIAL:
                     break;
                 case ANNOUNCE_DONE:
-                LOG_MESSAGE("Error: Doing announce but announce already done");
+                    LOG_MESSAGE("Error: Doing announce but announce already done");
                     result = false;
                     break;
                 case CHALLENGE_DONE:
-                LOG_MESSAGE("Error: Doing announce but challenge already done");
+                    LOG_MESSAGE("Error: Doing announce but challenge already done");
                     result = false;
                     break;
                 case COLLECTIVESIG_DONE:
-                LOG_MESSAGE("Error: Doing announce but collectivesig already done");
+                    LOG_MESSAGE("Error: Doing announce but collectivesig already done");
                     result = false;
                     break;
                 case FINALCHALLENGE_DONE:
-                LOG_MESSAGE("Error: Doing announce but finalchallenge already done");
+                    LOG_MESSAGE("Error: Doing announce but finalchallenge already done");
                     result = false;
                     break;
                 case DONE:
-                LOG_MESSAGE("Error: Doing announce but consensus already done");
+                    LOG_MESSAGE("Error: Doing announce but consensus already done");
                     result = false;
                     break;
                 case ERROR:
                 default:
-                LOG_MESSAGE("Error: Unrecognized or error state");
+                    LOG_MESSAGE("Error: Unrecognized or error state");
                     result = false;
                     break;
             }
@@ -67,31 +67,31 @@ bool ConsensusLeader::CheckState(Action action)
             switch(m_state)
             {
                 case INITIAL:
-                LOG_MESSAGE("Error: Processing commit but announce not yet done");
+                    LOG_MESSAGE("Error: Processing commit but announce not yet done");
                     result = false;
                     break;
                 case ANNOUNCE_DONE:
                     break;
                 case CHALLENGE_DONE:
-                LOG_MESSAGE("Error: Processing commit but challenge already done");
+                    LOG_MESSAGE("Error: Processing commit but challenge already done");
                     result = false;
                     // LOG_MESSAGE("Processing redundant commit messages");
                     break;
                 case COLLECTIVESIG_DONE:
-                LOG_MESSAGE("Error: Processing commit but collectivesig already done");
+                    LOG_MESSAGE("Error: Processing commit but collectivesig already done");
                     result = false;
                     break;
                 case FINALCHALLENGE_DONE:
-                LOG_MESSAGE("Error: Processing commit but finalchallenge already done");
+                    LOG_MESSAGE("Error: Processing commit but finalchallenge already done");
                     result = false;
                     break;
                 case DONE:
-                LOG_MESSAGE("Error: Processing commit but consensus already done");
+                    LOG_MESSAGE("Error: Processing commit but consensus already done");
                     result = false;
                     break;
                 case ERROR:
                 default:
-                LOG_MESSAGE("Error: Unrecognized or error state");
+                    LOG_MESSAGE("Error: Unrecognized or error state");
                     result = false;
                     break;
             }
@@ -100,30 +100,30 @@ bool ConsensusLeader::CheckState(Action action)
             switch(m_state)
             {
                 case INITIAL:
-                LOG_MESSAGE("Error: Processing response but announce not yet done");
+                    LOG_MESSAGE("Error: Processing response but announce not yet done");
                     result = false;
                     break;
                 case ANNOUNCE_DONE:
-                LOG_MESSAGE("Error: Processing response but challenge not yet done");
+                    LOG_MESSAGE("Error: Processing response but challenge not yet done");
                     result = false;
                     break;
                 case CHALLENGE_DONE:
                     break;
                 case COLLECTIVESIG_DONE:
-                LOG_MESSAGE("Error: Processing response but collectivesig already done");
+                    LOG_MESSAGE("Error: Processing response but collectivesig already done");
                     result = false;
                     break;
                 case FINALCHALLENGE_DONE:
-                LOG_MESSAGE("Error: Processing response but finalchallenge already done");
+                    LOG_MESSAGE("Error: Processing response but finalchallenge already done");
                     result = false;
                     break;
                 case DONE:
-                LOG_MESSAGE("Error: Processing response but consensus already done");
+                    LOG_MESSAGE("Error: Processing response but consensus already done");
                     result = false;
                     break;
                 case ERROR:
                 default:
-                LOG_MESSAGE("Error: Unrecognized or error state");
+                    LOG_MESSAGE("Error: Unrecognized or error state");
                     result = false;
                     break;
             }
@@ -132,31 +132,30 @@ bool ConsensusLeader::CheckState(Action action)
             switch(m_state)
             {
                 case INITIAL:
-                LOG_MESSAGE("Error: Processing finalcommit but announce not yet done");
+                    LOG_MESSAGE("Error: Processing finalcommit but announce not yet done");
                     result = false;
                     break;
                 case ANNOUNCE_DONE:
-                LOG_MESSAGE("Error: Processing finalcommit but challenge not yet done");
+                    LOG_MESSAGE("Error: Processing finalcommit but challenge not yet done");
                     result = false;
                     break;
                 case CHALLENGE_DONE:
-                LOG_MESSAGE("Error: Processing finalcommit but collectivesig not yet done");
+                    LOG_MESSAGE("Error: Processing finalcommit but collectivesig not yet done");
                     result = false;
                     break;
                 case COLLECTIVESIG_DONE:
                     break;
                 case FINALCHALLENGE_DONE:
-                LOG_MESSAGE("Error: Processing finalcommit but finalchallenge already done");
-                    // LOG_MESSAGE("Processing redundant finalcommit messages");
+                    LOG_MESSAGE("Error: Processing finalcommit but finalchallenge already done");
                     result = false;
                     break;
                 case DONE:
-                LOG_MESSAGE("Error: Processing finalcommit but consensus already done");
+                    LOG_MESSAGE("Error: Processing finalcommit but consensus already done");
                     result = false;
                     break;
                 case ERROR:
                 default:
-                LOG_MESSAGE("Error: Unrecognized or error state");
+                    LOG_MESSAGE("Error: Unrecognized or error state");
                     result = false;
                     break;
             }
@@ -165,36 +164,36 @@ bool ConsensusLeader::CheckState(Action action)
             switch(m_state)
             {
                 case INITIAL:
-                LOG_MESSAGE("Error: Processing finalresponse but announce not yet done");
+                    LOG_MESSAGE("Error: Processing finalresponse but announce not yet done");
                     result = false;
                     break;
                 case ANNOUNCE_DONE:
-                LOG_MESSAGE("Error: Processing finalresponse but challenge not yet done");
+                    LOG_MESSAGE("Error: Processing finalresponse but challenge not yet done");
                     result = false;
                     break;
                 case CHALLENGE_DONE:
-                LOG_MESSAGE("Error: Processing finalresponse but collectivesig not yet done");
+                    LOG_MESSAGE("Error: Processing finalresponse but collectivesig not yet done");
                     result = false;
                     break;
                 case COLLECTIVESIG_DONE:
-                LOG_MESSAGE("Error: Processing finalresponse but finalchallenge not yet done");
+                    LOG_MESSAGE("Error: Processing finalresponse but finalchallenge not yet done");
                     result = false;
                     break;
                 case FINALCHALLENGE_DONE:
                     break;
                 case DONE:
-                LOG_MESSAGE("Error: Processing finalresponse but consensus already done");
+                    LOG_MESSAGE("Error: Processing finalresponse but consensus already done");
                     result = false;
                     break;
                 case ERROR:
                 default:
-                LOG_MESSAGE("Error: Unrecognized or error state");
+                    LOG_MESSAGE("Error: Unrecognized or error state");
                     result = false;
                     break;
             }
             break;
         default:
-        LOG_MESSAGE("Error: Unrecognized action");
+            LOG_MESSAGE("Error: Unrecognized action");
             result = false;
             break;
     }
@@ -271,7 +270,13 @@ bool ConsensusLeader::ProcessMessageCommitCore(const vector<unsigned char> & com
     curr_offset += COMMIT_POINT_SIZE;
 
     // 64-byte signature
-    Signature signature(commit, curr_offset);
+    // Signature signature(commit, curr_offset);
+    Signature signature;
+    if(signature.Deserialize(commit, curr_offset) != 0)
+    {
+        LOG_MESSAGE("Error. We failed to deserialize signature.");
+        return false; 
+    }
 
     // Check the signature
     bool sig_valid = VerifyMessage(commit, offset, curr_offset - offset, signature, backup_id);
@@ -745,7 +750,14 @@ bool ConsensusLeader::ProcessMessageResponseCore(const vector<unsigned char> & r
     }
 
     // 64-byte signature
-    Signature signature(response, curr_offset);
+    // Signature signature(response, curr_offset);
+    Signature signature;
+    if(signature.Deserialize(response, curr_offset) != 0)
+    {
+        LOG_MESSAGE("Error. We failed to deserialize signature.");
+        return false; 
+    }
+    
 
     // Check the signature
     bool sig_valid = VerifyMessage(response, offset, curr_offset - offset, signature, backup_id);

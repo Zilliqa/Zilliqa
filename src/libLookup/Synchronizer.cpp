@@ -42,11 +42,13 @@ DSBlock Synchronizer::ConstructGenesisDSBlock()
     vector<unsigned char> tmppubkey = 
     	DataConversion::HexStrToUint8Vec(
     		"02AAE728127EB5A30B07D798D5236251808AD2C8BA3F18B230449D0C938969B552");
+    // FIXME: Handle exceptions.
     PrivKey privKey(tmpprivkey, 0);
     PubKey pubKey(tmppubkey, 0);
 
     std::pair<PrivKey, PubKey> keypair = make_pair(privKey, pubKey);
  
+    // FIXME: Handle exceptions.
     DSBlockHeader header(20, prevHash, 12344, keypair.first, keypair.second, 0, 789);
 
     std::array<unsigned char, BLOCK_SIG_SIZE> signature;
@@ -54,7 +56,7 @@ DSBlock Synchronizer::ConstructGenesisDSBlock()
     {
         signature.at(i) = i + 8;
     }
-
+    // FIXME: Handle exceptions.
     return DSBlock(header, signature);
 }
 
@@ -88,6 +90,7 @@ TxBlock Synchronizer::ConstructGenesisTxBlock()
     vector<unsigned char> tmppubkey = 
     	DataConversion::HexStrToUint8Vec(
     		"02AAE728127EB5A30B07D798D5236251808AD2C8BA3F18B230449D0C938969B552");
+    // FIXME: Handle exceptions.
     PrivKey privKey(tmpprivkey, 0);
     PubKey pubKey(tmppubkey, 0);
 

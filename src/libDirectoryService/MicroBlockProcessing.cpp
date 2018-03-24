@@ -88,7 +88,13 @@ bool DirectoryService::ProcessMicroblockSubmission(const vector<unsigned char> &
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "shard_id " << shardId); 
 
     // Tx microblock
-    MicroBlock microBlock(message, curr_offset);
+    // MicroBlock microBlock(message, curr_offset);
+    MicroBlock microBlock;
+    if(microBlock.Deserialize(message, curr_offset) != 0)
+    {
+        LOG_MESSAGE("Error. We failed to deserialize MicroBlock.");
+        return false; 
+    }
 
     const PubKey & pubKey = microBlock.GetHeader().GetMinerPubKey();
 

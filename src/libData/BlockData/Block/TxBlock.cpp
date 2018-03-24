@@ -76,30 +76,46 @@ vector<bool> TxBlock::DeserializeIsMicroBlockEmpty(uint32_t arg)
     return ret;
 }
 
-void TxBlock::Deserialize(const vector<unsigned char> & src, unsigned int offset)
+int TxBlock::Deserialize(const vector<unsigned char> & src, unsigned int offset)
 {
-    unsigned int header_size_needed = TxBlockHeader::SIZE;
-
-    TxBlockHeader header(src, offset);
-    m_header = header;
-
-    unsigned int curOffset = offset + header_size_needed;
-
-    copy(src.begin() + curOffset, src.begin() + curOffset + BLOCK_SIG_SIZE, m_headerSig.begin());
-    curOffset += BLOCK_SIG_SIZE;
-    
-    m_isMicroBlockEmpty = DeserializeIsMicroBlockEmpty(GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t)));
-    curOffset += sizeof(uint32_t);
-
-    for (unsigned int i = 0; i < m_header.GetNumMicroBlockHashes(); i++)
+    try
     {
-        TxnHash microBlockHash;
-        copy(src.begin() + curOffset, src.begin() + curOffset + TRAN_HASH_SIZE,
-             microBlockHash.asArray().begin());
-        curOffset += TRAN_HASH_SIZE;
-        m_microBlockHashes.push_back(microBlockHash);
+        unsigned int header_size_needed = TxBlockHeader::SIZE;
+
+        // TxBlockHeader header(src, offset);
+        TxBlockHeader header;
+        if(header.Deserialize(src, offset) != 0)
+        {
+            LOG_MESSAGE("Error. We failed to deserialize header.");
+            return -1; 
+        }
+        m_header = header;
+
+        unsigned int curOffset = offset + header_size_needed;
+
+        copy(src.begin() + curOffset, src.begin() + curOffset + BLOCK_SIG_SIZE, m_headerSig.begin());
+        curOffset += BLOCK_SIG_SIZE;
+        
+        m_isMicroBlockEmpty = DeserializeIsMicroBlockEmpty(GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t)));
+        curOffset += sizeof(uint32_t);
+
+        for (unsigned int i = 0; i < m_header.GetNumMicroBlockHashes(); i++)
+        {
+            TxnHash microBlockHash;
+            copy(src.begin() + curOffset, src.begin() + curOffset + TRAN_HASH_SIZE,
+                microBlockHash.asArray().begin());
+            curOffset += TRAN_HASH_SIZE;
+            m_microBlockHashes.push_back(microBlockHash);
+        }
+        assert(m_header.GetNumMicroBlockHashes() == m_microBlockHashes.size());    
     }
-    assert(m_header.GetNumMicroBlockHashes() == m_microBlockHashes.size());    
+    catch(const std::exception& e)
+    {
+        LOG_MESSAGE("ERROR: Error with TxBlock::Deserialize." << ' ' << e.what());
+        return -1;
+
+    }
+    return 0;
 }
 
 unsigned int TxBlock::GetSerializedSize() const
@@ -125,7 +141,10 @@ TxBlock::TxBlock()
 
 TxBlock::TxBlock(const vector<unsigned char> & src, unsigned int offset)
 {
-    Deserialize(src, offset);
+    if(Deserialize(src, offset) != 0)
+    {
+        LOG_MESSAGE("Error. We failed to init TxBlock.");
+    }
 }
 
 TxBlock::TxBlock

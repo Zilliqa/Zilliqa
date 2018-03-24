@@ -27,7 +27,10 @@ MicroBlockHeader::MicroBlockHeader()
 
 MicroBlockHeader::MicroBlockHeader(const vector<unsigned char> & src, unsigned int offset)
 {
-    Deserialize(src, offset);
+    if(Deserialize(src, offset) != 0)
+    {
+        LOG_MESSAGE("Error. We failed to init MicroBlockHeader.");
+    }
 }
 
 MicroBlockHeader::MicroBlockHeader
@@ -93,35 +96,51 @@ unsigned int MicroBlockHeader::Serialize(vector<unsigned char> & dst, unsigned i
     return size_needed;
 }
 
-void MicroBlockHeader::Deserialize(const vector<unsigned char> & src, unsigned int offset)
+int MicroBlockHeader::Deserialize(const vector<unsigned char> & src, unsigned int offset)
 {
     LOG_MARKER();
-    unsigned int curOffset = offset;
+    try
+    {
+        unsigned int curOffset = offset;
 
-    m_type = GetNumber<uint8_t>(src, curOffset, sizeof(uint8_t));
-    curOffset += sizeof(uint8_t);
-    m_version = GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
-    curOffset += sizeof(uint32_t);
-    m_gasLimit = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
-    curOffset += UINT256_SIZE;
-    m_gasUsed = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
-    curOffset += UINT256_SIZE;
-    copy(src.begin() + curOffset, src.begin() + curOffset + BLOCK_HASH_SIZE, m_prevHash.asArray().begin());
-    curOffset += BLOCK_HASH_SIZE;
-    m_blockNum = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
-    curOffset += UINT256_SIZE;
-    m_timestamp = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
-    curOffset += UINT256_SIZE;
-    copy(src.begin() + curOffset, src.begin() + curOffset + TRAN_HASH_SIZE, m_txRootHash.asArray().begin());
-    curOffset += TRAN_HASH_SIZE;
-    m_numTxs = GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
-    curOffset += sizeof(uint32_t);
-    m_minerPubKey.Deserialize(src, curOffset);
+        m_type = GetNumber<uint8_t>(src, curOffset, sizeof(uint8_t));
+        curOffset += sizeof(uint8_t);
+        m_version = GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
+        curOffset += sizeof(uint32_t);
+        m_gasLimit = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
+        curOffset += UINT256_SIZE;
+        m_gasUsed = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
+        curOffset += UINT256_SIZE;
+        copy(src.begin() + curOffset, src.begin() + curOffset + BLOCK_HASH_SIZE, m_prevHash.asArray().begin());
+        curOffset += BLOCK_HASH_SIZE;
+        m_blockNum = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
+        curOffset += UINT256_SIZE;
+        m_timestamp = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
+        curOffset += UINT256_SIZE;
+        copy(src.begin() + curOffset, src.begin() + curOffset + TRAN_HASH_SIZE, m_txRootHash.asArray().begin());
+        curOffset += TRAN_HASH_SIZE;
+        m_numTxs = GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
+        curOffset += sizeof(uint32_t);
+        // m_minerPubKey.Deserialize(src, curOffset);
+        if(m_minerPubKey.Deserialize(src, curOffset) != 0)
+        {
+            LOG_MESSAGE("Error. We failed to init m_minerPubKey.");
+            return -1;
+        }
 
-    curOffset += PUB_KEY_SIZE;
-    m_dsBlockNum = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
-    curOffset += UINT256_SIZE;
-    copy(src.begin() + curOffset, src.begin() + curOffset + BLOCK_HASH_SIZE, m_dsBlockHeader.asArray().begin());
+        curOffset += PUB_KEY_SIZE;
+        m_dsBlockNum = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
+        curOffset += UINT256_SIZE;
+        copy(src.begin() + curOffset, src.begin() + curOffset + BLOCK_HASH_SIZE, m_dsBlockHeader.asArray().begin());
+    }
+    catch(const std::exception& e)
+    {
+        LOG_MESSAGE("ERROR: Error with MicroBlockHeader::Deserialize." << ' ' << e.what());
+        return -1;
+
+    }
+    return 0;
+
 }
 
 const uint8_t & MicroBlockHeader::GetType() const

@@ -60,7 +60,10 @@ CommitSecret::CommitSecret() : m_s(BN_new(), BN_clear_free), m_initialized(false
 
 CommitSecret::CommitSecret(const vector<unsigned char> & src, unsigned int offset)
 {
-    Deserialize(src, offset);
+    if(Deserialize(src, offset) != 0)
+    {
+        LOG_MESSAGE("Error. We failed to init CommitSecret.");
+    }
 }
 
 CommitSecret::CommitSecret(const CommitSecret & src) : m_s(BN_new(), BN_clear_free), m_initialized(false)
@@ -105,20 +108,31 @@ unsigned int CommitSecret::Serialize(vector<unsigned char> & dst, unsigned int o
     return COMMIT_SECRET_SIZE;
 }
 
-void CommitSecret::Deserialize(const vector<unsigned char> & src, unsigned int offset)
+int CommitSecret::Deserialize(const vector<unsigned char> & src, unsigned int offset)
 {
     LOG_MARKER();
 
-    m_s = BIGNUMSerialize::GetNumber(src, offset, COMMIT_SECRET_SIZE);
-    if (m_s == nullptr)
+    try
     {
-        LOG_MESSAGE("Error: Deserialization failure");
-        m_initialized = false;
+        m_s = BIGNUMSerialize::GetNumber(src, offset, COMMIT_SECRET_SIZE);
+        if (m_s == nullptr)
+        {
+            LOG_MESSAGE("Error: Deserialization failure");
+            m_initialized = false;
+        }
+        else
+        {
+            m_initialized = true;
+        }    
     }
-    else
+    catch(const std::exception& e)
     {
-        m_initialized = true;
+        LOG_MESSAGE("ERROR: Error with CommitSecret::Deserialize." << ' ' << e.what());
+        return -1;
+
     }
+    return 0;
+
 }
 
 CommitSecret & CommitSecret::operator=(const CommitSecret & src)
@@ -154,7 +168,10 @@ CommitPoint::CommitPoint(const CommitSecret & secret) : m_p(EC_POINT_new(Schnorr
 
 CommitPoint::CommitPoint(const vector<unsigned char> & src, unsigned int offset)
 {
-    Deserialize(src, offset);
+    if(Deserialize(src, offset) != 0)
+    {
+        LOG_MESSAGE("Error. We failed to init CommitPoint.");
+    }
 }
 
 CommitPoint::CommitPoint(const CommitPoint & src) : m_p(EC_POINT_new(Schnorr::GetInstance().GetCurve().m_group.get()), EC_POINT_clear_free), m_initialized(false)
@@ -199,20 +216,30 @@ unsigned int CommitPoint::Serialize(vector<unsigned char> & dst, unsigned int of
     return COMMIT_POINT_SIZE;
 }
 
-void CommitPoint::Deserialize(const vector<unsigned char> & src, unsigned int offset)
+int CommitPoint::Deserialize(const vector<unsigned char> & src, unsigned int offset)
 {
     LOG_MARKER();
 
-    m_p = ECPOINTSerialize::GetNumber(src, offset, COMMIT_POINT_SIZE);
-    if (m_p == nullptr)
+    try
     {
-        LOG_MESSAGE("Error: Deserialization failure");
-        m_initialized = false;
+        m_p = ECPOINTSerialize::GetNumber(src, offset, COMMIT_POINT_SIZE);
+        if (m_p == nullptr)
+        {
+            LOG_MESSAGE("Error: Deserialization failure");
+            m_initialized = false;
+        }
+        else
+        {
+            m_initialized = true;
+        }
     }
-    else
+    catch(const std::exception& e)
     {
-        m_initialized = true;
+        LOG_MESSAGE("ERROR: Error with CommitPoint::Deserialize." << ' ' << e.what());
+        return -1;
+
     }
+    return 0;
 }
 
 void CommitPoint::Set(const CommitSecret & secret)
@@ -274,7 +301,10 @@ Challenge::Challenge(const CommitPoint & aggregatedCommit, const PubKey & aggreg
 
 Challenge::Challenge(const vector<unsigned char> & src, unsigned int offset)
 {
-    Deserialize(src, offset);
+    if(Deserialize(src, offset) != 0)
+    {
+        LOG_MESSAGE("Error. We failed to init Challenge.");
+    }
 }
 
 Challenge::Challenge(const Challenge & src) : m_c(BN_new(), BN_clear_free), m_initialized(false)
@@ -319,20 +349,30 @@ unsigned int Challenge::Serialize(vector<unsigned char> & dst, unsigned int offs
     return CHALLENGE_SIZE;
 }
 
-void Challenge::Deserialize(const vector<unsigned char> & src, unsigned int offset)
+int Challenge::Deserialize(const vector<unsigned char> & src, unsigned int offset)
 {
     LOG_MARKER();
 
-    m_c = BIGNUMSerialize::GetNumber(src, offset, CHALLENGE_SIZE);
-    if (m_c == nullptr)
+    try
     {
-        LOG_MESSAGE("Error: Deserialization failure");
-        m_initialized = false;
+        m_c = BIGNUMSerialize::GetNumber(src, offset, CHALLENGE_SIZE);
+        if (m_c == nullptr)
+        {
+            LOG_MESSAGE("Error: Deserialization failure");
+            m_initialized = false;
+        }
+        else
+        {
+            m_initialized = true;
+        }
     }
-    else
+    catch(const std::exception& e)
     {
-        m_initialized = true;
+        LOG_MESSAGE("ERROR: Error with Challenge::Deserialize." << ' ' << e.what());
+        return -1;
+
     }
+    return 0;
 }
 
 void Challenge::Set(const CommitPoint & aggregatedCommit, const PubKey & aggregatedPubkey, const vector<unsigned char> & message)
@@ -444,7 +484,10 @@ Response::Response(const CommitSecret & secret, const Challenge & challenge, con
 
 Response::Response(const vector<unsigned char> & src, unsigned int offset)
 {
-    Deserialize(src, offset);
+    if(Deserialize(src, offset) != 0)
+    {
+        LOG_MESSAGE("Error. We failed to init Response.");
+    }
 }
 
 Response::Response(const Response & src) : m_r(BN_new(), BN_clear_free), m_initialized(false)
@@ -489,20 +532,30 @@ unsigned int Response::Serialize(vector<unsigned char> & dst, unsigned int offse
     return RESPONSE_SIZE;
 }
 
-void Response::Deserialize(const vector<unsigned char> & src, unsigned int offset)
+int Response::Deserialize(const vector<unsigned char> & src, unsigned int offset)
 {
     LOG_MARKER();
 
-    m_r = BIGNUMSerialize::GetNumber(src, offset, RESPONSE_SIZE);
-    if (m_r == nullptr)
+    try
     {
-        LOG_MESSAGE("Error: Deserialization failure");
-        m_initialized = false;
+        m_r = BIGNUMSerialize::GetNumber(src, offset, RESPONSE_SIZE);
+        if (m_r == nullptr)
+        {
+            LOG_MESSAGE("Error: Deserialization failure");
+            m_initialized = false;
+        }
+        else
+        {
+            m_initialized = true;
+        }
     }
-    else
+    catch(const std::exception& e)
     {
-        m_initialized = true;
+        LOG_MESSAGE("ERROR: Error with Response::Deserialize." << ' ' << e.what());
+        return -1;
+
     }
+    return 0;
 }
 
 void Response::Set(const CommitSecret & secret, const Challenge & challenge, const PrivKey & privkey)

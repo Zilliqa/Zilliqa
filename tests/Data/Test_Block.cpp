@@ -60,7 +60,7 @@ BOOST_AUTO_TEST_CASE (DSBlock_test)
         signature1.at(i) = i + 8;
     }
 
- 
+    // FIXME: Handle exceptions.
     DSBlockHeader header1(20, prevHash1, 12345, pubKey1, pubKey1, 10, 789);
 
     DSBlock block1(header1, signature1);
