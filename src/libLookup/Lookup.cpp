@@ -183,7 +183,10 @@ bool Lookup::GetStateFromLookupNodes()
 {
     LOG_MARKER();
     SendMessageToLookupNodes(ComposeGetStateMessage());
-    receivedLastestState = false;
+    {
+        // unique_lock<mutex> lock(m_receivedLatestStateMutex);
+        receivedLatestState = false;
+    }
     return true;   
 }
 
@@ -259,7 +262,10 @@ bool Lookup::GetTxBlockFromSeedNodes(uint256_t lowBlockNum, uint256_t highBlockN
 {
     LOG_MARKER();
     SendMessageToSeedNodes(ComposeGetTxBlockMessage(lowBlockNum, highBlockNum));
-    receivedLatestTxBlocks = false;
+    {
+        // unique_lock<mutex> lock(m_receivedLatestTxBlocksMutex);
+        receivedLatestTxBlocks = false;
+    }
     return true;
 }
 
@@ -1189,9 +1195,14 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char> & message, un
             }
             m_isDSRandUpdated = false;
         }
+
+        // {
+        //     unique_lock<mutex> lock(m_receivedLatestTxBlocksMutex);
+            receivedLatestTxBlocks = true;
+        //     m_receivedLatestTxBlocksCondition.notify_one();
+        // }
     }
 #endif // IS_LOOKUP_NODE
-    receivedLatestTxBlocks = true;
 
     return true;
 }
@@ -1288,11 +1299,14 @@ bool Lookup::InitMining()
     //                                     POW1_DIFFICULTY, dsBlockRand, m_mediator.m_txBlockRand);
     // }
     //else if 
-    if (m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW == curDsBlockNum - 1 && 
-        receivedLastestState && receivedLatestTxBlocks)
+    if (m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW == curDsBlockNum - 1)
     {
         if(CheckStateRoot())
         {
+            while(!receivedLatestTxBlocks.load() && !receivedLatestState.load())
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            }
             // DS block has been generated. 
             // Attempt PoW2
             m_mediator.UpdateDSBlockRand();
@@ -1367,9 +1381,14 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char> & message, unsi
     unsigned int curr_offset = offset;
     AccountStore::GetInstance().Deserialize(message, curr_offset);
 
+    // {
+    //     unique_lock<mutex> lock(m_receivedLatestStateMutex);
+        receivedLatestState = true;
+    //     m_receivedLatestStateCondition.notify_one();
+    // }
+
 #endif // IS_LOOKUP_NODE
 
-    receivedLastestState = true;
     return true;
 }
 

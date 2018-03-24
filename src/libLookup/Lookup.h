@@ -18,6 +18,8 @@
 #ifndef __LOOKUP_H__
 #define __LOOKUP_H__
 
+#include <atomic>
+#include <chrono>
 #include <condition_variable>
 #include <map>
 #include <mutex>
@@ -56,6 +58,17 @@ class Lookup : public Executable, public Broadcastable
     std::mutex m_dsRandUpdationMutex;
     std::condition_variable m_dsRandUpdateCondition;
 
+    // bool receivedLatestTxBlocks = false;
+    // std::mutex m_receivedLatestTxBlocksMutex;
+    // std::condition_variable m_receivedLatestTxBlocksCondition;
+
+    // bool receivedLatestState = false;
+    // std::mutex m_receivedLatestStateMutex;
+    // std::condition_variable m_receivedLatestStateCondition;
+
+    std::atomic<bool> receivedLatestTxBlocks;
+    std::atomic<bool> receivedLatestState;
+
     std::mutex m_mutexSetDSBlockFromSeed;
     std::mutex m_mutexSetTxBlockFromSeed;
     std::mutex m_mutexSetTxBodyFromSeed;
@@ -67,9 +80,6 @@ class Lookup : public Executable, public Broadcastable
         boost::multiprecision::uint256_t lowBlockNum, boost::multiprecision::uint256_t highBlockNum);    
     std::vector<unsigned char> ComposeGetTxBlockMessage(
         boost::multiprecision::uint256_t lowBlockNum, boost::multiprecision::uint256_t highBlockNum);
-
-    bool receivedLatestTxBlocks = false;
-    bool receivedLastestState = false;
 
 public:
 
