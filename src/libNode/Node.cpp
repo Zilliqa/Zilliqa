@@ -96,14 +96,14 @@ Node::~Node()
 bool Node::StartRetrieveHistory()
 {
     LOG_MARKER();
-    Retriever* retriever = new Retriever(m_mediator);
-    
+    auto retriever = make_unique<Retriever>(m_mediator);
+
     bool ds_result;
-    std::thread tDS(&Retriever::RetrieveDSBlocks, retriever, std::ref(ds_result));
+    std::thread tDS(&Retriever::RetrieveDSBlocks, retriever.get(), std::ref(ds_result));
     // retriever->RetrieveDSBlocks(ds_result);
 
     bool tx_result;
-    std::thread tTx(&Retriever::RetrieveTxBlocks, retriever, std::ref(tx_result));
+    std::thread tTx(&Retriever::RetrieveTxBlocks, retriever.get(), std::ref(tx_result));
     // retriever->RetrieveTxBlocks(tx_result);
 
     bool st_result = retriever->RetrieveStates();
@@ -120,7 +120,6 @@ bool Node::StartRetrieveHistory()
             res = true;
         }
     }
-    delete retriever;
     return res;
 }
 
