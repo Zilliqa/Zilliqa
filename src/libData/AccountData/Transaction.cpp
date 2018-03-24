@@ -121,7 +121,12 @@ int Transaction::Deserialize(const vector<unsigned char> & src, unsigned int off
         curOffset += UINT256_SIZE;
         copy(src.begin() + curOffset, src.begin() + curOffset + ACC_ADDR_SIZE, m_toAddr.asArray().begin());
         curOffset += ACC_ADDR_SIZE;
-        m_senderPubKey.Deserialize(src, curOffset);
+        // m_senderPubKey.Deserialize(src, curOffset);
+        if(m_senderPubKey.Deserialize(src, curOffset) != 0)
+        {
+            LOG_MESSAGE("Error. We failed to init m_senderPubKey.");
+            return -1;
+        }
         curOffset += PUB_KEY_SIZE;
         m_amount = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
         curOffset += UINT256_SIZE;
