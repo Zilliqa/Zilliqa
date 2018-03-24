@@ -960,20 +960,13 @@ bool Node::ProcessFinalBlock(const vector<unsigned char> & message, unsigned int
 #ifndef IS_LOOKUP_NODE
     if(m_state == MICROBLOCK_CONSENSUS)
     {
-        unsigned int time_pass = 0;
-        while(m_state != WAITING_FINALBLOCK)
-        {
-            time_pass++;
-            if (time_pass % 10 == 1)
-            {
-                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), string("Waiting ") +
-                             "for state change from MICROBLOCK_CONSENSUS to PROCESS_FINALBLOCK");
-            }
-            this_thread::sleep_for(chrono::milliseconds(100));
-        }
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                     "I may have missed the micrblock consensus. However, if I recent a valid finalblock. I will accept it");
+        // TODO: Optimize state transition.
+        SetState(WAITING_FINALBLOCK);
     }
-    // Checks if (m_state != WAITING_FINALBLOCK)
-    else if (!CheckState(PROCESS_FINALBLOCK))
+    
+    if (!CheckState(PROCESS_FINALBLOCK))
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
                      "Too late - current state is " << m_state << ".");
@@ -990,6 +983,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char> & message, unsigned int
     {
         return false;
     }
+<<<<<<< HEAD
 
     // TxBlock txBlock(message, cur_offset);
     TxBlock txBlock;
@@ -998,6 +992,11 @@ bool Node::ProcessFinalBlock(const vector<unsigned char> & message, unsigned int
         LOG_MESSAGE("Error. We failed to deserialize TxBlock.");
         return false; 
     }
+=======
+    
+    TxBlock txBlock(message, cur_offset);
+
+>>>>>>> be60ef9ce85cc031b6c1adb55898b42aa17874ef
     cur_offset += txBlock.GetSerializedSize();
 
     LogReceivedFinalBlockDetails(txBlock);
