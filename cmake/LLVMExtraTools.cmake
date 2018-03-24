@@ -2,11 +2,10 @@
 # It requires clang-format/clang-tidy 5.0.0+
 
 # Get all project files
-file(GLOB_RECURSE
-     ALL_CXX_SOURCE_FILES
-     src
-     *.[chi]pp *.[chi]xx *.cc *.hh *.ii *.[CHI]
-     )
+file(GLOB_RECURSE ALL_CXX_SOURCES *.cpp *.h)
+
+# Exclude third-party libraries in src/depends
+list(FILTER ALL_CXX_SOURCES EXCLUDE REGEX "^.*src/depends.*$")
 
 # Adding clang-format target if executable is found
 find_program(
@@ -31,8 +30,9 @@ if(CLANG_FORMAT)
             clang-format
             COMMAND ${CLANG_FORMAT}
             -i
+            -sort-includes
             -style=file
-            ${ALL_CXX_SOURCE_FILES}
+            ${ALL_CXX_SOURCES}
         )
     else()
         message(AUTHOR_WARNING "clang-format version (${CLANG_FORMAT_VERSION}) not satisify (>5.0.0)")
@@ -69,7 +69,7 @@ if(CLANG_TIDY)
             COMMAND "${RUN_CLANG_TIDY}"
             -config=''
             -format-style='file'
-            ${ALL_CXX_SOURCE_FILES}
+            ${ALL_CXX_SOURCES}
         )
     else()
         message(AUTHOR_WARNING "clang-tidy version (${CLANG_TIDY_VERSION}) not satisify (>5.0.0)")
