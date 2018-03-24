@@ -60,7 +60,10 @@ CommitSecret::CommitSecret() : m_s(BN_new(), BN_clear_free), m_initialized(false
 
 CommitSecret::CommitSecret(const vector<unsigned char> & src, unsigned int offset)
 {
-    Deserialize(src, offset);
+    if(Deserialize(src, offset) != 0)
+    {
+        LOG_MESSAGE2("Error. We failed to init CommitSecret.");
+    }
 }
 
 CommitSecret::CommitSecret(const CommitSecret & src) : m_s(BN_new(), BN_clear_free), m_initialized(false)
