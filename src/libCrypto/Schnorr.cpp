@@ -247,20 +247,30 @@ unsigned int PrivKey::Serialize(vector<unsigned char> & dst, unsigned int offset
     return PRIV_KEY_SIZE;
 }
 
-void PrivKey::Deserialize(const vector<unsigned char> & src, unsigned int offset)
+int PrivKey::Deserialize(const vector<unsigned char> & src, unsigned int offset)
 {
     LOG_MARKER();
 
-    m_d = BIGNUMSerialize::GetNumber(src, offset, PRIV_KEY_SIZE);
-    if (m_d == nullptr)
+    try
     {
-        LOG_MESSAGE("Error: Deserialization failure");
-        m_initialized = false;
+        m_d = BIGNUMSerialize::GetNumber(src, offset, PRIV_KEY_SIZE);
+        if (m_d == nullptr)
+        {
+            LOG_MESSAGE("Error: Deserialization failure");
+            m_initialized = false;
+        }
+        else
+        {
+            m_initialized = true;
+        }
     }
-    else
+    catch(const std::exception& e)
     {
-        m_initialized = true;
+        LOG_MESSAGE("ERROR: Error with PrivKey::Deserialize." << ' ' << e.what());
+        return -1;
+
     }
+    return 0;
 }
 
 PrivKey & PrivKey::operator=(const PrivKey & src)
