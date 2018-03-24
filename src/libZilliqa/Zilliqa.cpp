@@ -29,7 +29,7 @@
 #include "libUtils/DataConversion.h"
 
 using namespace std;
-
+using namespace jsonrpc;
 
 void Zilliqa::LogSelfNodeInfo(const std::pair<PrivKey, PubKey> & key, const Peer & peer)
 {
