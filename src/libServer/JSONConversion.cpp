@@ -147,6 +147,7 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value & _json)
 
     string pubKey_str = _json["pubKey"].asString();
     vector <unsigned char> pubKey_ser = DataConversion::HexStrToUint8Vec(pubKey_str);
+    // TODO: Handle exceptions
     PubKey pubKey(pubKey_ser,0);
     
   
