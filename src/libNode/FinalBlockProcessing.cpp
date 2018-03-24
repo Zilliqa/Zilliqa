@@ -961,6 +961,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char> & message, unsigned int
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
                      "I may have missed the micrblock consensus. However, if I recent a valid finalblock. I will accept it");
+        // TODO: Optimize state transition.
         SetState(WAITING_FINALBLOCK);
     }
     
