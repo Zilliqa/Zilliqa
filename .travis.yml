@@ -38,8 +38,21 @@ install:
     fi
 
 script:
+  # build
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-      docker exec -t ci /bin/sh -c "$BUILD_COMMAND && make clang-format && git diff --exit-code && ctest";
+      docker exec -t ci /bin/sh -c "$BUILD_COMMAND";
     else
-      $BUILD_COMMAND && make clang-format && git diff --exit-code && ctest;
+      $BUILD_COMMAND;
+    fi
+  # check format
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+      docker exec -t ci /bin/sh -c "make clang-format && git diff --exit-code";
+    else
+      make clang-format && git diff --exit-code;
+    fi
+  # run tests
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+      docker exec -t ci /bin/sh -c "ctest";
+    else
+      ctest;
     fi
