@@ -168,7 +168,10 @@ CommitPoint::CommitPoint(const CommitSecret & secret) : m_p(EC_POINT_new(Schnorr
 
 CommitPoint::CommitPoint(const vector<unsigned char> & src, unsigned int offset)
 {
-    Deserialize(src, offset);
+    if(Deserialize(src, offset) != 0)
+    {
+        LOG_MESSAGE("Error. We failed to init CommitPoint.");
+    }
 }
 
 CommitPoint::CommitPoint(const CommitPoint & src) : m_p(EC_POINT_new(Schnorr::GetInstance().GetCurve().m_group.get()), EC_POINT_clear_free), m_initialized(false)
