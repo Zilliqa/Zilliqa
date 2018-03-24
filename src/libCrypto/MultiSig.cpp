@@ -220,16 +220,26 @@ int CommitPoint::Deserialize(const vector<unsigned char> & src, unsigned int off
 {
     LOG_MARKER();
 
-    m_p = ECPOINTSerialize::GetNumber(src, offset, COMMIT_POINT_SIZE);
-    if (m_p == nullptr)
+    try
     {
-        LOG_MESSAGE("Error: Deserialization failure");
-        m_initialized = false;
+        m_p = ECPOINTSerialize::GetNumber(src, offset, COMMIT_POINT_SIZE);
+        if (m_p == nullptr)
+        {
+            LOG_MESSAGE("Error: Deserialization failure");
+            m_initialized = false;
+        }
+        else
+        {
+            m_initialized = true;
+        }
     }
-    else
+    catch(const std::exception& e)
     {
-        m_initialized = true;
+        LOG_MESSAGE("ERROR: Error with CommitPoint::Deserialize." << ' ' << e.what());
+        return -1;
+
     }
+    return 0;
 }
 
 void CommitPoint::Set(const CommitSecret & secret)
