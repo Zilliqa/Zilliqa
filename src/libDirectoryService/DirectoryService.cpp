@@ -659,7 +659,13 @@ bool DirectoryService::ProcessAllPoWConnResponse(const vector<unsigned char> & m
 
     for (uint32_t i = 0; i < sizeeOfAllPowConn; i++)
     {
-        PubKey key(message, cur_offset);
+        // PubKey key(message, cur_offset);
+        PubKey key;
+        if(key.Deserialize(message, curr_offset) != 0)
+        {
+            LOG_MESSAGE("Error. We failed to deserialize PubKey.");
+            return false; 
+        }
         cur_offset += PUB_KEY_SIZE;
 
         Peer peer(message, cur_offset);
