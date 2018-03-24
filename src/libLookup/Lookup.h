@@ -29,6 +29,11 @@
 #include "libNetwork/Peer.h"
 #include "libUtils/Logger.h"
 
+#include <condition_variable>
+#include <map>
+#include <mutex>
+#include <vector>
+
 class Mediator;
 class Synchronizer;
 
