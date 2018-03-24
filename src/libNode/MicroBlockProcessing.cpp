@@ -145,8 +145,11 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char> & message, uns
     else if (state == ConsensusCommon::State::ERROR)
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
-                     "Oops, no consensus reached - what to do now???");
-        // throw exception();
+                     "Error: Oops, no consensus reached - what to do now???");
+
+        SetState(WAITING_FINALBLOCK); // Move on to next Epoch.
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                     "If I received a new Finalblock from DS committee. I will still process it");
     }
     else
     {
