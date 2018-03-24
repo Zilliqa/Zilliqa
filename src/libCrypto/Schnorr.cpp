@@ -466,7 +466,11 @@ Signature::Signature() : m_r(BN_new(), BN_clear_free), m_s(BN_new(), BN_clear_fr
 
 Signature::Signature(const vector<unsigned char> & src, unsigned int offset)
 {
-    Deserialize(src, offset);
+    
+    if(Deserialize(src, offset) != 0)
+    {
+        LOG_MESSAGE2("Error. We failed to init Signature.");
+    }
 }
 
 Signature::Signature(const Signature & src) : m_r(BN_new(), BN_clear_free), m_s(BN_new(), BN_clear_free), m_initialized(false)
