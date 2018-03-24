@@ -202,7 +202,10 @@ PrivKey::PrivKey() : m_d(BN_new(), BN_clear_free), m_initialized(false)
 
 PrivKey::PrivKey(const vector<unsigned char> & src, unsigned int offset)
 {
-    Deserialize(src, offset);
+    if(Deserialize(src, offset) != 0)
+    {
+        LOG_MESSAGE2("Error. We failed to init PrivKey.");
+    }
 }
 
 PrivKey::PrivKey(const PrivKey & src) : m_d(BN_new(), BN_clear_free), m_initialized(false)
@@ -326,7 +329,10 @@ PubKey::PubKey(const PrivKey & privkey) : m_P(EC_POINT_new(Schnorr::GetInstance(
 
 PubKey::PubKey(const vector<unsigned char> & src, unsigned int offset)
 {
-    Deserialize(src, offset);
+    if(Deserialize(src, offset) != 0)
+    {
+        LOG_MESSAGE2("Error. We failed to init PubKey.");
+    }
 }
 
 PubKey::PubKey(const PubKey & src) : m_P(EC_POINT_new(Schnorr::GetInstance().GetCurve().m_group.get()), EC_POINT_clear_free), m_initialized(false)
