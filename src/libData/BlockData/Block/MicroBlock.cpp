@@ -60,7 +60,13 @@ int MicroBlock::Deserialize(const vector<unsigned char> & src, unsigned int offs
                                             BLOCK_HASH_SIZE + UINT256_SIZE + UINT256_SIZE + TRAN_HASH_SIZE + 
                                             sizeof(uint32_t) + PUB_KEY_SIZE + UINT256_SIZE + BLOCK_HASH_SIZE;
 
-        MicroBlockHeader header(src, offset);
+        // MicroBlockHeader header(src, offset);
+        MicroBlockHeader header;
+        if(header.Deserialize(src, offset) != 0)
+        {
+            LOG_MESSAGE("Error. We failed to deserialize MicroBlockHeader.");
+            return -1; 
+        }
         m_header = header;
 
         unsigned int curOffset = offset + header_size_needed;

@@ -991,7 +991,13 @@ bool Node::ProcessFinalBlock(const vector<unsigned char> & message, unsigned int
         return false;
     }
 
-    TxBlock txBlock(message, cur_offset);
+    // TxBlock txBlock(message, cur_offset);
+    TxBlock txBlock;
+    if(txBlock.Deserialize(message, cur_offset) != 0)
+    {
+        LOG_MESSAGE("Error. We failed to deserialize TxBlock.");
+        return false; 
+    }
     cur_offset += txBlock.GetSerializedSize();
 
     LogReceivedFinalBlockDetails(txBlock);
