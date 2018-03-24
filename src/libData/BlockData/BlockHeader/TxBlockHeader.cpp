@@ -129,7 +129,12 @@ int TxBlockHeader::Deserialize(const vector<unsigned char> & src, unsigned int o
         curOffset += sizeof(uint32_t);
         m_numMicroBlockHashes = GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
         curOffset += sizeof(uint32_t);
-        m_minerPubKey.Deserialize(src, curOffset);
+        // m_minerPubKey.Deserialize(src, curOffset);
+        if(m_minerPubKey.Deserialize(src, offset) != 0)
+        {
+            LOG_MESSAGE("Error. We failed to init m_minerPubKey.");
+            return -1;
+        }
         curOffset += PUB_KEY_SIZE;
         m_dsBlockNum = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
         curOffset += UINT256_SIZE;
