@@ -957,15 +957,14 @@ bool Node::ProcessFinalBlock(const vector<unsigned char> & message, unsigned int
     LOG_MARKER();
 
 #ifndef IS_LOOKUP_NODE
-    TxBlock txBlock(message, cur_offset);
-
-    if(CheckState(MICROBLOCK_CONSENSUS))
+    if(m_state == MICROBLOCK_CONSENSUS)
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
                      "I may have missed the micrblock consensus. However, if I recent a valid finalblock. I will accept it");
-        SetState(WAITING_FINALBLOCK)
+        SetState(WAITING_FINALBLOCK);
     }
-    else if (!CheckState(WAITING_FINALBLOCK))
+    
+    if (!CheckState(PROCESS_FINALBLOCK))
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
                      "Too late - current state is " << m_state << ".");
@@ -982,6 +981,8 @@ bool Node::ProcessFinalBlock(const vector<unsigned char> & message, unsigned int
     {
         return false;
     }
+    
+    TxBlock txBlock(message, cur_offset);
 
     cur_offset += txBlock.GetSerializedSize();
 
