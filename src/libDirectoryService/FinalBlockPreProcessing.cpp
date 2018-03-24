@@ -756,14 +756,14 @@ void DirectoryService::SaveTxnBodySharingAssignment(const vector<unsigned char> 
     bool i_am_forwarder = false;
     for (uint32_t i = 0; i < num_ds_nodes; i++)
     {
-        Peer tempPeer;
-        if(tempPeer.Deserialize(finalblock, curr_offset) != 0)
-        {
-            LOG_MESSAGE("Error. We failed to deserialize Peer.");
-            return false; 
-        }
-        // ds_receivers.push_back(Peer(finalblock, curr_offset));
-        ds_receivers.push_back(tempPeer);
+        // Peer tempPeer;
+        // if(tempPeer.Deserialize(finalblock, curr_offset) != 0)
+        // {
+        //     LOG_MESSAGE("Error. We failed to deserialize Peer.");
+        // }
+        // ds_receivers.push_back(tempPeer);
+        // TODO: Handle exceptions
+        ds_receivers.push_back(Peer(finalblock, curr_offset));
         curr_offset += IP_SIZE + PORT_SIZE;
 
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "  IP: " << ds_receivers.back().GetPrintableIPAddress() << " Port: " << ds_receivers.back().m_listenPortHost);
