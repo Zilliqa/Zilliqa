@@ -62,7 +62,7 @@ CommitSecret::CommitSecret(const vector<unsigned char> & src, unsigned int offse
 {
     if(Deserialize(src, offset) != 0)
     {
-        LOG_MESSAGE2("Error. We failed to init CommitSecret.");
+        LOG_MESSAGE("Error. We failed to init CommitSecret.");
     }
 }
 

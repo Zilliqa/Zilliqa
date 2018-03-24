@@ -1067,7 +1067,7 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char> & message, un
         DSBlock dsBlock;
         if(dsBlock.Deserialize(message, offset) != 0)
         {
-            LOG_MESSAGE2("Error. We failed to deserialize dsBlock.");
+            LOG_MESSAGE("Error. We failed to deserialize dsBlock.");
             return false; 
         }
         offset += DSBlock::GetSerializedSize();
