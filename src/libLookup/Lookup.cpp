@@ -1301,12 +1301,12 @@ bool Lookup::InitMining()
     //else if 
     if (m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW == curDsBlockNum - 1)
     {
+        while(!receivedLatestTxBlocks.load() && !receivedLatestState.load())
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
         if(CheckStateRoot())
         {
-            while(!receivedLatestTxBlocks.load() && !receivedLatestState.load())
-            {
-                std::this_thread::sleep_for(std::chrono::milliseconds(1));
-            }
             // DS block has been generated. 
             // Attempt PoW2
             m_mediator.UpdateDSBlockRand();
