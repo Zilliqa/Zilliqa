@@ -747,7 +747,7 @@ bool DirectoryService::ProcessLastDSBlockResponse(const vector<unsigned char> & 
     DSBlock dsblock;
     if(dsblock.Deserialize(message, cur_offset) != 0)
     {
-        LOG_MESSAGE2("Error. We failed to init dsblock.");
+        LOG_MESSAGE2("Error. We failed to deserialize dsblock.");
         return false; 
     }
     int result = m_mediator.m_dsBlockChain.AddBlock(dsblock);

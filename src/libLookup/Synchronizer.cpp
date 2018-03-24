@@ -54,7 +54,7 @@ DSBlock Synchronizer::ConstructGenesisDSBlock()
     {
         signature.at(i) = i + 8;
     }
-
+    // To-do: Handle exceptions.
     return DSBlock(header, signature);
 }
 

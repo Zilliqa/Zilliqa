@@ -78,6 +78,7 @@ void DirectoryService::ComposeDSBlock()
     array<unsigned char, BLOCK_SIG_SIZE> newSig{};
     {
         lock_guard<mutex> g(m_mutexPendingDSBlock);
+        // To-do: Handle exceptions.
         m_pendingDSBlock.reset(new DSBlock(newHeader, newSig));
     }
 

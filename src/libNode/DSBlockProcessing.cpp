@@ -155,7 +155,14 @@ bool Node::ProcessDSBlock(const vector<unsigned char> & message, unsigned int cu
     }
 
     // 259-byte DS block
-    DSBlock dsblock(message, cur_offset);
+    // DSBlock dsblock(message, cur_offset);
+    DSBlock dsblock;
+    if(dsblock.Deserialize(message, cur_offset) != 0)
+    {
+        LOG_MESSAGE2("Error. We failed to deserialize dsblock.");
+        return false; 
+    }
+    
     cur_offset += DSBlock::GetSerializedSize();
 
     LogReceivedDSBlockDetails(dsblock);
