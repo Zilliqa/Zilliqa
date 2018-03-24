@@ -204,7 +204,7 @@ PrivKey::PrivKey(const vector<unsigned char> & src, unsigned int offset)
 {
     if(Deserialize(src, offset) != 0)
     {
-        LOG_MESSAGE2("Error. We failed to init PrivKey.");
+        LOG_MESSAGE("Error. We failed to init PrivKey.");
     }
 }
 
@@ -331,7 +331,7 @@ PubKey::PubKey(const vector<unsigned char> & src, unsigned int offset)
 {
     if(Deserialize(src, offset) != 0)
     {
-        LOG_MESSAGE2("Error. We failed to init PubKey.");
+        LOG_MESSAGE("Error. We failed to init PubKey.");
     }
 }
 
@@ -469,7 +469,7 @@ Signature::Signature(const vector<unsigned char> & src, unsigned int offset)
     
     if(Deserialize(src, offset) != 0)
     {
-        LOG_MESSAGE2("Error. We failed to init Signature.");
+        LOG_MESSAGE("Error. We failed to init Signature.");
     }
 }
 
