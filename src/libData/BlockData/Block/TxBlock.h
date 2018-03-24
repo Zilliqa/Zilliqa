@@ -62,7 +62,7 @@ public:
     std::vector<bool> DeserializeIsMicroBlockEmpty(uint32_t arg);
 
     /// Implements the Deserialize function inherited from Serializable.
-    void Deserialize(const std::vector<unsigned char> & src, unsigned int offset);
+    int Deserialize(const std::vector<unsigned char> & src, unsigned int offset);
 
     /// Returns the size in bytes when serializing the block.
     unsigned int GetSerializedSize() const;

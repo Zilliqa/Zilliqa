@@ -55,7 +55,7 @@ public:
     unsigned int Serialize(std::vector<unsigned char> & dst, unsigned int offset) const;
 
     /// Implements the Deserialize function inherited from Serializable. 
-    void Deserialize(const std::vector<unsigned char> & src, unsigned int offset);
+    int Deserialize(const std::vector<unsigned char> & src, unsigned int offset);
 
     /// Returns the expected size of this microblock when serialized into a byte stream.
     unsigned int GetSerializedSize() const;
