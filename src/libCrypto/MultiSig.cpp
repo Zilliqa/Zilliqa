@@ -301,7 +301,10 @@ Challenge::Challenge(const CommitPoint & aggregatedCommit, const PubKey & aggreg
 
 Challenge::Challenge(const vector<unsigned char> & src, unsigned int offset)
 {
-    Deserialize(src, offset);
+    if(Deserialize(src, offset) != 0)
+    {
+        LOG_MESSAGE("Error. We failed to init Challenge.");
+    }
 }
 
 Challenge::Challenge(const Challenge & src) : m_c(BN_new(), BN_clear_free), m_initialized(false)
@@ -350,16 +353,26 @@ int Challenge::Deserialize(const vector<unsigned char> & src, unsigned int offse
 {
     LOG_MARKER();
 
-    m_c = BIGNUMSerialize::GetNumber(src, offset, CHALLENGE_SIZE);
-    if (m_c == nullptr)
+    try
     {
-        LOG_MESSAGE("Error: Deserialization failure");
-        m_initialized = false;
+        m_c = BIGNUMSerialize::GetNumber(src, offset, CHALLENGE_SIZE);
+        if (m_c == nullptr)
+        {
+            LOG_MESSAGE("Error: Deserialization failure");
+            m_initialized = false;
+        }
+        else
+        {
+            m_initialized = true;
+        }
     }
-    else
+    catch(const std::exception& e)
     {
-        m_initialized = true;
+        LOG_MESSAGE("ERROR: Error with Challenge::Deserialize." << ' ' << e.what());
+        return -1;
+
     }
+    return 0;
 }
 
 void Challenge::Set(const CommitPoint & aggregatedCommit, const PubKey & aggregatedPubkey, const vector<unsigned char> & message)
