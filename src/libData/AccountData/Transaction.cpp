@@ -14,11 +14,10 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#include <algorithm>
+#include "Transaction.h"
 #include "libCrypto/Sha2.h"
 #include "libUtils/Logger.h"
-#include "Transaction.h"
-
+#include <algorithm>
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -28,30 +27,29 @@ unsigned char LOW_BITS_MASK = 0x0F;
 unsigned char ACC_COND = 0x1;
 unsigned char TX_COND = 0x2;
 
-Transaction::Transaction()
-{
+Transaction::Transaction() {}
 
-}
-
-Transaction::Transaction(const vector<unsigned char> & src, unsigned int offset)
+Transaction::Transaction(const vector<unsigned char>& src, unsigned int offset)
 {
     Deserialize(src, offset);
 }
 
-Transaction::Transaction
-(
-    uint32_t version,
-    const uint256_t & nonce,
-    const Address & toAddr,
-    const PubKey & senderPubKey,
-    const uint256_t & amount,
-    const array<unsigned char, TRAN_SIG_SIZE> & signature
-) : m_version(version), m_nonce(nonce), m_toAddr(toAddr), m_senderPubKey(senderPubKey), m_amount(amount), m_signature(signature)//, m_pred(pred)
+Transaction::Transaction(uint32_t version, const uint256_t& nonce,
+                         const Address& toAddr, const PubKey& senderPubKey,
+                         const uint256_t& amount,
+                         const array<unsigned char, TRAN_SIG_SIZE>& signature)
+    : m_version(version)
+    , m_nonce(nonce)
+    , m_toAddr(toAddr)
+    , m_senderPubKey(senderPubKey)
+    , m_amount(amount)
+    , m_signature(signature) //, m_pred(pred)
 {
     // [TODO] m_signature should be generated from the rest
 
     vector<unsigned char> vec;
-    vec.resize(sizeof(uint32_t) + UINT256_SIZE + ACC_ADDR_SIZE + PUB_KEY_SIZE +  UINT256_SIZE);
+    vec.resize(sizeof(uint32_t) + UINT256_SIZE + ACC_ADDR_SIZE + PUB_KEY_SIZE
+               + UINT256_SIZE);
 
     unsigned int curOffset = 0;
 
@@ -59,7 +57,8 @@ Transaction::Transaction
     curOffset += sizeof(uint32_t);
     SetNumber<uint256_t>(vec, curOffset, m_nonce, UINT256_SIZE);
     curOffset += UINT256_SIZE;
-    copy(m_toAddr.asArray().begin(), m_toAddr.asArray().end(), vec.begin() + curOffset);
+    copy(m_toAddr.asArray().begin(), m_toAddr.asArray().end(),
+         vec.begin() + curOffset);
     curOffset += ACC_ADDR_SIZE;
     m_senderPubKey.Serialize(vec, curOffset);
     curOffset += PUB_KEY_SIZE;
@@ -67,18 +66,21 @@ Transaction::Transaction
 
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
     sha2.Update(vec);
-    const vector<unsigned char> & output = sha2.Finalize();
+    const vector<unsigned char>& output = sha2.Finalize();
 
     assert(output.size() == 32);
 
     copy(output.begin(), output.end(), m_tranID.asArray().begin());
 }
 
-unsigned int Transaction::Serialize(vector<unsigned char> & dst, unsigned int offset) const
+unsigned int Transaction::Serialize(vector<unsigned char>& dst,
+                                    unsigned int offset) const
 {
     // LOG_MARKER();
 
-    unsigned int size_needed = TRAN_HASH_SIZE + sizeof(uint32_t) + UINT256_SIZE + PUB_KEY_SIZE + ACC_ADDR_SIZE + UINT256_SIZE + TRAN_SIG_SIZE;// + predicate_size_needed;
+    unsigned int size_needed = TRAN_HASH_SIZE + sizeof(uint32_t) + UINT256_SIZE
+        + PUB_KEY_SIZE + ACC_ADDR_SIZE + UINT256_SIZE
+        + TRAN_SIG_SIZE; // + predicate_size_needed;
     unsigned int size_remaining = dst.size() - offset;
 
     if (size_remaining < size_needed)
@@ -88,13 +90,15 @@ unsigned int Transaction::Serialize(vector<unsigned char> & dst, unsigned int of
 
     unsigned int curOffset = offset;
 
-    copy(m_tranID.asArray().begin(), m_tranID.asArray().end(), dst.begin() + curOffset);
+    copy(m_tranID.asArray().begin(), m_tranID.asArray().end(),
+         dst.begin() + curOffset);
     curOffset += TRAN_HASH_SIZE;
     SetNumber<uint32_t>(dst, curOffset, m_version, sizeof(uint32_t));
     curOffset += sizeof(uint32_t);
     SetNumber<uint256_t>(dst, curOffset, m_nonce, UINT256_SIZE);
     curOffset += UINT256_SIZE;
-    copy(m_toAddr.asArray().begin(), m_toAddr.asArray().end(), dst.begin() + curOffset);
+    copy(m_toAddr.asArray().begin(), m_toAddr.asArray().end(),
+         dst.begin() + curOffset);
     curOffset += ACC_ADDR_SIZE;
     m_senderPubKey.Serialize(dst, curOffset);
     curOffset += PUB_KEY_SIZE;
@@ -105,7 +109,8 @@ unsigned int Transaction::Serialize(vector<unsigned char> & dst, unsigned int of
     return size_needed;
 }
 
-int Transaction::Deserialize(const vector<unsigned char> & src, unsigned int offset)
+int Transaction::Deserialize(const vector<unsigned char>& src,
+                             unsigned int offset)
 {
     // LOG_MARKER();
 
@@ -113,16 +118,18 @@ int Transaction::Deserialize(const vector<unsigned char> & src, unsigned int off
 
     try
     {
-        copy(src.begin() + curOffset, src.begin() + curOffset + TRAN_HASH_SIZE, m_tranID.asArray().begin());
+        copy(src.begin() + curOffset, src.begin() + curOffset + TRAN_HASH_SIZE,
+             m_tranID.asArray().begin());
         curOffset += TRAN_HASH_SIZE;
         m_version = GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
         curOffset += sizeof(uint32_t);
         m_nonce = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
         curOffset += UINT256_SIZE;
-        copy(src.begin() + curOffset, src.begin() + curOffset + ACC_ADDR_SIZE, m_toAddr.asArray().begin());
+        copy(src.begin() + curOffset, src.begin() + curOffset + ACC_ADDR_SIZE,
+             m_toAddr.asArray().begin());
         curOffset += ACC_ADDR_SIZE;
         // m_senderPubKey.Deserialize(src, curOffset);
-        if(m_senderPubKey.Deserialize(src, curOffset) != 0)
+        if (m_senderPubKey.Deserialize(src, curOffset) != 0)
         {
             LOG_MESSAGE("Error. We failed to init m_senderPubKey.");
             return -1;
@@ -130,53 +137,37 @@ int Transaction::Deserialize(const vector<unsigned char> & src, unsigned int off
         curOffset += PUB_KEY_SIZE;
         m_amount = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
         curOffset += UINT256_SIZE;
-        copy(src.begin() + curOffset, src.begin() + curOffset + TRAN_SIG_SIZE, m_signature.begin());
+        copy(src.begin() + curOffset, src.begin() + curOffset + TRAN_SIG_SIZE,
+             m_signature.begin());
     }
-    catch(const std::exception& e)
+    catch (const std::exception& e)
     {
-        LOG_MESSAGE("ERROR: Error with Transaction::Deserialize." << ' ' << e.what());
+        LOG_MESSAGE("ERROR: Error with Transaction::Deserialize." << ' '
+                                                                  << e.what());
         return -1;
-
     }
     return 0;
 }
 
-const TxnHash & Transaction::GetTranID() const
-{
-    return m_tranID;
-}
+const TxnHash& Transaction::GetTranID() const { return m_tranID; }
 
-const uint32_t & Transaction::GetVersion() const
-{
-    return m_version;
-}
+const uint32_t& Transaction::GetVersion() const { return m_version; }
 
-const uint256_t & Transaction::GetNonce() const
-{
-    return m_nonce;
-}
+const uint256_t& Transaction::GetNonce() const { return m_nonce; }
 
-const Address & Transaction::GetToAddr() const
-{
-    return m_toAddr;
-}
+const Address& Transaction::GetToAddr() const { return m_toAddr; }
 
-const PubKey & Transaction::GetSenderPubKey() const
-{
-    return m_senderPubKey;
-}
+const PubKey& Transaction::GetSenderPubKey() const { return m_senderPubKey; }
 
-const uint256_t & Transaction::GetAmount() const
-{
-    return m_amount;
-}
+const uint256_t& Transaction::GetAmount() const { return m_amount; }
 
-const array<unsigned char, TRAN_SIG_SIZE> & Transaction::GetSignature() const
+const array<unsigned char, TRAN_SIG_SIZE>& Transaction::GetSignature() const
 {
     return m_signature;
 }
 
-unsigned int Transaction::GetShardIndex(const Address & fromAddr, unsigned int numShards)
+unsigned int Transaction::GetShardIndex(const Address& fromAddr,
+                                        unsigned int numShards)
 {
     unsigned int target_shard = 0;
     unsigned int numbits = log2(numShards);
@@ -190,7 +181,8 @@ unsigned int Transaction::GetShardIndex(const Address & fromAddr, unsigned int n
         {
             msb_mask |= 1 << i;
         }
-        target_shard = fromAddr.asArray().at(ACC_ADDR_SIZE - numbytes - 1) & msb_mask;
+        target_shard
+            = fromAddr.asArray().at(ACC_ADDR_SIZE - numbytes - 1) & msb_mask;
     }
 
     for (unsigned int i = ACC_ADDR_SIZE - numbytes; i < ACC_ADDR_SIZE; i++)
@@ -203,68 +195,61 @@ unsigned int Transaction::GetShardIndex(const Address & fromAddr, unsigned int n
 
 unsigned int Transaction::GetSerializedSize()
 {
-    unsigned int size_needed_wo_predicate = TRAN_HASH_SIZE + sizeof(uint32_t) + UINT256_SIZE + ACC_ADDR_SIZE + PUB_KEY_SIZE + UINT256_SIZE + TRAN_SIG_SIZE;
+    unsigned int size_needed_wo_predicate = TRAN_HASH_SIZE + sizeof(uint32_t)
+        + UINT256_SIZE + ACC_ADDR_SIZE + PUB_KEY_SIZE + UINT256_SIZE
+        + TRAN_SIG_SIZE;
 
     return size_needed_wo_predicate;
 }
 
-
-bool Transaction::Verify(const Transaction & tran)
+bool Transaction::Verify(const Transaction& tran)
 {
-    
-    vector <unsigned char> data;
-    data.resize(sizeof(uint32_t) + UINT256_SIZE + ACC_ADDR_SIZE + PUB_KEY_SIZE + UINT256_SIZE);
+
+    vector<unsigned char> data;
+    data.resize(sizeof(uint32_t) + UINT256_SIZE + ACC_ADDR_SIZE + PUB_KEY_SIZE
+                + UINT256_SIZE);
     unsigned int curOffset = 0;
-    
+
     SetNumber<uint32_t>(data, curOffset, tran.m_version, sizeof(uint32_t));
     curOffset += sizeof(uint32_t);
-    
+
     SetNumber<uint256_t>(data, curOffset, tran.m_nonce, UINT256_SIZE);
     curOffset += UINT256_SIZE;
-    
+
     copy(tran.m_toAddr.begin(), tran.m_toAddr.end(), data.begin() + curOffset);
     curOffset += ACC_ADDR_SIZE;
-   
+
     tran.m_senderPubKey.Serialize(data, curOffset);
-    curOffset+=PUB_KEY_SIZE;
- 
+    curOffset += PUB_KEY_SIZE;
+
     SetNumber<uint256_t>(data, curOffset, tran.m_amount, UINT256_SIZE);
     curOffset += UINT256_SIZE;
-    
-    vector <unsigned char> sign_ser;
+
+    vector<unsigned char> sign_ser;
     sign_ser.resize(TRAN_SIG_SIZE);
     copy(tran.m_signature.begin(), tran.m_signature.end(), sign_ser.begin());
 
-
     // Signature sign(sign_ser,0);
     Signature sign;
-    if(sign.Deserialize(sign_ser,0) != 0)
+    if (sign.Deserialize(sign_ser, 0) != 0)
     {
         LOG_MESSAGE("Error. We failed to deserialize sign.");
-        return false; 
+        return false;
     }
 
-
     return Schnorr::GetInstance().Verify(data, sign, tran.m_senderPubKey);
-
-
 }
 
-bool Transaction::operator==(const Transaction & tran) const
+bool Transaction::operator==(const Transaction& tran) const
 {
-    return
-    (
-        (m_tranID == tran.m_tranID) &&
-        (m_version == tran.m_version) &&
-        (m_nonce == tran.m_nonce) &&
-        (m_toAddr == tran.m_toAddr) &&
-        (m_senderPubKey == tran.m_senderPubKey) &&
-        (m_amount == tran.m_amount) &&
-        (m_signature == tran.m_signature)
-    );
+    return ((m_tranID == tran.m_tranID) && (m_version == tran.m_version)
+            && (m_nonce == tran.m_nonce) && (m_toAddr == tran.m_toAddr)
+            && (m_senderPubKey == tran.m_senderPubKey)
+            && (m_amount == tran.m_amount)
+            && (m_signature == tran.m_signature));
 }
 
-bool Transaction::operator<(const Transaction & tran) const
+bool Transaction::operator<(const Transaction& tran) const
 {
     if (m_tranID < tran.m_tranID)
     {
@@ -334,14 +319,15 @@ bool Transaction::operator<(const Transaction & tran) const
     }
 }
 
-bool Transaction::operator>(const Transaction & tran) const
+bool Transaction::operator>(const Transaction& tran) const
 {
     return !((*this == tran) || (*this < tran));
 }
 
-Transaction & Transaction::operator=(const Transaction & src)
+Transaction& Transaction::operator=(const Transaction& src)
 {
-    copy(src.m_tranID.asArray().begin(), src.m_tranID.asArray().end(), m_tranID.asArray().begin());
+    copy(src.m_tranID.asArray().begin(), src.m_tranID.asArray().end(),
+         m_tranID.asArray().begin());
     m_version = src.m_version;
     m_nonce = src.m_nonce;
     copy(src.m_toAddr.begin(), src.m_toAddr.end(), m_toAddr.asArray().begin());

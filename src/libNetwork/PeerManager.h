@@ -14,12 +14,11 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-
 #ifndef __PEERMANAGER_H__
 #define __PEERMANAGER_H__
 
-#include <vector>
 #include <array>
+#include <vector>
 
 #include "PeerStore.h"
 #include "common/Broadcastable.h"
@@ -31,14 +30,18 @@ class PeerManager : public Executable, public Broadcastable
     std::pair<PrivKey, PubKey> m_selfKey;
     Peer m_selfPeer;
 
-    bool ProcessHello(const std::vector<unsigned char> & message, unsigned int offset, const Peer & from);
-    bool ProcessAddPeer(const std::vector<unsigned char> & message, unsigned int offset, const Peer & from);
-    bool ProcessPing(const std::vector<unsigned char> & message, unsigned int offset, const Peer & from);
-    bool ProcessPingAll(const std::vector<unsigned char> & message, unsigned int offset, const Peer & from);
-    bool ProcessBroadcast(const std::vector<unsigned char> & message, unsigned int offset, const Peer & from);
+    bool ProcessHello(const std::vector<unsigned char>& message,
+                      unsigned int offset, const Peer& from);
+    bool ProcessAddPeer(const std::vector<unsigned char>& message,
+                        unsigned int offset, const Peer& from);
+    bool ProcessPing(const std::vector<unsigned char>& message,
+                     unsigned int offset, const Peer& from);
+    bool ProcessPingAll(const std::vector<unsigned char>& message,
+                        unsigned int offset, const Peer& from);
+    bool ProcessBroadcast(const std::vector<unsigned char>& message,
+                          unsigned int offset, const Peer& from);
 
 public:
-
     enum InstructionType : unsigned char
     {
         HELLO = 0x00,
@@ -49,16 +52,19 @@ public:
     };
 
     /// Constructor.
-    PeerManager(const std::pair<PrivKey, PubKey> & key, const Peer & peer, bool loadConfig);
+    PeerManager(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
+                bool loadConfig);
 
     /// Destructor.
     ~PeerManager();
 
     /// Implements the Execute function inherited from Executable.
-    bool Execute(const std::vector<unsigned char> & message, unsigned int offset, const Peer & from);
+    bool Execute(const std::vector<unsigned char>& message, unsigned int offset,
+                 const Peer& from);
 
     /// Implements the GetBroadcastList function inherited from Broadcastable.
-    std::vector<Peer> GetBroadcastList(unsigned char ins_type, const Peer & broadcast_originator);
+    std::vector<Peer> GetBroadcastList(unsigned char ins_type,
+                                       const Peer& broadcast_originator);
 };
 
 #endif // __PEERMANAGER_H__

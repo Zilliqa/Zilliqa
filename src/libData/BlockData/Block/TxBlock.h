@@ -22,47 +22,45 @@
 #include <vector>
 
 #include "BlockBase.h"
-#include "common/Serializable.h"
 #include "common/Constants.h"
+#include "common/Serializable.h"
 #include "libCrypto/Schnorr.h"
-#include "libNetwork/Peer.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/BlockData/BlockHeader/TxBlockHeader.h"
+#include "libNetwork/Peer.h"
 
 /// Stores the Tx block header and signature.
 class TxBlock : public BlockBase
 {
     TxBlockHeader m_header;
-    std::array<unsigned char, BLOCK_SIG_SIZE> m_headerSig; // Co-signed by: sharding committee (microblock) or DS committee (finalblock)
+    std::array<unsigned char, BLOCK_SIG_SIZE>
+        m_headerSig; // Co-signed by: sharding committee (microblock) or DS committee (finalblock)
     std::vector<bool> m_isMicroBlockEmpty;
     std::vector<TxnHash> m_microBlockHashes;
 
 public:
-
     /// Default constructor.
     TxBlock(); // creates a dummy invalid placeholder block -- blocknum is maxsize of uint256
 
     /// Constructor for loading Tx block information from a byte stream.
-    TxBlock(const std::vector<unsigned char> & src, unsigned int offset);
+    TxBlock(const std::vector<unsigned char>& src, unsigned int offset);
 
     /// Constructor with specified Tx block parameters.
-    TxBlock
-    (
-        const TxBlockHeader & header,
-        const std::array<unsigned char, BLOCK_SIG_SIZE> & signature,
-        const std::vector<bool> & isMicroBlockEmpty,
-        const std::vector<TxnHash> & microBlockHashes
-    );
+    TxBlock(const TxBlockHeader& header,
+            const std::array<unsigned char, BLOCK_SIG_SIZE>& signature,
+            const std::vector<bool>& isMicroBlockEmpty,
+            const std::vector<TxnHash>& microBlockHashes);
 
     uint32_t SerializeIsMicroBlockEmpty() const;
 
     /// Implements the Serialize function inherited from Serializable.
-    unsigned int Serialize(std::vector<unsigned char> & dst, unsigned int offset) const;
+    unsigned int Serialize(std::vector<unsigned char>& dst,
+                           unsigned int offset) const;
 
     std::vector<bool> DeserializeIsMicroBlockEmpty(uint32_t arg);
 
     /// Implements the Deserialize function inherited from Serializable.
-    int Deserialize(const std::vector<unsigned char> & src, unsigned int offset);
+    int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
 
     /// Returns the size in bytes when serializing the block.
     unsigned int GetSerializedSize() const;
@@ -71,25 +69,25 @@ public:
     static unsigned int GetMinSize();
 
     /// Returns the reference to the TxBlockHeader part of the Tx block.
-    const TxBlockHeader & GetHeader() const;
+    const TxBlockHeader& GetHeader() const;
 
     /// Returns the signature part of the Tx block.
-    const std::array<unsigned char, BLOCK_SIG_SIZE> & GetHeaderSig() const;
+    const std::array<unsigned char, BLOCK_SIG_SIZE>& GetHeaderSig() const;
 
     /// Returns the vector of isMicroBlockEmpty.
-    const std::vector<bool> & GetIsMicroBlockEmpty() const;
-    
+    const std::vector<bool>& GetIsMicroBlockEmpty() const;
+
     /// Returns the list of MicroBlockHashes.
-    const std::vector<TxnHash> & GetMicroBlockHashes() const;
+    const std::vector<TxnHash>& GetMicroBlockHashes() const;
 
     /// Equality comparison operator.
-    bool operator==(const TxBlock & block) const;
+    bool operator==(const TxBlock& block) const;
 
     /// Less-than comparison operator.
-    bool operator<(const TxBlock & block) const;
+    bool operator<(const TxBlock& block) const;
 
     /// Greater-than comparison operator.
-    bool operator>(const TxBlock & block) const;
+    bool operator>(const TxBlock& block) const;
 };
 
 #endif // __TXBLOCK_H__

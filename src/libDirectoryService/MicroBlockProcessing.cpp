@@ -15,17 +15,17 @@
 **/
 
 #include <algorithm>
-#include <thread>
 #include <chrono>
+#include <thread>
 
 #include "DirectoryService.h"
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
 #include "depends/common/RLP.h"
+#include "depends/libDatabase/MemoryDB.h"
 #include "depends/libTrie/TrieDB.h"
 #include "depends/libTrie/TrieHash.h"
-#include "depends/libDatabase/MemoryDB.h"
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
 #include "libNetwork/P2PComm.h"
@@ -37,7 +37,8 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-bool DirectoryService::ProcessMicroblockSubmission(const vector<unsigned char> & message, unsigned int offset, const Peer & from)
+bool DirectoryService::ProcessMicroblockSubmission(
+    const vector<unsigned char>& message, unsigned int offset, const Peer& from)
 {
 #ifndef IS_LOOKUP_NODE
     // Message = [32-byte DS blocknum] [4-byte consensusid] [4-byte shard ID] [Tx microblock]
@@ -48,12 +49,15 @@ bool DirectoryService::ProcessMicroblockSubmission(const vector<unsigned char> &
     if (!CheckState(PROCESS_MICROBLOCKSUBMISSION))
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Not at MICROBLOCK_SUBMISSION. Current state is " << m_state);
+                     "Not at MICROBLOCK_SUBMISSION. Current state is "
+                         << m_state);
         return false;
     }
 
-    if (IsMessageSizeInappropriate(message.size(), offset, sizeof(uint256_t) + sizeof(uint32_t) +
-            sizeof(uint32_t) + TxBlock::GetMinSize()))
+    if (IsMessageSizeInappropriate(message.size(), offset,
+                                   sizeof(uint256_t) + sizeof(uint32_t)
+                                       + sizeof(uint32_t)
+                                       + TxBlock::GetMinSize()))
     {
         return false;
     }
@@ -61,7 +65,8 @@ bool DirectoryService::ProcessMicroblockSubmission(const vector<unsigned char> &
     unsigned int curr_offset = offset;
 
     // 32-byte block number
-    uint256_t DSBlockNum = Serializable::GetNumber<uint256_t>(message, curr_offset, sizeof(uint256_t));
+    uint256_t DSBlockNum = Serializable::GetNumber<uint256_t>(
+        message, curr_offset, sizeof(uint256_t));
     curr_offset += sizeof(uint256_t);
 
     // Check block number
@@ -71,45 +76,49 @@ bool DirectoryService::ProcessMicroblockSubmission(const vector<unsigned char> &
     }
 
     // 4-byte consensus id
-    uint32_t consensusID = Serializable::GetNumber<uint32_t>(message, curr_offset, sizeof(uint32_t));
+    uint32_t consensusID = Serializable::GetNumber<uint32_t>(
+        message, curr_offset, sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
     if (consensusID != m_consensusID)
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
-                     "Consensus ID is not correct. Expected ID: " << consensusID <<
-                     " My Consensus ID: " << m_consensusID);
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "Consensus ID is not correct. Expected ID: "
+                         << consensusID
+                         << " My Consensus ID: " << m_consensusID);
         return false;
     }
 
     // 4-byte shard ID
-    uint32_t shardId = Serializable::GetNumber<uint32_t>(message, curr_offset, sizeof(uint32_t));
+    uint32_t shardId = Serializable::GetNumber<uint32_t>(message, curr_offset,
+                                                         sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "shard_id " << shardId); 
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                 "shard_id " << shardId);
 
     // Tx microblock
     // MicroBlock microBlock(message, curr_offset);
     MicroBlock microBlock;
-    if(microBlock.Deserialize(message, curr_offset) != 0)
+    if (microBlock.Deserialize(message, curr_offset) != 0)
     {
         LOG_MESSAGE("Error. We failed to deserialize MicroBlock.");
-        return false; 
+        return false;
     }
 
-    const PubKey & pubKey = microBlock.GetHeader().GetMinerPubKey();
+    const PubKey& pubKey = microBlock.GetHeader().GetMinerPubKey();
 
     // Check public key - shard ID mapping
-    const auto & minerEntry = m_publicKeyToShardIdMap.find(pubKey);
+    const auto& minerEntry = m_publicKeyToShardIdMap.find(pubKey);
     if (minerEntry == m_publicKeyToShardIdMap.end())
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
-                     "Error: Cannot find the miner key: " << 
-                     DataConversion::SerializableToHexStr(pubKey));
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "Error: Cannot find the miner key: "
+                         << DataConversion::SerializableToHexStr(pubKey));
         return false;
     }
     if (minerEntry->second != shardId)
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                      "Error: Microblock shard ID mismatch");
         return false;
     }
@@ -119,23 +128,26 @@ bool DirectoryService::ProcessMicroblockSubmission(const vector<unsigned char> &
     lock_guard<mutex> g(m_mutexMicroBlocks);
     m_microBlocks.insert(microBlock);
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), m_microBlocks.size() << " of " << 
-                 m_shards.size() << " microblocks received");
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                 m_microBlocks.size()
+                     << " of " << m_shards.size() << " microblocks received");
 
     if (m_microBlocks.size() == m_shards.size())
     {
 #ifdef STAT_TEST
         if (m_mode == PRIMARY_DS)
         {
-            LOG_STATE("[MICRO][" << std::setw(15) << std::left << 
-                      m_mediator.m_selfPeer.GetPrintableIPAddress() << "][" <<
-                      m_mediator.m_txBlockChain.GetBlockCount() << "] LAST");
+            LOG_STATE("[MICRO]["
+                      << std::setw(15) << std::left
+                      << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+                      << m_mediator.m_txBlockChain.GetBlockCount() << "] LAST");
         }
 #endif // STAT_TEST
-        for (auto & microBlock : m_microBlocks)
+        for (auto& microBlock : m_microBlocks)
         {
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Timestamp: " <<
-                         microBlock.GetHeader().GetTimestamp());
+            LOG_MESSAGE2(
+                to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Timestamp: " << microBlock.GetHeader().GetTimestamp());
         }
 
         cv_scheduleFinalBlockConsensus.notify_all();
@@ -144,13 +156,14 @@ bool DirectoryService::ProcessMicroblockSubmission(const vector<unsigned char> &
 #ifdef STAT_TEST
     else if ((m_microBlocks.size() == 1) && (m_mode == PRIMARY_DS))
     {
-        LOG_STATE("[MICRO][" << std::setw(15) << std::left << 
-                  m_mediator.m_selfPeer.GetPrintableIPAddress() << "][" << 
-                  m_mediator.m_txBlockChain.GetBlockCount() << "] FRST");
+        LOG_STATE("[MICRO]["
+                  << std::setw(15) << std::left
+                  << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+                  << m_mediator.m_txBlockChain.GetBlockCount() << "] FRST");
     }
 #endif // STAT_TEST
 
-    // TODO: Re-request from shard leader if microblock is not received after a certain time. 
+        // TODO: Re-request from shard leader if microblock is not received after a certain time.
 #endif // IS_LOOKUP_NODE
     return true;
 }

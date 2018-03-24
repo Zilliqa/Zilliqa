@@ -27,9 +27,9 @@
 #define BOOST_TEST_MODULE persistencetest
 #include <boost/test/included/unit_test.hpp>
 
-BOOST_AUTO_TEST_SUITE (persistencetest)
+BOOST_AUTO_TEST_SUITE(persistencetest)
 
-BOOST_AUTO_TEST_CASE (testTransaction)
+BOOST_AUTO_TEST_CASE(testTransaction)
 {
     INIT_STDOUT_LOGGER();
 
@@ -37,8 +37,8 @@ BOOST_AUTO_TEST_CASE (testTransaction)
 
     std::string hash;
 
-    std::cout<<"Enter tx hash: ";
-    std::cin>>hash;
+    std::cout << "Enter tx hash: ";
+    std::cin >> hash;
 
     TxBodySharedPtr tx;
 
@@ -50,4 +50,4 @@ BOOST_AUTO_TEST_CASE (testTransaction)
     LOG_MESSAGE("Transaction nonce: " << tx->GetNonce());
 }
 
-BOOST_AUTO_TEST_SUITE_END ()
+BOOST_AUTO_TEST_SUITE_END()

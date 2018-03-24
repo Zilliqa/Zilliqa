@@ -24,7 +24,8 @@
 #include "common/Constants.h"
 #include "depends/common/FixedHash.h"
 
-using Address = dev::h160; // earlier it was std::array<unsigned char, ACC_ADDR_SIZE>; ACC_ADDR_SIZE = 20
+using Address = dev::
+    h160; // earlier it was std::array<unsigned char, ACC_ADDR_SIZE>; ACC_ADDR_SIZE = 20
 using Addresses = std::vector<Address>;
 using AddressHashSet = std::unordered_set<Address>;
 

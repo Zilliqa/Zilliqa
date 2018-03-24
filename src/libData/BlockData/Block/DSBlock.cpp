@@ -21,30 +21,32 @@ using namespace std;
 using namespace boost::multiprecision;
 
 // creates a dummy invalid placeholder block -- blocknum is maxsize of uint256
-DSBlock::DSBlock()
-{
+DSBlock::DSBlock() {}
 
-}
-
-// To-do: handle exceptions. Will be deprecated.  
-DSBlock::DSBlock(const vector<unsigned char> & src, unsigned int offset)
+// To-do: handle exceptions. Will be deprecated.
+DSBlock::DSBlock(const vector<unsigned char>& src, unsigned int offset)
 {
-    if(Deserialize(src, offset) != 0)
+    if (Deserialize(src, offset) != 0)
     {
         LOG_MESSAGE("Error. We failed to init DSBlock.");
     }
 }
 
-DSBlock::DSBlock(const DSBlockHeader & header, const array<unsigned char, BLOCK_SIG_SIZE> & signature) : m_header(header), m_signature(signature)
+DSBlock::DSBlock(const DSBlockHeader& header,
+                 const array<unsigned char, BLOCK_SIG_SIZE>& signature)
+    : m_header(header)
+    , m_signature(signature)
 {
-
 }
 
-unsigned int DSBlock::Serialize(vector<unsigned char> & dst, unsigned int offset) const
+unsigned int DSBlock::Serialize(vector<unsigned char>& dst,
+                                unsigned int offset) const
 {
     LOG_MARKER();
 
-    unsigned int header_size_needed = sizeof(uint8_t) + BLOCK_HASH_SIZE + UINT256_SIZE + PUB_KEY_SIZE + PUB_KEY_SIZE + UINT256_SIZE + UINT256_SIZE;
+    unsigned int header_size_needed = sizeof(uint8_t) + BLOCK_HASH_SIZE
+        + UINT256_SIZE + PUB_KEY_SIZE + PUB_KEY_SIZE + UINT256_SIZE
+        + UINT256_SIZE;
     unsigned int size_needed = header_size_needed + BLOCK_SIG_SIZE;
     unsigned int size_remaining = dst.size() - offset;
 
@@ -54,68 +56,71 @@ unsigned int DSBlock::Serialize(vector<unsigned char> & dst, unsigned int offset
     }
 
     m_header.Serialize(dst, offset);
-    copy(m_signature.begin(), m_signature.end(), dst.begin() + offset + header_size_needed);
+    copy(m_signature.begin(), m_signature.end(),
+         dst.begin() + offset + header_size_needed);
 
     return size_needed;
 }
 
-int DSBlock::Deserialize(const vector<unsigned char> & src, unsigned int offset)
+int DSBlock::Deserialize(const vector<unsigned char>& src, unsigned int offset)
 {
     LOG_MARKER();
 
     try
     {
-        unsigned int header_size_needed = sizeof(uint8_t) + BLOCK_HASH_SIZE + UINT256_SIZE + PUB_KEY_SIZE + PUB_KEY_SIZE + UINT256_SIZE + UINT256_SIZE;
+        unsigned int header_size_needed = sizeof(uint8_t) + BLOCK_HASH_SIZE
+            + UINT256_SIZE + PUB_KEY_SIZE + PUB_KEY_SIZE + UINT256_SIZE
+            + UINT256_SIZE;
 
         DSBlockHeader header;
-        if(header.Deserialize(src, offset) != 0)
+        if (header.Deserialize(src, offset) != 0)
         {
             LOG_MESSAGE("Error. We failed to init DSBlockHeader.");
             return -1;
         }
         m_header = header;
-        copy(src.begin() + offset + header_size_needed, src.begin() + offset + header_size_needed + BLOCK_SIG_SIZE, m_signature.begin());
+        copy(src.begin() + offset + header_size_needed,
+             src.begin() + offset + header_size_needed + BLOCK_SIG_SIZE,
+             m_signature.begin());
     }
-    catch(const std::exception& e)
+    catch (const std::exception& e)
     {
-        LOG_MESSAGE("ERROR: Error with DSBlock::Deserialize." << ' ' << e.what());
+        LOG_MESSAGE("ERROR: Error with DSBlock::Deserialize." << ' '
+                                                              << e.what());
         return -1;
-
     }
     return 0;
 }
 
 unsigned int DSBlock::GetSerializedSize()
 {
-    unsigned int header_size_needed = sizeof(uint8_t) + BLOCK_HASH_SIZE + UINT256_SIZE + PUB_KEY_SIZE + PUB_KEY_SIZE +
-            UINT256_SIZE + UINT256_SIZE;
+    unsigned int header_size_needed = sizeof(uint8_t) + BLOCK_HASH_SIZE
+        + UINT256_SIZE + PUB_KEY_SIZE + PUB_KEY_SIZE + UINT256_SIZE
+        + UINT256_SIZE;
     unsigned int size_needed = header_size_needed + BLOCK_SIG_SIZE;
 
     return size_needed;
 }
 
-const DSBlockHeader & DSBlock::GetHeader() const
-{
-    return m_header;
-}
+const DSBlockHeader& DSBlock::GetHeader() const { return m_header; }
 
-const array<unsigned char, BLOCK_SIG_SIZE> & DSBlock::GetSignature() const
+const array<unsigned char, BLOCK_SIG_SIZE>& DSBlock::GetSignature() const
 {
     return m_signature;
 }
 
-void DSBlock::SetSignature(const vector<unsigned char> & signature)
+void DSBlock::SetSignature(const vector<unsigned char>& signature)
 {
     assert(signature.size() == BLOCK_SIG_SIZE);
     copy(signature.begin(), signature.end(), m_signature.begin());
 }
 
-bool DSBlock::operator==(const DSBlock & block) const
+bool DSBlock::operator==(const DSBlock& block) const
 {
     return ((m_header == block.m_header) && (m_signature == block.m_signature));
 }
 
-bool DSBlock::operator<(const DSBlock & block) const
+bool DSBlock::operator<(const DSBlock& block) const
 {
     if (m_header < block.m_header)
     {
@@ -135,7 +140,7 @@ bool DSBlock::operator<(const DSBlock & block) const
     }
 }
 
-bool DSBlock::operator>(const DSBlock & block) const
+bool DSBlock::operator>(const DSBlock& block) const
 {
     return !((*this == block) || (*this < block));
 }

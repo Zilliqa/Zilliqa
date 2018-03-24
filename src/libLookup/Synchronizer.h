@@ -25,24 +25,30 @@
 
 class Synchronizer
 {
-  DSBlock ConstructGenesisDSBlock();
-  bool AddGenesisDSBlockToBlockChain(DSBlockChain & dsBlockChain, const DSBlock & dsBlock);
-  bool InitializeGenesisDSBlock(DSBlockChain & dsBlockChain);
+    DSBlock ConstructGenesisDSBlock();
+    bool AddGenesisDSBlockToBlockChain(DSBlockChain& dsBlockChain,
+                                       const DSBlock& dsBlock);
+    bool InitializeGenesisDSBlock(DSBlockChain& dsBlockChain);
 
-  TxBlock ConstructGenesisTxBlock();
-  bool AddGenesisTxBlockToBlockChain(TxBlockChain & txBlockChain, const TxBlock & txBlock);
-  bool InitializeGenesisTxBlock(TxBlockChain & txBlockChain);
+    TxBlock ConstructGenesisTxBlock();
+    bool AddGenesisTxBlockToBlockChain(TxBlockChain& txBlockChain,
+                                       const TxBlock& txBlock);
+    bool InitializeGenesisTxBlock(TxBlockChain& txBlockChain);
 
 public:
-
-  bool InitializeGenesisBlocks(DSBlockChain & dsBlockChain, TxBlockChain & txBlockChain);
+    bool InitializeGenesisBlocks(DSBlockChain& dsBlockChain,
+                                 TxBlockChain& txBlockChain);
 #ifndef IS_LOOKUP_NODE
-  bool FetchDSInfo(Lookup* lookup);  
-  bool FetchLatestDSBlocks(Lookup* lookup, boost::multiprecision::uint256_t currentBlockChainSize);
-  bool FetchLatestTxBlocks(Lookup* lookup, boost::multiprecision::uint256_t currentBlockChainSize);
-  bool FetchLatestState(Lookup* lookup);
-  bool AttemptPoW(Lookup* lookup); 
-#endif // IS_LOOKUP_NODE  
+    bool FetchDSInfo(Lookup* lookup);
+    bool
+    FetchLatestDSBlocks(Lookup* lookup,
+                        boost::multiprecision::uint256_t currentBlockChainSize);
+    bool
+    FetchLatestTxBlocks(Lookup* lookup,
+                        boost::multiprecision::uint256_t currentBlockChainSize);
+    bool FetchLatestState(Lookup* lookup);
+    bool AttemptPoW(Lookup* lookup);
+#endif // IS_LOOKUP_NODE
 };
 
 #endif // __SYNCHRONIZER_H__

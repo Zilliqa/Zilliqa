@@ -17,10 +17,10 @@
 #ifndef CONCURRENT_THREADPOOL_H
 #define CONCURRENT_THREADPOOL_H
 
-#include <thread>
-#include <mutex>
-#include <functional>
 #include <condition_variable>
+#include <functional>
+#include <mutex>
+#include <thread>
 
 /**
  *  Set to 1 to use vector instead of queue for jobs container to improve
@@ -34,26 +34,26 @@
 #endif
 
 /// Simple thread pool that creates `threadCount` threads upon its creation, and pulls from a queue to get new jobs.
-class ThreadPool // This class requires a number of c++11 features be present in your compiler.
+class
+    ThreadPool // This class requires a number of c++11 features be present in your compiler.
 {
 public:
-
     /// Constructor.
 #if CONTIGUOUS_JOBS_MEMORY
-    explicit ThreadPool(const unsigned int threadCount, const unsigned int jobsReserveCount = 0) :
+    explicit ThreadPool(const unsigned int threadCount,
+                        const unsigned int jobsReserveCount = 0)
+        :
 #else
-    explicit ThreadPool(const unsigned int threadCount) :
+    explicit ThreadPool(const unsigned int threadCount)
+        :
 #endif
-        _jobsLeft(0),
-        _bailout(false)
+        _jobsLeft(0)
+        , _bailout(false)
     {
         _threads.reserve(threadCount);
         for (unsigned int index = 0; index < threadCount; ++index)
         {
-            _threads.push_back(std::thread([this]
-            {
-                this->Task();
-            }));
+            _threads.push_back(std::thread([this] { this->Task(); }));
         }
 
 #if CONTIGUOUS_JOBS_MEMORY
@@ -65,10 +65,7 @@ public:
     }
 
     /// Destructor (JoinAll on deconstruction).
-    ~ThreadPool()
-    {
-        JoinAll();
-    }
+    ~ThreadPool() { JoinAll(); }
 
     /// Adds a new job to the pool. If there are no jobs in the queue, a thread is woken up to take the job. If all threads are busy, the job is added to the end of the queue.
     void AddJob(const std::function<void()>& job)
@@ -105,17 +102,17 @@ public:
 
         for (std::thread& thread : _threads)
         {
-            try 
+            try
             {
                 if (thread.joinable())
                 {
                     thread.join();
                 }
             }
-            catch(const std::system_error & e)
+            catch (const std::system_error& e)
             {
-                LOG_MESSAGE("Error: Caught system_error with code " << 
-                            e.code() << " meaning " << e.what() << '\n');
+                LOG_MESSAGE("Error: Caught system_error with code "
+                            << e.code() << " meaning " << e.what() << '\n');
             }
         }
     }
@@ -126,18 +123,12 @@ public:
         std::unique_lock<std::mutex> lock(_jobsLeftMutex);
         if (_jobsLeft > 0)
         {
-            _waitVar.wait(lock, [this]
-            {
-                return _jobsLeft == 0;
-            });
+            _waitVar.wait(lock, [this] { return _jobsLeft == 0; });
         }
     }
 
     /// Gets the vector of threads themselves, in order to set the affinity, or anything else you might want to do
-    std::vector<std::thread>& GetThreads()
-    {
-        return _threads;
-    }
+    std::vector<std::thread>& GetThreads() { return _threads; }
 
 private:
     /**
@@ -160,17 +151,15 @@ private:
                 }
 
                 // Wait for a job if we don't have any.
-                _jobAvailableVar.wait(lock, [this]
-                {
-                    return !_queue.empty() || _bailout;
-                });
+                _jobAvailableVar.wait(
+                    lock, [this] { return !_queue.empty() || _bailout; });
 
                 if (_bailout)
                 {
                     return;
                 }
 
-                // Get job from the queue
+                    // Get job from the queue
 #if CONTIGUOUS_JOBS_MEMORY
                 job = _queue.back();
                 _queue.pop_back();

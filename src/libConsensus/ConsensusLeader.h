@@ -18,21 +18,22 @@
 #ifndef __CONSENSUSLEADER_H__
 #define __CONSENSUSLEADER_H__
 
-#include <vector>
-#include <memory>
-#include <functional>
-#include <mutex>
 #include <deque>
+#include <functional>
+#include <memory>
+#include <mutex>
+#include <vector>
 
 #include "ConsensusCommon.h"
 #include "libCrypto/MultiSig.h"
 #include "libNetwork/PeerStore.h"
 #include "libUtils/TimeLockedFunction.h"
 
-typedef std::function<bool(const vector<unsigned char> & errorMsg, unsigned int, const Peer & from)>
-        NodeCommitFailureHandlerFunc;
-typedef std::function<bool(std::map<unsigned int, std::vector<unsigned char>>)> 
-        ShardCommitFailureHandlerFunc;
+typedef std::function<bool(const vector<unsigned char>& errorMsg, unsigned int,
+                           const Peer& from)>
+    NodeCommitFailureHandlerFunc;
+typedef std::function<bool(std::map<unsigned int, std::vector<unsigned char>>)>
+    ShardCommitFailureHandlerFunc;
 
 /// Implements the functionality for the consensus committee leader.
 class ConsensusLeader : public ConsensusCommon
@@ -56,11 +57,14 @@ class ConsensusLeader : public ConsensusCommon
 
     // TODO: the vectors should be replaced by more space efficient DS
     std::vector<bool> m_commitMap;
-    std::vector<CommitPoint> m_commitPointMap; // ordered list of commits of size = committee size
-    std::vector<CommitPoint> m_commitPoints;   // unordered list of commits of size = 2/3 of committee size + 1
+    std::vector<CommitPoint>
+        m_commitPointMap; // ordered list of commits of size = committee size
+    std::vector<CommitPoint>
+        m_commitPoints; // unordered list of commits of size = 2/3 of committee size + 1
     unsigned int m_commitRedundantCounter;
     std::vector<bool> m_commitRedundantMap;
-    std::vector<CommitPoint> m_commitRedundantPointMap; // ordered list of redundant commits of size = 1/3 of committee size
+    std::vector<CommitPoint>
+        m_commitRedundantPointMap; // ordered list of redundant commits of size = 1/3 of committee size
     // Generated challenge
     Challenge m_challenge;
 
@@ -77,50 +81,59 @@ class ConsensusLeader : public ConsensusCommon
 
     // Internal functions
     bool CheckState(Action action);
-    bool ProcessMessageCommitCore(const std::vector<unsigned char> & commit, unsigned int offset, 
-                                  Action action, ConsensusMessageType returnmsgtype, 
+    bool ProcessMessageCommitCore(const std::vector<unsigned char>& commit,
+                                  unsigned int offset, Action action,
+                                  ConsensusMessageType returnmsgtype,
                                   State nextstate);
-    bool ProcessMessageCommit(const std::vector<unsigned char> & commit, unsigned int offset);
-    bool ProcessMessageCommitFailure(const std::vector<unsigned char> & commit, unsigned int offset, 
-                                     const Peer & from);    
-    bool GenerateChallengeMessage(std::vector<unsigned char> & challenge, unsigned int offset);
-    bool ProcessMessageResponseCore(const std::vector<unsigned char> & response, 
-                                    unsigned int offset, Action action, 
-                                    ConsensusMessageType returnmsgtype, State nextstate);
-    bool ProcessMessageResponse(const std::vector<unsigned char> & response, unsigned int offset);
-    bool GenerateCollectiveSigMessage(std::vector<unsigned char> & collectivesig, 
+    bool ProcessMessageCommit(const std::vector<unsigned char>& commit,
+                              unsigned int offset);
+    bool ProcessMessageCommitFailure(const std::vector<unsigned char>& commit,
+                                     unsigned int offset, const Peer& from);
+    bool GenerateChallengeMessage(std::vector<unsigned char>& challenge,
+                                  unsigned int offset);
+    bool ProcessMessageResponseCore(const std::vector<unsigned char>& response,
+                                    unsigned int offset, Action action,
+                                    ConsensusMessageType returnmsgtype,
+                                    State nextstate);
+    bool ProcessMessageResponse(const std::vector<unsigned char>& response,
+                                unsigned int offset);
+    bool GenerateCollectiveSigMessage(std::vector<unsigned char>& collectivesig,
                                       unsigned int offset);
-    bool ProcessMessageFinalCommit(const std::vector<unsigned char> & finalcommit, 
-                                   unsigned int offset);
-    bool ProcessMessageFinalResponse(const std::vector<unsigned char> & finalresponse, 
-                                     unsigned int offset);
+    bool
+    ProcessMessageFinalCommit(const std::vector<unsigned char>& finalcommit,
+                              unsigned int offset);
+    bool
+    ProcessMessageFinalResponse(const std::vector<unsigned char>& finalresponse,
+                                unsigned int offset);
 
 public:
-
     /// Constructor.
-    ConsensusLeader
-    (
-        uint32_t consensus_id,                         // unique identifier for this consensus session
-        const std::vector<unsigned char> & block_hash, // unique identifier for this consensus session
-        uint16_t node_id,                              // leader's identifier (= index in some ordered lookup table shared by all nodes)
-        const PrivKey & privkey,                       // leader's private key
-        const std::deque<PubKey> & pubkeys,            // ordered lookup table of pubkeys for this committee (includes leader)
-        const std::deque<Peer> & peer_info,            // IP addresses of all peers
-        unsigned char class_byte,                      // class byte representing Executable class using this instance of ConsensusLeader
-        unsigned char ins_byte,                        // instruction byte representing consensus messages for the Executable class
+    ConsensusLeader(
+        uint32_t consensus_id, // unique identifier for this consensus session
+        const std::vector<unsigned char>&
+            block_hash, // unique identifier for this consensus session
+        uint16_t
+            node_id, // leader's identifier (= index in some ordered lookup table shared by all nodes)
+        const PrivKey& privkey, // leader's private key
+        const std::deque<PubKey>&
+            pubkeys, // ordered lookup table of pubkeys for this committee (includes leader)
+        const std::deque<Peer>& peer_info, // IP addresses of all peers
+        unsigned char
+            class_byte, // class byte representing Executable class using this instance of ConsensusLeader
+        unsigned char
+            ins_byte, // instruction byte representing consensus messages for the Executable class
         NodeCommitFailureHandlerFunc nodeCommitFailureHandlerFunc,
-        ShardCommitFailureHandlerFunc shardCommitFailureHandlerFunc
-    );
+        ShardCommitFailureHandlerFunc shardCommitFailureHandlerFunc);
 
     /// Destructor.
     ~ConsensusLeader();
 
     /// Triggers the start of consensus on a particular message (e.g., DS block).
-    bool StartConsensus(const std::vector<unsigned char> & message);
+    bool StartConsensus(const std::vector<unsigned char>& message);
 
     /// Function to process any consensus message received.
-    bool ProcessMessage(const std::vector<unsigned char> & message, unsigned int offset, 
-                        const Peer & from);
+    bool ProcessMessage(const std::vector<unsigned char>& message,
+                        unsigned int offset, const Peer& from);
 };
 
 #endif // __CONSENSUSLEADER_H__
