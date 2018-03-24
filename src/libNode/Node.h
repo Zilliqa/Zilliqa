@@ -39,7 +39,6 @@
 #include "libPersistence/BlockStorage.h"
 #include "libPOW/pow.h"
 #include "libLookup/Synchronizer.h"
-       
 
 class Mediator;
 
@@ -99,6 +98,9 @@ class Node : public Executable, public Broadcastable
 
     // DS committee information
     bool m_isDSNode = true;
+
+    // Is New Node
+    bool m_isNewNode = false;
 
     // Consensus variables
     std::shared_ptr<ConsensusCommon> m_consensusObject;
@@ -199,6 +201,8 @@ class Node : public Executable, public Broadcastable
         const boost::multiprecision::uint256_t & blocknum, bool & isEveryMicroBlockAvailable);
     bool ReadAuxilliaryInfoFromFinalBlockMsg(const vector<unsigned char> & message, 
                                              unsigned int & cur_offset, uint8_t & shard_id);
+    void StoreState();
+    // void StoreMicroBlocks();
     void StoreFinalBlock(const TxBlock & txBlock);
     void InitiatePoW1();
     void UpdateStateForNextConsensusRound();
@@ -218,6 +222,7 @@ class Node : public Executable, public Broadcastable
     bool LoadForwardedTxnsAndCheckRoot(const vector<unsigned char> & message,
                                        unsigned int cur_offset, TxnHash & microBlockTxHash,
                                        vector<Transaction> & txnsInForwardedMessage);
+                                       // vector<TxnHash> & txnHashesInForwardedMessage);
     void CommitForwardedTransactions(const vector<Transaction> & txnsInForwardedMessage,
                                      const boost::multiprecision::uint256_t & blocknum);
     void DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(const boost::multiprecision::uint256_t & blocknum);
@@ -301,7 +306,7 @@ public:
     std::atomic<NodeState> m_state;
 
     /// Constructor. Requires mediator reference to access DirectoryService and other global members.
-    Node(Mediator & mediator);
+    Node(Mediator & mediator, bool toRetrieveHistory);
 
     /// Destructor.
     ~Node();
@@ -314,6 +319,10 @@ public:
 
     /// Implements the GetBroadcastList function inherited from Broadcastable.
     std::vector<Peer> GetBroadcastList(unsigned char ins_type, const Peer & broadcast_originator);
+
+    Mediator & GetMediator() {return m_mediator;}
+
+    bool StartRetrieveHistory();
 
 #ifndef IS_LOOKUP_NODE
 

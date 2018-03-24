@@ -22,6 +22,7 @@
 #include "depends/common/RLP.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
+#include "libPersistence/BlockStorage.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -29,13 +30,20 @@ using namespace boost::multiprecision;
 AccountStore::AccountStore() : m_db("state")
 {
     m_state = SecureTrieDB<Address, dev::OverlayDB>(&m_db);
-    m_state.init();
-    prevRoot = m_state.root();
+    // m_state.init();
+    // prevRoot = m_state.root();
 }
 
 AccountStore::~AccountStore()
 {
     // boost::filesystem::remove_all("./state");
+}
+
+void AccountStore::Init()
+{
+    m_addressToAccount.clear();
+    m_state.init();
+    prevRoot = m_state.root();
 }
 
 unsigned int AccountStore::Serialize(vector<unsigned char> & dst, unsigned int offset) const
@@ -70,7 +78,7 @@ unsigned int AccountStore::Serialize(vector<unsigned char> & dst, unsigned int o
 
         copy(address_vec.begin(), address_vec.end(), std::back_inserter(dst));
         curOffset += ACC_ADDR_SIZE;
-        totalSerializedSize += ACC_ADDR_SIZE; 
+        totalSerializedSize += ACC_ADDR_SIZE;
 
         // Account 
         size_needed = entry.second.Serialize(dst, curOffset);
@@ -115,8 +123,9 @@ int AccountStore::Deserialize(const vector<unsigned char> & src, unsigned int of
 
             m_addressToAccount.insert(make_pair(address, account));
             UpdateStateTrie(address, account);
-            MoveUpdatesToDisk();
+            // MoveUpdatesToDisk();
         }
+        PrintAccountState();
     }
     catch(const std::exception& e)
     {
@@ -206,7 +215,7 @@ void AccountStore::AddAccount(const PubKey & pubKey,
 void AccountStore::UpdateAccounts(const Transaction & transaction)
 {
     LOG_MARKER();
-
+    
     const PubKey & senderPubKey = transaction.GetSenderPubKey();
     const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
     const Address & toAddr = transaction.GetToAddr();
@@ -392,13 +401,20 @@ dev::h256 AccountStore::GetStateRootHash() const
     return m_state.root();
 }
 
+void AccountStore::MoveRootToDisk(const dev::h256 & root)
+{
+    //convert h256 to bytes
+    if(!BlockStorage::GetBlockStorage().PutMetadata(STATEROOT, root.asBytes()))
+        LOG_MESSAGE("FAIL: Put metadata failed");
+}
+
 void AccountStore::MoveUpdatesToDisk()
 {
     LOG_MARKER();
 
     m_state.db()->commit();
     prevRoot = m_state.root();
-    // m_state.init();
+    MoveRootToDisk(prevRoot);
 }
 
 void AccountStore::DiscardUnsavedUpdates()
@@ -408,7 +424,6 @@ void AccountStore::DiscardUnsavedUpdates()
     m_state.db()->rollback();
     m_state.setRoot(prevRoot);
     m_addressToAccount.clear();
-    // m_state.init();
 }
 
 void AccountStore::PrintAccountState()
@@ -420,4 +435,31 @@ void AccountStore::PrintAccountState()
     {
         LOG_MESSAGE(entry.first << " " << entry.second);
     }
+}
+
+bool AccountStore::RetrieveFromDisk()
+{
+    LOG_MARKER();
+    std::vector<unsigned char> rootBytes;
+    if(!BlockStorage::GetBlockStorage().GetMetadata(STATEROOT, rootBytes))
+    {
+        return false;
+    }
+    dev::h256 root(rootBytes);
+    m_state.setRoot(root);
+    for(auto i : m_state)
+    {
+        Address address(i.first);
+        dev::RLP rlp(i.second);
+        std::vector<uint256_t> account_data 
+            = rlp.toVector<uint256_t>();
+        if(account_data.size() != 2)
+        {
+            LOG_MESSAGE("ERROR: Account data corrupted");
+            return false;
+        }
+        Account account(account_data[0], account_data[1]);
+        m_addressToAccount.insert({address, account});
+    }
+    return true;
 }

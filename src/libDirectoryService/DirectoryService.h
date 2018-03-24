@@ -261,6 +261,8 @@ class DirectoryService : public Executable, public Broadcastable
 
     void StoreFinalBlockToDisk();
 
+    // void StoreMicroBlocksToDisk();
+
     // Used to reconsile view of m_AllPowConn is different. 
     void RequestAllPoWConn();
     void LastDSBlockRequest();

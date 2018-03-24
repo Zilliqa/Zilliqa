@@ -16,12 +16,12 @@
 
 #include <array>
 
-#include "common/Constants.h"
-#include "libCrypto/Sha2.h"
-#include "libData/BlockChainData/DSBlockChain.h"
-#include "libData/BlockChainData/TxBlockChain.h"
-#include "libUtils/DataConversion.h"
 #include "Mediator.h"
+#include "common/Constants.h"
+#include "libUtils/DataConversion.h"
+#include "libData/BlockChainData/DSBlockChain.h"
+#include "libCrypto/Sha2.h"
+#include "libData/BlockChainData/TxBlockChain.h"
 
 using namespace std;
 
@@ -32,6 +32,7 @@ Mediator::Mediator(const pair<PrivKey, PubKey> & key, const Peer & peer) :
     m_node = nullptr;
     m_currentEpochNum = 0;
     m_isConnectedToNetwork = false;
+    m_isRetrievedHistory = false;
 }
 
 Mediator::~Mediator()

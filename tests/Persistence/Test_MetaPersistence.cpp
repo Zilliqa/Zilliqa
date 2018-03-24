@@ -14,46 +14,50 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#ifndef __DSBLOCKCHAIN_H__
-#define __DSBLOCKCHAIN_H__
-
-#include <mutex>
+#include <algorithm>
 #include <vector>
 
-#include <boost/multiprecision/cpp_int.hpp>
-
-#include "libData/BlockData/Block/DSBlock.h"
-#include "libData/DataStructures/CircularArray.h"
+#include "common/Constants.h"
 #include "libPersistence/BlockStorage.h"
+#include "libPersistence/DB.h"
 
-/// Transient storage for DS blocks.
-class DSBlockChain
+#define BOOST_TEST_MODULE persistencetest
+#define BOOST_TEST_DYN_LINK
+#include <boost/test/unit_test.hpp>
+
+BOOST_AUTO_TEST_SUITE (persistencetest)
+
+BOOST_AUTO_TEST_CASE (testReadWriteSimpleStringToDB)
 {
-	std::mutex m_mutexDSBlocks;
-    CircularArray<DSBlock> m_dsBlocks;
+    INIT_STDOUT_LOGGER();
 
-public:
+    LOG_MARKER();
 
-	/// Constructor.
-    DSBlockChain();
+    DB db("test.db");
 
-    /// Destructor.
-    ~DSBlockChain();
+    db.WriteToDB("fruit", "vegetable");
 
-    /// Reset
-    void Reset();
+    std::string ret = db.ReadFromDB("fruit");
 
-    /// Returns the number of blocks.
-    boost::multiprecision::uint256_t GetBlockCount();
+    BOOST_CHECK_MESSAGE(ret == "vegetable", "ERROR: return value from DB not equal to inserted value");
+}
 
-    /// Returns the last stored block.
-    DSBlock GetLastBlock();
+BOOST_AUTO_TEST_CASE (testWriteAndReadSTATEROOT)
+{
+    INIT_STDOUT_LOGGER();
 
-    /// Returns the block at the specified block number.
-    DSBlock GetBlock(const boost::multiprecision::uint256_t & blocknum);
+    LOG_MARKER();
 
-    /// Adds a block to the chain.
-    int AddBlock(const DSBlock & block);
-};
+    dev::h256 in_root;
+    std::fill(in_root.asArray().begin(), in_root.asArray().end(), 0x77);
+    BlockStorage::GetBlockStorage().PutMetadata(STATEROOT, in_root.asBytes());
 
-#endif // __DSBLOCKCHAIN_H__
+    std::vector<unsigned char> rootBytes;
+    BlockStorage::GetBlockStorage().GetMetadata(STATEROOT, rootBytes);
+    dev::h256 out_root(rootBytes);
+
+    BOOST_CHECK_MESSAGE(in_root == out_root, 
+        "STATEROOT hash shouldn't change after writing to /reading from disk");
+}
+
+BOOST_AUTO_TEST_SUITE_END ()

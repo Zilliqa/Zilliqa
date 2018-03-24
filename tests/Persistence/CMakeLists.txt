@@ -6,6 +6,11 @@ else(CMAKE_CONFIGURATION_TYPES)
     configure_file(${CMAKE_SOURCE_DIR}/constants.xml constants.xml COPYONLY)
 endif(CMAKE_CONFIGURATION_TYPES)
 
+add_executable(Test_MetaPersistence Test_MetaPersistence.cpp)
+target_include_directories(Test_MetaPersistence PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(Test_MetaPersistence LINK_PUBLIC Crypto Utils Persistence)
+add_test(NAME Test_MetaPersistence COMMAND Test_MetaPersistence)
+
 add_executable(Test_DSPersistence Test_DSPersistence.cpp)
 target_include_directories(Test_DSPersistence PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(Test_DSPersistence LINK_PUBLIC Crypto AccountData BlockChainData Utils Persistence)

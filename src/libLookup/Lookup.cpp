@@ -30,6 +30,7 @@
 #include <boost/property_tree/xml_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
+#include "Lookup.h"
 #include "common/Messages.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
@@ -42,7 +43,6 @@
 #include "libPersistence/BlockStorage.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/SanityChecks.h"
-#include "Lookup.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -89,8 +89,6 @@ vector<Peer> Lookup::GetLookupNodes()
 
     return m_lookupNodes;
 }
-
-
 
 void Lookup::SendMessageToLookupNodes(const std::vector<unsigned char> & message) const
 {
@@ -751,6 +749,7 @@ bool Lookup::ProcessGetStateFromSeed(const vector<unsigned char> & message, unsi
                                                 LookupInstructionType::SETSTATEFROMSEED };
     unsigned int curr_offset = MessageOffset::BODY;
     curr_offset += AccountStore::GetInstance().Serialize(setStateMessage, curr_offset);
+    AccountStore::GetInstance().PrintAccountState();
     P2PComm::GetInstance().SendBroadcastMessage(node, setStateMessage);
 // #endif // IS_LOOKUP_NODE
 
@@ -1260,6 +1259,7 @@ bool Lookup::ProcessSetTxBodyFromSeed(const vector<unsigned char> & message, uns
     vector<unsigned char> serializedTxBody;
     transaction.Serialize(serializedTxBody, 0);
     BlockStorage::GetBlockStorage().PutTxBody(tranHash, serializedTxBody);
+    AccountStore::GetInstance().UpdateAccounts(transaction);
 
 #endif // IS_LOOKUP_NODE
 
@@ -1267,6 +1267,7 @@ bool Lookup::ProcessSetTxBodyFromSeed(const vector<unsigned char> & message, uns
 }
 
 #ifndef IS_LOOKUP_NODE
+
 bool Lookup::InitMining()
 {
     LOG_MARKER();
@@ -1333,7 +1334,7 @@ bool Lookup::InitMining()
          "I have successfully join the network`");
     }
 
-    return true;  
+    return true;
 }
 #endif // IS_LOOKUP_NODE
 

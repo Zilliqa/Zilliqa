@@ -93,12 +93,22 @@ public:
     /// Returns true if value corresponding to specified key exists.
     bool Exists(const dev::h256 & key) const;
     bool Exists(const boost::multiprecision::uint256_t & blockNum) const;
+    bool Exists(const std::string & key) const;
 
     /// Deletes the value at the specified key.
     int DeleteKey(const dev::h256 & key);
 
+    /// Deletes the value at the specified key.
+    int DeleteKey(const boost::multiprecision::uint256_t & blockNum);
+
+    /// Deletes the value at the specified key.
+    int DeleteKey(const std::string & key);
+
     /// Deletes the entire database.
     int DeleteDB();
+
+    /// Reset the entire database.
+    bool ResetDB();
 };
 
 #endif // __LEVELDB_H__

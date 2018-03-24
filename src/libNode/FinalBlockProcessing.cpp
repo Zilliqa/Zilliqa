@@ -82,11 +82,18 @@ bool Node::ReadAuxilliaryInfoFromFinalBlockMsg(const vector<unsigned char> & mes
     return true;
 }
 
+void Node::StoreState()
+{
+    LOG_MARKER();
+    AccountStore::GetInstance().MoveUpdatesToDisk();
+}
+
 void Node::StoreFinalBlock(const TxBlock & txBlock)
 {
     m_mediator.m_txBlockChain.AddBlock(txBlock);
     m_mediator.m_currentEpochNum = (uint64_t) m_mediator.m_txBlockChain.GetBlockCount();
 
+    // At this point, the transactions in the last Epoch is no longer useful, thus erase.
     m_committedTransactions.erase(m_mediator.m_currentEpochNum-2);
 
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
@@ -240,7 +247,10 @@ bool Node::FindTxnInSubmittedTxnsList(const TxBlock & finalblock, const uint256_
         // Store TxBody to disk
         vector<unsigned char> serializedTxBody;
         committedTransactions.back().Serialize(serializedTxBody, 0);
-        BlockStorage::GetBlockStorage().PutTxBody(tx_hash, serializedTxBody);
+        if(BlockStorage::GetBlockStorage().PutTxBody(tx_hash, serializedTxBody))
+        {
+          LOG_MESSAGE("FAIL: PutTxBody Failed");
+        }
 
         // Move on to next transaction in block
         return true;
@@ -303,7 +313,10 @@ bool Node::FindTxnInReceivedTxnsList(const TxBlock & finalblock, const uint256_t
         // Store TxBody to disk
         vector<unsigned char> serializedTxBody;
         committedTransactions.back().Serialize(serializedTxBody, 0);
-        BlockStorage::GetBlockStorage().PutTxBody(tx_hash, serializedTxBody);
+        if(!BlockStorage::GetBlockStorage().PutTxBody(tx_hash, serializedTxBody))
+        {
+          LOG_MESSAGE("FAIL: PutTxBody Failed");
+        }
 
         // Move on to next transaction in block
         return true;
@@ -950,6 +963,27 @@ bool Node::CheckStateRoot(const TxBlock & finalBlock)
     return true;
 }
 
+// void Node::StoreMicroBlocksToDisk()
+// {
+//     LOG_MARKER();
+//     for(auto microBlock : m_microBlocks)
+//     {
+            
+
+//         LOG_MESSAGE( "Storing Micro Block Hash: " << microBlock.GetHeader().GetTxRootHash() <<
+//             " with Type: " << microBlock.GetHeader().GetType() <<
+//             ", Version: " << microBlock.GetHeader().GetVersion() <<
+//             ", Timestamp: " << microBlock.GetHeader().GetTimestamp() <<
+//             ", NumTxs: " << microBlock.GetHeader().GetNumTxs());
+
+//         vector<unsigned char> serializedMicroBlock;
+//         microBlock.Serialize(serializedMicroBlock, 0);
+//         BlockStorage::GetBlockStorage().PutMicroBlock(microBlock.GetHeader().GetTxRootHash(), 
+//                                                serializedMicroBlock);
+//     }
+//     m_microBlocks.clear();
+// }
+
 bool Node::ProcessFinalBlock(const vector<unsigned char> & message, unsigned int offset, 
                              const Peer & from)
 {
@@ -1012,9 +1046,16 @@ bool Node::ProcessFinalBlock(const vector<unsigned char> & message, unsigned int
     }
     else
     {
+        LOG_MESSAGE("isVacuousEpoch now");
         if(!CheckStateRoot(txBlock))
         {
             return false;
+        }
+        else
+        {
+          StoreState();
+          BlockStorage::GetBlockStorage().ResetDB(BlockStorage::DBTYPE::TX_BODY_TMP);
+          BlockStorage::GetBlockStorage().DeleteMetadata(MetaType::DSINCOMPLETED);
         }
     }
 // #endif // IS_LOOKUP_NODE    
@@ -1072,6 +1113,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char> & message, unsigned int
 bool Node::LoadForwardedTxnsAndCheckRoot(const vector<unsigned char> & message,
                                          unsigned int cur_offset, TxnHash & microBlockTxHash,
                                          vector<Transaction> & txnsInForwardedMessage)
+                                         // vector<TxnHash> & txnHashesInForwardedMessage)
 {
     LOG_MARKER();
 
@@ -1212,7 +1254,7 @@ void Node::DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(const uint256_t & bl
 bool Node::ProcessForwardTransaction(const vector<unsigned char> & message, unsigned int cur_offset, 
                                      const Peer & from)
 {
-    // Message = [block number] [Transaction] [Transaction] [Transaction] ....
+    // Message = [block number] [microblockhash] [Transaction] [Transaction] [Transaction] ....
     // Received from other shards
 
     LOG_MARKER();
@@ -1241,9 +1283,10 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char> & message, unsi
 
     TxnHash microBlockTxRootHash;
     vector<Transaction> txnsInForwardedMessage;
+    // vector<TxnHash> txnHashesInForwardedMessage;
 
     if (!LoadForwardedTxnsAndCheckRoot(message, cur_offset, microBlockTxRootHash, 
-                                       txnsInForwardedMessage))
+                                       txnsInForwardedMessage/*, txnHashesInForwardedMessage*/))
     {   
         return false;
     }
@@ -1256,6 +1299,9 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char> & message, unsi
         return false;
     }
   
+
+    // StoreTxInMicroBlock(microBlockTxRootHash, txnHashesInForwardedMessage)
+
     CommitForwardedTransactions(txnsInForwardedMessage, blocknum);
 
 #ifndef IS_LOOKUP_NODE

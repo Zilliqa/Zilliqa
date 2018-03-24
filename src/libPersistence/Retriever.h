@@ -14,46 +14,30 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#ifndef __DSBLOCKCHAIN_H__
-#define __DSBLOCKCHAIN_H__
+#ifndef __RETRIEVER_H__
+#define __RETRIEVER_H__
 
-#include <mutex>
-#include <vector>
+#include <map>
+#include <list>
+#include <unordered_map>
 
-#include <boost/multiprecision/cpp_int.hpp>
+#include "libData/AccountData/Address.h"
+#include "libData/AccountData/Account.h"
+#include "libMediator/Mediator.h"
 
-#include "libData/BlockData/Block/DSBlock.h"
-#include "libData/DataStructures/CircularArray.h"
-#include "libPersistence/BlockStorage.h"
-
-/// Transient storage for DS blocks.
-class DSBlockChain
+class Retriever
 {
-	std::mutex m_mutexDSBlocks;
-    CircularArray<DSBlock> m_dsBlocks;
-
 public:
-
-	/// Constructor.
-    DSBlockChain();
-
-    /// Destructor.
-    ~DSBlockChain();
-
-    /// Reset
-    void Reset();
-
-    /// Returns the number of blocks.
-    boost::multiprecision::uint256_t GetBlockCount();
-
-    /// Returns the last stored block.
-    DSBlock GetLastBlock();
-
-    /// Returns the block at the specified block number.
-    DSBlock GetBlock(const boost::multiprecision::uint256_t & blocknum);
-
-    /// Adds a block to the chain.
-    int AddBlock(const DSBlock & block);
+	Retriever(Mediator& mediator);
+	
+	void RetrieveDSBlocks(bool & result);
+	
+	void RetrieveTxBlocks(bool & result);
+	bool RetrieveStates();
+	bool ValidateStates();
+	bool CleanExtraTxBodies();
+private:
+	Mediator & m_mediator;
 };
 
-#endif // __DSBLOCKCHAIN_H__
+#endif // __RETRIEVER_H__

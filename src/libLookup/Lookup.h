@@ -18,6 +18,7 @@
 #ifndef __LOOKUP_H__
 #define __LOOKUP_H__
 
+#include <condition_variable>
 #include <map>
 #include <mutex>
 #include <vector>
@@ -64,7 +65,7 @@ class Lookup : public Executable, public Broadcastable
     std::vector<unsigned char> ComposeGetDSBlockMessage(
         boost::multiprecision::uint256_t lowBlockNum, boost::multiprecision::uint256_t highBlockNum);    
     std::vector<unsigned char> ComposeGetTxBlockMessage(
-        boost::multiprecision::uint256_t lowBlockNum, boost::multiprecision::uint256_t highBlockNum);        
+        boost::multiprecision::uint256_t lowBlockNum, boost::multiprecision::uint256_t highBlockNum);
 
 public:
 
