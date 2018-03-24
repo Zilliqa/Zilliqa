@@ -436,7 +436,13 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char> & message, 
     // Message = [Primary node IP] [Primary node port]
     LOG_MARKER();
 
-    Peer primary(message, offset);
+    // Peer primary(message, offset);
+    Peer primary;
+    if(primary.Deserialize(message, offset) != 0)
+    {
+        LOG_MESSAGE("Error. We failed to deserialize Peer.");
+        return false; 
+    }
 
     if (primary == m_mediator.m_selfPeer)
     {
@@ -668,7 +674,14 @@ bool DirectoryService::ProcessAllPoWConnResponse(const vector<unsigned char> & m
         }
         cur_offset += PUB_KEY_SIZE;
 
-        Peer peer(message, cur_offset);
+        // Peer peer(message, cur_offset);
+        Peer peer;
+        if(peer.Deserialize(message, cur_offset) != 0)
+        {
+            LOG_MESSAGE("Error. We failed to deserialize Peer.");
+            return false; 
+        }
+
         cur_offset += IP_SIZE + PORT_SIZE;
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "updating = " << peer.GetPrintableIPAddress() << ":" <<  peer.m_listenPortHost);
 
