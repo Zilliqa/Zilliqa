@@ -210,6 +210,9 @@ bool Node::CheckState(Action action)
             result = false;
             break;
         case ERROR:
+            LOG_MESSAGE("Error: Doing STARTPOW1 but receiving ERROR message");
+            result = false;
+            break;
         default:
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                          "Error: Unrecognized or error state");
@@ -258,6 +261,9 @@ bool Node::CheckState(Action action)
             result = false;
             break;
         case ERROR:
+            LOG_MESSAGE("Error: Doing STARTPOW2 but receiving ERROR message");
+            result = false;
+            break;
         default:
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                          "Error: Unrecognized or error state");
@@ -303,6 +309,9 @@ bool Node::CheckState(Action action)
             result = false;
             break;
         case ERROR:
+            LOG_MESSAGE("Error: Doing PROCESS_SHARDING but receiving ERROR message");
+            result = false;
+            break;
         default:
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                          "Error: Unrecognized or error state");
@@ -352,6 +361,9 @@ bool Node::CheckState(Action action)
             result = false;
             break;
         case ERROR:
+            LOG_MESSAGE("Error: Doing PROCESS_MICROBLOCKSUBMISSION but receiving ERROR message");
+            result = false;
+            break;
         default:
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                          "Error: Unrecognized or error state");
@@ -401,6 +413,9 @@ bool Node::CheckState(Action action)
         case WAITING_FINALBLOCK:
             break;
         case ERROR:
+            LOG_MESSAGE("Error: Doing WAITING_FINALBLOCK but receiving ERROR message");
+            result = false;
+            break;
         default:
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                          "Error: Unrecognized or error state");
