@@ -21,55 +21,57 @@
 #include <boost/multiprecision/cpp_int.hpp>
 
 #include "BlockBase.h"
-#include "libData/AccountData/Transaction.h"
-#include "common/Serializable.h"
 #include "common/Constants.h"
+#include "common/Serializable.h"
 #include "libCrypto/Schnorr.h"
+#include "libData/AccountData/Transaction.h"
 #include "libData/BlockData/BlockHeader/DSBlockHeader.h"
 
 /// Stores the DS header and signature.
 class DSBlock : public BlockBase
 {
     DSBlockHeader m_header;
-    std::array<unsigned char, BLOCK_SIG_SIZE> m_signature; // All incumbent DS nodes shall co-sign the header
+    std::array<unsigned char, BLOCK_SIG_SIZE>
+        m_signature; // All incumbent DS nodes shall co-sign the header
 
 public:
-
     /// Default constructor.
     DSBlock(); // creates a dummy invalid placeholder block -- blocknum is maxsize of uint256
 
     /// Constructor for loading DS block information from a byte stream.
-    DSBlock(const std::vector<unsigned char> & src, unsigned int offset);
+    DSBlock(const std::vector<unsigned char>& src, unsigned int offset);
 
     /// Constructor with specified DS block parameters.
-    DSBlock(const DSBlockHeader & header, const std::array<unsigned char, BLOCK_SIG_SIZE> & signature);
+    DSBlock(const DSBlockHeader& header,
+            const std::array<unsigned char, BLOCK_SIG_SIZE>& signature);
 
     /// Implements the Serialize function inherited from Serializable.
-    unsigned int Serialize(std::vector<unsigned char> & dst, unsigned int offset) const;
+    unsigned int Serialize(std::vector<unsigned char>& dst,
+                           unsigned int offset) const;
 
     /// Implements the Deserialize function inherited from Serializable.
-    void Deserialize(const std::vector<unsigned char> & src, unsigned int offset);
+    int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
 
     /// Returns the size in bytes when serializing the DS block.
     static unsigned int GetSerializedSize();
 
     /// Sets the signature part of the DS block.
-    void SetSignature(const std::vector<unsigned char> & signature);
+    void SetSignature(const std::vector<unsigned char>& signature);
 
     /// Returns the reference to the DSBlockHeader part of the DS block.
-    const DSBlockHeader & GetHeader() const;
+    const DSBlockHeader& GetHeader() const;
 
     /// Returns the signature part of the DS block.
-    const std::array<unsigned char, BLOCK_SIG_SIZE> & GetSignature() const;
+    const std::array<unsigned char, BLOCK_SIG_SIZE>& GetSignature() const;
 
     /// Equality comparison operator.
-    bool operator==(const DSBlock & block) const;
+    bool operator==(const DSBlock& block) const;
 
     /// Less-than comparison operator.
-    bool operator<(const DSBlock & block) const;
+    bool operator<(const DSBlock& block) const;
 
     /// Greater-than comparison operator.
-    bool operator>(const DSBlock & block) const;
+    bool operator>(const DSBlock& block) const;
 };
 
 #endif // __DSBLOCK_H__

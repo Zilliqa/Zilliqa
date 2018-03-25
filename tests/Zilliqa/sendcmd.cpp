@@ -14,12 +14,12 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#include <iostream>
 #include <arpa/inet.h>
 #include <cstring>
+#include <iostream>
 
-#include "common/Messages.h"
 #include "common/Constants.h"
+#include "common/Messages.h"
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/PeerManager.h"
 #include "libUtils/DataConversion.h"
@@ -27,20 +27,24 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-typedef void (*handler_func)(int, const char *, const char *, uint32_t, const char * []);
+typedef void (*handler_func)(int, const char*, const char*, uint32_t,
+                             const char* []);
 struct message_handler
 {
-    const char * ins;
+    const char* ins;
     handler_func func;
 };
 
-void process_addpeers(int numargs, const char * progname, const char * cmdname, uint32_t listen_port, const char * args[])
+void process_addpeers(int numargs, const char* progname, const char* cmdname,
+                      uint32_t listen_port, const char* args[])
 {
     const int min_args_required = 3;
 
     if (numargs < min_args_required)
     {
-        cout << "[USAGE] " << progname << " <local node listen_port> " << cmdname << " <33-byte public_key> <ip_addr> <listen_port> ..." << endl;
+        cout << "[USAGE] " << progname << " <local node listen_port> "
+             << cmdname << " <33-byte public_key> <ip_addr> <listen_port> ..."
+             << endl;
     }
     else
     {
@@ -48,7 +52,7 @@ void process_addpeers(int numargs, const char * progname, const char * cmdname, 
         inet_aton("127.0.0.1", &ip_addr);
         Peer my_port(uint128_t(ip_addr.s_addr), listen_port);
 
-        for (int i = 0; i < numargs; )
+        for (int i = 0; i < numargs;)
         {
             if (i + 2 >= numargs)
             {
@@ -58,21 +62,29 @@ void process_addpeers(int numargs, const char * progname, const char * cmdname, 
             // Assemble an ADDNODE message
 
             // Class and Inst bytes
-            vector<unsigned char> addnode_message = { MessageType::PEER, PeerManager::InstructionType::ADDPEER };
+            vector<unsigned char> addnode_message
+                = {MessageType::PEER, PeerManager::InstructionType::ADDPEER};
 
             // Public key
             // Temporarily just accept the public key as an input (for use with the peer store)
-            vector<unsigned char> tmp = DataConversion::HexStrToUint8Vec(args[i++]);
+            vector<unsigned char> tmp
+                = DataConversion::HexStrToUint8Vec(args[i++]);
             addnode_message.resize(MessageOffset::BODY + tmp.size());
-            copy(tmp.begin(), tmp.end(), addnode_message.begin() + MessageOffset::BODY);
+            copy(tmp.begin(), tmp.end(),
+                 addnode_message.begin() + MessageOffset::BODY);
 
             // IP address
             inet_aton(args[i++], &ip_addr);
             uint128_t tmp2 = ip_addr.s_addr;
-            Serializable::SetNumber<uint128_t>(addnode_message, MessageOffset::BODY + PUB_KEY_SIZE, tmp2, UINT128_SIZE);
+            Serializable::SetNumber<uint128_t>(
+                addnode_message, MessageOffset::BODY + PUB_KEY_SIZE, tmp2,
+                UINT128_SIZE);
 
             // Listen port
-            Serializable::SetNumber<uint32_t>(addnode_message, MessageOffset::BODY + PUB_KEY_SIZE + UINT128_SIZE, static_cast<unsigned int>(atoi(args[i++])), sizeof(uint32_t));
+            Serializable::SetNumber<uint32_t>(
+                addnode_message,
+                MessageOffset::BODY + PUB_KEY_SIZE + UINT128_SIZE,
+                static_cast<unsigned int>(atoi(args[i++])), sizeof(uint32_t));
 
             // Send the ADDNODE message to the local node
             P2PComm::GetInstance().SendMessage(my_port, addnode_message);
@@ -80,13 +92,15 @@ void process_addpeers(int numargs, const char * progname, const char * cmdname, 
     }
 }
 
-void process_broadcast(int numargs, const char * progname, const char * cmdname, uint32_t listen_port, const char * args[])
+void process_broadcast(int numargs, const char* progname, const char* cmdname,
+                       uint32_t listen_port, const char* args[])
 {
     const int num_args_required = 1;
 
     if (numargs != num_args_required)
     {
-        cout << "[USAGE] " << progname << " <local node listen_port> " << cmdname << " <length of dummy message in bytes>" << endl;
+        cout << "[USAGE] " << progname << " <local node listen_port> "
+             << cmdname << " <length of dummy message in bytes>" << endl;
     }
     else
     {
@@ -95,9 +109,11 @@ void process_broadcast(int numargs, const char * progname, const char * cmdname,
         Peer my_port((uint128_t)ip_addr.s_addr, listen_port);
 
         unsigned int numbytes = static_cast<unsigned int>(atoi(args[0]));
-        vector<unsigned char> broadcast_message(numbytes + MessageOffset::BODY, 0xAA);
+        vector<unsigned char> broadcast_message(numbytes + MessageOffset::BODY,
+                                                0xAA);
         broadcast_message.at(MessageOffset::TYPE) = MessageType::PEER;
-        broadcast_message.at(MessageOffset::INST) = PeerManager::InstructionType::BROADCAST;
+        broadcast_message.at(MessageOffset::INST)
+            = PeerManager::InstructionType::BROADCAST;
         broadcast_message.at(MessageOffset::BODY) = MessageType::PEER;
 
         // Send the BROADCAST message to the local node
@@ -105,13 +121,15 @@ void process_broadcast(int numargs, const char * progname, const char * cmdname,
     }
 }
 
-void process_cmd(int numargs, const char * progname, const char * cmdname, uint32_t listen_port, const char * args[])
+void process_cmd(int numargs, const char* progname, const char* cmdname,
+                 uint32_t listen_port, const char* args[])
 {
     const int num_args_required = 1;
 
     if (numargs != num_args_required)
     {
-        cout << "[USAGE] " << progname << " <local node listen_port> " << cmdname << " <hex string message>" << endl;
+        cout << "[USAGE] " << progname << " <local node listen_port> "
+             << cmdname << " <hex string message>" << endl;
     }
     else
     {
@@ -125,32 +143,35 @@ void process_cmd(int numargs, const char * progname, const char * cmdname, uint3
     }
 }
 
-int main(int argc, const char * argv[])
+int main(int argc, const char* argv[])
 {
     if (argc < 3)
     {
-        cout << "[USAGE] " << argv[0] << " <local node listen_port> <command> [command args]" << endl;
+        cout << "[USAGE] " << argv[0]
+             << " <local node listen_port> <command> [command args]" << endl;
         cout << "Available commands: addpeers broadcast cmd reportto" << endl;
         return -1;
     }
 
-    const char * instruction = argv[2];
+    const char* instruction = argv[2];
 
-    const message_handler message_handlers[] =
-    {
+    const message_handler message_handlers[] = {
         {"addpeers", &process_addpeers},
         {"broadcast", &process_broadcast},
         {"cmd", &process_cmd},
     };
 
-    const int num_handlers = sizeof(message_handlers) / sizeof(message_handlers[0]);
+    const int num_handlers
+        = sizeof(message_handlers) / sizeof(message_handlers[0]);
 
     bool processed = false;
     for (int i = 0; i < num_handlers; i++)
     {
         if (!strcmp(instruction, message_handlers[i].ins))
         {
-            (*message_handlers[i].func)(argc - 3, argv[0], argv[2], static_cast<unsigned int>(atoi(argv[1])), argv + 3);
+            (*message_handlers[i].func)(
+                argc - 3, argv[0], argv[2],
+                static_cast<unsigned int>(atoi(argv[1])), argv + 3);
             processed = true;
             break;
         }
@@ -160,6 +181,6 @@ int main(int argc, const char * argv[])
     {
         cout << "Unknown command parameter supplied: " << instruction << endl;
     }
-    
+
     return 0;
 }

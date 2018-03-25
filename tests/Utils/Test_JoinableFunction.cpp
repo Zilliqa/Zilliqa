@@ -14,10 +14,10 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#include <memory>
-#include <mutex>
 #include "libUtils/JoinableFunction.h"
 #include "libUtils/Logger.h"
+#include <memory>
+#include <mutex>
 
 #define BOOST_TEST_MODULE utils
 #include <boost/test/included/unit_test.hpp>

@@ -20,7 +20,4 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-BlockBase::BlockBase()
-{
-
-}
+BlockBase::BlockBase() {}

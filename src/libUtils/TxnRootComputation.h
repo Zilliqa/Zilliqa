@@ -23,18 +23,14 @@
 
 #include "libData/AccountData/Transaction.h"
 
-TxnHash ComputeTransactionsRoot(const std::vector<TxnHash> & transactionHashes);
+TxnHash ComputeTransactionsRoot(const std::vector<TxnHash>& transactionHashes);
 
-TxnHash ComputeTransactionsRoot
-(   
-    const std::list<Transaction> & receivedTransactions,
-    const std::list<Transaction> & submittedTransactions
-);
+TxnHash
+ComputeTransactionsRoot(const std::list<Transaction>& receivedTransactions,
+                        const std::list<Transaction>& submittedTransactions);
 
-TxnHash ComputeTransactionsRoot
-(   
-    const std::unordered_map<TxnHash, Transaction> & receivedTransactions,
-    const std::unordered_map<TxnHash, Transaction> & submittedTransactions
-);
+TxnHash ComputeTransactionsRoot(
+    const std::unordered_map<TxnHash, Transaction>& receivedTransactions,
+    const std::unordered_map<TxnHash, Transaction>& submittedTransactions);
 
 #endif // __TXNROOTCOMPUTATION_H__

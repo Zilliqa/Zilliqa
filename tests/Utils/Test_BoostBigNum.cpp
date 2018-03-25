@@ -14,16 +14,16 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
+#include <arpa/inet.h>
 #include <boost/multiprecision/cpp_int.hpp>
 #include <iostream>
 #include <iterator>
-#include <sys/socket.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
+#include <sys/socket.h>
 
-#include "libNetwork/Peer.h"
-#include "common/Serializable.h"
 #include "common/Constants.h"
+#include "common/Serializable.h"
+#include "libNetwork/Peer.h"
 
 #define BOOST_TEST_MODULE utils
 #include <boost/test/included/unit_test.hpp>
@@ -39,11 +39,16 @@ BOOST_AUTO_TEST_CASE(testBoostBigNum)
     uint256_t num = 256;
 
     // Arithmetic ops
-    num++; cout << num << endl;
-    num--; cout << num << endl;
-    num = num + 1; cout << num << endl;
-    num = num + num; cout << num << endl;
-    num *= 2; cout << num << endl;
+    num++;
+    cout << num << endl;
+    num--;
+    cout << num << endl;
+    num = num + 1;
+    cout << num << endl;
+    num = num + num;
+    cout << num << endl;
+    num *= 2;
+    cout << num << endl;
 
     // Logical ops
     cout << (num >= num) << endl;
@@ -51,10 +56,14 @@ BOOST_AUTO_TEST_CASE(testBoostBigNum)
     cout << (num != 514) << endl;
 
     // Bit ops
-    num = num << 1; cout << num << endl;
-    num = num >> 1; cout << num << endl;
-    num = num ^ 0xFF; cout << num << endl;
-    num = num & 0xFFFF; cout << num << endl;
+    num = num << 1;
+    cout << num << endl;
+    num = num >> 1;
+    cout << num << endl;
+    num = num ^ 0xFF;
+    cout << num << endl;
+    num = num & 0xFFFF;
+    cout << num << endl;
 
     // Serialize
     vector<unsigned char> bytestream(32, 0x00);
@@ -63,7 +72,8 @@ BOOST_AUTO_TEST_CASE(testBoostBigNum)
         bytestream.at(31 - i) = num.convert_to<uint8_t>();
         num >>= 8;
     }
-    copy(bytestream.begin(), bytestream.end(), std::ostream_iterator<int>(cout, " "));
+    copy(bytestream.begin(), bytestream.end(),
+         std::ostream_iterator<int>(cout, " "));
     cout << endl;
 
     // Deserialize
@@ -73,7 +83,6 @@ BOOST_AUTO_TEST_CASE(testBoostBigNum)
         num2 = (num2 << 8) + bytestream.at(i);
     }
     cout << num2 << endl;
-
 
     struct in_addr ip_addr;
     inet_aton("54.169.197.255", &ip_addr);
@@ -85,8 +94,10 @@ BOOST_AUTO_TEST_CASE(testBoostBigNum)
     Serializable::SetNumber<uint128_t>(v1, 0, ipaddr_big, UINT128_SIZE);
     Serializable::SetNumber<uint32_t>(v2, 0, ipaddr_normal, sizeof(uint32_t));
 
-    uint128_t ipaddr_big_2 = Serializable::GetNumber<uint128_t>(v1, 0, UINT128_SIZE);
-    uint32_t ipaddr_normal_2 = Serializable::GetNumber<uint32_t>(v2, 0, sizeof(uint32_t));
+    uint128_t ipaddr_big_2
+        = Serializable::GetNumber<uint128_t>(v1, 0, UINT128_SIZE);
+    uint32_t ipaddr_normal_2
+        = Serializable::GetNumber<uint32_t>(v2, 0, sizeof(uint32_t));
 
     cout << "ORIG BIG    = " << ipaddr_big << endl;
     cout << "DESE BIG    = " << ipaddr_big_2 << endl;
