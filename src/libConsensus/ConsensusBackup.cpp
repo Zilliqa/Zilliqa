@@ -59,6 +59,10 @@ bool ConsensusBackup::CheckState(Action action)
             result = false;
             break;
         case ERROR:
+            LOG_MESSAGE(
+                "Error: Processing announce but receiving ERROR message.");
+            result = false;
+            break;
         default:
             LOG_MESSAGE("Error: Unrecognized or error state");
             result = false;
@@ -95,6 +99,10 @@ bool ConsensusBackup::CheckState(Action action)
             result = false;
             break;
         case ERROR:
+            LOG_MESSAGE(
+                "Error: Processing challenge but receiving ERROR message.");
+            result = false;
+            break;
         default:
             LOG_MESSAGE("Error: Unrecognized or error state");
             result = false;
@@ -129,6 +137,10 @@ bool ConsensusBackup::CheckState(Action action)
             result = false;
             break;
         case ERROR:
+            LOG_MESSAGE(
+                "Error: Processing collectivesig but receiving ERROR message.");
+            result = false;
+            break;
         default:
             LOG_MESSAGE("Error: Unrecognized or error state");
             result = false;
@@ -167,6 +179,10 @@ bool ConsensusBackup::CheckState(Action action)
             result = false;
             break;
         case ERROR:
+            LOG_MESSAGE("Error: Processing finalchallenge but receiving ERROR "
+                        "message.");
+            result = false;
+            break;
         default:
             LOG_MESSAGE("Error: Unrecognized or error state");
             result = false;
@@ -207,6 +223,10 @@ bool ConsensusBackup::CheckState(Action action)
             result = false;
             break;
         case ERROR:
+            LOG_MESSAGE("Error: Processing finalcollectivesig but receiving "
+                        "ERROR message.");
+            result = false;
+            break;
         default:
             LOG_MESSAGE("Error: Unrecognized or error state");
             result = false;
