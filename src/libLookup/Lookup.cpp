@@ -1363,6 +1363,22 @@ bool Lookup::ProcessSetTxBodyFromSeed(const vector<unsigned char>& message,
 
 #ifndef IS_LOOKUP_NODE
 
+bool Lookup::CheckStateRoot()
+{
+    StateHash stateRoot = AccountStore::GetInstance().GetStateRootHash();
+
+    if(stateRoot == m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetStateRootHash())
+    {
+        LOG_MESSAGE("CheckStateRoot match");
+        return true;
+    }
+    else
+    {
+        LOG_MESSAGE("FAIL: CheckStateRoot doesn't match");
+        return false;
+    }
+}
+
 bool Lookup::InitMining()
 {
     LOG_MARKER();
