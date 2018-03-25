@@ -121,6 +121,10 @@ bool DirectoryService::CheckState(Action action)
             result = false;
             break;
         case ERROR:
+            LOG_MESSAGE("Error: Doing PROCESS_POW1SUBMISSION but receiving "
+                        "ERROR message");
+            result = false;
+            break;
         default:
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                          "Error: Unrecognized or error state");
@@ -182,6 +186,9 @@ bool DirectoryService::CheckState(Action action)
             result = false;
             break;
         case ERROR:
+            LOG_MESSAGE("Error: Doing VERIFYPOW1 but receiving ERROR message");
+            result = false;
+            break;
         default:
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                          "Error: Unrecognized or error state");
@@ -243,6 +250,10 @@ bool DirectoryService::CheckState(Action action)
             result = false;
             break;
         case ERROR:
+            LOG_MESSAGE("Error: Doing PROCESS_DSBLOCKCONSENSUS but receiving "
+                        "ERROR message");
+            result = false;
+            break;
         default:
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                          "Error: Unrecognized or error state");
@@ -304,6 +315,10 @@ bool DirectoryService::CheckState(Action action)
             result = false;
             break;
         case ERROR:
+            LOG_MESSAGE("Error: Doing PROCESS_POW2SUBMISSION but receiving "
+                        "ERROR message");
+            result = false;
+            break;
         default:
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                          "Error: Unrecognized or error state");
@@ -365,6 +380,9 @@ bool DirectoryService::CheckState(Action action)
             result = false;
             break;
         case ERROR:
+            LOG_MESSAGE("Error: Doing VERIFYPOW2 but receiving ERROR message");
+            result = false;
+            break;
         default:
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                          "Error: Unrecognized or error state");
@@ -426,6 +444,10 @@ bool DirectoryService::CheckState(Action action)
             result = false;
             break;
         case ERROR:
+            LOG_MESSAGE("Error: Doing PROCESS_SHARDINGCONSENSUS but receiving "
+                        "ERROR message");
+            result = false;
+            break;
         default:
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                          "Error: Unrecognized or error state");
@@ -487,6 +509,10 @@ bool DirectoryService::CheckState(Action action)
             result = false;
             break;
         case ERROR:
+            LOG_MESSAGE("Error: Doing PROCESS_MICROBLOCKSUBMISSION but "
+                        "receiving ERROR message");
+            result = false;
+            break;
         default:
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                          "Error: Unrecognized or error state");
@@ -548,6 +574,10 @@ bool DirectoryService::CheckState(Action action)
         case FINALBLOCK_CONSENSUS:
             break;
         case ERROR:
+            LOG_MESSAGE("Error: Doing PROCESS_FINALBLOCKCONSENSUS but "
+                        "receiving ERROR message");
+            result = false;
+            break;
         default:
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                          "Error: Unrecognized or error state");
