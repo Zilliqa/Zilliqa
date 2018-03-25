@@ -184,7 +184,7 @@ bool Lookup::GetStateFromLookupNodes()
     LOG_MARKER();
     SendMessageToLookupNodes(ComposeGetStateMessage());
     {
-        // unique_lock<mutex> lock(m_receivedLatestStateMutex);
+        std::lock_guard<mutex> lock(m_receivedLatestMutex);
         receivedLatestState = false;
     }
     return true;   
@@ -262,10 +262,6 @@ bool Lookup::GetTxBlockFromSeedNodes(uint256_t lowBlockNum, uint256_t highBlockN
 {
     LOG_MARKER();
     SendMessageToSeedNodes(ComposeGetTxBlockMessage(lowBlockNum, highBlockNum));
-    {
-        // unique_lock<mutex> lock(m_receivedLatestTxBlocksMutex);
-        receivedLatestTxBlocks = false;
-    }
     return true;
 }
 
@@ -273,6 +269,10 @@ bool Lookup::GetTxBlockFromLookupNodes(uint256_t lowBlockNum, uint256_t highBloc
 {
     LOG_MARKER();
     SendMessageToLookupNodes(ComposeGetTxBlockMessage(lowBlockNum, highBlockNum));
+    {
+        std::lock_guard<mutex> lock(m_receivedLatestMutex);
+        receivedLatestTxBlocks = false;
+    }
     return true;
 }
 
@@ -1196,11 +1196,14 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char> & message, un
             m_isDSRandUpdated = false;
         }
 
-        // {
-        //     unique_lock<mutex> lock(m_receivedLatestTxBlocksMutex);
+        {
+            std::lock_guard<mutex> lock(m_receivedLatestMutex);
             receivedLatestTxBlocks = true;
-        //     m_receivedLatestTxBlocksCondition.notify_one();
-        // }
+            if(receivedLatestState)
+            {
+                m_receivedLatestCondition.notify_one();
+            }
+        }
     }
 #endif // IS_LOOKUP_NODE
 
@@ -1301,10 +1304,20 @@ bool Lookup::InitMining()
     //else if 
     if (m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW == curDsBlockNum - 1)
     {
-        while(!receivedLatestTxBlocks.load() && !receivedLatestState.load())
         {
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            unique_lock<mutex> lock(m_receivedLatestMutex);
+            if(receivedLatestTxBlocks && receivedLatestState)
+            {
+                // DO NOTHING
+            }
+            else
+            {
+                m_receivedLatestCondition.wait(lock, [this]{
+                    LOG_MESSAGE("NOTIFIED ONCE");
+                    return true;});
+            }
         }
+
         if(CheckStateRoot())
         {
             // DS block has been generated. 
@@ -1381,11 +1394,14 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char> & message, unsi
     unsigned int curr_offset = offset;
     AccountStore::GetInstance().Deserialize(message, curr_offset);
 
-    // {
-    //     unique_lock<mutex> lock(m_receivedLatestStateMutex);
+    {
+        std::lock_guard<mutex> lock(m_receivedLatestMutex);
         receivedLatestState = true;
-    //     m_receivedLatestStateCondition.notify_one();
-    // }
+        if(receivedLatestTxBlocks)
+        {
+            m_receivedLatestCondition.notify_one();
+        }
+    }
 
 #endif // IS_LOOKUP_NODE
 
