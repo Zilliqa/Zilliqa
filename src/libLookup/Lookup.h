@@ -47,6 +47,8 @@ class Lookup : public Executable, public Broadcastable
     // Info about lookup node
     std::vector<Peer> m_lookupNodes;
     std::vector<Peer> m_seedNodes;
+
+    bool CheckStateRoot();
 #endif // IS_LOOKUP_NODE
 
 #ifdef IS_LOOKUP_NODE
