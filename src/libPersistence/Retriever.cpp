@@ -43,8 +43,8 @@ void Retriever::RetrieveDSBlocks(bool & result)
     	blocks.pop_back();
     }else
     {
-    	LOG_MESSAGE("FAIL: Retrieve Metadata: DSINCOMPLETED Failed");
-    	result = false;
+    	LOG_MESSAGE("Has no incompleted DS Block");
+    	// result = false;
     }
 
     for(const auto & block : blocks)
