@@ -31,7 +31,6 @@
 class Mediator
 {
 public:
-
     /// The Zilliqa instance's key pair.
     std::pair<PrivKey, PubKey> m_selfKey;
 
@@ -39,13 +38,13 @@ public:
     Peer m_selfPeer;
 
     /// The reference to the DirectoryService instance.
-    DirectoryService *m_ds;
+    DirectoryService* m_ds;
 
     /// The reference to the Node instance.
-    Node *m_node;
+    Node* m_node;
 
     /// The reference to the Lookup instance.
-    Lookup *m_lookup;
+    Lookup* m_lookup;
 
     /// The transient DS blockchain.
     DSBlockChain m_dsBlockChain;
@@ -83,13 +82,13 @@ public:
     bool m_isRetrievedHistory;
 
     /// Constructor.
-    Mediator(const pair<PrivKey, PubKey> & key, const Peer & peer);
+    Mediator(const pair<PrivKey, PubKey>& key, const Peer& peer);
 
     /// Destructor.
     ~Mediator();
 
     /// Sets the references to the subclass instances.
-    void RegisterColleagues(DirectoryService *ds, Node *node, Lookup *lookup);
+    void RegisterColleagues(DirectoryService* ds, Node* node, Lookup* lookup);
 
     /// Updates the DS blockchain random for PoW.
     void UpdateDSBlockRand(bool isGenesis = false);

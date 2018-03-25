@@ -14,46 +14,36 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-
 #include "PeerStore.h"
 
 using namespace std;
 
-PeerStore::PeerStore()
-{
+PeerStore::PeerStore() {}
 
-}
+PeerStore::~PeerStore() {}
 
-PeerStore::~PeerStore()
-{
-
-}
-
-PeerStore & PeerStore::GetStore()
+PeerStore& PeerStore::GetStore()
 {
     static PeerStore ps;
     return ps;
 }
 
-void PeerStore::AddPeer(const PubKey & key, const Peer & peer)
+void PeerStore::AddPeer(const PubKey& key, const Peer& peer)
 {
     lock_guard<mutex> g(m_mutexStore);
     m_store[key] = peer;
 }
 
-unsigned int PeerStore::GetPeerCount() const
-{
-    return m_store.size();
-}
+unsigned int PeerStore::GetPeerCount() const { return m_store.size(); }
 
-Peer PeerStore::GetPeer(const PubKey & key)
+Peer PeerStore::GetPeer(const PubKey& key)
 {
     lock_guard<mutex> g(m_mutexStore);
     try
     {
         return m_store.at(key);
     }
-    catch(out_of_range & e)
+    catch (out_of_range& e)
     {
         return Peer(0, 0);
     }
@@ -83,7 +73,7 @@ vector<PubKey> PeerStore::GetAllKeys() const
     return result;
 }
 
-void PeerStore::RemovePeer(const PubKey & key)
+void PeerStore::RemovePeer(const PubKey& key)
 {
     lock_guard<mutex> g(m_mutexStore);
     m_store.erase(key);

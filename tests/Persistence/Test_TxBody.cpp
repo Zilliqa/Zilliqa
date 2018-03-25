@@ -14,15 +14,15 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#include <array>
-#include <string>
-#include <vector>
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Address.h"
 #include "libData/AccountData/Transaction.h"
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/DB.h"
 #include "libUtils/TimeUtils.h"
+#include <array>
+#include <string>
+#include <vector>
 
 #define BOOST_TEST_MODULE persistencetest
 #define BOOST_TEST_DYN_LINK
@@ -30,9 +30,9 @@
 
 using namespace std;
 
-BOOST_AUTO_TEST_SUITE (persistencetest)
+BOOST_AUTO_TEST_SUITE(persistencetest)
 
-BOOST_AUTO_TEST_CASE (testReadWriteSimpleStringToDB)
+BOOST_AUTO_TEST_CASE(testReadWriteSimpleStringToDB)
 {
     INIT_STDOUT_LOGGER();
 
@@ -44,10 +44,12 @@ BOOST_AUTO_TEST_CASE (testReadWriteSimpleStringToDB)
 
     string ret = db.ReadFromDB("fruit");
 
-    BOOST_CHECK_MESSAGE(ret == "vegetable", "ERROR: return value from DB not equal to inserted value");
+    BOOST_CHECK_MESSAGE(
+        ret == "vegetable",
+        "ERROR: return value from DB not equal to inserted value");
 }
 
-Transaction constructDummyTxBody(int instanceNum) 
+Transaction constructDummyTxBody(int instanceNum)
 {
     Address addr;
     PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
@@ -55,13 +57,13 @@ Transaction constructDummyTxBody(int instanceNum)
     return Transaction(0, instanceNum, addr, pubKey, 0, sign);
 }
 
-BOOST_AUTO_TEST_CASE (testSerializationDeserialization)
+BOOST_AUTO_TEST_CASE(testSerializationDeserialization)
 {
     INIT_STDOUT_LOGGER();
 
     LOG_MARKER();
 
-    // checking if normal serialization and deserialization of blocks is working or not    
+    // checking if normal serialization and deserialization of blocks is working or not
 
     Transaction body1 = constructDummyTxBody(0);
 
@@ -70,11 +72,12 @@ BOOST_AUTO_TEST_CASE (testSerializationDeserialization)
 
     Transaction body2(serializedTxBody, 0);
 
-    BOOST_CHECK_MESSAGE(body1.GetTranID() == body2.GetTranID(), 
-        "Error: Transaction id shouldn't change after serailization and deserialization");
+    BOOST_CHECK_MESSAGE(body1.GetTranID() == body2.GetTranID(),
+                        "Error: Transaction id shouldn't change after "
+                        "serailization and deserialization");
 }
 
-BOOST_AUTO_TEST_CASE (testBlockStorage)
+BOOST_AUTO_TEST_CASE(testBlockStorage)
 {
     INIT_STDOUT_LOGGER();
 
@@ -91,11 +94,11 @@ BOOST_AUTO_TEST_CASE (testBlockStorage)
     TxBodySharedPtr body2;
     BlockStorage::GetBlockStorage().GetTxBody(tx_hash, body2);
 
-    // BOOST_CHECK_MESSAGE(body1 == *body2, 
+    // BOOST_CHECK_MESSAGE(body1 == *body2,
     //     "block shouldn't change after writing to/ reading from disk");
 }
 
-BOOST_AUTO_TEST_CASE (testRandomBlockAccesses)
+BOOST_AUTO_TEST_CASE(testRandomBlockAccesses)
 {
     INIT_STDOUT_LOGGER();
 
@@ -131,21 +134,25 @@ BOOST_AUTO_TEST_CASE (testRandomBlockAccesses)
     TxBodySharedPtr blockRetrieved;
     BlockStorage::GetBlockStorage().GetTxBody(tx_hash2, blockRetrieved);
 
-    BOOST_CHECK_MESSAGE(body2.GetTranID() == (*blockRetrieved).GetTranID(), 
+    BOOST_CHECK_MESSAGE(
+        body2.GetTranID() == (*blockRetrieved).GetTranID(),
         "transaction id shouldn't change after writing to/ reading from disk");
 
     BlockStorage::GetBlockStorage().GetTxBody(tx_hash4, blockRetrieved);
 
-    BOOST_CHECK_MESSAGE(body4.GetTranID() == (*blockRetrieved).GetTranID(), 
+    BOOST_CHECK_MESSAGE(
+        body4.GetTranID() == (*blockRetrieved).GetTranID(),
         "transaction id shouldn't change after writing to/ reading from disk");
 
     BlockStorage::GetBlockStorage().GetTxBody(tx_hash1, blockRetrieved);
-    
-    BOOST_CHECK_MESSAGE(body1.GetTranID() == (*blockRetrieved).GetTranID(), 
+
+    BOOST_CHECK_MESSAGE(
+        body1.GetTranID() == (*blockRetrieved).GetTranID(),
         "transaction id shouldn't change after writing to/ reading from disk");
 
-    BOOST_CHECK_MESSAGE(body2.GetTranID() != (*blockRetrieved).GetTranID(), 
+    BOOST_CHECK_MESSAGE(
+        body2.GetTranID() != (*blockRetrieved).GetTranID(),
         "transaction id shouldn't be same for different blocks");
 }
 
-BOOST_AUTO_TEST_SUITE_END ()
+BOOST_AUTO_TEST_SUITE_END()

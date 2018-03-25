@@ -20,19 +20,18 @@
 #include <array>
 #include <boost/multiprecision/cpp_int.hpp>
 
-#include "libData/AccountData/Transaction.h"
-#include "common/Serializable.h"
 #include "common/Constants.h"
+#include "common/Serializable.h"
 #include "libCrypto/Schnorr.h"
+#include "libData/AccountData/Transaction.h"
 #include "libData/BlockData/BlockHeader/BlockHeaderBase.h"
 
 /// [TODO] Base class for all supported block data types
 class BlockBase : public Serializable
 {
-	// TODO: pull out all common code from ds, micro and tx block
+    // TODO: pull out all common code from ds, micro and tx block
 
 public:
-
     /// Default constructor.
     BlockBase();
 };

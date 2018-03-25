@@ -14,8 +14,8 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#include "libUtils/Logger.h"
 #include "TxBlock.h"
+#include "libUtils/Logger.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -23,20 +23,21 @@ using namespace boost::multiprecision;
 uint32_t TxBlock::SerializeIsMicroBlockEmpty() const
 {
     int ret = 0;
-    for(int i = m_isMicroBlockEmpty.size() - 1; i >= 0; --i)
+    for (int i = m_isMicroBlockEmpty.size() - 1; i >= 0; --i)
     {
         ret = 2 * ret + m_isMicroBlockEmpty[i];
     }
     return ret;
 }
 
-unsigned int TxBlock::Serialize(vector<unsigned char> & dst, unsigned int offset) const
+unsigned int TxBlock::Serialize(vector<unsigned char>& dst,
+                                unsigned int offset) const
 {
     assert(m_header.GetNumMicroBlockHashes() == m_microBlockHashes.size());
 
     unsigned int header_size_needed = TxBlockHeader::SIZE;
-    unsigned int size_needed = header_size_needed + BLOCK_SIG_SIZE + sizeof(uint32_t) +
-                               m_header.GetNumMicroBlockHashes() * TRAN_HASH_SIZE;
+    unsigned int size_needed = header_size_needed + BLOCK_SIG_SIZE
+        + sizeof(uint32_t) + m_header.GetNumMicroBlockHashes() * TRAN_HASH_SIZE;
     unsigned int size_remaining = dst.size() - offset;
 
     if (size_remaining < size_needed)
@@ -51,12 +52,13 @@ unsigned int TxBlock::Serialize(vector<unsigned char> & dst, unsigned int offset
     copy(m_headerSig.begin(), m_headerSig.end(), dst.begin() + curOffset);
     curOffset += BLOCK_SIG_SIZE;
 
-    SetNumber<uint32_t>(dst, curOffset, SerializeIsMicroBlockEmpty(), sizeof(uint32_t));
+    SetNumber<uint32_t>(dst, curOffset, SerializeIsMicroBlockEmpty(),
+                        sizeof(uint32_t));
     curOffset += sizeof(uint32_t);
-    
+
     for (unsigned int i = 0; i < m_header.GetNumMicroBlockHashes(); i++)
     {
-        const TxnHash & microBlockHash = m_microBlockHashes.at(i);
+        const TxnHash& microBlockHash = m_microBlockHashes.at(i);
         copy(microBlockHash.asArray().begin(), microBlockHash.asArray().end(),
              dst.begin() + curOffset);
         curOffset += TRAN_HASH_SIZE;
@@ -68,7 +70,7 @@ unsigned int TxBlock::Serialize(vector<unsigned char> & dst, unsigned int offset
 vector<bool> TxBlock::DeserializeIsMicroBlockEmpty(uint32_t arg)
 {
     vector<bool> ret;
-    for (uint i=0; i < m_header.GetNumMicroBlockHashes(); ++i)
+    for (uint i = 0; i < m_header.GetNumMicroBlockHashes(); ++i)
     {
         ret.push_back((bool)(arg % 2));
         arg /= 2;
@@ -76,7 +78,7 @@ vector<bool> TxBlock::DeserializeIsMicroBlockEmpty(uint32_t arg)
     return ret;
 }
 
-int TxBlock::Deserialize(const vector<unsigned char> & src, unsigned int offset)
+int TxBlock::Deserialize(const vector<unsigned char>& src, unsigned int offset)
 {
     try
     {
@@ -84,36 +86,39 @@ int TxBlock::Deserialize(const vector<unsigned char> & src, unsigned int offset)
 
         // TxBlockHeader header(src, offset);
         TxBlockHeader header;
-        if(header.Deserialize(src, offset) != 0)
+        if (header.Deserialize(src, offset) != 0)
         {
             LOG_MESSAGE("Error. We failed to deserialize header.");
-            return -1; 
+            return -1;
         }
         m_header = header;
 
         unsigned int curOffset = offset + header_size_needed;
 
-        copy(src.begin() + curOffset, src.begin() + curOffset + BLOCK_SIG_SIZE, m_headerSig.begin());
+        copy(src.begin() + curOffset, src.begin() + curOffset + BLOCK_SIG_SIZE,
+             m_headerSig.begin());
         curOffset += BLOCK_SIG_SIZE;
-        
-        m_isMicroBlockEmpty = DeserializeIsMicroBlockEmpty(GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t)));
+
+        m_isMicroBlockEmpty = DeserializeIsMicroBlockEmpty(
+            GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t)));
         curOffset += sizeof(uint32_t);
 
         for (unsigned int i = 0; i < m_header.GetNumMicroBlockHashes(); i++)
         {
             TxnHash microBlockHash;
-            copy(src.begin() + curOffset, src.begin() + curOffset + TRAN_HASH_SIZE,
-                microBlockHash.asArray().begin());
+            copy(src.begin() + curOffset,
+                 src.begin() + curOffset + TRAN_HASH_SIZE,
+                 microBlockHash.asArray().begin());
             curOffset += TRAN_HASH_SIZE;
             m_microBlockHashes.push_back(microBlockHash);
         }
-        assert(m_header.GetNumMicroBlockHashes() == m_microBlockHashes.size());    
+        assert(m_header.GetNumMicroBlockHashes() == m_microBlockHashes.size());
     }
-    catch(const std::exception& e)
+    catch (const std::exception& e)
     {
-        LOG_MESSAGE("ERROR: Error with TxBlock::Deserialize." << ' ' << e.what());
+        LOG_MESSAGE("ERROR: Error with TxBlock::Deserialize." << ' '
+                                                              << e.what());
         return -1;
-
     }
     return 0;
 }
@@ -121,8 +126,8 @@ int TxBlock::Deserialize(const vector<unsigned char> & src, unsigned int offset)
 unsigned int TxBlock::GetSerializedSize() const
 {
     unsigned int header_size_needed = TxBlockHeader::SIZE;
-    unsigned int block_size_needed = BLOCK_SIG_SIZE + sizeof(uint32_t) +
-                                     (m_microBlockHashes.size() * TRAN_HASH_SIZE);
+    unsigned int block_size_needed = BLOCK_SIG_SIZE + sizeof(uint32_t)
+        + (m_microBlockHashes.size() * TRAN_HASH_SIZE);
 
     return header_size_needed + block_size_needed;
 }
@@ -135,61 +140,52 @@ unsigned int TxBlock::GetMinSize()
 }
 
 // creates a dummy invalid placeholder block -- blocknum is maxsize of uint256
-TxBlock::TxBlock()
-{
-}
+TxBlock::TxBlock() {}
 
-TxBlock::TxBlock(const vector<unsigned char> & src, unsigned int offset)
+TxBlock::TxBlock(const vector<unsigned char>& src, unsigned int offset)
 {
-    if(Deserialize(src, offset) != 0)
+    if (Deserialize(src, offset) != 0)
     {
         LOG_MESSAGE("Error. We failed to init TxBlock.");
     }
 }
 
-TxBlock::TxBlock
-    (
-        const TxBlockHeader & header,
-        const array<unsigned char, BLOCK_SIG_SIZE> & signature,
-        const vector<bool> & isMicroBlockEmpty,
-        const vector<TxnHash> & microBlockTxHashes
-    ) : m_header(header), m_headerSig(signature), m_isMicroBlockEmpty(isMicroBlockEmpty), 
-        m_microBlockHashes(microBlockTxHashes)
+TxBlock::TxBlock(const TxBlockHeader& header,
+                 const array<unsigned char, BLOCK_SIG_SIZE>& signature,
+                 const vector<bool>& isMicroBlockEmpty,
+                 const vector<TxnHash>& microBlockTxHashes)
+    : m_header(header)
+    , m_headerSig(signature)
+    , m_isMicroBlockEmpty(isMicroBlockEmpty)
+    , m_microBlockHashes(microBlockTxHashes)
 {
     assert(m_header.GetNumMicroBlockHashes() == m_microBlockHashes.size());
 }
 
-const TxBlockHeader & TxBlock::GetHeader() const
-{
-    return m_header;
-}
+const TxBlockHeader& TxBlock::GetHeader() const { return m_header; }
 
-const array<unsigned char, BLOCK_SIG_SIZE> & TxBlock::GetHeaderSig() const
+const array<unsigned char, BLOCK_SIG_SIZE>& TxBlock::GetHeaderSig() const
 {
     return m_headerSig;
 }
 
-const std::vector<bool> & TxBlock::GetIsMicroBlockEmpty() const
+const std::vector<bool>& TxBlock::GetIsMicroBlockEmpty() const
 {
     return m_isMicroBlockEmpty;
 }
 
-const vector<TxnHash> & TxBlock::GetMicroBlockHashes() const
+const vector<TxnHash>& TxBlock::GetMicroBlockHashes() const
 {
     return m_microBlockHashes;
 }
 
-bool TxBlock::operator==(const TxBlock & block) const
+bool TxBlock::operator==(const TxBlock& block) const
 {
-    return
-        (
-            (m_header == block.m_header) &&
-            (m_headerSig == block.m_headerSig) &&
-            (m_microBlockHashes == block.m_microBlockHashes)
-        );
+    return ((m_header == block.m_header) && (m_headerSig == block.m_headerSig)
+            && (m_microBlockHashes == block.m_microBlockHashes));
 }
 
-bool TxBlock::operator<(const TxBlock & block) const
+bool TxBlock::operator<(const TxBlock& block) const
 {
     if (m_header < block.m_header)
     {
@@ -221,7 +217,7 @@ bool TxBlock::operator<(const TxBlock & block) const
     }
 }
 
-bool TxBlock::operator>(const TxBlock & block) const
+bool TxBlock::operator>(const TxBlock& block) const
 {
     return !((*this == block) || (*this < block));
 }

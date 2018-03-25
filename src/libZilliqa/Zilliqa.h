@@ -14,22 +14,20 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-
 #ifndef __ZILLIQA_H__
 #define __ZILLIQA_H__
 
-#include <vector>
 #include <jsonrpccpp/server/connectors/httpserver.h>
+#include <vector>
 
 #include "libConsensus/ConsensusUser.h"
 #include "libDirectoryService/DirectoryService.h"
 #include "libLookup/Lookup.h"
 #include "libMediator/Mediator.h"
 #include "libNetwork/Peer.h"
-#include "libNetwork/PeerStore.h"
 #include "libNetwork/PeerManager.h"
+#include "libNetwork/PeerStore.h"
 #include "libNode/Node.h"
-
 
 #ifdef IS_LOOKUP_NODE
 #include "libServer/Server.h"
@@ -43,30 +41,35 @@ class Zilliqa
     DirectoryService m_ds;
     Lookup m_lookup;
     Node m_n;
-    ConsensusUser m_cu; // Note: This is just a test class to demo Consensus usage
+    ConsensusUser
+        m_cu; // Note: This is just a test class to demo Consensus usage
 
 #ifdef IS_LOOKUP_NODE
 
     jsonrpc::HttpServer m_httpserver;
     Server m_server;
 
-#endif//IS_LOOK_UP_NODE
+#endif //IS_LOOK_UP_NODE
 
 public:
-
     /// Constructor.
-    Zilliqa(const std::pair<PrivKey, PubKey> & key, const Peer & peer, bool loadConfig, bool toSyncWithNetwork, bool toRetrieveHistory = false);
+    Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
+            bool loadConfig, bool toSyncWithNetwork,
+            bool toRetrieveHistory = false);
 
     /// Destructor.
     ~Zilliqa();
 
-    void LogSelfNodeInfo(const std::pair<PrivKey, PubKey> & key, const Peer & peer);
+    void LogSelfNodeInfo(const std::pair<PrivKey, PubKey>& key,
+                         const Peer& peer);
 
     /// Forwards an incoming message for processing by the appropriate subclass.
-    void Dispatch(const std::vector<unsigned char> & message, const Peer & from);
+    void Dispatch(const std::vector<unsigned char>& message, const Peer& from);
 
     /// Returns a list of broadcast peers based on the specified message and instruction types.
-    std::vector<Peer> RetrieveBroadcastList(unsigned char msg_type, unsigned char ins_type, const Peer & from);
+    std::vector<Peer> RetrieveBroadcastList(unsigned char msg_type,
+                                            unsigned char ins_type,
+                                            const Peer& from);
 };
 
 #endif // __ZILLIQA_H__

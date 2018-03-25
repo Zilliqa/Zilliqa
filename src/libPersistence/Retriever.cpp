@@ -20,14 +20,17 @@
 #include "libData/AccountData/Transaction.h"
 #include "libPersistence/BlockStorage.h"
 
-Retriever::Retriever(Mediator & mediator) : m_mediator(mediator) {}
-
-void Retriever::RetrieveDSBlocks(bool & result)
+Retriever::Retriever(Mediator& mediator)
+    : m_mediator(mediator)
 {
-	LOG_MARKER();
-	
-	std::list<DSBlockSharedPtr> blocks;
-    if(!BlockStorage::GetBlockStorage().GetAllDSBlocks(blocks))
+}
+
+void Retriever::RetrieveDSBlocks(bool& result)
+{
+    LOG_MARKER();
+
+    std::list<DSBlockSharedPtr> blocks;
+    if (!BlockStorage::GetBlockStorage().GetAllDSBlocks(blocks))
     {
         LOG_MESSAGE("FAIL: RetrieveDSBlocks Incompleted");
         result = false;
@@ -35,80 +38,84 @@ void Retriever::RetrieveDSBlocks(bool & result)
     }
 
     std::vector<unsigned char> isDSIncompleted;
-    if(BlockStorage::GetBlockStorage().GetMetadata(MetaType::DSINCOMPLETED, isDSIncompleted))
+    if (BlockStorage::GetBlockStorage().GetMetadata(MetaType::DSINCOMPLETED,
+                                                    isDSIncompleted))
     {
-    	LOG_MESSAGE("Has incompleted DS Block");
-    	BlockStorage::GetBlockStorage().DeleteMetadata(MetaType::DSINCOMPLETED);
-    	BlockStorage::GetBlockStorage().DeleteDSBlock(blocks.size()-1);
-    	blocks.pop_back();
-    }else
+        LOG_MESSAGE("Has incompleted DS Block");
+        BlockStorage::GetBlockStorage().DeleteMetadata(MetaType::DSINCOMPLETED);
+        BlockStorage::GetBlockStorage().DeleteDSBlock(blocks.size() - 1);
+        blocks.pop_back();
+    }
+    else
     {
-    	LOG_MESSAGE("FAIL: Retrieve Metadata: DSINCOMPLETED Failed");
-    	result = false;
+        LOG_MESSAGE("FAIL: Retrieve Metadata: DSINCOMPLETED Failed");
+        result = false;
     }
 
-    for(const auto & block : blocks)
-    {    
+    for (const auto& block : blocks)
+    {
         m_mediator.m_dsBlockChain.AddBlock(*block);
     }
 
     result = true;
 }
 
-void Retriever::RetrieveTxBlocks(bool & result)
+void Retriever::RetrieveTxBlocks(bool& result)
 {
-	LOG_MARKER();
-	std::list<TxBlockSharedPtr> blocks;
-	if(!BlockStorage::GetBlockStorage().GetAllTxBlocks(blocks))
-	{
-		LOG_MESSAGE("FAIL: RetrieveTxBlocks Incompleted");
-		result = false;
-		return;
-	}
+    LOG_MARKER();
+    std::list<TxBlockSharedPtr> blocks;
+    if (!BlockStorage::GetBlockStorage().GetAllTxBlocks(blocks))
+    {
+        LOG_MESSAGE("FAIL: RetrieveTxBlocks Incompleted");
+        result = false;
+        return;
+    }
 
-	// truncate the extra final blocks at last
-	int totalSize = blocks.size();
-	int extra_txblocks = totalSize % NUM_FINAL_BLOCK_PER_POW;
-	for(int i = 0; i < extra_txblocks; ++i)
-	{
-		BlockStorage::GetBlockStorage().DeleteTxBlock(totalSize - i);
-		blocks.pop_back();
-	}
+    // truncate the extra final blocks at last
+    int totalSize = blocks.size();
+    int extra_txblocks = totalSize % NUM_FINAL_BLOCK_PER_POW;
+    for (int i = 0; i < extra_txblocks; ++i)
+    {
+        BlockStorage::GetBlockStorage().DeleteTxBlock(totalSize - i);
+        blocks.pop_back();
+    }
 
-	for(const auto & block : blocks)
-		m_mediator.m_txBlockChain.AddBlock(*block);
+    for (const auto& block : blocks)
+        m_mediator.m_txBlockChain.AddBlock(*block);
 
-	result = true;
+    result = true;
 }
 
 bool Retriever::RetrieveStates()
 {
-	LOG_MARKER();
-	return AccountStore::GetInstance().RetrieveFromDisk();
+    LOG_MARKER();
+    return AccountStore::GetInstance().RetrieveFromDisk();
 }
 
 bool Retriever::CleanExtraTxBodies()
 {
-	LOG_MARKER();
-	std::list<TxnHash> txnHashes;
-	if(BlockStorage::GetBlockStorage().GetAllTxBodiesTmp(txnHashes))
-	{
-		for(auto i: txnHashes)
-		{
-			if(!BlockStorage::GetBlockStorage().DeleteTxBody(i))
-			{
-				LOG_MESSAGE("FAIL: To delete TxHash in TxBodiesTmpDB");
-				return false;
-			}
-		}
-	}
-	return true;
+    LOG_MARKER();
+    std::list<TxnHash> txnHashes;
+    if (BlockStorage::GetBlockStorage().GetAllTxBodiesTmp(txnHashes))
+    {
+        for (auto i : txnHashes)
+        {
+            if (!BlockStorage::GetBlockStorage().DeleteTxBody(i))
+            {
+                LOG_MESSAGE("FAIL: To delete TxHash in TxBodiesTmpDB");
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
 bool Retriever::ValidateStates()
 {
-	LOG_MARKER();
-	// return AccountStore::GetInstance().ValidateStateFromDisk(m_addressToAccount);
-	return m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetStateRootHash() == 
-		AccountStore::GetInstance().GetStateRootHash();
+    LOG_MARKER();
+    // return AccountStore::GetInstance().ValidateStateFromDisk(m_addressToAccount);
+    return m_mediator.m_txBlockChain.GetLastBlock()
+               .GetHeader()
+               .GetStateRootHash()
+        == AccountStore::GetInstance().GetStateRootHash();
 }

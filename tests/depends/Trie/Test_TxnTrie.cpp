@@ -18,9 +18,9 @@
 #include "depends/common/CommonIO.h"
 #include "depends/common/FixedHash.h"
 #include "depends/json_spirit/JsonSpiritHeaders.h"
+#include "depends/libDatabase/MemoryDB.h"
 #include "depends/libTrie/TrieDB.h"
 #include "depends/libTrie/TrieHash.h"
-#include "depends/libDatabase/MemoryDB.h"
 #include "libData/AccountData/Address.h"
 #include "libData/AccountData/Transaction.h"
 #include "libTestUtils/MemTrie.h"
@@ -34,12 +34,9 @@ using namespace dev;
 namespace fs = boost::filesystem;
 namespace js = json_spirit;
 
-static unsigned fac(unsigned _i)
-{
-    return _i > 2 ? _i * fac(_i - 1) : _i;
-}
+static unsigned fac(unsigned _i) { return _i > 2 ? _i * fac(_i - 1) : _i; }
 
-BOOST_AUTO_TEST_SUITE (trietest)
+BOOST_AUTO_TEST_SUITE(trietest)
 
 Transaction constructDummyTxBody(int instanceNum)
 {
@@ -86,7 +83,7 @@ Transaction constructDummyTxBody(int instanceNum)
 // //    BOOST_CHECK_MESSAGE("vegetable" == "vegetable", "ERROR: return value from DB not equal to inserted value");
 // }
 
-BOOST_AUTO_TEST_CASE (fat_trie2)
+BOOST_AUTO_TEST_CASE(fat_trie2)
 {
     INIT_STDOUT_LOGGER();
 
@@ -147,7 +144,8 @@ BOOST_AUTO_TEST_CASE (fat_trie2)
     LOG_MESSAGE(tm2);
     LOG_MESSAGE(transactionsTrie2.root());
 
-    BOOST_CHECK_MESSAGE(transactionsTrie.root() == transactionsTrie2.root(), "ERROR: ordering affects root value");
+    BOOST_CHECK_MESSAGE(transactionsTrie.root() == transactionsTrie2.root(),
+                        "ERROR: ordering affects root value");
 }
 
-BOOST_AUTO_TEST_SUITE_END ()
+BOOST_AUTO_TEST_SUITE_END()
