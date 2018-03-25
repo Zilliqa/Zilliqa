@@ -129,6 +129,29 @@ class DirectoryService : public Executable, public Broadcastable
     std::vector<unsigned char> m_finalBlockMessage;
     std::vector<Peer> m_sharingAssignment;
     
+    // Recovery (simplified view change)
+    std::atomic<bool> m_initiatedViewChange;
+    std::mutex m_mutexRecoveryDSBlockConsensus;
+    std::condition_variable cv_RecoveryDSBlockConsensus;
+    std::mutex m_mutexRecoveryShardingConsensus; 
+    std::condition_variable cv_RecoveryShardingConsensus;
+    std::mutex m_mutexRecoveryFinalBlockConsensus; 
+    std::condition_variable cv_RecoveryFinalBlockConsensus;
+
+    // view_change
+    std::atomic<uint64_t> m_viewChangeEpoch; 
+    std::unordered_map<unsigned int, unsigned int> m_viewChangeRequestTracker; 
+    std::vector<Peer> m_viewChangeRequesters;
+    std::mutex m_mutexViewChangeRequesters;
+
+    std::condition_variable cv_viewChangeDSBlock;
+    std::mutex m_MutexCVViewChangeDSBlock; 
+    std::condition_variable cv_viewChangeSharding;
+    std::mutex m_MutexCVViewChangeSharding; 
+    std::condition_variable cv_viewChangeFinalBlock;
+    std::mutex m_MutexCVViewChangeFinalBlock; 
+
+
     Mediator & m_mediator;
 
     const uint32_t RESHUFFLE_INTERVAL = 500;
@@ -266,6 +289,13 @@ class DirectoryService : public Executable, public Broadcastable
     void LastDSBlockRequest();
     bool ProcessLastDSBlockRequest(const vector<unsigned char> & message, unsigned int offset, const Peer & from); 
     bool ProcessLastDSBlockResponse(const vector<unsigned char> & message, unsigned int offset, const Peer & from);
+
+    // View change
+    void InitViewChange(); 
+    bool ProcessInitViewChange(const vector<unsigned char> & message, unsigned int offset, const Peer & from);
+    bool ProcessInitViewChangeResponse(const vector<unsigned char> & message, unsigned int offset, const Peer & from);
+
+
 #endif // IS_LOOKUP_NODE    
 
 public:
