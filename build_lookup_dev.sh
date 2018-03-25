@@ -20,5 +20,10 @@ rm -rf ./txblocks.db
 rm -rf ./test.db
 rm -rf ./txbodies.db
 
-cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo .
+#find . -name *.cmake | xargs rm -rf
+#find . -name CMakeCache.txt | xargs rm -rf
+#find . -name CMakeFiles | xargs rm -rf
+
+cmake -DIS_LOOKUP_NODE=1 -DCMAKE_BUILD_TYPE=RelWithDebInfo .
 make -j4
+make clang-format
