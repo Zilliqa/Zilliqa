@@ -14,13 +14,12 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-
 #include <array>
 #include <string>
 
 #include "libData/DataStructures/CircularArray.h"
-#include "libUtils/Logger.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/Logger.h"
 
 #define BOOST_TEST_MODULE circulararraytest
 #include <boost/test/included/unit_test.hpp>
@@ -28,9 +27,9 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-BOOST_AUTO_TEST_SUITE (circulararraytest)
+BOOST_AUTO_TEST_SUITE(circulararraytest)
 
-BOOST_AUTO_TEST_CASE (CircularArray_test)
+BOOST_AUTO_TEST_CASE(CircularArray_test)
 {
     INIT_STDOUT_LOGGER();
 
@@ -47,7 +46,8 @@ BOOST_AUTO_TEST_CASE (CircularArray_test)
 
     BOOST_CHECK_MESSAGE(arr.back() == 2, "arr.back() != 2!");
 
-    for(int i=0; i<100; i++) {
+    for (int i = 0; i < 100; i++)
+    {
         arr.push_back(11);
     }
 
@@ -65,4 +65,4 @@ BOOST_AUTO_TEST_CASE (CircularArray_test)
     BOOST_CHECK_MESSAGE(arr[103] == 2, "arr[103] != 2!");
 }
 
-BOOST_AUTO_TEST_SUITE_END ()
+BOOST_AUTO_TEST_SUITE_END()

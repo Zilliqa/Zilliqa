@@ -20,13 +20,13 @@
 #include <thread>
 #include <vector>
 
+#include "common/Constants.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
-#include "common/Constants.h"
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Address.h"
-#include "libData/BlockData/Block.h"
 #include "libData/AccountData/Transaction.h"
+#include "libData/BlockData/Block.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/TimeUtils.h"
 
@@ -39,20 +39,21 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-BOOST_AUTO_TEST_SUITE (lookupnodedsblocktest)
+BOOST_AUTO_TEST_SUITE(lookupnodedsblocktest)
 
-BOOST_AUTO_TEST_CASE (testDSBlockStoring)
+BOOST_AUTO_TEST_CASE(testDSBlockStoring)
 {
     INIT_STDOUT_LOGGER();
 
     LOG_MARKER();
 
-    uint32_t listen_port = 5000; 
+    uint32_t listen_port = 5000;
     struct in_addr ip_addr;
     inet_aton("127.0.0.1", &ip_addr);
     Peer lookup_node((uint128_t)ip_addr.s_addr, listen_port);
 
-    vector<unsigned char> dsblockmsg = { MessageType::NODE, NodeInstructionType::DSBLOCK };
+    vector<unsigned char> dsblockmsg
+        = {MessageType::NODE, NodeInstructionType::DSBLOCK};
     unsigned int curr_offset = MessageOffset::BODY;
 
     BlockHash prevHash1;
@@ -70,61 +71,68 @@ BOOST_AUTO_TEST_CASE (testDSBlockStoring)
     }
 
     std::pair<PrivKey, PubKey> pubKey1 = Schnorr::GetInstance().GenKeyPair();
- 
-    DSBlockHeader header1(20, prevHash1, 12344, pubKey1.first, pubKey1.second, 0, 789);
+
+    DSBlockHeader header1(20, prevHash1, 12344, pubKey1.first, pubKey1.second,
+                          0, 789);
 
     DSBlock dsblock(header1, signature1);
 
     curr_offset += dsblock.Serialize(dsblockmsg, curr_offset);
 
     dsblockmsg.resize(curr_offset + 32);
-    Serializable::SetNumber<uint256_t>(dsblockmsg, curr_offset, 0, UINT256_SIZE);
+    Serializable::SetNumber<uint256_t>(dsblockmsg, curr_offset, 0,
+                                       UINT256_SIZE);
     curr_offset += UINT256_SIZE;
 
-	struct sockaddr_in localhost;
-	inet_aton("127.0.0.1", &localhost.sin_addr);
+    struct sockaddr_in localhost;
+    inet_aton("127.0.0.1", &localhost.sin_addr);
 
-	dsblockmsg.resize(curr_offset + 16);
-	Serializable::SetNumber<uint128_t>(dsblockmsg, curr_offset, 
-                                      (uint128_t)localhost.sin_addr.s_addr, UINT128_SIZE);
+    dsblockmsg.resize(curr_offset + 16);
+    Serializable::SetNumber<uint128_t>(dsblockmsg, curr_offset,
+                                       (uint128_t)localhost.sin_addr.s_addr,
+                                       UINT128_SIZE);
     curr_offset += UINT128_SIZE;
 
     dsblockmsg.resize(curr_offset + 4);
-	Serializable::SetNumber<uint32_t>(dsblockmsg, curr_offset, (uint32_t)5001, 4);
+    Serializable::SetNumber<uint32_t>(dsblockmsg, curr_offset, (uint32_t)5001,
+                                      4);
     curr_offset += 4;
 
-   	P2PComm::GetInstance().SendMessage(lookup_node, dsblockmsg);
+    P2PComm::GetInstance().SendMessage(lookup_node, dsblockmsg);
 }
 
-BOOST_AUTO_TEST_CASE (testDSBlockRetrieval)
+BOOST_AUTO_TEST_CASE(testDSBlockRetrieval)
 {
     INIT_STDOUT_LOGGER();
 
     LOG_MARKER();
-    
+
     long long i = 0;
-    for(; i<1000000000; i++) {;}
+    for (; i < 1000000000; i++)
+    {
+        ;
+    }
     LOG_MESSAGE(i);
 
-    uint32_t listen_port = 5000; 
+    uint32_t listen_port = 5000;
     struct in_addr ip_addr;
     inet_aton("127.0.0.1", &ip_addr);
     Peer lookup_node((uint128_t)ip_addr.s_addr, listen_port);
 
-    vector<unsigned char> getDSBlockMessage = { MessageType::LOOKUP, 
-                                                LookupInstructionType::GETDSBLOCKFROMSEED };
+    vector<unsigned char> getDSBlockMessage
+        = {MessageType::LOOKUP, LookupInstructionType::GETDSBLOCKFROMSEED};
     unsigned int curr_offset = MessageOffset::BODY;
 
-    Serializable::SetNumber<uint256_t>(getDSBlockMessage, curr_offset, 
-                                       0, UINT256_SIZE);
+    Serializable::SetNumber<uint256_t>(getDSBlockMessage, curr_offset, 0,
+                                       UINT256_SIZE);
     curr_offset += UINT256_SIZE;
 
-    Serializable::SetNumber<uint256_t>(getDSBlockMessage, curr_offset, 
-                                       1, UINT256_SIZE);
+    Serializable::SetNumber<uint256_t>(getDSBlockMessage, curr_offset, 1,
+                                       UINT256_SIZE);
     curr_offset += UINT256_SIZE;
 
-    Serializable::SetNumber<uint32_t>(getDSBlockMessage, curr_offset, 
-                                      5000, sizeof(uint32_t));
+    Serializable::SetNumber<uint32_t>(getDSBlockMessage, curr_offset, 5000,
+                                      sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
     P2PComm::GetInstance().SendMessage(lookup_node, getDSBlockMessage);
@@ -136,7 +144,7 @@ BOOST_AUTO_TEST_CASE (testDSBlockRetrieval)
 
 //     LOG_MARKER();
 
-//     uint32_t listen_port = 5000; 
+//     uint32_t listen_port = 5000;
 //     struct in_addr ip_addr;
 //     inet_aton("127.0.0.1", &ip_addr);
 //     Peer lookup_node((uint128_t)ip_addr.s_addr, listen_port);
@@ -161,9 +169,9 @@ BOOST_AUTO_TEST_CASE (testDSBlockRetrieval)
 
 //     std::pair<PrivKey, PubKey> pubKey1 = Schnorr::GetInstance().GenKeyPair();
 
-//     TxBlockHeader header(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1, 1, BlockHash(), 0, 
+//     TxBlockHeader header(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1, 1, BlockHash(), 0,
 //                             get_time_as_int(), TxnHash(), 0, 5, pubKey1.second, 0, BlockHash());
-    
+
 //     array<unsigned char, BLOCK_SIG_SIZE> emptySig = { 0 };
 
 //     std::vector<TxnHash> tranHashes;
@@ -188,7 +196,7 @@ BOOST_AUTO_TEST_CASE (testDSBlockRetrieval)
 
 //     LOG_MARKER();
 
-//     uint32_t listen_port = 5000; 
+//     uint32_t listen_port = 5000;
 //     struct in_addr ip_addr;
 //     inet_aton("127.0.0.1", &ip_addr);
 //     Peer lookup_node((uint128_t)ip_addr.s_addr, listen_port);
@@ -206,7 +214,7 @@ BOOST_AUTO_TEST_CASE (testDSBlockRetrieval)
 //     	array<unsigned char, BLOCK_SIG_SIZE> sign;
 //     	Transaction transaction(0, i, addr, addr, i+1, sign);
 //         transaction.Serialize(txbodymsg, curr_offset);
-//         curr_offset += Transaction::GetSerializedSize(); 
+//         curr_offset += Transaction::GetSerializedSize();
 //     }
 
 //    	P2PComm::GetInstance().SendMessage(lookup_node, txbodymsg);
@@ -214,4 +222,4 @@ BOOST_AUTO_TEST_CASE (testDSBlockRetrieval)
 // //    BOOST_CHECK_MESSAGE("vegetable" == "vegetable", "ERROR: return value from DB not equal to inserted value");
 // }
 
-BOOST_AUTO_TEST_SUITE_END ()
+BOOST_AUTO_TEST_SUITE_END()

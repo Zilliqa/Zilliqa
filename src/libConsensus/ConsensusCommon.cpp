@@ -18,18 +18,20 @@
 #include "ConsensusCommon.h"
 #include "common/Constants.h"
 #include "common/Messages.h"
-#include "libUtils/Logger.h"
-#include "libUtils/DataConversion.h"
 #include "libNetwork/P2PComm.h"
+#include "libUtils/DataConversion.h"
+#include "libUtils/Logger.h"
 
 using namespace std;
 
 unsigned int GetBitVectorLengthInBytes(unsigned int length_in_bits)
 {
-    return (((length_in_bits & 0x07) > 0) ? (length_in_bits >> 3) + 1 : length_in_bits >> 3);
+    return (((length_in_bits & 0x07) > 0) ? (length_in_bits >> 3) + 1
+                                          : length_in_bits >> 3);
 }
 
-vector<bool> GetBitVector(const vector<unsigned char> & src, unsigned int offset, unsigned int expected_length)
+vector<bool> GetBitVector(const vector<unsigned char>& src, unsigned int offset,
+                          unsigned int expected_length)
 {
     vector<bool> result;
     unsigned int actual_length = 0;
@@ -41,22 +43,26 @@ vector<bool> GetBitVector(const vector<unsigned char> & src, unsigned int offset
         actual_length_bytes = GetBitVectorLengthInBytes(actual_length);
     }
 
-    if ((actual_length_bytes == expected_length) && ((src.size() - offset - 2) >= actual_length_bytes))
+    if ((actual_length_bytes == expected_length)
+        && ((src.size() - offset - 2) >= actual_length_bytes))
     {
         result.reserve(actual_length);
         for (unsigned int index = 0; index < actual_length; index++)
         {
-            result.push_back(src.at(offset + 2 + (index >> 3)) & (1 << (7 - (index & 0x07))));
+            result.push_back(src.at(offset + 2 + (index >> 3))
+                             & (1 << (7 - (index & 0x07))));
         }
     }
 
     return result;
 }
 
-unsigned int SetBitVector(vector<unsigned char> & dst, unsigned int offset, const vector<bool> & value)
+unsigned int SetBitVector(vector<unsigned char>& dst, unsigned int offset,
+                          const vector<bool>& value)
 {
     const unsigned int length_available = dst.size() - offset;
-    const unsigned int length_needed = 2 + GetBitVectorLengthInBytes(value.size());
+    const unsigned int length_needed
+        = 2 + GetBitVectorLengthInBytes(value.size());
 
     if (length_available < length_needed)
     {
@@ -80,17 +86,19 @@ unsigned int SetBitVector(vector<unsigned char> & dst, unsigned int offset, cons
     return length_needed;
 }
 
-ConsensusCommon::ConsensusCommon
-(
-    uint32_t consensus_id,
-    const vector<unsigned char> & block_hash,
-    uint16_t my_id,
-    const PrivKey & privkey,
-    const deque<PubKey> & pubkeys,
-    const deque<Peer> & peer_info,
-    unsigned char class_byte,
-    unsigned char ins_byte
-) : TOLERANCE_FRACTION((double) 0.667), m_blockHash(block_hash), m_myPrivKey(privkey), m_pubKeys(pubkeys), m_peerInfo(peer_info), m_responseMap(pubkeys.size(), false)
+ConsensusCommon::ConsensusCommon(uint32_t consensus_id,
+                                 const vector<unsigned char>& block_hash,
+                                 uint16_t my_id, const PrivKey& privkey,
+                                 const deque<PubKey>& pubkeys,
+                                 const deque<Peer>& peer_info,
+                                 unsigned char class_byte,
+                                 unsigned char ins_byte)
+    : TOLERANCE_FRACTION((double)0.667)
+    , m_blockHash(block_hash)
+    , m_myPrivKey(privkey)
+    , m_pubKeys(pubkeys)
+    , m_peerInfo(peer_info)
+    , m_responseMap(pubkeys.size(), false)
 {
     m_consensusID = consensus_id;
     m_myID = my_id;
@@ -98,17 +106,16 @@ ConsensusCommon::ConsensusCommon
     m_insByte = ins_byte;
 }
 
-ConsensusCommon::~ConsensusCommon()
-{
+ConsensusCommon::~ConsensusCommon() {}
 
-}
-
-Signature ConsensusCommon::SignMessage(const vector<unsigned char> & msg, unsigned int offset, unsigned int size)
+Signature ConsensusCommon::SignMessage(const vector<unsigned char>& msg,
+                                       unsigned int offset, unsigned int size)
 {
     LOG_MARKER();
 
     Signature signature;
-    bool result = Schnorr::GetInstance().Sign(msg, offset, size, m_myPrivKey, m_pubKeys.at(m_myID), signature);
+    bool result = Schnorr::GetInstance().Sign(msg, offset, size, m_myPrivKey,
+                                              m_pubKeys.at(m_myID), signature);
     if (result == false)
     {
         return Signature();
@@ -116,15 +123,20 @@ Signature ConsensusCommon::SignMessage(const vector<unsigned char> & msg, unsign
     return signature;
 }
 
-bool ConsensusCommon::VerifyMessage(const vector<unsigned char> & msg, unsigned int offset, unsigned int size, const Signature & toverify, uint16_t peer_id)
+bool ConsensusCommon::VerifyMessage(const vector<unsigned char>& msg,
+                                    unsigned int offset, unsigned int size,
+                                    const Signature& toverify, uint16_t peer_id)
 {
     LOG_MARKER();
-    bool result = Schnorr::GetInstance().Verify(msg, offset, size, toverify, m_pubKeys.at(peer_id));
+    bool result = Schnorr::GetInstance().Verify(msg, offset, size, toverify,
+                                                m_pubKeys.at(peer_id));
 
     if (result == false)
     {
-        LOG_MESSAGE("Peer id: " << peer_id << " pubkey: 0x" << DataConversion::SerializableToHexStr(m_pubKeys.at(peer_id)));
-        LOG_MESSAGE("pubkeys size: " << m_pubKeys.size());   
+        LOG_MESSAGE("Peer id: " << peer_id << " pubkey: 0x"
+                                << DataConversion::SerializableToHexStr(
+                                       m_pubKeys.at(peer_id)));
+        LOG_MESSAGE("pubkeys size: " << m_pubKeys.size());
     }
     return result;
 }
@@ -152,11 +164,13 @@ PubKey ConsensusCommon::AggregateKeys(const vector<bool> peer_map)
     return *result;
 }
 
-CommitPoint ConsensusCommon::AggregateCommits(const vector<CommitPoint> & commits)
+CommitPoint
+ConsensusCommon::AggregateCommits(const vector<CommitPoint>& commits)
 {
     LOG_MARKER();
 
-    shared_ptr<CommitPoint> aggregated_commit = MultiSig::AggregateCommits(commits);
+    shared_ptr<CommitPoint> aggregated_commit
+        = MultiSig::AggregateCommits(commits);
     if (aggregated_commit == nullptr)
     {
         return CommitPoint();
@@ -165,11 +179,12 @@ CommitPoint ConsensusCommon::AggregateCommits(const vector<CommitPoint> & commit
     return *aggregated_commit;
 }
 
-Response ConsensusCommon::AggregateResponses(const vector<Response> & responses)
+Response ConsensusCommon::AggregateResponses(const vector<Response>& responses)
 {
     LOG_MARKER();
 
-    shared_ptr<Response> aggregated_response = MultiSig::AggregateResponses(responses);
+    shared_ptr<Response> aggregated_response
+        = MultiSig::AggregateResponses(responses);
     if (aggregated_response == nullptr)
     {
         return Response();
@@ -178,11 +193,13 @@ Response ConsensusCommon::AggregateResponses(const vector<Response> & responses)
     return *aggregated_response;
 }
 
-Signature ConsensusCommon::AggregateSign(const Challenge & challenge, const Response & aggregated_response)
+Signature ConsensusCommon::AggregateSign(const Challenge& challenge,
+                                         const Response& aggregated_response)
 {
     LOG_MARKER();
 
-    shared_ptr<Signature> result = MultiSig::AggregateSign(challenge, aggregated_response);
+    shared_ptr<Signature> result
+        = MultiSig::AggregateSign(challenge, aggregated_response);
     if (result == nullptr)
     {
         return Signature();
@@ -191,25 +208,27 @@ Signature ConsensusCommon::AggregateSign(const Challenge & challenge, const Resp
     return *result;
 }
 
-Challenge ConsensusCommon::GetChallenge(const vector<unsigned char> & msg, unsigned int offset, unsigned int size, const CommitPoint & aggregated_commit, const PubKey & aggregated_key)
+Challenge ConsensusCommon::GetChallenge(const vector<unsigned char>& msg,
+                                        unsigned int offset, unsigned int size,
+                                        const CommitPoint& aggregated_commit,
+                                        const PubKey& aggregated_key)
 {
     LOG_MARKER();
 
     return Challenge(aggregated_commit, aggregated_key, m_message);
 }
 
-ConsensusCommon::State ConsensusCommon::GetState() const
-{
-    return m_state;
-}
+ConsensusCommon::State ConsensusCommon::GetState() const { return m_state; }
 
-bool ConsensusCommon::RetrieveCollectiveSig(vector<unsigned char> & dst, unsigned int offset)
+bool ConsensusCommon::RetrieveCollectiveSig(vector<unsigned char>& dst,
+                                            unsigned int offset)
 {
     LOG_MARKER();
 
     if (m_state != DONE)
     {
-        LOG_MESSAGE("Error: Retrieving collectivesig when consensus is still ongoing");
+        LOG_MESSAGE(
+            "Error: Retrieving collectivesig when consensus is still ongoing");
         return false;
     }
 
@@ -218,16 +237,18 @@ bool ConsensusCommon::RetrieveCollectiveSig(vector<unsigned char> & dst, unsigne
     return true;
 }
 
-uint16_t ConsensusCommon::RetrieveCollectiveSigBitmap(vector<unsigned char> & dst, unsigned int offset)
+uint16_t
+ConsensusCommon::RetrieveCollectiveSigBitmap(vector<unsigned char>& dst,
+                                             unsigned int offset)
 {
     LOG_MARKER();
 
     if (m_state != DONE)
     {
-        LOG_MESSAGE("Error: Retrieving collectivesig bit map when consensus is still ongoing");
+        LOG_MESSAGE("Error: Retrieving collectivesig bit map when consensus is "
+                    "still ongoing");
         return 0;
     }
 
     return SetBitVector(dst, offset, m_responseMap);
 }
-

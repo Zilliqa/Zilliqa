@@ -18,18 +18,20 @@
 #ifndef __CONSENSUSUSER_H__
 #define __CONSENSUSUSER_H__
 
+#include "Consensus.h"
 #include "common/Broadcastable.h"
 #include "common/Executable.h"
-#include "Consensus.h"
 
 /// [TEST ONLY] Internal class for testing consensus.
 class ConsensusUser : public Executable, public Broadcastable
 {
 private:
-
-	bool ProcessSetLeader(const std::vector<unsigned char> & message, unsigned int offset, const Peer & from);
-    bool ProcessStartConsensus(const std::vector<unsigned char> & message, unsigned int offset, const Peer & from);
-    bool ProcessConsensusMessage(const std::vector<unsigned char> & message, unsigned int offset, const Peer & from);
+    bool ProcessSetLeader(const std::vector<unsigned char>& message,
+                          unsigned int offset, const Peer& from);
+    bool ProcessStartConsensus(const std::vector<unsigned char>& message,
+                               unsigned int offset, const Peer& from);
+    bool ProcessConsensusMessage(const std::vector<unsigned char>& message,
+                                 unsigned int offset, const Peer& from);
 
     std::pair<PrivKey, PubKey> m_selfKey;
     Peer m_selfPeer;
@@ -37,20 +39,23 @@ private:
     std::shared_ptr<ConsensusCommon> m_consensus;
 
 public:
-
     enum InstructionType : unsigned char
     {
         SETLEADER = 0x00,
         STARTCONSENSUS = 0x01,
-        CONSENSUS = 0x02 // These are messages that ConsensusLeader or ConsensusBackup will process (transparent to user)
+        CONSENSUS
+        = 0x02 // These are messages that ConsensusLeader or ConsensusBackup will process (transparent to user)
     };
 
-    ConsensusUser(const std::pair<PrivKey, PubKey> & key, const Peer & peer);
+    ConsensusUser(const std::pair<PrivKey, PubKey>& key, const Peer& peer);
     ~ConsensusUser();
 
-    bool Execute(const std::vector<unsigned char> & message, unsigned int offset, const Peer & from);
+    bool Execute(const std::vector<unsigned char>& message, unsigned int offset,
+                 const Peer& from);
 
-    bool MyMsgValidatorFunc(const std::vector<unsigned char> & message, std::vector<unsigned char> & errorMsg); // Needed by backup
+    bool MyMsgValidatorFunc(
+        const std::vector<unsigned char>& message,
+        std::vector<unsigned char>& errorMsg); // Needed by backup
 };
 
 #endif // __CONSENSUSUSER_H__

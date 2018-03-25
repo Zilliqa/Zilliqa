@@ -18,15 +18,16 @@
 
 #include "Mediator.h"
 #include "common/Constants.h"
-#include "libUtils/DataConversion.h"
-#include "libData/BlockChainData/DSBlockChain.h"
 #include "libCrypto/Sha2.h"
+#include "libData/BlockChainData/DSBlockChain.h"
 #include "libData/BlockChainData/TxBlockChain.h"
+#include "libUtils/DataConversion.h"
 
 using namespace std;
 
-Mediator::Mediator(const pair<PrivKey, PubKey> & key, const Peer & peer) :
-        m_selfKey(key), m_selfPeer(peer)
+Mediator::Mediator(const pair<PrivKey, PubKey>& key, const Peer& peer)
+    : m_selfKey(key)
+    , m_selfPeer(peer)
 {
     m_ds = nullptr;
     m_node = nullptr;
@@ -35,12 +36,10 @@ Mediator::Mediator(const pair<PrivKey, PubKey> & key, const Peer & peer) :
     m_isRetrievedHistory = false;
 }
 
-Mediator::~Mediator()
-{
+Mediator::~Mediator() {}
 
-}
-
-void Mediator::RegisterColleagues(DirectoryService *ds, Node *node, Lookup *lookup)
+void Mediator::RegisterColleagues(DirectoryService* ds, Node* node,
+                                  Lookup* lookup)
 {
     m_ds = ds;
     m_node = node;

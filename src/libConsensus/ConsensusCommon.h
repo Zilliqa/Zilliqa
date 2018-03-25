@@ -18,32 +18,30 @@
 #ifndef __CONSENSUSCOMMON_H__
 #define __CONSENSUSCOMMON_H__
 
-#include <vector>
-#include <memory>
-#include <functional>
-#include <mutex>
 #include <deque>
+#include <functional>
+#include <memory>
+#include <mutex>
+#include <vector>
 
 #include "libCrypto/MultiSig.h"
 #include "libNetwork/PeerStore.h"
 #include "libUtils/TimeLockedFunction.h"
 
-typedef std::function<bool(const std::vector<unsigned char> & input, 
-                           std::vector<unsigned char> & errorMsg)> MsgContentValidatorFunc;
+typedef std::function<bool(const std::vector<unsigned char>& input,
+                           std::vector<unsigned char>& errorMsg)>
+    MsgContentValidatorFunc;
 
 unsigned int GetBitVectorLengthInBytes(unsigned int length_in_bits);
-vector<bool> GetBitVector(const vector<unsigned char> & src, 
-                            unsigned int offset, 
-                            unsigned int expected_length);
-unsigned int SetBitVector(vector<unsigned char> & dst, 
-                            unsigned int offset, 
-                            const vector<bool> & value);
+vector<bool> GetBitVector(const vector<unsigned char>& src, unsigned int offset,
+                          unsigned int expected_length);
+unsigned int SetBitVector(vector<unsigned char>& dst, unsigned int offset,
+                          const vector<bool>& value);
 
 /// Implements base functionality shared between all consensus committee members
 class ConsensusCommon
 {
 public:
-
     enum State
     {
         INITIAL = 0x00,
@@ -60,7 +58,6 @@ public:
     };
 
 protected:
-
     enum ConsensusMessageType : unsigned char
     {
         ANNOUNCE = 0x00,
@@ -82,7 +79,7 @@ protected:
     /// The minimum fraction of peers necessary to achieve consensus.
     const double TOLERANCE_FRACTION;
 
-    /// The unique ID assigned to the active consensus session. 
+    /// The unique ID assigned to the active consensus session.
     uint32_t m_consensusID;
 
     /// [TODO] The unique block hash assigned to the active consensus session.
@@ -116,51 +113,48 @@ protected:
     std::vector<bool> m_responseMap;
 
     /// Constructor.
-    ConsensusCommon
-    (
-        uint32_t consensus_id,
-        const std::vector<unsigned char> & block_hash,
-        uint16_t my_id,
-        const PrivKey & privkey,
-        const std::deque<PubKey> & pubkeys,
-        const std::deque<Peer> & peer_info,
-        unsigned char class_byte,
-        unsigned char ins_byte
-    );
+    ConsensusCommon(uint32_t consensus_id,
+                    const std::vector<unsigned char>& block_hash,
+                    uint16_t my_id, const PrivKey& privkey,
+                    const std::deque<PubKey>& pubkeys,
+                    const std::deque<Peer>& peer_info, unsigned char class_byte,
+                    unsigned char ins_byte);
 
     /// Destructor.
     ~ConsensusCommon();
 
     /// Generates the signature over a consensus message.
-    Signature SignMessage(const std::vector<unsigned char> & msg, unsigned int offset, 
-                          unsigned int size);
+    Signature SignMessage(const std::vector<unsigned char>& msg,
+                          unsigned int offset, unsigned int size);
 
     /// Verifies the signature attached to a consensus message.
-    bool VerifyMessage(const std::vector<unsigned char> & msg, unsigned int offset, 
-                       unsigned int size, const Signature & toverify, uint16_t peer_id);
+    bool VerifyMessage(const std::vector<unsigned char>& msg,
+                       unsigned int offset, unsigned int size,
+                       const Signature& toverify, uint16_t peer_id);
 
     /// Aggregates public keys according to the response map.
     PubKey AggregateKeys(const std::vector<bool> peer_map);
 
     /// Aggregates the list of received commits.
-    CommitPoint AggregateCommits(const std::vector<CommitPoint> & commits);
+    CommitPoint AggregateCommits(const std::vector<CommitPoint>& commits);
 
     /// Aggregates the list of received responses.
-    Response AggregateResponses(const std::vector<Response> & responses);
+    Response AggregateResponses(const std::vector<Response>& responses);
 
     /// Generates the collective signature.
-    Signature AggregateSign(const Challenge & challenge, const Response & aggregated_response);
+    Signature AggregateSign(const Challenge& challenge,
+                            const Response& aggregated_response);
 
     /// Generates the challenge according to the aggregated commit and key.
-    Challenge GetChallenge(const std::vector<unsigned char> & msg, unsigned int offset, 
-                           unsigned int size, const CommitPoint & aggregated_commit, 
-                           const PubKey & aggregated_key);
+    Challenge GetChallenge(const std::vector<unsigned char>& msg,
+                           unsigned int offset, unsigned int size,
+                           const CommitPoint& aggregated_commit,
+                           const PubKey& aggregated_key);
 
 public:
-
     /// Consensus message processing function
-    virtual bool ProcessMessage(const std::vector<unsigned char> & message, unsigned int offset, 
-                                const Peer & from)
+    virtual bool ProcessMessage(const std::vector<unsigned char>& message,
+                                unsigned int offset, const Peer& from)
     {
         return false; // Should be implemented by ConsensusLeader and ConsensusBackup
     }
@@ -169,10 +163,12 @@ public:
     State GetState() const;
 
     /// Returns the final collective signature
-    bool RetrieveCollectiveSig(std::vector<unsigned char> & dst, unsigned int offset);
+    bool RetrieveCollectiveSig(std::vector<unsigned char>& dst,
+                               unsigned int offset);
 
     /// Returns the response map for the generated final collective signature
-    uint16_t RetrieveCollectiveSigBitmap(std::vector<unsigned char> & dst, unsigned int offset);
+    uint16_t RetrieveCollectiveSigBitmap(std::vector<unsigned char>& dst,
+                                         unsigned int offset);
 };
 
 #endif // __CONSENSUSCOMMON_H__

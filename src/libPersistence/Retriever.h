@@ -17,27 +17,28 @@
 #ifndef __RETRIEVER_H__
 #define __RETRIEVER_H__
 
-#include <map>
 #include <list>
+#include <map>
 #include <unordered_map>
 
-#include "libData/AccountData/Address.h"
 #include "libData/AccountData/Account.h"
+#include "libData/AccountData/Address.h"
 #include "libMediator/Mediator.h"
 
 class Retriever
 {
 public:
-	Retriever(Mediator& mediator);
-	
-	void RetrieveDSBlocks(bool & result);
-	
-	void RetrieveTxBlocks(bool & result);
-	bool RetrieveStates();
-	bool ValidateStates();
-	bool CleanExtraTxBodies();
+    Retriever(Mediator& mediator);
+
+    void RetrieveDSBlocks(bool& result);
+
+    void RetrieveTxBlocks(bool& result);
+    bool RetrieveStates();
+    bool ValidateStates();
+    bool CleanExtraTxBodies();
+
 private:
-	Mediator & m_mediator;
+    Mediator& m_mediator;
 };
 
 #endif // __RETRIEVER_H__

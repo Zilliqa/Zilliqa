@@ -18,11 +18,11 @@
 #ifndef __CONSENSUSBACKUP_H__
 #define __CONSENSUSBACKUP_H__
 
-#include <vector>
-#include <memory>
-#include <functional>
-#include <mutex>
 #include <deque>
+#include <functional>
+#include <memory>
+#include <mutex>
+#include <vector>
 
 #include "ConsensusCommon.h"
 #include "libCrypto/MultiSig.h"
@@ -33,7 +33,6 @@
 class ConsensusBackup : public ConsensusCommon
 {
 private:
-
     enum Action
     {
         PROCESS_ANNOUNCE = 0x00,
@@ -58,50 +57,63 @@ private:
 
     // Internal functions
     bool CheckState(Action action);
-    bool ProcessMessageAnnounce(const std::vector<unsigned char> & announcement,
+    bool ProcessMessageAnnounce(const std::vector<unsigned char>& announcement,
                                 unsigned int offset);
-    bool GenerateCommitFailureMessage(vector<unsigned char> & commitFailure, unsigned int offset,
-                                      const vector<unsigned char> & errorMsg);
-    bool ProcessMessageConsensusFailure(const vector<unsigned char> & consensusFailure,
-                                        unsigned int offset);
-    bool GenerateCommitMessage(std::vector<unsigned char> & commit, unsigned int offset);
-    bool ProcessMessageChallengeCore(const std::vector<unsigned char> & challenge, 
-                                     unsigned int offset, Action action, 
-                                     ConsensusMessageType returnmsgtype, State nextstate);
-    bool ProcessMessageChallenge(const std::vector<unsigned char> & challenge, unsigned int offset);
-    bool GenerateResponseMessage(std::vector<unsigned char> & response, unsigned int offset);
-    bool ProcessMessageCollectiveSigCore(const std::vector<unsigned char> & collectivesig,
-                                         unsigned int offset, Action action, State nextstate);
-    bool ProcessMessageCollectiveSig(const std::vector<unsigned char> & collectivesig, 
-                                     unsigned int offset);
-    bool ProcessMessageFinalChallenge(const std::vector<unsigned char> & challenge,
-                                      unsigned int offset);
-    bool ProcessMessageFinalCollectiveSig(const std::vector<unsigned char> & finalcollectivesig,
-                                          unsigned int offset);
+    bool GenerateCommitFailureMessage(vector<unsigned char>& commitFailure,
+                                      unsigned int offset,
+                                      const vector<unsigned char>& errorMsg);
+    bool ProcessMessageConsensusFailure(
+        const vector<unsigned char>& consensusFailure, unsigned int offset);
+    bool GenerateCommitMessage(std::vector<unsigned char>& commit,
+                               unsigned int offset);
+    bool ProcessMessageChallengeCore(
+        const std::vector<unsigned char>& challenge, unsigned int offset,
+        Action action, ConsensusMessageType returnmsgtype, State nextstate);
+    bool ProcessMessageChallenge(const std::vector<unsigned char>& challenge,
+                                 unsigned int offset);
+    bool GenerateResponseMessage(std::vector<unsigned char>& response,
+                                 unsigned int offset);
+    bool ProcessMessageCollectiveSigCore(
+        const std::vector<unsigned char>& collectivesig, unsigned int offset,
+        Action action, State nextstate);
+    bool
+    ProcessMessageCollectiveSig(const std::vector<unsigned char>& collectivesig,
+                                unsigned int offset);
+    bool
+    ProcessMessageFinalChallenge(const std::vector<unsigned char>& challenge,
+                                 unsigned int offset);
+    bool ProcessMessageFinalCollectiveSig(
+        const std::vector<unsigned char>& finalcollectivesig,
+        unsigned int offset);
 
 public:
-
     /// Constructor.
-    ConsensusBackup
-    (
-        uint32_t consensus_id,                         // unique identifier for this consensus session
-        const std::vector<unsigned char> & block_hash, // unique identifier for this consensus session
-        uint16_t node_id,                              // backup's identifier (= index in some ordered lookup table shared by all nodes)
-        uint16_t leader_id,                            // leader's identifier (= index in some ordered lookup table shared by all nodes)
-        const PrivKey & privkey,                       // backup's private key
-        const std::deque<PubKey> & pubkeys,            // ordered lookup table of pubkeys for this committee (includes leader)
-        const std::deque<Peer> & peer_info,            // IP addresses of peers
-        unsigned char class_byte,                      // class byte representing Executable class using this instance of ConsensusBackup
-        unsigned char ins_byte,                        // instruction byte representing consensus messages for the Executable class
-        MsgContentValidatorFunc msg_validator          // function handler for validating the content of message for consensus (e.g., Tx block)
+    ConsensusBackup(
+        uint32_t consensus_id, // unique identifier for this consensus session
+        const std::vector<unsigned char>&
+            block_hash, // unique identifier for this consensus session
+        uint16_t
+            node_id, // backup's identifier (= index in some ordered lookup table shared by all nodes)
+        uint16_t
+            leader_id, // leader's identifier (= index in some ordered lookup table shared by all nodes)
+        const PrivKey& privkey, // backup's private key
+        const std::deque<PubKey>&
+            pubkeys, // ordered lookup table of pubkeys for this committee (includes leader)
+        const std::deque<Peer>& peer_info, // IP addresses of peers
+        unsigned char
+            class_byte, // class byte representing Executable class using this instance of ConsensusBackup
+        unsigned char
+            ins_byte, // instruction byte representing consensus messages for the Executable class
+        MsgContentValidatorFunc
+            msg_validator // function handler for validating the content of message for consensus (e.g., Tx block)
     );
 
     /// Destructor.
     ~ConsensusBackup();
 
     /// Function to process any consensus message received.
-    bool ProcessMessage(const std::vector<unsigned char> & message, unsigned int offset, 
-                        const Peer & from);
+    bool ProcessMessage(const std::vector<unsigned char>& message,
+                        unsigned int offset, const Peer& from);
 };
 
 #endif // __CONSENSUSBACKUP_H__
