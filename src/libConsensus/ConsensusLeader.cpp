@@ -41,11 +41,13 @@ bool ConsensusLeader::CheckState(Action action)
             result = false;
             break;
         case CHALLENGE_DONE:
-            LOG_MESSAGE("Error: Processing announce but challenge already done");
+            LOG_MESSAGE(
+                "Error: Processing announce but challenge already done");
             result = false;
             break;
         case COLLECTIVESIG_DONE:
-            LOG_MESSAGE("Error: Processing announce but collectivesig already done");
+            LOG_MESSAGE(
+                "Error: Processing announce but collectivesig already done");
             result = false;
             break;
         case FINALCHALLENGE_DONE:
@@ -54,7 +56,8 @@ bool ConsensusLeader::CheckState(Action action)
             result = false;
             break;
         case DONE:
-            LOG_MESSAGE("Error: Processing announce but consensus already done");
+            LOG_MESSAGE(
+                "Error: Processing announce but consensus already done");
             result = false;
             break;
         case ERROR:

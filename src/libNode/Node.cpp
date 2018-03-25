@@ -309,7 +309,8 @@ bool Node::CheckState(Action action)
             result = false;
             break;
         case ERROR:
-            LOG_MESSAGE("Error: Doing PROCESS_SHARDING but receiving ERROR message");
+            LOG_MESSAGE(
+                "Error: Doing PROCESS_SHARDING but receiving ERROR message");
             result = false;
             break;
         default:
@@ -361,7 +362,8 @@ bool Node::CheckState(Action action)
             result = false;
             break;
         case ERROR:
-            LOG_MESSAGE("Error: Doing PROCESS_MICROBLOCKSUBMISSION but receiving ERROR message");
+            LOG_MESSAGE("Error: Doing PROCESS_MICROBLOCKSUBMISSION but "
+                        "receiving ERROR message");
             result = false;
             break;
         default:
@@ -413,7 +415,8 @@ bool Node::CheckState(Action action)
         case WAITING_FINALBLOCK:
             break;
         case ERROR:
-            LOG_MESSAGE("Error: Doing WAITING_FINALBLOCK but receiving ERROR message");
+            LOG_MESSAGE(
+                "Error: Doing WAITING_FINALBLOCK but receiving ERROR message");
             result = false;
             break;
         default:
