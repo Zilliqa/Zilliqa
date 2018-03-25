@@ -14,7 +14,6 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-
 #ifndef __SERIALIZABLE_H__
 #define __SERIALIZABLE_H__
 
@@ -24,12 +23,14 @@
 class Serializable
 {
 public:
-
     /// Serializes internal state to destination byte stream.
-    virtual unsigned int Serialize(std::vector<unsigned char> & dst, unsigned int offset) const = 0;
+    virtual unsigned int Serialize(std::vector<unsigned char>& dst,
+                                   unsigned int offset) const = 0;
 
     /// Deserializes source byte stream into internal state.
-    virtual void Deserialize(const std::vector<unsigned char> & src, unsigned int offset) = 0;
+    virtual int Deserialize(const std::vector<unsigned char>& src,
+                            unsigned int offset)
+        = 0;
 
     /// Virtual destructor.
     virtual ~Serializable() {}
@@ -37,7 +38,9 @@ public:
     /// Template function for extracting a number from the source byte stream at the specified offset.
     /// Returns 0 if there are not enough bytes to read from the stream.
     template<class numerictype>
-    static numerictype GetNumber(const std::vector<unsigned char> & src, unsigned int offset, unsigned int numerictype_len)
+    static numerictype GetNumber(const std::vector<unsigned char>& src,
+                                 unsigned int offset,
+                                 unsigned int numerictype_len)
     {
         numerictype result = 0;
 
@@ -58,7 +61,8 @@ public:
     /// Template function for placing a number into the destination byte stream at the specified offset.
     /// Destination is resized if necessary.
     template<class numerictype>
-    static void SetNumber(std::vector<unsigned char> & dst, unsigned int offset, numerictype value, unsigned int numerictype_len)
+    static void SetNumber(std::vector<unsigned char>& dst, unsigned int offset,
+                          numerictype value, unsigned int numerictype_len)
     {
         const unsigned int length_available = dst.size() - offset;
 
@@ -70,7 +74,8 @@ public:
         unsigned int right_shift = (numerictype_len - 1) * 8;
         for (unsigned int i = 0; i < numerictype_len; i++)
         {
-            dst.at(offset + i) = static_cast<unsigned char>((value >> right_shift) & 0xFF);
+            dst.at(offset + i)
+                = static_cast<unsigned char>((value >> right_shift) & 0xFF);
             right_shift -= 8;
         }
     }

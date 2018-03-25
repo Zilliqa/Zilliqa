@@ -14,238 +14,661 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#ifdef IS_LOOKUP_NODE 
+#ifdef IS_LOOKUP_NODE
 
 #include "JSONConversion.h"
 
-#include <iostream>
+#include <boost/multiprecision/cpp_dec_float.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
-#include <deque>
+#include <iostream>
 #include <jsonrpccpp/server.h>
-#include <jsonrpccpp/server/connectors/httpserver.h>
-
 
 #include "Server.h"
+#include "common/Messages.h"
+#include "common/Serializable.h"
 #include "libCrypto/Schnorr.h"
+#include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 #include "libMediator/Mediator.h"
-#include "libUtils/Logger.h"
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/Peer.h"
-#include "common/Serializable.h"
-#include "common/Messages.h"
+#include "libPersistence/BlockStorage.h"
+#include "libUtils/Logger.h"
+#include "libUtils/TimeUtils.h"
 
 using namespace jsonrpc;
 using namespace std;
 
+CircularArray<std::string> Server::m_RecentTransactions;
+std::mutex Server::m_mutexRecentTxns;
 
-
-Server::Server(Mediator & mediator, HttpServer & httpserver) : AbstractZServer(httpserver), m_mediator(mediator)
+const unsigned int PAGE_SIZE = 10;
+const unsigned int NUM_PAGES_CACHE = 2;
+Server::Server(Mediator& mediator, HttpServer& httpserver)
+    : AbstractZServer(httpserver)
+    , m_mediator(mediator)
 {
-	// constructor
+    m_StartTimeTx = 0;
+    m_StartTimeDs = 0;
+    m_DSBlockCache.first = 0;
+    m_DSBlockCache.second.resize(NUM_PAGES_CACHE * PAGE_SIZE);
+    m_DSBlockCache.second.push_back(
+        "6babe1baa82cf5625c33970b8c7dc0f6ae8f5d0f21575efdf2733e3ecef34c78");
+    m_TxBlockCache.first = 0;
+    m_TxBlockCache.second.resize(NUM_PAGES_CACHE * PAGE_SIZE);
+    m_TxBlockCache.second.push_back(
+        "32877419b0d2bf10dee7a7d306deddc5d7d972fa69ae7affcec575781002cfc3");
+    m_RecentTransactions.resize(PAGE_SIZE);
 }
 
-Server::~Server() 
+Server::~Server()
 {
-	// destructor
+    // destructor
 }
 
-string Server::getClientVersion()
+string Server::GetClientVersion() { return "Hello"; }
+
+string Server::GetNetworkId() { return "TestNet"; }
+
+string Server::GetProtocolVersion() { return "Hello"; }
+
+string Server::CreateTransaction(const Json::Value& _json)
 {
-	return "Hello";
-}
+    LOG_MARKER();
 
-string Server::getNetworkId()
-{
-	return "TestNet";
-}
+    if (!JSONConversion::checkJsonTx(_json))
+    {
+        return "Invalid Tx Json";
+    }
 
-string Server::getProtocolVersion()
-{
-	return "Hello";
-}
+    Transaction tx = JSONConversion::convertJsontoTx(_json);
 
-string Server::createTransaction(const Json::Value& _json)
-{
-	LOG_MARKER();
+    if (!Transaction::Verify(tx))
+    {
+        return "Signature incorrect";
+    }
 
-	if(!JSONConversion::checkJsonTx(_json))
-	{
-		return "Invalid Tx Json";
-	}
-
-	Transaction tx = JSONConversion::convertJsontoTx(_json);
-
-	if(!Transaction::Verify(tx))
-	{
-		return "Signature incorrect";
-	}
- 
-	//LOG_MESSAGE("Nonce: "<<tx.GetNonce().str()<<" toAddr: "<<tx.GetToAddr().hex()<<" senderPubKey: "<<static_cast<string>(tx.GetSenderPubKey());<<" amount: "<<tx.GetAmount().str());
+    //LOG_MESSAGE("Nonce: "<<tx.GetNonce().str()<<" toAddr: "<<tx.GetToAddr().hex()<<" senderPubKey: "<<static_cast<string>(tx.GetSenderPubKey());<<" amount: "<<tx.GetAmount().str());
 
     unsigned int num_shards = m_mediator.m_lookup->GetShardPeers().size();
 
-    
-    const PubKey & senderPubKey = tx.GetSenderPubKey();
+    const PubKey& senderPubKey = tx.GetSenderPubKey();
     const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
     unsigned int curr_offset = 0;
-    
-    if( num_shards > 0 )
+
+    if (num_shards > 0)
     {
-    	unsigned int shard = Transaction::GetShardIndex(fromAddr, num_shards);
-    	map <PubKey, Peer> shardMembers = m_mediator.m_lookup->GetShardPeers().at(shard);
-    	LOG_MESSAGE("The Tx Belongs to "<<shard<<" Shard");
+        unsigned int shard = Transaction::GetShardIndex(fromAddr, num_shards);
+        map<PubKey, Peer> shardMembers
+            = m_mediator.m_lookup->GetShardPeers().at(shard);
+        LOG_MESSAGE("The Tx Belongs to " << shard << " Shard");
 
-    	vector<unsigned char> tx_message = {MessageType::NODE, NodeInstructionType::CREATETRANSACTIONFROMLOOKUP};
-    	curr_offset += MessageOffset::BODY;
+        vector<unsigned char> tx_message
+            = {MessageType::NODE,
+               NodeInstructionType::CREATETRANSACTIONFROMLOOKUP};
+        curr_offset += MessageOffset::BODY;
 
-    	tx.Serialize(tx_message, curr_offset);
+        tx.Serialize(tx_message, curr_offset);
 
-    	LOG_MESSAGE("Tx Serialized");
+        LOG_MESSAGE("Tx Serialized");
 
-    	vector<Peer> toSend;
+        vector<Peer> toSend;
 
-    	auto it = shardMembers.begin();
-    	for(unsigned int i = 0; i < NUM_PEERS_TO_SEND_IN_A_SHARD && it!=shardMembers.end() ; i++, it++ )
-    	{
-    		toSend.push_back(it->second);
+        auto it = shardMembers.begin();
+        for (unsigned int i = 0;
+             i < NUM_PEERS_TO_SEND_IN_A_SHARD && it != shardMembers.end();
+             i++, it++)
+        {
+            toSend.push_back(it->second);
+        }
 
-    	}
-	
-	
-
-    	P2PComm::GetInstance().SendMessage(toSend, tx_message);
-
-    	
+        P2PComm::GetInstance().SendMessage(toSend, tx_message);
     }
     else
     {
-    	LOG_MESSAGE("No shards yet");
+        LOG_MESSAGE("No shards yet");
 
-    	return "Could Not Create Transaction";
+        return "Could Not Create Transaction";
     }
 
-    
-   	return tx.GetTranID().hex();
-   	
+    return tx.GetTranID().hex();
 }
 
-Json::Value Server::getTransaction(const string & transactionHash)
+Json::Value Server::GetTransaction(const string& transactionHash)
 {
-	return "Hello";
+    LOG_MARKER();
+    TxBodySharedPtr tx;
+    TxnHash tranHash(transactionHash);
+    bool isPresent = BlockStorage::GetBlockStorage().GetTxBody(tranHash, tx);
+    if (!isPresent)
+    {
+        Json::Value _json;
+        _json["error"] = "Txn Hash not Present";
+        return _json;
+    }
+    Transaction txn(tx->GetVersion(), tx->GetNonce(), tx->GetToAddr(),
+                    tx->GetSenderPubKey(), tx->GetAmount(), tx->GetSignature());
+    return JSONConversion::convertTxtoJson(txn);
 }
 
-Json::Value Server::getDsBlock(const string & blockHash)
+Json::Value Server::GetDsBlock(const string& blockNum)
 {
-	return "Hello";
+
+    try
+    {
+        boost::multiprecision::uint256_t BlockNum(blockNum);
+        return JSONConversion::convertDSblocktoJson(
+            m_mediator.m_dsBlockChain.GetBlock(BlockNum));
+    }
+    catch (const char* msg)
+    {
+        Json::Value _json;
+        _json["Error"] = msg;
+        return _json;
+    }
 }
 
-Json::Value Server::getTxBlock(const string & blockHash)
+Json::Value Server::GetTxBlock(const string& blockNum)
 {
-	return "Hello";
+    try
+    {
+        boost::multiprecision::uint256_t BlockNum(blockNum);
+        return JSONConversion::convertTxBlocktoJson(
+            m_mediator.m_txBlockChain.GetBlock(BlockNum));
+    }
+    catch (const char* msg)
+    {
+        Json::Value _json;
+        _json["Error"] = msg;
+        return _json;
+    }
 }
 
-string Server::getGasPrice()
+string Server::GetGasPrice() { return "Hello"; }
+
+Json::Value Server::GetLatestDsBlock()
 {
-	return "Hello";
+    LOG_MARKER();
+    DSBlock Latest = m_mediator.m_dsBlockChain.GetLastBlock();
+
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                 "BlockNum " << Latest.GetHeader().GetBlockNum().str()
+                             << "  Timestamp:        "
+                             << Latest.GetHeader().GetTimestamp().str());
+
+    return JSONConversion::convertDSblocktoJson(Latest);
 }
 
-Json::Value Server::getLatestDsBlock()
+Json::Value Server::GetLatestTxBlock()
 {
-	LOG_MARKER();
-	DSBlock Latest = m_mediator.m_dsBlockChain.GetLastBlock();
-	
-	LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Call to getLatestDsBlock, BlockNum "<<Latest.GetHeader().GetBlockNum().str()<<"  Timestamp: 		"<<Latest.GetHeader().GetTimestamp().str());
-	
-	return JSONConversion::convertDSblocktoJson(Latest);
+    LOG_MARKER();
+    TxBlock Latest = m_mediator.m_txBlockChain.GetLastBlock();
+
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                 "BlockNum " << Latest.GetHeader().GetBlockNum().str()
+                             << "  Timestamp:        "
+                             << Latest.GetHeader().GetTimestamp().str());
+
+    return JSONConversion::convertTxBlocktoJson(Latest);
 }
 
-Json::Value Server::getLatestTxBlock()
+Json::Value Server::GetBalance(const string& address)
 {
-	LOG_MARKER();
-	TxBlock Latest = m_mediator.m_txBlockChain.GetLastBlock();
+    LOG_MARKER();
+    vector<unsigned char> tmpaddr = DataConversion::HexStrToUint8Vec(address);
+    Address addr(tmpaddr);
+    const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
-	LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Call to getLatestTxBlock, BlockNum "<<Latest.GetHeader().GetBlockNum().str()<<"  Timestamp: 		"<<Latest.GetHeader().GetTimestamp().str());
-	
-	return JSONConversion::convertTxBlocktoJson(Latest);
+    Json::Value ret;
+    if (account != nullptr)
+    {
+        boost::multiprecision::uint256_t balance = account->GetBalance();
+        boost::multiprecision::uint256_t nonce = account->GetNonce();
+
+        ret["balance"] = balance.str();
+        ret["nonce"] = nonce.str();
+    }
+    else if (account == nullptr)
+    {
+        ret["balance"] = 0;
+        ret["nonce"] = 0;
+    }
+
+    return ret;
 }
 
-Json::Value Server::getBalance(const string & address)
+string Server::GetStorageAt(const string& address, const string& position)
 {
-	LOG_MARKER();
-	vector<unsigned char> tmpaddr = DataConversion::HexStrToUint8Vec(address);
-	Address addr(tmpaddr);
-	const Account* account = AccountStore::GetInstance().GetAccount(addr);
-
-	Json::Value ret;
-	if(account != nullptr)
-	{
-		boost::multiprecision::uint256_t balance = account->GetBalance();
-		boost::multiprecision::uint256_t nonce = account->GetNonce();
-
-		ret["balance"] = balance.str();
-		ret["nonce"] = nonce.str();
-	}
-	else if(account == nullptr)
-	{
-		ret["balance"] = 0;
-		ret["nonce"] = 0;
-	}
-
-	return ret;
+    return "Hello";
 }
 
-string Server::getStorageAt(const string & address, const string & position)
+Json::Value Server::GetTransactionHistory(const string& transactionHash)
 {
-	return "Hello";
+    return "Hello";
 }
 
-Json::Value Server::getTransactionHistory(const string & transactionHash)
+string Server::GetBlockTransactionCount(const string& blockHash)
 {
-	return "Hello";
+    return "Hello";
 }
 
-string Server::getBlockTransactionCount(const string & blockHash)
+string Server::GetCode(const string& address) { return "Hello"; }
+
+string Server::CreateMessage(const Json::Value& _json) { return "Hello"; }
+
+string Server::GetGasEstimate(const Json::Value& _json) { return "Hello"; }
+
+Json::Value Server::GetTransactionReceipt(const string& transactionHash)
 {
-	return "Hello";
+    return "Hello";
 }
 
-string Server::getCode(const string & address)
+bool Server::isNodeSyncing() { return "Hello"; }
+
+bool Server::isNodeMining() { return "Hello"; }
+
+string Server::GetHashrate() { return "Hello"; }
+
+unsigned int Server::GetNumPeers()
 {
-	return "Hello";
+    LOG_MARKER();
+    unsigned int numPeers = m_mediator.m_lookup->GetNodePeers().size();
+    return numPeers;
 }
 
-string Server::createMessage(const Json::Value &_json)
+string Server::GetNumTxBlocks()
 {
-	return "Hello";
+    LOG_MARKER();
+
+    return m_mediator.m_txBlockChain.GetBlockCount().str();
 }
 
-string Server::getGasEstimate(const Json::Value &_json)
+string Server::GetNumDSBlocks()
 {
-	return "Hello";
+    LOG_MARKER();
+
+    return m_mediator.m_dsBlockChain.GetBlockCount().str();
 }
 
-Json::Value Server::getTransactionReceipt(const string & transactionHash)
+string Server::GetNumTransactions()
 {
-	return "Hello";
+    LOG_MARKER();
+
+    boost::multiprecision::uint256_t currBlock
+        = m_mediator.m_txBlockChain.GetBlockCount() - 1;
+    LOG_MESSAGE("currBlock: " << currBlock.str()
+                              << " State: " << m_BlockTxPair.first);
+    if (m_BlockTxPair.first < currBlock)
+    {
+        for (boost::multiprecision::uint256_t i = m_BlockTxPair.first + 1;
+             i <= currBlock; i++)
+        {
+            m_BlockTxPair.second += m_mediator.m_txBlockChain.GetBlock(i)
+                                        .GetHeader()
+                                        .GetNumTxs();
+        }
+    }
+    m_BlockTxPair.first = currBlock;
+
+    return m_BlockTxPair.second.str();
 }
 
-bool Server::isNodeSyncing()
+double Server::GetTransactionRate()
 {
-	return "Hello";
+    LOG_MARKER();
+
+    string numTxStr = Server::GetNumTransactions();
+    boost::multiprecision::cpp_dec_float_50 numTxns(numTxStr);
+    LOG_MESSAGE("Num Txns: " << numTxns);
+
+    //LOG_MESSAGE("TxBlockStart: "<<m_StartTimeTx<<" NumTxns: "<<numTxns);
+
+    if (m_StartTimeTx == 0) //case when m_StartTime has not been set
+    {
+        try
+        {
+            //Refernce time chosen to be the first block's timestamp
+            TxBlock tx = m_mediator.m_txBlockChain.GetBlock(1);
+            m_StartTimeTx = tx.GetHeader().GetTimestamp();
+        }
+        catch (const char* msg)
+        {
+            //cannot set
+            if (strcmp(msg, "Blocknumber Absent") == 0)
+            {
+                LOG_MESSAGE("No Tx Block has been mined yet");
+            }
+            return 0;
+        }
+    }
+
+    boost::multiprecision::uint256_t TimeDiff
+        = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetTimestamp()
+        - m_StartTimeTx;
+
+    if (TimeDiff == 0)
+    {
+        return 0;
+    }
+    numTxns = numTxns * 1000000; // conversion from microseconds to seconds
+    boost::multiprecision::cpp_dec_float_50 TimeDiffFloat
+        = static_cast<boost::multiprecision::cpp_dec_float_50>(TimeDiff);
+    boost::multiprecision::cpp_dec_float_50 ans = numTxns / TimeDiffFloat;
+
+    return ans.convert_to<double>();
 }
 
-bool Server::isNodeMining()
+double Server::GetDSBlockRate()
 {
-	return "Hello";
+    LOG_MARKER();
+
+    string numDSblockStr = m_mediator.m_dsBlockChain.GetBlockCount().str();
+    boost::multiprecision::cpp_dec_float_50 numDs(numDSblockStr);
+
+    if (m_StartTimeDs == 0) //case when m_StartTime has not been set
+    {
+        try
+        {
+            //Refernce time chosen to be the first block's timestamp
+            DSBlock dsb = m_mediator.m_dsBlockChain.GetBlock(1);
+            m_StartTimeDs = dsb.GetHeader().GetTimestamp();
+        }
+        catch (const char* msg)
+        {
+            if (string(msg) == "Blocknumber Absent")
+            {
+                LOG_MESSAGE("No DSBlock has been mined yet");
+            }
+            return 0;
+        }
+    }
+    boost::multiprecision::uint256_t TimeDiff
+        = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetTimestamp()
+        - m_StartTimeDs;
+
+    if (TimeDiff == 0)
+    {
+        LOG_MESSAGE("Wait till the second block");
+        return 0;
+    }
+    //To convert from microSeconds to seconds
+    numDs = numDs * 1000000;
+    boost::multiprecision::cpp_dec_float_50 TimeDiffFloat
+        = static_cast<boost::multiprecision::cpp_dec_float_50>(TimeDiff);
+    boost::multiprecision::cpp_dec_float_50 ans = numDs / TimeDiffFloat;
+    return ans.convert_to<double>();
 }
 
-string Server::getHashrate()
+double Server::GetTxBlockRate()
 {
-	return "Hello";
+    LOG_MARKER();
+
+    string numTxblockStr = m_mediator.m_txBlockChain.GetBlockCount().str();
+    boost::multiprecision::cpp_dec_float_50 numTx(numTxblockStr);
+
+    if (m_StartTimeTx == 0)
+    {
+        try
+        {
+            //Reference Time chosen to be first block's timestamp
+            TxBlock txb = m_mediator.m_txBlockChain.GetBlock(1);
+            m_StartTimeTx = txb.GetHeader().GetTimestamp();
+        }
+        catch (const char* msg)
+        {
+            if (string(msg) == "Blocknumber Absent")
+            {
+                LOG_MESSAGE("No TxBlock has been mined yet");
+            }
+            return 0;
+        }
+    }
+    boost::multiprecision::uint256_t TimeDiff
+        = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetTimestamp()
+        - m_StartTimeTx;
+
+    if (TimeDiff == 0)
+    {
+        LOG_MESSAGE("Wait till the second block");
+        return 0;
+    }
+    //To convert from microSeconds to seconds
+    numTx = numTx * 1000000;
+    boost::multiprecision::cpp_dec_float_50 TimeDiffFloat(TimeDiff.str());
+    boost::multiprecision::cpp_dec_float_50 ans = numTx / TimeDiffFloat;
+    return ans.convert_to<double>();
 }
 
+string Server::GetCurrentMiniEpoch()
+{
+    LOG_MARKER();
+
+    return to_string(m_mediator.m_currentEpochNum);
+}
+
+string Server::GetCurrentDSEpoch()
+{
+    LOG_MARKER();
+
+    return m_mediator.m_dsBlockChain.GetLastBlock()
+        .GetHeader()
+        .GetBlockNum()
+        .str();
+}
+
+Json::Value Server::DSBlockListing(unsigned int page)
+{
+
+    LOG_MARKER();
+
+    boost::multiprecision::uint256_t currBlockNum
+        = m_mediator.m_dsBlockChain.GetBlockCount() - 1;
+    Json::Value _json;
+
+    auto maxPages = (currBlockNum / PAGE_SIZE) + 1;
+
+    _json["maxPages"] = int(maxPages);
+
+    if (page > maxPages || page < 1)
+    {
+        _json["Error"] = "Pages out of limit";
+        return _json;
+    }
+
+    if (currBlockNum > m_DSBlockCache.first)
+    {
+        for (boost::multiprecision::uint256_t i = m_DSBlockCache.first + 1;
+             i < currBlockNum; i++)
+        {
+            m_DSBlockCache.second.push_back(
+                m_mediator.m_dsBlockChain.GetBlock(i + 1)
+                    .GetHeader()
+                    .GetPrevHash()
+                    .hex());
+        }
+        //for the latest block
+        DSBlockHeader dshead
+            = m_mediator.m_dsBlockChain.GetBlock(currBlockNum).GetHeader();
+        SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+        vector<unsigned char> vec;
+        dshead.Serialize(vec, 0);
+        sha2.Update(vec);
+        const vector<unsigned char>& resVec = sha2.Finalize();
+
+        m_DSBlockCache.second.push_back(
+            DataConversion::Uint8VecToHexStr(resVec));
+        m_DSBlockCache.first = currBlockNum;
+    }
+
+    unsigned int offset = PAGE_SIZE * (page - 1);
+    Json::Value tmpJson;
+    if (page <= NUM_PAGES_CACHE) //can use cache
+    {
+
+        boost::multiprecision::uint256_t cacheSize(
+            m_DSBlockCache.second.capacity());
+        if (cacheSize > m_DSBlockCache.second.size())
+        {
+            cacheSize = m_DSBlockCache.second.size();
+        }
+
+        for (unsigned int i = offset; i < PAGE_SIZE + offset && i < cacheSize;
+             i++)
+        {
+            tmpJson.clear();
+            tmpJson["Hash"] = m_DSBlockCache.second[cacheSize - i - 1];
+            tmpJson["BlockNum"] = int(currBlockNum - i);
+            _json["data"].append(tmpJson);
+        }
+    }
+    else
+    {
+        for (boost::multiprecision::uint256_t i = offset;
+             i < PAGE_SIZE + offset && i <= currBlockNum; i++)
+        {
+            tmpJson.clear();
+            tmpJson["Hash"]
+                = m_mediator.m_dsBlockChain.GetBlock(currBlockNum - i + 1)
+                      .GetHeader()
+                      .GetPrevHash()
+                      .hex();
+            tmpJson["BlockNum"] = int(currBlockNum - i);
+            _json["data"].append(tmpJson);
+        }
+    }
+
+    return _json;
+}
+
+Json::Value Server::TxBlockListing(unsigned int page)
+{
+    LOG_MARKER();
+
+    boost::multiprecision::uint256_t currBlockNum
+        = m_mediator.m_txBlockChain.GetBlockCount() - 1;
+    Json::Value _json;
+
+    auto maxPages = (currBlockNum / PAGE_SIZE) + 1;
+
+    _json["maxPages"] = int(maxPages);
+
+    if (page > maxPages || page < 1)
+    {
+        _json["Error"] = "Pages out of limit";
+        return _json;
+    }
+
+    if (currBlockNum > m_TxBlockCache.first)
+    {
+        for (boost::multiprecision::uint256_t i = m_TxBlockCache.first + 1;
+             i < currBlockNum; i++)
+        {
+            m_TxBlockCache.second.push_back(
+                m_mediator.m_txBlockChain.GetBlock(i + 1)
+                    .GetHeader()
+                    .GetPrevHash()
+                    .hex());
+        }
+        //for the latest block
+        TxBlockHeader txhead
+            = m_mediator.m_txBlockChain.GetBlock(currBlockNum).GetHeader();
+        SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+        vector<unsigned char> vec;
+        txhead.Serialize(vec, 0);
+        sha2.Update(vec);
+        const vector<unsigned char>& resVec = sha2.Finalize();
+
+        m_TxBlockCache.second.push_back(
+            DataConversion::Uint8VecToHexStr(resVec));
+        m_TxBlockCache.first = currBlockNum;
+    }
+
+    unsigned int offset = PAGE_SIZE * (page - 1);
+    Json::Value tmpJson;
+    if (page <= NUM_PAGES_CACHE) //can use cache
+    {
+
+        boost::multiprecision::uint256_t cacheSize(
+            m_TxBlockCache.second.capacity());
+        if (cacheSize > m_TxBlockCache.second.size())
+        {
+            cacheSize = m_TxBlockCache.second.size();
+        }
+
+        for (unsigned int i = offset; i < PAGE_SIZE + offset && i < cacheSize;
+             i++)
+        {
+            tmpJson.clear();
+            tmpJson["Hash"] = m_TxBlockCache.second[cacheSize - i - 1];
+            tmpJson["BlockNum"] = int(currBlockNum - i);
+            _json["data"].append(tmpJson);
+        }
+    }
+    else
+    {
+
+        for (boost::multiprecision::uint256_t i = offset;
+             i < PAGE_SIZE + offset && i <= currBlockNum; i++)
+        {
+            tmpJson.clear();
+            tmpJson["Hash"]
+                = m_mediator.m_txBlockChain.GetBlock(currBlockNum - i + 1)
+                      .GetHeader()
+                      .GetPrevHash()
+                      .hex();
+            tmpJson["BlockNum"] = int(currBlockNum - i);
+            _json["data"].append(tmpJson);
+        }
+    }
+
+    return _json;
+}
+
+Json::Value Server::GetBlockchainInfo()
+{
+    Json::Value _json;
+
+    _json["NumPeers"] = Server::GetNumPeers();
+    _json["NumTxBlocks"] = Server::GetNumTxBlocks();
+    _json["NumDSBlocks"] = Server::GetNumDSBlocks();
+    _json["NumTransactions"] = Server::GetNumTransactions();
+    _json["TransactionRate"] = Server::GetTransactionRate();
+    _json["TxBlockRate"] = Server::GetTxBlockRate();
+    _json["DSBlockRate"] = Server::GetDSBlockRate();
+    _json["CurrentMiniEpoch"] = Server::GetCurrentMiniEpoch();
+    _json["CurrentDSEpoch"] = Server::GetCurrentDSEpoch();
+
+    return _json;
+}
+
+Json::Value Server::GetRecentTransactions()
+{
+    LOG_MARKER();
+
+    lock_guard<mutex> g(m_mutexRecentTxns);
+    Json::Value _json;
+    boost::multiprecision::uint256_t actualSize(
+        m_RecentTransactions.capacity());
+    if (actualSize > m_RecentTransactions.size())
+    {
+        actualSize = m_RecentTransactions.size();
+    }
+    _json["number"] = int(actualSize);
+    _json["TxnHashes"] = Json::Value(Json::arrayValue);
+    for (int i = static_cast<int>(actualSize) - 1; i >= 0; i--)
+    {
+        _json["TxnHashes"].append(m_RecentTransactions[i]);
+    }
+
+    return _json;
+}
+
+void Server::AddToRecentTransactions(const TxnHash& txhash)
+{
+    lock_guard<mutex> g(m_mutexRecentTxns);
+    m_RecentTransactions.push_back(txhash.hex());
+}
 
 #endif //IS_LOOKUP_NODE

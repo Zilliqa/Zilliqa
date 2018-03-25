@@ -14,31 +14,29 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#include <string>
 #include <cassert>
+#include <string>
 
 #include "DB.h"
 
 using namespace std;
 
-DB::DB(const string & name)
+DB::DB(const string& name)
 {
     this->m_db_name = name;
     leveldb::Options options;
     options.create_if_missing = true;
-    leveldb::Status status = leveldb::DB::Open(options, this->m_db_name, &this->m_db);
-    if(!status.ok())
+    leveldb::Status status
+        = leveldb::DB::Open(options, this->m_db_name, &this->m_db);
+    if (!status.ok())
     {
         throw exception();
     }
 }
 
-DB::~DB()
-{
-    delete m_db;
-}
+DB::~DB() { delete m_db; }
 
-string DB::ReadFromDB(const string & key)
+string DB::ReadFromDB(const string& key)
 {
     string value;
     leveldb::Status s = m_db->Get(leveldb::ReadOptions(), key, &value);
@@ -52,12 +50,9 @@ string DB::ReadFromDB(const string & key)
     }
 }
 
-leveldb::DB* DB::GetDB()
-{
-    return this->m_db;
-}
+leveldb::DB* DB::GetDB() { return this->m_db; }
 
-int DB::WriteToDB(const string & key, const string & value)
+int DB::WriteToDB(const string& key, const string& value)
 {
     leveldb::Status s = m_db->Put(leveldb::WriteOptions(), key, value);
     if (!s.ok())
@@ -70,7 +65,7 @@ int DB::WriteToDB(const string & key, const string & value)
     }
 }
 
-int DB::DeleteFromDB(const string & key)
+int DB::DeleteFromDB(const string& key)
 {
     leveldb::Status s = m_db->Delete(leveldb::WriteOptions(), key);
     if (!s.ok())
@@ -86,7 +81,7 @@ int DB::DeleteFromDB(const string & key)
 int DB::DeleteDB()
 {
     delete m_db;
-    leveldb::Status s = leveldb::DestroyDB(this->m_db_name, leveldb::Options()); 
+    leveldb::Status s = leveldb::DestroyDB(this->m_db_name, leveldb::Options());
     if (!s.ok())
     {
         LOG_MESSAGE("Status: " << s.ToString());

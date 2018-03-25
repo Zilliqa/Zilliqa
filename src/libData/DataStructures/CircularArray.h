@@ -23,8 +23,7 @@
 #include "libUtils/Logger.h"
 
 /// Utility class - circular array data queue.
-template<class T>
-class CircularArray
+template<class T> class CircularArray
 {
     std::vector<T> m_array;
 
@@ -32,7 +31,6 @@ class CircularArray
     boost::multiprecision::uint256_t m_size;
 
 public:
-
     /// Default constructor.
     CircularArray()
     {
@@ -49,19 +47,17 @@ public:
         m_capacity = capacity;
     }
 
-    CircularArray(const CircularArray<T> & circularArray) = delete;
+    CircularArray(const CircularArray<T>& circularArray) = delete;
 
-    CircularArray & operator=(const CircularArray<T> & circularArray) = delete;
+    CircularArray& operator=(const CircularArray<T>& circularArray) = delete;
 
     /// Destructor.
-    ~CircularArray()
-    {
-    }
+    ~CircularArray() {}
 
     /// Index operator.
-    T & operator[](boost::multiprecision::uint256_t index)
+    T& operator[](boost::multiprecision::uint256_t index)
     {
-        if(!m_array.size())
+        if (!m_array.size())
         {
             LOG_MESSAGE("Error: m_array is empty")
             throw;
@@ -70,9 +66,9 @@ public:
     }
 
     /// Adds an element to the array at the specified index.
-    void insert_new(boost::multiprecision::uint256_t index, const T & element)
+    void insert_new(boost::multiprecision::uint256_t index, const T& element)
     {
-        if(!m_array.size())
+        if (!m_array.size())
         {
             LOG_MESSAGE("Error: m_array is empty")
             throw;
@@ -82,20 +78,20 @@ public:
     }
 
     /// Returns the element at the back of the array.
-    T & back()
+    T& back()
     {
-        if(!m_array.size())
+        if (!m_array.size())
         {
             LOG_MESSAGE("Error: m_array is empty")
             throw;
         }
-        return m_array[(int)((m_size-1) % m_capacity)];
+        return m_array[(int)((m_size - 1) % m_capacity)];
     }
 
     /// Adds an element to the end of the array.
     void push_back(T element)
     {
-        if(!m_array.size())
+        if (!m_array.size())
         {
             LOG_MESSAGE("Error: m_array is empty")
             throw;
@@ -105,17 +101,11 @@ public:
         m_size++;
     }
 
-    /// Returns the number of elements currently stored in the array.
-    boost::multiprecision::uint256_t size()
-    {
-        return m_size;
-    }
+    /// Returns the number of elements stored till now in the array.
+    boost::multiprecision::uint256_t size() { return m_size; }
 
     /// Returns the storage capacity of the array.
-    int capacity()
-    {
-        return m_capacity;
-    }
+    int capacity() { return m_capacity; }
 };
 
 #endif // __CIRCULARARRAY_H__

@@ -19,10 +19,7 @@
 using namespace std::chrono;
 using namespace boost::multiprecision;
 
-system_clock::time_point r_timer_start()
-{
-    return system_clock::now();
-}
+system_clock::time_point r_timer_start() { return system_clock::now(); }
 
 double r_timer_end(system_clock::time_point start_time)
 {
@@ -32,6 +29,7 @@ double r_timer_end(system_clock::time_point start_time)
 
 uint256_t get_time_as_int()
 {
-    microseconds microsecs = duration_cast<microseconds>(system_clock::now().time_since_epoch());
+    microseconds microsecs
+        = duration_cast<microseconds>(system_clock::now().time_since_epoch());
     return static_cast<uint256_t>(microsecs.count());
 }

@@ -14,7 +14,6 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-
 #ifndef __JSONCONVERSION_H__
 #define __JSONCONVERSION_H__
 
@@ -23,32 +22,28 @@
 #include <vector>
 
 #include "libData/AccountData/Transaction.h"
-#include "libData/BlockData/Block.h"
 #include "libData/BlockChainData/DSBlockChain.h"
 #include "libData/BlockChainData/TxBlockChain.h"
-
-
-using namespace std;
-using namespace boost::multiprecision;
+#include "libData/BlockData/Block.h"
 
 class JSONConversion
 {
 public:
-	//converts an bool array to JSON array containing 1 and 0
-	static const Json::Value convertBoolArraytoJson(const vector<bool> & v);
-	//converts a TxnHash array to JSON array containing TxnHash strings
-	static const Json::Value convertTxnHashArraytoJson(const vector<TxnHash> & v);
-	//converts a TxBlock to JSON object
-	static const Json::Value convertTxBlocktoJson(const TxBlock & txblock);
-	//converts a DSBlocck to JSON object
-	static const Json::Value convertDSblocktoJson(const DSBlock & dsblock);
-	//converts a JSON to Tx
-	static const Transaction convertJsontoTx(const Json::Value & _json);
-	//check if a Json is a valid Tx
-	static const bool checkJsonTx(const Json::Value & _json);
-
+    //converts an bool array to JSON array containing 1 and 0
+    static const Json::Value convertBoolArraytoJson(const std::vector<bool>& v);
+    //converts a TxnHash array to JSON array containing TxnHash strings
+    static const Json::Value
+    convertTxnHashArraytoJson(const std::vector<TxnHash>& v);
+    //converts a TxBlock to JSON object
+    static const Json::Value convertTxBlocktoJson(const TxBlock& txblock);
+    //converts a DSBlocck to JSON object
+    static const Json::Value convertDSblocktoJson(const DSBlock& dsblock);
+    //converts a JSON to Tx
+    static const Transaction convertJsontoTx(const Json::Value& _json);
+    //check if a Json is a valid Tx
+    static const bool checkJsonTx(const Json::Value& _json);
+    //Convert a Tx to JSON object
+    static const Json::Value convertTxtoJson(const Transaction& tx);
 };
 
 #endif // __JSONCONVERSION_H__
-
-

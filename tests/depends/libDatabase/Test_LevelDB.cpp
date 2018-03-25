@@ -24,9 +24,9 @@ using namespace std;
 using namespace boost::multiprecision;
 using namespace dev;
 
-BOOST_AUTO_TEST_SUITE (trietest)
+BOOST_AUTO_TEST_SUITE(trietest)
 
-BOOST_AUTO_TEST_CASE (fat_trie)
+BOOST_AUTO_TEST_CASE(fat_trie)
 {
     INIT_STDOUT_LOGGER();
 
@@ -34,21 +34,23 @@ BOOST_AUTO_TEST_CASE (fat_trie)
 
     LevelDB m_testDB("test");
 
-    m_testDB.Insert((boost::multiprecision::uint256_t) 1, "ABB");
+    m_testDB.Insert((boost::multiprecision::uint256_t)1, "ABB");
 
-    BOOST_CHECK_MESSAGE(m_testDB.Lookup((boost::multiprecision::uint256_t) 1) == "ABB", 
-    					"ERROR: (boost_int, string)");
+    BOOST_CHECK_MESSAGE(m_testDB.Lookup((boost::multiprecision::uint256_t)1)
+                            == "ABB",
+                        "ERROR: (boost_int, string)");
 
-    m_testDB.Insert((boost::multiprecision::uint256_t) 2, "apples");
+    m_testDB.Insert((boost::multiprecision::uint256_t)2, "apples");
 
-    BOOST_CHECK_MESSAGE(m_testDB.Lookup((boost::multiprecision::uint256_t) 2) == "apples", 
-    					"ERROR: (boost_int, string)");
+    BOOST_CHECK_MESSAGE(m_testDB.Lookup((boost::multiprecision::uint256_t)2)
+                            == "apples",
+                        "ERROR: (boost_int, string)");
 
     std::vector<unsigned char> mangoMsg = {'m', 'a', 'n', 'g', 'o'};
 
-    m_testDB.Insert((boost::multiprecision::uint256_t) 3, mangoMsg);
+    m_testDB.Insert((boost::multiprecision::uint256_t)3, mangoMsg);
 
-    LOG_MESSAGE(m_testDB.Lookup((boost::multiprecision::uint256_t) 3));
+    LOG_MESSAGE(m_testDB.Lookup((boost::multiprecision::uint256_t)3));
 }
 
-BOOST_AUTO_TEST_SUITE_END ()
+BOOST_AUTO_TEST_SUITE_END()

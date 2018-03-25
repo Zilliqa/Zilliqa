@@ -15,24 +15,23 @@
 **/
 
 /// [TODO] Currently unused
-template <class T>
-class ReverseLock 
+template<class T> class ReverseLock
 {
 public:
-	ReverseLock(T& mutex) : mutex_(mutex) {
-		if(mutex_.owns_lock())
-		{
-			mutex_.unlock();
-		}
-	}
+    ReverseLock(T& mutex)
+        : mutex_(mutex)
+    {
+        if (mutex_.owns_lock())
+        {
+            mutex_.unlock();
+        }
+    }
 
-	~ReverseLock() {
-		mutex_.lock();
-	}
+    ~ReverseLock() { mutex_.lock(); }
 
-	ReverseLock(const ReverseLock&) = delete;
-	ReverseLock& operator=(const ReverseLock&) = delete;
+    ReverseLock(const ReverseLock&) = delete;
+    ReverseLock& operator=(const ReverseLock&) = delete;
 
 private:
-	T& mutex_;
+    T& mutex_;
 };

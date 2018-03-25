@@ -14,56 +14,77 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-
-#include <arpa/inet.h>
 #include "Peer.h"
 #include "common/Constants.h"
+#include <arpa/inet.h>
 
 using namespace std;
 using namespace boost::multiprecision;
 
-Peer::Peer() : m_ipAddress(0), m_listenPortHost(0)
+Peer::Peer()
+    : m_ipAddress(0)
+    , m_listenPortHost(0)
 {
-
 }
 
-Peer::Peer(const uint128_t & ip_address, uint32_t listen_port_host) : m_ipAddress(ip_address), m_listenPortHost(listen_port_host)
+Peer::Peer(const uint128_t& ip_address, uint32_t listen_port_host)
+    : m_ipAddress(ip_address)
+    , m_listenPortHost(listen_port_host)
 {
-
 }
 
-Peer::Peer(const vector<unsigned char> & src, unsigned int offset) : m_ipAddress(0), m_listenPortHost(0)
+Peer::Peer(const vector<unsigned char>& src, unsigned int offset)
+    : m_ipAddress(0)
+    , m_listenPortHost(0)
 {
-    Deserialize(src, offset);
+    if (Deserialize(src, offset) != 0)
+    {
+        LOG_MESSAGE("Error. We failed to init Peer.");
+    }
 }
 
-bool Peer::operator==(const Peer & r)
+bool Peer::operator==(const Peer& r)
 {
-    return (m_ipAddress == r.m_ipAddress) && (m_listenPortHost == r.m_listenPortHost);
+    return (m_ipAddress == r.m_ipAddress)
+        && (m_listenPortHost == r.m_listenPortHost);
 }
 
-bool Peer::operator!=(const Peer & r)
+bool Peer::operator!=(const Peer& r)
 {
-    return (m_ipAddress != r.m_ipAddress) || (m_listenPortHost != r.m_listenPortHost);
+    return (m_ipAddress != r.m_ipAddress)
+        || (m_listenPortHost != r.m_listenPortHost);
 }
 
-const char * Peer::GetPrintableIPAddress() const
+const char* Peer::GetPrintableIPAddress() const
 {
     struct sockaddr_in serv_addr;
     serv_addr.sin_addr.s_addr = m_ipAddress.convert_to<unsigned long>();
     return inet_ntoa(serv_addr.sin_addr);
 }
 
-unsigned int Peer::Serialize(vector<unsigned char> & dst, unsigned int offset) const
+unsigned int Peer::Serialize(vector<unsigned char>& dst,
+                             unsigned int offset) const
 {
     Serializable::SetNumber<uint128_t>(dst, offset, m_ipAddress, UINT128_SIZE);
-    Serializable::SetNumber<uint32_t>(dst, offset + UINT128_SIZE, m_listenPortHost, sizeof(uint32_t));
+    Serializable::SetNumber<uint32_t>(dst, offset + UINT128_SIZE,
+                                      m_listenPortHost, sizeof(uint32_t));
 
     return UINT128_SIZE + sizeof(uint32_t);
 }
 
-void Peer::Deserialize(const vector<unsigned char> & src, unsigned int offset)
+int Peer::Deserialize(const vector<unsigned char>& src, unsigned int offset)
 {
-    m_ipAddress = Serializable::GetNumber<uint128_t>(src, offset, UINT128_SIZE);
-    m_listenPortHost = Serializable::GetNumber<uint32_t>(src, offset + UINT128_SIZE, sizeof(uint32_t));
+    try
+    {
+        m_ipAddress
+            = Serializable::GetNumber<uint128_t>(src, offset, UINT128_SIZE);
+        m_listenPortHost = Serializable::GetNumber<uint32_t>(
+            src, offset + UINT128_SIZE, sizeof(uint32_t));
+    }
+    catch (const std::exception& e)
+    {
+        LOG_MESSAGE("ERROR: Error with Peer::Deserialize." << ' ' << e.what());
+        return -1;
+    }
+    return 0;
 }

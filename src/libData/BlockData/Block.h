@@ -18,10 +18,10 @@
 #define __BLOCK_H__
 
 #include "Block/DSBlock.h"
-#include "BlockHeader/DSBlockHeader.h"
 #include "Block/MicroBlock.h"
-#include "BlockHeader/MicroBlockHeader.h"
 #include "Block/TxBlock.h"
+#include "BlockHeader/DSBlockHeader.h"
+#include "BlockHeader/MicroBlockHeader.h"
 #include "BlockHeader/TxBlockHeader.h"
 
 enum BlockType : unsigned int

@@ -21,16 +21,17 @@
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
-#include "libCrypto/Sha2.h"
 #include "libCrypto/Schnorr.h"
+#include "libCrypto/Sha2.h"
 #include "libData/AccountData/Address.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 
 using namespace std;
+using namespace jsonrpc;
 
-
-void Zilliqa::LogSelfNodeInfo(const std::pair<PrivKey, PubKey> & key, const Peer & peer)
+void Zilliqa::LogSelfNodeInfo(const std::pair<PrivKey, PubKey>& key,
+                              const Peer& peer)
 {
     vector<unsigned char> tmp1;
     vector<unsigned char> tmp2;
@@ -38,32 +39,40 @@ void Zilliqa::LogSelfNodeInfo(const std::pair<PrivKey, PubKey> & key, const Peer
     key.first.Serialize(tmp1, 0);
     key.second.Serialize(tmp2, 0);
 
-    LOG_PAYLOAD("Private Key", tmp1, PRIV_KEY_SIZE*2);
-    LOG_PAYLOAD("Public Key", tmp2, PUB_KEY_SIZE*2);
+    LOG_PAYLOAD("Private Key", tmp1, PRIV_KEY_SIZE * 2);
+    LOG_PAYLOAD("Public Key", tmp2, PUB_KEY_SIZE * 2);
 
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
     sha2.Reset();
     vector<unsigned char> message;
     key.second.Serialize(message, 0);
     sha2.Update(message, 0, PUB_KEY_SIZE);
-    const vector<unsigned char> & tmp3 = sha2.Finalize();
+    const vector<unsigned char>& tmp3 = sha2.Finalize();
     Address toAddr;
     copy(tmp3.end() - ACC_ADDR_SIZE, tmp3.end(), toAddr.asArray().begin());
 
-    LOG_MESSAGE("My address is " << toAddr << " and port is " << peer.m_listenPortHost);
+    LOG_MESSAGE("My address is " << toAddr << " and port is "
+                                 << peer.m_listenPortHost);
 }
 
-Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey> & key, const Peer & peer, bool loadConfig, bool toSyncWithNetwork, bool toRetrieveHistory) :
-        m_pm(key, peer, loadConfig), m_mediator(key, peer), m_ds(m_mediator), m_lookup(m_mediator), 
-        m_n(m_mediator, toRetrieveHistory), m_cu(key, peer)
+Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
+                 bool loadConfig, bool toSyncWithNetwork,
+                 bool toRetrieveHistory)
+    : m_pm(key, peer, loadConfig)
+    , m_mediator(key, peer)
+    , m_ds(m_mediator)
+    , m_lookup(m_mediator)
+    , m_n(m_mediator, toRetrieveHistory)
+    , m_cu(key, peer)
 #ifdef IS_LOOKUP_NODE
-	, m_httpserver(SERVER_PORT), m_server(m_mediator, m_httpserver)
+    , m_httpserver(SERVER_PORT)
+    , m_server(m_mediator, m_httpserver)
 #endif // IS_LOOKUP_NODE
-	
+
 {
     LOG_MARKER();
 
-    if(m_mediator.m_isRetrievedHistory)
+    if (m_mediator.m_isRetrievedHistory)
     {
         m_ds.m_consensusID = 0;
     }
@@ -79,26 +88,26 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey> & key, const Peer & peer, bool
 #ifndef IS_LOOKUP_NODE
     LOG_MESSAGE("I am a normal node.");
 
-    if(toSyncWithNetwork && !toRetrieveHistory)
+    if (toSyncWithNetwork && !toRetrieveHistory)
     {
         m_n.StartSynchronization();
     }
-#else   // else for IS_LOOKUP_NODE
+#else // else for IS_LOOKUP_NODE
     LOG_MESSAGE("I am a lookup node.");
-    if (m_server.StartListening()) {
+    if (m_server.StartListening())
+    {
         LOG_MESSAGE("1. API Server started successfully");
-    } else {
+    }
+    else
+    {
         LOG_MESSAGE("2. API Server couldn't start");
     }
 #endif // IS_LOOKUP_NODE
 }
 
-Zilliqa::~Zilliqa()
-{
+Zilliqa::~Zilliqa() {}
 
-}
-
-void Zilliqa::Dispatch(const vector<unsigned char> & message, const Peer & from)
+void Zilliqa::Dispatch(const vector<unsigned char>& message, const Peer& from)
 {
     LOG_MARKER();
 
@@ -106,20 +115,15 @@ void Zilliqa::Dispatch(const vector<unsigned char> & message, const Peer & from)
     {
         const unsigned char msg_type = message.at(MessageOffset::TYPE);
 
-        Executable * msg_handlers[] =
-        {
-            &m_pm,
-            &m_ds,
-            &m_n,
-            &m_cu,
-            &m_lookup
-        };
+        Executable* msg_handlers[] = {&m_pm, &m_ds, &m_n, &m_cu, &m_lookup};
 
-        const unsigned int msg_handlers_count = sizeof(msg_handlers) / sizeof(Executable*);
+        const unsigned int msg_handlers_count
+            = sizeof(msg_handlers) / sizeof(Executable*);
 
         if (msg_type < msg_handlers_count)
         {
-            bool result = msg_handlers[msg_type]->Execute(message, MessageOffset::INST, from);
+            bool result = msg_handlers[msg_type]->Execute(
+                message, MessageOffset::INST, from);
 
             if (result == false)
             {
@@ -128,25 +132,22 @@ void Zilliqa::Dispatch(const vector<unsigned char> & message, const Peer & from)
         }
         else
         {
-            LOG_MESSAGE("Unknown message type " << std::hex << (unsigned int)msg_type);
+            LOG_MESSAGE("Unknown message type " << std::hex
+                                                << (unsigned int)msg_type);
         }
     }
 }
 
-vector<Peer> Zilliqa::RetrieveBroadcastList(unsigned char msg_type, unsigned char ins_type, const Peer & from)
+vector<Peer> Zilliqa::RetrieveBroadcastList(unsigned char msg_type,
+                                            unsigned char ins_type,
+                                            const Peer& from)
 {
     LOG_MARKER();
 
-    Broadcastable * msg_handlers[] =
-    {
-        &m_pm,
-        &m_ds,
-        &m_n,
-        &m_cu,
-        &m_lookup
-    };
+    Broadcastable* msg_handlers[] = {&m_pm, &m_ds, &m_n, &m_cu, &m_lookup};
 
-    const unsigned int msg_handlers_count = sizeof(msg_handlers) / sizeof(Broadcastable*);
+    const unsigned int msg_handlers_count
+        = sizeof(msg_handlers) / sizeof(Broadcastable*);
 
     if (msg_type < msg_handlers_count)
     {
@@ -154,7 +155,8 @@ vector<Peer> Zilliqa::RetrieveBroadcastList(unsigned char msg_type, unsigned cha
     }
     else
     {
-        LOG_MESSAGE("Unknown message type " << std::hex << (unsigned int)msg_type);
+        LOG_MESSAGE("Unknown message type " << std::hex
+                                            << (unsigned int)msg_type);
     }
 
     return vector<Peer>();

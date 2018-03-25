@@ -1,5 +1,4 @@
 add_subdirectory (common)
-add_subdirectory (json_spirit)
 add_subdirectory (libDatabase)
 add_subdirectory (libethash)
 add_subdirectory (libTrie)

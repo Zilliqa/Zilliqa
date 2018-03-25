@@ -15,29 +15,28 @@
 **/
 
 #include <array>
-#include <string>
 #include <chrono>
+#include <string>
 
 #define BOOST_TEST_MODULE TriePerformance
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 
+#include "depends/common/RLP.h"
 #include "depends/libDatabase/MemoryDB.h"
 #include "depends/libTrie/TrieDB.h"
-#include "depends/common/RLP.h"
 #pragma GCC diagnostic ignored "-Wunused-variable"
-#include "libData/AccountData/Address.h"
 #include "depends/libDatabase/OverlayDB.h"
+#include "libData/AccountData/Address.h"
 #include "libUtils/Logger.h"
-#include <time.h> 
+#include <time.h>
 
+BOOST_AUTO_TEST_SUITE(TriePerformance)
 
-BOOST_AUTO_TEST_SUITE (TriePerformance)
-
-template <class KeyType, class DB>
+template<class KeyType, class DB>
 using SecureTrieDB = dev::SpecificTrieDB<dev::HashedGenericTrieDB<DB>, KeyType>;
 
-BOOST_AUTO_TEST_CASE (TestSecureTrieDB)
+BOOST_AUTO_TEST_CASE(TestSecureTrieDB)
 {
     INIT_STDOUT_LOGGER();
 
@@ -48,17 +47,25 @@ BOOST_AUTO_TEST_CASE (TestSecureTrieDB)
     auto t_start = std::chrono::high_resolution_clock::now();
     clock_t start = clock();
 
-    for(auto i = 0; i < 10000; i++) {
-        boost::multiprecision::uint256_t m_balance{i + 9999998945}, m_nonce{i + 9999998945};
+    for (auto i = 0; i < 10000; i++)
+    {
+        boost::multiprecision::uint256_t m_balance{i + 9999998945},
+            m_nonce{i + 9999998945};
         Address address;
 
         dev::RLPStream rlpStream(2);
         rlpStream << m_balance << m_nonce;
         m_state.insert(address, &rlpStream.out());
 
-        if (i % 1000 == 0 && i > 0) {
+        if (i % 1000 == 0 && i > 0)
+        {
             auto t_end = std::chrono::high_resolution_clock::now();
-            LOG_MESSAGE("Time for " << i/1000 << "k insertions: " << (std::chrono::duration<double, std::milli>(t_end - t_start).count()) << " ms");
+            LOG_MESSAGE(
+                "Time for "
+                << i / 1000 << "k insertions: "
+                << (std::chrono::duration<double, std::milli>(t_end - t_start)
+                        .count())
+                << " ms");
         }
     }
     clock_t end = clock();
@@ -67,10 +74,13 @@ BOOST_AUTO_TEST_CASE (TestSecureTrieDB)
     LOG_MESSAGE("CPU time: " << seconds);
 
     auto t_end = std::chrono::high_resolution_clock::now();
-    LOG_MESSAGE("SecureTrie Time for 10k insertions: " << (std::chrono::duration<double, std::milli>(t_end - t_start).count()) << " ms");
+    LOG_MESSAGE(
+        "SecureTrie Time for 10k insertions: "
+        << (std::chrono::duration<double, std::milli>(t_end - t_start).count())
+        << " ms");
 }
 
-BOOST_AUTO_TEST_CASE (TestSecureTrieDBWithDifferentAddress)
+BOOST_AUTO_TEST_CASE(TestSecureTrieDBWithDifferentAddress)
 {
     INIT_STDOUT_LOGGER();
 
@@ -81,17 +91,25 @@ BOOST_AUTO_TEST_CASE (TestSecureTrieDBWithDifferentAddress)
     auto t_start = std::chrono::high_resolution_clock::now();
     clock_t start = clock();
 
-    for(auto i = 0u; i < 10000; i++) {
-        boost::multiprecision::uint256_t m_balance{i + 9999998945}, m_nonce{i + 9999998945};
+    for (auto i = 0u; i < 10000; i++)
+    {
+        boost::multiprecision::uint256_t m_balance{i + 9999998945},
+            m_nonce{i + 9999998945};
         Address address{i};
 
         dev::RLPStream rlpStream(2);
         rlpStream << m_balance << m_nonce;
         m_state.insert(address, &rlpStream.out());
 
-        if (i % 1000 == 0 && i > 0) {
+        if (i % 1000 == 0 && i > 0)
+        {
             auto t_end = std::chrono::high_resolution_clock::now();
-            LOG_MESSAGE("Time for " << i/1000 << "k insertions: " << (std::chrono::duration<double, std::milli>(t_end - t_start).count()) << " ms");
+            LOG_MESSAGE(
+                "Time for "
+                << i / 1000 << "k insertions: "
+                << (std::chrono::duration<double, std::milli>(t_end - t_start)
+                        .count())
+                << " ms");
         }
     }
     clock_t end = clock();
@@ -100,31 +118,44 @@ BOOST_AUTO_TEST_CASE (TestSecureTrieDBWithDifferentAddress)
     LOG_MESSAGE("CPU Time: " << seconds);
 
     auto t_end = std::chrono::high_resolution_clock::now();
-    LOG_MESSAGE("SecureTrie (different address) Time for 10k insertions: " << (std::chrono::duration<double, std::milli>(t_end - t_start).count()) << " ms");
+    LOG_MESSAGE(
+        "SecureTrie (different address) Time for 10k insertions: "
+        << (std::chrono::duration<double, std::milli>(t_end - t_start).count())
+        << " ms");
 }
 
-
-BOOST_AUTO_TEST_CASE (TestMemoryDB)
+BOOST_AUTO_TEST_CASE(TestMemoryDB)
 {
     dev::MemoryDB tm;
-    dev::GenericTrieDB<dev::MemoryDB> transactionsTrie(&tm); // memoryDB (unordered_map)
+    dev::GenericTrieDB<dev::MemoryDB> transactionsTrie(
+        &tm); // memoryDB (unordered_map)
 
     transactionsTrie.init();
 
     auto t_start = std::chrono::high_resolution_clock::now();
 
-    for(auto i = 0; i < 10000; i++) {
+    for (auto i = 0; i < 10000; i++)
+    {
         dev::RLPStream rlpStream;
         rlpStream << i;
         transactionsTrie.insert(&rlpStream.out(), &rlpStream.out());
-        if (i % 1000 == 0 && i > 0) {
+        if (i % 1000 == 0 && i > 0)
+        {
             auto t_end = std::chrono::high_resolution_clock::now();
-            LOG_MESSAGE("Time for " << i/1000 << "k insertions: " << (std::chrono::duration<double, std::milli>(t_end - t_start).count()) << " ms");
+            LOG_MESSAGE(
+                "Time for "
+                << i / 1000 << "k insertions: "
+                << (std::chrono::duration<double, std::milli>(t_end - t_start)
+                        .count())
+                << " ms");
         }
     }
 
     auto t_end = std::chrono::high_resolution_clock::now();
-    LOG_MESSAGE("Memory DB Time for 10k insertions: " << (std::chrono::duration<double, std::milli>(t_end - t_start).count()) << " ms");
+    LOG_MESSAGE(
+        "Memory DB Time for 10k insertions: "
+        << (std::chrono::duration<double, std::milli>(t_end - t_start).count())
+        << " ms");
 }
 
-BOOST_AUTO_TEST_SUITE_END ()
+BOOST_AUTO_TEST_SUITE_END()

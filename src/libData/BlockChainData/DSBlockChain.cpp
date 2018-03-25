@@ -20,20 +20,11 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-DSBlockChain::DSBlockChain()
-{
-    m_dsBlocks.resize(DS_BLOCKCHAIN_SIZE);
-}
+DSBlockChain::DSBlockChain() { m_dsBlocks.resize(DS_BLOCKCHAIN_SIZE); }
 
-DSBlockChain::~DSBlockChain()
-{
-    
-}
+DSBlockChain::~DSBlockChain() {}
 
-void DSBlockChain::Reset()
-{
-    m_dsBlocks.resize(DS_BLOCKCHAIN_SIZE);
-}
+void DSBlockChain::Reset() { m_dsBlocks.resize(DS_BLOCKCHAIN_SIZE); }
 
 uint256_t DSBlockChain::GetBlockCount()
 {
@@ -47,7 +38,7 @@ DSBlock DSBlockChain::GetLastBlock()
     return m_dsBlocks.back();
 }
 
-DSBlock DSBlockChain::GetBlock(const uint256_t & blockNum)
+DSBlock DSBlockChain::GetBlock(const uint256_t& blockNum)
 {
     lock_guard<mutex> g(m_mutexDSBlocks);
 
@@ -55,7 +46,7 @@ DSBlock DSBlockChain::GetBlock(const uint256_t & blockNum)
     {
         throw "Blocknumber Absent";
     }
-    else if(blockNum + m_dsBlocks.capacity() < m_dsBlocks.size())
+    else if (blockNum + m_dsBlocks.capacity() < m_dsBlocks.size())
     {
         DSBlockSharedPtr block;
         BlockStorage::GetBlockStorage().GetDSBlock(blockNum, block);
@@ -71,17 +62,17 @@ DSBlock DSBlockChain::GetBlock(const uint256_t & blockNum)
     return m_dsBlocks[blockNum];
 }
 
-int DSBlockChain::AddBlock(const DSBlock & block)
+int DSBlockChain::AddBlock(const DSBlock& block)
 {
     uint256_t blockNumOfNewBlock = block.GetHeader().GetBlockNum();
 
     lock_guard<mutex> g(m_mutexDSBlocks);
 
-    uint256_t blockNumOfExistingBlock = 
-        m_dsBlocks[blockNumOfNewBlock].GetHeader().GetBlockNum();
+    uint256_t blockNumOfExistingBlock
+        = m_dsBlocks[blockNumOfNewBlock].GetHeader().GetBlockNum();
 
-    if(blockNumOfExistingBlock < blockNumOfNewBlock ||
-        blockNumOfExistingBlock == (uint256_t) -1)
+    if (blockNumOfExistingBlock < blockNumOfNewBlock
+        || blockNumOfExistingBlock == (uint256_t)-1)
     {
         m_dsBlocks.insert_new(blockNumOfNewBlock, block);
     }

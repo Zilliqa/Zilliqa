@@ -14,12 +14,11 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-
 #ifndef __JOINABLEFUNCTION_H__
 #define __JOINABLEFUNCTION_H__
 
-#include <functional>
 #include <chrono>
+#include <functional>
 #include <future>
 #include <vector>
 
@@ -30,12 +29,13 @@ class JoinableFunction
     bool joined;
 
 public:
-
     /// Template constructor.
-    template <class callable, class... arguments>
+    template<class callable, class... arguments>
     JoinableFunction(int num_threads, callable&& f, arguments&&... args)
     {
-        std::function<typename std::result_of<callable(arguments...)>::type()> task(std::bind(std::forward<callable>(f), std::forward<arguments>(args)...));
+        std::function<typename std::result_of<callable(arguments...)>::type()>
+            task(std::bind(std::forward<callable>(f),
+                           std::forward<arguments>(args)...));
 
         for (int i = 0; i < num_threads; i++)
         {
@@ -57,7 +57,7 @@ public:
     /// Joins all the launched threads.
     void join()
     {
-        for (auto & e : futures)
+        for (auto& e : futures)
         {
             e.get();
         }
