@@ -252,5 +252,19 @@ void DirectoryService::RunConsensusOnDSBlock()
     }
 
     SetState(DSBLOCK_CONSENSUS);
+
+    if (m_mode != PRIMARY_DS)
+    {
+        std::unique_lock<std::mutex> cv_lk(m_mutexRecoveryDSBlockConsensus);
+        if(cv_RecoveryDSBlockConsensus.wait_for(cv_lk, std::chrono::seconds(180)) == std::cv_status::timeout )
+        {
+            //View change. 
+            //TODO: This is a simplified version and will be review again. 
+            InitViewChange(); 
+        }
+    }
 }
+
+
+
 #endif // IS_LOOKUP_NODE
