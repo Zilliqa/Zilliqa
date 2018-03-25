@@ -37,27 +37,31 @@ bool ConsensusLeader::CheckState(Action action)
         case INITIAL:
             break;
         case ANNOUNCE_DONE:
-            LOG_MESSAGE("Error: Doing announce but announce already done");
+            LOG_MESSAGE("Error: Processing announce but announce already done");
             result = false;
             break;
         case CHALLENGE_DONE:
-            LOG_MESSAGE("Error: Doing announce but challenge already done");
+            LOG_MESSAGE("Error: Processing announce but challenge already done");
             result = false;
             break;
         case COLLECTIVESIG_DONE:
-            LOG_MESSAGE("Error: Doing announce but collectivesig already done");
+            LOG_MESSAGE("Error: Processing announce but collectivesig already done");
             result = false;
             break;
         case FINALCHALLENGE_DONE:
             LOG_MESSAGE(
-                "Error: Doing announce but finalchallenge already done");
+                "Error: Processing announce but finalchallenge already done");
             result = false;
             break;
         case DONE:
-            LOG_MESSAGE("Error: Doing announce but consensus already done");
+            LOG_MESSAGE("Error: Processing announce but consensus already done");
             result = false;
             break;
         case ERROR:
+            LOG_MESSAGE("Error: Processing announce but receiving "
+                        "ERROR message.");
+            result = false;
+            break;
         default:
             LOG_MESSAGE("Error: Unrecognized or error state");
             result = false;
@@ -93,6 +97,10 @@ bool ConsensusLeader::CheckState(Action action)
             result = false;
             break;
         case ERROR:
+            LOG_MESSAGE("Error: Processing commit but receiving "
+                        "ERROR message.");
+            result = false;
+            break;
         default:
             LOG_MESSAGE("Error: Unrecognized or error state");
             result = false;
@@ -129,6 +137,10 @@ bool ConsensusLeader::CheckState(Action action)
             result = false;
             break;
         case ERROR:
+            LOG_MESSAGE("Error: Processing response but receiving "
+                        "ERROR message.");
+            result = false;
+            break;
         default:
             LOG_MESSAGE("Error: Unrecognized or error state");
             result = false;
@@ -166,6 +178,10 @@ bool ConsensusLeader::CheckState(Action action)
             result = false;
             break;
         case ERROR:
+            LOG_MESSAGE("Error: Processing finalcommit but receiving "
+                        "ERROR message.");
+            result = false;
+            break;
         default:
             LOG_MESSAGE("Error: Unrecognized or error state");
             result = false;
@@ -203,6 +219,10 @@ bool ConsensusLeader::CheckState(Action action)
             result = false;
             break;
         case ERROR:
+            LOG_MESSAGE("Error: Processing finalresponse but receiving "
+                        "ERROR message.");
+            result = false;
+            break;
         default:
             LOG_MESSAGE("Error: Unrecognized or error state");
             result = false;
