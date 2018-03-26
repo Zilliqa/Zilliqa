@@ -131,6 +131,7 @@ class DirectoryService : public Executable, public Broadcastable
     
     // Recovery (simplified view change)
     std::atomic<bool> m_initiatedViewChange;
+    std::mutex m_mutexProcessViewChangeRequests; 
     std::mutex m_mutexRecoveryDSBlockConsensus;
     std::condition_variable cv_RecoveryDSBlockConsensus;
     std::mutex m_mutexRecoveryShardingConsensus; 
@@ -138,7 +139,6 @@ class DirectoryService : public Executable, public Broadcastable
     std::mutex m_mutexRecoveryFinalBlockConsensus; 
     std::condition_variable cv_RecoveryFinalBlockConsensus;
 
-    // view_change
     const double VC_TOLERANCE_FRACTION = (double) 0.667;
     std::atomic<uint64_t> m_viewChangeEpoch; 
     std::unordered_map<unsigned int, unsigned int> m_viewChangeRequestTracker; 
@@ -151,7 +151,6 @@ class DirectoryService : public Executable, public Broadcastable
     std::mutex m_MutexCVViewChangeSharding; 
     std::condition_variable cv_viewChangeFinalBlock;
     std::mutex m_MutexCVViewChangeFinalBlock; 
-
 
     Mediator & m_mediator;
 
