@@ -10,6 +10,8 @@ os:
 
 # multiplied by BUILD_COMMAND
 env:
+  global:
+    - HOMEBREW_NO_AUTO_UPDATE=1
   matrix:
     - BUILD_COMMAND=./build.sh
     - BUILD_COMMAND=./build_lookup.sh
