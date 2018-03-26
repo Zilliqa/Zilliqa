@@ -45,7 +45,8 @@ int main(int argc, const char* argv[])
         cout << "[USAGE] " << argv[0]
              << " <32-byte private_key> <33-byte public_key> "
                 "<listen_ip_address> <listen_port> <1 if loadConfig, 0 "
-                "otherwise> <1 if sync, 0 otherwise>"
+                "otherwise> <1 if sync, 0 otherwise> <1 if recovery, 0 "
+                "otherwise>"
              << endl;
     }
     else
