@@ -190,7 +190,7 @@ bool Lookup::GetStateFromLookupNodes()
     SendMessageToLookupNodes(ComposeGetStateMessage());
 
     receivedLatestState = false;
-    
+
     return true;
 }
 
