@@ -1474,7 +1474,7 @@ bool Lookup::InitMining()
     else
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "I have successfully join the network`");
+                     "I have successfully join the network");
     }
 
     return true;
