@@ -260,7 +260,7 @@ void DirectoryService::RunConsensusOnDSBlock()
     if (m_mode != PRIMARY_DS)
     {
         std::unique_lock<std::mutex> cv_lk(m_mutexRecoveryDSBlockConsensus);
-        if(cv_RecoveryDSBlockConsensus.wait_for(cv_lk, std::chrono::seconds(180)) == std::cv_status::timeout )
+        if(cv_RecoveryDSBlockConsensus.wait_for(cv_lk, std::chrono::seconds(VIEWCHANGE_TIME)) == std::cv_status::timeout )
         {
             //View change. 
             //TODO: This is a simplified version and will be review again. 
