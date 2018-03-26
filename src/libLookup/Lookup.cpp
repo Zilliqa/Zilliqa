@@ -1288,20 +1288,19 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
 
 #ifdef IS_LOOKUP_NODE
         }
-#endif
+#else // IS_LOOKUP_NODE // TODO : remove from here to top
+            m_mediator.m_currentEpochNum
+                = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
+            m_mediator.UpdateTxBlockRand();
 
-#ifndef IS_LOOKUP_NODE // TODO : remove from here to top
-        m_mediator.m_currentEpochNum
-            = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
-        m_mediator.UpdateTxBlockRand();
-
-        {
-            unique_lock<mutex> lock(m_dsRandUpdationMutex);
-            while (!m_isDSRandUpdated)
             {
-                m_dsRandUpdateCondition.wait(lock);
+                unique_lock<mutex> lock(m_dsRandUpdationMutex);
+                while (!m_isDSRandUpdated)
+                {
+                    m_dsRandUpdateCondition.wait(lock);
+                }
+                m_isDSRandUpdated = false;
             }
-            m_isDSRandUpdated = false;
         }
 #endif // IS_LOOKUP_NODE
     }
