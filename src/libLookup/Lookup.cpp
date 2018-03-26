@@ -190,7 +190,6 @@ bool Lookup::GetStateFromLookupNodes()
     SendMessageToLookupNodes(ComposeGetStateMessage());
 
     {
-        std::lock_guard<mutex> lock(m_receivedLatestMutex);
         receivedLatestState = false;
     }
     return true;   
@@ -284,7 +283,6 @@ bool Lookup::GetTxBlockFromLookupNodes(uint256_t lowBlockNum,
 
     SendMessageToLookupNodes(ComposeGetTxBlockMessage(lowBlockNum, highBlockNum));
     {
-        std::lock_guard<mutex> lock(m_receivedLatestMutex);
         receivedLatestTxBlocks = false;
     }
 
@@ -1302,10 +1300,10 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
         }
         m_isDSRandUpdated = false;
         {
-            std::lock_guard<mutex> lock(m_receivedLatestMutex);
             receivedLatestTxBlocks = true;
-            if(receivedLatestState)
+            if(receivedLatestState.load())
             {
+                std::lock_guard<mutex> lock(m_receivedLatestMutex);
                 m_receivedLatestCondition.notify_one();
             }
         }
@@ -1420,13 +1418,13 @@ bool Lookup::InitMining()
     if (m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW == curDsBlockNum - 1)
     {
         {
-            unique_lock<mutex> lock(m_receivedLatestMutex);
-            if(receivedLatestTxBlocks && receivedLatestState)
+            if(receivedLatestTxBlocks.load() && receivedLatestState.load())
             {
                 // DO NOTHING
             }
             else
             {
+                unique_lock<mutex> lock(m_receivedLatestMutex);
                 m_receivedLatestCondition.wait(lock, [this]{
                     LOG_MESSAGE("NOTIFIED ONCE");
                     return true;});
@@ -1512,10 +1510,10 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
     }
 
     {
-        std::lock_guard<mutex> lock(m_receivedLatestMutex);
         receivedLatestState = true;
-        if(receivedLatestTxBlocks)
+        if(receivedLatestTxBlocks.load())
         {
+            std::lock_guard<mutex> lock(m_receivedLatestMutex);
             m_receivedLatestCondition.notify_one();
         }
     }
