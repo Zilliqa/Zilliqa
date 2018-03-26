@@ -64,7 +64,6 @@ Node::Node(Mediator& mediator, bool toRetrieveHistory)
         else
         {
             LOG_MESSAGE("FAIL: RetrieveHistory Failed");
-            m_retriever->CleanAll();
         }
     }
 
@@ -75,6 +74,7 @@ Node::Node(Mediator& mediator, bool toRetrieveHistory)
         m_consensusID = 1;
         m_consensusLeaderID = 1;
 
+        m_retriever->CleanAll();
         AccountStore::GetInstance().Init();
         m_mediator.m_dsBlockChain.Reset();
         m_mediator.m_txBlockChain.Reset();

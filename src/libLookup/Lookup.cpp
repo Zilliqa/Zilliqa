@@ -189,9 +189,8 @@ bool Lookup::GetStateFromLookupNodes()
     LOG_MARKER();
     SendMessageToLookupNodes(ComposeGetStateMessage());
 
-    {
-        receivedLatestState = false;
-    }
+    receivedLatestState = false;
+    
     return true;
 }
 
@@ -283,9 +282,8 @@ bool Lookup::GetTxBlockFromLookupNodes(uint256_t lowBlockNum,
 
     SendMessageToLookupNodes(
         ComposeGetTxBlockMessage(lowBlockNum, highBlockNum));
-    {
-        receivedLatestTxBlocks = false;
-    }
+    
+    receivedLatestTxBlocks = false;
 
     return true;
 }
@@ -1209,11 +1207,12 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
     }
 
     unique_lock<mutex> lock(m_mutexSetTxBlockFromSeed);
+    bool ret = true;
 
     if (IsMessageSizeInappropriate(message.size(), offset,
                                    UINT256_SIZE + UINT256_SIZE))
     {
-        return false;
+        ret = false;
     }
 
     // 32-byte lower-limit block number
@@ -1234,85 +1233,86 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
 
     uint64_t latestSynBlockNum
         = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
-    if (latestSynBlockNum >= highBlockNum)
+    if(ret)
     {
-        // TODO: We should get blocks from n nodes.
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "I already have the block");
-    }
-    else
-    {
-        for (boost::multiprecision::uint256_t blockNum = lowBlockNum;
-             blockNum <= highBlockNum; blockNum++)
+        if (latestSynBlockNum > highBlockNum)
         {
-            TxBlock txBlock(message, offset);
-            offset += txBlock.GetSerializedSize();
-
+            // TODO: We should get blocks from n nodes.
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "I the lookup node have deserialized the TxBlock");
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "txBlock.GetHeader().GetType(): "
-                             << txBlock.GetHeader().GetType());
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "txBlock.GetHeader().GetVersion(): "
-                             << txBlock.GetHeader().GetVersion());
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "txBlock.GetHeader().GetGasLimit(): "
-                             << txBlock.GetHeader().GetGasLimit());
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "txBlock.GetHeader().GetGasUsed(): "
-                             << txBlock.GetHeader().GetGasUsed());
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "txBlock.GetHeader().GetBlockNum(): "
-                             << txBlock.GetHeader().GetBlockNum());
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "txBlock.GetHeader().GetNumMicroBlockHashes(): "
-                             << txBlock.GetHeader().GetNumMicroBlockHashes());
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "txBlock.GetHeader().GetNumTxs(): "
-                             << txBlock.GetHeader().GetNumTxs());
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "txBlock.GetHeader().GetMinerPubKey(): "
-                             << txBlock.GetHeader().GetMinerPubKey());
-
-            m_mediator.m_txBlockChain.AddBlock(txBlock);
-
-            // Store Tx Block to disk
-            vector<unsigned char> serializedTxBlock;
-            txBlock.Serialize(serializedTxBlock, 0);
-            BlockStorage::GetBlockStorage().PutTxBlock(
-                txBlock.GetHeader().GetBlockNum(), serializedTxBlock);
+                         "I already have the block");
         }
+        else
+        {
+            for (boost::multiprecision::uint256_t blockNum = lowBlockNum;
+                 blockNum <= highBlockNum; blockNum++)
+            {
+                TxBlock txBlock(message, offset);
+                offset += txBlock.GetSerializedSize();
+
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                             "I the lookup node have deserialized the TxBlock");
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                             "txBlock.GetHeader().GetType(): "
+                                 << txBlock.GetHeader().GetType());
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                             "txBlock.GetHeader().GetVersion(): "
+                                 << txBlock.GetHeader().GetVersion());
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                             "txBlock.GetHeader().GetGasLimit(): "
+                                 << txBlock.GetHeader().GetGasLimit());
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                             "txBlock.GetHeader().GetGasUsed(): "
+                                 << txBlock.GetHeader().GetGasUsed());
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                             "txBlock.GetHeader().GetBlockNum(): "
+                                 << txBlock.GetHeader().GetBlockNum());
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                             "txBlock.GetHeader().GetNumMicroBlockHashes(): "
+                                 << txBlock.GetHeader().GetNumMicroBlockHashes());
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                             "txBlock.GetHeader().GetNumTxs(): "
+                                 << txBlock.GetHeader().GetNumTxs());
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                             "txBlock.GetHeader().GetMinerPubKey(): "
+                                 << txBlock.GetHeader().GetMinerPubKey());
+
+                m_mediator.m_txBlockChain.AddBlock(txBlock);
+
+                // Store Tx Block to disk
+                vector<unsigned char> serializedTxBlock;
+                txBlock.Serialize(serializedTxBlock, 0);
+                BlockStorage::GetBlockStorage().PutTxBlock(
+                    txBlock.GetHeader().GetBlockNum(), serializedTxBlock);
+            }
 
 #ifdef IS_LOOKUP_NODE
-    }
+        }
 #endif
 
 #ifndef IS_LOOKUP_NODE // TODO : remove from here to top
-    m_mediator.m_currentEpochNum
-        = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
-    m_mediator.UpdateTxBlockRand();
+            m_mediator.m_currentEpochNum
+                = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
+            m_mediator.UpdateTxBlockRand();
 
-    {
-        unique_lock<mutex> lock(m_dsRandUpdationMutex);
-        while (!m_isDSRandUpdated)
-        {
-            m_dsRandUpdateCondition.wait(lock);
-        }
-        m_isDSRandUpdated = false;
-        {
-            receivedLatestTxBlocks = true;
-            if (receivedLatestState.load())
             {
-                std::lock_guard<mutex> lock(m_receivedLatestMutex);
-                m_receivedLatestCondition.notify_one();
+                unique_lock<mutex> lock(m_dsRandUpdationMutex);
+                while (!m_isDSRandUpdated)
+                {
+                    m_dsRandUpdateCondition.wait(lock);
+                }
+                m_isDSRandUpdated = false;
             }
         }
     }
-}
-#endif // IS_LOOKUP_NODE
 
-return true;
+    receivedLatestTxBlocks = true;
+    if (receivedLatestState.load())
+    {
+        std::lock_guard<mutex> lock(m_receivedLatestMutex);
+        m_receivedLatestCondition.notify_one();
+    }
+#endif // IS_LOOKUP_NODE
+    return ret;
 }
 
 bool Lookup::ProcessSetTxBodyFromSeed(const vector<unsigned char>& message,
@@ -1388,6 +1388,31 @@ bool Lookup::InitMining()
     m_mediator.m_currentEpochNum
         = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
 
+    // wait for receivedLatestTxBlocks and receivedLatestState become true
+    if (receivedLatestTxBlocks.load() && receivedLatestState.load())
+    {
+        // DO NOTHING
+    }
+    else
+    {
+        auto const timeout = std::chrono::steady_clock::now() + 
+            std::chrono::seconds(NEW_NODE_SYNC_INTERVAL);
+        unique_lock<mutex> lock(m_receivedLatestMutex);
+        if (m_receivedLatestCondition.wait_until
+            (lock, timeout,
+                [this]  {
+                            LOG_MESSAGE("NOTIFIED!");
+                            return true;
+                        }))
+        {
+            // DO NOTHING
+        }
+        else
+        {
+            return false;
+        }
+    }
+
     // General check
     if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0)
     {
@@ -1422,21 +1447,6 @@ bool Lookup::InitMining()
     if (m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW
         == curDsBlockNum - 1)
     {
-        {
-            if (receivedLatestTxBlocks.load() && receivedLatestState.load())
-            {
-                // DO NOTHING
-            }
-            else
-            {
-                unique_lock<mutex> lock(m_receivedLatestMutex);
-                m_receivedLatestCondition.wait(lock, [this] {
-                    LOG_MESSAGE("NOTIFIED ONCE");
-                    return true;
-                });
-            }
-        }
-
         if (CheckStateRoot())
         {
             // DS block has been generated.
@@ -1512,26 +1522,25 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
     }
 
     unique_lock<mutex> lock(m_mutexSetState);
+    bool ret = true;
     unsigned int curr_offset = offset;
     // AccountStore::GetInstance().Deserialize(message, curr_offset);
     if (AccountStore::GetInstance().Deserialize(message, curr_offset) != 0)
     {
         LOG_MESSAGE("Error. We failed to deserialize AccountStore.");
-        return false;
+        ret = false;
     }
 
+    receivedLatestState = true;
+    if (receivedLatestTxBlocks.load())
     {
-        receivedLatestState = true;
-        if (receivedLatestTxBlocks.load())
-        {
-            std::lock_guard<mutex> lock(m_receivedLatestMutex);
-            m_receivedLatestCondition.notify_one();
-        }
+        std::lock_guard<mutex> lock(m_receivedLatestMutex);
+        m_receivedLatestCondition.notify_one();
     }
 
 #endif // IS_LOOKUP_NODE
 
-    return true;
+    return ret;
 }
 
 bool Lookup::Execute(const vector<unsigned char>& message, unsigned int offset,
