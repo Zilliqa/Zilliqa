@@ -8,5 +8,5 @@ endif(CMAKE_CONFIGURATION_TYPES)
 
 add_executable(Test_LevelDB Test_LevelDB.cpp)
 target_include_directories(Test_LevelDB PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
-target_link_libraries(Test_LevelDB LINK_PUBLIC ${Boost_LIBRARIES} Database Utils)
+target_link_libraries(Test_LevelDB PUBLIC ${Boost_LIBRARIES} Database Utils)
 add_test(NAME Test_LevelDB COMMAND Test_LevelDB)
