@@ -42,8 +42,8 @@ const unsigned int LEADER_POW2_WINDOW_IN_SECONDS{
     ReadFromConstantsFile("LEADER_POW2_WINDOW_IN_SECONDS")};
 const unsigned int BACKUP_POW2_WINDOW_IN_SECONDS{
     ReadFromConstantsFile("BACKUP_POW2_WINDOW_IN_SECONDS")};
-const unsigned int NEW_NODE_POW2_TIMEOUT_IN_SECONDS{
-    ReadFromConstantsFile("NEW_NODE_POW2_TIMEOUT_IN_SECONDS")};
+const unsigned int NEW_NODE_SYNC_INTERVAL{
+    ReadFromConstantsFile("NEW_NODE_SYNC_INTERVAL")};
 const unsigned int POW_SUB_BUFFER_TIME{
     ReadFromConstantsFile("POW_SUB_BUFFER_TIME")}; //milliseconds
 const unsigned int POW1_DIFFICULTY{ReadFromConstantsFile("POW1_DIFFICULTY")};
