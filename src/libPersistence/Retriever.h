@@ -37,6 +37,8 @@ public:
     bool ValidateStates();
     bool CleanExtraTxBodies();
 
+    void CleanAll();
+
 private:
     Mediator& m_mediator;
 };

@@ -131,6 +131,9 @@ public:
 
     /// Clean a DB
     bool ResetDB(DBTYPE type);
+
+    /// Clean all DB
+    bool ResetAll();
 };
 
 #endif // BLOCKSTORAGE_H
