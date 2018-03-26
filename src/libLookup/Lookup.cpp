@@ -1303,17 +1303,17 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
             }
             m_isDSRandUpdated = false;
         }
-    }
-}
-
-receivedLatestTxBlocks = true;
-if (receivedLatestState.load())
-{
-    std::lock_guard<mutex> lock(m_receivedLatestMutex);
-    m_receivedLatestCondition.notify_one();
-}
 #endif // IS_LOOKUP_NODE
-return ret;
+    }
+
+    receivedLatestTxBlocks = true;
+    if (receivedLatestState.load())
+    {
+        std::lock_guard<mutex> lock(m_receivedLatestMutex);
+        m_receivedLatestCondition.notify_one();
+    }
+
+    return ret;
 }
 
 bool Lookup::ProcessSetTxBodyFromSeed(const vector<unsigned char>& message,
@@ -1493,6 +1493,7 @@ bool Lookup::InitMining()
 bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
                                      unsigned int offset, const Peer& from)
 {
+    bool ret = true;
 #ifndef IS_LOOKUP_NODE
     // Message = [TRAN_HASH_SIZE txHashStr][Transaction::GetSerializedSize() txbody]
 
@@ -1521,7 +1522,7 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
     }
 
     unique_lock<mutex> lock(m_mutexSetState);
-    bool ret = true;
+
     unsigned int curr_offset = offset;
     // AccountStore::GetInstance().Deserialize(message, curr_offset);
     if (AccountStore::GetInstance().Deserialize(message, curr_offset) != 0)
