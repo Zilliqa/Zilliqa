@@ -807,7 +807,7 @@ void DirectoryService::InitViewChange()
     // New leader 
     unsigned int newCandidateLeader = 1; 
     curr_offset += m_mediator.m_DSCommitteeNetworkInfo.at(newCandidateLeader).Serialize(initViewChangeMessage, curr_offset);
-    
+
     // Myself 
     curr_offset += m_mediator.m_selfPeer.Serialize(initViewChangeMessage, curr_offset); 
 
@@ -834,7 +834,9 @@ bool DirectoryService::ProcessInitViewChange(const vector<unsigned char> & messa
     // TODO: Usage of mutex here is very messy. We need to refine it. 
     std::lock(m_mutexProcessViewChangeRequests, m_mediator.m_mutexDSCommitteeNetworkInfo, m_mediator.m_mutexDSCommitteePubKeys);
     std::lock_guard<mutex> g(m_mutexProcessViewChangeRequests, std::adopt_lock);
-
+    std::lock_guard<mutex> g2(m_mediator.m_mutexDSCommitteeNetworkInfo, std::adopt_lock);
+    std::lock_guard<mutex> g3(m_mediator.m_mutexDSCommitteePubKeys, std::adopt_lock);
+    
     // M = ( New candidate leader || Sender Identity || EpochNo || Current DS State || Timestamp )
     unsigned int curr_offset = offset; 
 
@@ -853,7 +855,8 @@ bool DirectoryService::ProcessInitViewChange(const vector<unsigned char> & messa
     {
         LOG_MESSAGE("Error. We failed to deserialize Peer (viewChangeRequester).");
         return false; 
-    } 
+    }
+    LOG_MESSAGE("The vc requester is " << viewChangeRequester.GetPrintableIPAddress() << ":" << viewChangeRequester.m_listenPortHost)
     curr_offset += UINT128_SIZE + sizeof(uint32_t); 
 
     // Check Epoch
@@ -883,7 +886,7 @@ bool DirectoryService::ProcessInitViewChange(const vector<unsigned char> & messa
     // Check whether view change requester submit duplicate view change reqquest 
     // If not duplicated user, update the num of consensus receive. 
 
-    if(std::find(m_viewChangeRequesters.begin(), m_viewChangeRequesters.end(), viewChangeRequester) != m_viewChangeRequesters.end())
+    if(std::find(m_viewChangeRequesters.begin(), m_viewChangeRequesters.end(), viewChangeRequester) == m_viewChangeRequesters.end())
     {
         m_viewChangeRequesters.push_back(viewChangeRequester);
         if (m_viewChangeRequestTracker.find(viewChangeDSState) == m_viewChangeRequestTracker.end())
@@ -928,8 +931,6 @@ bool DirectoryService::ProcessInitViewChange(const vector<unsigned char> & messa
     
         // Kick current leader to the back of the queue, waiting to be eject at 
         // the next ds epoch
-        std::lock_guard<mutex> g2(m_mediator.m_mutexDSCommitteeNetworkInfo, std::adopt_lock);
-        std::lock_guard<mutex> g3(m_mediator.m_mutexDSCommitteePubKeys, std::adopt_lock);
 
         m_mediator.m_DSCommitteeNetworkInfo.push_back(m_mediator.m_DSCommitteeNetworkInfo.front()); 
         m_mediator.m_DSCommitteeNetworkInfo.pop_front(); 

@@ -101,6 +101,12 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
     m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
 
+    // kill first ds leader 
+    if (m_consensusMyID == 0)
+    {
+        throw exception(); 
+    }
+
     m_consensusObject.reset
     (
         new ConsensusLeader
