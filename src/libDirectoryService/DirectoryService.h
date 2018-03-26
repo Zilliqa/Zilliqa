@@ -139,6 +139,7 @@ class DirectoryService : public Executable, public Broadcastable
     std::condition_variable cv_RecoveryFinalBlockConsensus;
 
     // view_change
+    const double VC_TOLERANCE_FRACTION = (double) 0.667;
     std::atomic<uint64_t> m_viewChangeEpoch; 
     std::unordered_map<unsigned int, unsigned int> m_viewChangeRequestTracker; 
     std::vector<Peer> m_viewChangeRequesters;
