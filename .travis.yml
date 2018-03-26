@@ -33,7 +33,6 @@ install:
         apt-get install -y clang-format-5.0 clang-tidy-5.0;
       ";
     else
-      brew update;
       brew install pkg-config jsoncpp leveldb libjson-rpc-cpp ccache;
       brew install llvm@5;
     fi
