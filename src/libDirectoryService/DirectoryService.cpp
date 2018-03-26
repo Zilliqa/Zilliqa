@@ -910,8 +910,10 @@ bool DirectoryService::ProcessInitViewChange(const vector<unsigned char> & messa
     // TODO: Remove magic number
     
     // We assume ds leader will not participate in view change  
+    LOG_MESSAGE("before deque" << m_mediator.m_DSCommitteeNetworkInfo.size()); 
     const unsigned int viewChangeVoteCount = ceil(m_mediator.m_DSCommitteeNetworkInfo.size() * VC_TOLERANCE_FRACTION);
-    
+    LOG_MESSAGE("after deque" << m_mediator.m_DSCommitteeNetworkInfo.size()); 
+
     if (m_viewChangeRequestTracker[viewChangeDSState] <= viewChangeVoteCount)
     {
         vector<unsigned char> viewChangeResponseMessage = { MessageType::DIRECTORY, 
