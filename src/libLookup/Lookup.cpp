@@ -1454,7 +1454,7 @@ bool Lookup::InitMining()
     }
 
     // Check whether is the new node connected to the network. Else, initiate re-sync process again.
-    this_thread::sleep_for(chrono::seconds(NEW_NODE_POW2_TIMEOUT_IN_SECONDS));
+    this_thread::sleep_for(chrono::seconds(BACKUP_POW2_WINDOW_IN_SECONDS));
     if (!m_mediator.m_isConnectedToNetwork)
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),

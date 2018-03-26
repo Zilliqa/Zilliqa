@@ -87,7 +87,7 @@ extern const unsigned int POW1_BACKUP_WINDOW_IN_SECONDS;
 extern const unsigned int LEADER_SHARDING_PREPARATION_IN_SECONDS;
 extern const unsigned int LEADER_POW2_WINDOW_IN_SECONDS;
 extern const unsigned int BACKUP_POW2_WINDOW_IN_SECONDS;
-extern const unsigned int NEW_NODE_POW2_TIMEOUT_IN_SECONDS;
+extern const unsigned int NEW_NODE_SYNC_INTERVAL;
 extern const unsigned int POW_SUB_BUFFER_TIME;
 extern const unsigned int POW1_DIFFICULTY;
 extern const unsigned int POW2_DIFFICULTY;
