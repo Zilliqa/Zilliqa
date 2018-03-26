@@ -2,7 +2,6 @@ language: generic
 cache:
   directories:
     - $HOME/.ccache/
-    - $HOME/Library/Caches/Homebrew # for OSX only
 
 # multiplied by platform
 os:
