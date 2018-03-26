@@ -910,7 +910,9 @@ bool DirectoryService::ProcessInitViewChange(const vector<unsigned char> & messa
     // TODO: Remove magic number
     
     // We assume ds leader will not participate in view change  
-    if (m_viewChangeRequestTracker[viewChangeDSState] <= VC_TOLERANCE_FRACTION)
+    const unsigned int viewChangeVoteCount = ceil(m_mediator.m_DSCommitteeNetworkInfo.size() * VC_TOLERANCE_FRACTION);
+    
+    if (m_viewChangeRequestTracker[viewChangeDSState] <= viewChangeVoteCount)
     {
         vector<unsigned char> viewChangeResponseMessage = { MessageType::DIRECTORY, 
                                                         DSInstructionType::INITVIEWCHANGERESPONSE };
@@ -936,39 +938,39 @@ bool DirectoryService::ProcessInitViewChange(const vector<unsigned char> & messa
         m_mediator.m_DSCommitteeNetworkInfo.pop_front(); 
         m_mediator.m_DSCommitteePubKeys.push_back(m_mediator.m_DSCommitteePubKeys.front());
         m_mediator.m_DSCommitteePubKeys.pop_front();
-    }
-
-    unsigned int sleepBeforeConsensusDuration = 5; 
-    this_thread::sleep_for(chrono::seconds(sleepBeforeConsensusDuration));
     
-    // Set myself to leader and change leader consensus id
-    m_consensusLeaderID = m_consensusMyID; 
+        unsigned int sleepBeforeConsensusDuration = 5; 
+        this_thread::sleep_for(chrono::seconds(sleepBeforeConsensusDuration));
+        
+        // Set myself to leader and change leader consensus id
+        m_consensusLeaderID = m_consensusMyID; 
 
-    // Re-run consensus
-    switch(viewChangeDSState)
-    {
-        case DSBLOCK_CONSENSUS_PREP:
-        case DSBLOCK_CONSENSUS:
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
-                        "Re-running dsblock consensus");
-            RunConsensusOnDSBlockWhenDSPrimary();
-            break;
-        case SHARDING_CONSENSUS_PREP:
-        case SHARDING_CONSENSUS:
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
-                        "Re-running sharding consensus");
-            RunConsensusOnShardingWhenDSPrimary();
-            break;
-        case FINALBLOCK_CONSENSUS_PREP:
-        case FINALBLOCK_CONSENSUS:
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
-                        "Re-running finalblock consensus");
-            RunConsensusOnFinalBlock();
-            break;
-        default:
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                        "illegal view change state");
-            return false;
+        // Re-run consensus
+        switch(viewChangeDSState)
+        {
+            case DSBLOCK_CONSENSUS_PREP:
+            case DSBLOCK_CONSENSUS:
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                            "Re-running dsblock consensus (new leader)");
+                RunConsensusOnDSBlockWhenDSPrimary();
+                break;
+            case SHARDING_CONSENSUS_PREP:
+            case SHARDING_CONSENSUS:
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                            "Re-running sharding consensus (new leader)");
+                RunConsensusOnShardingWhenDSPrimary();
+                break;
+            case FINALBLOCK_CONSENSUS_PREP:
+            case FINALBLOCK_CONSENSUS:
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                            "Re-running finalblock consensus (new leader)");
+                RunConsensusOnFinalBlock();
+                break;
+            default:
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                            "illegal view change state (new leader)");
+                return false;
+        }
     }
     return true; 
 }
@@ -1003,6 +1005,31 @@ bool DirectoryService::ProcessInitViewChangeResponse(const vector<unsigned char>
 
         // New leader for consensus 
         m_consensusLeaderID++; 
+        switch(m_state)
+        {
+            case DSBLOCK_CONSENSUS_PREP:
+            case DSBLOCK_CONSENSUS:
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                            "Re-running dsblock consensus (backup)");
+                RunConsensusOnDSBlockWhenDSBackup();
+                break;
+            case SHARDING_CONSENSUS_PREP:
+            case SHARDING_CONSENSUS:
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                            "Re-running sharding consensus (backup)");
+                RunConsensusOnShardingWhenDSBackup();
+                break;
+            case FINALBLOCK_CONSENSUS_PREP:
+            case FINALBLOCK_CONSENSUS:
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                            "Re-running finalblock consensus (backup)");
+                RunConsensusOnFinalBlockWhenDSBackup();
+                break;
+            default:
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                            "illegal view change state (backup)");
+        }
+        return false;
     }
     curr_offset += UINT128_SIZE + sizeof(uint32_t); 
 
