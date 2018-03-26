@@ -117,6 +117,7 @@ if(CLANG_TIDY)
             -config=''
             -header-filter ${HEADER_DIR_REGEX}
             -style='file'
+            -warnings-as-errors='*'
             ${ALL_CXX_SOURCES}
         )
         if(CLANG_APPLY_REPLACEMENTS)
