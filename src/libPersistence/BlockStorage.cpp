@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <sys/stat.h>
@@ -163,9 +164,9 @@ bool BlockStorage::GetDSBlock(const boost::multiprecision::uint256_t& blockNum,
     const unsigned char* raw_memory
         = reinterpret_cast<const unsigned char*>(blockString.c_str());
     // FIXME: Handle exceptions
-    block = DSBlockSharedPtr(new DSBlock(
+    block = std::make_shared<DSBlock>(
         std::vector<unsigned char>(raw_memory, raw_memory + blockString.size()),
-        0));
+        0);
     return true;
 }
 
@@ -182,9 +183,9 @@ bool BlockStorage::GetTxBlock(const boost::multiprecision::uint256_t& blockNum,
     const unsigned char* raw_memory
         = reinterpret_cast<const unsigned char*>(blockString.c_str());
     // FIXME: Handle exceptions
-    block = TxBlockSharedPtr(new TxBlock(
+    block = std::make_shared<TxBlock>(
         std::vector<unsigned char>(raw_memory, raw_memory + blockString.size()),
-        0));
+        0);
     return true;
 }
 
@@ -209,9 +210,9 @@ bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body)
     const unsigned char* raw_memory
         = reinterpret_cast<const unsigned char*>(bodyString.c_str());
     // FIXME: Handle exceptions
-    body = TxBodySharedPtr(new Transaction(
+    body = std::make_shared<Transaction>(
         std::vector<unsigned char>(raw_memory, raw_memory + bodyString.size()),
-        0));
+        0);
     return true;
 }
 
@@ -275,10 +276,10 @@ bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr>& blocks)
         }
         const unsigned char* raw_memory
             = reinterpret_cast<const unsigned char*>(blockString.c_str());
-        DSBlockSharedPtr block = DSBlockSharedPtr(
-            new DSBlock(std::vector<unsigned char>(
-                            raw_memory, raw_memory + blockString.size()),
-                        0));
+        DSBlockSharedPtr block = std::make_shared<DSBlock>(
+            std::vector<unsigned char>(raw_memory,
+                                       raw_memory + blockString.size()),
+            0);
 
         blocks.push_back(block);
     }
@@ -312,10 +313,10 @@ bool BlockStorage::GetAllTxBlocks(std::list<TxBlockSharedPtr>& blocks)
         }
         const unsigned char* raw_memory
             = reinterpret_cast<const unsigned char*>(blockString.c_str());
-        TxBlockSharedPtr block = TxBlockSharedPtr(
-            new TxBlock(std::vector<unsigned char>(
-                            raw_memory, raw_memory + blockString.size()),
-                        0));
+        TxBlockSharedPtr block = std::make_shared<TxBlock>(
+            std::vector<unsigned char>(raw_memory,
+                                       raw_memory + blockString.size()),
+            0);
         blocks.push_back(block);
     }
 
