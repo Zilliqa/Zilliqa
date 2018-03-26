@@ -904,7 +904,11 @@ bool DirectoryService::ProcessInitViewChange(const vector<unsigned char> & messa
     // TODO: Check timestamp or other possible element such as nonces to ensure the message is fresh
     // If collect enough request, initiate view change. 
     // TODO: Remove magic number
-    if (m_viewChangeRequestTracker[viewChangeDSState] <= 401)
+    
+    // We assume ds leader will not participate in view change  
+    unsigned int viewChangeTolerance = ceil(m_DSCommitteeNetworkInfo.size() * TOLERANCE_FRACTION) - 2;
+
+    if (m_viewChangeRequestTracker[viewChangeDSState] <= viewChangeTolerance)
     {
         vector<unsigned char> viewChangeResponseMessage = { MessageType::DIRECTORY, 
                                                         DSInstructionType::INITVIEWCHANGERESPONSE };
