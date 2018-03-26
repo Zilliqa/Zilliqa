@@ -31,7 +31,7 @@ install:
         apt-get install -y libboost-all-dev libleveldb-dev libsnappy-dev;
         apt-get install -y libjsoncpp-dev libmicrohttpd-dev libjsonrpccpp-dev;
         apt-get install -y ccache;
-        apt-get install -y clang-format-5.0 clang-tidy-5.0;
+        apt-get install -y clang-format-5.0 clang-tidy-5.0 clang-5.0;
       ";
     else
       brew install pkg-config jsoncpp leveldb libjson-rpc-cpp ccache;
