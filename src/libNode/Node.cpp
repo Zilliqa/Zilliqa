@@ -35,8 +35,8 @@
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 #include "libMediator/Mediator.h"
-#include "libPOW/pow.h"
 #include "libPersistence/Retriever.h"
+#include "libPOW/pow.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
@@ -64,6 +64,11 @@ Node::Node(Mediator& mediator, bool toRetrieveHistory)
         else
         {
             LOG_MESSAGE("FAIL: RetrieveHistory Failed");
+            m_retriever->CleanAll();
+            AccountStore::GetInstance().Init();
+            m_mediator.m_dsBlockChain.Reset();
+            m_mediator.m_txBlockChain.Reset();
+            m_committedTransactions.clear();
         }
     }
 
@@ -73,11 +78,6 @@ Node::Node(Mediator& mediator, bool toRetrieveHistory)
         // Hence, we have to set consensusID for first epoch to 1.
         m_consensusID = 1;
         m_consensusLeaderID = 1;
-
-        m_mediator.m_dsBlockChain.Reset();
-        m_mediator.m_txBlockChain.Reset();
-        m_committedTransactions.clear();
-        AccountStore::GetInstance().Init();
 
         m_synchronizer.InitializeGenesisBlocks(m_mediator.m_dsBlockChain,
                                                m_mediator.m_txBlockChain);
@@ -97,26 +97,26 @@ Node::~Node() {}
 bool Node::StartRetrieveHistory()
 {
     LOG_MARKER();
-    auto retriever = make_unique<Retriever>(m_mediator);
+    m_retriever = make_shared<Retriever>(m_mediator);
 
     bool ds_result;
-    std::thread tDS(&Retriever::RetrieveDSBlocks, retriever.get(),
+    std::thread tDS(&Retriever::RetrieveDSBlocks, m_retriever.get(),
                     std::ref(ds_result));
     // retriever->RetrieveDSBlocks(ds_result);
 
     bool tx_result;
-    std::thread tTx(&Retriever::RetrieveTxBlocks, retriever.get(),
+    std::thread tTx(&Retriever::RetrieveTxBlocks, m_retriever.get(),
                     std::ref(tx_result));
     // retriever->RetrieveTxBlocks(tx_result);
 
-    bool st_result = retriever->RetrieveStates();
+    bool st_result = m_retriever->RetrieveStates();
 
     tDS.join();
     tTx.join();
     bool res = false;
     if (st_result && ds_result && tx_result)
     {
-        if (retriever->ValidateStates() && retriever->CleanExtraTxBodies())
+        if (m_retriever->ValidateStates() && m_retriever->CleanExtraTxBodies())
         {
             LOG_MESSAGE("RetrieveHistory Successed");
             m_mediator.m_isRetrievedHistory = true;
@@ -144,7 +144,7 @@ void Node::StartSynchronization()
             m_synchronizer.AttemptPoW(m_mediator.m_lookup);
 
             this_thread::sleep_for(
-                chrono::seconds(NEW_NODE_POW2_TIMEOUT_IN_SECONDS));
+                chrono::seconds(NEW_NODE_POW2_TIMEOUT_IN_SECONDS/2));
         }
     };
 

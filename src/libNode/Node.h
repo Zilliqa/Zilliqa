@@ -37,10 +37,11 @@
 #include "libLookup/Synchronizer.h"
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/PeerStore.h"
-#include "libPOW/pow.h"
 #include "libPersistence/BlockStorage.h"
+#include "libPOW/pow.h"
 
 class Mediator;
+class Retriever;
 
 /// Implements PoW submission and sharding node functionality.
 class Node : public Executable, public Broadcastable
@@ -104,6 +105,8 @@ class Node : public Executable, public Broadcastable
 
     // Consensus variables
     std::shared_ptr<ConsensusCommon> m_consensusObject;
+
+    std::shared_ptr<Retriever> m_retriever;
 
     std::vector<unsigned char> m_consensusBlockHash;
     std::atomic<uint32_t> m_consensusMyID;

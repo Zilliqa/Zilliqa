@@ -332,3 +332,10 @@ bool BlockStorage::ResetDB(DBTYPE type)
     }
     return ret;
 }
+
+bool BlockStorage::ResetAll()
+{
+    return m_metadataDB.ResetDB() && m_dsBlockchainDB.ResetDB() &&
+    m_txBlockchainDB.ResetDB() && m_txBodyDB.ResetDB() &&
+    m_txBodyTmpDB.ResetDB();
+}

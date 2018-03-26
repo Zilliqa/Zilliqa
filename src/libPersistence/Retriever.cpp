@@ -118,3 +118,15 @@ bool Retriever::ValidateStates()
                .GetStateRootHash()
         == AccountStore::GetInstance().GetStateRootHash();
 }
+
+void Retriever::CleanAll()
+{
+	if(BlockStorage::GetBlockStorage().ResetAll())
+	{
+		LOG_MESSAGE("Reset DB Succeed");
+	}
+	else
+	{
+		LOG_MESSAGE("FAIL: Reset DB Failed");
+	}
+}
