@@ -179,8 +179,6 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup()
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                  "I am a backup DS node. Waiting for DS block announcement.");
 
-    // Create new consensus object
-
     // Dummy values for now
     uint32_t consensusID = 0x0;
     m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
@@ -260,6 +258,8 @@ void DirectoryService::RunConsensusOnDSBlock()
         {
             //View change. 
             //TODO: This is a simplified version and will be review again. 
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                "Initiated DS block view change. ");
             InitViewChange(); 
         }
     }

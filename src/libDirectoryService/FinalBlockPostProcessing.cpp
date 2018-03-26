@@ -330,6 +330,7 @@ bool DirectoryService::ProcessFinalBlockConsensus(const vector<unsigned char> & 
 
     if (state == ConsensusCommon::State::DONE)
     {
+        cv_viewChangeFinalBlock.notify_all(); 
         ProcessFinalBlockConsensusWhenDone();
     }
     else if (state == ConsensusCommon::State::ERROR)

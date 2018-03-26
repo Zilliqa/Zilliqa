@@ -313,6 +313,20 @@ bool DirectoryService::RunConsensusOnShardingWhenDSBackup()
         return false;
     }
 
+
+    if (m_mode != PRIMARY_DS)
+    {
+        std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeSharding);
+        if(cv_viewChangeSharding.wait_for(cv_lk, std::chrono::seconds(180)) == std::cv_status::timeout )
+        {
+            //View change. 
+            //TODO: This is a simplified version and will be review again. 
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                "Initiated sharding structure consensus view change. ");
+            InitViewChange(); 
+        }
+    }
+
     return true;
 }
 

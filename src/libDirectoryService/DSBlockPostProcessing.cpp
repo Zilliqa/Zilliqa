@@ -372,13 +372,16 @@ bool DirectoryService::ProcessDSBlockConsensus(const vector<unsigned char> & mes
 
     if (state == ConsensusCommon::State::DONE)
     {
+        cv_RecoveryDSBlockConsensus.notify_all(); 
         ProcessDSBlockConsensusWhenDone(message, offset);
     }
     else if (state == ConsensusCommon::State::ERROR)
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Oops, no consensus reached - what to do now???");
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "DEBUG for verify sig m_allPoWConns  size is " << m_allPoWConns.size() << ". Please check numbers of pow1 receivied by this node"); 
-        throw exception();
+        
+        // Wait for view change to happen 
+        //throw exception();
     }
     else
     {
