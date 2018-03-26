@@ -65,10 +65,6 @@ Node::Node(Mediator& mediator, bool toRetrieveHistory)
         {
             LOG_MESSAGE("FAIL: RetrieveHistory Failed");
             m_retriever->CleanAll();
-            AccountStore::GetInstance().Init();
-            m_mediator.m_dsBlockChain.Reset();
-            m_mediator.m_txBlockChain.Reset();
-            m_committedTransactions.clear();
         }
     }
 
@@ -78,6 +74,11 @@ Node::Node(Mediator& mediator, bool toRetrieveHistory)
         // Hence, we have to set consensusID for first epoch to 1.
         m_consensusID = 1;
         m_consensusLeaderID = 1;
+
+        AccountStore::GetInstance().Init();
+        m_mediator.m_dsBlockChain.Reset();
+        m_mediator.m_txBlockChain.Reset();
+        m_committedTransactions.clear();
 
         m_synchronizer.InitializeGenesisBlocks(m_mediator.m_dsBlockChain,
                                                m_mediator.m_txBlockChain);
@@ -144,7 +145,7 @@ void Node::StartSynchronization()
             m_synchronizer.AttemptPoW(m_mediator.m_lookup);
 
             this_thread::sleep_for(
-                chrono::seconds(NEW_NODE_POW2_TIMEOUT_IN_SECONDS/2));
+                chrono::seconds(NEW_NODE_POW2_TIMEOUT_IN_SECONDS));
         }
     };
 
