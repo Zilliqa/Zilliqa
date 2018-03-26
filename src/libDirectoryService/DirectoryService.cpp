@@ -924,8 +924,8 @@ bool DirectoryService::ProcessInitViewChange(const vector<unsigned char> & messa
         response_offset += m_mediator.m_selfPeer.Serialize(viewChangeResponseMessage, response_offset);
 
         // DS state which view change happen
-        Serializable::SetNumber<unsigned int>(viewChangeResponseMessage, curr_offset, viewChangeDSState, sizeof(unsigned int ));
-        curr_offset += sizeof(unsigned int);
+        Serializable::SetNumber<unsigned int>(viewChangeResponseMessage, response_offset, viewChangeDSState, sizeof(unsigned int ));
+        response_offset += sizeof(unsigned int);
 
         // TODO: Candidate leader should sign the response
         P2PComm::GetInstance().SendMessage(m_mediator.m_DSCommitteeNetworkInfo, viewChangeResponseMessage);
