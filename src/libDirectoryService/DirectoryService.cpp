@@ -830,7 +830,11 @@ void DirectoryService::InitViewChange()
 bool DirectoryService::ProcessInitViewChange(const vector<unsigned char> & message, unsigned int offset, const Peer & from)
 {
     LOG_MARKER(); 
-    
+
+    // TODO: Usage of mutex here is very messy. We need to refine it. 
+    std::lock(m_mutexProcessViewChangeRequests, m_mediator.m_mutexDSCommitteeNetworkInfo, m_mediator.m_mutexDSCommitteePubKeys);
+    std::lock_guard<mutex> g(m_mutexProcessViewChangeRequests, std::adopt_lock);
+
     // M = ( New candidate leader || Sender Identity || EpochNo || Current DS State || Timestamp )
     unsigned int curr_offset = offset; 
 
@@ -860,7 +864,6 @@ bool DirectoryService::ProcessInitViewChange(const vector<unsigned char> & messa
     {
         m_viewChangeEpoch = m_mediator.m_currentEpochNum; 
         {
-            std::lock_guard<mutex> g(m_mutexViewChangeRequesters);
             m_viewChangeRequesters.clear(); 
         }
     }
@@ -879,25 +882,23 @@ bool DirectoryService::ProcessInitViewChange(const vector<unsigned char> & messa
     
     // Check whether view change requester submit duplicate view change reqquest 
     // If not duplicated user, update the num of consensus receive. 
+
+    if(std::find(m_viewChangeRequesters.begin(), m_viewChangeRequesters.end(), viewChangeRequester) != m_viewChangeRequesters.end())
     {
-        std::lock_guard<mutex> g(m_mutexViewChangeRequesters);
-        if(std::find(m_viewChangeRequesters.begin(), m_viewChangeRequesters.end(), viewChangeRequester) != m_viewChangeRequesters.end())
+        m_viewChangeRequesters.push_back(viewChangeRequester);
+        if (m_viewChangeRequestTracker.find(viewChangeDSState) == m_viewChangeRequestTracker.end())
         {
-            m_viewChangeRequesters.push_back(viewChangeRequester);
-            if (m_viewChangeRequestTracker.find(viewChangeDSState) == m_viewChangeRequestTracker.end())
-            {
-                m_viewChangeRequestTracker.insert(std::make_pair(viewChangeDSState, 1));
-            }
-            else
-            {
-                m_viewChangeRequestTracker[viewChangeDSState] = m_viewChangeRequestTracker[viewChangeDSState] + 1; 
-            }
+            m_viewChangeRequestTracker.insert(std::make_pair(viewChangeDSState, 1));
         }
         else
         {
-            LOG_MESSAGE("Error: View requester submitting a duplicated view change request"); 
-            return false; 
+            m_viewChangeRequestTracker[viewChangeDSState] = m_viewChangeRequestTracker[viewChangeDSState] + 1; 
         }
+    }
+    else
+    {
+        LOG_MESSAGE("Error: View requester submitting a duplicated view change request"); 
+        return false; 
     }
     
     
@@ -922,17 +923,16 @@ bool DirectoryService::ProcessInitViewChange(const vector<unsigned char> & messa
         // TODO: Candidate leader should sign the response
         P2PComm::GetInstance().SendMessage(m_mediator.m_DSCommitteeNetworkInfo, viewChangeResponseMessage);
         
-        // Clear the view change vars 
-        {
-            std::lock_guard<mutex> g(m_mutexViewChangeRequesters);
-            m_viewChangeRequestTracker.clear(); 
-        }
-
+        // Clear the requester map
+        m_viewChangeRequestTracker.clear(); 
+    
         // Kick current leader to the back of the queue, waiting to be eject at 
         // the next ds epoch
+        std::lock_guard<mutex> g2(m_mediator.m_mutexDSCommitteeNetworkInfo, std::adopt_lock);
+        std::lock_guard<mutex> g3(m_mediator.m_mutexDSCommitteePubKeys, std::adopt_lock);
+
         m_mediator.m_DSCommitteeNetworkInfo.push_back(m_mediator.m_DSCommitteeNetworkInfo.front()); 
         m_mediator.m_DSCommitteeNetworkInfo.pop_front(); 
-
         m_mediator.m_DSCommitteePubKeys.push_back(m_mediator.m_DSCommitteePubKeys.front());
         m_mediator.m_DSCommitteePubKeys.pop_front();
     }
@@ -982,8 +982,12 @@ bool DirectoryService::ProcessInitViewChangeResponse(const vector<unsigned char>
     {
         LOG_MESSAGE("Error. We failed to deserialize Peer (candidiateLeader).");
         return false; 
-    } 
+    }
 
+    std::lock(m_mediator.m_mutexDSCommitteeNetworkInfo, m_mediator.m_mutexDSCommitteePubKeys);
+    std::lock_guard<mutex> g(m_mediator.m_mutexDSCommitteeNetworkInfo, std::adopt_lock);
+    std::lock_guard<mutex> g2(m_mediator.m_mutexDSCommitteePubKeys, std::adopt_lock);
+    
     if (m_mediator.m_DSCommitteeNetworkInfo.at(1) == candidiateLeader)
     {
         // View change 
@@ -1005,7 +1009,6 @@ bool DirectoryService::ProcessInitViewChangeResponse(const vector<unsigned char>
     // View change done
     return true; 
 }
-
 
 #endif // IS_LOOKUP_NODE
 
