@@ -906,9 +906,7 @@ bool DirectoryService::ProcessInitViewChange(const vector<unsigned char> & messa
     // TODO: Remove magic number
     
     // We assume ds leader will not participate in view change  
-    unsigned int viewChangeTolerance = ceil(m_DSCommitteeNetworkInfo.size() * TOLERANCE_FRACTION) - 2;
-
-    if (m_viewChangeRequestTracker[viewChangeDSState] <= viewChangeTolerance)
+    if (m_viewChangeRequestTracker[viewChangeDSState] <= VC_TOLERANCE_FRACTION)
     {
         vector<unsigned char> viewChangeResponseMessage = { MessageType::DIRECTORY, 
                                                         DSInstructionType::INITVIEWCHANGERESPONSE };
@@ -945,6 +943,7 @@ bool DirectoryService::ProcessInitViewChange(const vector<unsigned char> & messa
     // Set myself to leader and change leader consensus id
     m_consensusLeaderID = m_consensusMyID; 
 
+    // Re-run consensus
     switch(viewChangeDSState)
     {
         case DSBLOCK_CONSENSUS_PREP:
@@ -965,24 +964,10 @@ bool DirectoryService::ProcessInitViewChange(const vector<unsigned char> & messa
                         "Re-running finalblock consensus");
             RunConsensusOnFinalBlock();
             break;
-    }
-
-    if (viewChangeDSState == DSBLOCK_CONSENSUS_PREP)
-    {
-        RunConsensusOnDSBlockWhenDSPrimary();
-    }
-    else if (viewChangeDSState == SHARDING_CONSENSUS_PREP)
-    {
-        RunConsensusOnShardingWhenDSPrimary();
-    }
-    else if (viewChangeDSState == FINALBLOCK_CONSENSUS_PREP)
-    {
-        RunConsensusOnFinalBlockWhenDSPrimary();
-    }
-    else
-    {
-        LOG_MESSAGE("Unregonized view change state");
-        return false;
+        default:
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                        "illegal view change state");
+            return false;
     }
     return true; 
 }
