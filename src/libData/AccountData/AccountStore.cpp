@@ -126,18 +126,7 @@ int AccountStore::Deserialize(const vector<unsigned char>& src,
                 return -1;
             }
             curOffset += ACCOUNT_SIZE;
-            if (!DoesAccountExist(address))
-            {
-                m_addressToAccount.insert(make_pair(address, account));
-            }
-            else
-            {
-                auto it = m_addressToAccount.find(address);
-                if (it != m_addressToAccount.end())
-                {
-                    it->second = account;
-                }
-            }
+            m_addressToAccount[address] = account;
             UpdateStateTrie(address, account);
             // MoveUpdatesToDisk();
         }
