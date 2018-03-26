@@ -282,7 +282,7 @@ bool Lookup::GetTxBlockFromLookupNodes(uint256_t lowBlockNum,
 
     SendMessageToLookupNodes(
         ComposeGetTxBlockMessage(lowBlockNum, highBlockNum));
-    
+
     receivedLatestTxBlocks = false;
 
     return true;
@@ -1233,7 +1233,7 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
 
     uint64_t latestSynBlockNum
         = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
-    if(ret)
+    if (ret)
     {
         if (latestSynBlockNum > highBlockNum)
         {
@@ -1266,9 +1266,10 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
                 LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                              "txBlock.GetHeader().GetBlockNum(): "
                                  << txBlock.GetHeader().GetBlockNum());
-                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                             "txBlock.GetHeader().GetNumMicroBlockHashes(): "
-                                 << txBlock.GetHeader().GetNumMicroBlockHashes());
+                LOG_MESSAGE2(
+                    to_string(m_mediator.m_currentEpochNum).c_str(),
+                    "txBlock.GetHeader().GetNumMicroBlockHashes(): "
+                        << txBlock.GetHeader().GetNumMicroBlockHashes());
                 LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                              "txBlock.GetHeader().GetNumTxs(): "
                                  << txBlock.GetHeader().GetNumTxs());
@@ -1290,29 +1291,29 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
 #endif
 
 #ifndef IS_LOOKUP_NODE // TODO : remove from here to top
-            m_mediator.m_currentEpochNum
-                = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
-            m_mediator.UpdateTxBlockRand();
+        m_mediator.m_currentEpochNum
+            = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
+        m_mediator.UpdateTxBlockRand();
 
+        {
+            unique_lock<mutex> lock(m_dsRandUpdationMutex);
+            while (!m_isDSRandUpdated)
             {
-                unique_lock<mutex> lock(m_dsRandUpdationMutex);
-                while (!m_isDSRandUpdated)
-                {
-                    m_dsRandUpdateCondition.wait(lock);
-                }
-                m_isDSRandUpdated = false;
+                m_dsRandUpdateCondition.wait(lock);
             }
+            m_isDSRandUpdated = false;
         }
     }
+}
 
-    receivedLatestTxBlocks = true;
-    if (receivedLatestState.load())
-    {
-        std::lock_guard<mutex> lock(m_receivedLatestMutex);
-        m_receivedLatestCondition.notify_one();
-    }
+receivedLatestTxBlocks = true;
+if (receivedLatestState.load())
+{
+    std::lock_guard<mutex> lock(m_receivedLatestMutex);
+    m_receivedLatestCondition.notify_one();
+}
 #endif // IS_LOOKUP_NODE
-    return ret;
+return ret;
 }
 
 bool Lookup::ProcessSetTxBodyFromSeed(const vector<unsigned char>& message,
@@ -1395,15 +1396,13 @@ bool Lookup::InitMining()
     }
     else
     {
-        auto const timeout = std::chrono::steady_clock::now() + 
-            std::chrono::seconds(NEW_NODE_SYNC_INTERVAL);
+        auto const timeout = std::chrono::steady_clock::now()
+            + std::chrono::seconds(NEW_NODE_SYNC_INTERVAL);
         unique_lock<mutex> lock(m_receivedLatestMutex);
-        if (m_receivedLatestCondition.wait_until
-            (lock, timeout,
-                [this]  {
-                            LOG_MESSAGE("NOTIFIED!");
-                            return true;
-                        }))
+        if (m_receivedLatestCondition.wait_until(lock, timeout, [this] {
+                LOG_MESSAGE("NOTIFIED!");
+                return true;
+            }))
         {
             // DO NOTHING
         }
