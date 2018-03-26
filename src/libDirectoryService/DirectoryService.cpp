@@ -944,6 +944,29 @@ bool DirectoryService::ProcessInitViewChange(const vector<unsigned char> & messa
     
     // Set myself to leader and change leader consensus id
     m_consensusLeaderID = m_consensusMyID; 
+
+    switch(viewChangeDSState)
+    {
+        case DSBLOCK_CONSENSUS_PREP:
+        case DSBLOCK_CONSENSUS:
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                        "Re-running dsblock consensus");
+            RunConsensusOnDSBlockWhenDSPrimary();
+            break;
+        case SHARDING_CONSENSUS_PREP:
+        case SHARDING_CONSENSUS:
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                        "Re-running sharding consensus");
+            RunConsensusOnShardingWhenDSPrimary();
+            break;
+        case FINALBLOCK_CONSENSUS_PREP:
+        case FINALBLOCK_CONSENSUS:
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+                        "Re-running finalblock consensus");
+            RunConsensusOnFinalBlock();
+            break;
+    }
+
     if (viewChangeDSState == DSBLOCK_CONSENSUS_PREP)
     {
         RunConsensusOnDSBlockWhenDSPrimary();
