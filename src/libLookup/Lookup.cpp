@@ -192,7 +192,7 @@ bool Lookup::GetStateFromLookupNodes()
     {
         receivedLatestState = false;
     }
-    return true;   
+    return true;
 }
 
 vector<unsigned char> Lookup::ComposeGetDSBlockMessage(uint256_t lowBlockNum,
@@ -281,7 +281,8 @@ bool Lookup::GetTxBlockFromLookupNodes(uint256_t lowBlockNum,
 {
     LOG_MARKER();
 
-    SendMessageToLookupNodes(ComposeGetTxBlockMessage(lowBlockNum, highBlockNum));
+    SendMessageToLookupNodes(
+        ComposeGetTxBlockMessage(lowBlockNum, highBlockNum));
     {
         receivedLatestTxBlocks = false;
     }
@@ -1301,7 +1302,7 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
         m_isDSRandUpdated = false;
         {
             receivedLatestTxBlocks = true;
-            if(receivedLatestState.load())
+            if (receivedLatestState.load())
             {
                 std::lock_guard<mutex> lock(m_receivedLatestMutex);
                 m_receivedLatestCondition.notify_one();
@@ -1365,7 +1366,10 @@ bool Lookup::CheckStateRoot()
 {
     StateHash stateRoot = AccountStore::GetInstance().GetStateRootHash();
 
-    if(stateRoot == m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetStateRootHash())
+    if (stateRoot
+        == m_mediator.m_txBlockChain.GetLastBlock()
+               .GetHeader()
+               .GetStateRootHash())
     {
         LOG_MESSAGE("CheckStateRoot match");
         return true;
@@ -1404,46 +1408,53 @@ bool Lookup::InitMining()
 
     // if (m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW == curDsBlockNum)
     // {
-    //     // DS block for the epoch has not been generated. 
+    //     // DS block for the epoch has not been generated.
     //     // Attempt PoW1
     //     m_mediator.UpdateTxBlockRand();
     //     dsBlockRand = m_mediator.m_dsBlockRand;
 
     //     m_mediator.m_node->SetState(Node::POW1_SUBMISSION);
     //     POW::GetInstance().EthashConfigureLightClient((uint64_t)m_mediator.m_dsBlockChain.GetBlockCount());
-    //     m_mediator.m_node->StartPoW1(m_mediator.m_dsBlockChain.GetBlockCount(), 
+    //     m_mediator.m_node->StartPoW1(m_mediator.m_dsBlockChain.GetBlockCount(),
     //                                     POW1_DIFFICULTY, dsBlockRand, m_mediator.m_txBlockRand);
     // }
-    //else if 
-    if (m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW == curDsBlockNum - 1)
+    //else if
+    if (m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW
+        == curDsBlockNum - 1)
     {
         {
-            if(receivedLatestTxBlocks.load() && receivedLatestState.load())
+            if (receivedLatestTxBlocks.load() && receivedLatestState.load())
             {
                 // DO NOTHING
             }
             else
             {
                 unique_lock<mutex> lock(m_receivedLatestMutex);
-                m_receivedLatestCondition.wait(lock, [this]{
+                m_receivedLatestCondition.wait(lock, [this] {
                     LOG_MESSAGE("NOTIFIED ONCE");
-                    return true;});
+                    return true;
+                });
             }
         }
 
-        if(CheckStateRoot())
+        if (CheckStateRoot())
         {
-            // DS block has been generated. 
+            // DS block has been generated.
             // Attempt PoW2
             m_mediator.UpdateDSBlockRand();
             dsBlockRand = m_mediator.m_dsBlockRand;
             txBlockRand = {};
 
             m_mediator.m_node->SetState(Node::POW2_SUBMISSION);
-            POW::GetInstance().EthashConfigureLightClient((uint64_t)m_mediator.m_dsBlockChain.GetBlockCount());
-            m_mediator.m_node->StartPoW2(m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(), 
-                                            POW2_DIFFICULTY, dsBlockRand, txBlockRand);
-        }else
+            POW::GetInstance().EthashConfigureLightClient(
+                (uint64_t)m_mediator.m_dsBlockChain.GetBlockCount());
+            m_mediator.m_node->StartPoW2(
+                m_mediator.m_dsBlockChain.GetLastBlock()
+                    .GetHeader()
+                    .GetBlockNum(),
+                POW2_DIFFICULTY, dsBlockRand, txBlockRand);
+        }
+        else
         {
             return false;
         }
@@ -1511,7 +1522,7 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
 
     {
         receivedLatestState = true;
-        if(receivedLatestTxBlocks.load())
+        if (receivedLatestTxBlocks.load())
         {
             std::lock_guard<mutex> lock(m_receivedLatestMutex);
             m_receivedLatestCondition.notify_one();

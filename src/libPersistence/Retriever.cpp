@@ -48,7 +48,7 @@ void Retriever::RetrieveDSBlocks(bool& result)
     }
     else
     {
-    	LOG_MESSAGE("Has no incompleted DS Block");
+        LOG_MESSAGE("Has no incompleted DS Block");
     }
 
     for (const auto& block : blocks)
@@ -121,12 +121,12 @@ bool Retriever::ValidateStates()
 
 void Retriever::CleanAll()
 {
-	if(BlockStorage::GetBlockStorage().ResetAll())
-	{
-		LOG_MESSAGE("Reset DB Succeed");
-	}
-	else
-	{
-		LOG_MESSAGE("FAIL: Reset DB Failed");
-	}
+    if (BlockStorage::GetBlockStorage().ResetAll())
+    {
+        LOG_MESSAGE("Reset DB Succeed");
+    }
+    else
+    {
+        LOG_MESSAGE("FAIL: Reset DB Failed");
+    }
 }

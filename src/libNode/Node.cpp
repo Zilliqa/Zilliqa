@@ -35,8 +35,8 @@
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 #include "libMediator/Mediator.h"
-#include "libPersistence/Retriever.h"
 #include "libPOW/pow.h"
+#include "libPersistence/Retriever.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
@@ -142,10 +142,9 @@ void Node::StartSynchronization()
             m_synchronizer.FetchLatestTxBlocks(
                 m_mediator.m_lookup, m_mediator.m_txBlockChain.GetBlockCount());
             m_synchronizer.FetchLatestState(m_mediator.m_lookup);
-            if(!m_synchronizer.AttemptPoW(m_mediator.m_lookup))
+            if (!m_synchronizer.AttemptPoW(m_mediator.m_lookup))
             {
-                this_thread::sleep_for(
-                chrono::seconds(NEW_NODE_SYNC_INTERVAL));
+                this_thread::sleep_for(chrono::seconds(NEW_NODE_SYNC_INTERVAL));
             }
         }
     };
