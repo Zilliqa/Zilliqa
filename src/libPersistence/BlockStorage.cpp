@@ -344,7 +344,7 @@ bool BlockStorage::ResetDB(DBTYPE type)
         {
             if (iterator->DeleteDB() != 0)
             {
-                break;
+                throw std::exception();
             }
         }
         m_txBodyDBs.clear();
