@@ -38,15 +38,17 @@ BlockStorage& BlockStorage::GetBlockStorage()
     return bs;
 }
 
-bool BlockStorage::PushBackTxBodyDB(const boost::multiprecision::uint256_t& blockNum)
+bool BlockStorage::PushBackTxBodyDB(
+    const boost::multiprecision::uint256_t& blockNum)
 {
-    if(m_txBodyDBs.size() >= NUM_DS_KEEP_TX_BODY + 1) // Leave one for keeping tmp txBody
+    if (m_txBodyDBs.size()
+        >= NUM_DS_KEEP_TX_BODY + 1) // Leave one for keeping tmp txBody
     {
         LOG_MESSAGE("TxBodyDB pool is full")
         return false;
     }
 
-    LevelDB txBodyDB(blockNum.convert_to<string>(),TX_BODY_SUBDIR);
+    LevelDB txBodyDB(blockNum.convert_to<string>(), TX_BODY_SUBDIR);
     m_txBodyDBs.push_back(txBodyDB);
 
     return true;
@@ -54,13 +56,13 @@ bool BlockStorage::PushBackTxBodyDB(const boost::multiprecision::uint256_t& bloc
 
 bool BlockStorage::PopFrontTxBodyDB()
 {
-    if(!m_txBodyDBs.size())
+    if (!m_txBodyDBs.size())
     {
         LOG_MESSAGE("No TxBodyDB found");
         return false;
     }
 
-    if(m_txBodyDBs.size() <= NUM_DS_KEEP_TX_BODY)
+    if (m_txBodyDBs.size() <= NUM_DS_KEEP_TX_BODY)
     {
         LOG_MESSAGE("TxBodyDB pool is not full, ignore this pop");
         return true;
@@ -332,12 +334,12 @@ bool BlockStorage::ResetDB(DBTYPE type)
     case TX_BLOCK:
         ret = m_txBlockchainDB.ResetDB();
     case TX_BODIES:
+    {
+        for (unsigned int i = 0; i < m_txBodyDBs.size(); i++)
         {
-            for(unsigned int i = 0; i < m_txBodyDBs.size(); i++)
-            {
-                PopFrontTxBodyDB();
-            }    
+            PopFrontTxBodyDB();
         }
+    }
     }
     if (!ret)
     {

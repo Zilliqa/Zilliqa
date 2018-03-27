@@ -271,8 +271,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
         if (CheckStateRoot())
         {
             AccountStore::GetInstance().MoveUpdatesToDisk();
-            BlockStorage::GetBlockStorage().PutMetadata(
-                MetaType::DSINCOMPLETED, {'0'});
+            BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
+                                                        {'0'});
             BlockStorage::GetBlockStorage().PopFrontTxBodyDB();
         }
     }
