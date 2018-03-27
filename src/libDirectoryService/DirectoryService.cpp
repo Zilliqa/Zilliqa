@@ -912,9 +912,7 @@ bool DirectoryService::ProcessInitViewChange(const vector<unsigned char> & messa
     // TODO: Remove magic number
     
     // We assume ds leader will not participate in view change  
-    LOG_MESSAGE("before deque" << m_mediator.m_DSCommitteeNetworkInfo.size()); 
     const unsigned int viewChangeVoteCount = ceil(m_mediator.m_DSCommitteeNetworkInfo.size() * VC_TOLERANCE_FRACTION);
-    LOG_MESSAGE("after deque" << m_mediator.m_DSCommitteeNetworkInfo.size()); 
 
     if (m_viewChangeRequestTracker[viewChangeDSState] > viewChangeVoteCount)
     {
@@ -951,6 +949,7 @@ bool DirectoryService::ProcessInitViewChange(const vector<unsigned char> & messa
         //m_consensusLeaderID = m_consensusMyID; 
         m_consensusMyID--;
         m_viewChangeCounter++;
+        LOG_MESSAGE("vc counter "<< m_viewChangeCounter);
 
         // Re-run consensus
         switch(viewChangeDSState)
@@ -1014,7 +1013,7 @@ bool DirectoryService::ProcessInitViewChangeResponse(const vector<unsigned char>
         //m_consensusLeaderID++; 
         m_consensusMyID--;
         m_viewChangeCounter++;
-
+        LOG_MESSAGE("vc counter "<< m_viewChangeCounter);
         switch(m_state)
         {
             case DSBLOCK_CONSENSUS_PREP:

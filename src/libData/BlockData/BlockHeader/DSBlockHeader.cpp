@@ -53,7 +53,7 @@ unsigned int DSBlockHeader::Serialize(vector<unsigned char> & dst, unsigned int 
     LOG_MARKER();
 
     unsigned int size_needed = sizeof(uint8_t) + BLOCK_HASH_SIZE + UINT256_SIZE + PUB_KEY_SIZE + PUB_KEY_SIZE + 
-                               UINT256_SIZE + UINT256_SIZE;
+                               UINT256_SIZE + UINT256_SIZE + sizeof(unsigned int);
     unsigned int size_remaining = dst.size() - offset;
 
     if (size_remaining < size_needed)
@@ -238,7 +238,7 @@ bool DSBlockHeader::operator<(const DSBlockHeader & header) const
     }
     else if (m_viewChangeCounter < header.m_viewChangeCounter) // TODO: Check this
     {
-        return false; 
+        return true; 
     }
     else
     {
