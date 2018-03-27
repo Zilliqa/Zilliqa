@@ -189,7 +189,10 @@ bool Lookup::GetStateFromLookupNodes()
     LOG_MARKER();
     SendMessageToLookupNodes(ComposeGetStateMessage());
 
-    receivedLatestState = false;
+    {
+        std::lock_guard<mutex> lock(m_receivedLatestMutex);
+        receivedLatestState = false;
+    }
 
     return true;
 }
@@ -283,7 +286,10 @@ bool Lookup::GetTxBlockFromLookupNodes(uint256_t lowBlockNum,
     SendMessageToLookupNodes(
         ComposeGetTxBlockMessage(lowBlockNum, highBlockNum));
 
-    receivedLatestTxBlocks = false;
+    {
+        std::lock_guard<mutex> lock(m_receivedLatestMutex);
+        receivedLatestTxBlocks = false;
+    }
 
     return true;
 }
@@ -1305,11 +1311,13 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
 #endif // IS_LOOKUP_NODE
     }
 
-    receivedLatestTxBlocks = true;
-    if (receivedLatestState.load())
     {
         std::lock_guard<mutex> lock(m_receivedLatestMutex);
-        m_receivedLatestCondition.notify_one();
+        receivedLatestTxBlocks = true;
+        if (receivedLatestState)
+        {
+            m_receivedLatestCondition.notify_one();
+        }
     }
 
     return ret;
@@ -1388,26 +1396,28 @@ bool Lookup::InitMining()
     m_mediator.m_currentEpochNum
         = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
 
-    // wait for receivedLatestTxBlocks and receivedLatestState become true
-    if (receivedLatestTxBlocks.load() && receivedLatestState.load())
+    // wait for receivedLatestTxBlocks and receivedLatestState become true until timeout
     {
-        // DO NOTHING
-    }
-    else
-    {
-        auto const timeout = std::chrono::steady_clock::now()
-            + std::chrono::seconds(NEW_NODE_SYNC_INTERVAL);
         unique_lock<mutex> lock(m_receivedLatestMutex);
-        if (m_receivedLatestCondition.wait_until(lock, timeout, [this] {
-                LOG_MESSAGE("NOTIFIED!");
-                return true;
-            }))
+        if (receivedLatestTxBlocks && receivedLatestState)
         {
             // DO NOTHING
         }
         else
         {
-            return false;
+            auto const timeout = std::chrono::steady_clock::now()
+                + std::chrono::seconds(NEW_NODE_SYNC_INTERVAL);
+            if (m_receivedLatestCondition.wait_until(lock, timeout, [this] {
+                    LOG_MESSAGE("NOTIFIED!");
+                    return true;
+                }))
+            {
+                // DO NOTHING
+            }
+            else
+            {
+                return false;
+            }
         }
     }
 
@@ -1530,11 +1540,13 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
         ret = false;
     }
 
-    receivedLatestState = true;
-    if (receivedLatestTxBlocks.load())
     {
         std::lock_guard<mutex> lock(m_receivedLatestMutex);
-        m_receivedLatestCondition.notify_one();
+        receivedLatestState = true;
+        if (receivedLatestTxBlocks)
+        {
+            m_receivedLatestCondition.notify_one();
+        }
     }
 
 #endif // IS_LOOKUP_NODE
