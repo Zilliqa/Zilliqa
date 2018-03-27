@@ -180,6 +180,5 @@ void Retriever::CleanAll()
     else
     {
         LOG_MESSAGE("FAIL: Reset DB Failed");
-        throw std::exception();
     }
 }

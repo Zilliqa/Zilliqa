@@ -47,7 +47,7 @@ LevelDB::LevelDB(const string & dbName, const string & subdirectory)
     }
     else
     {
-        boost::filesystem::create_directories(subdirectory);
+        boost::filesystem::create_directories(PERSISTENCE_PATH + "/" + this->m_subdirectory);
         status = leveldb::DB::Open(options, 
             PERSISTENCE_PATH + "/" + this->m_subdirectory + "/" + this->m_dbName,
             &db);
