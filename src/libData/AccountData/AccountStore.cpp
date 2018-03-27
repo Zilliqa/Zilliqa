@@ -40,6 +40,7 @@ AccountStore::~AccountStore()
 
 void AccountStore::Init()
 {
+    m_db.ResetDB();
     m_addressToAccount.clear();
     m_state.init();
     prevRoot = m_state.root();
