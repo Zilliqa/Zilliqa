@@ -116,7 +116,7 @@ bool Node::StartRetrieveHistory()
     bool res = false;
     if (st_result && ds_result && tx_result)
     {
-        if (retriever->ValidateStates() && retriever->CleanExtraTxBodies())
+        if (retriever->ValidateStates())
         {
             LOG_MESSAGE("RetrieveHistory Successed");
             m_mediator.m_isRetrievedHistory = true;

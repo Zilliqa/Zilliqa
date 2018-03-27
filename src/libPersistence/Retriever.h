@@ -35,10 +35,11 @@ public:
     void RetrieveTxBlocks(bool& result);
     bool RetrieveStates();
     bool ValidateStates();
-    bool CleanExtraTxBodies();
 
 private:
     Mediator& m_mediator;
+
+    bool m_isDSIncompleted = false;
 };
 
 #endif // __RETRIEVER_H__

@@ -37,18 +37,27 @@ void Retriever::RetrieveDSBlocks(bool& result)
         return;
     }
 
+    /// Check whether the termination of last running happens before the last DSEpoch properly ended.
     std::vector<unsigned char> isDSIncompleted;
     if (BlockStorage::GetBlockStorage().GetMetadata(MetaType::DSINCOMPLETED,
                                                     isDSIncompleted))
     {
-        LOG_MESSAGE("Has incompleted DS Block");
-        BlockStorage::GetBlockStorage().DeleteMetadata(MetaType::DSINCOMPLETED);
-        BlockStorage::GetBlockStorage().DeleteDSBlock(blocks.size() - 1);
-        blocks.pop_back();
+        if(isDSIncompleted[0] == '1')
+        {
+            LOG_MESSAGE("Has incompleted DS Block");
+            blocks.pop_back();
+            if(BlockStorage::GetBlockStorage().DeleteDSBlock(blocks.size() - 1))
+            {
+                m_isDSIncompleted = true;
+                BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED, {'0'});
+            }
+        }
     }
     else
     {
         LOG_MESSAGE("FAIL: Retrieve Metadata: DSINCOMPLETED Failed");
+        result = false;
+        return;
     }
 
     for (const auto& block : blocks)
@@ -89,24 +98,6 @@ bool Retriever::RetrieveStates()
 {
     LOG_MARKER();
     return AccountStore::GetInstance().RetrieveFromDisk();
-}
-
-bool Retriever::CleanExtraTxBodies()
-{
-    LOG_MARKER();
-    std::list<TxnHash> txnHashes;
-    if (BlockStorage::GetBlockStorage().GetAllTxBodiesTmp(txnHashes))
-    {
-        for (auto i : txnHashes)
-        {
-            if (!BlockStorage::GetBlockStorage().DeleteTxBody(i))
-            {
-                LOG_MESSAGE("FAIL: To delete TxHash in TxBodiesTmpDB");
-                return false;
-            }
-        }
-    }
-    return true;
 }
 
 bool Retriever::ValidateStates()

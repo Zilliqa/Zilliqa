@@ -20,6 +20,7 @@
 #include <boost/filesystem.hpp>
 
 #include "LevelDB.h"
+#include "common/Constants.h"
 #include "depends/common/Common.h"
 #include "depends/common/CommonData.h"
 #include "depends/common/FixedHash.h"
@@ -38,15 +39,16 @@ LevelDB::LevelDB(const string & dbName, const string & subdirectory)
     options.create_if_missing = true;
 
     leveldb::DB* db;
+    leveldb::Status status;
 
     if(!m_subdirectory.size())
     {
-        leveldb::Status status = leveldb::DB::Open(options, PERSISTENCE_PATH + "/" + this->m_dbName, &db);
+        status = leveldb::DB::Open(options, PERSISTENCE_PATH + "/" + this->m_dbName, &db);
     }
     else
     {
         boost::filesystem::create_directories(subdirectory);
-        leveldb::Status status = leveldb::DB::Open(options, 
+        status = leveldb::DB::Open(options, 
             PERSISTENCE_PATH + "/" + this->m_subdirectory + "/" + this->m_dbName,
             &db);
     }
