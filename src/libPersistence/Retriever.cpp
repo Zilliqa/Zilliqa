@@ -17,6 +17,7 @@
 #include "Retriever.h"
 
 #include <algorithm>
+#include <exception>
 #include <stdlib.h>
 #include <vector>
 
@@ -58,7 +59,6 @@ void Retriever::RetrieveDSBlocks(bool& result)
             if (BlockStorage::GetBlockStorage().DeleteDSBlock(blocks.size()
                                                               - 1))
             {
-                m_isDSIncompleted = true;
                 BlockStorage::GetBlockStorage().PutMetadata(
                     MetaType::DSINCOMPLETED, {'0'});
             }
@@ -66,7 +66,7 @@ void Retriever::RetrieveDSBlocks(bool& result)
     }
     else
     {
-        LOG_MESSAGE("FAIL: Retrieve Metadata: DSINCOMPLETED Failed");
+        LOG_MESSAGE("No GetMetadata or failed");
         result = false;
         return;
     }
@@ -170,4 +170,17 @@ bool Retriever::ValidateStates()
                .GetHeader()
                .GetStateRootHash()
         == AccountStore::GetInstance().GetStateRootHash();
+}
+
+void Retriever::CleanAll()
+{
+    if (BlockStorage::GetBlockStorage().ResetAll())
+    {
+        LOG_MESSAGE("Reset DB Succeed");
+    }
+    else
+    {
+        LOG_MESSAGE("FAIL: Reset DB Failed");
+        throw std::exception();
+    }
 }

@@ -37,10 +37,10 @@ public:
     bool RetrieveStates();
     bool ValidateStates();
 
+    void CleanAll();
+
 private:
     Mediator& m_mediator;
-
-    bool m_isDSIncompleted = false;
 };
 
 #endif // __RETRIEVER_H__

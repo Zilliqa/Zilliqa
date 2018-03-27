@@ -41,6 +41,7 @@
 #include "libPersistence/BlockStorage.h"
 
 class Mediator;
+class Retriever;
 
 /// Implements PoW submission and sharding node functionality.
 class Node : public Executable, public Broadcastable
@@ -104,6 +105,9 @@ class Node : public Executable, public Broadcastable
 
     // Consensus variables
     std::shared_ptr<ConsensusCommon> m_consensusObject;
+
+    // Persistence Retriever
+    std::shared_ptr<Retriever> m_retriever;
 
     std::vector<unsigned char> m_consensusBlockHash;
     std::atomic<uint32_t> m_consensusMyID;

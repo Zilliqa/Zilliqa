@@ -336,10 +336,24 @@ bool BlockStorage::ResetDB(DBTYPE type)
         ret = m_txBlockchainDB.ResetDB();
     case TX_BODIES:
     {
-        for (unsigned int i = 0; i < m_txBodyDBs.size(); i++)
+        // for (unsigned int i = 0; i < m_txBodyDBs.size(); i++)
+        // {
+        //     if(m_txBodyDBs.at(i).DeleteDB() != 0)
+        //     {
+        //         return false;
+        //     }
+        // }
+
+        for (auto iterator = m_txBodyDBs.begin(); iterator != m_txBodyDBs.end();
+             ++iterator)
         {
-            PopFrontTxBodyDB();
+            if (iterator->DeleteDB() != 0)
+            {
+                break;
+            }
         }
+        m_txBodyDBs.clear();
+        ret = true;
     }
     }
     if (!ret)
@@ -347,4 +361,10 @@ bool BlockStorage::ResetDB(DBTYPE type)
         LOG_MESSAGE("FAIL: Reset DB " << type << " failed");
     }
     return ret;
+}
+
+bool BlockStorage::ResetAll()
+{
+    return ResetDB(META) && ResetDB(DS_BLOCK) && ResetDB(TX_BLOCK)
+        && ResetDB(TX_BODIES);
 }
