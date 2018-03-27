@@ -26,12 +26,12 @@
 
 using namespace std;
 
-LevelDB::LevelDB(const string & dbName)
+LevelDB::LevelDB(const string & dbName, const string & subdirectory)
 {
     this->m_dbName = dbName;
-
-    string path = "./persistence";
-    boost::filesystem::create_directories(path);
+    this->m_subdirectory = subdirectory;
+    
+    boost::filesystem::create_directories(PERSISTENCE_PATH);
 
     leveldb::Options options;
     options.max_open_files = 256;
@@ -39,7 +39,18 @@ LevelDB::LevelDB(const string & dbName)
 
     leveldb::DB* db;
 
-    leveldb::Status status = leveldb::DB::Open(options, path + "/" + this->m_dbName, &db);
+    if(!m_subdirectory.size())
+    {
+        leveldb::Status status = leveldb::DB::Open(options, PERSISTENCE_PATH + "/" + this->m_dbName, &db);
+    }
+    else
+    {
+        boost::filesystem::create_directories(subdirectory);
+        leveldb::Status status = leveldb::DB::Open(options, 
+            PERSISTENCE_PATH + "/" + this->m_subdirectory + "/" + this->m_dbName,
+            &db);
+    }
+
     if(!status.ok())
     {
         throw exception();
@@ -294,11 +305,18 @@ int LevelDB::DeleteKey(const std::string & key)
 int LevelDB::DeleteDB()
 {
     m_db.reset();
-    leveldb::Status s = leveldb::DestroyDB(this->m_dbName, leveldb::Options()); 
+    leveldb::Status s = leveldb::DestroyDB(PERSISTENCE_PATH + 
+        (this->m_subdirectory.size() ? "/" + this->m_subdirectory : "") + "/" + this->m_dbName,
+        leveldb::Options());
     if (!s.ok())
     {
         LOG_MESSAGE("[DeleteDB] Status: " << s.ToString());
         return -1;
+    }
+
+    if(this->m_subdirectory.size())
+    {
+        boost::filesystem::remove_all(PERSISTENCE_PATH + "/" + this->m_subdirectory + "/" + this->m_dbName);
     }
 
     return 0;
@@ -307,10 +325,9 @@ int LevelDB::DeleteDB()
 
 bool LevelDB::ResetDB()
 {
-    if(DeleteDB()==0)
+    if(DeleteDB()==0 && !this->m_subdirectory.size())
     {
-        string path = "./persistence";
-        boost::filesystem::remove_all(path + "/" + this->m_dbName);
+        boost::filesystem::remove_all(PERSISTENCE_PATH + "/" + this->m_dbName);
 
         leveldb::Options options;
         options.max_open_files = 256;
@@ -318,7 +335,7 @@ bool LevelDB::ResetDB()
 
         leveldb::DB* db;
 
-        leveldb::Status status = leveldb::DB::Open(options, path + "/" + this->m_dbName, &db);
+        leveldb::Status status = leveldb::DB::Open(options, PERSISTENCE_PATH + "/" + this->m_dbName, &db);
         if(!status.ok())
         {
             throw exception();
@@ -326,6 +343,10 @@ bool LevelDB::ResetDB()
 
         m_db.reset(db);
         return true;
+    }
+    else if(this->m_subdirectory.size())
+    {
+        LOG_MESSAGE("DB in subdirectory cannot be reset");
     }
     return false;
 }
