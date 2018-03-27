@@ -1141,8 +1141,8 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         else
         {
             StoreState();
-            BlockStorage::GetBlockStorage().PutMetadata(
-                MetaType::DSINCOMPLETED, {'0'});
+            BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
+                                                        {'0'});
             BlockStorage::GetBlockStorage().PopFrontTxBodyDB();
         }
     }
