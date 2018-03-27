@@ -50,7 +50,7 @@ class BlockStorage
         , m_txBlockchainDB("txBlocks")
 #else // IS_LOOKUP_NODE
         , m_txBodyDB("txBodies")
-        , m_txBodyTmp("txBodiesTmp")
+        , m_txBodyTmpDB("txBodiesTmp")
 #endif // IS_LOOKUP_NODE
               {};
     ~BlockStorage() = default;
