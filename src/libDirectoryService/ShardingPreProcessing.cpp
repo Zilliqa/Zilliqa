@@ -46,6 +46,11 @@ void DirectoryService::ComputeSharding()
     m_publicKeyToShardIdMap.clear();
 
     uint32_t numOfComms = m_allPoW2s.size() / COMM_SIZE;
+    if (numOfComms == 0)
+    {
+        LOG_MESSAGE("Zero Pow2 collected, numOfComms is temporarlly set to 1");
+        numOfComms = 1;
+    }
 
     for (unsigned int i = 0; i < numOfComms; i++)
     {
