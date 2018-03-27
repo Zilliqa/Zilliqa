@@ -116,12 +116,19 @@ bool Node::StartRetrieveHistory()
     tDS.join();
     tTx.join();
 
-    bool tx_bodies_result = m_retriever->RetrieveTxBodiesDB();
+    bool tx_bodies_result = true;
+#ifndef IS_LOOKUP_NODE
+    tx_bodies_result = m_retriever->RetrieveTxBodiesDB();
+#endif //IS_LOOKUP_NODE
 
     bool res = false;
     if (st_result && ds_result && tx_result && tx_bodies_result)
     {
+#ifndef IS_LOOKUP_NODE
         if (m_retriever->ValidateStates())
+#else // IS_LOOKUP_NODE
+        if (m_retriever->ValidateStates() && m_retriever->CleanExtraTxBodies())
+#endif // IS_LOOKUP_NODE
         {
             LOG_MESSAGE("RetrieveHistory Successed");
             m_mediator.m_isRetrievedHistory = true;

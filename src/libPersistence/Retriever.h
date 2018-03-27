@@ -33,9 +33,14 @@ public:
     void RetrieveDSBlocks(bool& result);
 
     void RetrieveTxBlocks(bool& result);
-    bool RetrieveTxBodiesDB();
     bool RetrieveStates();
     bool ValidateStates();
+
+#ifndef IS_LOOKUP_NODE
+    bool RetrieveTxBodiesDB();
+#else // IS_LOOKUP_NODE
+    bool CleanExtraTxBodies();
+#endif // IS_LOOKUP_NODE
 
     void CleanAll();
 
