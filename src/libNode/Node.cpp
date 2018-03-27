@@ -113,8 +113,11 @@ bool Node::StartRetrieveHistory()
 
     tDS.join();
     tTx.join();
+
+    bool tx_bodies_result = retriever->RetrieveTxBodiesDB();
+
     bool res = false;
-    if (st_result && ds_result && tx_result)
+    if (st_result && ds_result && tx_result && tx_bodies_result)
     {
         if (retriever->ValidateStates())
         {
