@@ -38,6 +38,7 @@ BlockStorage& BlockStorage::GetBlockStorage()
     return bs;
 }
 
+#ifndef IS_LOOKUP_NODE
 bool BlockStorage::PushBackTxBodyDB(
     const boost::multiprecision::uint256_t& blockNum)
 {
@@ -78,6 +79,7 @@ bool BlockStorage::PopFrontTxBodyDB()
 
     return (ret == 0);
 }
+#endif // IS_LOOKUP_NODE
 
 bool BlockStorage::PutBlock(const boost::multiprecision::uint256_t& blockNum,
                             const vector<unsigned char>& body,
@@ -101,8 +103,7 @@ bool BlockStorage::PutDSBlock(const boost::multiprecision::uint256_t& blockNum,
     bool ret = false;
     if (PutBlock(blockNum, body, BlockType::DS))
     {
-        if (PutMetadata(MetaType::DSINCOMPLETED, {'1'})
-            && PushBackTxBodyDB(blockNum))
+        if (PutMetadata(MetaType::DSINCOMPLETED, {'1'}))
         {
             ret = true;
         }
@@ -128,7 +129,12 @@ bool BlockStorage::PutTxBody(const dev::h256& key,
 {
     LOG_MARKER();
 
+#ifndef IS_LOOKUP_NODE
     int ret = m_txBodyDBs.back().Insert(key, body);
+#else // IS_LOOKUP_NODE
+    int ret = m_txBodyDB.Insert(key, body) && m_txBodyTmpDB.Insert(key, body);
+#endif // IS_LOOKUP_NODE
+
     return (ret == 0);
 }
 
@@ -174,8 +180,11 @@ bool BlockStorage::GetTxBlock(const boost::multiprecision::uint256_t& blockNum,
 
 bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body)
 {
-    // string bodyString = m_txBodyDB.Lookup(key);
+#ifndef IS_LOOKUP_NODE
     string bodyString = m_txBodyDBs.back().Lookup(key);
+#else // IS_LOOKUP_NODE
+    string bodyString = m_txBodyDB.Lookup(key);
+#endif
 
     if (bodyString.empty())
     {
@@ -208,7 +217,12 @@ bool BlockStorage::DeleteTxBlock(
 
 bool BlockStorage::DeleteTxBody(const dev::h256& key)
 {
+#ifndef IS_LOOKUP_NODE
     int ret = m_txBodyDBs.back().DeleteKey(key);
+#else // IS_LOOKUP_NODE
+    int ret = m_txBodyTmpDB.DeleteKey(key);
+#endif // IS_LOOKUP_NODE
+
     return (ret == 0);
 }
 
@@ -299,6 +313,28 @@ bool BlockStorage::GetAllTxBlocks(std::list<TxBlockSharedPtr>& blocks)
     return true;
 }
 
+#ifdef IS_LOOKUP_NODE
+bool BlockStorage::GetAllTxBodiesTmp(std::list<TxnHash>& txnHashes)
+{
+    LOG_MARKER();
+
+    leveldb::Iterator* it
+        = m_txBodyTmpDB.GetDB()->NewIterator(leveldb::ReadOptions());
+    for (it->SeekToFirst(); it->Valid(); it->Next())
+    {
+        string hashString = it->key().ToString();
+        if (hashString.empty())
+        {
+            LOG_MESSAGE("ERROR: Lost one Tmp txBody Hash");
+            return false;
+        }
+        TxnHash txnHash(hashString);
+        txnHashes.push_back(txnHash);
+    }
+    return true;
+}
+#endif // IS_LOOKUP_NODE
+
 bool BlockStorage::PutMetadata(MetaType type,
                                const std::vector<unsigned char>& data)
 {
@@ -337,6 +373,7 @@ bool BlockStorage::ResetDB(DBTYPE type)
         ret = m_dsBlockchainDB.ResetDB();
     case TX_BLOCK:
         ret = m_txBlockchainDB.ResetDB();
+#ifndef IS_LOOKUP_NODE
     case TX_BODIES:
     {
         for (auto iterator = m_txBodyDBs.begin(); iterator != m_txBodyDBs.end();
@@ -350,6 +387,12 @@ bool BlockStorage::ResetDB(DBTYPE type)
         m_txBodyDBs.clear();
         ret = true;
     }
+#else // IS_LOOKUP_NODE
+    case TX_BODY:
+        ret = m_txBodyDB.ResetDB();
+    case TX_BODY_TMP:
+        ret = m_txBodyTmpDB.ResetDB();
+#endif // IS_LOOKUP_NODE
     }
     if (!ret)
     {
@@ -361,5 +404,9 @@ bool BlockStorage::ResetDB(DBTYPE type)
 bool BlockStorage::ResetAll()
 {
     return ResetDB(META) && ResetDB(DS_BLOCK) && ResetDB(TX_BLOCK)
+#ifndef IS_LOOKUP_NODE
         && ResetDB(TX_BODIES);
+#else // IS_LOOKUP_NODE
+        && ResetDB(TX_BODY) && ResetDB(TX_BODY_TMP);
+#endif
 }

@@ -105,6 +105,7 @@ void Retriever::RetrieveTxBlocks(bool& result)
     result = true;
 }
 
+#ifndef IS_LOOKUP_NODE
 bool Retriever::RetrieveTxBodiesDB()
 {
     filesys::path p(PERSISTENCE_PATH + "/" + TX_BODY_SUBDIR);
@@ -155,6 +156,25 @@ bool Retriever::RetrieveTxBodiesDB()
 
     return true;
 }
+#else // IS_LOOKUP_NODE
+bool Retriever::CleanExtraTxBodies()
+{
+    LOG_MARKER();
+    std::list<TxnHash> txnHashes;
+    if (BlockStorage::GetBlockStorage().GetAllTxBodiesTmp(txnHashes))
+    {
+        for (auto i : txnHashes)
+        {
+            if (!BlockStorage::GetBlockStorage().DeleteTxBody(i))
+            {
+                LOG_MESSAGE("FAIL: To delete TxHash in TxBodiesTmpDB");
+                return false;
+            }
+        }
+    }
+    return true;
+}
+#endif // IS_LOOKUP_NODE
 
 bool Retriever::RetrieveStates()
 {

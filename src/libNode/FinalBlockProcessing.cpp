@@ -1143,7 +1143,9 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
             StoreState();
             BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
                                                         {'0'});
+#ifndef IS_LOOKUP_NODE
             BlockStorage::GetBlockStorage().PopFrontTxBodyDB();
+#endif // IS_LOOKUP_NODE
         }
     }
     // #endif // IS_LOOKUP_NODE

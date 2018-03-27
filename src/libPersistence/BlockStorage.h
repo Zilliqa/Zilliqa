@@ -36,12 +36,23 @@ class BlockStorage
     LevelDB m_metadataDB;
     LevelDB m_dsBlockchainDB;
     LevelDB m_txBlockchainDB;
+#ifndef IS_LOOKUP_NODE
     std::list<LevelDB> m_txBodyDBs;
+#else // IS_LOOKUP_NODE
+    LevelDB m_txBodyDB;
+    LevelDB m_txBodyTmpDB;
+#endif // IS_LOOKUP_NODE
 
     BlockStorage()
         : m_metadataDB("metadata")
         , m_dsBlockchainDB("dsBlocks")
-        , m_txBlockchainDB("txBlocks"){};
+#ifndef IS_LOOKUP_NODE
+        , m_txBlockchainDB("txBlocks")
+#else // IS_LOOKUP_NODE
+        , m_txBodyDB("txBodies")
+        , m_txBodyTmp("txBodiesTmp")
+#endif // IS_LOOKUP_NODE
+              {};
     ~BlockStorage() = default;
     bool PutBlock(const boost::multiprecision::uint256_t& blockNum,
                   const std::vector<unsigned char>& block,
@@ -53,17 +64,24 @@ public:
         META = 0x00,
         DS_BLOCK,
         TX_BLOCK,
+#ifndef IS_LOOKUP_NODE
         TX_BODIES,
+#else // IS_LOOKUP_NODE
+        TX_BODY,
+        TX_BODY_TMP,
+#endif // IS_LOOKUP_NODE
     };
 
     /// Returns the singleton BlockStorage instance.
     static BlockStorage& GetBlockStorage();
 
+#ifndef IS_LOOKUP_NODE
     /// Adds a txBody database for a new DSEpoch.
     bool PushBackTxBodyDB(const boost::multiprecision::uint256_t& blockNum);
 
     /// Pop the txBody database at front.
     bool PopFrontTxBodyDB();
+#endif // IS_LOOKUP_NODE
 
     /// Adds a DS block to storage.
     bool PutDSBlock(const boost::multiprecision::uint256_t& blockNum,
@@ -117,6 +135,11 @@ public:
 
     /// Retrieves all the TxBlocks
     bool GetAllTxBlocks(std::list<TxBlockSharedPtr>& blocks);
+
+#ifdef IS_LOOKUP_NODE
+    /// Retrieves all the TxBodiesTmp
+    bool GetAllTxBodiesTmp(std::list<TxnHash>& txnHashes);
+#endif // IS_LOOKUP_NODE
 
     /// Save Last Transactions Trie Root Hash
     bool PutMetadata(MetaType type, const std::vector<unsigned char>& data);

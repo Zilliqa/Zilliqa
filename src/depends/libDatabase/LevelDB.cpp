@@ -27,10 +27,11 @@
 
 using namespace std;
 
+#ifndef IS_LOOKUP_NODE
 LevelDB::LevelDB(const string & dbName, const string & subdirectory)
 {
-    this->m_dbName = dbName;
     this->m_subdirectory = subdirectory;
+    this->m_dbName = dbName;
     
     boost::filesystem::create_directories(PERSISTENCE_PATH);
 
@@ -60,6 +61,29 @@ LevelDB::LevelDB(const string & dbName, const string & subdirectory)
 
     m_db.reset(db);
 }
+#else // IS_LOOKUP_NODE
+LevelDB::LevelDB(const string & dbName)
+{
+    this->m_dbName = dbName;
+
+    string path = "./persistence";
+    boost::filesystem::create_directories(path);
+
+    leveldb::Options options;
+    options.max_open_files = 256;
+    options.create_if_missing = true;
+
+    leveldb::DB* db;
+
+    leveldb::Status status = leveldb::DB::Open(options, path + "/" + this->m_dbName, &db);
+    if(!status.ok())
+    {
+        throw exception();
+    }
+
+    m_db.reset(db);
+}
+#endif // IS_LOOKUP_NODE
 
 leveldb::Slice toSlice(boost::multiprecision::uint256_t num)
 {
@@ -304,6 +328,7 @@ int LevelDB::DeleteKey(const std::string & key)
     return 0;
 }
 
+#ifndef IS_LOOKUP_NODE
 int LevelDB::DeleteDB()
 {
     m_db.reset();
@@ -323,7 +348,6 @@ int LevelDB::DeleteDB()
 
     return 0;
 }
-
 
 bool LevelDB::ResetDB()
 {
@@ -352,3 +376,43 @@ bool LevelDB::ResetDB()
     }
     return false;
 }
+#else // IS_LOOKUP_NODE
+int LevelDB::DeleteDB()
+{
+    m_db.reset();
+    leveldb::Status s = leveldb::DestroyDB(this->m_dbName, leveldb::Options()); 
+    if (!s.ok())
+    {
+        LOG_MESSAGE("[DeleteDB] Status: " << s.ToString());
+        return -1;
+    }
+
+    return 0;
+}
+
+
+bool LevelDB::ResetDB()
+{
+    if(DeleteDB()==0)
+    {
+        string path = "./persistence";
+        boost::filesystem::remove_all(path + "/" + this->m_dbName);
+
+        leveldb::Options options;
+        options.max_open_files = 256;
+        options.create_if_missing = true;
+
+        leveldb::DB* db;
+
+        leveldb::Status status = leveldb::DB::Open(options, path + "/" + this->m_dbName, &db);
+        if(!status.ok())
+        {
+            throw exception();
+        }
+
+        m_db.reset(db);
+        return true;
+    }
+    return false;
+}
+#endif // IS_LOOKUP_NODE
