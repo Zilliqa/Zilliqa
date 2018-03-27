@@ -16,9 +16,18 @@
 
 #include "Retriever.h"
 
+#include <algorithm>
+#include <stdlib.h>
+#include <vector>
+
+#include <boost/filesystem.hpp>
+
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 #include "libPersistence/BlockStorage.h"
+
+using namespace boost::filesystem;
+namespace filesys = boost::filesystem;
 
 Retriever::Retriever(Mediator& mediator)
     : m_mediator(mediator)
@@ -94,6 +103,57 @@ void Retriever::RetrieveTxBlocks(bool& result)
         m_mediator.m_txBlockChain.AddBlock(*block);
 
     result = true;
+}
+
+bool Retriever::RetrieveTxBodiesDB()
+{
+    filesys::path p(PERSISTENCE_PATH + "/" + TX_BODY_SUBDIR);
+    if (filesys::exists(p))
+    {
+        std::vector<std::string> dbNames;
+        for (auto& entry :
+             boost::make_iterator_range(filesys::directory_iterator(p), {}))
+        {
+            LOG_MESSAGE("Load txBodyDB: " << entry.path().filename().string());
+            dbNames.push_back(entry.path().filename().string());
+        }
+        std::sort(dbNames.begin(), dbNames.end());
+
+        // keep at most NUM_DS_KEEP_TX_BODY num of DB, ignore the temp one if exists
+        for (unsigned int i = 0;
+             i < (dbNames.size() < NUM_DS_KEEP_TX_BODY ? dbNames.size()
+                                                       : NUM_DS_KEEP_TX_BODY);
+             i++)
+        {
+            if (!BlockStorage::GetBlockStorage().PushBackTxBodyDB(
+                    std::stoi(dbNames[i])))
+            {
+                return false;
+            }
+        }
+
+        // remove the temp txbodydb if it exists
+        if (dbNames.size() > NUM_DS_KEEP_TX_BODY)
+        {
+            if (dbNames.size() == NUM_DS_KEEP_TX_BODY + 1)
+            {
+                filesys::remove_all(PERSISTENCE_PATH + "/" + TX_BODY_SUBDIR
+                                    + "/" + dbNames[NUM_DS_KEEP_TX_BODY]);
+            }
+            else
+            {
+                LOG_MESSAGE("We got extra txBody Database, Investigate why!");
+                return false;
+            }
+        }
+    }
+    else
+    {
+        LOG_MESSAGE("Subdirectory Not found");
+        return false;
+    }
+
+    return true;
 }
 
 bool Retriever::RetrieveStates()
