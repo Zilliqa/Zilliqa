@@ -38,6 +38,41 @@ BlockStorage& BlockStorage::GetBlockStorage()
     return bs;
 }
 
+bool BlockStorage::PushBackTxBodyDB(const boost::multiprecision::uint256_t& blockNum)
+{
+    if(m_txBodyDBs.size() >= NUM_DS_KEEP_TX_BODY + 1) // Leave one for keeping tmp txBody
+    {
+        LOG_MESSAGE("TxBodyDB pool is full")
+        return false;
+    }
+
+    LevelDB txBodyDB(blockNum.convert_to<string>(),TX_BODY_SUBDIR);
+    m_txBodyDBs.push_back(txBodyDB);
+
+    return true;
+}
+
+bool BlockStorage::PopFrontTxBodyDB()
+{
+    if(!m_txBodyDBs.size())
+    {
+        LOG_MESSAGE("No TxBodyDB found");
+        return false;
+    }
+
+    if(m_txBodyDBs.size() <= NUM_DS_KEEP_TX_BODY)
+    {
+        LOG_MESSAGE("TxBodyDB pool is not full, ignore this pop");
+        return true;
+    }
+
+    int ret = -1;
+    ret = m_txBodyDBs.front().DeleteDB();
+    m_txBodyDBs.pop_front();
+
+    return (ret == 0);
+}
+
 bool BlockStorage::PutBlock(const boost::multiprecision::uint256_t& blockNum,
                             const vector<unsigned char>& body,
                             const BlockType& blockType)
@@ -60,7 +95,7 @@ bool BlockStorage::PutDSBlock(const boost::multiprecision::uint256_t& blockNum,
     bool ret = false;
     if (PutBlock(blockNum, body, BlockType::DS))
     {
-        if (PutMetadata(MetaType::DSINCOMPLETED, {'0'}))
+        if (PutMetadata(MetaType::DSINCOMPLETED, {'1'}))
         {
             ret = true;
         }
@@ -86,7 +121,8 @@ bool BlockStorage::PutTxBody(const dev::h256& key,
 {
     LOG_MARKER();
 
-    int ret = m_txBodyDB.Insert(key, body) && m_txBodyTmpDB.Insert(key, body);
+    // int ret = m_txBodyDB.Insert(key, body) && m_txBodyTmpDB.Insert(key, body);
+    int ret = m_txBodyDBs.back().Insert(key, body);
     return (ret == 0);
 }
 
@@ -132,7 +168,8 @@ bool BlockStorage::GetTxBlock(const boost::multiprecision::uint256_t& blockNum,
 
 bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body)
 {
-    string bodyString = m_txBodyDB.Lookup(key);
+    // string bodyString = m_txBodyDB.Lookup(key);
+    string bodyString = m_txBodyDBs.back().Lookup(key);
 
     if (bodyString.empty())
     {
@@ -165,7 +202,7 @@ bool BlockStorage::DeleteTxBlock(
 
 bool BlockStorage::DeleteTxBody(const dev::h256& key)
 {
-    int ret = m_txBodyTmpDB.DeleteKey(key);
+    int ret = m_txBodyDBs.back().DeleteKey(key);
     return (ret == 0);
 }
 
@@ -256,26 +293,6 @@ bool BlockStorage::GetAllTxBlocks(std::list<TxBlockSharedPtr>& blocks)
     return true;
 }
 
-bool BlockStorage::GetAllTxBodiesTmp(std::list<TxnHash>& txnHashes)
-{
-    LOG_MARKER();
-
-    leveldb::Iterator* it
-        = m_txBodyTmpDB.GetDB()->NewIterator(leveldb::ReadOptions());
-    for (it->SeekToFirst(); it->Valid(); it->Next())
-    {
-        string hashString = it->key().ToString();
-        if (hashString.empty())
-        {
-            LOG_MESSAGE("ERROR: Lost one Tmp txBody Hash");
-            return false;
-        }
-        TxnHash txnHash(hashString);
-        txnHashes.push_back(txnHash);
-    }
-    return true;
-}
-
 bool BlockStorage::PutMetadata(MetaType type,
                                const std::vector<unsigned char>& data)
 {
@@ -303,13 +320,6 @@ bool BlockStorage::GetMetadata(MetaType type, std::vector<unsigned char>& data)
     return true;
 }
 
-bool BlockStorage::DeleteMetadata(const MetaType& type)
-{
-    LOG_MARKER();
-    int ret = m_metadataDB.DeleteKey(std::to_string((int)type));
-    return (ret == 0);
-}
-
 bool BlockStorage::ResetDB(DBTYPE type)
 {
     bool ret = false;
@@ -321,10 +331,13 @@ bool BlockStorage::ResetDB(DBTYPE type)
         ret = m_dsBlockchainDB.ResetDB();
     case TX_BLOCK:
         ret = m_txBlockchainDB.ResetDB();
-    case TX_BODY:
-        ret = m_txBodyDB.ResetDB();
-    case TX_BODY_TMP:
-        ret = m_txBodyTmpDB.ResetDB();
+    case TX_BODIES:
+        {
+            for(unsigned int i = 0; i < m_txBodyDBs.size(); i++)
+            {
+                PopFrontTxBodyDB();
+            }    
+        }
     }
     if (!ret)
     {

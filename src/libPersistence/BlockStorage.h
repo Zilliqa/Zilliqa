@@ -34,18 +34,14 @@ typedef std::shared_ptr<Transaction> TxBodySharedPtr;
 class BlockStorage
 {
     LevelDB m_metadataDB;
-    LevelDB m_txBodyDB;
     LevelDB m_dsBlockchainDB;
     LevelDB m_txBlockchainDB;
-    /// To keep track of the txBodies newly generated in the current unfinished DS Epoch
-    LevelDB m_txBodyTmpDB;
+    std::list<LevelDB> m_txBodyDBs;
 
     BlockStorage()
         : m_metadataDB("metadata")
-        , m_txBodyDB("txBodies")
         , m_dsBlockchainDB("dsBlocks")
-        , m_txBlockchainDB("txBlocks")
-        , m_txBodyTmpDB("txBodiesTmp"){};
+        , m_txBlockchainDB("txBlocks"){};
     ~BlockStorage() = default;
     bool PutBlock(const boost::multiprecision::uint256_t& blockNum,
                   const std::vector<unsigned char>& block,
@@ -57,12 +53,17 @@ public:
         META = 0x00,
         DS_BLOCK,
         TX_BLOCK,
-        TX_BODY,
-        TX_BODY_TMP
+        TX_BODIES,
     };
 
     /// Returns the singleton BlockStorage instance.
     static BlockStorage& GetBlockStorage();
+
+    /// Adds a txBody database for a new DSEpoch.
+    bool PushBackTxBodyDB(const boost::multiprecision::uint256_t& blockNum);
+
+    /// Pop the txBody database at front.
+    bool PopFrontTxBodyDB();
 
     /// Adds a DS block to storage.
     bool PutDSBlock(const boost::multiprecision::uint256_t& blockNum,
@@ -116,18 +117,12 @@ public:
 
     /// Retrieves all the TxBlocks
     bool GetAllTxBlocks(std::list<TxBlockSharedPtr>& blocks);
-
-    /// Retrieves all the TxBodiesTmp
-    bool GetAllTxBodiesTmp(std::list<TxnHash>& txnHashes);
-
+    
     /// Save Last Transactions Trie Root Hash
     bool PutMetadata(MetaType type, const std::vector<unsigned char>& data);
 
     /// Retrieve Last Transactions Trie Root Hash
     bool GetMetadata(MetaType type, std::vector<unsigned char>& data);
-
-    /// Deletes the requested metadata
-    bool DeleteMetadata(const MetaType& metatype);
 
     /// Clean a DB
     bool ResetDB(DBTYPE type);

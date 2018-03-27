@@ -1141,10 +1141,9 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         else
         {
             StoreState();
-            BlockStorage::GetBlockStorage().ResetDB(
-                BlockStorage::DBTYPE::TX_BODY_TMP);
-            BlockStorage::GetBlockStorage().DeleteMetadata(
-                MetaType::DSINCOMPLETED);
+            BlockStorage::GetBlockStorage().PutMetadata(
+                MetaType::DSINCOMPLETED, {'0'});
+            BlockStorage::GetBlockStorage().PopFrontTxBodyDB();
         }
     }
     // #endif // IS_LOOKUP_NODE
