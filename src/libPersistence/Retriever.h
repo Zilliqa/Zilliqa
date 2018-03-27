@@ -33,6 +33,7 @@ public:
     void RetrieveDSBlocks(bool& result);
 
     void RetrieveTxBlocks(bool& result);
+    bool RetrieveTxBodiesDB();
     bool RetrieveStates();
     bool ValidateStates();
 

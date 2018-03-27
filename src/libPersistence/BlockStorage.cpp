@@ -64,7 +64,7 @@ bool BlockStorage::PopFrontTxBodyDB()
 
     if (m_txBodyDBs.size() <= NUM_DS_KEEP_TX_BODY)
     {
-        LOG_MESSAGE("TxBodyDB pool is not full, ignore this pop");
+        LOG_MESSAGE("size of txBodyDB hasn't meet maximum, ignore");
         return true;
     }
 
@@ -97,7 +97,8 @@ bool BlockStorage::PutDSBlock(const boost::multiprecision::uint256_t& blockNum,
     bool ret = false;
     if (PutBlock(blockNum, body, BlockType::DS))
     {
-        if (PutMetadata(MetaType::DSINCOMPLETED, {'1'}))
+        if (PutMetadata(MetaType::DSINCOMPLETED, {'1'})
+            && PushBackTxBodyDB(blockNum))
         {
             ret = true;
         }
