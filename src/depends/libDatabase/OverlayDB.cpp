@@ -19,6 +19,8 @@
 #include <shared_mutex>
 #include <thread>
 
+#include <boost/filesystem.hpp>
+
 #include "depends/common/Common.h"
 #include "depends/common/SHA3.h"
 #include "OverlayDB.h"
@@ -29,6 +31,11 @@ using namespace dev;
 namespace dev
 {
 	h256 const EmptyTrie = sha3(rlp(""));
+
+	void OverlayDB::ResetDB()
+	{
+		m_levelDB.ResetDB();
+	}
 
 	void OverlayDB::commit()
 	{
