@@ -165,7 +165,6 @@ bool Retriever::RetrieveStates()
 bool Retriever::ValidateStates()
 {
     LOG_MARKER();
-    // return AccountStore::GetInstance().ValidateStateFromDisk(m_addressToAccount);
     return m_mediator.m_txBlockChain.GetLastBlock()
                .GetHeader()
                .GetStateRootHash()

@@ -31,8 +31,6 @@ AccountStore::AccountStore()
     : m_db("state")
 {
     m_state = SecureTrieDB<Address, dev::OverlayDB>(&m_db);
-    // m_state.init();
-    // prevRoot = m_state.root();
 }
 
 AccountStore::~AccountStore()

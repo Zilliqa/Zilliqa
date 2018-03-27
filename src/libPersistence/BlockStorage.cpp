@@ -41,6 +41,8 @@ BlockStorage& BlockStorage::GetBlockStorage()
 bool BlockStorage::PushBackTxBodyDB(
     const boost::multiprecision::uint256_t& blockNum)
 {
+    LOG_MARKER();
+
     if (m_txBodyDBs.size()
         >= NUM_DS_KEEP_TX_BODY + 1) // Leave one for keeping tmp txBody
     {
@@ -56,6 +58,8 @@ bool BlockStorage::PushBackTxBodyDB(
 
 bool BlockStorage::PopFrontTxBodyDB()
 {
+    LOG_MARKER();
+
     if (!m_txBodyDBs.size())
     {
         LOG_MESSAGE("No TxBodyDB found");
@@ -124,7 +128,6 @@ bool BlockStorage::PutTxBody(const dev::h256& key,
 {
     LOG_MARKER();
 
-    // int ret = m_txBodyDB.Insert(key, body) && m_txBodyTmpDB.Insert(key, body);
     int ret = m_txBodyDBs.back().Insert(key, body);
     return (ret == 0);
 }
@@ -336,14 +339,6 @@ bool BlockStorage::ResetDB(DBTYPE type)
         ret = m_txBlockchainDB.ResetDB();
     case TX_BODIES:
     {
-        // for (unsigned int i = 0; i < m_txBodyDBs.size(); i++)
-        // {
-        //     if(m_txBodyDBs.at(i).DeleteDB() != 0)
-        //     {
-        //         return false;
-        //     }
-        // }
-
         for (auto iterator = m_txBodyDBs.begin(); iterator != m_txBodyDBs.end();
              ++iterator)
         {
