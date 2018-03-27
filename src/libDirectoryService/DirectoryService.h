@@ -153,6 +153,8 @@ class DirectoryService : public Executable, public Broadcastable
     std::condition_variable cv_viewChangeFinalBlock;
     std::mutex m_MutexCVViewChangeFinalBlock; 
 
+
+    // TO Remove 
     bool temp_todie; 
 
     Mediator & m_mediator;

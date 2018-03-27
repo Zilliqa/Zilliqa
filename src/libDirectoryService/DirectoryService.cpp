@@ -864,13 +864,15 @@ bool DirectoryService::ProcessInitViewChange(const vector<unsigned char> & messa
     // Check Epoch
     m_viewChangeEpoch = Serializable::GetNumber<uint64_t>(message, curr_offset, sizeof(uint64_t));
     curr_offset += sizeof(uint64_t); 
-    
+    LOG_MESSAGE("vc view change epoch is " << m_viewChangeEpoch << ". Current epoch is " <<m_mediator.m_currentEpochNum);
     if (m_viewChangeEpoch != m_mediator.m_currentEpochNum)
     {
-        m_viewChangeEpoch = m_mediator.m_currentEpochNum; 
-        {
-            m_viewChangeRequesters.clear(); 
-        }
+        return false; 
+        //m_viewChangeEpoch = m_mediator.m_currentEpochNum; 
+        //{
+        //    LOG_MESSAGE("Clear all the view change requesters!");
+        //    m_viewChangeRequesters.clear(); 
+        //}
     }
   
     // m_state
@@ -977,6 +979,7 @@ bool DirectoryService::ProcessInitViewChange(const vector<unsigned char> & messa
                             "illegal view change state (new leader)");
                 return false;
         }
+        m_viewChangeRequesters.clear(); 
     }
     return true; 
 }
@@ -1044,6 +1047,7 @@ bool DirectoryService::ProcessInitViewChangeResponse(const vector<unsigned char>
 
     // Consensus is expected to be running now. So I will not re-run run consensus
     // View change done
+
     return true; 
 }
 

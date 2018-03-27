@@ -71,6 +71,7 @@ void DirectoryService::ComposeDSBlock()
         difficulty = lastBlock.GetHeader().GetDifficulty();
     }
 
+    LOG_MESSAGE("Composing new block with vc count at "  << m_viewChangeCounter);
     DSBlockHeader newHeader(difficulty, prevHash, winnerNonce, winnerKey, 
                             m_mediator.m_selfKey.second, blockNum, get_time_as_int(), m_viewChangeCounter);
     
@@ -81,6 +82,8 @@ void DirectoryService::ComposeDSBlock()
         // To-do: Handle exceptions.
         m_pendingDSBlock.reset(new DSBlock(newHeader, newSig));
     }
+
+    LOG_MESSAGE("debug vc pending block " << m_pendingDSBlock->GetHeader().GetViewChangeCount()); 
 
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                  "New DSBlock created with chosen nonce = 0x" << hex << winnerNonce);
@@ -140,6 +143,8 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
         m_pendingDSBlock->Serialize(m, 0);
     }
 
+    LOG_MESSAGE("debug after compose ds block debug vc " << m_pendingDSBlock->GetHeader().GetViewChangeCount());
+
 #ifdef STAT_TEST
     LOG_STATE("[DSCON][" << std::setw(15) << std::left << 
               m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["<< 
@@ -162,7 +167,7 @@ bool DirectoryService::DSBlockValidator(const vector<unsigned char> & dsblock,
     lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
 
     m_pendingDSBlock.reset(new DSBlock(dsblock, 0));
-
+    LOG_MESSAGE("debug dsblock validator " << m_pendingDSBlock->GetHeader().GetViewChangeCount());
     if (m_allPoWConns.find(m_pendingDSBlock->GetHeader().GetMinerPubKey()) == m_allPoWConns.end())
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Winning node of PoW1 not inside m_allPoWConns! Getting from ds leader");

@@ -78,6 +78,7 @@ unsigned int DSBlockHeader::Serialize(vector<unsigned char> & dst, unsigned int 
     SetNumber<uint256_t>(dst, curOffset, m_timestamp, UINT256_SIZE);
     curOffset += UINT256_SIZE;
     SetNumber<unsigned int>(dst, curOffset, m_viewChangeCounter, sizeof(unsigned int));
+    LOG_MESSAGE("serializer vc  " << m_viewChangeCounter); 
     curOffset += sizeof(unsigned int);
 
     return size_needed;
@@ -115,6 +116,7 @@ int DSBlockHeader::Deserialize(const vector<unsigned char> & src, unsigned int o
         m_timestamp = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
         curOffset += UINT256_SIZE;
         m_viewChangeCounter = GetNumber<unsigned int>(src, curOffset, sizeof(unsigned int));
+        LOG_MESSAGE("deserializer vc " << m_viewChangeCounter);
         curOffset += sizeof(unsigned int);
     }
     catch(const std::exception& e)
@@ -161,7 +163,7 @@ const uint256_t & DSBlockHeader::GetTimestamp() const
     return m_timestamp;
 }
 
-const unsigned int & DSBlockHeader::GetViewChangeCount() const
+const unsigned int DSBlockHeader::GetViewChangeCount() const
 {
     return m_viewChangeCounter;
 }
