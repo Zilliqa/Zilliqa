@@ -130,6 +130,7 @@ class DirectoryService : public Executable, public Broadcastable
     std::vector<Peer> m_sharingAssignment;
     
     // Recovery (simplified view change)
+    std::atomic<unsigned int> m_viewChangeCounter; 
     std::atomic<bool> m_initiatedViewChange;
     std::mutex m_mutexProcessViewChangeRequests; 
     std::mutex m_mutexRecoveryDSBlockConsensus;
@@ -151,6 +152,8 @@ class DirectoryService : public Executable, public Broadcastable
     std::mutex m_MutexCVViewChangeSharding; 
     std::condition_variable cv_viewChangeFinalBlock;
     std::mutex m_MutexCVViewChangeFinalBlock; 
+
+    bool temp_todie; 
 
     Mediator & m_mediator;
 

@@ -71,7 +71,7 @@ BOOST_AUTO_TEST_CASE (testDSBlockStoring)
 
     std::pair<PrivKey, PubKey> pubKey1 = Schnorr::GetInstance().GenKeyPair();
  
-    DSBlockHeader header1(20, prevHash1, 12344, pubKey1.first, pubKey1.second, 0, 789);
+    DSBlockHeader header1(20, prevHash1, 12344, pubKey1.first, pubKey1.second, 0, 789, 0);
 
     DSBlock dsblock(header1, signature1);
 

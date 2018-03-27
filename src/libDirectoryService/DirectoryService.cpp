@@ -48,6 +48,8 @@ DirectoryService::DirectoryService(Mediator & mediator) : m_mediator(mediator)
     m_consensusLeaderID = 0;
     m_consensusID = 1;
     m_viewChangeEpoch = 0; 
+    temp_todie = true; // TODO: Delete this
+    m_viewChangeCounter = 0; 
 }
 
 DirectoryService::~DirectoryService()
@@ -914,8 +916,9 @@ bool DirectoryService::ProcessInitViewChange(const vector<unsigned char> & messa
     const unsigned int viewChangeVoteCount = ceil(m_mediator.m_DSCommitteeNetworkInfo.size() * VC_TOLERANCE_FRACTION);
     LOG_MESSAGE("after deque" << m_mediator.m_DSCommitteeNetworkInfo.size()); 
 
-    if (m_viewChangeRequestTracker[viewChangeDSState] <= viewChangeVoteCount)
+    if (m_viewChangeRequestTracker[viewChangeDSState] > viewChangeVoteCount)
     {
+        temp_todie = false;
         vector<unsigned char> viewChangeResponseMessage = { MessageType::DIRECTORY, 
                                                         DSInstructionType::INITVIEWCHANGERESPONSE };
         unsigned int response_offset = MessageOffset::BODY;
@@ -945,7 +948,9 @@ bool DirectoryService::ProcessInitViewChange(const vector<unsigned char> & messa
         this_thread::sleep_for(chrono::seconds(sleepBeforeConsensusDuration));
         
         // Set myself to leader and change leader consensus id
-        m_consensusLeaderID = m_consensusMyID; 
+        //m_consensusLeaderID = m_consensusMyID; 
+        m_consensusMyID--;
+        m_viewChangeCounter++;
 
         // Re-run consensus
         switch(viewChangeDSState)
@@ -1006,7 +1011,10 @@ bool DirectoryService::ProcessInitViewChangeResponse(const vector<unsigned char>
         m_mediator.m_DSCommitteePubKeys.pop_front();
 
         // New leader for consensus 
-        m_consensusLeaderID++; 
+        //m_consensusLeaderID++; 
+        m_consensusMyID--;
+        m_viewChangeCounter++;
+
         switch(m_state)
         {
             case DSBLOCK_CONSENSUS_PREP:
