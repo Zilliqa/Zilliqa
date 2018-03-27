@@ -426,7 +426,7 @@ double Server::GetTxBlockRate()
         }
     }
     boost::multiprecision::uint256_t TimeDiff
-        = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetTimestamp()
+        = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetTimestamp()
         - m_StartTimeTx;
 
     if (TimeDiff == 0)
