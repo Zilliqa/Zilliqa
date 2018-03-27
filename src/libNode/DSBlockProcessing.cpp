@@ -61,6 +61,14 @@ void Node::StoreDSBlockToDisk(const DSBlock & dsblock)
     vector<unsigned char> serializedDSBlock;
     dsblock.Serialize(serializedDSBlock, 0);
     BlockStorage::GetBlockStorage().PutDSBlock(dsblock.GetHeader().GetBlockNum(), serializedDSBlock);
+
+    for (unsigned int i=0; i < dsblock.GetHeader().GetViewChangeCount(); i++)
+    {
+        m_mediator.m_DSCommitteeNetworkInfo.push_back(m_mediator.m_DSCommitteeNetworkInfo.front()); 
+        m_mediator.m_DSCommitteeNetworkInfo.pop_front(); 
+        m_mediator.m_DSCommitteePubKeys.push_back(m_mediator.m_DSCommitteePubKeys.front());
+        m_mediator.m_DSCommitteePubKeys.pop_front();
+    }
 }
 
 void Node::UpdateDSCommiteeComposition(const Peer & winnerpeer)
