@@ -35,12 +35,13 @@ leveldb::Slice toSlice(boost::multiprecision::uint256_t num);
 class LevelDB
 {
     std::string m_dbName;
+    std::string m_subdirectory;
     std::shared_ptr<leveldb::DB> m_db;
     
 public:
 
     /// Constructor.
-    explicit LevelDB(const std::string & dbName);
+    explicit LevelDB(const std::string & dbName, const std::string & subdirectory = "");
 
     /// Destructor.
     ~LevelDB() = default;
