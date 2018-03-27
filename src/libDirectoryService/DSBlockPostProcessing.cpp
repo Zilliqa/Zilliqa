@@ -372,6 +372,7 @@ bool DirectoryService::ProcessDSBlockConsensus(const vector<unsigned char> & mes
 
     if (state == ConsensusCommon::State::DONE)
     {
+        m_viewChangeCounter = 0; 
         cv_RecoveryDSBlockConsensus.notify_all(); 
         ProcessDSBlockConsensusWhenDone(message, offset);
     }

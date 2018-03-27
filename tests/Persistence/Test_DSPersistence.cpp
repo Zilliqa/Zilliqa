@@ -63,7 +63,7 @@ DSBlock constructDummyDSBlock(int instanceNum)
 
     std::pair<PrivKey, PubKey> pubKey1 = Schnorr::GetInstance().GenKeyPair();
  
-    DSBlockHeader header1(20, prevHash1, 12345 + instanceNum, pubKey1.first, pubKey1.second, 10, 789);
+    DSBlockHeader header1(20, prevHash1, 12345 + instanceNum, pubKey1.first, pubKey1.second, 10, 789, 0);
 
     return DSBlock(header1, signature1);
 }

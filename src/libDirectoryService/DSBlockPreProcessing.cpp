@@ -72,7 +72,7 @@ void DirectoryService::ComposeDSBlock()
     }
 
     DSBlockHeader newHeader(difficulty, prevHash, winnerNonce, winnerKey, 
-                            m_mediator.m_selfKey.second, blockNum, get_time_as_int());
+                            m_mediator.m_selfKey.second, blockNum, get_time_as_int(), m_viewChangeCounter);
     
     // Assemble DS block
     array<unsigned char, BLOCK_SIG_SIZE> newSig{};
@@ -102,8 +102,9 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
 
     // kill first ds leader 
-    if (m_consensusMyID == 0)
+    if (m_consensusMyID == 0 && temp_todie)
     {
+        LOG_MESSAGE("I am killing myself to test view change"); 
         throw exception(); 
     }
 

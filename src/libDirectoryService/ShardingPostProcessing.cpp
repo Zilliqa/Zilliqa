@@ -243,6 +243,8 @@ bool DirectoryService::ProcessShardingConsensus(const vector<unsigned char> & me
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
                      "Sharding consensus is DONE!!!");
         cv_viewChangeSharding.notify_all(); 
+        m_viewChangeCounter = 0; 
+
 #ifdef STAT_TEST
         if (m_mode == PRIMARY_DS)
         {
