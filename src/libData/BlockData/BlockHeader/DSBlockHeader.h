@@ -87,7 +87,7 @@ public:
     const boost::multiprecision::uint256_t & GetTimestamp() const;
 
     /// Return the number of time DS view change has happen for DS block consensus
-    const unsigned int & GetViewChangeCount() const; 
+    const unsigned int GetViewChangeCount() const; 
 
     /// Equality operator.
     bool operator==(const DSBlockHeader & header) const;
