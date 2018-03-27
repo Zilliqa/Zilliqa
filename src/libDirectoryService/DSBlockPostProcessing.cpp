@@ -46,7 +46,9 @@ void DirectoryService::StoreDSBlockToStorage()
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Storing DS Block Number: "<<m_pendingDSBlock->GetHeader().GetBlockNum()<<
                                            " with Nonce: "<<m_pendingDSBlock->GetHeader().GetNonce()<<
                                            ", Difficulty: "<<m_pendingDSBlock->GetHeader().GetDifficulty()<<
-                                           ", Timestamp: "<<m_pendingDSBlock->GetHeader().GetTimestamp());
+                                           ", Timestamp: "<<m_pendingDSBlock->GetHeader().GetTimestamp() <<
+                                           ", vc count: "<<m_pendingDSBlock->GetHeader().GetViewChangeCount()
+                                           );
 
     if (result == -1)
     {

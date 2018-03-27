@@ -51,9 +51,10 @@ void Node::StoreDSBlockToDisk(const DSBlock & dsblock)
 
     m_mediator.m_dsBlockChain.AddBlock(dsblock);
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Storing DS Block Number: "<<dsblock.GetHeader().GetBlockNum()<<
-                                           " with Nonce: "<<dsblock.GetHeader().GetNonce()<<
-                                           ", Difficulty: "<<dsblock.GetHeader().GetDifficulty()<<
-                                           ", Timestamp: "<<dsblock.GetHeader().GetTimestamp());
+                                           " with Nonce: "<<dsblock.GetHeader().GetNonce() <<
+                                           ", Difficulty: "<<dsblock.GetHeader().GetDifficulty() <<
+                                           ", Timestamp: "<<dsblock.GetHeader().GetTimestamp() << 
+                                           ", view change count: "<<dsblock.GetHeader().GetViewChangeCount() );
     // Update the rand1 value for next PoW
     m_mediator.UpdateDSBlockRand();
 
@@ -61,6 +62,8 @@ void Node::StoreDSBlockToDisk(const DSBlock & dsblock)
     vector<unsigned char> serializedDSBlock;
     dsblock.Serialize(serializedDSBlock, 0);
     BlockStorage::GetBlockStorage().PutDSBlock(dsblock.GetHeader().GetBlockNum(), serializedDSBlock);
+
+    LOG_MESSAGE("View change count:  " << dsblock.GetHeader().GetViewChangeCount());
 
     for (unsigned int i=0; i < dsblock.GetHeader().GetViewChangeCount(); i++)
     {
