@@ -80,6 +80,9 @@ public:
 
     /// Pop the txBody database at front.
     bool PopFrontTxBodyDB();
+
+    /// Get the size of current TxBodyDB
+    unsigned int GetTxBodyDBSize();
 #endif // IS_LOOKUP_NODE
 
     /// Adds a DS block to storage.

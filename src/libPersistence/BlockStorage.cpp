@@ -79,6 +79,8 @@ bool BlockStorage::PopFrontTxBodyDB()
 
     return (ret == 0);
 }
+
+unsigned int BlockStorage::GetTxBodyDBSize() { return m_txBodyDBs.size(); }
 #endif // IS_LOOKUP_NODE
 
 bool BlockStorage::PutBlock(const boost::multiprecision::uint256_t& blockNum,
