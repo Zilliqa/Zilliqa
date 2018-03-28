@@ -189,11 +189,6 @@ bool Lookup::GetStateFromLookupNodes()
     LOG_MARKER();
     SendMessageToLookupNodes(ComposeGetStateMessage());
 
-    {
-        std::lock_guard<mutex> lock(m_receivedLatestMutex);
-        receivedLatestState = false;
-    }
-
     return true;
 }
 
@@ -285,11 +280,6 @@ bool Lookup::GetTxBlockFromLookupNodes(uint256_t lowBlockNum,
 
     SendMessageToLookupNodes(
         ComposeGetTxBlockMessage(lowBlockNum, highBlockNum));
-
-    {
-        std::lock_guard<mutex> lock(m_receivedLatestMutex);
-        receivedLatestTxBlocks = false;
-    }
 
     return true;
 }
@@ -1330,16 +1320,6 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
 #endif // IS_LOOKUP_NODE
     }
 
-    {
-        std::lock_guard<mutex> lock(m_receivedLatestMutex);
-        receivedLatestTxBlocks = true;
-        if (receivedLatestState)
-        {
-            LOG_MESSAGE("NOTIFY!");
-            m_receivedLatestCondition.notify_one();
-        }
-    }
-
     return ret;
 }
 
@@ -1415,31 +1395,6 @@ bool Lookup::InitMining()
 
     m_mediator.m_currentEpochNum
         = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
-
-    // wait for receivedLatestTxBlocks and receivedLatestState become true until timeout
-    {
-        unique_lock<mutex> lock(m_receivedLatestMutex);
-        if (receivedLatestTxBlocks && receivedLatestState)
-        {
-            // DO NOTHING
-        }
-        else
-        {
-            auto const timeout = std::chrono::steady_clock::now()
-                + std::chrono::seconds(NEW_NODE_SYNC_INTERVAL);
-            if (m_receivedLatestCondition.wait_until(lock, timeout, [this] {
-                    LOG_MESSAGE("NOTIFIED!");
-                    return true;
-                }))
-            {
-                // DO NOTHING
-            }
-            else
-            {
-                return false;
-            }
-        }
-    }
 
     // General check
     if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0)
@@ -1567,16 +1522,6 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
     {
         LOG_MESSAGE("Error. We failed to deserialize AccountStore.");
         ret = false;
-    }
-
-    {
-        std::lock_guard<mutex> lock(m_receivedLatestMutex);
-        receivedLatestState = true;
-        if (receivedLatestTxBlocks)
-        {
-            LOG_MESSAGE("NOTIFY!");
-            m_receivedLatestCondition.notify_one();
-        }
     }
 
 #endif // IS_LOOKUP_NODE
