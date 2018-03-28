@@ -139,6 +139,14 @@ bool DirectoryService::RunConsensusOnShardingWhenDSPrimary()
     ComputeSharding();
     SerializeShardingStructure(sharding_structure);
 
+    // kill first ds leader 
+    if (m_consensusMyID == 0 && temp_todie)
+    {
+       LOG_MESSAGE("I am killing myself to test view change"); 
+       throw exception(); 
+    }
+
+
     // Create new consensus object
 
     // Dummy values for now

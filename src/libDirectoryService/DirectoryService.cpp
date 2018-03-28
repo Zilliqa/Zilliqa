@@ -464,9 +464,6 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char> & message, 
     //  2. The list of DS nodes is sorted by PubKey, including my own
     //  3. The peer with the smallest PubKey is also the first leader assigned in this call to ProcessSetPrimary()
     
-
-
-
     // Let's notify lookup node of the DS committee during bootstrap 
     // TODO: Refactor this code
     if (primary == m_mediator.m_selfPeer)
@@ -474,7 +471,6 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char> & message, 
 
         PeerStore & dsstore = PeerStore::GetStore();
         dsstore.AddPeer(m_mediator.m_selfKey.second, m_mediator.m_selfPeer);                  // Add myself, but with dummy IP info
-
 
         vector<PubKey> dsPub = dsstore.GetAllKeys();
         m_mediator.m_DSCommitteePubKeys.resize(dsPub.size());
@@ -637,7 +633,6 @@ bool DirectoryService::ProcessAllPoWConnRequest(const vector<unsigned char> & me
             cur_offset += PUB_KEY_SIZE;
             offset_to_increment = m_mediator.m_selfPeer.Serialize(allPowConnMsg, cur_offset);
             cur_offset += offset_to_increment;
-
         }
         else
         {
@@ -868,11 +863,6 @@ bool DirectoryService::ProcessInitViewChange(const vector<unsigned char> & messa
     if (m_viewChangeEpoch != m_mediator.m_currentEpochNum)
     {
         return false; 
-        //m_viewChangeEpoch = m_mediator.m_currentEpochNum; 
-        //{
-        //    LOG_MESSAGE("Clear all the view change requesters!");
-        //    m_viewChangeRequesters.clear(); 
-        //}
     }
   
     // m_state
@@ -947,11 +937,9 @@ bool DirectoryService::ProcessInitViewChange(const vector<unsigned char> & messa
         unsigned int sleepBeforeConsensusDuration = 5; 
         this_thread::sleep_for(chrono::seconds(sleepBeforeConsensusDuration));
         
-        // Set myself to leader and change leader consensus id
-        //m_consensusLeaderID = m_consensusMyID; 
+        // Set myself to leader
         m_consensusMyID--;
         m_viewChangeCounter++;
-        LOG_MESSAGE("vc counter "<< m_viewChangeCounter);
 
         // Re-run consensus
         switch(viewChangeDSState)
@@ -1016,7 +1004,7 @@ bool DirectoryService::ProcessInitViewChangeResponse(const vector<unsigned char>
         //m_consensusLeaderID++; 
         m_consensusMyID--;
         m_viewChangeCounter++;
-        LOG_MESSAGE("vc counter "<< m_viewChangeCounter);
+
         switch(m_state)
         {
             case DSBLOCK_CONSENSUS_PREP:

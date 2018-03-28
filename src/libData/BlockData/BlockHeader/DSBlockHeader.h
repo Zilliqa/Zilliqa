@@ -56,7 +56,7 @@ public:
         const PubKey & leaderPubKey,
         const boost::multiprecision::uint256_t & blockNum,
         const boost::multiprecision::uint256_t & timestamp, 
-        const unsigned int viewChangeCounter 
+        unsigned int viewChangeCounter 
     );
 
     /// Implements the Serialize function inherited from Serializable.

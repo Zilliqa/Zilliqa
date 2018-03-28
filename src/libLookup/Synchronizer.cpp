@@ -97,7 +97,7 @@ TxBlock Synchronizer::ConstructGenesisTxBlock()
     std::pair<PrivKey, PubKey> keypair = make_pair(privKey, pubKey);
 
     TxBlockHeader header(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1, 1, BlockHash(), 0, 
-                         151384616955606, TxnHash(), StateHash(), 0, 5, keypair.second, 0, BlockHash());
+                         151384616955606, TxnHash(), StateHash(), 0, 5, keypair.second, 0, BlockHash(), 0);
     
     array<unsigned char, BLOCK_SIG_SIZE> emptySig{};
 
