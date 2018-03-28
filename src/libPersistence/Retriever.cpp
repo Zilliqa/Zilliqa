@@ -140,14 +140,18 @@ bool Retriever::RetrieveTxBodiesDB()
         {
             if (dbNames.size() == NUM_DS_KEEP_TX_BODY + 1)
             {
-                filesys::remove_all(PERSISTENCE_PATH + "/" + TX_BODY_SUBDIR
-                                    + "/" + dbNames[NUM_DS_KEEP_TX_BODY]);
+                filesys::remove_all(p.string() + "/"
+                                    + dbNames[NUM_DS_KEEP_TX_BODY]);
             }
             else
             {
                 LOG_MESSAGE("We got extra txBody Database, Investigate why!");
                 return false;
             }
+        }
+        else if (hasIncompletedDS)
+        {
+            filesys::remove_all(p.string() + "/" + dbNames.back());
         }
     }
     else
