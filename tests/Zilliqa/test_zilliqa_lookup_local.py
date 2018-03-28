@@ -25,7 +25,7 @@ import time
 from subprocess import Popen, PIPE
 import xml.etree.cElementTree as ET
 
-NODE_LISTEN_PORT = 4000
+NODE_LISTEN_PORT = 4001
 LOCAL_RUN_FOLDER = './lookup_local_run/'
 
 def print_usage():
@@ -69,7 +69,7 @@ def run_setup(numnodes, printnodes):
 		shutil.rmtree(LOCAL_RUN_FOLDER)
 	os.makedirs(LOCAL_RUN_FOLDER)
 	for x in range(0, numnodes):
-		testsubdir = LOCAL_RUN_FOLDER + 'node_' + str(x).zfill(4)
+		testsubdir = LOCAL_RUN_FOLDER + 'node_' + str(x+1).zfill(4)
 		os.makedirs(testsubdir)
 		shutil.copyfile('./tests/Zilliqa/zilliqa', testsubdir + '/lzilliqa')
 
@@ -80,7 +80,7 @@ def run_setup(numnodes, printnodes):
 		testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)
 		count = len(testfolders_list)
 		for x in range(0, count):
-			print '[Node ' + str(x).ljust(3) + '] [Port ' + str(NODE_LISTEN_PORT + x) + '] ' + LOCAL_RUN_FOLDER + testfolders_list[x]
+			print '[Node ' + str(x + 1).ljust(3) + '] [Port ' + str(NODE_LISTEN_PORT + x) + '] ' + LOCAL_RUN_FOLDER + testfolders_list[x]
 
 def run_start():
 	testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)
@@ -124,7 +124,7 @@ def run_start():
 	# Launch node zilliqa process
 	for x in range(0, count):
 		keypair = keypairs[x].split(" ")
-		os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; ./lzilliqa ' + keypair[1] + ' ' + keypair[0] + ' ' + '127.0.0.1' +' ' + str(NODE_LISTEN_PORT + x) + ' 0 0 > ./error_log_zilliqa 2>&1 &')
+		os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; ./lzilliqa ' + keypair[1] + ' ' + keypair[0] + ' ' + '127.0.0.1' +' ' + str(NODE_LISTEN_PORT + x) + ' 0 0 0 > ./error_log_zilliqa 2>&1 &')
 
 if __name__ == "__main__":
 	main()

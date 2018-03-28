@@ -33,65 +33,74 @@
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Transaction.h"
 
-template <class KeyType, class DB> 
+template<class KeyType, class DB>
 using SecureTrieDB = dev::SpecificTrieDB<dev::HashedGenericTrieDB<DB>, KeyType>;
 
 using StateHash = dev::h256;
 
 /// Maintains the list of accounts.
-class AccountStore: public Serializable
+class AccountStore : public Serializable
 {
     std::unordered_map<Address, Account> m_addressToAccount;
 
-    dev::OverlayDB m_db;                             // Our overlay for the state tree.
-    SecureTrieDB<Address, dev::OverlayDB> m_state;   // Our state tree, as an OverlayDB DB.
+    dev::OverlayDB m_db; // Our overlay for the state tree.
+    SecureTrieDB<Address, dev::OverlayDB>
+        m_state; // Our state tree, as an OverlayDB DB.
     dev::h256 prevRoot;
 
     AccountStore();
     ~AccountStore();
 
-    static bool Compare(const Account & l, const Account & r);
+    static bool Compare(const Account& l, const Account& r);
 
-    bool UpdateStateTrie(const Address & address, const Account & account);
+    bool UpdateStateTrie(const Address& address, const Account& account);
+
+    /// Store the trie root to leveldb
+    void MoveRootToDisk(const dev::h256& root);
 
 public:
-    
     /// Returns the singleton AccountStore instance.
-    static AccountStore & GetInstance();
+    static AccountStore& GetInstance();
+    /// Empty the state trie, must be called explicitly otherwise will retrieve the historical data
+    void Init();
     /// Implements the Serialize function inherited from Serializable.
-    unsigned int Serialize(std::vector<unsigned char> & dst, unsigned int offset) const;
+    unsigned int Serialize(std::vector<unsigned char>& dst,
+                           unsigned int offset) const;
 
     /// Implements the Deserialize function inherited from Serializable.
-    int Deserialize(const std::vector<unsigned char> & src, unsigned int offset);
+    int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
 
     /// Verifies existence of Account in the list.
-    bool DoesAccountExist(const Address & address);
+    bool DoesAccountExist(const Address& address);
 
     /// Adds an Account to the list.
-    void AddAccount(const Address & address, const Account & account);
-    void AddAccount(const PubKey & pubKey, const Account & account);
-    void AddAccount(const Address & address, 
-                    const boost::multiprecision::uint256_t & balance, 
-                    const boost::multiprecision::uint256_t & nonce);
-    void AddAccount(const PubKey & pubKey, 
-                    const boost::multiprecision::uint256_t & balance, 
-                    const boost::multiprecision::uint256_t & nonce);
+    void AddAccount(const Address& address, const Account& account);
+    void AddAccount(const PubKey& pubKey, const Account& account);
+    void AddAccount(const Address& address,
+                    const boost::multiprecision::uint256_t& balance,
+                    const boost::multiprecision::uint256_t& nonce);
+    void AddAccount(const PubKey& pubKey,
+                    const boost::multiprecision::uint256_t& balance,
+                    const boost::multiprecision::uint256_t& nonce);
 
-    void UpdateAccounts(const Transaction & transaction);
-    
+    void UpdateAccounts(const Transaction& transaction);
+
     /// Returns the Account associated with the specified address.
-    Account* GetAccount(const Address & address);
+    Account* GetAccount(const Address& address);
     boost::multiprecision::uint256_t GetNumOfAccounts() const;
 
-    bool IncreaseBalance(const Address & address, const boost::multiprecision::uint256_t & delta);
-    bool DecreaseBalance(const Address & address, const boost::multiprecision::uint256_t & delta);
-    
-    /// Updates the source and destination accounts included in the specified Transaction.
-    bool TransferBalance(const Address & from, const Address & to, const boost::multiprecision::uint256_t & delta);
-    boost::multiprecision::uint256_t GetBalance(const Address & address);
+    bool IncreaseBalance(const Address& address,
+                         const boost::multiprecision::uint256_t& delta);
+    bool DecreaseBalance(const Address& address,
+                         const boost::multiprecision::uint256_t& delta);
 
-    bool IncreaseNonce(const Address & address);
-    boost::multiprecision::uint256_t GetNonce(const Address & address);
+    /// Updates the source and destination accounts included in the specified Transaction.
+    bool TransferBalance(const Address& from, const Address& to,
+                         const boost::multiprecision::uint256_t& delta);
+    boost::multiprecision::uint256_t GetBalance(const Address& address);
+
+    bool IncreaseNonce(const Address& address);
+    boost::multiprecision::uint256_t GetNonce(const Address& address);
 
     dev::h256 GetStateRootHash() const;
 
@@ -99,6 +108,8 @@ public:
     void DiscardUnsavedUpdates();
 
     void PrintAccountState();
+
+    bool RetrieveFromDisk();
 };
 
 #endif // __ACCOUNTSTORE_H__

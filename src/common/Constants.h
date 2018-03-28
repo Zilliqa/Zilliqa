@@ -43,7 +43,8 @@ const unsigned int CHALLENGE_SIZE = 32;
 const unsigned int RESPONSE_SIZE = 32;
 
 // Acount related sizes
-const unsigned int ACCOUNT_SIZE = ACC_ADDR_SIZE + PUB_KEY_SIZE + UINT256_SIZE + UINT256_SIZE;
+const unsigned int ACCOUNT_SIZE
+    = UINT256_SIZE + UINT256_SIZE /* + ACC_ADDR_SIZE + PUB_KEY_SIZE*/;
 
 const unsigned int DS_BLOCKCHAIN_SIZE = 50;
 const unsigned int TX_BLOCKCHAIN_SIZE = 50;
@@ -66,9 +67,20 @@ const unsigned int SERVER_PORT = 4201;
 
 // Testing parameters
 
+// Metadata type
+enum MetaType : unsigned char
+{
+    STATEROOT = 0x00,
+    DSINCOMPLETED,
+};
 
-const std::string RAND1_GENESIS = "2b740d75891749f94b6a8ec09f086889066608e4418eda656c93443e8310750a";
-const std::string RAND2_GENESIS = "e8cc9106f8a28671d91e2de07b57b828934481fadf6956563b963bb8e5c266bf";
+const std::string RAND1_GENESIS
+    = "2b740d75891749f94b6a8ec09f086889066608e4418eda656c93443e8310750a";
+const std::string RAND2_GENESIS
+    = "e8cc9106f8a28671d91e2de07b57b828934481fadf6956563b963bb8e5c266bf";
+
+const std::string PERSISTENCE_PATH = "./persistence";
+const std::string TX_BODY_SUBDIR = "txBodies";
 
 extern const unsigned int DS_MULTICAST_CLUSTER_SIZE;
 extern const unsigned int COMM_SIZE;
@@ -85,6 +97,7 @@ extern const unsigned int POW2_DIFFICULTY;
 extern const unsigned int MICROBLOCK_TIMEOUT;
 extern const unsigned int VIEWCHANGE_TIME;
 extern const unsigned int NUM_FINAL_BLOCK_PER_POW;
+extern const unsigned int NUM_DS_KEEP_TX_BODY;
 extern const uint32_t MAXMESSAGE;
 
 #endif // __CONSTANTS_H__
