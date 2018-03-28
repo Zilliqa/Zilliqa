@@ -44,6 +44,8 @@ class TxBlockHeader : public BlockHeaderBase
     PubKey m_minerPubKey;                                       // Leader of the committee who proposed this block
     boost::multiprecision::uint256_t m_dsBlockNum;              // DS Block index at the time this Tx Block was proposed
     BlockHash m_dsBlockHeader;                                  // DS Block hash
+    unsigned int m_viewChangeCounter;                     // View change counter
+
 
 public:
 
@@ -51,7 +53,7 @@ public:
                                      UINT256_SIZE + BLOCK_HASH_SIZE + UINT256_SIZE + UINT256_SIZE +
                                      TRAN_HASH_SIZE + TRAN_HASH_SIZE + sizeof(uint32_t) +
                                      sizeof(uint32_t) + PUB_KEY_SIZE + UINT256_SIZE +
-                                     BLOCK_HASH_SIZE;
+                                     BLOCK_HASH_SIZE + sizeof(unsigned int);
 
     /// Default constructor.
     TxBlockHeader();
@@ -75,7 +77,8 @@ public:
         const uint32_t numMicroBlockHashes,
         const PubKey & minerPubKey,
         const boost::multiprecision::uint256_t & dsBlockNum,
-        const BlockHash & dsBlockHeader
+        const BlockHash & dsBlockHeader,
+        const unsigned int viewChangeCounter 
     );
 
     /// Implements the Serialize function inherited from Serializable.
@@ -126,6 +129,9 @@ public:
     /// Returns the digest of the parent DS block header.
     const BlockHash & GetDSBlockHeader() const;
 
+    /// Returns the view change counter for final block consensus
+    const unsigned int GetViewChangeCounter() const; 
+
     /// Equality comparison operator.
     bool operator==(const TxBlockHeader & header) const;
 
@@ -153,7 +159,8 @@ inline std::ostream & operator<<(std::ostream & os, const TxBlockHeader & t)
           "m_numMicroBlockHashes : " << t.m_numMicroBlockHashes << std::endl <<
           "m_minerPubKey : " << t.m_minerPubKey << std::endl <<
           "m_dsBlockNum : " << t.m_dsBlockNum.convert_to<std::string>() << std::endl <<
-          "m_dsBlockHeader : " << t.m_dsBlockHeader.hex() << std::endl;
+          "m_dsBlockHeader : " << t.m_dsBlockHeader.hex() << std::endl << 
+          "m_viewChangeCounter: " << t.m_viewChangeCounter;
     return os;
 }
 

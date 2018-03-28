@@ -168,7 +168,7 @@ void DirectoryService::ComposeFinalBlockCore()
             TxBlockHeader(type, version, allGasLimit,
                           allGasUsed, prevHash, blockNum, timestamp, microblockTrieRoot, stateRoot, 
                           numTxs, numMicroBlocks, m_mediator.m_selfKey.second, lastDSBlockNum, 
-                          dsBlockHeader), 
+                          dsBlockHeader, m_viewChangeEpoch), 
             emptySig,
             isMicroBlockEmpty,
             microBlockTxHashes
@@ -416,6 +416,14 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
 
     // finalBlockMessage = serialized final block + tx-body sharing setup
     vector<unsigned char> finalBlockMessage = ComposeFinalBlockMessage();
+
+
+    // kill first ds leader 
+    // if (m_consensusMyID == 0 && temp_todie)
+    // {
+    //    LOG_MESSAGE("I am killing myself to test view change"); 
+    //    throw exception(); 
+    // }
 
     // Create new consensus object
     // Dummy values for now
