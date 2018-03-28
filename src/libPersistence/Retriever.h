@@ -46,6 +46,8 @@ public:
 
 private:
     Mediator& m_mediator;
+
+    bool hasIncompletedDS = false;
 };
 
 #endif // __RETRIEVER_H__
