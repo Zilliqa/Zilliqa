@@ -960,7 +960,7 @@ bool DirectoryService::ProcessInitViewChange(const vector<unsigned char> & messa
             case FINALBLOCK_CONSENSUS:
                 LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
                             "Re-running finalblock consensus (new leader)");
-                RunConsensusOnFinalBlock();
+                RunConsensusOnFinalBlockWhenDSPrimary();
                 break;
             default:
                 LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
