@@ -43,7 +43,6 @@ TxBlockHeader::TxBlockHeader(
     uint32_t numMicroBlockHashes, const PubKey& minerPubKey,
     const uint256_t& dsBlockNum, const BlockHash& dsBlockHeader,
     unsigned int viewChangeCounter
-
     )
     : m_type(type)
     , m_version(version)
