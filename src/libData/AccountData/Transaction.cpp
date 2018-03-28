@@ -198,6 +198,14 @@ const array<unsigned char, TRAN_SIG_SIZE>& Transaction::GetSignature() const
     return m_signature;
 }
 
+void Transaction::SetSignature(std::array<unsigned char, TRAN_SIG_SIZE> sig) {
+    m_signature = sig;
+}
+
+void Transaction::SetSignature(std::vector<unsigned char> sig) {
+    copy_n(sig.begin(), min(sig.size(), m_signature.size()), m_signature.begin());
+}
+
 unsigned int Transaction::GetShardIndex(const Address& fromAddr,
                                         unsigned int numShards)
 {

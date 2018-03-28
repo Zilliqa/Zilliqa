@@ -90,6 +90,12 @@ public:
     /// Returns the EC-Schnorr signature over the transaction data.
     const std::array<unsigned char, TRAN_SIG_SIZE>& GetSignature() const;
 
+    /// Set the signature;
+    void SetSignature(std::array<unsigned char, TRAN_SIG_SIZE> sig);
+
+    /// Set the signature;
+    void SetSignature(std::vector<unsigned char> sig);
+
     /// Identifies the shard number that should process the transaction.
     static unsigned int GetShardIndex(const Address& fromAddr,
                                       unsigned int numShards);
