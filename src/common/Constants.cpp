@@ -48,7 +48,8 @@ const unsigned int POW_SUB_BUFFER_TIME{
     ReadFromConstantsFile("POW_SUB_BUFFER_TIME")}; //milliseconds
 const unsigned int POW1_DIFFICULTY{ReadFromConstantsFile("POW1_DIFFICULTY")};
 const unsigned int POW2_DIFFICULTY{ReadFromConstantsFile("POW2_DIFFICULTY")};
-const unsigned int MICROBLOCK_TIMEOUT{ReadFromConstantsFile("MICROBLOCK_TIMEOUT")};
+const unsigned int MICROBLOCK_TIMEOUT{
+    ReadFromConstantsFile("MICROBLOCK_TIMEOUT")};
 const unsigned int VIEWCHANGE_TIME{ReadFromConstantsFile("VIEWCHANGE_TIME")};
 const unsigned int NUM_FINAL_BLOCK_PER_POW{
     ReadFromConstantsFile("NUM_FINAL_BLOCK_PER_POW")};

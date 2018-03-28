@@ -122,23 +122,30 @@ void Node::StoreFinalBlock(const TxBlock& txBlock)
     BlockStorage::GetBlockStorage().PutTxBlock(
         txBlock.GetHeader().GetBlockNum(), serializedTxBlock);
 
-    LOG_MESSAGE("View change count:  " << txBlock.GetHeader().GetViewChangeCounter());
+    LOG_MESSAGE(
+        "View change count:  " << txBlock.GetHeader().GetViewChangeCounter());
 
-    for (unsigned int i=0; i < txBlock.GetHeader().GetViewChangeCounter(); i++)
+    for (unsigned int i = 0; i < txBlock.GetHeader().GetViewChangeCounter();
+         i++)
     {
-        m_mediator.m_DSCommitteeNetworkInfo.push_back(m_mediator.m_DSCommitteeNetworkInfo.front()); 
-        m_mediator.m_DSCommitteeNetworkInfo.pop_front(); 
-        m_mediator.m_DSCommitteePubKeys.push_back(m_mediator.m_DSCommitteePubKeys.front());
+        m_mediator.m_DSCommitteeNetworkInfo.push_back(
+            m_mediator.m_DSCommitteeNetworkInfo.front());
+        m_mediator.m_DSCommitteeNetworkInfo.pop_front();
+        m_mediator.m_DSCommitteePubKeys.push_back(
+            m_mediator.m_DSCommitteePubKeys.front());
         m_mediator.m_DSCommitteePubKeys.pop_front();
     }
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Final block " << 
-                 m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() <<
-                 " received with prevhash 0x" <<
-                 DataConversion::charArrToHexStr
-                 (
-                    m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetPrevHash().asArray()
-                 ));
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                 "Final block " << m_mediator.m_txBlockChain.GetLastBlock()
+                                       .GetHeader()
+                                       .GetBlockNum()
+                                << " received with prevhash 0x"
+                                << DataConversion::charArrToHexStr(
+                                       m_mediator.m_txBlockChain.GetLastBlock()
+                                           .GetHeader()
+                                           .GetPrevHash()
+                                           .asArray()));
 
 #ifdef STAT_TEST
     LOG_STATE(

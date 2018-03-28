@@ -105,7 +105,9 @@ void DirectoryService::SerializeShardingStructure(
 
     unsigned int curr_offset = 0;
 
-    Serializable::SetNumber<unsigned int>(sharding_structure, curr_offset, m_viewChangeCounter, sizeof(unsigned int));
+    Serializable::SetNumber<unsigned int>(sharding_structure, curr_offset,
+                                          m_viewChangeCounter,
+                                          sizeof(unsigned int));
     curr_offset += sizeof(unsigned int);
 
     // 4-byte num of committees
@@ -159,11 +161,11 @@ bool DirectoryService::RunConsensusOnShardingWhenDSPrimary()
     ComputeSharding();
     SerializeShardingStructure(sharding_structure);
 
-    // kill first ds leader 
+    // kill first ds leader
     // if (m_consensusMyID == 0 && temp_todie)
     //{
-    //    LOG_MESSAGE("I am killing myself to test view change"); 
-    //    throw exception(); 
+    //    LOG_MESSAGE("I am killing myself to test view change");
+    //    throw exception();
     // }
 
     // Create new consensus object
@@ -399,13 +401,16 @@ void DirectoryService::RunConsensusOnSharding()
     if (m_mode != PRIMARY_DS)
     {
         std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeSharding);
-        if(cv_viewChangeSharding.wait_for(cv_lk, std::chrono::seconds(VIEWCHANGE_TIME)) == std::cv_status::timeout )
+        if (cv_viewChangeSharding.wait_for(
+                cv_lk, std::chrono::seconds(VIEWCHANGE_TIME))
+            == std::cv_status::timeout)
         {
-            //View change. 
-            //TODO: This is a simplified version and will be review again. 
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+            //View change.
+            //TODO: This is a simplified version and will be review again.
+            LOG_MESSAGE2(
+                to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Initiated sharding structure consensus view change. ");
-            InitViewChange(); 
+            InitViewChange();
         }
     }
 }

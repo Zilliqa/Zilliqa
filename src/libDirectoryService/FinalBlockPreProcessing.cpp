@@ -171,17 +171,12 @@ void DirectoryService::ComposeFinalBlockCore()
         stateRoot = AccountStore::GetInstance().GetStateRootHash();
     }
 
-    m_finalBlock.reset(
-        new TxBlock(
-            TxBlockHeader(type, version, allGasLimit,
-                          allGasUsed, prevHash, blockNum, timestamp, microblockTrieRoot, stateRoot, 
-                          numTxs, numMicroBlocks, m_mediator.m_selfKey.second, lastDSBlockNum, 
-                          dsBlockHeader, m_viewChangeCounter), 
-            emptySig,
-            isMicroBlockEmpty,
-            microBlockTxHashes
-        )
-    );
+    m_finalBlock.reset(new TxBlock(
+        TxBlockHeader(type, version, allGasLimit, allGasUsed, prevHash,
+                      blockNum, timestamp, microblockTrieRoot, stateRoot,
+                      numTxs, numMicroBlocks, m_mediator.m_selfKey.second,
+                      lastDSBlockNum, dsBlockHeader, m_viewChangeCounter),
+        emptySig, isMicroBlockEmpty, microBlockTxHashes));
 
 #ifdef STAT_TEST
     LOG_STATE("[STATS][" << std::setw(15) << std::left
@@ -450,12 +445,12 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
     // finalBlockMessage = serialized final block + tx-body sharing setup
     vector<unsigned char> finalBlockMessage = ComposeFinalBlockMessage();
 
-    // kill first ds leader 
+    // kill first ds leader
     //if (m_consensusMyID == 0 && temp_todie)
     //{
     //    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
     //                 "I am killing myself to test view change");
-    //    throw exception(); 
+    //    throw exception();
     //}
 
     // Create new consensus object
@@ -1061,13 +1056,15 @@ void DirectoryService::RunConsensusOnFinalBlock()
     if (m_mode != PRIMARY_DS)
     {
         std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeFinalBlock);
-        if(cv_viewChangeFinalBlock.wait_for(cv_lk, std::chrono::seconds(VIEWCHANGE_TIME)) == std::cv_status::timeout )
+        if (cv_viewChangeFinalBlock.wait_for(
+                cv_lk, std::chrono::seconds(VIEWCHANGE_TIME))
+            == std::cv_status::timeout)
         {
-            //View change. 
-            //TODO: This is a simplified version and will be review again. 
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
-                "Initiated final block view change. ");
-            InitViewChange(); 
+            //View change.
+            //TODO: This is a simplified version and will be review again.
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                         "Initiated final block view change. ");
+            InitViewChange();
         }
     }
 }

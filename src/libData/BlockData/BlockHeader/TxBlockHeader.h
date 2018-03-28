@@ -38,23 +38,23 @@ class TxBlockHeader : public BlockHeaderBase
     boost::multiprecision::uint256_t
         m_blockNum; // Block index, starting from 0 in the genesis block
     boost::multiprecision::uint256_t m_timestamp;
-    TxnHash m_txRootHash;                                       // Microblock merkle tree root hash
-    StateHash m_stateRootHash;                                  // State merkle tree root hash
-    uint32_t m_numTxs;                                          // Total number of txs included in the block
-    uint32_t m_numMicroBlockHashes;                             // Total number of microblock hashes included in the block
-    PubKey m_minerPubKey;                                       // Leader of the committee who proposed this block
-    boost::multiprecision::uint256_t m_dsBlockNum;              // DS Block index at the time this Tx Block was proposed
-    BlockHash m_dsBlockHeader;                                  // DS Block hash
-    unsigned int m_viewChangeCounter;                     // View change counter
-
+    TxnHash m_txRootHash; // Microblock merkle tree root hash
+    StateHash m_stateRootHash; // State merkle tree root hash
+    uint32_t m_numTxs; // Total number of txs included in the block
+    uint32_t
+        m_numMicroBlockHashes; // Total number of microblock hashes included in the block
+    PubKey m_minerPubKey; // Leader of the committee who proposed this block
+    boost::multiprecision::uint256_t
+        m_dsBlockNum; // DS Block index at the time this Tx Block was proposed
+    BlockHash m_dsBlockHeader; // DS Block hash
+    unsigned int m_viewChangeCounter; // View change counter
 
 public:
-
-    static const unsigned int SIZE = sizeof(uint8_t) + sizeof(uint32_t) + UINT256_SIZE + 
-                                     UINT256_SIZE + BLOCK_HASH_SIZE + UINT256_SIZE + UINT256_SIZE +
-                                     TRAN_HASH_SIZE + TRAN_HASH_SIZE + sizeof(uint32_t) +
-                                     sizeof(uint32_t) + PUB_KEY_SIZE + UINT256_SIZE +
-                                     BLOCK_HASH_SIZE + sizeof(unsigned int);
+    static const unsigned int SIZE = sizeof(uint8_t) + sizeof(uint32_t)
+        + UINT256_SIZE + UINT256_SIZE + BLOCK_HASH_SIZE + UINT256_SIZE
+        + UINT256_SIZE + TRAN_HASH_SIZE + TRAN_HASH_SIZE + sizeof(uint32_t)
+        + sizeof(uint32_t) + PUB_KEY_SIZE + UINT256_SIZE + BLOCK_HASH_SIZE
+        + sizeof(unsigned int);
 
     /// Default constructor.
     TxBlockHeader();
@@ -63,24 +63,18 @@ public:
     TxBlockHeader(const std::vector<unsigned char>& src, unsigned int offset);
 
     /// Constructor with specified Tx block header parameters.
-    TxBlockHeader
-    (
-        const uint8_t type,
-        const uint32_t version,
-        const boost::multiprecision::uint256_t & gasLimit,
-        const boost::multiprecision::uint256_t & gasUsed,
-        const BlockHash & prevHash,
-        const boost::multiprecision::uint256_t & blockNum,
-        const boost::multiprecision::uint256_t & timestamp,
-        const TxnHash & txRootHash,
-        const StateHash & stateRootHash,
-        const uint32_t numTxs,
-        const uint32_t numMicroBlockHashes,
-        const PubKey & minerPubKey,
-        const boost::multiprecision::uint256_t & dsBlockNum,
-        const BlockHash & dsBlockHeader,
-        const unsigned int viewChangeCounter 
-    );
+    TxBlockHeader(const uint8_t type, const uint32_t version,
+                  const boost::multiprecision::uint256_t& gasLimit,
+                  const boost::multiprecision::uint256_t& gasUsed,
+                  const BlockHash& prevHash,
+                  const boost::multiprecision::uint256_t& blockNum,
+                  const boost::multiprecision::uint256_t& timestamp,
+                  const TxnHash& txRootHash, const StateHash& stateRootHash,
+                  const uint32_t numTxs, const uint32_t numMicroBlockHashes,
+                  const PubKey& minerPubKey,
+                  const boost::multiprecision::uint256_t& dsBlockNum,
+                  const BlockHash& dsBlockHeader,
+                  const unsigned int viewChangeCounter);
 
     /// Implements the Serialize function inherited from Serializable.
     unsigned int Serialize(std::vector<unsigned char>& dst,
@@ -132,7 +126,7 @@ public:
     const BlockHash& GetDSBlockHeader() const;
 
     /// Returns the view change counter for final block consensus
-    const unsigned int GetViewChangeCounter() const; 
+    const unsigned int GetViewChangeCounter() const;
 
     /// Equality comparison operator.
     bool operator==(const TxBlockHeader& header) const;
@@ -148,21 +142,23 @@ public:
 
 inline std::ostream& operator<<(std::ostream& os, const TxBlockHeader& t)
 {
-    os << "m_type : " << t.m_type << std::endl << 
-          "m_version : " << t.m_version << std::endl <<
-          "m_gasLimit : " << t.m_gasLimit.convert_to<std::string>() << std::endl <<
-          "m_gasUsed : " << t.m_gasUsed.convert_to<std::string>() << std::endl <<
-          "m_prevHash : " << t.m_prevHash.hex() << std::endl <<
-          "m_blockNum : " << t.m_blockNum.convert_to<std::string>() << std::endl <<          
-          "m_timestamp : " << t.m_timestamp.convert_to<std::string>() << std::endl <<
-          "m_txRootHash : " << t.m_txRootHash.hex() << std::endl <<
-          "m_stateRootHash : " << t.m_stateRootHash.hex() << std::endl <<
-          "m_numTxs : " << t.m_numTxs << std::endl <<
-          "m_numMicroBlockHashes : " << t.m_numMicroBlockHashes << std::endl <<
-          "m_minerPubKey : " << t.m_minerPubKey << std::endl <<
-          "m_dsBlockNum : " << t.m_dsBlockNum.convert_to<std::string>() << std::endl <<
-          "m_dsBlockHeader : " << t.m_dsBlockHeader.hex() << std::endl << 
-          "m_viewChangeCounter: " << t.m_viewChangeCounter;
+    os << "m_type : " << t.m_type << std::endl
+       << "m_version : " << t.m_version << std::endl
+       << "m_gasLimit : " << t.m_gasLimit.convert_to<std::string>() << std::endl
+       << "m_gasUsed : " << t.m_gasUsed.convert_to<std::string>() << std::endl
+       << "m_prevHash : " << t.m_prevHash.hex() << std::endl
+       << "m_blockNum : " << t.m_blockNum.convert_to<std::string>() << std::endl
+       << "m_timestamp : " << t.m_timestamp.convert_to<std::string>()
+       << std::endl
+       << "m_txRootHash : " << t.m_txRootHash.hex() << std::endl
+       << "m_stateRootHash : " << t.m_stateRootHash.hex() << std::endl
+       << "m_numTxs : " << t.m_numTxs << std::endl
+       << "m_numMicroBlockHashes : " << t.m_numMicroBlockHashes << std::endl
+       << "m_minerPubKey : " << t.m_minerPubKey << std::endl
+       << "m_dsBlockNum : " << t.m_dsBlockNum.convert_to<std::string>()
+       << std::endl
+       << "m_dsBlockHeader : " << t.m_dsBlockHeader.hex() << std::endl
+       << "m_viewChangeCounter: " << t.m_viewChangeCounter;
     return os;
 }
 
