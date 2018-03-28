@@ -50,11 +50,14 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock)
     LOG_MARKER();
 
     m_mediator.m_dsBlockChain.AddBlock(dsblock);
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Storing DS Block Number: "<<dsblock.GetHeader().GetBlockNum()<<
-                                           " with Nonce: "<<dsblock.GetHeader().GetNonce() <<
-                                           ", Difficulty: "<<dsblock.GetHeader().GetDifficulty() <<
-                                           ", Timestamp: "<<dsblock.GetHeader().GetTimestamp() << 
-                                           ", view change count: "<<dsblock.GetHeader().GetViewChangeCount() );
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                 "Storing DS Block Number: "
+                     << dsblock.GetHeader().GetBlockNum()
+                     << " with Nonce: " << dsblock.GetHeader().GetNonce()
+                     << ", Difficulty: " << dsblock.GetHeader().GetDifficulty()
+                     << ", Timestamp: " << dsblock.GetHeader().GetTimestamp()
+                     << ", view change count: "
+                     << dsblock.GetHeader().GetViewChangeCount());
 
     // Update the rand1 value for next PoW
     m_mediator.UpdateDSBlockRand();
@@ -63,14 +66,16 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock)
     vector<unsigned char> serializedDSBlock;
     dsblock.Serialize(serializedDSBlock, 0);
 
+    LOG_MESSAGE(
+        "View change count:  " << dsblock.GetHeader().GetViewChangeCount());
 
-    LOG_MESSAGE("View change count:  " << dsblock.GetHeader().GetViewChangeCount());
-
-    for (unsigned int i=0; i < dsblock.GetHeader().GetViewChangeCount(); i++)
+    for (unsigned int i = 0; i < dsblock.GetHeader().GetViewChangeCount(); i++)
     {
-        m_mediator.m_DSCommitteeNetworkInfo.push_back(m_mediator.m_DSCommitteeNetworkInfo.front()); 
-        m_mediator.m_DSCommitteeNetworkInfo.pop_front(); 
-        m_mediator.m_DSCommitteePubKeys.push_back(m_mediator.m_DSCommitteePubKeys.front());
+        m_mediator.m_DSCommitteeNetworkInfo.push_back(
+            m_mediator.m_DSCommitteeNetworkInfo.front());
+        m_mediator.m_DSCommitteeNetworkInfo.pop_front();
+        m_mediator.m_DSCommitteePubKeys.push_back(
+            m_mediator.m_DSCommitteePubKeys.front());
         m_mediator.m_DSCommitteePubKeys.pop_front();
     }
     BlockStorage::GetBlockStorage().PutDSBlock(

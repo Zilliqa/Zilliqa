@@ -43,12 +43,15 @@ void DirectoryService::StoreDSBlockToStorage()
     LOG_MARKER();
     lock_guard<mutex> g(m_mutexPendingDSBlock);
     int result = m_mediator.m_dsBlockChain.AddBlock(*m_pendingDSBlock);
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Storing DS Block Number: "<<m_pendingDSBlock->GetHeader().GetBlockNum()<<
-                                           " with Nonce: "<<m_pendingDSBlock->GetHeader().GetNonce()<<
-                                           ", Difficulty: "<<m_pendingDSBlock->GetHeader().GetDifficulty()<<
-                                           ", Timestamp: "<<m_pendingDSBlock->GetHeader().GetTimestamp() <<
-                                           ", vc count: "<<m_pendingDSBlock->GetHeader().GetViewChangeCount()
-                                           );
+    LOG_MESSAGE2(
+        to_string(m_mediator.m_currentEpochNum).c_str(),
+        "Storing DS Block Number: "
+            << m_pendingDSBlock->GetHeader().GetBlockNum()
+            << " with Nonce: " << m_pendingDSBlock->GetHeader().GetNonce()
+            << ", Difficulty: " << m_pendingDSBlock->GetHeader().GetDifficulty()
+            << ", Timestamp: " << m_pendingDSBlock->GetHeader().GetTimestamp()
+            << ", vc count: "
+            << m_pendingDSBlock->GetHeader().GetViewChangeCount());
     if (result == -1)
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -433,16 +436,21 @@ bool DirectoryService::ProcessDSBlockConsensus(
 
     if (state == ConsensusCommon::State::DONE)
     {
-        m_viewChangeCounter = 0; 
-        cv_RecoveryDSBlockConsensus.notify_all(); 
+        m_viewChangeCounter = 0;
+        cv_RecoveryDSBlockConsensus.notify_all();
         ProcessDSBlockConsensusWhenDone(message, offset);
     }
     else if (state == ConsensusCommon::State::ERROR)
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Oops, no consensus reached - what to do now???");
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "DEBUG for verify sig m_allPoWConns  size is " << m_allPoWConns.size() << ". Please check numbers of pow1 receivied by this node"); 
-        
-        // Wait for view change to happen 
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "Oops, no consensus reached - what to do now???");
+        LOG_MESSAGE2(
+            to_string(m_mediator.m_currentEpochNum).c_str(),
+            "DEBUG for verify sig m_allPoWConns  size is "
+                << m_allPoWConns.size()
+                << ". Please check numbers of pow1 receivied by this node");
+
+        // Wait for view change to happen
         //throw exception();
     }
     else

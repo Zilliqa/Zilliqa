@@ -22,8 +22,8 @@ using namespace boost::multiprecision;
 
 TxBlockHeader::TxBlockHeader()
 {
-    m_blockNum = (boost::multiprecision::uint256_t) -1;
-    m_viewChangeCounter = 0; 
+    m_blockNum = (boost::multiprecision::uint256_t)-1;
+    m_viewChangeCounter = 0;
 }
 
 TxBlockHeader::TxBlockHeader(const vector<unsigned char>& src,
@@ -35,29 +35,31 @@ TxBlockHeader::TxBlockHeader(const vector<unsigned char>& src,
     }
 }
 
-TxBlockHeader::TxBlockHeader
-(
-    uint8_t type,
-    uint32_t version,
-    const uint256_t & gasLimit,
-    const uint256_t & gasUsed,
-    const BlockHash & prevHash,
-    const uint256_t & blockNum,
-    const uint256_t & timestamp,
-    const TxnHash & txRootHash,
-    const StateHash & stateRootHash,
-    uint32_t numTxs,
-    uint32_t numMicroBlockHashes,
-    const PubKey & minerPubKey,
-    const uint256_t & dsBlockNum,
-    const BlockHash & dsBlockHeader,
-    unsigned int viewChangeCounter 
+TxBlockHeader::TxBlockHeader(
+    uint8_t type, uint32_t version, const uint256_t& gasLimit,
+    const uint256_t& gasUsed, const BlockHash& prevHash,
+    const uint256_t& blockNum, const uint256_t& timestamp,
+    const TxnHash& txRootHash, const StateHash& stateRootHash, uint32_t numTxs,
+    uint32_t numMicroBlockHashes, const PubKey& minerPubKey,
+    const uint256_t& dsBlockNum, const BlockHash& dsBlockHeader,
+    unsigned int viewChangeCounter
 
-) : m_type(type), m_version(version), m_gasLimit(gasLimit), m_gasUsed(gasUsed), m_prevHash(prevHash), 
-    m_blockNum(blockNum), m_timestamp(timestamp), m_txRootHash(txRootHash), 
-    m_stateRootHash(stateRootHash), m_numTxs(numTxs), m_numMicroBlockHashes(numMicroBlockHashes), 
-    m_minerPubKey(minerPubKey), m_dsBlockNum(dsBlockNum), m_dsBlockHeader(dsBlockHeader), 
-    m_viewChangeCounter(viewChangeCounter)
+    )
+    : m_type(type)
+    , m_version(version)
+    , m_gasLimit(gasLimit)
+    , m_gasUsed(gasUsed)
+    , m_prevHash(prevHash)
+    , m_blockNum(blockNum)
+    , m_timestamp(timestamp)
+    , m_txRootHash(txRootHash)
+    , m_stateRootHash(stateRootHash)
+    , m_numTxs(numTxs)
+    , m_numMicroBlockHashes(numMicroBlockHashes)
+    , m_minerPubKey(minerPubKey)
+    , m_dsBlockNum(dsBlockNum)
+    , m_dsBlockHeader(dsBlockHeader)
+    , m_viewChangeCounter(viewChangeCounter)
 {
 }
 
@@ -106,10 +108,12 @@ unsigned int TxBlockHeader::Serialize(vector<unsigned char>& dst,
     curOffset += PUB_KEY_SIZE;
     SetNumber<uint256_t>(dst, curOffset, m_dsBlockNum, UINT256_SIZE);
     curOffset += UINT256_SIZE;
-    copy(m_dsBlockHeader.asArray().begin(), m_dsBlockHeader.asArray().end(), dst.begin() + curOffset);
+    copy(m_dsBlockHeader.asArray().begin(), m_dsBlockHeader.asArray().end(),
+         dst.begin() + curOffset);
     curOffset += BLOCK_HASH_SIZE;
-    SetNumber<unsigned int>(dst, curOffset, m_viewChangeCounter, sizeof(unsigned int));
-    curOffset += sizeof(unsigned int); 
+    SetNumber<unsigned int>(dst, curOffset, m_viewChangeCounter,
+                            sizeof(unsigned int));
+    curOffset += sizeof(unsigned int);
     return size_needed;
 }
 
@@ -155,9 +159,11 @@ int TxBlockHeader::Deserialize(const vector<unsigned char>& src,
         curOffset += PUB_KEY_SIZE;
         m_dsBlockNum = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
         curOffset += UINT256_SIZE;
-        copy(src.begin() + curOffset, src.begin() + curOffset + BLOCK_HASH_SIZE, m_dsBlockHeader.asArray().begin());
-        curOffset += BLOCK_HASH_SIZE; 
-        m_viewChangeCounter = GetNumber<unsigned int>(src, curOffset, sizeof(unsigned int));
+        copy(src.begin() + curOffset, src.begin() + curOffset + BLOCK_HASH_SIZE,
+             m_dsBlockHeader.asArray().begin());
+        curOffset += BLOCK_HASH_SIZE;
+        m_viewChangeCounter
+            = GetNumber<unsigned int>(src, curOffset, sizeof(unsigned int));
         curOffset += sizeof(unsigned int);
     }
     catch (const std::exception& e)
@@ -211,25 +217,21 @@ const unsigned int TxBlockHeader::GetViewChangeCounter() const
     return m_viewChangeCounter;
 }
 
-bool TxBlockHeader::operator==(const TxBlockHeader & header) const
+bool TxBlockHeader::operator==(const TxBlockHeader& header) const
 {
-    return
-            (
-                    (m_type == header.m_type) &&
-                    (m_version == header.m_version) &&
-                    (m_gasLimit == header.m_gasLimit) &&
-                    (m_gasUsed == header.m_gasUsed) &&
-                    (m_prevHash == header.m_prevHash) &&
-                    (m_blockNum == header.m_blockNum) &&
-                    (m_timestamp == header.m_timestamp) &&
-                    (m_txRootHash == header.m_txRootHash) &&
-                    (m_stateRootHash == header.m_stateRootHash) &&
-                    (m_numTxs == header.m_numTxs) &&
-                    (m_numMicroBlockHashes == header.m_numMicroBlockHashes) &&
-                    (m_minerPubKey == header.m_minerPubKey) &&
-                    (m_dsBlockHeader == header.m_dsBlockHeader) &&
-                    (m_viewChangeCounter == header.m_viewChangeCounter)
-            );
+    return ((m_type == header.m_type) && (m_version == header.m_version)
+            && (m_gasLimit == header.m_gasLimit)
+            && (m_gasUsed == header.m_gasUsed)
+            && (m_prevHash == header.m_prevHash)
+            && (m_blockNum == header.m_blockNum)
+            && (m_timestamp == header.m_timestamp)
+            && (m_txRootHash == header.m_txRootHash)
+            && (m_stateRootHash == header.m_stateRootHash)
+            && (m_numTxs == header.m_numTxs)
+            && (m_numMicroBlockHashes == header.m_numMicroBlockHashes)
+            && (m_minerPubKey == header.m_minerPubKey)
+            && (m_dsBlockHeader == header.m_dsBlockHeader)
+            && (m_viewChangeCounter == header.m_viewChangeCounter));
 }
 
 bool TxBlockHeader::operator<(const TxBlockHeader& header) const

@@ -166,7 +166,9 @@ void DirectoryService::SendingShardingStructureToShard(
         = m_mediator.m_dsBlockChain.GetBlockCount() - 1;
 
     // todo: Relook at this. This is not secure
-    Serializable::SetNumber<unsigned int>(sharding_message, curr_offset, m_viewChangeCounter, sizeof(unsigned int));
+    Serializable::SetNumber<unsigned int>(sharding_message, curr_offset,
+                                          m_viewChangeCounter,
+                                          sizeof(unsigned int));
     curr_offset += sizeof(unsigned int);
 
     Serializable::SetNumber<uint256_t>(sharding_message, curr_offset,
@@ -285,7 +287,7 @@ bool DirectoryService::ProcessShardingConsensus(
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                      "Sharding consensus is DONE!!!");
-        cv_viewChangeSharding.notify_all(); 
+        cv_viewChangeSharding.notify_all();
 
 #ifdef STAT_TEST
         if (m_mode == PRIMARY_DS)
@@ -320,7 +322,7 @@ bool DirectoryService::ProcessShardingConsensus(
         lock_guard<mutex> g(m_mutexAllPOW2);
         m_allPoW2s.clear();
         m_sortedPoW2s.clear();
-        m_viewChangeCounter = 0; 
+        m_viewChangeCounter = 0;
 
         // Start sharding work
         SetState(MICROBLOCK_SUBMISSION);

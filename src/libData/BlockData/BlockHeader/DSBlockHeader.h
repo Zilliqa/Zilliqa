@@ -38,7 +38,7 @@ class DSBlockHeader : public BlockHeaderBase
     boost::multiprecision::uint256_t
         m_blockNum; // Block index, starting from 0 in the genesis block
     boost::multiprecision::uint256_t m_timestamp;
-    unsigned int m_viewChangeCounter; 
+    unsigned int m_viewChangeCounter;
 
 public:
     /// Default constructor.
@@ -48,18 +48,12 @@ public:
     DSBlockHeader(const std::vector<unsigned char>& src, unsigned int offset);
 
     /// Constructor with specified DS block header parameters.
-    DSBlockHeader
-    (
-        const uint8_t difficulty,
-        const BlockHash & prevHash,
-        const boost::multiprecision::uint256_t & nonce,
-        const PubKey & minerPubKey,
-        const PubKey & leaderPubKey,
-        const boost::multiprecision::uint256_t & blockNum,
-        const boost::multiprecision::uint256_t & timestamp, 
-        unsigned int viewChangeCounter 
-    );
-
+    DSBlockHeader(const uint8_t difficulty, const BlockHash& prevHash,
+                  const boost::multiprecision::uint256_t& nonce,
+                  const PubKey& minerPubKey, const PubKey& leaderPubKey,
+                  const boost::multiprecision::uint256_t& blockNum,
+                  const boost::multiprecision::uint256_t& timestamp,
+                  unsigned int viewChangeCounter);
 
     /// Implements the Serialize function inherited from Serializable.
     unsigned int Serialize(std::vector<unsigned char>& dst,
@@ -90,7 +84,7 @@ public:
     const boost::multiprecision::uint256_t& GetTimestamp() const;
 
     /// Return the number of time DS view change has happen for DS block consensus
-    const unsigned int GetViewChangeCount() const; 
+    const unsigned int GetViewChangeCount() const;
 
     /// Equality operator.
     bool operator==(const DSBlockHeader& header) const;
