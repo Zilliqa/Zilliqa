@@ -1346,7 +1346,6 @@ bool DirectoryService::Execute(const vector<unsigned char>& message,
            &DirectoryService::ProcessLastDSBlockResponse,
            &DirectoryService::ProcessInitViewChange,
            &DirectoryService::ProcessInitViewChangeResponse
-
         };
 #else
     InstructionHandler ins_handlers[]
