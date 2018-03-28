@@ -57,7 +57,7 @@ bool BlockStorage::PushBackTxBodyDB(
     return true;
 }
 
-bool BlockStorage::PopFrontTxBodyDB()
+bool BlockStorage::PopFrontTxBodyDB(bool mandatory)
 {
     LOG_MARKER();
 
@@ -67,10 +67,13 @@ bool BlockStorage::PopFrontTxBodyDB()
         return false;
     }
 
-    if (m_txBodyDBs.size() <= NUM_DS_KEEP_TX_BODY)
+    if (!mandatory)
     {
-        LOG_MESSAGE("size of txBodyDB hasn't meet maximum, ignore");
-        return true;
+        if (m_txBodyDBs.size() <= NUM_DS_KEEP_TX_BODY)
+        {
+            LOG_MESSAGE("size of txBodyDB hasn't meet maximum, ignore");
+            return true;
+        }
     }
 
     int ret = -1;
@@ -378,15 +381,15 @@ bool BlockStorage::ResetDB(DBTYPE type)
 #ifndef IS_LOOKUP_NODE
     case TX_BODIES:
     {
-        for (auto iterator = m_txBodyDBs.begin(); iterator != m_txBodyDBs.end();
-             ++iterator)
+        int size_txBodyDBs = m_txBodyDBs.size();
+        for (int i = 0; i < size_txBodyDBs; i++)
         {
-            if (iterator->DeleteDB() != 0)
+            if (!PopFrontTxBodyDB(true))
             {
+                LOG_MESSAGE("Error: failed to reset TxBodyDB list");
                 throw std::exception();
             }
         }
-        m_txBodyDBs.clear();
         ret = true;
     }
 #else // IS_LOOKUP_NODE
