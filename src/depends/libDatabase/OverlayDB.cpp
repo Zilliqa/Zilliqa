@@ -30,6 +30,11 @@ namespace dev
 {
 	h256 const EmptyTrie = sha3(rlp(""));
 
+	void OverlayDB::ResetDB()
+	{
+		m_levelDB.ResetDB();
+	}
+
 	void OverlayDB::commit()
 	{
 	// #if DEV_GUARDED_DB

@@ -74,6 +74,8 @@ Node::Node(Mediator& mediator, bool toRetrieveHistory)
         m_consensusID = 1;
         m_consensusLeaderID = 1;
 
+        m_retriever->CleanAll();
+        m_retriever.reset();
         m_mediator.m_dsBlockChain.Reset();
         m_mediator.m_txBlockChain.Reset();
         m_committedTransactions.clear();
@@ -97,26 +99,36 @@ Node::~Node() {}
 bool Node::StartRetrieveHistory()
 {
     LOG_MARKER();
-    auto retriever = make_unique<Retriever>(m_mediator);
+    m_retriever = make_shared<Retriever>(m_mediator);
 
     bool ds_result;
-    std::thread tDS(&Retriever::RetrieveDSBlocks, retriever.get(),
+    std::thread tDS(&Retriever::RetrieveDSBlocks, m_retriever.get(),
                     std::ref(ds_result));
     // retriever->RetrieveDSBlocks(ds_result);
 
     bool tx_result;
-    std::thread tTx(&Retriever::RetrieveTxBlocks, retriever.get(),
+    std::thread tTx(&Retriever::RetrieveTxBlocks, m_retriever.get(),
                     std::ref(tx_result));
     // retriever->RetrieveTxBlocks(tx_result);
 
-    bool st_result = retriever->RetrieveStates();
+    bool st_result = m_retriever->RetrieveStates();
 
     tDS.join();
     tTx.join();
+
+    bool tx_bodies_result = true;
+#ifndef IS_LOOKUP_NODE
+    tx_bodies_result = m_retriever->RetrieveTxBodiesDB();
+#endif //IS_LOOKUP_NODE
+
     bool res = false;
-    if (st_result && ds_result && tx_result)
+    if (st_result && ds_result && tx_result && tx_bodies_result)
     {
-        if (retriever->ValidateStates() && retriever->CleanExtraTxBodies())
+#ifndef IS_LOOKUP_NODE
+        if (m_retriever->ValidateStates())
+#else // IS_LOOKUP_NODE
+        if (m_retriever->ValidateStates() && m_retriever->CleanExtraTxBodies())
+#endif // IS_LOOKUP_NODE
         {
             LOG_MESSAGE("RetrieveHistory Successed");
             m_mediator.m_isRetrievedHistory = true;

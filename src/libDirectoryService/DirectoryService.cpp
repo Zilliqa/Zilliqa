@@ -1016,6 +1016,8 @@ bool DirectoryService::ProcessLastDSBlockResponse(
     dsblock.Serialize(serializedDSBlock, 0);
     BlockStorage::GetBlockStorage().PutDSBlock(
         dsblock.GetHeader().GetBlockNum(), serializedDSBlock);
+    BlockStorage::GetBlockStorage().PushBackTxBodyDB(
+        dsblock.GetHeader().GetBlockNum());
 
     SetState(POW2_SUBMISSION);
     ScheduleShardingConsensus(BACKUP_POW2_WINDOW_IN_SECONDS

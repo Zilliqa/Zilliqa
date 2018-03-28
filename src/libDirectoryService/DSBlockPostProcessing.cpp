@@ -63,6 +63,8 @@ void DirectoryService::StoreDSBlockToStorage()
     m_pendingDSBlock->Serialize(serializedDSBlock, 0);
     BlockStorage::GetBlockStorage().PutDSBlock(
         m_pendingDSBlock->GetHeader().GetBlockNum(), serializedDSBlock);
+    BlockStorage::GetBlockStorage().PushBackTxBodyDB(
+        m_pendingDSBlock->GetHeader().GetBlockNum());
 }
 
 bool DirectoryService::SendDSBlockToLookupNodes(DSBlock& lastDSBlock,
