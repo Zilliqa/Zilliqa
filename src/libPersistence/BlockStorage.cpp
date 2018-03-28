@@ -57,7 +57,7 @@ bool BlockStorage::PushBackTxBodyDB(
     return true;
 }
 
-bool BlockStorage::PopFrontTxBodyDB(bool force)
+bool BlockStorage::PopFrontTxBodyDB(bool mandatory)
 {
     LOG_MARKER();
 
@@ -67,7 +67,7 @@ bool BlockStorage::PopFrontTxBodyDB(bool force)
         return false;
     }
 
-    if (!force)
+    if (!mandatory)
     {
         if (m_txBodyDBs.size() <= NUM_DS_KEEP_TX_BODY)
         {
