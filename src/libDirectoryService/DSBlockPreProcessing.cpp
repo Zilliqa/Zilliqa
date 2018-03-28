@@ -105,11 +105,11 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
 
     // kill first ds leader 
-    if (m_consensusMyID == 0 && temp_todie)
-    {
-        LOG_MESSAGE("I am killing myself to test view change"); 
-        throw exception(); 
-    }
+    // if (m_consensusMyID == 0 && temp_todie)
+    // {
+    //    LOG_MESSAGE("I am killing myself to test view change"); 
+    //    throw exception(); 
+    // }
 
     m_consensusObject.reset
     (
