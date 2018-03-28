@@ -46,9 +46,8 @@ class BlockStorage
     BlockStorage()
         : m_metadataDB("metadata")
         , m_dsBlockchainDB("dsBlocks")
-#ifndef IS_LOOKUP_NODE
         , m_txBlockchainDB("txBlocks")
-#else // IS_LOOKUP_NODE
+#ifdef IS_LOOKUP_NODE
         , m_txBodyDB("txBodies")
         , m_txBodyTmpDB("txBodiesTmp")
 #endif // IS_LOOKUP_NODE
