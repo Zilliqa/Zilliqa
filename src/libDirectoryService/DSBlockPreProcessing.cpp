@@ -71,9 +71,10 @@ void DirectoryService::ComposeDSBlock()
         difficulty = lastBlock.GetHeader().GetDifficulty();
     }
 
+    LOG_MESSAGE("Composing new block with vc count at " << m_viewChangeCounter);
     DSBlockHeader newHeader(difficulty, prevHash, winnerNonce, winnerKey,
                             m_mediator.m_selfKey.second, blockNum,
-                            get_time_as_int());
+                            get_time_as_int(), m_viewChangeCounter);
 
     // Assemble DS block
     array<unsigned char, BLOCK_SIG_SIZE> newSig{};
@@ -103,6 +104,13 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
     m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
 
+    // kill first ds leader
+    // if (m_consensusMyID == 0 && temp_todie)
+    // {
+    //    LOG_MESSAGE("I am killing myself to test view change");
+    //    throw exception();
+    // }
+
     m_consensusObject.reset(new ConsensusLeader(
         consensusID, m_consensusBlockHash, m_consensusMyID,
         m_mediator.m_selfKey.first, m_mediator.m_DSCommitteePubKeys,
@@ -129,6 +137,9 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
         m_pendingDSBlock->Serialize(m, 0);
     }
 
+    LOG_MESSAGE("debug after compose ds block debug vc "
+                << m_pendingDSBlock->GetHeader().GetViewChangeCount());
+
 #ifdef STAT_TEST
     LOG_STATE("[DSCON][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
@@ -152,7 +163,8 @@ bool DirectoryService::DSBlockValidator(const vector<unsigned char>& dsblock,
     lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
 
     m_pendingDSBlock.reset(new DSBlock(dsblock, 0));
-
+    LOG_MESSAGE("debug dsblock validator "
+                << m_pendingDSBlock->GetHeader().GetViewChangeCount());
     if (m_allPoWConns.find(m_pendingDSBlock->GetHeader().GetMinerPubKey())
         == m_allPoWConns.end())
     {
@@ -178,8 +190,6 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup()
 
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                  "I am a backup DS node. Waiting for DS block announcement.");
-
-    // Create new consensus object
 
     // Dummy values for now
     uint32_t consensusID = 0x0;
@@ -251,5 +261,21 @@ void DirectoryService::RunConsensusOnDSBlock()
     }
 
     SetState(DSBLOCK_CONSENSUS);
+
+    if (m_mode != PRIMARY_DS)
+    {
+        std::unique_lock<std::mutex> cv_lk(m_mutexRecoveryDSBlockConsensus);
+        if (cv_RecoveryDSBlockConsensus.wait_for(
+                cv_lk, std::chrono::seconds(VIEWCHANGE_TIME))
+            == std::cv_status::timeout)
+        {
+            //View change.
+            //TODO: This is a simplified version and will be review again.
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                         "Initiated DS block view change. ");
+            InitViewChange();
+        }
+    }
 }
+
 #endif // IS_LOOKUP_NODE

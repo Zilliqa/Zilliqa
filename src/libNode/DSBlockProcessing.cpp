@@ -55,13 +55,29 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock)
                      << dsblock.GetHeader().GetBlockNum()
                      << " with Nonce: " << dsblock.GetHeader().GetNonce()
                      << ", Difficulty: " << dsblock.GetHeader().GetDifficulty()
-                     << ", Timestamp: " << dsblock.GetHeader().GetTimestamp());
+                     << ", Timestamp: " << dsblock.GetHeader().GetTimestamp()
+                     << ", view change count: "
+                     << dsblock.GetHeader().GetViewChangeCount());
+
     // Update the rand1 value for next PoW
     m_mediator.UpdateDSBlockRand();
 
     // Store DS Block to disk
     vector<unsigned char> serializedDSBlock;
     dsblock.Serialize(serializedDSBlock, 0);
+
+    LOG_MESSAGE(
+        "View change count:  " << dsblock.GetHeader().GetViewChangeCount());
+
+    for (unsigned int i = 0; i < dsblock.GetHeader().GetViewChangeCount(); i++)
+    {
+        m_mediator.m_DSCommitteeNetworkInfo.push_back(
+            m_mediator.m_DSCommitteeNetworkInfo.front());
+        m_mediator.m_DSCommitteeNetworkInfo.pop_front();
+        m_mediator.m_DSCommitteePubKeys.push_back(
+            m_mediator.m_DSCommitteePubKeys.front());
+        m_mediator.m_DSCommitteePubKeys.pop_front();
+    }
     BlockStorage::GetBlockStorage().PutDSBlock(
         dsblock.GetHeader().GetBlockNum(), serializedDSBlock);
 #ifndef IS_LOOKUP_NODE
