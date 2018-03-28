@@ -1094,6 +1094,15 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
     //    Data::GetInstance().SetDSPeers(dsPeers);
     //#endif // IS_LOOKUP_NODE
 
+#ifndef IS_LOOKUP_NODE
+    m_toFetchDSInfo = false;
+    m_fetchedDSInfo = true;
+    if (m_fetchedState)
+    {
+        m_mediator.s_toAttemptPoW = true;
+    }
+#endif // IS_LOOKUP_NODE
+
     return true;
 }
 
@@ -1142,70 +1151,93 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
         return false;
     }
 
-    for (boost::multiprecision::uint256_t blockNum = lowBlockNum;
-         blockNum <= highBlockNum; blockNum++)
+    uint64_t latestSynBlockNum
+        = (uint64_t)m_mediator.m_dsBlockChain.GetBlockCount();
+
+    if (latestSynBlockNum > highBlockNum)
     {
-        // DSBlock dsBlock(message, offset);
-        DSBlock dsBlock;
-        if (dsBlock.Deserialize(message, offset) != 0)
+        // TODO: We should get blocks from n nodes.
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+            "I already have the block");
+    }
+    else
+    {
+        for (boost::multiprecision::uint256_t blockNum = lowBlockNum;
+             blockNum <= highBlockNum; blockNum++)
         {
-            LOG_MESSAGE("Error. We failed to deserialize dsBlock.");
-            return false;
-        }
-        offset += DSBlock::GetSerializedSize();
+            // DSBlock dsBlock(message, offset);
+            DSBlock dsBlock;
+            if (dsBlock.Deserialize(message, offset) != 0)
+            {
+                LOG_MESSAGE("Error. We failed to deserialize dsBlock.");
+                return false;
+            }
+            offset += DSBlock::GetSerializedSize();
 
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "I the lookup node have deserialized the DS Block");
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "dsblock.GetHeader().GetDifficulty(): "
-                         << (int)dsBlock.GetHeader().GetDifficulty());
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "dsblock.GetHeader().GetNonce(): "
-                         << dsBlock.GetHeader().GetNonce());
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "dsblock.GetHeader().GetBlockNum(): "
-                         << dsBlock.GetHeader().GetBlockNum());
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "dsblock.GetHeader().GetMinerPubKey().hex(): "
-                         << dsBlock.GetHeader().GetMinerPubKey());
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "dsblock.GetHeader().GetLeaderPubKey().hex(): "
-                         << dsBlock.GetHeader().GetLeaderPubKey());
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                         "I the lookup node have deserialized the DS Block");
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                         "dsblock.GetHeader().GetDifficulty(): "
+                             << (int)dsBlock.GetHeader().GetDifficulty());
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                         "dsblock.GetHeader().GetNonce(): "
+                             << dsBlock.GetHeader().GetNonce());
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                         "dsblock.GetHeader().GetBlockNum(): "
+                             << dsBlock.GetHeader().GetBlockNum());
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                         "dsblock.GetHeader().GetMinerPubKey().hex(): "
+                             << dsBlock.GetHeader().GetMinerPubKey());
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                         "dsblock.GetHeader().GetLeaderPubKey().hex(): "
+                             << dsBlock.GetHeader().GetLeaderPubKey());
 
-        m_mediator.m_dsBlockChain.AddBlock(dsBlock);
+            m_mediator.m_dsBlockChain.AddBlock(dsBlock);
 
-        // Store DS Block to disk
-        vector<unsigned char> serializedDSBlock;
-        dsBlock.Serialize(serializedDSBlock, 0);
-        BlockStorage::GetBlockStorage().PutDSBlock(
-            dsBlock.GetHeader().GetBlockNum(), serializedDSBlock);
-
+            // Store DS Block to disk
+            vector<unsigned char> serializedDSBlock;
+            dsBlock.Serialize(serializedDSBlock, 0);
+            BlockStorage::GetBlockStorage().PutDSBlock(
+                dsBlock.GetHeader().GetBlockNum(), serializedDSBlock);
 #ifndef IS_LOOKUP_NODE
-        if (!BlockStorage::GetBlockStorage().PushBackTxBodyDB(
-                dsBlock.GetHeader().GetBlockNum()))
-        {
-            if (BlockStorage::GetBlockStorage().PopFrontTxBodyDB()
-                && BlockStorage::GetBlockStorage().PushBackTxBodyDB(
-                       dsBlock.GetHeader().GetBlockNum()))
+            if (!BlockStorage::GetBlockStorage().PushBackTxBodyDB(
+                    dsBlock.GetHeader().GetBlockNum()))
             {
-                // Do nothing
+                if (BlockStorage::GetBlockStorage().PopFrontTxBodyDB()
+                    && BlockStorage::GetBlockStorage().PushBackTxBodyDB(
+                           dsBlock.GetHeader().GetBlockNum()))
+                {
+                    // Do nothing
+                }
+                else
+                {
+                    LOG_MESSAGE("Error: Cannot push txBodyDB even after pop, "
+                                "investigate why!");
+                    throw std::exception();
+                }
             }
-            else
-            {
-                LOG_MESSAGE("Error: Cannot push txBodyDB even after pop, "
-                            "investigate why!");
-                throw std::exception();
-            }
-        }
 #endif // IS_LOOKUP_NODE
+        }
+#ifdef IS_LOOKUP_NODE
+    }
+#else // IS_LOOKUP_NODE
+        m_mediator.UpdateDSBlockRand();
+        {
+            unique_lock<mutex> lock(m_dsRandUpdationMutex);
+            m_isDSRandUpdated = true;
+            m_dsRandUpdateCondition.notify_one();
+        }
+
+        m_toFetchDSInfo = true;
+        m_fetchedDSInfo = false;
     }
 
-    m_mediator.UpdateDSBlockRand();
+    if (m_toFetchDSInfo)
     {
-        unique_lock<mutex> lock(m_dsRandUpdationMutex);
-        m_isDSRandUpdated = true;
-        m_dsRandUpdateCondition.notify_one();
+        GetDSInfoFromLookupNodes();
     }
+#endif //IS_LOOKUP_NODE
+
     return true;
 }
 
@@ -1222,12 +1254,11 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
     }
 
     unique_lock<mutex> lock(m_mutexSetTxBlockFromSeed);
-    bool ret = true;
 
     if (IsMessageSizeInappropriate(message.size(), offset,
                                    UINT256_SIZE + UINT256_SIZE))
     {
-        ret = false;
+        return false;
     }
 
     // 32-byte lower-limit block number
@@ -1248,13 +1279,13 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
 
     uint64_t latestSynBlockNum
         = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
-    if (ret)
-    {
+
         if (latestSynBlockNum > highBlockNum)
         {
             // TODO: We should get blocks from n nodes.
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                          "I already have the block");
+            return false;
         }
         else
         {
@@ -1316,11 +1347,26 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
                 }
                 m_isDSRandUpdated = false;
             }
+
+            if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0)
+            {
+                m_toFetchState = true;
+                m_fetchedState = false;
+            }
+            else
+            {
+                // state the end of the first final epoch in a ds epoch
+                m_mediator.s_toAttemptPoW = false;
+            }
+        }
+
+        if (m_toFetchState)
+        {
+            GetStateFromLookupNodes();
         }
 #endif // IS_LOOKUP_NODE
-    }
 
-    return ret;
+    return true;
 }
 
 bool Lookup::ProcessSetTxBodyFromSeed(const vector<unsigned char>& message,
@@ -1456,7 +1502,6 @@ bool Lookup::InitMining()
     {
         return false;
     }
-
     // Check whether is the new node connected to the network. Else, initiate re-sync process again.
     this_thread::sleep_for(chrono::seconds(BACKUP_POW2_WINDOW_IN_SECONDS));
     if (!m_mediator.m_isConnectedToNetwork)
@@ -1524,6 +1569,12 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
         ret = false;
     }
 
+    m_toFetchState = false;
+    m_fetchedState = true;
+    if (m_fetchedDSInfo)
+    {
+        m_mediator.s_toAttemptPoW = true;
+    }
 #endif // IS_LOOKUP_NODE
 
     return ret;
