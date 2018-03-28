@@ -79,7 +79,7 @@ public:
     bool PushBackTxBodyDB(const boost::multiprecision::uint256_t& blockNum);
 
     /// Pop the txBody database at front.
-    bool PopFrontTxBodyDB();
+    bool PopFrontTxBodyDB(bool mandatory = false);
 
     /// Get the size of current TxBodyDB
     unsigned int GetTxBodyDBSize();
