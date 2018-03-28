@@ -1001,7 +1001,6 @@ bool DirectoryService::ProcessInitViewChangeResponse(const vector<unsigned char>
         m_mediator.m_DSCommitteePubKeys.pop_front();
 
         // New leader for consensus 
-        //m_consensusLeaderID++; 
         m_consensusMyID--;
         m_viewChangeCounter++;
 

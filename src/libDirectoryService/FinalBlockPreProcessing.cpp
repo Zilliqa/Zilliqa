@@ -168,7 +168,7 @@ void DirectoryService::ComposeFinalBlockCore()
             TxBlockHeader(type, version, allGasLimit,
                           allGasUsed, prevHash, blockNum, timestamp, microblockTrieRoot, stateRoot, 
                           numTxs, numMicroBlocks, m_mediator.m_selfKey.second, lastDSBlockNum, 
-                          dsBlockHeader, m_viewChangeEpoch), 
+                          dsBlockHeader, m_viewChangeCounter), 
             emptySig,
             isMicroBlockEmpty,
             microBlockTxHashes
