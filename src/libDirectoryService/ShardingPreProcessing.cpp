@@ -238,7 +238,7 @@ bool DirectoryService::ShardingValidator(
     lock_guard<mutex> g(m_mutexAllPoWConns);
 
     unsigned int curr_offset = 0;
-    unsigned int viewChangecounter = Serializable::GetNumber<uint32_t>(sharding_structure, curr_offset, sizeof(unsigned int));
+    // unsigned int viewChangecounter = Serializable::GetNumber<uint32_t>(sharding_structure, curr_offset, sizeof(unsigned int));
     curr_offset += sizeof(unsigned int);
 
     // 4-byte num of committees
