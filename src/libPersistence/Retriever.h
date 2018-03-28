@@ -31,7 +31,6 @@ public:
     Retriever(Mediator& mediator);
 
     void RetrieveDSBlocks(bool& result);
-
     void RetrieveTxBlocks(bool& result);
     bool RetrieveStates();
     bool ValidateStates();
