@@ -35,12 +35,19 @@ public:
     void RetrieveTxBlocks(bool& result);
     bool RetrieveStates();
     bool ValidateStates();
+
+#ifndef IS_LOOKUP_NODE
+    bool RetrieveTxBodiesDB();
+#else // IS_LOOKUP_NODE
     bool CleanExtraTxBodies();
+#endif // IS_LOOKUP_NODE
 
     void CleanAll();
 
 private:
     Mediator& m_mediator;
+
+    bool hasIncompletedDS = false;
 };
 
 #endif // __RETRIEVER_H__

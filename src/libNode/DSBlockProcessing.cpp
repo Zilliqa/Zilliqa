@@ -64,6 +64,10 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock)
     dsblock.Serialize(serializedDSBlock, 0);
     BlockStorage::GetBlockStorage().PutDSBlock(
         dsblock.GetHeader().GetBlockNum(), serializedDSBlock);
+#ifndef IS_LOOKUP_NODE
+    BlockStorage::GetBlockStorage().PushBackTxBodyDB(
+        dsblock.GetHeader().GetBlockNum());
+#endif
 }
 
 void Node::UpdateDSCommiteeComposition(const Peer& winnerpeer)

@@ -106,6 +106,7 @@ class Node : public Executable, public Broadcastable
     // Consensus variables
     std::shared_ptr<ConsensusCommon> m_consensusObject;
 
+    // Persistence Retriever
     std::shared_ptr<Retriever> m_retriever;
 
     std::vector<unsigned char> m_consensusBlockHash;
