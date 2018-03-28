@@ -940,6 +940,8 @@ bool DirectoryService::ProcessInitViewChange(const vector<unsigned char> & messa
         // Set myself to leader
         m_consensusMyID--;
         m_viewChangeCounter++;
+        m_mode = PRIMARY_DS;
+
 
         // Re-run consensus
         switch(viewChangeDSState)
