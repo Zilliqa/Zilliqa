@@ -22,7 +22,7 @@
 			<ip>127.0.0.1</ip>
 			<port>4001</port>
 		</peer>
-  		<peer>
+		<peer>
 			<ip>127.0.0.1</ip>
 			<port>4002</port>
 		</peer>
