@@ -610,6 +610,8 @@ bool Node::CheckCreatedTransaction(const Transaction& tx)
 #endif // IS_LOOKUP_NODE
 
 decltype(auto) CreateValidDummyTransaction() {
+    Schnorr& schnorr = Schnorr::GetInstance();
+
     //TODO: turn this to a global helper function
     auto GetAddressFromPublicKey = [](PubKey pk) {
         SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
@@ -630,17 +632,19 @@ decltype(auto) CreateValidDummyTransaction() {
     auto nonce = 0;
     auto amount = 0;
 
-    PrivKey fromPrivKey{};
-    PubKey fromPubKey{fromPrivKey};
+    auto from = schnorr.GenKeyPair();
+    const PrivKey& fromPrivKey{from.first};
+    const PubKey& fromPubKey{from.second};
 
     LOG_MESSAGE("fromPrivKey " << fromPrivKey);
     LOG_MESSAGE("fromPubKey " << fromPubKey);
 
-    PrivKey toPrivKey{};
-    PubKey toPubKey{toPrivKey};
+    auto to = schnorr.GenKeyPair();
+    const PrivKey& toPrivKey{to.first};
+    const PubKey& toPubKey{to.second};
 
-    LOG_MESSAGE("toPrivKey " << fromPrivKey);
-    LOG_MESSAGE("toPubKey " << fromPubKey);
+    LOG_MESSAGE("toPrivKey " << toPrivKey);
+    LOG_MESSAGE("toPubKey " << toPubKey);
 
     auto toAddr = GetAddressFromPublicKey(toPubKey);
 
