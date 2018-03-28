@@ -1316,6 +1316,7 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
         receivedLatestTxBlocks = true;
         if (receivedLatestState)
         {
+            LOG_MESSAGE("NOTIFY!");
             m_receivedLatestCondition.notify_one();
         }
     }
@@ -1545,6 +1546,7 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
         receivedLatestState = true;
         if (receivedLatestTxBlocks)
         {
+            LOG_MESSAGE("NOTIFY!");
             m_receivedLatestCondition.notify_one();
         }
     }

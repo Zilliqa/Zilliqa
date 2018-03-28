@@ -132,6 +132,11 @@ bool BlockStorage::PutTxBody(const dev::h256& key,
     LOG_MARKER();
 
 #ifndef IS_LOOKUP_NODE
+    if (!m_txBodyDBs.size())
+    {
+        LOG_MESSAGE("Error: No TxBodyDB found");
+        return false;
+    }
     int ret = m_txBodyDBs.back().Insert(key, body);
 #else // IS_LOOKUP_NODE
     int ret = m_txBodyDB.Insert(key, body) && m_txBodyTmpDB.Insert(key, body);
@@ -183,6 +188,11 @@ bool BlockStorage::GetTxBlock(const boost::multiprecision::uint256_t& blockNum,
 bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body)
 {
 #ifndef IS_LOOKUP_NODE
+    if (!m_txBodyDBs.size())
+    {
+        LOG_MESSAGE("Error: No TxBodyDB found");
+        return false;
+    }
     string bodyString = m_txBodyDBs.back().Lookup(key);
 #else // IS_LOOKUP_NODE
     string bodyString = m_txBodyDB.Lookup(key);
