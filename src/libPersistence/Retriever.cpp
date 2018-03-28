@@ -190,10 +190,17 @@ bool Retriever::RetrieveStates()
 bool Retriever::ValidateStates()
 {
     LOG_MARKER();
-    return m_mediator.m_txBlockChain.GetLastBlock()
-               .GetHeader()
-               .GetStateRootHash()
-        == AccountStore::GetInstance().GetStateRootHash();
+    if (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetStateRootHash()
+        == AccountStore::GetInstance().GetStateRootHash())
+    {
+        LOG_MESSAGE("ValidateStates passed.")
+        return true;
+    }
+    else
+    {
+        LOG_MESSAGE("ValidateStates failed.")
+        return false;
+    }
 }
 
 void Retriever::CleanAll()

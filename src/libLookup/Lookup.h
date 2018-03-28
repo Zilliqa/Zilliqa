@@ -63,14 +63,6 @@ class Lookup : public Executable, public Broadcastable
     std::mutex m_dsRandUpdationMutex;
     std::condition_variable m_dsRandUpdateCondition;
 
-    bool receivedLatestTxBlocks = false;
-    bool receivedLatestState = false;
-    std::mutex m_receivedLatestMutex;
-    std::condition_variable m_receivedLatestCondition;
-
-    // std::atomic<bool> receivedLatestTxBlocks;
-    // std::atomic<bool> receivedLatestState;
-
     std::mutex m_mutexSetDSBlockFromSeed;
     std::mutex m_mutexSetTxBlockFromSeed;
     std::mutex m_mutexSetTxBodyFromSeed;
