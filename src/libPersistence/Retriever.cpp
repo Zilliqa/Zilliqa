@@ -178,7 +178,7 @@ bool Retriever::CleanExtraTxBodies()
             }
         }
     }
-    return true;
+    return BlockStorage::GetBlockStorage().Reset(BlockStorage::TX_BODY_TMP);
 }
 #endif // IS_LOOKUP_NODE
 
