@@ -16,9 +16,19 @@
 
 #include "Retriever.h"
 
+#include <algorithm>
+#include <exception>
+#include <stdlib.h>
+#include <vector>
+
+#include <boost/filesystem.hpp>
+
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 #include "libPersistence/BlockStorage.h"
+
+using namespace boost::filesystem;
+namespace filesys = boost::filesystem;
 
 Retriever::Retriever(Mediator& mediator)
     : m_mediator(mediator)
@@ -37,18 +47,28 @@ void Retriever::RetrieveDSBlocks(bool& result)
         return;
     }
 
+    /// Check whether the termination of last running happens before the last DSEpoch properly ended.
     std::vector<unsigned char> isDSIncompleted;
     if (BlockStorage::GetBlockStorage().GetMetadata(MetaType::DSINCOMPLETED,
                                                     isDSIncompleted))
     {
-        LOG_MESSAGE("Has incompleted DS Block");
-        BlockStorage::GetBlockStorage().DeleteMetadata(MetaType::DSINCOMPLETED);
-        BlockStorage::GetBlockStorage().DeleteDSBlock(blocks.size() - 1);
-        blocks.pop_back();
+        if (isDSIncompleted[0] == '1')
+        {
+            LOG_MESSAGE("Has incompleted DS Block");
+            blocks.pop_back();
+            if (BlockStorage::GetBlockStorage().DeleteDSBlock(blocks.size()))
+            {
+                BlockStorage::GetBlockStorage().PutMetadata(
+                    MetaType::DSINCOMPLETED, {'0'});
+            }
+            hasIncompletedDS = true;
+        }
     }
     else
     {
-        LOG_MESSAGE("Has no incompleted DS Block");
+        LOG_MESSAGE("No GetMetadata or failed");
+        result = false;
+        return;
     }
 
     for (const auto& block : blocks)
@@ -85,12 +105,63 @@ void Retriever::RetrieveTxBlocks(bool& result)
     result = true;
 }
 
-bool Retriever::RetrieveStates()
+#ifndef IS_LOOKUP_NODE
+bool Retriever::RetrieveTxBodiesDB()
 {
-    LOG_MARKER();
-    return AccountStore::GetInstance().RetrieveFromDisk();
-}
+    filesys::path p(PERSISTENCE_PATH + "/" + TX_BODY_SUBDIR);
+    if (filesys::exists(p))
+    {
+        std::vector<std::string> dbNames;
+        for (auto& entry :
+             boost::make_iterator_range(filesys::directory_iterator(p), {}))
+        {
+            LOG_MESSAGE("Load txBodyDB: " << entry.path().filename().string());
+            dbNames.push_back(entry.path().filename().string());
+        }
+        std::sort(dbNames.begin(), dbNames.end());
 
+        // keep at most NUM_DS_KEEP_TX_BODY num of DB, ignore the temp one if exists
+        for (unsigned int i = 0;
+             i < (dbNames.size() <= NUM_DS_KEEP_TX_BODY
+                      ? (hasIncompletedDS ? dbNames.size() - 1 : dbNames.size())
+                      : NUM_DS_KEEP_TX_BODY);
+             i++)
+        {
+            if (!BlockStorage::GetBlockStorage().PushBackTxBodyDB(
+                    std::stoi(dbNames[i])))
+            {
+                return false;
+            }
+        }
+
+        // remove the temp txbodydb if it exists
+        if (dbNames.size() > NUM_DS_KEEP_TX_BODY)
+        {
+            if (dbNames.size() == NUM_DS_KEEP_TX_BODY + 1)
+            {
+                filesys::remove_all(p.string() + "/"
+                                    + dbNames[NUM_DS_KEEP_TX_BODY]);
+            }
+            else
+            {
+                LOG_MESSAGE("We got extra txBody Database, Investigate why!");
+                return false;
+            }
+        }
+        else if (hasIncompletedDS)
+        {
+            filesys::remove_all(p.string() + "/" + dbNames.back());
+        }
+    }
+    else
+    {
+        LOG_MESSAGE("Subdirectory Not found");
+        return false;
+    }
+
+    return true;
+}
+#else // IS_LOOKUP_NODE
 bool Retriever::CleanExtraTxBodies()
 {
     LOG_MARKER();
@@ -106,13 +177,19 @@ bool Retriever::CleanExtraTxBodies()
             }
         }
     }
-    return true;
+    return BlockStorage::GetBlockStorage().ResetDB(BlockStorage::TX_BODY_TMP);
+}
+#endif // IS_LOOKUP_NODE
+
+bool Retriever::RetrieveStates()
+{
+    LOG_MARKER();
+    return AccountStore::GetInstance().RetrieveFromDisk();
 }
 
 bool Retriever::ValidateStates()
 {
     LOG_MARKER();
-    // return AccountStore::GetInstance().ValidateStateFromDisk(m_addressToAccount);
     return m_mediator.m_txBlockChain.GetLastBlock()
                .GetHeader()
                .GetStateRootHash()

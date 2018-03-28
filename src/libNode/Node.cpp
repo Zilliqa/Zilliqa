@@ -75,10 +75,11 @@ Node::Node(Mediator& mediator, bool toRetrieveHistory)
         m_consensusLeaderID = 1;
 
         m_retriever->CleanAll();
-        AccountStore::GetInstance().Init();
+        m_retriever.reset();
         m_mediator.m_dsBlockChain.Reset();
         m_mediator.m_txBlockChain.Reset();
         m_committedTransactions.clear();
+        AccountStore::GetInstance().Init();
 
         m_synchronizer.InitializeGenesisBlocks(m_mediator.m_dsBlockChain,
                                                m_mediator.m_txBlockChain);
@@ -114,10 +115,20 @@ bool Node::StartRetrieveHistory()
 
     tDS.join();
     tTx.join();
+
+    bool tx_bodies_result = true;
+#ifndef IS_LOOKUP_NODE
+    tx_bodies_result = m_retriever->RetrieveTxBodiesDB();
+#endif //IS_LOOKUP_NODE
+
     bool res = false;
-    if (st_result && ds_result && tx_result)
+    if (st_result && ds_result && tx_result && tx_bodies_result)
     {
+#ifndef IS_LOOKUP_NODE
+        if (m_retriever->ValidateStates())
+#else // IS_LOOKUP_NODE
         if (m_retriever->ValidateStates() && m_retriever->CleanExtraTxBodies())
+#endif // IS_LOOKUP_NODE
         {
             LOG_MESSAGE("RetrieveHistory Successed");
             m_mediator.m_isRetrievedHistory = true;
