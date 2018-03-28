@@ -48,6 +48,9 @@ DirectoryService::DirectoryService(Mediator& mediator)
     m_requesting_last_ds_block = false;
     m_consensusLeaderID = 0;
     m_consensusID = 1;
+    m_viewChangeEpoch = 0;
+    //temp_todie = true; // TODO: Delete this. Use as part of testing of view change
+    m_viewChangeCounter = 0;
 }
 
 DirectoryService::~DirectoryService() {}
@@ -1025,6 +1028,297 @@ bool DirectoryService::ProcessLastDSBlockResponse(
     return true;
 }
 
+void DirectoryService::InitViewChange()
+{
+    LOG_MARKER();
+    // TODO
+    // Send to new candidate leader the following
+    // M = ( New candidate leader || My Identity || EpochNo || Current DS State || Nonce )
+
+    // In this version,
+    // M = ( New candidate leader || My Identity ||EpochNo || Current DS State ||Timestamp )
+    vector<unsigned char> initViewChangeMessage
+        = {MessageType::DIRECTORY, DSInstructionType::INITVIEWCHANGE};
+    unsigned int curr_offset = MessageOffset::BODY;
+
+    // New leader
+    unsigned int newCandidateLeader = 1;
+    curr_offset += m_mediator.m_DSCommitteeNetworkInfo.at(newCandidateLeader)
+                       .Serialize(initViewChangeMessage, curr_offset);
+
+    // Myself
+    curr_offset
+        += m_mediator.m_selfPeer.Serialize(initViewChangeMessage, curr_offset);
+
+    // EpochNum
+    Serializable::SetNumber<uint64_t>(initViewChangeMessage, curr_offset,
+                                      m_mediator.m_currentEpochNum,
+                                      sizeof(uint64_t));
+    curr_offset += sizeof(uint64_t);
+
+    // m_state
+    Serializable::SetNumber<unsigned int>(initViewChangeMessage, curr_offset,
+                                          m_state, sizeof(unsigned int));
+    curr_offset += sizeof(unsigned int);
+
+    // Timestamp
+    Serializable::SetNumber<uint256_t>(initViewChangeMessage, curr_offset,
+                                       get_time_as_int(), sizeof(uint256_t));
+    curr_offset += sizeof(uint256_t);
+
+    P2PComm::GetInstance().SendMessage(
+        m_mediator.m_DSCommitteeNetworkInfo.at(newCandidateLeader),
+        initViewChangeMessage);
+}
+
+bool DirectoryService::ProcessInitViewChange(
+    const vector<unsigned char>& message, unsigned int offset, const Peer& from)
+{
+    LOG_MARKER();
+
+    // TODO: Usage of mutex here is very messy. We need to refine it.
+    std::lock(m_mutexProcessViewChangeRequests,
+              m_mediator.m_mutexDSCommitteeNetworkInfo,
+              m_mediator.m_mutexDSCommitteePubKeys);
+    std::lock_guard<mutex> g(m_mutexProcessViewChangeRequests, std::adopt_lock);
+    std::lock_guard<mutex> g2(m_mediator.m_mutexDSCommitteeNetworkInfo,
+                              std::adopt_lock);
+    std::lock_guard<mutex> g3(m_mediator.m_mutexDSCommitteePubKeys,
+                              std::adopt_lock);
+
+    // M = ( New candidate leader || Sender Identity || EpochNo || Current DS State || Timestamp )
+    unsigned int curr_offset = offset;
+
+    // New candidate leader
+    Peer candidiateLeader;
+    if (candidiateLeader.Deserialize(message, curr_offset) != 0)
+    {
+        LOG_MESSAGE("Error. We failed to deserialize Peer (candidiateLeader).");
+        return false;
+    }
+    curr_offset += UINT128_SIZE + sizeof(uint32_t);
+
+    // Sender of view change request
+    Peer viewChangeRequester;
+    if (viewChangeRequester.Deserialize(message, curr_offset) != 0)
+    {
+        LOG_MESSAGE(
+            "Error. We failed to deserialize Peer (viewChangeRequester).");
+        return false;
+    }
+    LOG_MESSAGE("The vc requester is "
+                << viewChangeRequester.GetPrintableIPAddress() << ":"
+                << viewChangeRequester.m_listenPortHost)
+    curr_offset += UINT128_SIZE + sizeof(uint32_t);
+
+    // Check Epoch
+    m_viewChangeEpoch = Serializable::GetNumber<uint64_t>(message, curr_offset,
+                                                          sizeof(uint64_t));
+    curr_offset += sizeof(uint64_t);
+    LOG_MESSAGE("vc view change epoch is " << m_viewChangeEpoch
+                                           << ". Current epoch is "
+                                           << m_mediator.m_currentEpochNum);
+    if (m_viewChangeEpoch != m_mediator.m_currentEpochNum)
+    {
+        return false;
+    }
+
+    // m_state
+    unsigned int viewChangeDSState;
+    viewChangeDSState = Serializable::GetNumber<unsigned int>(
+        message, curr_offset, sizeof(unsigned int));
+    curr_offset += sizeof(unsigned int);
+
+    // Check whether candidate leader is myself
+    if (candidiateLeader != m_mediator.m_selfPeer)
+    {
+        LOG_MESSAGE(
+            "Error: I am not the candidate leader. Why am I receiving this ?");
+        return false;
+    }
+
+    // Check whether view change requester submit duplicate view change reqquest
+    // If not duplicated user, update the num of consensus receive.
+
+    if (std::find(m_viewChangeRequesters.begin(), m_viewChangeRequesters.end(),
+                  viewChangeRequester)
+        == m_viewChangeRequesters.end())
+    {
+        m_viewChangeRequesters.push_back(viewChangeRequester);
+        if (m_viewChangeRequestTracker.find(viewChangeDSState)
+            == m_viewChangeRequestTracker.end())
+        {
+            m_viewChangeRequestTracker.insert(
+                std::make_pair(viewChangeDSState, 1));
+        }
+        else
+        {
+            m_viewChangeRequestTracker[viewChangeDSState]
+                = m_viewChangeRequestTracker[viewChangeDSState] + 1;
+        }
+    }
+    else
+    {
+        LOG_MESSAGE("Error: View requester submitting a duplicated view change "
+                    "request");
+        return false;
+    }
+
+    // TODO: Check timestamp or other possible element such as nonces to ensure the message is fresh
+    // If collect enough request, initiate view change.
+    // TODO: Remove magic number
+
+    // We assume ds leader will not participate in view change
+    const unsigned int viewChangeVoteCount = ceil(
+        m_mediator.m_DSCommitteeNetworkInfo.size() * VC_TOLERANCE_FRACTION);
+
+    if (m_viewChangeRequestTracker[viewChangeDSState] > viewChangeVoteCount)
+    {
+        //temp_todie = false;
+        vector<unsigned char> viewChangeResponseMessage = {
+            MessageType::DIRECTORY, DSInstructionType::INITVIEWCHANGERESPONSE};
+        unsigned int response_offset = MessageOffset::BODY;
+
+        // My identity
+        response_offset += m_mediator.m_selfPeer.Serialize(
+            viewChangeResponseMessage, response_offset);
+
+        // DS state which view change happen
+        Serializable::SetNumber<unsigned int>(
+            viewChangeResponseMessage, response_offset, viewChangeDSState,
+            sizeof(unsigned int));
+        response_offset += sizeof(unsigned int);
+
+        // TODO: Candidate leader should sign the response
+        P2PComm::GetInstance().SendMessage(m_mediator.m_DSCommitteeNetworkInfo,
+                                           viewChangeResponseMessage);
+
+        // Clear the requester map
+        m_viewChangeRequestTracker.clear();
+
+        // Kick current leader to the back of the queue, waiting to be eject at
+        // the next ds epoch
+
+        m_mediator.m_DSCommitteeNetworkInfo.push_back(
+            m_mediator.m_DSCommitteeNetworkInfo.front());
+        m_mediator.m_DSCommitteeNetworkInfo.pop_front();
+        m_mediator.m_DSCommitteePubKeys.push_back(
+            m_mediator.m_DSCommitteePubKeys.front());
+        m_mediator.m_DSCommitteePubKeys.pop_front();
+
+        unsigned int sleepBeforeConsensusDuration = 5;
+        this_thread::sleep_for(chrono::seconds(sleepBeforeConsensusDuration));
+
+        // Set myself to leader
+        m_consensusMyID--;
+        m_viewChangeCounter++;
+        m_mode = PRIMARY_DS;
+
+        LOG_MESSAGE("vcc " << m_viewChangeCounter);
+
+        // Re-run consensus
+        switch (viewChangeDSState)
+        {
+        case DSBLOCK_CONSENSUS_PREP:
+        case DSBLOCK_CONSENSUS:
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                         "Re-running dsblock consensus (new leader)");
+            RunConsensusOnDSBlockWhenDSPrimary();
+            break;
+        case SHARDING_CONSENSUS_PREP:
+        case SHARDING_CONSENSUS:
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                         "Re-running sharding consensus (new leader)");
+            RunConsensusOnShardingWhenDSPrimary();
+            break;
+        case FINALBLOCK_CONSENSUS_PREP:
+        case FINALBLOCK_CONSENSUS:
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                         "Re-running finalblock consensus (new leader)");
+            RunConsensusOnFinalBlockWhenDSPrimary();
+            break;
+        default:
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                         "illegal view change state (new leader)");
+            return false;
+        }
+        m_viewChangeRequesters.clear();
+    }
+    return true;
+}
+
+bool DirectoryService::ProcessInitViewChangeResponse(
+    const vector<unsigned char>& message, unsigned int offset, const Peer& from)
+{
+    LOG_MARKER();
+    unsigned int curr_offset = offset;
+
+    Peer candidiateLeader;
+    if (candidiateLeader.Deserialize(message, curr_offset) != 0)
+    {
+        LOG_MESSAGE("Error. We failed to deserialize Peer (candidiateLeader).");
+        return false;
+    }
+
+    std::lock(m_mediator.m_mutexDSCommitteeNetworkInfo,
+              m_mediator.m_mutexDSCommitteePubKeys);
+    std::lock_guard<mutex> g(m_mediator.m_mutexDSCommitteeNetworkInfo,
+                             std::adopt_lock);
+    std::lock_guard<mutex> g2(m_mediator.m_mutexDSCommitteePubKeys,
+                              std::adopt_lock);
+
+    if (m_mediator.m_DSCommitteeNetworkInfo.at(1) == candidiateLeader)
+    {
+        // View change
+
+        // Kick current leader to the back of the queue, waiting to be eject at
+        // the next ds epoch
+        m_mediator.m_DSCommitteeNetworkInfo.push_back(
+            m_mediator.m_DSCommitteeNetworkInfo.front());
+        m_mediator.m_DSCommitteeNetworkInfo.pop_front();
+
+        m_mediator.m_DSCommitteePubKeys.push_back(
+            m_mediator.m_DSCommitteePubKeys.front());
+        m_mediator.m_DSCommitteePubKeys.pop_front();
+
+        // New leader for consensus
+        m_consensusMyID--;
+        m_viewChangeCounter++;
+
+        switch (m_state)
+        {
+        case DSBLOCK_CONSENSUS_PREP:
+        case DSBLOCK_CONSENSUS:
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                         "Re-running dsblock consensus (backup)");
+            RunConsensusOnDSBlockWhenDSBackup();
+            break;
+        case SHARDING_CONSENSUS_PREP:
+        case SHARDING_CONSENSUS:
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                         "Re-running sharding consensus (backup)");
+            RunConsensusOnShardingWhenDSBackup();
+            break;
+        case FINALBLOCK_CONSENSUS_PREP:
+        case FINALBLOCK_CONSENSUS:
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                         "Re-running finalblock consensus (backup)");
+            RunConsensusOnFinalBlockWhenDSBackup();
+            break;
+        default:
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                         "illegal view change state (backup)");
+        }
+        return false;
+    }
+    curr_offset += UINT128_SIZE + sizeof(uint32_t);
+
+    // Consensus is expected to be running now. So I will not re-run run consensus
+    // View change done
+
+    return true;
+}
+
 #endif // IS_LOOKUP_NODE
 
 bool DirectoryService::Execute(const vector<unsigned char>& message,
@@ -1049,7 +1343,10 @@ bool DirectoryService::Execute(const vector<unsigned char>& message,
            &DirectoryService::ProcessAllPoWConnRequest,
            &DirectoryService::ProcessAllPoWConnResponse,
            &DirectoryService::ProcessLastDSBlockRequest,
-           &DirectoryService::ProcessLastDSBlockResponse};
+           &DirectoryService::ProcessLastDSBlockResponse,
+           &DirectoryService::ProcessInitViewChange,
+           &DirectoryService::ProcessInitViewChangeResponse
+        };
 #else
     InstructionHandler ins_handlers[]
         = {&DirectoryService::ProcessSetPrimary,

@@ -39,7 +39,8 @@ DSBlockHeader::DSBlockHeader(const uint8_t difficulty,
                              const PubKey& minerPubKey,
                              const PubKey& leaderPubKey,
                              const uint256_t& blockNum,
-                             const uint256_t& timestamp)
+                             const uint256_t& timestamp,
+                             const unsigned int viewChangeCount)
     : m_difficulty(difficulty)
     , m_prevHash(prevHash)
     , m_nonce(nonce)
@@ -47,6 +48,7 @@ DSBlockHeader::DSBlockHeader(const uint8_t difficulty,
     , m_leaderPubKey(leaderPubKey)
     , m_blockNum(blockNum)
     , m_timestamp(timestamp)
+    , m_viewChangeCounter(viewChangeCount)
 {
 }
 
@@ -56,7 +58,8 @@ unsigned int DSBlockHeader::Serialize(vector<unsigned char>& dst,
     LOG_MARKER();
 
     unsigned int size_needed = sizeof(uint8_t) + BLOCK_HASH_SIZE + UINT256_SIZE
-        + PUB_KEY_SIZE + PUB_KEY_SIZE + UINT256_SIZE + UINT256_SIZE;
+        + PUB_KEY_SIZE + PUB_KEY_SIZE + UINT256_SIZE + UINT256_SIZE
+        + sizeof(unsigned int);
     unsigned int size_remaining = dst.size() - offset;
 
     if (size_remaining < size_needed)
@@ -80,6 +83,10 @@ unsigned int DSBlockHeader::Serialize(vector<unsigned char>& dst,
     SetNumber<uint256_t>(dst, curOffset, m_blockNum, UINT256_SIZE);
     curOffset += UINT256_SIZE;
     SetNumber<uint256_t>(dst, curOffset, m_timestamp, UINT256_SIZE);
+    curOffset += UINT256_SIZE;
+    SetNumber<unsigned int>(dst, curOffset, m_viewChangeCounter,
+                            sizeof(unsigned int));
+    curOffset += sizeof(unsigned int);
 
     return size_needed;
 }
@@ -116,6 +123,10 @@ int DSBlockHeader::Deserialize(const vector<unsigned char>& src,
         m_blockNum = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
         curOffset += UINT256_SIZE;
         m_timestamp = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
+        curOffset += UINT256_SIZE;
+        m_viewChangeCounter
+            = GetNumber<unsigned int>(src, curOffset, sizeof(unsigned int));
+        curOffset += sizeof(unsigned int);
     }
     catch (const std::exception& e)
     {
@@ -140,6 +151,11 @@ const uint256_t& DSBlockHeader::GetBlockNum() const { return m_blockNum; }
 
 const uint256_t& DSBlockHeader::GetTimestamp() const { return m_timestamp; }
 
+const unsigned int DSBlockHeader::GetViewChangeCount() const
+{
+    return m_viewChangeCounter;
+}
+
 bool DSBlockHeader::operator==(const DSBlockHeader& header) const
 {
     return ((m_difficulty == header.m_difficulty)
@@ -147,9 +163,11 @@ bool DSBlockHeader::operator==(const DSBlockHeader& header) const
             && (m_minerPubKey == header.m_minerPubKey)
             && (m_leaderPubKey == header.m_leaderPubKey)
             && (m_blockNum == header.m_blockNum)
-            && (m_timestamp == header.m_timestamp));
+            && (m_timestamp == header.m_timestamp)
+            && (m_viewChangeCounter == header.m_viewChangeCounter));
 }
 
+// TODO: Review this logic. It is wrong. Issue #163
 bool DSBlockHeader::operator<(const DSBlockHeader& header) const
 {
     if (m_difficulty < header.m_difficulty)
@@ -201,6 +219,11 @@ bool DSBlockHeader::operator<(const DSBlockHeader& header) const
         return false;
     }
     else if (m_timestamp < header.m_timestamp)
+    {
+        return true;
+    }
+    else if (m_viewChangeCounter
+             < header.m_viewChangeCounter) // TODO: Check this
     {
         return true;
     }
