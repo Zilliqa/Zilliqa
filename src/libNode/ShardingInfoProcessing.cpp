@@ -59,8 +59,6 @@ bool Node::ReadVariablesFromShardingMessage(const vector<unsigned char> & messag
     unsigned int viewChangeCounter = Serializable::GetNumber<unsigned int>(message, cur_offset, sizeof(unsigned int));
     cur_offset += sizeof(unsigned int);
 
-    LOG_MESSAGE("vc " << viewChangeCounter );
-
     for (unsigned int i=0; i < viewChangeCounter; i++)
     {
         m_mediator.m_DSCommitteeNetworkInfo.push_back(m_mediator.m_DSCommitteeNetworkInfo.front()); 
