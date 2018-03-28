@@ -109,6 +109,38 @@ unsigned int Transaction::Serialize(vector<unsigned char>& dst,
     return size_needed;
 }
 
+//TODO: eliminiate the duplicated code by reusing this inside Transaction::Serialize
+unsigned int Transaction::SerializeWithoutSignature(vector<unsigned char>&dst, unsigned int offset) const {
+    unsigned int size_needed = TRAN_HASH_SIZE + sizeof(uint32_t) + UINT256_SIZE
+        + PUB_KEY_SIZE + ACC_ADDR_SIZE + UINT256_SIZE;
+    assert(dst.size() > offset);
+    unsigned int size_remaining = dst.size() - offset;
+
+    if (size_remaining < size_needed)
+    {
+        dst.resize(size_needed + offset);
+    }
+
+    unsigned int curOffset = offset;
+
+    copy(m_tranID.asArray().begin(), m_tranID.asArray().end(),
+         dst.begin() + curOffset);
+    curOffset += TRAN_HASH_SIZE;
+    SetNumber<uint32_t>(dst, curOffset, m_version, sizeof(uint32_t));
+    curOffset += sizeof(uint32_t);
+    SetNumber<uint256_t>(dst, curOffset, m_nonce, UINT256_SIZE);
+    curOffset += UINT256_SIZE;
+    copy(m_toAddr.asArray().begin(), m_toAddr.asArray().end(),
+         dst.begin() + curOffset);
+    curOffset += ACC_ADDR_SIZE;
+    m_senderPubKey.Serialize(dst, curOffset);
+    curOffset += PUB_KEY_SIZE;
+    SetNumber<uint256_t>(dst, curOffset, m_amount, UINT256_SIZE);
+    curOffset += UINT256_SIZE;
+
+    return size_needed;
+}
+
 int Transaction::Deserialize(const vector<unsigned char>& src,
                              unsigned int offset)
 {
