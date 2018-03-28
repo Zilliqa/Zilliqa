@@ -82,9 +82,7 @@ void DirectoryService::ComposeDSBlock()
         // To-do: Handle exceptions.
         m_pendingDSBlock.reset(new DSBlock(newHeader, newSig));
     }
-
-    LOG_MESSAGE("debug vc pending block " << m_pendingDSBlock->GetHeader().GetViewChangeCount()); 
-
+    
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                  "New DSBlock created with chosen nonce = 0x" << hex << winnerNonce);
 }

@@ -48,7 +48,7 @@ DirectoryService::DirectoryService(Mediator & mediator) : m_mediator(mediator)
     m_consensusLeaderID = 0;
     m_consensusID = 1;
     m_viewChangeEpoch = 0; 
-    temp_todie = true; // TODO: Delete this
+    //temp_todie = true; // TODO: Delete this. Use as part of testing of view change
     m_viewChangeCounter = 0; 
 }
 
@@ -908,7 +908,7 @@ bool DirectoryService::ProcessInitViewChange(const vector<unsigned char> & messa
 
     if (m_viewChangeRequestTracker[viewChangeDSState] > viewChangeVoteCount)
     {
-        temp_todie = false;
+        //temp_todie = false;
         vector<unsigned char> viewChangeResponseMessage = { MessageType::DIRECTORY, 
                                                         DSInstructionType::INITVIEWCHANGERESPONSE };
         unsigned int response_offset = MessageOffset::BODY;
