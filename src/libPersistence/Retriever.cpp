@@ -71,6 +71,10 @@ void Retriever::RetrieveDSBlocks(bool& result)
         return;
     }
 
+    blocks.sort([](const DSBlockSharedPtr& a, const DSBlockSharedPtr& b) {
+        return a->GetHeader().GetBlockNum() < b->GetHeader().GetBlockNum();
+    });
+
     for (const auto& block : blocks)
     {
         m_mediator.m_dsBlockChain.AddBlock(*block);
@@ -98,6 +102,10 @@ void Retriever::RetrieveTxBlocks(bool& result)
         BlockStorage::GetBlockStorage().DeleteTxBlock(totalSize - i);
         blocks.pop_back();
     }
+
+    blocks.sort([](const TxBlockSharedPtr& a, const TxBlockSharedPtr& b) {
+        return a->GetHeader().GetBlockNum() < b->GetHeader().GetBlockNum();
+    });
 
     for (const auto& block : blocks)
         m_mediator.m_txBlockChain.AddBlock(*block);
