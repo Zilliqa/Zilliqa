@@ -62,6 +62,7 @@ void Retriever::RetrieveDSBlocks(bool& result)
                 BlockStorage::GetBlockStorage().PutMetadata(
                     MetaType::DSINCOMPLETED, {'0'});
             }
+            hasIncompletedDS = true;
         }
     }
     else
@@ -122,8 +123,9 @@ bool Retriever::RetrieveTxBodiesDB()
 
         // keep at most NUM_DS_KEEP_TX_BODY num of DB, ignore the temp one if exists
         for (unsigned int i = 0;
-             i < (dbNames.size() < NUM_DS_KEEP_TX_BODY ? dbNames.size()
-                                                       : NUM_DS_KEEP_TX_BODY);
+             i < (dbNames.size() <= NUM_DS_KEEP_TX_BODY
+                      ? (hasIncompletedDS ? dbNames.size() - 1 : dbNames.size())
+                      : NUM_DS_KEEP_TX_BODY);
              i++)
         {
             if (!BlockStorage::GetBlockStorage().PushBackTxBodyDB(
