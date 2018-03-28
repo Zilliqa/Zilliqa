@@ -20,12 +20,48 @@
 #include <boost/filesystem.hpp>
 
 #include "LevelDB.h"
+#include "common/Constants.h"
 #include "depends/common/Common.h"
 #include "depends/common/CommonData.h"
 #include "depends/common/FixedHash.h"
 
 using namespace std;
 
+#ifndef IS_LOOKUP_NODE
+LevelDB::LevelDB(const string & dbName, const string & subdirectory)
+{
+    this->m_subdirectory = subdirectory;
+    this->m_dbName = dbName;
+    
+    boost::filesystem::create_directories(PERSISTENCE_PATH);
+
+    leveldb::Options options;
+    options.max_open_files = 256;
+    options.create_if_missing = true;
+
+    leveldb::DB* db;
+    leveldb::Status status;
+
+    if(!m_subdirectory.size())
+    {
+        status = leveldb::DB::Open(options, PERSISTENCE_PATH + "/" + this->m_dbName, &db);
+    }
+    else
+    {
+        boost::filesystem::create_directories(PERSISTENCE_PATH + "/" + this->m_subdirectory);
+        status = leveldb::DB::Open(options, 
+            PERSISTENCE_PATH + "/" + this->m_subdirectory + "/" + this->m_dbName,
+            &db);
+    }
+
+    if(!status.ok())
+    {
+        throw exception();
+    }
+
+    m_db.reset(db);
+}
+#else // IS_LOOKUP_NODE
 LevelDB::LevelDB(const string & dbName)
 {
     this->m_dbName = dbName;
@@ -47,6 +83,7 @@ LevelDB::LevelDB(const string & dbName)
 
     m_db.reset(db);
 }
+#endif // IS_LOOKUP_NODE
 
 leveldb::Slice toSlice(boost::multiprecision::uint256_t num)
 {
@@ -213,6 +250,7 @@ int LevelDB::BatchInsert(std::unordered_map<dev::h256, std::pair<std::string, un
     {
         if (i.second.second)
         {
+            LOG_MESSAGE("MAIN WRITE STATE INTO LEVELDB " << i.first.hex());
             batch.Put(leveldb::Slice(i.first.hex()), 
                       leveldb::Slice(i.second.first.data(), i.second.first.size()));
         }
@@ -222,6 +260,7 @@ int LevelDB::BatchInsert(std::unordered_map<dev::h256, std::pair<std::string, un
     {
         if (i.second.second)
         {
+            LOG_MESSAGE("AUX WRITE STATE INTO LEVELDB " << i.first.hex());
             dev::bytes b = i.first.asBytes();
             b.push_back(255);   // for aux
             batch.Put(dev::bytesConstRef(&b), dev::bytesConstRef(&i.second.first));
@@ -250,6 +289,12 @@ bool LevelDB::Exists(const boost::multiprecision::uint256_t & blockNum) const
     return !ret.empty();
 }
 
+bool LevelDB::Exists(const std::string & key) const
+{
+    auto ret = Lookup(key);
+    return !ret.empty();
+}
+
 int LevelDB::DeleteKey(const dev::h256 & key)
 {
     leveldb::Status s = m_db->Delete(leveldb::WriteOptions(), ldb::Slice(key.hex()));
@@ -261,15 +306,113 @@ int LevelDB::DeleteKey(const dev::h256 & key)
     return 0;
 }
 
+int LevelDB::DeleteKey(const boost::multiprecision::uint256_t & blockNum)
+{
+    leveldb::Status s = m_db->Delete(leveldb::WriteOptions(), ldb::Slice(blockNum.convert_to<string>()));
+    if (!s.ok())
+    {
+        return -1;
+    }
+
+    return 0;
+}
+
+int LevelDB::DeleteKey(const std::string & key)
+{
+    leveldb::Status s = m_db->Delete(leveldb::WriteOptions(), ldb::Slice(key));
+    if(!s.ok())
+    {
+        return -1;
+    }
+
+    return 0;
+}
+
+#ifndef IS_LOOKUP_NODE
+int LevelDB::DeleteDB()
+{
+    m_db.reset();
+    leveldb::Status s = leveldb::DestroyDB(PERSISTENCE_PATH + 
+        (this->m_subdirectory.size() ? "/" + this->m_subdirectory : "") + "/" + this->m_dbName,
+        leveldb::Options());
+    if (!s.ok())
+    {
+        LOG_MESSAGE("[DeleteDB] Status: " << s.ToString());
+        return -1;
+    }
+
+    if(this->m_subdirectory.size())
+    {
+        boost::filesystem::remove_all(PERSISTENCE_PATH + "/" + this->m_subdirectory + "/" + this->m_dbName);
+    }
+
+    return 0;
+}
+
+bool LevelDB::ResetDB()
+{
+    if(DeleteDB()==0 && !this->m_subdirectory.size())
+    {
+        boost::filesystem::remove_all(PERSISTENCE_PATH + "/" + this->m_dbName);
+
+        leveldb::Options options;
+        options.max_open_files = 256;
+        options.create_if_missing = true;
+
+        leveldb::DB* db;
+
+        leveldb::Status status = leveldb::DB::Open(options, PERSISTENCE_PATH + "/" + this->m_dbName, &db);
+        if(!status.ok())
+        {
+            throw exception();
+        }
+
+        m_db.reset(db);
+        return true;
+    }
+    else if(this->m_subdirectory.size())
+    {
+        LOG_MESSAGE("DB in subdirectory cannot be reset");
+    }
+    return false;
+}
+#else // IS_LOOKUP_NODE
 int LevelDB::DeleteDB()
 {
     m_db.reset();
     leveldb::Status s = leveldb::DestroyDB(this->m_dbName, leveldb::Options()); 
     if (!s.ok())
     {
-        //LOG_MESSAGE("[DeleteDB] Status: " << s.ToString());
+        LOG_MESSAGE("[DeleteDB] Status: " << s.ToString());
         return -1;
     }
 
     return 0;
 }
+
+
+bool LevelDB::ResetDB()
+{
+    if(DeleteDB()==0)
+    {
+        string path = "./persistence";
+        boost::filesystem::remove_all(path + "/" + this->m_dbName);
+
+        leveldb::Options options;
+        options.max_open_files = 256;
+        options.create_if_missing = true;
+
+        leveldb::DB* db;
+
+        leveldb::Status status = leveldb::DB::Open(options, path + "/" + this->m_dbName, &db);
+        if(!status.ok())
+        {
+            throw exception();
+        }
+
+        m_db.reset(db);
+        return true;
+    }
+    return false;
+}
+#endif // IS_LOOKUP_NODE

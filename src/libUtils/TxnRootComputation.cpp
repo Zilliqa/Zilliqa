@@ -14,14 +14,11 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
+#include "TxnRootComputation.h"
 #include "depends/libDatabase/MemoryDB.h"
 #include "depends/libTrie/TrieDB.h"
-#include "TxnRootComputation.h"
 
-TxnHash ComputeTransactionsRoot
-(
-    const std::vector<TxnHash> & transactionHashes
-)
+TxnHash ComputeTransactionsRoot(const std::vector<TxnHash>& transactionHashes)
 {
     LOG_MARKER();
 
@@ -30,7 +27,8 @@ TxnHash ComputeTransactionsRoot
     transactionsTrie.init();
 
     int txnCount = 0;
-    for(auto it = transactionHashes.begin(); it != transactionHashes.end(); it++)
+    for (auto it = transactionHashes.begin(); it != transactionHashes.end();
+         it++)
     {
         std::vector<unsigned char> serializedTxn;
         serializedTxn.resize(TRAN_HASH_SIZE);
@@ -45,25 +43,25 @@ TxnHash ComputeTransactionsRoot
     std::vector<unsigned char> t = transactionsTrie.root().asBytes();
     copy(t.begin(), t.end(), txnRoot.asArray().begin());
 
-    return txnRoot;    
+    return txnRoot;
 }
 
-TxnHash ComputeTransactionsRoot
-(
-    const std::list<Transaction> & receivedTransactions,
-    const std::list<Transaction> & submittedTransactions
-)
+TxnHash
+ComputeTransactionsRoot(const std::list<Transaction>& receivedTransactions,
+                        const std::list<Transaction>& submittedTransactions)
 {
     dev::MemoryDB tm;
     dev::GenericTrieDB<dev::MemoryDB> transactionsTrie(&tm);
     transactionsTrie.init();
 
     int txnCount = 0;
-    for(auto it = receivedTransactions.begin(); it != receivedTransactions.end(); it++)
+    for (auto it = receivedTransactions.begin();
+         it != receivedTransactions.end(); it++)
     {
         std::vector<unsigned char> serializedTxn;
         serializedTxn.resize(TRAN_HASH_SIZE);
-        copy(it->GetTranID().begin(), it->GetTranID().end(), serializedTxn.begin());
+        copy(it->GetTranID().begin(), it->GetTranID().end(),
+             serializedTxn.begin());
 
         dev::RLPStream k;
         k << txnCount;
@@ -72,11 +70,13 @@ TxnHash ComputeTransactionsRoot
         transactionsTrie.insert(&k.out(), serializedTxn);
         // LOG_MESSAGE("Inserted to trie" << txnCount);
     }
-    for(auto it = submittedTransactions.begin(); it != submittedTransactions.end(); it++)
+    for (auto it = submittedTransactions.begin();
+         it != submittedTransactions.end(); it++)
     {
         std::vector<unsigned char> serializedTxn;
         serializedTxn.resize(TRAN_HASH_SIZE);
-        copy(it->GetTranID().begin(), it->GetTranID().end(), serializedTxn.begin());
+        copy(it->GetTranID().begin(), it->GetTranID().end(),
+             serializedTxn.begin());
 
         dev::RLPStream k;
         k << txnCount;
@@ -93,11 +93,9 @@ TxnHash ComputeTransactionsRoot
     return txnRoot;
 }
 
-TxnHash ComputeTransactionsRoot
-(
-    const std::unordered_map<TxnHash, Transaction> & receivedTransactions,
-    const std::unordered_map<TxnHash, Transaction> & submittedTransactions
-)
+TxnHash ComputeTransactionsRoot(
+    const std::unordered_map<TxnHash, Transaction>& receivedTransactions,
+    const std::unordered_map<TxnHash, Transaction>& submittedTransactions)
 {
     LOG_MARKER();
 
@@ -106,7 +104,7 @@ TxnHash ComputeTransactionsRoot
     transactionsTrie.init();
 
     int txnCount = 0;
-    for(auto & it : receivedTransactions)
+    for (auto& it : receivedTransactions)
     {
         std::vector<unsigned char> serializedTxn;
         serializedTxn.resize(TRAN_HASH_SIZE);
@@ -119,7 +117,7 @@ TxnHash ComputeTransactionsRoot
         transactionsTrie.insert(&k.out(), serializedTxn);
         // LOG_MESSAGE("Inserted to trie" << txnCount);
     }
-    for(auto & it : submittedTransactions)
+    for (auto& it : submittedTransactions)
     {
         std::vector<unsigned char> serializedTxn;
         serializedTxn.resize(TRAN_HASH_SIZE);

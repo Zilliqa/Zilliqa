@@ -14,21 +14,21 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#include <array>
-#include <string>
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/Address.h"
-#include "libUtils/Logger.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/Logger.h"
+#include <array>
+#include <string>
 
 #define BOOST_TEST_MODULE accounttest
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 
-BOOST_AUTO_TEST_SUITE (accounttest)
+BOOST_AUTO_TEST_SUITE(accounttest)
 
-BOOST_AUTO_TEST_CASE (test1)
+BOOST_AUTO_TEST_CASE(test1)
 {
     INIT_STDOUT_LOGGER();
 
@@ -56,7 +56,9 @@ BOOST_AUTO_TEST_CASE (test1)
 
     boost::multiprecision::uint256_t acc2Balance = acc2.GetBalance();
     LOG_MESSAGE("Account2 balance: " << acc2Balance);
-    BOOST_CHECK_MESSAGE(acc2Balance  == 110, "expected: "<<100<<" actual: "<<acc2Balance<<"\n");
+    BOOST_CHECK_MESSAGE(acc2Balance == 110,
+                        "expected: " << 100 << " actual: " << acc2Balance
+                                     << "\n");
 }
 
-BOOST_AUTO_TEST_SUITE_END ()
+BOOST_AUTO_TEST_SUITE_END()

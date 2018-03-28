@@ -22,13 +22,13 @@
 #include <boost/multiprecision/cpp_int.hpp>
 
 #include "Node.h"
-#include "common/Serializable.h"
-#include "common/Messages.h"
 #include "common/Constants.h"
+#include "common/Messages.h"
+#include "common/Serializable.h"
 #include "depends/common/RLP.h"
+#include "depends/libDatabase/MemoryDB.h"
 #include "depends/libTrie/TrieDB.h"
 #include "depends/libTrie/TrieHash.h"
-#include "depends/libDatabase/MemoryDB.h"
 #include "libConsensus/ConsensusUser.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
@@ -47,70 +47,85 @@ using namespace std;
 using namespace boost::multiprecision;
 
 #ifndef IS_LOOKUP_NODE
-void Node::SharePoW2WinningResultWithDS(const uint256_t &block_num, 
-                                        const ethash_mining_result &winning_result) const
+void Node::SharePoW2WinningResultWithDS(
+    const uint256_t& block_num,
+    const ethash_mining_result& winning_result) const
 {
     LOG_MARKER();
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                  "Winning nonce   = " << winning_result.winning_nonce);
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                  "Winning result  = " << winning_result.result);
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                  "Winning mixhash = " << winning_result.mix_hash);
 
     // Send result
-    vector<unsigned char> pow2message = { MessageType::DIRECTORY, DSInstructionType::POW2SUBMISSION };
+    vector<unsigned char> pow2message
+        = {MessageType::DIRECTORY, DSInstructionType::POW2SUBMISSION};
     unsigned int cur_offset = MessageOffset::BODY;
 
-    Serializable::SetNumber<uint256_t>(pow2message, cur_offset, block_num, sizeof(uint256_t));
+    Serializable::SetNumber<uint256_t>(pow2message, cur_offset, block_num,
+                                       sizeof(uint256_t));
     cur_offset += sizeof(uint256_t);
 
-    Serializable::SetNumber<uint32_t>(pow2message, cur_offset, m_mediator.m_selfPeer.m_listenPortHost, sizeof(uint32_t));
+    Serializable::SetNumber<uint32_t>(pow2message, cur_offset,
+                                      m_mediator.m_selfPeer.m_listenPortHost,
+                                      sizeof(uint32_t));
     cur_offset += sizeof(uint32_t);
 
     m_mediator.m_selfKey.second.Serialize(pow2message, cur_offset);
     cur_offset += PUB_KEY_SIZE;
 
-    Serializable::SetNumber<uint64_t>(pow2message, cur_offset, winning_result.winning_nonce, sizeof(uint64_t));
+    Serializable::SetNumber<uint64_t>(pow2message, cur_offset,
+                                      winning_result.winning_nonce,
+                                      sizeof(uint64_t));
     cur_offset += sizeof(uint64_t);
 
-    vector<unsigned char> result_vec = DataConversion::HexStrToUint8Vec(winning_result.result);
+    vector<unsigned char> result_vec
+        = DataConversion::HexStrToUint8Vec(winning_result.result);
     pow2message.insert(pow2message.end(), result_vec.begin(), result_vec.end());
 
-    vector<unsigned char> mixhash_vec = DataConversion::HexStrToUint8Vec(winning_result.mix_hash);
-    pow2message.insert(pow2message.end(), mixhash_vec.begin(), mixhash_vec.end());
+    vector<unsigned char> mixhash_vec
+        = DataConversion::HexStrToUint8Vec(winning_result.mix_hash);
+    pow2message.insert(pow2message.end(), mixhash_vec.begin(),
+                       mixhash_vec.end());
 
-    P2PComm::GetInstance().SendMessage(m_mediator.m_DSCommitteeNetworkInfo, pow2message);
+    P2PComm::GetInstance().SendMessage(m_mediator.m_DSCommitteeNetworkInfo,
+                                       pow2message);
 }
 
-void Node::StartPoW2MiningAndShareResultWithDS(const uint256_t & block_num, uint8_t difficulty,
-                                               const array<unsigned char, 32> & rand1,
-                                               const array<unsigned char, 32> & rand2) const
+void Node::StartPoW2MiningAndShareResultWithDS(
+    const uint256_t& block_num, uint8_t difficulty,
+    const array<unsigned char, 32>& rand1,
+    const array<unsigned char, 32>& rand2) const
 {
     LOG_MARKER();
 
-    ethash_mining_result winning_result = POW::GetInstance().PoWMine(block_num, difficulty, rand1, rand2,
-                                                                     m_mediator.m_selfPeer.m_ipAddress, m_mediator.m_selfKey.second, false);
+    ethash_mining_result winning_result = POW::GetInstance().PoWMine(
+        block_num, difficulty, rand1, rand2, m_mediator.m_selfPeer.m_ipAddress,
+        m_mediator.m_selfKey.second, false);
 
-    if(winning_result.success)
+    if (winning_result.success)
     {
         SharePoW2WinningResultWithDS(block_num, winning_result);
     }
 }
 
-bool Node::StartPoW2(uint256_t block_num, uint8_t difficulty, array<unsigned char, 32> rand1,
-                            array<unsigned char, 32> rand2)
+bool Node::StartPoW2(uint256_t block_num, uint8_t difficulty,
+                     array<unsigned char, 32> rand1,
+                     array<unsigned char, 32> rand2)
 {
     // Message = [32-byte block num] [1-byte difficulty] [32-byte rand1] [32-byte rand2] [16-byte ip] [4-byte port] ... (all the DS nodes)
 
     LOG_MARKER();
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                  "blockNum: " << block_num << " Difficulty: " << difficulty);
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "rand1: " <<
-                 DataConversion::charArrToHexStr(rand1) << " rand2: " <<
-                 DataConversion::charArrToHexStr(rand2));
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                 "rand1: " << DataConversion::charArrToHexStr(rand1)
+                           << " rand2: "
+                           << DataConversion::charArrToHexStr(rand2));
 
     StartPoW2MiningAndShareResultWithDS(block_num, difficulty, rand1, rand2);
 

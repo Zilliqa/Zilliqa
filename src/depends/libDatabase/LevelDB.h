@@ -35,12 +35,21 @@ leveldb::Slice toSlice(boost::multiprecision::uint256_t num);
 class LevelDB
 {
     std::string m_dbName;
+    
+#ifndef IS_LOOKUP_NODE
+    std::string m_subdirectory;
+#endif // IS_LOOKUP_NODE
+
     std::shared_ptr<leveldb::DB> m_db;
     
 public:
 
     /// Constructor.
+#ifndef IS_LOOKUP_NODE
+    explicit LevelDB(const std::string & dbName, const std::string & subdirectory = "");
+#else //IS_LOOKUP_NODE
     explicit LevelDB(const std::string & dbName);
+#endif //IS_LOOKUP_NODE
 
     /// Destructor.
     ~LevelDB() = default;
@@ -93,12 +102,22 @@ public:
     /// Returns true if value corresponding to specified key exists.
     bool Exists(const dev::h256 & key) const;
     bool Exists(const boost::multiprecision::uint256_t & blockNum) const;
+    bool Exists(const std::string & key) const;
 
     /// Deletes the value at the specified key.
     int DeleteKey(const dev::h256 & key);
 
+    /// Deletes the value at the specified key.
+    int DeleteKey(const boost::multiprecision::uint256_t & blockNum);
+
+    /// Deletes the value at the specified key.
+    int DeleteKey(const std::string & key);
+
     /// Deletes the entire database.
     int DeleteDB();
+
+    /// Reset the entire database.
+    bool ResetDB();
 };
 
 #endif // __LEVELDB_H__

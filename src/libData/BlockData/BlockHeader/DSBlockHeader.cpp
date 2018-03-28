@@ -22,12 +22,13 @@ using namespace boost::multiprecision;
 
 DSBlockHeader::DSBlockHeader()
 {
-    m_blockNum = (boost::multiprecision::uint256_t) -1;
+    m_blockNum = (boost::multiprecision::uint256_t)-1;
 }
 
-DSBlockHeader::DSBlockHeader(const vector<unsigned char> & src, unsigned int offset)
+DSBlockHeader::DSBlockHeader(const vector<unsigned char>& src,
+                             unsigned int offset)
 {
-    if(Deserialize(src, offset) != 0)
+    if (Deserialize(src, offset) != 0)
     {
         LOG_MESSAGE("Error. We failed to init DSBlockHeader.");
     }
@@ -48,7 +49,8 @@ DSBlockHeader::DSBlockHeader
 {
 }
 
-unsigned int DSBlockHeader::Serialize(vector<unsigned char> & dst, unsigned int offset) const
+unsigned int DSBlockHeader::Serialize(vector<unsigned char>& dst,
+                                      unsigned int offset) const
 {
     LOG_MARKER();
 
@@ -65,7 +67,8 @@ unsigned int DSBlockHeader::Serialize(vector<unsigned char> & dst, unsigned int 
 
     SetNumber<uint8_t>(dst, curOffset, m_difficulty, sizeof(uint8_t));
     curOffset += sizeof(uint8_t);
-    copy(m_prevHash.asArray().begin(), m_prevHash.asArray().end(), dst.begin() + curOffset);
+    copy(m_prevHash.asArray().begin(), m_prevHash.asArray().end(),
+         dst.begin() + curOffset);
     curOffset += BLOCK_HASH_SIZE;
     SetNumber<uint256_t>(dst, curOffset, m_nonce, UINT256_SIZE);
     curOffset += UINT256_SIZE;
@@ -83,7 +86,8 @@ unsigned int DSBlockHeader::Serialize(vector<unsigned char> & dst, unsigned int 
     return size_needed;
 }
 
-int DSBlockHeader::Deserialize(const vector<unsigned char> & src, unsigned int offset)
+int DSBlockHeader::Deserialize(const vector<unsigned char>& src,
+                               unsigned int offset)
 {
     LOG_MARKER();
 
@@ -92,19 +96,20 @@ int DSBlockHeader::Deserialize(const vector<unsigned char> & src, unsigned int o
     {
         m_difficulty = GetNumber<uint8_t>(src, curOffset, sizeof(uint8_t));
         curOffset += sizeof(uint8_t);
-        copy(src.begin() + curOffset, src.begin() + curOffset + BLOCK_HASH_SIZE, m_prevHash.asArray().begin());
+        copy(src.begin() + curOffset, src.begin() + curOffset + BLOCK_HASH_SIZE,
+             m_prevHash.asArray().begin());
         curOffset += BLOCK_HASH_SIZE;
         m_nonce = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
         curOffset += UINT256_SIZE;
         // m_minerPubKey.Deserialize(src, curOffset);
-        if(m_minerPubKey.Deserialize(src, curOffset) != 0)
+        if (m_minerPubKey.Deserialize(src, curOffset) != 0)
         {
             LOG_MESSAGE("Error. We failed to init m_minerPubKey.");
             return -1;
         }
         curOffset += PUB_KEY_SIZE;
         // m_leaderPubKey.Deserialize(src, curOffset);
-        if(m_leaderPubKey.Deserialize(src, curOffset) != 0)
+        if (m_leaderPubKey.Deserialize(src, curOffset) != 0)
         {
             LOG_MESSAGE("Error. We failed to init m_minerPubKey.");
             return -1;
@@ -117,49 +122,28 @@ int DSBlockHeader::Deserialize(const vector<unsigned char> & src, unsigned int o
         m_viewChangeCounter = GetNumber<unsigned int>(src, curOffset, sizeof(unsigned int));
         curOffset += sizeof(unsigned int);
     }
-    catch(const std::exception& e)
+    catch (const std::exception& e)
     {
-        LOG_MESSAGE("ERROR: Error with DSBlockHeader::Deserialize." << ' ' << e.what());
+        LOG_MESSAGE("ERROR: Error with DSBlockHeader::Deserialize."
+                    << ' ' << e.what());
         return -1;
-
     }
     return 0;
 }
 
-const uint8_t & DSBlockHeader::GetDifficulty() const
-{
-    return m_difficulty;
-}
+const uint8_t& DSBlockHeader::GetDifficulty() const { return m_difficulty; }
 
-const BlockHash & DSBlockHeader::GetPrevHash() const
-{
-    return m_prevHash;
-}
+const BlockHash& DSBlockHeader::GetPrevHash() const { return m_prevHash; }
 
-const uint256_t & DSBlockHeader::GetNonce() const
-{
-    return m_nonce;
-}
+const uint256_t& DSBlockHeader::GetNonce() const { return m_nonce; }
 
-const PubKey & DSBlockHeader::GetMinerPubKey() const
-{
-    return m_minerPubKey;
-}
+const PubKey& DSBlockHeader::GetMinerPubKey() const { return m_minerPubKey; }
 
-const PubKey & DSBlockHeader::GetLeaderPubKey() const
-{
-    return m_leaderPubKey;
-}
+const PubKey& DSBlockHeader::GetLeaderPubKey() const { return m_leaderPubKey; }
 
-const uint256_t & DSBlockHeader::GetBlockNum() const
-{
-    return m_blockNum;
-}
+const uint256_t& DSBlockHeader::GetBlockNum() const { return m_blockNum; }
 
-const uint256_t & DSBlockHeader::GetTimestamp() const
-{
-    return m_timestamp;
-}
+const uint256_t& DSBlockHeader::GetTimestamp() const { return m_timestamp; }
 
 const unsigned int DSBlockHeader::GetViewChangeCount() const
 {
@@ -246,7 +230,7 @@ bool DSBlockHeader::operator<(const DSBlockHeader & header) const
     }
 }
 
-bool DSBlockHeader::operator>(const DSBlockHeader & header) const
+bool DSBlockHeader::operator>(const DSBlockHeader& header) const
 {
     return !((*this == header) || (*this < header));
 }

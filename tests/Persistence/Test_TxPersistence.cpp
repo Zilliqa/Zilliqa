@@ -30,9 +30,9 @@
 
 using namespace std;
 
-BOOST_AUTO_TEST_SUITE (persistencetest)
+BOOST_AUTO_TEST_SUITE(persistencetest)
 
-BOOST_AUTO_TEST_CASE (testReadWriteSimpleStringToDB)
+BOOST_AUTO_TEST_CASE(testReadWriteSimpleStringToDB)
 {
     INIT_STDOUT_LOGGER();
 
@@ -44,10 +44,12 @@ BOOST_AUTO_TEST_CASE (testReadWriteSimpleStringToDB)
 
     string ret = db.ReadFromDB("fruit");
 
-    BOOST_CHECK_MESSAGE(ret == "vegetable", "ERROR: return value from DB not equal to inserted value");
+    BOOST_CHECK_MESSAGE(
+        ret == "vegetable",
+        "ERROR: return value from DB not equal to inserted value");
 }
 
-TxBlock constructDummyTxBlock(int instanceNum) 
+TxBlock constructDummyTxBlock(int instanceNum)
 {
     // array<unsigned char, BLOCK_HASH_SIZE> emptyHash = { 0 };
 
@@ -55,19 +57,18 @@ TxBlock constructDummyTxBlock(int instanceNum)
 
     TxBlockHeader header(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1, 1, BlockHash(), instanceNum, 
                          get_time_as_int(), TxnHash(), StateHash(), 5, 6, pubKey1.second, instanceNum, BlockHash(), 0);
-    
     array<unsigned char, BLOCK_SIG_SIZE> emptySig{};
 
     std::vector<TxnHash> tranHashes;
 
-    for(int i=0; i<5; i++)
+    for (int i = 0; i < 5; i++)
     {
         tranHashes.push_back(TxnHash());
     }
 
     vector<TxnHash> microBlockHashes;
 
-    for(int i=0; i<6; i++)
+    for (int i = 0; i < 6; i++)
     {
         microBlockHashes.push_back(TxnHash());
     }
@@ -75,13 +76,13 @@ TxBlock constructDummyTxBlock(int instanceNum)
     return TxBlock(header, emptySig, vector<bool>(), microBlockHashes);
 }
 
-BOOST_AUTO_TEST_CASE (testSerializationDeserialization)
+BOOST_AUTO_TEST_CASE(testSerializationDeserialization)
 {
     INIT_STDOUT_LOGGER();
 
     LOG_MARKER();
 
-    // checking if normal serialization and deserialization of blocks is working or not    
+    // checking if normal serialization and deserialization of blocks is working or not
 
     TxBlock block1 = constructDummyTxBlock(0);
 
@@ -90,11 +91,12 @@ BOOST_AUTO_TEST_CASE (testSerializationDeserialization)
 
     TxBlock block2(serializedTxBlock, 0);
 
-    BOOST_CHECK_MESSAGE(block1.GetHeader().GetBlockNum() == block2.GetHeader().GetBlockNum(), 
+    BOOST_CHECK_MESSAGE(
+        block1.GetHeader().GetBlockNum() == block2.GetHeader().GetBlockNum(),
         "nonce shouldn't change after serailization and deserialization");
 }
 
-BOOST_AUTO_TEST_CASE (testBlockStorage)
+BOOST_AUTO_TEST_CASE(testBlockStorage)
 {
     INIT_STDOUT_LOGGER();
 
@@ -110,11 +112,12 @@ BOOST_AUTO_TEST_CASE (testBlockStorage)
     TxBlockSharedPtr block2;
     BlockStorage::GetBlockStorage().GetTxBlock(0, block2);
 
-    BOOST_CHECK_MESSAGE(block1 == *block2, 
+    BOOST_CHECK_MESSAGE(
+        block1 == *block2,
         "block shouldn't change after writing to/ reading from disk");
 }
 
-BOOST_AUTO_TEST_CASE (testRandomBlockAccesses)
+BOOST_AUTO_TEST_CASE(testRandomBlockAccesses)
 {
     INIT_STDOUT_LOGGER();
 
@@ -145,21 +148,27 @@ BOOST_AUTO_TEST_CASE (testRandomBlockAccesses)
     TxBlockSharedPtr blockRetrieved;
     BlockStorage::GetBlockStorage().GetTxBlock(2, blockRetrieved);
 
-    BOOST_CHECK_MESSAGE(block2.GetHeader().GetBlockNum() == (*blockRetrieved).GetHeader().GetBlockNum(), 
+    BOOST_CHECK_MESSAGE(
+        block2.GetHeader().GetBlockNum()
+            == (*blockRetrieved).GetHeader().GetBlockNum(),
         "block num shouldn't change after writing to/ reading from disk");
 
     BlockStorage::GetBlockStorage().GetTxBlock(4, blockRetrieved);
 
-    BOOST_CHECK_MESSAGE(block4.GetHeader().GetBlockNum() == (*blockRetrieved).GetHeader().GetBlockNum(), 
+    BOOST_CHECK_MESSAGE(
+        block4.GetHeader().GetBlockNum()
+            == (*blockRetrieved).GetHeader().GetBlockNum(),
         "block num shouldn't change after writing to/ reading from disk");
 
     BlockStorage::GetBlockStorage().GetTxBlock(1, blockRetrieved);
-    
-    BOOST_CHECK_MESSAGE(block1.GetHeader().GetBlockNum() == (*blockRetrieved).GetHeader().GetBlockNum(), 
+
+    BOOST_CHECK_MESSAGE(
+        block1.GetHeader().GetBlockNum()
+            == (*blockRetrieved).GetHeader().GetBlockNum(),
         "block num shouldn't change after writing to/ reading from disk");
 }
 
-BOOST_AUTO_TEST_CASE (testCachedAndEvictedBlocks)
+BOOST_AUTO_TEST_CASE(testCachedAndEvictedBlocks)
 {
     INIT_STDOUT_LOGGER();
 
@@ -167,7 +176,7 @@ BOOST_AUTO_TEST_CASE (testCachedAndEvictedBlocks)
 
     TxBlock block = constructDummyTxBlock(0);
 
-    for(int i=5; i<21; i++) 
+    for (int i = 5; i < 21; i++)
     {
         block = constructDummyTxBlock(i);
 
@@ -180,18 +189,21 @@ BOOST_AUTO_TEST_CASE (testCachedAndEvictedBlocks)
     TxBlockSharedPtr blockRetrieved1;
     BlockStorage::GetBlockStorage().GetTxBlock(20, blockRetrieved1);
 
-    BOOST_CHECK_MESSAGE(block.GetHeader().GetDSBlockNum() == (*blockRetrieved1).GetHeader().GetDSBlockNum(), 
+    BOOST_CHECK_MESSAGE(
+        block.GetHeader().GetDSBlockNum()
+            == (*blockRetrieved1).GetHeader().GetDSBlockNum(),
         "block number shouldn't change after writing to/ reading from disk");
 
     TxBlockSharedPtr blockRetrieved2;
     BlockStorage::GetBlockStorage().GetTxBlock(0, blockRetrieved2);
 
-    BOOST_CHECK_MESSAGE(constructDummyTxBlock(0).GetHeader().GetDSBlockNum() == 
-        (*blockRetrieved2).GetHeader().GetDSBlockNum(), 
+    BOOST_CHECK_MESSAGE(
+        constructDummyTxBlock(0).GetHeader().GetDSBlockNum()
+            == (*blockRetrieved2).GetHeader().GetDSBlockNum(),
         "block number shouldn't change after writing to/ reading from disk");
 }
 
-void writeBlock(int id) 
+void writeBlock(int id)
 {
     TxBlock block = constructDummyTxBlock(id);
 
@@ -201,48 +213,52 @@ void writeBlock(int id)
     BlockStorage::GetBlockStorage().PutTxBlock(id, serializedDSBlock);
 }
 
-void readBlock(int id) 
+void readBlock(int id)
 {
     TxBlockSharedPtr block;
     BlockStorage::GetBlockStorage().GetTxBlock(id, block);
-    if((*block).GetHeader().GetBlockNum() != id) 
+    if ((*block).GetHeader().GetBlockNum() != id)
     {
-        LOG_MESSAGE("GetBlockNum is "<<(*block).GetHeader().GetBlockNum()<<", id is "<<id);
-        assert((*block).GetHeader().GetBlockNum()==id);
+        LOG_MESSAGE("GetBlockNum is " << (*block).GetHeader().GetBlockNum()
+                                      << ", id is " << id);
+        assert((*block).GetHeader().GetBlockNum() == id);
     }
-    else {
-        LOG_MESSAGE("GetBlockNum is "<<(*block).GetHeader().GetBlockNum()<<", id is "<<id);
+    else
+    {
+        LOG_MESSAGE("GetBlockNum is " << (*block).GetHeader().GetBlockNum()
+                                      << ", id is " << id);
     }
 }
 
-void readWriteBlock(int tid) 
+void readWriteBlock(int tid)
 {
-    for(int j=0; j<100; j++)
+    for (int j = 0; j < 100; j++)
     {
         writeBlock(tid * 100000 + j);
         readBlock(tid * 1000 + j);
     }
 }
 
-void bootstrap(int num_threads) 
+void bootstrap(int num_threads)
 {
-    for(int i=0; i<num_threads; i++)
+    for (int i = 0; i < num_threads; i++)
     {
-        for(int j=0; j<100; j++)
+        for (int j = 0; j < 100; j++)
         {
             TxBlock block = constructDummyTxBlock(i * 1000 + j);
 
             std::vector<unsigned char> serializedTxBlock;
 
             block.Serialize(serializedTxBlock, 0);
-            BlockStorage::GetBlockStorage().PutTxBlock(i * 1000 + j, serializedTxBlock);
+            BlockStorage::GetBlockStorage().PutTxBlock(i * 1000 + j,
+                                                       serializedTxBlock);
         }
     }
 
     LOG_MESSAGE("Bootstrapping done!!");
 }
 
-BOOST_AUTO_TEST_CASE (testThreadSafety)
+BOOST_AUTO_TEST_CASE(testThreadSafety)
 {
     INIT_STDOUT_LOGGER();
 
@@ -253,16 +269,18 @@ BOOST_AUTO_TEST_CASE (testThreadSafety)
     bootstrap(num_threads);
 
     std::thread t[num_threads];
- 
+
     //Launch a group of threads
-    for (int i = 0; i < num_threads; ++i) {
+    for (int i = 0; i < num_threads; ++i)
+    {
         t[i] = std::thread(readWriteBlock, i);
     }
- 
+
     std::cout << "Launched from the main\n";
- 
+
     //Join the threads with the main thread
-    for (int i = 0; i < num_threads; ++i) {
+    for (int i = 0; i < num_threads; ++i)
+    {
         t[i].join();
     }
 }
@@ -271,7 +289,7 @@ BOOST_AUTO_TEST_CASE (testThreadSafety)
     tests correctness when blocks get written over a series of files
     when running this test change BLOCK_FILE_SIZE to 128*1024*1024/512 in BlockStorage.h
 */
-BOOST_AUTO_TEST_CASE (testMultipleBlocksInMultipleFiles)
+BOOST_AUTO_TEST_CASE(testMultipleBlocksInMultipleFiles)
 {
     INIT_STDOUT_LOGGER();
 
@@ -282,7 +300,7 @@ BOOST_AUTO_TEST_CASE (testMultipleBlocksInMultipleFiles)
 
     TxBlock block = constructDummyTxBlock(0);
 
-    for(int i=21; i<2500; i++) 
+    for (int i = 21; i < 2500; i++)
     {
         block = constructDummyTxBlock(i);
 
@@ -295,11 +313,51 @@ BOOST_AUTO_TEST_CASE (testMultipleBlocksInMultipleFiles)
     TxBlockSharedPtr blockRetrieved;
     BlockStorage::GetBlockStorage().GetTxBlock(2499, blockRetrieved);
 
-    BOOST_CHECK_MESSAGE(block.GetHeader().GetDSBlockNum() == (*blockRetrieved).GetHeader().GetDSBlockNum(), 
+    BOOST_CHECK_MESSAGE(
+        block.GetHeader().GetDSBlockNum()
+            == (*blockRetrieved).GetHeader().GetDSBlockNum(),
         "block number shouldn't change after writing to/ reading from disk");
 
     // BlockStorage::m_blockFileSize = 128 * ONE_MEGABYTE;
     // BlockStorage::SetBlockFileSize(128 * ONE_MEGABYTE);
 }
 
-BOOST_AUTO_TEST_SUITE_END ()
+BOOST_AUTO_TEST_CASE(testRetrieveAllTheTxBlocksInDB)
+{
+    INIT_STDOUT_LOGGER();
+
+    LOG_MARKER();
+
+    if (BlockStorage::GetBlockStorage().ResetDB(BlockStorage::DBTYPE::TX_BLOCK))
+    {
+        std::list<TxBlock> in_blocks;
+
+        for (int i = 0; i < 10; i++)
+        {
+            TxBlock block = constructDummyTxBlock(i);
+
+            std::vector<unsigned char> serializedTxBlock;
+
+            block.Serialize(serializedTxBlock, 0);
+
+            BlockStorage::GetBlockStorage().PutTxBlock(i, serializedTxBlock);
+            in_blocks.push_back(block);
+        }
+
+        std::list<TxBlockSharedPtr> ref_blocks;
+        std::list<TxBlock> out_blocks;
+        BOOST_CHECK_MESSAGE(
+            BlockStorage::GetBlockStorage().GetAllTxBlocks(ref_blocks),
+            "GetAllDSBlocks shouldn't fail");
+        for (auto i : ref_blocks)
+        {
+            LOG_MESSAGE(i->GetHeader().GetDSBlockNum());
+            out_blocks.push_back(*i);
+        }
+        BOOST_CHECK_MESSAGE(
+            in_blocks == out_blocks,
+            "DSBlocks shouldn't change after writting to/ reading from disk");
+    }
+}
+
+BOOST_AUTO_TEST_SUITE_END()

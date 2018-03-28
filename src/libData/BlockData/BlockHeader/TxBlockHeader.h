@@ -21,21 +21,22 @@
 #include <boost/multiprecision/cpp_int.hpp>
 
 #include "BlockHeaderBase.h"
-#include "libData/AccountData/Transaction.h"
-#include "libData/AccountData/AccountStore.h"
-#include "common/Serializable.h"
 #include "common/Constants.h"
+#include "common/Serializable.h"
 #include "libCrypto/Schnorr.h"
+#include "libData/AccountData/AccountStore.h"
+#include "libData/AccountData/Transaction.h"
 
 /// Stores information on the header part of the Tx block.
 class TxBlockHeader : public BlockHeaderBase
 {
-    uint8_t m_type;                                             // 0: microblock proposed by a committee, 1: final tx block
+    uint8_t m_type; // 0: microblock proposed by a committee, 1: final tx block
     uint32_t m_version;
     boost::multiprecision::uint256_t m_gasLimit;
     boost::multiprecision::uint256_t m_gasUsed;
-    BlockHash m_prevHash;                                       // Hash of the previous block
-    boost::multiprecision::uint256_t m_blockNum;                // Block index, starting from 0 in the genesis block
+    BlockHash m_prevHash; // Hash of the previous block
+    boost::multiprecision::uint256_t
+        m_blockNum; // Block index, starting from 0 in the genesis block
     boost::multiprecision::uint256_t m_timestamp;
     TxnHash m_txRootHash;                                       // Microblock merkle tree root hash
     StateHash m_stateRootHash;                                  // State merkle tree root hash
@@ -59,7 +60,7 @@ public:
     TxBlockHeader();
 
     /// Constructor for loading Tx block header information from a byte stream.
-    TxBlockHeader(const std::vector<unsigned char> & src, unsigned int offset);
+    TxBlockHeader(const std::vector<unsigned char>& src, unsigned int offset);
 
     /// Constructor with specified Tx block header parameters.
     TxBlockHeader
@@ -82,69 +83,70 @@ public:
     );
 
     /// Implements the Serialize function inherited from Serializable.
-    unsigned int Serialize(std::vector<unsigned char> & dst, unsigned int offset) const;
+    unsigned int Serialize(std::vector<unsigned char>& dst,
+                           unsigned int offset) const;
 
     /// Implements the Deserialize function inherited from Serializable.
-    int Deserialize(const std::vector<unsigned char> & src, unsigned int offset);
+    int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
 
     /// Returns the type of the block.
-    const uint8_t & GetType() const;
+    const uint8_t& GetType() const;
 
     /// Returns the current version.
-    const uint32_t & GetVersion() const;
+    const uint32_t& GetVersion() const;
 
     /// Returns the current limit for gas expenditure per block.
-    const boost::multiprecision::uint256_t & GetGasLimit() const;
+    const boost::multiprecision::uint256_t& GetGasLimit() const;
 
     /// Returns the total gas used by transactions in this block.
-    const boost::multiprecision::uint256_t & GetGasUsed() const;
+    const boost::multiprecision::uint256_t& GetGasUsed() const;
 
     /// Returns the digest of the parent block header.
-    const BlockHash & GetPrevHash() const;
+    const BlockHash& GetPrevHash() const;
 
     /// Returns the number of ancestor blocks.
-    const boost::multiprecision::uint256_t & GetBlockNum() const;
+    const boost::multiprecision::uint256_t& GetBlockNum() const;
 
     /// Returns the Unix time at the time of creation of this block.
-    const boost::multiprecision::uint256_t & GetTimestamp() const;
+    const boost::multiprecision::uint256_t& GetTimestamp() const;
 
     /// Returns the digest that represents the root of the Merkle tree that stores all microblocks in this block.
-    const TxnHash & GetTxRootHash() const;
+    const TxnHash& GetTxRootHash() const;
 
     /// Returns the digest that represents the root of the Merkle tree that stores all state uptil this block.
-    const StateHash & GetStateRootHash() const;
+    const StateHash& GetStateRootHash() const;
 
     /// Returns the number of transactions in this block.
-    const uint32_t & GetNumTxs() const;
+    const uint32_t& GetNumTxs() const;
 
     /// Returns the number of MicroBlockHashes in this block.
-    const uint32_t & GetNumMicroBlockHashes() const;
+    const uint32_t& GetNumMicroBlockHashes() const;
 
     /// Returns the public key of the leader of the committee that composed this block.
-    const PubKey & GetMinerPubKey() const;
+    const PubKey& GetMinerPubKey() const;
 
     /// Returns the parent DS block number.
-    const boost::multiprecision::uint256_t & GetDSBlockNum() const;
+    const boost::multiprecision::uint256_t& GetDSBlockNum() const;
 
     /// Returns the digest of the parent DS block header.
-    const BlockHash & GetDSBlockHeader() const;
+    const BlockHash& GetDSBlockHeader() const;
 
     /// Returns the view change counter for final block consensus
     const unsigned int GetViewChangeCounter() const; 
 
     /// Equality comparison operator.
-    bool operator==(const TxBlockHeader & header) const;
+    bool operator==(const TxBlockHeader& header) const;
 
     /// Less-than comparison operator.
-    bool operator<(const TxBlockHeader & header) const;
+    bool operator<(const TxBlockHeader& header) const;
 
     /// Greater-than comparison operator.
-    bool operator>(const TxBlockHeader & header) const;
+    bool operator>(const TxBlockHeader& header) const;
 
-    friend std::ostream & operator<<(std::ostream & os, const TxBlockHeader & t);
+    friend std::ostream& operator<<(std::ostream& os, const TxBlockHeader& t);
 };
 
-inline std::ostream & operator<<(std::ostream & os, const TxBlockHeader & t)
+inline std::ostream& operator<<(std::ostream& os, const TxBlockHeader& t)
 {
     os << "m_type : " << t.m_type << std::endl << 
           "m_version : " << t.m_version << std::endl <<

@@ -24,8 +24,8 @@
 #include <boost/multiprecision/cpp_int.hpp>
 
 #include "Address.h"
-#include "common/Serializable.h"
 #include "common/Constants.h"
+#include "common/Serializable.h"
 #include "depends/common/FixedHash.h"
 #include "libCrypto/Schnorr.h"
 
@@ -36,78 +36,75 @@ class Transaction : public Serializable
 {
     TxnHash m_tranID;
     uint32_t m_version;
-    boost::multiprecision::uint256_t m_nonce; // counter: the number of tx from m_fromAddr
+    boost::multiprecision::uint256_t
+        m_nonce; // counter: the number of tx from m_fromAddr
     Address m_toAddr;
     PubKey m_senderPubKey;
     boost::multiprecision::uint256_t m_amount;
     std::array<unsigned char, TRAN_SIG_SIZE> m_signature;
 
 public:
-
     /// Default constructor.
     Transaction();
 
     /// Constructor with specified transaction fields.
-    Transaction
-    (
-        uint32_t version,
-        const boost::multiprecision::uint256_t & nonce,
-        const Address & toAddr,
-        const PubKey & senderPubKey,
-        const boost::multiprecision::uint256_t & amount,
-        const std::array<unsigned char, TRAN_SIG_SIZE> & signature
-    );
+    Transaction(uint32_t version, const boost::multiprecision::uint256_t& nonce,
+                const Address& toAddr, const PubKey& senderPubKey,
+                const boost::multiprecision::uint256_t& amount,
+                const std::array<unsigned char, TRAN_SIG_SIZE>& signature);
 
     /// Constructor for loading transaction information from a byte stream.
-    Transaction(const std::vector<unsigned char> & src, unsigned int offset);
+    Transaction(const std::vector<unsigned char>& src, unsigned int offset);
 
     /// Implements the Serialize function inherited from Serializable.
-    unsigned int Serialize(std::vector<unsigned char> & dst, unsigned int offset) const;
+    unsigned int Serialize(std::vector<unsigned char>& dst,
+                           unsigned int offset) const;
 
     /// Implements the Deserialize function inherited from Serializable.
-    int Deserialize(const std::vector<unsigned char> & src, unsigned int offset);
+    int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
 
     /// Returns the size in bytes when serializing the transaction.
     static unsigned int GetSerializedSize();
 
     /// Returns the transaction ID.
-    const TxnHash & GetTranID() const;
+    const TxnHash& GetTranID() const;
 
     /// Returns the current version.
-    const uint32_t & GetVersion() const;
+    const uint32_t& GetVersion() const;
 
     /// Returns the transaction nonce.
-    const boost::multiprecision::uint256_t & GetNonce() const;
+    const boost::multiprecision::uint256_t& GetNonce() const;
 
     /// Returns the transaction destination account address.
-    const Address & GetToAddr() const;
+    const Address& GetToAddr() const;
 
     //// Returns the sender's Public Key.
-    const PubKey & GetSenderPubKey() const;
+    const PubKey& GetSenderPubKey() const;
 
     /// Returns the transaction amount.
-    const boost::multiprecision::uint256_t & GetAmount() const;
+    const boost::multiprecision::uint256_t& GetAmount() const;
 
     /// Returns the EC-Schnorr signature over the transaction data.
-    const std::array<unsigned char, TRAN_SIG_SIZE> & GetSignature() const;
+    const std::array<unsigned char, TRAN_SIG_SIZE>& GetSignature() const;
 
     /// Identifies the shard number that should process the transaction.
-    static unsigned int GetShardIndex(const Address & fromAddr, unsigned int numShards);
+    static unsigned int GetShardIndex(const Address& fromAddr,
+                                      unsigned int numShards);
 
     /// Verifies the transaction w.r.t given pubKey and signature
-    static bool Verify(const Transaction & tran);
+    static bool Verify(const Transaction& tran);
 
     /// Equality comparison operator.
-    bool operator==(const Transaction & tran) const;
+    bool operator==(const Transaction& tran) const;
 
     /// Less-than comparison operator.
-    bool operator<(const Transaction & tran) const;
+    bool operator<(const Transaction& tran) const;
 
     /// Greater-than comparison operator.
-    bool operator>(const Transaction & tran) const;
+    bool operator>(const Transaction& tran) const;
 
     /// Assignment operator.
-    Transaction & operator=(const Transaction & src);
+    Transaction& operator=(const Transaction& src);
 };
 
 #endif // __TRANSACTION_H__
