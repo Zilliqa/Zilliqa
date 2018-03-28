@@ -98,6 +98,9 @@ void DirectoryService::SerializeShardingStructure(vector<unsigned char> & shardi
 
     unsigned int curr_offset = 0;
 
+    Serializable::SetNumber<unsigned int>(sharding_structure, curr_offset, m_viewChangeCounter, sizeof(unsigned int));
+    curr_offset += sizeof(unsigned int);
+
     // 4-byte num of committees
     Serializable::SetNumber<uint32_t>(sharding_structure, curr_offset, numOfComms, sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
@@ -220,6 +223,8 @@ bool DirectoryService::ShardingValidator(const vector<unsigned char> & sharding_
     lock_guard<mutex> g(m_mutexAllPoWConns);
 
     unsigned int curr_offset = 0;
+    unsigned int viewChangecounter = Serializable::GetNumber<uint32_t>(sharding_structure, curr_offset, sizeof(unsigned int));
+    curr_offset += sizeof(unsigned int);
 
     // 4-byte num of committees
     uint32_t numOfComms = Serializable::GetNumber<uint32_t>(sharding_structure, curr_offset, sizeof(uint32_t));
@@ -358,7 +363,6 @@ void DirectoryService::RunConsensusOnSharding()
     }
 
     SetState(SHARDING_CONSENSUS);
-
 
     if (m_mode != PRIMARY_DS)
     {
