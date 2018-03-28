@@ -90,6 +90,12 @@ bool DirectoryService::SendEntireShardingStructureToLookupNodes()
         = {MessageType::LOOKUP, LookupInstructionType::ENTIRESHARDINGSTRUCTURE};
     unsigned int curr_offset = MessageOffset::BODY;
 
+    // Set view change count
+    Serializable::SetNumber<unsigned int>(sharding_message, curr_offset,
+                                          m_viewChangeCounter,
+                                          sizeof(unsigned int));
+    curr_offset += sizeof(unsigned int);
+
     SerializeEntireShardingStructure(sharding_message, curr_offset);
 
     m_mediator.m_lookup->SendMessageToLookupNodes(sharding_message);
