@@ -294,7 +294,6 @@ bool DirectoryService::ProcessFinalBlockConsensus(const vector<unsigned char> & 
     // So, ANNOUNCE should acquire a lock here
 
     lock_guard<mutex> g(m_mutexConsensus);
-
     
     // Wait for a while in the case that primary sent announcement pretty early
     unsigned int sleep_time_while_waiting = 100; 
