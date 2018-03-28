@@ -52,4 +52,6 @@ const unsigned int MICROBLOCK_TIMEOUT{
     ReadFromConstantsFile("MICROBLOCK_TIMEOUT")};
 const unsigned int NUM_FINAL_BLOCK_PER_POW{
     ReadFromConstantsFile("NUM_FINAL_BLOCK_PER_POW")};
+const unsigned int NUM_DS_KEEP_TX_BODY{
+    ReadFromConstantsFile("NUM_DS_KEEP_TX_BODY")};
 const uint32_t MAXMESSAGE{ReadFromConstantsFile("MAXMESSAGE")};

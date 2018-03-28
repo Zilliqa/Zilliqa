@@ -79,6 +79,9 @@ const std::string RAND1_GENESIS
 const std::string RAND2_GENESIS
     = "e8cc9106f8a28671d91e2de07b57b828934481fadf6956563b963bb8e5c266bf";
 
+const std::string PERSISTENCE_PATH = "./persistence";
+const std::string TX_BODY_SUBDIR = "txBodies";
+
 extern const unsigned int DS_MULTICAST_CLUSTER_SIZE;
 extern const unsigned int COMM_SIZE;
 extern const unsigned int MAX_POW1_WINNERS;
@@ -93,6 +96,7 @@ extern const unsigned int POW1_DIFFICULTY;
 extern const unsigned int POW2_DIFFICULTY;
 extern const unsigned int MICROBLOCK_TIMEOUT;
 extern const unsigned int NUM_FINAL_BLOCK_PER_POW;
+extern const unsigned int NUM_DS_KEEP_TX_BODY;
 extern const uint32_t MAXMESSAGE;
 
 #endif // __CONSTANTS_H__

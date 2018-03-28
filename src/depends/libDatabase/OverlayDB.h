@@ -36,6 +36,8 @@ namespace dev
 		explicit OverlayDB(const std::string & dbName): m_levelDB(dbName) {}
 		~OverlayDB() = default;
 
+		void ResetDB();
+
 		void commit();
 		void rollback();
 
