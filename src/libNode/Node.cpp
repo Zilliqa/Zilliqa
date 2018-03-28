@@ -31,6 +31,7 @@
 #include "depends/libTrie/TrieHash.h"
 #include "libConsensus/ConsensusUser.h"
 #include "libCrypto/Sha2.h"
+#include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
@@ -607,6 +608,56 @@ bool Node::CheckCreatedTransaction(const Transaction& tx)
     return true;
 }
 #endif // IS_LOOKUP_NODE
+
+decltype(auto) CreateValidDummyTransaction() {
+    //TODO: turn this to a global helper function
+    auto GetAddressFromPublicKey = [](PubKey pk) {
+        SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+        sha2.Reset();
+
+        vector<unsigned char> buffer;
+        pk.Serialize(buffer, 0);
+        sha2.Update(buffer, 0, PUB_KEY_SIZE);
+        auto digest = sha2.Finalize();
+
+        decltype(digest) trailingBytes{digest.end() - ACC_ADDR_SIZE, digest.end()};
+        Address addr{trailingBytes};
+
+        return addr;
+    };
+
+    unsigned int version = 0;
+    auto nonce = 0;
+    auto amount = 0;
+
+    PrivKey fromPrivKey{};
+    PubKey fromPubKey{fromPrivKey};
+
+    LOG_MESSAGE("fromPrivKey " << fromPrivKey);
+    LOG_MESSAGE("fromPubKey " << fromPubKey);
+
+    PrivKey toPrivKey{};
+    PubKey toPubKey{toPrivKey};
+
+    LOG_MESSAGE("toPrivKey " << fromPrivKey);
+    LOG_MESSAGE("toPubKey " << fromPubKey);
+
+    auto toAddr = GetAddressFromPublicKey(toPubKey);
+
+    Transaction txn{version, nonce, toAddr, fromPubKey, amount, {}};
+
+    std::vector<unsigned char> buf;
+    txn.SerializeWithoutSignature(buf, 0);
+
+    Signature sig;
+    Schnorr::GetInstance().Sign(buf, fromPrivKey, fromPubKey, sig);
+
+    vector<unsigned char> sigBuf;
+    sig.Serialize(sigBuf, 0);
+    txn.SetSignature(sigBuf);
+
+    return txn;
+}
 
 bool Node::ProcessCreateTransaction(const vector<unsigned char>& message,
                                     unsigned int offset, const Peer& from)
