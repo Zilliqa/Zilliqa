@@ -49,7 +49,7 @@ class Lookup : public Executable, public Broadcastable
     std::vector<Peer> m_seedNodes;
 
     bool m_fetchedDSInfo = false;
-    std::mutex m_dsInfoUpdationMutex;
+    std::mutex m_mutexDSInfoUpdation;
     std::condition_variable m_dsInfoUpdateCondition;
 
     bool CheckStateRoot();
