@@ -141,6 +141,13 @@ Json::Value Server::GetTransaction(const string& transactionHash)
     LOG_MARKER();
     TxBodySharedPtr tx;
     TxnHash tranHash(transactionHash);
+    if(transactionHash.size() != TRAN_HASH_SIZE*2)
+    {
+        Json::Value _json;
+        _json["error"] = "Size not appropriate";
+
+        return _json; 
+    }
     bool isPresent = BlockStorage::GetBlockStorage().GetTxBody(tranHash, tx);
     if (!isPresent)
     {
@@ -168,10 +175,18 @@ Json::Value Server::GetDsBlock(const string& blockNum)
         _json["Error"] = msg;
         return _json;
     }
+    catch(runtime_error & e)
+    {
+        Json::Value _json;
+        LOG_MESSAGE("Error "<<e.what());
+        _json["Error"] = "String not numeric";
+        return _json;
+    }
 }
 
 Json::Value Server::GetTxBlock(const string& blockNum)
 {
+
     try
     {
         boost::multiprecision::uint256_t BlockNum(blockNum);
@@ -184,6 +199,14 @@ Json::Value Server::GetTxBlock(const string& blockNum)
         _json["Error"] = msg;
         return _json;
     }
+    catch(runtime_error & e)
+    {
+        Json::Value _json;
+        LOG_MESSAGE("Error "<<e.what());
+        _json["Error"] = "String not numeric";
+        return _json;
+    }
+
 }
 
 string Server::GetGasPrice() { return "Hello"; }
@@ -217,6 +240,13 @@ Json::Value Server::GetLatestTxBlock()
 Json::Value Server::GetBalance(const string& address)
 {
     LOG_MARKER();
+
+    if(address.size() != ACC_ADDR_SIZE*2)
+    {
+        Json::Value _json;
+        _json["Error"] = "Address size not appropriate";
+        return _json;
+    }
     vector<unsigned char> tmpaddr = DataConversion::HexStrToUint8Vec(address);
     Address addr(tmpaddr);
     const Account* account = AccountStore::GetInstance().GetAccount(addr);
