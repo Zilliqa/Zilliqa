@@ -614,46 +614,39 @@ bool Node::CheckCreatedTransaction(const Transaction& tx)
 }
 #endif // IS_LOOKUP_NODE
 
-decltype(auto) CreateValidDummyTransaction() {
-    Schnorr& schnorr = Schnorr::GetInstance();
+decltype(auto) GetAddressFromPublicKey(PubKey pk)
+{
+    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+    sha2.Reset();
 
-    //TODO: turn this to a global helper function
-    auto GetAddressFromPublicKey = [](PubKey pk) {
-        SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-        sha2.Reset();
+    vector<unsigned char> buffer;
+    pk.Serialize(buffer, 0);
+    sha2.Update(buffer, 0, PUB_KEY_SIZE);
+    auto digest = sha2.Finalize();
 
-        vector<unsigned char> buffer;
-        pk.Serialize(buffer, 0);
-        sha2.Update(buffer, 0, PUB_KEY_SIZE);
-        auto digest = sha2.Finalize();
+    decltype(digest) trailingBytes{digest.end() - ACC_ADDR_SIZE, digest.end()};
+    Address addr{trailingBytes};
+    return addr;
+};
 
-        decltype(digest) trailingBytes{digest.end() - ACC_ADDR_SIZE, digest.end()};
-        Address addr{trailingBytes};
-
-        return addr;
-    };
-
+/// Return a valid transaction from fromKeyPair to toAddr with the specified amount
+///
+/// TODO: nonce is still no valid yet
+decltype(auto)
+CreateValidTestingTransaction(const pair<PrivKey, PubKey>& fromKeyPair,
+                              const Address& toAddr, uint256_t amount)
+{
     unsigned int version = 0;
     auto nonce = 0;
-    auto amount = 0;
 
-    auto from = schnorr.GenKeyPair();
-    const PrivKey& fromPrivKey{from.first};
-    const PubKey& fromPubKey{from.second};
+    const PrivKey& fromPrivKey = fromKeyPair.first;
+    const PubKey& fromPubKey = fromKeyPair.second;
 
-    LOG_MESSAGE("fromPrivKey " << fromPrivKey);
-    LOG_MESSAGE("fromPubKey " << fromPubKey);
+    // LOG_MESSAGE("fromPrivKey " << fromPrivKey);
+    // LOG_MESSAGE("fromPubKey " << fromPubKey);
 
-    auto to = schnorr.GenKeyPair();
-    const PrivKey& toPrivKey{to.first};
-    const PubKey& toPubKey{to.second};
-
-    LOG_MESSAGE("toPrivKey " << toPrivKey);
-    LOG_MESSAGE("toPubKey " << toPubKey);
-
-    auto toAddr = GetAddressFromPublicKey(toPubKey);
-
-    Transaction txn{version, nonce, toAddr, fromPubKey, amount, {}};
+    Transaction txn{version,    nonce,  toAddr,
+                    fromPubKey, amount, {/* empty sig */}};
 
     std::vector<unsigned char> buf;
     txn.SerializeWithoutSignature(buf, 0);
@@ -671,92 +664,61 @@ decltype(auto) CreateValidDummyTransaction() {
 bool Node::ProcessCreateTransaction(const vector<unsigned char>& message,
                                     unsigned int offset, const Peer& from)
 {
-#ifndef IS_LOOKUP_NODE
-    // This message is sent by the test script and is used to generate a new transaction for submitting to the network
-    // Message = [33-byte from pubkey] [33-byte to pubkey] [32-byte amount]
-
-    // XXX: a temporary bypass
-    auto txn = CreateValidDummyTransaction();
-    m_createdTransactions.emplace_back(txn);
-    return true;
-
     LOG_MARKER();
+#ifndef IS_LOOKUP_NODE
 
-    if (IsMessageSizeInappropriate(message.size(), offset,
-                                   PUB_KEY_SIZE + PUB_KEY_SIZE + UINT256_SIZE))
+    if (IsMessageSizeInappropriate(message.size(), offset, PRIV_KEY_SIZE))
     {
+        LOG_MESSAGE("CreateTransaction message length inappropriate: got "
+                    << message.size() << ", expect " << PRIV_KEY_SIZE);
         return false;
     }
+    auto& schnorr = Schnorr::GetInstance();
 
-    unsigned int cur_offset = offset;
+    // Message = [32-byte genesis private key]
+    PrivKey GPrivKey{message, offset};
+    PubKey GPubKey{GPrivKey};
+    auto GKeyPair = make_pair(GPrivKey, GPubKey);
 
-    // To-do: Put in the checks (e.g., are these pubkeys known, is the amount good, etc)
+    vector<Transaction> txnToCreate;
+    vector<pair<PrivKey, PubKey>> bankers;
+    vector<Address> bankerAddrs;
 
-    // 33-byte from pubkey
-    PubKey fromPubKey(message, cur_offset);
+    const size_t nBankers = 5;
+    const uint256_t bankerBalance = 10000;
 
-    // TODO: remove this
-    fromPubKey = m_mediator.m_selfKey.second;
-    vector<unsigned char> msg;
-    fromPubKey.Serialize(msg, 0);
-
-    // Generate from account
-    Address fromAddr;
-    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-    // TODO: replace this by what follows
-    sha2.Update(msg, 0, PUB_KEY_SIZE);
-    // sha2.Update(message, cur_offset, PUB_KEY_SIZE);
-    const vector<unsigned char>& tmp1 = sha2.Finalize();
-    copy(tmp1.end() - ACC_ADDR_SIZE, tmp1.end(), fromAddr.asArray().begin());
-
-    cur_offset += PUB_KEY_SIZE;
-
-    // 33-byte to pubkey
-    PubKey toPubkey(message, cur_offset);
-
-    // Generate to account
-    Address toAddr;
-    sha2.Reset();
-    sha2.Update(message, cur_offset, PUB_KEY_SIZE);
-    // const vector<unsigned char> & tmp2 = sha2.Finalize();
-    // copy(tmp2.end() - ACC_ADDR_SIZE, tmp2.end(), toAddr.asArray().begin());
-
-    cur_offset += PUB_KEY_SIZE;
-
-    // 32-byte amount
-    uint256_t amount
-        = Serializable::GetNumber<uint256_t>(message, cur_offset, UINT256_SIZE);
-
-    // Create the transaction object
-
-    // To-do: Replace dummy values with the required ones
-    //uint32_t version = 0;
-    uint32_t version = (uint32_t)m_consensusMyID; //hack
-    uint256_t nonce = 0;
-
-    array<unsigned char, TRAN_SIG_SIZE> signature;
-    fill(signature.begin(), signature.end(), 0x0F);
-
-    lock_guard<mutex> g(m_mutexCreatedTransactions);
-
-    // if(!CheckCreatedTransaction(txn))
-    // {
-    //     return false;
-    // }
-
-    // TODO: Remove this before production. This is to reduce time spent on aws testnet.
-    for (unsigned i = 0; i < 1000000; i++)
+    bankers.reserve(nBankers);
+    bankerAddrs.reserve(nBankers);
+    for (auto i = 0u; i != nBankers; i++)
     {
-        Transaction txn(version, nonce, toAddr, fromPubKey, amount, signature);
-
-        // LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-        // "Created txns: " << txn.GetTranID())
-        // LOG_MESSAGE(txn.GetSerializedSize());
-
-        m_createdTransactions.push_back(txn);
-        nonce++;
-        amount++;
+        auto kp = schnorr.GenKeyPair();
+        bankers.emplace_back(kp);
+        bankerAddrs.emplace_back(GetAddressFromPublicKey(kp.second));
     }
+
+    txnToCreate.reserve(nBankers);
+    for (auto& addr : bankerAddrs)
+    {
+        auto txn = CreateValidTestingTransaction(GKeyPair, addr, bankerBalance);
+        txnToCreate.emplace_back(txn);
+    }
+
+    txnToCreate.reserve(txnToCreate.size() + nBankers * nBankers);
+    for (auto& from : bankers)
+    {
+        for (auto& to : bankerAddrs)
+        {
+            auto txn = CreateValidTestingTransaction(from, to, 1);
+            txnToCreate.emplace_back(txn);
+        }
+    }
+
+    {
+        lock_guard<mutex> g(m_mutexCreatedTransactions);
+        m_createdTransactions.insert(m_createdTransactions.end(),
+                                     txnToCreate.begin(), txnToCreate.end());
+    }
+    return true;
 #endif // IS_LOOKUP_NODE
     return true;
 }
