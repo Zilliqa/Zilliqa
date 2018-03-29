@@ -49,8 +49,9 @@ void DirectoryService::StoreDSBlockToStorage()
             << m_pendingDSBlock->GetHeader().GetBlockNum()
             << " with Nonce: " << m_pendingDSBlock->GetHeader().GetNonce()
             << ", Difficulty: " << m_pendingDSBlock->GetHeader().GetDifficulty()
-            << ", Timestamp: " << m_pendingDSBlock->GetHeader().GetTimestamp());
-
+            << ", Timestamp: " << m_pendingDSBlock->GetHeader().GetTimestamp()
+            << ", vc count: "
+            << m_pendingDSBlock->GetHeader().GetViewChangeCount());
     if (result == -1)
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -435,6 +436,8 @@ bool DirectoryService::ProcessDSBlockConsensus(
 
     if (state == ConsensusCommon::State::DONE)
     {
+        m_viewChangeCounter = 0;
+        cv_RecoveryDSBlockConsensus.notify_all();
         ProcessDSBlockConsensusWhenDone(message, offset);
     }
     else if (state == ConsensusCommon::State::ERROR)
@@ -446,7 +449,9 @@ bool DirectoryService::ProcessDSBlockConsensus(
             "DEBUG for verify sig m_allPoWConns  size is "
                 << m_allPoWConns.size()
                 << ". Please check numbers of pow1 receivied by this node");
-        throw exception();
+
+        // Wait for view change to happen
+        //throw exception();
     }
     else
     {

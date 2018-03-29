@@ -672,9 +672,11 @@ bool Node::ProcessCreateTransaction(const vector<unsigned char>& message,
     for (unsigned i = 0; i < 10000; i++)
     {
         Transaction txn(version, nonce, toAddr, fromPubKey, amount, signature);
+
         // LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
         // "Created txns: " << txn.GetTranID())
         // LOG_MESSAGE(txn.GetSerializedSize());
+
         m_createdTransactions.push_back(txn);
         nonce++;
         amount++;
