@@ -69,11 +69,6 @@ public:
 
     friend inline std::ostream& operator<<(std::ostream& _out,
                                            Account const& account);
-
-    bool operator==(const Account& rhs) const
-    {
-        return m_balance == rhs.GetBalance() && m_nonce == rhs.GetNonce();
-    }
 };
 
 inline std::ostream& operator<<(std::ostream& _out, Account const& account)

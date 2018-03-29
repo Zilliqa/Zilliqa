@@ -78,6 +78,11 @@ public:
     /// Used by lookup to determine if it could successfully join the network after sync
     bool m_isConnectedToNetwork;
 
+    /// Helper variables used by new node synchronization
+    bool s_toFetchDSInfo = false;
+    bool s_toFetchState = false;
+    bool s_toAttemptPoW = false;
+
     /// To determine if the node successfully recovered from persistence
     bool m_isRetrievedHistory;
 
