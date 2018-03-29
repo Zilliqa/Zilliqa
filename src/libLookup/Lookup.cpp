@@ -1095,11 +1095,11 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
         //#endif // IS_LOOKUP_NODE
 
 #ifndef IS_LOOKUP_NODE
-    m_toFetchDSInfo = false;
-    m_fetchedDSInfo = true;
-    if (m_fetchedState)
+    m_mediator.s_toFetchDSInfo = false;
     {
-        m_mediator.s_toAttemptPoW = true;
+        unique_lock<mutex> lock(m_dsInfoUpdationMutex);
+        m_fetchedDSInfo = true;
+        m_dsInfoUpdateCondition.notify_one();
     }
 #endif // IS_LOOKUP_NODE
 
@@ -1221,22 +1221,15 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
 #ifdef IS_LOOKUP_NODE
     }
 #else // IS_LOOKUP_NODE
-        m_mediator.UpdateDSBlockRand();
-        {
-            unique_lock<mutex> lock(m_dsRandUpdationMutex);
-            m_isDSRandUpdated = true;
-            m_dsRandUpdateCondition.notify_one();
-        }
-
-        m_toFetchDSInfo = true;
-        m_fetchedDSInfo = false;
-    }
-
-    if (m_toFetchDSInfo)
-    {
-        GetDSInfoFromLookupNodes();
+        m_mediator.s_toFetchDSInfo = true;
     }
 #endif //IS_LOOKUP_NODE
+    m_mediator.UpdateDSBlockRand();
+    {
+        unique_lock<mutex> lock(m_dsRandUpdationMutex);
+        m_isDSRandUpdated = true;
+        m_dsRandUpdateCondition.notify_one();
+    }
 
     return true;
 }
@@ -1349,8 +1342,7 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
 
         if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
         {
-            m_toFetchState = true;
-            m_fetchedState = false;
+            m_mediator.s_toFetchState = true;
         }
         else
         {
@@ -1358,14 +1350,65 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
             m_mediator.s_toAttemptPoW = false;
         }
     }
-
-    if (m_toFetchState)
-    {
-        GetStateFromLookupNodes();
-    }
 #endif // IS_LOOKUP_NODE
 
     return true;
+}
+
+bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
+                                     unsigned int offset, const Peer& from)
+{
+    bool ret = true;
+#ifndef IS_LOOKUP_NODE
+    // Message = [TRAN_HASH_SIZE txHashStr][Transaction::GetSerializedSize() txbody]
+
+    LOG_MARKER();
+
+    // if (IsMessageSizeInappropriate(message.size(), offset,
+    //                                TRAN_HASH_SIZE + Transaction::GetSerializedSize()))
+    // {
+    //     return false;
+    // }
+
+    // TxnHash tranHash;
+    // copy(message.begin() + offset, message.begin() + offset + TRAN_HASH_SIZE,
+    //      tranHash.asArray().begin());
+    // offset += TRAN_HASH_SIZE;
+
+    // Transaction transaction(message, offset);
+
+    // vector<unsigned char> serializedTxBody;
+    // transaction.Serialize(serializedTxBody, 0);
+    // BlockStorage::GetBlockStorage().PutTxBody(tranHash, serializedTxBody);
+
+    if (AlreadyJoinedNetwork())
+    {
+        return true;
+    }
+
+    unique_lock<mutex> lock(m_mutexSetState);
+
+    unsigned int curr_offset = offset;
+    // AccountStore::GetInstance().Deserialize(message, curr_offset);
+    if (AccountStore::GetInstance().Deserialize(message, curr_offset) != 0)
+    {
+        LOG_MESSAGE("Error. We failed to deserialize AccountStore.");
+        ret = false;
+    }
+
+    m_mediator.s_toFetchState = false;
+    {
+        unique_lock<mutex> dsInfo_lock(m_dsInfoUpdationMutex);
+        while (!m_fetchedDSInfo)
+        {
+            m_dsInfoUpdateCondition.wait(dsInfo_lock);
+        }
+        m_fetchedDSInfo = false;
+        m_mediator.s_toAttemptPoW = true;
+    }
+#endif // IS_LOOKUP_NODE
+
+    return ret;
 }
 
 bool Lookup::ProcessSetTxBodyFromSeed(const vector<unsigned char>& message,
@@ -1526,58 +1569,6 @@ bool Lookup::InitMining()
     return true;
 }
 #endif // IS_LOOKUP_NODE
-
-bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
-                                     unsigned int offset, const Peer& from)
-{
-    bool ret = true;
-#ifndef IS_LOOKUP_NODE
-    // Message = [TRAN_HASH_SIZE txHashStr][Transaction::GetSerializedSize() txbody]
-
-    LOG_MARKER();
-
-    // if (IsMessageSizeInappropriate(message.size(), offset,
-    //                                TRAN_HASH_SIZE + Transaction::GetSerializedSize()))
-    // {
-    //     return false;
-    // }
-
-    // TxnHash tranHash;
-    // copy(message.begin() + offset, message.begin() + offset + TRAN_HASH_SIZE,
-    //      tranHash.asArray().begin());
-    // offset += TRAN_HASH_SIZE;
-
-    // Transaction transaction(message, offset);
-
-    // vector<unsigned char> serializedTxBody;
-    // transaction.Serialize(serializedTxBody, 0);
-    // BlockStorage::GetBlockStorage().PutTxBody(tranHash, serializedTxBody);
-
-    if (AlreadyJoinedNetwork())
-    {
-        return true;
-    }
-
-    unique_lock<mutex> lock(m_mutexSetState);
-
-    unsigned int curr_offset = offset;
-    // AccountStore::GetInstance().Deserialize(message, curr_offset);
-    if (AccountStore::GetInstance().Deserialize(message, curr_offset) != 0)
-    {
-        LOG_MESSAGE("Error. We failed to deserialize AccountStore.");
-        ret = false;
-    }
-
-    m_toFetchState = false;
-    m_fetchedState = true;
-    if (m_fetchedDSInfo)
-    {
-        m_mediator.s_toAttemptPoW = true;
-    }
-#endif // IS_LOOKUP_NODE
-
-    return ret;
-}
 
 bool Lookup::Execute(const vector<unsigned char>& message, unsigned int offset,
                      const Peer& from)
