@@ -175,11 +175,12 @@ bool Synchronizer::AttemptPoW(Lookup* lookup)
     if (lookup->InitMining())
     {
         LOG_MESSAGE("new node attempted pow");
+        return true;
     }
     else
     {
         LOG_MESSAGE("new node did not attempt pow")
+        return false;
     }
-    return true;
 }
 #endif // IS_LOOKUP_NODE

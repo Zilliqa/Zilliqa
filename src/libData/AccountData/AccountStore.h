@@ -104,6 +104,7 @@ public:
 
     dev::h256 GetStateRootHash() const;
 
+    bool UpdateStateTrieAll();
     void MoveUpdatesToDisk();
     void DiscardUnsavedUpdates();
 

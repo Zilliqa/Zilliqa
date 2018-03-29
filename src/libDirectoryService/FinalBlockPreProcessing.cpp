@@ -168,6 +168,7 @@ void DirectoryService::ComposeFinalBlockCore()
         = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
     if (isVacuousEpoch)
     {
+        AccountStore::GetInstance().UpdateStateTrieAll();
         stateRoot = AccountStore::GetInstance().GetStateRootHash();
     }
 
@@ -960,14 +961,20 @@ bool DirectoryService::FinalBlockValidator(
 
     WaitForTxnBodies();
 
+    bool isVacuousEpoch
+        = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
+
+    if (isVacuousEpoch)
+    {
+        AccountStore::GetInstance().UpdateStateTrieAll();
+    }
+
     if (!CheckFinalBlockValidity())
     {
         LOG_MESSAGE("To-do: What to do if proposed microblock is not valid?");
         throw exception();
     }
 
-    bool isVacuousEpoch
-        = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
     if (!isVacuousEpoch)
     {
         LoadUnavailableMicroBlocks();

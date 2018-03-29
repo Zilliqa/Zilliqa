@@ -61,7 +61,7 @@ bool BlockStorage::PopFrontTxBodyDB(bool mandatory)
 {
     LOG_MARKER();
 
-    if (!m_txBodyDBs.size())
+    if (m_txBodyDBs.empty())
     {
         LOG_MESSAGE("No TxBodyDB found");
         return false;
@@ -135,6 +135,11 @@ bool BlockStorage::PutTxBody(const dev::h256& key,
     LOG_MARKER();
 
 #ifndef IS_LOOKUP_NODE
+    if (m_txBodyDBs.empty())
+    {
+        LOG_MESSAGE("Error: No TxBodyDB found");
+        return false;
+    }
     int ret = m_txBodyDBs.back().Insert(key, body);
 #else // IS_LOOKUP_NODE
     int ret = m_txBodyDB.Insert(key, body) && m_txBodyTmpDB.Insert(key, body);
@@ -186,6 +191,11 @@ bool BlockStorage::GetTxBlock(const boost::multiprecision::uint256_t& blockNum,
 bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body)
 {
 #ifndef IS_LOOKUP_NODE
+    if (m_txBodyDBs.empty())
+    {
+        LOG_MESSAGE("Error: No TxBodyDB found");
+        return false;
+    }
     string bodyString = m_txBodyDBs.back().Lookup(key);
 #else // IS_LOOKUP_NODE
     string bodyString = m_txBodyDB.Lookup(key);
@@ -355,7 +365,7 @@ bool BlockStorage::GetMetadata(MetaType type, std::vector<unsigned char>& data)
 
     if (metaString.empty())
     {
-        LOG_MESSAGE("ERROR: Failed to get metadata")
+        LOG_MESSAGE("No metadata get")
         return false;
     }
 

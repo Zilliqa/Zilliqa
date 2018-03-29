@@ -42,7 +42,7 @@ void Retriever::RetrieveDSBlocks(bool& result)
     std::list<DSBlockSharedPtr> blocks;
     if (!BlockStorage::GetBlockStorage().GetAllDSBlocks(blocks))
     {
-        LOG_MESSAGE("FAIL: RetrieveDSBlocks Incompleted");
+        LOG_MESSAGE("RetrieveDSBlocks skipped or incompleted");
         result = false;
         return;
     }
@@ -89,7 +89,7 @@ void Retriever::RetrieveTxBlocks(bool& result)
     std::list<TxBlockSharedPtr> blocks;
     if (!BlockStorage::GetBlockStorage().GetAllTxBlocks(blocks))
     {
-        LOG_MESSAGE("FAIL: RetrieveTxBlocks Incompleted");
+        LOG_MESSAGE("RetrieveTxBlocks skipped or incompleted");
         result = false;
         return;
     }
@@ -163,7 +163,7 @@ bool Retriever::RetrieveTxBodiesDB()
     }
     else
     {
-        LOG_MESSAGE("Subdirectory Not found");
+        LOG_MESSAGE("No subdirectory found");
         return false;
     }
 
@@ -198,10 +198,17 @@ bool Retriever::RetrieveStates()
 bool Retriever::ValidateStates()
 {
     LOG_MARKER();
-    return m_mediator.m_txBlockChain.GetLastBlock()
-               .GetHeader()
-               .GetStateRootHash()
-        == AccountStore::GetInstance().GetStateRootHash();
+    if (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetStateRootHash()
+        == AccountStore::GetInstance().GetStateRootHash())
+    {
+        LOG_MESSAGE("ValidateStates passed.");
+        return true;
+    }
+    else
+    {
+        LOG_MESSAGE("ValidateStates failed.");
+        return false;
+    }
 }
 
 void Retriever::CleanAll()
