@@ -50,10 +50,15 @@ using namespace boost::multiprecision;
 
 void addBalanceToGenesisAccount()
 {
-    Address genesisAddr{DataConversion::HexStrToUint8Vec(
-        "bf1e57cc2f88ef25e7ed9d6504ef1a82eff9c5fe")};
-    boost::multiprecision::uint256_t genensisBalance{100000000000};
-    AccountStore::GetInstance().AddAccount(genesisAddr, genensisBalance, 0);
+    const uint256_t bal{100000000000};
+    const uint256_t nonce{0};
+
+    for (auto& walletHexStr : GENESIS_WALLETS)
+    {
+        Address addr{DataConversion::HexStrToUint8Vec(walletHexStr)};
+        AccountStore::GetInstance().AddAccount(addr, bal, nonce);
+        LOG_MESSAGE("add genesis account " << addr << " with balance " << bal);
+    }
 }
 
 Node::Node(Mediator& mediator, bool toRetrieveHistory)
@@ -614,36 +619,19 @@ bool Node::CheckCreatedTransaction(const Transaction& tx)
 }
 #endif // IS_LOOKUP_NODE
 
-decltype(auto) GetAddressFromPublicKey(PubKey pk)
-{
-    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-    sha2.Reset();
-
-    vector<unsigned char> buffer;
-    pk.Serialize(buffer, 0);
-    sha2.Update(buffer, 0, PUB_KEY_SIZE);
-    auto digest = sha2.Finalize();
-
-    decltype(digest) trailingBytes{digest.end() - ACC_ADDR_SIZE, digest.end()};
-    Address addr{trailingBytes};
-    return addr;
-};
-
 /// Return a valid transaction from fromKeyPair to toAddr with the specified amount
 ///
 /// TODO: nonce is still no valid yet
-decltype(auto)
-CreateValidTestingTransaction(const pair<PrivKey, PubKey>& fromKeyPair,
-                              const Address& toAddr, uint256_t amount)
+decltype(auto) CreateValidTestingTransaction(PrivKey& fromPrivKey,
+                                             PubKey& fromPubKey,
+                                             const Address& toAddr,
+                                             uint256_t amount)
 {
     unsigned int version = 0;
     auto nonce = 0;
 
-    const PrivKey& fromPrivKey = fromKeyPair.first;
-    const PubKey& fromPubKey = fromKeyPair.second;
-
-    // LOG_MESSAGE("fromPrivKey " << fromPrivKey);
-    // LOG_MESSAGE("fromPubKey " << fromPubKey);
+    LOG_MESSAGE("fromPrivKey " << fromPrivKey << " / fromPubKey " << fromPubKey
+                               << " / toAddr" << toAddr);
 
     Transaction txn{version,    nonce,  toAddr,
                     fromPubKey, amount, {/* empty sig */}};
@@ -661,56 +649,70 @@ CreateValidTestingTransaction(const pair<PrivKey, PubKey>& fromKeyPair,
     return txn;
 }
 
+bool GetOneGoodKeyPair(PrivKey& oPrivKey, PubKey& oPubKey, uint32_t myShard,
+                       uint32_t nShard)
+{
+    for (auto& privKeyHexStr : GENESIS_KEYS)
+    {
+        auto privKeyBytes{DataConversion::HexStrToUint8Vec(privKeyHexStr)};
+        auto privKey = PrivKey{privKeyBytes, 0};
+        auto pubKey = PubKey{privKey};
+        auto addr = Account::GetAddressFromPublicKey(pubKey);
+        auto txnShard = Transaction::GetShardIndex(addr, nShard);
+
+        LOG_MESSAGE("Genesis Priv Key Str "
+                    << privKeyHexStr << " / Priv Key " << privKey
+                    << " / Pub Key " << pubKey << " / Addr " << addr
+                    << " / txnShard " << txnShard << " / myShard " << myShard
+                    << " / nShard " << nShard);
+        if (txnShard == myShard)
+        {
+            oPrivKey = privKey;
+            oPubKey = pubKey;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/// Handle send_txn command with the following message format
+///
+/// XXX The message format below is no ignored
+///     Message = [33-byte from pubkey] [33-byte to pubkey] [32-byte amount]
 bool Node::ProcessCreateTransaction(const vector<unsigned char>& message,
                                     unsigned int offset, const Peer& from)
 {
-    LOG_MARKER();
 #ifndef IS_LOOKUP_NODE
+    LOG_MARKER();
 
-    if (IsMessageSizeInappropriate(message.size(), offset, PRIV_KEY_SIZE))
+    PrivKey senderPrivKey;
+    PubKey senderPubKey;
+
+    if (not GetOneGoodKeyPair(senderPrivKey, senderPubKey, m_myShardID,
+                              m_numShards))
     {
-        LOG_MESSAGE("CreateTransaction message length inappropriate: got "
-                    << message.size() << ", expect " << PRIV_KEY_SIZE);
+        LOG_MESSAGE(
+            "No proper genesis account, cannot send testing transactions");
         return false;
     }
+
     auto& schnorr = Schnorr::GetInstance();
 
-    // Message = [32-byte genesis private key]
-    PrivKey GPrivKey{message, offset};
-    PubKey GPubKey{GPrivKey};
-    auto GKeyPair = make_pair(GPrivKey, GPubKey);
+    auto receiver = schnorr.GenKeyPair();
+    auto receiverAddr = Account::GetAddressFromPublicKey(receiver.second);
 
     vector<Transaction> txnToCreate;
-    vector<pair<PrivKey, PubKey>> bankers;
-    vector<Address> bankerAddrs;
 
-    const size_t nBankers = 5;
-    const uint256_t bankerBalance = 10000;
+    size_t nTxn{10000};
+    uint256_t transferAmount{1};
 
-    bankers.reserve(nBankers);
-    bankerAddrs.reserve(nBankers);
-    for (auto i = 0u; i != nBankers; i++)
+    txnToCreate.reserve(nTxn);
+    for (auto i = 0u; i != nTxn; i++)
     {
-        auto kp = schnorr.GenKeyPair();
-        bankers.emplace_back(kp);
-        bankerAddrs.emplace_back(GetAddressFromPublicKey(kp.second));
-    }
-
-    txnToCreate.reserve(nBankers);
-    for (auto& addr : bankerAddrs)
-    {
-        auto txn = CreateValidTestingTransaction(GKeyPair, addr, bankerBalance);
+        auto txn = CreateValidTestingTransaction(senderPrivKey, senderPubKey,
+                                                 receiverAddr, transferAmount);
         txnToCreate.emplace_back(txn);
-    }
-
-    txnToCreate.reserve(txnToCreate.size() + nBankers * nBankers);
-    for (auto& from : bankers)
-    {
-        for (auto& to : bankerAddrs)
-        {
-            auto txn = CreateValidTestingTransaction(from, to, 1);
-            txnToCreate.emplace_back(txn);
-        }
     }
 
     {
@@ -718,6 +720,8 @@ bool Node::ProcessCreateTransaction(const vector<unsigned char>& message,
         m_createdTransactions.insert(m_createdTransactions.end(),
                                      txnToCreate.begin(), txnToCreate.end());
     }
+    LOG_MESSAGE("creating " << nTxn << " testing transactions from "
+                            << senderPubKey << " to address " << receiverAddr);
     return true;
 #endif // IS_LOOKUP_NODE
     return true;
