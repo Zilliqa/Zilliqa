@@ -42,8 +42,7 @@ TxBlockHeader::TxBlockHeader(
     const TxnHash& txRootHash, const StateHash& stateRootHash, uint32_t numTxs,
     uint32_t numMicroBlockHashes, const PubKey& minerPubKey,
     const uint256_t& dsBlockNum, const BlockHash& dsBlockHeader,
-    unsigned int viewChangeCounter
-    )
+    unsigned int viewChangeCounter)
     : m_type(type)
     , m_version(version)
     , m_gasLimit(gasLimit)
