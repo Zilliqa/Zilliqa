@@ -61,7 +61,8 @@ public:
                            unsigned int offset) const;
 
     /// Searilize data without signature;
-    unsigned int SerializeWithoutSignature(std::vector<unsigned char>&dst, unsigned int offset) const;
+    unsigned int SerializeWithoutSignature(std::vector<unsigned char>& dst,
+                                           unsigned int offset) const;
 
     /// Implements the Deserialize function inherited from Serializable.
     int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);

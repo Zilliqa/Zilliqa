@@ -110,7 +110,9 @@ unsigned int Transaction::Serialize(vector<unsigned char>& dst,
 }
 
 //TODO: eliminiate the duplicated code by reusing this inside Transaction::Serialize
-unsigned int Transaction::SerializeWithoutSignature(vector<unsigned char>&dst, unsigned int offset) const {
+unsigned int Transaction::SerializeWithoutSignature(vector<unsigned char>& dst,
+                                                    unsigned int offset) const
+{
     unsigned int size_needed = TRAN_HASH_SIZE + sizeof(uint32_t) + UINT256_SIZE
         + PUB_KEY_SIZE + ACC_ADDR_SIZE + UINT256_SIZE;
     assert(dst.size() > offset);
@@ -198,12 +200,15 @@ const array<unsigned char, TRAN_SIG_SIZE>& Transaction::GetSignature() const
     return m_signature;
 }
 
-void Transaction::SetSignature(std::array<unsigned char, TRAN_SIG_SIZE> sig) {
+void Transaction::SetSignature(std::array<unsigned char, TRAN_SIG_SIZE> sig)
+{
     m_signature = sig;
 }
 
-void Transaction::SetSignature(std::vector<unsigned char> sig) {
-    copy_n(sig.begin(), min(sig.size(), m_signature.size()), m_signature.begin());
+void Transaction::SetSignature(std::vector<unsigned char> sig)
+{
+    copy_n(sig.begin(), min(sig.size(), m_signature.size()),
+           m_signature.begin());
 }
 
 unsigned int Transaction::GetShardIndex(const Address& fromAddr,
