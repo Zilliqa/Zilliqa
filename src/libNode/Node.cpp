@@ -563,40 +563,36 @@ bool Node::CheckCreatedTransaction(const Transaction& tx)
     // Check if from account exists in local storage
     if (!AccountStore::GetInstance().DoesAccountExist(fromAddr))
     {
-        LOG_MESSAGE2(
-            to_string(m_mediator.m_currentEpochNum).c_str(),
-            "To-do: What to do if from account is not in my account store?");
-        // throw exception();
+        LOG_MESSAGE("fromAddr not found: " << fromAddr
+                                           << ". Transaction rejected: "
+                                           << tx.GetTranID());
         return false;
     }
 
     // Check from account nonce
-    if (tx.GetNonce() != AccountStore::GetInstance().GetNonce(fromAddr) + 1)
-    {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Error: Tx nonce not in line with account state!");
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "From Account      = 0x" << fromAddr);
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Account Nonce     = "
-                         << AccountStore::GetInstance().GetNonce(fromAddr));
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Expected Tx Nonce = "
-                         << AccountStore::GetInstance().GetNonce(fromAddr) + 1);
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Actual Tx Nonce   = " << tx.GetNonce());
-        return false;
-    }
+    // if (tx.GetNonce() != AccountStore::GetInstance().GetNonce(fromAddr) + 1)
+    // {
+    // LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+    // "Error: Tx nonce not in line with account state!");
+    // LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+    // "From Account      = 0x" << fromAddr);
+    // LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+    // "Account Nonce     = "
+    // << AccountStore::GetInstance().GetNonce(fromAddr));
+    // LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+    // "Expected Tx Nonce = "
+    // << AccountStore::GetInstance().GetNonce(fromAddr) + 1);
+    // LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+    // "Actual Tx Nonce   = " << tx.GetNonce());
+    // return false;
+    // }
 
     // Check if to account exists in local storage
     const Address& toAddr = tx.GetToAddr();
     if (!AccountStore::GetInstance().DoesAccountExist(toAddr))
     {
-        LOG_MESSAGE2(
-            to_string(m_mediator.m_currentEpochNum).c_str(),
-            "To-do: What to do if to account is not in my account store?");
-        // throw exception();
-        return false;
+        LOG_MESSAGE("New account is added: " << toAddr);
+        AccountStore::GetInstance().AddAccount(toAddr, {0, 0});
     }
 
     // Check if transaction amount is valid
@@ -786,15 +782,16 @@ bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
 
     const auto& submittedTransaction = Transaction(message, offset);
 
-    // if(CheckCreatedTransaction(submittedTransaction))
-    // {
-    lock_guard<mutex> g(m_mutexReceivedTransactions);
-    auto& receivedTransactions = m_receivedTransactions[msgBlockNum];
-    receivedTransactions.insert(
-        make_pair(submittedTransaction.GetTranID(), submittedTransaction));
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "Received missing txn: " << submittedTransaction.GetTranID())
-    // }
+    if (CheckCreatedTransaction(submittedTransaction))
+    {
+        lock_guard<mutex> g(m_mutexReceivedTransactions);
+        auto& receivedTransactions = m_receivedTransactions[msgBlockNum];
+        receivedTransactions.insert(
+            make_pair(submittedTransaction.GetTranID(), submittedTransaction));
+        LOG_MESSAGE2(
+            to_string(m_mediator.m_currentEpochNum).c_str(),
+            "Received missing txn: " << submittedTransaction.GetTranID())
+    }
     return true;
 }
 
@@ -804,25 +801,25 @@ bool Node::ProcessSubmitTxnSharing(const vector<unsigned char>& message,
     LOG_MARKER();
 
     const auto& submittedTransaction = Transaction(message, offset);
-    // if(CheckCreatedTransaction(submittedTransaction))
-    // {
-    boost::multiprecision::uint256_t blockNum
-        = (uint256_t)m_mediator.m_currentEpochNum;
-    lock_guard<mutex> g(m_mutexReceivedTransactions);
-    auto& receivedTransactions = m_receivedTransactions[blockNum];
-    // if(m_mediator.m_selfPeer.m_listenPortHost != 5015 &&
-    //    m_mediator.m_selfPeer.m_listenPortHost != 5016 &&
-    //    m_mediator.m_selfPeer.m_listenPortHost != 5017 &&
-    //    m_mediator.m_selfPeer.m_listenPortHost != 5018 &&
-    //    m_mediator.m_selfPeer.m_listenPortHost != 5019 &&
-    //    m_mediator.m_selfPeer.m_listenPortHost != 5020)
-    // {
-    receivedTransactions.insert(
-        make_pair(submittedTransaction.GetTranID(), submittedTransaction));
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "Received txn: " << submittedTransaction.GetTranID())
-    // }
-    // }
+    if (CheckCreatedTransaction(submittedTransaction))
+    {
+        boost::multiprecision::uint256_t blockNum
+            = (uint256_t)m_mediator.m_currentEpochNum;
+        lock_guard<mutex> g(m_mutexReceivedTransactions);
+        auto& receivedTransactions = m_receivedTransactions[blockNum];
+        // if(m_mediator.m_selfPeer.m_listenPortHost != 5015 &&
+        //    m_mediator.m_selfPeer.m_listenPortHost != 5016 &&
+        //    m_mediator.m_selfPeer.m_listenPortHost != 5017 &&
+        //    m_mediator.m_selfPeer.m_listenPortHost != 5018 &&
+        //    m_mediator.m_selfPeer.m_listenPortHost != 5019 &&
+        //    m_mediator.m_selfPeer.m_listenPortHost != 5020)
+        // {
+        receivedTransactions.insert(
+            make_pair(submittedTransaction.GetTranID(), submittedTransaction));
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "Received txn: " << submittedTransaction.GetTranID())
+        // }
+    }
 
     return true;
 }
