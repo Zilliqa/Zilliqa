@@ -1112,7 +1112,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
 #ifndef IS_LOOKUP_NODE
     m_mediator.s_toFetchDSInfo = false;
     {
-        unique_lock<mutex> lock(m_dsInfoUpdationMutex);
+        unique_lock<mutex> lock(m_mutexDSInfoUpdation);
         m_fetchedDSInfo = true;
         m_dsInfoUpdateCondition.notify_one();
     }
@@ -1413,7 +1413,7 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
 
     m_mediator.s_toFetchState = false;
     {
-        unique_lock<mutex> dsInfo_lock(m_dsInfoUpdationMutex);
+        unique_lock<mutex> dsInfo_lock(m_mutexDSInfoUpdation);
         while (!m_fetchedDSInfo)
         {
             m_dsInfoUpdateCondition.wait(dsInfo_lock);
