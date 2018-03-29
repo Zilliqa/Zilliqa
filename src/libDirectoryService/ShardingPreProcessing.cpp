@@ -46,6 +46,7 @@ void DirectoryService::ComputeSharding()
     m_publicKeyToShardIdMap.clear();
 
     uint32_t numOfComms = m_allPoW2s.size() / COMM_SIZE;
+
     if (numOfComms == 0)
     {
         LOG_MESSAGE("Zero Pow2 collected, numOfComms is temporarlly set to 1");
@@ -104,6 +105,11 @@ void DirectoryService::SerializeShardingStructure(
 
     unsigned int curr_offset = 0;
 
+    Serializable::SetNumber<unsigned int>(sharding_structure, curr_offset,
+                                          m_viewChangeCounter,
+                                          sizeof(unsigned int));
+    curr_offset += sizeof(unsigned int);
+
     // 4-byte num of committees
     Serializable::SetNumber<uint32_t>(sharding_structure, curr_offset,
                                       numOfComms, sizeof(uint32_t));
@@ -154,6 +160,13 @@ bool DirectoryService::RunConsensusOnShardingWhenDSPrimary()
 
     ComputeSharding();
     SerializeShardingStructure(sharding_structure);
+
+    // kill first ds leader
+    // if (m_consensusMyID == 0 && temp_todie)
+    //{
+    //    LOG_MESSAGE("I am killing myself to test view change");
+    //    throw exception();
+    // }
 
     // Create new consensus object
 
@@ -227,6 +240,8 @@ bool DirectoryService::ShardingValidator(
     lock_guard<mutex> g(m_mutexAllPoWConns);
 
     unsigned int curr_offset = 0;
+    // unsigned int viewChangecounter = Serializable::GetNumber<uint32_t>(sharding_structure, curr_offset, sizeof(unsigned int));
+    curr_offset += sizeof(unsigned int);
 
     // 4-byte num of committees
     uint32_t numOfComms = Serializable::GetNumber<uint32_t>(
@@ -382,5 +397,21 @@ void DirectoryService::RunConsensusOnSharding()
     }
 
     SetState(SHARDING_CONSENSUS);
+
+    if (m_mode != PRIMARY_DS)
+    {
+        std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeSharding);
+        if (cv_viewChangeSharding.wait_for(
+                cv_lk, std::chrono::seconds(VIEWCHANGE_TIME))
+            == std::cv_status::timeout)
+        {
+            //View change.
+            //TODO: This is a simplified version and will be review again.
+            LOG_MESSAGE2(
+                to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Initiated sharding structure consensus view change. ");
+            InitViewChange();
+        }
+    }
 }
 #endif // IS_LOOKUP_NODE

@@ -90,6 +90,12 @@ bool DirectoryService::SendEntireShardingStructureToLookupNodes()
         = {MessageType::LOOKUP, LookupInstructionType::ENTIRESHARDINGSTRUCTURE};
     unsigned int curr_offset = MessageOffset::BODY;
 
+    // Set view change count
+    Serializable::SetNumber<unsigned int>(sharding_message, curr_offset,
+                                          m_viewChangeCounter,
+                                          sizeof(unsigned int));
+    curr_offset += sizeof(unsigned int);
+
     SerializeEntireShardingStructure(sharding_message, curr_offset);
 
     m_mediator.m_lookup->SendMessageToLookupNodes(sharding_message);
@@ -164,6 +170,12 @@ void DirectoryService::SendingShardingStructureToShard(
     // Todo: Any better way to do it?
     uint256_t latest_block_num_in_blockchain
         = m_mediator.m_dsBlockChain.GetBlockCount() - 1;
+
+    // todo: Relook at this. This is not secure
+    Serializable::SetNumber<unsigned int>(sharding_message, curr_offset,
+                                          m_viewChangeCounter,
+                                          sizeof(unsigned int));
+    curr_offset += sizeof(unsigned int);
 
     Serializable::SetNumber<uint256_t>(sharding_message, curr_offset,
                                        latest_block_num_in_blockchain,
@@ -281,6 +293,7 @@ bool DirectoryService::ProcessShardingConsensus(
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                      "Sharding consensus is DONE!!!");
+        cv_viewChangeSharding.notify_all();
 
 #ifdef STAT_TEST
         if (m_mode == PRIMARY_DS)
@@ -315,6 +328,7 @@ bool DirectoryService::ProcessShardingConsensus(
         lock_guard<mutex> g(m_mutexAllPOW2);
         m_allPoW2s.clear();
         m_sortedPoW2s.clear();
+        m_viewChangeCounter = 0;
 
         // Start sharding work
         SetState(MICROBLOCK_SUBMISSION);

@@ -419,6 +419,8 @@ bool DirectoryService::ProcessFinalBlockConsensus(
 
     if (state == ConsensusCommon::State::DONE)
     {
+        cv_viewChangeFinalBlock.notify_all();
+        m_viewChangeCounter = 0;
         ProcessFinalBlockConsensusWhenDone();
     }
     else if (state == ConsensusCommon::State::ERROR)

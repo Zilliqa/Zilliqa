@@ -275,7 +275,8 @@ unsigned int Server::GetNumPeers()
 {
     LOG_MARKER();
     unsigned int numPeers = m_mediator.m_lookup->GetNodePeers().size();
-    return numPeers;
+    lock_guard<mutex> g(m_mediator.m_mutexDSCommitteeNetworkInfo);
+    return numPeers + m_mediator.m_DSCommitteeNetworkInfo.size();
 }
 
 string Server::GetNumTxBlocks()
