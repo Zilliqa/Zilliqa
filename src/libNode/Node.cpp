@@ -148,17 +148,17 @@ void Node::StartSynchronization()
         {
             m_synchronizer.FetchLatestDSBlocks(
                 m_mediator.m_lookup, m_mediator.m_dsBlockChain.GetBlockCount());
-            // if(m_mediator.s_toFetchDSInfo)
-            // {
-            //     m_synchronizer.FetchDSInfo(m_mediator.m_lookup);
-            // }
+            if (m_mediator.s_toFetchDSInfo)
+            {
+                m_synchronizer.FetchDSInfo(m_mediator.m_lookup);
+            }
             // m_synchronizer.AttemptPoW(m_mediator.m_lookup);
             m_synchronizer.FetchLatestTxBlocks(
                 m_mediator.m_lookup, m_mediator.m_txBlockChain.GetBlockCount());
-            // if(m_mediator.s_toFetchLatestState)
-            // {
-            //     m_synchronizer.FetchLatestState(m_mediator.m_lookup);
-            // }
+            if (m_mediator.s_toFetchState)
+            {
+                m_synchronizer.FetchLatestState(m_mediator.m_lookup);
+            }
             if (m_mediator.s_toAttemptPoW)
             {
                 if (m_synchronizer.AttemptPoW(m_mediator.m_lookup))
