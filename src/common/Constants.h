@@ -99,5 +99,5 @@ extern const unsigned int VIEWCHANGE_TIME;
 extern const unsigned int NUM_FINAL_BLOCK_PER_POW;
 extern const unsigned int NUM_DS_KEEP_TX_BODY;
 extern const uint32_t MAXMESSAGE;
-
+extern const unsigned int MAXSUBMITTXNPERNODE;
 #endif // __CONSTANTS_H__
