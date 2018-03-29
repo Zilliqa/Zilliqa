@@ -201,12 +201,12 @@ bool Retriever::ValidateStates()
     if (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetStateRootHash()
         == AccountStore::GetInstance().GetStateRootHash())
     {
-        LOG_MESSAGE("ValidateStates passed.")
+        LOG_MESSAGE("ValidateStates passed.");
         return true;
     }
     else
     {
-        LOG_MESSAGE("ValidateStates failed.")
+        LOG_MESSAGE("ValidateStates failed.");
         return false;
     }
 }

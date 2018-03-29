@@ -61,7 +61,7 @@ bool BlockStorage::PopFrontTxBodyDB(bool mandatory)
 {
     LOG_MARKER();
 
-    if (!m_txBodyDBs.size())
+    if (m_txBodyDBs.empty())
     {
         LOG_MESSAGE("No TxBodyDB found");
         return false;
@@ -135,7 +135,7 @@ bool BlockStorage::PutTxBody(const dev::h256& key,
     LOG_MARKER();
 
 #ifndef IS_LOOKUP_NODE
-    if (!m_txBodyDBs.size())
+    if (m_txBodyDBs.empty())
     {
         LOG_MESSAGE("Error: No TxBodyDB found");
         return false;
@@ -191,7 +191,7 @@ bool BlockStorage::GetTxBlock(const boost::multiprecision::uint256_t& blockNum,
 bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body)
 {
 #ifndef IS_LOOKUP_NODE
-    if (!m_txBodyDBs.size())
+    if (m_txBodyDBs.empty())
     {
         LOG_MESSAGE("Error: No TxBodyDB found");
         return false;
