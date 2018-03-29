@@ -263,7 +263,7 @@ bool AccountStore::UpdateStateTrieAll()
     bool ret = true;
     for (auto entry : m_addressToAccount)
     {
-        if (UpdateStateTrie(entry.first, entry.second))
+        if (!UpdateStateTrie(entry.first, entry.second))
         {
             ret = false;
             break;
