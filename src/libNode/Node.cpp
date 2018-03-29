@@ -63,7 +63,7 @@ Node::Node(Mediator& mediator, bool toRetrieveHistory)
         }
         else
         {
-            LOG_MESSAGE("FAIL: RetrieveHistory Failed");
+            LOG_MESSAGE("RetrieveHistory cancelled");
         }
     }
 

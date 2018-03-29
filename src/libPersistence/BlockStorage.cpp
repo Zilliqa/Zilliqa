@@ -365,7 +365,7 @@ bool BlockStorage::GetMetadata(MetaType type, std::vector<unsigned char>& data)
 
     if (metaString.empty())
     {
-        LOG_MESSAGE("ERROR: Failed to get metadata")
+        LOG_MESSAGE("No metadata get")
         return false;
     }
 
