@@ -872,61 +872,52 @@ void Node::SubmitTransactions()
 {
     LOG_MARKER();
 
-    // TODO: This is a manual trottle of txns rate for stability testing.
-    //uint64_t upper_id_limit = m_mediator.m_currentEpochNum * 20 + 20;
-    //uint64_t lower_id_limit = m_mediator.m_currentEpochNum * 20;
-    uint64_t upper_id_limit = 600;
-    uint64_t lower_id_limit = 0;
-
     unsigned int txn_sent_count = 0;
 
-    if (m_consensusMyID >= lower_id_limit && m_consensusMyID <= upper_id_limit)
+    boost::multiprecision::uint256_t blockNum
+        = (uint256_t)m_mediator.m_currentEpochNum;
+
+    // TODO: remove the condition on txn_sent_count -- temporary hack to artificially limit number of
+    // txns needed to be shared within shard members so that it completes in the time limit
+    while (txn_sent_count < MAXSUBMITTXNPERNODE)
     {
-        boost::multiprecision::uint256_t blockNum
-            = (uint256_t)m_mediator.m_currentEpochNum;
-        while (true && txn_sent_count < 4)
-        // TODO: remove the condition on txn_sent_count -- temporary hack to artificially limit number of
-        // txns needed to be shared within shard members so that it completes in the time limit
+        shared_lock<shared_timed_mutex> lock(m_mutexProducerConsumer);
+        if (m_state != TX_SUBMISSION)
         {
-            shared_lock<shared_timed_mutex> lock(m_mutexProducerConsumer);
-            if (m_state != TX_SUBMISSION)
-            {
-                break;
-            }
+            break;
+        }
 
-            Transaction t;
+        Transaction t;
+        bool found = false;
 
-            bool found = false;
-
-            {
-                lock_guard<mutex> g(m_mutexCreatedTransactions);
-                found = (m_createdTransactions.size() > 0);
-                if (found)
-                {
-                    t = move(m_createdTransactions.front());
-                    m_createdTransactions.pop_front();
-                }
-            }
-
+        {
+            lock_guard<mutex> g(m_mutexCreatedTransactions);
+            found = (m_createdTransactions.size() > 0);
             if (found)
             {
-                vector<unsigned char> tx_message = {
-                    MessageType::NODE, NodeInstructionType::SUBMITTRANSACTION};
-                Serializable::SetNumber<uint32_t>(
-                    tx_message, MessageOffset::BODY,
-                    SUBMITTRANSACTIONTYPE::TXNSHARING, sizeof(uint32_t));
-                t.Serialize(tx_message, MessageOffset::BODY + sizeof(uint32_t));
-                P2PComm::GetInstance().SendMessage(m_myShardMembersNetworkInfo,
-                                                   tx_message);
-
-                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                             "Sent txn: " << t.GetTranID())
-
-                lock_guard<mutex> g(m_mutexSubmittedTransactions);
-                auto& submittedTransactions = m_submittedTransactions[blockNum];
-                submittedTransactions.insert(make_pair(t.GetTranID(), t));
-                txn_sent_count++;
+                t = move(m_createdTransactions.front());
+                m_createdTransactions.pop_front();
             }
+        }
+
+        if (found)
+        {
+            vector<unsigned char> tx_message
+                = {MessageType::NODE, NodeInstructionType::SUBMITTRANSACTION};
+            Serializable::SetNumber<uint32_t>(tx_message, MessageOffset::BODY,
+                                              SUBMITTRANSACTIONTYPE::TXNSHARING,
+                                              sizeof(uint32_t));
+            t.Serialize(tx_message, MessageOffset::BODY + sizeof(uint32_t));
+            P2PComm::GetInstance().SendMessage(m_myShardMembersNetworkInfo,
+                                               tx_message);
+
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                         "Sent txn: " << t.GetTranID())
+
+            lock_guard<mutex> g(m_mutexSubmittedTransactions);
+            auto& submittedTransactions = m_submittedTransactions[blockNum];
+            submittedTransactions.insert(make_pair(t.GetTranID(), t));
+            txn_sent_count++;
         }
     }
 

@@ -810,6 +810,7 @@ void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
     //   [16-byte IP] [4-byte port]
     //   ...
     // ...
+    LOG_MARKER();
 
     uint32_t num_ds_nodes = Serializable::GetNumber<uint32_t>(
         message, cur_offset, sizeof(uint32_t));

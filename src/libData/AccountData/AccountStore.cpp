@@ -171,7 +171,7 @@ void AccountStore::AddAccount(const Address& address, const Account& account)
 
 void AccountStore::AddAccount(const PubKey& pubKey, const Account& account)
 {
-    LOG_MARKER();
+    //LOG_MARKER();
 
     Address address = Account::GetAddressFromPublicKey(pubKey);
 
@@ -185,7 +185,7 @@ void AccountStore::AddAccount(const PubKey& pubKey, const Account& account)
 void AccountStore::AddAccount(const Address& address, const uint256_t& balance,
                               const uint256_t& nonce)
 {
-    LOG_MARKER();
+    //LOG_MARKER();
 
     if (!DoesAccountExist(address))
     {
@@ -201,7 +201,7 @@ void AccountStore::AddAccount(const Address& address, const uint256_t& balance,
 void AccountStore::AddAccount(const PubKey& pubKey, const uint256_t& balance,
                               const uint256_t& nonce)
 {
-    LOG_MARKER();
+    //LOG_MARKER();
 
     Address address = Account::GetAddressFromPublicKey(pubKey);
 
@@ -215,7 +215,7 @@ void AccountStore::AddAccount(const PubKey& pubKey, const uint256_t& balance,
 
 void AccountStore::UpdateAccounts(const Transaction& transaction)
 {
-    LOG_MARKER();
+    //LOG_MARKER();
 
     const PubKey& senderPubKey = transaction.GetSenderPubKey();
     const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
@@ -227,7 +227,7 @@ void AccountStore::UpdateAccounts(const Transaction& transaction)
 
 Account* AccountStore::GetAccount(const Address& address)
 {
-    LOG_MARKER();
+    //LOG_MARKER();
 
     auto it = m_addressToAccount.find(address);
     // LOG_MESSAGE((it != m_addressToAccount.end()));
@@ -275,7 +275,7 @@ bool AccountStore::UpdateStateTrieAll()
 bool AccountStore::UpdateStateTrie(const Address& address,
                                    const Account& account)
 {
-    LOG_MARKER();
+    //LOG_MARKER();
 
     dev::RLPStream rlpStream(2);
     rlpStream << account.GetBalance() << account.GetNonce();
@@ -391,7 +391,7 @@ AccountStore::GetBalance(const Address& address)
 
 bool AccountStore::IncreaseNonce(const Address& address)
 {
-    LOG_MARKER();
+    //LOG_MARKER();
 
     Account* account = GetAccount(address);
 
@@ -406,7 +406,7 @@ bool AccountStore::IncreaseNonce(const Address& address)
 
 boost::multiprecision::uint256_t AccountStore::GetNonce(const Address& address)
 {
-    LOG_MARKER();
+    //LOG_MARKER();
 
     Account* account = GetAccount(address);
 
