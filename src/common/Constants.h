@@ -53,7 +53,6 @@ const unsigned int TX_BLOCKCHAIN_SIZE = 50;
 const unsigned int SEED_PEER_LIST_SIZE = 20;
 
 // Transaction body sharing
-const unsigned int TX_SHARING_CLUSTER_SIZE = 20;
 
 const unsigned int NUM_VACUOUS_EPOCHS = 1;
 
@@ -100,4 +99,6 @@ extern const unsigned int NUM_FINAL_BLOCK_PER_POW;
 extern const unsigned int NUM_DS_KEEP_TX_BODY;
 extern const uint32_t MAXMESSAGE;
 extern const unsigned int MAXSUBMITTXNPERNODE;
+extern const unsigned int TX_SHARING_CLUSTER_SIZE;
+
 #endif // __CONSTANTS_H__
