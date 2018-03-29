@@ -159,9 +159,9 @@ void Node::StartSynchronization()
             // {
             //     m_synchronizer.FetchLatestState(m_mediator.m_lookup);
             // }
-            if(m_mediator.s_toAttemptPoW)
+            if (m_mediator.s_toAttemptPoW)
             {
-                if(m_synchronizer.AttemptPoW(m_mediator.m_lookup))
+                if (m_synchronizer.AttemptPoW(m_mediator.m_lookup))
                 {
                     continue;
                 }
