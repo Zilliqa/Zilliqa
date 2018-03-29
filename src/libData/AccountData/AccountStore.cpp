@@ -165,7 +165,7 @@ void AccountStore::AddAccount(const Address& address, const Account& account)
     if (!DoesAccountExist(address))
     {
         m_addressToAccount.insert(make_pair(address, account));
-        UpdateStateTrie(address, account);
+        // UpdateStateTrie(address, account);
     }
 }
 
@@ -178,7 +178,7 @@ void AccountStore::AddAccount(const PubKey& pubKey, const Account& account)
     if (!DoesAccountExist(address))
     {
         m_addressToAccount.insert(make_pair(address, account));
-        UpdateStateTrie(address, account);
+        // UpdateStateTrie(address, account);
     }
 }
 
@@ -191,7 +191,7 @@ void AccountStore::AddAccount(const Address& address, const uint256_t& balance,
     {
         Account account(balance, nonce);
         m_addressToAccount.insert(make_pair(address, account));
-        UpdateStateTrie(address, account);
+        // UpdateStateTrie(address, account);
 
         // LOG_MESSAGE("Account " << address << " with balance " << balance << ", nonce " << nonce <<
         //              " created");
@@ -209,7 +209,7 @@ void AccountStore::AddAccount(const PubKey& pubKey, const uint256_t& balance,
     {
         Account account(balance, nonce);
         m_addressToAccount.insert(make_pair(address, account));
-        UpdateStateTrie(address, account);
+        // UpdateStateTrie(address, account);
     }
 }
 
@@ -258,6 +258,20 @@ uint256_t AccountStore::GetNumOfAccounts() const
     return m_addressToAccount.size();
 }
 
+bool AccountStore::UpdateStateTrieAll()
+{
+    bool ret = true;
+    for (auto entry : m_addressToAccount)
+    {
+        if (UpdateStateTrie(entry.first, entry.second))
+        {
+            ret = false;
+            break;
+        }
+    }
+    return ret;
+}
+
 bool AccountStore::UpdateStateTrie(const Address& address,
                                    const Account& account)
 {
@@ -284,7 +298,7 @@ bool AccountStore::IncreaseBalance(
 
     if (account != nullptr && account->IncreaseBalance(delta))
     {
-        UpdateStateTrie(address, *account);
+        // UpdateStateTrie(address, *account);
         LOG_MESSAGE("Balance for " << address << " increased by " << delta
                                    << ". Succeeded!");
         return true;
@@ -317,7 +331,7 @@ bool AccountStore::DecreaseBalance(
 
     if (account != nullptr && account->DecreaseBalance(delta))
     {
-        UpdateStateTrie(address, *account);
+        // UpdateStateTrie(address, *account);
         LOG_MESSAGE("Balance for " << address << " decreased by " << delta
                                    << ". Succeeded! "
                                    << "New balance: " << account->GetBalance());
@@ -383,7 +397,7 @@ bool AccountStore::IncreaseNonce(const Address& address)
 
     if (account != nullptr && account->IncreaseNonce())
     {
-        UpdateStateTrie(address, *account);
+        // UpdateStateTrie(address, *account);
         return true;
     }
 

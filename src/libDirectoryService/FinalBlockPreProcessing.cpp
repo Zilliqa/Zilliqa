@@ -168,6 +168,7 @@ void DirectoryService::ComposeFinalBlockCore()
         = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
     if (isVacuousEpoch)
     {
+        AccountStore::GetInstance().UpdateStateTrieAll();
         stateRoot = AccountStore::GetInstance().GetStateRootHash();
     }
 
@@ -971,6 +972,10 @@ bool DirectoryService::FinalBlockValidator(
     if (!isVacuousEpoch)
     {
         LoadUnavailableMicroBlocks();
+    }
+    else
+    {
+        AccountStore::GetInstance().UpdateStateTrieAll();
     }
 
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),

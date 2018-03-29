@@ -1148,7 +1148,9 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     else
     {
         LOG_MESSAGE("isVacuousEpoch now");
-        if (!CheckStateRoot(txBlock))
+
+        if (AccountStore::GetInstance().UpdateStateTrieAll()
+            && !CheckStateRoot(txBlock))
         {
             return false;
         }
