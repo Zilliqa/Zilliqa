@@ -35,10 +35,6 @@ namespace
     }
 }; // namespace ()
 
-/// Construct a Merkle Tree over a list of sequential containers and return
-/// the root of the Merkle Tree. The conatiners are passed in order and each one
-/// only needs to be one type of the sequential containers (vector, list, array)
-/// with element of type 'Transaction'
 template<typename... Container> TxnHash ConcatAndHash(const Container&... conts)
 {
     LOG_MARKER();
@@ -68,6 +64,8 @@ TxnHash
 ComputeTransactionsRoot(const std::list<Transaction>& receivedTransactions,
                         const std::list<Transaction>& submittedTransactions)
 {
+    LOG_MARKER();
+    
     return ConcatAndHash(receivedTransactions, submittedTransactions);
 }
 
