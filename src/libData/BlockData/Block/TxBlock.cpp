@@ -15,6 +15,8 @@
 **/
 
 #include "TxBlock.h"
+
+#include <utility>
 #include "libUtils/Logger.h"
 
 using namespace std;
@@ -150,14 +152,14 @@ TxBlock::TxBlock(const vector<unsigned char>& src, unsigned int offset)
     }
 }
 
-TxBlock::TxBlock(const TxBlockHeader& header,
+TxBlock::TxBlock(TxBlockHeader header,
                  const array<unsigned char, BLOCK_SIG_SIZE>& signature,
-                 const vector<bool>& isMicroBlockEmpty,
-                 const vector<TxnHash>& microBlockTxHashes)
-    : m_header(header)
+                 vector<bool> isMicroBlockEmpty,
+                 vector<TxnHash> microBlockTxHashes)
+    : m_header(std::move(header))
     , m_headerSig(signature)
-    , m_isMicroBlockEmpty(isMicroBlockEmpty)
-    , m_microBlockHashes(microBlockTxHashes)
+    , m_isMicroBlockEmpty(std::move(isMicroBlockEmpty))
+    , m_microBlockHashes(std::move(microBlockTxHashes))
 {
     assert(m_header.GetNumMicroBlockHashes() == m_microBlockHashes.size());
 }

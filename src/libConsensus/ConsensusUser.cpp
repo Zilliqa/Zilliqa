@@ -16,6 +16,8 @@
 **/
 
 #include "ConsensusUser.h"
+
+#include <utility>
 #include "common/Messages.h"
 #include "libUtils/Logger.h"
 
@@ -179,9 +181,9 @@ bool ConsensusUser::ProcessConsensusMessage(
     return result;
 }
 
-ConsensusUser::ConsensusUser(const pair<PrivKey, PubKey>& key, const Peer& peer)
-    : m_selfKey(key)
-    , m_selfPeer(peer)
+ConsensusUser::ConsensusUser(pair<PrivKey, PubKey> key, Peer peer)
+    : m_selfKey(std::move(key))
+    , m_selfPeer(std::move(peer))
     , m_consensus(nullptr)
 {
     m_leaderOrBackup = false;

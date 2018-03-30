@@ -15,6 +15,8 @@
 **/
 
 #include "MicroBlockHeader.h"
+
+#include <utility>
 #include "libUtils/Logger.h"
 
 using namespace std;
@@ -35,22 +37,21 @@ MicroBlockHeader::MicroBlockHeader(const vector<unsigned char>& src,
 }
 
 MicroBlockHeader::MicroBlockHeader(
-    uint8_t type, uint32_t version, const uint256_t& gasLimit,
-    const uint256_t& gasUsed, const BlockHash& prevHash,
-    const uint256_t& blockNum, const uint256_t& timestamp,
+    uint8_t type, uint32_t version, uint256_t gasLimit, uint256_t gasUsed,
+    const BlockHash& prevHash, uint256_t blockNum, uint256_t timestamp,
     const TxnHash& txRootHash, uint32_t numTxs, const PubKey& minerPubKey,
-    const uint256_t& dsBlockNum, const BlockHash& dsBlockHeader)
+    uint256_t dsBlockNum, const BlockHash& dsBlockHeader)
     : m_type(type)
     , m_version(version)
-    , m_gasLimit(gasLimit)
-    , m_gasUsed(gasUsed)
+    , m_gasLimit(std::move(gasLimit))
+    , m_gasUsed(std::move(gasUsed))
     , m_prevHash(prevHash)
-    , m_blockNum(blockNum)
-    , m_timestamp(timestamp)
+    , m_blockNum(std::move(blockNum))
+    , m_timestamp(std::move(timestamp))
     , m_txRootHash(txRootHash)
     , m_numTxs(numTxs)
     , m_minerPubKey(minerPubKey)
-    , m_dsBlockNum(dsBlockNum)
+    , m_dsBlockNum(std::move(dsBlockNum))
     , m_dsBlockHeader(dsBlockHeader)
 {
 }

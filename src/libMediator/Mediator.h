@@ -87,7 +87,7 @@ public:
     bool m_isRetrievedHistory;
 
     /// Constructor.
-    Mediator(const pair<PrivKey, PubKey>& key, const Peer& peer);
+    Mediator(pair<PrivKey, PubKey> key, Peer peer);
 
     /// Destructor.
     ~Mediator();

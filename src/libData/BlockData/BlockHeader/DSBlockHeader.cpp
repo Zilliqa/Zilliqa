@@ -15,6 +15,8 @@
 **/
 
 #include "DSBlockHeader.h"
+
+#include <utility>
 #include "libUtils/Logger.h"
 
 using namespace std;
@@ -35,19 +37,18 @@ DSBlockHeader::DSBlockHeader(const vector<unsigned char>& src,
 }
 
 DSBlockHeader::DSBlockHeader(const uint8_t difficulty,
-                             const BlockHash& prevHash, const uint256_t& nonce,
+                             const BlockHash& prevHash, uint256_t nonce,
                              const PubKey& minerPubKey,
-                             const PubKey& leaderPubKey,
-                             const uint256_t& blockNum,
-                             const uint256_t& timestamp,
+                             const PubKey& leaderPubKey, uint256_t blockNum,
+                             uint256_t timestamp,
                              const unsigned int viewChangeCount)
     : m_difficulty(difficulty)
     , m_prevHash(prevHash)
-    , m_nonce(nonce)
+    , m_nonce(std::move(nonce))
     , m_minerPubKey(minerPubKey)
     , m_leaderPubKey(leaderPubKey)
-    , m_blockNum(blockNum)
-    , m_timestamp(timestamp)
+    , m_blockNum(std::move(blockNum))
+    , m_timestamp(std::move(timestamp))
     , m_viewChangeCounter(viewChangeCount)
 {
 }

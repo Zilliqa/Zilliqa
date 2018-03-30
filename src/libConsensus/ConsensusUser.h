@@ -47,7 +47,7 @@ public:
         = 0x02 // These are messages that ConsensusLeader or ConsensusBackup will process (transparent to user)
     };
 
-    ConsensusUser(const std::pair<PrivKey, PubKey>& key, const Peer& peer);
+    ConsensusUser(std::pair<PrivKey, PubKey> key, Peer peer);
     ~ConsensusUser();
 
     bool Execute(const std::vector<unsigned char>& message, unsigned int offset,

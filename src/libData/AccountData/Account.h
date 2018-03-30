@@ -39,8 +39,8 @@ public:
     Account(const std::vector<unsigned char>& src, unsigned int offset);
 
     /// Constructor with account balance, and nonce.
-    Account(const boost::multiprecision::uint256_t& balance,
-            const boost::multiprecision::uint256_t& nonce);
+    Account(boost::multiprecision::uint256_t balance,
+            boost::multiprecision::uint256_t nonce);
 
     /// Implements the Serialize function inherited from Serializable.
     unsigned int Serialize(std::vector<unsigned char>& dst,

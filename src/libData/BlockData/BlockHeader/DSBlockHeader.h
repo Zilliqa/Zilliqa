@@ -49,10 +49,10 @@ public:
 
     /// Constructor with specified DS block header parameters.
     DSBlockHeader(const uint8_t difficulty, const BlockHash& prevHash,
-                  const boost::multiprecision::uint256_t& nonce,
+                  boost::multiprecision::uint256_t nonce,
                   const PubKey& minerPubKey, const PubKey& leaderPubKey,
-                  const boost::multiprecision::uint256_t& blockNum,
-                  const boost::multiprecision::uint256_t& timestamp,
+                  boost::multiprecision::uint256_t blockNum,
+                  boost::multiprecision::uint256_t timestamp,
                   unsigned int viewChangeCounter);
 
     /// Implements the Serialize function inherited from Serializable.

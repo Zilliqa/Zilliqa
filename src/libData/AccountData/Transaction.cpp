@@ -18,6 +18,7 @@
 #include "libCrypto/Sha2.h"
 #include "libUtils/Logger.h"
 #include <algorithm>
+#include <utility>
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -34,15 +35,15 @@ Transaction::Transaction(const vector<unsigned char>& src, unsigned int offset)
     Deserialize(src, offset);
 }
 
-Transaction::Transaction(uint32_t version, const uint256_t& nonce,
+Transaction::Transaction(uint32_t version, uint256_t nonce,
                          const Address& toAddr, const PubKey& senderPubKey,
-                         const uint256_t& amount,
+                         uint256_t amount,
                          const array<unsigned char, TRAN_SIG_SIZE>& signature)
     : m_version(version)
-    , m_nonce(nonce)
+    , m_nonce(std::move(nonce))
     , m_toAddr(toAddr)
     , m_senderPubKey(senderPubKey)
-    , m_amount(amount)
+    , m_amount(std::move(amount))
     , m_signature(signature) //, m_pred(pred)
 {
     // [TODO] m_signature should be generated from the rest

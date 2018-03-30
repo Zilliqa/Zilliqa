@@ -16,6 +16,8 @@
 **/
 
 #include "ConsensusCommon.h"
+
+#include <utility>
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "libNetwork/P2PComm.h"
@@ -86,18 +88,15 @@ unsigned int SetBitVector(vector<unsigned char>& dst, unsigned int offset,
     return length_needed;
 }
 
-ConsensusCommon::ConsensusCommon(uint32_t consensus_id,
-                                 const vector<unsigned char>& block_hash,
-                                 uint16_t my_id, const PrivKey& privkey,
-                                 const deque<PubKey>& pubkeys,
-                                 const deque<Peer>& peer_info,
-                                 unsigned char class_byte,
-                                 unsigned char ins_byte)
+ConsensusCommon::ConsensusCommon(
+    uint32_t consensus_id, vector<unsigned char> block_hash, uint16_t my_id,
+    const PrivKey& privkey, const deque<PubKey>& pubkeys, deque<Peer> peer_info,
+    unsigned char class_byte, unsigned char ins_byte)
     : TOLERANCE_FRACTION((double)0.667)
-    , m_blockHash(block_hash)
+    , m_blockHash(std::move(block_hash))
     , m_myPrivKey(privkey)
     , m_pubKeys(pubkeys)
-    , m_peerInfo(peer_info)
+    , m_peerInfo(std::move(peer_info))
     , m_responseMap(pubkeys.size(), false)
 {
     m_consensusID = consensus_id;

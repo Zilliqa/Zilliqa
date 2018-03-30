@@ -15,6 +15,8 @@
 **/
 
 #include "MicroBlock.h"
+
+#include <utility>
 #include "libUtils/Logger.h"
 
 using namespace std;
@@ -133,12 +135,12 @@ MicroBlock::MicroBlock(const vector<unsigned char>& src, unsigned int offset)
     }
 }
 
-MicroBlock::MicroBlock(const MicroBlockHeader& header,
+MicroBlock::MicroBlock(MicroBlockHeader header,
                        const array<unsigned char, BLOCK_SIG_SIZE>& signature,
-                       const vector<TxnHash>& tranHashes)
-    : m_header(header)
+                       vector<TxnHash> tranHashes)
+    : m_header(std::move(header))
     , m_headerSig(signature)
-    , m_tranHashes(tranHashes)
+    , m_tranHashes(std::move(tranHashes))
 {
     assert(m_header.GetNumTxs() == m_tranHashes.size());
 }

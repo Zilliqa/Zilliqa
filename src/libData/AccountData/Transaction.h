@@ -48,9 +48,9 @@ public:
     Transaction();
 
     /// Constructor with specified transaction fields.
-    Transaction(uint32_t version, const boost::multiprecision::uint256_t& nonce,
+    Transaction(uint32_t version, boost::multiprecision::uint256_t nonce,
                 const Address& toAddr, const PubKey& senderPubKey,
-                const boost::multiprecision::uint256_t& amount,
+                boost::multiprecision::uint256_t amount,
                 const std::array<unsigned char, TRAN_SIG_SIZE>& signature);
 
     /// Constructor for loading transaction information from a byte stream.

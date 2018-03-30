@@ -18,6 +18,8 @@
 #include "common/Constants.h"
 #include <arpa/inet.h>
 
+#include <utility>
+
 using namespace std;
 using namespace boost::multiprecision;
 
@@ -27,8 +29,8 @@ Peer::Peer()
 {
 }
 
-Peer::Peer(const uint128_t& ip_address, uint32_t listen_port_host)
-    : m_ipAddress(ip_address)
+Peer::Peer(uint128_t ip_address, uint32_t listen_port_host)
+    : m_ipAddress(std::move(ip_address))
     , m_listenPortHost(listen_port_host)
 {
 }

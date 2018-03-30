@@ -36,7 +36,7 @@ struct Peer : public Serializable
     Peer();
 
     /// Constructor with specified IP info.
-    Peer(const boost::multiprecision::uint128_t& ip_address,
+    Peer(boost::multiprecision::uint128_t ip_address,
          uint32_t listen_port_host);
 
     /// Constructor for loading peer information from a byte stream.

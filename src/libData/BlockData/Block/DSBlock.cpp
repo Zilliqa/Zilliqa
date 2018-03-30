@@ -15,6 +15,8 @@
 **/
 
 #include "DSBlock.h"
+
+#include <utility>
 #include "libUtils/Logger.h"
 
 using namespace std;
@@ -32,9 +34,9 @@ DSBlock::DSBlock(const vector<unsigned char>& src, unsigned int offset)
     }
 }
 
-DSBlock::DSBlock(const DSBlockHeader& header,
+DSBlock::DSBlock(DSBlockHeader header,
                  const array<unsigned char, BLOCK_SIG_SIZE>& signature)
-    : m_header(header)
+    : m_header(std::move(header))
     , m_signature(signature)
 {
 }

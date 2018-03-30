@@ -52,8 +52,7 @@ public:
     };
 
     /// Constructor.
-    PeerManager(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
-                bool loadConfig);
+    PeerManager(std::pair<PrivKey, PubKey> key, Peer peer, bool loadConfig);
 
     /// Destructor.
     ~PeerManager();
