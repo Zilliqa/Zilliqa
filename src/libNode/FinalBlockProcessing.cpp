@@ -807,11 +807,11 @@ void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
                  "Forwarders inside the DS committee (" << num_ds_nodes
                                                         << "):");
 
-    nodes.push_back(vector<Peer>());
+    nodes.emplace_back();
 
     for (unsigned int i = 0; i < num_ds_nodes; i++)
     {
-        nodes.back().push_back(Peer(message, cur_offset));
+        nodes.back().emplace_back(message, cur_offset);
         cur_offset += IP_SIZE + PORT_SIZE;
 
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -829,7 +829,7 @@ void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
     {
         if (i == shard_id)
         {
-            nodes.push_back(vector<Peer>());
+            nodes.emplace_back();
 
             uint32_t num_recv = Serializable::GetNumber<uint32_t>(
                 message, cur_offset, sizeof(uint32_t));
@@ -840,7 +840,7 @@ void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
 
             for (unsigned int j = 0; j < num_recv; j++)
             {
-                nodes.back().push_back(Peer(message, cur_offset));
+                nodes.back().emplace_back(message, cur_offset);
                 cur_offset += IP_SIZE + PORT_SIZE;
 
                 LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -852,7 +852,7 @@ void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
                 }
             }
 
-            nodes.push_back(vector<Peer>());
+            nodes.emplace_back();
 
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                          "  Shard " << i << " senders:");
@@ -863,7 +863,7 @@ void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
 
             for (unsigned int j = 0; j < num_send; j++)
             {
-                nodes.back().push_back(Peer(message, cur_offset));
+                nodes.back().emplace_back(message, cur_offset);
                 cur_offset += IP_SIZE + PORT_SIZE;
 
                 LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -877,7 +877,7 @@ void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
         }
         else
         {
-            nodes.push_back(vector<Peer>());
+            nodes.emplace_back();
 
             uint32_t num_recv = Serializable::GetNumber<uint32_t>(
                 message, cur_offset, sizeof(uint32_t));
@@ -888,14 +888,14 @@ void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
 
             for (unsigned int j = 0; j < num_recv; j++)
             {
-                nodes.back().push_back(Peer(message, cur_offset));
+                nodes.back().emplace_back(message, cur_offset);
                 cur_offset += IP_SIZE + PORT_SIZE;
 
                 LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                              nodes.back().back());
             }
 
-            nodes.push_back(vector<Peer>());
+            nodes.emplace_back();
 
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                          "  Shard " << i << " senders:");
@@ -906,7 +906,7 @@ void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
 
             for (unsigned int j = 0; j < num_send; j++)
             {
-                nodes.back().push_back(Peer(message, cur_offset));
+                nodes.back().emplace_back(message, cur_offset);
                 cur_offset += IP_SIZE + PORT_SIZE;
 
                 LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),

@@ -827,7 +827,7 @@ void DirectoryService::SaveTxnBodySharingAssignment(
         // }
         // ds_receivers.push_back(tempPeer);
         // TODO: Handle exceptions
-        ds_receivers.push_back(Peer(finalblock, curr_offset));
+        ds_receivers.emplace_back(finalblock, curr_offset);
         curr_offset += IP_SIZE + PORT_SIZE;
 
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),

@@ -177,11 +177,10 @@ bool Node::ReadVariablesFromStartPoW1Message(
                  "DS nodes count    = " << numDS);
     for (unsigned int i = 0; i < numDS; i++)
     {
-        m_mediator.m_DSCommitteePubKeys.push_back(PubKey(message, cur_offset));
+        m_mediator.m_DSCommitteePubKeys.emplace_back(message, cur_offset);
         cur_offset += PUB_KEY_SIZE;
 
-        m_mediator.m_DSCommitteeNetworkInfo.push_back(
-            Peer(message, cur_offset));
+        m_mediator.m_DSCommitteeNetworkInfo.emplace_back(message, cur_offset);
         LOG_MESSAGE2(
             to_string(m_mediator.m_currentEpochNum).c_str(),
             "DS Node IP: "

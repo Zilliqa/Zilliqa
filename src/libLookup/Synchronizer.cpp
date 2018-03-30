@@ -102,7 +102,7 @@ TxBlock Synchronizer::ConstructGenesisTxBlock()
     std::vector<TxnHash> tranHashes;
     for (int i = 0; i < 5; i++)
     {
-        tranHashes.push_back(TxnHash());
+        tranHashes.emplace_back();
     }
 
     return TxBlock(header, emptySig, vector<bool>(), tranHashes);

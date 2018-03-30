@@ -65,14 +65,14 @@ TxBlock constructDummyTxBlock(int instanceNum)
 
     for (int i = 0; i < 5; i++)
     {
-        tranHashes.push_back(TxnHash());
+        tranHashes.emplace_back();
     }
 
     vector<TxnHash> microBlockHashes;
 
     for (int i = 0; i < 6; i++)
     {
-        microBlockHashes.push_back(TxnHash());
+        microBlockHashes.emplace_back();
     }
 
     return TxBlock(header, emptySig, vector<bool>(), microBlockHashes);

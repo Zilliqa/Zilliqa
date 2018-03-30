@@ -203,7 +203,7 @@ bool DirectoryService::ParseMessageAndVerifyPOW1(
                 return false;
             }
 
-            m_allPoW1s.push_back(make_pair(key, nonce));
+            m_allPoW1s.emplace_back(key, nonce);
         }
     }
     else

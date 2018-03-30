@@ -1149,7 +1149,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
 
     for (unsigned int i = 0; i < numDSPeers; i++)
     {
-        dsPubKeys.push_back(PubKey(message, offset));
+        dsPubKeys.emplace_back(message, offset);
         offset += PUB_KEY_SIZE;
 
         Peer peer(message, offset);
