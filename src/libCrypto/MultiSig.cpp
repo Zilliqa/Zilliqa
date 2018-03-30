@@ -31,7 +31,7 @@ CommitSecret::CommitSecret()
     if (m_s == nullptr)
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
     }
 
     bool err = false;
@@ -86,7 +86,7 @@ CommitSecret::CommitSecret(const CommitSecret& src)
     else
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
     }
 }
 
@@ -154,7 +154,7 @@ CommitPoint::CommitPoint()
     if (m_p == nullptr)
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
     }
 }
 
@@ -166,7 +166,7 @@ CommitPoint::CommitPoint(const CommitSecret& secret)
     if (m_p == nullptr)
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
     }
 
     Set(secret);
@@ -188,7 +188,7 @@ CommitPoint::CommitPoint(const CommitPoint& src)
     if (m_p == nullptr)
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
     }
     else
     {
@@ -280,7 +280,8 @@ bool CommitPoint::operator==(const CommitPoint& r) const
     if (ctx == nullptr)
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
+        return false;
     }
 
     return (m_initialized && r.m_initialized
@@ -296,7 +297,7 @@ Challenge::Challenge()
     if (m_c == nullptr)
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
     }
 }
 
@@ -309,7 +310,7 @@ Challenge::Challenge(const CommitPoint& aggregatedCommit,
     if (m_c == nullptr)
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
     }
 
     Set(aggregatedCommit, aggregatedPubkey, message);
@@ -341,7 +342,7 @@ Challenge::Challenge(const Challenge& src)
     else
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
     }
 }
 
@@ -490,7 +491,7 @@ Response::Response()
     if (m_r == nullptr)
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
     }
 }
 
@@ -504,7 +505,7 @@ Response::Response(const CommitSecret& secret, const Challenge& challenge,
     if (m_r == nullptr)
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
     }
 
     Set(secret, challenge, privkey);
@@ -536,7 +537,7 @@ Response::Response(const Response& src)
     else
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
     }
 }
 
@@ -619,7 +620,8 @@ void Response::Set(const CommitSecret& secret, const Challenge& challenge,
     if (ctx == nullptr)
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
+        return;
     }
 
     const Curve& curve = Schnorr::GetInstance().GetCurve();
@@ -671,7 +673,8 @@ shared_ptr<PubKey> MultiSig::AggregatePubKeys(const vector<PubKey>& pubkeys)
     if (aggregatedPubkey == nullptr)
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
+        return nullptr;
     }
 
     for (unsigned int i = 1; i < pubkeys.size(); i++)
@@ -705,7 +708,8 @@ MultiSig::AggregateCommits(const vector<CommitPoint>& commitPoints)
     if (aggregatedCommit == nullptr)
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
+        return nullptr;
     }
 
     for (unsigned int i = 1; i < commitPoints.size(); i++)
@@ -738,7 +742,8 @@ MultiSig::AggregateResponses(const vector<Response>& responses)
     if (aggregatedResponse == nullptr)
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
+        return nullptr;
     }
 
     unique_ptr<BN_CTX, void (*)(BN_CTX*)> ctx(BN_CTX_new(), BN_CTX_free);
@@ -783,7 +788,8 @@ MultiSig::AggregateSign(const Challenge& challenge,
     if (result == nullptr)
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
+        return nullptr;
     }
 
     if (BN_copy(result->m_r.get(), challenge.m_c.get()) == NULL)
@@ -959,7 +965,8 @@ bool MultiSig::VerifyResponse(const Response& response,
     else
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
+        return false;
     }
 
     return true;
