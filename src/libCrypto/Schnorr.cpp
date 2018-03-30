@@ -41,20 +41,20 @@ Curve::Curve()
     if (m_order == nullptr)
     {
         LOG_MESSAGE("Error: Curve order setup failed");
-        throw exception();
+        // throw exception();
     }
 
     if (m_group == nullptr)
     {
         LOG_MESSAGE("Error: Curve group setup failed");
-        throw exception();
+        // throw exception();
     }
 
     // Get group order
     if (!EC_GROUP_get_order(m_group.get(), m_order.get(), NULL))
     {
         LOG_MESSAGE("Error: Recover curve order failed");
-        throw exception();
+        // throw exception();
     }
 }
 
@@ -142,7 +142,7 @@ ECPOINTSerialize::GetNumber(const vector<unsigned char>& src,
         if (ctx == nullptr)
         {
             LOG_MESSAGE("Error: Memory allocation failure");
-            throw exception();
+            // throw exception();
         }
 
         EC_POINT* ret
@@ -168,7 +168,7 @@ void ECPOINTSerialize::SetNumber(vector<unsigned char>& dst,
         if (ctx == nullptr)
         {
             LOG_MESSAGE("Error: Memory allocation failure");
-            throw exception();
+            // throw exception();
         }
 
         bnvalue.reset(
@@ -179,7 +179,7 @@ void ECPOINTSerialize::SetNumber(vector<unsigned char>& dst,
         if (bnvalue == nullptr)
         {
             LOG_MESSAGE("Error: Memory allocation failure");
-            throw exception();
+            // throw exception();
         }
     }
 
@@ -213,7 +213,7 @@ PrivKey::PrivKey()
     else
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
     }
 }
 
@@ -243,7 +243,7 @@ PrivKey::PrivKey(const PrivKey& src)
     else
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
     }
 }
 
@@ -310,7 +310,7 @@ PubKey::PubKey()
     if (m_P == nullptr)
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
     }
 }
 
@@ -322,7 +322,7 @@ PubKey::PubKey(const PrivKey& privkey)
     if (m_P == nullptr)
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
     }
     else if (!privkey.Initialized())
     {
@@ -368,12 +368,12 @@ PubKey::PubKey(const PubKey& src)
     if (m_P == nullptr)
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
     }
     else if (src.m_P == nullptr)
     {
         LOG_MESSAGE("Error: src (ec point) is null in pub key construct.");
-        throw exception();
+        // throw exception();
     }
     else
     {
@@ -465,7 +465,8 @@ bool PubKey::operator>(const PubKey& r) const
     if (ctx == nullptr)
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
+        return false;
     }
 
     shared_ptr<BIGNUM> lhs_bnvalue(
@@ -489,7 +490,8 @@ bool PubKey::operator==(const PubKey& r) const
     if (ctx == nullptr)
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
+        return false;
     }
 
     return (m_initialized && r.m_initialized
@@ -506,7 +508,7 @@ Signature::Signature()
     if ((m_r == nullptr) || (m_s == nullptr))
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
     }
     m_initialized = true;
 }
@@ -544,7 +546,7 @@ Signature::Signature(const Signature& src)
     else
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
     }
 }
 
@@ -726,6 +728,7 @@ bool Schnorr::Sign(const vector<unsigned char>& message, unsigned int offset,
                 if (err)
                 {
                     LOG_MESSAGE("Error: Random generation failed");
+                    return false;
                 }
             } while ((BN_is_zero(k.get()))
                      || (BN_cmp(k.get(), m_curve.m_order.get()) != -1));
@@ -737,6 +740,7 @@ bool Schnorr::Sign(const vector<unsigned char>& message, unsigned int offset,
             if (err)
             {
                 LOG_MESSAGE("Error: Commit generation failed");
+                return false;
             }
 
             // 3. Compute the challenge r = H(Q, kpub, m)
@@ -749,6 +753,7 @@ bool Schnorr::Sign(const vector<unsigned char>& message, unsigned int offset,
             if (err)
             {
                 LOG_MESSAGE("Error: Commit octet conversion failed");
+                return false;
             }
 
             // Hash commitment
@@ -765,6 +770,7 @@ bool Schnorr::Sign(const vector<unsigned char>& message, unsigned int offset,
             if (err)
             {
                 LOG_MESSAGE("Error: Pubkey octet conversion failed");
+                return false;
             }
 
             // Hash public key
@@ -780,6 +786,7 @@ bool Schnorr::Sign(const vector<unsigned char>& message, unsigned int offset,
             if (err)
             {
                 LOG_MESSAGE("Error: Digest to challenge failed");
+                return false;
             }
 
             err = (BN_nnmod(result.m_r.get(), result.m_r.get(),
@@ -788,6 +795,7 @@ bool Schnorr::Sign(const vector<unsigned char>& message, unsigned int offset,
             if (err)
             {
                 LOG_MESSAGE("Error: BIGNUM NNmod failed");
+                return false;
             }
 
             // 4. Compute s = k - r*krpiv
@@ -799,6 +807,7 @@ bool Schnorr::Sign(const vector<unsigned char>& message, unsigned int offset,
             if (err)
             {
                 LOG_MESSAGE("Error: Response mod mul failed");
+                return false;
             }
 
             // 4.2 k-r*kpriv
@@ -808,6 +817,7 @@ bool Schnorr::Sign(const vector<unsigned char>& message, unsigned int offset,
             if (err)
             {
                 LOG_MESSAGE("Error: BIGNUM mod sub failed");
+                return false;
             }
 
             // Clear buffer
@@ -825,7 +835,8 @@ bool Schnorr::Sign(const vector<unsigned char>& message, unsigned int offset,
     else
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        return false;
+        // throw exception();
     }
 
     return (res == 0);
@@ -901,6 +912,7 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
         if (err2)
         {
             LOG_MESSAGE("Error: Challenge not in range");
+            return false;
         }
 
         err2 = (BN_is_zero(toverify.m_s.get())
@@ -909,6 +921,7 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
         if (err2)
         {
             LOG_MESSAGE("Error: Response not in range");
+            return false;
         }
 
         // 2. Compute Q = sG + r*kpub
@@ -919,6 +932,7 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
         if (err2)
         {
             LOG_MESSAGE("Error: Commit regenerate failed");
+            return false;
         }
 
         // 3. If Q = O (the neutral point), return 0;
@@ -927,6 +941,7 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
         if (err2)
         {
             LOG_MESSAGE("Error: Commit at infinity");
+            return false;
         }
 
         // 4. r' = H(Q, kpub, m)
@@ -939,6 +954,7 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
         if (err2)
         {
             LOG_MESSAGE("Error: Commit octet conversion failed");
+            return false;
         }
 
         // Hash commitment
@@ -956,6 +972,7 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
         if (err2)
         {
             LOG_MESSAGE("Error: Pubkey octet conversion failed");
+            return false;
         }
 
         // Hash public key
@@ -972,6 +989,7 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
         if (err2)
         {
             LOG_MESSAGE("Error: Challenge bin2bn conversion failed");
+            return false;
         }
 
         err2 = (BN_nnmod(challenge_built.get(), challenge_built.get(),
@@ -981,6 +999,7 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
         if (err2)
         {
             LOG_MESSAGE("Error: Challenge rebuild mod failed");
+            return false;
         }
 
         sha2.Reset();
@@ -988,7 +1007,8 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
     else
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
+        return false;
     }
 
     return (!err) && (BN_cmp(challenge_built.get(), toverify.m_r.get()) == 0);
