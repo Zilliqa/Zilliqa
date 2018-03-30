@@ -58,7 +58,7 @@ Logger::Logger(const char* prefix, bool log_to_file, streampos max_file_size)
 
     if (log_to_file)
     {
-        if (prefix == NULL)
+        if (prefix == nullptr)
         {
             fname_prefix = "common";
         }
@@ -264,12 +264,12 @@ void Logger::LogMessageAndPayload(const char* msg,
 ScopeMarker::ScopeMarker(const char* function)
     : function(function)
 {
-    Logger& logger = Logger::GetLogger(NULL, true);
+    Logger& logger = Logger::GetLogger(nullptr, true);
     logger.LogMessage("BEGIN", this->function.c_str());
 }
 
 ScopeMarker::~ScopeMarker()
 {
-    Logger& logger = Logger::GetLogger(NULL, true);
+    Logger& logger = Logger::GetLogger(nullptr, true);
     logger.LogMessage("END", function.c_str());
 }

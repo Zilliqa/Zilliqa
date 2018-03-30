@@ -48,7 +48,8 @@ CommitSecret::CommitSecret()
             break;
         }
 
-        err = (BN_nnmod(m_s.get(), m_s.get(), curve.m_order.get(), NULL) == 0);
+        err = (BN_nnmod(m_s.get(), m_s.get(), curve.m_order.get(), nullptr)
+               == 0);
         if (err)
         {
             LOG_MESSAGE("Error: Value to commit gen failed");
@@ -74,7 +75,7 @@ CommitSecret::CommitSecret(const CommitSecret& src)
 {
     if (m_s != nullptr)
     {
-        if (BN_copy(m_s.get(), src.m_s.get()) == NULL)
+        if (BN_copy(m_s.get(), src.m_s.get()) == nullptr)
         {
             LOG_MESSAGE("Error: CommitSecret copy failed");
         }
@@ -256,7 +257,7 @@ void CommitPoint::Set(const CommitSecret& secret)
     }
 
     if (EC_POINT_mul(Schnorr::GetInstance().GetCurve().m_group.get(), m_p.get(),
-                     secret.m_s.get(), NULL, NULL, NULL)
+                     secret.m_s.get(), nullptr, nullptr, nullptr)
         != 1)
     {
         LOG_MESSAGE("Error: Commit gen failed");
@@ -330,7 +331,7 @@ Challenge::Challenge(const Challenge& src)
 {
     if (m_c != nullptr)
     {
-        if (BN_copy(m_c.get(), src.m_c.get()) == NULL)
+        if (BN_copy(m_c.get(), src.m_c.get()) == nullptr)
         {
             LOG_MESSAGE("Error: Challenge copy failed");
         }
@@ -426,7 +427,7 @@ void Challenge::Set(const CommitPoint& aggregatedCommit,
     // Convert the committment to octets first
     if (EC_POINT_point2oct(curve.m_group.get(), aggregatedCommit.m_p.get(),
                            POINT_CONVERSION_COMPRESSED, buf.data(),
-                           Schnorr::PUBKEY_COMPRESSED_SIZE_BYTES, NULL)
+                           Schnorr::PUBKEY_COMPRESSED_SIZE_BYTES, nullptr)
         != Schnorr::PUBKEY_COMPRESSED_SIZE_BYTES)
     {
         LOG_MESSAGE("Error: Could not convert commitment to octets");
@@ -442,7 +443,7 @@ void Challenge::Set(const CommitPoint& aggregatedCommit,
     // Convert the public key to octets
     if (EC_POINT_point2oct(curve.m_group.get(), aggregatedPubkey.m_P.get(),
                            POINT_CONVERSION_COMPRESSED, buf.data(),
-                           Schnorr::PUBKEY_COMPRESSED_SIZE_BYTES, NULL)
+                           Schnorr::PUBKEY_COMPRESSED_SIZE_BYTES, nullptr)
         != Schnorr::PUBKEY_COMPRESSED_SIZE_BYTES)
     {
         LOG_MESSAGE("Error: Could not convert public key to octets");
@@ -457,13 +458,13 @@ void Challenge::Set(const CommitPoint& aggregatedCommit,
     vector<unsigned char> digest = sha2.Finalize();
 
     // Build the challenge
-    if ((BN_bin2bn(digest.data(), digest.size(), m_c.get())) == NULL)
+    if ((BN_bin2bn(digest.data(), digest.size(), m_c.get())) == nullptr)
     {
         LOG_MESSAGE("Error: Digest to challenge failed");
         return;
     }
 
-    if (BN_nnmod(m_c.get(), m_c.get(), curve.m_order.get(), NULL) == 0)
+    if (BN_nnmod(m_c.get(), m_c.get(), curve.m_order.get(), nullptr) == 0)
     {
         LOG_MESSAGE("Error: Could not reduce challenge modulo group order");
         return;
@@ -525,7 +526,7 @@ Response::Response(const Response& src)
 {
     if (m_r != nullptr)
     {
-        if (BN_copy(m_r.get(), src.m_r.get()) == NULL)
+        if (BN_copy(m_r.get(), src.m_r.get()) == nullptr)
         {
             LOG_MESSAGE("Error: Response copy failed");
         }
@@ -681,7 +682,7 @@ shared_ptr<PubKey> MultiSig::AggregatePubKeys(const vector<PubKey>& pubkeys)
     {
         if (EC_POINT_add(curve.m_group.get(), aggregatedPubkey->m_P.get(),
                          aggregatedPubkey->m_P.get(), pubkeys.at(i).m_P.get(),
-                         NULL)
+                         nullptr)
             == 0)
         {
             LOG_MESSAGE("Error: Pubkey aggregation failed");
@@ -716,7 +717,7 @@ MultiSig::AggregateCommits(const vector<CommitPoint>& commitPoints)
     {
         if (EC_POINT_add(curve.m_group.get(), aggregatedCommit->m_p.get(),
                          aggregatedCommit->m_p.get(),
-                         commitPoints.at(i).m_p.get(), NULL)
+                         commitPoints.at(i).m_p.get(), nullptr)
             == 0)
         {
             LOG_MESSAGE("Error: Commit aggregation failed");
@@ -793,13 +794,13 @@ MultiSig::AggregateSign(const Challenge& challenge,
         return nullptr;
     }
 
-    if (BN_copy(result->m_r.get(), challenge.m_c.get()) == NULL)
+    if (BN_copy(result->m_r.get(), challenge.m_c.get()) == nullptr)
     {
         LOG_MESSAGE("Error: Signature generation (copy challenge) failed");
         return nullptr;
     }
 
-    if (BN_copy(result->m_s.get(), aggregatedResponse.m_r.get()) == NULL)
+    if (BN_copy(result->m_s.get(), aggregatedResponse.m_r.get()) == nullptr)
     {
         LOG_MESSAGE("Error: Signature generation (copy response) failed");
         return nullptr;

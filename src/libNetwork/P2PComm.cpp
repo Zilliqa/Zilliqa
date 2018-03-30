@@ -54,7 +54,7 @@ struct hash_compare
 
 static void close_socket(int* cli_sock)
 {
-    if (cli_sock != NULL)
+    if (cli_sock != nullptr)
     {
         shutdown(*cli_sock, SHUT_RDWR);
         close(*cli_sock);

@@ -141,7 +141,7 @@ bool ConsensusUser::ProcessStartConsensus(const vector<unsigned char>& message,
     }
 
     ConsensusLeader* cl = dynamic_cast<ConsensusLeader*>(m_consensus.get());
-    if (cl == NULL)
+    if (cl == nullptr)
     {
         LOG_MESSAGE("Error: I'm a backup, you can't start consensus "
                     "(announcement) thru me");
