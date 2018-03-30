@@ -49,7 +49,7 @@ class AccountStore : public Serializable
     dev::h256 prevRoot;
 
     AccountStore();
-    ~AccountStore();
+    ~AccountStore() override;
 
     static bool Compare(const Account& l, const Account& r);
 
@@ -65,10 +65,11 @@ public:
     void Init();
     /// Implements the Serialize function inherited from Serializable.
     unsigned int Serialize(std::vector<unsigned char>& dst,
-                           unsigned int offset) const;
+                           unsigned int offset) const override;
 
     /// Implements the Deserialize function inherited from Serializable.
-    int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+    int Deserialize(const std::vector<unsigned char>& src,
+                    unsigned int offset) override;
 
     /// Verifies existence of Account in the list.
     bool DoesAccountExist(const Address& address);

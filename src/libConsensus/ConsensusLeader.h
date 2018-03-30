@@ -133,7 +133,7 @@ public:
 
     /// Function to process any consensus message received.
     bool ProcessMessage(const std::vector<unsigned char>& message,
-                        unsigned int offset, const Peer& from);
+                        unsigned int offset, const Peer& from) override;
 };
 
 #endif // __CONSENSUSLEADER_H__

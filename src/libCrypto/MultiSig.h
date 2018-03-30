@@ -45,17 +45,18 @@ struct CommitSecret : public Serializable
     CommitSecret(const CommitSecret& src);
 
     /// Destructor.
-    ~CommitSecret();
+    ~CommitSecret() override;
 
     /// Indicates if secret parameters have been initialized.
     bool Initialized() const;
 
     /// Implements the Serialize function inherited from Serializable.
     unsigned int Serialize(std::vector<unsigned char>& dst,
-                           unsigned int offset) const;
+                           unsigned int offset) const override;
 
     /// Implements the Deserialize function inherited from Serializable.
-    int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+    int Deserialize(const std::vector<unsigned char>& src,
+                    unsigned int offset) override;
 
     /// Assignment operator.
     CommitSecret& operator=(const CommitSecret&);
@@ -86,17 +87,18 @@ struct CommitPoint : public Serializable
     CommitPoint(const CommitPoint&);
 
     /// Destructor.
-    ~CommitPoint();
+    ~CommitPoint() override;
 
     /// Indicates if commitment point parameters have been initialized.
     bool Initialized() const;
 
     /// Implements the Serialize function inherited from Serializable.
     unsigned int Serialize(std::vector<unsigned char>& dst,
-                           unsigned int offset) const;
+                           unsigned int offset) const override;
 
     /// Implements the Deserialize function inherited from Serializable.
-    int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+    int Deserialize(const std::vector<unsigned char>& src,
+                    unsigned int offset) override;
 
     /// Sets the commitment point value based on the specified CommitSecret.
     void Set(const CommitSecret& secret);
@@ -132,17 +134,18 @@ struct Challenge : public Serializable
     Challenge(const Challenge& src);
 
     /// Destructor.
-    ~Challenge();
+    ~Challenge() override;
 
     /// Indicates if challenge parameters have been initialized.
     bool Initialized() const;
 
     /// Implements the Serialize function inherited from Serializable.
     unsigned int Serialize(std::vector<unsigned char>& dst,
-                           unsigned int offset) const;
+                           unsigned int offset) const override;
 
     /// Implements the Deserialize function inherited from Serializable.
-    int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+    int Deserialize(const std::vector<unsigned char>& src,
+                    unsigned int offset) override;
 
     /// Sets the challenge value based on the specified input parameters.
     void Set(const CommitPoint& aggregatedCommit,
@@ -179,17 +182,18 @@ struct Response : public Serializable
     Response(const Response& src);
 
     /// Destructor.
-    ~Response();
+    ~Response() override;
 
     /// Indicates if response parameters have been initialized.
     bool Initialized() const;
 
     /// Implements the Serialize function inherited from Serializable.
     unsigned int Serialize(std::vector<unsigned char>& dst,
-                           unsigned int offset) const;
+                           unsigned int offset) const override;
 
     /// Implements the Deserialize function inherited from Serializable.
-    int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+    int Deserialize(const std::vector<unsigned char>& src,
+                    unsigned int offset) override;
 
     /// Sets the response value based on the specified input parameters.
     void Set(const CommitSecret& secret, const Challenge& challenge,

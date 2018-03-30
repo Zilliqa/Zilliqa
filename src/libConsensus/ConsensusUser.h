@@ -48,10 +48,10 @@ public:
     };
 
     ConsensusUser(std::pair<PrivKey, PubKey> key, Peer peer);
-    ~ConsensusUser();
+    ~ConsensusUser() override;
 
     bool Execute(const std::vector<unsigned char>& message, unsigned int offset,
-                 const Peer& from);
+                 const Peer& from) override;
 
     bool MyMsgValidatorFunc(
         const std::vector<unsigned char>& message,

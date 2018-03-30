@@ -55,12 +55,13 @@ public:
 
     /// Implements the Serialize function inherited from Serializable.
     unsigned int Serialize(std::vector<unsigned char>& dst,
-                           unsigned int offset) const;
+                           unsigned int offset) const override;
 
     std::vector<bool> DeserializeIsMicroBlockEmpty(uint32_t arg);
 
     /// Implements the Deserialize function inherited from Serializable.
-    int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+    int Deserialize(const std::vector<unsigned char>& src,
+                    unsigned int offset) override;
 
     /// Returns the size in bytes when serializing the block.
     unsigned int GetSerializedSize() const;

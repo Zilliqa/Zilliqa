@@ -358,15 +358,16 @@ public:
     DirectoryService(Mediator& mediator);
 
     /// Destructor.
-    ~DirectoryService();
+    ~DirectoryService() override;
 
 #ifndef IS_LOOKUP_NODE
     /// Sets the value of m_state.
     void SetState(DirState state);
 
     /// Implements the GetBroadcastList function inherited from Broadcastable.
-    std::vector<Peer> GetBroadcastList(unsigned char ins_type,
-                                       const Peer& broadcast_originator);
+    std::vector<Peer>
+    GetBroadcastList(unsigned char ins_type,
+                     const Peer& broadcast_originator) override;
 
     /// Launches separate thread to execute sharding consensus after wait_window seconds.
     void ScheduleShardingConsensus(const unsigned int wait_window);
@@ -374,7 +375,7 @@ public:
 
     /// Implements the Execute function inherited from Executable.
     bool Execute(const std::vector<unsigned char>& message, unsigned int offset,
-                 const Peer& from);
+                 const Peer& from) override;
 };
 
 #endif // __DIRECTORYSERVICE_H__

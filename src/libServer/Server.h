@@ -433,44 +433,44 @@ class Server : public AbstractZServer
 
 public:
     Server(Mediator& mediator, jsonrpc::HttpServer& httpserver);
-    ~Server();
+    ~Server() override;
 
-    virtual std::string GetClientVersion();
-    virtual std::string GetNetworkId();
-    virtual std::string GetProtocolVersion();
-    virtual std::string CreateTransaction(const Json::Value& _json);
-    virtual Json::Value GetTransaction(const std::string& transactionHash);
-    virtual Json::Value GetDsBlock(const std::string& blockNum);
-    virtual Json::Value GetTxBlock(const std::string& blockNum);
-    virtual Json::Value GetLatestDsBlock();
-    virtual Json::Value GetLatestTxBlock();
-    virtual Json::Value GetBalance(const std::string& address);
-    virtual std::string GetGasPrice();
-    virtual std::string GetStorageAt(const std::string& address,
-                                     const std::string& position);
-    virtual Json::Value GetTransactionHistory(const std::string& address);
-    virtual std::string GetBlockTransactionCount(const std::string& blockHash);
-    virtual std::string GetCode(const std::string& address);
-    virtual std::string CreateMessage(const Json::Value& _json);
-    virtual std::string GetGasEstimate(const Json::Value& _json);
-    virtual Json::Value
-    GetTransactionReceipt(const std::string& transactionHash);
-    virtual bool isNodeSyncing();
-    virtual bool isNodeMining();
-    virtual std::string GetHashrate();
-    virtual unsigned int GetNumPeers();
-    virtual std::string GetNumTxBlocks();
-    virtual std::string GetNumDSBlocks();
-    virtual std::string GetNumTransactions();
-    virtual double GetTransactionRate();
-    virtual double GetTxBlockRate();
-    virtual double GetDSBlockRate();
-    virtual std::string GetCurrentMiniEpoch();
-    virtual std::string GetCurrentDSEpoch();
-    virtual Json::Value DSBlockListing(unsigned int page);
-    virtual Json::Value TxBlockListing(unsigned int page);
-    virtual Json::Value GetBlockchainInfo();
-    virtual Json::Value GetRecentTransactions();
+    std::string GetClientVersion() override;
+    std::string GetNetworkId() override;
+    std::string GetProtocolVersion() override;
+    std::string CreateTransaction(const Json::Value& _json) override;
+    Json::Value GetTransaction(const std::string& transactionHash) override;
+    Json::Value GetDsBlock(const std::string& blockNum) override;
+    Json::Value GetTxBlock(const std::string& blockNum) override;
+    Json::Value GetLatestDsBlock() override;
+    Json::Value GetLatestTxBlock() override;
+    Json::Value GetBalance(const std::string& address) override;
+    std::string GetGasPrice() override;
+    std::string GetStorageAt(const std::string& address,
+                             const std::string& position) override;
+    Json::Value GetTransactionHistory(const std::string& address) override;
+    std::string GetBlockTransactionCount(const std::string& blockHash) override;
+    std::string GetCode(const std::string& address) override;
+    std::string CreateMessage(const Json::Value& _json) override;
+    std::string GetGasEstimate(const Json::Value& _json) override;
+    Json::Value
+    GetTransactionReceipt(const std::string& transactionHash) override;
+    bool isNodeSyncing() override;
+    bool isNodeMining() override;
+    std::string GetHashrate() override;
+    unsigned int GetNumPeers() override;
+    std::string GetNumTxBlocks() override;
+    std::string GetNumDSBlocks() override;
+    std::string GetNumTransactions() override;
+    double GetTransactionRate() override;
+    double GetTxBlockRate() override;
+    double GetDSBlockRate() override;
+    std::string GetCurrentMiniEpoch() override;
+    std::string GetCurrentDSEpoch() override;
+    Json::Value DSBlockListing(unsigned int page) override;
+    Json::Value TxBlockListing(unsigned int page) override;
+    Json::Value GetBlockchainInfo() override;
+    Json::Value GetRecentTransactions() override;
     static void AddToRecentTransactions(const dev::h256& txhash);
 
     //gets the number of transaction starting from block blockNum to most recent block

@@ -94,17 +94,18 @@ struct PrivKey : public Serializable
     PrivKey(const PrivKey& src);
 
     /// Destructor.
-    ~PrivKey();
+    ~PrivKey() override;
 
     /// Indicates if key parameters have been initialized.
     bool Initialized() const;
 
     /// Implements the Serialize function inherited from Serializable.
     unsigned int Serialize(std::vector<unsigned char>& dst,
-                           unsigned int offset) const;
+                           unsigned int offset) const override;
 
     /// Implements the Deserialize function inherited from Serializable.
-    int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+    int Deserialize(const std::vector<unsigned char>& src,
+                    unsigned int offset) override;
 
     /// Assignment operator.
     PrivKey& operator=(const PrivKey&);
@@ -147,17 +148,18 @@ struct PubKey : public Serializable
     PubKey(const PubKey&);
 
     /// Destructor.
-    ~PubKey();
+    ~PubKey() override;
 
     /// Indicates if key parameters have been initialized.
     bool Initialized() const;
 
     /// Implements the Serialize function inherited from Serializable.
     unsigned int Serialize(std::vector<unsigned char>& dst,
-                           unsigned int offset) const;
+                           unsigned int offset) const override;
 
     /// Implements the Deserialize function inherited from Serializable.
-    int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+    int Deserialize(const std::vector<unsigned char>& src,
+                    unsigned int offset) override;
 
     /// Assignment operator.
     PubKey& operator=(const PubKey& src);
@@ -206,17 +208,18 @@ struct Signature : public Serializable
     Signature(const Signature&);
 
     /// Destructor.
-    ~Signature();
+    ~Signature() override;
 
     /// Indicates if signature parameters have been initialized.
     bool Initialized() const;
 
     /// Implements the Serialize function inherited from Serializable.
     unsigned int Serialize(std::vector<unsigned char>& dst,
-                           unsigned int offset) const;
+                           unsigned int offset) const override;
 
     /// Implements the Deserialize function inherited from Serializable.
-    int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+    int Deserialize(const std::vector<unsigned char>& src,
+                    unsigned int offset) override;
 
     /// Assignment operator.
     Signature& operator=(const Signature&);
