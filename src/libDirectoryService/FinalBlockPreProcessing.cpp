@@ -972,7 +972,9 @@ bool DirectoryService::FinalBlockValidator(
     if (!CheckFinalBlockValidity())
     {
         LOG_MESSAGE("To-do: What to do if proposed microblock is not valid?");
-        throw exception();
+        // throw exception();
+        // TODO: microblock is invalid
+        return false;
     }
 
     if (!isVacuousEpoch)
@@ -1045,7 +1047,8 @@ void DirectoryService::RunConsensusOnFinalBlock()
         {
             LOG_MESSAGE("Throwing exception after "
                         "RunConsensusOnFinalBlockWhenDSPrimary");
-            throw exception();
+            // throw exception();
+            return;
         }
     }
     else
@@ -1054,7 +1057,8 @@ void DirectoryService::RunConsensusOnFinalBlock()
         {
             LOG_MESSAGE("Throwing exception after "
                         "RunConsensusOnFinalBlockWhenDSBackup");
-            throw exception();
+            // throw exception();
+            return;
         }
     }
 

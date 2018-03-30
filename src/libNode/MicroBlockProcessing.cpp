@@ -314,7 +314,8 @@ bool Node::OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
         {
             LOG_MESSAGE("Leader unable to find txn proposed in microblock "
                         << missingTransactions[i]);
-            throw exception();
+            // throw exception();
+            return false;
         }
 
         Serializable::SetNumber<uint32_t>(tx_message, MessageOffset::BODY,
@@ -472,7 +473,8 @@ bool Node::RunConsensusOnMicroBlock()
         {
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                          "Error at RunConsensusOnMicroBlockWhenShardLeader");
-            throw exception();
+            // throw exception();
+            return false;
         }
     }
     else
@@ -481,7 +483,8 @@ bool Node::RunConsensusOnMicroBlock()
         {
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                          "Error at RunConsensusOnMicroBlockWhenShardBackup");
-            throw exception();
+            // throw exception();
+            return false;
         }
     }
 

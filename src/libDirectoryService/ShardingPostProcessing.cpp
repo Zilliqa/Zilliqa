@@ -375,7 +375,9 @@ bool DirectoryService::ProcessShardingConsensus(
         }
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                      "Oops, no consensus reached - what to do now???");
-        throw exception();
+        // throw exception();
+        // TODO: no consensus reached
+        return false;
     }
 
     return result;
