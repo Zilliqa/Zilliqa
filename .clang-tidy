@@ -1,7 +1,7 @@
 ---
 # TODO: enable more checks, run 'clang-tidy -list-checks -checks="*"' to see more
 # Checks:          'clang-diagnostic-*,clang-analyzer-*,modernize-*'
-Checks:          '-*,modernize-avoid-bind,modernize-make-*'
+Checks:          '-*,modernize-avoid-bind,modernize-make-*,modernize-replace-random-shuffle'
 WarningsAsErrors: ''
 HeaderFilterRegex: ''
 AnalyzeTemporaryDtors: false

@@ -17,6 +17,7 @@
 #include <cstring>
 #include <errno.h>
 #include <memory>
+#include <random>
 #include <netinet/in.h>
 #include <signal.h>
 #include <stdint.h>
@@ -568,7 +569,8 @@ void P2PComm::SendMessagePoolHelper(const Container& peers,
     {
         indexes.at(i) = i;
     }
-    random_shuffle(indexes.begin(), indexes.end());
+    shuffle(indexes.begin(), indexes.end(),
+            std::mt19937(std::random_device()()));
 
     auto sharedMessage = make_shared<vector<unsigned char>>(message);
     auto sharedMessageHash = make_shared<vector<unsigned char>>(message_hash);
