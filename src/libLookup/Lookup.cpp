@@ -427,7 +427,7 @@ bool Lookup::ProcessEntireShardingStructure(
     }
 
     // unsigned int view change count
-    unsigned int viewChangeCount = Serializable::GetNumber<uint32_t>(
+    auto viewChangeCount = Serializable::GetNumber<uint32_t>(
         message, offset, sizeof(unsigned int));
     offset += sizeof(unsigned int);
 
@@ -442,7 +442,7 @@ bool Lookup::ProcessEntireShardingStructure(
     }
 
     // 4-byte num of shards
-    uint32_t num_shards
+    auto num_shards
         = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
     offset += sizeof(uint32_t);
 
@@ -466,11 +466,11 @@ bool Lookup::ProcessEntireShardingStructure(
             return false;
         }
 
-        m_shards.push_back(map<PubKey, Peer>());
+        m_shards.emplace_back();
 
         // 4-byte shard size
-        uint32_t shard_size = Serializable::GetNumber<uint32_t>(
-            message, offset, sizeof(uint32_t));
+        auto shard_size = Serializable::GetNumber<uint32_t>(message, offset,
+                                                            sizeof(uint32_t));
         offset += sizeof(uint32_t);
 
         length_available = message.size() - offset;
@@ -558,7 +558,7 @@ bool Lookup::ProcessGetSeedPeersFromLookup(const vector<unsigned char>& message,
     }
 
     // 4-byte listening port
-    uint32_t portNo
+    auto portNo
         = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
     offset += sizeof(uint32_t);
 
