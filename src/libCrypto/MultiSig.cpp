@@ -22,7 +22,6 @@ using namespace std;
 
 CommitSecret::CommitSecret()
     : m_s(BN_new(), BN_clear_free)
-    , m_initialized(false)
 {
     // commit->secret should be in [2,...,order-1]
     // -1 means no constraint on the MSB of kpriv->d
@@ -150,7 +149,6 @@ bool CommitSecret::operator==(const CommitSecret& r) const
 CommitPoint::CommitPoint()
     : m_p(EC_POINT_new(Schnorr::GetInstance().GetCurve().m_group.get()),
           EC_POINT_clear_free)
-    , m_initialized(false)
 {
     if (m_p == nullptr)
     {
@@ -293,7 +291,6 @@ bool CommitPoint::operator==(const CommitPoint& r) const
 
 Challenge::Challenge()
     : m_c(BN_new(), BN_clear_free)
-    , m_initialized(false)
 {
     if (m_c == nullptr)
     {
@@ -487,7 +484,6 @@ bool Challenge::operator==(const Challenge& r) const
 
 Response::Response()
     : m_r(BN_new(), BN_clear_free)
-    , m_initialized(false)
 {
     if (m_r == nullptr)
     {

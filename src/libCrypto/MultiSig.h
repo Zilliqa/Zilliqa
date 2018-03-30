@@ -33,7 +33,7 @@ struct CommitSecret : public Serializable
     std::shared_ptr<BIGNUM> m_s;
 
     /// Flag to indicate if parameters have been initialized.
-    bool m_initialized;
+    bool m_initialized{false};
 
     /// Constructor for generating a new commitment secret.
     CommitSecret();
@@ -71,7 +71,7 @@ struct CommitPoint : public Serializable
     std::shared_ptr<EC_POINT> m_p;
 
     /// Flag to indicate if parameters have been initialized.
-    bool m_initialized;
+    bool m_initialized{false};
 
     /// Default constructor for an uninitialized point.
     CommitPoint();
@@ -115,7 +115,7 @@ struct Challenge : public Serializable
     std::shared_ptr<BIGNUM> m_c;
 
     /// Flag to indicate if parameters have been initialized.
-    bool m_initialized;
+    bool m_initialized{false};
 
     /// Default constructor for an uninitialized challenge.
     Challenge();
@@ -163,7 +163,7 @@ struct Response : public Serializable
     std::shared_ptr<BIGNUM> m_r;
 
     /// Flag to indicate if parameters have been initialized.
-    bool m_initialized;
+    bool m_initialized{false};
 
     /// Default constructor for an uninitialized response.
     Response();

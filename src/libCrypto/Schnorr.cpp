@@ -188,7 +188,6 @@ void ECPOINTSerialize::SetNumber(vector<unsigned char>& dst,
 
 PrivKey::PrivKey()
     : m_d(BN_new(), BN_clear_free)
-    , m_initialized(false)
 {
     // kpriv->d should be in [1,...,order-1]
     // -1 means no constraint on the MSB of kpriv->d
@@ -305,7 +304,6 @@ bool PrivKey::operator==(const PrivKey& r) const
 PubKey::PubKey()
     : m_P(EC_POINT_new(Schnorr::GetInstance().GetCurve().m_group.get()),
           EC_POINT_clear_free)
-    , m_initialized(false)
 {
     if (m_P == nullptr)
     {
@@ -504,7 +502,6 @@ bool PubKey::operator==(const PubKey& r) const
 Signature::Signature()
     : m_r(BN_new(), BN_clear_free)
     , m_s(BN_new(), BN_clear_free)
-    , m_initialized(false)
 {
     if ((m_r == nullptr) || (m_s == nullptr))
     {

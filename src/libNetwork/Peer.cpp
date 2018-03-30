@@ -25,7 +25,6 @@ using namespace boost::multiprecision;
 
 Peer::Peer()
     : m_ipAddress(0)
-    , m_listenPortHost(0)
 {
 }
 

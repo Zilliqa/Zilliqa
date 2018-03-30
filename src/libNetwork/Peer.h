@@ -30,7 +30,7 @@ struct Peer : public Serializable
     boost::multiprecision::uint128_t m_ipAddress; // net-encoded
 
     /// Peer listen port (host-encoded)
-    uint32_t m_listenPortHost; // host-encoded
+    uint32_t m_listenPortHost{0}; // host-encoded
 
     /// Default constructor.
     Peer();
