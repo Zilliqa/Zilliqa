@@ -622,10 +622,10 @@ bool Node::CheckCreatedTransaction(const Transaction& tx)
 /// Return a valid transaction from fromKeyPair to toAddr with the specified amount
 ///
 /// TODO: nonce is still no valid yet
-decltype(auto) CreateValidTestingTransaction(PrivKey& fromPrivKey,
-                                             PubKey& fromPubKey,
-                                             const Address& toAddr,
-                                             uint256_t amount)
+Transaction CreateValidTestingTransaction(PrivKey& fromPrivKey,
+                                          PubKey& fromPubKey,
+                                          const Address& toAddr,
+                                          uint256_t amount)
 {
     unsigned int version = 0;
     auto nonce = 0;
@@ -677,7 +677,7 @@ bool GetOneGoodKeyPair(PrivKey& oPrivKey, PubKey& oPubKey, uint32_t myShard,
 }
 
 /// generate transation from one to many random accounts
-vector<Transaction> genTransactionBulk(PrivKey& fromPrivKey, PubKey& fromPubKey,
+vector<Transaction> GenTransactionBulk(PrivKey& fromPrivKey, PubKey& fromPubKey,
                                        size_t n)
 {
     uint256_t transferAmount{1};
@@ -724,7 +724,7 @@ bool Node::ProcessCreateTransaction(const vector<unsigned char>& message,
         auto privKey = PrivKey{privKeyBytes, 0};
         auto pubKey = PubKey{privKey};
         auto addr = Account::GetAddressFromPublicKey(pubKey);
-        auto txns = genTransactionBulk(privKey, pubKey, nTxnPerAccount);
+        auto txns = GenTransactionBulk(privKey, pubKey, nTxnPerAccount);
 
         lock_guard<mutex> lg{m_mutexPrefilledTxns};
 
