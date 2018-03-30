@@ -45,3 +45,8 @@ add_executable (Test_Serializable Test_Serializable.cpp)
 target_include_directories (Test_Serializable PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries (Test_Serializable PUBLIC Utils)
 add_test(NAME Test_Serializable COMMAND Test_Serializable)
+
+add_executable(Test_TxnRootComputation Test_TxnRootComputation.cpp)
+target_include_directories(Test_TxnRootComputation PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(Test_TxnRootComputation LINK_PUBLIC Utils Crypto Common Database AccountData)
+add_test(NAME Test_TxnRootComputation COMMAND Test_TxnRootComputation)
