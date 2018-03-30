@@ -65,7 +65,7 @@ ComputeTransactionsRoot(const std::list<Transaction>& receivedTransactions,
                         const std::list<Transaction>& submittedTransactions)
 {
     LOG_MARKER();
-    
+
     return ConcatAndHash(receivedTransactions, submittedTransactions);
 }
 
