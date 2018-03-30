@@ -1663,8 +1663,8 @@ bool Lookup::Execute(const vector<unsigned char>& message, unsigned int offset,
 
     bool result = true;
 
-    typedef bool (Lookup::*InstructionHandler)(const vector<unsigned char>&,
-                                               unsigned int, const Peer&);
+    using InstructionHandler = bool (Lookup::*)(const vector<unsigned char>&,
+                                                unsigned int, const Peer&);
 
     InstructionHandler ins_handlers[]
         = {&Lookup::ProcessEntireShardingStructure,

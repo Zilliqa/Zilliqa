@@ -1337,7 +1337,7 @@ bool DirectoryService::Execute(const vector<unsigned char>& message,
 
     bool result = false;
 
-    typedef bool (DirectoryService::*InstructionHandler)(
+    using InstructionHandler = bool (DirectoryService::*)(
         const vector<unsigned char>&, unsigned int, const Peer&);
 
 #ifndef IS_LOOKUP_NODE

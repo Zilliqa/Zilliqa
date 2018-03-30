@@ -198,7 +198,7 @@ bool ConsensusUser::Execute(const vector<unsigned char>& message,
 
     bool result = false;
 
-    typedef bool (ConsensusUser::*InstructionHandler)(
+    using InstructionHandler = bool (ConsensusUser::*)(
         const vector<unsigned char>&, unsigned int, const Peer&);
 
     InstructionHandler ins_handlers[] = {

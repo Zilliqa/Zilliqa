@@ -29,11 +29,10 @@
 #include "libNetwork/PeerStore.h"
 #include "libUtils/TimeLockedFunction.h"
 
-typedef std::function<bool(const vector<unsigned char>& errorMsg, unsigned int,
-                           const Peer& from)>
-    NodeCommitFailureHandlerFunc;
-typedef std::function<bool(std::map<unsigned int, std::vector<unsigned char>>)>
-    ShardCommitFailureHandlerFunc;
+using NodeCommitFailureHandlerFunc = std::function<bool(
+    const vector<unsigned char>&, unsigned int, const Peer&)>;
+using ShardCommitFailureHandlerFunc
+    = std::function<bool(std::map<unsigned int, std::vector<unsigned char>>)>;
 
 /// Implements the functionality for the consensus committee leader.
 class ConsensusLeader : public ConsensusCommon

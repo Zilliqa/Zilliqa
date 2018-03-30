@@ -27,8 +27,8 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-typedef void (*handler_func)(int, const char*, const char*, uint32_t,
-                             const char* []);
+using handler_func
+    = void (*)(int, const char*, const char*, uint32_t, const char**);
 struct message_handler
 {
     const char* ins;

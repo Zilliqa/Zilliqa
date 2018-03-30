@@ -1247,8 +1247,8 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
 
     bool result = true;
 
-    typedef bool (Node::*InstructionHandler)(const vector<unsigned char>&,
-                                             unsigned int, const Peer&);
+    using InstructionHandler = bool (Node::*)(const vector<unsigned char>&,
+                                              unsigned int, const Peer&);
 
     InstructionHandler ins_handlers[]
         = {&Node::ProcessStartPoW1,

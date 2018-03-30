@@ -228,7 +228,7 @@ bool PeerManager::Execute(const vector<unsigned char>& message,
 
     bool result = false;
 
-    typedef bool (PeerManager::*InstructionHandler)(
+    using InstructionHandler = bool (PeerManager::*)(
         const vector<unsigned char>&, unsigned int, const Peer&);
 
     InstructionHandler ins_handlers[] = {
