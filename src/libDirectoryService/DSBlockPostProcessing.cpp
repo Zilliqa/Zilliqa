@@ -339,7 +339,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
                  "DSBlock to be sent to the lookup nodes");
 
     // TODO: Refine this
-    unsigned int nodeToSendToLookUpLo = COMM_SIZE / 2;
+    unsigned int nodeToSendToLookUpLo = COMM_SIZE / 4;
     unsigned int nodeToSendToLookUpHi = COMM_SIZE + TX_SHARING_CLUSTER_SIZE;
 
     if (m_consensusMyID > nodeToSendToLookUpLo
