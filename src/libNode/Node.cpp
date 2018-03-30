@@ -676,6 +676,27 @@ bool GetOneGoodKeyPair(PrivKey& oPrivKey, PubKey& oPubKey, uint32_t myShard,
     return false;
 }
 
+/// generate transation from one to many random accounts
+vector<Transaction> genTransactionBulk(PrivKey& fromPrivKey, PubKey& fromPubKey,
+                                       size_t n)
+{
+    uint256_t transferAmount{1};
+    vector<Transaction> txns;
+
+    txns.reserve(n);
+    for (auto i = 0u; i != n; i++)
+    {
+        auto receiver = Schnorr::GetInstance().GenKeyPair();
+        auto receiverAddr = Account::GetAddressFromPublicKey(receiver.second);
+
+        auto txn = CreateValidTestingTransaction(fromPrivKey, fromPubKey,
+                                                 receiverAddr, transferAmount);
+        txns.emplace_back(txn);
+    }
+
+    return txns;
+}
+
 /// Handle send_txn command with the following message format
 ///
 /// XXX The message format below is no ignored
@@ -686,42 +707,41 @@ bool Node::ProcessCreateTransaction(const vector<unsigned char>& message,
 #ifndef IS_LOOKUP_NODE
     LOG_MARKER();
 
-    PrivKey senderPrivKey;
-    PubKey senderPubKey;
+    // vector<Transaction> txnToCreate;
+    size_t nTxn{10};
 
-    if (not GetOneGoodKeyPair(senderPrivKey, senderPubKey, m_myShardID,
-                              m_numShards))
+    // if (not GetOneGoodKeyPair(senderPrivKey, senderPubKey, m_myShardID,
+    // m_numShards))
+    // {
+    // LOG_MESSAGE(
+    // "No proper genesis account, cannot send testing transactions");
+    // return false;
+    // }
+
+    for (auto& privKeyHexStr : GENESIS_KEYS)
     {
-        LOG_MESSAGE(
-            "No proper genesis account, cannot send testing transactions");
-        return false;
+        auto privKeyBytes{DataConversion::HexStrToUint8Vec(privKeyHexStr)};
+        auto privKey = PrivKey{privKeyBytes, 0};
+        auto pubKey = PubKey{privKey};
+        auto addr = Account::GetAddressFromPublicKey(pubKey);
+        auto txns = genTransactionBulk(privKey, pubKey, nTxn);
+
+        lock_guard<mutex> lg{m_mutexPrefilledTxns};
+
+        auto& txnsDst = m_prefilledTxns[addr];
+        txnsDst.insert(txnsDst.end(), txns.begin(), txns.end());
+
+        LOG_MESSAGE("prefilled " << nTxn << " txns with fromAddr " << addr);
     }
 
-    auto& schnorr = Schnorr::GetInstance();
+    // {
+    // lock_guard<mutex> g(m_mutexCreatedTransactions);
+    // m_createdTransactions.insert(m_createdTransactions.end(),
+    // txnToCreate.begin(), txnToCreate.end());
+    // }
 
-    auto receiver = schnorr.GenKeyPair();
-    auto receiverAddr = Account::GetAddressFromPublicKey(receiver.second);
+    // LOG_MESSAGE("Created " << txnToCreate.size() << " transactions");
 
-    vector<Transaction> txnToCreate;
-
-    size_t nTxn{10000};
-    uint256_t transferAmount{1};
-
-    txnToCreate.reserve(nTxn);
-    for (auto i = 0u; i != nTxn; i++)
-    {
-        auto txn = CreateValidTestingTransaction(senderPrivKey, senderPubKey,
-                                                 receiverAddr, transferAmount);
-        txnToCreate.emplace_back(txn);
-    }
-
-    {
-        lock_guard<mutex> g(m_mutexCreatedTransactions);
-        m_createdTransactions.insert(m_createdTransactions.end(),
-                                     txnToCreate.begin(), txnToCreate.end());
-    }
-    LOG_MESSAGE("creating " << nTxn << " testing transactions from "
-                            << senderPubKey << " to address " << receiverAddr);
     return true;
 #endif // IS_LOOKUP_NODE
     return true;
@@ -931,19 +951,45 @@ void Node::SubmitTransactions()
         }
 
         Transaction t;
-        bool found = false;
 
-        {
-            lock_guard<mutex> g(m_mutexCreatedTransactions);
-            found = (m_createdTransactions.size() > 0);
-            if (found)
+        auto findOneFromPrefilled = [this](Transaction& t) -> bool {
+            lock_guard<mutex> g{m_mutexPrefilledTxns};
+
+            for (auto& txns : m_prefilledTxns)
             {
-                t = move(m_createdTransactions.front());
-                m_createdTransactions.pop_front();
-            }
-        }
+                auto& addr = txns.first;
+                auto& txnsList = txns.second;
+                auto shard = Transaction::GetShardIndex(addr, m_numShards);
 
-        if (found)
+                if (shard != m_myShardID)
+                {
+                    continue;
+                }
+
+                // right shard
+                t = move(txnsList.front());
+                txnsList.pop_front();
+                return true;
+            }
+
+            return false;
+        };
+
+        auto findOneFromCreated = [this](Transaction& t) -> bool {
+            lock_guard<mutex> g(m_mutexCreatedTransactions);
+
+            if (m_createdTransactions.empty())
+            {
+                return false;
+            }
+
+            t = move(m_createdTransactions.front());
+            m_createdTransactions.pop_front();
+            return true;
+        };
+
+        // try to find one from prefilled first, then try created
+        if (findOneFromPrefilled(t) || findOneFromCreated(t))
         {
             vector<unsigned char> tx_message
                 = {MessageType::NODE, NodeInstructionType::SUBMITTRANSACTION};

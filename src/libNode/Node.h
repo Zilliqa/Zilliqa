@@ -120,6 +120,10 @@ class Node : public Executable, public Broadcastable
     std::mutex m_mutexCreatedTransactions;
     std::list<Transaction> m_createdTransactions;
 
+    // prefilled transactions sorted by fromAddress
+    std::mutex m_mutexPrefilledTxns;
+    std::unordered_map<Address, std::list<Transaction>> m_prefilledTxns{};
+
     std::mutex m_mutexSubmittedTransactions;
     std::unordered_map<boost::multiprecision::uint256_t,
                        std::unordered_map<TxnHash, Transaction>>
