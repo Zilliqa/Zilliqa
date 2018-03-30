@@ -547,7 +547,8 @@ bool Node::CheckCreatedTransaction(const Transaction& tx)
         LOG_MESSAGE2(
             to_string(m_mediator.m_currentEpochNum).c_str(),
             "To-do: What to do if from account is not in my account store?");
-        throw exception();
+        // throw exception();
+        return false;
     }
 
     // Check from account nonce
@@ -575,7 +576,8 @@ bool Node::CheckCreatedTransaction(const Transaction& tx)
         LOG_MESSAGE2(
             to_string(m_mediator.m_currentEpochNum).c_str(),
             "To-do: What to do if to account is not in my account store?");
-        throw exception();
+        // throw exception();
+        return false;
     }
 
     // Check if transaction amount is valid
