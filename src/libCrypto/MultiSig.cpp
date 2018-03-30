@@ -31,7 +31,7 @@ CommitSecret::CommitSecret()
     if (m_s == nullptr)
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
     }
 
     bool err = false;
@@ -86,7 +86,7 @@ CommitSecret::CommitSecret(const CommitSecret& src)
     else
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
     }
 }
 
@@ -154,7 +154,7 @@ CommitPoint::CommitPoint()
     if (m_p == nullptr)
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
     }
 }
 
@@ -166,7 +166,7 @@ CommitPoint::CommitPoint(const CommitSecret& secret)
     if (m_p == nullptr)
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
     }
 
     Set(secret);
@@ -188,7 +188,7 @@ CommitPoint::CommitPoint(const CommitPoint& src)
     if (m_p == nullptr)
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
     }
     else
     {
@@ -280,7 +280,8 @@ bool CommitPoint::operator==(const CommitPoint& r) const
     if (ctx == nullptr)
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
+        return false;
     }
 
     return (m_initialized && r.m_initialized
@@ -296,7 +297,7 @@ Challenge::Challenge()
     if (m_c == nullptr)
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
     }
 }
 
@@ -309,7 +310,7 @@ Challenge::Challenge(const CommitPoint& aggregatedCommit,
     if (m_c == nullptr)
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
     }
 
     Set(aggregatedCommit, aggregatedPubkey, message);
@@ -341,7 +342,7 @@ Challenge::Challenge(const Challenge& src)
     else
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
     }
 }
 
@@ -490,7 +491,7 @@ Response::Response()
     if (m_r == nullptr)
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
     }
 }
 
@@ -504,7 +505,7 @@ Response::Response(const CommitSecret& secret, const Challenge& challenge,
     if (m_r == nullptr)
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
     }
 
     Set(secret, challenge, privkey);
@@ -536,7 +537,7 @@ Response::Response(const Response& src)
     else
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
     }
 }
 
@@ -619,7 +620,8 @@ void Response::Set(const CommitSecret& secret, const Challenge& challenge,
     if (ctx == nullptr)
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
+        return;
     }
 
     const Curve& curve = Schnorr::GetInstance().GetCurve();
@@ -671,7 +673,8 @@ shared_ptr<PubKey> MultiSig::AggregatePubKeys(const vector<PubKey>& pubkeys)
     if (aggregatedPubkey == nullptr)
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
+        return nullptr;
     }
 
     for (unsigned int i = 1; i < pubkeys.size(); i++)
@@ -705,7 +708,8 @@ MultiSig::AggregateCommits(const vector<CommitPoint>& commitPoints)
     if (aggregatedCommit == nullptr)
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
+        return nullptr;
     }
 
     for (unsigned int i = 1; i < commitPoints.size(); i++)
@@ -738,14 +742,16 @@ MultiSig::AggregateResponses(const vector<Response>& responses)
     if (aggregatedResponse == nullptr)
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
+        return nullptr;
     }
 
     unique_ptr<BN_CTX, void (*)(BN_CTX*)> ctx(BN_CTX_new(), BN_CTX_free);
     if (ctx == nullptr)
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
+        return nullptr;
     }
 
     for (unsigned int i = 1; i < responses.size(); i++)
@@ -783,7 +789,8 @@ MultiSig::AggregateSign(const Challenge& challenge,
     if (result == nullptr)
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
+        return nullptr;
     }
 
     if (BN_copy(result->m_r.get(), challenge.m_c.get()) == NULL)
@@ -884,83 +891,93 @@ bool MultiSig::VerifyResponse(const Response& response,
 {
     LOG_MARKER();
 
-    // Initial checks
-
-    if (!response.Initialized())
+    try
     {
-        LOG_MESSAGE("Error: Response not initialized");
-        return false;
-    }
+        // Initial checks
 
-    if (!challenge.Initialized())
-    {
-        LOG_MESSAGE("Error: Challenge not initialized");
-        return false;
-    }
-
-    if (!pubkey.Initialized())
-    {
-        LOG_MESSAGE("Error: Public key not initialized");
-        return false;
-    }
-
-    if (!commitPoint.Initialized())
-    {
-        LOG_MESSAGE("Error: Commit point not initialized");
-        return false;
-    }
-
-    const Curve& curve = Schnorr::GetInstance().GetCurve();
-
-    // The algorithm to check whether the commit point generated from its resopnse is the same one received in the commit phase
-    // Check if s is in [1, ..., order-1]
-    // Compute Q = sG + r*kpub
-    // return Q == commitPoint
-
-    bool err = false;
-
-    // Regenerate the commitmment part of the signature
-    unique_ptr<EC_POINT, void (*)(EC_POINT*)> Q(
-        EC_POINT_new(curve.m_group.get()), EC_POINT_clear_free);
-    unique_ptr<BN_CTX, void (*)(BN_CTX*)> ctx(BN_CTX_new(), BN_CTX_free);
-
-    if ((ctx != nullptr) && (Q != nullptr))
-    {
-        // 1. Check if s is in [1, ..., order-1]
-        err = (BN_is_zero(response.m_r.get())
-               || (BN_cmp(response.m_r.get(), curve.m_order.get()) != -1));
-        if (err)
+        if (!response.Initialized())
         {
-            LOG_MESSAGE("Error: Response not in range");
+            LOG_MESSAGE("Error: Response not initialized");
             return false;
         }
 
-        // 2. Compute Q = sG + r*kpub
-        err = (EC_POINT_mul(curve.m_group.get(), Q.get(), response.m_r.get(),
-                            pubkey.m_P.get(), challenge.m_c.get(), ctx.get())
-               == 0);
-        if (err)
+        if (!challenge.Initialized())
         {
-            LOG_MESSAGE("Error: Commit regenerate failed");
+            LOG_MESSAGE("Error: Challenge not initialized");
             return false;
         }
 
-        // 3. Q == commitPoint
-        err = (EC_POINT_cmp(curve.m_group.get(), Q.get(), commitPoint.m_p.get(),
-                            ctx.get())
-               != 0);
-        if (err)
+        if (!pubkey.Initialized())
         {
-            LOG_MESSAGE(
-                "Error: Generated commit point doesn't match the given one");
+            LOG_MESSAGE("Error: Public key not initialized");
+            return false;
+        }
+
+        if (!commitPoint.Initialized())
+        {
+            LOG_MESSAGE("Error: Commit point not initialized");
+            return false;
+        }
+
+        const Curve& curve = Schnorr::GetInstance().GetCurve();
+
+        // The algorithm to check whether the commit point generated from its resopnse is the same one received in the commit phase
+        // Check if s is in [1, ..., order-1]
+        // Compute Q = sG + r*kpub
+        // return Q == commitPoint
+
+        bool err = false;
+
+        // Regenerate the commitmment part of the signature
+        unique_ptr<EC_POINT, void (*)(EC_POINT*)> Q(
+            EC_POINT_new(curve.m_group.get()), EC_POINT_clear_free);
+        unique_ptr<BN_CTX, void (*)(BN_CTX*)> ctx(BN_CTX_new(), BN_CTX_free);
+
+        if ((ctx != nullptr) && (Q != nullptr))
+        {
+            // 1. Check if s is in [1, ..., order-1]
+            err = (BN_is_zero(response.m_r.get())
+                   || (BN_cmp(response.m_r.get(), curve.m_order.get()) != -1));
+            if (err)
+            {
+                LOG_MESSAGE("Error: Response not in range");
+                return false;
+            }
+
+            // 2. Compute Q = sG + r*kpub
+            err = (EC_POINT_mul(curve.m_group.get(), Q.get(),
+                                response.m_r.get(), pubkey.m_P.get(),
+                                challenge.m_c.get(), ctx.get())
+                   == 0);
+            if (err)
+            {
+                LOG_MESSAGE("Error: Commit regenerate failed");
+                return false;
+            }
+
+            // 3. Q == commitPoint
+            err = (EC_POINT_cmp(curve.m_group.get(), Q.get(),
+                                commitPoint.m_p.get(), ctx.get())
+                   != 0);
+            if (err)
+            {
+                LOG_MESSAGE("Error: Generated commit point doesn't match the "
+                            "given one");
+                return false;
+            }
+        }
+        else
+        {
+            LOG_MESSAGE("Error: Memory allocation failure");
+            // throw exception();
             return false;
         }
     }
-    else
+    catch (const std::exception& e)
     {
-        LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        LOG_MESSAGE("ERROR: Error with MultiSig::VerifyResponse." << ' '
+                                                                  << e.what());
+        return false;
     }
-
     return true;
 }
