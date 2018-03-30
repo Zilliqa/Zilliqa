@@ -63,8 +63,8 @@ bool Node::ReadAuxilliaryInfoFromFinalBlockMsg(
     }
 
     // 4-byte consensus id
-    uint32_t consensusID = Serializable::GetNumber<uint32_t>(
-        message, cur_offset, sizeof(uint32_t));
+    auto consensusID = Serializable::GetNumber<uint32_t>(message, cur_offset,
+                                                         sizeof(uint32_t));
     cur_offset += sizeof(uint32_t);
 
     if (consensusID != m_consensusID)
@@ -799,8 +799,8 @@ void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
     // ...
     LOG_MARKER();
 
-    uint32_t num_ds_nodes = Serializable::GetNumber<uint32_t>(
-        message, cur_offset, sizeof(uint32_t));
+    auto num_ds_nodes = Serializable::GetNumber<uint32_t>(message, cur_offset,
+                                                          sizeof(uint32_t));
     cur_offset += sizeof(uint32_t);
 
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -818,8 +818,8 @@ void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
                      nodes.back().back());
     }
 
-    uint32_t num_shards = Serializable::GetNumber<uint32_t>(message, cur_offset,
-                                                            sizeof(uint32_t));
+    auto num_shards = Serializable::GetNumber<uint32_t>(message, cur_offset,
+                                                        sizeof(uint32_t));
     cur_offset += sizeof(uint32_t);
 
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -831,7 +831,7 @@ void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
         {
             nodes.emplace_back();
 
-            uint32_t num_recv = Serializable::GetNumber<uint32_t>(
+            auto num_recv = Serializable::GetNumber<uint32_t>(
                 message, cur_offset, sizeof(uint32_t));
             cur_offset += sizeof(uint32_t);
 
@@ -857,7 +857,7 @@ void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                          "  Shard " << i << " senders:");
 
-            uint32_t num_send = Serializable::GetNumber<uint32_t>(
+            auto num_send = Serializable::GetNumber<uint32_t>(
                 message, cur_offset, sizeof(uint32_t));
             cur_offset += sizeof(uint32_t);
 
@@ -879,7 +879,7 @@ void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
         {
             nodes.emplace_back();
 
-            uint32_t num_recv = Serializable::GetNumber<uint32_t>(
+            auto num_recv = Serializable::GetNumber<uint32_t>(
                 message, cur_offset, sizeof(uint32_t));
             cur_offset += sizeof(uint32_t);
 
@@ -900,7 +900,7 @@ void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                          "  Shard " << i << " senders:");
 
-            uint32_t num_send = Serializable::GetNumber<uint32_t>(
+            auto num_send = Serializable::GetNumber<uint32_t>(
                 message, cur_offset, sizeof(uint32_t));
             cur_offset += sizeof(uint32_t);
 
@@ -1126,7 +1126,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 
     unsigned int cur_offset = offset;
 
-    uint8_t shard_id = (uint8_t)-1;
+    auto shard_id = (uint8_t)-1;
 
     // Reads and checks DS Block number, consensus ID and Shard ID
     if (!ReadAuxilliaryInfoFromFinalBlockMsg(message, cur_offset, shard_id))

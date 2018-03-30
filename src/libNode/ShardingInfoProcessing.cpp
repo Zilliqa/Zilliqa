@@ -59,7 +59,7 @@ bool Node::ReadVariablesFromShardingMessage(
     }
 
     // view change counter
-    unsigned int viewChangeCounter = Serializable::GetNumber<unsigned int>(
+    auto viewChangeCounter = Serializable::GetNumber<unsigned int>(
         message, cur_offset, sizeof(unsigned int));
     cur_offset += sizeof(unsigned int);
 
@@ -95,8 +95,8 @@ bool Node::ReadVariablesFromShardingMessage(
     cur_offset += sizeof(uint32_t);
 
     // 4-byte committee size
-    uint32_t comm_size = Serializable::GetNumber<uint32_t>(message, cur_offset,
-                                                           sizeof(uint32_t));
+    auto comm_size = Serializable::GetNumber<uint32_t>(message, cur_offset,
+                                                       sizeof(uint32_t));
     cur_offset += sizeof(uint32_t);
 
     if (IsMessageSizeInappropriate(message.size(), cur_offset,

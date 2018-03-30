@@ -161,7 +161,7 @@ bool BlockStorage::GetDSBlock(const boost::multiprecision::uint256_t& blockNum,
 
     LOG_MESSAGE(blockString);
     LOG_MESSAGE(blockString.length());
-    const unsigned char* raw_memory
+    const auto* raw_memory
         = reinterpret_cast<const unsigned char*>(blockString.c_str());
     // FIXME: Handle exceptions
     block = std::make_shared<DSBlock>(
@@ -180,7 +180,7 @@ bool BlockStorage::GetTxBlock(const boost::multiprecision::uint256_t& blockNum,
         return false;
     }
 
-    const unsigned char* raw_memory
+    const auto* raw_memory
         = reinterpret_cast<const unsigned char*>(blockString.c_str());
     // FIXME: Handle exceptions
     block = std::make_shared<TxBlock>(
@@ -207,7 +207,7 @@ bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body)
         return false;
     }
 
-    const unsigned char* raw_memory
+    const auto* raw_memory
         = reinterpret_cast<const unsigned char*>(bodyString.c_str());
     // FIXME: Handle exceptions
     body = std::make_shared<Transaction>(
@@ -274,7 +274,7 @@ bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr>& blocks)
             LOG_MESSAGE("ERROR: Lost one block in the chain");
             return false;
         }
-        const unsigned char* raw_memory
+        const auto* raw_memory
             = reinterpret_cast<const unsigned char*>(blockString.c_str());
         DSBlockSharedPtr block = std::make_shared<DSBlock>(
             std::vector<unsigned char>(raw_memory,
@@ -311,7 +311,7 @@ bool BlockStorage::GetAllTxBlocks(std::list<TxBlockSharedPtr>& blocks)
             LOG_MESSAGE("ERROR: Lost one block in the chain");
             return false;
         }
-        const unsigned char* raw_memory
+        const auto* raw_memory
             = reinterpret_cast<const unsigned char*>(blockString.c_str());
         TxBlockSharedPtr block = std::make_shared<TxBlock>(
             std::vector<unsigned char>(raw_memory,
@@ -370,7 +370,7 @@ bool BlockStorage::GetMetadata(MetaType type, std::vector<unsigned char>& data)
         return false;
     }
 
-    const unsigned char* raw_memory
+    const auto* raw_memory
         = reinterpret_cast<const unsigned char*>(metaString.c_str());
     data = std::vector<unsigned char>(raw_memory,
                                       raw_memory + metaString.size());

@@ -108,7 +108,7 @@ void process_broadcast(int numargs, const char* progname, const char* cmdname,
         inet_aton("127.0.0.1", &ip_addr);
         Peer my_port((uint128_t)ip_addr.s_addr, listen_port);
 
-        unsigned int numbytes = static_cast<unsigned int>(atoi(args[0]));
+        auto numbytes = static_cast<unsigned int>(atoi(args[0]));
         vector<unsigned char> broadcast_message(numbytes + MessageOffset::BODY,
                                                 0xAA);
         broadcast_message.at(MessageOffset::TYPE) = MessageType::PEER;

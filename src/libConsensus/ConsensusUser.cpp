@@ -39,7 +39,7 @@ bool ConsensusUser::ProcessSetLeader(const vector<unsigned char>& message,
         return false;
     }
 
-    uint16_t leader_id
+    auto leader_id
         = Serializable::GetNumber<uint16_t>(message, offset, sizeof(uint16_t));
 
     uint32_t dummy_consensus_id = 0xFACEFACE;
@@ -142,7 +142,7 @@ bool ConsensusUser::ProcessStartConsensus(const vector<unsigned char>& message,
         return false;
     }
 
-    ConsensusLeader* cl = dynamic_cast<ConsensusLeader*>(m_consensus.get());
+    auto* cl = dynamic_cast<ConsensusLeader*>(m_consensus.get());
     if (cl == nullptr)
     {
         LOG_MESSAGE("Error: I'm a backup, you can't start consensus "

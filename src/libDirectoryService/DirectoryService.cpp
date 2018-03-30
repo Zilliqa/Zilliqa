@@ -823,7 +823,7 @@ bool DirectoryService::ProcessAllPoWConnRequest(
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                  "I am sending AllPowConn to requester");
 
-    uint32_t requesterListeningPort
+    auto requesterListeningPort
         = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
 
     //  Contruct the message and send to the requester
@@ -871,7 +871,7 @@ bool DirectoryService::ProcessAllPoWConnResponse(
 
     unsigned int cur_offset = offset;
     // 32-byte block number
-    uint32_t sizeeOfAllPowConn = Serializable::GetNumber<uint32_t>(
+    auto sizeeOfAllPowConn = Serializable::GetNumber<uint32_t>(
         message, cur_offset, sizeof(uint32_t));
     cur_offset += sizeof(uint32_t);
 
@@ -957,7 +957,7 @@ bool DirectoryService::ProcessLastDSBlockRequest(
                  "DEBUG: I am sending the last ds block to the requester.");
 
     // Deserialize the message and get the port
-    uint32_t requesterListeningPort
+    auto requesterListeningPort
         = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
 
     // Craft the last block message

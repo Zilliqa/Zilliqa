@@ -274,7 +274,7 @@ bool ConsensusBackup::ProcessMessageAnnounce(
     unsigned int curr_offset = offset;
 
     // 4-byte consensus id
-    uint32_t consensus_id = Serializable::GetNumber<uint32_t>(
+    auto consensus_id = Serializable::GetNumber<uint32_t>(
         announcement, curr_offset, sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
@@ -302,7 +302,7 @@ bool ConsensusBackup::ProcessMessageAnnounce(
     curr_offset += BLOCK_HASH_SIZE;
 
     // 2-byte leader id
-    uint16_t leader_id = Serializable::GetNumber<uint16_t>(
+    auto leader_id = Serializable::GetNumber<uint16_t>(
         announcement, curr_offset, sizeof(uint16_t));
     curr_offset += sizeof(uint16_t);
 
@@ -526,7 +526,7 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
     unsigned int curr_offset = offset;
 
     // 4-byte consensus id
-    uint32_t consensus_id = Serializable::GetNumber<uint32_t>(
+    auto consensus_id = Serializable::GetNumber<uint32_t>(
         challenge, curr_offset, sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
@@ -554,8 +554,8 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
     curr_offset += BLOCK_HASH_SIZE;
 
     // 2-byte leader id
-    uint16_t leader_id = Serializable::GetNumber<uint16_t>(
-        challenge, curr_offset, sizeof(uint16_t));
+    auto leader_id = Serializable::GetNumber<uint16_t>(challenge, curr_offset,
+                                                       sizeof(uint16_t));
     curr_offset += sizeof(uint16_t);
 
     // Check the leader id
@@ -748,7 +748,7 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
     unsigned int curr_offset = offset;
 
     // 4-byte consensus id
-    uint32_t consensus_id = Serializable::GetNumber<uint32_t>(
+    auto consensus_id = Serializable::GetNumber<uint32_t>(
         collectivesig, curr_offset, sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
@@ -776,7 +776,7 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
     curr_offset += BLOCK_HASH_SIZE;
 
     // 2-byte leader id
-    uint16_t leader_id = Serializable::GetNumber<uint16_t>(
+    auto leader_id = Serializable::GetNumber<uint16_t>(
         collectivesig, curr_offset, sizeof(uint16_t));
     curr_offset += sizeof(uint16_t);
 

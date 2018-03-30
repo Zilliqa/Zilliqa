@@ -96,7 +96,7 @@ BOOST_AUTO_TEST_CASE(testBoostBigNum)
 
     uint128_t ipaddr_big_2
         = Serializable::GetNumber<uint128_t>(v1, 0, UINT128_SIZE);
-    uint32_t ipaddr_normal_2
+    auto ipaddr_normal_2
         = Serializable::GetNumber<uint32_t>(v2, 0, sizeof(uint32_t));
 
     cout << "ORIG BIG    = " << ipaddr_big << endl;

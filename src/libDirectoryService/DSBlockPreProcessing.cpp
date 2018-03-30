@@ -128,8 +128,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
         return false;
     }
 
-    ConsensusLeader* cl
-        = dynamic_cast<ConsensusLeader*>(m_consensusObject.get());
+    auto* cl = dynamic_cast<ConsensusLeader*>(m_consensusObject.get());
 
     vector<unsigned char> m;
     {

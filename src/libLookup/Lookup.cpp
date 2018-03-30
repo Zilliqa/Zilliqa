@@ -687,7 +687,7 @@ bool Lookup::ProcessGetDSInfoFromSeed(const vector<unsigned char>& message,
     }
 
     // 4-byte listening port
-    uint32_t portNo
+    auto portNo
         = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
     offset += sizeof(uint32_t);
 
@@ -798,7 +798,7 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
     }
 
     // 4-byte portNo
-    uint32_t portNo
+    auto portNo
         = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
     offset += sizeof(uint32_t);
 
@@ -851,7 +851,7 @@ bool Lookup::ProcessGetStateFromSeed(const vector<unsigned char>& message,
 
     // [Port number]
 
-    uint32_t portNo
+    auto portNo
         = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
     offset += sizeof(uint32_t);
 
@@ -965,7 +965,7 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
     }
 
     // 4-byte portNo
-    uint32_t portNo
+    auto portNo
         = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
     offset += sizeof(uint32_t);
 
@@ -1019,7 +1019,7 @@ bool Lookup::ProcessGetTxBodyFromSeed(const vector<unsigned char>& message,
     curr_offset += Transaction::GetSerializedSize();
 
     // 4-byte portNo
-    uint32_t portNo
+    auto portNo
         = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
     offset += sizeof(uint32_t);
 
@@ -1050,7 +1050,7 @@ bool Lookup::ProcessGetNetworkId(const vector<unsigned char>& message,
     LOG_MARKER();
 
     // 4-byte portNo
-    uint32_t portNo
+    auto portNo
         = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
     offset += sizeof(uint32_t);
 
@@ -1129,7 +1129,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
         return false;
     }
 
-    uint32_t numDSPeers
+    auto numDSPeers
         = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
     offset += sizeof(uint32_t);
 
@@ -1232,7 +1232,7 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
         return false;
     }
 
-    uint64_t latestSynBlockNum
+    auto latestSynBlockNum
         = (uint64_t)m_mediator.m_dsBlockChain.GetBlockCount();
 
     if (latestSynBlockNum > highBlockNum)
@@ -1349,7 +1349,7 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
                      << lowBlockNum.convert_to<string>() << " to "
                      << highBlockNum.convert_to<string>());
 
-    uint64_t latestSynBlockNum
+    auto latestSynBlockNum
         = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
 
     if (latestSynBlockNum > highBlockNum)
@@ -1643,7 +1643,7 @@ bool Lookup::InitMining()
                      "I have successfully join the network");
 #ifndef IS_LOOKUP_NODE
         LOG_MESSAGE("Clean TxBodyDB except the last one");
-        int size_txBodyDBs
+        auto size_txBodyDBs
             = (int)BlockStorage::GetBlockStorage().GetTxBodyDBSize();
         for (int i = 0; i < size_txBodyDBs - 1; i++)
         {

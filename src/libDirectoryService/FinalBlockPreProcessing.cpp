@@ -303,7 +303,7 @@ void DirectoryService::AppendSharingSetupToFinalBlockMessage(
                                           num_nodes, sizeof(uint32_t));
         curr_offset += sizeof(uint32_t);
 
-        map<PubKey, Peer>::const_iterator node_peer = shard.begin();
+        auto node_peer = shard.begin();
         for (unsigned int j = 0; j < num_nodes; j++)
         {
             node_peer->second.Serialize(finalBlockMessage, curr_offset);
@@ -477,8 +477,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
         return false;
     }
 
-    ConsensusLeader* cl
-        = dynamic_cast<ConsensusLeader*>(m_consensusObject.get());
+    auto* cl = dynamic_cast<ConsensusLeader*>(m_consensusObject.get());
 #ifdef STAT_TEST
     if (m_mode == PRIMARY_DS)
     {
@@ -807,7 +806,7 @@ void DirectoryService::SaveTxnBodySharingAssignment(
 
     // To-do: Put in the logic here for checking the sharing configuration
 
-    uint32_t num_ds_nodes = Serializable::GetNumber<uint32_t>(
+    auto num_ds_nodes = Serializable::GetNumber<uint32_t>(
         finalblock, curr_offset, sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 

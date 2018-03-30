@@ -192,8 +192,7 @@ bool DirectoryService::RunConsensusOnShardingWhenDSPrimary()
         return false;
     }
 
-    ConsensusLeader* cl
-        = dynamic_cast<ConsensusLeader*>(m_consensusObject.get());
+    auto* cl = dynamic_cast<ConsensusLeader*>(m_consensusObject.get());
 
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                  "Waiting " << LEADER_SHARDING_PREPARATION_IN_SECONDS
@@ -244,7 +243,7 @@ bool DirectoryService::ShardingValidator(
     curr_offset += sizeof(unsigned int);
 
     // 4-byte num of committees
-    uint32_t numOfComms = Serializable::GetNumber<uint32_t>(
+    auto numOfComms = Serializable::GetNumber<uint32_t>(
         sharding_structure, curr_offset, sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
@@ -256,7 +255,7 @@ bool DirectoryService::ShardingValidator(
         m_shards.emplace_back();
 
         // 4-byte committee size
-        uint32_t shard_size = Serializable::GetNumber<uint32_t>(
+        auto shard_size = Serializable::GetNumber<uint32_t>(
             sharding_structure, curr_offset, sizeof(uint32_t));
         curr_offset += sizeof(uint32_t);
 
