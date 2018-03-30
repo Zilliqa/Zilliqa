@@ -881,134 +881,143 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
         return false;
     }
 
-    // Main verification procedure
-
-    // The algorithm to check the signature (r, s) on a message m using a public key kpub is as follows
-    // 1. Check if r,s is in [1, ..., order-1]
-    // 2. Compute Q = sG + r*kpub
-    // 3. If Q = O (the neutral point), return 0;
-    // 4. r' = H(Q, kpub, m)
-    // 5. return r' == r
-
-    vector<unsigned char> buf(PUBKEY_COMPRESSED_SIZE_BYTES);
-    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-
-    bool err = false;
-    bool err2 = false;
-
-    // Regenerate the commitmment part of the signature
-    unique_ptr<BIGNUM, void (*)(BIGNUM*)> challenge_built(BN_new(),
-                                                          BN_clear_free);
-    unique_ptr<EC_POINT, void (*)(EC_POINT*)> Q(
-        EC_POINT_new(m_curve.m_group.get()), EC_POINT_clear_free);
-    unique_ptr<BN_CTX, void (*)(BN_CTX*)> ctx(BN_CTX_new(), BN_CTX_free);
-
-    if ((challenge_built != nullptr) && (ctx != nullptr) && (Q != nullptr))
+    try
     {
+        // Main verification procedure
+
+        // The algorithm to check the signature (r, s) on a message m using a public key kpub is as follows
         // 1. Check if r,s is in [1, ..., order-1]
-        err2 = (BN_is_zero(toverify.m_r.get())
-                || (BN_cmp(toverify.m_r.get(), m_curve.m_order.get()) != -1));
-        err = err || err2;
-        if (err2)
-        {
-            LOG_MESSAGE("Error: Challenge not in range");
-            return false;
-        }
-
-        err2 = (BN_is_zero(toverify.m_s.get())
-                || (BN_cmp(toverify.m_s.get(), m_curve.m_order.get()) != -1));
-        err = err || err2;
-        if (err2)
-        {
-            LOG_MESSAGE("Error: Response not in range");
-            return false;
-        }
-
         // 2. Compute Q = sG + r*kpub
-        err2 = (EC_POINT_mul(m_curve.m_group.get(), Q.get(), toverify.m_s.get(),
-                             pubkey.m_P.get(), toverify.m_r.get(), ctx.get())
-                == 0);
-        err = err || err2;
-        if (err2)
-        {
-            LOG_MESSAGE("Error: Commit regenerate failed");
-            return false;
-        }
-
         // 3. If Q = O (the neutral point), return 0;
-        err2 = (EC_POINT_is_at_infinity(m_curve.m_group.get(), Q.get()));
-        err = err || err2;
-        if (err2)
-        {
-            LOG_MESSAGE("Error: Commit at infinity");
-            return false;
-        }
-
         // 4. r' = H(Q, kpub, m)
-        // 4.1 Convert the committment to octets first
-        err2 = (EC_POINT_point2oct(m_curve.m_group.get(), Q.get(),
-                                   POINT_CONVERSION_COMPRESSED, buf.data(),
-                                   PUBKEY_COMPRESSED_SIZE_BYTES, NULL)
-                != PUBKEY_COMPRESSED_SIZE_BYTES);
-        err = err || err2;
-        if (err2)
-        {
-            LOG_MESSAGE("Error: Commit octet conversion failed");
-            return false;
-        }
-
-        // Hash commitment
-        sha2.Update(buf);
-
-        // Reset buf
-        fill(buf.begin(), buf.end(), 0x00);
-
-        // 4.2 Convert the public key to octets
-        err2 = (EC_POINT_point2oct(m_curve.m_group.get(), pubkey.m_P.get(),
-                                   POINT_CONVERSION_COMPRESSED, buf.data(),
-                                   PUBKEY_COMPRESSED_SIZE_BYTES, NULL)
-                != PUBKEY_COMPRESSED_SIZE_BYTES);
-        err = err || err2;
-        if (err2)
-        {
-            LOG_MESSAGE("Error: Pubkey octet conversion failed");
-            return false;
-        }
-
-        // Hash public key
-        sha2.Update(buf);
-
-        // 4.3 Hash message
-        sha2.Update(message, offset, size);
-        vector<unsigned char> digest = sha2.Finalize();
-
         // 5. return r' == r
-        err2 = (BN_bin2bn(digest.data(), digest.size(), challenge_built.get())
-                == NULL);
-        err = err || err2;
-        if (err2)
+
+        vector<unsigned char> buf(PUBKEY_COMPRESSED_SIZE_BYTES);
+        SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+
+        bool err = false;
+        bool err2 = false;
+
+        // Regenerate the commitmment part of the signature
+        unique_ptr<BIGNUM, void (*)(BIGNUM*)> challenge_built(BN_new(),
+                                                            BN_clear_free);
+        unique_ptr<EC_POINT, void (*)(EC_POINT*)> Q(
+            EC_POINT_new(m_curve.m_group.get()), EC_POINT_clear_free);
+        unique_ptr<BN_CTX, void (*)(BN_CTX*)> ctx(BN_CTX_new(), BN_CTX_free);
+
+        if ((challenge_built != nullptr) && (ctx != nullptr) && (Q != nullptr))
         {
-            LOG_MESSAGE("Error: Challenge bin2bn conversion failed");
+            // 1. Check if r,s is in [1, ..., order-1]
+            err2 = (BN_is_zero(toverify.m_r.get())
+                    || (BN_cmp(toverify.m_r.get(), m_curve.m_order.get()) != -1));
+            err = err || err2;
+            if (err2)
+            {
+                LOG_MESSAGE("Error: Challenge not in range");
+                return false;
+            }
+
+            err2 = (BN_is_zero(toverify.m_s.get())
+                    || (BN_cmp(toverify.m_s.get(), m_curve.m_order.get()) != -1));
+            err = err || err2;
+            if (err2)
+            {
+                LOG_MESSAGE("Error: Response not in range");
+                return false;
+            }
+
+            // 2. Compute Q = sG + r*kpub
+            err2 = (EC_POINT_mul(m_curve.m_group.get(), Q.get(), toverify.m_s.get(),
+                                pubkey.m_P.get(), toverify.m_r.get(), ctx.get())
+                    == 0);
+            err = err || err2;
+            if (err2)
+            {
+                LOG_MESSAGE("Error: Commit regenerate failed");
+                return false;
+            }
+
+            // 3. If Q = O (the neutral point), return 0;
+            err2 = (EC_POINT_is_at_infinity(m_curve.m_group.get(), Q.get()));
+            err = err || err2;
+            if (err2)
+            {
+                LOG_MESSAGE("Error: Commit at infinity");
+                return false;
+            }
+
+            // 4. r' = H(Q, kpub, m)
+            // 4.1 Convert the committment to octets first
+            err2 = (EC_POINT_point2oct(m_curve.m_group.get(), Q.get(),
+                                    POINT_CONVERSION_COMPRESSED, buf.data(),
+                                    PUBKEY_COMPRESSED_SIZE_BYTES, NULL)
+                    != PUBKEY_COMPRESSED_SIZE_BYTES);
+            err = err || err2;
+            if (err2)
+            {
+                LOG_MESSAGE("Error: Commit octet conversion failed");
+                return false;
+            }
+
+            // Hash commitment
+            sha2.Update(buf);
+
+            // Reset buf
+            fill(buf.begin(), buf.end(), 0x00);
+
+            // 4.2 Convert the public key to octets
+            err2 = (EC_POINT_point2oct(m_curve.m_group.get(), pubkey.m_P.get(),
+                                    POINT_CONVERSION_COMPRESSED, buf.data(),
+                                    PUBKEY_COMPRESSED_SIZE_BYTES, NULL)
+                    != PUBKEY_COMPRESSED_SIZE_BYTES);
+            err = err || err2;
+            if (err2)
+            {
+                LOG_MESSAGE("Error: Pubkey octet conversion failed");
+                return false;
+            }
+
+            // Hash public key
+            sha2.Update(buf);
+
+            // 4.3 Hash message
+            sha2.Update(message, offset, size);
+            vector<unsigned char> digest = sha2.Finalize();
+
+            // 5. return r' == r
+            err2 = (BN_bin2bn(digest.data(), digest.size(), challenge_built.get())
+                    == NULL);
+            err = err || err2;
+            if (err2)
+            {
+                LOG_MESSAGE("Error: Challenge bin2bn conversion failed");
+                return false;
+            }
+
+            err2 = (BN_nnmod(challenge_built.get(), challenge_built.get(),
+                            m_curve.m_order.get(), NULL)
+                    == 0);
+            err = err || err2;
+            if (err2)
+            {
+                LOG_MESSAGE("Error: Challenge rebuild mod failed");
+                return false;
+            }
+
+            sha2.Reset();
+        }
+        else
+        {
+            LOG_MESSAGE("Error: Memory allocation failure");
+            // throw exception();
             return false;
         }
-
-        err2 = (BN_nnmod(challenge_built.get(), challenge_built.get(),
-                         m_curve.m_order.get(), NULL)
-                == 0);
-        err = err || err2;
-        if (err2)
-        {
-            LOG_MESSAGE("Error: Challenge rebuild mod failed");
-            return false;
-        }
-
-        sha2.Reset();
     }
-    else
+    catch(const std::exception& e)
     {
-        LOG_MESSAGE("Error: Memory allocation failure");
-        // throw exception();
+        LOG_MESSAGE("ERROR: Error with Schnorr::Verify." << ' ' << e.what());
         return false;
+
     }
 
     return (!err) && (BN_cmp(challenge_built.get(), toverify.m_r.get()) == 0);
