@@ -96,6 +96,8 @@ const unsigned int TX_SHARING_CLUSTER_SIZE{
     ReadFromConstantsFile("TX_SHARING_CLUSTER_SIZE")};
 const unsigned int NUM_LOOKUP_USE_FOR_SYNC{
     ReadFromConstantsFile("NUM_LOOKUP_USE_FOR_SYNC")};
+const unsigned int N_PREFILLED_PER_ACCOUNT{
+    ReadFromConstantsFile("N_PREFILLED_PER_ACCOUNT")};
 const std::vector<std::string> GENESIS_WALLETS{
     ReadAccountsFromConstantsFile("wallet_address")};
 const std::vector<std::string> GENESIS_KEYS{
