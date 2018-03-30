@@ -900,7 +900,7 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
 
         // Regenerate the commitmment part of the signature
         unique_ptr<BIGNUM, void (*)(BIGNUM*)> challenge_built(BN_new(),
-                                                            BN_clear_free);
+                                                              BN_clear_free);
         unique_ptr<EC_POINT, void (*)(EC_POINT*)> Q(
             EC_POINT_new(m_curve.m_group.get()), EC_POINT_clear_free);
         unique_ptr<BN_CTX, void (*)(BN_CTX*)> ctx(BN_CTX_new(), BN_CTX_free);
@@ -909,7 +909,8 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
         {
             // 1. Check if r,s is in [1, ..., order-1]
             err2 = (BN_is_zero(toverify.m_r.get())
-                    || (BN_cmp(toverify.m_r.get(), m_curve.m_order.get()) != -1));
+                    || (BN_cmp(toverify.m_r.get(), m_curve.m_order.get())
+                        != -1));
             err = err || err2;
             if (err2)
             {
@@ -918,7 +919,8 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
             }
 
             err2 = (BN_is_zero(toverify.m_s.get())
-                    || (BN_cmp(toverify.m_s.get(), m_curve.m_order.get()) != -1));
+                    || (BN_cmp(toverify.m_s.get(), m_curve.m_order.get())
+                        != -1));
             err = err || err2;
             if (err2)
             {
@@ -927,8 +929,9 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
             }
 
             // 2. Compute Q = sG + r*kpub
-            err2 = (EC_POINT_mul(m_curve.m_group.get(), Q.get(), toverify.m_s.get(),
-                                pubkey.m_P.get(), toverify.m_r.get(), ctx.get())
+            err2 = (EC_POINT_mul(m_curve.m_group.get(), Q.get(),
+                                 toverify.m_s.get(), pubkey.m_P.get(),
+                                 toverify.m_r.get(), ctx.get())
                     == 0);
             err = err || err2;
             if (err2)
@@ -949,8 +952,8 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
             // 4. r' = H(Q, kpub, m)
             // 4.1 Convert the committment to octets first
             err2 = (EC_POINT_point2oct(m_curve.m_group.get(), Q.get(),
-                                    POINT_CONVERSION_COMPRESSED, buf.data(),
-                                    PUBKEY_COMPRESSED_SIZE_BYTES, NULL)
+                                       POINT_CONVERSION_COMPRESSED, buf.data(),
+                                       PUBKEY_COMPRESSED_SIZE_BYTES, NULL)
                     != PUBKEY_COMPRESSED_SIZE_BYTES);
             err = err || err2;
             if (err2)
@@ -967,8 +970,8 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
 
             // 4.2 Convert the public key to octets
             err2 = (EC_POINT_point2oct(m_curve.m_group.get(), pubkey.m_P.get(),
-                                    POINT_CONVERSION_COMPRESSED, buf.data(),
-                                    PUBKEY_COMPRESSED_SIZE_BYTES, NULL)
+                                       POINT_CONVERSION_COMPRESSED, buf.data(),
+                                       PUBKEY_COMPRESSED_SIZE_BYTES, NULL)
                     != PUBKEY_COMPRESSED_SIZE_BYTES);
             err = err || err2;
             if (err2)
@@ -985,7 +988,8 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
             vector<unsigned char> digest = sha2.Finalize();
 
             // 5. return r' == r
-            err2 = (BN_bin2bn(digest.data(), digest.size(), challenge_built.get())
+            err2 = (BN_bin2bn(digest.data(), digest.size(),
+                              challenge_built.get())
                     == NULL);
             err = err || err2;
             if (err2)
@@ -995,7 +999,7 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
             }
 
             err2 = (BN_nnmod(challenge_built.get(), challenge_built.get(),
-                            m_curve.m_order.get(), NULL)
+                             m_curve.m_order.get(), NULL)
                     == 0);
             err = err || err2;
             if (err2)
@@ -1012,15 +1016,14 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
             // throw exception();
             return false;
         }
+        return (!err)
+            && (BN_cmp(challenge_built.get(), toverify.m_r.get()) == 0);
     }
-    catch(const std::exception& e)
+    catch (const std::exception& e)
     {
         LOG_MESSAGE("ERROR: Error with Schnorr::Verify." << ' ' << e.what());
         return false;
-
     }
-
-    return (!err) && (BN_cmp(challenge_built.get(), toverify.m_r.get()) == 0);
 }
 
 void Schnorr::PrintPoint(const EC_POINT* point)
