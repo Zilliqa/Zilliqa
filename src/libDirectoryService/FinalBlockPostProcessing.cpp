@@ -284,7 +284,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
 
     // TODO: Refine this
     unsigned int nodeToSendToLookUpLo = COMM_SIZE / 4;
-    unsigned int nodeToSendToLookUpHi = COMM_SIZE + TX_SHARING_CLUSTER_SIZE;
+    unsigned int nodeToSendToLookUpHi
+        = nodeToSendToLookUpLo + TX_SHARING_CLUSTER_SIZE;
 
     if (m_consensusMyID > nodeToSendToLookUpLo
         && m_consensusMyID < nodeToSendToLookUpHi)
