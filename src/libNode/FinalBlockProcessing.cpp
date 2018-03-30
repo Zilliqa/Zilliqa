@@ -377,10 +377,8 @@ void Node::CommitMyShardsMicroBlock(const TxBlock& finalblock,
 
     // Loop through transactions in block
     const vector<TxnHash>& tx_hashes = m_microblock->GetTranHashes();
-    for (unsigned int i = 0; i < tx_hashes.size(); i++)
+    for (const auto& tx_hash : tx_hashes)
     {
-        const TxnHash& tx_hash = tx_hashes.at(i);
-
         if (FindTxnInSubmittedTxnsList(finalblock, blocknum, sharing_mode,
                                        txns_to_send, tx_hash))
         {
@@ -437,17 +435,16 @@ void Node::BroadcastTransactionsToSendingAssignment(
              forwardtxn_message.begin() + cur_offset);
         cur_offset += TRAN_HASH_SIZE;
 
-        for (unsigned int i = 0; i < txns_to_send.size(); i++)
+        for (auto& i : txns_to_send)
         {
             // txn body
-            txns_to_send.at(i).Serialize(forwardtxn_message, cur_offset);
+            i.Serialize(forwardtxn_message, cur_offset);
             cur_offset += Transaction::GetSerializedSize();
 
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "[TXN] ["
-                             << blocknum << "] Broadcasted   = 0x"
-                             << DataConversion::charArrToHexStr(
-                                    txns_to_send.at(i).GetTranID().asArray()));
+                         "[TXN] [" << blocknum << "] Broadcasted   = 0x"
+                                   << DataConversion::charArrToHexStr(
+                                          i.GetTranID().asArray()));
         }
 
         P2PComm::GetInstance().SendBroadcastMessage(sendingAssignment,
@@ -501,10 +498,8 @@ void Node::LoadForwardingAssignmentFromFinalBlock(
         peers.push_back(m_myShardMembersNetworkInfo.at(i));
     }
 
-    for (unsigned int i = 0; i < fellowForwarderNodes.size(); i++)
+    for (auto fellowforwarder : fellowForwarderNodes)
     {
-        Peer fellowforwarder = fellowForwarderNodes[i];
-
         for (unsigned int j = 0; j < peers.size(); j++)
         {
             if (peers.at(j) == fellowforwarder)
@@ -516,10 +511,9 @@ void Node::LoadForwardingAssignmentFromFinalBlock(
         }
     }
 
-    for (unsigned int i = 0; i < peers.size(); i++)
+    for (const auto& peer : peers)
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     peers.at(i));
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), peer);
     }
 }
 
@@ -953,9 +947,9 @@ void Node::CallActOnFinalBlockBasedOnSenderForwarderAssgn(
             }
 
             const vector<Peer>& shard = nodes.at(i);
-            for (unsigned int j = 0; j < shard.size(); j++)
+            for (const auto& j : shard)
             {
-                nodes_to_send.push_back(shard[j]);
+                nodes_to_send.push_back(j);
             }
         }
 
@@ -982,9 +976,9 @@ void Node::CallActOnFinalBlockBasedOnSenderForwarderAssgn(
             }
 
             const vector<Peer>& shard = nodes.at(i);
-            for (unsigned int j = 0; j < shard.size(); j++)
+            for (const auto& j : shard)
             {
-                fellowForwarderNodes.push_back(shard[j]);
+                fellowForwarderNodes.push_back(j);
             }
         }
 

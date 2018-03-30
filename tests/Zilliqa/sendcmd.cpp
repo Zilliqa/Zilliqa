@@ -161,17 +161,14 @@ int main(int argc, const char* argv[])
         {"cmd", &process_cmd},
     };
 
-    const int num_handlers
-        = sizeof(message_handlers) / sizeof(message_handlers[0]);
-
     bool processed = false;
-    for (int i = 0; i < num_handlers; i++)
+    for (auto message_handler : message_handlers)
     {
-        if (!strcmp(instruction, message_handlers[i].ins))
+        if (!strcmp(instruction, message_handler.ins))
         {
-            (*message_handlers[i].func)(
-                argc - 3, argv[0], argv[2],
-                static_cast<unsigned int>(atoi(argv[1])), argv + 3);
+            (*message_handler.func)(argc - 3, argv[0], argv[2],
+                                    static_cast<unsigned int>(atoi(argv[1])),
+                                    argv + 3);
             processed = true;
             break;
         }

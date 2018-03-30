@@ -704,10 +704,9 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
 
     // Now I need to find my index in the sorted list (this will be my ID for the consensus)
     m_consensusMyID = 0;
-    for (auto i = m_mediator.m_DSCommitteePubKeys.begin();
-         i != m_mediator.m_DSCommitteePubKeys.end(); i++)
+    for (auto& m_DSCommitteePubKey : m_mediator.m_DSCommitteePubKeys)
     {
-        if (*i == m_mediator.m_selfKey.second)
+        if (m_DSCommitteePubKey == m_mediator.m_selfKey.second)
         {
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                          "My node ID for this PoW1 consensus is "

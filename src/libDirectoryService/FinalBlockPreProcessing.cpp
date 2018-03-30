@@ -846,17 +846,15 @@ void DirectoryService::SaveTxnBodySharingAssignment(
     if ((i_am_forwarder == true)
         && (m_mediator.m_DSCommitteeNetworkInfo.size() > num_ds_nodes))
     {
-        for (unsigned int i = 0; i < m_mediator.m_DSCommitteeNetworkInfo.size();
-             i++)
+        for (auto& i : m_mediator.m_DSCommitteeNetworkInfo)
         {
             bool is_a_receiver = false;
 
             if (num_ds_nodes > 0)
             {
-                for (unsigned int j = 0; j < ds_receivers.size(); j++)
+                for (const auto& ds_receiver : ds_receivers)
                 {
-                    if (m_mediator.m_DSCommitteeNetworkInfo.at(i)
-                        == ds_receivers.at(j))
+                    if (i == ds_receiver)
                     {
                         is_a_receiver = true;
                         break;
@@ -867,8 +865,7 @@ void DirectoryService::SaveTxnBodySharingAssignment(
 
             if (is_a_receiver == false)
             {
-                m_sharingAssignment.push_back(
-                    m_mediator.m_DSCommitteeNetworkInfo.at(i));
+                m_sharingAssignment.push_back(i);
             }
         }
     }

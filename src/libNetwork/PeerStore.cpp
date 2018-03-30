@@ -53,9 +53,9 @@ vector<Peer> PeerStore::GetAllPeers() const
 {
     vector<Peer> result;
 
-    for (auto it = m_store.begin(); it != m_store.end(); it++)
+    for (const auto& it : m_store)
     {
-        result.push_back(it->second);
+        result.push_back(it.second);
     }
 
     return result;
@@ -65,9 +65,9 @@ vector<PubKey> PeerStore::GetAllKeys() const
 {
     vector<PubKey> result;
 
-    for (auto it = m_store.begin(); it != m_store.end(); it++)
+    for (const auto& it : m_store)
     {
-        result.push_back(it->first);
+        result.push_back(it.first);
     }
 
     return result;

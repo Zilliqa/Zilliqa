@@ -338,9 +338,9 @@ BOOST_AUTO_TEST_CASE(testThreadSafety)
     std::cout << "Launched from the main\n";
 
     //Join the threads with the main thread
-    for (int i = 0; i < num_threads; ++i)
+    for (auto& i : t)
     {
-        t[i].join();
+        i.join();
     }
 }
 

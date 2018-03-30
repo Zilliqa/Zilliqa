@@ -73,9 +73,9 @@ bool ConsensusUser::ProcessSetLeader(const vector<unsigned char>& message,
 
     // Now I need to find my index in the sorted list (this will be my ID for the consensus)
     uint16_t my_id = 0;
-    for (auto i = pubkeys.begin(); i != pubkeys.end(); i++)
+    for (auto& pubkey : pubkeys)
     {
-        if (*i == m_selfKey.second)
+        if (pubkey == m_selfKey.second)
         {
             LOG_MESSAGE("My node ID for this consensus is " << my_id);
             break;

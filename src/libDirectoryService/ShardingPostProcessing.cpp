@@ -61,23 +61,21 @@ unsigned int DirectoryService::SerializeEntireShardingStructure(
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                      "Shard size = " << it_vec->size());
 
-        for (auto it_map = it_vec->begin(); it_map != it_vec->end(); it_map++)
+        for (auto& it_map : *it_vec)
         {
             // 33-byte public key
-            (*it_map).first.Serialize(sharding_message, curr_offset);
+            it_map.first.Serialize(sharding_message, curr_offset);
             curr_offset += PUB_KEY_SIZE;
 
             // 16-byte ip + 4-byte port
-            (*it_map).second.Serialize(sharding_message, curr_offset);
+            it_map.second.Serialize(sharding_message, curr_offset);
             curr_offset += IP_SIZE + PORT_SIZE;
 
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "PubKey: " << DataConversion::SerializableToHexStr(
-                                           (*it_map).first)
-                                    << " IP: "
-                                    << (*it_map).second.GetPrintableIPAddress()
-                                    << " Port: "
-                                    << (*it_map).second.m_listenPortHost);
+            LOG_MESSAGE2(
+                to_string(m_mediator.m_currentEpochNum).c_str(),
+                "PubKey: " << DataConversion::SerializableToHexStr(it_map.first)
+                           << " IP: " << it_map.second.GetPrintableIPAddress()
+                           << " Port: " << it_map.second.m_listenPortHost);
         }
     }
 
@@ -357,22 +355,17 @@ bool DirectoryService::ProcessShardingConsensus(
     }
     else if (state == ConsensusCommon::State::ERROR)
     {
-        for (unsigned int i = 0; i < m_mediator.m_DSCommitteeNetworkInfo.size();
-             i++)
+        for (auto& i : m_mediator.m_DSCommitteeNetworkInfo)
         {
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         string(m_mediator.m_DSCommitteeNetworkInfo[i]
-                                    .GetPrintableIPAddress())
-                             + ":"
-                             + to_string(m_mediator.m_DSCommitteeNetworkInfo[i]
-                                             .m_listenPortHost));
+                         string(i.GetPrintableIPAddress()) + ":"
+                             + to_string(i.m_listenPortHost));
         }
-        for (unsigned int i = 0; i < m_mediator.m_DSCommitteePubKeys.size();
-             i++)
+        for (const auto& m_DSCommitteePubKey : m_mediator.m_DSCommitteePubKeys)
         {
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         DataConversion::SerializableToHexStr(
-                             m_mediator.m_DSCommitteePubKeys[i]));
+            LOG_MESSAGE2(
+                to_string(m_mediator.m_currentEpochNum).c_str(),
+                DataConversion::SerializableToHexStr(m_DSCommitteePubKey));
         }
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                      "Oops, no consensus reached - what to do now???");
