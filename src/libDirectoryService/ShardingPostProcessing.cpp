@@ -306,7 +306,7 @@ bool DirectoryService::ProcessShardingConsensus(
 #endif // STAT_TEST
 
         // TODO: Refine this
-        unsigned int nodeToSendToLookUpLo = COMM_SIZE / 2;
+        unsigned int nodeToSendToLookUpLo = COMM_SIZE / 4;
         unsigned int nodeToSendToLookUpHi = COMM_SIZE + TX_SHARING_CLUSTER_SIZE;
 
         if (m_consensusMyID > nodeToSendToLookUpLo
