@@ -708,7 +708,7 @@ bool Node::ProcessCreateTransaction(const vector<unsigned char>& message,
     LOG_MARKER();
 
     // vector<Transaction> txnToCreate;
-    size_t nTxn{10};
+    size_t nTxnPerAccount{N_PREFILLED_PER_ACCOUNT};
 
     // if (not GetOneGoodKeyPair(senderPrivKey, senderPubKey, m_myShardID,
     // m_numShards))
@@ -724,14 +724,15 @@ bool Node::ProcessCreateTransaction(const vector<unsigned char>& message,
         auto privKey = PrivKey{privKeyBytes, 0};
         auto pubKey = PubKey{privKey};
         auto addr = Account::GetAddressFromPublicKey(pubKey);
-        auto txns = genTransactionBulk(privKey, pubKey, nTxn);
+        auto txns = genTransactionBulk(privKey, pubKey, nTxnPerAccount);
 
         lock_guard<mutex> lg{m_mutexPrefilledTxns};
 
         auto& txnsDst = m_prefilledTxns[addr];
         txnsDst.insert(txnsDst.end(), txns.begin(), txns.end());
 
-        LOG_MESSAGE("prefilled " << nTxn << " txns with fromAddr " << addr);
+        LOG_MESSAGE("prefilled " << nTxnPerAccount << " txns with fromAddr "
+                                 << addr);
     }
 
     // {
