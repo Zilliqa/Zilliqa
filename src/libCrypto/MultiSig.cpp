@@ -750,7 +750,8 @@ MultiSig::AggregateResponses(const vector<Response>& responses)
     if (ctx == nullptr)
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
+        return nullptr;
     }
 
     for (unsigned int i = 1; i < responses.size(); i++)

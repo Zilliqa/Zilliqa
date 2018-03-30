@@ -56,7 +56,7 @@ void DirectoryService::StoreDSBlockToStorage()
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                      "Error. We failed to add pendingdsblock to dsblockchain.");
-        throw exception();
+        // throw exception();
     }
 
     // Store DS Block to disk

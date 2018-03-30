@@ -441,7 +441,8 @@ bool PubKey::operator<(const PubKey& r) const
     if (ctx == nullptr)
     {
         LOG_MESSAGE("Error: Memory allocation failure");
-        throw exception();
+        // throw exception();
+        return false;
     }
 
     shared_ptr<BIGNUM> lhs_bnvalue(
