@@ -60,7 +60,7 @@ public:
     }
 
     /// Destructor.
-    ~SHA2() {}
+    ~SHA2() = default;
 
     /// Hash update function.
     void Update(const std::vector<unsigned char>& input)

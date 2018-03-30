@@ -28,7 +28,7 @@ unsigned char LOW_BITS_MASK = 0x0F;
 unsigned char ACC_COND = 0x1;
 unsigned char TX_COND = 0x2;
 
-Transaction::Transaction() {}
+Transaction::Transaction() = default;
 
 Transaction::Transaction(const vector<unsigned char>& src, unsigned int offset)
 {

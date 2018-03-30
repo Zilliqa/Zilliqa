@@ -49,7 +49,7 @@ public:
     }
 
     /// Destructor.
-    ~SHA3() {}
+    ~SHA3() = default;
 
     /// Hash update function.
     void Update(const std::vector<unsigned char>& input)

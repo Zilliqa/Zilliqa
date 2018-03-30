@@ -56,7 +56,7 @@ Lookup::Lookup(Mediator& mediator)
 #endif // IS_LOOKUP_NODE
 }
 
-Lookup::~Lookup() {}
+Lookup::~Lookup() = default;
 
 void Lookup::AppendTimestamp(vector<unsigned char>& message,
                              unsigned int& offset)

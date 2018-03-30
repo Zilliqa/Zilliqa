@@ -1076,7 +1076,7 @@ ConsensusLeader::ConsensusLeader(
     m_shardCommitFailureHandlerFunc = shardCommitFailureHandlerFunc;
 }
 
-ConsensusLeader::~ConsensusLeader() {}
+ConsensusLeader::~ConsensusLeader() = default;
 
 bool ConsensusLeader::StartConsensus(const vector<unsigned char>& message)
 {

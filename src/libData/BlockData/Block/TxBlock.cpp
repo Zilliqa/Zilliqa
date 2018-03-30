@@ -142,7 +142,7 @@ unsigned int TxBlock::GetMinSize()
 }
 
 // creates a dummy invalid placeholder block -- blocknum is maxsize of uint256
-TxBlock::TxBlock() {}
+TxBlock::TxBlock() = default;
 
 TxBlock::TxBlock(const vector<unsigned char>& src, unsigned int offset)
 {

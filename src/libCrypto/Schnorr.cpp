@@ -58,7 +58,7 @@ Curve::Curve()
     }
 }
 
-Curve::~Curve() {}
+Curve::~Curve() = default;
 
 shared_ptr<BIGNUM> BIGNUMSerialize::GetNumber(const vector<unsigned char>& src,
                                               unsigned int offset,
@@ -246,7 +246,7 @@ PrivKey::PrivKey(const PrivKey& src)
     }
 }
 
-PrivKey::~PrivKey() {}
+PrivKey::~PrivKey() = default;
 
 bool PrivKey::Initialized() const { return m_initialized; }
 
@@ -386,7 +386,7 @@ PubKey::PubKey(const PubKey& src)
     }
 }
 
-PubKey::~PubKey() {}
+PubKey::~PubKey() = default;
 
 bool PubKey::Initialized() const { return m_initialized; }
 
@@ -548,7 +548,7 @@ Signature::Signature(const Signature& src)
     }
 }
 
-Signature::~Signature() {}
+Signature::~Signature() = default;
 
 bool Signature::Initialized() const { return m_initialized; }
 
@@ -619,9 +619,9 @@ bool Signature::operator==(const Signature& r) const
                 && (BN_cmp(m_s.get(), r.m_s.get()) == 0)));
 }
 
-Schnorr::Schnorr() {}
+Schnorr::Schnorr() = default;
 
-Schnorr::~Schnorr() {}
+Schnorr::~Schnorr() = default;
 
 Schnorr& Schnorr::GetInstance()
 {

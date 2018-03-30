@@ -125,7 +125,7 @@ unsigned int MicroBlock::GetMinSize()
 }
 
 // creates a dummy invalid placeholder block -- blocknum is maxsize of uint256
-MicroBlock::MicroBlock() {}
+MicroBlock::MicroBlock() = default;
 
 MicroBlock::MicroBlock(const vector<unsigned char>& src, unsigned int offset)
 {

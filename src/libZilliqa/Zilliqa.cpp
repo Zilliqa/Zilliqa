@@ -106,7 +106,7 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
 #endif // IS_LOOKUP_NODE
 }
 
-Zilliqa::~Zilliqa() {}
+Zilliqa::~Zilliqa() = default;
 
 void Zilliqa::Dispatch(const vector<unsigned char>& message, const Peer& from)
 {

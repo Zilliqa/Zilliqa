@@ -37,7 +37,7 @@ Mediator::Mediator(pair<PrivKey, PubKey> key, Peer peer)
     m_isRetrievedHistory = false;
 }
 
-Mediator::~Mediator() {}
+Mediator::~Mediator() = default;
 
 void Mediator::RegisterColleagues(DirectoryService* ds, Node* node,
                                   Lookup* lookup)

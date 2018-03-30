@@ -48,7 +48,7 @@ public:
     }
 
     /// Virtual destructor.
-    virtual ~Broadcastable() {}
+    virtual ~Broadcastable() = default;
 };
 
 #endif // __BROADCASTABLE_H__

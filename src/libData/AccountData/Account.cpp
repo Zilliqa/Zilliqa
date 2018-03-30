@@ -13,7 +13,7 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-Account::Account() {}
+Account::Account() = default;
 
 Account::Account(const vector<unsigned char>& src, unsigned int offset)
 {

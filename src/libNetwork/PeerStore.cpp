@@ -18,9 +18,9 @@
 
 using namespace std;
 
-PeerStore::PeerStore() {}
+PeerStore::PeerStore() = default;
 
-PeerStore::~PeerStore() {}
+PeerStore::~PeerStore() = default;
 
 PeerStore& PeerStore::GetStore()
 {

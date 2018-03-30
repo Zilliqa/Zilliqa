@@ -90,8 +90,6 @@ Node::Node(Mediator& mediator, bool toRetrieveHistory)
     this->Prepare(runInitializeGenesisBlocks);
 }
 
-Node::~Node() {}
-
 void Node::Init()
 {
     // Zilliqa first epoch start from 1 not 0. So for the first DS epoch, there will be 1 less mini epoch only for the first DS epoch.
@@ -120,6 +118,8 @@ void Node::Prepare(bool runInitializeGenesisBlocks)
     POW::GetInstance().EthashConfigureLightClient(
         (uint64_t)m_mediator.m_dsBlockChain.GetBlockCount());
 }
+
+Node::~Node() = default;
 
 bool Node::StartRetrieveHistory()
 {

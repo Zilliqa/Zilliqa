@@ -53,7 +53,7 @@ DirectoryService::DirectoryService(Mediator& mediator)
     m_viewChangeCounter = 0;
 }
 
-DirectoryService::~DirectoryService() {}
+DirectoryService::~DirectoryService() = default;
 
 #ifndef IS_LOOKUP_NODE
 bool DirectoryService::CheckState(Action action)

@@ -930,7 +930,7 @@ ConsensusBackup::ConsensusBackup(
     m_msgContentValidator = msg_validator;
 }
 
-ConsensusBackup::~ConsensusBackup() {}
+ConsensusBackup::~ConsensusBackup() = default;
 
 bool ConsensusBackup::ProcessMessage(const vector<unsigned char>& message,
                                      unsigned int offset, const Peer& from)

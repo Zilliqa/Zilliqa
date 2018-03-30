@@ -19,9 +19,9 @@
 
 using namespace std;
 
-Scheduler::Scheduler() {}
+Scheduler::Scheduler() = default;
 
-Scheduler::~Scheduler() {}
+Scheduler::~Scheduler() = default;
 
 void Scheduler::ServiceQueue()
 {

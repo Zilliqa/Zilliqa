@@ -30,7 +30,7 @@ public:
         = 0;
 
     /// Virtual destructor.
-    virtual ~Executable() {}
+    virtual ~Executable() = default;
 };
 
 #endif // __EXECUTABLE_H__

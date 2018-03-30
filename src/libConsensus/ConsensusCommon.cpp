@@ -105,7 +105,7 @@ ConsensusCommon::ConsensusCommon(
     m_insByte = ins_byte;
 }
 
-ConsensusCommon::~ConsensusCommon() {}
+ConsensusCommon::~ConsensusCommon() = default;
 
 Signature ConsensusCommon::SignMessage(const vector<unsigned char>& msg,
                                        unsigned int offset, unsigned int size)

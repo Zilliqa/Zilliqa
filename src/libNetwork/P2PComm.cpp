@@ -61,9 +61,9 @@ static void close_socket(int* cli_sock)
     }
 }
 
-P2PComm::P2PComm() {}
+P2PComm::P2PComm() = default;
 
-P2PComm::~P2PComm() {}
+P2PComm::~P2PComm() = default;
 
 P2PComm& P2PComm::GetInstance()
 {

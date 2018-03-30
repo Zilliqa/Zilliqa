@@ -90,7 +90,7 @@ CommitSecret::CommitSecret(const CommitSecret& src)
     }
 }
 
-CommitSecret::~CommitSecret() {}
+CommitSecret::~CommitSecret() = default;
 
 bool CommitSecret::Initialized() const { return m_initialized; }
 
@@ -202,7 +202,7 @@ CommitPoint::CommitPoint(const CommitPoint& src)
     }
 }
 
-CommitPoint::~CommitPoint() {}
+CommitPoint::~CommitPoint() = default;
 
 bool CommitPoint::Initialized() const { return m_initialized; }
 
@@ -344,7 +344,7 @@ Challenge::Challenge(const Challenge& src)
     }
 }
 
-Challenge::~Challenge() {}
+Challenge::~Challenge() = default;
 
 bool Challenge::Initialized() const { return m_initialized; }
 
@@ -538,7 +538,7 @@ Response::Response(const Response& src)
     }
 }
 
-Response::~Response() {}
+Response::~Response() = default;
 
 bool Response::Initialized() const { return m_initialized; }
 

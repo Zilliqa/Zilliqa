@@ -22,7 +22,7 @@ using namespace boost::multiprecision;
 
 TxBlockChain::TxBlockChain() { m_txBlocks.resize(TX_BLOCKCHAIN_SIZE); }
 
-TxBlockChain::~TxBlockChain() {}
+TxBlockChain::~TxBlockChain() = default;
 
 void TxBlockChain::Reset() { m_txBlocks.resize(TX_BLOCKCHAIN_SIZE); }
 

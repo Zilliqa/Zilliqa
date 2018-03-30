@@ -189,7 +189,7 @@ ConsensusUser::ConsensusUser(pair<PrivKey, PubKey> key, Peer peer)
     m_leaderOrBackup = false;
 }
 
-ConsensusUser::~ConsensusUser() {}
+ConsensusUser::~ConsensusUser() = default;
 
 bool ConsensusUser::Execute(const vector<unsigned char>& message,
                             unsigned int offset, const Peer& from)

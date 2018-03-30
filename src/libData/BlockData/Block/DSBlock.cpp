@@ -23,7 +23,7 @@ using namespace std;
 using namespace boost::multiprecision;
 
 // creates a dummy invalid placeholder block -- blocknum is maxsize of uint256
-DSBlock::DSBlock() {}
+DSBlock::DSBlock() = default;
 
 // To-do: handle exceptions. Will be deprecated.
 DSBlock::DSBlock(const vector<unsigned char>& src, unsigned int offset)

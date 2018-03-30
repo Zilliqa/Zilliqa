@@ -219,7 +219,7 @@ PeerManager::PeerManager(std::pair<PrivKey, PubKey> key, Peer peer,
     }
 }
 
-PeerManager::~PeerManager() {}
+PeerManager::~PeerManager() = default;
 
 bool PeerManager::Execute(const vector<unsigned char>& message,
                           unsigned int offset, const Peer& from)
