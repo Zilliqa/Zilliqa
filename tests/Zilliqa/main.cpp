@@ -15,7 +15,7 @@
 **/
 
 #include <execinfo.h> // for backtrace
-#include <signal.h>
+#include <csignal>
 
 #include "libUtils/Logger.h"
 #include <algorithm>

@@ -15,12 +15,12 @@
 **/
 
 #include <cstring>
-#include <errno.h>
+#include <cerrno>
 #include <memory>
 #include <random>
 #include <netinet/in.h>
-#include <signal.h>
-#include <stdint.h>
+#include <csignal>
+#include <cstdint>
 #include <sys/socket.h>
 #include <unistd.h>
 

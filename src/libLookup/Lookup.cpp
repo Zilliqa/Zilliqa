@@ -16,12 +16,12 @@
 
 #include <arpa/inet.h>
 #include <cstring>
-#include <errno.h>
+#include <cerrno>
 #include <exception>
 #include <fstream>
 #include <netinet/in.h>
 #include <random>
-#include <stdint.h>
+#include <cstdint>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <unordered_set>

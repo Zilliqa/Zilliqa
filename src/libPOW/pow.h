@@ -20,7 +20,7 @@
 #include <array>
 #include <boost/multiprecision/cpp_int.hpp>
 #include <mutex>
-#include <stdint.h>
+#include <cstdint>
 #include <string>
 #include <thread>
 #include <vector>

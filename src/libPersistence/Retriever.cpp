@@ -18,7 +18,7 @@
 
 #include <algorithm>
 #include <exception>
-#include <stdlib.h>
+#include <cstdlib>
 #include <vector>
 
 #include <boost/filesystem.hpp>
