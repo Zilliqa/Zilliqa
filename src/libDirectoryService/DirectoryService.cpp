@@ -1214,8 +1214,6 @@ bool DirectoryService::ProcessInitViewChange(
         m_viewChangeCounter++;
         m_mode = PRIMARY_DS;
 
-        LOG_MESSAGE("vcc " << m_viewChangeCounter);
-
         // Re-run consensus
         switch (viewChangeDSState)
         {

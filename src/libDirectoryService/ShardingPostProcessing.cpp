@@ -305,8 +305,18 @@ bool DirectoryService::ProcessShardingConsensus(
         }
 #endif // STAT_TEST
 
-        if (m_mode == PRIMARY_DS)
+        // TODO: Refine this
+        unsigned int nodeToSendToLookUpLo = COMM_SIZE / 4;
+        unsigned int nodeToSendToLookUpHi
+            = nodeToSendToLookUpLo + TX_SHARING_CLUSTER_SIZE;
+
+        if (m_consensusMyID > nodeToSendToLookUpLo
+            && m_consensusMyID < nodeToSendToLookUpHi)
         {
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                         "I the DS folks that will soon be sending the "
+                         "sharding structure to the "
+                         "lookup nodes");
             SendEntireShardingStructureToLookupNodes();
         }
 
@@ -366,7 +376,9 @@ bool DirectoryService::ProcessShardingConsensus(
         }
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                      "Oops, no consensus reached - what to do now???");
-        throw exception();
+        // throw exception();
+        // TODO: no consensus reached
+        return false;
     }
 
     return result;

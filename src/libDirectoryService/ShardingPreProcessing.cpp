@@ -294,7 +294,8 @@ bool DirectoryService::ShardingValidator(
                     LOG_MESSAGE2(
                         to_string(m_mediator.m_currentEpochNum).c_str(),
                         "Sharding validator error");
-                    throw exception();
+                    // throw exception();
+                    return false;
                 }
             }
 
@@ -372,7 +373,8 @@ void DirectoryService::RunConsensusOnSharding()
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                      "To-do: Code up the logic for if we didn't get any "
                      "submissions at all");
-        throw exception();
+        // throw exception();
+        return;
     }
 
     if (m_mode == PRIMARY_DS)
@@ -382,7 +384,8 @@ void DirectoryService::RunConsensusOnSharding()
             LOG_MESSAGE2(
                 to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Exception encountered with running sharding on ds leader");
-            throw exception();
+            // throw exception();
+            return;
         }
     }
     else
@@ -392,7 +395,8 @@ void DirectoryService::RunConsensusOnSharding()
             LOG_MESSAGE2(
                 to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Exception encountered with running sharding on ds backup")
-            throw exception();
+            // throw exception();
+            return;
         }
     }
 

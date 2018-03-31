@@ -30,7 +30,8 @@ DB::DB(const string& name)
         = leveldb::DB::Open(options, this->m_db_name, &this->m_db);
     if (!status.ok())
     {
-        throw exception();
+        LOG_MESSAGE("ERROR: Cannot init DB.");
+        // throw exception();
     }
 }
 
