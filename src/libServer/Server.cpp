@@ -354,14 +354,14 @@ Server::GetNumTransactions(boost::multiprecision::uint256_t blockNum)
     boost::multiprecision::uint256_t currBlockNum
         = m_mediator.m_txBlockChain.GetBlockCount() - 1;
 
-    if (blockNum > currBlockNum)
+    if (blockNum >= currBlockNum)
     {
         return 0;
     }
 
     boost::multiprecision::uint256_t i, res = 0;
 
-    for (i = blockNum; i <= currBlockNum; i++)
+    for (i = blockNum + 1; i <= currBlockNum; i++)
     {
 
         res += m_mediator.m_txBlockChain.GetBlock(i).GetHeader().GetNumTxs();
