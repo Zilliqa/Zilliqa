@@ -42,16 +42,21 @@ const unsigned int LEADER_POW2_WINDOW_IN_SECONDS{
     ReadFromConstantsFile("LEADER_POW2_WINDOW_IN_SECONDS")};
 const unsigned int BACKUP_POW2_WINDOW_IN_SECONDS{
     ReadFromConstantsFile("BACKUP_POW2_WINDOW_IN_SECONDS")};
-const unsigned int NEW_NODE_POW2_TIMEOUT_IN_SECONDS{
-    ReadFromConstantsFile("NEW_NODE_POW2_TIMEOUT_IN_SECONDS")};
+const unsigned int NEW_NODE_SYNC_INTERVAL{
+    ReadFromConstantsFile("NEW_NODE_SYNC_INTERVAL")};
 const unsigned int POW_SUB_BUFFER_TIME{
     ReadFromConstantsFile("POW_SUB_BUFFER_TIME")}; //milliseconds
 const unsigned int POW1_DIFFICULTY{ReadFromConstantsFile("POW1_DIFFICULTY")};
 const unsigned int POW2_DIFFICULTY{ReadFromConstantsFile("POW2_DIFFICULTY")};
 const unsigned int MICROBLOCK_TIMEOUT{
     ReadFromConstantsFile("MICROBLOCK_TIMEOUT")};
+const unsigned int VIEWCHANGE_TIME{ReadFromConstantsFile("VIEWCHANGE_TIME")};
 const unsigned int NUM_FINAL_BLOCK_PER_POW{
     ReadFromConstantsFile("NUM_FINAL_BLOCK_PER_POW")};
 const unsigned int NUM_DS_KEEP_TX_BODY{
     ReadFromConstantsFile("NUM_DS_KEEP_TX_BODY")};
 const uint32_t MAXMESSAGE{ReadFromConstantsFile("MAXMESSAGE")};
+const unsigned int MAXSUBMITTXNPERNODE{
+    ReadFromConstantsFile("MAXSUBMITTXNPERNODE")};
+const unsigned int TX_SHARING_CLUSTER_SIZE{
+    ReadFromConstantsFile("TX_SHARING_CLUSTER_SIZE")};

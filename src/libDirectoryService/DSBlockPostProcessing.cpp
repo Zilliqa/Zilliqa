@@ -49,13 +49,14 @@ void DirectoryService::StoreDSBlockToStorage()
             << m_pendingDSBlock->GetHeader().GetBlockNum()
             << " with Nonce: " << m_pendingDSBlock->GetHeader().GetNonce()
             << ", Difficulty: " << m_pendingDSBlock->GetHeader().GetDifficulty()
-            << ", Timestamp: " << m_pendingDSBlock->GetHeader().GetTimestamp());
-
+            << ", Timestamp: " << m_pendingDSBlock->GetHeader().GetTimestamp()
+            << ", vc count: "
+            << m_pendingDSBlock->GetHeader().GetViewChangeCount());
     if (result == -1)
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                      "Error. We failed to add pendingdsblock to dsblockchain.");
-        throw exception();
+        // throw exception();
     }
 
     // Store DS Block to disk
@@ -336,11 +337,19 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
 
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                  "DSBlock to be sent to the lookup nodes");
-    if (m_mode == PRIMARY_DS)
+
+    // TODO: Refine this
+    unsigned int nodeToSendToLookUpLo = COMM_SIZE / 4;
+    unsigned int nodeToSendToLookUpHi
+        = nodeToSendToLookUpLo + TX_SHARING_CLUSTER_SIZE;
+
+    if (m_consensusMyID > nodeToSendToLookUpLo
+        && m_consensusMyID < nodeToSendToLookUpHi)
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "I the primary DS will soon be sending the DSBlock to the "
-                     "lookup nodes");
+        LOG_MESSAGE2(
+            to_string(m_mediator.m_currentEpochNum).c_str(),
+            "I the DS folks that will soon be sending the DSBlock to the "
+            "lookup nodes");
         SendDSBlockToLookupNodes(lastDSBlock, winnerpeer);
     }
 
@@ -435,6 +444,8 @@ bool DirectoryService::ProcessDSBlockConsensus(
 
     if (state == ConsensusCommon::State::DONE)
     {
+        m_viewChangeCounter = 0;
+        cv_RecoveryDSBlockConsensus.notify_all();
         ProcessDSBlockConsensusWhenDone(message, offset);
     }
     else if (state == ConsensusCommon::State::ERROR)
@@ -446,7 +457,9 @@ bool DirectoryService::ProcessDSBlockConsensus(
             "DEBUG for verify sig m_allPoWConns  size is "
                 << m_allPoWConns.size()
                 << ". Please check numbers of pow1 receivied by this node");
-        throw exception();
+
+        // Wait for view change to happen
+        //throw exception();
     }
     else
     {

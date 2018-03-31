@@ -46,7 +46,7 @@ unsigned int DSBlock::Serialize(vector<unsigned char>& dst,
 
     unsigned int header_size_needed = sizeof(uint8_t) + BLOCK_HASH_SIZE
         + UINT256_SIZE + PUB_KEY_SIZE + PUB_KEY_SIZE + UINT256_SIZE
-        + UINT256_SIZE;
+        + UINT256_SIZE + sizeof(unsigned int);
     unsigned int size_needed = header_size_needed + BLOCK_SIG_SIZE;
     unsigned int size_remaining = dst.size() - offset;
 
@@ -70,7 +70,7 @@ int DSBlock::Deserialize(const vector<unsigned char>& src, unsigned int offset)
     {
         unsigned int header_size_needed = sizeof(uint8_t) + BLOCK_HASH_SIZE
             + UINT256_SIZE + PUB_KEY_SIZE + PUB_KEY_SIZE + UINT256_SIZE
-            + UINT256_SIZE;
+            + UINT256_SIZE + sizeof(unsigned int);
 
         DSBlockHeader header;
         if (header.Deserialize(src, offset) != 0)
@@ -96,7 +96,7 @@ unsigned int DSBlock::GetSerializedSize()
 {
     unsigned int header_size_needed = sizeof(uint8_t) + BLOCK_HASH_SIZE
         + UINT256_SIZE + PUB_KEY_SIZE + PUB_KEY_SIZE + UINT256_SIZE
-        + UINT256_SIZE;
+        + UINT256_SIZE + sizeof(unsigned int);
     unsigned int size_needed = header_size_needed + BLOCK_SIG_SIZE;
 
     return size_needed;

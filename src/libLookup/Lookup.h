@@ -17,6 +17,8 @@
 #ifndef __LOOKUP_H__
 #define __LOOKUP_H__
 
+#include <atomic>
+#include <chrono>
 #include <condition_variable>
 #include <map>
 #include <mutex>
@@ -45,6 +47,12 @@ class Lookup : public Executable, public Broadcastable
     // Info about lookup node
     std::vector<Peer> m_lookupNodes;
     std::vector<Peer> m_seedNodes;
+
+    bool m_fetchedDSInfo = false;
+    std::mutex m_mutexDSInfoUpdation;
+    std::condition_variable m_dsInfoUpdateCondition;
+
+    bool CheckStateRoot();
 #endif // IS_LOOKUP_NODE
 
 #ifdef IS_LOOKUP_NODE
@@ -66,6 +74,7 @@ class Lookup : public Executable, public Broadcastable
 
     std::vector<unsigned char> ComposeGetDSInfoMessage();
     std::vector<unsigned char> ComposeGetStateMessage();
+
     std::vector<unsigned char>
     ComposeGetDSBlockMessage(boost::multiprecision::uint256_t lowBlockNum,
                              boost::multiprecision::uint256_t highBlockNum);
