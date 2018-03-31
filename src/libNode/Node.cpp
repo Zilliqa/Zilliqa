@@ -989,8 +989,8 @@ void Node::SubmitTransactions()
             return true;
         };
 
-        // try to find one from prefilled first, then try created
-        if (findOneFromPrefilled(t) || findOneFromCreated(t))
+        // submit the created ones first, then the prefilled ones
+        if (findOneFromCreated(t) || findOneFromPrefilled(t))
         {
             vector<unsigned char> tx_message
                 = {MessageType::NODE, NodeInstructionType::SUBMITTRANSACTION};
