@@ -46,6 +46,8 @@ std::mutex Server::m_mutexRecentTxns;
 
 const unsigned int PAGE_SIZE = 10;
 const unsigned int NUM_PAGES_CACHE = 2;
+const unsigned int TXN_PAGE_SIZE = 100;
+
 Server::Server(Mediator& mediator, HttpServer& httpserver)
     : AbstractZServer(httpserver)
     , m_mediator(mediator)
@@ -60,7 +62,7 @@ Server::Server(Mediator& mediator, HttpServer& httpserver)
     m_TxBlockCache.second.resize(NUM_PAGES_CACHE * PAGE_SIZE);
     m_TxBlockCache.second.push_back(
         "32877419b0d2bf10dee7a7d306deddc5d7d972fa69ae7affcec575781002cfc3");
-    m_RecentTransactions.resize(PAGE_SIZE);
+    m_RecentTransactions.resize(TXN_PAGE_SIZE);
 }
 
 Server::~Server()
