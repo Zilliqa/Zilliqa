@@ -82,6 +82,8 @@ class Lookup : public Executable, public Broadcastable
     ComposeGetTxBlockMessage(boost::multiprecision::uint256_t lowBlockNum,
                              boost::multiprecision::uint256_t highBlockNum);
 
+    void AppendTimestamp(vector<unsigned char>& message, unsigned int& offset);
+
 public:
     /// Constructor.
     Lookup(Mediator& mediator);

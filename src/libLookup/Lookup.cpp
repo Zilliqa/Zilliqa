@@ -58,6 +58,19 @@ Lookup::Lookup(Mediator& mediator)
 
 Lookup::~Lookup() {}
 
+void Lookup::AppendTimestamp(vector<unsigned char>& message, unsigned int& offset)
+{
+    // Append a sending time to avoid message to be discarded
+    uint256_t milliseconds_since_epoch = 
+        std::chrono::system_clock::now().time_since_epoch() / 
+        std::chrono::milliseconds(1);
+
+    Serializable::SetNumber<uint256_t>(message, offset,
+                                        milliseconds_since_epoch, UINT256_SIZE);
+
+    offset += UINT256_SIZE;
+}
+
 #ifndef IS_LOOKUP_NODE
 void Lookup::SetLookupNodes()
 {
@@ -151,6 +164,8 @@ vector<unsigned char> Lookup::ComposeGetDSInfoMessage()
                                       sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
+    AppendTimestamp(getDSNodesMessage, curr_offset);
+
     return getDSNodesMessage;
 }
 
@@ -166,6 +181,8 @@ vector<unsigned char> Lookup::ComposeGetStateMessage()
                                       m_mediator.m_selfPeer.m_listenPortHost,
                                       sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
+
+    AppendTimestamp(getStateMessage, curr_offset);
 
     return getStateMessage;
 }
@@ -215,6 +232,8 @@ vector<unsigned char> Lookup::ComposeGetDSBlockMessage(uint256_t lowBlockNum,
                                       sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
+    AppendTimestamp(getDSBlockMessage, curr_offset);
+
     return getDSBlockMessage;
 }
 
@@ -259,6 +278,8 @@ vector<unsigned char> Lookup::ComposeGetTxBlockMessage(uint256_t lowBlockNum,
                                       m_mediator.m_selfPeer.m_listenPortHost,
                                       sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
+
+    AppendTimestamp(getTxBlockMessage, curr_offset);
 
     return getTxBlockMessage;
 }
@@ -305,6 +326,8 @@ bool Lookup::GetTxBodyFromSeedNodes(string txHashStr)
                                       m_mediator.m_selfPeer.m_listenPortHost,
                                       sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
+
+    AppendTimestamp(getTxBodyMessage, curr_offset);
 
     SendMessageToSeedNodes(getTxBodyMessage);
 
@@ -623,7 +646,7 @@ bool Lookup::ProcessGetDSInfoFromSeed(const vector<unsigned char>& message,
                      "IP:" << peer.GetPrintableIPAddress());
     }
 
-    if (IsMessageSizeInappropriate(message.size(), offset, sizeof(uint32_t)))
+    if (IsMessageSizeInappropriate(message.size(), offset, sizeof(uint32_t) + UINT256_SIZE))
     {
         return false;
     }
@@ -662,7 +685,7 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
 
     if (IsMessageSizeInappropriate(message.size(), offset,
                                    UINT256_SIZE + UINT256_SIZE
-                                       + sizeof(uint32_t)))
+                                       + sizeof(uint32_t) + UINT256_SIZE))
     {
         return false;
     }
@@ -753,8 +776,6 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
     vector<Peer> node;
     node.push_back(requestingNode);
 
-    P2PComm::GetInstance().SendBroadcastMessage(node, dsBlockMessage);
-
     //#endif // IS_LOOKUP_NODE
 
     return true;
@@ -827,7 +848,7 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
 
     if (IsMessageSizeInappropriate(message.size(), offset,
                                    UINT256_SIZE + UINT256_SIZE
-                                       + sizeof(uint32_t)))
+                                       + sizeof(uint32_t) + UINT256_SIZE))
     {
         return false;
     }
@@ -956,7 +977,7 @@ bool Lookup::ProcessGetTxBodyFromSeed(const vector<unsigned char>& message,
 
     // 4-byte portNo
     uint32_t portNo
-        = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
+        = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t) + UINT256_SIZE);
     offset += sizeof(uint32_t);
 
     uint128_t ipAddr = from.m_ipAddress;
