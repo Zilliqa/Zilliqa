@@ -56,7 +56,8 @@ LevelDB::LevelDB(const string & dbName, const string & subdirectory)
 
     if(!status.ok())
     {
-        throw exception();
+        // throw exception();
+        LOG_MESSAGE("ERROR: LevelDS status is not OK.");
     }
 
     m_db.reset(db);
@@ -78,7 +79,8 @@ LevelDB::LevelDB(const string & dbName)
     leveldb::Status status = leveldb::DB::Open(options, path + "/" + this->m_dbName, &db);
     if(!status.ok())
     {
-        throw exception();
+        // throw exception();
+        LOG_MESSAGE("ERROR: LevelDS status is not OK.");
     }
 
     m_db.reset(db);
@@ -364,7 +366,8 @@ bool LevelDB::ResetDB()
         leveldb::Status status = leveldb::DB::Open(options, PERSISTENCE_PATH + "/" + this->m_dbName, &db);
         if(!status.ok())
         {
-            throw exception();
+            // throw exception();
+            LOG_MESSAGE("ERROR: LevelDS status is not OK.");
         }
 
         m_db.reset(db);
@@ -407,7 +410,8 @@ bool LevelDB::ResetDB()
         leveldb::Status status = leveldb::DB::Open(options, path + "/" + this->m_dbName, &db);
         if(!status.ok())
         {
-            throw exception();
+            // throw exception();
+            LOG_MESSAGE("ERROR: LevelDS status is not OK.");
         }
 
         m_db.reset(db);

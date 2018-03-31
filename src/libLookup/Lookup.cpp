@@ -108,14 +108,19 @@ void Lookup::SendMessageToLookupNodes(
     LOG_MARKER();
 
     // LOG_MESSAGE("i am here " << to_string(m_mediator.m_currentEpochNum).c_str())
+    vector<Peer> AllLookupNodes;
+
     for (auto node : m_lookupNodes)
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                      "Sending msg to lookup node "
                          << node.GetPrintableIPAddress() << ":"
                          << node.m_listenPortHost);
-        P2PComm::GetInstance().SendMessage(node, message);
+
+        AllLookupNodes.push_back(node);
     }
+
+    P2PComm::GetInstance().SendBroadcastMessage(AllLookupNodes, message);
 }
 
 void Lookup::SendMessageToSeedNodes(
