@@ -54,12 +54,8 @@ Server::Server(Mediator& mediator, HttpServer& httpserver)
     m_StartTimeDs = 0;
     m_DSBlockCache.first = 0;
     m_DSBlockCache.second.resize(NUM_PAGES_CACHE * PAGE_SIZE);
-    m_DSBlockCache.second.push_back(
-        "6babe1baa82cf5625c33970b8c7dc0f6ae8f5d0f21575efdf2733e3ecef34c78");
     m_TxBlockCache.first = 0;
     m_TxBlockCache.second.resize(NUM_PAGES_CACHE * PAGE_SIZE);
-    m_TxBlockCache.second.push_back(
-        "32877419b0d2bf10dee7a7d306deddc5d7d972fa69ae7affcec575781002cfc3");
     m_RecentTransactions.resize(PAGE_SIZE);
 }
 
@@ -501,6 +497,28 @@ Json::Value Server::DSBlockListing(unsigned int page)
 
     _json["maxPages"] = int(maxPages);
 
+    if (m_DSBlockCache.second.size() == 0)
+    {
+        try
+        {
+            //add the hash of genesis block
+            DSBlockHeader dshead
+                = m_mediator.m_dsBlockChain.GetBlock(0).GetHeader();
+            SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+            vector<unsigned char> vec;
+            dshead.Serialize(vec, 0);
+            sha2.Update(vec);
+            const vector<unsigned char>& resVec = sha2.Finalize();
+            m_DSBlockCache.second.push_back(
+                DataConversion::Uint8VecToHexStr(resVec));
+        }
+        catch (const char* msg)
+        {
+            _json["Error"] = msg;
+            return _json;
+        }
+    }
+
     if (page > maxPages || page < 1)
     {
         _json["Error"] = "Pages out of limit";
@@ -583,6 +601,29 @@ Json::Value Server::TxBlockListing(unsigned int page)
     auto maxPages = (currBlockNum / PAGE_SIZE) + 1;
 
     _json["maxPages"] = int(maxPages);
+
+    if (m_TxBlockCache.second.size() == 0)
+    {
+        try
+        {
+
+            //add the hash of genesis block
+            TxBlockHeader txhead
+                = m_mediator.m_txBlockChain.GetBlock(0).GetHeader();
+            SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+            vector<unsigned char> vec;
+            txhead.Serialize(vec, 0);
+            sha2.Update(vec);
+            const vector<unsigned char>& resVec = sha2.Finalize();
+            m_TxBlockCache.second.push_back(
+                DataConversion::Uint8VecToHexStr(resVec));
+        }
+        catch (const char* msg)
+        {
+            _json["Error"] = msg;
+            return _json;
+        }
+    }
 
     if (page > maxPages || page < 1)
     {
