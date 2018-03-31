@@ -783,6 +783,8 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
     vector<Peer> node;
     node.push_back(requestingNode);
 
+    P2PComm::GetInstance().SendBroadcastMessage(node, dsBlockMessage);
+
     //#endif // IS_LOOKUP_NODE
 
     return true;
