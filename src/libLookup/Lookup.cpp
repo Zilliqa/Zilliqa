@@ -58,15 +58,16 @@ Lookup::Lookup(Mediator& mediator)
 
 Lookup::~Lookup() {}
 
-void Lookup::AppendTimestamp(vector<unsigned char>& message, unsigned int& offset)
+void Lookup::AppendTimestamp(vector<unsigned char>& message,
+                             unsigned int& offset)
 {
     // Append a sending time to avoid message to be discarded
-    uint256_t milliseconds_since_epoch = 
-        std::chrono::system_clock::now().time_since_epoch() / 
-        std::chrono::milliseconds(1);
+    uint256_t milliseconds_since_epoch
+        = std::chrono::system_clock::now().time_since_epoch()
+        / std::chrono::milliseconds(1);
 
     Serializable::SetNumber<uint256_t>(message, offset,
-                                        milliseconds_since_epoch, UINT256_SIZE);
+                                       milliseconds_since_epoch, UINT256_SIZE);
 
     offset += UINT256_SIZE;
 }
@@ -646,7 +647,8 @@ bool Lookup::ProcessGetDSInfoFromSeed(const vector<unsigned char>& message,
                      "IP:" << peer.GetPrintableIPAddress());
     }
 
-    if (IsMessageSizeInappropriate(message.size(), offset, sizeof(uint32_t) + UINT256_SIZE))
+    if (IsMessageSizeInappropriate(message.size(), offset,
+                                   sizeof(uint32_t) + UINT256_SIZE))
     {
         return false;
     }
@@ -976,8 +978,8 @@ bool Lookup::ProcessGetTxBodyFromSeed(const vector<unsigned char>& message,
     curr_offset += Transaction::GetSerializedSize();
 
     // 4-byte portNo
-    uint32_t portNo
-        = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t) + UINT256_SIZE);
+    uint32_t portNo = Serializable::GetNumber<uint32_t>(
+        message, offset, sizeof(uint32_t) + UINT256_SIZE);
     offset += sizeof(uint32_t);
 
     uint128_t ipAddr = from.m_ipAddress;
