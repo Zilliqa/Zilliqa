@@ -48,6 +48,9 @@ const unsigned int PAGE_SIZE = 10;
 const unsigned int NUM_PAGES_CACHE = 2;
 const unsigned int TXN_PAGE_SIZE = 100;
 
+//[warning] do not make this constant too big as it loops over blockchain 
+const unsigned int REF_BLOCK_DIFF = 3;
+
 Server::Server(Mediator& mediator, HttpServer& httpserver)
     : AbstractZServer(httpserver)
     , m_mediator(mediator)
@@ -330,8 +333,6 @@ string Server::GetNumTransactions()
 
     boost::multiprecision::uint256_t currBlock
         = m_mediator.m_txBlockChain.GetBlockCount() - 1;
-    LOG_MESSAGE("currBlock: " << currBlock.str()
-                              << " State: " << m_BlockTxPair.first);
     if (m_BlockTxPair.first < currBlock)
     {
         for (boost::multiprecision::uint256_t i = m_BlockTxPair.first + 1;
@@ -347,34 +348,72 @@ string Server::GetNumTransactions()
     return m_BlockTxPair.second.str();
 }
 
+
+boost::multiprecision::uint256_t Server::GetNumTransactions(boost::multiprecision::uint256_t blockNum)
+{
+    boost::multiprecision::uint256_t currBlockNum
+        = m_mediator.m_txBlockChain.GetBlockCount() - 1;
+
+    if(blockNum > currBlockNum)
+    {
+        return 0;
+    }
+    
+    boost::multiprecision::uint256_t i , res = 0;
+    
+    for(i = blockNum ; i<= currBlockNum ; i++ )
+    {
+        res += m_mediator.m_txBlockChain.GetBlock(i).GetHeader().GetNumTxs();
+    }
+
+    return res;
+
+
+}
 double Server::GetTransactionRate()
 {
     LOG_MARKER();
 
-    string numTxStr = Server::GetNumTransactions();
-    boost::multiprecision::cpp_dec_float_50 numTxns(numTxStr);
-    LOG_MESSAGE("Num Txns: " << numTxns);
+    
 
-    //LOG_MESSAGE("TxBlockStart: "<<m_StartTimeTx<<" NumTxns: "<<numTxns);
+    boost::multiprecision::uint256_t refBlockNum = m_mediator.m_txBlockChain.GetBlockCount() - 1;
 
-    if (m_StartTimeTx == 0) //case when m_StartTime has not been set
+    if(refBlockNum <= REF_BLOCK_DIFF)
     {
-        try
+        if(refBlockNum <= 1)
         {
-            //Refernce time chosen to be the first block's timestamp
-            TxBlock tx = m_mediator.m_txBlockChain.GetBlock(1);
-            m_StartTimeTx = tx.GetHeader().GetTimestamp();
-        }
-        catch (const char* msg)
-        {
-            //cannot set
-            if (strcmp(msg, "Blocknumber Absent") == 0)
-            {
-                LOG_MESSAGE("No Tx Block has been mined yet");
-            }
+            LOG_MESSAGE("Not enough blocks for information");
             return 0;
         }
+        else
+        {
+            refBlockNum = 1; //In case there are less than REF_DIFF_BLOCKS blocks in blockchain, blocknum 1 can be ref block; 
+        }
     }
+    else
+    {
+        refBlockNum = refBlockNum - REF_BLOCK_DIFF ;
+    }
+
+    boost::multiprecision::cpp_dec_float_50 numTxns(Server::GetNumTransactions(refBlockNum));
+    LOG_MESSAGE("Num Txns: " << numTxns);
+
+
+    try
+    {
+            
+        TxBlock tx = m_mediator.m_txBlockChain.GetBlock(refBlockNum);
+        m_StartTimeTx = tx.GetHeader().GetTimestamp();
+    }
+    catch (const char* msg)
+    {
+        if (string(msg) ==  "Blocknumber Absent")
+        {
+            LOG_MESSAGE("Error in fetching ref block");
+        }
+        return 0;
+    }
+    
 
     boost::multiprecision::uint256_t TimeDiff
         = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetTimestamp()
