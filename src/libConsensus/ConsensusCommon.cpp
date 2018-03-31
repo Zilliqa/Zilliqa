@@ -17,12 +17,12 @@
 
 #include "ConsensusCommon.h"
 
-#include <utility>
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
+#include <utility>
 
 using namespace std;
 

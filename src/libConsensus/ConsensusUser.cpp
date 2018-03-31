@@ -17,9 +17,9 @@
 
 #include "ConsensusUser.h"
 
-#include <utility>
 #include "common/Messages.h"
 #include "libUtils/Logger.h"
+#include <utility>
 
 using namespace std;
 

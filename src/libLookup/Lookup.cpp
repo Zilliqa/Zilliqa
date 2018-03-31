@@ -15,13 +15,13 @@
 **/
 
 #include <arpa/inet.h>
-#include <cstring>
 #include <cerrno>
+#include <cstdint>
+#include <cstring>
 #include <exception>
 #include <fstream>
 #include <netinet/in.h>
 #include <random>
-#include <cstdint>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <unordered_set>

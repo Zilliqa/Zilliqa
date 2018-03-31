@@ -16,8 +16,8 @@
 
 #include "TxBlockHeader.h"
 
-#include <utility>
 #include "libUtils/Logger.h"
+#include <utility>
 
 using namespace std;
 using namespace boost::multiprecision;

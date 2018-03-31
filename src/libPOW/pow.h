@@ -19,8 +19,8 @@
 
 #include <array>
 #include <boost/multiprecision/cpp_int.hpp>
-#include <mutex>
 #include <cstdint>
+#include <mutex>
 #include <string>
 #include <thread>
 #include <vector>
