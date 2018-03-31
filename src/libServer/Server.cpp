@@ -363,6 +363,7 @@ Server::GetNumTransactions(boost::multiprecision::uint256_t blockNum)
 
     for (i = blockNum; i <= currBlockNum; i++)
     {
+
         res += m_mediator.m_txBlockChain.GetBlock(i).GetHeader().GetNumTxs();
     }
 
@@ -373,7 +374,8 @@ double Server::GetTransactionRate()
     LOG_MARKER();
 
     boost::multiprecision::uint256_t refBlockNum
-        = m_mediator.m_txBlockChain.GetBlockCount() - 1;
+        = m_mediator.m_txBlockChain.GetBlockCount() - 1,
+        refTimeTx = 0;
 
     if (refBlockNum <= REF_BLOCK_DIFF)
     {
@@ -384,8 +386,8 @@ double Server::GetTransactionRate()
         }
         else
         {
-            refBlockNum
-                = 1; //In case there are less than REF_DIFF_BLOCKS blocks in blockchain, blocknum 1 can be ref block;
+            refBlockNum = 1;
+            //In case there are less than REF_DIFF_BLOCKS blocks in blockchain, blocknum 1 can be ref block;
         }
     }
     else
@@ -401,7 +403,7 @@ double Server::GetTransactionRate()
     {
 
         TxBlock tx = m_mediator.m_txBlockChain.GetBlock(refBlockNum);
-        m_StartTimeTx = tx.GetHeader().GetTimestamp();
+        refTimeTx = tx.GetHeader().GetTimestamp();
     }
     catch (const char* msg)
     {
@@ -414,10 +416,13 @@ double Server::GetTransactionRate()
 
     boost::multiprecision::uint256_t TimeDiff
         = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetTimestamp()
-        - m_StartTimeTx;
+        - refTimeTx;
 
-    if (TimeDiff == 0)
+    if (TimeDiff == 0 || refTimeTx == 0)
     {
+        //something went wrong
+        LOG_MESSAGE("TimeDiff or refTimeTx = 0 \n TimeDiff:"
+                    << TimeDiff.str() << " refTimeTx:" << refTimeTx.str());
         return 0;
     }
     numTxns = numTxns * 1000000; // conversion from microseconds to seconds
