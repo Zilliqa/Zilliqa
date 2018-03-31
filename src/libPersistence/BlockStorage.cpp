@@ -51,8 +51,9 @@ bool BlockStorage::PushBackTxBodyDB(
         return false;
     }
 
-    LevelDB txBodyDB(blockNum.convert_to<string>(), TX_BODY_SUBDIR);
-    m_txBodyDBs.push_back(txBodyDB);
+    std::shared_ptr<LevelDB> txBodyDBPtr = std::make_shared<LevelDB>(
+        blockNum.convert_to<string>(), TX_BODY_SUBDIR);
+    m_txBodyDBs.push_back(txBodyDBPtr);
 
     return true;
 }
@@ -77,7 +78,7 @@ bool BlockStorage::PopFrontTxBodyDB(bool mandatory)
     }
 
     int ret = -1;
-    ret = m_txBodyDBs.front().DeleteDB();
+    ret = m_txBodyDBs.front()->DeleteDB();
     m_txBodyDBs.pop_front();
 
     return (ret == 0);
@@ -135,7 +136,7 @@ bool BlockStorage::PutTxBody(const dev::h256& key,
     LOG_MARKER();
 
 #ifndef IS_LOOKUP_NODE
-    int ret = m_txBodyDBs.back().Insert(key, body);
+    int ret = m_txBodyDBs.back()->Insert(key, body);
 #else // IS_LOOKUP_NODE
     int ret = m_txBodyDB.Insert(key, body) && m_txBodyTmpDB.Insert(key, body);
 #endif // IS_LOOKUP_NODE
@@ -186,7 +187,7 @@ bool BlockStorage::GetTxBlock(const boost::multiprecision::uint256_t& blockNum,
 bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body)
 {
 #ifndef IS_LOOKUP_NODE
-    string bodyString = m_txBodyDBs.back().Lookup(key);
+    string bodyString = m_txBodyDBs.back()->Lookup(key);
 #else // IS_LOOKUP_NODE
     string bodyString = m_txBodyDB.Lookup(key);
 #endif
@@ -223,7 +224,7 @@ bool BlockStorage::DeleteTxBlock(
 bool BlockStorage::DeleteTxBody(const dev::h256& key)
 {
 #ifndef IS_LOOKUP_NODE
-    int ret = m_txBodyDBs.back().DeleteKey(key);
+    int ret = m_txBodyDBs.back()->DeleteKey(key);
 #else // IS_LOOKUP_NODE
     int ret = m_txBodyTmpDB.DeleteKey(key);
 #endif // IS_LOOKUP_NODE
