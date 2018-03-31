@@ -48,7 +48,7 @@ const unsigned int PAGE_SIZE = 10;
 const unsigned int NUM_PAGES_CACHE = 2;
 const unsigned int TXN_PAGE_SIZE = 100;
 
-//[warning] do not make this constant too big as it loops over blockchain 
+//[warning] do not make this constant too big as it loops over blockchain
 const unsigned int REF_BLOCK_DIFF = 3;
 
 Server::Server(Mediator& mediator, HttpServer& httpserver)
@@ -348,72 +348,69 @@ string Server::GetNumTransactions()
     return m_BlockTxPair.second.str();
 }
 
-
-boost::multiprecision::uint256_t Server::GetNumTransactions(boost::multiprecision::uint256_t blockNum)
+boost::multiprecision::uint256_t
+Server::GetNumTransactions(boost::multiprecision::uint256_t blockNum)
 {
     boost::multiprecision::uint256_t currBlockNum
         = m_mediator.m_txBlockChain.GetBlockCount() - 1;
 
-    if(blockNum > currBlockNum)
+    if (blockNum > currBlockNum)
     {
         return 0;
     }
-    
-    boost::multiprecision::uint256_t i , res = 0;
-    
-    for(i = blockNum ; i<= currBlockNum ; i++ )
+
+    boost::multiprecision::uint256_t i, res = 0;
+
+    for (i = blockNum; i <= currBlockNum; i++)
     {
         res += m_mediator.m_txBlockChain.GetBlock(i).GetHeader().GetNumTxs();
     }
 
     return res;
-
-
 }
 double Server::GetTransactionRate()
 {
     LOG_MARKER();
 
-    
+    boost::multiprecision::uint256_t refBlockNum
+        = m_mediator.m_txBlockChain.GetBlockCount() - 1;
 
-    boost::multiprecision::uint256_t refBlockNum = m_mediator.m_txBlockChain.GetBlockCount() - 1;
-
-    if(refBlockNum <= REF_BLOCK_DIFF)
+    if (refBlockNum <= REF_BLOCK_DIFF)
     {
-        if(refBlockNum <= 1)
+        if (refBlockNum <= 1)
         {
             LOG_MESSAGE("Not enough blocks for information");
             return 0;
         }
         else
         {
-            refBlockNum = 1; //In case there are less than REF_DIFF_BLOCKS blocks in blockchain, blocknum 1 can be ref block; 
+            refBlockNum
+                = 1; //In case there are less than REF_DIFF_BLOCKS blocks in blockchain, blocknum 1 can be ref block;
         }
     }
     else
     {
-        refBlockNum = refBlockNum - REF_BLOCK_DIFF ;
+        refBlockNum = refBlockNum - REF_BLOCK_DIFF;
     }
 
-    boost::multiprecision::cpp_dec_float_50 numTxns(Server::GetNumTransactions(refBlockNum));
+    boost::multiprecision::cpp_dec_float_50 numTxns(
+        Server::GetNumTransactions(refBlockNum));
     LOG_MESSAGE("Num Txns: " << numTxns);
-
 
     try
     {
-            
+
         TxBlock tx = m_mediator.m_txBlockChain.GetBlock(refBlockNum);
         m_StartTimeTx = tx.GetHeader().GetTimestamp();
     }
     catch (const char* msg)
     {
-        if (string(msg) ==  "Blocknumber Absent")
+        if (string(msg) == "Blocknumber Absent")
         {
             LOG_MESSAGE("Error in fetching ref block");
         }
         return 0;
     }
-    
 
     boost::multiprecision::uint256_t TimeDiff
         = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetTimestamp()

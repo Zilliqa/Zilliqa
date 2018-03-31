@@ -473,6 +473,7 @@ public:
     virtual Json::Value GetRecentTransactions();
     static void AddToRecentTransactions(const dev::h256& txhash);
 
-    //gets the number of transaction starting from block blockNum to most recent block 
-    boost::multiprecision::uint256_t GetNumTransactions(boost::multiprecision::uint256_t blockNum);
+    //gets the number of transaction starting from block blockNum to most recent block
+    boost::multiprecision::uint256_t
+    GetNumTransactions(boost::multiprecision::uint256_t blockNum);
 };
