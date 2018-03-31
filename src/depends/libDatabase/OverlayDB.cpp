@@ -19,6 +19,8 @@
 #include <shared_mutex>
 #include <thread>
 
+#include <boost/filesystem.hpp>
+
 #include "depends/common/Common.h"
 #include "depends/common/SHA3.h"
 #include "OverlayDB.h"

@@ -48,7 +48,7 @@ DSBlock Synchronizer::ConstructGenesisDSBlock()
 
     // FIXME: Handle exceptions.
     DSBlockHeader header(20, prevHash, 12344, keypair.first, keypair.second, 0,
-                         789);
+                         789, 0);
 
     std::array<unsigned char, BLOCK_SIG_SIZE> signature;
     for (unsigned int i = 0; i < signature.size(); i++)
@@ -95,7 +95,7 @@ TxBlock Synchronizer::ConstructGenesisTxBlock()
 
     TxBlockHeader header(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1, 1,
                          BlockHash(), 0, 151384616955606, TxnHash(),
-                         StateHash(), 0, 5, keypair.second, 0, BlockHash());
+                         StateHash(), 0, 5, keypair.second, 0, BlockHash(), 0);
 
     array<unsigned char, BLOCK_SIG_SIZE> emptySig{};
 
@@ -175,11 +175,12 @@ bool Synchronizer::AttemptPoW(Lookup* lookup)
     if (lookup->InitMining())
     {
         LOG_MESSAGE("new node attempted pow");
+        return true;
     }
     else
     {
         LOG_MESSAGE("new node did not attempt pow")
+        return false;
     }
-    return true;
 }
 #endif // IS_LOOKUP_NODE

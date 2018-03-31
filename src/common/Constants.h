@@ -53,7 +53,6 @@ const unsigned int TX_BLOCKCHAIN_SIZE = 50;
 const unsigned int SEED_PEER_LIST_SIZE = 20;
 
 // Transaction body sharing
-const unsigned int TX_SHARING_CLUSTER_SIZE = 20;
 
 const unsigned int NUM_VACUOUS_EPOCHS = 1;
 
@@ -90,13 +89,16 @@ extern const unsigned int POW1_BACKUP_WINDOW_IN_SECONDS;
 extern const unsigned int LEADER_SHARDING_PREPARATION_IN_SECONDS;
 extern const unsigned int LEADER_POW2_WINDOW_IN_SECONDS;
 extern const unsigned int BACKUP_POW2_WINDOW_IN_SECONDS;
-extern const unsigned int NEW_NODE_POW2_TIMEOUT_IN_SECONDS;
+extern const unsigned int NEW_NODE_SYNC_INTERVAL;
 extern const unsigned int POW_SUB_BUFFER_TIME;
 extern const unsigned int POW1_DIFFICULTY;
 extern const unsigned int POW2_DIFFICULTY;
 extern const unsigned int MICROBLOCK_TIMEOUT;
+extern const unsigned int VIEWCHANGE_TIME;
 extern const unsigned int NUM_FINAL_BLOCK_PER_POW;
 extern const unsigned int NUM_DS_KEEP_TX_BODY;
 extern const uint32_t MAXMESSAGE;
+extern const unsigned int MAXSUBMITTXNPERNODE;
+extern const unsigned int TX_SHARING_CLUSTER_SIZE;
 
 #endif // __CONSTANTS_H__

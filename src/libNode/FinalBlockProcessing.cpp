@@ -101,13 +101,6 @@ void Node::StoreFinalBlock(const TxBlock& txBlock)
     // At this point, the transactions in the last Epoch is no longer useful, thus erase.
     m_committedTransactions.erase(m_mediator.m_currentEpochNum - 2);
 
-    LOG_MESSAGE2(
-        to_string(m_mediator.m_currentEpochNum).c_str(),
-        "DEBUG last block has a size of "
-            << m_mediator.m_txBlockChain.GetLastBlock().GetSerializedSize())
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "DEBUG cur block has a size of "
-                     << txBlock.GetSerializedSize())
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                  "Storing Tx Block Number: "
                      << txBlock.GetHeader().GetBlockNum()
@@ -121,6 +114,20 @@ void Node::StoreFinalBlock(const TxBlock& txBlock)
     txBlock.Serialize(serializedTxBlock, 0);
     BlockStorage::GetBlockStorage().PutTxBlock(
         txBlock.GetHeader().GetBlockNum(), serializedTxBlock);
+
+    LOG_MESSAGE(
+        "View change count:  " << txBlock.GetHeader().GetViewChangeCounter());
+
+    for (unsigned int i = 0; i < txBlock.GetHeader().GetViewChangeCounter();
+         i++)
+    {
+        m_mediator.m_DSCommitteeNetworkInfo.push_back(
+            m_mediator.m_DSCommitteeNetworkInfo.front());
+        m_mediator.m_DSCommitteeNetworkInfo.pop_front();
+        m_mediator.m_DSCommitteePubKeys.push_back(
+            m_mediator.m_DSCommitteePubKeys.front());
+        m_mediator.m_DSCommitteePubKeys.pop_front();
+    }
 
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                  "Final block " << m_mediator.m_txBlockChain.GetLastBlock()
@@ -796,6 +803,7 @@ void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
     //   [16-byte IP] [4-byte port]
     //   ...
     // ...
+    LOG_MARKER();
 
     uint32_t num_ds_nodes = Serializable::GetNumber<uint32_t>(
         message, cur_offset, sizeof(uint32_t));
@@ -1134,7 +1142,9 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     else
     {
         LOG_MESSAGE("isVacuousEpoch now");
-        if (!CheckStateRoot(txBlock))
+
+        if (AccountStore::GetInstance().UpdateStateTrieAll()
+            && !CheckStateRoot(txBlock))
         {
             return false;
         }
