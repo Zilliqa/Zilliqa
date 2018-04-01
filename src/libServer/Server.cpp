@@ -734,7 +734,7 @@ Json::Value Server::GetRecentTransactions()
     boost::multiprecision::uint256_t size = m_RecentTransactions.size();
     _json["number"] = int(actualSize);
     _json["TxnHashes"] = Json::Value(Json::arrayValue);
-    for (int i = 0; i < actualSize; i++)
+    for (boost::multiprecision::uint256_t i = 0; i < actualSize; i++)
     {
         _json["TxnHashes"].append(m_RecentTransactions[size - i - 1]);
     }
