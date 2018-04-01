@@ -118,7 +118,6 @@ MicroBlock::MicroBlock(const MicroBlockHeader& header,
 
 const MicroBlockHeader& MicroBlock::GetHeader() const { return m_header; }
 
-
 const vector<TxnHash>& MicroBlock::GetTranHashes() const
 {
     return m_tranHashes;

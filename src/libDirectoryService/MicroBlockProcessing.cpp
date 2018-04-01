@@ -156,14 +156,14 @@ bool DirectoryService::ProcessMicroblockSubmission(
         return false;
     }
     curr_offset += microBlock.GetSerializedSize();
-	
+
     // Microblock cosig and bitmap
     Signature collectiveSig(message, curr_offset);
     curr_offset += BLOCK_SIG_SIZE;
     vector<bool> collectiveSigBitmap = BitVector::GetBitVector(
         message, curr_offset,
         BitVector::GetBitVectorLengthInBytes(m_shards.at(shardId).size()));	
-	
+
     const PubKey& pubKey = microBlock.GetHeader().GetMinerPubKey();
 
     // Check public key - shard ID mapping

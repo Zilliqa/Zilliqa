@@ -191,7 +191,7 @@ ConsensusCommon::RetrieveCollectiveSigBitmap(vector<unsigned char>& dst,
     return BitVector::SetBitVector(dst, offset, m_responseMapOverMessage);
 }
 
-const Signature & ConsensusCommon::RetrieveCollectiveSig() const
+const Signature& ConsensusCommon::RetrieveCollectiveSig() const
 {
     if (m_state != DONE)
     {
@@ -202,7 +202,7 @@ const Signature & ConsensusCommon::RetrieveCollectiveSig() const
     return m_collectiveSigOverMessage;
 }
 
-const vector<bool> & ConsensusCommon::RetrieveCollectiveSigBitmap() const
+const vector<bool>& ConsensusCommon::RetrieveCollectiveSigBitmap() const
 {
     if (m_state != DONE)
     {

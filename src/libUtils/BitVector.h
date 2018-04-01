@@ -14,7 +14,6 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-
 #ifndef __BITVECTOR_H__
 #define __BITVECTOR_H__
 
@@ -23,14 +22,14 @@
 class BitVector
 {
 public:
-	static unsigned int GetBitVectorLengthInBytes(unsigned int length_in_bits);
-	static unsigned int GetBitVectorSerializedSize(unsigned int length_in_bits);
-	static std::vector<bool> GetBitVector(const std::vector<unsigned char>& src,
-										  unsigned int offset,
-										  unsigned int expected_length);
-	static unsigned int SetBitVector(std::vector<unsigned char>& dst,
-									 unsigned int offset,
-									 const std::vector<bool>& value);
+    static unsigned int GetBitVectorLengthInBytes(unsigned int length_in_bits);
+    static unsigned int GetBitVectorSerializedSize(unsigned int length_in_bits);
+    static std::vector<bool> GetBitVector(const std::vector<unsigned char>& src,
+                                          unsigned int offset,
+                                          unsigned int expected_length);
+    static unsigned int SetBitVector(std::vector<unsigned char>& dst,
+                                     unsigned int offset,
+                                     const std::vector<bool>& value);
 };
 
 #endif // __BITVECTOR_H__

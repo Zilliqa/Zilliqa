@@ -169,7 +169,6 @@ public:
     /// Returns the final collective signature (as Signature reference)
     const Signature& RetrieveCollectiveSig() const;
 
-
     /// Returns the response map for the generated final collective signature
     uint16_t RetrieveCollectiveSigBitmap(std::vector<unsigned char>& dst,
                                          unsigned int offset);
