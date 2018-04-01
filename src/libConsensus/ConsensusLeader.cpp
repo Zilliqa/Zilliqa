@@ -19,6 +19,7 @@
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "libNetwork/P2PComm.h"
+#include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
@@ -897,6 +898,10 @@ bool ConsensusLeader::ProcessMessageResponseCore(
 
             if (action == PROCESS_RESPONSE)
             {
+                // Save the collective sig over the first round's message for retrieval after consensus
+                m_collectiveSigOverMessage = m_collectiveSig;
+                m_responseMapOverMessage = m_responseMap;
+
                 m_commitCounter = 0;
                 m_commitPoints.clear();
                 fill(m_commitMap.begin(), m_commitMap.end(), false);
@@ -1010,7 +1015,7 @@ bool ConsensusLeader::GenerateCollectiveSigMessage(
     curr_offset += sizeof(uint16_t);
 
     // N-byte bitmap
-    curr_offset += SetBitVector(collectivesig, curr_offset, m_responseMap);
+    curr_offset += BitVector::SetBitVector(collectivesig, curr_offset, m_responseMap);
 
     // 64-byte collective signature
     m_collectiveSig.Serialize(collectivesig, curr_offset);
@@ -1065,7 +1070,7 @@ ConsensusLeader::ConsensusLeader(
 
     m_state = INITIAL;
     // m_numForConsensus = (floor(TOLERANCE_FRACTION * (pubkeys.size() - 1)) + 1);
-    m_numForConsensus = ceil(pubkeys.size() * TOLERANCE_FRACTION) - 1;
+    m_numForConsensus = ConsensusCommon::NumForConsensus(pubkeys.size());
     m_numForConsensusFailure = pubkeys.size() - m_numForConsensus;
     LOG_MESSAGE("TOLERANCE_FRACTION "
                 << TOLERANCE_FRACTION << " pubkeys.size() " << pubkeys.size()
