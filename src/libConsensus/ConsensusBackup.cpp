@@ -19,6 +19,7 @@
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "libNetwork/P2PComm.h"
+#include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 
@@ -736,7 +737,7 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
     const unsigned int length_available = collectivesig.size() - offset;
     const unsigned int length_needed = sizeof(uint32_t) + BLOCK_HASH_SIZE
         + sizeof(uint16_t) + SIGNATURE_CHALLENGE_SIZE + SIGNATURE_RESPONSE_SIZE
-        + GetBitVectorLengthInBytes(m_pubKeys.size()) + 2
+        + BitVector::GetBitVectorSerializedSize(m_pubKeys.size())
         + SIGNATURE_CHALLENGE_SIZE + SIGNATURE_RESPONSE_SIZE;
 
     if (length_needed > length_available)
@@ -788,9 +789,9 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
     }
 
     // N-byte bitmap
-    m_responseMap = GetBitVector(collectivesig, curr_offset,
-                                 GetBitVectorLengthInBytes(m_pubKeys.size()));
-    curr_offset += GetBitVectorLengthInBytes(m_pubKeys.size()) + 2;
+    m_responseMap = BitVector::GetBitVector(collectivesig, curr_offset,
+                                            BitVector::GetBitVectorLengthInBytes(m_pubKeys.size()));
+    curr_offset += BitVector::GetBitVectorSerializedSize(m_pubKeys.size());
 
     // Check the bitmap
     if (m_responseMap.empty())
@@ -863,6 +864,10 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
             // =====================
 
             m_state = nextstate;
+
+            // Save the collective sig over the first round's message for retrieval after consensus
+            m_collectiveSigOverMessage = m_collectiveSig;
+            m_responseMapOverMessage = m_responseMap;
 
             // First round: consensus over message (e.g., DS block)
             // Second round: consensus over collective sig
