@@ -269,10 +269,10 @@ class DirectoryService : public Executable, public Broadcastable
         boost::multiprecision::uint256_t& allGasLimit,
         boost::multiprecision::uint256_t& allGasUsed, uint32_t& numTxs,
         std::vector<bool>& isMicroBlockEmpty, uint32_t& numMicroBlocks) const;
-    bool VerifyMicroblockCoSignature(const MicroBlock & microBlock,
-                                     uint32_t shardId,
-                                     const Signature & collectiveSig,
-                                     const std::vector<bool> & collectiveSigBitmap);
+    bool
+    VerifyMicroblockCoSignature(const MicroBlock& microBlock, uint32_t shardId,
+                                const Signature& collectiveSig,
+                                const std::vector<bool>& collectiveSigBitmap);
 
     // FinalBlockValidator functions
     bool CheckFinalBlockValidity();

@@ -167,7 +167,7 @@ public:
                                unsigned int offset);
 
     /// Returns the final collective signature (as Signature reference)
-    const Signature & RetrieveCollectiveSig() const;
+    const Signature& RetrieveCollectiveSig() const;
 
 
     /// Returns the response map for the generated final collective signature
@@ -175,7 +175,7 @@ public:
                                          unsigned int offset);
 
     /// Returns the response map for the generated final collective signature (as bit vector reference)
-    const std::vector<bool> & RetrieveCollectiveSigBitmap() const;
+    const std::vector<bool>& RetrieveCollectiveSigBitmap() const;
 
     /// Returns the fraction of the shard required to achieve consensus
     static unsigned int NumForConsensus(unsigned int shardSize);

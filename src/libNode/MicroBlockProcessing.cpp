@@ -80,7 +80,8 @@ void Node::SubmitMicroblockToDSCommittee() const
     m_consensusObject->RetrieveCollectiveSig(microblock, cur_offset);
     cur_offset += BLOCK_SIG_SIZE;
 
-    BitVector::SetBitVector(microblock, cur_offset, m_consensusObject->RetrieveCollectiveSigBitmap());
+    BitVector::SetBitVector(microblock, cur_offset,
+                            m_consensusObject->RetrieveCollectiveSigBitmap());
 
 #ifdef STAT_TEST
     LOG_STATE("[MICRO][" << std::setw(15) << std::left

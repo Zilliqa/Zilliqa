@@ -39,17 +39,19 @@ using namespace std;
 using namespace boost::multiprecision;
 
 #ifndef IS_LOOKUP_NODE
-bool DirectoryService::VerifyMicroblockCoSignature(const MicroBlock & microBlock, uint32_t shardId, const Signature & collectiveSig, const vector<bool> & collectiveSigBitmap)
+bool DirectoryService::VerifyMicroblockCoSignature(
+    const MicroBlock& microBlock, uint32_t shardId,
+    const Signature& collectiveSig, const vector<bool>& collectiveSigBitmap)
 {
     LOG_MARKER();
 
-    const map<PubKey, Peer> & shard = m_shards.at(shardId);
+    const map<PubKey, Peer>& shard = m_shards.at(shardId);
     unsigned int index = 0;
     unsigned int count = 0;
 
     // Generate the aggregated key
     vector<PubKey> keys;
-    for (auto & kv : shard)
+    for (auto& kv : shard)
     {
         if (collectiveSigBitmap.at(index) == true)
         {
@@ -75,7 +77,8 @@ bool DirectoryService::VerifyMicroblockCoSignature(const MicroBlock & microBlock
     // Verify the collective signature
     vector<unsigned char> message;
     microBlock.Serialize(message, 0);
-    if (Schnorr::GetInstance().Verify(message, collectiveSig, *aggregatedKey) == false)
+    if (Schnorr::GetInstance().Verify(message, collectiveSig, *aggregatedKey)
+        == false)
     {
         LOG_MESSAGE("Error: Cosig verification failed");
         return false;
@@ -101,9 +104,11 @@ bool DirectoryService::ProcessMicroblockSubmission(
         return false;
     }
 
-    if (IsMessageSizeInappropriate(message.size(), offset, sizeof(uint256_t) + sizeof(uint32_t) +
-            sizeof(uint32_t) + TxBlock::GetMinSize() + BLOCK_SIG_SIZE +
-            BitVector::GetBitVectorSerializedSize(0)))
+    if (IsMessageSizeInappropriate(
+            message.size(), offset,
+            sizeof(uint256_t) + sizeof(uint32_t) + sizeof(uint32_t)
+                + TxBlock::GetMinSize() + BLOCK_SIG_SIZE
+                + BitVector::GetBitVectorSerializedSize(0)))
     {
         return false;
     }
@@ -155,8 +160,9 @@ bool DirectoryService::ProcessMicroblockSubmission(
     // Microblock cosig and bitmap
     Signature collectiveSig(message, curr_offset);
     curr_offset += BLOCK_SIG_SIZE;
-    vector<bool> collectiveSigBitmap = BitVector::GetBitVector(message,
-	    curr_offset, BitVector::GetBitVectorLengthInBytes(m_shards.at(shardId).size()));	
+    vector<bool> collectiveSigBitmap = BitVector::GetBitVector(
+        message, curr_offset,
+        BitVector::GetBitVectorLengthInBytes(m_shards.at(shardId).size()));	
 	
     const PubKey& pubKey = microBlock.GetHeader().GetMinerPubKey();
 
@@ -177,7 +183,8 @@ bool DirectoryService::ProcessMicroblockSubmission(
     }
 
     // Verify the co-signature
-    if (!VerifyMicroblockCoSignature(microBlock, shardId, collectiveSig, collectiveSigBitmap))
+    if (!VerifyMicroblockCoSignature(microBlock, shardId, collectiveSig,
+                                     collectiveSigBitmap))
     {
         return false;
     }

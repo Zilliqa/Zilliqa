@@ -18,8 +18,8 @@
 #include "ConsensusCommon.h"
 #include "common/Constants.h"
 #include "common/Messages.h"
-#include "libUtils/BitVector.h"
 #include "libNetwork/P2PComm.h"
+#include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 
@@ -195,7 +195,8 @@ const Signature & ConsensusCommon::RetrieveCollectiveSig() const
 {
     if (m_state != DONE)
     {
-        LOG_MESSAGE("Error: Retrieving collectivesig when consensus is still ongoing");
+        LOG_MESSAGE(
+            "Error: Retrieving collectivesig when consensus is still ongoing");
     }
 
     return m_collectiveSigOverMessage;
@@ -205,7 +206,8 @@ const vector<bool> & ConsensusCommon::RetrieveCollectiveSigBitmap() const
 {
     if (m_state != DONE)
     {
-        LOG_MESSAGE("Error: Retrieving collectivesig bit map when consensus is still ongoing");
+        LOG_MESSAGE("Error: Retrieving collectivesig bit map when consensus is "
+                    "still ongoing");
     }
 
     return m_responseMapOverMessage;

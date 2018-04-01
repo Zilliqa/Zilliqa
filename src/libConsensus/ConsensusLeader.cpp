@@ -1015,7 +1015,8 @@ bool ConsensusLeader::GenerateCollectiveSigMessage(
     curr_offset += sizeof(uint16_t);
 
     // N-byte bitmap
-    curr_offset += BitVector::SetBitVector(collectivesig, curr_offset, m_responseMap);
+    curr_offset
+        += BitVector::SetBitVector(collectivesig, curr_offset, m_responseMap);
 
     // 64-byte collective signature
     m_collectiveSig.Serialize(collectivesig, curr_offset);

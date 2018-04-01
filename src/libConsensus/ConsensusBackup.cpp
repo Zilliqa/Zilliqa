@@ -789,8 +789,9 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
     }
 
     // N-byte bitmap
-    m_responseMap = BitVector::GetBitVector(collectivesig, curr_offset,
-                                            BitVector::GetBitVectorLengthInBytes(m_pubKeys.size()));
+    m_responseMap = BitVector::GetBitVector(
+        collectivesig, curr_offset,
+        BitVector::GetBitVectorLengthInBytes(m_pubKeys.size()));
     curr_offset += BitVector::GetBitVectorSerializedSize(m_pubKeys.size());
 
     // Check the bitmap

@@ -59,7 +59,7 @@ public:
     static unsigned int GetMinSize();
 
     /// Returns the header component of the microblock.
-    const MicroBlockHeader & GetHeader() const;
+    const MicroBlockHeader& GetHeader() const;
 
     /// Returns the list of transaction hashes.
     const std::vector<TxnHash>& GetTranHashes() const;
