@@ -36,6 +36,7 @@
 #include "libData/AccountData/Transaction.h"
 #include "libMediator/Mediator.h"
 #include "libPOW/pow.h"
+#include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
@@ -50,10 +51,10 @@ using namespace boost::multiprecision;
 #ifndef IS_LOOKUP_NODE
 void Node::SubmitMicroblockToDSCommittee() const
 {
-    // Message = [32-byte DS blocknum] [4-byte consensusid] [4-byte shard ID] [Tx microblock]
+    // Message = [32-byte DS blocknum] [4-byte consensusid] [4-byte shard ID] [Tx microblock] [Microblock cosig and bitmap]
     vector<unsigned char> microblock
         = {MessageType::DIRECTORY, DSInstructionType::MICROBLOCKSUBMISSION};
-    unsigned char cur_offset = MessageOffset::BODY;
+    unsigned int cur_offset = MessageOffset::BODY;
 
     // 32-byte DS blocknum
     uint256_t DSBlockNum = m_mediator.m_dsBlockChain.GetBlockCount() - 1;
@@ -73,6 +74,13 @@ void Node::SubmitMicroblockToDSCommittee() const
 
     // Tx microblock
     m_microblock->Serialize(microblock, cur_offset);
+    cur_offset += m_microblock->GetSerializedSize();
+
+    // Microblock cosig and bitmap
+    m_consensusObject->RetrieveCollectiveSig(microblock, cur_offset);
+    cur_offset += BLOCK_SIG_SIZE;
+
+    BitVector::SetBitVector(microblock, cur_offset, m_consensusObject->RetrieveCollectiveSigBitmap());
 
 #ifdef STAT_TEST
     LOG_STATE("[MICRO][" << std::setw(15) << std::left
@@ -204,7 +212,6 @@ bool Node::ComposeMicroBlock()
     fill(dsBlockHeader.asArray().begin(), dsBlockHeader.asArray().end(), 0x11);
 
     // TxBlock
-    array<unsigned char, BLOCK_SIG_SIZE> signature;
     vector<TxnHash> tranHashes;
 
     unsigned int index = 0;
@@ -244,7 +251,7 @@ bool Node::ComposeMicroBlock()
         MicroBlockHeader(type, version, gasLimit, gasUsed, prevHash, blockNum,
                          timestamp, txRootHash, numTxs, minerPubKey, dsBlockNum,
                          dsBlockHeader),
-        signature, tranHashes));
+        tranHashes));
 
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                  "Micro block proposed with "
