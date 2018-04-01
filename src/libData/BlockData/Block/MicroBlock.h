@@ -32,8 +32,6 @@
 class MicroBlock : public BlockBase
 {
     MicroBlockHeader m_header;
-    std::array<unsigned char, BLOCK_SIG_SIZE>
-        m_headerSig; // Co-signed by: sharding committee (microblock) or DS committee (finalblock)
     std::vector<TxnHash> m_tranHashes;
 
 public:
@@ -45,7 +43,6 @@ public:
 
     /// Constructor with predefined member values.
     MicroBlock(const MicroBlockHeader& header,
-               const std::array<unsigned char, BLOCK_SIG_SIZE>& signature,
                const std::vector<TxnHash>& tranHashes);
 
     /// Implements the Serialize function inherited from Serializable.
@@ -62,10 +59,7 @@ public:
     static unsigned int GetMinSize();
 
     /// Returns the header component of the microblock.
-    const MicroBlockHeader& GetHeader() const;
-
-    /// Returns the signature over the microblock header.
-    const std::array<unsigned char, BLOCK_SIG_SIZE>& GetHeaderSig() const;
+    const MicroBlockHeader & GetHeader() const;
 
     /// Returns the list of transaction hashes.
     const std::vector<TxnHash>& GetTranHashes() const;
