@@ -162,7 +162,7 @@ bool DirectoryService::ProcessMicroblockSubmission(
     curr_offset += BLOCK_SIG_SIZE;
     vector<bool> collectiveSigBitmap = BitVector::GetBitVector(
         message, curr_offset,
-        BitVector::GetBitVectorLengthInBytes(m_shards.at(shardId).size()));	
+        BitVector::GetBitVectorLengthInBytes(m_shards.at(shardId).size()));
 
     const PubKey& pubKey = microBlock.GetHeader().GetMinerPubKey();
 
