@@ -25,13 +25,8 @@ unsigned int MicroBlock::Serialize(vector<unsigned char>& dst,
 {
     assert(m_header.GetNumTxs() == m_tranHashes.size());
 
-    unsigned int header_size_needed = sizeof(uint8_t) + sizeof(uint32_t)
-        + UINT256_SIZE + UINT256_SIZE + BLOCK_HASH_SIZE + UINT256_SIZE
-        + UINT256_SIZE + TRAN_HASH_SIZE + sizeof(uint32_t) + PUB_KEY_SIZE
-        + UINT256_SIZE + BLOCK_HASH_SIZE;
+    unsigned int size_needed = MicroBlockHeader::HEADER_SIZE_NEEDED + m_header.GetNumTxs() * TRAN_HASH_SIZE;
 
-    unsigned int size_needed = header_size_needed + BLOCK_SIG_SIZE
-        + m_header.GetNumTxs() * TRAN_HASH_SIZE;
     unsigned int size_remaining = dst.size() - offset;
 
     if (size_remaining < size_needed)
@@ -41,10 +36,8 @@ unsigned int MicroBlock::Serialize(vector<unsigned char>& dst,
 
     m_header.Serialize(dst, offset);
 
-    unsigned int curOffset = offset + header_size_needed;
+    unsigned int curOffset = offset + MicroBlockHeader::HEADER_SIZE_NEEDED;
 
-    copy(m_headerSig.begin(), m_headerSig.end(), dst.begin() + curOffset);
-    curOffset += BLOCK_SIG_SIZE;
     for (unsigned int i = 0; i < m_header.GetNumTxs(); i++)
     {
         const TxnHash& tran_hash = m_tranHashes.at(i);
@@ -61,11 +54,6 @@ int MicroBlock::Deserialize(const vector<unsigned char>& src,
 {
     try
     {
-        unsigned int header_size_needed = sizeof(uint8_t) + sizeof(uint32_t)
-            + UINT256_SIZE + UINT256_SIZE + BLOCK_HASH_SIZE + UINT256_SIZE
-            + UINT256_SIZE + TRAN_HASH_SIZE + sizeof(uint32_t) + PUB_KEY_SIZE
-            + UINT256_SIZE + BLOCK_HASH_SIZE;
-
         // MicroBlockHeader header(src, offset);
         MicroBlockHeader header;
         if (header.Deserialize(src, offset) != 0)
@@ -75,11 +63,8 @@ int MicroBlock::Deserialize(const vector<unsigned char>& src,
         }
         m_header = header;
 
-        unsigned int curOffset = offset + header_size_needed;
+    unsigned int curOffset = offset + MicroBlockHeader::HEADER_SIZE_NEEDED;
 
-        copy(src.begin() + curOffset, src.begin() + curOffset + BLOCK_SIG_SIZE,
-             m_headerSig.begin());
-        curOffset += BLOCK_SIG_SIZE;
         for (unsigned int i = 0; i < m_header.GetNumTxs(); i++)
         {
             TxnHash tranHash;
@@ -102,24 +87,12 @@ int MicroBlock::Deserialize(const vector<unsigned char>& src,
 
 unsigned int MicroBlock::GetSerializedSize() const
 {
-    unsigned int header_size_needed = sizeof(uint8_t) + sizeof(uint32_t)
-        + UINT256_SIZE + UINT256_SIZE + BLOCK_HASH_SIZE + UINT256_SIZE
-        + UINT256_SIZE + TRAN_HASH_SIZE + sizeof(uint32_t) + PUB_KEY_SIZE
-        + UINT256_SIZE + BLOCK_HASH_SIZE;
-    unsigned int block_size_needed
-        = BLOCK_SIG_SIZE + (m_tranHashes.size() * TRAN_HASH_SIZE);
-
-    return header_size_needed + block_size_needed;
+    return MicroBlockHeader::HEADER_SIZE_NEEDED + (m_tranHashes.size() * TRAN_HASH_SIZE);
 }
 
 unsigned int MicroBlock::GetMinSize()
 {
-    unsigned int header_size_needed = sizeof(uint8_t) + sizeof(uint32_t)
-        + UINT256_SIZE + UINT256_SIZE + BLOCK_HASH_SIZE + UINT256_SIZE
-        + UINT256_SIZE + TRAN_HASH_SIZE + sizeof(uint32_t) + PUB_KEY_SIZE
-        + UINT256_SIZE + BLOCK_HASH_SIZE;
-
-    return header_size_needed;
+    return MicroBlockHeader::HEADER_SIZE_NEEDED;
 }
 
 // creates a dummy invalid placeholder block -- blocknum is maxsize of uint256
@@ -134,10 +107,8 @@ MicroBlock::MicroBlock(const vector<unsigned char>& src, unsigned int offset)
 }
 
 MicroBlock::MicroBlock(const MicroBlockHeader& header,
-                       const array<unsigned char, BLOCK_SIG_SIZE>& signature,
                        const vector<TxnHash>& tranHashes)
     : m_header(header)
-    , m_headerSig(signature)
     , m_tranHashes(tranHashes)
 {
     assert(m_header.GetNumTxs() == m_tranHashes.size());
@@ -145,10 +116,6 @@ MicroBlock::MicroBlock(const MicroBlockHeader& header,
 
 const MicroBlockHeader& MicroBlock::GetHeader() const { return m_header; }
 
-const array<unsigned char, BLOCK_SIG_SIZE>& MicroBlock::GetHeaderSig() const
-{
-    return m_headerSig;
-}
 
 const vector<TxnHash>& MicroBlock::GetTranHashes() const
 {
@@ -157,8 +124,7 @@ const vector<TxnHash>& MicroBlock::GetTranHashes() const
 
 bool MicroBlock::operator==(const MicroBlock& block) const
 {
-    return ((m_header == block.m_header) && (m_headerSig == block.m_headerSig)
-            && (m_tranHashes == block.m_tranHashes));
+    return ((m_header == block.m_header) && (m_tranHashes == block.m_tranHashes));
 }
 
 bool MicroBlock::operator<(const MicroBlock& block) const
@@ -168,14 +134,6 @@ bool MicroBlock::operator<(const MicroBlock& block) const
         return true;
     }
     else if (m_header > block.m_header)
-    {
-        return false;
-    }
-    else if (m_headerSig < block.m_headerSig)
-    {
-        return true;
-    }
-    else if (m_headerSig > block.m_headerSig)
     {
         return false;
     }
