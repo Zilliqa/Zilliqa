@@ -562,11 +562,13 @@ Json::Value Server::DSBlockListing(unsigned int page)
             cacheSize = m_DSBlockCache.second.size();
         }
 
+        boost::multiprecision::uint256_t size = m_DSBlockCache.second.size();
+
         for (unsigned int i = offset; i < PAGE_SIZE + offset && i < cacheSize;
              i++)
         {
             tmpJson.clear();
-            tmpJson["Hash"] = m_DSBlockCache.second[cacheSize - i - 1];
+            tmpJson["Hash"] = m_DSBlockCache.second[size - i - 1];
             tmpJson["BlockNum"] = int(currBlockNum - i);
             _json["data"].append(tmpJson);
         }
@@ -663,16 +665,19 @@ Json::Value Server::TxBlockListing(unsigned int page)
 
         boost::multiprecision::uint256_t cacheSize(
             m_TxBlockCache.second.capacity());
+
         if (cacheSize > m_TxBlockCache.second.size())
         {
             cacheSize = m_TxBlockCache.second.size();
         }
 
+        boost::multiprecision::uint256_t size = m_TxBlockCache.second.size();
+
         for (unsigned int i = offset; i < PAGE_SIZE + offset && i < cacheSize;
              i++)
         {
             tmpJson.clear();
-            tmpJson["Hash"] = m_TxBlockCache.second[cacheSize - i - 1];
+            tmpJson["Hash"] = m_TxBlockCache.second[size - i - 1];
             tmpJson["BlockNum"] = int(currBlockNum - i);
             _json["data"].append(tmpJson);
         }
@@ -726,11 +731,12 @@ Json::Value Server::GetRecentTransactions()
     {
         actualSize = m_RecentTransactions.size();
     }
+    boost::multiprecision::uint256_t size = m_RecentTransactions.size();
     _json["number"] = int(actualSize);
     _json["TxnHashes"] = Json::Value(Json::arrayValue);
-    for (int i = static_cast<int>(actualSize) - 1; i >= 0; i--)
+    for (int i = 0; i < actualSize; i++)
     {
-        _json["TxnHashes"].append(m_RecentTransactions[i]);
+        _json["TxnHashes"].append(m_RecentTransactions[size - i - 1]);
     }
 
     return _json;
