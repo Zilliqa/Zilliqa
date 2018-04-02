@@ -959,17 +959,22 @@ void Node::SubmitTransactions()
             for (auto& txns : m_prefilledTxns)
             {
                 auto& addr = txns.first;
-                auto& txnsList = txns.second;
-                auto shard = Transaction::GetShardIndex(addr, m_numShards);
 
+                auto& txnsList = txns.second;
+                if (txnsList.empty())
+                {
+                    continue;
+                }
+
+                auto shard = Transaction::GetShardIndex(addr, m_numShards);
                 if (shard != m_myShardID)
                 {
                     continue;
                 }
 
-                // right shard
                 t = move(txnsList.front());
                 txnsList.pop_front();
+
                 return true;
             }
 
