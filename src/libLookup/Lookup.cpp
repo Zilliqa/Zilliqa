@@ -123,6 +123,17 @@ void Lookup::SendMessageToLookupNodes(
     P2PComm::GetInstance().SendBroadcastMessage(AllLookupNodes, message);
 }
 
+void Lookup::SendMessageToRandomLookupNodeFromBack(
+    const std::vector<unsigned char>& message) const
+{
+    LOG_MARKER();
+
+    int index = rand() % (NUM_LOOKUP_USE_FOR_SYNC) + m_lookupNodes.size()
+        - NUM_LOOKUP_USE_FOR_SYNC;
+
+    P2PComm::GetInstance().SendMessage(m_lookupNodes[index], message);
+}
+
 void Lookup::SendMessageToSeedNodes(
     const std::vector<unsigned char>& message) const
 {
@@ -151,7 +162,7 @@ bool Lookup::GetSeedPeersFromLookup()
                                       sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
-    SendMessageToLookupNodes(getSeedPeersMessage);
+    SendMessageToRandomLookupNodeFromBack(getSeedPeersMessage);
 
     return true;
 }
@@ -203,14 +214,14 @@ bool Lookup::GetDSInfoFromSeedNodes()
 bool Lookup::GetDSInfoFromLookupNodes()
 {
     LOG_MARKER();
-    SendMessageToLookupNodes(ComposeGetDSInfoMessage());
+    SendMessageToRandomLookupNodeFromBack(ComposeGetDSInfoMessage());
     return true;
 }
 
 bool Lookup::GetStateFromLookupNodes()
 {
     LOG_MARKER();
-    SendMessageToLookupNodes(ComposeGetStateMessage());
+    SendMessageToRandomLookupNodeFromBack(ComposeGetStateMessage());
 
     return true;
 }
@@ -257,7 +268,7 @@ bool Lookup::GetDSBlockFromLookupNodes(uint256_t lowBlockNum,
                                        uint256_t highBlockNum)
 {
     LOG_MARKER();
-    SendMessageToLookupNodes(
+    SendMessageToRandomLookupNodeFromBack(
         ComposeGetDSBlockMessage(lowBlockNum, highBlockNum));
     return true;
 }
@@ -305,7 +316,7 @@ bool Lookup::GetTxBlockFromLookupNodes(uint256_t lowBlockNum,
 {
     LOG_MARKER();
 
-    SendMessageToLookupNodes(
+    SendMessageToRandomLookupNodeFromBack(
         ComposeGetTxBlockMessage(lowBlockNum, highBlockNum));
 
     return true;
