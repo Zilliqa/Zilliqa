@@ -62,11 +62,6 @@ class Lookup : public Executable, public Broadcastable
     std::vector<std::map<PubKey, Peer>> m_shards;
     std::vector<Peer> m_nodesInNetwork;
 #endif // IS_LOOKUP_NODE
-
-    bool m_isDSRandUpdated = false;
-    std::mutex m_dsRandUpdationMutex;
-    std::condition_variable m_dsRandUpdateCondition;
-
     std::mutex m_mutexSetDSBlockFromSeed;
     std::mutex m_mutexSetTxBlockFromSeed;
     std::mutex m_mutexSetTxBodyFromSeed;
@@ -103,6 +98,10 @@ public:
     // Calls P2PComm::SendMessage serially for every Lookup Node
     void
     SendMessageToLookupNodes(const std::vector<unsigned char>& message) const;
+
+    // Calls P2PComm::SendMessage to one of the last x Lookup Nodes randomly
+    void SendMessageToRandomLookupNodeFromTail(
+        const std::vector<unsigned char>& message) const;
 
     // Calls P2PComm::SendMessage serially for every Seed peer
     void

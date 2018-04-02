@@ -1276,11 +1276,6 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
     }
 #endif //IS_LOOKUP_NODE
     m_mediator.UpdateDSBlockRand();
-    // {
-    //     unique_lock<mutex> lock(m_dsRandUpdationMutex);
-    //     m_isDSRandUpdated = true;
-    //     m_dsRandUpdateCondition.notify_one();
-    // }
 
     return true;
 }
@@ -1381,15 +1376,6 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
         m_mediator.m_currentEpochNum
             = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
         m_mediator.UpdateTxBlockRand();
-
-        // {
-        //     unique_lock<mutex> lock(m_dsRandUpdationMutex);
-        //     while (!m_isDSRandUpdated)
-        //     {
-        //         m_dsRandUpdateCondition.wait(lock);
-        //     }
-        //     m_isDSRandUpdated = false;
-        // }
 
         if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
         {
