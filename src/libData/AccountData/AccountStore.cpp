@@ -107,6 +107,7 @@ int AccountStore::Deserialize(const vector<unsigned char>& src,
         Address address;
         Account account;
         unsigned int numberOfAccountDeserialze = 0;
+        Init();
         while (numberOfAccountDeserialze < totalNumOfAccounts)
         {
             numberOfAccountDeserialze++;
