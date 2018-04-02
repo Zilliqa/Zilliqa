@@ -37,7 +37,7 @@ class BlockStorage
     LevelDB m_dsBlockchainDB;
     LevelDB m_txBlockchainDB;
 #ifndef IS_LOOKUP_NODE
-    std::list<LevelDB> m_txBodyDBs;
+    std::list<std::shared_ptr<LevelDB>> m_txBodyDBs;
 #else // IS_LOOKUP_NODE
     LevelDB m_txBodyDB;
     LevelDB m_txBodyTmpDB;
