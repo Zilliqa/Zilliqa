@@ -701,4 +701,40 @@ void Server::AddToRecentTransactions(const TxnHash& txhash)
     m_RecentTransactions.push_back(txhash.hex());
 }
 
+Json::Value Server::GetShardingStructure()
+{
+    LOG_MARKER();
+
+    try
+    {
+        Json::Value _json;
+        vector<map<PubKey, Peer>> shards = m_mediator.m_lookup->GetShardPeers();
+        unsigned int num_shards = shards.size();
+
+        if (num_shards == 0)
+        {
+            _json["Error"] = "No shards yet";
+            return _json;
+        }
+        else
+        {
+            _json["Number"] = num_shards;
+
+            for (unsigned int i = 0; i < num_shards; i++)
+            {
+                _json["NumPeers"].append(
+                    static_cast<unsigned int>(shards[i].size()));
+            }
+        }
+        return _json;
+    }
+    catch (exception& e)
+    {
+        Json::Value _json;
+        _json["Error"] = "Unable to process ";
+        LOG_MESSAGE("Error " << e.what());
+        return _json;
+    }
+}
+
 #endif //IS_LOOKUP_NODE
