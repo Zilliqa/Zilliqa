@@ -64,7 +64,7 @@ void Lookup::AppendTimestamp(vector<unsigned char>& message,
     // Append a sending time to avoid message to be discarded
     uint256_t milliseconds_since_epoch
         = std::chrono::system_clock::now().time_since_epoch()
-        / std::chrono::milliseconds(1);
+        / std::chrono::seconds(1);
 
     Serializable::SetNumber<uint256_t>(message, offset,
                                        milliseconds_since_epoch, UINT256_SIZE);
@@ -1144,7 +1144,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
 #ifndef IS_LOOKUP_NODE
     m_mediator.s_toFetchDSInfo = false;
     {
-        unique_lock<mutex> lock(m_mutexDSInfoUpdation);
+        unique_lock<mutex> dsInfo_lock(m_mutexDSInfoUpdation);
         m_fetchedDSInfo = true;
         m_dsInfoUpdateCondition.notify_one();
     }
@@ -1269,7 +1269,10 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
 #ifdef IS_LOOKUP_NODE
     }
 #else // IS_LOOKUP_NODE
-        m_mediator.s_toFetchDSInfo = true;
+        if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
+        {
+            m_mediator.s_toFetchDSInfo = true;
+        }
     }
 #endif //IS_LOOKUP_NODE
     m_mediator.UpdateDSBlockRand();
