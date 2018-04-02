@@ -1144,7 +1144,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
 #ifndef IS_LOOKUP_NODE
     m_mediator.s_toFetchDSInfo = false;
     {
-        unique_lock<mutex> dsInfo_lock(m_mutexDSInfoUpdation);
+        unique_lock<mutex> lock(m_mutexDSInfoUpdation);
         m_fetchedDSInfo = true;
         m_dsInfoUpdateCondition.notify_one();
     }
@@ -1276,11 +1276,11 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
     }
 #endif //IS_LOOKUP_NODE
     m_mediator.UpdateDSBlockRand();
-    {
-        unique_lock<mutex> lock(m_dsRandUpdationMutex);
-        m_isDSRandUpdated = true;
-        m_dsRandUpdateCondition.notify_one();
-    }
+    // {
+    //     unique_lock<mutex> lock(m_dsRandUpdationMutex);
+    //     m_isDSRandUpdated = true;
+    //     m_dsRandUpdateCondition.notify_one();
+    // }
 
     return true;
 }
@@ -1382,14 +1382,14 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
             = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
         m_mediator.UpdateTxBlockRand();
 
-        {
-            unique_lock<mutex> lock(m_dsRandUpdationMutex);
-            while (!m_isDSRandUpdated)
-            {
-                m_dsRandUpdateCondition.wait(lock);
-            }
-            m_isDSRandUpdated = false;
-        }
+        // {
+        //     unique_lock<mutex> lock(m_dsRandUpdationMutex);
+        //     while (!m_isDSRandUpdated)
+        //     {
+        //         m_dsRandUpdateCondition.wait(lock);
+        //     }
+        //     m_isDSRandUpdated = false;
+        // }
 
         if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
         {
@@ -1449,10 +1449,10 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
 
     m_mediator.s_toFetchState = false;
     {
-        unique_lock<mutex> dsInfo_lock(m_mutexDSInfoUpdation);
+        unique_lock<mutex> lock(m_mutexDSInfoUpdation);
         while (!m_fetchedDSInfo)
         {
-            m_dsInfoUpdateCondition.wait(dsInfo_lock);
+            m_dsInfoUpdateCondition.wait(lock);
         }
         m_fetchedDSInfo = false;
         m_mediator.s_toAttemptPoW = true;
