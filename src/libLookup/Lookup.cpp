@@ -718,7 +718,7 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
                      << lowBlockNum.convert_to<string>() << " to "
                      << highBlockNum.convert_to<string>());
 
-    // dsBlockMessage = [lowBlockNum][highBlockNum][DSBlock][DSBlock]... (highBlockNum - lowBlockNum + 1) times
+    // dsBlockMessage = [lowBlockNum][highBlockNum][DSBlock][DSBlock]... (highBlockNum - lowBlockNum + 1) times[timestamp]
     vector<unsigned char> dsBlockMessage
         = {MessageType::LOOKUP, LookupInstructionType::SETDSBLOCKFROMSEED};
     unsigned int curr_offset = MessageOffset::BODY;
@@ -758,6 +758,8 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
             break;
         }
     }
+
+    AppendTimestamp(dsBlockMessage, curr_offset);
 
     // if serialization got interrupted in between, reset the highBlockNum value in msg
     if (blockNum != highBlockNum + 1)
@@ -1191,7 +1193,8 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
     // since we will usually only enable sending of 500 blocks max, casting to uint32_t should be safe
     if (IsMessageSizeInappropriate(message.size(), offset,
                                    (uint32_t)(highBlockNum - lowBlockNum + 1)
-                                       * DSBlock::GetSerializedSize()))
+                                           * DSBlock::GetSerializedSize()
+                                       + UINT256_SIZE))
     {
         return false;
     }
