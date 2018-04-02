@@ -20,6 +20,7 @@
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
+#include <cstdlib>
 #include <map>
 #include <mutex>
 #include <vector>
@@ -100,7 +101,7 @@ public:
     SendMessageToLookupNodes(const std::vector<unsigned char>& message) const;
 
     // Calls P2PComm::SendMessage to one of the last x Lookup Nodes randomly
-    void SendMessageToRandomLookupNodeFromTail(
+    void SendMessageToRandomLookupNodeFromBack(
         const std::vector<unsigned char>& message) const;
 
     // Calls P2PComm::SendMessage serially for every Seed peer
