@@ -1362,13 +1362,6 @@ bool DirectoryService::Execute(const vector<unsigned char>& message,
     const unsigned int ins_handlers_count
         = sizeof(ins_handlers) / sizeof(InstructionHandler);
 
-    if (!m_mediator.m_isConnectedToNetwork)
-    {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Not connected to network yet, ignore message");
-        return false;
-    }
-
     if (ins_byte < ins_handlers_count)
     {
         result = (this->*ins_handlers[ins_byte])(message, offset + 1, from);
