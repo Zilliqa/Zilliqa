@@ -680,17 +680,16 @@ bool GetOneGoodKeyPair(PrivKey& oPrivKey, PubKey& oPubKey, uint32_t myShard,
 vector<Transaction> GenTransactionBulk(PrivKey& fromPrivKey, PubKey& fromPubKey,
                                        size_t n)
 {
-    uint256_t transferAmount{1};
     vector<Transaction> txns;
+
+    auto receiver = Schnorr::GetInstance().GenKeyPair();
+    auto receiverAddr = Account::GetAddressFromPublicKey(receiver.second);
 
     txns.reserve(n);
     for (auto i = 0u; i != n; i++)
     {
-        auto receiver = Schnorr::GetInstance().GenKeyPair();
-        auto receiverAddr = Account::GetAddressFromPublicKey(receiver.second);
-
         auto txn = CreateValidTestingTransaction(fromPrivKey, fromPubKey,
-                                                 receiverAddr, transferAmount);
+                                                 receiverAddr, i + 1);
         txns.emplace_back(txn);
     }
 
