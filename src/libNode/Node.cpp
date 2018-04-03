@@ -937,6 +937,28 @@ void Node::SubmitTransactions()
                          << m_myShardID << "][" << txn_sent_count << "] CONT");
 #endif // STAT_TEST
 }
+
+bool Node::ToBlockMessage(unsigned char ins_byte)
+{
+    if (!m_mediator.m_isConnectedToNetwork)
+    {
+        if (!m_isNewNode)
+        {
+            if (ins_byte != NodeInstructionType::SHARDING)
+            {
+                return = true;
+            }
+        }
+        else
+        {
+            if (m_runFromLate && ins_byte != NodeInstructionType::SHARDING)
+            {
+                return = true;
+            }
+        }
+    }
+    return false;
+}
 #endif // IS_LOOKUP_NODE
 
 bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
@@ -966,10 +988,8 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
 
 #ifndef IS_LOOKUP_NODE
     // If the node failed and waiting for recovery, block the unwanted msg
-    if (!m_mediator.m_isConnectedToNetwork
-        && ((!m_isNewNode && ins_byte != NodeInstructionType::SHARDING)
-            || (m_isNewNode && m_runFromLate
-                && ins_byte != NodeInstructionType::SHARDING)))
+
+    if (ToBlockMessage(ins_byte))
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                      "Node not connected to network yet, ignore message");
