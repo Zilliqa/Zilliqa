@@ -992,6 +992,7 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
                 m_mediator.m_isConnectedToNetwork = false;
                 this->Init();
                 this->Prepare(true);
+                this->StartSynchronization();
             }
 #endif
         }
