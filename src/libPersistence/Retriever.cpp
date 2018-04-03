@@ -94,6 +94,10 @@ void Retriever::RetrieveTxBlocks(bool& result)
         return;
     }
 
+    blocks.sort([](const TxBlockSharedPtr& a, const TxBlockSharedPtr& b) {
+        return a->GetHeader().GetBlockNum() < b->GetHeader().GetBlockNum();
+    });
+
     // truncate the extra final blocks at last
     int totalSize = blocks.size();
     int extra_txblocks = totalSize % NUM_FINAL_BLOCK_PER_POW;
@@ -102,10 +106,6 @@ void Retriever::RetrieveTxBlocks(bool& result)
         BlockStorage::GetBlockStorage().DeleteTxBlock(totalSize - i);
         blocks.pop_back();
     }
-
-    blocks.sort([](const TxBlockSharedPtr& a, const TxBlockSharedPtr& b) {
-        return a->GetHeader().GetBlockNum() < b->GetHeader().GetBlockNum();
-    });
 
     for (const auto& block : blocks)
         m_mediator.m_txBlockChain.AddBlock(*block);

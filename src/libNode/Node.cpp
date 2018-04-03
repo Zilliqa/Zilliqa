@@ -69,30 +69,10 @@ Node::Node(Mediator& mediator, bool toRetrieveHistory)
 
     if (runInitializeGenesisBlocks)
     {
-        // Zilliqa first epoch start from 1 not 0. So for the first DS epoch, there will be 1 less mini epoch only for the first DS epoch.
-        // Hence, we have to set consensusID for first epoch to 1.
-        // m_consensusID = 1;
-        // m_consensusLeaderID = 1;
-
-        // m_retriever->CleanAll();
-        // m_retriever.reset();
-        // m_mediator.m_dsBlockChain.Reset();
-        // m_mediator.m_txBlockChain.Reset();
-        // m_committedTransactions.clear();
-        // AccountStore::GetInstance().Init();
-
-        // m_synchronizer.InitializeGenesisBlocks(m_mediator.m_dsBlockChain,
-        //                                        m_mediator.m_txBlockChain);
         this->Init();
     }
 
-    m_mediator.m_currentEpochNum
-        = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
-    m_mediator.UpdateDSBlockRand(runInitializeGenesisBlocks);
-    m_mediator.UpdateTxBlockRand(runInitializeGenesisBlocks);
-    SetState(POW1_SUBMISSION);
-    POW::GetInstance().EthashConfigureLightClient(
-        (uint64_t)m_mediator.m_dsBlockChain.GetBlockCount());
+    this->Prepare(runInitializeGenesisBlocks);
 }
 
 Node::~Node() {}
@@ -111,6 +91,17 @@ void Node::Init()
 
     m_synchronizer.InitializeGenesisBlocks(m_mediator.m_dsBlockChain,
                                            m_mediator.m_txBlockChain);
+}
+
+void Node::Prepare(bool runInitializeGenesisBlocks)
+{
+    m_mediator.m_currentEpochNum
+        = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
+    m_mediator.UpdateDSBlockRand(runInitializeGenesisBlocks);
+    m_mediator.UpdateTxBlockRand(runInitializeGenesisBlocks);
+    SetState(POW1_SUBMISSION);
+    POW::GetInstance().EthashConfigureLightClient(
+        (uint64_t)m_mediator.m_dsBlockChain.GetBlockCount());
 }
 
 bool Node::StartRetrieveHistory()
@@ -1000,7 +991,7 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
             {
                 m_mediator.m_isConnectedToNetwork = false;
                 this->Init();
-                StartSynchronization();
+                this->Prepare(true);
             }
 #endif
         }
