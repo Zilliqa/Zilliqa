@@ -946,14 +946,14 @@ bool Node::ToBlockMessage(unsigned char ins_byte)
         {
             if (ins_byte != NodeInstructionType::SHARDING)
             {
-                return = true;
+                return true;
             }
         }
         else
         {
             if (m_runFromLate && ins_byte != NodeInstructionType::SHARDING)
             {
-                return = true;
+                return true;
             }
         }
     }
