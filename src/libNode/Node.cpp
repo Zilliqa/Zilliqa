@@ -71,18 +71,19 @@ Node::Node(Mediator& mediator, bool toRetrieveHistory)
     {
         // Zilliqa first epoch start from 1 not 0. So for the first DS epoch, there will be 1 less mini epoch only for the first DS epoch.
         // Hence, we have to set consensusID for first epoch to 1.
-        m_consensusID = 1;
-        m_consensusLeaderID = 1;
+        // m_consensusID = 1;
+        // m_consensusLeaderID = 1;
 
-        m_retriever->CleanAll();
-        m_retriever.reset();
-        m_mediator.m_dsBlockChain.Reset();
-        m_mediator.m_txBlockChain.Reset();
-        m_committedTransactions.clear();
-        AccountStore::GetInstance().Init();
+        // m_retriever->CleanAll();
+        // m_retriever.reset();
+        // m_mediator.m_dsBlockChain.Reset();
+        // m_mediator.m_txBlockChain.Reset();
+        // m_committedTransactions.clear();
+        // AccountStore::GetInstance().Init();
 
-        m_synchronizer.InitializeGenesisBlocks(m_mediator.m_dsBlockChain,
-                                               m_mediator.m_txBlockChain);
+        // m_synchronizer.InitializeGenesisBlocks(m_mediator.m_dsBlockChain,
+        //                                        m_mediator.m_txBlockChain);
+        this->Init();
     }
 
     m_mediator.m_currentEpochNum
@@ -95,6 +96,22 @@ Node::Node(Mediator& mediator, bool toRetrieveHistory)
 }
 
 Node::~Node() {}
+
+void Node::Init()
+{
+    m_consensusID = 1;
+    m_consensusLeaderID = 1;
+
+    m_retriever->CleanAll();
+    m_retriever.reset();
+    m_mediator.m_dsBlockChain.Reset();
+    m_mediator.m_txBlockChain.Reset();
+    m_committedTransactions.clear();
+    AccountStore::GetInstance().Init();
+
+    m_synchronizer.InitializeGenesisBlocks(m_mediator.m_dsBlockChain,
+                                           m_mediator.m_txBlockChain);
+}
 
 bool Node::StartRetrieveHistory()
 {
@@ -142,7 +159,6 @@ bool Node::StartRetrieveHistory()
 
 void Node::StartSynchronization()
 {
-    m_isNewNode = true;
     auto func = [this]() -> void {
         while (!m_mediator.m_isConnectedToNetwork)
         {
@@ -957,12 +973,32 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
     const unsigned int ins_handlers_count
         = sizeof(ins_handlers) / sizeof(InstructionHandler);
 
+    // If the node failed and waiting for recovery, block the unwanted msg
+    if (!m_mediator.m_isConnectedToNetwork && !m_isNewNode
+        && ins_byte != NodeInstructionType::SHARDING)
+    {
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "Node not connected to network yet, ignore message");
+        return false;
+    }
+
     if (ins_byte < ins_handlers_count)
     {
         result = (this->*ins_handlers[ins_byte])(message, offset + 1, from);
         if (result == false)
         {
             // To-do: Error recovery
+
+            // Rejoin network as a new node if FinalBlockProcessing failed
+            // in CheckStateRoot
+            bool isVacuousEpoch = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW
+                                                     - NUM_VACUOUS_EPOCHS));
+            if (ins_byte == NodeInstructionType::FINALBLOCK && isVacuousEpoch)
+            {
+                m_mediator.m_isConnectedToNetwork = false;
+                this->Init();
+                StartSynchronization();
+            }
         }
     }
     else
