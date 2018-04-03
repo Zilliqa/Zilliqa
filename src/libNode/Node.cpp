@@ -973,6 +973,7 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
     const unsigned int ins_handlers_count
         = sizeof(ins_handlers) / sizeof(InstructionHandler);
 
+#ifndef IS_LOOKUP_NODE
     // If the node failed and waiting for recovery, block the unwanted msg
     if (!m_mediator.m_isConnectedToNetwork && !m_isNewNode
         && ins_byte != NodeInstructionType::SHARDING)
@@ -981,6 +982,7 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
                      "Node not connected to network yet, ignore message");
         return false;
     }
+#endif
 
     if (ins_byte < ins_handlers_count)
     {
@@ -989,6 +991,7 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
         {
             // To-do: Error recovery
 
+#ifndef IS_LOOKUP_NODE
             // Rejoin network as a new node if FinalBlockProcessing failed
             // in CheckStateRoot
             bool isVacuousEpoch = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW
@@ -999,6 +1002,7 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
                 this->Init();
                 StartSynchronization();
             }
+#endif
         }
     }
     else
