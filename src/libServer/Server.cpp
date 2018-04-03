@@ -49,7 +49,7 @@ const unsigned int NUM_PAGES_CACHE = 2;
 const unsigned int TXN_PAGE_SIZE = 100;
 
 //[warning] do not make this constant too big as it loops over blockchain
-const unsigned int REF_BLOCK_DIFF = 3;
+const unsigned int REF_BLOCK_DIFF = 5;
 
 Server::Server(Mediator& mediator, HttpServer& httpserver)
     : AbstractZServer(httpserver)
@@ -60,8 +60,8 @@ Server::Server(Mediator& mediator, HttpServer& httpserver)
     m_DSBlockCache.first = 0;
     m_DSBlockCache.second.resize(NUM_PAGES_CACHE * PAGE_SIZE);
     m_TxBlockCache.first = 0;
-    m_TxBlockCache.second.resize(NUM_PAGES_CACHE * PAGE_SIZE);
-    m_RecentTransactions.resize(PAGE_SIZE);
+    m_TxBlockCache.second.resize(NUM_PAGES_CACHE * TXN_PAGE_SIZE);
+    m_RecentTransactions.resize(TXN_PAGE_SIZE);
 }
 
 Server::~Server()
