@@ -989,7 +989,7 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
         result = (this->*ins_handlers[ins_byte])(message, offset + 1, from);
         if (result == false)
         {
-            // To-do: Error recovery
+        // To-do: Error recovery
 
 #ifndef IS_LOOKUP_NODE
             // Rejoin network as a new node if FinalBlockProcessing failed
