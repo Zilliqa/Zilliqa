@@ -140,6 +140,7 @@ class Node : public Executable, public Broadcastable
 
     bool CheckState(Action action);
     void Init();
+    void Prepare(bool runInitializeGenesisBlocks);
 
 #ifndef IS_LOOKUP_NODE
     // internal calls from ProcessStartPoW1
