@@ -1509,18 +1509,21 @@ bool Lookup::ProcessSetTxBodyFromSeed(const vector<unsigned char>& message,
 bool Lookup::CheckStateRoot()
 {
     StateHash stateRoot = AccountStore::GetInstance().GetStateRootHash();
+    StateHash rootInFinalBlock = m_mediator.m_txBlockChain.GetLastBlock()
+                                     .GetHeader()
+                                     .GetStateRootHash();
 
-    if (stateRoot
-        == m_mediator.m_txBlockChain.GetLastBlock()
-               .GetHeader()
-               .GetStateRootHash())
+    if (stateRoot == rootInFinalBlock)
     {
         LOG_MESSAGE("CheckStateRoot match");
         return true;
     }
     else
     {
-        LOG_MESSAGE("FAIL: CheckStateRoot doesn't match");
+        LOG_MESSAGE("Error: State root doesn't match. Calculated = "
+                    << stateRoot << ". "
+                    << "StoredInBlock = " << rootInFinalBlock);
+
         return false;
     }
 }
@@ -1585,6 +1588,7 @@ bool Lookup::InitMining()
         }
         else
         {
+            m_mediator.s_toFetchState = true;
             return false;
         }
     }

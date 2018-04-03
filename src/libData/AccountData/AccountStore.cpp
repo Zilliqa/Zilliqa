@@ -460,6 +460,7 @@ void AccountStore::PrintAccountState()
     {
         LOG_MESSAGE(entry.first << " " << entry.second);
     }
+    LOG_MESSAGE("State Root: " << GetStateRootHash());
 }
 
 bool AccountStore::RetrieveFromDisk()
