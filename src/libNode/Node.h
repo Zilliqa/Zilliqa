@@ -304,6 +304,8 @@ class Node : public Executable, public Broadcastable
 
     // Is New Node
     bool m_isNewNode = true;
+
+    bool ToBlockMessage(unsigned char ins_byte);
 #endif // IS_LOOKUP_NODE
 
 public:
