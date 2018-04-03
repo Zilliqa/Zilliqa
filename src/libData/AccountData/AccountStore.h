@@ -111,6 +111,7 @@ public:
     void PrintAccountState();
 
     bool RetrieveFromDisk();
+    void RepopulateStateTrie();
 };
 
 #endif // __ACCOUNTSTORE_H__
