@@ -319,6 +319,9 @@ public:
         ERROR
     };
 
+    // This process is newly invoked by shell from late node join script
+    bool m_runFromLate = false;
+
     std::condition_variable m_cvAllMicroBlocksRecvd;
     std::mutex m_mutexAllMicroBlocksRecvd;
     bool m_allMicroBlocksRecvd = true;
