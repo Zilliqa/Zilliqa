@@ -40,6 +40,7 @@ AccountStore::~AccountStore()
 
 void AccountStore::Init()
 {
+    LOG_MARKER();
     m_db.ResetDB();
     m_addressToAccount.clear();
     m_state.init();
@@ -107,7 +108,7 @@ int AccountStore::Deserialize(const vector<unsigned char>& src,
         Address address;
         Account account;
         unsigned int numberOfAccountDeserialze = 0;
-        Init();
+        this->Init();
         while (numberOfAccountDeserialze < totalNumOfAccounts)
         {
             numberOfAccountDeserialze++;

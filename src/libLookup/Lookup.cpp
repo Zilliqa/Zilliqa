@@ -1371,6 +1371,9 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                          "txBlock.GetHeader().GetMinerPubKey(): "
                              << txBlock.GetHeader().GetMinerPubKey());
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                         "txBlock.GetHeader().GetStateRootHash(): "
+                             << txBlock.GetHeader().GetStateRootHash());
 
             m_mediator.m_txBlockChain.AddBlock(txBlock);
 
