@@ -492,6 +492,7 @@ bool AccountStore::RetrieveFromDisk()
 
 void AccountStore::RepopulateStateTrie()
 {
+    LOG_MARKER();
     m_state.init();
     prevRoot = m_state.root();
     UpdateStateTrieAll();
