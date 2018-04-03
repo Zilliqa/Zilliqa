@@ -64,7 +64,7 @@ void Lookup::AppendTimestamp(vector<unsigned char>& message,
     // Append a sending time to avoid message to be discarded
     uint256_t milliseconds_since_epoch
         = std::chrono::system_clock::now().time_since_epoch()
-        / std::chrono::milliseconds(1);
+        / std::chrono::seconds(1);
 
     Serializable::SetNumber<uint256_t>(message, offset,
                                        milliseconds_since_epoch, UINT256_SIZE);
@@ -123,6 +123,17 @@ void Lookup::SendMessageToLookupNodes(
     P2PComm::GetInstance().SendBroadcastMessage(AllLookupNodes, message);
 }
 
+void Lookup::SendMessageToRandomLookupNodeFromBack(
+    const std::vector<unsigned char>& message) const
+{
+    LOG_MARKER();
+
+    int index = rand() % (NUM_LOOKUP_USE_FOR_SYNC) + m_lookupNodes.size()
+        - NUM_LOOKUP_USE_FOR_SYNC;
+
+    P2PComm::GetInstance().SendMessage(m_lookupNodes[index], message);
+}
+
 void Lookup::SendMessageToSeedNodes(
     const std::vector<unsigned char>& message) const
 {
@@ -151,7 +162,7 @@ bool Lookup::GetSeedPeersFromLookup()
                                       sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
-    SendMessageToLookupNodes(getSeedPeersMessage);
+    SendMessageToRandomLookupNodeFromBack(getSeedPeersMessage);
 
     return true;
 }
@@ -203,14 +214,14 @@ bool Lookup::GetDSInfoFromSeedNodes()
 bool Lookup::GetDSInfoFromLookupNodes()
 {
     LOG_MARKER();
-    SendMessageToLookupNodes(ComposeGetDSInfoMessage());
+    SendMessageToRandomLookupNodeFromBack(ComposeGetDSInfoMessage());
     return true;
 }
 
 bool Lookup::GetStateFromLookupNodes()
 {
     LOG_MARKER();
-    SendMessageToLookupNodes(ComposeGetStateMessage());
+    SendMessageToRandomLookupNodeFromBack(ComposeGetStateMessage());
 
     return true;
 }
@@ -257,7 +268,7 @@ bool Lookup::GetDSBlockFromLookupNodes(uint256_t lowBlockNum,
                                        uint256_t highBlockNum)
 {
     LOG_MARKER();
-    SendMessageToLookupNodes(
+    SendMessageToRandomLookupNodeFromBack(
         ComposeGetDSBlockMessage(lowBlockNum, highBlockNum));
     return true;
 }
@@ -305,7 +316,7 @@ bool Lookup::GetTxBlockFromLookupNodes(uint256_t lowBlockNum,
 {
     LOG_MARKER();
 
-    SendMessageToLookupNodes(
+    SendMessageToRandomLookupNodeFromBack(
         ComposeGetTxBlockMessage(lowBlockNum, highBlockNum));
 
     return true;
@@ -1269,15 +1280,13 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
 #ifdef IS_LOOKUP_NODE
     }
 #else // IS_LOOKUP_NODE
-        m_mediator.s_toFetchDSInfo = true;
+        if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
+        {
+            m_mediator.s_toFetchDSInfo = true;
+        }
     }
 #endif //IS_LOOKUP_NODE
     m_mediator.UpdateDSBlockRand();
-    {
-        unique_lock<mutex> lock(m_dsRandUpdationMutex);
-        m_isDSRandUpdated = true;
-        m_dsRandUpdateCondition.notify_one();
-    }
 
     return true;
 }
@@ -1379,15 +1388,6 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
             = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
         m_mediator.UpdateTxBlockRand();
 
-        {
-            unique_lock<mutex> lock(m_dsRandUpdationMutex);
-            while (!m_isDSRandUpdated)
-            {
-                m_dsRandUpdateCondition.wait(lock);
-            }
-            m_isDSRandUpdated = false;
-        }
-
         if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
         {
             m_mediator.s_toFetchState = true;
@@ -1446,10 +1446,10 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
 
     m_mediator.s_toFetchState = false;
     {
-        unique_lock<mutex> dsInfo_lock(m_mutexDSInfoUpdation);
+        unique_lock<mutex> lock(m_mutexDSInfoUpdation);
         while (!m_fetchedDSInfo)
         {
-            m_dsInfoUpdateCondition.wait(dsInfo_lock);
+            m_dsInfoUpdateCondition.wait(lock);
         }
         m_fetchedDSInfo = false;
         m_mediator.s_toAttemptPoW = true;
