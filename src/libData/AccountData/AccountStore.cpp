@@ -41,8 +41,8 @@ AccountStore::~AccountStore()
 void AccountStore::Init()
 {
     LOG_MARKER();
-    m_db.ResetDB();
     m_addressToAccount.clear();
+    m_db.ResetDB();
     m_state.init();
     prevRoot = m_state.root();
 }
@@ -487,5 +487,9 @@ bool AccountStore::RetrieveFromDisk()
         Account account(account_data[0], account_data[1]);
         m_addressToAccount.insert({address, account});
     }
+    m_db.ResetDB();
+    m_state.init();
+    prevRoot = m_state.root();
+    UpdateStateTrieAll();
     return true;
 }
