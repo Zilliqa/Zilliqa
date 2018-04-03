@@ -202,6 +202,7 @@ bool Retriever::ValidateStates()
         == AccountStore::GetInstance().GetStateRootHash())
     {
         LOG_MESSAGE("ValidateStates passed.");
+        AccountStore::GetInstance().RepopulateStateTrie();
         return true;
     }
     else
