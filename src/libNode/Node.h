@@ -100,9 +100,6 @@ class Node : public Executable, public Broadcastable
     // DS committee information
     bool m_isDSNode = true;
 
-    // Is New Node
-    bool m_isNewNode = false;
-
     // Consensus variables
     std::shared_ptr<ConsensusCommon> m_consensusObject;
 
@@ -142,6 +139,7 @@ class Node : public Executable, public Broadcastable
         m_forwardingAssignment;
 
     bool CheckState(Action action);
+    void Init();
 
 #ifndef IS_LOOKUP_NODE
     // internal calls from ProcessStartPoW1
@@ -316,6 +314,9 @@ public:
         WAITING_FINALBLOCK,
         ERROR
     };
+
+    // Is New Node
+    bool m_isNewNode = false;
 
     std::condition_variable m_cvAllMicroBlocksRecvd;
     std::mutex m_mutexAllMicroBlocksRecvd;
