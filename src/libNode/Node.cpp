@@ -676,14 +676,33 @@ bool GetOneGoodKeyPair(PrivKey& oPrivKey, PubKey& oPubKey, uint32_t myShard,
     return false;
 }
 
+bool GetOneGenesisAddress(Address& oAddr)
+{
+    if (GENESIS_WALLETS.empty())
+    {
+        LOG_MESSAGE("could not get one genensis address");
+        return false;
+    }
+
+    oAddr = Address{DataConversion::HexStrToUint8Vec(GENESIS_WALLETS.front())};
+    return true;
+}
+
 /// generate transation from one to many random accounts
 vector<Transaction> GenTransactionBulk(PrivKey& fromPrivKey, PubKey& fromPubKey,
                                        size_t n)
 {
     vector<Transaction> txns;
 
-    auto receiver = Schnorr::GetInstance().GenKeyPair();
-    auto receiverAddr = Account::GetAddressFromPublicKey(receiver.second);
+    // FIXME: it's a workaround to use the first genensis account
+    // auto receiver = Schnorr::GetInstance().GenKeyPair();
+    // auto receiverAddr = Account::GetAddressFromPublicKey(receiver.second);
+    Address addr;
+    if (not GetOneGenesisAddress(addr))
+    {
+        return txns;
+    }
+    auto receiverAddr = addr;
 
     txns.reserve(n);
     for (auto i = 0u; i != n; i++)
