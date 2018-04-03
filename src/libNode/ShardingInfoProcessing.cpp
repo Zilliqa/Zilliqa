@@ -159,10 +159,8 @@ bool Node::ProcessSharding(const vector<unsigned char>& message,
     {
         m_mediator.m_isConnectedToNetwork = true;
         AccountStore::GetInstance().MoveUpdatesToDisk();
-        if (m_isNewNode)
-        {
-            m_isNewNode = false;
-        }
+        m_isNewNode = false;
+        m_runFromLate = false;
     }
 
     // if (m_state != TX_SUBMISSION)
