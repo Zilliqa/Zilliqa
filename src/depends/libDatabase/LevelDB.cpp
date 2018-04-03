@@ -377,6 +377,7 @@ bool LevelDB::ResetDB()
     {
         LOG_MESSAGE("DB in subdirectory cannot be reset");
     }
+    LOG_MESSAGE("Error: Didn't reset DB, investigate why!");
     return false;
 }
 #else // IS_LOOKUP_NODE
