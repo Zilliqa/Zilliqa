@@ -300,6 +300,9 @@ class Node : public Executable, public Broadcastable
     bool ActOnFinalBlock(uint8_t tx_sharing_mode,
                          vector<Peer> my_shard_receivers,
                          const vector<Peer>& fellowForwarderNodes);
+
+    // Is New Node
+    bool m_isNewNode = true;
 #endif // IS_LOOKUP_NODE
 
 public:
@@ -314,9 +317,6 @@ public:
         WAITING_FINALBLOCK,
         ERROR
     };
-
-    // Is New Node
-    bool m_isNewNode = false;
 
     std::condition_variable m_cvAllMicroBlocksRecvd;
     std::mutex m_mutexAllMicroBlocksRecvd;
