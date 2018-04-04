@@ -630,8 +630,8 @@ Transaction CreateValidTestingTransaction(PrivKey& fromPrivKey,
     unsigned int version = 0;
     auto nonce = 0;
 
-    LOG_MESSAGE("fromPrivKey " << fromPrivKey << " / fromPubKey " << fromPubKey
-                               << " / toAddr" << toAddr);
+    // LOG_MESSAGE("fromPrivKey " << fromPrivKey << " / fromPubKey " << fromPubKey
+    // << " / toAddr" << toAddr);
 
     Transaction txn{version,    nonce,  toAddr,
                     fromPubKey, amount, {/* empty sig */}};
@@ -745,6 +745,7 @@ bool Node::ProcessCreateTransaction(const vector<unsigned char>& message,
 
     // vector<Transaction> txnToCreate;
     size_t nTxnPerAccount{N_PREFILLED_PER_ACCOUNT};
+    size_t nTxnDelta{MAXSUBMITTXNPERNODE};
 
     // if (not GetOneGoodKeyPair(senderPrivKey, senderPubKey, m_myShardID,
     // m_numShards))
@@ -753,22 +754,26 @@ bool Node::ProcessCreateTransaction(const vector<unsigned char>& message,
     // "No proper genesis account, cannot send testing transactions");
     // return false;
     // }
-
-    for (auto& privKeyHexStr : GENESIS_KEYS)
+    for (auto nTxn = 0u; nTxn < nTxnPerAccount; nTxn += nTxnDelta)
     {
-        auto privKeyBytes{DataConversion::HexStrToUint8Vec(privKeyHexStr)};
-        auto privKey = PrivKey{privKeyBytes, 0};
-        auto pubKey = PubKey{privKey};
-        auto addr = Account::GetAddressFromPublicKey(pubKey);
-        auto txns = GenTransactionBulk(privKey, pubKey, nTxnPerAccount);
+        for (auto& privKeyHexStr : GENESIS_KEYS)
+        {
+            auto privKeyBytes{DataConversion::HexStrToUint8Vec(privKeyHexStr)};
+            auto privKey = PrivKey{privKeyBytes, 0};
+            auto pubKey = PubKey{privKey};
+            auto addr = Account::GetAddressFromPublicKey(pubKey);
 
-        lock_guard<mutex> lg{m_mutexPrefilledTxns};
+            {
+                lock_guard<mutex> lg{m_mutexPrefilledTxns};
+                auto txns = GenTransactionBulk(privKey, pubKey, nTxnDelta);
 
-        auto& txnsDst = m_prefilledTxns[addr];
-        txnsDst.insert(txnsDst.end(), txns.begin(), txns.end());
+                auto& txnsDst = m_prefilledTxns[addr];
+                txnsDst.insert(txnsDst.end(), txns.begin(), txns.end());
 
-        LOG_MESSAGE("prefilled " << nTxnPerAccount << " txns with fromAddr "
-                                 << addr);
+                LOG_MESSAGE("prefilled " << nTxnDelta << " txns with fromAddr "
+                                         << addr);
+            }
+        }
     }
 
     // {
