@@ -787,7 +787,7 @@ bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
 
     const auto& submittedTransaction = Transaction(message, offset);
 
-    if (CheckCreatedTransaction(submittedTransaction))
+    // if (CheckCreatedTransaction(submittedTransaction))
     {
         lock_guard<mutex> g(m_mutexReceivedTransactions);
         auto& receivedTransactions = m_receivedTransactions[msgBlockNum];
@@ -806,7 +806,7 @@ bool Node::ProcessSubmitTxnSharing(const vector<unsigned char>& message,
     LOG_MARKER();
 
     const auto& submittedTransaction = Transaction(message, offset);
-    if (CheckCreatedTransaction(submittedTransaction))
+    // if (CheckCreatedTransaction(submittedTransaction))
     {
         boost::multiprecision::uint256_t blockNum
             = (uint256_t)m_mediator.m_currentEpochNum;
