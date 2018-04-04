@@ -746,6 +746,7 @@ bool Node::ProcessCreateTransaction(const vector<unsigned char>& message,
     // vector<Transaction> txnToCreate;
     size_t nTxnPerAccount{N_PREFILLED_PER_ACCOUNT};
     size_t nTxnDelta{MAXSUBMITTXNPERNODE};
+    const size_t prefillThreshold = 10 * nTxnDelta * GENESIS_KEYS.size();
 
     // if (not GetOneGoodKeyPair(senderPrivKey, senderPubKey, m_myShardID,
     // m_numShards))
@@ -754,9 +755,10 @@ bool Node::ProcessCreateTransaction(const vector<unsigned char>& message,
     // "No proper genesis account, cannot send testing transactions");
     // return false;
     // }
+
     for (auto nTxn = 0u; nTxn < nTxnPerAccount; nTxn += nTxnDelta)
     {
-        auto nGenerated = 0u;
+        auto nRemaining = 0u;
         for (auto& privKeyHexStr : GENESIS_KEYS)
         {
             auto privKeyBytes{DataConversion::HexStrToUint8Vec(privKeyHexStr)};
@@ -764,14 +766,20 @@ bool Node::ProcessCreateTransaction(const vector<unsigned char>& message,
             auto pubKey = PubKey{privKey};
             auto addr = Account::GetAddressFromPublicKey(pubKey);
             auto txns = GenTransactionBulk(privKey, pubKey, nTxnDelta);
-            nGenerated += txns.size();
+            m_nRemainingPrefilledTxns += txns.size();
             {
                 lock_guard<mutex> lg{m_mutexPrefilledTxns};
                 auto& txnsDst = m_prefilledTxns[addr];
                 txnsDst.insert(txnsDst.end(), txns.begin(), txns.end());
+                nRemaining += txnsDst.size();
             }
         }
-        LOG_MESSAGE("prefilled " << nGenerated << " txns");
+        if (m_nRemainingPrefilledTxns > prefillThreshold)
+        {
+            LOG_MESSAGE("prefilling saturated, sleeping for 10 seconds");
+            this_thread::sleep_for(chrono::seconds(10));
+        }
+        LOG_MESSAGE("prefilled " << nTxn * GENESIS_KEYS.size() << " txns");
     }
 
     // {
@@ -1013,6 +1021,7 @@ void Node::SubmitTransactions()
 
                 t = move(txnsList.front());
                 txnsList.pop_front();
+                m_nRemainingPrefilledTxns--;
 
                 return true;
             }
