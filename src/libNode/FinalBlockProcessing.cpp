@@ -281,7 +281,7 @@ bool Node::FindTxnInSubmittedTxnsList(const TxBlock& finalblock,
         // Store TxBody to disk
         vector<unsigned char> serializedTxBody;
         committedTransactions.back().Serialize(serializedTxBody, 0);
-        if (BlockStorage::GetBlockStorage().PutTxBody(tx_hash,
+        if (!BlockStorage::GetBlockStorage().PutTxBody(tx_hash,
                                                       serializedTxBody))
         {
             LOG_MESSAGE("FAIL: PutTxBody Failed");
