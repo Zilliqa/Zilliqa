@@ -47,6 +47,10 @@ void Retriever::RetrieveDSBlocks(bool& result)
         return;
     }
 
+    blocks.sort([](const DSBlockSharedPtr& a, const DSBlockSharedPtr& b) {
+        return a->GetHeader().GetBlockNum() < b->GetHeader().GetBlockNum();
+    });
+
     /// Check whether the termination of last running happens before the last DSEpoch properly ended.
     std::vector<unsigned char> isDSIncompleted;
     if (BlockStorage::GetBlockStorage().GetMetadata(MetaType::DSINCOMPLETED,
@@ -70,10 +74,6 @@ void Retriever::RetrieveDSBlocks(bool& result)
         result = false;
         return;
     }
-
-    blocks.sort([](const DSBlockSharedPtr& a, const DSBlockSharedPtr& b) {
-        return a->GetHeader().GetBlockNum() < b->GetHeader().GetBlockNum();
-    });
 
     for (const auto& block : blocks)
     {
