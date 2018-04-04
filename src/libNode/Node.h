@@ -100,9 +100,6 @@ class Node : public Executable, public Broadcastable
     // DS committee information
     bool m_isDSNode = true;
 
-    // Is New Node
-    bool m_isNewNode = false;
-
     // Consensus variables
     std::shared_ptr<ConsensusCommon> m_consensusObject;
 
@@ -142,6 +139,8 @@ class Node : public Executable, public Broadcastable
         m_forwardingAssignment;
 
     bool CheckState(Action action);
+    void Init();
+    void Prepare(bool runInitializeGenesisBlocks);
 
 #ifndef IS_LOOKUP_NODE
     // internal calls from ProcessStartPoW1
@@ -302,6 +301,11 @@ class Node : public Executable, public Broadcastable
     bool ActOnFinalBlock(uint8_t tx_sharing_mode,
                          vector<Peer> my_shard_receivers,
                          const vector<Peer>& fellowForwarderNodes);
+
+    // Is New Node
+    bool m_isNewNode = true;
+
+    bool ToBlockMessage(unsigned char ins_byte);
 #endif // IS_LOOKUP_NODE
 
 public:
@@ -316,6 +320,9 @@ public:
         WAITING_FINALBLOCK,
         ERROR
     };
+
+    // This process is newly invoked by shell from late node join script
+    bool m_runFromLate = false;
 
     std::condition_variable m_cvAllMicroBlocksRecvd;
     std::mutex m_mutexAllMicroBlocksRecvd;
