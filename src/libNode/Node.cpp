@@ -1033,6 +1033,8 @@ void Node::SubmitTransactions()
             txn_sent_count++;
         }
     }
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                 "added " << txn_sent_count << " to submittedTransactions");
 
 #ifdef STAT_TEST
     LOG_STATE("[TXNSE][" << std::setw(15) << std::left
