@@ -164,7 +164,7 @@ bool Retriever::RetrieveTxBodiesDB()
     else
     {
         LOG_MESSAGE("No subdirectory found");
-        return false;
+        // return false;
     }
 
     return true;
