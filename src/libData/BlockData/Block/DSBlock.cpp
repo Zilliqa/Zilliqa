@@ -42,7 +42,7 @@ DSBlock::DSBlock(const DSBlockHeader& header,
 unsigned int DSBlock::Serialize(vector<unsigned char>& dst,
                                 unsigned int offset) const
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     unsigned int header_size_needed = sizeof(uint8_t) + BLOCK_HASH_SIZE
         + UINT256_SIZE + PUB_KEY_SIZE + PUB_KEY_SIZE + UINT256_SIZE
@@ -64,7 +64,7 @@ unsigned int DSBlock::Serialize(vector<unsigned char>& dst,
 
 int DSBlock::Deserialize(const vector<unsigned char>& src, unsigned int offset)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     try
     {

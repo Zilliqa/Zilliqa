@@ -97,7 +97,7 @@ bool CommitSecret::Initialized() const { return m_initialized; }
 unsigned int CommitSecret::Serialize(vector<unsigned char>& dst,
                                      unsigned int offset) const
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     if (m_initialized)
     {
@@ -110,7 +110,7 @@ unsigned int CommitSecret::Serialize(vector<unsigned char>& dst,
 int CommitSecret::Deserialize(const vector<unsigned char>& src,
                               unsigned int offset)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     try
     {
@@ -210,7 +210,7 @@ bool CommitPoint::Initialized() const { return m_initialized; }
 unsigned int CommitPoint::Serialize(vector<unsigned char>& dst,
                                     unsigned int offset) const
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     if (m_initialized)
     {
@@ -223,7 +223,7 @@ unsigned int CommitPoint::Serialize(vector<unsigned char>& dst,
 int CommitPoint::Deserialize(const vector<unsigned char>& src,
                              unsigned int offset)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     try
     {
@@ -353,7 +353,7 @@ bool Challenge::Initialized() const { return m_initialized; }
 unsigned int Challenge::Serialize(vector<unsigned char>& dst,
                                   unsigned int offset) const
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     if (m_initialized)
     {
@@ -366,7 +366,7 @@ unsigned int Challenge::Serialize(vector<unsigned char>& dst,
 int Challenge::Deserialize(const vector<unsigned char>& src,
                            unsigned int offset)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     try
     {
@@ -548,7 +548,7 @@ bool Response::Initialized() const { return m_initialized; }
 unsigned int Response::Serialize(vector<unsigned char>& dst,
                                  unsigned int offset) const
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     if (m_initialized)
     {
@@ -560,7 +560,7 @@ unsigned int Response::Serialize(vector<unsigned char>& dst,
 
 int Response::Deserialize(const vector<unsigned char>& src, unsigned int offset)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     try
     {
