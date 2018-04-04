@@ -680,7 +680,7 @@ bool Node::ProcessCreateTransaction(const vector<unsigned char>& message,
     // }
 
     // TODO: Remove this before production. This is to reduce time spent on aws testnet.
-    for (unsigned i = 0; i < 10000; i++)
+    for (unsigned i = 0; i < 1000000; i++)
     {
         Transaction txn(version, nonce, toAddr, fromPubKey, amount, signature);
 
