@@ -655,7 +655,7 @@ bool Schnorr::Sign(const vector<unsigned char>& message, unsigned int offset,
                    unsigned int size, const PrivKey& privkey,
                    const PubKey& pubkey, Signature& result)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
     lock_guard<mutex> g(m_mutexSchnorr);
 
     // Initial checks
@@ -853,7 +853,7 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
                      unsigned int size, const Signature& toverify,
                      const PubKey& pubkey)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
     lock_guard<mutex> g(m_mutexSchnorr);
 
     // Initial checks
