@@ -79,6 +79,8 @@ Node::~Node() {}
 
 void Node::Init()
 {
+    // Zilliqa first epoch start from 1 not 0. So for the first DS epoch, there will be 1 less mini epoch only for the first DS epoch.
+    // Hence, we have to set consensusID for first epoch to 1.
     m_consensusID = 1;
     m_consensusLeaderID = 1;
 
