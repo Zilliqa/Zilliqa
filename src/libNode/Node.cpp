@@ -688,6 +688,19 @@ bool GetOneGenesisAddress(Address& oAddr)
     return true;
 }
 
+std::once_flag generateReceiverOnce;
+
+Address GenOneReceiver()
+{
+    static Address receiverAddr;
+    std::call_once(generateReceiverOnce, []() {
+        auto receiver = Schnorr::GetInstance().GenKeyPair();
+        receiverAddr = Account::GetAddressFromPublicKey(receiver.second);
+        LOG_MESSAGE("Generate testing transaction receiver" << receiverAddr);
+    });
+    return receiverAddr;
+}
+
 /// generate transation from one to many random accounts
 vector<Transaction> GenTransactionBulk(PrivKey& fromPrivKey, PubKey& fromPubKey,
                                        size_t n)
@@ -697,12 +710,17 @@ vector<Transaction> GenTransactionBulk(PrivKey& fromPrivKey, PubKey& fromPubKey,
     // FIXME: it's a workaround to use the first genensis account
     // auto receiver = Schnorr::GetInstance().GenKeyPair();
     // auto receiverAddr = Account::GetAddressFromPublicKey(receiver.second);
-    Address addr;
-    if (not GetOneGenesisAddress(addr))
-    {
-        return txns;
-    }
-    auto receiverAddr = addr;
+
+    // alternative 1: use first genesis address
+    // Address addr;
+    // if (not GetOneGenesisAddress(addr))
+    // {
+    // return txns;
+    // }
+    // auto receiverAddr = addr;
+
+    // alternative 2: use a fresh address throughout entire lifetime
+    auto receiverAddr = GenOneReceiver();
 
     txns.reserve(n);
     for (auto i = 0u; i != n; i++)
