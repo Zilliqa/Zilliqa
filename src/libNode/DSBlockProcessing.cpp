@@ -175,6 +175,16 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
                      "Error: Not in POW2_SUBMISSION state");
         return false;
     }
+
+    // For running from genesis
+    if (!m_mediator.m_isConnectedToNetwork)
+    {
+        m_mediator.m_isConnectedToNetwork = true;
+        if (m_isNewNode)
+        {
+            m_isNewNode = false;
+        }
+    }
 #else
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                  "I the lookup node have received the DS Block");

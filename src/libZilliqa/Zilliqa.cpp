@@ -90,6 +90,7 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
 
     if (toSyncWithNetwork && !toRetrieveHistory)
     {
+        m_n.m_runFromLate = true;
         m_n.StartSynchronization();
     }
 #else // else for IS_LOOKUP_NODE

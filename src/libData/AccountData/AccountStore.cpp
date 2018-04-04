@@ -40,8 +40,9 @@ AccountStore::~AccountStore()
 
 void AccountStore::Init()
 {
-    m_db.ResetDB();
+    LOG_MARKER();
     m_addressToAccount.clear();
+    m_db.ResetDB();
     m_state.init();
     prevRoot = m_state.root();
 }
@@ -107,7 +108,7 @@ int AccountStore::Deserialize(const vector<unsigned char>& src,
         Address address;
         Account account;
         unsigned int numberOfAccountDeserialze = 0;
-        Init();
+        this->Init();
         while (numberOfAccountDeserialze < totalNumOfAccounts)
         {
             numberOfAccountDeserialze++;
@@ -460,6 +461,7 @@ void AccountStore::PrintAccountState()
     {
         LOG_MESSAGE(entry.first << " " << entry.second);
     }
+    LOG_MESSAGE("State Root: " << GetStateRootHash());
 }
 
 bool AccountStore::RetrieveFromDisk()
@@ -486,4 +488,12 @@ bool AccountStore::RetrieveFromDisk()
         m_addressToAccount.insert({address, account});
     }
     return true;
+}
+
+void AccountStore::RepopulateStateTrie()
+{
+    LOG_MARKER();
+    m_state.init();
+    prevRoot = m_state.root();
+    UpdateStateTrieAll();
 }
