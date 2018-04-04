@@ -125,7 +125,7 @@ def run_start():
 	# Launch node zilliqa process
 	for x in range(0, count):
 		keypair = keypairs[x].split(" ")
-		os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; ./lzilliqa ' + keypair[1] + ' ' + keypair[0] + ' ' + '127.0.0.1' +' ' + str(NODE_LISTEN_PORT + x) + ' 0 0 1 > ./error_log_zilliqa 2>&1 &')
+		os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; echo \"' + keypair[1] + ' ' + keypair[2] + '\" > mykey.txt' + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; ./lzilliqa ' + keypair[1] + ' ' + keypair[0] + ' ' + '127.0.0.1' +' ' + str(NODE_LISTEN_PORT + x) + ' 0 0 1 > ./error_log_zilliqa 2>&1 &')
 
 if __name__ == "__main__":
 	main()
