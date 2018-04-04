@@ -756,24 +756,22 @@ bool Node::ProcessCreateTransaction(const vector<unsigned char>& message,
     // }
     for (auto nTxn = 0u; nTxn < nTxnPerAccount; nTxn += nTxnDelta)
     {
+        auto nGenerated = 0u;
         for (auto& privKeyHexStr : GENESIS_KEYS)
         {
             auto privKeyBytes{DataConversion::HexStrToUint8Vec(privKeyHexStr)};
             auto privKey = PrivKey{privKeyBytes, 0};
             auto pubKey = PubKey{privKey};
             auto addr = Account::GetAddressFromPublicKey(pubKey);
-
+            auto txns = GenTransactionBulk(privKey, pubKey, nTxnDelta);
+            nGenerated += txns.size();
             {
                 lock_guard<mutex> lg{m_mutexPrefilledTxns};
-                auto txns = GenTransactionBulk(privKey, pubKey, nTxnDelta);
-
                 auto& txnsDst = m_prefilledTxns[addr];
                 txnsDst.insert(txnsDst.end(), txns.begin(), txns.end());
-
-                LOG_MESSAGE("prefilled " << nTxnDelta << " txns with fromAddr "
-                                         << addr);
             }
         }
+        LOG_MESSAGE("prefilled " << nGenerated << " txns");
     }
 
     // {
