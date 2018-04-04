@@ -1371,6 +1371,9 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                          "txBlock.GetHeader().GetMinerPubKey(): "
                              << txBlock.GetHeader().GetMinerPubKey());
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                         "txBlock.GetHeader().GetStateRootHash(): "
+                             << txBlock.GetHeader().GetStateRootHash());
 
             m_mediator.m_txBlockChain.AddBlock(txBlock);
 
@@ -1509,18 +1512,21 @@ bool Lookup::ProcessSetTxBodyFromSeed(const vector<unsigned char>& message,
 bool Lookup::CheckStateRoot()
 {
     StateHash stateRoot = AccountStore::GetInstance().GetStateRootHash();
+    StateHash rootInFinalBlock = m_mediator.m_txBlockChain.GetLastBlock()
+                                     .GetHeader()
+                                     .GetStateRootHash();
 
-    if (stateRoot
-        == m_mediator.m_txBlockChain.GetLastBlock()
-               .GetHeader()
-               .GetStateRootHash())
+    if (stateRoot == rootInFinalBlock)
     {
         LOG_MESSAGE("CheckStateRoot match");
         return true;
     }
     else
     {
-        LOG_MESSAGE("FAIL: CheckStateRoot doesn't match");
+        LOG_MESSAGE("Error: State root doesn't match. Calculated = "
+                    << stateRoot << ". "
+                    << "StoredInBlock = " << rootInFinalBlock);
+
         return false;
     }
 }
@@ -1585,6 +1591,7 @@ bool Lookup::InitMining()
         }
         else
         {
+            m_mediator.s_toFetchState = true;
             return false;
         }
     }
