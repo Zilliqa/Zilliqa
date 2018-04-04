@@ -52,7 +52,7 @@ unsigned int AccountStore::Serialize(vector<unsigned char>& dst,
 {
     // [Total number of accounts (uint256_t)] [Addr 1] [Account 1] [Addr 2] [Account 2] .... [Addr n] [Account n]
 
-    LOG_MARKER();
+    // LOG_MARKER();
 
     unsigned int size_needed = UINT256_SIZE;
     unsigned int size_remaining = dst.size() - offset;
@@ -96,7 +96,7 @@ int AccountStore::Deserialize(const vector<unsigned char>& src,
                               unsigned int offset)
 {
     // [Total number of accounts] [Addr 1] [Account 1] [Addr 2] [Account 2] .... [Addr n] [Account n]
-    LOG_MARKER();
+    // LOG_MARKER();
 
     try
     {
