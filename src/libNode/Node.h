@@ -122,7 +122,7 @@ class Node : public Executable, public Broadcastable
 
     // prefilled transactions sorted by fromAddress
     std::mutex m_mutexPrefilledTxns;
-    std::atomic_size_t m_nRemainingPrefilledTxns;
+    std::atomic_size_t m_nRemainingPrefilledTxns{0};
     std::unordered_map<Address, std::list<Transaction>> m_prefilledTxns{};
 
     std::mutex m_mutexSubmittedTransactions;
