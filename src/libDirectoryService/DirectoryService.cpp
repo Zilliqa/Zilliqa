@@ -634,6 +634,9 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
         m_mode = BACKUP_DS;
     }
 
+    LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
+                  DS_PROMOTE_MSG);
+
     // For now, we assume the following when ProcessSetPrimary() is called:
     //  1. All peers in the peer list are my fellow DS committee members for this first epoch
     //  2. The list of DS nodes is sorted by PubKey, including my own

@@ -256,6 +256,8 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
             = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
         m_mediator.m_ds->SetState(DirectoryService::DirState::POW2_SUBMISSION);
         m_mediator.m_ds->m_mode = DirectoryService::Mode::PRIMARY_DS;
+        LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
+                      DS_PROMOTE_MSG);
 #ifdef STAT_TEST
         LOG_STATE("[IDENT][" << std::setw(15) << std::left
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
