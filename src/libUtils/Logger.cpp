@@ -110,6 +110,13 @@ Logger& Logger::GetStateLogger(const char* fname_prefix, bool log_to_file,
     return logger;
 }
 
+Logger& Logger::GetEpochInfoLogger(const char* fname_prefix, bool log_to_file,
+                                   streampos max_file_size)
+{
+    static Logger logger(fname_prefix, log_to_file, max_file_size);
+    return logger;
+}
+
 void Logger::LogMessage(const char* msg, const char* function)
 {
     pid_t tid = getCurrentPid();
@@ -258,6 +265,21 @@ void Logger::LogMessageAndPayload(const char* msg,
                  << endl
                  << flush;
         }
+    }
+}
+
+void Logger::LogEpochInfo(const char* msg, const char*)
+{
+    lock_guard<mutex> guard(m);
+
+    if (log_to_file)
+    {
+        checkLog();
+        logfile << msg << endl << flush;
+    }
+    else
+    {
+        cout << msg << endl << flush;
     }
 }
 

@@ -81,6 +81,9 @@ const std::string RAND2_GENESIS
 const std::string PERSISTENCE_PATH = "./persistence";
 const std::string TX_BODY_SUBDIR = "txBodies";
 
+const std::string DS_PROMOTE_MSG = "PROMOTED TO DS";
+const std::string DS_KICKOUT_MSG = "KICKED OUT FROM DS";
+
 extern const unsigned int DS_MULTICAST_CLUSTER_SIZE;
 extern const unsigned int COMM_SIZE;
 extern const unsigned int MAX_POW1_WINNERS;
