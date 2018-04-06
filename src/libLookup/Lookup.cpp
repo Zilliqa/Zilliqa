@@ -72,7 +72,6 @@ void Lookup::AppendTimestamp(vector<unsigned char>& message,
     offset += UINT256_SIZE;
 }
 
-#ifndef IS_LOOKUP_NODE
 void Lookup::SetLookupNodes()
 {
     LOG_MARKER();
@@ -350,8 +349,8 @@ bool Lookup::GetTxBodyFromSeedNodes(string txHashStr)
 
     return true;
 }
-#else // IS_LOOKUP_NODE
 
+#ifdef IS_LOOKUP_NODE
 bool Lookup::SetDSCommitteInfo()
 {
     // Populate tree structure pt
@@ -395,7 +394,6 @@ vector<Peer> Lookup::GetNodePeers()
     lock_guard<mutex> g(m_mutexNodesInNetwork);
     return m_nodesInNetwork;
 }
-
 #endif // IS_LOOKUP_NODE
 
 bool Lookup::ProcessEntireShardingStructure(
@@ -1258,7 +1256,6 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
             dsBlock.Serialize(serializedDSBlock, 0);
             BlockStorage::GetBlockStorage().PutDSBlock(
                 dsBlock.GetHeader().GetBlockNum(), serializedDSBlock);
-#ifndef IS_LOOKUP_NODE
             if (!BlockStorage::GetBlockStorage().PushBackTxBodyDB(
                     dsBlock.GetHeader().GetBlockNum()))
             {
@@ -1275,23 +1272,27 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
                     throw std::exception();
                 }
             }
-#endif // IS_LOOKUP_NODE
         }
-#ifdef IS_LOOKUP_NODE
-    }
-#else // IS_LOOKUP_NODE
+
         if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
         {
             GetDSInfoFromLookupNodes();
             m_mediator.s_toFetchDSInfo = true;
         }
 
-        if (m_mediator.m_syncType == SyncType::DS_SYNC)
+        if (m_mediator.m_syncType == SyncType::DS_SYNC
+            || m_mediator.m_syncType == SyncType::LOOKUP_SYNC)
         {
-            m_currDSExpired = !m_currDSExpired;
+            if (!m_isFirstLoop)
+            {
+                m_currDSExpired = true;
+            }
+            else
+            {
+                m_isFirstLoop = false;
+            }
         }
     }
-#endif //IS_LOOKUP_NODE
     m_mediator.UpdateDSBlockRand();
 
     return true;
@@ -1390,9 +1391,6 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
                 txBlock.GetHeader().GetBlockNum(), serializedTxBlock);
         }
 
-#ifdef IS_LOOKUP_NODE
-    }
-#else // IS_LOOKUP_NODE // TODO : remove from here to top
         m_mediator.m_currentEpochNum
             = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
         m_mediator.UpdateTxBlockRand();
@@ -1402,13 +1400,14 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
             GetStateFromLookupNodes();
             m_mediator.s_toFetchState = true;
         }
+#ifndef IS_LOOKUP_NODE
         else
         {
             // state the end of the first final epoch in a ds epoch
             m_mediator.s_toAttemptPoW2 = false;
         }
-    }
 #endif // IS_LOOKUP_NODE
+    }
 
     return true;
 }
@@ -1417,7 +1416,6 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
                                      unsigned int offset, const Peer& from)
 {
     bool ret = true;
-#ifndef IS_LOOKUP_NODE
     // Message = [TRAN_HASH_SIZE txHashStr][Transaction::GetSerializedSize() txbody]
 
     LOG_MARKER();
@@ -1456,6 +1454,7 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
 
     m_mediator.s_toFetchState = false;
     {
+#ifndef IS_LOOKUP_NODE
         unique_lock<mutex> lock(m_mutexDSInfoUpdation);
         while (!m_fetchedDSInfo)
         {
@@ -1474,15 +1473,24 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
             if (!m_currDSExpired)
             {
                 m_mediator.m_syncType = SyncType::NO_SYNC;
+                // in case the recovery program is under different directory
+                LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
+                              DS_PROMOTE_MSG);
             }
             m_currDSExpired = false;
         }
-        else if (m_mediator.m_syncType == SyncType::LOOKUP_SYNC)
+#else // IS_LOOKUP_NODE
+        if (m_mediator.m_syncType == SyncType::LOOKUP_SYNC)
         {
-            // TO-DO
+            // rsync the txbodies here
+            if (RsyncTxBodies() && !m_currDSExpired)
+            {
+                m_mediator.m_syncType = SyncType::NO_SYNC;
+            }
+            m_currDSExpired = false;
         }
-    }
 #endif // IS_LOOKUP_NODE
+    }
 
     return ret;
 }
@@ -1492,7 +1500,6 @@ bool Lookup::ProcessSetTxBodyFromSeed(const vector<unsigned char>& message,
 {
     LOG_MARKER();
 
-#ifndef IS_LOOKUP_NODE
     // Message = [TRAN_HASH_SIZE txHashStr][Transaction::GetSerializedSize() txbody]
 
     if (AlreadyJoinedNetwork())
@@ -1526,8 +1533,6 @@ bool Lookup::ProcessSetTxBodyFromSeed(const vector<unsigned char>& message,
     transaction.Serialize(serializedTxBody, 0);
     BlockStorage::GetBlockStorage().PutTxBody(tranHash, serializedTxBody);
     AccountStore::GetInstance().UpdateAccounts(transaction);
-
-#endif // IS_LOOKUP_NODE
 
     return true;
 }
@@ -1635,7 +1640,6 @@ bool Lookup::InitMining()
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                      "I have successfully join the network");
-#ifndef IS_LOOKUP_NODE
         LOG_MESSAGE("Clean TxBodyDB except the last one");
         int size_txBodyDBs
             = (int)BlockStorage::GetBlockStorage().GetTxBodyDBSize();
@@ -1643,10 +1647,52 @@ bool Lookup::InitMining()
         {
             BlockStorage::GetBlockStorage().PopFrontTxBodyDB(true);
         }
-#endif // IS_LOOKUP_NODE
     }
 
     return true;
+}
+#endif // IS_LOOKUP_NODE
+
+#ifdef IS_LOOKUP_NODE
+void Lookup::StartSynchronization()
+{
+    LOG_MARKER();
+
+    auto func = [this]() -> void {
+        m_mediator.s_toFetchDSInfo = true;
+        while (m_mediator.m_syncType != SyncType::NO_SYNC)
+        {
+            GetDSBlockFromLookupNodes(m_mediator.m_dsBlockChain.GetBlockCount(),
+                                      0);
+            if (m_mediator.s_toFetchDSInfo)
+            {
+                GetDSInfoFromLookupNodes();
+            }
+            GetTxBlockFromLookupNodes(
+                m_mediator.m_txBlockChain.GetBalanceCount(), 0);
+            if (m_mediator.s_toFetchState)
+            {
+                GetStateFromLookupNodes();
+            }
+            this_thread::sleep_for(chrono::seconds(NEW_NODE_SYNC_INTERVAL));
+        }
+    };
+    DetachedFunction(1, func);
+}
+
+bool Lookup::RsyncTxBodies() {}
+
+bool Lookup::ToBlockMessage(unsigned char ins_byte)
+{
+    if (m_mediator.m_syncType != SyncType::NO_SYNC
+        && (ins_byte != LookupInstructionType::SETDSBLOCKFROMSEED
+            && ins_byte != LookupInstructionType::SETDSINFOFROMSEED
+            && ins_byte != LookupInstructionType::SETTXBLOCKFROMSEED
+            && ins_byte != LookupInstructionType::SETSTATEFROMSEED))
+    {
+        return true;
+    }
+    return false;
 }
 #endif // IS_LOOKUP_NODE
 

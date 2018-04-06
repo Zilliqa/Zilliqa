@@ -942,8 +942,7 @@ void Node::SubmitTransactions()
 
 bool Node::ToBlockMessage(unsigned char ins_byte)
 {
-    if (m_mediator.m_syncType == SyncType::NEW_SYNC
-        || m_mediator.m_syncType == SyncType::NORMAL_SYNC)
+    if (m_mediator.m_syncType != SyncType::NO_SYNC)
     {
         if (!m_fromNewProcess)
         {

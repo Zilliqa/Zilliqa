@@ -109,11 +109,13 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
     case SyncType::DS_SYNC:
     {
         m_mediator.m_syncType = SyncType::DS_SYNC;
+        m_ds.StartSynchronization();
     }
 #else // IS_LOOKUP_NODE
     case SyncType::LOOKUP_SYNC:
     {
         m_mediator.m_syncType = SyncType::LOOKUP_SYNC;
+        m_lookup.StartSynchronization();
     }
 #endif // IS_LOOKUP_NODE
     }

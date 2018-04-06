@@ -55,7 +55,8 @@ class Lookup : public Executable, public Broadcastable
 
     // To ensure that the confirm of DS node rejoin won't be later than
     // It receiving a new DS block
-    bool m_currDSExpired = true;
+    bool m_currDSExpired = false;
+    bool m_isFirstLoop = true;
 
     bool CheckStateRoot();
 #endif // IS_LOOKUP_NODE
@@ -66,6 +67,13 @@ class Lookup : public Executable, public Broadcastable
     std::mutex m_mutexNodesInNetwork;
     std::vector<std::map<PubKey, Peer>> m_shards;
     std::vector<Peer> m_nodesInNetwork;
+
+    // Rsync the lost txBodies from remote lookup nodes if this lookup
+    // are doing its recovery
+    bool RsyncTxBodies();
+
+    bool ToBlockMessage(unsigned char ins_byte);
+
 #endif // IS_LOOKUP_NODE
     std::mutex m_mutexSetDSBlockFromSeed;
     std::mutex m_mutexSetTxBlockFromSeed;
@@ -133,6 +141,8 @@ public:
 
     std::vector<std::map<PubKey, Peer>> GetShardPeers();
     std::vector<Peer> GetNodePeers();
+
+    void StartSynchronization();
 
 #endif // IS_LOOKUP_NODE
 
