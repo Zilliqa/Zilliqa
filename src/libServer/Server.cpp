@@ -79,86 +79,111 @@ string Server::CreateTransaction(const Json::Value& _json)
 {
     LOG_MARKER();
 
-    if (!JSONConversion::checkJsonTx(_json))
+    try
     {
-        return "Invalid Tx Json";
-    }
 
-    Transaction tx = JSONConversion::convertJsontoTx(_json);
-
-    if (!Transaction::Verify(tx))
-    {
-        return "Signature incorrect";
-    }
-
-    //LOG_MESSAGE("Nonce: "<<tx.GetNonce().str()<<" toAddr: "<<tx.GetToAddr().hex()<<" senderPubKey: "<<static_cast<string>(tx.GetSenderPubKey());<<" amount: "<<tx.GetAmount().str());
-
-    unsigned int num_shards = m_mediator.m_lookup->GetShardPeers().size();
-
-    const PubKey& senderPubKey = tx.GetSenderPubKey();
-    const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
-    unsigned int curr_offset = 0;
-
-    if (num_shards > 0)
-    {
-        unsigned int shard = Transaction::GetShardIndex(fromAddr, num_shards);
-        map<PubKey, Peer> shardMembers
-            = m_mediator.m_lookup->GetShardPeers().at(shard);
-        LOG_MESSAGE("The Tx Belongs to " << shard << " Shard");
-
-        vector<unsigned char> tx_message
-            = {MessageType::NODE,
-               NodeInstructionType::CREATETRANSACTIONFROMLOOKUP};
-        curr_offset += MessageOffset::BODY;
-
-        tx.Serialize(tx_message, curr_offset);
-
-        LOG_MESSAGE("Tx Serialized");
-
-        vector<Peer> toSend;
-
-        auto it = shardMembers.begin();
-        for (unsigned int i = 0;
-             i < NUM_PEERS_TO_SEND_IN_A_SHARD && it != shardMembers.end();
-             i++, it++)
+        if (!JSONConversion::checkJsonTx(_json))
         {
-            toSend.push_back(it->second);
+            return "Invalid Tx Json";
         }
 
-        P2PComm::GetInstance().SendMessage(toSend, tx_message);
+        Transaction tx = JSONConversion::convertJsontoTx(_json);
+
+        if (!Transaction::Verify(tx))
+        {
+            return "Signature incorrect";
+        }
+
+        //LOG_MESSAGE("Nonce: "<<tx.GetNonce().str()<<" toAddr: "<<tx.GetToAddr().hex()<<" senderPubKey: "<<static_cast<string>(tx.GetSenderPubKey());<<" amount: "<<tx.GetAmount().str());
+
+        unsigned int num_shards = m_mediator.m_lookup->GetShardPeers().size();
+
+        const PubKey& senderPubKey = tx.GetSenderPubKey();
+        const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
+        unsigned int curr_offset = 0;
+
+        if (num_shards > 0)
+        {
+            unsigned int shard
+                = Transaction::GetShardIndex(fromAddr, num_shards);
+            map<PubKey, Peer> shardMembers
+                = m_mediator.m_lookup->GetShardPeers().at(shard);
+            LOG_MESSAGE("The Tx Belongs to " << shard << " Shard");
+
+            vector<unsigned char> tx_message
+                = {MessageType::NODE,
+                   NodeInstructionType::CREATETRANSACTIONFROMLOOKUP};
+            curr_offset += MessageOffset::BODY;
+
+            tx.Serialize(tx_message, curr_offset);
+
+            LOG_MESSAGE("Tx Serialized");
+
+            vector<Peer> toSend;
+
+            auto it = shardMembers.begin();
+            for (unsigned int i = 0;
+                 i < NUM_PEERS_TO_SEND_IN_A_SHARD && it != shardMembers.end();
+                 i++, it++)
+            {
+                toSend.push_back(it->second);
+            }
+
+            P2PComm::GetInstance().SendMessage(toSend, tx_message);
+        }
+        else
+        {
+            LOG_MESSAGE("No shards yet");
+
+            return "Could Not Create Transaction";
+        }
+
+        return tx.GetTranID().hex();
     }
-    else
+    catch (exception& e)
     {
-        LOG_MESSAGE("No shards yet");
 
-        return "Could Not Create Transaction";
+        LOG_MESSAGE("[Error]" << e.what()
+                              << " Input: " << _json.toStyledString());
+
+        return "Unable to process";
     }
-
-    return tx.GetTranID().hex();
 }
 
 Json::Value Server::GetTransaction(const string& transactionHash)
 {
     LOG_MARKER();
-    TxBodySharedPtr tx;
-    TxnHash tranHash(transactionHash);
-    if (transactionHash.size() != TRAN_HASH_SIZE * 2)
+    try
     {
-        Json::Value _json;
-        _json["error"] = "Size not appropriate";
+        TxBodySharedPtr tx;
+        TxnHash tranHash(transactionHash);
+        if (transactionHash.size() != TRAN_HASH_SIZE * 2)
+        {
+            Json::Value _json;
+            _json["error"] = "Size not appropriate";
 
-        return _json;
+            return _json;
+        }
+        bool isPresent
+            = BlockStorage::GetBlockStorage().GetTxBody(tranHash, tx);
+        if (!isPresent)
+        {
+            Json::Value _json;
+            _json["error"] = "Txn Hash not Present";
+            return _json;
+        }
+        Transaction txn(tx->GetVersion(), tx->GetNonce(), tx->GetToAddr(),
+                        tx->GetSenderPubKey(), tx->GetAmount(),
+                        tx->GetSignature());
+        return JSONConversion::convertTxtoJson(txn);
     }
-    bool isPresent = BlockStorage::GetBlockStorage().GetTxBody(tranHash, tx);
-    if (!isPresent)
+    catch (exception& e)
     {
         Json::Value _json;
-        _json["error"] = "Txn Hash not Present";
+        LOG_MESSAGE("[Error]" << e.what() << " Input: " << transactionHash);
+        _json["Error"] = "Unable to Process";
         return _json;
     }
-    Transaction txn(tx->GetVersion(), tx->GetNonce(), tx->GetToAddr(),
-                    tx->GetSenderPubKey(), tx->GetAmount(), tx->GetSignature());
-    return JSONConversion::convertTxtoJson(txn);
 }
 
 Json::Value Server::GetDsBlock(const string& blockNum)
@@ -183,6 +208,13 @@ Json::Value Server::GetDsBlock(const string& blockNum)
         _json["Error"] = "String not numeric";
         return _json;
     }
+    catch (exception& e)
+    {
+        Json::Value _json;
+        LOG_MESSAGE("[Error]" << e.what() << " Input: " << blockNum);
+        _json["Error"] = "Unable to Process";
+        return _json;
+    }
 }
 
 Json::Value Server::GetTxBlock(const string& blockNum)
@@ -205,6 +237,13 @@ Json::Value Server::GetTxBlock(const string& blockNum)
         Json::Value _json;
         LOG_MESSAGE("Error " << e.what());
         _json["Error"] = "String not numeric";
+        return _json;
+    }
+    catch (exception& e)
+    {
+        Json::Value _json;
+        LOG_MESSAGE("[Error]" << e.what() << " Input: " << blockNum);
+        _json["Error"] = "Unable to Process";
         return _json;
     }
 }
@@ -241,32 +280,45 @@ Json::Value Server::GetBalance(const string& address)
 {
     LOG_MARKER();
 
-    if (address.size() != ACC_ADDR_SIZE * 2)
+    try
     {
+
+        if (address.size() != ACC_ADDR_SIZE * 2)
+        {
+            Json::Value _json;
+            _json["Error"] = "Address size not appropriate";
+            return _json;
+        }
+        vector<unsigned char> tmpaddr
+            = DataConversion::HexStrToUint8Vec(address);
+        Address addr(tmpaddr);
+        const Account* account = AccountStore::GetInstance().GetAccount(addr);
+
+        Json::Value ret;
+        if (account != nullptr)
+        {
+            boost::multiprecision::uint256_t balance = account->GetBalance();
+            boost::multiprecision::uint256_t nonce = account->GetNonce();
+
+            ret["balance"] = balance.str();
+            ret["nonce"] = nonce.str();
+        }
+        else if (account == nullptr)
+        {
+            ret["balance"] = 0;
+            ret["nonce"] = 0;
+        }
+
+        return ret;
+    }
+    catch (exception& e)
+    {
+        LOG_MESSAGE("[Error]" << e.what() << " Input: " << address);
         Json::Value _json;
-        _json["Error"] = "Address size not appropriate";
+        _json["Error"] = "Unable To Process";
+
         return _json;
     }
-    vector<unsigned char> tmpaddr = DataConversion::HexStrToUint8Vec(address);
-    Address addr(tmpaddr);
-    const Account* account = AccountStore::GetInstance().GetAccount(addr);
-
-    Json::Value ret;
-    if (account != nullptr)
-    {
-        boost::multiprecision::uint256_t balance = account->GetBalance();
-        boost::multiprecision::uint256_t nonce = account->GetNonce();
-
-        ret["balance"] = balance.str();
-        ret["nonce"] = nonce.str();
-    }
-    else if (account == nullptr)
-    {
-        ret["balance"] = 0;
-        ret["nonce"] = 0;
-    }
-
-    return ret;
 }
 
 string Server::GetStorageAt(const string& address, const string& position)
