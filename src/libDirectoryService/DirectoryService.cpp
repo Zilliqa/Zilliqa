@@ -1350,7 +1350,7 @@ bool DirectoryService::ProcessInitViewChangeResponse(
 
 bool DirectoryService::ToBlockMessage(unsigned char ins_byte)
 {
-    if (m_mediator.m_syncType == SyncType::DS_SYNC)
+    if (m_mediator.m_syncType != SyncType::NO_SYNC)
     {
         return true;
     }
