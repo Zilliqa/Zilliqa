@@ -153,7 +153,7 @@ bool Node::StartRetrieveHistory()
 void Node::StartSynchronization()
 {
     auto func = [this]() -> void {
-        while (!m_mediator.m_isConnectedToNetwork)
+        while (m_mediator.m_syncType != SyncType::NOSYNC)
         {
             m_synchronizer.FetchLatestDSBlocks(
                 m_mediator.m_lookup, m_mediator.m_dsBlockChain.GetBlockCount());
@@ -168,7 +168,7 @@ void Node::StartSynchronization()
             {
                 m_synchronizer.FetchLatestState(m_mediator.m_lookup);
             }
-            if (m_mediator.s_toAttemptPoW)
+            if (m_mediator.s_toAttemptPoW2)
             {
                 if (m_synchronizer.AttemptPoW(m_mediator.m_lookup))
                 {
@@ -942,22 +942,23 @@ void Node::SubmitTransactions()
 
 bool Node::ToBlockMessage(unsigned char ins_byte)
 {
-    if (!m_mediator.m_isConnectedToNetwork)
+    if (m_mediator.m_syncType == SyncType::NEW ||
+        m_mediator.m_syncType == SyncType::NORMAL)
     {
-        if (!m_isNewNode)
-        {
-            if (ins_byte != NodeInstructionType::SHARDING)
+            if (!m_fromNewProcess)
             {
-                return true;
+                if (ins_byte != NodeInstructionType::SHARDING)
+                {
+                    return true;
+                }
             }
-        }
-        else
-        {
-            if (m_runFromLate && ins_byte != NodeInstructionType::SHARDING)
+            else
             {
-                return true;
+                if (m_runFromLate && ins_byte != NodeInstructionType::SHARDING)
+                {
+                    return true;
+                }
             }
-        }
     }
     return false;
 }
@@ -1013,7 +1014,7 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
                                                      - NUM_VACUOUS_EPOCHS));
             if (ins_byte == NodeInstructionType::FINALBLOCK && isVacuousEpoch)
             {
-                m_mediator.m_isConnectedToNetwork = false;
+                m_mediator.m_syncType = SyncType::NORMAL;
                 this->Init();
                 this->Prepare(true);
                 this->StartSynchronization();

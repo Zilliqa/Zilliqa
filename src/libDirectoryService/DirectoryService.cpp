@@ -56,6 +56,32 @@ DirectoryService::DirectoryService(Mediator& mediator)
 DirectoryService::~DirectoryService() {}
 
 #ifndef IS_LOOKUP_NODE
+
+void DirectoryService::StartSynchronization()
+{
+    LOG_MARKER();
+
+    auto func = [this]() -> void {
+        m_mediator.s_toFetchDSInfo = true;
+        while (m_mediator.m_syncType != SyncType::NOSYNC)
+        {
+            m_synchronizer.FetchLatestDSBlocks(
+                m_mediator.m_lookup, m_mediator.m_dsBlockChain.GetBlockCount());
+            if (m_mediator.s_toFetchDSInfo)
+            {
+                m_synchronizer.FetchDSInfo(m_mediator.m_lookup);
+            }
+            m_synchronizer.FetchLatestTxBlocks(
+                m_mediator.m_lookup, m_mediator.m_txBlockChain.GetBlockCount());
+            if (m_mediator.s_toFetchState)
+            {
+                m_synchronizer.FetchLatestState(m_mediator.m_lookup);
+            }
+            this_thread::sleep_for(chrono::seconds(NEW_NODE_SYNC_INTERVAL));
+        }
+    }
+}
+
 bool DirectoryService::CheckState(Action action)
 {
     if (m_mode == Mode::IDLE)
@@ -1320,6 +1346,14 @@ bool DirectoryService::ProcessInitViewChangeResponse(
     return true;
 }
 
+bool DirectoryService::ToBlockMessage(unsigned char ins_byte)
+{
+    if(m_mediator.m_syncType == SyncType::DS)
+    {
+        return true;
+    }
+}
+
 #endif // IS_LOOKUP_NODE
 
 bool DirectoryService::Execute(const vector<unsigned char>& message,
@@ -1364,6 +1398,17 @@ bool DirectoryService::Execute(const vector<unsigned char>& message,
 
     const unsigned int ins_handlers_count
         = sizeof(ins_handlers) / sizeof(InstructionHandler);
+
+#ifndef IS_LOOKUP_NODE
+        // If the DS node failed and waiting for recovery, block the unwanted msg
+
+        if (ToBlockMessage(ins_byte))
+        {
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                         "DS Node not connected to network yet, ignore message");
+            return false;
+        }
+#endif
 
     if (ins_byte < ins_handlers_count)
     {
