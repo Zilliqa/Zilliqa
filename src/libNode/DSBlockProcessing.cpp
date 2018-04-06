@@ -177,12 +177,12 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
     }
 
     // For running from genesis
-    if (!m_mediator.m_isConnectedToNetwork)
+    if (m_mediator.m_syncType != SyncType::NOSYNC)
     {
-        m_mediator.m_isConnectedToNetwork = true;
-        if (m_isNewNode)
+        m_mediator.m_syncType = SyncType::NOSYNC;
+        if (m_fromNewProcess)
         {
-            m_isNewNode = false;
+            m_fromNewProcess = false;
         }
     }
 #else
@@ -250,7 +250,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                      "I won PoW1 :-) I am now the new DS committee leader!");
-        m_mediator.m_isConnectedToNetwork = true;
+        m_mediator.m_syncType = SyncType::NOSYNC
         m_mediator.m_ds->m_consensusMyID = 0;
         m_mediator.m_ds->m_consensusID
             = m_mediator.m_currentEpochNum == 1 ? 1 : 0;

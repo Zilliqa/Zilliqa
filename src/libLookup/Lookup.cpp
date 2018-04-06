@@ -1282,7 +1282,13 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
 #else // IS_LOOKUP_NODE
         if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
         {
+            GetDSInfoFromLookupNodes();
             m_mediator.s_toFetchDSInfo = true;
+        }
+
+        if (m_mediator.m_syncType == SyncType::DS)
+        {
+            m_currDSExpired = !m_currDSExpired;
         }
     }
 #endif //IS_LOOKUP_NODE
@@ -1393,12 +1399,13 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
 
         if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
         {
+            GetStateFromLookupNodes();
             m_mediator.s_toFetchState = true;
         }
         else
         {
             // state the end of the first final epoch in a ds epoch
-            m_mediator.s_toAttemptPoW = false;
+            m_mediator.s_toAttemptPoW2 = false;
         }
     }
 #endif // IS_LOOKUP_NODE
@@ -1455,7 +1462,25 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
             m_dsInfoUpdateCondition.wait(lock);
         }
         m_fetchedDSInfo = false;
-        m_mediator.s_toAttemptPoW = true;
+
+        if (m_mediator.m_syncType == SyncType::NEW ||
+            m_mediator.m_syncType == SyncType::NORMAL)
+        {
+            InitMining();
+            m_mediator.s_toAttemptPoW2 = true;
+        }
+        else if (m_mediator.m_syncType == SyncType::DS)
+        {
+            if(!m_currDSExpired)
+            {
+                m_mediator.m_syncType = SyncType::NOSYNC;
+            }
+            m_currDSExpired = false;
+        }
+        else if (m_mediator.m_syncType == SyncType::LOOKUP)
+        {
+            // TO-DO
+        }
     }
 #endif // IS_LOOKUP_NODE
 
@@ -1601,7 +1626,7 @@ bool Lookup::InitMining()
     }
     // Check whether is the new node connected to the network. Else, initiate re-sync process again.
     this_thread::sleep_for(chrono::seconds(BACKUP_POW2_WINDOW_IN_SECONDS));
-    if (!m_mediator.m_isConnectedToNetwork)
+    if (m_mediator.m_syncType != SyncType::NOSYNC)
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                      "Not yet connected to network");
@@ -1675,7 +1700,7 @@ bool Lookup::Execute(const vector<unsigned char>& message, unsigned int offset,
 
 bool Lookup::AlreadyJoinedNetwork()
 {
-    if (m_mediator.m_isConnectedToNetwork)
+    if (m_mediator.m_syncType != SyncType::NOSYNC)
     {
         return true;
     }

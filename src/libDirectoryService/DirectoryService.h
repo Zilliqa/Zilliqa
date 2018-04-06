@@ -156,6 +156,8 @@ class DirectoryService : public Executable, public Broadcastable
 
     Mediator& m_mediator;
 
+    Synchronizer m_synchronizer;
+
     const uint32_t RESHUFFLE_INTERVAL = 500;
 
     // Message handlers
@@ -318,6 +320,7 @@ class DirectoryService : public Executable, public Broadcastable
     bool ProcessInitViewChangeResponse(const vector<unsigned char>& message,
                                        unsigned int offset, const Peer& from);
 
+    bool ToBlockMessage(unsigned char ins_byte);
 #endif // IS_LOOKUP_NODE
 
 public:
@@ -363,6 +366,8 @@ public:
 #ifndef IS_LOOKUP_NODE
     /// Sets the value of m_state.
     void SetState(DirState state);
+
+    void StartSynchronization();
 
     /// Implements the GetBroadcastList function inherited from Broadcastable.
     std::vector<Peer> GetBroadcastList(unsigned char ins_type,

@@ -302,8 +302,8 @@ class Node : public Executable, public Broadcastable
                          vector<Peer> my_shard_receivers,
                          const vector<Peer>& fellowForwarderNodes);
 
-    // Is New Node
-    bool m_isNewNode = true;
+    // Is Running from New Process
+    bool m_fromNewProcess = true;
 
     bool ToBlockMessage(unsigned char ins_byte);
 #endif // IS_LOOKUP_NODE

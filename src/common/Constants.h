@@ -69,9 +69,19 @@ const unsigned int SERVER_PORT = 4201;
 // Metadata type
 enum MetaType : unsigned char
 {
-    STATEROOT = 0x00,
+    STATEROOT 		= 0x00,
     DSINCOMPLETED,
 };
+
+// Sync Type
+enum SyncType : unsigned int
+{
+	NOSYNC 		= 0,
+	NEW,
+	NORMAL,
+	DS,
+	LOOKUP,
+}
 
 const std::string RAND1_GENESIS
     = "2b740d75891749f94b6a8ec09f086889066608e4418eda656c93443e8310750a";
