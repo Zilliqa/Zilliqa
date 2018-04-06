@@ -44,22 +44,21 @@ class Lookup : public Executable, public Broadcastable
 {
     Mediator& m_mediator;
 
-#ifndef IS_LOOKUP_NODE
     // Info about lookup node
     std::vector<Peer> m_lookupNodes;
     std::vector<Peer> m_seedNodes;
-
+#ifndef IS_LOOKUP_NODE
     bool m_fetchedDSInfo = false;
     std::mutex m_mutexDSInfoUpdation;
     std::condition_variable m_dsInfoUpdateCondition;
+
+    bool CheckStateRoot();
+#endif // IS_LOOKUP_NODE
 
     // To ensure that the confirm of DS node rejoin won't be later than
     // It receiving a new DS block
     bool m_currDSExpired = false;
     bool m_isFirstLoop = true;
-
-    bool CheckStateRoot();
-#endif // IS_LOOKUP_NODE
 
 #ifdef IS_LOOKUP_NODE
     // Sharding committee members
@@ -100,7 +99,6 @@ public:
     /// Destructor.
     ~Lookup();
 
-#ifndef IS_LOOKUP_NODE
     // Setting the lookup nodes
     // Hardcoded for now -- to be called by constructor
     void SetLookupNodes();
@@ -136,14 +134,13 @@ public:
                               boost::multiprecision::uint256_t highBlockNum);
     bool GetTxBodyFromSeedNodes(std::string txHashStr);
     bool GetStateFromLookupNodes();
-#else // IS_LOOKUP_NODE
+#ifdef IS_LOOKUP_NODE
     bool SetDSCommitteInfo();
 
     std::vector<std::map<PubKey, Peer>> GetShardPeers();
     std::vector<Peer> GetNodePeers();
 
     void StartSynchronization();
-
 #endif // IS_LOOKUP_NODE
 
     bool
@@ -182,8 +179,9 @@ public:
 
     bool Execute(const std::vector<unsigned char>& message, unsigned int offset,
                  const Peer& from);
-
+#ifndef IS_LOOKUP_NODE
     bool InitMining();
+#endif // IS_LOOKUP_NODE
     bool AlreadyJoinedNetwork();
 };
 

@@ -41,6 +41,7 @@
 #include "libNetwork/P2PComm.h"
 #include "libPersistence/BlockStorage.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/DetachedFunction.h"
 #include "libUtils/SanityChecks.h"
 
 using namespace std;
@@ -1256,6 +1257,7 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
             dsBlock.Serialize(serializedDSBlock, 0);
             BlockStorage::GetBlockStorage().PutDSBlock(
                 dsBlock.GetHeader().GetBlockNum(), serializedDSBlock);
+#ifndef IS_LOOKUP_NODE
             if (!BlockStorage::GetBlockStorage().PushBackTxBodyDB(
                     dsBlock.GetHeader().GetBlockNum()))
             {
@@ -1272,6 +1274,7 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
                     throw std::exception();
                 }
             }
+#endif // IS_LOOKUP_NODE
         }
 
         if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
@@ -1668,8 +1671,8 @@ void Lookup::StartSynchronization()
             {
                 GetDSInfoFromLookupNodes();
             }
-            GetTxBlockFromLookupNodes(
-                m_mediator.m_txBlockChain.GetBalanceCount(), 0);
+            GetTxBlockFromLookupNodes(m_mediator.m_txBlockChain.GetBlockCount(),
+                                      0);
             if (m_mediator.s_toFetchState)
             {
                 GetStateFromLookupNodes();
@@ -1680,7 +1683,7 @@ void Lookup::StartSynchronization()
     DetachedFunction(1, func);
 }
 
-bool Lookup::RsyncTxBodies() {}
+bool Lookup::RsyncTxBodies() { return true; }
 
 bool Lookup::ToBlockMessage(unsigned char ins_byte)
 {
