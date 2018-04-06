@@ -63,7 +63,7 @@ void DirectoryService::StartSynchronization()
 
     auto func = [this]() -> void {
         m_mediator.s_toFetchDSInfo = true;
-        while (m_mediator.m_syncType != SyncType::NOSYNC)
+        while (m_mediator.m_syncType != SyncType::NO_SYNC)
         {
             m_synchronizer.FetchLatestDSBlocks(
                 m_mediator.m_lookup, m_mediator.m_dsBlockChain.GetBlockCount());
@@ -79,7 +79,9 @@ void DirectoryService::StartSynchronization()
             }
             this_thread::sleep_for(chrono::seconds(NEW_NODE_SYNC_INTERVAL));
         }
-    }
+    };
+
+    DetachedFunction(1, func);
 }
 
 bool DirectoryService::CheckState(Action action)
@@ -1348,10 +1350,11 @@ bool DirectoryService::ProcessInitViewChangeResponse(
 
 bool DirectoryService::ToBlockMessage(unsigned char ins_byte)
 {
-    if(m_mediator.m_syncType == SyncType::DS)
+    if (m_mediator.m_syncType == SyncType::DS_SYNC)
     {
         return true;
     }
+    return false;
 }
 
 #endif // IS_LOOKUP_NODE
@@ -1400,14 +1403,14 @@ bool DirectoryService::Execute(const vector<unsigned char>& message,
         = sizeof(ins_handlers) / sizeof(InstructionHandler);
 
 #ifndef IS_LOOKUP_NODE
-        // If the DS node failed and waiting for recovery, block the unwanted msg
+    // If the DS node failed and waiting for recovery, block the unwanted msg
 
-        if (ToBlockMessage(ins_byte))
-        {
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "DS Node not connected to network yet, ignore message");
-            return false;
-        }
+    if (ToBlockMessage(ins_byte))
+    {
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "DS Node not connected to network yet, ignore message");
+        return false;
+    }
 #endif
 
     if (ins_byte < ins_handlers_count)

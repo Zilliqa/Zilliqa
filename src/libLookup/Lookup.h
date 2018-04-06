@@ -53,7 +53,9 @@ class Lookup : public Executable, public Broadcastable
     std::mutex m_mutexDSInfoUpdation;
     std::condition_variable m_dsInfoUpdateCondition;
 
-    bool m_currentDSExpired = true;
+    // To ensure that the confirm of DS node rejoin won't be later than
+    // It receiving a new DS block
+    bool m_currDSExpired = true;
 
     bool CheckStateRoot();
 #endif // IS_LOOKUP_NODE

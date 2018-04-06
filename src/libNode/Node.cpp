@@ -153,7 +153,7 @@ bool Node::StartRetrieveHistory()
 void Node::StartSynchronization()
 {
     auto func = [this]() -> void {
-        while (m_mediator.m_syncType != SyncType::NOSYNC)
+        while (m_mediator.m_syncType != SyncType::NO_SYNC)
         {
             m_synchronizer.FetchLatestDSBlocks(
                 m_mediator.m_lookup, m_mediator.m_dsBlockChain.GetBlockCount());
@@ -942,23 +942,23 @@ void Node::SubmitTransactions()
 
 bool Node::ToBlockMessage(unsigned char ins_byte)
 {
-    if (m_mediator.m_syncType == SyncType::NEW ||
-        m_mediator.m_syncType == SyncType::NORMAL)
+    if (m_mediator.m_syncType == SyncType::NEW_SYNC
+        || m_mediator.m_syncType == SyncType::NORMAL_SYNC)
     {
-            if (!m_fromNewProcess)
+        if (!m_fromNewProcess)
+        {
+            if (ins_byte != NodeInstructionType::SHARDING)
             {
-                if (ins_byte != NodeInstructionType::SHARDING)
-                {
-                    return true;
-                }
+                return true;
             }
-            else
+        }
+        else
+        {
+            if (m_runFromLate && ins_byte != NodeInstructionType::SHARDING)
             {
-                if (m_runFromLate && ins_byte != NodeInstructionType::SHARDING)
-                {
-                    return true;
-                }
+                return true;
             }
+        }
     }
     return false;
 }
@@ -1014,7 +1014,7 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
                                                      - NUM_VACUOUS_EPOCHS));
             if (ins_byte == NodeInstructionType::FINALBLOCK && isVacuousEpoch)
             {
-                m_mediator.m_syncType = SyncType::NORMAL;
+                m_mediator.m_syncType = SyncType::NORMAL_SYNC;
                 this->Init();
                 this->Prepare(true);
                 this->StartSynchronization();

@@ -155,9 +155,9 @@ bool Node::ProcessSharding(const vector<unsigned char>& message,
     POW::GetInstance().StopMining();
 
     /// if it is a node joining after finishing pow2, commit the state into db
-    if (m_mediator.m_syncType != SyncType::NOSYNC)
+    if (m_mediator.m_syncType != SyncType::NO_SYNC)
     {
-        m_mediator.m_syncType = SyncType::NOSYNC;
+        m_mediator.m_syncType = SyncType::NO_SYNC;
         AccountStore::GetInstance().MoveUpdatesToDisk();
         m_fromNewProcess = false;
         m_runFromLate = false;
