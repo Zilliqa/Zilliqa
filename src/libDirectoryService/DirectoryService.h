@@ -32,6 +32,7 @@
 #include "common/Executable.h"
 #include "libConsensus/Consensus.h"
 #include "libData/BlockData/Block.h"
+#include "libLookup/Synchronizer.h"
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/PeerStore.h"
 #include "libPOW/pow.h"

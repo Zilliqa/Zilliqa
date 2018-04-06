@@ -1286,7 +1286,7 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
             m_mediator.s_toFetchDSInfo = true;
         }
 
-        if (m_mediator.m_syncType == SyncType::DS)
+        if (m_mediator.m_syncType == SyncType::DS_SYNC)
         {
             m_currDSExpired = !m_currDSExpired;
         }
@@ -1463,21 +1463,21 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
         }
         m_fetchedDSInfo = false;
 
-        if (m_mediator.m_syncType == SyncType::NEW ||
-            m_mediator.m_syncType == SyncType::NORMAL)
+        if (m_mediator.m_syncType == SyncType::NEW_SYNC
+            || m_mediator.m_syncType == SyncType::NORMAL_SYNC)
         {
             InitMining();
             m_mediator.s_toAttemptPoW2 = true;
         }
-        else if (m_mediator.m_syncType == SyncType::DS)
+        else if (m_mediator.m_syncType == SyncType::DS_SYNC)
         {
-            if(!m_currDSExpired)
+            if (!m_currDSExpired)
             {
-                m_mediator.m_syncType = SyncType::NOSYNC;
+                m_mediator.m_syncType = SyncType::NO_SYNC;
             }
             m_currDSExpired = false;
         }
-        else if (m_mediator.m_syncType == SyncType::LOOKUP)
+        else if (m_mediator.m_syncType == SyncType::LOOKUP_SYNC)
         {
             // TO-DO
         }
@@ -1626,7 +1626,7 @@ bool Lookup::InitMining()
     }
     // Check whether is the new node connected to the network. Else, initiate re-sync process again.
     this_thread::sleep_for(chrono::seconds(BACKUP_POW2_WINDOW_IN_SECONDS));
-    if (m_mediator.m_syncType != SyncType::NOSYNC)
+    if (m_mediator.m_syncType != SyncType::NO_SYNC)
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                      "Not yet connected to network");
@@ -1700,7 +1700,7 @@ bool Lookup::Execute(const vector<unsigned char>& message, unsigned int offset,
 
 bool Lookup::AlreadyJoinedNetwork()
 {
-    if (m_mediator.m_syncType != SyncType::NOSYNC)
+    if (m_mediator.m_syncType != SyncType::NO_SYNC)
     {
         return true;
     }

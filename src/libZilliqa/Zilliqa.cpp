@@ -56,8 +56,7 @@ void Zilliqa::LogSelfNodeInfo(const std::pair<PrivKey, PubKey>& key,
 }
 
 Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
-                 bool loadConfig, unsigned int syncType,
-                 bool toRetrieveHistory)
+                 bool loadConfig, unsigned int syncType, bool toRetrieveHistory)
     : m_pm(key, peer, loadConfig)
     , m_mediator(key, peer)
     , m_ds(m_mediator)
@@ -85,15 +84,14 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
     P2PComm::GetInstance().SetSelfPeer(peer);
 #endif // STAT_TEST
 
-
     switch (syncType)
     {
 #ifndef IS_LOOKUP_NODE
-    case SyncType::NEW:
+    case SyncType::NEW_SYNC:
     {
         if (!toRetrieveHistory)
         {
-            m_mediator.m_syncType = SyncType::NEW;
+            m_mediator.m_syncType = SyncType::NEW_SYNC;
             m_n.m_runFromLate = true;
             m_n.StartSynchronization();
         }
@@ -102,20 +100,20 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
             LOG_MESSAGE("Error: Sync for new node shouldn't retrieve history");
         }
     }
-    case SyncType::NORMAL:
+    case SyncType::NORMAL_SYNC:
     {
-        m_mediator.m_syncType = SyncType::NORMAL;
+        m_mediator.m_syncType = SyncType::NORMAL_SYNC;
         m_n.m_runFromLate = true;
         m_n.StartSynchronization();
     }
-    case SyncType::DS:
+    case SyncType::DS_SYNC:
     {
-        m_mediator.m_syncType = SyncType::DS;
+        m_mediator.m_syncType = SyncType::DS_SYNC;
     }
 #else // IS_LOOKUP_NODE
-    case SyncType::LOOKUP:
+    case SyncType::LOOKUP_SYNC:
     {
-        m_mediator.m_syncType = SyncType::LOOKUP;
+        m_mediator.m_syncType = SyncType::LOOKUP_SYNC;
     }
 #endif // IS_LOOKUP_NODE
     }
