@@ -978,7 +978,9 @@ bool ConsensusLeader::GenerateCollectiveSigMessage(
     }
 
     // Verify the collective signature
-    if (Schnorr::GetInstance().Verify(m_message, 0, m_lengthToCosign, m_collectiveSig, aggregated_key) == false)
+    if (Schnorr::GetInstance().Verify(m_message, 0, m_lengthToCosign,
+                                      m_collectiveSig, aggregated_key)
+        == false)
     {
         LOG_MESSAGE("Error: Collective sig verification failed");
         m_state = ERROR;
@@ -1088,7 +1090,8 @@ bool ConsensusLeader::StartConsensus(const vector<unsigned char>& message)
     return StartConsensus(message, message.size());
 }
 
-bool ConsensusLeader::StartConsensus(const vector<unsigned char>& message, uint32_t lengthToCosign)
+bool ConsensusLeader::StartConsensus(const vector<unsigned char>& message,
+                                     uint32_t lengthToCosign)
 {
     LOG_MARKER();
 
@@ -1151,7 +1154,8 @@ bool ConsensusLeader::StartConsensus(const vector<unsigned char>& message, uint3
     curr_offset += message.size();
 
     // 4-byte length to co-sign
-    Serializable::SetNumber<uint32_t>(announcement, curr_offset, lengthToCosign, sizeof(uint32_t));
+    Serializable::SetNumber<uint32_t>(announcement, curr_offset, lengthToCosign,
+                                      sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
     // 64-byte signature
