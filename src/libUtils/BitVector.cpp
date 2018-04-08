@@ -57,6 +57,32 @@ std::vector<bool> BitVector::GetBitVector(const std::vector<unsigned char>& src,
     return result;
 }
 
+std::vector<bool> BitVector::GetBitVector(const std::vector<unsigned char>& src,
+                                          unsigned int offset)
+{
+    std::vector<bool> result;
+    unsigned int actual_length = 0;
+    unsigned int actual_length_bytes = 0;
+
+    if ((src.size() - offset) >= 2)
+    {
+        actual_length = (src.at(offset) << 8) + src.at(offset + 1);
+        actual_length_bytes = GetBitVectorLengthInBytes(actual_length);
+    }
+
+    if ((src.size() - offset - 2) >= actual_length_bytes)
+    {
+        result.reserve(actual_length);
+        for (unsigned int index = 0; index < actual_length; index++)
+        {
+            result.push_back(src.at(offset + 2 + (index >> 3))
+                             & (1 << (7 - (index & 0x07))));
+        }
+    }
+
+    return result;
+}
+
 unsigned int BitVector::SetBitVector(std::vector<unsigned char>& dst,
                                      unsigned int offset,
                                      const std::vector<bool>& value)
