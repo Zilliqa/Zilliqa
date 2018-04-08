@@ -304,8 +304,8 @@ Challenge::Challenge()
 Challenge::Challenge(const CommitPoint& aggregatedCommit,
                      const PubKey& aggregatedPubkey,
                      const vector<unsigned char>& message)
+    : Challenge(aggregatedCommit, aggregatedPubkey, message, 0, message.size())
 {
-    Challenge(aggregatedCommit, aggregatedPubkey, message, 0, message.size());
 }
 
 Challenge::Challenge(const CommitPoint& aggregatedCommit,
