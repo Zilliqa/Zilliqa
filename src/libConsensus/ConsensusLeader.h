@@ -131,6 +131,10 @@ public:
     /// Triggers the start of consensus on a particular message (e.g., DS block).
     bool StartConsensus(const std::vector<unsigned char>& message);
 
+    /// Triggers the start of consensus on a particular message (e.g., DS block).
+    bool StartConsensus(const std::vector<unsigned char>& message,
+                        uint32_t lengthToCosign);
+
     /// Function to process any consensus message received.
     bool ProcessMessage(const std::vector<unsigned char>& message,
                         unsigned int offset, const Peer& from);
