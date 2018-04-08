@@ -112,6 +112,9 @@ protected:
     /// Response map for the generated collective signature over original message (first round)
     std::vector<bool> m_responseMapOverMessage;
 
+    /// Length of the message (first round) to co-sign
+    uint32_t m_lengthToCosign;
+
     /// Constructor.
     ConsensusCommon(uint32_t consensus_id,
                     const std::vector<unsigned char>& block_hash,
