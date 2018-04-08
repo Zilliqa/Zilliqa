@@ -15,6 +15,7 @@
 **/
 
 #include "MicroBlock.h"
+#include "libUtils/BitVector.h"
 #include "libUtils/Logger.h"
 
 using namespace std;
@@ -26,6 +27,8 @@ unsigned int MicroBlock::Serialize(vector<unsigned char>& dst,
     assert(m_header.GetNumTxs() == m_tranHashes.size());
 
     unsigned int size_needed = MicroBlockHeader::HEADER_SIZE_NEEDED
+        + BLOCK_SIG_SIZE
+        + BitVector::GetBitVectorSerializedSize(m_headerSigBitmap.size())
         + m_header.GetNumTxs() * TRAN_HASH_SIZE;
 
     unsigned int size_remaining = dst.size() - offset;
@@ -38,6 +41,11 @@ unsigned int MicroBlock::Serialize(vector<unsigned char>& dst,
     m_header.Serialize(dst, offset);
 
     unsigned int curOffset = offset + MicroBlockHeader::HEADER_SIZE_NEEDED;
+
+    m_headerSig.Serialize(dst, curOffset);
+    curOffset += BLOCK_SIG_SIZE;
+
+    curOffset += BitVector::SetBitVector(dst, curOffset, m_headerSigBitmap);
 
     for (unsigned int i = 0; i < m_header.GetNumTxs(); i++)
     {
@@ -66,6 +74,13 @@ int MicroBlock::Deserialize(const vector<unsigned char>& src,
 
         unsigned int curOffset = offset + MicroBlockHeader::HEADER_SIZE_NEEDED;
 
+        m_headerSig.Deserialize(src, curOffset);
+        curOffset += BLOCK_SIG_SIZE;
+
+        m_headerSigBitmap = BitVector::GetBitVector(src, curOffset);
+        curOffset
+            += BitVector::GetBitVectorSerializedSize(m_headerSigBitmap.size());
+
         for (unsigned int i = 0; i < m_header.GetNumTxs(); i++)
         {
             TxnHash tranHash;
@@ -88,7 +103,8 @@ int MicroBlock::Deserialize(const vector<unsigned char>& src,
 
 unsigned int MicroBlock::GetSerializedSize() const
 {
-    return MicroBlockHeader::HEADER_SIZE_NEEDED
+    return MicroBlockHeader::HEADER_SIZE_NEEDED + BLOCK_SIG_SIZE
+        + BitVector::GetBitVectorSerializedSize(m_headerSigBitmap.size())
         + (m_tranHashes.size() * TRAN_HASH_SIZE);
 }
 
@@ -109,14 +125,35 @@ MicroBlock::MicroBlock(const vector<unsigned char>& src, unsigned int offset)
 }
 
 MicroBlock::MicroBlock(const MicroBlockHeader& header,
+                       const Signature& signature,
+                       const vector<bool>& signatureBitmap,
                        const vector<TxnHash>& tranHashes)
     : m_header(header)
+    , m_headerSig(signature)
+    , m_headerSigBitmap(signatureBitmap)
     , m_tranHashes(tranHashes)
 {
     assert(m_header.GetNumTxs() == m_tranHashes.size());
 }
 
 const MicroBlockHeader& MicroBlock::GetHeader() const { return m_header; }
+
+const Signature& MicroBlock::GetHeaderSig() const { return m_headerSig; }
+
+const vector<bool>& MicroBlock::GetHeaderSigBitmap() const
+{
+    return m_headerSigBitmap;
+}
+
+void MicroBlock::SetHeaderSig(const Signature& signature)
+{
+    m_headerSig = signature;
+}
+
+void MicroBlock::SetHeaderSigBitmap(const std::vector<bool>& signatureBitmap)
+{
+    m_headerSigBitmap = signatureBitmap;
+}
 
 const vector<TxnHash>& MicroBlock::GetTranHashes() const
 {
@@ -125,7 +162,7 @@ const vector<TxnHash>& MicroBlock::GetTranHashes() const
 
 bool MicroBlock::operator==(const MicroBlock& block) const
 {
-    return ((m_header == block.m_header)
+    return ((m_header == block.m_header) && (m_headerSig == block.m_headerSig)
             && (m_tranHashes == block.m_tranHashes));
 }
 
