@@ -689,7 +689,7 @@ bool ConsensusLeader::GenerateChallengeMessage(vector<unsigned char>& challenge,
     }
 
     // Generate the challenge
-    m_challenge = GetChallenge(m_message, 0, m_message.size(),
+    m_challenge = GetChallenge(m_message, 0, m_lengthToCosign,
                                aggregated_commit, aggregated_key);
     if (m_challenge.Initialized() == false)
     {
@@ -921,6 +921,7 @@ bool ConsensusLeader::ProcessMessageResponseCore(
                 // Second round: consensus over collective sig
                 m_message.clear();
                 m_collectiveSig.Serialize(m_message, 0);
+                m_lengthToCosign = m_message.size();
             }
 
             // Multicast to all nodes in the committee
@@ -977,9 +978,7 @@ bool ConsensusLeader::GenerateCollectiveSigMessage(
     }
 
     // Verify the collective signature
-    if (Schnorr::GetInstance().Verify(m_message, m_collectiveSig,
-                                      aggregated_key)
-        == false)
+    if (Schnorr::GetInstance().Verify(m_message, 0, m_lengthToCosign, m_collectiveSig, aggregated_key) == false)
     {
         LOG_MESSAGE("Error: Collective sig verification failed");
         m_state = ERROR;
@@ -1086,6 +1085,11 @@ ConsensusLeader::~ConsensusLeader() {}
 
 bool ConsensusLeader::StartConsensus(const vector<unsigned char>& message)
 {
+    return StartConsensus(message, message.size());
+}
+
+bool ConsensusLeader::StartConsensus(const vector<unsigned char>& message, uint32_t lengthToCosign)
+{
     LOG_MARKER();
 
     // Initial checks
@@ -1097,6 +1101,12 @@ bool ConsensusLeader::StartConsensus(const vector<unsigned char>& message)
         return false;
     }
 
+    if (lengthToCosign > message.size())
+    {
+        LOG_MESSAGE("Error: lengthToCosign > message size");
+        return false;
+    }
+
     if (!CheckState(SEND_ANNOUNCEMENT))
     {
         return false;
@@ -1105,8 +1115,8 @@ bool ConsensusLeader::StartConsensus(const vector<unsigned char>& message)
     // Assemble announcement message body
     // ==================================
 
-    // Format: [CLA] [INS] [1-byte consensus message type] [4-byte consensus id] [32-byte blockhash] [2-byte leader id] [message] [64-byte signature]
-    // Signature is over: [4-byte consensus id] [32-byte blockhash] [2-byte leader id] [message]
+    // Format: [CLA] [INS] [1-byte consensus message type] [4-byte consensus id] [32-byte blockhash] [2-byte leader id] [message] [4-byte length to co-sign] [64-byte signature]
+    // Signature is over: [4-byte consensus id] [32-byte blockhash] [2-byte leader id] [message] [4-byte length to co-sign]
 
     LOG_MESSAGE("DEBUG: my ip is "
                 << m_peerInfo.at(m_myID).GetPrintableIPAddress());
@@ -1140,6 +1150,10 @@ bool ConsensusLeader::StartConsensus(const vector<unsigned char>& message)
                         message.end());
     curr_offset += message.size();
 
+    // 4-byte length to co-sign
+    Serializable::SetNumber<uint32_t>(announcement, curr_offset, lengthToCosign, sizeof(uint32_t));
+    curr_offset += sizeof(uint32_t);
+
     // 64-byte signature
     Signature signature = SignMessage(
         announcement, MessageOffset::BODY + sizeof(unsigned char),
@@ -1161,6 +1175,7 @@ bool ConsensusLeader::StartConsensus(const vector<unsigned char>& message)
     m_commitFailureCounter = 0;
     m_responseCounter = 0;
     m_message = message;
+    m_lengthToCosign = lengthToCosign;
 
     // Multicast to all nodes in the committee
     // =======================================
