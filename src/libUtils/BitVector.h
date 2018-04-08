@@ -27,6 +27,8 @@ public:
     static std::vector<bool> GetBitVector(const std::vector<unsigned char>& src,
                                           unsigned int offset,
                                           unsigned int expected_length);
+    static std::vector<bool> GetBitVector(const std::vector<unsigned char>& src,
+                                          unsigned int offset);
     static unsigned int SetBitVector(std::vector<unsigned char>& dst,
                                      unsigned int offset,
                                      const std::vector<bool>& value);
