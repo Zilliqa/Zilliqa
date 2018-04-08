@@ -51,7 +51,7 @@ using namespace boost::multiprecision;
 #ifndef IS_LOOKUP_NODE
 void Node::SubmitMicroblockToDSCommittee() const
 {
-    // Message = [32-byte DS blocknum] [4-byte consensusid] [4-byte shard ID] [Tx microblock] [Microblock cosig and bitmap]
+    // Message = [32-byte DS blocknum] [4-byte consensusid] [4-byte shard ID] [Tx microblock]
     vector<unsigned char> microblock
         = {MessageType::DIRECTORY, DSInstructionType::MICROBLOCKSUBMISSION};
     unsigned int cur_offset = MessageOffset::BODY;
@@ -74,14 +74,6 @@ void Node::SubmitMicroblockToDSCommittee() const
 
     // Tx microblock
     m_microblock->Serialize(microblock, cur_offset);
-    cur_offset += m_microblock->GetSerializedSize();
-
-    // Microblock cosig and bitmap
-    m_consensusObject->RetrieveCollectiveSig(microblock, cur_offset);
-    cur_offset += BLOCK_SIG_SIZE;
-
-    BitVector::SetBitVector(microblock, cur_offset,
-                            m_consensusObject->RetrieveCollectiveSigBitmap());
 
 #ifdef STAT_TEST
     LOG_STATE("[MICRO][" << std::setw(15) << std::left
@@ -149,6 +141,12 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
                       << m_mediator.m_currentEpochNum << "] DONE");
 #endif // STAT_TEST
 
+            // Update the micro block with the co-signature from the consensus
+            m_microblock->SetHeaderSig(
+                m_consensusObject->RetrieveCollectiveSig());
+            m_microblock->SetHeaderSigBitmap(
+                m_consensusObject->RetrieveCollectiveSigBitmap());
+
             // Multicast micro block to all DS nodes
             SubmitMicroblockToDSCommittee();
         }
@@ -157,6 +155,13 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
         {
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                          "I am designated as Microblock sender");
+
+            // Update the micro block with the co-signature from the consensus
+            m_microblock->SetHeaderSig(
+                m_consensusObject->RetrieveCollectiveSig());
+            m_microblock->SetHeaderSigBitmap(
+                m_consensusObject->RetrieveCollectiveSigBitmap());
+
             // Multicast micro block to all DS nodes
             SubmitMicroblockToDSCommittee();
         }
@@ -252,7 +257,7 @@ bool Node::ComposeMicroBlock()
         MicroBlockHeader(type, version, gasLimit, gasUsed, prevHash, blockNum,
                          timestamp, txRootHash, numTxs, minerPubKey, dsBlockNum,
                          dsBlockHeader),
-        tranHashes));
+        Signature(), vector<bool>(1), tranHashes));
 
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                  "Micro block proposed with "
@@ -420,7 +425,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
 #endif // STAT_TEST
     ConsensusLeader* cl
         = dynamic_cast<ConsensusLeader*>(m_consensusObject.get());
-    cl->StartConsensus(microblock);
+    cl->StartConsensus(microblock, MicroBlockHeader::HEADER_SIZE_NEEDED);
 
     return true;
 }
