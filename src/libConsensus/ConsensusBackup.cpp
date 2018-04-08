@@ -830,8 +830,8 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
         return false;
     }
 
-    if (Schnorr::GetInstance().Verify(m_message, 0, m_lengthToCosign, m_collectiveSig,
-                                      aggregated_key)
+    if (Schnorr::GetInstance().Verify(m_message, 0, m_lengthToCosign,
+                                      m_collectiveSig, aggregated_key)
         == false)
     {
         LOG_MESSAGE("Error: Collective signature verification failed");
