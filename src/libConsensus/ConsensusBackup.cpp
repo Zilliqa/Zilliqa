@@ -259,11 +259,11 @@ bool ConsensusBackup::ProcessMessageAnnounce(
     // Extract and check announce message body
     // =======================================
 
-    // Format: [4-byte consensus id] [32-byte blockhash] [2-byte leader id] [message] [64-byte signature]
+    // Format: [4-byte consensus id] [32-byte blockhash] [2-byte leader id] [message] [4-byte length to co-sign] [64-byte signature]
 
     const unsigned int length_available = announcement.size() - offset;
     const unsigned int min_length_needed = sizeof(uint32_t) + BLOCK_HASH_SIZE
-        + sizeof(uint16_t) + 1 + SIGNATURE_CHALLENGE_SIZE
+        + sizeof(uint16_t) + 1 + sizeof(uint32_t) + SIGNATURE_CHALLENGE_SIZE
         + SIGNATURE_RESPONSE_SIZE;
 
     if (min_length_needed > length_available)
@@ -317,11 +317,22 @@ bool ConsensusBackup::ProcessMessageAnnounce(
 
     // message
     const unsigned int message_size = announcement.size() - curr_offset
-        - SIGNATURE_CHALLENGE_SIZE - SIGNATURE_RESPONSE_SIZE;
+        - sizeof(uint32_t) - SIGNATURE_CHALLENGE_SIZE - SIGNATURE_RESPONSE_SIZE;
     m_message.resize(message_size);
     copy(announcement.begin() + curr_offset,
          announcement.begin() + curr_offset + message_size, m_message.begin());
     curr_offset += message_size;
+
+    // 4-byte length to co-sign
+    m_lengthToCosign = Serializable::GetNumber<uint32_t>(
+        announcement, curr_offset, sizeof(uint32_t));
+    curr_offset += sizeof(uint32_t);
+
+    // Check the length to co-sign
+    if (m_lengthToCosign > m_message.size())
+    {
+        LOG_MESSAGE("Error: m_lengthToCosign > message size");
+    }
 
     // Check the message
     std::vector<unsigned char> errorMsg;
@@ -606,7 +617,7 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
         m_state = ERROR;
         return false;
     }
-    Challenge challenge_verif = GetChallenge(m_message, 0, m_message.size(),
+    Challenge challenge_verif = GetChallenge(m_message, 0, m_lengthToCosign,
                                              aggregated_commit, aggregated_key);
 
     if (!(challenge_verif == m_challenge))
@@ -819,7 +830,7 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
         return false;
     }
 
-    if (Schnorr::GetInstance().Verify(m_message, m_collectiveSig,
+    if (Schnorr::GetInstance().Verify(m_message, 0, m_lengthToCosign, m_collectiveSig,
                                       aggregated_key)
         == false)
     {
@@ -874,6 +885,7 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
             // Second round: consensus over collective sig
             m_message.clear();
             m_collectiveSig.Serialize(m_message, 0);
+            m_lengthToCosign = m_message.size();
 
             // Unicast to the leader
             // =====================
