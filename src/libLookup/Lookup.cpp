@@ -1782,7 +1782,7 @@ bool Lookup::ProcessSetOfflineLookups(const std::vector<unsigned char>& message,
     }
 
     {
-        unique_lock<mutex> lock(m_offlineLookupsCondition);
+        unique_lock<mutex> lock(m_mutexOfflineLookupsUpdation);
         m_fetchedOfflineLookups = true;
         m_offlineLookupsCondition.notify_one();
     }
