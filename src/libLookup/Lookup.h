@@ -93,6 +93,8 @@ class Lookup : public Executable, public Broadcastable
 
     std::vector<unsigned char> ComposeGetLookupOfflineMessage();
 
+    std::vector<unsigned char> ComposeGetCurrentLookupNodes();
+
     void AppendTimestamp(std::vector<unsigned char>& message,
                          unsigned int& offset);
 
@@ -115,7 +117,7 @@ public:
     SendMessageToLookupNodes(const std::vector<unsigned char>& message) const;
 
     // Calls P2PComm::SendMessage to one of the last x Lookup Nodes randomly
-    void SendMessageToRandomLookupNodeFromBack(
+    void SendMessageToRandomLookupNode(
         const std::vector<unsigned char>& message) const;
 
     // Calls P2PComm::SendMessage serially for every Seed peer
@@ -138,6 +140,8 @@ public:
                               boost::multiprecision::uint256_t highBlockNum);
     bool GetTxBodyFromSeedNodes(std::string txHashStr);
     bool GetStateFromLookupNodes();
+
+    bool GetOfflineLookupNodes();
 #ifdef IS_LOOKUP_NODE
     bool SetDSCommitteInfo();
 
@@ -169,6 +173,9 @@ public:
     bool ProcessGetNetworkId(const std::vector<unsigned char>& message,
                              unsigned int offset, const Peer& from);
 
+    bool ProcessGetOfflineLookups(const std::vector<unsigned char>& message,
+                                  unsigned int offset, const Peer& from);
+
     bool
     ProcessSetSeedPeersFromLookup(const std::vector<unsigned char>& message,
                                   unsigned int offset, const Peer& from);
@@ -186,9 +193,16 @@ public:
     bool ProcessSetOfflineLookup(const std::vector<unsigned char>& message,
                                  unsigned int offset, const Peer& from);
 
+    bool ProcessSetOfflineLookups(const std::vector<unsigned char>& message,
+                                  unsigned int offset, const Peer& from);
+
     bool Execute(const std::vector<unsigned char>& message, unsigned int offset,
                  const Peer& from);
 #ifndef IS_LOOKUP_NODE
+    bool m_fetchedOfflineLookups = false;
+    std::mutex m_mutexOfflineLookupsUpdation;
+    std::condition_variable m_offlineLookupsCondition;
+
     bool InitMining();
 #endif // IS_LOOKUP_NODE
     bool AlreadyJoinedNetwork();
