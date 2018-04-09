@@ -300,7 +300,10 @@ Json::Value Server::GetBalance(const string& address)
             boost::multiprecision::uint256_t nonce = account->GetNonce();
 
             ret["balance"] = balance.str();
-            ret["nonce"] = nonce.str();
+            //FIXME: a workaround, 256-bit unsigned int being truncated
+            ret["nonce"] = nonce.convert_to<unsigned int>();
+            LOG_MESSAGE("balance " << balance.str() << " nonce: "
+                                   << nonce.convert_to<unsigned int>());
         }
         else if (account == nullptr)
         {
