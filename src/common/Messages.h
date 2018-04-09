@@ -82,6 +82,8 @@ enum LookupInstructionType : unsigned char
     GETSTATEFROMSEED = 0x0d,
     SETSTATEFROMSEED = 0x0e,
     SETLOOKUPOFFLINE = 0x0f,
+    GETOFFLINELOOKUPS = 0x10,
+    SETOFFLINELOOKUPS = 0x11,
 };
 
 enum TxSharingMode : unsigned char

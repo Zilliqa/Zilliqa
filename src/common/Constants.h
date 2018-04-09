@@ -113,6 +113,5 @@ extern const unsigned int NUM_DS_KEEP_TX_BODY;
 extern const uint32_t MAXMESSAGE;
 extern const unsigned int MAXSUBMITTXNPERNODE;
 extern const unsigned int TX_SHARING_CLUSTER_SIZE;
-extern const unsigned int NUM_LOOKUP_USE_FOR_SYNC;
 
 #endif // __CONSTANTS_H__
