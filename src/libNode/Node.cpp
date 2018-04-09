@@ -636,15 +636,15 @@ Transaction CreateValidTestingTransaction(PrivKey& fromPrivKey,
     Transaction txn{version,    nonce,  toAddr,
                     fromPubKey, amount, {/* empty sig */}};
 
-    std::vector<unsigned char> buf;
-    txn.SerializeWithoutSignature(buf, 0);
+    // std::vector<unsigned char> buf;
+    // txn.SerializeWithoutSignature(buf, 0);
 
-    Signature sig;
-    Schnorr::GetInstance().Sign(buf, fromPrivKey, fromPubKey, sig);
+    // Signature sig;
+    // Schnorr::GetInstance().Sign(buf, fromPrivKey, fromPubKey, sig);
 
-    vector<unsigned char> sigBuf;
-    sig.Serialize(sigBuf, 0);
-    txn.SetSignature(sigBuf);
+    // vector<unsigned char> sigBuf;
+    // sig.Serialize(sigBuf, 0);
+    // txn.SetSignature(sigBuf);
 
     return txn;
 }
