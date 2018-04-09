@@ -758,6 +758,7 @@ bool Node::ProcessCreateTransaction(const vector<unsigned char>& message,
 
     // for (auto nTxn = 0u; nTxn < nTxnPerAccount; nTxn += nTxnDelta)
     // {
+    unsigned int count = 0;
     for (auto& privKeyHexStr : GENESIS_KEYS)
     {
         auto privKeyBytes{DataConversion::HexStrToUint8Vec(privKeyHexStr)};
@@ -771,6 +772,9 @@ bool Node::ProcessCreateTransaction(const vector<unsigned char>& message,
             auto& txnsDst = m_prefilledTxns[addr];
             txnsDst.insert(txnsDst.end(), txns.begin(), txns.end());
         }
+        count++;
+        if (count == 1)
+            break;
     }
     // LOG_MESSAGE("prefilled " << (nTxn + nTxnDelta) * GENESIS_KEYS.size()
     // << " txns");
@@ -950,7 +954,7 @@ bool Node::CheckCreatedTransactionFromLookup(const Transaction& tx)
         lock_guard<mutex> g(m_mutexTxnNonceMap);
         if (m_txnNonceMap.find(fromAddr) == m_txnNonceMap.end())
         {
-            LOG_MESSAGE("Txn from" << fromAddr << "is new.");
+            LOG_MESSAGE("Txn from " << fromAddr << "is new.");
 
             if (tx.GetNonce()
                 != AccountStore::GetInstance().GetNonce(fromAddr) + 1)
