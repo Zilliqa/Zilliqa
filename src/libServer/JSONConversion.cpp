@@ -169,11 +169,7 @@ const bool JSONConversion::checkJsonTx(const Json::Value& _json)
 
     if (ret)
     {
-        if (!_json["nonce"].isIntegral())
-        {
-            LOG_MESSAGE("Fault in nonce");
-            return false;
-        }
+
         if (!_json["amount"].isIntegral())
         {
             LOG_MESSAGE("Fault in amount");
@@ -200,6 +196,16 @@ const bool JSONConversion::checkJsonTx(const Json::Value& _json)
         {
             LOG_MESSAGE("To Address size wrong "
                         << _json["signature"].asString().size());
+            return false;
+        }
+        try
+        {
+            string nonce_str = _json["nonce"].asString();
+            uint256_t nonce(nonce_str);
+        }
+        catch (exception& e)
+        {
+            LOG_MESSAGE("Fault in nonce " << e.what());
             return false;
         }
     }
