@@ -912,6 +912,116 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
     return true;
 }
 
+#ifndef IS_LOOKUP_NODE
+bool Node::CheckCreatedTransactionFromLookup(const Transaction& tx)
+{
+    LOG_MARKER();
+
+    // Check if from account is sharded here
+    const PubKey& senderPubKey = tx.GetSenderPubKey();
+    Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
+    unsigned int correct_shard
+        = Transaction::GetShardIndex(fromAddr, m_numShards);
+
+    if (correct_shard != m_myShardID)
+    {
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "Error: This tx is not sharded to me!");
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "From Account  = 0x" << fromAddr);
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "Correct shard = " << correct_shard);
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "This shard    = " << m_myShardID);
+        return false;
+    }
+
+    // Check if from account exists in local storage
+    if (!AccountStore::GetInstance().DoesAccountExist(fromAddr))
+    {
+        LOG_MESSAGE("fromAddr not found: " << fromAddr
+                                           << ". Transaction rejected: "
+                                           << tx.GetTranID());
+        return false;
+    }
+
+    {
+        // Check from account nonce
+        lock_guard<mutex> g(m_mutexTxnNonceMap);
+        if (m_txnNonceMap.find(fromAddr) == m_txnNonceMap.end())
+        {
+            LOG_MESSAGE("Txn from" << fromAddr << "is new.");
+
+            if (tx.GetNonce()
+                != AccountStore::GetInstance().GetNonce(fromAddr) + 1)
+            {
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                             "Error: Tx nonce not in line with account state!");
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                             "From Account      = 0x" << fromAddr);
+                LOG_MESSAGE2(
+                    to_string(m_mediator.m_currentEpochNum).c_str(),
+                    "Account Nonce     = "
+                        << AccountStore::GetInstance().GetNonce(fromAddr));
+                LOG_MESSAGE2(
+                    to_string(m_mediator.m_currentEpochNum).c_str(),
+                    "Expected Tx Nonce = "
+                        << AccountStore::GetInstance().GetNonce(fromAddr) + 1);
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                             "Actual Tx Nonce   = " << tx.GetNonce());
+                return false;
+            }
+            m_txnNonceMap.insert(make_pair(fromAddr, tx.GetNonce()));
+        }
+        else
+        {
+            if (tx.GetNonce() != m_txnNonceMap.at(fromAddr) + 1)
+            {
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                             "Error: Tx nonce not in line with account state!");
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                             "From Account      = 0x" << fromAddr);
+                LOG_MESSAGE2(
+                    to_string(m_mediator.m_currentEpochNum).c_str(),
+                    "Account Nonce     = " << m_txnNonceMap.at(fromAddr));
+                LOG_MESSAGE2(
+                    to_string(m_mediator.m_currentEpochNum).c_str(),
+                    "Expected Tx Nonce = " << m_txnNonceMap.at(fromAddr) + 1);
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                             "Actual Tx Nonce   = " << tx.GetNonce());
+                return false;
+            }
+            m_txnNonceMap.at(fromAddr) += 1;
+        }
+    }
+
+    // Check if to account exists in local storage
+    const Address& toAddr = tx.GetToAddr();
+    if (!AccountStore::GetInstance().DoesAccountExist(toAddr))
+    {
+        LOG_MESSAGE("New account is added: " << toAddr);
+        AccountStore::GetInstance().AddAccount(toAddr, {0, 0});
+    }
+
+    // Check if transaction amount is valid
+    if (AccountStore::GetInstance().GetBalance(fromAddr) < tx.GetAmount())
+    {
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "Error: Insufficient funds in source account!");
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "From Account = 0x" << fromAddr);
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "Balance      = "
+                         << AccountStore::GetInstance().GetBalance(fromAddr));
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "Debit Amount = " << tx.GetAmount());
+        return false;
+    }
+
+    return true;
+}
+#endif // IS_LOOKUP_NODE
+
 bool Node::ProcessCreateTransactionFromLookup(
     const vector<unsigned char>& message, unsigned int offset, const Peer& from)
 {
@@ -942,8 +1052,15 @@ bool Node::ProcessCreateTransactionFromLookup(
                      << tx.GetTranID() << " Signature: "
                      << DataConversion::charArrToHexStr(tx.GetSignature())
                      << " toAddr: " << tx.GetToAddr().hex());
-
-    m_createdTransactions.push_back(tx);
+    if (CheckCreatedTransactionFromLookup(tx))
+    {
+        m_createdTransactions.push_back(tx);
+    }
+    else
+    {
+        LOG_MESSAGE("Error. Txn is not valid.");
+        return false;
+    }
 
 #endif //IS_LOOKUP_NODE
 
@@ -1070,6 +1187,12 @@ void Node::SubmitTransactions()
     }
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                  "added " << txn_sent_count << " to submittedTransactions");
+
+    // Clear m_txnNonceMap
+    {
+        lock_guard<mutex> g(m_mutexTxnNonceMap);
+        m_txnNonceMap.clear();
+    }
 
 #ifdef STAT_TEST
     LOG_STATE("[TXNSE][" << std::setw(15) << std::left
