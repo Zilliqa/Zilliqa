@@ -46,6 +46,7 @@ class Lookup : public Executable, public Broadcastable
 
     // Info about lookup node
     std::vector<Peer> m_lookupNodes;
+    std::vector<Peer> m_lookupNodesOffline;
     std::vector<Peer> m_seedNodes;
 #ifndef IS_LOOKUP_NODE
     bool m_fetchedDSInfo = false;
@@ -69,6 +70,7 @@ class Lookup : public Executable, public Broadcastable
 
     // Rsync the lost txBodies from remote lookup nodes if this lookup
     // are doing its recovery
+    Peer GetLookupPeerToRsync();
     bool RsyncTxBodies();
 
     bool ToBlockMessage(unsigned char ins_byte);
@@ -88,6 +90,8 @@ class Lookup : public Executable, public Broadcastable
     std::vector<unsigned char>
     ComposeGetTxBlockMessage(boost::multiprecision::uint256_t lowBlockNum,
                              boost::multiprecision::uint256_t highBlockNum);
+
+    std::vector<unsigned char> ComposeGetLookupOfflineMessage();
 
     void AppendTimestamp(std::vector<unsigned char>& message,
                          unsigned int& offset);
@@ -141,6 +145,8 @@ public:
     std::vector<Peer> GetNodePeers();
 
     void StartSynchronization();
+
+    bool GetMyLookupOffline();
 #endif // IS_LOOKUP_NODE
 
     bool
@@ -175,6 +181,9 @@ public:
     bool ProcessSetTxBodyFromSeed(const std::vector<unsigned char>& message,
                                   unsigned int offset, const Peer& from);
     bool ProcessSetStateFromSeed(const std::vector<unsigned char>& message,
+                                 unsigned int offset, const Peer& from);
+
+    bool ProcessSetOfflineLookup(const std::vector<unsigned char>& message,
                                  unsigned int offset, const Peer& from);
 
     bool Execute(const std::vector<unsigned char>& message, unsigned int offset,
