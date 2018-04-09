@@ -26,33 +26,6 @@
         <account>
             <wallet_address>027b3e103003e6f533a1253342dd03340b3f5061</wallet_address>
         </account>
-        <account>
-            <wallet_address>d25b5b556340427b74d72f47b9da27b1495526ed</wallet_address>
-        </account>
-        <account>
-            <wallet_address>24ae221ed5d1ebd432a43fc67cc579ae25124228</wallet_address>
-        </account>
-        <account>
-            <wallet_address>74dd0d6a3e9fc036f5a54e9e6919b74cb6f79220</wallet_address>
-        </account>
-        <account>
-            <wallet_address>693d5e60ba8edb6e3e0b610d15f852cd17870f17</wallet_address>
-        </account>
-        <account>
-            <wallet_address>e33eec2cbda2c9173078632747a5b0836da0b938</wallet_address>
-        </account>
-        <account>
-            <wallet_address>d11238e5fcd70c817c22922c500830d00bc1e778</wallet_address>
-        </account>
-        <account>
-            <wallet_address>456ca26ea6751d40f8121cdcd374cb6dbe2b06dc</wallet_address>
-        </account>
-        <account>
-            <wallet_address>2b18df11cf402b9e29f1f85c105c36423257534b</wallet_address>
-        </account>
-        <account>
-            <wallet_address>8ac24a8b19107474b3cf20575a7b978a85c12c6d</wallet_address>
-        </account>
     </accounts>
     <lookups>
         <peer>
