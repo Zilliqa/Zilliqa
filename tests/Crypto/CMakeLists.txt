@@ -55,8 +55,10 @@ IF (Boost_FOUND)
     add_executable (Test_Schnorr Test_Schnorr.cpp)
     add_executable (Test_MultiSig Test_MultiSig.cpp)
     add_executable (GetAddressFromPubKey GetAddressFromPubKey.cpp)
+    add_executable(GetPubKeyFromPrivKey GetPubKeyFromPrivKey.cpp)
 
     target_link_libraries(GetAddressFromPubKey Crypto)
+    target_link_libraries(GetPubKeyFromPrivKey Crypto)
 
     if (NOT APPLE)
         target_link_libraries(Test_Sha3 Utils)
@@ -72,7 +74,7 @@ IF (Boost_FOUND)
         target_link_libraries(Test_Sha2 ${Boost_UNIT_TEST_FRAMEWORK_LIBRARIES})
     endif()
 
-    
+
 
     target_link_libraries(Test_Schnorr Crypto)
 

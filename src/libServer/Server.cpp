@@ -122,8 +122,7 @@ string Server::CreateTransaction(const Json::Value& _json)
             vector<Peer> toSend;
 
             auto it = shardMembers.begin();
-            for (unsigned int i = 0;
-                 i < NUM_PEERS_TO_SEND_IN_A_SHARD && it != shardMembers.end();
+            for (unsigned int i = 0; i < 1 && it != shardMembers.end();
                  i++, it++)
             {
                 toSend.push_back(it->second);
