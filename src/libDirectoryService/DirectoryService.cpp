@@ -65,12 +65,12 @@ void DirectoryService::StartSynchronization()
 
     {
         unique_lock<mutex> lock(
-            m_mediator.m_lookup.m_mutexOfflineLookupsUpdation);
-        while (!m_mediator.m_lookup.m_fetchedOfflineLookups)
+            m_mediator.m_lookup->m_mutexOfflineLookupsUpdation);
+        while (!m_mediator.m_lookup->m_fetchedOfflineLookups)
         {
-            m_offlineLookupsUpdateCondition.wait(lock);
+            m_mediator.m_lookup->m_offlineLookupsCondition.wait(lock);
         }
-        m_mediator.m_lookup.m_fetchedOfflineLookups = false;
+        m_mediator.m_lookup->m_fetchedOfflineLookups = false;
     }
 
     auto func = [this]() -> void {

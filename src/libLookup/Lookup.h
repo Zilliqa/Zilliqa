@@ -93,7 +93,7 @@ class Lookup : public Executable, public Broadcastable
 
     std::vector<unsigned char> ComposeGetLookupOfflineMessage();
 
-    std::vector<unsigned char> ComposeGetCurrentLookupNodes();
+    std::vector<unsigned char> ComposeGetOfflineLookupNodes();
 
     void AppendTimestamp(std::vector<unsigned char>& message,
                          unsigned int& offset);
