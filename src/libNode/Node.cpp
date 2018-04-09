@@ -706,6 +706,7 @@ vector<Transaction> GenTransactionBulk(PrivKey& fromPrivKey, PubKey& fromPubKey,
                                        size_t n)
 {
     vector<Transaction> txns;
+    const size_t amountLimitMask = 0xff; // amount will vary from 0 to 255
 
     // FIXME: it's a workaround to use the first genensis account
     // auto receiver = Schnorr::GetInstance().GenKeyPair();
@@ -726,7 +727,7 @@ vector<Transaction> GenTransactionBulk(PrivKey& fromPrivKey, PubKey& fromPubKey,
     for (auto i = 0u; i != n; i++)
     {
         auto txn = CreateValidTestingTransaction(fromPrivKey, fromPubKey,
-                                                 receiverAddr, i + 1);
+                                                 receiverAddr, i & amountLimitMask);
         txns.emplace_back(txn);
     }
 
