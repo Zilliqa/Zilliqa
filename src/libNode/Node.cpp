@@ -726,8 +726,8 @@ vector<Transaction> GenTransactionBulk(PrivKey& fromPrivKey, PubKey& fromPubKey,
     txns.reserve(n);
     for (auto i = 0u; i != n; i++)
     {
-        auto txn = CreateValidTestingTransaction(fromPrivKey, fromPubKey,
-                                                 receiverAddr, i & amountLimitMask);
+        auto txn = CreateValidTestingTransaction(
+            fromPrivKey, fromPubKey, receiverAddr, i & amountLimitMask);
         txns.emplace_back(txn);
     }
 
@@ -772,19 +772,19 @@ bool Node::ProcessCreateTransaction(const vector<unsigned char>& message,
             txnsDst.insert(txnsDst.end(), txns.begin(), txns.end());
         }
     }
-        // LOG_MESSAGE("prefilled " << (nTxn + nTxnDelta) * GENESIS_KEYS.size()
-                                 // << " txns");
+    // LOG_MESSAGE("prefilled " << (nTxn + nTxnDelta) * GENESIS_KEYS.size()
+    // << " txns");
 
-        // const size_t prefillThreshold = 10 * nTxnDelta * GENESIS_KEYS.size();
-        // const auto sleepTime = 10s;
-        // while (m_nRemainingPrefilledTxns > prefillThreshold)
-        // {
-            // LOG_MESSAGE("prefilling saturated ( "
-                        // << m_nRemainingPrefilledTxns << " > "
-                        // << prefillThreshold << ") , sleeping for "
-                        // << sleepTime.count() << " seconds");
-            // this_thread::sleep_for(sleepTime);
-        // }
+    // const size_t prefillThreshold = 10 * nTxnDelta * GENESIS_KEYS.size();
+    // const auto sleepTime = 10s;
+    // while (m_nRemainingPrefilledTxns > prefillThreshold)
+    // {
+    // LOG_MESSAGE("prefilling saturated ( "
+    // << m_nRemainingPrefilledTxns << " > "
+    // << prefillThreshold << ") , sleeping for "
+    // << sleepTime.count() << " seconds");
+    // this_thread::sleep_for(sleepTime);
+    // }
     // }
 
     // {
@@ -793,7 +793,8 @@ bool Node::ProcessCreateTransaction(const vector<unsigned char>& message,
     // txnToCreate.begin(), txnToCreate.end());
     // }
 
-    LOG_MESSAGE("Finished prefilling " <<  nTxnPerAccount * GENESIS_KEYS.size() << " transactions");
+    LOG_MESSAGE("Finished prefilling " << nTxnPerAccount * GENESIS_KEYS.size()
+                                       << " transactions");
 
     return true;
 #endif // IS_LOOKUP_NODE
@@ -1020,7 +1021,7 @@ void Node::SubmitTransactions()
                 // auto shard = Transaction::GetShardIndex(addr, m_numShards);
                 // if (shard != m_myShardID)
                 // {
-                    // continue;
+                // continue;
                 // }
 
                 t = move(txnsList.front());
