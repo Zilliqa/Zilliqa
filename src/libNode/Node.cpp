@@ -745,9 +745,7 @@ bool Node::ProcessCreateTransaction(const vector<unsigned char>& message,
 
     // vector<Transaction> txnToCreate;
     size_t nTxnPerAccount{N_PREFILLED_PER_ACCOUNT};
-    size_t nTxnDelta{MAXSUBMITTXNPERNODE};
-    const size_t prefillThreshold = 10 * nTxnDelta * GENESIS_KEYS.size();
-    const auto sleepTime = 10s;
+    // size_t nTxnDelta{MAXSUBMITTXNPERNODE};
 
     // if (not GetOneGoodKeyPair(senderPrivKey, senderPubKey, m_myShardID,
     // m_numShards))
@@ -757,34 +755,36 @@ bool Node::ProcessCreateTransaction(const vector<unsigned char>& message,
     // return false;
     // }
 
-    for (auto nTxn = 0u; nTxn < nTxnPerAccount; nTxn += nTxnDelta)
+    // for (auto nTxn = 0u; nTxn < nTxnPerAccount; nTxn += nTxnDelta)
+    // {
+    for (auto& privKeyHexStr : GENESIS_KEYS)
     {
-        for (auto& privKeyHexStr : GENESIS_KEYS)
+        auto privKeyBytes{DataConversion::HexStrToUint8Vec(privKeyHexStr)};
+        auto privKey = PrivKey{privKeyBytes, 0};
+        auto pubKey = PubKey{privKey};
+        auto addr = Account::GetAddressFromPublicKey(pubKey);
+        auto txns = GenTransactionBulk(privKey, pubKey, nTxnPerAccount);
+        m_nRemainingPrefilledTxns += txns.size();
         {
-            auto privKeyBytes{DataConversion::HexStrToUint8Vec(privKeyHexStr)};
-            auto privKey = PrivKey{privKeyBytes, 0};
-            auto pubKey = PubKey{privKey};
-            auto addr = Account::GetAddressFromPublicKey(pubKey);
-            auto txns = GenTransactionBulk(privKey, pubKey, nTxnDelta);
-            m_nRemainingPrefilledTxns += txns.size();
-            {
-                lock_guard<mutex> lg{m_mutexPrefilledTxns};
-                auto& txnsDst = m_prefilledTxns[addr];
-                txnsDst.insert(txnsDst.end(), txns.begin(), txns.end());
-            }
-        }
-        LOG_MESSAGE("prefilled " << (nTxn + nTxnDelta) * GENESIS_KEYS.size()
-                                 << " txns");
-
-        while (m_nRemainingPrefilledTxns > prefillThreshold)
-        {
-            LOG_MESSAGE("prefilling saturated ( "
-                        << m_nRemainingPrefilledTxns << " > "
-                        << prefillThreshold << ") , sleeping for "
-                        << sleepTime.count() << " seconds");
-            this_thread::sleep_for(sleepTime);
+            lock_guard<mutex> lg{m_mutexPrefilledTxns};
+            auto& txnsDst = m_prefilledTxns[addr];
+            txnsDst.insert(txnsDst.end(), txns.begin(), txns.end());
         }
     }
+        // LOG_MESSAGE("prefilled " << (nTxn + nTxnDelta) * GENESIS_KEYS.size()
+                                 // << " txns");
+
+        // const size_t prefillThreshold = 10 * nTxnDelta * GENESIS_KEYS.size();
+        // const auto sleepTime = 10s;
+        // while (m_nRemainingPrefilledTxns > prefillThreshold)
+        // {
+            // LOG_MESSAGE("prefilling saturated ( "
+                        // << m_nRemainingPrefilledTxns << " > "
+                        // << prefillThreshold << ") , sleeping for "
+                        // << sleepTime.count() << " seconds");
+            // this_thread::sleep_for(sleepTime);
+        // }
+    // }
 
     // {
     // lock_guard<mutex> g(m_mutexCreatedTransactions);
@@ -792,7 +792,7 @@ bool Node::ProcessCreateTransaction(const vector<unsigned char>& message,
     // txnToCreate.begin(), txnToCreate.end());
     // }
 
-    // LOG_MESSAGE("Created " << txnToCreate.size() << " transactions");
+    LOG_MESSAGE("Finished prefilling " <<  nTxnPerAccount * GENESIS_KEYS.size() << " transactions");
 
     return true;
 #endif // IS_LOOKUP_NODE
