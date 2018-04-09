@@ -367,7 +367,12 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
             }
         }
     };
-    DetachedFunction(1, func);
+
+    if (m_state != MICROBLOCK_SUBMISSION && m_state != POW1_SUBMISSION)
+    {
+        // Concurrency issue hot fix
+        DetachedFunction(1, func);
+    }
 }
 #endif // IS_LOOKUP_NODE
 
