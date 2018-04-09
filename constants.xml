@@ -20,29 +20,35 @@
 		<MAXMESSAGE>600</MAXMESSAGE>
 		<MAXSUBMITTXNPERNODE>7</MAXSUBMITTXNPERNODE>
 		<NUM_LOOKUP_USE_FOR_SYNC>2</NUM_LOOKUP_USE_FOR_SYNC>
-	</constants>
-	<lookups>
-	<!--IP to be provided after public testnet launch.
-		<peer>
-			<ip></ip>
-			<port>30303</port>
-		</peer>
-		<peer>
-			<ip></ip>
-			<port>30303</port>
-		</peer>
-		<peer>
-			<ip></ip>
-			<port>30303</port>
-		</peer>
-		<peer>
-			<ip></ip>
-			<port>30303</port>
-		</peer>
-		<peer>
-			<ip></ip>
-			<port>30303</port>
-		</peer>
-	-->
-	</lookups>
+        <N_PREFILLED_PER_ACCOUNT>1000000</N_PREFILLED_PER_ACCOUNT>
+    </constants>
+    <accounts>
+        <account>
+            <wallet_address>027b3e103003e6f533a1253342dd03340b3f5061</wallet_address>
+        </account>
+    </accounts>
+    <lookups>
+    <!--IP to be provided after public testnet launch.
+        <peer>
+            <ip></ip>
+            <port>30303</port>
+        </peer>
+        <peer>
+            <ip></ip>
+            <port>30303</port>
+        </peer>
+        <peer>
+            <ip></ip>
+            <port>30303</port>
+        </peer>
+        <peer>
+            <ip></ip>
+            <port>30303</port>
+        </peer>
+        <peer>
+            <ip></ip>
+            <port>30303</port>
+        </peer>
+    -->
+    </lookups>
 </node>
