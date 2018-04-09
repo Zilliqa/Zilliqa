@@ -4,6 +4,10 @@
 ## Overview
 Zilliqa is a new blockchain platform capable of processing thousands of transactions per second with sharding built into it. With sharding, Zilliqa has the potential to match throughput benchmarks set by traditional payment methods (such as _VISA_ and _MasterCard_). More importantly, Zilliqa’s transaction throughput increases (roughly) linearly with its network size.
 
+## Red Prawn Testnet  
+* [Block Explorer](https://explorer.zilliqa.com/home)
+* [Wallet](https://wallet.zilliqa.com/)  
+
 ## Available Features
 The current release has the following features implemented:
 * Proof of Work 1 (PoW1) and 2 (PoW2) for joining the network
@@ -16,6 +20,7 @@ The current release has the following features implemented:
 * Persistent storage for transactions
 * [Merkle Patricia tree](https://github.com/ethereum/wiki/wiki/Patricia-Tree)
 * Transaction verification
+* Zilliqa Wallet
 
 In the coming months, we plan to have the following features:
 * View change
@@ -23,7 +28,6 @@ In the coming months, we plan to have the following features:
 * Incentive structure
 * Smart contract design and implementation
 * GPU support for PoW
-* Zilliqa Wallet 
 * Further unit and integration tests
 * Enhancement of existing features
 * More operating system support
