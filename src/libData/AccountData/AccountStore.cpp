@@ -225,6 +225,7 @@ void AccountStore::UpdateAccounts(const Transaction& transaction)
     const uint256_t& amount = transaction.GetAmount();
 
     TransferBalance(fromAddr, toAddr, amount);
+    IncreaseNonce(fromAddr);
 }
 
 Account* AccountStore::GetAccount(const Address& address)
