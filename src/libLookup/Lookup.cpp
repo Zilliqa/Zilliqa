@@ -621,7 +621,7 @@ bool Lookup::ProcessGetDSInfoFromSeed(const vector<unsigned char>& message,
                                       unsigned int offset, const Peer& from)
 {
     //#ifndef IS_LOOKUP_NODE
-    // Message = [Port]
+    // Message = [Port][Timestamp]
     LOG_MARKER();
 
     deque<PubKey> dsPubKeys;
@@ -1683,6 +1683,100 @@ void Lookup::StartSynchronization()
     DetachedFunction(1, func);
 }
 
+Peer Lookup::GetLookupPeerToRsync()
+{
+    LOG_MARKER();
+
+    std::vector<Peer> t_Peers;
+    for (auto p : m_lookupNodes)
+    {
+        if (p == m_mediator.m_selfPeer)
+        {
+            // SKIP
+        }
+        else
+        {
+            t_Peers.push_back(p);
+        }
+    }
+
+    int index = rand() % t_Peers.size();
+
+    return t_Peers[index];
+}
+
+std::vector<unsigned char> Lookup::ComposeGetLookupOfflineMessage()
+{
+    LOG_MARKER();
+
+    // getLookupNodesMessage = [Port]
+    vector<unsigned char> getLookupOfflineMessage
+        = {MessageType::LOOKUP, LookupInstructionType::SETLOOKUPOFFLINE};
+    unsigned int curr_offset = MessageOffset::BODY;
+
+    Serializable::SetNumber<uint32_t>(getLookupOfflineMessage, curr_offset,
+                                      m_mediator.m_selfPeer.m_listenPortHost,
+                                      sizeof(uint32_t));
+    curr_offset += sizeof(uint32_t);
+
+    return getLookupOfflineMessage;
+}
+
+bool Lookup::GetMyLookupOffline()
+{
+    LOG_MARKER();
+
+    // Remove selfPeerInfo from m_lookupNodes
+    auto iter = std::find(m_lookupNodes.begin(), m_lookupNodes.end(),
+                          m_mediator.m_selfPeer);
+    if (iter != m_lookupNodes.end())
+    {
+        m_lookupNodesOffline.push_back(*iter);
+        m_lookupNodes.erase(iter);
+    }
+    else
+    {
+        LOG_MESSAGE("My Peer Info is not in m_lookupNodes");
+        return false;
+    }
+
+    SendMessageToSeedNodes(ComposeGetLookupOfflineMessage());
+    return true;
+}
+
+bool Lookup::ProcessSetOfflineLookup(const vector<unsigned char>& message,
+                                     unsigned int offset, const Peer& from)
+{
+    LOG_MARKER();
+
+    if (IsMessageSizeInappropriate(message.size(), offset, sizeof(uint32_t)))
+    {
+        return false;
+    }
+
+    // 4-byte listening port
+    uint32_t portNo
+        = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
+    offset += sizeof(uint32_t);
+
+    uint128_t ipAddr = from.m_ipAddress;
+    Peer requestingNode(ipAddr, portNo);
+
+    auto iter
+        = std::find(m_lookupNodes.begin(), m_lookupNodes.end(), requestingNode);
+    if (iter != m_lookupNodes.end())
+    {
+        m_lookupNodesOffline.push_back(*iter);
+        m_lookupNodes.erase(iter);
+        return true;
+    }
+    else
+    {
+        LOG_MESSAGE("The Peer Info is not in m_lookupNodes");
+        return false;
+    }
+}
+
 bool Lookup::RsyncTxBodies() { return true; }
 
 bool Lookup::ToBlockMessage(unsigned char ins_byte)
@@ -1691,7 +1785,8 @@ bool Lookup::ToBlockMessage(unsigned char ins_byte)
         && (ins_byte != LookupInstructionType::SETDSBLOCKFROMSEED
             && ins_byte != LookupInstructionType::SETDSINFOFROMSEED
             && ins_byte != LookupInstructionType::SETTXBLOCKFROMSEED
-            && ins_byte != LookupInstructionType::SETSTATEFROMSEED))
+            && ins_byte != LookupInstructionType::SETSTATEFROMSEED
+            && ins_byte != LookupInstructionType::SETLOOKUPOFFLINE))
     {
         return true;
     }
@@ -1724,7 +1819,8 @@ bool Lookup::Execute(const vector<unsigned char>& message, unsigned int offset,
            &Lookup::ProcessGetNetworkId,
            &Lookup::ProcessGetNetworkId,
            &Lookup::ProcessGetStateFromSeed,
-           &Lookup::ProcessSetStateFromSeed};
+           &Lookup::ProcessSetStateFromSeed,
+           &Lookup::ProcessSetOfflineLookup};
 
     const unsigned char ins_byte = message.at(offset);
     const unsigned int ins_handlers_count
