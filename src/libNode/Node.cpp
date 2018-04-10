@@ -1279,7 +1279,7 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
             // Rejoin network as a new node if FinalBlockProcessing failed
             // in CheckStateRoot
             bool isVacuousEpoch = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW
-                                                    - NUM_VACUOUS_EPOCHS));
+                                                     - NUM_VACUOUS_EPOCHS));
             if (ins_byte == NodeInstructionType::FINALBLOCK && isVacuousEpoch)
             {
                 m_mediator.m_isConnectedToNetwork = false;

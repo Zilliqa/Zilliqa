@@ -22,3 +22,5 @@ rm -rf ./txbodies.db
 
 cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo .
 make -j4
+make clang-format-fix
+make clang-format
