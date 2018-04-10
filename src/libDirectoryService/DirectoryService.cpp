@@ -1223,6 +1223,7 @@ bool DirectoryService::ProcessInitViewChange(
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                          "Re-running dsblock consensus (new leader)");
             RunConsensusOnDSBlockWhenDSPrimary();
+            SetState(DSBLOCK_CONSENSUS);
             break;
         case SHARDING_CONSENSUS:
             SetState(SHARDING_CONSENSUS_PREP);
@@ -1230,6 +1231,7 @@ bool DirectoryService::ProcessInitViewChange(
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                          "Re-running sharding consensus (new leader)");
             RunConsensusOnShardingWhenDSPrimary();
+            SetState(SHARDING_CONSENSUS);
             break;
         case FINALBLOCK_CONSENSUS:
             SetState(FINALBLOCK_CONSENSUS_PREP);
@@ -1237,6 +1239,7 @@ bool DirectoryService::ProcessInitViewChange(
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                          "Re-running finalblock consensus (new leader)");
             RunConsensusOnFinalBlockWhenDSPrimary();
+            SetState(FINALBLOCK_CONSENSUS);
             break;
         default:
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -1294,6 +1297,7 @@ bool DirectoryService::ProcessInitViewChangeResponse(
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                          "Re-running dsblock consensus (backup)");
             RunConsensusOnDSBlockWhenDSBackup();
+            SetState(DSBLOCK_CONSENSUS);
             break;
         case SHARDING_CONSENSUS:
             SetState(SHARDING_CONSENSUS_PREP);
@@ -1301,6 +1305,7 @@ bool DirectoryService::ProcessInitViewChangeResponse(
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                          "Re-running sharding consensus (backup)");
             RunConsensusOnShardingWhenDSBackup();
+            SetState(SHARDING_CONSENSUS);
             break;
         case FINALBLOCK_CONSENSUS:
             SetState(FINALBLOCK_CONSENSUS_PREP);
@@ -1308,6 +1313,7 @@ bool DirectoryService::ProcessInitViewChangeResponse(
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                          "Re-running finalblock consensus (backup)");
             RunConsensusOnFinalBlockWhenDSBackup();
+            SetState(FINALBLOCK_CONSENSUS);
             break;
         default:
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
