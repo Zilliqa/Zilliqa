@@ -1084,6 +1084,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     LOG_MARKER();
 
 #ifndef IS_LOOKUP_NODE
+    /**
     if (m_state == MICROBLOCK_CONSENSUS)
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -1092,13 +1093,42 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         // TODO: Optimize state transition.
         SetState(WAITING_FINALBLOCK);
     }
-
+    
+   
     if (!CheckState(PROCESS_FINALBLOCK))
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                      "Too late - current state is " << m_state << ".");
         return false;
     }
+    **/
+
+    unsigned int sleep_time_while_waiting = 200;
+    if (m_state == MICROBLOCK_CONSENSUS)
+    {
+        for (unsigned int i = 0; i < 100; i++)
+        {
+            if (m_state == WAITING_FINALBLOCK)
+            {
+                break;
+            }
+
+            if (i % 10 == 0)
+            {
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                             "Waiting for MICROBLOCK_CONSENSUS before "
+                             "proceeding to process finalblock");
+            }
+            this_thread::sleep_for(
+                chrono::milliseconds(sleep_time_while_waiting));
+        }
+        LOG_MESSAGE(
+            "I got stuck at process final block but move on. Current state is "
+            "MICROBLOCK_CONSENSUS, ")
+        // return false;
+        SetState(WAITING_FINALBLOCK);
+    }
+
 #endif // IS_LOOKUP_NODE
 
     unsigned int cur_offset = offset;
