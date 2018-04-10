@@ -1103,7 +1103,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     }
     **/
 
-    unsigned int sleep_time_while_waiting = 100;
+    unsigned int sleep_time_while_waiting = 200;
     if (m_state == MICROBLOCK_CONSENSUS)
     {
         for (unsigned int i = 0; i < 100; i++)
@@ -1122,9 +1122,10 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
             this_thread::sleep_for(
                 chrono::milliseconds(sleep_time_while_waiting));
         }
-        LOG_MESSAGE("I got stuck at process final block. Current state is "
+        LOG_MESSAGE("I got stuck at process final block but move on. Current state is "
                     "MICROBLOCK_CONSENSUS, ")
-        return false;
+        // return false;
+        SetState(WAITING_FINALBLOCK);
     }
 
 #endif // IS_LOOKUP_NODE
