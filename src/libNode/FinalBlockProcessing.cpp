@@ -1122,8 +1122,9 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
             this_thread::sleep_for(
                 chrono::milliseconds(sleep_time_while_waiting));
         }
-        LOG_MESSAGE("I got stuck at process final block but move on. Current state is "
-                    "MICROBLOCK_CONSENSUS, ")
+        LOG_MESSAGE(
+            "I got stuck at process final block but move on. Current state is "
+            "MICROBLOCK_CONSENSUS, ")
         // return false;
         SetState(WAITING_FINALBLOCK);
     }
