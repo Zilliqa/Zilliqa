@@ -1051,14 +1051,13 @@ void DirectoryService::RunConsensusOnFinalBlock()
             LOG_MESSAGE(
                 "I am going to sleep for 20 seconds for vacuous epoch.");
             this_thread::sleep_for(chrono::seconds(20));
-
-            if (!RunConsensusOnFinalBlockWhenDSPrimary())
-            {
-                LOG_MESSAGE("Throwing exception after "
-                            "RunConsensusOnFinalBlockWhenDSPrimary");
-                // throw exception();
-                return;
-            }
+        }
+        if (!RunConsensusOnFinalBlockWhenDSPrimary())
+        {
+            LOG_MESSAGE("Throwing exception after "
+                        "RunConsensusOnFinalBlockWhenDSPrimary");
+            // throw exception();
+            return;
         }
     }
     else
