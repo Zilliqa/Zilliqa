@@ -1043,6 +1043,15 @@ void DirectoryService::RunConsensusOnFinalBlock()
 
     if (m_mode == PRIMARY_DS)
     {
+        bool isVacuousEpoch
+            = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
+
+        if (isVacuousEpoch)
+        {
+            LOG_MESSAGE(
+                "I am going to sleep for 20 seconds for vacuous epoch.");
+            this_thread::sleep_for(chrono::seconds(20));
+        }
         if (!RunConsensusOnFinalBlockWhenDSPrimary())
         {
             LOG_MESSAGE("Throwing exception after "
