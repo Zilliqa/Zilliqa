@@ -181,15 +181,18 @@ void Node::StartSynchronization()
                 m_mediator.m_lookup, m_mediator.m_txBlockChain.GetBlockCount());
             if (m_mediator.s_toFetchState)
             {
-                m_synchronizer.FetchLatestState(m_mediator.m_lookup);
-            }
-            if (m_mediator.s_toAttemptPoW)
-            {
-                if (m_synchronizer.AttemptPoW(m_mediator.m_lookup))
+                if (m_synchronizer.FetchLatestState(m_mediator.m_lookup))
                 {
                     continue;
                 }
             }
+            // if (m_mediator.s_toAttemptPoW)
+            // {
+            //     if (m_synchronizer.AttemptPoW(m_mediator.m_lookup))
+            //     {
+            //         continue;
+            //     }
+            // }
             this_thread::sleep_for(chrono::seconds(NEW_NODE_SYNC_INTERVAL));
         }
     };

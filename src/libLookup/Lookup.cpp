@@ -1455,7 +1455,16 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
             m_dsInfoUpdateCondition.wait(lock);
         }
         m_fetchedDSInfo = false;
-        m_mediator.s_toAttemptPoW = true;
+    }
+    // m_mediator.s_toAttemptPoW = true;
+    if (InitMining())
+    {
+        LOG_MESSAGE("new node attempted pow2");
+    }
+    else
+    {
+        LOG_MESSAGE("new node did not attempt pow2")
+        ret = false;
     }
 #endif // IS_LOOKUP_NODE
 
