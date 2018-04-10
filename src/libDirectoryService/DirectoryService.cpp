@@ -1286,18 +1286,21 @@ bool DirectoryService::ProcessInitViewChangeResponse(
         switch (m_state)
         {
         case DSBLOCK_CONSENSUS_PREP:
+            SetState(DSBLOCK_CONSENSUS);
         case DSBLOCK_CONSENSUS:
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                          "Re-running dsblock consensus (backup)");
             RunConsensusOnDSBlockWhenDSBackup();
             break;
         case SHARDING_CONSENSUS_PREP:
+            SetState(SHARDING_CONSENSUS);
         case SHARDING_CONSENSUS:
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                          "Re-running sharding consensus (backup)");
             RunConsensusOnShardingWhenDSBackup();
             break;
         case FINALBLOCK_CONSENSUS_PREP:
+            SetState(FINALBLOCK_CONSENSUS);
         case FINALBLOCK_CONSENSUS:
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                          "Re-running finalblock consensus (backup)");
