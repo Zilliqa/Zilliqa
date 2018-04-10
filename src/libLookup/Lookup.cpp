@@ -43,6 +43,7 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/SanityChecks.h"
+#include "libUtils/SysCommand.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -1878,7 +1879,33 @@ bool Lookup::GetMyLookupOffline()
     return true;
 }
 
-bool Lookup::RsyncTxBodies() { return true; }
+bool Lookup::RsyncTxBodies()
+{
+    LOG_MARKER();
+
+    string ipAddr = GetLookupPeerToRsync().m_ipAddress.convert_to<string>();
+    string dbNameStr
+        = BlockStorage::GetBlockStorage().GetDBName(BlockStorage::TX_BODY)[0];
+    string cmdStr;
+    if (ipAddr == "127.0.0.1" || ipAddr == "localhost")
+    {
+        string indexStr
+            = std::to_string(GetLookupPeerToRsync().m_listenPortHost);
+        indexStr.erase(indexStr.begin());
+        cmdStr = "rsync -iraz --size-only ../node_0" + indexStr + "/"
+            + PERSISTENCE_PATH + "/" + dbNameStr + "/* " + PERSISTENCE_PATH
+            + "/" + dbNameStr + "/";
+    }
+    else
+    {
+        cmdStr = "rsync -iraz --size-only ubuntu@"
+            + GetLookupPeerToRsync().m_ipAddress.convert_to<string>() + ":"
+            + REMOTE_TEST_DIR + "/" + PERSISTENCE_PATH + "/" + dbNameStr + "/* "
+            + PERSISTENCE_PATH + "/" + dbNameStr + "/";
+    }
+    LOG_MESSAGE(cmdStr);
+    return ExecuteCmd(cmdStr).size() >= 0;
+}
 
 bool Lookup::ToBlockMessage(unsigned char ins_byte)
 {

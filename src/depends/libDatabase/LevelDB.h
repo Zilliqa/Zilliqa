@@ -57,6 +57,13 @@ public:
     /// Returns the reference to the leveldb database instance.
     std::shared_ptr<leveldb::DB> GetDB();
 
+#ifndef IS_LOOKUP_NODE
+    explicit LevelDB(const std::string & dbName, const std::string & subdirectory = "");
+    std::string GetDBName() { return m_dbName + (subdirectory.size() > 0 ? "/" : "") + subdirectory; }
+#else //IS_LOOKUP_NODE
+    std::string GetDBName() { return m_dbName; }
+#endif //IS_LOOKUP_NODE
+
     /// Returns the value at the specified key.
     std::string Lookup(const std::string & key) const;
 
