@@ -431,7 +431,6 @@ std::vector<std::string> BlockStorage::GetDBName(DBTYPE type)
 #ifndef IS_LOOKUP_NODE
     case TX_BODIES:
     {
-        int txBodyDBSize = m_txBodyDBs.size();
         for (auto txBodyDB : m_txBodyDBs)
         {
             ret.push_back(txBodyDB->GetDBName());
