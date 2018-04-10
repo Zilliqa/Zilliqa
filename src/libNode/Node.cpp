@@ -1171,8 +1171,7 @@ void Node::SubmitTransactions()
             return true;
         };
 
-        auto submitOne = [this, &blockNum](Transaction &t)
-        {
+        auto submitOne = [this, &blockNum](Transaction& t) {
             vector<unsigned char> tx_message
                 = {MessageType::NODE, NodeInstructionType::SUBMITTRANSACTION};
             Serializable::SetNumber<uint32_t>(tx_message, MessageOffset::BODY,
