@@ -1155,6 +1155,8 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
                                                         {'0'});
 #ifndef IS_LOOKUP_NODE
             BlockStorage::GetBlockStorage().PopFrontTxBodyDB();
+#else // IS_LOOKUP_NODE
+            BlockStorage::GetBlockStorage().ResetDB(BlockStorage::TX_BODY_TMP);
 #endif // IS_LOOKUP_NODE
         }
     }
