@@ -268,18 +268,33 @@ void Logger::LogMessageAndPayload(const char* msg,
     }
 }
 
-void Logger::LogEpochInfo(const char* msg, const char*)
+void Logger::LogEpochInfo(const char* msg, const char* function,
+                          const char* epoch)
 {
+    pid_t tid = getCurrentPid();
+
+    auto clockNow = std::chrono::system_clock::now();
+    std::time_t curTime = std::chrono::system_clock::to_time_t(clockNow);
+    auto gmtTime = gmtime(&curTime);
+
     lock_guard<mutex> guard(m);
 
     if (log_to_file)
     {
         checkLog();
-        logfile << msg << endl << flush;
+        logfile << "[TID " << PAD(tid, TID_LEN) << "]["
+                << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
+                << LIMIT(function, MAX_FUNCNAME_LEN) << "]"
+                << "[Epoch " << epoch << "] " << msg << endl
+                << flush;
     }
     else
     {
-        cout << msg << endl << flush;
+        cout << "[TID " << PAD(tid, TID_LEN) << "]["
+             << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
+             << LIMIT(function, MAX_FUNCNAME_LEN) << "]"
+             << "[Epoch " << epoch << "] " << msg << endl
+             << flush;
     }
 }
 

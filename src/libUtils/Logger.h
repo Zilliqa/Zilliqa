@@ -88,7 +88,8 @@ public:
                               size_t max_bytes_to_display,
                               const char* function);
     /// Outputs the specified message and function name to the epoch info log.
-    void LogEpochInfo(const char* msg, const char* function);
+    void LogEpochInfo(const char* msg, const char* function,
+                      const char* blockNum);
 };
 
 /// Utility class for automatically logging function or code block exit.
@@ -145,7 +146,7 @@ public:
         std::ostringstream oss;                                                \
         oss << msg;                                                            \
         Logger::GetStateLogger(NULL, true)                                     \
-            .LogEpochInfo(oss.str().c_str(), __FUNCTION__);                    \
+            .LogEpochInfo(oss.str().c_str(), __FUNCTION__, blockNum);          \
     }
 
 #endif // __LOGGER_H__
