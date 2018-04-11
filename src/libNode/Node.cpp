@@ -181,14 +181,10 @@ void Node::StartSynchronization()
             {
                 m_synchronizer.FetchLatestState(m_mediator.m_lookup);
             }
-            if (m_mediator.m_lookup->s_toAttemptPoW2)
-            {
-                if (m_synchronizer.AttemptPoW(m_mediator.m_lookup))
-                {
-                    continue;
-                }
-            }
-            this_thread::sleep_for(chrono::seconds(NEW_NODE_SYNC_INTERVAL));
+            this_thread::sleep_for(
+                chrono::seconds(m_mediator.m_lookup->s_startedPoW2
+                                    ? BACKUP_POW2_WINDOW_IN_SECONDS
+                                    : NEW_NODE_SYNC_INTERVAL));
         }
     };
 

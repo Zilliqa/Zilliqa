@@ -1406,13 +1406,6 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
             GetStateFromLookupNodes();
             s_toFetchState = true;
         }
-#ifndef IS_LOOKUP_NODE
-        else
-        {
-            // state the end of the first final epoch in a ds epoch
-            s_toAttemptPoW2 = false;
-        }
-#endif // IS_LOOKUP_NODE
     }
 
     return true;
@@ -1472,7 +1465,6 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
         }
 
         InitMining();
-        s_toAttemptPoW2 = true;
     }
     else if (m_syncType == SyncType::DS_SYNC)
     {
@@ -1611,6 +1603,7 @@ bool Lookup::InitMining()
         {
             // DS block has been generated.
             // Attempt PoW2
+            s_startedPoW2 = true;
             m_mediator.UpdateDSBlockRand();
             dsBlockRand = m_mediator.m_dsBlockRand;
             txBlockRand = {};
@@ -1636,6 +1629,7 @@ bool Lookup::InitMining()
     }
     // Check whether is the new node connected to the network. Else, initiate re-sync process again.
     this_thread::sleep_for(chrono::seconds(BACKUP_POW2_WINDOW_IN_SECONDS));
+    s_startedPoW2 = false;
     if (m_syncType != SyncType::NO_SYNC)
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
