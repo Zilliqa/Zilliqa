@@ -48,6 +48,7 @@ public:
                         boost::multiprecision::uint256_t currentBlockChainSize);
     bool FetchLatestState(Lookup* lookup);
     bool AttemptPoW(Lookup* lookup);
+    bool FetchOfflineLookups(Lookup* lookup);
 #endif // IS_LOOKUP_NODE
 };
 

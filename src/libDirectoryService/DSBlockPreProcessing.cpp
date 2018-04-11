@@ -237,7 +237,8 @@ void DirectoryService::RunConsensusOnDSBlock()
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                          "To-do: Code up the logic for if we didn't get any "
                          "submissions at all");
-            throw exception();
+            // throw exception();
+            return;
         }
     }
 
@@ -247,7 +248,8 @@ void DirectoryService::RunConsensusOnDSBlock()
         {
             LOG_MESSAGE(
                 "Throwing exception after RunConsensusOnDSBlockWhenDSPrimary");
-            throw exception();
+            // throw exception();
+            return;
         }
     }
     else
@@ -256,7 +258,8 @@ void DirectoryService::RunConsensusOnDSBlock()
         {
             LOG_MESSAGE(
                 "Throwing exception after RunConsensusOnDSBlockWhenDSBackup");
-            throw exception();
+            // throw exception();
+            return;
         }
     }
 

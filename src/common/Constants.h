@@ -73,13 +73,27 @@ enum MetaType : unsigned char
     DSINCOMPLETED,
 };
 
+// Sync Type
+enum SyncType : unsigned int
+{
+    NO_SYNC = 0,
+    NEW_SYNC,
+    NORMAL_SYNC,
+    DS_SYNC,
+    LOOKUP_SYNC,
+};
+
 const std::string RAND1_GENESIS
     = "2b740d75891749f94b6a8ec09f086889066608e4418eda656c93443e8310750a";
 const std::string RAND2_GENESIS
     = "e8cc9106f8a28671d91e2de07b57b828934481fadf6956563b963bb8e5c266bf";
 
-const std::string PERSISTENCE_PATH = "./persistence";
+const std::string REMOTE_TEST_DIR = "zilliqa-test";
+const std::string PERSISTENCE_PATH = "persistence";
 const std::string TX_BODY_SUBDIR = "txBodies";
+
+const std::string DS_PROMOTE_MSG = "PROMOTED TO DS";
+const std::string DS_KICKOUT_MSG = "KICKED OUT FROM DS";
 
 extern const unsigned int DS_MULTICAST_CLUSTER_SIZE;
 extern const unsigned int COMM_SIZE;

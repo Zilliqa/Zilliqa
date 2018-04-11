@@ -101,13 +101,6 @@ void Node::StoreFinalBlock(const TxBlock& txBlock)
     // At this point, the transactions in the last Epoch is no longer useful, thus erase.
     m_committedTransactions.erase(m_mediator.m_currentEpochNum - 2);
 
-    LOG_MESSAGE2(
-        to_string(m_mediator.m_currentEpochNum).c_str(),
-        "DEBUG last block has a size of "
-            << m_mediator.m_txBlockChain.GetLastBlock().GetSerializedSize())
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "DEBUG cur block has a size of "
-                     << txBlock.GetSerializedSize())
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                  "Storing Tx Block Number: "
                      << txBlock.GetHeader().GetBlockNum()
@@ -288,8 +281,8 @@ bool Node::FindTxnInSubmittedTxnsList(const TxBlock& finalblock,
         // Store TxBody to disk
         vector<unsigned char> serializedTxBody;
         committedTransactions.back().Serialize(serializedTxBody, 0);
-        if (BlockStorage::GetBlockStorage().PutTxBody(tx_hash,
-                                                      serializedTxBody))
+        if (!BlockStorage::GetBlockStorage().PutTxBody(tx_hash,
+                                                       serializedTxBody))
         {
             LOG_MESSAGE("FAIL: PutTxBody Failed");
         }
@@ -1166,6 +1159,8 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
                                                         {'0'});
 #ifndef IS_LOOKUP_NODE
             BlockStorage::GetBlockStorage().PopFrontTxBodyDB();
+#else // IS_LOOKUP_NODE
+            BlockStorage::GetBlockStorage().ResetDB(BlockStorage::TX_BODY_TMP);
 #endif // IS_LOOKUP_NODE
         }
     }

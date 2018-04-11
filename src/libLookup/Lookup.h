@@ -20,6 +20,7 @@
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
+#include <cstdlib>
 #include <map>
 #include <mutex>
 #include <vector>
@@ -43,11 +44,11 @@ class Lookup : public Executable, public Broadcastable
 {
     Mediator& m_mediator;
 
-#ifndef IS_LOOKUP_NODE
     // Info about lookup node
     std::vector<Peer> m_lookupNodes;
+    std::vector<Peer> m_lookupNodesOffline;
     std::vector<Peer> m_seedNodes;
-
+#ifndef IS_LOOKUP_NODE
     bool m_fetchedDSInfo = false;
     std::mutex m_mutexDSInfoUpdation;
     std::condition_variable m_dsInfoUpdateCondition;
@@ -55,18 +56,26 @@ class Lookup : public Executable, public Broadcastable
     bool CheckStateRoot();
 #endif // IS_LOOKUP_NODE
 
+    // To ensure that the confirm of DS node rejoin won't be later than
+    // It receiving a new DS block
+    bool m_currDSExpired = false;
+    bool m_isFirstLoop = true;
+
 #ifdef IS_LOOKUP_NODE
     // Sharding committee members
     std::mutex m_mutexShards;
     std::mutex m_mutexNodesInNetwork;
     std::vector<std::map<PubKey, Peer>> m_shards;
     std::vector<Peer> m_nodesInNetwork;
+
+    // Rsync the lost txBodies from remote lookup nodes if this lookup
+    // are doing its recovery
+    Peer GetLookupPeerToRsync();
+    bool RsyncTxBodies();
+
+    bool ToBlockMessage(unsigned char ins_byte);
+
 #endif // IS_LOOKUP_NODE
-
-    bool m_isDSRandUpdated = false;
-    std::mutex m_dsRandUpdationMutex;
-    std::condition_variable m_dsRandUpdateCondition;
-
     std::mutex m_mutexSetDSBlockFromSeed;
     std::mutex m_mutexSetTxBlockFromSeed;
     std::mutex m_mutexSetTxBodyFromSeed;
@@ -82,6 +91,13 @@ class Lookup : public Executable, public Broadcastable
     ComposeGetTxBlockMessage(boost::multiprecision::uint256_t lowBlockNum,
                              boost::multiprecision::uint256_t highBlockNum);
 
+    std::vector<unsigned char> ComposeGetLookupOfflineMessage();
+
+    std::vector<unsigned char> ComposeGetOfflineLookupNodes();
+
+    void AppendTimestamp(std::vector<unsigned char>& message,
+                         unsigned int& offset);
+
 public:
     /// Constructor.
     Lookup(Mediator& mediator);
@@ -89,7 +105,6 @@ public:
     /// Destructor.
     ~Lookup();
 
-#ifndef IS_LOOKUP_NODE
     // Setting the lookup nodes
     // Hardcoded for now -- to be called by constructor
     void SetLookupNodes();
@@ -100,6 +115,10 @@ public:
     // Calls P2PComm::SendMessage serially for every Lookup Node
     void
     SendMessageToLookupNodes(const std::vector<unsigned char>& message) const;
+
+    // Calls P2PComm::SendMessage to one of the last x Lookup Nodes randomly
+    void SendMessageToRandomLookupNode(
+        const std::vector<unsigned char>& message) const;
 
     // Calls P2PComm::SendMessage serially for every Seed peer
     void
@@ -121,12 +140,17 @@ public:
                               boost::multiprecision::uint256_t highBlockNum);
     bool GetTxBodyFromSeedNodes(std::string txHashStr);
     bool GetStateFromLookupNodes();
-#else // IS_LOOKUP_NODE
+
+    bool GetOfflineLookupNodes();
+#ifdef IS_LOOKUP_NODE
     bool SetDSCommitteInfo();
 
     std::vector<std::map<PubKey, Peer>> GetShardPeers();
     std::vector<Peer> GetNodePeers();
 
+    void StartSynchronization();
+
+    bool GetMyLookupOffline();
 #endif // IS_LOOKUP_NODE
 
     bool
@@ -149,6 +173,9 @@ public:
     bool ProcessGetNetworkId(const std::vector<unsigned char>& message,
                              unsigned int offset, const Peer& from);
 
+    bool ProcessGetOfflineLookups(const std::vector<unsigned char>& message,
+                                  unsigned int offset, const Peer& from);
+
     bool
     ProcessSetSeedPeersFromLookup(const std::vector<unsigned char>& message,
                                   unsigned int offset, const Peer& from);
@@ -163,10 +190,21 @@ public:
     bool ProcessSetStateFromSeed(const std::vector<unsigned char>& message,
                                  unsigned int offset, const Peer& from);
 
+    bool ProcessSetOfflineLookup(const std::vector<unsigned char>& message,
+                                 unsigned int offset, const Peer& from);
+
+    bool ProcessSetOfflineLookups(const std::vector<unsigned char>& message,
+                                  unsigned int offset, const Peer& from);
+
     bool Execute(const std::vector<unsigned char>& message, unsigned int offset,
                  const Peer& from);
+#ifndef IS_LOOKUP_NODE
+    bool m_fetchedOfflineLookups = false;
+    std::mutex m_mutexOfflineLookupsUpdation;
+    std::condition_variable m_offlineLookupsCondition;
 
     bool InitMining();
+#endif // IS_LOOKUP_NODE
     bool AlreadyJoinedNetwork();
 };
 
