@@ -145,7 +145,7 @@ public:
     {                                                                          \
         std::ostringstream oss;                                                \
         oss << msg;                                                            \
-        Logger::GetStateLogger(NULL, true)                                     \
+        Logger::GetEpochInfoLogger(NULL, true)                                 \
             .LogEpochInfo(oss.str().c_str(), __FUNCTION__, blockNum);          \
     }
 
