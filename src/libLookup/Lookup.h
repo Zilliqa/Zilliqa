@@ -210,8 +210,6 @@ public:
     unsigned int m_syncType = SyncType::NO_SYNC;
 
     /// Helper variables used by new node synchronization
-    bool s_toFetchDSInfo = false;
-    bool s_toFetchState = false;
     bool s_startedPoW2 = false;
 
     bool AlreadyJoinedNetwork();
