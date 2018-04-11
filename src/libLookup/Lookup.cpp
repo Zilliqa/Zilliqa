@@ -2014,7 +2014,7 @@ bool Lookup::Execute(const vector<unsigned char>& message, unsigned int offset,
 
 bool Lookup::AlreadyJoinedNetwork()
 {
-    if (m_mediator.m_syncType != SyncType::NO_SYNC)
+    if (m_mediator.m_syncType == SyncType::NO_SYNC)
     {
         return true;
     }
