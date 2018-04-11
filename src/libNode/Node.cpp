@@ -170,16 +170,8 @@ void Node::StartSynchronization()
         {
             m_synchronizer.FetchLatestDSBlocks(
                 m_mediator.m_lookup, m_mediator.m_dsBlockChain.GetBlockCount());
-            if (m_mediator.m_lookup->s_toFetchDSInfo)
-            {
-                m_synchronizer.FetchDSInfo(m_mediator.m_lookup);
-            }
             m_synchronizer.FetchLatestTxBlocks(
                 m_mediator.m_lookup, m_mediator.m_txBlockChain.GetBlockCount());
-            if (m_mediator.m_lookup->s_toFetchState)
-            {
-                m_synchronizer.FetchLatestState(m_mediator.m_lookup);
-            }
             this_thread::sleep_for(
                 chrono::seconds(m_mediator.m_lookup->s_startedPoW2
                                     ? BACKUP_POW2_WINDOW_IN_SECONDS

@@ -1155,13 +1155,11 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
         //#endif // IS_LOOKUP_NODE
 
 #ifndef IS_LOOKUP_NODE
-    if (s_toFetchDSInfo)
     {
         unique_lock<mutex> lock(m_mutexDSInfoUpdation);
         m_fetchedDSInfo = true;
         m_dsInfoUpdateCondition.notify_one();
     }
-    s_toFetchDSInfo = false;
 #endif // IS_LOOKUP_NODE
 
     return true;
@@ -1284,7 +1282,6 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
         if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
         {
             GetDSInfoFromLookupNodes();
-            s_toFetchDSInfo = true;
         }
 
         if (m_syncType == SyncType::DS_SYNC
@@ -1405,7 +1402,6 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
         if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
         {
             GetStateFromLookupNodes();
-            s_toFetchState = true;
         }
     }
 
@@ -1463,43 +1459,30 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
             }
             m_fetchedDSInfo = false;
         }
-        if (s_toFetchState)
-        {
-            s_toFetchState = false;
-            InitMining();
-        }
+        InitMining();
     }
     else if (m_syncType == SyncType::DS_SYNC)
     {
-        if (s_toFetchState)
+        if (!m_currDSExpired)
         {
-            s_toFetchState = false;
-            if (!m_currDSExpired)
-            {
-                m_syncType = SyncType::NO_SYNC;
-                // in case the recovery program is under different directory
-                LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
-                              DS_PROMOTE_MSG);
-            }
-            m_currDSExpired = false;
+            m_syncType = SyncType::NO_SYNC;
+            // in case the recovery program is under different directory
+            LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
+                          DS_PROMOTE_MSG);
         }
+        m_currDSExpired = false;
     }
 #else // IS_LOOKUP_NODE
     if (m_syncType == SyncType::LOOKUP_SYNC)
     {
-        if (s_toFetchState)
+        // rsync the txbodies here
+        if (RsyncTxBodies() && !m_currDSExpired)
         {
-            s_toFetchState = false;
-            // rsync the txbodies here
-            if (RsyncTxBodies() && !m_currDSExpired)
-            {
-                m_syncType = SyncType::NO_SYNC;
-            }
-            m_currDSExpired = false;
+            m_syncType = SyncType::NO_SYNC;
         }
+        m_currDSExpired = false;
     }
 #endif // IS_LOOKUP_NODE
-    s_toFetchState = false;
 
     return ret;
 }
@@ -1801,21 +1784,13 @@ void Lookup::StartSynchronization()
     LOG_MARKER();
 
     auto func = [this]() -> void {
-        s_toFetchDSInfo = true;
+        GetDSInfoFromLookupNodes();
         while (m_syncType != SyncType::NO_SYNC)
         {
             GetDSBlockFromLookupNodes(m_mediator.m_dsBlockChain.GetBlockCount(),
                                       0);
-            if (s_toFetchDSInfo)
-            {
-                GetDSInfoFromLookupNodes();
-            }
             GetTxBlockFromLookupNodes(m_mediator.m_txBlockChain.GetBlockCount(),
                                       0);
-            if (s_toFetchState)
-            {
-                GetStateFromLookupNodes();
-            }
             this_thread::sleep_for(chrono::seconds(NEW_NODE_SYNC_INTERVAL));
         }
     };
