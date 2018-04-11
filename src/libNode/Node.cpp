@@ -174,7 +174,6 @@ void Node::StartSynchronization()
             {
                 m_synchronizer.FetchDSInfo(m_mediator.m_lookup);
             }
-            m_synchronizer.AttemptPoW(m_mediator.m_lookup);
             m_synchronizer.FetchLatestTxBlocks(
                 m_mediator.m_lookup, m_mediator.m_txBlockChain.GetBlockCount());
             if (m_mediator.m_lookup->s_toFetchState)
