@@ -110,6 +110,13 @@ Logger& Logger::GetStateLogger(const char* fname_prefix, bool log_to_file,
     return logger;
 }
 
+Logger& Logger::GetEpochInfoLogger(const char* fname_prefix, bool log_to_file,
+                                   streampos max_file_size)
+{
+    static Logger logger(fname_prefix, log_to_file, max_file_size);
+    return logger;
+}
+
 void Logger::LogMessage(const char* msg, const char* function)
 {
     pid_t tid = getCurrentPid();
@@ -258,6 +265,36 @@ void Logger::LogMessageAndPayload(const char* msg,
                  << endl
                  << flush;
         }
+    }
+}
+
+void Logger::LogEpochInfo(const char* msg, const char* function,
+                          const char* epoch)
+{
+    pid_t tid = getCurrentPid();
+
+    auto clockNow = std::chrono::system_clock::now();
+    std::time_t curTime = std::chrono::system_clock::to_time_t(clockNow);
+    auto gmtTime = gmtime(&curTime);
+
+    lock_guard<mutex> guard(m);
+
+    if (log_to_file)
+    {
+        checkLog();
+        logfile << "[TID " << PAD(tid, TID_LEN) << "]["
+                << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
+                << LIMIT(function, MAX_FUNCNAME_LEN) << "]"
+                << "[Epoch " << epoch << "] " << msg << endl
+                << flush;
+    }
+    else
+    {
+        cout << "[TID " << PAD(tid, TID_LEN) << "]["
+             << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
+             << LIMIT(function, MAX_FUNCNAME_LEN) << "]"
+             << "[Epoch " << epoch << "] " << msg << endl
+             << flush;
     }
 }
 

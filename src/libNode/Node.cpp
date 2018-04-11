@@ -69,22 +69,34 @@ Node::Node(Mediator& mediator, bool toRetrieveHistory)
 
     if (runInitializeGenesisBlocks)
     {
-        // Zilliqa first epoch start from 1 not 0. So for the first DS epoch, there will be 1 less mini epoch only for the first DS epoch.
-        // Hence, we have to set consensusID for first epoch to 1.
-        m_consensusID = 1;
-        m_consensusLeaderID = 1;
-
-        m_retriever->CleanAll();
-        m_retriever.reset();
-        m_mediator.m_dsBlockChain.Reset();
-        m_mediator.m_txBlockChain.Reset();
-        m_committedTransactions.clear();
-        AccountStore::GetInstance().Init();
-
-        m_synchronizer.InitializeGenesisBlocks(m_mediator.m_dsBlockChain,
-                                               m_mediator.m_txBlockChain);
+        this->Init();
     }
 
+    this->Prepare(runInitializeGenesisBlocks);
+}
+
+Node::~Node() {}
+
+void Node::Init()
+{
+    // Zilliqa first epoch start from 1 not 0. So for the first DS epoch, there will be 1 less mini epoch only for the first DS epoch.
+    // Hence, we have to set consensusID for first epoch to 1.
+    m_consensusID = 1;
+    m_consensusLeaderID = 1;
+
+    m_retriever->CleanAll();
+    m_retriever.reset();
+    m_mediator.m_dsBlockChain.Reset();
+    m_mediator.m_txBlockChain.Reset();
+    m_committedTransactions.clear();
+    AccountStore::GetInstance().Init();
+
+    m_synchronizer.InitializeGenesisBlocks(m_mediator.m_dsBlockChain,
+                                           m_mediator.m_txBlockChain);
+}
+
+void Node::Prepare(bool runInitializeGenesisBlocks)
+{
     m_mediator.m_currentEpochNum
         = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
     m_mediator.UpdateDSBlockRand(runInitializeGenesisBlocks);
@@ -93,8 +105,6 @@ Node::Node(Mediator& mediator, bool toRetrieveHistory)
     POW::GetInstance().EthashConfigureLightClient(
         (uint64_t)m_mediator.m_dsBlockChain.GetBlockCount());
 }
-
-Node::~Node() {}
 
 bool Node::StartRetrieveHistory()
 {
@@ -142,9 +152,22 @@ bool Node::StartRetrieveHistory()
 
 void Node::StartSynchronization()
 {
-    m_isNewNode = true;
+    LOG_MARKER();
+
+    m_synchronizer.FetchOfflineLookups(m_mediator.m_lookup);
+
+    {
+        unique_lock<mutex> lock(
+            m_mediator.m_lookup->m_mutexOfflineLookupsUpdation);
+        while (!m_mediator.m_lookup->m_fetchedOfflineLookups)
+        {
+            m_mediator.m_lookup->m_offlineLookupsCondition.wait(lock);
+        }
+        m_mediator.m_lookup->m_fetchedOfflineLookups = false;
+    }
+
     auto func = [this]() -> void {
-        while (!m_mediator.m_isConnectedToNetwork)
+        while (m_mediator.m_syncType != SyncType::NO_SYNC)
         {
             m_synchronizer.FetchLatestDSBlocks(
                 m_mediator.m_lookup, m_mediator.m_dsBlockChain.GetBlockCount());
@@ -159,7 +182,7 @@ void Node::StartSynchronization()
             {
                 m_synchronizer.FetchLatestState(m_mediator.m_lookup);
             }
-            if (m_mediator.s_toAttemptPoW)
+            if (m_mediator.s_toAttemptPoW2)
             {
                 if (m_synchronizer.AttemptPoW(m_mediator.m_lookup))
                 {
@@ -548,7 +571,8 @@ bool Node::CheckCreatedTransaction(const Transaction& tx)
         LOG_MESSAGE2(
             to_string(m_mediator.m_currentEpochNum).c_str(),
             "To-do: What to do if from account is not in my account store?");
-        throw exception();
+        // throw exception();
+        return false;
     }
 
     // Check from account nonce
@@ -576,7 +600,8 @@ bool Node::CheckCreatedTransaction(const Transaction& tx)
         LOG_MESSAGE2(
             to_string(m_mediator.m_currentEpochNum).c_str(),
             "To-do: What to do if to account is not in my account store?");
-        throw exception();
+        // throw exception();
+        return false;
     }
 
     // Check if transaction amount is valid
@@ -929,6 +954,28 @@ void Node::SubmitTransactions()
                          << m_myShardID << "][" << txn_sent_count << "] CONT");
 #endif // STAT_TEST
 }
+
+bool Node::ToBlockMessage(unsigned char ins_byte)
+{
+    if (m_mediator.m_syncType != SyncType::NO_SYNC)
+    {
+        if (!m_fromNewProcess)
+        {
+            if (ins_byte != NodeInstructionType::SHARDING)
+            {
+                return true;
+            }
+        }
+        else
+        {
+            if (m_runFromLate && ins_byte != NodeInstructionType::SHARDING)
+            {
+                return true;
+            }
+        }
+    }
+    return false;
+}
 #endif // IS_LOOKUP_NODE
 
 bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
@@ -956,12 +1003,37 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
     const unsigned int ins_handlers_count
         = sizeof(ins_handlers) / sizeof(InstructionHandler);
 
+#ifndef IS_LOOKUP_NODE
+    // If the node failed and waiting for recovery, block the unwanted msg
+
+    if (ToBlockMessage(ins_byte))
+    {
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "Node not connected to network yet, ignore message");
+        return false;
+    }
+#endif
+
     if (ins_byte < ins_handlers_count)
     {
         result = (this->*ins_handlers[ins_byte])(message, offset + 1, from);
         if (result == false)
         {
-            // To-do: Error recovery
+        // To-do: Error recovery
+
+#ifndef IS_LOOKUP_NODE
+            // Rejoin network as a new node if FinalBlockProcessing failed
+            // in CheckStateRoot
+            bool isVacuousEpoch = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW
+                                                     - NUM_VACUOUS_EPOCHS));
+            if (ins_byte == NodeInstructionType::FINALBLOCK && isVacuousEpoch)
+            {
+                m_mediator.m_syncType = SyncType::NORMAL_SYNC;
+                this->Init();
+                this->Prepare(true);
+                this->StartSynchronization();
+            }
+#endif
         }
     }
     else

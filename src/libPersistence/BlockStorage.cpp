@@ -51,8 +51,9 @@ bool BlockStorage::PushBackTxBodyDB(
         return false;
     }
 
-    LevelDB txBodyDB(blockNum.convert_to<string>(), TX_BODY_SUBDIR);
-    m_txBodyDBs.push_back(txBodyDB);
+    std::shared_ptr<LevelDB> txBodyDBPtr = std::make_shared<LevelDB>(
+        blockNum.convert_to<string>(), TX_BODY_SUBDIR);
+    m_txBodyDBs.push_back(txBodyDBPtr);
 
     return true;
 }
@@ -77,7 +78,7 @@ bool BlockStorage::PopFrontTxBodyDB(bool mandatory)
     }
 
     int ret = -1;
-    ret = m_txBodyDBs.front().DeleteDB();
+    ret = m_txBodyDBs.front()->DeleteDB();
     m_txBodyDBs.pop_front();
 
     return (ret == 0);
@@ -140,7 +141,7 @@ bool BlockStorage::PutTxBody(const dev::h256& key,
         LOG_MESSAGE("Error: No TxBodyDB found");
         return false;
     }
-    int ret = m_txBodyDBs.back().Insert(key, body);
+    int ret = m_txBodyDBs.back()->Insert(key, body);
 #else // IS_LOOKUP_NODE
     int ret = m_txBodyDB.Insert(key, body) && m_txBodyTmpDB.Insert(key, body);
 #endif // IS_LOOKUP_NODE
@@ -196,7 +197,7 @@ bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body)
         LOG_MESSAGE("Error: No TxBodyDB found");
         return false;
     }
-    string bodyString = m_txBodyDBs.back().Lookup(key);
+    string bodyString = m_txBodyDBs.back()->Lookup(key);
 #else // IS_LOOKUP_NODE
     string bodyString = m_txBodyDB.Lookup(key);
 #endif
@@ -233,9 +234,9 @@ bool BlockStorage::DeleteTxBlock(
 bool BlockStorage::DeleteTxBody(const dev::h256& key)
 {
 #ifndef IS_LOOKUP_NODE
-    int ret = m_txBodyDBs.back().DeleteKey(key);
+    int ret = m_txBodyDBs.back()->DeleteKey(key);
 #else // IS_LOOKUP_NODE
-    int ret = m_txBodyTmpDB.DeleteKey(key);
+    int ret = m_txBodyDB.DeleteKey(key);
 #endif // IS_LOOKUP_NODE
 
     return (ret == 0);
@@ -413,6 +414,36 @@ bool BlockStorage::ResetDB(DBTYPE type)
     {
         LOG_MESSAGE("FAIL: Reset DB " << type << " failed");
     }
+    return ret;
+}
+
+std::vector<std::string> BlockStorage::GetDBName(DBTYPE type)
+{
+    std::vector<std::string> ret;
+    switch (type)
+    {
+    case META:
+        ret.push_back(m_metadataDB.GetDBName());
+    case DS_BLOCK:
+        ret.push_back(m_dsBlockchainDB.GetDBName());
+    case TX_BLOCK:
+        ret.push_back(m_txBlockchainDB.GetDBName());
+#ifndef IS_LOOKUP_NODE
+    case TX_BODIES:
+    {
+        for (auto txBodyDB : m_txBodyDBs)
+        {
+            ret.push_back(txBodyDB->GetDBName());
+        }
+    }
+#else // IS_LOOKUP_NODE
+    case TX_BODY:
+        ret.push_back(m_txBodyDB.GetDBName());
+    case TX_BODY_TMP:
+        ret.push_back(m_txBodyTmpDB.GetDBName());
+#endif // IS_LOOKUP_NODE
+    }
+
     return ret;
 }
 

@@ -56,7 +56,7 @@ void DirectoryService::StoreDSBlockToStorage()
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                      "Error. We failed to add pendingdsblock to dsblockchain.");
-        throw exception();
+        // throw exception();
     }
 
     // Store DS Block to disk
@@ -235,6 +235,8 @@ void DirectoryService::UpdateMyDSModeAndConsensusId()
         LOG_MESSAGE2(
             to_string(m_mediator.m_currentEpochNum).c_str(),
             "I am the oldest backup DS -> now kicked out of DS committee :-(");
+        LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
+                      DS_KICKOUT_MSG);
         m_mediator.m_node->SetState(Node::NodeState::POW2_SUBMISSION);
         m_mode = IDLE;
 
@@ -338,11 +340,19 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
 
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                  "DSBlock to be sent to the lookup nodes");
-    if (m_mode == PRIMARY_DS)
+
+    // TODO: Refine this
+    unsigned int nodeToSendToLookUpLo = COMM_SIZE / 4;
+    unsigned int nodeToSendToLookUpHi
+        = nodeToSendToLookUpLo + TX_SHARING_CLUSTER_SIZE;
+
+    if (m_consensusMyID > nodeToSendToLookUpLo
+        && m_consensusMyID < nodeToSendToLookUpHi)
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "I the primary DS will soon be sending the DSBlock to the "
-                     "lookup nodes");
+        LOG_MESSAGE2(
+            to_string(m_mediator.m_currentEpochNum).c_str(),
+            "I the DS folks that will soon be sending the DSBlock to the "
+            "lookup nodes");
         SendDSBlockToLookupNodes(lastDSBlock, winnerpeer);
     }
 

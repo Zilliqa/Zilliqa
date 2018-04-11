@@ -154,12 +154,13 @@ bool Node::ProcessSharding(const vector<unsigned char>& message,
 
     POW::GetInstance().StopMining();
 
-    m_mediator.m_isConnectedToNetwork = true;
-
-    /// if it is a new node joining after finishing pow2, commit the state into db
-    if (m_isNewNode)
+    /// if it is a node joining after finishing pow2, commit the state into db
+    if (m_mediator.m_syncType != SyncType::NO_SYNC)
     {
+        m_mediator.m_syncType = SyncType::NO_SYNC;
         AccountStore::GetInstance().MoveUpdatesToDisk();
+        m_fromNewProcess = false;
+        m_runFromLate = false;
     }
 
     // if (m_state != TX_SUBMISSION)

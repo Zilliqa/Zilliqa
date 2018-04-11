@@ -47,6 +47,10 @@ void Retriever::RetrieveDSBlocks(bool& result)
         return;
     }
 
+    blocks.sort([](const DSBlockSharedPtr& a, const DSBlockSharedPtr& b) {
+        return a->GetHeader().GetBlockNum() < b->GetHeader().GetBlockNum();
+    });
+
     /// Check whether the termination of last running happens before the last DSEpoch properly ended.
     std::vector<unsigned char> isDSIncompleted;
     if (BlockStorage::GetBlockStorage().GetMetadata(MetaType::DSINCOMPLETED,
@@ -71,10 +75,6 @@ void Retriever::RetrieveDSBlocks(bool& result)
         return;
     }
 
-    blocks.sort([](const DSBlockSharedPtr& a, const DSBlockSharedPtr& b) {
-        return a->GetHeader().GetBlockNum() < b->GetHeader().GetBlockNum();
-    });
-
     for (const auto& block : blocks)
     {
         m_mediator.m_dsBlockChain.AddBlock(*block);
@@ -94,6 +94,10 @@ void Retriever::RetrieveTxBlocks(bool& result)
         return;
     }
 
+    blocks.sort([](const TxBlockSharedPtr& a, const TxBlockSharedPtr& b) {
+        return a->GetHeader().GetBlockNum() < b->GetHeader().GetBlockNum();
+    });
+
     // truncate the extra final blocks at last
     int totalSize = blocks.size();
     int extra_txblocks = totalSize % NUM_FINAL_BLOCK_PER_POW;
@@ -102,10 +106,6 @@ void Retriever::RetrieveTxBlocks(bool& result)
         BlockStorage::GetBlockStorage().DeleteTxBlock(totalSize - i);
         blocks.pop_back();
     }
-
-    blocks.sort([](const TxBlockSharedPtr& a, const TxBlockSharedPtr& b) {
-        return a->GetHeader().GetBlockNum() < b->GetHeader().GetBlockNum();
-    });
 
     for (const auto& block : blocks)
         m_mediator.m_txBlockChain.AddBlock(*block);
@@ -116,7 +116,7 @@ void Retriever::RetrieveTxBlocks(bool& result)
 #ifndef IS_LOOKUP_NODE
 bool Retriever::RetrieveTxBodiesDB()
 {
-    filesys::path p(PERSISTENCE_PATH + "/" + TX_BODY_SUBDIR);
+    filesys::path p("./" + PERSISTENCE_PATH + "/" + TX_BODY_SUBDIR);
     if (filesys::exists(p))
     {
         std::vector<std::string> dbNames;
@@ -164,7 +164,7 @@ bool Retriever::RetrieveTxBodiesDB()
     else
     {
         LOG_MESSAGE("No subdirectory found");
-        return false;
+        // return false;
     }
 
     return true;
@@ -202,6 +202,7 @@ bool Retriever::ValidateStates()
         == AccountStore::GetInstance().GetStateRootHash())
     {
         LOG_MESSAGE("ValidateStates passed.");
+        AccountStore::GetInstance().RepopulateStateTrie();
         return true;
     }
     else
