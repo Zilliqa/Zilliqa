@@ -43,4 +43,6 @@
 			<port>4005</port>
 		</peer>
 	</lookups>
+	<logger>
+	</logger>
 </node>
