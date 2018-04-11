@@ -154,19 +154,18 @@ void Node::StartSynchronization()
 {
     LOG_MARKER();
 
-    m_synchronizer.FetchOfflineLookups(m_mediator.m_lookup);
-
-    {
-        unique_lock<mutex> lock(
-            m_mediator.m_lookup->m_mutexOfflineLookupsUpdation);
-        while (!m_mediator.m_lookup->m_fetchedOfflineLookups)
-        {
-            m_mediator.m_lookup->m_offlineLookupsCondition.wait(lock);
-        }
-        m_mediator.m_lookup->m_fetchedOfflineLookups = false;
-    }
-
     auto func = [this]() -> void {
+        m_synchronizer.FetchOfflineLookups(m_mediator.m_lookup);
+
+        {
+            unique_lock<mutex> lock(
+                m_mediator.m_lookup->m_mutexOfflineLookupsUpdation);
+            while (!m_mediator.m_lookup->m_fetchedOfflineLookups)
+            {
+                m_mediator.m_lookup->m_offlineLookupsCondition.wait(lock);
+            }
+            m_mediator.m_lookup->m_fetchedOfflineLookups = false;
+        }
         while (m_mediator.m_syncType != SyncType::NO_SYNC)
         {
             m_synchronizer.FetchLatestDSBlocks(
