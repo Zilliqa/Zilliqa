@@ -166,22 +166,22 @@ void Node::StartSynchronization()
             }
             m_mediator.m_lookup->m_fetchedOfflineLookups = false;
         }
-        while (m_mediator.m_syncType != SyncType::NO_SYNC)
+        while (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
         {
             m_synchronizer.FetchLatestDSBlocks(
                 m_mediator.m_lookup, m_mediator.m_dsBlockChain.GetBlockCount());
-            if (m_mediator.s_toFetchDSInfo)
+            if (m_mediator.m_lookup->s_toFetchDSInfo)
             {
                 m_synchronizer.FetchDSInfo(m_mediator.m_lookup);
             }
             // m_synchronizer.AttemptPoW(m_mediator.m_lookup);
             m_synchronizer.FetchLatestTxBlocks(
                 m_mediator.m_lookup, m_mediator.m_txBlockChain.GetBlockCount());
-            if (m_mediator.s_toFetchState)
+            if (m_mediator.m_lookup->s_toFetchState)
             {
                 m_synchronizer.FetchLatestState(m_mediator.m_lookup);
             }
-            if (m_mediator.s_toAttemptPoW2)
+            if (m_mediator.m_lookup->s_toAttemptPoW2)
             {
                 if (m_synchronizer.AttemptPoW(m_mediator.m_lookup))
                 {
@@ -955,7 +955,7 @@ void Node::SubmitTransactions()
 
 bool Node::ToBlockMessage(unsigned char ins_byte)
 {
-    if (m_mediator.m_syncType != SyncType::NO_SYNC)
+    if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
     {
         if (!m_fromNewProcess)
         {
@@ -1026,7 +1026,7 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
                                                      - NUM_VACUOUS_EPOCHS));
             if (ins_byte == NodeInstructionType::FINALBLOCK && isVacuousEpoch)
             {
-                m_mediator.m_syncType = SyncType::NORMAL_SYNC;
+                m_mediator.m_lookup->m_syncType = SyncType::NORMAL_SYNC;
                 this->Init();
                 this->Prepare(true);
                 this->StartSynchronization();

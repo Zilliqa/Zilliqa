@@ -1155,7 +1155,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
         //#endif // IS_LOOKUP_NODE
 
 #ifndef IS_LOOKUP_NODE
-    m_mediator.s_toFetchDSInfo = false;
+    s_toFetchDSInfo = false;
     {
         unique_lock<mutex> lock(m_mutexDSInfoUpdation);
         m_fetchedDSInfo = true;
@@ -1283,11 +1283,11 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
         if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
         {
             GetDSInfoFromLookupNodes();
-            m_mediator.s_toFetchDSInfo = true;
+            s_toFetchDSInfo = true;
         }
 
-        if (m_mediator.m_syncType == SyncType::DS_SYNC
-            || m_mediator.m_syncType == SyncType::LOOKUP_SYNC)
+        if (m_syncType == SyncType::DS_SYNC
+            || m_syncType == SyncType::LOOKUP_SYNC)
         {
             if (!m_isFirstLoop)
             {
@@ -1404,13 +1404,13 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
         if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
         {
             GetStateFromLookupNodes();
-            m_mediator.s_toFetchState = true;
+            s_toFetchState = true;
         }
 #ifndef IS_LOOKUP_NODE
         else
         {
             // state the end of the first final epoch in a ds epoch
-            m_mediator.s_toAttemptPoW2 = false;
+            s_toAttemptPoW2 = false;
         }
 #endif // IS_LOOKUP_NODE
     }
@@ -1458,10 +1458,9 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
         ret = false;
     }
 
-    m_mediator.s_toFetchState = false;
+    s_toFetchState = false;
 #ifndef IS_LOOKUP_NODE
-    if (m_mediator.m_syncType == SyncType::NEW_SYNC
-        || m_mediator.m_syncType == SyncType::NORMAL_SYNC)
+    if (m_syncType == SyncType::NEW_SYNC || m_syncType == SyncType::NORMAL_SYNC)
     {
         {
             unique_lock<mutex> lock(m_mutexDSInfoUpdation);
@@ -1473,13 +1472,13 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
         }
 
         InitMining();
-        m_mediator.s_toAttemptPoW2 = true;
+        s_toAttemptPoW2 = true;
     }
-    else if (m_mediator.m_syncType == SyncType::DS_SYNC)
+    else if (m_syncType == SyncType::DS_SYNC)
     {
         if (!m_currDSExpired)
         {
-            m_mediator.m_syncType = SyncType::NO_SYNC;
+            m_syncType = SyncType::NO_SYNC;
             // in case the recovery program is under different directory
             LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
                           DS_PROMOTE_MSG);
@@ -1487,12 +1486,12 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
         m_currDSExpired = false;
     }
 #else // IS_LOOKUP_NODE
-    if (m_mediator.m_syncType == SyncType::LOOKUP_SYNC)
+    if (m_syncType == SyncType::LOOKUP_SYNC)
     {
         // rsync the txbodies here
         if (RsyncTxBodies() && !m_currDSExpired)
         {
-            m_mediator.m_syncType = SyncType::NO_SYNC;
+            m_syncType = SyncType::NO_SYNC;
         }
         m_currDSExpired = false;
     }
@@ -1627,7 +1626,7 @@ bool Lookup::InitMining()
         }
         else
         {
-            m_mediator.s_toFetchState = true;
+            s_toFetchState = true;
             return false;
         }
     }
@@ -1637,7 +1636,7 @@ bool Lookup::InitMining()
     }
     // Check whether is the new node connected to the network. Else, initiate re-sync process again.
     this_thread::sleep_for(chrono::seconds(BACKUP_POW2_WINDOW_IN_SECONDS));
-    if (m_mediator.m_syncType != SyncType::NO_SYNC)
+    if (m_syncType != SyncType::NO_SYNC)
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                      "Not yet connected to network");
@@ -1797,18 +1796,18 @@ void Lookup::StartSynchronization()
     LOG_MARKER();
 
     auto func = [this]() -> void {
-        m_mediator.s_toFetchDSInfo = true;
-        while (m_mediator.m_syncType != SyncType::NO_SYNC)
+        s_toFetchDSInfo = true;
+        while (m_syncType != SyncType::NO_SYNC)
         {
             GetDSBlockFromLookupNodes(m_mediator.m_dsBlockChain.GetBlockCount(),
                                       0);
-            if (m_mediator.s_toFetchDSInfo)
+            if (s_toFetchDSInfo)
             {
                 GetDSInfoFromLookupNodes();
             }
             GetTxBlockFromLookupNodes(m_mediator.m_txBlockChain.GetBlockCount(),
                                       0);
-            if (m_mediator.s_toFetchState)
+            if (s_toFetchState)
             {
                 GetStateFromLookupNodes();
             }
@@ -1909,7 +1908,7 @@ bool Lookup::RsyncTxBodies()
 
 bool Lookup::ToBlockMessage(unsigned char ins_byte)
 {
-    if (m_mediator.m_syncType != SyncType::NO_SYNC
+    if (m_syncType != SyncType::NO_SYNC
         && (ins_byte != LookupInstructionType::SETDSBLOCKFROMSEED
             && ins_byte != LookupInstructionType::SETDSINFOFROMSEED
             && ins_byte != LookupInstructionType::SETTXBLOCKFROMSEED
@@ -2014,7 +2013,7 @@ bool Lookup::Execute(const vector<unsigned char>& message, unsigned int offset,
 
 bool Lookup::AlreadyJoinedNetwork()
 {
-    if (m_mediator.m_syncType == SyncType::NO_SYNC)
+    if (m_syncType == SyncType::NO_SYNC)
     {
         return true;
     }

@@ -75,14 +75,6 @@ public:
     /// The current epoch randomness from the Tx blockchain.
     std::array<unsigned char, POW_SIZE> m_txBlockRand;
 
-    /// To indicate which type of synchronization is using
-    unsigned int m_syncType = SyncType::NO_SYNC;
-
-    /// Helper variables used by new node synchronization
-    bool s_toFetchDSInfo = false;
-    bool s_toFetchState = false;
-    bool s_toAttemptPoW2 = false;
-
     /// To determine if the node successfully recovered from persistence
     bool m_isRetrievedHistory;
 

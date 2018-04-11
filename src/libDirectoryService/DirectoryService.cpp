@@ -74,18 +74,18 @@ void DirectoryService::StartSynchronization()
             m_mediator.m_lookup->m_fetchedOfflineLookups = false;
         }
 
-        m_mediator.s_toFetchDSInfo = true;
-        while (m_mediator.m_syncType != SyncType::NO_SYNC)
+        m_mediator.m_lookup->s_toFetchDSInfo = true;
+        while (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
         {
             m_synchronizer.FetchLatestDSBlocks(
                 m_mediator.m_lookup, m_mediator.m_dsBlockChain.GetBlockCount());
-            if (m_mediator.s_toFetchDSInfo)
+            if (m_mediator.m_lookup->s_toFetchDSInfo)
             {
                 m_synchronizer.FetchDSInfo(m_mediator.m_lookup);
             }
             m_synchronizer.FetchLatestTxBlocks(
                 m_mediator.m_lookup, m_mediator.m_txBlockChain.GetBlockCount());
-            if (m_mediator.s_toFetchState)
+            if (m_mediator.m_lookup->s_toFetchState)
             {
                 m_synchronizer.FetchLatestState(m_mediator.m_lookup);
             }
@@ -1362,7 +1362,7 @@ bool DirectoryService::ProcessInitViewChangeResponse(
 
 bool DirectoryService::ToBlockMessage(unsigned char ins_byte)
 {
-    if (m_mediator.m_syncType != SyncType::NO_SYNC)
+    if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
     {
         return true;
     }
