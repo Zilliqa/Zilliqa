@@ -1277,7 +1277,7 @@ bool Node::LoadForwardedTxnsAndCheckRoot(
         txnsInForwardedMessage.push_back(tx);
         txnHashesInForwardedMessage.push_back(tx.GetTranID());
 
-        LOG_MESSAGE("Received forwarded transaction : " << tx.GetTranID());
+        // LOG_MESSAGE("Received forwarded transaction : " << tx.GetTranID());
     }
 
     return ComputeTransactionsRoot(txnHashesInForwardedMessage)
