@@ -45,4 +45,6 @@
 		</peer>
 	-->
 	</lookups>
+	<logger>
+	</logger>
 </node>
