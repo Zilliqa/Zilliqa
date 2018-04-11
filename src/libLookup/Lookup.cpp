@@ -1155,12 +1155,13 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
         //#endif // IS_LOOKUP_NODE
 
 #ifndef IS_LOOKUP_NODE
-    s_toFetchDSInfo = false;
+    if (s_toFetchDSInfo)
     {
         unique_lock<mutex> lock(m_mutexDSInfoUpdation);
         m_fetchedDSInfo = true;
         m_dsInfoUpdateCondition.notify_one();
     }
+    s_toFetchDSInfo = false;
 #endif // IS_LOOKUP_NODE
 
     return true;
@@ -1451,7 +1452,6 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
         ret = false;
     }
 
-    s_toFetchState = false;
 #ifndef IS_LOOKUP_NODE
     if (m_syncType == SyncType::NEW_SYNC || m_syncType == SyncType::NORMAL_SYNC)
     {
@@ -1463,31 +1463,43 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
             }
             m_fetchedDSInfo = false;
         }
-
-        InitMining();
+        if (s_toFetchState)
+        {
+            s_toFetchState = false;
+            InitMining();
+        }
     }
     else if (m_syncType == SyncType::DS_SYNC)
     {
-        if (!m_currDSExpired)
+        if (s_toFetchState)
         {
-            m_syncType = SyncType::NO_SYNC;
-            // in case the recovery program is under different directory
-            LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
-                          DS_PROMOTE_MSG);
+            s_toFetchState = false;
+            if (!m_currDSExpired)
+            {
+                m_syncType = SyncType::NO_SYNC;
+                // in case the recovery program is under different directory
+                LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
+                              DS_PROMOTE_MSG);
+            }
+            m_currDSExpired = false;
         }
-        m_currDSExpired = false;
     }
 #else // IS_LOOKUP_NODE
     if (m_syncType == SyncType::LOOKUP_SYNC)
     {
-        // rsync the txbodies here
-        if (RsyncTxBodies() && !m_currDSExpired)
+        if (s_toFetchState)
         {
-            m_syncType = SyncType::NO_SYNC;
+            s_toFetchState = false;
+            // rsync the txbodies here
+            if (RsyncTxBodies() && !m_currDSExpired)
+            {
+                m_syncType = SyncType::NO_SYNC;
+            }
+            m_currDSExpired = false;
         }
-        m_currDSExpired = false;
     }
 #endif // IS_LOOKUP_NODE
+    s_toFetchState = false;
 
     return ret;
 }
@@ -1619,7 +1631,6 @@ bool Lookup::InitMining()
         }
         else
         {
-            s_toFetchState = true;
             return false;
         }
     }
