@@ -205,6 +205,15 @@ public:
 
     bool InitMining();
 #endif // IS_LOOKUP_NODE
+
+    /// To indicate which type of synchronization is using
+    unsigned int m_syncType = SyncType::NO_SYNC;
+
+    /// Helper variables used by new node synchronization
+    bool s_toFetchDSInfo = false;
+    bool s_toFetchState = false;
+    bool s_toAttemptPoW2 = false;
+
     bool AlreadyJoinedNetwork();
 };
 

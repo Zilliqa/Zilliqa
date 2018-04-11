@@ -86,12 +86,15 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
 
     switch (syncType)
     {
+    case SyncType::NO_SYNC:
+        LOG_MESSAGE("No Sync Needed");
+        break;
 #ifndef IS_LOOKUP_NODE
     case SyncType::NEW_SYNC:
-    {
+        LOG_MESSAGE("Sync as a new node");
         if (!toRetrieveHistory)
         {
-            m_mediator.m_syncType = SyncType::NEW_SYNC;
+            m_mediator.m_lookup->m_syncType = SyncType::NEW_SYNC;
             m_n.m_runFromLate = true;
             m_n.StartSynchronization();
         }
@@ -99,25 +102,28 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
         {
             LOG_MESSAGE("Error: Sync for new node shouldn't retrieve history");
         }
-    }
+        break;
     case SyncType::NORMAL_SYNC:
-    {
-        m_mediator.m_syncType = SyncType::NORMAL_SYNC;
+        LOG_MESSAGE("Sync as a normal node");
+        m_mediator.m_lookup->m_syncType = SyncType::NORMAL_SYNC;
         m_n.m_runFromLate = true;
         m_n.StartSynchronization();
-    }
+        break;
     case SyncType::DS_SYNC:
-    {
-        m_mediator.m_syncType = SyncType::DS_SYNC;
+        LOG_MESSAGE("Sync as a ds node");
+        m_mediator.m_lookup->m_syncType = SyncType::DS_SYNC;
         m_ds.StartSynchronization();
-    }
+        break;
 #else // IS_LOOKUP_NODE
     case SyncType::LOOKUP_SYNC:
-    {
-        m_mediator.m_syncType = SyncType::LOOKUP_SYNC;
+        LOG_MESSAGE("Sync as a lookup node");
+        m_mediator.m_lookup->m_syncType = SyncType::LOOKUP_SYNC;
         m_lookup.StartSynchronization();
-    }
+        break;
 #endif // IS_LOOKUP_NODE
+    default:
+        LOG_MESSAGE("Invalid Sync Type");
+        break;
     }
 
 #ifndef IS_LOOKUP_NODE
