@@ -683,10 +683,11 @@ bool Lookup::ProcessGetDSInfoFromSeed(const vector<unsigned char>& message,
     // Currently, we want the duplicated message to be drop so to ensure it do not do redundant processing.
     // In the long term, we need to track all the incoming messages from lookup or seed node more grandularly,.
     // and ensure 2/3 of such identical message is received in order to move on.
-    vector<Peer> node;
-    node.push_back(requestingNode);
 
-    P2PComm::GetInstance().SendBroadcastMessage(node, dsInfoMessage);
+    // vector<Peer> node;
+    // node.push_back(requestingNode);
+
+    P2PComm::GetInstance().SendMessage(requestingNode, dsInfoMessage);
 
     //#endif // IS_LOOKUP_NODE
 
@@ -793,10 +794,11 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
     // Currently, we want the duplicated message to be drop so to ensure it do not do redundant processing.
     // In the long term, we need to track all the incoming messages from lookup or seed node more grandularly,.
     // and ensure 2/3 of such identical message is received in order to move on.
-    vector<Peer> node;
-    node.push_back(requestingNode);
 
-    P2PComm::GetInstance().SendBroadcastMessage(node, dsBlockMessage);
+    // vector<Peer> node;
+    // node.push_back(requestingNode);
+
+    P2PComm::GetInstance().SendMessage(requestingNode, dsBlockMessage);
 
     //#endif // IS_LOOKUP_NODE
 
@@ -845,8 +847,9 @@ bool Lookup::ProcessGetStateFromSeed(const vector<unsigned char>& message,
     // Currently, we want the duplicated message to be drop so to ensure it do not do redundant processing.
     // In the long term, we need to track all the incoming messages from lookup or seed node more grandularly,.
     // and ensure 2/3 of such identical message is received in order to move on.
-    vector<Peer> node;
-    node.push_back(requestingNode);
+
+    // vector<Peer> node;
+    // node.push_back(requestingNode);
 
     vector<unsigned char> setStateMessage
         = {MessageType::LOOKUP, LookupInstructionType::SETSTATEFROMSEED};
@@ -854,7 +857,7 @@ bool Lookup::ProcessGetStateFromSeed(const vector<unsigned char>& message,
     curr_offset
         += AccountStore::GetInstance().Serialize(setStateMessage, curr_offset);
     AccountStore::GetInstance().PrintAccountState();
-    P2PComm::GetInstance().SendBroadcastMessage(node, setStateMessage);
+    P2PComm::GetInstance().SendMessage(requestingNode, setStateMessage);
     // #endif // IS_LOOKUP_NODE
 
     return true;
@@ -958,10 +961,11 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
     // Currently, we want the duplicated message to be drop so to ensure it do not do redundant processing.
     // In the long term, we need to track all the incoming messages from lookup or seed node more grandularly,.
     // and ensure 2/3 of such identical message is received in order to move on.
-    vector<Peer> node;
-    node.push_back(requestingNode);
 
-    P2PComm::GetInstance().SendBroadcastMessage(node, txBlockMessage);
+    // vector<Peer> node;
+    // node.push_back(requestingNode);
+
+    P2PComm::GetInstance().SendMessage(requestingNode, txBlockMessage);
 
     // #endif // IS_LOOKUP_NODE
 
@@ -1011,10 +1015,11 @@ bool Lookup::ProcessGetTxBodyFromSeed(const vector<unsigned char>& message,
     // Currently, we want the duplicated message to be drop so to ensure it do not do redundant processing.
     // In the long term, we need to track all the incoming messages from lookup or seed node more grandularly,.
     // and ensure 2/3 of such identical message is received in order to move on.
-    vector<Peer> node;
-    node.push_back(requestingNode);
 
-    P2PComm::GetInstance().SendBroadcastMessage(node, txBodyMessage);
+    // vector<Peer> node;
+    // node.push_back(requestingNode);
+
+    P2PComm::GetInstance().SendMessage(requestingNode, txBodyMessage);
 
     // #endif // IS_LOOKUP_NODE
 
@@ -1050,10 +1055,11 @@ bool Lookup::ProcessGetNetworkId(const vector<unsigned char>& message,
     // Currently, we want the duplicated message to be drop so to ensure it do not do redundant processing.
     // In the long term, we need to track all the incoming messages from lookup or seed node more grandularly,.
     // and ensure 2/3 of such identical message is received in order to move on.
-    vector<Peer> node;
-    node.push_back(requestingNode);
 
-    P2PComm::GetInstance().SendBroadcastMessage(node, networkIdMessage);
+    // vector<Peer> node;
+    // node.push_back(requestingNode);
+
+    P2PComm::GetInstance().SendMessage(requestingNode, networkIdMessage);
 
     return true;
     // #endif // IS_LOOKUP_NODE
