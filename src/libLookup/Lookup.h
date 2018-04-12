@@ -73,8 +73,6 @@ class Lookup : public Executable, public Broadcastable
     Peer GetLookupPeerToRsync();
     bool RsyncTxBodies();
 
-    bool ToBlockMessage(unsigned char ins_byte);
-
 #endif // IS_LOOKUP_NODE
     std::mutex m_mutexSetDSBlockFromSeed;
     std::mutex m_mutexSetTxBlockFromSeed;
@@ -97,6 +95,7 @@ class Lookup : public Executable, public Broadcastable
 
     void AppendTimestamp(std::vector<unsigned char>& message,
                          unsigned int& offset);
+    bool ToBlockMessage(unsigned char ins_byte);
 
 public:
     /// Constructor.
