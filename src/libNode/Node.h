@@ -120,6 +120,15 @@ class Node : public Executable, public Broadcastable
     std::mutex m_mutexCreatedTransactions;
     std::list<Transaction> m_createdTransactions;
 
+    // Nonce information
+    std::mutex m_mutexTxnNonceMap;
+    std::unordered_map<Address, boost::multiprecision::uint256_t> m_txnNonceMap;
+
+    // prefilled transactions sorted by fromAddress
+    std::mutex m_mutexPrefilledTxns;
+    std::atomic_size_t m_nRemainingPrefilledTxns{0};
+    std::unordered_map<Address, std::list<Transaction>> m_prefilledTxns{};
+
     std::mutex m_mutexSubmittedTransactions;
     std::unordered_map<boost::multiprecision::uint256_t,
                        std::unordered_map<TxnHash, Transaction>>
@@ -277,6 +286,7 @@ class Node : public Executable, public Broadcastable
     // Transaction functions
     void SubmitTransactions();
     bool CheckCreatedTransaction(const Transaction& tx);
+    bool CheckCreatedTransactionFromLookup(const Transaction& tx);
 
     bool OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
                            unsigned int offset, const Peer& from);

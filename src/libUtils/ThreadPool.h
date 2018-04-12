@@ -40,11 +40,11 @@ class
 public:
     /// Constructor.
 #if CONTIGUOUS_JOBS_MEMORY
-    explicit ThreadPool(const unsigned int threadCount,
+    explicit ThreadPool(const unsigned int threadCount, std::string poolName,
                         const unsigned int jobsReserveCount = 0)
         :
 #else
-    explicit ThreadPool(const unsigned int threadCount)
+    explicit ThreadPool(const unsigned int threadCount, std::string poolName)
         :
 #endif
         _jobsLeft(0)
@@ -81,6 +81,12 @@ public:
 #endif
         ++_jobsLeft;
         _jobAvailableVar.notify_one();
+
+        if (_jobsLeft % 100 == 0)
+        {
+            LOG_MESSAGE("PoolName: " << poolName << " JobLeft: " << _jobsLeft
+                                     << '\n');
+        }
     }
 
     /// Joins with all threads. Blocks until all threads have completed. The queue may be filled after this call, but the threads will be done. After invoking JoinAll, the pool can no longer be used.
@@ -190,6 +196,7 @@ private:
 
     int _jobsLeft;
     bool _bailout;
+    std::string poolName;
     std::condition_variable _jobAvailableVar;
     std::condition_variable _waitVar;
     std::mutex _jobsLeftMutex;

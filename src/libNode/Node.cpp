@@ -30,6 +30,7 @@
 #include "depends/libTrie/TrieDB.h"
 #include "depends/libTrie/TrieHash.h"
 #include "libConsensus/ConsensusUser.h"
+#include "libCrypto/Schnorr.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
@@ -46,6 +47,19 @@
 
 using namespace std;
 using namespace boost::multiprecision;
+
+void addBalanceToGenesisAccount()
+{
+    const uint256_t bal{100000000000};
+    const uint256_t nonce{0};
+
+    for (auto& walletHexStr : GENESIS_WALLETS)
+    {
+        Address addr{DataConversion::HexStrToUint8Vec(walletHexStr)};
+        AccountStore::GetInstance().AddAccount(addr, bal, nonce);
+        LOG_MESSAGE("add genesis account " << addr << " with balance " << bal);
+    }
+}
 
 Node::Node(Mediator& mediator, bool toRetrieveHistory)
     : m_mediator(mediator)
@@ -70,6 +84,7 @@ Node::Node(Mediator& mediator, bool toRetrieveHistory)
     if (runInitializeGenesisBlocks)
     {
         this->Init();
+        addBalanceToGenesisAccount();
     }
 
     this->Prepare(runInitializeGenesisBlocks);
@@ -553,40 +568,36 @@ bool Node::CheckCreatedTransaction(const Transaction& tx)
     // Check if from account exists in local storage
     if (!AccountStore::GetInstance().DoesAccountExist(fromAddr))
     {
-        LOG_MESSAGE2(
-            to_string(m_mediator.m_currentEpochNum).c_str(),
-            "To-do: What to do if from account is not in my account store?");
-        // throw exception();
+        LOG_MESSAGE("fromAddr not found: " << fromAddr
+                                           << ". Transaction rejected: "
+                                           << tx.GetTranID());
         return false;
     }
 
     // Check from account nonce
-    if (tx.GetNonce() != AccountStore::GetInstance().GetNonce(fromAddr) + 1)
-    {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Error: Tx nonce not in line with account state!");
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "From Account      = 0x" << fromAddr);
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Account Nonce     = "
-                         << AccountStore::GetInstance().GetNonce(fromAddr));
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Expected Tx Nonce = "
-                         << AccountStore::GetInstance().GetNonce(fromAddr) + 1);
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Actual Tx Nonce   = " << tx.GetNonce());
-        return false;
-    }
+    // if (tx.GetNonce() != AccountStore::GetInstance().GetNonce(fromAddr) + 1)
+    // {
+    // LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+    // "Error: Tx nonce not in line with account state!");
+    // LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+    // "From Account      = 0x" << fromAddr);
+    // LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+    // "Account Nonce     = "
+    // << AccountStore::GetInstance().GetNonce(fromAddr));
+    // LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+    // "Expected Tx Nonce = "
+    // << AccountStore::GetInstance().GetNonce(fromAddr) + 1);
+    // LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+    // "Actual Tx Nonce   = " << tx.GetNonce());
+    // return false;
+    // }
 
     // Check if to account exists in local storage
     const Address& toAddr = tx.GetToAddr();
     if (!AccountStore::GetInstance().DoesAccountExist(toAddr))
     {
-        LOG_MESSAGE2(
-            to_string(m_mediator.m_currentEpochNum).c_str(),
-            "To-do: What to do if to account is not in my account store?");
-        // throw exception();
-        return false;
+        LOG_MESSAGE("New account is added: " << toAddr);
+        AccountStore::GetInstance().AddAccount(toAddr, {0, 0});
     }
 
     // Check if transaction amount is valid
@@ -608,90 +619,188 @@ bool Node::CheckCreatedTransaction(const Transaction& tx)
 }
 #endif // IS_LOOKUP_NODE
 
+/// Return a valid transaction from fromKeyPair to toAddr with the specified amount
+///
+/// TODO: nonce is still no valid yet
+Transaction CreateValidTestingTransaction(PrivKey& fromPrivKey,
+                                          PubKey& fromPubKey,
+                                          const Address& toAddr,
+                                          uint256_t amount)
+{
+    unsigned int version = 0;
+    auto nonce = 0;
+
+    // LOG_MESSAGE("fromPrivKey " << fromPrivKey << " / fromPubKey " << fromPubKey
+    // << " / toAddr" << toAddr);
+
+    Transaction txn{version,    nonce,  toAddr,
+                    fromPubKey, amount, {/* empty sig */}};
+
+    // std::vector<unsigned char> buf;
+    // txn.SerializeWithoutSignature(buf, 0);
+
+    // Signature sig;
+    // Schnorr::GetInstance().Sign(buf, fromPrivKey, fromPubKey, sig);
+
+    // vector<unsigned char> sigBuf;
+    // sig.Serialize(sigBuf, 0);
+    // txn.SetSignature(sigBuf);
+
+    return txn;
+}
+
+bool GetOneGoodKeyPair(PrivKey& oPrivKey, PubKey& oPubKey, uint32_t myShard,
+                       uint32_t nShard)
+{
+    for (auto& privKeyHexStr : GENESIS_KEYS)
+    {
+        auto privKeyBytes{DataConversion::HexStrToUint8Vec(privKeyHexStr)};
+        auto privKey = PrivKey{privKeyBytes, 0};
+        auto pubKey = PubKey{privKey};
+        auto addr = Account::GetAddressFromPublicKey(pubKey);
+        auto txnShard = Transaction::GetShardIndex(addr, nShard);
+
+        LOG_MESSAGE("Genesis Priv Key Str "
+                    << privKeyHexStr << " / Priv Key " << privKey
+                    << " / Pub Key " << pubKey << " / Addr " << addr
+                    << " / txnShard " << txnShard << " / myShard " << myShard
+                    << " / nShard " << nShard);
+        if (txnShard == myShard)
+        {
+            oPrivKey = privKey;
+            oPubKey = pubKey;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool GetOneGenesisAddress(Address& oAddr)
+{
+    if (GENESIS_WALLETS.empty())
+    {
+        LOG_MESSAGE("could not get one genensis address");
+        return false;
+    }
+
+    oAddr = Address{DataConversion::HexStrToUint8Vec(GENESIS_WALLETS.front())};
+    return true;
+}
+
+std::once_flag generateReceiverOnce;
+
+Address GenOneReceiver()
+{
+    static Address receiverAddr;
+    std::call_once(generateReceiverOnce, []() {
+        auto receiver = Schnorr::GetInstance().GenKeyPair();
+        receiverAddr = Account::GetAddressFromPublicKey(receiver.second);
+        LOG_MESSAGE("Generate testing transaction receiver" << receiverAddr);
+    });
+    return receiverAddr;
+}
+
+/// generate transation from one to many random accounts
+vector<Transaction> GenTransactionBulk(PrivKey& fromPrivKey, PubKey& fromPubKey,
+                                       size_t n)
+{
+    vector<Transaction> txns;
+    const size_t amountLimitMask = 0xff; // amount will vary from 0 to 255
+
+    // FIXME: it's a workaround to use the first genensis account
+    // auto receiver = Schnorr::GetInstance().GenKeyPair();
+    // auto receiverAddr = Account::GetAddressFromPublicKey(receiver.second);
+
+    // alternative 1: use first genesis address
+    // Address addr;
+    // if (not GetOneGenesisAddress(addr))
+    // {
+    // return txns;
+    // }
+    // auto receiverAddr = addr;
+
+    // alternative 2: use a fresh address throughout entire lifetime
+    auto receiverAddr = GenOneReceiver();
+
+    txns.reserve(n);
+    for (auto i = 0u; i != n; i++)
+    {
+        auto txn = CreateValidTestingTransaction(
+            fromPrivKey, fromPubKey, receiverAddr, i & amountLimitMask);
+        txns.emplace_back(txn);
+    }
+
+    return txns;
+}
+
+/// Handle send_txn command with the following message format
+///
+/// XXX The message format below is no ignored
+///     Message = [33-byte from pubkey] [33-byte to pubkey] [32-byte amount]
 bool Node::ProcessCreateTransaction(const vector<unsigned char>& message,
                                     unsigned int offset, const Peer& from)
 {
 #ifndef IS_LOOKUP_NODE
-    // This message is sent by the test script and is used to generate a new transaction for submitting to the network
-    // Message = [33-byte from pubkey] [33-byte to pubkey] [32-byte amount]
-
     LOG_MARKER();
 
-    if (IsMessageSizeInappropriate(message.size(), offset,
-                                   PUB_KEY_SIZE + PUB_KEY_SIZE + UINT256_SIZE))
-    {
-        return false;
-    }
+    // vector<Transaction> txnToCreate;
+    size_t nTxnPerAccount{N_PREFILLED_PER_ACCOUNT};
+    // size_t nTxnDelta{MAXSUBMITTXNPERNODE};
 
-    unsigned int cur_offset = offset;
-
-    // To-do: Put in the checks (e.g., are these pubkeys known, is the amount good, etc)
-
-    // 33-byte from pubkey
-    PubKey fromPubKey(message, cur_offset);
-
-    // TODO: remove this
-    fromPubKey = m_mediator.m_selfKey.second;
-    vector<unsigned char> msg;
-    fromPubKey.Serialize(msg, 0);
-
-    // Generate from account
-    Address fromAddr;
-    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-    // TODO: replace this by what follows
-    sha2.Update(msg, 0, PUB_KEY_SIZE);
-    // sha2.Update(message, cur_offset, PUB_KEY_SIZE);
-    const vector<unsigned char>& tmp1 = sha2.Finalize();
-    copy(tmp1.end() - ACC_ADDR_SIZE, tmp1.end(), fromAddr.asArray().begin());
-
-    cur_offset += PUB_KEY_SIZE;
-
-    // 33-byte to pubkey
-    PubKey toPubkey(message, cur_offset);
-
-    // Generate to account
-    Address toAddr;
-    sha2.Reset();
-    sha2.Update(message, cur_offset, PUB_KEY_SIZE);
-    // const vector<unsigned char> & tmp2 = sha2.Finalize();
-    // copy(tmp2.end() - ACC_ADDR_SIZE, tmp2.end(), toAddr.asArray().begin());
-
-    cur_offset += PUB_KEY_SIZE;
-
-    // 32-byte amount
-    uint256_t amount
-        = Serializable::GetNumber<uint256_t>(message, cur_offset, UINT256_SIZE);
-
-    // Create the transaction object
-
-    // To-do: Replace dummy values with the required ones
-    //uint32_t version = 0;
-    uint32_t version = (uint32_t)m_consensusMyID; //hack
-    uint256_t nonce = 0;
-
-    array<unsigned char, TRAN_SIG_SIZE> signature;
-    fill(signature.begin(), signature.end(), 0x0F);
-
-    lock_guard<mutex> g(m_mutexCreatedTransactions);
-
-    // if(!CheckCreatedTransaction(txn))
+    // if (not GetOneGoodKeyPair(senderPrivKey, senderPubKey, m_myShardID,
+    // m_numShards))
     // {
-    //     return false;
+    // LOG_MESSAGE(
+    // "No proper genesis account, cannot send testing transactions");
+    // return false;
     // }
 
-    // TODO: Remove this before production. This is to reduce time spent on aws testnet.
-    for (unsigned i = 0; i < 10000; i++)
+    // for (auto nTxn = 0u; nTxn < nTxnPerAccount; nTxn += nTxnDelta)
+    // {
+    unsigned int count = 0;
+    for (auto& privKeyHexStr : GENESIS_KEYS)
     {
-        Transaction txn(version, nonce, toAddr, fromPubKey, amount, signature);
-
-        // LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-        // "Created txns: " << txn.GetTranID())
-        // LOG_MESSAGE(txn.GetSerializedSize());
-
-        m_createdTransactions.push_back(txn);
-        nonce++;
-        amount++;
+        auto privKeyBytes{DataConversion::HexStrToUint8Vec(privKeyHexStr)};
+        auto privKey = PrivKey{privKeyBytes, 0};
+        auto pubKey = PubKey{privKey};
+        auto addr = Account::GetAddressFromPublicKey(pubKey);
+        auto txns = GenTransactionBulk(privKey, pubKey, nTxnPerAccount);
+        m_nRemainingPrefilledTxns += txns.size();
+        {
+            lock_guard<mutex> lg{m_mutexPrefilledTxns};
+            auto& txnsDst = m_prefilledTxns[addr];
+            txnsDst.insert(txnsDst.end(), txns.begin(), txns.end());
+        }
+        count++;
+        if (count == 1)
+            break;
     }
+    // LOG_MESSAGE("prefilled " << (nTxn + nTxnDelta) * GENESIS_KEYS.size()
+    // << " txns");
+
+    // const size_t prefillThreshold = 10 * nTxnDelta * GENESIS_KEYS.size();
+    // const auto sleepTime = 10s;
+    // while (m_nRemainingPrefilledTxns > prefillThreshold)
+    // {
+    // LOG_MESSAGE("prefilling saturated ( "
+    // << m_nRemainingPrefilledTxns << " > "
+    // << prefillThreshold << ") , sleeping for "
+    // << sleepTime.count() << " seconds");
+    // this_thread::sleep_for(sleepTime);
+    // }
+    // }
+
+    // {
+    // lock_guard<mutex> g(m_mutexCreatedTransactions);
+    // m_createdTransactions.insert(m_createdTransactions.end(),
+    // txnToCreate.begin(), txnToCreate.end());
+    // }
+
+    LOG_MESSAGE("Finished prefilling " << nTxnPerAccount * GENESIS_KEYS.size()
+                                       << " transactions");
+
+    return true;
 #endif // IS_LOOKUP_NODE
     return true;
 }
@@ -717,15 +826,16 @@ bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
 
     const auto& submittedTransaction = Transaction(message, offset);
 
-    // if(CheckCreatedTransaction(submittedTransaction))
-    // {
-    lock_guard<mutex> g(m_mutexReceivedTransactions);
-    auto& receivedTransactions = m_receivedTransactions[msgBlockNum];
-    receivedTransactions.insert(
-        make_pair(submittedTransaction.GetTranID(), submittedTransaction));
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "Received missing txn: " << submittedTransaction.GetTranID())
-    // }
+    // if (CheckCreatedTransaction(submittedTransaction))
+    {
+        lock_guard<mutex> g(m_mutexReceivedTransactions);
+        auto& receivedTransactions = m_receivedTransactions[msgBlockNum];
+        receivedTransactions.insert(
+            make_pair(submittedTransaction.GetTranID(), submittedTransaction));
+        LOG_MESSAGE2(
+            to_string(m_mediator.m_currentEpochNum).c_str(),
+            "Received missing txn: " << submittedTransaction.GetTranID())
+    }
     return true;
 }
 
@@ -735,25 +845,25 @@ bool Node::ProcessSubmitTxnSharing(const vector<unsigned char>& message,
     LOG_MARKER();
 
     const auto& submittedTransaction = Transaction(message, offset);
-    // if(CheckCreatedTransaction(submittedTransaction))
-    // {
-    boost::multiprecision::uint256_t blockNum
-        = (uint256_t)m_mediator.m_currentEpochNum;
-    lock_guard<mutex> g(m_mutexReceivedTransactions);
-    auto& receivedTransactions = m_receivedTransactions[blockNum];
-    // if(m_mediator.m_selfPeer.m_listenPortHost != 5015 &&
-    //    m_mediator.m_selfPeer.m_listenPortHost != 5016 &&
-    //    m_mediator.m_selfPeer.m_listenPortHost != 5017 &&
-    //    m_mediator.m_selfPeer.m_listenPortHost != 5018 &&
-    //    m_mediator.m_selfPeer.m_listenPortHost != 5019 &&
-    //    m_mediator.m_selfPeer.m_listenPortHost != 5020)
-    // {
-    receivedTransactions.insert(
-        make_pair(submittedTransaction.GetTranID(), submittedTransaction));
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "Received txn: " << submittedTransaction.GetTranID())
-    // }
-    // }
+    // if (CheckCreatedTransaction(submittedTransaction))
+    {
+        boost::multiprecision::uint256_t blockNum
+            = (uint256_t)m_mediator.m_currentEpochNum;
+        lock_guard<mutex> g(m_mutexReceivedTransactions);
+        auto& receivedTransactions = m_receivedTransactions[blockNum];
+        // if(m_mediator.m_selfPeer.m_listenPortHost != 5015 &&
+        //    m_mediator.m_selfPeer.m_listenPortHost != 5016 &&
+        //    m_mediator.m_selfPeer.m_listenPortHost != 5017 &&
+        //    m_mediator.m_selfPeer.m_listenPortHost != 5018 &&
+        //    m_mediator.m_selfPeer.m_listenPortHost != 5019 &&
+        //    m_mediator.m_selfPeer.m_listenPortHost != 5020)
+        // {
+        receivedTransactions.insert(
+            make_pair(submittedTransaction.GetTranID(), submittedTransaction));
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "Received txn: " << submittedTransaction.GetTranID())
+        // }
+    }
 
     return true;
 }
@@ -806,6 +916,116 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
     return true;
 }
 
+#ifndef IS_LOOKUP_NODE
+bool Node::CheckCreatedTransactionFromLookup(const Transaction& tx)
+{
+    LOG_MARKER();
+
+    // Check if from account is sharded here
+    const PubKey& senderPubKey = tx.GetSenderPubKey();
+    Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
+    unsigned int correct_shard
+        = Transaction::GetShardIndex(fromAddr, m_numShards);
+
+    if (correct_shard != m_myShardID)
+    {
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "Error: This tx is not sharded to me!");
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "From Account  = 0x" << fromAddr);
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "Correct shard = " << correct_shard);
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "This shard    = " << m_myShardID);
+        return false;
+    }
+
+    // Check if from account exists in local storage
+    if (!AccountStore::GetInstance().DoesAccountExist(fromAddr))
+    {
+        LOG_MESSAGE("fromAddr not found: " << fromAddr
+                                           << ". Transaction rejected: "
+                                           << tx.GetTranID());
+        return false;
+    }
+
+    {
+        // Check from account nonce
+        lock_guard<mutex> g(m_mutexTxnNonceMap);
+        if (m_txnNonceMap.find(fromAddr) == m_txnNonceMap.end())
+        {
+            LOG_MESSAGE("Txn from " << fromAddr << "is new.");
+
+            if (tx.GetNonce()
+                != AccountStore::GetInstance().GetNonce(fromAddr) + 1)
+            {
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                             "Error: Tx nonce not in line with account state!");
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                             "From Account      = 0x" << fromAddr);
+                LOG_MESSAGE2(
+                    to_string(m_mediator.m_currentEpochNum).c_str(),
+                    "Account Nonce     = "
+                        << AccountStore::GetInstance().GetNonce(fromAddr));
+                LOG_MESSAGE2(
+                    to_string(m_mediator.m_currentEpochNum).c_str(),
+                    "Expected Tx Nonce = "
+                        << AccountStore::GetInstance().GetNonce(fromAddr) + 1);
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                             "Actual Tx Nonce   = " << tx.GetNonce());
+                return false;
+            }
+            m_txnNonceMap.insert(make_pair(fromAddr, tx.GetNonce()));
+        }
+        else
+        {
+            if (tx.GetNonce() != m_txnNonceMap.at(fromAddr) + 1)
+            {
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                             "Error: Tx nonce not in line with account state!");
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                             "From Account      = 0x" << fromAddr);
+                LOG_MESSAGE2(
+                    to_string(m_mediator.m_currentEpochNum).c_str(),
+                    "Account Nonce     = " << m_txnNonceMap.at(fromAddr));
+                LOG_MESSAGE2(
+                    to_string(m_mediator.m_currentEpochNum).c_str(),
+                    "Expected Tx Nonce = " << m_txnNonceMap.at(fromAddr) + 1);
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                             "Actual Tx Nonce   = " << tx.GetNonce());
+                return false;
+            }
+            m_txnNonceMap.at(fromAddr) += 1;
+        }
+    }
+
+    // Check if to account exists in local storage
+    const Address& toAddr = tx.GetToAddr();
+    if (!AccountStore::GetInstance().DoesAccountExist(toAddr))
+    {
+        LOG_MESSAGE("New account is added: " << toAddr);
+        AccountStore::GetInstance().AddAccount(toAddr, {0, 0});
+    }
+
+    // Check if transaction amount is valid
+    if (AccountStore::GetInstance().GetBalance(fromAddr) < tx.GetAmount())
+    {
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "Error: Insufficient funds in source account!");
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "From Account = 0x" << fromAddr);
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "Balance      = "
+                         << AccountStore::GetInstance().GetBalance(fromAddr));
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "Debit Amount = " << tx.GetAmount());
+        return false;
+    }
+
+    return true;
+}
+#endif // IS_LOOKUP_NODE
+
 bool Node::ProcessCreateTransactionFromLookup(
     const vector<unsigned char>& message, unsigned int offset, const Peer& from)
 {
@@ -836,8 +1056,15 @@ bool Node::ProcessCreateTransactionFromLookup(
                      << tx.GetTranID() << " Signature: "
                      << DataConversion::charArrToHexStr(tx.GetSignature())
                      << " toAddr: " << tx.GetToAddr().hex());
-
-    m_createdTransactions.push_back(tx);
+    if (CheckCreatedTransactionFromLookup(tx))
+    {
+        m_createdTransactions.push_back(tx);
+    }
+    else
+    {
+        LOG_MESSAGE("Error. Txn is not valid.");
+        return false;
+    }
 
 #endif //IS_LOOKUP_NODE
 
@@ -899,20 +1126,49 @@ void Node::SubmitTransactions()
         }
 
         Transaction t;
-        bool found = false;
 
-        {
-            lock_guard<mutex> g(m_mutexCreatedTransactions);
-            found = (m_createdTransactions.size() > 0);
-            if (found)
+        auto findOneFromPrefilled = [this](Transaction& t) -> bool {
+            lock_guard<mutex> g{m_mutexPrefilledTxns};
+
+            for (auto& txns : m_prefilledTxns)
             {
-                t = move(m_createdTransactions.front());
-                m_createdTransactions.pop_front();
-            }
-        }
+                auto& txnsList = txns.second;
+                if (txnsList.empty())
+                {
+                    continue;
+                }
 
-        if (found)
-        {
+                // auto& addr = txns.first;
+                // auto shard = Transaction::GetShardIndex(addr, m_numShards);
+                // if (shard != m_myShardID)
+                // {
+                // continue;
+                // }
+
+                t = move(txnsList.front());
+                txnsList.pop_front();
+                m_nRemainingPrefilledTxns--;
+
+                return true;
+            }
+
+            return false;
+        };
+
+        auto findOneFromCreated = [this](Transaction& t) -> bool {
+            lock_guard<mutex> g(m_mutexCreatedTransactions);
+
+            if (m_createdTransactions.empty())
+            {
+                return false;
+            }
+
+            t = move(m_createdTransactions.front());
+            m_createdTransactions.pop_front();
+            return true;
+        };
+
+        auto submitOne = [this, &blockNum](Transaction& t) {
             vector<unsigned char> tx_message
                 = {MessageType::NODE, NodeInstructionType::SUBMITTRANSACTION};
             Serializable::SetNumber<uint32_t>(tx_message, MessageOffset::BODY,
@@ -928,8 +1184,25 @@ void Node::SubmitTransactions()
             lock_guard<mutex> g(m_mutexSubmittedTransactions);
             auto& submittedTransactions = m_submittedTransactions[blockNum];
             submittedTransactions.insert(make_pair(t.GetTranID(), t));
+        };
+
+        if (findOneFromCreated(t))
+        {
+            submitOne(t);
+        }
+        else if (findOneFromPrefilled(t))
+        {
+            submitOne(t);
             txn_sent_count++;
         }
+    }
+    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                 "added " << txn_sent_count << " to submittedTransactions");
+
+    // Clear m_txnNonceMap
+    {
+        lock_guard<mutex> g(m_mutexTxnNonceMap);
+        m_txnNonceMap.clear();
     }
 
 #ifdef STAT_TEST
