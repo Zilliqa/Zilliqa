@@ -53,7 +53,7 @@ script:
     fi
   # run tests
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-      docker exec -t ci /bin/sh -c "ctest";
+      docker exec -t ci /bin/sh -c "ctest --output-on-failure";
     else
-      ctest;
+      ctest --output-on-failure;
     fi
