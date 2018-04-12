@@ -1045,10 +1045,10 @@ void DirectoryService::RunConsensusOnFinalBlock()
 
     if (m_mode == PRIMARY_DS)
     {
+        /*
         bool isVacuousEpoch
             = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
 
-        /*
         if (isVacuousEpoch)
         {
             LOG_MESSAGE(
