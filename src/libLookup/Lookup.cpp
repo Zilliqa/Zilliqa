@@ -174,7 +174,7 @@ vector<unsigned char> Lookup::ComposeGetDSInfoMessage()
 {
     LOG_MARKER();
 
-    // getDSNodesMessage = [Port]
+    // getDSNodesMessage = [Port][timestamp]
     vector<unsigned char> getDSNodesMessage
         = {MessageType::LOOKUP, LookupInstructionType::GETDSINFOFROMSEED};
     unsigned int curr_offset = MessageOffset::BODY;
@@ -193,6 +193,7 @@ vector<unsigned char> Lookup::ComposeGetStateMessage()
 {
     LOG_MARKER();
 
+    // getStateMessage = [Port][timestamp]
     vector<unsigned char> getStateMessage
         = {MessageType::LOOKUP, LookupInstructionType::GETSTATEFROMSEED};
     unsigned int curr_offset = MessageOffset::BODY;
@@ -234,7 +235,7 @@ vector<unsigned char> Lookup::ComposeGetDSBlockMessage(uint256_t lowBlockNum,
 {
     LOG_MARKER();
 
-    // getDSBlockMessage = [lowBlockNum][highBlockNum][Port]
+    // getDSBlockMessage = [lowBlockNum][highBlockNum][Port][timestamp]
     vector<unsigned char> getDSBlockMessage
         = {MessageType::LOOKUP, LookupInstructionType::GETDSBLOCKFROMSEED};
     unsigned int curr_offset = MessageOffset::BODY;
@@ -281,7 +282,7 @@ vector<unsigned char> Lookup::ComposeGetTxBlockMessage(uint256_t lowBlockNum,
 {
     LOG_MARKER();
 
-    // getTxBlockMessage = [lowBlockNum][highBlockNum][Port]
+    // getTxBlockMessage = [lowBlockNum][highBlockNum][Port][timestamp]
     vector<unsigned char> getTxBlockMessage
         = {MessageType::LOOKUP, LookupInstructionType::GETTXBLOCKFROMSEED};
     unsigned int curr_offset = MessageOffset::BODY;
@@ -530,7 +531,7 @@ bool Lookup::ProcessGetSeedPeersFromLookup(const vector<unsigned char>& message,
     LOG_MARKER();
 
 #ifdef IS_LOOKUP_NODE
-    // Message = [4-byte listening port]
+    // Message = [4-byte listening port][timestamp]
 
     const unsigned int length_available = message.size() - offset;
     const unsigned int min_length_needed = sizeof(uint32_t);
@@ -687,6 +688,7 @@ bool Lookup::ProcessGetDSInfoFromSeed(const vector<unsigned char>& message,
     // and ensure 2/3 of such identical message is received in order to move on.
     vector<Peer> node;
     node.push_back(requestingNode);
+    LOG_MESSAGE(requestingNode);
 
     P2PComm::GetInstance().SendBroadcastMessage(node, dsInfoMessage);
 
@@ -699,7 +701,7 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
                                        unsigned int offset, const Peer& from)
 {
     //#ifndef IS_LOOKUP_NODE // TODO: remove the comment
-    // Message = [32-byte lowBlockNum][32-byte highBlockNum][4-byte portNo]
+    // Message = [32-byte lowBlockNum][32-byte highBlockNum][4-byte portNo][timestamp]
 
     LOG_MARKER();
 
@@ -788,6 +790,7 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
 
     uint128_t ipAddr = from.m_ipAddress;
     Peer requestingNode(ipAddr, portNo);
+    LOG_MESSAGE(requestingNode);
 
     // TODO: Revamp the sendmessage and sendbroadcastmessage
     // Currently, we use sendbroadcastmessage instead of sendmessage. The reason is a new node who want to
@@ -811,7 +814,7 @@ bool Lookup::ProcessGetStateFromSeed(const vector<unsigned char>& message,
     LOG_MARKER();
 
     // #ifndef IS_LOOKUP_NODE
-    // Message = [TRAN_HASH_SIZE txHashStr][Transaction::GetSerializedSize() txbody]
+    // Message = [TRAN_HASH_SIZE txHashStr][Transaction::GetSerializedSize() txbody][timestamp]
 
     // if (IsMessageSizeInappropriate(message.size(), offset,
     //                                TRAN_HASH_SIZE + Transaction::GetSerializedSize()))
@@ -849,6 +852,7 @@ bool Lookup::ProcessGetStateFromSeed(const vector<unsigned char>& message,
     // and ensure 2/3 of such identical message is received in order to move on.
     vector<Peer> node;
     node.push_back(requestingNode);
+    LOG_MESSAGE(requestingNode);
 
     vector<unsigned char> setStateMessage
         = {MessageType::LOOKUP, LookupInstructionType::SETSTATEFROMSEED};
@@ -866,7 +870,7 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
                                        unsigned int offset, const Peer& from)
 {
     // #ifndef IS_LOOKUP_NODE // TODO: remove the comment
-    // Message = [32-byte lowBlockNum][32-byte highBlockNum][4-byte portNo]
+    // Message = [32-byte lowBlockNum][32-byte highBlockNum][4-byte portNo][timestamp]
 
     LOG_MARKER();
 
@@ -953,6 +957,7 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
 
     uint128_t ipAddr = from.m_ipAddress;
     Peer requestingNode(ipAddr, portNo);
+    LOG_MESSAGE(requestingNode);
 
     // TODO: Revamp the sendmessage and sendbroadcastmessage
     // Currently, we use sendbroadcastmessage instead of sendmessage. The reason is a new node who want to
@@ -974,7 +979,7 @@ bool Lookup::ProcessGetTxBodyFromSeed(const vector<unsigned char>& message,
                                       unsigned int offset, const Peer& from)
 {
     // #ifndef IS_LOOKUP_NODE // TODO: remove the comment
-    // Message = [TRAN_HASH_SIZE txHashStr][4-byte portNo]
+    // Message = [TRAN_HASH_SIZE txHashStr][4-byte portNo][timestamp]
 
     LOG_MARKER();
 
@@ -1006,6 +1011,7 @@ bool Lookup::ProcessGetTxBodyFromSeed(const vector<unsigned char>& message,
 
     uint128_t ipAddr = from.m_ipAddress;
     Peer requestingNode(ipAddr, portNo);
+    LOG_MESSAGE(requestingNode);
 
     // TODO: Revamp the sendmessage and sendbroadcastmessage
     // Currently, we use sendbroadcastmessage instead of sendmessage. The reason is a new node who want to
