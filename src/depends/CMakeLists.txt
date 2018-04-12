@@ -1,3 +1,4 @@
+add_subdirectory (g3log)
 add_subdirectory (common)
 add_subdirectory (libDatabase)
 add_subdirectory (libethash)
