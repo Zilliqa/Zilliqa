@@ -1,0 +1,12 @@
+[paths]
+default = https://bitbucket.org/KjellKod/g3log
+
+[extensions]
+hgext.bookmarks =
+hggit =
+
+[paths]
+github = git+ssh://git@github.com/KjellKod/g3log.git
+
+[hooks]
+outgoing =  hg bookmark -r default master || true && hg push github || true
