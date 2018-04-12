@@ -116,8 +116,8 @@ public:
     SendMessageToLookupNodes(const std::vector<unsigned char>& message) const;
 
     // Calls P2PComm::SendMessage serially to every Lookup Nodes
-    void
-    SendMessageToLookupNodesSerial(const std::vector<unsigned char>& message) const;    
+    void SendMessageToLookupNodesSerial(
+        const std::vector<unsigned char>& message) const;
 
     // Calls P2PComm::SendMessage to one of the last x Lookup Nodes randomly
     void SendMessageToRandomLookupNode(
