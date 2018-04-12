@@ -1103,10 +1103,10 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     }
     **/
 
-    unsigned int sleep_time_while_waiting = 50;
+    unsigned int sleep_time_while_waiting = 100;
     if (m_state == MICROBLOCK_CONSENSUS)
     {
-        for (unsigned int i = 0; i < 100; i++)
+        for (unsigned int i = 0; i < 50; i++)
         {
             if (m_state == WAITING_FINALBLOCK)
             {

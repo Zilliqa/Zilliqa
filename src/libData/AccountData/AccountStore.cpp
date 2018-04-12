@@ -303,19 +303,19 @@ bool AccountStore::IncreaseBalance(
     {
         // UpdateStateTrie(address, *account);
         // LOG_MESSAGE("Balance for " << address << " increased by " << delta
-                                   // << ". Succeeded!");
+        // << ". Succeeded!");
         return true;
     }
     else if (account == nullptr)
     {
         AddAccount(address, delta, 0);
         // LOG_MESSAGE("Balance for " << address << " increased by " << delta
-                                   // << ". Succeeded!");
+        // << ". Succeeded!");
         return true;
     }
 
     // LOG_MESSAGE("Balance for " << address << " increased by " << delta
-                               // << ". Failed!");
+    // << ". Failed!");
 
     return false;
 }
@@ -336,8 +336,8 @@ bool AccountStore::DecreaseBalance(
     {
         // UpdateStateTrie(address, *account);
         // LOG_MESSAGE("Balance for " << address << " decreased by " << delta
-                                   // << ". Succeeded! "
-                                   // << "New balance: " << account->GetBalance());
+        // << ". Succeeded! "
+        // << "New balance: " << account->GetBalance());
         return true;
     }
     // TODO: remove this, temporary way to test transactions
@@ -345,15 +345,15 @@ bool AccountStore::DecreaseBalance(
     {
         AddAccount(address, 10000000000, 0);
         // LOG_MESSAGE("Balance for "
-                    // << address << " decreased by " << delta << ". Succeeded! "
-                    // << "New balance: " << GetAccount(address)->GetBalance());
+        // << address << " decreased by " << delta << ". Succeeded! "
+        // << "New balance: " << GetAccount(address)->GetBalance());
         // return true;
     }
 
     // LOG_MESSAGE("Balance for "
-                // << address << " decreased by " << delta << ". Failed! Balance: "
-                // << (account ? account->GetBalance().convert_to<string>()
-                            // : "? account = nullptr"));
+    // << address << " decreased by " << delta << ". Failed! Balance: "
+    // << (account ? account->GetBalance().convert_to<string>()
+    // : "? account = nullptr"));
 
     return false;
 }
@@ -367,12 +367,12 @@ bool AccountStore::TransferBalance(
     if (DecreaseBalance(from, delta) && IncreaseBalance(to, delta))
     {
         // LOG_MESSAGE("Transfer of " << delta << " from " << from << " to " << to
-                                   // << " succeeded");
+        // << " succeeded");
         return true;
     }
 
     // LOG_MESSAGE("Transfer of " << delta << " from " << from << " to " << to
-                               // << " failed");
+    // << " failed");
 
     return false;
 }
