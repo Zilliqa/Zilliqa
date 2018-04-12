@@ -1040,6 +1040,8 @@ void DirectoryService::RunConsensusOnFinalBlock()
     LOG_MARKER();
 
     SetState(FINALBLOCK_CONSENSUS_PREP);
+    LOG_MESSAGE("I am going to sleep for 10 seconds for each tx epoch.");
+    this_thread::sleep_for(chrono::seconds(10));
 
     if (m_mode == PRIMARY_DS)
     {
