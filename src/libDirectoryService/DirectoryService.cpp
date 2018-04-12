@@ -1373,6 +1373,14 @@ bool DirectoryService::ToBlockMessage(unsigned char ins_byte)
     return false;
 }
 
+void DirectoryService::RejoinAsDS()
+{
+    LOG_MARKER();
+    m_mediator.m_lookup->m_syncType = SyncType::DS_SYNC;
+    m_mediator.m_node->Init();
+    m_mediator.m_node->Prepare(true);
+    this->StartSynchronization();
+}
 #endif // IS_LOOKUP_NODE
 
 bool DirectoryService::Execute(const vector<unsigned char>& message,

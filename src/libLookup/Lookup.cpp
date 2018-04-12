@@ -195,7 +195,7 @@ vector<unsigned char> Lookup::ComposeGetDSInfoMessage()
 {
     LOG_MARKER();
 
-    // getDSNodesMessage = [Port][timestamp]
+    // getDSNodesMessage = [Port]
     vector<unsigned char> getDSNodesMessage
         = {MessageType::LOOKUP, LookupInstructionType::GETDSINFOFROMSEED};
     unsigned int curr_offset = MessageOffset::BODY;
@@ -205,8 +205,6 @@ vector<unsigned char> Lookup::ComposeGetDSInfoMessage()
                                       sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
-    // AppendTimestamp(getDSNodesMessage, curr_offset);
-
     return getDSNodesMessage;
 }
 
@@ -214,7 +212,7 @@ vector<unsigned char> Lookup::ComposeGetStateMessage()
 {
     LOG_MARKER();
 
-    // getStateMessage = [Port][timestamp]
+    // getStateMessage = [Port]
     vector<unsigned char> getStateMessage
         = {MessageType::LOOKUP, LookupInstructionType::GETSTATEFROMSEED};
     unsigned int curr_offset = MessageOffset::BODY;
@@ -223,8 +221,6 @@ vector<unsigned char> Lookup::ComposeGetStateMessage()
                                       m_mediator.m_selfPeer.m_listenPortHost,
                                       sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
-
-    // AppendTimestamp(getStateMessage, curr_offset);
 
     return getStateMessage;
 }
@@ -256,7 +252,7 @@ vector<unsigned char> Lookup::ComposeGetDSBlockMessage(uint256_t lowBlockNum,
 {
     LOG_MARKER();
 
-    // getDSBlockMessage = [lowBlockNum][highBlockNum][Port][timestamp]
+    // getDSBlockMessage = [lowBlockNum][highBlockNum][Port]
     vector<unsigned char> getDSBlockMessage
         = {MessageType::LOOKUP, LookupInstructionType::GETDSBLOCKFROMSEED};
     unsigned int curr_offset = MessageOffset::BODY;
@@ -273,8 +269,6 @@ vector<unsigned char> Lookup::ComposeGetDSBlockMessage(uint256_t lowBlockNum,
                                       m_mediator.m_selfPeer.m_listenPortHost,
                                       sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
-
-    // AppendTimestamp(getDSBlockMessage, curr_offset);
 
     return getDSBlockMessage;
 }
@@ -303,7 +297,7 @@ vector<unsigned char> Lookup::ComposeGetTxBlockMessage(uint256_t lowBlockNum,
 {
     LOG_MARKER();
 
-    // getTxBlockMessage = [lowBlockNum][highBlockNum][Port][timestamp]
+    // getTxBlockMessage = [lowBlockNum][highBlockNum][Port]
     vector<unsigned char> getTxBlockMessage
         = {MessageType::LOOKUP, LookupInstructionType::GETTXBLOCKFROMSEED};
     unsigned int curr_offset = MessageOffset::BODY;
@@ -320,8 +314,6 @@ vector<unsigned char> Lookup::ComposeGetTxBlockMessage(uint256_t lowBlockNum,
                                       m_mediator.m_selfPeer.m_listenPortHost,
                                       sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
-
-    // AppendTimestamp(getTxBlockMessage, curr_offset);
 
     return getTxBlockMessage;
 }
@@ -368,8 +360,6 @@ bool Lookup::GetTxBodyFromSeedNodes(string txHashStr)
                                       m_mediator.m_selfPeer.m_listenPortHost,
                                       sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
-
-    // AppendTimestamp(getTxBodyMessage, curr_offset);
 
     SendMessageToSeedNodes(getTxBodyMessage);
 
@@ -552,7 +542,7 @@ bool Lookup::ProcessGetSeedPeersFromLookup(const vector<unsigned char>& message,
     LOG_MARKER();
 
 #ifdef IS_LOOKUP_NODE
-    // Message = [4-byte listening port][timestamp]
+    // Message = [4-byte listening port]
 
     const unsigned int length_available = message.size() - offset;
     const unsigned int min_length_needed = sizeof(uint32_t);
@@ -646,7 +636,7 @@ bool Lookup::ProcessGetDSInfoFromSeed(const vector<unsigned char>& message,
                                       unsigned int offset, const Peer& from)
 {
     //#ifndef IS_LOOKUP_NODE
-    // Message = [Port][Timestamp]
+    // Message = [Port]
     LOG_MARKER();
 
     deque<PubKey> dsPubKeys;
@@ -721,7 +711,7 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
                                        unsigned int offset, const Peer& from)
 {
     //#ifndef IS_LOOKUP_NODE // TODO: remove the comment
-    // Message = [32-byte lowBlockNum][32-byte highBlockNum][4-byte portNo][timestamp]
+    // Message = [32-byte lowBlockNum][32-byte highBlockNum][4-byte portNo]
 
     LOG_MARKER();
 
@@ -753,7 +743,7 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
                      << lowBlockNum.convert_to<string>() << " to "
                      << highBlockNum.convert_to<string>());
 
-    // dsBlockMessage = [lowBlockNum][highBlockNum][DSBlock][DSBlock]... (highBlockNum - lowBlockNum + 1) times[timestamp]
+    // dsBlockMessage = [lowBlockNum][highBlockNum][DSBlock][DSBlock]... (highBlockNum - lowBlockNum + 1) times
     vector<unsigned char> dsBlockMessage
         = {MessageType::LOOKUP, LookupInstructionType::SETDSBLOCKFROMSEED};
     unsigned int curr_offset = MessageOffset::BODY;
@@ -794,8 +784,6 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
         }
     }
 
-    // AppendTimestamp(dsBlockMessage, curr_offset);
-
     // if serialization got interrupted in between, reset the highBlockNum value in msg
     if (blockNum != highBlockNum + 1)
     {
@@ -835,7 +823,7 @@ bool Lookup::ProcessGetStateFromSeed(const vector<unsigned char>& message,
     LOG_MARKER();
 
     // #ifndef IS_LOOKUP_NODE
-    // Message = [TRAN_HASH_SIZE txHashStr][Transaction::GetSerializedSize() txbody][timestamp]
+    // Message = [TRAN_HASH_SIZE txHashStr][Transaction::GetSerializedSize() txbody]
 
     // if (IsMessageSizeInappropriate(message.size(), offset,
     //                                TRAN_HASH_SIZE + Transaction::GetSerializedSize()))
@@ -892,7 +880,7 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
                                        unsigned int offset, const Peer& from)
 {
     // #ifndef IS_LOOKUP_NODE // TODO: remove the comment
-    // Message = [32-byte lowBlockNum][32-byte highBlockNum][4-byte portNo][timestamp]
+    // Message = [32-byte lowBlockNum][32-byte highBlockNum][4-byte portNo]
 
     LOG_MARKER();
 
@@ -1002,7 +990,7 @@ bool Lookup::ProcessGetTxBodyFromSeed(const vector<unsigned char>& message,
                                       unsigned int offset, const Peer& from)
 {
     // #ifndef IS_LOOKUP_NODE // TODO: remove the comment
-    // Message = [TRAN_HASH_SIZE txHashStr][4-byte portNo][timestamp]
+    // Message = [TRAN_HASH_SIZE txHashStr][4-byte portNo]
 
     LOG_MARKER();
 

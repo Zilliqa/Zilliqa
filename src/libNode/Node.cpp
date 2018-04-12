@@ -1234,6 +1234,15 @@ bool Node::ToBlockMessage(unsigned char ins_byte)
     }
     return false;
 }
+
+void Node::RejoinAsNormal()
+{
+    LOG_MARKER();
+    m_mediator.m_lookup->m_syncType = SyncType::NORMAL_SYNC;
+    this->Init();
+    this->Prepare(true);
+    this->StartSynchronization();
+}
 #endif // IS_LOOKUP_NODE
 
 bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
@@ -1286,10 +1295,7 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
                                                      - NUM_VACUOUS_EPOCHS));
             if (ins_byte == NodeInstructionType::FINALBLOCK && isVacuousEpoch)
             {
-                m_mediator.m_lookup->m_syncType = SyncType::NORMAL_SYNC;
-                this->Init();
-                this->Prepare(true);
-                this->StartSynchronization();
+                RejoinAsNormal();
             }
 #endif
         }
