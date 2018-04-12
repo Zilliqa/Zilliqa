@@ -111,9 +111,13 @@ public:
     // Getter for m_lookupNodes
     std::vector<Peer> GetLookupNodes();
 
-    // Calls P2PComm::SendMessage serially for every Lookup Node
+    // Calls P2PComm::SendBroadcastMessage to Lookup Nodes
     void
     SendMessageToLookupNodes(const std::vector<unsigned char>& message) const;
+
+    // Calls P2PComm::SendMessage serially to every Lookup Nodes
+    void
+    SendMessageToLookupNodesSerial(const std::vector<unsigned char>& message) const;    
 
     // Calls P2PComm::SendMessage to one of the last x Lookup Nodes randomly
     void SendMessageToRandomLookupNode(

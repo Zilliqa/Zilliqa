@@ -122,7 +122,27 @@ void Lookup::SendMessageToLookupNodes(
         AllLookupNodes.push_back(node);
     }
 
-    // P2PComm::GetInstance().SendBroadcastMessage(AllLookupNodes, message);
+    P2PComm::GetInstance().SendBroadcastMessage(AllLookupNodes, message);
+}
+
+void Lookup::SendMessageToLookupNodesSerial(
+    const std::vector<unsigned char>& message) const
+{
+    LOG_MARKER();
+
+    // LOG_MESSAGE("i am here " << to_string(m_mediator.m_currentEpochNum).c_str())
+    vector<Peer> AllLookupNodes;
+
+    for (auto node : m_lookupNodes)
+    {
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "Sending msg to lookup node "
+                         << node.GetPrintableIPAddress() << ":"
+                         << node.m_listenPortHost);
+
+        AllLookupNodes.push_back(node);
+    }
+
     P2PComm::GetInstance().SendMessage(AllLookupNodes, message);
 }
 
@@ -1873,7 +1893,7 @@ bool Lookup::GetMyLookupOffline()
         return false;
     }
 
-    SendMessageToLookupNodes(ComposeGetLookupOfflineMessage());
+    SendMessageToLookupNodesSerial(ComposeGetLookupOfflineMessage());
     return true;
 }
 
@@ -1952,7 +1972,7 @@ bool Lookup::GetOfflineLookupNodes()
     LOG_MARKER();
     // Reset m_lookupNodes/m_lookupNodesOffline
     SetLookupNodes();
-    SendMessageToLookupNodes(ComposeGetOfflineLookupNodes());
+    SendMessageToLookupNodesSerial(ComposeGetOfflineLookupNodes());
     return true;
 }
 #endif // IS_LOOKUP_NODE
