@@ -322,6 +322,8 @@ class DirectoryService : public Executable, public Broadcastable
                                        unsigned int offset, const Peer& from);
 
     bool ToBlockMessage(unsigned char ins_byte);
+
+    void RejoinAsDS();
 #endif // IS_LOOKUP_NODE
 
 public:

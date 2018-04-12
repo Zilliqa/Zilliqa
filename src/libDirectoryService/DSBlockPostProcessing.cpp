@@ -462,6 +462,7 @@ bool DirectoryService::ProcessDSBlockConsensus(
 
         // Wait for view change to happen
         //throw exception();
+        RejoinAsDS();
     }
     else
     {
