@@ -115,4 +115,7 @@ extern const uint32_t MAXMESSAGE;
 extern const unsigned int MAXSUBMITTXNPERNODE;
 extern const unsigned int TX_SHARING_CLUSTER_SIZE;
 
+extern const unsigned int N_PREFILLED_PER_ACCOUNT;
+extern const std::vector<std::string> GENESIS_WALLETS;
+extern const std::vector<std::string> GENESIS_KEYS;
 #endif // __CONSTANTS_H__
