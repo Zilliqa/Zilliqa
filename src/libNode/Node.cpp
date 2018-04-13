@@ -103,6 +103,14 @@ void Node::Init()
     m_retriever.reset();
     m_mediator.m_dsBlockChain.Reset();
     m_mediator.m_txBlockChain.Reset();
+    {
+        std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommitteeNetworkInfo);
+        m_mediator.m_DSCommitteeNetworkInfo.clear();
+    }
+    {
+        std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommitteePubKeys);
+        m_mediator.m_DSCommitteePubKeys.clear();
+    }
     m_committedTransactions.clear();
     AccountStore::GetInstance().Init();
 
@@ -168,6 +176,8 @@ bool Node::StartRetrieveHistory()
 void Node::StartSynchronization()
 {
     LOG_MARKER();
+
+    SetState(POW2_SUBMISSION);
     auto func = [this]() -> void {
         m_synchronizer.FetchOfflineLookups(m_mediator.m_lookup);
 
@@ -1212,9 +1222,78 @@ void Node::SubmitTransactions()
 #endif // STAT_TEST
 }
 
+void Node::RejoinAsNormal()
+{
+    LOG_MARKER();
+    if (m_mediator.m_lookup->m_syncType == SyncType::NO_SYNC)
+    {
+        m_mediator.m_lookup->m_syncType = SyncType::NORMAL_SYNC;
+        this->CleanVariables();
+        this->Init();
+        this->Prepare(true);
+        this->StartSynchronization();
+    }
+}
+
+bool Node::CleanVariables()
+{
+    m_myShardMembersPubKeys.clear();
+    m_myShardMembersNetworkInfo.clear();
+    m_isPrimary = false;
+    m_isMBSender = false;
+    m_myShardID = 0;
+
+    m_consensusObject.reset();
+    m_consensusBlockHash.clear();
+    {
+        std::lock_guard<mutex> lock(m_mutexMicroBlock);
+        m_microblock.reset();
+    }
+    {
+        std::lock_guard<mutex> lock(m_mutexCreatedTransactions);
+        m_createdTransactions.clear();
+    }
+    {
+        std::lock_guard<mutex> lock(m_mutexTxnNonceMap);
+        m_txnNonceMap.clear();
+    }
+    {
+        std::lock_guard<mutex> lock(m_mutexPrefilledTxns);
+        m_nRemainingPrefilledTxns = 0;
+        m_prefilledTxns.clear();
+    }
+    {
+        std::lock_guard<mutex> lock(m_mutexSubmittedTransactions);
+        m_submittedTransactions.clear();
+    }
+    {
+        std::lock_guard<mutex> lock(m_mutexReceivedTransactions);
+        m_receivedTransactions.clear();
+    }
+    {
+        std::lock_guard<mutex> lock(m_mutexCommittedTransactions);
+        m_committedTransactions.clear();
+    }
+    {
+        std::lock_guard<mutex> lock(m_mutexForwardingAssignment);
+        m_forwardingAssignment.clear();
+    }
+    {
+        std::lock_guard<mutex> lock(m_mutexAllMicroBlocksRecvd);
+        m_allMicroBlocksRecvd = true;
+    }
+    {
+        std::lock_guard<mutex> lock(m_mutexUnavailableMicroBlocks);
+        m_unavailableMicroBlocks.clear();
+    }
+    return true;
+}
+#endif // IS_LOOKUP_NODE
+
 bool Node::ToBlockMessage(unsigned char ins_byte)
 {
     if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
+#ifndef IS_LOOKUP_NODE
     {
         if (!m_fromNewProcess)
         {
@@ -1231,18 +1310,13 @@ bool Node::ToBlockMessage(unsigned char ins_byte)
             }
         }
     }
+#else // IS_LOOKUP_NODE
+    {
+        return true;
+    }
+#endif // IS_LOOKUP_NODE
     return false;
 }
-
-void Node::RejoinAsNormal()
-{
-    LOG_MARKER();
-    m_mediator.m_lookup->m_syncType = SyncType::NORMAL_SYNC;
-    this->Init();
-    this->Prepare(true);
-    this->StartSynchronization();
-}
-#endif // IS_LOOKUP_NODE
 
 bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
                    const Peer& from)

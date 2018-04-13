@@ -74,6 +74,8 @@ class Lookup : public Executable, public Broadcastable
     // are doing its recovery
     Peer GetLookupPeerToRsync();
     bool RsyncTxBodies();
+    bool FinishRejoinAsLookup();
+    bool CleanVariables();
 #endif // IS_LOOKUP_NODE
     std::mutex m_mutexSetDSBlockFromSeed;
     std::mutex m_mutexSetTxBlockFromSeed;
@@ -153,8 +155,9 @@ public:
     std::vector<Peer> GetNodePeers();
 
     void StartSynchronization();
-
     bool GetMyLookupOffline();
+
+    void RejoinAsLookup();
 #endif // IS_LOOKUP_NODE
 
     bool

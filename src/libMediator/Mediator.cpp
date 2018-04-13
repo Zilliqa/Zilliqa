@@ -97,9 +97,9 @@ void Mediator::UpdateTxBlockRand(bool isGenesis)
 std::string Mediator::GetNodeMode(const Peer& peer)
 {
     std::lock_guard<mutex> lock(m_mutexDSCommitteeNetworkInfo);
-    if (std::find(m_DSCommitteeNetworkInfo.begin(), 
-                  m_DSCommitteeNetworkInfo.end(), peer) 
-            != m_DSCommitteeNetworkInfo.end())
+    if (std::find(m_DSCommitteeNetworkInfo.begin(),
+                  m_DSCommitteeNetworkInfo.end(), peer)
+        != m_DSCommitteeNetworkInfo.end())
     {
         if (peer == m_DSCommitteeNetworkInfo[0])
         {

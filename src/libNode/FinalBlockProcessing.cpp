@@ -1175,7 +1175,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 
         if (AccountStore::GetInstance().UpdateStateTrieAll())
         {
-            if(!CheckStateRoot(txBlock))
+            if (!CheckStateRoot(txBlock))
             {
 #ifndef IS_LOOKUP_NODE
                 RejoinAsNormal();
@@ -1185,12 +1185,13 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
             else
             {
                 StoreState();
-                BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
-                                                        {'0'});
+                BlockStorage::GetBlockStorage().PutMetadata(
+                    MetaType::DSINCOMPLETED, {'0'});
 #ifndef IS_LOOKUP_NODE
                 BlockStorage::GetBlockStorage().PopFrontTxBodyDB();
 #else // IS_LOOKUP_NODE
-                BlockStorage::GetBlockStorage().ResetDB(BlockStorage::TX_BODY_TMP);
+                BlockStorage::GetBlockStorage().ResetDB(
+                    BlockStorage::TX_BODY_TMP);
 #endif // IS_LOOKUP_NODE
             }
         }
