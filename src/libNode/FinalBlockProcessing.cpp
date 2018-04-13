@@ -1177,6 +1177,9 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         if (AccountStore::GetInstance().UpdateStateTrieAll()
             && !CheckStateRoot(txBlock))
         {
+#ifndef IS_LOOKUP_NODE
+            RejoinAsNormal();
+#endif // IS_LOOKUP_NODE
             return false;
         }
         else
