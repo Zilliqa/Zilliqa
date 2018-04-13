@@ -454,6 +454,7 @@ bool Lookup::ProcessEntireShardingStructure(
 
     m_shards.clear();
     m_nodesInNetwork.clear();
+    std::unordered_set<Peer> t_nodesInNetwork;
 
     for (unsigned int i = 0; i < num_shards; i++)
     {
@@ -505,6 +506,7 @@ bool Lookup::ProcessEntireShardingStructure(
             shard.insert(make_pair(key, peer));
 
             m_nodesInNetwork.push_back(peer);
+            t_nodesInNetwork.insert(peer);
 
             LOG_MESSAGE("[SHARD "
                         << to_string(i) << "] "
@@ -515,6 +517,22 @@ bool Lookup::ProcessEntireShardingStructure(
                                   << "Corresponding peer : " << string(peer));
         }
     }
+
+    for (auto peer : t_nodesInNetwork)
+    {
+        l_nodesInNetwork.erase(peer);
+    }
+
+    for (auto peer : l_nodesInNetwork)
+    {
+        LOG_STATE("[LOSTPEER][" << std::setw(15) << std::left
+                                << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                                << "][" << std::setw(6) << std::left
+                                << m_mediator.m_currentEpochNum << "]"
+                                << std::setw(15) << std::left << string(peer));
+    }
+
+    l_nodesInNetwork = t_nodesInNetwork;
 
 #endif // IS_LOOKUP_NODE
 
