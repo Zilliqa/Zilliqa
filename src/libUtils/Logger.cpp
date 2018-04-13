@@ -66,6 +66,9 @@ Logger::Logger(const char* prefix, bool log_to_file, streampos max_file_size)
 
     if (log_to_file)
     {
+#if 1//clark
+        fname_prefix = prefix ? prefix : "common";
+#else
         if (prefix == NULL)
         {
             fname_prefix = "common";
@@ -74,7 +77,7 @@ Logger::Logger(const char* prefix, bool log_to_file, streampos max_file_size)
         {
             fname_prefix = prefix;
         }
-
+#endif
         seqnum = 0;
         newLog();
     }
@@ -200,6 +203,9 @@ void Logger::LogState(const char* msg, const char*)
     {
         checkLog();
         logfile << msg << endl << flush;
+#if 1//clark
+        LOG(INFO) << msg << endl << flush;
+#endif
     }
     else
     {
