@@ -167,6 +167,7 @@ bool Node::StartRetrieveHistory()
 
 void Node::StartSynchronization()
 {
+    LOG_MARKER();
     auto func = [this]() -> void {
         while (!m_mediator.m_isConnectedToNetwork)
         {
@@ -1280,21 +1281,7 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
         result = (this->*ins_handlers[ins_byte])(message, offset + 1, from);
         if (result == false)
         {
-        // To-do: Error recovery
-
-#ifndef IS_LOOKUP_NODE
-            // Rejoin network as a new node if FinalBlockProcessing failed
-            // in CheckStateRoot
-            bool isVacuousEpoch = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW
-                                                     - NUM_VACUOUS_EPOCHS));
-            if (ins_byte == NodeInstructionType::FINALBLOCK && isVacuousEpoch)
-            {
-                m_mediator.m_isConnectedToNetwork = false;
-                this->Init();
-                this->Prepare(true);
-                this->StartSynchronization();
-            }
-#endif
+            // To-do: Error recovery
         }
     }
     else
