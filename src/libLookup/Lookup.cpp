@@ -528,7 +528,7 @@ bool Lookup::ProcessEntireShardingStructure(
         LOG_STATE("[LOSTPEER][" << std::setw(15) << std::left
                                 << m_mediator.m_selfPeer.GetPrintableIPAddress()
                                 << "][" << std::setw(6) << std::left
-                                << m_mediator.m_currentEpochNum << "]["
+                                << m_mediator.m_currentEpochNum << "]"
                                 << std::setw(15) << std::left << string(peer));
     }
 
