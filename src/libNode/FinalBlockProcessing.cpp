@@ -1092,8 +1092,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         // TODO: Optimize state transition.
         SetState(WAITING_FINALBLOCK);
     }
-    
-   
+
     if (!CheckState(PROCESS_FINALBLOCK))
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -1101,7 +1100,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         return false;
     }
 
-    /*
+        /*
     unsigned int sleep_time_while_waiting = 100;
     if (m_state == MICROBLOCK_CONSENSUS)
     {
