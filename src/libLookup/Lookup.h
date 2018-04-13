@@ -50,6 +50,7 @@ class Lookup : public Executable, public Broadcastable
     std::vector<Peer> m_lookupNodesOffline;
     std::vector<Peer> m_seedNodes;
 #ifndef IS_LOOKUP_NODE
+    bool m_dsInfoWaitingNotifying = false;
     bool m_fetchedDSInfo = false;
     std::mutex m_mutexDSInfoUpdation;
     std::condition_variable m_dsInfoUpdateCondition;
