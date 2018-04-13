@@ -43,7 +43,7 @@ Peer::Peer(const vector<unsigned char>& src, unsigned int offset)
     }
 }
 
-bool Peer::operator==(const Peer& r)
+bool Peer::operator==(const Peer& r) const
 {
     return (m_ipAddress == r.m_ipAddress)
         && (m_listenPortHost == r.m_listenPortHost);

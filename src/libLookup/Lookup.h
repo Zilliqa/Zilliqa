@@ -23,6 +23,7 @@
 #include <cstdlib>
 #include <map>
 #include <mutex>
+#include <unordered_set>
 #include <vector>
 
 #include "common/Broadcastable.h"
@@ -62,6 +63,7 @@ class Lookup : public Executable, public Broadcastable
     std::mutex m_mutexNodesInNetwork;
     std::vector<std::map<PubKey, Peer>> m_shards;
     std::vector<Peer> m_nodesInNetwork;
+    std::unordered_set<Peer> l_nodesInNetwork;
 #endif // IS_LOOKUP_NODE
     std::mutex m_mutexSetDSBlockFromSeed;
     std::mutex m_mutexSetTxBlockFromSeed;
