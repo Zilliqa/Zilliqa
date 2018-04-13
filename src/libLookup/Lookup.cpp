@@ -520,7 +520,16 @@ bool Lookup::ProcessEntireShardingStructure(
 
     for (auto peer : t_nodesInNetwork)
     {
-        l_nodesInNetwork.erase(peer);
+        if (!l_nodesInNetwork.erase(peer))
+        {
+            LOG_STATE("[JOINPEER][" << std::setw(15) << std::left
+                                    << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                                    << "][" << std::setw(6) << std::left
+                                    << m_mediator.m_currentEpochNum << "]["
+                                    << std::setw(4) << std::left
+                                    << m_mediator.GetNodeMode(peer) << "]"
+                                    << string(peer));
+        }
     }
 
     for (auto peer : l_nodesInNetwork)
@@ -528,8 +537,10 @@ bool Lookup::ProcessEntireShardingStructure(
         LOG_STATE("[LOSTPEER][" << std::setw(15) << std::left
                                 << m_mediator.m_selfPeer.GetPrintableIPAddress()
                                 << "][" << std::setw(6) << std::left
-                                << m_mediator.m_currentEpochNum << "]"
-                                << std::setw(15) << std::left << string(peer));
+                                << m_mediator.m_currentEpochNum << "]["
+                                << std::setw(4) << std::left
+                                << m_mediator.GetNodeMode(peer) << "]"
+                                << string(peer));
     }
 
     l_nodesInNetwork = t_nodesInNetwork;
