@@ -1286,6 +1286,14 @@ bool Node::CleanVariables()
         std::lock_guard<mutex> lock(m_mutexUnavailableMicroBlocks);
         m_unavailableMicroBlocks.clear();
     }
+    // On Lookup
+    {
+        std::lock_guard<mutex> lock(
+            m_mediator.m_lookup->m_mutexOfflineLookupsUpdation);
+        m_mediator.m_lookup->m_fetchedOfflineLookups = false;
+    }
+    m_mediator.m_lookup->s_startedPoW2 = false;
+
     return true;
 }
 #endif // IS_LOOKUP_NODE

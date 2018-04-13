@@ -1202,6 +1202,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
         //#endif // IS_LOOKUP_NODE
 
 #ifndef IS_LOOKUP_NODE
+    if (m_dsInfoWaitingNotifying)
     {
         unique_lock<mutex> lock(m_mutexDSInfoUpdation);
         m_fetchedDSInfo = true;
@@ -1497,11 +1498,24 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
 #ifndef IS_LOOKUP_NODE
     if (m_syncType == SyncType::NEW_SYNC || m_syncType == SyncType::NORMAL_SYNC)
     {
+        m_dsInfoWaitingNotifying = true;
         {
             unique_lock<mutex> lock(m_mutexDSInfoUpdation);
             while (!m_fetchedDSInfo)
             {
-                m_dsInfoUpdateCondition.wait(lock);
+                if (m_dsInfoUpdateCondition.wait_for(
+                        lock,
+                        chrono::seconds(POW1_WINDOW_IN_SECONDS
+                                        + BACKUP_POW2_WINDOW_IN_SECONDS))
+                    == std::cv_status::timeout)
+                {
+                    // timed out
+                    LOG_MESSAGE("Timed out for waiting ProcessDSInfo");
+                    m_dsInfoWaitingNotifying = false;
+                    return false;
+                }
+                LOG_MESSAGE("Get ProcessDsInfo Notified");
+                m_dsInfoWaitingNotifying = false;
             }
             m_fetchedDSInfo = false;
         }
@@ -1513,6 +1527,7 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
         {
             if (m_mediator.m_ds->FinishRejoinAsDS())
             {
+                m_isFirstLoop = true;
                 m_syncType = SyncType::NO_SYNC;
             }
         }
@@ -1936,7 +1951,7 @@ bool Lookup::RsyncTxBodies()
             + PERSISTENCE_PATH + "/" + dbNameStr + "/";
     }
     LOG_MESSAGE(cmdStr);
-    return ExecuteCmd(cmdStr).size() >= 0;
+    return true;
 }
 
 void Lookup::RejoinAsLookup()
@@ -1952,9 +1967,25 @@ void Lookup::RejoinAsLookup()
     }
 }
 
-bool Lookup::FinishRejoinAsDS() {}
+bool Lookup::FinishRejoinAsLookup() { return true; }
 
-bool Lookup::CleanVariables() {}
+bool Lookup::CleanVariables()
+{
+    m_seedNodes.clear();
+    m_currDSExpired = false;
+    m_isFirstLoop = true;
+    {
+        std::lock_guard<mutex> lock(m_mutexShards);
+        m_shards.clear();
+    }
+    {
+        std::lock_guard<mutex> lock(m_mutexNodesInNetwork);
+        m_nodesInNetwork.clear();
+        l_nodesInNetwork.clear();
+    }
+
+    return true;
+}
 
 bool Lookup::ToBlockMessage(unsigned char ins_byte)
 {
