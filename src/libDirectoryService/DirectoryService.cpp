@@ -1364,6 +1364,89 @@ bool DirectoryService::ProcessInitViewChangeResponse(
     return true;
 }
 
+bool DirectoryService::CleanVariables()
+{
+    LOG_MARKER();
+    m_requesting_last_ds_block = false;
+    {
+        std::lock_guard<mutex> lock(m_MutexCVAllPowConn);
+        m_hasAllPoWconns = true;
+    }
+    m_shards.clear();
+    m_publicKeyToShardIdMap.clear();
+    m_allPoWConns.clear();
+    m_consensusObject.reset();
+    m_consensusBlockHash.clear();
+    {
+        std::lock_guard<mutex> lock(m_mutexPendingDSBlock);
+        m_pendingDSBlock.reset();
+    }
+    {
+        std::lock_guard<mutex> lock(m_mutexAllPOW1);
+        m_allPoW1s.clear();
+    }
+    {
+        std::lock_guard<mutex> lock(m_mutexAllPOW2);
+        m_allPoW2s.clear();
+        m_sortedPoW2s.clear();
+    }
+    {
+        std::lock_guard<mutex> lock(m_mutexMicroBlocks);
+        m_microBlocks.clear();
+    }
+    m_finalBlock.reset();
+    m_finalBlockMessage.clear();
+    m_sharingAssignement.clear();
+    m_viewChangeCounter = 0;
+    // m_initiatedViewChange = false;
+    m_viewChangeEpoch = 0;
+    m_viewChangeRequestTracker.clear();
+    m_viewChangeRequesters.clear();
+    m_mode = IDLE;
+    m_consensusLeaderID = 0;
+    m_consensusID = 1;
+    m_consensusMyID = 0;
+
+    return true;
+}
+
+void DirectoryService::RejoinAsDS()
+{
+    LOG_MARKER();
+    if(m_mediator.m_lookup->m_syncType == SyncType::NO_SYNC && m_mode == BACKUP_DS)
+    {
+        m_mediator.m_lookup->m_syncType = SyncType::DS_SYNC;
+        this->CleanVariables();
+        m_mediator.m_node->Init();
+        m_mediator.m_node->Prepare(true);
+        this->StartSynchronization();
+    }
+}
+
+bool DirectoryService::FinishRejoinAsDS()
+{
+    LOG_MARKER();
+    SetState(POW1_SUBMISSION);
+    m_mode = BACKUP_DS;
+    for (auto i = m_mediator.m_DSCommitteePubKeys.begin();
+         i != m_mediator.m_DSCommitteePubKeys.end(); i++)
+    {
+        if (*i == m_mediator.m_selfKey.second)
+        {
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                         "My node ID for this PoW1 consensus is "
+                             << m_consensusMyID);
+            break;
+        }
+        m_consensusMyID++;
+    }
+    // in case the recovery program is under different directory
+    LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
+                  DS_PROMOTE_MSG);
+    return true;
+}
+#endif // IS_LOOKUP_NODE
+
 bool DirectoryService::ToBlockMessage(unsigned char ins_byte)
 {
     if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
@@ -1372,16 +1455,6 @@ bool DirectoryService::ToBlockMessage(unsigned char ins_byte)
     }
     return false;
 }
-
-void DirectoryService::RejoinAsDS()
-{
-    LOG_MARKER();
-    m_mediator.m_lookup->m_syncType = SyncType::DS_SYNC;
-    m_mediator.m_node->Init();
-    m_mediator.m_node->Prepare(true);
-    this->StartSynchronization();
-}
-#endif // IS_LOOKUP_NODE
 
 bool DirectoryService::Execute(const vector<unsigned char>& message,
                                unsigned int offset, const Peer& from)
@@ -1426,16 +1499,12 @@ bool DirectoryService::Execute(const vector<unsigned char>& message,
     const unsigned int ins_handlers_count
         = sizeof(ins_handlers) / sizeof(InstructionHandler);
 
-#ifndef IS_LOOKUP_NODE
-    // If the DS node failed and waiting for recovery, block the unwanted msg
-
     if (ToBlockMessage(ins_byte))
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "DS Node not connected to network yet, ignore message");
+                     "Ignore DS message");
         return false;
     }
-#endif
 
     if (ins_byte < ins_handlers_count)
     {

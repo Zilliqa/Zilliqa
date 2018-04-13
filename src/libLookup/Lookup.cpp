@@ -1483,10 +1483,10 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
     {
         if (!m_currDSExpired)
         {
-            m_syncType = SyncType::NO_SYNC;
-            // in case the recovery program is under different directory
-            LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
-                          DS_PROMOTE_MSG);
+            if(m_mediator.m_ds->FinishRejoinAsDS())
+            {
+                m_syncType = SyncType::NO_SYNC;
+            }
         }
         m_currDSExpired = false;
     }
@@ -1496,7 +1496,10 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
         // rsync the txbodies here
         if (RsyncTxBodies() && !m_currDSExpired)
         {
-            m_syncType = SyncType::NO_SYNC;
+            if(FinishRejoinAsLookup())
+            {
+                m_syncType = SyncType::NO_SYNC;
+            }
         }
         m_currDSExpired = false;
     }
@@ -1905,6 +1908,16 @@ bool Lookup::RsyncTxBodies()
     return ExecuteCmd(cmdStr).size() >= 0;
 }
 
+bool Lookup::FinishRejoinAsDS()
+{
+
+}
+
+bool Lookup::CleanVariables()
+{
+
+}
+
 bool Lookup::ToBlockMessage(unsigned char ins_byte)
 {
     if (m_syncType != SyncType::NO_SYNC
@@ -1921,7 +1934,7 @@ bool Lookup::ToBlockMessage(unsigned char ins_byte)
 #else // IS_LOOKUP_NODE
 bool Lookup::ToBlockMessage(unsigned char ins_byte)
 {
-    if (m_syncType == SyncType::NO_SYNC)
+    if (m_syncType != SyncType::NO_SYNC)
     {
         return true;
     }
@@ -1954,6 +1967,19 @@ bool Lookup::GetOfflineLookupNodes()
     SetLookupNodes();
     SendMessageToLookupNodesSerial(ComposeGetOfflineLookupNodes());
     return true;
+}
+
+void Lookup::RejoinAsLookup()
+{
+    LOG_MARKER();
+    if (m_syncType == SyncType::NO_SYNC)
+    {
+        m_syncType = SyncType::LOOKUP_SYNC;
+        this->CleanVariables();
+        m_mediator.m_node->Init();
+        m_mediator.m_node->Prepare(true);
+        this->StartSynchronization();
+    }
 }
 #endif // IS_LOOKUP_NODE
 

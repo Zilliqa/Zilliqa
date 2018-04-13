@@ -149,6 +149,8 @@ class Node : public Executable, public Broadcastable
 
     bool CheckState(Action action);
 
+    bool ToBlockMessage(unsigned char ins_byte);
+
 #ifndef IS_LOOKUP_NODE
     // internal calls from ProcessStartPoW1
     bool ReadVariablesFromStartPoW1Message(
@@ -313,7 +315,8 @@ class Node : public Executable, public Broadcastable
     // Is Running from New Process
     bool m_fromNewProcess = true;
 
-    bool ToBlockMessage(unsigned char ins_byte);
+    void CleanVariables();
+
     void RejoinAsNormal();
 #endif // IS_LOOKUP_NODE
 
