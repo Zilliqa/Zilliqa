@@ -45,14 +45,16 @@ int main(int argc, const char* argv[])
         cout << "[USAGE] " << argv[0]
              << " <32-byte private_key> <33-byte public_key> "
                 "<listen_ip_address> <listen_port> <1 if loadConfig, 0 "
-                "otherwise> <1 if sync, 0 otherwise> <1 if recovery, 0 "
-                "otherwise>"
+                "otherwise> <SyncType, 0 for no, 1 for new,"
+                " 2 for normal, 3 for ds, 4 for lookup> "
+                "<1 if recovery, 0 otherwise>"
              << endl;
     }
     else
     {
         INIT_FILE_LOGGER("zilliqa");
         INIT_STATE_LOGGER("state");
+        INIT_EPOCHINFO_LOGGER("epochinfo");
 
         vector<unsigned char> tmpprivkey
             = DataConversion::HexStrToUint8Vec(argv[1]);
@@ -79,7 +81,7 @@ int main(int argc, const char* argv[])
                      static_cast<unsigned int>(atoi(argv[4])));
 
         Zilliqa zilliqa(make_pair(privkey, pubkey), my_port, atoi(argv[5]) == 1,
-                        atoi(argv[6]) == 1, atoi(argv[7]) == 1);
+                        atoi(argv[6]), atoi(argv[7]) == 1);
 
         auto dispatcher = [&zilliqa](const vector<unsigned char>& message,
                                      const Peer& from) mutable -> void {

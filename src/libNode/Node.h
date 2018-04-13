@@ -148,8 +148,6 @@ class Node : public Executable, public Broadcastable
         m_forwardingAssignment;
 
     bool CheckState(Action action);
-    void Init();
-    void Prepare(bool runInitializeGenesisBlocks);
 
 #ifndef IS_LOOKUP_NODE
     // internal calls from ProcessStartPoW1
@@ -312,10 +310,11 @@ class Node : public Executable, public Broadcastable
                          vector<Peer> my_shard_receivers,
                          const vector<Peer>& fellowForwarderNodes);
 
-    // Is New Node
-    bool m_isNewNode = true;
+    // Is Running from New Process
+    bool m_fromNewProcess = true;
 
     bool ToBlockMessage(unsigned char ins_byte);
+    void RejoinAsNormal();
 #endif // IS_LOOKUP_NODE
 
 public:
@@ -356,6 +355,11 @@ public:
 
     /// Destructor.
     ~Node();
+
+    /// Set initial state, variables, and clean-up storage
+    void Init();
+
+    void Prepare(bool runInitializeGenesisBlocks);
 
     /// Sets the value of m_state.
     void SetState(NodeState state);

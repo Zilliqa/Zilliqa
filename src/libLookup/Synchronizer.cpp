@@ -183,4 +183,10 @@ bool Synchronizer::AttemptPoW(Lookup* lookup)
         return false;
     }
 }
+
+bool Synchronizer::FetchOfflineLookups(Lookup* lookup)
+{
+    lookup->GetOfflineLookupNodes();
+    return true;
+}
 #endif // IS_LOOKUP_NODE

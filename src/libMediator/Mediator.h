@@ -75,14 +75,6 @@ public:
     /// The current epoch randomness from the Tx blockchain.
     std::array<unsigned char, POW_SIZE> m_txBlockRand;
 
-    /// Used by lookup to determine if it could successfully join the network after sync
-    bool m_isConnectedToNetwork;
-
-    /// Helper variables used by new node synchronization
-    bool s_toFetchDSInfo = false;
-    bool s_toFetchState = false;
-    bool s_toAttemptPoW = false;
-
     /// To determine if the node successfully recovered from persistence
     bool m_isRetrievedHistory;
 
