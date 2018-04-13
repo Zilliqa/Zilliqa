@@ -181,6 +181,8 @@ class DirectoryService : public Executable, public Broadcastable
     bool ProcessAllPoWConnResponse(const vector<unsigned char>& message,
                                    unsigned int offset, const Peer& from);
 
+    bool ToBlockMessage(unsigned char ins_byte);
+
 #ifndef IS_LOOKUP_NODE
     bool CheckState(Action action);
     bool VerifyPOW2(const vector<unsigned char>& message, unsigned int offset,
@@ -321,7 +323,7 @@ class DirectoryService : public Executable, public Broadcastable
     bool ProcessInitViewChangeResponse(const vector<unsigned char>& message,
                                        unsigned int offset, const Peer& from);
 
-    bool ToBlockMessage(unsigned char ins_byte);
+    bool CleanVariables();
 
     void RejoinAsDS();
 #endif // IS_LOOKUP_NODE
@@ -378,6 +380,8 @@ public:
 
     /// Launches separate thread to execute sharding consensus after wait_window seconds.
     void ScheduleShardingConsensus(const unsigned int wait_window);
+
+    bool FinishRejoinAsDS();
 #endif // IS_LOOKUP_NODE
 
     /// Implements the Execute function inherited from Executable.
