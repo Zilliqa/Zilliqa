@@ -520,7 +520,16 @@ bool Lookup::ProcessEntireShardingStructure(
 
     for (auto peer : t_nodesInNetwork)
     {
-        l_nodesInNetwork.erase(peer);
+        if (!l_nodesInNetwork.erase(peer))
+        {
+            LOG_STATE("[JOINPEER][" << std::setw(15) << std::left
+                                    << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                                    << "][" << std::setw(6) << std::left
+                                    << m_mediator.m_currentEpochNum << "]["
+                                    << std::setw(4) << std::left
+                                    << m_mediator.GetNodeMode(peer) << "]"
+                                    << string(peer));
+        }
     }
 
     for (auto peer : l_nodesInNetwork)
@@ -528,8 +537,10 @@ bool Lookup::ProcessEntireShardingStructure(
         LOG_STATE("[LOSTPEER][" << std::setw(15) << std::left
                                 << m_mediator.m_selfPeer.GetPrintableIPAddress()
                                 << "][" << std::setw(6) << std::left
-                                << m_mediator.m_currentEpochNum << "]"
-                                << std::setw(15) << std::left << string(peer));
+                                << m_mediator.m_currentEpochNum << "]["
+                                << std::setw(4) << std::left
+                                << m_mediator.GetNodeMode(peer) << "]"
+                                << string(peer));
     }
 
     l_nodesInNetwork = t_nodesInNetwork;
@@ -1566,6 +1577,12 @@ bool Lookup::InitMining()
 {
     LOG_MARKER();
 
+    if (m_startedPoW2)
+    {
+        LOG_MESSAGE("Already submitting PoW2");
+        return false;
+    }
+
     m_mediator.m_currentEpochNum
         = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
 
@@ -1607,6 +1624,7 @@ bool Lookup::InitMining()
         {
             // DS block has been generated.
             // Attempt PoW2
+            m_startedPoW2 = true;
             m_mediator.UpdateDSBlockRand();
             dsBlockRand = m_mediator.m_dsBlockRand;
             txBlockRand = {};
@@ -1641,7 +1659,6 @@ bool Lookup::InitMining()
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                      "I have successfully join the network");
-#ifndef IS_LOOKUP_NODE
         LOG_MESSAGE("Clean TxBodyDB except the last one");
         int size_txBodyDBs
             = (int)BlockStorage::GetBlockStorage().GetTxBodyDBSize();
@@ -1649,8 +1666,8 @@ bool Lookup::InitMining()
         {
             BlockStorage::GetBlockStorage().PopFrontTxBodyDB(true);
         }
-#endif // IS_LOOKUP_NODE
     }
+    m_startedPoW2 = false;
 
     return true;
 }
