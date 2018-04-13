@@ -54,6 +54,8 @@ class Lookup : public Executable, public Broadcastable
     std::mutex m_mutexDSInfoUpdation;
     std::condition_variable m_dsInfoUpdateCondition;
 
+    bool m_startedPoW2 = false;
+
     bool CheckStateRoot();
 #endif // IS_LOOKUP_NODE
 
