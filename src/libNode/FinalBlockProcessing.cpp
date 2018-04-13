@@ -1177,6 +1177,12 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         if (AccountStore::GetInstance().UpdateStateTrieAll()
             && !CheckStateRoot(txBlock))
         {
+#ifndef IS_LOOKUP_NODE
+            m_mediator.m_isConnectedToNetwork = false;
+            this->Init();
+            this->Prepare(true);
+            this->StartSynchronization();
+#endif // IS_LOOKUP_NODE
             return false;
         }
         else
