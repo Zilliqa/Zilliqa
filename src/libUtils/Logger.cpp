@@ -24,6 +24,14 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 
+#if 1//clark
+#include <g3log/g3log.hpp>
+#include <g3log/logworker.hpp>
+
+using namespace g3;
+std::unique_ptr<LogWorker> logworker;
+#endif
+
 using namespace std;
 
 namespace
@@ -94,6 +102,11 @@ void Logger::newLog()
     snprintf(buf, sizeof(buf), "-%05d-log.txt", seqnum);
     fname = fname_prefix + buf;
     logfile.open(fname.c_str(), ios_base::app);
+#if 1//clark
+    logworker = LogWorker::createLogWorker();
+    logworker->addSink(std::make_unique<FileSink>(fname.c_str(), "./"), &FileSink::fileWrite);
+    initializeLogging(logworker.get());
+#endif
 }
 
 Logger& Logger::GetLogger(const char* fname_prefix, bool log_to_file,
@@ -126,6 +139,12 @@ void Logger::LogMessage(const char* msg, const char* function)
                 << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
                 << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg << endl
                 << flush;
+#if 1//clark
+        LOG(INFO) << "[TID " << PAD(tid, TID_LEN) << "]["
+                  << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
+                  << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg;
+//        g3::internal::shutDownLogging();
+#endif
     }
     else
     {
@@ -155,6 +174,13 @@ void Logger::LogMessage(const char* msg, const char* function,
                 << LIMIT(function, MAX_FUNCNAME_LEN) << "]"
                 << "[Epoch " << epoch << "] " << msg << endl
                 << flush;
+#if 1//clark
+        LOG(INFO) << "[TID " << PAD(tid, TID_LEN) << "]["
+                     << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
+                     << LIMIT(function, MAX_FUNCNAME_LEN) << "]"
+                     << "[Epoch " << epoch << "] " << msg;
+//        g3::internal::shutDownLogging();
+#endif
     }
     else
     {
@@ -237,6 +263,14 @@ void Logger::LogMessageAndPayload(const char* msg,
                     << "): " << payload_string.get() << endl
                     << flush;
         }
+#if 1//clark
+        LOG(INFO) << "[TID " << PAD(tid, TID_LEN) << "]["
+                  << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
+                  << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
+                  << " (Len=" << payload.size()
+                  << "): " << payload_string.get();
+//        g3::internal::shutDownLogging();
+#endif
     }
     else
     {
