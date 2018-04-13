@@ -94,3 +94,25 @@ void Mediator::UpdateTxBlockRand(bool isGenesis)
         copy(randVec.begin(), randVec.end(), m_txBlockRand.begin());
     }
 }
+
+std::string Mediator::GetNodeMode(const Peer& peer)
+{
+    std::lock_guard<mutex> lock(m_mutexDSCommitteeNetworkInfo);
+    if (std::find(m_DSCommitteeNetworkInfo.begin(), 
+                  m_DSCommitteeNetworkInfo.end(), peer) 
+            != m_DSCommitteeNetworkInfo.end())
+    {
+        if (peer == m_DSCommitteeNetworkInfo[0])
+        {
+            return "DSLD";
+        }
+        else
+        {
+            return "DSBU";
+        }
+    }
+    else
+    {
+        return "SHRD";
+    }
+}

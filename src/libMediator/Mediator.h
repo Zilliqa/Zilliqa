@@ -100,6 +100,8 @@ public:
 
     /// Updates the Tx blockchain random for PoW.
     void UpdateTxBlockRand(bool isGenesis = false);
+
+    std::string GetNodeMode(const Peer& peer);
 };
 
 #endif // __MEDIATOR_H__
