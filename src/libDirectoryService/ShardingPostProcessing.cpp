@@ -378,6 +378,7 @@ bool DirectoryService::ProcessShardingConsensus(
                      "Oops, no consensus reached - what to do now???");
         // throw exception();
         // TODO: no consensus reached
+        RejoinAsDS();
         return false;
     }
 

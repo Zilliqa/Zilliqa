@@ -54,7 +54,7 @@ class Zilliqa
 public:
     /// Constructor.
     Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
-            bool loadConfig, bool toSyncWithNetwork,
+            bool loadConfig, unsigned int syncType = SyncType::NO_SYNC,
             bool toRetrieveHistory = false);
 
     /// Destructor.

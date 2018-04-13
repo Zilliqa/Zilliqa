@@ -116,7 +116,7 @@ void Retriever::RetrieveTxBlocks(bool& result)
 #ifndef IS_LOOKUP_NODE
 bool Retriever::RetrieveTxBodiesDB()
 {
-    filesys::path p(PERSISTENCE_PATH + "/" + TX_BODY_SUBDIR);
+    filesys::path p("./" + PERSISTENCE_PATH + "/" + TX_BODY_SUBDIR);
     if (filesys::exists(p))
     {
         std::vector<std::string> dbNames;

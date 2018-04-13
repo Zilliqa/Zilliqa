@@ -1178,10 +1178,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
             if(!CheckStateRoot(txBlock))
             {
 #ifndef IS_LOOKUP_NODE
-                m_mediator.m_isConnectedToNetwork = false;
-                this->Init();
-                this->Prepare(true);
-                this->StartSynchronization();
+                RejoinAsNormal();
 #endif // IS_LOOKUP_NODE
                 return false;
             }
@@ -1189,15 +1186,18 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
             {
                 StoreState();
                 BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
-                                                            {'0'});
+                                                        {'0'});
 #ifndef IS_LOOKUP_NODE
                 BlockStorage::GetBlockStorage().PopFrontTxBodyDB();
+#else // IS_LOOKUP_NODE
+                BlockStorage::GetBlockStorage().ResetDB(BlockStorage::TX_BODY_TMP);
 #endif // IS_LOOKUP_NODE
             }
         }
         else
         {
             LOG_MESSAGE("Error: UpdateStateTrieAll Failed");
+            return false;
         }
     }
     // #endif // IS_LOOKUP_NODE

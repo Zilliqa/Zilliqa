@@ -56,6 +56,38 @@ DirectoryService::DirectoryService(Mediator& mediator)
 DirectoryService::~DirectoryService() {}
 
 #ifndef IS_LOOKUP_NODE
+
+void DirectoryService::StartSynchronization()
+{
+    LOG_MARKER();
+
+    auto func = [this]() -> void {
+        m_synchronizer.FetchOfflineLookups(m_mediator.m_lookup);
+
+        {
+            unique_lock<mutex> lock(
+                m_mediator.m_lookup->m_mutexOfflineLookupsUpdation);
+            while (!m_mediator.m_lookup->m_fetchedOfflineLookups)
+            {
+                m_mediator.m_lookup->m_offlineLookupsCondition.wait(lock);
+            }
+            m_mediator.m_lookup->m_fetchedOfflineLookups = false;
+        }
+
+        m_synchronizer.FetchDSInfo(m_mediator.m_lookup);
+        while (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
+        {
+            m_synchronizer.FetchLatestDSBlocks(
+                m_mediator.m_lookup, m_mediator.m_dsBlockChain.GetBlockCount());
+            m_synchronizer.FetchLatestTxBlocks(
+                m_mediator.m_lookup, m_mediator.m_txBlockChain.GetBlockCount());
+            this_thread::sleep_for(chrono::seconds(NEW_NODE_SYNC_INTERVAL));
+        }
+    };
+
+    DetachedFunction(1, func);
+}
+
 bool DirectoryService::CheckState(Action action)
 {
     if (m_mode == Mode::IDLE)
@@ -633,6 +665,9 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
                          << primary.m_listenPortHost)
         m_mode = BACKUP_DS;
     }
+
+    LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
+                  DS_PROMOTE_MSG);
 
     // For now, we assume the following when ProcessSetPrimary() is called:
     //  1. All peers in the peer list are my fellow DS committee members for this first epoch
@@ -1329,6 +1364,23 @@ bool DirectoryService::ProcessInitViewChangeResponse(
     return true;
 }
 
+bool DirectoryService::ToBlockMessage(unsigned char ins_byte)
+{
+    if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
+    {
+        return true;
+    }
+    return false;
+}
+
+void DirectoryService::RejoinAsDS()
+{
+    LOG_MARKER();
+    m_mediator.m_lookup->m_syncType = SyncType::DS_SYNC;
+    m_mediator.m_node->Init();
+    m_mediator.m_node->Prepare(true);
+    this->StartSynchronization();
+}
 #endif // IS_LOOKUP_NODE
 
 bool DirectoryService::Execute(const vector<unsigned char>& message,
@@ -1373,6 +1425,17 @@ bool DirectoryService::Execute(const vector<unsigned char>& message,
 
     const unsigned int ins_handlers_count
         = sizeof(ins_handlers) / sizeof(InstructionHandler);
+
+#ifndef IS_LOOKUP_NODE
+    // If the DS node failed and waiting for recovery, block the unwanted msg
+
+    if (ToBlockMessage(ins_byte))
+    {
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "DS Node not connected to network yet, ignore message");
+        return false;
+    }
+#endif
 
     if (ins_byte < ins_handlers_count)
     {

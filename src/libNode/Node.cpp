@@ -169,32 +169,27 @@ void Node::StartSynchronization()
 {
     LOG_MARKER();
     auto func = [this]() -> void {
-        while (!m_mediator.m_isConnectedToNetwork)
+        m_synchronizer.FetchOfflineLookups(m_mediator.m_lookup);
+
+        {
+            unique_lock<mutex> lock(
+                m_mediator.m_lookup->m_mutexOfflineLookupsUpdation);
+            while (!m_mediator.m_lookup->m_fetchedOfflineLookups)
+            {
+                m_mediator.m_lookup->m_offlineLookupsCondition.wait(lock);
+            }
+            m_mediator.m_lookup->m_fetchedOfflineLookups = false;
+        }
+        while (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
         {
             m_synchronizer.FetchLatestDSBlocks(
                 m_mediator.m_lookup, m_mediator.m_dsBlockChain.GetBlockCount());
-            if (m_mediator.s_toFetchDSInfo)
-            {
-                m_synchronizer.FetchDSInfo(m_mediator.m_lookup);
-            }
-            // m_synchronizer.AttemptPoW(m_mediator.m_lookup);
             m_synchronizer.FetchLatestTxBlocks(
                 m_mediator.m_lookup, m_mediator.m_txBlockChain.GetBlockCount());
-            if (m_mediator.s_toFetchState)
-            {
-                if (m_synchronizer.FetchLatestState(m_mediator.m_lookup))
-                {
-                    //continue;
-                }
-            }
-            // if (m_mediator.s_toAttemptPoW)
-            // {
-            //     if (m_synchronizer.AttemptPoW(m_mediator.m_lookup))
-            //     {
-            //         continue;
-            //     }
-            // }
-            this_thread::sleep_for(chrono::seconds(NEW_NODE_SYNC_INTERVAL));
+            this_thread::sleep_for(
+                chrono::seconds(m_mediator.m_lookup->s_startedPoW2
+                                    ? BACKUP_POW2_WINDOW_IN_SECONDS
+                                    : NEW_NODE_SYNC_INTERVAL));
         }
     };
 
@@ -1219,9 +1214,9 @@ void Node::SubmitTransactions()
 
 bool Node::ToBlockMessage(unsigned char ins_byte)
 {
-    if (!m_mediator.m_isConnectedToNetwork)
+    if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
     {
-        if (!m_isNewNode)
+        if (!m_fromNewProcess)
         {
             if (ins_byte != NodeInstructionType::SHARDING)
             {
@@ -1237,6 +1232,15 @@ bool Node::ToBlockMessage(unsigned char ins_byte)
         }
     }
     return false;
+}
+
+void Node::RejoinAsNormal()
+{
+    LOG_MARKER();
+    m_mediator.m_lookup->m_syncType = SyncType::NORMAL_SYNC;
+    this->Init();
+    this->Prepare(true);
+    this->StartSynchronization();
 }
 #endif // IS_LOOKUP_NODE
 
