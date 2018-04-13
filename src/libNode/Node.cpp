@@ -184,7 +184,7 @@ void Node::StartSynchronization()
             {
                 if (m_synchronizer.FetchLatestState(m_mediator.m_lookup))
                 {
-                    continue;
+                    //continue;
                 }
             }
             // if (m_mediator.s_toAttemptPoW)
