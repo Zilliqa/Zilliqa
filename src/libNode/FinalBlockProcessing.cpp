@@ -1177,6 +1177,10 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         if (AccountStore::GetInstance().UpdateStateTrieAll()
             && !CheckStateRoot(txBlock))
         {
+            m_mediator.m_isConnectedToNetwork = false;
+            this->Init();
+            this->Prepare(true);
+            this->StartSynchronization();
             return false;
         }
         else
