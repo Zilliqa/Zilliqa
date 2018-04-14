@@ -28,7 +28,8 @@ install:
       docker exec -t ci /bin/sh -c "
         apt-get -qq update;
         apt-get install -y cmake build-essential pkg-config libssl-dev;
-        apt-get install -y libboost-all-dev libleveldb-dev libsnappy-dev;
+        apt-get install -y libboost-system-dev libboost-filesystem-dev;
+        apt-get install -y libboost-test-dev libleveldb-dev libsnappy-dev;
         apt-get install -y libjsoncpp-dev libmicrohttpd-dev libjsonrpccpp-dev;
         apt-get install -y ccache;
         apt-get install -y clang-format-5.0 clang-tidy-5.0 clang-5.0;
