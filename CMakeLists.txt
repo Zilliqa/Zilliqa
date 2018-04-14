@@ -11,6 +11,7 @@ project(Zilliqa)
 # detect operating system
 message(STATUS "We are on a ${CMAKE_SYSTEM_NAME} system")
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 #
 # check dependencies
 #
@@ -33,6 +34,11 @@ endif()
 
 find_package(OpenSSL REQUIRED)
 include_directories(${OPENSSL_INCLUDE_DIR})
+
+find_package(LevelDB REQUIRED)
+
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
 
 # export compile commands
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -63,4 +69,4 @@ if(TESTS)
 endif()
 
 # add clang-format and clang-tidy targets lastly
-include(cmake/LLVMExtraTools.cmake)
+include(LLVMExtraTools)
