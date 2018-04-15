@@ -72,8 +72,8 @@ brew install pkg-config jsoncpp leveldb libjson-rpc-cpp
 1. Build Zilliqa from the source.  
 ` ./build.sh`
 
-2. Run the local testnet script  
-`./tests/Node/test_node_simple.sh`  
+2. Run the local testnet script in `build` directory
+`cd build && ./tests/Node/test_node_simple.sh`  
 
 3. Logs of each node can be found at `./local_run`
 
