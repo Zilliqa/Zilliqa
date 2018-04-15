@@ -5,6 +5,13 @@
 
 set -e
 
+# common instructions
+function common_deps() {
+
+# install developement deps
+pip install pyyaml
+}
+
 # presently a docker version ubuntu 16.04 is used
 function on_sudoless_ubuntu() {
 
@@ -72,10 +79,12 @@ case $os in
     'Linux')
         echo "Installing dependencies on Linux ..."
         on_sudoless_ubuntu || echo "Hint: Try re-run with sudo right, if failed"
+        common_deps
         ;;
     'Darwin')
         echo "Installing dependencies on OSX ..."
         on_osx
+        common_deps
         ;;
     *)
         echo "Error: Unknown OS, no dependencies installed"
