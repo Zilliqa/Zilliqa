@@ -51,7 +51,7 @@ brew install \
     llvm@5
 }
 
-if [ "${TRAVIS}" != "true" -o "${CI}" != "true" ]
+if [ "${TRAVIS}" != "true" -a "${CI}" != "true" ]
 then
     echo "No CI environment detected, continue [y/N]?:"
     read force
