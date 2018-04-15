@@ -29,5 +29,6 @@ mkdir build && cd build
 cmake ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTESTS=ON ..
 make -j${n_parallel}
 make clang-format
+make clang-tidy
 ctest --output-on-failure
 
