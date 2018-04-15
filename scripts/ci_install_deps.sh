@@ -5,13 +5,6 @@
 
 set -e
 
-# common instructions
-function common_deps() {
-
-# install developement deps
-pip install pyyaml
-}
-
 # presently a docker version ubuntu 16.04 is used
 function on_sudoless_ubuntu() {
 
@@ -37,7 +30,10 @@ apt-get install -y \
     ccache \
     clang-format-5.0 \
     clang-tidy-5.0 \
-    clang-5.0
+    clang-5.0 \
+    python-pip
+
+pip install pyyaml
 }
 
 function on_osx() {
@@ -50,12 +46,14 @@ brew install \
     pkg-config \
     jsoncpp \
     leveldb \
-    libjson-rpc-cpp \
+    libjson-rpc-cpp
 
 # install developement deps
 brew install \
     ccache \
     llvm@5
+
+pip2 install pyyaml
 }
 
 if [ "${TRAVIS}" != "true" -a "${CI}" != "true" ]
@@ -79,12 +77,10 @@ case $os in
     'Linux')
         echo "Installing dependencies on Linux ..."
         on_sudoless_ubuntu || echo "Hint: Try re-run with sudo right, if failed"
-        common_deps
         ;;
     'Darwin')
         echo "Installing dependencies on OSX ..."
         on_osx
-        common_deps
         ;;
     *)
         echo "Error: Unknown OS, no dependencies installed"
