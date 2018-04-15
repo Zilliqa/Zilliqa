@@ -17,6 +17,7 @@ case $os in
         n_parallel=$(nproc)
         ;;
     'Darwin')
+        source venv/bin/activate
         n_parallel=$(sysctl -n hw.ncpu)
         ;;
     *)

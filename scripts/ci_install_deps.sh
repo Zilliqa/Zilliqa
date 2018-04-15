@@ -51,9 +51,13 @@ brew install \
 # install developement deps
 brew install \
     ccache \
-    llvm@5
+    llvm@5 \
+    pyenv-virtualenv
 
-pip2 install pyyaml
+# avoid from interfering with system python
+virtualenv venv -p python
+source venv/bin/activate
+pip install pyyaml
 }
 
 if [ "${TRAVIS}" != "true" -a "${CI}" != "true" ]
