@@ -10,11 +10,9 @@ os:
 
 # multiplied by BUILD_COMMAND
 env:
-  global:
-    - HOMEBREW_NO_AUTO_UPDATE=1
   matrix:
-    - BUILD_COMMAND=./build.sh
-    - BUILD_COMMAND=./build_lookup.sh
+    - BUILD_COMMAND="./scripts/ci_build.sh"
+    - BUILD_COMMAND="./scripts/ci_build.sh lookup"
 
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
@@ -25,35 +23,14 @@ before_install:
 install:
   # note: use option '-t' for 'docker exec' to enable colored output
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-      docker exec -t ci /bin/sh -c "
-        apt-get -qq update;
-        apt-get install -y cmake build-essential pkg-config libssl-dev;
-        apt-get install -y libboost-all-dev libleveldb-dev libsnappy-dev;
-        apt-get install -y libjsoncpp-dev libmicrohttpd-dev libjsonrpccpp-dev;
-        apt-get install -y ccache;
-        apt-get install -y clang-format-5.0 clang-tidy-5.0 clang-5.0;
-      ";
+      docker exec -e CI="true" -t ci /bin/sh -c "./scripts/ci_install_deps.sh";
     else
-      brew install pkg-config jsoncpp leveldb libjson-rpc-cpp ccache;
-      brew install llvm@5;
+      ./scripts/ci_install_deps.sh;
     fi
 
 script:
-  # build
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
       docker exec -t ci /bin/sh -c "$BUILD_COMMAND";
     else
       $BUILD_COMMAND;
-    fi
-  # check format
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-      docker exec -t ci /bin/sh -c "make clang-format";
-    else
-      make clang-format;
-    fi
-  # run tests
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-      docker exec -t ci /bin/sh -c "ctest --output-on-failure";
-    else
-      ctest --output-on-failure;
     fi
