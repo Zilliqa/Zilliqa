@@ -32,13 +32,15 @@
 #include "libUtils/Logger.h"
 
 /// Stores the result of PoW mining.
-typedef struct ethash_mining_result
+struct ethash_mining_result
 {
     std::string result;
     std::string mix_hash;
     uint64_t winning_nonce;
     bool success;
-} ethash_mining_result_t;
+};
+
+using ethash_mining_result_t = ethash_mining_result;
 
 /// Implements the proof-of-work functionality.
 class POW
