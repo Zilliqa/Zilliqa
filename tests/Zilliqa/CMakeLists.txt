@@ -13,3 +13,6 @@ target_link_libraries (sendtxn PUBLIC Network Utils)
 add_executable (genkeypair genkeypair.cpp)
 target_include_directories (genkeypair PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries (genkeypair PUBLIC Crypto)
+
+file(GLOB TEST_ZILLIQA_PYTHON_FILES *.py)
+file(COPY ${TEST_ZILLIQA_PYTHON_FILES} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})

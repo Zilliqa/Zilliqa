@@ -13,15 +13,8 @@
 # GPLv3.0 are those programs that are located in the folders src/depends and tests/depends
 # and which include a reference to GPLv3 in their program files.
 
-rm -rf ./blocks
-rm -rf ./blocks.db
-rm -rf ./dsblocks.db
-rm -rf ./txblocks.db
-rm -rf ./test.db
-rm -rf ./txbodies.db
-
 mkdir build && cd build
-cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
+cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTESTS=ON ..
 make -j4
 make clang-format-fix
 make clang-format
