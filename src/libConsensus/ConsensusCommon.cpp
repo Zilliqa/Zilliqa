@@ -19,72 +19,11 @@
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "libNetwork/P2PComm.h"
+#include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 
 using namespace std;
-
-unsigned int GetBitVectorLengthInBytes(unsigned int length_in_bits)
-{
-    return (((length_in_bits & 0x07) > 0) ? (length_in_bits >> 3) + 1
-                                          : length_in_bits >> 3);
-}
-
-vector<bool> GetBitVector(const vector<unsigned char>& src, unsigned int offset,
-                          unsigned int expected_length)
-{
-    vector<bool> result;
-    unsigned int actual_length = 0;
-    unsigned int actual_length_bytes = 0;
-
-    if ((src.size() - offset) >= 2)
-    {
-        actual_length = (src.at(offset) << 8) + src.at(offset + 1);
-        actual_length_bytes = GetBitVectorLengthInBytes(actual_length);
-    }
-
-    if ((actual_length_bytes == expected_length)
-        && ((src.size() - offset - 2) >= actual_length_bytes))
-    {
-        result.reserve(actual_length);
-        for (unsigned int index = 0; index < actual_length; index++)
-        {
-            result.push_back(src.at(offset + 2 + (index >> 3))
-                             & (1 << (7 - (index & 0x07))));
-        }
-    }
-
-    return result;
-}
-
-unsigned int SetBitVector(vector<unsigned char>& dst, unsigned int offset,
-                          const vector<bool>& value)
-{
-    const unsigned int length_available = dst.size() - offset;
-    const unsigned int length_needed
-        = 2 + GetBitVectorLengthInBytes(value.size());
-
-    if (length_available < length_needed)
-    {
-        dst.resize(dst.size() + length_needed - length_available);
-    }
-    fill(dst.begin() + offset, dst.begin() + offset + length_needed, 0x00);
-
-    dst.at(offset) = value.size() >> 8;
-    dst.at(offset + 1) = value.size();
-
-    unsigned int index = 0;
-    for (bool b : value)
-    {
-        if (b)
-        {
-            dst.at(offset + 2 + (index >> 3)) |= (1 << (7 - (index & 0x07)));
-        }
-        index++;
-    }
-
-    return length_needed;
-}
 
 ConsensusCommon::ConsensusCommon(uint32_t consensus_id,
                                  const vector<unsigned char>& block_hash,
@@ -93,8 +32,7 @@ ConsensusCommon::ConsensusCommon(uint32_t consensus_id,
                                  const deque<Peer>& peer_info,
                                  unsigned char class_byte,
                                  unsigned char ins_byte)
-    : TOLERANCE_FRACTION((double)0.667)
-    , m_blockHash(block_hash)
+    : m_blockHash(block_hash)
     , m_myPrivKey(privkey)
     , m_pubKeys(pubkeys)
     , m_peerInfo(peer_info)
@@ -215,7 +153,8 @@ Challenge ConsensusCommon::GetChallenge(const vector<unsigned char>& msg,
 {
     LOG_MARKER();
 
-    return Challenge(aggregated_commit, aggregated_key, m_message);
+    return Challenge(aggregated_commit, aggregated_key, m_message, offset,
+                     size);
 }
 
 ConsensusCommon::State ConsensusCommon::GetState() const { return m_state; }
@@ -232,7 +171,7 @@ bool ConsensusCommon::RetrieveCollectiveSig(vector<unsigned char>& dst,
         return false;
     }
 
-    m_collectiveSig.Serialize(dst, offset);
+    m_collectiveSigOverMessage.Serialize(dst, offset);
 
     return true;
 }
@@ -250,5 +189,32 @@ ConsensusCommon::RetrieveCollectiveSigBitmap(vector<unsigned char>& dst,
         return 0;
     }
 
-    return SetBitVector(dst, offset, m_responseMap);
+    return BitVector::SetBitVector(dst, offset, m_responseMapOverMessage);
+}
+
+const Signature& ConsensusCommon::RetrieveCollectiveSig() const
+{
+    if (m_state != DONE)
+    {
+        LOG_MESSAGE(
+            "Error: Retrieving collectivesig when consensus is still ongoing");
+    }
+
+    return m_collectiveSigOverMessage;
+}
+
+const vector<bool>& ConsensusCommon::RetrieveCollectiveSigBitmap() const
+{
+    if (m_state != DONE)
+    {
+        LOG_MESSAGE("Error: Retrieving collectivesig bit map when consensus is "
+                    "still ongoing");
+    }
+
+    return m_responseMapOverMessage;
+}
+
+unsigned int ConsensusCommon::NumForConsensus(unsigned int shardSize)
+{
+    return ceil(shardSize * TOLERANCE_FRACTION) - 1;
 }

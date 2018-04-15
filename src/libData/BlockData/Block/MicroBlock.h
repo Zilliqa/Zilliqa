@@ -32,8 +32,10 @@
 class MicroBlock : public BlockBase
 {
     MicroBlockHeader m_header;
-    std::array<unsigned char, BLOCK_SIG_SIZE>
+    Signature
         m_headerSig; // Co-signed by: sharding committee (microblock) or DS committee (finalblock)
+    std::vector<bool>
+        m_headerSigBitmap; // Bitmap for the generated collective signature
     std::vector<TxnHash> m_tranHashes;
 
 public:
@@ -44,8 +46,8 @@ public:
     MicroBlock(const std::vector<unsigned char>& src, unsigned int offset);
 
     /// Constructor with predefined member values.
-    MicroBlock(const MicroBlockHeader& header,
-               const std::array<unsigned char, BLOCK_SIG_SIZE>& signature,
+    MicroBlock(const MicroBlockHeader& header, const Signature& signature,
+               const std::vector<bool>& signatureBitmap,
                const std::vector<TxnHash>& tranHashes);
 
     /// Implements the Serialize function inherited from Serializable.
@@ -64,8 +66,17 @@ public:
     /// Returns the header component of the microblock.
     const MicroBlockHeader& GetHeader() const;
 
-    /// Returns the signature over the microblock header.
-    const std::array<unsigned char, BLOCK_SIG_SIZE>& GetHeaderSig() const;
+    /// Returns the collective signature over the microblock header.
+    const Signature& GetHeaderSig() const;
+
+    /// Returns the response map for the signature.
+    const std::vector<bool>& GetHeaderSigBitmap() const;
+
+    /// Sets the collective signature field of the microblock.
+    void SetHeaderSig(const Signature& signature);
+
+    /// Sets the response map field of the microblock.
+    void SetHeaderSigBitmap(const std::vector<bool>& signatureBitmap);
 
     /// Returns the list of transaction hashes.
     const std::vector<TxnHash>& GetTranHashes() const;
