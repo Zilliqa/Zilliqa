@@ -1202,7 +1202,12 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
         //#endif // IS_LOOKUP_NODE
 
 #ifndef IS_LOOKUP_NODE
-    if (m_dsInfoWaitingNotifying)
+    if (m_dsInfoWaitingNotifying
+        && m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW
+            == m_mediator.m_dsBlockChain.GetLastBlock()
+                    .GetHeader()
+                    .GetBlockNum()
+                - 1)
     {
         unique_lock<mutex> lock(m_mutexDSInfoUpdation);
         m_fetchedDSInfo = true;
