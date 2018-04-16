@@ -1257,11 +1257,11 @@ bool Node::CleanVariables()
         std::lock_guard<mutex> lock(m_mutexTxnNonceMap);
         m_txnNonceMap.clear();
     }
-    {
-        std::lock_guard<mutex> lock(m_mutexPrefilledTxns);
-        m_nRemainingPrefilledTxns = 0;
-        m_prefilledTxns.clear();
-    }
+    // {
+    //     std::lock_guard<mutex> lock(m_mutexPrefilledTxns);
+    //     m_nRemainingPrefilledTxns = 0;
+    //     m_prefilledTxns.clear();
+    // }
     {
         std::lock_guard<mutex> lock(m_mutexSubmittedTransactions);
         m_submittedTransactions.clear();
