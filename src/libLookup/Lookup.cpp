@@ -2000,15 +2000,6 @@ bool Lookup::ToBlockMessage(unsigned char ins_byte)
     }
     return false;
 }
-#else // IS_LOOKUP_NODE
-bool Lookup::ToBlockMessage(unsigned char ins_byte)
-{
-    if (m_syncType != SyncType::NO_SYNC)
-    {
-        return true;
-    }
-    return false;
-}
 #endif // IS_LOOKUP_NODE
 
 #ifndef IS_LOOKUP_NODE
@@ -2074,12 +2065,14 @@ bool Lookup::Execute(const vector<unsigned char>& message, unsigned int offset,
     const unsigned int ins_handlers_count
         = sizeof(ins_handlers) / sizeof(InstructionHandler);
 
+#ifdef IS_LOOKUP_NODE
     if (ToBlockMessage(ins_byte))
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                      "Ignore lookup message");
         return false;
     }
+#endif // IS_LOOKUP_NODE
 
     if (ins_byte < ins_handlers_count)
     {
