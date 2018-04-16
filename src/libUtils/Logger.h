@@ -42,6 +42,15 @@ private:
     void checkLog();
     void newLog();
 
+#if 1//clark
+    void InitMsg(std::string& message);
+    void AppendMsg(std::string& message, const char* msg);
+    void AppendFunction(std::string& message, const char* function);
+    void AppendEpoch(std::string& message, const char* epoch);
+    void AppendPayload(std::string& message, const std::vector<unsigned char>& payload, size_t max_bytes_to_display);
+    void Log(LEVELS level, std::string msg);
+#endif
+
     std::string fname_prefix;
     std::string fname;
     std::ofstream logfile;
@@ -78,7 +87,11 @@ public:
     void LogMessage(const char* msg, const char* function);
 
     /// Outputs the specified message, function name, and block number to the main log.
+#if 1//clark
+    void LogMessage2(const char* msg, const char* function,
+#else
     void LogMessage(const char* msg, const char* function,
+#endif
                     const char* blockNum);
 
     /// Outputs the specified message and function name to the state/reporting log.
@@ -90,11 +103,29 @@ public:
                               size_t max_bytes_to_display,
                               const char* function);
 #if 1//clark
+    /// Outputs the specified message and function name to the main log.
+    void LogGeneral(LEVELS level, const char* msg, const char* function);
+
+    /// Outputs the specified message, function name, and block number to the main log.
+    void LogEpoch(LEVELS level, const char* msg, const char* epoch, const char* function);
+
+    /// Outputs the specified message, function name, and payload to the main log.
+    void LogPayload(LEVELS level, const char* msg,
+                              const std::vector<unsigned char>& payload,
+                              size_t max_bytes_to_display,
+                              const char* function);
+
     /// Setup the display debug level
     ///     INFO: display all message
     ///     WARNING: display warning and fatal message
     ///     FATAL: display fatal message only
-    void SetLevel(LEVELS level = INFO);
+    void DisplayLevelAbove(LEVELS level = INFO);
+
+    /// Enable the log level
+    void EnableLevel(LEVELS level);
+
+    /// Disable the log level
+    void DisableLevel(LEVELS level);
 #endif
 };
 
@@ -116,6 +147,7 @@ public:
 #define INIT_STATE_LOGGER(fname_prefix)                                        \
     Logger::GetStateLogger(fname_prefix, true)
 #define LOG_MARKER() ScopeMarker marker(__FUNCTION__)
+/*
 #define LOG_MESSAGE(msg)                                                       \
     {                                                                          \
         std::ostringstream oss;                                                \
@@ -128,7 +160,7 @@ public:
         std::ostringstream oss;                                                \
         oss << msg;                                                            \
         Logger::GetLogger(NULL, true)                                          \
-            .LogMessage(oss.str().c_str(), __FUNCTION__, blockNum);            \
+            .LogMessage2(oss.str().c_str(), __FUNCTION__, blockNum);           \
     }
 #define LOG_PAYLOAD(msg, payload, max_bytes_to_display)                        \
     {                                                                          \
@@ -138,6 +170,7 @@ public:
             .LogMessageAndPayload(oss.str().c_str(), payload,                  \
                                   max_bytes_to_display, __FUNCTION__);         \
     }
+*/
 #define LOG_STATE(msg)                                                         \
     {                                                                          \
         std::ostringstream oss;                                                \
@@ -146,10 +179,49 @@ public:
             .LogState(oss.str().c_str(), __FUNCTION__);                        \
     }
 #if 1//clark
-#define LOG_SET_LEVEL(level)                                                   \
+#define LOG_GENERAL(level, msg)                                                \
+    {                                                                          \
+        std::ostringstream oss;                                                \
+        oss << msg;                                                            \
+        Logger::GetStateLogger(NULL, true)                                     \
+            .LogGeneral(level, oss.str().c_str(), __FUNCTION__);               \
+    }
+#define LOG_EPOCH(level, msg, epoch)                                           \
+    {                                                                          \
+        std::ostringstream oss;                                                \
+        oss << msg;                                                            \
+        Logger::GetStateLogger(NULL, true)                                     \
+            .LogEpoch(level, oss.str().c_str(), epoch, __FUNCTION__);          \
+    }
+#define LOG_PAYLOADING(level, msg, payload, max_bytes_to_display)              \
+    {                                                                          \
+        std::ostringstream oss;                                                \
+        oss << msg;                                                            \
+        Logger::GetStateLogger(NULL, true)                                     \
+            .LogPayload(level, oss.str().c_str(), payload,                     \
+                                  max_bytes_to_display, __FUNCTION__);         \
+    }
+#define LOG_DISPLAY_LEVEL_ABOVE(level)                                         \
     {                                                                          \
         Logger::GetLogger(NULL, true)                                          \
-            .SetLevel(level);                                                  \
+            .DisplayLevelAbove(level);                                         \
     }
+#define LOG_ENABLE_LEVEL(level)                                                \
+    {                                                                          \
+        Logger::GetLogger(NULL, true)                                          \
+            .EnableLevel(level);                                               \
+    }
+#define LOG_DISABLE_LEVEL(level)                                               \
+    {                                                                          \
+        Logger::GetLogger(NULL, true)                                          \
+            .DisableLevel(level);                                              \
+    }
+
+/* Deprecated */
+#define LOG_MESSAGE(msg) LOG_GENERAL(INFO, msg)
+/* Deprecated */
+#define LOG_MESSAGE2(blockNum, msg) LOG_EPOCH(INFO, msg, blockNum)
+/* Deprecated */
+#define LOG_PAYLOAD(msg, payload, max_bytes_to_display) LOG_PAYLOADING(INFO, msg, payload, max_bytes_to_display)
 #endif
 #endif // __LOGGER_H__
