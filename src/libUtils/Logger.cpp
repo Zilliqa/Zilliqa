@@ -36,7 +36,7 @@ namespace
         return syscall(SYS_gettid);
 #elif defined(__APPLE__) && defined(__MACH__)
         uint64_t tid64;
-        pthread_threadid_np(NULL, &tid64);
+        pthread_threadid_np(nullptr, &tid64);
         return static_cast<pid_t>(tid64);
 #else
 #error // not implemented in this platform

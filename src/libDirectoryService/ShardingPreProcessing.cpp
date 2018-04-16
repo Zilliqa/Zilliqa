@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <memory>
 #include <thread>
 
 #include "DirectoryService.h"
@@ -175,7 +176,7 @@ bool DirectoryService::RunConsensusOnShardingWhenDSPrimary()
     m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
 
-    m_consensusObject.reset(new ConsensusLeader(
+    m_consensusObject = std::make_shared<ConsensusLeader>(
         consensusID, m_consensusBlockHash, m_consensusMyID,
         m_mediator.m_selfKey.first, m_mediator.m_DSCommitteePubKeys,
         m_mediator.m_DSCommitteeNetworkInfo,
@@ -183,7 +184,7 @@ bool DirectoryService::RunConsensusOnShardingWhenDSPrimary()
         static_cast<unsigned char>(SHARDINGCONSENSUS),
         std::function<bool(const vector<unsigned char>&, unsigned int,
                            const Peer&)>(),
-        std::function<bool(map<unsigned int, std::vector<unsigned char>>)>()));
+        std::function<bool(map<unsigned int, std::vector<unsigned char>>)>());
 
     if (m_consensusObject == nullptr)
     {
@@ -334,12 +335,12 @@ bool DirectoryService::RunConsensusOnShardingWhenDSBackup()
         return ShardingValidator(message, errorMsg);
     };
 
-    m_consensusObject.reset(new ConsensusBackup(
+    m_consensusObject = std::make_shared<ConsensusBackup>(
         consensusID, m_consensusBlockHash, m_consensusMyID, m_consensusLeaderID,
         m_mediator.m_selfKey.first, m_mediator.m_DSCommitteePubKeys,
         m_mediator.m_DSCommitteeNetworkInfo,
         static_cast<unsigned char>(DIRECTORY),
-        static_cast<unsigned char>(SHARDINGCONSENSUS), func));
+        static_cast<unsigned char>(SHARDINGCONSENSUS), func);
 
     if (m_consensusObject == nullptr)
     {

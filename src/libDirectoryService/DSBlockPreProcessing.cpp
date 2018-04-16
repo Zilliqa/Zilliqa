@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <memory>
 #include <thread>
 
 #include "DirectoryService.h"
@@ -81,7 +82,7 @@ void DirectoryService::ComposeDSBlock()
     {
         lock_guard<mutex> g(m_mutexPendingDSBlock);
         // To-do: Handle exceptions.
-        m_pendingDSBlock.reset(new DSBlock(newHeader, newSig));
+        m_pendingDSBlock = std::make_shared<DSBlock>(newHeader, newSig);
     }
 
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -111,7 +112,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
     //    throw exception();
     // }
 
-    m_consensusObject.reset(new ConsensusLeader(
+    m_consensusObject = std::make_shared<ConsensusLeader>(
         consensusID, m_consensusBlockHash, m_consensusMyID,
         m_mediator.m_selfKey.first, m_mediator.m_DSCommitteePubKeys,
         m_mediator.m_DSCommitteeNetworkInfo,
@@ -119,7 +120,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
         static_cast<unsigned char>(DSBLOCKCONSENSUS),
         std::function<bool(const vector<unsigned char>&, unsigned int,
                            const Peer&)>(),
-        std::function<bool(map<unsigned int, vector<unsigned char>>)>()));
+        std::function<bool(map<unsigned int, vector<unsigned char>>)>());
 
     if (m_consensusObject == nullptr)
     {
@@ -161,7 +162,7 @@ bool DirectoryService::DSBlockValidator(const vector<unsigned char>& dsblock,
     lock_guard<mutex> g(m_mutexPendingDSBlock, adopt_lock);
     lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
 
-    m_pendingDSBlock.reset(new DSBlock(dsblock, 0));
+    m_pendingDSBlock = std::make_shared<DSBlock>(dsblock, 0);
     LOG_MESSAGE("debug dsblock validator "
                 << m_pendingDSBlock->GetHeader().GetViewChangeCount());
     if (m_allPoWConns.find(m_pendingDSBlock->GetHeader().GetMinerPubKey())
@@ -200,12 +201,12 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup()
         return DSBlockValidator(message, errorMsg);
     };
 
-    m_consensusObject.reset(new ConsensusBackup(
+    m_consensusObject = std::make_shared<ConsensusBackup>(
         consensusID, m_consensusBlockHash, m_consensusMyID, m_consensusLeaderID,
         m_mediator.m_selfKey.first, m_mediator.m_DSCommitteePubKeys,
         m_mediator.m_DSCommitteeNetworkInfo,
         static_cast<unsigned char>(DIRECTORY),
-        static_cast<unsigned char>(DSBLOCKCONSENSUS), func));
+        static_cast<unsigned char>(DSBLOCKCONSENSUS), func);
 
     if (m_consensusObject == nullptr)
     {

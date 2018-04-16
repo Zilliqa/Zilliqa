@@ -16,6 +16,8 @@
 **/
 
 #include "ConsensusBackup.h"
+
+#include <memory>
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "libNetwork/P2PComm.h"
@@ -450,8 +452,8 @@ bool ConsensusBackup::GenerateCommitMessage(vector<unsigned char>& commit,
     // Generate new commit
     // ===================
 
-    m_commitSecret.reset(new CommitSecret());
-    m_commitPoint.reset(new CommitPoint(*m_commitSecret));
+    m_commitSecret = std::make_shared<CommitSecret>();
+    m_commitPoint = std::make_shared<CommitPoint>(*m_commitSecret);
 
     // Assemble commit message body
     // ============================

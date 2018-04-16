@@ -19,6 +19,7 @@
 
 #include "common/Messages.h"
 #include "libUtils/Logger.h"
+#include <memory>
 #include <utility>
 
 using namespace std;
@@ -91,14 +92,14 @@ bool ConsensusUser::ProcessSetLeader(const vector<unsigned char>& message,
 
     if (m_leaderOrBackup == false) // Leader
     {
-        m_consensus.reset(new ConsensusLeader(
+        m_consensus = std::make_shared<ConsensusLeader>(
             dummy_consensus_id, dummy_block_hash, my_id, m_selfKey.first,
             pubkeys, peer_info,
             static_cast<unsigned char>(MessageType::CONSENSUSUSER),
             static_cast<unsigned char>(InstructionType::CONSENSUS),
             std::function<bool(const vector<unsigned char>& errorMsg,
                                unsigned int, const Peer& from)>(),
-            std::function<bool(map<unsigned int, vector<unsigned char>>)>()));
+            std::function<bool(map<unsigned int, vector<unsigned char>>)>());
     }
     else // Backup
     {
@@ -107,11 +108,11 @@ bool ConsensusUser::ProcessSetLeader(const vector<unsigned char>& message,
             return MyMsgValidatorFunc(message, errorMsg);
         };
 
-        m_consensus.reset(new ConsensusBackup(
+        m_consensus = std::make_shared<ConsensusBackup>(
             dummy_consensus_id, dummy_block_hash, my_id, leader_id,
             m_selfKey.first, pubkeys, peer_info,
             static_cast<unsigned char>(MessageType::CONSENSUSUSER),
-            static_cast<unsigned char>(InstructionType::CONSENSUS), func));
+            static_cast<unsigned char>(InstructionType::CONSENSUS), func);
     }
 
     if (m_consensus == nullptr)
