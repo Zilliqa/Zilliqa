@@ -24,6 +24,10 @@
 #include <string>
 #include <vector>
 
+#if 1//clark
+#include <g3log/loglevels.hpp>
+#endif
+
 /// Utility logging class for outputting messages to stdout or file.
 class Logger
 {
@@ -85,6 +89,13 @@ public:
                               const std::vector<unsigned char>& payload,
                               size_t max_bytes_to_display,
                               const char* function);
+#if 1//clark
+    /// Setup the display debug level
+    ///     INFO: display all message
+    ///     WARNING: display warning and fatal message
+    ///     FATAL: display fatal message only
+    void SetLevel(LEVELS level = INFO);
+#endif
 };
 
 /// Utility class for automatically logging function or code block exit.
@@ -134,5 +145,11 @@ public:
         Logger::GetStateLogger(NULL, true)                                     \
             .LogState(oss.str().c_str(), __FUNCTION__);                        \
     }
-
+#if 1//clark
+#define LOG_SET_LEVEL(level)                                                   \
+    {                                                                          \
+        Logger::GetLogger(NULL, true)                                          \
+            .SetLevel(level);                                                  \
+    }
+#endif
 #endif // __LOGGER_H__

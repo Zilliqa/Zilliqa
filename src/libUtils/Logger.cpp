@@ -323,6 +323,16 @@ void Logger::LogMessageAndPayload(const char* msg,
     }
 }
 
+#if 1//clark
+void Logger::SetLevel(LEVELS level)
+{
+    if(level != INFO && level != WARNING && level != FATAL)
+        return;
+
+//    g3::log_levels::setHighest(level);
+}
+#endif
+
 ScopeMarker::ScopeMarker(const char* function)
     : function(function)
 {
