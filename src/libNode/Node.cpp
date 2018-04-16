@@ -1262,10 +1262,10 @@ bool Node::CleanVariables()
     //     m_nRemainingPrefilledTxns = 0;
     //     m_prefilledTxns.clear();
     // }
-    {
-        std::lock_guard<mutex> lock(m_mutexSubmittedTransactions);
-        m_submittedTransactions.clear();
-    }
+    // {
+    //     std::lock_guard<mutex> lock(m_mutexSubmittedTransactions);
+    //     m_submittedTransactions.clear();
+    // }
     {
         std::lock_guard<mutex> lock(m_mutexReceivedTransactions);
         m_receivedTransactions.clear();
