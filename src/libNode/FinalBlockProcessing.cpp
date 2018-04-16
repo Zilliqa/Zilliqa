@@ -1094,7 +1094,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         return false;
     }
 
-/*
+        /*
     unsigned int sleep_time_while_waiting = 100;
     if (m_state == MICROBLOCK_CONSENSUS)
     {
@@ -1298,17 +1298,17 @@ void Node::CommitForwardedTransactions(
             AccountStore::GetInstance().UpdateAccounts(tx);
         }
 
-// LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-//              "[TXN] [" << blocknum << "] Body received = 0x" << tx.GetTranID());
+            // LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+            //              "[TXN] [" << blocknum << "] Body received = 0x" << tx.GetTranID());
 
-// Update from and to accounts
-// LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Account store updated");
+            // Update from and to accounts
+            // LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Account store updated");
 
-// LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-//              "Storing Transaction: " << tx.GetTranID() <<
-//              " with amount: " << tx.GetAmount() <<
-//              ", to: " << tx.GetToAddr() <<
-//              ", from: " << tx.GetFromAddr());
+            // LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+            //              "Storing Transaction: " << tx.GetTranID() <<
+            //              " with amount: " << tx.GetAmount() <<
+            //              ", to: " << tx.GetToAddr() <<
+            //              ", from: " << tx.GetFromAddr());
 #ifdef IS_LOOKUP_NODE
         Server::AddToRecentTransactions(tx.GetTranID());
 #endif //IS_LOOKUP_NODE

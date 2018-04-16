@@ -1172,8 +1172,8 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
         m_mediator.m_DSCommitteeNetworkInfo = dsPeers;
     }
 
-//    Data::GetInstance().SetDSPeers(dsPeers);
-//#endif // IS_LOOKUP_NODE
+        //    Data::GetInstance().SetDSPeers(dsPeers);
+        //#endif // IS_LOOKUP_NODE
 
 #ifndef IS_LOOKUP_NODE
     m_mediator.s_toFetchDSInfo = false;

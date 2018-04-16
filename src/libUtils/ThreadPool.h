@@ -38,7 +38,7 @@ class
     ThreadPool // This class requires a number of c++11 features be present in your compiler.
 {
 public:
-/// Constructor.
+    /// Constructor.
 #if CONTIGUOUS_JOBS_MEMORY
     explicit ThreadPool(const unsigned int threadCount, std::string poolName,
                         const unsigned int jobsReserveCount = 0)
@@ -165,7 +165,7 @@ private:
                     return;
                 }
 
-// Get job from the queue
+                    // Get job from the queue
 #if CONTIGUOUS_JOBS_MEMORY
                 job = _queue.back();
                 _queue.pop_back();
