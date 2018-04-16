@@ -1173,25 +1173,32 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     {
         LOG_MESSAGE("isVacuousEpoch now");
 
-        if (AccountStore::GetInstance().UpdateStateTrieAll()
-            && !CheckStateRoot(txBlock))
+        if (AccountStore::GetInstance().UpdateStateTrieAll())
         {
+            if (!CheckStateRoot(txBlock))
+            {
 #ifndef IS_LOOKUP_NODE
-            m_mediator.m_isConnectedToNetwork = false;
-            this->Init();
-            this->Prepare(true);
-            this->StartSynchronization();
+                RejoinAsNormal();
 #endif // IS_LOOKUP_NODE
-            return false;
+                return false;
+            }
+            else
+            {
+                StoreState();
+                BlockStorage::GetBlockStorage().PutMetadata(
+                    MetaType::DSINCOMPLETED, {'0'});
+#ifndef IS_LOOKUP_NODE
+                BlockStorage::GetBlockStorage().PopFrontTxBodyDB();
+#else // IS_LOOKUP_NODE
+                BlockStorage::GetBlockStorage().ResetDB(
+                    BlockStorage::TX_BODY_TMP);
+#endif // IS_LOOKUP_NODE
+            }
         }
         else
         {
-            StoreState();
-            BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
-                                                        {'0'});
-#ifndef IS_LOOKUP_NODE
-            BlockStorage::GetBlockStorage().PopFrontTxBodyDB();
-#endif // IS_LOOKUP_NODE
+            LOG_MESSAGE("Error: UpdateStateTrieAll Failed");
+            return false;
         }
     }
     // #endif // IS_LOOKUP_NODE
