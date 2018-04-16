@@ -12,7 +12,7 @@
 # PLEASE NOTE THAT:
 # the following definitions can through options be added 
 # to the auto generated file src/g3log/generated_definitions.hpp
-   add_definitions(-DG3_DYNAMIC_LOGGING)
+#   add_definitions(-DG3_DYNAMIC_LOGGING)
 #   add_definitions(-DCHANGE_G3LOG_DEBUG_TO_DBUG)
 #   add_definitions(-DDISABLE_FATAL_SIGNALHANDLING)
 #   add_definitions(-DDISABLE_VECTORED_EXCEPTIONHANDLING)
@@ -34,6 +34,7 @@ IF(G3_IOS_LIB)
 ENDIF(G3_IOS_LIB)
 
 # -DUSE_DYNAMIC_LOGGING_LEVELS=ON   : run-type turn on/off levels
+SET(USE_DYNAMIC_LOGGING_LEVELS ON)
 option (USE_DYNAMIC_LOGGING_LEVELS
        "Turn ON/OFF log levels. An disabled level will not push logs of that level to the sink. By default dynamic logging is disabled" OFF)
 IF(USE_DYNAMIC_LOGGING_LEVELS)
