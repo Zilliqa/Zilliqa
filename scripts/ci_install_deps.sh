@@ -57,7 +57,7 @@ brew install \
 # avoid from interfering with system python
 virtualenv venv -p python
 source venv/bin/activate
-pip install pyyaml
+pip install --trusted-host pypi.python.org pyyaml
 }
 
 if [ "${TRAVIS}" != "true" -a "${CI}" != "true" ]
