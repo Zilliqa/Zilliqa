@@ -52,10 +52,11 @@ brew install \
 brew install \
     ccache \
     llvm@5 \
+    python3 \
     pyenv-virtualenv
 
 # avoid from interfering with system python
-virtualenv venv -p python
+virtualenv venv -p python3
 source venv/bin/activate
 pip install --trusted-host pypi.python.org pyyaml
 }
