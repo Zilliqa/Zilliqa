@@ -12,7 +12,7 @@
 # PLEASE NOTE THAT:
 # the following definitions can through options be added 
 # to the auto generated file src/g3log/generated_definitions.hpp
-#   add_definitions(-DG3_DYNAMIC_LOGGING)
+   add_definitions(-DG3_DYNAMIC_LOGGING)
 #   add_definitions(-DCHANGE_G3LOG_DEBUG_TO_DBUG)
 #   add_definitions(-DDISABLE_FATAL_SIGNALHANDLING)
 #   add_definitions(-DDISABLE_VECTORED_EXCEPTIONHANDLING)

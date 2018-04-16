@@ -105,10 +105,21 @@ void Logger::newLog()
     snprintf(buf, sizeof(buf), "-%05d-log.txt", seqnum);
     fname = fname_prefix + buf;
     logfile.open(fname.c_str(), ios_base::app);
+
 #if 1//clark
-    logworker = LogWorker::createLogWorker();
-    logworker->addSink(std::make_unique<FileSink>(fname.c_str(), "./"), &FileSink::fileWrite);
-    initializeLogging(logworker.get());
+    bPreserve = (fname.substr(0, 7) == "zilliqa");
+
+    if(bPreserve)
+    {
+        logworker = LogWorker::createLogWorker();
+        auto sinkHandle = logworker->addSink(std::make_unique<FileSink>(fname.c_str(), "./"), &FileSink::fileWrite);
+        auto changeFormatting = sinkHandle->call(&FileSink::overrideLogDetails, LogMessage::FullLogDetailsToString);
+        const string newHeader = "\t\tLOG format: [YYYY/MM/DD hh:mm:ss uuu* LEVEL THREAD_ID FILE->FUNCTION:LINE] message\n\t\t(uuu*: microseconds fractions of the seconds value)\n\n";
+        auto changeHeader = sinkHandle->call(&FileSink::overrideLogHeader, newHeader);
+        changeFormatting.wait();
+        changeHeader.wait();
+        initializeLogging(logworker.get());
+    }
 #endif
 }
 
@@ -143,10 +154,12 @@ void Logger::LogMessage(const char* msg, const char* function)
                 << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg << endl
                 << flush;
 #if 1//clark
-        LOG(INFO) << "[TID " << PAD(tid, TID_LEN) << "]["
-                  << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
-                  << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg;
-//        g3::internal::shutDownLogging();
+        if(bPreserve)
+        {
+            LOG(INFO) << "[TID " << PAD(tid, TID_LEN) << "]["
+                      << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
+                      << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg;
+        }
 #endif
     }
     else
@@ -178,11 +191,13 @@ void Logger::LogMessage(const char* msg, const char* function,
                 << "[Epoch " << epoch << "] " << msg << endl
                 << flush;
 #if 1//clark
-        LOG(INFO) << "[TID " << PAD(tid, TID_LEN) << "]["
-                     << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
-                     << LIMIT(function, MAX_FUNCNAME_LEN) << "]"
-                     << "[Epoch " << epoch << "] " << msg;
-//        g3::internal::shutDownLogging();
+        if(bPreserve)
+        {
+            LOG(INFO) << "[TID " << PAD(tid, TID_LEN) << "]["
+                      << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
+                      << LIMIT(function, MAX_FUNCNAME_LEN) << "]"
+                      << "[Epoch " << epoch << "] " << msg;
+        }
 #endif
     }
     else
@@ -203,8 +218,12 @@ void Logger::LogState(const char* msg, const char*)
     {
         checkLog();
         logfile << msg << endl << flush;
+
 #if 1//clark
-        LOG(INFO) << msg << endl << flush;
+        if(bPreserve)
+        {
+            LOG(INFO) << msg << endl << flush;
+        }
 #endif
     }
     else
@@ -269,13 +288,16 @@ void Logger::LogMessageAndPayload(const char* msg,
                     << "): " << payload_string.get() << endl
                     << flush;
         }
+
 #if 1//clark
-        LOG(INFO) << "[TID " << PAD(tid, TID_LEN) << "]["
-                  << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
-                  << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
-                  << " (Len=" << payload.size()
-                  << "): " << payload_string.get();
-//        g3::internal::shutDownLogging();
+        if(bPreserve)
+        {
+            LOG(INFO) << "[TID " << PAD(tid, TID_LEN) << "]["
+                      << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
+                      << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
+                      << " (Len=" << payload.size()
+                      << "): " << payload_string.get();
+        }
 #endif
     }
     else
