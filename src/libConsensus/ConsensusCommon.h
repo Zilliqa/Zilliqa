@@ -28,9 +28,8 @@
 #include "libNetwork/PeerStore.h"
 #include "libUtils/TimeLockedFunction.h"
 
-typedef std::function<bool(const std::vector<unsigned char>& input,
-                           std::vector<unsigned char>& errorMsg)>
-    MsgContentValidatorFunc;
+using MsgContentValidatorFunc = std::function<bool(
+    const std::vector<unsigned char>&, std::vector<unsigned char>&)>;
 
 unsigned int GetBitVectorLengthInBytes(unsigned int length_in_bits);
 vector<bool> GetBitVector(const vector<unsigned char>& src, unsigned int offset,
@@ -114,10 +113,9 @@ protected:
 
     /// Constructor.
     ConsensusCommon(uint32_t consensus_id,
-                    const std::vector<unsigned char>& block_hash,
-                    uint16_t my_id, const PrivKey& privkey,
-                    const std::deque<PubKey>& pubkeys,
-                    const std::deque<Peer>& peer_info, unsigned char class_byte,
+                    std::vector<unsigned char> block_hash, uint16_t my_id,
+                    const PrivKey& privkey, const std::deque<PubKey>& pubkeys,
+                    std::deque<Peer> peer_info, unsigned char class_byte,
                     unsigned char ins_byte);
 
     /// Destructor.

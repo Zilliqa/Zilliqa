@@ -27,8 +27,8 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-typedef void (*handler_func)(int, const char*, const char*, uint32_t,
-                             const char* []);
+using handler_func
+    = void (*)(int, const char*, const char*, uint32_t, const char**);
 struct message_handler
 {
     const char* ins;
@@ -108,7 +108,7 @@ void process_broadcast(int numargs, const char* progname, const char* cmdname,
         inet_aton("127.0.0.1", &ip_addr);
         Peer my_port((uint128_t)ip_addr.s_addr, listen_port);
 
-        unsigned int numbytes = static_cast<unsigned int>(atoi(args[0]));
+        auto numbytes = static_cast<unsigned int>(atoi(args[0]));
         vector<unsigned char> broadcast_message(numbytes + MessageOffset::BODY,
                                                 0xAA);
         broadcast_message.at(MessageOffset::TYPE) = MessageType::PEER;
@@ -161,17 +161,14 @@ int main(int argc, const char* argv[])
         {"cmd", &process_cmd},
     };
 
-    const int num_handlers
-        = sizeof(message_handlers) / sizeof(message_handlers[0]);
-
     bool processed = false;
-    for (int i = 0; i < num_handlers; i++)
+    for (auto message_handler : message_handlers)
     {
-        if (!strcmp(instruction, message_handlers[i].ins))
+        if (!strcmp(instruction, message_handler.ins))
         {
-            (*message_handlers[i].func)(
-                argc - 3, argv[0], argv[2],
-                static_cast<unsigned int>(atoi(argv[1])), argv + 3);
+            (*message_handler.func)(argc - 3, argv[0], argv[2],
+                                    static_cast<unsigned int>(atoi(argv[1])),
+                                    argv + 3);
             processed = true;
             break;
         }

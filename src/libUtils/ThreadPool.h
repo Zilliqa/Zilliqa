@@ -53,7 +53,7 @@ public:
         _threads.reserve(threadCount);
         for (unsigned int index = 0; index < threadCount; ++index)
         {
-            _threads.push_back(std::thread([this] { this->Task(); }));
+            _threads.emplace_back([this] { this->Task(); });
         }
 
 #if CONTIGUOUS_JOBS_MEMORY

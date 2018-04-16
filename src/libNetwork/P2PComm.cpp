@@ -14,12 +14,13 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
+#include <cerrno>
+#include <csignal>
+#include <cstdint>
 #include <cstring>
-#include <errno.h>
 #include <memory>
 #include <netinet/in.h>
-#include <signal.h>
-#include <stdint.h>
+#include <random>
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -53,16 +54,16 @@ struct hash_compare
 
 static void close_socket(int* cli_sock)
 {
-    if (cli_sock != NULL)
+    if (cli_sock != nullptr)
     {
         shutdown(*cli_sock, SHUT_RDWR);
         close(*cli_sock);
     }
 }
 
-P2PComm::P2PComm() {}
+P2PComm::P2PComm() = default;
 
-P2PComm::~P2PComm() {}
+P2PComm::~P2PComm() = default;
 
 P2PComm& P2PComm::GetInstance()
 {
@@ -568,7 +569,8 @@ void P2PComm::SendMessagePoolHelper(const Container& peers,
     {
         indexes.at(i) = i;
     }
-    random_shuffle(indexes.begin(), indexes.end());
+    shuffle(indexes.begin(), indexes.end(),
+            std::mt19937(std::random_device()()));
 
     auto sharedMessage = make_shared<vector<unsigned char>>(message);
     auto sharedMessageHash = make_shared<vector<unsigned char>>(message_hash);

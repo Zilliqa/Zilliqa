@@ -29,7 +29,7 @@
 #include "depends/libDatabase/OverlayDB.h"
 #include "libData/AccountData/Address.h"
 #include "libUtils/Logger.h"
-#include <time.h>
+#include <ctime>
 
 BOOST_AUTO_TEST_SUITE(TriePerformance)
 

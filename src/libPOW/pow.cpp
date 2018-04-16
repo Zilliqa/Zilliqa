@@ -175,7 +175,7 @@ ethash_mining_result_t POW::MineLight(ethash_light_t& light,
                                       ethash_h256_t const& header_hash,
                                       ethash_h256_t& difficulty)
 {
-    uint64_t nonce = std::time(0);
+    uint64_t nonce = std::time(nullptr);
     while (shouldMine)
     {
         ethash_return_value_t mineResult
@@ -198,7 +198,7 @@ ethash_mining_result_t POW::MineFull(ethash_full_t& full,
                                      ethash_h256_t const& header_hash,
                                      ethash_h256_t& difficulty)
 {
-    uint64_t nonce = std::time(0);
+    uint64_t nonce = std::time(nullptr);
     while (shouldMine)
     {
         ethash_return_value_t mineResult
@@ -305,7 +305,7 @@ POW::PoWMine(const boost::multiprecision::uint256_t& blockNum,
 
     if (fullDataset)
     {
-        ethash_callback_t CallBack = NULL;
+        ethash_callback_t CallBack = nullptr;
         ethash_full_t fullClient
             = POW::EthashFullNew(ethash_light_client, CallBack);
         result = MineFull(fullClient, headerHash, diffForPoW);
@@ -354,7 +354,7 @@ bool POW::PoWVerify(const boost::multiprecision::uint256_t& blockNum,
     bool result;
     if (fullDataset)
     {
-        ethash_callback_t CallBack = NULL;
+        ethash_callback_t CallBack = nullptr;
         ethash_full_t fullClient
             = POW::EthashFullNew(ethash_light_client, CallBack);
         result = VerifyFull(fullClient, headerHash, winning_nonce, diffForPoW,

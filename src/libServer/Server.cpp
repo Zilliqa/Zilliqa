@@ -64,10 +64,7 @@ Server::Server(Mediator& mediator, HttpServer& httpserver)
     m_RecentTransactions.resize(TXN_PAGE_SIZE);
 }
 
-Server::~Server()
-{
-    // destructor
-}
+Server::~Server() = default;
 
 string Server::GetClientVersion() { return "Hello"; }
 

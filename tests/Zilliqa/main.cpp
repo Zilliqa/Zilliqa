@@ -14,8 +14,8 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
+#include <csignal>
 #include <execinfo.h> // for backtrace
-#include <signal.h>
 
 #include "libUtils/Logger.h"
 #include <algorithm>

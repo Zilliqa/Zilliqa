@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <sys/stat.h>
@@ -160,12 +161,12 @@ bool BlockStorage::GetDSBlock(const boost::multiprecision::uint256_t& blockNum,
 
     LOG_MESSAGE(blockString);
     LOG_MESSAGE(blockString.length());
-    const unsigned char* raw_memory
+    const auto* raw_memory
         = reinterpret_cast<const unsigned char*>(blockString.c_str());
     // FIXME: Handle exceptions
-    block = DSBlockSharedPtr(new DSBlock(
+    block = std::make_shared<DSBlock>(
         std::vector<unsigned char>(raw_memory, raw_memory + blockString.size()),
-        0));
+        0);
     return true;
 }
 
@@ -179,12 +180,12 @@ bool BlockStorage::GetTxBlock(const boost::multiprecision::uint256_t& blockNum,
         return false;
     }
 
-    const unsigned char* raw_memory
+    const auto* raw_memory
         = reinterpret_cast<const unsigned char*>(blockString.c_str());
     // FIXME: Handle exceptions
-    block = TxBlockSharedPtr(new TxBlock(
+    block = std::make_shared<TxBlock>(
         std::vector<unsigned char>(raw_memory, raw_memory + blockString.size()),
-        0));
+        0);
     return true;
 }
 
@@ -206,12 +207,12 @@ bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body)
         return false;
     }
 
-    const unsigned char* raw_memory
+    const auto* raw_memory
         = reinterpret_cast<const unsigned char*>(bodyString.c_str());
     // FIXME: Handle exceptions
-    body = TxBodySharedPtr(new Transaction(
+    body = std::make_shared<Transaction>(
         std::vector<unsigned char>(raw_memory, raw_memory + bodyString.size()),
-        0));
+        0);
     return true;
 }
 
@@ -273,12 +274,12 @@ bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr>& blocks)
             LOG_MESSAGE("ERROR: Lost one block in the chain");
             return false;
         }
-        const unsigned char* raw_memory
+        const auto* raw_memory
             = reinterpret_cast<const unsigned char*>(blockString.c_str());
-        DSBlockSharedPtr block = DSBlockSharedPtr(
-            new DSBlock(std::vector<unsigned char>(
-                            raw_memory, raw_memory + blockString.size()),
-                        0));
+        DSBlockSharedPtr block = std::make_shared<DSBlock>(
+            std::vector<unsigned char>(raw_memory,
+                                       raw_memory + blockString.size()),
+            0);
 
         blocks.push_back(block);
     }
@@ -310,12 +311,12 @@ bool BlockStorage::GetAllTxBlocks(std::list<TxBlockSharedPtr>& blocks)
             LOG_MESSAGE("ERROR: Lost one block in the chain");
             return false;
         }
-        const unsigned char* raw_memory
+        const auto* raw_memory
             = reinterpret_cast<const unsigned char*>(blockString.c_str());
-        TxBlockSharedPtr block = TxBlockSharedPtr(
-            new TxBlock(std::vector<unsigned char>(
-                            raw_memory, raw_memory + blockString.size()),
-                        0));
+        TxBlockSharedPtr block = std::make_shared<TxBlock>(
+            std::vector<unsigned char>(raw_memory,
+                                       raw_memory + blockString.size()),
+            0);
         blocks.push_back(block);
     }
 
@@ -369,7 +370,7 @@ bool BlockStorage::GetMetadata(MetaType type, std::vector<unsigned char>& data)
         return false;
     }
 
-    const unsigned char* raw_memory
+    const auto* raw_memory
         = reinterpret_cast<const unsigned char*>(metaString.c_str());
     data = std::vector<unsigned char>(raw_memory,
                                       raw_memory + metaString.size());

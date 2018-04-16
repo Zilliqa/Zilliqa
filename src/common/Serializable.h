@@ -33,7 +33,7 @@ public:
         = 0;
 
     /// Virtual destructor.
-    virtual ~Serializable() {}
+    virtual ~Serializable() = default;
 
     /// Template function for extracting a number from the source byte stream at the specified offset.
     /// Returns 0 if there are not enough bytes to read from the stream.

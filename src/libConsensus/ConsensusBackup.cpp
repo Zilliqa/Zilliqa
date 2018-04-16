@@ -16,11 +16,13 @@
 **/
 
 #include "ConsensusBackup.h"
+
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
+#include <memory>
 
 using namespace std;
 
@@ -274,7 +276,7 @@ bool ConsensusBackup::ProcessMessageAnnounce(
     unsigned int curr_offset = offset;
 
     // 4-byte consensus id
-    uint32_t consensus_id = Serializable::GetNumber<uint32_t>(
+    auto consensus_id = Serializable::GetNumber<uint32_t>(
         announcement, curr_offset, sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
@@ -302,7 +304,7 @@ bool ConsensusBackup::ProcessMessageAnnounce(
     curr_offset += BLOCK_HASH_SIZE;
 
     // 2-byte leader id
-    uint16_t leader_id = Serializable::GetNumber<uint16_t>(
+    auto leader_id = Serializable::GetNumber<uint16_t>(
         announcement, curr_offset, sizeof(uint16_t));
     curr_offset += sizeof(uint16_t);
 
@@ -450,8 +452,8 @@ bool ConsensusBackup::GenerateCommitMessage(vector<unsigned char>& commit,
     // Generate new commit
     // ===================
 
-    m_commitSecret.reset(new CommitSecret());
-    m_commitPoint.reset(new CommitPoint(*m_commitSecret));
+    m_commitSecret = std::make_shared<CommitSecret>();
+    m_commitPoint = std::make_shared<CommitPoint>(*m_commitSecret);
 
     // Assemble commit message body
     // ============================
@@ -526,7 +528,7 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
     unsigned int curr_offset = offset;
 
     // 4-byte consensus id
-    uint32_t consensus_id = Serializable::GetNumber<uint32_t>(
+    auto consensus_id = Serializable::GetNumber<uint32_t>(
         challenge, curr_offset, sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
@@ -554,8 +556,8 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
     curr_offset += BLOCK_HASH_SIZE;
 
     // 2-byte leader id
-    uint16_t leader_id = Serializable::GetNumber<uint16_t>(
-        challenge, curr_offset, sizeof(uint16_t));
+    auto leader_id = Serializable::GetNumber<uint16_t>(challenge, curr_offset,
+                                                       sizeof(uint16_t));
     curr_offset += sizeof(uint16_t);
 
     // Check the leader id
@@ -748,7 +750,7 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
     unsigned int curr_offset = offset;
 
     // 4-byte consensus id
-    uint32_t consensus_id = Serializable::GetNumber<uint32_t>(
+    auto consensus_id = Serializable::GetNumber<uint32_t>(
         collectivesig, curr_offset, sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
@@ -776,7 +778,7 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
     curr_offset += BLOCK_HASH_SIZE;
 
     // 2-byte leader id
-    uint16_t leader_id = Serializable::GetNumber<uint16_t>(
+    auto leader_id = Serializable::GetNumber<uint16_t>(
         collectivesig, curr_offset, sizeof(uint16_t));
     curr_offset += sizeof(uint16_t);
 
@@ -930,7 +932,7 @@ ConsensusBackup::ConsensusBackup(
     m_msgContentValidator = msg_validator;
 }
 
-ConsensusBackup::~ConsensusBackup() {}
+ConsensusBackup::~ConsensusBackup() = default;
 
 bool ConsensusBackup::ProcessMessage(const vector<unsigned char>& message,
                                      unsigned int offset, const Peer& from)

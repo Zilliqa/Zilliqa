@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <memory>
 #include <thread>
 
 #include "DirectoryService.h"
@@ -172,12 +173,12 @@ void DirectoryService::ComposeFinalBlockCore()
         stateRoot = AccountStore::GetInstance().GetStateRootHash();
     }
 
-    m_finalBlock.reset(new TxBlock(
+    m_finalBlock = std::make_shared<TxBlock>(
         TxBlockHeader(type, version, allGasLimit, allGasUsed, prevHash,
                       blockNum, timestamp, microblockTrieRoot, stateRoot,
                       numTxs, numMicroBlocks, m_mediator.m_selfKey.second,
                       lastDSBlockNum, dsBlockHeader, m_viewChangeCounter),
-        emptySig, isMicroBlockEmpty, microBlockTxHashes));
+        emptySig, isMicroBlockEmpty, microBlockTxHashes);
 
 #ifdef STAT_TEST
     LOG_STATE("[STATS][" << std::setw(15) << std::left
@@ -303,7 +304,7 @@ void DirectoryService::AppendSharingSetupToFinalBlockMessage(
                                           num_nodes, sizeof(uint32_t));
         curr_offset += sizeof(uint32_t);
 
-        map<PubKey, Peer>::const_iterator node_peer = shard.begin();
+        auto node_peer = shard.begin();
         for (unsigned int j = 0; j < num_nodes; j++)
         {
             node_peer->second.Serialize(finalBlockMessage, curr_offset);
@@ -460,7 +461,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
     m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
 
-    m_consensusObject.reset(new ConsensusLeader(
+    m_consensusObject = std::make_shared<ConsensusLeader>(
         m_consensusID, m_consensusBlockHash, m_consensusMyID,
         m_mediator.m_selfKey.first, m_mediator.m_DSCommitteePubKeys,
         m_mediator.m_DSCommitteeNetworkInfo,
@@ -468,7 +469,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
         static_cast<unsigned char>(FINALBLOCKCONSENSUS),
         std::function<bool(const vector<unsigned char>&, unsigned int,
                            const Peer&)>(),
-        std::function<bool(map<unsigned int, std::vector<unsigned char>>)>()));
+        std::function<bool(map<unsigned int, std::vector<unsigned char>>)>());
 
     if (m_consensusObject == nullptr)
     {
@@ -477,8 +478,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
         return false;
     }
 
-    ConsensusLeader* cl
-        = dynamic_cast<ConsensusLeader*>(m_consensusObject.get());
+    auto* cl = dynamic_cast<ConsensusLeader*>(m_consensusObject.get());
 #ifdef STAT_TEST
     if (m_mode == PRIMARY_DS)
     {
@@ -807,7 +807,7 @@ void DirectoryService::SaveTxnBodySharingAssignment(
 
     // To-do: Put in the logic here for checking the sharing configuration
 
-    uint32_t num_ds_nodes = Serializable::GetNumber<uint32_t>(
+    auto num_ds_nodes = Serializable::GetNumber<uint32_t>(
         finalblock, curr_offset, sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
@@ -827,7 +827,7 @@ void DirectoryService::SaveTxnBodySharingAssignment(
         // }
         // ds_receivers.push_back(tempPeer);
         // TODO: Handle exceptions
-        ds_receivers.push_back(Peer(finalblock, curr_offset));
+        ds_receivers.emplace_back(finalblock, curr_offset);
         curr_offset += IP_SIZE + PORT_SIZE;
 
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -846,17 +846,15 @@ void DirectoryService::SaveTxnBodySharingAssignment(
     if ((i_am_forwarder == true)
         && (m_mediator.m_DSCommitteeNetworkInfo.size() > num_ds_nodes))
     {
-        for (unsigned int i = 0; i < m_mediator.m_DSCommitteeNetworkInfo.size();
-             i++)
+        for (auto& i : m_mediator.m_DSCommitteeNetworkInfo)
         {
             bool is_a_receiver = false;
 
             if (num_ds_nodes > 0)
             {
-                for (unsigned int j = 0; j < ds_receivers.size(); j++)
+                for (const auto& ds_receiver : ds_receivers)
                 {
-                    if (m_mediator.m_DSCommitteeNetworkInfo.at(i)
-                        == ds_receivers.at(j))
+                    if (i == ds_receiver)
                     {
                         is_a_receiver = true;
                         break;
@@ -867,8 +865,7 @@ void DirectoryService::SaveTxnBodySharingAssignment(
 
             if (is_a_receiver == false)
             {
-                m_sharingAssignment.push_back(
-                    m_mediator.m_DSCommitteeNetworkInfo.at(i));
+                m_sharingAssignment.push_back(i);
             }
         }
     }
@@ -956,7 +953,7 @@ bool DirectoryService::FinalBlockValidator(
 
     unsigned int curr_offset = 0;
 
-    m_finalBlock.reset(new TxBlock(finalblock, curr_offset));
+    m_finalBlock = std::make_shared<TxBlock>(finalblock, curr_offset);
     curr_offset += m_finalBlock->GetSerializedSize();
 
     WaitForTxnBodies();
@@ -1018,12 +1015,12 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup()
         return FinalBlockValidator(message, errorMsg);
     };
 
-    m_consensusObject.reset(new ConsensusBackup(
+    m_consensusObject = std::make_shared<ConsensusBackup>(
         m_consensusID, m_consensusBlockHash, m_consensusMyID,
         m_consensusLeaderID, m_mediator.m_selfKey.first,
         m_mediator.m_DSCommitteePubKeys, m_mediator.m_DSCommitteeNetworkInfo,
         static_cast<unsigned char>(DIRECTORY),
-        static_cast<unsigned char>(FINALBLOCKCONSENSUS), func));
+        static_cast<unsigned char>(FINALBLOCKCONSENSUS), func);
 
     if (m_consensusObject == nullptr)
     {

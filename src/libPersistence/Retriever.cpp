@@ -17,8 +17,8 @@
 #include "Retriever.h"
 
 #include <algorithm>
+#include <cstdlib>
 #include <exception>
-#include <stdlib.h>
 #include <vector>
 
 #include <boost/filesystem.hpp>

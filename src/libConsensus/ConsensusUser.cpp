@@ -16,8 +16,11 @@
 **/
 
 #include "ConsensusUser.h"
+
 #include "common/Messages.h"
 #include "libUtils/Logger.h"
+#include <memory>
+#include <utility>
 
 using namespace std;
 
@@ -37,7 +40,7 @@ bool ConsensusUser::ProcessSetLeader(const vector<unsigned char>& message,
         return false;
     }
 
-    uint16_t leader_id
+    auto leader_id
         = Serializable::GetNumber<uint16_t>(message, offset, sizeof(uint16_t));
 
     uint32_t dummy_consensus_id = 0xFACEFACE;
@@ -73,9 +76,9 @@ bool ConsensusUser::ProcessSetLeader(const vector<unsigned char>& message,
 
     // Now I need to find my index in the sorted list (this will be my ID for the consensus)
     uint16_t my_id = 0;
-    for (auto i = pubkeys.begin(); i != pubkeys.end(); i++)
+    for (auto& pubkey : pubkeys)
     {
-        if (*i == m_selfKey.second)
+        if (pubkey == m_selfKey.second)
         {
             LOG_MESSAGE("My node ID for this consensus is " << my_id);
             break;
@@ -89,14 +92,14 @@ bool ConsensusUser::ProcessSetLeader(const vector<unsigned char>& message,
 
     if (m_leaderOrBackup == false) // Leader
     {
-        m_consensus.reset(new ConsensusLeader(
+        m_consensus = std::make_shared<ConsensusLeader>(
             dummy_consensus_id, dummy_block_hash, my_id, m_selfKey.first,
             pubkeys, peer_info,
             static_cast<unsigned char>(MessageType::CONSENSUSUSER),
             static_cast<unsigned char>(InstructionType::CONSENSUS),
             std::function<bool(const vector<unsigned char>& errorMsg,
                                unsigned int, const Peer& from)>(),
-            std::function<bool(map<unsigned int, vector<unsigned char>>)>()));
+            std::function<bool(map<unsigned int, vector<unsigned char>>)>());
     }
     else // Backup
     {
@@ -105,11 +108,11 @@ bool ConsensusUser::ProcessSetLeader(const vector<unsigned char>& message,
             return MyMsgValidatorFunc(message, errorMsg);
         };
 
-        m_consensus.reset(new ConsensusBackup(
+        m_consensus = std::make_shared<ConsensusBackup>(
             dummy_consensus_id, dummy_block_hash, my_id, leader_id,
             m_selfKey.first, pubkeys, peer_info,
             static_cast<unsigned char>(MessageType::CONSENSUSUSER),
-            static_cast<unsigned char>(InstructionType::CONSENSUS), func));
+            static_cast<unsigned char>(InstructionType::CONSENSUS), func);
     }
 
     if (m_consensus == nullptr)
@@ -140,8 +143,8 @@ bool ConsensusUser::ProcessStartConsensus(const vector<unsigned char>& message,
         return false;
     }
 
-    ConsensusLeader* cl = dynamic_cast<ConsensusLeader*>(m_consensus.get());
-    if (cl == NULL)
+    auto* cl = dynamic_cast<ConsensusLeader*>(m_consensus.get());
+    if (cl == nullptr)
     {
         LOG_MESSAGE("Error: I'm a backup, you can't start consensus "
                     "(announcement) thru me");
@@ -179,15 +182,15 @@ bool ConsensusUser::ProcessConsensusMessage(
     return result;
 }
 
-ConsensusUser::ConsensusUser(const pair<PrivKey, PubKey>& key, const Peer& peer)
-    : m_selfKey(key)
-    , m_selfPeer(peer)
+ConsensusUser::ConsensusUser(pair<PrivKey, PubKey> key, Peer peer)
+    : m_selfKey(std::move(key))
+    , m_selfPeer(std::move(peer))
     , m_consensus(nullptr)
 {
     m_leaderOrBackup = false;
 }
 
-ConsensusUser::~ConsensusUser() {}
+ConsensusUser::~ConsensusUser() = default;
 
 bool ConsensusUser::Execute(const vector<unsigned char>& message,
                             unsigned int offset, const Peer& from)
@@ -196,7 +199,7 @@ bool ConsensusUser::Execute(const vector<unsigned char>& message,
 
     bool result = false;
 
-    typedef bool (ConsensusUser::*InstructionHandler)(
+    using InstructionHandler = bool (ConsensusUser::*)(
         const vector<unsigned char>&, unsigned int, const Peer&);
 
     InstructionHandler ins_handlers[] = {

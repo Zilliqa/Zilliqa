@@ -274,8 +274,8 @@ bool ConsensusLeader::ProcessMessageCommitCore(
     unsigned int curr_offset = offset;
 
     // 4-byte consensus id
-    uint32_t consensus_id = Serializable::GetNumber<uint32_t>(
-        commit, curr_offset, sizeof(uint32_t));
+    auto consensus_id = Serializable::GetNumber<uint32_t>(commit, curr_offset,
+                                                          sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
     // Check the consensus id
@@ -302,8 +302,8 @@ bool ConsensusLeader::ProcessMessageCommitCore(
     curr_offset += BLOCK_HASH_SIZE;
 
     // 2-byte backup id
-    uint16_t backup_id = Serializable::GetNumber<uint16_t>(commit, curr_offset,
-                                                           sizeof(uint16_t));
+    auto backup_id = Serializable::GetNumber<uint16_t>(commit, curr_offset,
+                                                       sizeof(uint16_t));
     curr_offset += sizeof(uint16_t);
 
     // Check the backup id
@@ -353,8 +353,8 @@ bool ConsensusLeader::ProcessMessageCommitCore(
         // 33-byte commit
         if (m_commitCounter < m_numForConsensus)
         {
-            m_commitPoints.push_back(
-                CommitPoint(commit, curr_offset - COMMIT_POINT_SIZE));
+            m_commitPoints.emplace_back(commit,
+                                        curr_offset - COMMIT_POINT_SIZE);
             m_commitPointMap.at(backup_id)
                 = CommitPoint(commit, curr_offset - COMMIT_POINT_SIZE);
             m_commitMap.at(backup_id) = true;
@@ -567,7 +567,7 @@ bool ConsensusLeader::ProcessMessageCommitFailure(
     unsigned int curr_offset = offset;
 
     // 4-byte consensus id
-    uint32_t consensus_id = Serializable::GetNumber<uint32_t>(
+    auto consensus_id = Serializable::GetNumber<uint32_t>(
         commitFailureMsg, curr_offset, sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
@@ -594,7 +594,7 @@ bool ConsensusLeader::ProcessMessageCommitFailure(
     curr_offset += BLOCK_HASH_SIZE;
 
     // 2-byte backup id
-    uint16_t backup_id = Serializable::GetNumber<uint16_t>(
+    auto backup_id = Serializable::GetNumber<uint16_t>(
         commitFailureMsg, curr_offset, sizeof(uint16_t));
     curr_offset += sizeof(uint16_t);
 
@@ -778,8 +778,8 @@ bool ConsensusLeader::ProcessMessageResponseCore(
     unsigned int curr_offset = offset;
 
     // 4-byte consensus id
-    uint32_t consensus_id = Serializable::GetNumber<uint32_t>(
-        response, curr_offset, sizeof(uint32_t));
+    auto consensus_id = Serializable::GetNumber<uint32_t>(response, curr_offset,
+                                                          sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
     // Check the consensus id
@@ -1076,7 +1076,7 @@ ConsensusLeader::ConsensusLeader(
     m_shardCommitFailureHandlerFunc = shardCommitFailureHandlerFunc;
 }
 
-ConsensusLeader::~ConsensusLeader() {}
+ConsensusLeader::~ConsensusLeader() = default;
 
 bool ConsensusLeader::StartConsensus(const vector<unsigned char>& message)
 {

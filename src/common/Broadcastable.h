@@ -31,8 +31,7 @@ public:
     {
         LOG_MARKER();
         std::vector<Peer> peers = PeerStore::GetStore().GetAllPeers();
-        for (std::vector<Peer>::iterator peer = peers.begin();
-             peer != peers.end(); peer++)
+        for (auto peer = peers.begin(); peer != peers.end(); peer++)
         {
             if ((peer->m_ipAddress == broadcast_originator.m_ipAddress)
                 && (peer->m_listenPortHost
@@ -48,7 +47,7 @@ public:
     }
 
     /// Virtual destructor.
-    virtual ~Broadcastable() {}
+    virtual ~Broadcastable() = default;
 };
 
 #endif // __BROADCASTABLE_H__

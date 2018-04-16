@@ -54,22 +54,23 @@ public:
 
     /// Constructor with predefined member values.
     MicroBlockHeader(const uint8_t type, const uint32_t version,
-                     const boost::multiprecision::uint256_t& gasLimit,
-                     const boost::multiprecision::uint256_t& gasUsed,
+                     boost::multiprecision::uint256_t gasLimit,
+                     boost::multiprecision::uint256_t gasUsed,
                      const BlockHash& prevHash,
-                     const boost::multiprecision::uint256_t& blockNum,
-                     const boost::multiprecision::uint256_t& timestamp,
+                     boost::multiprecision::uint256_t blockNum,
+                     boost::multiprecision::uint256_t timestamp,
                      const TxnHash& txRootHash, const uint32_t numTxs,
                      const PubKey& minerPubKey,
-                     const boost::multiprecision::uint256_t& dsBlockNum,
+                     boost::multiprecision::uint256_t dsBlockNum,
                      const BlockHash& dsBlockHeader);
 
     /// Implements the Serialize function inherited from Serializable.
     unsigned int Serialize(std::vector<unsigned char>& dst,
-                           unsigned int offset) const;
+                           unsigned int offset) const override;
 
     /// Implements the Deserialize function inherited from Serializable.
-    int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+    int Deserialize(const std::vector<unsigned char>& src,
+                    unsigned int offset) override;
 
     // [TODO] These methods are all supposed to be moved into BlockHeaderBase, so no need to add Doxygen tags for now
     const uint8_t& GetType() const;

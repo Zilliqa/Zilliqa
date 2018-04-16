@@ -53,7 +53,7 @@ DirectoryService::DirectoryService(Mediator& mediator)
     m_viewChangeCounter = 0;
 }
 
-DirectoryService::~DirectoryService() {}
+DirectoryService::~DirectoryService() = default;
 
 #ifndef IS_LOOKUP_NODE
 bool DirectoryService::CheckState(Action action)
@@ -704,10 +704,9 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
 
     // Now I need to find my index in the sorted list (this will be my ID for the consensus)
     m_consensusMyID = 0;
-    for (auto i = m_mediator.m_DSCommitteePubKeys.begin();
-         i != m_mediator.m_DSCommitteePubKeys.end(); i++)
+    for (auto& m_DSCommitteePubKey : m_mediator.m_DSCommitteePubKeys)
     {
-        if (*i == m_mediator.m_selfKey.second)
+        if (m_DSCommitteePubKey == m_mediator.m_selfKey.second)
         {
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                          "My node ID for this PoW1 consensus is "
@@ -824,7 +823,7 @@ bool DirectoryService::ProcessAllPoWConnRequest(
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                  "I am sending AllPowConn to requester");
 
-    uint32_t requesterListeningPort
+    auto requesterListeningPort
         = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
 
     //  Contruct the message and send to the requester
@@ -872,7 +871,7 @@ bool DirectoryService::ProcessAllPoWConnResponse(
 
     unsigned int cur_offset = offset;
     // 32-byte block number
-    uint32_t sizeeOfAllPowConn = Serializable::GetNumber<uint32_t>(
+    auto sizeeOfAllPowConn = Serializable::GetNumber<uint32_t>(
         message, cur_offset, sizeof(uint32_t));
     cur_offset += sizeof(uint32_t);
 
@@ -958,7 +957,7 @@ bool DirectoryService::ProcessLastDSBlockRequest(
                  "DEBUG: I am sending the last ds block to the requester.");
 
     // Deserialize the message and get the port
-    uint32_t requesterListeningPort
+    auto requesterListeningPort
         = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
 
     // Craft the last block message
@@ -1338,7 +1337,7 @@ bool DirectoryService::Execute(const vector<unsigned char>& message,
 
     bool result = false;
 
-    typedef bool (DirectoryService::*InstructionHandler)(
+    using InstructionHandler = bool (DirectoryService::*)(
         const vector<unsigned char>&, unsigned int, const Peer&);
 
 #ifndef IS_LOOKUP_NODE

@@ -139,7 +139,7 @@ BOOST_AUTO_TEST_CASE(testTxBlockStoring)
 
     for (int i = 0; i < 5; i++)
     {
-        tranHashes.push_back(TxnHash());
+        tranHashes.emplace_back();
     }
 
     TxBlock txblock(header, emptySig, vector<bool>(), tranHashes);

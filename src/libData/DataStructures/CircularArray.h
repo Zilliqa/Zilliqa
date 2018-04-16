@@ -52,7 +52,7 @@ public:
     CircularArray& operator=(const CircularArray<T>& circularArray) = delete;
 
     /// Destructor.
-    ~CircularArray() {}
+    ~CircularArray() = default;
 
     /// Index operator.
     T& operator[](boost::multiprecision::uint256_t index)

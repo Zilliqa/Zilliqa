@@ -42,15 +42,16 @@ public:
     DSBlock(const std::vector<unsigned char>& src, unsigned int offset);
 
     /// Constructor with specified DS block parameters.
-    DSBlock(const DSBlockHeader& header,
+    DSBlock(DSBlockHeader header,
             const std::array<unsigned char, BLOCK_SIG_SIZE>& signature);
 
     /// Implements the Serialize function inherited from Serializable.
     unsigned int Serialize(std::vector<unsigned char>& dst,
-                           unsigned int offset) const;
+                           unsigned int offset) const override;
 
     /// Implements the Deserialize function inherited from Serializable.
-    int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+    int Deserialize(const std::vector<unsigned char>& src,
+                    unsigned int offset) override;
 
     /// Returns the size in bytes when serializing the DS block.
     static unsigned int GetSerializedSize();

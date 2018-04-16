@@ -19,6 +19,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 #include <iostream>
+#include <utility>
 
 #include "P2PComm.h"
 #include "PeerManager.h"
@@ -173,10 +174,10 @@ bool PeerManager::ProcessBroadcast(const vector<unsigned char>& message,
     return true;
 }
 
-PeerManager::PeerManager(const std::pair<PrivKey, PubKey>& key,
-                         const Peer& peer, bool loadConfig)
-    : m_selfKey(key)
-    , m_selfPeer(peer)
+PeerManager::PeerManager(std::pair<PrivKey, PubKey> key, Peer peer,
+                         bool loadConfig)
+    : m_selfKey(std::move(key))
+    , m_selfPeer(std::move(peer))
 {
     LOG_MARKER();
 
@@ -218,7 +219,7 @@ PeerManager::PeerManager(const std::pair<PrivKey, PubKey>& key,
     }
 }
 
-PeerManager::~PeerManager() {}
+PeerManager::~PeerManager() = default;
 
 bool PeerManager::Execute(const vector<unsigned char>& message,
                           unsigned int offset, const Peer& from)
@@ -227,7 +228,7 @@ bool PeerManager::Execute(const vector<unsigned char>& message,
 
     bool result = false;
 
-    typedef bool (PeerManager::*InstructionHandler)(
+    using InstructionHandler = bool (PeerManager::*)(
         const vector<unsigned char>&, unsigned int, const Peer&);
 
     InstructionHandler ins_handlers[] = {

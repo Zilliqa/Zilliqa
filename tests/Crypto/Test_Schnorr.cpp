@@ -56,7 +56,7 @@ BOOST_AUTO_TEST_CASE(test_curve_setup)
         EC_POINT_point2hex(
             schnorr.GetCurve().m_group.get(),
             EC_GROUP_get0_generator(schnorr.GetCurve().m_group.get()),
-            POINT_CONVERSION_COMPRESSED, NULL),
+            POINT_CONVERSION_COMPRESSED, nullptr),
         free);
     BOOST_CHECK_MESSAGE(strcmp(basept_expected, basept_actual.get()) == 0,
                         "Wrong basept generated");
@@ -65,13 +65,14 @@ BOOST_AUTO_TEST_CASE(test_curve_setup)
     {
         BOOST_CHECK_MESSAGE(
             EC_GROUP_get_curve_GFp(schnorr.GetCurve().m_group.get(), p.get(),
-                                   a.get(), b.get(), NULL)
+                                   a.get(), b.get(), nullptr)
                 != 0,
             "EC_GROUP_get_curve_GFp failed");
-        BOOST_CHECK_MESSAGE(EC_GROUP_get_cofactor(
-                                schnorr.GetCurve().m_group.get(), h.get(), NULL)
-                                != 0,
-                            "EC_GROUP_get_cofactor failed");
+        BOOST_CHECK_MESSAGE(
+            EC_GROUP_get_cofactor(schnorr.GetCurve().m_group.get(), h.get(),
+                                  nullptr)
+                != 0,
+            "EC_GROUP_get_cofactor failed");
 
         unique_ptr<char, void (*)(void*)> p_actual(BN_bn2hex(p.get()), free);
         unique_ptr<char, void (*)(void*)> a_actual(BN_bn2hex(a.get()), free);
@@ -105,11 +106,12 @@ BOOST_AUTO_TEST_CASE(test_keys)
                         "Key generation check #2 failed");
 
     BOOST_CHECK_MESSAGE(EC_POINT_mul(schnorr.GetCurve().m_group.get(), P.get(),
-                                     keypair.first.m_d.get(), NULL, NULL, NULL)
+                                     keypair.first.m_d.get(), nullptr, nullptr,
+                                     nullptr)
                             != 0,
                         "Key generation check #3 failed");
     BOOST_CHECK_MESSAGE(EC_POINT_cmp(schnorr.GetCurve().m_group.get(),
-                                     keypair.second.m_P.get(), P.get(), NULL)
+                                     keypair.second.m_P.get(), P.get(), nullptr)
                             == 0,
                         "Key generation check #4 failed");
 }

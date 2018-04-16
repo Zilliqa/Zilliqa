@@ -44,16 +44,17 @@ public:
     MicroBlock(const std::vector<unsigned char>& src, unsigned int offset);
 
     /// Constructor with predefined member values.
-    MicroBlock(const MicroBlockHeader& header,
+    MicroBlock(MicroBlockHeader header,
                const std::array<unsigned char, BLOCK_SIG_SIZE>& signature,
-               const std::vector<TxnHash>& tranHashes);
+               std::vector<TxnHash> tranHashes);
 
     /// Implements the Serialize function inherited from Serializable.
     unsigned int Serialize(std::vector<unsigned char>& dst,
-                           unsigned int offset) const;
+                           unsigned int offset) const override;
 
     /// Implements the Deserialize function inherited from Serializable.
-    int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+    int Deserialize(const std::vector<unsigned char>& src,
+                    unsigned int offset) override;
 
     /// Returns the expected size of this microblock when serialized into a byte stream.
     unsigned int GetSerializedSize() const;

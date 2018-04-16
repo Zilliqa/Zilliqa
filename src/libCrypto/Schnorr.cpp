@@ -51,14 +51,14 @@ Curve::Curve()
     }
 
     // Get group order
-    if (!EC_GROUP_get_order(m_group.get(), m_order.get(), NULL))
+    if (!EC_GROUP_get_order(m_group.get(), m_order.get(), nullptr))
     {
         LOG_MESSAGE("Error: Recover curve order failed");
         // throw exception();
     }
 }
 
-Curve::~Curve() {}
+Curve::~Curve() = default;
 
 shared_ptr<BIGNUM> BIGNUMSerialize::GetNumber(const vector<unsigned char>& src,
                                               unsigned int offset,
@@ -69,8 +69,8 @@ shared_ptr<BIGNUM> BIGNUMSerialize::GetNumber(const vector<unsigned char>& src,
 
     if (offset + size <= src.size())
     {
-        BIGNUM* ret = BN_bin2bn(src.data() + offset, size, NULL);
-        if (ret != NULL)
+        BIGNUM* ret = BN_bin2bn(src.data() + offset, size, nullptr);
+        if (ret != nullptr)
         {
             return shared_ptr<BIGNUM>(ret, BN_clear_free);
         }
@@ -147,8 +147,8 @@ ECPOINTSerialize::GetNumber(const vector<unsigned char>& src,
 
         EC_POINT* ret
             = EC_POINT_bn2point(Schnorr::GetInstance().GetCurve().m_group.get(),
-                                bnvalue.get(), NULL, ctx.get());
-        if (ret != NULL)
+                                bnvalue.get(), nullptr, ctx.get());
+        if (ret != nullptr)
         {
             return shared_ptr<EC_POINT>(ret, EC_POINT_clear_free);
         }
@@ -173,7 +173,7 @@ void ECPOINTSerialize::SetNumber(vector<unsigned char>& dst,
 
         bnvalue.reset(
             EC_POINT_point2bn(Schnorr::GetInstance().GetCurve().m_group.get(),
-                              value.get(), POINT_CONVERSION_COMPRESSED, NULL,
+                              value.get(), POINT_CONVERSION_COMPRESSED, nullptr,
                               ctx.get()),
             BN_clear_free);
         if (bnvalue == nullptr)
@@ -188,7 +188,6 @@ void ECPOINTSerialize::SetNumber(vector<unsigned char>& dst,
 
 PrivKey::PrivKey()
     : m_d(BN_new(), BN_clear_free)
-    , m_initialized(false)
 {
     // kpriv->d should be in [1,...,order-1]
     // -1 means no constraint on the MSB of kpriv->d
@@ -231,7 +230,7 @@ PrivKey::PrivKey(const PrivKey& src)
 {
     if (m_d != nullptr)
     {
-        if (BN_copy(m_d.get(), src.m_d.get()) == NULL)
+        if (BN_copy(m_d.get(), src.m_d.get()) == nullptr)
         {
             LOG_MESSAGE("Error: PrivKey copy failed");
         }
@@ -247,7 +246,7 @@ PrivKey::PrivKey(const PrivKey& src)
     }
 }
 
-PrivKey::~PrivKey() {}
+PrivKey::~PrivKey() = default;
 
 bool PrivKey::Initialized() const { return m_initialized; }
 
@@ -305,7 +304,6 @@ bool PrivKey::operator==(const PrivKey& r) const
 PubKey::PubKey()
     : m_P(EC_POINT_new(Schnorr::GetInstance().GetCurve().m_group.get()),
           EC_POINT_clear_free)
-    , m_initialized(false)
 {
     if (m_P == nullptr)
     {
@@ -341,7 +339,7 @@ PubKey::PubKey(const PrivKey& privkey)
         }
 
         if (EC_POINT_mul(curve.m_group.get(), m_P.get(), privkey.m_d.get(),
-                         NULL, NULL, NULL)
+                         nullptr, nullptr, nullptr)
             == 0)
         {
             LOG_MESSAGE("Error: Public key generation failed");
@@ -388,7 +386,7 @@ PubKey::PubKey(const PubKey& src)
     }
 }
 
-PubKey::~PubKey() {}
+PubKey::~PubKey() = default;
 
 bool PubKey::Initialized() const { return m_initialized; }
 
@@ -447,12 +445,12 @@ bool PubKey::operator<(const PubKey& r) const
 
     shared_ptr<BIGNUM> lhs_bnvalue(
         EC_POINT_point2bn(Schnorr::GetInstance().GetCurve().m_group.get(),
-                          m_P.get(), POINT_CONVERSION_COMPRESSED, NULL,
+                          m_P.get(), POINT_CONVERSION_COMPRESSED, nullptr,
                           ctx.get()),
         BN_clear_free);
     shared_ptr<BIGNUM> rhs_bnvalue(
         EC_POINT_point2bn(Schnorr::GetInstance().GetCurve().m_group.get(),
-                          r.m_P.get(), POINT_CONVERSION_COMPRESSED, NULL,
+                          r.m_P.get(), POINT_CONVERSION_COMPRESSED, nullptr,
                           ctx.get()),
         BN_clear_free);
 
@@ -472,12 +470,12 @@ bool PubKey::operator>(const PubKey& r) const
 
     shared_ptr<BIGNUM> lhs_bnvalue(
         EC_POINT_point2bn(Schnorr::GetInstance().GetCurve().m_group.get(),
-                          m_P.get(), POINT_CONVERSION_COMPRESSED, NULL,
+                          m_P.get(), POINT_CONVERSION_COMPRESSED, nullptr,
                           ctx.get()),
         BN_clear_free);
     shared_ptr<BIGNUM> rhs_bnvalue(
         EC_POINT_point2bn(Schnorr::GetInstance().GetCurve().m_group.get(),
-                          r.m_P.get(), POINT_CONVERSION_COMPRESSED, NULL,
+                          r.m_P.get(), POINT_CONVERSION_COMPRESSED, nullptr,
                           ctx.get()),
         BN_clear_free);
 
@@ -504,7 +502,6 @@ bool PubKey::operator==(const PubKey& r) const
 Signature::Signature()
     : m_r(BN_new(), BN_clear_free)
     , m_s(BN_new(), BN_clear_free)
-    , m_initialized(false)
 {
     if ((m_r == nullptr) || (m_s == nullptr))
     {
@@ -532,13 +529,13 @@ Signature::Signature(const Signature& src)
     {
         m_initialized = true;
 
-        if (BN_copy(m_r.get(), src.m_r.get()) == NULL)
+        if (BN_copy(m_r.get(), src.m_r.get()) == nullptr)
         {
             LOG_MESSAGE("Error: Signature challenge copy failed");
             m_initialized = false;
         }
 
-        if (BN_copy(m_s.get(), src.m_s.get()) == NULL)
+        if (BN_copy(m_s.get(), src.m_s.get()) == nullptr)
         {
             LOG_MESSAGE("Error: Signature response copy failed");
             m_initialized = false;
@@ -551,7 +548,7 @@ Signature::Signature(const Signature& src)
     }
 }
 
-Signature::~Signature() {}
+Signature::~Signature() = default;
 
 bool Signature::Initialized() const { return m_initialized; }
 
@@ -622,9 +619,9 @@ bool Signature::operator==(const Signature& r) const
                 && (BN_cmp(m_s.get(), r.m_s.get()) == 0)));
 }
 
-Schnorr::Schnorr() {}
+Schnorr::Schnorr() = default;
 
-Schnorr::~Schnorr() {}
+Schnorr::~Schnorr() = default;
 
 Schnorr& Schnorr::GetInstance()
 {
@@ -735,8 +732,8 @@ bool Schnorr::Sign(const vector<unsigned char>& message, unsigned int offset,
                      || (BN_cmp(k.get(), m_curve.m_order.get()) != -1));
 
             // 2. Compute the commitment Q = kG, where G is the base point
-            err = (EC_POINT_mul(m_curve.m_group.get(), Q.get(), k.get(), NULL,
-                                NULL, NULL)
+            err = (EC_POINT_mul(m_curve.m_group.get(), Q.get(), k.get(),
+                                nullptr, nullptr, nullptr)
                    == 0);
             if (err)
             {
@@ -749,7 +746,7 @@ bool Schnorr::Sign(const vector<unsigned char>& message, unsigned int offset,
             // Convert the committment to octets first
             err = (EC_POINT_point2oct(m_curve.m_group.get(), Q.get(),
                                       POINT_CONVERSION_COMPRESSED, buf.data(),
-                                      PUBKEY_COMPRESSED_SIZE_BYTES, NULL)
+                                      PUBKEY_COMPRESSED_SIZE_BYTES, nullptr)
                    != PUBKEY_COMPRESSED_SIZE_BYTES);
             if (err)
             {
@@ -766,7 +763,7 @@ bool Schnorr::Sign(const vector<unsigned char>& message, unsigned int offset,
             // Convert the public key to octets
             err = (EC_POINT_point2oct(m_curve.m_group.get(), pubkey.m_P.get(),
                                       POINT_CONVERSION_COMPRESSED, buf.data(),
-                                      PUBKEY_COMPRESSED_SIZE_BYTES, NULL)
+                                      PUBKEY_COMPRESSED_SIZE_BYTES, nullptr)
                    != PUBKEY_COMPRESSED_SIZE_BYTES);
             if (err)
             {
@@ -783,7 +780,7 @@ bool Schnorr::Sign(const vector<unsigned char>& message, unsigned int offset,
 
             // Build the challenge
             err = ((BN_bin2bn(digest.data(), digest.size(), result.m_r.get()))
-                   == NULL);
+                   == nullptr);
             if (err)
             {
                 LOG_MESSAGE("Error: Digest to challenge failed");
@@ -791,7 +788,7 @@ bool Schnorr::Sign(const vector<unsigned char>& message, unsigned int offset,
             }
 
             err = (BN_nnmod(result.m_r.get(), result.m_r.get(),
-                            m_curve.m_order.get(), NULL)
+                            m_curve.m_order.get(), nullptr)
                    == 0);
             if (err)
             {
@@ -954,7 +951,7 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
             // 4.1 Convert the committment to octets first
             err2 = (EC_POINT_point2oct(m_curve.m_group.get(), Q.get(),
                                        POINT_CONVERSION_COMPRESSED, buf.data(),
-                                       PUBKEY_COMPRESSED_SIZE_BYTES, NULL)
+                                       PUBKEY_COMPRESSED_SIZE_BYTES, nullptr)
                     != PUBKEY_COMPRESSED_SIZE_BYTES);
             err = err || err2;
             if (err2)
@@ -972,7 +969,7 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
             // 4.2 Convert the public key to octets
             err2 = (EC_POINT_point2oct(m_curve.m_group.get(), pubkey.m_P.get(),
                                        POINT_CONVERSION_COMPRESSED, buf.data(),
-                                       PUBKEY_COMPRESSED_SIZE_BYTES, NULL)
+                                       PUBKEY_COMPRESSED_SIZE_BYTES, nullptr)
                     != PUBKEY_COMPRESSED_SIZE_BYTES);
             err = err || err2;
             if (err2)
@@ -991,7 +988,7 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
             // 5. return r' == r
             err2 = (BN_bin2bn(digest.data(), digest.size(),
                               challenge_built.get())
-                    == NULL);
+                    == nullptr);
             err = err || err2;
             if (err2)
             {
@@ -1000,7 +997,7 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
             }
 
             err2 = (BN_nnmod(challenge_built.get(), challenge_built.get(),
-                             m_curve.m_order.get(), NULL)
+                             m_curve.m_order.get(), nullptr)
                     == 0);
             err = err || err2;
             if (err2)
@@ -1039,7 +1036,7 @@ void Schnorr::PrintPoint(const EC_POINT* point)
     {
         // Get affine coordinates for the point
         if (EC_POINT_get_affine_coordinates_GFp(m_curve.m_group.get(), point,
-                                                x.get(), y.get(), NULL))
+                                                x.get(), y.get(), nullptr))
         {
             unique_ptr<char, void (*)(void*)> x_str(BN_bn2hex(x.get()), free);
             unique_ptr<char, void (*)(void*)> y_str(BN_bn2hex(y.get()), free);

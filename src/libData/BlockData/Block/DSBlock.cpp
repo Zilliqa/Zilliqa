@@ -15,13 +15,15 @@
 **/
 
 #include "DSBlock.h"
+
 #include "libUtils/Logger.h"
+#include <utility>
 
 using namespace std;
 using namespace boost::multiprecision;
 
 // creates a dummy invalid placeholder block -- blocknum is maxsize of uint256
-DSBlock::DSBlock() {}
+DSBlock::DSBlock() = default;
 
 // To-do: handle exceptions. Will be deprecated.
 DSBlock::DSBlock(const vector<unsigned char>& src, unsigned int offset)
@@ -32,9 +34,9 @@ DSBlock::DSBlock(const vector<unsigned char>& src, unsigned int offset)
     }
 }
 
-DSBlock::DSBlock(const DSBlockHeader& header,
+DSBlock::DSBlock(DSBlockHeader header,
                  const array<unsigned char, BLOCK_SIG_SIZE>& signature)
-    : m_header(header)
+    : m_header(std::move(header))
     , m_signature(signature)
 {
 }

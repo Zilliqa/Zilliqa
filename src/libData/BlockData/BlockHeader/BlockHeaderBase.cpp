@@ -20,4 +20,4 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-BlockHeaderBase::BlockHeaderBase() {}
+BlockHeaderBase::BlockHeaderBase() = default;

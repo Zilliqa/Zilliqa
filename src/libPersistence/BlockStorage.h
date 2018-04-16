@@ -25,10 +25,10 @@
 #include "depends/libDatabase/LevelDB.h"
 #include "libData/BlockData/Block.h"
 
-typedef std::shared_ptr<DSBlock> DSBlockSharedPtr;
-typedef std::shared_ptr<TxBlock> TxBlockSharedPtr;
-typedef std::shared_ptr<MicroBlock> MicroBlockSharedPtr;
-typedef std::shared_ptr<Transaction> TxBodySharedPtr;
+using DSBlockSharedPtr = std::shared_ptr<DSBlock>;
+using TxBlockSharedPtr = std::shared_ptr<TxBlock>;
+using MicroBlockSharedPtr = std::shared_ptr<MicroBlock>;
+using TxBodySharedPtr = std::shared_ptr<Transaction>;
 
 /// Manages persistent storage of DS and Tx blocks.
 class BlockStorage

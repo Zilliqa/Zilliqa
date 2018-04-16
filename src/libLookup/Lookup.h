@@ -88,7 +88,7 @@ public:
     Lookup(Mediator& mediator);
 
     /// Destructor.
-    ~Lookup();
+    ~Lookup() override;
 
 #ifndef IS_LOOKUP_NODE
     // Setting the lookup nodes
@@ -169,7 +169,7 @@ public:
                                  unsigned int offset, const Peer& from);
 
     bool Execute(const std::vector<unsigned char>& message, unsigned int offset,
-                 const Peer& from);
+                 const Peer& from) override;
 
     bool InitMining();
     bool AlreadyJoinedNetwork();

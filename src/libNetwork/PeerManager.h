@@ -52,19 +52,19 @@ public:
     };
 
     /// Constructor.
-    PeerManager(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
-                bool loadConfig);
+    PeerManager(std::pair<PrivKey, PubKey> key, Peer peer, bool loadConfig);
 
     /// Destructor.
-    ~PeerManager();
+    ~PeerManager() override;
 
     /// Implements the Execute function inherited from Executable.
     bool Execute(const std::vector<unsigned char>& message, unsigned int offset,
-                 const Peer& from);
+                 const Peer& from) override;
 
     /// Implements the GetBroadcastList function inherited from Broadcastable.
-    std::vector<Peer> GetBroadcastList(unsigned char ins_type,
-                                       const Peer& broadcast_originator);
+    std::vector<Peer>
+    GetBroadcastList(unsigned char ins_type,
+                     const Peer& broadcast_originator) override;
 };
 
 #endif // __PEERMANAGER_H__

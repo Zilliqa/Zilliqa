@@ -22,7 +22,7 @@ using namespace boost::multiprecision;
 
 DSBlockChain::DSBlockChain() { m_dsBlocks.resize(DS_BLOCKCHAIN_SIZE); }
 
-DSBlockChain::~DSBlockChain() {}
+DSBlockChain::~DSBlockChain() = default;
 
 void DSBlockChain::Reset() { m_dsBlocks.resize(DS_BLOCKCHAIN_SIZE); }
 

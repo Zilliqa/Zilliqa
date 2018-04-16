@@ -33,10 +33,7 @@ AccountStore::AccountStore()
     m_state = SecureTrieDB<Address, dev::OverlayDB>(&m_db);
 }
 
-AccountStore::~AccountStore()
-{
-    // boost::filesystem::remove_all("./state");
-}
+AccountStore::~AccountStore() = default;
 
 void AccountStore::Init()
 {

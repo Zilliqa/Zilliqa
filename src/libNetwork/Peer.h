@@ -30,13 +30,13 @@ struct Peer : public Serializable
     boost::multiprecision::uint128_t m_ipAddress; // net-encoded
 
     /// Peer listen port (host-encoded)
-    uint32_t m_listenPortHost; // host-encoded
+    uint32_t m_listenPortHost{0}; // host-encoded
 
     /// Default constructor.
     Peer();
 
     /// Constructor with specified IP info.
-    Peer(const boost::multiprecision::uint128_t& ip_address,
+    Peer(boost::multiprecision::uint128_t ip_address,
          uint32_t listen_port_host);
 
     /// Constructor for loading peer information from a byte stream.
@@ -60,10 +60,11 @@ struct Peer : public Serializable
 
     /// Implements the Serialize function inherited from Serializable.
     unsigned int Serialize(std::vector<unsigned char>& dst,
-                           unsigned int offset) const;
+                           unsigned int offset) const override;
 
     /// Implements the Deserialize function inherited from Serializable.
-    int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+    int Deserialize(const std::vector<unsigned char>& src,
+                    unsigned int offset) override;
 };
 
 inline std::ostream& operator<<(std::ostream& os, const Peer& p)

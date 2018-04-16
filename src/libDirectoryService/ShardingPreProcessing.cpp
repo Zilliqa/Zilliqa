@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <memory>
 #include <thread>
 
 #include "DirectoryService.h"
@@ -55,7 +56,7 @@ void DirectoryService::ComputeSharding()
 
     for (unsigned int i = 0; i < numOfComms; i++)
     {
-        m_shards.push_back(map<PubKey, Peer>());
+        m_shards.emplace_back();
     }
 
     for (auto& kv : m_allPoW2s)
@@ -175,7 +176,7 @@ bool DirectoryService::RunConsensusOnShardingWhenDSPrimary()
     m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
 
-    m_consensusObject.reset(new ConsensusLeader(
+    m_consensusObject = std::make_shared<ConsensusLeader>(
         consensusID, m_consensusBlockHash, m_consensusMyID,
         m_mediator.m_selfKey.first, m_mediator.m_DSCommitteePubKeys,
         m_mediator.m_DSCommitteeNetworkInfo,
@@ -183,7 +184,7 @@ bool DirectoryService::RunConsensusOnShardingWhenDSPrimary()
         static_cast<unsigned char>(SHARDINGCONSENSUS),
         std::function<bool(const vector<unsigned char>&, unsigned int,
                            const Peer&)>(),
-        std::function<bool(map<unsigned int, std::vector<unsigned char>>)>()));
+        std::function<bool(map<unsigned int, std::vector<unsigned char>>)>());
 
     if (m_consensusObject == nullptr)
     {
@@ -192,8 +193,7 @@ bool DirectoryService::RunConsensusOnShardingWhenDSPrimary()
         return false;
     }
 
-    ConsensusLeader* cl
-        = dynamic_cast<ConsensusLeader*>(m_consensusObject.get());
+    auto* cl = dynamic_cast<ConsensusLeader*>(m_consensusObject.get());
 
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                  "Waiting " << LEADER_SHARDING_PREPARATION_IN_SECONDS
@@ -244,7 +244,7 @@ bool DirectoryService::ShardingValidator(
     curr_offset += sizeof(unsigned int);
 
     // 4-byte num of committees
-    uint32_t numOfComms = Serializable::GetNumber<uint32_t>(
+    auto numOfComms = Serializable::GetNumber<uint32_t>(
         sharding_structure, curr_offset, sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
@@ -253,10 +253,10 @@ bool DirectoryService::ShardingValidator(
 
     for (unsigned int i = 0; i < numOfComms; i++)
     {
-        m_shards.push_back(map<PubKey, Peer>());
+        m_shards.emplace_back();
 
         // 4-byte committee size
-        uint32_t shard_size = Serializable::GetNumber<uint32_t>(
+        auto shard_size = Serializable::GetNumber<uint32_t>(
             sharding_structure, curr_offset, sizeof(uint32_t));
         curr_offset += sizeof(uint32_t);
 
@@ -335,12 +335,12 @@ bool DirectoryService::RunConsensusOnShardingWhenDSBackup()
         return ShardingValidator(message, errorMsg);
     };
 
-    m_consensusObject.reset(new ConsensusBackup(
+    m_consensusObject = std::make_shared<ConsensusBackup>(
         consensusID, m_consensusBlockHash, m_consensusMyID, m_consensusLeaderID,
         m_mediator.m_selfKey.first, m_mediator.m_DSCommitteePubKeys,
         m_mediator.m_DSCommitteeNetworkInfo,
         static_cast<unsigned char>(DIRECTORY),
-        static_cast<unsigned char>(SHARDINGCONSENSUS), func));
+        static_cast<unsigned char>(SHARDINGCONSENSUS), func);
 
     if (m_consensusObject == nullptr)
     {

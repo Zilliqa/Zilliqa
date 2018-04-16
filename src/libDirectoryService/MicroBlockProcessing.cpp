@@ -76,8 +76,8 @@ bool DirectoryService::ProcessMicroblockSubmission(
     }
 
     // 4-byte consensus id
-    uint32_t consensusID = Serializable::GetNumber<uint32_t>(
-        message, curr_offset, sizeof(uint32_t));
+    auto consensusID = Serializable::GetNumber<uint32_t>(message, curr_offset,
+                                                         sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
     if (consensusID != m_consensusID)
@@ -90,8 +90,8 @@ bool DirectoryService::ProcessMicroblockSubmission(
     }
 
     // 4-byte shard ID
-    uint32_t shardId = Serializable::GetNumber<uint32_t>(message, curr_offset,
-                                                         sizeof(uint32_t));
+    auto shardId = Serializable::GetNumber<uint32_t>(message, curr_offset,
+                                                     sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                  "shard_id " << shardId);

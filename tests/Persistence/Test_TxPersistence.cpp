@@ -65,14 +65,14 @@ TxBlock constructDummyTxBlock(int instanceNum)
 
     for (int i = 0; i < 5; i++)
     {
-        tranHashes.push_back(TxnHash());
+        tranHashes.emplace_back();
     }
 
     vector<TxnHash> microBlockHashes;
 
     for (int i = 0; i < 6; i++)
     {
-        microBlockHashes.push_back(TxnHash());
+        microBlockHashes.emplace_back();
     }
 
     return TxBlock(header, emptySig, vector<bool>(), microBlockHashes);
@@ -281,9 +281,9 @@ BOOST_AUTO_TEST_CASE(testThreadSafety)
     std::cout << "Launched from the main\n";
 
     //Join the threads with the main thread
-    for (int i = 0; i < num_threads; ++i)
+    for (auto& i : t)
     {
-        t[i].join();
+        i.join();
     }
 }
 

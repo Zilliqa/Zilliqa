@@ -15,6 +15,7 @@
 **/
 
 #include <array>
+#include <utility>
 
 #include "Mediator.h"
 #include "common/Constants.h"
@@ -25,9 +26,9 @@
 
 using namespace std;
 
-Mediator::Mediator(const pair<PrivKey, PubKey>& key, const Peer& peer)
-    : m_selfKey(key)
-    , m_selfPeer(peer)
+Mediator::Mediator(pair<PrivKey, PubKey> key, Peer peer)
+    : m_selfKey(std::move(key))
+    , m_selfPeer(std::move(peer))
 {
     m_ds = nullptr;
     m_node = nullptr;
@@ -36,7 +37,7 @@ Mediator::Mediator(const pair<PrivKey, PubKey>& key, const Peer& peer)
     m_isRetrievedHistory = false;
 }
 
-Mediator::~Mediator() {}
+Mediator::~Mediator() = default;
 
 void Mediator::RegisterColleagues(DirectoryService* ds, Node* node,
                                   Lookup* lookup)

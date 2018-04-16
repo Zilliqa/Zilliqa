@@ -130,8 +130,8 @@ bool DirectoryService::ParseMessageAndVerifyPOW1(
     }
 
     // 4-byte listening port
-    uint32_t portNo = Serializable::GetNumber<uint32_t>(message, curr_offset,
-                                                        sizeof(uint32_t));
+    auto portNo = Serializable::GetNumber<uint32_t>(message, curr_offset,
+                                                    sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
     uint128_t ipAddr = from.m_ipAddress;
@@ -203,7 +203,7 @@ bool DirectoryService::ParseMessageAndVerifyPOW1(
                 return false;
             }
 
-            m_allPoW1s.push_back(make_pair(key, nonce));
+            m_allPoW1s.emplace_back(key, nonce);
         }
     }
     else

@@ -47,11 +47,11 @@ public:
         = 0x02 // These are messages that ConsensusLeader or ConsensusBackup will process (transparent to user)
     };
 
-    ConsensusUser(const std::pair<PrivKey, PubKey>& key, const Peer& peer);
-    ~ConsensusUser();
+    ConsensusUser(std::pair<PrivKey, PubKey> key, Peer peer);
+    ~ConsensusUser() override;
 
     bool Execute(const std::vector<unsigned char>& message, unsigned int offset,
-                 const Peer& from);
+                 const Peer& from) override;
 
     bool MyMsgValidatorFunc(
         const std::vector<unsigned char>& message,

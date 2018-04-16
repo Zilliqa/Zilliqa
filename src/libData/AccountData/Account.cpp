@@ -4,14 +4,16 @@
 **/
 
 #include "Account.h"
+
 #include "depends/common/FixedHash.h"
 #include "libCrypto/Sha2.h"
 #include "libUtils/Logger.h"
+#include <utility>
 
 using namespace std;
 using namespace boost::multiprecision;
 
-Account::Account() {}
+Account::Account() = default;
 
 Account::Account(const vector<unsigned char>& src, unsigned int offset)
 {
@@ -21,9 +23,9 @@ Account::Account(const vector<unsigned char>& src, unsigned int offset)
     }
 }
 
-Account::Account(const uint256_t& balance, const uint256_t& nonce)
-    : m_balance(balance)
-    , m_nonce(nonce)
+Account::Account(uint256_t balance, uint256_t nonce)
+    : m_balance(std::move(balance))
+    , m_nonce(std::move(nonce))
 {
 }
 

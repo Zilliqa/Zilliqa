@@ -46,21 +46,22 @@ public:
     TxBlock(const std::vector<unsigned char>& src, unsigned int offset);
 
     /// Constructor with specified Tx block parameters.
-    TxBlock(const TxBlockHeader& header,
+    TxBlock(TxBlockHeader header,
             const std::array<unsigned char, BLOCK_SIG_SIZE>& signature,
-            const std::vector<bool>& isMicroBlockEmpty,
-            const std::vector<TxnHash>& microBlockHashes);
+            std::vector<bool> isMicroBlockEmpty,
+            std::vector<TxnHash> microBlockHashes);
 
     uint32_t SerializeIsMicroBlockEmpty() const;
 
     /// Implements the Serialize function inherited from Serializable.
     unsigned int Serialize(std::vector<unsigned char>& dst,
-                           unsigned int offset) const;
+                           unsigned int offset) const override;
 
     std::vector<bool> DeserializeIsMicroBlockEmpty(uint32_t arg);
 
     /// Implements the Deserialize function inherited from Serializable.
-    int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+    int Deserialize(const std::vector<unsigned char>& src,
+                    unsigned int offset) override;
 
     /// Returns the size in bytes when serializing the block.
     unsigned int GetSerializedSize() const;

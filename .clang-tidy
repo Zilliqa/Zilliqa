@@ -1,5 +1,8 @@
 ---
-Checks:          'clang-diagnostic-*,clang-analyzer-*,modernize-*'
+# TODO: enable more checks, run 'clang-tidy -list-checks -checks="*"' to see more
+# Checks:          'clang-diagnostic-*,clang-analyzer-*,modernize-*'
+Checks:          '-*,modernize-*,-modernize-use-default-member-init'
+# -modernize-use-default-member-init is intentionally disabled
 WarningsAsErrors: ''
 HeaderFilterRegex: ''
 AnalyzeTemporaryDtors: false

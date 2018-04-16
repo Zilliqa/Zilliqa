@@ -64,8 +64,8 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
     }
 
     // 4-byte listening port
-    uint32_t portNo = Serializable::GetNumber<uint32_t>(message, curr_offset,
-                                                        sizeof(uint32_t));
+    auto portNo = Serializable::GetNumber<uint32_t>(message, curr_offset,
+                                                    sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
     uint128_t ipAddr = from.m_ipAddress;
@@ -84,8 +84,8 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
     // To-do: Reject PoW2 submissions from existing members of DS committee
 
     // 8-byte nonce
-    uint64_t nonce = Serializable::GetNumber<uint64_t>(message, curr_offset,
-                                                       sizeof(uint64_t));
+    auto nonce = Serializable::GetNumber<uint64_t>(message, curr_offset,
+                                                   sizeof(uint64_t));
     curr_offset += sizeof(uint64_t);
 
     // 32-byte resulting hash

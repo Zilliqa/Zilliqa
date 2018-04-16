@@ -15,7 +15,9 @@
 **/
 
 #include "MicroBlock.h"
+
 #include "libUtils/Logger.h"
+#include <utility>
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -123,7 +125,7 @@ unsigned int MicroBlock::GetMinSize()
 }
 
 // creates a dummy invalid placeholder block -- blocknum is maxsize of uint256
-MicroBlock::MicroBlock() {}
+MicroBlock::MicroBlock() = default;
 
 MicroBlock::MicroBlock(const vector<unsigned char>& src, unsigned int offset)
 {
@@ -133,12 +135,12 @@ MicroBlock::MicroBlock(const vector<unsigned char>& src, unsigned int offset)
     }
 }
 
-MicroBlock::MicroBlock(const MicroBlockHeader& header,
+MicroBlock::MicroBlock(MicroBlockHeader header,
                        const array<unsigned char, BLOCK_SIG_SIZE>& signature,
-                       const vector<TxnHash>& tranHashes)
-    : m_header(header)
+                       vector<TxnHash> tranHashes)
+    : m_header(std::move(header))
     , m_headerSig(signature)
-    , m_tranHashes(tranHashes)
+    , m_tranHashes(std::move(tranHashes))
 {
     assert(m_header.GetNumTxs() == m_tranHashes.size());
 }

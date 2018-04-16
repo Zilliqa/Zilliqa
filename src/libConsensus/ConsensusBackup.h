@@ -113,7 +113,7 @@ public:
 
     /// Function to process any consensus message received.
     bool ProcessMessage(const std::vector<unsigned char>& message,
-                        unsigned int offset, const Peer& from);
+                        unsigned int offset, const Peer& from) override;
 };
 
 #endif // __CONSENSUSBACKUP_H__

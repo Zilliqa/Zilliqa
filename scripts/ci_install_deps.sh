@@ -30,7 +30,10 @@ apt-get install -y \
     ccache \
     clang-format-5.0 \
     clang-tidy-5.0 \
-    clang-5.0
+    clang-5.0 \
+    python-pip
+
+pip install pyyaml
 }
 
 function on_osx() {
@@ -43,12 +46,19 @@ brew install \
     pkg-config \
     jsoncpp \
     leveldb \
-    libjson-rpc-cpp \
+    libjson-rpc-cpp
 
 # install developement deps
 brew install \
     ccache \
-    llvm@5
+    llvm@5 \
+    python3 \
+    pyenv-virtualenv
+
+# avoid from interfering with system python
+virtualenv venv -p python3
+source venv/bin/activate
+pip install --trusted-host pypi.python.org pyyaml
 }
 
 if [ "${TRAVIS}" != "true" -a "${CI}" != "true" ]

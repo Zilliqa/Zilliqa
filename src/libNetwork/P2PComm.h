@@ -28,9 +28,8 @@
 #include "libUtils/Logger.h"
 #include "libUtils/ThreadPool.h"
 
-typedef std::function<std::vector<Peer>(unsigned char msg_type,
-                                        unsigned char ins_type, const Peer&)>
-    broadcast_list_func;
+using broadcast_list_func = std::function<std::vector<Peer>(
+    unsigned char, unsigned char, const Peer&)>;
 
 /// Provides network layer functionality.
 class P2PComm

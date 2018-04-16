@@ -15,13 +15,13 @@
 **/
 
 #include <arpa/inet.h>
+#include <cerrno>
+#include <cstdint>
 #include <cstring>
-#include <errno.h>
 #include <exception>
 #include <fstream>
 #include <netinet/in.h>
 #include <random>
-#include <stdint.h>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <unordered_set>
@@ -56,7 +56,7 @@ Lookup::Lookup(Mediator& mediator)
 #endif // IS_LOOKUP_NODE
 }
 
-Lookup::~Lookup() {}
+Lookup::~Lookup() = default;
 
 void Lookup::AppendTimestamp(vector<unsigned char>& message,
                              unsigned int& offset)
@@ -427,7 +427,7 @@ bool Lookup::ProcessEntireShardingStructure(
     }
 
     // unsigned int view change count
-    unsigned int viewChangeCount = Serializable::GetNumber<uint32_t>(
+    auto viewChangeCount = Serializable::GetNumber<uint32_t>(
         message, offset, sizeof(unsigned int));
     offset += sizeof(unsigned int);
 
@@ -442,7 +442,7 @@ bool Lookup::ProcessEntireShardingStructure(
     }
 
     // 4-byte num of shards
-    uint32_t num_shards
+    auto num_shards
         = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
     offset += sizeof(uint32_t);
 
@@ -466,11 +466,11 @@ bool Lookup::ProcessEntireShardingStructure(
             return false;
         }
 
-        m_shards.push_back(map<PubKey, Peer>());
+        m_shards.emplace_back();
 
         // 4-byte shard size
-        uint32_t shard_size = Serializable::GetNumber<uint32_t>(
-            message, offset, sizeof(uint32_t));
+        auto shard_size = Serializable::GetNumber<uint32_t>(message, offset,
+                                                            sizeof(uint32_t));
         offset += sizeof(uint32_t);
 
         length_available = message.size() - offset;
@@ -558,7 +558,7 @@ bool Lookup::ProcessGetSeedPeersFromLookup(const vector<unsigned char>& message,
     }
 
     // 4-byte listening port
-    uint32_t portNo
+    auto portNo
         = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
     offset += sizeof(uint32_t);
 
@@ -687,7 +687,7 @@ bool Lookup::ProcessGetDSInfoFromSeed(const vector<unsigned char>& message,
     }
 
     // 4-byte listening port
-    uint32_t portNo
+    auto portNo
         = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
     offset += sizeof(uint32_t);
 
@@ -798,7 +798,7 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
     }
 
     // 4-byte portNo
-    uint32_t portNo
+    auto portNo
         = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
     offset += sizeof(uint32_t);
 
@@ -851,7 +851,7 @@ bool Lookup::ProcessGetStateFromSeed(const vector<unsigned char>& message,
 
     // [Port number]
 
-    uint32_t portNo
+    auto portNo
         = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
     offset += sizeof(uint32_t);
 
@@ -965,7 +965,7 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
     }
 
     // 4-byte portNo
-    uint32_t portNo
+    auto portNo
         = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
     offset += sizeof(uint32_t);
 
@@ -1019,7 +1019,7 @@ bool Lookup::ProcessGetTxBodyFromSeed(const vector<unsigned char>& message,
     curr_offset += Transaction::GetSerializedSize();
 
     // 4-byte portNo
-    uint32_t portNo
+    auto portNo
         = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
     offset += sizeof(uint32_t);
 
@@ -1050,7 +1050,7 @@ bool Lookup::ProcessGetNetworkId(const vector<unsigned char>& message,
     LOG_MARKER();
 
     // 4-byte portNo
-    uint32_t portNo
+    auto portNo
         = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
     offset += sizeof(uint32_t);
 
@@ -1129,7 +1129,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
         return false;
     }
 
-    uint32_t numDSPeers
+    auto numDSPeers
         = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
     offset += sizeof(uint32_t);
 
@@ -1149,7 +1149,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
 
     for (unsigned int i = 0; i < numDSPeers; i++)
     {
-        dsPubKeys.push_back(PubKey(message, offset));
+        dsPubKeys.emplace_back(message, offset);
         offset += PUB_KEY_SIZE;
 
         Peer peer(message, offset);
@@ -1232,7 +1232,7 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
         return false;
     }
 
-    uint64_t latestSynBlockNum
+    auto latestSynBlockNum
         = (uint64_t)m_mediator.m_dsBlockChain.GetBlockCount();
 
     if (latestSynBlockNum > highBlockNum)
@@ -1349,7 +1349,7 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
                      << lowBlockNum.convert_to<string>() << " to "
                      << highBlockNum.convert_to<string>());
 
-    uint64_t latestSynBlockNum
+    auto latestSynBlockNum
         = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
 
     if (latestSynBlockNum > highBlockNum)
@@ -1643,7 +1643,7 @@ bool Lookup::InitMining()
                      "I have successfully join the network");
 #ifndef IS_LOOKUP_NODE
         LOG_MESSAGE("Clean TxBodyDB except the last one");
-        int size_txBodyDBs
+        auto size_txBodyDBs
             = (int)BlockStorage::GetBlockStorage().GetTxBodyDBSize();
         for (int i = 0; i < size_txBodyDBs - 1; i++)
         {
@@ -1663,8 +1663,8 @@ bool Lookup::Execute(const vector<unsigned char>& message, unsigned int offset,
 
     bool result = true;
 
-    typedef bool (Lookup::*InstructionHandler)(const vector<unsigned char>&,
-                                               unsigned int, const Peer&);
+    using InstructionHandler = bool (Lookup::*)(const vector<unsigned char>&,
+                                                unsigned int, const Peer&);
 
     InstructionHandler ins_handlers[]
         = {&Lookup::ProcessEntireShardingStructure,
