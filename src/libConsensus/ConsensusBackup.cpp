@@ -17,12 +17,12 @@
 
 #include "ConsensusBackup.h"
 
-#include <memory>
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
+#include <memory>
 
 using namespace std;
 
