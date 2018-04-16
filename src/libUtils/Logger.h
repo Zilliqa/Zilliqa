@@ -42,6 +42,9 @@ private:
     std::string fname;
     std::ofstream logfile;
     unsigned int seqnum;
+#if 1//clark
+    bool bPreserve;
+#endif
 
 public:
     /// Limits the number of bytes of a payload to display.
