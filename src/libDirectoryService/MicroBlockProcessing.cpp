@@ -163,7 +163,7 @@ bool DirectoryService::ProcessMicroblockSubmission(
     }
 #endif // STAT_TEST
 
-        // TODO: Re-request from shard leader if microblock is not received after a certain time.
+// TODO: Re-request from shard leader if microblock is not received after a certain time.
 #endif // IS_LOOKUP_NODE
     return true;
 }
