@@ -1249,23 +1249,23 @@ bool Node::CleanVariables()
         std::lock_guard<mutex> lock(m_mutexMicroBlock);
         m_microblock.reset();
     }
-    // {
-    //     std::lock_guard<mutex> lock(m_mutexCreatedTransactions);
-    //     m_createdTransactions.clear();
-    // }
-    // {
-    //     std::lock_guard<mutex> lock(m_mutexTxnNonceMap);
-    //     m_txnNonceMap.clear();
-    // }
+    {
+        std::lock_guard<mutex> lock(m_mutexCreatedTransactions);
+        m_createdTransactions.clear();
+    }
+    {
+        std::lock_guard<mutex> lock(m_mutexTxnNonceMap);
+        m_txnNonceMap.clear();
+    }
     // {
     //     std::lock_guard<mutex> lock(m_mutexPrefilledTxns);
     //     m_nRemainingPrefilledTxns = 0;
     //     m_prefilledTxns.clear();
     // }
-    // {
-    //     std::lock_guard<mutex> lock(m_mutexSubmittedTransactions);
-    //     m_submittedTransactions.clear();
-    // }
+    {
+        std::lock_guard<mutex> lock(m_mutexSubmittedTransactions);
+        m_submittedTransactions.clear();
+    }
     {
         std::lock_guard<mutex> lock(m_mutexReceivedTransactions);
         m_receivedTransactions.clear();
