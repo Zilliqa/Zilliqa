@@ -475,20 +475,17 @@ void Logger::DisplayLevelAbove(LEVELS level)
     if(level != INFO && level != WARNING && level != FATAL)
         return;
 
-    //TBD: build fail
-//    g3::log_levels::setHighest(level);
+    g3::log_levels::setHighest(level);
 }
 
 void Logger::EnableLevel(LEVELS level)
 {
-    //TBD: build fail
-//    g3::log_levels::enable(level);
+    g3::log_levels::enable(level);
 }
 
 void Logger::DisableLevel(LEVELS level)
 {
-    //TBD: build fail
-//    g3::log_levels::disable(level);
+    g3::log_levels::disable(level);
 }
 #endif
 

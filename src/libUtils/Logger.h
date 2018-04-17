@@ -180,7 +180,7 @@ public:
         Logger::GetLogger(NULL, true)                                          \
             .LogGeneral(level, oss.str().c_str(), __FUNCTION__);               \
     }
-#define LOG_EPOCH(level, msg, epoch)                                           \
+#define LOG_EPOCH(level, epoch, msg)                                           \
     {                                                                          \
         std::ostringstream oss;                                                \
         oss << msg;                                                            \
@@ -216,6 +216,6 @@ public:
 /* Deprecated */
 #define LOG_MESSAGE(msg) LOG_GENERAL(INFO, msg)
 /* Deprecated */
-#define LOG_MESSAGE2(blockNum, msg) LOG_EPOCH(INFO, msg, blockNum)
+#define LOG_MESSAGE2(blockNum, msg) LOG_EPOCH(WARNING, blockNum, msg)
 #endif
 #endif // __LOGGER_H__

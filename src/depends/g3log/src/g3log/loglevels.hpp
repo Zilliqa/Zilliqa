@@ -137,7 +137,7 @@ namespace g3 {
       bool wasFatal(const LEVELS& level);
    }
 
-#ifdef G3_DYNAMIC_LOGGING
+/*#ifdef G3_DYNAMIC_LOGGING*/
    // Only safe if done at initialization in a single-thread context
    namespace only_change_at_initialization {
 
@@ -184,7 +184,7 @@ namespace g3 {
       status getStatus(LEVELS level);  
 } // log_levels
 
-#endif
+/*#endif*/
    /// Enabled status for the given logging level
    bool logLevel(LEVELS level);
 
