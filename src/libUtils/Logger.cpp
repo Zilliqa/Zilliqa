@@ -136,7 +136,7 @@ Logger& Logger::GetStateLogger(const char* fname_prefix, bool log_to_file,
     static Logger logger(fname_prefix, log_to_file, max_file_size);
     return logger;
 }
-
+#if 0//clark
 void Logger::LogMessage(const char* msg, const char* function)
 {
     pid_t tid = getCurrentPid();
@@ -196,7 +196,7 @@ void Logger::LogMessage(const char* msg, const char* function,
              << flush;
     }
 }
-
+#endif
 void Logger::LogState(const char* msg, const char*)
 {
     lock_guard<mutex> guard(m);
@@ -211,7 +211,7 @@ void Logger::LogState(const char* msg, const char*)
         cout << msg << endl << flush;
     }
 }
-
+#if 0//clark
 void Logger::LogMessageAndPayload(const char* msg,
                                   const vector<unsigned char>& payload,
                                   size_t max_bytes_to_display,
@@ -291,76 +291,75 @@ void Logger::LogMessageAndPayload(const char* msg,
         }
     }
 }
-
+#endif
 #if 1//clark
 void Logger::LogGeneral(LEVELS level, const char* msg, const char* function)
 {
-//    pid_t tid = getCurrentPid();
-//    auto clockNow = std::chrono::system_clock::now();
-//    std::time_t curTime = std::chrono::system_clock::to_time_t(clockNow);
-//    auto gmtTime = gmtime(&curTime);
+    pid_t tid = getCurrentPid();
+    auto clockNow = std::chrono::system_clock::now();
+    std::time_t curTime = std::chrono::system_clock::to_time_t(clockNow);
+    auto gmtTime = gmtime(&curTime);
 
     lock_guard<mutex> guard(m);
 
-    std::string message;
-    InitMsg(message);
-    AppendFunction(message, function);
-    AppendMsg(message, msg);
-    message += "\n";
-
-//    << "[TID " << PAD(tid, TID_LEN) << "]["
-//            << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
-//            << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg << endl
-
-    if(!log_to_file)
+    if (log_to_file)
     {
-        cout << message << flush;
-        return;
+        checkLog();
+        logfile << "[TID " << PAD(tid, TID_LEN) << "]["
+                << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
+                << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg << endl
+                << flush;
+
+        if(bPreserve)
+        {
+            LOG(INFO) << "[TID " << PAD(tid, TID_LEN) << "]["
+                    << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
+                    << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg;
+        }
     }
-
-    checkLog();
-    logfile << message << flush;
-
-    if(bPreserve)
+    else
     {
-        LOG(INFO) << message;
+        cout << "[TID " << PAD(tid, TID_LEN) << "]["
+             << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
+             << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg << endl
+             << flush;
     }
 }
 
 void Logger::LogEpoch(LEVELS level, const char* msg, const char* epoch, const char* function)
 {
-//    pid_t tid = getCurrentPid();
+    pid_t tid = getCurrentPid();
 
-//    auto clockNow = std::chrono::system_clock::now();
-//    std::time_t curTime = std::chrono::system_clock::to_time_t(clockNow);
-//    auto gmtTime = gmtime(&curTime);
+    auto clockNow = std::chrono::system_clock::now();
+    std::time_t curTime = std::chrono::system_clock::to_time_t(clockNow);
+    auto gmtTime = gmtime(&curTime);
 
     lock_guard<mutex> guard(m);
 
-    std::string message;
-    InitMsg(message);
-    AppendFunction(message, function);
-    AppendEpoch(message, epoch);
-    AppendMsg(message, msg);
-    message += "\n";
-
-//    "[TID " << PAD(tid, TID_LEN) << "]["
-//            << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
-//            << LIMIT(function, MAX_FUNCNAME_LEN) << "]"
-//            << "[Epoch " << epoch << "] " << msg << endl
-
-    if(!log_to_file)
+    if (log_to_file)
     {
-        cout << message << flush;
-        return;
+        checkLog();
+        logfile << "[TID " << PAD(tid, TID_LEN) << "]["
+                << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
+                << LIMIT(function, MAX_FUNCNAME_LEN) << "]"
+                << "[Epoch " << epoch << "] " << msg << endl
+                << flush;
+
+        if(bPreserve)
+        {
+            LOG(INFO) << "[TID " << PAD(tid, TID_LEN) << "]["
+                    << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
+                    << LIMIT(function, MAX_FUNCNAME_LEN) << "]"
+                    << "[Epoch " << epoch << "] " << msg;
+        }
     }
-
-    checkLog();
-    logfile << message << flush;
-
-    if(bPreserve)
+    else
     {
-        LOG(INFO) << message;
+        cout << "[TID " << PAD(tid, TID_LEN) << "]["
+             << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
+             << LIMIT(function, MAX_FUNCNAME_LEN) << "]"
+             << "[Epoch " << epoch << "] " << msg << endl
+             << flush;
     }
 }
 
@@ -369,8 +368,8 @@ void Logger::LogPayload(LEVELS level, const char* msg,
                 size_t max_bytes_to_display,
                 const char* function)
 {
-//    pid_t tid = getCurrentPid();
-/*
+    pid_t tid = getCurrentPid();
+
     static const char* hex_table = "0123456789ABCDEF";
 
     size_t payload_string_len = (payload.size() * 2) + 1;
@@ -391,50 +390,74 @@ void Logger::LogPayload(LEVELS level, const char* msg,
                 = hex_table[payload.at(payload_idx) & 0xF];
     }
     payload_string.get()[payload_string_len - 1] = '\0';
-*/
-//    auto clockNow = std::chrono::system_clock::now();
-//    std::time_t curTime = std::chrono::system_clock::to_time_t(clockNow);
-//    auto gmtTime = gmtime(&curTime);
+
+    auto clockNow = std::chrono::system_clock::now();
+    std::time_t curTime = std::chrono::system_clock::to_time_t(clockNow);
+    auto gmtTime = gmtime(&curTime);
 
     lock_guard<mutex> guard(m);
 
-    std::string message;
-    InitMsg(message);
-    AppendFunction(message, function);
-    AppendPayload(message, payload, max_bytes_to_display);
-    message += "\n";
-/*
-    if (payload.size() > max_bytes_to_display)
+    if (log_to_file)
     {
-        logfile << "[TID " << PAD(tid, TID_LEN) << "]["
-                << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
-                << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
-                << " (Len=" << payload.size()
-                << "): " << payload_string.get() << "..." << endl
-                << flush;
+        checkLog();
+
+        if (payload.size() > max_bytes_to_display)
+        {
+            logfile << "[TID " << PAD(tid, TID_LEN) << "]["
+                    << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
+                    << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
+                    << " (Len=" << payload.size()
+                    << "): " << payload_string.get() << "..." << endl
+                    << flush;
+
+            if(bPreserve)
+            {
+                LOG(INFO) << "[TID " << PAD(tid, TID_LEN) << "]["
+                          << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
+                          << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
+                          << " (Len=" << payload.size()
+                          << "): " << payload_string.get() << "...";
+            }
+        }
+        else
+        {
+            logfile << "[TID " << PAD(tid, TID_LEN) << "]["
+                    << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
+                    << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
+                    << " (Len=" << payload.size()
+                    << "): " << payload_string.get() << endl
+                    << flush;
+
+            if(bPreserve)
+            {
+                LOG(INFO) << "[TID " << PAD(tid, TID_LEN) << "]["
+                          << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
+                          << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
+                          << " (Len=" << payload.size()
+                          << "): " << payload_string.get();
+            }
+        }
     }
     else
     {
-        logfile << "[TID " << PAD(tid, TID_LEN) << "]["
-                << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
-                << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
-                << " (Len=" << payload.size()
-                << "): " << payload_string.get() << endl
-                << flush;
-    }
-*/
-    if(!log_to_file)
-    {
-        cout << message << flush;
-        return;
-    }
-
-    checkLog();
-    logfile << message << flush;
-
-    if(bPreserve)
-    {
-        LOG(INFO) << message;
+        if (payload.size() > max_bytes_to_display)
+        {
+            cout << "[TID " << PAD(tid, TID_LEN) << "]["
+                 << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
+                 << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
+                 << " (Len=" << payload.size() << "): " << payload_string.get()
+                 << "..." << endl
+                 << flush;
+        }
+        else
+        {
+            cout << "[TID " << PAD(tid, TID_LEN) << "]["
+                 << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
+                 << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
+                 << " (Len=" << payload.size() << "): " << payload_string.get()
+                 << endl
+                 << flush;
+        }
     }
 }
 
@@ -458,73 +481,25 @@ void Logger::DisableLevel(LEVELS level)
     //TBD: build fail
 //    g3::log_levels::disable(level);
 }
-
-void Logger::InitMsg(std::string& message)
-{
-    pid_t tid = getCurrentPid();
-    auto clockNow = std::chrono::system_clock::now();
-    std::time_t curTime = std::chrono::system_clock::to_time_t(clockNow);
-    auto gmtTime = gmtime(&curTime);
-    ostringstream oss;
-    oss << "[TID " << PAD(tid, TID_LEN) << "][" << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]";
-    message = oss.str().c_str();
-}
-
-void Logger::AppendMsg(std::string& message, const char* msg)
-{
-    message += " ";
-    message += msg;
-}
-
-void Logger::AppendFunction(std::string& message, const char* function)
-{
-    ostringstream oss;
-    oss << "[" << LIMIT(function, MAX_FUNCNAME_LEN) << "]";
-    message += oss.str().c_str();
-}
-
-void Logger::AppendEpoch(std::string& message, const char* epoch)
-{
-    message += "[Epoch ";
-    message += epoch;
-    message += "]";
-}
-
-void Logger::AppendPayload(std::string& message, const std::vector<unsigned char>& payload, size_t max_bytes_to_display)
-{
-    static const char* hex_table = "0123456789ABCDEF";
-    size_t payload_string_len = (payload.size() > max_bytes_to_display) ? ((max_bytes_to_display * 2) + 1) : ((payload.size() * 2) + 1);
-    unique_ptr<char[]> payload_string = make_unique<char[]>(payload_string_len);
-
-    for(unsigned int payload_idx = 0, payload_string_idx = 0;
-         (payload_idx < payload.size()) && ((payload_string_idx + 2) < payload_string_len);
-         payload_idx++)
-    {
-        payload_string.get()[payload_string_idx++] = hex_table[(payload.at(payload_idx) >> 4) & 0xF];
-        payload_string.get()[payload_string_idx++] = hex_table[payload.at(payload_idx) & 0xF];
-    }
-
-    payload_string.get()[payload_string_len - 1] = '\0';
-
-    message += " (Len=";
-    message += to_string(payload.size());
-    message += "): ";
-    message += payload_string.get();
-
-    if(payload.size() > max_bytes_to_display)
-        message += "...";
-}
 #endif
 
 ScopeMarker::ScopeMarker(const char* function)
     : function(function)
 {
     Logger& logger = Logger::GetLogger(NULL, true);
+#if 1//clark
+    logger.LogGeneral(INFO, "BEGIN", this->function.c_str());
+#else
     logger.LogMessage("BEGIN", this->function.c_str());
+#endif
 }
 
 ScopeMarker::~ScopeMarker()
 {
     Logger& logger = Logger::GetLogger(NULL, true);
+#if 1//clark
+    logger.LogGeneral(INFO, "END", function.c_str());
+#else
     logger.LogMessage("END", function.c_str());
+#endif
 }

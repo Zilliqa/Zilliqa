@@ -42,15 +42,6 @@ private:
     void checkLog();
     void newLog();
 
-#if 1//clark
-    void InitMsg(std::string& message);
-    void AppendMsg(std::string& message, const char* msg);
-    void AppendFunction(std::string& message, const char* function);
-    void AppendEpoch(std::string& message, const char* epoch);
-    void AppendPayload(std::string& message, const std::vector<unsigned char>& payload, size_t max_bytes_to_display);
-    void Log(LEVELS level, std::string msg);
-#endif
-
     std::string fname_prefix;
     std::string fname;
     std::ofstream logfile;
@@ -82,7 +73,7 @@ public:
     /// Returns the singleton instance for the state/reporting Logger.
     static Logger& GetStateLogger(const char* fname_prefix, bool log_to_file,
                                   std::streampos max_file_size = MAX_FILE_SIZE);
-
+#if 0//clark
     /// Outputs the specified message and function name to the main log.
     void LogMessage(const char* msg, const char* function);
 
@@ -93,15 +84,17 @@ public:
     void LogMessage(const char* msg, const char* function,
 #endif
                     const char* blockNum);
-
+#endif
     /// Outputs the specified message and function name to the state/reporting log.
     void LogState(const char* msg, const char* function);
 
+#if 0//clark
     /// Outputs the specified message, function name, and payload to the main log.
     void LogMessageAndPayload(const char* msg,
                               const std::vector<unsigned char>& payload,
                               size_t max_bytes_to_display,
                               const char* function);
+#endif
 #if 1//clark
     /// Outputs the specified message and function name to the main log.
     void LogGeneral(LEVELS level, const char* msg, const char* function);
@@ -114,7 +107,8 @@ public:
                               const std::vector<unsigned char>& payload,
                               size_t max_bytes_to_display,
                               const char* function);
-
+#endif
+#if 1//clark
     /// Setup the display debug level
     ///     INFO: display all message
     ///     WARNING: display warning and fatal message
@@ -183,24 +177,26 @@ public:
     {                                                                          \
         std::ostringstream oss;                                                \
         oss << msg;                                                            \
-        Logger::GetStateLogger(NULL, true)                                     \
+        Logger::GetLogger(NULL, true)                                          \
             .LogGeneral(level, oss.str().c_str(), __FUNCTION__);               \
     }
 #define LOG_EPOCH(level, msg, epoch)                                           \
     {                                                                          \
         std::ostringstream oss;                                                \
         oss << msg;                                                            \
-        Logger::GetStateLogger(NULL, true)                                     \
-            .LogEpoch(level, oss.str().c_str(), epoch, __FUNCTION__);          \
+        Logger::GetLogger(NULL, true)                                          \
+            .LogEpoch(level, epoch, oss.str().c_str(), __FUNCTION__);          \
     }
 #define LOG_PAYLOADING(level, msg, payload, max_bytes_to_display)              \
     {                                                                          \
         std::ostringstream oss;                                                \
         oss << msg;                                                            \
-        Logger::GetStateLogger(NULL, true)                                     \
+        Logger::GetLogger(NULL, true)                                          \
             .LogPayload(level, oss.str().c_str(), payload,                     \
                                   max_bytes_to_display, __FUNCTION__);         \
     }
+#endif
+#if 1//clark
 #define LOG_DISPLAY_LEVEL_ABOVE(level)                                         \
     {                                                                          \
         Logger::GetLogger(NULL, true)                                          \
