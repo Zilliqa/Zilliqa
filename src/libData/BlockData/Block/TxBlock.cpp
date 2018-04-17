@@ -88,7 +88,7 @@ int TxBlock::Deserialize(const vector<unsigned char>& src, unsigned int offset)
         TxBlockHeader header;
         if (header.Deserialize(src, offset) != 0)
         {
-            LOG_GENERAL(INFO, "Error. We failed to deserialize header.");
+            LOG_GENERAL(WARNING, "We failed to deserialize header.");
             return -1;
         }
         m_header = header;
@@ -146,7 +146,7 @@ TxBlock::TxBlock(const vector<unsigned char>& src, unsigned int offset)
 {
     if (Deserialize(src, offset) != 0)
     {
-        LOG_GENERAL(INFO, "Error. We failed to init TxBlock.");
+        LOG_GENERAL(WARNING, "We failed to init TxBlock.");
     }
 }
 

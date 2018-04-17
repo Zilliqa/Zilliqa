@@ -131,7 +131,7 @@ int Transaction::Deserialize(const vector<unsigned char>& src,
         // m_senderPubKey.Deserialize(src, curOffset);
         if (m_senderPubKey.Deserialize(src, curOffset) != 0)
         {
-            LOG_GENERAL(INFO, "Error. We failed to init m_senderPubKey.");
+            LOG_GENERAL(WARNING, "We failed to init m_senderPubKey.");
             return -1;
         }
         curOffset += PUB_KEY_SIZE;
@@ -233,7 +233,7 @@ bool Transaction::Verify(const Transaction& tran)
     Signature sign;
     if (sign.Deserialize(sign_ser, 0) != 0)
     {
-        LOG_GENERAL(INFO, "Error. We failed to deserialize sign.");
+        LOG_GENERAL(WARNING, "We failed to deserialize sign.");
         return false;
     }
 

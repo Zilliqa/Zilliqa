@@ -47,7 +47,7 @@ bool PeerManager::ProcessHello(const vector<unsigned char>& message,
         // key.Deserialize(message, offset);
         if (key.Deserialize(message, offset) != 0)
         {
-            LOG_GENERAL(INFO, "Error. We failed to deserialize PubKey.");
+            LOG_GENERAL(WARNING, "We failed to deserialize PubKey.");
             return false;
         }
 
@@ -85,7 +85,7 @@ bool PeerManager::ProcessAddPeer(const vector<unsigned char>& message,
         // key.Deserialize(message, offset);
         if (key.Deserialize(message, offset) != 0)
         {
-            LOG_GENERAL(INFO, "Error. We failed to deserialize PubKey.");
+            LOG_GENERAL(WARNING, "We failed to deserialize PubKey.");
             return false;
         }
 

@@ -28,7 +28,7 @@ DSBlock::DSBlock(const vector<unsigned char>& src, unsigned int offset)
 {
     if (Deserialize(src, offset) != 0)
     {
-        LOG_GENERAL(INFO, "Error. We failed to init DSBlock.");
+        LOG_GENERAL(WARNING, "We failed to init DSBlock.");
     }
 }
 
@@ -75,7 +75,7 @@ int DSBlock::Deserialize(const vector<unsigned char>& src, unsigned int offset)
         DSBlockHeader header;
         if (header.Deserialize(src, offset) != 0)
         {
-            LOG_GENERAL(INFO, "Error. We failed to init DSBlockHeader.");
+            LOG_GENERAL(WARNING, "We failed to init DSBlockHeader.");
             return -1;
         }
         m_header = header;

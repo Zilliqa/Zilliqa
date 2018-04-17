@@ -17,7 +17,7 @@ Account::Account(const vector<unsigned char>& src, unsigned int offset)
 {
     if (Deserialize(src, offset) != 0)
     {
-        LOG_GENERAL(INFO, "Error. We failed to init Account.");
+        LOG_GENERAL(WARNING, "We failed to init Account.");
     }
 }
 

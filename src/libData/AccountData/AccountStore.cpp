@@ -123,7 +123,7 @@ int AccountStore::Deserialize(const vector<unsigned char>& src,
             // account.Deserialize(src, curOffset);
             if (account.Deserialize(src, curOffset) != 0)
             {
-                LOG_GENERAL(INFO, "Error. We failed to init account.");
+                LOG_GENERAL(WARNING, "We failed to init account.");
                 return -1;
             }
             curOffset += ACCOUNT_SIZE;
