@@ -50,6 +50,7 @@ int main(int argc, const char* argv[])
     Print(pubkey);
     cout << " ";
     Print(privkey);
+    cout << '\n';
 
     return 0;
 }
