@@ -2,44 +2,36 @@
 FROM ubuntu:16.04
 
 #--------------------------------------------------------------------
-# PACKAGES - UPDATE DATABASE
+# PACKAGES
 #--------------------------------------------------------------------
-RUN apt-get -qq update
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    ca-certificates \
+    cmake \
+    git \
+    libboost-filesystem-dev \
+    libboost-system-dev \
+    libboost-test-dev \
+    libjsoncpp-dev \
+    libjsonrpccpp-dev \
+    libleveldb-dev \
+    libmicrohttpd-dev \
+    libsnappy-dev \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 #--------------------------------------------------------------------
-# PACKAGES - BUILDING
+# BUILDING
 #--------------------------------------------------------------------
-RUN apt-get install -y pkg-config
-RUN apt-get install -y build-essential
-RUN apt-get install -y cmake
-RUN apt-get install -y git
-
-#--------------------------------------------------------------------
-# PACKAGES - SOURCE DEPENDENCIES
-#--------------------------------------------------------------------
-RUN apt-get install -y libboost-all-dev
-RUN apt-get install -y libssl-dev
-RUN apt-get install -y libleveldb-dev
-RUN apt-get install -y libjsoncpp-dev
-RUN apt-get install -y libsnappy-dev
-RUN apt-get install -y libmicrohttpd-dev
-RUN apt-get install -y libjsonrpccpp-dev
-
-#--------------------------------------------------------------------
-# GET SOURCES
-#--------------------------------------------------------------------
+ARG BRANCH=feature/docker
 ARG REPO=https://github.com/Zilliqa/Zilliqa.git
-ARG BRANCH=master
 
-RUN git clone -b ${BRANCH} ${REPO}
+ENV Z_INSTALL_PREFIX=/zilliqa
+ENV LD_LIBRARY_PATH=${Z_INSTALL_PREFIX}/lib
 
-#--------------------------------------------------------------------
-# CONFIGURE
-#--------------------------------------------------------------------
-ARG CONFIG=Debug
-
-WORKDIR Zilliqa
-RUN cmake -DCMAKE_BUILD_TYPE=${CONFIG} .
-RUN cmake --build .
+RUN git clone -b ${BRANCH} --depth=1 ${REPO} && \
+    cd Zilliqa && mkdir build && cd build && \
+    cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo .. && \
+    make -j4 && mv bin .. && cd .. && rm -rf build
 
 ENTRYPOINT ["/bin/bash"]
