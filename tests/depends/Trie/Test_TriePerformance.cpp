@@ -60,7 +60,7 @@ BOOST_AUTO_TEST_CASE(TestSecureTrieDB)
         if (i % 1000 == 0 && i > 0)
         {
             auto t_end = std::chrono::high_resolution_clock::now();
-            LOG_MESSAGE(
+            LOG_GENERAL(INFO,
                 "Time for "
                 << i / 1000 << "k insertions: "
                 << (std::chrono::duration<double, std::milli>(t_end - t_start)
@@ -71,10 +71,10 @@ BOOST_AUTO_TEST_CASE(TestSecureTrieDB)
     clock_t end = clock();
     float seconds = (float)(end - start) / CLOCKS_PER_SEC;
 
-    LOG_MESSAGE("CPU time: " << seconds);
+    LOG_GENERAL(INFO, "CPU time: " << seconds);
 
     auto t_end = std::chrono::high_resolution_clock::now();
-    LOG_MESSAGE(
+    LOG_GENERAL(INFO,
         "SecureTrie Time for 10k insertions: "
         << (std::chrono::duration<double, std::milli>(t_end - t_start).count())
         << " ms");
@@ -104,7 +104,7 @@ BOOST_AUTO_TEST_CASE(TestSecureTrieDBWithDifferentAddress)
         if (i % 1000 == 0 && i > 0)
         {
             auto t_end = std::chrono::high_resolution_clock::now();
-            LOG_MESSAGE(
+            LOG_GENERAL(INFO,
                 "Time for "
                 << i / 1000 << "k insertions: "
                 << (std::chrono::duration<double, std::milli>(t_end - t_start)
@@ -115,10 +115,10 @@ BOOST_AUTO_TEST_CASE(TestSecureTrieDBWithDifferentAddress)
     clock_t end = clock();
     float seconds = (float)(end - start) / CLOCKS_PER_SEC;
 
-    LOG_MESSAGE("CPU Time: " << seconds);
+    LOG_GENERAL(INFO, "CPU Time: " << seconds);
 
     auto t_end = std::chrono::high_resolution_clock::now();
-    LOG_MESSAGE(
+    LOG_GENERAL(INFO,
         "SecureTrie (different address) Time for 10k insertions: "
         << (std::chrono::duration<double, std::milli>(t_end - t_start).count())
         << " ms");
@@ -142,7 +142,7 @@ BOOST_AUTO_TEST_CASE(TestMemoryDB)
         if (i % 1000 == 0 && i > 0)
         {
             auto t_end = std::chrono::high_resolution_clock::now();
-            LOG_MESSAGE(
+            LOG_GENERAL(INFO,
                 "Time for "
                 << i / 1000 << "k insertions: "
                 << (std::chrono::duration<double, std::milli>(t_end - t_start)
@@ -152,7 +152,7 @@ BOOST_AUTO_TEST_CASE(TestMemoryDB)
     }
 
     auto t_end = std::chrono::high_resolution_clock::now();
-    LOG_MESSAGE(
+    LOG_GENERAL(INFO,
         "Memory DB Time for 10k insertions: "
         << (std::chrono::duration<double, std::milli>(t_end - t_start).count())
         << " ms");

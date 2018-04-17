@@ -46,7 +46,7 @@ bool DirectoryService::CheckWhetherMaxSubmissionsReceived(Peer peer, PubKey key)
 
     if (m_allPoW1s.size() >= MAX_POW1_WINNERS)
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                      "Already validated maximum number of PoW1 submissions - "
                      "dropping this submission but noting down the IP of "
                      "submitter");
@@ -78,10 +78,10 @@ bool DirectoryService::VerifyPoW1Submission(
         message, curr_offset, BLOCK_HASH_SIZE);
 
     // Log all values
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                  "Winner Public_key             = 0x"
                      << DataConversion::SerializableToHexStr(key));
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                  "Winner Peer ip addr           = "
                      << from.GetPrintableIPAddress() << ":" << portNo);
 
@@ -93,7 +93,7 @@ bool DirectoryService::VerifyPoW1Submission(
         = POW1_DIFFICULTY; // TODO: Need to get the latest blocknum, diff, rand1, rand2
     // Verify nonce
     block_num = m_mediator.m_dsBlockChain.GetBlockCount();
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                  "dsblock_num            = " << block_num);
 
 #ifdef STAT_TEST
@@ -105,7 +105,7 @@ bool DirectoryService::VerifyPoW1Submission(
         nonce, winning_hash, winning_mixhash);
 
 #ifdef STAT_TEST
-    LOG_MESSAGE2(
+    LOG_EPOCH(INFO,
         to_string(m_mediator.m_currentEpochNum).c_str(),
         "[POWSTAT] pow1 verify (microsec): " << r_timer_end(m_timespec));
 #endif // STAT_TEST
@@ -142,7 +142,7 @@ bool DirectoryService::ParseMessageAndVerifyPOW1(
     PubKey key;
     if (key.Deserialize(message, curr_offset) != 0)
     {
-        LOG_MESSAGE("Error. We failed to deserialize PubKey.");
+        LOG_GENERAL(INFO, "Error. We failed to deserialize PubKey.");
         return false;
     }
     curr_offset += PUB_KEY_SIZE;
@@ -157,7 +157,7 @@ bool DirectoryService::ParseMessageAndVerifyPOW1(
     // if ((m_state != POW1_SUBMISSION) && (m_state != DSBLOCK_CONSENSUS_PREP))
     if (!CheckState(VERIFYPOW1))
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                      "Too late - current state is "
                          << m_state
                          << ". Don't verify cause I have other work to do. "
@@ -181,12 +181,12 @@ bool DirectoryService::ParseMessageAndVerifyPOW1(
         // if ((m_state != POW1_SUBMISSION) && (m_state != DSBLOCK_CONSENSUS_PREP))
         if (!CheckState(VERIFYPOW1))
         {
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                          "Too late - current state is " << m_state);
         }
         else
         {
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                          "POW1 verification passed");
             lock(m_mutexAllPOW1, m_mutexAllPoWConns);
             lock_guard<mutex> g(m_mutexAllPOW1, adopt_lock);
@@ -196,7 +196,7 @@ bool DirectoryService::ParseMessageAndVerifyPOW1(
 
             if (m_allPoW1s.size() >= MAX_POW1_WINNERS)
             {
-                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                              "Already validated maximum number of PoW1 "
                              "submissions - dropping this submission but "
                              "noting down the IP of submitter");
@@ -208,14 +208,14 @@ bool DirectoryService::ParseMessageAndVerifyPOW1(
     }
     else
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                      "Invalid PoW1 submission");
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                      "blockNum: " << block_num << " Difficulty: " << difficulty
                                   << " nonce: " << nonce
                                   << " ip: " << peer.GetPrintableIPAddress()
                                   << ":" << portNo);
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                      "rand1: " << DataConversion::charArrToHexStr(rand1)
                                << " rand2: "
                                << DataConversion::charArrToHexStr(rand2));
@@ -243,7 +243,7 @@ bool DirectoryService::ProcessPoW1Submission(
 
             if (i % 10 == 0)
             {
-                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                              "Waiting for POW1_SUBMISSION before processing. "
                              "Current state is "
                                  << m_state);
@@ -256,7 +256,7 @@ bool DirectoryService::ProcessPoW1Submission(
     // if (m_state != POW1_SUBMISSION)
     if (!CheckState(PROCESS_POW1SUBMISSION))
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                      "Not at POW1_SUBMISSION. Current state is " << m_state);
         return false;
     }

@@ -183,8 +183,8 @@ BOOST_AUTO_TEST_CASE(test_performance)
             schnorr.Sign(message_rand, keypair.first, keypair.second, signature)
                 == true,
             "Signing failed");
-        LOG_MESSAGE("Message size  = " << printable_sizes[i]);
-        LOG_MESSAGE("Sign (usec)   = " << r_timer_end(t));
+        LOG_GENERAL(INFO, "Message size  = " << printable_sizes[i]);
+        LOG_GENERAL(INFO, "Sign (usec)   = " << r_timer_end(t));
 
         // Check the generated signature
         BOOST_CHECK_MESSAGE(
@@ -203,8 +203,8 @@ BOOST_AUTO_TEST_CASE(test_performance)
         BOOST_CHECK_MESSAGE(
             schnorr.Verify(message_rand, signature, keypair.second) == true,
             "Signature verification (correct message) failed");
-        LOG_MESSAGE("Message size  = " << printable_sizes[i]);
-        LOG_MESSAGE("Verify (usec) = " << r_timer_end(t));
+        LOG_GENERAL(INFO, "Message size  = " << printable_sizes[i]);
+        LOG_GENERAL(INFO, "Verify (usec) = " << r_timer_end(t));
     }
 }
 

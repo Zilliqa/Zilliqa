@@ -32,7 +32,7 @@ bool ConsensusUser::ProcessSetLeader(const vector<unsigned char>& message,
         && (m_consensus->GetState() != ConsensusCommon::State::DONE)
         && (m_consensus->GetState() != ConsensusCommon::State::ERROR))
     {
-        LOG_MESSAGE("Error: You're trying to set me again but my consensus is "
+        LOG_GENERAL(WARNING, "You're trying to set me again but my consensus is "
                     "still not finished");
         return false;
     }
@@ -77,13 +77,13 @@ bool ConsensusUser::ProcessSetLeader(const vector<unsigned char>& message,
     {
         if (*i == m_selfKey.second)
         {
-            LOG_MESSAGE("My node ID for this consensus is " << my_id);
+            LOG_GENERAL(INFO, "My node ID for this consensus is " << my_id);
             break;
         }
         my_id++;
     }
 
-    LOG_MESSAGE("The leader is using " << peer_info.at(leader_id));
+    LOG_GENERAL(INFO, "The leader is using " << peer_info.at(leader_id));
 
     m_leaderOrBackup = (leader_id != my_id);
 
@@ -114,7 +114,7 @@ bool ConsensusUser::ProcessSetLeader(const vector<unsigned char>& message,
 
     if (m_consensus == nullptr)
     {
-        LOG_MESSAGE("Error: Consensus object creation failed");
+        LOG_GENERAL(WARNING, "Consensus object creation failed");
         return false;
     }
 
@@ -130,20 +130,20 @@ bool ConsensusUser::ProcessStartConsensus(const vector<unsigned char>& message,
 
     if (m_consensus == nullptr)
     {
-        LOG_MESSAGE("Error: You didn't set me yet");
+        LOG_GENERAL(WARNING, "You didn't set me yet");
         return false;
     }
 
     if (m_consensus->GetState() != ConsensusCommon::State::INITIAL)
     {
-        LOG_MESSAGE("Error: You already called me before. Set me again first.");
+        LOG_GENERAL(WARNING, "You already called me before. Set me again first.");
         return false;
     }
 
     ConsensusLeader* cl = dynamic_cast<ConsensusLeader*>(m_consensus.get());
     if (cl == NULL)
     {
-        LOG_MESSAGE("Error: I'm a backup, you can't start consensus "
+        LOG_GENERAL(WARNING, "I'm a backup, you can't start consensus "
                     "(announcement) thru me");
         return false;
     }
@@ -165,7 +165,7 @@ bool ConsensusUser::ProcessConsensusMessage(
 
     if (m_consensus->GetState() == ConsensusCommon::State::DONE)
     {
-        LOG_MESSAGE("Consensus is DONE!!!");
+        LOG_GENERAL(INFO, "Consensus is DONE!!!");
 
         vector<unsigned char> tmp;
         m_consensus->RetrieveCollectiveSig(tmp, 0);
@@ -226,7 +226,7 @@ bool ConsensusUser::Execute(const vector<unsigned char>& message,
     }
     else
     {
-        LOG_MESSAGE("Unknown instruction byte " << hex
+        LOG_GENERAL(INFO, "Unknown instruction byte " << hex
                                                 << (unsigned int)ins_byte);
     }
 
@@ -242,7 +242,7 @@ bool ConsensusUser::MyMsgValidatorFunc(const vector<unsigned char>& message,
 #else
     LOG_PAYLOAD("Message", message, Logger::MAX_BYTES_TO_DISPLAY);
 #endif
-    LOG_MESSAGE("Message is valid. I don't really care...");
+    LOG_GENERAL(INFO, "Message is valid. I don't really care...");
 
     return true;
 }

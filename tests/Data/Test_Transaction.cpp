@@ -95,7 +95,7 @@ BOOST_AUTO_TEST_CASE(test1)
         LOG_PAYLOAD("SERIALZED", message1, Logger::MAX_BYTES_TO_DISPLAY);
 #endif
     }
-    LOG_MESSAGE("address 1" << fromCheck.hex());
+    LOG_GENERAL(INFO, "address 1" << fromCheck.hex());
     std::vector<unsigned char> message2;
     tx2.Serialize(message2, 0);
 
@@ -126,14 +126,14 @@ BOOST_AUTO_TEST_CASE(test1)
 #else
     LOG_PAYLOAD("Transaction2 tranID", byteVec, Logger::MAX_BYTES_TO_DISPLAY);
 #endif
-    LOG_MESSAGE("Checking Serialization");
+    LOG_GENERAL(INFO, "Checking Serialization");
     BOOST_CHECK_MESSAGE(tx1 == tx2, "Not serialized properly");
 
-    LOG_MESSAGE("Transaction2 version: " << version2);
+    LOG_GENERAL(INFO, "Transaction2 version: " << version2);
     BOOST_CHECK_MESSAGE(version2 == 1,
                         "expected: " << 1 << " actual: " << version2 << "\n");
 
-    LOG_MESSAGE("Transaction2 nonce: " << nonce2);
+    LOG_GENERAL(INFO, "Transaction2 nonce: " << nonce2);
     BOOST_CHECK_MESSAGE(nonce2 == 5,
                         "expected: " << 5 << " actual: " << nonce2 << "\n");
 
@@ -158,7 +158,7 @@ BOOST_AUTO_TEST_CASE(test1)
     BOOST_CHECK_MESSAGE(fromCheck == fromAddr2,
                         "PubKey not converted properly");
 
-    LOG_MESSAGE("Transaction2 amount: " << amount2);
+    LOG_GENERAL(INFO, "Transaction2 amount: " << amount2);
     BOOST_CHECK_MESSAGE(amount2 == 55,
                         "expected: " << 55 << " actual: " << amount2 << "\n");
 
@@ -197,7 +197,7 @@ BOOST_AUTO_TEST_CASE(test1)
     Serializable::SetNumber<uint256_t>(byteVec, curOffset, 100, UINT256_SIZE);
     curOffset += UINT256_SIZE;
 
-    LOG_MESSAGE("Size :" << byteVec.size() << " VectorHex: "
+    LOG_GENERAL(INFO, "Size :" << byteVec.size() << " VectorHex: "
                          << DataConversion::Uint8VecToHexStr(byteVec));
 
     Signature sign;
@@ -228,7 +228,7 @@ BOOST_AUTO_TEST_CASE(test1)
     // BOOST_CHECK_MESSAGE(pred2.GetAccConOp() == 2, "expected: "<<2<<" actual: "<<pred2.GetAccConOp()<<"\n");
 
     // uint256_t accConBalance2 = pred2.GetAccConBalance();
-    // LOG_MESSAGE("Transaction2 predicate accConBalance: " << accConBalance2);
+    // LOG_GENERAL(INFO, "Transaction2 predicate accConBalance: " << accConBalance2);
     // BOOST_CHECK_MESSAGE(accConBalance2 == 1, "expected: "<<1<<" actual: "<<accConBalance2<<"\n");
 
     // byteVec.clear();
@@ -245,7 +245,7 @@ BOOST_AUTO_TEST_CASE(test1)
     // BOOST_CHECK_MESSAGE(pred2.GetTxConOp() == 1, "expected: "<<1<<" actual: "<<pred2.GetTxConOp()<<"\n");
 
     // uint256_t txConAmount2 = pred2.GetTxConAmount();
-    // LOG_MESSAGE("Transaction2 predicate txConAmount: " << txConAmount2);
+    // LOG_GENERAL(INFO, "Transaction2 predicate txConAmount: " << txConAmount2);
     // BOOST_CHECK_MESSAGE(txConAmount2 == 33, "expected: "<<55<<" actual: "<<txConAmount2<<"\n");
 
     // byteVec.clear();

@@ -79,13 +79,13 @@ void P2PComm::SendMessageCore(const Peer& peer,
     while (!SendMessageSocketCore(peer, message, start_byte, msg_hash))
     {
         retry_counter++;
-        LOG_MESSAGE("Error: Socket connect failed "
+        LOG_GENERAL(WARNING, "Socket connect failed "
                     << retry_counter << "/" << MAXRETRYCONN
                     << ". IP address: " << peer);
 
         if (retry_counter > MAXRETRYCONN)
         {
-            LOG_MESSAGE("Error: Socket connect failed over " << MAXRETRYCONN
+            LOG_GENERAL(WARNING, "Socket connect failed over " << MAXRETRYCONN
                                                              << " times.");
             return;
         }
@@ -109,12 +109,12 @@ bool P2PComm::SendMessageSocketCore(const Peer& peer,
 
     if (peer.m_ipAddress == 0 && peer.m_listenPortHost == 0)
     {
-        LOG_MESSAGE("I am sending to 0.0.0.0 at port 0. Don't send anything.");
+        LOG_GENERAL(INFO, "I am sending to 0.0.0.0 at port 0. Don't send anything.");
         return true;
     }
     else if (peer.m_listenPortHost == 0)
     {
-        LOG_MESSAGE("I am sending to " << peer.GetPrintableIPAddress()
+        LOG_GENERAL(INFO, "I am sending to " << peer.GetPrintableIPAddress()
                                        << " at port 0. Investigate why!");
         return true;
     }
@@ -131,7 +131,7 @@ bool P2PComm::SendMessageSocketCore(const Peer& peer,
         signal(SIGPIPE, SIG_IGN);
         if (cli_sock < 0)
         {
-            LOG_MESSAGE("Error: Socket creation failed. Code = "
+            LOG_GENERAL(WARNING, "Socket creation failed. Code = "
                         << errno << " Desc: " << std::strerror(errno)
                         << ". IP address: " << peer);
             return false;
@@ -146,7 +146,7 @@ bool P2PComm::SendMessageSocketCore(const Peer& peer,
         if (connect(cli_sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr))
             < 0)
         {
-            LOG_MESSAGE("Error: Socket connect failed. Code = "
+            LOG_GENERAL(WARNING, "Socket connect failed. Code = "
                         << errno << " Desc: " << std::strerror(errno)
                         << ". IP address: " << peer);
             return false;
@@ -182,8 +182,8 @@ bool P2PComm::SendMessageSocketCore(const Peer& peer,
                           HDR_LEN - written_length);
             if (n <= 0)
             {
-                LOG_MESSAGE(
-                    "Error: Socket write failed in message header. Code = "
+                LOG_GENERAL(WARNING,
+                    "Socket write failed in message header. Code = "
                     << errno << " Desc: " << std::strerror(errno)
                     << ". IP address:" << peer);
                 return false;
@@ -200,8 +200,8 @@ bool P2PComm::SendMessageSocketCore(const Peer& peer,
                               HASH_LEN - written_length);
                 if (n <= 0)
                 {
-                    LOG_MESSAGE(
-                        "Error: Socket write failed in hash header. Code = "
+                    LOG_GENERAL(WARNING,
+                        "Socket write failed in hash header. Code = "
                         << errno << " Desc: " << std::strerror(errno));
                     return false;
                 }
@@ -214,7 +214,7 @@ bool P2PComm::SendMessageSocketCore(const Peer& peer,
             }
             else
             {
-                LOG_MESSAGE("Error: Wrong message hash length.");
+                LOG_GENERAL(WARNING, "Wrong message hash length.");
                 return false;
             }
 
@@ -231,7 +231,7 @@ bool P2PComm::SendMessageSocketCore(const Peer& peer,
 
                 if (errno == EPIPE)
                 {
-                    LOG_MESSAGE(" Error: SIGPIPE detected. Error No: "
+                    LOG_GENERAL(WARNING, " SIGPIPE detected. Error No: "
                                 << errno << " Desc: " << std::strerror(errno));
                     return true;
                     // No retry as it is likely the other end terminate the conn due to duplicated msg.
@@ -239,8 +239,8 @@ bool P2PComm::SendMessageSocketCore(const Peer& peer,
 
                 if (n <= 0)
                 {
-                    LOG_MESSAGE(
-                        "Error: Socket write failed in message body. Code = "
+                    LOG_GENERAL(WARNING,
+                        "Socket write failed in message body. Code = "
                         << errno << " Desc: " << std::strerror(errno));
                     return false;
                 }
@@ -249,18 +249,18 @@ bool P2PComm::SendMessageSocketCore(const Peer& peer,
         }
         else
         {
-            LOG_MESSAGE("DEBUG: not written_length == HDR_LEN");
+            LOG_GENERAL(INFO, "DEBUG: not written_length == HDR_LEN");
         }
 
         if (written_length > 1000000)
         {
-            LOG_MESSAGE("DEBUG: Sent a total of " << written_length
+            LOG_GENERAL(INFO, "DEBUG: Sent a total of " << written_length
                                                   << " bytes");
         }
     }
     catch (const std::exception& e)
     {
-        LOG_MESSAGE("ERROR: Error with write socket." << ' ' << e.what());
+        LOG_GENERAL(WARNING, "Error with write socket." << ' ' << e.what());
         return false;
     }
     return true;
@@ -302,7 +302,7 @@ void P2PComm::HandleAcceptedConnection(
 
     unique_ptr<int, void (*)(int*)> cli_sock_closer(&cli_sock, close_socket);
 
-    LOG_MESSAGE("Incoming message from " << from);
+    LOG_GENERAL(INFO, "Incoming message from " << from);
 
     vector<unsigned char> message;
 
@@ -328,7 +328,7 @@ void P2PComm::HandleAcceptedConnection(
         int n = read(cli_sock, buf + read_length, HDR_LEN - read_length);
         if (n <= 0)
         {
-            LOG_MESSAGE("Error: Socket read failed. Code = "
+            LOG_GENERAL(WARNING, "Socket read failed. Code = "
                         << errno << " Desc: " << std::strerror(errno)
                         << ". IP address: " << from);
             return;
@@ -340,7 +340,7 @@ void P2PComm::HandleAcceptedConnection(
           && ((buf[0] == START_BYTE_NORMAL)
               || (buf[0] == START_BYTE_BROADCAST))))
     {
-        LOG_MESSAGE("Error: Header length or type wrong.");
+        LOG_GENERAL(WARNING, "Header length or type wrong.");
         return;
     }
 
@@ -357,7 +357,7 @@ void P2PComm::HandleAcceptedConnection(
                          HASH_LEN - read_length);
             if (n <= 0)
             {
-                LOG_MESSAGE("Error: Socket read failed. Code = "
+                LOG_GENERAL(WARNING, "Socket read failed. Code = "
                             << errno << " Desc: " << std::strerror(errno)
                             << ". IP address: " << from);
                 return;
@@ -385,7 +385,7 @@ void P2PComm::HandleAcceptedConnection(
                                  message_length - HASH_LEN - read_length);
                     if (n <= 0)
                     {
-                        LOG_MESSAGE("Error: Socket read failed. Code = "
+                        LOG_GENERAL(WARNING, "Socket read failed. Code = "
                                     << errno
                                     << " Desc: " << std::strerror(errno)
                                     << ". IP address: " << from);
@@ -403,7 +403,7 @@ void P2PComm::HandleAcceptedConnection(
 
                 if (read_length != message_length - HASH_LEN)
                 {
-                    LOG_MESSAGE("Error: Incorrect message length.");
+                    LOG_GENERAL(WARNING, "Incorrect message length.");
                     return;
                 }
 
@@ -417,7 +417,7 @@ void P2PComm::HandleAcceptedConnection(
                 }
                 else
                 {
-                    LOG_MESSAGE("Error: Incorrect message hash.");
+                    LOG_GENERAL(WARNING, "Incorrect message hash.");
                     return;
                 }
             }
@@ -428,7 +428,7 @@ void P2PComm::HandleAcceptedConnection(
         if (found)
         {
             // We already sent and/or received this message before -> discard
-            LOG_MESSAGE("Discarding duplicate broadcast message");
+            LOG_GENERAL(INFO, "Discarding duplicate broadcast message");
             return;
         }
         else
@@ -475,7 +475,7 @@ void P2PComm::HandleAcceptedConnection(
                          message_length - read_length);
             if (n <= 0)
             {
-                LOG_MESSAGE("Error: Socket read failed. Code = "
+                LOG_GENERAL(WARNING, "Socket read failed. Code = "
                             << errno << " Desc: " << std::strerror(errno)
                             << ". IP address: " << from);
                 return;
@@ -490,7 +490,7 @@ void P2PComm::HandleAcceptedConnection(
 #endif
         if (read_length != message_length)
         {
-            LOG_MESSAGE("Error: Incorrect message length.");
+            LOG_GENERAL(WARNING, "Incorrect message length.");
             return;
         }
 
@@ -510,7 +510,7 @@ void P2PComm::StartMessagePump(
     int serv_sock = socket(AF_INET, SOCK_STREAM, 0);
     if (serv_sock < 0)
     {
-        LOG_MESSAGE("Error: Socket creation failed. Code = "
+        LOG_GENERAL(WARNING, "Socket creation failed. Code = "
                     << errno << " Desc: " << std::strerror(errno));
         return;
     }
@@ -525,7 +525,7 @@ void P2PComm::StartMessagePump(
         = ::bind(serv_sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr));
     if (bind_ret < 0)
     {
-        LOG_MESSAGE("Error: Socket bind failed. Code = "
+        LOG_GENERAL(WARNING, "Socket bind failed. Code = "
                     << errno << " Desc: " << std::strerror(errno));
         return;
     }
@@ -543,10 +543,10 @@ void P2PComm::StartMessagePump(
                 = accept(serv_sock, (struct sockaddr*)&cli_addr, &cli_len);
             if (cli_sock < 0)
             {
-                LOG_MESSAGE("Error: Socket accept failed. Socket ret code: "
+                LOG_GENERAL(WARNING, "Socket accept failed. Socket ret code: "
                             << cli_sock << ". TCP error code = " << errno
                             << " Desc: " << std::strerror(errno));
-                LOG_MESSAGE("DEBUG: I can't accept any incoming conn. I am "
+                LOG_GENERAL(INFO, "DEBUG: I can't accept any incoming conn. I am "
                             "sleeping for "
                             << PUMPMESSAGE_MILLISECONDS << "ms");
                 this_thread::sleep_for(
@@ -555,7 +555,7 @@ void P2PComm::StartMessagePump(
             }
 
             Peer from(uint128_t(cli_addr.sin_addr.s_addr), cli_addr.sin_port);
-            LOG_MESSAGE("DEBUG: I got an incoming message from "
+            LOG_GENERAL(INFO, "DEBUG: I got an incoming message from "
                         << from.GetPrintableIPAddress());
             auto func = [this, cli_sock, from, dispatcher,
                          broadcast_list_retriever]() -> void {
@@ -566,7 +566,7 @@ void P2PComm::StartMessagePump(
         }
         catch (const std::exception& e)
         {
-            LOG_MESSAGE("Error: Socket accept error" << ' ' << e.what());
+            LOG_GENERAL(WARNING, "Socket accept error" << ' ' << e.what());
         }
     }
 }

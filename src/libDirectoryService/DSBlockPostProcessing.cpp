@@ -43,7 +43,7 @@ void DirectoryService::StoreDSBlockToStorage()
     LOG_MARKER();
     lock_guard<mutex> g(m_mutexPendingDSBlock);
     int result = m_mediator.m_dsBlockChain.AddBlock(*m_pendingDSBlock);
-    LOG_MESSAGE2(
+    LOG_EPOCH(INFO,
         to_string(m_mediator.m_currentEpochNum).c_str(),
         "Storing DS Block Number: "
             << m_pendingDSBlock->GetHeader().GetBlockNum()
@@ -54,7 +54,7 @@ void DirectoryService::StoreDSBlockToStorage()
             << m_pendingDSBlock->GetHeader().GetViewChangeCount());
     if (result == -1)
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                      "Error. We failed to add pendingdsblock to dsblockchain.");
         // throw exception();
     }
@@ -88,10 +88,10 @@ bool DirectoryService::SendDSBlockToLookupNodes(DSBlock& lastDSBlock,
     // 16-byte winner IP and 4-byte winner port
     winnerpeer.Serialize(dsblock_message, curr_offset);
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                  "I the primary DS am sending the DSBlock to the lookup nodes");
     m_mediator.m_lookup->SendMessageToLookupNodes(dsblock_message);
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                  "I the primary DS have sent the DSBlock to the lookup nodes");
 
     return true;
@@ -109,16 +109,16 @@ void DirectoryService::DetermineNodesToSendDSBlockTo(
     // Message = [259-byte DS block] [32-byte DS block hash / rand1] [16-byte winner IP] [4-byte winner port]
     LOG_MARKER();
 
-    LOG_MESSAGE2(
+    LOG_EPOCH(INFO,
         to_string(m_mediator.m_currentEpochNum).c_str(),
         "New DSBlock created with chosen nonce   = 0x"
             << hex
             << m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetNonce());
-    LOG_MESSAGE2(
+    LOG_EPOCH(INFO,
         to_string(m_mediator.m_currentEpochNum).c_str(),
         "New DSBlock hash is                     = 0x"
             << DataConversion::charArrToHexStr(m_mediator.m_dsBlockRand));
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                  "New DS leader (PoW1 winner) IP          = "
                      << winnerpeer.GetPrintableIPAddress() << ":"
                      << winnerpeer.m_listenPortHost);
@@ -184,7 +184,7 @@ void DirectoryService::SendDSBlockToCluster(
         p++;
     }
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                  "Multicasting DSBLOCK message to PoW1 nodes "
                      << my_pow1nodes_cluster_lo << " to "
                      << my_pow1nodes_cluster_hi);
@@ -216,7 +216,7 @@ void DirectoryService::UpdateMyDSModeAndConsensusId()
     // If I was DS primary, now I will only be DS backup
     if (m_mode == PRIMARY_DS)
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                      "I am now just a backup DS");
         m_mode = BACKUP_DS;
         m_consensusMyID++;
@@ -232,7 +232,7 @@ void DirectoryService::UpdateMyDSModeAndConsensusId()
     else if ((uint32_t)(m_consensusMyID + 1)
              == m_mediator.m_DSCommitteeNetworkInfo.size())
     {
-        LOG_MESSAGE2(
+        LOG_EPOCH(INFO,
             to_string(m_mediator.m_currentEpochNum).c_str(),
             "I am the oldest backup DS -> now kicked out of DS committee :-(");
         m_mediator.m_node->SetState(Node::NodeState::POW2_SUBMISSION);
@@ -279,7 +279,7 @@ void DirectoryService::ScheduleShardingConsensus(const unsigned int wait_window)
     LOG_MARKER();
 
     auto func = [this, wait_window]() -> void {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                      "Waiting " << wait_window
                                 << " seconds, accepting PoW2 submissions...");
         this_thread::sleep_for(chrono::seconds(wait_window));
@@ -291,7 +291,7 @@ void DirectoryService::ScheduleShardingConsensus(const unsigned int wait_window)
 void DirectoryService::ProcessDSBlockConsensusWhenDone(
     const vector<unsigned char>& message, unsigned int offset)
 {
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                  "DS block consensus is DONE!!!");
 
 #ifdef STAT_TEST
@@ -318,8 +318,8 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
         if (m_pendingDSBlock->GetHeader().GetBlockNum()
             == m_mediator.m_dsBlockChain.GetBlockCount() + 1)
         {
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Error: We are missing some blocks. What to do here?");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                         "We are missing some blocks. What to do here?");
         }
     }
 
@@ -335,7 +335,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
         winnerpeer = m_allPoWConns.at(lastDSBlock.GetHeader().GetMinerPubKey());
     }
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                  "DSBlock to be sent to the lookup nodes");
 
     // TODO: Refine this
@@ -346,7 +346,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     if (m_consensusMyID > nodeToSendToLookUpLo
         && m_consensusMyID < nodeToSendToLookUpHi)
     {
-        LOG_MESSAGE2(
+        LOG_EPOCH(INFO,
             to_string(m_mediator.m_currentEpochNum).c_str(),
             "I the DS folks that will soon be sending the DSBlock to the "
             "lookup nodes");
@@ -420,7 +420,7 @@ bool DirectoryService::ProcessDSBlockConsensus(
 
             if (i % 100 == 0)
             {
-                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                              "Waiting for DSBLOCK_CONSENSUS before processing. "
                              "Time elapsed: "
                                  << (i / 10) << "seconds");
@@ -434,7 +434,7 @@ bool DirectoryService::ProcessDSBlockConsensus(
 
     if (!CheckState(PROCESS_DSBLOCKCONSENSUS))
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                      "Ignoring consensus message");
         return false;
     }
@@ -450,9 +450,9 @@ bool DirectoryService::ProcessDSBlockConsensus(
     }
     else if (state == ConsensusCommon::State::ERROR)
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                      "Oops, no consensus reached - what to do now???");
-        LOG_MESSAGE2(
+        LOG_EPOCH(INFO,
             to_string(m_mediator.m_currentEpochNum).c_str(),
             "DEBUG for verify sig m_allPoWConns  size is "
                 << m_allPoWConns.size()
@@ -463,7 +463,7 @@ bool DirectoryService::ProcessDSBlockConsensus(
     }
     else
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                      "Consensus state = " << state);
     }
 

@@ -111,7 +111,7 @@ public:
             }
             catch (const std::system_error& e)
             {
-                LOG_MESSAGE("Error: Caught system_error with code "
+                LOG_GENERAL(WARNING, "Caught system_error with code "
                             << e.code() << " meaning " << e.what() << '\n');
             }
         }

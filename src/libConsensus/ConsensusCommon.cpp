@@ -133,10 +133,10 @@ bool ConsensusCommon::VerifyMessage(const vector<unsigned char>& msg,
 
     if (result == false)
     {
-        LOG_MESSAGE("Peer id: " << peer_id << " pubkey: 0x"
+        LOG_GENERAL(INFO, "Peer id: " << peer_id << " pubkey: 0x"
                                 << DataConversion::SerializableToHexStr(
                                        m_pubKeys.at(peer_id)));
-        LOG_MESSAGE("pubkeys size: " << m_pubKeys.size());
+        LOG_GENERAL(INFO, "pubkeys size: " << m_pubKeys.size());
     }
     return result;
 }
@@ -227,8 +227,8 @@ bool ConsensusCommon::RetrieveCollectiveSig(vector<unsigned char>& dst,
 
     if (m_state != DONE)
     {
-        LOG_MESSAGE(
-            "Error: Retrieving collectivesig when consensus is still ongoing");
+        LOG_GENERAL(WARNING,
+            "Retrieving collectivesig when consensus is still ongoing");
         return false;
     }
 
@@ -245,7 +245,7 @@ ConsensusCommon::RetrieveCollectiveSigBitmap(vector<unsigned char>& dst,
 
     if (m_state != DONE)
     {
-        LOG_MESSAGE("Error: Retrieving collectivesig bit map when consensus is "
+        LOG_GENERAL(WARNING, "Retrieving collectivesig bit map when consensus is "
                     "still ongoing");
         return 0;
     }

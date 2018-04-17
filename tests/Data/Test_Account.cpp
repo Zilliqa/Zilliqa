@@ -40,7 +40,7 @@ BOOST_AUTO_TEST_CASE(test1)
 
     acc1.IncreaseBalance(10);
     acc1.DecreaseBalance(120);
-    LOG_MESSAGE("Account1 balance: " << acc1.GetBalance());
+    LOG_GENERAL(INFO, "Account1 balance: " << acc1.GetBalance());
 
     std::vector<unsigned char> message1;
     acc1.Serialize(message1, 0);
@@ -62,7 +62,7 @@ BOOST_AUTO_TEST_CASE(test1)
 #endif
 
     boost::multiprecision::uint256_t acc2Balance = acc2.GetBalance();
-    LOG_MESSAGE("Account2 balance: " << acc2Balance);
+    LOG_GENERAL(INFO, "Account2 balance: " << acc2Balance);
     BOOST_CHECK_MESSAGE(acc2Balance == 110,
                         "expected: " << 100 << " actual: " << acc2Balance
                                      << "\n");

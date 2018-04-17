@@ -187,7 +187,7 @@ public:
         Logger::GetLogger(NULL, true)                                          \
             .LogEpoch(level, epoch, oss.str().c_str(), __FUNCTION__);          \
     }
-#define LOG_PAYLOAD(level, msg, payload, max_bytes_to_display)              \
+#define LOG_PAYLOAD(level, msg, payload, max_bytes_to_display)                 \
     {                                                                          \
         std::ostringstream oss;                                                \
         oss << msg;                                                            \
@@ -212,10 +212,5 @@ public:
         Logger::GetLogger(NULL, true)                                          \
             .DisableLevel(level);                                              \
     }
-
-/* Deprecated */
-#define LOG_MESSAGE(msg) LOG_GENERAL(INFO, msg)
-/* Deprecated */
-#define LOG_MESSAGE2(blockNum, msg) LOG_EPOCH(WARNING, blockNum, msg)
 #endif
 #endif // __LOGGER_H__

@@ -56,7 +56,7 @@ void Zilliqa::LogSelfNodeInfo(const std::pair<PrivKey, PubKey>& key,
     Address toAddr;
     copy(tmp3.end() - ACC_ADDR_SIZE, tmp3.end(), toAddr.asArray().begin());
 
-    LOG_MESSAGE("My address is " << toAddr << " and port is "
+    LOG_GENERAL(INFO, "My address is " << toAddr << " and port is "
                                  << peer.m_listenPortHost);
 }
 
@@ -91,7 +91,7 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
 #endif // STAT_TEST
 
 #ifndef IS_LOOKUP_NODE
-    LOG_MESSAGE("I am a normal node.");
+    LOG_GENERAL(INFO, "I am a normal node.");
 
     if (toSyncWithNetwork && !toRetrieveHistory)
     {
@@ -99,14 +99,14 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
         m_n.StartSynchronization();
     }
 #else // else for IS_LOOKUP_NODE
-    LOG_MESSAGE("I am a lookup node.");
+    LOG_GENERAL(INFO, "I am a lookup node.");
     if (m_server.StartListening())
     {
-        LOG_MESSAGE("1. API Server started successfully");
+        LOG_GENERAL(INFO, "1. API Server started successfully");
     }
     else
     {
-        LOG_MESSAGE("2. API Server couldn't start");
+        LOG_GENERAL(INFO, "2. API Server couldn't start");
     }
 #endif // IS_LOOKUP_NODE
 }
@@ -138,7 +138,7 @@ void Zilliqa::Dispatch(const vector<unsigned char>& message, const Peer& from)
         }
         else
         {
-            LOG_MESSAGE("Unknown message type " << std::hex
+            LOG_GENERAL(INFO, "Unknown message type " << std::hex
                                                 << (unsigned int)msg_type);
         }
     }
@@ -161,7 +161,7 @@ vector<Peer> Zilliqa::RetrieveBroadcastList(unsigned char msg_type,
     }
     else
     {
-        LOG_MESSAGE("Unknown message type " << std::hex
+        LOG_GENERAL(INFO, "Unknown message type " << std::hex
                                             << (unsigned int)msg_type);
     }
 
