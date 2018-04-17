@@ -149,7 +149,7 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json)
         = DataConversion::HexStrToStdArray64(sign_str);
 
     Transaction tx1(version, nonce, toAddr, pubKey, amount, sign);
-    LOG_MESSAGE("Tx converted");
+    LOG_GENERAL(INFO, "Tx converted");
 
     return tx1;
 }
@@ -171,41 +171,41 @@ const bool JSONConversion::checkJsonTx(const Json::Value& _json)
     {
         if (!_json["nonce"].isIntegral())
         {
-            LOG_MESSAGE("Fault in nonce");
+            LOG_GENERAL(INFO, "Fault in nonce");
             return false;
         }
         if (!_json["amount"].isIntegral())
         {
-            LOG_MESSAGE("Fault in amount");
+            LOG_GENERAL(INFO, "Fault in amount");
             return false;
         }
         if (!_json["version"].isIntegral())
         {
-            LOG_MESSAGE("Fault in version");
+            LOG_GENERAL(INFO, "Fault in version");
             return false;
         }
         if (_json["pubKey"].asString().size() != PUB_KEY_SIZE * 2)
         {
-            LOG_MESSAGE("PubKey size wrong "
+            LOG_GENERAL(INFO, "PubKey size wrong "
                         << _json["pubKey"].asString().size());
             return false;
         }
         if (_json["signature"].asString().size() != TRAN_SIG_SIZE * 2)
         {
-            LOG_MESSAGE("signature size wrong "
+            LOG_GENERAL(INFO, "signature size wrong "
                         << _json["signature"].asString().size());
             return false;
         }
         if (_json["to"].asString().size() != ACC_ADDR_SIZE * 2)
         {
-            LOG_MESSAGE("To Address size wrong "
+            LOG_GENERAL(INFO, "To Address size wrong "
                         << _json["signature"].asString().size());
             return false;
         }
     }
     else
     {
-        LOG_MESSAGE("Json Data Object has missing components");
+        LOG_GENERAL(INFO, "Json Data Object has missing components");
     }
 
     return ret;

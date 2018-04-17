@@ -70,7 +70,7 @@ int MicroBlock::Deserialize(const vector<unsigned char>& src,
         MicroBlockHeader header;
         if (header.Deserialize(src, offset) != 0)
         {
-            LOG_MESSAGE("Error. We failed to deserialize MicroBlockHeader.");
+            LOG_GENERAL(INFO, "Error. We failed to deserialize MicroBlockHeader.");
             return -1;
         }
         m_header = header;
@@ -93,7 +93,7 @@ int MicroBlock::Deserialize(const vector<unsigned char>& src,
     }
     catch (const std::exception& e)
     {
-        LOG_MESSAGE("ERROR: Error with MicroBlock::Deserialize." << ' '
+        LOG_GENERAL(WARNING, "Error with MicroBlock::Deserialize." << ' '
                                                                  << e.what());
         return -1;
     }
@@ -129,7 +129,7 @@ MicroBlock::MicroBlock(const vector<unsigned char>& src, unsigned int offset)
 {
     if (Deserialize(src, offset) != 0)
     {
-        LOG_MESSAGE("Error. We failed to init MicroBlock.");
+        LOG_GENERAL(INFO, "Error. We failed to init MicroBlock.");
     }
 }
 

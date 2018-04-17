@@ -42,7 +42,7 @@ void DirectoryService::StoreFinalBlockToDisk()
 {
     LOG_MARKER();
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                  "Storing Tx Block Number: "
                      << m_finalBlock->GetHeader().GetBlockNum()
                      << " with Type: " << m_finalBlock->GetHeader().GetType()
@@ -86,11 +86,11 @@ bool DirectoryService::SendFinalBlockToLookupNodes()
     copy(m_finalBlockMessage.begin(), m_finalBlockMessage.end(),
          finalblock_message.begin() + curr_offset);
 
-    LOG_MESSAGE2(
+    LOG_EPOCH(INFO,
         to_string(m_mediator.m_currentEpochNum).c_str(),
         "I the primary DS am sending the Final Block to the lookup nodes");
     m_mediator.m_lookup->SendMessageToLookupNodes(finalblock_message);
-    LOG_MESSAGE2(
+    LOG_EPOCH(INFO,
         to_string(m_mediator.m_currentEpochNum).c_str(),
         "I the primary DS have sent the Final Block to the lookup nodes");
 
@@ -121,14 +121,14 @@ void DirectoryService::DetermineShardsToSendFinalBlockTo(
     {
         num_DS_clusters++;
     }
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                  "DEBUG num of ds clusters " << num_DS_clusters)
     unsigned int shard_groups_count = m_shards.size() / num_DS_clusters;
     if ((m_shards.size() % num_DS_clusters) > 0)
     {
         shard_groups_count++;
     }
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                  "DEBUG num of shard group count " << shard_groups_count)
 
     my_DS_cluster_num = m_consensusMyID / DS_MULTICAST_CLUSTER_SIZE;
@@ -183,7 +183,7 @@ void DirectoryService::SendFinalBlockToShardNodes(
             for (auto& kv : *p)
             {
                 shard_peers.push_back(kv.second);
-                LOG_MESSAGE2(
+                LOG_EPOCH(INFO,
                     to_string(m_mediator.m_currentEpochNum).c_str(),
                     " PubKey: "
                         << DataConversion::SerializableToHexStr(kv.first)
@@ -227,7 +227,7 @@ void DirectoryService::SendFinalBlockToShardNodes(
 //     for(auto microBlock : m_microBlocks)
 //     {
 
-//         LOG_MESSAGE( "Storing Micro Block Hash: " << microBlock.GetHeader().GetTxRootHash() <<
+//         LOG_GENERAL(INFO,  "Storing Micro Block Hash: " << microBlock.GetHeader().GetTxRootHash() <<
 //             " with Type: " << microBlock.GetHeader().GetType() <<
 //             ", Version: " << microBlock.GetHeader().GetVersion() <<
 //             ", Timestamp: " << microBlock.GetHeader().GetTimestamp() <<
@@ -243,7 +243,7 @@ void DirectoryService::SendFinalBlockToShardNodes(
 
 void DirectoryService::ProcessFinalBlockConsensusWhenDone()
 {
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                  "Final block consensus is DONE!!!");
 
 #ifdef STAT_TEST
@@ -290,7 +290,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
     if (m_consensusMyID > nodeToSendToLookUpLo
         && m_consensusMyID < nodeToSendToLookUpHi)
     {
-        LOG_MESSAGE2(
+        LOG_EPOCH(INFO,
             to_string(m_mediator.m_currentEpochNum).c_str(),
             "I the DS folks that will soon be sending the Final Block to "
             "the lookup nodes");
@@ -318,11 +318,11 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
     SetState(POW1_SUBMISSION);
 
     auto func = [this]() mutable -> void {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                      "START OF a new EPOCH");
         if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
         {
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                          "[PoW needed]");
 
             POW::GetInstance().EthashConfigureLightClient(
@@ -333,7 +333,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
             m_mediator.m_node->m_consensusLeaderID = 0;
             if (m_mode == PRIMARY_DS)
             {
-                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                              "Waiting "
                                  << POW1_WINDOW_IN_SECONDS
                                  << " seconds, accepting PoW1 submissions...");
@@ -341,7 +341,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
             }
             else
             {
-                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                              "Waiting "
                                  << POW1_BACKUP_WINDOW_IN_SECONDS
                                  << " seconds, accepting PoW1 submissions...");
@@ -355,7 +355,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
         {
             m_consensusID++;
             SetState(MICROBLOCK_SUBMISSION);
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                          "[No PoW needed] Waiting for Microblock.");
 
             std::unique_lock<std::mutex> cv_lk(
@@ -364,7 +364,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
                     cv_lk, std::chrono::seconds(MICROBLOCK_TIMEOUT))
                 == std::cv_status::timeout)
             {
-                LOG_MESSAGE("Timeout: Didn't receive all Microblock. Proceeds "
+                LOG_GENERAL(INFO, "Timeout: Didn't receive all Microblock. Proceeds "
                             "without it");
                 RunConsensusOnFinalBlock();
             }
@@ -402,7 +402,7 @@ bool DirectoryService::ProcessFinalBlockConsensus(
 
             if (i % 10 == 0)
             {
-                LOG_MESSAGE2(
+                LOG_EPOCH(INFO,
                     to_string(m_mediator.m_currentEpochNum).c_str(),
                     "Waiting for FINALBLOCK_CONSENSUS before processing");
             }
@@ -413,7 +413,7 @@ bool DirectoryService::ProcessFinalBlockConsensus(
 
     if (!CheckState(PROCESS_FINALBLOCKCONSENSUS))
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                      "Ignoring consensus message. I am at state " << m_state);
         return false;
     }
@@ -430,7 +430,7 @@ bool DirectoryService::ProcessFinalBlockConsensus(
     }
     else if (state == ConsensusCommon::State::ERROR)
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                      "Oops, no consensus reached - what to do now???");
         // throw exception();
         // TODO: no consensus reached
@@ -438,7 +438,7 @@ bool DirectoryService::ProcessFinalBlockConsensus(
     }
     else
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                      "Consensus state = " << state);
     }
 

@@ -48,7 +48,7 @@ bool DirectoryService::ProcessMicroblockSubmission(
     // if (m_state != MICROBLOCK_SUBMISSION)
     if (!CheckState(PROCESS_MICROBLOCKSUBMISSION))
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                      "Not at MICROBLOCK_SUBMISSION. Current state is "
                          << m_state);
         return false;
@@ -82,7 +82,7 @@ bool DirectoryService::ProcessMicroblockSubmission(
 
     if (consensusID != m_consensusID)
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                      "Consensus ID is not correct. Expected ID: "
                          << consensusID
                          << " My Consensus ID: " << m_consensusID);
@@ -93,7 +93,7 @@ bool DirectoryService::ProcessMicroblockSubmission(
     uint32_t shardId = Serializable::GetNumber<uint32_t>(message, curr_offset,
                                                          sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                  "shard_id " << shardId);
 
     // Tx microblock
@@ -101,7 +101,7 @@ bool DirectoryService::ProcessMicroblockSubmission(
     MicroBlock microBlock;
     if (microBlock.Deserialize(message, curr_offset) != 0)
     {
-        LOG_MESSAGE("Error. We failed to deserialize MicroBlock.");
+        LOG_GENERAL(INFO, "Error. We failed to deserialize MicroBlock.");
         return false;
     }
 
@@ -111,15 +111,15 @@ bool DirectoryService::ProcessMicroblockSubmission(
     const auto& minerEntry = m_publicKeyToShardIdMap.find(pubKey);
     if (minerEntry == m_publicKeyToShardIdMap.end())
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Error: Cannot find the miner key: "
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "Cannot find the miner key: "
                          << DataConversion::SerializableToHexStr(pubKey));
         return false;
     }
     if (minerEntry->second != shardId)
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Error: Microblock shard ID mismatch");
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "Microblock shard ID mismatch");
         return false;
     }
 
@@ -128,7 +128,7 @@ bool DirectoryService::ProcessMicroblockSubmission(
     lock_guard<mutex> g(m_mutexMicroBlocks);
     m_microBlocks.insert(microBlock);
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                  m_microBlocks.size()
                      << " of " << m_shards.size() << " microblocks received");
 
@@ -145,7 +145,7 @@ bool DirectoryService::ProcessMicroblockSubmission(
 #endif // STAT_TEST
         for (auto& microBlock : m_microBlocks)
         {
-            LOG_MESSAGE2(
+            LOG_EPOCH(INFO,
                 to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Timestamp: " << microBlock.GetHeader().GetTimestamp());
         }

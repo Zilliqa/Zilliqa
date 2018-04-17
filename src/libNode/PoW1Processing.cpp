@@ -55,14 +55,14 @@ bool Node::StartPoW1(const uint256_t& block_num, uint8_t difficulty,
     // if (m_state == POW1_SUBMISSION)
     if (!CheckState(STARTPOW1))
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Error: Not in POW1_SUBMISSION state");
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "Not in POW1_SUBMISSION state");
         return false;
     }
 
     // SetState(POW1_SUBMISSION);
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                  "Current dsblock is " << block_num);
     //POW POWClient;
     ethash_mining_result winning_result = POW::GetInstance().PoWMine(
@@ -71,12 +71,12 @@ bool Node::StartPoW1(const uint256_t& block_num, uint8_t difficulty,
 
     if (winning_result.success)
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                      "Winning nonce   = 0x" << hex
                                             << winning_result.winning_nonce);
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                      "Winning result  = 0x" << hex << winning_result.result);
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                      "Winning mixhash = 0x" << hex << winning_result.mix_hash);
         vector<unsigned char> result_vec
             = DataConversion::HexStrToUint8Vec(winning_result.result);
@@ -157,12 +157,12 @@ bool Node::ReadVariablesFromStartPoW1Message(
                                 << "][" << block_num << "]");
 
     // Log all values
-    // LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "My IP address     = " << m_mediator.m_selfPeer.GetPrintableIPAddress());
-    // LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "My Listening Port = " << m_mediator.m_selfPeer.m_listenPortHost);
-    // LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Difficulty        = " << to_string(difficulty));
-    // LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Rand1             = " << DataConversion::charArrToHexStr(rand1));
-    // LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Rand2             = " << DataConversion::charArrToHexStr(rand2));
-    // LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Pubkey            = " << DataConversion::SerializableToHexStr(m_mediator.m_selfKey.second));
+    // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "My IP address     = " << m_mediator.m_selfPeer.GetPrintableIPAddress());
+    // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "My Listening Port = " << m_mediator.m_selfPeer.m_listenPortHost);
+    // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "Difficulty        = " << to_string(difficulty));
+    // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "Rand1             = " << DataConversion::charArrToHexStr(rand1));
+    // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "Rand2             = " << DataConversion::charArrToHexStr(rand2));
+    // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "Pubkey            = " << DataConversion::SerializableToHexStr(m_mediator.m_selfKey.second));
 
     // DS nodes ip addr and port
     const unsigned int numDS
@@ -173,7 +173,7 @@ bool Node::ReadVariablesFromStartPoW1Message(
     m_mediator.m_DSCommitteeNetworkInfo.clear();
     m_mediator.m_DSCommitteePubKeys.clear();
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                  "DS nodes count    = " << numDS);
     for (unsigned int i = 0; i < numDS; i++)
     {
@@ -182,7 +182,7 @@ bool Node::ReadVariablesFromStartPoW1Message(
 
         m_mediator.m_DSCommitteeNetworkInfo.push_back(
             Peer(message, cur_offset));
-        LOG_MESSAGE2(
+        LOG_EPOCH(INFO,
             to_string(m_mediator.m_currentEpochNum).c_str(),
             "DS Node IP: "
                 << m_mediator.m_DSCommitteeNetworkInfo.back()
@@ -204,7 +204,7 @@ bool Node::ProcessStartPoW1(const vector<unsigned char>& message,
     // Message = [32-byte block num] [1-byte difficulty] [32-byte rand1] [32-byte rand2] [33-byte pubkey] [16-byte ip] [4-byte port] ... (all the DS nodes)
 
     LOG_MARKER();
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                  "START OF EPOCH "
                      << m_mediator.m_dsBlockChain.GetBlockCount());
 

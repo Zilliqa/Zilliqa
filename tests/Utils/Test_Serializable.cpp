@@ -36,7 +36,7 @@ void test(const char* number_label, unsigned int size)
     vector<unsigned char> v;
     number_type n = 65539;
 
-    LOG_MESSAGE(number_label << " value = " << n);
+    LOG_GENERAL(INFO, number_label << " value = " << n);
 
     Serializable::SetNumber<number_type>(v, 0, n, size);
 #if 1//clark
@@ -46,7 +46,7 @@ void test(const char* number_label, unsigned int size)
 #endif
 
     n = Serializable::GetNumber<number_type>(v, 0, size);
-    LOG_MESSAGE("deserialized = " << n);
+    LOG_GENERAL(INFO, "deserialized = " << n);
 }
 
 BOOST_AUTO_TEST_CASE(testSerializable)

@@ -30,7 +30,7 @@ DSBlockHeader::DSBlockHeader(const vector<unsigned char>& src,
 {
     if (Deserialize(src, offset) != 0)
     {
-        LOG_MESSAGE("Error. We failed to init DSBlockHeader.");
+        LOG_GENERAL(INFO, "Error. We failed to init DSBlockHeader.");
     }
 }
 
@@ -109,14 +109,14 @@ int DSBlockHeader::Deserialize(const vector<unsigned char>& src,
         // m_minerPubKey.Deserialize(src, curOffset);
         if (m_minerPubKey.Deserialize(src, curOffset) != 0)
         {
-            LOG_MESSAGE("Error. We failed to init m_minerPubKey.");
+            LOG_GENERAL(INFO, "Error. We failed to init m_minerPubKey.");
             return -1;
         }
         curOffset += PUB_KEY_SIZE;
         // m_leaderPubKey.Deserialize(src, curOffset);
         if (m_leaderPubKey.Deserialize(src, curOffset) != 0)
         {
-            LOG_MESSAGE("Error. We failed to init m_minerPubKey.");
+            LOG_GENERAL(INFO, "Error. We failed to init m_minerPubKey.");
             return -1;
         }
         curOffset += PUB_KEY_SIZE;
@@ -130,7 +130,7 @@ int DSBlockHeader::Deserialize(const vector<unsigned char>& src,
     }
     catch (const std::exception& e)
     {
-        LOG_MESSAGE("ERROR: Error with DSBlockHeader::Deserialize."
+        LOG_GENERAL(WARNING, "Error with DSBlockHeader::Deserialize."
                     << ' ' << e.what());
         return -1;
     }
