@@ -131,8 +131,11 @@ bool PeerManager::ProcessPing(const vector<unsigned char>& message,
                                             << from.m_ipAddress);
 
     vector<unsigned char> ping_message(message.begin() + offset, message.end());
+#if 1//clark
+    LOG_PAYLOAD(INFO, "Ping message", ping_message, Logger::MAX_BYTES_TO_DISPLAY);
+#else
     LOG_PAYLOAD("Ping message", ping_message, Logger::MAX_BYTES_TO_DISPLAY);
-
+#endif
     return true;
 }
 
@@ -165,7 +168,11 @@ bool PeerManager::ProcessBroadcast(const vector<unsigned char>& message,
     vector<unsigned char> broadcast_message(message.size() - offset);
     copy(message.begin() + offset, message.end(), broadcast_message.begin());
 
+#if 1//clark
+    LOG_PAYLOAD(INFO, "Broadcast message", broadcast_message,
+#else
     LOG_PAYLOAD("Broadcast message", broadcast_message,
+#endif
                 Logger::MAX_BYTES_TO_DISPLAY);
     P2PComm::GetInstance().SendBroadcastMessage(GetBroadcastList(0, m_selfPeer),
                                                 broadcast_message);

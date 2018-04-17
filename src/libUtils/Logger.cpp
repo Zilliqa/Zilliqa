@@ -295,6 +295,9 @@ void Logger::LogMessageAndPayload(const char* msg,
 #if 1//clark
 void Logger::LogGeneral(LEVELS level, const char* msg, const char* function)
 {
+    if(level != INFO && level != WARNING && level != FATAL)
+        return;
+
     pid_t tid = getCurrentPid();
     auto clockNow = std::chrono::system_clock::now();
     std::time_t curTime = std::chrono::system_clock::to_time_t(clockNow);
@@ -312,7 +315,7 @@ void Logger::LogGeneral(LEVELS level, const char* msg, const char* function)
 
         if(bPreserve)
         {
-            LOG(INFO) << "[TID " << PAD(tid, TID_LEN) << "]["
+            LOG(level) << "[TID " << PAD(tid, TID_LEN) << "]["
                     << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
                     << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg;
         }
@@ -328,8 +331,10 @@ void Logger::LogGeneral(LEVELS level, const char* msg, const char* function)
 
 void Logger::LogEpoch(LEVELS level, const char* msg, const char* epoch, const char* function)
 {
-    pid_t tid = getCurrentPid();
+    if(level != INFO && level != WARNING && level != FATAL)
+        return;
 
+    pid_t tid = getCurrentPid();
     auto clockNow = std::chrono::system_clock::now();
     std::time_t curTime = std::chrono::system_clock::to_time_t(clockNow);
     auto gmtTime = gmtime(&curTime);
@@ -347,7 +352,7 @@ void Logger::LogEpoch(LEVELS level, const char* msg, const char* epoch, const ch
 
         if(bPreserve)
         {
-            LOG(INFO) << "[TID " << PAD(tid, TID_LEN) << "]["
+            LOG(level) << "[TID " << PAD(tid, TID_LEN) << "]["
                     << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
                     << LIMIT(function, MAX_FUNCNAME_LEN) << "]"
                     << "[Epoch " << epoch << "] " << msg;
@@ -368,17 +373,21 @@ void Logger::LogPayload(LEVELS level, const char* msg,
                 size_t max_bytes_to_display,
                 const char* function)
 {
-    pid_t tid = getCurrentPid();
+    if(level != INFO && level != WARNING && level != FATAL)
+        return;
 
+    pid_t tid = getCurrentPid();
     static const char* hex_table = "0123456789ABCDEF";
 
     size_t payload_string_len = (payload.size() * 2) + 1;
+
     if (payload.size() > max_bytes_to_display)
     {
         payload_string_len = (max_bytes_to_display * 2) + 1;
     }
 
     unique_ptr<char[]> payload_string = make_unique<char[]>(payload_string_len);
+
     for (unsigned int payload_idx = 0, payload_string_idx = 0;
          (payload_idx < payload.size())
          && ((payload_string_idx + 2) < payload_string_len);
@@ -389,8 +398,8 @@ void Logger::LogPayload(LEVELS level, const char* msg,
         payload_string.get()[payload_string_idx++]
                 = hex_table[payload.at(payload_idx) & 0xF];
     }
-    payload_string.get()[payload_string_len - 1] = '\0';
 
+    payload_string.get()[payload_string_len - 1] = '\0';
     auto clockNow = std::chrono::system_clock::now();
     std::time_t curTime = std::chrono::system_clock::to_time_t(clockNow);
     auto gmtTime = gmtime(&curTime);
@@ -412,7 +421,7 @@ void Logger::LogPayload(LEVELS level, const char* msg,
 
             if(bPreserve)
             {
-                LOG(INFO) << "[TID " << PAD(tid, TID_LEN) << "]["
+                LOG(level) << "[TID " << PAD(tid, TID_LEN) << "]["
                           << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
                           << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
                           << " (Len=" << payload.size()
@@ -430,7 +439,7 @@ void Logger::LogPayload(LEVELS level, const char* msg,
 
             if(bPreserve)
             {
-                LOG(INFO) << "[TID " << PAD(tid, TID_LEN) << "]["
+                LOG(level) << "[TID " << PAD(tid, TID_LEN) << "]["
                           << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
                           << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
                           << " (Len=" << payload.size()

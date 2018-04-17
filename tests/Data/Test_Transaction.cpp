@@ -78,20 +78,32 @@ BOOST_AUTO_TEST_CASE(test1)
     std::vector<unsigned char> message1;
     tx1.Serialize(message1, 0);
 
+#if 1//clark
+    LOG_PAYLOAD(INFO, "Transaction1 serialized", message1,
+#else
     LOG_PAYLOAD("Transaction1 serialized", message1,
+#endif
                 Logger::MAX_BYTES_TO_DISPLAY);
 
     Transaction tx2(message1, 0);
 
     if (tx1 == tx2)
     {
+#if 1//clark
+        LOG_PAYLOAD(INFO, "SERIALZED", message1, Logger::MAX_BYTES_TO_DISPLAY);
+#else
         LOG_PAYLOAD("SERIALZED", message1, Logger::MAX_BYTES_TO_DISPLAY);
+#endif
     }
     LOG_MESSAGE("address 1" << fromCheck.hex());
     std::vector<unsigned char> message2;
     tx2.Serialize(message2, 0);
 
+#if 1//clark
+    LOG_PAYLOAD(INFO, "Transaction2 serialized", message2,
+#else
     LOG_PAYLOAD("Transaction2 serialized", message2,
+#endif
                 Logger::MAX_BYTES_TO_DISPLAY);
 
     const std::array<unsigned char, TRAN_HASH_SIZE>& tranID2
@@ -109,8 +121,11 @@ BOOST_AUTO_TEST_CASE(test1)
     std::vector<unsigned char> byteVec;
     byteVec.resize(TRAN_HASH_SIZE);
     copy(tranID2.begin(), tranID2.end(), byteVec.begin());
+#if 1//clark
+    LOG_PAYLOAD(INFO, "Transaction2 tranID", byteVec, Logger::MAX_BYTES_TO_DISPLAY);
+#else
     LOG_PAYLOAD("Transaction2 tranID", byteVec, Logger::MAX_BYTES_TO_DISPLAY);
-
+#endif
     LOG_MESSAGE("Checking Serialization");
     BOOST_CHECK_MESSAGE(tx1 == tx2, "Not serialized properly");
 
@@ -125,13 +140,21 @@ BOOST_AUTO_TEST_CASE(test1)
     byteVec.clear();
     byteVec.resize(ACC_ADDR_SIZE);
     copy(toAddr2.begin(), toAddr2.end(), byteVec.begin());
+#if 1//clark
+    LOG_PAYLOAD(INFO, "Transaction2 toAddr", byteVec, Logger::MAX_BYTES_TO_DISPLAY);
+#else
     LOG_PAYLOAD("Transaction2 toAddr", byteVec, Logger::MAX_BYTES_TO_DISPLAY);
+#endif
     BOOST_CHECK_MESSAGE(byteVec.at(19) == 23,
                         "expected: " << 23 << " actual: " << byteVec.at(19)
                                      << "\n");
 
     copy(fromAddr2.begin(), fromAddr2.end(), byteVec.begin());
+#if 1//clark
+    LOG_PAYLOAD(INFO, "Transaction2 fromAddr", byteVec, Logger::MAX_BYTES_TO_DISPLAY);
+#else
     LOG_PAYLOAD("Transaction2 fromAddr", byteVec, Logger::MAX_BYTES_TO_DISPLAY);
+#endif
     BOOST_CHECK_MESSAGE(fromCheck == fromAddr2,
                         "PubKey not converted properly");
 
@@ -142,7 +165,11 @@ BOOST_AUTO_TEST_CASE(test1)
     byteVec.clear();
     byteVec.resize(TRAN_SIG_SIZE);
     copy(signature2.begin(), signature2.end(), byteVec.begin());
+#if 1//clark
+    LOG_PAYLOAD(INFO, "Transaction2 signature", byteVec,
+#else
     LOG_PAYLOAD("Transaction2 signature", byteVec,
+#endif
                 Logger::MAX_BYTES_TO_DISPLAY);
     BOOST_CHECK_MESSAGE(byteVec.at(63) == 79,
                         "expected: " << 79 << " actual: " << byteVec.at(63)
