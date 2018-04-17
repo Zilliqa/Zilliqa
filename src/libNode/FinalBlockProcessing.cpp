@@ -1114,7 +1114,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     TxBlock txBlock;
     if (txBlock.Deserialize(message, cur_offset) != 0)
     {
-        LOG_GENERAL(INFO, "Error. We failed to deserialize TxBlock.");
+        LOG_GENERAL(WARNING, "We failed to deserialize TxBlock.");
         return false;
     }
     cur_offset += txBlock.GetSerializedSize();
@@ -1238,7 +1238,7 @@ bool Node::LoadForwardedTxnsAndCheckRoot(
         Transaction tx;
         if (tx.Deserialize(message, cur_offset) != 0)
         {
-            LOG_GENERAL(INFO, "Error. We failed to deserialize Transaction.");
+            LOG_GENERAL(WARNING, "We failed to deserialize Transaction.");
             return false;
         }
         cur_offset += Transaction::GetSerializedSize();

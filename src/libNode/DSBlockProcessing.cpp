@@ -202,7 +202,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
     DSBlock dsblock;
     if (dsblock.Deserialize(message, cur_offset) != 0)
     {
-        LOG_GENERAL(INFO, "Error. We failed to deserialize dsblock.");
+        LOG_GENERAL(WARNING, "We failed to deserialize dsblock.");
         return false;
     }
 

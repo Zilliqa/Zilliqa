@@ -823,7 +823,7 @@ void DirectoryService::SaveTxnBodySharingAssignment(
         // Peer tempPeer;
         // if(tempPeer.Deserialize(finalblock, curr_offset) != 0)
         // {
-        //     LOG_GENERAL(INFO, "Error. We failed to deserialize Peer.");
+        //     LOG_GENERAL(WARNING, "We failed to deserialize Peer.");
         // }
         // ds_receivers.push_back(tempPeer);
         // TODO: Handle exceptions

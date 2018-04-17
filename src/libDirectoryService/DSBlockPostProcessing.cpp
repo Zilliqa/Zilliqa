@@ -54,8 +54,8 @@ void DirectoryService::StoreDSBlockToStorage()
             << m_pendingDSBlock->GetHeader().GetViewChangeCount());
     if (result == -1)
     {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Error. We failed to add pendingdsblock to dsblockchain.");
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "We failed to add pendingdsblock to dsblockchain.");
         // throw exception();
     }
 

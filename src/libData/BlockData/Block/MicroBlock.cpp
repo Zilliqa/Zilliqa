@@ -70,7 +70,7 @@ int MicroBlock::Deserialize(const vector<unsigned char>& src,
         MicroBlockHeader header;
         if (header.Deserialize(src, offset) != 0)
         {
-            LOG_GENERAL(INFO, "Error. We failed to deserialize MicroBlockHeader.");
+            LOG_GENERAL(WARNING, "We failed to deserialize MicroBlockHeader.");
             return -1;
         }
         m_header = header;
@@ -129,7 +129,7 @@ MicroBlock::MicroBlock(const vector<unsigned char>& src, unsigned int offset)
 {
     if (Deserialize(src, offset) != 0)
     {
-        LOG_GENERAL(INFO, "Error. We failed to init MicroBlock.");
+        LOG_GENERAL(WARNING, "We failed to init MicroBlock.");
     }
 }
 

@@ -101,7 +101,7 @@ bool DirectoryService::ProcessMicroblockSubmission(
     MicroBlock microBlock;
     if (microBlock.Deserialize(message, curr_offset) != 0)
     {
-        LOG_GENERAL(INFO, "Error. We failed to deserialize MicroBlock.");
+        LOG_GENERAL(WARNING, "We failed to deserialize MicroBlock.");
         return false;
     }
 

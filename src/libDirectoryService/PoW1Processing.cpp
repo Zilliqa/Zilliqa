@@ -142,7 +142,7 @@ bool DirectoryService::ParseMessageAndVerifyPOW1(
     PubKey key;
     if (key.Deserialize(message, curr_offset) != 0)
     {
-        LOG_GENERAL(INFO, "Error. We failed to deserialize PubKey.");
+        LOG_GENERAL(WARNING, "We failed to deserialize PubKey.");
         return false;
     }
     curr_offset += PUB_KEY_SIZE;

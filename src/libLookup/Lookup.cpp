@@ -496,7 +496,7 @@ bool Lookup::ProcessEntireShardingStructure(
             Peer peer;
             if (peer.Deserialize(message, offset) != 0)
             {
-                LOG_GENERAL(INFO, "Error. We failed to deserialize Peer.");
+                LOG_GENERAL(WARNING, "We failed to deserialize Peer.");
                 return false;
             }
 
@@ -1080,7 +1080,7 @@ bool Lookup::ProcessSetSeedPeersFromLookup(const vector<unsigned char>& message,
         Peer peer;
         if (peer.Deserialize(message, offset) != 0)
         {
-            LOG_GENERAL(INFO, "Error. We failed to deserialize Peer.");
+            LOG_GENERAL(WARNING, "We failed to deserialize Peer.");
             return false;
         }
 
@@ -1228,7 +1228,7 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
             DSBlock dsBlock;
             if (dsBlock.Deserialize(message, offset) != 0)
             {
-                LOG_GENERAL(INFO, "Error. We failed to deserialize dsBlock.");
+                LOG_GENERAL(WARNING, "We failed to deserialize dsBlock.");
                 return false;
             }
             offset += DSBlock::GetSerializedSize();
@@ -1443,7 +1443,7 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
     // AccountStore::GetInstance().Deserialize(message, curr_offset);
     if (AccountStore::GetInstance().Deserialize(message, curr_offset) != 0)
     {
-        LOG_GENERAL(INFO, "Error. We failed to deserialize AccountStore.");
+        LOG_GENERAL(WARNING, "We failed to deserialize AccountStore.");
         ret = false;
     }
 
@@ -1493,7 +1493,7 @@ bool Lookup::ProcessSetTxBodyFromSeed(const vector<unsigned char>& message,
     Transaction transaction;
     if (transaction.Deserialize(message, offset) != 0)
     {
-        LOG_GENERAL(INFO, "Error. We failed to deserialize Transaction.");
+        LOG_GENERAL(WARNING, "We failed to deserialize Transaction.");
         return false;
     }
 

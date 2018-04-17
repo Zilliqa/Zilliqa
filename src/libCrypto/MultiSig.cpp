@@ -64,7 +64,7 @@ CommitSecret::CommitSecret(const vector<unsigned char>& src,
 {
     if (Deserialize(src, offset) != 0)
     {
-        LOG_GENERAL(INFO, "Error. We failed to init CommitSecret.");
+        LOG_GENERAL(WARNING, "We failed to init CommitSecret.");
     }
 }
 
@@ -176,7 +176,7 @@ CommitPoint::CommitPoint(const vector<unsigned char>& src, unsigned int offset)
 {
     if (Deserialize(src, offset) != 0)
     {
-        LOG_GENERAL(INFO, "Error. We failed to init CommitPoint.");
+        LOG_GENERAL(WARNING, "We failed to init CommitPoint.");
     }
 }
 
@@ -320,7 +320,7 @@ Challenge::Challenge(const vector<unsigned char>& src, unsigned int offset)
 {
     if (Deserialize(src, offset) != 0)
     {
-        LOG_GENERAL(INFO, "Error. We failed to init Challenge.");
+        LOG_GENERAL(WARNING, "We failed to init Challenge.");
     }
 }
 
@@ -515,7 +515,7 @@ Response::Response(const vector<unsigned char>& src, unsigned int offset)
 {
     if (Deserialize(src, offset) != 0)
     {
-        LOG_GENERAL(INFO, "Error. We failed to init Response.");
+        LOG_GENERAL(WARNING, "We failed to init Response.");
     }
 }
 
