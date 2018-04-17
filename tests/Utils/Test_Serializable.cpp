@@ -39,7 +39,11 @@ void test(const char* number_label, unsigned int size)
     LOG_MESSAGE(number_label << " value = " << n);
 
     Serializable::SetNumber<number_type>(v, 0, n, size);
+#if 1//clark
+    LOG_PAYLOAD(INFO, "serialized", v, Logger::MAX_BYTES_TO_DISPLAY);
+#else
     LOG_PAYLOAD("serialized", v, Logger::MAX_BYTES_TO_DISPLAY);
+#endif
 
     n = Serializable::GetNumber<number_type>(v, 0, size);
     LOG_MESSAGE("deserialized = " << n);
