@@ -13,6 +13,3 @@ target_link_libraries(sendtxn PUBLIC Network Utils)
 add_executable(genkeypair genkeypair.cpp)
 target_include_directories(genkeypair PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(genkeypair PUBLIC Crypto)
-
-set_target_properties(zilliqa sendcmd sendtxn genkeypair
-    PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
