@@ -32,11 +32,11 @@ class VCBlock : public BlockBase
 {
     VCBlockHeader m_header;
     std::array<unsigned char, BLOCK_SIG_SIZE>
-        m_signature; 
+        m_signature1; 
     std::array<unsigned char, BLOCK_SIG_SIZE>
         m_signature2; 
    std::vector<bool>
-        m_headerSigBitmap;
+        m_headerSigBitmap1;
    std::vector<bool>
         m_headerSigBitmap2;
 public:
@@ -98,4 +98,4 @@ public:
     bool operator>(const VCBlock& block) const;
 };
 
-#endif // __DSBLOCK_H__
+#endif // __VCBLOCK_H__

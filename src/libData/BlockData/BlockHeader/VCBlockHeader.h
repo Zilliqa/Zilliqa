@@ -66,7 +66,7 @@ public:
     int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
 
     /// Returns the DS Epoch number where view change happen
-    const boost::multiprecision::uint256_t& m_VieWChangeDSEpochNo() const; 
+    const boost::multiprecision::uint256_t& GetVieWChangeDSEpochNo() const; 
 
     /// Returns the Epoch number (Total nums of final block) where view change happen
     const boost::multiprecision::uint256_t& GetViewChangeEpochNo() const; 
@@ -99,4 +99,4 @@ public:
     bool operator>(const VCBlockHeader& header) const;
 };
 
-#endif // __DSBLOCKHEADER_H__
+#endif // __VCBLOCKHEADER_H__
