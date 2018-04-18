@@ -1427,7 +1427,6 @@ void DirectoryService::RejoinAsDS()
 bool DirectoryService::FinishRejoinAsDS()
 {
     LOG_MARKER();
-    SetState(DSBLOCK_CONSENSUS);
     m_mode = BACKUP_DS;
     for (auto i = m_mediator.m_DSCommitteePubKeys.begin();
          i != m_mediator.m_DSCommitteePubKeys.end(); i++)
@@ -1444,6 +1443,7 @@ bool DirectoryService::FinishRejoinAsDS()
     // in case the recovery program is under different directory
     LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
                   DS_PROMOTE_MSG);
+    RunConsensusOnDSBlock();
     return true;
 }
 #endif // IS_LOOKUP_NODE

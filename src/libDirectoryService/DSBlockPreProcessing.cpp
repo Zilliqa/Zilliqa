@@ -238,7 +238,7 @@ void DirectoryService::RunConsensusOnDSBlock()
                          "To-do: Code up the logic for if we didn't get any "
                          "submissions at all");
             // throw exception();
-            return;
+            // return;
         }
     }
 
