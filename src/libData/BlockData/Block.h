@@ -23,11 +23,13 @@
 #include "BlockHeader/DSBlockHeader.h"
 #include "BlockHeader/MicroBlockHeader.h"
 #include "BlockHeader/TxBlockHeader.h"
+#include "BlockHeader/VCBlockHeader.h"
 
 enum BlockType : unsigned int
 {
     DS = 0,
-    Tx = 1
+    Tx = 1,
+    VC = 2
 };
 
 enum TXBLOCKTYPE : unsigned char
