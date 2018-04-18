@@ -58,9 +58,7 @@ unsigned int VCBlockHeader::Serialize(vector<unsigned char>& dst,
 {
     LOG_MARKER();
 
-    unsigned int size_needed = UINT256_SIZE + UINT256_SIZE + sizeof(unsigned char) + sizeof(unsigned int)
-                                + IP_SIZE + PORT_SIZE + PUB_KEY_SIZE + sizeof(unsigned int) + UINT256_SIZE;
-
+    unsigned int size_needed = VCBlockHeader::SIZE;
     unsigned int size_remaining = dst.size() - offset;
 
     if (size_remaining < size_needed)
