@@ -1181,6 +1181,10 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
         Peer peer(message, offset);
         offset += (IP_SIZE + PORT_SIZE);
 
+        if (m_syncType == SyncType::DS_SYNC && peer == m_mediator.m_selfPeer)
+        {
+            peer = Peer();
+        }
         dsPeers.push_back(peer);
 
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
