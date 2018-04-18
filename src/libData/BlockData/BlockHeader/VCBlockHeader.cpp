@@ -34,18 +34,22 @@ VCBlockHeader::VCBlockHeader(const vector<unsigned char>& src,
     }
 }
 
-VCBlockHeader::VCBlockHeader(const boost::multiprecision::uint256_t& viewChangeEpochNo, 
+VCBlockHeader::VCBlockHeader(const boost::multiprecision::uint256_t& vieWChangeDSEpochNo
+                                const boost::multiprecision::uint256_t& viewChangeEpochNo, 
                                 const unsigned int viewChangeState,
-                                unsigned int expectedCandidateLeaderIndex,
-                                Peer candidateLeaderNetworkInfo,
-                                PubKey candidateLeaderPubKey,
-                                unsigned int vcCounter)
-    : m_VieWChangeEpochNo(viewChangeEpochNo)
+                                const unsigned int expectedCandidateLeaderIndex,
+                                const Peer& candidateLeaderNetworkInfo,
+                                const PubKey& candidateLeaderPubKey,
+                                const unsigned int vcCounter,
+                                const boost::multiprecision::uint256_t& timestamp))
+    : m_VieWChangeDSEpochNo(vieWChangeDSEpochNo)
+    , m_VieWChangeEpochNo(viewChangeEpochNo)
     , m_ViewChangeState(viewChangeState)
     , m_CandidateLeaderIndex(expectedCandidateLeaderIndex)
     , m_CandidateLeaderNetworkInfo(candidateLeaderNetworkInfo)
     , m_CandidateLeaderPubKey(candidateLeaderPubKey)
     , m_VCCounter(vcCounter)
+    , m_Timestamp(timestamp)
 {
 }
 
@@ -54,8 +58,8 @@ unsigned int VCBlockHeader::Serialize(vector<unsigned char>& dst,
 {
     LOG_MARKER();
 
-    unsigned int size_needed = UINT256_SIZE + sizeof(unsigned char) + sizeof(unsigned int)
-                                + IP_SIZE + PORT_SIZE + PUB_KEY_SIZE + sizeof(unsigned int);
+    unsigned int size_needed = UINT256_SIZE + UINT256_SIZE + sizeof(unsigned char) + sizeof(unsigned int)
+                                + IP_SIZE + PORT_SIZE + PUB_KEY_SIZE + sizeof(unsigned int) + UINT256_SIZE;
 
     unsigned int size_remaining = dst.size() - offset;
 
@@ -65,6 +69,8 @@ unsigned int VCBlockHeader::Serialize(vector<unsigned char>& dst,
     }
 
     unsigned int curOffset = offset;
+    SetNumber<uint256_t>(dst, curOffset, m_VieWChangeDSEpochNo, UINT256_SIZE);
+    curOffset += UINT256_SIZE
     SetNumber<uint256_t>(dst, curOffset, m_VieWChangeEpochNo, UINT256_SIZE);
     curOffset += UINT256_SIZE; 
     SetNumber<unsigned char>(dst, curOffset, m_ViewChangeState, sizeof(unsigned char));
@@ -75,7 +81,8 @@ unsigned int VCBlockHeader::Serialize(vector<unsigned char>& dst,
     curOffset += m_CandidateLeaderPubKey.Serialize(dst, curOffset); 
     SetNumber<unsigned int>(dst, curOffset, m_VCCounter, sizeof(unsigned int));
     curOffset += sizeof(unsigned int); 
-    
+    SetNumber<uint256_t>(dst, curOffset, m_Timestamp, UINT256_SIZE);
+    curOffset += UINT256_SIZE; 
     return size_needed; 
 }
 
@@ -87,10 +94,13 @@ int VCBlockHeader::Deserialize(const vector<unsigned char>& src,
     unsigned int curOffset = offset;
     try
     {
+        m_VieWChangeDSEpochNo = GetNumber<uint256_t>(src, curOffset, sizeof(uint256_t));
+        curOffset += sizeof(uint256_t);
         m_VieWChangeEpochNo = GetNumber<uint256_t>(src, curOffset, sizeof(uint256_t));
         curOffset += sizeof(uint256_t);
         m_ViewChangeState = GetNumber<unsigned char>(src, curOffset, sizeof(unsigned char));
         curOffset += sizeof(unsigned char);
+
         if (m_CandidateLeaderNetworkInfo.Deserialize(src, curOffset) !=0
         {
             LOG_MESSAGE("Error. We failed to deserialize CandidateLeaderNetworkInfo.");
@@ -107,6 +117,8 @@ int VCBlockHeader::Deserialize(const vector<unsigned char>& src,
 
         m_VCCounter = GetNumber<unsigned int>(src, curOffset, sizeof(unsigned int));
         curOffset += sizeof(unsigned int); 
+        m_Timestamp = GetNumber<uint256_t>(src, curOffset, sizeof(uint256_t));
+        curOffset += sizeof(uint256_t);
     }
     catch (const std::exception& e)
     {
@@ -118,7 +130,12 @@ int VCBlockHeader::Deserialize(const vector<unsigned char>& src,
     return 0;
 }
 
-const unsigned int VCBlockHeader::GetViewChangeEpochNo() const 
+const boost::multiprecision::uint256_t& VCBlockHeader::GetVieWChangeDSEpochNo() const 
+{
+    return m_VieWChangeDSEpochNo; 
+}
+
+const boost::multiprecision::uint256_t& VCBlockHeader::GetViewChangeEpochNo() const 
 {
     return m_VieWChangeEpochNo; 
 }
@@ -148,22 +165,31 @@ const unsigned int VCBlockHeader::GetViewChangeCounter() const
     return m_VCCounter; 
 }
 
+const boost::multiprecision::uint256_t& VCBlockHeader::GetTimeStamp() const
+{
+    return m_Timestamp;
+}
+
 bool VCBlockHeader::operator==(const VCBlockHeader& header) const
 {
-    return ((m_VieWChangeEpochNo == header.m_VieWChangeEpochNo)
+    return ((m_VieWChangeDSEpochNo == header.m_VieWChangeDSEpochNo)
+            && (m_VieWChangeEpochNo == header.m_VieWChangeEpochNo)
             && (m_ViewChangeState == header.m_ViewChangeState) 
             && (m_CandidateLeaderIndex == header.m_CandidateLeaderIndex)
             && (m_CandidateLeaderNetworkInfo == header.m_CandidateLeaderNetworkInfo)
             && (m_CandidateLeaderPubKey == header.m_CandidateLeaderPubKey)
-            && (m_VCCounter == header.m_VCCounter));
+            && (m_VCCounter == header.m_VCCounter)
+            && (m_Timestamp == header.m_Timestamp));
 }
 
 bool VCBlockHeader::operator<(const VCBlockHeader& header) const
 {
     // To compare, first they must be of identical epochno and state
-    if(m_VieWChangeEpochNo == header.m_VieWChangeEpochNo &&
-        m_ViewChangeState == header.m_ViewChangeState &&
-        m_VCCounter < header.m_VCCounter)
+    if((m_VieWChangeDSEpochNo == header.m_VieWChangeDSEpochNo) &&
+        (m_VieWChangeEpochNo == header.m_VieWChangeEpochNo) &&
+        (m_ViewChangeState == header.m_ViewChangeState) &&
+        (m_Timestamp == header.m_Timestamp) &&
+        (m_VCCounter < header.m_VCCounter)
     {
         return true; 
     }
@@ -178,9 +204,11 @@ bool VCBlockHeader::operator<(const VCBlockHeader& header) const
 bool VCBlockHeader::operator>(const VCBlockHeader& header) const
 {
     // To compare, first they must be of identical epochno and state
-    if(m_VieWChangeEpochNo == header.m_VieWChangeEpochNo &&
-        m_ViewChangeState == header.m_ViewChangeState &&
-        m_VCCounter > header.m_VCCounter)
+    if((m_VieWChangeDSEpochNo == header.m_VieWChangeDSEpochNo) &&
+        (m_VieWChangeEpochNo == header.m_VieWChangeEpochNo) &&
+        (m_ViewChangeState == header.m_ViewChangeState) &&
+        (m_Timestamp == header.m_Timestamp) &&
+        (m_VCCounter > header.m_VCCounter))
     {
         return true; 
     }
