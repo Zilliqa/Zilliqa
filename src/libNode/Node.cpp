@@ -1317,6 +1317,10 @@ bool Node::ToBlockMessage(unsigned char ins_byte)
                 return true;
             }
         }
+        if (m_mediator.m_lookup->m_syncType == SyncType::DS_SYNC)
+        {
+            return true;
+        }
     }
 #else // IS_LOOKUP_NODE
     {
