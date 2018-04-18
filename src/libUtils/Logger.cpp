@@ -27,12 +27,26 @@
 #if 1//clark
 #include <g3log/g3log.hpp>
 #include <g3log/logworker.hpp>
-
-using namespace g3;
-std::unique_ptr<LogWorker> logworker;
 #endif
 
 using namespace std;
+#if 1//clark
+using namespace g3;
+unique_ptr<LogWorker> logworker;
+
+string MyCustomFormatting(const LogMessage& msg)
+{
+    string res = string("[") + msg.level();
+
+    for(unsigned int i = msg.level().size(); i < WARNING.text.size(); ++i)
+    {
+        res += " ";
+    }
+
+    res += "]";
+    return res;
+}
+#endif
 
 namespace
 {
@@ -113,11 +127,10 @@ void Logger::newLog()
     {
         logworker = LogWorker::createLogWorker();
         auto sinkHandle = logworker->addSink(std::make_unique<FileSink>(fname.c_str(), "./"), &FileSink::fileWrite);
-        auto changeFormatting = sinkHandle->call(&FileSink::overrideLogDetails, LogMessage::FullLogDetailsToString);
-        const string newHeader = "\t\tLOG format: [YYYY/MM/DD hh:mm:ss uuu* LEVEL THREAD_ID FILE->FUNCTION:LINE] message\n\t\t(uuu*: microseconds fractions of the seconds value)\n\n";
-        auto changeHeader = sinkHandle->call(&FileSink::overrideLogHeader, newHeader);
+//        auto changeFormatting = sinkHandle->call(&g3::FileSink::overrideLogDetails, &LogMessage::FullLogDetailsToString);
+        auto changeFormatting = sinkHandle->call(&g3::FileSink::overrideLogDetails, &MyCustomFormatting);
         changeFormatting.wait();
-        changeHeader.wait();
+//        auto sinkHandle = logworker->addSink(std::make_unique<CustomSink>(fname.c_str(), "./"), &CustomSink::ReceiveLogMessage);
         initializeLogging(logworker.get());
     }
 #endif
