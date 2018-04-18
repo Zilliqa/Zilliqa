@@ -39,6 +39,9 @@ class VCBlockHeader : public BlockHeaderBase
     boost::multiprecision::uint256_t m_Timestamp; 
 
 public:
+    static const unsigned int SIZE = UINT256_SIZE + UINT256_SIZE + sizeof(unsigned char) + sizeof(unsigned int)
+                                + IP_SIZE + PORT_SIZE + PUB_KEY_SIZE + sizeof(unsigned int) + UINT256_SIZE;
+
     /// Default constructor.
     VCBlockHeader(); // creates a dummy invalid placeholder BlockHeader -- blocknum is maxsize of uint256
 
