@@ -34,21 +34,18 @@ VCBlockHeader::VCBlockHeader(const vector<unsigned char>& src,
     }
 }
 
-VCBlockHeader::VCBlockHeader(const uint8_t difficulty,
-                             const BlockHash& prevHash, const uint256_t& nonce,
-                             const PubKey& minerPubKey,
-                             const PubKey& leaderPubKey,
-                             const uint256_t& blockNum,
-                             const uint256_t& timestamp,
-                             const unsigned int viewChangeCount)
-    : m_difficulty(difficulty)
-    , m_prevHash(prevHash)
-    , m_nonce(nonce)
-    , m_minerPubKey(minerPubKey)
-    , m_leaderPubKey(leaderPubKey)
-    , m_blockNum(blockNum)
-    , m_timestamp(timestamp)
-    , m_viewChangeCounter(viewChangeCount)
+VCBlockHeader::VCBlockHeader(const boost::multiprecision::uint256_t& viewChangeEpochNo, 
+                                const unsigned int viewChangeState,
+                                unsigned int expectedCandidateLeaderIndex,
+                                Peer candidateLeaderNetworkInfo,
+                                PubKey candidateLeaderPubKey,
+                                unsigned int vcCounter)
+    : m_VieWChangeEpochNo(viewChangeEpochNo)
+    , m_ViewChangeState(viewChangeState)
+    , m_CandidateLeaderIndex(expectedCandidateLeaderIndex)
+    , m_CandidateLeaderNetworkInfo(candidateLeaderNetworkInfo)
+    , m_CandidateLeaderPubKey(candidateLeaderPubKey)
+    , m_CandidateLeaderPubKey(vcCounter)
 {
 }
 
@@ -56,6 +53,9 @@ unsigned int VCBlockHeader::Serialize(vector<unsigned char>& dst,
                                       unsigned int offset) const
 {
     LOG_MARKER();
+
+    unsigned int size_needed = 
+
     /*
     unsigned int size_needed = sizeof(uint8_t) + BLOCK_HASH_SIZE + UINT256_SIZE
         + PUB_KEY_SIZE + PUB_KEY_SIZE + UINT256_SIZE + UINT256_SIZE
