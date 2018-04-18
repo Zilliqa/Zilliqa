@@ -14,7 +14,7 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#include "DSBlockHeader.h"
+#include "VCBlockHeader.h"
 #include "libUtils/Logger.h"
 
 using namespace std;
