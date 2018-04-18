@@ -25,8 +25,8 @@
 #include <unistd.h>
 
 #if 1//clark
-#include <g3log/g3log.hpp>
-#include <g3log/logworker.hpp>
+#include "depends/g3log/src/g3log/g3log.hpp"
+#include "depends/g3log/src/g3log/logworker.hpp"
 #endif
 
 using namespace std;

@@ -25,7 +25,7 @@
 #include <vector>
 
 #if 1//clark
-#include <g3log/loglevels.hpp>
+#include "depends/g3log/src/g3log/loglevels.hpp"
 #endif
 
 /// Utility logging class for outputting messages to stdout or file.
