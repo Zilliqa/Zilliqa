@@ -192,7 +192,7 @@ ConsensusUser::~ConsensusUser() {}
 bool ConsensusUser::Execute(const vector<unsigned char>& message,
                             unsigned int offset, const Peer& from)
 {
-    LOG_MARKER();
+    //LOG_MARKER();
 
     bool result = false;
 
