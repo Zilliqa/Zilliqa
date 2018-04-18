@@ -183,12 +183,34 @@ bool VCBlockHeader::operator==(const VCBlockHeader& header) const
 
 bool VCBlockHeader::operator<(const VCBlockHeader& header) const
 {
-    // TODO
-    return true; 
-
+    // To compare, first they must be of identical epochno and state
+    if(m_VieWChangeEpochNo == header.m_VieWChangeEpochNo &&
+        m_ViewChangeState == header.m_ViewChangeState &&
+        m_VCCounter < header.m_VCCounter)
+    {
+        return true; 
+    }
+    else
+    {
+        // Cannot comparse different header or 
+        // it is not smaller than the header we are comparing 
+        return false;
+    }
 }
 
 bool VCBlockHeader::operator>(const VCBlockHeader& header) const
 {
-    return !((*this == header) || (*this < header));
+    // To compare, first they must be of identical epochno and state
+    if(m_VieWChangeEpochNo == header.m_VieWChangeEpochNo &&
+        m_ViewChangeState == header.m_ViewChangeState &&
+        m_VCCounter > header.m_VCCounter)
+    {
+        return true; 
+    }
+    else
+    {
+        // Cannot comparse different header or 
+        // it is not bigger than the header we are comparing
+        return false;
+    }
 }
