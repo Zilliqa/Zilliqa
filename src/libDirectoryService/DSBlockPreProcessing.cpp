@@ -71,7 +71,8 @@ void DirectoryService::ComposeDSBlock()
         difficulty = lastBlock.GetHeader().GetDifficulty();
     }
 
-    LOG_GENERAL(INFO, "Composing new block with vc count at " << m_viewChangeCounter);
+    LOG_GENERAL(INFO,
+                "Composing new block with vc count at " << m_viewChangeCounter);
     DSBlockHeader newHeader(difficulty, prevHash, winnerNonce, winnerKey,
                             m_mediator.m_selfKey.second, blockNum,
                             get_time_as_int(), m_viewChangeCounter);
@@ -85,8 +86,8 @@ void DirectoryService::ComposeDSBlock()
     }
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "New DSBlock created with chosen nonce = 0x" << hex
-                                                              << winnerNonce);
+              "New DSBlock created with chosen nonce = 0x" << hex
+                                                           << winnerNonce);
 }
 
 bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
@@ -94,7 +95,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
     LOG_MARKER();
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "I am the leader DS node. Creating DS block.");
+              "I am the leader DS node. Creating DS block.");
 
     ComposeDSBlock();
 
@@ -124,7 +125,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
     if (m_consensusObject == nullptr)
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "WARNINGUnable to create consensus object");
+                  "WARNINGUnable to create consensus object");
         return false;
     }
 
@@ -137,8 +138,9 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
         m_pendingDSBlock->Serialize(m, 0);
     }
 
-    LOG_GENERAL(INFO, "debug after compose ds block debug vc "
-                << m_pendingDSBlock->GetHeader().GetViewChangeCount());
+    LOG_GENERAL(INFO,
+                "debug after compose ds block debug vc "
+                    << m_pendingDSBlock->GetHeader().GetViewChangeCount());
 
 #ifdef STAT_TEST
     LOG_STATE("[DSCON][" << std::setw(15) << std::left
@@ -163,14 +165,15 @@ bool DirectoryService::DSBlockValidator(const vector<unsigned char>& dsblock,
     lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
 
     m_pendingDSBlock.reset(new DSBlock(dsblock, 0));
-    LOG_GENERAL(INFO, "debug dsblock validator "
-                << m_pendingDSBlock->GetHeader().GetViewChangeCount());
+    LOG_GENERAL(INFO,
+                "debug dsblock validator "
+                    << m_pendingDSBlock->GetHeader().GetViewChangeCount());
     if (m_allPoWConns.find(m_pendingDSBlock->GetHeader().GetMinerPubKey())
         == m_allPoWConns.end())
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Winning node of PoW1 not inside m_allPoWConns! Getting "
-                     "from ds leader");
+                  "Winning node of PoW1 not inside m_allPoWConns! Getting "
+                  "from ds leader");
 
         m_hasAllPoWconns = false;
         std::unique_lock<std::mutex> lk(m_MutexCVAllPowConn);
@@ -189,7 +192,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup()
     LOG_MARKER();
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "I am a backup DS node. Waiting for DS block announcement.");
+              "I am a backup DS node. Waiting for DS block announcement.");
 
     // Dummy values for now
     uint32_t consensusID = 0x0;
@@ -211,7 +214,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup()
     if (m_consensusObject == nullptr)
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Unable to create consensus object");
+                  "Unable to create consensus object");
         return false;
     }
 
@@ -227,7 +230,7 @@ void DirectoryService::RunConsensusOnDSBlock()
     {
         lock_guard<mutex> g(m_mutexAllPOW1);
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Num of PoW1 sub rec: " << m_allPoW1s.size());
+                  "Num of PoW1 sub rec: " << m_allPoW1s.size());
         LOG_STATE("[POW1R][" << std::setw(15) << std::left
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
                              << "][" << m_allPoW1s.size() << "] ");
@@ -235,8 +238,8 @@ void DirectoryService::RunConsensusOnDSBlock()
         if (m_allPoW1s.size() == 0)
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "To-do: Code up the logic for if we didn't get any "
-                         "submissions at all");
+                      "To-do: Code up the logic for if we didn't get any "
+                      "submissions at all");
             // throw exception();
             return;
         }
@@ -246,7 +249,8 @@ void DirectoryService::RunConsensusOnDSBlock()
     {
         if (!RunConsensusOnDSBlockWhenDSPrimary())
         {
-            LOG_GENERAL(INFO,
+            LOG_GENERAL(
+                INFO,
                 "Throwing exception after RunConsensusOnDSBlockWhenDSPrimary");
             // throw exception();
             return;
@@ -256,7 +260,8 @@ void DirectoryService::RunConsensusOnDSBlock()
     {
         if (!RunConsensusOnDSBlockWhenDSBackup())
         {
-            LOG_GENERAL(INFO,
+            LOG_GENERAL(
+                INFO,
                 "Throwing exception after RunConsensusOnDSBlockWhenDSBackup");
             // throw exception();
             return;
@@ -275,7 +280,7 @@ void DirectoryService::RunConsensusOnDSBlock()
             //View change.
             //TODO: This is a simplified version and will be review again.
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Initiated DS block view change. ");
+                      "Initiated DS block view change. ");
             InitViewChange();
         }
     }

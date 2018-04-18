@@ -66,7 +66,8 @@ unsigned int AccountStore::Serialize(vector<unsigned char>& dst,
     unsigned int curOffset = offset;
 
     // [Total number of accounts]
-    LOG_GENERAL(INFO,
+    LOG_GENERAL(
+        INFO,
         "Debug: Total number of accounts to serialize: " << GetNumOfAccounts());
     uint256_t totalNumOfAccounts = GetNumOfAccounts();
     SetNumber<uint256_t>(dst, curOffset, totalNumOfAccounts, UINT256_SIZE);
@@ -135,8 +136,8 @@ int AccountStore::Deserialize(const vector<unsigned char>& src,
     }
     catch (const std::exception& e)
     {
-        LOG_GENERAL(WARNING, "Error with AccountStore::Deserialize." << ' '
-                                                                   << e.what());
+        LOG_GENERAL(WARNING,
+                    "Error with AccountStore::Deserialize." << ' ' << e.what());
         return -1;
     }
     return 0;
@@ -301,19 +302,22 @@ bool AccountStore::IncreaseBalance(
     if (account != nullptr && account->IncreaseBalance(delta))
     {
         // UpdateStateTrie(address, *account);
-        LOG_GENERAL(INFO, "Balance for " << address << " increased by " << delta
+        LOG_GENERAL(INFO,
+                    "Balance for " << address << " increased by " << delta
                                    << ". Succeeded!");
         return true;
     }
     else if (account == nullptr)
     {
         AddAccount(address, delta, 0);
-        LOG_GENERAL(INFO, "Balance for " << address << " increased by " << delta
+        LOG_GENERAL(INFO,
+                    "Balance for " << address << " increased by " << delta
                                    << ". Succeeded!");
         return true;
     }
 
-    LOG_GENERAL(INFO, "Balance for " << address << " increased by " << delta
+    LOG_GENERAL(INFO,
+                "Balance for " << address << " increased by " << delta
                                << ". Failed!");
 
     return false;
@@ -334,7 +338,8 @@ bool AccountStore::DecreaseBalance(
     if (account != nullptr && account->DecreaseBalance(delta))
     {
         // UpdateStateTrie(address, *account);
-        LOG_GENERAL(INFO, "Balance for " << address << " decreased by " << delta
+        LOG_GENERAL(INFO,
+                    "Balance for " << address << " decreased by " << delta
                                    << ". Succeeded! "
                                    << "New balance: " << account->GetBalance());
         return true;
@@ -343,16 +348,20 @@ bool AccountStore::DecreaseBalance(
     else if (account == nullptr)
     {
         AddAccount(address, 10000000000, 0);
-        LOG_GENERAL(INFO, "Balance for "
-                    << address << " decreased by " << delta << ". Succeeded! "
-                    << "New balance: " << GetAccount(address)->GetBalance());
+        LOG_GENERAL(INFO,
+                    "Balance for " << address << " decreased by " << delta
+                                   << ". Succeeded! "
+                                   << "New balance: "
+                                   << GetAccount(address)->GetBalance());
         return true;
     }
 
-    LOG_GENERAL(INFO, "Balance for "
-                << address << " decreased by " << delta << ". Failed! Balance: "
-                << (account ? account->GetBalance().convert_to<string>()
-                            : "? account = nullptr"));
+    LOG_GENERAL(INFO,
+                "Balance for "
+                    << address << " decreased by " << delta
+                    << ". Failed! Balance: "
+                    << (account ? account->GetBalance().convert_to<string>()
+                                : "? account = nullptr"));
 
     return false;
 }
@@ -365,12 +374,14 @@ bool AccountStore::TransferBalance(
 
     if (DecreaseBalance(from, delta) && IncreaseBalance(to, delta))
     {
-        LOG_GENERAL(INFO, "Transfer of " << delta << " from " << from << " to " << to
+        LOG_GENERAL(INFO,
+                    "Transfer of " << delta << " from " << from << " to " << to
                                    << " succeeded");
         return true;
     }
 
-    LOG_GENERAL(INFO, "Transfer of " << delta << " from " << from << " to " << to
+    LOG_GENERAL(INFO,
+                "Transfer of " << delta << " from " << from << " to " << to
                                << " failed");
 
     return false;

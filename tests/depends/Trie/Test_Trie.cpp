@@ -347,7 +347,8 @@ BOOST_AUTO_TEST_CASE(moreTrieTests)
         LOG_GENERAL(INFO, t);
         LOG_GENERAL(INFO, m);
         LOG_GENERAL(INFO, t.root());
-        LOG_GENERAL(INFO, stringMapHash256({{"test", "test"}, {"te", "testy"}}));
+        LOG_GENERAL(INFO,
+                    stringMapHash256({{"test", "test"}, {"te", "testy"}}));
         LOG_GENERAL(INFO, t.at(string("test")));
         LOG_GENERAL(INFO, t.at(string("te")));
         LOG_GENERAL(INFO, t.at(string("t")));
@@ -391,7 +392,8 @@ BOOST_AUTO_TEST_CASE(moreTrieTests)
         LOG_GENERAL(INFO, RLP(r));
     }
     {
-        LOG_GENERAL(INFO,
+        LOG_GENERAL(
+            INFO,
             hex << stringMapHash256({{"dog", "puppy"}, {"doe", "reindeer"}}));
         MemTrie t;
         t.insert("dog", "puppy");
@@ -551,7 +553,8 @@ BOOST_AUTO_TEST_CASE(trieStess)
                 {
                     // cwarn << m;
                     for (auto i : d)
-                        LOG_GENERAL(INFO, i.first.toString() << i.second.toString());
+                        LOG_GENERAL(INFO,
+                                    i.first.toString() << i.second.toString());
 
                     MemoryDB dm2;
                     EnforceRefs e2(dm2, true);
@@ -564,9 +567,10 @@ BOOST_AUTO_TEST_CASE(trieStess)
                     //					for (auto i: dm2.get())
                     //						cwarn << i.first << ": " << RLP(i.second);
                     d2.debugStructure(cerr);
-                    LOG_GENERAL(INFO,
+                    LOG_GENERAL(
+                        INFO,
                         "Broken:"
-                        << d.root()); // Leaves an extension -> extension (3c1... -> 742...)
+                            << d.root()); // Leaves an extension -> extension (3c1... -> 742...)
                     //					for (auto i: dm.get())
                     //						cwarn << i.first << ": " << RLP(i.second);
                     d.debugStructure(cerr);

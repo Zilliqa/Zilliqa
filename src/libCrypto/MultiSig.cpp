@@ -127,8 +127,8 @@ int CommitSecret::Deserialize(const vector<unsigned char>& src,
     }
     catch (const std::exception& e)
     {
-        LOG_GENERAL(WARNING, "Error with CommitSecret::Deserialize." << ' '
-                                                                   << e.what());
+        LOG_GENERAL(WARNING,
+                    "Error with CommitSecret::Deserialize." << ' ' << e.what());
         return -1;
     }
     return 0;
@@ -240,8 +240,8 @@ int CommitPoint::Deserialize(const vector<unsigned char>& src,
     }
     catch (const std::exception& e)
     {
-        LOG_GENERAL(WARNING, "Error with CommitPoint::Deserialize." << ' '
-                                                                  << e.what());
+        LOG_GENERAL(WARNING,
+                    "Error with CommitPoint::Deserialize." << ' ' << e.what());
         return -1;
     }
     return 0;
@@ -383,8 +383,8 @@ int Challenge::Deserialize(const vector<unsigned char>& src,
     }
     catch (const std::exception& e)
     {
-        LOG_GENERAL(WARNING, "Error with Challenge::Deserialize." << ' '
-                                                                << e.what());
+        LOG_GENERAL(WARNING,
+                    "Error with Challenge::Deserialize." << ' ' << e.what());
         return -1;
     }
     return 0;
@@ -577,8 +577,8 @@ int Response::Deserialize(const vector<unsigned char>& src, unsigned int offset)
     }
     catch (const std::exception& e)
     {
-        LOG_GENERAL(WARNING, "Error with Response::Deserialize." << ' '
-                                                               << e.what());
+        LOG_GENERAL(WARNING,
+                    "Error with Response::Deserialize." << ' ' << e.what());
         return -1;
     }
     return 0;
@@ -961,7 +961,8 @@ bool MultiSig::VerifyResponse(const Response& response,
                    != 0);
             if (err)
             {
-                LOG_GENERAL(WARNING, "Generated commit point doesn't match the "
+                LOG_GENERAL(WARNING,
+                            "Generated commit point doesn't match the "
                             "given one");
                 return false;
             }
@@ -975,8 +976,8 @@ bool MultiSig::VerifyResponse(const Response& response,
     }
     catch (const std::exception& e)
     {
-        LOG_GENERAL(WARNING, "Error with MultiSig::VerifyResponse." << ' '
-                                                                  << e.what());
+        LOG_GENERAL(WARNING,
+                    "Error with MultiSig::VerifyResponse." << ' ' << e.what());
         return false;
     }
     return true;

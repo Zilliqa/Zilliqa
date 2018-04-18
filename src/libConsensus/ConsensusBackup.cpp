@@ -40,27 +40,28 @@ bool ConsensusBackup::CheckState(Action action)
             result = false;
             break;
         case RESPONSE_DONE:
-            LOG_GENERAL(WARNING, "Processing announce but response already done");
+            LOG_GENERAL(WARNING,
+                        "Processing announce but response already done");
             result = false;
             break;
         case FINALCOMMIT_DONE:
             LOG_GENERAL(WARNING,
-                "Processing announce but finalcommit already done");
+                        "Processing announce but finalcommit already done");
             result = false;
             break;
         case FINALRESPONSE_DONE:
             LOG_GENERAL(WARNING,
-                "Processing announce but finalresponse already done");
+                        "Processing announce but finalresponse already done");
             result = false;
             break;
         case DONE:
             LOG_GENERAL(WARNING,
-                "Processing announce but consensus already done");
+                        "Processing announce but consensus already done");
             result = false;
             break;
         case ERROR:
             LOG_GENERAL(WARNING,
-                "Processing announce but receiving ERROR message.");
+                        "Processing announce but receiving ERROR message.");
             result = false;
             break;
         default:
@@ -73,7 +74,8 @@ bool ConsensusBackup::CheckState(Action action)
         switch (m_state)
         {
         case INITIAL:
-            LOG_GENERAL(WARNING, "Processing challenge but commit not yet done");
+            LOG_GENERAL(WARNING,
+                        "Processing challenge but commit not yet done");
             result = false;
             break;
         case COMMIT_DONE:
@@ -85,22 +87,22 @@ bool ConsensusBackup::CheckState(Action action)
             break;
         case FINALCOMMIT_DONE:
             LOG_GENERAL(WARNING,
-                "Processing challenge but finalcommit already done");
+                        "Processing challenge but finalcommit already done");
             result = false;
             break;
         case FINALRESPONSE_DONE:
             LOG_GENERAL(WARNING,
-                "Processing challenge but finalresponse already done");
+                        "Processing challenge but finalresponse already done");
             result = false;
             break;
         case DONE:
             LOG_GENERAL(WARNING,
-                "Processing challenge but consensus already done");
+                        "Processing challenge but consensus already done");
             result = false;
             break;
         case ERROR:
             LOG_GENERAL(WARNING,
-                "Processing challenge but receiving ERROR message.");
+                        "Processing challenge but receiving ERROR message.");
             result = false;
             break;
         default:
@@ -114,7 +116,7 @@ bool ConsensusBackup::CheckState(Action action)
         {
         case INITIAL:
             LOG_GENERAL(WARNING,
-                "Processing collectivesig but commit not yet done");
+                        "Processing collectivesig but commit not yet done");
             result = false;
             break;
         case COMMIT_DONE:
@@ -122,22 +124,25 @@ bool ConsensusBackup::CheckState(Action action)
         case RESPONSE_DONE:
             break;
         case FINALCOMMIT_DONE:
-            LOG_GENERAL(WARNING,
+            LOG_GENERAL(
+                WARNING,
                 "Processing collectivesig but finalcommit already done");
             result = false;
             break;
         case FINALRESPONSE_DONE:
-            LOG_GENERAL(WARNING, "Processing collectivesig but finalresponse "
+            LOG_GENERAL(WARNING,
+                        "Processing collectivesig but finalresponse "
                         "already done");
             result = false;
             break;
         case DONE:
             LOG_GENERAL(WARNING,
-                "Processing collectivesig but consensus already done");
+                        "Processing collectivesig but consensus already done");
             result = false;
             break;
         case ERROR:
-            LOG_GENERAL(WARNING,
+            LOG_GENERAL(
+                WARNING,
                 "Processing collectivesig but receiving ERROR message.");
             result = false;
             break;
@@ -152,34 +157,36 @@ bool ConsensusBackup::CheckState(Action action)
         {
         case INITIAL:
             LOG_GENERAL(WARNING,
-                "Processing finalchallenge but commit not yet done");
+                        "Processing finalchallenge but commit not yet done");
             result = false;
             break;
         case COMMIT_DONE:
             LOG_GENERAL(WARNING,
-                "Processing finalchallenge but response not yet done");
+                        "Processing finalchallenge but response not yet done");
             result = false;
             break;
         case RESPONSE_DONE:
-            LOG_GENERAL(INFO,
-                "Processing finalchallenge but finalcommit not yet done");
+            LOG_GENERAL(
+                INFO, "Processing finalchallenge but finalcommit not yet done");
             // LOG_GENERAL(WARNING, "Processing finalchallenge but finalcommit not yet done");
             // result = false;
             break;
         case FINALCOMMIT_DONE:
             break;
         case FINALRESPONSE_DONE:
-            LOG_GENERAL(WARNING, "Processing finalchallenge but finalresponse "
+            LOG_GENERAL(WARNING,
+                        "Processing finalchallenge but finalresponse "
                         "already done");
             result = false;
             break;
         case DONE:
             LOG_GENERAL(WARNING,
-                "Processing finalchallenge but consensus already done");
+                        "Processing finalchallenge but consensus already done");
             result = false;
             break;
         case ERROR:
-            LOG_GENERAL(WARNING, "Processing finalchallenge but receiving ERROR "
+            LOG_GENERAL(WARNING,
+                        "Processing finalchallenge but receiving ERROR "
                         "message.");
             result = false;
             break;
@@ -193,12 +200,14 @@ bool ConsensusBackup::CheckState(Action action)
         switch (m_state)
         {
         case INITIAL:
-            LOG_GENERAL(WARNING,
+            LOG_GENERAL(
+                WARNING,
                 "Processing finalcollectivesig but commit not yet done");
             result = false;
             break;
         case COMMIT_DONE:
-            LOG_GENERAL(WARNING, "Processing finalcollectivesig but response not "
+            LOG_GENERAL(WARNING,
+                        "Processing finalcollectivesig but response not "
                         "yet done");
             // TODO: check this logic again.
             // Issue #43
@@ -206,7 +215,8 @@ bool ConsensusBackup::CheckState(Action action)
             //result = false;
             break;
         case RESPONSE_DONE:
-            LOG_GENERAL(WARNING, "Processing finalcollectivesig but finalcommit "
+            LOG_GENERAL(WARNING,
+                        "Processing finalcollectivesig but finalcommit "
                         "not yet done");
             // TODO: check this logic again.
             // Issue #43
@@ -218,12 +228,14 @@ bool ConsensusBackup::CheckState(Action action)
         case FINALRESPONSE_DONE:
             break;
         case DONE:
-            LOG_GENERAL(WARNING, "Processing finalcollectivesig but consensus "
+            LOG_GENERAL(WARNING,
+                        "Processing finalcollectivesig but consensus "
                         "already done");
             result = false;
             break;
         case ERROR:
-            LOG_GENERAL(WARNING, "Processing finalcollectivesig but receiving "
+            LOG_GENERAL(WARNING,
+                        "Processing finalcollectivesig but receiving "
                         "ERROR message.");
             result = false;
             break;
@@ -281,10 +293,11 @@ bool ConsensusBackup::ProcessMessageAnnounce(
     // Check the consensus id
     if (consensus_id != m_consensusID)
     {
-        LOG_GENERAL(WARNING, "Consensus ID in announcement ("
-                    << consensus_id
-                    << ") does not match instance consensus ID ("
-                    << m_consensusID << ")");
+        LOG_GENERAL(WARNING,
+                    "Consensus ID in announcement ("
+                        << consensus_id
+                        << ") does not match instance consensus ID ("
+                        << m_consensusID << ")");
         return false;
     }
 
@@ -295,7 +308,8 @@ bool ConsensusBackup::ProcessMessageAnnounce(
               announcement.begin() + curr_offset)
         == false)
     {
-        LOG_GENERAL(WARNING, "Block hash in announcement does not match instance "
+        LOG_GENERAL(WARNING,
+                    "Block hash in announcement does not match instance "
                     "block hash");
         return false;
     }
@@ -309,8 +323,9 @@ bool ConsensusBackup::ProcessMessageAnnounce(
     // Check the leader id
     if (leader_id != m_leaderID)
     {
-        LOG_GENERAL(WARNING, "Leader ID mismatch. Expected: "
-                    << m_leaderID << ". But gotten: " << leader_id);
+        LOG_GENERAL(WARNING,
+                    "Leader ID mismatch. Expected: "
+                        << m_leaderID << ". But gotten: " << leader_id);
         return false;
     }
 
@@ -533,10 +548,11 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
     // Check the consensus id
     if (consensus_id != m_consensusID)
     {
-        LOG_GENERAL(WARNING, "Consensus ID in challenge ("
-                    << consensus_id
-                    << ") does not match instance consensus ID ("
-                    << m_consensusID << ")");
+        LOG_GENERAL(WARNING,
+                    "Consensus ID in challenge ("
+                        << consensus_id
+                        << ") does not match instance consensus ID ("
+                        << m_consensusID << ")");
         return false;
     }
 
@@ -547,7 +563,8 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
               challenge.begin() + curr_offset)
         == false)
     {
-        LOG_GENERAL(WARNING, "Block hash in challenge does not match instance "
+        LOG_GENERAL(WARNING,
+                    "Block hash in challenge does not match instance "
                     "block hash");
         return false;
     }
@@ -755,10 +772,11 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
     // Check the consensus id
     if (consensus_id != m_consensusID)
     {
-        LOG_GENERAL(WARNING, "Consensus ID in challenge ("
-                    << consensus_id
-                    << ") does not match instance consensus ID ("
-                    << m_consensusID << ")");
+        LOG_GENERAL(WARNING,
+                    "Consensus ID in challenge ("
+                        << consensus_id
+                        << ") does not match instance consensus ID ("
+                        << m_consensusID << ")");
         return false;
     }
 
@@ -769,7 +787,8 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
               collectivesig.begin() + curr_offset)
         == false)
     {
-        LOG_GENERAL(WARNING, "Block hash in challenge does not match instance "
+        LOG_GENERAL(WARNING,
+                    "Block hash in challenge does not match instance "
                     "block hash");
         return false;
     }

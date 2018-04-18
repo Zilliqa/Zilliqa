@@ -66,14 +66,16 @@ BOOST_AUTO_TEST_CASE(DSBlock_test)
 
     std::vector<unsigned char> message1;
     block1.Serialize(message1, 0);
-    LOG_PAYLOAD(INFO, "Block1 serialized", message1, Logger::MAX_BYTES_TO_DISPLAY);
+    LOG_PAYLOAD(INFO, "Block1 serialized", message1,
+                Logger::MAX_BYTES_TO_DISPLAY);
 
     DSBlock block2(message1, 0);
 
     std::vector<unsigned char> message2;
     block2.Serialize(message2, 0);
     dsHeader = block2.GetHeader();
-    LOG_PAYLOAD(INFO, "Block2 serialized", message2, Logger::MAX_BYTES_TO_DISPLAY);
+    LOG_PAYLOAD(INFO, "Block2 serialized", message2,
+                Logger::MAX_BYTES_TO_DISPLAY);
     DSBlockHeader header2 = block2.GetHeader();
     uint8_t diff2 = header2.GetDifficulty();
     const std::array<unsigned char, BLOCK_HASH_SIZE>& prevHash2
@@ -266,20 +268,23 @@ BOOST_AUTO_TEST_CASE(TxBlock_test)
     std::vector<unsigned char> message1;
     block1.Serialize(message1, 0);
 
-    LOG_PAYLOAD(INFO, "Block1 serialized", message1, Logger::MAX_BYTES_TO_DISPLAY);
+    LOG_PAYLOAD(INFO, "Block1 serialized", message1,
+                Logger::MAX_BYTES_TO_DISPLAY);
 
     TxBlock block2(message1, 0);
 
     std::vector<unsigned char> message2;
     block2.Serialize(message2, 0);
 
-    LOG_PAYLOAD(INFO, "Block2 serialized", message2, Logger::MAX_BYTES_TO_DISPLAY);
+    LOG_PAYLOAD(INFO, "Block2 serialized", message2,
+                Logger::MAX_BYTES_TO_DISPLAY);
 
     for (unsigned int i = 0; i < message1.size(); i++)
     {
         if (message1.at(i) != message2.at(i))
         {
-            LOG_GENERAL(INFO, "message1[" << i << "]=" << std::hex << message1.at(i)
+            LOG_GENERAL(INFO,
+                        "message1[" << i << "]=" << std::hex << message1.at(i)
                                     << ", message2[" << i << "]=" << std::hex
                                     << message2.at(i));
         }
@@ -334,7 +339,8 @@ BOOST_AUTO_TEST_CASE(TxBlock_test)
     std::vector<unsigned char> byteVec;
     byteVec.resize(BLOCK_HASH_SIZE);
     copy(prevHash2.begin(), prevHash2.end(), byteVec.begin());
-    LOG_PAYLOAD(INFO, "Block 2 prevHash", byteVec, Logger::MAX_BYTES_TO_DISPLAY);
+    LOG_PAYLOAD(INFO, "Block 2 prevHash", byteVec,
+                Logger::MAX_BYTES_TO_DISPLAY);
     std::string expectedStr
         = "0D3979DA06841562C90DE5212BE5EFCF88FAEA17118945B6B49D304DE295E407";
     std::vector<unsigned char> expectedVec
@@ -358,7 +364,8 @@ BOOST_AUTO_TEST_CASE(TxBlock_test)
     byteVec.clear();
     byteVec.resize(TRAN_HASH_SIZE);
     copy(txRootHash2.begin(), txRootHash2.end(), byteVec.begin());
-    LOG_PAYLOAD(INFO, "Block 2 txRootHash2", byteVec, Logger::MAX_BYTES_TO_DISPLAY);
+    LOG_PAYLOAD(INFO, "Block 2 txRootHash2", byteVec,
+                Logger::MAX_BYTES_TO_DISPLAY);
     expectedStr
         = "4A740D0FA29B841C6D99B02892273F7D00518EF12DAFA2AD4D198E630789CF3B";
     expectedVec.clear();

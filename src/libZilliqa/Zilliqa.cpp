@@ -51,7 +51,8 @@ void Zilliqa::LogSelfNodeInfo(const std::pair<PrivKey, PubKey>& key,
     Address toAddr;
     copy(tmp3.end() - ACC_ADDR_SIZE, tmp3.end(), toAddr.asArray().begin());
 
-    LOG_GENERAL(INFO, "My address is " << toAddr << " and port is "
+    LOG_GENERAL(INFO,
+                "My address is " << toAddr << " and port is "
                                  << peer.m_listenPortHost);
 }
 
@@ -133,7 +134,8 @@ void Zilliqa::Dispatch(const vector<unsigned char>& message, const Peer& from)
         }
         else
         {
-            LOG_GENERAL(INFO, "Unknown message type " << std::hex
+            LOG_GENERAL(INFO,
+                        "Unknown message type " << std::hex
                                                 << (unsigned int)msg_type);
         }
     }
@@ -156,7 +158,8 @@ vector<Peer> Zilliqa::RetrieveBroadcastList(unsigned char msg_type,
     }
     else
     {
-        LOG_GENERAL(INFO, "Unknown message type " << std::hex
+        LOG_GENERAL(INFO,
+                    "Unknown message type " << std::hex
                                             << (unsigned int)msg_type);
     }
 

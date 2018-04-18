@@ -77,9 +77,10 @@ shared_ptr<BIGNUM> BIGNUMSerialize::GetNumber(const vector<unsigned char>& src,
     }
     else
     {
-        LOG_GENERAL(WARNING, "Unable to get BIGNUM of size "
-                    << size << " from stream with available size "
-                    << src.size() - offset);
+        LOG_GENERAL(WARNING,
+                    "Unable to get BIGNUM of size "
+                        << size << " from stream with available size "
+                        << src.size() - offset);
     }
 
     return nullptr;
@@ -117,10 +118,11 @@ void BIGNUMSerialize::SetNumber(vector<unsigned char>& dst, unsigned int offset,
         }
         else
         {
-            LOG_GENERAL(WARNING, "BIGNUM size ("
-                        << actual_bn_size
-                        << ") exceeds requested serialize size (" << size
-                        << ")");
+            LOG_GENERAL(WARNING,
+                        "BIGNUM size ("
+                            << actual_bn_size
+                            << ") exceeds requested serialize size (" << size
+                            << ")");
         }
     }
     else
@@ -283,8 +285,8 @@ int PrivKey::Deserialize(const vector<unsigned char>& src, unsigned int offset)
     }
     catch (const std::exception& e)
     {
-        LOG_GENERAL(WARNING, "Error with PrivKey::Deserialize." << ' '
-                                                              << e.what());
+        LOG_GENERAL(WARNING,
+                    "Error with PrivKey::Deserialize." << ' ' << e.what());
         return -1;
     }
     return 0;
@@ -335,7 +337,8 @@ PubKey::PubKey(const PrivKey& privkey)
         if (BN_is_zero(privkey.m_d.get()) || BN_is_one(privkey.m_d.get())
             || (BN_cmp(privkey.m_d.get(), curve.m_order.get()) != -1))
         {
-            LOG_GENERAL(WARNING, "Input private key is weak. Public key "
+            LOG_GENERAL(WARNING,
+                        "Input private key is weak. Public key "
                         "generation failed");
             return;
         }
@@ -422,8 +425,8 @@ int PubKey::Deserialize(const vector<unsigned char>& src, unsigned int offset)
     }
     catch (const std::exception& e)
     {
-        LOG_GENERAL(WARNING, "Error with PubKey::Deserialize." << ' '
-                                                             << e.what());
+        LOG_GENERAL(WARNING,
+                    "Error with PubKey::Deserialize." << ' ' << e.what());
         return -1;
     }
     return 0;
@@ -601,8 +604,8 @@ int Signature::Deserialize(const vector<unsigned char>& src,
     }
     catch (const std::exception& e)
     {
-        LOG_GENERAL(WARNING, "Error with Signature::Deserialize." << ' '
-                                                                << e.what());
+        LOG_GENERAL(WARNING,
+                    "Error with Signature::Deserialize." << ' ' << e.what());
         return -1;
     }
     return 0;

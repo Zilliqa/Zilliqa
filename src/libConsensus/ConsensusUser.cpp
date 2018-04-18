@@ -32,7 +32,8 @@ bool ConsensusUser::ProcessSetLeader(const vector<unsigned char>& message,
         && (m_consensus->GetState() != ConsensusCommon::State::DONE)
         && (m_consensus->GetState() != ConsensusCommon::State::ERROR))
     {
-        LOG_GENERAL(WARNING, "You're trying to set me again but my consensus is "
+        LOG_GENERAL(WARNING,
+                    "You're trying to set me again but my consensus is "
                     "still not finished");
         return false;
     }
@@ -136,14 +137,16 @@ bool ConsensusUser::ProcessStartConsensus(const vector<unsigned char>& message,
 
     if (m_consensus->GetState() != ConsensusCommon::State::INITIAL)
     {
-        LOG_GENERAL(WARNING, "You already called me before. Set me again first.");
+        LOG_GENERAL(WARNING,
+                    "You already called me before. Set me again first.");
         return false;
     }
 
     ConsensusLeader* cl = dynamic_cast<ConsensusLeader*>(m_consensus.get());
     if (cl == NULL)
     {
-        LOG_GENERAL(WARNING, "I'm a backup, you can't start consensus "
+        LOG_GENERAL(WARNING,
+                    "I'm a backup, you can't start consensus "
                     "(announcement) thru me");
         return false;
     }
@@ -218,8 +221,8 @@ bool ConsensusUser::Execute(const vector<unsigned char>& message,
     }
     else
     {
-        LOG_GENERAL(INFO, "Unknown instruction byte " << hex
-                                                << (unsigned int)ins_byte);
+        LOG_GENERAL(
+            INFO, "Unknown instruction byte " << hex << (unsigned int)ins_byte);
     }
 
     return result;

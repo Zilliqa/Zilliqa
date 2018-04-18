@@ -24,7 +24,7 @@
 #include <string>
 #include <vector>
 
-#if 1//clark
+#if 1 //clark
 #include "depends/g3log/src/g3log/loglevels.hpp"
 #endif
 
@@ -46,7 +46,7 @@ private:
     std::string fname;
     std::ofstream logfile;
     unsigned int seqnum;
-#if 1//clark
+#if 1 //clark
     bool bRefactor;
 #endif
 
@@ -73,7 +73,7 @@ public:
     /// Returns the singleton instance for the state/reporting Logger.
     static Logger& GetStateLogger(const char* fname_prefix, bool log_to_file,
                                   std::streampos max_file_size = MAX_FILE_SIZE);
-#if 0//clark
+#if 0 //clark
     /// Outputs the specified message and function name to the main log.
     void LogMessage(const char* msg, const char* function);
 
@@ -84,27 +84,27 @@ public:
     /// Outputs the specified message and function name to the state/reporting log.
     void LogState(const char* msg, const char* function);
 
-#if 0//clark
+#if 0 //clark
     /// Outputs the specified message, function name, and payload to the main log.
     void LogMessageAndPayload(const char* msg,
                               const std::vector<unsigned char>& payload,
                               size_t max_bytes_to_display,
                               const char* function);
 #endif
-#if 1//clark
+#if 1 //clark
     /// Outputs the specified message and function name to the main log.
     void LogGeneral(LEVELS level, const char* msg, const char* function);
 
     /// Outputs the specified message, function name, and block number to the main log.
-    void LogEpoch(LEVELS level, const char* msg, const char* epoch, const char* function);
+    void LogEpoch(LEVELS level, const char* msg, const char* epoch,
+                  const char* function);
 
     /// Outputs the specified message, function name, and payload to the main log.
     void LogPayload(LEVELS level, const char* msg,
-                              const std::vector<unsigned char>& payload,
-                              size_t max_bytes_to_display,
-                              const char* function);
+                    const std::vector<unsigned char>& payload,
+                    size_t max_bytes_to_display, const char* function);
 #endif
-#if 1//clark
+#if 1 //clark
     /// Setup the display debug level
     ///     INFO: display all message
     ///     WARNING: display warning and fatal message
@@ -168,7 +168,7 @@ public:
         Logger::GetStateLogger(NULL, true)                                     \
             .LogState(oss.str().c_str(), __FUNCTION__);                        \
     }
-#if 1//clark
+#if 1 //clark
 #define LOG_GENERAL(level, msg)                                                \
     {                                                                          \
         std::ostringstream oss;                                                \
@@ -189,24 +189,21 @@ public:
         oss << msg;                                                            \
         Logger::GetLogger(NULL, true)                                          \
             .LogPayload(level, oss.str().c_str(), payload,                     \
-                                  max_bytes_to_display, __FUNCTION__);         \
+                        max_bytes_to_display, __FUNCTION__);                   \
     }
 #endif
-#if 1//clark
+#if 1 //clark
 #define LOG_DISPLAY_LEVEL_ABOVE(level)                                         \
     {                                                                          \
-        Logger::GetLogger(NULL, true)                                          \
-            .DisplayLevelAbove(level);                                         \
+        Logger::GetLogger(NULL, true).DisplayLevelAbove(level);                \
     }
 #define LOG_ENABLE_LEVEL(level)                                                \
     {                                                                          \
-        Logger::GetLogger(NULL, true)                                          \
-            .EnableLevel(level);                                               \
+        Logger::GetLogger(NULL, true).EnableLevel(level);                      \
     }
 #define LOG_DISABLE_LEVEL(level)                                               \
     {                                                                          \
-        Logger::GetLogger(NULL, true)                                          \
-            .DisableLevel(level);                                              \
+        Logger::GetLogger(NULL, true).DisableLevel(level);                     \
     }
 #endif
 #endif // __LOGGER_H__

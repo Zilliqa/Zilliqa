@@ -63,8 +63,8 @@ int Account::Deserialize(const vector<unsigned char>& src, unsigned int offset)
     }
     catch (const std::exception& e)
     {
-        LOG_GENERAL(WARNING, "Error with Account::Deserialize." << ' '
-                                                              << e.what());
+        LOG_GENERAL(WARNING,
+                    "Error with Account::Deserialize." << ' ' << e.what());
         return -1;
     }
     return 0;
