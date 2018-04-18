@@ -33,7 +33,7 @@ class VCBlockHeader : public BlockHeaderBase
     unsigned char m_ViewChangeState;
     unsigned int m_CandidateLeaderIndex;
     Peer m_CandidateLeaderNetworkInfo; 
-    PubKey m_CandidateLeaderPubKey; // Public key 
+    PubKey m_CandidateLeaderPubKey; 
     unsigned int m_VCCounter; 
     
 public:
@@ -44,12 +44,12 @@ public:
     VCBlockHeader(const std::vector<unsigned char>& src, unsigned int offset);
 
     /// Constructor with specified DS block header parameters.
-    VCBlockHeader(const boost::multiprecision::uint256_t& m_VieWChangeEpochNo, 
-                    const unsigned int m_ViewChangeState,
-                    unsigned int m_ExpectedCandidateLeaderIndex,
-                    Peer m_CandidateLeaderNetworkInfo,
-                    PubKey m_CandidateLeaderPubKey,
-                    unsigned int m_VCCounter);
+    VCBlockHeader(const boost::multiprecision::uint256_t& viewChangeEpochNo, 
+                    const unsigned int viewChangeState,
+                    unsigned int expectedCandidateLeaderIndex,
+                    Peer candidateLeaderNetworkInfo,
+                    PubKey candidateLeaderPubKey,
+                    unsigned int vcCounter);
 
     /// Implements the Serialize function inherited from Serializable.
     unsigned int Serialize(std::vector<unsigned char>& dst,
