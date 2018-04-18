@@ -30,7 +30,7 @@ VCBlockHeader::VCBlockHeader(const vector<unsigned char>& src,
 {
     if (Deserialize(src, offset) != 0)
     {
-        LOG_MESSAGE("Error. We failed to init VCBlockHeader.");
+        LOG_MESSAGE("Error. We failed to initialize VCBlockHeader.");
     }
 }
 
@@ -45,7 +45,7 @@ VCBlockHeader::VCBlockHeader(const boost::multiprecision::uint256_t& viewChangeE
     , m_CandidateLeaderIndex(expectedCandidateLeaderIndex)
     , m_CandidateLeaderNetworkInfo(candidateLeaderNetworkInfo)
     , m_CandidateLeaderPubKey(candidateLeaderPubKey)
-    , m_CandidateLeaderPubKey(vcCounter)
+    , m_VCCounter(vcCounter)
 {
 }
 
@@ -54,12 +54,9 @@ unsigned int VCBlockHeader::Serialize(vector<unsigned char>& dst,
 {
     LOG_MARKER();
 
-    unsigned int size_needed = 
+    unsigned int size_needed = UINT256_SIZE + sizeof(unsigned char) + sizeof(unsigned int)
+                                + IP_SIZE + PORT_SIZE + PUB_KEY_SIZE + sizeof(unsigned int);
 
-    /*
-    unsigned int size_needed = sizeof(uint8_t) + BLOCK_HASH_SIZE + UINT256_SIZE
-        + PUB_KEY_SIZE + PUB_KEY_SIZE + UINT256_SIZE + UINT256_SIZE
-        + sizeof(unsigned int);
     unsigned int size_remaining = dst.size() - offset;
 
     if (size_remaining < size_needed)
@@ -68,67 +65,48 @@ unsigned int VCBlockHeader::Serialize(vector<unsigned char>& dst,
     }
 
     unsigned int curOffset = offset;
-
-    SetNumber<uint8_t>(dst, curOffset, m_difficulty, sizeof(uint8_t));
-    curOffset += sizeof(uint8_t);
-    copy(m_prevHash.asArray().begin(), m_prevHash.asArray().end(),
-         dst.begin() + curOffset);
-    curOffset += BLOCK_HASH_SIZE;
-    SetNumber<uint256_t>(dst, curOffset, m_nonce, UINT256_SIZE);
-    curOffset += UINT256_SIZE;
-    m_minerPubKey.Serialize(dst, curOffset);
-    curOffset += PUB_KEY_SIZE;
-    m_leaderPubKey.Serialize(dst, curOffset);
-    curOffset += PUB_KEY_SIZE;
-    SetNumber<uint256_t>(dst, curOffset, m_blockNum, UINT256_SIZE);
-    curOffset += UINT256_SIZE;
-    SetNumber<uint256_t>(dst, curOffset, m_timestamp, UINT256_SIZE);
-    curOffset += UINT256_SIZE;
-    SetNumber<unsigned int>(dst, curOffset, m_viewChangeCounter,
-                            sizeof(unsigned int));
-    curOffset += sizeof(unsigned int);
-
-    return size_needed;
-    */
-    return 1; 
+    SetNumber<uint256_t>(dst, curOffset, m_VieWChangeEpochNo, UINT256_SIZE);
+    curOffset += UINT256_SIZE; 
+    SetNumber<unsigned char>(dst, curOffset, m_ViewChangeState, sizeof(unsigned char));
+    curOffset += sizeof(unsigned char); 
+    SetNumber<unsigned int>(dst, curOffset, m_CandidateLeaderIndex, sizeof(unsigned int));
+    curOffset += sizeof(unsigned int); 
+    curOffset += m_CandidateLeaderNetworkInfo.Serialize(dst, curOffset); 
+    curOffset += m_CandidateLeaderPubKey.Serialize(dst, curOffset); 
+    SetNumber<unsigned int>(dst, curOffset, m_VCCounter, sizeof(unsigned int));
+    curOffset += sizeof(unsigned int); 
+    
+    return size_needed; 
 }
 
 int VCBlockHeader::Deserialize(const vector<unsigned char>& src,
                                unsigned int offset)
 {
     LOG_MARKER();
-    /*
+
     unsigned int curOffset = offset;
     try
     {
-        m_difficulty = GetNumber<uint8_t>(src, curOffset, sizeof(uint8_t));
-        curOffset += sizeof(uint8_t);
-        copy(src.begin() + curOffset, src.begin() + curOffset + BLOCK_HASH_SIZE,
-             m_prevHash.asArray().begin());
-        curOffset += BLOCK_HASH_SIZE;
-        m_nonce = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
-        curOffset += UINT256_SIZE;
-        // m_minerPubKey.Deserialize(src, curOffset);
-        if (m_minerPubKey.Deserialize(src, curOffset) != 0)
+        m_VieWChangeEpochNo = GetNumber<uint256_t>(src, curOffset, sizeof(uint256_t));
+        curOffset += sizeof(uint256_t);
+        m_ViewChangeState = GetNumber<unsigned char>(src, curOffset, sizeof(unsigned char));
+        curOffset += sizeof(unsigned char);
+        if (m_CandidateLeaderNetworkInfo.Deserialize(src, curOffset) !=0
         {
-            LOG_MESSAGE("Error. We failed to init m_minerPubKey.");
+            LOG_MESSAGE("Error. We failed to deserialize CandidateLeaderNetworkInfo.");
+            return -1; 
+        } 
+        curOffset += IP_SIZE + PORT_SIZE; 
+
+        if (m_CandidateLeaderPubKey.Deserialize(dst, curOffset) !=0 )
+        {
+            LOG_MESSAGE("Error. We failed to deserialize m_CandidateLeaderPubKey.");
             return -1;
         }
-        curOffset += PUB_KEY_SIZE;
-        // m_leaderPubKey.Deserialize(src, curOffset);
-        if (m_leaderPubKey.Deserialize(src, curOffset) != 0)
-        {
-            LOG_MESSAGE("Error. We failed to init m_minerPubKey.");
-            return -1;
-        }
-        curOffset += PUB_KEY_SIZE;
-        m_blockNum = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
-        curOffset += UINT256_SIZE;
-        m_timestamp = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
-        curOffset += UINT256_SIZE;
-        m_viewChangeCounter
-            = GetNumber<unsigned int>(src, curOffset, sizeof(unsigned int));
-        curOffset += sizeof(unsigned int);
+        curOffset += PUB_KEY_SIZE; 
+
+        m_VCCounter = GetNumber<unsigned int>(src, curOffset, sizeof(unsigned int));
+        curOffset += sizeof(unsigned int); 
     }
     catch (const std::exception& e)
     {
@@ -136,7 +114,7 @@ int VCBlockHeader::Deserialize(const vector<unsigned char>& src,
                     << ' ' << e.what());
         return -1;
     }
-    */
+
     return 0;
 }
 
@@ -179,7 +157,6 @@ bool VCBlockHeader::operator==(const VCBlockHeader& header) const
             && (m_CandidateLeaderPubKey == header.m_CandidateLeaderPubKey)
             && (m_VCCounter == header.m_VCCounter));
 }
-
 
 bool VCBlockHeader::operator<(const VCBlockHeader& header) const
 {
