@@ -31,12 +31,11 @@ class VCBlockHeader : public BlockHeaderBase
 {
     boost::multiprecision::uint256_t m_VieWChangeEpochNo; 
     unsigned char m_ViewChangeState;
-    unsigned int m_CandidateLeaderIndex = 1;
-    Peer m_CandidateLeader; 
+    unsigned int m_CandidateLeaderIndex;
+    Peer m_CandidateLeaderNetworkInfo; 
     PubKey m_CandidateLeaderPubKey; // Public key 
     unsigned int m_VCCounter; 
     
-
 public:
     /// Default constructor.
     VCBlockHeader(); // creates a dummy invalid placeholder BlockHeader -- blocknum is maxsize of uint256
@@ -48,7 +47,7 @@ public:
     VCBlockHeader(const boost::multiprecision::uint256_t& m_VieWChangeEpochNo, 
                     const unsigned int m_ViewChangeState,
                     unsigned int m_ExpectedCandidateLeaderIndex,
-                    Peer m_CandidateLeader,
+                    Peer m_CandidateLeaderNetworkInfo,
                     PubKey m_CandidateLeaderPubKey,
                     unsigned int m_VCCounter);
 
