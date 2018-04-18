@@ -1427,7 +1427,7 @@ void DirectoryService::RejoinAsDS()
 bool DirectoryService::FinishRejoinAsDS()
 {
     LOG_MARKER();
-    SetState(POW1_SUBMISSION);
+    SetState(DSBLOCK_CONSENSUS);
     m_mode = BACKUP_DS;
     for (auto i = m_mediator.m_DSCommitteePubKeys.begin();
          i != m_mediator.m_DSCommitteePubKeys.end(); i++)
