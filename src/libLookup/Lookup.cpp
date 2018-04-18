@@ -1530,11 +1530,9 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
     {
         if (!m_currDSExpired)
         {
-            if (m_mediator.m_ds->FinishRejoinAsDS())
-            {
-                m_isFirstLoop = true;
-                m_syncType = SyncType::NO_SYNC;
-            }
+            m_isFirstLoop = true;
+            m_syncType = SyncType::NO_SYNC;
+            m_mediator.m_ds->FinishRejoinAsDS();
         }
         m_currDSExpired = false;
     }
