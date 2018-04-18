@@ -100,11 +100,7 @@ bool P2PComm::SendMessageSocketCore(const Peer& peer,
                                     const vector<unsigned char>& msg_hash)
 {
     LOG_MARKER();
-#if 1//clark
     LOG_PAYLOAD(INFO, "Sending message to " << peer, message,
-#else
-    LOG_PAYLOAD("Sending message to " << peer, message,
-#endif
                 Logger::MAX_BYTES_TO_DISPLAY);
 
     if (peer.m_ipAddress == 0 && peer.m_listenPortHost == 0)
@@ -282,11 +278,7 @@ void P2PComm::SendBroadcastMessageCore(
         this_thread::sleep_for(chrono::seconds(BROADCAST_EXPIRY_SECONDS));
         lock_guard<mutex> guard(m_broadcastHashesMutex);
         m_broadcastHashes.erase(msg_hash_copy);
-#if 1//clark
         LOG_PAYLOAD(INFO, "Removing msg hash from broadcast list", msg_hash_copy,
-#else
-        LOG_PAYLOAD("Removing msg hash from broadcast list", msg_hash_copy,
-#endif
                     Logger::MAX_BYTES_TO_DISPLAY);
     };
 
@@ -394,11 +386,7 @@ void P2PComm::HandleAcceptedConnection(
                     read_length += n;
                 }
 
-#if 1//clark
                 LOG_PAYLOAD(INFO, "Message received", message,
-#else
-                LOG_PAYLOAD("Message received", message,
-#endif
                             Logger::MAX_BYTES_TO_DISPLAY);
 
                 if (read_length != message_length - HASH_LEN)
@@ -483,11 +471,7 @@ void P2PComm::HandleAcceptedConnection(
             read_length += n;
         }
 
-#if 1//clark
         LOG_PAYLOAD(INFO, "Message received", message, Logger::MAX_BYTES_TO_DISPLAY);
-#else
-        LOG_PAYLOAD("Message received", message, Logger::MAX_BYTES_TO_DISPLAY);
-#endif
         if (read_length != message_length)
         {
             LOG_GENERAL(WARNING, "Incorrect message length.");

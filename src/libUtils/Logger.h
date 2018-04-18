@@ -47,7 +47,7 @@ private:
     std::ofstream logfile;
     unsigned int seqnum;
 #if 1//clark
-    bool bPreserve;
+    bool bRefactor;
 #endif
 
 public:
@@ -78,11 +78,7 @@ public:
     void LogMessage(const char* msg, const char* function);
 
     /// Outputs the specified message, function name, and block number to the main log.
-#if 1//clark
-    void LogMessage2(const char* msg, const char* function,
-#else
     void LogMessage(const char* msg, const char* function,
-#endif
                     const char* blockNum);
 #endif
     /// Outputs the specified message and function name to the state/reporting log.
