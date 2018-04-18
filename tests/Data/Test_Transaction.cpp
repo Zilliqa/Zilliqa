@@ -109,7 +109,8 @@ BOOST_AUTO_TEST_CASE(test1)
     std::vector<unsigned char> byteVec;
     byteVec.resize(TRAN_HASH_SIZE);
     copy(tranID2.begin(), tranID2.end(), byteVec.begin());
-    LOG_PAYLOAD(INFO, "Transaction2 tranID", byteVec, Logger::MAX_BYTES_TO_DISPLAY);
+    LOG_PAYLOAD(INFO, "Transaction2 tranID", byteVec,
+                Logger::MAX_BYTES_TO_DISPLAY);
     LOG_GENERAL(INFO, "Checking Serialization");
     BOOST_CHECK_MESSAGE(tx1 == tx2, "Not serialized properly");
 
@@ -124,13 +125,15 @@ BOOST_AUTO_TEST_CASE(test1)
     byteVec.clear();
     byteVec.resize(ACC_ADDR_SIZE);
     copy(toAddr2.begin(), toAddr2.end(), byteVec.begin());
-    LOG_PAYLOAD(INFO, "Transaction2 toAddr", byteVec, Logger::MAX_BYTES_TO_DISPLAY);
+    LOG_PAYLOAD(INFO, "Transaction2 toAddr", byteVec,
+                Logger::MAX_BYTES_TO_DISPLAY);
     BOOST_CHECK_MESSAGE(byteVec.at(19) == 23,
                         "expected: " << 23 << " actual: " << byteVec.at(19)
                                      << "\n");
 
     copy(fromAddr2.begin(), fromAddr2.end(), byteVec.begin());
-    LOG_PAYLOAD(INFO, "Transaction2 fromAddr", byteVec, Logger::MAX_BYTES_TO_DISPLAY);
+    LOG_PAYLOAD(INFO, "Transaction2 fromAddr", byteVec,
+                Logger::MAX_BYTES_TO_DISPLAY);
     BOOST_CHECK_MESSAGE(fromCheck == fromAddr2,
                         "PubKey not converted properly");
 
@@ -169,7 +172,8 @@ BOOST_AUTO_TEST_CASE(test1)
     Serializable::SetNumber<uint256_t>(byteVec, curOffset, 100, UINT256_SIZE);
     curOffset += UINT256_SIZE;
 
-    LOG_GENERAL(INFO, "Size :" << byteVec.size() << " VectorHex: "
+    LOG_GENERAL(INFO,
+                "Size :" << byteVec.size() << " VectorHex: "
                          << DataConversion::Uint8VecToHexStr(byteVec));
 
     Signature sign;

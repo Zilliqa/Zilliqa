@@ -85,8 +85,8 @@ int DSBlock::Deserialize(const vector<unsigned char>& src, unsigned int offset)
     }
     catch (const std::exception& e)
     {
-        LOG_GENERAL(WARNING, "Error with DSBlock::Deserialize." << ' '
-                                                              << e.what());
+        LOG_GENERAL(WARNING,
+                    "Error with DSBlock::Deserialize." << ' ' << e.what());
         return -1;
     }
     return 0;

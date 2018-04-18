@@ -61,11 +61,12 @@ BOOST_AUTO_TEST_CASE(TestSecureTrieDB)
         {
             auto t_end = std::chrono::high_resolution_clock::now();
             LOG_GENERAL(INFO,
-                "Time for "
-                << i / 1000 << "k insertions: "
-                << (std::chrono::duration<double, std::milli>(t_end - t_start)
-                        .count())
-                << " ms");
+                        "Time for "
+                            << i / 1000 << "k insertions: "
+                            << (std::chrono::duration<double, std::milli>(
+                                    t_end - t_start)
+                                    .count())
+                            << " ms");
         }
     }
     clock_t end = clock();
@@ -74,10 +75,12 @@ BOOST_AUTO_TEST_CASE(TestSecureTrieDB)
     LOG_GENERAL(INFO, "CPU time: " << seconds);
 
     auto t_end = std::chrono::high_resolution_clock::now();
-    LOG_GENERAL(INFO,
+    LOG_GENERAL(
+        INFO,
         "SecureTrie Time for 10k insertions: "
-        << (std::chrono::duration<double, std::milli>(t_end - t_start).count())
-        << " ms");
+            << (std::chrono::duration<double, std::milli>(t_end - t_start)
+                    .count())
+            << " ms");
 }
 
 BOOST_AUTO_TEST_CASE(TestSecureTrieDBWithDifferentAddress)
@@ -105,11 +108,12 @@ BOOST_AUTO_TEST_CASE(TestSecureTrieDBWithDifferentAddress)
         {
             auto t_end = std::chrono::high_resolution_clock::now();
             LOG_GENERAL(INFO,
-                "Time for "
-                << i / 1000 << "k insertions: "
-                << (std::chrono::duration<double, std::milli>(t_end - t_start)
-                        .count())
-                << " ms");
+                        "Time for "
+                            << i / 1000 << "k insertions: "
+                            << (std::chrono::duration<double, std::milli>(
+                                    t_end - t_start)
+                                    .count())
+                            << " ms");
         }
     }
     clock_t end = clock();
@@ -118,10 +122,12 @@ BOOST_AUTO_TEST_CASE(TestSecureTrieDBWithDifferentAddress)
     LOG_GENERAL(INFO, "CPU Time: " << seconds);
 
     auto t_end = std::chrono::high_resolution_clock::now();
-    LOG_GENERAL(INFO,
+    LOG_GENERAL(
+        INFO,
         "SecureTrie (different address) Time for 10k insertions: "
-        << (std::chrono::duration<double, std::milli>(t_end - t_start).count())
-        << " ms");
+            << (std::chrono::duration<double, std::milli>(t_end - t_start)
+                    .count())
+            << " ms");
 }
 
 BOOST_AUTO_TEST_CASE(TestMemoryDB)
@@ -143,19 +149,22 @@ BOOST_AUTO_TEST_CASE(TestMemoryDB)
         {
             auto t_end = std::chrono::high_resolution_clock::now();
             LOG_GENERAL(INFO,
-                "Time for "
-                << i / 1000 << "k insertions: "
-                << (std::chrono::duration<double, std::milli>(t_end - t_start)
-                        .count())
-                << " ms");
+                        "Time for "
+                            << i / 1000 << "k insertions: "
+                            << (std::chrono::duration<double, std::milli>(
+                                    t_end - t_start)
+                                    .count())
+                            << " ms");
         }
     }
 
     auto t_end = std::chrono::high_resolution_clock::now();
-    LOG_GENERAL(INFO,
+    LOG_GENERAL(
+        INFO,
         "Memory DB Time for 10k insertions: "
-        << (std::chrono::duration<double, std::milli>(t_end - t_start).count())
-        << " ms");
+            << (std::chrono::duration<double, std::milli>(t_end - t_start)
+                    .count())
+            << " ms");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

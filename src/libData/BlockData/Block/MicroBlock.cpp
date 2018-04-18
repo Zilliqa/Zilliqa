@@ -93,8 +93,8 @@ int MicroBlock::Deserialize(const vector<unsigned char>& src,
     }
     catch (const std::exception& e)
     {
-        LOG_GENERAL(WARNING, "Error with MicroBlock::Deserialize." << ' '
-                                                                 << e.what());
+        LOG_GENERAL(WARNING,
+                    "Error with MicroBlock::Deserialize." << ' ' << e.what());
         return -1;
     }
     return 0;

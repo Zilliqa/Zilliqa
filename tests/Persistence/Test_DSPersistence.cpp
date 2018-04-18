@@ -112,35 +112,42 @@ BOOST_AUTO_TEST_CASE(testBlockStorage)
     // using individual == tests instead of DSBlockHeader::operator== to zero in
     // which particular data type fails on writing to/ reading from disk
 
-    LOG_GENERAL(INFO,
-        "Block1 nonce value entered: " << block1.GetHeader().GetNonce());
-    LOG_GENERAL(INFO,
+    LOG_GENERAL(
+        INFO, "Block1 nonce value entered: " << block1.GetHeader().GetNonce());
+    LOG_GENERAL(
+        INFO,
         "Block2 nonce value retrieved: " << (*block2).GetHeader().GetNonce());
     BOOST_CHECK_MESSAGE(
         block1.GetHeader().GetNonce() == (*block2).GetHeader().GetNonce(),
         "nonce shouldn't change after writing to/ reading from disk");
 
-    LOG_GENERAL(INFO, "Block1 difficulty value entered: "
-                << (int)(block1.GetHeader().GetDifficulty()));
-    LOG_GENERAL(INFO, "Block2 difficulty value retrieved: "
-                << (int)((*block2).GetHeader().GetDifficulty()));
+    LOG_GENERAL(INFO,
+                "Block1 difficulty value entered: "
+                    << (int)(block1.GetHeader().GetDifficulty()));
+    LOG_GENERAL(INFO,
+                "Block2 difficulty value retrieved: "
+                    << (int)((*block2).GetHeader().GetDifficulty()));
     BOOST_CHECK_MESSAGE(
         block1.GetHeader().GetDifficulty()
             == (*block2).GetHeader().GetDifficulty(),
         "difficulty shouldn't change after writing to/ reading from disk");
 
-    LOG_GENERAL(INFO,
+    LOG_GENERAL(
+        INFO,
         "Block1 blocknum value entered: " << block1.GetHeader().GetBlockNum());
-    LOG_GENERAL(INFO, "Block2 blocknum value retrieved: "
-                << (*block2).GetHeader().GetBlockNum());
+    LOG_GENERAL(INFO,
+                "Block2 blocknum value retrieved: "
+                    << (*block2).GetHeader().GetBlockNum());
     BOOST_CHECK_MESSAGE(
         block1.GetHeader().GetBlockNum() == (*block2).GetHeader().GetBlockNum(),
         "blocknum shouldn't change after writing to/ reading from disk");
 
-    LOG_GENERAL(INFO, "Block1 timestamp value entered: "
-                << block1.GetHeader().GetTimestamp());
-    LOG_GENERAL(INFO, "Block2 timestamp value retrieved: "
-                << (*block2).GetHeader().GetTimestamp());
+    LOG_GENERAL(INFO,
+                "Block1 timestamp value entered: "
+                    << block1.GetHeader().GetTimestamp());
+    LOG_GENERAL(INFO,
+                "Block2 timestamp value retrieved: "
+                    << (*block2).GetHeader().GetTimestamp());
     BOOST_CHECK_MESSAGE(
         block1.GetHeader().GetTimestamp()
             == (*block2).GetHeader().GetTimestamp(),
@@ -200,9 +207,11 @@ BOOST_AUTO_TEST_CASE(testRandomBlockAccesses)
     DSBlockSharedPtr blockRetrieved;
     BlockStorage::GetBlockStorage().GetDSBlock(2, blockRetrieved);
 
-    LOG_GENERAL(INFO, "Block nonce value entered: " << block2.GetHeader().GetNonce());
-    LOG_GENERAL(INFO, "Block nonce value retrieved: "
-                << (*blockRetrieved).GetHeader().GetNonce());
+    LOG_GENERAL(INFO,
+                "Block nonce value entered: " << block2.GetHeader().GetNonce());
+    LOG_GENERAL(INFO,
+                "Block nonce value retrieved: "
+                    << (*blockRetrieved).GetHeader().GetNonce());
     BOOST_CHECK_MESSAGE(
         block2.GetHeader().GetNonce()
             == (*blockRetrieved).GetHeader().GetNonce(),
@@ -210,9 +219,11 @@ BOOST_AUTO_TEST_CASE(testRandomBlockAccesses)
 
     BlockStorage::GetBlockStorage().GetDSBlock(4, blockRetrieved);
 
-    LOG_GENERAL(INFO, "Block nonce value entered: " << block4.GetHeader().GetNonce());
-    LOG_GENERAL(INFO, "Block nonce value retrieved: "
-                << (*blockRetrieved).GetHeader().GetNonce());
+    LOG_GENERAL(INFO,
+                "Block nonce value entered: " << block4.GetHeader().GetNonce());
+    LOG_GENERAL(INFO,
+                "Block nonce value retrieved: "
+                    << (*blockRetrieved).GetHeader().GetNonce());
     BOOST_CHECK_MESSAGE(
         block4.GetHeader().GetNonce()
             == (*blockRetrieved).GetHeader().GetNonce(),
@@ -220,9 +231,11 @@ BOOST_AUTO_TEST_CASE(testRandomBlockAccesses)
 
     BlockStorage::GetBlockStorage().GetDSBlock(1, blockRetrieved);
 
-    LOG_GENERAL(INFO, "Block nonce value entered: " << block1.GetHeader().GetNonce());
-    LOG_GENERAL(INFO, "Block nonce value retrieved: "
-                << (*blockRetrieved).GetHeader().GetNonce());
+    LOG_GENERAL(INFO,
+                "Block nonce value entered: " << block1.GetHeader().GetNonce());
+    LOG_GENERAL(INFO,
+                "Block nonce value retrieved: "
+                    << (*blockRetrieved).GetHeader().GetNonce());
     BOOST_CHECK_MESSAGE(
         block1.GetHeader().GetNonce()
             == (*blockRetrieved).GetHeader().GetNonce(),
@@ -250,9 +263,11 @@ BOOST_AUTO_TEST_CASE(testCachedAndEvictedBlocks)
     DSBlockSharedPtr blockRetrieved1;
     BlockStorage::GetBlockStorage().GetDSBlock(20, blockRetrieved1);
 
-    LOG_GENERAL(INFO, "Block nonce value entered: " << block.GetHeader().GetNonce());
-    LOG_GENERAL(INFO, "Block nonce value retrieved: "
-                << (*blockRetrieved1).GetHeader().GetNonce());
+    LOG_GENERAL(INFO,
+                "Block nonce value entered: " << block.GetHeader().GetNonce());
+    LOG_GENERAL(INFO,
+                "Block nonce value retrieved: "
+                    << (*blockRetrieved1).GetHeader().GetNonce());
     BOOST_CHECK_MESSAGE(
         block.GetHeader().GetNonce()
             == (*blockRetrieved1).GetHeader().GetNonce(),
@@ -283,7 +298,8 @@ void readBlock(int id)
     BlockStorage::GetBlockStorage().GetDSBlock(id, block);
     if ((*block).GetHeader().GetNonce() != id)
     {
-        LOG_GENERAL(INFO, "nonce is " << (*block).GetHeader().GetNonce() << ", id is "
+        LOG_GENERAL(INFO,
+                    "nonce is " << (*block).GetHeader().GetNonce() << ", id is "
                                 << id);
         assert((*block).GetHeader().GetNonce() == id);
     }
@@ -372,9 +388,11 @@ BOOST_AUTO_TEST_CASE(testMultipleBlocksInMultipleFiles)
     DSBlockSharedPtr blockRetrieved;
     BlockStorage::GetBlockStorage().GetDSBlock(2499, blockRetrieved);
 
-    LOG_GENERAL(INFO, "Block nonce value entered: " << block.GetHeader().GetNonce());
-    LOG_GENERAL(INFO, "Block nonce value retrieved: "
-                << (*blockRetrieved).GetHeader().GetNonce());
+    LOG_GENERAL(INFO,
+                "Block nonce value entered: " << block.GetHeader().GetNonce());
+    LOG_GENERAL(INFO,
+                "Block nonce value retrieved: "
+                    << (*blockRetrieved).GetHeader().GetNonce());
     BOOST_CHECK_MESSAGE(
         block.GetHeader().GetNonce()
             == (*blockRetrieved).GetHeader().GetNonce(),

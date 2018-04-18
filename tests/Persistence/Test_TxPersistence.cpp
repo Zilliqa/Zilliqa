@@ -221,13 +221,15 @@ void readBlock(int id)
     BlockStorage::GetBlockStorage().GetTxBlock(id, block);
     if ((*block).GetHeader().GetBlockNum() != id)
     {
-        LOG_GENERAL(INFO, "GetBlockNum is " << (*block).GetHeader().GetBlockNum()
+        LOG_GENERAL(INFO,
+                    "GetBlockNum is " << (*block).GetHeader().GetBlockNum()
                                       << ", id is " << id);
         assert((*block).GetHeader().GetBlockNum() == id);
     }
     else
     {
-        LOG_GENERAL(INFO, "GetBlockNum is " << (*block).GetHeader().GetBlockNum()
+        LOG_GENERAL(INFO,
+                    "GetBlockNum is " << (*block).GetHeader().GetBlockNum()
                                       << ", id is " << id);
     }
 }

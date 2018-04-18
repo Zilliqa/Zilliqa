@@ -37,31 +37,33 @@ bool ConsensusLeader::CheckState(Action action)
         case INITIAL:
             break;
         case ANNOUNCE_DONE:
-            LOG_GENERAL(WARNING, "Processing announce but announce already done");
+            LOG_GENERAL(WARNING,
+                        "Processing announce but announce already done");
             result = false;
             break;
         case CHALLENGE_DONE:
             LOG_GENERAL(WARNING,
-                "Processing announce but challenge already done");
+                        "Processing announce but challenge already done");
             result = false;
             break;
         case COLLECTIVESIG_DONE:
             LOG_GENERAL(WARNING,
-                "Processing announce but collectivesig already done");
+                        "Processing announce but collectivesig already done");
             result = false;
             break;
         case FINALCHALLENGE_DONE:
             LOG_GENERAL(WARNING,
-                "Processing announce but finalchallenge already done");
+                        "Processing announce but finalchallenge already done");
             result = false;
             break;
         case DONE:
             LOG_GENERAL(WARNING,
-                "Processing announce but consensus already done");
+                        "Processing announce but consensus already done");
             result = false;
             break;
         case ERROR:
-            LOG_GENERAL(WARNING, "Processing announce but receiving "
+            LOG_GENERAL(WARNING,
+                        "Processing announce but receiving "
                         "ERROR message.");
             result = false;
             break;
@@ -81,26 +83,29 @@ bool ConsensusLeader::CheckState(Action action)
         case ANNOUNCE_DONE:
             break;
         case CHALLENGE_DONE:
-            LOG_GENERAL(WARNING, "Processing commit but challenge already done");
+            LOG_GENERAL(WARNING,
+                        "Processing commit but challenge already done");
             result = false;
             // LOG_GENERAL(INFO, "Processing redundant commit messages");
             break;
         case COLLECTIVESIG_DONE:
             LOG_GENERAL(WARNING,
-                "Processing commit but collectivesig already done");
+                        "Processing commit but collectivesig already done");
             result = false;
             break;
         case FINALCHALLENGE_DONE:
             LOG_GENERAL(WARNING,
-                "Processing commit but finalchallenge already done");
+                        "Processing commit but finalchallenge already done");
             result = false;
             break;
         case DONE:
-            LOG_GENERAL(WARNING, "Processing commit but consensus already done");
+            LOG_GENERAL(WARNING,
+                        "Processing commit but consensus already done");
             result = false;
             break;
         case ERROR:
-            LOG_GENERAL(WARNING, "Processing commit but receiving "
+            LOG_GENERAL(WARNING,
+                        "Processing commit but receiving "
                         "ERROR message.");
             result = false;
             break;
@@ -114,33 +119,35 @@ bool ConsensusLeader::CheckState(Action action)
         switch (m_state)
         {
         case INITIAL:
-            LOG_GENERAL(WARNING, "Processing response but announce not yet done");
+            LOG_GENERAL(WARNING,
+                        "Processing response but announce not yet done");
             result = false;
             break;
         case ANNOUNCE_DONE:
             LOG_GENERAL(WARNING,
-                "Processing response but challenge not yet done");
+                        "Processing response but challenge not yet done");
             result = false;
             break;
         case CHALLENGE_DONE:
             break;
         case COLLECTIVESIG_DONE:
             LOG_GENERAL(WARNING,
-                "Processing response but collectivesig already done");
+                        "Processing response but collectivesig already done");
             result = false;
             break;
         case FINALCHALLENGE_DONE:
             LOG_GENERAL(WARNING,
-                "Processing response but finalchallenge already done");
+                        "Processing response but finalchallenge already done");
             result = false;
             break;
         case DONE:
             LOG_GENERAL(WARNING,
-                "Processing response but consensus already done");
+                        "Processing response but consensus already done");
             result = false;
             break;
         case ERROR:
-            LOG_GENERAL(WARNING, "Processing response but receiving "
+            LOG_GENERAL(WARNING,
+                        "Processing response but receiving "
                         "ERROR message.");
             result = false;
             break;
@@ -155,33 +162,36 @@ bool ConsensusLeader::CheckState(Action action)
         {
         case INITIAL:
             LOG_GENERAL(WARNING,
-                "Processing finalcommit but announce not yet done");
+                        "Processing finalcommit but announce not yet done");
             result = false;
             break;
         case ANNOUNCE_DONE:
             LOG_GENERAL(WARNING,
-                "Processing finalcommit but challenge not yet done");
+                        "Processing finalcommit but challenge not yet done");
             result = false;
             break;
         case CHALLENGE_DONE:
-            LOG_GENERAL(WARNING,
+            LOG_GENERAL(
+                WARNING,
                 "Processing finalcommit but collectivesig not yet done");
             result = false;
             break;
         case COLLECTIVESIG_DONE:
             break;
         case FINALCHALLENGE_DONE:
-            LOG_GENERAL(WARNING, "Processing finalcommit but finalchallenge "
+            LOG_GENERAL(WARNING,
+                        "Processing finalcommit but finalchallenge "
                         "already done");
             result = false;
             break;
         case DONE:
             LOG_GENERAL(WARNING,
-                "Processing finalcommit but consensus already done");
+                        "Processing finalcommit but consensus already done");
             result = false;
             break;
         case ERROR:
-            LOG_GENERAL(WARNING, "Processing finalcommit but receiving "
+            LOG_GENERAL(WARNING,
+                        "Processing finalcommit but receiving "
                         "ERROR message.");
             result = false;
             break;
@@ -196,21 +206,23 @@ bool ConsensusLeader::CheckState(Action action)
         {
         case INITIAL:
             LOG_GENERAL(WARNING,
-                "Processing finalresponse but announce not yet done");
+                        "Processing finalresponse but announce not yet done");
             result = false;
             break;
         case ANNOUNCE_DONE:
             LOG_GENERAL(WARNING,
-                "Processing finalresponse but challenge not yet done");
+                        "Processing finalresponse but challenge not yet done");
             result = false;
             break;
         case CHALLENGE_DONE:
-            LOG_GENERAL(WARNING, "Processing finalresponse but collectivesig not "
+            LOG_GENERAL(WARNING,
+                        "Processing finalresponse but collectivesig not "
                         "yet done");
             result = false;
             break;
         case COLLECTIVESIG_DONE:
-            LOG_GENERAL(WARNING, "Processing finalresponse but finalchallenge "
+            LOG_GENERAL(WARNING,
+                        "Processing finalresponse but finalchallenge "
                         "not yet done");
             result = false;
             break;
@@ -218,11 +230,12 @@ bool ConsensusLeader::CheckState(Action action)
             break;
         case DONE:
             LOG_GENERAL(WARNING,
-                "Processing finalresponse but consensus already done");
+                        "Processing finalresponse but consensus already done");
             result = false;
             break;
         case ERROR:
-            LOG_GENERAL(WARNING, "Processing finalresponse but receiving "
+            LOG_GENERAL(WARNING,
+                        "Processing finalresponse but receiving "
                         "ERROR message.");
             result = false;
             break;
@@ -281,10 +294,11 @@ bool ConsensusLeader::ProcessMessageCommitCore(
     // Check the consensus id
     if (consensus_id != m_consensusID)
     {
-        LOG_GENERAL(WARNING, "Consensus ID in commitment ("
-                    << consensus_id
-                    << ") does not match instance consensus ID ("
-                    << m_consensusID << ")");
+        LOG_GENERAL(WARNING,
+                    "Consensus ID in commitment ("
+                        << consensus_id
+                        << ") does not match instance consensus ID ("
+                        << m_consensusID << ")");
         return false;
     }
 
@@ -295,7 +309,8 @@ bool ConsensusLeader::ProcessMessageCommitCore(
               commit.begin() + curr_offset)
         == false)
     {
-        LOG_GENERAL(WARNING, "Block hash in commitment does not match instance "
+        LOG_GENERAL(WARNING,
+                    "Block hash in commitment does not match instance "
                     "block hash");
         return false;
     }
@@ -363,7 +378,8 @@ bool ConsensusLeader::ProcessMessageCommitCore(
 
         if (m_commitCounter % 10 == 0)
         {
-            LOG_GENERAL(INFO, "Received " << m_commitCounter << " out of "
+            LOG_GENERAL(INFO,
+                        "Received " << m_commitCounter << " out of "
                                     << m_numForConsensus << ".");
         }
 
@@ -372,7 +388,8 @@ bool ConsensusLeader::ProcessMessageCommitCore(
 
         if (m_commitCounter == m_numForConsensus)
         {
-            LOG_GENERAL(INFO, "Sufficient " << m_numForConsensus
+            LOG_GENERAL(INFO,
+                        "Sufficient " << m_numForConsensus
                                       << " commits obtained");
 
             vector<unsigned char> challenge
@@ -574,9 +591,10 @@ bool ConsensusLeader::ProcessMessageCommitFailure(
     // Check the consensus id
     if (consensus_id != m_consensusID)
     {
-        LOG_GENERAL(WARNING, "Consensus ID in commitment ("
-                    << consensus_id << ") does not match "
-                    << "instance consensus ID (" << m_consensusID << ")");
+        LOG_GENERAL(WARNING,
+                    "Consensus ID in commitment ("
+                        << consensus_id << ") does not match "
+                        << "instance consensus ID (" << m_consensusID << ")");
         return false;
     }
 
@@ -587,7 +605,8 @@ bool ConsensusLeader::ProcessMessageCommitFailure(
               commitFailureMsg.begin() + curr_offset)
         == false)
     {
-        LOG_GENERAL(WARNING, "Block hash in commitment does not match instance "
+        LOG_GENERAL(WARNING,
+                    "Block hash in commitment does not match instance "
                     "block hash");
         return false;
     }
@@ -785,10 +804,11 @@ bool ConsensusLeader::ProcessMessageResponseCore(
     // Check the consensus id
     if (consensus_id != m_consensusID)
     {
-        LOG_GENERAL(WARNING, "Consensus ID in response ("
-                    << consensus_id
-                    << ") does not match instance consensus ID ("
-                    << m_consensusID << ")");
+        LOG_GENERAL(WARNING,
+                    "Consensus ID in response ("
+                        << consensus_id
+                        << ") does not match instance consensus ID ("
+                        << m_consensusID << ")");
         return false;
     }
 
@@ -799,7 +819,8 @@ bool ConsensusLeader::ProcessMessageResponseCore(
               response.begin() + curr_offset)
         == false)
     {
-        LOG_GENERAL(WARNING,
+        LOG_GENERAL(
+            WARNING,
             "Block hash in response does not match instance block hash");
         return false;
     }
@@ -1067,10 +1088,12 @@ ConsensusLeader::ConsensusLeader(
     // m_numForConsensus = (floor(TOLERANCE_FRACTION * (pubkeys.size() - 1)) + 1);
     m_numForConsensus = ceil(pubkeys.size() * TOLERANCE_FRACTION) - 1;
     m_numForConsensusFailure = pubkeys.size() - m_numForConsensus;
-    LOG_GENERAL(INFO, "TOLERANCE_FRACTION "
-                << TOLERANCE_FRACTION << " pubkeys.size() " << pubkeys.size()
-                << " m_numForConsensus " << m_numForConsensus
-                << " m_numForConsensusFailure " << m_numForConsensusFailure);
+    LOG_GENERAL(INFO,
+                "TOLERANCE_FRACTION "
+                    << TOLERANCE_FRACTION << " pubkeys.size() "
+                    << pubkeys.size() << " m_numForConsensus "
+                    << m_numForConsensus << " m_numForConsensusFailure "
+                    << m_numForConsensusFailure);
 
     m_nodeCommitFailureHandlerFunc = nodeCommitFailureHandlerFunc;
     m_shardCommitFailureHandlerFunc = shardCommitFailureHandlerFunc;
@@ -1102,10 +1125,12 @@ bool ConsensusLeader::StartConsensus(const vector<unsigned char>& message)
     // Format: [CLA] [INS] [1-byte consensus message type] [4-byte consensus id] [32-byte blockhash] [2-byte leader id] [message] [64-byte signature]
     // Signature is over: [4-byte consensus id] [32-byte blockhash] [2-byte leader id] [message]
 
-    LOG_GENERAL(INFO, "DEBUG: my ip is "
-                << m_peerInfo.at(m_myID).GetPrintableIPAddress());
-    LOG_GENERAL(INFO, "DEBUG: my pub is "
-                << DataConversion::SerializableToHexStr(m_pubKeys.at(m_myID)));
+    LOG_GENERAL(INFO,
+                "DEBUG: my ip is "
+                    << m_peerInfo.at(m_myID).GetPrintableIPAddress());
+    LOG_GENERAL(INFO,
+                "DEBUG: my pub is " << DataConversion::SerializableToHexStr(
+                    m_pubKeys.at(m_myID)));
 
     vector<unsigned char> announcement
         = {m_classByte, m_insByte,
@@ -1190,8 +1215,9 @@ bool ConsensusLeader::ProcessMessage(const vector<unsigned char>& message,
         result = ProcessMessageFinalResponse(message, offset + 1);
         break;
     default:
-        LOG_GENERAL(WARNING, "Unknown consensus message received. No: "
-                    << (unsigned int)message.at(offset));
+        LOG_GENERAL(WARNING,
+                    "Unknown consensus message received. No: "
+                        << (unsigned int)message.at(offset));
     }
 
     return result;

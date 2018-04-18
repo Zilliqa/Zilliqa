@@ -188,11 +188,10 @@ bool Node::CheckState(Action action)
 {
     if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
     {
-        LOG_EPOCH(WARNING,
-            to_string(m_mediator.m_currentEpochNum).c_str(),
-            string("I am a DS node.")
-                    + string(" Why am I getting this message? Action: ")
-                << ActionString(action));
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  string("I am a DS node.")
+                          + string(" Why am I getting this message? Action: ")
+                      << ActionString(action));
         return false;
     }
 
@@ -206,38 +205,34 @@ bool Node::CheckState(Action action)
         case POW1_SUBMISSION:
             break;
         case POW2_SUBMISSION:
-            LOG_EPOCH(WARNING,
-                to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Doing STARTPOW1 but already in POW2_SUBMISSION");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Doing STARTPOW1 but already in POW2_SUBMISSION");
             result = false;
             break;
         case TX_SUBMISSION:
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Doing STARTPOW1 but already in TX_SUBMISSION");
+                      "Doing STARTPOW1 but already in TX_SUBMISSION");
             result = false;
             break;
         case TX_SUBMISSION_BUFFER:
-            LOG_EPOCH(WARNING,
-                to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Doing STARTPOW1 but already in TX_SUBMISSION_BUFFER");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Doing STARTPOW1 but already in TX_SUBMISSION_BUFFER");
             result = false;
             break;
         case MICROBLOCK_CONSENSUS_PREP:
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Doing STARTPOW1 but already in "
-                         "MICROBLOCK_CONSENSUS_PREP");
+                      "Doing STARTPOW1 but already in "
+                      "MICROBLOCK_CONSENSUS_PREP");
             result = false;
             break;
         case MICROBLOCK_CONSENSUS:
-            LOG_EPOCH(WARNING,
-                to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Doing STARTPOW1 but already in MICROBLOCK_CONSENSUS");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Doing STARTPOW1 but already in MICROBLOCK_CONSENSUS");
             result = false;
             break;
         case WAITING_FINALBLOCK:
-            LOG_EPOCH(WARNING,
-                to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Doing STARTPOW1 but already in WAITING_FINALBLOCK");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Doing STARTPOW1 but already in WAITING_FINALBLOCK");
             result = false;
             break;
         case ERROR:
@@ -246,7 +241,7 @@ bool Node::CheckState(Action action)
             break;
         default:
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Unrecognized or error state");
+                      "Unrecognized or error state");
             result = false;
             break;
         }
@@ -255,40 +250,36 @@ bool Node::CheckState(Action action)
         switch (m_state)
         {
         case POW1_SUBMISSION:
-            LOG_EPOCH(WARNING,
-                to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Doing STARTPOW2 but already in POW1_SUBMISSION");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Doing STARTPOW2 but already in POW1_SUBMISSION");
             result = false;
             break;
         case POW2_SUBMISSION:
             break;
         case TX_SUBMISSION:
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Doing STARTPOW2 but already in TX_SUBMISSION");
+                      "Doing STARTPOW2 but already in TX_SUBMISSION");
             result = false;
             break;
         case TX_SUBMISSION_BUFFER:
-            LOG_EPOCH(WARNING,
-                to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Doing STARTPOW2 but already in TX_SUBMISSION_BUFFER");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Doing STARTPOW2 but already in TX_SUBMISSION_BUFFER");
             result = false;
             break;
         case MICROBLOCK_CONSENSUS_PREP:
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Doing STARTPOW2 but already in "
-                         "MICROBLOCK_CONSENSUS_PREP");
+                      "Doing STARTPOW2 but already in "
+                      "MICROBLOCK_CONSENSUS_PREP");
             result = false;
             break;
         case MICROBLOCK_CONSENSUS:
-            LOG_EPOCH(WARNING,
-                to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Doing STARTPOW2 but already in MICROBLOCK_CONSENSUS");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Doing STARTPOW2 but already in MICROBLOCK_CONSENSUS");
             result = false;
             break;
         case WAITING_FINALBLOCK:
-            LOG_EPOCH(WARNING,
-                to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Doing STARTPOW2 but already in WAITING_FINALBLOCK");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Doing STARTPOW2 but already in WAITING_FINALBLOCK");
             result = false;
             break;
         case ERROR:
@@ -297,7 +288,7 @@ bool Node::CheckState(Action action)
             break;
         default:
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Unrecognized or error state");
+                      "Unrecognized or error state");
             result = false;
             break;
         }
@@ -306,15 +297,13 @@ bool Node::CheckState(Action action)
         switch (m_state)
         {
         case POW1_SUBMISSION:
-            LOG_EPOCH(WARNING,
-                to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Doing PROCESS_SHARDING but already in POW1_SUBMISSION");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Doing PROCESS_SHARDING but already in POW1_SUBMISSION");
             result = false;
             break;
         case POW2_SUBMISSION:
-            LOG_EPOCH(WARNING,
-                to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Doing PROCESS_SHARDING but already in POW2_SUBMISSION");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Doing PROCESS_SHARDING but already in POW2_SUBMISSION");
             result = false;
             break;
         case TX_SUBMISSION:
@@ -323,30 +312,30 @@ bool Node::CheckState(Action action)
             break;
         case MICROBLOCK_CONSENSUS_PREP:
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Doing PROCESS_SHARDING but already in "
-                         "MICROBLOCK_CONSENSUS_PREP");
+                      "Doing PROCESS_SHARDING but already in "
+                      "MICROBLOCK_CONSENSUS_PREP");
             result = false;
             break;
         case MICROBLOCK_CONSENSUS:
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Doing PROCESS_SHARDING but already in "
-                         "MICROBLOCK_CONSENSUS");
+                      "Doing PROCESS_SHARDING but already in "
+                      "MICROBLOCK_CONSENSUS");
             result = false;
             break;
         case WAITING_FINALBLOCK:
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Doing PROCESS_SHARDING but already in "
-                         "WAITING_FINALBLOCK");
+                      "Doing PROCESS_SHARDING but already in "
+                      "WAITING_FINALBLOCK");
             result = false;
             break;
         case ERROR:
             LOG_GENERAL(WARNING,
-                "Doing PROCESS_SHARDING but receiving ERROR message");
+                        "Doing PROCESS_SHARDING but receiving ERROR message");
             result = false;
             break;
         default:
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Unrecognized or error state");
+                      "Unrecognized or error state");
             result = false;
             break;
         }
@@ -356,50 +345,51 @@ bool Node::CheckState(Action action)
         {
         case POW1_SUBMISSION:
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Doing PROCESS_MICROBLOCKCONSENSUS but already "
-                         "in POW1_SUBMISSION");
+                      "Doing PROCESS_MICROBLOCKCONSENSUS but already "
+                      "in POW1_SUBMISSION");
             result = false;
             break;
         case POW2_SUBMISSION:
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Doing PROCESS_MICROBLOCKCONSENSUS but already "
-                         "in POW2_SUBMISSION");
+                      "Doing PROCESS_MICROBLOCKCONSENSUS but already "
+                      "in POW2_SUBMISSION");
             result = false;
             break;
         case TX_SUBMISSION:
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Doing PROCESS_MICROBLOCKCONSENSUS but already "
-                         "in TX_SUBMISSION");
+                      "Doing PROCESS_MICROBLOCKCONSENSUS but already "
+                      "in TX_SUBMISSION");
             result = false;
             break;
         case TX_SUBMISSION_BUFFER:
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Doing PROCESS_MICROBLOCKCONSENSUS but already "
-                         "in TX_SUBMISSION_BUFFER");
+                      "Doing PROCESS_MICROBLOCKCONSENSUS but already "
+                      "in TX_SUBMISSION_BUFFER");
             result = false;
             break;
         case MICROBLOCK_CONSENSUS_PREP:
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Doing PROCESS_MICROBLOCKCONSENSUS but already "
-                         "in MICROBLOCK_CONSENSUS_PREP");
+                      "Doing PROCESS_MICROBLOCKCONSENSUS but already "
+                      "in MICROBLOCK_CONSENSUS_PREP");
             result = false;
             break;
         case MICROBLOCK_CONSENSUS:
             break;
         case WAITING_FINALBLOCK:
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Doing PROCESS_MICROBLOCKCONSENSUS but already "
-                         "in WAITING_FINALBLOCK");
+                      "Doing PROCESS_MICROBLOCKCONSENSUS but already "
+                      "in WAITING_FINALBLOCK");
             result = false;
             break;
         case ERROR:
-            LOG_GENERAL(WARNING, "Doing PROCESS_MICROBLOCKSUBMISSION but "
+            LOG_GENERAL(WARNING,
+                        "Doing PROCESS_MICROBLOCKSUBMISSION but "
                         "receiving ERROR message");
             result = false;
             break;
         default:
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Unrecognized or error state");
+                      "Unrecognized or error state");
             result = false;
             break;
         }
@@ -409,57 +399,56 @@ bool Node::CheckState(Action action)
         {
         case POW1_SUBMISSION:
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Doing WAITING_FINALBLOCK but already in "
-                         "POW1_SUBMISSION");
+                      "Doing WAITING_FINALBLOCK but already in "
+                      "POW1_SUBMISSION");
             result = false;
             break;
         case POW2_SUBMISSION:
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Doing WAITING_FINALBLOCK but already in "
-                         "POW2_SUBMISSION");
+                      "Doing WAITING_FINALBLOCK but already in "
+                      "POW2_SUBMISSION");
             result = false;
             break;
         case TX_SUBMISSION:
-            LOG_EPOCH(WARNING,
-                to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Doing WAITING_FINALBLOCK but already in TX_SUBMISSION");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Doing WAITING_FINALBLOCK but already in TX_SUBMISSION");
             result = false;
             break;
         case TX_SUBMISSION_BUFFER:
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Doing WAITING_FINALBLOCK but already in "
-                         "TX_SUBMISSION_BUFFER");
+                      "Doing WAITING_FINALBLOCK but already in "
+                      "TX_SUBMISSION_BUFFER");
             result = false;
             break;
         case MICROBLOCK_CONSENSUS_PREP:
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Doing WAITING_FINALBLOCK but already in "
-                         "MICROBLOCK_CONSENSUS_PREP");
+                      "Doing WAITING_FINALBLOCK but already in "
+                      "MICROBLOCK_CONSENSUS_PREP");
             result = false;
             break;
         case MICROBLOCK_CONSENSUS:
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Doing WAITING_FINALBLOCK but already in "
-                         "MICROBLOCK_CONSENSUS");
+                      "Doing WAITING_FINALBLOCK but already in "
+                      "MICROBLOCK_CONSENSUS");
             result = false;
             break;
         case WAITING_FINALBLOCK:
             break;
         case ERROR:
             LOG_GENERAL(WARNING,
-                "Doing WAITING_FINALBLOCK but receiving ERROR message");
+                        "Doing WAITING_FINALBLOCK but receiving ERROR message");
             result = false;
             break;
         default:
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Unrecognized or error state");
+                      "Unrecognized or error state");
             result = false;
             break;
         }
         break;
     default:
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Unrecognized action");
+                  "Unrecognized action");
         result = false;
         break;
     }
@@ -540,21 +529,21 @@ bool Node::CheckCreatedTransaction(const Transaction& tx)
     if (correct_shard != m_myShardID)
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "This tx is not sharded to me!");
+                  "This tx is not sharded to me!");
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "From Account  = 0x" << fromAddr);
+                  "From Account  = 0x" << fromAddr);
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Correct shard = " << correct_shard);
+                  "Correct shard = " << correct_shard);
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "This shard    = " << m_myShardID);
+                  "This shard    = " << m_myShardID);
         return false;
     }
 
     // Check if from account exists in local storage
     if (!AccountStore::GetInstance().DoesAccountExist(fromAddr))
     {
-        LOG_EPOCH(INFO,
-            to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(
+            INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "To-do: What to do if from account is not in my account store?");
         // throw exception();
         return false;
@@ -564,17 +553,17 @@ bool Node::CheckCreatedTransaction(const Transaction& tx)
     if (tx.GetNonce() != AccountStore::GetInstance().GetNonce(fromAddr) + 1)
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Tx nonce not in line with account state!");
+                  "Tx nonce not in line with account state!");
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "From Account      = 0x" << fromAddr);
+                  "From Account      = 0x" << fromAddr);
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Account Nonce     = "
-                         << AccountStore::GetInstance().GetNonce(fromAddr));
+                  "Account Nonce     = "
+                      << AccountStore::GetInstance().GetNonce(fromAddr));
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Expected Tx Nonce = "
-                         << AccountStore::GetInstance().GetNonce(fromAddr) + 1);
+                  "Expected Tx Nonce = "
+                      << AccountStore::GetInstance().GetNonce(fromAddr) + 1);
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Actual Tx Nonce   = " << tx.GetNonce());
+                  "Actual Tx Nonce   = " << tx.GetNonce());
         return false;
     }
 
@@ -582,8 +571,8 @@ bool Node::CheckCreatedTransaction(const Transaction& tx)
     const Address& toAddr = tx.GetToAddr();
     if (!AccountStore::GetInstance().DoesAccountExist(toAddr))
     {
-        LOG_EPOCH(INFO,
-            to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(
+            INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "To-do: What to do if to account is not in my account store?");
         // throw exception();
         return false;
@@ -593,14 +582,14 @@ bool Node::CheckCreatedTransaction(const Transaction& tx)
     if (AccountStore::GetInstance().GetBalance(fromAddr) < tx.GetAmount())
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Insufficient funds in source account!");
+                  "Insufficient funds in source account!");
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "From Account = 0x" << fromAddr);
+                  "From Account = 0x" << fromAddr);
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Balance      = "
-                         << AccountStore::GetInstance().GetBalance(fromAddr));
+                  "Balance      = "
+                      << AccountStore::GetInstance().GetBalance(fromAddr));
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Debit Amount = " << tx.GetAmount());
+                  "Debit Amount = " << tx.GetAmount());
         return false;
     }
 
@@ -710,9 +699,9 @@ bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
     if (msgBlockNum != localBlockNum)
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "untimely delivery of "
-                         << "missing txns. received: " << msgBlockNum
-                         << " , local: " << localBlockNum);
+                  "untimely delivery of "
+                      << "missing txns. received: " << msgBlockNum
+                      << " , local: " << localBlockNum);
     }
 
     const auto& submittedTransaction = Transaction(message, offset);
@@ -724,7 +713,7 @@ bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
     receivedTransactions.insert(
         make_pair(submittedTransaction.GetTranID(), submittedTransaction));
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "Received missing txn: " << submittedTransaction.GetTranID())
+              "Received missing txn: " << submittedTransaction.GetTranID())
     // }
     return true;
 }
@@ -751,7 +740,7 @@ bool Node::ProcessSubmitTxnSharing(const vector<unsigned char>& message,
     receivedTransactions.insert(
         make_pair(submittedTransaction.GetTranID(), submittedTransaction));
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "Received txn: " << submittedTransaction.GetTranID())
+              "Received txn: " << submittedTransaction.GetTranID())
     // }
     // }
 
@@ -784,8 +773,8 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
     {
         if (m_state != MICROBLOCK_CONSENSUS)
         {
-            LOG_EPOCH(INFO,
-                to_string(m_mediator.m_currentEpochNum).c_str(),
+            LOG_EPOCH(
+                INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Not in a microblock consensus state: don't want missing txns")
         }
 
@@ -796,7 +785,7 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
         while (m_state != TX_SUBMISSION && m_state != TX_SUBMISSION_BUFFER)
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Not in ProcessSubmitTxn state -- waiting!")
+                      "Not in ProcessSubmitTxn state -- waiting!")
             this_thread::sleep_for(chrono::milliseconds(200));
         }
 
@@ -832,10 +821,10 @@ bool Node::ProcessCreateTransactionFromLookup(
     lock_guard<mutex> g(m_mutexCreatedTransactions);
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "Recvd txns: "
-                     << tx.GetTranID() << " Signature: "
-                     << DataConversion::charArrToHexStr(tx.GetSignature())
-                     << " toAddr: " << tx.GetToAddr().hex());
+              "Recvd txns: "
+                  << tx.GetTranID() << " Signature: "
+                  << DataConversion::charArrToHexStr(tx.GetSignature())
+                  << " toAddr: " << tx.GetToAddr().hex());
 
     m_createdTransactions.push_back(tx);
 
@@ -874,8 +863,8 @@ void Node::SetState(NodeState state)
 {
     m_state = state;
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "Node State is now " << m_state << " at epoch "
-                                      << m_mediator.m_currentEpochNum);
+              "Node State is now " << m_state << " at epoch "
+                                   << m_mediator.m_currentEpochNum);
 }
 
 #ifndef IS_LOOKUP_NODE
@@ -923,7 +912,7 @@ void Node::SubmitTransactions()
                                                tx_message);
 
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Sent txn: " << t.GetTranID())
+                      "Sent txn: " << t.GetTranID())
 
             lock_guard<mutex> g(m_mutexSubmittedTransactions);
             auto& submittedTransactions = m_submittedTransactions[blockNum];
@@ -994,7 +983,7 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
     if (ToBlockMessage(ins_byte))
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Node not connected to network yet, ignore message");
+                  "Node not connected to network yet, ignore message");
         return false;
     }
 #endif
@@ -1024,8 +1013,7 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
     else
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Unknown instruction byte " << hex
-                                                 << (unsigned int)ins_byte);
+                  "Unknown instruction byte " << hex << (unsigned int)ins_byte);
     }
 
     return result;

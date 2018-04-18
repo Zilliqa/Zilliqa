@@ -24,13 +24,13 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 
-#if 1//clark
+#if 1 //clark
 #include "depends/g3log/src/g3log/g3log.hpp"
 #include "depends/g3log/src/g3log/logworker.hpp"
 #endif
 
 using namespace std;
-#if 1//clark
+#if 1 //clark
 using namespace g3;
 unique_ptr<LogWorker> logworker;
 
@@ -38,7 +38,7 @@ string MyCustomFormatting(const LogMessage& msg)
 {
     string res = string("[") + msg.level();
 
-    for(unsigned int i = msg.level().size(); i < WARNING.text.size(); ++i)
+    for (unsigned int i = msg.level().size(); i < WARNING.text.size(); ++i)
     {
         res += " ";
     }
@@ -80,7 +80,7 @@ Logger::Logger(const char* prefix, bool log_to_file, streampos max_file_size)
 
     if (log_to_file)
     {
-#if 1//clark
+#if 1 //clark
         fname_prefix = prefix ? prefix : "common";
 #else
         if (prefix == NULL)
@@ -120,14 +120,17 @@ void Logger::newLog()
     fname = fname_prefix + buf;
     logfile.open(fname.c_str(), ios_base::app);
 
-#if 1//clark
+#if 1 //clark
     bRefactor = (fname.substr(0, 7) == "zilliqa");
 
-    if(bRefactor)
+    if (bRefactor)
     {
         logworker = LogWorker::createLogWorker();
-        auto sinkHandle = logworker->addSink(std::make_unique<FileSink>(fname.c_str(), "./"), &FileSink::fileWrite);
-        auto changeFormatting = sinkHandle->call(&g3::FileSink::overrideLogDetails, &MyCustomFormatting);
+        auto sinkHandle = logworker->addSink(
+            std::make_unique<FileSink>(fname.c_str(), "./"),
+            &FileSink::fileWrite);
+        auto changeFormatting = sinkHandle->call(
+            &g3::FileSink::overrideLogDetails, &MyCustomFormatting);
         changeFormatting.wait();
         initializeLogging(logworker.get());
     }
@@ -147,7 +150,7 @@ Logger& Logger::GetStateLogger(const char* fname_prefix, bool log_to_file,
     static Logger logger(fname_prefix, log_to_file, max_file_size);
     return logger;
 }
-#if 0//clark
+#if 0 //clark
 void Logger::LogMessage(const char* msg, const char* function)
 {
     pid_t tid = getCurrentPid();
@@ -218,7 +221,7 @@ void Logger::LogState(const char* msg, const char*)
         cout << msg << endl << flush;
     }
 }
-#if 0//clark
+#if 0 //clark
 void Logger::LogMessageAndPayload(const char* msg,
                                   const vector<unsigned char>& payload,
                                   size_t max_bytes_to_display,
@@ -299,10 +302,10 @@ void Logger::LogMessageAndPayload(const char* msg,
     }
 }
 #endif
-#if 1//clark
+#if 1 //clark
 void Logger::LogGeneral(LEVELS level, const char* msg, const char* function)
 {
-    if(level != INFO && level != WARNING && level != FATAL)
+    if (level != INFO && level != WARNING && level != FATAL)
         return;
 
     pid_t tid = getCurrentPid();
@@ -320,11 +323,11 @@ void Logger::LogGeneral(LEVELS level, const char* msg, const char* function)
                 << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg << endl
                 << flush;
 
-        if(bRefactor)
+        if (bRefactor)
         {
             LOG(level) << "[TID " << PAD(tid, TID_LEN) << "]["
-                    << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
-                    << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg;
+                       << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
+                       << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg;
         }
     }
     else
@@ -336,9 +339,10 @@ void Logger::LogGeneral(LEVELS level, const char* msg, const char* function)
     }
 }
 
-void Logger::LogEpoch(LEVELS level, const char* msg, const char* epoch, const char* function)
+void Logger::LogEpoch(LEVELS level, const char* msg, const char* epoch,
+                      const char* function)
 {
-    if(level != INFO && level != WARNING && level != FATAL)
+    if (level != INFO && level != WARNING && level != FATAL)
         return;
 
     pid_t tid = getCurrentPid();
@@ -357,12 +361,12 @@ void Logger::LogEpoch(LEVELS level, const char* msg, const char* epoch, const ch
                 << "[Epoch " << epoch << "] " << msg << endl
                 << flush;
 
-        if(bRefactor)
+        if (bRefactor)
         {
             LOG(level) << "[TID " << PAD(tid, TID_LEN) << "]["
-                    << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
-                    << LIMIT(function, MAX_FUNCNAME_LEN) << "]"
-                    << "[Epoch " << epoch << "] " << msg;
+                       << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
+                       << LIMIT(function, MAX_FUNCNAME_LEN) << "]"
+                       << "[Epoch " << epoch << "] " << msg;
         }
     }
     else
@@ -376,11 +380,10 @@ void Logger::LogEpoch(LEVELS level, const char* msg, const char* epoch, const ch
 }
 
 void Logger::LogPayload(LEVELS level, const char* msg,
-                const std::vector<unsigned char>& payload,
-                size_t max_bytes_to_display,
-                const char* function)
+                        const std::vector<unsigned char>& payload,
+                        size_t max_bytes_to_display, const char* function)
 {
-    if(level != INFO && level != WARNING && level != FATAL)
+    if (level != INFO && level != WARNING && level != FATAL)
         return;
 
     pid_t tid = getCurrentPid();
@@ -401,9 +404,9 @@ void Logger::LogPayload(LEVELS level, const char* msg,
          payload_idx++)
     {
         payload_string.get()[payload_string_idx++]
-                = hex_table[(payload.at(payload_idx) >> 4) & 0xF];
+            = hex_table[(payload.at(payload_idx) >> 4) & 0xF];
         payload_string.get()[payload_string_idx++]
-                = hex_table[payload.at(payload_idx) & 0xF];
+            = hex_table[payload.at(payload_idx) & 0xF];
     }
 
     payload_string.get()[payload_string_len - 1] = '\0';
@@ -426,13 +429,13 @@ void Logger::LogPayload(LEVELS level, const char* msg,
                     << "): " << payload_string.get() << "..." << endl
                     << flush;
 
-            if(bRefactor)
+            if (bRefactor)
             {
                 LOG(level) << "[TID " << PAD(tid, TID_LEN) << "]["
-                          << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
-                          << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
-                          << " (Len=" << payload.size()
-                          << "): " << payload_string.get() << "...";
+                           << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN)
+                           << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "] "
+                           << msg << " (Len=" << payload.size()
+                           << "): " << payload_string.get() << "...";
             }
         }
         else
@@ -444,13 +447,13 @@ void Logger::LogPayload(LEVELS level, const char* msg,
                     << "): " << payload_string.get() << endl
                     << flush;
 
-            if(bRefactor)
+            if (bRefactor)
             {
                 LOG(level) << "[TID " << PAD(tid, TID_LEN) << "]["
-                          << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
-                          << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
-                          << " (Len=" << payload.size()
-                          << "): " << payload_string.get();
+                           << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN)
+                           << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "] "
+                           << msg << " (Len=" << payload.size()
+                           << "): " << payload_string.get();
             }
         }
     }
@@ -479,28 +482,22 @@ void Logger::LogPayload(LEVELS level, const char* msg,
 
 void Logger::DisplayLevelAbove(LEVELS level)
 {
-    if(level != INFO && level != WARNING && level != FATAL)
+    if (level != INFO && level != WARNING && level != FATAL)
         return;
 
     g3::log_levels::setHighest(level);
 }
 
-void Logger::EnableLevel(LEVELS level)
-{
-    g3::log_levels::enable(level);
-}
+void Logger::EnableLevel(LEVELS level) { g3::log_levels::enable(level); }
 
-void Logger::DisableLevel(LEVELS level)
-{
-    g3::log_levels::disable(level);
-}
+void Logger::DisableLevel(LEVELS level) { g3::log_levels::disable(level); }
 #endif
 
 ScopeMarker::ScopeMarker(const char* function)
     : function(function)
 {
     Logger& logger = Logger::GetLogger(NULL, true);
-#if 1//clark
+#if 1 //clark
     logger.LogGeneral(INFO, "BEGIN", this->function.c_str());
 #else
     logger.LogMessage("BEGIN", this->function.c_str());
@@ -510,7 +507,7 @@ ScopeMarker::ScopeMarker(const char* function)
 ScopeMarker::~ScopeMarker()
 {
     Logger& logger = Logger::GetLogger(NULL, true);
-#if 1//clark
+#if 1 //clark
     logger.LogGeneral(INFO, "END", function.c_str());
 #else
     logger.LogMessage("END", function.c_str());

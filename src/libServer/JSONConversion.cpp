@@ -186,20 +186,23 @@ const bool JSONConversion::checkJsonTx(const Json::Value& _json)
         }
         if (_json["pubKey"].asString().size() != PUB_KEY_SIZE * 2)
         {
-            LOG_GENERAL(INFO, "PubKey size wrong "
-                        << _json["pubKey"].asString().size());
+            LOG_GENERAL(INFO,
+                        "PubKey size wrong "
+                            << _json["pubKey"].asString().size());
             return false;
         }
         if (_json["signature"].asString().size() != TRAN_SIG_SIZE * 2)
         {
-            LOG_GENERAL(INFO, "signature size wrong "
-                        << _json["signature"].asString().size());
+            LOG_GENERAL(INFO,
+                        "signature size wrong "
+                            << _json["signature"].asString().size());
             return false;
         }
         if (_json["to"].asString().size() != ACC_ADDR_SIZE * 2)
         {
-            LOG_GENERAL(INFO, "To Address size wrong "
-                        << _json["signature"].asString().size());
+            LOG_GENERAL(INFO,
+                        "To Address size wrong "
+                            << _json["signature"].asString().size());
             return false;
         }
     }

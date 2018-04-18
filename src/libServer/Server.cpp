@@ -143,7 +143,8 @@ string Server::CreateTransaction(const Json::Value& _json)
     catch (exception& e)
     {
 
-        LOG_GENERAL(INFO, "[Error]" << e.what()
+        LOG_GENERAL(INFO,
+                    "[Error]" << e.what()
                               << " Input: " << _json.toStyledString());
 
         return "Unable to process";
@@ -180,7 +181,8 @@ Json::Value Server::GetTransaction(const string& transactionHash)
     catch (exception& e)
     {
         Json::Value _json;
-        LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << transactionHash);
+        LOG_GENERAL(INFO,
+                    "[Error]" << e.what() << " Input: " << transactionHash);
         _json["Error"] = "Unable to Process";
         return _json;
     }
@@ -256,9 +258,9 @@ Json::Value Server::GetLatestDsBlock()
     DSBlock Latest = m_mediator.m_dsBlockChain.GetLastBlock();
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "BlockNum " << Latest.GetHeader().GetBlockNum().str()
-                             << "  Timestamp:        "
-                             << Latest.GetHeader().GetTimestamp().str());
+              "BlockNum " << Latest.GetHeader().GetBlockNum().str()
+                          << "  Timestamp:        "
+                          << Latest.GetHeader().GetTimestamp().str());
 
     return JSONConversion::convertDSblocktoJson(Latest);
 }
@@ -269,9 +271,9 @@ Json::Value Server::GetLatestTxBlock()
     TxBlock Latest = m_mediator.m_txBlockChain.GetLastBlock();
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "BlockNum " << Latest.GetHeader().GetBlockNum().str()
-                             << "  Timestamp:        "
-                             << Latest.GetHeader().GetTimestamp().str());
+              "BlockNum " << Latest.GetHeader().GetBlockNum().str()
+                          << "  Timestamp:        "
+                          << Latest.GetHeader().GetTimestamp().str());
 
     return JSONConversion::convertTxBlocktoJson(Latest);
 }
@@ -469,8 +471,9 @@ double Server::GetTransactionRate()
     if (TimeDiff == 0 || refTimeTx == 0)
     {
         //something went wrong
-        LOG_GENERAL(INFO, "TimeDiff or refTimeTx = 0 \n TimeDiff:"
-                    << TimeDiff.str() << " refTimeTx:" << refTimeTx.str());
+        LOG_GENERAL(INFO,
+                    "TimeDiff or refTimeTx = 0 \n TimeDiff:"
+                        << TimeDiff.str() << " refTimeTx:" << refTimeTx.str());
         return 0;
     }
     numTxns = numTxns * 1000000; // conversion from microseconds to seconds

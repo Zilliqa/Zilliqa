@@ -123,7 +123,8 @@ bool Retriever::RetrieveTxBodiesDB()
         for (auto& entry :
              boost::make_iterator_range(filesys::directory_iterator(p), {}))
         {
-            LOG_GENERAL(INFO, "Load txBodyDB: " << entry.path().filename().string());
+            LOG_GENERAL(INFO,
+                        "Load txBodyDB: " << entry.path().filename().string());
             dbNames.push_back(entry.path().filename().string());
         }
         std::sort(dbNames.begin(), dbNames.end());
@@ -152,7 +153,8 @@ bool Retriever::RetrieveTxBodiesDB()
             }
             else
             {
-                LOG_GENERAL(INFO, "We got extra txBody Database, Investigate why!");
+                LOG_GENERAL(INFO,
+                            "We got extra txBody Database, Investigate why!");
                 return false;
             }
         }

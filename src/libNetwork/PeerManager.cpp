@@ -58,7 +58,8 @@ bool PeerManager::ProcessHello(const vector<unsigned char>& message,
         PeerStore& ps = PeerStore::GetStore();
         ps.AddPeer(key, peer);
 
-        LOG_GENERAL(INFO, "Added peer with port " << peer.m_listenPortHost
+        LOG_GENERAL(INFO,
+                    "Added peer with port " << peer.m_listenPortHost
                                             << " at address "
                                             << from.GetPrintableIPAddress());
 
@@ -98,7 +99,8 @@ bool PeerManager::ProcessAddPeer(const vector<unsigned char>& message,
         PeerStore& ps = PeerStore::GetStore();
         ps.AddPeer(key, peer);
 
-        LOG_GENERAL(INFO, "Added peer with port " << peer.m_listenPortHost
+        LOG_GENERAL(INFO,
+                    "Added peer with port " << peer.m_listenPortHost
                                             << " at address "
                                             << peer.GetPrintableIPAddress());
 
@@ -126,12 +128,14 @@ bool PeerManager::ProcessPing(const vector<unsigned char>& message,
 
     LOG_MARKER();
 
-    LOG_GENERAL(INFO, "Received ping message at " << from.m_listenPortHost
+    LOG_GENERAL(INFO,
+                "Received ping message at " << from.m_listenPortHost
                                             << " from address "
                                             << from.m_ipAddress);
 
     vector<unsigned char> ping_message(message.begin() + offset, message.end());
-    LOG_PAYLOAD(INFO, "Ping message", ping_message, Logger::MAX_BYTES_TO_DISPLAY);
+    LOG_PAYLOAD(INFO, "Ping message", ping_message,
+                Logger::MAX_BYTES_TO_DISPLAY);
     return true;
 }
 
@@ -208,9 +212,10 @@ PeerManager::PeerManager(const std::pair<PrivKey, PubKey>& key,
                 if (peer != m_selfPeer)
                 {
                     ps.AddPeer(key, peer);
-                    LOG_GENERAL(INFO, "Added peer with port "
-                                << peer.m_listenPortHost << " at address "
-                                << peer.GetPrintableIPAddress());
+                    LOG_GENERAL(INFO,
+                                "Added peer with port "
+                                    << peer.m_listenPortHost << " at address "
+                                    << peer.GetPrintableIPAddress());
                 }
             }
         }
@@ -251,7 +256,8 @@ bool PeerManager::Execute(const vector<unsigned char>& message,
     }
     else
     {
-        LOG_GENERAL(INFO, "Unknown instruction byte " << std::hex
+        LOG_GENERAL(INFO,
+                    "Unknown instruction byte " << std::hex
                                                 << (unsigned int)ins_byte);
     }
 

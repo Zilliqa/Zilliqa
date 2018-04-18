@@ -117,7 +117,8 @@ bool BlockStorage::PutDSBlock(const boost::multiprecision::uint256_t& blockNum,
         {
             if (!DeleteDSBlock(blockNum))
             {
-                LOG_GENERAL(INFO, "FAIL: Delete DSBlock" << blockNum << "Failed");
+                LOG_GENERAL(INFO,
+                            "FAIL: Delete DSBlock" << blockNum << "Failed");
             }
         }
     }

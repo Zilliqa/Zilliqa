@@ -107,8 +107,9 @@ bool Node::ReadVariablesFromShardingMessage(
     }
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "Committee size = " << comm_size);
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "Members:");
+              "Committee size = " << comm_size);
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Members:");
 
     m_myShardMembersPubKeys.clear();
     m_myShardMembersNetworkInfo.clear();
@@ -130,8 +131,8 @@ bool Node::ReadVariablesFromShardingMessage(
             m_myShardMembersNetworkInfo.back().m_listenPortHost = 0;
         }
 
-        LOG_EPOCH(INFO,
-            to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(
+            INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             " PubKey: "
                 << DataConversion::SerializableToHexStr(
                        m_myShardMembersPubKeys.back())
@@ -168,7 +169,7 @@ bool Node::ProcessSharding(const vector<unsigned char>& message,
     {
         // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "Valid SHARDING already received. Ignoring redundant SHARDING message.");
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Not in TX_SUBMISSION state");
+                  "Not in TX_SUBMISSION state");
         return false;
     }
 
@@ -181,7 +182,7 @@ bool Node::ProcessSharding(const vector<unsigned char>& message,
     {
         m_isPrimary = true;
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "I am primary of the sharded committee");
+                  "I am primary of the sharded committee");
 
 #ifdef STAT_TEST
         LOG_STATE("[IDENT][" << std::setw(15) << std::left
@@ -193,7 +194,7 @@ bool Node::ProcessSharding(const vector<unsigned char>& message,
     {
         m_isPrimary = false;
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "I am backup member of the sharded committee");
+                  "I am backup member of the sharded committee");
 
 #ifdef STAT_TEST
         LOG_STATE("[IDENT][" << std::setw(15) << std::left
