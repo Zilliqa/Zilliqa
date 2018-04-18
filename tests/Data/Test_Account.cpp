@@ -45,21 +45,13 @@ BOOST_AUTO_TEST_CASE(test1)
     std::vector<unsigned char> message1;
     acc1.Serialize(message1, 0);
 
-#if 1//clark
     LOG_PAYLOAD(INFO, "Account1 serialized", message1, Logger::MAX_BYTES_TO_DISPLAY)
-#else
-    LOG_PAYLOAD("Account1 serialized", message1, Logger::MAX_BYTES_TO_DISPLAY);
-#endif
 
     Account acc2(message1, 0);
 
     std::vector<unsigned char> message2;
     acc2.Serialize(message2, 0);
-#if 1//clark
     LOG_PAYLOAD(INFO, "Account2 serialized", message2, Logger::MAX_BYTES_TO_DISPLAY);
-#else
-    LOG_PAYLOAD("Account2 serialized", message2, Logger::MAX_BYTES_TO_DISPLAY);
-#endif
 
     boost::multiprecision::uint256_t acc2Balance = acc2.GetBalance();
     LOG_GENERAL(INFO, "Account2 balance: " << acc2Balance);

@@ -169,18 +169,10 @@ bool ConsensusUser::ProcessConsensusMessage(
 
         vector<unsigned char> tmp;
         m_consensus->RetrieveCollectiveSig(tmp, 0);
-#if 1//clark
         LOG_PAYLOAD(INFO, "Final collective signature", tmp, 100);
-#else
-        LOG_PAYLOAD("Final collective signature", tmp, 100);
-#endif
         tmp.clear();
         m_consensus->RetrieveCollectiveSigBitmap(tmp, 0);
-#if 1//clark
         LOG_PAYLOAD(INFO, "Final collective signature bitmap", tmp, 100);
-#else
-        LOG_PAYLOAD("Final collective signature bitmap", tmp, 100);
-#endif
     }
 
     return result;
@@ -237,11 +229,7 @@ bool ConsensusUser::MyMsgValidatorFunc(const vector<unsigned char>& message,
                                        vector<unsigned char>& errorMsg)
 {
     LOG_MARKER();
-#if 1//clark
     LOG_PAYLOAD(INFO, "Message", message, Logger::MAX_BYTES_TO_DISPLAY);
-#else
-    LOG_PAYLOAD("Message", message, Logger::MAX_BYTES_TO_DISPLAY);
-#endif
     LOG_GENERAL(INFO, "Message is valid. I don't really care...");
 
     return true;

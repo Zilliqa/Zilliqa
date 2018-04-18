@@ -121,16 +121,14 @@ void Logger::newLog()
     logfile.open(fname.c_str(), ios_base::app);
 
 #if 1//clark
-    bPreserve = (fname.substr(0, 7) == "zilliqa");
+    bRefactor = (fname.substr(0, 7) == "zilliqa");
 
-    if(bPreserve)
+    if(bRefactor)
     {
         logworker = LogWorker::createLogWorker();
         auto sinkHandle = logworker->addSink(std::make_unique<FileSink>(fname.c_str(), "./"), &FileSink::fileWrite);
-//        auto changeFormatting = sinkHandle->call(&g3::FileSink::overrideLogDetails, &LogMessage::FullLogDetailsToString);
         auto changeFormatting = sinkHandle->call(&g3::FileSink::overrideLogDetails, &MyCustomFormatting);
         changeFormatting.wait();
-//        auto sinkHandle = logworker->addSink(std::make_unique<CustomSink>(fname.c_str(), "./"), &CustomSink::ReceiveLogMessage);
         initializeLogging(logworker.get());
     }
 #endif
@@ -176,11 +174,7 @@ void Logger::LogMessage(const char* msg, const char* function)
     }
 }
 
-#if 1//clark
-void Logger::LogMessage2(const char* msg, const char* function,
-#else
 void Logger::LogMessage(const char* msg, const char* function,
-#endif
                         const char* epoch)
 {
     pid_t tid = getCurrentPid();
@@ -326,7 +320,7 @@ void Logger::LogGeneral(LEVELS level, const char* msg, const char* function)
                 << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg << endl
                 << flush;
 
-        if(bPreserve)
+        if(bRefactor)
         {
             LOG(level) << "[TID " << PAD(tid, TID_LEN) << "]["
                     << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
@@ -363,7 +357,7 @@ void Logger::LogEpoch(LEVELS level, const char* msg, const char* epoch, const ch
                 << "[Epoch " << epoch << "] " << msg << endl
                 << flush;
 
-        if(bPreserve)
+        if(bRefactor)
         {
             LOG(level) << "[TID " << PAD(tid, TID_LEN) << "]["
                     << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
@@ -432,7 +426,7 @@ void Logger::LogPayload(LEVELS level, const char* msg,
                     << "): " << payload_string.get() << "..." << endl
                     << flush;
 
-            if(bPreserve)
+            if(bRefactor)
             {
                 LOG(level) << "[TID " << PAD(tid, TID_LEN) << "]["
                           << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
@@ -450,7 +444,7 @@ void Logger::LogPayload(LEVELS level, const char* msg,
                     << "): " << payload_string.get() << endl
                     << flush;
 
-            if(bPreserve)
+            if(bRefactor)
             {
                 LOG(level) << "[TID " << PAD(tid, TID_LEN) << "]["
                           << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
