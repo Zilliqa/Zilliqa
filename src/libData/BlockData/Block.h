@@ -20,6 +20,7 @@
 #include "Block/DSBlock.h"
 #include "Block/MicroBlock.h"
 #include "Block/TxBlock.h"
+#include "Block/VCBlock.h"
 #include "BlockHeader/DSBlockHeader.h"
 #include "BlockHeader/MicroBlockHeader.h"
 #include "BlockHeader/TxBlockHeader.h"
