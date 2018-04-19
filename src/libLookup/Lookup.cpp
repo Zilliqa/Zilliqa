@@ -1200,6 +1200,9 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
         lock_guard<mutex> g2(m_mediator.m_mutexDSCommitteePubKeys, adopt_lock);
         m_mediator.m_DSCommitteePubKeys = dsPubKeys;
         m_mediator.m_DSCommitteeNetworkInfo = dsPeers;
+        LOG_MESSAGE("Lookup dsPeers: " << dsPeers.size());
+        LOG_MESSAGE("Lookup m_DSCommitteePubKeys: "
+                    << m_mediator.m_DSCommitteePubKeys.size());
     }
 
         //    Data::GetInstance().SetDSPeers(dsPeers);

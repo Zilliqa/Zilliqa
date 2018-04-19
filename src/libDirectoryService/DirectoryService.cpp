@@ -1405,7 +1405,6 @@ bool DirectoryService::CleanVariables()
     m_mode = IDLE;
     m_consensusLeaderID = 0;
     m_consensusID = 1;
-    m_consensusMyID = 0;
 
     return true;
 }
@@ -1429,17 +1428,24 @@ bool DirectoryService::FinishRejoinAsDS()
     LOG_MARKER();
     m_mode = BACKUP_DS;
 
-    for (auto i = m_mediator.m_DSCommitteePubKeys.begin();
-         i != m_mediator.m_DSCommitteePubKeys.end(); i++)
+    m_consensusMyID = 0;
     {
-        if (*i == m_mediator.m_selfKey.second)
+        std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommitteePubKeys);
+        LOG_MESSAGE("m_DSCommitteePubKeys size: "
+                    << m_mediator.m_DSCommitteePubKeys.size());
+        for (auto i = m_mediator.m_DSCommitteePubKeys.begin();
+             i != m_mediator.m_DSCommitteePubKeys.end(); i++)
         {
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "My node ID for this PoW1 consensus is "
-                             << m_consensusMyID);
-            break;
+            LOG_MESSAGE("Loop of m_DSCommitteePubKeys");
+            if (*i == m_mediator.m_selfKey.second)
+            {
+                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                             "My node ID for this PoW1 consensus is "
+                                 << m_consensusMyID);
+                break;
+            }
+            m_consensusMyID++;
         }
-        m_consensusMyID++;
     }
     // in case the recovery program is under different directory
     LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
