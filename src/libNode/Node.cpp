@@ -851,7 +851,7 @@ bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
 bool Node::ProcessSubmitTxnSharing(const vector<unsigned char>& message,
                                    unsigned int offset, const Peer& from)
 {
-    LOG_MARKER();
+    //LOG_MARKER();
 
     const auto& submittedTransaction = Transaction(message, offset);
     // if (CheckCreatedTransaction(submittedTransaction))
@@ -860,18 +860,11 @@ bool Node::ProcessSubmitTxnSharing(const vector<unsigned char>& message,
             = (uint256_t)m_mediator.m_currentEpochNum;
         lock_guard<mutex> g(m_mutexReceivedTransactions);
         auto& receivedTransactions = m_receivedTransactions[blockNum];
-        // if(m_mediator.m_selfPeer.m_listenPortHost != 5015 &&
-        //    m_mediator.m_selfPeer.m_listenPortHost != 5016 &&
-        //    m_mediator.m_selfPeer.m_listenPortHost != 5017 &&
-        //    m_mediator.m_selfPeer.m_listenPortHost != 5018 &&
-        //    m_mediator.m_selfPeer.m_listenPortHost != 5019 &&
-        //    m_mediator.m_selfPeer.m_listenPortHost != 5020)
-        // {
+
         receivedTransactions.insert(
             make_pair(submittedTransaction.GetTranID(), submittedTransaction));
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Received txn: " << submittedTransaction.GetTranID())
-        // }
+        //LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+        //             "Received txn: " << submittedTransaction.GetTranID())
     }
 
     return true;
@@ -885,7 +878,7 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
     // This message is sent by my shard peers
     // Message = [204-byte transaction]
 
-    LOG_MARKER();
+    //LOG_MARKER();
 
     if (IsMessageSizeInappropriate(message.size(), offset,
                                    Transaction::GetSerializedSize()))
@@ -1040,7 +1033,7 @@ bool Node::ProcessCreateTransactionFromLookup(
 {
 #ifndef IS_LOOKUP_NODE
 
-    LOG_MARKER();
+    //LOG_MARKER();
 
     if (IsMessageSizeInappropriate(message.size(), offset,
                                    Transaction::GetSerializedSize()))
@@ -1117,7 +1110,7 @@ void Node::SetState(NodeState state)
 #ifndef IS_LOOKUP_NODE
 void Node::SubmitTransactions()
 {
-    LOG_MARKER();
+    //LOG_MARKER();
 
     unsigned int txn_sent_count = 0;
 
@@ -1333,7 +1326,7 @@ bool Node::ToBlockMessage(unsigned char ins_byte)
 bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
                    const Peer& from)
 {
-    LOG_MARKER();
+    //LOG_MARKER();
 
     bool result = true;
 
