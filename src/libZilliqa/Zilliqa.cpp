@@ -107,11 +107,17 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
         LOG_MESSAGE("Sync as a normal node");
         m_mediator.m_lookup->m_syncType = SyncType::NORMAL_SYNC;
         m_n.m_runFromLate = true;
+        m_n.CleanVariables();
+        m_n.Init();
+        m_n.Prepare(true);
         m_n.StartSynchronization();
         break;
     case SyncType::DS_SYNC:
         LOG_MESSAGE("Sync as a ds node");
         m_mediator.m_lookup->m_syncType = SyncType::DS_SYNC;
+        m_ds.CleanVariables();
+        m_n.Init();
+        m_n.Prepare(true);
         m_ds.StartSynchronization();
         break;
 #else // IS_LOOKUP_NODE
