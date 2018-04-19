@@ -76,8 +76,8 @@ class P2PComm
     Peer m_selfPeer;
 #endif // STAT_TEST
 
-    ThreadPool m_SendPool{MAXMESSAGE};
-    ThreadPool m_RecvPool{MAXMESSAGE};
+    ThreadPool m_SendPool{MAXMESSAGE, "SendPool"};
+    ThreadPool m_RecvPool{MAXMESSAGE, "RecvPool"};
 
 public:
     /// Returns the singleton P2PComm instance.

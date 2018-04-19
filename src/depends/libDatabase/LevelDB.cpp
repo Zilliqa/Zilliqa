@@ -252,7 +252,6 @@ int LevelDB::BatchInsert(std::unordered_map<dev::h256, std::pair<std::string, un
     {
         if (i.second.second)
         {
-            LOG_GENERAL(INFO, "MAIN WRITE STATE INTO LEVELDB " << i.first.hex());
             batch.Put(leveldb::Slice(i.first.hex()), 
                       leveldb::Slice(i.second.first.data(), i.second.first.size()));
         }
@@ -262,7 +261,6 @@ int LevelDB::BatchInsert(std::unordered_map<dev::h256, std::pair<std::string, un
     {
         if (i.second.second)
         {
-            LOG_GENERAL(INFO, "AUX WRITE STATE INTO LEVELDB " << i.first.hex());
             dev::bytes b = i.first.asBytes();
             b.push_back(255);   // for aux
             batch.Put(dev::bytesConstRef(&b), dev::bytesConstRef(&i.second.first));

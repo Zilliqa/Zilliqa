@@ -52,7 +52,7 @@ unsigned int AccountStore::Serialize(vector<unsigned char>& dst,
 {
     // [Total number of accounts (uint256_t)] [Addr 1] [Account 1] [Addr 2] [Account 2] .... [Addr n] [Account n]
 
-    LOG_MARKER();
+    // LOG_MARKER();
 
     unsigned int size_needed = UINT256_SIZE;
     unsigned int size_remaining = dst.size() - offset;
@@ -97,7 +97,7 @@ int AccountStore::Deserialize(const vector<unsigned char>& src,
                               unsigned int offset)
 {
     // [Total number of accounts] [Addr 1] [Account 1] [Addr 2] [Account 2] .... [Addr n] [Account n]
-    LOG_MARKER();
+    // LOG_MARKER();
 
     try
     {
@@ -226,6 +226,7 @@ void AccountStore::UpdateAccounts(const Transaction& transaction)
     const uint256_t& amount = transaction.GetAmount();
 
     TransferBalance(fromAddr, toAddr, amount);
+    IncreaseNonce(fromAddr);
 }
 
 Account* AccountStore::GetAccount(const Address& address)
@@ -290,7 +291,7 @@ bool AccountStore::UpdateStateTrie(const Address& address,
 bool AccountStore::IncreaseBalance(
     const Address& address, const boost::multiprecision::uint256_t& delta)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     if (delta == 0)
     {
@@ -302,23 +303,13 @@ bool AccountStore::IncreaseBalance(
     if (account != nullptr && account->IncreaseBalance(delta))
     {
         // UpdateStateTrie(address, *account);
-        LOG_GENERAL(INFO,
-                    "Balance for " << address << " increased by " << delta
-                                   << ". Succeeded!");
         return true;
     }
     else if (account == nullptr)
     {
         AddAccount(address, delta, 0);
-        LOG_GENERAL(INFO,
-                    "Balance for " << address << " increased by " << delta
-                                   << ". Succeeded!");
         return true;
     }
-
-    LOG_GENERAL(INFO,
-                "Balance for " << address << " increased by " << delta
-                               << ". Failed!");
 
     return false;
 }
@@ -326,7 +317,7 @@ bool AccountStore::IncreaseBalance(
 bool AccountStore::DecreaseBalance(
     const Address& address, const boost::multiprecision::uint256_t& delta)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     if (delta == 0)
     {
@@ -338,30 +329,13 @@ bool AccountStore::DecreaseBalance(
     if (account != nullptr && account->DecreaseBalance(delta))
     {
         // UpdateStateTrie(address, *account);
-        LOG_GENERAL(INFO,
-                    "Balance for " << address << " decreased by " << delta
-                                   << ". Succeeded! "
-                                   << "New balance: " << account->GetBalance());
         return true;
     }
     // TODO: remove this, temporary way to test transactions
     else if (account == nullptr)
     {
         AddAccount(address, 10000000000, 0);
-        LOG_GENERAL(INFO,
-                    "Balance for " << address << " decreased by " << delta
-                                   << ". Succeeded! "
-                                   << "New balance: "
-                                   << GetAccount(address)->GetBalance());
-        return true;
     }
-
-    LOG_GENERAL(INFO,
-                "Balance for "
-                    << address << " decreased by " << delta
-                    << ". Failed! Balance: "
-                    << (account ? account->GetBalance().convert_to<string>()
-                                : "? account = nullptr"));
 
     return false;
 }
@@ -370,19 +344,12 @@ bool AccountStore::TransferBalance(
     const Address& from, const Address& to,
     const boost::multiprecision::uint256_t& delta)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     if (DecreaseBalance(from, delta) && IncreaseBalance(to, delta))
     {
-        LOG_GENERAL(INFO,
-                    "Transfer of " << delta << " from " << from << " to " << to
-                                   << " succeeded");
         return true;
     }
-
-    LOG_GENERAL(INFO,
-                "Transfer of " << delta << " from " << from << " to " << to
-                               << " failed");
 
     return false;
 }

@@ -111,7 +111,7 @@ Zilliqa::~Zilliqa() {}
 
 void Zilliqa::Dispatch(const vector<unsigned char>& message, const Peer& from)
 {
-    LOG_MARKER();
+    //LOG_MARKER();
 
     if (message.size() >= MessageOffset::BODY)
     {

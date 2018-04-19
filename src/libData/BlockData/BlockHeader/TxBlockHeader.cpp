@@ -64,7 +64,7 @@ TxBlockHeader::TxBlockHeader(
 unsigned int TxBlockHeader::Serialize(vector<unsigned char>& dst,
                                       unsigned int offset) const
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     unsigned int size_needed = TxBlockHeader::SIZE;
     unsigned int size_remaining = dst.size() - offset;
@@ -118,7 +118,7 @@ unsigned int TxBlockHeader::Serialize(vector<unsigned char>& dst,
 int TxBlockHeader::Deserialize(const vector<unsigned char>& src,
                                unsigned int offset)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
     try
     {
         unsigned int curOffset = offset;

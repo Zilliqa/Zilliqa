@@ -180,7 +180,7 @@ vector<unsigned char> Lookup::ComposeGetDSInfoMessage()
                                       sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
-    AppendTimestamp(getDSNodesMessage, curr_offset);
+    // AppendTimestamp(getDSNodesMessage, curr_offset);
 
     return getDSNodesMessage;
 }
@@ -198,7 +198,7 @@ vector<unsigned char> Lookup::ComposeGetStateMessage()
                                       sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
-    AppendTimestamp(getStateMessage, curr_offset);
+    // AppendTimestamp(getStateMessage, curr_offset);
 
     return getStateMessage;
 }
@@ -248,7 +248,7 @@ vector<unsigned char> Lookup::ComposeGetDSBlockMessage(uint256_t lowBlockNum,
                                       sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
-    AppendTimestamp(getDSBlockMessage, curr_offset);
+    // AppendTimestamp(getDSBlockMessage, curr_offset);
 
     return getDSBlockMessage;
 }
@@ -295,7 +295,7 @@ vector<unsigned char> Lookup::ComposeGetTxBlockMessage(uint256_t lowBlockNum,
                                       sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
-    AppendTimestamp(getTxBlockMessage, curr_offset);
+    // AppendTimestamp(getTxBlockMessage, curr_offset);
 
     return getTxBlockMessage;
 }
@@ -343,7 +343,7 @@ bool Lookup::GetTxBodyFromSeedNodes(string txHashStr)
                                       sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
-    AppendTimestamp(getTxBodyMessage, curr_offset);
+    // AppendTimestamp(getTxBodyMessage, curr_offset);
 
     SendMessageToSeedNodes(getTxBodyMessage);
 
@@ -453,6 +453,7 @@ bool Lookup::ProcessEntireShardingStructure(
 
     m_shards.clear();
     m_nodesInNetwork.clear();
+    std::unordered_set<Peer> t_nodesInNetwork;
 
     for (unsigned int i = 0; i < num_shards; i++)
     {
@@ -505,6 +506,7 @@ bool Lookup::ProcessEntireShardingStructure(
             shard.insert(make_pair(key, peer));
 
             m_nodesInNetwork.push_back(peer);
+            t_nodesInNetwork.insert(peer);
 
             LOG_GENERAL(INFO,
                         "[SHARD "
@@ -517,6 +519,22 @@ bool Lookup::ProcessEntireShardingStructure(
                                   << "Corresponding peer : " << string(peer));
         }
     }
+
+    for (auto peer : t_nodesInNetwork)
+    {
+        l_nodesInNetwork.erase(peer);
+    }
+
+    for (auto peer : l_nodesInNetwork)
+    {
+        LOG_STATE("[LOSTPEER][" << std::setw(15) << std::left
+                                << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                                << "][" << std::setw(6) << std::left
+                                << m_mediator.m_currentEpochNum << "]"
+                                << std::setw(15) << std::left << string(peer));
+    }
+
+    l_nodesInNetwork = t_nodesInNetwork;
 
 #endif // IS_LOOKUP_NODE
 
@@ -665,8 +683,7 @@ bool Lookup::ProcessGetDSInfoFromSeed(const vector<unsigned char>& message,
                   "IP:" << peer.GetPrintableIPAddress());
     }
 
-    if (IsMessageSizeInappropriate(message.size(), offset,
-                                   sizeof(uint32_t) + UINT256_SIZE))
+    if (IsMessageSizeInappropriate(message.size(), offset, sizeof(uint32_t)))
     {
         return false;
     }
@@ -685,10 +702,11 @@ bool Lookup::ProcessGetDSInfoFromSeed(const vector<unsigned char>& message,
     // Currently, we want the duplicated message to be drop so to ensure it do not do redundant processing.
     // In the long term, we need to track all the incoming messages from lookup or seed node more grandularly,.
     // and ensure 2/3 of such identical message is received in order to move on.
-    vector<Peer> node;
-    node.push_back(requestingNode);
 
-    P2PComm::GetInstance().SendBroadcastMessage(node, dsInfoMessage);
+    // vector<Peer> node;
+    // node.push_back(requestingNode);
+
+    P2PComm::GetInstance().SendMessage(requestingNode, dsInfoMessage);
 
     //#endif // IS_LOOKUP_NODE
 
@@ -705,7 +723,7 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
 
     if (IsMessageSizeInappropriate(message.size(), offset,
                                    UINT256_SIZE + UINT256_SIZE
-                                       + sizeof(uint32_t) + UINT256_SIZE))
+                                       + sizeof(uint32_t)))
     {
         return false;
     }
@@ -772,7 +790,7 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
         }
     }
 
-    AppendTimestamp(dsBlockMessage, curr_offset);
+    // AppendTimestamp(dsBlockMessage, curr_offset);
 
     // if serialization got interrupted in between, reset the highBlockNum value in msg
     if (blockNum != highBlockNum + 1)
@@ -795,10 +813,11 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
     // Currently, we want the duplicated message to be drop so to ensure it do not do redundant processing.
     // In the long term, we need to track all the incoming messages from lookup or seed node more grandularly,.
     // and ensure 2/3 of such identical message is received in order to move on.
-    vector<Peer> node;
-    node.push_back(requestingNode);
 
-    P2PComm::GetInstance().SendBroadcastMessage(node, dsBlockMessage);
+    // vector<Peer> node;
+    // node.push_back(requestingNode);
+
+    P2PComm::GetInstance().SendMessage(requestingNode, dsBlockMessage);
 
     //#endif // IS_LOOKUP_NODE
 
@@ -847,8 +866,9 @@ bool Lookup::ProcessGetStateFromSeed(const vector<unsigned char>& message,
     // Currently, we want the duplicated message to be drop so to ensure it do not do redundant processing.
     // In the long term, we need to track all the incoming messages from lookup or seed node more grandularly,.
     // and ensure 2/3 of such identical message is received in order to move on.
-    vector<Peer> node;
-    node.push_back(requestingNode);
+
+    // vector<Peer> node;
+    // node.push_back(requestingNode);
 
     vector<unsigned char> setStateMessage
         = {MessageType::LOOKUP, LookupInstructionType::SETSTATEFROMSEED};
@@ -856,7 +876,7 @@ bool Lookup::ProcessGetStateFromSeed(const vector<unsigned char>& message,
     curr_offset
         += AccountStore::GetInstance().Serialize(setStateMessage, curr_offset);
     AccountStore::GetInstance().PrintAccountState();
-    P2PComm::GetInstance().SendBroadcastMessage(node, setStateMessage);
+    P2PComm::GetInstance().SendMessage(requestingNode, setStateMessage);
     // #endif // IS_LOOKUP_NODE
 
     return true;
@@ -872,7 +892,7 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
 
     if (IsMessageSizeInappropriate(message.size(), offset,
                                    UINT256_SIZE + UINT256_SIZE
-                                       + sizeof(uint32_t) + UINT256_SIZE))
+                                       + sizeof(uint32_t)))
     {
         return false;
     }
@@ -960,10 +980,11 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
     // Currently, we want the duplicated message to be drop so to ensure it do not do redundant processing.
     // In the long term, we need to track all the incoming messages from lookup or seed node more grandularly,.
     // and ensure 2/3 of such identical message is received in order to move on.
-    vector<Peer> node;
-    node.push_back(requestingNode);
 
-    P2PComm::GetInstance().SendBroadcastMessage(node, txBlockMessage);
+    // vector<Peer> node;
+    // node.push_back(requestingNode);
+
+    P2PComm::GetInstance().SendMessage(requestingNode, txBlockMessage);
 
     // #endif // IS_LOOKUP_NODE
 
@@ -1000,8 +1021,8 @@ bool Lookup::ProcessGetTxBodyFromSeed(const vector<unsigned char>& message,
     curr_offset += Transaction::GetSerializedSize();
 
     // 4-byte portNo
-    uint32_t portNo = Serializable::GetNumber<uint32_t>(
-        message, offset, sizeof(uint32_t) + UINT256_SIZE);
+    uint32_t portNo
+        = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
     offset += sizeof(uint32_t);
 
     uint128_t ipAddr = from.m_ipAddress;
@@ -1013,10 +1034,11 @@ bool Lookup::ProcessGetTxBodyFromSeed(const vector<unsigned char>& message,
     // Currently, we want the duplicated message to be drop so to ensure it do not do redundant processing.
     // In the long term, we need to track all the incoming messages from lookup or seed node more grandularly,.
     // and ensure 2/3 of such identical message is received in order to move on.
-    vector<Peer> node;
-    node.push_back(requestingNode);
 
-    P2PComm::GetInstance().SendBroadcastMessage(node, txBodyMessage);
+    // vector<Peer> node;
+    // node.push_back(requestingNode);
+
+    P2PComm::GetInstance().SendMessage(requestingNode, txBodyMessage);
 
     // #endif // IS_LOOKUP_NODE
 
@@ -1052,10 +1074,11 @@ bool Lookup::ProcessGetNetworkId(const vector<unsigned char>& message,
     // Currently, we want the duplicated message to be drop so to ensure it do not do redundant processing.
     // In the long term, we need to track all the incoming messages from lookup or seed node more grandularly,.
     // and ensure 2/3 of such identical message is received in order to move on.
-    vector<Peer> node;
-    node.push_back(requestingNode);
 
-    P2PComm::GetInstance().SendBroadcastMessage(node, networkIdMessage);
+    // vector<Peer> node;
+    // node.push_back(requestingNode);
+
+    P2PComm::GetInstance().SendMessage(requestingNode, networkIdMessage);
 
     return true;
     // #endif // IS_LOOKUP_NODE
@@ -1204,8 +1227,7 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
     // since we will usually only enable sending of 500 blocks max, casting to uint32_t should be safe
     if (IsMessageSizeInappropriate(message.size(), offset,
                                    (uint32_t)(highBlockNum - lowBlockNum + 1)
-                                           * DSBlock::GetSerializedSize()
-                                       + UINT256_SIZE))
+                                       * DSBlock::GetSerializedSize()))
     {
         return false;
     }
@@ -1455,7 +1477,16 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
             m_dsInfoUpdateCondition.wait(lock);
         }
         m_fetchedDSInfo = false;
-        m_mediator.s_toAttemptPoW = true;
+    }
+    // m_mediator.s_toAttemptPoW = true;
+    if (InitMining())
+    {
+        LOG_MESSAGE("new node attempted pow2");
+    }
+    else
+    {
+        LOG_MESSAGE("new node did not attempt pow2")
+        ret = false;
     }
 #endif // IS_LOOKUP_NODE
 
