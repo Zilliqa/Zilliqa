@@ -1042,12 +1042,11 @@ bool Node::CheckStateRoot(const TxBlock& finalBlock)
 
     if (stateRoot != finalBlock.GetHeader().GetStateRootHash())
     {
-        LOG_GENERAL(WARNING, 
-                     to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "State root doesn't match. Expected = "
-                         << stateRoot << ". "
-                         << "Received = "
-                         << finalBlock.GetHeader().GetStateRootHash());
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "State root doesn't match. Expected = "
+                      << stateRoot << ". "
+                      << "Received = "
+                      << finalBlock.GetHeader().GetStateRootHash());
         return false;
     }
 

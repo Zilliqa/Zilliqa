@@ -164,8 +164,8 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
 
         // return false;
         // TODO: Optimize state transition.
-        LOG_MESSAGE(
-            "Error: ConsensusCommon::State::ERROR here, but we move on.");
+        LOG_GENERAL(WARNING,
+                    "ConsensusCommon::State::ERROR here, but we move on.");
         SetState(WAITING_FINALBLOCK); // Move on to next Epoch.
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "If I received a new Finalblock from DS committee. I will "
