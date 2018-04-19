@@ -354,13 +354,13 @@ public:
     std::atomic<NodeState> m_state;
 
     /// Constructor. Requires mediator reference to access DirectoryService and other global members.
-    Node(Mediator& mediator, bool toRetrieveHistory);
+    Node(Mediator& mediator, unsigned int syncType, bool toRetrieveHistory);
 
     /// Destructor.
     ~Node();
 
     /// Install the Node
-    void Install(bool toRetrieveHistory = true);
+    void Install(unsigned int syncType, bool toRetrieveHistory = true);
 
     /// Set initial state, variables, and clean-up storage
     void Init();
