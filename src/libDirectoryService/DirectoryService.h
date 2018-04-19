@@ -324,6 +324,8 @@ class DirectoryService : public Executable, public Broadcastable
                                        unsigned int offset, const Peer& from);
 
     void RejoinAsDS();
+
+    bool CleanVariables();
 #endif // IS_LOOKUP_NODE
 
 public:
@@ -380,8 +382,6 @@ public:
     void ScheduleShardingConsensus(const unsigned int wait_window);
 
     bool FinishRejoinAsDS();
-
-    bool CleanVariables();
 #endif // IS_LOOKUP_NODE
 
     /// Implements the Execute function inherited from Executable.
