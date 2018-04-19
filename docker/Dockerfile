@@ -25,13 +25,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 #--------------------------------------------------------------------
 ARG BRANCH=feature/docker
 ARG REPO=https://github.com/Zilliqa/Zilliqa.git
+ARG SOURCE_DIR=/zilliqa
+ARG BUILD_DIR=/build
+ARG INSTALL_DIR=/testnet
 
-ENV Z_INSTALL_PREFIX=/zilliqa
-ENV LD_LIBRARY_PATH=${Z_INSTALL_PREFIX}/lib
+RUN git clone -b ${BRANCH} --depth=1 ${REPO} ${SOURCE_DIR}; \
+    mkdir $BUILD_DIR && cd $BUILD_DIR; \
+    cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+        -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR ${SOURCE_DIR}; \
+    make -j4 && make install; \
+    cd ${INSTALL_DIR} && rm -rf ${BUILD_DIR}
 
-RUN git clone -b ${BRANCH} --depth=1 ${REPO} && \
-    cd Zilliqa && mkdir build && cd build && \
-    cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo .. && \
-    make -j4 && mv bin .. && cd .. && rm -rf build
+ENV LD_LIBRARY_PATH=${INSTALL_DIR}/lib
 
 ENTRYPOINT ["/bin/bash"]
