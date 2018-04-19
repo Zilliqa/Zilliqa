@@ -48,6 +48,7 @@ const unsigned int ACCOUNT_SIZE
 
 const unsigned int DS_BLOCKCHAIN_SIZE = 50;
 const unsigned int TX_BLOCKCHAIN_SIZE = 50;
+const unsigned int VC_BLOCKCHAIN_SIZE = 50;
 
 // Number of nodes sent from lookup node to newly joined node
 const unsigned int SEED_PEER_LIST_SIZE = 20;
