@@ -315,8 +315,6 @@ class Node : public Executable, public Broadcastable
     // Is Running from New Process
     bool m_fromNewProcess = true;
 
-    bool CleanVariables();
-
     void RejoinAsNormal();
 #endif // IS_LOOKUP_NODE
 
@@ -382,6 +380,8 @@ public:
 #ifndef IS_LOOKUP_NODE
 
     void StartSynchronization();
+
+    bool CleanVariables();
 
     /// Called from DirectoryService during FINALBLOCK processing.
     bool ActOnFinalBlock(uint8_t tx_sharing_mode, const vector<Peer>& nodes);
