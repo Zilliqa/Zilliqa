@@ -42,7 +42,7 @@ VCBlock VCBlockChain::GetBlock(const uint256_t& blockNum)
     }
     else if (blockNum + m_vcBlocks.capacity() < m_vcBlocks.size())
     {
-        throw "vc block persistent storage not supported"
+        throw "vc block persistent storage not supported";
         //DSBlockSharedPtr block;
         //BlockStorage::GetBlockStorage().GetDSBlock(blockNum, block);
         //return *block;
