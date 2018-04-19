@@ -114,9 +114,6 @@ Signature ConsensusCommon::SignMessage(const vector<unsigned char>& msg,
     LOG_MARKER();
 
     Signature signature;
-    std::string msg_str(msg.begin(), msg.end());
-    LOG_MESSAGE("size: " << size << "\nm_myPrivKey: " << m_myPrivKey
-                         << "\nm_myID: " << m_myID);
     bool result = Schnorr::GetInstance().Sign(msg, offset, size, m_myPrivKey,
                                               m_pubKeys.at(m_myID), signature);
     if (result == false)
