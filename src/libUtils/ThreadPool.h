@@ -84,7 +84,8 @@ public:
 
         if (_jobsLeft % 100 == 0)
         {
-            LOG_MESSAGE("PoolName: " << poolName << " JobLeft: " << _jobsLeft
+            LOG_GENERAL(INFO,
+                        "PoolName: " << poolName << " JobLeft: " << _jobsLeft
                                      << '\n');
         }
     }
