@@ -59,22 +59,6 @@ VCBlock VCBlockChain::GetBlock(const uint256_t& blockNum)
 
 int VCBlockChain::AddBlock(const VCBlock& block)
 {
-    uint256_t blockNumOfNewBlock = block.GetHeader().GetBlockNum();
-
-    lock_guard<mutex> g(m_mutexDSBlocks);
-
-    uint256_t blockNumOfExistingBlock
-        = m_dsBlocks[blockNumOfNewBlock].GetHeader().GetBlockNum();
-
-    if (blockNumOfExistingBlock < blockNumOfNewBlock
-        || blockNumOfExistingBlock == (uint256_t)-1)
-    {
-        m_vcBlocks.insert_new(blockNumOfNewBlock, block);
-    }
-    else
-    {
-        return -1;
-    }
-
+    m_vcBlocks.push_back(block);
     return 1;
 }
