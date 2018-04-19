@@ -17,7 +17,7 @@ namespace g3 {
          return level.value >= FATAL.value;
       }
 
-/* #ifdef G3_DYNAMIC_LOGGING */
+#ifdef G3_DYNAMIC_LOGGING
       const std::map<int, LoggingLevel> g_log_level_defaults = {
 	     {G3LOG_DEBUG.value,{G3LOG_DEBUG}},
          {INFO.value, {INFO}},
@@ -26,10 +26,10 @@ namespace g3 {
       };
 
       std::map<int, g3::LoggingLevel> g_log_levels = g_log_level_defaults;
-/* #endif */
+#endif
    } // internal
 
-/* #ifdef G3_DYNAMIC_LOGGING */
+#ifdef G3_DYNAMIC_LOGGING
    namespace only_change_at_initialization {
 
       void addLogLevel(LEVELS lvl, bool enabled) {
@@ -124,15 +124,15 @@ namespace g3 {
       }
    } // log_levels
 
-/* #endif */
+#endif
 
 
    bool logLevel(LEVELS log_level) {
-/* #ifdef G3_DYNAMIC_LOGGING */
+#ifdef G3_DYNAMIC_LOGGING
       int level = log_level.value;
       bool status = internal::g_log_levels[level].status.value();
       return status;
-/* #endif */
+#endif
       return true;
    }
 } // g3
