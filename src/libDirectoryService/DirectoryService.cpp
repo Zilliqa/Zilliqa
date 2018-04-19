@@ -1417,8 +1417,7 @@ void DirectoryService::RejoinAsDS()
     {
         m_mediator.m_lookup->m_syncType = SyncType::DS_SYNC;
         this->CleanVariables();
-        m_mediator.m_node->Init();
-        m_mediator.m_node->Prepare(true);
+        m_mediator.m_node->Install(true);
         this->StartSynchronization();
     }
 }

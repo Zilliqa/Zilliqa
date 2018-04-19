@@ -348,7 +348,6 @@ bool ConsensusBackup::ProcessMessageAnnounce(
 
                 // Unicast to the leader
                 // =====================
-                LOG_MESSAGE("[DEBUG] m_leaderID:" << m_leaderID);
                 P2PComm::GetInstance().SendMessage(m_peerInfo.at(m_leaderID),
                                                    commitFailureMsg);
 
@@ -386,10 +385,8 @@ bool ConsensusBackup::ProcessMessageAnnounce(
         = {m_classByte, m_insByte,
            static_cast<unsigned char>(ConsensusMessageType::COMMIT)};
 
-    LOG_MESSAGE("[DEBUG] line: 389");
     bool result = GenerateCommitMessage(
         commit, MessageOffset::BODY + sizeof(unsigned char));
-    LOG_MESSAGE("[DEBUG] line: 392");
     if (result == true)
     {
         // Update internal state
@@ -398,8 +395,6 @@ bool ConsensusBackup::ProcessMessageAnnounce(
 
         // Unicast to the leader
         // =====================
-        LOG_MESSAGE("[DEBUG] line: 401 "
-                    << "m_leader:" << m_leaderID);
         P2PComm::GetInstance().SendMessage(m_peerInfo.at(m_leaderID), commit);
     }
 
@@ -452,7 +447,6 @@ bool ConsensusBackup::GenerateCommitMessage(vector<unsigned char>& commit,
 
     // Generate new commit
     // ===================
-    LOG_MESSAGE("1");
     m_commitSecret.reset(new CommitSecret());
     m_commitPoint.reset(new CommitPoint(*m_commitSecret));
 
@@ -468,33 +462,26 @@ bool ConsensusBackup::GenerateCommitMessage(vector<unsigned char>& commit,
     Serializable::SetNumber<uint32_t>(commit, curr_offset, m_consensusID,
                                       sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
-    LOG_MESSAGE("2");
     // 32-byte blockhash
     commit.insert(commit.begin() + curr_offset, m_blockHash.begin(),
                   m_blockHash.end());
     curr_offset += m_blockHash.size();
-    LOG_MESSAGE("3");
     // 2-byte backup id
     Serializable::SetNumber<uint16_t>(commit, curr_offset, m_myID,
                                       sizeof(uint16_t));
     curr_offset += sizeof(uint16_t);
-    LOG_MESSAGE("4");
     // 33-byte commit
     m_commitPoint->Serialize(commit, curr_offset);
     curr_offset += COMMIT_POINT_SIZE;
-    LOG_MESSAGE("5");
     // 64-byte signature
     Signature signature = SignMessage(commit, offset, curr_offset - offset);
-    LOG_MESSAGE("6");
     if (signature.Initialized() == false)
     {
         LOG_MESSAGE("Error: Message signing failed");
         m_state = ERROR;
         return false;
     }
-    LOG_MESSAGE("7");
     signature.Serialize(commit, curr_offset);
-    LOG_MESSAGE("8");
     return true;
 }
 
@@ -860,10 +847,8 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
         vector<unsigned char> finalcommit
             = {m_classByte, m_insByte,
                static_cast<unsigned char>(ConsensusMessageType::FINALCOMMIT)};
-        LOG_MESSAGE("[DEBUG] line: 860");
         result = GenerateCommitMessage(
             finalcommit, MessageOffset::BODY + sizeof(unsigned char));
-        LOG_MESSAGE("[DEBUG] line: 863");
         if (result == true)
         {
             // Update internal state
@@ -878,8 +863,6 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
 
             // Unicast to the leader
             // =====================
-            LOG_MESSAGE("[DEBUG] line: 878 "
-                        << "m_leader:" << m_leaderID);
             P2PComm::GetInstance().SendMessage(m_peerInfo.at(m_leaderID),
                                                finalcommit);
         }

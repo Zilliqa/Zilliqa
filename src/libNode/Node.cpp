@@ -64,6 +64,13 @@ void addBalanceToGenesisAccount()
 Node::Node(Mediator& mediator, bool toRetrieveHistory)
     : m_mediator(mediator)
 {
+    this->Install(toRetrieveHistory);
+}
+
+Node::~Node() {}
+
+void Node::Install(bool toRetrieveHistory)
+{
     // m_state = IDLE;
     bool runInitializeGenesisBlocks = true;
 
@@ -84,13 +91,14 @@ Node::Node(Mediator& mediator, bool toRetrieveHistory)
     if (runInitializeGenesisBlocks)
     {
         this->Init();
-        addBalanceToGenesisAccount();
+        if (m_mediator.m_lookup->m_syncType == SyncType::NO_SYNC)
+        {
+            addBalanceToGenesisAccount();
+        }
     }
 
     this->Prepare(runInitializeGenesisBlocks);
 }
-
-Node::~Node() {}
 
 void Node::Init()
 {
@@ -1222,8 +1230,7 @@ void Node::RejoinAsNormal()
     {
         m_mediator.m_lookup->m_syncType = SyncType::NORMAL_SYNC;
         this->CleanVariables();
-        this->Init();
-        this->Prepare(true);
+        this->Install(true);
         this->StartSynchronization();
     }
 }

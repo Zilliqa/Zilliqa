@@ -316,6 +316,8 @@ class Node : public Executable, public Broadcastable
     bool m_fromNewProcess = true;
 
     void RejoinAsNormal();
+
+    bool CleanVariables();
 #endif // IS_LOOKUP_NODE
 
 public:
@@ -357,6 +359,9 @@ public:
     /// Destructor.
     ~Node();
 
+    /// Install the Node
+    void Install(bool toRetrieveHistory = true);
+
     /// Set initial state, variables, and clean-up storage
     void Init();
 
@@ -380,8 +385,6 @@ public:
 #ifndef IS_LOOKUP_NODE
 
     void StartSynchronization();
-
-    bool CleanVariables();
 
     /// Called from DirectoryService during FINALBLOCK processing.
     bool ActOnFinalBlock(uint8_t tx_sharing_mode, const vector<Peer>& nodes);
