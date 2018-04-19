@@ -15,4 +15,6 @@
 // CMake induced definitions below. See g3log/Options.cmake for details.
 
 
+#define G3_DYNAMIC_LOGGING
+
 #define G3LOG_DEBUG DEBUG

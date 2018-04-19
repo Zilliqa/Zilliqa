@@ -34,9 +34,9 @@ IF(G3_IOS_LIB)
 ENDIF(G3_IOS_LIB)
 
 # -DUSE_DYNAMIC_LOGGING_LEVELS=ON   : run-type turn on/off levels
-SET(USE_DYNAMIC_LOGGING_LEVELS ON)
+#SET(USE_DYNAMIC_LOGGING_LEVELS ON)
 option (USE_DYNAMIC_LOGGING_LEVELS
-       "Turn ON/OFF log levels. An disabled level will not push logs of that level to the sink. By default dynamic logging is disabled" OFF)
+       "Turn ON/OFF log levels. An disabled level will not push logs of that level to the sink. By default dynamic logging is disabled" ON)
 IF(USE_DYNAMIC_LOGGING_LEVELS)
    LIST(APPEND G3_DEFINITIONS G3_DYNAMIC_LOGGING)
    message( STATUS "-DUSE_DYNAMIC_LOGGING_LEVELS=ON" )
