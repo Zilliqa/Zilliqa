@@ -1461,7 +1461,7 @@ bool DirectoryService::ToBlockMessage(unsigned char ins_byte)
 bool DirectoryService::Execute(const vector<unsigned char>& message,
                                unsigned int offset, const Peer& from)
 {
-    LOG_MARKER();
+    //LOG_MARKER();
 
     bool result = false;
 
