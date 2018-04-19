@@ -31,14 +31,11 @@
 class VCBlock : public BlockBase
 {
     VCBlockHeader m_header;
-    std::array<unsigned char, BLOCK_SIG_SIZE>
-        m_signature1; 
-    std::array<unsigned char, BLOCK_SIG_SIZE>
-        m_signature2; 
-   std::vector<bool>
-        m_headerSigBitmap1;
-   std::vector<bool>
-        m_headerSigBitmap2;
+    std::array<unsigned char, BLOCK_SIG_SIZE> m_signature1;
+    std::array<unsigned char, BLOCK_SIG_SIZE> m_signature2;
+    std::vector<bool> m_headerSigBitmap1;
+    std::vector<bool> m_headerSigBitmap2;
+
 public:
     /// Default constructor.
     VCBlock(); // creates a dummy invalid placeholder block
@@ -47,7 +44,7 @@ public:
     VCBlock(const std::vector<unsigned char>& src, unsigned int offset);
 
     /// Constructor with specified VC block parameters.
-    // TODO: Future work: To add in cosi sig 1 and 2, bitmap 1 and 2; 
+    // TODO: Future work: To add in cosi sig 1 and 2, bitmap 1 and 2;
     VCBlock(const VCBlockHeader& header,
             const std::array<unsigned char, BLOCK_SIG_SIZE>& signature);
 
@@ -76,10 +73,10 @@ public:
     /// Returns the reference to the VCBlockHeader part of the VC block.
     const VCBlockHeader& GetHeader() const;
 
-    /// Returns the signature 1 of the DS block. 
+    /// Returns the signature 1 of the DS block.
     const std::array<unsigned char, BLOCK_SIG_SIZE>& GetSignature1() const;
 
-    /// Returns the signature 2 of the DS block. 
+    /// Returns the signature 2 of the DS block.
     const std::array<unsigned char, BLOCK_SIG_SIZE>& GetSignature2() const;
 
     /// Return bitmap 1

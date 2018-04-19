@@ -42,7 +42,7 @@ VCBlock::VCBlock(const DSBlockHeader& header,
 unsigned int VCBlock::Serialize(vector<unsigned char>& dst,
                                 unsigned int offset) const
 {
-    
+
     unsigned int size_needed = VCBlockHeader::SIZE + BLOCK_SIG_SIZE;
     unsigned int size_remaining = dst.size() - offset;
 
@@ -61,7 +61,7 @@ unsigned int VCBlock::Serialize(vector<unsigned char>& dst,
 
 int VSBlock::Deserialize(const vector<unsigned char>& src, unsigned int offset)
 {
-   
+
     try
     {
         VCBlockHeader header;
@@ -118,7 +118,8 @@ void DSBlock::SetSignature2(const vector<unsigned char>& signature2)
 bool VCBlock::operator==(const DSBlock& block) const
 {
     // Once cosig_2 and bitmap 1 and 2 is in, update this code
-    return ((m_header == block.m_header) && (m_signature1 == block.m_signature1));
+    return ((m_header == block.m_header)
+            && (m_signature1 == block.m_signature1));
 }
 
 //TODO
@@ -143,7 +144,7 @@ bool VCBlock::operator<(const DSBlock& block) const
     }
 }
 
-//TODO: 
+//TODO:
 bool VCBlock::operator>(const DSBlock& block) const
 {
     return !((*this == block) || (*this < block));
