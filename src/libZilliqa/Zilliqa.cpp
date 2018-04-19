@@ -61,7 +61,7 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
     , m_mediator(key, peer)
     , m_ds(m_mediator)
     , m_lookup(m_mediator)
-    , m_n(m_mediator, toRetrieveHistory)
+    , m_n(m_mediator, syncType, toRetrieveHistory)
     , m_cu(key, peer)
 #ifdef IS_LOOKUP_NODE
     , m_httpserver(SERVER_PORT)

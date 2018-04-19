@@ -50,6 +50,7 @@ using namespace boost::multiprecision;
 
 void addBalanceToGenesisAccount()
 {
+    LOG_MARKER();
     const uint256_t bal{100000000000};
     const uint256_t nonce{0};
 
@@ -61,15 +62,15 @@ void addBalanceToGenesisAccount()
     }
 }
 
-Node::Node(Mediator& mediator, bool toRetrieveHistory)
+Node::Node(Mediator& mediator, unsigned int syncType, bool toRetrieveHistory)
     : m_mediator(mediator)
 {
-    this->Install(toRetrieveHistory);
+    this->Install(syncType, toRetrieveHistory);
 }
 
 Node::~Node() {}
 
-void Node::Install(bool toRetrieveHistory)
+void Node::Install(unsigned int syncType, bool toRetrieveHistory)
 {
     // m_state = IDLE;
     bool runInitializeGenesisBlocks = true;
@@ -91,7 +92,7 @@ void Node::Install(bool toRetrieveHistory)
     if (runInitializeGenesisBlocks)
     {
         this->Init();
-        if (m_mediator.m_lookup->m_syncType == SyncType::NO_SYNC)
+        if (syncType == SyncType::NO_SYNC)
         {
             addBalanceToGenesisAccount();
         }
@@ -104,6 +105,7 @@ void Node::Init()
 {
     // Zilliqa first epoch start from 1 not 0. So for the first DS epoch, there will be 1 less mini epoch only for the first DS epoch.
     // Hence, we have to set consensusID for first epoch to 1.
+    LOG_MARKER();
     m_consensusID = 1;
     m_consensusLeaderID = 1;
 

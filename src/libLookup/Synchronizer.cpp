@@ -133,6 +133,7 @@ bool Synchronizer::InitializeGenesisTxBlock(TxBlockChain& txBlockChain)
 bool Synchronizer::InitializeGenesisBlocks(DSBlockChain& dsBlockChain,
                                            TxBlockChain& txBlockChain)
 {
+    LOG_MARKER();
     InitializeGenesisDSBlock(dsBlockChain);
     InitializeGenesisTxBlock(txBlockChain);
 
