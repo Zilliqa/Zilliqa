@@ -256,7 +256,7 @@ bool PrivKey::Initialized() const { return m_initialized; }
 unsigned int PrivKey::Serialize(vector<unsigned char>& dst,
                                 unsigned int offset) const
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     if (m_initialized)
     {
@@ -268,7 +268,7 @@ unsigned int PrivKey::Serialize(vector<unsigned char>& dst,
 
 int PrivKey::Deserialize(const vector<unsigned char>& src, unsigned int offset)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     try
     {
@@ -408,7 +408,7 @@ unsigned int PubKey::Serialize(vector<unsigned char>& dst,
 
 int PubKey::Deserialize(const vector<unsigned char>& src, unsigned int offset)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     try
     {
@@ -561,7 +561,7 @@ bool Signature::Initialized() const { return m_initialized; }
 unsigned int Signature::Serialize(vector<unsigned char>& dst,
                                   unsigned int offset) const
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     if (m_initialized)
     {
@@ -576,7 +576,7 @@ unsigned int Signature::Serialize(vector<unsigned char>& dst,
 int Signature::Deserialize(const vector<unsigned char>& src,
                            unsigned int offset)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     try
     {
@@ -658,7 +658,7 @@ bool Schnorr::Sign(const vector<unsigned char>& message, unsigned int offset,
                    unsigned int size, const PrivKey& privkey,
                    const PubKey& pubkey, Signature& result)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
     lock_guard<mutex> g(m_mutexSchnorr);
 
     // Initial checks
@@ -856,7 +856,7 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
                      unsigned int size, const Signature& toverify,
                      const PubKey& pubkey)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
     lock_guard<mutex> g(m_mutexSchnorr);
 
     // Initial checks

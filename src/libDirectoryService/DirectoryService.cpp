@@ -1214,26 +1214,32 @@ bool DirectoryService::ProcessInitViewChange(
         m_viewChangeCounter++;
         m_mode = PRIMARY_DS;
 
-        // Re-run consensus
+        // Re-run consensus as a leader
         switch (viewChangeDSState)
         {
-        case DSBLOCK_CONSENSUS_PREP:
         case DSBLOCK_CONSENSUS:
+            SetState(DSBLOCK_CONSENSUS_PREP);
+        case DSBLOCK_CONSENSUS_PREP:
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Re-running dsblock consensus (new leader)");
+                         "Re-running dsblock consensus (new leader)");
             RunConsensusOnDSBlockWhenDSPrimary();
+            SetState(DSBLOCK_CONSENSUS);
             break;
-        case SHARDING_CONSENSUS_PREP:
         case SHARDING_CONSENSUS:
+            SetState(SHARDING_CONSENSUS_PREP);
+        case SHARDING_CONSENSUS_PREP:
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Re-running sharding consensus (new leader)");
+                         "Re-running sharding consensus (new leader)");
             RunConsensusOnShardingWhenDSPrimary();
+            SetState(SHARDING_CONSENSUS);
             break;
-        case FINALBLOCK_CONSENSUS_PREP:
         case FINALBLOCK_CONSENSUS:
+            SetState(FINALBLOCK_CONSENSUS_PREP);
+        case FINALBLOCK_CONSENSUS_PREP:
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Re-running finalblock consensus (new leader)");
+                         "Re-running finalblock consensus (new leader)");
             RunConsensusOnFinalBlockWhenDSPrimary();
+            SetState(FINALBLOCK_CONSENSUS);
             break;
         default:
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -1286,23 +1292,29 @@ bool DirectoryService::ProcessInitViewChangeResponse(
 
         switch (m_state)
         {
-        case DSBLOCK_CONSENSUS_PREP:
         case DSBLOCK_CONSENSUS:
+            SetState(DSBLOCK_CONSENSUS_PREP);
+        case DSBLOCK_CONSENSUS_PREP:
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Re-running dsblock consensus (backup)");
+                         "Re-running dsblock consensus (backup)");
             RunConsensusOnDSBlockWhenDSBackup();
+            SetState(DSBLOCK_CONSENSUS);
             break;
-        case SHARDING_CONSENSUS_PREP:
         case SHARDING_CONSENSUS:
+            SetState(SHARDING_CONSENSUS_PREP);
+        case SHARDING_CONSENSUS_PREP:
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Re-running sharding consensus (backup)");
+                         "Re-running sharding consensus (backup)");
             RunConsensusOnShardingWhenDSBackup();
+            SetState(SHARDING_CONSENSUS);
             break;
-        case FINALBLOCK_CONSENSUS_PREP:
         case FINALBLOCK_CONSENSUS:
+            SetState(FINALBLOCK_CONSENSUS_PREP);
+        case FINALBLOCK_CONSENSUS_PREP:
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Re-running finalblock consensus (backup)");
+                         "Re-running finalblock consensus (backup)");
             RunConsensusOnFinalBlockWhenDSBackup();
+            SetState(FINALBLOCK_CONSENSUS);
             break;
         default:
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -1323,7 +1335,7 @@ bool DirectoryService::ProcessInitViewChangeResponse(
 bool DirectoryService::Execute(const vector<unsigned char>& message,
                                unsigned int offset, const Peer& from)
 {
-    LOG_MARKER();
+    //LOG_MARKER();
 
     bool result = false;
 

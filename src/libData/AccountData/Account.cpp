@@ -30,7 +30,7 @@ Account::Account(const uint256_t& balance, const uint256_t& nonce)
 unsigned int Account::Serialize(vector<unsigned char>& dst,
                                 unsigned int offset) const
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     unsigned int size_needed = UINT256_SIZE + UINT256_SIZE;
     unsigned int size_remaining = dst.size() - offset;
@@ -51,7 +51,7 @@ unsigned int Account::Serialize(vector<unsigned char>& dst,
 
 int Account::Deserialize(const vector<unsigned char>& src, unsigned int offset)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     try
     {

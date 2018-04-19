@@ -134,7 +134,6 @@ bool BlockStorage::PutTxBlock(const boost::multiprecision::uint256_t& blockNum,
 bool BlockStorage::PutTxBody(const dev::h256& key,
                              const vector<unsigned char>& body)
 {
-    LOG_MARKER();
 
 #ifndef IS_LOOKUP_NODE
     if (m_txBodyDBs.empty())

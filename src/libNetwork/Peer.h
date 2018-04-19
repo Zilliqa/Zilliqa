@@ -19,6 +19,7 @@
 
 #include <boost/multiprecision/cpp_int.hpp>
 #include <cstdint>
+#include <functional>
 
 #include "common/Serializable.h"
 
@@ -42,10 +43,10 @@ struct Peer : public Serializable
     Peer(const std::vector<unsigned char>& src, unsigned int offset);
 
     /// Equality comparison operator.
-    bool operator==(const Peer& r);
+    bool operator==(const Peer& r) const;
 
     /// Inequality comparison operator.
-    bool operator!=(const Peer& r);
+    bool operator!=(const Peer& r) const;
 
     /// Utility function for printing peer IP info.
     const char* GetPrintableIPAddress() const;
@@ -72,4 +73,17 @@ inline std::ostream& operator<<(std::ostream& os, const Peer& p)
     return os;
 }
 
+namespace std
+{
+    template<> struct hash<Peer>
+    {
+        size_t operator()(const Peer& obj) const
+        {
+            std::vector<unsigned char> s_peer;
+            obj.Serialize(s_peer, 0);
+            std::string str_peer(s_peer.begin(), s_peer.end());
+            return std::hash<string>()(str_peer);
+        }
+    };
+}
 #endif // __PEER_H__
