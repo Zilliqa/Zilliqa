@@ -7,7 +7,7 @@
 * ============================================================================*/
 
 #pragma once
-#include "../../include/g3log/generated_definitions.hpp"
+#include "g3log/generated_definitions.hpp"
 
 // Users of Juce or other libraries might have a define DEBUG which clashes with
 // the DEBUG logging level for G3log. In that case they can instead use the define
@@ -26,7 +26,7 @@
 #include <algorithm>
 #include <map>
 #include <atomic>
-#include "atomicbool.hpp"
+#include <g3log/atomicbool.hpp>
 
 // Levels for logging, made so that it would be easy to change, remove, add levels -- KjellKod
 struct LEVELS {
