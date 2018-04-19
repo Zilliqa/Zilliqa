@@ -24,13 +24,10 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 
-#if 1 //clark
 #include "depends/g3log/src/g3log/g3log.hpp"
 #include "depends/g3log/src/g3log/logworker.hpp"
-#endif
 
 using namespace std;
-#if 1 //clark
 using namespace g3;
 unique_ptr<LogWorker> logworker;
 
@@ -46,7 +43,6 @@ string MyCustomFormatting(const LogMessage& msg)
     res += "]";
     return res;
 }
-#endif
 
 namespace
 {
@@ -80,18 +76,7 @@ Logger::Logger(const char* prefix, bool log_to_file, streampos max_file_size)
 
     if (log_to_file)
     {
-#if 1 //clark
         fname_prefix = prefix ? prefix : "common";
-#else
-        if (prefix == NULL)
-        {
-            fname_prefix = "common";
-        }
-        else
-        {
-            fname_prefix = prefix;
-        }
-#endif
         seqnum = 0;
         newLog();
     }
@@ -120,7 +105,6 @@ void Logger::newLog()
     fname = fname_prefix + buf;
     logfile.open(fname.c_str(), ios_base::app);
 
-#if 1 //clark
     bRefactor = (fname.substr(0, 7) == "zilliqa");
 
     if (bRefactor)
@@ -134,7 +118,6 @@ void Logger::newLog()
         changeFormatting.wait();
         initializeLogging(logworker.get());
     }
-#endif
 }
 
 Logger& Logger::GetLogger(const char* fname_prefix, bool log_to_file,
@@ -150,63 +133,7 @@ Logger& Logger::GetStateLogger(const char* fname_prefix, bool log_to_file,
     static Logger logger(fname_prefix, log_to_file, max_file_size);
     return logger;
 }
-#if 0 //clark
-void Logger::LogMessage(const char* msg, const char* function)
-{
-    pid_t tid = getCurrentPid();
-    auto clockNow = std::chrono::system_clock::now();
-    std::time_t curTime = std::chrono::system_clock::to_time_t(clockNow);
-    auto gmtTime = gmtime(&curTime);
 
-    lock_guard<mutex> guard(m);
-
-    if (log_to_file)
-    {
-        checkLog();
-        logfile << "[TID " << PAD(tid, TID_LEN) << "]["
-                << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
-                << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg << endl
-                << flush;
-    }
-    else
-    {
-        cout << "[TID " << PAD(tid, TID_LEN) << "]["
-             << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
-             << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg << endl
-             << flush;
-    }
-}
-
-void Logger::LogMessage(const char* msg, const char* function,
-                        const char* epoch)
-{
-    pid_t tid = getCurrentPid();
-
-    auto clockNow = std::chrono::system_clock::now();
-    std::time_t curTime = std::chrono::system_clock::to_time_t(clockNow);
-    auto gmtTime = gmtime(&curTime);
-
-    lock_guard<mutex> guard(m);
-
-    if (log_to_file)
-    {
-        checkLog();
-        logfile << "[TID " << PAD(tid, TID_LEN) << "]["
-                << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
-                << LIMIT(function, MAX_FUNCNAME_LEN) << "]"
-                << "[Epoch " << epoch << "] " << msg << endl
-                << flush;
-    }
-    else
-    {
-        cout << "[TID " << PAD(tid, TID_LEN) << "]["
-             << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
-             << LIMIT(function, MAX_FUNCNAME_LEN) << "]"
-             << "[Epoch " << epoch << "] " << msg << endl
-             << flush;
-    }
-}
-#endif
 void Logger::LogState(const char* msg, const char*)
 {
     lock_guard<mutex> guard(m);
@@ -221,88 +148,7 @@ void Logger::LogState(const char* msg, const char*)
         cout << msg << endl << flush;
     }
 }
-#if 0 //clark
-void Logger::LogMessageAndPayload(const char* msg,
-                                  const vector<unsigned char>& payload,
-                                  size_t max_bytes_to_display,
-                                  const char* function)
-{
-    pid_t tid = getCurrentPid();
 
-    static const char* hex_table = "0123456789ABCDEF";
-
-    size_t payload_string_len = (payload.size() * 2) + 1;
-    if (payload.size() > max_bytes_to_display)
-    {
-        payload_string_len = (max_bytes_to_display * 2) + 1;
-    }
-
-    unique_ptr<char[]> payload_string = make_unique<char[]>(payload_string_len);
-    for (unsigned int payload_idx = 0, payload_string_idx = 0;
-         (payload_idx < payload.size())
-         && ((payload_string_idx + 2) < payload_string_len);
-         payload_idx++)
-    {
-        payload_string.get()[payload_string_idx++]
-            = hex_table[(payload.at(payload_idx) >> 4) & 0xF];
-        payload_string.get()[payload_string_idx++]
-            = hex_table[payload.at(payload_idx) & 0xF];
-    }
-    payload_string.get()[payload_string_len - 1] = '\0';
-
-    auto clockNow = std::chrono::system_clock::now();
-    std::time_t curTime = std::chrono::system_clock::to_time_t(clockNow);
-    auto gmtTime = gmtime(&curTime);
-
-    lock_guard<mutex> guard(m);
-
-    if (log_to_file)
-    {
-        checkLog();
-
-        if (payload.size() > max_bytes_to_display)
-        {
-            logfile << "[TID " << PAD(tid, TID_LEN) << "]["
-                    << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
-                    << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
-                    << " (Len=" << payload.size()
-                    << "): " << payload_string.get() << "..." << endl
-                    << flush;
-        }
-        else
-        {
-            logfile << "[TID " << PAD(tid, TID_LEN) << "]["
-                    << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
-                    << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
-                    << " (Len=" << payload.size()
-                    << "): " << payload_string.get() << endl
-                    << flush;
-        }
-    }
-    else
-    {
-        if (payload.size() > max_bytes_to_display)
-        {
-            cout << "[TID " << PAD(tid, TID_LEN) << "]["
-                 << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
-                 << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
-                 << " (Len=" << payload.size() << "): " << payload_string.get()
-                 << "..." << endl
-                 << flush;
-        }
-        else
-        {
-            cout << "[TID " << PAD(tid, TID_LEN) << "]["
-                 << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
-                 << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
-                 << " (Len=" << payload.size() << "): " << payload_string.get()
-                 << endl
-                 << flush;
-        }
-    }
-}
-#endif
-#if 1 //clark
 void Logger::LogGeneral(LEVELS level, const char* msg, const char* function)
 {
     if (level != INFO && level != WARNING && level != FATAL)
@@ -491,25 +337,16 @@ void Logger::DisplayLevelAbove(LEVELS level)
 void Logger::EnableLevel(LEVELS level) { g3::log_levels::enable(level); }
 
 void Logger::DisableLevel(LEVELS level) { g3::log_levels::disable(level); }
-#endif
 
 ScopeMarker::ScopeMarker(const char* function)
     : function(function)
 {
     Logger& logger = Logger::GetLogger(NULL, true);
-#if 1 //clark
     logger.LogGeneral(INFO, "BEGIN", this->function.c_str());
-#else
-    logger.LogMessage("BEGIN", this->function.c_str());
-#endif
 }
 
 ScopeMarker::~ScopeMarker()
 {
     Logger& logger = Logger::GetLogger(NULL, true);
-#if 1 //clark
     logger.LogGeneral(INFO, "END", function.c_str());
-#else
-    logger.LogMessage("END", function.c_str());
-#endif
 }
