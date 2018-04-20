@@ -15,24 +15,11 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 #
 # check dependencies
 #
-
-#### Make g3log as package
-include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
-ExternalProject_Add(g3log
-    PREFIX ${PROJECT_SOURCE_DIR}/src/depends/g3log
-    DOWNLOAD_DIR ${PROJECT_SOURCE_DIR}/src/depends/g3log
-    SOURCE_DIR ${PROJECT_SOURCE_DIR}/src/depends/g3log
-    CMAKE_ARGS -DUSE_DYNAMIC_LOGGING_LEVELS=ON -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}
-    BUILD_COMMAND make
-    INSTALL_COMMAND make install
-)
-
-export(PACKAGE g3log)
-### Make g3log as package
-
-#add_dependencies(g3log zilliqa)
+include(InstallG3log)
 
 find_package(PkgConfig REQUIRED)
+
+find_package(g3logger CONFIG REQUIRED)
 
 find_package(Boost COMPONENTS filesystem system unit_test_framework)
 
