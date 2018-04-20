@@ -1858,6 +1858,8 @@ void Lookup::StartSynchronization()
 {
     LOG_MARKER();
 
+    this->CleanVariables();
+
     auto func = [this]() -> void {
         GetDSInfoFromLookupNodes();
         while (m_syncType != SyncType::NO_SYNC)
@@ -1967,8 +1969,7 @@ void Lookup::RejoinAsLookup()
     if (m_syncType == SyncType::NO_SYNC)
     {
         m_syncType = SyncType::LOOKUP_SYNC;
-        this->CleanVariables();
-        m_mediator.m_node->Install(true);
+        m_mediator.m_node->Install(SyncType::LOOKUP_SYNC, true);
         this->StartSynchronization();
     }
 }
