@@ -17,6 +17,7 @@ endif(CMAKE_CONFIGURATION_TYPES)
 #target_include_directories (Test_PeerManager PUBLIC ${CMAKE_SOURCE_DIR}/src)
 #target_link_libraries (Test_PeerManager PUBLIC Utils Network Zilliqa)
 
+link_directories(${CMAKE_BINARY_DIR}/lib)
 add_executable (Test_PeerStore Test_PeerStore.cpp)
 target_include_directories (Test_PeerStore PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries (Test_PeerStore PUBLIC Network Utils)

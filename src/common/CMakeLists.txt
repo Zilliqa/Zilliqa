@@ -1,6 +1,5 @@
 add_library(Constants Constants.cpp)
 include_directories(${Boost_INCLUDE_DIRS})
 target_include_directories(Constants PUBLIC ${PROJECT_SOURCE_DIR}/src)
-target_include_directories(Constants PUBLIC ${PROJECT_SOURCE_DIR}/src/depends/g3log/include)
-target_include_directories(Constants PUBLIC ${PROJECT_SOURCE_DIR}/src/depends/g3log/src)
+target_include_directories(Constants PUBLIC ${PROJECT_SOURCE_DIR}/build/include)
 target_link_libraries(Constants PUBLIC ${Boost_LIBRARIES})
