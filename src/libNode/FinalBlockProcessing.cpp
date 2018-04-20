@@ -694,6 +694,7 @@ void Node::UpdateStateForNextConsensusRound()
 
     m_consensusLeaderID++;
     m_consensusID++;
+    m_consensusLeaderID = m_consensusLeaderID % COMM_SIZE;
 
     if (m_consensusMyID == m_consensusLeaderID)
     {
@@ -737,14 +738,22 @@ void Node::ScheduleTxnSubmission()
 
 void Node::ScheduleMicroBlockConsensus()
 {
-    LOG_GENERAL(INFO,
-                "I am going to sleep for " << SUBMIT_TX_WINDOW_EXTENDED
-                                           << " seconds");
-    this_thread::sleep_for(chrono::seconds(SUBMIT_TX_WINDOW_EXTENDED));
-    LOG_GENERAL(INFO,
-                "I have woken up from the sleep of "
+    LOG_GENERAL(INFO, "I am going to use conditional variable with timeout of  "
+                << SUBMIT_TX_WINDOW_EXTENDED
+                << " seconds. It is ok to timeout here. ");
+    std::unique_lock<std::mutex> cv_lk(m_MutexCVMicroblockConsensus);
+    if (cv_microblockConsensus.wait_for(
+            cv_lk, std::chrono::seconds(SUBMIT_TX_WINDOW_EXTENDED))
+        == std::cv_status::timeout)
+    {
+        LOG_GENERAL(INFO, "I have woken up from the sleep of "
                     << SUBMIT_TX_WINDOW_EXTENDED << " seconds");
-
+    }
+    else
+    {
+        LOG_GENERAL(INFO,
+            "I have received announcement message. Time to run consensus.");
+    }
     auto main_func3 = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
     DetachedFunction(1, main_func3);
 }
@@ -1245,6 +1254,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     {
         m_consensusID++;
         m_consensusLeaderID++;
+        m_consensusLeaderID = m_consensusLeaderID % COMM_SIZE;
     }
 #endif // IS_LOOKUP_NODE
 
