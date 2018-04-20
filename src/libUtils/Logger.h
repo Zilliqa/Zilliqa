@@ -24,7 +24,7 @@
 #include <string>
 #include <vector>
 
-#include "depends/g3log/src/g3log/loglevels.hpp"
+#include "g3log/loglevels.hpp"
 
 /// Utility logging class for outputting messages to stdout or file.
 class Logger
