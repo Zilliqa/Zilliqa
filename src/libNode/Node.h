@@ -102,7 +102,10 @@ class Node : public Executable, public Broadcastable
 
     // Consensus variables
     std::shared_ptr<ConsensusCommon> m_consensusObject;
-
+    std::mutex m_MutexCVMicroblockConsensus;
+    std::condition_variable cv_microblockConsensus;
+    std::mutex m_MutexCVMicroblockConsensusObject;
+    std::condition_variable cv_microblockConsensusObject;
     // Persistence Retriever
     std::shared_ptr<Retriever> m_retriever;
 
