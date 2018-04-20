@@ -1,5 +1,5 @@
-link_libraries (g3logger)
 add_library(Utils DataConversion.cpp Logger.cpp SanityChecks.cpp Scheduler.cpp TimeUtils.cpp TxnRootComputationLight.cpp)
 target_include_directories(Utils PUBLIC ${PROJECT_SOURCE_DIR}/src Crypto Boost)
 target_include_directories(Utils PUBLIC ${PROJECT_SOURCE_DIR}/build/include Crypto Boost)
 target_link_libraries(Utils INTERFACE Threads::Threads)
+target_link_libraries(Utils PUBLIC g3logger)
