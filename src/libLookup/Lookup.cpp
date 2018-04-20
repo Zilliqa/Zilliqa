@@ -1778,7 +1778,7 @@ bool Lookup::ProcessSetLookupOnline(const vector<unsigned char>& message,
     {
         lock_guard<mutex> lock(m_mutexOfflineLookups);
         auto iter = std::find(m_lookupNodesOffline.begin(),
-                              m_lookupNodeOffline.end(), requestingNode);
+                              m_lookupNodesOffline.end(), requestingNode);
         if (iter != m_lookupNodes.end())
         {
             m_lookupNodes.push_back(*iter);
@@ -1962,7 +1962,7 @@ std::vector<unsigned char> Lookup::ComposeGetLookupOnlineMessage()
     LOG_MARKER();
 
     // getLookupOnlineMessage = [Port]
-    vector<unsigned char> ComposeGetLookupOnlineMessage
+    vector<unsigned char> getLookupOnlineMessage
         = {MessageType::LOOKUP, LookupInstructionType::SETLOOKUPONLINE};
     unsigned int curr_offset = MessageOffset::BODY;
 
