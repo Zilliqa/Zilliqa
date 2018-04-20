@@ -94,31 +94,33 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
 
     // Consensus messages must be processed in correct sequence as they come in
     // It is possible for ANNOUNCE to arrive before correct DS state
-    // In that case, ANNOUNCE will sleep for a second below
-    // If COLLECTIVESIG also comes in, it's then possible COLLECTIVESIG will be processed before ANNOUNCE!
-    // So, ANNOUNCE should acquire a lock here
-    const unsigned int sleep_time_while_waiting = 500;
+    // In that case, state transition will occurs and ANNOUNCE will be processed.
 
-    // Wait for a while in the case that primary sent announcement pretty early
     if ((m_state == TX_SUBMISSION) || (m_state == TX_SUBMISSION_BUFFER)
         || (m_state == MICROBLOCK_CONSENSUS_PREP))
     {
-        unsigned int time_pass = 0;
-        while (m_state != MICROBLOCK_CONSENSUS)
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "Received microblock announcement from shard leader. I "
+                     "will move on to consensus");
+        cv_microblockConsensus.notify_all();
+
+        std::unique_lock<std::mutex> cv_lk(m_MutexCVMicroblockConsensusObject);
+
+        if (cv_microblockConsensusObject.wait_for(
+                cv_lk, std::chrono::seconds(10),
+                [this] { return (m_state == MICROBLOCK_CONSENSUS); }))
         {
-            this_thread::sleep_for(
-                chrono::milliseconds(sleep_time_while_waiting));
-            time_pass++;
-            if (time_pass % 10)
-            {
-                LOG_MESSAGE2(
-                    to_string(m_mediator.m_currentEpochNum).c_str(),
-                    "Waiting for MICROBLOCK_CONSENSUS before processing");
-            }
+            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                         "Time out while waiting for state transition and "
+                         "consensus object creation ");
         }
+
+        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                     "State transition is completed and consensus object "
+                     "creation. (check for timeout)");
     }
     // else if (m_state != MICROBLOCK_CONSENSUS)
-    else if (!CheckState(PROCESS_MICROBLOCKCONSENSUS))
+    if (!CheckState(PROCESS_MICROBLOCKCONSENSUS))
     {
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                      "Not in MICROBLOCK_CONSENSUS state");
@@ -492,6 +494,7 @@ bool Node::RunConsensusOnMicroBlock()
     }
 
     SetState(MICROBLOCK_CONSENSUS);
+    cv_microblockConsensusObject.notify_all();
     return true;
 }
 
