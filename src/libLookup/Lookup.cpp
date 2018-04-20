@@ -2004,6 +2004,7 @@ bool Lookup::GetMyLookupOnline()
                           m_lookupNodesOffline.end(), m_mediator.m_selfPeer);
     if (iter != m_lookupNodesOffline.end())
     {
+        SendMessageToLookupNodesSerial(ComposeGetLookupOnlineMessage());
         m_lookupNodes.push_back(*iter);
         m_lookupNodesOffline.erase(iter);
     }
@@ -2012,7 +2013,6 @@ bool Lookup::GetMyLookupOnline()
         LOG_MESSAGE("My Peer Info is not in m_lookupNodesOffline");
         return false;
     }
-    SendMessageToLookupNodesSerial(ComposeGetLookupOnlineMessage());
     return true;
 }
 
