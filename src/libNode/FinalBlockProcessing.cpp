@@ -696,6 +696,7 @@ void Node::UpdateStateForNextConsensusRound()
 
     m_consensusLeaderID++;
     m_consensusID++;
+    m_consensusLeaderID = m_consensusLeaderID % COMM_SIZE;
 
     if (m_consensusMyID == m_consensusLeaderID)
     {
@@ -1251,6 +1252,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     {
         m_consensusID++;
         m_consensusLeaderID++;
+        m_consensusLeaderID = m_consensusLeaderID % COMM_SIZE;
     }
 #endif // IS_LOOKUP_NODE
 
