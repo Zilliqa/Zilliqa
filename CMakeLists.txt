@@ -15,6 +15,21 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 #
 # check dependencies
 #
+
+#### Make g3log as package
+include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
+ExternalProject_Add(g3log
+    PREFIX ${PROJECT_SOURCE_DIR}/src/depends/g3log
+    DOWNLOAD_DIR ${PROJECT_SOURCE_DIR}/src/depends/g3log
+    SOURCE_DIR ${PROJECT_SOURCE_DIR}/src/depends/g3log
+    CMAKE_ARGS -DUSE_DYNAMIC_LOGGING_LEVELS=ON
+    INSTALL_COMMAND sudo make install
+    BUILD_IN_SOURCE 1
+)
+
+export(PACKAGE g3log)
+### Make g3log as package
+
 find_package(PkgConfig REQUIRED)
 
 find_package(Boost COMPONENTS filesystem system unit_test_framework)
