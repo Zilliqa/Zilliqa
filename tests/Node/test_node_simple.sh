@@ -21,9 +21,9 @@ sudo sysctl -w net.ipv4.tcp_rmem='65536 873800 1534217728';
 sudo sysctl -w net.ipv4.tcp_wmem='65536 873800 1534217728';
 sudo sysctl -w net.ipv4.tcp_mem='65536 873800 1534217728';
 
-python tests/Zilliqa/test_zilliqa_local_recovery.py stop
-python tests/Zilliqa/test_zilliqa_local_recovery.py setup 20
-python tests/Zilliqa/test_zilliqa_local_recovery.py start 10
+python tests/Zilliqa/test_zilliqa_local.py stop
+python tests/Zilliqa/test_zilliqa_local.py setup 20
+python tests/Zilliqa/test_zilliqa_local.py start 10
 
 
 sleep 30
