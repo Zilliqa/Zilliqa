@@ -198,7 +198,7 @@ bool DirectoryService::ProcessPoW2Submission(
 #ifndef IS_LOOKUP_NODE
     // Message = [32-byte block num] [4-byte listening port] [33-byte public key] [8-byte nonce] [32-byte resulting hash] [32-byte mixhash]
     LOG_MARKER();
-    shared_lock<shared_timed_mutex> lock(m_mutexProducerConsumer);
+    // shared_lock<shared_timed_mutex> lock(m_mutexProducerConsumer);
     unsigned int sleep_time_while_waiting = 100;
     if (m_state == DSBLOCK_CONSENSUS
         || (m_state != POW2_SUBMISSION && m_mode == Mode::IDLE
