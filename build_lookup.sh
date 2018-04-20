@@ -13,6 +13,8 @@
 # GPLv3.0 are those programs that are located in the folders src/depends and tests/depends
 # and which include a reference to GPLv3 in their program files.
 
+git submodule init
+git submodule update
 mkdir build_lookup
 cd build_lookup
 cmake -DIS_LOOKUP_NODE=1 -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTESTS=ON ..
