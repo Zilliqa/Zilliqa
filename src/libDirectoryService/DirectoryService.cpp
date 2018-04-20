@@ -61,6 +61,8 @@ void DirectoryService::StartSynchronization()
 {
     LOG_MARKER();
 
+    this->CleanVariables();
+
     auto func = [this]() -> void {
         m_synchronizer.FetchOfflineLookups(m_mediator.m_lookup);
 
@@ -1404,8 +1406,7 @@ bool DirectoryService::CleanVariables()
     m_viewChangeRequesters.clear();
     m_mode = IDLE;
     m_consensusLeaderID = 0;
-    m_consensusID = 1;
-
+    m_consensusID = 0;
     return true;
 }
 
@@ -1416,8 +1417,7 @@ void DirectoryService::RejoinAsDS()
         && m_mode == BACKUP_DS)
     {
         m_mediator.m_lookup->m_syncType = SyncType::DS_SYNC;
-        this->CleanVariables();
-        m_mediator.m_node->Install(true);
+        m_mediator.m_node->Install(SyncType::DS_SYNC, true);
         this->StartSynchronization();
     }
 }
