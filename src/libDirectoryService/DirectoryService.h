@@ -32,6 +32,7 @@
 #include "common/Executable.h"
 #include "libConsensus/Consensus.h"
 #include "libData/BlockData/Block.h"
+#include "libLookup/Synchronizer.h"
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/PeerStore.h"
 #include "libPOW/pow.h"
@@ -156,6 +157,8 @@ class DirectoryService : public Executable, public Broadcastable
 
     Mediator& m_mediator;
 
+    Synchronizer m_synchronizer;
+
     const uint32_t RESHUFFLE_INTERVAL = 500;
 
     // Message handlers
@@ -177,6 +180,8 @@ class DirectoryService : public Executable, public Broadcastable
                                   unsigned int offset, const Peer& from);
     bool ProcessAllPoWConnResponse(const vector<unsigned char>& message,
                                    unsigned int offset, const Peer& from);
+
+    bool ToBlockMessage(unsigned char ins_byte);
 
 #ifndef IS_LOOKUP_NODE
     bool CheckState(Action action);
@@ -318,6 +323,9 @@ class DirectoryService : public Executable, public Broadcastable
     bool ProcessInitViewChangeResponse(const vector<unsigned char>& message,
                                        unsigned int offset, const Peer& from);
 
+    void RejoinAsDS();
+
+    bool CleanVariables();
 #endif // IS_LOOKUP_NODE
 
 public:
@@ -364,12 +372,16 @@ public:
     /// Sets the value of m_state.
     void SetState(DirState state);
 
+    void StartSynchronization();
+
     /// Implements the GetBroadcastList function inherited from Broadcastable.
     std::vector<Peer> GetBroadcastList(unsigned char ins_type,
                                        const Peer& broadcast_originator);
 
     /// Launches separate thread to execute sharding consensus after wait_window seconds.
     void ScheduleShardingConsensus(const unsigned int wait_window);
+
+    bool FinishRejoinAsDS();
 #endif // IS_LOOKUP_NODE
 
     /// Implements the Execute function inherited from Executable.

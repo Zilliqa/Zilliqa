@@ -56,13 +56,12 @@ void Zilliqa::LogSelfNodeInfo(const std::pair<PrivKey, PubKey>& key,
 }
 
 Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
-                 bool loadConfig, bool toSyncWithNetwork,
-                 bool toRetrieveHistory)
+                 bool loadConfig, unsigned int syncType, bool toRetrieveHistory)
     : m_pm(key, peer, loadConfig)
     , m_mediator(key, peer)
     , m_ds(m_mediator)
     , m_lookup(m_mediator)
-    , m_n(m_mediator, toRetrieveHistory)
+    , m_n(m_mediator, syncType, toRetrieveHistory)
     , m_cu(key, peer)
 #ifdef IS_LOOKUP_NODE
     , m_httpserver(SERVER_PORT)
@@ -85,14 +84,50 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
     P2PComm::GetInstance().SetSelfPeer(peer);
 #endif // STAT_TEST
 
-#ifndef IS_LOOKUP_NODE
-    LOG_MESSAGE("I am a normal node.");
-
-    if (toSyncWithNetwork && !toRetrieveHistory)
+    switch (syncType)
     {
+    case SyncType::NO_SYNC:
+        LOG_MESSAGE("No Sync Needed");
+        break;
+#ifndef IS_LOOKUP_NODE
+    case SyncType::NEW_SYNC:
+        LOG_MESSAGE("Sync as a new node");
+        if (!toRetrieveHistory)
+        {
+            m_mediator.m_lookup->m_syncType = SyncType::NEW_SYNC;
+            m_n.m_runFromLate = true;
+            m_n.StartSynchronization();
+        }
+        else
+        {
+            LOG_MESSAGE("Error: Sync for new node shouldn't retrieve history");
+        }
+        break;
+    case SyncType::NORMAL_SYNC:
+        LOG_MESSAGE("Sync as a normal node");
+        m_mediator.m_lookup->m_syncType = SyncType::NORMAL_SYNC;
         m_n.m_runFromLate = true;
         m_n.StartSynchronization();
+        break;
+    case SyncType::DS_SYNC:
+        LOG_MESSAGE("Sync as a ds node");
+        m_mediator.m_lookup->m_syncType = SyncType::DS_SYNC;
+        m_ds.StartSynchronization();
+        break;
+#else // IS_LOOKUP_NODE
+    case SyncType::LOOKUP_SYNC:
+        LOG_MESSAGE("Sync as a lookup node");
+        m_mediator.m_lookup->m_syncType = SyncType::LOOKUP_SYNC;
+        m_lookup.StartSynchronization();
+        break;
+#endif // IS_LOOKUP_NODE
+    default:
+        LOG_MESSAGE("Invalid Sync Type");
+        break;
     }
+
+#ifndef IS_LOOKUP_NODE
+    LOG_MESSAGE("I am a normal node.");
 #else // else for IS_LOOKUP_NODE
     LOG_MESSAGE("I am a lookup node.");
     if (m_server.StartListening())

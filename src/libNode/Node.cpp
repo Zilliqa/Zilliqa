@@ -50,6 +50,7 @@ using namespace boost::multiprecision;
 
 void addBalanceToGenesisAccount()
 {
+    LOG_MARKER();
     const uint256_t bal{100000000000};
     const uint256_t nonce{0};
 
@@ -61,8 +62,15 @@ void addBalanceToGenesisAccount()
     }
 }
 
-Node::Node(Mediator& mediator, bool toRetrieveHistory)
+Node::Node(Mediator& mediator, unsigned int syncType, bool toRetrieveHistory)
     : m_mediator(mediator)
+{
+    this->Install(syncType, toRetrieveHistory);
+}
+
+Node::~Node() {}
+
+void Node::Install(unsigned int syncType, bool toRetrieveHistory)
 {
     // m_state = IDLE;
     bool runInitializeGenesisBlocks = true;
@@ -84,18 +92,20 @@ Node::Node(Mediator& mediator, bool toRetrieveHistory)
     if (runInitializeGenesisBlocks)
     {
         this->Init();
-        addBalanceToGenesisAccount();
+        if (syncType == SyncType::NO_SYNC)
+        {
+            addBalanceToGenesisAccount();
+        }
     }
 
     this->Prepare(runInitializeGenesisBlocks);
 }
 
-Node::~Node() {}
-
 void Node::Init()
 {
     // Zilliqa first epoch start from 1 not 0. So for the first DS epoch, there will be 1 less mini epoch only for the first DS epoch.
     // Hence, we have to set consensusID for first epoch to 1.
+    LOG_MARKER();
     m_consensusID = 1;
     m_consensusLeaderID = 1;
 
@@ -103,6 +113,14 @@ void Node::Init()
     m_retriever.reset();
     m_mediator.m_dsBlockChain.Reset();
     m_mediator.m_txBlockChain.Reset();
+    {
+        std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommitteeNetworkInfo);
+        m_mediator.m_DSCommitteeNetworkInfo.clear();
+    }
+    {
+        std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommitteePubKeys);
+        m_mediator.m_DSCommitteePubKeys.clear();
+    }
     m_committedTransactions.clear();
     AccountStore::GetInstance().Init();
 
@@ -112,6 +130,7 @@ void Node::Init()
 
 void Node::Prepare(bool runInitializeGenesisBlocks)
 {
+    LOG_MARKER();
     m_mediator.m_currentEpochNum
         = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
     m_mediator.UpdateDSBlockRand(runInitializeGenesisBlocks);
@@ -168,33 +187,30 @@ bool Node::StartRetrieveHistory()
 void Node::StartSynchronization()
 {
     LOG_MARKER();
+
+    SetState(POW2_SUBMISSION);
     auto func = [this]() -> void {
-        while (!m_mediator.m_isConnectedToNetwork)
+        m_synchronizer.FetchOfflineLookups(m_mediator.m_lookup);
+
+        {
+            unique_lock<mutex> lock(
+                m_mediator.m_lookup->m_mutexOfflineLookupsUpdation);
+            while (!m_mediator.m_lookup->m_fetchedOfflineLookups)
+            {
+                m_mediator.m_lookup->m_offlineLookupsCondition.wait(lock);
+            }
+            m_mediator.m_lookup->m_fetchedOfflineLookups = false;
+        }
+        while (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
         {
             m_synchronizer.FetchLatestDSBlocks(
                 m_mediator.m_lookup, m_mediator.m_dsBlockChain.GetBlockCount());
-            if (m_mediator.s_toFetchDSInfo)
-            {
-                m_synchronizer.FetchDSInfo(m_mediator.m_lookup);
-            }
-            // m_synchronizer.AttemptPoW(m_mediator.m_lookup);
             m_synchronizer.FetchLatestTxBlocks(
                 m_mediator.m_lookup, m_mediator.m_txBlockChain.GetBlockCount());
-            if (m_mediator.s_toFetchState)
-            {
-                if (m_synchronizer.FetchLatestState(m_mediator.m_lookup))
-                {
-                    //continue;
-                }
-            }
-            // if (m_mediator.s_toAttemptPoW)
-            // {
-            //     if (m_synchronizer.AttemptPoW(m_mediator.m_lookup))
-            //     {
-            //         continue;
-            //     }
-            // }
-            this_thread::sleep_for(chrono::seconds(NEW_NODE_SYNC_INTERVAL));
+            this_thread::sleep_for(
+                chrono::seconds(m_mediator.m_lookup->s_startedPoW2
+                                    ? BACKUP_POW2_WINDOW_IN_SECONDS
+                                    : NEW_NODE_SYNC_INTERVAL));
         }
     };
 
@@ -1210,11 +1226,87 @@ void Node::SubmitTransactions()
 #endif // STAT_TEST
 }
 
+void Node::RejoinAsNormal()
+{
+    LOG_MARKER();
+    if (m_mediator.m_lookup->m_syncType == SyncType::NO_SYNC)
+    {
+        m_mediator.m_lookup->m_syncType = SyncType::NORMAL_SYNC;
+        this->CleanVariables();
+        this->Install(true);
+        this->StartSynchronization();
+    }
+}
+
+bool Node::CleanVariables()
+{
+    m_myShardMembersPubKeys.clear();
+    m_myShardMembersNetworkInfo.clear();
+    m_isPrimary = false;
+    m_isMBSender = false;
+    m_myShardID = 0;
+
+    m_consensusObject.reset();
+    m_consensusBlockHash.clear();
+    {
+        std::lock_guard<mutex> lock(m_mutexMicroBlock);
+        m_microblock.reset();
+    }
+    // {
+    //     std::lock_guard<mutex> lock(m_mutexCreatedTransactions);
+    //     m_createdTransactions.clear();
+    // }
+    {
+        std::lock_guard<mutex> lock(m_mutexTxnNonceMap);
+        m_txnNonceMap.clear();
+    }
+    // {
+    //     std::lock_guard<mutex> lock(m_mutexPrefilledTxns);
+    //     m_nRemainingPrefilledTxns = 0;
+    //     m_prefilledTxns.clear();
+    // }
+    {
+        std::lock_guard<mutex> lock(m_mutexSubmittedTransactions);
+        m_submittedTransactions.clear();
+    }
+    {
+        std::lock_guard<mutex> lock(m_mutexReceivedTransactions);
+        m_receivedTransactions.clear();
+    }
+    {
+        std::lock_guard<mutex> lock(m_mutexCommittedTransactions);
+        m_committedTransactions.clear();
+    }
+    {
+        std::lock_guard<mutex> lock(m_mutexForwardingAssignment);
+        m_forwardingAssignment.clear();
+    }
+    {
+        std::lock_guard<mutex> lock(m_mutexAllMicroBlocksRecvd);
+        m_allMicroBlocksRecvd = true;
+    }
+    {
+        std::lock_guard<mutex> lock(m_mutexUnavailableMicroBlocks);
+        m_unavailableMicroBlocks.clear();
+    }
+    // On Lookup
+    {
+        std::lock_guard<mutex> lock(
+            m_mediator.m_lookup->m_mutexOfflineLookupsUpdation);
+        m_mediator.m_lookup->m_fetchedOfflineLookups = false;
+    }
+    m_mediator.m_lookup->s_startedPoW2 = false;
+
+    return true;
+}
+#endif // IS_LOOKUP_NODE
+
 bool Node::ToBlockMessage(unsigned char ins_byte)
 {
-    if (!m_mediator.m_isConnectedToNetwork)
+    if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
+#ifndef IS_LOOKUP_NODE
     {
-        if (!m_isNewNode)
+        if (!m_fromNewProcess)
         {
             if (ins_byte != NodeInstructionType::SHARDING)
             {
@@ -1228,10 +1320,18 @@ bool Node::ToBlockMessage(unsigned char ins_byte)
                 return true;
             }
         }
+        if (m_mediator.m_lookup->m_syncType == SyncType::DS_SYNC)
+        {
+            return true;
+        }
     }
+#else // IS_LOOKUP_NODE
+    {
+        return true;
+    }
+#endif // IS_LOOKUP_NODE
     return false;
 }
-#endif // IS_LOOKUP_NODE
 
 bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
                    const Peer& from)

@@ -230,6 +230,11 @@ bool DirectoryService::ProcessPoW1Submission(
 #ifndef IS_LOOKUP_NODE
     // Message = [32-byte block number] [4-byte listening port] [33-byte public key] [8-byte nonce] [32-byte resulting hash] [32-byte mixhash]
     LOG_MARKER();
+
+    /// TEST DS REJOIN
+    // if(m_consensusMyID == 2 && m_mediator.m_dsBlockChain)
+    //////////////////
+
     shared_lock<shared_timed_mutex> lock(m_mutexProducerConsumer);
     unsigned int sleep_time_while_waiting = 100;
     if (m_state == FINALBLOCK_CONSENSUS)
