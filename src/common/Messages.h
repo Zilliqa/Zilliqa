@@ -84,6 +84,8 @@ enum LookupInstructionType : unsigned char
     SETLOOKUPOFFLINE = 0x0f,
     GETOFFLINELOOKUPS = 0x10,
     SETOFFLINELOOKUPS = 0x11,
+    GETONLINELOOKUPS = 0x12,
+    SETONLINELOOKUPS = 0x13,
 };
 
 enum TxSharingMode : unsigned char
