@@ -2012,7 +2012,7 @@ bool Lookup::GetMyLookupOnline()
         LOG_MESSAGE("My Peer Info is not in m_lookupNodesOffline");
         return false;
     }
-    SendMessageToLookupNodesSerial(ComposeGetLookupOfflineMessage());
+    SendMessageToLookupNodesSerial(ComposeGetLookupOnlineMessage());
     return true;
 }
 
