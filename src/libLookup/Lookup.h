@@ -71,6 +71,8 @@ class Lookup : public Executable, public Broadcastable
     std::vector<Peer> m_nodesInNetwork;
     std::unordered_set<Peer> l_nodesInNetwork;
 
+    std::mutex m_mutexOfflineLookups;
+
     // Rsync the lost txBodies from remote lookup nodes if this lookup
     // are doing its recovery
     Peer GetLookupPeerToRsync();
@@ -95,6 +97,7 @@ class Lookup : public Executable, public Broadcastable
                              boost::multiprecision::uint256_t highBlockNum);
 
     std::vector<unsigned char> ComposeGetLookupOfflineMessage();
+    std::vector<unsigned char> ComposeGetLookupOnlineMessage();
 
     std::vector<unsigned char> ComposeGetOfflineLookupNodes();
 
@@ -157,6 +160,7 @@ public:
 
     void StartSynchronization();
     bool GetMyLookupOffline();
+    bool GetMyLookupOnline();
 
     void RejoinAsLookup();
 #endif // IS_LOOKUP_NODE
@@ -198,8 +202,10 @@ public:
     bool ProcessSetStateFromSeed(const std::vector<unsigned char>& message,
                                  unsigned int offset, const Peer& from);
 
-    bool ProcessSetOfflineLookup(const std::vector<unsigned char>& message,
+    bool ProcessSetLookupOffline(const std::vector<unsigned char>& message,
                                  unsigned int offset, const Peer& from);
+    bool ProcessSetLookupOnline(const std::vector<unsigned char>& message,
+                                unsigned int offset, const Peer& from);
 
     bool ProcessSetOfflineLookups(const std::vector<unsigned char>& message,
                                   unsigned int offset, const Peer& from);
