@@ -1,10 +1,10 @@
-include(ExternalProject)
-ExternalProject_Add(g3log
-    SOURCE_DIR ${CMAKE_SOURCE_DIR}/src/depends/g3log
-    BUILD_COMMAND ""
-    INSTALL_COMMAND ""
-    CONFIGURE_COMMAND ""
-)
+#include(ExternalProject)
+#ExternalProject_Add(g3log
+#    SOURCE_DIR ${CMAKE_SOURCE_DIR}/src/depends/g3log
+#    BUILD_COMMAND ""
+#    INSTALL_COMMAND ""
+#    CONFIGURE_COMMAND ""
+#)
 set(G3LOG_SOURCE_DIR ${CMAKE_SOURCE_DIR}/src/depends/g3log)
 set(G3LOG_BINARY_DIR ${CMAKE_BINARY_DIR}/src/depends/g3log)
 

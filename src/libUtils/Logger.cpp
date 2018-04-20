@@ -24,8 +24,8 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 
-#include "depends/g3log/src/g3log/g3log.hpp"
-#include "depends/g3log/src/g3log/logworker.hpp"
+#include "g3log/g3log.hpp"
+#include "g3log/logworker.hpp"
 
 using namespace std;
 using namespace g3;
