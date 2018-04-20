@@ -6,6 +6,7 @@
 # target_include_directories(Test_TxnTrie PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
 # target_link_libraries(Test_TxnTrie PUBLIC boost_system AccountData TestUtils Trie Utils)
 
+link_directories(${CMAKE_BINARY_DIR}/lib)
 configure_file(${CMAKE_SOURCE_DIR}/constants.xml ${CMAKE_CURRENT_SOURCE_DIR}/constants.xml COPYONLY)
 add_executable(Test_TriePerformance Test_TriePerformance.cpp)
 target_include_directories(Test_TriePerformance PUBLIC ${CMAKE_SOURCE_DIR}/src)

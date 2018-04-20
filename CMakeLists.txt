@@ -22,13 +22,15 @@ ExternalProject_Add(g3log
     PREFIX ${PROJECT_SOURCE_DIR}/src/depends/g3log
     DOWNLOAD_DIR ${PROJECT_SOURCE_DIR}/src/depends/g3log
     SOURCE_DIR ${PROJECT_SOURCE_DIR}/src/depends/g3log
-    CMAKE_ARGS -DUSE_DYNAMIC_LOGGING_LEVELS=ON
-    INSTALL_COMMAND sudo make install
-    BUILD_IN_SOURCE 1
+    CMAKE_ARGS -DUSE_DYNAMIC_LOGGING_LEVELS=ON -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}
+    BUILD_COMMAND make
+    INSTALL_COMMAND make install
 )
 
 export(PACKAGE g3log)
 ### Make g3log as package
+
+#add_dependencies(g3log zilliqa)
 
 find_package(PkgConfig REQUIRED)
 
