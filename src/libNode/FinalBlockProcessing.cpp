@@ -1123,14 +1123,14 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 
             if (i % 10 == 0)
             {
-                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                              "Waiting for MICROBLOCK_CONSENSUS before "
                              "proceeding to process finalblock");
             }
             this_thread::sleep_for(
                 chrono::milliseconds(sleep_time_while_waiting));
         }
-        LOG_MESSAGE(
+        LOG_GENERAL(INFO,
             "I got stuck at process final block but move on. Current state is "
             "MICROBLOCK_CONSENSUS, ")
         // return false;

@@ -99,7 +99,7 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
     if ((m_state == TX_SUBMISSION) || (m_state == TX_SUBMISSION_BUFFER)
         || (m_state == MICROBLOCK_CONSENSUS_PREP))
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                      "Received microblock announcement from shard leader. I "
                      "will move on to consensus");
         cv_microblockConsensus.notify_all();
@@ -115,7 +115,7 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
                          "consensus object creation ");
         }
 
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                      "State transition is completed and consensus object "
                      "creation. (check for timeout)");
     }
