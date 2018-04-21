@@ -100,8 +100,8 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
         || (m_state == MICROBLOCK_CONSENSUS_PREP))
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Received microblock announcement from shard leader. I "
-                     "will move on to consensus");
+                  "Received microblock announcement from shard leader. I "
+                  "will move on to consensus");
         cv_microblockConsensus.notify_all();
 
         std::unique_lock<std::mutex> cv_lk(m_MutexCVMicroblockConsensusObject);
@@ -111,13 +111,13 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
                 [this] { return (m_state == MICROBLOCK_CONSENSUS); }))
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Time out while waiting for state transition and "
-                         "consensus object creation ");
+                      "Time out while waiting for state transition and "
+                      "consensus object creation ");
         }
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "State transition is completed and consensus object "
-                     "creation. (check for timeout)");
+                  "State transition is completed and consensus object "
+                  "creation. (check for timeout)");
     }
     // else if (m_state != MICROBLOCK_CONSENSUS)
     if (!CheckState(PROCESS_MICROBLOCKCONSENSUS))

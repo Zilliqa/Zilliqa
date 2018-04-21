@@ -746,12 +746,14 @@ void Node::ScheduleMicroBlockConsensus()
             cv_lk, std::chrono::seconds(SUBMIT_TX_WINDOW_EXTENDED))
         == std::cv_status::timeout)
     {
-        LOG_GENERAL(INFO, "I have woken up from the sleep of "
-                    << SUBMIT_TX_WINDOW_EXTENDED << " seconds");
+        LOG_GENERAL(INFO,
+                    "I have woken up from the sleep of "
+                        << SUBMIT_TX_WINDOW_EXTENDED << " seconds");
     }
     else
     {
-        LOG_GENERAL(INFO,
+        LOG_GENERAL(
+            INFO,
             "I have received announcement message. Time to run consensus.");
     }
     auto main_func3 = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
