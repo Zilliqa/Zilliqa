@@ -43,15 +43,16 @@ To run Zilliqa, we recommend the following minimum system requirements:
 > building on other Ubuntu versions or other OSes is pending.
 
 ## Dependencies
-To compile and run the Zilliqa codebase, you will need the following dependencies to be installed on your machine:
-* `Boost` 
-* `OpenSSL`
-* `JsonCpp`
-* `LevelDB`
-* `CMake`
+To compile and run the Zilliqa codebase, you will need the following dependencies to be installed on your machine:\
 * `build-essential`
-* `pkg-config` 
+* `Boost` 
+* `CMake`
+* `git`
+* `JsonCpp`
 * `json-rpc-cpp`
+* `LevelDB`
+* `OpenSSL`
+* `pkg-config` 
 
 For Ubuntu 16.04, you can use the following command (or refer to `./scripts/ci_install_deps.sh`) to install the dependencies:  
 
@@ -60,7 +61,7 @@ sudo apt-get update
 ```
 
 ```bash
-sudo apt-get install libboost-system-dev libboost-filesystem-dev libboost-test-dev libssl-dev libleveldb-dev libjsoncpp-dev libsnappy-dev cmake libmicrohttpd-dev libjsonrpccpp-dev build-essential pkg-config
+sudo apt-get install git libboost-system-dev libboost-filesystem-dev libboost-test-dev libssl-dev libleveldb-dev libjsoncpp-dev libsnappy-dev cmake libmicrohttpd-dev libjsonrpccpp-dev build-essential pkg-config
 ```
 
 For Mac OS X (experimental), you can use the following command to install the dependencies:  
