@@ -738,9 +738,10 @@ void Node::ScheduleTxnSubmission()
 
 void Node::ScheduleMicroBlockConsensus()
 {
-    LOG_GENERAL(INFO, "I am going to use conditional variable with timeout of  "
-                << SUBMIT_TX_WINDOW_EXTENDED
-                << " seconds. It is ok to timeout here. ");
+    LOG_GENERAL(INFO,
+                "I am going to use conditional variable with timeout of  "
+                    << SUBMIT_TX_WINDOW_EXTENDED
+                    << " seconds. It is ok to timeout here. ");
     std::unique_lock<std::mutex> cv_lk(m_MutexCVMicroblockConsensus);
     if (cv_microblockConsensus.wait_for(
             cv_lk, std::chrono::seconds(SUBMIT_TX_WINDOW_EXTENDED))
