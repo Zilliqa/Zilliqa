@@ -47,6 +47,7 @@ To compile and run the Zilliqa codebase, you will need the following dependencie
 * `build-essential`
 * `Boost` 
 * `CMake`
+* `clang-format`
 * `git`
 * `JsonCpp`
 * `json-rpc-cpp`
@@ -61,7 +62,7 @@ sudo apt-get update
 ```
 
 ```bash
-sudo apt-get install git libboost-system-dev libboost-filesystem-dev libboost-test-dev libssl-dev libleveldb-dev libjsoncpp-dev libsnappy-dev cmake libmicrohttpd-dev libjsonrpccpp-dev build-essential pkg-config
+sudo apt-get install git clang-format libboost-system-dev libboost-filesystem-dev libboost-test-dev libssl-dev libleveldb-dev libjsoncpp-dev libsnappy-dev cmake libmicrohttpd-dev libjsonrpccpp-dev build-essential pkg-config
 ```
 
 For Mac OS X (experimental), you can use the following command to install the dependencies:  
