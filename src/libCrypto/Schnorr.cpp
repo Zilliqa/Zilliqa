@@ -93,7 +93,7 @@ void BIGNUMSerialize::SetNumber(vector<unsigned char>& dst, unsigned int offset,
 
     const int actual_bn_size = BN_num_bytes(value.get());
 
-    if (actual_bn_size > 0)
+    //if (actual_bn_size > 0)
     {
         if (actual_bn_size <= static_cast<int>(size))
         {
@@ -123,10 +123,10 @@ void BIGNUMSerialize::SetNumber(vector<unsigned char>& dst, unsigned int offset,
                         << ")");
         }
     }
-    else
-    {
-        LOG_MESSAGE("Error: Zero-sized BIGNUM");
-    }
+    // else
+    // {
+    //     LOG_MESSAGE("Error: Zero-sized BIGNUM");
+    // }
 }
 
 shared_ptr<EC_POINT>
