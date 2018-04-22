@@ -59,18 +59,10 @@ DSBlock constructDummyDSBlock(int instanceNum)
         prevHash1.asArray().at(i) = i + 1;
     }
 
-    std::array<unsigned char, BLOCK_SIG_SIZE> signature1;
-
-    for (unsigned int i = 0; i < signature1.size(); i++)
-    {
-        signature1.at(i) = i + 8;
-    }
-
     std::pair<PrivKey, PubKey> pubKey1 = Schnorr::GetInstance().GenKeyPair();
 
-    DSBlockHeader header1(20, prevHash1, 12345 + instanceNum, pubKey1.first,
-                          pubKey1.second, 10, 789, 0);
-    return DSBlock(header1, signature1);
+    return DSBlock(DSBlockHeader(20, prevHash1, 12345 + instanceNum, pubKey1.first,
+                          pubKey1.second, 10, 789, 0), CoSignatures());
 }
 
 BOOST_AUTO_TEST_CASE(testSerializationDeserialization)
@@ -165,7 +157,7 @@ BOOST_AUTO_TEST_CASE(testBlockStorage)
         "PrevHash shouldn't change after writing to/ reading from disk");
 
     BOOST_CHECK_MESSAGE(
-        block1.GetSignature() == (*block2).GetSignature(),
+        block1.GetCS2() == (*block2).GetCS2(),
         "Signature shouldn't change after writing to/ reading from disk");
 }
 
