@@ -19,6 +19,7 @@
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "libNetwork/P2PComm.h"
+#include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 
@@ -258,11 +259,11 @@ bool ConsensusBackup::ProcessMessageAnnounce(
     // Extract and check announce message body
     // =======================================
 
-    // Format: [4-byte consensus id] [32-byte blockhash] [2-byte leader id] [message] [64-byte signature]
+    // Format: [4-byte consensus id] [32-byte blockhash] [2-byte leader id] [message] [4-byte length to co-sign] [64-byte signature]
 
     const unsigned int length_available = announcement.size() - offset;
     const unsigned int min_length_needed = sizeof(uint32_t) + BLOCK_HASH_SIZE
-        + sizeof(uint16_t) + 1 + SIGNATURE_CHALLENGE_SIZE
+        + sizeof(uint16_t) + 1 + sizeof(uint32_t) + SIGNATURE_CHALLENGE_SIZE
         + SIGNATURE_RESPONSE_SIZE;
 
     if (min_length_needed > length_available)
@@ -316,11 +317,22 @@ bool ConsensusBackup::ProcessMessageAnnounce(
 
     // message
     const unsigned int message_size = announcement.size() - curr_offset
-        - SIGNATURE_CHALLENGE_SIZE - SIGNATURE_RESPONSE_SIZE;
+        - sizeof(uint32_t) - SIGNATURE_CHALLENGE_SIZE - SIGNATURE_RESPONSE_SIZE;
     m_message.resize(message_size);
     copy(announcement.begin() + curr_offset,
          announcement.begin() + curr_offset + message_size, m_message.begin());
     curr_offset += message_size;
+
+    // 4-byte length to co-sign
+    m_lengthToCosign = Serializable::GetNumber<uint32_t>(
+        announcement, curr_offset, sizeof(uint32_t));
+    curr_offset += sizeof(uint32_t);
+
+    // Check the length to co-sign
+    if (m_lengthToCosign > m_message.size())
+    {
+        LOG_MESSAGE("Error: m_lengthToCosign > message size");
+    }
 
     // Check the message
     std::vector<unsigned char> errorMsg;
@@ -605,7 +617,7 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
         m_state = ERROR;
         return false;
     }
-    Challenge challenge_verif = GetChallenge(m_message, 0, m_message.size(),
+    Challenge challenge_verif = GetChallenge(m_message, 0, m_lengthToCosign,
                                              aggregated_commit, aggregated_key);
 
     if (!(challenge_verif == m_challenge))
@@ -736,7 +748,7 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
     const unsigned int length_available = collectivesig.size() - offset;
     const unsigned int length_needed = sizeof(uint32_t) + BLOCK_HASH_SIZE
         + sizeof(uint16_t) + SIGNATURE_CHALLENGE_SIZE + SIGNATURE_RESPONSE_SIZE
-        + GetBitVectorLengthInBytes(m_pubKeys.size()) + 2
+        + BitVector::GetBitVectorSerializedSize(m_pubKeys.size())
         + SIGNATURE_CHALLENGE_SIZE + SIGNATURE_RESPONSE_SIZE;
 
     if (length_needed > length_available)
@@ -788,9 +800,10 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
     }
 
     // N-byte bitmap
-    m_responseMap = GetBitVector(collectivesig, curr_offset,
-                                 GetBitVectorLengthInBytes(m_pubKeys.size()));
-    curr_offset += GetBitVectorLengthInBytes(m_pubKeys.size()) + 2;
+    m_responseMap = BitVector::GetBitVector(
+        collectivesig, curr_offset,
+        BitVector::GetBitVectorLengthInBytes(m_pubKeys.size()));
+    curr_offset += BitVector::GetBitVectorSerializedSize(m_pubKeys.size());
 
     // Check the bitmap
     if (m_responseMap.empty())
@@ -817,8 +830,8 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
         return false;
     }
 
-    if (Schnorr::GetInstance().Verify(m_message, m_collectiveSig,
-                                      aggregated_key)
+    if (Schnorr::GetInstance().Verify(m_message, 0, m_lengthToCosign,
+                                      m_collectiveSig, aggregated_key)
         == false)
     {
         LOG_MESSAGE("Error: Collective signature verification failed");
@@ -852,6 +865,13 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
 
     if (action == PROCESS_COLLECTIVESIG)
     {
+        // First round: consensus over part of message (e.g., DS block header)
+        // Second round: consensus over part of message + CS1 + B1
+        m_message.resize(m_lengthToCosign);
+        m_collectiveSig.Serialize(m_message, m_lengthToCosign);
+        BitVector::SetBitVector(m_message, m_lengthToCosign + BLOCK_SIG_SIZE, m_responseMap);
+        m_lengthToCosign = m_message.size();
+
         vector<unsigned char> finalcommit
             = {m_classByte, m_insByte,
                static_cast<unsigned char>(ConsensusMessageType::FINALCOMMIT)};
@@ -864,10 +884,9 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
 
             m_state = nextstate;
 
-            // First round: consensus over message (e.g., DS block)
-            // Second round: consensus over collective sig
-            m_message.clear();
-            m_collectiveSig.Serialize(m_message, 0);
+            // Save the collective sig over the first round
+            m_CS1 = m_collectiveSig;
+            m_B1 = m_responseMap;
 
             // Unicast to the leader
             // =====================
@@ -878,6 +897,10 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
     }
     else
     {
+        // Save the collective sig over the second round
+        m_CS2 = m_collectiveSig;
+        m_B2 = m_responseMap;
+
         // Update internal state
         // =====================
 
