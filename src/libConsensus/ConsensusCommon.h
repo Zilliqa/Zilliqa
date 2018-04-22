@@ -108,14 +108,14 @@ protected:
 
     /// Co-sig for first round
     Signature m_CS1;
-	
-	/// Co-sig bitmap for first round
+
+    /// Co-sig bitmap for first round
     std::vector<bool> m_B1;
-	
-	/// Co-sig for second round
+
+    /// Co-sig for second round
     Signature m_CS2;
-	
-	/// Co-sig bitmap for second round
+
+    /// Co-sig bitmap for second round
     std::vector<bool> m_B2;
 
     /// Length of the part of the message to co-sign

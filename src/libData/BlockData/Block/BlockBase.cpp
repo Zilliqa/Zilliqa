@@ -27,16 +27,20 @@ BlockBase::BlockBase() {}
 
 unsigned int BlockBase::GetSerializedSize() const
 {
-	return BLOCK_SIG_SIZE + BitVector::GetBitVectorSerializedSize(m_cosigs.m_B1.size()) + BLOCK_SIG_SIZE + BitVector::GetBitVectorSerializedSize(m_cosigs.m_B2.size());
+    return BLOCK_SIG_SIZE
+        + BitVector::GetBitVectorSerializedSize(m_cosigs.m_B1.size())
+        + BLOCK_SIG_SIZE
+        + BitVector::GetBitVectorSerializedSize(m_cosigs.m_B2.size());
 }
 
 unsigned int BlockBase::GetMinSize()
 {
-	return BLOCK_SIG_SIZE + BitVector::GetBitVectorSerializedSize(1) + BLOCK_SIG_SIZE + BitVector::GetBitVectorSerializedSize(1);
+    return BLOCK_SIG_SIZE + BitVector::GetBitVectorSerializedSize(1)
+        + BLOCK_SIG_SIZE + BitVector::GetBitVectorSerializedSize(1);
 }
 
 unsigned int BlockBase::Serialize(vector<unsigned char>& dst,
-                                   unsigned int offset) const
+                                  unsigned int offset) const
 {
     unsigned int curOffset = offset;
 
@@ -54,7 +58,7 @@ unsigned int BlockBase::Serialize(vector<unsigned char>& dst,
 }
 
 int BlockBase::Deserialize(const vector<unsigned char>& src,
-                            unsigned int offset)
+                           unsigned int offset)
 {
     try
     {
@@ -73,7 +77,7 @@ int BlockBase::Deserialize(const vector<unsigned char>& src,
     catch (const std::exception& e)
     {
         LOG_MESSAGE("ERROR: Error with BlockBase::Deserialize." << ' '
-                                                                 << e.what());
+                                                                << e.what());
         return -1;
     }
     return 0;
@@ -81,22 +85,16 @@ int BlockBase::Deserialize(const vector<unsigned char>& src,
 
 const Signature& BlockBase::GetCS1() const { return m_cosigs.m_CS1; }
 
-const vector<bool>& BlockBase::GetB1() const
-{
-    return m_cosigs.m_B1;
-}
+const vector<bool>& BlockBase::GetB1() const { return m_cosigs.m_B1; }
 
 const Signature& BlockBase::GetCS2() const { return m_cosigs.m_CS2; }
 
-const vector<bool>& BlockBase::GetB2() const
-{
-    return m_cosigs.m_B2;
-}
+const vector<bool>& BlockBase::GetB2() const { return m_cosigs.m_B2; }
 
 void BlockBase::SetCoSignatures(const ConsensusCommon& src)
 {
-	m_cosigs.m_CS1 = src.GetCS1();
-	m_cosigs.m_B1 = src.GetB1();
-	m_cosigs.m_CS2 = src.GetCS2();
-	m_cosigs.m_B2 = src.GetB2();
+    m_cosigs.m_CS1 = src.GetCS1();
+    m_cosigs.m_B1 = src.GetB1();
+    m_cosigs.m_CS2 = src.GetCS2();
+    m_cosigs.m_B2 = src.GetB2();
 }

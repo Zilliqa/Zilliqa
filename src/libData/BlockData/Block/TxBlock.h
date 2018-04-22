@@ -44,13 +44,10 @@ public:
     TxBlock(const std::vector<unsigned char>& src, unsigned int offset);
 
     /// Constructor with specified Tx block parameters.
-    TxBlock(TxBlockHeader&& header,
-            std::vector<bool>&& isMicroBlockEmpty,
-            std::vector<TxnHash>&& microBlockHashes,
-            CoSignatures&& cosigs);
+    TxBlock(TxBlockHeader&& header, std::vector<bool>&& isMicroBlockEmpty,
+            std::vector<TxnHash>&& microBlockHashes, CoSignatures&& cosigs);
 
-    TxBlock(TxBlockHeader&& header,
-            const std::vector<bool>& isMicroBlockEmpty,
+    TxBlock(TxBlockHeader&& header, const std::vector<bool>& isMicroBlockEmpty,
             const std::vector<TxnHash>& microBlockHashes,
             CoSignatures&& cosigs);
 

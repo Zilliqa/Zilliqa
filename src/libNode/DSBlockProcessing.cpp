@@ -184,9 +184,9 @@ bool Node::VerifyDSBlockCoSignature(const DSBlock& dsblock)
     vector<unsigned char> message;
     dsblock.GetHeader().Serialize(message, 0);
     dsblock.GetCS1().Serialize(message, DSBlockHeader::SIZE);
-    BitVector::SetBitVector(message, DSBlockHeader::SIZE + BLOCK_SIG_SIZE, dsblock.GetB1());
-    if (Schnorr::GetInstance().Verify(message, 0,
-                                      message.size(),
+    BitVector::SetBitVector(message, DSBlockHeader::SIZE + BLOCK_SIG_SIZE,
+                            dsblock.GetB1());
+    if (Schnorr::GetInstance().Verify(message, 0, message.size(),
                                       dsblock.GetCS2(), *aggregatedKey)
         == false)
     {
@@ -250,8 +250,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
 #endif // IS_LOOKUP_NODE
 
     if (IsMessageSizeInappropriate(message.size(), cur_offset,
-                                   DSBlock::GetMinSize()
-                                       + BLOCK_HASH_SIZE))
+                                   DSBlock::GetMinSize() + BLOCK_HASH_SIZE))
     {
         return false;
     }

@@ -52,8 +52,7 @@ bool DirectoryService::VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
     if (shard.size() != B2.size())
     {
         LOG_MESSAGE("Error: Mismatch: Shard size = "
-                    << shard.size()
-                    << ", co-sig bitmap size = " << B2.size());
+                    << shard.size() << ", co-sig bitmap size = " << B2.size());
         return false;
     }
 
@@ -86,9 +85,9 @@ bool DirectoryService::VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
     vector<unsigned char> message;
     microBlock.GetHeader().Serialize(message, 0);
     microBlock.GetCS1().Serialize(message, MicroBlockHeader::SIZE);
-    BitVector::SetBitVector(message, MicroBlockHeader::SIZE + BLOCK_SIG_SIZE, microBlock.GetB1());
-    if (Schnorr::GetInstance().Verify(message, 0,
-                                      message.size(),
+    BitVector::SetBitVector(message, MicroBlockHeader::SIZE + BLOCK_SIG_SIZE,
+                            microBlock.GetB1());
+    if (Schnorr::GetInstance().Verify(message, 0, message.size(),
                                       microBlock.GetCS2(), *aggregatedKey)
         == false)
     {

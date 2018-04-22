@@ -47,7 +47,9 @@ DSBlock Synchronizer::ConstructGenesisDSBlock()
     std::pair<PrivKey, PubKey> keypair = make_pair(privKey, pubKey);
 
     // FIXME: Handle exceptions.
-    return DSBlock(DSBlockHeader(20, prevHash, 12344, keypair.first, keypair.second, 0, 789, 0), CoSignatures());
+    return DSBlock(DSBlockHeader(20, prevHash, 12344, keypair.first,
+                                 keypair.second, 0, 789, 0),
+                   CoSignatures());
 }
 
 bool Synchronizer::AddGenesisDSBlockToBlockChain(DSBlockChain& dsBlockChain,
@@ -84,9 +86,11 @@ TxBlock Synchronizer::ConstructGenesisTxBlock()
 
     std::pair<PrivKey, PubKey> keypair = make_pair(privKey, pubKey);
 
-    return TxBlock(TxBlockHeader(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1, 1,
-                         BlockHash(), 0, 151384616955606, TxnHash(),
-                         StateHash(), 0, 5, keypair.second, 0, BlockHash(), 0), vector<bool>(1), vector<TxnHash>(5), CoSignatures());
+    return TxBlock(TxBlockHeader(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1,
+                                 1, BlockHash(), 0, 151384616955606, TxnHash(),
+                                 StateHash(), 0, 5, keypair.second, 0,
+                                 BlockHash(), 0),
+                   vector<bool>(1), vector<TxnHash>(5), CoSignatures());
 }
 
 bool Synchronizer::AddGenesisTxBlockToBlockChain(TxBlockChain& txBlockChain,

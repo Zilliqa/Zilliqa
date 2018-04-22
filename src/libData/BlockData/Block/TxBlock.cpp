@@ -119,13 +119,13 @@ int TxBlock::Deserialize(const vector<unsigned char>& src, unsigned int offset)
 
 unsigned int TxBlock::GetSerializedSize() const
 {
-    return TxBlockHeader::SIZE + sizeof(uint32_t) + (m_microBlockHashes.size() * TRAN_HASH_SIZE) + BlockBase::GetSerializedSize();;
+    return TxBlockHeader::SIZE + sizeof(uint32_t)
+        + (m_microBlockHashes.size() * TRAN_HASH_SIZE)
+        + BlockBase::GetSerializedSize();
+    ;
 }
 
-unsigned int TxBlock::GetMinSize()
-{
-    return TxBlockHeader::SIZE;
-}
+unsigned int TxBlock::GetMinSize() { return TxBlockHeader::SIZE; }
 
 // creates a dummy invalid placeholder block -- blocknum is maxsize of uint256
 TxBlock::TxBlock() {}
@@ -138,10 +138,8 @@ TxBlock::TxBlock(const vector<unsigned char>& src, unsigned int offset)
     }
 }
 
-TxBlock::TxBlock(TxBlockHeader&& header,
-                 vector<bool>&& isMicroBlockEmpty,
-                 vector<TxnHash>&& microBlockTxHashes,
-                 CoSignatures&& cosigs)
+TxBlock::TxBlock(TxBlockHeader&& header, vector<bool>&& isMicroBlockEmpty,
+                 vector<TxnHash>&& microBlockTxHashes, CoSignatures&& cosigs)
     : m_header(move(header))
     , m_isMicroBlockEmpty(move(isMicroBlockEmpty))
     , m_microBlockHashes(move(microBlockTxHashes))
@@ -150,8 +148,7 @@ TxBlock::TxBlock(TxBlockHeader&& header,
     m_cosigs = move(cosigs);
 }
 
-TxBlock::TxBlock(TxBlockHeader&& header,
-                 const vector<bool>& isMicroBlockEmpty,
+TxBlock::TxBlock(TxBlockHeader&& header, const vector<bool>& isMicroBlockEmpty,
                  const vector<TxnHash>& microBlockTxHashes,
                  CoSignatures&& cosigs)
     : m_header(move(header))
@@ -176,7 +173,8 @@ const vector<TxnHash>& TxBlock::GetMicroBlockHashes() const
 
 bool TxBlock::operator==(const TxBlock& block) const
 {
-    return ((m_header == block.m_header) && (m_microBlockHashes == block.m_microBlockHashes));
+    return ((m_header == block.m_header)
+            && (m_microBlockHashes == block.m_microBlockHashes));
 }
 
 bool TxBlock::operator<(const TxBlock& block) const

@@ -869,7 +869,8 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
         // Second round: consensus over part of message + CS1 + B1
         m_message.resize(m_lengthToCosign);
         m_collectiveSig.Serialize(m_message, m_lengthToCosign);
-        BitVector::SetBitVector(m_message, m_lengthToCosign + BLOCK_SIG_SIZE, m_responseMap);
+        BitVector::SetBitVector(m_message, m_lengthToCosign + BLOCK_SIG_SIZE,
+                                m_responseMap);
         m_lengthToCosign = m_message.size();
 
         vector<unsigned char> finalcommit

@@ -260,7 +260,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
     m_finalBlock->SetCoSignatures(*m_consensusObject);
 
     // Update m_finalBlockMessage too
-    unsigned int cosigOffset = m_finalBlock->GetSerializedSize() - ((BlockBase)(*m_finalBlock)).GetSerializedSize();
+    unsigned int cosigOffset = m_finalBlock->GetSerializedSize()
+        - ((BlockBase)(*m_finalBlock)).GetSerializedSize();
     ((BlockBase)(*m_finalBlock)).Serialize(m_finalBlockMessage, cosigOffset);
 
     // Add finalblock to txblockchain
