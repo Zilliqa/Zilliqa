@@ -235,7 +235,7 @@ bool BlockStorage::DeleteTxBody(const dev::h256& key)
 #ifndef IS_LOOKUP_NODE
     int ret = m_txBodyDBs.back()->DeleteKey(key);
 #else // IS_LOOKUP_NODE
-    int ret = m_txBodyTmpDB.DeleteKey(key);
+    int ret = m_txBodyDB.DeleteKey(key);
 #endif // IS_LOOKUP_NODE
 
     return (ret == 0);
@@ -413,6 +413,36 @@ bool BlockStorage::ResetDB(DBTYPE type)
     {
         LOG_MESSAGE("FAIL: Reset DB " << type << " failed");
     }
+    return ret;
+}
+
+std::vector<std::string> BlockStorage::GetDBName(DBTYPE type)
+{
+    std::vector<std::string> ret;
+    switch (type)
+    {
+    case META:
+        ret.push_back(m_metadataDB.GetDBName());
+    case DS_BLOCK:
+        ret.push_back(m_dsBlockchainDB.GetDBName());
+    case TX_BLOCK:
+        ret.push_back(m_txBlockchainDB.GetDBName());
+#ifndef IS_LOOKUP_NODE
+    case TX_BODIES:
+    {
+        for (auto txBodyDB : m_txBodyDBs)
+        {
+            ret.push_back(txBodyDB->GetDBName());
+        }
+    }
+#else // IS_LOOKUP_NODE
+    case TX_BODY:
+        ret.push_back(m_txBodyDB.GetDBName());
+    case TX_BODY_TMP:
+        ret.push_back(m_txBodyTmpDB.GetDBName());
+#endif // IS_LOOKUP_NODE
+    }
+
     return ret;
 }
 
