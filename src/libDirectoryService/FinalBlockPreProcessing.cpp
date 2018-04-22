@@ -178,7 +178,8 @@ void DirectoryService::ComposeFinalBlockCore()
                       blockNum, timestamp, microblockTrieRoot, stateRoot,
                       numTxs, numMicroBlocks, m_mediator.m_selfKey.second,
                       lastDSBlockNum, dsBlockHeader, m_viewChangeCounter),
-        isMicroBlockEmpty, microBlockTxHashes, CoSignatures(m_mediator.m_DSCommitteePubKeys.size())));
+        isMicroBlockEmpty, microBlockTxHashes,
+        CoSignatures(m_mediator.m_DSCommitteePubKeys.size())));
 
 #ifdef STAT_TEST
     LOG_STATE("[STATS][" << std::setw(15) << std::left
@@ -432,7 +433,7 @@ vector<unsigned char> DirectoryService::ComposeFinalBlockMessage()
     AppendSharingSetupToFinalBlockMessage(finalBlockMessage, curr_offset);
 
     // At this point, cosigs are still not updated inside m_finalBlockMessage
-	// Update will be done in ProcessFinalBlockConsensusWhenDone
+    // Update will be done in ProcessFinalBlockConsensusWhenDone
     m_finalBlockMessage = finalBlockMessage;
     return finalBlockMessage;
 }

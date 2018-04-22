@@ -244,9 +244,9 @@ bool Node::VerifyFinalBlockCoSignature(const TxBlock& txblock)
     vector<unsigned char> message;
     txblock.GetHeader().Serialize(message, 0);
     txblock.GetCS1().Serialize(message, TxBlockHeader::SIZE);
-    BitVector::SetBitVector(message, TxBlockHeader::SIZE + BLOCK_SIG_SIZE, txblock.GetB1());
-    if (Schnorr::GetInstance().Verify(message, 0,
-                                      message.size(),
+    BitVector::SetBitVector(message, TxBlockHeader::SIZE + BLOCK_SIG_SIZE,
+                            txblock.GetB1());
+    if (Schnorr::GetInstance().Verify(message, 0, message.size(),
                                       txblock.GetCS2(), *aggregatedKey)
         == false)
     {

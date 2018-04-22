@@ -42,10 +42,12 @@ public:
     MicroBlock(const std::vector<unsigned char>& src, unsigned int offset);
 
     /// Constructor with predefined member values.
-    MicroBlock(MicroBlockHeader&& header, const std::vector<TxnHash>& tranHashes, CoSignatures&& cosigs);
+    MicroBlock(MicroBlockHeader&& header,
+               const std::vector<TxnHash>& tranHashes, CoSignatures&& cosigs);
 
     /// Constructor with predefined member values (moveable tranHashes)
-    MicroBlock(MicroBlockHeader&& header, std::vector<TxnHash>&& tranHashes, CoSignatures&& cosigs);
+    MicroBlock(MicroBlockHeader&& header, std::vector<TxnHash>&& tranHashes,
+               CoSignatures&& cosigs);
 
     /// Implements the Serialize function inherited from Serializable.
     unsigned int Serialize(std::vector<unsigned char>& dst,

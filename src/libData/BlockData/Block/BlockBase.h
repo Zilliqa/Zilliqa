@@ -29,12 +29,16 @@
 
 struct CoSignatures
 {
-	Signature m_CS1;
+    Signature m_CS1;
     std::vector<bool> m_B1;
     Signature m_CS2;
     std::vector<bool> m_B2;
 
-    CoSignatures(unsigned int bitmaplen = 1) : m_B1(bitmaplen), m_B2(bitmaplen) {}
+    CoSignatures(unsigned int bitmaplen = 1)
+        : m_B1(bitmaplen)
+        , m_B2(bitmaplen)
+    {
+    }
 };
 
 /// [TODO] Base class for all supported block data types
@@ -42,7 +46,7 @@ class BlockBase : public Serializable
 {
     // TODO: pull out all common code from ds, micro and tx block
 protected:
-	CoSignatures m_cosigs;
+    CoSignatures m_cosigs;
 
 public:
     /// Default constructor.
@@ -55,7 +59,8 @@ public:
     static unsigned int GetMinSize();
 
     /// Implements the Serialize function inherited from Serializable.
-	unsigned int Serialize(std::vector<unsigned char>& dst, unsigned int offset) const;
+    unsigned int Serialize(std::vector<unsigned char>& dst,
+                           unsigned int offset) const;
 
     /// Implements the Deserialize function inherited from Serializable.
     int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);

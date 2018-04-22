@@ -77,9 +77,11 @@ void DirectoryService::ComposeDSBlock()
     {
         lock_guard<mutex> g(m_mutexPendingDSBlock);
         // To-do: Handle exceptions.
-        m_pendingDSBlock.reset(new DSBlock(DSBlockHeader(difficulty, prevHash, winnerNonce, winnerKey,
-                            m_mediator.m_selfKey.second, blockNum,
-                            get_time_as_int(), m_viewChangeCounter), CoSignatures()));
+        m_pendingDSBlock.reset(new DSBlock(
+            DSBlockHeader(difficulty, prevHash, winnerNonce, winnerKey,
+                          m_mediator.m_selfKey.second, blockNum,
+                          get_time_as_int(), m_viewChangeCounter),
+            CoSignatures()));
     }
 
     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),

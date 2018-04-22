@@ -94,13 +94,11 @@ int MicroBlock::Deserialize(const vector<unsigned char>& src,
 
 unsigned int MicroBlock::GetSerializedSize() const
 {
-    return MicroBlockHeader::SIZE + (m_tranHashes.size() * TRAN_HASH_SIZE) + BlockBase::GetSerializedSize();
+    return MicroBlockHeader::SIZE + (m_tranHashes.size() * TRAN_HASH_SIZE)
+        + BlockBase::GetSerializedSize();
 }
 
-unsigned int MicroBlock::GetMinSize()
-{
-    return MicroBlockHeader::SIZE;
-}
+unsigned int MicroBlock::GetMinSize() { return MicroBlockHeader::SIZE; }
 
 // creates a dummy invalid placeholder block -- blocknum is maxsize of uint256
 MicroBlock::MicroBlock() {}
@@ -114,18 +112,18 @@ MicroBlock::MicroBlock(const vector<unsigned char>& src, unsigned int offset)
 }
 
 MicroBlock::MicroBlock(MicroBlockHeader&& header,
-                       const vector<TxnHash>& tranHashes,
-                       CoSignatures&& cosigs)
-    : m_header(move(header)), m_tranHashes(tranHashes)
+                       const vector<TxnHash>& tranHashes, CoSignatures&& cosigs)
+    : m_header(move(header))
+    , m_tranHashes(tranHashes)
 {
     assert(m_header.GetNumTxs() == m_tranHashes.size());
     m_cosigs = move(cosigs);
 }
 
-MicroBlock::MicroBlock(MicroBlockHeader&& header,
-                       vector<TxnHash>&& tranHashes,
+MicroBlock::MicroBlock(MicroBlockHeader&& header, vector<TxnHash>&& tranHashes,
                        CoSignatures&& cosigs)
-    : m_header(move(header)), m_tranHashes(move(tranHashes))
+    : m_header(move(header))
+    , m_tranHashes(move(tranHashes))
 {
     assert(m_header.GetNumTxs() == m_tranHashes.size());
     m_cosigs = move(cosigs);
@@ -140,7 +138,8 @@ const vector<TxnHash>& MicroBlock::GetTranHashes() const
 
 bool MicroBlock::operator==(const MicroBlock& block) const
 {
-    return ((m_header == block.m_header) && (m_tranHashes == block.m_tranHashes));
+    return ((m_header == block.m_header)
+            && (m_tranHashes == block.m_tranHashes));
 }
 
 bool MicroBlock::operator<(const MicroBlock& block) const
