@@ -33,7 +33,7 @@ RUN git clone -b ${BRANCH} --depth=1 ${REPO} ${SOURCE_DIR}; \
     mkdir $BUILD_DIR && cd $BUILD_DIR; \
     cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
         -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR ${SOURCE_DIR}; \
-    make -j4 && make install; \
+    make -j2 && make install; \
     cd ${INSTALL_DIR} && rm -rf ${BUILD_DIR}
 
 ENV LD_LIBRARY_PATH=${INSTALL_DIR}/lib
