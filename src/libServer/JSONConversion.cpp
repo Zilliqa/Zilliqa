@@ -62,7 +62,7 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock)
     Json::Value ret_head;
     Json::Value ret_body;
 
-    TxBlockHeader txheader = txblock.GetHeader();
+    const TxBlockHeader& txheader = txblock.GetHeader();
 
     ret_head["type"] = txheader.GetType();
     ret_head["version"] = txheader.GetVersion();
@@ -82,7 +82,7 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock)
     ret_head["DSBlockNum"] = txheader.GetDSBlockNum().str();
 
     ret_body["HeaderSign"]
-        = DataConversion::charArrToHexStr(txblock.GetHeaderSig());
+        = DataConversion::SerializableToHexStr(txblock.GetCS2());
 
     ret_body["MicroBlockEmpty"]
         = convertBoolArraytoJson(txblock.GetIsMicroBlockEmpty());
@@ -103,9 +103,9 @@ const Json::Value JSONConversion::convertDSblocktoJson(const DSBlock& dsblock)
     Json::Value ret_header;
     Json::Value ret_sign;
 
-    DSBlockHeader dshead = dsblock.GetHeader();
+    const DSBlockHeader& dshead = dsblock.GetHeader();
 
-    ret_sign = DataConversion::charArrToHexStr(dsblock.GetSignature());
+    ret_sign = DataConversion::SerializableToHexStr(dsblock.GetCS2());
 
     ret_header["difficulty"] = dshead.GetDifficulty();
     ret_header["prevhash"] = dshead.GetPrevHash().hex();
