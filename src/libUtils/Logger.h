@@ -23,8 +23,15 @@
 #include <sstream>
 #include <string>
 #include <vector>
-
+#include <chrono>
+#include <iomanip>
 #include "g3log/loglevels.hpp"
+#include "g3log/g3log.hpp"
+
+#define LIMIT(s, len)                                                          \
+    std::setw(len) << std::setfill(' ') << std::left                           \
+                   << std::string(s).substr(0, len)
+#define PAD(n, len) std::setw(len) << std::setfill(' ') << std::right << n
 
 /// Utility logging class for outputting messages to stdout or file.
 class Logger
@@ -44,9 +51,7 @@ private:
     std::string fname;
     std::ofstream logfile;
     unsigned int seqnum;
-#if 1 //clark
     bool bRefactor;
-#endif
 
 public:
     /// Limits the number of bytes of a payload to display.
@@ -98,6 +103,17 @@ public:
 
     /// Disable the log level
     void DisableLevel(LEVELS level);
+
+    /// See if we need to use g3log or not
+    bool IsG3Log() { return (log_to_file && bRefactor); };
+
+    /// Get current process id
+    static pid_t GetPid();
+
+    /// Calculate payload string according to payload vector & length
+    static void GetPayloadS(const std::vector<unsigned char>& payload,
+                            size_t max_bytes_to_display,
+                            std::unique_ptr<char[]>& res);
 };
 
 /// Utility class for automatically logging function or code block exit.
@@ -118,30 +134,6 @@ public:
 #define INIT_STATE_LOGGER(fname_prefix)                                        \
     Logger::GetStateLogger(fname_prefix, true)
 #define LOG_MARKER() ScopeMarker marker(__FUNCTION__)
-/*
-#define LOG_MESSAGE(msg)                                                       \
-    {                                                                          \
-        std::ostringstream oss;                                                \
-        oss << msg;                                                            \
-        Logger::GetLogger(NULL, true)                                          \
-            .LogMessage(oss.str().c_str(), __FUNCTION__);                      \
-    }
-#define LOG_MESSAGE2(blockNum, msg)                                            \
-    {                                                                          \
-        std::ostringstream oss;                                                \
-        oss << msg;                                                            \
-        Logger::GetLogger(NULL, true)                                          \
-            .LogMessage2(oss.str().c_str(), __FUNCTION__, blockNum);           \
-    }
-#define LOG_PAYLOAD(msg, payload, max_bytes_to_display)                        \
-    {                                                                          \
-        std::ostringstream oss;                                                \
-        oss << msg;                                                            \
-        Logger::GetLogger(NULL, true)                                          \
-            .LogMessageAndPayload(oss.str().c_str(), payload,                  \
-                                  max_bytes_to_display, __FUNCTION__);         \
-    }
-*/
 #define LOG_STATE(msg)                                                         \
     {                                                                          \
         std::ostringstream oss;                                                \
@@ -149,27 +141,91 @@ public:
         Logger::GetStateLogger(NULL, true)                                     \
             .LogState(oss.str().c_str(), __FUNCTION__);                        \
     }
+
 #define LOG_GENERAL(level, msg)                                                \
     {                                                                          \
-        std::ostringstream oss;                                                \
-        oss << msg;                                                            \
-        Logger::GetLogger(NULL, true)                                          \
-            .LogGeneral(level, oss.str().c_str(), __FUNCTION__);               \
+        if (Logger::GetLogger(NULL, true).IsG3Log())                           \
+        {                                                                      \
+            std::time_t curTime = std::chrono::system_clock::to_time_t(        \
+                std::chrono::system_clock::now());                             \
+            LOG(level) << "[TID " << PAD(Logger::GetPid(), Logger::TID_LEN)    \
+                       << "]["                                                 \
+                       << PAD(std::put_time(gmtime(&curTime), "%H:%M:%S"),     \
+                              Logger::TIME_LEN)                                \
+                       << "]["                                                 \
+                       << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN)        \
+                       << "] " << msg;                                         \
+        }                                                                      \
+        else                                                                   \
+        {                                                                      \
+            std::ostringstream oss;                                            \
+            oss << msg;                                                        \
+            Logger::GetLogger(NULL, true)                                      \
+                .LogGeneral(level, oss.str().c_str(), __FUNCTION__);           \
+        }                                                                      \
     }
 #define LOG_EPOCH(level, epoch, msg)                                           \
     {                                                                          \
-        std::ostringstream oss;                                                \
-        oss << msg;                                                            \
-        Logger::GetLogger(NULL, true)                                          \
-            .LogEpoch(level, epoch, oss.str().c_str(), __FUNCTION__);          \
+        if (Logger::GetLogger(NULL, true).IsG3Log())                           \
+        {                                                                      \
+            std::time_t curTime = std::chrono::system_clock::to_time_t(        \
+                std::chrono::system_clock::now());                             \
+            LOG(level) << "[TID " << PAD(Logger::GetPid(), Logger::TID_LEN)    \
+                       << "]["                                                 \
+                       << PAD(std::put_time(gmtime(&curTime), "%H:%M:%S"),     \
+                              Logger::TIME_LEN)                                \
+                       << "]["                                                 \
+                       << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN) << "]" \
+                       << "[Epoch " << epoch << "] " << msg;                   \
+        }                                                                      \
+        else                                                                   \
+        {                                                                      \
+            std::ostringstream oss;                                            \
+            oss << msg;                                                        \
+            Logger::GetLogger(NULL, true)                                      \
+                .LogEpoch(level, epoch, oss.str().c_str(), __FUNCTION__);      \
+        }                                                                      \
     }
 #define LOG_PAYLOAD(level, msg, payload, max_bytes_to_display)                 \
     {                                                                          \
-        std::ostringstream oss;                                                \
-        oss << msg;                                                            \
-        Logger::GetLogger(NULL, true)                                          \
-            .LogPayload(level, oss.str().c_str(), payload,                     \
-                        max_bytes_to_display, __FUNCTION__);                   \
+        if (Logger::GetLogger(NULL, true).IsG3Log())                           \
+        {                                                                      \
+            std::time_t curTime = std::chrono::system_clock::to_time_t(        \
+                std::chrono::system_clock::now());                             \
+            std::unique_ptr<char[]> payload_string;                            \
+            Logger::GetPayloadS(payload, max_bytes_to_display,                 \
+                                payload_string);                               \
+            if (payload.size() > max_bytes_to_display)                         \
+            {                                                                  \
+                LOG(level) << "[TID "                                          \
+                           << PAD(Logger::GetPid(), Logger::TID_LEN) << "]["   \
+                           << PAD(std::put_time(gmtime(&curTime), "%H:%M:%S"), \
+                                  Logger::TIME_LEN)                            \
+                           << "]["                                             \
+                           << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN)    \
+                           << "] " << msg << " (Len=" << payload.size()        \
+                           << "): " << payload_string.get() << "...";          \
+            }                                                                  \
+            else                                                               \
+            {                                                                  \
+                LOG(level) << "[TID "                                          \
+                           << PAD(Logger::GetPid(), Logger::TID_LEN) << "]["   \
+                           << PAD(std::put_time(gmtime(&curTime), "%H:%M:%S"), \
+                                  Logger::TIME_LEN)                            \
+                           << "]["                                             \
+                           << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN)    \
+                           << "] " << msg << " (Len=" << payload.size()        \
+                           << "): " << payload_string.get();                   \
+            }                                                                  \
+        }                                                                      \
+        else                                                                   \
+        {                                                                      \
+            std::ostringstream oss;                                            \
+            oss << msg;                                                        \
+            Logger::GetLogger(NULL, true)                                      \
+                .LogPayload(level, oss.str().c_str(), payload,                 \
+                            max_bytes_to_display, __FUNCTION__);               \
+        }                                                                      \
     }
 #define LOG_DISPLAY_LEVEL_ABOVE(level)                                         \
     {                                                                          \

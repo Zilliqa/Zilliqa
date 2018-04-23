@@ -16,15 +16,11 @@
 
 #include "Logger.h"
 
-#include <chrono>
 #include <cstring>
-#include <iomanip>
 #include <iostream>
 #include <pthread.h>
 #include <sys/syscall.h>
 #include <unistd.h>
-
-#include "g3log/g3log.hpp"
 #include "g3log/logworker.hpp"
 
 using namespace std;
@@ -46,7 +42,6 @@ string MyCustomFormatting(const LogMessage& msg)
 
 namespace
 {
-
     /// helper function to get tid with better cross-platform support
     inline pid_t getCurrentPid()
     {
@@ -62,10 +57,6 @@ namespace
 #endif
     }
 };
-
-#define LIMIT(s, len)                                                          \
-    setw(len) << setfill(' ') << left << string(s).substr(0, len)
-#define PAD(n, len) setw(len) << setfill(' ') << right << n
 
 const streampos Logger::MAX_FILE_SIZE = 1024 * 1024 * 100; // 100MB per log file
 
@@ -151,35 +142,23 @@ void Logger::LogState(const char* msg, const char*)
 
 void Logger::LogGeneral(LEVELS level, const char* msg, const char* function)
 {
-    if (level != INFO && level != WARNING && level != FATAL)
-        return;
-
-    pid_t tid = getCurrentPid();
-    auto clockNow = std::chrono::system_clock::now();
-    std::time_t curTime = std::chrono::system_clock::to_time_t(clockNow);
-    auto gmtTime = gmtime(&curTime);
+    std::time_t curTime = std::chrono::system_clock::to_time_t(
+        std::chrono::system_clock::now());
 
     lock_guard<mutex> guard(m);
 
     if (log_to_file)
     {
         checkLog();
-        logfile << "[TID " << PAD(tid, TID_LEN) << "]["
-                << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
+        logfile << "[TID " << PAD(GetPid(), TID_LEN) << "]["
+                << PAD(put_time(gmtime(&curTime), "%H:%M:%S"), TIME_LEN) << "]["
                 << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg << endl
                 << flush;
-
-        if (bRefactor)
-        {
-            LOG(level) << "[TID " << PAD(tid, TID_LEN) << "]["
-                       << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
-                       << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg;
-        }
     }
     else
     {
-        cout << "[TID " << PAD(tid, TID_LEN) << "]["
-             << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
+        cout << "[TID " << PAD(GetPid(), TID_LEN) << "]["
+             << PAD(put_time(gmtime(&curTime), "%H:%M:%S"), TIME_LEN) << "]["
              << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg << endl
              << flush;
     }
@@ -188,37 +167,24 @@ void Logger::LogGeneral(LEVELS level, const char* msg, const char* function)
 void Logger::LogEpoch(LEVELS level, const char* msg, const char* epoch,
                       const char* function)
 {
-    if (level != INFO && level != WARNING && level != FATAL)
-        return;
-
-    pid_t tid = getCurrentPid();
-    auto clockNow = std::chrono::system_clock::now();
-    std::time_t curTime = std::chrono::system_clock::to_time_t(clockNow);
-    auto gmtTime = gmtime(&curTime);
+    std::time_t curTime = std::chrono::system_clock::to_time_t(
+        std::chrono::system_clock::now());
 
     lock_guard<mutex> guard(m);
 
     if (log_to_file)
     {
         checkLog();
-        logfile << "[TID " << PAD(tid, TID_LEN) << "]["
-                << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
+        logfile << "[TID " << PAD(GetPid(), TID_LEN) << "]["
+                << PAD(put_time(gmtime(&curTime), "%H:%M:%S"), TIME_LEN) << "]["
                 << LIMIT(function, MAX_FUNCNAME_LEN) << "]"
                 << "[Epoch " << epoch << "] " << msg << endl
                 << flush;
-
-        if (bRefactor)
-        {
-            LOG(level) << "[TID " << PAD(tid, TID_LEN) << "]["
-                       << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
-                       << LIMIT(function, MAX_FUNCNAME_LEN) << "]"
-                       << "[Epoch " << epoch << "] " << msg;
-        }
     }
     else
     {
-        cout << "[TID " << PAD(tid, TID_LEN) << "]["
-             << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
+        cout << "[TID " << PAD(GetPid(), TID_LEN) << "]["
+             << PAD(put_time(gmtime(&curTime), "%H:%M:%S"), TIME_LEN) << "]["
              << LIMIT(function, MAX_FUNCNAME_LEN) << "]"
              << "[Epoch " << epoch << "] " << msg << endl
              << flush;
@@ -229,36 +195,10 @@ void Logger::LogPayload(LEVELS level, const char* msg,
                         const std::vector<unsigned char>& payload,
                         size_t max_bytes_to_display, const char* function)
 {
-    if (level != INFO && level != WARNING && level != FATAL)
-        return;
-
-    pid_t tid = getCurrentPid();
-    static const char* hex_table = "0123456789ABCDEF";
-
-    size_t payload_string_len = (payload.size() * 2) + 1;
-
-    if (payload.size() > max_bytes_to_display)
-    {
-        payload_string_len = (max_bytes_to_display * 2) + 1;
-    }
-
-    unique_ptr<char[]> payload_string = make_unique<char[]>(payload_string_len);
-
-    for (unsigned int payload_idx = 0, payload_string_idx = 0;
-         (payload_idx < payload.size())
-         && ((payload_string_idx + 2) < payload_string_len);
-         payload_idx++)
-    {
-        payload_string.get()[payload_string_idx++]
-            = hex_table[(payload.at(payload_idx) >> 4) & 0xF];
-        payload_string.get()[payload_string_idx++]
-            = hex_table[payload.at(payload_idx) & 0xF];
-    }
-
-    payload_string.get()[payload_string_len - 1] = '\0';
-    auto clockNow = std::chrono::system_clock::now();
-    std::time_t curTime = std::chrono::system_clock::to_time_t(clockNow);
-    auto gmtTime = gmtime(&curTime);
+    std::unique_ptr<char[]> payload_string;
+    GetPayloadS(payload, max_bytes_to_display, payload_string);
+    std::time_t curTime = std::chrono::system_clock::to_time_t(
+        std::chrono::system_clock::now());
 
     lock_guard<mutex> guard(m);
 
@@ -268,57 +208,39 @@ void Logger::LogPayload(LEVELS level, const char* msg,
 
         if (payload.size() > max_bytes_to_display)
         {
-            logfile << "[TID " << PAD(tid, TID_LEN) << "]["
-                    << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
-                    << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
+            logfile << "[TID " << PAD(GetPid(), TID_LEN) << "]["
+                    << PAD(put_time(gmtime(&curTime), "%H:%M:%S"), TIME_LEN)
+                    << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
                     << " (Len=" << payload.size()
                     << "): " << payload_string.get() << "..." << endl
                     << flush;
-
-            if (bRefactor)
-            {
-                LOG(level) << "[TID " << PAD(tid, TID_LEN) << "]["
-                           << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN)
-                           << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "] "
-                           << msg << " (Len=" << payload.size()
-                           << "): " << payload_string.get() << "...";
-            }
         }
         else
         {
-            logfile << "[TID " << PAD(tid, TID_LEN) << "]["
-                    << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
-                    << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
+            logfile << "[TID " << PAD(GetPid(), TID_LEN) << "]["
+                    << PAD(put_time(gmtime(&curTime), "%H:%M:%S"), TIME_LEN)
+                    << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
                     << " (Len=" << payload.size()
                     << "): " << payload_string.get() << endl
                     << flush;
-
-            if (bRefactor)
-            {
-                LOG(level) << "[TID " << PAD(tid, TID_LEN) << "]["
-                           << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN)
-                           << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "] "
-                           << msg << " (Len=" << payload.size()
-                           << "): " << payload_string.get();
-            }
         }
     }
     else
     {
         if (payload.size() > max_bytes_to_display)
         {
-            cout << "[TID " << PAD(tid, TID_LEN) << "]["
-                 << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
-                 << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
+            cout << "[TID " << PAD(GetPid(), TID_LEN) << "]["
+                 << PAD(put_time(gmtime(&curTime), "%H:%M:%S"), TIME_LEN)
+                 << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
                  << " (Len=" << payload.size() << "): " << payload_string.get()
                  << "..." << endl
                  << flush;
         }
         else
         {
-            cout << "[TID " << PAD(tid, TID_LEN) << "]["
-                 << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
-                 << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
+            cout << "[TID " << PAD(GetPid(), TID_LEN) << "]["
+                 << PAD(put_time(gmtime(&curTime), "%H:%M:%S"), TIME_LEN)
+                 << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
                  << " (Len=" << payload.size() << "): " << payload_string.get()
                  << endl
                  << flush;
@@ -337,6 +259,36 @@ void Logger::DisplayLevelAbove(LEVELS level)
 void Logger::EnableLevel(LEVELS level) { g3::log_levels::enable(level); }
 
 void Logger::DisableLevel(LEVELS level) { g3::log_levels::disable(level); }
+
+pid_t Logger::GetPid() { return getCurrentPid(); }
+
+void Logger::GetPayloadS(const std::vector<unsigned char>& payload,
+                         size_t max_bytes_to_display,
+                         std::unique_ptr<char[]>& res)
+{
+    static const char* hex_table = "0123456789ABCDEF";
+    size_t payload_string_len = (payload.size() * 2) + 1;
+
+    if (payload.size() > max_bytes_to_display)
+    {
+        payload_string_len = (max_bytes_to_display * 2) + 1;
+    }
+
+    res = make_unique<char[]>(payload_string_len);
+
+    for (unsigned int payload_idx = 0, payload_string_idx = 0;
+         (payload_idx < payload.size())
+         && ((payload_string_idx + 2) < payload_string_len);
+         payload_idx++)
+    {
+        res.get()[payload_string_idx++]
+            = hex_table[(payload.at(payload_idx) >> 4) & 0xF];
+        res.get()[payload_string_idx++]
+            = hex_table[payload.at(payload_idx) & 0xF];
+    }
+
+    res.get()[payload_string_len - 1] = '\0';
+}
 
 ScopeMarker::ScopeMarker(const char* function)
     : function(function)
