@@ -14,8 +14,6 @@
 # and which include a reference to GPLv3 in their program files.
 
 mkdir -p build
-cd build
-find . -name "filename" -delete
 cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTESTS=ON ..
 make -j4
 make clang-format-fix
