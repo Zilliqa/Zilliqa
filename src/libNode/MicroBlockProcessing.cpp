@@ -470,7 +470,7 @@ bool Node::RunConsensusOnMicroBlock()
     // set state first and then take writer lock so that SubmitTransactions
     // if it takes reader lock later breaks out of loop
     SetState(MICROBLOCK_CONSENSUS_PREP);
-    unique_lock<shared_timed_mutex> lock(m_mutexProducerConsumer);
+    // unique_lock<shared_timed_mutex> lock(m_mutexProducerConsumer);
 
     if (m_isPrimary == true)
     {
