@@ -15,7 +15,7 @@
 
 mkdir -p build
 cd build
-rm CMakeCache.txt
+find . -name "filename" -delete
 cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTESTS=ON ..
 make -j4
 make clang-format-fix

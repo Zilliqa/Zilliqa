@@ -15,7 +15,7 @@
 
 mkdir -p build_lookup
 cd build_lookup
-rm CMakeCache.txt
+find . -name "CMakeCache.txt" -delete
 cmake -DIS_LOOKUP_NODE=1 -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTESTS=ON ..
 make -j4
 make clang-format-fix
