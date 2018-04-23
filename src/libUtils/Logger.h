@@ -17,16 +17,16 @@
 #ifndef __LOGGER_H__
 #define __LOGGER_H__
 
+#include "g3log/g3log.hpp"
+#include "g3log/loglevels.hpp"
 #include <boost/multiprecision/cpp_int.hpp>
+#include <chrono>
 #include <fstream>
+#include <iomanip>
 #include <mutex>
 #include <sstream>
 #include <string>
 #include <vector>
-#include <chrono>
-#include <iomanip>
-#include "g3log/loglevels.hpp"
-#include "g3log/g3log.hpp"
 
 #define LIMIT(s, len)                                                          \
     std::setw(len) << std::setfill(' ') << std::left                           \

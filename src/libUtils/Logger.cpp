@@ -16,12 +16,12 @@
 
 #include "Logger.h"
 
+#include "g3log/logworker.hpp"
 #include <cstring>
 #include <iostream>
 #include <pthread.h>
 #include <sys/syscall.h>
 #include <unistd.h>
-#include "g3log/logworker.hpp"
 
 using namespace std;
 using namespace g3;
