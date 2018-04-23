@@ -730,7 +730,7 @@ void Node::ScheduleTxnSubmission()
                                                      << " seconds");
 
     auto main_func2 = [this]() mutable -> void {
-        unique_lock<shared_timed_mutex> lock(m_mutexProducerConsumer);
+        // unique_lock<shared_timed_mutex> lock(m_mutexProducerConsumer);
         SetState(TX_SUBMISSION_BUFFER);
     };
     DetachedFunction(1, main_func2);
