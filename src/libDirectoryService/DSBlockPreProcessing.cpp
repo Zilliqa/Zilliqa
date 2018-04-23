@@ -222,7 +222,7 @@ void DirectoryService::RunConsensusOnDSBlock()
 {
     LOG_MARKER();
     SetState(DSBLOCK_CONSENSUS_PREP);
-    unique_lock<shared_timed_mutex> lock(m_mutexProducerConsumer);
+    // unique_lock<shared_timed_mutex> lock(m_mutexProducerConsumer);
 
     {
         lock_guard<mutex> g(m_mutexAllPOW1);

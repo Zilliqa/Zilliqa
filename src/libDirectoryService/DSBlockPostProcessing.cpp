@@ -384,6 +384,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
         // Tell my Node class to start PoW2
         m_mediator.UpdateDSBlockRand();
         array<unsigned char, 32> rand2{};
+        this_thread::sleep_for(chrono::seconds(3));
         m_mediator.m_node->StartPoW2(lastDSBlock.GetHeader().GetBlockNum(),
                                      POW2_DIFFICULTY, m_mediator.m_dsBlockRand,
                                      rand2);
