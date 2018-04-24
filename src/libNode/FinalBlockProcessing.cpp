@@ -1436,8 +1436,7 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
             m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
             < blocknum)
         {
-            time_pass++;
-            if (time_pass % 10 == 1)
+            if (time_pass % 600 == 0)
             {
                 LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                              "Blocknum " + blocknum.convert_to<string>()
@@ -1445,6 +1444,8 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
                                  + "for state change from WAITING_FINALBLOCK "
                                    "to TX_SUBMISSION");
             }
+            time_pass++;
+
             this_thread::sleep_for(chrono::milliseconds(100));
         }
     }
