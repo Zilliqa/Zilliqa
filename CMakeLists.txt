@@ -131,6 +131,7 @@ if (ENABLE_COVERAGE AND CMAKE_COMPILER_IS_GNUCXX)
 endif()
 
 add_subdirectory (src)
+add_subdirectory (daemon)
 
 if(TESTS)
     enable_testing()
