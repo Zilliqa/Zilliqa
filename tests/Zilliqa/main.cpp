@@ -62,14 +62,14 @@ int main(int argc, const char* argv[])
         PrivKey privkey;
         if (privkey.Deserialize(tmpprivkey, 0) != 0)
         {
-            LOG_MESSAGE("Error. We failed to deserialize PrivKey.");
+            LOG_GENERAL(WARNING, "We failed to deserialize PrivKey.");
             return -1;
         }
         // PubKey pubkey(tmppubkey, 0);
         PubKey pubkey;
         if (pubkey.Deserialize(tmppubkey, 0) != 0)
         {
-            LOG_MESSAGE("Error. We failed to deserialize PubKey.");
+            LOG_GENERAL(WARNING, "We failed to deserialize PubKey.");
             return -1;
         }
 

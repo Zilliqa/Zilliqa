@@ -26,7 +26,8 @@ using namespace std;
 void process_message(const vector<unsigned char>& message, const Peer& from)
 {
     LOG_MARKER();
-    LOG_MESSAGE("Received message '" << (char*)&message.at(0) << "' at port "
+    LOG_GENERAL(INFO,
+                "Received message '" << (char*)&message.at(0) << "' at port "
                                      << from.m_listenPortHost
                                      << " from address " << from.m_ipAddress);
 }

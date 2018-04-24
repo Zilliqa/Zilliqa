@@ -47,7 +47,7 @@ bool PeerManager::ProcessHello(const vector<unsigned char>& message,
         // key.Deserialize(message, offset);
         if (key.Deserialize(message, offset) != 0)
         {
-            LOG_MESSAGE("Error. We failed to deserialize PubKey.");
+            LOG_GENERAL(WARNING, "We failed to deserialize PubKey.");
             return false;
         }
 
@@ -58,7 +58,8 @@ bool PeerManager::ProcessHello(const vector<unsigned char>& message,
         PeerStore& ps = PeerStore::GetStore();
         ps.AddPeer(key, peer);
 
-        LOG_MESSAGE("Added peer with port " << peer.m_listenPortHost
+        LOG_GENERAL(INFO,
+                    "Added peer with port " << peer.m_listenPortHost
                                             << " at address "
                                             << from.GetPrintableIPAddress());
 
@@ -85,7 +86,7 @@ bool PeerManager::ProcessAddPeer(const vector<unsigned char>& message,
         // key.Deserialize(message, offset);
         if (key.Deserialize(message, offset) != 0)
         {
-            LOG_MESSAGE("Error. We failed to deserialize PubKey.");
+            LOG_GENERAL(WARNING, "We failed to deserialize PubKey.");
             return false;
         }
 
@@ -98,7 +99,8 @@ bool PeerManager::ProcessAddPeer(const vector<unsigned char>& message,
         PeerStore& ps = PeerStore::GetStore();
         ps.AddPeer(key, peer);
 
-        LOG_MESSAGE("Added peer with port " << peer.m_listenPortHost
+        LOG_GENERAL(INFO,
+                    "Added peer with port " << peer.m_listenPortHost
                                             << " at address "
                                             << peer.GetPrintableIPAddress());
 
@@ -126,13 +128,14 @@ bool PeerManager::ProcessPing(const vector<unsigned char>& message,
 
     LOG_MARKER();
 
-    LOG_MESSAGE("Received ping message at " << from.m_listenPortHost
+    LOG_GENERAL(INFO,
+                "Received ping message at " << from.m_listenPortHost
                                             << " from address "
                                             << from.m_ipAddress);
 
     vector<unsigned char> ping_message(message.begin() + offset, message.end());
-    LOG_PAYLOAD("Ping message", ping_message, Logger::MAX_BYTES_TO_DISPLAY);
-
+    LOG_PAYLOAD(INFO, "Ping message", ping_message,
+                Logger::MAX_BYTES_TO_DISPLAY);
     return true;
 }
 
@@ -165,7 +168,7 @@ bool PeerManager::ProcessBroadcast(const vector<unsigned char>& message,
     vector<unsigned char> broadcast_message(message.size() - offset);
     copy(message.begin() + offset, message.end(), broadcast_message.begin());
 
-    LOG_PAYLOAD("Broadcast message", broadcast_message,
+    LOG_PAYLOAD(INFO, "Broadcast message", broadcast_message,
                 Logger::MAX_BYTES_TO_DISPLAY);
     P2PComm::GetInstance().SendBroadcastMessage(GetBroadcastList(0, m_selfPeer),
                                                 broadcast_message);
@@ -182,7 +185,7 @@ PeerManager::PeerManager(const std::pair<PrivKey, PubKey>& key,
 
     if (loadConfig)
     {
-        LOG_MESSAGE("Loading configuration file");
+        LOG_GENERAL(INFO, "Loading configuration file");
 
         // Open config file
         ifstream config("config.xml");
@@ -209,9 +212,10 @@ PeerManager::PeerManager(const std::pair<PrivKey, PubKey>& key,
                 if (peer != m_selfPeer)
                 {
                     ps.AddPeer(key, peer);
-                    LOG_MESSAGE("Added peer with port "
-                                << peer.m_listenPortHost << " at address "
-                                << peer.GetPrintableIPAddress());
+                    LOG_GENERAL(INFO,
+                                "Added peer with port "
+                                    << peer.m_listenPortHost << " at address "
+                                    << peer.GetPrintableIPAddress());
                 }
             }
         }
@@ -252,7 +256,8 @@ bool PeerManager::Execute(const vector<unsigned char>& message,
     }
     else
     {
-        LOG_MESSAGE("Unknown instruction byte " << std::hex
+        LOG_GENERAL(INFO,
+                    "Unknown instruction byte " << std::hex
                                                 << (unsigned int)ins_byte);
     }
 

@@ -27,7 +27,7 @@ BOOST_AUTO_TEST_SUITE(utils)
 void test()
 {
     LOG_MARKER();
-    LOG_MESSAGE("Hello world");
+    LOG_GENERAL(INFO, "Hello world");
 }
 
 BOOST_AUTO_TEST_CASE(testLogger1)
@@ -36,12 +36,12 @@ BOOST_AUTO_TEST_CASE(testLogger1)
     INIT_FILE_LOGGER("test1");
     vector<unsigned char> bytestream = {0x12, 0x34, 0x56, 0x78, 0x9A};
 
-    LOG_MESSAGE("Hello world");
-    LOG_PAYLOAD("Hello world", bytestream,
+    LOG_GENERAL(INFO, "Hello world");
+    LOG_PAYLOAD(INFO, "Hello world", bytestream,
                 Logger::MAX_BYTES_TO_DISPLAY); // use default max payload length
-    LOG_PAYLOAD("Hello world", bytestream,
+    LOG_PAYLOAD(INFO, "Hello world", bytestream,
                 5); // use max payload length = payload length
-    LOG_PAYLOAD("Hello world", bytestream,
+    LOG_PAYLOAD(INFO, "Hello world", bytestream,
                 4); // use max payload length < payload length
 
     // Try in different thread
