@@ -47,7 +47,7 @@ bool BlockStorage::PushBackTxBodyDB(
     if (m_txBodyDBs.size()
         >= NUM_DS_KEEP_TX_BODY + 1) // Leave one for keeping tmp txBody
     {
-        LOG_MESSAGE("TxBodyDB pool is full")
+        LOG_GENERAL(INFO, "TxBodyDB pool is full")
         return false;
     }
 
@@ -64,7 +64,7 @@ bool BlockStorage::PopFrontTxBodyDB(bool mandatory)
 
     if (m_txBodyDBs.empty())
     {
-        LOG_MESSAGE("No TxBodyDB found");
+        LOG_GENERAL(INFO, "No TxBodyDB found");
         return false;
     }
 
@@ -72,7 +72,7 @@ bool BlockStorage::PopFrontTxBodyDB(bool mandatory)
     {
         if (m_txBodyDBs.size() <= NUM_DS_KEEP_TX_BODY)
         {
-            LOG_MESSAGE("size of txBodyDB hasn't meet maximum, ignore");
+            LOG_GENERAL(INFO, "size of txBodyDB hasn't meet maximum, ignore");
             return true;
         }
     }
@@ -117,7 +117,8 @@ bool BlockStorage::PutDSBlock(const boost::multiprecision::uint256_t& blockNum,
         {
             if (!DeleteDSBlock(blockNum))
             {
-                LOG_MESSAGE("FAIL: Delete DSBlock" << blockNum << "Failed");
+                LOG_GENERAL(INFO,
+                            "FAIL: Delete DSBlock" << blockNum << "Failed");
             }
         }
     }
@@ -137,7 +138,7 @@ bool BlockStorage::PutTxBody(const dev::h256& key,
 #ifndef IS_LOOKUP_NODE
     if (m_txBodyDBs.empty())
     {
-        LOG_MESSAGE("Error: No TxBodyDB found");
+        LOG_GENERAL(WARNING, "No TxBodyDB found");
         return false;
     }
     int ret = m_txBodyDBs.back()->Insert(key, body);
@@ -158,8 +159,8 @@ bool BlockStorage::GetDSBlock(const boost::multiprecision::uint256_t& blockNum,
         return false;
     }
 
-    LOG_MESSAGE(blockString);
-    LOG_MESSAGE(blockString.length());
+    LOG_GENERAL(INFO, blockString);
+    LOG_GENERAL(INFO, blockString.length());
     const unsigned char* raw_memory
         = reinterpret_cast<const unsigned char*>(blockString.c_str());
     // FIXME: Handle exceptions
@@ -193,7 +194,7 @@ bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body)
 #ifndef IS_LOOKUP_NODE
     if (m_txBodyDBs.empty())
     {
-        LOG_MESSAGE("Error: No TxBodyDB found");
+        LOG_GENERAL(WARNING, "No TxBodyDB found");
         return false;
     }
     string bodyString = m_txBodyDBs.back()->Lookup(key);
@@ -218,7 +219,7 @@ bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body)
 bool BlockStorage::DeleteDSBlock(
     const boost::multiprecision::uint256_t& blocknum)
 {
-    LOG_MESSAGE("Delete DSBlock Num: " << blocknum);
+    LOG_GENERAL(INFO, "Delete DSBlock Num: " << blocknum);
     int ret = m_dsBlockchainDB.DeleteKey(blocknum);
     return (ret == 0);
 }
@@ -265,12 +266,12 @@ bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr>& blocks)
     {
         string bns = it->key().ToString();
         boost::multiprecision::uint256_t blockNum(bns);
-        LOG_MESSAGE("blockNum: " << blockNum);
+        LOG_GENERAL(INFO, "blockNum: " << blockNum);
 
         string blockString = it->value().ToString();
         if (blockString.empty())
         {
-            LOG_MESSAGE("ERROR: Lost one block in the chain");
+            LOG_GENERAL(WARNING, "Lost one block in the chain");
             return false;
         }
         const unsigned char* raw_memory
@@ -285,7 +286,7 @@ bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr>& blocks)
 
     if (blocks.empty())
     {
-        LOG_MESSAGE("Disk has no DSBlock");
+        LOG_GENERAL(INFO, "Disk has no DSBlock");
         return false;
     }
 
@@ -302,12 +303,12 @@ bool BlockStorage::GetAllTxBlocks(std::list<TxBlockSharedPtr>& blocks)
     {
         string bns = it->key().ToString();
         boost::multiprecision::uint256_t blockNum(bns);
-        LOG_MESSAGE("blockNum: " << blockNum);
+        LOG_GENERAL(INFO, "blockNum: " << blockNum);
 
         string blockString = it->value().ToString();
         if (blockString.empty())
         {
-            LOG_MESSAGE("ERROR: Lost one block in the chain");
+            LOG_GENERAL(WARNING, "Lost one block in the chain");
             return false;
         }
         const unsigned char* raw_memory
@@ -321,7 +322,7 @@ bool BlockStorage::GetAllTxBlocks(std::list<TxBlockSharedPtr>& blocks)
 
     if (blocks.empty())
     {
-        LOG_MESSAGE("Disk has no TxBlock");
+        LOG_GENERAL(INFO, "Disk has no TxBlock");
         return false;
     }
 
@@ -340,7 +341,7 @@ bool BlockStorage::GetAllTxBodiesTmp(std::list<TxnHash>& txnHashes)
         string hashString = it->key().ToString();
         if (hashString.empty())
         {
-            LOG_MESSAGE("ERROR: Lost one Tmp txBody Hash");
+            LOG_GENERAL(WARNING, "Lost one Tmp txBody Hash");
             return false;
         }
         TxnHash txnHash(hashString);
@@ -365,7 +366,7 @@ bool BlockStorage::GetMetadata(MetaType type, std::vector<unsigned char>& data)
 
     if (metaString.empty())
     {
-        LOG_MESSAGE("No metadata get")
+        LOG_GENERAL(INFO, "No metadata get")
         return false;
     }
 
@@ -396,7 +397,7 @@ bool BlockStorage::ResetDB(DBTYPE type)
         {
             if (!PopFrontTxBodyDB(true))
             {
-                LOG_MESSAGE("Error: failed to reset TxBodyDB list");
+                LOG_GENERAL(WARNING, "failed to reset TxBodyDB list");
                 throw std::exception();
             }
         }
@@ -411,7 +412,7 @@ bool BlockStorage::ResetDB(DBTYPE type)
     }
     if (!ret)
     {
-        LOG_MESSAGE("FAIL: Reset DB " << type << " failed");
+        LOG_GENERAL(INFO, "FAIL: Reset DB " << type << " failed");
     }
     return ret;
 }

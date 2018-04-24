@@ -53,10 +53,10 @@ public:
                 }
                 catch (const std::system_error& e)
                 {
-                    LOG_MESSAGE(
-                        "Error: "
-                        << j << " times tried. Caught system_error with code "
-                        << e.code() << " meaning " << e.what() << '\n');
+                    LOG_GENERAL(
+                        WARNING,
+                        j << " times tried. Caught system_error with code "
+                          << e.code() << " meaning " << e.what() << '\n');
                     std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 }
             }

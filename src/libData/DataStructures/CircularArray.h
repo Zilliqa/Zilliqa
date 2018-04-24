@@ -59,7 +59,7 @@ public:
     {
         if (!m_array.size())
         {
-            LOG_MESSAGE("Error: m_array is empty")
+            LOG_GENERAL(WARNING, "m_array is empty")
             throw;
         }
         return m_array[(int)(index % m_capacity)];
@@ -70,7 +70,7 @@ public:
     {
         if (!m_array.size())
         {
-            LOG_MESSAGE("Error: m_array is empty")
+            LOG_GENERAL(WARNING, "m_array is empty")
             throw;
         }
         m_array[(int)(index % m_capacity)] = element;
@@ -82,7 +82,7 @@ public:
     {
         if (!m_array.size())
         {
-            LOG_MESSAGE("Error: m_array is empty")
+            LOG_GENERAL(WARNING, "m_array is empty")
             throw;
         }
         return m_array[(int)((m_size - 1) % m_capacity)];
@@ -93,7 +93,7 @@ public:
     {
         if (!m_array.size())
         {
-            LOG_MESSAGE("Error: m_array is empty")
+            LOG_GENERAL(WARNING, "m_array is empty")
             throw;
         }
         // modulo arithmetic of 256-bit will probably be slow

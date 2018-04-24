@@ -53,7 +53,7 @@ void Mediator::UpdateDSBlockRand(bool isGenesis)
     if (isGenesis)
     {
         //genesis block
-        LOG_MESSAGE("Genesis DSBlockchain")
+        LOG_GENERAL(INFO, "Genesis DSBlockchain")
         array<unsigned char, UINT256_SIZE> rand1;
         rand1 = DataConversion::HexStrToStdArray(RAND1_GENESIS);
         copy(rand1.begin(), rand1.end(), m_dsBlockRand.begin());
@@ -77,7 +77,7 @@ void Mediator::UpdateTxBlockRand(bool isGenesis)
 
     if (isGenesis)
     {
-        LOG_MESSAGE("Genesis txBlockchain")
+        LOG_GENERAL(INFO, "Genesis txBlockchain")
         array<unsigned char, UINT256_SIZE> rand2;
         rand2 = DataConversion::HexStrToStdArray(RAND2_GENESIS);
         copy(rand2.begin(), rand2.end(), m_txBlockRand.begin());

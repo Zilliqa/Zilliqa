@@ -66,17 +66,16 @@ BOOST_AUTO_TEST_CASE(DSBlock_test)
 
     std::vector<unsigned char> message1;
     block1.Serialize(message1, 0);
-
-    LOG_PAYLOAD("Block1 serialized", message1, Logger::MAX_BYTES_TO_DISPLAY);
+    LOG_PAYLOAD(INFO, "Block1 serialized", message1,
+                Logger::MAX_BYTES_TO_DISPLAY);
 
     DSBlock block2(message1, 0);
 
     std::vector<unsigned char> message2;
     block2.Serialize(message2, 0);
     dsHeader = block2.GetHeader();
-
-    LOG_PAYLOAD("Block2 serialized", message2, Logger::MAX_BYTES_TO_DISPLAY);
-
+    LOG_PAYLOAD(INFO, "Block2 serialized", message2,
+                Logger::MAX_BYTES_TO_DISPLAY);
     DSBlockHeader header2 = block2.GetHeader();
     uint8_t diff2 = header2.GetDifficulty();
     const std::array<unsigned char, BLOCK_HASH_SIZE>& prevHash2
@@ -89,7 +88,7 @@ BOOST_AUTO_TEST_CASE(DSBlock_test)
     const std::array<unsigned char, BLOCK_SIG_SIZE>& signature2
         = block2.GetSignature();
 
-    LOG_MESSAGE("Block 2 difficulty: " << diff2);
+    LOG_GENERAL(INFO, "Block 2 difficulty: " << diff2);
     BOOST_CHECK_MESSAGE(diff2 == 20,
                         "expected: " << 20 << " actual: " << diff2 << "\n");
 
@@ -97,7 +96,7 @@ BOOST_AUTO_TEST_CASE(DSBlock_test)
                         "expected: " << 32 << " actual: " << prevHash2.at(31)
                                      << "\n");
 
-    LOG_MESSAGE("Block 2 nonce: " << nonce2);
+    LOG_GENERAL(INFO, "Block 2 nonce: " << nonce2);
     BOOST_CHECK_MESSAGE(nonce2 == 12345,
                         "expected: " << 12345 << " actual: " << nonce2 << "\n");
 
@@ -105,11 +104,11 @@ BOOST_AUTO_TEST_CASE(DSBlock_test)
                         "expected: " << 36 << " actual: " << pubKey2.at(32)
                                      << "\n");
 
-    LOG_MESSAGE("Block 2 blockNum: " << blockNum2);
+    LOG_GENERAL(INFO, "Block 2 blockNum: " << blockNum2);
     BOOST_CHECK_MESSAGE(blockNum2 == 10,
                         "expected: " << 10 << " actual: " << blockNum2 << "\n");
 
-    LOG_MESSAGE("Block 2 timestamp: " << timestamp2);
+    LOG_GENERAL(INFO, "Block 2 timestamp: " << timestamp2);
     BOOST_CHECK_MESSAGE(timestamp2 == 789,
                         "expected: " << 789 << " actual: " << timestamp2
                                      << "\n");
@@ -269,20 +268,23 @@ BOOST_AUTO_TEST_CASE(TxBlock_test)
     std::vector<unsigned char> message1;
     block1.Serialize(message1, 0);
 
-    LOG_PAYLOAD("Block1 serialized", message1, Logger::MAX_BYTES_TO_DISPLAY);
+    LOG_PAYLOAD(INFO, "Block1 serialized", message1,
+                Logger::MAX_BYTES_TO_DISPLAY);
 
     TxBlock block2(message1, 0);
 
     std::vector<unsigned char> message2;
     block2.Serialize(message2, 0);
 
-    LOG_PAYLOAD("Block2 serialized", message2, Logger::MAX_BYTES_TO_DISPLAY);
+    LOG_PAYLOAD(INFO, "Block2 serialized", message2,
+                Logger::MAX_BYTES_TO_DISPLAY);
 
     for (unsigned int i = 0; i < message1.size(); i++)
     {
         if (message1.at(i) != message2.at(i))
         {
-            LOG_MESSAGE("message1[" << i << "]=" << std::hex << message1.at(i)
+            LOG_GENERAL(INFO,
+                        "message1[" << i << "]=" << std::hex << message1.at(i)
                                     << ", message2[" << i << "]=" << std::hex
                                     << message2.at(i));
         }
@@ -317,27 +319,28 @@ BOOST_AUTO_TEST_CASE(TxBlock_test)
     const std::vector<Transaction> tranData2 = block2.GetTranData();
 
     uint32_t type2_large = type2;
-    LOG_MESSAGE("Block 2 type: " << type2_large);
+    LOG_GENERAL(INFO, "Block 2 type: " << type2_large);
     BOOST_CHECK_MESSAGE(type2 == 1,
                         "expected: " << 1 << " actual: " << type2 << "\n");
 
-    LOG_MESSAGE("Block 2 version: " << version2);
+    LOG_GENERAL(INFO, "Block 2 version: " << version2);
     BOOST_CHECK_MESSAGE(version2 == 1,
                         "expected: " << 1 << " actual: " << version2 << "\n");
 
-    LOG_MESSAGE("Block 2 gasLimit: " << gasLimit2);
+    LOG_GENERAL(INFO, "Block 2 gasLimit: " << gasLimit2);
     BOOST_CHECK_MESSAGE(gasLimit2 == 100,
                         "expected: " << 100 << " actual: " << gasLimit2
                                      << "\n");
 
-    LOG_MESSAGE("Block 2 gasUsed: " << gasUsed2);
+    LOG_GENERAL(INFO, "Block 2 gasUsed: " << gasUsed2);
     BOOST_CHECK_MESSAGE(gasUsed2 == 50,
                         "expected: " << 50 << " actual: " << gasUsed2 << "\n");
 
     std::vector<unsigned char> byteVec;
     byteVec.resize(BLOCK_HASH_SIZE);
     copy(prevHash2.begin(), prevHash2.end(), byteVec.begin());
-    LOG_PAYLOAD("Block 2 prevHash", byteVec, Logger::MAX_BYTES_TO_DISPLAY);
+    LOG_PAYLOAD(INFO, "Block 2 prevHash", byteVec,
+                Logger::MAX_BYTES_TO_DISPLAY);
     std::string expectedStr
         = "0D3979DA06841562C90DE5212BE5EFCF88FAEA17118945B6B49D304DE295E407";
     std::vector<unsigned char> expectedVec
@@ -349,11 +352,11 @@ BOOST_AUTO_TEST_CASE(TxBlock_test)
                             << expectedStr << " actual: "
                             << DataConversion::Uint8VecToHexStr(byteVec));
 
-    LOG_MESSAGE("Block 2 blockNum: " << blockNum2);
+    LOG_GENERAL(INFO, "Block 2 blockNum: " << blockNum2);
     BOOST_CHECK_MESSAGE(blockNum2 == 1,
                         "expected: " << 1 << " actual: " << blockNum2 << "\n");
 
-    LOG_MESSAGE("Block 2 timestamp: " << timestamp2);
+    LOG_GENERAL(INFO, "Block 2 timestamp: " << timestamp2);
     BOOST_CHECK_MESSAGE(timestamp2 == 23456,
                         "expected: " << 23456 << " actual: " << timestamp2
                                      << "\n");
@@ -361,7 +364,8 @@ BOOST_AUTO_TEST_CASE(TxBlock_test)
     byteVec.clear();
     byteVec.resize(TRAN_HASH_SIZE);
     copy(txRootHash2.begin(), txRootHash2.end(), byteVec.begin());
-    LOG_PAYLOAD("Block 2 txRootHash2", byteVec, Logger::MAX_BYTES_TO_DISPLAY);
+    LOG_PAYLOAD(INFO, "Block 2 txRootHash2", byteVec,
+                Logger::MAX_BYTES_TO_DISPLAY);
     expectedStr
         = "4A740D0FA29B841C6D99B02892273F7D00518EF12DAFA2AD4D198E630789CF3B";
     expectedVec.clear();
@@ -373,7 +377,7 @@ BOOST_AUTO_TEST_CASE(TxBlock_test)
                             << expectedStr << " actual: "
                             << DataConversion::Uint8VecToHexStr(byteVec));
 
-    LOG_MESSAGE("Block 2 numTxs2: " << numTxs2);
+    LOG_GENERAL(INFO, "Block 2 numTxs2: " << numTxs2);
     BOOST_CHECK_MESSAGE(numTxs2 == 2,
                         "expected: " << 2 << " actual: " << numTxs2 << "\n");
 
@@ -381,7 +385,7 @@ BOOST_AUTO_TEST_CASE(TxBlock_test)
                         "expected: " << 36 << " actual: " << pubKey2.at(32)
                                      << "\n");
 
-    LOG_MESSAGE("Block 2 numTxData2: " << numTxData2);
+    LOG_GENERAL(INFO, "Block 2 numTxData2: " << numTxData2);
     BOOST_CHECK_MESSAGE(numTxData2 == 2,
                         "expected: " << 2 << " actual: " << numTxData2 << "\n");
 

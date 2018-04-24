@@ -70,10 +70,9 @@ bool Node::ReadAuxilliaryInfoFromFinalBlockMsg(
 
     if (consensusID != m_consensusID)
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Consensus ID is not correct. Expected ID: "
-                         << consensusID
-                         << " My Consensus ID: " << m_consensusID);
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Consensus ID is not correct. Expected ID: "
+                      << consensusID << " My Consensus ID: " << m_consensusID);
         return false;
     }
 
@@ -81,8 +80,8 @@ bool Node::ReadAuxilliaryInfoFromFinalBlockMsg(
                                                 sizeof(uint8_t));
     cur_offset += sizeof(uint8_t);
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "DEBUG shard id is " << (unsigned int)shard_id)
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "DEBUG shard id is " << (unsigned int)shard_id)
 
     return true;
 }
@@ -102,13 +101,13 @@ void Node::StoreFinalBlock(const TxBlock& txBlock)
     // At this point, the transactions in the last Epoch is no longer useful, thus erase.
     m_committedTransactions.erase(m_mediator.m_currentEpochNum - 2);
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "Storing Tx Block Number: "
-                     << txBlock.GetHeader().GetBlockNum()
-                     << " with Type: " << txBlock.GetHeader().GetType()
-                     << ", Version: " << txBlock.GetHeader().GetVersion()
-                     << ", Timestamp: " << txBlock.GetHeader().GetTimestamp()
-                     << ", NumTxs: " << txBlock.GetHeader().GetNumTxs());
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Storing Tx Block Number: "
+                  << txBlock.GetHeader().GetBlockNum()
+                  << " with Type: " << txBlock.GetHeader().GetType()
+                  << ", Version: " << txBlock.GetHeader().GetVersion()
+                  << ", Timestamp: " << txBlock.GetHeader().GetTimestamp()
+                  << ", NumTxs: " << txBlock.GetHeader().GetNumTxs());
 
     // Store Tx Block to disk
     vector<unsigned char> serializedTxBlock;
@@ -116,7 +115,8 @@ void Node::StoreFinalBlock(const TxBlock& txBlock)
     BlockStorage::GetBlockStorage().PutTxBlock(
         txBlock.GetHeader().GetBlockNum(), serializedTxBlock);
 
-    LOG_MESSAGE(
+    LOG_GENERAL(
+        INFO,
         "View change count:  " << txBlock.GetHeader().GetViewChangeCounter());
 
     for (unsigned int i = 0; i < txBlock.GetHeader().GetViewChangeCounter();
@@ -130,16 +130,16 @@ void Node::StoreFinalBlock(const TxBlock& txBlock)
         m_mediator.m_DSCommitteePubKeys.pop_front();
     }
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "Final block " << m_mediator.m_txBlockChain.GetLastBlock()
-                                       .GetHeader()
-                                       .GetBlockNum()
-                                << " received with prevhash 0x"
-                                << DataConversion::charArrToHexStr(
-                                       m_mediator.m_txBlockChain.GetLastBlock()
-                                           .GetHeader()
-                                           .GetPrevHash()
-                                           .asArray()));
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Final block " << m_mediator.m_txBlockChain.GetLastBlock()
+                                    .GetHeader()
+                                    .GetBlockNum()
+                             << " received with prevhash 0x"
+                             << DataConversion::charArrToHexStr(
+                                    m_mediator.m_txBlockChain.GetLastBlock()
+                                        .GetHeader()
+                                        .GetPrevHash()
+                                        .asArray()));
 
 #ifdef STAT_TEST
     LOG_STATE(
@@ -155,26 +155,26 @@ bool Node::IsMicroBlockTxRootHashInFinalBlock(TxnHash microBlockTxRootHash,
                                               const uint256_t& blocknum,
                                               bool& isEveryMicroBlockAvailable)
 {
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "Deleting unavailable "
-                     << "microblock " << microBlockTxRootHash
-                     << " for blocknum " << blocknum);
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Deleting unavailable "
+                  << "microblock " << microBlockTxRootHash << " for blocknum "
+                  << blocknum);
     lock_guard<mutex> g(m_mutexUnavailableMicroBlocks);
     auto it = m_unavailableMicroBlocks.find(blocknum);
     bool found = (it != m_unavailableMicroBlocks.end()
                   && it->second.erase(microBlockTxRootHash));
     isEveryMicroBlockAvailable = found && it->second.empty();
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "Found " << microBlockTxRootHash << ": "
-                          << isEveryMicroBlockAvailable);
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Found " << microBlockTxRootHash << ": "
+                       << isEveryMicroBlockAvailable);
     return found;
 }
 
 void Node::LoadUnavailableMicroBlockTxRootHashes(
     const TxBlock& finalBlock, const boost::multiprecision::uint256_t& blocknum)
 {
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "Unavailable microblock hashes in final block : ")
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Unavailable microblock hashes in final block : ")
 
     lock_guard<mutex> g(m_mutexUnavailableMicroBlocks);
     for (uint i = 0; i < finalBlock.GetMicroBlockHashes().size(); ++i)
@@ -183,8 +183,8 @@ void Node::LoadUnavailableMicroBlockTxRootHashes(
         {
             auto hash = finalBlock.GetMicroBlockHashes()[i];
             m_unavailableMicroBlocks[blocknum].insert(hash);
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         DataConversion::charArrToHexStr(hash.asArray()))
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      DataConversion::charArrToHexStr(hash.asArray()))
         }
     }
 
@@ -263,20 +263,21 @@ bool Node::CheckMicroBlockRootHash(
     TxnHash microBlocksHash
         = ComputeTransactionsRoot(finalBlock.GetMicroBlockHashes());
 
-    LOG_MESSAGE2(
-        to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(
+        INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
         "Expected FinalBlock TxRoot hash : "
             << DataConversion::charArrToHexStr(microBlocksHash.asArray()));
 
     if (finalBlock.GetHeader().GetTxRootHash() != microBlocksHash)
     {
-        LOG_MESSAGE("TxRootHash in Final Block Header doesn't match root of "
+        LOG_GENERAL(INFO,
+                    "TxRootHash in Final Block Header doesn't match root of "
                     "microblock hashes");
         return false;
     }
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "FinalBlock TxRoot hash in final block by DS is correct");
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "FinalBlock TxRoot hash in final block by DS is correct");
 
     return true;
 }
@@ -312,8 +313,8 @@ bool Node::FindTxnInSubmittedTxnsList(const TxBlock& finalblock,
         committedTransactions.push_back(txnIt->second);
         submittedTransactions.erase(txnIt);
 
-        LOG_MESSAGE2(
-            to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(
+            INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "[TXN] ["
                 << blockNum << "] Committed     = 0x"
                 << DataConversion::charArrToHexStr(
@@ -325,14 +326,14 @@ bool Node::FindTxnInSubmittedTxnsList(const TxBlock& finalblock,
 
         // DO NOT DELETE. PERISTENT STORAGE
         /**
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "##Storing Transaction##");
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), DataConversion::charArrToHexStr(tx_hash));
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), (*entry).GetAmount());
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), DataConversion::charArrToHexStr((*entry).GetToAddr()));
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), DataConversion::charArrToHexStr((*entry).GetFromAddr()));
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "##Storing Transaction##");
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), DataConversion::charArrToHexStr(tx_hash));
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), (*entry).GetAmount());
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), DataConversion::charArrToHexStr((*entry).GetToAddr()));
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), DataConversion::charArrToHexStr((*entry).GetFromAddr()));
         **/
 
-        //LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Storing Transaction: "<< DataConversion::charArrToHexStr(tx_hash) <<
+        //LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "Storing Transaction: "<< DataConversion::charArrToHexStr(tx_hash) <<
         //    " with amount: "<<(*entry).GetAmount()<<
         //    ", to: "<<DataConversion::charArrToHexStr((*entry).GetToAddr())<<
         //   ", from: "<<DataConversion::charArrToHexStr((*entry).GetFromAddr()));
@@ -343,7 +344,7 @@ bool Node::FindTxnInSubmittedTxnsList(const TxBlock& finalblock,
         if (BlockStorage::GetBlockStorage().PutTxBody(tx_hash,
                                                       serializedTxBody))
         {
-            LOG_MESSAGE("FAIL: PutTxBody Failed");
+            LOG_GENERAL(INFO, "FAIL: PutTxBody Failed");
         }
 
         // Move on to next transaction in block
@@ -382,8 +383,8 @@ bool Node::FindTxnInReceivedTxnsList(const TxBlock& finalblock,
         committedTransactions.push_back(txnIt->second);
         receivedTransactions.erase(txnIt);
 
-        LOG_MESSAGE2(
-            to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(
+            INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "[TXN] ["
                 << blockNum << "] Committed     = 0x"
                 << DataConversion::charArrToHexStr(
@@ -394,22 +395,21 @@ bool Node::FindTxnInReceivedTxnsList(const TxBlock& finalblock,
             committedTransactions.back());
 
         /**
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "##Storing Transaction##");
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), DataConversion::charArrToHexStr(tx_hash));
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), (*entry).GetAmount());
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), DataConversion::charArrToHexStr((*entry).GetToAddr()));
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), DataConversion::charArrToHexStr((*entry).GetFromAddr()));
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "##Storing Transaction##");
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), DataConversion::charArrToHexStr(tx_hash));
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), (*entry).GetAmount());
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), DataConversion::charArrToHexStr((*entry).GetToAddr()));
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), DataConversion::charArrToHexStr((*entry).GetFromAddr()));
         **/
 
-        LOG_MESSAGE2(
-            to_string(m_mediator.m_currentEpochNum).c_str(),
-            "ReceivedTransaction: Storing Transaction: "
-                << DataConversion::charArrToHexStr(tx_hash.asArray())
-                << " with amount: " << committedTransactions.back().GetAmount()
-                << ", to: " << committedTransactions.back().GetToAddr()
-                << ", from: "
-                << Account::GetAddressFromPublicKey(
-                       committedTransactions.back().GetSenderPubKey()));
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "ReceivedTransaction: Storing Transaction: "
+                      << DataConversion::charArrToHexStr(tx_hash.asArray())
+                      << " with amount: "
+                      << committedTransactions.back().GetAmount() << ", to: "
+                      << committedTransactions.back().GetToAddr() << ", from: "
+                      << Account::GetAddressFromPublicKey(
+                             committedTransactions.back().GetSenderPubKey()));
 
         // Store TxBody to disk
         vector<unsigned char> serializedTxBody;
@@ -417,7 +417,7 @@ bool Node::FindTxnInReceivedTxnsList(const TxBlock& finalblock,
         if (!BlockStorage::GetBlockStorage().PutTxBody(tx_hash,
                                                        serializedTxBody))
         {
-            LOG_MESSAGE("FAIL: PutTxBody Failed");
+            LOG_GENERAL(INFO, "FAIL: PutTxBody Failed");
         }
 
         // Move on to next transaction in block
@@ -450,15 +450,14 @@ void Node::CommitMyShardsMicroBlock(const TxBlock& finalblock,
                                        txns_to_send, tx_hash))
         {
             // TODO
-            LOG_MESSAGE2(
-                to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Error: Cannnot find txn in submitted txn and recv list");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Cannnot find txn in submitted txn and recv list");
         }
     }
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "Number of transactions to broadcast for block "
-                     << blocknum << " = " << txns_to_send.size());
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Number of transactions to broadcast for block "
+                  << blocknum << " = " << txns_to_send.size());
 
     {
         lock_guard<mutex> g(m_mutexReceivedTransactions);
@@ -502,28 +501,27 @@ void Node::BroadcastTransactionsToSendingAssignment(
             txns_to_send.at(i).Serialize(forwardtxn_message, cur_offset);
             cur_offset += Transaction::GetSerializedSize();
 
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "[TXN] ["
-                             << blocknum << "] Broadcasted   = 0x"
-                             << DataConversion::charArrToHexStr(
-                                    txns_to_send.at(i).GetTranID().asArray()));
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "[TXN] ["
+                          << blocknum << "] Broadcasted   = 0x"
+                          << DataConversion::charArrToHexStr(
+                                 txns_to_send.at(i).GetTranID().asArray()));
         }
 
         P2PComm::GetInstance().SendBroadcastMessage(sendingAssignment,
                                                     forwardtxn_message);
 
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "DEBUG: I have broadcasted the txn body!")
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "DEBUG: I have broadcasted the txn body!")
 
-        LOG_MESSAGE2(
-            to_string(m_mediator.m_currentEpochNum).c_str(),
-            "I will soon be sending the txn bodies to the lookup nodes");
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "I will soon be sending the txn bodies to the lookup nodes");
         m_mediator.m_lookup->SendMessageToLookupNodes(forwardtxn_message);
     }
     else
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "DEBUG I have no txn body to send")
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "DEBUG I have no txn body to send")
     }
 }
 
@@ -533,10 +531,10 @@ void Node::LoadForwardingAssignmentFromFinalBlock(
     // For now, since each sharding setup only processes one block, then whatever transactions we
     // failed to submit have to be discarded m_createdTransactions.clear();
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "[shard " << m_myShardID
-                           << "] I am a forwarder for transactions in block "
-                           << blocknum);
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "[shard " << m_myShardID
+                        << "] I am a forwarder for transactions in block "
+                        << blocknum);
 
     lock_guard<mutex> g2(m_mutexForwardingAssignment);
 
@@ -544,8 +542,8 @@ void Node::LoadForwardingAssignmentFromFinalBlock(
 
     vector<Peer>& peers = m_forwardingAssignment.at(blocknum);
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "Forward list:");
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Forward list:");
 
     for (unsigned int i = 0; i < m_myShardMembersNetworkInfo.size(); i++)
     {
@@ -577,8 +575,8 @@ void Node::LoadForwardingAssignmentFromFinalBlock(
 
     for (unsigned int i = 0; i < peers.size(); i++)
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     peers.at(i));
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  peers.at(i));
     }
 }
 
@@ -627,8 +625,8 @@ bool Node::ActOnFinalBlock(uint8_t tx_sharing_mode, const vector<Peer>& nodes)
     case IDLE:
     default:
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "I am idle for transactions in block " << blocknum);
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "I am idle for transactions in block " << blocknum);
         break;
     }
     }
@@ -730,8 +728,8 @@ void Node::InitiatePoW1()
     POW::GetInstance().EthashConfigureLightClient(
         (uint64_t)m_mediator.m_dsBlockChain
             .GetBlockCount()); // hack hack hack -- typecasting
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "Start pow1 ");
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Start pow1 ");
     auto func = [this]() mutable -> void {
         auto epochNumber = m_mediator.m_dsBlockChain.GetBlockCount();
         auto dsBlockRand = m_mediator.m_dsBlockRand;
@@ -739,8 +737,8 @@ void Node::InitiatePoW1()
         StartPoW1(epochNumber, POW1_DIFFICULTY, dsBlockRand, txBlockRand);
     };
     DetachedFunction(1, func);
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "Soln to pow1 found ");
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Soln to pow1 found ");
 }
 
 void Node::UpdateStateForNextConsensusRound()
@@ -748,8 +746,8 @@ void Node::UpdateStateForNextConsensusRound()
     // Set state to tx submission
     if (m_isPrimary == true)
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "MS: I am no longer the shard leader ");
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "MS: I am no longer the shard leader ");
         m_isPrimary = false;
     }
 
@@ -759,23 +757,23 @@ void Node::UpdateStateForNextConsensusRound()
 
     if (m_consensusMyID == m_consensusLeaderID)
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "MS: I am the new shard leader ");
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "MS: I am the new shard leader ");
         m_isPrimary = true;
     }
     else
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "MS: The new shard leader is m_consensusMyID "
-                         << m_consensusLeaderID);
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "MS: The new shard leader is m_consensusMyID "
+                      << m_consensusLeaderID);
     }
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "MS: Next non-ds epoch begins");
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "MS: Next non-ds epoch begins");
 
     SetState(TX_SUBMISSION);
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "[No PoW needed] MS: Start submit txn stage again.");
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "[No PoW needed] MS: Start submit txn stage again.");
 }
 
 void Node::ScheduleTxnSubmission()
@@ -783,13 +781,15 @@ void Node::ScheduleTxnSubmission()
     auto main_func = [this]() mutable -> void { SubmitTransactions(); };
     DetachedFunction(1, main_func);
 
-    LOG_MESSAGE("I am going to sleep for " << SUBMIT_TX_WINDOW << " seconds");
+    LOG_GENERAL(INFO,
+                "I am going to sleep for " << SUBMIT_TX_WINDOW << " seconds");
     this_thread::sleep_for(chrono::seconds(SUBMIT_TX_WINDOW));
-    LOG_MESSAGE("I have woken up from the sleep of " << SUBMIT_TX_WINDOW
+    LOG_GENERAL(INFO,
+                "I have woken up from the sleep of " << SUBMIT_TX_WINDOW
                                                      << " seconds");
 
     auto main_func2 = [this]() mutable -> void {
-        unique_lock<shared_timed_mutex> lock(m_mutexProducerConsumer);
+        // unique_lock<shared_timed_mutex> lock(m_mutexProducerConsumer);
         SetState(TX_SUBMISSION_BUFFER);
     };
     DetachedFunction(1, main_func2);
@@ -797,20 +797,23 @@ void Node::ScheduleTxnSubmission()
 
 void Node::ScheduleMicroBlockConsensus()
 {
-    LOG_MESSAGE("I am going to use conditional variable with timeout of  "
-                << SUBMIT_TX_WINDOW_EXTENDED
-                << " seconds. It is ok to timeout here. ");
+    LOG_GENERAL(INFO,
+                "I am going to use conditional variable with timeout of  "
+                    << SUBMIT_TX_WINDOW_EXTENDED
+                    << " seconds. It is ok to timeout here. ");
     std::unique_lock<std::mutex> cv_lk(m_MutexCVMicroblockConsensus);
     if (cv_microblockConsensus.wait_for(
             cv_lk, std::chrono::seconds(SUBMIT_TX_WINDOW_EXTENDED))
         == std::cv_status::timeout)
     {
-        LOG_MESSAGE("I have woken up from the sleep of "
-                    << SUBMIT_TX_WINDOW_EXTENDED << " seconds");
+        LOG_GENERAL(INFO,
+                    "I have woken up from the sleep of "
+                        << SUBMIT_TX_WINDOW_EXTENDED << " seconds");
     }
     else
     {
-        LOG_MESSAGE(
+        LOG_GENERAL(
+            INFO,
             "I have received announcement message. Time to run consensus.");
     }
     auto main_func3 = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
@@ -830,8 +833,8 @@ void Node::BeginNextConsensusRound()
     }
     else
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Vacuous epoch: Skipping submit transactions");
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Vacuous epoch: Skipping submit transactions");
     }
 
     ScheduleMicroBlockConsensus();
@@ -879,9 +882,8 @@ void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
         message, cur_offset, sizeof(uint32_t));
     cur_offset += sizeof(uint32_t);
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "Forwarders inside the DS committee (" << num_ds_nodes
-                                                        << "):");
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Forwarders inside the DS committee (" << num_ds_nodes << "):");
 
     nodes.push_back(vector<Peer>());
 
@@ -890,16 +892,16 @@ void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
         nodes.back().push_back(Peer(message, cur_offset));
         cur_offset += IP_SIZE + PORT_SIZE;
 
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     nodes.back().back());
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  nodes.back().back());
     }
 
     uint32_t num_shards = Serializable::GetNumber<uint32_t>(message, cur_offset,
                                                             sizeof(uint32_t));
     cur_offset += sizeof(uint32_t);
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "Number of shards: " << num_shards);
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Number of shards: " << num_shards);
 
     for (unsigned int i = 0; i < num_shards; i++)
     {
@@ -911,16 +913,16 @@ void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
                 message, cur_offset, sizeof(uint32_t));
             cur_offset += sizeof(uint32_t);
 
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "  Shard " << i << " forwarders:");
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "  Shard " << i << " forwarders:");
 
             for (unsigned int j = 0; j < num_recv; j++)
             {
                 nodes.back().push_back(Peer(message, cur_offset));
                 cur_offset += IP_SIZE + PORT_SIZE;
 
-                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                             nodes.back().back());
+                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                          nodes.back().back());
 
                 if (nodes.back().back() == m_mediator.m_selfPeer)
                 {
@@ -930,8 +932,8 @@ void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
 
             nodes.push_back(vector<Peer>());
 
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "  Shard " << i << " senders:");
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "  Shard " << i << " senders:");
 
             uint32_t num_send = Serializable::GetNumber<uint32_t>(
                 message, cur_offset, sizeof(uint32_t));
@@ -942,8 +944,8 @@ void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
                 nodes.back().push_back(Peer(message, cur_offset));
                 cur_offset += IP_SIZE + PORT_SIZE;
 
-                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                             nodes.back().back());
+                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                          nodes.back().back());
 
                 if (nodes.back().back() == m_mediator.m_selfPeer)
                 {
@@ -959,22 +961,22 @@ void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
                 message, cur_offset, sizeof(uint32_t));
             cur_offset += sizeof(uint32_t);
 
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "  Shard " << i << " forwarders:");
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "  Shard " << i << " forwarders:");
 
             for (unsigned int j = 0; j < num_recv; j++)
             {
                 nodes.back().push_back(Peer(message, cur_offset));
                 cur_offset += IP_SIZE + PORT_SIZE;
 
-                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                             nodes.back().back());
+                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                          nodes.back().back());
             }
 
             nodes.push_back(vector<Peer>());
 
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "  Shard " << i << " senders:");
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "  Shard " << i << " senders:");
 
             uint32_t num_send = Serializable::GetNumber<uint32_t>(
                 message, cur_offset, sizeof(uint32_t));
@@ -985,8 +987,8 @@ void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
                 nodes.back().push_back(Peer(message, cur_offset));
                 cur_offset += IP_SIZE + PORT_SIZE;
 
-                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                             nodes.back().back());
+                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                          nodes.back().back());
             }
         }
     }
@@ -1006,8 +1008,8 @@ void Node::CallActOnFinalBlockBasedOnSenderForwarderAssgn(
     {
         vector<Peer> nodes_to_send;
 
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "iii amam herehere");
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "iii amam herehere");
 
         // Give myself the list of all receiving nodes in all other committees including DS
         for (unsigned int i = 0; i < nodes.at(0).size(); i++)
@@ -1071,35 +1073,35 @@ void Node::CallActOnFinalBlockBasedOnSenderForwarderAssgn(
 void Node::LogReceivedFinalBlockDetails(const TxBlock& txblock)
 {
 #ifdef IS_LOOKUP_NODE
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "I the lookup node have deserialized the TxBlock");
-    LOG_MESSAGE2(
-        to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "I the lookup node have deserialized the TxBlock");
+    LOG_EPOCH(
+        INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
         "txblock.GetHeader().GetType(): " << txblock.GetHeader().GetType());
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "txblock.GetHeader().GetVersion(): "
-                     << txblock.GetHeader().GetVersion());
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "txblock.GetHeader().GetGasLimit(): "
-                     << txblock.GetHeader().GetGasLimit());
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "txblock.GetHeader().GetGasUsed(): "
-                     << txblock.GetHeader().GetGasUsed());
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "txblock.GetHeader().GetBlockNum(): "
-                     << txblock.GetHeader().GetBlockNum());
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "txblock.GetHeader().GetNumMicroBlockHashes(): "
-                     << txblock.GetHeader().GetNumMicroBlockHashes());
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "txblock.GetHeader().GetStateRootHash(): "
-                     << txblock.GetHeader().GetStateRootHash());
-    LOG_MESSAGE2(
-        to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "txblock.GetHeader().GetVersion(): "
+                  << txblock.GetHeader().GetVersion());
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "txblock.GetHeader().GetGasLimit(): "
+                  << txblock.GetHeader().GetGasLimit());
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "txblock.GetHeader().GetGasUsed(): "
+                  << txblock.GetHeader().GetGasUsed());
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "txblock.GetHeader().GetBlockNum(): "
+                  << txblock.GetHeader().GetBlockNum());
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "txblock.GetHeader().GetNumMicroBlockHashes(): "
+                  << txblock.GetHeader().GetNumMicroBlockHashes());
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "txblock.GetHeader().GetStateRootHash(): "
+                  << txblock.GetHeader().GetStateRootHash());
+    LOG_EPOCH(
+        INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
         "txblock.GetHeader().GetNumTxs(): " << txblock.GetHeader().GetNumTxs());
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "txblock.GetHeader().GetMinerPubKey(): "
-                     << txblock.GetHeader().GetMinerPubKey());
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "txblock.GetHeader().GetMinerPubKey(): "
+                  << txblock.GetHeader().GetMinerPubKey());
 #endif // IS_LOOKUP_NODE
 }
 
@@ -1111,17 +1113,17 @@ bool Node::CheckStateRoot(const TxBlock& finalBlock)
 
     if (stateRoot != finalBlock.GetHeader().GetStateRootHash())
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Error: State root doesn't match. Expected = "
-                         << stateRoot << ". "
-                         << "Received = "
-                         << finalBlock.GetHeader().GetStateRootHash());
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "State root doesn't match. Expected = "
+                      << stateRoot << ". "
+                      << "Received = "
+                      << finalBlock.GetHeader().GetStateRootHash());
         return false;
     }
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "State root matched "
-                     << finalBlock.GetHeader().GetStateRootHash());
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "State root matched "
+                  << finalBlock.GetHeader().GetStateRootHash());
 
     return true;
 }
@@ -1132,7 +1134,7 @@ bool Node::CheckStateRoot(const TxBlock& finalBlock)
 //     for(auto microBlock : m_microBlocks)
 //     {
 
-//         LOG_MESSAGE( "Storing Micro Block Hash: " << microBlock.GetHeader().GetTxRootHash() <<
+//         LOG_GENERAL(INFO,  "Storing Micro Block Hash: " << microBlock.GetHeader().GetTxRootHash() <<
 //             " with Type: " << microBlock.GetHeader().GetType() <<
 //             ", Version: " << microBlock.GetHeader().GetVersion() <<
 //             ", Timestamp: " << microBlock.GetHeader().GetTimestamp() <<
@@ -1156,17 +1158,17 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 #ifndef IS_LOOKUP_NODE
     if (m_state == MICROBLOCK_CONSENSUS)
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "I may have missed the micrblock consensus. However, if I "
-                     "recent a valid finalblock. I will accept it");
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "I may have missed the micrblock consensus. However, if I "
+                  "recent a valid finalblock. I will accept it");
         // TODO: Optimize state transition.
         SetState(WAITING_FINALBLOCK);
     }
 
     if (!CheckState(PROCESS_FINALBLOCK))
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Too late - current state is " << m_state << ".");
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Too late - current state is " << m_state << ".");
         return false;
     }
 
@@ -1183,14 +1185,14 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 
             if (i % 10 == 0)
             {
-                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                              "Waiting for MICROBLOCK_CONSENSUS before "
                              "proceeding to process finalblock");
             }
             this_thread::sleep_for(
                 chrono::milliseconds(sleep_time_while_waiting));
         }
-        LOG_MESSAGE(
+        LOG_GENERAL(INFO,
             "I got stuck at process final block but move on. Current state is "
             "MICROBLOCK_CONSENSUS, ")
         // return false;
@@ -1214,7 +1216,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     TxBlock txBlock;
     if (txBlock.Deserialize(message, cur_offset) != 0)
     {
-        LOG_MESSAGE("Error. We failed to deserialize TxBlock.");
+        LOG_GENERAL(WARNING, "We failed to deserialize TxBlock.");
         return false;
     }
     cur_offset += txBlock.GetSerializedSize();
@@ -1249,7 +1251,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     }
     else
     {
-        LOG_MESSAGE("isVacuousEpoch now");
+        LOG_GENERAL(INFO, "isVacuousEpoch now");
 
         if (AccountStore::GetInstance().UpdateStateTrieAll()
             && !CheckStateRoot(txBlock))
@@ -1340,8 +1342,10 @@ bool Node::LoadForwardedTxnsAndCheckRoot(
          message.begin() + cur_offset + TRAN_HASH_SIZE,
          microBlockTxHash.asArray().begin());
     cur_offset += TRAN_HASH_SIZE;
-    LOG_MESSAGE("Received MicroBlock TxHash root : "
-                << DataConversion::charArrToHexStr(microBlockTxHash.asArray()));
+    LOG_GENERAL(
+        INFO,
+        "Received MicroBlock TxHash root : "
+            << DataConversion::charArrToHexStr(microBlockTxHash.asArray()));
 
     vector<TxnHash> txnHashesInForwardedMessage;
 
@@ -1353,15 +1357,13 @@ bool Node::LoadForwardedTxnsAndCheckRoot(
         Transaction tx;
         if (tx.Deserialize(message, cur_offset) != 0)
         {
-            LOG_MESSAGE("Error. We failed to deserialize Transaction.");
+            LOG_GENERAL(WARNING, "We failed to deserialize Transaction.");
             return false;
         }
         cur_offset += Transaction::GetSerializedSize();
 
         txnsInForwardedMessage.push_back(tx);
         txnHashesInForwardedMessage.push_back(tx.GetTranID());
-
-        // LOG_MESSAGE("Received forwarded transaction : " << tx.GetTranID());
     }
 
     return ComputeTransactionsRoot(txnHashesInForwardedMessage)
@@ -1383,13 +1385,13 @@ void Node::CommitForwardedTransactions(
             AccountStore::GetInstance().UpdateAccounts(tx);
         }
 
-            // LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+            // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             //              "[TXN] [" << blocknum << "] Body received = 0x" << tx.GetTranID());
 
             // Update from and to accounts
-            // LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Account store updated");
+            // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "Account store updated");
 
-            // LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+            // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             //              "Storing Transaction: " << tx.GetTranID() <<
             //              " with amount: " << tx.GetAmount() <<
             //              ", to: " << tx.GetToAddr() <<
@@ -1407,8 +1409,8 @@ void Node::CommitForwardedTransactions(
         txn_counter++;
         if (txn_counter % 10000 == 0)
         {
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Proceessed " << txn_counter << " of txns.");
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Proceessed " << txn_counter << " of txns.");
         }
     }
 }
@@ -1445,22 +1447,23 @@ void Node::DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
 
     for (auto it : m_unavailableMicroBlocks)
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Unavailable"
-                     " microblock bodies in finalblock "
-                         << it.first << ": " << it.second.size());
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Unavailable"
+                  " microblock bodies in finalblock "
+                      << it.first << ": " << it.second.size());
         for (auto it2 : it.second)
         {
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), it2);
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      it2);
         }
     }
 
     if (it != m_unavailableMicroBlocks.end() && it->second.empty())
     {
         m_unavailableMicroBlocks.erase(it);
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Deleting blocknum "
-                         << blocknum << " from unavailable microblocks list.");
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Deleting blocknum "
+                      << blocknum << " from unavailable microblocks list.");
 
 #ifndef IS_LOOKUP_NODE
         m_forwardingAssignment.erase(blocknum);
@@ -1493,7 +1496,7 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
         = Serializable::GetNumber<uint256_t>(message, cur_offset, UINT256_SIZE);
     cur_offset += UINT256_SIZE;
 
-    LOG_MESSAGE("Received forwarded txns for block number " << blocknum);
+    LOG_GENERAL(INFO, "Received forwarded txns for block number " << blocknum);
 
     if (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
         < blocknum)
@@ -1506,11 +1509,11 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
             time_pass++;
             if (time_pass % 10 == 1)
             {
-                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                             "Blocknum " + blocknum.convert_to<string>()
-                                 + " waiting "
-                                 + "for state change from WAITING_FINALBLOCK "
-                                   "to TX_SUBMISSION");
+                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                          "Blocknum " + blocknum.convert_to<string>()
+                              + " waiting "
+                              + "for state change from WAITING_FINALBLOCK "
+                                "to TX_SUBMISSION");
             }
             this_thread::sleep_for(chrono::milliseconds(100));
         }
@@ -1544,8 +1547,8 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
     LoadFwdingAssgnForThisBlockNum(blocknum, forward_list);
 #endif // IS_LOOKUP_NODE
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "isEveryMicroBlockAvailable: " << isEveryMicroBlockAvailable);
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "isEveryMicroBlockAvailable: " << isEveryMicroBlockAvailable);
 
     if (isEveryMicroBlockAvailable)
     {
@@ -1556,8 +1559,8 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
     if (forward_list.size() > 0)
     {
         P2PComm::GetInstance().SendBroadcastMessage(forward_list, message);
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "DEBUG I have broadcasted the txn body!")
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "DEBUG I have broadcasted the txn body!")
     }
 #endif // IS_LOOKUP_NODE
 

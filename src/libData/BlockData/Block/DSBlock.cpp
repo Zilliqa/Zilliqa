@@ -30,7 +30,7 @@ DSBlock::DSBlock(const vector<unsigned char>& src, unsigned int offset)
 {
     if (Deserialize(src, offset) != 0)
     {
-        LOG_MESSAGE("Error. We failed to init DSBlock.");
+        LOG_GENERAL(WARNING, "We failed to init DSBlock.");
     }
 }
 
@@ -69,7 +69,7 @@ int DSBlock::Deserialize(const vector<unsigned char>& src, unsigned int offset)
         DSBlockHeader header;
         if (header.Deserialize(src, offset) != 0)
         {
-            LOG_MESSAGE("Error. We failed to init DSBlockHeader.");
+            LOG_GENERAL(WARNING, "We failed to init DSBlockHeader.");
             return -1;
         }
         m_header = move(header);
@@ -78,8 +78,8 @@ int DSBlock::Deserialize(const vector<unsigned char>& src, unsigned int offset)
     }
     catch (const std::exception& e)
     {
-        LOG_MESSAGE("ERROR: Error with DSBlock::Deserialize." << ' '
-                                                              << e.what());
+        LOG_GENERAL(WARNING,
+                    "Error with DSBlock::Deserialize." << ' ' << e.what());
         return -1;
     }
     return 0;
