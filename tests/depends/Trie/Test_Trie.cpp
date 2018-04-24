@@ -50,18 +50,18 @@ BOOST_AUTO_TEST_CASE(fat_trie)
                   h256("414243", h256::FromHex, h256::AlignRight).ref());
         for (auto i : ft)
         {
-            LOG_MESSAGE(i.first << i.second);
-            LOG_MESSAGE("kk");
+            LOG_GENERAL(INFO, i.first << i.second);
+            LOG_GENERAL(INFO, "kk");
         }
-        //            LOG_MESSAGE(i.first << i.second;
+        //            LOG_GENERAL(INFO, i.first << i.second;
         r = ft.root();
     }
     {
         FatGenericTrieDB<MemoryDB> ft(&fm);
         ft.setRoot(r);
         for (auto i : ft)
-            LOG_MESSAGE(i.first << i.second);
-        //            LOG_MESSAGE(i.first << i.second;
+            LOG_GENERAL(INFO, i.first << i.second);
+        //            LOG_GENERAL(INFO, i.first << i.second;
     }
 
     //    BOOST_CHECK_MESSAGE("vegetable" == "vegetable", "ERROR: return value from DB not equal to inserted value");
@@ -70,7 +70,7 @@ BOOST_AUTO_TEST_CASE(fat_trie)
 BOOST_AUTO_TEST_CASE(hex_encoded_securetrie_test)
 {
     fs::path const testPath = test::getTestPath() / fs::path("TrieTests");
-    LOG_MESSAGE("Testing Secure Trie... " << testPath);
+    LOG_GENERAL(INFO, "Testing Secure Trie... " << testPath);
     string const s = contentsString(
         testPath / fs::path("hex_encoded_securetrie_test.json"));
     BOOST_REQUIRE_MESSAGE(s.length() > 0,
@@ -120,12 +120,12 @@ BOOST_AUTO_TEST_CASE(hex_encoded_securetrie_test)
                 BOOST_REQUIRE(t.check(true));
                 BOOST_REQUIRE(ht.check(true));
                 BOOST_REQUIRE(ft.check(true));
-                //                LOG_MESSAGE("was here inserting");
+                //                LOG_GENERAL(INFO, "was here inserting");
                 auto i = ft.begin();
                 auto j = t.begin();
                 for (; i != ft.end() && j != t.end(); ++i, ++j)
                 {
-                    //                    LOG_MESSAGE("was here reading");
+                    //                    LOG_GENERAL(INFO, "was here reading");
                     BOOST_CHECK_EQUAL(i != ft.end(), j == t.end());
                     BOOST_REQUIRE((*i).first.toBytes() == (*j).first.toBytes());
                     BOOST_REQUIRE((*i).second.toBytes()
@@ -134,8 +134,8 @@ BOOST_AUTO_TEST_CASE(hex_encoded_securetrie_test)
                 BOOST_CHECK_EQUAL(ht.root(), ft.root());
             }
             BOOST_REQUIRE(!o["root"].is_null());
-            //            LOG_MESSAGE("o[root] = " << o["root"].get_str());
-            //            LOG_MESSAGE("toHexPrefixed(ht.root().asArray()) = " << toHexPrefixed(ht.root().asArray()));
+            //            LOG_GENERAL(INFO, "o[root] = " << o["root"].get_str());
+            //            LOG_GENERAL(INFO, "toHexPrefixed(ht.root().asArray()) = " << toHexPrefixed(ht.root().asArray()));
             BOOST_CHECK_EQUAL(o["root"].get_str(),
                               toHexPrefixed(ht.root().asArray()));
             BOOST_CHECK_EQUAL(o["root"].get_str(),
@@ -147,7 +147,7 @@ BOOST_AUTO_TEST_CASE(hex_encoded_securetrie_test)
 BOOST_AUTO_TEST_CASE(trie_test_anyorder)
 {
     fs::path const testPath = test::getTestPath() / fs::path("TrieTests");
-    LOG_MESSAGE("Testing Secure Trie... " << testPath);
+    LOG_GENERAL(INFO, "Testing Secure Trie... " << testPath);
     string const s = contentsString(testPath / fs::path("trieanyorder.json"));
     BOOST_REQUIRE_MESSAGE(s.length() > 0,
                           "Contents of 'trieanyorder.json' is empty. Have you "
@@ -198,7 +198,7 @@ BOOST_AUTO_TEST_CASE(trie_test_anyorder)
                 auto j = t.begin();
                 for (; i != ft.end() && j != t.end(); ++i, ++j)
                 {
-                    LOG_MESSAGE("was here reading");
+                    LOG_GENERAL(INFO, "was here reading");
                     BOOST_CHECK_EQUAL(i == ft.end(), j == t.end());
                     BOOST_REQUIRE((*i).first.toBytes() == (*j).first.toBytes());
                     BOOST_REQUIRE((*i).second.toBytes()
@@ -217,7 +217,7 @@ BOOST_AUTO_TEST_CASE(trie_test_anyorder)
 BOOST_AUTO_TEST_CASE(trie_tests_ordered)
 {
     fs::path const testPath = test::getTestPath() / fs::path("TrieTests");
-    LOG_MESSAGE("Testing Trie..." << testPath);
+    LOG_GENERAL(INFO, "Testing Trie..." << testPath);
     string const s = contentsString(testPath / fs::path("trietest.json"));
     BOOST_REQUIRE_MESSAGE(s.length() > 0,
                           "Contents of 'trietest.json' is empty. Have you "
@@ -326,41 +326,42 @@ bytes stringMapRlp256(StringMap const& _s)
 
 BOOST_AUTO_TEST_CASE(moreTrieTests)
 {
-    LOG_MESSAGE("Testing Trie more...");
+    LOG_GENERAL(INFO, "Testing Trie more...");
     // More tests...
     {
         MemoryDB m;
         GenericTrieDB<MemoryDB> t(&m);
         t.init(); // initialise as empty tree.
-        LOG_MESSAGE(t);
-        LOG_MESSAGE(m);
-        LOG_MESSAGE(t.root());
-        LOG_MESSAGE(stringMapHash256(StringMap()));
+        LOG_GENERAL(INFO, t);
+        LOG_GENERAL(INFO, m);
+        LOG_GENERAL(INFO, t.root());
+        LOG_GENERAL(INFO, stringMapHash256(StringMap()));
 
         t.insert(string("test"), string("test"));
-        LOG_MESSAGE(t);
-        LOG_MESSAGE(m);
-        LOG_MESSAGE(t.root());
-        LOG_MESSAGE(stringMapHash256({{"test", "test"}}));
+        LOG_GENERAL(INFO, t);
+        LOG_GENERAL(INFO, m);
+        LOG_GENERAL(INFO, t.root());
+        LOG_GENERAL(INFO, stringMapHash256({{"test", "test"}}));
 
         t.insert(string("te"), string("testy"));
-        LOG_MESSAGE(t);
-        LOG_MESSAGE(m);
-        LOG_MESSAGE(t.root());
-        LOG_MESSAGE(stringMapHash256({{"test", "test"}, {"te", "testy"}}));
-        LOG_MESSAGE(t.at(string("test")));
-        LOG_MESSAGE(t.at(string("te")));
-        LOG_MESSAGE(t.at(string("t")));
+        LOG_GENERAL(INFO, t);
+        LOG_GENERAL(INFO, m);
+        LOG_GENERAL(INFO, t.root());
+        LOG_GENERAL(INFO,
+                    stringMapHash256({{"test", "test"}, {"te", "testy"}}));
+        LOG_GENERAL(INFO, t.at(string("test")));
+        LOG_GENERAL(INFO, t.at(string("te")));
+        LOG_GENERAL(INFO, t.at(string("t")));
 
         t.remove(string("te"));
-        LOG_MESSAGE(m);
-        LOG_MESSAGE(t.root());
-        LOG_MESSAGE(stringMapHash256({{"test", "test"}}));
+        LOG_GENERAL(INFO, m);
+        LOG_GENERAL(INFO, t.root());
+        LOG_GENERAL(INFO, stringMapHash256({{"test", "test"}}));
 
         t.remove(string("test"));
-        LOG_MESSAGE(m);
-        LOG_MESSAGE(t.root());
-        LOG_MESSAGE(stringMapHash256(StringMap()));
+        LOG_GENERAL(INFO, m);
+        LOG_GENERAL(INFO, t.root());
+        LOG_GENERAL(INFO, stringMapHash256(StringMap()));
     }
     {
         MemoryDB m;
@@ -368,38 +369,39 @@ BOOST_AUTO_TEST_CASE(moreTrieTests)
         t.init(); // initialise as empty tree.
         t.insert(string("a"), string("A"));
         t.insert(string("b"), string("B"));
-        LOG_MESSAGE(t);
-        LOG_MESSAGE(m);
-        LOG_MESSAGE(t.root());
-        LOG_MESSAGE(stringMapHash256({{"b", "B"}, {"a", "A"}}));
+        LOG_GENERAL(INFO, t);
+        LOG_GENERAL(INFO, m);
+        LOG_GENERAL(INFO, t.root());
+        LOG_GENERAL(INFO, stringMapHash256({{"b", "B"}, {"a", "A"}}));
         bytes r(stringMapRlp256({{"b", "B"}, {"a", "A"}}));
-        LOG_MESSAGE(RLP(r));
+        LOG_GENERAL(INFO, RLP(r));
     }
     {
         MemTrie t;
         t.insert("dog", "puppy");
-        LOG_MESSAGE(hex << t.hash256());
+        LOG_GENERAL(INFO, hex << t.hash256());
         bytes r(t.rlp());
-        LOG_MESSAGE(RLP(r));
+        LOG_GENERAL(INFO, RLP(r));
     }
     {
         MemTrie t;
         t.insert("bed", "d");
         t.insert("be", "e");
-        LOG_MESSAGE(hex << t.hash256());
+        LOG_GENERAL(INFO, hex << t.hash256());
         bytes r(t.rlp());
-        LOG_MESSAGE(RLP(r));
+        LOG_GENERAL(INFO, RLP(r));
     }
     {
-        LOG_MESSAGE(
+        LOG_GENERAL(
+            INFO,
             hex << stringMapHash256({{"dog", "puppy"}, {"doe", "reindeer"}}));
         MemTrie t;
         t.insert("dog", "puppy");
         t.insert("doe", "reindeer");
-        LOG_MESSAGE(hex << t.hash256());
+        LOG_GENERAL(INFO, hex << t.hash256());
         bytes r(t.rlp());
-        LOG_MESSAGE(RLP(r));
-        LOG_MESSAGE(toHex(t.rlp()));
+        LOG_GENERAL(INFO, RLP(r));
+        LOG_GENERAL(INFO, toHex(t.rlp()));
     }
     {
         MemoryDB m;
@@ -414,12 +416,12 @@ BOOST_AUTO_TEST_CASE(moreTrieTests)
             t.insert(a, b);
             s[a] = b;
 
-            LOG_MESSAGE("/n-------------------------------");
-            LOG_MESSAGE(a << " -> " << b);
-            LOG_MESSAGE(d);
-            LOG_MESSAGE(m);
-            LOG_MESSAGE(d.root());
-            LOG_MESSAGE(stringMapHash256(s));
+            LOG_GENERAL(INFO, "/n-------------------------------");
+            LOG_GENERAL(INFO, a << " -> " << b);
+            LOG_GENERAL(INFO, d);
+            LOG_GENERAL(INFO, m);
+            LOG_GENERAL(INFO, d.root());
+            LOG_GENERAL(INFO, stringMapHash256(s));
 
             BOOST_REQUIRE(d.check(true));
             BOOST_REQUIRE_EQUAL(t.hash256(), stringMapHash256(s));
@@ -437,12 +439,12 @@ BOOST_AUTO_TEST_CASE(moreTrieTests)
             t.remove(a);
             d.remove(string(a));
 
-            LOG_MESSAGE(endl << "-------------------------------");
-            LOG_MESSAGE("X " << a);
-            LOG_MESSAGE(d);
-            LOG_MESSAGE(m);
-            LOG_MESSAGE(d.root());
-            //            LOG_MESSAGE(hash256(s));
+            LOG_GENERAL(INFO, endl << "-------------------------------");
+            LOG_GENERAL(INFO, "X " << a);
+            LOG_GENERAL(INFO, d);
+            LOG_GENERAL(INFO, m);
+            LOG_GENERAL(INFO, d.root());
+            //            LOG_GENERAL(INFO, hash256(s));
 
             BOOST_REQUIRE(d.check(true));
             BOOST_REQUIRE(t.at(a).empty());
@@ -472,7 +474,7 @@ BOOST_AUTO_TEST_CASE(moreTrieTests)
 
 BOOST_AUTO_TEST_CASE(trieLowerBound)
 {
-    LOG_MESSAGE("Stress-testing Trie.lower_bound...");
+    LOG_GENERAL(INFO, "Stress-testing Trie.lower_bound...");
     if (0)
     {
         MemoryDB dm;
@@ -517,7 +519,7 @@ BOOST_AUTO_TEST_CASE(trieLowerBound)
 
 BOOST_AUTO_TEST_CASE(trieStess)
 {
-    LOG_MESSAGE("Stress-testing Trie...");
+    LOG_GENERAL(INFO, "Stress-testing Trie...");
     {
         MemoryDB m;
         MemoryDB dm;
@@ -551,7 +553,8 @@ BOOST_AUTO_TEST_CASE(trieStess)
                 {
                     // cwarn << m;
                     for (auto i : d)
-                        LOG_MESSAGE(i.first.toString() << i.second.toString());
+                        LOG_GENERAL(INFO,
+                                    i.first.toString() << i.second.toString());
 
                     MemoryDB dm2;
                     EnforceRefs e2(dm2, true);
@@ -560,25 +563,26 @@ BOOST_AUTO_TEST_CASE(trieStess)
                     for (auto i : d)
                         d2.insert(i.first, i.second);
 
-                    LOG_MESSAGE("Good:" << d2.root());
+                    LOG_GENERAL(INFO, "Good:" << d2.root());
                     //					for (auto i: dm2.get())
                     //						cwarn << i.first << ": " << RLP(i.second);
                     d2.debugStructure(cerr);
-                    LOG_MESSAGE(
+                    LOG_GENERAL(
+                        INFO,
                         "Broken:"
-                        << d.root()); // Leaves an extension -> extension (3c1... -> 742...)
+                            << d.root()); // Leaves an extension -> extension (3c1... -> 742...)
                     //					for (auto i: dm.get())
                     //						cwarn << i.first << ": " << RLP(i.second);
                     d.debugStructure(cerr);
 
                     d2.insert(k, v);
-                    LOG_MESSAGE("Pres:" << d2.root());
+                    LOG_GENERAL(INFO, "Pres:" << d2.root());
                     //					for (auto i: dm2.get())
                     //						cwarn << i.first << ": " << RLP(i.second);
                     d2.debugStructure(cerr);
                     d2.remove(k);
 
-                    LOG_MESSAGE("Good?" << d2.root());
+                    LOG_GENERAL(INFO, "Good?" << d2.root());
                 }
                 BOOST_REQUIRE(d.check(true));
                 BOOST_REQUIRE_EQUAL(stringMapHash256(m), t.hash256());
@@ -596,7 +600,7 @@ template<typename Trie> void perfTestTrie(char const* _name)
         MemoryDB dm;
         Trie d(&dm);
         d.init();
-        LOG_MESSAGE("TriePerf " << _name << p);
+        LOG_GENERAL(INFO, "TriePerf " << _name << p);
         std::vector<h256> keys(1000);
         //        Timer t;
         size_t ki = 0;
@@ -609,28 +613,28 @@ template<typename Trie> void perfTestTrie(char const* _name)
             if (i % (p / 1000) == 0)
                 keys[ki++] = k;
         }
-        //        LOG_MESSAGE("Insert " << p << "values: " << t.elapsed());
+        //        LOG_GENERAL(INFO, "Insert " << p << "values: " << t.elapsed());
         //        t.restart();
         for (auto k : keys)
         {
-            //            LOG_MESSAGE("key: " << k);
+            //            LOG_GENERAL(INFO, "key: " << k);
             d.at(k);
         }
-        //        LOG_MESSAGE("Query 1000 values: " << t.elapsed());
+        //        LOG_GENERAL(INFO, "Query 1000 values: " << t.elapsed());
         //        t.restart();
         size_t i = 0;
         for (auto it = d.begin(); i < 1000 && it != d.end(); ++it, ++i)
         {
-            //            LOG_MESSAGE("it: ");
+            //            LOG_GENERAL(INFO, "it: ");
             *it;
         }
-        //        LOG_MESSAGE("Iterate 1000 values: " << t.elapsed());
+        //        LOG_GENERAL(INFO, "Iterate 1000 values: " << t.elapsed());
         //        t.restart();
         for (auto k : keys)
         {
             d.remove(k);
         }
-        //        LOG_MESSAGE("Remove 1000 values:" << t.elapsed() << "\n");
+        //        LOG_GENERAL(INFO, "Remove 1000 values:" << t.elapsed() << "\n");
     }
 }
 
