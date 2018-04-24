@@ -44,10 +44,10 @@ BOOST_AUTO_TEST_CASE(testTransaction)
 
     BlockStorage::GetBlockStorage().GetTxBody(hash, tx);
 
-    LOG_MESSAGE("Transaction amount: " << tx->GetAmount());
-    LOG_MESSAGE("Transaction from address: " << tx->GetFromAddr());
-    LOG_MESSAGE("Transaction to address: " << tx->GetToAddr());
-    LOG_MESSAGE("Transaction nonce: " << tx->GetNonce());
+    LOG_GENERAL(INFO, "Transaction amount: " << tx->GetAmount());
+    LOG_GENERAL(INFO, "Transaction from address: " << tx->GetFromAddr());
+    LOG_GENERAL(INFO, "Transaction to address: " << tx->GetToAddr());
+    LOG_GENERAL(INFO, "Transaction nonce: " << tx->GetNonce());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

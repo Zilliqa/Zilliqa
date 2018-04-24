@@ -371,7 +371,7 @@ namespace dev
 
         void insert(KeyType _k, bytesConstRef _value)
         {
-//            LOG_MESSAGE("Inserting to SpecificTrieDB Key : Value = " << _k << " : " << _value);
+//            LOG_GENERAL(INFO, "Inserting to SpecificTrieDB Key : Value = " << _k << " : " << _value);
             Generic::insert(bytesConstRef((byte const*)&_k, sizeof(KeyType)), _value);
         }
         void insert(KeyType _k, bytes const& _value)
@@ -492,7 +492,7 @@ namespace dev
         void insert(bytesConstRef _key, bytesConstRef _value)
         {
             h256 hash = sha3(_key);
-//            LOG_MESSAGE("Inserting to FatGenericTrieDB Hash : Value = " << hash << " : " << _value);
+//            LOG_GENERAL(INFO, "Inserting to FatGenericTrieDB Hash : Value = " << hash << " : " << _value);
             Super::insert(hash, _value);
             Super::db()->insertAux(hash, _key);
         }
@@ -806,7 +806,7 @@ namespace dev
 
     template <class DB> void GenericTrieDB<DB>::insert(bytesConstRef _key, bytesConstRef _value)
     {
-//        LOG_MESSAGE("Inserting to GenericTrieDB Key : Value = " << _key << " : " << _value);
+//        LOG_GENERAL(INFO, "Inserting to GenericTrieDB Key : Value = " << _key << " : " << _value);
         std::string rootValue = node(m_root);
         assert(rootValue.size());
         bytes b = mergeAt(RLP(rootValue), m_root, NibbleSlice(_key), _value);
