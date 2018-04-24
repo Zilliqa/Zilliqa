@@ -31,7 +31,7 @@ mutex m;
 void test1()
 {
     LOG_MARKER();
-    LOG_MESSAGE("Sleep for 3 secs...");
+    LOG_GENERAL(INFO, "Sleep for 3 secs...");
     this_thread::sleep_for(chrono::seconds(3));
 }
 
@@ -40,7 +40,7 @@ void test2(shared_ptr<vector<string>> s)
     LOG_MARKER();
 
     lock_guard<mutex> guard(m);
-    LOG_MESSAGE(s->back().c_str());
+    LOG_GENERAL(INFO, s->back().c_str());
     s->pop_back();
 }
 
