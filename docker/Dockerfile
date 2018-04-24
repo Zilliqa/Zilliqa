@@ -24,6 +24,7 @@ RUN apt-get install -y libjsoncpp-dev
 RUN apt-get install -y libsnappy-dev
 RUN apt-get install -y libmicrohttpd-dev
 RUN apt-get install -y libjsonrpccpp-dev
+RUN apt-get install -y libminiupnpc-dev
 
 #--------------------------------------------------------------------
 # GET SOURCES
