@@ -166,7 +166,6 @@ const Signature& ConsensusCommon::GetCS1() const
     {
         LOG_GENERAL(WARNING,
                     "Retrieving collectivesig when consensus is still ongoing");
-        return false;
     }
 
     return m_CS1;
@@ -176,7 +175,8 @@ const vector<bool>& ConsensusCommon::GetB1() const
 {
     if (m_state != DONE)
     {
-        LOG_MESSAGE("Error: Retrieving collectivesig bit map when consensus is "
+        LOG_GENERAL(WARNING,
+                    "Retrieving collectivesig bit map when consensus is "
                     "still ongoing");
     }
 
@@ -187,8 +187,8 @@ const Signature& ConsensusCommon::GetCS2() const
 {
     if (m_state != DONE)
     {
-        LOG_MESSAGE(
-            "Error: Retrieving collectivesig when consensus is still ongoing");
+        LOG_GENERAL(WARNING,
+                    "Retrieving collectivesig when consensus is still ongoing");
     }
 
     return m_CS2;

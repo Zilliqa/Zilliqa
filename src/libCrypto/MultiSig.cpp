@@ -425,7 +425,7 @@ void Challenge::Set(const CommitPoint& aggregatedCommit,
 
     if (message.size() < (offset + size))
     {
-        LOG_MESSAGE("Error: Offset and size outside message length");
+        LOG_GENERAL(WARNING, "Offset and size outside message length");
         return;
     }
 
