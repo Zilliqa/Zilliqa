@@ -24,7 +24,7 @@ apt-get install -y \
     libjsoncpp-dev \
     libmicrohttpd-dev \
     libjsonrpccpp-dev \
-    libminiupnpnc-dev
+    libminiupnpc-dev
 
 # install development dependencies
 apt-get install -y \
