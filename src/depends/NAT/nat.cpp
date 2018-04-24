@@ -4,6 +4,7 @@
 #include <cstring>
 #include <arpa/inet.h> //INET6_ADDRSTRLEN
 #include "nat.h"
+#include "libUtils/Logger.h"
 
 using namespace std;
 
@@ -24,7 +25,7 @@ NAT::NAT()
 
 	if(devlist == NULL || error != 0)
 	{
-		//[LOG ERROR]
+		LOG_GENERAL(WARNING,"devlist empty or error in discovery");
 		freeUPNPDevlist(devlist);
 		return;
 
@@ -35,7 +36,7 @@ NAT::NAT()
 
 	if(status != 1)
 	{
-		//[LOG Error]
+		LOG_GENERAL(WARNING,"Unable to get Valid IGD");
 		freeUPNPDevlist(devlist);
 		return;
 	}
@@ -57,7 +58,7 @@ string NAT::externalIP()
 	}
 	else 
 	{
-		//[LOG Error]
+		LOG_GENERAL(WARNING,"Unable to get external IP");
 		return "0.0.0.0";
 	}
 }
@@ -76,9 +77,16 @@ int NAT::addRedirect(int _port)
 		m_reg.insert(_port);
 		return _port;
 	}
+	else
+	{
+		LOG_GENERAL(INFO,"Failed to map same port in router");
+	}
 
 	if (UPNP_AddPortMapping(m_urls->controlURL, m_data->first.servicetype, port_str, NULL, m_lanAddress.c_str(), "zilliqa", "TCP", NULL, NULL))
+	{
+		LOG_GENERAL(WARNING,"Failed to map Port");
 		return 0;
+	}
 
 	unsigned num = 0;
 	UPNP_GetPortMappingNumberOfEntries(m_urls->controlURL, m_data->first.servicetype, &num);
@@ -100,7 +108,7 @@ int NAT::addRedirect(int _port)
 		}
 	}
 
-	//[LOG Error]
+	LOG_GENERAL(WARNING,"Failed to find port");
 	
 	return -1;
 
@@ -110,7 +118,7 @@ void NAT::removeRedirect(int _port)
 {
 	if(!m_initialized)
 	{
-		//[LOG]
+		LOG_GENERAL(WARNING,"Unitialized");
 		return;
 	}
 	char port_str[16];
