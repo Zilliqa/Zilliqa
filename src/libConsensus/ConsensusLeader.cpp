@@ -38,36 +38,38 @@ bool ConsensusLeader::CheckState(Action action)
         case INITIAL:
             break;
         case ANNOUNCE_DONE:
-            LOG_MESSAGE("Error: Processing announce but announce already done");
+            LOG_GENERAL(WARNING,
+                        "Processing announce but announce already done");
             result = false;
             break;
         case CHALLENGE_DONE:
-            LOG_MESSAGE(
-                "Error: Processing announce but challenge already done");
+            LOG_GENERAL(WARNING,
+                        "Processing announce but challenge already done");
             result = false;
             break;
         case COLLECTIVESIG_DONE:
-            LOG_MESSAGE(
-                "Error: Processing announce but collectivesig already done");
+            LOG_GENERAL(WARNING,
+                        "Processing announce but collectivesig already done");
             result = false;
             break;
         case FINALCHALLENGE_DONE:
-            LOG_MESSAGE(
-                "Error: Processing announce but finalchallenge already done");
+            LOG_GENERAL(WARNING,
+                        "Processing announce but finalchallenge already done");
             result = false;
             break;
         case DONE:
-            LOG_MESSAGE(
-                "Error: Processing announce but consensus already done");
+            LOG_GENERAL(WARNING,
+                        "Processing announce but consensus already done");
             result = false;
             break;
         case ERROR:
-            LOG_MESSAGE("Error: Processing announce but receiving "
+            LOG_GENERAL(WARNING,
+                        "Processing announce but receiving "
                         "ERROR message.");
             result = false;
             break;
         default:
-            LOG_MESSAGE("Error: Unrecognized or error state");
+            LOG_GENERAL(WARNING, "Unrecognized or error state");
             result = false;
             break;
         }
@@ -76,37 +78,40 @@ bool ConsensusLeader::CheckState(Action action)
         switch (m_state)
         {
         case INITIAL:
-            LOG_MESSAGE("Error: Processing commit but announce not yet done");
+            LOG_GENERAL(WARNING, "Processing commit but announce not yet done");
             result = false;
             break;
         case ANNOUNCE_DONE:
             break;
         case CHALLENGE_DONE:
-            LOG_MESSAGE("Error: Processing commit but challenge already done");
+            LOG_GENERAL(WARNING,
+                        "Processing commit but challenge already done");
             result = false;
-            // LOG_MESSAGE("Processing redundant commit messages");
+            // LOG_GENERAL(INFO, "Processing redundant commit messages");
             break;
         case COLLECTIVESIG_DONE:
-            LOG_MESSAGE(
-                "Error: Processing commit but collectivesig already done");
+            LOG_GENERAL(WARNING,
+                        "Processing commit but collectivesig already done");
             result = false;
             break;
         case FINALCHALLENGE_DONE:
-            LOG_MESSAGE(
-                "Error: Processing commit but finalchallenge already done");
+            LOG_GENERAL(WARNING,
+                        "Processing commit but finalchallenge already done");
             result = false;
             break;
         case DONE:
-            LOG_MESSAGE("Error: Processing commit but consensus already done");
+            LOG_GENERAL(WARNING,
+                        "Processing commit but consensus already done");
             result = false;
             break;
         case ERROR:
-            LOG_MESSAGE("Error: Processing commit but receiving "
+            LOG_GENERAL(WARNING,
+                        "Processing commit but receiving "
                         "ERROR message.");
             result = false;
             break;
         default:
-            LOG_MESSAGE("Error: Unrecognized or error state");
+            LOG_GENERAL(WARNING, "Unrecognized or error state");
             result = false;
             break;
         }
@@ -115,38 +120,40 @@ bool ConsensusLeader::CheckState(Action action)
         switch (m_state)
         {
         case INITIAL:
-            LOG_MESSAGE("Error: Processing response but announce not yet done");
+            LOG_GENERAL(WARNING,
+                        "Processing response but announce not yet done");
             result = false;
             break;
         case ANNOUNCE_DONE:
-            LOG_MESSAGE(
-                "Error: Processing response but challenge not yet done");
+            LOG_GENERAL(WARNING,
+                        "Processing response but challenge not yet done");
             result = false;
             break;
         case CHALLENGE_DONE:
             break;
         case COLLECTIVESIG_DONE:
-            LOG_MESSAGE(
-                "Error: Processing response but collectivesig already done");
+            LOG_GENERAL(WARNING,
+                        "Processing response but collectivesig already done");
             result = false;
             break;
         case FINALCHALLENGE_DONE:
-            LOG_MESSAGE(
-                "Error: Processing response but finalchallenge already done");
+            LOG_GENERAL(WARNING,
+                        "Processing response but finalchallenge already done");
             result = false;
             break;
         case DONE:
-            LOG_MESSAGE(
-                "Error: Processing response but consensus already done");
+            LOG_GENERAL(WARNING,
+                        "Processing response but consensus already done");
             result = false;
             break;
         case ERROR:
-            LOG_MESSAGE("Error: Processing response but receiving "
+            LOG_GENERAL(WARNING,
+                        "Processing response but receiving "
                         "ERROR message.");
             result = false;
             break;
         default:
-            LOG_MESSAGE("Error: Unrecognized or error state");
+            LOG_GENERAL(WARNING, "Unrecognized or error state");
             result = false;
             break;
         }
@@ -155,39 +162,42 @@ bool ConsensusLeader::CheckState(Action action)
         switch (m_state)
         {
         case INITIAL:
-            LOG_MESSAGE(
-                "Error: Processing finalcommit but announce not yet done");
+            LOG_GENERAL(WARNING,
+                        "Processing finalcommit but announce not yet done");
             result = false;
             break;
         case ANNOUNCE_DONE:
-            LOG_MESSAGE(
-                "Error: Processing finalcommit but challenge not yet done");
+            LOG_GENERAL(WARNING,
+                        "Processing finalcommit but challenge not yet done");
             result = false;
             break;
         case CHALLENGE_DONE:
-            LOG_MESSAGE(
-                "Error: Processing finalcommit but collectivesig not yet done");
+            LOG_GENERAL(
+                WARNING,
+                "Processing finalcommit but collectivesig not yet done");
             result = false;
             break;
         case COLLECTIVESIG_DONE:
             break;
         case FINALCHALLENGE_DONE:
-            LOG_MESSAGE("Error: Processing finalcommit but finalchallenge "
+            LOG_GENERAL(WARNING,
+                        "Processing finalcommit but finalchallenge "
                         "already done");
             result = false;
             break;
         case DONE:
-            LOG_MESSAGE(
-                "Error: Processing finalcommit but consensus already done");
+            LOG_GENERAL(WARNING,
+                        "Processing finalcommit but consensus already done");
             result = false;
             break;
         case ERROR:
-            LOG_MESSAGE("Error: Processing finalcommit but receiving "
+            LOG_GENERAL(WARNING,
+                        "Processing finalcommit but receiving "
                         "ERROR message.");
             result = false;
             break;
         default:
-            LOG_MESSAGE("Error: Unrecognized or error state");
+            LOG_GENERAL(WARNING, "Unrecognized or error state");
             result = false;
             break;
         }
@@ -196,45 +206,48 @@ bool ConsensusLeader::CheckState(Action action)
         switch (m_state)
         {
         case INITIAL:
-            LOG_MESSAGE(
-                "Error: Processing finalresponse but announce not yet done");
+            LOG_GENERAL(WARNING,
+                        "Processing finalresponse but announce not yet done");
             result = false;
             break;
         case ANNOUNCE_DONE:
-            LOG_MESSAGE(
-                "Error: Processing finalresponse but challenge not yet done");
+            LOG_GENERAL(WARNING,
+                        "Processing finalresponse but challenge not yet done");
             result = false;
             break;
         case CHALLENGE_DONE:
-            LOG_MESSAGE("Error: Processing finalresponse but collectivesig not "
+            LOG_GENERAL(WARNING,
+                        "Processing finalresponse but collectivesig not "
                         "yet done");
             result = false;
             break;
         case COLLECTIVESIG_DONE:
-            LOG_MESSAGE("Error: Processing finalresponse but finalchallenge "
+            LOG_GENERAL(WARNING,
+                        "Processing finalresponse but finalchallenge "
                         "not yet done");
             result = false;
             break;
         case FINALCHALLENGE_DONE:
             break;
         case DONE:
-            LOG_MESSAGE(
-                "Error: Processing finalresponse but consensus already done");
+            LOG_GENERAL(WARNING,
+                        "Processing finalresponse but consensus already done");
             result = false;
             break;
         case ERROR:
-            LOG_MESSAGE("Error: Processing finalresponse but receiving "
+            LOG_GENERAL(WARNING,
+                        "Processing finalresponse but receiving "
                         "ERROR message.");
             result = false;
             break;
         default:
-            LOG_MESSAGE("Error: Unrecognized or error state");
+            LOG_GENERAL(WARNING, "Unrecognized or error state");
             result = false;
             break;
         }
         break;
     default:
-        LOG_MESSAGE("Error: Unrecognized action");
+        LOG_GENERAL(WARNING, "Unrecognized action");
         result = false;
         break;
     }
@@ -268,7 +281,7 @@ bool ConsensusLeader::ProcessMessageCommitCore(
 
     if (length_needed > length_available)
     {
-        LOG_MESSAGE("Error: Malformed message");
+        LOG_GENERAL(WARNING, "Malformed message");
         return false;
     }
 
@@ -282,10 +295,11 @@ bool ConsensusLeader::ProcessMessageCommitCore(
     // Check the consensus id
     if (consensus_id != m_consensusID)
     {
-        LOG_MESSAGE("Error: Consensus ID in commitment ("
-                    << consensus_id
-                    << ") does not match instance consensus ID ("
-                    << m_consensusID << ")");
+        LOG_GENERAL(WARNING,
+                    "Consensus ID in commitment ("
+                        << consensus_id
+                        << ") does not match instance consensus ID ("
+                        << m_consensusID << ")");
         return false;
     }
 
@@ -296,7 +310,8 @@ bool ConsensusLeader::ProcessMessageCommitCore(
               commit.begin() + curr_offset)
         == false)
     {
-        LOG_MESSAGE("Error: Block hash in commitment does not match instance "
+        LOG_GENERAL(WARNING,
+                    "Block hash in commitment does not match instance "
                     "block hash");
         return false;
     }
@@ -310,12 +325,12 @@ bool ConsensusLeader::ProcessMessageCommitCore(
     // Check the backup id
     if (backup_id >= m_commitMap.size())
     {
-        LOG_MESSAGE("Error: Backup ID beyond backup count");
+        LOG_GENERAL(WARNING, "Backup ID beyond backup count");
         return false;
     }
     if (m_commitMap.at(backup_id) == true)
     {
-        LOG_MESSAGE("Error: Backup has already sent validated commit");
+        LOG_GENERAL(WARNING, "Backup has already sent validated commit");
         return false;
     }
 
@@ -327,7 +342,7 @@ bool ConsensusLeader::ProcessMessageCommitCore(
     Signature signature;
     if (signature.Deserialize(commit, curr_offset) != 0)
     {
-        LOG_MESSAGE("Error. We failed to deserialize signature.");
+        LOG_GENERAL(WARNING, "We failed to deserialize signature.");
         return false;
     }
 
@@ -336,7 +351,7 @@ bool ConsensusLeader::ProcessMessageCommitCore(
                                    signature, backup_id);
     if (sig_valid == false)
     {
-        LOG_MESSAGE("Error: Invalid signature in commit message");
+        LOG_GENERAL(WARNING, "Invalid signature in commit message");
         return false;
     }
 
@@ -364,7 +379,8 @@ bool ConsensusLeader::ProcessMessageCommitCore(
 
         if (m_commitCounter % 10 == 0)
         {
-            LOG_MESSAGE("Received " << m_commitCounter << " out of "
+            LOG_GENERAL(INFO,
+                        "Received " << m_commitCounter << " out of "
                                     << m_numForConsensus << ".");
         }
 
@@ -373,7 +389,8 @@ bool ConsensusLeader::ProcessMessageCommitCore(
 
         if (m_commitCounter == m_numForConsensus)
         {
-            LOG_MESSAGE("Sufficient " << m_numForConsensus
+            LOG_GENERAL(INFO,
+                        "Sufficient " << m_numForConsensus
                                       << " commits obtained");
 
             vector<unsigned char> challenge
@@ -418,18 +435,18 @@ bool ConsensusLeader::ProcessMessageCommitCore(
     {
         // Set a timer for collecting responses
         // auto main_func = []() -> void {
-        //     LOG_MESSAGE("Timer for collecting responses is triggered");
+        //     LOG_GENERAL(INFO, "Timer for collecting responses is triggered");
         // };
         // auto check_response_func = [this]() mutable -> void {
         //     if (m_responseCounter < m_numForConsensus)
         //     {
-        //         LOG_MESSAGE("# responses not reaches the threshold");
+        //         LOG_GENERAL(INFO, "# responses not reaches the threshold");
         //     }
-        //     LOG_MESSAGE("# responses reaches the threshold");
+        //     LOG_GENERAL(INFO, "# responses reaches the threshold");
         // };
         // TimeLockedFunction tlf(1, main_func, check_response_func, true);
 
-        LOG_MESSAGE("Process the threshold");
+        LOG_GENERAL(INFO, "Process the threshold");
 
         for (unsigned int i = 0; i < 6000; i++)
         {
@@ -437,7 +454,7 @@ bool ConsensusLeader::ProcessMessageCommitCore(
 
             if (a_State > nextstate)
             {
-                LOG_MESSAGE("# responses reaches the threshold");
+                LOG_GENERAL(INFO, "# responses reaches the threshold");
                 break;
             }
         }
@@ -446,8 +463,8 @@ bool ConsensusLeader::ProcessMessageCommitCore(
         {
             if (m_responseCounter < m_numForConsensus)
             {
-                LOG_MESSAGE("# responses does not reach the threshold");
-                LOG_MESSAGE("Insufficient responses obtained");
+                LOG_GENERAL(INFO, "# responses does not reach the threshold");
+                LOG_GENERAL(INFO, "Insufficient responses obtained");
 
                 // Update internal state
                 // =====================
@@ -455,7 +472,7 @@ bool ConsensusLeader::ProcessMessageCommitCore(
 
                 if (m_commitRedundantCounter <= 0)
                 {
-                    LOG_MESSAGE("No redundant commit messages");
+                    LOG_GENERAL(INFO, "No redundant commit messages");
                     return false;
                 }
 
@@ -477,7 +494,7 @@ bool ConsensusLeader::ProcessMessageCommitCore(
                     if ((m_commitMap.at(i) == true) && (m_responseMap.at(i) == false))
                     {
                         // Put node i into the blacklist
-                        LOG_MESSAGE("Peer " << i << " is malicious");
+                        LOG_GENERAL(INFO, "Peer " << i << " is malicious");
                         m_commitMap.at(i) = false;
                     }
                 }
@@ -498,13 +515,13 @@ bool ConsensusLeader::ProcessMessageCommitCore(
 
                 if (m_commitCounter < m_numForConsensus)
                 {
-                    LOG_MESSAGE("No sufficient redundant commit messages");
+                    LOG_GENERAL(INFO, "No sufficient redundant commit messages");
                     return false;
                 }
 
                 if (m_commitCounter == m_numForConsensus)
                 {
-                    LOG_MESSAGE("Sufficient redundant commit messages");
+                    LOG_GENERAL(INFO, "Sufficient redundant commit messages");
                     // result = true;
                     vector<unsigned char> challenge = { m_classByte, m_insByte, static_cast<unsigned char>(returnmsgtype) };
                     result = GenerateChallengeMessage(challenge, MessageOffset::BODY + sizeof(unsigned char));
@@ -561,7 +578,7 @@ bool ConsensusLeader::ProcessMessageCommitFailure(
 
     if (length_needed > length_available)
     {
-        LOG_MESSAGE("Error: Malformed message");
+        LOG_GENERAL(WARNING, "Malformed message");
         return false;
     }
 
@@ -575,9 +592,10 @@ bool ConsensusLeader::ProcessMessageCommitFailure(
     // Check the consensus id
     if (consensus_id != m_consensusID)
     {
-        LOG_MESSAGE("Error: Consensus ID in commitment ("
-                    << consensus_id << ") does not match "
-                    << "instance consensus ID (" << m_consensusID << ")");
+        LOG_GENERAL(WARNING,
+                    "Consensus ID in commitment ("
+                        << consensus_id << ") does not match "
+                        << "instance consensus ID (" << m_consensusID << ")");
         return false;
     }
 
@@ -588,7 +606,8 @@ bool ConsensusLeader::ProcessMessageCommitFailure(
               commitFailureMsg.begin() + curr_offset)
         == false)
     {
-        LOG_MESSAGE("Error: Block hash in commitment does not match instance "
+        LOG_GENERAL(WARNING,
+                    "Block hash in commitment does not match instance "
                     "block hash");
         return false;
     }
@@ -604,13 +623,13 @@ bool ConsensusLeader::ProcessMessageCommitFailure(
         >= m_commitMap
                .size()) // using commitMap instead of commitFailureMap knowingly since its size = puKeys.size() for sure
     {
-        LOG_MESSAGE("Error: Backup ID beyond backup count");
+        LOG_GENERAL(WARNING, "Backup ID beyond backup count");
         return false;
     }
 
     if (m_commitFailureMap.find(backup_id) != m_commitFailureMap.end())
     {
-        LOG_MESSAGE("Error: Backup has already sent commit failure message");
+        LOG_GENERAL(WARNING, "Backup has already sent commit failure message");
         return false;
     }
 
@@ -632,7 +651,7 @@ bool ConsensusLeader::ProcessMessageCommitFailure(
             m_shardCommitFailureHandlerFunc(m_commitFailureMap);
         };
         DetachedFunction(1, main_func);
-        // LOG_MESSAGE("Sufficient " << m_numForConsensus << " commits obtained");
+        // LOG_GENERAL(INFO, "Sufficient " << m_numForConsensus << " commits obtained");
 
         // vector<unsigned char> challenge = { m_classByte, m_insByte, static_cast<unsigned char>(returnmsgtype) };
         // result = GenerateChallengeMessage(challenge, MessageOffset::BODY + sizeof(unsigned char));
@@ -674,7 +693,7 @@ bool ConsensusLeader::GenerateChallengeMessage(vector<unsigned char>& challenge,
     CommitPoint aggregated_commit = AggregateCommits(m_commitPoints);
     if (aggregated_commit.Initialized() == false)
     {
-        LOG_MESSAGE("Error: AggregateCommits failed");
+        LOG_GENERAL(WARNING, "AggregateCommits failed");
         m_state = ERROR;
         return false;
     }
@@ -683,7 +702,7 @@ bool ConsensusLeader::GenerateChallengeMessage(vector<unsigned char>& challenge,
     PubKey aggregated_key = AggregateKeys(m_commitMap);
     if (aggregated_key.Initialized() == false)
     {
-        LOG_MESSAGE("Error: Aggregated key generation failed");
+        LOG_GENERAL(WARNING, "Aggregated key generation failed");
         m_state = ERROR;
         return false;
     }
@@ -693,7 +712,7 @@ bool ConsensusLeader::GenerateChallengeMessage(vector<unsigned char>& challenge,
                                aggregated_commit, aggregated_key);
     if (m_challenge.Initialized() == false)
     {
-        LOG_MESSAGE("Error: Challenge generation failed");
+        LOG_GENERAL(WARNING, "Challenge generation failed");
         m_state = ERROR;
         return false;
     }
@@ -737,7 +756,7 @@ bool ConsensusLeader::GenerateChallengeMessage(vector<unsigned char>& challenge,
     Signature signature = SignMessage(challenge, offset, curr_offset - offset);
     if (signature.Initialized() == false)
     {
-        LOG_MESSAGE("Error: Message signing failed");
+        LOG_GENERAL(WARNING, "Message signing failed");
         m_state = ERROR;
         return false;
     }
@@ -772,7 +791,7 @@ bool ConsensusLeader::ProcessMessageResponseCore(
 
     if (length_needed > length_available)
     {
-        LOG_MESSAGE("Error: Malformed message");
+        LOG_GENERAL(WARNING, "Malformed message");
         return false;
     }
 
@@ -786,10 +805,11 @@ bool ConsensusLeader::ProcessMessageResponseCore(
     // Check the consensus id
     if (consensus_id != m_consensusID)
     {
-        LOG_MESSAGE("Error: Consensus ID in response ("
-                    << consensus_id
-                    << ") does not match instance consensus ID ("
-                    << m_consensusID << ")");
+        LOG_GENERAL(WARNING,
+                    "Consensus ID in response ("
+                        << consensus_id
+                        << ") does not match instance consensus ID ("
+                        << m_consensusID << ")");
         return false;
     }
 
@@ -800,8 +820,9 @@ bool ConsensusLeader::ProcessMessageResponseCore(
               response.begin() + curr_offset)
         == false)
     {
-        LOG_MESSAGE(
-            "Error: Block hash in response does not match instance block hash");
+        LOG_GENERAL(
+            WARNING,
+            "Block hash in response does not match instance block hash");
         return false;
     }
     curr_offset += BLOCK_HASH_SIZE;
@@ -814,17 +835,17 @@ bool ConsensusLeader::ProcessMessageResponseCore(
     // Check the backup id
     if (backup_id >= m_responseMap.size())
     {
-        LOG_MESSAGE("Error: Backup ID beyond backup count");
+        LOG_GENERAL(WARNING, "Backup ID beyond backup count");
         return false;
     }
     if (m_commitMap.at(backup_id) == false)
     {
-        LOG_MESSAGE("Error: Backup has not participated in the commit phase");
+        LOG_GENERAL(WARNING, "Backup has not participated in the commit phase");
         return false;
     }
     if (m_responseMap.at(backup_id) == true)
     {
-        LOG_MESSAGE("Error: Backup has already sent validated response");
+        LOG_GENERAL(WARNING, "Backup has already sent validated response");
         return false;
     }
 
@@ -837,7 +858,7 @@ bool ConsensusLeader::ProcessMessageResponseCore(
                                  m_commitPointMap.at(backup_id))
         == false)
     {
-        LOG_MESSAGE("Error: Invalid response for this backup");
+        LOG_GENERAL(WARNING, "Invalid response for this backup");
         return false;
     }
 
@@ -846,7 +867,7 @@ bool ConsensusLeader::ProcessMessageResponseCore(
     Signature signature;
     if (signature.Deserialize(response, curr_offset) != 0)
     {
-        LOG_MESSAGE("Error. We failed to deserialize signature.");
+        LOG_GENERAL(WARNING, "We failed to deserialize signature.");
         return false;
     }
 
@@ -855,7 +876,7 @@ bool ConsensusLeader::ProcessMessageResponseCore(
                                    signature, backup_id);
     if (sig_valid == false)
     {
-        LOG_MESSAGE("Error: Invalid signature in response message");
+        LOG_GENERAL(WARNING, "Invalid signature in response message");
         return false;
     }
 
@@ -882,7 +903,7 @@ bool ConsensusLeader::ProcessMessageResponseCore(
 
     if (m_responseCounter == m_numForConsensus)
     {
-        LOG_MESSAGE("Sufficient responses obtained");
+        LOG_GENERAL(INFO, "Sufficient responses obtained");
 
         vector<unsigned char> collectivesig = {
             m_classByte, m_insByte, static_cast<unsigned char>(returnmsgtype)};
@@ -963,7 +984,7 @@ bool ConsensusLeader::GenerateCollectiveSigMessage(
     Response aggregated_response = AggregateResponses(m_responseData);
     if (aggregated_response.Initialized() == false)
     {
-        LOG_MESSAGE("Error: AggregateCommits failed");
+        LOG_GENERAL(WARNING, "AggregateCommits failed");
         m_state = ERROR;
         return false;
     }
@@ -972,7 +993,7 @@ bool ConsensusLeader::GenerateCollectiveSigMessage(
     PubKey aggregated_key = AggregateKeys(m_responseMap);
     if (aggregated_key.Initialized() == false)
     {
-        LOG_MESSAGE("Error: Aggregated key generation failed");
+        LOG_GENERAL(WARNING, "Aggregated key generation failed");
         m_state = ERROR;
         return false;
     }
@@ -981,7 +1002,7 @@ bool ConsensusLeader::GenerateCollectiveSigMessage(
     m_collectiveSig = AggregateSign(m_challenge, aggregated_response);
     if (m_collectiveSig.Initialized() == false)
     {
-        LOG_MESSAGE("Error: Collective sig generation failed");
+        LOG_GENERAL(WARNING, "Collective sig generation failed");
         m_state = ERROR;
         return false;
     }
@@ -991,11 +1012,11 @@ bool ConsensusLeader::GenerateCollectiveSigMessage(
                                       m_collectiveSig, aggregated_key)
         == false)
     {
-        LOG_MESSAGE("Error: Collective sig verification failed");
+        LOG_GENERAL(WARNING, "Collective sig verification failed");
         m_state = ERROR;
 
-        LOG_MESSAGE("num of pub keys: " << m_pubKeys.size())
-        LOG_MESSAGE("num of peer_info keys: " << m_peerInfo.size())
+        LOG_GENERAL(INFO, "num of pub keys: " << m_pubKeys.size())
+        LOG_GENERAL(INFO, "num of peer_info keys: " << m_peerInfo.size())
 
         return false;
     }
@@ -1037,7 +1058,7 @@ bool ConsensusLeader::GenerateCollectiveSigMessage(
         = SignMessage(collectivesig, offset, curr_offset - offset);
     if (signature.Initialized() == false)
     {
-        LOG_MESSAGE("Error: Message signing failed");
+        LOG_GENERAL(WARNING, "Message signing failed");
         m_state = ERROR;
         return false;
     }
@@ -1083,10 +1104,12 @@ ConsensusLeader::ConsensusLeader(
     // m_numForConsensus = (floor(TOLERANCE_FRACTION * (pubkeys.size() - 1)) + 1);
     m_numForConsensus = ConsensusCommon::NumForConsensus(pubkeys.size());
     m_numForConsensusFailure = pubkeys.size() - m_numForConsensus;
-    LOG_MESSAGE("TOLERANCE_FRACTION "
-                << TOLERANCE_FRACTION << " pubkeys.size() " << pubkeys.size()
-                << " m_numForConsensus " << m_numForConsensus
-                << " m_numForConsensusFailure " << m_numForConsensusFailure);
+    LOG_GENERAL(INFO,
+                "TOLERANCE_FRACTION "
+                    << TOLERANCE_FRACTION << " pubkeys.size() "
+                    << pubkeys.size() << " m_numForConsensus "
+                    << m_numForConsensus << " m_numForConsensusFailure "
+                    << m_numForConsensusFailure);
 
     m_nodeCommitFailureHandlerFunc = nodeCommitFailureHandlerFunc;
     m_shardCommitFailureHandlerFunc = shardCommitFailureHandlerFunc;
@@ -1104,7 +1127,7 @@ bool ConsensusLeader::StartConsensus(const vector<unsigned char>& message,
 
     if (message.size() == 0)
     {
-        LOG_MESSAGE("Error: Empty message");
+        LOG_GENERAL(WARNING, "Empty message");
         return false;
     }
 
@@ -1125,10 +1148,12 @@ bool ConsensusLeader::StartConsensus(const vector<unsigned char>& message,
     // Format: [CLA] [INS] [1-byte consensus message type] [4-byte consensus id] [32-byte blockhash] [2-byte leader id] [message] [4-byte length to co-sign] [64-byte signature]
     // Signature is over: [4-byte consensus id] [32-byte blockhash] [2-byte leader id] [message] [4-byte length to co-sign]
 
-    LOG_MESSAGE("DEBUG: my ip is "
-                << m_peerInfo.at(m_myID).GetPrintableIPAddress());
-    LOG_MESSAGE("DEBUG: my pub is "
-                << DataConversion::SerializableToHexStr(m_pubKeys.at(m_myID)));
+    LOG_GENERAL(INFO,
+                "DEBUG: my ip is "
+                    << m_peerInfo.at(m_myID).GetPrintableIPAddress());
+    LOG_GENERAL(INFO,
+                "DEBUG: my pub is " << DataConversion::SerializableToHexStr(
+                    m_pubKeys.at(m_myID)));
 
     vector<unsigned char> announcement
         = {m_classByte, m_insByte,
@@ -1139,7 +1164,7 @@ bool ConsensusLeader::StartConsensus(const vector<unsigned char>& message,
     Serializable::SetNumber<uint32_t>(announcement, curr_offset, m_consensusID,
                                       sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
-    LOG_MESSAGE("DEBUG: consensus id is " << m_consensusID);
+    LOG_GENERAL(INFO, "DEBUG: consensus id is " << m_consensusID);
 
     // 32-byte blockhash
     announcement.insert(announcement.begin() + curr_offset, m_blockHash.begin(),
@@ -1150,7 +1175,7 @@ bool ConsensusLeader::StartConsensus(const vector<unsigned char>& message,
     Serializable::SetNumber<uint16_t>(announcement, curr_offset, m_myID,
                                       sizeof(uint16_t));
     curr_offset += sizeof(uint16_t);
-    LOG_MESSAGE("DEBUG: consensus leader id is " << m_myID);
+    LOG_GENERAL(INFO, "DEBUG: consensus leader id is " << m_myID);
 
     // message
     announcement.insert(announcement.begin() + curr_offset, message.begin(),
@@ -1168,7 +1193,7 @@ bool ConsensusLeader::StartConsensus(const vector<unsigned char>& message,
         curr_offset - MessageOffset::BODY - sizeof(unsigned char));
     if (signature.Initialized() == false)
     {
-        LOG_MESSAGE("Error: Message signing failed");
+        LOG_GENERAL(WARNING, "Message signing failed");
         m_state = ERROR;
         return false;
     }
@@ -1219,8 +1244,9 @@ bool ConsensusLeader::ProcessMessage(const vector<unsigned char>& message,
         result = ProcessMessageFinalResponse(message, offset + 1);
         break;
     default:
-        LOG_MESSAGE("Error: Unknown consensus message received. No: "
-                    << (unsigned int)message.at(offset));
+        LOG_GENERAL(WARNING,
+                    "Unknown consensus message received. No: "
+                        << (unsigned int)message.at(offset));
     }
 
     return result;

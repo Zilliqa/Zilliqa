@@ -53,12 +53,12 @@ void Node::SharePoW2WinningResultWithDS(
 {
     LOG_MARKER();
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "Winning nonce   = " << winning_result.winning_nonce);
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "Winning result  = " << winning_result.result);
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "Winning mixhash = " << winning_result.mix_hash);
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Winning nonce   = " << winning_result.winning_nonce);
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Winning result  = " << winning_result.result);
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Winning mixhash = " << winning_result.mix_hash);
 
     // Send result
     vector<unsigned char> pow2message
@@ -120,12 +120,11 @@ bool Node::StartPoW2(uint256_t block_num, uint8_t difficulty,
 
     LOG_MARKER();
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "blockNum: " << block_num << " Difficulty: " << difficulty);
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "rand1: " << DataConversion::charArrToHexStr(rand1)
-                           << " rand2: "
-                           << DataConversion::charArrToHexStr(rand2));
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "blockNum: " << block_num << " Difficulty: " << difficulty);
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "rand1: " << DataConversion::charArrToHexStr(rand1) << " rand2: "
+                        << DataConversion::charArrToHexStr(rand2));
 
     StartPoW2MiningAndShareResultWithDS(block_num, difficulty, rand1, rand2);
 

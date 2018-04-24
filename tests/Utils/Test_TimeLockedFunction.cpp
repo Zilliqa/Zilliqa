@@ -51,12 +51,14 @@ void expiry_function(int count_up_to)
 
     if (counter == count_up_to)
     {
-        LOG_MESSAGE("Last count = " << counter
+        LOG_GENERAL(INFO,
+                    "Last count = " << counter
                                     << " => main_func executed on time!");
     }
     else
     {
-        LOG_MESSAGE("Last count = " << counter
+        LOG_GENERAL(INFO,
+                    "Last count = " << counter
                                     << " => main_func executed too slow!");
     }
 }
@@ -65,8 +67,8 @@ void test(int target, int delay)
 {
     LOG_MARKER();
 
-    LOG_MESSAGE("Test: Count to " << target << " before " << delay
-                                  << " seconds");
+    LOG_GENERAL(
+        INFO, "Test: Count to " << target << " before " << delay << " seconds");
 
     auto main_func = [target]() -> void { main_function(target); };
     auto expiry_func = [target]() -> void { expiry_function(target); };

@@ -205,13 +205,15 @@ void readBlock(int id)
     BlockStorage::GetBlockStorage().GetTxBlock(id, block);
     if ((*block).GetHeader().GetBlockNum() != id)
     {
-        LOG_MESSAGE("GetBlockNum is " << (*block).GetHeader().GetBlockNum()
+        LOG_GENERAL(INFO,
+                    "GetBlockNum is " << (*block).GetHeader().GetBlockNum()
                                       << ", id is " << id);
         assert((*block).GetHeader().GetBlockNum() == id);
     }
     else
     {
-        LOG_MESSAGE("GetBlockNum is " << (*block).GetHeader().GetBlockNum()
+        LOG_GENERAL(INFO,
+                    "GetBlockNum is " << (*block).GetHeader().GetBlockNum()
                                       << ", id is " << id);
     }
 }
@@ -241,7 +243,7 @@ void bootstrap(int num_threads)
         }
     }
 
-    LOG_MESSAGE("Bootstrapping done!!");
+    LOG_GENERAL(INFO, "Bootstrapping done!!");
 }
 
 BOOST_AUTO_TEST_CASE(testThreadSafety)
@@ -337,7 +339,7 @@ BOOST_AUTO_TEST_CASE(testRetrieveAllTheTxBlocksInDB)
             "GetAllDSBlocks shouldn't fail");
         for (auto i : ref_blocks)
         {
-            LOG_MESSAGE(i->GetHeader().GetDSBlockNum());
+            LOG_GENERAL(INFO, i->GetHeader().GetDSBlockNum());
             out_blocks.push_back(*i);
         }
         BOOST_CHECK_MESSAGE(

@@ -48,8 +48,8 @@ unsigned int DirectoryService::SerializeEntireShardingStructure(
                                       m_shards.size(), sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "Number of shards = " << m_shards.size());
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Number of shards = " << m_shards.size());
 
     for (auto it_vec = m_shards.begin(); it_vec != m_shards.end(); it_vec++)
     {
@@ -58,8 +58,8 @@ unsigned int DirectoryService::SerializeEntireShardingStructure(
                                           it_vec->size(), sizeof(uint32_t));
         curr_offset += sizeof(uint32_t);
 
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Shard size = " << it_vec->size());
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Shard size = " << it_vec->size());
 
         for (auto it_map = it_vec->begin(); it_map != it_vec->end(); it_map++)
         {
@@ -71,13 +71,12 @@ unsigned int DirectoryService::SerializeEntireShardingStructure(
             (*it_map).second.Serialize(sharding_message, curr_offset);
             curr_offset += IP_SIZE + PORT_SIZE;
 
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "PubKey: " << DataConversion::SerializableToHexStr(
-                                           (*it_map).first)
-                                    << " IP: "
-                                    << (*it_map).second.GetPrintableIPAddress()
-                                    << " Port: "
-                                    << (*it_map).second.m_listenPortHost);
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "PubKey: "
+                          << DataConversion::SerializableToHexStr(
+                                 (*it_map).first)
+                          << " IP: " << (*it_map).second.GetPrintableIPAddress()
+                          << " Port: " << (*it_map).second.m_listenPortHost);
         }
     }
 
@@ -146,14 +145,14 @@ void DirectoryService::SetupMulticastConfigForShardingStructure(
         my_shards_hi = m_shards.size() - 1;
     }
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "my_shards_lo: "
-                     << my_shards_lo << " my_shards_hi: " << my_shards_hi
-                     << " my_DS_cluster_num  : " << my_DS_cluster_num);
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "shard_groups_count : " << shard_groups_count
-                                         << " m shard size       : "
-                                         << m_shards.size());
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "my_shards_lo: "
+                  << my_shards_lo << " my_shards_hi: " << my_shards_hi
+                  << " my_DS_cluster_num  : " << my_DS_cluster_num);
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "shard_groups_count : " << shard_groups_count
+                                      << " m shard size       : "
+                                      << m_shards.size());
 }
 
 void DirectoryService::SendingShardingStructureToShard(
@@ -198,9 +197,10 @@ void DirectoryService::SendingShardingStructureToShard(
                                       sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "Committee size = " << p->size());
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Members:");
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Committee size = " << p->size());
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Members:");
 
     vector<Peer> shard_peers;
     for (auto& kv : *p)
@@ -213,11 +213,10 @@ void DirectoryService::SendingShardingStructureToShard(
         kv.second.Serialize(sharding_message, curr_offset);
         curr_offset += IP_SIZE + PORT_SIZE;
         shard_peers.push_back(kv.second);
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     " PubKey: "
-                         << DataConversion::SerializableToHexStr(kv.first)
-                         << " IP: " << kv.second.GetPrintableIPAddress()
-                         << " Port: " << kv.second.m_listenPortHost);
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  " PubKey: " << DataConversion::SerializableToHexStr(kv.first)
+                              << " IP: " << kv.second.GetPrintableIPAddress()
+                              << " Port: " << kv.second.m_listenPortHost);
     }
 
 #ifdef STAT_TEST
@@ -266,9 +265,8 @@ bool DirectoryService::ProcessShardingConsensus(
 
             if (i % 100 == 0)
             {
-                LOG_MESSAGE2(
-                    to_string(m_mediator.m_currentEpochNum).c_str(),
-                    "Waiting for SHARDING_CONSENSUS before processing");
+                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                          "Waiting for SHARDING_CONSENSUS before processing");
             }
 
             this_thread::sleep_for(
@@ -279,20 +277,20 @@ bool DirectoryService::ProcessShardingConsensus(
     // if (m_state != SHARDING_CONSENSUS)
     if (!CheckState(PROCESS_SHARDINGCONSENSUS))
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Ignoring consensus message");
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Ignoring consensus message");
         return false;
     }
 
     bool result = m_consensusObject->ProcessMessage(message, offset, from);
     ConsensusCommon::State state = m_consensusObject->GetState();
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "Consensus state = " << state);
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Consensus state = " << state);
 
     if (state == ConsensusCommon::State::DONE)
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Sharding consensus is DONE!!!");
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Sharding consensus is DONE!!!");
         cv_viewChangeSharding.notify_all();
 
 #ifdef STAT_TEST
@@ -313,10 +311,10 @@ bool DirectoryService::ProcessShardingConsensus(
         if (m_consensusMyID > nodeToSendToLookUpLo
             && m_consensusMyID < nodeToSendToLookUpHi)
         {
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "I the DS folks that will soon be sending the "
-                         "sharding structure to the "
-                         "lookup nodes");
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "I the DS folks that will soon be sending the "
+                      "sharding structure to the "
+                      "lookup nodes");
             SendEntireShardingStructureToLookupNodes();
         }
 
@@ -350,7 +348,8 @@ bool DirectoryService::ProcessShardingConsensus(
                                                     std::chrono::seconds(180))
             == std::cv_status::timeout)
         {
-            LOG_MESSAGE(
+            LOG_GENERAL(
+                INFO,
                 "Timeout: Didn't receive all Microblock. Proceeds without it");
             RunConsensusOnFinalBlock();
         }
@@ -360,22 +359,22 @@ bool DirectoryService::ProcessShardingConsensus(
         for (unsigned int i = 0; i < m_mediator.m_DSCommitteeNetworkInfo.size();
              i++)
         {
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         string(m_mediator.m_DSCommitteeNetworkInfo[i]
-                                    .GetPrintableIPAddress())
-                             + ":"
-                             + to_string(m_mediator.m_DSCommitteeNetworkInfo[i]
-                                             .m_listenPortHost));
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      string(m_mediator.m_DSCommitteeNetworkInfo[i]
+                                 .GetPrintableIPAddress())
+                          + ":"
+                          + to_string(m_mediator.m_DSCommitteeNetworkInfo[i]
+                                          .m_listenPortHost));
         }
         for (unsigned int i = 0; i < m_mediator.m_DSCommitteePubKeys.size();
              i++)
         {
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         DataConversion::SerializableToHexStr(
-                             m_mediator.m_DSCommitteePubKeys[i]));
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      DataConversion::SerializableToHexStr(
+                          m_mediator.m_DSCommitteePubKeys[i]));
         }
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Oops, no consensus reached - what to do now???");
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Oops, no consensus reached - what to do now???");
         // throw exception();
         // TODO: no consensus reached
         return false;

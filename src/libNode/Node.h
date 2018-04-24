@@ -86,7 +86,7 @@ class Node : public Executable, public Broadcastable
 
     Synchronizer m_synchronizer;
 
-    std::shared_timed_mutex m_mutexProducerConsumer;
+    // std::shared_timed_mutex m_mutexProducerConsumer;
     std::mutex m_mutexConsensus;
 
     // Sharding information

@@ -104,7 +104,7 @@ BOOST_AUTO_TEST_CASE(testDSBlockRetrieval)
     {
         ;
     }
-    LOG_MESSAGE(i);
+    LOG_GENERAL(INFO, i);
 
     uint32_t listen_port = 5000;
     struct in_addr ip_addr;

@@ -24,14 +24,15 @@ bool IsMessageSizeInappropriate(unsigned int messageSize, unsigned int offset,
 {
     if (minLengthNeeded > messageSize - offset)
     {
-        LOG_MESSAGE("Error: [Message Size Insufficient] " << errMsg);
+        LOG_GENERAL(WARNING, "[Message Size Insufficient] " << errMsg);
         return true;
     }
 
     if (factor != 0 && (messageSize - offset - minLengthNeeded) % factor != 0)
     {
-        LOG_MESSAGE("Error: [Message Size not a proper multiple of factor] "
-                    << errMsg);
+        LOG_GENERAL(WARNING,
+                    "[Message Size not a proper multiple of factor] "
+                        << errMsg);
         return true;
     }
 
