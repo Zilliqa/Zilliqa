@@ -67,7 +67,7 @@ namespace dev
             if (!m_enforceRefs || it->second.second > 0)
                 return it->second.first;
             else
-                LOG_MESSAGE("Lookup required for value with refcount == 0. This is probably a critical trie issue" << _h);
+                LOG_GENERAL(INFO, "Lookup required for value with refcount == 0. This is probably a critical trie issue" << _h);
         }
         return std::string();
     }

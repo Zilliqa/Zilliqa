@@ -15,7 +15,11 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 #
 # check dependencies
 #
+include(InstallG3log)
+
 find_package(PkgConfig REQUIRED)
+
+find_package(g3logger CONFIG REQUIRED)
 
 find_package(Boost COMPONENTS filesystem system unit_test_framework)
 

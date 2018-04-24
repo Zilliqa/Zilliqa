@@ -94,7 +94,7 @@ string Server::CreateTransaction(const Json::Value& _json)
             return "Signature incorrect";
         }
 
-        //LOG_MESSAGE("Nonce: "<<tx.GetNonce().str()<<" toAddr: "<<tx.GetToAddr().hex()<<" senderPubKey: "<<static_cast<string>(tx.GetSenderPubKey());<<" amount: "<<tx.GetAmount().str());
+        //LOG_GENERAL(INFO, "Nonce: "<<tx.GetNonce().str()<<" toAddr: "<<tx.GetToAddr().hex()<<" senderPubKey: "<<static_cast<string>(tx.GetSenderPubKey());<<" amount: "<<tx.GetAmount().str());
 
         unsigned int num_shards = m_mediator.m_lookup->GetShardPeers().size();
 
@@ -108,7 +108,7 @@ string Server::CreateTransaction(const Json::Value& _json)
                 = Transaction::GetShardIndex(fromAddr, num_shards);
             map<PubKey, Peer> shardMembers
                 = m_mediator.m_lookup->GetShardPeers().at(shard);
-            LOG_MESSAGE("The Tx Belongs to " << shard << " Shard");
+            LOG_GENERAL(INFO, "The Tx Belongs to " << shard << " Shard");
 
             vector<unsigned char> tx_message
                 = {MessageType::NODE,
@@ -117,7 +117,7 @@ string Server::CreateTransaction(const Json::Value& _json)
 
             tx.Serialize(tx_message, curr_offset);
 
-            LOG_MESSAGE("Tx Serialized");
+            LOG_GENERAL(INFO, "Tx Serialized");
 
             vector<Peer> toSend;
 
@@ -132,7 +132,7 @@ string Server::CreateTransaction(const Json::Value& _json)
         }
         else
         {
-            LOG_MESSAGE("No shards yet");
+            LOG_GENERAL(INFO, "No shards yet");
 
             return "Could Not Create Transaction";
         }
@@ -142,7 +142,8 @@ string Server::CreateTransaction(const Json::Value& _json)
     catch (exception& e)
     {
 
-        LOG_MESSAGE("[Error]" << e.what()
+        LOG_GENERAL(INFO,
+                    "[Error]" << e.what()
                               << " Input: " << _json.toStyledString());
 
         return "Unable to process";
@@ -179,7 +180,8 @@ Json::Value Server::GetTransaction(const string& transactionHash)
     catch (exception& e)
     {
         Json::Value _json;
-        LOG_MESSAGE("[Error]" << e.what() << " Input: " << transactionHash);
+        LOG_GENERAL(INFO,
+                    "[Error]" << e.what() << " Input: " << transactionHash);
         _json["Error"] = "Unable to Process";
         return _json;
     }
@@ -203,14 +205,14 @@ Json::Value Server::GetDsBlock(const string& blockNum)
     catch (runtime_error& e)
     {
         Json::Value _json;
-        LOG_MESSAGE("Error " << e.what());
+        LOG_GENERAL(INFO, "Error " << e.what());
         _json["Error"] = "String not numeric";
         return _json;
     }
     catch (exception& e)
     {
         Json::Value _json;
-        LOG_MESSAGE("[Error]" << e.what() << " Input: " << blockNum);
+        LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
         _json["Error"] = "Unable to Process";
         return _json;
     }
@@ -234,14 +236,14 @@ Json::Value Server::GetTxBlock(const string& blockNum)
     catch (runtime_error& e)
     {
         Json::Value _json;
-        LOG_MESSAGE("Error " << e.what());
+        LOG_GENERAL(INFO, "Error " << e.what());
         _json["Error"] = "String not numeric";
         return _json;
     }
     catch (exception& e)
     {
         Json::Value _json;
-        LOG_MESSAGE("[Error]" << e.what() << " Input: " << blockNum);
+        LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
         _json["Error"] = "Unable to Process";
         return _json;
     }
@@ -254,10 +256,10 @@ Json::Value Server::GetLatestDsBlock()
     LOG_MARKER();
     DSBlock Latest = m_mediator.m_dsBlockChain.GetLastBlock();
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "BlockNum " << Latest.GetHeader().GetBlockNum().str()
-                             << "  Timestamp:        "
-                             << Latest.GetHeader().GetTimestamp().str());
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "BlockNum " << Latest.GetHeader().GetBlockNum().str()
+                          << "  Timestamp:        "
+                          << Latest.GetHeader().GetTimestamp().str());
 
     return JSONConversion::convertDSblocktoJson(Latest);
 }
@@ -267,10 +269,10 @@ Json::Value Server::GetLatestTxBlock()
     LOG_MARKER();
     TxBlock Latest = m_mediator.m_txBlockChain.GetLastBlock();
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "BlockNum " << Latest.GetHeader().GetBlockNum().str()
-                             << "  Timestamp:        "
-                             << Latest.GetHeader().GetTimestamp().str());
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "BlockNum " << Latest.GetHeader().GetBlockNum().str()
+                          << "  Timestamp:        "
+                          << Latest.GetHeader().GetTimestamp().str());
 
     return JSONConversion::convertTxBlocktoJson(Latest);
 }
@@ -302,7 +304,8 @@ Json::Value Server::GetBalance(const string& address)
             ret["balance"] = balance.str();
             //FIXME: a workaround, 256-bit unsigned int being truncated
             ret["nonce"] = nonce.convert_to<unsigned int>();
-            LOG_MESSAGE("balance " << balance.str() << " nonce: "
+            LOG_GENERAL(INFO,
+                        "balance " << balance.str() << " nonce: "
                                    << nonce.convert_to<unsigned int>());
         }
         else if (account == nullptr)
@@ -315,7 +318,7 @@ Json::Value Server::GetBalance(const string& address)
     }
     catch (exception& e)
     {
-        LOG_MESSAGE("[Error]" << e.what() << " Input: " << address);
+        LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << address);
         Json::Value _json;
         _json["Error"] = "Unable To Process";
 
@@ -431,7 +434,7 @@ double Server::GetTransactionRate()
     {
         if (refBlockNum <= 1)
         {
-            LOG_MESSAGE("Not enough blocks for information");
+            LOG_GENERAL(INFO, "Not enough blocks for information");
             return 0;
         }
         else
@@ -447,7 +450,7 @@ double Server::GetTransactionRate()
 
     boost::multiprecision::cpp_dec_float_50 numTxns(
         Server::GetNumTransactions(refBlockNum));
-    LOG_MESSAGE("Num Txns: " << numTxns);
+    LOG_GENERAL(INFO, "Num Txns: " << numTxns);
 
     try
     {
@@ -459,7 +462,7 @@ double Server::GetTransactionRate()
     {
         if (string(msg) == "Blocknumber Absent")
         {
-            LOG_MESSAGE("Error in fetching ref block");
+            LOG_GENERAL(INFO, "Error in fetching ref block");
         }
         return 0;
     }
@@ -471,8 +474,9 @@ double Server::GetTransactionRate()
     if (TimeDiff == 0 || refTimeTx == 0)
     {
         //something went wrong
-        LOG_MESSAGE("TimeDiff or refTimeTx = 0 \n TimeDiff:"
-                    << TimeDiff.str() << " refTimeTx:" << refTimeTx.str());
+        LOG_GENERAL(INFO,
+                    "TimeDiff or refTimeTx = 0 \n TimeDiff:"
+                        << TimeDiff.str() << " refTimeTx:" << refTimeTx.str());
         return 0;
     }
     numTxns = numTxns * 1000000; // conversion from microseconds to seconds
@@ -502,7 +506,7 @@ double Server::GetDSBlockRate()
         {
             if (string(msg) == "Blocknumber Absent")
             {
-                LOG_MESSAGE("No DSBlock has been mined yet");
+                LOG_GENERAL(INFO, "No DSBlock has been mined yet");
             }
             return 0;
         }
@@ -513,7 +517,7 @@ double Server::GetDSBlockRate()
 
     if (TimeDiff == 0)
     {
-        LOG_MESSAGE("Wait till the second block");
+        LOG_GENERAL(INFO, "Wait till the second block");
         return 0;
     }
     //To convert from microSeconds to seconds
@@ -543,7 +547,7 @@ double Server::GetTxBlockRate()
         {
             if (string(msg) == "Blocknumber Absent")
             {
-                LOG_MESSAGE("No TxBlock has been mined yet");
+                LOG_GENERAL(INFO, "No TxBlock has been mined yet");
             }
             return 0;
         }
@@ -554,7 +558,7 @@ double Server::GetTxBlockRate()
 
     if (TimeDiff == 0)
     {
-        LOG_MESSAGE("Wait till the second block");
+        LOG_GENERAL(INFO, "Wait till the second block");
         return 0;
     }
     //To convert from microSeconds to seconds

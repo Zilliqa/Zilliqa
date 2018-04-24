@@ -39,7 +39,7 @@ Peer::Peer(const vector<unsigned char>& src, unsigned int offset)
 {
     if (Deserialize(src, offset) != 0)
     {
-        LOG_MESSAGE("Error. We failed to init Peer.");
+        LOG_GENERAL(WARNING, "We failed to init Peer.");
     }
 }
 
@@ -83,7 +83,8 @@ int Peer::Deserialize(const vector<unsigned char>& src, unsigned int offset)
     }
     catch (const std::exception& e)
     {
-        LOG_MESSAGE("ERROR: Error with Peer::Deserialize." << ' ' << e.what());
+        LOG_GENERAL(WARNING,
+                    "Error with Peer::Deserialize." << ' ' << e.what());
         return -1;
     }
     return 0;
