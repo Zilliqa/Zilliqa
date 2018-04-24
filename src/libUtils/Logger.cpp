@@ -104,9 +104,9 @@ void Logger::newLog()
         auto sinkHandle = logworker->addSink(
             std::make_unique<FileSink>(fname.c_str(), "./"),
             &FileSink::fileWrite);
-        auto changeFormatting = sinkHandle->call(
-            &g3::FileSink::overrideLogDetails, &MyCustomFormatting);
-        changeFormatting.wait();
+        sinkHandle->call(&g3::FileSink::overrideLogDetails, &MyCustomFormatting)
+            .wait();
+        sinkHandle->call(&g3::FileSink::overrideLogHeader, "").wait();
         initializeLogging(logworker.get());
     }
 }
