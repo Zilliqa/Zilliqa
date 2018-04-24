@@ -15,6 +15,7 @@
 #include <memory>
 #include <stdexcept>
 #include <array>
+#include <signal.h>
 
 
 using namespace std;
