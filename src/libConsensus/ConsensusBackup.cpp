@@ -346,7 +346,7 @@ bool ConsensusBackup::ProcessMessageAnnounce(
     // Check the length to co-sign
     if (m_lengthToCosign > m_message.size())
     {
-        LOG_MESSAGE("Error: m_lengthToCosign > message size");
+        LOG_GENERAL(WARNING, "m_lengthToCosign > message size");
     }
 
     // Check the message
