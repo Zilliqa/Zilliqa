@@ -21,7 +21,11 @@ NAT::NAT()
 	struct UPNPDev* devlist;
 	int error = 0;
 
+#if MINIUPNPC_API_VERSION >= 14
+	devlist = upnpDiscover(2000,NULL,NULL,0,0,2,&error);
+#else
 	devlist = upnpDiscover(2000,NULL,NULL,0,0,&error);
+#endif
 
 	if(devlist == NULL || error != 0)
 	{
