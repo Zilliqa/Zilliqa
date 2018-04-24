@@ -23,7 +23,8 @@ apt-get install -y \
     libsnappy-dev \
     libjsoncpp-dev \
     libmicrohttpd-dev \
-    libjsonrpccpp-dev
+    libjsonrpccpp-dev \
+	libminiupnpnc-dev
 
 # install development dependencies
 apt-get install -y \
