@@ -45,6 +45,7 @@ brew install \
     jsoncpp \
     leveldb \
     libjson-rpc-cpp \
+    miniupnpc \
 
 # install developement deps
 brew install \
