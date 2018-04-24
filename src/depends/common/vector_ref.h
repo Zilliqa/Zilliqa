@@ -41,19 +41,19 @@ public:
     /// Creates a new vector_ref pointing to the data part of a string (given as pointer).
     vector_ref(typename std::conditional<std::is_const<_T>::value, std::string const*, std::string*>::type _data): m_data(reinterpret_cast<_T*>(_data->data())), m_count(_data->size() / sizeof(_T)) 
     {
-        // LOG_MESSAGE("count " << std::to_string(m_count));
+        // LOG_GENERAL(INFO, "count " << std::to_string(m_count));
     }
     /// Creates a new vector_ref pointing to the data part of a vector (given as pointer).
     vector_ref(typename std::conditional<std::is_const<_T>::value, std::vector<typename std::remove_const<_T>::type> const*, std::vector<_T>*>::type _data): m_data(_data->data()), m_count(_data->size()) 
     {
-        // LOG_MESSAGE("count " << std::to_string(_data->size() / sizeof(_T)));
-        // LOG_MESSAGE("count " << std::to_string(m_count));
+        // LOG_GENERAL(INFO, "count " << std::to_string(_data->size() / sizeof(_T)));
+        // LOG_GENERAL(INFO, "count " << std::to_string(m_count));
     }
     /// Creates a new vector_ref pointing to the data part of a string (given as reference).
     vector_ref(typename std::conditional<std::is_const<_T>::value, std::string const&, std::string&>::type _data): m_data(reinterpret_cast<_T*>(_data.data())), m_count(_data.size() / sizeof(_T)) 
     {
-        // LOG_MESSAGE("count " << std::to_string(_data->size() / sizeof(_T)));
-        // LOG_MESSAGE("count " << std::to_string(m_count));
+        // LOG_GENERAL(INFO, "count " << std::to_string(_data->size() / sizeof(_T)));
+        // LOG_GENERAL(INFO, "count " << std::to_string(m_count));
     }
 //#if DEV_LDB
     vector_ref(ldb::Slice const& _s): m_data(reinterpret_cast<_T*>(_s.data())), m_count(_s.size() / sizeof(_T)) {}

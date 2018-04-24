@@ -40,22 +40,23 @@ BOOST_AUTO_TEST_CASE(test1)
 
     acc1.IncreaseBalance(10);
     acc1.DecreaseBalance(120);
-    LOG_MESSAGE("Account1 balance: " << acc1.GetBalance());
+    LOG_GENERAL(INFO, "Account1 balance: " << acc1.GetBalance());
 
     std::vector<unsigned char> message1;
     acc1.Serialize(message1, 0);
 
-    LOG_PAYLOAD("Account1 serialized", message1, Logger::MAX_BYTES_TO_DISPLAY);
+    LOG_PAYLOAD(INFO, "Account1 serialized", message1,
+                Logger::MAX_BYTES_TO_DISPLAY)
 
     Account acc2(message1, 0);
 
     std::vector<unsigned char> message2;
     acc2.Serialize(message2, 0);
-
-    LOG_PAYLOAD("Account2 serialized", message2, Logger::MAX_BYTES_TO_DISPLAY);
+    LOG_PAYLOAD(INFO, "Account2 serialized", message2,
+                Logger::MAX_BYTES_TO_DISPLAY);
 
     boost::multiprecision::uint256_t acc2Balance = acc2.GetBalance();
-    LOG_MESSAGE("Account2 balance: " << acc2Balance);
+    LOG_GENERAL(INFO, "Account2 balance: " << acc2Balance);
     BOOST_CHECK_MESSAGE(acc2Balance == 110,
                         "expected: " << 100 << " actual: " << acc2Balance
                                      << "\n");

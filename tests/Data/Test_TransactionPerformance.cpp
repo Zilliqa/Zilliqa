@@ -208,39 +208,43 @@ BOOST_AUTO_TEST_CASE(GenTxn1000)
     auto sender = Schnorr::GetInstance().GenKeyPair();
     auto receiver = Schnorr::GetInstance().GenKeyPair();
 
-    LOG_MESSAGE("Generating " << n << " txns with multiple methods");
+    LOG_GENERAL(INFO, "Generating " << n << " txns with multiple methods");
 
     auto t_start = std::chrono::high_resolution_clock::now();
     auto txns1 = GenWithSigning(sender, receiver, n);
     auto t_end = std::chrono::high_resolution_clock::now();
 
-    LOG_MESSAGE(
+    LOG_GENERAL(
+        INFO,
         (std::chrono::duration<double, std::milli>(t_end - t_start).count())
-        << " ms");
+            << " ms");
 
     t_start = std::chrono::high_resolution_clock::now();
     auto txns2 = GenWithoutSigning(sender, receiver, n);
     t_end = std::chrono::high_resolution_clock::now();
 
-    LOG_MESSAGE(
+    LOG_GENERAL(
+        INFO,
         (std::chrono::duration<double, std::milli>(t_end - t_start).count())
-        << " ms");
+            << " ms");
 
     t_start = std::chrono::high_resolution_clock::now();
     auto txns3 = GenWithoutSigningAndSerializing(sender, receiver, n);
     t_end = std::chrono::high_resolution_clock::now();
 
-    LOG_MESSAGE(
+    LOG_GENERAL(
+        INFO,
         (std::chrono::duration<double, std::milli>(t_end - t_start).count())
-        << " ms");
+            << " ms");
 
     t_start = std::chrono::high_resolution_clock::now();
     auto txns4 = GenWithDummyValue(sender, receiver, n);
     t_end = std::chrono::high_resolution_clock::now();
 
-    LOG_MESSAGE(
+    LOG_GENERAL(
+        INFO,
         (std::chrono::duration<double, std::milli>(t_end - t_start).count())
-        << " ms");
+            << " ms");
 }
 
 BOOST_AUTO_TEST_SUITE_END()
