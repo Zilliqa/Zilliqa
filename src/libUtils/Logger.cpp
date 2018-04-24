@@ -145,6 +145,14 @@ void Logger::LogGeneral(LEVELS level, const char* msg, const char* function)
     std::time_t curTime = std::chrono::system_clock::to_time_t(
         std::chrono::system_clock::now());
 
+    if (IsG3Log())
+    {
+        LOG(level) << "[TID " << PAD(GetPid(), TID_LEN) << "]["
+                   << put_time(gmtime(&curTime), "%H:%M:%S") << "]["
+                   << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg;
+        return;
+    }
+
     lock_guard<mutex> guard(m);
 
     if (log_to_file)
