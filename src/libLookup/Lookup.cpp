@@ -2037,7 +2037,7 @@ bool Lookup::RsyncTxBodies()
     }
     else
     {
-        cmdStr = "rsync -iraz --size-only ubuntu@" + ipAddr + ":"
+        cmdStr = "yes | rsync -iraz --size-only ubuntu@" + ipAddr + ":"
             + REMOTE_TEST_DIR + "/" + PERSISTENCE_PATH + "/" + dbNameStr + "/* "
             + PERSISTENCE_PATH + "/" + dbNameStr + "/";
     }
