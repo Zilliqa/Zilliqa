@@ -186,6 +186,14 @@ public:
                                                   jsonrpc::PARAMS_BY_POSITION,
                                                   jsonrpc::JSON_OBJECT, NULL),
                                &AbstractZServer::GetShardingStructureI);
+        this->bindAndAddMethod(jsonrpc::Procedure("GetGetNumTxnsTxEpoch",
+                                                  jsonrpc::PARAMS_BY_POSITION,
+                                                  jsonrpc::JSON_OBJECT, NULL),
+                               &AbstractZServer::GetNumTxnsTxEpochI);
+        this->bindAndAddMethod(jsonrpc::Procedure("GetNumTxnsDSEpoch",
+                                                  jsonrpc::PARAMS_BY_POSITION,
+                                                  jsonrpc::JSON_OBJECT, NULL),
+                               &AbstractZServer::GetNumTxnsDSEpochI);
     }
 
     inline virtual void GetClientVersionI(const Json::Value& request,
@@ -387,6 +395,18 @@ public:
         (void)request;
         response = this->GetShardingStructure();
     }
+    inline virtual void GetNumTxnsTxEpochI(const Json::Value& request,
+                                           Json::Value& response)
+    {
+        (void)request;
+        response = this->GetShardingStructure();
+    }
+    inline virtual void GetNumTxnsDSEpochI(const Json::Value& request,
+                                           Json::Value& response)
+    {
+        (void)request;
+        response = this->GetShardingStructure();
+    }
     virtual std::string GetClientVersion() = 0;
     virtual std::string GetNetworkId() = 0;
     virtual std::string GetProtocolVersion() = 0;
@@ -425,6 +445,8 @@ public:
     virtual Json::Value GetBlockchainInfo() = 0;
     virtual Json::Value GetRecentTransactions() = 0;
     virtual Json::Value GetShardingStructure() = 0;
+    virtual std::string GetNumTxnsDSEpoch() = 0;
+    virtual uint32_t GetNumTxnsTxEpoch() = 0;
 };
 
 class Server : public AbstractZServer
@@ -486,6 +508,8 @@ public:
     virtual Json::Value GetBlockchainInfo();
     virtual Json::Value GetRecentTransactions();
     virtual Json::Value GetShardingStructure();
+    virtual std::string GetNumTxnsDSEpoch();
+    virtual uint32_t GetNumTxnsTxEpoch();
     static void AddToRecentTransactions(const dev::h256& txhash);
 
     //gets the number of transaction starting from block blockNum to most recent block

@@ -64,7 +64,6 @@ Server::Server(Mediator& mediator, HttpServer& httpserver)
     m_RecentTransactions.resize(TXN_PAGE_SIZE);
     m_DSEpochCache.first = 0;
     m_DSEpochCache.second = 0;
-
 }
 
 Server::~Server()
@@ -892,10 +891,10 @@ uint32_t Server::GetNumTxnsTxEpoch()
     LOG_MARKER();
 
     try
-    {   
-        return m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetNumTxs();   
+    {
+        return m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetNumTxs();
     }
-    catch(exception &e)
+    catch (exception& e)
     {
         LOG_GENERAL(WARNING, e.what());
         return 0;
@@ -908,48 +907,58 @@ string Server::GetNumTxnsDSEpoch()
 
     try
     {
-    
-        auto latestTxBlock = m_mediator.m_txBlockChain.GetLastBlock().GetHeader();
+
+        auto latestTxBlock
+            = m_mediator.m_txBlockChain.GetLastBlock().GetHeader();
         auto latestTxBlockNum = latestTxBlock.GetBlockNum();
         auto latestDSBlockNum = latestTxBlock.GetDSBlockNum();
 
-        if(latestTxBlockNum > m_DSEpochCache.first)
+        if (latestTxBlockNum > m_DSEpochCache.first)
         {
-            if(m_mediator.m_txBlockChain.GetBlock(m_DSEpochCache.first).GetDSBlockNum() == latestDSBlockNum)
+            if (m_mediator.m_txBlockChain.GetBlock(m_DSEpochCache.first)
+                    .GetHeader()
+                    .GetDSBlockNum()
+                == latestDSBlockNum)
             {
-                for(auto i = latestTxBlockNum ; i > m_DSEpochCache.first ; i--)
+                for (auto i = latestTxBlockNum; i > m_DSEpochCache.first; i--)
                 {
-                    m_DSEpochCache.second += m_mediator.m_txBlockChain.GetBlock(i).GetHeader().GetNumTxs();
+                    m_DSEpochCache.second
+                        += m_mediator.m_txBlockChain.GetBlock(i)
+                               .GetHeader()
+                               .GetNumTxs();
                 }
             }
-            else 
+            else
             {
                 m_DSEpochCache.second = 0;
 
-                for(auto i = latestTxBlock ; i > m_DSEpochCache.first ; i--)
+                for (auto i = latestTxBlockNum; i > m_DSEpochCache.first; i--)
                 {
-                    if(m_mediator.m_txBlockChain.GetBlock(i).GetDSBlockNum() < latestDSBlockNum )
+                    if (m_mediator.m_txBlockChain.GetBlock(i)
+                            .GetHeader()
+                            .GetDSBlockNum()
+                        < latestDSBlockNum)
                     {
                         break;
                     }
-                    m_DSEpochCache.second += m_mediator.m_txBlockChain.GetBlock(i).GetHeader().GetNumTxs();
+                    m_DSEpochCache.second
+                        += m_mediator.m_txBlockChain.GetBlock(i)
+                               .GetHeader()
+                               .GetNumTxs();
                 }
             }
 
-        
             m_DSEpochCache.first = latestTxBlockNum;
         }
 
         return m_DSEpochCache.second.str();
-
     }
 
-    catch(exception &e)
+    catch (exception& e)
     {
         LOG_GENERAL(WARNING, e.what());
         return "0";
     }
 }
-
 
 #endif //IS_LOOKUP_NODE
