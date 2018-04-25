@@ -1750,7 +1750,7 @@ bool Lookup::ProcessSetLookupOffline(const vector<unsigned char>& message,
         }
         else
         {
-            LOG_GENERAL("The Peer Info is not in m_lookupNodes");
+            LOG_GENERAL(WARNING, "The Peer Info is not in m_lookupNodes");
             return false;
         }
     }
@@ -1787,7 +1787,7 @@ bool Lookup::ProcessSetLookupOnline(const vector<unsigned char>& message,
         }
         else
         {
-            LOG_GENERAL("The Peer Info is not in m_lookupNodesOffline");
+            LOG_GENERAL(WARNING, "The Peer Info is not in m_lookupNodesOffline");
             return false;
         }
     }

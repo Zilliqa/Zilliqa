@@ -45,7 +45,7 @@ bool BlockStorage::PushBackTxBodyDB(
     LOG_MARKER();
 
     if (m_txBodyDBs.size()
-        >= NUM_DS_KEEP_TX_BODY + 1) // Leave one for keeping tmp txBody
+        > NUM_DS_KEEP_TX_BODY + 1) // Leave one for keeping tmp txBody
     {
         LOG_GENERAL(INFO, "TxBodyDB pool is full")
         return false;
