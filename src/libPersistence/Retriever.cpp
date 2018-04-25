@@ -42,7 +42,7 @@ void Retriever::RetrieveDSBlocks(bool& result)
     std::list<DSBlockSharedPtr> blocks;
     if (!BlockStorage::GetBlockStorage().GetAllDSBlocks(blocks))
     {
-        LOG_MESSAGE("RetrieveDSBlocks skipped or incompleted");
+        LOG_GENERAL(INFO, "RetrieveDSBlocks skipped or incompleted");
         result = false;
         return;
     }
@@ -58,7 +58,7 @@ void Retriever::RetrieveDSBlocks(bool& result)
     {
         if (isDSIncompleted[0] == '1')
         {
-            LOG_MESSAGE("Has incompleted DS Block");
+            LOG_GENERAL(INFO, "Has incompleted DS Block");
             blocks.pop_back();
             if (BlockStorage::GetBlockStorage().DeleteDSBlock(blocks.size()))
             {
@@ -70,7 +70,7 @@ void Retriever::RetrieveDSBlocks(bool& result)
     }
     else
     {
-        LOG_MESSAGE("No GetMetadata or failed");
+        LOG_GENERAL(INFO, "No GetMetadata or failed");
         result = false;
         return;
     }
@@ -89,7 +89,7 @@ void Retriever::RetrieveTxBlocks(bool& result)
     std::list<TxBlockSharedPtr> blocks;
     if (!BlockStorage::GetBlockStorage().GetAllTxBlocks(blocks))
     {
-        LOG_MESSAGE("RetrieveTxBlocks skipped or incompleted");
+        LOG_GENERAL(INFO, "RetrieveTxBlocks skipped or incompleted");
         result = false;
         return;
     }
@@ -123,7 +123,8 @@ bool Retriever::RetrieveTxBodiesDB()
         for (auto& entry :
              boost::make_iterator_range(filesys::directory_iterator(p), {}))
         {
-            LOG_MESSAGE("Load txBodyDB: " << entry.path().filename().string());
+            LOG_GENERAL(INFO,
+                        "Load txBodyDB: " << entry.path().filename().string());
             dbNames.push_back(entry.path().filename().string());
         }
         std::sort(dbNames.begin(), dbNames.end());
@@ -152,7 +153,8 @@ bool Retriever::RetrieveTxBodiesDB()
             }
             else
             {
-                LOG_MESSAGE("We got extra txBody Database, Investigate why!");
+                LOG_GENERAL(INFO,
+                            "We got extra txBody Database, Investigate why!");
                 return false;
             }
         }
@@ -163,7 +165,7 @@ bool Retriever::RetrieveTxBodiesDB()
     }
     else
     {
-        LOG_MESSAGE("No subdirectory found");
+        LOG_GENERAL(INFO, "No subdirectory found");
         // return false;
     }
 
@@ -180,7 +182,7 @@ bool Retriever::CleanExtraTxBodies()
         {
             if (!BlockStorage::GetBlockStorage().DeleteTxBody(i))
             {
-                LOG_MESSAGE("FAIL: To delete TxHash in TxBodiesTmpDB");
+                LOG_GENERAL(INFO, "FAIL: To delete TxHash in TxBodiesTmpDB");
                 return false;
             }
         }
@@ -201,13 +203,13 @@ bool Retriever::ValidateStates()
     if (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetStateRootHash()
         == AccountStore::GetInstance().GetStateRootHash())
     {
-        LOG_MESSAGE("ValidateStates passed.");
+        LOG_GENERAL(INFO, "ValidateStates passed.");
         AccountStore::GetInstance().RepopulateStateTrie();
         return true;
     }
     else
     {
-        LOG_MESSAGE("ValidateStates failed.");
+        LOG_GENERAL(INFO, "ValidateStates failed.");
         return false;
     }
 }
@@ -216,10 +218,10 @@ void Retriever::CleanAll()
 {
     if (BlockStorage::GetBlockStorage().ResetAll())
     {
-        LOG_MESSAGE("Reset DB Succeed");
+        LOG_GENERAL(INFO, "Reset DB Succeed");
     }
     else
     {
-        LOG_MESSAGE("FAIL: Reset DB Failed");
+        LOG_GENERAL(INFO, "FAIL: Reset DB Failed");
     }
 }

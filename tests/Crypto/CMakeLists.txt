@@ -27,6 +27,9 @@ IF( NOT Boost_FOUND )
     endif()
     find_package(Boost 1.48.0 COMPONENTS unit_test_framework system filesystem)
 ENDIF()
+
+link_directories(${CMAKE_BINARY_DIR}/lib)
+
 IF (Boost_FOUND)
     message(STATUS "boost header: ${Boost_INCLUDE_DIRS}")
     message(STATUS "boost libs  : ${Boost_LIBRARIES}")

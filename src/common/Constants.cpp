@@ -55,7 +55,7 @@ ReadAccountsFromConstantsFile(std::string propName)
         auto child = acc.second.get_optional<std::string>(propName);
         if (child)
         {
-            // LOG_MESSAGE("constants " << child.get());
+            // LOG_GENERAL("constants " << child.get());
             result.push_back(child.get());
         }
     }
