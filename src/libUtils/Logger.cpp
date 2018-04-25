@@ -296,14 +296,14 @@ void Logger::LogEpochInfo(const char* msg, const char* function,
 
     lock_guard<mutex> guard(m);
 
-    if (log_to_file)
+    if (m_logToFile)
     {
-        checkLog();
-        logfile << "[TID " << PAD(tid, TID_LEN) << "]["
-                << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
-                << LIMIT(function, MAX_FUNCNAME_LEN) << "]"
-                << "[Epoch " << epoch << "] " << msg << endl
-                << flush;
+        CheckLog();
+        m_logFile << "[TID " << PAD(tid, TID_LEN) << "]["
+                  << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
+                  << LIMIT(function, MAX_FUNCNAME_LEN) << "]"
+                  << "[Epoch " << epoch << "] " << msg << endl
+                  << flush;
     }
     else
     {
