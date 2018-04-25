@@ -35,7 +35,7 @@ using namespace boost::multiprecision;
 int main(int argc, const char* argv[])
 {
     const int num_args_required = 1 + 7; // first 1 = program name
-    if (argc != num_args_required && argc != num_args_required - 1 )
+    if (argc != num_args_required && argc != num_args_required - 1)
     {
         cout << "Copyright (C) Zilliqa. Version 1.0 (Durian). "
                 "<https://www.zilliqa.com/> "
@@ -50,7 +50,7 @@ int main(int argc, const char* argv[])
                 "otherwise>"
              << endl;
     }
-    else if(argc == num_args_required - 1 )
+    else if (argc == num_args_required - 1)
     {
         INIT_FILE_LOGGER("zilliqa");
         INIT_STATE_LOGGER("state");
@@ -82,16 +82,14 @@ int main(int argc, const char* argv[])
 
         int mappedPort = nt.addRedirect(intPort);
 
-        if(mappedPort <= 0)
+        if (mappedPort <= 0)
         {
             LOG_GENERAL(WARNING, "NAT ERROR");
             return -1;
         }
 
-
-        inet_aton(nt.externalIP(), &ip_addr);
-        Peer my_port((uint128_t)ip_addr.s_addr,
-                     mappedPort);
+        inet_aton(nt.externalIP().c_str(), &ip_addr);
+        Peer my_port((uint128_t)ip_addr.s_addr, mappedPort);
 
         Zilliqa zilliqa(make_pair(privkey, pubkey), my_port, atoi(argv[4]) == 1,
                         atoi(argv[5]) == 1, atoi(argv[6]) == 1);
@@ -106,11 +104,10 @@ int main(int argc, const char* argv[])
             return zilliqa.RetrieveBroadcastList(msg_type, ins_type, from);
         };
 
-        P2PComm::GetInstance().StartMessagePump(
-            intPort , dispatcher, broadcast_list_retriever);
+        P2PComm::GetInstance().StartMessagePump(intPort, dispatcher,
+                                                broadcast_list_retriever);
 
         LOG_GENERAL(INFO, "NAT Scope Ended");
-
     }
     else
     {
