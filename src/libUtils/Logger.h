@@ -77,6 +77,9 @@ public:
     static Logger& GetStateLogger(const char* fname_prefix, bool log_to_file,
                                   std::streampos max_file_size = MAX_FILE_SIZE);
 
+    /// Check if the log file size exceed limitation
+    void CheckLog();
+
     /// Outputs the specified message and function name to the state/reporting log.
     void LogState(const char* msg, const char* function);
 
@@ -145,6 +148,7 @@ public:
     {                                                                          \
         if (Logger::GetLogger(NULL, true).IsG3Log())                           \
         {                                                                      \
+            Logger::GetLogger(NULL, true).CheckLog();                          \
             std::time_t curTime = std::chrono::system_clock::to_time_t(        \
                 std::chrono::system_clock::now());                             \
             LOG(level) << "[TID " << PAD(Logger::GetPid(), Logger::TID_LEN)    \
@@ -165,6 +169,7 @@ public:
     {                                                                          \
         if (Logger::GetLogger(NULL, true).IsG3Log())                           \
         {                                                                      \
+            Logger::GetLogger(NULL, true).CheckLog();                          \
             std::time_t curTime = std::chrono::system_clock::to_time_t(        \
                 std::chrono::system_clock::now());                             \
             LOG(level) << "[TID " << PAD(Logger::GetPid(), Logger::TID_LEN)    \
@@ -185,6 +190,7 @@ public:
     {                                                                          \
         if (Logger::GetLogger(NULL, true).IsG3Log())                           \
         {                                                                      \
+            Logger::GetLogger(NULL, true).CheckLog();                          \
             std::time_t curTime = std::chrono::system_clock::to_time_t(        \
                 std::chrono::system_clock::now());                             \
             std::unique_ptr<char[]> payload_string;                            \
