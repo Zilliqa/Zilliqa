@@ -106,13 +106,13 @@ void Logger::CheckLog()
 void Logger::newLog()
 {
     seqnum++;
+    bRefactor = (fname_prefix == "zilliqa");
 
     // Filename = fname_prefix + 5-digit sequence number + "-log.txt"
     char buf[16] = {0};
-    snprintf(buf, sizeof(buf), "-%05d-log.txt", seqnum);
+    snprintf(buf, sizeof(buf), (bRefactor ? "-%05d-log" : "-%05d-log.txt"),
+             seqnum);
     fname = fname_prefix + buf;
-
-    bRefactor = (fname.substr(0, 7) == "zilliqa");
 
     if (bRefactor)
     {
