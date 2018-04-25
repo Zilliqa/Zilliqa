@@ -2021,7 +2021,7 @@ bool Lookup::GetMyLookupOnline()
 bool Lookup::RsyncTxBodies()
 {
     LOG_MARKER();
-    Peer& p = GetLookupPeerToRsync();
+    const Peer& p = GetLookupPeerToRsync();
     string ipAddr = std::string(p.GetPrintableIPAddress());
     string port = std::to_string(p.m_listenPortHost);
     string dbNameStr
@@ -2037,13 +2037,12 @@ bool Lookup::RsyncTxBodies()
     }
     else
     {
-        cmdStr = "rsync -iraz --size-only ubuntu@"
-            + ipAddr + ":"
+        cmdStr = "rsync -iraz --size-only ubuntu@" + ipAddr + ":"
             + REMOTE_TEST_DIR + "/" + PERSISTENCE_PATH + "/" + dbNameStr + "/* "
             + PERSISTENCE_PATH + "/" + dbNameStr + "/";
     }
     LOG_GENERAL(INFO, cmdStr);
-    
+
     return true;
 }
 
