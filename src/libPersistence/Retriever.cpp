@@ -139,6 +139,8 @@ bool Retriever::RetrieveTxBodiesDB()
             if (!BlockStorage::GetBlockStorage().PushBackTxBodyDB(
                     std::stoi(dbNames[i])))
             {
+                LOG_GENERAL(WARNING,
+                            "PushBackTxBodyDB Failed, investigate why!");
                 return false;
             }
         }
