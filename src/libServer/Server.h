@@ -433,6 +433,9 @@ class Server : public AbstractZServer
     std::pair<boost::multiprecision::uint256_t,
               boost::multiprecision::uint256_t>
         m_BlockTxPair;
+    std::pair<boost::multiprecision::uint256_t,
+              boost::multiprecision::uint256_t>
+        m_DSEpochCache;
     boost::multiprecision::uint256_t m_StartTimeTx;
     boost::multiprecision::uint256_t m_StartTimeDs;
     std::pair<boost::multiprecision::uint256_t, CircularArray<std::string>>
