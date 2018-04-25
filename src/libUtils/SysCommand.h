@@ -24,7 +24,7 @@
 
 void ExecuteCmd(const std::string cmd)
 {
-    int ret = std::system(("("cmd + ") > ExecuteCmd.txt").c_str());
+    int ret = std::system(("(" + cmd + ") > ExecuteCmd.txt").c_str());
     (void)ret;
     LOG_GENERAL(INFO,
                 "ExecuteCmd: " << std::ifstream("ExecuteCmd.txt").rdbuf());
