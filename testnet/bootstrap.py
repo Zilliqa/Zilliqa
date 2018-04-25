@@ -64,31 +64,29 @@ spec:
       labels:
         app: zilliqa
     spec:
-      initContainers:
-      - name: zilliqa-init
-        image: python:slim
-        workingDir: /zilliqa-run
-        command:
-        - python ./init.py
-          # cp /zilliqa-config/keys.txt /zilliqa-run/keys.txt
-          # cp /zilliqa-config/constants.xml /zilliqa-run/constants.xml
-          # generate /zilliqa-run/ips.txt (socket.gethostbyname('testnet-name')
-          # generate /zilliqa-run/start.sh
-        volumeMounts:
-        - name: zilliqa-config
-          mountPath: /zilliqa-config
       containers:
       - name: zilliqa
         image: gnnng/zilliqa
         workingDir: /zilliqa-run
         command:
-        - /zilliqa-run/start.sh
+        - /bin/bash
+        - -c
+        - |
+          set -xe
+          echo waiting network setup && sleep 90
+          python /zilliqa-config/init.py
+          # launch sequence
+          chmod u+x /zilliqa-run/start.sh
+          /zilliqa-run/start.sh
+          #  tail -f /dev/null
         ports:
         - containerPort: 30303
           name: zilliqa
         volumeMounts:
         - name: zilliqa-run
           mountPath: /zilliqa-run
+        - name: zilliqa-config
+          mountPath: /zilliqa-config
       volumes:
       - name: zilliqa-config
         configMap:
@@ -104,52 +102,112 @@ spec:
 """
 
 init_py="""#!/usr/bin/env python
-
+# THIS FILE IS AUTO-GENERATED, DO NOT MODIFY
 from __future__ import print_function
 
+import subprocess
 import shutil
 import socket
 import xml.etree.cElementTree as xtree
+import os
+import netaddr
+import struct
 
 n_all = {n}
 n_ds = {d}
-name = {name}
+name = '{name}'
+
+process = subprocess.Popen(['hostname'], stdout=subprocess.PIPE)
+(output, err) = process.communicate()
+exit_code = process.wait()
+
+id = int(output.strip().split('-')[-1])
+
+is_ds = id < n_ds
 
 shutil.copyfile('/zilliqa-config/constants.xml', '/zilliqa-run/constants.xml')
 
+# get ip list
 ips = []
 for i in range(n_all):
-    ips.append(socket.gethostbyname(name + '_' + str(i) + '.' + name))
+    ips.append(socket.gethostbyname(name + '-' + str(i) + '.' + name))
 
+# get keys
 keyfile = open('/zilliqa-config/keys.txt', 'r')
 keypairs = keyfile.readlines()
 keyfile.close()
 
-# generate config.xml
-nodes = xtree.Element("nodes")
-for i in range(n_ds):
-    keypair = keypairs[i].strip().split(' ')
-    peer = xtree.SubElement(nodes, "peer")
-    xtree.SubElement(peer, "pubk").text = keypair[0]
-    xtree.SubElement(peer, "ip").text = ips[i]
-    xtree.SubElement(peer, "port").text = 30303
-tree = xtree.ElementTree(nodes)
-tree.write("/zilliqa-run/config.xml")
+# get my information
+my_keypair = keypairs[id]
+my_ip = ips[id]
+my_pub_key, my_pri_key = my_keypair.strip().split(' ')
+
+# generate config.xml if is_ds
+if is_ds:
+    nodes = xtree.Element("nodes")
+    for i in range(n_ds):
+        keypair = keypairs[i].strip().split(' ')
+        peer = xtree.SubElement(nodes, "peer")
+        xtree.SubElement(peer, "pubk").text = keypair[0]
+        xtree.SubElement(peer, "ip").text = ips[i]
+        xtree.SubElement(peer, "port").text = '30303'
+    tree = xtree.ElementTree(nodes)
+    tree.write("/zilliqa-run/config.xml")
+
+# generate mykey.txt
+with open('/zilliqa-run/mykey.txt', 'w') as mykeytxt:
+    mykeytxt.write(my_keypair)
+
+# generate start.sh
+cmd_sendtxn = ' '.join([
+    'sendtxn',
+    '30303'
+])
+
+cmd_zilliqa = ' '.join([
+    'zilliqa',
+    my_pri_key,
+    my_pub_key,
+    my_ip,
+    '30303',
+    '1' if is_ds else '0', # if ds node
+    '0',
+    '0'
+])
+
+block_num_0 = "0000000000000000000000000000000000000000000000000000000000000001"
+diff = "0A" #genesis diff
+rand1 = "2b740d75891749f94b6a8ec09f086889066608e4418eda656c93443e8310750a" #genesis rand1
+rand2 = "e8cc9106f8a28671d91e2de07b57b828934481fadf6956563b963bb8e5c266bf" #genesis rand2
+
+ds_network_info = ""
+ds_port = '{{0:08X}}'.format(30303)
+for x in range(0, n_ds):
+    ds_ip = int(netaddr.IPAddress(ips[x]))
+    ds_ip = '{{0:08X}}'.format(ds_ip)
+    ds_ip = hex(struct.unpack('>I',struct.pack('<I',int(ds_ip, 16)))[0])
+    ds_ip = '{{0:032X}}'.format(int(ds_ip,16))
+    ds_network_info += my_pub_key + ds_ip + ds_port
+
+startpow1_hex = '0200' + block_num_0 + diff + rand1 + rand2 + ds_network_info
+
+cmd_startpow1 = ' '.join([
+    'sendcmd',
+    '30303',
+    'cmd',
+    startpow1_hex
+])
 
 start_sh = [
     '#!/bin/bash',
-    'tail -f /dev/null'
+    'sleep 10 && ' + cmd_sendtxn + ' &',
+    'sleep 20 && ' + cmd_startpow1 + ' &' if not is_ds else '',
+    cmd_zilliqa
 ]
 
-with open('/zilliqa-run/start.sh') as startfile:
-    startfile.writelines(start_sh)
-"""
-
-start_sh=""""#!/bin/bash
-
-(sleep 5; sendtxn; sendcmd) & zilliqa
-# sequence
-
+with open('/zilliqa-run/start.sh', 'w') as startfile:
+    for line in start_sh:
+        startfile.write(line + '\\n')
 """
 
 def setup_dir(args):
@@ -191,9 +249,18 @@ def setup_dir(args):
     with open(os.path.join(args.rundir, 'init.py'), 'w') as initpyfile:
         initpyfile.write(init_py.format(n=args.n, d=args.d, name=args.name))
 
-    print('continue with the following commands:\n')
-    print('kubectl create configmap --from-file={} {}-config'.format(run_dir, args.name))
-    print('kubectl create -f {}'.format(os.path.join(run_dir, 'testnet.yaml')))
+    print('\nbring up with the following commands:\n')
+    print('    kubectl create configmap --from-file={} {}-config'.format(run_dir, args.name))
+    print('    kubectl create -f {}'.format(os.path.join(run_dir, 'testnet.yaml')))
+
+    print('\ntear down with the following commands:\n')
+    print('    kubectl delete configmap {}-config'.format(args.name))
+    print('    kubectl delete -f {}'.format(os.path.join(run_dir, 'testnet.yaml')))
+    #  print('    kubectl delete statefulset {}'.format(args.name))
+    #  print('    kubectl delete service {}'.format(args.name))
+
+    print('remove the persistent storages with:\n')
+    print('TBD: kubectl delete')
 
 def timestamp():
     return datetime.datetime.now().strftime('%Y-%m-%d_%H%M%S')

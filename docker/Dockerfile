@@ -18,7 +18,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libmicrohttpd-dev \
     libsnappy-dev \
     libssl-dev \
+    python python-pip \
     && rm -rf /var/lib/apt/lists/*
+
+RUN pip install netaddr
 
 #--------------------------------------------------------------------
 # BUILDING
@@ -37,5 +40,6 @@ RUN git clone -b ${BRANCH} --depth=1 ${REPO} ${SOURCE_DIR}; \
     cd ${INSTALL_DIR} && rm -rf ${BUILD_DIR}
 
 ENV LD_LIBRARY_PATH=${INSTALL_DIR}/lib
+ENV PATH=$PATH:${INSTALL_DIR}/bin
 
 ENTRYPOINT ["/bin/bash"]
