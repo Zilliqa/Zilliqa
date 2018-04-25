@@ -17,24 +17,17 @@
 #ifndef __SYSCOMMAND_H__
 #define __SYSCOMMAND_H__
 
+#include <cstdlib>
+#include <fstream>
 #include <iostream>
-#include <stdio.h>
 #include <string>
 
-std::string ExecuteCmd(const std::string cmd)
+void ExecuteCmd(const std::string cmd)
 {
-    array<char, 128> buffer;
-    std::string result;
-    std::shared_ptr<FILE> pipe(popen(cmd.c_str(), "r"), pclose);
-    if (!pipe)
-        throw std::runtime_error("popen() failed!");
-    while (!feof(pipe.get()))
-    {
-        if (fgets(buffer.data(), 128, pipe.get()) != nullptr)
-            result += buffer.data();
-    }
-    LOG_GENERAL(INFO, "ExecuteCmd: "<<result);
-    return result;
+    int ret = std::system((cmd + " > ExecuteCmd.txt").c_str());
+    (void)ret;
+    LOG_GENERAL(INFO,
+                "ExecuteCmd: " << std::ifstream("ExecuteCmd.txt").rdbuf());
 }
 
 #endif // __SYSCOMMAND_H__
