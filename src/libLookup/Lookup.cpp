@@ -2021,15 +2021,15 @@ bool Lookup::GetMyLookupOnline()
 bool Lookup::RsyncTxBodies()
 {
     LOG_MARKER();
-
-    string ipAddr = GetLookupPeerToRsync().m_ipAddress.convert_to<string>();
+    Peer& p = GetLookupPeerToRsync();
+    string ipAddr = std::string(p.GetPrintableIPAddress());
+    string port = std::to_string(p.m_listenPortHost);
     string dbNameStr
         = BlockStorage::GetBlockStorage().GetDBName(BlockStorage::TX_BODY)[0];
     string cmdStr;
     if (ipAddr == "127.0.0.1" || ipAddr == "localhost")
     {
-        string indexStr
-            = std::to_string(GetLookupPeerToRsync().m_listenPortHost);
+        string indexStr = port;
         indexStr.erase(indexStr.begin());
         cmdStr = "rsync -iraz --size-only ../node_0" + indexStr + "/"
             + PERSISTENCE_PATH + "/" + dbNameStr + "/* " + PERSISTENCE_PATH
@@ -2038,11 +2038,12 @@ bool Lookup::RsyncTxBodies()
     else
     {
         cmdStr = "rsync -iraz --size-only ubuntu@"
-            + GetLookupPeerToRsync().m_ipAddress.convert_to<string>() + ":"
+            + ipAddr + ":"
             + REMOTE_TEST_DIR + "/" + PERSISTENCE_PATH + "/" + dbNameStr + "/* "
             + PERSISTENCE_PATH + "/" + dbNameStr + "/";
     }
     LOG_GENERAL(INFO, cmdStr);
+    
     return true;
 }
 
