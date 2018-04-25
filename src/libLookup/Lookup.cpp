@@ -2043,7 +2043,8 @@ bool Lookup::RsyncTxBodies()
     }
     LOG_GENERAL(INFO, cmdStr);
 
-    return true;
+    return ExecuteCmd(cmdStr).size() >= 0;
+    ;
 }
 
 void Lookup::RejoinAsLookup()

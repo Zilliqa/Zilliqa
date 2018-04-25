@@ -243,7 +243,7 @@ bool Node::ProcessSharding(const vector<unsigned char>& message,
     // TimeLockedFunction tlf(SUBMIT_TX_WINDOW, main_func, expiry_func, true);
 
     auto main_func = [this]() mutable -> void { SubmitTransactions(); };
-    
+
     DetachedFunction(1, main_func);
 
     LOG_GENERAL(INFO, "I am going to sleep for 15 seconds");
@@ -254,7 +254,7 @@ bool Node::ProcessSharding(const vector<unsigned char>& message,
         // unique_lock<shared_timed_mutex> lock(m_mutexProducerConsumer);
         SetState(TX_SUBMISSION_BUFFER);
     };
-    
+
     DetachedFunction(1, main_func2);
 
     //DEBUG
@@ -272,7 +272,7 @@ bool Node::ProcessSharding(const vector<unsigned char>& message,
     }
 
     auto main_func3 = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
-    
+
     DetachedFunction(1, main_func3);
 
 #endif // IS_LOOKUP_NODE

@@ -219,7 +219,7 @@ void Node::StartSynchronization()
                                     : NEW_NODE_SYNC_INTERVAL));
         }
     };
-    
+
     DetachedFunction(1, func);
 }
 
