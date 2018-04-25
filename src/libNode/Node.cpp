@@ -220,6 +220,7 @@ void Node::StartSynchronization()
         }
     };
 
+    LOG_MESSAGE("Call DetachedFunction");
     DetachedFunction(1, func);
 }
 

@@ -292,6 +292,7 @@ void P2PComm::SendBroadcastMessageCore(
                     msg_hash_copy, Logger::MAX_BYTES_TO_DISPLAY);
     };
 
+    LOG_MESSAGE("Call DetachedFunction");
     DetachedFunction(1, func2);
 }
 
