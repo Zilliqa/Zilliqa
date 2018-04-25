@@ -43,7 +43,7 @@ public:
                 break;
             }
         }
-        LOG_MESSAGE("Number of peers to broadcast = " << peers.size());
+        LOG_GENERAL(INFO, "Number of peers to broadcast = " << peers.size());
         return peers;
     }
 

@@ -76,7 +76,7 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
     PubKey key;
     if (key.Deserialize(message, curr_offset) != 0)
     {
-        LOG_MESSAGE("Error. We failed to deserialize PubKey.");
+        LOG_GENERAL(WARNING, "We failed to deserialize PubKey.");
         return false;
     }
     curr_offset += PUB_KEY_SIZE;
@@ -100,15 +100,15 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
     m_mediator.UpdateDSBlockRand();
 
     // Log all values
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "Public_key             = 0x"
-                     << DataConversion::SerializableToHexStr(key));
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "Winning IP                = " << peer.GetPrintableIPAddress()
-                                                << ":" << portNo);
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "dsb size               = "
-                     << m_mediator.m_dsBlockChain.GetBlockCount())
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Public_key             = 0x"
+                  << DataConversion::SerializableToHexStr(key));
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Winning IP                = " << peer.GetPrintableIPAddress()
+                                             << ":" << portNo);
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "dsb size               = "
+                  << m_mediator.m_dsBlockChain.GetBlockCount())
 
     // Define the PoW2 parameters
     array<unsigned char, UINT256_SIZE> rand1, rand2;
@@ -132,11 +132,11 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
     // if ((m_state != POW2_SUBMISSION) && (m_state != SHARDING_CONSENSUS_PREP))
     if (!CheckState(VERIFYPOW2))
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Too late - current state is "
-                         << m_state
-                         << ". Don't verify cause I got other work to do. "
-                            "Assume true as it has no impact.");
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Too late - current state is "
+                      << m_state
+                      << ". Don't verify cause I got other work to do. "
+                         "Assume true as it has no impact.");
 
         // TODO: This need to be changed.
         m_allPoWConns.insert(make_pair(key, peer));
@@ -148,9 +148,8 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
                                                winning_hash, winning_mixhash);
 
 #ifdef STAT_TEST
-    LOG_MESSAGE2(
-        to_string(m_mediator.m_currentEpochNum).c_str(),
-        "[POWSTAT] pow 2 verify (microsec): " << r_timer_end(m_timespec));
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "[POWSTAT] pow 2 verify (microsec): " << r_timer_end(m_timespec));
 #endif // STAT_TEST
 
     if (result == true)
@@ -160,13 +159,13 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
         // if ((m_state != POW2_SUBMISSION) && (m_state != SHARDING_CONSENSUS_PREP))
         if (!CheckState(VERIFYPOW2))
         {
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Too late - current state is " << m_state);
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Too late - current state is " << m_state);
         }
         else
         {
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "POW2 verification passed");
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "POW2 verification passed");
             //lock(m_mutexAllPOW2, m_mutexAllPoWConns);
             //lock_guard<mutex> g(m_mutexAllPOW2, adopt_lock);
             //lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
@@ -176,17 +175,17 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
     }
     else
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Invalid PoW2 submission");
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "blockNum: " << block_num << " Difficulty: " << difficulty
-                                  << " nonce: " << nonce
-                                  << " ip: " << peer.GetPrintableIPAddress()
-                                  << ":" << portNo);
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "rand1: " << DataConversion::charArrToHexStr(rand1)
-                               << " rand2: "
-                               << DataConversion::charArrToHexStr(rand2));
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Invalid PoW2 submission");
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "blockNum: " << block_num << " Difficulty: " << difficulty
+                               << " nonce: " << nonce
+                               << " ip: " << peer.GetPrintableIPAddress() << ":"
+                               << portNo);
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "rand1: " << DataConversion::charArrToHexStr(rand1)
+                            << " rand2: "
+                            << DataConversion::charArrToHexStr(rand2));
     }
     return result;
 }
@@ -212,10 +211,10 @@ bool DirectoryService::ProcessPoW2Submission(
             }
             if (i % 100 == 0)
             {
-                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                             "Waiting for POW2_SUBMISSION state before "
-                             "processing. Current state is "
-                                 << m_state);
+                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                          "Waiting for POW2_SUBMISSION state before "
+                          "processing. Current state is "
+                              << m_state);
             }
 
             // Magic number for now.
@@ -233,8 +232,8 @@ bool DirectoryService::ProcessPoW2Submission(
 
     if (!CheckState(PROCESS_POW2SUBMISSION))
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Not at POW2_SUBMISSION. Current state is " << m_state);
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Not at POW2_SUBMISSION. Current state is " << m_state);
         return false;
     }
 

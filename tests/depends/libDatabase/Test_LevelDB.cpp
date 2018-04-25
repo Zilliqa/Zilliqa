@@ -50,7 +50,7 @@ BOOST_AUTO_TEST_CASE(fat_trie)
 
     m_testDB.Insert((boost::multiprecision::uint256_t)3, mangoMsg);
 
-    LOG_MESSAGE(m_testDB.Lookup((boost::multiprecision::uint256_t)3));
+    LOG_GENERAL(INFO, m_testDB.Lookup((boost::multiprecision::uint256_t)3));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

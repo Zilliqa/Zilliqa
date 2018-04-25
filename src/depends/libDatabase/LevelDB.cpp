@@ -57,7 +57,7 @@ LevelDB::LevelDB(const string & dbName, const string & subdirectory)
     if(!status.ok())
     {
         // throw exception();
-        LOG_MESSAGE("ERROR: LevelDS status is not OK.");
+        LOG_GENERAL(WARNING, "LevelDS status is not OK.");
     }
 
     m_db.reset(db);
@@ -80,7 +80,7 @@ LevelDB::LevelDB(const string & dbName)
     if(!status.ok())
     {
         // throw exception();
-        LOG_MESSAGE("ERROR: LevelDS status is not OK.");
+        LOG_GENERAL(WARNING, "LevelDS status is not OK.");
     }
 
     m_db.reset(db);
@@ -252,7 +252,6 @@ int LevelDB::BatchInsert(std::unordered_map<dev::h256, std::pair<std::string, un
     {
         if (i.second.second)
         {
-            //LOG_MESSAGE("MAIN WRITE STATE INTO LEVELDB " << i.first.hex());
             batch.Put(leveldb::Slice(i.first.hex()), 
                       leveldb::Slice(i.second.first.data(), i.second.first.size()));
         }
@@ -262,7 +261,6 @@ int LevelDB::BatchInsert(std::unordered_map<dev::h256, std::pair<std::string, un
     {
         if (i.second.second)
         {
-            //LOG_MESSAGE("AUX WRITE STATE INTO LEVELDB " << i.first.hex());
             dev::bytes b = i.first.asBytes();
             b.push_back(255);   // for aux
             batch.Put(dev::bytesConstRef(&b), dev::bytesConstRef(&i.second.first));
@@ -339,7 +337,7 @@ int LevelDB::DeleteDB()
         leveldb::Options());
     if (!s.ok())
     {
-        LOG_MESSAGE("[DeleteDB] Status: " << s.ToString());
+        LOG_GENERAL(INFO, "[DeleteDB] Status: " << s.ToString());
         return -1;
     }
 
@@ -367,7 +365,7 @@ bool LevelDB::ResetDB()
         if(!status.ok())
         {
             // throw exception();
-            LOG_MESSAGE("ERROR: LevelDS status is not OK.");
+            LOG_GENERAL(WARNING, "LevelDS status is not OK.");
         }
 
         m_db.reset(db);
@@ -375,9 +373,9 @@ bool LevelDB::ResetDB()
     }
     else if(this->m_subdirectory.size())
     {
-        LOG_MESSAGE("DB in subdirectory cannot be reset");
+        LOG_GENERAL(INFO, "DB in subdirectory cannot be reset");
     }
-    LOG_MESSAGE("Error: Didn't reset DB, investigate why!");
+    LOG_GENERAL(WARNING, "Didn't reset DB, investigate why!");
     return false;
 }
 #else // IS_LOOKUP_NODE
@@ -387,7 +385,7 @@ int LevelDB::DeleteDB()
     leveldb::Status s = leveldb::DestroyDB(this->m_dbName, leveldb::Options()); 
     if (!s.ok())
     {
-        LOG_MESSAGE("[DeleteDB] Status: " << s.ToString());
+        LOG_GENERAL(INFO, "[DeleteDB] Status: " << s.ToString());
         return -1;
     }
 
@@ -412,7 +410,7 @@ bool LevelDB::ResetDB()
         if(!status.ok())
         {
             // throw exception();
-            LOG_MESSAGE("ERROR: LevelDS status is not OK.");
+            LOG_GENERAL(WARNING, "LevelDS status is not OK.");
         }
 
         m_db.reset(db);

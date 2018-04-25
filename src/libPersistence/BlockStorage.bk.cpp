@@ -313,7 +313,7 @@ void BlockStorage::AddBlockToDSCache(
     }
     if (iter == m_dsblock_cache.end())
     {
-        LOG_MESSAGE("DEBUG: Evicting LRU block to cache");
+        LOG_GENERAL(INFO, "DEBUG: Evicting LRU block to cache");
         iter = iter_prev;
     }
 
@@ -352,7 +352,7 @@ void BlockStorage::AddBlockToTxCache(
     }
     if (iter == m_txblock_cache.end())
     {
-        LOG_MESSAGE("DEBUG: Evicting LRU block to cache");
+        LOG_GENERAL(INFO, "DEBUG: Evicting LRU block to cache");
         iter = iter_prev;
     }
 
@@ -453,7 +453,7 @@ bool BlockStorage::PutBlockToDisk(
         try
         {
             ofstream ofs(blockFileInfoFileName.c_str(), ios::out | ios::binary);
-            LOG_MESSAGE("DEBUG: Writing compressed block to disk");
+            LOG_GENERAL(INFO, "DEBUG: Writing compressed block to disk");
             ofs.write((const char*)compressed_block.get(),
                       compressed_block_len);
             ofs.close();
@@ -632,7 +632,7 @@ bool BlockStorage::GetDSBlockFromDisk(
 
     if (iter != m_dsblock_cache.end())
     {
-        LOG_MESSAGE("DEBUG: Reading block from cache");
+        LOG_GENERAL(INFO, "DEBUG: Reading block from cache");
 
         // Block is in cache
         block = DSBlockSharedPtr(new DSBlock(*(iter->second)));
@@ -664,7 +664,7 @@ bool BlockStorage::GetDSBlockFromDisk(
         BlockInfo bi(tmp);
 
         // Read the block from the file
-        LOG_MESSAGE("DEBUG: Reading compressed block from disk");
+        LOG_GENERAL(INFO, "DEBUG: Reading compressed block from disk");
         unique_ptr<unsigned char> buf{new unsigned char[bi.blocksize]};
 
         vector<unsigned char> blockVector;
@@ -757,7 +757,7 @@ bool BlockStorage::GetTxBlockFromDisk(
 
     if (iter != m_txblock_cache.end())
     {
-        LOG_MESSAGE("DEBUG: Reading block from cache");
+        LOG_GENERAL(INFO, "DEBUG: Reading block from cache");
 
         // Block is in cache
         block = TxBlockSharedPtr(new TxBlock(*(iter->second)));
@@ -789,7 +789,7 @@ bool BlockStorage::GetTxBlockFromDisk(
         BlockInfo bi(tmp);
 
         // Read the block from the file
-        LOG_MESSAGE("DEBUG: Reading compressed block from disk");
+        LOG_GENERAL(INFO, "DEBUG: Reading compressed block from disk");
 
         std::unique_ptr<unsigned char[]> buf{new unsigned char[bi.blocksize]};
 
@@ -1024,7 +1024,7 @@ bool BlockStorage::Compress(const unsigned char* src, int src_len,
     int r = lzo1x_1_compress((const unsigned char*)src, src_len_lzo,
                              compressed_object.get(), &dst_len, wrkmem);
 
-    // THREADLOG_MESSAGE(tid, "Compression: " << src_len << " -> " << dst_len);
+    // THREADLOG_GENERAL(INFO, tid, "Compression: " << src_len << " -> " << dst_len);
 
     if (r != LZO_E_OK)
     {
