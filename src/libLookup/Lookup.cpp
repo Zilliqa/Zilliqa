@@ -1787,7 +1787,8 @@ bool Lookup::ProcessSetLookupOnline(const vector<unsigned char>& message,
         }
         else
         {
-            LOG_GENERAL(WARNING, "The Peer Info is not in m_lookupNodesOffline");
+            LOG_GENERAL(WARNING,
+                        "The Peer Info is not in m_lookupNodesOffline");
             return false;
         }
     }
@@ -1812,7 +1813,7 @@ bool Lookup::ProcessGetOfflineLookups(const std::vector<unsigned char>& message,
 
     uint128_t ipAddr = from.m_ipAddress;
     Peer requestingNode(ipAddr, portNo);
-    LOG_GENERAL(requestingNode);
+    LOG_GENERAL(INFO, requestingNode);
 
     // vector<Peer> node;
     // node.push_back(requestingNode);
@@ -1835,7 +1836,7 @@ bool Lookup::ProcessGetOfflineLookups(const std::vector<unsigned char>& message,
             peer.Serialize(offlineLookupsMessage, curr_offset);
             curr_offset += (IP_SIZE + PORT_SIZE);
 
-            LOG_EPOCH(to_string(m_mediator.m_currentEpochNum).c_str(),
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "IP:" << peer.GetPrintableIPAddress());
         }
     }
@@ -1989,7 +1990,7 @@ bool Lookup::GetMyLookupOffline()
     }
     else
     {
-        LOG_GENERAL("My Peer Info is not in m_lookupNodes");
+        LOG_GENERAL(WARNING, "My Peer Info is not in m_lookupNodes");
         return false;
     }
 
@@ -2011,7 +2012,7 @@ bool Lookup::GetMyLookupOnline()
     }
     else
     {
-        LOG_GENERAL("My Peer Info is not in m_lookupNodesOffline");
+        LOG_GENERAL(WARNING, "My Peer Info is not in m_lookupNodesOffline");
         return false;
     }
     return true;
@@ -2041,7 +2042,7 @@ bool Lookup::RsyncTxBodies()
             + REMOTE_TEST_DIR + "/" + PERSISTENCE_PATH + "/" + dbNameStr + "/* "
             + PERSISTENCE_PATH + "/" + dbNameStr + "/";
     }
-    LOG_GENERAL(cmdStr);
+    LOG_GENERAL(INFO, cmdStr);
     return true;
 }
 
@@ -2159,7 +2160,7 @@ bool Lookup::Execute(const vector<unsigned char>& message, unsigned int offset,
 #ifdef IS_LOOKUP_NODE
     if (ToBlockMessage(ins_byte))
     {
-        LOG_EPOCH(to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Ignore lookup message");
         return false;
     }
@@ -2175,8 +2176,9 @@ bool Lookup::Execute(const vector<unsigned char>& message, unsigned int offset,
     }
     else
     {
-        LOG_GENERAL(
-            INFO, "Unknown instruction byte " << hex << (unsigned int)ins_byte);
+        LOG_GENERAL(WARNING,
+                    "Unknown instruction byte " << hex
+                                                << (unsigned int)ins_byte);
     }
 
     return result;
