@@ -26,6 +26,7 @@
 using namespace std;
 using namespace g3;
 unique_ptr<LogWorker> logworker;
+unique_ptr<SinkHandle<FileSink>> sinkHandle;
 
 string MyCustomFormatting(const LogMessage& msg)
 {
@@ -75,8 +76,23 @@ Logger::Logger(const char* prefix, bool log_to_file, streampos max_file_size)
 
 Logger::~Logger() { logfile.close(); }
 
-void Logger::checkLog()
+void Logger::CheckLog()
 {
+    if (IsG3Log())
+    {
+        future<string> fileName = sinkHandle->call(&g3::FileSink::fileName);
+        std::ifstream in(fileName.get(),
+                         std::ifstream::ate | std::ifstream::binary);
+
+        if (in.tellg() >= max_file_size)
+        {
+            g3::internal::shutDownLogging();
+            newLog();
+        }
+
+        return;
+    }
+
     std::ifstream in(fname.c_str(), std::ifstream::ate | std::ifstream::binary);
 
     if (in.tellg() >= max_file_size)
@@ -101,7 +117,7 @@ void Logger::newLog()
     if (bRefactor)
     {
         logworker = LogWorker::createLogWorker();
-        auto sinkHandle = logworker->addSink(
+        sinkHandle = logworker->addSink(
             std::make_unique<FileSink>(fname.c_str(), "./"),
             &FileSink::fileWrite);
         sinkHandle->call(&g3::FileSink::overrideLogDetails, &MyCustomFormatting)
@@ -131,7 +147,7 @@ void Logger::LogState(const char* msg, const char*)
 
     if (log_to_file)
     {
-        checkLog();
+        CheckLog();
         logfile << msg << endl << flush;
     }
     else
@@ -157,7 +173,7 @@ void Logger::LogGeneral(LEVELS level, const char* msg, const char* function)
 
     if (log_to_file)
     {
-        checkLog();
+        CheckLog();
         logfile << "[TID " << PAD(GetPid(), TID_LEN) << "]["
                 << PAD(put_time(gmtime(&curTime), "%H:%M:%S"), TIME_LEN) << "]["
                 << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg << endl
@@ -182,7 +198,7 @@ void Logger::LogEpoch(LEVELS level, const char* msg, const char* epoch,
 
     if (log_to_file)
     {
-        checkLog();
+        CheckLog();
         logfile << "[TID " << PAD(GetPid(), TID_LEN) << "]["
                 << PAD(put_time(gmtime(&curTime), "%H:%M:%S"), TIME_LEN) << "]["
                 << LIMIT(function, MAX_FUNCNAME_LEN) << "]"
@@ -212,7 +228,7 @@ void Logger::LogPayload(LEVELS level, const char* msg,
 
     if (log_to_file)
     {
-        checkLog();
+        CheckLog();
 
         if (payload.size() > max_bytes_to_display)
         {
