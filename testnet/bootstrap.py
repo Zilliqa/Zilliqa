@@ -73,7 +73,7 @@ spec:
         - -c
         - |
           set -xe
-          echo waiting network setup && sleep 90
+          # echo waiting network setup && sleep 90
           python /zilliqa-config/init.py
           # launch sequence
           chmod u+x /zilliqa-run/start.sh
@@ -109,9 +109,9 @@ import subprocess
 import shutil
 import socket
 import xml.etree.cElementTree as xtree
-import os
 import netaddr
 import struct
+import time
 
 n_all = {n}
 n_ds = {d}
@@ -127,10 +127,17 @@ is_ds = my_id < n_ds
 
 shutil.copyfile('/zilliqa-config/constants.xml', '/zilliqa-run/constants.xml')
 
-# get ip list
-ips = []
-for i in range(n_all):
-    ips.append(socket.gethostbyname(name + '-' + str(i) + '.' + name))
+# keep getting ip list until all DNS names are up
+while True:
+    ips = []
+    try:
+        for i in range(n_all):
+            ips.append(socket.gethostbyname(name + '-' + str(i) + '.' + name))
+    except:
+        print('retrying resolving all DNS names')
+        time.sleep(1)
+        continue
+    break
 
 # get keys
 keyfile = open('/zilliqa-config/keys.txt', 'r')
@@ -274,7 +281,7 @@ def setup_dir(args):
     #  print('    kubectl delete statefulset {}'.format(args.name))
     #  print('    kubectl delete service {}'.format(args.name))
 
-    print('remove the persistent storages with:\n')
+    print('\nremove the persistent storages with:\n')
     print('TBD: kubectl delete')
 
 def timestamp():
