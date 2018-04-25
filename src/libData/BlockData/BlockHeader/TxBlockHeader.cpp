@@ -31,7 +31,7 @@ TxBlockHeader::TxBlockHeader(const vector<unsigned char>& src,
 {
     if (Deserialize(src, offset) != 0)
     {
-        LOG_MESSAGE("Error. We failed to init TxBlockHeader.");
+        LOG_GENERAL(WARNING, "We failed to init TxBlockHeader.");
     }
 }
 
@@ -64,7 +64,7 @@ TxBlockHeader::TxBlockHeader(
 unsigned int TxBlockHeader::Serialize(vector<unsigned char>& dst,
                                       unsigned int offset) const
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     unsigned int size_needed = TxBlockHeader::SIZE;
     unsigned int size_remaining = dst.size() - offset;
@@ -118,7 +118,7 @@ unsigned int TxBlockHeader::Serialize(vector<unsigned char>& dst,
 int TxBlockHeader::Deserialize(const vector<unsigned char>& src,
                                unsigned int offset)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
     try
     {
         unsigned int curOffset = offset;
@@ -151,7 +151,7 @@ int TxBlockHeader::Deserialize(const vector<unsigned char>& src,
         // m_minerPubKey.Deserialize(src, curOffset);
         if (m_minerPubKey.Deserialize(src, curOffset) != 0)
         {
-            LOG_MESSAGE("Error. We failed to init m_minerPubKey.");
+            LOG_GENERAL(WARNING, "We failed to init m_minerPubKey.");
             return -1;
         }
         curOffset += PUB_KEY_SIZE;
@@ -166,8 +166,9 @@ int TxBlockHeader::Deserialize(const vector<unsigned char>& src,
     }
     catch (const std::exception& e)
     {
-        LOG_MESSAGE("ERROR: Error with TxBlockHeader::Deserialize."
-                    << ' ' << e.what());
+        LOG_GENERAL(WARNING,
+                    "Error with TxBlockHeader::Deserialize." << ' '
+                                                             << e.what());
         return -1;
     }
     return 0;

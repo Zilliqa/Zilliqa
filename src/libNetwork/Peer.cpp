@@ -39,17 +39,17 @@ Peer::Peer(const vector<unsigned char>& src, unsigned int offset)
 {
     if (Deserialize(src, offset) != 0)
     {
-        LOG_MESSAGE("Error. We failed to init Peer.");
+        LOG_GENERAL(WARNING, "We failed to init Peer.");
     }
 }
 
-bool Peer::operator==(const Peer& r)
+bool Peer::operator==(const Peer& r) const
 {
     return (m_ipAddress == r.m_ipAddress)
         && (m_listenPortHost == r.m_listenPortHost);
 }
 
-bool Peer::operator!=(const Peer& r)
+bool Peer::operator!=(const Peer& r) const
 {
     return (m_ipAddress != r.m_ipAddress)
         || (m_listenPortHost != r.m_listenPortHost);
@@ -83,7 +83,8 @@ int Peer::Deserialize(const vector<unsigned char>& src, unsigned int offset)
     }
     catch (const std::exception& e)
     {
-        LOG_MESSAGE("ERROR: Error with Peer::Deserialize." << ' ' << e.what());
+        LOG_GENERAL(WARNING,
+                    "Error with Peer::Deserialize." << ' ' << e.what());
         return -1;
     }
     return 0;
