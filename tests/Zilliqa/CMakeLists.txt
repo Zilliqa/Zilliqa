@@ -2,7 +2,7 @@ link_directories(${CMAKE_BINARY_DIR}/lib)
 
 add_executable (zilliqa main.cpp)
 target_include_directories (zilliqa PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries (zilliqa PUBLIC Consensus Network Utils Zilliqa DirectoryService Node)
+target_link_libraries (zilliqa PUBLIC Consensus Network Utils Zilliqa DirectoryService Node NAT)
 
 add_executable (sendcmd sendcmd.cpp)
 target_include_directories (sendcmd PUBLIC ${CMAKE_SOURCE_DIR}/src)
