@@ -121,9 +121,9 @@ process = subprocess.Popen(['hostname'], stdout=subprocess.PIPE)
 (output, err) = process.communicate()
 exit_code = process.wait()
 
-id = int(output.strip().split('-')[-1])
+my_id = int(output.strip().split('-')[-1])
 
-is_ds = id < n_ds
+is_ds = my_id < n_ds
 
 shutil.copyfile('/zilliqa-config/constants.xml', '/zilliqa-run/constants.xml')
 
@@ -138,8 +138,8 @@ keypairs = keyfile.readlines()
 keyfile.close()
 
 # get my information
-my_keypair = keypairs[id]
-my_ip = ips[id]
+my_keypair = keypairs[my_id]
+my_ip = ips[my_id]
 my_pub_key, my_pri_key = my_keypair.strip().split(' ')
 
 # generate config.xml if is_ds
@@ -175,33 +175,48 @@ cmd_zilliqa = ' '.join([
     '0'
 ])
 
+# hex string from IPv4 or IPv6 string
+def ipHexStr(ip):
+    ip = int(netaddr.IPAddress(ip))
+    ip = '{{0:08X}}'.format(ip)
+    ip = hex(struct.unpack('>I', struct.pack('<I', int(ip, 16)))[0])
+    return '{{0:032X}}'.format(int(ip, 16))
+
+
 block_num_0 = "0000000000000000000000000000000000000000000000000000000000000001"
 diff = "0A" #genesis diff
 rand1 = "2b740d75891749f94b6a8ec09f086889066608e4418eda656c93443e8310750a" #genesis rand1
 rand2 = "e8cc9106f8a28671d91e2de07b57b828934481fadf6956563b963bb8e5c266bf" #genesis rand2
 
-ds_network_info = ""
 ds_port = '{{0:08X}}'.format(30303)
-for x in range(0, n_ds):
-    ds_ip = int(netaddr.IPAddress(ips[x]))
-    ds_ip = '{{0:08X}}'.format(ds_ip)
-    ds_ip = hex(struct.unpack('>I',struct.pack('<I',int(ds_ip, 16)))[0])
-    ds_ip = '{{0:032X}}'.format(int(ds_ip,16))
-    ds_network_info += my_pub_key + ds_ip + ds_port
 
-startpow1_hex = '0200' + block_num_0 + diff + rand1 + rand2 + ds_network_info
+cmd_setprimaryds = ' '.join([
+    'sendcmd',
+    '30303',
+    'cmd',
+    '0100' + ipHexStr(ips[0]) + ds_port
+])
+
+ds_network_info = ""
+for x in range(0, n_ds):
+    ds_ip = ipHexStr(ips[x])
+    ds_network_info += my_pub_key + ds_ip + ds_port
 
 cmd_startpow1 = ' '.join([
     'sendcmd',
     '30303',
     'cmd',
-    startpow1_hex
+    '0200' + block_num_0 + diff + rand1 + rand2 + ds_network_info
 ])
+
+def defer_cmd(cmd, seconds):
+    return 'sleep {{}} && {{}} &'.format(seconds, cmd)
 
 start_sh = [
     '#!/bin/bash',
-    'sleep 10 && ' + cmd_sendtxn + ' &',
-    'sleep 20 && ' + cmd_startpow1 + ' &' if not is_ds else '',
+    defer_cmd(cmd_startpow1, 5) if is_ds else '',
+    defer_cmd(cmd_sendtxn, 10),
+    defer_cmd(cmd_startpow1, 20) if not is_ds else '',
     cmd_zilliqa
 ]
 
