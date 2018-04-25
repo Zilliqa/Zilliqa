@@ -417,6 +417,14 @@ bool ConsensusLeader::ProcessMessageCommitCore(
                         commit_peers.push_back(*j);
                     }
                 }
+
+                // FIXME: quick fix: 0106'08' comes to the backup ealier than 0106'04'
+                // if (action == FINALCOMMIT)
+                // {
+                //     this_thread::sleep_for(chrono::milliseconds(1000));
+                // }
+                this_thread::sleep_for(chrono::milliseconds(1000));
+
                 P2PComm::GetInstance().SendMessage(commit_peers, challenge);
             }
         }
