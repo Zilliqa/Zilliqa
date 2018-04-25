@@ -22,6 +22,7 @@
 #include <arpa/inet.h>
 #include <iostream>
 
+#include "depends/NAT/nat.h"
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/PeerStore.h"
 #include "libUtils/DataConversion.h"
@@ -34,7 +35,7 @@ using namespace boost::multiprecision;
 int main(int argc, const char* argv[])
 {
     const int num_args_required = 1 + 7; // first 1 = program name
-    if (argc != num_args_required)
+    if (argc != num_args_required && argc != num_args_required - 1 )
     {
         cout << "Copyright (C) Zilliqa. Version 1.0 (Durian). "
                 "<https://www.zilliqa.com/> "
@@ -48,6 +49,68 @@ int main(int argc, const char* argv[])
                 "otherwise> <1 if sync, 0 otherwise> <1 if recovery, 0 "
                 "otherwise>"
              << endl;
+    }
+    else if(argc == num_args_required - 1 )
+    {
+        INIT_FILE_LOGGER("zilliqa");
+        INIT_STATE_LOGGER("state");
+
+        vector<unsigned char> tmpprivkey
+            = DataConversion::HexStrToUint8Vec(argv[1]);
+        vector<unsigned char> tmppubkey
+            = DataConversion::HexStrToUint8Vec(argv[2]);
+        // PrivKey privkey(tmpprivkey, 0);
+        PrivKey privkey;
+        if (privkey.Deserialize(tmpprivkey, 0) != 0)
+        {
+            LOG_GENERAL(WARNING, "We failed to deserialize PrivKey.");
+            return -1;
+        }
+        // PubKey pubkey(tmppubkey, 0);
+        PubKey pubkey;
+        if (pubkey.Deserialize(tmppubkey, 0) != 0)
+        {
+            LOG_GENERAL(WARNING, "We failed to deserialize PubKey.");
+            return -1;
+        }
+
+        struct in_addr ip_addr;
+
+        NAT nt;
+
+        unsigned int intPort = static_cast<unsigned int>(atoi(argv[3]));
+
+        int mappedPort = nt.addRedirect(intPort);
+
+        if(mappedPort <= 0)
+        {
+            LOG_GENERAL(WARNING, "NAT ERROR");
+            return -1;
+        }
+
+
+        inet_aton(nt.externalIP(), &ip_addr);
+        Peer my_port((uint128_t)ip_addr.s_addr,
+                     mappedPort);
+
+        Zilliqa zilliqa(make_pair(privkey, pubkey), my_port, atoi(argv[4]) == 1,
+                        atoi(argv[5]) == 1, atoi(argv[6]) == 1);
+
+        auto dispatcher = [&zilliqa](const vector<unsigned char>& message,
+                                     const Peer& from) mutable -> void {
+            zilliqa.Dispatch(message, from);
+        };
+        auto broadcast_list_retriever
+            = [&zilliqa](unsigned char msg_type, unsigned char ins_type,
+                         const Peer& from) mutable -> vector<Peer> {
+            return zilliqa.RetrieveBroadcastList(msg_type, ins_type, from);
+        };
+
+        P2PComm::GetInstance().StartMessagePump(
+            intPort , dispatcher, broadcast_list_retriever);
+
+        LOG_GENERAL(INFO, "NAT Scope Ended");
+
     }
     else
     {
