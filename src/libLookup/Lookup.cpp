@@ -64,7 +64,7 @@ void Lookup::AppendTimestamp(vector<unsigned char>& message,
     // Append a sending time to avoid message to be discarded
     uint256_t milliseconds_since_epoch
         = std::chrono::system_clock::now().time_since_epoch()
-        / std::chrono::milliseconds(1);
+        / std::chrono::seconds(1);
 
     Serializable::SetNumber<uint256_t>(message, offset,
                                        milliseconds_since_epoch, UINT256_SIZE);
@@ -107,20 +107,31 @@ void Lookup::SendMessageToLookupNodes(
 {
     LOG_MARKER();
 
-    // LOG_MESSAGE("i am here " << to_string(m_mediator.m_currentEpochNum).c_str())
+    // LOG_GENERAL(INFO, "i am here " << to_string(m_mediator.m_currentEpochNum).c_str())
     vector<Peer> AllLookupNodes;
 
     for (auto node : m_lookupNodes)
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Sending msg to lookup node "
-                         << node.GetPrintableIPAddress() << ":"
-                         << node.m_listenPortHost);
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Sending msg to lookup node " << node.GetPrintableIPAddress()
+                                                << ":"
+                                                << node.m_listenPortHost);
 
         AllLookupNodes.push_back(node);
     }
 
     P2PComm::GetInstance().SendBroadcastMessage(AllLookupNodes, message);
+}
+
+void Lookup::SendMessageToRandomLookupNodeFromBack(
+    const std::vector<unsigned char>& message) const
+{
+    LOG_MARKER();
+
+    int index = rand() % (NUM_LOOKUP_USE_FOR_SYNC) + m_lookupNodes.size()
+        - NUM_LOOKUP_USE_FOR_SYNC;
+
+    P2PComm::GetInstance().SendMessage(m_lookupNodes[index], message);
 }
 
 void Lookup::SendMessageToSeedNodes(
@@ -130,10 +141,9 @@ void Lookup::SendMessageToSeedNodes(
 
     for (auto node : m_seedNodes)
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Sending msg to seed node " << node.GetPrintableIPAddress()
-                                                 << ":"
-                                                 << node.m_listenPortHost);
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Sending msg to seed node " << node.GetPrintableIPAddress()
+                                              << ":" << node.m_listenPortHost);
         P2PComm::GetInstance().SendMessage(node, message);
     }
 }
@@ -151,7 +161,7 @@ bool Lookup::GetSeedPeersFromLookup()
                                       sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
-    SendMessageToLookupNodes(getSeedPeersMessage);
+    SendMessageToRandomLookupNodeFromBack(getSeedPeersMessage);
 
     return true;
 }
@@ -170,7 +180,7 @@ vector<unsigned char> Lookup::ComposeGetDSInfoMessage()
                                       sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
-    AppendTimestamp(getDSNodesMessage, curr_offset);
+    // AppendTimestamp(getDSNodesMessage, curr_offset);
 
     return getDSNodesMessage;
 }
@@ -188,7 +198,7 @@ vector<unsigned char> Lookup::ComposeGetStateMessage()
                                       sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
-    AppendTimestamp(getStateMessage, curr_offset);
+    // AppendTimestamp(getStateMessage, curr_offset);
 
     return getStateMessage;
 }
@@ -203,14 +213,14 @@ bool Lookup::GetDSInfoFromSeedNodes()
 bool Lookup::GetDSInfoFromLookupNodes()
 {
     LOG_MARKER();
-    SendMessageToLookupNodes(ComposeGetDSInfoMessage());
+    SendMessageToRandomLookupNodeFromBack(ComposeGetDSInfoMessage());
     return true;
 }
 
 bool Lookup::GetStateFromLookupNodes()
 {
     LOG_MARKER();
-    SendMessageToLookupNodes(ComposeGetStateMessage());
+    SendMessageToRandomLookupNodeFromBack(ComposeGetStateMessage());
 
     return true;
 }
@@ -238,7 +248,7 @@ vector<unsigned char> Lookup::ComposeGetDSBlockMessage(uint256_t lowBlockNum,
                                       sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
-    AppendTimestamp(getDSBlockMessage, curr_offset);
+    // AppendTimestamp(getDSBlockMessage, curr_offset);
 
     return getDSBlockMessage;
 }
@@ -257,7 +267,7 @@ bool Lookup::GetDSBlockFromLookupNodes(uint256_t lowBlockNum,
                                        uint256_t highBlockNum)
 {
     LOG_MARKER();
-    SendMessageToLookupNodes(
+    SendMessageToRandomLookupNodeFromBack(
         ComposeGetDSBlockMessage(lowBlockNum, highBlockNum));
     return true;
 }
@@ -285,7 +295,7 @@ vector<unsigned char> Lookup::ComposeGetTxBlockMessage(uint256_t lowBlockNum,
                                       sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
-    AppendTimestamp(getTxBlockMessage, curr_offset);
+    // AppendTimestamp(getTxBlockMessage, curr_offset);
 
     return getTxBlockMessage;
 }
@@ -305,7 +315,7 @@ bool Lookup::GetTxBlockFromLookupNodes(uint256_t lowBlockNum,
 {
     LOG_MARKER();
 
-    SendMessageToLookupNodes(
+    SendMessageToRandomLookupNodeFromBack(
         ComposeGetTxBlockMessage(lowBlockNum, highBlockNum));
 
     return true;
@@ -333,7 +343,7 @@ bool Lookup::GetTxBodyFromSeedNodes(string txHashStr)
                                       sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
-    AppendTimestamp(getTxBodyMessage, curr_offset);
+    // AppendTimestamp(getTxBodyMessage, curr_offset);
 
     SendMessageToSeedNodes(getTxBodyMessage);
 
@@ -405,13 +415,13 @@ bool Lookup::ProcessEntireShardingStructure(
     //   [33-byte public key][16-byte IP][4-byte port]
     //   ...
     // ...
-    LOG_MESSAGE("[LOOKUP received sharding structure]");
+    LOG_GENERAL(INFO, "[LOOKUP received sharding structure]");
 
     unsigned int length_available = message.size() - offset;
 
     if (length_available < 4)
     {
-        LOG_MESSAGE("Error: Malformed message");
+        LOG_GENERAL(WARNING, "Malformed message");
         return false;
     }
 
@@ -435,7 +445,7 @@ bool Lookup::ProcessEntireShardingStructure(
         = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
     offset += sizeof(uint32_t);
 
-    LOG_MESSAGE("Number of shards: " << to_string(num_shards));
+    LOG_GENERAL(INFO, "Number of shards: " << to_string(num_shards));
 
     lock(m_mutexShards, m_mutexNodesInNetwork);
     lock_guard<mutex> g(m_mutexShards, adopt_lock);
@@ -443,6 +453,7 @@ bool Lookup::ProcessEntireShardingStructure(
 
     m_shards.clear();
     m_nodesInNetwork.clear();
+    std::unordered_set<Peer> t_nodesInNetwork;
 
     for (unsigned int i = 0; i < num_shards; i++)
     {
@@ -450,7 +461,7 @@ bool Lookup::ProcessEntireShardingStructure(
 
         if (length_available < 4)
         {
-            LOG_MESSAGE("Error: Malformed message");
+            LOG_GENERAL(WARNING, "Malformed message");
             return false;
         }
 
@@ -463,12 +474,13 @@ bool Lookup::ProcessEntireShardingStructure(
 
         length_available = message.size() - offset;
 
-        LOG_MESSAGE("Size of shard " << to_string(i) << ": "
+        LOG_GENERAL(INFO,
+                    "Size of shard " << to_string(i) << ": "
                                      << to_string(shard_size));
 
         if (length_available < (33 + 16 + 4) * shard_size)
         {
-            LOG_MESSAGE("Error: Malformed message");
+            LOG_GENERAL(WARNING, "Malformed message");
             return false;
         }
 
@@ -485,7 +497,7 @@ bool Lookup::ProcessEntireShardingStructure(
             Peer peer;
             if (peer.Deserialize(message, offset) != 0)
             {
-                LOG_MESSAGE("Error. We failed to deserialize Peer.");
+                LOG_GENERAL(WARNING, "We failed to deserialize Peer.");
                 return false;
             }
 
@@ -494,16 +506,35 @@ bool Lookup::ProcessEntireShardingStructure(
             shard.insert(make_pair(key, peer));
 
             m_nodesInNetwork.push_back(peer);
+            t_nodesInNetwork.insert(peer);
 
-            LOG_MESSAGE("[SHARD "
-                        << to_string(i) << "] "
-                        << "[PEER " << to_string(j) << "] "
-                        << "Inserting Pubkey to shard : " << string(key));
-            LOG_MESSAGE("[SHARD " << to_string(i) << "] "
+            LOG_GENERAL(INFO,
+                        "[SHARD "
+                            << to_string(i) << "] "
+                            << "[PEER " << to_string(j) << "] "
+                            << "Inserting Pubkey to shard : " << string(key));
+            LOG_GENERAL(INFO,
+                        "[SHARD " << to_string(i) << "] "
                                   << "[PEER " << to_string(j) << "] "
                                   << "Corresponding peer : " << string(peer));
         }
     }
+
+    for (auto peer : t_nodesInNetwork)
+    {
+        l_nodesInNetwork.erase(peer);
+    }
+
+    for (auto peer : l_nodesInNetwork)
+    {
+        LOG_STATE("[LOSTPEER][" << std::setw(15) << std::left
+                                << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                                << "][" << std::setw(6) << std::left
+                                << m_mediator.m_currentEpochNum << "]"
+                                << std::setw(15) << std::left << string(peer));
+    }
+
+    l_nodesInNetwork = t_nodesInNetwork;
 
 #endif // IS_LOOKUP_NODE
 
@@ -524,7 +555,7 @@ bool Lookup::ProcessGetSeedPeersFromLookup(const vector<unsigned char>& message,
 
     if (min_length_needed > length_available)
     {
-        LOG_MESSAGE("Error: Malformed message");
+        LOG_GENERAL(WARNING, "Malformed message");
         return false;
     }
 
@@ -542,8 +573,8 @@ bool Lookup::ProcessGetSeedPeersFromLookup(const vector<unsigned char>& message,
 
     if (numPeersInNetwork < SEED_PEER_LIST_SIZE)
     {
-        LOG_MESSAGE(
-            "Error: [Lookup Node] numPeersInNetwork < SEED_PEER_LIST_SIZE");
+        LOG_GENERAL(WARNING,
+                    "[Lookup Node] numPeersInNetwork < SEED_PEER_LIST_SIZE");
         return false;
     }
 
@@ -648,12 +679,11 @@ bool Lookup::ProcessGetDSInfoFromSeed(const vector<unsigned char>& message,
         peer.Serialize(dsInfoMessage, curr_offset);
         curr_offset += (IP_SIZE + PORT_SIZE);
 
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "IP:" << peer.GetPrintableIPAddress());
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "IP:" << peer.GetPrintableIPAddress());
     }
 
-    if (IsMessageSizeInappropriate(message.size(), offset,
-                                   sizeof(uint32_t) + UINT256_SIZE))
+    if (IsMessageSizeInappropriate(message.size(), offset, sizeof(uint32_t)))
     {
         return false;
     }
@@ -672,10 +702,11 @@ bool Lookup::ProcessGetDSInfoFromSeed(const vector<unsigned char>& message,
     // Currently, we want the duplicated message to be drop so to ensure it do not do redundant processing.
     // In the long term, we need to track all the incoming messages from lookup or seed node more grandularly,.
     // and ensure 2/3 of such identical message is received in order to move on.
-    vector<Peer> node;
-    node.push_back(requestingNode);
 
-    P2PComm::GetInstance().SendBroadcastMessage(node, dsInfoMessage);
+    // vector<Peer> node;
+    // node.push_back(requestingNode);
+
+    P2PComm::GetInstance().SendMessage(requestingNode, dsInfoMessage);
 
     //#endif // IS_LOOKUP_NODE
 
@@ -692,7 +723,7 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
 
     if (IsMessageSizeInappropriate(message.size(), offset,
                                    UINT256_SIZE + UINT256_SIZE
-                                       + sizeof(uint32_t) + UINT256_SIZE))
+                                       + sizeof(uint32_t)))
     {
         return false;
     }
@@ -712,11 +743,10 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
         highBlockNum = m_mediator.m_dsBlockChain.GetBlockCount() - 1;
     }
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "ProcessGetDSBlockFromSeed requested by "
-                     << from << " for blocks "
-                     << lowBlockNum.convert_to<string>() << " to "
-                     << highBlockNum.convert_to<string>());
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "ProcessGetDSBlockFromSeed requested by "
+                  << from << " for blocks " << lowBlockNum.convert_to<string>()
+                  << " to " << highBlockNum.convert_to<string>());
 
     // dsBlockMessage = [lowBlockNum][highBlockNum][DSBlock][DSBlock]... (highBlockNum - lowBlockNum + 1) times[timestamp]
     vector<unsigned char> dsBlockMessage
@@ -739,27 +769,28 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
     {
         try
         {
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Fetching DSBlock " << blockNum.convert_to<string>()
-                                             << " for " << from);
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Fetching DSBlock " << blockNum.convert_to<string>()
+                                          << " for " << from);
             DSBlock dsBlock = m_mediator.m_dsBlockChain.GetBlock(blockNum);
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "DSBlock " << blockNum.convert_to<string>()
-                                    << " serialized for " << from);
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "DSBlock " << blockNum.convert_to<string>()
+                                 << " serialized for " << from);
             dsBlock.Serialize(dsBlockMessage, curr_offset);
             curr_offset += DSBlock::GetSerializedSize();
         }
         catch (const char* e)
         {
-            LOG_MESSAGE(
-                "Block Number " + blockNum.convert_to<string>()
-                    + " absent. Didn't include it in response message. Reason: "
-                << e);
+            LOG_GENERAL(INFO,
+                        "Block Number " + blockNum.convert_to<string>()
+                                + " absent. Didn't include it in response "
+                                  "message. Reason: "
+                            << e);
             break;
         }
     }
 
-    AppendTimestamp(dsBlockMessage, curr_offset);
+    // AppendTimestamp(dsBlockMessage, curr_offset);
 
     // if serialization got interrupted in between, reset the highBlockNum value in msg
     if (blockNum != highBlockNum + 1)
@@ -782,10 +813,11 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
     // Currently, we want the duplicated message to be drop so to ensure it do not do redundant processing.
     // In the long term, we need to track all the incoming messages from lookup or seed node more grandularly,.
     // and ensure 2/3 of such identical message is received in order to move on.
-    vector<Peer> node;
-    node.push_back(requestingNode);
 
-    P2PComm::GetInstance().SendBroadcastMessage(node, dsBlockMessage);
+    // vector<Peer> node;
+    // node.push_back(requestingNode);
+
+    P2PComm::GetInstance().SendMessage(requestingNode, dsBlockMessage);
 
     //#endif // IS_LOOKUP_NODE
 
@@ -834,8 +866,9 @@ bool Lookup::ProcessGetStateFromSeed(const vector<unsigned char>& message,
     // Currently, we want the duplicated message to be drop so to ensure it do not do redundant processing.
     // In the long term, we need to track all the incoming messages from lookup or seed node more grandularly,.
     // and ensure 2/3 of such identical message is received in order to move on.
-    vector<Peer> node;
-    node.push_back(requestingNode);
+
+    // vector<Peer> node;
+    // node.push_back(requestingNode);
 
     vector<unsigned char> setStateMessage
         = {MessageType::LOOKUP, LookupInstructionType::SETSTATEFROMSEED};
@@ -843,7 +876,7 @@ bool Lookup::ProcessGetStateFromSeed(const vector<unsigned char>& message,
     curr_offset
         += AccountStore::GetInstance().Serialize(setStateMessage, curr_offset);
     AccountStore::GetInstance().PrintAccountState();
-    P2PComm::GetInstance().SendBroadcastMessage(node, setStateMessage);
+    P2PComm::GetInstance().SendMessage(requestingNode, setStateMessage);
     // #endif // IS_LOOKUP_NODE
 
     return true;
@@ -859,7 +892,7 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
 
     if (IsMessageSizeInappropriate(message.size(), offset,
                                    UINT256_SIZE + UINT256_SIZE
-                                       + sizeof(uint32_t) + UINT256_SIZE))
+                                       + sizeof(uint32_t)))
     {
         return false;
     }
@@ -879,11 +912,10 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
         highBlockNum = m_mediator.m_txBlockChain.GetBlockCount() - 1;
     }
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "ProcessGetTxBlockFromSeed requested by "
-                     << from << " for blocks "
-                     << lowBlockNum.convert_to<string>() << " to "
-                     << highBlockNum.convert_to<string>());
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "ProcessGetTxBlockFromSeed requested by "
+                  << from << " for blocks " << lowBlockNum.convert_to<string>()
+                  << " to " << highBlockNum.convert_to<string>());
 
     // txBlockMessage = [lowBlockNum][highBlockNum][TxBlock][TxBlock]... (highBlockNum - lowBlockNum + 1) times
     vector<unsigned char> txBlockMessage
@@ -906,22 +938,23 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
     {
         try
         {
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Fetching TxBlock " << blockNum.convert_to<string>()
-                                             << " for " << from);
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Fetching TxBlock " << blockNum.convert_to<string>()
+                                          << " for " << from);
             TxBlock txBlock = m_mediator.m_txBlockChain.GetBlock(blockNum);
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "TxBlock " << blockNum.convert_to<string>()
-                                    << " serialized for " << from);
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "TxBlock " << blockNum.convert_to<string>()
+                                 << " serialized for " << from);
             txBlock.Serialize(txBlockMessage, curr_offset);
             curr_offset += txBlock.GetSerializedSize();
         }
         catch (const char* e)
         {
-            LOG_MESSAGE(
-                "Block Number " + blockNum.convert_to<string>()
-                    + " absent. Didn't include it in response message. Reason: "
-                << e);
+            LOG_GENERAL(INFO,
+                        "Block Number " + blockNum.convert_to<string>()
+                                + " absent. Didn't include it in response "
+                                  "message. Reason: "
+                            << e);
             break;
         }
     }
@@ -947,10 +980,11 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
     // Currently, we want the duplicated message to be drop so to ensure it do not do redundant processing.
     // In the long term, we need to track all the incoming messages from lookup or seed node more grandularly,.
     // and ensure 2/3 of such identical message is received in order to move on.
-    vector<Peer> node;
-    node.push_back(requestingNode);
 
-    P2PComm::GetInstance().SendBroadcastMessage(node, txBlockMessage);
+    // vector<Peer> node;
+    // node.push_back(requestingNode);
+
+    P2PComm::GetInstance().SendMessage(requestingNode, txBlockMessage);
 
     // #endif // IS_LOOKUP_NODE
 
@@ -987,8 +1021,8 @@ bool Lookup::ProcessGetTxBodyFromSeed(const vector<unsigned char>& message,
     curr_offset += Transaction::GetSerializedSize();
 
     // 4-byte portNo
-    uint32_t portNo = Serializable::GetNumber<uint32_t>(
-        message, offset, sizeof(uint32_t) + UINT256_SIZE);
+    uint32_t portNo
+        = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
     offset += sizeof(uint32_t);
 
     uint128_t ipAddr = from.m_ipAddress;
@@ -1000,10 +1034,11 @@ bool Lookup::ProcessGetTxBodyFromSeed(const vector<unsigned char>& message,
     // Currently, we want the duplicated message to be drop so to ensure it do not do redundant processing.
     // In the long term, we need to track all the incoming messages from lookup or seed node more grandularly,.
     // and ensure 2/3 of such identical message is received in order to move on.
-    vector<Peer> node;
-    node.push_back(requestingNode);
 
-    P2PComm::GetInstance().SendBroadcastMessage(node, txBodyMessage);
+    // vector<Peer> node;
+    // node.push_back(requestingNode);
+
+    P2PComm::GetInstance().SendMessage(requestingNode, txBodyMessage);
 
     // #endif // IS_LOOKUP_NODE
 
@@ -1039,10 +1074,11 @@ bool Lookup::ProcessGetNetworkId(const vector<unsigned char>& message,
     // Currently, we want the duplicated message to be drop so to ensure it do not do redundant processing.
     // In the long term, we need to track all the incoming messages from lookup or seed node more grandularly,.
     // and ensure 2/3 of such identical message is received in order to move on.
-    vector<Peer> node;
-    node.push_back(requestingNode);
 
-    P2PComm::GetInstance().SendBroadcastMessage(node, networkIdMessage);
+    // vector<Peer> node;
+    // node.push_back(requestingNode);
+
+    P2PComm::GetInstance().SendMessage(requestingNode, networkIdMessage);
 
     return true;
     // #endif // IS_LOOKUP_NODE
@@ -1069,12 +1105,12 @@ bool Lookup::ProcessSetSeedPeersFromLookup(const vector<unsigned char>& message,
         Peer peer;
         if (peer.Deserialize(message, offset) != 0)
         {
-            LOG_MESSAGE("Error. We failed to deserialize Peer.");
+            LOG_GENERAL(WARNING, "We failed to deserialize Peer.");
             return false;
         }
 
         m_seedNodes.push_back(peer);
-        LOG_MESSAGE("Peer " + to_string(i) + ": " << string(peer));
+        LOG_GENERAL(INFO, "Peer " + to_string(i) + ": " << string(peer));
         offset += (IP_SIZE + PORT_SIZE);
     }
 #endif // IS_LOOKUP_NODE
@@ -1099,9 +1135,9 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
         = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
     offset += sizeof(uint32_t);
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "ProcessSetDSInfoFromSeed sent by " << from << " for numPeers "
-                                                     << numDSPeers);
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "ProcessSetDSInfoFromSeed sent by " << from << " for numPeers "
+                                                  << numDSPeers);
 
     if (IsMessageSizeInappropriate(message.size(), offset,
                                    (PUB_KEY_SIZE + IP_SIZE + PORT_SIZE)
@@ -1123,9 +1159,8 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
 
         dsPeers.push_back(peer);
 
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "ProcessSetDSInfoFromSeed recvd peer " << i << ": "
-                                                            << peer);
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "ProcessSetDSInfoFromSeed recvd peer " << i << ": " << peer);
     }
 
     {
@@ -1184,17 +1219,15 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
         = Serializable::GetNumber<uint256_t>(message, offset, UINT256_SIZE);
     offset += UINT256_SIZE;
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "ProcessSetDSBlockFromSeed sent by "
-                     << from << " for blocks "
-                     << lowBlockNum.convert_to<string>() << " to "
-                     << highBlockNum.convert_to<string>());
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "ProcessSetDSBlockFromSeed sent by "
+                  << from << " for blocks " << lowBlockNum.convert_to<string>()
+                  << " to " << highBlockNum.convert_to<string>());
 
     // since we will usually only enable sending of 500 blocks max, casting to uint32_t should be safe
     if (IsMessageSizeInappropriate(message.size(), offset,
                                    (uint32_t)(highBlockNum - lowBlockNum + 1)
-                                           * DSBlock::GetSerializedSize()
-                                       + UINT256_SIZE))
+                                       * DSBlock::GetSerializedSize()))
     {
         return false;
     }
@@ -1205,8 +1238,8 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
     if (latestSynBlockNum > highBlockNum)
     {
         // TODO: We should get blocks from n nodes.
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "I already have the block");
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "I already have the block");
     }
     else
     {
@@ -1217,28 +1250,28 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
             DSBlock dsBlock;
             if (dsBlock.Deserialize(message, offset) != 0)
             {
-                LOG_MESSAGE("Error. We failed to deserialize dsBlock.");
+                LOG_GENERAL(WARNING, "We failed to deserialize dsBlock.");
                 return false;
             }
             offset += DSBlock::GetSerializedSize();
 
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "I the lookup node have deserialized the DS Block");
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "dsblock.GetHeader().GetDifficulty(): "
-                             << (int)dsBlock.GetHeader().GetDifficulty());
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "dsblock.GetHeader().GetNonce(): "
-                             << dsBlock.GetHeader().GetNonce());
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "dsblock.GetHeader().GetBlockNum(): "
-                             << dsBlock.GetHeader().GetBlockNum());
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "dsblock.GetHeader().GetMinerPubKey().hex(): "
-                             << dsBlock.GetHeader().GetMinerPubKey());
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "dsblock.GetHeader().GetLeaderPubKey().hex(): "
-                             << dsBlock.GetHeader().GetLeaderPubKey());
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "I the lookup node have deserialized the DS Block");
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "dsblock.GetHeader().GetDifficulty(): "
+                          << (int)dsBlock.GetHeader().GetDifficulty());
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "dsblock.GetHeader().GetNonce(): "
+                          << dsBlock.GetHeader().GetNonce());
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "dsblock.GetHeader().GetBlockNum(): "
+                          << dsBlock.GetHeader().GetBlockNum());
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "dsblock.GetHeader().GetMinerPubKey().hex(): "
+                          << dsBlock.GetHeader().GetMinerPubKey());
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "dsblock.GetHeader().GetLeaderPubKey().hex(): "
+                          << dsBlock.GetHeader().GetLeaderPubKey());
 
             m_mediator.m_dsBlockChain.AddBlock(dsBlock);
 
@@ -1259,7 +1292,8 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
                 }
                 else
                 {
-                    LOG_MESSAGE("Error: Cannot push txBodyDB even after pop, "
+                    LOG_GENERAL(WARNING,
+                                "Cannot push txBodyDB even after pop, "
                                 "investigate why!");
                     throw std::exception();
                 }
@@ -1269,15 +1303,13 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
 #ifdef IS_LOOKUP_NODE
     }
 #else // IS_LOOKUP_NODE
-        m_mediator.s_toFetchDSInfo = true;
+        if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
+        {
+            m_mediator.s_toFetchDSInfo = true;
+        }
     }
 #endif //IS_LOOKUP_NODE
     m_mediator.UpdateDSBlockRand();
-    {
-        unique_lock<mutex> lock(m_dsRandUpdationMutex);
-        m_isDSRandUpdated = true;
-        m_dsRandUpdateCondition.notify_one();
-    }
 
     return true;
 }
@@ -1312,11 +1344,10 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
         = Serializable::GetNumber<uint256_t>(message, offset, UINT256_SIZE);
     offset += UINT256_SIZE;
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "ProcessSetTxBlockFromSeed sent by "
-                     << from << " for blocks "
-                     << lowBlockNum.convert_to<string>() << " to "
-                     << highBlockNum.convert_to<string>());
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "ProcessSetTxBlockFromSeed sent by "
+                  << from << " for blocks " << lowBlockNum.convert_to<string>()
+                  << " to " << highBlockNum.convert_to<string>());
 
     uint64_t latestSynBlockNum
         = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
@@ -1324,8 +1355,8 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
     if (latestSynBlockNum > highBlockNum)
     {
         // TODO: We should get blocks from n nodes.
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "I already have the block");
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "I already have the block");
         return false;
     }
     else
@@ -1336,32 +1367,35 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
             TxBlock txBlock(message, offset);
             offset += txBlock.GetSerializedSize();
 
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "I the lookup node have deserialized the TxBlock");
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "txBlock.GetHeader().GetType(): "
-                             << txBlock.GetHeader().GetType());
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "txBlock.GetHeader().GetVersion(): "
-                             << txBlock.GetHeader().GetVersion());
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "txBlock.GetHeader().GetGasLimit(): "
-                             << txBlock.GetHeader().GetGasLimit());
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "txBlock.GetHeader().GetGasUsed(): "
-                             << txBlock.GetHeader().GetGasUsed());
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "txBlock.GetHeader().GetBlockNum(): "
-                             << txBlock.GetHeader().GetBlockNum());
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "txBlock.GetHeader().GetNumMicroBlockHashes(): "
-                             << txBlock.GetHeader().GetNumMicroBlockHashes());
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "txBlock.GetHeader().GetNumTxs(): "
-                             << txBlock.GetHeader().GetNumTxs());
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "txBlock.GetHeader().GetMinerPubKey(): "
-                             << txBlock.GetHeader().GetMinerPubKey());
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "I the lookup node have deserialized the TxBlock");
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "txBlock.GetHeader().GetType(): "
+                          << txBlock.GetHeader().GetType());
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "txBlock.GetHeader().GetVersion(): "
+                          << txBlock.GetHeader().GetVersion());
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "txBlock.GetHeader().GetGasLimit(): "
+                          << txBlock.GetHeader().GetGasLimit());
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "txBlock.GetHeader().GetGasUsed(): "
+                          << txBlock.GetHeader().GetGasUsed());
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "txBlock.GetHeader().GetBlockNum(): "
+                          << txBlock.GetHeader().GetBlockNum());
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "txBlock.GetHeader().GetNumMicroBlockHashes(): "
+                          << txBlock.GetHeader().GetNumMicroBlockHashes());
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "txBlock.GetHeader().GetNumTxs(): "
+                          << txBlock.GetHeader().GetNumTxs());
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "txBlock.GetHeader().GetMinerPubKey(): "
+                          << txBlock.GetHeader().GetMinerPubKey());
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "txBlock.GetHeader().GetStateRootHash(): "
+                          << txBlock.GetHeader().GetStateRootHash());
 
             m_mediator.m_txBlockChain.AddBlock(txBlock);
 
@@ -1378,15 +1412,6 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
         m_mediator.m_currentEpochNum
             = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
         m_mediator.UpdateTxBlockRand();
-
-        {
-            unique_lock<mutex> lock(m_dsRandUpdationMutex);
-            while (!m_isDSRandUpdated)
-            {
-                m_dsRandUpdateCondition.wait(lock);
-            }
-            m_isDSRandUpdated = false;
-        }
 
         if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
         {
@@ -1440,19 +1465,28 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
     // AccountStore::GetInstance().Deserialize(message, curr_offset);
     if (AccountStore::GetInstance().Deserialize(message, curr_offset) != 0)
     {
-        LOG_MESSAGE("Error. We failed to deserialize AccountStore.");
+        LOG_GENERAL(WARNING, "We failed to deserialize AccountStore.");
         ret = false;
     }
 
     m_mediator.s_toFetchState = false;
     {
-        unique_lock<mutex> dsInfo_lock(m_mutexDSInfoUpdation);
+        unique_lock<mutex> lock(m_mutexDSInfoUpdation);
         while (!m_fetchedDSInfo)
         {
-            m_dsInfoUpdateCondition.wait(dsInfo_lock);
+            m_dsInfoUpdateCondition.wait(lock);
         }
         m_fetchedDSInfo = false;
-        m_mediator.s_toAttemptPoW = true;
+    }
+    // m_mediator.s_toAttemptPoW = true;
+    if (InitMining())
+    {
+        LOG_GENERAL(INFO, "new node attempted pow2");
+    }
+    else
+    {
+        LOG_GENERAL(INFO, "new node did not attempt pow2")
+        ret = false;
     }
 #endif // IS_LOOKUP_NODE
 
@@ -1490,7 +1524,7 @@ bool Lookup::ProcessSetTxBodyFromSeed(const vector<unsigned char>& message,
     Transaction transaction;
     if (transaction.Deserialize(message, offset) != 0)
     {
-        LOG_MESSAGE("Error. We failed to deserialize Transaction.");
+        LOG_GENERAL(WARNING, "We failed to deserialize Transaction.");
         return false;
     }
 
@@ -1509,18 +1543,22 @@ bool Lookup::ProcessSetTxBodyFromSeed(const vector<unsigned char>& message,
 bool Lookup::CheckStateRoot()
 {
     StateHash stateRoot = AccountStore::GetInstance().GetStateRootHash();
+    StateHash rootInFinalBlock = m_mediator.m_txBlockChain.GetLastBlock()
+                                     .GetHeader()
+                                     .GetStateRootHash();
 
-    if (stateRoot
-        == m_mediator.m_txBlockChain.GetLastBlock()
-               .GetHeader()
-               .GetStateRootHash())
+    if (stateRoot == rootInFinalBlock)
     {
-        LOG_MESSAGE("CheckStateRoot match");
+        LOG_GENERAL(INFO, "CheckStateRoot match");
         return true;
     }
     else
     {
-        LOG_MESSAGE("FAIL: CheckStateRoot doesn't match");
+        LOG_GENERAL(WARNING,
+                    "State root doesn't match. Calculated = "
+                        << stateRoot << ". "
+                        << "StoredInBlock = " << rootInFinalBlock);
+
         return false;
     }
 }
@@ -1585,6 +1623,7 @@ bool Lookup::InitMining()
         }
         else
         {
+            m_mediator.s_toFetchState = true;
             return false;
         }
     }
@@ -1596,15 +1635,15 @@ bool Lookup::InitMining()
     this_thread::sleep_for(chrono::seconds(BACKUP_POW2_WINDOW_IN_SECONDS));
     if (!m_mediator.m_isConnectedToNetwork)
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Not yet connected to network");
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Not yet connected to network");
     }
     else
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "I have successfully join the network");
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "I have successfully join the network");
 #ifndef IS_LOOKUP_NODE
-        LOG_MESSAGE("Clean TxBodyDB except the last one");
+        LOG_GENERAL(INFO, "Clean TxBodyDB except the last one");
         int size_txBodyDBs
             = (int)BlockStorage::GetBlockStorage().GetTxBodyDBSize();
         for (int i = 0; i < size_txBodyDBs - 1; i++)
@@ -1659,8 +1698,8 @@ bool Lookup::Execute(const vector<unsigned char>& message, unsigned int offset,
     }
     else
     {
-        LOG_MESSAGE("Unknown instruction byte " << hex
-                                                << (unsigned int)ins_byte);
+        LOG_GENERAL(
+            INFO, "Unknown instruction byte " << hex << (unsigned int)ins_byte);
     }
 
     return result;

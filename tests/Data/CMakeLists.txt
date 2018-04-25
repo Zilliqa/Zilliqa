@@ -6,6 +6,8 @@ else(CMAKE_CONFIGURATION_TYPES)
     configure_file(${CMAKE_SOURCE_DIR}/constants.xml constants.xml COPYONLY)
 endif(CMAKE_CONFIGURATION_TYPES)
 
+link_directories(${CMAKE_BINARY_DIR}/lib)
+
 add_executable(Test_Account Test_Account.cpp)
 target_include_directories(Test_Account PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(Test_Account PUBLIC AccountData Utils Crypto)
@@ -26,6 +28,10 @@ target_include_directories(Test_Transaction PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(Test_Transaction PUBLIC AccountData Utils)
 add_test(NAME Test_Transaction COMMAND Test_Transaction)
 
+add_executable(Test_TransactionPerformance Test_TransactionPerformance.cpp)
+target_include_directories(Test_TransactionPerformance PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(Test_TransactionPerformance PUBLIC AccountData Utils)
+add_test(NAME Test_TransactionPerformance COMMAND Test_TransactionPerformance)
 #add_executable(Test_Block Test_Block.cpp)
 
 #target_include_directories(Test_Transaction PUBLIC ${CMAKE_SOURCE_DIR}/src)

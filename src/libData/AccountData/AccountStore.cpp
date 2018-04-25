@@ -40,8 +40,9 @@ AccountStore::~AccountStore()
 
 void AccountStore::Init()
 {
-    m_db.ResetDB();
+    LOG_MARKER();
     m_addressToAccount.clear();
+    m_db.ResetDB();
     m_state.init();
     prevRoot = m_state.root();
 }
@@ -51,7 +52,7 @@ unsigned int AccountStore::Serialize(vector<unsigned char>& dst,
 {
     // [Total number of accounts (uint256_t)] [Addr 1] [Account 1] [Addr 2] [Account 2] .... [Addr n] [Account n]
 
-    LOG_MARKER();
+    // LOG_MARKER();
 
     unsigned int size_needed = UINT256_SIZE;
     unsigned int size_remaining = dst.size() - offset;
@@ -65,7 +66,8 @@ unsigned int AccountStore::Serialize(vector<unsigned char>& dst,
     unsigned int curOffset = offset;
 
     // [Total number of accounts]
-    LOG_MESSAGE(
+    LOG_GENERAL(
+        INFO,
         "Debug: Total number of accounts to serialize: " << GetNumOfAccounts());
     uint256_t totalNumOfAccounts = GetNumOfAccounts();
     SetNumber<uint256_t>(dst, curOffset, totalNumOfAccounts, UINT256_SIZE);
@@ -95,7 +97,7 @@ int AccountStore::Deserialize(const vector<unsigned char>& src,
                               unsigned int offset)
 {
     // [Total number of accounts] [Addr 1] [Account 1] [Addr 2] [Account 2] .... [Addr n] [Account n]
-    LOG_MARKER();
+    // LOG_MARKER();
 
     try
     {
@@ -107,6 +109,7 @@ int AccountStore::Deserialize(const vector<unsigned char>& src,
         Address address;
         Account account;
         unsigned int numberOfAccountDeserialze = 0;
+        this->Init();
         while (numberOfAccountDeserialze < totalNumOfAccounts)
         {
             numberOfAccountDeserialze++;
@@ -121,7 +124,7 @@ int AccountStore::Deserialize(const vector<unsigned char>& src,
             // account.Deserialize(src, curOffset);
             if (account.Deserialize(src, curOffset) != 0)
             {
-                LOG_MESSAGE("Error. We failed to init account.");
+                LOG_GENERAL(WARNING, "We failed to init account.");
                 return -1;
             }
             curOffset += ACCOUNT_SIZE;
@@ -133,8 +136,8 @@ int AccountStore::Deserialize(const vector<unsigned char>& src,
     }
     catch (const std::exception& e)
     {
-        LOG_MESSAGE("ERROR: Error with AccountStore::Deserialize." << ' '
-                                                                   << e.what());
+        LOG_GENERAL(WARNING,
+                    "Error with AccountStore::Deserialize." << ' ' << e.what());
         return -1;
     }
     return 0;
@@ -193,7 +196,7 @@ void AccountStore::AddAccount(const Address& address, const uint256_t& balance,
         m_addressToAccount.insert(make_pair(address, account));
         // UpdateStateTrie(address, account);
 
-        // LOG_MESSAGE("Account " << address << " with balance " << balance << ", nonce " << nonce <<
+        // LOG_GENERAL(INFO, "Account " << address << " with balance " << balance << ", nonce " << nonce <<
         //              " created");
     }
 }
@@ -223,6 +226,7 @@ void AccountStore::UpdateAccounts(const Transaction& transaction)
     const uint256_t& amount = transaction.GetAmount();
 
     TransferBalance(fromAddr, toAddr, amount);
+    IncreaseNonce(fromAddr);
 }
 
 Account* AccountStore::GetAccount(const Address& address)
@@ -230,7 +234,7 @@ Account* AccountStore::GetAccount(const Address& address)
     //LOG_MARKER();
 
     auto it = m_addressToAccount.find(address);
-    // LOG_MESSAGE((it != m_addressToAccount.end()));
+    // LOG_GENERAL(INFO, (it != m_addressToAccount.end()));
     if (it != m_addressToAccount.end())
     {
         return &it->second;
@@ -287,7 +291,7 @@ bool AccountStore::UpdateStateTrie(const Address& address,
 bool AccountStore::IncreaseBalance(
     const Address& address, const boost::multiprecision::uint256_t& delta)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     if (delta == 0)
     {
@@ -299,20 +303,13 @@ bool AccountStore::IncreaseBalance(
     if (account != nullptr && account->IncreaseBalance(delta))
     {
         // UpdateStateTrie(address, *account);
-        LOG_MESSAGE("Balance for " << address << " increased by " << delta
-                                   << ". Succeeded!");
         return true;
     }
     else if (account == nullptr)
     {
         AddAccount(address, delta, 0);
-        LOG_MESSAGE("Balance for " << address << " increased by " << delta
-                                   << ". Succeeded!");
         return true;
     }
-
-    LOG_MESSAGE("Balance for " << address << " increased by " << delta
-                               << ". Failed!");
 
     return false;
 }
@@ -320,7 +317,7 @@ bool AccountStore::IncreaseBalance(
 bool AccountStore::DecreaseBalance(
     const Address& address, const boost::multiprecision::uint256_t& delta)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     if (delta == 0)
     {
@@ -332,25 +329,13 @@ bool AccountStore::DecreaseBalance(
     if (account != nullptr && account->DecreaseBalance(delta))
     {
         // UpdateStateTrie(address, *account);
-        LOG_MESSAGE("Balance for " << address << " decreased by " << delta
-                                   << ". Succeeded! "
-                                   << "New balance: " << account->GetBalance());
         return true;
     }
     // TODO: remove this, temporary way to test transactions
     else if (account == nullptr)
     {
         AddAccount(address, 10000000000, 0);
-        LOG_MESSAGE("Balance for "
-                    << address << " decreased by " << delta << ". Succeeded! "
-                    << "New balance: " << GetAccount(address)->GetBalance());
-        return true;
     }
-
-    LOG_MESSAGE("Balance for "
-                << address << " decreased by " << delta << ". Failed! Balance: "
-                << (account ? account->GetBalance().convert_to<string>()
-                            : "? account = nullptr"));
 
     return false;
 }
@@ -359,17 +344,12 @@ bool AccountStore::TransferBalance(
     const Address& from, const Address& to,
     const boost::multiprecision::uint256_t& delta)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     if (DecreaseBalance(from, delta) && IncreaseBalance(to, delta))
     {
-        LOG_MESSAGE("Transfer of " << delta << " from " << from << " to " << to
-                                   << " succeeded");
         return true;
     }
-
-    LOG_MESSAGE("Transfer of " << delta << " from " << from << " to " << to
-                               << " failed");
 
     return false;
 }
@@ -429,7 +409,7 @@ void AccountStore::MoveRootToDisk(const dev::h256& root)
 {
     //convert h256 to bytes
     if (!BlockStorage::GetBlockStorage().PutMetadata(STATEROOT, root.asBytes()))
-        LOG_MESSAGE("FAIL: Put metadata failed");
+        LOG_GENERAL(INFO, "FAIL: Put metadata failed");
 }
 
 void AccountStore::MoveUpdatesToDisk()
@@ -454,11 +434,12 @@ void AccountStore::PrintAccountState()
 {
     LOG_MARKER();
 
-    LOG_MESSAGE("Printing Account State");
+    LOG_GENERAL(INFO, "Printing Account State");
     for (auto entry : m_addressToAccount)
     {
-        LOG_MESSAGE(entry.first << " " << entry.second);
+        LOG_GENERAL(INFO, entry.first << " " << entry.second);
     }
+    LOG_GENERAL(INFO, "State Root: " << GetStateRootHash());
 }
 
 bool AccountStore::RetrieveFromDisk()
@@ -478,11 +459,19 @@ bool AccountStore::RetrieveFromDisk()
         std::vector<uint256_t> account_data = rlp.toVector<uint256_t>();
         if (account_data.size() != 2)
         {
-            LOG_MESSAGE("ERROR: Account data corrupted");
+            LOG_GENERAL(WARNING, "Account data corrupted");
             return false;
         }
         Account account(account_data[0], account_data[1]);
         m_addressToAccount.insert({address, account});
     }
     return true;
+}
+
+void AccountStore::RepopulateStateTrie()
+{
+    LOG_MARKER();
+    m_state.init();
+    prevRoot = m_state.root();
+    UpdateStateTrieAll();
 }

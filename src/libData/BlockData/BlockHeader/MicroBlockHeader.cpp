@@ -30,7 +30,7 @@ MicroBlockHeader::MicroBlockHeader(const vector<unsigned char>& src,
 {
     if (Deserialize(src, offset) != 0)
     {
-        LOG_MESSAGE("Error. We failed to init MicroBlockHeader.");
+        LOG_GENERAL(WARNING, "We failed to init MicroBlockHeader.");
     }
 }
 
@@ -58,7 +58,7 @@ MicroBlockHeader::MicroBlockHeader(
 unsigned int MicroBlockHeader::Serialize(vector<unsigned char>& dst,
                                          unsigned int offset) const
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     unsigned int size_needed = sizeof(uint8_t) + sizeof(uint32_t) + UINT256_SIZE
         + UINT256_SIZE + BLOCK_HASH_SIZE + UINT256_SIZE + UINT256_SIZE
@@ -106,7 +106,7 @@ unsigned int MicroBlockHeader::Serialize(vector<unsigned char>& dst,
 int MicroBlockHeader::Deserialize(const vector<unsigned char>& src,
                                   unsigned int offset)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
     try
     {
         unsigned int curOffset = offset;
@@ -134,7 +134,7 @@ int MicroBlockHeader::Deserialize(const vector<unsigned char>& src,
         // m_minerPubKey.Deserialize(src, curOffset);
         if (m_minerPubKey.Deserialize(src, curOffset) != 0)
         {
-            LOG_MESSAGE("Error. We failed to init m_minerPubKey.");
+            LOG_GENERAL(WARNING, "We failed to init m_minerPubKey.");
             return -1;
         }
 
@@ -146,8 +146,9 @@ int MicroBlockHeader::Deserialize(const vector<unsigned char>& src,
     }
     catch (const std::exception& e)
     {
-        LOG_MESSAGE("ERROR: Error with MicroBlockHeader::Deserialize."
-                    << ' ' << e.what());
+        LOG_GENERAL(WARNING,
+                    "Error with MicroBlockHeader::Deserialize." << ' '
+                                                                << e.what());
         return -1;
     }
     return 0;

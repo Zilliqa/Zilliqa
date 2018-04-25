@@ -109,9 +109,21 @@ struct PrivKey : public Serializable
     /// Assignment operator.
     PrivKey& operator=(const PrivKey&);
 
+    /// Utility std::string conversion function for private key info.
+    explicit operator std::string() const
+    {
+        return "0x" + DataConversion::SerializableToHexStr(*this);
+    }
+
     /// Equality comparison operator.
     bool operator==(const PrivKey& r) const;
 };
+
+inline std::ostream& operator<<(std::ostream& os, const PrivKey& p)
+{
+    os << "0x" << DataConversion::SerializableToHexStr(p);
+    return os;
+}
 
 /// Stores information on an EC-Schnorr public key.
 struct PubKey : public Serializable

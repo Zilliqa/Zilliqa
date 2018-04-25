@@ -17,7 +17,7 @@ Account::Account(const vector<unsigned char>& src, unsigned int offset)
 {
     if (Deserialize(src, offset) != 0)
     {
-        LOG_MESSAGE("Error. We failed to init Account.");
+        LOG_GENERAL(WARNING, "We failed to init Account.");
     }
 }
 
@@ -30,7 +30,7 @@ Account::Account(const uint256_t& balance, const uint256_t& nonce)
 unsigned int Account::Serialize(vector<unsigned char>& dst,
                                 unsigned int offset) const
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     unsigned int size_needed = UINT256_SIZE + UINT256_SIZE;
     unsigned int size_remaining = dst.size() - offset;
@@ -51,7 +51,7 @@ unsigned int Account::Serialize(vector<unsigned char>& dst,
 
 int Account::Deserialize(const vector<unsigned char>& src, unsigned int offset)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     try
     {
@@ -63,8 +63,8 @@ int Account::Deserialize(const vector<unsigned char>& src, unsigned int offset)
     }
     catch (const std::exception& e)
     {
-        LOG_MESSAGE("ERROR: Error with Account::Deserialize." << ' '
-                                                              << e.what());
+        LOG_GENERAL(WARNING,
+                    "Error with Account::Deserialize." << ' ' << e.what());
         return -1;
     }
     return 0;

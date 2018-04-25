@@ -109,6 +109,40 @@ unsigned int Transaction::Serialize(vector<unsigned char>& dst,
     return size_needed;
 }
 
+//TODO: eliminiate the duplicated code by reusing this inside Transaction::Serialize
+unsigned int Transaction::SerializeWithoutSignature(vector<unsigned char>& dst,
+                                                    unsigned int offset) const
+{
+    unsigned int size_needed = TRAN_HASH_SIZE + sizeof(uint32_t) + UINT256_SIZE
+        + PUB_KEY_SIZE + ACC_ADDR_SIZE + UINT256_SIZE;
+    assert(dst.size() > offset);
+    unsigned int size_remaining = dst.size() - offset;
+
+    if (size_remaining < size_needed)
+    {
+        dst.resize(size_needed + offset);
+    }
+
+    unsigned int curOffset = offset;
+
+    copy(m_tranID.asArray().begin(), m_tranID.asArray().end(),
+         dst.begin() + curOffset);
+    curOffset += TRAN_HASH_SIZE;
+    SetNumber<uint32_t>(dst, curOffset, m_version, sizeof(uint32_t));
+    curOffset += sizeof(uint32_t);
+    SetNumber<uint256_t>(dst, curOffset, m_nonce, UINT256_SIZE);
+    curOffset += UINT256_SIZE;
+    copy(m_toAddr.asArray().begin(), m_toAddr.asArray().end(),
+         dst.begin() + curOffset);
+    curOffset += ACC_ADDR_SIZE;
+    m_senderPubKey.Serialize(dst, curOffset);
+    curOffset += PUB_KEY_SIZE;
+    SetNumber<uint256_t>(dst, curOffset, m_amount, UINT256_SIZE);
+    curOffset += UINT256_SIZE;
+
+    return size_needed;
+}
+
 int Transaction::Deserialize(const vector<unsigned char>& src,
                              unsigned int offset)
 {
@@ -131,7 +165,7 @@ int Transaction::Deserialize(const vector<unsigned char>& src,
         // m_senderPubKey.Deserialize(src, curOffset);
         if (m_senderPubKey.Deserialize(src, curOffset) != 0)
         {
-            LOG_MESSAGE("Error. We failed to init m_senderPubKey.");
+            LOG_GENERAL(WARNING, "We failed to init m_senderPubKey.");
             return -1;
         }
         curOffset += PUB_KEY_SIZE;
@@ -142,8 +176,8 @@ int Transaction::Deserialize(const vector<unsigned char>& src,
     }
     catch (const std::exception& e)
     {
-        LOG_MESSAGE("ERROR: Error with Transaction::Deserialize." << ' '
-                                                                  << e.what());
+        LOG_GENERAL(WARNING,
+                    "Error with Transaction::Deserialize." << ' ' << e.what());
         return -1;
     }
     return 0;
@@ -164,6 +198,17 @@ const uint256_t& Transaction::GetAmount() const { return m_amount; }
 const array<unsigned char, TRAN_SIG_SIZE>& Transaction::GetSignature() const
 {
     return m_signature;
+}
+
+void Transaction::SetSignature(std::array<unsigned char, TRAN_SIG_SIZE> sig)
+{
+    m_signature = sig;
+}
+
+void Transaction::SetSignature(std::vector<unsigned char> sig)
+{
+    copy_n(sig.begin(), min(sig.size(), m_signature.size()),
+           m_signature.begin());
 }
 
 unsigned int Transaction::GetShardIndex(const Address& fromAddr,
@@ -233,7 +278,7 @@ bool Transaction::Verify(const Transaction& tran)
     Signature sign;
     if (sign.Deserialize(sign_ser, 0) != 0)
     {
-        LOG_MESSAGE("Error. We failed to deserialize sign.");
+        LOG_GENERAL(WARNING, "We failed to deserialize sign.");
         return false;
     }
 

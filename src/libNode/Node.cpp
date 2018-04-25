@@ -30,6 +30,7 @@
 #include "depends/libTrie/TrieDB.h"
 #include "depends/libTrie/TrieHash.h"
 #include "libConsensus/ConsensusUser.h"
+#include "libCrypto/Schnorr.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
@@ -47,6 +48,20 @@
 using namespace std;
 using namespace boost::multiprecision;
 
+void addBalanceToGenesisAccount()
+{
+    const uint256_t bal{100000000000};
+    const uint256_t nonce{0};
+
+    for (auto& walletHexStr : GENESIS_WALLETS)
+    {
+        Address addr{DataConversion::HexStrToUint8Vec(walletHexStr)};
+        AccountStore::GetInstance().AddAccount(addr, bal, nonce);
+        LOG_GENERAL(INFO,
+                    "add genesis account " << addr << " with balance " << bal);
+    }
+}
+
 Node::Node(Mediator& mediator, bool toRetrieveHistory)
     : m_mediator(mediator)
 {
@@ -63,28 +78,41 @@ Node::Node(Mediator& mediator, bool toRetrieveHistory)
         }
         else
         {
-            LOG_MESSAGE("RetrieveHistory cancelled");
+            LOG_GENERAL(INFO, "RetrieveHistory cancelled");
         }
     }
 
     if (runInitializeGenesisBlocks)
     {
-        // Zilliqa first epoch start from 1 not 0. So for the first DS epoch, there will be 1 less mini epoch only for the first DS epoch.
-        // Hence, we have to set consensusID for first epoch to 1.
-        m_consensusID = 1;
-        m_consensusLeaderID = 1;
-
-        m_retriever->CleanAll();
-        m_retriever.reset();
-        m_mediator.m_dsBlockChain.Reset();
-        m_mediator.m_txBlockChain.Reset();
-        m_committedTransactions.clear();
-        AccountStore::GetInstance().Init();
-
-        m_synchronizer.InitializeGenesisBlocks(m_mediator.m_dsBlockChain,
-                                               m_mediator.m_txBlockChain);
+        this->Init();
+        addBalanceToGenesisAccount();
     }
 
+    this->Prepare(runInitializeGenesisBlocks);
+}
+
+Node::~Node() {}
+
+void Node::Init()
+{
+    // Zilliqa first epoch start from 1 not 0. So for the first DS epoch, there will be 1 less mini epoch only for the first DS epoch.
+    // Hence, we have to set consensusID for first epoch to 1.
+    m_consensusID = 1;
+    m_consensusLeaderID = 1;
+
+    m_retriever->CleanAll();
+    m_retriever.reset();
+    m_mediator.m_dsBlockChain.Reset();
+    m_mediator.m_txBlockChain.Reset();
+    m_committedTransactions.clear();
+    AccountStore::GetInstance().Init();
+
+    m_synchronizer.InitializeGenesisBlocks(m_mediator.m_dsBlockChain,
+                                           m_mediator.m_txBlockChain);
+}
+
+void Node::Prepare(bool runInitializeGenesisBlocks)
+{
     m_mediator.m_currentEpochNum
         = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
     m_mediator.UpdateDSBlockRand(runInitializeGenesisBlocks);
@@ -93,8 +121,6 @@ Node::Node(Mediator& mediator, bool toRetrieveHistory)
     POW::GetInstance().EthashConfigureLightClient(
         (uint64_t)m_mediator.m_dsBlockChain.GetBlockCount());
 }
-
-Node::~Node() {}
 
 bool Node::StartRetrieveHistory()
 {
@@ -130,7 +156,7 @@ bool Node::StartRetrieveHistory()
         if (m_retriever->ValidateStates() && m_retriever->CleanExtraTxBodies())
 #endif // IS_LOOKUP_NODE
         {
-            LOG_MESSAGE("RetrieveHistory Successed");
+            LOG_GENERAL(INFO, "RetrieveHistory Successed");
             m_mediator.m_isRetrievedHistory = true;
             res = true;
         }
@@ -142,7 +168,7 @@ bool Node::StartRetrieveHistory()
 
 void Node::StartSynchronization()
 {
-    m_isNewNode = true;
+    LOG_MARKER();
     auto func = [this]() -> void {
         while (!m_mediator.m_isConnectedToNetwork)
         {
@@ -157,15 +183,18 @@ void Node::StartSynchronization()
                 m_mediator.m_lookup, m_mediator.m_txBlockChain.GetBlockCount());
             if (m_mediator.s_toFetchState)
             {
-                m_synchronizer.FetchLatestState(m_mediator.m_lookup);
-            }
-            if (m_mediator.s_toAttemptPoW)
-            {
-                if (m_synchronizer.AttemptPoW(m_mediator.m_lookup))
+                if (m_synchronizer.FetchLatestState(m_mediator.m_lookup))
                 {
-                    continue;
+                    //continue;
                 }
             }
+            // if (m_mediator.s_toAttemptPoW)
+            // {
+            //     if (m_synchronizer.AttemptPoW(m_mediator.m_lookup))
+            //     {
+            //         continue;
+            //     }
+            // }
             this_thread::sleep_for(chrono::seconds(NEW_NODE_SYNC_INTERVAL));
         }
     };
@@ -179,11 +208,10 @@ bool Node::CheckState(Action action)
 {
     if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
     {
-        LOG_MESSAGE2(
-            to_string(m_mediator.m_currentEpochNum).c_str(),
-            string("Error: I am a DS node.")
-                    + string(" Why am I getting this message? Action: ")
-                << ActionString(action));
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  string("I am a DS node.")
+                          + string(" Why am I getting this message? Action: ")
+                      << ActionString(action));
         return false;
     }
 
@@ -197,47 +225,43 @@ bool Node::CheckState(Action action)
         case POW1_SUBMISSION:
             break;
         case POW2_SUBMISSION:
-            LOG_MESSAGE2(
-                to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Error: Doing STARTPOW1 but already in POW2_SUBMISSION");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Doing STARTPOW1 but already in POW2_SUBMISSION");
             result = false;
             break;
         case TX_SUBMISSION:
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Error: Doing STARTPOW1 but already in TX_SUBMISSION");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Doing STARTPOW1 but already in TX_SUBMISSION");
             result = false;
             break;
         case TX_SUBMISSION_BUFFER:
-            LOG_MESSAGE2(
-                to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Error: Doing STARTPOW1 but already in TX_SUBMISSION_BUFFER");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Doing STARTPOW1 but already in TX_SUBMISSION_BUFFER");
             result = false;
             break;
         case MICROBLOCK_CONSENSUS_PREP:
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Error: Doing STARTPOW1 but already in "
-                         "MICROBLOCK_CONSENSUS_PREP");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Doing STARTPOW1 but already in "
+                      "MICROBLOCK_CONSENSUS_PREP");
             result = false;
             break;
         case MICROBLOCK_CONSENSUS:
-            LOG_MESSAGE2(
-                to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Error: Doing STARTPOW1 but already in MICROBLOCK_CONSENSUS");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Doing STARTPOW1 but already in MICROBLOCK_CONSENSUS");
             result = false;
             break;
         case WAITING_FINALBLOCK:
-            LOG_MESSAGE2(
-                to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Error: Doing STARTPOW1 but already in WAITING_FINALBLOCK");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Doing STARTPOW1 but already in WAITING_FINALBLOCK");
             result = false;
             break;
         case ERROR:
-            LOG_MESSAGE("Error: Doing STARTPOW1 but receiving ERROR message");
+            LOG_GENERAL(WARNING, "Doing STARTPOW1 but receiving ERROR message");
             result = false;
             break;
         default:
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Error: Unrecognized or error state");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Unrecognized or error state");
             result = false;
             break;
         }
@@ -246,49 +270,45 @@ bool Node::CheckState(Action action)
         switch (m_state)
         {
         case POW1_SUBMISSION:
-            LOG_MESSAGE2(
-                to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Error: Doing STARTPOW2 but already in POW1_SUBMISSION");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Doing STARTPOW2 but already in POW1_SUBMISSION");
             result = false;
             break;
         case POW2_SUBMISSION:
             break;
         case TX_SUBMISSION:
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Error: Doing STARTPOW2 but already in TX_SUBMISSION");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Doing STARTPOW2 but already in TX_SUBMISSION");
             result = false;
             break;
         case TX_SUBMISSION_BUFFER:
-            LOG_MESSAGE2(
-                to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Error: Doing STARTPOW2 but already in TX_SUBMISSION_BUFFER");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Doing STARTPOW2 but already in TX_SUBMISSION_BUFFER");
             result = false;
             break;
         case MICROBLOCK_CONSENSUS_PREP:
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Error: Doing STARTPOW2 but already in "
-                         "MICROBLOCK_CONSENSUS_PREP");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Doing STARTPOW2 but already in "
+                      "MICROBLOCK_CONSENSUS_PREP");
             result = false;
             break;
         case MICROBLOCK_CONSENSUS:
-            LOG_MESSAGE2(
-                to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Error: Doing STARTPOW2 but already in MICROBLOCK_CONSENSUS");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Doing STARTPOW2 but already in MICROBLOCK_CONSENSUS");
             result = false;
             break;
         case WAITING_FINALBLOCK:
-            LOG_MESSAGE2(
-                to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Error: Doing STARTPOW2 but already in WAITING_FINALBLOCK");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Doing STARTPOW2 but already in WAITING_FINALBLOCK");
             result = false;
             break;
         case ERROR:
-            LOG_MESSAGE("Error: Doing STARTPOW2 but receiving ERROR message");
+            LOG_GENERAL(WARNING, "Doing STARTPOW2 but receiving ERROR message");
             result = false;
             break;
         default:
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Error: Unrecognized or error state");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Unrecognized or error state");
             result = false;
             break;
         }
@@ -297,15 +317,13 @@ bool Node::CheckState(Action action)
         switch (m_state)
         {
         case POW1_SUBMISSION:
-            LOG_MESSAGE2(
-                to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Error: Doing PROCESS_SHARDING but already in POW1_SUBMISSION");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Doing PROCESS_SHARDING but already in POW1_SUBMISSION");
             result = false;
             break;
         case POW2_SUBMISSION:
-            LOG_MESSAGE2(
-                to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Error: Doing PROCESS_SHARDING but already in POW2_SUBMISSION");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Doing PROCESS_SHARDING but already in POW2_SUBMISSION");
             result = false;
             break;
         case TX_SUBMISSION:
@@ -313,31 +331,31 @@ bool Node::CheckState(Action action)
         case TX_SUBMISSION_BUFFER:
             break;
         case MICROBLOCK_CONSENSUS_PREP:
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Error: Doing PROCESS_SHARDING but already in "
-                         "MICROBLOCK_CONSENSUS_PREP");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Doing PROCESS_SHARDING but already in "
+                      "MICROBLOCK_CONSENSUS_PREP");
             result = false;
             break;
         case MICROBLOCK_CONSENSUS:
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Error: Doing PROCESS_SHARDING but already in "
-                         "MICROBLOCK_CONSENSUS");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Doing PROCESS_SHARDING but already in "
+                      "MICROBLOCK_CONSENSUS");
             result = false;
             break;
         case WAITING_FINALBLOCK:
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Error: Doing PROCESS_SHARDING but already in "
-                         "WAITING_FINALBLOCK");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Doing PROCESS_SHARDING but already in "
+                      "WAITING_FINALBLOCK");
             result = false;
             break;
         case ERROR:
-            LOG_MESSAGE(
-                "Error: Doing PROCESS_SHARDING but receiving ERROR message");
+            LOG_GENERAL(WARNING,
+                        "Doing PROCESS_SHARDING but receiving ERROR message");
             result = false;
             break;
         default:
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Error: Unrecognized or error state");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Unrecognized or error state");
             result = false;
             break;
         }
@@ -346,51 +364,52 @@ bool Node::CheckState(Action action)
         switch (m_state)
         {
         case POW1_SUBMISSION:
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Error: Doing PROCESS_MICROBLOCKCONSENSUS but already "
-                         "in POW1_SUBMISSION");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Doing PROCESS_MICROBLOCKCONSENSUS but already "
+                      "in POW1_SUBMISSION");
             result = false;
             break;
         case POW2_SUBMISSION:
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Error: Doing PROCESS_MICROBLOCKCONSENSUS but already "
-                         "in POW2_SUBMISSION");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Doing PROCESS_MICROBLOCKCONSENSUS but already "
+                      "in POW2_SUBMISSION");
             result = false;
             break;
         case TX_SUBMISSION:
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Error: Doing PROCESS_MICROBLOCKCONSENSUS but already "
-                         "in TX_SUBMISSION");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Doing PROCESS_MICROBLOCKCONSENSUS but already "
+                      "in TX_SUBMISSION");
             result = false;
             break;
         case TX_SUBMISSION_BUFFER:
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Error: Doing PROCESS_MICROBLOCKCONSENSUS but already "
-                         "in TX_SUBMISSION_BUFFER");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Doing PROCESS_MICROBLOCKCONSENSUS but already "
+                      "in TX_SUBMISSION_BUFFER");
             result = false;
             break;
         case MICROBLOCK_CONSENSUS_PREP:
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Error: Doing PROCESS_MICROBLOCKCONSENSUS but already "
-                         "in MICROBLOCK_CONSENSUS_PREP");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Doing PROCESS_MICROBLOCKCONSENSUS but already "
+                      "in MICROBLOCK_CONSENSUS_PREP");
             result = false;
             break;
         case MICROBLOCK_CONSENSUS:
             break;
         case WAITING_FINALBLOCK:
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Error: Doing PROCESS_MICROBLOCKCONSENSUS but already "
-                         "in WAITING_FINALBLOCK");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Doing PROCESS_MICROBLOCKCONSENSUS but already "
+                      "in WAITING_FINALBLOCK");
             result = false;
             break;
         case ERROR:
-            LOG_MESSAGE("Error: Doing PROCESS_MICROBLOCKSUBMISSION but "
+            LOG_GENERAL(WARNING,
+                        "Doing PROCESS_MICROBLOCKSUBMISSION but "
                         "receiving ERROR message");
             result = false;
             break;
         default:
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Error: Unrecognized or error state");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Unrecognized or error state");
             result = false;
             break;
         }
@@ -399,58 +418,57 @@ bool Node::CheckState(Action action)
         switch (m_state)
         {
         case POW1_SUBMISSION:
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Error: Doing WAITING_FINALBLOCK but already in "
-                         "POW1_SUBMISSION");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Doing WAITING_FINALBLOCK but already in "
+                      "POW1_SUBMISSION");
             result = false;
             break;
         case POW2_SUBMISSION:
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Error: Doing WAITING_FINALBLOCK but already in "
-                         "POW2_SUBMISSION");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Doing WAITING_FINALBLOCK but already in "
+                      "POW2_SUBMISSION");
             result = false;
             break;
         case TX_SUBMISSION:
-            LOG_MESSAGE2(
-                to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Error: Doing WAITING_FINALBLOCK but already in TX_SUBMISSION");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Doing WAITING_FINALBLOCK but already in TX_SUBMISSION");
             result = false;
             break;
         case TX_SUBMISSION_BUFFER:
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Error: Doing WAITING_FINALBLOCK but already in "
-                         "TX_SUBMISSION_BUFFER");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Doing WAITING_FINALBLOCK but already in "
+                      "TX_SUBMISSION_BUFFER");
             result = false;
             break;
         case MICROBLOCK_CONSENSUS_PREP:
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Error: Doing WAITING_FINALBLOCK but already in "
-                         "MICROBLOCK_CONSENSUS_PREP");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Doing WAITING_FINALBLOCK but already in "
+                      "MICROBLOCK_CONSENSUS_PREP");
             result = false;
             break;
         case MICROBLOCK_CONSENSUS:
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Error: Doing WAITING_FINALBLOCK but already in "
-                         "MICROBLOCK_CONSENSUS");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Doing WAITING_FINALBLOCK but already in "
+                      "MICROBLOCK_CONSENSUS");
             result = false;
             break;
         case WAITING_FINALBLOCK:
             break;
         case ERROR:
-            LOG_MESSAGE(
-                "Error: Doing WAITING_FINALBLOCK but receiving ERROR message");
+            LOG_GENERAL(WARNING,
+                        "Doing WAITING_FINALBLOCK but receiving ERROR message");
             result = false;
             break;
         default:
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Error: Unrecognized or error state");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Unrecognized or error state");
             result = false;
             break;
         }
         break;
     default:
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Error: Unrecognized action");
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Unrecognized action");
         result = false;
         break;
     }
@@ -466,15 +484,15 @@ vector<Peer> Node::GetBroadcastList(unsigned char ins_type,
     // // MessageType::NODE, NodeInstructionType::FORWARDTRANSACTION
     // if (ins_type == NodeInstructionType::FORWARDTRANSACTION)
     // {
-    //     LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Gossip Forward list:");
+    //     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "Gossip Forward list:");
 
     //     vector<Peer> peers;
-    //     // LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "DS size: " << m_mediator.m_DSCommitteeNetworkInfo.size() << " Shard size: " << m_myShardMembersNetworkInfo.size());
+    //     // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "DS size: " << m_mediator.m_DSCommitteeNetworkInfo.size() << " Shard size: " << m_myShardMembersNetworkInfo.size());
 
     //     if (m_isDSNode)
     //     {
     //         lock_guard<mutex> g(m_mutexFinalBlockProcessing);
-    //         // LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "I'm a DS node. DS size: " << m_mediator.m_DSCommitteeNetworkInfo.size() << " rand: " << rand() % m_mediator.m_DSCommitteeNetworkInfo.size());
+    //         // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "I'm a DS node. DS size: " << m_mediator.m_DSCommitteeNetworkInfo.size() << " rand: " << rand() % m_mediator.m_DSCommitteeNetworkInfo.size());
     //         for (unsigned int i = 0; i < m_mediator.m_DSCommitteeNetworkInfo.size(); i++)
     //         {
     //             if (i == m_consensusMyID)
@@ -484,7 +502,7 @@ vector<Peer> Node::GetBroadcastList(unsigned char ins_type,
     //             if (rand() % m_mediator.m_DSCommitteeNetworkInfo.size() <= GOSSIP_RATE)
     //             {
     //                 peers.push_back(m_mediator.m_DSCommitteeNetworkInfo.at(i));
-    //                 LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "DSNode  IP: " << peers.back().GetPrintableIPAddress() << " Port: " << peers.back().m_listenPortHost);
+    //                 LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "DSNode  IP: " << peers.back().GetPrintableIPAddress() << " Port: " << peers.back().m_listenPortHost);
 
     //             }
 
@@ -492,7 +510,7 @@ vector<Peer> Node::GetBroadcastList(unsigned char ins_type,
     //     }
     //     else
     //     {
-    //         // LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "I'm a shard node. Shard size: " << m_myShardMembersNetworkInfo.size() << " rand: " << rand() % m_myShardMembersNetworkInfo.size());
+    //         // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "I'm a shard node. Shard size: " << m_myShardMembersNetworkInfo.size() << " rand: " << rand() % m_myShardMembersNetworkInfo.size());
     //         lock_guard<mutex> g(m_mutexFinalBlockProcessing);
     //         for (unsigned int i = 0; i < m_myShardMembersNetworkInfo.size(); i++)
     //         {
@@ -503,7 +521,7 @@ vector<Peer> Node::GetBroadcastList(unsigned char ins_type,
     //             if (rand() % m_myShardMembersNetworkInfo.size() <= GOSSIP_RATE)
     //             {
     //                 peers.push_back(m_myShardMembersNetworkInfo.at(i));
-    //                 LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "  IP: " << peers.back().GetPrintableIPAddress() << " Port: " << peers.back().m_listenPortHost);
+    //                 LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "  IP: " << peers.back().GetPrintableIPAddress() << " Port: " << peers.back().m_listenPortHost);
 
     //             }
 
@@ -530,42 +548,24 @@ bool Node::CheckCreatedTransaction(const Transaction& tx)
 
     if (correct_shard != m_myShardID)
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Error: This tx is not sharded to me!");
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "From Account  = 0x" << fromAddr);
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Correct shard = " << correct_shard);
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "This shard    = " << m_myShardID);
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "This tx is not sharded to me!");
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "From Account  = 0x" << fromAddr);
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Correct shard = " << correct_shard);
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "This shard    = " << m_myShardID);
         return false;
     }
 
     // Check if from account exists in local storage
     if (!AccountStore::GetInstance().DoesAccountExist(fromAddr))
     {
-        LOG_MESSAGE2(
-            to_string(m_mediator.m_currentEpochNum).c_str(),
-            "To-do: What to do if from account is not in my account store?");
-        // throw exception();
-        return false;
-    }
-
-    // Check from account nonce
-    if (tx.GetNonce() != AccountStore::GetInstance().GetNonce(fromAddr) + 1)
-    {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Error: Tx nonce not in line with account state!");
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "From Account      = 0x" << fromAddr);
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Account Nonce     = "
-                         << AccountStore::GetInstance().GetNonce(fromAddr));
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Expected Tx Nonce = "
-                         << AccountStore::GetInstance().GetNonce(fromAddr) + 1);
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Actual Tx Nonce   = " << tx.GetNonce());
+        LOG_GENERAL(INFO,
+                    "fromAddr not found: " << fromAddr
+                                           << ". Transaction rejected: "
+                                           << tx.GetTranID());
         return false;
     }
 
@@ -573,25 +573,22 @@ bool Node::CheckCreatedTransaction(const Transaction& tx)
     const Address& toAddr = tx.GetToAddr();
     if (!AccountStore::GetInstance().DoesAccountExist(toAddr))
     {
-        LOG_MESSAGE2(
-            to_string(m_mediator.m_currentEpochNum).c_str(),
-            "To-do: What to do if to account is not in my account store?");
-        // throw exception();
-        return false;
+        LOG_GENERAL(INFO, "New account is added: " << toAddr);
+        AccountStore::GetInstance().AddAccount(toAddr, {0, 0});
     }
 
     // Check if transaction amount is valid
     if (AccountStore::GetInstance().GetBalance(fromAddr) < tx.GetAmount())
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Error: Insufficient funds in source account!");
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "From Account = 0x" << fromAddr);
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Balance      = "
-                         << AccountStore::GetInstance().GetBalance(fromAddr));
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Debit Amount = " << tx.GetAmount());
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Insufficient funds in source account!");
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "From Account = 0x" << fromAddr);
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Balance      = "
+                      << AccountStore::GetInstance().GetBalance(fromAddr));
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Debit Amount = " << tx.GetAmount());
         return false;
     }
 
@@ -599,90 +596,179 @@ bool Node::CheckCreatedTransaction(const Transaction& tx)
 }
 #endif // IS_LOOKUP_NODE
 
+/// Return a valid transaction from fromKeyPair to toAddr with the specified amount
+///
+/// TODO: nonce is still no valid yet
+Transaction CreateValidTestingTransaction(PrivKey& fromPrivKey,
+                                          PubKey& fromPubKey,
+                                          const Address& toAddr,
+                                          uint256_t amount)
+{
+    unsigned int version = 0;
+    auto nonce = 0;
+
+    // LOG_MESSAGE("fromPrivKey " << fromPrivKey << " / fromPubKey " << fromPubKey
+    // << " / toAddr" << toAddr);
+
+    Transaction txn{version,    nonce,  toAddr,
+                    fromPubKey, amount, {/* empty sig */}};
+
+    // std::vector<unsigned char> buf;
+    // txn.SerializeWithoutSignature(buf, 0);
+
+    // Signature sig;
+    // Schnorr::GetInstance().Sign(buf, fromPrivKey, fromPubKey, sig);
+
+    // vector<unsigned char> sigBuf;
+    // sig.Serialize(sigBuf, 0);
+    // txn.SetSignature(sigBuf);
+
+    return txn;
+}
+
+bool GetOneGoodKeyPair(PrivKey& oPrivKey, PubKey& oPubKey, uint32_t myShard,
+                       uint32_t nShard)
+{
+    for (auto& privKeyHexStr : GENESIS_KEYS)
+    {
+        auto privKeyBytes{DataConversion::HexStrToUint8Vec(privKeyHexStr)};
+        auto privKey = PrivKey{privKeyBytes, 0};
+        auto pubKey = PubKey{privKey};
+        auto addr = Account::GetAddressFromPublicKey(pubKey);
+        auto txnShard = Transaction::GetShardIndex(addr, nShard);
+
+        LOG_GENERAL(INFO,
+                    "Genesis Priv Key Str "
+                        << privKeyHexStr << " / Priv Key " << privKey
+                        << " / Pub Key " << pubKey << " / Addr " << addr
+                        << " / txnShard " << txnShard << " / myShard "
+                        << myShard << " / nShard " << nShard);
+        if (txnShard == myShard)
+        {
+            oPrivKey = privKey;
+            oPubKey = pubKey;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool GetOneGenesisAddress(Address& oAddr)
+{
+    if (GENESIS_WALLETS.empty())
+    {
+        LOG_GENERAL(INFO, "could not get one genensis address");
+        return false;
+    }
+
+    oAddr = Address{DataConversion::HexStrToUint8Vec(GENESIS_WALLETS.front())};
+    return true;
+}
+
+std::once_flag generateReceiverOnce;
+
+Address GenOneReceiver()
+{
+    static Address receiverAddr;
+    std::call_once(generateReceiverOnce, []() {
+        auto receiver = Schnorr::GetInstance().GenKeyPair();
+        receiverAddr = Account::GetAddressFromPublicKey(receiver.second);
+        LOG_GENERAL(INFO,
+                    "Generate testing transaction receiver" << receiverAddr);
+    });
+    return receiverAddr;
+}
+
+/// generate transation from one to many random accounts
+vector<Transaction> GenTransactionBulk(PrivKey& fromPrivKey, PubKey& fromPubKey,
+                                       size_t n)
+{
+    vector<Transaction> txns;
+    const size_t amountLimitMask = 0xff; // amount will vary from 0 to 255
+
+    // FIXME: it's a workaround to use the first genensis account
+    // auto receiver = Schnorr::GetInstance().GenKeyPair();
+    // auto receiverAddr = Account::GetAddressFromPublicKey(receiver.second);
+
+    // alternative 1: use first genesis address
+    // Address addr;
+    // if (not GetOneGenesisAddress(addr))
+    // {
+    // return txns;
+    // }
+    // auto receiverAddr = addr;
+
+    // alternative 2: use a fresh address throughout entire lifetime
+    auto receiverAddr = GenOneReceiver();
+
+    txns.reserve(n);
+    for (auto i = 0u; i != n; i++)
+    {
+        auto txn = CreateValidTestingTransaction(
+            fromPrivKey, fromPubKey, receiverAddr, i & amountLimitMask);
+        txns.emplace_back(txn);
+    }
+
+    return txns;
+}
+
+/// Handle send_txn command with the following message format
+///
+/// XXX The message format below is no ignored
+///     Message = [33-byte from pubkey] [33-byte to pubkey] [32-byte amount]
 bool Node::ProcessCreateTransaction(const vector<unsigned char>& message,
                                     unsigned int offset, const Peer& from)
 {
 #ifndef IS_LOOKUP_NODE
-    // This message is sent by the test script and is used to generate a new transaction for submitting to the network
-    // Message = [33-byte from pubkey] [33-byte to pubkey] [32-byte amount]
-
     LOG_MARKER();
 
-    if (IsMessageSizeInappropriate(message.size(), offset,
-                                   PUB_KEY_SIZE + PUB_KEY_SIZE + UINT256_SIZE))
-    {
-        return false;
-    }
+    // vector<Transaction> txnToCreate;
+    size_t nTxnPerAccount{N_PREFILLED_PER_ACCOUNT};
+    // size_t nTxnDelta{MAXSUBMITTXNPERNODE};
 
-    unsigned int cur_offset = offset;
-
-    // To-do: Put in the checks (e.g., are these pubkeys known, is the amount good, etc)
-
-    // 33-byte from pubkey
-    PubKey fromPubKey(message, cur_offset);
-
-    // TODO: remove this
-    fromPubKey = m_mediator.m_selfKey.second;
-    vector<unsigned char> msg;
-    fromPubKey.Serialize(msg, 0);
-
-    // Generate from account
-    Address fromAddr;
-    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-    // TODO: replace this by what follows
-    sha2.Update(msg, 0, PUB_KEY_SIZE);
-    // sha2.Update(message, cur_offset, PUB_KEY_SIZE);
-    const vector<unsigned char>& tmp1 = sha2.Finalize();
-    copy(tmp1.end() - ACC_ADDR_SIZE, tmp1.end(), fromAddr.asArray().begin());
-
-    cur_offset += PUB_KEY_SIZE;
-
-    // 33-byte to pubkey
-    PubKey toPubkey(message, cur_offset);
-
-    // Generate to account
-    Address toAddr;
-    sha2.Reset();
-    sha2.Update(message, cur_offset, PUB_KEY_SIZE);
-    // const vector<unsigned char> & tmp2 = sha2.Finalize();
-    // copy(tmp2.end() - ACC_ADDR_SIZE, tmp2.end(), toAddr.asArray().begin());
-
-    cur_offset += PUB_KEY_SIZE;
-
-    // 32-byte amount
-    uint256_t amount
-        = Serializable::GetNumber<uint256_t>(message, cur_offset, UINT256_SIZE);
-
-    // Create the transaction object
-
-    // To-do: Replace dummy values with the required ones
-    //uint32_t version = 0;
-    uint32_t version = (uint32_t)m_consensusMyID; //hack
-    uint256_t nonce = 0;
-
-    array<unsigned char, TRAN_SIG_SIZE> signature;
-    fill(signature.begin(), signature.end(), 0x0F);
-
-    lock_guard<mutex> g(m_mutexCreatedTransactions);
-
-    // if(!CheckCreatedTransaction(txn))
+    // if (not GetOneGoodKeyPair(senderPrivKey, senderPubKey, m_myShardID,
+    // m_numShards))
     // {
-    //     return false;
+    // LOG_MESSAGE(
+    // "No proper genesis account, cannot send testing transactions");
+    // return false;
     // }
 
-    // TODO: Remove this before production. This is to reduce time spent on aws testnet.
-    for (unsigned i = 0; i < 10000; i++)
+    // for (auto nTxn = 0u; nTxn < nTxnPerAccount; nTxn += nTxnDelta)
+    // {
+    unsigned int count = 0;
+    for (auto& privKeyHexStr : GENESIS_KEYS)
     {
-        Transaction txn(version, nonce, toAddr, fromPubKey, amount, signature);
-
-        // LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-        // "Created txns: " << txn.GetTranID())
-        // LOG_MESSAGE(txn.GetSerializedSize());
-
-        m_createdTransactions.push_back(txn);
-        nonce++;
-        amount++;
+        auto privKeyBytes{DataConversion::HexStrToUint8Vec(privKeyHexStr)};
+        auto privKey = PrivKey{privKeyBytes, 0};
+        auto pubKey = PubKey{privKey};
+        auto addr = Account::GetAddressFromPublicKey(pubKey);
+        auto txns = GenTransactionBulk(privKey, pubKey, nTxnPerAccount);
+        m_nRemainingPrefilledTxns += txns.size();
+        {
+            lock_guard<mutex> lg{m_mutexPrefilledTxns};
+            auto& txnsDst = m_prefilledTxns[addr];
+            txnsDst.insert(txnsDst.end(), txns.begin(), txns.end());
+        }
+        count++;
+        if (count == 1)
+            break;
     }
+    // LOG_MESSAGE("prefilled " << (nTxn + nTxnDelta) * GENESIS_KEYS.size()
+    // << " txns");
+
+    // {
+    // lock_guard<mutex> g(m_mutexCreatedTransactions);
+    // m_createdTransactions.insert(m_createdTransactions.end(),
+    // txnToCreate.begin(), txnToCreate.end());
+    // }
+
+    LOG_GENERAL(INFO,
+                "Finished prefilling " << nTxnPerAccount * GENESIS_KEYS.size()
+                                       << " transactions");
+
+    return true;
 #endif // IS_LOOKUP_NODE
     return true;
 }
@@ -700,51 +786,45 @@ bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
 
     if (msgBlockNum != localBlockNum)
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "untimely delivery of "
-                         << "missing txns. received: " << msgBlockNum
-                         << " , local: " << localBlockNum);
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "untimely delivery of "
+                      << "missing txns. received: " << msgBlockNum
+                      << " , local: " << localBlockNum);
     }
 
     const auto& submittedTransaction = Transaction(message, offset);
 
-    // if(CheckCreatedTransaction(submittedTransaction))
-    // {
-    lock_guard<mutex> g(m_mutexReceivedTransactions);
-    auto& receivedTransactions = m_receivedTransactions[msgBlockNum];
-    receivedTransactions.insert(
-        make_pair(submittedTransaction.GetTranID(), submittedTransaction));
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "Received missing txn: " << submittedTransaction.GetTranID())
-    // }
+    // if (CheckCreatedTransaction(submittedTransaction))
+    {
+        lock_guard<mutex> g(m_mutexReceivedTransactions);
+        auto& receivedTransactions = m_receivedTransactions[msgBlockNum];
+        receivedTransactions.insert(
+            make_pair(submittedTransaction.GetTranID(), submittedTransaction));
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Received missing txn: " << submittedTransaction.GetTranID())
+    }
+
     return true;
 }
 
 bool Node::ProcessSubmitTxnSharing(const vector<unsigned char>& message,
                                    unsigned int offset, const Peer& from)
 {
-    LOG_MARKER();
+    //LOG_MARKER();
 
     const auto& submittedTransaction = Transaction(message, offset);
-    // if(CheckCreatedTransaction(submittedTransaction))
-    // {
-    boost::multiprecision::uint256_t blockNum
-        = (uint256_t)m_mediator.m_currentEpochNum;
-    lock_guard<mutex> g(m_mutexReceivedTransactions);
-    auto& receivedTransactions = m_receivedTransactions[blockNum];
-    // if(m_mediator.m_selfPeer.m_listenPortHost != 5015 &&
-    //    m_mediator.m_selfPeer.m_listenPortHost != 5016 &&
-    //    m_mediator.m_selfPeer.m_listenPortHost != 5017 &&
-    //    m_mediator.m_selfPeer.m_listenPortHost != 5018 &&
-    //    m_mediator.m_selfPeer.m_listenPortHost != 5019 &&
-    //    m_mediator.m_selfPeer.m_listenPortHost != 5020)
-    // {
-    receivedTransactions.insert(
-        make_pair(submittedTransaction.GetTranID(), submittedTransaction));
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "Received txn: " << submittedTransaction.GetTranID())
-    // }
-    // }
+    // if (CheckCreatedTransaction(submittedTransaction))
+    {
+        boost::multiprecision::uint256_t blockNum
+            = (uint256_t)m_mediator.m_currentEpochNum;
+        lock_guard<mutex> g(m_mutexReceivedTransactions);
+        auto& receivedTransactions = m_receivedTransactions[blockNum];
+
+        receivedTransactions.insert(
+            make_pair(submittedTransaction.GetTranID(), submittedTransaction));
+        //LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+        //             "Received txn: " << submittedTransaction.GetTranID())
+    }
 
     return true;
 }
@@ -757,7 +837,7 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
     // This message is sent by my shard peers
     // Message = [204-byte transaction]
 
-    LOG_MARKER();
+    //LOG_MARKER();
 
     if (IsMessageSizeInappropriate(message.size(), offset,
                                    Transaction::GetSerializedSize()))
@@ -775,8 +855,8 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
     {
         if (m_state != MICROBLOCK_CONSENSUS)
         {
-            LOG_MESSAGE2(
-                to_string(m_mediator.m_currentEpochNum).c_str(),
+            LOG_EPOCH(
+                INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Not in a microblock consensus state: don't want missing txns")
         }
 
@@ -786,8 +866,8 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
     {
         while (m_state != TX_SUBMISSION && m_state != TX_SUBMISSION_BUFFER)
         {
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Not in ProcessSubmitTxn state -- waiting!")
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Not in ProcessSubmitTxn state -- waiting!")
             this_thread::sleep_for(chrono::milliseconds(200));
         }
 
@@ -797,12 +877,124 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
     return true;
 }
 
+#ifndef IS_LOOKUP_NODE
+bool Node::CheckCreatedTransactionFromLookup(const Transaction& tx)
+{
+    LOG_MARKER();
+
+    // Check if from account is sharded here
+    const PubKey& senderPubKey = tx.GetSenderPubKey();
+    Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
+    unsigned int correct_shard
+        = Transaction::GetShardIndex(fromAddr, m_numShards);
+
+    if (correct_shard != m_myShardID)
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "This tx is not sharded to me!");
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "From Account  = 0x" << fromAddr);
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Correct shard = " << correct_shard);
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "This shard    = " << m_myShardID);
+        return false;
+    }
+
+    // Check if from account exists in local storage
+    if (!AccountStore::GetInstance().DoesAccountExist(fromAddr))
+    {
+        LOG_GENERAL(INFO,
+                    "fromAddr not found: " << fromAddr
+                                           << ". Transaction rejected: "
+                                           << tx.GetTranID());
+        return false;
+    }
+
+    {
+        // Check from account nonce
+        lock_guard<mutex> g(m_mutexTxnNonceMap);
+        if (m_txnNonceMap.find(fromAddr) == m_txnNonceMap.end())
+        {
+            LOG_GENERAL(INFO, "Txn from " << fromAddr << "is new.");
+
+            if (tx.GetNonce()
+                != AccountStore::GetInstance().GetNonce(fromAddr) + 1)
+            {
+                LOG_EPOCH(WARNING,
+                          to_string(m_mediator.m_currentEpochNum).c_str(),
+                          "Tx nonce not in line with account state!");
+                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                          "From Account      = 0x" << fromAddr);
+                LOG_EPOCH(
+                    INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                    "Account Nonce     = "
+                        << AccountStore::GetInstance().GetNonce(fromAddr));
+                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                          "Expected Tx Nonce = "
+                              << AccountStore::GetInstance().GetNonce(fromAddr)
+                                  + 1);
+                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                          "Actual Tx Nonce   = " << tx.GetNonce());
+                return false;
+            }
+            m_txnNonceMap.insert(make_pair(fromAddr, tx.GetNonce()));
+        }
+        else
+        {
+            if (tx.GetNonce() != m_txnNonceMap.at(fromAddr) + 1)
+            {
+                LOG_EPOCH(WARNING,
+                          to_string(m_mediator.m_currentEpochNum).c_str(),
+                          "Tx nonce not in line with account state!");
+                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                          "From Account      = 0x" << fromAddr);
+                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                          "Account Nonce     = " << m_txnNonceMap.at(fromAddr));
+                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                          "Expected Tx Nonce = " << m_txnNonceMap.at(fromAddr)
+                                  + 1);
+                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                          "Actual Tx Nonce   = " << tx.GetNonce());
+                return false;
+            }
+            m_txnNonceMap.at(fromAddr) += 1;
+        }
+    }
+
+    // Check if to account exists in local storage
+    const Address& toAddr = tx.GetToAddr();
+    if (!AccountStore::GetInstance().DoesAccountExist(toAddr))
+    {
+        LOG_GENERAL(INFO, "New account is added: " << toAddr);
+        AccountStore::GetInstance().AddAccount(toAddr, {0, 0});
+    }
+
+    // Check if transaction amount is valid
+    if (AccountStore::GetInstance().GetBalance(fromAddr) < tx.GetAmount())
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Insufficient funds in source account!");
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "From Account = 0x" << fromAddr);
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Balance      = "
+                      << AccountStore::GetInstance().GetBalance(fromAddr));
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Debit Amount = " << tx.GetAmount());
+        return false;
+    }
+
+    return true;
+}
+#endif // IS_LOOKUP_NODE
+
 bool Node::ProcessCreateTransactionFromLookup(
     const vector<unsigned char>& message, unsigned int offset, const Peer& from)
 {
 #ifndef IS_LOOKUP_NODE
 
-    LOG_MARKER();
+    //LOG_MARKER();
 
     if (IsMessageSizeInappropriate(message.size(), offset,
                                    Transaction::GetSerializedSize()))
@@ -816,19 +1008,26 @@ bool Node::ProcessCreateTransactionFromLookup(
     Transaction tx;
     if (tx.Deserialize(message, curr_offset) != 0)
     {
-        LOG_MESSAGE("Error. We failed to deserialize Transaction.");
+        LOG_GENERAL(WARNING, "We failed to deserialize Transaction.");
         return false;
     }
 
     lock_guard<mutex> g(m_mutexCreatedTransactions);
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "Recvd txns: "
-                     << tx.GetTranID() << " Signature: "
-                     << DataConversion::charArrToHexStr(tx.GetSignature())
-                     << " toAddr: " << tx.GetToAddr().hex());
-
-    m_createdTransactions.push_back(tx);
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Recvd txns: "
+                  << tx.GetTranID() << " Signature: "
+                  << DataConversion::charArrToHexStr(tx.GetSignature())
+                  << " toAddr: " << tx.GetToAddr().hex());
+    if (CheckCreatedTransactionFromLookup(tx))
+    {
+        m_createdTransactions.push_back(tx);
+    }
+    else
+    {
+        LOG_GENERAL(WARNING, "Txn is not valid.");
+        return false;
+    }
 
 #endif //IS_LOOKUP_NODE
 
@@ -864,15 +1063,15 @@ bool Node::ProcessCreateTransactionFromLookup(
 void Node::SetState(NodeState state)
 {
     m_state = state;
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "Node State is now " << m_state << " at epoch "
-                                      << m_mediator.m_currentEpochNum);
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Node State is now " << m_state << " at epoch "
+                                   << m_mediator.m_currentEpochNum);
 }
 
 #ifndef IS_LOOKUP_NODE
 void Node::SubmitTransactions()
 {
-    LOG_MARKER();
+    //LOG_MARKER();
 
     unsigned int txn_sent_count = 0;
 
@@ -883,27 +1082,56 @@ void Node::SubmitTransactions()
     // txns needed to be shared within shard members so that it completes in the time limit
     while (txn_sent_count < MAXSUBMITTXNPERNODE)
     {
-        shared_lock<shared_timed_mutex> lock(m_mutexProducerConsumer);
+        // shared_lock<shared_timed_mutex> lock(m_mutexProducerConsumer);
         if (m_state != TX_SUBMISSION)
         {
             break;
         }
 
         Transaction t;
-        bool found = false;
 
-        {
-            lock_guard<mutex> g(m_mutexCreatedTransactions);
-            found = (m_createdTransactions.size() > 0);
-            if (found)
+        auto findOneFromPrefilled = [this](Transaction& t) -> bool {
+            lock_guard<mutex> g{m_mutexPrefilledTxns};
+
+            for (auto& txns : m_prefilledTxns)
             {
-                t = move(m_createdTransactions.front());
-                m_createdTransactions.pop_front();
-            }
-        }
+                auto& txnsList = txns.second;
+                if (txnsList.empty())
+                {
+                    continue;
+                }
 
-        if (found)
-        {
+                // auto& addr = txns.first;
+                // auto shard = Transaction::GetShardIndex(addr, m_numShards);
+                // if (shard != m_myShardID)
+                // {
+                // continue;
+                // }
+
+                t = move(txnsList.front());
+                txnsList.pop_front();
+                m_nRemainingPrefilledTxns--;
+
+                return true;
+            }
+
+            return false;
+        };
+
+        auto findOneFromCreated = [this](Transaction& t) -> bool {
+            lock_guard<mutex> g(m_mutexCreatedTransactions);
+
+            if (m_createdTransactions.empty())
+            {
+                return false;
+            }
+
+            t = move(m_createdTransactions.front());
+            m_createdTransactions.pop_front();
+            return true;
+        };
+
+        auto submitOne = [this, &blockNum](Transaction& t) {
             vector<unsigned char> tx_message
                 = {MessageType::NODE, NodeInstructionType::SUBMITTRANSACTION};
             Serializable::SetNumber<uint32_t>(tx_message, MessageOffset::BODY,
@@ -913,14 +1141,31 @@ void Node::SubmitTransactions()
             P2PComm::GetInstance().SendMessage(m_myShardMembersNetworkInfo,
                                                tx_message);
 
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Sent txn: " << t.GetTranID())
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Sent txn: " << t.GetTranID())
 
             lock_guard<mutex> g(m_mutexSubmittedTransactions);
             auto& submittedTransactions = m_submittedTransactions[blockNum];
             submittedTransactions.insert(make_pair(t.GetTranID(), t));
+        };
+
+        if (findOneFromCreated(t))
+        {
+            submitOne(t);
+        }
+        else if (findOneFromPrefilled(t))
+        {
+            submitOne(t);
             txn_sent_count++;
         }
+    }
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "added " << txn_sent_count << " to submittedTransactions");
+
+    // Clear m_txnNonceMap
+    {
+        lock_guard<mutex> g(m_mutexTxnNonceMap);
+        m_txnNonceMap.clear();
     }
 
 #ifdef STAT_TEST
@@ -930,12 +1175,34 @@ void Node::SubmitTransactions()
                          << m_myShardID << "][" << txn_sent_count << "] CONT");
 #endif // STAT_TEST
 }
+
+bool Node::ToBlockMessage(unsigned char ins_byte)
+{
+    if (!m_mediator.m_isConnectedToNetwork)
+    {
+        if (!m_isNewNode)
+        {
+            if (ins_byte != NodeInstructionType::SHARDING)
+            {
+                return true;
+            }
+        }
+        else
+        {
+            if (m_runFromLate && ins_byte != NodeInstructionType::SHARDING)
+            {
+                return true;
+            }
+        }
+    }
+    return false;
+}
 #endif // IS_LOOKUP_NODE
 
 bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
                    const Peer& from)
 {
-    LOG_MARKER();
+    //LOG_MARKER();
 
     bool result = true;
 
@@ -957,6 +1224,17 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
     const unsigned int ins_handlers_count
         = sizeof(ins_handlers) / sizeof(InstructionHandler);
 
+#ifndef IS_LOOKUP_NODE
+    // If the node failed and waiting for recovery, block the unwanted msg
+
+    if (ToBlockMessage(ins_byte))
+    {
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Node not connected to network yet, ignore message");
+        return false;
+    }
+#endif
+
     if (ins_byte < ins_handlers_count)
     {
         result = (this->*ins_handlers[ins_byte])(message, offset + 1, from);
@@ -967,9 +1245,8 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
     }
     else
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Unknown instruction byte " << hex
-                                                 << (unsigned int)ins_byte);
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Unknown instruction byte " << hex << (unsigned int)ins_byte);
     }
 
     return result;
