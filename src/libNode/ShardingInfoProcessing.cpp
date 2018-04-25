@@ -255,9 +255,19 @@ bool Node::ProcessSharding(const vector<unsigned char>& message,
     };
     DetachedFunction(1, main_func2);
 
-    LOG_GENERAL(INFO, "I am going to sleep for 30 seconds");
-    this_thread::sleep_for(chrono::seconds(30));
-    LOG_GENERAL(INFO, "I have woken up from the sleep of 30 seconds");
+    //DEBUG
+    if(rand() % 10 == 0)
+    {
+        LOG_GENERAL(INFO, "I am going to sleep for 31 seconds");
+        this_thread::sleep_for(chrono::seconds(31));
+        LOG_GENERAL(INFO, "I have woken up from the sleep of 31 seconds");
+    }
+    else
+    {
+        LOG_GENERAL(INFO, "I am going to sleep for 30 seconds");
+        this_thread::sleep_for(chrono::seconds(30));
+        LOG_GENERAL(INFO, "I have woken up from the sleep of 30 seconds");
+    }
 
     auto main_func3 = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
     DetachedFunction(1, main_func3);
