@@ -1329,16 +1329,13 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
     const unsigned int ins_handlers_count
         = sizeof(ins_handlers) / sizeof(InstructionHandler);
 
-#ifndef IS_LOOKUP_NODE
     // If the node failed and waiting for recovery, block the unwanted msg
-
     if (ToBlockMessage(ins_byte))
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Node not connected to network yet, ignore message");
         return false;
     }
-#endif
 
     if (ins_byte < ins_handlers_count)
     {
