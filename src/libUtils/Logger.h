@@ -38,20 +38,19 @@ class Logger
 {
 private:
     std::mutex m;
-    bool log_to_file;
-    std::streampos max_file_size;
+    bool m_logToFile;
+    std::streampos m_maxFileSize;
 
     Logger(const char* prefix, bool log_to_file, std::streampos max_file_size);
     ~Logger();
 
-    void checkLog();
     void newLog();
 
-    std::string fname_prefix;
-    std::string fname;
-    std::ofstream logfile;
-    unsigned int seqnum;
-    bool bRefactor;
+    std::string m_fileNamePrefix;
+    std::string m_fileName;
+    std::ofstream m_logFile;
+    unsigned int m_seqNum;
+    bool m_bRefactor;
 
 public:
     /// Limits the number of bytes of a payload to display.
@@ -108,7 +107,7 @@ public:
     void DisableLevel(LEVELS level);
 
     /// See if we need to use g3log or not
-    bool IsG3Log() { return (log_to_file && bRefactor); };
+    bool IsG3Log() { return (m_logToFile && m_bRefactor); };
 
     /// Get current process id
     static pid_t GetPid();
@@ -122,7 +121,7 @@ public:
 /// Utility class for automatically logging function or code block exit.
 class ScopeMarker
 {
-    std::string function;
+    std::string m_function;
 
 public:
     /// Constructor.
