@@ -219,8 +219,7 @@ void Node::StartSynchronization()
                                     : NEW_NODE_SYNC_INTERVAL));
         }
     };
-
-    LOG_MESSAGE("Call DetachedFunction");
+    
     DetachedFunction(1, func);
 }
 
