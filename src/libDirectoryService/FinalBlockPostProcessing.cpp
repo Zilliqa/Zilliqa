@@ -367,7 +367,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
             }
         }
     };
-    
+
     DetachedFunction(1, func);
 }
 #endif // IS_LOOKUP_NODE
