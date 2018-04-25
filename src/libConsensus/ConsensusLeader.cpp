@@ -657,7 +657,6 @@ bool ConsensusLeader::ProcessMessageCommitFailure(
         auto main_func = [this]() mutable -> void {
             m_shardCommitFailureHandlerFunc(m_commitFailureMap);
         };
-        LOG_MESSAGE("Call DetachedFunction");
         DetachedFunction(1, main_func);
         // LOG_GENERAL(INFO, "Sufficient " << m_numForConsensus << " commits obtained");
 
