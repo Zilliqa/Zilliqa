@@ -367,6 +367,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
             }
         }
     };
+    LOG_MESSAGE("Call DetachedFunction");
     DetachedFunction(1, func);
 }
 #endif // IS_LOOKUP_NODE

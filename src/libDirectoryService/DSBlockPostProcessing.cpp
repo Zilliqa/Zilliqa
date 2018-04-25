@@ -286,6 +286,7 @@ void DirectoryService::ScheduleShardingConsensus(const unsigned int wait_window)
         this_thread::sleep_for(chrono::seconds(wait_window));
         RunConsensusOnSharding();
     };
+    LOG_MESSAGE("Call DetachedFunction");
     DetachedFunction(1, func);
 }
 

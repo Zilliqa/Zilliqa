@@ -677,6 +677,7 @@ void Node::InitiatePoW1()
         auto txBlockRand = m_mediator.m_txBlockRand;
         StartPoW1(epochNumber, POW1_DIFFICULTY, dsBlockRand, txBlockRand);
     };
+    LOG_MESSAGE("Call DetachedFunction");
     DetachedFunction(1, func);
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Soln to pow1 found ");
@@ -720,6 +721,7 @@ void Node::UpdateStateForNextConsensusRound()
 void Node::ScheduleTxnSubmission()
 {
     auto main_func = [this]() mutable -> void { SubmitTransactions(); };
+    LOG_MESSAGE("Call DetachedFunction");
     DetachedFunction(1, main_func);
 
     LOG_GENERAL(INFO,
@@ -733,6 +735,7 @@ void Node::ScheduleTxnSubmission()
         // unique_lock<shared_timed_mutex> lock(m_mutexProducerConsumer);
         SetState(TX_SUBMISSION_BUFFER);
     };
+    LOG_MESSAGE("Call DetachedFunction");
     DetachedFunction(1, main_func2);
 }
 
@@ -758,6 +761,7 @@ void Node::ScheduleMicroBlockConsensus()
             "I have received announcement message. Time to run consensus.");
     }
     auto main_func3 = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
+    LOG_MESSAGE("Call DetachedFunction");
     DetachedFunction(1, main_func3);
 }
 
@@ -1242,6 +1246,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     {
         auto main_func
             = [this]() mutable -> void { BeginNextConsensusRound(); };
+        LOG_MESSAGE("Call DetachedFunction");
         DetachedFunction(1, main_func);
     }
 
