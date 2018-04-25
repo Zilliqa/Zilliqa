@@ -25,6 +25,7 @@
 
 using namespace std;
 using namespace g3;
+
 unique_ptr<LogWorker> logworker;
 
 string MyCustomFormatting(const LogMessage& msg)
@@ -94,7 +95,6 @@ void Logger::newLog()
     char buf[16] = {0};
     snprintf(buf, sizeof(buf), "-%05d-log.txt", seqnum);
     fname = fname_prefix + buf;
-    logfile.open(fname.c_str(), ios_base::app);
 
     bRefactor = (fname.substr(0, 7) == "zilliqa");
 
@@ -102,12 +102,16 @@ void Logger::newLog()
     {
         logworker = LogWorker::createLogWorker();
         auto sinkHandle = logworker->addSink(
-            std::make_unique<FileSink>(fname.c_str(), "./"),
+            std::make_unique<FileSink>(fname.c_str(), "./", ""),
             &FileSink::fileWrite);
         sinkHandle->call(&g3::FileSink::overrideLogDetails, &MyCustomFormatting)
             .wait();
         sinkHandle->call(&g3::FileSink::overrideLogHeader, "").wait();
         initializeLogging(logworker.get());
+    }
+    else
+    {
+        logfile.open(fname.c_str(), ios_base::app);
     }
 }
 
