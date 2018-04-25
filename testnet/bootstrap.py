@@ -214,7 +214,7 @@ def defer_cmd(cmd, seconds):
 
 start_sh = [
     '#!/bin/bash',
-    defer_cmd(cmd_startpow1, 5) if is_ds else '',
+    defer_cmd(cmd_setprimaryds, 5) if is_ds else '',
     defer_cmd(cmd_sendtxn, 10),
     defer_cmd(cmd_startpow1, 20) if not is_ds else '',
     cmd_zilliqa
