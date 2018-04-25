@@ -399,13 +399,13 @@ public:
                                            Json::Value& response)
     {
         (void)request;
-        response = this->GetShardingStructure();
+        response = this->GetNumTxnsTxEpoch();
     }
     inline virtual void GetNumTxnsDSEpochI(const Json::Value& request,
                                            Json::Value& response)
     {
         (void)request;
-        response = this->GetShardingStructure();
+        response = this->GetNumTxnsDSEpoch();
     }
     virtual std::string GetClientVersion() = 0;
     virtual std::string GetNetworkId() = 0;
