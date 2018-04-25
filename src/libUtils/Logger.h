@@ -38,20 +38,19 @@ class Logger
 {
 private:
     std::mutex m;
-    bool log_to_file;
-    std::streampos max_file_size;
+    bool m_logToFile;
+    std::streampos m_maxFileSize;
 
     Logger(const char* prefix, bool log_to_file, std::streampos max_file_size);
     ~Logger();
 
-    void checkLog();
     void newLog();
 
-    std::string fname_prefix;
-    std::string fname;
-    std::ofstream logfile;
-    unsigned int seqnum;
-    bool bRefactor;
+    std::string m_fileNamePrefix;
+    std::string m_fileName;
+    std::ofstream m_logFile;
+    unsigned int m_seqNum;
+    bool m_bRefactor;
 
 public:
     /// Limits the number of bytes of a payload to display.
@@ -76,6 +75,9 @@ public:
     /// Returns the singleton instance for the state/reporting Logger.
     static Logger& GetStateLogger(const char* fname_prefix, bool log_to_file,
                                   std::streampos max_file_size = MAX_FILE_SIZE);
+
+    /// Check if the log file size exceed limitation
+    void CheckLog();
 
     /// Outputs the specified message and function name to the state/reporting log.
     void LogState(const char* msg, const char* function);
@@ -105,7 +107,7 @@ public:
     void DisableLevel(LEVELS level);
 
     /// See if we need to use g3log or not
-    bool IsG3Log() { return (log_to_file && bRefactor); };
+    bool IsG3Log() { return (m_logToFile && m_bRefactor); };
 
     /// Get current process id
     static pid_t GetPid();
@@ -119,7 +121,7 @@ public:
 /// Utility class for automatically logging function or code block exit.
 class ScopeMarker
 {
-    std::string function;
+    std::string m_function;
 
 public:
     /// Constructor.
@@ -145,6 +147,7 @@ public:
     {                                                                          \
         if (Logger::GetLogger(NULL, true).IsG3Log())                           \
         {                                                                      \
+            Logger::GetLogger(NULL, true).CheckLog();                          \
             std::time_t curTime = std::chrono::system_clock::to_time_t(        \
                 std::chrono::system_clock::now());                             \
             LOG(level) << "[TID " << PAD(Logger::GetPid(), Logger::TID_LEN)    \
@@ -165,6 +168,7 @@ public:
     {                                                                          \
         if (Logger::GetLogger(NULL, true).IsG3Log())                           \
         {                                                                      \
+            Logger::GetLogger(NULL, true).CheckLog();                          \
             std::time_t curTime = std::chrono::system_clock::to_time_t(        \
                 std::chrono::system_clock::now());                             \
             LOG(level) << "[TID " << PAD(Logger::GetPid(), Logger::TID_LEN)    \
@@ -185,6 +189,7 @@ public:
     {                                                                          \
         if (Logger::GetLogger(NULL, true).IsG3Log())                           \
         {                                                                      \
+            Logger::GetLogger(NULL, true).CheckLog();                          \
             std::time_t curTime = std::chrono::system_clock::to_time_t(        \
                 std::chrono::system_clock::now());                             \
             std::unique_ptr<char[]> payload_string;                            \
