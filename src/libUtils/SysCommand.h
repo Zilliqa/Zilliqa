@@ -33,6 +33,7 @@ std::string ExecuteCmd(const std::string cmd)
         if (fgets(buffer.data(), 128, pipe.get()) != nullptr)
             result += buffer.data();
     }
+    LOG_GENERAL(INFO, "ExecuteCmd: "<<result);
     return result;
 }
 
