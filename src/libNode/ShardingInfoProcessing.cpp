@@ -256,7 +256,7 @@ bool Node::ProcessSharding(const vector<unsigned char>& message,
     DetachedFunction(1, main_func2);
 
     //DEBUG
-    if(rand() % 10 == 0)
+    if (rand() % 10 == 0)
     {
         LOG_GENERAL(INFO, "I am going to sleep for 31 seconds");
         this_thread::sleep_for(chrono::seconds(31));
