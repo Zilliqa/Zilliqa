@@ -1446,7 +1446,7 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
             m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
             < blocknum)
         {
-            if (m_mediator.m_lookup->m_syncType != SyncType::NO)
+            if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
             {
                 return false;
             }
