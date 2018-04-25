@@ -1446,6 +1446,11 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
             m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
             < blocknum)
         {
+            if (m_mediator.m_lookup->m_syncType != SyncType::NO)
+            {
+                return false;
+            }
+
             if (time_pass % 600 == 0)
             {
                 LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
