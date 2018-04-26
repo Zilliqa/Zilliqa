@@ -62,8 +62,8 @@ Server::Server(Mediator& mediator, HttpServer& httpserver)
     m_TxBlockCache.first = 0;
     m_TxBlockCache.second.resize(NUM_PAGES_CACHE * PAGE_SIZE);
     m_RecentTransactions.resize(TXN_PAGE_SIZE);
-    m_DSEpochCache.first = 0;
-    m_DSEpochCache.second = 0;
+    m_TxBlockCountSumPair.first = 0;
+    m_TxBlockCountSumPair.second = 0;
 }
 
 Server::~Server()
@@ -911,26 +911,31 @@ string Server::GetNumTxnsDSEpoch()
         auto latestTxBlockNum = latestTxBlock.GetBlockNum();
         auto latestDSBlockNum = latestTxBlock.GetDSBlockNum();
 
-        if (latestTxBlockNum > m_DSEpochCache.first)
+        if (latestTxBlockNum > m_TxBlockCountSumPair.first)
         {
-            if (m_mediator.m_txBlockChain.GetBlock(m_DSEpochCache.first)
+
+            //Case where the DS Epoch is same
+            if (m_mediator.m_txBlockChain.GetBlock(m_TxBlockCountSumPair.first)
                     .GetHeader()
                     .GetDSBlockNum()
                 == latestDSBlockNum)
             {
-                for (auto i = latestTxBlockNum; i > m_DSEpochCache.first; i--)
+                for (auto i = latestTxBlockNum; i > m_TxBlockCountSumPair.first;
+                     i--)
                 {
-                    m_DSEpochCache.second
+                    m_TxBlockCountSumPair.second
                         += m_mediator.m_txBlockChain.GetBlock(i)
                                .GetHeader()
                                .GetNumTxs();
                 }
             }
+            //Case if DS Epoch Changed
             else
             {
-                m_DSEpochCache.second = 0;
+                m_TxBlockCountSumPair.second = 0;
 
-                for (auto i = latestTxBlockNum; i > m_DSEpochCache.first; i--)
+                for (auto i = latestTxBlockNum; i > m_TxBlockCountSumPair.first;
+                     i--)
                 {
                     if (m_mediator.m_txBlockChain.GetBlock(i)
                             .GetHeader()
@@ -939,17 +944,17 @@ string Server::GetNumTxnsDSEpoch()
                     {
                         break;
                     }
-                    m_DSEpochCache.second
+                    m_TxBlockCountSumPair.second
                         += m_mediator.m_txBlockChain.GetBlock(i)
                                .GetHeader()
                                .GetNumTxs();
                 }
             }
 
-            m_DSEpochCache.first = latestTxBlockNum;
+            m_TxBlockCountSumPair.first = latestTxBlockNum;
         }
 
-        return m_DSEpochCache.second.str();
+        return m_TxBlockCountSumPair.second.str();
     }
 
     catch (exception& e)
