@@ -17,6 +17,7 @@
 
 #include "ConsensusUser.h"
 #include "common/Messages.h"
+#include "libUtils/BitVector.h"
 #include "libUtils/Logger.h"
 
 using namespace std;
@@ -154,7 +155,7 @@ bool ConsensusUser::ProcessStartConsensus(const vector<unsigned char>& message,
     vector<unsigned char> m(message.size() - offset);
     copy(message.begin() + offset, message.end(), m.begin());
 
-    cl->StartConsensus(m);
+    cl->StartConsensus(m, m.size());
 
     return true;
 }
@@ -171,10 +172,11 @@ bool ConsensusUser::ProcessConsensusMessage(
         LOG_GENERAL(INFO, "Consensus is DONE!!!");
 
         vector<unsigned char> tmp;
-        m_consensus->RetrieveCollectiveSig(tmp, 0);
+        m_consensus->GetCS2().Serialize(tmp, 0);
         LOG_PAYLOAD(INFO, "Final collective signature", tmp, 100);
+
         tmp.clear();
-        m_consensus->RetrieveCollectiveSigBitmap(tmp, 0);
+        BitVector::SetBitVector(tmp, 0, m_consensus->GetB2());
         LOG_PAYLOAD(INFO, "Final collective signature bitmap", tmp, 100);
     }
 
