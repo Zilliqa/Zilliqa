@@ -19,6 +19,7 @@
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "libNetwork/P2PComm.h"
+#include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
@@ -416,6 +417,14 @@ bool ConsensusLeader::ProcessMessageCommitCore(
                         commit_peers.push_back(*j);
                     }
                 }
+
+                // FIXME: quick fix: 0106'08' comes to the backup ealier than 0106'04'
+                // if (action == FINALCOMMIT)
+                // {
+                //     this_thread::sleep_for(chrono::milliseconds(1000));
+                // }
+                this_thread::sleep_for(chrono::milliseconds(1000));
+
                 P2PComm::GetInstance().SendMessage(commit_peers, challenge);
             }
         }
@@ -707,7 +716,7 @@ bool ConsensusLeader::GenerateChallengeMessage(vector<unsigned char>& challenge,
     }
 
     // Generate the challenge
-    m_challenge = GetChallenge(m_message, 0, m_message.size(),
+    m_challenge = GetChallenge(m_message, 0, m_lengthToCosign,
                                aggregated_commit, aggregated_key);
     if (m_challenge.Initialized() == false)
     {
@@ -918,6 +927,19 @@ bool ConsensusLeader::ProcessMessageResponseCore(
 
             if (action == PROCESS_RESPONSE)
             {
+                // First round: consensus over part of message (e.g., DS block header)
+                // Second round: consensus over part of message + CS1 + B1
+                m_message.resize(m_lengthToCosign);
+                m_collectiveSig.Serialize(m_message, m_lengthToCosign);
+                BitVector::SetBitVector(m_message,
+                                        m_lengthToCosign + BLOCK_SIG_SIZE,
+                                        m_responseMap);
+                m_lengthToCosign = m_message.size();
+
+                // Save the collective sig over the first round
+                m_CS1 = m_collectiveSig;
+                m_B1 = m_responseMap;
+
                 m_commitCounter = 0;
                 m_commitPoints.clear();
                 fill(m_commitMap.begin(), m_commitMap.end(), false);
@@ -932,11 +954,12 @@ bool ConsensusLeader::ProcessMessageResponseCore(
                 m_responseCounter = 0;
                 m_responseData.clear();
                 fill(m_responseMap.begin(), m_responseMap.end(), false);
-
-                // First round: consensus over message (e.g., DS block)
-                // Second round: consensus over collective sig
-                m_message.clear();
-                m_collectiveSig.Serialize(m_message, 0);
+            }
+            else
+            {
+                // Save the collective sig over the second round
+                m_CS2 = m_collectiveSig;
+                m_B2 = m_responseMap;
             }
 
             // Multicast to all nodes in the committee
@@ -993,8 +1016,8 @@ bool ConsensusLeader::GenerateCollectiveSigMessage(
     }
 
     // Verify the collective signature
-    if (Schnorr::GetInstance().Verify(m_message, m_collectiveSig,
-                                      aggregated_key)
+    if (Schnorr::GetInstance().Verify(m_message, 0, m_lengthToCosign,
+                                      m_collectiveSig, aggregated_key)
         == false)
     {
         LOG_GENERAL(WARNING, "Collective sig verification failed");
@@ -1031,7 +1054,8 @@ bool ConsensusLeader::GenerateCollectiveSigMessage(
     curr_offset += sizeof(uint16_t);
 
     // N-byte bitmap
-    curr_offset += SetBitVector(collectivesig, curr_offset, m_responseMap);
+    curr_offset
+        += BitVector::SetBitVector(collectivesig, curr_offset, m_responseMap);
 
     // 64-byte collective signature
     m_collectiveSig.Serialize(collectivesig, curr_offset);
@@ -1086,7 +1110,7 @@ ConsensusLeader::ConsensusLeader(
 
     m_state = INITIAL;
     // m_numForConsensus = (floor(TOLERANCE_FRACTION * (pubkeys.size() - 1)) + 1);
-    m_numForConsensus = ceil(pubkeys.size() * TOLERANCE_FRACTION) - 1;
+    m_numForConsensus = ConsensusCommon::NumForConsensus(pubkeys.size());
     m_numForConsensusFailure = pubkeys.size() - m_numForConsensus;
     LOG_GENERAL(INFO,
                 "TOLERANCE_FRACTION "
@@ -1101,7 +1125,8 @@ ConsensusLeader::ConsensusLeader(
 
 ConsensusLeader::~ConsensusLeader() {}
 
-bool ConsensusLeader::StartConsensus(const vector<unsigned char>& message)
+bool ConsensusLeader::StartConsensus(const vector<unsigned char>& message,
+                                     uint32_t lengthToCosign)
 {
     LOG_MARKER();
 
@@ -1114,6 +1139,12 @@ bool ConsensusLeader::StartConsensus(const vector<unsigned char>& message)
         return false;
     }
 
+    if (lengthToCosign > message.size())
+    {
+        LOG_GENERAL(WARNING, "lengthToCosign > message size");
+        return false;
+    }
+
     if (!CheckState(SEND_ANNOUNCEMENT))
     {
         return false;
@@ -1122,8 +1153,8 @@ bool ConsensusLeader::StartConsensus(const vector<unsigned char>& message)
     // Assemble announcement message body
     // ==================================
 
-    // Format: [CLA] [INS] [1-byte consensus message type] [4-byte consensus id] [32-byte blockhash] [2-byte leader id] [message] [64-byte signature]
-    // Signature is over: [4-byte consensus id] [32-byte blockhash] [2-byte leader id] [message]
+    // Format: [CLA] [INS] [1-byte consensus message type] [4-byte consensus id] [32-byte blockhash] [2-byte leader id] [message] [4-byte length to co-sign] [64-byte signature]
+    // Signature is over: [4-byte consensus id] [32-byte blockhash] [2-byte leader id] [message] [4-byte length to co-sign]
 
     LOG_GENERAL(INFO,
                 "DEBUG: my ip is "
@@ -1159,6 +1190,11 @@ bool ConsensusLeader::StartConsensus(const vector<unsigned char>& message)
                         message.end());
     curr_offset += message.size();
 
+    // 4-byte length to co-sign
+    Serializable::SetNumber<uint32_t>(announcement, curr_offset, lengthToCosign,
+                                      sizeof(uint32_t));
+    curr_offset += sizeof(uint32_t);
+
     // 64-byte signature
     Signature signature = SignMessage(
         announcement, MessageOffset::BODY + sizeof(unsigned char),
@@ -1180,6 +1216,7 @@ bool ConsensusLeader::StartConsensus(const vector<unsigned char>& message)
     m_commitFailureCounter = 0;
     m_responseCounter = 0;
     m_message = message;
+    m_lengthToCosign = lengthToCosign;
 
     // Multicast to all nodes in the committee
     // =======================================

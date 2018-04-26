@@ -777,7 +777,7 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
                       "DSBlock " << blockNum.convert_to<string>()
                                  << " serialized for " << from);
             dsBlock.Serialize(dsBlockMessage, curr_offset);
-            curr_offset += DSBlock::GetSerializedSize();
+            curr_offset += dsBlock.GetSerializedSize();
         }
         catch (const char* e)
         {
@@ -1227,7 +1227,7 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
     // since we will usually only enable sending of 500 blocks max, casting to uint32_t should be safe
     if (IsMessageSizeInappropriate(message.size(), offset,
                                    (uint32_t)(highBlockNum - lowBlockNum + 1)
-                                       * DSBlock::GetSerializedSize()))
+                                       * DSBlock::GetMinSize()))
     {
         return false;
     }
@@ -1253,7 +1253,7 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
                 LOG_GENERAL(WARNING, "We failed to deserialize dsBlock.");
                 return false;
             }
-            offset += DSBlock::GetSerializedSize();
+            offset += dsBlock.GetSerializedSize();
 
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "I the lookup node have deserialized the DS Block");

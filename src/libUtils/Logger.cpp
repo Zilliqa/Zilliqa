@@ -27,6 +27,7 @@ using namespace std;
 using namespace g3;
 
 unique_ptr<LogWorker> logworker;
+unique_ptr<SinkHandle<FileSink>> sinkHandle;
 
 string MyCustomFormatting(const LogMessage& msg)
 {
@@ -63,46 +64,62 @@ const streampos Logger::MAX_FILE_SIZE = 1024 * 1024 * 100; // 100MB per log file
 
 Logger::Logger(const char* prefix, bool log_to_file, streampos max_file_size)
 {
-    this->log_to_file = log_to_file;
-    this->max_file_size = max_file_size;
+    this->m_logToFile = log_to_file;
+    this->m_maxFileSize = max_file_size;
 
     if (log_to_file)
     {
-        fname_prefix = prefix ? prefix : "common";
-        seqnum = 0;
+        m_fileNamePrefix = prefix ? prefix : "common";
+        m_seqNum = 0;
         newLog();
     }
 }
 
-Logger::~Logger() { logfile.close(); }
+Logger::~Logger() { m_logFile.close(); }
 
-void Logger::checkLog()
+void Logger::CheckLog()
 {
-    std::ifstream in(fname.c_str(), std::ifstream::ate | std::ifstream::binary);
-
-    if (in.tellg() >= max_file_size)
+    if (IsG3Log())
     {
-        logfile.close();
+        future<string> fileName = sinkHandle->call(&g3::FileSink::fileName);
+        std::ifstream in(fileName.get(),
+                         std::ifstream::ate | std::ifstream::binary);
+
+        if (in.tellg() >= m_maxFileSize)
+        {
+            g3::internal::shutDownLogging();
+            newLog();
+        }
+
+        return;
+    }
+
+    std::ifstream in(m_fileName.c_str(),
+                     std::ifstream::ate | std::ifstream::binary);
+
+    if (in.tellg() >= m_maxFileSize)
+    {
+        m_logFile.close();
         newLog();
     }
 }
 
 void Logger::newLog()
 {
-    seqnum++;
+    m_seqNum++;
+    m_bRefactor = (m_fileNamePrefix == "zilliqa");
 
-    // Filename = fname_prefix + 5-digit sequence number + "-log.txt"
+    // Filename = m_fileNamePrefix + 5-digit sequence number + "-log.txt"
     char buf[16] = {0};
-    snprintf(buf, sizeof(buf), "-%05d-log.txt", seqnum);
-    fname = fname_prefix + buf;
+    snprintf(buf, sizeof(buf), (m_bRefactor ? "-%05d-log" : "-%05d-log.txt"),
+             m_seqNum);
+    m_fileName = m_fileNamePrefix + buf;
 
-    bRefactor = (fname.substr(0, 7) == "zilliqa");
-
-    if (bRefactor)
+    if (m_bRefactor)
     {
         logworker = LogWorker::createLogWorker();
-        auto sinkHandle = logworker->addSink(
-            std::make_unique<FileSink>(fname.c_str(), "./", ""),
+        sinkHandle = logworker->addSink(
+            std::make_unique<FileSink>(m_fileName.c_str(), "./", ""),
             &FileSink::fileWrite);
         sinkHandle->call(&g3::FileSink::overrideLogDetails, &MyCustomFormatting)
             .wait();
@@ -111,7 +128,7 @@ void Logger::newLog()
     }
     else
     {
-        logfile.open(fname.c_str(), ios_base::app);
+        m_logFile.open(m_fileName.c_str(), ios_base::app);
     }
 }
 
@@ -133,10 +150,10 @@ void Logger::LogState(const char* msg, const char*)
 {
     lock_guard<mutex> guard(m);
 
-    if (log_to_file)
+    if (m_logToFile)
     {
-        checkLog();
-        logfile << msg << endl << flush;
+        CheckLog();
+        m_logFile << msg << endl << flush;
     }
     else
     {
@@ -159,13 +176,14 @@ void Logger::LogGeneral(LEVELS level, const char* msg, const char* function)
 
     lock_guard<mutex> guard(m);
 
-    if (log_to_file)
+    if (m_logToFile)
     {
-        checkLog();
-        logfile << "[TID " << PAD(GetPid(), TID_LEN) << "]["
-                << PAD(put_time(gmtime(&curTime), "%H:%M:%S"), TIME_LEN) << "]["
-                << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg << endl
-                << flush;
+        CheckLog();
+        m_logFile << "[TID " << PAD(GetPid(), TID_LEN) << "]["
+                  << PAD(put_time(gmtime(&curTime), "%H:%M:%S"), TIME_LEN)
+                  << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
+                  << endl
+                  << flush;
     }
     else
     {
@@ -184,14 +202,14 @@ void Logger::LogEpoch(LEVELS level, const char* msg, const char* epoch,
 
     lock_guard<mutex> guard(m);
 
-    if (log_to_file)
+    if (m_logToFile)
     {
-        checkLog();
-        logfile << "[TID " << PAD(GetPid(), TID_LEN) << "]["
-                << PAD(put_time(gmtime(&curTime), "%H:%M:%S"), TIME_LEN) << "]["
-                << LIMIT(function, MAX_FUNCNAME_LEN) << "]"
-                << "[Epoch " << epoch << "] " << msg << endl
-                << flush;
+        CheckLog();
+        m_logFile << "[TID " << PAD(GetPid(), TID_LEN) << "]["
+                  << PAD(put_time(gmtime(&curTime), "%H:%M:%S"), TIME_LEN)
+                  << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "]"
+                  << "[Epoch " << epoch << "] " << msg << endl
+                  << flush;
     }
     else
     {
@@ -214,27 +232,27 @@ void Logger::LogPayload(LEVELS level, const char* msg,
 
     lock_guard<mutex> guard(m);
 
-    if (log_to_file)
+    if (m_logToFile)
     {
-        checkLog();
+        CheckLog();
 
         if (payload.size() > max_bytes_to_display)
         {
-            logfile << "[TID " << PAD(GetPid(), TID_LEN) << "]["
-                    << PAD(put_time(gmtime(&curTime), "%H:%M:%S"), TIME_LEN)
-                    << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
-                    << " (Len=" << payload.size()
-                    << "): " << payload_string.get() << "..." << endl
-                    << flush;
+            m_logFile << "[TID " << PAD(GetPid(), TID_LEN) << "]["
+                      << PAD(put_time(gmtime(&curTime), "%H:%M:%S"), TIME_LEN)
+                      << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "] "
+                      << msg << " (Len=" << payload.size()
+                      << "): " << payload_string.get() << "..." << endl
+                      << flush;
         }
         else
         {
-            logfile << "[TID " << PAD(GetPid(), TID_LEN) << "]["
-                    << PAD(put_time(gmtime(&curTime), "%H:%M:%S"), TIME_LEN)
-                    << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
-                    << " (Len=" << payload.size()
-                    << "): " << payload_string.get() << endl
-                    << flush;
+            m_logFile << "[TID " << PAD(GetPid(), TID_LEN) << "]["
+                      << PAD(put_time(gmtime(&curTime), "%H:%M:%S"), TIME_LEN)
+                      << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "] "
+                      << msg << " (Len=" << payload.size()
+                      << "): " << payload_string.get() << endl
+                      << flush;
         }
     }
     else
@@ -303,14 +321,14 @@ void Logger::GetPayloadS(const std::vector<unsigned char>& payload,
 }
 
 ScopeMarker::ScopeMarker(const char* function)
-    : function(function)
+    : m_function(function)
 {
     Logger& logger = Logger::GetLogger(NULL, true);
-    logger.LogGeneral(INFO, "BEGIN", this->function.c_str());
+    logger.LogGeneral(INFO, "BEGIN", this->m_function.c_str());
 }
 
 ScopeMarker::~ScopeMarker()
 {
     Logger& logger = Logger::GetLogger(NULL, true);
-    logger.LogGeneral(INFO, "END", function.c_str());
+    logger.LogGeneral(INFO, "END", m_function.c_str());
 }
