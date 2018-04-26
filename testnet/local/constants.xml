@@ -29,4 +29,6 @@
             <wallet_address>027b3e103003e6f533a1253342dd03340b3f5061</wallet_address>
         </account>
     </accounts>
+    <lookups>
+    </lookups>
 </node>
