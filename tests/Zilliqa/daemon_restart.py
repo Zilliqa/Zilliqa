@@ -10,6 +10,9 @@ from subprocess import Popen, PIPE
 
 IP_SITE = 'ifconfig.me'
 
+PORT_NUM = 30303
+PROJ_DIR = 'zilliqa-test'
+
 def main():
 	if len(sys.argv) == 6:
 		run_restart(sys.argv[1],sys.argv[2],sys.argv[3], sys.argv[4], sys.argv[5])
@@ -59,7 +62,7 @@ def run_restart(pubKey, privKey, port, typ, path):
 	for x in range(0, 1):
 		keypair = keypairs[x].split(" ")
 
-		os.system('cd ' + path + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; $(pwd)/zilliqa ' + keypair[1] + ' ' + keypair[0] + ' ' + nodeIP +' ' + port + ' 0 '+typ+ ' 1 >> ./error_log_zilliqa 2>&1 &')
+		os.system('cd ~/' + PROJ_DIR + '; ulimit -Sc unlimited; ulimit -Hc unlimited;' + path + '/zilliqa ' + keypair[1] + ' ' + keypair[0] + ' ' + nodeIP +' ' + str(PORT_NUM) + ' 0 '+typ+ ' 1 >> ./error_log_zilliqa 2>&1 &')
 
 
 if __name__ == "__main__":
