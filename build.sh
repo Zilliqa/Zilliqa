@@ -16,7 +16,6 @@
 git submodule update --init --recursive --remote
 mkdir -p build
 cd build
-find . -name "CMakeCache.txt" -delete
 cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTESTS=ON ..
 make -j4
 make clang-format-fix
