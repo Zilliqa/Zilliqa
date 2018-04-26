@@ -22,6 +22,9 @@
 #include <stdint.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#if 1 //clark
+#include <event.h>
+#endif
 
 #include "P2PComm.h"
 #include "PeerStore.h"
