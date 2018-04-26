@@ -2037,9 +2037,10 @@ bool Lookup::RsyncTxBodies()
     }
     else
     {
-        cmdStr = "rsync -iraz --size-only -e \"ssh -o StrictHostKeyChecking=no\" ubuntu@" + ipAddr + ":"
-            + REMOTE_TEST_DIR + "/" + PERSISTENCE_PATH + "/" + dbNameStr + "/* "
-            + PERSISTENCE_PATH + "/" + dbNameStr + "/";
+        cmdStr = "rsync -iraz --size-only -e \"ssh -o "
+                 "StrictHostKeyChecking=no\" ubuntu@"
+            + ipAddr + ":" + REMOTE_TEST_DIR + "/" + PERSISTENCE_PATH + "/"
+            + dbNameStr + "/* " + PERSISTENCE_PATH + "/" + dbNameStr + "/";
     }
     LOG_GENERAL(INFO, cmdStr);
 
