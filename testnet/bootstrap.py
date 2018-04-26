@@ -69,6 +69,12 @@ spec:
       - name: zilliqa
         image: gnnng/zilliqa
         workingDir: /zilliqa-run
+        readinessProbe:
+          exec:
+            command:
+            - test
+            - "-f"
+            - /zilliqa-run/readiness
         command:
         - /bin/bash
         - -c
@@ -127,6 +133,10 @@ my_id = int(output.strip().split('-')[-1])
 is_ds = my_id < n_ds
 
 shutil.copyfile('/zilliqa-config/constants.xml', '/zilliqa-run/constants.xml')
+
+# set the readiness flag
+with open('/zilliqa-run/readiness', 'w') as f:
+    pass
 
 # keep getting ip list until all DNS names are up
 while True:
