@@ -23,30 +23,31 @@ import shutil
 import subprocess
 import random
 import string
+import stat
 
-# current dir
-testnet_dir = os.path.dirname(os.path.abspath(__file__))
+# working dir, it is assumed that bootstrap.py is in ROOT_DIR/testnet
+WORKING_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # zilliqa project root dir
-root_dir = os.path.dirname(testnet_dir)
+ROOT_DIR = os.path.dirname(WORKING_DIR)
 
 # default path to genkeypair
-gen_bin = os.path.join(root_dir, 'build', 'bin', 'genkeypair')
+GENKEYPAIR_BIN = os.path.join(ROOT_DIR, 'build', 'bin', 'genkeypair')
 
-k8s_yaml = """# THIS FILE IS AUTO-GENERATED, DO NOT MODIFY
+TESTNET_YAML = """# THIS FILE IS AUTO-GENERATED, DO NOT MODIFY
 apiVersion: v1
 kind: Service
 metadata:
   name: {name}
   labels:
-    app: zilliqa
+    testnet: {name}
 spec:
   ports:
   - port: 30303
     name: zilliqa
   clusterIP: None
   selector:
-    app: zilliqa
+    testnet: {name}
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -58,11 +59,11 @@ spec:
   replicas: {n}
   selector:
     matchLabels:
-      app: zilliqa
+      testnet: {name}
   template:
     metadata:
       labels:
-        app: zilliqa
+        testnet: {name}
     spec:
       containers:
       - name: zilliqa
@@ -101,7 +102,7 @@ spec:
           storage: 1Gi
 """
 
-init_py="""#!/usr/bin/env python
+INIT_PY = """#!/usr/bin/env python
 # THIS FILE IS AUTO-GENERATED, DO NOT MODIFY
 from __future__ import print_function
 
@@ -221,9 +222,9 @@ def defer_cmd(cmd, seconds):
 
 start_sh = [
     '#!/bin/bash',
-    defer_cmd(cmd_setprimaryds, 5) if is_ds else '',
-    defer_cmd(cmd_sendtxn, 10),
-    defer_cmd(cmd_startpow1, 20) if not is_ds else '',
+    defer_cmd(cmd_setprimaryds, 10) if is_ds else '',
+    defer_cmd(cmd_sendtxn, 20),
+    defer_cmd(cmd_startpow1, 30) if not is_ds else '',
     cmd_zilliqa
 ]
 
@@ -233,16 +234,38 @@ with open('/zilliqa-run/start.sh', 'w') as startfile:
 """
 
 def setup_dir(args):
-    template_dir = args.template
-    run_dir = os.path.relpath(args.rundir, testnet_dir)
-
+    print('Template dir:', args.template)
     print('Testnet name:', args.name)
-    print('Template dir:', template_dir)
-    print('Running dir:', run_dir)
+    print('Running dir:', args.run_dir)
 
-    # copy all template files from template dir
+    template_dir = os.path.join(WORKING_DIR, args.template)
+    run_dir = os.path.join(WORKING_DIR, args.run_dir)
+    configmap_dir = os.path.join(WORKING_DIR, args.run_dir, 'configmap')
+
+    def resource(filename, content):
+        f_path = os.path.join(run_dir, filename)
+        with open(f_path, 'w') as f:
+            f.write(content)
+        return f_path
+
+    def configmap(filename, content):
+        f_path = os.path.join(configmap_dir, filename)
+        with open(f_path, 'w') as f:
+            f.write(content)
+        return f_path
+
+    def script(filename, cmds):
+        f_path = os.path.join(run_dir, filename)
+        with open(f_path, 'w') as f:
+            for cmd in cmds:
+                f.write(cmd + '\n')
+        st = os.stat(f_path)
+        os.chmod(f_path, st.st_mode | stat.S_IEXEC)
+        return f_path
+
+    # pupoluate the rundir based on template dir
     try:
-        shutil.copytree(template_dir, args.rundir)
+        shutil.copytree(template_dir, configmap_dir)
     except OSError as e:
         print(e)
         return
@@ -256,54 +279,63 @@ def setup_dir(args):
         keypairs.append(output)
     keypairs.sort()
 
-    with open(os.path.join(args.rundir, 'keys.txt'), "w") as keyfile:
-        keyfile.writelines(keypairs)
-    print(len(keypairs), 'keyfile generated: keys.txt')
+    # setup configmap folder
+    print(configmap('name', args.name))
 
-    # generate k8s statefulset yaml file
-    with open(os.path.join(args.rundir, 'testnet.yaml'), 'w') as k8sfile:
-        k8sfile.write(k8s_yaml.format(name=args.name, n=args.n))
-    print('kubernete file generated: testnet.yaml')
+    print(configmap('keys.txt', ''.join(keypairs)))
 
-    with open(os.path.join(args.rundir, 'name'), 'w') as namefile:
-        namefile.write(args.name)
+    print(configmap('init.py', INIT_PY.format(n=args.n, d=args.d, name=args.name)))
 
-    with open(os.path.join(args.rundir, 'init.py'), 'w') as initpyfile:
-        initpyfile.write(init_py.format(n=args.n, d=args.d, name=args.name))
+    # setup k8s resources
+    testnet_yaml = resource('testnet.yaml', TESTNET_YAML.format(name=args.name, n=args.n))
+    print(testnet_yaml)
 
-    print('\nbring up with the following commands:\n')
-    print('    kubectl create configmap --from-file={} {}-config'.format(run_dir, args.name))
-    print('    kubectl create -f {}'.format(os.path.join(run_dir, 'testnet.yaml')))
+    # setup scripts
+    commands = [
+        '#!/bin/bash',
+        'kubectl create configmap --from-file={} {}-config'.format(configmap_dir, args.name),
+        'kubectl create -f {}'.format(testnet_yaml)
+    ]
+    print(script('start.sh', commands))
 
-    print('\ntear down with the following commands:\n')
-    print('    kubectl delete configmap {}-config'.format(args.name))
-    print('    kubectl delete -f {}'.format(os.path.join(run_dir, 'testnet.yaml')))
+    commands = [
+        '#!/bin/bash',
+        'echo This script may take longer time to finish',
+        'kubectl delete configmap {}-config'.format(args.name),
+        'kubectl delete -f {}'.format(testnet_yaml)
+    ]
+    print(script('stop.sh', commands))
+
+    commands = [
+        '#!/bin/bash',
+        'kubectl delete persistentvolumeclaim -l testnet={}'.format(args.name)
+    ]
+    print(script('delete.sh', commands))
+
+    #  print('\ntear down with the following commands:\n')
+    #  print('    kubectl delete configmap {}-config'.format(args.name))
+    #  print('    kubectl delete -f {}'.format(os.path.join(run_dir, 'testnet.yaml')))
     #  print('    kubectl delete statefulset {}'.format(args.name))
     #  print('    kubectl delete service {}'.format(args.name))
 
-    print('\nremove the persistent storages with:\n')
-    print('TBD: kubectl delete')
-
-def timestamp():
-    return datetime.datetime.now().strftime('%Y-%m-%d_%H%M%S')
+    #  print('\nremove the persistent storages with:\n')
+    #  print('TBD: kubectl delete')
 
 def default_name():
     return 'testnet-'+ ''.join(random.choice(string.ascii_lowercase) for x in range(5))
 
 def main():
     parser = argparse.ArgumentParser(description='bootstrap a local/cloud testnet')
-    parser.add_argument('--genkeypair', default=gen_bin,
-        help='binary path for genkeypair')
+    parser.add_argument('--genkeypair', default=GENKEYPAIR_BIN,
+        help='binary path to genkeypair')
     parser.add_argument('-t', '--template', default='local',
         choices=['local', 'cloud'], help='template folder selection')
-    parser.add_argument('-r', '--rundir', metavar='PATH',
-        help='the root dir for storing config')
     parser.add_argument('-n', type=int, default=20,
-        help='testnet total nodes')
+        help='number of all nodes')
     parser.add_argument('-d', type=int, default=10,
         help='number of ds nodes')
     parser.add_argument('name', nargs='?', metavar='NAME', default=default_name(),
-        help='testnet name (as unique id)')
+        help='optional testnet name (as unique id)')
     args = parser.parse_args()
 
     genkeypair = args.genkeypair
@@ -311,16 +343,7 @@ def main():
         print('genkeypair not available, see --genkeypair for information')
         return 1
 
-    if args.rundir is None:
-        args.rundir = args.template + '_' + args.name
-        #  args.rundir = args.template + '_' + args.name + '_' + timestamp()
-
-    args.rundir = os.path.join(testnet_dir, args.rundir)
-
-    if os.path.isdir(args.rundir):
-        print(args.rundir, 'existed, terminated')
-        return 1
-
+    args.run_dir = args.template + '_' + args.name
     setup_dir(args)
 
 if __name__ == '__main__':
