@@ -29,26 +29,4 @@
             <wallet_address>027b3e103003e6f533a1253342dd03340b3f5061</wallet_address>
         </account>
     </accounts>
-    <lookups>
-        <peer>
-            <ip>127.0.0.1</ip>
-            <port>4001</port>
-        </peer>
-        <peer>
-            <ip>127.0.0.1</ip>
-            <port>4002</port>
-        </peer>
-        <peer>
-            <ip>127.0.0.1</ip>
-            <port>4003</port>
-        </peer>
-        <peer>
-            <ip>127.0.0.1</ip>
-            <port>4004</port>
-        </peer>
-        <peer>
-            <ip>127.0.0.1</ip>
-            <port>4005</port>
-        </peer>
-    </lookups>
 </node>
