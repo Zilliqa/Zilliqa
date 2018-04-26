@@ -32,12 +32,6 @@ typedef std::function<bool(const std::vector<unsigned char>& input,
                            std::vector<unsigned char>& errorMsg)>
     MsgContentValidatorFunc;
 
-unsigned int GetBitVectorLengthInBytes(unsigned int length_in_bits);
-vector<bool> GetBitVector(const vector<unsigned char>& src, unsigned int offset,
-                          unsigned int expected_length);
-unsigned int SetBitVector(vector<unsigned char>& dst, unsigned int offset,
-                          const vector<bool>& value);
-
 /// Implements base functionality shared between all consensus committee members
 class ConsensusCommon
 {
@@ -77,7 +71,7 @@ protected:
     State m_state;
 
     /// The minimum fraction of peers necessary to achieve consensus.
-    const double TOLERANCE_FRACTION;
+    static constexpr double TOLERANCE_FRACTION = 0.667;
 
     /// The unique ID assigned to the active consensus session.
     uint32_t m_consensusID;
@@ -111,6 +105,21 @@ protected:
 
     /// Response map for the generated collective signature
     std::vector<bool> m_responseMap;
+
+    /// Co-sig for first round
+    Signature m_CS1;
+
+    /// Co-sig bitmap for first round
+    std::vector<bool> m_B1;
+
+    /// Co-sig for second round
+    Signature m_CS2;
+
+    /// Co-sig bitmap for second round
+    std::vector<bool> m_B2;
+
+    /// Length of the part of the message to co-sign
+    uint32_t m_lengthToCosign;
 
     /// Constructor.
     ConsensusCommon(uint32_t consensus_id,
@@ -162,13 +171,20 @@ public:
     /// Returns the state of the active consensus session
     State GetState() const;
 
-    /// Returns the final collective signature
-    bool RetrieveCollectiveSig(std::vector<unsigned char>& dst,
-                               unsigned int offset);
+    /// Returns the co-sig for first round
+    const Signature& GetCS1() const;
 
-    /// Returns the response map for the generated final collective signature
-    uint16_t RetrieveCollectiveSigBitmap(std::vector<unsigned char>& dst,
-                                         unsigned int offset);
+    /// Returns the co-sig bitmap for first round
+    const std::vector<bool>& GetB1() const;
+
+    /// Returns the co-sig for second round
+    const Signature& GetCS2() const;
+
+    /// Returns the co-sig bitmap for second round
+    const std::vector<bool>& GetB2() const;
+
+    /// Returns the fraction of the shard required to achieve consensus
+    static unsigned int NumForConsensus(unsigned int shardSize);
 };
 
 #endif // __CONSENSUSCOMMON_H__

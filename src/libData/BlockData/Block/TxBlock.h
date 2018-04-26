@@ -33,8 +33,6 @@
 class TxBlock : public BlockBase
 {
     TxBlockHeader m_header;
-    std::array<unsigned char, BLOCK_SIG_SIZE>
-        m_headerSig; // Co-signed by: sharding committee (microblock) or DS committee (finalblock)
     std::vector<bool> m_isMicroBlockEmpty;
     std::vector<TxnHash> m_microBlockHashes;
 
@@ -46,10 +44,12 @@ public:
     TxBlock(const std::vector<unsigned char>& src, unsigned int offset);
 
     /// Constructor with specified Tx block parameters.
-    TxBlock(const TxBlockHeader& header,
-            const std::array<unsigned char, BLOCK_SIG_SIZE>& signature,
-            const std::vector<bool>& isMicroBlockEmpty,
-            const std::vector<TxnHash>& microBlockHashes);
+    TxBlock(TxBlockHeader&& header, std::vector<bool>&& isMicroBlockEmpty,
+            std::vector<TxnHash>&& microBlockHashes, CoSignatures&& cosigs);
+
+    TxBlock(TxBlockHeader&& header, const std::vector<bool>& isMicroBlockEmpty,
+            const std::vector<TxnHash>& microBlockHashes,
+            CoSignatures&& cosigs);
 
     uint32_t SerializeIsMicroBlockEmpty() const;
 
@@ -70,9 +70,6 @@ public:
 
     /// Returns the reference to the TxBlockHeader part of the Tx block.
     const TxBlockHeader& GetHeader() const;
-
-    /// Returns the signature part of the Tx block.
-    const std::array<unsigned char, BLOCK_SIG_SIZE>& GetHeaderSig() const;
 
     /// Returns the vector of isMicroBlockEmpty.
     const std::vector<bool>& GetIsMicroBlockEmpty() const;

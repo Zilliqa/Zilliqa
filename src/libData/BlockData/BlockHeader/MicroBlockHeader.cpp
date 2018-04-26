@@ -60,15 +60,11 @@ unsigned int MicroBlockHeader::Serialize(vector<unsigned char>& dst,
 {
     // LOG_MARKER();
 
-    unsigned int size_needed = sizeof(uint8_t) + sizeof(uint32_t) + UINT256_SIZE
-        + UINT256_SIZE + BLOCK_HASH_SIZE + UINT256_SIZE + UINT256_SIZE
-        + TRAN_HASH_SIZE + sizeof(uint32_t) + PUB_KEY_SIZE + UINT256_SIZE
-        + BLOCK_HASH_SIZE;
     unsigned int size_remaining = dst.size() - offset;
 
-    if (size_remaining < size_needed)
+    if (size_remaining < SIZE)
     {
-        dst.resize(size_needed + offset);
+        dst.resize(SIZE + offset);
     }
 
     unsigned int curOffset = offset;
@@ -100,7 +96,7 @@ unsigned int MicroBlockHeader::Serialize(vector<unsigned char>& dst,
     copy(m_dsBlockHeader.asArray().begin(), m_dsBlockHeader.asArray().end(),
          dst.begin() + curOffset);
 
-    return size_needed;
+    return SIZE;
 }
 
 int MicroBlockHeader::Deserialize(const vector<unsigned char>& src,

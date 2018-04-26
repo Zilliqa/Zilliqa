@@ -41,6 +41,10 @@ class DSBlockHeader : public BlockHeaderBase
     unsigned int m_viewChangeCounter;
 
 public:
+    static const unsigned int SIZE = sizeof(uint8_t) + BLOCK_HASH_SIZE
+        + UINT256_SIZE + PUB_KEY_SIZE + PUB_KEY_SIZE + UINT256_SIZE
+        + UINT256_SIZE + sizeof(unsigned int);
+
     /// Default constructor.
     DSBlockHeader(); // creates a dummy invalid placeholder BlockHeader -- blocknum is maxsize of uint256
 

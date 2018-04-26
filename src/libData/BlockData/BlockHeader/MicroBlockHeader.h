@@ -45,6 +45,11 @@ class MicroBlockHeader : public BlockHeaderBase
     BlockHash m_dsBlockHeader; // DS Block hash
 
 public:
+    static const unsigned int SIZE = sizeof(uint8_t) + sizeof(uint32_t)
+        + UINT256_SIZE + UINT256_SIZE + BLOCK_HASH_SIZE + UINT256_SIZE
+        + UINT256_SIZE + TRAN_HASH_SIZE + sizeof(uint32_t) + PUB_KEY_SIZE
+        + UINT256_SIZE + BLOCK_HASH_SIZE;
+
     /// Default constructor.
     MicroBlockHeader();
 
