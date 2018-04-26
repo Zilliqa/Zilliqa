@@ -31,8 +31,6 @@
 class DSBlock : public BlockBase
 {
     DSBlockHeader m_header;
-    std::array<unsigned char, BLOCK_SIG_SIZE>
-        m_signature; // All incumbent DS nodes shall co-sign the header
 
 public:
     /// Default constructor.
@@ -42,8 +40,7 @@ public:
     DSBlock(const std::vector<unsigned char>& src, unsigned int offset);
 
     /// Constructor with specified DS block parameters.
-    DSBlock(const DSBlockHeader& header,
-            const std::array<unsigned char, BLOCK_SIG_SIZE>& signature);
+    DSBlock(DSBlockHeader&& header, CoSignatures&& cosigs);
 
     /// Implements the Serialize function inherited from Serializable.
     unsigned int Serialize(std::vector<unsigned char>& dst,
@@ -53,16 +50,13 @@ public:
     int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
 
     /// Returns the size in bytes when serializing the DS block.
-    static unsigned int GetSerializedSize();
+    unsigned int GetSerializedSize() const;
 
-    /// Sets the signature part of the DS block.
-    void SetSignature(const std::vector<unsigned char>& signature);
+    /// Returns the minimum required size in bytes for obtaining a DS block from a byte stream.
+    static unsigned int GetMinSize();
 
     /// Returns the reference to the DSBlockHeader part of the DS block.
     const DSBlockHeader& GetHeader() const;
-
-    /// Returns the signature part of the DS block.
-    const std::array<unsigned char, BLOCK_SIG_SIZE>& GetSignature() const;
 
     /// Equality comparison operator.
     bool operator==(const DSBlock& block) const;

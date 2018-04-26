@@ -159,8 +159,6 @@ void DirectoryService::ComposeFinalBlockCore()
     BlockHash dsBlockHeader;
     copy(hashVec.begin(), hashVec.end(), dsBlockHeader.asArray().begin());
 
-    array<unsigned char, BLOCK_SIG_SIZE> emptySig{};
-
     StateHash stateRoot = StateHash();
 
     bool isVacuousEpoch
@@ -171,12 +169,16 @@ void DirectoryService::ComposeFinalBlockCore()
         stateRoot = AccountStore::GetInstance().GetStateRootHash();
     }
 
+    // Make sure signature placeholders are of the expected size (in particular, the bitmaps)
+    // This is because backups will save the final block before consensus inside m_finalBlockMessage
+    // Then, m_finalBlockMessage will be updated after consensus (for the cosig values)
     m_finalBlock.reset(new TxBlock(
         TxBlockHeader(type, version, allGasLimit, allGasUsed, prevHash,
                       blockNum, timestamp, microblockTrieRoot, stateRoot,
                       numTxs, numMicroBlocks, m_mediator.m_selfKey.second,
                       lastDSBlockNum, dsBlockHeader, m_viewChangeCounter),
-        emptySig, isMicroBlockEmpty, microBlockTxHashes));
+        isMicroBlockEmpty, microBlockTxHashes,
+        CoSignatures(m_mediator.m_DSCommitteePubKeys.size())));
 
 #ifdef STAT_TEST
     LOG_STATE("[STATS][" << std::setw(15) << std::left
@@ -427,6 +429,8 @@ vector<unsigned char> DirectoryService::ComposeFinalBlockMessage()
 
     AppendSharingSetupToFinalBlockMessage(finalBlockMessage, curr_offset);
 
+    // At this point, cosigs are still not updated inside m_finalBlockMessage
+    // Update will be done in ProcessFinalBlockConsensusWhenDone
     m_finalBlockMessage = finalBlockMessage;
     return finalBlockMessage;
 }
@@ -486,7 +490,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
     }
 #endif // STAT_TEST
 
-    cl->StartConsensus(finalBlockMessage);
+    cl->StartConsensus(finalBlockMessage, TxBlockHeader::SIZE);
 
     return true;
 }
