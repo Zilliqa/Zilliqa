@@ -304,6 +304,14 @@ Challenge::Challenge()
 Challenge::Challenge(const CommitPoint& aggregatedCommit,
                      const PubKey& aggregatedPubkey,
                      const vector<unsigned char>& message)
+    : Challenge(aggregatedCommit, aggregatedPubkey, message, 0, message.size())
+{
+}
+
+Challenge::Challenge(const CommitPoint& aggregatedCommit,
+                     const PubKey& aggregatedPubkey,
+                     const vector<unsigned char>& message, unsigned int offset,
+                     unsigned int size)
     : m_c(BN_new(), BN_clear_free)
     , m_initialized(false)
 {
@@ -313,7 +321,7 @@ Challenge::Challenge(const CommitPoint& aggregatedCommit,
         // throw exception();
     }
 
-    Set(aggregatedCommit, aggregatedPubkey, message);
+    Set(aggregatedCommit, aggregatedPubkey, message, offset, size);
 }
 
 Challenge::Challenge(const vector<unsigned char>& src, unsigned int offset)
@@ -392,7 +400,8 @@ int Challenge::Deserialize(const vector<unsigned char>& src,
 
 void Challenge::Set(const CommitPoint& aggregatedCommit,
                     const PubKey& aggregatedPubkey,
-                    const vector<unsigned char>& message)
+                    const vector<unsigned char>& message, unsigned int offset,
+                    unsigned int size)
 {
     // Initial checks
 
@@ -411,6 +420,12 @@ void Challenge::Set(const CommitPoint& aggregatedCommit,
     if (message.size() == 0)
     {
         LOG_GENERAL(WARNING, "Empty message");
+        return;
+    }
+
+    if (message.size() < (offset + size))
+    {
+        LOG_GENERAL(WARNING, "Offset and size outside message length");
         return;
     }
 
@@ -453,7 +468,7 @@ void Challenge::Set(const CommitPoint& aggregatedCommit,
     sha2.Update(buf);
 
     // Hash message
-    sha2.Update(message);
+    sha2.Update(message, offset, size);
     vector<unsigned char> digest = sha2.Finalize();
 
     // Build the challenge
