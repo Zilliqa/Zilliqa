@@ -22,18 +22,63 @@
 
 #include "common/Constants.h"
 #include "common/Serializable.h"
+#include "libConsensus/ConsensusCommon.h"
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/BlockData/BlockHeader/BlockHeaderBase.h"
+
+struct CoSignatures
+{
+    Signature m_CS1;
+    std::vector<bool> m_B1;
+    Signature m_CS2;
+    std::vector<bool> m_B2;
+
+    CoSignatures(unsigned int bitmaplen = 1)
+        : m_B1(bitmaplen)
+        , m_B2(bitmaplen)
+    {
+    }
+};
 
 /// [TODO] Base class for all supported block data types
 class BlockBase : public Serializable
 {
     // TODO: pull out all common code from ds, micro and tx block
+protected:
+    CoSignatures m_cosigs;
 
 public:
     /// Default constructor.
     BlockBase();
+
+    /// Returns the size in bytes when serializing the block.
+    unsigned int GetSerializedSize() const;
+
+    /// Returns the minimum size required for storing a block.
+    static unsigned int GetMinSize();
+
+    /// Implements the Serialize function inherited from Serializable.
+    unsigned int Serialize(std::vector<unsigned char>& dst,
+                           unsigned int offset) const;
+
+    /// Implements the Deserialize function inherited from Serializable.
+    int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+
+    /// Returns the co-sig for first round.
+    const Signature& GetCS1() const;
+
+    /// Returns the co-sig bitmap for first round.
+    const std::vector<bool>& GetB1() const;
+
+    /// Returns the co-sig for second round.
+    const Signature& GetCS2() const;
+
+    /// Returns the co-sig bitmap for second round.
+    const std::vector<bool>& GetB2() const;
+
+    /// Sets the co-sig members.
+    void SetCoSignatures(const ConsensusCommon& src);
 };
 
 #endif // __BLOCKBASE_H__

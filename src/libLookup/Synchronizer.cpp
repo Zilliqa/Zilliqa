@@ -47,16 +47,9 @@ DSBlock Synchronizer::ConstructGenesisDSBlock()
     std::pair<PrivKey, PubKey> keypair = make_pair(privKey, pubKey);
 
     // FIXME: Handle exceptions.
-    DSBlockHeader header(POW1_DIFFICULTY, prevHash, 12344, keypair.first,
-                         keypair.second, 0, 789, 0);
-
-    std::array<unsigned char, BLOCK_SIG_SIZE> signature;
-    for (unsigned int i = 0; i < signature.size(); i++)
-    {
-        signature.at(i) = i + 8;
-    }
-    // FIXME: Handle exceptions.
-    return DSBlock(header, signature);
+    return DSBlock(DSBlockHeader(20, prevHash, 12344, keypair.first,
+                                 keypair.second, 0, 789, 0),
+                   CoSignatures());
 }
 
 bool Synchronizer::AddGenesisDSBlockToBlockChain(DSBlockChain& dsBlockChain,
@@ -93,19 +86,11 @@ TxBlock Synchronizer::ConstructGenesisTxBlock()
 
     std::pair<PrivKey, PubKey> keypair = make_pair(privKey, pubKey);
 
-    TxBlockHeader header(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1, 1,
-                         BlockHash(), 0, 151384616955606, TxnHash(),
-                         StateHash(), 0, 5, keypair.second, 0, BlockHash(), 0);
-
-    array<unsigned char, BLOCK_SIG_SIZE> emptySig{};
-
-    std::vector<TxnHash> tranHashes;
-    for (int i = 0; i < 5; i++)
-    {
-        tranHashes.push_back(TxnHash());
-    }
-
-    return TxBlock(header, emptySig, vector<bool>(), tranHashes);
+    return TxBlock(TxBlockHeader(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1,
+                                 1, BlockHash(), 0, 151384616955606, TxnHash(),
+                                 StateHash(), 0, 5, keypair.second, 0,
+                                 BlockHash(), 0),
+                   vector<bool>(1), vector<TxnHash>(5), CoSignatures());
 }
 
 bool Synchronizer::AddGenesisTxBlockToBlockChain(TxBlockChain& txBlockChain,

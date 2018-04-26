@@ -283,6 +283,8 @@ class Node : public Executable, public Broadcastable
 
     bool CheckWhetherDSBlockNumIsLatest(
         const boost::multiprecision::uint256_t dsblock_num);
+    bool VerifyDSBlockCoSignature(const DSBlock& dsblock);
+    bool VerifyFinalBlockCoSignature(const TxBlock& txblock);
     bool CheckStateRoot(const TxBlock& finalblock);
 
 #ifndef IS_LOOKUP_NODE
