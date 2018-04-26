@@ -867,8 +867,6 @@ Json::Value Server::GetShardingStructure()
         }
         else
         {
-            _json["Number"] = num_shards;
-
             for (unsigned int i = 0; i < num_shards; i++)
             {
                 _json["NumPeers"].append(
