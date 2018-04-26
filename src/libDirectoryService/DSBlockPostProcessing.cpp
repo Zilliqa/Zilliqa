@@ -77,7 +77,7 @@ bool DirectoryService::SendDSBlockToLookupNodes(DSBlock& lastDSBlock,
 
     // 259-byte DS block
     lastDSBlock.Serialize(dsblock_message, MessageOffset::BODY);
-    curr_offset += DSBlock::GetSerializedSize();
+    curr_offset += lastDSBlock.GetSerializedSize();
 
     // 32-byte DS block hash / rand1
     dsblock_message.resize(dsblock_message.size() + BLOCK_HASH_SIZE);
@@ -160,7 +160,7 @@ void DirectoryService::SendDSBlockToCluster(
     // 259-byte DS block
     m_mediator.m_dsBlockChain.GetLastBlock().Serialize(dsblock_message,
                                                        MessageOffset::BODY);
-    curr_offset += DSBlock::GetSerializedSize();
+    curr_offset += m_mediator.m_dsBlockChain.GetLastBlock().GetSerializedSize();
 
     // 32-byte DS block hash / rand1
     dsblock_message.resize(dsblock_message.size() + BLOCK_HASH_SIZE);
@@ -303,16 +303,12 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     }
 #endif // STAT_TEST
 
-    // To-do: Should store the bit map as
     {
         lock_guard<mutex> g(m_mutexPendingDSBlock);
         assert(m_pendingDSBlock != nullptr);
 
-        // Update the collective signature inside the DS block (= collective signature)
-        // To-do: Should store the bit map as well?
-        vector<unsigned char> tmp;
-        m_consensusObject->RetrieveCollectiveSig(tmp, 0);
-        m_pendingDSBlock->SetSignature(tmp);
+        // Update the DS block with the co-signatures from the consensus
+        m_pendingDSBlock->SetCoSignatures(*m_consensusObject);
 
         if (m_pendingDSBlock->GetHeader().GetBlockNum()
             == m_mediator.m_dsBlockChain.GetBlockCount() + 1)

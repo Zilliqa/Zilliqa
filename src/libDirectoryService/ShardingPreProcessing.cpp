@@ -209,7 +209,7 @@ bool DirectoryService::RunConsensusOnShardingWhenDSPrimary()
                          << "] BGIN");
 #endif // STAT_TEST
 
-    cl->StartConsensus(sharding_structure);
+    cl->StartConsensus(sharding_structure, sharding_structure.size());
 
     return true;
 }

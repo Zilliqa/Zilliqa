@@ -57,14 +57,11 @@ unsigned int DSBlockHeader::Serialize(vector<unsigned char>& dst,
 {
     LOG_MARKER();
 
-    unsigned int size_needed = sizeof(uint8_t) + BLOCK_HASH_SIZE + UINT256_SIZE
-        + PUB_KEY_SIZE + PUB_KEY_SIZE + UINT256_SIZE + UINT256_SIZE
-        + sizeof(unsigned int);
     unsigned int size_remaining = dst.size() - offset;
 
-    if (size_remaining < size_needed)
+    if (size_remaining < SIZE)
     {
-        dst.resize(size_needed + offset);
+        dst.resize(SIZE + offset);
     }
 
     unsigned int curOffset = offset;
@@ -86,9 +83,8 @@ unsigned int DSBlockHeader::Serialize(vector<unsigned char>& dst,
     curOffset += UINT256_SIZE;
     SetNumber<unsigned int>(dst, curOffset, m_viewChangeCounter,
                             sizeof(unsigned int));
-    curOffset += sizeof(unsigned int);
 
-    return size_needed;
+    return SIZE;
 }
 
 int DSBlockHeader::Deserialize(const vector<unsigned char>& src,

@@ -73,16 +73,16 @@ void DirectoryService::ComposeDSBlock()
 
     LOG_GENERAL(INFO,
                 "Composing new block with vc count at " << m_viewChangeCounter);
-    DSBlockHeader newHeader(difficulty, prevHash, winnerNonce, winnerKey,
-                            m_mediator.m_selfKey.second, blockNum,
-                            get_time_as_int(), m_viewChangeCounter);
 
     // Assemble DS block
-    array<unsigned char, BLOCK_SIG_SIZE> newSig{};
     {
         lock_guard<mutex> g(m_mutexPendingDSBlock);
         // To-do: Handle exceptions.
-        m_pendingDSBlock.reset(new DSBlock(newHeader, newSig));
+        m_pendingDSBlock.reset(new DSBlock(
+            DSBlockHeader(difficulty, prevHash, winnerNonce, winnerKey,
+                          m_mediator.m_selfKey.second, blockNum,
+                          get_time_as_int(), m_viewChangeCounter),
+            CoSignatures()));
     }
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -149,7 +149,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
                          << "] BGIN");
 #endif // STAT_TEST
 
-    cl->StartConsensus(m);
+    cl->StartConsensus(m, DSBlockHeader::SIZE);
 
     return true;
 }
