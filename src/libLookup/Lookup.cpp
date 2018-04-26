@@ -110,7 +110,7 @@ void Lookup::SendMessageToLookupNodes(
     LOG_MARKER();
 
     // LOG_GENERAL(INFO, "i am here " << to_string(m_mediator.m_currentEpochNum).c_str())
-    vector<Peer> AllLookupNodes;
+    vector<Peer> allLookupNodes;
 
     for (auto node : m_lookupNodes)
     {
@@ -119,10 +119,10 @@ void Lookup::SendMessageToLookupNodes(
                                                 << ":"
                                                 << node.m_listenPortHost);
 
-        AllLookupNodes.push_back(node);
+        allLookupNodes.push_back(node);
     }
 
-    P2PComm::GetInstance().SendBroadcastMessage(AllLookupNodes, message);
+    P2PComm::GetInstance().SendBroadcastMessage(allLookupNodes, message);
 }
 
 void Lookup::SendMessageToLookupNodesSerial(
@@ -131,7 +131,7 @@ void Lookup::SendMessageToLookupNodesSerial(
     LOG_MARKER();
 
     // LOG_GENERAL("i am here " << to_string(m_mediator.m_currentEpochNum).c_str())
-    vector<Peer> AllLookupNodes;
+    vector<Peer> allLookupNodes;
 
     for (auto node : m_lookupNodes)
     {
@@ -140,10 +140,10 @@ void Lookup::SendMessageToLookupNodesSerial(
                                                 << ":"
                                                 << node.m_listenPortHost);
 
-        AllLookupNodes.push_back(node);
+        allLookupNodes.push_back(node);
     }
 
-    P2PComm::GetInstance().SendMessage(AllLookupNodes, message);
+    P2PComm::GetInstance().SendMessage(allLookupNodes, message);
 }
 
 void Lookup::SendMessageToRandomLookupNode(
