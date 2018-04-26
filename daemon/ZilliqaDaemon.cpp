@@ -6,7 +6,6 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
-#include <signal.h>
 #include <stdexcept>
 #include <stdlib.h>
 #include <string>
@@ -71,7 +70,7 @@ string ReadLastLine(string filePath, ofstream& log)
     string lastLine = "";
     getline(logFile, lastLine);
 
-    log << "Line :" << lastLine << endl;
+    // log<<"Line :"<<lastLine<<endl;
 
     logFile.close();
 
@@ -390,7 +389,6 @@ int main()
     unordered_map<pid_t, bool> died;
 
     initialize(pids, died, log);
-
     while (1)
     {
         MonitorProcess(pids, died, log);

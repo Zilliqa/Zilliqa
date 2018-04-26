@@ -6,7 +6,6 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
-#include <signal.h>
 #include <stdexcept>
 #include <stdlib.h>
 #include <string>
@@ -22,6 +21,8 @@ using namespace std;
 const vector<string> programName = {"zilliqa"};
 
 const string restart_zilliqa = "python tests/Zilliqa/daemon_restart.py";
+
+const string proj_dir = "~/zilliqa-test";
 
 unordered_map<int, string> PrivKey;
 unordered_map<int, string> PubKey;
@@ -113,7 +114,14 @@ SyncType getRestartValue(pid_t pid)
 
 void setIsDs(const pid_t& pid, ofstream& log)
 {
-    string s = ReadLastLine(Path[pid], log);
+    size_t pos = Path[pid].rfind("/build");
+    string path = "";
+    if (pos != string::npos)
+    {
+        path = Path[pid].substr(0, pos);
+    }
+    string s = ReadLastLine(path, log);
+    log << "ReadLastLine =" << s;
 
     if (s == " PROMOTED TO DS")
     {
