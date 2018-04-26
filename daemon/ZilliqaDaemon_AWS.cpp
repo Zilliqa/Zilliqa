@@ -6,6 +6,7 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <signal.h>
 #include <stdexcept>
 #include <stdlib.h>
 #include <string>
