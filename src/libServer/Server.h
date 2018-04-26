@@ -186,13 +186,13 @@ public:
                                                   jsonrpc::PARAMS_BY_POSITION,
                                                   jsonrpc::JSON_OBJECT, NULL),
                                &AbstractZServer::GetShardingStructureI);
-        this->bindAndAddMethod(jsonrpc::Procedure("GetGetNumTxnsTxEpoch",
+        this->bindAndAddMethod(jsonrpc::Procedure("GetNumTxnsTxEpoch",
                                                   jsonrpc::PARAMS_BY_POSITION,
-                                                  jsonrpc::JSON_OBJECT, NULL),
+                                                  jsonrpc::JSON_INTEGER, NULL),
                                &AbstractZServer::GetNumTxnsTxEpochI);
         this->bindAndAddMethod(jsonrpc::Procedure("GetNumTxnsDSEpoch",
                                                   jsonrpc::PARAMS_BY_POSITION,
-                                                  jsonrpc::JSON_OBJECT, NULL),
+                                                  jsonrpc::JSON_STRING, NULL),
                                &AbstractZServer::GetNumTxnsDSEpochI);
     }
 
