@@ -114,7 +114,7 @@ std::string Mediator::GetNodeMode(const Peer& peer)
 //     {
 //         return "SHRD";
 //     }
-    if (peer == m_DSCommitteNetworkInfo[0])
+    if (peer == m_DSCommitteeNetworkInfo[0])
     {
         return "DSLD";
     }
