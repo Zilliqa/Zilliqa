@@ -60,9 +60,9 @@ BOOST_AUTO_TEST_CASE(test1)
     BOOST_CHECK_MESSAGE(acc2Balance == 110,
                         "expected: " << 100 << " actual: " << acc2Balance
                                      << "\n");
-    BOOST_CHECK_MESSAGE(acc2.GetStorageRoot() == 123,
-                        "expected: " << 123 << " actual: " << acc2.GetStorageRoot()
-                                     << "\n");
+    BOOST_CHECK_MESSAGE(
+        acc2.GetStorageRoot() == 123,
+        "expected: " << 123 << " actual: " << acc2.GetStorageRoot() << "\n");
     BOOST_CHECK_MESSAGE(acc2.GetCodeHash() == 456,
                         "expected: " << 456 << " actual: " << acc2.GetCodeHash()
                                      << "\n");
