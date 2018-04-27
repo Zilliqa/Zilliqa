@@ -62,6 +62,8 @@ Server::Server(Mediator& mediator, HttpServer& httpserver)
     m_TxBlockCache.first = 0;
     m_TxBlockCache.second.resize(NUM_PAGES_CACHE * PAGE_SIZE);
     m_RecentTransactions.resize(TXN_PAGE_SIZE);
+    m_TxBlockCountSumPair.first = 0;
+    m_TxBlockCountSumPair.second = 0;
 }
 
 Server::~Server()
@@ -847,6 +849,119 @@ void Server::AddToRecentTransactions(const TxnHash& txhash)
 {
     lock_guard<mutex> g(m_mutexRecentTxns);
     m_RecentTransactions.push_back(txhash.hex());
+}
+Json::Value Server::GetShardingStructure()
+{
+    LOG_MARKER();
+
+    try
+    {
+        Json::Value _json;
+        vector<map<PubKey, Peer>> shards = m_mediator.m_lookup->GetShardPeers();
+        unsigned int num_shards = shards.size();
+
+        if (num_shards == 0)
+        {
+            _json["Error"] = "No shards yet";
+            return _json;
+        }
+        else
+        {
+            for (unsigned int i = 0; i < num_shards; i++)
+            {
+                _json["NumPeers"].append(
+                    static_cast<unsigned int>(shards[i].size()));
+            }
+        }
+        return _json;
+    }
+    catch (exception& e)
+    {
+        Json::Value _json;
+        _json["Error"] = "Unable to process ";
+        LOG_GENERAL(WARNING, e.what());
+        return _json;
+    }
+}
+
+uint32_t Server::GetNumTxnsTxEpoch()
+{
+    LOG_MARKER();
+
+    try
+    {
+        return m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetNumTxs();
+    }
+    catch (exception& e)
+    {
+        LOG_GENERAL(WARNING, e.what());
+        return 0;
+    }
+}
+
+string Server::GetNumTxnsDSEpoch()
+{
+    LOG_MARKER();
+
+    try
+    {
+
+        auto latestTxBlock
+            = m_mediator.m_txBlockChain.GetLastBlock().GetHeader();
+        auto latestTxBlockNum = latestTxBlock.GetBlockNum();
+        auto latestDSBlockNum = latestTxBlock.GetDSBlockNum();
+
+        if (latestTxBlockNum > m_TxBlockCountSumPair.first)
+        {
+
+            //Case where the DS Epoch is same
+            if (m_mediator.m_txBlockChain.GetBlock(m_TxBlockCountSumPair.first)
+                    .GetHeader()
+                    .GetDSBlockNum()
+                == latestDSBlockNum)
+            {
+                for (auto i = latestTxBlockNum; i > m_TxBlockCountSumPair.first;
+                     i--)
+                {
+                    m_TxBlockCountSumPair.second
+                        += m_mediator.m_txBlockChain.GetBlock(i)
+                               .GetHeader()
+                               .GetNumTxs();
+                }
+            }
+            //Case if DS Epoch Changed
+            else
+            {
+                m_TxBlockCountSumPair.second = 0;
+
+                for (auto i = latestTxBlockNum; i > m_TxBlockCountSumPair.first;
+                     i--)
+                {
+                    if (m_mediator.m_txBlockChain.GetBlock(i)
+                            .GetHeader()
+                            .GetDSBlockNum()
+                        < latestDSBlockNum)
+                    {
+                        break;
+                    }
+                    m_TxBlockCountSumPair.second
+                        += m_mediator.m_txBlockChain.GetBlock(i)
+                               .GetHeader()
+                               .GetNumTxs();
+                }
+            }
+
+            m_TxBlockCountSumPair.first = latestTxBlockNum;
+        }
+
+        return m_TxBlockCountSumPair.second.str();
+    }
+
+    catch (exception& e)
+    {
+        LOG_GENERAL(WARNING, e.what());
+        return "0";
+    }
 }
 
 #endif //IS_LOOKUP_NODE
