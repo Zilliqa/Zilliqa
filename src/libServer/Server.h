@@ -182,6 +182,18 @@ public:
                                                   jsonrpc::PARAMS_BY_POSITION,
                                                   jsonrpc::JSON_OBJECT, NULL),
                                &AbstractZServer::GetRecentTransactionsI);
+        this->bindAndAddMethod(jsonrpc::Procedure("GetShardingStructure",
+                                                  jsonrpc::PARAMS_BY_POSITION,
+                                                  jsonrpc::JSON_OBJECT, NULL),
+                               &AbstractZServer::GetShardingStructureI);
+        this->bindAndAddMethod(jsonrpc::Procedure("GetNumTxnsTxEpoch",
+                                                  jsonrpc::PARAMS_BY_POSITION,
+                                                  jsonrpc::JSON_INTEGER, NULL),
+                               &AbstractZServer::GetNumTxnsTxEpochI);
+        this->bindAndAddMethod(jsonrpc::Procedure("GetNumTxnsDSEpoch",
+                                                  jsonrpc::PARAMS_BY_POSITION,
+                                                  jsonrpc::JSON_STRING, NULL),
+                               &AbstractZServer::GetNumTxnsDSEpochI);
     }
 
     inline virtual void GetClientVersionI(const Json::Value& request,
@@ -377,6 +389,24 @@ public:
         (void)request;
         response = this->GetRecentTransactions();
     }
+    inline virtual void GetShardingStructureI(const Json::Value& request,
+                                              Json::Value& response)
+    {
+        (void)request;
+        response = this->GetShardingStructure();
+    }
+    inline virtual void GetNumTxnsTxEpochI(const Json::Value& request,
+                                           Json::Value& response)
+    {
+        (void)request;
+        response = this->GetNumTxnsTxEpoch();
+    }
+    inline virtual void GetNumTxnsDSEpochI(const Json::Value& request,
+                                           Json::Value& response)
+    {
+        (void)request;
+        response = this->GetNumTxnsDSEpoch();
+    }
     virtual std::string GetClientVersion() = 0;
     virtual std::string GetNetworkId() = 0;
     virtual std::string GetProtocolVersion() = 0;
@@ -414,6 +444,9 @@ public:
     virtual Json::Value TxBlockListing(unsigned int param01) = 0;
     virtual Json::Value GetBlockchainInfo() = 0;
     virtual Json::Value GetRecentTransactions() = 0;
+    virtual Json::Value GetShardingStructure() = 0;
+    virtual std::string GetNumTxnsDSEpoch() = 0;
+    virtual uint32_t GetNumTxnsTxEpoch() = 0;
 };
 
 class Server : public AbstractZServer
@@ -422,6 +455,9 @@ class Server : public AbstractZServer
     std::pair<boost::multiprecision::uint256_t,
               boost::multiprecision::uint256_t>
         m_BlockTxPair;
+    std::pair<boost::multiprecision::uint256_t,
+              boost::multiprecision::uint256_t>
+        m_TxBlockCountSumPair;
     boost::multiprecision::uint256_t m_StartTimeTx;
     boost::multiprecision::uint256_t m_StartTimeDs;
     std::pair<boost::multiprecision::uint256_t, CircularArray<std::string>>
@@ -471,6 +507,9 @@ public:
     virtual Json::Value TxBlockListing(unsigned int page);
     virtual Json::Value GetBlockchainInfo();
     virtual Json::Value GetRecentTransactions();
+    virtual Json::Value GetShardingStructure();
+    virtual std::string GetNumTxnsDSEpoch();
+    virtual uint32_t GetNumTxnsTxEpoch();
     static void AddToRecentTransactions(const dev::h256& txhash);
 
     //gets the number of transaction starting from block blockNum to most recent block
