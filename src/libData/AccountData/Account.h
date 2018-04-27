@@ -31,6 +31,8 @@ class Account : public Serializable
 {
     boost::multiprecision::uint256_t m_balance;
     boost::multiprecision::uint256_t m_nonce;
+    boost::multiprecision::uint256_t m_storageRoot;
+    boost::multiprecision::uint256_t m_codeHash;
 
 public:
     Account();
@@ -40,7 +42,9 @@ public:
 
     /// Constructor with account balance, and nonce.
     Account(const boost::multiprecision::uint256_t& balance,
-            const boost::multiprecision::uint256_t& nonce);
+            const boost::multiprecision::uint256_t& nonce,
+            const boost::multiprecision::uint256_t& storageRoot,
+            const boost::multiprecision::uint256_t& codeHash);
 
     /// Implements the Serialize function inherited from Serializable.
     unsigned int Serialize(std::vector<unsigned char>& dst,
@@ -55,6 +59,9 @@ public:
     /// Decreases account balance by the specified delta amount.
     bool DecreaseBalance(const boost::multiprecision::uint256_t& delta);
 
+    /// Updates the storage root.
+    void SetStorageRoot(const boost::multiprecision::uint256_t& storageRoot);
+
     /// Returns the account balance.
     const boost::multiprecision::uint256_t& GetBalance() const;
 
@@ -63,6 +70,12 @@ public:
 
     /// Returns the account nonce.
     const boost::multiprecision::uint256_t& GetNonce() const;
+
+    /// Returns the storage root.
+    const boost::multiprecision::uint256_t& GetStorageRoot() const;
+
+    /// Returns the code hash.
+    const boost::multiprecision::uint256_t& GetCodeHash() const;
 
     /// Computes an account address from a specified PubKey.
     static Address GetAddressFromPublicKey(const PubKey& pubKey);
