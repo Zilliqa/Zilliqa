@@ -36,7 +36,7 @@ BOOST_AUTO_TEST_CASE(test1)
 
     PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
 
-    Account acc1(100, 0);
+    Account acc1(100, 0, 123, 456);
 
     acc1.IncreaseBalance(10);
     acc1.DecreaseBalance(120);
@@ -59,6 +59,12 @@ BOOST_AUTO_TEST_CASE(test1)
     LOG_GENERAL(INFO, "Account2 balance: " << acc2Balance);
     BOOST_CHECK_MESSAGE(acc2Balance == 110,
                         "expected: " << 100 << " actual: " << acc2Balance
+                                     << "\n");
+    BOOST_CHECK_MESSAGE(acc2.GetStorageRoot() == 123,
+                        "expected: " << 123 << " actual: " << acc2.GetStorageRoot()
+                                     << "\n");
+    BOOST_CHECK_MESSAGE(acc2.GetCodeHash() == 456,
+                        "expected: " << 456 << " actual: " << acc2.GetCodeHash()
                                      << "\n");
 }
 

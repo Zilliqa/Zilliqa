@@ -52,11 +52,14 @@ void addBalanceToGenesisAccount()
 {
     const uint256_t bal{100000000000};
     const uint256_t nonce{0};
+    const uint256_t storageRoot{0};
+    const uint256_t codeHash{0};
 
     for (auto& walletHexStr : GENESIS_WALLETS)
     {
         Address addr{DataConversion::HexStrToUint8Vec(walletHexStr)};
-        AccountStore::GetInstance().AddAccount(addr, bal, nonce);
+        AccountStore::GetInstance().AddAccount(
+            addr, Account(bal, nonce, storageRoot, codeHash));
         LOG_GENERAL(INFO,
                     "add genesis account " << addr << " with balance " << bal);
     }
@@ -574,7 +577,7 @@ bool Node::CheckCreatedTransaction(const Transaction& tx)
     if (!AccountStore::GetInstance().DoesAccountExist(toAddr))
     {
         LOG_GENERAL(INFO, "New account is added: " << toAddr);
-        AccountStore::GetInstance().AddAccount(toAddr, {0, 0});
+        AccountStore::GetInstance().AddAccount(toAddr, {0, 0, 0, 0});
     }
 
     // Check if transaction amount is valid
@@ -967,7 +970,7 @@ bool Node::CheckCreatedTransactionFromLookup(const Transaction& tx)
     if (!AccountStore::GetInstance().DoesAccountExist(toAddr))
     {
         LOG_GENERAL(INFO, "New account is added: " << toAddr);
-        AccountStore::GetInstance().AddAccount(toAddr, {0, 0});
+        AccountStore::GetInstance().AddAccount(toAddr, {0, 0, 0, 0});
     }
 
     // Check if transaction amount is valid

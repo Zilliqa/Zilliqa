@@ -21,9 +21,12 @@ Account::Account(const vector<unsigned char>& src, unsigned int offset)
     }
 }
 
-Account::Account(const uint256_t& balance, const uint256_t& nonce)
+Account::Account(const uint256_t& balance, const uint256_t& nonce,
+                 const uint256_t& storageRoot, const uint256_t& codeHash)
     : m_balance(balance)
     , m_nonce(nonce)
+    , m_storageRoot(storageRoot)
+    , m_codeHash(codeHash)
 {
 }
 
@@ -32,7 +35,7 @@ unsigned int Account::Serialize(vector<unsigned char>& dst,
 {
     // LOG_MARKER();
 
-    unsigned int size_needed = UINT256_SIZE + UINT256_SIZE;
+    unsigned int size_needed = ACCOUNT_SIZE;
     unsigned int size_remaining = dst.size() - offset;
 
     if (size_remaining < size_needed)
@@ -45,6 +48,10 @@ unsigned int Account::Serialize(vector<unsigned char>& dst,
     SetNumber<uint256_t>(dst, curOffset, m_balance, UINT256_SIZE);
     curOffset += UINT256_SIZE;
     SetNumber<uint256_t>(dst, curOffset, m_nonce, UINT256_SIZE);
+    curOffset += UINT256_SIZE;
+    SetNumber<uint256_t>(dst, curOffset, m_storageRoot, UINT256_SIZE);
+    curOffset += UINT256_SIZE;
+    SetNumber<uint256_t>(dst, curOffset, m_codeHash, UINT256_SIZE);
 
     return size_needed;
 }
@@ -60,6 +67,10 @@ int Account::Deserialize(const vector<unsigned char>& src, unsigned int offset)
         m_balance = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
         curOffset += UINT256_SIZE;
         m_nonce = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
+        curOffset += UINT256_SIZE;
+        m_storageRoot = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
+        curOffset += UINT256_SIZE;
+        m_codeHash = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
     }
     catch (const std::exception& e)
     {
@@ -87,6 +98,12 @@ bool Account::DecreaseBalance(const uint256_t& delta)
     return true;
 }
 
+void Account::SetStorageRoot(
+    const boost::multiprecision::uint256_t& storageRoot)
+{
+    m_storageRoot = storageRoot;
+}
+
 bool Account::IncreaseNonce()
 {
     ++m_nonce;
@@ -96,6 +113,10 @@ bool Account::IncreaseNonce()
 const uint256_t& Account::GetBalance() const { return m_balance; }
 
 const uint256_t& Account::GetNonce() const { return m_nonce; }
+
+const uint256_t& Account::GetStorageRoot() const { return m_storageRoot; }
+
+const uint256_t& Account::GetCodeHash() const { return m_codeHash; }
 
 Address Account::GetAddressFromPublicKey(const PubKey& pubKey)
 {
