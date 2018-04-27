@@ -502,6 +502,29 @@ void P2PComm::HandleAcceptedConnection(
     }
 }
 
+#if 1 //clark
+void P2PComm::ConnectionAccept(int fd, short event, void* arg)
+{
+    struct sockaddr_in s_in;
+    socklen_t len = sizeof(s_in);
+    int ns = accept(fd, (struct sockaddr*)&s_in, &len);
+
+    if (ns < 0)
+    {
+        LOG_GENERAL(WARNING, "Cannot accept socket connection!");
+        return;
+    }
+
+    Peer from(uint128_t(s_in.sin_addr.s_addr), s_in.sin_port);
+    struct event* ev = (struct event*)malloc(sizeof(struct event));
+    unique_ptr<pair<void*, Peer*>> acceptArg;
+    acceptArg.get()->first = arg;
+    acceptArg.get()->second = &from;
+    event_set(ev, ns, EV_WRITE, HandleAcceptedConnection, acceptArg);
+    event_add(ev, nullptr);
+}
+#endif
+
 void P2PComm::StartMessagePump(
     uint32_t listen_port_host,
     function<void(const vector<unsigned char>&, const Peer&)> dispatcher,
@@ -536,6 +559,21 @@ void P2PComm::StartMessagePump(
 
     listen(serv_sock, 5000);
 
+#if 1 //clark
+    event_init();
+    struct event ev;
+    unique_ptr<
+        pair<function<void(const vector<unsigned char>&, const Peer&)>,
+             function<vector<Peer>(unsigned char, unsigned char, const Peer&)>>>
+        arg;
+    arg.get()->first = dispatcher;
+    arg.get()->second = broadcast_list_retriever;
+    event_set(&ev, serv_sock, EV_READ | EV_PERSIST, ConnectionAccept,
+              arg.get());
+    event_add(&ev, nullptr);
+    event_dispatch();
+    close(serv_sock);
+#else
     uint32_t cli_len = sizeof(struct sockaddr_in);
     struct sockaddr_in cli_addr;
 
@@ -576,6 +614,7 @@ void P2PComm::StartMessagePump(
             LOG_GENERAL(WARNING, "Socket accept error" << ' ' << e.what());
         }
     }
+#endif
 }
 
 /// Send message to the peers using the threads from the pool
