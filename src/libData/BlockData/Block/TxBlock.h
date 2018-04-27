@@ -47,10 +47,6 @@ public:
     TxBlock(TxBlockHeader&& header, std::vector<bool>&& isMicroBlockEmpty,
             std::vector<TxnHash>&& microBlockHashes, CoSignatures&& cosigs);
 
-    TxBlock(TxBlockHeader&& header, const std::vector<bool>& isMicroBlockEmpty,
-            const std::vector<TxnHash>& microBlockHashes,
-            CoSignatures&& cosigs);
-
     uint32_t SerializeIsMicroBlockEmpty() const;
 
     /// Implements the Serialize function inherited from Serializable.
