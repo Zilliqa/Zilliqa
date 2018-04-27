@@ -1256,8 +1256,6 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
             offset += dsBlock.GetSerializedSize();
 
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "I the lookup node have deserialized the DS Block");
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "dsblock.GetHeader().GetDifficulty(): "
                           << (int)dsBlock.GetHeader().GetDifficulty());
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -1367,8 +1365,6 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
             TxBlock txBlock(message, offset);
             offset += txBlock.GetSerializedSize();
 
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "I the lookup node have deserialized the TxBlock");
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "txBlock.GetHeader().GetType(): "
                           << txBlock.GetHeader().GetType());
