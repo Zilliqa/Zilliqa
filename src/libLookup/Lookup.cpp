@@ -1018,7 +1018,7 @@ bool Lookup::ProcessGetTxBodyFromSeed(const vector<unsigned char>& message,
     curr_offset += TRAN_HASH_SIZE;
 
     tx->Serialize(txBodyMessage, curr_offset);
-    curr_offset += Transaction::GetSerializedSize();
+    curr_offset += tx->GetSerializedSize();
 
     // 4-byte portNo
     uint32_t portNo
@@ -1508,9 +1508,7 @@ bool Lookup::ProcessSetTxBodyFromSeed(const vector<unsigned char>& message,
 
     unique_lock<mutex> lock(m_mutexSetTxBodyFromSeed);
 
-    if (IsMessageSizeInappropriate(message.size(), offset,
-                                   TRAN_HASH_SIZE
-                                       + Transaction::GetSerializedSize()))
+    if (IsMessageSizeInappropriate(message.size(), offset, TRAN_HASH_SIZE))
     {
         return false;
     }

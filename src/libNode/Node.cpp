@@ -610,8 +610,8 @@ Transaction CreateValidTestingTransaction(PrivKey& fromPrivKey,
     // LOG_MESSAGE("fromPrivKey " << fromPrivKey << " / fromPubKey " << fromPubKey
     // << " / toAddr" << toAddr);
 
-    Transaction txn{version,    nonce,  toAddr,
-                    fromPubKey, amount, {/* empty sig */}};
+    Transaction txn(version, nonce, toAddr, make_pair(fromPrivKey, fromPubKey),
+                    amount, 0, 0, {0}, {0});
 
     // std::vector<unsigned char> buf;
     // txn.SerializeWithoutSignature(buf, 0);
@@ -839,11 +839,11 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
 
     //LOG_MARKER();
 
-    if (IsMessageSizeInappropriate(message.size(), offset,
-                                   Transaction::GetSerializedSize()))
-    {
-        return false;
-    }
+    // if (IsMessageSizeInappropriate(message.size(), offset,
+    //                                Transaction::GetSerializedSize()))
+    // {
+    //     return false;
+    // }
 
     unsigned int cur_offset = offset;
 
@@ -996,11 +996,11 @@ bool Node::ProcessCreateTransactionFromLookup(
 
     //LOG_MARKER();
 
-    if (IsMessageSizeInappropriate(message.size(), offset,
-                                   Transaction::GetSerializedSize()))
-    {
-        return false;
-    }
+    // if (IsMessageSizeInappropriate(message.size(), offset,
+    //                                Transaction::GetSerializedSize()))
+    // {
+    //     return false;
+    // }
 
     unsigned int curr_offset = offset;
 
@@ -1015,10 +1015,9 @@ bool Node::ProcessCreateTransactionFromLookup(
     lock_guard<mutex> g(m_mutexCreatedTransactions);
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Recvd txns: "
-                  << tx.GetTranID() << " Signature: "
-                  << DataConversion::charArrToHexStr(tx.GetSignature())
-                  << " toAddr: " << tx.GetToAddr().hex());
+              "Recvd txns: " << tx.GetTranID()
+                             << " Signature: " << tx.GetSignature()
+                             << " toAddr: " << tx.GetToAddr().hex());
     if (CheckCreatedTransactionFromLookup(tx))
     {
         m_createdTransactions.push_back(tx);
