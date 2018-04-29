@@ -138,28 +138,28 @@ BOOST_AUTO_TEST_CASE(test1)
 
     LOG_GENERAL(INFO, "Transaction2 amount: " << amount2);
     BOOST_CHECK_MESSAGE(amount2 == tx1.GetAmount(),
-                        "expected: " << tx1.GetAmount() << " actual: " << amount2 << "\n");
+                        "expected: " << tx1.GetAmount()
+                                     << " actual: " << amount2 << "\n");
 
     LOG_GENERAL(INFO, "Transaction2 gasPrice: " << gasPrice2);
     BOOST_CHECK_MESSAGE(gasPrice2 == tx1.GetGasPrice(),
-                        "expected: " << tx1.GetGasPrice() << " actual: " << gasPrice2 << "\n");
+                        "expected: " << tx1.GetGasPrice()
+                                     << " actual: " << gasPrice2 << "\n");
 
     LOG_GENERAL(INFO, "Transaction2 gasLimit: " << gasLimit2);
     BOOST_CHECK_MESSAGE(gasLimit2 == tx1.GetGasLimit(),
-                        "expected: " << tx1.GetGasLimit() << " actual: " << gasLimit2 << "\n");
+                        "expected: " << tx1.GetGasLimit()
+                                     << " actual: " << gasLimit2 << "\n");
 
-    LOG_PAYLOAD(INFO, "Transaction2 code", code2,
-                Logger::MAX_BYTES_TO_DISPLAY);
-    BOOST_CHECK_MESSAGE(code2 == tx1.GetCode(),
-                        "Code not converted properly");
+    LOG_PAYLOAD(INFO, "Transaction2 code", code2, Logger::MAX_BYTES_TO_DISPLAY);
+    BOOST_CHECK_MESSAGE(code2 == tx1.GetCode(), "Code not converted properly");
 
-    LOG_PAYLOAD(INFO, "Transaction2 data", data2,
-                Logger::MAX_BYTES_TO_DISPLAY);
-    BOOST_CHECK_MESSAGE(data2 == tx1.GetData(),
-                        "Data not converted properly");
+    LOG_PAYLOAD(INFO, "Transaction2 data", data2, Logger::MAX_BYTES_TO_DISPLAY);
+    BOOST_CHECK_MESSAGE(data2 == tx1.GetData(), "Data not converted properly");
 
     LOG_GENERAL(INFO, "Transaction2 signature: " << signature2);
-    BOOST_CHECK_MESSAGE(signature2 == tx1.GetSignature(), "Signature not converted properly");
+    BOOST_CHECK_MESSAGE(signature2 == tx1.GetSignature(),
+                        "Signature not converted properly");
 
     BOOST_CHECK_MESSAGE(Transaction::Verify(tx2), "Signature not verified\n");
 
