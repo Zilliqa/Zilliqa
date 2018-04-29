@@ -147,8 +147,8 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json)
     string sign_str = _json["signature"].asString();
     vector<unsigned char> sign = DataConversion::HexStrToUint8Vec(sign_str);
 
-    Transaction tx1(TxnHash(0), version, nonce, toAddr, pubKey, amount, 0, 0,
-                    {0}, {0}, Signature(sign, 0));
+    Transaction tx1(version, nonce, toAddr, pubKey, amount, 0, 0, {0}, {0},
+                    Signature(sign, 0));
     LOG_GENERAL(INFO, "Tx converted");
 
     return tx1;

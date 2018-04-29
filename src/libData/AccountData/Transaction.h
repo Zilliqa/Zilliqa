@@ -55,6 +55,9 @@ public:
     /// Default constructor.
     Transaction();
 
+    /// Copy constructor.
+    Transaction(const Transaction& src);
+
     /// Constructor with specified transaction fields.
     Transaction(uint32_t version, const boost::multiprecision::uint256_t& nonce,
                 const Address& toAddr, const KeyPair& senderKeyPair,
@@ -65,8 +68,7 @@ public:
                 const std::vector<unsigned char>& data);
 
     /// Constructor with specified transaction fields.
-    Transaction(const TxnHash& tranID, uint32_t version,
-                const boost::multiprecision::uint256_t& nonce,
+    Transaction(uint32_t version, const boost::multiprecision::uint256_t& nonce,
                 const Address& toAddr, const PubKey& senderPubKey,
                 const boost::multiprecision::uint256_t& amount,
                 const boost::multiprecision::uint256_t& gasPrice,

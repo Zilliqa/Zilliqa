@@ -68,6 +68,20 @@ unsigned int Transaction::SerializeCoreFields(std::vector<unsigned char>& dst,
 
 Transaction::Transaction() {}
 
+Transaction::Transaction(const Transaction& src)
+    : m_version(src.m_version)
+    , m_nonce(src.m_nonce)
+    , m_toAddr(src.m_toAddr)
+    , m_senderPubKey(src.m_senderPubKey)
+    , m_amount(src.m_amount)
+    , m_gasPrice(src.m_gasPrice)
+    , m_gasLimit(src.m_gasLimit)
+    , m_code(src.m_code)
+    , m_data(src.m_data)
+    , m_signature(src.m_signature)
+{
+}
+
 Transaction::Transaction(const vector<unsigned char>& src, unsigned int offset)
 {
     Deserialize(src, offset);
@@ -112,7 +126,7 @@ Transaction::Transaction(uint32_t version, const uint256_t& nonce,
     }
 }
 
-Transaction::Transaction(const TxnHash& tranID, uint32_t version,
+Transaction::Transaction(uint32_t version,
                          const boost::multiprecision::uint256_t& nonce,
                          const Address& toAddr, const PubKey& senderPubKey,
                          const boost::multiprecision::uint256_t& amount,
@@ -121,8 +135,7 @@ Transaction::Transaction(const TxnHash& tranID, uint32_t version,
                          const std::vector<unsigned char>& code,
                          const std::vector<unsigned char>& data,
                          const Signature& signature)
-    : m_tranID(tranID)
-    , m_version(version)
+    : m_version(version)
     , m_nonce(nonce)
     , m_toAddr(toAddr)
     , m_senderPubKey(senderPubKey)
@@ -133,6 +146,19 @@ Transaction::Transaction(const TxnHash& tranID, uint32_t version,
     , m_data(data)
     , m_signature(signature)
 {
+    vector<unsigned char> txnData;
+    SerializeCoreFields(txnData, 0);
+
+    // Generate the transaction ID
+    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+    sha2.Update(txnData);
+    const vector<unsigned char>& output = sha2.Finalize();
+    if (output.size() != TRAN_HASH_SIZE)
+    {
+        LOG_GENERAL(WARNING, "We failed to generate m_tranID.");
+        return;
+    }
+    copy(output.begin(), output.end(), m_tranID.asArray().begin());
 }
 
 unsigned int Transaction::Serialize(vector<unsigned char>& dst,
