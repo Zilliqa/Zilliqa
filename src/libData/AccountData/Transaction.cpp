@@ -160,6 +160,13 @@ Transaction::Transaction(uint32_t version,
         return;
     }
     copy(output.begin(), output.end(), m_tranID.asArray().begin());
+
+    // Verify the signature
+    if (Schnorr::GetInstance().Verify(txnData, m_signature, m_senderPubKey)
+        == false)
+    {
+        LOG_GENERAL(WARNING, "We failed to verify the input signature.");
+    }
 }
 
 unsigned int Transaction::Serialize(vector<unsigned char>& dst,
