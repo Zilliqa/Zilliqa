@@ -69,7 +69,8 @@ unsigned int Transaction::SerializeCoreFields(std::vector<unsigned char>& dst,
 Transaction::Transaction() {}
 
 Transaction::Transaction(const Transaction& src)
-    : m_version(src.m_version)
+    : m_tranID(src.m_tranID)
+    , m_version(src.m_version)
     , m_nonce(src.m_nonce)
     , m_toAddr(src.m_toAddr)
     , m_senderPubKey(src.m_senderPubKey)
