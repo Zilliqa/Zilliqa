@@ -55,7 +55,9 @@ BOOST_AUTO_TEST_CASE(testReadWriteSimpleStringToDB)
 Transaction constructDummyTxBody(int instanceNum)
 {
     Address addr;
-    return Transaction(0, instanceNum, addr, Schnorr::GetInstance().GenKeyPair(), 0, 1, 2, {0x33}, {0x44});
+    return Transaction(0, instanceNum, addr,
+                       Schnorr::GetInstance().GenKeyPair(), 0, 1, 2, {0x33},
+                       {0x44});
 }
 
 BOOST_AUTO_TEST_CASE(testSerializationDeserialization)
