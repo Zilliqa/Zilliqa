@@ -1216,7 +1216,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
     {
         unique_lock<mutex> lock(m_mutexDSInfoUpdation);
         m_fetchedDSInfo = true;
-        m_dsInfoUpdateCondition.notify_one();
+        cv_dsInfoUpdate.notify_one();
     }
 #endif // IS_LOOKUP_NODE
 
@@ -1512,7 +1512,7 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
             unique_lock<mutex> lock(m_mutexDSInfoUpdation);
             while (!m_fetchedDSInfo)
             {
-                if (m_dsInfoUpdateCondition.wait_for(
+                if (cv_dsInfoUpdate.wait_for(
                         lock,
                         chrono::seconds(POW1_WINDOW_IN_SECONDS
                                         + BACKUP_POW2_WINDOW_IN_SECONDS))
@@ -1670,7 +1670,7 @@ bool Lookup::InitMining()
         {
             // DS block has been generated.
             // Attempt PoW2
-            s_startedPoW2 = true;
+            m_startedPoW2 = true;
             m_mediator.UpdateDSBlockRand();
             dsBlockRand = m_mediator.m_dsBlockRand;
             txBlockRand = {};
@@ -1698,7 +1698,7 @@ bool Lookup::InitMining()
     }
     // Check whether is the new node connected to the network. Else, initiate re-sync process again.
     this_thread::sleep_for(chrono::seconds(BACKUP_POW2_WINDOW_IN_SECONDS));
-    s_startedPoW2 = false;
+    m_startedPoW2 = false;
     if (m_syncType != SyncType::NO_SYNC)
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -1892,7 +1892,7 @@ bool Lookup::ProcessSetOfflineLookups(const std::vector<unsigned char>& message,
     {
         unique_lock<mutex> lock(m_mutexOfflineLookupsUpdation);
         m_fetchedOfflineLookups = true;
-        m_offlineLookupsCondition.notify_one();
+        cv_offlineLookups.notify_one();
     }
 #endif // IS_LOOKUP_NODE
     return true;
