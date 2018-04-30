@@ -43,7 +43,7 @@ do
 done
 
 
-for port in {11..20}
+for port in {01..20}
 do
     python tests/Zilliqa/test_zilliqa_local.py sendtxn 50$port
 done 
