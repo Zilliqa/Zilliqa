@@ -32,16 +32,6 @@ typedef std::function<std::vector<Peer>(unsigned char msg_type,
                                         unsigned char ins_type, const Peer&)>
     broadcast_list_func;
 
-#if 1 //clark
-struct ConnectionData
-{
-    Peer* from;
-    std::function<void(const std::vector<unsigned char>&, const Peer&)>
-        dispatcher;
-    broadcast_list_func broadcast_list_retriever;
-};
-#endif
-
 /// Provides network layer functionality.
 class P2PComm
 {
@@ -87,9 +77,6 @@ class P2PComm
 #endif // STAT_TEST
 
     ThreadPool m_SendPool{MAXMESSAGE, "SendPool"};
-#if 1 //clark
-    ConnectionData m_connData;
-#endif
 
 #if 0 //clark
     ThreadPool m_RecvPool{MAXMESSAGE, "RecvPool"};
@@ -147,8 +134,6 @@ public:
     }
 
     std::mutex& GetBroadcastHashesMutex() { return m_broadcastHashesMutex; }
-
-    ConnectionData& GetConnData() { return m_connData; }
 #endif
 
 #ifdef STAT_TEST
