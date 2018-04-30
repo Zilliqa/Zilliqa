@@ -53,7 +53,7 @@ class Lookup : public Executable, public Broadcastable
     bool m_dsInfoWaitingNotifying = false;
     bool m_fetchedDSInfo = false;
     std::mutex m_mutexDSInfoUpdation;
-    std::condition_variable m_dsInfoUpdateCondition;
+    std::condition_variable cv_dsInfoUpdate;
 
     bool CheckStateRoot();
 #endif // IS_LOOKUP_NODE
@@ -215,7 +215,7 @@ public:
 #ifndef IS_LOOKUP_NODE
     bool m_fetchedOfflineLookups = false;
     std::mutex m_mutexOfflineLookupsUpdation;
-    std::condition_variable m_offlineLookupsCondition;
+    std::condition_variable cv_offlineLookups;
 
     bool InitMining();
 #endif // IS_LOOKUP_NODE
@@ -224,7 +224,7 @@ public:
     unsigned int m_syncType = SyncType::NO_SYNC;
 
     /// Helper variables used by new node synchronization
-    bool s_startedPoW2 = false;
+    bool m_startedPoW2 = false;
 
     bool AlreadyJoinedNetwork();
 };

@@ -241,7 +241,7 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin)
                       "To-do: Code up the logic for if we didn't get any "
                       "submissions at all");
             // throw exception();
-            if(!isRejoin)
+            if (!isRejoin)
             {
                 return;
             }

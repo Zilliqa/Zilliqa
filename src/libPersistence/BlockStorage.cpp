@@ -385,10 +385,13 @@ bool BlockStorage::ResetDB(DBTYPE type)
     {
     case META:
         ret = m_metadataDB.ResetDB();
+        break;
     case DS_BLOCK:
         ret = m_dsBlockchainDB.ResetDB();
+        break;
     case TX_BLOCK:
         ret = m_txBlockchainDB.ResetDB();
+        break;
 #ifndef IS_LOOKUP_NODE
     case TX_BODIES:
     {
@@ -402,12 +405,15 @@ bool BlockStorage::ResetDB(DBTYPE type)
             }
         }
         ret = true;
+        break;
     }
 #else // IS_LOOKUP_NODE
     case TX_BODY:
         ret = m_txBodyDB.ResetDB();
+        break;
     case TX_BODY_TMP:
         ret = m_txBodyTmpDB.ResetDB();
+        break;
 #endif // IS_LOOKUP_NODE
     }
     if (!ret)
@@ -424,10 +430,13 @@ std::vector<std::string> BlockStorage::GetDBName(DBTYPE type)
     {
     case META:
         ret.push_back(m_metadataDB.GetDBName());
+        break;
     case DS_BLOCK:
         ret.push_back(m_dsBlockchainDB.GetDBName());
+        break;
     case TX_BLOCK:
         ret.push_back(m_txBlockchainDB.GetDBName());
+        break;
 #ifndef IS_LOOKUP_NODE
     case TX_BODIES:
     {
@@ -435,12 +444,15 @@ std::vector<std::string> BlockStorage::GetDBName(DBTYPE type)
         {
             ret.push_back(txBodyDB->GetDBName());
         }
+        break;
     }
 #else // IS_LOOKUP_NODE
     case TX_BODY:
         ret.push_back(m_txBodyDB.GetDBName());
+        break;
     case TX_BODY_TMP:
         ret.push_back(m_txBodyTmpDB.GetDBName());
+        break;
 #endif // IS_LOOKUP_NODE
     }
 

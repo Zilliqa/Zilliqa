@@ -203,7 +203,7 @@ void Node::StartSynchronization()
                 m_mediator.m_lookup->m_mutexOfflineLookupsUpdation);
             while (!m_mediator.m_lookup->m_fetchedOfflineLookups)
             {
-                m_mediator.m_lookup->m_offlineLookupsCondition.wait(lock);
+                m_mediator.m_lookup->cv_offlineLookups.wait(lock);
             }
             m_mediator.m_lookup->m_fetchedOfflineLookups = false;
         }
@@ -214,7 +214,7 @@ void Node::StartSynchronization()
             m_synchronizer.FetchLatestTxBlocks(
                 m_mediator.m_lookup, m_mediator.m_txBlockChain.GetBlockCount());
             this_thread::sleep_for(
-                chrono::seconds(m_mediator.m_lookup->s_startedPoW2
+                chrono::seconds(m_mediator.m_lookup->m_startedPoW2
                                     ? BACKUP_POW2_WINDOW_IN_SECONDS
                                     : NEW_NODE_SYNC_INTERVAL));
         }
@@ -1266,7 +1266,7 @@ bool Node::CleanVariables()
             m_mediator.m_lookup->m_mutexOfflineLookupsUpdation);
         m_mediator.m_lookup->m_fetchedOfflineLookups = false;
     }
-    m_mediator.m_lookup->s_startedPoW2 = false;
+    m_mediator.m_lookup->m_startedPoW2 = false;
 
     return true;
 }
