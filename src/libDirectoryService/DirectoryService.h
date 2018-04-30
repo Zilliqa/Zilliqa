@@ -198,7 +198,7 @@ class DirectoryService : public Executable, public Broadcastable
         vector<std::map<PubKey, Peer>>::iterator& p);
 
     // PoW1 (DS block) consensus functions
-    void RunConsensusOnDSBlock();
+    void RunConsensusOnDSBlock(bool isRejoin = false);
     void ComposeDSBlock();
 
     // internal calls from RunConsensusOnSharding

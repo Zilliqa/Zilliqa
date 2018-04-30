@@ -1451,7 +1451,7 @@ bool DirectoryService::FinishRejoinAsDS()
     // in case the recovery program is under different directory
     LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
                   DS_PROMOTE_MSG);
-    RunConsensusOnDSBlock();
+    RunConsensusOnDSBlock(true);
     return true;
 }
 #endif // IS_LOOKUP_NODE
