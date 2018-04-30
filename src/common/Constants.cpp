@@ -94,6 +94,8 @@ const unsigned int MAXSUBMITTXNPERNODE{
     ReadFromConstantsFile("MAXSUBMITTXNPERNODE")};
 const unsigned int TX_SHARING_CLUSTER_SIZE{
     ReadFromConstantsFile("TX_SHARING_CLUSTER_SIZE")};
+const unsigned int NEW_NODE_POW_DELAY{
+    ReadFromConstantsFile("NEW_NODE_POW_DELAY")};
 const unsigned int N_PREFILLED_PER_ACCOUNT{
     ReadFromConstantsFile("N_PREFILLED_PER_ACCOUNT")};
 const std::vector<std::string> GENESIS_WALLETS{
