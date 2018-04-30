@@ -375,11 +375,21 @@ void P2PComm::HandleAcceptedConnection(
         // Check if this message has been received before
         bool found = false;
         {
+#if 1 //clark
+            lock_guard<mutex> guard(
+                P2PComm::GetInstance().GetBroadcastHashesMutex());
+#else
             lock_guard<mutex> guard(m_broadcastHashesMutex);
+#endif
             vector<unsigned char> msg_hash(hash_buf, hash_buf + HASH_LEN);
+#if 1 //clark
+            std::set<std::vector<unsigned char>> broadcastHashes
+                = P2PComm::GetInstance().GetBroadcastHashes();
+            found = (broadcastHashes.find(msg_hash) != broadcastHashes.end());
+#else
             found
                 = (m_broadcastHashes.find(msg_hash) != m_broadcastHashes.end());
-
+#endif
             // While we have the lock, we should quickly add the hash
             if (!found)
             {
@@ -417,7 +427,11 @@ void P2PComm::HandleAcceptedConnection(
 
                 if (this_msg_hash == msg_hash)
                 {
+#if 1 //clark
+                    broadcastHashes.insert(this_msg_hash);
+#else
                     m_broadcastHashes.insert(this_msg_hash);
+#endif
                 }
                 else
                 {
@@ -451,15 +465,25 @@ void P2PComm::HandleAcceptedConnection(
             {
                 vector<unsigned char> this_msg_hash(hash_buf,
                                                     hash_buf + HASH_LEN);
+#if 1 //clark
+                P2PComm::GetInstance().SendBroadcastMessageCore(
+                    broadcast_list, message, this_msg_hash);
+#else
                 SendBroadcastMessageCore(broadcast_list, message,
                                          this_msg_hash);
+#endif
             }
 
 #ifdef STAT_TEST
             vector<unsigned char> this_msg_hash(hash_buf, hash_buf + HASH_LEN);
             LOG_STATE(
                 "[BROAD]["
+#if 1 //clark
+                << std::setw(15) << std::left
+                << P2PComm::GetInstance().GetSelfPeer() << "]["
+#else
                 << std::setw(15) << std::left << m_selfPeer << "]["
+#endif
                 << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6)
                 << "] RECV");
 #endif // STAT_TEST
@@ -520,7 +544,7 @@ void P2PComm::ConnectionAccept(int fd, short event, void* arg)
     unique_ptr<pair<void*, Peer*>> acceptArg;
     acceptArg.get()->first = arg;
     acceptArg.get()->second = &from;
-    event_set(ev, ns, EV_WRITE, HandleAcceptedConnection, acceptArg);
+    //    event_set(ev, ns, EV_WRITE, HandleAcceptedConnection, acceptArg);
     event_add(ev, nullptr);
 }
 #endif

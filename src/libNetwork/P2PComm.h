@@ -126,8 +126,20 @@ public:
     void SendBroadcastMessage(const std::deque<Peer>& peers,
                               const std::vector<unsigned char>& message);
 
+#if 1 //clark
+    std::set<std::vector<unsigned char>>& GetBroadcastHashes()
+    {
+        return m_broadcastHashes;
+    }
+
+    std::mutex& GetBroadcastHashesMutex() { return m_broadcastHashesMutex; }
+#endif
+
 #ifdef STAT_TEST
     void SetSelfPeer(const Peer& self);
+#if 1 //clark
+    const Peer& GetSelfPeer() { return m_selfPeer; }
+#endif
 #endif // STAT_TEST
 };
 
