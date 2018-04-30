@@ -298,16 +298,25 @@ void P2PComm::SendBroadcastMessageCore(
     DetachedFunction(1, func2);
 }
 
+#if 1 //clark
+void P2PComm::HandleAcceptedConnection(int cli_sock, short event, void* arg)
+#else
 void P2PComm::HandleAcceptedConnection(
     int cli_sock, Peer from,
     function<void(const vector<unsigned char>&, const Peer&)> dispatcher,
     broadcast_list_func broadcast_list_retriever)
+#endif
 {
     LOG_MARKER();
 
     unique_ptr<int, void (*)(int*)> cli_sock_closer(&cli_sock, close_socket);
 
+#if 1 //clark
+    Peer* from = P2PComm::GetInstance().GetConnData().from;
+    LOG_GENERAL(INFO, "Incoming message from " << *from);
+#else
     LOG_GENERAL(INFO, "Incoming message from " << from);
+#endif
 
     vector<unsigned char> message;
 
@@ -336,7 +345,11 @@ void P2PComm::HandleAcceptedConnection(
             LOG_GENERAL(WARNING,
                         "Socket read failed. Code = "
                             << errno << " Desc: " << std::strerror(errno)
+#if 1 //clark
+                            << ". IP address: " << *from);
+#else
                             << ". IP address: " << from);
+#endif
             return;
         }
         read_length += n;
@@ -366,7 +379,11 @@ void P2PComm::HandleAcceptedConnection(
                 LOG_GENERAL(WARNING,
                             "Socket read failed. Code = "
                                 << errno << " Desc: " << std::strerror(errno)
+#if 1 //clark
+                                << ". IP address: " << *from);
+#else
                                 << ". IP address: " << from);
+#endif
                 return;
             }
             read_length += n;
@@ -406,7 +423,11 @@ void P2PComm::HandleAcceptedConnection(
                                     "Socket read failed. Code = "
                                         << errno
                                         << " Desc: " << std::strerror(errno)
+#if 1 //clark
+                                        << ". IP address: " << *from);
+#else
                                         << ". IP address: " << from);
+#endif
                         return;
                     }
                     read_length += n;
@@ -458,9 +479,14 @@ void P2PComm::HandleAcceptedConnection(
                 msg_type = message.at(MessageOffset::TYPE);
                 ins_type = message.at(MessageOffset::INST);
             }
-
+#if 1 //clark
+            vector<Peer> broadcast_list
+                = P2PComm::GetInstance().GetConnData().broadcast_list_retriever(
+                    msg_type, ins_type, *from);
+#else
             vector<Peer> broadcast_list
                 = broadcast_list_retriever(msg_type, ins_type, from);
+#endif
             if (broadcast_list.size() > 0)
             {
                 vector<unsigned char> this_msg_hash(hash_buf,
@@ -489,7 +515,11 @@ void P2PComm::HandleAcceptedConnection(
 #endif // STAT_TEST
 
             // Dispatch message normally
+#if 1 //clark
+            P2PComm::GetInstance().GetConnData().dispatcher(message, *from);
+#else
             dispatcher(message, from);
+#endif
         }
     }
     else
@@ -506,7 +536,11 @@ void P2PComm::HandleAcceptedConnection(
                 LOG_GENERAL(WARNING,
                             "Socket read failed. Code = "
                                 << errno << " Desc: " << std::strerror(errno)
+#if 1 //clark
+                                << ". IP address: " << *from);
+#else
                                 << ". IP address: " << from);
+#endif
                 return;
             }
             read_length += n;
@@ -521,30 +555,43 @@ void P2PComm::HandleAcceptedConnection(
         }
 
         cli_sock_closer.reset(); // close socket now so it can be reused
-
+#if 1 //clark
+        P2PComm::GetInstance().GetConnData().dispatcher(message, *from);
+#else
         dispatcher(message, from);
+#endif
     }
 }
 
 #if 1 //clark
-void P2PComm::ConnectionAccept(int fd, short event, void* arg)
+void P2PComm::ConnectionAccept(int serv_sock, short event, void* arg)
 {
-    struct sockaddr_in s_in;
-    socklen_t len = sizeof(s_in);
-    int ns = accept(fd, (struct sockaddr*)&s_in, &len);
+    struct sockaddr_in cli_addr;
+    socklen_t cli_len = sizeof(struct sockaddr_in);
+    int cli_sock = accept(serv_sock, (struct sockaddr*)&cli_addr, &cli_len);
 
-    if (ns < 0)
+    if (cli_sock < 0)
     {
-        LOG_GENERAL(WARNING, "Cannot accept socket connection!");
+        LOG_GENERAL(WARNING,
+                    "Socket accept failed. Socket ret code: "
+                        << cli_sock << ". TCP error code = " << errno
+                        << " Desc: " << std::strerror(errno));
+        LOG_GENERAL(INFO,
+                    "DEBUG: I can't accept any incoming conn. I am "
+                    "sleeping for "
+                        << PUMPMESSAGE_MILLISECONDS << "ms");
         return;
     }
 
-    Peer from(uint128_t(s_in.sin_addr.s_addr), s_in.sin_port);
+    Peer from(uint128_t(cli_addr.sin_addr.s_addr), cli_addr.sin_port);
+
+    LOG_GENERAL(INFO,
+                "DEBUG: I got an incoming message from "
+                    << from.GetPrintableIPAddress());
+
     struct event* ev = (struct event*)malloc(sizeof(struct event));
-    unique_ptr<pair<void*, Peer*>> acceptArg;
-    acceptArg.get()->first = arg;
-    acceptArg.get()->second = &from;
-    //    event_set(ev, ns, EV_WRITE, HandleAcceptedConnection, acceptArg);
+    P2PComm::GetInstance().GetConnData().from = &from;
+    event_set(ev, cli_sock, EV_WRITE, HandleAcceptedConnection, nullptr);
     event_add(ev, nullptr);
 }
 #endif
@@ -586,14 +633,10 @@ void P2PComm::StartMessagePump(
 #if 1 //clark
     event_init();
     struct event ev;
-    unique_ptr<
-        pair<function<void(const vector<unsigned char>&, const Peer&)>,
-             function<vector<Peer>(unsigned char, unsigned char, const Peer&)>>>
-        arg;
-    arg.get()->first = dispatcher;
-    arg.get()->second = broadcast_list_retriever;
-    event_set(&ev, serv_sock, EV_READ | EV_PERSIST, ConnectionAccept,
-              arg.get());
+    P2PComm::GetInstance().GetConnData().dispatcher = dispatcher;
+    P2PComm::GetInstance().GetConnData().broadcast_list_retriever
+        = broadcast_list_retriever;
+    event_set(&ev, serv_sock, EV_READ | EV_PERSIST, ConnectionAccept, nullptr);
     event_add(&ev, nullptr);
     event_dispatch();
     close(serv_sock);
