@@ -1745,7 +1745,7 @@ bool Lookup::ProcessSetLookupOffline(const vector<unsigned char>& message,
                               requestingNode);
         if (iter != m_lookupNodes.end())
         {
-            m_lookupNodesOffline.push_back(*iter);
+            m_lookupNodesOffline.push_back(requestingNode);
             m_lookupNodes.erase(iter);
         }
         else
@@ -1782,7 +1782,7 @@ bool Lookup::ProcessSetLookupOnline(const vector<unsigned char>& message,
                               m_lookupNodesOffline.end(), requestingNode);
         if (iter != m_lookupNodes.end())
         {
-            m_lookupNodes.push_back(*iter);
+            m_lookupNodes.push_back(requestingNode);
             m_lookupNodesOffline.erase(iter);
         }
         else
@@ -1880,7 +1880,7 @@ bool Lookup::ProcessSetOfflineLookups(const std::vector<unsigned char>& message,
         auto iter = std::find(m_lookupNodes.begin(), m_lookupNodes.end(), peer);
         if (iter != m_lookupNodes.end())
         {
-            m_lookupNodesOffline.push_back(*iter);
+            m_lookupNodesOffline.push_back(peer);
             m_lookupNodes.erase(iter);
 
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -1981,7 +1981,7 @@ bool Lookup::GetMyLookupOffline()
                           m_mediator.m_selfPeer);
     if (iter != m_lookupNodes.end())
     {
-        m_lookupNodesOffline.push_back(*iter);
+        m_lookupNodesOffline.push_back(m_mediator.m_selfPeer);
         m_lookupNodes.erase(iter);
     }
     else
@@ -2003,7 +2003,7 @@ bool Lookup::GetMyLookupOnline()
     if (iter != m_lookupNodesOffline.end())
     {
         SendMessageToLookupNodesSerial(ComposeGetLookupOnlineMessage());
-        m_lookupNodes.push_back(*iter);
+        m_lookupNodes.push_back(m_mediator.m_selfPeer);
         m_lookupNodesOffline.erase(iter);
     }
     else
