@@ -1927,11 +1927,7 @@ Peer Lookup::GetLookupPeerToRsync()
     std::vector<Peer> t_Peers;
     for (auto p : m_lookupNodes)
     {
-        if (p == m_mediator.m_selfPeer)
-        {
-            // SKIP
-        }
-        else
+        if (p != m_mediator.m_selfPeer)
         {
             t_Peers.push_back(p);
         }
