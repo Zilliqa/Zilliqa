@@ -71,7 +71,15 @@ void DirectoryService::StartSynchronization()
                 m_mediator.m_lookup->m_mutexOfflineLookupsUpdation);
             while (!m_mediator.m_lookup->m_fetchedOfflineLookups)
             {
-                m_mediator.m_lookup->cv_offlineLookups.wait(lock);
+                if (m_mediator.m_lookup->cv_offlineLookups.wait_for(
+                        lock,
+                        chrono::seconds(POW1_WINDOW_IN_SECONDS
+                                        + BACKUP_POW2_WINDOW_IN_SECONDS))
+                    == std::cv_status::timeout)
+                {
+                    LOG_GENERAL(WARNING, "FetchOfflineLookups Timeout...");
+                    return;
+                }
             }
             m_mediator.m_lookup->m_fetchedOfflineLookups = false;
         }

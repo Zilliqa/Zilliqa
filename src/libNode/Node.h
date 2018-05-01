@@ -152,6 +152,7 @@ class Node : public Executable, public Broadcastable
 
     bool CheckState(Action action);
 
+    // To block certain types of incoming message for certain states
     bool ToBlockMessage(unsigned char ins_byte);
 
 #ifndef IS_LOOKUP_NODE
@@ -320,8 +321,10 @@ class Node : public Executable, public Broadcastable
     // Is Running from New Process
     bool m_fromNewProcess = true;
 
+    // Rejoin the network as a shard node in case of failure happens in protocol
     void RejoinAsNormal();
 
+    // Reset certain variables to the initial state
     bool CleanVariables();
 #endif // IS_LOOKUP_NODE
 
@@ -370,6 +373,7 @@ public:
     /// Set initial state, variables, and clean-up storage
     void Init();
 
+    /// Prepare for processing protocols after initialization
     void Prepare(bool runInitializeGenesisBlocks);
 
     /// Sets the value of m_state.
@@ -385,10 +389,12 @@ public:
 
     Mediator& GetMediator() { return m_mediator; }
 
+    /// Recover the previous state by retrieving persistence data
     bool StartRetrieveHistory();
 
 #ifndef IS_LOOKUP_NODE
 
+    // Start synchronization with lookup as a shard node
     void StartSynchronization();
 
     /// Called from DirectoryService during FINALBLOCK processing.
