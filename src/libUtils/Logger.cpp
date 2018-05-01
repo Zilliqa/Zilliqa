@@ -290,9 +290,8 @@ void Logger::LogEpochInfo(const char* msg, const char* function,
 {
     pid_t tid = getCurrentPid();
 
-    auto clockNow = std::chrono::system_clock::now();
-    std::time_t curTime = std::chrono::system_clock::to_time_t(clockNow);
-    auto gmtTime = gmtime(&curTime);
+    std::time_t curTime = std::chrono::system_clock::to_time_t(
+        std::chrono::system_clock::now());
 
     lock_guard<mutex> guard(m);
 
@@ -300,15 +299,15 @@ void Logger::LogEpochInfo(const char* msg, const char* function,
     {
         CheckLog();
         m_logFile << "[TID " << PAD(tid, TID_LEN) << "]["
-                  << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
-                  << LIMIT(function, MAX_FUNCNAME_LEN) << "]"
+                  << PAD(put_time(gmtime(&curTime), "%H:%M:%S"), TIME_LEN)
+                  << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "]"
                   << "[Epoch " << epoch << "] " << msg << endl
                   << flush;
     }
     else
     {
         cout << "[TID " << PAD(tid, TID_LEN) << "]["
-             << PAD(put_time(gmtTime, "%H:%M:%S"), TIME_LEN) << "]["
+             << PAD(put_time(gmtime(&curTime), "%H:%M:%S"), TIME_LEN) << "]["
              << LIMIT(function, MAX_FUNCNAME_LEN) << "]"
              << "[Epoch " << epoch << "] " << msg << endl
              << flush;
