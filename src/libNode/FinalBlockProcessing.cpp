@@ -1258,33 +1258,27 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     {
         LOG_GENERAL(INFO, "isVacuousEpoch now");
 
-        if (AccountStore::GetInstance().UpdateStateTrieAll())
-        {
-            if (!CheckStateRoot(txBlock))
-            {
-#ifndef IS_LOOKUP_NODE
-                RejoinAsNormal();
-#endif // IS_LOOKUP_NODE
-                return false;
-            }
-            else
-            {
-                StoreState();
-                BlockStorage::GetBlockStorage().PutMetadata(
-                    MetaType::DSINCOMPLETED, {'0'});
-#ifndef IS_LOOKUP_NODE
-                BlockStorage::GetBlockStorage().PopFrontTxBodyDB();
-#else // IS_LOOKUP_NODE
-                BlockStorage::GetBlockStorage().ResetDB(
-                    BlockStorage::TX_BODY_TMP);
-#endif // IS_LOOKUP_NODE
-            }
-        }
-        else
+        if (!AccountStore::GetInstance().UpdateStateTrieAll())
         {
             LOG_GENERAL(WARNING, "UpdateStateTrieAll Failed");
             return false;
         }
+
+        if (!CheckStateRoot(txBlock))
+        {
+#ifndef IS_LOOKUP_NODE
+            RejoinAsNormal();
+#endif // IS_LOOKUP_NODE
+            return false;
+        }
+        StoreState();
+        BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
+                                                    {'0'});
+#ifndef IS_LOOKUP_NODE
+        BlockStorage::GetBlockStorage().PopFrontTxBodyDB();
+#else // IS_LOOKUP_NODE
+        BlockStorage::GetBlockStorage().ResetDB(BlockStorage::TX_BODY_TMP);
+#endif // IS_LOOKUP_NODE
     }
     // #endif // IS_LOOKUP_NODE
 

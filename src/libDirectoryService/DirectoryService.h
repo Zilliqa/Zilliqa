@@ -181,6 +181,7 @@ class DirectoryService : public Executable, public Broadcastable
     bool ProcessAllPoWConnResponse(const vector<unsigned char>& message,
                                    unsigned int offset, const Peer& from);
 
+    // To block certain types of incoming message for certain states
     bool ToBlockMessage(unsigned char ins_byte);
 
 #ifndef IS_LOOKUP_NODE
@@ -325,8 +326,10 @@ class DirectoryService : public Executable, public Broadcastable
     bool ProcessInitViewChangeResponse(const vector<unsigned char>& message,
                                        unsigned int offset, const Peer& from);
 
+    // Rejoin the network as a DS node in case of failure happens in protocol
     void RejoinAsDS();
 
+    // Reset certain variables to the initial state
     bool CleanVariables();
 #endif // IS_LOOKUP_NODE
 
@@ -374,6 +377,7 @@ public:
     /// Sets the value of m_state.
     void SetState(DirState state);
 
+    /// Start synchronization with lookup as a DS node
     void StartSynchronization();
 
     /// Implements the GetBroadcastList function inherited from Broadcastable.
@@ -383,6 +387,7 @@ public:
     /// Launches separate thread to execute sharding consensus after wait_window seconds.
     void ScheduleShardingConsensus(const unsigned int wait_window);
 
+    /// Post processing after the DS node successfully synchronized with the network
     bool FinishRejoinAsDS();
 #endif // IS_LOOKUP_NODE
 

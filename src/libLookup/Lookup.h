@@ -73,12 +73,19 @@ class Lookup : public Executable, public Broadcastable
 
     std::mutex m_mutexOfflineLookups;
 
-    // Rsync the lost txBodies from remote lookup nodes if this lookup
-    // are doing its recovery
+    // Rsync the lost txBodies from remote lookup nodes if this lookup are doing its recovery
     Peer GetLookupPeerToRsync();
+
+    // Doing Rsync commands
     bool RsyncTxBodies();
+
+    /// Post processing after the DS node successfully synchronized with the network
     bool FinishRejoinAsLookup();
+
+    // Reset certain variables to the initial state
     bool CleanVariables();
+
+    // To block certain types of incoming message for certain states
     bool ToBlockMessage(unsigned char ins_byte);
 #endif // IS_LOOKUP_NODE
     std::mutex m_mutexSetDSBlockFromSeed;
@@ -101,6 +108,7 @@ class Lookup : public Executable, public Broadcastable
 
     std::vector<unsigned char> ComposeGetOfflineLookupNodes();
 
+    // Append time stamp to the message to avoid discarding due to same message hash
     void AppendTimestamp(std::vector<unsigned char>& message,
                          unsigned int& offset);
 
@@ -151,6 +159,7 @@ public:
     bool GetTxBodyFromSeedNodes(std::string txHashStr);
     bool GetStateFromLookupNodes();
 
+    // Get the offline lookup nodes from lookup nodes
     bool GetOfflineLookupNodes();
 #ifdef IS_LOOKUP_NODE
     bool SetDSCommitteInfo();
@@ -158,10 +167,16 @@ public:
     std::vector<std::map<PubKey, Peer>> GetShardPeers();
     std::vector<Peer> GetNodePeers();
 
+    // Start synchronization with other lookup nodes as a lookup node
     void StartSynchronization();
+
+    // Set my lookup ip offline in other lookup nodes
     bool GetMyLookupOffline();
+
+    // Set my lookup ip online in other lookup nodes
     bool GetMyLookupOnline();
 
+    // Rejoin the network as a lookup node in case of failure happens in protocol
     void RejoinAsLookup();
 #endif // IS_LOOKUP_NODE
 
