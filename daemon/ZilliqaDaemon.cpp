@@ -29,6 +29,15 @@ unordered_map<int, string> Port;
 unordered_map<int, string> Path;
 unordered_map<int, bool> isDS;
 
+enum SyncType : unsigned int
+{
+    NO_SYNC = 0,
+    NEW_SYNC,
+    NORMAL_SYNC,
+    DS_SYNC,
+    LOOKUP_SYNC,
+};
+
 const string logName = "epochinfo-00001-log.txt";
 
 string ReadLastLine(string filePath, ofstream& log)
@@ -82,7 +91,7 @@ void setIsDs(const pid_t& pid, ofstream& log)
 {
     string s = ReadLastLine(Path[pid], log);
 
-    if (s == " PROMOTED TO DS")
+    if (s == " DS BACKUP NOW")
     {
         isDS[pid] = true;
     }
@@ -199,16 +208,16 @@ int getRestartValue(pid_t pid, const string& prgname)
     {
         if (isDS[pid])
         {
-            return 3;
+            return DS_SYNC;
         }
         else
         {
-            return 2;
+            return NORMAL_SYNC;
         }
     }
     else if (prgname == "lzilliqa")
     {
-        return 4;
+        return LOOKUP_SYNC;
     }
 
     return -1;

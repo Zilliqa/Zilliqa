@@ -122,9 +122,9 @@ void setIsDs(const pid_t& pid, ofstream& log)
         path = Path[pid].substr(0, pos);
     }
     string s = ReadLastLine(path, log);
-    log << "ReadLastLine =" << s;
+    //log << "ReadLastLine =" << s;
 
-    if (s == " PROMOTED TO DS")
+    if (s == " DS BACKUP NOW")
     {
         isDS[pid] = true;
     }
