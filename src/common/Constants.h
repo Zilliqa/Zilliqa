@@ -92,8 +92,9 @@ const std::string REMOTE_TEST_DIR = "zilliqa-test";
 const std::string PERSISTENCE_PATH = "persistence";
 const std::string TX_BODY_SUBDIR = "txBodies";
 
-const std::string DS_PROMOTE_MSG = "PROMOTED TO DS";
 const std::string DS_KICKOUT_MSG = "KICKED OUT FROM DS";
+const std::string DS_LEADER_MSG = "DS LEADER NOW"
+const std::string DS_BACKUP_MSG = "DS BACKUP NOW"
 
 extern const unsigned int DS_MULTICAST_CLUSTER_SIZE;
 extern const unsigned int COMM_SIZE;

@@ -217,6 +217,8 @@ void DirectoryService::UpdateMyDSModeAndConsensusId()
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "I am now just a backup DS");
+        LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
+                      DS_BACKUP_MSG);
         m_mode = BACKUP_DS;
         m_consensusMyID++;
 
