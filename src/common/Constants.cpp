@@ -55,7 +55,7 @@ ReadAccountsFromConstantsFile(std::string propName)
         auto child = acc.second.get_optional<std::string>(propName);
         if (child)
         {
-            // LOG_MESSAGE("constants " << child.get());
+            // LOG_GENERAL("constants " << child.get());
             result.push_back(child.get());
         }
     }
@@ -94,8 +94,8 @@ const unsigned int MAXSUBMITTXNPERNODE{
     ReadFromConstantsFile("MAXSUBMITTXNPERNODE")};
 const unsigned int TX_SHARING_CLUSTER_SIZE{
     ReadFromConstantsFile("TX_SHARING_CLUSTER_SIZE")};
-const unsigned int NUM_LOOKUP_USE_FOR_SYNC{
-    ReadFromConstantsFile("NUM_LOOKUP_USE_FOR_SYNC")};
+const unsigned int NEW_NODE_POW_DELAY{
+    ReadFromConstantsFile("NEW_NODE_POW_DELAY")};
 const unsigned int N_PREFILLED_PER_ACCOUNT{
     ReadFromConstantsFile("N_PREFILLED_PER_ACCOUNT")};
 const std::vector<std::string> GENESIS_WALLETS{

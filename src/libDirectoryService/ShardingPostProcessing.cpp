@@ -377,6 +377,10 @@ bool DirectoryService::ProcessShardingConsensus(
                   "Oops, no consensus reached - what to do now???");
         // throw exception();
         // TODO: no consensus reached
+        if (m_mode != PRIMARY_DS)
+        {
+            RejoinAsDS();
+        }
         return false;
     }
 
