@@ -78,7 +78,7 @@ class P2PComm
 
     ThreadPool m_SendPool{MAXMESSAGE, "SendPool"};
 
-#if 0 //clark
+#if 1 //clark
     ThreadPool m_RecvPool{MAXMESSAGE, "RecvPool"};
 #endif
 public:
@@ -97,6 +97,14 @@ public:
 #endif
 
 #if 1 //clark
+    static void DestroyConnectData(void* data);
+
+    static void ProcessInNewThreadWhenAccepted(
+        int cli_sock, Peer from,
+        std::function<void(const std::vector<unsigned char>&, const Peer&)>
+            dispatcher,
+        broadcast_list_func broadcast_list_retriever);
+
     static void ConnectionAccept(int serv_sock, short event, void* arg);
 #endif
 
