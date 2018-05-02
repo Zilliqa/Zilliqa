@@ -310,7 +310,7 @@ void P2PComm::SendBroadcastMessageCore(
     DetachedFunction(1, func2);
 }
 
-#if 1 //clark
+#if 0 //clark
 void P2PComm::HandleAcceptedConnection(int cli_sock, short event, void* arg)
 #else
 void P2PComm::HandleAcceptedConnection(
@@ -323,7 +323,7 @@ void P2PComm::HandleAcceptedConnection(
 
     unique_ptr<int, void (*)(int*)> cli_sock_closer(&cli_sock, close_socket);
 
-#if 1 //clark
+#if 0 //clark
     if (!arg)
     {
         LOG_GENERAL(
@@ -365,7 +365,7 @@ void P2PComm::HandleAcceptedConnection(
             LOG_GENERAL(WARNING,
                         "Socket read failed. Code = "
                             << errno << " Desc: " << std::strerror(errno)
-#if 1 //clark
+#if 0 //clark
                             << ". IP address: " << *from);
             DestroyConnectData(arg);
             close(cli_sock);
@@ -401,7 +401,7 @@ void P2PComm::HandleAcceptedConnection(
                 LOG_GENERAL(WARNING,
                             "Socket read failed. Code = "
                                 << errno << " Desc: " << std::strerror(errno)
-#if 1 //clark
+#if 0 //clark
                                 << ". IP address: " << *from);
                 DestroyConnectData(arg);
                 close(cli_sock);
@@ -424,9 +424,8 @@ void P2PComm::HandleAcceptedConnection(
 #endif
             vector<unsigned char> msg_hash(hash_buf, hash_buf + HASH_LEN);
 #if 1 //clark
-            std::set<std::vector<unsigned char>> broadcastHashes
-                = P2PComm::GetInstance().GetBroadcastHashes();
-            found = (broadcastHashes.find(msg_hash) != broadcastHashes.end());
+            found = (P2PComm::GetInstance().GetBroadcastHashes().find(msg_hash)
+                     != P2PComm::GetInstance().GetBroadcastHashes().end());
 #else
             found
                 = (m_broadcastHashes.find(msg_hash) != m_broadcastHashes.end());
@@ -447,7 +446,7 @@ void P2PComm::HandleAcceptedConnection(
                                     "Socket read failed. Code = "
                                         << errno
                                         << " Desc: " << std::strerror(errno)
-#if 1 //clark
+#if 0 //clark
                                         << ". IP address: " << *from);
                         DestroyConnectData(arg);
                         close(cli_sock);
@@ -475,7 +474,8 @@ void P2PComm::HandleAcceptedConnection(
                 if (this_msg_hash == msg_hash)
                 {
 #if 1 //clark
-                    broadcastHashes.insert(this_msg_hash);
+                    P2PComm::GetInstance().GetBroadcastHashes().insert(
+                        this_msg_hash);
 #else
                     m_broadcastHashes.insert(this_msg_hash);
 #endif
@@ -505,7 +505,7 @@ void P2PComm::HandleAcceptedConnection(
                 msg_type = message.at(MessageOffset::TYPE);
                 ins_type = message.at(MessageOffset::INST);
             }
-#if 1 //clark
+#if 0 //clark
             vector<Peer> broadcast_list
                 = ((ConnectionData*)arg)
                       ->broadcast_list_retriever(msg_type, ins_type, *from);
@@ -541,7 +541,7 @@ void P2PComm::HandleAcceptedConnection(
 #endif // STAT_TEST
 
             // Dispatch message normally
-#if 1 //clark
+#if 0 //clark
             ((ConnectionData*)arg)->dispatcher(message, *from);
 #else
             dispatcher(message, from);
@@ -562,7 +562,7 @@ void P2PComm::HandleAcceptedConnection(
                 LOG_GENERAL(WARNING,
                             "Socket read failed. Code = "
                                 << errno << " Desc: " << std::strerror(errno)
-#if 1 //clark
+#if 0 //clark
                                 << ". IP address: " << *from);
                 DestroyConnectData(arg);
                 close(cli_sock);
@@ -583,7 +583,7 @@ void P2PComm::HandleAcceptedConnection(
         }
 
         cli_sock_closer.reset(); // close socket now so it can be reused
-#if 1 //clark
+#if 0 //clark
         ((ConnectionData*)arg)->dispatcher(message, *from);
 #else
         dispatcher(message, from);
@@ -591,7 +591,7 @@ void P2PComm::HandleAcceptedConnection(
     }
 }
 
-#if 1 //clark
+#if 0 //clark
 void P2PComm::DestroyConnectData(void* data)
 {
     if (!data)
@@ -706,7 +706,7 @@ void P2PComm::StartMessagePump(
 
     listen(serv_sock, 5000);
 
-#if 1 //clark
+#if 0 //clark
     //    event_init();
     struct event_base* base = event_base_new();
     struct event ev;
