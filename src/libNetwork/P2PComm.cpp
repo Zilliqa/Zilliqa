@@ -59,7 +59,7 @@ struct ConnectionData
 {
     struct event_base* base;
     struct event* ev;
-    Peer* from;
+    Peer from;
     std::function<void(const std::vector<unsigned char>&, const Peer&)>
         dispatcher;
     broadcast_list_func broadcast_list_retriever;
@@ -332,8 +332,7 @@ void P2PComm::HandleAcceptedConnection(
         return;
     }
 
-    Peer* from = ((ConnectionData*)arg)->from;
-    LOG_GENERAL(INFO, "Incoming message from " << *from);
+    LOG_GENERAL(INFO, "Incoming message from " << ((ConnectionData*)arg)->from);
 #else
     LOG_GENERAL(INFO, "Incoming message from " << from);
 #endif
@@ -366,7 +365,8 @@ void P2PComm::HandleAcceptedConnection(
                         "Socket read failed. Code = "
                             << errno << " Desc: " << std::strerror(errno)
 #if 0 //clark
-                            << ". IP address: " << *from);
+                            << ". IP address: "
+                            << ((ConnectionData*)arg)->from);
             DestroyConnectData(arg);
             close(cli_sock);
 #else
@@ -402,7 +402,8 @@ void P2PComm::HandleAcceptedConnection(
                             "Socket read failed. Code = "
                                 << errno << " Desc: " << std::strerror(errno)
 #if 0 //clark
-                                << ". IP address: " << *from);
+                                << ". IP address: "
+                                << ((ConnectionData*)arg)->from);
                 DestroyConnectData(arg);
                 close(cli_sock);
 #else
@@ -418,14 +419,14 @@ void P2PComm::HandleAcceptedConnection(
         {
 #if 1 //clark
             lock_guard<mutex> guard(
-                P2PComm::GetInstance().GetBroadcastHashesMutex());
+                P2PComm::GetInstance().m_broadcastHashesMutex);
 #else
             lock_guard<mutex> guard(m_broadcastHashesMutex);
 #endif
             vector<unsigned char> msg_hash(hash_buf, hash_buf + HASH_LEN);
 #if 1 //clark
-            found = (P2PComm::GetInstance().GetBroadcastHashes().find(msg_hash)
-                     != P2PComm::GetInstance().GetBroadcastHashes().end());
+            found = (P2PComm::GetInstance().m_broadcastHashes.find(msg_hash)
+                     != P2PComm::GetInstance().m_broadcastHashes.end());
 #else
             found
                 = (m_broadcastHashes.find(msg_hash) != m_broadcastHashes.end());
@@ -447,7 +448,8 @@ void P2PComm::HandleAcceptedConnection(
                                         << errno
                                         << " Desc: " << std::strerror(errno)
 #if 0 //clark
-                                        << ". IP address: " << *from);
+                                        << ". IP address: "
+                                        << ((ConnectionData*)arg)->from);
                         DestroyConnectData(arg);
                         close(cli_sock);
 #else
@@ -474,7 +476,7 @@ void P2PComm::HandleAcceptedConnection(
                 if (this_msg_hash == msg_hash)
                 {
 #if 1 //clark
-                    P2PComm::GetInstance().GetBroadcastHashes().insert(
+                    P2PComm::GetInstance().m_broadcastHashes.insert(
                         this_msg_hash);
 #else
                     m_broadcastHashes.insert(this_msg_hash);
@@ -508,7 +510,8 @@ void P2PComm::HandleAcceptedConnection(
 #if 0 //clark
             vector<Peer> broadcast_list
                 = ((ConnectionData*)arg)
-                      ->broadcast_list_retriever(msg_type, ins_type, *from);
+                      ->broadcast_list_retriever(msg_type, ins_type,
+                                                 ((ConnectionData*)arg)->from);
 #else
             vector<Peer> broadcast_list
                 = broadcast_list_retriever(msg_type, ins_type, from);
@@ -532,7 +535,7 @@ void P2PComm::HandleAcceptedConnection(
                 "[BROAD]["
 #if 1 //clark
                 << std::setw(15) << std::left
-                << P2PComm::GetInstance().GetSelfPeer() << "]["
+                << P2PComm::GetInstance().m_selfPeer << "]["
 #else
                 << std::setw(15) << std::left << m_selfPeer << "]["
 #endif
@@ -542,7 +545,8 @@ void P2PComm::HandleAcceptedConnection(
 
             // Dispatch message normally
 #if 0 //clark
-            ((ConnectionData*)arg)->dispatcher(message, *from);
+            ((ConnectionData*)arg)
+                ->dispatcher(message, ((ConnectionData*)arg)->from);
 #else
             dispatcher(message, from);
 #endif
@@ -563,7 +567,8 @@ void P2PComm::HandleAcceptedConnection(
                             "Socket read failed. Code = "
                                 << errno << " Desc: " << std::strerror(errno)
 #if 0 //clark
-                                << ". IP address: " << *from);
+                                << ". IP address: "
+                                << ((ConnectionData*)arg)->from);
                 DestroyConnectData(arg);
                 close(cli_sock);
 #else
@@ -584,7 +589,8 @@ void P2PComm::HandleAcceptedConnection(
 
         cli_sock_closer.reset(); // close socket now so it can be reused
 #if 0 //clark
-        ((ConnectionData*)arg)->dispatcher(message, *from);
+        ((ConnectionData*)arg)
+            ->dispatcher(message, ((ConnectionData*)arg)->from);
 #else
         dispatcher(message, from);
 #endif
@@ -600,14 +606,14 @@ void P2PComm::DestroyConnectData(void* data)
     }
 
     event_del(((ConnectionData*)data)->ev);
-    event_base_loopexit(((ConnectionData*)data)->base, NULL);
+    //    event_base_loopexit(((ConnectionData*)data)->base, NULL);
 
     if (((ConnectionData*)data)->ev)
     {
         free(((ConnectionData*)data)->ev);
     }
 
-    event_base_free(((ConnectionData*)data)->base);
+    //    event_base_free(((ConnectionData*)data)->base);
     free(((ConnectionData*)data));
 }
 
@@ -618,18 +624,19 @@ void P2PComm::ProcessInNewThreadWhenAccepted(
 {
     ConnectionData* pConnData
         = (struct ConnectionData*)malloc(sizeof(struct ConnectionData));
-    pConnData->from = &from;
+    pConnData->from = from;
     pConnData->dispatcher = dispatcher;
     pConnData->broadcast_list_retriever = broadcast_list_retriever;
 
-    struct event_base* base = event_base_new();
+    //    struct event_base* base = event_base_new();
     struct event* ev = (struct event*)malloc(sizeof(struct event));
-    pConnData->base = base;
+    //    pConnData->base = base;
     pConnData->ev = ev;
     event_set(ev, cli_sock, EV_WRITE, HandleAcceptedConnection, pConnData);
-    event_base_set(base, ev);
+    //    event_base_set(base, ev);
     event_add(ev, nullptr);
-    event_base_dispatch(base);
+    //    event_base_dispatch(base);
+    //    event_dispatch();
 }
 
 void P2PComm::ConnectionAccept(int serv_sock, short event, void* arg)
@@ -657,18 +664,31 @@ void P2PComm::ConnectionAccept(int serv_sock, short event, void* arg)
                 "DEBUG: I got an incoming message from "
                     << from.GetPrintableIPAddress());
 
-    P2PComm* mythis = &(P2PComm::GetInstance());
+    ((ConnectionData*)arg)->from = from;
+    //    struct event_base* base = event_base_new();
+    struct event* ev = (struct event*)malloc(sizeof(struct event));
+    //    ((ConnectionData*)arg)->base = base;
+    ((ConnectionData*)arg)->ev = ev;
+    event_set(ev, cli_sock, EV_WRITE, HandleAcceptedConnection, arg);
+    //    event_base_set(base, ev);
+    event_add(ev, nullptr);
+    //    event_base_dispatch(base);
+    //    event_dispatch();
+
+    /*
+    //    P2PComm* mythis = &(P2PComm::GetInstance());
     function<void(const vector<unsigned char>&, const Peer&)> dispatcher
         = ((ConnectionData*)arg)->dispatcher;
     broadcast_list_func broadcast_list_retriever
         = ((ConnectionData*)arg)->broadcast_list_retriever;
-    auto func = [mythis, cli_sock, from, dispatcher,
-                 broadcast_list_retriever]() -> void {
+    auto func
+        = [cli_sock, from, dispatcher, broadcast_list_retriever]() -> void {
         ProcessInNewThreadWhenAccepted(cli_sock, from, dispatcher,
                                        broadcast_list_retriever);
     };
 
     P2PComm::GetInstance().m_RecvPool.AddJob(func);
+*/
 }
 #endif
 
@@ -707,8 +727,8 @@ void P2PComm::StartMessagePump(
     listen(serv_sock, 5000);
 
 #if 0 //clark
-    //    event_init();
-    struct event_base* base = event_base_new();
+    event_init();
+    //    struct event_base* base = event_base_new();
     struct event ev;
     ConnectionData* pConnData
         = (struct ConnectionData*)malloc(sizeof(struct ConnectionData));
@@ -716,13 +736,13 @@ void P2PComm::StartMessagePump(
     pConnData->broadcast_list_retriever = broadcast_list_retriever;
     event_set(&ev, serv_sock, EV_READ | EV_PERSIST, ConnectionAccept,
               pConnData);
-    event_base_set(base, &ev);
+    //    event_base_set(base, &ev);
     event_add(&ev, nullptr);
-    event_base_dispatch(base);
-    //event_dispatch();
+    //    event_base_dispatch(base);
+    event_dispatch();
     close(serv_sock);
     event_del(&ev);
-    event_base_free(base);
+//    event_base_free(base);
 #else
     uint32_t cli_len = sizeof(struct sockaddr_in);
     struct sockaddr_in cli_addr;
