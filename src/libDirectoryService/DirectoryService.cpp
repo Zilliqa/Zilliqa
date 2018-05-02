@@ -658,6 +658,8 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "I am the DS committee leader");
+        LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
+                      DS_LEADER_MSG);
         m_mode = PRIMARY_DS;
     }
     else
@@ -670,11 +672,10 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
                   "Current DS committee leader is "
                       << primary.GetPrintableIPAddress() << " at port "
                       << primary.m_listenPortHost)
+        LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
+                      DS_BACKUP_MSG);
         m_mode = BACKUP_DS;
     }
-
-    LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
-                  DS_PROMOTE_MSG);
 
     // For now, we assume the following when ProcessSetPrimary() is called:
     //  1. All peers in the peer list are my fellow DS committee members for this first epoch
@@ -1258,6 +1259,8 @@ bool DirectoryService::ProcessInitViewChange(
         m_consensusMyID--;
         m_viewChangeCounter++;
         m_mode = PRIMARY_DS;
+        LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
+                      DS_LEADER_MSG);
 
         // Re-run consensus as a leader
         switch (viewChangeDSState)
@@ -1458,7 +1461,7 @@ bool DirectoryService::FinishRejoinAsDS()
     }
     // in case the recovery program is under different directory
     LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
-                  DS_PROMOTE_MSG);
+                  DS_BACKUP_MSG);
     RunConsensusOnDSBlock(true);
     return true;
 }
