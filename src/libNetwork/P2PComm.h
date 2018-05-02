@@ -77,7 +77,9 @@ class P2PComm
 #endif // STAT_TEST
 
     ThreadPool m_SendPool{MAXMESSAGE, "SendPool"};
+#if 1 //clark
     ThreadPool m_RecvPool{MAXMESSAGE, "RecvPool"};
+#endif
 
 public:
     /// Returns the singleton P2PComm instance.
@@ -86,11 +88,13 @@ public:
     /// Receives incoming message and assigns to designated message dispatcher.
 #if 1 //clark
     //    static void HandleAcceptedConnection(int cli_sock, short event, void* arg);
+
     static void HandleAcceptedConnection(
         int cli_sock, Peer from,
         std::function<void(const std::vector<unsigned char>&, const Peer&)>
             dispatcher,
         broadcast_list_func broadcast_list_retriever);
+
 #else
     void HandleAcceptedConnection(
         int cli_sock, Peer from,
@@ -138,20 +142,8 @@ public:
     void SendBroadcastMessage(const std::deque<Peer>& peers,
                               const std::vector<unsigned char>& message);
 
-#if 1 //clark
-    std::set<std::vector<unsigned char>>& GetBroadcastHashes()
-    {
-        return m_broadcastHashes;
-    }
-
-    std::mutex& GetBroadcastHashesMutex() { return m_broadcastHashesMutex; }
-#endif
-
 #ifdef STAT_TEST
     void SetSelfPeer(const Peer& self);
-#if 1 //clark
-    const Peer& GetSelfPeer() { return m_selfPeer; }
-#endif
 #endif // STAT_TEST
 };
 
