@@ -414,7 +414,7 @@ void DirectoryService::RunConsensusOnSharding()
             LOG_MESSAGE2(
                 to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Initiated sharding structure consensus view change. ");
-            InitViewChange();
+            RunConsensusOnViewChange();
         }
     }
 }

@@ -56,7 +56,8 @@ class DirectoryService : public Executable, public Broadcastable
         VERIFYPOW2,
         PROCESS_SHARDINGCONSENSUS,
         PROCESS_MICROBLOCKSUBMISSION,
-        PROCESS_FINALBLOCKCONSENSUS
+        PROCESS_FINALBLOCKCONSENSUS,
+        PROCESS_VIEWCHANGECONSENSUS
     };
 
     string ActionString(enum Action action)
@@ -79,6 +80,8 @@ class DirectoryService : public Executable, public Broadcastable
             return "PROCESS_MICROBLOCKSUBMISSION";
         case PROCESS_FINALBLOCKCONSENSUS:
             return "PROCESS_FINALBLOCKCONSENSUS";
+        case PROCESS_VIEWCHANGECONSENSUS:
+            return "PROCESS_VIEWCHANGECONSENSUS";
         }
         return "Unknown Action";
     }
@@ -128,7 +131,6 @@ class DirectoryService : public Executable, public Broadcastable
     std::vector<Peer> m_sharingAssignment;
 
     // Recovery (simplified view change)
-    std::atomic<unsigned int> m_viewChangeCounter;
     std::atomic<bool> m_initiatedViewChange;
     std::mutex m_mutexProcessViewChangeRequests;
     std::mutex m_mutexRecoveryDSBlockConsensus;
@@ -150,6 +152,12 @@ class DirectoryService : public Executable, public Broadcastable
     std::mutex m_MutexCVViewChangeSharding;
     std::condition_variable cv_viewChangeFinalBlock;
     std::mutex m_MutexCVViewChangeFinalBlock;
+
+    // view change v2
+    std::atomic<unsigned int> m_viewChangeCounter;
+    Peer m_candidateLeader;
+    std::shared_ptr<VCBlock> m_pendingVCBlock;
+    std::mutex m_mutexPendingVCBlock;
 
     // TO Remove
     //bool temp_todie;
@@ -312,12 +320,15 @@ class DirectoryService : public Executable, public Broadcastable
                                     unsigned int offset, const Peer& from);
 
     // View change
-    void InitViewChange();
-    bool ProcessInitViewChange(const vector<unsigned char>& message,
-                               unsigned int offset, const Peer& from);
-    bool ProcessInitViewChangeResponse(const vector<unsigned char>& message,
-                                       unsigned int offset, const Peer& from);
-
+    void RunConsensusOnViewChange();
+    void ComputeNewCandidateLeader(vector<unsigned char>& newCandidateLeader);
+    bool ViewChangeValidator(const vector<unsigned char>& vcBlock,
+                             std::vector<unsigned char>& errorMsg);
+    bool RunConsensusOnViewChangeWhenCandidateLeader();
+    bool RunConsensusOnViewChangeWhenNotCandidateLeader();
+    bool ProcessViewChangeConsensus(const vector<unsigned char>& message,
+                                    unsigned int offset, const Peer& from);
+    bool ViewChange();
 #endif // IS_LOOKUP_NODE
 
 public:
@@ -339,6 +350,8 @@ public:
         MICROBLOCK_SUBMISSION,
         FINALBLOCK_CONSENSUS_PREP,
         FINALBLOCK_CONSENSUS,
+        VIEWCHANGE_CONSENSUS_PREP,
+        VIEWCHANGE_CONSENSUS,
         ERROR
     };
 

@@ -276,7 +276,7 @@ void DirectoryService::RunConsensusOnDSBlock()
             //TODO: This is a simplified version and will be review again.
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                          "Initiated DS block view change. ");
-            InitViewChange();
+            RunConsensusOnViewChange();
         }
     }
 }
