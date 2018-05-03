@@ -34,6 +34,7 @@
 #include "libUtils/Logger.h"
 #include "libUtils/SanityChecks.h"
 
+#ifndef IS_LOOKUP_NODE
 bool DirectoryService::ViewChangeValidator(const vector<unsigned char>& vcBlock,
                                            std::vector<unsigned char>& errorMsg)
 {
@@ -282,3 +283,4 @@ bool DirectoryService::RunConsensusOnViewChangeWhenNotCandidateLeader()
 
     return true;
 }
+#endif // IS_LOOKUP_NODE
