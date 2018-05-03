@@ -34,12 +34,11 @@
 #include "libUtils/Logger.h"
 #include "libUtils/SanityChecks.h"
 
-bool DirectoryService::ViewChangeValidator(
-    const vector<unsigned char>& newCandidateLeader,
-    std::vector<unsigned char>& errorMsg)
+bool DirectoryService::ViewChangeValidator(const vector<unsigned char>& vcBlock,
+                                           std::vector<unsigned char>& errorMsg)
 {
     LOG_MARKER();
-
+    /**
     // Check new leader index
     unsigned int curr_offset = 0;
     unsigned int expectedCandidateLeaderIndex = 1;
@@ -95,7 +94,7 @@ bool DirectoryService::ViewChangeValidator(
     default:
         return false;
     }
-
+    **/
     return true;
 }
 
@@ -148,7 +147,7 @@ void DirectoryService::RunConsensusOnViewChange()
 }
 
 void DirectoryService::ComputeNewCandidateLeader(
-    vector<unsigned char>& newCandidateLeader) const
+    vector<unsigned char>& newCandidateLeader)
 {
     LOG_MARKER();
 
@@ -171,6 +170,34 @@ void DirectoryService::ComputeNewCandidateLeader(
     Serializable::SetNumber<unsigned int>(newCandidateLeader, curr_offset,
                                           m_state, sizeof(unsigned int));
     curr_offset += sizeof(unsigned int);
+
+    // Assemble VC block header
+
+    LOG_MESSAGE("Composing new vc block with vc count at "
+                << m_viewChangeCounter);
+
+    VCBlockHeader newHeader(
+        m_mediator.m_dsBlockChain.GetBlockCount(), m_mediator.m_currentEpochNum,
+        m_state, newCandidateLeaderIndex,
+        m_mediator.m_DSCommitteeNetworkInfo.at(newCandidateLeaderIndex),
+        m_mediator.m_DSCommitteePubKeys.at(newCandidateLeaderIndex),
+        m_viewChangeCounter, get_time_as_int());
+
+    array<unsigned char, BLOCK_SIG_SIZE> newSig{};
+    {
+        lock_guard<mutex> g(m_mutexPendingVCBlock);
+        // To-do: Handle exceptions.
+        m_pendingVCBlock.reset(new VCBlock(newHeader, newSig));
+    }
+
+    LOG_MESSAGE2(
+        to_string(m_mediator.m_currentEpochNum).c_str(),
+        "New VCBlock created with candidate leader "
+            << m_mediator.m_DSCommitteeNetworkInfo.at(newCandidateLeaderIndex)
+                   .GetPrintableIPAddress()
+            << ":"
+            << m_mediator.m_DSCommitteeNetworkInfo.at(newCandidateLeaderIndex)
+                   .m_listenPortHost);
 }
 
 bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader()

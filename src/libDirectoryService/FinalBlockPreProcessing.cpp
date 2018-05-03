@@ -1088,7 +1088,7 @@ void DirectoryService::RunConsensusOnFinalBlock()
             //TODO: This is a simplified version and will be review again.
             LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                          "Initiated final block view change. ");
-            InitViewChange();
+            RunConsensusOnViewChange();
         }
     }
 }

@@ -1028,48 +1028,7 @@ bool DirectoryService::ProcessLastDSBlockResponse(
     return true;
 }
 
-void DirectoryService::InitViewChange()
-{
-    LOG_MARKER();
-    // TODO
-    // Send to new candidate leader the following
-    // M = ( New candidate leader || My Identity || EpochNo || Current DS State || Nonce )
-
-    // In this version,
-    // M = ( New candidate leader || My Identity ||EpochNo || Current DS State ||Timestamp )
-    vector<unsigned char> initViewChangeMessage
-        = {MessageType::DIRECTORY, DSInstructionType::INITVIEWCHANGE};
-    unsigned int curr_offset = MessageOffset::BODY;
-
-    // New leader
-    unsigned int newCandidateLeader = 1;
-    curr_offset += m_mediator.m_DSCommitteeNetworkInfo.at(newCandidateLeader)
-                       .Serialize(initViewChangeMessage, curr_offset);
-
-    // Myself
-    curr_offset
-        += m_mediator.m_selfPeer.Serialize(initViewChangeMessage, curr_offset);
-
-    // EpochNum
-    Serializable::SetNumber<uint64_t>(initViewChangeMessage, curr_offset,
-                                      m_mediator.m_currentEpochNum,
-                                      sizeof(uint64_t));
-    curr_offset += sizeof(uint64_t);
-
-    // m_state
-    Serializable::SetNumber<unsigned int>(initViewChangeMessage, curr_offset,
-                                          m_state, sizeof(unsigned int));
-    curr_offset += sizeof(unsigned int);
-
-    // Timestamp
-    Serializable::SetNumber<uint256_t>(initViewChangeMessage, curr_offset,
-                                       get_time_as_int(), sizeof(uint256_t));
-    curr_offset += sizeof(uint256_t);
-
-    P2PComm::GetInstance().SendMessage(
-        m_mediator.m_DSCommitteeNetworkInfo.at(newCandidateLeader),
-        initViewChangeMessage);
-}
+    /**
 
 bool DirectoryService::ProcessInitViewChange(
     const vector<unsigned char>& message, unsigned int offset, const Peer& from)
@@ -1328,6 +1287,7 @@ bool DirectoryService::ProcessInitViewChangeResponse(
 
     return true;
 }
+**/
 
 #endif // IS_LOOKUP_NODE
 
@@ -1354,8 +1314,7 @@ bool DirectoryService::Execute(const vector<unsigned char>& message,
            &DirectoryService::ProcessAllPoWConnResponse,
            &DirectoryService::ProcessLastDSBlockRequest,
            &DirectoryService::ProcessLastDSBlockResponse,
-           &DirectoryService::ProcessInitViewChange,
-           &DirectoryService::ProcessInitViewChangeResponse};
+           &DirectoryService::ProcessViewChangeConsensus};
 #else
     InstructionHandler ins_handlers[]
         = {&DirectoryService::ProcessSetPrimary,

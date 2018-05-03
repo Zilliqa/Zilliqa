@@ -36,6 +36,7 @@
 
 bool DirectoryService::ViewChange()
 {
+    /**
     if (m_mediator.m_DSCommitteeNetworkInfo.at(1) == candidiateLeader)
     {
         // View change
@@ -86,6 +87,7 @@ bool DirectoryService::ViewChange()
         }
         return false;
     }
+    **/
     return true;
 }
 
@@ -119,7 +121,7 @@ bool DirectoryService::ProcessViewChangeConsensus(
 
     if (state == ConsensusCommon::State::DONE)
     {
-        ViewChange(); 
+        ViewChange();
         LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
                      "View change consensus is DONE!!!");
     }
