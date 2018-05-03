@@ -62,7 +62,7 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock)
     Json::Value ret_head;
     Json::Value ret_body;
 
-    TxBlockHeader txheader = txblock.GetHeader();
+    const TxBlockHeader& txheader = txblock.GetHeader();
 
     ret_head["type"] = txheader.GetType();
     ret_head["version"] = txheader.GetVersion();
@@ -82,7 +82,7 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock)
     ret_head["DSBlockNum"] = txheader.GetDSBlockNum().str();
 
     ret_body["HeaderSign"]
-        = DataConversion::charArrToHexStr(txblock.GetHeaderSig());
+        = DataConversion::SerializableToHexStr(txblock.GetCS2());
 
     ret_body["MicroBlockEmpty"]
         = convertBoolArraytoJson(txblock.GetIsMicroBlockEmpty());
@@ -103,9 +103,9 @@ const Json::Value JSONConversion::convertDSblocktoJson(const DSBlock& dsblock)
     Json::Value ret_header;
     Json::Value ret_sign;
 
-    DSBlockHeader dshead = dsblock.GetHeader();
+    const DSBlockHeader& dshead = dsblock.GetHeader();
 
-    ret_sign = DataConversion::charArrToHexStr(dsblock.GetSignature());
+    ret_sign = DataConversion::SerializableToHexStr(dsblock.GetCS2());
 
     ret_header["difficulty"] = dshead.GetDifficulty();
     ret_header["prevhash"] = dshead.GetPrevHash().hex();
@@ -149,7 +149,7 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json)
         = DataConversion::HexStrToStdArray64(sign_str);
 
     Transaction tx1(version, nonce, toAddr, pubKey, amount, sign);
-    LOG_MESSAGE("Tx converted");
+    LOG_GENERAL(INFO, "Tx converted");
 
     return tx1;
 }
@@ -171,41 +171,44 @@ const bool JSONConversion::checkJsonTx(const Json::Value& _json)
     {
         if (!_json["nonce"].isIntegral())
         {
-            LOG_MESSAGE("Fault in nonce");
+            LOG_GENERAL(INFO, "Fault in nonce");
             return false;
         }
         if (!_json["amount"].isIntegral())
         {
-            LOG_MESSAGE("Fault in amount");
+            LOG_GENERAL(INFO, "Fault in amount");
             return false;
         }
         if (!_json["version"].isIntegral())
         {
-            LOG_MESSAGE("Fault in version");
+            LOG_GENERAL(INFO, "Fault in version");
             return false;
         }
         if (_json["pubKey"].asString().size() != PUB_KEY_SIZE * 2)
         {
-            LOG_MESSAGE("PubKey size wrong "
-                        << _json["pubKey"].asString().size());
+            LOG_GENERAL(INFO,
+                        "PubKey size wrong "
+                            << _json["pubKey"].asString().size());
             return false;
         }
         if (_json["signature"].asString().size() != TRAN_SIG_SIZE * 2)
         {
-            LOG_MESSAGE("signature size wrong "
-                        << _json["signature"].asString().size());
+            LOG_GENERAL(INFO,
+                        "signature size wrong "
+                            << _json["signature"].asString().size());
             return false;
         }
         if (_json["to"].asString().size() != ACC_ADDR_SIZE * 2)
         {
-            LOG_MESSAGE("To Address size wrong "
-                        << _json["signature"].asString().size());
+            LOG_GENERAL(INFO,
+                        "To Address size wrong "
+                            << _json["signature"].asString().size());
             return false;
         }
     }
     else
     {
-        LOG_MESSAGE("Json Data Object has missing components");
+        LOG_GENERAL(INFO, "Json Data Object has missing components");
     }
 
     return ret;

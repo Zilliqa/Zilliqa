@@ -30,7 +30,7 @@ DSBlockHeader::DSBlockHeader(const vector<unsigned char>& src,
 {
     if (Deserialize(src, offset) != 0)
     {
-        LOG_MESSAGE("Error. We failed to init DSBlockHeader.");
+        LOG_GENERAL(WARNING, "We failed to init DSBlockHeader.");
     }
 }
 
@@ -57,14 +57,11 @@ unsigned int DSBlockHeader::Serialize(vector<unsigned char>& dst,
 {
     LOG_MARKER();
 
-    unsigned int size_needed = sizeof(uint8_t) + BLOCK_HASH_SIZE + UINT256_SIZE
-        + PUB_KEY_SIZE + PUB_KEY_SIZE + UINT256_SIZE + UINT256_SIZE
-        + sizeof(unsigned int);
     unsigned int size_remaining = dst.size() - offset;
 
-    if (size_remaining < size_needed)
+    if (size_remaining < SIZE)
     {
-        dst.resize(size_needed + offset);
+        dst.resize(SIZE + offset);
     }
 
     unsigned int curOffset = offset;
@@ -86,9 +83,8 @@ unsigned int DSBlockHeader::Serialize(vector<unsigned char>& dst,
     curOffset += UINT256_SIZE;
     SetNumber<unsigned int>(dst, curOffset, m_viewChangeCounter,
                             sizeof(unsigned int));
-    curOffset += sizeof(unsigned int);
 
-    return size_needed;
+    return SIZE;
 }
 
 int DSBlockHeader::Deserialize(const vector<unsigned char>& src,
@@ -109,14 +105,14 @@ int DSBlockHeader::Deserialize(const vector<unsigned char>& src,
         // m_minerPubKey.Deserialize(src, curOffset);
         if (m_minerPubKey.Deserialize(src, curOffset) != 0)
         {
-            LOG_MESSAGE("Error. We failed to init m_minerPubKey.");
+            LOG_GENERAL(WARNING, "We failed to init m_minerPubKey.");
             return -1;
         }
         curOffset += PUB_KEY_SIZE;
         // m_leaderPubKey.Deserialize(src, curOffset);
         if (m_leaderPubKey.Deserialize(src, curOffset) != 0)
         {
-            LOG_MESSAGE("Error. We failed to init m_minerPubKey.");
+            LOG_GENERAL(WARNING, "We failed to init m_minerPubKey.");
             return -1;
         }
         curOffset += PUB_KEY_SIZE;
@@ -130,8 +126,9 @@ int DSBlockHeader::Deserialize(const vector<unsigned char>& src,
     }
     catch (const std::exception& e)
     {
-        LOG_MESSAGE("ERROR: Error with DSBlockHeader::Deserialize."
-                    << ' ' << e.what());
+        LOG_GENERAL(WARNING,
+                    "Error with DSBlockHeader::Deserialize." << ' '
+                                                             << e.what());
         return -1;
     }
     return 0;

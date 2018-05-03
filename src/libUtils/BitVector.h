@@ -14,38 +14,24 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#include "libUtils/JoinableFunction.h"
-#include "libUtils/Logger.h"
+#ifndef __BITVECTOR_H__
+#define __BITVECTOR_H__
 
-#define BOOST_TEST_MODULE utils
-#include <boost/test/included/unit_test.hpp>
+#include <vector>
 
-using namespace std;
-
-BOOST_AUTO_TEST_SUITE(utils)
-
-void test()
+class BitVector
 {
-    LOG_MARKER();
-    LOG_GENERAL(INFO, "Hello world");
-}
+public:
+    static unsigned int GetBitVectorLengthInBytes(unsigned int length_in_bits);
+    static unsigned int GetBitVectorSerializedSize(unsigned int length_in_bits);
+    static std::vector<bool> GetBitVector(const std::vector<unsigned char>& src,
+                                          unsigned int offset,
+                                          unsigned int expected_length);
+    static std::vector<bool> GetBitVector(const std::vector<unsigned char>& src,
+                                          unsigned int offset);
+    static unsigned int SetBitVector(std::vector<unsigned char>& dst,
+                                     unsigned int offset,
+                                     const std::vector<bool>& value);
+};
 
-BOOST_AUTO_TEST_CASE(testLogger3)
-{
-    // Write to stdout
-    INIT_STDOUT_LOGGER();
-    vector<unsigned char> bytestream = {0x12, 0x34, 0x56, 0x78, 0x9A};
-
-    LOG_GENERAL(INFO, "Hello world");
-    LOG_PAYLOAD(INFO, "Hello world", bytestream,
-                Logger::MAX_BYTES_TO_DISPLAY); // use default max payload length
-    LOG_PAYLOAD(INFO, "Hello world", bytestream,
-                5); // use max payload length = payload length
-    LOG_PAYLOAD(INFO, "Hello world", bytestream,
-                4); // use max payload length < payload length
-
-    // Try in different thread
-    JoinableFunction(1, test);
-}
-
-BOOST_AUTO_TEST_SUITE_END()
+#endif // __BITVECTOR_H__

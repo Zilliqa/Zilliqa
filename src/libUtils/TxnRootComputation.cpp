@@ -68,7 +68,7 @@ ComputeTransactionsRoot(const std::list<Transaction>& receivedTransactions,
         txnCount++;
 
         transactionsTrie.insert(&k.out(), serializedTxn);
-        // LOG_MESSAGE("Inserted to trie" << txnCount);
+        // LOG_GENERAL(INFO, "Inserted to trie" << txnCount);
     }
     for (auto it = submittedTransactions.begin();
          it != submittedTransactions.end(); it++)
@@ -83,7 +83,7 @@ ComputeTransactionsRoot(const std::list<Transaction>& receivedTransactions,
         txnCount++;
 
         transactionsTrie.insert(&k.out(), serializedTxn);
-        // LOG_MESSAGE("Inserted to trie" << txnCount);
+        // LOG_GENERAL(INFO, "Inserted to trie" << txnCount);
     }
 
     TxnHash txnRoot;
@@ -115,7 +115,7 @@ TxnHash ComputeTransactionsRoot(
         txnCount++;
 
         transactionsTrie.insert(&k.out(), serializedTxn);
-        // LOG_MESSAGE("Inserted to trie" << txnCount);
+        // LOG_GENERAL(INFO, "Inserted to trie" << txnCount);
     }
     for (auto& it : submittedTransactions)
     {
@@ -128,7 +128,7 @@ TxnHash ComputeTransactionsRoot(
         txnCount++;
 
         transactionsTrie.insert(&k.out(), serializedTxn);
-        // LOG_MESSAGE("Inserted to trie" << txnCount);
+        // LOG_GENERAL(INFO, "Inserted to trie" << txnCount);
     }
 
     TxnHash txnRoot;

@@ -125,6 +125,12 @@ struct Challenge : public Serializable
               const PubKey& aggregatedPubkey,
               const std::vector<unsigned char>& message);
 
+    /// Constructor for generating a new challenge (with size and offset)
+    Challenge(const CommitPoint& aggregatedCommit,
+              const PubKey& aggregatedPubkey,
+              const std::vector<unsigned char>& message, unsigned int offset,
+              unsigned int size);
+
     /// Constructor for loading challenge information from a byte stream.
     Challenge(const std::vector<unsigned char>& src, unsigned int offset);
 
@@ -147,7 +153,8 @@ struct Challenge : public Serializable
     /// Sets the challenge value based on the specified input parameters.
     void Set(const CommitPoint& aggregatedCommit,
              const PubKey& aggregatedPubkey,
-             const std::vector<unsigned char>& message);
+             const std::vector<unsigned char>& message, unsigned int offset,
+             unsigned int size);
 
     /// Assignment operator.
     Challenge& operator=(const Challenge& src);

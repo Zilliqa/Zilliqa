@@ -17,6 +17,7 @@
 
 #include "ConsensusUser.h"
 #include "common/Messages.h"
+#include "libUtils/BitVector.h"
 #include "libUtils/Logger.h"
 
 using namespace std;
@@ -32,7 +33,8 @@ bool ConsensusUser::ProcessSetLeader(const vector<unsigned char>& message,
         && (m_consensus->GetState() != ConsensusCommon::State::DONE)
         && (m_consensus->GetState() != ConsensusCommon::State::ERROR))
     {
-        LOG_MESSAGE("Error: You're trying to set me again but my consensus is "
+        LOG_GENERAL(WARNING,
+                    "You're trying to set me again but my consensus is "
                     "still not finished");
         return false;
     }
@@ -77,13 +79,13 @@ bool ConsensusUser::ProcessSetLeader(const vector<unsigned char>& message,
     {
         if (*i == m_selfKey.second)
         {
-            LOG_MESSAGE("My node ID for this consensus is " << my_id);
+            LOG_GENERAL(INFO, "My node ID for this consensus is " << my_id);
             break;
         }
         my_id++;
     }
 
-    LOG_MESSAGE("The leader is using " << peer_info.at(leader_id));
+    LOG_GENERAL(INFO, "The leader is using " << peer_info.at(leader_id));
 
     m_leaderOrBackup = (leader_id != my_id);
 
@@ -114,7 +116,7 @@ bool ConsensusUser::ProcessSetLeader(const vector<unsigned char>& message,
 
     if (m_consensus == nullptr)
     {
-        LOG_MESSAGE("Error: Consensus object creation failed");
+        LOG_GENERAL(WARNING, "Consensus object creation failed");
         return false;
     }
 
@@ -130,20 +132,22 @@ bool ConsensusUser::ProcessStartConsensus(const vector<unsigned char>& message,
 
     if (m_consensus == nullptr)
     {
-        LOG_MESSAGE("Error: You didn't set me yet");
+        LOG_GENERAL(WARNING, "You didn't set me yet");
         return false;
     }
 
     if (m_consensus->GetState() != ConsensusCommon::State::INITIAL)
     {
-        LOG_MESSAGE("Error: You already called me before. Set me again first.");
+        LOG_GENERAL(WARNING,
+                    "You already called me before. Set me again first.");
         return false;
     }
 
     ConsensusLeader* cl = dynamic_cast<ConsensusLeader*>(m_consensus.get());
     if (cl == NULL)
     {
-        LOG_MESSAGE("Error: I'm a backup, you can't start consensus "
+        LOG_GENERAL(WARNING,
+                    "I'm a backup, you can't start consensus "
                     "(announcement) thru me");
         return false;
     }
@@ -151,7 +155,7 @@ bool ConsensusUser::ProcessStartConsensus(const vector<unsigned char>& message,
     vector<unsigned char> m(message.size() - offset);
     copy(message.begin() + offset, message.end(), m.begin());
 
-    cl->StartConsensus(m);
+    cl->StartConsensus(m, m.size());
 
     return true;
 }
@@ -165,15 +169,15 @@ bool ConsensusUser::ProcessConsensusMessage(
 
     if (m_consensus->GetState() == ConsensusCommon::State::DONE)
     {
-        LOG_MESSAGE("Consensus is DONE!!!");
+        LOG_GENERAL(INFO, "Consensus is DONE!!!");
 
         vector<unsigned char> tmp;
-        m_consensus->RetrieveCollectiveSig(tmp, 0);
-        LOG_PAYLOAD("Final collective signature", tmp, 100);
+        m_consensus->GetCS2().Serialize(tmp, 0);
+        LOG_PAYLOAD(INFO, "Final collective signature", tmp, 100);
 
         tmp.clear();
-        m_consensus->RetrieveCollectiveSigBitmap(tmp, 0);
-        LOG_PAYLOAD("Final collective signature bitmap", tmp, 100);
+        BitVector::SetBitVector(tmp, 0, m_consensus->GetB2());
+        LOG_PAYLOAD(INFO, "Final collective signature bitmap", tmp, 100);
     }
 
     return result;
@@ -219,8 +223,8 @@ bool ConsensusUser::Execute(const vector<unsigned char>& message,
     }
     else
     {
-        LOG_MESSAGE("Unknown instruction byte " << hex
-                                                << (unsigned int)ins_byte);
+        LOG_GENERAL(
+            INFO, "Unknown instruction byte " << hex << (unsigned int)ins_byte);
     }
 
     return result;
@@ -230,9 +234,8 @@ bool ConsensusUser::MyMsgValidatorFunc(const vector<unsigned char>& message,
                                        vector<unsigned char>& errorMsg)
 {
     LOG_MARKER();
-
-    LOG_PAYLOAD("Message", message, Logger::MAX_BYTES_TO_DISPLAY);
-    LOG_MESSAGE("Message is valid. I don't really care...");
+    LOG_PAYLOAD(INFO, "Message", message, Logger::MAX_BYTES_TO_DISPLAY);
+    LOG_GENERAL(INFO, "Message is valid. I don't really care...");
 
     return true;
 }
