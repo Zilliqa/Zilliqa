@@ -57,12 +57,12 @@ struct hash_compare
 #if 1 //clark
 struct ConnectionData
 {
-    struct event_base* base;
-    struct event* ev;
-    Peer from;
     std::function<void(const std::vector<unsigned char>&, const Peer&)>
         dispatcher;
     broadcast_list_func broadcast_list_retriever;
+    Peer from;
+    struct event* ev;
+    struct event_base* base;
 };
 #endif
 
@@ -595,9 +595,14 @@ void P2PComm::HandleAcceptedConnection(
         dispatcher(message, from);
 #endif
     }
-}
 
 #if 0 //clark
+    DestroyConnectData(arg);
+    close(cli_sock);
+#endif
+}
+
+#if 1 //clark
 void P2PComm::DestroyConnectData(void* data)
 {
     if (!data)
@@ -616,7 +621,7 @@ void P2PComm::DestroyConnectData(void* data)
     //    event_base_free(((ConnectionData*)data)->base);
     free(((ConnectionData*)data));
 }
-
+/*
 void P2PComm::ProcessInNewThreadWhenAccepted(
     int cli_sock, Peer from,
     function<void(const vector<unsigned char>&, const Peer&)> dispatcher,
@@ -625,70 +630,104 @@ void P2PComm::ProcessInNewThreadWhenAccepted(
     ConnectionData* pConnData
         = (struct ConnectionData*)malloc(sizeof(struct ConnectionData));
     pConnData->from = from;
-    pConnData->dispatcher = dispatcher;
-    pConnData->broadcast_list_retriever = broadcast_list_retriever;
+    pConnData->dispatcher
+        = bind(dispatcher, placeholders::_1, placeholders::_2);
+    pConnData->broadcast_list_retriever
+        = bind(broadcast_list_retriever, placeholders::_1, placeholders::_2,
+               placeholders::_3);
 
     //    struct event_base* base = event_base_new();
     struct event* ev = (struct event*)malloc(sizeof(struct event));
     //    pConnData->base = base;
     pConnData->ev = ev;
-    event_set(ev, cli_sock, EV_WRITE, HandleAcceptedConnection, pConnData);
+    event_set(ev, cli_sock, EV_READ | EV_PERSIST, HandleAcceptedConnection,
+              pConnData);
     //    event_base_set(base, ev);
     event_add(ev, nullptr);
-    //    event_base_dispatch(base);
-    //    event_dispatch();
 }
-
+*/
 void P2PComm::ConnectionAccept(int serv_sock, short event, void* arg)
 {
     struct sockaddr_in cli_addr;
     socklen_t cli_len = sizeof(struct sockaddr_in);
-    int cli_sock = accept(serv_sock, (struct sockaddr*)&cli_addr, &cli_len);
 
-    if (cli_sock < 0)
+    try
     {
-        LOG_GENERAL(WARNING,
-                    "Socket accept failed. Socket ret code: "
-                        << cli_sock << ". TCP error code = " << errno
-                        << " Desc: " << std::strerror(errno));
+        int cli_sock = accept(serv_sock, (struct sockaddr*)&cli_addr, &cli_len);
+
+        if (cli_sock < 0)
+        {
+            LOG_GENERAL(WARNING,
+                        "Socket accept failed. Socket ret code: "
+                            << cli_sock << ". TCP error code = " << errno
+                            << " Desc: " << std::strerror(errno));
+            LOG_GENERAL(INFO,
+                        "DEBUG: I can't accept any incoming conn. I am "
+                        "sleeping for "
+                            << PUMPMESSAGE_MILLISECONDS << "ms");
+            free(((ConnectionData*)arg));
+            return;
+        }
+
+        Peer from(uint128_t(cli_addr.sin_addr.s_addr), cli_addr.sin_port);
+
         LOG_GENERAL(INFO,
-                    "DEBUG: I can't accept any incoming conn. I am "
-                    "sleeping for "
-                        << PUMPMESSAGE_MILLISECONDS << "ms");
-        return;
+                    "DEBUG: I got an incoming message from "
+                        << from.GetPrintableIPAddress());
+        /*
+        LOG_GENERAL(INFO, "aa");
+        ConnectionData* pConnData
+            = (struct ConnectionData*)malloc(sizeof(struct ConnectionData));
+        LOG_GENERAL(INFO, "bb");
+        pConnData->from = from;
+        LOG_GENERAL(INFO, "cc");
+        LOG_GENERAL(INFO, (arg ? "not empty" : "empty"));
+        //    pConnData->dispatcher = bind((((ConnectionData*)arg))->dispatcher,
+        //                                 placeholders::_1, placeholders::_2);
+        LOG_GENERAL(INFO, "dd");
+        //    pConnData->broadcast_list_retriever
+        //        = (((struct ConnectionData*)arg))->broadcast_list_retriever;
+        LOG_GENERAL(INFO, "ee");
+
+        //    LOG_GENERAL(INFO, "clark ConnectionAccept" << pConnData->dispatcher);
+        //    LOG_GENERAL(INFO, "clark ConnectionAccept" << pConnData->broadcast_list_retriever);
+        //    struct event_base* base = event_base_new();
+        struct event* ev = (struct event*)malloc(sizeof(struct event));
+        //    ((ConnectionData*)arg)->base = base;
+        LOG_GENERAL(INFO, "ff");
+        pConnData->ev = ev;
+        LOG_GENERAL(INFO, "gg");
+        event_set(ev, cli_sock, EV_READ | EV_PERSIST, HandleAcceptedConnection,
+                  pConnData);
+        LOG_GENERAL(INFO, "hh");
+        //    event_base_set(base, ev);
+        event_add(ev, nullptr);
+        LOG_GENERAL(INFO, "ii");
+        //    event_base_dispatch(base);
+        //    event_dispatch();
+        free(((ConnectionData*)arg));
+    */
+
+        //    P2PComm* mythis = &(P2PComm::GetInstance());
+        function<void(const vector<unsigned char>&, const Peer&)> dispatcher
+            = ((ConnectionData*)arg)->dispatcher;
+        broadcast_list_func broadcast_list_retriever
+            = ((ConnectionData*)arg)->broadcast_list_retriever;
+        auto func
+            = [cli_sock, from, dispatcher, broadcast_list_retriever]() -> void {
+            //            ProcessInNewThreadWhenAccepted(cli_sock, from, dispatcher,
+            HandleAcceptedConnection(cli_sock, from, dispatcher,
+                                     broadcast_list_retriever);
+        };
+
+        P2PComm::GetInstance().m_RecvPool.AddJob(func);
+        free(((ConnectionData*)arg));
     }
-
-    Peer from(uint128_t(cli_addr.sin_addr.s_addr), cli_addr.sin_port);
-
-    LOG_GENERAL(INFO,
-                "DEBUG: I got an incoming message from "
-                    << from.GetPrintableIPAddress());
-
-    ((ConnectionData*)arg)->from = from;
-    //    struct event_base* base = event_base_new();
-    struct event* ev = (struct event*)malloc(sizeof(struct event));
-    //    ((ConnectionData*)arg)->base = base;
-    ((ConnectionData*)arg)->ev = ev;
-    event_set(ev, cli_sock, EV_WRITE, HandleAcceptedConnection, arg);
-    //    event_base_set(base, ev);
-    event_add(ev, nullptr);
-    //    event_base_dispatch(base);
-    //    event_dispatch();
-
-    /*
-    //    P2PComm* mythis = &(P2PComm::GetInstance());
-    function<void(const vector<unsigned char>&, const Peer&)> dispatcher
-        = ((ConnectionData*)arg)->dispatcher;
-    broadcast_list_func broadcast_list_retriever
-        = ((ConnectionData*)arg)->broadcast_list_retriever;
-    auto func
-        = [cli_sock, from, dispatcher, broadcast_list_retriever]() -> void {
-        ProcessInNewThreadWhenAccepted(cli_sock, from, dispatcher,
-                                       broadcast_list_retriever);
-    };
-
-    P2PComm::GetInstance().m_RecvPool.AddJob(func);
-*/
+    catch (const std::exception& e)
+    {
+        LOG_GENERAL(WARNING, "Socket accept error" << ' ' << e.what());
+        free(((ConnectionData*)arg));
+    }
 }
 #endif
 
@@ -726,9 +765,9 @@ void P2PComm::StartMessagePump(
 
     listen(serv_sock, 5000);
 
-#if 0 //clark
-    event_init();
-    //    struct event_base* base = event_base_new();
+#if 1 //clark
+    //    event_init();
+    struct event_base* base = event_base_new();
     struct event ev;
     ConnectionData* pConnData
         = (struct ConnectionData*)malloc(sizeof(struct ConnectionData));
@@ -736,13 +775,13 @@ void P2PComm::StartMessagePump(
     pConnData->broadcast_list_retriever = broadcast_list_retriever;
     event_set(&ev, serv_sock, EV_READ | EV_PERSIST, ConnectionAccept,
               pConnData);
-    //    event_base_set(base, &ev);
+    event_base_set(base, &ev);
     event_add(&ev, nullptr);
-    //    event_base_dispatch(base);
-    event_dispatch();
+    event_base_dispatch(base);
+    //    event_dispatch();
     close(serv_sock);
     event_del(&ev);
-//    event_base_free(base);
+    event_base_free(base);
 #else
     uint32_t cli_len = sizeof(struct sockaddr_in);
     struct sockaddr_in cli_addr;
