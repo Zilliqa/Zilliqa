@@ -32,7 +32,7 @@ VCBlock::VCBlock(const vector<unsigned char>& src, unsigned int offset)
     }
 }
 
-VCBlock::VCBlock(const DSBlockHeader& header,
+VCBlock::VCBlock(const VCBlockHeader& header,
                  const array<unsigned char, BLOCK_SIG_SIZE>& signature1)
     : m_header(header)
     , m_signature1(signature1)
@@ -59,7 +59,7 @@ unsigned int VCBlock::Serialize(vector<unsigned char>& dst,
     return size_needed;
 }
 
-int VSBlock::Deserialize(const vector<unsigned char>& src, unsigned int offset)
+int VCBlock::Deserialize(const vector<unsigned char>& src, unsigned int offset)
 {
 
     try
@@ -73,7 +73,7 @@ int VSBlock::Deserialize(const vector<unsigned char>& src, unsigned int offset)
         m_header = header;
         copy(src.begin() + offset + VCBlockHeader::SIZE,
              src.begin() + offset + VCBlockHeader::SIZE + BLOCK_SIG_SIZE,
-             m_signature.begin());
+             m_signature1.begin());
     }
     catch (const std::exception& e)
     {
@@ -90,32 +90,32 @@ unsigned int VCBlock::GetSerializedSize()
     return size_needed;
 }
 
-const DSBlockHeader& VCBlock::GetHeader() const { return m_header; }
+const VCBlockHeader& VCBlock::GetHeader() const { return m_header; }
 
-const array<unsigned char, BLOCK_SIG_SIZE>& DSBlock::GetSignature1() const
+const array<unsigned char, BLOCK_SIG_SIZE>& VCBlock::GetSignature1() const
 {
     return m_signature1;
 }
 
-const array<unsigned char, BLOCK_SIG_SIZE>& DSBlock::GetSignature2() const
+const array<unsigned char, BLOCK_SIG_SIZE>& VCBlock::GetSignature2() const
 {
     return m_signature2;
 }
 
-void DSBlock::SetSignature1(const vector<unsigned char>& signature1)
+void VCBlock::SetSignature1(const vector<unsigned char>& signature1)
 {
     assert(signature1.size() == BLOCK_SIG_SIZE);
     copy(signature1.begin(), signature1.end(), m_signature1.begin());
 }
 
-void DSBlock::SetSignature2(const vector<unsigned char>& signature2)
+void VCBlock::SetSignature2(const vector<unsigned char>& signature2)
 {
     assert(signature1.size() == BLOCK_SIG_SIZE);
     copy(signature2.begin(), signature2.end(), m_signature2.begin());
 }
 
 // TODO
-bool VCBlock::operator==(const DSBlock& block) const
+bool VCBlock::operator==(const VCBlock& block) const
 {
     // Once cosig_2 and bitmap 1 and 2 is in, update this code
     return ((m_header == block.m_header)
@@ -123,7 +123,7 @@ bool VCBlock::operator==(const DSBlock& block) const
 }
 
 //TODO
-bool VCBlock::operator<(const DSBlock& block) const
+bool VCBlock::operator<(const VCBlock& block) const
 {
     // Once cosig_2 and bitmap 1 and 2 is in, update this code
     if (m_header < block.m_header)
@@ -145,7 +145,7 @@ bool VCBlock::operator<(const DSBlock& block) const
 }
 
 //TODO:
-bool VCBlock::operator>(const DSBlock& block) const
+bool VCBlock::operator>(const VCBlock& block) const
 {
     return !((*this == block) || (*this < block));
 }
