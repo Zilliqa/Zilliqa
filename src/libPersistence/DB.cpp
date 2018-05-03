@@ -30,7 +30,7 @@ DB::DB(const string& name)
         = leveldb::DB::Open(options, this->m_db_name, &this->m_db);
     if (!status.ok())
     {
-        LOG_MESSAGE("ERROR: Cannot init DB.");
+        LOG_GENERAL(WARNING, "Cannot init DB.");
         // throw exception();
     }
 }
@@ -85,7 +85,7 @@ int DB::DeleteDB()
     leveldb::Status s = leveldb::DestroyDB(this->m_db_name, leveldb::Options());
     if (!s.ok())
     {
-        LOG_MESSAGE("Status: " << s.ToString());
+        LOG_GENERAL(INFO, "Status: " << s.ToString());
         return -1;
     }
     else

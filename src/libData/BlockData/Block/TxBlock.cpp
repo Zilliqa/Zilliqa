@@ -14,6 +14,8 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
+#include <utility>
+
 #include "TxBlock.h"
 #include "libUtils/Logger.h"
 
@@ -35,9 +37,7 @@ unsigned int TxBlock::Serialize(vector<unsigned char>& dst,
 {
     assert(m_header.GetNumMicroBlockHashes() == m_microBlockHashes.size());
 
-    unsigned int header_size_needed = TxBlockHeader::SIZE;
-    unsigned int size_needed = header_size_needed + BLOCK_SIG_SIZE
-        + sizeof(uint32_t) + m_header.GetNumMicroBlockHashes() * TRAN_HASH_SIZE;
+    unsigned int size_needed = GetSerializedSize();
     unsigned int size_remaining = dst.size() - offset;
 
     if (size_remaining < size_needed)
@@ -47,10 +47,7 @@ unsigned int TxBlock::Serialize(vector<unsigned char>& dst,
 
     m_header.Serialize(dst, offset);
 
-    unsigned int curOffset = offset + header_size_needed;
-
-    copy(m_headerSig.begin(), m_headerSig.end(), dst.begin() + curOffset);
-    curOffset += BLOCK_SIG_SIZE;
+    unsigned int curOffset = offset + TxBlockHeader::SIZE;
 
     SetNumber<uint32_t>(dst, curOffset, SerializeIsMicroBlockEmpty(),
                         sizeof(uint32_t));
@@ -63,6 +60,8 @@ unsigned int TxBlock::Serialize(vector<unsigned char>& dst,
              dst.begin() + curOffset);
         curOffset += TRAN_HASH_SIZE;
     }
+
+    BlockBase::Serialize(dst, curOffset);
 
     return size_needed;
 }
@@ -82,22 +81,15 @@ int TxBlock::Deserialize(const vector<unsigned char>& src, unsigned int offset)
 {
     try
     {
-        unsigned int header_size_needed = TxBlockHeader::SIZE;
-
-        // TxBlockHeader header(src, offset);
         TxBlockHeader header;
         if (header.Deserialize(src, offset) != 0)
         {
-            LOG_MESSAGE("Error. We failed to deserialize header.");
+            LOG_GENERAL(WARNING, "We failed to deserialize header.");
             return -1;
         }
         m_header = header;
 
-        unsigned int curOffset = offset + header_size_needed;
-
-        copy(src.begin() + curOffset, src.begin() + curOffset + BLOCK_SIG_SIZE,
-             m_headerSig.begin());
-        curOffset += BLOCK_SIG_SIZE;
+        unsigned int curOffset = offset + TxBlockHeader::SIZE;
 
         m_isMicroBlockEmpty = DeserializeIsMicroBlockEmpty(
             GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t)));
@@ -113,11 +105,13 @@ int TxBlock::Deserialize(const vector<unsigned char>& src, unsigned int offset)
             m_microBlockHashes.push_back(microBlockHash);
         }
         assert(m_header.GetNumMicroBlockHashes() == m_microBlockHashes.size());
+
+        BlockBase::Deserialize(src, curOffset);
     }
     catch (const std::exception& e)
     {
-        LOG_MESSAGE("ERROR: Error with TxBlock::Deserialize." << ' '
-                                                              << e.what());
+        LOG_GENERAL(WARNING,
+                    "Error with TxBlock::Deserialize." << ' ' << e.what());
         return -1;
     }
     return 0;
@@ -125,19 +119,13 @@ int TxBlock::Deserialize(const vector<unsigned char>& src, unsigned int offset)
 
 unsigned int TxBlock::GetSerializedSize() const
 {
-    unsigned int header_size_needed = TxBlockHeader::SIZE;
-    unsigned int block_size_needed = BLOCK_SIG_SIZE + sizeof(uint32_t)
-        + (m_microBlockHashes.size() * TRAN_HASH_SIZE);
-
-    return header_size_needed + block_size_needed;
+    return TxBlockHeader::SIZE + sizeof(uint32_t)
+        + (m_microBlockHashes.size() * TRAN_HASH_SIZE)
+        + BlockBase::GetSerializedSize();
+    ;
 }
 
-unsigned int TxBlock::GetMinSize()
-{
-    unsigned int header_size_needed = TxBlockHeader::SIZE;
-
-    return header_size_needed;
-}
+unsigned int TxBlock::GetMinSize() { return TxBlockHeader::SIZE; }
 
 // creates a dummy invalid placeholder block -- blocknum is maxsize of uint256
 TxBlock::TxBlock() {}
@@ -146,28 +134,32 @@ TxBlock::TxBlock(const vector<unsigned char>& src, unsigned int offset)
 {
     if (Deserialize(src, offset) != 0)
     {
-        LOG_MESSAGE("Error. We failed to init TxBlock.");
+        LOG_GENERAL(WARNING, "We failed to init TxBlock.");
     }
 }
 
-TxBlock::TxBlock(const TxBlockHeader& header,
-                 const array<unsigned char, BLOCK_SIG_SIZE>& signature,
-                 const vector<bool>& isMicroBlockEmpty,
-                 const vector<TxnHash>& microBlockTxHashes)
-    : m_header(header)
-    , m_headerSig(signature)
+TxBlock::TxBlock(TxBlockHeader&& header, vector<bool>&& isMicroBlockEmpty,
+                 vector<TxnHash>&& microBlockTxHashes, CoSignatures&& cosigs)
+    : m_header(move(header))
+    , m_isMicroBlockEmpty(move(isMicroBlockEmpty))
+    , m_microBlockHashes(move(microBlockTxHashes))
+{
+    assert(m_header.GetNumMicroBlockHashes() == m_microBlockHashes.size());
+    m_cosigs = move(cosigs);
+}
+
+TxBlock::TxBlock(TxBlockHeader&& header, const vector<bool>& isMicroBlockEmpty,
+                 const vector<TxnHash>& microBlockTxHashes,
+                 CoSignatures&& cosigs)
+    : m_header(move(header))
     , m_isMicroBlockEmpty(isMicroBlockEmpty)
     , m_microBlockHashes(microBlockTxHashes)
 {
     assert(m_header.GetNumMicroBlockHashes() == m_microBlockHashes.size());
+    m_cosigs = move(cosigs);
 }
 
 const TxBlockHeader& TxBlock::GetHeader() const { return m_header; }
-
-const array<unsigned char, BLOCK_SIG_SIZE>& TxBlock::GetHeaderSig() const
-{
-    return m_headerSig;
-}
 
 const std::vector<bool>& TxBlock::GetIsMicroBlockEmpty() const
 {
@@ -181,7 +173,7 @@ const vector<TxnHash>& TxBlock::GetMicroBlockHashes() const
 
 bool TxBlock::operator==(const TxBlock& block) const
 {
-    return ((m_header == block.m_header) && (m_headerSig == block.m_headerSig)
+    return ((m_header == block.m_header)
             && (m_microBlockHashes == block.m_microBlockHashes));
 }
 
@@ -192,14 +184,6 @@ bool TxBlock::operator<(const TxBlock& block) const
         return true;
     }
     else if (m_header > block.m_header)
-    {
-        return false;
-    }
-    else if (m_headerSig < block.m_headerSig)
-    {
-        return true;
-    }
-    else if (m_headerSig > block.m_headerSig)
     {
         return false;
     }

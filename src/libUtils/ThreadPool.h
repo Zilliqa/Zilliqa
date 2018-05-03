@@ -84,7 +84,8 @@ public:
 
         if (_jobsLeft % 100 == 0)
         {
-            LOG_MESSAGE("PoolName: " << poolName << " JobLeft: " << _jobsLeft
+            LOG_GENERAL(INFO,
+                        "PoolName: " << poolName << " JobLeft: " << _jobsLeft
                                      << '\n');
         }
     }
@@ -117,8 +118,9 @@ public:
             }
             catch (const std::system_error& e)
             {
-                LOG_MESSAGE("Error: Caught system_error with code "
-                            << e.code() << " meaning " << e.what() << '\n');
+                LOG_GENERAL(WARNING,
+                            "Caught system_error with code "
+                                << e.code() << " meaning " << e.what() << '\n');
             }
         }
     }

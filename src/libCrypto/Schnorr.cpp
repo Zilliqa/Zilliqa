@@ -40,20 +40,20 @@ Curve::Curve()
 {
     if (m_order == nullptr)
     {
-        LOG_MESSAGE("Error: Curve order setup failed");
+        LOG_GENERAL(WARNING, "Curve order setup failed");
         // throw exception();
     }
 
     if (m_group == nullptr)
     {
-        LOG_MESSAGE("Error: Curve group setup failed");
+        LOG_GENERAL(WARNING, "Curve group setup failed");
         // throw exception();
     }
 
     // Get group order
     if (!EC_GROUP_get_order(m_group.get(), m_order.get(), NULL))
     {
-        LOG_MESSAGE("Error: Recover curve order failed");
+        LOG_GENERAL(WARNING, "Recover curve order failed");
         // throw exception();
     }
 }
@@ -77,9 +77,10 @@ shared_ptr<BIGNUM> BIGNUMSerialize::GetNumber(const vector<unsigned char>& src,
     }
     else
     {
-        LOG_MESSAGE("Error: Unable to get BIGNUM of size "
-                    << size << " from stream with available size "
-                    << src.size() - offset);
+        LOG_GENERAL(WARNING,
+                    "Unable to get BIGNUM of size "
+                        << size << " from stream with available size "
+                        << src.size() - offset);
     }
 
     return nullptr;
@@ -93,7 +94,7 @@ void BIGNUMSerialize::SetNumber(vector<unsigned char>& dst, unsigned int offset,
 
     const int actual_bn_size = BN_num_bytes(value.get());
 
-    if (actual_bn_size > 0)
+    //if (actual_bn_size > 0)
     {
         if (actual_bn_size <= static_cast<int>(size))
         {
@@ -112,21 +113,22 @@ void BIGNUMSerialize::SetNumber(vector<unsigned char>& dst, unsigned int offset,
             if (BN_bn2bin(value.get(), dst.data() + offset + size_diff)
                 != actual_bn_size)
             {
-                LOG_MESSAGE("Error: Unexpected serialized size");
+                LOG_GENERAL(WARNING, "Unexpected serialized size");
             }
         }
         else
         {
-            LOG_MESSAGE("Error: BIGNUM size ("
-                        << actual_bn_size
-                        << ") exceeds requested serialize size (" << size
-                        << ")");
+            LOG_GENERAL(WARNING,
+                        "BIGNUM size ("
+                            << actual_bn_size
+                            << ") exceeds requested serialize size (" << size
+                            << ")");
         }
     }
-    else
-    {
-        LOG_MESSAGE("Error: Zero-sized BIGNUM");
-    }
+    // else
+    // {
+    //     LOG_MESSAGE("Error: Zero-sized BIGNUM");
+    // }
 }
 
 shared_ptr<EC_POINT>
@@ -141,7 +143,7 @@ ECPOINTSerialize::GetNumber(const vector<unsigned char>& src,
         unique_ptr<BN_CTX, void (*)(BN_CTX*)> ctx(BN_CTX_new(), BN_CTX_free);
         if (ctx == nullptr)
         {
-            LOG_MESSAGE("Error: Memory allocation failure");
+            LOG_GENERAL(WARNING, "Memory allocation failure");
             // throw exception();
         }
 
@@ -167,7 +169,7 @@ void ECPOINTSerialize::SetNumber(vector<unsigned char>& dst,
         unique_ptr<BN_CTX, void (*)(BN_CTX*)> ctx(BN_CTX_new(), BN_CTX_free);
         if (ctx == nullptr)
         {
-            LOG_MESSAGE("Error: Memory allocation failure");
+            LOG_GENERAL(WARNING, "Memory allocation failure");
             // throw exception();
         }
 
@@ -178,7 +180,7 @@ void ECPOINTSerialize::SetNumber(vector<unsigned char>& dst,
             BN_clear_free);
         if (bnvalue == nullptr)
         {
-            LOG_MESSAGE("Error: Memory allocation failure");
+            LOG_GENERAL(WARNING, "Memory allocation failure");
             // throw exception();
         }
     }
@@ -203,7 +205,7 @@ PrivKey::PrivKey()
         {
             if (!BN_rand(m_d.get(), BN_num_bits(curve.m_order.get()), -1, 0))
             {
-                LOG_MESSAGE("Error: Private key generation failed");
+                LOG_GENERAL(WARNING, "Private key generation failed");
                 m_initialized = false;
                 break;
             }
@@ -212,7 +214,7 @@ PrivKey::PrivKey()
     }
     else
     {
-        LOG_MESSAGE("Error: Memory allocation failure");
+        LOG_GENERAL(WARNING, "Memory allocation failure");
         // throw exception();
     }
 }
@@ -221,7 +223,7 @@ PrivKey::PrivKey(const vector<unsigned char>& src, unsigned int offset)
 {
     if (Deserialize(src, offset) != 0)
     {
-        LOG_MESSAGE("Error. We failed to init PrivKey.");
+        LOG_GENERAL(WARNING, "We failed to init PrivKey.");
     }
 }
 
@@ -233,7 +235,7 @@ PrivKey::PrivKey(const PrivKey& src)
     {
         if (BN_copy(m_d.get(), src.m_d.get()) == NULL)
         {
-            LOG_MESSAGE("Error: PrivKey copy failed");
+            LOG_GENERAL(WARNING, "PrivKey copy failed");
         }
         else
         {
@@ -242,7 +244,7 @@ PrivKey::PrivKey(const PrivKey& src)
     }
     else
     {
-        LOG_MESSAGE("Error: Memory allocation failure");
+        LOG_GENERAL(WARNING, "Memory allocation failure");
         // throw exception();
     }
 }
@@ -273,7 +275,7 @@ int PrivKey::Deserialize(const vector<unsigned char>& src, unsigned int offset)
         m_d = BIGNUMSerialize::GetNumber(src, offset, PRIV_KEY_SIZE);
         if (m_d == nullptr)
         {
-            LOG_MESSAGE("Error: Deserialization failure");
+            LOG_GENERAL(WARNING, "Deserialization failure");
             m_initialized = false;
         }
         else
@@ -283,8 +285,8 @@ int PrivKey::Deserialize(const vector<unsigned char>& src, unsigned int offset)
     }
     catch (const std::exception& e)
     {
-        LOG_MESSAGE("ERROR: Error with PrivKey::Deserialize." << ' '
-                                                              << e.what());
+        LOG_GENERAL(WARNING,
+                    "Error with PrivKey::Deserialize." << ' ' << e.what());
         return -1;
     }
     return 0;
@@ -309,7 +311,7 @@ PubKey::PubKey()
 {
     if (m_P == nullptr)
     {
-        LOG_MESSAGE("Error: Memory allocation failure");
+        LOG_GENERAL(WARNING, "Memory allocation failure");
         // throw exception();
     }
 }
@@ -321,12 +323,12 @@ PubKey::PubKey(const PrivKey& privkey)
 {
     if (m_P == nullptr)
     {
-        LOG_MESSAGE("Error: Memory allocation failure");
+        LOG_GENERAL(WARNING, "Memory allocation failure");
         // throw exception();
     }
     else if (!privkey.Initialized())
     {
-        LOG_MESSAGE("Error: Private key is not initialized");
+        LOG_GENERAL(WARNING, "Private key is not initialized");
     }
     else
     {
@@ -335,7 +337,8 @@ PubKey::PubKey(const PrivKey& privkey)
         if (BN_is_zero(privkey.m_d.get()) || BN_is_one(privkey.m_d.get())
             || (BN_cmp(privkey.m_d.get(), curve.m_order.get()) != -1))
         {
-            LOG_MESSAGE("Error: Input private key is weak. Public key "
+            LOG_GENERAL(WARNING,
+                        "Input private key is weak. Public key "
                         "generation failed");
             return;
         }
@@ -344,7 +347,7 @@ PubKey::PubKey(const PrivKey& privkey)
                          NULL, NULL, NULL)
             == 0)
         {
-            LOG_MESSAGE("Error: Public key generation failed");
+            LOG_GENERAL(WARNING, "Public key generation failed");
             return;
         }
 
@@ -356,7 +359,7 @@ PubKey::PubKey(const vector<unsigned char>& src, unsigned int offset)
 {
     if (Deserialize(src, offset) != 0)
     {
-        LOG_MESSAGE("Error. We failed to init PubKey.");
+        LOG_GENERAL(WARNING, "We failed to init PubKey.");
     }
 }
 
@@ -367,19 +370,19 @@ PubKey::PubKey(const PubKey& src)
 {
     if (m_P == nullptr)
     {
-        LOG_MESSAGE("Error: Memory allocation failure");
+        LOG_GENERAL(WARNING, "Memory allocation failure");
         // throw exception();
     }
     else if (src.m_P == nullptr)
     {
-        LOG_MESSAGE("Error: src (ec point) is null in pub key construct.");
+        LOG_GENERAL(WARNING, "src (ec point) is null in pub key construct.");
         // throw exception();
     }
     else
     {
         if (EC_POINT_copy(m_P.get(), src.m_P.get()) != 1)
         {
-            LOG_MESSAGE("Error: PubKey copy failed");
+            LOG_GENERAL(WARNING, "PubKey copy failed");
         }
         else
         {
@@ -412,7 +415,7 @@ int PubKey::Deserialize(const vector<unsigned char>& src, unsigned int offset)
         m_P = ECPOINTSerialize::GetNumber(src, offset, PUB_KEY_SIZE);
         if (m_P == nullptr)
         {
-            LOG_MESSAGE("Error: Deserialization failure");
+            LOG_GENERAL(WARNING, "Deserialization failure");
             m_initialized = false;
         }
         else
@@ -422,8 +425,8 @@ int PubKey::Deserialize(const vector<unsigned char>& src, unsigned int offset)
     }
     catch (const std::exception& e)
     {
-        LOG_MESSAGE("ERROR: Error with PubKey::Deserialize." << ' '
-                                                             << e.what());
+        LOG_GENERAL(WARNING,
+                    "Error with PubKey::Deserialize." << ' ' << e.what());
         return -1;
     }
     return 0;
@@ -440,7 +443,7 @@ bool PubKey::operator<(const PubKey& r) const
     unique_ptr<BN_CTX, void (*)(BN_CTX*)> ctx(BN_CTX_new(), BN_CTX_free);
     if (ctx == nullptr)
     {
-        LOG_MESSAGE("Error: Memory allocation failure");
+        LOG_GENERAL(WARNING, "Memory allocation failure");
         // throw exception();
         return false;
     }
@@ -465,7 +468,7 @@ bool PubKey::operator>(const PubKey& r) const
     unique_ptr<BN_CTX, void (*)(BN_CTX*)> ctx(BN_CTX_new(), BN_CTX_free);
     if (ctx == nullptr)
     {
-        LOG_MESSAGE("Error: Memory allocation failure");
+        LOG_GENERAL(WARNING, "Memory allocation failure");
         // throw exception();
         return false;
     }
@@ -490,7 +493,7 @@ bool PubKey::operator==(const PubKey& r) const
     unique_ptr<BN_CTX, void (*)(BN_CTX*)> ctx(BN_CTX_new(), BN_CTX_free);
     if (ctx == nullptr)
     {
-        LOG_MESSAGE("Error: Memory allocation failure");
+        LOG_GENERAL(WARNING, "Memory allocation failure");
         // throw exception();
         return false;
     }
@@ -508,7 +511,7 @@ Signature::Signature()
 {
     if ((m_r == nullptr) || (m_s == nullptr))
     {
-        LOG_MESSAGE("Error: Memory allocation failure");
+        LOG_GENERAL(WARNING, "Memory allocation failure");
         // throw exception();
     }
     m_initialized = true;
@@ -519,7 +522,7 @@ Signature::Signature(const vector<unsigned char>& src, unsigned int offset)
 
     if (Deserialize(src, offset) != 0)
     {
-        LOG_MESSAGE("Error. We failed to init Signature.");
+        LOG_GENERAL(WARNING, "We failed to init Signature.");
     }
 }
 
@@ -534,19 +537,19 @@ Signature::Signature(const Signature& src)
 
         if (BN_copy(m_r.get(), src.m_r.get()) == NULL)
         {
-            LOG_MESSAGE("Error: Signature challenge copy failed");
+            LOG_GENERAL(WARNING, "Signature challenge copy failed");
             m_initialized = false;
         }
 
         if (BN_copy(m_s.get(), src.m_s.get()) == NULL)
         {
-            LOG_MESSAGE("Error: Signature response copy failed");
+            LOG_GENERAL(WARNING, "Signature response copy failed");
             m_initialized = false;
         }
     }
     else
     {
-        LOG_MESSAGE("Error: Memory allocation failure");
+        LOG_GENERAL(WARNING, "Memory allocation failure");
         // throw exception();
     }
 }
@@ -580,7 +583,7 @@ int Signature::Deserialize(const vector<unsigned char>& src,
         m_r = BIGNUMSerialize::GetNumber(src, offset, SIGNATURE_CHALLENGE_SIZE);
         if (m_r == nullptr)
         {
-            LOG_MESSAGE("Error: Deserialization failure");
+            LOG_GENERAL(WARNING, "Deserialization failure");
             m_initialized = false;
         }
         else
@@ -590,7 +593,7 @@ int Signature::Deserialize(const vector<unsigned char>& src,
                                              SIGNATURE_RESPONSE_SIZE);
             if (m_s == nullptr)
             {
-                LOG_MESSAGE("Error: Deserialization failure");
+                LOG_GENERAL(WARNING, "Deserialization failure");
                 m_initialized = false;
             }
             else
@@ -601,8 +604,8 @@ int Signature::Deserialize(const vector<unsigned char>& src,
     }
     catch (const std::exception& e)
     {
-        LOG_MESSAGE("ERROR: Error with Signature::Deserialize." << ' '
-                                                                << e.what());
+        LOG_GENERAL(WARNING,
+                    "Error with Signature::Deserialize." << ' ' << e.what());
         return -1;
     }
     return 0;
@@ -662,31 +665,31 @@ bool Schnorr::Sign(const vector<unsigned char>& message, unsigned int offset,
 
     if (message.size() == 0)
     {
-        LOG_MESSAGE("Error: Empty message");
+        LOG_GENERAL(WARNING, "Empty message");
         return false;
     }
 
     if (message.size() < (offset + size))
     {
-        LOG_MESSAGE("Error: Offset and size beyond message size");
+        LOG_GENERAL(WARNING, "Offset and size beyond message size");
         return false;
     }
 
     if (!privkey.Initialized())
     {
-        LOG_MESSAGE("Error: Private key not initialized");
+        LOG_GENERAL(WARNING, "Private key not initialized");
         return false;
     }
 
     if (!pubkey.Initialized())
     {
-        LOG_MESSAGE("Error: Public key not initialized");
+        LOG_GENERAL(WARNING, "Public key not initialized");
         return false;
     }
 
     if (!result.Initialized())
     {
-        LOG_MESSAGE("Error: Signature not initialized");
+        LOG_GENERAL(WARNING, "Signature not initialized");
         return false;
     }
 
@@ -728,7 +731,7 @@ bool Schnorr::Sign(const vector<unsigned char>& message, unsigned int offset,
                        == 0);
                 if (err)
                 {
-                    LOG_MESSAGE("Error: Random generation failed");
+                    LOG_GENERAL(WARNING, "Random generation failed");
                     return false;
                 }
             } while ((BN_is_zero(k.get()))
@@ -740,7 +743,7 @@ bool Schnorr::Sign(const vector<unsigned char>& message, unsigned int offset,
                    == 0);
             if (err)
             {
-                LOG_MESSAGE("Error: Commit generation failed");
+                LOG_GENERAL(WARNING, "Commit generation failed");
                 return false;
             }
 
@@ -753,7 +756,7 @@ bool Schnorr::Sign(const vector<unsigned char>& message, unsigned int offset,
                    != PUBKEY_COMPRESSED_SIZE_BYTES);
             if (err)
             {
-                LOG_MESSAGE("Error: Commit octet conversion failed");
+                LOG_GENERAL(WARNING, "Commit octet conversion failed");
                 return false;
             }
 
@@ -770,7 +773,7 @@ bool Schnorr::Sign(const vector<unsigned char>& message, unsigned int offset,
                    != PUBKEY_COMPRESSED_SIZE_BYTES);
             if (err)
             {
-                LOG_MESSAGE("Error: Pubkey octet conversion failed");
+                LOG_GENERAL(WARNING, "Pubkey octet conversion failed");
                 return false;
             }
 
@@ -786,7 +789,7 @@ bool Schnorr::Sign(const vector<unsigned char>& message, unsigned int offset,
                    == NULL);
             if (err)
             {
-                LOG_MESSAGE("Error: Digest to challenge failed");
+                LOG_GENERAL(WARNING, "Digest to challenge failed");
                 return false;
             }
 
@@ -795,7 +798,7 @@ bool Schnorr::Sign(const vector<unsigned char>& message, unsigned int offset,
                    == 0);
             if (err)
             {
-                LOG_MESSAGE("Error: BIGNUM NNmod failed");
+                LOG_GENERAL(WARNING, "BIGNUM NNmod failed");
                 return false;
             }
 
@@ -807,7 +810,7 @@ bool Schnorr::Sign(const vector<unsigned char>& message, unsigned int offset,
                    == 0);
             if (err)
             {
-                LOG_MESSAGE("Error: Response mod mul failed");
+                LOG_GENERAL(WARNING, "Response mod mul failed");
                 return false;
             }
 
@@ -817,7 +820,7 @@ bool Schnorr::Sign(const vector<unsigned char>& message, unsigned int offset,
                    == 0);
             if (err)
             {
-                LOG_MESSAGE("Error: BIGNUM mod sub failed");
+                LOG_GENERAL(WARNING, "BIGNUM mod sub failed");
                 return false;
             }
 
@@ -835,7 +838,7 @@ bool Schnorr::Sign(const vector<unsigned char>& message, unsigned int offset,
     }
     else
     {
-        LOG_MESSAGE("Error: Memory allocation failure");
+        LOG_GENERAL(WARNING, "Memory allocation failure");
         return false;
         // throw exception();
     }
@@ -860,25 +863,25 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
 
     if (message.size() == 0)
     {
-        LOG_MESSAGE("Error: Empty message");
+        LOG_GENERAL(WARNING, "Empty message");
         return false;
     }
 
     if (message.size() < (offset + size))
     {
-        LOG_MESSAGE("Error: Offset and size beyond message size");
+        LOG_GENERAL(WARNING, "Offset and size beyond message size");
         return false;
     }
 
     if (!pubkey.Initialized())
     {
-        LOG_MESSAGE("Error: Public key not initialized");
+        LOG_GENERAL(WARNING, "Public key not initialized");
         return false;
     }
 
     if (!toverify.Initialized())
     {
-        LOG_MESSAGE("Error: Signature not initialized");
+        LOG_GENERAL(WARNING, "Signature not initialized");
         return false;
     }
 
@@ -915,7 +918,7 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
             err = err || err2;
             if (err2)
             {
-                LOG_MESSAGE("Error: Challenge not in range");
+                LOG_GENERAL(WARNING, "Challenge not in range");
                 return false;
             }
 
@@ -925,7 +928,7 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
             err = err || err2;
             if (err2)
             {
-                LOG_MESSAGE("Error: Response not in range");
+                LOG_GENERAL(WARNING, "Response not in range");
                 return false;
             }
 
@@ -937,7 +940,7 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
             err = err || err2;
             if (err2)
             {
-                LOG_MESSAGE("Error: Commit regenerate failed");
+                LOG_GENERAL(WARNING, "Commit regenerate failed");
                 return false;
             }
 
@@ -946,7 +949,7 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
             err = err || err2;
             if (err2)
             {
-                LOG_MESSAGE("Error: Commit at infinity");
+                LOG_GENERAL(WARNING, "Commit at infinity");
                 return false;
             }
 
@@ -959,7 +962,7 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
             err = err || err2;
             if (err2)
             {
-                LOG_MESSAGE("Error: Commit octet conversion failed");
+                LOG_GENERAL(WARNING, "Commit octet conversion failed");
                 return false;
             }
 
@@ -977,7 +980,7 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
             err = err || err2;
             if (err2)
             {
-                LOG_MESSAGE("Error: Pubkey octet conversion failed");
+                LOG_GENERAL(WARNING, "Pubkey octet conversion failed");
                 return false;
             }
 
@@ -995,7 +998,7 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
             err = err || err2;
             if (err2)
             {
-                LOG_MESSAGE("Error: Challenge bin2bn conversion failed");
+                LOG_GENERAL(WARNING, "Challenge bin2bn conversion failed");
                 return false;
             }
 
@@ -1005,7 +1008,7 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
             err = err || err2;
             if (err2)
             {
-                LOG_MESSAGE("Error: Challenge rebuild mod failed");
+                LOG_GENERAL(WARNING, "Challenge rebuild mod failed");
                 return false;
             }
 
@@ -1013,7 +1016,7 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
         }
         else
         {
-            LOG_MESSAGE("Error: Memory allocation failure");
+            LOG_GENERAL(WARNING, "Memory allocation failure");
             // throw exception();
             return false;
         }
@@ -1022,7 +1025,7 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
     }
     catch (const std::exception& e)
     {
-        LOG_MESSAGE("ERROR: Error with Schnorr::Verify." << ' ' << e.what());
+        LOG_GENERAL(WARNING, "Error with Schnorr::Verify." << ' ' << e.what());
         return false;
     }
 }
@@ -1046,8 +1049,8 @@ void Schnorr::PrintPoint(const EC_POINT* point)
 
             if ((x_str != nullptr) && (y_str != nullptr))
             {
-                LOG_MESSAGE("x: " << x_str.get());
-                LOG_MESSAGE("y: " << y_str.get());
+                LOG_GENERAL(INFO, "x: " << x_str.get());
+                LOG_GENERAL(INFO, "y: " << y_str.get());
             }
         }
     }

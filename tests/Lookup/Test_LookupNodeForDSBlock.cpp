@@ -63,19 +63,11 @@ BOOST_AUTO_TEST_CASE(testDSBlockStoring)
         prevHash1.asArray().at(i) = i + 1;
     }
 
-    std::array<unsigned char, BLOCK_SIG_SIZE> signature1;
-
-    for (unsigned int i = 0; i < signature1.size(); i++)
-    {
-        signature1.at(i) = i + 8;
-    }
-
     std::pair<PrivKey, PubKey> pubKey1 = Schnorr::GetInstance().GenKeyPair();
 
-    DSBlockHeader header1(20, prevHash1, 12344, pubKey1.first, pubKey1.second,
-                          0, 789, 0);
-
-    DSBlock dsblock(header1, signature1);
+    DSBlock dsblock(DSBlockHeader(20, prevHash1, 12344, pubKey1.first,
+                                  pubKey1.second, 0, 789, 0),
+                    CoSignatures());
 
     curr_offset += dsblock.Serialize(dsblockmsg, curr_offset);
 
@@ -112,7 +104,7 @@ BOOST_AUTO_TEST_CASE(testDSBlockRetrieval)
     {
         ;
     }
-    LOG_MESSAGE(i);
+    LOG_GENERAL(INFO, i);
 
     uint32_t listen_port = 5000;
     struct in_addr ip_addr;

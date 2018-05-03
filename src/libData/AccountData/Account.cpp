@@ -17,7 +17,7 @@ Account::Account(const vector<unsigned char>& src, unsigned int offset)
 {
     if (Deserialize(src, offset) != 0)
     {
-        LOG_MESSAGE("Error. We failed to init Account.");
+        LOG_GENERAL(WARNING, "We failed to init Account.");
     }
 }
 
@@ -63,8 +63,8 @@ int Account::Deserialize(const vector<unsigned char>& src, unsigned int offset)
     }
     catch (const std::exception& e)
     {
-        LOG_MESSAGE("ERROR: Error with Account::Deserialize." << ' '
-                                                              << e.what());
+        LOG_GENERAL(WARNING,
+                    "Error with Account::Deserialize." << ' ' << e.what());
         return -1;
     }
     return 0;

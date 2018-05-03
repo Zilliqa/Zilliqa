@@ -55,27 +55,11 @@ TxBlock constructDummyTxBlock(int instanceNum)
 
     std::pair<PrivKey, PubKey> pubKey1 = Schnorr::GetInstance().GenKeyPair();
 
-    TxBlockHeader header(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1, 1,
-                         BlockHash(), instanceNum, get_time_as_int(), TxnHash(),
-                         StateHash(), 5, 6, pubKey1.second, instanceNum,
-                         BlockHash(), 0);
-    array<unsigned char, BLOCK_SIG_SIZE> emptySig{};
-
-    std::vector<TxnHash> tranHashes;
-
-    for (int i = 0; i < 5; i++)
-    {
-        tranHashes.push_back(TxnHash());
-    }
-
-    vector<TxnHash> microBlockHashes;
-
-    for (int i = 0; i < 6; i++)
-    {
-        microBlockHashes.push_back(TxnHash());
-    }
-
-    return TxBlock(header, emptySig, vector<bool>(), microBlockHashes);
+    return TxBlock(TxBlockHeader(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1,
+                                 1, BlockHash(), instanceNum, get_time_as_int(),
+                                 TxnHash(), StateHash(), 5, 6, pubKey1.second,
+                                 instanceNum, BlockHash(), 0),
+                   vector<bool>(), vector<TxnHash>(6), CoSignatures());
 }
 
 BOOST_AUTO_TEST_CASE(testSerializationDeserialization)
@@ -221,13 +205,15 @@ void readBlock(int id)
     BlockStorage::GetBlockStorage().GetTxBlock(id, block);
     if ((*block).GetHeader().GetBlockNum() != id)
     {
-        LOG_MESSAGE("GetBlockNum is " << (*block).GetHeader().GetBlockNum()
+        LOG_GENERAL(INFO,
+                    "GetBlockNum is " << (*block).GetHeader().GetBlockNum()
                                       << ", id is " << id);
         assert((*block).GetHeader().GetBlockNum() == id);
     }
     else
     {
-        LOG_MESSAGE("GetBlockNum is " << (*block).GetHeader().GetBlockNum()
+        LOG_GENERAL(INFO,
+                    "GetBlockNum is " << (*block).GetHeader().GetBlockNum()
                                       << ", id is " << id);
     }
 }
@@ -257,7 +243,7 @@ void bootstrap(int num_threads)
         }
     }
 
-    LOG_MESSAGE("Bootstrapping done!!");
+    LOG_GENERAL(INFO, "Bootstrapping done!!");
 }
 
 BOOST_AUTO_TEST_CASE(testThreadSafety)
@@ -353,7 +339,7 @@ BOOST_AUTO_TEST_CASE(testRetrieveAllTheTxBlocksInDB)
             "GetAllDSBlocks shouldn't fail");
         for (auto i : ref_blocks)
         {
-            LOG_MESSAGE(i->GetHeader().GetDSBlockNum());
+            LOG_GENERAL(INFO, i->GetHeader().GetDSBlockNum());
             out_blocks.push_back(*i);
         }
         BOOST_CHECK_MESSAGE(

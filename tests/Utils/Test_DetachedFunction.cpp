@@ -34,7 +34,7 @@ void test2(shared_ptr<vector<string>> s)
     LOG_MARKER();
 
     lock_guard<mutex> guard(m);
-    LOG_MESSAGE(s->back().c_str());
+    LOG_GENERAL(INFO, s->back().c_str());
     s->pop_back();
 }
 

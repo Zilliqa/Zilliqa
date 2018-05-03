@@ -86,7 +86,7 @@ class Node : public Executable, public Broadcastable
 
     Synchronizer m_synchronizer;
 
-    std::shared_timed_mutex m_mutexProducerConsumer;
+    // std::shared_timed_mutex m_mutexProducerConsumer;
     std::mutex m_mutexConsensus;
 
     // Sharding information
@@ -102,7 +102,10 @@ class Node : public Executable, public Broadcastable
 
     // Consensus variables
     std::shared_ptr<ConsensusCommon> m_consensusObject;
-
+    std::mutex m_MutexCVMicroblockConsensus;
+    std::condition_variable cv_microblockConsensus;
+    std::mutex m_MutexCVMicroblockConsensusObject;
+    std::condition_variable cv_microblockConsensusObject;
     // Persistence Retriever
     std::shared_ptr<Retriever> m_retriever;
 
@@ -148,8 +151,9 @@ class Node : public Executable, public Broadcastable
         m_forwardingAssignment;
 
     bool CheckState(Action action);
-    void Init();
-    void Prepare(bool runInitializeGenesisBlocks);
+
+    // To block certain types of incoming message for certain states
+    bool ToBlockMessage(unsigned char ins_byte);
 
 #ifndef IS_LOOKUP_NODE
     // internal calls from ProcessStartPoW1
@@ -280,6 +284,8 @@ class Node : public Executable, public Broadcastable
 
     bool CheckWhetherDSBlockNumIsLatest(
         const boost::multiprecision::uint256_t dsblock_num);
+    bool VerifyDSBlockCoSignature(const DSBlock& dsblock);
+    bool VerifyFinalBlockCoSignature(const TxBlock& txblock);
     bool CheckStateRoot(const TxBlock& finalblock);
 
 #ifndef IS_LOOKUP_NODE
@@ -312,10 +318,14 @@ class Node : public Executable, public Broadcastable
                          vector<Peer> my_shard_receivers,
                          const vector<Peer>& fellowForwarderNodes);
 
-    // Is New Node
-    bool m_isNewNode = true;
+    // Is Running from New Process
+    bool m_fromNewProcess = true;
 
-    bool ToBlockMessage(unsigned char ins_byte);
+    // Rejoin the network as a shard node in case of failure happens in protocol
+    void RejoinAsNormal();
+
+    // Reset certain variables to the initial state
+    bool CleanVariables();
 #endif // IS_LOOKUP_NODE
 
 public:
@@ -352,10 +362,19 @@ public:
     std::atomic<NodeState> m_state;
 
     /// Constructor. Requires mediator reference to access DirectoryService and other global members.
-    Node(Mediator& mediator, bool toRetrieveHistory);
+    Node(Mediator& mediator, unsigned int syncType, bool toRetrieveHistory);
 
     /// Destructor.
     ~Node();
+
+    /// Install the Node
+    void Install(unsigned int syncType, bool toRetrieveHistory = true);
+
+    /// Set initial state, variables, and clean-up storage
+    void Init();
+
+    /// Prepare for processing protocols after initialization
+    void Prepare(bool runInitializeGenesisBlocks);
 
     /// Sets the value of m_state.
     void SetState(NodeState state);
@@ -370,10 +389,12 @@ public:
 
     Mediator& GetMediator() { return m_mediator; }
 
+    /// Recover the previous state by retrieving persistence data
     bool StartRetrieveHistory();
 
 #ifndef IS_LOOKUP_NODE
 
+    // Start synchronization with lookup as a shard node
     void StartSynchronization();
 
     /// Called from DirectoryService during FINALBLOCK processing.

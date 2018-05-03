@@ -30,7 +30,7 @@ CommitSecret::CommitSecret()
 
     if (m_s == nullptr)
     {
-        LOG_MESSAGE("Error: Memory allocation failure");
+        LOG_GENERAL(WARNING, "Memory allocation failure");
         // throw exception();
     }
 
@@ -44,14 +44,14 @@ CommitSecret::CommitSecret()
                == 0);
         if (err)
         {
-            LOG_MESSAGE("Error: Value to commit rand failed");
+            LOG_GENERAL(WARNING, "Value to commit rand failed");
             break;
         }
 
         err = (BN_nnmod(m_s.get(), m_s.get(), curve.m_order.get(), NULL) == 0);
         if (err)
         {
-            LOG_MESSAGE("Error: Value to commit gen failed");
+            LOG_GENERAL(WARNING, "Value to commit gen failed");
             break;
         }
     } while (BN_is_zero(m_s.get()) || BN_is_one(m_s.get()));
@@ -64,7 +64,7 @@ CommitSecret::CommitSecret(const vector<unsigned char>& src,
 {
     if (Deserialize(src, offset) != 0)
     {
-        LOG_MESSAGE("Error. We failed to init CommitSecret.");
+        LOG_GENERAL(WARNING, "We failed to init CommitSecret.");
     }
 }
 
@@ -76,7 +76,7 @@ CommitSecret::CommitSecret(const CommitSecret& src)
     {
         if (BN_copy(m_s.get(), src.m_s.get()) == NULL)
         {
-            LOG_MESSAGE("Error: CommitSecret copy failed");
+            LOG_GENERAL(WARNING, "CommitSecret copy failed");
         }
         else
         {
@@ -85,7 +85,7 @@ CommitSecret::CommitSecret(const CommitSecret& src)
     }
     else
     {
-        LOG_MESSAGE("Error: Memory allocation failure");
+        LOG_GENERAL(WARNING, "Memory allocation failure");
         // throw exception();
     }
 }
@@ -117,7 +117,7 @@ int CommitSecret::Deserialize(const vector<unsigned char>& src,
         m_s = BIGNUMSerialize::GetNumber(src, offset, COMMIT_SECRET_SIZE);
         if (m_s == nullptr)
         {
-            LOG_MESSAGE("Error: Deserialization failure");
+            LOG_GENERAL(WARNING, "Deserialization failure");
             m_initialized = false;
         }
         else
@@ -127,8 +127,8 @@ int CommitSecret::Deserialize(const vector<unsigned char>& src,
     }
     catch (const std::exception& e)
     {
-        LOG_MESSAGE("ERROR: Error with CommitSecret::Deserialize." << ' '
-                                                                   << e.what());
+        LOG_GENERAL(WARNING,
+                    "Error with CommitSecret::Deserialize." << ' ' << e.what());
         return -1;
     }
     return 0;
@@ -153,7 +153,7 @@ CommitPoint::CommitPoint()
 {
     if (m_p == nullptr)
     {
-        LOG_MESSAGE("Error: Memory allocation failure");
+        LOG_GENERAL(WARNING, "Memory allocation failure");
         // throw exception();
     }
 }
@@ -165,7 +165,7 @@ CommitPoint::CommitPoint(const CommitSecret& secret)
 {
     if (m_p == nullptr)
     {
-        LOG_MESSAGE("Error: Memory allocation failure");
+        LOG_GENERAL(WARNING, "Memory allocation failure");
         // throw exception();
     }
 
@@ -176,7 +176,7 @@ CommitPoint::CommitPoint(const vector<unsigned char>& src, unsigned int offset)
 {
     if (Deserialize(src, offset) != 0)
     {
-        LOG_MESSAGE("Error. We failed to init CommitPoint.");
+        LOG_GENERAL(WARNING, "We failed to init CommitPoint.");
     }
 }
 
@@ -187,14 +187,14 @@ CommitPoint::CommitPoint(const CommitPoint& src)
 {
     if (m_p == nullptr)
     {
-        LOG_MESSAGE("Error: Memory allocation failure");
+        LOG_GENERAL(WARNING, "Memory allocation failure");
         // throw exception();
     }
     else
     {
         if (EC_POINT_copy(m_p.get(), src.m_p.get()) != 1)
         {
-            LOG_MESSAGE("Error: CommitPoint copy failed");
+            LOG_GENERAL(WARNING, "CommitPoint copy failed");
         }
         else
         {
@@ -230,7 +230,7 @@ int CommitPoint::Deserialize(const vector<unsigned char>& src,
         m_p = ECPOINTSerialize::GetNumber(src, offset, COMMIT_POINT_SIZE);
         if (m_p == nullptr)
         {
-            LOG_MESSAGE("Error: Deserialization failure");
+            LOG_GENERAL(WARNING, "Deserialization failure");
             m_initialized = false;
         }
         else
@@ -240,8 +240,8 @@ int CommitPoint::Deserialize(const vector<unsigned char>& src,
     }
     catch (const std::exception& e)
     {
-        LOG_MESSAGE("ERROR: Error with CommitPoint::Deserialize." << ' '
-                                                                  << e.what());
+        LOG_GENERAL(WARNING,
+                    "Error with CommitPoint::Deserialize." << ' ' << e.what());
         return -1;
     }
     return 0;
@@ -251,7 +251,7 @@ void CommitPoint::Set(const CommitSecret& secret)
 {
     if (!secret.Initialized())
     {
-        LOG_MESSAGE("Error: Commitment secret value not initialized");
+        LOG_GENERAL(WARNING, "Commitment secret value not initialized");
         return;
     }
 
@@ -259,7 +259,7 @@ void CommitPoint::Set(const CommitSecret& secret)
                      secret.m_s.get(), NULL, NULL, NULL)
         != 1)
     {
-        LOG_MESSAGE("Error: Commit gen failed");
+        LOG_GENERAL(WARNING, "Commit gen failed");
         m_initialized = false;
     }
     else
@@ -279,7 +279,7 @@ bool CommitPoint::operator==(const CommitPoint& r) const
     unique_ptr<BN_CTX, void (*)(BN_CTX*)> ctx(BN_CTX_new(), BN_CTX_free);
     if (ctx == nullptr)
     {
-        LOG_MESSAGE("Error: Memory allocation failure");
+        LOG_GENERAL(WARNING, "Memory allocation failure");
         // throw exception();
         return false;
     }
@@ -296,7 +296,7 @@ Challenge::Challenge()
 {
     if (m_c == nullptr)
     {
-        LOG_MESSAGE("Error: Memory allocation failure");
+        LOG_GENERAL(WARNING, "Memory allocation failure");
         // throw exception();
     }
 }
@@ -304,23 +304,31 @@ Challenge::Challenge()
 Challenge::Challenge(const CommitPoint& aggregatedCommit,
                      const PubKey& aggregatedPubkey,
                      const vector<unsigned char>& message)
+    : Challenge(aggregatedCommit, aggregatedPubkey, message, 0, message.size())
+{
+}
+
+Challenge::Challenge(const CommitPoint& aggregatedCommit,
+                     const PubKey& aggregatedPubkey,
+                     const vector<unsigned char>& message, unsigned int offset,
+                     unsigned int size)
     : m_c(BN_new(), BN_clear_free)
     , m_initialized(false)
 {
     if (m_c == nullptr)
     {
-        LOG_MESSAGE("Error: Memory allocation failure");
+        LOG_GENERAL(WARNING, "Memory allocation failure");
         // throw exception();
     }
 
-    Set(aggregatedCommit, aggregatedPubkey, message);
+    Set(aggregatedCommit, aggregatedPubkey, message, offset, size);
 }
 
 Challenge::Challenge(const vector<unsigned char>& src, unsigned int offset)
 {
     if (Deserialize(src, offset) != 0)
     {
-        LOG_MESSAGE("Error. We failed to init Challenge.");
+        LOG_GENERAL(WARNING, "We failed to init Challenge.");
     }
 }
 
@@ -332,7 +340,7 @@ Challenge::Challenge(const Challenge& src)
     {
         if (BN_copy(m_c.get(), src.m_c.get()) == NULL)
         {
-            LOG_MESSAGE("Error: Challenge copy failed");
+            LOG_GENERAL(WARNING, "Challenge copy failed");
         }
         else
         {
@@ -341,7 +349,7 @@ Challenge::Challenge(const Challenge& src)
     }
     else
     {
-        LOG_MESSAGE("Error: Memory allocation failure");
+        LOG_GENERAL(WARNING, "Memory allocation failure");
         // throw exception();
     }
 }
@@ -373,7 +381,7 @@ int Challenge::Deserialize(const vector<unsigned char>& src,
         m_c = BIGNUMSerialize::GetNumber(src, offset, CHALLENGE_SIZE);
         if (m_c == nullptr)
         {
-            LOG_MESSAGE("Error: Deserialization failure");
+            LOG_GENERAL(WARNING, "Deserialization failure");
             m_initialized = false;
         }
         else
@@ -383,8 +391,8 @@ int Challenge::Deserialize(const vector<unsigned char>& src,
     }
     catch (const std::exception& e)
     {
-        LOG_MESSAGE("ERROR: Error with Challenge::Deserialize." << ' '
-                                                                << e.what());
+        LOG_GENERAL(WARNING,
+                    "Error with Challenge::Deserialize." << ' ' << e.what());
         return -1;
     }
     return 0;
@@ -392,25 +400,32 @@ int Challenge::Deserialize(const vector<unsigned char>& src,
 
 void Challenge::Set(const CommitPoint& aggregatedCommit,
                     const PubKey& aggregatedPubkey,
-                    const vector<unsigned char>& message)
+                    const vector<unsigned char>& message, unsigned int offset,
+                    unsigned int size)
 {
     // Initial checks
 
     if (!aggregatedCommit.Initialized())
     {
-        LOG_MESSAGE("Error: Aggregated commit not initialized");
+        LOG_GENERAL(WARNING, "Aggregated commit not initialized");
         return;
     }
 
     if (!aggregatedPubkey.Initialized())
     {
-        LOG_MESSAGE("Error: Public key not initialized");
+        LOG_GENERAL(WARNING, "Public key not initialized");
         return;
     }
 
     if (message.size() == 0)
     {
-        LOG_MESSAGE("Error: Empty message");
+        LOG_GENERAL(WARNING, "Empty message");
+        return;
+    }
+
+    if (message.size() < (offset + size))
+    {
+        LOG_GENERAL(WARNING, "Offset and size outside message length");
         return;
     }
 
@@ -429,7 +444,7 @@ void Challenge::Set(const CommitPoint& aggregatedCommit,
                            Schnorr::PUBKEY_COMPRESSED_SIZE_BYTES, NULL)
         != Schnorr::PUBKEY_COMPRESSED_SIZE_BYTES)
     {
-        LOG_MESSAGE("Error: Could not convert commitment to octets");
+        LOG_GENERAL(WARNING, "Could not convert commitment to octets");
         return;
     }
 
@@ -445,7 +460,7 @@ void Challenge::Set(const CommitPoint& aggregatedCommit,
                            Schnorr::PUBKEY_COMPRESSED_SIZE_BYTES, NULL)
         != Schnorr::PUBKEY_COMPRESSED_SIZE_BYTES)
     {
-        LOG_MESSAGE("Error: Could not convert public key to octets");
+        LOG_GENERAL(WARNING, "Could not convert public key to octets");
         return;
     }
 
@@ -453,19 +468,19 @@ void Challenge::Set(const CommitPoint& aggregatedCommit,
     sha2.Update(buf);
 
     // Hash message
-    sha2.Update(message);
+    sha2.Update(message, offset, size);
     vector<unsigned char> digest = sha2.Finalize();
 
     // Build the challenge
     if ((BN_bin2bn(digest.data(), digest.size(), m_c.get())) == NULL)
     {
-        LOG_MESSAGE("Error: Digest to challenge failed");
+        LOG_GENERAL(WARNING, "Digest to challenge failed");
         return;
     }
 
     if (BN_nnmod(m_c.get(), m_c.get(), curve.m_order.get(), NULL) == 0)
     {
-        LOG_MESSAGE("Error: Could not reduce challenge modulo group order");
+        LOG_GENERAL(WARNING, "Could not reduce challenge modulo group order");
         return;
     }
 
@@ -490,7 +505,7 @@ Response::Response()
 {
     if (m_r == nullptr)
     {
-        LOG_MESSAGE("Error: Memory allocation failure");
+        LOG_GENERAL(WARNING, "Memory allocation failure");
         // throw exception();
     }
 }
@@ -504,7 +519,7 @@ Response::Response(const CommitSecret& secret, const Challenge& challenge,
 
     if (m_r == nullptr)
     {
-        LOG_MESSAGE("Error: Memory allocation failure");
+        LOG_GENERAL(WARNING, "Memory allocation failure");
         // throw exception();
     }
 
@@ -515,7 +530,7 @@ Response::Response(const vector<unsigned char>& src, unsigned int offset)
 {
     if (Deserialize(src, offset) != 0)
     {
-        LOG_MESSAGE("Error. We failed to init Response.");
+        LOG_GENERAL(WARNING, "We failed to init Response.");
     }
 }
 
@@ -527,7 +542,7 @@ Response::Response(const Response& src)
     {
         if (BN_copy(m_r.get(), src.m_r.get()) == NULL)
         {
-            LOG_MESSAGE("Error: Response copy failed");
+            LOG_GENERAL(WARNING, "Response copy failed");
         }
         else
         {
@@ -536,7 +551,7 @@ Response::Response(const Response& src)
     }
     else
     {
-        LOG_MESSAGE("Error: Memory allocation failure");
+        LOG_GENERAL(WARNING, "Memory allocation failure");
         // throw exception();
     }
 }
@@ -567,7 +582,7 @@ int Response::Deserialize(const vector<unsigned char>& src, unsigned int offset)
         m_r = BIGNUMSerialize::GetNumber(src, offset, RESPONSE_SIZE);
         if (m_r == nullptr)
         {
-            LOG_MESSAGE("Error: Deserialization failure");
+            LOG_GENERAL(WARNING, "Deserialization failure");
             m_initialized = false;
         }
         else
@@ -577,8 +592,8 @@ int Response::Deserialize(const vector<unsigned char>& src, unsigned int offset)
     }
     catch (const std::exception& e)
     {
-        LOG_MESSAGE("ERROR: Error with Response::Deserialize." << ' '
-                                                               << e.what());
+        LOG_GENERAL(WARNING,
+                    "Error with Response::Deserialize." << ' ' << e.what());
         return -1;
     }
     return 0;
@@ -591,25 +606,25 @@ void Response::Set(const CommitSecret& secret, const Challenge& challenge,
 
     if (m_initialized)
     {
-        LOG_MESSAGE("Error: Response already initialized");
+        LOG_GENERAL(WARNING, "Response already initialized");
         return;
     }
 
     if (!secret.Initialized())
     {
-        LOG_MESSAGE("Error: Commit secret not initialized");
+        LOG_GENERAL(WARNING, "Commit secret not initialized");
         return;
     }
 
     if (!challenge.Initialized())
     {
-        LOG_MESSAGE("Error: Challenge not initialized");
+        LOG_GENERAL(WARNING, "Challenge not initialized");
         return;
     }
 
     if (!privkey.Initialized())
     {
-        LOG_MESSAGE("Error: Private key not initialized");
+        LOG_GENERAL(WARNING, "Private key not initialized");
         return;
     }
 
@@ -619,7 +634,7 @@ void Response::Set(const CommitSecret& secret, const Challenge& challenge,
     unique_ptr<BN_CTX, void (*)(BN_CTX*)> ctx(BN_CTX_new(), BN_CTX_free);
     if (ctx == nullptr)
     {
-        LOG_MESSAGE("Error: Memory allocation failure");
+        LOG_GENERAL(WARNING, "Memory allocation failure");
         // throw exception();
         return;
     }
@@ -631,7 +646,7 @@ void Response::Set(const CommitSecret& secret, const Challenge& challenge,
                    curve.m_order.get(), ctx.get())
         == 0)
     {
-        LOG_MESSAGE("Error: BIGNUM mod mul failed");
+        LOG_GENERAL(WARNING, "BIGNUM mod mul failed");
         return;
     }
 
@@ -640,7 +655,7 @@ void Response::Set(const CommitSecret& secret, const Challenge& challenge,
                    ctx.get())
         == 0)
     {
-        LOG_MESSAGE("Error: BIGNUM mod add failed");
+        LOG_GENERAL(WARNING, "BIGNUM mod add failed");
         return;
     }
 
@@ -665,14 +680,14 @@ shared_ptr<PubKey> MultiSig::AggregatePubKeys(const vector<PubKey>& pubkeys)
 
     if (pubkeys.size() == 0)
     {
-        LOG_MESSAGE("Error: Empty list of public keys");
+        LOG_GENERAL(WARNING, "Empty list of public keys");
         return nullptr;
     }
 
     shared_ptr<PubKey> aggregatedPubkey(new PubKey(pubkeys.at(0)));
     if (aggregatedPubkey == nullptr)
     {
-        LOG_MESSAGE("Error: Memory allocation failure");
+        LOG_GENERAL(WARNING, "Memory allocation failure");
         // throw exception();
         return nullptr;
     }
@@ -684,7 +699,7 @@ shared_ptr<PubKey> MultiSig::AggregatePubKeys(const vector<PubKey>& pubkeys)
                          NULL)
             == 0)
         {
-            LOG_MESSAGE("Error: Pubkey aggregation failed");
+            LOG_GENERAL(WARNING, "Pubkey aggregation failed");
             return nullptr;
         }
     }
@@ -699,7 +714,7 @@ MultiSig::AggregateCommits(const vector<CommitPoint>& commitPoints)
 
     if (commitPoints.size() == 0)
     {
-        LOG_MESSAGE("Error: Empty list of commits");
+        LOG_GENERAL(WARNING, "Empty list of commits");
         return nullptr;
     }
 
@@ -707,7 +722,7 @@ MultiSig::AggregateCommits(const vector<CommitPoint>& commitPoints)
         new CommitPoint(commitPoints.at(0)));
     if (aggregatedCommit == nullptr)
     {
-        LOG_MESSAGE("Error: Memory allocation failure");
+        LOG_GENERAL(WARNING, "Memory allocation failure");
         // throw exception();
         return nullptr;
     }
@@ -719,7 +734,7 @@ MultiSig::AggregateCommits(const vector<CommitPoint>& commitPoints)
                          commitPoints.at(i).m_p.get(), NULL)
             == 0)
         {
-            LOG_MESSAGE("Error: Commit aggregation failed");
+            LOG_GENERAL(WARNING, "Commit aggregation failed");
             return nullptr;
         }
     }
@@ -734,14 +749,14 @@ MultiSig::AggregateResponses(const vector<Response>& responses)
 
     if (responses.size() == 0)
     {
-        LOG_MESSAGE("Error: Empty list of responses");
+        LOG_GENERAL(WARNING, "Empty list of responses");
         return nullptr;
     }
 
     shared_ptr<Response> aggregatedResponse(new Response(responses.at(0)));
     if (aggregatedResponse == nullptr)
     {
-        LOG_MESSAGE("Error: Memory allocation failure");
+        LOG_GENERAL(WARNING, "Memory allocation failure");
         // throw exception();
         return nullptr;
     }
@@ -749,7 +764,7 @@ MultiSig::AggregateResponses(const vector<Response>& responses)
     unique_ptr<BN_CTX, void (*)(BN_CTX*)> ctx(BN_CTX_new(), BN_CTX_free);
     if (ctx == nullptr)
     {
-        LOG_MESSAGE("Error: Memory allocation failure");
+        LOG_GENERAL(WARNING, "Memory allocation failure");
         // throw exception();
         return nullptr;
     }
@@ -761,7 +776,7 @@ MultiSig::AggregateResponses(const vector<Response>& responses)
                        curve.m_order.get(), ctx.get())
             == 0)
         {
-            LOG_MESSAGE("Error: Response aggregation failed");
+            LOG_GENERAL(WARNING, "Response aggregation failed");
             return nullptr;
         }
     }
@@ -775,33 +790,33 @@ MultiSig::AggregateSign(const Challenge& challenge,
 {
     if (!challenge.Initialized())
     {
-        LOG_MESSAGE("Error: Challenge not initialized");
+        LOG_GENERAL(WARNING, "Challenge not initialized");
         return nullptr;
     }
 
     if (!aggregatedResponse.Initialized())
     {
-        LOG_MESSAGE("Error: Response not initialized");
+        LOG_GENERAL(WARNING, "Response not initialized");
         return nullptr;
     }
 
     shared_ptr<Signature> result(new Signature());
     if (result == nullptr)
     {
-        LOG_MESSAGE("Error: Memory allocation failure");
+        LOG_GENERAL(WARNING, "Memory allocation failure");
         // throw exception();
         return nullptr;
     }
 
     if (BN_copy(result->m_r.get(), challenge.m_c.get()) == NULL)
     {
-        LOG_MESSAGE("Error: Signature generation (copy challenge) failed");
+        LOG_GENERAL(WARNING, "Signature generation (copy challenge) failed");
         return nullptr;
     }
 
     if (BN_copy(result->m_s.get(), aggregatedResponse.m_r.get()) == NULL)
     {
-        LOG_MESSAGE("Error: Signature generation (copy response) failed");
+        LOG_GENERAL(WARNING, "Signature generation (copy response) failed");
         return nullptr;
     }
 
@@ -816,25 +831,25 @@ MultiSig::AggregateSign(const Challenge& challenge,
 
 //     if (!commitSecret.Initialized())
 //     {
-//         LOG_MESSAGE("Error: Commit secret not initialized");
+//         LOG_GENERAL(WARNING, "Commit secret not initialized");
 //         return false;
 //     }
 
 //     if (!challenge.Initialized())
 //     {
-//         LOG_MESSAGE("Error: Challenge not initialized");
+//         LOG_GENERAL(WARNING, "Challenge not initialized");
 //         return false;
 //     }
 
 //     if (!privkey.Initialized())
 //     {
-//         LOG_MESSAGE("Error: Privkey key not initialized");
+//         LOG_GENERAL(WARNING, "Privkey key not initialized");
 //         return false;
 //     }
 
 //     if (!result.Initialized())
 //     {
-//         LOG_MESSAGE("Error: Signature not initialized");
+//         LOG_GENERAL(WARNING, "Signature not initialized");
 //         return false;
 //     }
 
@@ -854,7 +869,7 @@ MultiSig::AggregateSign(const Challenge& challenge,
 //         err = BN_copy(result.m_r.get(), challenge.m_c.get());
 //         if (err)
 //         {
-//             LOG_MESSAGE("Error: Challenge copy failed");
+//             LOG_GENERAL(WARNING, "Challenge copy failed");
 //             return false;
 //         }
 
@@ -863,7 +878,7 @@ MultiSig::AggregateSign(const Challenge& challenge,
 //         err = (BN_mod_mul(result.m_s.get(), challenge.m_c.get(), privkey.m_d.get(), m_curve.m_order.get(), ctx.get()) == 0);
 //         if (err)
 //         {
-//             LOG_MESSAGE("Error: Response mod mul failed");
+//             LOG_GENERAL(WARNING, "Response mod mul failed");
 //             return false;
 //         }
 
@@ -871,14 +886,14 @@ MultiSig::AggregateSign(const Challenge& challenge,
 //         err = (BN_mod_sub(result.m_s.get(), commitSecret.m_s.get(), result.m_s.get(), m_curve.m_order.get(), ctx.get()) == 0);
 //         if (err)
 //         {
-//             LOG_MESSAGE("Error: BIGNUM mod sub failed");
+//             LOG_GENERAL(WARNING, "BIGNUM mod sub failed");
 //             return false;
 //         }
 
 //     }
 //     else
 //     {
-//         LOG_MESSAGE("Error: Memory allocation failure");
+//         LOG_GENERAL(WARNING, "Memory allocation failure");
 //         throw exception();
 //     }
 
@@ -897,25 +912,25 @@ bool MultiSig::VerifyResponse(const Response& response,
 
         if (!response.Initialized())
         {
-            LOG_MESSAGE("Error: Response not initialized");
+            LOG_GENERAL(WARNING, "Response not initialized");
             return false;
         }
 
         if (!challenge.Initialized())
         {
-            LOG_MESSAGE("Error: Challenge not initialized");
+            LOG_GENERAL(WARNING, "Challenge not initialized");
             return false;
         }
 
         if (!pubkey.Initialized())
         {
-            LOG_MESSAGE("Error: Public key not initialized");
+            LOG_GENERAL(WARNING, "Public key not initialized");
             return false;
         }
 
         if (!commitPoint.Initialized())
         {
-            LOG_MESSAGE("Error: Commit point not initialized");
+            LOG_GENERAL(WARNING, "Commit point not initialized");
             return false;
         }
 
@@ -940,7 +955,7 @@ bool MultiSig::VerifyResponse(const Response& response,
                    || (BN_cmp(response.m_r.get(), curve.m_order.get()) != -1));
             if (err)
             {
-                LOG_MESSAGE("Error: Response not in range");
+                LOG_GENERAL(WARNING, "Response not in range");
                 return false;
             }
 
@@ -951,7 +966,7 @@ bool MultiSig::VerifyResponse(const Response& response,
                    == 0);
             if (err)
             {
-                LOG_MESSAGE("Error: Commit regenerate failed");
+                LOG_GENERAL(WARNING, "Commit regenerate failed");
                 return false;
             }
 
@@ -961,22 +976,23 @@ bool MultiSig::VerifyResponse(const Response& response,
                    != 0);
             if (err)
             {
-                LOG_MESSAGE("Error: Generated commit point doesn't match the "
+                LOG_GENERAL(WARNING,
+                            "Generated commit point doesn't match the "
                             "given one");
                 return false;
             }
         }
         else
         {
-            LOG_MESSAGE("Error: Memory allocation failure");
+            LOG_GENERAL(WARNING, "Memory allocation failure");
             // throw exception();
             return false;
         }
     }
     catch (const std::exception& e)
     {
-        LOG_MESSAGE("ERROR: Error with MultiSig::VerifyResponse." << ' '
-                                                                  << e.what());
+        LOG_GENERAL(WARNING,
+                    "Error with MultiSig::VerifyResponse." << ' ' << e.what());
         return false;
     }
     return true;
