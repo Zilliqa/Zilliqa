@@ -77,9 +77,7 @@ class P2PComm
 #endif // STAT_TEST
 
     ThreadPool m_SendPool{MAXMESSAGE, "SendPool"};
-#if 1 //clark
     ThreadPool m_RecvPool{MAXMESSAGE, "RecvPool"};
-#endif
 
 public:
     /// Returns the singleton P2PComm instance.
