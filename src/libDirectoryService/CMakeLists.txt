@@ -1,3 +1,3 @@
-add_library (DirectoryService DSBlockPostProcessing.cpp DSBlockPreProcessing.cpp DirectoryService.cpp FinalBlockPostProcessing.cpp FinalBlockPreProcessing.cpp MicroBlockProcessing.cpp PoW1Processing.cpp PoW2Processing.cpp ShardingPostProcessing.cpp ShardingPreProcessing.cpp)
+add_library (DirectoryService DSBlockPostProcessing.cpp DSBlockPreProcessing.cpp DirectoryService.cpp FinalBlockPostProcessing.cpp FinalBlockPreProcessing.cpp MicroBlockProcessing.cpp PoW1Processing.cpp PoW2Processing.cpp ShardingPostProcessing.cpp ShardingPreProcessing.cpp ViewChangePreProcessing.cpp ViewChangePostProcessing.cpp)
 target_include_directories (DirectoryService PUBLIC ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries (DirectoryService PUBLIC AccountData BlockChainData Mediator Node Persistence Trie Utils)
