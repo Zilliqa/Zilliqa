@@ -792,6 +792,12 @@ bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
                       << " , local: " << localBlockNum);
     }
 
+    if (IsMessageSizeInappropriate(message.size(), offset,
+                                   Transaction::GetMinSerializedSize()))
+    {
+        return false;
+    }
+
     const auto& submittedTransaction = Transaction(message, offset);
 
     // if (CheckCreatedTransaction(submittedTransaction))
@@ -811,6 +817,12 @@ bool Node::ProcessSubmitTxnSharing(const vector<unsigned char>& message,
                                    unsigned int offset, const Peer& from)
 {
     //LOG_MARKER();
+
+    if (IsMessageSizeInappropriate(message.size(), offset,
+                                   Transaction::GetMinSerializedSize()))
+    {
+        return false;
+    }
 
     const auto& submittedTransaction = Transaction(message, offset);
     // if (CheckCreatedTransaction(submittedTransaction))
@@ -838,12 +850,6 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
     // Message = [204-byte transaction]
 
     //LOG_MARKER();
-
-    // if (IsMessageSizeInappropriate(message.size(), offset,
-    //                                Transaction::GetSerializedSize()))
-    // {
-    //     return false;
-    // }
 
     unsigned int cur_offset = offset;
 
@@ -996,11 +1002,11 @@ bool Node::ProcessCreateTransactionFromLookup(
 
     //LOG_MARKER();
 
-    // if (IsMessageSizeInappropriate(message.size(), offset,
-    //                                Transaction::GetSerializedSize()))
-    // {
-    //     return false;
-    // }
+    if (IsMessageSizeInappropriate(message.size(), offset,
+                                   Transaction::GetMinSerializedSize()))
+    {
+        return false;
+    }
 
     unsigned int curr_offset = offset;
 

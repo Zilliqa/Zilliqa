@@ -219,7 +219,7 @@ const Json::Value JSONConversion::convertTxtoJson(const Transaction& tx)
     Json::Value _json;
 
     _json["ID"] = tx.GetTranID().hex();
-    _json["version"] = tx.GetVersion();
+    _json["version"] = tx.GetVersion().str();
     _json["nonce"] = tx.GetNonce().str();
     _json["toAddr"] = tx.GetToAddr().hex();
     _json["senderPubKey"] = static_cast<string>(tx.GetSenderPubKey());
