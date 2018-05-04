@@ -405,10 +405,30 @@ bool DirectoryService::ProcessDSBlockConsensus(
     lock_guard<mutex> g(m_mutexConsensus);
 
     // Wait for a while for ProcessDSBlock in the case that primary sent announcement pretty early
+#if 0 //clark
     // TODO: Should await sleep. Use conditional var.
     unsigned int sleep_time_while_waiting = 100;
+#endif
     if ((m_state == POW1_SUBMISSION) || (m_state == DSBLOCK_CONSENSUS_PREP))
     {
+#if 1 //clark
+        cv_DSBlockConsensus.notify_all();
+
+        std::unique_lock<std::mutex> cv_lk(m_MutexCVDSBlockConsensusObject);
+
+        if (cv_DSBlockConsensusObject.wait_for(
+                cv_lk, std::chrono::seconds(CONSENSUS_OBJECT_TIMEOUT))
+            == std::cv_status::timeout)
+        {
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Time out while waiting for state transition and "
+                      "consensus object creation ");
+        }
+
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "State transition is completed and consensus object "
+                  "creation. (check for timeout)");
+#else
         //for (unsigned int i = 0; i < POW1_WINDOW_IN_SECONDS; i++)
         unsigned int i = 0;
         while (true)
@@ -430,6 +450,7 @@ bool DirectoryService::ProcessDSBlockConsensus(
                 chrono::milliseconds(sleep_time_while_waiting));
             i++;
         }
+#endif
     }
 
     if (!CheckState(PROCESS_DSBLOCKCONSENSUS))
