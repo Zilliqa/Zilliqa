@@ -59,7 +59,8 @@ public:
     Transaction(const Transaction& src);
 
     /// Constructor with specified transaction fields.
-    Transaction(boost::multiprecision::uint256_t version, const boost::multiprecision::uint256_t& nonce,
+    Transaction(boost::multiprecision::uint256_t version,
+                const boost::multiprecision::uint256_t& nonce,
                 const Address& toAddr, const KeyPair& senderKeyPair,
                 const boost::multiprecision::uint256_t& amount,
                 const boost::multiprecision::uint256_t& gasPrice,
@@ -68,7 +69,8 @@ public:
                 const std::vector<unsigned char>& data);
 
     /// Constructor with specified transaction fields.
-    Transaction(boost::multiprecision::uint256_t version, const boost::multiprecision::uint256_t& nonce,
+    Transaction(boost::multiprecision::uint256_t version,
+                const boost::multiprecision::uint256_t& nonce,
                 const Address& toAddr, const PubKey& senderPubKey,
                 const boost::multiprecision::uint256_t& amount,
                 const boost::multiprecision::uint256_t& gasPrice,
@@ -91,13 +93,13 @@ public:
     unsigned int GetSerializedSize();
 
     /// Return the size of static typed variables for a minimum size check
-    unsigned int GetMinSerializedSize();
+    static unsigned int GetMinSerializedSize();
 
     /// Returns the transaction ID.
     const TxnHash& GetTranID() const;
 
     /// Returns the current version.
-    const uint32_t& GetVersion() const;
+    const boost::multiprecision::uint256_t& GetVersion() const;
 
     /// Returns the transaction nonce.
     const boost::multiprecision::uint256_t& GetNonce() const;

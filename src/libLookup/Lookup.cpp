@@ -1508,7 +1508,8 @@ bool Lookup::ProcessSetTxBodyFromSeed(const vector<unsigned char>& message,
 
     unique_lock<mutex> lock(m_mutexSetTxBodyFromSeed);
 
-    if (IsMessageSizeInappropriate(message.size(), offset, TRAN_HASH_SIZE))
+    if (IsMessageSizeInappropriate(message.size(), offset,
+                                   Transaction::GetMinSerializedSize()))
     {
         return false;
     }

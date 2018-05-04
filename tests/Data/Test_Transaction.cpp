@@ -92,7 +92,7 @@ BOOST_AUTO_TEST_CASE(test1)
 
     const std::array<unsigned char, TRAN_HASH_SIZE>& tranID2
         = tx2.GetTranID().asArray();
-    const uint32_t& version2 = tx2.GetVersion();
+    const uint256_t& version2 = tx2.GetVersion();
     const uint256_t& nonce2 = tx2.GetNonce();
     const Address& toAddr2 = tx2.GetToAddr();
     const PubKey& senderPubKey = tx2.GetSenderPubKey();

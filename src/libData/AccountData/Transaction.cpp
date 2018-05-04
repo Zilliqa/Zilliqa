@@ -30,12 +30,12 @@ unsigned char TX_COND = 0x2;
 unsigned int Transaction::SerializeCoreFields(std::vector<unsigned char>& dst,
                                               unsigned int offset) const
 {
-    unsigned int size_needed = UINT256_SIZE/*m_version*/ 
-        + UINT256_SIZE/*m_nonce*/ + ACC_ADDR_SIZE/*m_toAddr*/
-        + PUB_KEY_SIZE/*m_senderPubKey*/ + UINT256_SIZE/*m_amount*/ 
-        + UINT256_SIZE/*m_gasPrice*/ + UINT256_SIZE/*m_gasLimit*/
-        + sizeof(uint32_t) + m_code.size()/*m_code*/
-        + sizeof(uint32_t) + m_data.size()/*m_data*/;
+    unsigned int size_needed = UINT256_SIZE /*m_version*/
+        + UINT256_SIZE /*m_nonce*/ + ACC_ADDR_SIZE /*m_toAddr*/
+        + PUB_KEY_SIZE /*m_senderPubKey*/ + UINT256_SIZE /*m_amount*/
+        + UINT256_SIZE /*m_gasPrice*/ + UINT256_SIZE /*m_gasLimit*/
+        + sizeof(uint32_t) + m_code.size() /*m_code*/
+        + sizeof(uint32_t) + m_data.size() /*m_data*/;
     unsigned int size_remaining = dst.size() - offset;
 
     if (size_remaining < size_needed)
@@ -130,11 +130,9 @@ Transaction::Transaction(uint256_t version, const uint256_t& nonce,
     }
 }
 
-Transaction::Transaction(uint256_t version,
-                         const uint256_t& nonce,
+Transaction::Transaction(uint256_t version, const uint256_t& nonce,
                          const Address& toAddr, const PubKey& senderPubKey,
-                         const uint256_t& amount,
-                         const uint256_t& gasPrice,
+                         const uint256_t& amount, const uint256_t& gasPrice,
                          const uint256_t& gasLimit,
                          const std::vector<unsigned char>& code,
                          const std::vector<unsigned char>& data,
@@ -187,7 +185,6 @@ unsigned int Transaction::Serialize(vector<unsigned char>& dst,
     offset += TRAN_HASH_SIZE;
     offset += m_signature.Serialize(dst, offset);
     offset += SerializeCoreFields(dst, offset);
-    
 
     return offset;
 }
@@ -259,7 +256,7 @@ int Transaction::Deserialize(const vector<unsigned char>& src,
 
 const TxnHash& Transaction::GetTranID() const { return m_tranID; }
 
-const uint32_t& Transaction::GetVersion() const { return m_version; }
+const uint256_t& Transaction::GetVersion() const { return m_version; }
 
 const uint256_t& Transaction::GetNonce() const { return m_nonce; }
 
@@ -313,15 +310,17 @@ unsigned int Transaction::GetShardIndex(const Address& fromAddr,
 
 unsigned int Transaction::GetSerializedSize()
 {
-    return TRAN_HASH_SIZE + TRAN_SIG_SIZE + UINT256_SIZE + UINT256_SIZE + ACC_ADDR_SIZE
-        + PUB_KEY_SIZE + UINT256_SIZE + UINT256_SIZE + UINT256_SIZE
-        + sizeof(uint32_t) + m_code.size() + sizeof(uint32_t) + m_data.size();
+    return TRAN_HASH_SIZE + TRAN_SIG_SIZE + UINT256_SIZE + UINT256_SIZE
+        + ACC_ADDR_SIZE + PUB_KEY_SIZE + UINT256_SIZE + UINT256_SIZE
+        + UINT256_SIZE + sizeof(uint32_t) + m_code.size() + sizeof(uint32_t)
+        + m_data.size();
 }
 
 unsigned int Transaction::GetMinSerializedSize()
 {
-    return TRAN_HASH_SIZE + TRAN_SIG_SIZE + UINT256_SIZE + UINT256_SIZE + ACC_ADDR_SIZE
-        + PUB_KEY_SIZE + UINT256_SIZE + UINT256_SIZE + UINT256_SIZE;
+    return TRAN_HASH_SIZE + TRAN_SIG_SIZE + UINT256_SIZE + UINT256_SIZE
+        + ACC_ADDR_SIZE + PUB_KEY_SIZE + UINT256_SIZE + UINT256_SIZE
+        + UINT256_SIZE;
 }
 
 bool Transaction::Verify(const Transaction& tran)
