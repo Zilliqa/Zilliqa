@@ -282,11 +282,33 @@ void DirectoryService::ScheduleShardingConsensus(const unsigned int wait_window)
     LOG_MARKER();
 
     auto func = [this, wait_window]() -> void {
+#if 1 //clark
+        std::unique_lock<std::mutex> cv_lk(m_MutexCVShardingConsensus);
+
+        if (cv_shardingConsensus.wait_for(cv_lk,
+                                          std::chrono::seconds(wait_window))
+            == std::cv_status::timeout)
+        {
+            LOG_GENERAL(INFO,
+                        "I have woken up from the sleep of " << wait_window
+                                                             << " seconds");
+        }
+        else
+        {
+            LOG_GENERAL(INFO,
+                        "I have received announcement message. Time to "
+                        "run consensus.");
+        }
+
+        RunConsensusOnSharding();
+        cv_shardingConsensusObject.notify_all();
+#else
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Waiting " << wait_window
                              << " seconds, accepting PoW2 submissions...");
         this_thread::sleep_for(chrono::seconds(wait_window));
         RunConsensusOnSharding();
+#endif
     };
 
     DetachedFunction(1, func);
@@ -404,8 +426,10 @@ bool DirectoryService::ProcessDSBlockConsensus(
 
     lock_guard<mutex> g(m_mutexConsensus);
 
+#if 1 //clark
+    // Wait until ProcessDSBlock in the case that primary sent announcement pretty early
+#else
     // Wait for a while for ProcessDSBlock in the case that primary sent announcement pretty early
-#if 0 //clark
     // TODO: Should await sleep. Use conditional var.
     unsigned int sleep_time_while_waiting = 100;
 #endif

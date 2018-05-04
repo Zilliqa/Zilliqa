@@ -157,6 +157,10 @@ class DirectoryService : public Executable, public Broadcastable
     std::mutex m_MutexCVDSBlockConsensus;
     std::condition_variable cv_DSBlockConsensusObject;
     std::mutex m_MutexCVDSBlockConsensusObject;
+    std::condition_variable cv_shardingConsensus;
+    std::mutex m_MutexCVShardingConsensus;
+    std::condition_variable cv_shardingConsensusObject;
+    std::mutex m_MutexCVShardingConsensusObject;
 #endif
 
     // TO Remove
