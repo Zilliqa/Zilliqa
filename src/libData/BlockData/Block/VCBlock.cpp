@@ -28,7 +28,7 @@ VCBlock::VCBlock(const vector<unsigned char>& src, unsigned int offset)
 {
     if (Deserialize(src, offset) != 0)
     {
-        LOG_MESSAGE("Error. We failed to initialize VCBlock.");
+        LOG_GENERAL(WARNING, "Error. We failed to initialize VCBlock.");
     }
 }
 
@@ -67,7 +67,7 @@ int VCBlock::Deserialize(const vector<unsigned char>& src, unsigned int offset)
         VCBlockHeader header;
         if (header.Deserialize(src, offset) != 0)
         {
-            LOG_MESSAGE("Error. We failed to init DSBlockHeader.");
+            LOG_GENERAL(WARNING, "Error. We failed to init DSBlockHeader.");
             return -1;
         }
         m_header = header;
@@ -77,7 +77,8 @@ int VCBlock::Deserialize(const vector<unsigned char>& src, unsigned int offset)
     }
     catch (const std::exception& e)
     {
-        LOG_MESSAGE("ERROR: Error with VCBlock::Deserialize." << ' '
+        LOG_GENERAL(WARNING,
+                    "ERROR: Error with VCBlock::Deserialize." << ' '
                                                               << e.what());
         return -1;
     }

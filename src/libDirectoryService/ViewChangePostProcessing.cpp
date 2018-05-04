@@ -34,7 +34,8 @@
 #include "libUtils/Logger.h"
 #include "libUtils/SanityChecks.h"
 
-bool DirectoryService::ViewChange()
+#ifndef IS_LOOKUP_NODE
+void DirectoryService::ProcessViewChangeConsensusWhenDone()
 {
     /**
     if (m_mediator.m_DSCommitteeNetworkInfo.at(1) == candidiateLeader)
@@ -88,8 +89,8 @@ bool DirectoryService::ViewChange()
         return false;
     }
     **/
-    return true;
 }
+#endif // IS_LOOKUP_NODE
 
 bool DirectoryService::ProcessViewChangeConsensus(
     const vector<unsigned char>& message, unsigned int offset, const Peer& from)
@@ -116,19 +117,22 @@ bool DirectoryService::ProcessViewChangeConsensus(
 
     bool result = m_consensusObject->ProcessMessage(message, offset, from);
     ConsensusCommon::State state = m_consensusObject->GetState();
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "Consensus state = " << state);
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Consensus state = " << state);
 
     if (state == ConsensusCommon::State::DONE)
     {
-        ViewChange();
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "View change consensus is DONE!!!");
+        // VC TODO
+        ProcessViewChangeConsensusWhenDone();
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "View change consensus is DONE!!!");
     }
     else if (state == ConsensusCommon::State::ERROR)
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Oops, no consensus reached - what to do now???");
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Oops, no consensus reached - what to do now???");
+        // TODO: Redo VC
+
         // throw exception();
         // TODO: no consensus reached
         return false;

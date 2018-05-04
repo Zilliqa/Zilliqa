@@ -1070,7 +1070,7 @@ bool DirectoryService::ProcessLastDSBlockResponse(
     return true;
 }
 
-    /**
+/**
 
 bool DirectoryService::ProcessInitViewChange(
     const vector<unsigned char>& message, unsigned int offset, const Peer& from)
