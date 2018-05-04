@@ -1101,10 +1101,6 @@ void DirectoryService::RunConsensusOnFinalBlock()
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Initiated final block view change. ");
             RunConsensusOnViewChange();
-
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Initiated final block view change. ");
-            InitViewChange();
         }
     }
 }

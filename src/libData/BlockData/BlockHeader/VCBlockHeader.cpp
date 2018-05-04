@@ -27,7 +27,7 @@ VCBlockHeader::VCBlockHeader(const vector<unsigned char>& src,
 {
     if (Deserialize(src, offset) != 0)
     {
-        LOG_MESSAGE("Error. We failed to initialize VCBlockHeader.");
+        LOG_GENERAL(INFO, "Error. We failed to initialize VCBlockHeader.");
     }
 }
 
@@ -103,7 +103,8 @@ int VCBlockHeader::Deserialize(const vector<unsigned char>& src,
 
         if (m_CandidateLeaderNetworkInfo.Deserialize(src, curOffset) != 0)
         {
-            LOG_MESSAGE(
+            LOG_GENERAL(
+                WARNING,
                 "Error. We failed to deserialize CandidateLeaderNetworkInfo.");
             return -1;
         }
@@ -111,7 +112,8 @@ int VCBlockHeader::Deserialize(const vector<unsigned char>& src,
 
         if (m_CandidateLeaderPubKey.Deserialize(src, curOffset) != 0)
         {
-            LOG_MESSAGE(
+            LOG_GENERAL(
+                WARNING,
                 "Error. We failed to deserialize m_CandidateLeaderPubKey.");
             return -1;
         }
@@ -125,8 +127,9 @@ int VCBlockHeader::Deserialize(const vector<unsigned char>& src,
     }
     catch (const std::exception& e)
     {
-        LOG_MESSAGE("ERROR: Error with VCBlockHeader::Deserialize."
-                    << ' ' << e.what());
+        LOG_GENERAL(WARNING,
+                    "ERROR: Error with VCBlockHeader::Deserialize."
+                        << ' ' << e.what());
         return -1;
     }
 

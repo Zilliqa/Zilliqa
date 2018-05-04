@@ -103,7 +103,6 @@ void DirectoryService::RunConsensusOnViewChange()
 {
     LOG_MARKER();
     SetState(VIEWCHANGE_CONSENSUS_PREP); //change
-    unique_lock<shared_timed_mutex> lock(m_mutexProducerConsumer);
 
     unsigned int newCandidateLeader = 1; // To be change to a random node
     if (m_mediator.m_DSCommitteeNetworkInfo.at(newCandidateLeader)
@@ -111,9 +110,9 @@ void DirectoryService::RunConsensusOnViewChange()
     {
         if (!RunConsensusOnViewChangeWhenCandidateLeader())
         {
-            LOG_MESSAGE(
+            LOG_GENERAL(
+                WARNING,
                 "Throwing exception after RunConsensusOnDSBlockWhenDSPrimary");
-            // throw exception();
             return;
         }
     }
@@ -121,9 +120,9 @@ void DirectoryService::RunConsensusOnViewChange()
     {
         if (!RunConsensusOnViewChangeWhenNotCandidateLeader())
         {
-            LOG_MESSAGE("Throwing exception after "
+            LOG_GENERAL(WARNING,
+                        "Throwing exception after "
                         "RunConsensusOnViewChangeWhenNotCandidateLeader");
-            // throw exception();
             return;
         }
     }
@@ -174,8 +173,9 @@ void DirectoryService::ComputeNewCandidateLeader(
 
     // Assemble VC block header
 
-    LOG_MESSAGE("Composing new vc block with vc count at "
-                << m_viewChangeCounter);
+    LOG_GENERAL(INFO,
+                "Composing new vc block with vc count at "
+                    << m_viewChangeCounter);
 
     VCBlockHeader newHeader(
         m_mediator.m_dsBlockChain.GetBlockCount(), m_mediator.m_currentEpochNum,
@@ -191,8 +191,8 @@ void DirectoryService::ComputeNewCandidateLeader(
         m_pendingVCBlock.reset(new VCBlock(newHeader, newSig));
     }
 
-    LOG_MESSAGE2(
-        to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(
+        INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
         "New VCBlock created with candidate leader "
             << m_mediator.m_DSCommitteeNetworkInfo.at(newCandidateLeaderIndex)
                    .GetPrintableIPAddress()
@@ -205,8 +205,8 @@ bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader()
 {
     LOG_MARKER();
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "I am the candidate leader DS node. Proposing to the rest.");
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "I am the candidate leader DS node. Proposing to the rest.");
 
     vector<unsigned char> newCandidateLeader;
     ComputeNewCandidateLeader(newCandidateLeader);
@@ -236,15 +236,15 @@ bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader()
 
     if (m_consensusObject == nullptr)
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Error: Unable to create consensus object");
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Error: Unable to create consensus object");
         return false;
     }
 
     ConsensusLeader* cl
         = dynamic_cast<ConsensusLeader*>(m_consensusObject.get());
 
-    cl->StartConsensus(newCandidateLeader);
+    cl->StartConsensus(newCandidateLeader, VCBlockHeader::SIZE);
 
     return true;
 }
@@ -253,9 +253,9 @@ bool DirectoryService::RunConsensusOnViewChangeWhenNotCandidateLeader()
 {
     LOG_MARKER();
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                 "I am a backup DS node (after view change). Waiting for View "
-                 "Change announcement.");
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "I am a backup DS node (after view change). Waiting for View "
+              "Change announcement.");
 
     // Dummy values for now
     uint32_t consensusID = 0x0;
@@ -276,8 +276,8 @@ bool DirectoryService::RunConsensusOnViewChangeWhenNotCandidateLeader()
 
     if (m_consensusObject == nullptr)
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Error: Unable to create consensus object");
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Error: Unable to create consensus object");
         return false;
     }
 

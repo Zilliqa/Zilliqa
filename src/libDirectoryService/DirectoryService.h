@@ -341,6 +341,7 @@ class DirectoryService : public Executable, public Broadcastable
                                unsigned int offset, const Peer& from);
     bool ProcessInitViewChangeResponse(const vector<unsigned char>& message,
                                        unsigned int offset, const Peer& from);
+    void ProcessViewChangeConsensusWhenDone();
 
     // Rejoin the network as a DS node in case of failure happens in protocol
     void RejoinAsDS();
