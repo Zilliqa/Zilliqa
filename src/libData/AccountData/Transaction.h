@@ -36,7 +36,7 @@ using KeyPair = std::pair<PrivKey, PubKey>;
 class Transaction : public Serializable
 {
     TxnHash m_tranID;
-    uint32_t m_version;
+    boost::multiprecision::uint256_t m_version;
     boost::multiprecision::uint256_t
         m_nonce; // counter: the number of tx from m_fromAddr
     Address m_toAddr;
@@ -59,7 +59,7 @@ public:
     Transaction(const Transaction& src);
 
     /// Constructor with specified transaction fields.
-    Transaction(uint32_t version, const boost::multiprecision::uint256_t& nonce,
+    Transaction(boost::multiprecision::uint256_t version, const boost::multiprecision::uint256_t& nonce,
                 const Address& toAddr, const KeyPair& senderKeyPair,
                 const boost::multiprecision::uint256_t& amount,
                 const boost::multiprecision::uint256_t& gasPrice,
@@ -68,7 +68,7 @@ public:
                 const std::vector<unsigned char>& data);
 
     /// Constructor with specified transaction fields.
-    Transaction(uint32_t version, const boost::multiprecision::uint256_t& nonce,
+    Transaction(boost::multiprecision::uint256_t version, const boost::multiprecision::uint256_t& nonce,
                 const Address& toAddr, const PubKey& senderPubKey,
                 const boost::multiprecision::uint256_t& amount,
                 const boost::multiprecision::uint256_t& gasPrice,
@@ -89,6 +89,9 @@ public:
 
     /// Returns the size in bytes when serializing the transaction.
     unsigned int GetSerializedSize();
+
+    /// Return the size of static typed variables for a minimum size check
+    unsigned int GetMinSerializedSize();
 
     /// Returns the transaction ID.
     const TxnHash& GetTranID() const;
