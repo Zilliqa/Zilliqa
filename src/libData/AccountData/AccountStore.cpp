@@ -213,8 +213,8 @@ Account* AccountStore::GetAccount(const Address& address)
         std::forward_as_tuple(
             accountDataRLP[0].toInt<boost::multiprecision::uint256_t>(),
             accountDataRLP[1].toInt<boost::multiprecision::uint256_t>(),
-            accountDataRLP[2].toInt<boost::multiprecision::uint256_t>(),
-            accountDataRLP[3].toInt<boost::multiprecision::uint256_t>()));
+            accountDataRLP[2].toHash<dev::h256>(),
+            accountDataRLP[3].toHash<dev::h256>()));
 
     return &it2.first->second;
 }
@@ -244,8 +244,9 @@ bool AccountStore::UpdateStateTrie(const Address& address,
 {
     //LOG_MARKER();
 
-    dev::RLPStream rlpStream(2);
-    rlpStream << account.GetBalance() << account.GetNonce();
+    dev::RLPStream rlpStream(4);
+    rlpStream << account.GetBalance() << account.GetNonce()
+              << account.GetStorageRoot() << account.GetCodeHash();
     m_state.insert(address, &rlpStream.out());
 
     return true;
@@ -270,7 +271,7 @@ bool AccountStore::IncreaseBalance(
     }
     else if (account == nullptr)
     {
-        AddAccount(address, {delta, 0, 0, 0});
+        AddAccount(address, {delta, 0, dev::h256(), dev::h256()});
         return true;
     }
 
@@ -297,7 +298,7 @@ bool AccountStore::DecreaseBalance(
     // TODO: remove this, temporary way to test transactions
     else if (account == nullptr)
     {
-        AddAccount(address, {10000000000, 0, 0, 0});
+        AddAccount(address, {10000000000, 0, dev::h256(), dev::h256()});
     }
 
     return false;
@@ -419,14 +420,17 @@ bool AccountStore::RetrieveFromDisk()
     {
         Address address(i.first);
         dev::RLP rlp(i.second);
-        std::vector<uint256_t> account_data = rlp.toVector<uint256_t>();
-        if (account_data.size() != 4)
-        {
-            LOG_GENERAL(WARNING, "Account data corrupted");
-            return false;
-        }
-        Account account(account_data[0], account_data[1], account_data[2],
-                        account_data[3]);
+        // std::vector<uint256_t> account_data = rlp.toVector<uint256_t>();
+        // if (account_data.size() != 4)
+        // {
+        //     LOG_GENERAL(WARNING, "Account data corrupted");
+        //     return false;
+        // }
+        // Account account(account_data[0], account_data[1], account_data[2],
+        // account_data[3]);
+        Account account(rlp[0].toInt<boost::multiprecision::uint256_t>(),
+                        rlp[1].toInt<boost::multiprecision::uint256_t>(),
+                        rlp[2].toHash<dev::h256>(), rlp[3].toHash<dev::h256>());
         m_addressToAccount.insert({address, account});
     }
     return true;

@@ -22,7 +22,7 @@ Account::Account(const vector<unsigned char>& src, unsigned int offset)
 }
 
 Account::Account(const uint256_t& balance, const uint256_t& nonce,
-                 const uint256_t& storageRoot, const uint256_t& codeHash)
+                 const dev::h256& storageRoot, const dev::h256& codeHash)
     : m_balance(balance)
     , m_nonce(nonce)
     , m_storageRoot(storageRoot)
@@ -49,9 +49,12 @@ unsigned int Account::Serialize(vector<unsigned char>& dst,
     curOffset += UINT256_SIZE;
     SetNumber<uint256_t>(dst, curOffset, m_nonce, UINT256_SIZE);
     curOffset += UINT256_SIZE;
-    SetNumber<uint256_t>(dst, curOffset, m_storageRoot, UINT256_SIZE);
-    curOffset += UINT256_SIZE;
-    SetNumber<uint256_t>(dst, curOffset, m_codeHash, UINT256_SIZE);
+    copy(m_storageRoot.asArray().begin(), m_storageRoot.asArray().end(),
+         dst.begin() + curOffset);
+    curOffset += COMMON_HASH_SIZE;
+    copy(m_codeHash.asArray().begin(), m_codeHash.asArray().end(),
+         dst.begin() + curOffset);
+    curOffset += COMMON_HASH_SIZE;
 
     return size_needed;
 }
@@ -68,9 +71,14 @@ int Account::Deserialize(const vector<unsigned char>& src, unsigned int offset)
         curOffset += UINT256_SIZE;
         m_nonce = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
         curOffset += UINT256_SIZE;
-        m_storageRoot = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
-        curOffset += UINT256_SIZE;
-        m_codeHash = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
+        copy(src.begin() + curOffset,
+             src.begin() + curOffset + COMMON_HASH_SIZE,
+             m_storageRoot.asArray().begin());
+        curOffset += COMMON_HASH_SIZE;
+        copy(src.begin() + curOffset,
+             src.begin() + curOffset + COMMON_HASH_SIZE,
+             m_codeHash.asArray().begin());
+        curOffset += COMMON_HASH_SIZE;
     }
     catch (const std::exception& e)
     {
@@ -98,8 +106,7 @@ bool Account::DecreaseBalance(const uint256_t& delta)
     return true;
 }
 
-void Account::SetStorageRoot(
-    const boost::multiprecision::uint256_t& storageRoot)
+void Account::SetStorageRoot(const dev::h256& storageRoot)
 {
     m_storageRoot = storageRoot;
 }
@@ -114,9 +121,9 @@ const uint256_t& Account::GetBalance() const { return m_balance; }
 
 const uint256_t& Account::GetNonce() const { return m_nonce; }
 
-const uint256_t& Account::GetStorageRoot() const { return m_storageRoot; }
+const dev::h256& Account::GetStorageRoot() const { return m_storageRoot; }
 
-const uint256_t& Account::GetCodeHash() const { return m_codeHash; }
+const dev::h256& Account::GetCodeHash() const { return m_codeHash; }
 
 Address Account::GetAddressFromPublicKey(const PubKey& pubKey)
 {

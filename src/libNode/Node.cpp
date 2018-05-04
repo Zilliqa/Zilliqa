@@ -577,7 +577,8 @@ bool Node::CheckCreatedTransaction(const Transaction& tx)
     if (!AccountStore::GetInstance().DoesAccountExist(toAddr))
     {
         LOG_GENERAL(INFO, "New account is added: " << toAddr);
-        AccountStore::GetInstance().AddAccount(toAddr, {0, 0, 0, 0});
+        AccountStore::GetInstance().AddAccount(
+            toAddr, {0, 0, dev::h256(), dev::h256()});
     }
 
     // Check if transaction amount is valid
@@ -970,7 +971,8 @@ bool Node::CheckCreatedTransactionFromLookup(const Transaction& tx)
     if (!AccountStore::GetInstance().DoesAccountExist(toAddr))
     {
         LOG_GENERAL(INFO, "New account is added: " << toAddr);
-        AccountStore::GetInstance().AddAccount(toAddr, {0, 0, 0, 0});
+        AccountStore::GetInstance().AddAccount(
+            toAddr, {0, 0, dev::h256(), dev::h256()});
     }
 
     // Check if transaction amount is valid

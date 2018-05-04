@@ -36,7 +36,12 @@ BOOST_AUTO_TEST_CASE(test1)
 
     PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
 
-    Account acc1(100, 0, 123, 456);
+    Account acc1(
+        100, 0,
+        dev::h256(
+            "57136f0a3d87e187624c0adb30ff2fbdcf47ac9613b1ba46b870e57fa3b5f89c"),
+        dev::h256("12346f0a3d87e187624c0adb30ff2fbdcf47ac9613b1ba46b870e57fa3b5"
+                  "f89d"));
 
     acc1.IncreaseBalance(10);
     acc1.DecreaseBalance(120);
@@ -60,12 +65,20 @@ BOOST_AUTO_TEST_CASE(test1)
     BOOST_CHECK_MESSAGE(acc2Balance == 110,
                         "expected: " << 100 << " actual: " << acc2Balance
                                      << "\n");
-    BOOST_CHECK_MESSAGE(
-        acc2.GetStorageRoot() == 123,
-        "expected: " << 123 << " actual: " << acc2.GetStorageRoot() << "\n");
-    BOOST_CHECK_MESSAGE(acc2.GetCodeHash() == 456,
-                        "expected: " << 456 << " actual: " << acc2.GetCodeHash()
-                                     << "\n");
+    BOOST_CHECK_MESSAGE(acc2.GetStorageRoot()
+                            == dev::h256("57136f0a3d87e187624c0adb30ff2fbdcf47a"
+                                         "c9613b1ba46b870e57fa3b5f89c"),
+                        "expected: "
+                            << "57136f0a3d87e187624c0adb30ff2fbdcf47ac9613b1ba4"
+                               "6b870e57fa3b5f89c"
+                            << " actual: " << acc2.GetStorageRoot() << "\n");
+    BOOST_CHECK_MESSAGE(acc2.GetCodeHash()
+                            == dev::h256("12346f0a3d87e187624c0adb30ff2fbdcf47a"
+                                         "c9613b1ba46b870e57fa3b5f89d"),
+                        "expected: "
+                            << "12346f0a3d87e187624c0adb30ff2fbdcf47ac9613b1ba4"
+                               "6b870e57fa3b5f89d"
+                            << " actual: " << acc2.GetCodeHash() << "\n");
 }
 
 BOOST_AUTO_TEST_SUITE_END()
