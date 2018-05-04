@@ -367,7 +367,7 @@ void P2PComm::HandleAcceptedConnection(
 #if 0 //clark
                             << ". IP address: "
                             << ((ConnectionData*)arg)->from);
-            DestroyConnectData(arg);
+            //DestroyConnectData(arg);
             close(cli_sock);
 #else
                             << ". IP address: " << from);
@@ -404,7 +404,7 @@ void P2PComm::HandleAcceptedConnection(
 #if 0 //clark
                                 << ". IP address: "
                                 << ((ConnectionData*)arg)->from);
-                DestroyConnectData(arg);
+                //DestroyConnectData(arg);
                 close(cli_sock);
 #else
                                 << ". IP address: " << from);
@@ -450,7 +450,7 @@ void P2PComm::HandleAcceptedConnection(
 #if 0 //clark
                                         << ". IP address: "
                                         << ((ConnectionData*)arg)->from);
-                        DestroyConnectData(arg);
+                        //DestroyConnectData(arg);
                         close(cli_sock);
 #else
                                         << ". IP address: " << from);
@@ -569,7 +569,7 @@ void P2PComm::HandleAcceptedConnection(
 #if 0 //clark
                                 << ". IP address: "
                                 << ((ConnectionData*)arg)->from);
-                DestroyConnectData(arg);
+                //DestroyConnectData(arg);
                 close(cli_sock);
 #else
                                 << ". IP address: " << from);
@@ -615,11 +615,11 @@ void P2PComm::DestroyConnectData(void* data)
 
     if (((ConnectionData*)data)->ev)
     {
-        free(((ConnectionData*)data)->ev);
+        delete (((ConnectionData*)data)->ev);
     }
 
     //    event_base_free(((ConnectionData*)data)->base);
-    free(((ConnectionData*)data));
+    delete (ConnectionData*)data;
 }
 /*
 void P2PComm::ProcessInNewThreadWhenAccepted(
@@ -665,7 +665,7 @@ void P2PComm::ConnectionAccept(int serv_sock, short event, void* arg)
                         "DEBUG: I can't accept any incoming conn. I am "
                         "sleeping for "
                             << PUMPMESSAGE_MILLISECONDS << "ms");
-            free(((ConnectionData*)arg));
+            //DestroyConnectData((ConnectionData*)arg);
             return;
         }
 
@@ -721,12 +721,12 @@ void P2PComm::ConnectionAccept(int serv_sock, short event, void* arg)
         };
 
         P2PComm::GetInstance().m_RecvPool.AddJob(func);
-        free(((ConnectionData*)arg));
+        //DestroyConnectData((ConnectionData*)arg);
     }
     catch (const std::exception& e)
     {
         LOG_GENERAL(WARNING, "Socket accept error" << ' ' << e.what());
-        free(((ConnectionData*)arg));
+        //DestroyConnectData((ConnectionData*)arg);
     }
 }
 #endif
@@ -769,8 +769,7 @@ void P2PComm::StartMessagePump(
     //    event_init();
     struct event_base* base = event_base_new();
     struct event ev;
-    ConnectionData* pConnData
-        = (struct ConnectionData*)malloc(sizeof(struct ConnectionData));
+    ConnectionData* pConnData = new struct ConnectionData;
     pConnData->dispatcher = dispatcher;
     pConnData->broadcast_list_retriever = broadcast_list_retriever;
     event_set(&ev, serv_sock, EV_READ | EV_PERSIST, ConnectionAccept,
@@ -782,6 +781,7 @@ void P2PComm::StartMessagePump(
     close(serv_sock);
     event_del(&ev);
     event_base_free(base);
+    DestroyConnectData((ConnectionData*)pConnData);
 #else
     uint32_t cli_len = sizeof(struct sockaddr_in);
     struct sockaddr_in cli_addr;
