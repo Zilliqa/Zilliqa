@@ -639,8 +639,8 @@ Transaction CreateValidTestingTransaction(PrivKey& fromPrivKey,
     // LOG_GENERAL("fromPrivKey " << fromPrivKey << " / fromPubKey " << fromPubKey
     // << " / toAddr" << toAddr);
 
-    Transaction txn{version,    nonce,  toAddr,
-                    fromPubKey, amount, {/* empty sig */}};
+    Transaction txn(version, nonce, toAddr, make_pair(fromPrivKey, fromPubKey),
+                    amount, 0, 0, {0}, {0});
 
     // std::vector<unsigned char> buf;
     // txn.SerializeWithoutSignature(buf, 0);
@@ -821,6 +821,12 @@ bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
                       << " , local: " << localBlockNum);
     }
 
+    if (IsMessageSizeInappropriate(message.size(), offset,
+                                   Transaction::GetMinSerializedSize()))
+    {
+        return false;
+    }
+
     const auto& submittedTransaction = Transaction(message, offset);
 
     // if (CheckCreatedTransaction(submittedTransaction))
@@ -840,6 +846,12 @@ bool Node::ProcessSubmitTxnSharing(const vector<unsigned char>& message,
                                    unsigned int offset, const Peer& from)
 {
     //LOG_MARKER();
+
+    if (IsMessageSizeInappropriate(message.size(), offset,
+                                   Transaction::GetMinSerializedSize()))
+    {
+        return false;
+    }
 
     const auto& submittedTransaction = Transaction(message, offset);
     // if (CheckCreatedTransaction(submittedTransaction))
@@ -867,12 +879,6 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
     // Message = [204-byte transaction]
 
     //LOG_MARKER();
-
-    if (IsMessageSizeInappropriate(message.size(), offset,
-                                   Transaction::GetSerializedSize()))
-    {
-        return false;
-    }
 
     unsigned int cur_offset = offset;
 
@@ -1026,7 +1032,7 @@ bool Node::ProcessCreateTransactionFromLookup(
     //LOG_MARKER();
 
     if (IsMessageSizeInappropriate(message.size(), offset,
-                                   Transaction::GetSerializedSize()))
+                                   Transaction::GetMinSerializedSize()))
     {
         return false;
     }
@@ -1044,10 +1050,9 @@ bool Node::ProcessCreateTransactionFromLookup(
     lock_guard<mutex> g(m_mutexCreatedTransactions);
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Recvd txns: "
-                  << tx.GetTranID() << " Signature: "
-                  << DataConversion::charArrToHexStr(tx.GetSignature())
-                  << " toAddr: " << tx.GetToAddr().hex());
+              "Recvd txns: " << tx.GetTranID()
+                             << " Signature: " << tx.GetSignature()
+                             << " toAddr: " << tx.GetToAddr().hex());
     if (CheckCreatedTransactionFromLookup(tx))
     {
         m_createdTransactions.push_back(tx);
