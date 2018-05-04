@@ -30,28 +30,54 @@
 #include "libCrypto/Schnorr.h"
 
 using TxnHash = dev::h256;
+using KeyPair = std::pair<PrivKey, PubKey>;
 
 /// Stores information on a single transaction.
 class Transaction : public Serializable
 {
     TxnHash m_tranID;
-    uint32_t m_version;
+    boost::multiprecision::uint256_t m_version;
     boost::multiprecision::uint256_t
         m_nonce; // counter: the number of tx from m_fromAddr
     Address m_toAddr;
     PubKey m_senderPubKey;
     boost::multiprecision::uint256_t m_amount;
-    std::array<unsigned char, TRAN_SIG_SIZE> m_signature;
+    boost::multiprecision::uint256_t m_gasPrice;
+    boost::multiprecision::uint256_t m_gasLimit;
+    std::vector<unsigned char> m_code;
+    std::vector<unsigned char> m_data;
+    Signature m_signature;
+
+    unsigned int SerializeCoreFields(std::vector<unsigned char>& dst,
+                                     unsigned int offset) const;
 
 public:
     /// Default constructor.
     Transaction();
 
+    /// Copy constructor.
+    Transaction(const Transaction& src);
+
     /// Constructor with specified transaction fields.
-    Transaction(uint32_t version, const boost::multiprecision::uint256_t& nonce,
+    Transaction(boost::multiprecision::uint256_t version,
+                const boost::multiprecision::uint256_t& nonce,
+                const Address& toAddr, const KeyPair& senderKeyPair,
+                const boost::multiprecision::uint256_t& amount,
+                const boost::multiprecision::uint256_t& gasPrice,
+                const boost::multiprecision::uint256_t& gasLimit,
+                const std::vector<unsigned char>& code,
+                const std::vector<unsigned char>& data);
+
+    /// Constructor with specified transaction fields.
+    Transaction(boost::multiprecision::uint256_t version,
+                const boost::multiprecision::uint256_t& nonce,
                 const Address& toAddr, const PubKey& senderPubKey,
                 const boost::multiprecision::uint256_t& amount,
-                const std::array<unsigned char, TRAN_SIG_SIZE>& signature);
+                const boost::multiprecision::uint256_t& gasPrice,
+                const boost::multiprecision::uint256_t& gasLimit,
+                const std::vector<unsigned char>& code,
+                const std::vector<unsigned char>& data,
+                const Signature& signature);
 
     /// Constructor for loading transaction information from a byte stream.
     Transaction(const std::vector<unsigned char>& src, unsigned int offset);
@@ -60,21 +86,20 @@ public:
     unsigned int Serialize(std::vector<unsigned char>& dst,
                            unsigned int offset) const;
 
-    /// Searilize data without signature;
-    unsigned int SerializeWithoutSignature(std::vector<unsigned char>& dst,
-                                           unsigned int offset) const;
-
     /// Implements the Deserialize function inherited from Serializable.
     int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
 
     /// Returns the size in bytes when serializing the transaction.
-    static unsigned int GetSerializedSize();
+    unsigned int GetSerializedSize();
+
+    /// Return the size of static typed variables for a minimum size check
+    static unsigned int GetMinSerializedSize();
 
     /// Returns the transaction ID.
     const TxnHash& GetTranID() const;
 
     /// Returns the current version.
-    const uint32_t& GetVersion() const;
+    const boost::multiprecision::uint256_t& GetVersion() const;
 
     /// Returns the transaction nonce.
     const boost::multiprecision::uint256_t& GetNonce() const;
@@ -88,14 +113,23 @@ public:
     /// Returns the transaction amount.
     const boost::multiprecision::uint256_t& GetAmount() const;
 
+    /// Returns the gas price.
+    const boost::multiprecision::uint256_t& GetGasPrice() const;
+
+    /// Returns the gas limit.
+    const boost::multiprecision::uint256_t& GetGasLimit() const;
+
+    /// Returns the code.
+    const std::vector<unsigned char>& GetCode() const;
+
+    /// Returns the data.
+    const std::vector<unsigned char>& GetData() const;
+
     /// Returns the EC-Schnorr signature over the transaction data.
-    const std::array<unsigned char, TRAN_SIG_SIZE>& GetSignature() const;
+    const Signature& GetSignature() const;
 
-    /// Set the signature;
-    void SetSignature(std::array<unsigned char, TRAN_SIG_SIZE> sig);
-
-    /// Set the signature;
-    void SetSignature(std::vector<unsigned char> sig);
+    /// Set the signature
+    void SetSignature(const Signature& signature);
 
     /// Identifies the shard number that should process the transaction.
     static unsigned int GetShardIndex(const Address& fromAddr,
