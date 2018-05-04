@@ -221,7 +221,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup()
     return true;
 }
 
-void DirectoryService::RunConsensusOnDSBlock()
+void DirectoryService::RunConsensusOnDSBlock(bool isRejoin)
 {
     LOG_MARKER();
     SetState(DSBLOCK_CONSENSUS_PREP);
@@ -241,7 +241,10 @@ void DirectoryService::RunConsensusOnDSBlock()
                       "To-do: Code up the logic for if we didn't get any "
                       "submissions at all");
             // throw exception();
-            return;
+            if (!isRejoin)
+            {
+                return;
+            }
         }
     }
 

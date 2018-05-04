@@ -108,7 +108,7 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
         std::unique_lock<std::mutex> cv_lk(m_MutexCVMicroblockConsensusObject);
 
         if (cv_microblockConsensusObject.wait_for(
-                cv_lk, std::chrono::seconds(10),
+                cv_lk, std::chrono::seconds(CONSENSUS_OBJECT_TIMEOUT),
                 [this] { return (m_state == MICROBLOCK_CONSENSUS); }))
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
