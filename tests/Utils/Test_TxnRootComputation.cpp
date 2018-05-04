@@ -39,31 +39,8 @@ Transaction createDummyTransaction()
         toAddr.asArray().at(i) = i + 4;
     }
 
-    Address fromAddr;
-    for (unsigned int i = 0; i < fromAddr.asArray().size(); i++)
-    {
-        fromAddr.asArray().at(i) = i + 8;
-    }
-
-    std::array<unsigned char, TRAN_SIG_SIZE> signature;
-    for (unsigned int i = 0; i < signature.size(); i++)
-    {
-        signature.at(i) = i + 16;
-    }
-
-    PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
-    Address fromCheck;
-    //To obtain address
-    std::vector<unsigned char> vec;
-    pubKey.Serialize(vec, 0);
-    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-    sha2.Update(vec);
-
-    const std::vector<unsigned char>& output = sha2.Finalize();
-    copy(output.end() - ACC_ADDR_SIZE, output.end(),
-         fromCheck.asArray().begin());
-
-    Transaction tx(1, 5, toAddr, pubKey, 55, signature);
+    Transaction tx(1, 5, toAddr, Schnorr::GetInstance().GenKeyPair(), 55, 11,
+                   22, {0x33}, {0x44});
     return tx;
 }
 
