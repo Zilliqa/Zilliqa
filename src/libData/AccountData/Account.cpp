@@ -130,7 +130,7 @@ void Account::SetStorage(string _k, string _mutable, string _type, string _v)
     m_storage.insert(
         bytesConstRef(DataConversion::HexStrToUint8Vec(_k).data(), _k.size()),
         rlpStream.out());
-    SetStorageRoot(m_storage.root());
+    m_storageRoot = m_storage.root();
 }
 
 vector<string> Account::GetKeys()
@@ -153,7 +153,7 @@ string Account::GetStorageValue(string _k) { return GetStorage(_k)[2]; }
 
 void Account::RollBack()
 {
-    SetStorageRoot(m_prevRoot);
+    m_storageRoot = m_prevRoot;
     if (m_storageRoot != h256())
     {
         m_storage.setRoot(m_storageRoot);
