@@ -383,6 +383,9 @@ public:
     /// The current internal state of this DirectoryService instance.
     std::atomic<DirState> m_state;
 
+    /// The state (before view change) of this DirectoryService instance.
+    std::atomic<DirState> m_viewChangestate;
+
     /// The ID number of this Zilliqa instance for use with consensus operations.
     uint16_t m_consensusMyID;
 
