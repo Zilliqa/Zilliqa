@@ -39,72 +39,45 @@ bool DirectoryService::ViewChangeValidator(const vector<unsigned char>& vcBlock,
                                            std::vector<unsigned char>& errorMsg)
 {
     LOG_MARKER();
-    /**
-    // Check new leader index
-    unsigned int curr_offset = 0;
-    unsigned int expectedCandidateLeaderIndex = 1;
+    lock_guard<mutex> g(m_mutexPendingVCBlock);
 
-    // new leader index
-    unsigned int candidateLeaderIndex = Serializable::GetNumber<uint32_t>(
-        newCandidateLeader, curr_offset, sizeof(uint32_t));
-    curr_offset += sizeof(unsigned int);
+    VCBlock proposedVCBlock(vcBlock, 0);
+    uint32_t offsetToNewLeader = 1;
 
-    if (candidateLeaderIndex != expectedCandidateLeaderIndex)
+    if (m_mediator.m_DSCommitteeNetworkInfo.at(offsetToNewLeader)
+        != proposedVCBlock.GetHeader().GetCandidateLeaderNetworkInfo())
     {
-        LOG_MESSAGE("Error: Wrong candidate leader index");
         return false;
     }
 
-    // Check new leader ip and port
-    Peer candidateLeaderIPAndPort(newCandidateLeader, curr_offset);
-    curr_offset += IP_SIZE + PORT_SIZE;
-
-    if (m_mediator.m_DSCommitteeNetworkInfo.at(candidateLeaderIndex)
-        != candidateLeaderIPAndPort)
+    if (!(m_mediator.m_DSCommitteePubKeys.at(offsetToNewLeader)
+          == proposedVCBlock.GetHeader().GetCandidateLeaderPubKey()))
     {
-        LOG_MESSAGE("Error: Wrong candidate leader ip and port");
         return false;
     }
 
-    // Check new leader pub key
-    PubKey candidateLeaderPubKey(newCandidateLeader, curr_offset);
-    curr_offset += PUB_KEY_SIZE;
-
-    if (m_mediator.m_DSCommitteePubKeys.at(candidateLeaderIndex)
-        != candidateLeaderPubKey)
+    if (m_viewChangestate != proposedVCBlock.GetHeader().GetViewChangeState())
     {
-        LOG_MESSAGE("Error: Wrong candidate leader pub key");
         return false;
     }
 
-    // Check whether view change is in permitted state or not
-    unsigned int viewChangeDSState;
-    viewChangeDSState = Serializable::GetNumber<unsigned int>(
-        message, curr_offset, sizeof(unsigned int));
-    curr_offset += sizeof(unsigned int);
-
-    switch (viewChangeDSState)
+    if (m_viewChangeCounter
+        != proposedVCBlock.GetHeader().GetViewChangeCounter())
     {
-    case DSBLOCK_CONSENSUS_PREP:
-    case DSBLOCK_CONSENSUS:
-    case SHARDING_CONSENSUS_PREP:
-    case SHARDING_CONSENSUS:
-    case FINALBLOCK_CONSENSUS_PREP:
-    case FINALBLOCK_CONSENSUS:
-        break;
-    default:
         return false;
     }
-    **/
     return true;
 }
 
 void DirectoryService::RunConsensusOnViewChange()
 {
     LOG_MARKER();
+
+    m_viewChangestate = (DirState)m_state;
     SetState(VIEWCHANGE_CONSENSUS_PREP); //change
 
-    unsigned int newCandidateLeader = 1; // To be change to a random node
+    unsigned int newCandidateLeader
+        = 1; // TODO: To be change to a random node using VRF
     if (m_mediator.m_DSCommitteeNetworkInfo.at(newCandidateLeader)
         == m_mediator.m_selfPeer)
     {
@@ -179,7 +152,7 @@ void DirectoryService::ComputeNewCandidateLeader(
 
     VCBlockHeader newHeader(
         m_mediator.m_dsBlockChain.GetBlockCount(), m_mediator.m_currentEpochNum,
-        m_state, newCandidateLeaderIndex,
+        m_viewChangestate, newCandidateLeaderIndex,
         m_mediator.m_DSCommitteeNetworkInfo.at(newCandidateLeaderIndex),
         m_mediator.m_DSCommitteePubKeys.at(newCandidateLeaderIndex),
         m_viewChangeCounter, get_time_as_int());
@@ -206,14 +179,13 @@ bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader()
     LOG_MARKER();
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "I am the candidate leader DS node. Proposing to the rest.");
+              "I am the candidate leader DS node. Announcing to the rest.");
 
     vector<unsigned char> newCandidateLeader;
     ComputeNewCandidateLeader(newCandidateLeader);
 
     // Create new consensus object
     // Dummy values for now
-    uint32_t consensusID = 0;
     m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
 
@@ -223,7 +195,7 @@ bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader()
     //    LOG_MESSAGE("I am killing myself to test view change");
     //    throw exception();
     // }
-
+    uint32_t consensusID = m_viewChangeCounter;
     m_consensusObject.reset(new ConsensusLeader(
         consensusID, m_consensusBlockHash, m_consensusMyID,
         m_mediator.m_selfKey.first, m_mediator.m_DSCommitteePubKeys,
@@ -257,8 +229,6 @@ bool DirectoryService::RunConsensusOnViewChangeWhenNotCandidateLeader()
               "I am a backup DS node (after view change). Waiting for View "
               "Change announcement.");
 
-    // Dummy values for now
-    uint32_t consensusID = 0x0;
     m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
 
@@ -267,10 +237,12 @@ bool DirectoryService::RunConsensusOnViewChangeWhenNotCandidateLeader()
         return ViewChangeValidator(message, errorMsg);
     };
 
+    uint32_t consensusID = m_viewChangeCounter;
+    uint32_t offsetToNewLeader = 1;
     m_consensusObject.reset(new ConsensusBackup(
-        consensusID, m_consensusBlockHash, m_consensusMyID, m_consensusLeaderID,
-        m_mediator.m_selfKey.first, m_mediator.m_DSCommitteePubKeys,
-        m_mediator.m_DSCommitteeNetworkInfo,
+        consensusID, m_consensusBlockHash, m_consensusMyID,
+        m_consensusLeaderID + offsetToNewLeader, m_mediator.m_selfKey.first,
+        m_mediator.m_DSCommitteePubKeys, m_mediator.m_DSCommitteeNetworkInfo,
         static_cast<unsigned char>(DIRECTORY),
         static_cast<unsigned char>(VIEWCHANGECONSENSUS), func));
 
