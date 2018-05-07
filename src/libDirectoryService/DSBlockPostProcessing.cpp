@@ -217,6 +217,8 @@ void DirectoryService::UpdateMyDSModeAndConsensusId()
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "I am now just a backup DS");
+        LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
+                      DS_BACKUP_MSG);
         m_mode = BACKUP_DS;
         m_consensusMyID++;
 
@@ -234,6 +236,8 @@ void DirectoryService::UpdateMyDSModeAndConsensusId()
         LOG_EPOCH(
             INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "I am the oldest backup DS -> now kicked out of DS committee :-(");
+        LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
+                      DS_KICKOUT_MSG);
         m_mediator.m_node->SetState(Node::NodeState::POW2_SUBMISSION);
         m_mode = IDLE;
 
@@ -284,6 +288,7 @@ void DirectoryService::ScheduleShardingConsensus(const unsigned int wait_window)
         this_thread::sleep_for(chrono::seconds(wait_window));
         RunConsensusOnSharding();
     };
+
     DetachedFunction(1, func);
 }
 
@@ -455,6 +460,10 @@ bool DirectoryService::ProcessDSBlockConsensus(
 
         // Wait for view change to happen
         //throw exception();
+        if (m_mode != PRIMARY_DS)
+        {
+            RejoinAsDS();
+        }
     }
     else
     {
