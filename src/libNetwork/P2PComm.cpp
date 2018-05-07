@@ -16,15 +16,13 @@
 
 #include <cstring>
 #include <errno.h>
+#include <event.h>
 #include <memory>
 #include <netinet/in.h>
 #include <signal.h>
 #include <stdint.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#if 1 //clark
-#include <event.h>
-#endif
 
 #include "P2PComm.h"
 #include "PeerStore.h"
@@ -54,14 +52,12 @@ struct hash_compare
     }
 };
 
-#if 1 //clark
 struct ConnectionData
 {
     std::function<void(const std::vector<unsigned char>&, const Peer&)>
         dispatcher;
     broadcast_list_func broadcast_list_retriever;
 };
-#endif
 
 static void close_socket(int* cli_sock)
 {
@@ -384,20 +380,11 @@ void P2PComm::HandleAcceptedConnection(
         // Check if this message has been received before
         bool found = false;
         {
-#if 1 //clark
             lock_guard<mutex> guard(
                 P2PComm::GetInstance().m_broadcastHashesMutex);
-#else
-            lock_guard<mutex> guard(m_broadcastHashesMutex);
-#endif
             vector<unsigned char> msg_hash(hash_buf, hash_buf + HASH_LEN);
-#if 1 //clark
             found = (P2PComm::GetInstance().m_broadcastHashes.find(msg_hash)
                      != P2PComm::GetInstance().m_broadcastHashes.end());
-#else
-            found
-                = (m_broadcastHashes.find(msg_hash) != m_broadcastHashes.end());
-#endif
             // While we have the lock, we should quickly add the hash
             if (!found)
             {
@@ -435,12 +422,8 @@ void P2PComm::HandleAcceptedConnection(
 
                 if (this_msg_hash == msg_hash)
                 {
-#if 1 //clark
                     P2PComm::GetInstance().m_broadcastHashes.insert(
                         this_msg_hash);
-#else
-                    m_broadcastHashes.insert(this_msg_hash);
-#endif
                 }
                 else
                 {
@@ -473,25 +456,16 @@ void P2PComm::HandleAcceptedConnection(
             {
                 vector<unsigned char> this_msg_hash(hash_buf,
                                                     hash_buf + HASH_LEN);
-#if 1 //clark
                 P2PComm::GetInstance().SendBroadcastMessageCore(
                     broadcast_list, message, this_msg_hash);
-#else
-                SendBroadcastMessageCore(broadcast_list, message,
-                                         this_msg_hash);
-#endif
             }
 
 #ifdef STAT_TEST
             vector<unsigned char> this_msg_hash(hash_buf, hash_buf + HASH_LEN);
             LOG_STATE(
                 "[BROAD]["
-#if 1 //clark
                 << std::setw(15) << std::left
                 << P2PComm::GetInstance().m_selfPeer << "]["
-#else
-                << std::setw(15) << std::left << m_selfPeer << "]["
-#endif
                 << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6)
                 << "] RECV");
 #endif // STAT_TEST
@@ -533,7 +507,6 @@ void P2PComm::HandleAcceptedConnection(
     }
 }
 
-#if 1 //clark
 void P2PComm::ConnectionAccept(int serv_sock, short event, void* arg)
 {
     struct sockaddr_in cli_addr;
@@ -579,7 +552,6 @@ void P2PComm::ConnectionAccept(int serv_sock, short event, void* arg)
         LOG_GENERAL(WARNING, "Socket accept error" << ' ' << e.what());
     }
 }
-#endif
 
 void P2PComm::StartMessagePump(
     uint32_t listen_port_host,
@@ -615,7 +587,6 @@ void P2PComm::StartMessagePump(
 
     listen(serv_sock, 5000);
 
-#if 1 //clark
     struct event_base* base = event_base_new();
     struct event ev;
     ConnectionData* pConnData = new struct ConnectionData;
@@ -631,48 +602,6 @@ void P2PComm::StartMessagePump(
     delete pConnData;
     event_del(&ev);
     event_base_free(base);
-#else
-    uint32_t cli_len = sizeof(struct sockaddr_in);
-    struct sockaddr_in cli_addr;
-
-    while (true)
-    {
-        try
-        {
-            int cli_sock
-                = accept(serv_sock, (struct sockaddr*)&cli_addr, &cli_len);
-            if (cli_sock < 0)
-            {
-                LOG_GENERAL(WARNING,
-                            "Socket accept failed. Socket ret code: "
-                                << cli_sock << ". TCP error code = " << errno
-                                << " Desc: " << std::strerror(errno));
-                LOG_GENERAL(INFO,
-                            "DEBUG: I can't accept any incoming conn. I am "
-                            "sleeping for "
-                                << PUMPMESSAGE_MILLISECONDS << "ms");
-                this_thread::sleep_for(
-                    chrono::milliseconds(rand() % PUMPMESSAGE_MILLISECONDS));
-                continue;
-            }
-
-            Peer from(uint128_t(cli_addr.sin_addr.s_addr), cli_addr.sin_port);
-            LOG_GENERAL(INFO,
-                        "DEBUG: I got an incoming message from "
-                            << from.GetPrintableIPAddress());
-            auto func = [this, cli_sock, from, dispatcher,
-                         broadcast_list_retriever]() -> void {
-                HandleAcceptedConnection(cli_sock, from, dispatcher,
-                                         broadcast_list_retriever);
-            };
-            m_RecvPool.AddJob(func);
-        }
-        catch (const std::exception& e)
-        {
-            LOG_GENERAL(WARNING, "Socket accept error" << ' ' << e.what());
-        }
-    }
-#endif
 }
 
 /// Send message to the peers using the threads from the pool
