@@ -79,12 +79,6 @@ public:
     /// Decreases account balance by the specified delta amount.
     bool DecreaseBalance(const uint256_t& delta);
 
-    /// Updates the storage root.
-    void SetStorageRoot(const h256& storageRoot)
-    {
-        m_storageRoot = storageRoot;
-    }
-
     /// Returns the account balance.
     const uint256_t& GetBalance() const { return m_balance; }
 
