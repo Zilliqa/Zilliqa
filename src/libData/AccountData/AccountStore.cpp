@@ -17,6 +17,7 @@
 #include <boost/filesystem.hpp>
 #include <leveldb/db.h>
 
+#include "Account.h"
 #include "AccountStore.h"
 #include "Address.h"
 #include "depends/common/RLP.h"
@@ -42,6 +43,7 @@ void AccountStore::Init()
 {
     LOG_MARKER();
     m_addressToAccount.clear();
+    contractStatesDB.ResetDB();
     m_db.ResetDB();
     m_state.init();
     prevRoot = m_state.root();
@@ -188,6 +190,8 @@ void AccountStore::UpdateAccounts(const Transaction& transaction)
 
     TransferBalance(fromAddr, toAddr, amount);
     IncreaseNonce(fromAddr);
+
+    //TODO: Process the contract
 }
 
 Account* AccountStore::GetAccount(const Address& address)
@@ -380,6 +384,11 @@ void AccountStore::MoveUpdatesToDisk()
 {
     LOG_MARKER();
 
+    contractStatesDB.commit();
+    for (auto i : m_addressToAccount)
+    {
+        i.second.Commit();
+    }
     m_state.db()->commit();
     prevRoot = m_state.root();
     MoveRootToDisk(prevRoot);
@@ -389,6 +398,11 @@ void AccountStore::DiscardUnsavedUpdates()
 {
     LOG_MARKER();
 
+    contractStatesDB.rollback();
+    for (auto i : m_addressToAccount)
+    {
+        i.second.RollBack();
+    }
     m_state.db()->rollback();
     m_state.setRoot(prevRoot);
     m_addressToAccount.clear();
