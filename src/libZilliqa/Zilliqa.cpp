@@ -57,13 +57,12 @@ void Zilliqa::LogSelfNodeInfo(const std::pair<PrivKey, PubKey>& key,
 }
 
 Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
-                 bool loadConfig, bool toSyncWithNetwork,
-                 bool toRetrieveHistory)
+                 bool loadConfig, unsigned int syncType, bool toRetrieveHistory)
     : m_pm(key, peer, loadConfig)
     , m_mediator(key, peer)
     , m_ds(m_mediator)
     , m_lookup(m_mediator)
-    , m_n(m_mediator, toRetrieveHistory)
+    , m_n(m_mediator, syncType, toRetrieveHistory)
     , m_cu(key, peer)
 #ifdef IS_LOOKUP_NODE
     , m_httpserver(SERVER_PORT)
@@ -86,14 +85,51 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
     P2PComm::GetInstance().SetSelfPeer(peer);
 #endif // STAT_TEST
 
-#ifndef IS_LOOKUP_NODE
-    LOG_GENERAL(INFO, "I am a normal node.");
-
-    if (toSyncWithNetwork && !toRetrieveHistory)
+    switch (syncType)
     {
+    case SyncType::NO_SYNC:
+        LOG_GENERAL(INFO, "No Sync Needed");
+        break;
+#ifndef IS_LOOKUP_NODE
+    case SyncType::NEW_SYNC:
+        LOG_GENERAL(INFO, "Sync as a new node");
+        if (!toRetrieveHistory)
+        {
+            m_mediator.m_lookup->m_syncType = SyncType::NEW_SYNC;
+            m_n.m_runFromLate = true;
+            m_n.StartSynchronization();
+        }
+        else
+        {
+            LOG_GENERAL(WARNING,
+                        "Error: Sync for new node shouldn't retrieve history");
+        }
+        break;
+    case SyncType::NORMAL_SYNC:
+        LOG_GENERAL(INFO, "Sync as a normal node");
+        m_mediator.m_lookup->m_syncType = SyncType::NORMAL_SYNC;
         m_n.m_runFromLate = true;
         m_n.StartSynchronization();
+        break;
+    case SyncType::DS_SYNC:
+        LOG_GENERAL(INFO, "Sync as a ds node");
+        m_mediator.m_lookup->m_syncType = SyncType::DS_SYNC;
+        m_ds.StartSynchronization();
+        break;
+#else // IS_LOOKUP_NODE
+    case SyncType::LOOKUP_SYNC:
+        LOG_GENERAL(INFO, "Sync as a lookup node");
+        m_mediator.m_lookup->m_syncType = SyncType::LOOKUP_SYNC;
+        m_lookup.StartSynchronization();
+        break;
+#endif // IS_LOOKUP_NODE
+    default:
+        LOG_GENERAL(WARNING, "Invalid Sync Type");
+        break;
     }
+
+#ifndef IS_LOOKUP_NODE
+    LOG_GENERAL(INFO, "I am a normal node.");
 #else // else for IS_LOOKUP_NODE
     LOG_GENERAL(INFO, "I am a lookup node.");
     if (m_server.StartListening())
@@ -102,7 +138,7 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
     }
     else
     {
-        LOG_GENERAL(INFO, "2. API Server couldn't start");
+        LOG_GENERAL(WARNING, "2. API Server couldn't start");
     }
 #endif // IS_LOOKUP_NODE
 }
@@ -134,7 +170,7 @@ void Zilliqa::Dispatch(const vector<unsigned char>& message, const Peer& from)
         }
         else
         {
-            LOG_GENERAL(INFO,
+            LOG_GENERAL(WARNING,
                         "Unknown message type " << std::hex
                                                 << (unsigned int)msg_type);
         }
@@ -158,7 +194,7 @@ vector<Peer> Zilliqa::RetrieveBroadcastList(unsigned char msg_type,
     }
     else
     {
-        LOG_GENERAL(INFO,
+        LOG_GENERAL(WARNING,
                     "Unknown message type " << std::hex
                                             << (unsigned int)msg_type);
     }
