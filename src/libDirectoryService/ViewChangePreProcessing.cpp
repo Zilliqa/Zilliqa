@@ -76,6 +76,7 @@ void DirectoryService::RunConsensusOnViewChange()
     m_viewChangestate = (DirState)m_state;
     SetState(VIEWCHANGE_CONSENSUS_PREP); //change
 
+    m_viewChangeCounter++;
     unsigned int newCandidateLeader
         = 1; // TODO: To be change to a random node using VRF
     if (m_mediator.m_DSCommitteeNetworkInfo.at(newCandidateLeader)
