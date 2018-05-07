@@ -37,12 +37,31 @@
 #ifndef IS_LOOKUP_NODE
 void DirectoryService::ProcessViewChangeConsensusWhenDone()
 {
-    /**
-    if (m_mediator.m_DSCommitteeNetworkInfo.at(1) == candidiateLeader)
-    {
-        // View change
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "View change consensus is DONE!!!");
 
-        // Kick current leader to the back of the queue, waiting to be eject at
+    lock_guard<mutex> g(m_mutexPendingVCBlock);
+
+    // StoreVCBlockToStorage(); TODO
+
+    if (m_mediator.m_DSCommitteeNetworkInfo.at(1)
+        == m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo())
+    {
+        if (m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo()
+            == m_mediator.m_selfPeer)
+        {
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "After view change, I am the new leader!");
+            m_mode = PRIMARY_DS;
+        }
+        else
+        {
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "After view change, I am ds backup");
+            m_mode = BACKUP_DS;
+        }
+
+        // Kick ousted leader to the back of the queue, waiting to be eject at
         // the next ds epoch
         m_mediator.m_DSCommitteeNetworkInfo.push_back(
             m_mediator.m_DSCommitteeNetworkInfo.front());
@@ -56,39 +75,45 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
         m_consensusMyID--;
         m_viewChangeCounter++;
 
-        switch (m_state)
+        switch (m_pendingVCBlock->GetHeader().GetViewChangeState())
         {
         case DSBLOCK_CONSENSUS:
-            SetState(DSBLOCK_CONSENSUS_PREP);
         case DSBLOCK_CONSENSUS_PREP:
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Re-running dsblock consensus (backup)");
-            RunConsensusOnDSBlockWhenDSBackup();
-            SetState(DSBLOCK_CONSENSUS);
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Re-running dsblock consensus");
+            RunConsensusOnDSBlock();
             break;
         case SHARDING_CONSENSUS:
-            SetState(SHARDING_CONSENSUS_PREP);
         case SHARDING_CONSENSUS_PREP:
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Re-running sharding consensus (backup)");
-            RunConsensusOnShardingWhenDSBackup();
-            SetState(SHARDING_CONSENSUS);
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Re-running sharding consensus");
+            RunConsensusOnSharding();
             break;
         case FINALBLOCK_CONSENSUS:
-            SetState(FINALBLOCK_CONSENSUS_PREP);
         case FINALBLOCK_CONSENSUS_PREP:
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Re-running finalblock consensus (backup)");
-            RunConsensusOnFinalBlockWhenDSBackup();
-            SetState(FINALBLOCK_CONSENSUS);
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Re-running finalblock consensus");
+            RunConsensusOnFinalBlock();
             break;
+        case VIEWCHANGE_CONSENSUS:
+        case VIEWCHANGE_CONSENSUS_PREP:
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Re-running view change consensus");
+            RunConsensusOnViewChange();
         default:
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "illegal view change state (backup)");
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "illegal view change state");
         }
-        return false;
     }
-    **/
+    else
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "View change completed but it seems wrong to me.");
+
+        // TODO
+        // CV with timeout run consensus
+        // Rejoin as ds node after timeout
+    }
 }
 #endif // IS_LOOKUP_NODE
 
@@ -105,15 +130,13 @@ bool DirectoryService::ProcessViewChangeConsensus(
 
     lock_guard<mutex> g(m_mutexConsensus);
 
-    /**
-    // if (m_state != SHARDING_CONSENSUS)
-    if (!CheckState(PROCESS_SHARDINGCONSENSUS))
+    if (!CheckState(PROCESS_VIEWCHANGECONSENSUS))
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                     "Ignoring consensus message");
+        LOG_EPOCH(
+            WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+            "Ignoring consensus message. Not at viewchange consensus state.");
         return false;
     }
-    **/
 
     bool result = m_consensusObject->ProcessMessage(message, offset, from);
     ConsensusCommon::State state = m_consensusObject->GetState();
@@ -129,8 +152,11 @@ bool DirectoryService::ProcessViewChangeConsensus(
     }
     else if (state == ConsensusCommon::State::ERROR)
     {
-        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Oops, no consensus reached - what to do now???");
+        LOG_EPOCH(
+            WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+            "Oops, no consensus reached. Will attempt to do view change again");
+        //RunConsensusOnViewChange();
+
         // TODO: Redo VC
 
         // throw exception();
