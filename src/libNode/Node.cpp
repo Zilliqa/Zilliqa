@@ -50,16 +50,11 @@ using namespace boost::multiprecision;
 
 void addBalanceToGenesisAccount()
 {
-    const uint256_t bal{100000000000};
-    const uint256_t nonce{0};
-    const uint256_t storageRoot{0};
-    const uint256_t codeHash{0};
-
     for (auto& walletHexStr : GENESIS_WALLETS)
     {
         Address addr{DataConversion::HexStrToUint8Vec(walletHexStr)};
         AccountStore::GetInstance().AddAccount(
-            addr, Account(bal, nonce, storageRoot, codeHash));
+            addr, {100000000000, 0, dev::h256(), dev::h256()});
         LOG_GENERAL(INFO,
                     "add genesis account " << addr << " with balance " << bal);
     }
