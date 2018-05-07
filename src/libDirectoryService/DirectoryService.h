@@ -188,7 +188,8 @@ class DirectoryService : public Executable, public Broadcastable
                                   unsigned int offset, const Peer& from);
     bool ProcessAllPoWConnResponse(const vector<unsigned char>& message,
                                    unsigned int offset, const Peer& from);
-
+    bool ProcessViewChangeConsensus(const vector<unsigned char>& message,
+                                    unsigned int offset, const Peer& from);
     // To block certain types of incoming message for certain states
     bool ToBlockMessage(unsigned char ins_byte);
 
@@ -334,8 +335,7 @@ class DirectoryService : public Executable, public Broadcastable
                              std::vector<unsigned char>& errorMsg);
     bool RunConsensusOnViewChangeWhenCandidateLeader();
     bool RunConsensusOnViewChangeWhenNotCandidateLeader();
-    bool ProcessViewChangeConsensus(const vector<unsigned char>& message,
-                                    unsigned int offset, const Peer& from);
+
     void InitViewChange();
     bool ProcessInitViewChange(const vector<unsigned char>& message,
                                unsigned int offset, const Peer& from);
