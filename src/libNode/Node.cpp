@@ -51,13 +51,15 @@ using namespace boost::multiprecision;
 void addBalanceToGenesisAccount()
 {
     LOG_MARKER();
+
     const uint256_t bal{100000000000};
     const uint256_t nonce{0};
 
     for (auto& walletHexStr : GENESIS_WALLETS)
     {
         Address addr{DataConversion::HexStrToUint8Vec(walletHexStr)};
-        AccountStore::GetInstance().AddAccount(addr, bal, nonce);
+        AccountStore::GetInstance().AddAccount(
+            addr, {bal, nonce, dev::h256(), dev::h256()});
         LOG_GENERAL(INFO,
                     "add genesis account " << addr << " with balance " << bal);
     }
@@ -603,7 +605,8 @@ bool Node::CheckCreatedTransaction(const Transaction& tx)
     if (!AccountStore::GetInstance().DoesAccountExist(toAddr))
     {
         LOG_GENERAL(INFO, "New account is added: " << toAddr);
-        AccountStore::GetInstance().AddAccount(toAddr, {0, 0});
+        AccountStore::GetInstance().AddAccount(
+            toAddr, {0, 0, dev::h256(), dev::h256()});
     }
 
     // Check if transaction amount is valid
@@ -1002,7 +1005,8 @@ bool Node::CheckCreatedTransactionFromLookup(const Transaction& tx)
     if (!AccountStore::GetInstance().DoesAccountExist(toAddr))
     {
         LOG_GENERAL(INFO, "New account is added: " << toAddr);
-        AccountStore::GetInstance().AddAccount(toAddr, {0, 0});
+        AccountStore::GetInstance().AddAccount(
+            toAddr, {0, 0, dev::h256(), dev::h256()});
     }
 
     // Check if transaction amount is valid
