@@ -16,24 +16,18 @@
 
 #include "libNetwork/P2PComm.h"
 #include "libUtils/JoinableFunction.h"
-#if 1 //clark
-#include "libZilliqa/Zilliqa.h"
-#endif
 #include <arpa/inet.h>
 #include <chrono>
 #include <iostream>
 #include <vector>
 
 using namespace std;
-#if 1 //clark
-using namespace std::chrono;
-high_resolution_clock::time_point startTime;
-#endif
+chrono::high_resolution_clock::time_point startTime;
 
 void process_message(const vector<unsigned char>& message, const Peer& from)
 {
     LOG_MARKER();
-#if 1 //clark
+
     if (message.size() < 10)
     {
         LOG_GENERAL(INFO,
@@ -44,8 +38,8 @@ void process_message(const vector<unsigned char>& message, const Peer& from)
     }
     else
     {
-        duration<double, std::milli> time_span
-            = high_resolution_clock::now() - startTime;
+        chrono::duration<double, std::milli> time_span
+            = chrono::high_resolution_clock::now() - startTime;
         LOG_GENERAL(INFO,
                     "Received " << message.size() / (1024 * 1024)
                                 << " MB message in " << time_span.count()
@@ -55,12 +49,6 @@ void process_message(const vector<unsigned char>& message, const Peer& from)
                             / (time_span.count() * 1024 * 1024)
                                   << " MBps");
     }
-#else
-    LOG_GENERAL(INFO,
-                "Received message '" << (char*)&message.at(0) << "' at port "
-                                     << from.m_listenPortHost
-                                     << " from address " << from.m_ipAddress);
-#endif
 }
 
 int main()
@@ -68,12 +56,8 @@ int main()
     INIT_STDOUT_LOGGER();
 
     auto func = []() mutable -> void {
-#if 1 //clark
         P2PComm::GetInstance().StartMessagePump(30303, process_message,
                                                 nullptr);
-#else
-        P2PComm::GetInstance().StartMessagePump(30303, process_message);
-#endif
     };
     JoinableFunction jf(1, func);
 
@@ -93,12 +77,11 @@ int main()
 
     P2PComm::GetInstance().SendMessage(peers, message2);
 
-#if 1 //clark
     vector<unsigned char> longMsg(1024 * 1024 * 1024, 'z');
     longMsg.push_back('\0');
 
-    startTime = high_resolution_clock::now();
+    startTime = chrono::high_resolution_clock::now();
     P2PComm::GetInstance().SendMessage(peer, longMsg);
-#endif
+
     return 0;
 }

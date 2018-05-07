@@ -76,34 +76,22 @@ class P2PComm
     Peer m_selfPeer;
 #endif // STAT_TEST
 
-#if 1 //clark
     ThreadPool m_SendPool{MAXMESSAGE / 2, "SendPool"};
     ThreadPool m_RecvPool{MAXMESSAGE / 2, "RecvPool"};
-#else
-    ThreadPool m_SendPool{MAXMESSAGE, "SendPool"};
-    ThreadPool m_RecvPool{MAXMESSAGE, "RecvPool"};
-#endif
 
 public:
     /// Returns the singleton P2PComm instance.
     static P2PComm& GetInstance();
 
     /// Receives incoming message and assigns to designated message dispatcher.
-#if 1 //clark
     static void HandleAcceptedConnection(
-
-#else
-    void HandleAcceptedConnection(
-#endif
         int cli_sock, Peer from,
         std::function<void(const std::vector<unsigned char>&, const Peer&)>
             dispatcher,
         broadcast_list_func broadcast_list_retriever);
 
-#if 1 //clark
     /// Accept TCP connection for libevent usage
     static void ConnectionAccept(int serv_sock, short event, void* arg);
-#endif
 
     /// Listens for incoming socket connections.
     void StartMessagePump(
