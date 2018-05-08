@@ -148,17 +148,6 @@ TxBlock::TxBlock(TxBlockHeader&& header, vector<bool>&& isMicroBlockEmpty,
     m_cosigs = move(cosigs);
 }
 
-TxBlock::TxBlock(TxBlockHeader&& header, const vector<bool>& isMicroBlockEmpty,
-                 const vector<TxnHash>& microBlockTxHashes,
-                 CoSignatures&& cosigs)
-    : m_header(move(header))
-    , m_isMicroBlockEmpty(isMicroBlockEmpty)
-    , m_microBlockHashes(microBlockTxHashes)
-{
-    assert(m_header.GetNumMicroBlockHashes() == m_microBlockHashes.size());
-    m_cosigs = move(cosigs);
-}
-
 const TxBlockHeader& TxBlock::GetHeader() const { return m_header; }
 
 const std::vector<bool>& TxBlock::GetIsMicroBlockEmpty() const
