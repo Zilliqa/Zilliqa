@@ -177,7 +177,7 @@ void DirectoryService::ComposeFinalBlockCore()
                       blockNum, timestamp, microblockTrieRoot, stateRoot,
                       numTxs, numMicroBlocks, m_mediator.m_selfKey.second,
                       lastDSBlockNum, dsBlockHeader, m_viewChangeCounter),
-        isMicroBlockEmpty, microBlockTxHashes,
+        vector<bool>(isMicroBlockEmpty), vector<TxnHash>(microBlockTxHashes),
         CoSignatures(m_mediator.m_DSCommitteePubKeys.size())));
 
 #ifdef STAT_TEST
