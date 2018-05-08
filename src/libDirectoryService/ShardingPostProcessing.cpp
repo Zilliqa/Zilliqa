@@ -251,15 +251,9 @@ bool DirectoryService::ProcessShardingConsensus(
     // So, ANNOUNCE should acquire a lock here
 
     lock_guard<mutex> g(m_mutexConsensus);
-#if 1 //clark
     // Wait until in the case that primary sent announcement pretty early
-#else
-    unsigned int sleep_time_while_waiting = 100;
-    // Wait for a while in the case that primary sent announcement pretty early
-#endif
     if ((m_state == POW2_SUBMISSION) || (m_state == SHARDING_CONSENSUS_PREP))
     {
-#if 1 //clark
         cv_shardingConsensus.notify_all();
 
         std::unique_lock<std::mutex> cv_lk(m_MutexCVShardingConsensusObject);
@@ -268,7 +262,7 @@ bool DirectoryService::ProcessShardingConsensus(
                 cv_lk, std::chrono::seconds(CONSENSUS_OBJECT_TIMEOUT))
             == std::cv_status::timeout)
         {
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Time out while waiting for state transition and "
                       "consensus object creation ");
         }
@@ -276,24 +270,6 @@ bool DirectoryService::ProcessShardingConsensus(
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "State transition is completed and consensus object "
                   "creation. (check for timeout)");
-#else
-        for (unsigned int i = 0; i < 1000; i++)
-        {
-            if (m_state == SHARDING_CONSENSUS)
-            {
-                break;
-            }
-
-            if (i % 100 == 0)
-            {
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "Waiting for SHARDING_CONSENSUS before processing");
-            }
-
-            this_thread::sleep_for(
-                chrono::milliseconds(sleep_time_while_waiting));
-        }
-#endif
     }
 
     // if (m_state != SHARDING_CONSENSUS)
