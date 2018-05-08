@@ -282,7 +282,6 @@ void DirectoryService::ScheduleShardingConsensus(const unsigned int wait_window)
     LOG_MARKER();
 
     auto func = [this, wait_window]() -> void {
-#if 1 //clark
         std::unique_lock<std::mutex> cv_lk(m_MutexCVShardingConsensus);
 
         if (cv_shardingConsensus.wait_for(cv_lk,
@@ -302,13 +301,6 @@ void DirectoryService::ScheduleShardingConsensus(const unsigned int wait_window)
 
         RunConsensusOnSharding();
         cv_shardingConsensusObject.notify_all();
-#else
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Waiting " << wait_window
-                             << " seconds, accepting PoW2 submissions...");
-        this_thread::sleep_for(chrono::seconds(wait_window));
-        RunConsensusOnSharding();
-#endif
     };
 
     DetachedFunction(1, func);
@@ -426,16 +418,9 @@ bool DirectoryService::ProcessDSBlockConsensus(
 
     lock_guard<mutex> g(m_mutexConsensus);
 
-#if 1 //clark
     // Wait until ProcessDSBlock in the case that primary sent announcement pretty early
-#else
-    // Wait for a while for ProcessDSBlock in the case that primary sent announcement pretty early
-    // TODO: Should await sleep. Use conditional var.
-    unsigned int sleep_time_while_waiting = 100;
-#endif
     if ((m_state == POW1_SUBMISSION) || (m_state == DSBLOCK_CONSENSUS_PREP))
     {
-#if 1 //clark
         cv_DSBlockConsensus.notify_all();
 
         std::unique_lock<std::mutex> cv_lk(m_MutexCVDSBlockConsensusObject);
@@ -444,7 +429,7 @@ bool DirectoryService::ProcessDSBlockConsensus(
                 cv_lk, std::chrono::seconds(CONSENSUS_OBJECT_TIMEOUT))
             == std::cv_status::timeout)
         {
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Time out while waiting for state transition and "
                       "consensus object creation ");
         }
@@ -452,29 +437,6 @@ bool DirectoryService::ProcessDSBlockConsensus(
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "State transition is completed and consensus object "
                   "creation. (check for timeout)");
-#else
-        //for (unsigned int i = 0; i < POW1_WINDOW_IN_SECONDS; i++)
-        unsigned int i = 0;
-        while (true)
-        {
-            if (m_state == DSBLOCK_CONSENSUS)
-            {
-                break;
-            }
-
-            if (i % 100 == 0)
-            {
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "Waiting for DSBLOCK_CONSENSUS before processing. "
-                          "Time elapsed: "
-                              << (i / 10) << "seconds");
-            }
-
-            this_thread::sleep_for(
-                chrono::milliseconds(sleep_time_while_waiting));
-            i++;
-        }
-#endif
     }
 
     if (!CheckState(PROCESS_DSBLOCKCONSENSUS))

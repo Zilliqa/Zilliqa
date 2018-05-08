@@ -342,13 +342,10 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
                               << POW1_WINDOW_IN_SECONDS
                               << " seconds, accepting PoW1 submissions...");
                 this_thread::sleep_for(chrono::seconds(POW1_WINDOW_IN_SECONDS));
-#if 1 //clark
                 RunConsensusOnDSBlock();
-#endif
             }
             else
             {
-#if 1 //clark
                 std::unique_lock<std::mutex> cv_lk(m_MutexCVDSBlockConsensus);
 
                 if (cv_DSBlockConsensus.wait_for(
@@ -370,18 +367,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
 
                 RunConsensusOnDSBlock();
                 cv_DSBlockConsensusObject.notify_all();
-#else
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "Waiting "
-                              << POW1_BACKUP_WINDOW_IN_SECONDS
-                              << " seconds, accepting PoW1 submissions...");
-                this_thread::sleep_for(
-                    chrono::seconds(POW1_BACKUP_WINDOW_IN_SECONDS));
-#endif
             }
-#if 0 //clark
-            RunConsensusOnDSBlock();
-#endif
         }
         else
         {
