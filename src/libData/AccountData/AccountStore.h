@@ -76,12 +76,6 @@ public:
     /// Adds an Account to the list.
     void AddAccount(const Address& address, const Account& account);
     void AddAccount(const PubKey& pubKey, const Account& account);
-    void AddAccount(const Address& address,
-                    const boost::multiprecision::uint256_t& balance,
-                    const boost::multiprecision::uint256_t& nonce);
-    void AddAccount(const PubKey& pubKey,
-                    const boost::multiprecision::uint256_t& balance,
-                    const boost::multiprecision::uint256_t& nonce);
 
     void UpdateAccounts(const Transaction& transaction);
 
