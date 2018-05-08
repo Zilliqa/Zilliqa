@@ -34,7 +34,7 @@ using namespace dev;
 using namespace boost::multiprecision;
 
 /// DB storing trie storage information for all accounts.
-static OverlayDB contractStatesDB("contractStates");
+// static OverlayDB contractStatesDB("contractStates");
 
 template<class KeyType, class DB>
 using SecureTrieDB = SpecificTrieDB<dev::HashedGenericTrieDB<DB>, KeyType>;
@@ -50,7 +50,7 @@ class Account : public Serializable
     // The associated code for this account.
     vector<unsigned char> m_codeCache;
 
-    SecureTrieDB<bytesConstRef, OverlayDB> m_storage{&contractStatesDB};
+    SecureTrieDB<bytesConstRef, OverlayDB> m_storage;
 
 public:
     Account();
