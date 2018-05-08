@@ -17,11 +17,11 @@
 #include <boost/filesystem.hpp>
 #include <leveldb/db.h>
 
-#include "Account.h"
 #include "AccountStore.h"
 #include "Address.h"
 #include "depends/common/RLP.h"
 #include "libPersistence/BlockStorage.h"
+#include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 
@@ -43,7 +43,7 @@ void AccountStore::Init()
 {
     LOG_MARKER();
     m_addressToAccount.clear();
-    contractStatesDB.ResetDB();
+    ContractStorage::GetContractStorage().GetDB().ResetDB();
     m_db.ResetDB();
     m_state.init();
     prevRoot = m_state.root();
@@ -384,7 +384,7 @@ void AccountStore::MoveUpdatesToDisk()
 {
     LOG_MARKER();
 
-    contractStatesDB.commit();
+    ContractStorage::GetContractStorage().GetDB().commit();
     for (auto i : m_addressToAccount)
     {
         i.second.Commit();
@@ -398,7 +398,7 @@ void AccountStore::DiscardUnsavedUpdates()
 {
     LOG_MARKER();
 
-    contractStatesDB.rollback();
+    ContractStorage::GetContractStorage().GetDB().rollback();
     for (auto i : m_addressToAccount)
     {
         i.second.RollBack();

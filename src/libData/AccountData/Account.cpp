@@ -7,6 +7,7 @@
 #include "depends/common/FixedHash.h"
 #include "depends/common/RLP.h"
 #include "libCrypto/Sha2.h"
+#include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 
@@ -33,6 +34,8 @@ Account::Account(const uint256_t& balance, const uint256_t& nonce,
 
 void Account::InitStorage()
 {
+    m_storage = SecureTrieDB<bytesConstRef, OverlayDB>(
+        &(ContractStorage::GetContractStorage().GetDB()));
     m_storage.init();
     if (m_storageRoot != h256())
     {
