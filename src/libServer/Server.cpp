@@ -174,9 +174,7 @@ Json::Value Server::GetTransaction(const string& transactionHash)
             _json["error"] = "Txn Hash not Present";
             return _json;
         }
-        Transaction txn(tx->GetVersion(), tx->GetNonce(), tx->GetToAddr(),
-                        tx->GetSenderPubKey(), tx->GetAmount(),
-                        tx->GetSignature());
+        Transaction txn(*tx);
         return JSONConversion::convertTxtoJson(txn);
     }
     catch (exception& e)

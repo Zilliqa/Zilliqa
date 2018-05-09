@@ -51,13 +51,15 @@ using namespace boost::multiprecision;
 void addBalanceToGenesisAccount()
 {
     LOG_MARKER();
+
     const uint256_t bal{100000000000};
     const uint256_t nonce{0};
 
     for (auto& walletHexStr : GENESIS_WALLETS)
     {
         Address addr{DataConversion::HexStrToUint8Vec(walletHexStr)};
-        AccountStore::GetInstance().AddAccount(addr, bal, nonce);
+        AccountStore::GetInstance().AddAccount(
+            addr, {bal, nonce, dev::h256(), dev::h256()});
         LOG_GENERAL(INFO,
                     "add genesis account " << addr << " with balance " << bal);
     }
@@ -603,7 +605,8 @@ bool Node::CheckCreatedTransaction(const Transaction& tx)
     if (!AccountStore::GetInstance().DoesAccountExist(toAddr))
     {
         LOG_GENERAL(INFO, "New account is added: " << toAddr);
-        AccountStore::GetInstance().AddAccount(toAddr, {0, 0});
+        AccountStore::GetInstance().AddAccount(
+            toAddr, {0, 0, dev::h256(), dev::h256()});
     }
 
     // Check if transaction amount is valid
@@ -639,8 +642,8 @@ Transaction CreateValidTestingTransaction(PrivKey& fromPrivKey,
     // LOG_GENERAL("fromPrivKey " << fromPrivKey << " / fromPubKey " << fromPubKey
     // << " / toAddr" << toAddr);
 
-    Transaction txn{version,    nonce,  toAddr,
-                    fromPubKey, amount, {/* empty sig */}};
+    Transaction txn(version, nonce, toAddr, make_pair(fromPrivKey, fromPubKey),
+                    amount, 0, 0, {0}, {0});
 
     // std::vector<unsigned char> buf;
     // txn.SerializeWithoutSignature(buf, 0);
@@ -821,6 +824,12 @@ bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
                       << " , local: " << localBlockNum);
     }
 
+    if (IsMessageSizeInappropriate(message.size(), offset,
+                                   Transaction::GetMinSerializedSize()))
+    {
+        return false;
+    }
+
     const auto& submittedTransaction = Transaction(message, offset);
 
     // if (CheckCreatedTransaction(submittedTransaction))
@@ -840,6 +849,12 @@ bool Node::ProcessSubmitTxnSharing(const vector<unsigned char>& message,
                                    unsigned int offset, const Peer& from)
 {
     //LOG_MARKER();
+
+    if (IsMessageSizeInappropriate(message.size(), offset,
+                                   Transaction::GetMinSerializedSize()))
+    {
+        return false;
+    }
 
     const auto& submittedTransaction = Transaction(message, offset);
     // if (CheckCreatedTransaction(submittedTransaction))
@@ -867,12 +882,6 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
     // Message = [204-byte transaction]
 
     //LOG_MARKER();
-
-    if (IsMessageSizeInappropriate(message.size(), offset,
-                                   Transaction::GetSerializedSize()))
-    {
-        return false;
-    }
 
     unsigned int cur_offset = offset;
 
@@ -996,7 +1005,8 @@ bool Node::CheckCreatedTransactionFromLookup(const Transaction& tx)
     if (!AccountStore::GetInstance().DoesAccountExist(toAddr))
     {
         LOG_GENERAL(INFO, "New account is added: " << toAddr);
-        AccountStore::GetInstance().AddAccount(toAddr, {0, 0});
+        AccountStore::GetInstance().AddAccount(
+            toAddr, {0, 0, dev::h256(), dev::h256()});
     }
 
     // Check if transaction amount is valid
@@ -1026,7 +1036,7 @@ bool Node::ProcessCreateTransactionFromLookup(
     //LOG_MARKER();
 
     if (IsMessageSizeInappropriate(message.size(), offset,
-                                   Transaction::GetSerializedSize()))
+                                   Transaction::GetMinSerializedSize()))
     {
         return false;
     }
@@ -1044,10 +1054,9 @@ bool Node::ProcessCreateTransactionFromLookup(
     lock_guard<mutex> g(m_mutexCreatedTransactions);
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Recvd txns: "
-                  << tx.GetTranID() << " Signature: "
-                  << DataConversion::charArrToHexStr(tx.GetSignature())
-                  << " toAddr: " << tx.GetToAddr().hex());
+              "Recvd txns: " << tx.GetTranID()
+                             << " Signature: " << tx.GetSignature()
+                             << " toAddr: " << tx.GetToAddr().hex());
     if (CheckCreatedTransactionFromLookup(tx))
     {
         m_createdTransactions.push_back(tx);
