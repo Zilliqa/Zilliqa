@@ -445,7 +445,7 @@ bool DirectoryService::ProcessDSBlockConsensus(
     if (state == ConsensusCommon::State::DONE)
     {
         m_viewChangeCounter = 0;
-        cv_RecoveryDSBlockConsensus.notify_all();
+        cv_viewChangeDSBlock.notify_all();
         ProcessDSBlockConsensusWhenDone(message, offset);
     }
     else if (state == ConsensusCommon::State::ERROR)

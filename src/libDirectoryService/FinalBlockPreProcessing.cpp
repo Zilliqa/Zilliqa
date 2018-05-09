@@ -1089,19 +1089,14 @@ void DirectoryService::RunConsensusOnFinalBlock()
 
     SetState(FINALBLOCK_CONSENSUS);
 
-    if (m_mode != PRIMARY_DS)
+    std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeFinalBlock);
+    if (cv_viewChangeFinalBlock.wait_for(cv_lk,
+                                         std::chrono::seconds(VIEWCHANGE_TIME))
+        == std::cv_status::timeout)
     {
-        std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeFinalBlock);
-        if (cv_viewChangeFinalBlock.wait_for(
-                cv_lk, std::chrono::seconds(VIEWCHANGE_TIME))
-            == std::cv_status::timeout)
-        {
-            //View change.
-            //TODO: This is a simplified version and will be review again.
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Initiated final block view change. ");
-            RunConsensusOnViewChange();
-        }
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Initiated final block view change. ");
+        RunConsensusOnViewChange();
     }
 }
 #endif // IS_LOOKUP_NODE

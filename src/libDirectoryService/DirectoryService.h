@@ -131,30 +131,7 @@ class DirectoryService : public Executable, public Broadcastable
     std::vector<unsigned char> m_finalBlockMessage;
     std::vector<Peer> m_sharingAssignment;
 
-    // Recovery (simplified view change)
-    std::atomic<bool> m_initiatedViewChange;
-    std::mutex m_mutexProcessViewChangeRequests;
-    std::mutex m_mutexRecoveryDSBlockConsensus;
-    std::condition_variable cv_RecoveryDSBlockConsensus;
-    std::mutex m_mutexRecoveryShardingConsensus;
-    std::condition_variable cv_RecoveryShardingConsensus;
-    std::mutex m_mutexRecoveryFinalBlockConsensus;
-    std::condition_variable cv_RecoveryFinalBlockConsensus;
-
-    const double VC_TOLERANCE_FRACTION = (double)0.667;
-    std::atomic<uint64_t> m_viewChangeEpoch;
-    std::unordered_map<unsigned int, unsigned int> m_viewChangeRequestTracker;
-    std::vector<Peer> m_viewChangeRequesters;
-    std::mutex m_mutexViewChangeRequesters;
-
-    std::condition_variable cv_viewChangeDSBlock;
-    std::mutex m_MutexCVViewChangeDSBlock;
-    std::condition_variable cv_viewChangeSharding;
-    std::mutex m_MutexCVViewChangeSharding;
-    std::condition_variable cv_viewChangeFinalBlock;
-    std::mutex m_MutexCVViewChangeFinalBlock;
-
-    // view change v2
+    // View Change
     std::atomic<unsigned int> m_viewChangeCounter;
     Peer m_candidateLeader;
     std::shared_ptr<VCBlock> m_pendingVCBlock;
@@ -162,9 +139,17 @@ class DirectoryService : public Executable, public Broadcastable
     std::condition_variable cv_ViewChangeConsensusObj;
     std::mutex m_MutexCVViewChangeConsensusObj;
 
+    std::condition_variable cv_viewChangeDSBlock;
+    std::mutex m_MutexCVViewChangeDSBlock;
+    std::condition_variable cv_viewChangeSharding;
+    std::mutex m_MutexCVViewChangeSharding;
+    std::condition_variable cv_viewChangeFinalBlock;
+    std::mutex m_MutexCVViewChangeFinalBlock;
+    std::condition_variable cv_ViewChangeVCBlock;
+    std::mutex m_MutexCVViewChangeVCBlock;
+
     // TO Remove
     //bool temp_todie;
-
     Mediator& m_mediator;
 
     Synchronizer m_synchronizer;
