@@ -104,21 +104,17 @@ void DirectoryService::RunConsensusOnViewChange()
     SetState(VIEWCHANGE_CONSENSUS);
     cv_ViewChangeConsensusObj.notify_all();
 
-    /** reserve for another view change
-    if (m_mode != PRIMARY_DS)
+    std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeVCBlock);
+    if (cv_ViewChangeVCBlock.wait_for(cv_lk,
+                                      std::chrono::seconds(VIEWCHANGE_TIME))
+        == std::cv_status::timeout)
     {
-        std::unique_lock<std::mutex> cv_lk(m_mutexRecoveryDSBlockConsensus);
-        if (cv_RecoveryDSBlockConsensus.wait_for(
-                cv_lk, std::chrono::seconds(VIEWCHANGE_TIME))
-            == std::cv_status::timeout)
-        {
-            //View change.
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         "Initiated view change again. ");
-            RunConsensusOnInitViewChange();
-        }
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Initiated view change again. ");
+
+        auto func = [this]() -> void { RunConsensusOnViewChange(); };
+        DetachedFunction(1, func);
     }
-    **/
 }
 
 void DirectoryService::ComputeNewCandidateLeader(

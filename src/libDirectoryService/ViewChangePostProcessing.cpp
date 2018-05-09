@@ -174,6 +174,7 @@ bool DirectoryService::ProcessViewChangeConsensus(
     if (state == ConsensusCommon::State::DONE)
     {
         // VC TODO
+        cv_ViewChangeVCBlock.notify_all();
         ProcessViewChangeConsensusWhenDone();
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "View change consensus is DONE!!!");
