@@ -68,7 +68,7 @@ def run_setup(numnodes, printnodes):
 	for x in range(0, numnodes):
 		testsubdir = LOCAL_RUN_FOLDER + 'node_' + str(x+1).zfill(4)
 		os.makedirs(testsubdir)
-		shutil.copyfile('./tests/Zilliqa/zilliqa', testsubdir + '/latezilliqa')
+		shutil.copyfile('./build/tests/Zilliqa/zilliqa', testsubdir + '/latezilliqa')
 
 		st = os.stat(testsubdir + '/latezilliqa')
 		os.chmod(testsubdir + '/latezilliqa', st.st_mode | stat.S_IEXEC)
@@ -86,7 +86,7 @@ def run_start():
 
 	# Generate keypairs (sort by public key)
 	for x in range(0, count):
-		process = Popen(["./tests/Zilliqa/genkeypair"], stdout=PIPE)
+		process = Popen(["./build/tests/Zilliqa/genkeypair"], stdout=PIPE)
 		(output, err) = process.communicate()
 		exit_code = process.wait()
 		keypairs.append(output)
@@ -102,7 +102,7 @@ def run_start():
 	# Launch node zilliqa process
 	for x in range(0, count):
 		keypair = keypairs[x].split(" ")
-		os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; echo \"' + keypair[0] + ' ' + keypair[1] + '\" > mykey.txt' + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; ./latezilliqa ' + keypair[1] + ' ' + keypair[0] + ' ' + '127.0.0.1' +' ' + str(NODE_LISTEN_PORT + x) + ' 0 1 0 > ./error_log_zilliqa 2>&1 &')
+		os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; echo \"' + keypair[0] + ' ' + keypair[1] + '\" > mykey.txt' + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; $(pwd)/latezilliqa ' + keypair[1] + ' ' + keypair[0] + ' ' + '127.0.0.1' +' ' + str(NODE_LISTEN_PORT + x) + ' 0 1 0 > ./error_log_zilliqa 2>&1 &')
 
 if __name__ == "__main__":
 	main()

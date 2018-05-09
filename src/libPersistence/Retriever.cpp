@@ -42,7 +42,7 @@ void Retriever::RetrieveDSBlocks(bool& result)
     std::list<DSBlockSharedPtr> blocks;
     if (!BlockStorage::GetBlockStorage().GetAllDSBlocks(blocks))
     {
-        LOG_GENERAL(INFO, "RetrieveDSBlocks skipped or incompleted");
+        LOG_GENERAL(WARNING, "RetrieveDSBlocks skipped or incompleted");
         result = false;
         return;
     }
@@ -70,7 +70,7 @@ void Retriever::RetrieveDSBlocks(bool& result)
     }
     else
     {
-        LOG_GENERAL(INFO, "No GetMetadata or failed");
+        LOG_GENERAL(WARNING, "No GetMetadata or failed");
         result = false;
         return;
     }
@@ -89,7 +89,7 @@ void Retriever::RetrieveTxBlocks(bool& result)
     std::list<TxBlockSharedPtr> blocks;
     if (!BlockStorage::GetBlockStorage().GetAllTxBlocks(blocks))
     {
-        LOG_GENERAL(INFO, "RetrieveTxBlocks skipped or incompleted");
+        LOG_GENERAL(WARNING, "RetrieveTxBlocks skipped or incompleted");
         result = false;
         return;
     }
@@ -116,7 +116,7 @@ void Retriever::RetrieveTxBlocks(bool& result)
 #ifndef IS_LOOKUP_NODE
 bool Retriever::RetrieveTxBodiesDB()
 {
-    filesys::path p(PERSISTENCE_PATH + "/" + TX_BODY_SUBDIR);
+    filesys::path p("./" + PERSISTENCE_PATH + "/" + TX_BODY_SUBDIR);
     if (filesys::exists(p))
     {
         std::vector<std::string> dbNames;
@@ -139,6 +139,8 @@ bool Retriever::RetrieveTxBodiesDB()
             if (!BlockStorage::GetBlockStorage().PushBackTxBodyDB(
                     std::stoi(dbNames[i])))
             {
+                LOG_GENERAL(WARNING,
+                            "PushBackTxBodyDB Failed, investigate why!");
                 return false;
             }
         }
@@ -153,7 +155,7 @@ bool Retriever::RetrieveTxBodiesDB()
             }
             else
             {
-                LOG_GENERAL(INFO,
+                LOG_GENERAL(WARNING,
                             "We got extra txBody Database, Investigate why!");
                 return false;
             }
@@ -165,7 +167,7 @@ bool Retriever::RetrieveTxBodiesDB()
     }
     else
     {
-        LOG_GENERAL(INFO, "No subdirectory found");
+        LOG_GENERAL(WARNING, "No subdirectory found");
         // return false;
     }
 
@@ -182,7 +184,7 @@ bool Retriever::CleanExtraTxBodies()
         {
             if (!BlockStorage::GetBlockStorage().DeleteTxBody(i))
             {
-                LOG_GENERAL(INFO, "FAIL: To delete TxHash in TxBodiesTmpDB");
+                LOG_GENERAL(WARNING, "FAIL: To delete TxHash in TxBodiesTmpDB");
                 return false;
             }
         }
@@ -209,7 +211,7 @@ bool Retriever::ValidateStates()
     }
     else
     {
-        LOG_GENERAL(INFO, "ValidateStates failed.");
+        LOG_GENERAL(WARNING, "ValidateStates failed.");
         return false;
     }
 }
@@ -222,6 +224,6 @@ void Retriever::CleanAll()
     }
     else
     {
-        LOG_GENERAL(INFO, "FAIL: Reset DB Failed");
+        LOG_GENERAL(WARNING, "FAIL: Reset DB Failed");
     }
 }

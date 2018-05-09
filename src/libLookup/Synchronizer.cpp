@@ -118,6 +118,7 @@ bool Synchronizer::InitializeGenesisTxBlock(TxBlockChain& txBlockChain)
 bool Synchronizer::InitializeGenesisBlocks(DSBlockChain& dsBlockChain,
                                            TxBlockChain& txBlockChain)
 {
+    LOG_MARKER();
     InitializeGenesisDSBlock(dsBlockChain);
     InitializeGenesisTxBlock(txBlockChain);
 
@@ -167,5 +168,11 @@ bool Synchronizer::AttemptPoW(Lookup* lookup)
         LOG_GENERAL(INFO, "new node did not attempt pow")
         return false;
     }
+}
+
+bool Synchronizer::FetchOfflineLookups(Lookup* lookup)
+{
+    lookup->GetOfflineLookupNodes();
+    return true;
 }
 #endif // IS_LOOKUP_NODE

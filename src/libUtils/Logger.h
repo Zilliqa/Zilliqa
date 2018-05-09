@@ -44,6 +44,7 @@ private:
     Logger(const char* prefix, bool log_to_file, std::streampos max_file_size);
     ~Logger();
 
+    void checkLog();
     void newLog();
 
     std::string m_fileNamePrefix;
@@ -76,8 +77,10 @@ public:
     static Logger& GetStateLogger(const char* fname_prefix, bool log_to_file,
                                   std::streampos max_file_size = MAX_FILE_SIZE);
 
-    /// Check if the log file size exceed limitation
-    void CheckLog();
+    /// Returns the singleton instance for the epoch info Logger.
+    static Logger&
+    GetEpochInfoLogger(const char* fname_prefix, bool log_to_file,
+                       std::streampos max_file_size = MAX_FILE_SIZE);
 
     /// Outputs the specified message and function name to the state/reporting log.
     void LogState(const char* msg, const char* function);
@@ -90,6 +93,14 @@ public:
                   const char* function);
 
     /// Outputs the specified message, function name, and payload to the main log.
+    void LogMessageAndPayload(const char* msg,
+                              const std::vector<unsigned char>& payload,
+                              size_t max_bytes_to_display,
+                              const char* function);
+    /// Outputs the specified message and function name to the epoch info log.
+    void LogEpochInfo(const char* msg, const char* function,
+                      const char* blockNum);
+
     void LogPayload(LEVELS level, const char* msg,
                     const std::vector<unsigned char>& payload,
                     size_t max_bytes_to_display, const char* function);
@@ -135,6 +146,8 @@ public:
 #define INIT_STDOUT_LOGGER() Logger::GetLogger(NULL, false)
 #define INIT_STATE_LOGGER(fname_prefix)                                        \
     Logger::GetStateLogger(fname_prefix, true)
+#define INIT_EPOCHINFO_LOGGER(fname_prefix)                                    \
+    Logger::GetEpochInfoLogger(fname_prefix, true)
 #define LOG_MARKER() ScopeMarker marker(__FUNCTION__)
 #define LOG_STATE(msg)                                                         \
     {                                                                          \
@@ -147,7 +160,6 @@ public:
     {                                                                          \
         if (Logger::GetLogger(NULL, true).IsG3Log())                           \
         {                                                                      \
-            Logger::GetLogger(NULL, true).CheckLog();                          \
             std::time_t curTime = std::chrono::system_clock::to_time_t(        \
                 std::chrono::system_clock::now());                             \
             LOG(level) << "[TID " << PAD(Logger::GetPid(), Logger::TID_LEN)    \
@@ -168,7 +180,6 @@ public:
     {                                                                          \
         if (Logger::GetLogger(NULL, true).IsG3Log())                           \
         {                                                                      \
-            Logger::GetLogger(NULL, true).CheckLog();                          \
             std::time_t curTime = std::chrono::system_clock::to_time_t(        \
                 std::chrono::system_clock::now());                             \
             LOG(level) << "[TID " << PAD(Logger::GetPid(), Logger::TID_LEN)    \
@@ -189,7 +200,6 @@ public:
     {                                                                          \
         if (Logger::GetLogger(NULL, true).IsG3Log())                           \
         {                                                                      \
-            Logger::GetLogger(NULL, true).CheckLog();                          \
             std::time_t curTime = std::chrono::system_clock::to_time_t(        \
                 std::chrono::system_clock::now());                             \
             std::unique_ptr<char[]> payload_string;                            \
@@ -236,5 +246,12 @@ public:
 #define LOG_DISABLE_LEVEL(level)                                               \
     {                                                                          \
         Logger::GetLogger(NULL, true).DisableLevel(level);                     \
+    }
+#define LOG_EPOCHINFO(blockNum, msg)                                           \
+    {                                                                          \
+        std::ostringstream oss;                                                \
+        oss << msg;                                                            \
+        Logger::GetEpochInfoLogger(NULL, true)                                 \
+            .LogEpochInfo(oss.str().c_str(), __FUNCTION__, blockNum);          \
     }
 #endif // __LOGGER_H__
