@@ -21,6 +21,7 @@
 #include "Address.h"
 #include "depends/common/RLP.h"
 #include "libPersistence/BlockStorage.h"
+#include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 
@@ -42,6 +43,7 @@ void AccountStore::Init()
 {
     LOG_MARKER();
     m_addressToAccount.clear();
+    ContractStorage::GetContractStorage().GetDB().ResetDB();
     m_db.ResetDB();
     m_state.init();
     prevRoot = m_state.root();
@@ -188,6 +190,8 @@ void AccountStore::UpdateAccounts(const Transaction& transaction)
 
     TransferBalance(fromAddr, toAddr, amount);
     IncreaseNonce(fromAddr);
+
+    //TODO: Process the contract
 }
 
 Account* AccountStore::GetAccount(const Address& address)
@@ -380,6 +384,11 @@ void AccountStore::MoveUpdatesToDisk()
 {
     LOG_MARKER();
 
+    ContractStorage::GetContractStorage().GetDB().commit();
+    for (auto i : m_addressToAccount)
+    {
+        i.second.Commit();
+    }
     m_state.db()->commit();
     prevRoot = m_state.root();
     MoveRootToDisk(prevRoot);
@@ -389,6 +398,11 @@ void AccountStore::DiscardUnsavedUpdates()
 {
     LOG_MARKER();
 
+    ContractStorage::GetContractStorage().GetDB().rollback();
+    for (auto i : m_addressToAccount)
+    {
+        i.second.RollBack();
+    }
     m_state.db()->rollback();
     m_state.setRoot(prevRoot);
     m_addressToAccount.clear();
