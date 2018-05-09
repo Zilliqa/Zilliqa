@@ -223,7 +223,19 @@ struct Signature : public Serializable
 
     /// Equality comparison operator.
     bool operator==(const Signature& r) const;
+
+    /// Utility std::string conversion function for signature info.
+    explicit operator std::string() const
+    {
+        return "0x" + DataConversion::SerializableToHexStr(*this);
+    }
 };
+
+inline std::ostream& operator<<(std::ostream& os, const Signature& s)
+{
+    os << "0x" << DataConversion::SerializableToHexStr(s);
+    return os;
+}
 
 /// Implements the Elliptic Curve Based Schnorr Signature algorithm.
 class Schnorr

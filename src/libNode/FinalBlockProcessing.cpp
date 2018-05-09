@@ -500,7 +500,7 @@ void Node::BroadcastTransactionsToSendingAssignment(
         {
             // txn body
             txns_to_send.at(i).Serialize(forwardtxn_message, cur_offset);
-            cur_offset += Transaction::GetSerializedSize();
+            cur_offset += txns_to_send.at(i).GetSerializedSize();
 
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "[TXN] ["
@@ -1356,8 +1356,7 @@ bool Node::LoadForwardedTxnsAndCheckRoot(
 
     vector<TxnHash> txnHashesInForwardedMessage;
 
-    const unsigned int length_needed_per_txn = Transaction::GetSerializedSize();
-    while (cur_offset + length_needed_per_txn <= message.size())
+    while (cur_offset < message.size())
     {
         // reading [Transaction] from received msg
         // Transaction tx(message, cur_offset);
@@ -1367,7 +1366,7 @@ bool Node::LoadForwardedTxnsAndCheckRoot(
             LOG_GENERAL(WARNING, "We failed to deserialize Transaction.");
             return false;
         }
-        cur_offset += Transaction::GetSerializedSize();
+        cur_offset += tx.GetSerializedSize();
 
         txnsInForwardedMessage.push_back(tx);
         txnHashesInForwardedMessage.push_back(tx.GetTranID());

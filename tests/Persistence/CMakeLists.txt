@@ -12,6 +12,11 @@ target_include_directories(Test_MetaPersistence PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(Test_MetaPersistence PUBLIC Crypto Utils Persistence)
 add_test(NAME Test_MetaPersistence COMMAND Test_MetaPersistence)
 
+add_executable(Test_TrieDB Test_TrieDB.cpp)
+target_include_directories(Test_TrieDB PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(Test_TrieDB PUBLIC Utils Trie Persistence)
+add_test(NAME Test_TrieDB COMMAND Test_TrieDB)
+
 add_executable(Test_DSPersistence Test_DSPersistence.cpp)
 target_include_directories(Test_DSPersistence PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(Test_DSPersistence PUBLIC Crypto AccountData BlockChainData Utils Persistence)
