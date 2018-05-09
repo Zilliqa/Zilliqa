@@ -75,7 +75,9 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
         unsigned int offsetTOustedDSLeader = 0;
         if (m_consensusMyID == offsetTOustedDSLeader)
         {
-            // Now if I am the older, I will self-assinged myself to the last
+            // Now if I am the ousted leader, I will self-assinged myself to the last
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "I was a DS leader but I got ousted by the DS Committee");
             offsetTOustedDSLeader
                 = m_mediator.m_DSCommitteeNetworkInfo.size() - 1;
             m_consensusMyID = offsetTOustedDSLeader;
@@ -142,6 +144,20 @@ bool DirectoryService::ProcessViewChangeConsensus(
 
     lock_guard<mutex> g(m_mutexConsensus);
 
+    std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeConsensusObj);
+    if (cv_ViewChangeConsensusObj.wait_for(
+            cv_lk, std::chrono::seconds(CONSENSUS_OBJECT_TIMEOUT),
+            [this] { return (m_state == VIEWCHANGE_CONSENSUS); }))
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Time out while waiting for state transition to view change "
+                  "consensus and "
+                  "consensus object creation. Most likely view change didn't "
+                  "occur. A malicious node may be trying to initate view "
+                  "change.");
+        return false;
+    }
+
     if (!CheckState(PROCESS_VIEWCHANGECONSENSUS))
     {
         LOG_EPOCH(
@@ -167,9 +183,6 @@ bool DirectoryService::ProcessViewChangeConsensus(
         LOG_EPOCH(
             WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
             "Oops, no consensus reached. Will attempt to do view change again");
-        //RunConsensusOnViewChange();
-
-        // TODO: Redo VC
 
         // throw exception();
         // TODO: no consensus reached

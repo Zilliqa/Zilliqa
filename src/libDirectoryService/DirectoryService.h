@@ -159,6 +159,8 @@ class DirectoryService : public Executable, public Broadcastable
     Peer m_candidateLeader;
     std::shared_ptr<VCBlock> m_pendingVCBlock;
     std::mutex m_mutexPendingVCBlock;
+    std::condition_variable cv_ViewChangeConsensusObj;
+    std::mutex m_MutexCVViewChangeConsensusObj;
 
     // TO Remove
     //bool temp_todie;
