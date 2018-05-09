@@ -43,8 +43,9 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
     lock_guard<mutex> g(m_mutexPendingVCBlock);
 
     // StoreVCBlockToStorage(); TODO
+    unsigned int offsetToCandidateLeader = 1;
 
-    if (m_mediator.m_DSCommitteeNetworkInfo.at(1)
+    if (m_mediator.m_DSCommitteeNetworkInfo.at(offsetToCandidateLeader)
         == m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo())
     {
         if (m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo()
@@ -71,8 +72,19 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
             m_mediator.m_DSCommitteePubKeys.front());
         m_mediator.m_DSCommitteePubKeys.pop_front();
 
-        // New leader for consensus
-        m_consensusMyID--;
+        unsigned int offsetTOustedDSLeader = 0;
+        if (m_consensusMyID == offsetTOustedDSLeader)
+        {
+            // Now if I am the older, I will self-assinged myself to the last
+            offsetTOustedDSLeader
+                = m_mediator.m_DSCommitteeNetworkInfo.size() - 1;
+            m_consensusMyID = offsetTOustedDSLeader;
+        }
+        else
+        {
+            m_consensusMyID--;
+        }
+
         m_viewChangeCounter++;
 
         switch (m_pendingVCBlock->GetHeader().GetViewChangeState())
