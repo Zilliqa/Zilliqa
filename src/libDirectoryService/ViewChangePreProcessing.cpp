@@ -102,6 +102,7 @@ void DirectoryService::RunConsensusOnViewChange()
     }
 
     SetState(VIEWCHANGE_CONSENSUS);
+    cv_ViewChangeConsensusObj.notify_all();
 
     /** reserve for another view change
     if (m_mode != PRIMARY_DS)
