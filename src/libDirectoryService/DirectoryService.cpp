@@ -56,6 +56,48 @@ DirectoryService::DirectoryService(Mediator& mediator)
 DirectoryService::~DirectoryService() {}
 
 #ifndef IS_LOOKUP_NODE
+
+void DirectoryService::StartSynchronization()
+{
+    LOG_MARKER();
+
+    this->CleanVariables();
+
+    auto func = [this]() -> void {
+        m_synchronizer.FetchOfflineLookups(m_mediator.m_lookup);
+
+        {
+            unique_lock<mutex> lock(
+                m_mediator.m_lookup->m_mutexOfflineLookupsUpdation);
+            while (!m_mediator.m_lookup->m_fetchedOfflineLookups)
+            {
+                if (m_mediator.m_lookup->cv_offlineLookups.wait_for(
+                        lock,
+                        chrono::seconds(POW1_WINDOW_IN_SECONDS
+                                        + BACKUP_POW2_WINDOW_IN_SECONDS))
+                    == std::cv_status::timeout)
+                {
+                    LOG_GENERAL(WARNING, "FetchOfflineLookups Timeout...");
+                    return;
+                }
+            }
+            m_mediator.m_lookup->m_fetchedOfflineLookups = false;
+        }
+
+        m_synchronizer.FetchDSInfo(m_mediator.m_lookup);
+        while (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
+        {
+            m_synchronizer.FetchLatestDSBlocks(
+                m_mediator.m_lookup, m_mediator.m_dsBlockChain.GetBlockCount());
+            m_synchronizer.FetchLatestTxBlocks(
+                m_mediator.m_lookup, m_mediator.m_txBlockChain.GetBlockCount());
+            this_thread::sleep_for(chrono::seconds(NEW_NODE_SYNC_INTERVAL));
+        }
+    };
+
+    DetachedFunction(1, func);
+}
+
 bool DirectoryService::CheckState(Action action)
 {
     if (m_mode == Mode::IDLE)
@@ -616,6 +658,8 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "I am the DS committee leader");
+        LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
+                      DS_LEADER_MSG);
         m_mode = PRIMARY_DS;
     }
     else
@@ -628,6 +672,8 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
                   "Current DS committee leader is "
                       << primary.GetPrintableIPAddress() << " at port "
                       << primary.m_listenPortHost)
+        LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
+                      DS_BACKUP_MSG);
         m_mode = BACKUP_DS;
     }
 
@@ -1213,6 +1259,8 @@ bool DirectoryService::ProcessInitViewChange(
         m_consensusMyID--;
         m_viewChangeCounter++;
         m_mode = PRIMARY_DS;
+        LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
+                      DS_LEADER_MSG);
 
         // Re-run consensus as a leader
         switch (viewChangeDSState)
@@ -1330,7 +1378,103 @@ bool DirectoryService::ProcessInitViewChangeResponse(
     return true;
 }
 
+bool DirectoryService::CleanVariables()
+{
+    LOG_MARKER();
+    m_requesting_last_ds_block = false;
+    {
+        std::lock_guard<mutex> lock(m_MutexCVAllPowConn);
+        m_hasAllPoWconns = true;
+    }
+    m_shards.clear();
+    m_publicKeyToShardIdMap.clear();
+    m_allPoWConns.clear();
+    m_consensusObject.reset();
+    m_consensusBlockHash.clear();
+    {
+        std::lock_guard<mutex> lock(m_mutexPendingDSBlock);
+        m_pendingDSBlock.reset();
+    }
+    {
+        std::lock_guard<mutex> lock(m_mutexAllPOW1);
+        m_allPoW1s.clear();
+    }
+    {
+        std::lock_guard<mutex> lock(m_mutexAllPOW2);
+        m_allPoW2s.clear();
+        m_sortedPoW2s.clear();
+    }
+    {
+        std::lock_guard<mutex> lock(m_mutexMicroBlocks);
+        m_microBlocks.clear();
+    }
+    m_finalBlock.reset();
+    m_finalBlockMessage.clear();
+    m_sharingAssignment.clear();
+    m_viewChangeCounter = 0;
+    // m_initiatedViewChange = false;
+    m_viewChangeEpoch = 0;
+    m_viewChangeRequestTracker.clear();
+    m_viewChangeRequesters.clear();
+    m_mode = IDLE;
+    m_consensusLeaderID = 0;
+    m_consensusID = 0;
+    return true;
+}
+
+void DirectoryService::RejoinAsDS()
+{
+    LOG_MARKER();
+    if (m_mediator.m_lookup->m_syncType == SyncType::NO_SYNC
+        && m_mode == BACKUP_DS)
+    {
+        m_mediator.m_lookup->m_syncType = SyncType::DS_SYNC;
+        m_mediator.m_node->Install(SyncType::DS_SYNC, true);
+        this->StartSynchronization();
+    }
+}
+
+bool DirectoryService::FinishRejoinAsDS()
+{
+    LOG_MARKER();
+    m_mode = BACKUP_DS;
+
+    m_consensusMyID = 0;
+    {
+        std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommitteePubKeys);
+        LOG_GENERAL(INFO,
+                    "m_DSCommitteePubKeys size: "
+                        << m_mediator.m_DSCommitteePubKeys.size());
+        for (auto i = m_mediator.m_DSCommitteePubKeys.begin();
+             i != m_mediator.m_DSCommitteePubKeys.end(); i++)
+        {
+            LOG_GENERAL(INFO, "Loop of m_DSCommitteePubKeys");
+            if (*i == m_mediator.m_selfKey.second)
+            {
+                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                          "My node ID for this PoW1 consensus is "
+                              << m_consensusMyID);
+                break;
+            }
+            m_consensusMyID++;
+        }
+    }
+    // in case the recovery program is under different directory
+    LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
+                  DS_BACKUP_MSG);
+    RunConsensusOnDSBlock(true);
+    return true;
+}
 #endif // IS_LOOKUP_NODE
+
+bool DirectoryService::ToBlockMessage(unsigned char ins_byte)
+{
+    if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
+    {
+        return true;
+    }
+    return false;
+}
 
 bool DirectoryService::Execute(const vector<unsigned char>& message,
                                unsigned int offset, const Peer& from)
@@ -1374,6 +1518,13 @@ bool DirectoryService::Execute(const vector<unsigned char>& message,
 
     const unsigned int ins_handlers_count
         = sizeof(ins_handlers) / sizeof(InstructionHandler);
+
+    if (ToBlockMessage(ins_byte))
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Ignore DS message");
+        return false;
+    }
 
     if (ins_byte < ins_handlers_count)
     {
