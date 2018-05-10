@@ -31,14 +31,14 @@ VCBlockHeader::VCBlockHeader(const vector<unsigned char>& src,
     }
 }
 
-VCBlockHeader::VCBlockHeader(
-    const boost::multiprecision::uint256_t& vieWChangeDSEpochNo,
-    const boost::multiprecision::uint256_t& viewChangeEpochNo,
-    const unsigned int viewChangeState,
-    const unsigned int expectedCandidateLeaderIndex,
-    const Peer& candidateLeaderNetworkInfo, const PubKey& candidateLeaderPubKey,
-    const unsigned int vcCounter,
-    const boost::multiprecision::uint256_t& timestamp)
+VCBlockHeader::VCBlockHeader(const uint64_t& vieWChangeDSEpochNo,
+                             const uint64_t& viewChangeEpochNo,
+                             const unsigned char viewChangeState,
+                             const unsigned int expectedCandidateLeaderIndex,
+                             const Peer& candidateLeaderNetworkInfo,
+                             const PubKey& candidateLeaderPubKey,
+                             const unsigned int vcCounter,
+                             const boost::multiprecision::uint256_t& timestamp)
     : m_VieWChangeDSEpochNo(vieWChangeDSEpochNo)
     , m_VieWChangeEpochNo(viewChangeEpochNo)
     , m_ViewChangeState(viewChangeState)
@@ -64,10 +64,11 @@ unsigned int VCBlockHeader::Serialize(vector<unsigned char>& dst,
     }
 
     unsigned int curOffset = offset;
-    SetNumber<uint256_t>(dst, curOffset, m_VieWChangeDSEpochNo, UINT256_SIZE);
-    curOffset += UINT256_SIZE;
-    SetNumber<uint256_t>(dst, curOffset, m_VieWChangeEpochNo, UINT256_SIZE);
-    curOffset += UINT256_SIZE;
+    SetNumber<uint64_t>(dst, curOffset, m_VieWChangeDSEpochNo,
+                        sizeof(uint64_t));
+    curOffset += sizeof(uint64_t);
+    SetNumber<uint64_t>(dst, curOffset, m_VieWChangeEpochNo, sizeof(uint64_t));
+    curOffset += sizeof(uint64_t);
     SetNumber<unsigned char>(dst, curOffset, m_ViewChangeState,
                              sizeof(unsigned char));
     curOffset += sizeof(unsigned char);
@@ -92,11 +93,11 @@ int VCBlockHeader::Deserialize(const vector<unsigned char>& src,
     try
     {
         m_VieWChangeDSEpochNo
-            = GetNumber<uint256_t>(src, curOffset, sizeof(uint256_t));
-        curOffset += sizeof(uint256_t);
+            = GetNumber<uint64_t>(src, curOffset, sizeof(uint64_t));
+        curOffset += sizeof(uint64_t);
         m_VieWChangeEpochNo
-            = GetNumber<uint256_t>(src, curOffset, sizeof(uint256_t));
-        curOffset += sizeof(uint256_t);
+            = GetNumber<uint64_t>(src, curOffset, sizeof(uint64_t));
+        curOffset += sizeof(uint64_t);
         m_ViewChangeState
             = GetNumber<unsigned char>(src, curOffset, sizeof(unsigned char));
         curOffset += sizeof(unsigned char);
@@ -136,14 +137,12 @@ int VCBlockHeader::Deserialize(const vector<unsigned char>& src,
     return 0;
 }
 
-const boost::multiprecision::uint256_t&
-VCBlockHeader::GetVieWChangeDSEpochNo() const
+const uint64_t& VCBlockHeader::GetVieWChangeDSEpochNo() const
 {
     return m_VieWChangeDSEpochNo;
 }
 
-const boost::multiprecision::uint256_t&
-VCBlockHeader::GetViewChangeEpochNo() const
+const uint64_t& VCBlockHeader::GetViewChangeEpochNo() const
 {
     return m_VieWChangeEpochNo;
 }

@@ -32,18 +32,16 @@ VCBlock::VCBlock(const vector<unsigned char>& src, unsigned int offset)
     }
 }
 
-VCBlock::VCBlock(const VCBlockHeader& header,
-                 const array<unsigned char, BLOCK_SIG_SIZE>& signature1)
-    : m_header(header)
-    , m_signature1(signature1)
+VCBlock::VCBlock(const VCBlockHeader& header, CoSignatures&& cosigs)
+    : m_header(move(header))
 {
+    m_cosigs = move(cosigs);
 }
 
 unsigned int VCBlock::Serialize(vector<unsigned char>& dst,
                                 unsigned int offset) const
 {
-
-    unsigned int size_needed = VCBlockHeader::SIZE + BLOCK_SIG_SIZE;
+    unsigned int size_needed = GetSerializedSize();
     unsigned int size_remaining = dst.size() - offset;
 
     if (size_remaining < size_needed)
@@ -53,27 +51,25 @@ unsigned int VCBlock::Serialize(vector<unsigned char>& dst,
 
     m_header.Serialize(dst, offset);
 
-    copy(m_signature1.begin(), m_signature1.end(),
-         dst.begin() + offset + VCBlockHeader::SIZE);
+    BlockBase::Serialize(dst, offset + VCBlockHeader::SIZE);
 
     return size_needed;
 }
 
 int VCBlock::Deserialize(const vector<unsigned char>& src, unsigned int offset)
 {
-
+    LOG_MARKER();
     try
     {
         VCBlockHeader header;
         if (header.Deserialize(src, offset) != 0)
         {
-            LOG_GENERAL(WARNING, "Error. We failed to init DSBlockHeader.");
+            LOG_GENERAL(WARNING, "We failed to init DSBlockHeader.");
             return -1;
         }
-        m_header = header;
-        copy(src.begin() + offset + VCBlockHeader::SIZE,
-             src.begin() + offset + VCBlockHeader::SIZE + BLOCK_SIG_SIZE,
-             m_signature1.begin());
+        m_header = move(header);
+
+        BlockBase::Deserialize(src, offset + VCBlockHeader::SIZE);
     }
     catch (const std::exception& e)
     {
@@ -85,48 +81,25 @@ int VCBlock::Deserialize(const vector<unsigned char>& src, unsigned int offset)
     return 0;
 }
 
-unsigned int VCBlock::GetSerializedSize()
+unsigned int VCBlock::GetSerializedSize() const
 {
-    unsigned int size_needed = VCBlockHeader::SIZE + BLOCK_SIG_SIZE;
-    return size_needed;
+    return VCBlockHeader::SIZE + BlockBase::GetSerializedSize();
+}
+
+unsigned int VCBlock::GetMinSize()
+{
+    return VCBlockHeader::SIZE + BlockBase::GetMinSize();
 }
 
 const VCBlockHeader& VCBlock::GetHeader() const { return m_header; }
 
-const array<unsigned char, BLOCK_SIG_SIZE>& VCBlock::GetSignature1() const
-{
-    return m_signature1;
-}
-
-const array<unsigned char, BLOCK_SIG_SIZE>& VCBlock::GetSignature2() const
-{
-    return m_signature2;
-}
-
-void VCBlock::SetSignature1(const vector<unsigned char>& signature1)
-{
-    assert(signature1.size() == BLOCK_SIG_SIZE);
-    copy(signature1.begin(), signature1.end(), m_signature1.begin());
-}
-
-void VCBlock::SetSignature2(const vector<unsigned char>& signature2)
-{
-    assert(signature1.size() == BLOCK_SIG_SIZE);
-    copy(signature2.begin(), signature2.end(), m_signature2.begin());
-}
-
-// TODO
 bool VCBlock::operator==(const VCBlock& block) const
 {
-    // Once cosig_2 and bitmap 1 and 2 is in, update this code
-    return ((m_header == block.m_header)
-            && (m_signature1 == block.m_signature1));
+    return (m_header == block.m_header);
 }
 
-//TODO
 bool VCBlock::operator<(const VCBlock& block) const
 {
-    // Once cosig_2 and bitmap 1 and 2 is in, update this code
     if (m_header < block.m_header)
     {
         return true;
@@ -135,17 +108,12 @@ bool VCBlock::operator<(const VCBlock& block) const
     {
         return false;
     }
-    else if (m_signature1 < block.m_signature1)
-    {
-        return true;
-    }
     else
     {
         return false;
     }
 }
 
-//TODO:
 bool VCBlock::operator>(const VCBlock& block) const
 {
     return !((*this == block) || (*this < block));

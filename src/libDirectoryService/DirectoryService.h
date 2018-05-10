@@ -149,7 +149,7 @@ class DirectoryService : public Executable, public Broadcastable
     std::mutex m_MutexCVViewChangeVCBlock;
 
     // TO Remove
-    //bool temp_todie;
+    bool temp_todie;
     Mediator& m_mediator;
 
     Synchronizer m_synchronizer;
@@ -317,7 +317,7 @@ class DirectoryService : public Executable, public Broadcastable
 
     // View change
     void RunConsensusOnViewChange();
-    void ComputeNewCandidateLeader(vector<unsigned char>& newCandidateLeader);
+    void ComputeNewCandidateLeader();
     bool ViewChangeValidator(const vector<unsigned char>& vcBlock,
                              std::vector<unsigned char>& errorMsg);
     bool RunConsensusOnViewChangeWhenCandidateLeader();
