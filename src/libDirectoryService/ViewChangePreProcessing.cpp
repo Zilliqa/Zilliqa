@@ -41,30 +41,30 @@ bool DirectoryService::ViewChangeValidator(const vector<unsigned char>& vcBlock,
     LOG_MARKER();
     lock_guard<mutex> g(m_mutexPendingVCBlock);
 
-    VCBlock proposedVCBlock(vcBlock, 0);
+    m_pendingVCBlock.reset(new VCBlock(vcBlock, 0));
     uint32_t offsetToNewLeader = 1;
 
     LOG_GENERAL(INFO, "deserilizaiton end");
 
     if (m_mediator.m_DSCommitteeNetworkInfo.at(offsetToNewLeader)
-        != proposedVCBlock.GetHeader().GetCandidateLeaderNetworkInfo())
+        != m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo())
     {
         return false;
     }
 
     if (!(m_mediator.m_DSCommitteePubKeys.at(offsetToNewLeader)
-          == proposedVCBlock.GetHeader().GetCandidateLeaderPubKey()))
+          == m_pendingVCBlock->GetHeader().GetCandidateLeaderPubKey()))
     {
         return false;
     }
 
-    if (m_viewChangestate != proposedVCBlock.GetHeader().GetViewChangeState())
+    if (m_viewChangestate != m_pendingVCBlock->GetHeader().GetViewChangeState())
     {
         return false;
     }
 
     if (m_viewChangeCounter
-        != proposedVCBlock.GetHeader().GetViewChangeCounter())
+        != m_pendingVCBlock->GetHeader().GetViewChangeCounter())
     {
         return false;
     }
@@ -151,27 +151,18 @@ void DirectoryService::ComputeNewCandidateLeader()
             = m_mediator.m_DSCommitteeNetworkInfo.at(newCandidateLeaderIndex);
     }
 
-    VCBlockHeader newHeader(
-        (uint64_t)m_mediator.m_dsBlockChain.GetBlockCount(),
-        (uint64_t)m_mediator.m_currentEpochNum, m_viewChangestate,
-        newCandidateLeaderIndex, newLeaderNetworkInfo,
-        m_mediator.m_DSCommitteePubKeys.at(newCandidateLeaderIndex),
-        m_viewChangeCounter, get_time_as_int());
-
     {
         lock_guard<mutex> g(m_mutexPendingVCBlock);
         // To-do: Handle exceptions.
-        m_pendingVCBlock.reset(new VCBlock(newHeader, CoSignatures()));
+        m_pendingVCBlock.reset(new VCBlock(
+            VCBlockHeader(
+                (uint64_t)m_mediator.m_dsBlockChain.GetBlockCount(),
+                (uint64_t)m_mediator.m_currentEpochNum, m_viewChangestate,
+                newCandidateLeaderIndex, newLeaderNetworkInfo,
+                m_mediator.m_DSCommitteePubKeys.at(newCandidateLeaderIndex),
+                m_viewChangeCounter, get_time_as_int()),
+            CoSignatures()));
     }
-
-    LOG_EPOCH(
-        INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-        "New VCBlock created with candidate leader "
-            << m_mediator.m_DSCommitteeNetworkInfo.at(newCandidateLeaderIndex)
-                   .GetPrintableIPAddress()
-            << ":"
-            << m_mediator.m_DSCommitteeNetworkInfo.at(newCandidateLeaderIndex)
-                   .m_listenPortHost);
 }
 
 bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader()

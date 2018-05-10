@@ -40,7 +40,7 @@ public:
     VCBlock(const std::vector<unsigned char>& src, unsigned int offset);
 
     /// Constructor with specified VC block parameters.
-    VCBlock(const VCBlockHeader& header, CoSignatures&& cosigs);
+    VCBlock(VCBlockHeader&& header, CoSignatures&& cosigs);
 
     /// Implements the Serialize function inherited from Serializable.
     unsigned int Serialize(std::vector<unsigned char>& dst,
