@@ -1142,6 +1142,8 @@ bool ConsensusLeader::StartConsensus(const vector<unsigned char>& message,
     if (lengthToCosign > message.size())
     {
         LOG_GENERAL(WARNING, "lengthToCosign > message size");
+        LOG_GENERAL(WARNING, "m_lengthToCosign : " << m_lengthToCosign);
+        LOG_GENERAL(WARNING, "m_message : " << m_message.size());
         return false;
     }
 
