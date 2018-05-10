@@ -17,6 +17,7 @@
 #ifndef __ACCOUNTSTORE_H__
 #define __ACCOUNTSTORE_H__
 
+#include <json/json.h>
 #include <mutex>
 #include <set>
 #include <unordered_map>
@@ -57,6 +58,8 @@ class AccountStore : public Serializable
 
     /// Store the trie root to leveldb
     void MoveRootToDisk(const dev::h256& root);
+
+    void ParseJsonOutput(const Json::Value& _json);
 
 public:
     /// Returns the singleton AccountStore instance.

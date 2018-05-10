@@ -43,7 +43,7 @@ void AccountStore::Init()
 {
     LOG_MARKER();
     m_addressToAccount.clear();
-    ContractStorage::GetContractStorage().GetDB().ResetDB();
+    ContractStorage::GetContractStorage().GetStateDB().ResetDB();
     m_db.ResetDB();
     m_state.init();
     prevRoot = m_state.root();
@@ -185,13 +185,69 @@ void AccountStore::UpdateAccounts(const Transaction& transaction)
 
     const PubKey& senderPubKey = transaction.GetSenderPubKey();
     const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
-    const Address& toAddr = transaction.GetToAddr();
+    Address toAddr = transaction.GetToAddr();
     const uint256_t& amount = transaction.GetAmount();
+
+    if (transaction.GetCode().size() > 0 && toAddr == NullAddress)
+    {
+        // Create contract account
+        Account* account = GetAccount(fromAddr);
+        // TODO: remove this, temporary way to test transactions
+        if (account == nullptr)
+        {
+            AddAccount(fromAddr, {10000000000, 0});
+        }
+
+        toAddr = Account::GetAddressForContract(
+            fromAddr, m_addressToAccount[fromAddr].GetNonce());
+        AddAccount(toAddr, {0, 0});
+        m_addressToAccount[toAddr].SetCode(transaction.GetCode());
+        // Store the immutable states
+        m_addressToAccount[toAddr].InitContract(transaction.GetData());
+    }
+
+    if (transaction.GetData().size() > 0 && toAddr != NullAddress)
+    {
+        // TODO: Trigger a contract account
+        // ParseJsonOutput(/*Call Interpreter To Get Json Output*/);
+    }
 
     TransferBalance(fromAddr, toAddr, amount);
     IncreaseNonce(fromAddr);
+}
 
-    //TODO: Process the contract
+void AccountStore::ParseJsonOutput(const Json::Value& _json)
+{
+    // the _json actually refers to the Array of Contracts,
+    // one transaction can affect multiple contracts by one call
+    for (auto j : _json)
+    {
+        if (!j.isMember("address") || !j.isMember("outputs")
+            || !j.isMember("states"))
+        {
+            LOG_GENERAL(WARNING,
+                        "The json output of this contract is corrupted");
+            continue;
+        }
+        const Json::Value statesObj = j["states"];
+        for (auto s : statesObj)
+        {
+            if (!s.isMember("vname") || !s.isMember("type")
+                || !s.isMember("value"))
+            {
+                LOG_GENERAL(WARNING,
+                            "Address: "
+                                << j["address"].asString()
+                                << ", The json output of states is corrupted");
+                continue;
+            }
+            string vname = s["vname"].asString();
+            string type = s["type"].asString();
+            string value = s["value"].asString();
+            m_addressToAccount[Address(j["address"].asString())].SetStorage(
+                vname, type, value);
+        }
+    }
 }
 
 Account* AccountStore::GetAccount(const Address& address)
@@ -212,13 +268,34 @@ Account* AccountStore::GetAccount(const Address& address)
     }
 
     dev::RLP accountDataRLP(accountDataString);
+    if (accountDataRLP.itemCount() != 4)
+    {
+        LOG_GENERAL(WARNING, "Account data corrupted");
+        return nullptr;
+    }
+
     auto it2 = m_addressToAccount.emplace(
         std::piecewise_construct, std::forward_as_tuple(address),
         std::forward_as_tuple(
             accountDataRLP[0].toInt<boost::multiprecision::uint256_t>(),
-            accountDataRLP[1].toInt<boost::multiprecision::uint256_t>(),
-            accountDataRLP[2].toHash<dev::h256>(),
-            accountDataRLP[3].toHash<dev::h256>()));
+            accountDataRLP[1].toInt<boost::multiprecision::uint256_t>()));
+
+    // Code Hash
+    if (accountDataRLP[3].toHash<dev::h256>() != dev::h256())
+    {
+        // Extract Code Content
+        it2.first->second.SetCode(
+            ContractStorage::GetContractStorage().GetContractCode(address));
+        if (accountDataRLP[3].toHash<dev::h256>()
+            != it2.first->second.GetCodeHash())
+        {
+            LOG_GENERAL(WARNING, "Account Code Content doesn't match Code Hash")
+            m_addressToAccount.erase(it2.first);
+            return nullptr;
+        }
+        // Storage Root
+        it2.first->second.SetStorageRoot(accountDataRLP[2].toHash<dev::h256>());
+    }
 
     return &it2.first->second;
 }
@@ -275,7 +352,7 @@ bool AccountStore::IncreaseBalance(
     }
     else if (account == nullptr)
     {
-        AddAccount(address, {delta, 0, dev::h256(), dev::h256()});
+        AddAccount(address, {delta, 0});
         return true;
     }
 
@@ -302,7 +379,7 @@ bool AccountStore::DecreaseBalance(
     // TODO: remove this, temporary way to test transactions
     else if (account == nullptr)
     {
-        AddAccount(address, {10000000000, 0, dev::h256(), dev::h256()});
+        AddAccount(address, {10000000000, 0});
     }
 
     return false;
@@ -384,9 +461,15 @@ void AccountStore::MoveUpdatesToDisk()
 {
     LOG_MARKER();
 
-    ContractStorage::GetContractStorage().GetDB().commit();
+    ContractStorage::GetContractStorage().GetStateDB().commit();
     for (auto i : m_addressToAccount)
     {
+        if (ContractStorage::GetContractStorage().PutContractCode(
+                i.first, i.second.GetCode()))
+        {
+            LOG_GENERAL(WARNING, "Write Contract Code to Disk Failed");
+            continue;
+        }
         i.second.Commit();
     }
     m_state.db()->commit();
@@ -398,7 +481,7 @@ void AccountStore::DiscardUnsavedUpdates()
 {
     LOG_MARKER();
 
-    ContractStorage::GetContractStorage().GetDB().rollback();
+    ContractStorage::GetContractStorage().GetStateDB().rollback();
     for (auto i : m_addressToAccount)
     {
         i.second.RollBack();
@@ -434,17 +517,28 @@ bool AccountStore::RetrieveFromDisk()
     {
         Address address(i.first);
         dev::RLP rlp(i.second);
-        // std::vector<uint256_t> account_data = rlp.toVector<uint256_t>();
-        // if (account_data.size() != 4)
-        // {
-        //     LOG_GENERAL(WARNING, "Account data corrupted");
-        //     return false;
-        // }
-        // Account account(account_data[0], account_data[1], account_data[2],
-        // account_data[3]);
+        if (rlp.itemCount() != 4)
+        {
+            LOG_GENERAL(WARNING, "Account data corrupted");
+            continue;
+        }
         Account account(rlp[0].toInt<boost::multiprecision::uint256_t>(),
-                        rlp[1].toInt<boost::multiprecision::uint256_t>(),
-                        rlp[2].toHash<dev::h256>(), rlp[3].toHash<dev::h256>());
+                        rlp[1].toInt<boost::multiprecision::uint256_t>());
+        // Code Hash
+        if (rlp[3].toHash<dev::h256>() != dev::h256())
+        {
+            // Extract Code Content
+            account.SetCode(
+                ContractStorage::GetContractStorage().GetContractCode(address));
+            if (rlp[3].toHash<dev::h256>() != account.GetCodeHash())
+            {
+                LOG_GENERAL(WARNING,
+                            "Account Code Content doesn't match Code Hash")
+                continue;
+            }
+            // Storage Root
+            account.SetStorageRoot(rlp[2].toHash<dev::h256>());
+        }
         m_addressToAccount.insert({address, account});
     }
     return true;

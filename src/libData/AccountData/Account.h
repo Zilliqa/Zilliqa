@@ -43,28 +43,37 @@ class Account : public Serializable
 {
     boost::multiprecision::uint256_t m_balance;
     boost::multiprecision::uint256_t m_nonce;
-    h256 m_storageRoot = h256();
-    h256 m_prevRoot;
+    h256 m_storageRoot, m_prevRoot;
     h256 m_codeHash;
-
     // The associated code for this account.
     vector<unsigned char> m_codeCache;
+
+    bool isContract() { return m_codeHash != h256(); }
 
     SecureTrieDB<bytesConstRef, OverlayDB> m_storage;
 
 public:
     Account();
 
-    ~Account() { m_storage.init(); }
+    ~Account()
+    {
+        if (m_codeHash != h256())
+        {
+            m_storage.init();
+        }
+    }
 
     /// Constructor for loading account information from a byte stream.
     Account(const vector<unsigned char>& src, unsigned int offset);
 
-    /// Constructor with account balance, and nonce.
-    Account(const uint256_t& balance, const uint256_t& nonce,
-            const h256& storageRoot, const h256& codeHash);
+    /// Constructor for a account.
+    Account(const uint256_t& balance, const uint256_t& nonce);
 
+    /// Utilization function for trieDB
     void InitStorage();
+
+    /// Parse the Immutable Data at Constract Initialization Stage
+    void InitContract(const vector<unsigned char>& data);
 
     /// Implements the Serialize function inherited from Serializable.
     unsigned int Serialize(vector<unsigned char>& dst,
@@ -88,24 +97,26 @@ public:
     /// Returns the account nonce.
     const uint256_t& GetNonce() const { return m_nonce; }
 
+    void SetStorageRoot(const h256& root);
+
     /// Returns the storage root.
     const h256& GetStorageRoot() const { return m_storageRoot; }
+
+    /// Set the code
+    void SetCode(const std::vector<unsigned char>& code);
+
+    const std::vector<unsigned char>& GetCode() { return m_codeCache; }
 
     /// Returns the code hash.
     const h256& GetCodeHash() const { return m_codeHash; }
 
-    /// Set the code of the account. Used by "create" messages
-    void SetCode(vector<unsigned char>&& code);
+    void SetStorage(string _k, string _type, string _v, bool _mutable = true);
 
-    const vector<unsigned char>& GetCode() const { return m_codeCache; }
-
-    void SetStorage(string _k, string _mutable, string _type, string _v);
-
+    /// Return all the parameters name
     vector<string> GetKeys();
 
+    /// Return the data for a parameter, type + value
     vector<string> GetStorage(string _k);
-
-    string GetStorageValue(string _k);
 
     void Commit() { m_prevRoot = m_storageRoot; }
 
@@ -114,13 +125,18 @@ public:
     /// Computes an account address from a specified PubKey.
     static Address GetAddressFromPublicKey(const PubKey& pubKey);
 
+    /// Computes an account address from a sender and its nonce
+    static Address GetAddressForContract(const Address& sender,
+                                         const uint256_t& nonce);
+
     friend inline std::ostream& operator<<(std::ostream& _out,
                                            Account const& account);
 };
 
 inline std::ostream& operator<<(std::ostream& _out, Account const& account)
 {
-    _out << account.m_balance << " " << account.m_nonce;
+    _out << account.m_balance << " " << account.m_nonce << " "
+         << account.m_storageRoot << " " << account.m_codeHash;
     return _out;
 }
 
