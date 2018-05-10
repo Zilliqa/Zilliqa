@@ -48,7 +48,8 @@ DirectoryService::DirectoryService(Mediator& mediator)
     m_requesting_last_ds_block = false;
     m_consensusLeaderID = 0;
     m_consensusID = 1;
-    //temp_todie = true; // TODO: Delete this. Use as part of testing of view change
+    temp_todie
+        = true; // TODO: Delete this. Use as part of testing of view change
     m_viewChangeCounter = 0;
 }
 
@@ -1278,7 +1279,6 @@ bool DirectoryService::CleanVariables()
     m_finalBlockMessage.clear();
     m_sharingAssignment.clear();
     m_viewChangeCounter = 0;
-    // m_initiatedViewChange = false;
     m_mode = IDLE;
     m_consensusLeaderID = 0;
     m_consensusID = 0;

@@ -30,8 +30,8 @@
 /// Stores information on the header part of the DS block.
 class VCBlockHeader : public BlockHeaderBase
 {
-    boost::multiprecision::uint256_t m_VieWChangeDSEpochNo;
-    boost::multiprecision::uint256_t m_VieWChangeEpochNo;
+    uint64_t m_VieWChangeDSEpochNo;
+    uint64_t m_VieWChangeEpochNo;
     unsigned char m_ViewChangeState;
     unsigned int m_CandidateLeaderIndex;
     Peer m_CandidateLeaderNetworkInfo;
@@ -40,7 +40,7 @@ class VCBlockHeader : public BlockHeaderBase
     boost::multiprecision::uint256_t m_Timestamp;
 
 public:
-    static const unsigned int SIZE = UINT256_SIZE + UINT256_SIZE
+    static const unsigned int SIZE = sizeof(uint64_t) + sizeof(uint64_t)
         + sizeof(unsigned char) + sizeof(unsigned int) + IP_SIZE + PORT_SIZE
         + PUB_KEY_SIZE + sizeof(unsigned int) + UINT256_SIZE;
 
@@ -51,9 +51,9 @@ public:
     VCBlockHeader(const std::vector<unsigned char>& src, unsigned int offset);
 
     /// Constructor with specified DS block header parameters.
-    VCBlockHeader(const boost::multiprecision::uint256_t& vieWChangeDSEpochNo,
-                  const boost::multiprecision::uint256_t& viewChangeEpochNo,
-                  const unsigned int viewChangeState,
+    VCBlockHeader(const uint64_t& vieWChangeDSEpochNo,
+                  const uint64_t& viewChangeEpochNo,
+                  const unsigned char viewChangeState,
                   const unsigned int expectedCandidateLeaderIndex,
                   const Peer& candidateLeaderNetworkInfo,
                   const PubKey& candidateLeaderPubKey,
@@ -68,10 +68,10 @@ public:
     int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
 
     /// Returns the DS Epoch number where view change happen
-    const boost::multiprecision::uint256_t& GetVieWChangeDSEpochNo() const;
+    const uint64_t& GetVieWChangeDSEpochNo() const;
 
     /// Returns the Epoch number (Total nums of final block) where view change happen
-    const boost::multiprecision::uint256_t& GetViewChangeEpochNo() const;
+    const uint64_t& GetViewChangeEpochNo() const;
 
     /// Return the candidate leader ds state when view change happen
     const unsigned char GetViewChangeState() const;
