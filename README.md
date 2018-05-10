@@ -53,7 +53,8 @@ To compile and run the Zilliqa codebase, you will need the following dependencie
 * `json-rpc-cpp`
 * `LevelDB`
 * `OpenSSL`
-* `pkg-config` 
+* `pkg-config`
+* `libevent`
 
 For Ubuntu 16.04, you can use the following command (or refer to `./scripts/ci_install_deps.sh`) to install the dependencies:  
 
@@ -62,12 +63,12 @@ sudo apt-get update
 ```
 
 ```bash
-sudo apt-get install git clang-format-5.0 clang-tidy-5.0 clang-5.0 libboost-system-dev libboost-filesystem-dev libboost-test-dev libssl-dev libleveldb-dev libjsoncpp-dev libsnappy-dev cmake libmicrohttpd-dev libjsonrpccpp-dev build-essential pkg-config
+sudo apt-get install git clang-format-5.0 clang-tidy-5.0 clang-5.0 libboost-system-dev libboost-filesystem-dev libboost-test-dev libssl-dev libleveldb-dev libjsoncpp-dev libsnappy-dev cmake libmicrohttpd-dev libjsonrpccpp-dev build-essential pkg-config libevent-dev
 ```
 
 For Mac OS X (experimental), you can use the following command to install the dependencies:  
 ```bash
-brew install pkg-config jsoncpp leveldb libjson-rpc-cpp
+brew install pkg-config jsoncpp leveldb libjson-rpc-cpp libevent
 ```
 
 # Running Zilliqa locally (using 10 shard nodes and DS node locally)  
