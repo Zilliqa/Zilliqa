@@ -14,43 +14,20 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#ifndef CONTRACTSTORAGE_H
-#define CONTRACTSTORAGE_H
+#include "ContractStorage.h"
 
-#include <leveldb/db.h>
+#include "libUtils/DataConversion.h"
 
-#include "depends/libDatabase/LevelDB.h"
-#include "depends/libDatabase/OverlayDB.h"
-#include "depends/libTrie/TrieDB.h"
-
-using namespace dev;
-
-class ContractStorage
+bool ContractStorage::PutContractCode(const h160& address,
+                                      const std::vector<unsigned char>& code)
 {
-    OverlayDB m_stateDB;
-    LevelDB m_codeDB;
+    int ret = -1; // according to LevelDB::Insert return value
+    ret = m_codeDB.Insert(address.hex(), code);
+    return (ret == 0);
+}
 
-    ContractStorage()
-        : m_stateDB("contractState")
-        , m_codeDB("contractCode"){};
-    ~ContractStorage() = default;
-
-public:
-    /// Returns the singleton ContractStorage instance.
-    static ContractStorage& GetContractStorage()
-    {
-        static ContractStorage cs;
-        return cs;
-    }
-
-    OverlayDB& GetStateDB() { return m_stateDB; }
-
-    /// Adds a contract code to persistence
-    bool PutContractCode(const h160& address,
-                         const std::vector<unsigned char>& code);
-
-    /// Get the desired code from persistence
-    const std::vector<unsigned char> GetContractCode(const h160& address);
-};
-
-#endif // CONTRACTSTORAGE_H
+const std::vector<unsigned char>
+ContractStorage::GetContractCode(const h160& address)
+{
+    return DataConversion::HexStrToUint8Vec(m_codeDB.Lookup(address.hex()));
+}
