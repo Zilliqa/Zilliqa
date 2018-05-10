@@ -32,7 +32,7 @@ VCBlock::VCBlock(const vector<unsigned char>& src, unsigned int offset)
     }
 }
 
-VCBlock::VCBlock(const VCBlockHeader& header, CoSignatures&& cosigs)
+VCBlock::VCBlock(VCBlockHeader&& header, CoSignatures&& cosigs)
     : m_header(move(header))
 {
     m_cosigs = move(cosigs);

@@ -87,8 +87,6 @@ unsigned int VCBlockHeader::Serialize(vector<unsigned char>& dst,
 int VCBlockHeader::Deserialize(const vector<unsigned char>& src,
                                unsigned int offset)
 {
-    LOG_MARKER();
-
     unsigned int curOffset = offset;
     try
     {
@@ -101,7 +99,9 @@ int VCBlockHeader::Deserialize(const vector<unsigned char>& src,
         m_ViewChangeState
             = GetNumber<unsigned char>(src, curOffset, sizeof(unsigned char));
         curOffset += sizeof(unsigned char);
-
+        m_CandidateLeaderIndex
+            = GetNumber<unsigned int>(src, curOffset, sizeof(unsigned int));
+        curOffset += sizeof(unsigned int);
         if (m_CandidateLeaderNetworkInfo.Deserialize(src, curOffset) != 0)
         {
             LOG_GENERAL(
@@ -110,7 +110,6 @@ int VCBlockHeader::Deserialize(const vector<unsigned char>& src,
             return -1;
         }
         curOffset += IP_SIZE + PORT_SIZE;
-
         if (m_CandidateLeaderPubKey.Deserialize(src, curOffset) != 0)
         {
             LOG_GENERAL(
