@@ -42,6 +42,15 @@ void DirectoryService::StoreFinalBlockToDisk()
 {
     LOG_MARKER();
 
+    // Add finalblock to txblockchain
+    m_mediator.m_txBlockChain.AddBlock(*m_finalBlock);
+    m_mediator.m_currentEpochNum
+        = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
+
+    // At this point, the transactions in the last Epoch is no longer useful, thus erase.
+    m_mediator.m_node->EraseCommittedTransactions(m_mediator.m_currentEpochNum
+                                                  - 2);
+
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Storing Tx Block Number: "
                   << m_finalBlock->GetHeader().GetBlockNum()
@@ -260,11 +269,6 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
     unsigned int cosigOffset = m_finalBlock->GetSerializedSize()
         - ((BlockBase)(*m_finalBlock)).GetSerializedSize();
     ((BlockBase)(*m_finalBlock)).Serialize(m_finalBlockMessage, cosigOffset);
-
-    // Add finalblock to txblockchain
-    m_mediator.m_txBlockChain.AddBlock(*m_finalBlock);
-    m_mediator.m_currentEpochNum
-        = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
 
     // StoreMicroBlocksToDisk();
     StoreFinalBlockToDisk();
