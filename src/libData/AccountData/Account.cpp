@@ -47,8 +47,24 @@ void Account::InitContract(const vector<unsigned char>& data)
 {
     Json::Reader reader;
     Json::Value value;
-    if (reader.parse(DataConversion::Uint8VecToHexStr(data), value))
+    m_initValJsonStr = DataConversion::Uint8VecToHexStr(data);
+    if (reader.parse(m_initValJsonStr, value))
     {
+        for (auto v : value)
+        {
+            if (!v.isMember("vname") || !v.isMember("type")
+                || !v.isMember("value"))
+            {
+                LOG_GENERAL(
+                    WARNING,
+                    "This variable in initialization of contract is corrupted");
+                continue;
+            }
+            string vname = v["name"].asString();
+            string type = v["type"].asString();
+            string value = v["value"].asString();
+            SetStorage(vname, type, value, false);
+        }
     }
 }
 

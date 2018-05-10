@@ -46,6 +46,7 @@ class Account : public Serializable
     h256 m_storageRoot, m_prevRoot;
     h256 m_codeHash;
     // The associated code for this account.
+    string m_initValJsonStr;
     vector<unsigned char> m_codeCache;
 
     bool isContract() { return m_codeHash != h256(); }
