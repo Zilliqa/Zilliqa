@@ -45,7 +45,20 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
     // StoreVCBlockToStorage(); TODO
     unsigned int offsetToCandidateLeader = 1;
 
+    Peer expectedLeader;
     if (m_mediator.m_DSCommitteeNetworkInfo.at(offsetToCandidateLeader)
+        == Peer())
+    {
+        // I am 0.0.0.0
+        expectedLeader = m_mediator.m_selfPeer;
+    }
+    else
+    {
+        expectedLeader
+            = m_mediator.m_DSCommitteeNetworkInfo.at(offsetToCandidateLeader);
+    }
+
+    if (expectedLeader
         == m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo())
     {
         if (m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo()
@@ -147,7 +160,12 @@ bool DirectoryService::ProcessViewChangeConsensus(
     std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeConsensusObj);
     if (cv_ViewChangeConsensusObj.wait_for(
             cv_lk, std::chrono::seconds(CONSENSUS_OBJECT_TIMEOUT),
-            [this] { return (m_state != VIEWCHANGE_CONSENSUS); }))
+            [this] { return (m_state == VIEWCHANGE_CONSENSUS); }))
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Successfully transit to viewchange consensus.");
+    }
+    else
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Time out while waiting for state transition to view change "
@@ -155,7 +173,6 @@ bool DirectoryService::ProcessViewChangeConsensus(
                   "consensus object creation. Most likely view change didn't "
                   "occur. A malicious node may be trying to initate view "
                   "change.");
-        return false;
     }
 
     if (!CheckState(PROCESS_VIEWCHANGECONSENSUS))
