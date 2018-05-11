@@ -45,10 +45,14 @@ void Account::InitStorage()
 
 void Account::InitContract(const vector<unsigned char>& data)
 {
-    Json::Reader reader;
+    Json::CharReaderBuilder builder;
+    std::shared_ptr<Json::CharReader> reader(builder.newCharReader());
     Json::Value value;
     m_initValJsonStr = DataConversion::Uint8VecToHexStr(data);
-    if (reader.parse(m_initValJsonStr, value))
+    string errors;
+    if (reader->parse(m_initValJsonStr.c_str(),
+                      m_initValJsonStr.c_str() + m_initValJsonStr.size(),
+                      &value, &errors))
     {
         for (auto v : value)
         {
@@ -65,6 +69,11 @@ void Account::InitContract(const vector<unsigned char>& data)
             string value = v["value"].asString();
             SetStorage(vname, type, value, false);
         }
+    }
+    else
+    {
+        LOG_GENERAL(WARNING,
+                    "Failed to parse initialization contract json: " << errors);
     }
 }
 
