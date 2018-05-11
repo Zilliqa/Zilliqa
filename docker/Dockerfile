@@ -18,6 +18,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libmicrohttpd-dev \
     libsnappy-dev \
     libssl-dev \
+    libjsonrpccpp-dev \
+    libevent-dev \
     python python-pip \
     && rm -rf /var/lib/apt/lists/*
 
