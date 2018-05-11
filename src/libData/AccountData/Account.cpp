@@ -45,6 +45,13 @@ void Account::InitStorage()
 
 void Account::InitContract(const vector<unsigned char>& data)
 {
+    if (data.empty())
+    {
+        Json::Value value;
+        m_initValJsonStr = value.asString();
+        LOG_GENERAL(INFO, "The Initialization Data is Empty");
+        return;
+    }
     Json::CharReaderBuilder builder;
     std::shared_ptr<Json::CharReader> reader(builder.newCharReader());
     Json::Value value;
@@ -254,18 +261,18 @@ string Account::GetStorageJson()
         {
             Json::CharReaderBuilder builder;
             std::shared_ptr<Json::CharReader> reader(builder.newCharReader());
-            Json::Value value;
+            Json::Value mapObj;
             string errors;
-            if (reader->parse(v[2].c_str(), v[2].c_str() + v[2].size(), &value,
+            if (reader->parse(v[2].c_str(), v[2].c_str() + v[2].size(), &mapObj,
                               &errors))
             {
-                item["value"] = value;
+                item["value"] = mapObj;
             }
             else
             {
                 LOG_GENERAL(
                     WARNING,
-                    "The map json object cannot be extracted from Storage")
+                    "The map json object cannot be extracted from Storage");
             }
         }
         else
