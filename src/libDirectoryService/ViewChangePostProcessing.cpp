@@ -99,9 +99,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
         {
             m_consensusMyID--;
         }
-
-        m_viewChangeCounter++;
-
+        
         switch (m_pendingVCBlock->GetHeader().GetViewChangeState())
         {
         case DSBLOCK_CONSENSUS:
