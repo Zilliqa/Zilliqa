@@ -19,6 +19,7 @@
 
 #include <array>
 #include <boost/multiprecision/cpp_int.hpp>
+#include <json/json.h>
 #include <leveldb/db.h>
 #include <vector>
 
@@ -46,10 +47,10 @@ class Account : public Serializable
     h256 m_storageRoot, m_prevRoot;
     h256 m_codeHash;
     // The associated code for this account.
-    string m_initValJsonStr;
+    Json::Value m_initValJson;
     vector<unsigned char> m_codeCache;
 
-    bool isContract() { return m_codeHash != h256(); }
+    bool isContract() const { return m_codeHash != h256(); }
 
     SecureTrieDB<bytesConstRef, OverlayDB> m_storage;
 
@@ -106,7 +107,7 @@ public:
     /// Set the code
     void SetCode(const std::vector<unsigned char>& code);
 
-    const std::vector<unsigned char>& GetCode() { return m_codeCache; }
+    const std::vector<unsigned char>& GetCode() const { return m_codeCache; }
 
     /// Returns the code hash.
     const h256& GetCodeHash() const { return m_codeHash; }
@@ -114,12 +115,14 @@ public:
     void SetStorage(string _k, string _type, string _v, bool _mutable = true);
 
     /// Return all the parameters name
-    vector<string> GetKeys();
+    vector<string> GetKeys() const;
 
     /// Return the data for a parameter, type + value
-    vector<string> GetStorage(string _k);
+    vector<string> GetStorage(string _k) const;
 
-    string GetStorageJson();
+    Json::Value GetInitJson() const { return m_initValJson; }
+
+    Json::Value GetStorageJson() const;
 
     void Commit() { m_prevRoot = m_storageRoot; }
 

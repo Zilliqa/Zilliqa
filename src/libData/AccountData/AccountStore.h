@@ -49,6 +49,8 @@ class AccountStore : public Serializable
         m_state; // Our state tree, as an OverlayDB DB.
     dev::h256 prevRoot;
 
+    std::mutex m_mutexCallInterpreter;
+
     AccountStore();
     ~AccountStore();
 
@@ -60,6 +62,10 @@ class AccountStore : public Serializable
     void MoveRootToDisk(const dev::h256& root);
 
     void ParseJsonOutput(const Json::Value& _json);
+
+    Json::Value GetBlockStateJson(const uint64_t& BlockNum) const;
+
+    bool WriteJsonFile(const uint64_t& blockNum, const Account& account);
 
 public:
     /// Returns the singleton AccountStore instance.
@@ -107,8 +113,6 @@ public:
     void DiscardUnsavedUpdates();
 
     void PrintAccountState();
-
-    string GetBlockStateJsonStr(const uint64_t& BlockNum);
 
     bool RetrieveFromDisk();
     void RepopulateStateTrie();
