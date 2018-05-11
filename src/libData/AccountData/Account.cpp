@@ -98,18 +98,22 @@ unsigned int Account::Serialize(vector<unsigned char>& dst,
          dst.begin() + curOffset);
     curOffset += COMMON_HASH_SIZE;
     // Size of Code Content
-    SetNumber<uint256_t>(dst, curOffset, m_codeCache.size(), UINT256_SIZE);
+    SetNumber<uint256_t>(dst, curOffset, uint256_t(m_codeCache.size()),
+                         UINT256_SIZE);
     curOffset += UINT256_SIZE;
     // Code
-    copy(m_codeCache.begin(), m_codeCache.end(), dst.begin() + curOffset);
-    curOffset += m_codeCache.size();
+    if (m_codeCache.size() != 0)
+    {
+        copy(m_codeCache.begin(), m_codeCache.end(), dst.begin() + curOffset);
+        curOffset += m_codeCache.size();
+    }
 
     return size_needed;
 }
 
 int Account::Deserialize(const vector<unsigned char>& src, unsigned int offset)
 {
-    // LOG_MARKER();
+    LOG_MARKER();
 
     try
     {
@@ -136,11 +140,15 @@ int Account::Deserialize(const vector<unsigned char>& src, unsigned int offset)
             = (unsigned int)GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
         curOffset += UINT256_SIZE;
         // Code
-        vector<unsigned char> code;
-        copy(src.begin() + curOffset, src.begin() + curOffset + codeSize,
-             code.begin());
-        SetCode(code);
-        curOffset += codeSize;
+        if (codeSize > 0)
+        {
+            vector<unsigned char> code;
+            code.resize(codeSize);
+            copy(src.begin() + curOffset, src.begin() + curOffset + codeSize,
+                 code.begin());
+            SetCode(code);
+            curOffset += codeSize;
+        }
     }
     catch (const std::exception& e)
     {
