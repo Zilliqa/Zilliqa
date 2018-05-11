@@ -119,6 +119,8 @@ public:
     /// Return the data for a parameter, type + value
     vector<string> GetStorage(string _k);
 
+    string GetStorageJson();
+
     void Commit() { m_prevRoot = m_storageRoot; }
 
     void RollBack();

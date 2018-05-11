@@ -1590,7 +1590,8 @@ bool Lookup::ProcessSetTxBodyFromSeed(const vector<unsigned char>& message,
     vector<unsigned char> serializedTxBody;
     transaction.Serialize(serializedTxBody, 0);
     BlockStorage::GetBlockStorage().PutTxBody(tranHash, serializedTxBody);
-    AccountStore::GetInstance().UpdateAccounts(transaction);
+    AccountStore::GetInstance().UpdateAccounts(m_mediator.m_currentEpochNum - 1,
+                                               transaction);
 
     return true;
 }

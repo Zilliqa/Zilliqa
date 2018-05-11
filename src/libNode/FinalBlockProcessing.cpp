@@ -323,7 +323,7 @@ bool Node::FindTxnInSubmittedTxnsList(const TxBlock& finalblock,
 
         // Update from and to accounts
         AccountStore::GetInstance().UpdateAccounts(
-            committedTransactions.back());
+            m_mediator.m_currentEpochNum - 1, committedTransactions.back());
 
         // DO NOT DELETE. PERISTENT STORAGE
         /**
@@ -393,7 +393,7 @@ bool Node::FindTxnInReceivedTxnsList(const TxBlock& finalblock,
 
         // Update from and to accounts
         AccountStore::GetInstance().UpdateAccounts(
-            committedTransactions.back());
+            m_mediator.m_currentEpochNum - 1, committedTransactions.back());
 
         /**
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "##Storing Transaction##");
@@ -1388,7 +1388,8 @@ void Node::CommitForwardedTransactions(
         {
             lock_guard<mutex> g(m_mutexCommittedTransactions);
             m_committedTransactions[blocknum].push_back(tx);
-            AccountStore::GetInstance().UpdateAccounts(tx);
+            AccountStore::GetInstance().UpdateAccounts(
+                m_mediator.m_currentEpochNum - 1, tx);
         }
 
             // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
