@@ -179,7 +179,8 @@ void AccountStore::AddAccount(const PubKey& pubKey, const Account& account)
     AddAccount(Account::GetAddressFromPublicKey(pubKey), account);
 }
 
-void AccountStore::UpdateAccounts(const Transaction& transaction)
+void AccountStore::UpdateAccounts(const uint64_t& blockNum,
+                                  const Transaction& transaction)
 {
     //LOG_MARKER();
 
@@ -501,6 +502,17 @@ void AccountStore::PrintAccountState()
         LOG_GENERAL(INFO, entry.first << " " << entry.second);
     }
     LOG_GENERAL(INFO, "State Root: " << GetStateRootHash());
+}
+
+string AccountStore::GetBlockStateJsonStr(const uint64_t& BlockNum)
+{
+    Json::Value obj;
+    Json::Value blockItem;
+    blockItem["vname"] = "BLOCKNUMBER";
+    blockItem["type"] = "BNum";
+    blockItem["value"] = to_string(BlockNum);
+    obj.append(blockItem);
+    return obj.asString();
 }
 
 bool AccountStore::RetrieveFromDisk()

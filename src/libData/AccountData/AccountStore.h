@@ -80,7 +80,8 @@ public:
     void AddAccount(const Address& address, const Account& account);
     void AddAccount(const PubKey& pubKey, const Account& account);
 
-    void UpdateAccounts(const Transaction& transaction);
+    void UpdateAccounts(const uint64_t& blockNum,
+                        const Transaction& transaction);
 
     /// Returns the Account associated with the specified address.
     Account* GetAccount(const Address& address);
@@ -106,6 +107,8 @@ public:
     void DiscardUnsavedUpdates();
 
     void PrintAccountState();
+
+    string GetBlockStateJsonStr(const uint64_t& BlockNum);
 
     bool RetrieveFromDisk();
     void RepopulateStateTrie();

@@ -237,6 +237,46 @@ vector<string> Account::GetStorage(string _k)
     return {rlp[0].toString(), rlp[1].toString(), rlp[2].toString()};
 }
 
+string Account::GetStorageJson()
+{
+    Json::Value obj;
+    for (auto k : GetKeys())
+    {
+        vector<string> v = GetStorage(k);
+        if (v[0] == "False")
+        {
+            continue;
+        }
+        Json::Value item;
+        item["vname"] = k;
+        item["type"] = v[1];
+        if (v[1] == "Map")
+        {
+            Json::CharReaderBuilder builder;
+            std::shared_ptr<Json::CharReader> reader(builder.newCharReader());
+            Json::Value value;
+            string errors;
+            if (reader->parse(v[2].c_str(), v[2].c_str() + v[2].size(), &value,
+                              &errors))
+            {
+                item["value"] = value;
+            }
+            else
+            {
+                LOG_GENERAL(
+                    WARNING,
+                    "The map json object cannot be extracted from Storage")
+            }
+        }
+        else
+        {
+            item["value"] = v[2];
+        }
+        obj.append(item);
+    }
+    return obj.asString();
+}
+
 void Account::RollBack()
 {
     if (!isContract())
