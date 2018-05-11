@@ -42,12 +42,12 @@ BOOST_AUTO_TEST_CASE(test1)
 
     Account acc1(100, 0);
 
-    std::vector<unsigned char> code
-        = DataConversion::HexStrToUint8Vec("something to be tested");
+    std::vector<unsigned char> code = dev::h256::random().asBytes();
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
     sha2.Update(code);
     dev::h256 hash = dev::h256(sha2.Finalize());
     acc1.SetCode(code);
+    // (void)hash;
 
     acc1.IncreaseBalance(10);
     acc1.DecreaseBalance(120);
