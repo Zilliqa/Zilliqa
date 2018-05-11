@@ -209,12 +209,79 @@ void AccountStore::UpdateAccounts(const uint64_t& blockNum,
 
     if (transaction.GetData().size() > 0 && toAddr != NullAddress)
     {
+        std::lock_guard<std::mutex> lk(m_mutexCallInterpreter);
         // TODO: Trigger a contract account
         // ParseJsonOutput(/*Call Interpreter To Get Json Output*/);
+        Account* fromAccount = GetAccount(fromAddr);
+        // TODO: remove this, temporary way to test transactions
+        if (fromAccount == nullptr)
+        {
+            AddAccount(fromAddr, {10000000000, 0});
+        }
+
+        Account* toAccount = GetAccount(toAddr);
+        if (toAccount == nullptr)
+        {
+            LOG_GENERAL(WARNING, "The target contract account doesn't exist");
+            return;
+        }
+
+        // WriteJsonFile()
     }
 
     TransferBalance(fromAddr, toAddr, amount);
     IncreaseNonce(fromAddr);
+}
+
+Json::Value AccountStore::GetBlockStateJson(const uint64_t& BlockNum) const
+{
+    Json::Value root;
+    Json::Value blockItem;
+    blockItem["vname"] = "BLOCKNUMBER";
+    blockItem["type"] = "BNum";
+    blockItem["value"] = to_string(BlockNum);
+    root.append(blockItem);
+    return root;
+}
+
+bool AccountStore::WriteJsonFile(const uint64_t& blockNum,
+                                 const Account& account)
+{
+    // Initialize Json
+    Json::StreamWriterBuilder writeBuilder;
+    std::unique_ptr<Json::StreamWriter> writer(writeBuilder.newStreamWriter());
+
+    std::ofstream os;
+    os.open("init.json");
+    writer->write(account.GetInitJson(), &os);
+    os.close();
+    // State Json
+    os.open("input_state.json");
+    writer->write(account.GetStorageJson(), &os);
+    os.close();
+    // Block Json
+    os.open("input_blockchain.json");
+    writer->write(GetBlockStateJson(blockNum), &os);
+    os.close();
+    // Message Json
+    Json::CharReaderBuilder readBuilder;
+    std::unique_ptr<Json::CharReader> reader(readBuilder.newCharReader());
+    Json::Value msgObj;
+    string codeStr = DataConversion::Uint8VecToHexStr(account.GetCode());
+    string errors;
+    if (reader->parse(codeStr.c_str(), codeStr.c_str() + codeStr.size(),
+                      &msgObj, &errors))
+    {
+        os.open("input_message.json");
+        writer->write(codeStr, &os);
+        os.close();
+    }
+    else
+    {
+        LOG_GENERAL(WARNING, "The Code Json is corrupted, failed to process");
+        return false;
+    }
+    return true;
 }
 
 void AccountStore::ParseJsonOutput(const Json::Value& _json)
@@ -502,17 +569,6 @@ void AccountStore::PrintAccountState()
         LOG_GENERAL(INFO, entry.first << " " << entry.second);
     }
     LOG_GENERAL(INFO, "State Root: " << GetStateRootHash());
-}
-
-string AccountStore::GetBlockStateJsonStr(const uint64_t& BlockNum)
-{
-    Json::Value obj;
-    Json::Value blockItem;
-    blockItem["vname"] = "BLOCKNUMBER";
-    blockItem["type"] = "BNum";
-    blockItem["value"] = to_string(BlockNum);
-    obj.append(blockItem);
-    return obj.asString();
 }
 
 bool AccountStore::RetrieveFromDisk()

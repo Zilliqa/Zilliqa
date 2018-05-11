@@ -11,8 +11,6 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 
-#include <json/json.h>
-
 Account::Account() {}
 
 Account::Account(const vector<unsigned char>& src, unsigned int offset)
@@ -47,21 +45,20 @@ void Account::InitContract(const vector<unsigned char>& data)
 {
     if (data.empty())
     {
-        Json::Value value;
-        m_initValJsonStr = value.asString();
-        LOG_GENERAL(INFO, "The Initialization Data is Empty");
+        m_initValJson = Json::arrayValue;
         return;
     }
     Json::CharReaderBuilder builder;
-    std::shared_ptr<Json::CharReader> reader(builder.newCharReader());
-    Json::Value value;
-    m_initValJsonStr = DataConversion::Uint8VecToHexStr(data);
+    std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+    Json::Value root;
+    string dataStr;
+    dataStr = DataConversion::Uint8VecToHexStr(data);
     string errors;
-    if (reader->parse(m_initValJsonStr.c_str(),
-                      m_initValJsonStr.c_str() + m_initValJsonStr.size(),
-                      &value, &errors))
+    if (reader->parse(dataStr.c_str(), dataStr.c_str() + dataStr.size(), &root,
+                      &errors))
     {
-        for (auto v : value)
+        m_initValJson = root;
+        for (auto v : root)
         {
             if (!v.isMember("vname") || !v.isMember("type")
                 || !v.isMember("value"))
@@ -222,7 +219,7 @@ void Account::SetStorage(string _k, string _type, string _v, bool _mutable)
     m_storageRoot = m_storage.root();
 }
 
-vector<string> Account::GetKeys()
+vector<string> Account::GetKeys() const
 {
     if (!isContract())
         return {};
@@ -235,7 +232,7 @@ vector<string> Account::GetKeys()
     return ret;
 }
 
-vector<string> Account::GetStorage(string _k)
+vector<string> Account::GetStorage(string _k) const
 {
     if (!isContract())
         return {};
@@ -244,10 +241,15 @@ vector<string> Account::GetStorage(string _k)
     return {rlp[0].toString(), rlp[1].toString(), rlp[2].toString()};
 }
 
-string Account::GetStorageJson()
+Json::Value Account::GetStorageJson() const
 {
-    Json::Value obj;
-    for (auto k : GetKeys())
+    Json::Value root;
+    vector<string> keys = GetKeys();
+    if (keys.empty())
+    {
+        root = Json::arrayValue;
+    }
+    for (auto k : keys)
     {
         vector<string> v = GetStorage(k);
         if (v[0] == "False")
@@ -260,7 +262,7 @@ string Account::GetStorageJson()
         if (v[1] == "Map")
         {
             Json::CharReaderBuilder builder;
-            std::shared_ptr<Json::CharReader> reader(builder.newCharReader());
+            std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
             Json::Value mapObj;
             string errors;
             if (reader->parse(v[2].c_str(), v[2].c_str() + v[2].size(), &mapObj,
@@ -279,9 +281,9 @@ string Account::GetStorageJson()
         {
             item["value"] = v[2];
         }
-        obj.append(item);
+        root.append(item);
     }
-    return obj.asString();
+    return root;
 }
 
 void Account::RollBack()
