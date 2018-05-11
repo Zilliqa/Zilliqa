@@ -32,7 +32,7 @@ ARG SOURCE_DIR=/zilliqa
 ARG BUILD_DIR=/build
 ARG INSTALL_DIR=/usr/local
 
-RUN git clone -b ${BRANCH} --depth=1 ${REPO} ${SOURCE_DIR}; \
+RUN git clone --recursive -b ${BRANCH} --depth=1 ${REPO} ${SOURCE_DIR}; \
     mkdir $BUILD_DIR && cd $BUILD_DIR; \
     cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
         -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR ${SOURCE_DIR}; \
