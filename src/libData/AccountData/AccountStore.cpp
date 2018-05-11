@@ -24,6 +24,7 @@
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
+#include "libUtils/SysCommand.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -226,7 +227,12 @@ void AccountStore::UpdateAccounts(const uint64_t& blockNum,
             return;
         }
 
-        // WriteJsonFile()
+        // TODO: Implement the calling of interpreter in multi-thread
+        if (ExportContractFiles(blockNum, toAccount, transaction))
+        {
+            SysCommand::ExecuteCmdWithOutput(GetContractCmdStr());
+            ParseContractOutput();
+        }
     }
 
     TransferBalance(fromAddr, toAddr, amount);
@@ -244,44 +250,90 @@ Json::Value AccountStore::GetBlockStateJson(const uint64_t& BlockNum) const
     return root;
 }
 
-bool AccountStore::WriteJsonFile(const uint64_t& blockNum,
-                                 const Account& account)
+bool AccountStore::ExportContractFiles(const uint64_t& blockNum,
+                                       Account*& contract,
+                                       const Transaction& transaction)
 {
-    // Initialize Json
+
     Json::StreamWriterBuilder writeBuilder;
     std::unique_ptr<Json::StreamWriter> writer(writeBuilder.newStreamWriter());
-
     std::ofstream os;
-    os.open("init.json");
-    writer->write(account.GetInitJson(), &os);
+
+    // Scilla code
+    os.open(INPUT_CODE);
+    os << DataConversion::Uint8VecToHexStr(transaction.GetCode());
     os.close();
+
+    // Initialize Json
+    os.open(INIT_JSON);
+    writer->write(contract->GetInitJson(), &os);
+    os.close();
+
     // State Json
-    os.open("input_state.json");
-    writer->write(account.GetStorageJson(), &os);
+    os.open(INPUT_STATE_JSON);
+    writer->write(contract->GetStorageJson(), &os);
     os.close();
+
     // Block Json
-    os.open("input_blockchain.json");
+    os.open(INPUT_BLOCKCHAIN_JSON);
     writer->write(GetBlockStateJson(blockNum), &os);
     os.close();
+
     // Message Json
     Json::CharReaderBuilder readBuilder;
     std::unique_ptr<Json::CharReader> reader(readBuilder.newCharReader());
     Json::Value msgObj;
-    string codeStr = DataConversion::Uint8VecToHexStr(account.GetCode());
+    string codeStr = DataConversion::Uint8VecToHexStr(transaction.GetData());
     string errors;
     if (reader->parse(codeStr.c_str(), codeStr.c_str() + codeStr.size(),
                       &msgObj, &errors))
     {
-        os.open("input_message.json");
+        os.open(INPUT_MESSAGE_JSON);
         writer->write(codeStr, &os);
         os.close();
     }
     else
     {
-        LOG_GENERAL(WARNING, "The Code Json is corrupted, failed to process");
+        LOG_GENERAL(
+            WARNING,
+            "The Code Json is corrupted, failed to process: " << errors);
         return false;
     }
     return true;
+}
+
+string AccountStore::GetContractCmdStr()
+{
+    return "./" + INTERPRETER_NAME + " -init " + INIT_JSON + " -istate "
+        + INPUT_STATE_JSON + " -iblockchain " + INPUT_BLOCKCHAIN_JSON
+        + " -imessage " + INPUT_MESSAGE_JSON + " -o " + OUTPUT_JSON + " -i "
+        + INPUT_CODE;
+}
+
+void AccountStore::ParseContractOutput()
+{
+    ifstream in(OUTPUT_JSON, ios::binary);
+
+    if (!in.is_open())
+    {
+        LOG_GENERAL(WARNING, "Error Opening output file");
+        return;
+    }
+    string outStr{istreambuf_iterator<char>(in), istreambuf_iterator<char>()};
+    Json::CharReaderBuilder builder;
+    std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+    Json::Value root;
+    string errors;
+    if (reader->parse(outStr.c_str(), outStr.c_str() + outStr.size(), &root,
+                      &errors))
+    {
+        ParseJsonOutput(root);
+    }
+    else
+    {
+        LOG_GENERAL(WARNING,
+                    "Failed to parse contract output json: " << errors);
+    }
 }
 
 void AccountStore::ParseJsonOutput(const Json::Value& _json)

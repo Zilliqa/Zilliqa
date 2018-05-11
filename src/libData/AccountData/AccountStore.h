@@ -61,11 +61,16 @@ class AccountStore : public Serializable
     /// Store the trie root to leveldb
     void MoveRootToDisk(const dev::h256& root);
 
+    void ParseContractOutput();
+
     void ParseJsonOutput(const Json::Value& _json);
 
     Json::Value GetBlockStateJson(const uint64_t& BlockNum) const;
 
-    bool WriteJsonFile(const uint64_t& blockNum, const Account& account);
+    std::string GetContractCmdStr();
+
+    bool ExportContractFiles(const uint64_t& blockNum, Account*& contract,
+                             const Transaction& transaction);
 
 public:
     /// Returns the singleton AccountStore instance.

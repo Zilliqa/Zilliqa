@@ -274,7 +274,8 @@ Json::Value Account::GetStorageJson() const
             {
                 LOG_GENERAL(
                     WARNING,
-                    "The map json object cannot be extracted from Storage");
+                    "The map json object cannot be extracted from Storage: "
+                        << errors);
             }
         }
         else
