@@ -99,7 +99,7 @@ void Node::StoreFinalBlock(const TxBlock& txBlock)
         = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
 
     // At this point, the transactions in the last Epoch is no longer useful, thus erase.
-    m_committedTransactions.erase(m_mediator.m_currentEpochNum - 2);
+    EraseCommittedTransactions(m_mediator.m_currentEpochNum - 2);
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Storing Tx Block Number: "
@@ -369,7 +369,6 @@ bool Node::FindTxnInReceivedTxnsList(const TxBlock& finalblock,
 
     auto& receivedTransactions = m_receivedTransactions[blockNum];
     auto& committedTransactions = m_committedTransactions[blockNum];
-
     const auto& txnIt = receivedTransactions.find(tx_hash);
 
     // Check if transaction is part of received Tx list
@@ -540,7 +539,6 @@ void Node::LoadForwardingAssignmentFromFinalBlock(
     lock_guard<mutex> g2(m_mutexForwardingAssignment);
 
     m_forwardingAssignment.insert(make_pair(blocknum, vector<Peer>()));
-
     vector<Peer>& peers = m_forwardingAssignment.at(blocknum);
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
