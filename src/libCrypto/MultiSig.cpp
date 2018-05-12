@@ -74,14 +74,8 @@ CommitSecret::CommitSecret(const CommitSecret& src)
 {
     if (m_s != nullptr)
     {
-        if (BN_copy(m_s.get(), src.m_s.get()) == NULL)
-        {
-            LOG_GENERAL(WARNING, "CommitSecret copy failed");
-        }
-        else
-        {
-            m_initialized = true;
-        }
+        m_initialized
+            = src.m_initialized && (BN_copy(m_s.get(), src.m_s.get()) == NULL);
     }
     else
     {
@@ -136,7 +130,8 @@ int CommitSecret::Deserialize(const vector<unsigned char>& src,
 
 CommitSecret& CommitSecret::operator=(const CommitSecret& src)
 {
-    m_initialized = (BN_copy(m_s.get(), src.m_s.get()) == m_s.get());
+    m_initialized
+        = src.m_initialized && (BN_copy(m_s.get(), src.m_s.get()) == m_s.get());
     return *this;
 }
 
@@ -192,14 +187,8 @@ CommitPoint::CommitPoint(const CommitPoint& src)
     }
     else
     {
-        if (EC_POINT_copy(m_p.get(), src.m_p.get()) != 1)
-        {
-            LOG_GENERAL(WARNING, "CommitPoint copy failed");
-        }
-        else
-        {
-            m_initialized = true;
-        }
+        m_initialized = src.m_initialized
+            && (EC_POINT_copy(m_p.get(), src.m_p.get()) == 1);
     }
 }
 
@@ -270,7 +259,8 @@ void CommitPoint::Set(const CommitSecret& secret)
 
 CommitPoint& CommitPoint::operator=(const CommitPoint& src)
 {
-    m_initialized = (EC_POINT_copy(m_p.get(), src.m_p.get()) == 1);
+    m_initialized
+        = src.m_initialized && (EC_POINT_copy(m_p.get(), src.m_p.get()) == 1);
     return *this;
 }
 
@@ -338,14 +328,8 @@ Challenge::Challenge(const Challenge& src)
 {
     if (m_c != nullptr)
     {
-        if (BN_copy(m_c.get(), src.m_c.get()) == NULL)
-        {
-            LOG_GENERAL(WARNING, "Challenge copy failed");
-        }
-        else
-        {
-            m_initialized = true;
-        }
+        m_initialized = src.m_initialized
+            && (BN_copy(m_c.get(), src.m_c.get()) == m_c.get());
     }
     else
     {
@@ -489,7 +473,8 @@ void Challenge::Set(const CommitPoint& aggregatedCommit,
 
 Challenge& Challenge::operator=(const Challenge& src)
 {
-    m_initialized = (BN_copy(m_c.get(), src.m_c.get()) == m_c.get());
+    m_initialized
+        = src.m_initialized && (BN_copy(m_c.get(), src.m_c.get()) == m_c.get());
     return *this;
 }
 
@@ -540,14 +525,8 @@ Response::Response(const Response& src)
 {
     if (m_r != nullptr)
     {
-        if (BN_copy(m_r.get(), src.m_r.get()) == NULL)
-        {
-            LOG_GENERAL(WARNING, "Response copy failed");
-        }
-        else
-        {
-            m_initialized = true;
-        }
+        m_initialized = src.m_initialized
+            && (BN_copy(m_r.get(), src.m_r.get()) == m_r.get());
     }
     else
     {
@@ -664,7 +643,8 @@ void Response::Set(const CommitSecret& secret, const Challenge& challenge,
 
 Response& Response::operator=(const Response& src)
 {
-    m_initialized = (BN_copy(m_r.get(), src.m_r.get()) == m_r.get());
+    m_initialized
+        = src.m_initialized && (BN_copy(m_r.get(), src.m_r.get()) == m_r.get());
     return *this;
 }
 
@@ -718,8 +698,21 @@ MultiSig::AggregateCommits(const vector<CommitPoint>& commitPoints)
         return nullptr;
     }
 
-    shared_ptr<CommitPoint> aggregatedCommit(
-        new CommitPoint(commitPoints.at(0)));
+    shared_ptr<CommitPoint> aggregatedCommit;
+
+    // Find first initialized point in the list
+
+    unsigned int index = 0;
+    for (; index < commitPoints.size(); index++)
+    {
+        if (commitPoints.at(index).Initialized())
+        {
+            aggregatedCommit.reset(new CommitPoint(commitPoints.at(index)));
+            index++;
+            break;
+        }
+    }
+
     if (aggregatedCommit == nullptr)
     {
         LOG_GENERAL(WARNING, "Memory allocation failure");
@@ -727,15 +720,18 @@ MultiSig::AggregateCommits(const vector<CommitPoint>& commitPoints)
         return nullptr;
     }
 
-    for (unsigned int i = 1; i < commitPoints.size(); i++)
+    for (; index < commitPoints.size(); index++)
     {
-        if (EC_POINT_add(curve.m_group.get(), aggregatedCommit->m_p.get(),
-                         aggregatedCommit->m_p.get(),
-                         commitPoints.at(i).m_p.get(), NULL)
-            == 0)
+        if (commitPoints.at(index).Initialized())
         {
-            LOG_GENERAL(WARNING, "Commit aggregation failed");
-            return nullptr;
+            if (EC_POINT_add(curve.m_group.get(), aggregatedCommit->m_p.get(),
+                             aggregatedCommit->m_p.get(),
+                             commitPoints.at(index).m_p.get(), NULL)
+                == 0)
+            {
+                LOG_GENERAL(WARNING, "Commit aggregation failed");
+                return nullptr;
+            }
         }
     }
 
@@ -753,7 +749,19 @@ MultiSig::AggregateResponses(const vector<Response>& responses)
         return nullptr;
     }
 
-    shared_ptr<Response> aggregatedResponse(new Response(responses.at(0)));
+    shared_ptr<Response> aggregatedResponse;
+
+    unsigned int index = 0;
+    for (; index < responses.size(); index++)
+    {
+        if (responses.at(index).Initialized())
+        {
+            aggregatedResponse.reset(new Response(responses.at(index)));
+            index++;
+            break;
+        }
+    }
+
     if (aggregatedResponse == nullptr)
     {
         LOG_GENERAL(WARNING, "Memory allocation failure");
@@ -769,15 +777,19 @@ MultiSig::AggregateResponses(const vector<Response>& responses)
         return nullptr;
     }
 
-    for (unsigned int i = 1; i < responses.size(); i++)
+    for (; index < responses.size(); index++)
     {
-        if (BN_mod_add(aggregatedResponse->m_r.get(),
-                       aggregatedResponse->m_r.get(), responses.at(i).m_r.get(),
-                       curve.m_order.get(), ctx.get())
-            == 0)
+        if (responses.at(index).Initialized())
         {
-            LOG_GENERAL(WARNING, "Response aggregation failed");
-            return nullptr;
+            if (BN_mod_add(aggregatedResponse->m_r.get(),
+                           aggregatedResponse->m_r.get(),
+                           responses.at(index).m_r.get(), curve.m_order.get(),
+                           ctx.get())
+                == 0)
+            {
+                LOG_GENERAL(WARNING, "Response aggregation failed");
+                return nullptr;
+            }
         }
     }
 

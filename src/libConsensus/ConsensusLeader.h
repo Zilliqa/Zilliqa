@@ -41,35 +41,53 @@ class ConsensusLeader : public ConsensusCommon
     enum Action
     {
         SEND_ANNOUNCEMENT = 0x00,
+        PROCESS_COMMITFAILURE,
         PROCESS_COMMIT,
         PROCESS_RESPONSE,
         PROCESS_FINALCOMMIT,
-        PROCESS_FINALRESPONSE
+        PROCESS_FINALRESPONSE,
     };
+
+    friend std::ostream& operator<<(std::ostream& out, const Action value);
+
+    // Timer values
+    static const unsigned int COMMIT_WINDOW_IN_SECONDS = 60;
+    static const unsigned int DELAY_BEFORE_STARTING_SUBSET_IN_SECONDS = 5;
+
+    // Consensus subset count
+    // Each subset will attempt to reach consensus with NumForConsensus() number of peers who initially committed
+    static const unsigned int NUM_CONSENSUS_SUBSETS = 50;
 
     // Consensus session settings
     unsigned int m_numForConsensus;
     unsigned int m_numForConsensusFailure;
 
-    // Received commits
+    // Main mutex
     std::mutex m_mutex;
-    unsigned int m_commitCounter;
 
-    // TODO: the vectors should be replaced by more space efficient DS
-    std::vector<bool> m_commitMap;
+    // Received commits
+    unsigned int m_commitCounter;
     std::vector<CommitPoint>
         m_commitPointMap; // ordered list of commits of size = committee size
-    std::vector<CommitPoint>
-        m_commitPoints; // unordered list of commits of size = 2/3 of committee size + 1
-    unsigned int m_commitRedundantCounter;
-    std::vector<bool> m_commitRedundantMap;
-    std::vector<CommitPoint>
-        m_commitRedundantPointMap; // ordered list of redundant commits of size = 1/3 of committee size
-    // Generated challenge
-    Challenge m_challenge;
-
     unsigned int m_commitFailureCounter;
     std::map<unsigned int, std::vector<unsigned char>> m_commitFailureMap;
+
+    // Tracking data for each consensus subset
+    // TODO: the vectors should be replaced by more space efficient DS
+    struct ConsensusSubset
+    {
+        std::vector<CommitPoint>
+            m_commitPointMap; // Ordered list of commits of fixed size = committee size
+        unsigned int m_commitOrResponseCounter;
+        Challenge m_challenge; // Challenge / Finalchallenge value generated
+        std::vector<Response>
+            m_responseDataMap; // Ordered list of responses of fixed size = committee size
+        Signature m_CS1; // Generated collective signature
+        Signature m_CS2; // Generated final collective signature
+        State m_state; // Subset consensus state
+    };
+    std::vector<ConsensusSubset> m_consensusSubsets;
+    unsigned int m_numSubsetsRunning;
 
     // Received responses
     unsigned int m_responseCounter;
@@ -81,6 +99,11 @@ class ConsensusLeader : public ConsensusCommon
 
     // Internal functions
     bool CheckState(Action action);
+    bool CheckStateSubset(unsigned int subsetID, Action action);
+    void SetStateSubset(unsigned int subsetID, State newState);
+    void GenerateConsensusSubsets();
+    void StartConsensusSubsets();
+    void SubsetEnded(unsigned int subsetID);
     bool ProcessMessageCommitCore(const std::vector<unsigned char>& commit,
                                   unsigned int offset, Action action,
                                   ConsensusMessageType returnmsgtype,
@@ -90,7 +113,8 @@ class ConsensusLeader : public ConsensusCommon
     bool ProcessMessageCommitFailure(const std::vector<unsigned char>& commit,
                                      unsigned int offset, const Peer& from);
     bool GenerateChallengeMessage(std::vector<unsigned char>& challenge,
-                                  unsigned int offset);
+                                  unsigned int offset, unsigned int subsetID,
+                                  Action action);
     bool ProcessMessageResponseCore(const std::vector<unsigned char>& response,
                                     unsigned int offset, Action action,
                                     ConsensusMessageType returnmsgtype,
@@ -98,7 +122,8 @@ class ConsensusLeader : public ConsensusCommon
     bool ProcessMessageResponse(const std::vector<unsigned char>& response,
                                 unsigned int offset);
     bool GenerateCollectiveSigMessage(std::vector<unsigned char>& collectivesig,
-                                      unsigned int offset);
+                                      unsigned int offset,
+                                      unsigned int subsetID, Action action);
     bool
     ProcessMessageFinalCommit(const std::vector<unsigned char>& finalcommit,
                               unsigned int offset);
@@ -135,6 +160,12 @@ public:
     /// Function to process any consensus message received.
     bool ProcessMessage(const std::vector<unsigned char>& message,
                         unsigned int offset, const Peer& from);
+
+    /// Returns the state of the active consensus session
+    State GetState() const;
 };
+
+std::ostream& operator<<(std::ostream& out,
+                         const ConsensusLeader::Action value);
 
 #endif // __CONSENSUSLEADER_H__

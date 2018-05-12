@@ -20,6 +20,7 @@
 
 #include <deque>
 #include <functional>
+#include <map>
 #include <memory>
 #include <mutex>
 #include <vector>
@@ -32,7 +33,6 @@
 /// Implements the functionality for the consensus committee backup.
 class ConsensusBackup : public ConsensusCommon
 {
-private:
     enum Action
     {
         PROCESS_ANNOUNCE = 0x00,
@@ -42,21 +42,39 @@ private:
         PROCESS_FINALCOLLECTIVESIG
     };
 
+    friend std::ostream& operator<<(std::ostream& out, const Action value);
+
+    // Tracking data for each consensus subset
+    // TODO: the vectors should be replaced by more space efficient DS
+    struct ConsensusSubset
+    {
+        Challenge m_challenge; // Received challenge
+        Signature m_CS1; // Received collective signature
+        std::vector<bool> m_B1; // Received collective signature bitmap
+        Signature m_CS2; // Received final collective signature
+        std::vector<bool> m_B2; // Received final collective signature bitmap
+        State m_state; // Subset consensus state
+        std::shared_ptr<CommitSecret>
+            m_commitSecret; // Generated commit (2nd round)
+        std::shared_ptr<CommitPoint>
+            m_commitPoint; // Generated commit (2nd round)
+    };
+    std::map<uint8_t, ConsensusSubset> m_consensusSubsets;
+
     // Consensus session settings
     uint16_t m_leaderID;
 
-    // Generated commit
-    std::shared_ptr<CommitSecret> m_commitSecret;
-    std::shared_ptr<CommitPoint> m_commitPoint;
-
-    // Received challenge
-    Challenge m_challenge;
+    // Generated commit (1st round)
+    std::shared_ptr<CommitSecret> m_commitSecret; // Generated commit
+    std::shared_ptr<CommitPoint> m_commitPoint; // Generated commit
 
     // Function handler for validating message content
     MsgContentValidatorFunc m_msgContentValidator;
 
     // Internal functions
     bool CheckState(Action action);
+    bool CheckStateSubset(unsigned int subsetID, Action action);
+    void SetStateSubset(unsigned int subsetID, State nextState);
     bool ProcessMessageAnnounce(const std::vector<unsigned char>& announcement,
                                 unsigned int offset);
     bool GenerateCommitFailureMessage(vector<unsigned char>& commitFailure,
@@ -65,14 +83,15 @@ private:
     bool ProcessMessageConsensusFailure(
         const vector<unsigned char>& consensusFailure, unsigned int offset);
     bool GenerateCommitMessage(std::vector<unsigned char>& commit,
-                               unsigned int offset);
+                               unsigned int offset, unsigned int subsetID,
+                               Action action);
     bool ProcessMessageChallengeCore(
         const std::vector<unsigned char>& challenge, unsigned int offset,
         Action action, ConsensusMessageType returnmsgtype, State nextstate);
     bool ProcessMessageChallenge(const std::vector<unsigned char>& challenge,
                                  unsigned int offset);
     bool GenerateResponseMessage(std::vector<unsigned char>& response,
-                                 unsigned int offset);
+                                 unsigned int offset, unsigned int subsetID);
     bool ProcessMessageCollectiveSigCore(
         const std::vector<unsigned char>& collectivesig, unsigned int offset,
         Action action, State nextstate);
@@ -114,6 +133,12 @@ public:
     /// Function to process any consensus message received.
     bool ProcessMessage(const std::vector<unsigned char>& message,
                         unsigned int offset, const Peer& from);
+
+    /// Returns the state of the active consensus session
+    State GetState() const;
 };
+
+std::ostream& operator<<(std::ostream& out,
+                         const ConsensusBackup::Action value);
 
 #endif // __CONSENSUSBACKUP_H__

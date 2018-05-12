@@ -36,7 +36,6 @@ ConsensusCommon::ConsensusCommon(uint32_t consensus_id,
     , m_myPrivKey(privkey)
     , m_pubKeys(pubkeys)
     , m_peerInfo(peer_info)
-    , m_responseMap(pubkeys.size(), false)
 {
     m_consensusID = consensus_id;
     m_myID = my_id;
@@ -80,7 +79,7 @@ bool ConsensusCommon::VerifyMessage(const vector<unsigned char>& msg,
     return result;
 }
 
-PubKey ConsensusCommon::AggregateKeys(const vector<bool> peer_map)
+PubKey ConsensusCommon::AggregateKeys(const vector<bool>& peer_map)
 {
     LOG_MARKER();
 
@@ -154,8 +153,15 @@ Challenge ConsensusCommon::GetChallenge(const vector<unsigned char>& msg,
 {
     LOG_MARKER();
 
-    return Challenge(aggregated_commit, aggregated_key, m_message, offset,
-                     size);
+    return Challenge(aggregated_commit, aggregated_key, msg, offset, size);
+}
+
+void ConsensusCommon::SetState(State newState)
+{
+    if ((newState == INITIAL) || (newState > m_state))
+    {
+        m_state = newState;
+    }
 }
 
 ConsensusCommon::State ConsensusCommon::GetState() const { return m_state; }
@@ -209,4 +215,32 @@ const vector<bool>& ConsensusCommon::GetB2() const
 unsigned int ConsensusCommon::NumForConsensus(unsigned int shardSize)
 {
     return ceil(shardSize * TOLERANCE_FRACTION) - 1;
+}
+
+std::ostream& operator<<(std::ostream& out, const ConsensusCommon::State value)
+{
+    const char* s = 0;
+#define PROCESS_VAL(p)                                                         \
+    case (ConsensusCommon::p):                                                 \
+        s = #p;                                                                \
+        break;
+    switch (value)
+    {
+        PROCESS_VAL(INITIAL);
+        PROCESS_VAL(ANNOUNCE_DONE);
+        PROCESS_VAL(COMMIT_TIMER_EXPIRED);
+        PROCESS_VAL(COMMIT_LISTS_GENERATED);
+        PROCESS_VAL(COMMIT_DONE);
+        PROCESS_VAL(CHALLENGE_DONE);
+        PROCESS_VAL(RESPONSE_DONE);
+        PROCESS_VAL(COLLECTIVESIG_DONE);
+        PROCESS_VAL(FINALCOMMIT_DONE);
+        PROCESS_VAL(FINALCHALLENGE_DONE);
+        PROCESS_VAL(FINALRESPONSE_DONE);
+        PROCESS_VAL(DONE);
+        PROCESS_VAL(ERROR);
+    }
+#undef PROCESS_VAL
+
+    return out << s;
 }

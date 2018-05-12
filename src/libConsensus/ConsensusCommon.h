@@ -40,6 +40,8 @@ public:
     {
         INITIAL = 0x00,
         ANNOUNCE_DONE,
+        COMMIT_TIMER_EXPIRED,
+        COMMIT_LISTS_GENERATED,
         COMMIT_DONE,
         CHALLENGE_DONE,
         RESPONSE_DONE,
@@ -100,12 +102,6 @@ protected:
     /// The instruction byte value for the next consensus message to be composed.
     unsigned char m_insByte;
 
-    /// Generated collective signature
-    Signature m_collectiveSig;
-
-    /// Response map for the generated collective signature
-    std::vector<bool> m_responseMap;
-
     /// Co-sig for first round
     Signature m_CS1;
 
@@ -130,7 +126,7 @@ protected:
                     unsigned char ins_byte);
 
     /// Destructor.
-    ~ConsensusCommon();
+    virtual ~ConsensusCommon();
 
     /// Generates the signature over a consensus message.
     Signature SignMessage(const std::vector<unsigned char>& msg,
@@ -142,7 +138,7 @@ protected:
                        const Signature& toverify, uint16_t peer_id);
 
     /// Aggregates public keys according to the response map.
-    PubKey AggregateKeys(const std::vector<bool> peer_map);
+    PubKey AggregateKeys(const std::vector<bool>& peer_map);
 
     /// Aggregates the list of received commits.
     CommitPoint AggregateCommits(const std::vector<CommitPoint>& commits);
@@ -160,6 +156,9 @@ protected:
                            const CommitPoint& aggregated_commit,
                            const PubKey& aggregated_key);
 
+    /// Sets the state of the consensus session.
+    void SetState(State newState);
+
 public:
     /// Consensus message processing function
     virtual bool ProcessMessage(const std::vector<unsigned char>& message,
@@ -169,7 +168,7 @@ public:
     }
 
     /// Returns the state of the active consensus session
-    State GetState() const;
+    virtual State GetState() const;
 
     /// Returns the co-sig for first round
     const Signature& GetCS1() const;
@@ -186,5 +185,7 @@ public:
     /// Returns the fraction of the shard required to achieve consensus
     static unsigned int NumForConsensus(unsigned int shardSize);
 };
+
+std::ostream& operator<<(std::ostream& out, const ConsensusCommon::State value);
 
 #endif // __CONSENSUSCOMMON_H__
