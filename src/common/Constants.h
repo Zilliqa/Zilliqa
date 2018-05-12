@@ -98,6 +98,15 @@ const std::string DS_KICKOUT_MSG = "KICKED OUT FROM DS";
 const std::string DS_LEADER_MSG = "DS LEADER NOW";
 const std::string DS_BACKUP_MSG = "DS BACKUP NOW";
 
+const std::string INTERPRETER_NAME = "scilla-runner";
+const std::string CONTRACT_MAIN_FOLDER = "for-contract";
+const std::string INIT_JSON = "init.json";
+const std::string INPUT_STATE_JSON = "input_state.json";
+const std::string INPUT_BLOCKCHAIN_JSON = "input_blockchain.json";
+const std::string INPUT_MESSAGE_JSON = "input_message.json";
+const std::string OUTPUT_JSON = "output.json";
+const std::string INPUT_CODE = "input.scilla";
+
 extern const unsigned int DS_MULTICAST_CLUSTER_SIZE;
 extern const unsigned int COMM_SIZE;
 extern const unsigned int MAX_POW1_WINNERS;
