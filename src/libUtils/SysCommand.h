@@ -21,6 +21,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <string>
 
 const std::string EXEC_CMD_LOG = "ExecuteCmd.txt";
