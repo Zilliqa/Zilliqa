@@ -23,7 +23,7 @@
 #include <iostream>
 #include <string>
 
-#include "common/Constants.h"
+const std::string EXEC_CMD_LOG = "ExecuteCmd.txt";
 
 class SysCommand
 {
