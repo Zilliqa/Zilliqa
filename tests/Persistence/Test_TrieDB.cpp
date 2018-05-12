@@ -20,7 +20,6 @@
 #include "depends/common/CommonIO.h"
 #include "depends/common/FixedHash.h"
 #include "depends/common/RLP.h"
-#include "depends/libDatabase/MemoryDB.h"
 #include "depends/libDatabase/OverlayDB.h"
 #include "depends/libTrie/TrieDB.h"
 
