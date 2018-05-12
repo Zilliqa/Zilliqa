@@ -22,14 +22,33 @@
 #include <vector>
 
 using namespace std;
+chrono::high_resolution_clock::time_point startTime;
 
 void process_message(const vector<unsigned char>& message, const Peer& from)
 {
     LOG_MARKER();
-    LOG_GENERAL(INFO,
-                "Received message '" << (char*)&message.at(0) << "' at port "
-                                     << from.m_listenPortHost
-                                     << " from address " << from.m_ipAddress);
+
+    if (message.size() < 10)
+    {
+        LOG_GENERAL(INFO,
+                    "Received message '"
+                        << (char*)&message.at(0) << "' at port "
+                        << from.m_listenPortHost << " from address "
+                        << from.m_ipAddress);
+    }
+    else
+    {
+        chrono::duration<double, std::milli> time_span
+            = chrono::high_resolution_clock::now() - startTime;
+        LOG_GENERAL(INFO,
+                    "Received " << message.size() / (1024 * 1024)
+                                << " MB message in " << time_span.count()
+                                << " ms");
+        LOG_GENERAL(INFO,
+                    "Benchmark: " << (1000 * message.size())
+                            / (time_span.count() * 1024 * 1024)
+                                  << " MBps");
+    }
 }
 
 int main()
@@ -37,7 +56,8 @@ int main()
     INIT_STDOUT_LOGGER();
 
     auto func = []() mutable -> void {
-        P2PComm::GetInstance().StartMessagePump(30303, process_message);
+        P2PComm::GetInstance().StartMessagePump(30303, process_message,
+                                                nullptr);
     };
     JoinableFunction jf(1, func);
 
@@ -56,6 +76,12 @@ int main()
         = {'W', 'o', 'r', 'l', 'd', '\0'}; // Send World 3x
 
     P2PComm::GetInstance().SendMessage(peers, message2);
+
+    vector<unsigned char> longMsg(1024 * 1024 * 1024, 'z');
+    longMsg.push_back('\0');
+
+    startTime = chrono::high_resolution_clock::now();
+    P2PComm::GetInstance().SendMessage(peer, longMsg);
 
     return 0;
 }
