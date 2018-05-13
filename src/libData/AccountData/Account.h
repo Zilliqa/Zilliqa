@@ -19,50 +19,97 @@
 
 #include <array>
 #include <boost/multiprecision/cpp_int.hpp>
+#include <leveldb/db.h>
 #include <vector>
 
 #include "Address.h"
 #include "common/Constants.h"
 #include "common/Serializable.h"
+#include "depends/libDatabase/OverlayDB.h"
+#include "depends/libTrie/TrieDB.h"
 #include "libCrypto/Schnorr.h"
 
-/// Stores information on a single account.
+using namespace std;
+using namespace dev;
+using namespace boost::multiprecision;
+
+/// DB storing trie storage information for all accounts.
+// static OverlayDB contractStatesDB("contractStates");
+
+template<class KeyType, class DB>
+using SecureTrieDB = SpecificTrieDB<dev::HashedGenericTrieDB<DB>, KeyType>;
+
 class Account : public Serializable
 {
     boost::multiprecision::uint256_t m_balance;
     boost::multiprecision::uint256_t m_nonce;
+    h256 m_storageRoot = h256();
+    h256 m_prevRoot;
+    h256 m_codeHash;
+
+    // The associated code for this account.
+    vector<unsigned char> m_codeCache;
+
+    SecureTrieDB<bytesConstRef, OverlayDB> m_storage;
 
 public:
     Account();
 
+    ~Account() { m_storage.init(); }
+
     /// Constructor for loading account information from a byte stream.
-    Account(const std::vector<unsigned char>& src, unsigned int offset);
+    Account(const vector<unsigned char>& src, unsigned int offset);
 
     /// Constructor with account balance, and nonce.
-    Account(const boost::multiprecision::uint256_t& balance,
-            const boost::multiprecision::uint256_t& nonce);
+    Account(const uint256_t& balance, const uint256_t& nonce,
+            const h256& storageRoot, const h256& codeHash);
+
+    void InitStorage();
 
     /// Implements the Serialize function inherited from Serializable.
-    unsigned int Serialize(std::vector<unsigned char>& dst,
+    unsigned int Serialize(vector<unsigned char>& dst,
                            unsigned int offset) const;
 
     /// Implements the Deserialize function inherited from Serializable.
-    int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+    int Deserialize(const vector<unsigned char>& src, unsigned int offset);
 
     /// Increases account balance by the specified delta amount.
-    bool IncreaseBalance(const boost::multiprecision::uint256_t& delta);
+    bool IncreaseBalance(const uint256_t& delta);
 
     /// Decreases account balance by the specified delta amount.
-    bool DecreaseBalance(const boost::multiprecision::uint256_t& delta);
+    bool DecreaseBalance(const uint256_t& delta);
 
     /// Returns the account balance.
-    const boost::multiprecision::uint256_t& GetBalance() const;
+    const uint256_t& GetBalance() const { return m_balance; }
 
     /// Increases account nonce by 1.
     bool IncreaseNonce();
 
     /// Returns the account nonce.
-    const boost::multiprecision::uint256_t& GetNonce() const;
+    const uint256_t& GetNonce() const { return m_nonce; }
+
+    /// Returns the storage root.
+    const h256& GetStorageRoot() const { return m_storageRoot; }
+
+    /// Returns the code hash.
+    const h256& GetCodeHash() const { return m_codeHash; }
+
+    /// Set the code of the account. Used by "create" messages
+    void SetCode(vector<unsigned char>&& code);
+
+    const vector<unsigned char>& GetCode() const { return m_codeCache; }
+
+    void SetStorage(string _k, string _mutable, string _type, string _v);
+
+    vector<string> GetKeys();
+
+    vector<string> GetStorage(string _k);
+
+    string GetStorageValue(string _k);
+
+    void Commit() { m_prevRoot = m_storageRoot; }
+
+    void RollBack();
 
     /// Computes an account address from a specified PubKey.
     static Address GetAddressFromPublicKey(const PubKey& pubKey);

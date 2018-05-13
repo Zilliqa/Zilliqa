@@ -98,15 +98,16 @@ def get_immediate_subdirectories(a_dir):
 # ========================
 
 def run_setup(numnodes, printnodes):
-	if (os.path.exists(LOCAL_RUN_FOLDER)):
-		shutil.rmtree(LOCAL_RUN_FOLDER)
-	os.makedirs(LOCAL_RUN_FOLDER)
+	if os.path.exists(LOCAL_RUN_FOLDER) != True :
+		# shutil.rmtree(LOCAL_RUN_FOLDER)
+		os.makedirs(LOCAL_RUN_FOLDER)
 	for x in range(0, numnodes):
 		testsubdir = LOCAL_RUN_FOLDER + 'node_' + str(x+1).zfill(4)
-		os.makedirs(testsubdir)
-		shutil.copyfile('./tests/Zilliqa/zilliqa', testsubdir + '/zilliqa')
-		shutil.copyfile('./tests/Zilliqa/sendcmd', testsubdir + '/sendcmd')
-		shutil.copyfile('./tests/Zilliqa/sendtxn', testsubdir + '/sendtxn')
+		if os.path.exists(testsubdir) != True :
+			os.makedirs(testsubdir)
+		shutil.copyfile('./build/tests/Zilliqa/zilliqa', testsubdir + '/zilliqa')
+		shutil.copyfile('./build/tests/Zilliqa/sendcmd', testsubdir + '/sendcmd')
+		shutil.copyfile('./build/tests/Zilliqa/sendtxn', testsubdir + '/sendtxn')
 
 		st = os.stat(testsubdir + '/zilliqa')
 		os.chmod(testsubdir + '/zilliqa', st.st_mode | stat.S_IEXEC)
@@ -128,7 +129,7 @@ def run_start(numdsnodes):
 
 	# Generate keypairs (sort by public key)
 	for x in range(0, count):
-		process = Popen(["./tests/Zilliqa/genkeypair"], stdout=PIPE)
+		process = Popen(["./build/tests/Zilliqa/genkeypair"], stdout=PIPE)
 		(output, err) = process.communicate()
 		exit_code = process.wait()
 		keypairs.append(output)
@@ -158,10 +159,10 @@ def run_start(numdsnodes):
 		if (x < numdsnodes):
 			shutil.copyfile('config.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/config.xml')
 			shutil.copyfile('constants_local.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml')
-			os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; echo \"' + keypair[0] + ' ' + keypair[1] + '\" > mykey.txt' + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; ./zilliqa ' + keypair[1] + ' ' + keypair[0] + ' ' + '127.0.0.1' +' ' + str(NODE_LISTEN_PORT + x) + ' 1 0 0 > ./error_log_zilliqa 2>&1 &')
+			os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; echo \"' + keypair[0] + ' ' + keypair[1] + '\" > mykey.txt' + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; $(pwd)/zilliqa ' + keypair[1] + ' ' + keypair[0] + ' ' + '127.0.0.1' +' ' + str(NODE_LISTEN_PORT + x) + ' 1 0 1 > ./error_log_zilliqa 2>&1 &')
 		else:
 			shutil.copyfile('constants_local.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml')
-			os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; echo \"' + keypair[0] + ' ' + keypair[1] + '\" > mykey.txt' + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; ./zilliqa ' + keypair[1] + ' ' + keypair[0] + ' ' + '127.0.0.1' +' ' + str(NODE_LISTEN_PORT + x) + ' 0 0 0 > ./error_log_zilliqa 2>&1 &')
+			os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; echo \"' + keypair[0] + ' ' + keypair[1] + '\" > mykey.txt' + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; $(pwd)/zilliqa ' + keypair[1] + ' ' + keypair[0] + ' ' + '127.0.0.1' +' ' + str(NODE_LISTEN_PORT + x) + ' 0 0 1 > ./error_log_zilliqa 2>&1 &')
 
 def run_connect(numnodes):
 	testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)
@@ -206,10 +207,11 @@ def run_connect(numnodes):
 def run_stop():
 	os.system('killall zilliqa')
 	os.system('killall sendtxn')
-	testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)
-	count = len(testfolders_list)
-	for x in range(0, count):
-		os.system('fuser -k ' + str(NODE_LISTEN_PORT + x) + '/tcp')
+	if os.path.exists(LOCAL_RUN_FOLDER):
+		testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)
+		count = len(testfolders_list)
+		for x in range(0, count):
+			os.system('fuser -k ' + str(NODE_LISTEN_PORT + x) + '/tcp')
 
 def run_clean():
 	testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)
@@ -217,12 +219,12 @@ def run_clean():
 	run_setup(count, False)
 
 def run_sendcmd(nodenum, msg):
-	os.system('tests/Zilliqa/sendcmd ' + str(NODE_LISTEN_PORT + nodenum - 1) + ' cmd ' + msg)
+	os.system('build/tests/Zilliqa/sendcmd ' + str(NODE_LISTEN_PORT + nodenum - 1) + ' cmd ' + msg)
 	
 def run_sendcmdrandom(nodenum, msg_size):
 	# msg = "000400" + 'A' * msg_size * 2
-	# os.system('tests/Zilliqa/sendcmd ' + str(NODE_LISTEN_PORT + nodenum - 1) + ' cmd ' + msg)
-	os.system('tests/Zilliqa/sendcmd ' + str(NODE_LISTEN_PORT) + ' broadcast ' + msg_size)
+	# os.system('build/tests/Zilliqa/sendcmd ' + str(NODE_LISTEN_PORT + nodenum - 1) + ' cmd ' + msg)
+	os.system('build/tests/Zilliqa/sendcmd ' + str(NODE_LISTEN_PORT) + ' broadcast ' + msg_size)
 
 def run_startpow1(nodenum, dscount, blocknum, diff, rand1, rand2):
 	testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)
@@ -235,7 +237,7 @@ def run_startpow1(nodenum, dscount, blocknum, diff, rand1, rand2):
 	keypairs = [x.strip() for x in keypairs]
 
 	# Assemble the STARTPOW1 message
-	startpow1_cmd = 'tests/Zilliqa/sendcmd ' + str(NODE_LISTEN_PORT + nodenum - 1) + ' cmd 0200' + blocknum + diff + rand1 + rand2
+	startpow1_cmd = 'build/tests/Zilliqa/sendcmd ' + str(NODE_LISTEN_PORT + nodenum - 1) + ' cmd 0200' + blocknum + diff + rand1 + rand2
 	for x in range(0, dscount):
 		keypair = keypairs[x].split(" ")
 		startpow1_cmd = startpow1_cmd + keypair[0] + '0000000000000000000000000100007F' + "{0:0{1}x}".format(NODE_LISTEN_PORT + x, 8)
@@ -244,7 +246,7 @@ def run_startpow1(nodenum, dscount, blocknum, diff, rand1, rand2):
 	os.system(startpow1_cmd)
 
 def run_sendtxn(portnum):
-	os.system('tests/Zilliqa/sendtxn ' + str(portnum) + ' &')
+	os.system('build/tests/Zilliqa/sendtxn ' + str(portnum) + ' &')
 
 def run_delete():
 	if (os.path.exists(LOCAL_RUN_FOLDER)):

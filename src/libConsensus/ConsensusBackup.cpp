@@ -414,7 +414,6 @@ bool ConsensusBackup::ProcessMessageAnnounce(
 
     bool result = GenerateCommitMessage(
         commit, MessageOffset::BODY + sizeof(unsigned char));
-
     if (result == true)
     {
         // Update internal state
@@ -423,7 +422,6 @@ bool ConsensusBackup::ProcessMessageAnnounce(
 
         // Unicast to the leader
         // =====================
-
         P2PComm::GetInstance().SendMessage(m_peerInfo.at(m_leaderID), commit);
     }
 
@@ -476,7 +474,6 @@ bool ConsensusBackup::GenerateCommitMessage(vector<unsigned char>& commit,
 
     // Generate new commit
     // ===================
-
     m_commitSecret.reset(new CommitSecret());
     m_commitPoint.reset(new CommitPoint(*m_commitSecret));
 
@@ -492,21 +489,17 @@ bool ConsensusBackup::GenerateCommitMessage(vector<unsigned char>& commit,
     Serializable::SetNumber<uint32_t>(commit, curr_offset, m_consensusID,
                                       sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
-
     // 32-byte blockhash
     commit.insert(commit.begin() + curr_offset, m_blockHash.begin(),
                   m_blockHash.end());
     curr_offset += m_blockHash.size();
-
     // 2-byte backup id
     Serializable::SetNumber<uint16_t>(commit, curr_offset, m_myID,
                                       sizeof(uint16_t));
     curr_offset += sizeof(uint16_t);
-
     // 33-byte commit
     m_commitPoint->Serialize(commit, curr_offset);
     curr_offset += COMMIT_POINT_SIZE;
-
     // 64-byte signature
     Signature signature = SignMessage(commit, offset, curr_offset - offset);
     if (signature.Initialized() == false)
@@ -516,7 +509,6 @@ bool ConsensusBackup::GenerateCommitMessage(vector<unsigned char>& commit,
         return false;
     }
     signature.Serialize(commit, curr_offset);
-
     return true;
 }
 
@@ -910,7 +902,6 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
 
             // Unicast to the leader
             // =====================
-
             P2PComm::GetInstance().SendMessage(m_peerInfo.at(m_leaderID),
                                                finalcommit);
         }

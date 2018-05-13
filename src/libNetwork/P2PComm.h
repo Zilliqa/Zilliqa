@@ -84,11 +84,14 @@ public:
     static P2PComm& GetInstance();
 
     /// Receives incoming message and assigns to designated message dispatcher.
-    void HandleAcceptedConnection(
+    static void HandleAcceptedConnection(
         int cli_sock, Peer from,
         std::function<void(const std::vector<unsigned char>&, const Peer&)>
             dispatcher,
         broadcast_list_func broadcast_list_retriever);
+
+    /// Accept TCP connection for libevent usage
+    static void ConnectionAccept(int serv_sock, short event, void* arg);
 
     /// Listens for incoming socket connections.
     void StartMessagePump(

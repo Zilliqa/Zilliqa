@@ -32,6 +32,7 @@
 #include "common/Executable.h"
 #include "libConsensus/Consensus.h"
 #include "libData/BlockData/Block.h"
+#include "libLookup/Synchronizer.h"
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/PeerStore.h"
 #include "libPOW/pow.h"
@@ -150,11 +151,21 @@ class DirectoryService : public Executable, public Broadcastable
     std::mutex m_MutexCVViewChangeSharding;
     std::condition_variable cv_viewChangeFinalBlock;
     std::mutex m_MutexCVViewChangeFinalBlock;
+    std::condition_variable cv_DSBlockConsensus;
+    std::mutex m_MutexCVDSBlockConsensus;
+    std::condition_variable cv_DSBlockConsensusObject;
+    std::mutex m_MutexCVDSBlockConsensusObject;
+    std::condition_variable cv_shardingConsensus;
+    std::mutex m_MutexCVShardingConsensus;
+    std::condition_variable cv_shardingConsensusObject;
+    std::mutex m_MutexCVShardingConsensusObject;
 
     // TO Remove
     //bool temp_todie;
 
     Mediator& m_mediator;
+
+    Synchronizer m_synchronizer;
 
     const uint32_t RESHUFFLE_INTERVAL = 500;
 
@@ -178,6 +189,9 @@ class DirectoryService : public Executable, public Broadcastable
     bool ProcessAllPoWConnResponse(const vector<unsigned char>& message,
                                    unsigned int offset, const Peer& from);
 
+    // To block certain types of incoming message for certain states
+    bool ToBlockMessage(unsigned char ins_byte);
+
 #ifndef IS_LOOKUP_NODE
     bool CheckState(Action action);
     bool VerifyPOW2(const vector<unsigned char>& message, unsigned int offset,
@@ -193,7 +207,7 @@ class DirectoryService : public Executable, public Broadcastable
         vector<std::map<PubKey, Peer>>::iterator& p);
 
     // PoW1 (DS block) consensus functions
-    void RunConsensusOnDSBlock();
+    void RunConsensusOnDSBlock(bool isRejoin = false);
     void ComposeDSBlock();
 
     // internal calls from RunConsensusOnSharding
@@ -320,6 +334,11 @@ class DirectoryService : public Executable, public Broadcastable
     bool ProcessInitViewChangeResponse(const vector<unsigned char>& message,
                                        unsigned int offset, const Peer& from);
 
+    // Rejoin the network as a DS node in case of failure happens in protocol
+    void RejoinAsDS();
+
+    // Reset certain variables to the initial state
+    bool CleanVariables();
 #endif // IS_LOOKUP_NODE
 
 public:
@@ -366,12 +385,18 @@ public:
     /// Sets the value of m_state.
     void SetState(DirState state);
 
+    /// Start synchronization with lookup as a DS node
+    void StartSynchronization();
+
     /// Implements the GetBroadcastList function inherited from Broadcastable.
     std::vector<Peer> GetBroadcastList(unsigned char ins_type,
                                        const Peer& broadcast_originator);
 
     /// Launches separate thread to execute sharding consensus after wait_window seconds.
     void ScheduleShardingConsensus(const unsigned int wait_window);
+
+    /// Post processing after the DS node successfully synchronized with the network
+    bool FinishRejoinAsDS();
 #endif // IS_LOOKUP_NODE
 
     /// Implements the Execute function inherited from Executable.
