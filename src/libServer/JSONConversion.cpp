@@ -145,10 +145,10 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json)
     PubKey pubKey(pubKey_ser, 0);
 
     string sign_str = _json["signature"].asString();
-    array<unsigned char, TRAN_SIG_SIZE> sign
-        = DataConversion::HexStrToStdArray64(sign_str);
+    vector<unsigned char> sign = DataConversion::HexStrToUint8Vec(sign_str);
 
-    Transaction tx1(version, nonce, toAddr, pubKey, amount, sign);
+    Transaction tx1(version, nonce, toAddr, pubKey, amount, 0, 0, {0}, {0},
+                    Signature(sign, 0));
     LOG_GENERAL(INFO, "Tx converted");
 
     return tx1;
@@ -219,12 +219,12 @@ const Json::Value JSONConversion::convertTxtoJson(const Transaction& tx)
     Json::Value _json;
 
     _json["ID"] = tx.GetTranID().hex();
-    _json["version"] = tx.GetVersion();
+    _json["version"] = tx.GetVersion().str();
     _json["nonce"] = tx.GetNonce().str();
     _json["toAddr"] = tx.GetToAddr().hex();
     _json["senderPubKey"] = static_cast<string>(tx.GetSenderPubKey());
     _json["amount"] = tx.GetAmount().str();
-    _json["signature"] = DataConversion::charArrToHexStr(tx.GetSignature());
+    _json["signature"] = static_cast<string>(tx.GetSignature());
 
     return _json;
 }

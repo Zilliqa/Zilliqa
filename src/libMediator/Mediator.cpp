@@ -32,7 +32,6 @@ Mediator::Mediator(const pair<PrivKey, PubKey>& key, const Peer& peer)
     m_ds = nullptr;
     m_node = nullptr;
     m_currentEpochNum = 0;
-    m_isConnectedToNetwork = false;
     m_isRetrievedHistory = false;
 }
 
@@ -92,5 +91,27 @@ void Mediator::UpdateTxBlockRand(bool isGenesis)
         vector<unsigned char> randVec;
         randVec = sha2.Finalize();
         copy(randVec.begin(), randVec.end(), m_txBlockRand.begin());
+    }
+}
+
+std::string Mediator::GetNodeMode(const Peer& peer)
+{
+    std::lock_guard<mutex> lock(m_mutexDSCommitteeNetworkInfo);
+    if (std::find(m_DSCommitteeNetworkInfo.begin(),
+                  m_DSCommitteeNetworkInfo.end(), peer)
+        != m_DSCommitteeNetworkInfo.end())
+    {
+        if (peer == m_DSCommitteeNetworkInfo[0])
+        {
+            return "DSLD";
+        }
+        else
+        {
+            return "DSBU";
+        }
+    }
+    else
+    {
+        return "SHRD";
     }
 }
