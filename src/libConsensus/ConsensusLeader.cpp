@@ -26,6 +26,11 @@
 
 using namespace std;
 
+// To avoid the linking errors in Mac compiler
+const unsigned int ConsensusLeader::COMMIT_WINDOW_IN_SECONDS;
+const unsigned int ConsensusLeader::DELAY_BEFORE_STARTING_SUBSET_IN_SECONDS;
+const unsigned int ConsensusLeader::NUM_CONSENSUS_SUBSETS;
+
 bool ConsensusLeader::CheckState(Action action)
 {
     bool result = true;
