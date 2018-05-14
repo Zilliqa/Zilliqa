@@ -190,6 +190,13 @@ void AccountStore::UpdateAccounts(const uint64_t& blockNum,
     Address toAddr = transaction.GetToAddr();
     const uint256_t& amount = transaction.GetAmount();
 
+    bool callContract = false;
+
+    if (transaction.GetData().size() > 0 && toAddr != NullAddress)
+    {
+        callContract = true;
+    }
+
     if (transaction.GetCode().size() > 0 && toAddr == NullAddress)
     {
         // Create contract account
@@ -208,18 +215,13 @@ void AccountStore::UpdateAccounts(const uint64_t& blockNum,
         m_addressToAccount[toAddr].InitContract(transaction.GetData());
     }
 
-    if (transaction.GetData().size() > 0 && toAddr != NullAddress)
+    TransferBalance(fromAddr, toAddr, amount);
+    IncreaseNonce(fromAddr);
+
+    if (callContract)
     {
         std::lock_guard<std::mutex> lk(m_mutexCallInterpreter);
         // TODO: Trigger a contract account
-        // ParseJsonOutput(/*Call Interpreter To Get Json Output*/);
-        Account* fromAccount = GetAccount(fromAddr);
-        // TODO: remove this, temporary way to test transactions
-        if (fromAccount == nullptr)
-        {
-            AddAccount(fromAddr, {10000000000, 0});
-        }
-
         Account* toAccount = GetAccount(toAddr);
         if (toAccount == nullptr)
         {
@@ -234,9 +236,6 @@ void AccountStore::UpdateAccounts(const uint64_t& blockNum,
             ParseContractOutput();
         }
     }
-
-    TransferBalance(fromAddr, toAddr, amount);
-    IncreaseNonce(fromAddr);
 }
 
 Json::Value AccountStore::GetBlockStateJson(const uint64_t& BlockNum) const
@@ -261,7 +260,7 @@ bool AccountStore::ExportContractFiles(const uint64_t& blockNum,
 
     // Scilla code
     os.open(INPUT_CODE);
-    os << DataConversion::Uint8VecToHexStr(transaction.GetCode());
+    os << string(transaction.GetCode().begin(), transaction.GetCode().end());
     os.close();
 
     // Initialize Json
@@ -283,7 +282,7 @@ bool AccountStore::ExportContractFiles(const uint64_t& blockNum,
     Json::CharReaderBuilder readBuilder;
     std::unique_ptr<Json::CharReader> reader(readBuilder.newCharReader());
     Json::Value msgObj;
-    string codeStr = DataConversion::Uint8VecToHexStr(transaction.GetData());
+    string codeStr(transaction.GetData().begin(), transaction.GetData().end());
     string errors;
     if (reader->parse(codeStr.c_str(), codeStr.c_str() + codeStr.size(),
                       &msgObj, &errors))
@@ -316,7 +315,8 @@ void AccountStore::ParseContractOutput()
 
     if (!in.is_open())
     {
-        LOG_GENERAL(WARNING, "Error Opening output file");
+        LOG_GENERAL(WARNING,
+                    "Error Opening output file or no output file generated");
         return;
     }
     string outStr{istreambuf_iterator<char>(in), istreambuf_iterator<char>()};
@@ -364,8 +364,16 @@ void AccountStore::ParseJsonOutput(const Json::Value& _json)
             string vname = s["vname"].asString();
             string type = s["type"].asString();
             string value = s["value"].asString();
-            m_addressToAccount[Address(j["address"].asString())].SetStorage(
-                vname, type, value);
+            if (vname == "_balance")
+            {
+                m_addressToAccount[Address(j["address"].asString())].SetBalance(
+                    atoi(value.c_str()));
+            }
+            else
+            {
+                m_addressToAccount[Address(j["address"].asString())].SetStorage(
+                    vname, type, value);
+            }
         }
     }
 }
