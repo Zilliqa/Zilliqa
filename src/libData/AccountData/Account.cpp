@@ -51,8 +51,7 @@ void Account::InitContract(const vector<unsigned char>& data)
     Json::CharReaderBuilder builder;
     std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
     Json::Value root;
-    string dataStr;
-    dataStr = DataConversion::Uint8VecToHexStr(data);
+    string dataStr(data.begin(), data.end());
     string errors;
     if (reader->parse(dataStr.c_str(), dataStr.c_str() + dataStr.size(), &root,
                       &errors))
@@ -213,9 +212,9 @@ void Account::SetStorage(string _k, string _type, string _v, bool _mutable)
         return;
     RLPStream rlpStream(3);
     rlpStream << (_mutable ? "True" : "False") << _type << _v;
-    m_storage.insert(
-        bytesConstRef(DataConversion::HexStrToUint8Vec(_k).data(), _k.size()),
-        rlpStream.out());
+    vector<unsigned char> k_bytes(_k.begin(), _k.end());
+    m_storage.insert(bytesConstRef(k_bytes.data(), k_bytes.size()),
+                     rlpStream.out());
     m_storageRoot = m_storage.root();
 }
 
@@ -284,6 +283,12 @@ Json::Value Account::GetStorageJson() const
         }
         root.append(item);
     }
+    Json::Value _balance;
+    _balance["vname"] = "_balance";
+    _balance["type"] = "Int";
+    int balance = static_cast<int>(m_balance);
+    _balance["value"] = to_string(balance);
+    root.append(_balance);
     return root;
 }
 

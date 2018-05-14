@@ -29,5 +29,7 @@ bool ContractStorage::PutContractCode(const h160& address,
 const std::vector<unsigned char>
 ContractStorage::GetContractCode(const h160& address)
 {
-    return DataConversion::HexStrToUint8Vec(m_codeDB.Lookup(address.hex()));
+    std::string codeStr = m_codeDB.Lookup(address.hex());
+    std::vector<unsigned char> code(codeStr.begin(), codeStr.end());
+    return code;
 }

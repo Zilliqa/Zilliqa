@@ -57,14 +57,6 @@ class Account : public Serializable
 public:
     Account();
 
-    ~Account()
-    {
-        if (m_codeHash != h256())
-        {
-            m_storage.init();
-        }
-    }
-
     /// Constructor for loading account information from a byte stream.
     Account(const vector<unsigned char>& src, unsigned int offset);
 
@@ -89,6 +81,8 @@ public:
 
     /// Decreases account balance by the specified delta amount.
     bool DecreaseBalance(const uint256_t& delta);
+
+    void SetBalance(const uint256_t& balance) { m_balance == balance; }
 
     /// Returns the account balance.
     const uint256_t& GetBalance() const { return m_balance; }
