@@ -147,10 +147,9 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json)
     vector<unsigned char> sign = DataConversion::HexStrToUint8Vec(sign_str);
 
     vector<unsigned char> code, data;
-    copy(_json["code"].asString().begin(), _json["code"].asString().end(),
-         code.begin());
-    copy(_json["data"].asString().begin(), _json["data"].asString().end(),
-         data.begin());
+    
+    code = DataConversion::StringToCharArray(_json["code"].asString());
+    data = DataConversion::StringToCharArray(_json["data"].asString());
 
     Transaction tx1(version, nonce, toAddr, pubKey, amount, 0, 0, code, data,
                     Signature(sign, 0));
