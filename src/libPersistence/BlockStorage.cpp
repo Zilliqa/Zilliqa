@@ -272,6 +272,7 @@ bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr>& blocks)
         if (blockString.empty())
         {
             LOG_GENERAL(WARNING, "Lost one block in the chain");
+            delete it;
             return false;
         }
         const unsigned char* raw_memory
@@ -283,6 +284,8 @@ bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr>& blocks)
 
         blocks.push_back(block);
     }
+
+    delete it;
 
     if (blocks.empty())
     {
@@ -309,6 +312,7 @@ bool BlockStorage::GetAllTxBlocks(std::list<TxBlockSharedPtr>& blocks)
         if (blockString.empty())
         {
             LOG_GENERAL(WARNING, "Lost one block in the chain");
+            delete it;
             return false;
         }
         const unsigned char* raw_memory
@@ -319,6 +323,8 @@ bool BlockStorage::GetAllTxBlocks(std::list<TxBlockSharedPtr>& blocks)
                         0));
         blocks.push_back(block);
     }
+
+    delete it;
 
     if (blocks.empty())
     {
@@ -342,11 +348,14 @@ bool BlockStorage::GetAllTxBodiesTmp(std::list<TxnHash>& txnHashes)
         if (hashString.empty())
         {
             LOG_GENERAL(WARNING, "Lost one Tmp txBody Hash");
+            delete it;
             return false;
         }
         TxnHash txnHash(hashString);
         txnHashes.push_back(txnHash);
     }
+
+    delete it;
     return true;
 }
 #endif // IS_LOOKUP_NODE
