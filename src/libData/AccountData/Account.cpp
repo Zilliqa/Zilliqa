@@ -258,16 +258,16 @@ Json::Value Account::GetStorageJson() const
         Json::Value item;
         item["vname"] = k;
         item["type"] = v[1];
-        if (v[1] == "Map")
+        if (v[1] == "Map" || v[1] == "ADT")
         {
             Json::CharReaderBuilder builder;
             std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
-            Json::Value mapObj;
+            Json::Value obj;
             string errors;
-            if (reader->parse(v[2].c_str(), v[2].c_str() + v[2].size(), &mapObj,
+            if (reader->parse(v[2].c_str(), v[2].c_str() + v[2].size(), &obj,
                               &errors))
             {
-                item["value"] = mapObj;
+                item["value"] = obj;
             }
             else
             {
