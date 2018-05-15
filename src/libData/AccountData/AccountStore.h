@@ -51,6 +51,9 @@ class AccountStore : public Serializable
 
     std::mutex m_mutexCallInterpreter;
 
+    uint64_t m_curBlockNum;
+    Address m_curContractAddr;
+
     AccountStore();
     ~AccountStore();
 
@@ -69,8 +72,12 @@ class AccountStore : public Serializable
 
     std::string GetContractCmdStr();
 
-    bool ExportContractFiles(const uint64_t& blockNum, Account*& contract,
-                             const Transaction& transaction);
+    bool ExportContractFiles(Account*& contract,
+                             const std::vector<unsigned char>& contractData);
+
+    const std::vector<unsigned char>
+    CompositeContractData(const std::string& funcName,
+                          const std::string& amount, const Json::Value& params);
 
 public:
     /// Returns the singleton AccountStore instance.

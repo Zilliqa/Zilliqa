@@ -221,7 +221,7 @@ void AccountStore::UpdateAccounts(const uint64_t& blockNum,
     if (callContract)
     {
         std::lock_guard<std::mutex> lk(m_mutexCallInterpreter);
-        // TODO: Trigger a contract account
+
         Account* toAccount = GetAccount(toAddr);
         if (toAccount == nullptr)
         {
@@ -229,9 +229,12 @@ void AccountStore::UpdateAccounts(const uint64_t& blockNum,
             return;
         }
 
+        m_curBlockNum = blockNum;
+
         // TODO: Implement the calling of interpreter in multi-thread
-        if (ExportContractFiles(blockNum, toAccount, transaction))
+        if (ExportContractFiles(toAccount, transaction.GetData()))
         {
+            m_curContractAddr = toAddr;
             SysCommand::ExecuteCmdWithOutput(GetContractCmdStr());
             ParseContractOutput();
         }
@@ -249,10 +252,11 @@ Json::Value AccountStore::GetBlockStateJson(const uint64_t& BlockNum) const
     return root;
 }
 
-bool AccountStore::ExportContractFiles(const uint64_t& blockNum,
-                                       Account*& contract,
-                                       const Transaction& transaction)
+bool AccountStore::ExportContractFiles(
+    Account*& contract, const vector<unsigned char>& contractData)
 {
+    boost::filesystem::remove_all("./" + SCILLA_FILES);
+    boost::filesystem::create_directories("./" + SCILLA_FILES);
 
     Json::StreamWriterBuilder writeBuilder;
     std::unique_ptr<Json::StreamWriter> writer(writeBuilder.newStreamWriter());
@@ -260,7 +264,7 @@ bool AccountStore::ExportContractFiles(const uint64_t& blockNum,
 
     // Scilla code
     os.open(INPUT_CODE);
-    os << string(transaction.GetCode().begin(), transaction.GetCode().end());
+    os << string(contract->GetCode().begin(), contract->GetCode().end());
     os.close();
 
     // Initialize Json
@@ -275,20 +279,20 @@ bool AccountStore::ExportContractFiles(const uint64_t& blockNum,
 
     // Block Json
     os.open(INPUT_BLOCKCHAIN_JSON);
-    writer->write(GetBlockStateJson(blockNum), &os);
+    writer->write(GetBlockStateJson(m_curBlockNum), &os);
     os.close();
 
     // Message Json
     Json::CharReaderBuilder readBuilder;
     std::unique_ptr<Json::CharReader> reader(readBuilder.newCharReader());
     Json::Value msgObj;
-    string codeStr(transaction.GetData().begin(), transaction.GetData().end());
+    string codeStr(contractData.begin(), contractData.end());
     string errors;
     if (reader->parse(codeStr.c_str(), codeStr.c_str() + codeStr.size(),
                       &msgObj, &errors))
     {
         os.open(INPUT_MESSAGE_JSON);
-        writer->write(codeStr, &os);
+        os << string(contractData.begin(), contractData.end());
         os.close();
     }
     else
@@ -296,6 +300,7 @@ bool AccountStore::ExportContractFiles(const uint64_t& blockNum,
         LOG_GENERAL(
             WARNING,
             "The Code Json is corrupted, failed to process: " << errors);
+        boost::filesystem::remove_all("./" + SCILLA_FILES);
         return false;
     }
     return true;
@@ -340,42 +345,141 @@ void AccountStore::ParseJsonOutput(const Json::Value& _json)
 {
     // the _json actually refers to the Array of Contracts,
     // one transaction can affect multiple contracts by one call
-    for (auto j : _json)
+
+    // for (auto j : _json)
+    // {
+    //     if (!j.isMember("address") || !j.isMember("outputs")
+    //         || !j.isMember("states"))
+    //     {
+    //         LOG_GENERAL(WARNING,
+    //                     "The json output of this contract is corrupted");
+    //         continue;
+    //     }
+    if (!_json.isMember("message") || !_json.isMember("states"))
     {
-        if (!j.isMember("address") || !j.isMember("outputs")
-            || !j.isMember("states"))
+        LOG_GENERAL(WARNING, "The json output of this contract is corrupted");
+        return;
+    }
+
+    if (!_json["message"].isMember("_tag")
+        || !_json["message"].isMember("_amount")
+        || !_json["message"].isMember("params"))
+    {
+        LOG_GENERAL(
+            WARNING,
+            "The message in the json output of this contract is corrupted");
+        return;
+    }
+
+    for (auto s : _json["states"])
+    {
+        if (!s.isMember("vname") || !s.isMember("type") || !s.isMember("value"))
         {
-            LOG_GENERAL(WARNING,
-                        "The json output of this contract is corrupted");
+            // LOG_GENERAL(WARNING,
+            //             "Address: "
+            //                 << m_curContractAddr.hex()
+            //                 << ", The json output of states is corrupted");
             continue;
         }
-        const Json::Value statesObj = j["states"];
-        for (auto s : statesObj)
+        string vname = s["vname"].asString();
+        string type = s["type"].asString();
+        string value;
+        if (type == "Map" || type == "ADT")
         {
-            if (!s.isMember("vname") || !s.isMember("type")
-                || !s.isMember("value"))
+            Json::FastWriter fastWriter;
+            value = fastWriter.write(s["value"]);
+            // Json::StreamWriterBuilder writeBuilder;
+            // std::unique_ptr<Json::StreamWriter> writer(
+            //     writeBuilder.newStreamWriter());
+            // value = writer->write(s["value"], );
+        }
+        else
+        {
+            value = s["value"].asString();
+        }
+
+        if (vname == "_balance")
+        {
+            m_addressToAccount[m_curContractAddr].SetBalance(
+                atoi(value.c_str()));
+        }
+        else
+        {
+            m_addressToAccount[m_curContractAddr].SetStorage(vname, type,
+                                                             value);
+        }
+    }
+
+    if (_json["message"]["_tag"].asString() == "Main")
+    {
+        Address toAddr;
+        for (auto p : _json["message"]["params"])
+        {
+            if (p["vname"].asString() == "to"
+                && p["type"].asString() == "Address")
             {
-                LOG_GENERAL(WARNING,
-                            "Address: "
-                                << j["address"].asString()
-                                << ", The json output of states is corrupted");
-                continue;
+                toAddr = Address(p["value"].asString());
+                break;
             }
-            string vname = s["vname"].asString();
-            string type = s["type"].asString();
-            string value = s["value"].asString();
-            if (vname == "_balance")
+        }
+        TransferBalance(m_curContractAddr, toAddr,
+                        atoi(_json["message"]["_amount"].asString().c_str()));
+        IncreaseNonce(m_curContractAddr);
+    }
+    else
+    {
+        Address toAddr;
+        Json::Value params;
+        for (auto p : _json["message"]["params"])
+        {
+            if (p["vname"].asString() == "to"
+                && p["type"].asString() == "Address")
             {
-                m_addressToAccount[Address(j["address"].asString())].SetBalance(
-                    atoi(value.c_str()));
+                toAddr = Address(p["value"].asString());
             }
             else
             {
-                m_addressToAccount[Address(j["address"].asString())].SetStorage(
-                    vname, type, value);
+                params.append(p);
             }
         }
+
+        Account* toAccount = GetAccount(toAddr);
+        if (toAccount == nullptr)
+        {
+            LOG_GENERAL(WARNING, "The target contract account doesn't exist");
+            return;
+        }
+
+        // TODO: Implement the calling of interpreter in multi-thread
+        if (ExportContractFiles(
+                toAccount,
+                CompositeContractData(_json["message"]["_tag"].asString(),
+                                      _json["message"]["_amount"].asString(),
+                                      params)))
+        {
+            m_curContractAddr = toAddr;
+            SysCommand::ExecuteCmdWithOutput(GetContractCmdStr());
+            ParseContractOutput();
+        }
     }
+}
+
+const std::vector<unsigned char>
+AccountStore::CompositeContractData(const std::string& funcName,
+                                    const std::string& amount,
+                                    const Json::Value& params)
+{
+    Json::Value obj;
+    obj["_tag"] = funcName;
+    obj["_amount"] = amount;
+    obj["params"] = params;
+
+    Json::FastWriter fastWriter;
+    string dataStr = fastWriter.write(obj);
+
+    std::vector<unsigned char> vect;
+    vect.insert(vect.begin(), dataStr.begin(), dataStr.end());
+    return vect;
 }
 
 Account* AccountStore::GetAccount(const Address& address)
