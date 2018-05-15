@@ -589,7 +589,7 @@ void P2PComm::StartMessagePump(
 
     struct event_base* base = event_base_new();
     struct event ev;
-    ConnectionData* pConnData = new struct ConnectionData;
+    static ConnectionData* pConnData = new struct ConnectionData;
     pConnData->dispatcher = dispatcher;
     pConnData->broadcast_list_retriever = broadcast_list_retriever;
     event_set(&ev, serv_sock, EV_READ | EV_PERSIST, ConnectionAccept,
