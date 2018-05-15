@@ -161,12 +161,9 @@ bool BlockStorage::GetDSBlock(const boost::multiprecision::uint256_t& blockNum,
 
     LOG_GENERAL(INFO, blockString);
     LOG_GENERAL(INFO, blockString.length());
-    const unsigned char* raw_memory
-        = reinterpret_cast<const unsigned char*>(blockString.c_str());
-    // FIXME: Handle exceptions
     block = DSBlockSharedPtr(new DSBlock(
-        std::vector<unsigned char>(raw_memory, raw_memory + blockString.size()),
-        0));
+        std::vector<unsigned char>(blockString.begin(), blockString.end()), 0));
+
     return true;
 }
 
@@ -180,12 +177,9 @@ bool BlockStorage::GetTxBlock(const boost::multiprecision::uint256_t& blockNum,
         return false;
     }
 
-    const unsigned char* raw_memory
-        = reinterpret_cast<const unsigned char*>(blockString.c_str());
-    // FIXME: Handle exceptions
     block = TxBlockSharedPtr(new TxBlock(
-        std::vector<unsigned char>(raw_memory, raw_memory + blockString.size()),
-        0));
+        std::vector<unsigned char>(blockString.begin(), blockString.end()), 0));
+
     return true;
 }
 
@@ -206,13 +200,9 @@ bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body)
     {
         return false;
     }
-
-    const unsigned char* raw_memory
-        = reinterpret_cast<const unsigned char*>(bodyString.c_str());
-    // FIXME: Handle exceptions
     body = TxBodySharedPtr(new Transaction(
-        std::vector<unsigned char>(raw_memory, raw_memory + bodyString.size()),
-        0));
+        std::vector<unsigned char>(bodyString.begin(), bodyString.end()), 0));
+
     return true;
 }
 
@@ -275,13 +265,10 @@ bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr>& blocks)
             delete it;
             return false;
         }
-        const unsigned char* raw_memory
-            = reinterpret_cast<const unsigned char*>(blockString.c_str());
-        DSBlockSharedPtr block = DSBlockSharedPtr(
-            new DSBlock(std::vector<unsigned char>(
-                            raw_memory, raw_memory + blockString.size()),
-                        0));
 
+        DSBlockSharedPtr block = DSBlockSharedPtr(new DSBlock(
+            std::vector<unsigned char>(blockString.begin(), blockString.end()),
+            0));
         blocks.push_back(block);
     }
 
@@ -315,12 +302,9 @@ bool BlockStorage::GetAllTxBlocks(std::list<TxBlockSharedPtr>& blocks)
             delete it;
             return false;
         }
-        const unsigned char* raw_memory
-            = reinterpret_cast<const unsigned char*>(blockString.c_str());
-        TxBlockSharedPtr block = TxBlockSharedPtr(
-            new TxBlock(std::vector<unsigned char>(
-                            raw_memory, raw_memory + blockString.size()),
-                        0));
+        TxBlockSharedPtr block = TxBlockSharedPtr(new TxBlock(
+            std::vector<unsigned char>(blockString.begin(), blockString.end()),
+            0));
         blocks.push_back(block);
     }
 
@@ -379,10 +363,7 @@ bool BlockStorage::GetMetadata(MetaType type, std::vector<unsigned char>& data)
         return false;
     }
 
-    const unsigned char* raw_memory
-        = reinterpret_cast<const unsigned char*>(metaString.c_str());
-    data = std::vector<unsigned char>(raw_memory,
-                                      raw_memory + metaString.size());
+    data = std::vector<unsigned char>(metaString.begin(), metaString.end());
 
     return true;
 }
