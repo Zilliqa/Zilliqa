@@ -82,7 +82,7 @@ public:
     /// Decreases account balance by the specified delta amount.
     bool DecreaseBalance(const uint256_t& delta);
 
-    void SetBalance(const uint256_t& balance) { m_balance == balance; }
+    void SetBalance(const uint256_t& balance) { m_balance = balance; }
 
     /// Returns the account balance.
     const uint256_t& GetBalance() const { return m_balance; }
