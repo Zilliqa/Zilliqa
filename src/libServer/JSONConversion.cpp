@@ -32,7 +32,7 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-unsigned int JSON_TRAN_OBJECT_SIZE = 8;
+unsigned int JSON_TRAN_OBJECT_SIZE = 10;
 
 const Json::Value JSONConversion::convertBoolArraytoJson(const vector<bool>& v)
 {
@@ -147,7 +147,13 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json)
     string sign_str = _json["signature"].asString();
     vector<unsigned char> sign = DataConversion::HexStrToUint8Vec(sign_str);
 
-    Transaction tx1(version, nonce, toAddr, pubKey, amount, 0, 0, {0}, {0},
+    vector <unsigned char> code,data;
+    copy(_json["code"].asString().begin(), _json["code"].asString().end(), code.begin());
+    copy(_json["data"].asString().begin(), _json["data"].asString().end(), data.begin());
+
+
+
+    Transaction tx1(version, nonce, toAddr, pubKey, amount, 0, 0, code, data
                     Signature(sign, 0));
     LOG_GENERAL(INFO, "Tx converted");
 
@@ -166,6 +172,8 @@ const bool JSONConversion::checkJsonTx(const Json::Value& _json)
     ret = ret && _json.isMember("pubKey");
     ret = ret && _json.isMember("signature");
     ret = ret && _json.isMember("version");
+    ret = ret && _json.isMember("code");
+    ret = ret && _json.isMember("data");
 
     if (ret)
     {
