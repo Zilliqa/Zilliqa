@@ -219,12 +219,12 @@ def run_clean():
 	run_setup(count, False)
 
 def run_sendcmd(nodenum, msg):
-	os.system('build/tests/Zilliqa/sendcmd ' + str(NODE_LISTEN_PORT + nodenum - 1) + ' cmd ' + msg)
+	os.system('tests/Zilliqa/sendcmd ' + str(NODE_LISTEN_PORT + nodenum - 1) + ' cmd ' + msg)
 	
 def run_sendcmdrandom(nodenum, msg_size):
 	# msg = "000400" + 'A' * msg_size * 2
-	# os.system('build/tests/Zilliqa/sendcmd ' + str(NODE_LISTEN_PORT + nodenum - 1) + ' cmd ' + msg)
-	os.system('build/tests/Zilliqa/sendcmd ' + str(NODE_LISTEN_PORT) + ' broadcast ' + msg_size)
+	# os.system('tests/Zilliqa/sendcmd ' + str(NODE_LISTEN_PORT + nodenum - 1) + ' cmd ' + msg)
+	os.system('tests/Zilliqa/sendcmd ' + str(NODE_LISTEN_PORT) + ' broadcast ' + msg_size)
 
 def run_startpow1(nodenum, dscount, blocknum, diff, rand1, rand2):
 	testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)
@@ -237,7 +237,7 @@ def run_startpow1(nodenum, dscount, blocknum, diff, rand1, rand2):
 	keypairs = [x.strip() for x in keypairs]
 
 	# Assemble the STARTPOW1 message
-	startpow1_cmd = 'build/tests/Zilliqa/sendcmd ' + str(NODE_LISTEN_PORT + nodenum - 1) + ' cmd 0200' + blocknum + diff + rand1 + rand2
+	startpow1_cmd = 'tests/Zilliqa/sendcmd ' + str(NODE_LISTEN_PORT + nodenum - 1) + ' cmd 0200' + blocknum + diff + rand1 + rand2
 	for x in range(0, dscount):
 		keypair = keypairs[x].split(" ")
 		startpow1_cmd = startpow1_cmd + keypair[0] + '0000000000000000000000000100007F' + "{0:0{1}x}".format(NODE_LISTEN_PORT + x, 8)
@@ -246,7 +246,7 @@ def run_startpow1(nodenum, dscount, blocknum, diff, rand1, rand2):
 	os.system(startpow1_cmd)
 
 def run_sendtxn(portnum):
-	os.system('build/tests/Zilliqa/sendtxn ' + str(portnum) + ' &')
+	os.system('tests/Zilliqa/sendtxn ' + str(portnum) + ' &')
 
 def run_delete():
 	if (os.path.exists(LOCAL_RUN_FOLDER)):
