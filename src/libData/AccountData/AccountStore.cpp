@@ -386,12 +386,12 @@ void AccountStore::ParseJsonOutput(const Json::Value& _json)
         string value;
         if (type == "Map" || type == "ADT")
         {
-            Json::FastWriter fastWriter;
-            value = fastWriter.write(s["value"]);
-            // Json::StreamWriterBuilder writeBuilder;
-            // std::unique_ptr<Json::StreamWriter> writer(
-            //     writeBuilder.newStreamWriter());
-            // value = writer->write(s["value"], );
+            Json::StreamWriterBuilder writeBuilder;
+            std::unique_ptr<Json::StreamWriter> writer(
+                writeBuilder.newStreamWriter());
+            ostringstream oss;
+            writer->write(s["value"], &oss);
+            value = oss.str();
         }
         else
         {
@@ -474,8 +474,11 @@ AccountStore::CompositeContractData(const std::string& funcName,
     obj["_amount"] = amount;
     obj["params"] = params;
 
-    Json::FastWriter fastWriter;
-    string dataStr = fastWriter.write(obj);
+    Json::StreamWriterBuilder writeBuilder;
+    std::unique_ptr<Json::StreamWriter> writer(writeBuilder.newStreamWriter());
+    ostringstream oss;
+    writer->write(obj, &oss);
+    string dataStr = oss.str();
 
     std::vector<unsigned char> vect;
     vect.insert(vect.begin(), dataStr.begin(), dataStr.end());
