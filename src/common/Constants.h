@@ -113,6 +113,7 @@ extern const unsigned int POW1_DIFFICULTY;
 extern const unsigned int POW2_DIFFICULTY;
 extern const unsigned int MICROBLOCK_TIMEOUT;
 extern const unsigned int VIEWCHANGE_TIME;
+extern const unsigned int VIEWCHANGE_EXTRA_TIME;
 extern const unsigned int SHARDING_TIMEOUT;
 extern const unsigned int CONSENSUS_OBJECT_TIMEOUT;
 extern const unsigned int NUM_FINAL_BLOCK_PER_POW;
