@@ -44,6 +44,8 @@ using byte = uint8_t;
 using bytes = std::vector<byte>;
 namespace fs = boost::filesystem;
 
+BOOST_AUTO_TEST_SUITE(powtest)
+
 // Just an alloca "wrapper" to silence uint64_t to size_t conversion warnings in windows
 // consider replacing alloca calls with something better though!
 #define our_alloca(param__) alloca((size_t)(param__))
@@ -816,3 +818,5 @@ BOOST_AUTO_TEST_CASE(full_dag_test)
     ethash_full_delete(full);
 }
 #endif
+
+BOOST_AUTO_TEST_SUITE_END()
