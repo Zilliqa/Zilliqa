@@ -226,6 +226,7 @@ void Account::SetStorage(string _k, string _type, string _v, bool _mutable)
     // "Key to Insert: " << string(k_bytes.begin(), k_bytes.end()));
     // m_storage.insert(bytesConstRef(k_bytes.data(), k_bytes.size()),
     //                  rlpStream.out());
+    /*
     m_storage.insert(_k, rlpStream.out());
 
     for (auto i : m_storage)
@@ -238,8 +239,8 @@ void Account::SetStorage(string _k, string _type, string _v, bool _mutable)
                                  << " v[2]:" << rlp[2].toString());
         //     ret.push_back(i.first.toString());
     }
-
-    m_keys.push_back(_k);
+*/
+    //    m_keys.push_back(_k);
     m_storageRoot = m_storage.root();
 }
 
@@ -281,49 +282,49 @@ vector<string> Account::GetStorage(string _k) const
 Json::Value Account::GetStorageJson() const
 {
     Json::Value root;
-    vector<string> keys = GetKeys();
-    if (keys.empty())
-    {
-        root = Json::arrayValue;
-    }
-    for (auto k : keys)
-    {
-        vector<string> v = GetStorage(k);
-        if (v[0] == "False")
-        {
-            continue;
-        }
-        Json::Value item;
-        item["vname"] = k;
-        LOG_GENERAL(INFO, "GetStorage vname: " << k);
-        item["type"] = v[1];
-        LOG_GENERAL(INFO, "GetStorage type: " << v[1]);
-        if (v[1] == "Map" || v[1] == "ADT")
-        {
-            Json::CharReaderBuilder builder;
-            std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
-            Json::Value obj;
-            string errors;
-            if (reader->parse(v[2].c_str(), v[2].c_str() + v[2].size(), &obj,
-                              &errors))
-            {
-                item["value"] = obj;
-            }
-            else
-            {
-                LOG_GENERAL(
-                    WARNING,
-                    "The map json object cannot be extracted from Storage: "
-                        << errors);
-            }
-        }
-        else
-        {
-            item["value"] = v[2];
-        }
-        LOG_GENERAL(INFO, "GetStorage value: " << v[2]);
-        root.append(item);
-    }
+    //vector<string> keys = GetKeys();
+    //if (keys.empty())
+    //{
+    //    root = Json::arrayValue;
+    //}
+    //for (auto k : keys)
+    //{
+    //    vector<string> v = GetStorage(k);
+    //    if (v[0] == "False")
+    //    {
+    //        continue;
+    //    }
+    //    Json::Value item;
+    //    item["vname"] = k;
+    //    LOG_GENERAL(INFO, "GetStorage vname: " << k);
+    //    item["type"] = v[1];
+    //    LOG_GENERAL(INFO, "GetStorage type: " << v[1]);
+    //    if (v[1] == "Map" || v[1] == "ADT")
+    //    {
+    //        Json::CharReaderBuilder builder;
+    //        std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+    //        Json::Value obj;
+    //        string errors;
+    //        if (reader->parse(v[2].c_str(), v[2].c_str() + v[2].size(), &obj,
+    //                          &errors))
+    //        {
+    //            item["value"] = obj;
+    //        }
+    //        else
+    //        {
+    //            LOG_GENERAL(
+    //                WARNING,
+    //                "The map json object cannot be extracted from Storage: "
+    //                    << errors);
+    //        }
+    //    }
+    //    else
+    //    {
+    //        item["value"] = v[2];
+    //    }
+    //    LOG_GENERAL(INFO, "GetStorage value: " << v[2]);
+    //    root.append(item);
+    //}
     Json::Value _balance;
     _balance["vname"] = "_balance";
     _balance["type"] = "Int";
