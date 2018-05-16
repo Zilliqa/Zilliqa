@@ -317,17 +317,12 @@ class DirectoryService : public Executable, public Broadcastable
 
     // View change
     void RunConsensusOnViewChange();
+    void ScheduleViewChangeTimeout();
     void ComputeNewCandidateLeader();
     bool ViewChangeValidator(const vector<unsigned char>& vcBlock,
                              std::vector<unsigned char>& errorMsg);
     bool RunConsensusOnViewChangeWhenCandidateLeader();
     bool RunConsensusOnViewChangeWhenNotCandidateLeader();
-
-    void InitViewChange();
-    bool ProcessInitViewChange(const vector<unsigned char>& message,
-                               unsigned int offset, const Peer& from);
-    bool ProcessInitViewChangeResponse(const vector<unsigned char>& message,
-                                       unsigned int offset, const Peer& from);
     void ProcessViewChangeConsensusWhenDone();
 
     // Rejoin the network as a DS node in case of failure happens in protocol
