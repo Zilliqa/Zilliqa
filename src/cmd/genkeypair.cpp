@@ -50,7 +50,8 @@ int main(int argc, const char* argv[])
     Print(pubkey);
     cout << " ";
     Print(privkey);
-    cout << '\n';
+    //FIXME: add '\n' back
+    // cout << '\n';
 
     return 0;
 }
