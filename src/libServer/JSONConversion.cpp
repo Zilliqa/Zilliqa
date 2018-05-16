@@ -147,7 +147,7 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json)
     vector<unsigned char> sign = DataConversion::HexStrToUint8Vec(sign_str);
 
     vector<unsigned char> code, data;
-    
+
     code = DataConversion::StringToCharArray(_json["code"].asString());
     data = DataConversion::StringToCharArray(_json["data"].asString());
 
