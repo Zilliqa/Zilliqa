@@ -23,7 +23,8 @@ apt-get install -y \
     libsnappy-dev \
     libjsoncpp-dev \
     libmicrohttpd-dev \
-    libjsonrpccpp-dev
+    libjsonrpccpp-dev \
+    libevent-dev
 
 # install development dependencies
 apt-get install -y \
@@ -44,6 +45,7 @@ brew install \
     jsoncpp \
     leveldb \
     libjson-rpc-cpp \
+    libevent \
 
 # install developement deps
 brew install \

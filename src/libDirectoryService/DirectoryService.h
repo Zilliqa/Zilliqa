@@ -150,6 +150,8 @@ class DirectoryService : public Executable, public Broadcastable
 
     // TO Remove
     bool temp_todie;
+
+    
     Mediator& m_mediator;
 
     Synchronizer m_synchronizer;
