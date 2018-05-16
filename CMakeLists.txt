@@ -72,5 +72,18 @@ if(TESTS)
     add_subdirectory(tests)
 endif()
 
+# installation
+set_target_properties(zilliqa sendcmd sendtxn genkeypair
+    PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+set_target_properties(Common Trie ethash
+    PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+
+install(
+    DIRECTORY ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib
+    DESTINATION ${CMAKE_INSTALL_PREFIX}
+    USE_SOURCE_PERMISSIONS
+)
+
 # add clang-format and clang-tidy targets lastly
 include(LLVMExtraTools)
