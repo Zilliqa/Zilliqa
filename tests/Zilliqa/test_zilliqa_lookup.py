@@ -72,7 +72,7 @@ def run_setup(numnodes, printnodes):
 		testsubdir = LOCAL_RUN_FOLDER + 'node_' + str(x+1).zfill(4)
 		if os.path.exists(testsubdir) != True :
 			os.makedirs(testsubdir)
-		shutil.copyfile('./build_lookup/tests/Zilliqa/zilliqa', testsubdir + '/lzilliqa')
+		shutil.copyfile('./tests/Zilliqa/zilliqa', testsubdir + '/lzilliqa')
 
 		st = os.stat(testsubdir + '/lzilliqa')
 		os.chmod(testsubdir + '/lzilliqa', st.st_mode | stat.S_IEXEC)
@@ -90,7 +90,7 @@ def run_start():
 
 	# Generate keypairs (sort by public key)
 	for x in range(0, count):
-		process = Popen(["./build_lookup/tests/Zilliqa/genkeypair"], stdout=PIPE)
+		process = Popen(["./tests/Zilliqa/genkeypair"], stdout=PIPE)
 		(output, err) = process.communicate()
 		exit_code = process.wait()
 		keypairs.append(output)
