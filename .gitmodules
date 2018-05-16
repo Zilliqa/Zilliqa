@@ -1,3 +1,6 @@
 [submodule "src/depends/g3log"]
 	path = src/depends/g3log
 	url = https://github.com/Zilliqa/g3log.git
+[submodule "testnet"]
+	path = testnet
+	url = https://github.com/Zilliqa/testnet
