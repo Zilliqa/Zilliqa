@@ -38,14 +38,14 @@ using namespace std;
 BOOST_AUTO_TEST_SUITE(contracttest)
 
 // Init Account Store
-BOOST_AUTO_TEST_CASE(initAccountStore)
-{
-    INIT_STDOUT_LOGGER();
+// BOOST_AUTO_TEST_CASE(initAccountStore)
+// {
+//     INIT_STDOUT_LOGGER();
 
-    LOG_MARKER();
+//     LOG_MARKER();
 
-    AccountStore::GetInstance().Init();
-}
+//     AccountStore::GetInstance().Init();
+// }
 
 Address fromAddr;
 Address toAddress;
@@ -332,6 +332,8 @@ BOOST_AUTO_TEST_CASE(createContract)
 
     LOG_MARKER();
 
+    AccountStore::GetInstance().Init();
+
     sender = Schnorr::GetInstance().GenKeyPair();
 
     std::vector<unsigned char> vec;
@@ -361,19 +363,13 @@ BOOST_AUTO_TEST_CASE(createContract)
         checkToAddr = false;
     }
     BOOST_CHECK_MESSAGE(checkToAddr, "Error with creation of contract account");
-}
 
-// Create Transaction to call contract
-BOOST_AUTO_TEST_CASE(callContract)
-{
-    INIT_STDOUT_LOGGER();
+    ///
 
-    LOG_MARKER();
+    std::vector<unsigned char> data2(dataStr.begin(), dataStr.end());
 
-    std::vector<unsigned char> data(dataStr.begin(), dataStr.end());
-
-    std::vector<unsigned char> vec;
-    Transaction tx2(1, nonce, toAddress, sender, 100, 11, 66, vec, data);
+    std::vector<unsigned char> vec2;
+    Transaction tx2(1, nonce, toAddress, sender, 100, 11, 66, vec2, data2);
     AccountStore::GetInstance().UpdateAccounts(1, tx2);
 
     outStr.erase(std::remove(outStr.begin(), outStr.end(), ' '), outStr.end());
@@ -390,6 +386,35 @@ BOOST_AUTO_TEST_CASE(callContract)
 
     BOOST_CHECK_MESSAGE(outStr == output_file,
                         "Error: didn't get desired output");
+}
+
+// Create Transaction to call contract
+BOOST_AUTO_TEST_CASE(callContract)
+{
+    INIT_STDOUT_LOGGER();
+
+    LOG_MARKER();
+
+    // std::vector<unsigned char> data(dataStr.begin(), dataStr.end());
+
+    // std::vector<unsigned char> vec;
+    // Transaction tx2(1, nonce, toAddress, sender, 100, 11, 66, vec, data);
+    // AccountStore::GetInstance().UpdateAccounts(1, tx2);
+
+    // outStr.erase(std::remove(outStr.begin(), outStr.end(), ' '), outStr.end());
+    // outStr.erase(std::remove(outStr.begin(), outStr.end(), '\n'), outStr.end());
+
+    // ifstream infile{OUTPUT_JSON};
+    // std::string output_file{istreambuf_iterator<char>(infile),
+    //                         istreambuf_iterator<char>()};
+
+    // output_file.erase(std::remove(output_file.begin(), output_file.end(), ' '),
+    //                   output_file.end());
+    // output_file.erase(std::remove(output_file.begin(), output_file.end(), '\n'),
+    //                   output_file.end());
+
+    // BOOST_CHECK_MESSAGE(outStr == output_file,
+    //                     "Error: didn't get desired output");
 }
 
 // BOOST_AUTO_TEST_CASE(callContract2)
