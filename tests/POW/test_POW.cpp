@@ -47,7 +47,7 @@ namespace fs = boost::filesystem;
 // Just an alloca "wrapper" to silence uint64_t to size_t conversion warnings in windows
 // consider replacing alloca calls with something better though!
 #define our_alloca(param__) alloca((size_t)(param__))
-
+#define UNUSED(x) (void)x
 // some functions taken from eth::dev for convenience.
 std::string bytesToHexString(const uint8_t* str, const uint64_t s)
 {
@@ -614,7 +614,7 @@ BOOST_AUTO_TEST_CASE(failing_full_client_callback)
         = ethash_full_new_internal("./test_ethash_directory/", seed, full_size,
                                    light, test_full_callback_that_fails);
     BOOST_ASSERT(!full);
-    full = full;
+    UNUSED(full);
     ethash_light_delete(light);
     fs::remove_all("./test_ethash_directory/");
 }
@@ -637,7 +637,7 @@ BOOST_AUTO_TEST_CASE(test_incomplete_dag_file)
         "./test_ethash_directory/", seed, full_size, light,
         test_full_callback_create_incomplete_dag);
     BOOST_ASSERT(!full);
-    full = full;
+    UNUSED(full);
     FILE* f = NULL;
     // confirm that we get a size_mismatch because the magic number is missing
     BOOST_REQUIRE_EQUAL(ETHASH_IO_MEMO_SIZE_MISMATCH,
@@ -695,8 +695,8 @@ BOOST_AUTO_TEST_CASE(test_block60000_verification)
 BOOST_AUTO_TEST_CASE(mining_and_verification)
 {
     POW& POWClient = POW::GetInstance();
-    std::array<unsigned char, 32> rand1 = {'0', '1'};
-    std::array<unsigned char, 32> rand2 = {'0', '2'};
+    std::array<unsigned char, 32> rand1 = {{'0', '1'}};
+    std::array<unsigned char, 32> rand2 = {{'0', '2'}};
     boost::multiprecision::uint128_t ipAddr = 2307193356;
     PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
 
@@ -736,8 +736,8 @@ BOOST_AUTO_TEST_CASE(mining_and_verification_wrong_inputs)
     uint8_t difficultyToUse = 10;
     uint8_t blockToUse = 0;
     POW& POWClient = POW::GetInstance();
-    std::array<unsigned char, 32> rand1 = {'0', '1'};
-    std::array<unsigned char, 32> rand2 = {'0', '2'};
+    std::array<unsigned char, 32> rand1 = {{'0', '1'}};
+    std::array<unsigned char, 32> rand2 = {{'0', '2'}};
     boost::multiprecision::uint128_t ipAddr = 2307193356;
     PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
 
@@ -757,8 +757,8 @@ BOOST_AUTO_TEST_CASE(mining_and_verification_wrong_difficulty)
     uint8_t difficultyToUse = 10;
     uint8_t blockToUse = 0;
     POW& POWClient = POW::GetInstance();
-    std::array<unsigned char, 32> rand1 = {'0', '1'};
-    std::array<unsigned char, 32> rand2 = {'0', '2'};
+    std::array<unsigned char, 32> rand1 = {{'0', '1'}};
+    std::array<unsigned char, 32> rand2 = {{'0', '2'}};
     boost::multiprecision::uint128_t ipAddr = 2307193356;
     PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
 
@@ -780,8 +780,8 @@ BOOST_AUTO_TEST_CASE(mining_and_verification_different_wrong_winning_nonce)
     uint8_t difficultyToUse = 10;
     uint8_t blockToUse = 0;
     POW& POWClient = POW::GetInstance();
-    std::array<unsigned char, 32> rand1 = {'0', '1'};
-    std::array<unsigned char, 32> rand2 = {'0', '2'};
+    std::array<unsigned char, 32> rand1 = {{'0', '1'}};
+    std::array<unsigned char, 32> rand2 = {{'0', '2'}};
     boost::multiprecision::uint128_t ipAddr = 2307193356;
     PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
 
