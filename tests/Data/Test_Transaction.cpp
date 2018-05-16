@@ -42,7 +42,7 @@ BOOST_AUTO_TEST_CASE(test1)
     LOG_MARKER();
 
     Address toAddr;
-    ValidatorBase* m_validator = new ZilliqaValidator();
+    ValidatorBase* m_validator = new Validator();
 
     for (unsigned int i = 0; i < toAddr.asArray().size(); i++)
     {
