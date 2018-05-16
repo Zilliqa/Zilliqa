@@ -40,7 +40,7 @@ public:
 #endif // IS_LOOKUP_NODE
 };
 
-class ZilliqaValidator : public ValidatorBase
+class Validator : public ValidatorBase
 {
 
     // Nonce information
@@ -49,10 +49,10 @@ class ZilliqaValidator : public ValidatorBase
 
 public:
     // Default constructor exist only for debug and should be used only in tests
-    ZilliqaValidator();
-    ZilliqaValidator(Mediator& mediator);
-    ~ZilliqaValidator();
-    std::string name() const override { return "ZilliqaValidator"; }
+    Validator();
+    Validator(Mediator& mediator);
+    ~Validator();
+    std::string name() const override { return "Validator"; }
     bool verifyTransaction(const Transaction& tran) const override;
     void CleanVariables() override;
 

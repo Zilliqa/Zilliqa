@@ -23,16 +23,16 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-ZilliqaValidator::ZilliqaValidator() { m_mediator = nullptr; }
+Validator::Validator() { m_mediator = nullptr; }
 
-ZilliqaValidator::ZilliqaValidator(Mediator& mediator)
+Validator::Validator(Mediator& mediator)
     : m_mediator(&mediator)
 {
 }
 
-ZilliqaValidator::~ZilliqaValidator() {}
+Validator::~Validator() {}
 
-bool ZilliqaValidator::verifyTransaction(const Transaction& tran) const
+bool Validator::verifyTransaction(const Transaction& tran) const
 {
     vector<unsigned char> txnData;
     tran.SerializeCoreFields(txnData, 0);
@@ -41,7 +41,7 @@ bool ZilliqaValidator::verifyTransaction(const Transaction& tran) const
                                          tran.GetSenderPubKey());
 }
 
-void ZilliqaValidator::CleanVariables()
+void Validator::CleanVariables()
 {
     // Clear m_txnNonceMap
     {
@@ -51,7 +51,7 @@ void ZilliqaValidator::CleanVariables()
 }
 
 #ifndef IS_LOOKUP_NODE
-bool ZilliqaValidator::CheckCreatedTransaction(const Transaction& tx) const
+bool Validator::CheckCreatedTransaction(const Transaction& tx) const
 {
     LOG_MARKER();
 
@@ -112,7 +112,7 @@ bool ZilliqaValidator::CheckCreatedTransaction(const Transaction& tx) const
     return true;
 }
 
-bool ZilliqaValidator::CheckCreatedTransactionFromLookup(const Transaction& tx)
+bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
 {
     LOG_MARKER();
 
