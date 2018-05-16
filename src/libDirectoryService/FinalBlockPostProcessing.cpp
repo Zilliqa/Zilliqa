@@ -421,7 +421,8 @@ bool DirectoryService::ProcessFinalBlockConsensus(
             m_MutexCVFinalBlockConsensusObject);
 
         if (cv_finalBlockConsensusObject.wait_for(
-                cv_lkObject, std::chrono::seconds(CONSENSUS_OBJECT_TIMEOUT))
+                cv_lkObject,
+                std::chrono::seconds(FINALBLOCK_CONSENSUS_OBJECT_TIMEOUT))
             == std::cv_status::timeout)
         {
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
