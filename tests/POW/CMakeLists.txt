@@ -40,10 +40,6 @@ IF (Boost_FOUND)
     link_directories(${G3LOG_BINARY_DIR})
     file(GLOB HEADERS "*.h")
 
-    if ((NOT MSVC) AND (NOT APPLE))
-        ADD_DEFINITIONS(-DBOOST_TEST_DYN_LINK)
-    endif()
-
     if (NOT MSVC)
          set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -std=c++11 ")
     endif()
