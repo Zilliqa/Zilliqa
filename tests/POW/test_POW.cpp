@@ -29,12 +29,11 @@
 #include <windows.h>
 #endif
 
-#define BOOST_TEST_MODULE Daggerhashimoto
-#define BOOST_TEST_MAIN
+#define BOOST_TEST_MODULE powtest
 
 #include <boost/filesystem.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
-#include <boost/test/unit_test.hpp>
+#include <boost/test/included/unit_test.hpp>
 #include <fstream>
 #include <iostream>
 #include <vector>
