@@ -40,7 +40,14 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "View change consensus is DONE!!!");
 
-    lock_guard<mutex> g(m_mutexPendingVCBlock);
+    Peer newLeaderNetworkInfo;
+    unsigned char viewChangeState;
+    {
+        lock_guard<mutex> g(m_mutexPendingVCBlock);
+        newLeaderNetworkInfo
+            = m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo();
+        viewChangeState = m_pendingVCBlock->GetHeader().GetViewChangeState();
+    }
 
     // StoreVCBlockToStorage(); TODO
     unsigned int offsetToCandidateLeader = 1;
@@ -58,11 +65,9 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
             = m_mediator.m_DSCommitteeNetworkInfo.at(offsetToCandidateLeader);
     }
 
-    if (expectedLeader
-        == m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo())
+    if (expectedLeader == newLeaderNetworkInfo)
     {
-        if (m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo()
-            == m_mediator.m_selfPeer)
+        if (newLeaderNetworkInfo == m_mediator.m_selfPeer)
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "After view change, I am the new leader!");
@@ -77,13 +82,22 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
 
         // Kick ousted leader to the back of the queue, waiting to be eject at
         // the next ds epoch
-        m_mediator.m_DSCommitteeNetworkInfo.push_back(
-            m_mediator.m_DSCommitteeNetworkInfo.front());
-        m_mediator.m_DSCommitteeNetworkInfo.pop_front();
+        {
+            lock(m_mediator.m_mutexDSCommitteeNetworkInfo,
+                 m_mediator.m_mutexDSCommitteePubKeys);
+            lock_guard<mutex> g2(m_mediator.m_mutexDSCommitteeNetworkInfo,
+                                 adopt_lock);
+            lock_guard<mutex> g3(m_mediator.m_mutexDSCommitteePubKeys,
+                                 adopt_lock);
 
-        m_mediator.m_DSCommitteePubKeys.push_back(
-            m_mediator.m_DSCommitteePubKeys.front());
-        m_mediator.m_DSCommitteePubKeys.pop_front();
+            m_mediator.m_DSCommitteeNetworkInfo.push_back(
+                m_mediator.m_DSCommitteeNetworkInfo.front());
+            m_mediator.m_DSCommitteeNetworkInfo.pop_front();
+
+            m_mediator.m_DSCommitteePubKeys.push_back(
+                m_mediator.m_DSCommitteePubKeys.front());
+            m_mediator.m_DSCommitteePubKeys.pop_front();
+        }
 
         unsigned int offsetTOustedDSLeader = 0;
         if (m_consensusMyID == offsetTOustedDSLeader)
@@ -99,8 +113,8 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
         {
             m_consensusMyID--;
         }
-        
-        switch (m_pendingVCBlock->GetHeader().GetViewChangeState())
+
+        switch (viewChangeState)
         {
         case DSBLOCK_CONSENSUS:
         case DSBLOCK_CONSENSUS_PREP:
@@ -127,14 +141,17 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
             RunConsensusOnViewChange();
         default:
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "illegal view change state");
+                      "illegal view change state. state: " << viewChangeState);
         }
     }
     else
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "View change completed but it seems wrong to me.");
-
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "expectedLeader: " << expectedLeader
+                                     << "newLeaderNetworkInfo: "
+                                     << newLeaderNetworkInfo);
         // TODO
         // CV with timeout run consensus
         // Rejoin as ds node after timeout
@@ -160,8 +177,9 @@ bool DirectoryService::ProcessViewChangeConsensus(
             cv_lk, std::chrono::seconds(CONSENSUS_OBJECT_TIMEOUT),
             [this] { return (m_state == VIEWCHANGE_CONSENSUS); }))
     {
-        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Successfully transit to viewchange consensus.");
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Successfully transit to viewchange consensus or I am in the "
+                  "correct state.");
     }
     else
     {

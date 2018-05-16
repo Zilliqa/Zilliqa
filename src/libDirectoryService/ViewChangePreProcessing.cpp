@@ -44,28 +44,30 @@ bool DirectoryService::ViewChangeValidator(const vector<unsigned char>& vcBlock,
     m_pendingVCBlock.reset(new VCBlock(vcBlock, 0));
     uint32_t offsetToNewLeader = 1;
 
-    LOG_GENERAL(INFO, "deserilizaiton end");
-
     if (m_mediator.m_DSCommitteeNetworkInfo.at(offsetToNewLeader)
         != m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo())
     {
+        LOG_GENERAL(WARNING, "Candidate network info mismatched");
         return false;
     }
 
     if (!(m_mediator.m_DSCommitteePubKeys.at(offsetToNewLeader)
           == m_pendingVCBlock->GetHeader().GetCandidateLeaderPubKey()))
     {
+        LOG_GENERAL(WARNING, "Candidate pubkey mismatched");
         return false;
     }
 
     if (m_viewChangestate != m_pendingVCBlock->GetHeader().GetViewChangeState())
     {
+        LOG_GENERAL(WARNING, "View change state mismatched");
         return false;
     }
 
     if (m_viewChangeCounter
         != m_pendingVCBlock->GetHeader().GetViewChangeCounter())
     {
+        LOG_GENERAL(WARNING, "View change counter mismatched");
         return false;
     }
     return true;
@@ -114,6 +116,12 @@ void DirectoryService::RunConsensusOnViewChange()
     SetState(VIEWCHANGE_CONSENSUS);
     cv_ViewChangeConsensusObj.notify_all();
 
+    auto func = [this]() -> void { ScheduleViewChangeTimeout(); };
+    DetachedFunction(1, func);
+}
+
+void DirectoryService::ScheduleViewChangeTimeout()
+{
     std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeVCBlock);
     if (cv_ViewChangeVCBlock.wait_for(cv_lk,
                                       std::chrono::seconds(VIEWCHANGE_TIME))
@@ -212,6 +220,7 @@ bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader()
         m_pendingVCBlock->Serialize(m, 0);
     }
 
+    std::this_thread::sleep_for(std::chrono::seconds(VIEWCHANGE_EXTRA_TIME));
     cl->StartConsensus(m, VCBlockHeader::SIZE);
 
     return true;
