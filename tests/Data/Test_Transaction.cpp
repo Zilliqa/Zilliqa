@@ -21,6 +21,7 @@
 #include "libData/AccountData/Transaction.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
+#include "libValidator/Validator.h"
 #include <array>
 #include <string>
 #include <vector>
@@ -41,6 +42,7 @@ BOOST_AUTO_TEST_CASE(test1)
     LOG_MARKER();
 
     Address toAddr;
+    ValidatorBase* m_validator = new ZilliqaValidator();
 
     for (unsigned int i = 0; i < toAddr.asArray().size(); i++)
     {
@@ -69,7 +71,8 @@ BOOST_AUTO_TEST_CASE(test1)
 
     Transaction tx1(1, 5, toAddr, sender, 55, 11, 22, {0x33}, {0x44});
 
-    BOOST_CHECK_MESSAGE(Transaction::Verify(tx1), "Signature not verified\n");
+    BOOST_CHECK_MESSAGE(m_validator->verifyTransaction(tx1),
+                        "Signature not verified\n");
 
     std::vector<unsigned char> message1;
     tx1.Serialize(message1, 0);
@@ -161,7 +164,8 @@ BOOST_AUTO_TEST_CASE(test1)
     BOOST_CHECK_MESSAGE(signature2 == tx1.GetSignature(),
                         "Signature not converted properly");
 
-    BOOST_CHECK_MESSAGE(Transaction::Verify(tx2), "Signature not verified\n");
+    BOOST_CHECK_MESSAGE(m_validator->verifyTransaction(tx2),
+                        "Signature not verified\n");
 
     // pair<PrivKey, PubKey> KeyPair = Schnorr::GetInstance().GenKeyPair();
 
@@ -201,8 +205,6 @@ BOOST_AUTO_TEST_CASE(test1)
     // copy(sign_ser.begin(), sign_ser.end(), sign_arr.begin());
 
     // Transaction txv(0, 1, toAddr3, pbk, 100, sign_arr);
-
-    // bool b = Transaction::Verify(txv);
 
     // BOOST_CHECK_MESSAGE(b, "Signature not verified\n");
 
