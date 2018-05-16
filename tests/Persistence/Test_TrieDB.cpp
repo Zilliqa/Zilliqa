@@ -52,12 +52,12 @@ BOOST_AUTO_TEST_CASE(createTwoTrieOnOneDB)
     SecureTrieDB<bytesConstRef, dev::OverlayDB> m_trie1(&m_db);
     m_trie1.init();
 
-    k1 = "111";
+    k1 = "TestA";
     dev::RLPStream rlpStream1(2);
     rlpStream1 << "aaa"
                << "AAA";
     m_trie1.insert(k1, rlpStream1.out());
-    k2 = "222";
+    k2 = "TestB";
     dev::RLPStream rlpStream2(2);
     rlpStream2 << "bbb"
                << "BBB";

@@ -286,9 +286,10 @@ bool AccountStore::ExportContractFiles(
     Json::CharReaderBuilder readBuilder;
     std::unique_ptr<Json::CharReader> reader(readBuilder.newCharReader());
     Json::Value msgObj;
-    string codeStr(contractData.begin(), contractData.end());
+    string dataStr(contractData.begin(), contractData.end());
+    LOG_GENERAL(INFO, "Contract Data: " << dataStr);
     string errors;
-    if (reader->parse(codeStr.c_str(), codeStr.c_str() + codeStr.size(),
+    if (reader->parse(dataStr.c_str(), dataStr.c_str() + dataStr.size(),
                       &msgObj, &errors))
     {
         os.open(INPUT_MESSAGE_JSON);
@@ -297,9 +298,9 @@ bool AccountStore::ExportContractFiles(
     }
     else
     {
-        LOG_GENERAL(
-            WARNING,
-            "The Code Json is corrupted, failed to process: " << errors);
+        LOG_GENERAL(WARNING,
+                    "The Contract Data Json is corrupted, failed to process: "
+                        << errors);
         boost::filesystem::remove_all("./" + SCILLA_FILES);
         return false;
     }
