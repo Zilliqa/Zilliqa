@@ -42,6 +42,15 @@ void DirectoryService::StoreFinalBlockToDisk()
 {
     LOG_MARKER();
 
+    // Add finalblock to txblockchain
+    m_mediator.m_txBlockChain.AddBlock(*m_finalBlock);
+    m_mediator.m_currentEpochNum
+        = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
+
+    // At this point, the transactions in the last Epoch is no longer useful, thus erase.
+    m_mediator.m_node->EraseCommittedTransactions(m_mediator.m_currentEpochNum
+                                                  - 2);
+
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Storing Tx Block Number: "
                   << m_finalBlock->GetHeader().GetBlockNum()
@@ -261,11 +270,6 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
         - ((BlockBase)(*m_finalBlock)).GetSerializedSize();
     ((BlockBase)(*m_finalBlock)).Serialize(m_finalBlockMessage, cosigOffset);
 
-    // Add finalblock to txblockchain
-    m_mediator.m_txBlockChain.AddBlock(*m_finalBlock);
-    m_mediator.m_currentEpochNum
-        = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
-
     // StoreMicroBlocksToDisk();
     StoreFinalBlockToDisk();
 
@@ -342,18 +346,32 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
                               << POW1_WINDOW_IN_SECONDS
                               << " seconds, accepting PoW1 submissions...");
                 this_thread::sleep_for(chrono::seconds(POW1_WINDOW_IN_SECONDS));
+                RunConsensusOnDSBlock();
             }
             else
             {
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "Waiting "
-                              << POW1_BACKUP_WINDOW_IN_SECONDS
-                              << " seconds, accepting PoW1 submissions...");
-                this_thread::sleep_for(
-                    chrono::seconds(POW1_BACKUP_WINDOW_IN_SECONDS));
-            }
+                std::unique_lock<std::mutex> cv_lk(m_MutexCVDSBlockConsensus);
 
-            RunConsensusOnDSBlock();
+                if (cv_DSBlockConsensus.wait_for(
+                        cv_lk,
+                        std::chrono::seconds(POW1_BACKUP_WINDOW_IN_SECONDS))
+                    == std::cv_status::timeout)
+                {
+                    LOG_GENERAL(INFO,
+                                "I have woken up from the sleep of "
+                                    << POW1_BACKUP_WINDOW_IN_SECONDS
+                                    << " seconds");
+                }
+                else
+                {
+                    LOG_GENERAL(INFO,
+                                "I have received announcement message. Time to "
+                                "run consensus.");
+                }
+
+                RunConsensusOnDSBlock();
+                cv_DSBlockConsensusObject.notify_all();
+            }
         }
         else
         {
