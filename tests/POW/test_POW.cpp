@@ -30,10 +30,11 @@
 #endif
 
 #define BOOST_TEST_MODULE powtest
+#define BOOST_TEST_DYN_LINK
 
 #include <boost/filesystem.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
-#include <boost/test/included/unit_test.hpp>
+#include <boost/test/unit_test.hpp>
 #include <fstream>
 #include <iostream>
 #include <vector>
