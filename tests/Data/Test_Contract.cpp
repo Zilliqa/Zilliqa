@@ -15,11 +15,13 @@
 **/
 
 #include "common/Constants.h"
+#include "depends/common/CommonIO.h"
 #include "libCrypto/Schnorr.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
+#include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 #include <array>
@@ -268,6 +270,30 @@ string dataStr = R"({
 }
 )";
 
+string dataStr2 = R"({
+    "_tag": "Donate",
+    "_amount": "200",
+    "params": [
+      {
+        "vname": "sender",
+        "type": "Address",
+        "value": "0x12345678901234567890123456789012345678cd"
+      }
+    ]
+})";
+
+string dataStr4 = R"({
+    "_tag": "GetFunds",
+    "_amount": "0",
+    "params": [
+      {
+        "vname": "sender",
+        "type": "Address",
+        "value": "0x12345678901234567890123456789012345678cd"
+      }
+    ]
+})";
+
 string outStr = R"({
   "message": {
     "_tag": "Main",
@@ -322,7 +348,7 @@ BOOST_AUTO_TEST_CASE(createContract)
 
     toAddress = NullAddress;
 
-    Transaction tx1(1, nonce, toAddress, sender, 200, 11, 22, code, data);
+    Transaction tx1(1, nonce, toAddress, sender, 200, 11, 66, code, data);
 
     AccountStore::GetInstance().UpdateAccounts(1, tx1);
 
@@ -344,26 +370,52 @@ BOOST_AUTO_TEST_CASE(callContract)
 
     LOG_MARKER();
 
-    // std::vector<unsigned char> data(dataStr.begin(), dataStr.end());
+    std::vector<unsigned char> data(dataStr.begin(), dataStr.end());
 
-    // std::vector<unsigned char> vec;
-    // Transaction tx2(1, nonce, toAddress, sender, 100, 11, 22, vec, data);
-    // AccountStore::GetInstance().UpdateAccounts(1, tx2);
+    std::vector<unsigned char> vec;
+    Transaction tx2(1, nonce, toAddress, sender, 100, 11, 66, vec, data);
+    AccountStore::GetInstance().UpdateAccounts(1, tx2);
 
-    // outStr.erase(std::remove(outStr.begin(), outStr.end(), ' '), outStr.end());
-    // outStr.erase(std::remove(outStr.begin(), outStr.end(), '\n'), outStr.end());
+    outStr.erase(std::remove(outStr.begin(), outStr.end(), ' '), outStr.end());
+    outStr.erase(std::remove(outStr.begin(), outStr.end(), '\n'), outStr.end());
 
-    // ifstream infile{OUTPUT_JSON};
-    // std::string output_file{istreambuf_iterator<char>(infile),
-    //                         istreambuf_iterator<char>()};
+    ifstream infile{OUTPUT_JSON};
+    std::string output_file{istreambuf_iterator<char>(infile),
+                            istreambuf_iterator<char>()};
 
-    // output_file.erase(std::remove(output_file.begin(), output_file.end(), ' '),
-    //                   output_file.end());
-    // output_file.erase(std::remove(output_file.begin(), output_file.end(), '\n'),
-    //                   output_file.end());
+    output_file.erase(std::remove(output_file.begin(), output_file.end(), ' '),
+                      output_file.end());
+    output_file.erase(std::remove(output_file.begin(), output_file.end(), '\n'),
+                      output_file.end());
 
-    // BOOST_CHECK_MESSAGE(outStr == output_file,
-    //                     "Error: didn't get desired output");
+    BOOST_CHECK_MESSAGE(outStr == output_file,
+                        "Error: didn't get desired output");
 }
+
+// BOOST_AUTO_TEST_CASE(callContract2)
+// {
+//     INIT_STDOUT_LOGGER();
+
+//     LOG_MARKER();
+
+//     std::vector<unsigned char> data(dataStr2.begin(), dataStr2.end());
+
+//     std::vector<unsigned char> vec;
+//     Transaction tx3(1, nonce, toAddress, sender, 100, 11, 66, vec, data);
+//     AccountStore::GetInstance().UpdateAccounts(1, tx3);
+// }
+
+// BOOST_AUTO_TEST_CASE(callContract4)
+// {
+//     INIT_STDOUT_LOGGER();
+
+//     LOG_MARKER();
+
+//     std::vector<unsigned char> data(dataStr4.begin(), dataStr4.end());
+
+//     std::vector<unsigned char> vec;
+//     Transaction tx4(1, nonce, toAddress, sender, 100, 11, 66, vec, data);
+//     AccountStore::GetInstance().UpdateAccounts(1, tx4);
+// }
 
 BOOST_AUTO_TEST_SUITE_END()
