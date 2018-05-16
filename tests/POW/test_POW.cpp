@@ -743,7 +743,7 @@ BOOST_AUTO_TEST_CASE(mining_and_verification_wrong_inputs)
 
     ethash_mining_result_t winning_result = POWClient.PoWMine(
         blockToUse, difficultyToUse, rand1, rand2, ipAddr, pubKey, true);
-    rand1 = {'0', '3'};
+    rand1 = {{'0', '3'}};
     bool verifyFullMineLightVerify
         = POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
                               pubKey, false, winning_result.winning_nonce,
