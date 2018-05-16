@@ -183,7 +183,7 @@ void AccountStore::AddAccount(const PubKey& pubKey, const Account& account)
 void AccountStore::UpdateAccounts(const uint64_t& blockNum,
                                   const Transaction& transaction)
 {
-    //LOG_MARKER();
+    LOG_MARKER();
 
     const PubKey& senderPubKey = transaction.GetSenderPubKey();
     const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
@@ -199,6 +199,7 @@ void AccountStore::UpdateAccounts(const uint64_t& blockNum,
 
     if (transaction.GetCode().size() > 0 && toAddr == NullAddress)
     {
+        LOG_GENERAL(INFO, "Create Contract");
         // Create contract account
         Account* account = GetAccount(fromAddr);
         // TODO: remove this, temporary way to test transactions
@@ -220,6 +221,8 @@ void AccountStore::UpdateAccounts(const uint64_t& blockNum,
 
     if (callContract)
     {
+        LOG_GENERAL(INFO, "Call Contract");
+
         std::lock_guard<std::mutex> lk(m_mutexCallInterpreter);
 
         Account* toAccount = GetAccount(toAddr);
@@ -255,6 +258,8 @@ Json::Value AccountStore::GetBlockStateJson(const uint64_t& BlockNum) const
 bool AccountStore::ExportContractFiles(
     Account*& contract, const vector<unsigned char>& contractData)
 {
+    LOG_MARKER();
+
     boost::filesystem::remove_all("./" + SCILLA_FILES);
     boost::filesystem::create_directories("./" + SCILLA_FILES);
 
@@ -317,6 +322,7 @@ string AccountStore::GetContractCmdStr()
 
 void AccountStore::ParseContractOutput()
 {
+    LOG_MARKER();
     ifstream in(OUTPUT_JSON, ios::binary);
 
     if (!in.is_open())
@@ -344,6 +350,7 @@ void AccountStore::ParseContractOutput()
 
 void AccountStore::ParseJsonOutput(const Json::Value& _json)
 {
+    LOG_MARKER();
     // the _json actually refers to the Array of Contracts,
     // one transaction can affect multiple contracts by one call
 
@@ -470,6 +477,7 @@ AccountStore::CompositeContractData(const std::string& funcName,
                                     const std::string& amount,
                                     const Json::Value& params)
 {
+    LOG_MARKER();
     Json::Value obj;
     obj["_tag"] = funcName;
     obj["_amount"] = amount;
