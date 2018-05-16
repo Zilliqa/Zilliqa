@@ -3,4 +3,4 @@
 	url = https://github.com/Zilliqa/g3log.git
 [submodule "testnet"]
 	path = testnet
-	url = https://github.com/Zilliqa/testnet
+	url = git@github.com:Zilliqa/testnet.git
