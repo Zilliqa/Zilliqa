@@ -751,6 +751,7 @@ bool AccountStore::RetrieveFromDisk()
     for (auto i : m_state)
     {
         Address address(i.first);
+        LOG_GENERAL(INFO, "Address: " << address.hex());
         dev::RLP rlp(i.second);
         if (rlp.itemCount() != 4)
         {

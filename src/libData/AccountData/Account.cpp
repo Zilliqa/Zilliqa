@@ -4,6 +4,7 @@
 **/
 
 #include "Account.h"
+#include "depends/common/CommonIO.h"
 #include "depends/common/FixedHash.h"
 #include "depends/common/RLP.h"
 #include "libCrypto/Sha2.h"
@@ -31,7 +32,7 @@ Account::Account(const uint256_t& balance, const uint256_t& nonce)
 
 void Account::InitStorage()
 {
-    m_storage = SecureTrieDB<bytesConstRef, OverlayDB>(
+    m_storage = InSecureTrieDB<bytesConstRef, OverlayDB>(
         &(ContractStorage::GetContractStorage().GetStateDB()));
     m_storage.init();
     if (m_storageRoot != h256())
@@ -67,9 +68,16 @@ void Account::InitContract(const vector<unsigned char>& data)
                     "This variable in initialization of contract is corrupted");
                 continue;
             }
-            string vname = v["name"].asString();
+            string vname = v["vname"].asString();
             string type = v["type"].asString();
-            string value = v["value"].asString();
+
+            Json::StreamWriterBuilder writeBuilder;
+            std::unique_ptr<Json::StreamWriter> writer(
+                writeBuilder.newStreamWriter());
+            ostringstream oss;
+            writer->write(v["value"], &oss);
+            string value = oss.str();
+
             SetStorage(vname, type, value, false);
         }
     }
@@ -210,31 +218,61 @@ void Account::SetStorage(string _k, string _type, string _v, bool _mutable)
 {
     if (!isContract())
         return;
+    LOG_GENERAL(INFO, "SetStorage key: " << _k);
     RLPStream rlpStream(3);
     rlpStream << (_mutable ? "True" : "False") << _type << _v;
-    vector<unsigned char> k_bytes(_k.begin(), _k.end());
-    m_storage.insert(bytesConstRef(k_bytes.data(), k_bytes.size()),
-                     rlpStream.out());
+    // vector<unsigned char> k_bytes(_k.begin(), _k.end());
+    // LOG_GENERAL(INFO,
+    // "Key to Insert: " << string(k_bytes.begin(), k_bytes.end()));
+    // m_storage.insert(bytesConstRef(k_bytes.data(), k_bytes.size()),
+    //                  rlpStream.out());
+    m_storage.insert(_k, rlpStream.out());
+
+    for (auto i : m_storage)
+    {
+        dev::RLP rlp(i.second);
+        LOG_GENERAL(INFO,
+                    "ITERATE k:" << i.first.toString()
+                                 << " v[0]:" << rlp[0].toString()
+                                 << " v[1]:" << rlp[1].toString()
+                                 << " v[2]:" << rlp[2].toString());
+        //     ret.push_back(i.first.toString());
+    }
+
+    m_keys.push_back(_k);
     m_storageRoot = m_storage.root();
 }
 
 vector<string> Account::GetKeys() const
 {
-    if (!isContract())
-        return {};
-
-    vector<string> ret;
+    // if (!isContract())
+    //     return {};
+    // vector<string> ret;
     for (auto i : m_storage)
     {
-        ret.push_back(i.first.toString());
+        dev::RLP rlp(i.second);
+        LOG_GENERAL(INFO,
+                    "ITERATE k:" << i.first.toString()
+                                 << " v[0]:" << rlp[0].toString()
+                                 << " v[1]:" << rlp[1].toString()
+                                 << " v[2]:" << rlp[2].toString());
+        //     ret.push_back(i.first.toString());
     }
-    return ret;
+
+    for (auto i : m_keys)
+    {
+        LOG_GENERAL(INFO, "my_key: " << i);
+    }
+    // return ret;
+    return m_keys;
 }
 
 vector<string> Account::GetStorage(string _k) const
 {
     if (!isContract())
         return {};
+    // vector<unsigned char> k_bytes(_k.begin(), _k.end());
+    // dev::RLP rlp(m_storage[bytesConstRef(k_bytes.data(), k_bytes.size())]);
     dev::RLP rlp(m_storage[_k]);
     // mutable, type, value
     return {rlp[0].toString(), rlp[1].toString(), rlp[2].toString()};
@@ -257,7 +295,9 @@ Json::Value Account::GetStorageJson() const
         }
         Json::Value item;
         item["vname"] = k;
+        LOG_GENERAL(INFO, "GetStorage vname: " << k);
         item["type"] = v[1];
+        LOG_GENERAL(INFO, "GetStorage type: " << v[1]);
         if (v[1] == "Map" || v[1] == "ADT")
         {
             Json::CharReaderBuilder builder;
@@ -281,6 +321,7 @@ Json::Value Account::GetStorageJson() const
         {
             item["value"] = v[2];
         }
+        LOG_GENERAL(INFO, "GetStorage value: " << v[2]);
         root.append(item);
     }
     Json::Value _balance;
