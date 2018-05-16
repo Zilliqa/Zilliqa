@@ -159,6 +159,8 @@ class DirectoryService : public Executable, public Broadcastable
     std::mutex m_MutexCVShardingConsensus;
     std::condition_variable cv_shardingConsensusObject;
     std::mutex m_MutexCVShardingConsensusObject;
+    std::condition_variable cv_finalBlockConsensusObject;
+    std::mutex m_MutexCVFinalBlockConsensusObject;
 
     // TO Remove
     //bool temp_todie;
