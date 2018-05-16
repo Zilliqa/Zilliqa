@@ -148,10 +148,17 @@ class DirectoryService : public Executable, public Broadcastable
     std::condition_variable cv_ViewChangeVCBlock;
     std::mutex m_MutexCVViewChangeVCBlock;
 
+    std::condition_variable cv_DSBlockConsensus;
+    std::mutex m_MutexCVDSBlockConsensus;
+    std::condition_variable cv_DSBlockConsensusObject;
+    std::mutex m_MutexCVDSBlockConsensusObject;
+    std::condition_variable cv_shardingConsensus;
+    std::mutex m_MutexCVShardingConsensus;
+    std::condition_variable cv_shardingConsensusObject;
+    std::mutex m_MutexCVShardingConsensusObject;
+
     // TO Remove
     bool temp_todie;
-
-    
     Mediator& m_mediator;
 
     Synchronizer m_synchronizer;
