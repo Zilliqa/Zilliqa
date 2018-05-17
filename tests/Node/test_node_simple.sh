@@ -25,6 +25,8 @@ python tests/Zilliqa/test_zilliqa_local.py stop
 python tests/Zilliqa/test_zilliqa_local.py setup 20
 python tests/Zilliqa/test_zilliqa_local.py start 10
 
+# clean up persistent storage
+rm -rf local_run/node*
 
 sleep 30
 echo "starting..."
