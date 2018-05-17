@@ -164,7 +164,7 @@ bool DirectoryService::RunConsensusOnShardingWhenDSPrimary()
 
     // kill first ds leader
     /**
-    if (m_consensusMyID == 0 && temp_todie && m_viewChangeCounter < 2)
+    if (m_consensusMyID == 0 && m_viewChangeCounter < 1)
     {
         LOG_GENERAL(INFO, "I am killing myself to test view change");
         throw exception();
