@@ -198,8 +198,9 @@ bool Node::ProcessVCBlock(const vector<unsigned char>& message,
     LOG_MARKER();
 
     if (IsMessageSizeInappropriate(message.size(), cur_offset,
-                                   DSBlock::GetMinSize() + BLOCK_HASH_SIZE))
+                                   VCBlock::GetMinSize()))
     {
+        LOG_GENERAL(WARNING, "Incoming vc block size too small");
         return false;
     }
 
@@ -259,7 +260,7 @@ bool Node::ProcessVCBlock(const vector<unsigned char>& message,
 
     UpdateDSCommiteeComposition();
 
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I am a node and my view of leader is successfully changed.");
     return true;
 }
