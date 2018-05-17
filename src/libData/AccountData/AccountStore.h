@@ -64,16 +64,25 @@ class AccountStore : public Serializable
     /// Store the trie root to leveldb
     void MoveRootToDisk(const dev::h256& root);
 
-    void ParseContractOutput();
+    bool ParseCreateContractOutput();
 
-    void ParseJsonOutput(const Json::Value& _json);
+    bool ParseCreateContractJsonOutput(const Json::Value& _json);
+
+    bool ParseCallContractOutput();
+
+    bool ParseCallContractJsonOutput(const Json::Value& _json);
 
     Json::Value GetBlockStateJson(const uint64_t& BlockNum) const;
 
-    std::string GetContractCmdStr();
+    std::string GetCreateContractCmdStr();
 
-    bool ExportContractFiles(Account*& contract,
-                             const std::vector<unsigned char>& contractData);
+    std::string GetCallContractCmdStr();
+
+    bool ExportCreateContractFiles(Account* contract);
+
+    bool
+    ExportCallContractFiles(Account* contract,
+                            const std::vector<unsigned char>& contractData);
 
     const std::vector<unsigned char>
     CompositeContractData(const std::string& funcName,
@@ -98,7 +107,7 @@ public:
     void AddAccount(const Address& address, const Account& account);
     void AddAccount(const PubKey& pubKey, const Account& account);
 
-    void UpdateAccounts(const uint64_t& blockNum,
+    bool UpdateAccounts(const uint64_t& blockNum,
                         const Transaction& transaction);
 
     /// Returns the Account associated with the specified address.
