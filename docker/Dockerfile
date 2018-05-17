@@ -28,7 +28,7 @@ RUN pip install netaddr
 #--------------------------------------------------------------------
 # BUILDING
 #--------------------------------------------------------------------
-ARG BRANCH=feature/docker
+ARG BRANCH=master
 ARG REPO=https://github.com/Zilliqa/Zilliqa.git
 ARG SOURCE_DIR=/zilliqa
 ARG BUILD_DIR=/build
