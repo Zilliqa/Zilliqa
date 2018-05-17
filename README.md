@@ -20,10 +20,10 @@ The current release has the following features implemented:
 * Persistent storage for transactions
 * [Merkle Patricia tree](https://github.com/ethereum/wiki/wiki/Patricia-Tree)
 * Transaction verification
+* View change
 * Zilliqa Wallet
 
 In the coming months, we plan to have the following features:
-* View change
 * Gossip protocol for network message broadcasting
 * Incentive structure
 * Smart contract design and implementation
