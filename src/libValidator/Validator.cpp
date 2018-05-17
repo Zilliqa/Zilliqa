@@ -23,8 +23,6 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-Validator::Validator() { m_mediator = nullptr; }
-
 Validator::Validator(Mediator& mediator)
     : m_mediator(&mediator)
 {
@@ -54,6 +52,11 @@ void Validator::CleanVariables()
 bool Validator::CheckCreatedTransaction(const Transaction& tx) const
 {
     LOG_MARKER();
+
+    if(m_mediator == nullptr)
+    {
+        throw std::exception("Pointer to Mediator is nullptr");
+    }
 
     // Check if from account is sharded here
     const PubKey& senderPubKey = tx.GetSenderPubKey();
@@ -115,6 +118,11 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx) const
 bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
 {
     LOG_MARKER();
+
+    if(m_mediator == nullptr)
+    {
+        throw std::exception("Pointer to Mediator is nullptr");
+    }
 
     // Check if from account is sharded here
     const PubKey& senderPubKey = tx.GetSenderPubKey();

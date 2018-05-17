@@ -42,7 +42,9 @@ BOOST_AUTO_TEST_CASE(test1)
     LOG_MARKER();
 
     Address toAddr;
-    ValidatorBase* m_validator = new Validator();
+
+    Mediator* m = nullptr;
+    ValidatorBase* m_validator = new Validator(*m);
 
     for (unsigned int i = 0; i < toAddr.asArray().size(); i++)
     {

@@ -48,8 +48,6 @@ class Validator : public ValidatorBase
     std::unordered_map<Address, boost::multiprecision::uint256_t> m_txnNonceMap;
 
 public:
-    // Default constructor exist only for debug and should be used only in tests
-    Validator();
     Validator(Mediator& mediator);
     ~Validator();
     std::string name() const override { return "Validator"; }
