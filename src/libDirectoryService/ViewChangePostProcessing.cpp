@@ -35,6 +35,108 @@
 #include "libUtils/SanityChecks.h"
 
 #ifndef IS_LOOKUP_NODE
+
+bool DirectoryService::SendVCBlockToLookupNodes()
+{
+    vector<unsigned char> vcblock_message
+        = {MessageType::NODE, NodeInstructionType::VCBLOCK};
+    unsigned int curr_offset = MessageOffset::BODY;
+
+    m_pendingVCBlock->Serialize(vcblock_message, MessageOffset::BODY);
+    curr_offset += m_pendingVCBlock->GetSerializedSize();
+
+    m_mediator.m_lookup->SendMessageToLookupNodes(vcblock_message);
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "I the part of the subset of DS committee that have sent the "
+              "VCBlock to the lookup nodes");
+
+    return true;
+}
+
+void DirectoryService::DetermineShardsToSendVCBlockTo(
+    unsigned int& my_DS_cluster_num, unsigned int& my_shards_lo,
+    unsigned int& my_shards_hi) const
+{
+    // Multicast final block to my assigned shard's nodes - send FINALBLOCK message
+    // Message = [Final block]
+
+    // Multicast assignments:
+    // 1. Divide DS committee into clusters of size 20
+    // 2. Each cluster talks to all shard members in each shard
+    //    DS cluster 0 => Shard 0
+    //    DS cluster 1 => Shard 1
+    //    ...
+    //    DS cluster 0 => Shard (num of DS clusters)
+    //    DS cluster 1 => Shard (num of DS clusters + 1)
+    LOG_MARKER();
+
+    unsigned int num_DS_clusters = m_mediator.m_DSCommitteeNetworkInfo.size()
+        / DS_MULTICAST_CLUSTER_SIZE;
+    if ((m_mediator.m_DSCommitteeNetworkInfo.size() % DS_MULTICAST_CLUSTER_SIZE)
+        > 0)
+    {
+        num_DS_clusters++;
+    }
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "DEBUG num of ds clusters " << num_DS_clusters)
+    unsigned int shard_groups_count = m_shards.size() / num_DS_clusters;
+    if ((m_shards.size() % num_DS_clusters) > 0)
+    {
+        shard_groups_count++;
+    }
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "DEBUG num of shard group count " << shard_groups_count)
+
+    my_DS_cluster_num = m_consensusMyID / DS_MULTICAST_CLUSTER_SIZE;
+    my_shards_lo = my_DS_cluster_num * shard_groups_count;
+    my_shards_hi = my_shards_lo + shard_groups_count - 1;
+
+    if (my_shards_hi >= m_shards.size())
+    {
+        my_shards_hi = m_shards.size() - 1;
+    }
+}
+
+void DirectoryService::SendVCBlockToShardNodes(unsigned int my_DS_cluster_num,
+                                               unsigned int my_shards_lo,
+                                               unsigned int my_shards_hi)
+{
+    // Too few target shards - avoid asking all DS clusters to send
+    LOG_MARKER();
+
+    if ((my_DS_cluster_num + 1) <= m_shards.size())
+    {
+        vector<unsigned char> vcblock_message
+            = {MessageType::NODE, NodeInstructionType::VCBLOCK};
+        unsigned int curr_offset = MessageOffset::BODY;
+
+        m_pendingVCBlock->Serialize(vcblock_message, MessageOffset::BODY);
+        curr_offset += m_pendingVCBlock->GetSerializedSize();
+
+        auto p = m_shards.begin();
+        advance(p, my_shards_lo);
+
+        for (unsigned int i = my_shards_lo; i <= my_shards_hi; i++)
+        {
+            vector<Peer> shard_peers;
+
+            for (auto& kv : *p)
+            {
+                shard_peers.push_back(kv.second);
+                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                          " PubKey: "
+                              << DataConversion::SerializableToHexStr(kv.first)
+                              << " IP: " << kv.second.GetPrintableIPAddress()
+                              << " Port: " << kv.second.m_listenPortHost);
+            }
+
+            P2PComm::GetInstance().SendBroadcastMessage(shard_peers,
+                                                        vcblock_message);
+            p++;
+        }
+    }
+}
+
 void DirectoryService::ProcessViewChangeConsensusWhenDone()
 {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -113,7 +215,6 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
         {
             m_consensusMyID--;
         }
-        //auto func = [this]() -> void { ScheduleViewChangeTimeout(); };
 
         auto func = [this, viewChangeState]() -> void {
             ProcessNextConsensus(viewChangeState);
@@ -129,6 +230,27 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
                                      << "newLeaderNetworkInfo: "
                                      << newLeaderNetworkInfo);
     }
+
+    // TODO: Refine this
+    // Broadcasting vcblock to lookup nodes
+    unsigned int nodeToSendToLookUpLo = COMM_SIZE / 4;
+    unsigned int nodeToSendToLookUpHi
+        = nodeToSendToLookUpLo + TX_SHARING_CLUSTER_SIZE;
+
+    if (m_consensusMyID > nodeToSendToLookUpLo
+        && m_consensusMyID < nodeToSendToLookUpHi)
+    {
+        SendVCBlockToLookupNodes();
+    }
+
+    // Broadcasting vcblock to lookup nodes
+    unsigned int my_DS_cluster_num;
+    unsigned int my_shards_lo;
+    unsigned int my_shards_hi;
+
+    DetermineShardsToSendFinalBlockTo(my_DS_cluster_num, my_shards_lo,
+                                      my_shards_hi);
+    SendFinalBlockToShardNodes(my_DS_cluster_num, my_shards_lo, my_shards_hi);
 }
 
 void DirectoryService::ProcessNextConsensus(unsigned char viewChangeState)
