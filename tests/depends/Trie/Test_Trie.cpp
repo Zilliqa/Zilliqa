@@ -31,7 +31,7 @@ using namespace dev;
 // namespace fs = boost::filesystem;
 // namespace js = json_spirit;
 
-static unsigned fac(unsigned _i) { return _i > 2 ? _i * fac(_i - 1) : _i; }
+// static unsigned fac(unsigned _i) { return _i > 2 ? _i * fac(_i - 1) : _i; }
 
 BOOST_AUTO_TEST_SUITE(trietest)
 
