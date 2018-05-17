@@ -16,7 +16,7 @@
 git submodule update --init --recursive --remote
 mkdir -p build
 cd build
-cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTESTS=ON ..
+cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTESTS=ON -DCMAKE_INSTALL_PREFIX=.. ..
 make -j4
 make clang-format-fix
 make clang-format

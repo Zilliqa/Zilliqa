@@ -1088,6 +1088,7 @@ void DirectoryService::RunConsensusOnFinalBlock()
     }
 
     SetState(FINALBLOCK_CONSENSUS);
+    cv_finalBlockConsensusObject.notify_all();
 
     std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeFinalBlock);
     if (cv_viewChangeFinalBlock.wait_for(cv_lk,
