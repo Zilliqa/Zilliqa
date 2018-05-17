@@ -98,8 +98,8 @@ const std::string DS_KICKOUT_MSG = "KICKED OUT FROM DS";
 const std::string DS_LEADER_MSG = "DS LEADER NOW";
 const std::string DS_BACKUP_MSG = "DS BACKUP NOW";
 
-const std::string SCILLA_PATH = "../../../Scilla/scilla/bin/";
-// const std::string SCILLA_PATH = "";
+// const std::string SCILLA_PATH = "../../../Scilla/scilla/bin/";
+const std::string SCILLA_PATH = "";
 const std::string SCILLA_FILES = "scilla_files/";
 const std::string INTERPRETER_NAME = SCILLA_PATH + "scilla-runner";
 const std::string CONTRACT_MAIN_FOLDER = SCILLA_FILES + "for-contract";
