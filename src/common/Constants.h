@@ -98,18 +98,15 @@ const std::string DS_KICKOUT_MSG = "KICKED OUT FROM DS";
 const std::string DS_LEADER_MSG = "DS LEADER NOW";
 const std::string DS_BACKUP_MSG = "DS BACKUP NOW";
 
-// const std::string SCILLA_PATH = "../../../Scilla/scilla/bin/";
-const std::string SCILLA_PATH = "";
-const std::string SCILLA_FILES = "scilla_files/";
-const std::string INTERPRETER_NAME = SCILLA_PATH + "scilla-runner";
-const std::string CONTRACT_MAIN_FOLDER = SCILLA_FILES + "for-contract";
-const std::string INIT_JSON = SCILLA_FILES + "init.json";
-const std::string INPUT_STATE_JSON = SCILLA_FILES + "input_state.json";
-const std::string INPUT_BLOCKCHAIN_JSON
-    = SCILLA_FILES + "input_blockchain.json";
-const std::string INPUT_MESSAGE_JSON = SCILLA_FILES + "input_message.json";
-const std::string OUTPUT_JSON = SCILLA_FILES + "output.json";
-const std::string INPUT_CODE = SCILLA_FILES + "input.scilla";
+extern const std::string SCILLA_PATH;
+extern const std::string SCILLA_FILES;
+extern const std::string INTERPRETER_NAME;
+extern const std::string INIT_JSON;
+extern const std::string INPUT_STATE_JSON;
+extern const std::string INPUT_BLOCKCHAIN_JSON;
+extern const std::string INPUT_MESSAGE_JSON;
+extern const std::string OUTPUT_JSON;
+extern const std::string INPUT_CODE;
 
 extern const unsigned int DS_MULTICAST_CLUSTER_SIZE;
 extern const unsigned int COMM_SIZE;
