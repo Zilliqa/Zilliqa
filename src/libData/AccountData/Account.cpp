@@ -242,7 +242,7 @@ vector<string> Account::GetStorage(string _k) const
     sha2.Update(k_bytes);
     const vector<unsigned char>& k_hash = sha2.Finalize();
 
-    dev::RLP rlp(m_storage[dev::h256(k_hash)]);
+    dev::RLP rlp(m_storage.at(dev::h256(k_hash)));
     // mutable, type, value
     return {rlp[1].toString(), rlp[2].toString(), rlp[3].toString()};
 }

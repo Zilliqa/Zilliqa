@@ -86,7 +86,7 @@ BOOST_AUTO_TEST_CASE(createTwoTrieOnOneDB)
     m_trie2.db()->commit();
     root2 = m_trie2.root();
     LOG_GENERAL(INFO, "root2 = " << root2);
-    LOG_GENERAL(INFO, "h: " << h << " \nv: " << m_trie2.at(h));
+    LOG_GENERAL(INFO, "h: " << h << " v: " << m_trie2.at(h));
 
     BOOST_CHECK_MESSAGE(m_trie2.contains(h),
                         "ERROR: Trie1 cannot get the element in Trie2");
