@@ -48,8 +48,8 @@ DirectoryService::DirectoryService(Mediator& mediator)
     m_requesting_last_ds_block = false;
     m_consensusLeaderID = 0;
     m_consensusID = 1;
-    temp_todie
-        = true; // TODO: Delete this. Use as part of testing of view change
+    //temp_todie
+    //    = true; // TODO: Delete this. Use as part of testing of view change
     m_viewChangeCounter = 0;
 }
 
