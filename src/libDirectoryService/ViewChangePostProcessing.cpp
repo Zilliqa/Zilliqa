@@ -250,7 +250,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
 
     DetermineShardsToSendFinalBlockTo(my_DS_cluster_num, my_shards_lo,
                                       my_shards_hi);
-    SendFinalBlockToShardNodes(my_DS_cluster_num, my_shards_lo, my_shards_hi);
+    SendVCBlockToShardNodes(my_DS_cluster_num, my_shards_lo, my_shards_hi);
 }
 
 void DirectoryService::ProcessNextConsensus(unsigned char viewChangeState)
