@@ -203,8 +203,6 @@ bool Node::ProcessVCBlock(const vector<unsigned char>& message,
         return false;
     }
 
-    // 259-byte DS block
-    // DSBlock dsblock(message, cur_offset);
     VCBlock vcblock;
     if (vcblock.Deserialize(message, cur_offset) != 0)
     {
@@ -236,7 +234,7 @@ bool Node::ProcessVCBlock(const vector<unsigned char>& message,
 
         LOG_GENERAL(
             WARNING,
-            "Viw change expectation mismatched "
+            "View change expectation mismatched "
             "expected new leader: "
                 << m_mediator.m_DSCommitteeNetworkInfo.at(newCandidateLeader)
                 << "actual vc new leader "
@@ -245,9 +243,9 @@ bool Node::ProcessVCBlock(const vector<unsigned char>& message,
     }
 
     // TODO
-    // LogReceivedDSBlockDetails(dsblock);
+    // LogReceivedDSBlockDetails(vcblock);
 
-    // Check the signature of this DS block
+    // Check the signature of this VC block
     if (!VerifyVCBlockCoSignature(vcblock))
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -256,7 +254,7 @@ bool Node::ProcessVCBlock(const vector<unsigned char>& message,
     }
 
     // TDOO
-    // Add to block chain and Store the DS block to disk.
+    // Add to block chain and Store the VC block to disk.
     // StoreVCBlockToDisk(dsblock);
 
     UpdateDSCommiteeComposition();
