@@ -389,6 +389,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
                 LOG_GENERAL(INFO,
                             "Timeout: Didn't receive all Microblock. Proceeds "
                             "without it");
+
                 RunConsensusOnFinalBlock();
             }
         }
@@ -412,26 +413,26 @@ bool DirectoryService::ProcessFinalBlockConsensus(
 
     lock_guard<mutex> g(m_mutexConsensus);
 
-    // Wait for a while in the case that primary sent announcement pretty early
-    unsigned int sleep_time_while_waiting = 100;
+    // Wait until in the case that primary sent announcement pretty early
     if ((m_state == MICROBLOCK_SUBMISSION)
         || (m_state == FINALBLOCK_CONSENSUS_PREP))
     {
-        for (unsigned int i = 0; i < 100; i++)
-        {
-            if (m_state == FINALBLOCK_CONSENSUS)
-            {
-                break;
-            }
+        std::unique_lock<std::mutex> cv_lkObject(
+            m_MutexCVFinalBlockConsensusObject);
 
-            if (i % 10 == 0)
-            {
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "Waiting for FINALBLOCK_CONSENSUS before processing");
-            }
-            this_thread::sleep_for(
-                chrono::milliseconds(sleep_time_while_waiting));
+        if (cv_finalBlockConsensusObject.wait_for(
+                cv_lkObject,
+                std::chrono::seconds(FINALBLOCK_CONSENSUS_OBJECT_TIMEOUT))
+            == std::cv_status::timeout)
+        {
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Time out while waiting for state transition and "
+                      "consensus object creation ");
         }
+
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "State transition is completed and consensus object "
+                  "creation. (check for timeout)");
     }
 
     if (!CheckState(PROCESS_FINALBLOCKCONSENSUS))

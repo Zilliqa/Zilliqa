@@ -1088,6 +1088,7 @@ void DirectoryService::RunConsensusOnFinalBlock()
     }
 
     SetState(FINALBLOCK_CONSENSUS);
+    cv_finalBlockConsensusObject.notify_all();
 
     if (m_mode != PRIMARY_DS)
     {
