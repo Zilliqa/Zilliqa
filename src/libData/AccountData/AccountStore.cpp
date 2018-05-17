@@ -180,7 +180,7 @@ void AccountStore::AddAccount(const PubKey& pubKey, const Account& account)
     AddAccount(Account::GetAddressFromPublicKey(pubKey), account);
 }
 
-void AccountStore::UpdateAccounts(const uint64_t& blockNum,
+bool AccountStore::UpdateAccounts(const uint64_t& blockNum,
                                   const Transaction& transaction)
 {
     LOG_MARKER();
@@ -194,12 +194,28 @@ void AccountStore::UpdateAccounts(const uint64_t& blockNum,
 
     if (transaction.GetData().size() > 0 && toAddr != NullAddress)
     {
+        if (amount != 0)
+        {
+            LOG_GENERAL(
+                WARNING,
+                "The balance for a contract transaction shouldn't be non-zero");
+            return false;
+        }
         callContract = true;
     }
 
     if (transaction.GetCode().size() > 0 && toAddr == NullAddress)
     {
         LOG_GENERAL(INFO, "Create Contract");
+
+        if (amount != 0)
+        {
+            LOG_GENERAL(
+                WARNING,
+                "The balance for a contract transaction shouldn't be non-zero");
+            return false;
+        }
+
         // Create contract account
         Account* account = GetAccount(fromAddr);
         // TODO: remove this, temporary way to test transactions
@@ -214,10 +230,30 @@ void AccountStore::UpdateAccounts(const uint64_t& blockNum,
         m_addressToAccount[toAddr].SetCode(transaction.GetCode());
         // Store the immutable states
         m_addressToAccount[toAddr].InitContract(transaction.GetData());
+
+        Account* toAccount = GetAccount(toAddr);
+        if (toAccount == nullptr)
+        {
+            LOG_GENERAL(WARNING,
+                        "The target contract account doesn't exist, which "
+                        "shouldn't happen!");
+            return false;
+        }
+
+        m_curBlockNum = blockNum;
+
+        if (ExportCreateContractFiles(toAccount))
+        {
+            SysCommand::ExecuteCmdWithOutput(GetCreateContractCmdStr());
+            if (!ParseCreateContractOutput())
+            {
+                m_addressToAccount.erase(toAddr);
+                return false;
+            }
+        }
     }
 
     TransferBalance(fromAddr, toAddr, amount);
-    IncreaseNonce(fromAddr);
 
     if (callContract)
     {
@@ -229,19 +265,26 @@ void AccountStore::UpdateAccounts(const uint64_t& blockNum,
         if (toAccount == nullptr)
         {
             LOG_GENERAL(WARNING, "The target contract account doesn't exist");
-            return;
+            return false;
         }
 
         m_curBlockNum = blockNum;
 
         // TODO: Implement the calling of interpreter in multi-thread
-        if (ExportContractFiles(toAccount, transaction.GetData()))
+        if (ExportCallContractFiles(toAccount, transaction.GetData()))
         {
             m_curContractAddr = toAddr;
-            SysCommand::ExecuteCmdWithOutput(GetContractCmdStr());
-            ParseContractOutput();
+            SysCommand::ExecuteCmdWithOutput(GetCallContractCmdStr());
+            if (!ParseCallContractOutput())
+            {
+                return false;
+            }
         }
     }
+
+    IncreaseNonce(fromAddr);
+
+    return true;
 }
 
 Json::Value AccountStore::GetBlockStateJson(const uint64_t& BlockNum) const
@@ -255,8 +298,37 @@ Json::Value AccountStore::GetBlockStateJson(const uint64_t& BlockNum) const
     return root;
 }
 
-bool AccountStore::ExportContractFiles(
-    Account*& contract, const vector<unsigned char>& contractData)
+bool AccountStore::ExportCreateContractFiles(Account* contract)
+{
+    LOG_MARKER();
+
+    boost::filesystem::remove_all("./" + SCILLA_FILES);
+    boost::filesystem::create_directories("./" + SCILLA_FILES);
+
+    Json::StreamWriterBuilder writeBuilder;
+    std::unique_ptr<Json::StreamWriter> writer(writeBuilder.newStreamWriter());
+    std::ofstream os;
+
+    // Scilla code
+    os.open(INPUT_CODE);
+    os << string(contract->GetCode().begin(), contract->GetCode().end());
+    os.close();
+
+    // Initialize Json
+    os.open(INIT_JSON);
+    writer->write(contract->GetInitJson(), &os);
+    os.close();
+
+    // Block Json
+    os.open(INPUT_BLOCKCHAIN_JSON);
+    writer->write(GetBlockStateJson(m_curBlockNum), &os);
+    os.close();
+
+    return true;
+}
+
+bool AccountStore::ExportCallContractFiles(
+    Account* contract, const vector<unsigned char>& contractData)
 {
     LOG_MARKER();
 
@@ -312,24 +384,35 @@ bool AccountStore::ExportContractFiles(
     return true;
 }
 
-string AccountStore::GetContractCmdStr()
+string AccountStore::GetCreateContractCmdStr()
 {
-    return "./" + INTERPRETER_NAME + " -init " + INIT_JSON + " -istate "
+    string ret = INTERPRETER_NAME + " -init " + INIT_JSON + " -iblockchain "
+        + INPUT_BLOCKCHAIN_JSON + " -o " + OUTPUT_JSON + " -i " + INPUT_CODE;
+    LOG_GENERAL(INFO, ret);
+    return ret;
+}
+
+string AccountStore::GetCallContractCmdStr()
+{
+    string ret = INTERPRETER_NAME + " -init " + INIT_JSON + " -istate "
         + INPUT_STATE_JSON + " -iblockchain " + INPUT_BLOCKCHAIN_JSON
         + " -imessage " + INPUT_MESSAGE_JSON + " -o " + OUTPUT_JSON + " -i "
         + INPUT_CODE;
+    LOG_GENERAL(INFO, ret);
+    return ret;
 }
 
-void AccountStore::ParseContractOutput()
+bool AccountStore::ParseCreateContractOutput()
 {
     LOG_MARKER();
+
     ifstream in(OUTPUT_JSON, ios::binary);
 
     if (!in.is_open())
     {
         LOG_GENERAL(WARNING,
-                    "Error Opening output file or no output file generated");
-        return;
+                    "Error opening output file or no output file generated");
+        return false;
     }
     string outStr{istreambuf_iterator<char>(in), istreambuf_iterator<char>()};
     Json::CharReaderBuilder builder;
@@ -339,25 +422,79 @@ void AccountStore::ParseContractOutput()
     if (reader->parse(outStr.c_str(), outStr.c_str() + outStr.size(), &root,
                       &errors))
     {
-        ParseJsonOutput(root);
+        return ParseCreateContractJsonOutput(root);
     }
     else
     {
         LOG_GENERAL(WARNING,
                     "Failed to parse contract output json: " << errors);
+        return false;
     }
 }
 
-void AccountStore::ParseJsonOutput(const Json::Value& _json)
+bool AccountStore::ParseCreateContractJsonOutput(const Json::Value& _json)
 {
     LOG_MARKER();
-    // the _json actually refers to the Array of Contracts,
-    // one transaction can affect multiple contracts by one call
 
     if (!_json.isMember("message") || !_json.isMember("states"))
     {
         LOG_GENERAL(WARNING, "The json output of this contract is corrupted");
-        return;
+        return false;
+    }
+
+    if (_json["message"] == Json::nullValue
+        && _json["states"] == Json::arrayValue)
+    {
+        // LOG_GENERAL(INFO, "Get desired json output from the interpreter for create contract");
+        return true;
+    }
+    else
+    {
+        LOG_GENERAL(WARNING,
+                    "Didn't get desired json output from the interpreter for "
+                    "create contract");
+        return false;
+    }
+}
+
+bool AccountStore::ParseCallContractOutput()
+{
+    LOG_MARKER();
+
+    ifstream in(OUTPUT_JSON, ios::binary);
+
+    if (!in.is_open())
+    {
+        LOG_GENERAL(WARNING,
+                    "Error opening output file or no output file generated");
+        return false;
+    }
+    string outStr{istreambuf_iterator<char>(in), istreambuf_iterator<char>()};
+    Json::CharReaderBuilder builder;
+    std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+    Json::Value root;
+    string errors;
+    if (reader->parse(outStr.c_str(), outStr.c_str() + outStr.size(), &root,
+                      &errors))
+    {
+        return ParseCallContractJsonOutput(root);
+    }
+    else
+    {
+        LOG_GENERAL(WARNING,
+                    "Failed to parse contract output json: " << errors);
+        return false;
+    }
+}
+
+bool AccountStore::ParseCallContractJsonOutput(const Json::Value& _json)
+{
+    LOG_MARKER();
+
+    if (!_json.isMember("message") || !_json.isMember("states"))
+    {
+        LOG_GENERAL(WARNING, "The json output of this contract is corrupted");
+        return false;
     }
 
     if (!_json["message"].isMember("_tag")
@@ -367,7 +504,7 @@ void AccountStore::ParseJsonOutput(const Json::Value& _json)
         LOG_GENERAL(
             WARNING,
             "The message in the json output of this contract is corrupted");
-        return;
+        return false;
     }
 
     for (auto s : _json["states"])
@@ -409,6 +546,7 @@ void AccountStore::ParseJsonOutput(const Json::Value& _json)
         }
     }
 
+    /// The process after getting the output:
     if (_json["message"]["_tag"].asString() == "Main")
     {
         Address toAddr;
@@ -424,6 +562,8 @@ void AccountStore::ParseJsonOutput(const Json::Value& _json)
         TransferBalance(m_curContractAddr, toAddr,
                         atoi(_json["message"]["_amount"].asString().c_str()));
         IncreaseNonce(m_curContractAddr);
+
+        return true;
     }
     else
     {
@@ -446,19 +586,23 @@ void AccountStore::ParseJsonOutput(const Json::Value& _json)
         if (toAccount == nullptr)
         {
             LOG_GENERAL(WARNING, "The target contract account doesn't exist");
-            return;
+            return false;
         }
 
         // TODO: Implement the calling of interpreter in multi-thread
-        if (ExportContractFiles(
+        if (ExportCallContractFiles(
                 toAccount,
                 CompositeContractData(_json["message"]["_tag"].asString(),
                                       _json["message"]["_amount"].asString(),
                                       params)))
         {
             m_curContractAddr = toAddr;
-            SysCommand::ExecuteCmdWithOutput(GetContractCmdStr());
-            ParseContractOutput();
+            SysCommand::ExecuteCmdWithOutput(GetCallContractCmdStr());
+            return ParseCallContractOutput();
+        }
+        else
+        {
+            return false;
         }
     }
 }

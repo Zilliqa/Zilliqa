@@ -1587,11 +1587,15 @@ bool Lookup::ProcessSetTxBodyFromSeed(const vector<unsigned char>& message,
         return false;
     }
 
+    if (!AccountStore::GetInstance().UpdateAccounts(
+            m_mediator.m_currentEpochNum - 1, transaction))
+    {
+        LOG_GENERAL(WARNING, "UpdateAccounts failed");
+        return false;
+    }
     vector<unsigned char> serializedTxBody;
     transaction.Serialize(serializedTxBody, 0);
     BlockStorage::GetBlockStorage().PutTxBody(tranHash, serializedTxBody);
-    AccountStore::GetInstance().UpdateAccounts(m_mediator.m_currentEpochNum - 1,
-                                               transaction);
 
     return true;
 }
