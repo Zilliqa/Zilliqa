@@ -569,6 +569,16 @@ void P2PComm::StartMessagePump(
         return;
     }
 
+    int enable = 1;
+    if (setsockopt(serv_sock, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int))
+        < 0)
+    {
+        LOG_GENERAL(WARNING,
+                    "Socket set option SO_REUSEADDR failed. Code = "
+                        << errno << " Desc: " << std::strerror(errno));
+        return;
+    }
+
     struct sockaddr_in serv_addr;
     memset(&serv_addr, 0, sizeof(struct sockaddr_in));
     serv_addr.sin_family = AF_INET;
@@ -589,7 +599,7 @@ void P2PComm::StartMessagePump(
 
     struct event_base* base = event_base_new();
     struct event ev;
-    ConnectionData* pConnData = new struct ConnectionData;
+    static ConnectionData* pConnData = new struct ConnectionData;
     pConnData->dispatcher = dispatcher;
     pConnData->broadcast_list_retriever = broadcast_list_retriever;
     event_set(&ev, serv_sock, EV_READ | EV_PERSIST, ConnectionAccept,

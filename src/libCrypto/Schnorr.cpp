@@ -639,7 +639,7 @@ const Curve& Schnorr::GetCurve() const { return m_curve; }
 
 pair<PrivKey, PubKey> Schnorr::GenKeyPair()
 {
-    LOG_MARKER();
+    // LOG_MARKER();
     lock_guard<mutex> g(m_mutexSchnorr);
 
     PrivKey privkey;
