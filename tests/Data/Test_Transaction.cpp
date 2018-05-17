@@ -73,7 +73,7 @@ BOOST_AUTO_TEST_CASE(test1)
 
     Transaction tx1(1, 5, toAddr, sender, 55, 11, 22, {0x33}, {0x44});
 
-    BOOST_CHECK_MESSAGE(m_validator->verifyTransaction(tx1),
+    BOOST_CHECK_MESSAGE(m_validator->VerifyTransaction(tx1),
                         "Signature not verified\n");
 
     std::vector<unsigned char> message1;
@@ -166,7 +166,7 @@ BOOST_AUTO_TEST_CASE(test1)
     BOOST_CHECK_MESSAGE(signature2 == tx1.GetSignature(),
                         "Signature not converted properly");
 
-    BOOST_CHECK_MESSAGE(m_validator->verifyTransaction(tx2),
+    BOOST_CHECK_MESSAGE(m_validator->VerifyTransaction(tx2),
                         "Signature not verified\n");
 
     // pair<PrivKey, PubKey> KeyPair = Schnorr::GetInstance().GenKeyPair();

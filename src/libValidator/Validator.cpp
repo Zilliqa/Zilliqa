@@ -30,7 +30,7 @@ Validator::Validator(Mediator& mediator)
 
 Validator::~Validator() {}
 
-bool Validator::verifyTransaction(const Transaction& tran) const
+bool Validator::VerifyTransaction(const Transaction& tran) const
 {
     vector<unsigned char> txnData;
     tran.SerializeCoreFields(txnData, 0);
@@ -55,7 +55,7 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx) const
 
     if (m_mediator == nullptr)
     {
-        throw std::runtime_error("Pointer to Mediator is nullptr");
+        LOG_GENERAL(WARNING, "Error: pointer to Mediator is nullptr.");
     }
 
     // Check if from account is sharded here
@@ -68,14 +68,14 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx) const
     if (correct_shard != shardID)
     {
         LOG_EPOCH(WARNING, to_string(m_mediator->m_currentEpochNum).c_str(),
-                  "This tx is not sharded to me!");
-        LOG_EPOCH(INFO, to_string(m_mediator->m_currentEpochNum).c_str(),
-                  "From Account  = 0x" << fromAddr);
-        LOG_EPOCH(INFO, to_string(m_mediator->m_currentEpochNum).c_str(),
-                  "Correct shard = " << correct_shard);
-        LOG_EPOCH(INFO, to_string(m_mediator->m_currentEpochNum).c_str(),
-                  "This shard    = " << m_mediator->m_node->getShardID());
-        return false;
+                  "This tx is not sharded to me!"
+                      << " From Account  = 0x" << fromAddr
+                      << " Correct shard = " << correct_shard
+                      << " This shard    = "
+                      << m_mediator->m_node->getShardID());
+        // // Transaction created from the GenTransactionBulk will be rejected
+        // // by all shards but one. Next line is commented to avoid this
+        // return false;
     }
 
     // Check if from account exists in local storage
@@ -101,14 +101,10 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx) const
     if (AccountStore::GetInstance().GetBalance(fromAddr) < tx.GetAmount())
     {
         LOG_EPOCH(WARNING, to_string(m_mediator->m_currentEpochNum).c_str(),
-                  "Insufficient funds in source account!");
-        LOG_EPOCH(INFO, to_string(m_mediator->m_currentEpochNum).c_str(),
-                  "From Account = 0x" << fromAddr);
-        LOG_EPOCH(INFO, to_string(m_mediator->m_currentEpochNum).c_str(),
-                  "Balance      = "
-                      << AccountStore::GetInstance().GetBalance(fromAddr));
-        LOG_EPOCH(INFO, to_string(m_mediator->m_currentEpochNum).c_str(),
-                  "Debit Amount = " << tx.GetAmount());
+                  "Insufficient funds in source account!"
+                      << " From Account  = 0x" << fromAddr << " Balance = "
+                      << AccountStore::GetInstance().GetBalance(fromAddr)
+                      << " Debit Amount = " << tx.GetAmount());
         return false;
     }
 
@@ -121,7 +117,7 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
 
     if (m_mediator == nullptr)
     {
-        throw std::runtime_error("Pointer to Mediator is nullptr");
+        LOG_GENERAL(WARNING, "Error: pointer to Mediator is nullptr.");
     }
 
     // Check if from account is sharded here
@@ -134,15 +130,14 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
     if (correct_shard != shardID)
     {
         LOG_EPOCH(WARNING, to_string(m_mediator->m_currentEpochNum).c_str(),
-                  "This tx is not sharded to me!");
-        LOG_EPOCH(INFO, to_string(m_mediator->m_currentEpochNum).c_str(),
-                  "From Account  = 0x" << fromAddr);
-        LOG_EPOCH(INFO, to_string(m_mediator->m_currentEpochNum).c_str(),
-                  "Correct shard = " << correct_shard);
-        LOG_EPOCH(INFO, to_string(m_mediator->m_currentEpochNum).c_str(),
-                  "This shard    = " << m_mediator->m_node->getShardID());
+                  "This tx is not sharded to me!"
+                      << " From Account  = 0x" << fromAddr
+                      << " Correct shard = " << correct_shard
+                      << " This shard    = "
+                      << m_mediator->m_node->getShardID());
+        return false;
         // // Transaction created from the GenTransactionBulk will be rejected
-        // // by all shards but one. Next line is commeted to avoid this
+        // // by all shards but one. Next line is commented to avoid this
         // return false;
     }
 
@@ -166,23 +161,15 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
             if (tx.GetNonce()
                 != AccountStore::GetInstance().GetNonce(fromAddr) + 1)
             {
-                LOG_EPOCH(WARNING,
-                          to_string(m_mediator->m_currentEpochNum).c_str(),
-                          "Tx nonce not in line with account state!");
-                LOG_EPOCH(INFO,
-                          to_string(m_mediator->m_currentEpochNum).c_str(),
-                          "From Account      = 0x" << fromAddr);
                 LOG_EPOCH(
-                    INFO, to_string(m_mediator->m_currentEpochNum).c_str(),
-                    "Account Nonce     = "
-                        << AccountStore::GetInstance().GetNonce(fromAddr));
-                LOG_EPOCH(
-                    INFO, to_string(m_mediator->m_currentEpochNum).c_str(),
-                    "Expected Tx Nonce = "
-                        << AccountStore::GetInstance().GetNonce(fromAddr) + 1);
-                LOG_EPOCH(INFO,
-                          to_string(m_mediator->m_currentEpochNum).c_str(),
-                          "Actual Tx Nonce   = " << tx.GetNonce());
+                    WARNING, to_string(m_mediator->m_currentEpochNum).c_str(),
+                    "Tx nonce not in line with account state!"
+                        << " From Account = 0x" << fromAddr
+                        << " Account Nonce = "
+                        << AccountStore::GetInstance().GetNonce(fromAddr)
+                        << " Expected Tx Nonce = "
+                        << AccountStore::GetInstance().GetNonce(fromAddr) + 1
+                        << " Actual Tx Nonce = " << tx.GetNonce());
                 return false;
             }
             m_txnNonceMap.insert(make_pair(fromAddr, tx.GetNonce()));
@@ -191,21 +178,14 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
         {
             if (tx.GetNonce() != m_txnNonceMap.at(fromAddr) + 1)
             {
-                LOG_EPOCH(WARNING,
-                          to_string(m_mediator->m_currentEpochNum).c_str(),
-                          "Tx nonce not in line with account state!");
-                LOG_EPOCH(INFO,
-                          to_string(m_mediator->m_currentEpochNum).c_str(),
-                          "From Account      = 0x" << fromAddr);
-                LOG_EPOCH(INFO,
-                          to_string(m_mediator->m_currentEpochNum).c_str(),
-                          "Account Nonce     = " << m_txnNonceMap.at(fromAddr));
                 LOG_EPOCH(
-                    INFO, to_string(m_mediator->m_currentEpochNum).c_str(),
-                    "Expected Tx Nonce = " << m_txnNonceMap.at(fromAddr) + 1);
-                LOG_EPOCH(INFO,
-                          to_string(m_mediator->m_currentEpochNum).c_str(),
-                          "Actual Tx Nonce   = " << tx.GetNonce());
+                    WARNING, to_string(m_mediator->m_currentEpochNum).c_str(),
+                    "Tx nonce not in line with account state!"
+                        << " From Account = 0x" << fromAddr
+                        << " Account Nonce = " << m_txnNonceMap.at(fromAddr)
+                        << " Expected Tx Nonce = "
+                        << m_txnNonceMap.at(fromAddr) + 1
+                        << " Actual Tx Nonce   = " << tx.GetNonce());
                 return false;
             }
             m_txnNonceMap.at(fromAddr) += 1;
@@ -225,14 +205,10 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
     if (AccountStore::GetInstance().GetBalance(fromAddr) < tx.GetAmount())
     {
         LOG_EPOCH(WARNING, to_string(m_mediator->m_currentEpochNum).c_str(),
-                  "Insufficient funds in source account!");
-        LOG_EPOCH(INFO, to_string(m_mediator->m_currentEpochNum).c_str(),
-                  "From Account = 0x" << fromAddr);
-        LOG_EPOCH(INFO, to_string(m_mediator->m_currentEpochNum).c_str(),
-                  "Balance      = "
-                      << AccountStore::GetInstance().GetBalance(fromAddr));
-        LOG_EPOCH(INFO, to_string(m_mediator->m_currentEpochNum).c_str(),
-                  "Debit Amount = " << tx.GetAmount());
+                  "Insufficient funds in source account!"
+                      << " From Account  = 0x" << fromAddr << " Balance = "
+                      << AccountStore::GetInstance().GetBalance(fromAddr)
+                      << " Debit Amount = " << tx.GetAmount());
         return false;
     }
 
