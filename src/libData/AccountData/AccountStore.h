@@ -35,7 +35,7 @@
 #include "libData/AccountData/Transaction.h"
 
 template<class KeyType, class DB>
-using SecureTrieDB = dev::SpecificTrieDB<dev::HashedGenericTrieDB<DB>, KeyType>;
+using SecureTrieDB = dev::SpecificTrieDB<dev::GenericTrieDB<DB>, KeyType>;
 
 using StateHash = dev::h256;
 

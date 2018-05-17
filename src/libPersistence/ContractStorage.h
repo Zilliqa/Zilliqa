@@ -27,11 +27,12 @@ using namespace dev;
 
 class ContractStorage
 {
+    OverlayDB m_stateDB;
     LevelDB m_codeDB;
 
     ContractStorage()
-        // : m_stateDB("contractState")
-        : m_codeDB("contractCode"){};
+        : m_stateDB("contractState")
+        , m_codeDB("contractCode"){};
     ~ContractStorage() = default;
 
 public:
@@ -42,11 +43,7 @@ public:
         return cs;
     }
 
-    static OverlayDB& GetStateDB()
-    {
-        static OverlayDB m_stateDB("contractState");
-        return m_stateDB;
-    }
+    OverlayDB& GetStateDB() { return m_stateDB; }
 
     /// Adds a contract code to persistence
     bool PutContractCode(const h160& address,

@@ -354,15 +354,6 @@ void AccountStore::ParseJsonOutput(const Json::Value& _json)
     // the _json actually refers to the Array of Contracts,
     // one transaction can affect multiple contracts by one call
 
-    // for (auto j : _json)
-    // {
-    //     if (!j.isMember("address") || !j.isMember("outputs")
-    //         || !j.isMember("states"))
-    //     {
-    //         LOG_GENERAL(WARNING,
-    //                     "The json output of this contract is corrupted");
-    //         continue;
-    //     }
     if (!_json.isMember("message") || !_json.isMember("states"))
     {
         LOG_GENERAL(WARNING, "The json output of this contract is corrupted");
@@ -383,10 +374,10 @@ void AccountStore::ParseJsonOutput(const Json::Value& _json)
     {
         if (!s.isMember("vname") || !s.isMember("type") || !s.isMember("value"))
         {
-            // LOG_GENERAL(WARNING,
-            //             "Address: "
-            //                 << m_curContractAddr.hex()
-            //                 << ", The json output of states is corrupted");
+            LOG_GENERAL(WARNING,
+                        "Address: "
+                            << m_curContractAddr.hex()
+                            << ", The json output of states is corrupted");
             continue;
         }
         string vname = s["vname"].asString();
