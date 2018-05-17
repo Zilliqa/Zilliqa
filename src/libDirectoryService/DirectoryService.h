@@ -148,6 +148,7 @@ class DirectoryService : public Executable, public Broadcastable
     std::condition_variable cv_ViewChangeVCBlock;
     std::mutex m_MutexCVViewChangeVCBlock;
 
+    // Consensus and consensus object
     std::condition_variable cv_DSBlockConsensus;
     std::mutex m_MutexCVDSBlockConsensus;
     std::condition_variable cv_DSBlockConsensusObject;
@@ -333,6 +334,7 @@ class DirectoryService : public Executable, public Broadcastable
     bool RunConsensusOnViewChangeWhenCandidateLeader();
     bool RunConsensusOnViewChangeWhenNotCandidateLeader();
     void ProcessViewChangeConsensusWhenDone();
+    void ProcessNextConsensus(unsigned char viewChangeState);
 
     // Rejoin the network as a DS node in case of failure happens in protocol
     void RejoinAsDS();

@@ -113,36 +113,12 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
         {
             m_consensusMyID--;
         }
+        //auto func = [this]() -> void { ScheduleViewChangeTimeout(); };
 
-        switch (viewChangeState)
-        {
-        case DSBLOCK_CONSENSUS:
-        case DSBLOCK_CONSENSUS_PREP:
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Re-running dsblock consensus");
-            RunConsensusOnDSBlock();
-            break;
-        case SHARDING_CONSENSUS:
-        case SHARDING_CONSENSUS_PREP:
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Re-running sharding consensus");
-            RunConsensusOnSharding();
-            break;
-        case FINALBLOCK_CONSENSUS:
-        case FINALBLOCK_CONSENSUS_PREP:
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Re-running finalblock consensus");
-            RunConsensusOnFinalBlock();
-            break;
-        case VIEWCHANGE_CONSENSUS:
-        case VIEWCHANGE_CONSENSUS_PREP:
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Re-running view change consensus");
-            RunConsensusOnViewChange();
-        default:
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "illegal view change state. state: " << viewChangeState);
-        }
+        auto func = [this, viewChangeState]() -> void {
+            ProcessNextConsensus(viewChangeState);
+        };
+        DetachedFunction(1, func);
     }
     else
     {
@@ -152,11 +128,42 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
                   "expectedLeader: " << expectedLeader
                                      << "newLeaderNetworkInfo: "
                                      << newLeaderNetworkInfo);
-        // TODO
-        // CV with timeout run consensus
-        // Rejoin as ds node after timeout
     }
 }
+
+void DirectoryService::ProcessNextConsensus(unsigned char viewChangeState)
+{
+    switch (viewChangeState)
+    {
+    case DSBLOCK_CONSENSUS:
+    case DSBLOCK_CONSENSUS_PREP:
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Re-running dsblock consensus");
+        RunConsensusOnDSBlock();
+        break;
+    case SHARDING_CONSENSUS:
+    case SHARDING_CONSENSUS_PREP:
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Re-running sharding consensus");
+        RunConsensusOnSharding();
+        break;
+    case FINALBLOCK_CONSENSUS:
+    case FINALBLOCK_CONSENSUS_PREP:
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Re-running finalblock consensus");
+        RunConsensusOnFinalBlock();
+        break;
+    case VIEWCHANGE_CONSENSUS:
+    case VIEWCHANGE_CONSENSUS_PREP:
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Re-running view change consensus");
+        RunConsensusOnViewChange();
+    default:
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "illegal view change state. state: " << viewChangeState);
+    }
+}
+
 #endif // IS_LOOKUP_NODE
 
 bool DirectoryService::ProcessViewChangeConsensus(
