@@ -169,8 +169,8 @@ bool DirectoryService::RunConsensusOnShardingWhenDSPrimary()
         LOG_GENERAL(INFO, "I am killing myself to test view change");
         throw exception();
     }
-    **/ 
-   
+    **/
+
     // Create new consensus object
 
     // Dummy values for now
