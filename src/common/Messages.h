@@ -61,7 +61,7 @@ enum NodeInstructionType : unsigned char
     FINALBLOCK = 0x06,
     FORWARDTRANSACTION = 0x07,
     CREATETRANSACTIONFROMLOOKUP = 0x08,
-    VCBLOCK = 0x9
+    VCBLOCK = 0x09
 };
 
 enum LookupInstructionType : unsigned char
