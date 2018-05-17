@@ -98,8 +98,8 @@ const std::string DS_KICKOUT_MSG = "KICKED OUT FROM DS";
 const std::string DS_LEADER_MSG = "DS LEADER NOW";
 const std::string DS_BACKUP_MSG = "DS BACKUP NOW";
 
-const std::string SCILLA_PATH = "../../../Scilla/scilla/bin/";
-// const std::string SCILLA_PATH = "";
+// const std::string SCILLA_PATH = "../../../Scilla/scilla/bin/";
+const std::string SCILLA_PATH = "";
 const std::string SCILLA_FILES = "scilla_files/";
 const std::string INTERPRETER_NAME = SCILLA_PATH + "scilla-runner";
 const std::string CONTRACT_MAIN_FOLDER = SCILLA_FILES + "for-contract";
@@ -127,6 +127,7 @@ extern const unsigned int MICROBLOCK_TIMEOUT;
 extern const unsigned int VIEWCHANGE_TIME;
 extern const unsigned int SHARDING_TIMEOUT;
 extern const unsigned int CONSENSUS_OBJECT_TIMEOUT;
+extern const unsigned int FINALBLOCK_CONSENSUS_OBJECT_TIMEOUT;
 extern const unsigned int NUM_FINAL_BLOCK_PER_POW;
 extern const unsigned int NUM_DS_KEEP_TX_BODY;
 extern const uint32_t MAXMESSAGE;

@@ -38,7 +38,7 @@ using namespace boost::multiprecision;
 // static OverlayDB contractStatesDB("contractStates");
 
 template<class KeyType, class DB>
-using InSecureTrieDB = SpecificTrieDB<dev::GenericTrieDB<DB>, KeyType>;
+using AccountTrieDB = SpecificTrieDB<dev::GenericTrieDB<DB>, KeyType>;
 
 class Account : public Serializable
 {
@@ -53,7 +53,7 @@ class Account : public Serializable
 
     bool isContract() const { return m_codeHash != h256(); }
 
-    InSecureTrieDB<bytesConstRef, OverlayDB> m_storage;
+    AccountTrieDB<h256, OverlayDB> m_storage;
 
 public:
     Account();
@@ -108,9 +108,6 @@ public:
     const h256& GetCodeHash() const { return m_codeHash; }
 
     void SetStorage(string _k, string _type, string _v, bool _mutable = true);
-
-    /// Return all the parameters name
-    vector<string> GetKeys() const;
 
     /// Return the data for a parameter, type + value
     vector<string> GetStorage(string _k) const;

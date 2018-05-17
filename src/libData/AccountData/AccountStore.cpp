@@ -183,7 +183,7 @@ void AccountStore::AddAccount(const PubKey& pubKey, const Account& account)
 void AccountStore::UpdateAccounts(const uint64_t& blockNum,
                                   const Transaction& transaction)
 {
-    //LOG_MARKER();
+    LOG_MARKER();
 
     const PubKey& senderPubKey = transaction.GetSenderPubKey();
     const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
@@ -199,6 +199,7 @@ void AccountStore::UpdateAccounts(const uint64_t& blockNum,
 
     if (transaction.GetCode().size() > 0 && toAddr == NullAddress)
     {
+        LOG_GENERAL(INFO, "Create Contract");
         // Create contract account
         Account* account = GetAccount(fromAddr);
         // TODO: remove this, temporary way to test transactions
@@ -220,6 +221,8 @@ void AccountStore::UpdateAccounts(const uint64_t& blockNum,
 
     if (callContract)
     {
+        LOG_GENERAL(INFO, "Call Contract");
+
         std::lock_guard<std::mutex> lk(m_mutexCallInterpreter);
 
         Account* toAccount = GetAccount(toAddr);
@@ -255,6 +258,8 @@ Json::Value AccountStore::GetBlockStateJson(const uint64_t& BlockNum) const
 bool AccountStore::ExportContractFiles(
     Account*& contract, const vector<unsigned char>& contractData)
 {
+    LOG_MARKER();
+
     boost::filesystem::remove_all("./" + SCILLA_FILES);
     boost::filesystem::create_directories("./" + SCILLA_FILES);
 
@@ -286,9 +291,10 @@ bool AccountStore::ExportContractFiles(
     Json::CharReaderBuilder readBuilder;
     std::unique_ptr<Json::CharReader> reader(readBuilder.newCharReader());
     Json::Value msgObj;
-    string codeStr(contractData.begin(), contractData.end());
+    string dataStr(contractData.begin(), contractData.end());
+    LOG_GENERAL(INFO, "Contract Data: " << dataStr);
     string errors;
-    if (reader->parse(codeStr.c_str(), codeStr.c_str() + codeStr.size(),
+    if (reader->parse(dataStr.c_str(), dataStr.c_str() + dataStr.size(),
                       &msgObj, &errors))
     {
         os.open(INPUT_MESSAGE_JSON);
@@ -297,9 +303,9 @@ bool AccountStore::ExportContractFiles(
     }
     else
     {
-        LOG_GENERAL(
-            WARNING,
-            "The Code Json is corrupted, failed to process: " << errors);
+        LOG_GENERAL(WARNING,
+                    "The Contract Data Json is corrupted, failed to process: "
+                        << errors);
         boost::filesystem::remove_all("./" + SCILLA_FILES);
         return false;
     }
@@ -316,6 +322,7 @@ string AccountStore::GetContractCmdStr()
 
 void AccountStore::ParseContractOutput()
 {
+    LOG_MARKER();
     ifstream in(OUTPUT_JSON, ios::binary);
 
     if (!in.is_open())
@@ -343,18 +350,10 @@ void AccountStore::ParseContractOutput()
 
 void AccountStore::ParseJsonOutput(const Json::Value& _json)
 {
+    LOG_MARKER();
     // the _json actually refers to the Array of Contracts,
     // one transaction can affect multiple contracts by one call
 
-    // for (auto j : _json)
-    // {
-    //     if (!j.isMember("address") || !j.isMember("outputs")
-    //         || !j.isMember("states"))
-    //     {
-    //         LOG_GENERAL(WARNING,
-    //                     "The json output of this contract is corrupted");
-    //         continue;
-    //     }
     if (!_json.isMember("message") || !_json.isMember("states"))
     {
         LOG_GENERAL(WARNING, "The json output of this contract is corrupted");
@@ -375,10 +374,10 @@ void AccountStore::ParseJsonOutput(const Json::Value& _json)
     {
         if (!s.isMember("vname") || !s.isMember("type") || !s.isMember("value"))
         {
-            // LOG_GENERAL(WARNING,
-            //             "Address: "
-            //                 << m_curContractAddr.hex()
-            //                 << ", The json output of states is corrupted");
+            LOG_GENERAL(WARNING,
+                        "Address: "
+                            << m_curContractAddr.hex()
+                            << ", The json output of states is corrupted");
             continue;
         }
         string vname = s["vname"].asString();
@@ -469,6 +468,7 @@ AccountStore::CompositeContractData(const std::string& funcName,
                                     const std::string& amount,
                                     const Json::Value& params)
 {
+    LOG_MARKER();
     Json::Value obj;
     obj["_tag"] = funcName;
     obj["_amount"] = amount;
