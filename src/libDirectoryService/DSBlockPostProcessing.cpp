@@ -88,11 +88,10 @@ bool DirectoryService::SendDSBlockToLookupNodes(DSBlock& lastDSBlock,
     // 16-byte winner IP and 4-byte winner port
     winnerpeer.Serialize(dsblock_message, curr_offset);
 
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "I the primary DS am sending the DSBlock to the lookup nodes");
     m_mediator.m_lookup->SendMessageToLookupNodes(dsblock_message);
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "I the primary DS have sent the DSBlock to the lookup nodes");
+              "I the part of the subset of the DS committee that have sent the "
+              "DSBlock to the lookup nodes");
 
     return true;
 }
