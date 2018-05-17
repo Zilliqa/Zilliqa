@@ -43,10 +43,12 @@ public:
     VCBlock(VCBlockHeader&& header, CoSignatures&& cosigs);
 
     /// Implements the Serialize function inherited from Serializable.
+    /// Return size of serialized structure
     unsigned int Serialize(std::vector<unsigned char>& dst,
                            unsigned int offset) const;
 
     /// Implements the Deserialize function inherited from Serializable.
+    /// Return 0 if successed, -1 if failed
     int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
 
     /// Returns the size in bytes when serializing the VC block.
