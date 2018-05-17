@@ -53,9 +53,9 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx) const
 {
     LOG_MARKER();
 
-    if(m_mediator == nullptr)
+    if (m_mediator == nullptr)
     {
-        throw std::exception("Pointer to Mediator is nullptr");
+        throw std::runtime_error("Pointer to Mediator is nullptr");
     }
 
     // Check if from account is sharded here
@@ -119,9 +119,9 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
 {
     LOG_MARKER();
 
-    if(m_mediator == nullptr)
+    if (m_mediator == nullptr)
     {
-        throw std::exception("Pointer to Mediator is nullptr");
+        throw std::runtime_error("Pointer to Mediator is nullptr");
     }
 
     // Check if from account is sharded here
