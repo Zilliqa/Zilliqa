@@ -110,7 +110,6 @@ const std::string INPUT_BLOCKCHAIN_JSON
 const std::string INPUT_MESSAGE_JSON = SCILLA_FILES + "input_message.json";
 const std::string OUTPUT_JSON = SCILLA_FILES + "output.json";
 const std::string INPUT_CODE = SCILLA_FILES + "input.scilla";
-const unsigned int CODE_PRINT_LEN = 200;
 
 extern const unsigned int DS_MULTICAST_CLUSTER_SIZE;
 extern const unsigned int COMM_SIZE;
