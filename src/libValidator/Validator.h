@@ -30,7 +30,7 @@ public:
     virtual std::string name() const = 0;
 
     /// Verifies the transaction w.r.t given pubKey and signature
-    virtual bool verifyTransaction(const Transaction& tran) const = 0;
+    virtual bool VerifyTransaction(const Transaction& tran) const = 0;
 
     virtual void CleanVariables() = 0;
 
@@ -51,7 +51,7 @@ public:
     Validator(Mediator& mediator);
     ~Validator();
     std::string name() const override { return "Validator"; }
-    bool verifyTransaction(const Transaction& tran) const override;
+    bool VerifyTransaction(const Transaction& tran) const override;
     void CleanVariables() override;
 
 #ifndef IS_LOOKUP_NODE
