@@ -78,32 +78,32 @@ BOOST_AUTO_TEST_CASE(createTwoTrieOnOneDB)
     BOOST_CHECK_MESSAGE(m_trie1.contains(k1),
                         "ERROR: Trie1 cannot get the element in Trie1");
 
-    // SecureTrieDB<h256, dev::OverlayDB> m_trie2(&m_db);
-    // m_trie2.init();
-    // h = dev::h256::random();
-    // m_trie2.insert(h, string("bbb"));
+    SecureTrieDB<h256, dev::OverlayDB> m_trie2(&m_db);
+    m_trie2.init();
+    h = dev::h256::random();
+    m_trie2.insert(h, string("hhh"));
 
-    // m_trie2.db()->commit();
-    // root2 = m_trie2.root();
-    // LOG_GENERAL(INFO, "root2 = " << root2);
-    // LOG_GENERAL(INFO, "h: " << h << " \nv: " << m_trie2.at(h));
+    m_trie2.db()->commit();
+    root2 = m_trie2.root();
+    LOG_GENERAL(INFO, "root2 = " << root2);
+    LOG_GENERAL(INFO, "h: " << h << " \nv: " << m_trie2.at(h));
 
-    // BOOST_CHECK_MESSAGE(m_trie2.contains(h),
-    //                     "ERROR: Trie1 cannot get the element in Trie2");
+    BOOST_CHECK_MESSAGE(m_trie2.contains(h),
+                        "ERROR: Trie1 cannot get the element in Trie2");
 }
 
 BOOST_AUTO_TEST_CASE(retrieveDataStoredInTheTwoTrie)
 {
-    // dev::OverlayDB m_db("trieDB");
-    // SecureTrieDB<bytesConstRef, dev::OverlayDB> m_trie3(&m_db);
-    // SecureTrieDB<h256, dev::OverlayDB> m_trie4(&m_db);
-    // m_trie3.setRoot(root1);
-    // m_trie4.setRoot(root2);
+    dev::OverlayDB m_db("trieDB");
+    SecureTrieDB<bytesConstRef, dev::OverlayDB> m_trie3(&m_db);
+    SecureTrieDB<h256, dev::OverlayDB> m_trie4(&m_db);
+    m_trie3.setRoot(root1);
+    m_trie4.setRoot(root2);
 
-    // BOOST_CHECK_MESSAGE(m_trie3.contains(k),
-    //                     "ERROR: Trie3 cannot get the element in Trie1");
-    // BOOST_CHECK_MESSAGE(m_trie4.contains(h),
-    //                     "ERROR: Trie4 cannot get the element in Trie2");
+    BOOST_CHECK_MESSAGE(m_trie3.contains(k1),
+                        "ERROR: Trie3 cannot get the element in Trie1");
+    BOOST_CHECK_MESSAGE(m_trie4.contains(h),
+                        "ERROR: Trie4 cannot get the element in Trie2");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

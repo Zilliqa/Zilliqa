@@ -270,7 +270,7 @@ string dataStr = R"({
 }
 )";
 
-string dataStr2 = R"({
+string dataStr3 = R"({
     "_tag": "Donate",
     "_amount": "200",
     "params": [
@@ -386,61 +386,18 @@ BOOST_AUTO_TEST_CASE(createContract)
 
     BOOST_CHECK_MESSAGE(outStr == output_file,
                         "Error: didn't get desired output");
+
+    std::vector<unsigned char> data3(dataStr3.begin(), dataStr3.end());
+
+    std::vector<unsigned char> vec3;
+    Transaction tx3(1, nonce, toAddress, sender, 100, 11, 66, vec3, data3);
+    AccountStore::GetInstance().UpdateAccounts(1, tx3);
+
+    std::vector<unsigned char> data4(dataStr4.begin(), dataStr4.end());
+
+    std::vector<unsigned char> vec4;
+    Transaction tx4(1, nonce, toAddress, sender, 100, 11, 66, vec4, data4);
+    AccountStore::GetInstance().UpdateAccounts(1, tx4);
 }
-
-// Create Transaction to call contract
-BOOST_AUTO_TEST_CASE(callContract)
-{
-    INIT_STDOUT_LOGGER();
-
-    LOG_MARKER();
-
-    // std::vector<unsigned char> data(dataStr.begin(), dataStr.end());
-
-    // std::vector<unsigned char> vec;
-    // Transaction tx2(1, nonce, toAddress, sender, 100, 11, 66, vec, data);
-    // AccountStore::GetInstance().UpdateAccounts(1, tx2);
-
-    // outStr.erase(std::remove(outStr.begin(), outStr.end(), ' '), outStr.end());
-    // outStr.erase(std::remove(outStr.begin(), outStr.end(), '\n'), outStr.end());
-
-    // ifstream infile{OUTPUT_JSON};
-    // std::string output_file{istreambuf_iterator<char>(infile),
-    //                         istreambuf_iterator<char>()};
-
-    // output_file.erase(std::remove(output_file.begin(), output_file.end(), ' '),
-    //                   output_file.end());
-    // output_file.erase(std::remove(output_file.begin(), output_file.end(), '\n'),
-    //                   output_file.end());
-
-    // BOOST_CHECK_MESSAGE(outStr == output_file,
-    //                     "Error: didn't get desired output");
-}
-
-// BOOST_AUTO_TEST_CASE(callContract2)
-// {
-//     INIT_STDOUT_LOGGER();
-
-//     LOG_MARKER();
-
-//     std::vector<unsigned char> data(dataStr2.begin(), dataStr2.end());
-
-//     std::vector<unsigned char> vec;
-//     Transaction tx3(1, nonce, toAddress, sender, 100, 11, 66, vec, data);
-//     AccountStore::GetInstance().UpdateAccounts(1, tx3);
-// }
-
-// BOOST_AUTO_TEST_CASE(callContract4)
-// {
-//     INIT_STDOUT_LOGGER();
-
-//     LOG_MARKER();
-
-//     std::vector<unsigned char> data(dataStr4.begin(), dataStr4.end());
-
-//     std::vector<unsigned char> vec;
-//     Transaction tx4(1, nonce, toAddress, sender, 100, 11, 66, vec, data);
-//     AccountStore::GetInstance().UpdateAccounts(1, tx4);
-// }
 
 BOOST_AUTO_TEST_SUITE_END()
