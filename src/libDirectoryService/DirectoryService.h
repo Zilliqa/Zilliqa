@@ -161,7 +161,7 @@ class DirectoryService : public Executable, public Broadcastable
     std::mutex m_MutexCVFinalBlockConsensusObject;
 
     // TO Remove
-    bool temp_todie;
+    //bool temp_todie;
     Mediator& m_mediator;
 
     Synchronizer m_synchronizer;
