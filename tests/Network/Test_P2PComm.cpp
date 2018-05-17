@@ -15,7 +15,7 @@
 **/
 
 #include "libNetwork/P2PComm.h"
-#include "libUtils/JoinableFunction.h"
+#include "libUtils/DetachedFunction.h"
 #include <arpa/inet.h>
 #include <chrono>
 #include <iostream>
@@ -59,7 +59,8 @@ int main()
         P2PComm::GetInstance().StartMessagePump(30303, process_message,
                                                 nullptr);
     };
-    JoinableFunction jf(1, func);
+
+    DetachedFunction(1, func);
 
     this_thread::sleep_for(chrono::seconds(1)); // short delay to prepare socket
 

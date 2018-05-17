@@ -32,7 +32,8 @@ Account::Account(const uint256_t& balance, const uint256_t& nonce)
 
 void Account::InitStorage()
 {
-    m_storage = InSecureTrieDB<bytesConstRef, OverlayDB>(
+    LOG_MARKER();
+    m_storage = AccountTrieDB<dev::h256, OverlayDB>(
         &(ContractStorage::GetContractStorage().GetStateDB()));
     m_storage.init();
     if (m_storageRoot != h256())
@@ -218,119 +219,89 @@ void Account::SetStorage(string _k, string _type, string _v, bool _mutable)
 {
     if (!isContract())
         return;
-    LOG_GENERAL(INFO, "SetStorage key: " << _k);
-    RLPStream rlpStream(3);
-    rlpStream << (_mutable ? "True" : "False") << _type << _v;
-    // vector<unsigned char> k_bytes(_k.begin(), _k.end());
-    // LOG_GENERAL(INFO,
-    // "Key to Insert: " << string(k_bytes.begin(), k_bytes.end()));
-    // m_storage.insert(bytesConstRef(k_bytes.data(), k_bytes.size()),
-    //                  rlpStream.out());
-    /*
-    m_storage.insert(_k, rlpStream.out());
+    RLPStream rlpStream(4);
+    rlpStream << _k << (_mutable ? "True" : "False") << _type << _v;
 
-    for (auto i : m_storage)
-    {
-        dev::RLP rlp(i.second);
-        LOG_GENERAL(INFO,
-                    "ITERATE k:" << i.first.toString()
-                                 << " v[0]:" << rlp[0].toString()
-                                 << " v[1]:" << rlp[1].toString()
-                                 << " v[2]:" << rlp[2].toString());
-        //     ret.push_back(i.first.toString());
-    }
-*/
-    //    m_keys.push_back(_k);
+    vector<unsigned char> k_bytes(_k.begin(), _k.end());
+    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+    sha2.Update(k_bytes);
+    const vector<unsigned char>& k_hash = sha2.Finalize();
+
+    m_storage.insert(dev::h256(k_hash), rlpStream.out());
+
     m_storageRoot = m_storage.root();
-}
-
-vector<string> Account::GetKeys() const
-{
-    // if (!isContract())
-    //     return {};
-    // vector<string> ret;
-    for (auto i : m_storage)
-    {
-        dev::RLP rlp(i.second);
-        LOG_GENERAL(INFO,
-                    "ITERATE k:" << i.first.toString()
-                                 << " v[0]:" << rlp[0].toString()
-                                 << " v[1]:" << rlp[1].toString()
-                                 << " v[2]:" << rlp[2].toString());
-        //     ret.push_back(i.first.toString());
-    }
-
-    for (auto i : m_keys)
-    {
-        LOG_GENERAL(INFO, "my_key: " << i);
-    }
-    // return ret;
-    return m_keys;
 }
 
 vector<string> Account::GetStorage(string _k) const
 {
     if (!isContract())
         return {};
-    // vector<unsigned char> k_bytes(_k.begin(), _k.end());
-    // dev::RLP rlp(m_storage[bytesConstRef(k_bytes.data(), k_bytes.size())]);
-    dev::RLP rlp(m_storage[_k]);
+
+    vector<unsigned char> k_bytes(_k.begin(), _k.end());
+    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+    sha2.Update(k_bytes);
+    const vector<unsigned char>& k_hash = sha2.Finalize();
+
+    dev::RLP rlp(m_storage.at(dev::h256(k_hash)));
     // mutable, type, value
-    return {rlp[0].toString(), rlp[1].toString(), rlp[2].toString()};
+    return {rlp[1].toString(), rlp[2].toString(), rlp[3].toString()};
 }
 
 Json::Value Account::GetStorageJson() const
 {
+    if (!isContract())
+        return Json::arrayValue;
     Json::Value root;
-    //vector<string> keys = GetKeys();
-    //if (keys.empty())
-    //{
-    //    root = Json::arrayValue;
-    //}
-    //for (auto k : keys)
-    //{
-    //    vector<string> v = GetStorage(k);
-    //    if (v[0] == "False")
-    //    {
-    //        continue;
-    //    }
-    //    Json::Value item;
-    //    item["vname"] = k;
-    //    LOG_GENERAL(INFO, "GetStorage vname: " << k);
-    //    item["type"] = v[1];
-    //    LOG_GENERAL(INFO, "GetStorage type: " << v[1]);
-    //    if (v[1] == "Map" || v[1] == "ADT")
-    //    {
-    //        Json::CharReaderBuilder builder;
-    //        std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
-    //        Json::Value obj;
-    //        string errors;
-    //        if (reader->parse(v[2].c_str(), v[2].c_str() + v[2].size(), &obj,
-    //                          &errors))
-    //        {
-    //            item["value"] = obj;
-    //        }
-    //        else
-    //        {
-    //            LOG_GENERAL(
-    //                WARNING,
-    //                "The map json object cannot be extracted from Storage: "
-    //                    << errors);
-    //        }
-    //    }
-    //    else
-    //    {
-    //        item["value"] = v[2];
-    //    }
-    //    LOG_GENERAL(INFO, "GetStorage value: " << v[2]);
-    //    root.append(item);
-    //}
+    for (auto i : m_storage)
+    {
+        dev::RLP rlp(i.second);
+        string tVname = rlp[0].toString();
+        string tMutable = rlp[1].toString();
+        string tType = rlp[2].toString();
+        string tValue = rlp[3].toString();
+        LOG_GENERAL(INFO,
+                    "ITERATE \nvname: " << tVname << " \nmutable: " << tMutable
+                                        << " \ntype: " << tType
+                                        << " \nvalue: " << tValue);
+        if (tMutable == "False")
+        {
+            continue;
+        }
+        Json::Value item;
+        item["vname"] = tVname;
+        item["type"] = tType;
+        if (tType == "Map" || tType == "ADT")
+        {
+            Json::CharReaderBuilder builder;
+            std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+            Json::Value obj;
+            string errors;
+            if (reader->parse(tValue.c_str(), tValue.c_str() + tValue.size(),
+                              &obj, &errors))
+            {
+                item["value"] = obj;
+            }
+            else
+            {
+                LOG_GENERAL(
+                    WARNING,
+                    "The map json object cannot be extracted from Storage: "
+                        << errors);
+            }
+        }
+        else
+        {
+            item["value"] = tValue;
+        }
+        root.append(item);
+    }
     Json::Value _balance;
     _balance["vname"] = "_balance";
     _balance["type"] = "Int";
     int balance = static_cast<int>(m_balance);
     _balance["value"] = to_string(balance);
     root.append(_balance);
+
     return root;
 }
 
@@ -387,9 +358,11 @@ Address Account::GetAddressForContract(const Address& sender,
 
 void Account::SetCode(const std::vector<unsigned char>& code)
 {
+    LOG_MARKER();
     if (code.size() == 0)
         return;
     m_codeCache = code;
+    LOG_GENERAL(INFO, "Contract Data: \n" << string(code.begin(), code.end()));
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
     sha2.Update(code);
     m_codeHash = dev::h256(sha2.Finalize());
