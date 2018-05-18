@@ -58,21 +58,6 @@ bool Node::ReadVariablesFromShardingMessage(
         return false;
     }
 
-    // view change counter
-    unsigned int viewChangeCounter = Serializable::GetNumber<unsigned int>(
-        message, cur_offset, sizeof(unsigned int));
-    cur_offset += sizeof(unsigned int);
-
-    for (unsigned int i = 0; i < viewChangeCounter; i++)
-    {
-        m_mediator.m_DSCommitteeNetworkInfo.push_back(
-            m_mediator.m_DSCommitteeNetworkInfo.front());
-        m_mediator.m_DSCommitteeNetworkInfo.pop_front();
-        m_mediator.m_DSCommitteePubKeys.push_back(
-            m_mediator.m_DSCommitteePubKeys.front());
-        m_mediator.m_DSCommitteePubKeys.pop_front();
-    }
-
     // 32-byte block number
     uint256_t dsBlockNum = Serializable::GetNumber<uint256_t>(
         message, cur_offset, sizeof(uint256_t));
