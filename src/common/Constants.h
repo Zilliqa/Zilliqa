@@ -22,6 +22,7 @@
 using BlockHash = dev::h256;
 
 // Data sizes
+const unsigned int COMMON_HASH_SIZE = 32;
 const unsigned int ACC_ADDR_SIZE = 20;
 const unsigned int TRAN_HASH_SIZE = 32;
 const unsigned int TRAN_SIG_SIZE = 64;
@@ -43,8 +44,9 @@ const unsigned int CHALLENGE_SIZE = 32;
 const unsigned int RESPONSE_SIZE = 32;
 
 // Acount related sizes
-const unsigned int ACCOUNT_SIZE
-    = UINT256_SIZE + UINT256_SIZE /* + ACC_ADDR_SIZE + PUB_KEY_SIZE*/;
+const unsigned int ACCOUNT_SIZE = UINT256_SIZE + UINT256_SIZE + COMMON_HASH_SIZE
+    + COMMON_HASH_SIZE /* + ACC_ADDR_SIZE + PUB_KEY_SIZE + STORAGE_ROOT_SIZE + CODE_HASH_SIZE*/
+    ;
 
 const unsigned int DS_BLOCKCHAIN_SIZE = 50;
 const unsigned int TX_BLOCKCHAIN_SIZE = 50;
@@ -112,6 +114,7 @@ extern const unsigned int MICROBLOCK_TIMEOUT;
 extern const unsigned int VIEWCHANGE_TIME;
 extern const unsigned int SHARDING_TIMEOUT;
 extern const unsigned int CONSENSUS_OBJECT_TIMEOUT;
+extern const unsigned int FINALBLOCK_CONSENSUS_OBJECT_TIMEOUT;
 extern const unsigned int NUM_FINAL_BLOCK_PER_POW;
 extern const unsigned int NUM_DS_KEEP_TX_BODY;
 extern const uint32_t MAXMESSAGE;

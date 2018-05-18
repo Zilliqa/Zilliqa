@@ -33,23 +33,8 @@ public:
 template<unsigned int SIZE> class SHA2
 {
     static const unsigned int HASH_OUTPUT_SIZE = SIZE / 8;
-    std::vector<unsigned char> output, message;
-
-    static bool SHA_256(unsigned char* input, unsigned long length,
-                        unsigned char* output)
-    {
-        SHA256_CTX context;
-        if (!SHA256_Init(&context))
-            return false;
-
-        if (!SHA256_Update(&context, input, length))
-            return false;
-
-        if (!SHA256_Final(output, &context))
-            return false;
-
-        return true;
-    }
+    SHA256_CTX m_context;
+    std::vector<unsigned char> output;
 
 public:
     /// Constructor.
@@ -57,6 +42,7 @@ public:
         : output(HASH_OUTPUT_SIZE)
     {
         assert((SIZE == HASH_TYPE::HASH_VARIANT_256));
+        Reset();
     }
 
     /// Destructor.
@@ -66,7 +52,7 @@ public:
     void Update(const std::vector<unsigned char>& input)
     {
         assert(input.size() > 0);
-        message.insert(message.end(), input.begin(), input.end());
+        SHA256_Update(&m_context, input.data(), input.size());
     }
 
     /// Hash update function.
@@ -74,12 +60,11 @@ public:
                 unsigned int size)
     {
         assert((offset + size) <= input.size());
-        message.insert(message.end(), input.begin() + offset,
-                       input.begin() + offset + size);
+        SHA256_Update(&m_context, input.data() + offset, size);
     }
 
     /// Resets the algorithm.
-    void Reset() { message.clear(); }
+    void Reset() { SHA256_Init(&m_context); }
 
     /// Hash finalize function.
     std::vector<unsigned char> Finalize()
@@ -87,7 +72,7 @@ public:
         switch (SIZE)
         {
         case 256:
-            SHA_256(message.data(), message.size(), output.data());
+            SHA256_Final(output.data(), &m_context);
             break;
         default:
             break;

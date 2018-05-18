@@ -392,6 +392,12 @@ public:
     /// Recover the previous state by retrieving persistence data
     bool StartRetrieveHistory();
 
+    //Erase m_committedTransactions for given epoch number
+    void EraseCommittedTransactions(uint64_t epochNum)
+    {
+        m_committedTransactions.erase(epochNum);
+    }
+
 #ifndef IS_LOOKUP_NODE
 
     // Start synchronization with lookup as a shard node
