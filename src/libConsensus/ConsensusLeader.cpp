@@ -1023,8 +1023,10 @@ bool ConsensusLeader::GenerateCollectiveSigMessage(
         LOG_GENERAL(WARNING, "Collective sig verification failed");
         m_state = ERROR;
 
-        LOG_GENERAL(INFO, "num of pub keys: " << m_pubKeys.size())
-        LOG_GENERAL(INFO, "num of peer_info keys: " << m_peerInfo.size())
+        LOG_GENERAL(INFO,
+                    "num of pub keys: " << m_pubKeys.size() << " "
+                                        << "num of peer_info keys: "
+                                        << m_peerInfo.size());
 
         return false;
     }
@@ -1141,9 +1143,10 @@ bool ConsensusLeader::StartConsensus(const vector<unsigned char>& message,
 
     if (lengthToCosign > message.size())
     {
-        LOG_GENERAL(WARNING, "lengthToCosign > message size");
-        LOG_GENERAL(WARNING, "m_lengthToCosign : " << m_lengthToCosign);
-        LOG_GENERAL(WARNING, "m_message : " << m_message.size());
+        LOG_GENERAL(WARNING,
+                    "lengthToCosign > message size "
+                        << "m_lengthToCosign : " << m_lengthToCosign << " "
+                        << "m_message : " << m_message.size());
         return false;
     }
 
@@ -1160,10 +1163,10 @@ bool ConsensusLeader::StartConsensus(const vector<unsigned char>& message,
 
     LOG_GENERAL(INFO,
                 "DEBUG: my ip is "
-                    << m_peerInfo.at(m_myID).GetPrintableIPAddress());
-    LOG_GENERAL(INFO,
-                "DEBUG: my pub is " << DataConversion::SerializableToHexStr(
-                    m_pubKeys.at(m_myID)));
+                    << m_peerInfo.at(m_myID).GetPrintableIPAddress()
+                    << "DEBUG: my pub is "
+                    << DataConversion::SerializableToHexStr(
+                           m_pubKeys.at(m_myID)));
 
     vector<unsigned char> announcement
         = {m_classByte, m_insByte,
