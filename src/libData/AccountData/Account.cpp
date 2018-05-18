@@ -222,9 +222,8 @@ void Account::SetStorage(string _k, string _type, string _v, bool _mutable)
     RLPStream rlpStream(4);
     rlpStream << _k << (_mutable ? "True" : "False") << _type << _v;
 
-    vector<unsigned char> k_bytes(_k.begin(), _k.end());
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-    sha2.Update(k_bytes);
+    sha2.Update(DataConversion::StringToCharArray(_k));
     const vector<unsigned char>& k_hash = sha2.Finalize();
 
     m_storage.insert(dev::h256(k_hash), rlpStream.out());
@@ -237,9 +236,8 @@ vector<string> Account::GetStorage(string _k) const
     if (!isContract())
         return {};
 
-    vector<unsigned char> k_bytes(_k.begin(), _k.end());
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-    sha2.Update(k_bytes);
+    sha2.Update(DataConversion::StringToCharArray(_k));
     const vector<unsigned char>& k_hash = sha2.Finalize();
 
     dev::RLP rlp(m_storage.at(dev::h256(k_hash)));
@@ -362,7 +360,9 @@ void Account::SetCode(const std::vector<unsigned char>& code)
     if (code.size() == 0)
         return;
     m_codeCache = code;
-    LOG_GENERAL(INFO, "Contract Data: \n" << string(code.begin(), code.end()));
+    LOG_GENERAL(INFO,
+                "Contract Data: \n"
+                    << DataConversion::CharArrayToString(code));
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
     sha2.Update(code);
     m_codeHash = dev::h256(sha2.Finalize());
