@@ -161,6 +161,10 @@ class DirectoryService : public Executable, public Broadcastable
     std::mutex m_MutexCVShardingConsensusObject;
     std::condition_variable cv_finalBlockConsensusObject;
     std::mutex m_MutexCVFinalBlockConsensusObject;
+    std::condition_variable cv_POW1Submission;
+    std::mutex m_MutexCVPOW1Submission;
+    std::condition_variable cv_POW2Submission;
+    std::mutex m_MutexCVPOW2Submission;
 
     // TO Remove
     //bool temp_todie;
@@ -404,6 +408,9 @@ public:
     /// Implements the Execute function inherited from Executable.
     bool Execute(const std::vector<unsigned char>& message, unsigned int offset,
                  const Peer& from);
+
+    /// Notify POW2 submission to DirectoryService::ProcessPoW2Submission()
+    void NotifyPOW2Submission() { cv_POW2Submission.notify_all(); }
 };
 
 #endif // __DIRECTORYSERVICE_H__
