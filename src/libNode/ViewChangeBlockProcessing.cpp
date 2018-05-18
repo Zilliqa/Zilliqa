@@ -254,11 +254,11 @@ bool Node::ProcessVCBlock(const vector<unsigned char>& message,
         return false;
     }
 
+    UpdateDSCommiteeComposition();
+
     // TDOO
     // Add to block chain and Store the VC block to disk.
     // StoreVCBlockToDisk(dsblock);
-
-    UpdateDSCommiteeComposition();
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I am a node and my view of leader is successfully changed.");
