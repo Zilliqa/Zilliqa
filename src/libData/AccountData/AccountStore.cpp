@@ -311,7 +311,7 @@ bool AccountStore::ExportCreateContractFiles(Account* contract)
 
     // Scilla code
     os.open(INPUT_CODE);
-    os << string(contract->GetCode().begin(), contract->GetCode().end());
+    os << DataConversion::CharArrayToString(contract->GetCode());
     os.close();
 
     // Initialize Json
@@ -341,7 +341,7 @@ bool AccountStore::ExportCallContractFiles(
 
     // Scilla code
     os.open(INPUT_CODE);
-    os << string(contract->GetCode().begin(), contract->GetCode().end());
+    os << DataConversion::CharArrayToString(contract->GetCode());
     os.close();
 
     // Initialize Json
@@ -370,7 +370,7 @@ bool AccountStore::ExportCallContractFiles(
                       &msgObj, &errors))
     {
         os.open(INPUT_MESSAGE_JSON);
-        os << string(contractData.begin(), contractData.end());
+        os << dataStr;
         os.close();
     }
     else
@@ -624,9 +624,7 @@ AccountStore::CompositeContractData(const std::string& funcName,
     writer->write(obj, &oss);
     string dataStr = oss.str();
 
-    std::vector<unsigned char> vect;
-    vect.insert(vect.begin(), dataStr.begin(), dataStr.end());
-    return vect;
+    return DataConversion::StringToCharArray(dataStr);
 }
 
 Account* AccountStore::GetAccount(const Address& address)
@@ -843,7 +841,7 @@ void AccountStore::MoveUpdatesToDisk()
     ContractStorage::GetContractStorage().GetStateDB().commit();
     for (auto i : m_addressToAccount)
     {
-        if (ContractStorage::GetContractStorage().PutContractCode(
+        if (!ContractStorage::GetContractStorage().PutContractCode(
                 i.first, i.second.GetCode()))
         {
             LOG_GENERAL(WARNING, "Write Contract Code to Disk Failed");
