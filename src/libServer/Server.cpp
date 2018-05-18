@@ -349,7 +349,7 @@ Json::Value Server::GetSmartContractState(const string& address)
             return _json;
         }
 
-        return account->GetJsonStorage();
+        return account->GetStorageJson();
     }
     catch (exception& e)
     {
