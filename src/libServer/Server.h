@@ -194,6 +194,11 @@ public:
                                                   jsonrpc::PARAMS_BY_POSITION,
                                                   jsonrpc::JSON_STRING, NULL),
                                &AbstractZServer::GetNumTxnsDSEpochI);
+        this->bindAndAddMethod(
+            jsonrpc::Procedure(
+                "GetSmartContractState", jsonrpc::PARAMS_BY_POSITION,
+                jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING, NULL),
+            &AbstractZServer::GetSmartContractStateI);
     }
 
     inline virtual void GetClientVersionI(const Json::Value& request,
@@ -407,6 +412,11 @@ public:
         (void)request;
         response = this->GetNumTxnsDSEpoch();
     }
+    inline virtual void GetSmartContractStateI(const Json::Value& request,
+                                               Json::Value& response)
+    {
+        response = this->GetSmartContractState(request[0u].asString());
+    }
     virtual std::string GetClientVersion() = 0;
     virtual std::string GetNetworkId() = 0;
     virtual std::string GetProtocolVersion() = 0;
@@ -447,6 +457,7 @@ public:
     virtual Json::Value GetShardingStructure() = 0;
     virtual std::string GetNumTxnsDSEpoch() = 0;
     virtual uint32_t GetNumTxnsTxEpoch() = 0;
+    virtual Json::Value GetSmartContractState(const std::string& param01) = 0;
 };
 
 class Server : public AbstractZServer
@@ -515,4 +526,6 @@ public:
     //gets the number of transaction starting from block blockNum to most recent block
     boost::multiprecision::uint256_t
     GetNumTransactions(boost::multiprecision::uint256_t blockNum);
+
+    Json::Value GetSmartContractState(const std::string& address);
 };
