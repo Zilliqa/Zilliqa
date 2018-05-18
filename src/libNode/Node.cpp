@@ -1000,7 +1000,8 @@ bool Node::CheckCreatedTransactionFromLookup(const Transaction& tx)
 
     // Check if to account exists in local storage
     const Address& toAddr = tx.GetToAddr();
-    if (!AccountStore::GetInstance().DoesAccountExist(toAddr))
+    if (!AccountStore::GetInstance().DoesAccountExist(toAddr)
+        && toAddr != dev::h160())
     {
         LOG_GENERAL(INFO, "New account is added: " << toAddr);
         AccountStore::GetInstance().AddAccount(toAddr, {0, 0});
