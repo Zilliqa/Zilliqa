@@ -22,6 +22,7 @@
 using BlockHash = dev::h256;
 
 // Data sizes
+const unsigned int COMMON_HASH_SIZE = 32;
 const unsigned int ACC_ADDR_SIZE = 20;
 const unsigned int TRAN_HASH_SIZE = 32;
 const unsigned int TRAN_SIG_SIZE = 64;
@@ -43,8 +44,9 @@ const unsigned int CHALLENGE_SIZE = 32;
 const unsigned int RESPONSE_SIZE = 32;
 
 // Acount related sizes
-const unsigned int ACCOUNT_SIZE
-    = UINT256_SIZE + UINT256_SIZE /* + ACC_ADDR_SIZE + PUB_KEY_SIZE*/;
+const unsigned int ACCOUNT_SIZE = UINT256_SIZE + UINT256_SIZE + COMMON_HASH_SIZE
+    + COMMON_HASH_SIZE /* + ACC_ADDR_SIZE + PUB_KEY_SIZE + STORAGE_ROOT_SIZE + CODE_HASH_SIZE*/
+    ;
 
 const unsigned int DS_BLOCKCHAIN_SIZE = 50;
 const unsigned int TX_BLOCKCHAIN_SIZE = 50;
@@ -73,13 +75,28 @@ enum MetaType : unsigned char
     DSINCOMPLETED,
 };
 
+// Sync Type
+enum SyncType : unsigned int
+{
+    NO_SYNC = 0,
+    NEW_SYNC,
+    NORMAL_SYNC,
+    DS_SYNC,
+    LOOKUP_SYNC,
+};
+
 const std::string RAND1_GENESIS
     = "2b740d75891749f94b6a8ec09f086889066608e4418eda656c93443e8310750a";
 const std::string RAND2_GENESIS
     = "e8cc9106f8a28671d91e2de07b57b828934481fadf6956563b963bb8e5c266bf";
 
-const std::string PERSISTENCE_PATH = "./persistence";
+const std::string REMOTE_TEST_DIR = "zilliqa-test";
+const std::string PERSISTENCE_PATH = "persistence";
 const std::string TX_BODY_SUBDIR = "txBodies";
+
+const std::string DS_KICKOUT_MSG = "KICKED OUT FROM DS";
+const std::string DS_LEADER_MSG = "DS LEADER NOW";
+const std::string DS_BACKUP_MSG = "DS BACKUP NOW";
 
 extern const unsigned int DS_MULTICAST_CLUSTER_SIZE;
 extern const unsigned int COMM_SIZE;
@@ -95,12 +112,15 @@ extern const unsigned int POW1_DIFFICULTY;
 extern const unsigned int POW2_DIFFICULTY;
 extern const unsigned int MICROBLOCK_TIMEOUT;
 extern const unsigned int VIEWCHANGE_TIME;
+extern const unsigned int SHARDING_TIMEOUT;
+extern const unsigned int CONSENSUS_OBJECT_TIMEOUT;
+extern const unsigned int FINALBLOCK_CONSENSUS_OBJECT_TIMEOUT;
 extern const unsigned int NUM_FINAL_BLOCK_PER_POW;
 extern const unsigned int NUM_DS_KEEP_TX_BODY;
 extern const uint32_t MAXMESSAGE;
 extern const unsigned int MAXSUBMITTXNPERNODE;
 extern const unsigned int TX_SHARING_CLUSTER_SIZE;
-extern const unsigned int NUM_LOOKUP_USE_FOR_SYNC;
+extern const unsigned int NEW_NODE_POW_DELAY;
 
 extern const unsigned int N_PREFILLED_PER_ACCOUNT;
 extern const std::vector<std::string> GENESIS_WALLETS;

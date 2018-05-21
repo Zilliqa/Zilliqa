@@ -21,6 +21,7 @@
 #include "Address.h"
 #include "depends/common/RLP.h"
 #include "libPersistence/BlockStorage.h"
+#include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 
@@ -42,6 +43,7 @@ void AccountStore::Init()
 {
     LOG_MARKER();
     m_addressToAccount.clear();
+    ContractStorage::GetContractStorage().GetDB().ResetDB();
     m_db.ResetDB();
     m_state.init();
     prevRoot = m_state.root();
@@ -174,46 +176,7 @@ void AccountStore::AddAccount(const Address& address, const Account& account)
 
 void AccountStore::AddAccount(const PubKey& pubKey, const Account& account)
 {
-    //LOG_MARKER();
-
-    Address address = Account::GetAddressFromPublicKey(pubKey);
-
-    if (!DoesAccountExist(address))
-    {
-        m_addressToAccount.insert(make_pair(address, account));
-        // UpdateStateTrie(address, account);
-    }
-}
-
-void AccountStore::AddAccount(const Address& address, const uint256_t& balance,
-                              const uint256_t& nonce)
-{
-    //LOG_MARKER();
-
-    if (!DoesAccountExist(address))
-    {
-        Account account(balance, nonce);
-        m_addressToAccount.insert(make_pair(address, account));
-        // UpdateStateTrie(address, account);
-
-        // LOG_GENERAL(INFO, "Account " << address << " with balance " << balance << ", nonce " << nonce <<
-        //              " created");
-    }
-}
-
-void AccountStore::AddAccount(const PubKey& pubKey, const uint256_t& balance,
-                              const uint256_t& nonce)
-{
-    //LOG_MARKER();
-
-    Address address = Account::GetAddressFromPublicKey(pubKey);
-
-    if (!DoesAccountExist(address))
-    {
-        Account account(balance, nonce);
-        m_addressToAccount.insert(make_pair(address, account));
-        // UpdateStateTrie(address, account);
-    }
+    AddAccount(Account::GetAddressFromPublicKey(pubKey), account);
 }
 
 void AccountStore::UpdateAccounts(const Transaction& transaction)
@@ -227,6 +190,8 @@ void AccountStore::UpdateAccounts(const Transaction& transaction)
 
     TransferBalance(fromAddr, toAddr, amount);
     IncreaseNonce(fromAddr);
+
+    //TODO: Process the contract
 }
 
 Account* AccountStore::GetAccount(const Address& address)
@@ -251,7 +216,9 @@ Account* AccountStore::GetAccount(const Address& address)
         std::piecewise_construct, std::forward_as_tuple(address),
         std::forward_as_tuple(
             accountDataRLP[0].toInt<boost::multiprecision::uint256_t>(),
-            accountDataRLP[1].toInt<boost::multiprecision::uint256_t>()));
+            accountDataRLP[1].toInt<boost::multiprecision::uint256_t>(),
+            accountDataRLP[2].toHash<dev::h256>(),
+            accountDataRLP[3].toHash<dev::h256>()));
 
     return &it2.first->second;
 }
@@ -281,8 +248,9 @@ bool AccountStore::UpdateStateTrie(const Address& address,
 {
     //LOG_MARKER();
 
-    dev::RLPStream rlpStream(2);
-    rlpStream << account.GetBalance() << account.GetNonce();
+    dev::RLPStream rlpStream(4);
+    rlpStream << account.GetBalance() << account.GetNonce()
+              << account.GetStorageRoot() << account.GetCodeHash();
     m_state.insert(address, &rlpStream.out());
 
     return true;
@@ -307,7 +275,7 @@ bool AccountStore::IncreaseBalance(
     }
     else if (account == nullptr)
     {
-        AddAccount(address, delta, 0);
+        AddAccount(address, {delta, 0, dev::h256(), dev::h256()});
         return true;
     }
 
@@ -334,7 +302,7 @@ bool AccountStore::DecreaseBalance(
     // TODO: remove this, temporary way to test transactions
     else if (account == nullptr)
     {
-        AddAccount(address, 10000000000, 0);
+        AddAccount(address, {10000000000, 0, dev::h256(), dev::h256()});
     }
 
     return false;
@@ -416,6 +384,11 @@ void AccountStore::MoveUpdatesToDisk()
 {
     LOG_MARKER();
 
+    ContractStorage::GetContractStorage().GetDB().commit();
+    for (auto i : m_addressToAccount)
+    {
+        i.second.Commit();
+    }
     m_state.db()->commit();
     prevRoot = m_state.root();
     MoveRootToDisk(prevRoot);
@@ -425,6 +398,11 @@ void AccountStore::DiscardUnsavedUpdates()
 {
     LOG_MARKER();
 
+    ContractStorage::GetContractStorage().GetDB().rollback();
+    for (auto i : m_addressToAccount)
+    {
+        i.second.RollBack();
+    }
     m_state.db()->rollback();
     m_state.setRoot(prevRoot);
     m_addressToAccount.clear();
@@ -456,13 +434,17 @@ bool AccountStore::RetrieveFromDisk()
     {
         Address address(i.first);
         dev::RLP rlp(i.second);
-        std::vector<uint256_t> account_data = rlp.toVector<uint256_t>();
-        if (account_data.size() != 2)
-        {
-            LOG_GENERAL(WARNING, "Account data corrupted");
-            return false;
-        }
-        Account account(account_data[0], account_data[1]);
+        // std::vector<uint256_t> account_data = rlp.toVector<uint256_t>();
+        // if (account_data.size() != 4)
+        // {
+        //     LOG_GENERAL(WARNING, "Account data corrupted");
+        //     return false;
+        // }
+        // Account account(account_data[0], account_data[1], account_data[2],
+        // account_data[3]);
+        Account account(rlp[0].toInt<boost::multiprecision::uint256_t>(),
+                        rlp[1].toInt<boost::multiprecision::uint256_t>(),
+                        rlp[2].toHash<dev::h256>(), rlp[3].toHash<dev::h256>());
         m_addressToAccount.insert({address, account});
     }
     return true;

@@ -22,13 +22,12 @@ sudo sysctl -w net.ipv4.tcp_wmem='65536 873800 1534217728';
 sudo sysctl -w net.ipv4.tcp_mem='65536 873800 1534217728';
 
 python tests/Zilliqa/test_zilliqa_local.py stop
-python tests/Zilliqa/test_zilliqa_local.py clean
 python tests/Zilliqa/test_zilliqa_local.py setup 20
 python tests/Zilliqa/test_zilliqa_local.py start 10
 
 
 sleep 30
-echo "starting on local host from block 0 with difficulty 3..."
+echo "starting..."
 
 #set primary 
 for ds in {1..10}
@@ -43,9 +42,9 @@ do
     python tests/Zilliqa/test_zilliqa_local.py startpow1 $node 10 0000000000000000000000000000000000000000000000000000000000000001 03 2b740d75891749f94b6a8ec09f086889066608e4418eda656c93443e8310750a e8cc9106f8a28671d91e2de07b57b828934481fadf6956563b963bb8e5c266bf
 done
 
-# call sendtxn to prefill txns on every node (DS, normal)
+
 for port in {01..20}
 do
     python tests/Zilliqa/test_zilliqa_local.py sendtxn 50$port
-done
+done 
 

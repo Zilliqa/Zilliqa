@@ -161,12 +161,9 @@ bool BlockStorage::GetDSBlock(const boost::multiprecision::uint256_t& blockNum,
 
     LOG_GENERAL(INFO, blockString);
     LOG_GENERAL(INFO, blockString.length());
-    const unsigned char* raw_memory
-        = reinterpret_cast<const unsigned char*>(blockString.c_str());
-    // FIXME: Handle exceptions
     block = DSBlockSharedPtr(new DSBlock(
-        std::vector<unsigned char>(raw_memory, raw_memory + blockString.size()),
-        0));
+        std::vector<unsigned char>(blockString.begin(), blockString.end()), 0));
+
     return true;
 }
 
@@ -180,12 +177,9 @@ bool BlockStorage::GetTxBlock(const boost::multiprecision::uint256_t& blockNum,
         return false;
     }
 
-    const unsigned char* raw_memory
-        = reinterpret_cast<const unsigned char*>(blockString.c_str());
-    // FIXME: Handle exceptions
     block = TxBlockSharedPtr(new TxBlock(
-        std::vector<unsigned char>(raw_memory, raw_memory + blockString.size()),
-        0));
+        std::vector<unsigned char>(blockString.begin(), blockString.end()), 0));
+
     return true;
 }
 
@@ -206,13 +200,9 @@ bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body)
     {
         return false;
     }
-
-    const unsigned char* raw_memory
-        = reinterpret_cast<const unsigned char*>(bodyString.c_str());
-    // FIXME: Handle exceptions
     body = TxBodySharedPtr(new Transaction(
-        std::vector<unsigned char>(raw_memory, raw_memory + bodyString.size()),
-        0));
+        std::vector<unsigned char>(bodyString.begin(), bodyString.end()), 0));
+
     return true;
 }
 
@@ -236,7 +226,7 @@ bool BlockStorage::DeleteTxBody(const dev::h256& key)
 #ifndef IS_LOOKUP_NODE
     int ret = m_txBodyDBs.back()->DeleteKey(key);
 #else // IS_LOOKUP_NODE
-    int ret = m_txBodyTmpDB.DeleteKey(key);
+    int ret = m_txBodyDB.DeleteKey(key);
 #endif // IS_LOOKUP_NODE
 
     return (ret == 0);
@@ -272,17 +262,17 @@ bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr>& blocks)
         if (blockString.empty())
         {
             LOG_GENERAL(WARNING, "Lost one block in the chain");
+            delete it;
             return false;
         }
-        const unsigned char* raw_memory
-            = reinterpret_cast<const unsigned char*>(blockString.c_str());
-        DSBlockSharedPtr block = DSBlockSharedPtr(
-            new DSBlock(std::vector<unsigned char>(
-                            raw_memory, raw_memory + blockString.size()),
-                        0));
 
+        DSBlockSharedPtr block = DSBlockSharedPtr(new DSBlock(
+            std::vector<unsigned char>(blockString.begin(), blockString.end()),
+            0));
         blocks.push_back(block);
     }
+
+    delete it;
 
     if (blocks.empty())
     {
@@ -309,16 +299,16 @@ bool BlockStorage::GetAllTxBlocks(std::list<TxBlockSharedPtr>& blocks)
         if (blockString.empty())
         {
             LOG_GENERAL(WARNING, "Lost one block in the chain");
+            delete it;
             return false;
         }
-        const unsigned char* raw_memory
-            = reinterpret_cast<const unsigned char*>(blockString.c_str());
-        TxBlockSharedPtr block = TxBlockSharedPtr(
-            new TxBlock(std::vector<unsigned char>(
-                            raw_memory, raw_memory + blockString.size()),
-                        0));
+        TxBlockSharedPtr block = TxBlockSharedPtr(new TxBlock(
+            std::vector<unsigned char>(blockString.begin(), blockString.end()),
+            0));
         blocks.push_back(block);
     }
+
+    delete it;
 
     if (blocks.empty())
     {
@@ -342,11 +332,14 @@ bool BlockStorage::GetAllTxBodiesTmp(std::list<TxnHash>& txnHashes)
         if (hashString.empty())
         {
             LOG_GENERAL(WARNING, "Lost one Tmp txBody Hash");
+            delete it;
             return false;
         }
         TxnHash txnHash(hashString);
         txnHashes.push_back(txnHash);
     }
+
+    delete it;
     return true;
 }
 #endif // IS_LOOKUP_NODE
@@ -370,10 +363,7 @@ bool BlockStorage::GetMetadata(MetaType type, std::vector<unsigned char>& data)
         return false;
     }
 
-    const unsigned char* raw_memory
-        = reinterpret_cast<const unsigned char*>(metaString.c_str());
-    data = std::vector<unsigned char>(raw_memory,
-                                      raw_memory + metaString.size());
+    data = std::vector<unsigned char>(metaString.begin(), metaString.end());
 
     return true;
 }
@@ -385,10 +375,13 @@ bool BlockStorage::ResetDB(DBTYPE type)
     {
     case META:
         ret = m_metadataDB.ResetDB();
+        break;
     case DS_BLOCK:
         ret = m_dsBlockchainDB.ResetDB();
+        break;
     case TX_BLOCK:
         ret = m_txBlockchainDB.ResetDB();
+        break;
 #ifndef IS_LOOKUP_NODE
     case TX_BODIES:
     {
@@ -402,18 +395,57 @@ bool BlockStorage::ResetDB(DBTYPE type)
             }
         }
         ret = true;
+        break;
     }
 #else // IS_LOOKUP_NODE
     case TX_BODY:
         ret = m_txBodyDB.ResetDB();
+        break;
     case TX_BODY_TMP:
         ret = m_txBodyTmpDB.ResetDB();
+        break;
 #endif // IS_LOOKUP_NODE
     }
     if (!ret)
     {
         LOG_GENERAL(INFO, "FAIL: Reset DB " << type << " failed");
     }
+    return ret;
+}
+
+std::vector<std::string> BlockStorage::GetDBName(DBTYPE type)
+{
+    std::vector<std::string> ret;
+    switch (type)
+    {
+    case META:
+        ret.push_back(m_metadataDB.GetDBName());
+        break;
+    case DS_BLOCK:
+        ret.push_back(m_dsBlockchainDB.GetDBName());
+        break;
+    case TX_BLOCK:
+        ret.push_back(m_txBlockchainDB.GetDBName());
+        break;
+#ifndef IS_LOOKUP_NODE
+    case TX_BODIES:
+    {
+        for (auto txBodyDB : m_txBodyDBs)
+        {
+            ret.push_back(txBodyDB->GetDBName());
+        }
+        break;
+    }
+#else // IS_LOOKUP_NODE
+    case TX_BODY:
+        ret.push_back(m_txBodyDB.GetDBName());
+        break;
+    case TX_BODY_TMP:
+        ret.push_back(m_txBodyTmpDB.GetDBName());
+        break;
+#endif // IS_LOOKUP_NODE
+    }
+
     return ret;
 }
 

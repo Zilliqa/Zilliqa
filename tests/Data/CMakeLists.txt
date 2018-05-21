@@ -10,7 +10,7 @@ link_directories(${CMAKE_BINARY_DIR}/lib)
 
 add_executable(Test_Account Test_Account.cpp)
 target_include_directories(Test_Account PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(Test_Account PUBLIC AccountData Utils Crypto)
+target_link_libraries(Test_Account PUBLIC AccountData Crypto Trie Utils Persistence)
 add_test(NAME Test_Account COMMAND Test_Account)
 
 add_executable(Test_AccountStore Test_AccountStore.cpp)

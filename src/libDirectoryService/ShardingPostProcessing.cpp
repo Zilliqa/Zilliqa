@@ -251,27 +251,25 @@ bool DirectoryService::ProcessShardingConsensus(
     // So, ANNOUNCE should acquire a lock here
 
     lock_guard<mutex> g(m_mutexConsensus);
-
-    unsigned int sleep_time_while_waiting = 100;
-    // Wait for a while in the case that primary sent announcement pretty early
+    // Wait until in the case that primary sent announcement pretty early
     if ((m_state == POW2_SUBMISSION) || (m_state == SHARDING_CONSENSUS_PREP))
     {
-        for (unsigned int i = 0; i < 1000; i++)
+        cv_shardingConsensus.notify_all();
+
+        std::unique_lock<std::mutex> cv_lk(m_MutexCVShardingConsensusObject);
+
+        if (cv_shardingConsensusObject.wait_for(
+                cv_lk, std::chrono::seconds(CONSENSUS_OBJECT_TIMEOUT))
+            == std::cv_status::timeout)
         {
-            if (m_state == SHARDING_CONSENSUS)
-            {
-                break;
-            }
-
-            if (i % 100 == 0)
-            {
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "Waiting for SHARDING_CONSENSUS before processing");
-            }
-
-            this_thread::sleep_for(
-                chrono::milliseconds(sleep_time_while_waiting));
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Time out while waiting for state transition and "
+                      "consensus object creation ");
         }
+
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "State transition is completed and consensus object "
+                  "creation. (check for timeout)");
     }
 
     // if (m_state != SHARDING_CONSENSUS)
@@ -344,8 +342,8 @@ bool DirectoryService::ProcessShardingConsensus(
         // Check for state change. If it get stuck at microblock submission for too long,
         // Move on to finalblock without the microblock
         std::unique_lock<std::mutex> cv_lk(m_MutexScheduleFinalBlockConsensus);
-        if (cv_scheduleFinalBlockConsensus.wait_for(cv_lk,
-                                                    std::chrono::seconds(180))
+        if (cv_scheduleFinalBlockConsensus.wait_for(
+                cv_lk, std::chrono::seconds(SHARDING_TIMEOUT))
             == std::cv_status::timeout)
         {
             LOG_GENERAL(
@@ -377,6 +375,10 @@ bool DirectoryService::ProcessShardingConsensus(
                   "Oops, no consensus reached - what to do now???");
         // throw exception();
         // TODO: no consensus reached
+        if (m_mode != PRIMARY_DS)
+        {
+            RejoinAsDS();
+        }
         return false;
     }
 
