@@ -32,23 +32,17 @@ IF (Boost_FOUND)
     message(STATUS "boost libs  : ${Boost_LIBRARIES}")
 
     include_directories( ${Boost_INCLUDE_DIR} )
-
     include_directories(${PROJECT_SOURCE_DIR}/src)
     include_directories(${PROJECT_SOURCE_DIR}/src/libPOW)
-
     include_directories(${CMAKE_SOURCE_DIR}/depends/libethash/)
 
-
     link_directories(${Boost_LIBRARY_DIRS})
+    link_directories(${G3LOG_BINARY_DIR})
     file(GLOB HEADERS "*.h")
-    if ((NOT MSVC) AND (NOT APPLE))
-        ADD_DEFINITIONS(-DBOOST_TEST_DYN_LINK)
+
+    if (NOT MSVC)
+         set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -std=c++11 ")
     endif()
-
-
-   if (NOT MSVC)
-        set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -std=c++11 ")
-   endif()
 
     add_executable (Test_POW "./test_POW.cpp" ${HEADERS})
 
@@ -56,12 +50,10 @@ IF (Boost_FOUND)
     target_link_libraries(Test_POW POW)
     target_link_libraries(Test_POW Utils)
     target_link_libraries(Test_POW Crypto)
-
     target_link_libraries(Test_POW ${Boost_FILESYSTEM_LIBRARIES})
     target_link_libraries(Test_POW ${Boost_SYSTEM_LIBRARIES})
     target_link_libraries(Test_POW ${Boost_UNIT_TEST_FRAMEWORK_LIBRARIES})
 
-
     enable_testing ()
-    add_test(NAME ethash COMMAND Test_POW)
+    add_test(NAME Test_POW COMMAND Test_POW)
 ENDIF()

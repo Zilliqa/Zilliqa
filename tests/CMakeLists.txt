@@ -8,7 +8,7 @@ add_subdirectory (depends)
 add_subdirectory (Lookup)
 add_subdirectory (Network)
 add_subdirectory (Persistence)
-#add_subdirectory (POW)
+add_subdirectory (POW)
 add_subdirectory (Utils)
 add_subdirectory (Zilliqa)
 

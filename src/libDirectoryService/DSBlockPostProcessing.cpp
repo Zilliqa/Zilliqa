@@ -217,6 +217,8 @@ void DirectoryService::UpdateMyDSModeAndConsensusId()
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "I am now just a backup DS");
+        LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
+                      DS_BACKUP_MSG);
         m_mode = BACKUP_DS;
         m_consensusMyID++;
 
@@ -234,6 +236,8 @@ void DirectoryService::UpdateMyDSModeAndConsensusId()
         LOG_EPOCH(
             INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "I am the oldest backup DS -> now kicked out of DS committee :-(");
+        LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
+                      DS_KICKOUT_MSG);
         m_mediator.m_node->SetState(Node::NodeState::POW2_SUBMISSION);
         m_mode = IDLE;
 
@@ -278,12 +282,27 @@ void DirectoryService::ScheduleShardingConsensus(const unsigned int wait_window)
     LOG_MARKER();
 
     auto func = [this, wait_window]() -> void {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Waiting " << wait_window
-                             << " seconds, accepting PoW2 submissions...");
-        this_thread::sleep_for(chrono::seconds(wait_window));
+        std::unique_lock<std::mutex> cv_lk(m_MutexCVShardingConsensus);
+
+        if (cv_shardingConsensus.wait_for(cv_lk,
+                                          std::chrono::seconds(wait_window))
+            == std::cv_status::timeout)
+        {
+            LOG_GENERAL(INFO,
+                        "I have woken up from the sleep of " << wait_window
+                                                             << " seconds");
+        }
+        else
+        {
+            LOG_GENERAL(INFO,
+                        "I have received announcement message. Time to "
+                        "run consensus.");
+        }
+
         RunConsensusOnSharding();
+        cv_shardingConsensusObject.notify_all();
     };
+
     DetachedFunction(1, func);
 }
 
@@ -399,32 +418,25 @@ bool DirectoryService::ProcessDSBlockConsensus(
 
     lock_guard<mutex> g(m_mutexConsensus);
 
-    // Wait for a while for ProcessDSBlock in the case that primary sent announcement pretty early
-    // TODO: Should await sleep. Use conditional var.
-    unsigned int sleep_time_while_waiting = 100;
+    // Wait until ProcessDSBlock in the case that primary sent announcement pretty early
     if ((m_state == POW1_SUBMISSION) || (m_state == DSBLOCK_CONSENSUS_PREP))
     {
-        //for (unsigned int i = 0; i < POW1_WINDOW_IN_SECONDS; i++)
-        unsigned int i = 0;
-        while (true)
+        cv_DSBlockConsensus.notify_all();
+
+        std::unique_lock<std::mutex> cv_lk(m_MutexCVDSBlockConsensusObject);
+
+        if (cv_DSBlockConsensusObject.wait_for(
+                cv_lk, std::chrono::seconds(CONSENSUS_OBJECT_TIMEOUT))
+            == std::cv_status::timeout)
         {
-            if (m_state == DSBLOCK_CONSENSUS)
-            {
-                break;
-            }
-
-            if (i % 100 == 0)
-            {
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "Waiting for DSBLOCK_CONSENSUS before processing. "
-                          "Time elapsed: "
-                              << (i / 10) << "seconds");
-            }
-
-            this_thread::sleep_for(
-                chrono::milliseconds(sleep_time_while_waiting));
-            i++;
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Time out while waiting for state transition and "
+                      "consensus object creation ");
         }
+
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "State transition is completed and consensus object "
+                  "creation. (check for timeout)");
     }
 
     if (!CheckState(PROCESS_DSBLOCKCONSENSUS))
@@ -455,6 +467,10 @@ bool DirectoryService::ProcessDSBlockConsensus(
 
         // Wait for view change to happen
         //throw exception();
+        if (m_mode != PRIMARY_DS)
+        {
+            RejoinAsDS();
+        }
     }
     else
     {

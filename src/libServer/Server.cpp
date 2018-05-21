@@ -174,9 +174,7 @@ Json::Value Server::GetTransaction(const string& transactionHash)
             _json["error"] = "Txn Hash not Present";
             return _json;
         }
-        Transaction txn(tx->GetVersion(), tx->GetNonce(), tx->GetToAddr(),
-                        tx->GetSenderPubKey(), tx->GetAmount(),
-                        tx->GetSignature());
+        Transaction txn(*tx);
         return JSONConversion::convertTxtoJson(txn);
     }
     catch (exception& e)
@@ -818,6 +816,9 @@ Json::Value Server::GetBlockchainInfo()
     _json["DSBlockRate"] = Server::GetDSBlockRate();
     _json["CurrentMiniEpoch"] = Server::GetCurrentMiniEpoch();
     _json["CurrentDSEpoch"] = Server::GetCurrentDSEpoch();
+    _json["NumTxnsDSEpoch"] = Server::GetNumTxnsDSEpoch();
+    _json["NumTxnsTxEpoch"] = Server::GetNumTxnsTxEpoch();
+    _json["ShardingStructure"] = Server::GetShardingStructure();
 
     return _json;
 }

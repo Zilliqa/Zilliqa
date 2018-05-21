@@ -14,42 +14,35 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#include "libCrypto/Schnorr.h"
-#include <iostream>
+#ifndef CONTRACTSTORAGE_H
+#define CONTRACTSTORAGE_H
 
-using namespace std;
+#include <leveldb/db.h>
 
-void Print(const vector<unsigned char>& payload)
+#include "depends/libDatabase/LevelDB.h"
+#include "depends/libDatabase/OverlayDB.h"
+#include "depends/libTrie/TrieDB.h"
+
+using namespace dev;
+
+/// Manages persistent storage of DS and Tx blocks.
+class ContractStorage
 {
-    static const char* hex_table = "0123456789ABCDEF";
+    OverlayDB m_contractStatesDB;
 
-    size_t payload_string_len = (payload.size() * 2) + 1;
-    unique_ptr<char[]> payload_string = make_unique<char[]>(payload_string_len);
-    for (unsigned int payload_idx = 0, payload_string_idx = 0;
-         (payload_idx < payload.size())
-         && ((payload_string_idx + 2) < payload_string_len);
-         payload_idx++)
+    ContractStorage()
+        : m_contractStatesDB("contractStates"){};
+    ~ContractStorage() = default;
+
+public:
+    /// Returns the singleton ContractStorage instance.
+    static ContractStorage& GetContractStorage()
     {
-        payload_string.get()[payload_string_idx++]
-            = hex_table[(payload.at(payload_idx) >> 4) & 0xF];
-        payload_string.get()[payload_string_idx++]
-            = hex_table[payload.at(payload_idx) & 0xF];
+        static ContractStorage cs;
+        return cs;
     }
-    payload_string.get()[payload_string_len - 1] = '\0';
-    cout << payload_string.get();
-}
 
-int main(int argc, const char* argv[])
-{
-    pair<PrivKey, PubKey> keypair = Schnorr::GetInstance().GenKeyPair();
+    OverlayDB& GetDB() { return m_contractStatesDB; }
+};
 
-    vector<unsigned char> privkey, pubkey;
-    keypair.first.Serialize(privkey, 0);
-    keypair.second.Serialize(pubkey, 0);
-
-    Print(pubkey);
-    cout << " ";
-    Print(privkey);
-
-    return 0;
-}
+#endif // BLOCKSTORAGE_H
