@@ -48,7 +48,7 @@ brew install \
     libjson-rpc-cpp \
     miniupnpc \
     libevent \
-    
+
 # install developement deps
 brew install \
     ccache \
