@@ -902,13 +902,16 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
     }
     else if (submitTxnType == SUBMITTRANSACTIONTYPE::TXNSHARING)
     {
-        while (m_state != TX_SUBMISSION && m_state != TX_SUBMISSION_BUFFER)
+        int counter = 50;
+        while (m_state != TX_SUBMISSION && m_state != TX_SUBMISSION_BUFFER && counter-- > 0)
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Not in ProcessSubmitTxn state -- waiting!")
             this_thread::sleep_for(chrono::milliseconds(200));
         }
 
+        if (counter < 0)
+            return true;
         ProcessSubmitTxnSharing(message, cur_offset, from);
     }
 #endif // IS_LOOKUP_NODE
