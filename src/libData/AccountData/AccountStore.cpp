@@ -559,8 +559,10 @@ bool AccountStore::ParseCallContractJsonOutput(const Json::Value& _json)
                 break;
             }
         }
-        TransferBalance(m_curContractAddr, toAddr,
-                        atoi(_json["message"]["_amount"].asString().c_str()));
+        // A hacky way of refunding the contract the number of amount for the transaction, because the balance was affected by the parsing of _balance and the 'Main' message. Need to fix in the future
+        int amount = atoi(_json["message"]["_amount"].asString().c_str());
+        TransferBalance(m_curContractAddr, toAddr, amount);
+        IncreaseBalance(m_curContractAddr, amount);
         IncreaseNonce(m_curContractAddr);
 
         return true;
