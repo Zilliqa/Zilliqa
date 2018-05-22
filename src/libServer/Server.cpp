@@ -440,6 +440,7 @@ Json::Value Server::GetSmartContracts(const string& address)
         do
         {
             Address contractAddr = Account::GetAddressForContract(addr, nonce);
+            nonce--;
             const Account* contractAccount
                 = AccountStore::GetInstance().GetAccount(contractAddr);
             if (contractAccount != nullptr)
@@ -453,7 +454,6 @@ Json::Value Server::GetSmartContracts(const string& address)
                 tmpJson["state"] = contractAccount->GetStorageJson();
                 _json.append(tmpJson);
             }
-            nonce--;
         } while (nonce > 0);
         return _json;
     }
