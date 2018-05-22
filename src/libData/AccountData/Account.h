@@ -49,7 +49,6 @@ class Account : public Serializable
     // The associated code for this account.
     Json::Value m_initValJson;
     vector<unsigned char> m_codeCache;
-    vector<string> m_keys;
 
     bool isContract() const { return m_codeHash != h256(); }
 
