@@ -246,9 +246,10 @@ bool Node::ProcessSharding(const vector<unsigned char>& message,
 
     DetachedFunction(1, main_func);
 
-    LOG_GENERAL(INFO, "I am going to sleep for 15 seconds");
-    this_thread::sleep_for(chrono::seconds(15));
-    LOG_GENERAL(INFO, "I have woken up from the sleep of 15 seconds");
+    //FIXME: change PROCESS_SHARDING_WINDOW1 to a meaningful name
+    LOG_GENERAL(INFO, "I am going to sleep for " << PROCESS_SHARDING_WINDOW1 << " seconds");
+    this_thread::sleep_for(chrono::seconds(PROCESS_SHARDING_WINDOW1));
+    LOG_GENERAL(INFO, "I have woken up from the sleep of " << PROCESS_SHARDING_WINDOW1 << " seconds");
 
     auto main_func2 = [this]() mutable -> void {
         // unique_lock<shared_timed_mutex> lock(m_mutexProducerConsumer);
@@ -257,9 +258,10 @@ bool Node::ProcessSharding(const vector<unsigned char>& message,
 
     DetachedFunction(1, main_func2);
 
-    LOG_GENERAL(INFO, "I am going to sleep for 50 seconds");
-    this_thread::sleep_for(chrono::seconds(50));
-    LOG_GENERAL(INFO, "I have woken up from the sleep of 50 seconds");
+    //FIXME: change PROCESS_SHARDING_WINDOW2 to a meaningful name
+    LOG_GENERAL(INFO, "I am going to sleep for " << PROCESS_SHARDING_WINDOW2 << " seconds");
+    this_thread::sleep_for(chrono::seconds(PROCESS_SHARDING_WINDOW2));
+    LOG_GENERAL(INFO, "I have woken up from the sleep of " << PROCESS_SHARDING_WINDOW2 << " seconds");
 
     auto main_func3 = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
 

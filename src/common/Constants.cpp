@@ -103,6 +103,11 @@ const unsigned int NEW_NODE_POW_DELAY{
     ReadFromConstantsFile("NEW_NODE_POW_DELAY")};
 const unsigned int N_PREFILLED_PER_ACCOUNT{
     ReadFromConstantsFile("N_PREFILLED_PER_ACCOUNT")};
+const unsigned int PROCESS_SHARDING_WINDOW1{
+    ReadFromConstantsFile("PROCESS_SHARDING_WINDOW1")};
+const unsigned int PROCESS_SHARDING_WINDOW2{
+    ReadFromConstantsFile("PROCESS_SHARDING_WINDOW2")};
+
 const std::vector<std::string> GENESIS_WALLETS{
     ReadAccountsFromConstantsFile("wallet_address")};
 const std::vector<std::string> GENESIS_KEYS{
