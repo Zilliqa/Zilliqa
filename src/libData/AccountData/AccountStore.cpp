@@ -596,9 +596,18 @@ bool AccountStore::ParseCallContractJsonOutput(const Json::Value& _json)
                                       _json["message"]["_amount"].asString(),
                                       params)))
         {
+            Address t_address = m_curContractAddr;
             m_curContractAddr = toAddr;
             SysCommand::ExecuteCmdWithOutput(GetCallContractCmdStr());
-            return ParseCallContractOutput();
+            if (ParseCallContractOutput())
+            {
+                IncreaseNonce(t_address);
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
         else
         {
