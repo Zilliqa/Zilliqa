@@ -49,7 +49,7 @@ const unsigned int NUM_PAGES_CACHE = 2;
 const unsigned int TXN_PAGE_SIZE = 100;
 
 //[warning] do not make this constant too big as it loops over blockchain
-const unsigned int REF_BLOCK_DIFF = 5;
+const unsigned int REF_BLOCK_DIFF = 1;
 
 Server::Server(Mediator& mediator, HttpServer& httpserver)
     : AbstractZServer(httpserver)
