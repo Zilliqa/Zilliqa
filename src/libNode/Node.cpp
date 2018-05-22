@@ -52,7 +52,7 @@ void addBalanceToGenesisAccount()
 {
     LOG_MARKER();
 
-    const uint256_t bal{100000000000};
+    const uint256_t bal{10000};
     const uint256_t nonce{0};
 
     for (auto& walletHexStr : GENESIS_WALLETS)
