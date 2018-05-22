@@ -154,8 +154,7 @@ Challenge ConsensusCommon::GetChallenge(const vector<unsigned char>& msg,
 {
     LOG_MARKER();
 
-    return Challenge(aggregated_commit, aggregated_key, m_message, offset,
-                     size);
+    return Challenge(aggregated_commit, aggregated_key, msg, offset, size);
 }
 
 ConsensusCommon::State ConsensusCommon::GetState() const { return m_state; }
