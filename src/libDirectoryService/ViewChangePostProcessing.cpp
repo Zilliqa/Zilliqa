@@ -142,6 +142,8 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "View change consensus is DONE!!!");
 
+    m_pendingVCBlock->SetCoSignatures(*m_consensusObject);
+
     Peer newLeaderNetworkInfo;
     unsigned char viewChangeState;
     {
