@@ -17,6 +17,7 @@
 #ifndef __ACCOUNTSTORE_H__
 #define __ACCOUNTSTORE_H__
 
+#include <json/json.h>
 #include <mutex>
 #include <set>
 #include <unordered_map>
@@ -34,7 +35,7 @@
 #include "libData/AccountData/Transaction.h"
 
 template<class KeyType, class DB>
-using SecureTrieDB = dev::SpecificTrieDB<dev::HashedGenericTrieDB<DB>, KeyType>;
+using SecureTrieDB = dev::SpecificTrieDB<dev::GenericTrieDB<DB>, KeyType>;
 
 using StateHash = dev::h256;
 
@@ -48,6 +49,11 @@ class AccountStore : public Serializable
         m_state; // Our state tree, as an OverlayDB DB.
     dev::h256 prevRoot;
 
+    std::mutex m_mutexCallInterpreter;
+
+    uint64_t m_curBlockNum;
+    Address m_curContractAddr;
+
     AccountStore();
     ~AccountStore();
 
@@ -57,6 +63,30 @@ class AccountStore : public Serializable
 
     /// Store the trie root to leveldb
     void MoveRootToDisk(const dev::h256& root);
+
+    bool ParseCreateContractOutput();
+
+    bool ParseCreateContractJsonOutput(const Json::Value& _json);
+
+    bool ParseCallContractOutput();
+
+    bool ParseCallContractJsonOutput(const Json::Value& _json);
+
+    Json::Value GetBlockStateJson(const uint64_t& BlockNum) const;
+
+    std::string GetCreateContractCmdStr();
+
+    std::string GetCallContractCmdStr();
+
+    bool ExportCreateContractFiles(Account* contract);
+
+    bool
+    ExportCallContractFiles(Account* contract,
+                            const std::vector<unsigned char>& contractData);
+
+    const std::vector<unsigned char>
+    CompositeContractData(const std::string& funcName,
+                          const std::string& amount, const Json::Value& params);
 
 public:
     /// Returns the singleton AccountStore instance.
@@ -77,7 +107,8 @@ public:
     void AddAccount(const Address& address, const Account& account);
     void AddAccount(const PubKey& pubKey, const Account& account);
 
-    void UpdateAccounts(const Transaction& transaction);
+    bool UpdateAccounts(const uint64_t& blockNum,
+                        const Transaction& transaction);
 
     /// Returns the Account associated with the specified address.
     Account* GetAccount(const Address& address);

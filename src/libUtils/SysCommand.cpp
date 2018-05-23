@@ -14,41 +14,4 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#ifndef __SYSCOMMAND_H__
-#define __SYSCOMMAND_H__
-
-#include <array>
-#include <cstdlib>
-#include <fstream>
-#include <iostream>
-#include <memory>
-#include <string>
-
-const std::string EXEC_CMD_LOG = "ExecuteCmd.txt";
-
-class SysCommand
-{
-public:
-    static void ExecuteCmd(const std::string cmd)
-    {
-        int ret = std::system((cmd + " > " + EXEC_CMD_LOG).c_str());
-        (void)ret;
-    }
-
-    static const std::string ExecuteCmdWithOutput(const std::string cmd)
-    {
-        std::array<char, 128> buffer;
-        std::string result;
-        std::shared_ptr<FILE> pipe(popen(cmd.c_str(), "r"), pclose);
-        if (!pipe)
-            throw std::runtime_error("popen() failed!");
-        while (!feof(pipe.get()))
-        {
-            if (fgets(buffer.data(), 128, pipe.get()) != nullptr)
-                result += buffer.data();
-        }
-        return result;
-    }
-};
-
-#endif // __SYSCOMMAND_H__
+#include "SysCommand.h"

@@ -31,12 +31,13 @@ using namespace dev;
 #include <boost/test/unit_test.hpp>
 
 template<class KeyType, class DB>
-using SecureTrieDB = dev::SpecificTrieDB<dev::HashedGenericTrieDB<DB>, KeyType>;
+using SecureTrieDB = dev::SpecificTrieDB<dev::GenericTrieDB<DB>, KeyType>;
 
 BOOST_AUTO_TEST_SUITE(persistencetest)
 
 dev::h256 root1, root2;
-bytesConstRef k;
+// bytesConstRef k, k1;
+string k1, k2;
 h256 h;
 
 BOOST_AUTO_TEST_CASE(createTwoTrieOnOneDB)
@@ -50,24 +51,42 @@ BOOST_AUTO_TEST_CASE(createTwoTrieOnOneDB)
 
     SecureTrieDB<bytesConstRef, dev::OverlayDB> m_trie1(&m_db);
     m_trie1.init();
-    k = dev::h256::random().ref();
-    m_trie1.insert(k, string("aaa"));
+
+    k1 = "TestA";
+    dev::RLPStream rlpStream1(2);
+    rlpStream1 << "aaa"
+               << "AAA";
+    m_trie1.insert(k1, rlpStream1.out());
+    k2 = "TestB";
+    dev::RLPStream rlpStream2(2);
+    rlpStream2 << "bbb"
+               << "BBB";
+    m_trie1.insert(k2, rlpStream2.out());
     m_trie1.db()->commit();
     root1 = m_trie1.root();
     LOG_GENERAL(INFO, "root1 = " << root1);
-    LOG_GENERAL(INFO, "k: " << k << " \nv: " << m_trie1.at(k));
 
-    BOOST_CHECK_MESSAGE(m_trie1.contains(k),
+    for (auto i : m_trie1)
+    {
+        dev::RLP rlp(i.second);
+        LOG_GENERAL(INFO,
+                    "ITERATE k: " << i.first.toString()
+                                  << " v: " << rlp[0].toString() << " "
+                                  << rlp[1].toString());
+    }
+
+    BOOST_CHECK_MESSAGE(m_trie1.contains(k1),
                         "ERROR: Trie1 cannot get the element in Trie1");
 
     SecureTrieDB<h256, dev::OverlayDB> m_trie2(&m_db);
     m_trie2.init();
     h = dev::h256::random();
-    m_trie2.insert(h, string("bbb"));
+    m_trie2.insert(h, string("hhh"));
+
     m_trie2.db()->commit();
     root2 = m_trie2.root();
     LOG_GENERAL(INFO, "root2 = " << root2);
-    LOG_GENERAL(INFO, "h: " << h << " \nv: " << m_trie2.at(h));
+    LOG_GENERAL(INFO, "h: " << h << " v: " << m_trie2.at(h));
 
     BOOST_CHECK_MESSAGE(m_trie2.contains(h),
                         "ERROR: Trie1 cannot get the element in Trie2");
@@ -81,7 +100,7 @@ BOOST_AUTO_TEST_CASE(retrieveDataStoredInTheTwoTrie)
     m_trie3.setRoot(root1);
     m_trie4.setRoot(root2);
 
-    BOOST_CHECK_MESSAGE(m_trie3.contains(k),
+    BOOST_CHECK_MESSAGE(m_trie3.contains(k1),
                         "ERROR: Trie3 cannot get the element in Trie1");
     BOOST_CHECK_MESSAGE(m_trie4.contains(h),
                         "ERROR: Trie4 cannot get the element in Trie2");
