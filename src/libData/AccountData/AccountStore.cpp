@@ -507,6 +507,8 @@ bool AccountStore::ParseCallContractJsonOutput(const Json::Value& _json)
         return false;
     }
 
+    int deducted = 0;
+
     for (auto s : _json["states"])
     {
         if (!s.isMember("vname") || !s.isMember("type") || !s.isMember("value"))
@@ -536,8 +538,11 @@ bool AccountStore::ParseCallContractJsonOutput(const Json::Value& _json)
 
         if (vname == "_balance")
         {
-            m_addressToAccount[m_curContractAddr].SetBalance(
-                atoi(value.c_str()));
+            int newBalance = atoi(value.c_str());
+            deducted = static_cast<int>(
+                           m_addressToAccount[m_curContractAddr].GetBalance())
+                - newBalance;
+            m_addressToAccount[m_curContractAddr].SetBalance(newBalance);
         }
         else
         {
@@ -562,7 +567,11 @@ bool AccountStore::ParseCallContractJsonOutput(const Json::Value& _json)
         // A hacky way of refunding the contract the number of amount for the transaction, because the balance was affected by the parsing of _balance and the 'Main' message. Need to fix in the future
         int amount = atoi(_json["message"]["_amount"].asString().c_str());
         TransferBalance(m_curContractAddr, toAddr, amount);
-        IncreaseBalance(m_curContractAddr, amount);
+        // what if the positive value is come from a failed function call
+        if (deducted > 0)
+        {
+            IncreaseBalance(m_curContractAddr, deducted);
+        }
         IncreaseNonce(m_curContractAddr);
 
         return true;
