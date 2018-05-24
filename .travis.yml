@@ -1,55 +1,42 @@
 language: generic
-sudo: false
-cache: apt
+cache:
+  directories:
+    - $HOME/.ccache/
 
-before_script:
-  # Install lcov 1.13
-  - wget -O lcov-1.13.tar.gz https://github.com/linux-test-project/lcov/releases/download/v1.13/lcov-1.13.tar.gz
-  - tar xzf lcov-1.13.tar.gz
-  - cd lcov-1.13 && sudo make install
-  - cd ..
+# multiplied by platform
+os:
+  - osx
+  - linux
 
-matrix:
-  include:
-    - env: LANGUAGE=C++ CXX=g++-5 CC=gcc-5 GCOV=gcov-5
-      addons:
-        apt:
-          packages:
-            - g++-5
-            - libboost-all-dev
-            - libleveldb-dev
-            - libjsoncpp-dev
-            - libsnappy-dev
-          sources: &sources
-            - r-packages-trusty
-            - llvm-toolchain-trusty
-            - ubuntu-toolchain-r-test
-            - llvm-toolchain-trusty-5.0
-      script:
-        - cmake -DCMAKE_BUILD_TYPE=Debug -DGCC_COVERAGE_COMPILE_FLAGS='-g -O0 -fprofile-arcs -ftest-coverage' .
-        - make -j4
-        - ctest
-        - make -j4 nuQoin_coverage
-      after_success:
-        - cd ${TRAVIS_BUILD_DIR}
-        - lcov --gcov-tool gcov-5 --directory . --capture --output-file coverage.info
-        - lcov --gcov-tool gcov-5 --remove coverage.info '/usr/*' --output-file coverage.info
-        - lcov --gcov-tool gcov-5 --list coverage.info
-        - bash <(curl -s https://codecov.io/bash) -g '/usr/**' -x gcov-5 || echo "Codecov did not collect coverage reports"
-    - env: LANGUAGE=C++ CXX=g++-5 CC=gcc-5
-      addons:
-        apt:
-          packages:
-            - g++-5
-            - libboost-all-dev
-            - libleveldb-dev
-            - libjsoncpp-dev
-            - libsnappy-dev
-          sources: &sources
-            - r-packages-trusty
-            - llvm-toolchain-trusty
-            - ubuntu-toolchain-r-test
-            - llvm-toolchain-trusty-5.0
-      script:
-        - ./build_lookup.sh
-        - ctest
+# multiplied by BUILD_COMMAND
+env:
+  matrix:
+    - BUILD_COMMAND="./scripts/ci_build.sh"
+    - BUILD_COMMAND="./scripts/ci_build.sh lookup"
+
+before_install:
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+      docker pull ubuntu:16.04;
+      docker run -d -v $(pwd):/zilliqa -v $HOME/.ccache:/root/.ccache -w /zilliqa --name ci ubuntu:16.04 tail -f /dev/null;
+    fi
+
+install:
+  # note: use option '-t' for 'docker exec' to enable colored output
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+      docker exec -e CI="true" -t ci /bin/sh -c "./scripts/ci_install_deps.sh";
+    else
+      ./scripts/ci_install_deps.sh;
+    fi
+
+script:
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+      docker exec -t ci /bin/sh -c "$BUILD_COMMAND";
+    else
+      $BUILD_COMMAND;
+    fi
+
+# Code coverage is currently only implemented for GCC builds, so OSX is currently excluded from reporting
+after_success:
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+      docker exec -e CI="true" -e TRAVIS="$TRAVIS" -e TRAVIS_PULL_REQUEST_SHA="$TRAVIS_PULL_REQUEST_SHA" -e TRAVIS_COMMIT="$TRAVIS_COMMIT" -e TRAVIS_JOB_NUMBER="$TRAVIS_JOB_NUMBER" -e TRAVIS_PULL_REQUEST="$TRAVIS_PULL_REQUEST" -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" -e TRAVIS_REPO_SLUG="$TRAVIS_REPO_SLUG" -e TRAVIS_OS_NAME="$TRAVIS_OS_NAME" -e TRAVIS_TAG="$TRAVIS_TAG" -e TRAVIS_BRANCH="$TRAVIS_BRANCH" -t ci /bin/sh -c "./scripts/ci_report_coverage.sh";
+    fi

@@ -14,7 +14,6 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-
 #ifndef __MESSAGES_H__
 #define __MESSAGES_H__
 
@@ -30,7 +29,8 @@ enum MessageType : unsigned char
     PEER = 0x00,
     DIRECTORY = 0x01,
     NODE = 0x02,
-    CONSENSUSUSER = 0x03, // Note: this is a test class only, to demonstrate consensus usage
+    CONSENSUSUSER
+    = 0x03, // Note: this is a test class only, to demonstrate consensus usage
     LOOKUP = 0x04
 };
 
@@ -44,7 +44,11 @@ enum DSInstructionType : unsigned char
     MICROBLOCKSUBMISSION = 0x05,
     FINALBLOCKCONSENSUS = 0x06,
     AllPoWConnRequest = 0x07,
-    AllPoWConnResponse = 0x08
+    AllPoWConnResponse = 0x08,
+    LastDSBlockRequest = 0x09,
+    LastDSBlockResponse = 0x0A,
+    INITVIEWCHANGE = 0x0B,
+    INITVIEWCHANGERESPONSE = 0x0C
 };
 
 enum NodeInstructionType : unsigned char
@@ -56,7 +60,8 @@ enum NodeInstructionType : unsigned char
     SUBMITTRANSACTION = 0x04,
     MICROBLOCKCONSENSUS = 0x05,
     FINALBLOCK = 0x06,
-    FORWARDTRANSACTION  = 0x07
+    FORWARDTRANSACTION = 0x07,
+    CREATETRANSACTIONFROMLOOKUP = 0x08
 };
 
 enum LookupInstructionType : unsigned char
@@ -71,18 +76,24 @@ enum LookupInstructionType : unsigned char
     GETTXBLOCKFROMSEED = 0x07,
     SETTXBLOCKFROMSEED = 0x08,
     GETTXBODYFROMSEED = 0x09,
-    SETTXBODYFROMSEED = 0x0a,
-    GETNETWORKIDFROMSEED = 0x0b,
-    SETNETWORKIDFROMSEED = 0x0c
+    SETTXBODYFROMSEED = 0x0A,
+    GETNETWORKIDFROMSEED = 0x0B,
+    SETNETWORKIDFROMSEED = 0x0C,
+    GETSTATEFROMSEED = 0x0D,
+    SETSTATEFROMSEED = 0x0E,
+    SETLOOKUPOFFLINE = 0x0F,
+    SETLOOKUPONLINE = 0x10,
+    GETOFFLINELOOKUPS = 0x11,
+    SETOFFLINELOOKUPS = 0x12,
 };
 
 enum TxSharingMode : unsigned char
 {
-    IDLE              = 0x00,
-    SEND_ONLY         = 0x01,
-    DS_FORWARD_ONLY   = 0x02,
+    IDLE = 0x00,
+    SEND_ONLY = 0x01,
+    DS_FORWARD_ONLY = 0x02,
     NODE_FORWARD_ONLY = 0x03,
-    SEND_AND_FORWARD  = 0x04
+    SEND_AND_FORWARD = 0x04
 };
 
 #endif // __MESSAGES_H__

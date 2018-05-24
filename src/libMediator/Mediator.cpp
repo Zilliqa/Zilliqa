@@ -16,30 +16,29 @@
 
 #include <array>
 
+#include "Mediator.h"
 #include "common/Constants.h"
 #include "libCrypto/Sha2.h"
 #include "libData/BlockChainData/DSBlockChain.h"
 #include "libData/BlockChainData/TxBlockChain.h"
 #include "libUtils/DataConversion.h"
-#include "Mediator.h"
 
 using namespace std;
 
-Mediator::Mediator(const pair<PrivKey, PubKey> & key, const Peer & peer) :
-        m_selfKey(key), m_selfPeer(peer)
+Mediator::Mediator(const pair<PrivKey, PubKey>& key, const Peer& peer)
+    : m_selfKey(key)
+    , m_selfPeer(peer)
 {
     m_ds = nullptr;
     m_node = nullptr;
     m_currentEpochNum = 0;
-    m_isConnectedToNetwork = false;
+    m_isRetrievedHistory = false;
 }
 
-Mediator::~Mediator()
-{
+Mediator::~Mediator() {}
 
-}
-
-void Mediator::RegisterColleagues(DirectoryService *ds, Node *node, Lookup *lookup)
+void Mediator::RegisterColleagues(DirectoryService* ds, Node* node,
+                                  Lookup* lookup)
 {
     m_ds = ds;
     m_node = node;
@@ -53,7 +52,7 @@ void Mediator::UpdateDSBlockRand(bool isGenesis)
     if (isGenesis)
     {
         //genesis block
-        LOG_MESSAGE("Genesis DSBlockchain")
+        LOG_GENERAL(INFO, "Genesis DSBlockchain")
         array<unsigned char, UINT256_SIZE> rand1;
         rand1 = DataConversion::HexStrToStdArray(RAND1_GENESIS);
         copy(rand1.begin(), rand1.end(), m_dsBlockRand.begin());
@@ -77,7 +76,7 @@ void Mediator::UpdateTxBlockRand(bool isGenesis)
 
     if (isGenesis)
     {
-        LOG_MESSAGE("Genesis txBlockchain")
+        LOG_GENERAL(INFO, "Genesis txBlockchain")
         array<unsigned char, UINT256_SIZE> rand2;
         rand2 = DataConversion::HexStrToStdArray(RAND2_GENESIS);
         copy(rand2.begin(), rand2.end(), m_txBlockRand.begin());
@@ -92,5 +91,27 @@ void Mediator::UpdateTxBlockRand(bool isGenesis)
         vector<unsigned char> randVec;
         randVec = sha2.Finalize();
         copy(randVec.begin(), randVec.end(), m_txBlockRand.begin());
+    }
+}
+
+std::string Mediator::GetNodeMode(const Peer& peer)
+{
+    std::lock_guard<mutex> lock(m_mutexDSCommitteeNetworkInfo);
+    if (std::find(m_DSCommitteeNetworkInfo.begin(),
+                  m_DSCommitteeNetworkInfo.end(), peer)
+        != m_DSCommitteeNetworkInfo.end())
+    {
+        if (peer == m_DSCommitteeNetworkInfo[0])
+        {
+            return "DSLD";
+        }
+        else
+        {
+            return "DSBU";
+        }
+    }
+    else
+    {
+        return "SHRD";
     }
 }

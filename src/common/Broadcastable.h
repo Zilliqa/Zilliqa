@@ -17,30 +17,33 @@
 #ifndef __BROADCASTABLE_H__
 #define __BROADCASTABLE_H__
 
-#include <vector>
 #include "libNetwork/PeerStore.h"
 #include "libUtils/Logger.h"
+#include <vector>
 
 /// Specifies the interface required for classes that maintain broadcast lists.
 class Broadcastable
 {
 public:
-
     /// Returns the list of destination peers for a message with the specified instruction type.
-    virtual std::vector<Peer> GetBroadcastList(unsigned char ins_type, const Peer & broadcast_originator)
+    virtual std::vector<Peer> GetBroadcastList(unsigned char ins_type,
+                                               const Peer& broadcast_originator)
     {
         LOG_MARKER();
         std::vector<Peer> peers = PeerStore::GetStore().GetAllPeers();
-        for (std::vector<Peer>::iterator peer = peers.begin(); peer != peers.end(); peer++)
+        for (std::vector<Peer>::iterator peer = peers.begin();
+             peer != peers.end(); peer++)
         {
-            if ((peer->m_ipAddress == broadcast_originator.m_ipAddress) && (peer->m_listenPortHost == broadcast_originator.m_listenPortHost))
+            if ((peer->m_ipAddress == broadcast_originator.m_ipAddress)
+                && (peer->m_listenPortHost
+                    == broadcast_originator.m_listenPortHost))
             {
                 *peer = std::move(peers.back());
                 peers.pop_back();
                 break;
             }
         }
-        LOG_MESSAGE("Number of peers to broadcast = " << peers.size());
+        LOG_GENERAL(INFO, "Number of peers to broadcast = " << peers.size());
         return peers;
     }
 

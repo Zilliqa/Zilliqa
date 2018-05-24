@@ -1,6 +1,17 @@
 /**
 * Copyright (c) 2018 Zilliqa 
-* This is an alpha (internal) release and is not suitable for production.
+* This source code is being disclosed to you solely for the purpose of your participation in 
+* testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to 
+* the protocols and algorithms that are programmed into, and intended by, the code. You may 
+* not do anything else with the code without express permission from Zilliqa Research Pte. Ltd., 
+* including modifying or publishing the code (or any part of it), and developing or forming 
+* another public or private blockchain network. This source code is provided ‘as is’ and no 
+* warranties are given as to title or non-infringement, merchantability or fitness for purpose 
+* and, to the extent permitted by law, all liability for your use of the code is disclaimed. 
+* Some programs in this code are governed by the GNU General Public License v3.0 (available at 
+* https://www.gnu.org/licenses/gpl-3.0.en.html) (‘GPLv3’). The programs that are governed by 
+* GPLv3.0 are those programs that are located in the folders src/depends and tests/depends 
+* and which include a reference to GPLv3 in their program files.
 **/
 
 
@@ -24,18 +35,33 @@ leveldb::Slice toSlice(boost::multiprecision::uint256_t num);
 class LevelDB
 {
     std::string m_dbName;
+    
+#ifndef IS_LOOKUP_NODE
+    std::string m_subdirectory;
+#endif // IS_LOOKUP_NODE
+
     std::shared_ptr<leveldb::DB> m_db;
     
 public:
 
     /// Constructor.
+#ifndef IS_LOOKUP_NODE
+    explicit LevelDB(const std::string & dbName, const std::string & subdirectory = "");
+#else //IS_LOOKUP_NODE
     explicit LevelDB(const std::string & dbName);
+#endif //IS_LOOKUP_NODE
 
     /// Destructor.
     ~LevelDB() = default;
 
     /// Returns the reference to the leveldb database instance.
     std::shared_ptr<leveldb::DB> GetDB();
+
+#ifndef IS_LOOKUP_NODE
+    std::string GetDBName() { return m_dbName + (m_subdirectory.size() > 0 ? "/" : "") + m_subdirectory; }
+#else //IS_LOOKUP_NODE
+    std::string GetDBName() { return m_dbName; }
+#endif //IS_LOOKUP_NODE
 
     /// Returns the value at the specified key.
     std::string Lookup(const std::string & key) const;
@@ -82,12 +108,22 @@ public:
     /// Returns true if value corresponding to specified key exists.
     bool Exists(const dev::h256 & key) const;
     bool Exists(const boost::multiprecision::uint256_t & blockNum) const;
+    bool Exists(const std::string & key) const;
 
     /// Deletes the value at the specified key.
     int DeleteKey(const dev::h256 & key);
 
+    /// Deletes the value at the specified key.
+    int DeleteKey(const boost::multiprecision::uint256_t & blockNum);
+
+    /// Deletes the value at the specified key.
+    int DeleteKey(const std::string & key);
+
     /// Deletes the entire database.
     int DeleteDB();
+
+    /// Reset the entire database.
+    bool ResetDB();
 };
 
 #endif // __LEVELDB_H__

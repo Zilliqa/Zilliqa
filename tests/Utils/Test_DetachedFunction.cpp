@@ -14,11 +14,11 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#include <memory>
-#include <mutex>
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/JoinableFunction.h"
 #include "libUtils/Logger.h"
+#include <memory>
+#include <mutex>
 
 #define BOOST_TEST_MODULE utils
 #include <boost/test/included/unit_test.hpp>
@@ -34,7 +34,7 @@ void test2(shared_ptr<vector<string>> s)
     LOG_MARKER();
 
     lock_guard<mutex> guard(m);
-    LOG_MESSAGE(s->back().c_str());
+    LOG_GENERAL(INFO, s->back().c_str());
     s->pop_back();
 }
 
@@ -56,9 +56,12 @@ BOOST_AUTO_TEST_CASE(testDetachedFunction)
 
     LOG_MARKER();
 
-    JoinableFunction(1, test1); // check that test1 can terminate even while test2 threads are still running
+    JoinableFunction(
+        1,
+        test1); // check that test1 can terminate even while test2 threads are still running
 
-    this_thread::sleep_for(chrono::seconds(2)); // just a short delay so test2 threads can finish before program terminates
+    this_thread::sleep_for(chrono::seconds(
+        2)); // just a short delay so test2 threads can finish before program terminates
 }
 
 BOOST_AUTO_TEST_SUITE_END()

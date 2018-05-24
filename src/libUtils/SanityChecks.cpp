@@ -14,23 +14,25 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-
 #include "SanityChecks.h"
 
 using namespace std;
 
 bool IsMessageSizeInappropriate(unsigned int messageSize, unsigned int offset,
-                                unsigned int minLengthNeeded, unsigned int factor, string errMsg)
+                                unsigned int minLengthNeeded,
+                                unsigned int factor, string errMsg)
 {
     if (minLengthNeeded > messageSize - offset)
     {
-        LOG_MESSAGE("Error: [Message Size Insufficient] " << errMsg);
+        LOG_GENERAL(WARNING, "[Message Size Insufficient] " << errMsg);
         return true;
     }
 
     if (factor != 0 && (messageSize - offset - minLengthNeeded) % factor != 0)
     {
-        LOG_MESSAGE("Error: [Message Size not a proper multiple of factor] " << errMsg);
+        LOG_GENERAL(WARNING,
+                    "[Message Size not a proper multiple of factor] "
+                        << errMsg);
         return true;
     }
 

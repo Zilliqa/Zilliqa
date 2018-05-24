@@ -17,28 +17,30 @@
 #ifndef __TXBLOCKCHAIN_H__
 #define __TXBLOCKCHAIN_H__
 
-#include <vector>
 #include <mutex>
+#include <vector>
 
 #include <boost/multiprecision/cpp_int.hpp>
 
-#include "libData/DataStructures/CircularArray.h"
 #include "libData/BlockData/Block/TxBlock.h"
+#include "libData/DataStructures/CircularArray.h"
 #include "libPersistence/BlockStorage.h"
 
 /// Transient storage for Tx blocks.
 class TxBlockChain
 {
     std::mutex m_mutexTxBlocks;
-    CircularArray<TxBlock>  m_txBlocks;
+    CircularArray<TxBlock> m_txBlocks;
 
 public:
-
-	/// Constructor.
+    /// Constructor.
     TxBlockChain();
 
     /// Destructor.
     ~TxBlockChain();
+
+    /// Reset
+    void Reset();
 
     /// Returns the number of blocks.
     boost::multiprecision::uint256_t GetBlockCount();
@@ -47,10 +49,10 @@ public:
     TxBlock GetLastBlock();
 
     /// Returns the block at the specified block number.
-    TxBlock GetBlock(const boost::multiprecision::uint256_t & blocknum);
+    TxBlock GetBlock(const boost::multiprecision::uint256_t& blocknum);
 
     /// Adds a block to the chain.
-    int AddBlock(const TxBlock & block);
+    int AddBlock(const TxBlock& block);
 };
 
 #endif // __TXBLOCKCHAIN_H__

@@ -18,23 +18,22 @@
 #define __CIRCULARARRAY_H__
 
 #include <boost/multiprecision/cpp_int.hpp>
+#include <vector>
 
 #include "libUtils/Logger.h"
 
 /// Utility class - circular array data queue.
-template<class T>
-class CircularArray
+template<class T> class CircularArray
 {
-    T * m_array;
+    std::vector<T> m_array;
+
     int m_capacity;
     boost::multiprecision::uint256_t m_size;
 
 public:
-
     /// Default constructor.
     CircularArray()
     {
-        m_array = nullptr;
         m_capacity = 0;
         m_size = 0;
     }
@@ -42,40 +41,36 @@ public:
     /// Changes the array capacity.
     void resize(int capacity)
     {
+        m_array.clear();
+        m_array.resize(capacity);
+        m_size = 0;
         m_capacity = capacity;
-        m_array = new T[capacity];
     }
 
-    CircularArray(const CircularArray<T> & circularArray) = delete;
+    CircularArray(const CircularArray<T>& circularArray) = delete;
 
-    CircularArray & operator=(const CircularArray<T> & circularArray) = delete;
+    CircularArray& operator=(const CircularArray<T>& circularArray) = delete;
 
     /// Destructor.
-    ~CircularArray()
-    {
-        if(m_array != nullptr)
-        {
-            delete[] m_array;
-        }
-    }
+    ~CircularArray() {}
 
     /// Index operator.
-    T & operator[](boost::multiprecision::uint256_t index)
+    T& operator[](boost::multiprecision::uint256_t index)
     {
-        if(m_array == nullptr)
+        if (!m_array.size())
         {
-            LOG_MESSAGE("Error: m_array is nullptr")
+            LOG_GENERAL(WARNING, "m_array is empty")
             throw;
         }
         return m_array[(int)(index % m_capacity)];
     }
 
     /// Adds an element to the array at the specified index.
-    void insert_new(boost::multiprecision::uint256_t index, const T & element)
+    void insert_new(boost::multiprecision::uint256_t index, const T& element)
     {
-        if(m_array == nullptr)
+        if (!m_array.size())
         {
-            LOG_MESSAGE("Error: m_array is nullptr")
+            LOG_GENERAL(WARNING, "m_array is empty")
             throw;
         }
         m_array[(int)(index % m_capacity)] = element;
@@ -83,22 +78,22 @@ public:
     }
 
     /// Returns the element at the back of the array.
-    T & back()
+    T& back()
     {
-        if(m_array == nullptr)
+        if (!m_array.size())
         {
-            LOG_MESSAGE("Error: m_array is nullptr")
+            LOG_GENERAL(WARNING, "m_array is empty")
             throw;
         }
-        return m_array[(int)((m_size-1) % m_capacity)];
+        return m_array[(int)((m_size - 1) % m_capacity)];
     }
 
     /// Adds an element to the end of the array.
     void push_back(T element)
     {
-        if(m_array == nullptr)
+        if (!m_array.size())
         {
-            LOG_MESSAGE("Error: m_array is nullptr")
+            LOG_GENERAL(WARNING, "m_array is empty")
             throw;
         }
         // modulo arithmetic of 256-bit will probably be slow
@@ -106,17 +101,11 @@ public:
         m_size++;
     }
 
-    /// Returns the number of elements currently stored in the array.
-    boost::multiprecision::uint256_t size()
-    {
-        return m_size;
-    }
+    /// Returns the number of elements stored till now in the array.
+    boost::multiprecision::uint256_t size() { return m_size; }
 
     /// Returns the storage capacity of the array.
-    int capacity()
-    {
-        return m_capacity;
-    }
+    int capacity() { return m_capacity; }
 };
 
 #endif // __CIRCULARARRAY_H__
