@@ -14,12 +14,12 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-
 #ifndef __PEER_H__
 #define __PEER_H__
 
-#include <cstdint>
 #include <boost/multiprecision/cpp_int.hpp>
+#include <cstdint>
+#include <functional>
 
 #include "common/Serializable.h"
 
@@ -36,39 +36,54 @@ struct Peer : public Serializable
     Peer();
 
     /// Constructor with specified IP info.
-    Peer(const boost::multiprecision::uint128_t & ip_address, uint32_t listen_port_host);
+    Peer(const boost::multiprecision::uint128_t& ip_address,
+         uint32_t listen_port_host);
 
     /// Constructor for loading peer information from a byte stream.
-    Peer(const std::vector<unsigned char> & src, unsigned int offset);
+    Peer(const std::vector<unsigned char>& src, unsigned int offset);
 
     /// Equality comparison operator.
-    bool operator==(const Peer & r);
+    bool operator==(const Peer& r) const;
 
     /// Inequality comparison operator.
-    bool operator!=(const Peer & r);
+    bool operator!=(const Peer& r) const;
 
     /// Utility function for printing peer IP info.
-    const char * GetPrintableIPAddress() const;
+    const char* GetPrintableIPAddress() const;
 
     /// Utility std::string conversion function for peer IP info.
     explicit operator std::string() const
     {
-        return "<" + std::string(GetPrintableIPAddress()) + ":" + 
-               std::to_string(m_listenPortHost) + ">";
+        return "<" + std::string(GetPrintableIPAddress()) + ":"
+            + std::to_string(m_listenPortHost) + ">";
     }
 
     /// Implements the Serialize function inherited from Serializable.
-    unsigned int Serialize(std::vector<unsigned char> & dst, unsigned int offset) const;
+    unsigned int Serialize(std::vector<unsigned char>& dst,
+                           unsigned int offset) const;
 
     /// Implements the Deserialize function inherited from Serializable.
-    void Deserialize(const std::vector<unsigned char> & src, unsigned int offset);
+    int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
 };
 
-inline std::ostream & operator<<(std::ostream & os, const Peer & p)
+inline std::ostream& operator<<(std::ostream& os, const Peer& p)
 {
-    os << "<" << std::string(p.GetPrintableIPAddress()) << ":" << 
-           std::to_string(p.m_listenPortHost) << ">";
+    os << "<" << std::string(p.GetPrintableIPAddress()) << ":"
+       << std::to_string(p.m_listenPortHost) << ">";
     return os;
 }
 
+namespace std
+{
+    template<> struct hash<Peer>
+    {
+        size_t operator()(const Peer& obj) const
+        {
+            std::vector<unsigned char> s_peer;
+            obj.Serialize(s_peer, 0);
+            std::string str_peer(s_peer.begin(), s_peer.end());
+            return std::hash<string>()(str_peer);
+        }
+    };
+}
 #endif // __PEER_H__

@@ -14,30 +14,30 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-
 #ifndef __DIRECTORYSERVICE_H__
 #define __DIRECTORYSERVICE_H__
 
-#include <vector>
-#include <list>
-#include <set>
-#include <map>
 #include <array>
-#include <deque>
-#include <shared_mutex>
 #include <boost/multiprecision/cpp_int.hpp>
-#include <libCrypto/Sha2.h>
 #include <condition_variable>
+#include <deque>
+#include <libCrypto/Sha2.h>
+#include <list>
+#include <map>
+#include <set>
+#include <shared_mutex>
+#include <vector>
 
-#include "common/Executable.h"
 #include "common/Broadcastable.h"
+#include "common/Executable.h"
 #include "libConsensus/Consensus.h"
 #include "libData/BlockData/Block.h"
-#include "libNetwork/PeerStore.h"
+#include "libLookup/Synchronizer.h"
 #include "libNetwork/P2PComm.h"
-#include "libUtils/TimeUtils.h"
+#include "libNetwork/PeerStore.h"
 #include "libPOW/pow.h"
 #include "libPersistence/BlockStorage.h"
+#include "libUtils/TimeUtils.h"
 
 class Mediator;
 
@@ -45,7 +45,7 @@ class Mediator;
 class DirectoryService : public Executable, public Broadcastable
 {
 #ifdef STAT_TEST
-    timespec m_timespec;
+    std::chrono::system_clock::time_point m_timespec;
 #endif // STAT_TEST
 
     enum Action
@@ -62,43 +62,48 @@ class DirectoryService : public Executable, public Broadcastable
 
     string ActionString(enum Action action)
     {
-        switch(action)
+        switch (action)
         {
-            case PROCESS_POW1SUBMISSION:
-                return "PROCESS_POW1SUBMISSION";
-            case VERIFYPOW1:
-                return "VERIFYPOW1";
-            case PROCESS_DSBLOCKCONSENSUS:
-                return "PROCESS_DSBLOCKCONSENSUS";
-            case PROCESS_POW2SUBMISSION:
-                return "PROCESS_POW2SUBMISSION";
-            case VERIFYPOW2:
-                return "VERIFYPOW2";
-            case PROCESS_SHARDINGCONSENSUS:
-                return "PROCESS_SHARDINGCONSENSUS";
-            case PROCESS_MICROBLOCKSUBMISSION:
-                return "PROCESS_MICROBLOCKSUBMISSION";
-            case PROCESS_FINALBLOCKCONSENSUS:
-                return "PROCESS_FINALBLOCKCONSENSUS";
+        case PROCESS_POW1SUBMISSION:
+            return "PROCESS_POW1SUBMISSION";
+        case VERIFYPOW1:
+            return "VERIFYPOW1";
+        case PROCESS_DSBLOCKCONSENSUS:
+            return "PROCESS_DSBLOCKCONSENSUS";
+        case PROCESS_POW2SUBMISSION:
+            return "PROCESS_POW2SUBMISSION";
+        case VERIFYPOW2:
+            return "VERIFYPOW2";
+        case PROCESS_SHARDINGCONSENSUS:
+            return "PROCESS_SHARDINGCONSENSUS";
+        case PROCESS_MICROBLOCKSUBMISSION:
+            return "PROCESS_MICROBLOCKSUBMISSION";
+        case PROCESS_FINALBLOCKCONSENSUS:
+            return "PROCESS_FINALBLOCKCONSENSUS";
         }
         return "Unknown Action";
     }
+    std::atomic<bool> m_requesting_last_ds_block;
+    unsigned int BUFFER_TIME_BEFORE_DS_BLOCK_REQUEST = 5;
 
-    std::shared_timed_mutex m_mutexProducerConsumer;
+    // std::shared_timed_mutex m_mutexProducerConsumer;
     std::mutex m_mutexConsensus;
-    
-    bool m_hasAllPoWconns = true; 
+
+    bool m_hasAllPoWconns = true;
     std::condition_variable cv_allPowConns;
-    std::mutex m_MutexCVAllPowConn; 
+    std::mutex m_MutexCVAllPowConn;
 
     // Sharding committee members
     std::vector<std::map<PubKey, Peer>> m_shards;
     std::map<PubKey, uint32_t> m_publicKeyToShardIdMap;
 
+    std::mutex m_MutexScheduleFinalBlockConsensus;
+    std::condition_variable cv_scheduleFinalBlockConsensus;
+
     // PoW common variables
     std::mutex m_mutexAllPoWs;
     std::map<PubKey, Peer> m_allPoWConns;
-    std::mutex m_mutexAllPoWConns; 
+    std::mutex m_mutexAllPoWConns;
 
     // Consensus variables
     std::shared_ptr<ConsensusCommon> m_consensusObject;
@@ -106,7 +111,7 @@ class DirectoryService : public Executable, public Broadcastable
 
     // PoW1 (DS block) consensus variables
     std::shared_ptr<DSBlock> m_pendingDSBlock;
-    std::mutex m_mutexPendingDSBlock; 
+    std::mutex m_mutexPendingDSBlock;
     std::mutex m_mutexDSBlockConsensus;
     std::vector<std::pair<PubKey, boost::multiprecision::uint256_t>> m_allPoW1s;
     std::mutex m_mutexAllPOW1;
@@ -122,51 +127,101 @@ class DirectoryService : public Executable, public Broadcastable
     std::shared_ptr<TxBlock> m_finalBlock;
     std::vector<unsigned char> m_finalBlockMessage;
     std::vector<Peer> m_sharingAssignment;
-    
-    Mediator & m_mediator;
+
+    // Recovery (simplified view change)
+    std::atomic<unsigned int> m_viewChangeCounter;
+    std::atomic<bool> m_initiatedViewChange;
+    std::mutex m_mutexProcessViewChangeRequests;
+    std::mutex m_mutexRecoveryDSBlockConsensus;
+    std::condition_variable cv_RecoveryDSBlockConsensus;
+    std::mutex m_mutexRecoveryShardingConsensus;
+    std::condition_variable cv_RecoveryShardingConsensus;
+    std::mutex m_mutexRecoveryFinalBlockConsensus;
+    std::condition_variable cv_RecoveryFinalBlockConsensus;
+
+    const double VC_TOLERANCE_FRACTION = (double)0.667;
+    std::atomic<uint64_t> m_viewChangeEpoch;
+    std::unordered_map<unsigned int, unsigned int> m_viewChangeRequestTracker;
+    std::vector<Peer> m_viewChangeRequesters;
+    std::mutex m_mutexViewChangeRequesters;
+
+    std::condition_variable cv_viewChangeDSBlock;
+    std::mutex m_MutexCVViewChangeDSBlock;
+    std::condition_variable cv_viewChangeSharding;
+    std::mutex m_MutexCVViewChangeSharding;
+    std::condition_variable cv_viewChangeFinalBlock;
+    std::mutex m_MutexCVViewChangeFinalBlock;
+    std::condition_variable cv_DSBlockConsensus;
+    std::mutex m_MutexCVDSBlockConsensus;
+    std::condition_variable cv_DSBlockConsensusObject;
+    std::mutex m_MutexCVDSBlockConsensusObject;
+    std::condition_variable cv_shardingConsensus;
+    std::mutex m_MutexCVShardingConsensus;
+    std::condition_variable cv_shardingConsensusObject;
+    std::mutex m_MutexCVShardingConsensusObject;
+    std::condition_variable cv_finalBlockConsensusObject;
+    std::mutex m_MutexCVFinalBlockConsensusObject;
+
+    // TO Remove
+    //bool temp_todie;
+
+    Mediator& m_mediator;
+
+    Synchronizer m_synchronizer;
 
     const uint32_t RESHUFFLE_INTERVAL = 500;
 
     // Message handlers
-    bool ProcessSetPrimary(const std::vector<unsigned char> & message, unsigned int offset, 
-                           const Peer & from);
-    bool ProcessPoW1Submission(const std::vector<unsigned char> & message, unsigned int offset, 
-                               const Peer & from);
-    bool ProcessDSBlockConsensus(const std::vector<unsigned char> & message, unsigned int offset, 
-                                 const Peer & from);
-    bool ProcessPoW2Submission(const std::vector<unsigned char> & message, unsigned int offset, 
-                               const Peer & from);
-    bool ProcessShardingConsensus(const std::vector<unsigned char> & message, unsigned int offset, 
-                                  const Peer & from);
-    bool ProcessMicroblockSubmission(const std::vector<unsigned char> & message, 
-                                     unsigned int offset, const Peer & from);
-    bool ProcessFinalBlockConsensus(const std::vector<unsigned char> & message, unsigned int offset, 
-                                    const Peer & from);
-    bool ProcessAllPoWConnRequest(const vector<unsigned char> & message, unsigned int offset, const Peer & from); 
-    bool ProcessAllPoWConnResponse(const vector<unsigned char> & message, unsigned int offset, const Peer & from);
+    bool ProcessSetPrimary(const std::vector<unsigned char>& message,
+                           unsigned int offset, const Peer& from);
+    bool ProcessPoW1Submission(const std::vector<unsigned char>& message,
+                               unsigned int offset, const Peer& from);
+    bool ProcessDSBlockConsensus(const std::vector<unsigned char>& message,
+                                 unsigned int offset, const Peer& from);
+    bool ProcessPoW2Submission(const std::vector<unsigned char>& message,
+                               unsigned int offset, const Peer& from);
+    bool ProcessShardingConsensus(const std::vector<unsigned char>& message,
+                                  unsigned int offset, const Peer& from);
+    bool ProcessMicroblockSubmission(const std::vector<unsigned char>& message,
+                                     unsigned int offset, const Peer& from);
+    bool ProcessFinalBlockConsensus(const std::vector<unsigned char>& message,
+                                    unsigned int offset, const Peer& from);
+    bool ProcessAllPoWConnRequest(const vector<unsigned char>& message,
+                                  unsigned int offset, const Peer& from);
+    bool ProcessAllPoWConnResponse(const vector<unsigned char>& message,
+                                   unsigned int offset, const Peer& from);
+
+    // To block certain types of incoming message for certain states
+    bool ToBlockMessage(unsigned char ins_byte);
 
 #ifndef IS_LOOKUP_NODE
     bool CheckState(Action action);
-    bool VerifyPOW2(const vector<unsigned char> &message, unsigned int offset, const Peer &from);
+    bool VerifyPOW2(const vector<unsigned char>& message, unsigned int offset,
+                    const Peer& from);
 
-    void NotifySelfToStartPOW2(const vector<unsigned char> &message, unsigned int offset);
-    void SetupMulticastConfigForShardingStructure(unsigned int & my_DS_cluster_num, 
-                                                  unsigned int & my_shards_lo,
-                                                  unsigned int & my_shards_hi);
-    void SendingShardingStructureToShard(vector<std::map<PubKey, Peer>>::iterator &p);
+    void NotifySelfToStartPOW2(const vector<unsigned char>& message,
+                               unsigned int offset);
+    void
+    SetupMulticastConfigForShardingStructure(unsigned int& my_DS_cluster_num,
+                                             unsigned int& my_shards_lo,
+                                             unsigned int& my_shards_hi);
+    void SendingShardingStructureToShard(
+        vector<std::map<PubKey, Peer>>::iterator& p);
 
     // PoW1 (DS block) consensus functions
-    void RunConsensusOnDSBlock();
+    void RunConsensusOnDSBlock(bool isRejoin = false);
     void ComposeDSBlock();
 
     // internal calls from RunConsensusOnSharding
-    void SerializeShardingStructure(vector<unsigned char> & sharding_structure) const;
+    void
+    SerializeShardingStructure(vector<unsigned char>& sharding_structure) const;
     bool RunConsensusOnShardingWhenDSPrimary();
     bool RunConsensusOnShardingWhenDSBackup();
 
     // internal calls from ProcessShardingConsensus
-    unsigned int SerializeEntireShardingStructure(vector<unsigned char> & sharding_message, 
-                                                  unsigned int curr_offset);
+    unsigned int
+    SerializeEntireShardingStructure(vector<unsigned char>& sharding_message,
+                                     unsigned int curr_offset);
     bool SendEntireShardingStructureToLookupNodes();
 
     // PoW2 (sharding) consensus functions
@@ -179,26 +234,30 @@ class DirectoryService : public Executable, public Broadcastable
 
     // internal calls from ProcessDSBlockConsensus
     void StoreDSBlockToStorage(); // To further refactor
-    bool SendDSBlockToLookupNodes(DSBlock & lastDSBlock, Peer & winnerpeer);
-    void DetermineNodesToSendDSBlockTo(const Peer &winnerpeer, unsigned int &my_DS_cluster_num,
-                                       unsigned int &my_pow1nodes_cluster_lo,
-                                       unsigned int &my_pow1nodes_cluster_hi) const;
-    void SendDSBlockToCluster(const Peer &winnerpeer, unsigned int my_pow1nodes_cluster_lo,
+    bool SendDSBlockToLookupNodes(DSBlock& lastDSBlock, Peer& winnerpeer);
+    void
+    DetermineNodesToSendDSBlockTo(const Peer& winnerpeer,
+                                  unsigned int& my_DS_cluster_num,
+                                  unsigned int& my_pow1nodes_cluster_lo,
+                                  unsigned int& my_pow1nodes_cluster_hi) const;
+    void SendDSBlockToCluster(const Peer& winnerpeer,
+                              unsigned int my_pow1nodes_cluster_lo,
                               unsigned int my_pow1nodes_cluster_hi);
     void UpdateMyDSModeAndConsensusId();
-    void UpdateDSCommiteeComposition(const Peer & winnerpeer); //TODO: Refactor
+    void UpdateDSCommiteeComposition(const Peer& winnerpeer); //TODO: Refactor
 
-    void ProcessDSBlockConsensusWhenDone(const vector<unsigned char> & message,
+    void ProcessDSBlockConsensusWhenDone(const vector<unsigned char>& message,
                                          unsigned int offset);
 
     // internal calls from ProcessFinalBlockConsensus
     bool SendFinalBlockToLookupNodes();
     void ProcessFinalBlockConsensusWhenDone();
 
-    void DetermineShardsToSendFinalBlockTo(unsigned int &my_DS_cluster_num, 
-                                           unsigned int &my_shards_lo,
-                                           unsigned int &my_shards_hi) const;
-    void SendFinalBlockToShardNodes(unsigned int my_DS_cluster_num, unsigned int my_shards_lo, 
+    void DetermineShardsToSendFinalBlockTo(unsigned int& my_DS_cluster_num,
+                                           unsigned int& my_shards_lo,
+                                           unsigned int& my_shards_hi) const;
+    void SendFinalBlockToShardNodes(unsigned int my_DS_cluster_num,
+                                    unsigned int my_shards_lo,
                                     unsigned int my_shards_hi);
 
     // Final Block functions
@@ -207,24 +266,27 @@ class DirectoryService : public Executable, public Broadcastable
     bool RunConsensusOnFinalBlockWhenDSBackup();
     void ComposeFinalBlockCore();
     vector<unsigned char> ComposeFinalBlockMessage();
-    bool ParseMessageAndVerifyPOW1(const vector<unsigned char> &message, unsigned int offset, 
-                                   const Peer &from);
-    void AppendSharingSetupToFinalBlockMessage(vector<unsigned char> &finalBlockMessage, 
-                                               unsigned int curr_offset);
-    bool CheckWhetherDSBlockIsFresh(const boost::multiprecision::uint256_t dsblock_num);
+    bool ParseMessageAndVerifyPOW1(const vector<unsigned char>& message,
+                                   unsigned int offset, const Peer& from);
+    void AppendSharingSetupToFinalBlockMessage(
+        vector<unsigned char>& finalBlockMessage, unsigned int curr_offset);
+    bool CheckWhetherDSBlockIsFresh(
+        const boost::multiprecision::uint256_t dsblock_num);
     bool CheckWhetherMaxSubmissionsReceived(Peer peer, PubKey key);
-    bool VerifyPoW1Submission(const vector<unsigned char> &message, const Peer &from, PubKey & key, 
-                              unsigned int curr_offset, uint32_t & portNo, uint64_t &nonce, 
-                              array<unsigned char, 32> & rand1, array<unsigned char, 32> & rand2,
-                              unsigned int &difficulty, 
-                              boost::multiprecision::uint256_t & block_num);
-    void ExtractDataFromMicroblocks(TxnHash & microblockTrieRoot,
-                                    std::vector<BlockHash> & microBlockHashes,
-                                    boost::multiprecision::uint256_t & allGasLimit,
-                                    boost::multiprecision::uint256_t & allGasUsed, 
-                                    uint32_t & numTxs,
-                                    std::vector<bool> & isMicroBlockEmpty,
-                                    uint32_t & numMicroBlocks) const;
+    bool VerifyPoW1Submission(const vector<unsigned char>& message,
+                              const Peer& from, PubKey& key,
+                              unsigned int curr_offset, uint32_t& portNo,
+                              uint64_t& nonce, array<unsigned char, 32>& rand1,
+                              array<unsigned char, 32>& rand2,
+                              unsigned int& difficulty,
+                              boost::multiprecision::uint256_t& block_num);
+    void ExtractDataFromMicroblocks(
+        TxnHash& microblockTrieRoot, std::vector<BlockHash>& microBlockHashes,
+        boost::multiprecision::uint256_t& allGasLimit,
+        boost::multiprecision::uint256_t& allGasUsed, uint32_t& numTxs,
+        std::vector<bool>& isMicroBlockEmpty, uint32_t& numMicroBlocks) const;
+    bool VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
+                                     uint32_t shardId);
 
     // FinalBlockValidator functions
     bool CheckFinalBlockValidity();
@@ -238,26 +300,48 @@ class DirectoryService : public Executable, public Broadcastable
     bool CheckIsMicroBlockEmpty();
     bool CheckStateRoot();
     void LoadUnavailableMicroBlocks();
-    void SaveTxnBodySharingAssignment(const vector<unsigned char> & finalblock, 
-                                      unsigned int & curr_offset);
+    void SaveTxnBodySharingAssignment(const vector<unsigned char>& finalblock,
+                                      unsigned int& curr_offset);
     bool WaitForTxnBodies();
 
     // DS block consensus validator function
-    bool DSBlockValidator(const std::vector<unsigned char> & dsblock, std::vector<unsigned char> & errorMsg);
+    bool DSBlockValidator(const std::vector<unsigned char>& dsblock,
+                          std::vector<unsigned char>& errorMsg);
 
     // Sharding consensus validator function
-    bool ShardingValidator(const std::vector<unsigned char> & sharding_structure, std::vector<unsigned char> & errorMsg);
+    bool ShardingValidator(const std::vector<unsigned char>& sharding_structure,
+                           std::vector<unsigned char>& errorMsg);
 
     // Final block consensus validator function
-    bool FinalBlockValidator(const std::vector<unsigned char> & finalblock, std::vector<unsigned char> & errorMsg);
+    bool FinalBlockValidator(const std::vector<unsigned char>& finalblock,
+                             std::vector<unsigned char>& errorMsg);
 
     void StoreFinalBlockToDisk();
 
-    // Used to reconsile view of m_AllPowConn is different. 
+    // void StoreMicroBlocksToDisk();
+
+    // Used to reconsile view of m_AllPowConn is different.
     void RequestAllPoWConn();
+    void LastDSBlockRequest();
 
+    bool ProcessLastDSBlockRequest(const vector<unsigned char>& message,
+                                   unsigned int offset, const Peer& from);
+    bool ProcessLastDSBlockResponse(const vector<unsigned char>& message,
+                                    unsigned int offset, const Peer& from);
 
-#endif // IS_LOOKUP_NODE    
+    // View change
+    void InitViewChange();
+    bool ProcessInitViewChange(const vector<unsigned char>& message,
+                               unsigned int offset, const Peer& from);
+    bool ProcessInitViewChangeResponse(const vector<unsigned char>& message,
+                                       unsigned int offset, const Peer& from);
+
+    // Rejoin the network as a DS node in case of failure happens in protocol
+    void RejoinAsDS();
+
+    // Reset certain variables to the initial state
+    bool CleanVariables();
+#endif // IS_LOOKUP_NODE
 
 public:
     enum Mode : unsigned char
@@ -267,7 +351,7 @@ public:
         BACKUP_DS
     };
 
-    enum DirState: unsigned char
+    enum DirState : unsigned char
     {
         POW1_SUBMISSION = 0x00,
         DSBLOCK_CONSENSUS_PREP,
@@ -294,25 +378,32 @@ public:
     uint16_t m_consensusMyID;
 
     /// Constructor. Requires mediator reference to access Node and other global members.
-    DirectoryService(Mediator & mediator);
+    DirectoryService(Mediator& mediator);
 
     /// Destructor.
     ~DirectoryService();
 
-#ifndef IS_LOOKUP_NODE   
+#ifndef IS_LOOKUP_NODE
     /// Sets the value of m_state.
     void SetState(DirState state);
-    
+
+    /// Start synchronization with lookup as a DS node
+    void StartSynchronization();
+
     /// Implements the GetBroadcastList function inherited from Broadcastable.
-    std::vector<Peer> GetBroadcastList(unsigned char ins_type, const Peer & broadcast_originator);
+    std::vector<Peer> GetBroadcastList(unsigned char ins_type,
+                                       const Peer& broadcast_originator);
 
     /// Launches separate thread to execute sharding consensus after wait_window seconds.
     void ScheduleShardingConsensus(const unsigned int wait_window);
+
+    /// Post processing after the DS node successfully synchronized with the network
+    bool FinishRejoinAsDS();
 #endif // IS_LOOKUP_NODE
-    
+
     /// Implements the Execute function inherited from Executable.
-    bool Execute(const std::vector<unsigned char> & message, unsigned int offset, 
-                 const Peer & from);
+    bool Execute(const std::vector<unsigned char>& message, unsigned int offset,
+                 const Peer& from);
 };
 
 #endif // __DIRECTORYSERVICE_H__

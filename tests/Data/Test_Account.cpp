@@ -14,20 +14,22 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#include <array>
-#include <string>
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/Address.h"
-#include "libUtils/Logger.h"
+#include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/Logger.h"
+#include <array>
+#include <string>
 
 #define BOOST_TEST_MODULE accounttest
-#include <boost/test/included/unit_test.hpp>
+#define BOOST_TEST_DYN_LINK
+#include <boost/test/unit_test.hpp>
 
-BOOST_AUTO_TEST_SUITE (accounttest)
+BOOST_AUTO_TEST_SUITE(accounttest)
 
-BOOST_AUTO_TEST_CASE (test1)
+BOOST_AUTO_TEST_CASE(test1)
 {
     INIT_STDOUT_LOGGER();
 
@@ -35,27 +37,50 @@ BOOST_AUTO_TEST_CASE (test1)
 
     PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
 
-    Account acc1(100, 0);
+    ContractStorage::GetContractStorage().GetDB().ResetDB();
+
+    Account acc1(
+        100, 0, dev::h256(),
+        // "57136f0a3d87e187624c0adb30ff2fbdcf47ac9613b1ba46b870e57fa3b5f89c"),
+        dev::h256("12346f0a3d87e187624c0adb30ff2fbdcf47ac9613b1ba46b870e57fa3b5"
+                  "f89d"));
 
     acc1.IncreaseBalance(10);
     acc1.DecreaseBalance(120);
-    LOG_MESSAGE("Account1 balance: " << acc1.GetBalance());
+    LOG_GENERAL(INFO, "Account1 balance: " << acc1.GetBalance());
 
     std::vector<unsigned char> message1;
     acc1.Serialize(message1, 0);
 
-    LOG_PAYLOAD("Account1 serialized", message1, Logger::MAX_BYTES_TO_DISPLAY);
+    LOG_PAYLOAD(INFO, "Account1 serialized", message1,
+                Logger::MAX_BYTES_TO_DISPLAY)
 
     Account acc2(message1, 0);
 
     std::vector<unsigned char> message2;
     acc2.Serialize(message2, 0);
-
-    LOG_PAYLOAD("Account2 serialized", message2, Logger::MAX_BYTES_TO_DISPLAY);
+    LOG_PAYLOAD(INFO, "Account2 serialized", message2,
+                Logger::MAX_BYTES_TO_DISPLAY);
 
     boost::multiprecision::uint256_t acc2Balance = acc2.GetBalance();
-    LOG_MESSAGE("Account2 balance: " << acc2Balance);
-    BOOST_CHECK_MESSAGE(acc2Balance  == 110, "expected: "<<100<<" actual: "<<acc2Balance<<"\n");
+    LOG_GENERAL(INFO, "Account2 balance: " << acc2Balance);
+    BOOST_CHECK_MESSAGE(acc2Balance == 110,
+                        "expected: " << 100 << " actual: " << acc2Balance
+                                     << "\n");
+    // BOOST_CHECK_MESSAGE(acc2.GetStorageRoot()
+    //                         == dev::h256("57136f0a3d87e187624c0adb30ff2fbdcf47a"
+    //                                      "c9613b1ba46b870e57fa3b5f89c"),
+    //                     "expected: "
+    //                         << "57136f0a3d87e187624c0adb30ff2fbdcf47ac9613b1ba4"
+    //                            "6b870e57fa3b5f89c"
+    //                         << " actual: " << acc2.GetStorageRoot() << "\n");
+    BOOST_CHECK_MESSAGE(acc2.GetCodeHash()
+                            == dev::h256("12346f0a3d87e187624c0adb30ff2fbdcf47a"
+                                         "c9613b1ba46b870e57fa3b5f89d"),
+                        "expected: "
+                            << "12346f0a3d87e187624c0adb30ff2fbdcf47ac9613b1ba4"
+                               "6b870e57fa3b5f89d"
+                            << " actual: " << acc2.GetCodeHash() << "\n");
 }
 
-BOOST_AUTO_TEST_SUITE_END ()
+BOOST_AUTO_TEST_SUITE_END()

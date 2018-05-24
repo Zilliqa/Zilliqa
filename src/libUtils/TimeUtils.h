@@ -14,16 +14,14 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-
 #ifndef __TIMEUTILS_H__
 #define __TIMEUTILS_H__
 
-#include <time.h>
-
 #include <boost/multiprecision/cpp_int.hpp>
+#include <chrono>
 
-struct timespec r_timer_start();
-double r_timer_end(struct timespec start_time);
+std::chrono::system_clock::time_point r_timer_start();
+double r_timer_end(std::chrono::system_clock::time_point start_time);
 
 boost::multiprecision::uint256_t get_time_as_int();
 

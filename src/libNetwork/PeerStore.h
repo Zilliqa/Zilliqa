@@ -22,8 +22,8 @@
 #include <mutex>
 
 #include "Peer.h"
-#include "common/Serializable.h"
 #include "common/Constants.h"
+#include "common/Serializable.h"
 #include "libCrypto/Schnorr.h"
 
 /// Maintains the Peer-PubKey lookup table.
@@ -35,18 +35,17 @@ class PeerStore
     ~PeerStore();
 
 public:
-
     /// Returns the singleton PeerStore instance.
-    static PeerStore & GetStore();
+    static PeerStore& GetStore();
 
     /// Adds a Peer to the table.
-    void AddPeer(const PubKey & key, const Peer & peer);
+    void AddPeer(const PubKey& key, const Peer& peer);
 
     /// Returns the number of peers in the table.
     unsigned int GetPeerCount() const;
 
     /// Returns the Peer associated with the specified PubKey.
-    Peer GetPeer(const PubKey & key);
+    Peer GetPeer(const PubKey& key);
 
     /// Returns a list of all peers in the table.
     std::vector<Peer> GetAllPeers() const;
@@ -55,7 +54,7 @@ public:
     std::vector<PubKey> GetAllKeys() const;
 
     /// Removes the Peer associated with the specified PubKey from the table.
-    void RemovePeer(const PubKey & key);
+    void RemovePeer(const PubKey& key);
 
     /// Clears the Peer table.
     void RemoveAllPeers();

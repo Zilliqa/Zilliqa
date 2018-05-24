@@ -14,42 +14,61 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-
 #include "DataConversion.h"
 #include <sstream>
 
-const std::vector<unsigned char> DataConversion::HexStrToUint8Vec(const std::string & hex_input)
+const std::vector<unsigned char>
+DataConversion::HexStrToUint8Vec(const std::string& hex_input)
 {
     std::string in(hex_input);
     std::vector<uint8_t> out;
     boost::algorithm::unhex(in.begin(), in.end(), std::back_inserter(out));
-    return out; 
+    return out;
 }
 
-const std::array<unsigned char, 32> DataConversion::HexStrToStdArray(const std::string & hex_input)
+const std::array<unsigned char, 32>
+DataConversion::HexStrToStdArray(const std::string& hex_input)
 {
     std::string in(hex_input);
     std::array<unsigned char, 32> d;
     std::vector<unsigned char> v = HexStrToUint8Vec(hex_input);
-    std::copy( std::begin(v), std::end(v), std::begin(d)); // this is the recommended way
-    return d; 
+    std::copy(std::begin(v), std::end(v),
+              std::begin(d)); // this is the recommended way
+    return d;
 }
 
-const std::string DataConversion::Uint8VecToHexStr(const std::vector<unsigned char> & hex_vec)
+const std::array<unsigned char, 64>
+DataConversion::HexStrToStdArray64(const std::string& hex_input)
+{
+    std::string in(hex_input);
+    std::array<unsigned char, 64> d;
+    std::vector<unsigned char> v = HexStrToUint8Vec(hex_input);
+    std::copy(std::begin(v), std::end(v),
+              std::begin(d)); // this is the recommended way
+    return d;
+}
+
+const std::string
+DataConversion::Uint8VecToHexStr(const std::vector<unsigned char>& hex_vec)
 {
     std::string str;
-    boost::algorithm::hex(hex_vec.begin(), hex_vec.end(), std::back_inserter(str));
+    boost::algorithm::hex(hex_vec.begin(), hex_vec.end(),
+                          std::back_inserter(str));
     return str;
 }
 
-const std::string DataConversion::Uint8VecToHexStr(const std::vector<unsigned char> & hex_vec, unsigned int offset, unsigned int len)
+const std::string
+DataConversion::Uint8VecToHexStr(const std::vector<unsigned char>& hex_vec,
+                                 unsigned int offset, unsigned int len)
 {
     std::string str;
-    boost::algorithm::hex(hex_vec.begin() + offset, hex_vec.begin() + offset + len, std::back_inserter(str));
+    boost::algorithm::hex(hex_vec.begin() + offset,
+                          hex_vec.begin() + offset + len,
+                          std::back_inserter(str));
     return str;
 }
 
-std::string DataConversion::SerializableToHexStr(const Serializable & input)
+std::string DataConversion::SerializableToHexStr(const Serializable& input)
 {
     std::vector<unsigned char> tmp;
     input.Serialize(tmp, 0);

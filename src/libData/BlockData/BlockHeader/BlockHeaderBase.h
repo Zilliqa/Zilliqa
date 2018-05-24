@@ -21,23 +21,21 @@
 #include <boost/multiprecision/cpp_int.hpp>
 
 #include "BlockHeaderBase.h"
-#include "libData/AccountData/Transaction.h"
-#include "common/Serializable.h"
 #include "common/Constants.h"
+#include "common/Serializable.h"
 #include "libCrypto/Schnorr.h"
+#include "libData/AccountData/Transaction.h"
 
 /// [TODO] Base class for all supported block header types
 class BlockHeaderBase : public Serializable
 {
 protected:
-    BlockHash m_prevHash;                                   // Hash of the previous block
+    BlockHash m_prevHash; // Hash of the previous block
     // TODO: pull out all common code from ds, micro and tx block header
 
 public:
-    
     // Constructors
     BlockHeaderBase();
-    
 };
 
 #endif // __BLOCKHEADERBASE_H__

@@ -24,11 +24,12 @@
 #include "libUtils/TimeUtils.h"
 
 #define BOOST_TEST_MODULE persistencetest
-#include <boost/test/included/unit_test.hpp>
+#define BOOST_TEST_DYN_LINK
+#include <boost/test/unit_test.hpp>
 
-BOOST_AUTO_TEST_SUITE (persistencetest)
+BOOST_AUTO_TEST_SUITE(persistencetest)
 
-BOOST_AUTO_TEST_CASE (testBlockStorage)
+BOOST_AUTO_TEST_CASE(testBlockStorage)
 {
     INIT_STDOUT_LOGGER();
 
@@ -39,10 +40,18 @@ BOOST_AUTO_TEST_CASE (testBlockStorage)
     DSBlockSharedPtr block;
     BlockStorage::GetBlockStorage().GetDSBlock(blocknumber, block);
 
-    LOG_MESSAGE("Block2 nonce value retrieved: " << (*block).GetHeader().GetNonce());
-    LOG_MESSAGE("Block2 difficulty value retrieved: " << (int)((*block).GetHeader().GetDifficulty()));
-    LOG_MESSAGE("Block2 blocknum value retrieved: " << (*block).GetHeader().GetBlockNum());
-    LOG_MESSAGE("Block2 timestamp value retrieved: " << (*block).GetHeader().GetTimestamp());
+    LOG_GENERAL(
+        INFO,
+        "Block2 nonce value retrieved: " << (*block).GetHeader().GetNonce());
+    LOG_GENERAL(INFO,
+                "Block2 difficulty value retrieved: "
+                    << (int)((*block).GetHeader().GetDifficulty()));
+    LOG_GENERAL(INFO,
+                "Block2 blocknum value retrieved: "
+                    << (*block).GetHeader().GetBlockNum());
+    LOG_GENERAL(INFO,
+                "Block2 timestamp value retrieved: "
+                    << (*block).GetHeader().GetTimestamp());
 }
 
-BOOST_AUTO_TEST_SUITE_END ()
+BOOST_AUTO_TEST_SUITE_END()

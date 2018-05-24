@@ -22,6 +22,8 @@
 #include "Logger.h"
 
 bool IsMessageSizeInappropriate(unsigned int messageSize, unsigned int offset,
-                                unsigned int minLengthNeeded, unsigned int factor = 0, std::string errMsg = "");
+                                unsigned int minLengthNeeded,
+                                unsigned int factor = 0,
+                                std::string errMsg = "");
 
 #endif // __SANITYCHECKS_H__

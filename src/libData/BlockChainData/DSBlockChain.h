@@ -29,16 +29,18 @@
 /// Transient storage for DS blocks.
 class DSBlockChain
 {
-	std::mutex m_mutexDSBlocks;
+    std::mutex m_mutexDSBlocks;
     CircularArray<DSBlock> m_dsBlocks;
 
 public:
-
-	/// Constructor.
+    /// Constructor.
     DSBlockChain();
 
     /// Destructor.
     ~DSBlockChain();
+
+    /// Reset
+    void Reset();
 
     /// Returns the number of blocks.
     boost::multiprecision::uint256_t GetBlockCount();
@@ -47,10 +49,10 @@ public:
     DSBlock GetLastBlock();
 
     /// Returns the block at the specified block number.
-    DSBlock GetBlock(const boost::multiprecision::uint256_t & blocknum);
+    DSBlock GetBlock(const boost::multiprecision::uint256_t& blocknum);
 
     /// Adds a block to the chain.
-    int AddBlock(const DSBlock & block);
+    int AddBlock(const DSBlock& block);
 };
 
 #endif // __DSBLOCKCHAIN_H__

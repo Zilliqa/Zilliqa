@@ -15,17 +15,17 @@
 **/
 
 #include <algorithm>
-#include <thread>
 #include <chrono>
+#include <thread>
 
 #include "DirectoryService.h"
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
 #include "depends/common/RLP.h"
+#include "depends/libDatabase/MemoryDB.h"
 #include "depends/libTrie/TrieDB.h"
 #include "depends/libTrie/TrieHash.h"
-#include "depends/libDatabase/MemoryDB.h"
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
 #include "libNetwork/P2PComm.h"
@@ -39,27 +39,27 @@ using namespace boost::multiprecision;
 
 #ifndef IS_LOOKUP_NODE
 unsigned int DirectoryService::SerializeEntireShardingStructure(
-        vector<unsigned char> & sharding_message, unsigned int curr_offset)
+    vector<unsigned char>& sharding_message, unsigned int curr_offset)
 {
     LOG_MARKER();
 
     // 4-byte number of shards
-    Serializable::SetNumber<uint32_t>(sharding_message, curr_offset, 
+    Serializable::SetNumber<uint32_t>(sharding_message, curr_offset,
                                       m_shards.size(), sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
-                 "Number of shards = " << m_shards.size());
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Number of shards = " << m_shards.size());
 
     for (auto it_vec = m_shards.begin(); it_vec != m_shards.end(); it_vec++)
     {
         // 4-byte shard size
-        Serializable::SetNumber<uint32_t>(sharding_message, curr_offset, 
+        Serializable::SetNumber<uint32_t>(sharding_message, curr_offset,
                                           it_vec->size(), sizeof(uint32_t));
         curr_offset += sizeof(uint32_t);
 
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
-                     "Shard size = " << it_vec->size());
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Shard size = " << it_vec->size());
 
         for (auto it_map = it_vec->begin(); it_map != it_vec->end(); it_map++)
         {
@@ -71,10 +71,12 @@ unsigned int DirectoryService::SerializeEntireShardingStructure(
             (*it_map).second.Serialize(sharding_message, curr_offset);
             curr_offset += IP_SIZE + PORT_SIZE;
 
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
-                         "PubKey: " << DataConversion::SerializableToHexStr((*it_map).first) << 
-                         " IP: " << (*it_map).second.GetPrintableIPAddress() << 
-                         " Port: " << (*it_map).second.m_listenPortHost);
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "PubKey: "
+                          << DataConversion::SerializableToHexStr(
+                                 (*it_map).first)
+                          << " IP: " << (*it_map).second.GetPrintableIPAddress()
+                          << " Port: " << (*it_map).second.m_listenPortHost);
         }
     }
 
@@ -83,9 +85,15 @@ unsigned int DirectoryService::SerializeEntireShardingStructure(
 
 bool DirectoryService::SendEntireShardingStructureToLookupNodes()
 {
-    vector<unsigned char> sharding_message = { MessageType::LOOKUP, 
-                                               LookupInstructionType::ENTIRESHARDINGSTRUCTURE };
+    vector<unsigned char> sharding_message
+        = {MessageType::LOOKUP, LookupInstructionType::ENTIRESHARDINGSTRUCTURE};
     unsigned int curr_offset = MessageOffset::BODY;
+
+    // Set view change count
+    Serializable::SetNumber<unsigned int>(sharding_message, curr_offset,
+                                          m_viewChangeCounter,
+                                          sizeof(unsigned int));
+    curr_offset += sizeof(unsigned int);
 
     SerializeEntireShardingStructure(sharding_message, curr_offset);
 
@@ -94,9 +102,9 @@ bool DirectoryService::SendEntireShardingStructureToLookupNodes()
     return true;
 }
 
-void DirectoryService::SetupMulticastConfigForShardingStructure(unsigned int &my_DS_cluster_num,
-                                                                unsigned int &my_shards_lo,
-                                                                unsigned int &my_shards_hi)
+void DirectoryService::SetupMulticastConfigForShardingStructure(
+    unsigned int& my_DS_cluster_num, unsigned int& my_shards_lo,
+    unsigned int& my_shards_hi)
 {
 
     // Message = [4-byte shard ID] [4-byte committee size] [33-byte public key] [16-byte ip] [4-byte port] ... (all nodes; first entry is leader)
@@ -112,8 +120,10 @@ void DirectoryService::SetupMulticastConfigForShardingStructure(unsigned int &my
 
     LOG_MARKER();
 
-    unsigned int num_DS_clusters = m_mediator.m_DSCommitteeNetworkInfo.size() / DS_MULTICAST_CLUSTER_SIZE;
-    if ((m_mediator.m_DSCommitteeNetworkInfo.size() % DS_MULTICAST_CLUSTER_SIZE) > 0)
+    unsigned int num_DS_clusters = m_mediator.m_DSCommitteeNetworkInfo.size()
+        / DS_MULTICAST_CLUSTER_SIZE;
+    if ((m_mediator.m_DSCommitteeNetworkInfo.size() % DS_MULTICAST_CLUSTER_SIZE)
+        > 0)
     {
         // If there are still ds lefts, add a new ds cluster
         num_DS_clusters++;
@@ -126,50 +136,74 @@ void DirectoryService::SetupMulticastConfigForShardingStructure(unsigned int &my
         shard_groups_count++;
     }
 
-    my_DS_cluster_num= m_consensusMyID / DS_MULTICAST_CLUSTER_SIZE;
-    my_shards_lo= my_DS_cluster_num * shard_groups_count;
-    my_shards_hi= my_shards_lo + shard_groups_count - 1;// Multicast configuration to my assigned shard's nodes - send SHARDING message
+    my_DS_cluster_num = m_consensusMyID / DS_MULTICAST_CLUSTER_SIZE;
+    my_shards_lo = my_DS_cluster_num * shard_groups_count;
+    my_shards_hi = my_shards_lo + shard_groups_count
+        - 1; // Multicast configuration to my assigned shard's nodes - send SHARDING message
     if (my_shards_hi >= m_shards.size())
     {
         my_shards_hi = m_shards.size() - 1;
     }
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "my_shards_lo: " << my_shards_lo << " my_shards_hi: " << my_shards_hi << " my_DS_cluster_num  : " << my_DS_cluster_num);
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "shard_groups_count : " << shard_groups_count << " m shard size       : " << m_shards.size());
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "my_shards_lo: "
+                  << my_shards_lo << " my_shards_hi: " << my_shards_hi
+                  << " my_DS_cluster_num  : " << my_DS_cluster_num);
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "shard_groups_count : " << shard_groups_count
+                                      << " m shard size       : "
+                                      << m_shards.size());
 }
 
-void DirectoryService::SendingShardingStructureToShard(vector<std::map<PubKey, Peer>>::iterator &p)
+void DirectoryService::SendingShardingStructureToShard(
+    vector<std::map<PubKey, Peer>>::iterator& p)
 {
     LOG_MARKER();
 
     // Message = [32-byte DS blocknum] [4-byte shard ID] [4-byte committee size] [33-byte public key]
     // [16-byte ip] [4-byte port] ... (all nodes; first entry is leader)
-    vector<unsigned char> sharding_message = { MessageType::NODE, NodeInstructionType::SHARDING };
+    vector<unsigned char> sharding_message
+        = {MessageType::NODE, NodeInstructionType::SHARDING};
     unsigned int curr_offset = MessageOffset::BODY;
 
     // Todo: Any better way to do it?
-    uint256_t latest_block_num_in_blockchain = m_mediator.m_dsBlockChain.GetBlockCount() - 1;
+    uint256_t latest_block_num_in_blockchain
+        = m_mediator.m_dsBlockChain.GetBlockCount() - 1;
 
-    Serializable::SetNumber<uint256_t>(sharding_message, curr_offset, latest_block_num_in_blockchain, sizeof(uint256_t));
+    // todo: Relook at this. This is not secure
+    Serializable::SetNumber<unsigned int>(sharding_message, curr_offset,
+                                          m_viewChangeCounter,
+                                          sizeof(unsigned int));
+    curr_offset += sizeof(unsigned int);
+
+    Serializable::SetNumber<uint256_t>(sharding_message, curr_offset,
+                                       latest_block_num_in_blockchain,
+                                       sizeof(uint256_t));
     curr_offset += sizeof(uint256_t);
 
     // 4-byte shard ID - get from the leader's info in m_publicKeyToShardIdMap
-    Serializable::SetNumber<uint32_t>(sharding_message, curr_offset, m_publicKeyToShardIdMap.at(p->begin()->first), sizeof(uint32_t));
+    Serializable::SetNumber<uint32_t>(
+        sharding_message, curr_offset,
+        m_publicKeyToShardIdMap.at(p->begin()->first), sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
     // 4-byte number of shards
-    Serializable::SetNumber<uint32_t>(sharding_message, curr_offset, m_shards.size(), sizeof(uint32_t));
+    Serializable::SetNumber<uint32_t>(sharding_message, curr_offset,
+                                      m_shards.size(), sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
     // 4-byte committee size
-    Serializable::SetNumber<uint32_t>(sharding_message, curr_offset, p->size(), sizeof(uint32_t));
+    Serializable::SetNumber<uint32_t>(sharding_message, curr_offset, p->size(),
+                                      sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Committee size = " << p->size());
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Members:");
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Committee size = " << p->size());
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Members:");
 
     vector<Peer> shard_peers;
-    for (auto & kv : *p)
+    for (auto& kv : *p)
     {
         // 33-byte public key
         kv.first.Serialize(sharding_message, curr_offset);
@@ -179,15 +213,25 @@ void DirectoryService::SendingShardingStructureToShard(vector<std::map<PubKey, P
         kv.second.Serialize(sharding_message, curr_offset);
         curr_offset += IP_SIZE + PORT_SIZE;
         shard_peers.push_back(kv.second);
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), " PubKey: " << DataConversion::SerializableToHexStr(kv.first) << " IP: " << kv.second.GetPrintableIPAddress() << " Port: " << kv.second.m_listenPortHost);
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  " PubKey: " << DataConversion::SerializableToHexStr(kv.first)
+                              << " IP: " << kv.second.GetPrintableIPAddress()
+                              << " Port: " << kv.second.m_listenPortHost);
     }
 
 #ifdef STAT_TEST
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
     sha256.Update(sharding_message);
     vector<unsigned char> this_msg_hash = sha256.Finalize();
-    
-    LOG_STATE("[INFOR][" << std::setw(15) << std::left << m_mediator.m_selfPeer.GetPrintableIPAddress() << "][" << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6)  << "][" << DataConversion::charArrToHexStr(m_mediator.m_dsBlockRand).substr(0, 6) << "][" << m_mediator.m_txBlockChain.GetBlockCount() << "] SHMSG");
+
+    LOG_STATE(
+        "[INFOR]["
+        << std::setw(15) << std::left
+        << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+        << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6) << "]["
+        << DataConversion::charArrToHexStr(m_mediator.m_dsBlockRand)
+               .substr(0, 6)
+        << "][" << m_mediator.m_txBlockChain.GetBlockCount() << "] SHMSG");
 #endif // STAT_TEST
 
     P2PComm::GetInstance().SendBroadcastMessage(shard_peers, sharding_message);
@@ -195,7 +239,8 @@ void DirectoryService::SendingShardingStructureToShard(vector<std::map<PubKey, P
 }
 #endif // IS_LOOKUP_NODE
 
-bool DirectoryService::ProcessShardingConsensus(const vector<unsigned char> & message, unsigned int offset, const Peer & from)
+bool DirectoryService::ProcessShardingConsensus(
+    const vector<unsigned char>& message, unsigned int offset, const Peer& from)
 {
 #ifndef IS_LOOKUP_NODE
     LOG_MARKER();
@@ -206,59 +251,74 @@ bool DirectoryService::ProcessShardingConsensus(const vector<unsigned char> & me
     // So, ANNOUNCE should acquire a lock here
 
     lock_guard<mutex> g(m_mutexConsensus);
-    
-    unsigned int sleep_time_while_waiting = 100; 
-    // Wait for a while in the case that primary sent announcement pretty early
+    // Wait until in the case that primary sent announcement pretty early
     if ((m_state == POW2_SUBMISSION) || (m_state == SHARDING_CONSENSUS_PREP))
     {
-        for (unsigned int i = 0; i < 1000; i++)
+        cv_shardingConsensus.notify_all();
+
+        std::unique_lock<std::mutex> cv_lk(m_MutexCVShardingConsensusObject);
+
+        if (cv_shardingConsensusObject.wait_for(
+                cv_lk, std::chrono::seconds(CONSENSUS_OBJECT_TIMEOUT))
+            == std::cv_status::timeout)
         {
-            if (m_state == SHARDING_CONSENSUS)
-            {
-                break;
-            }
-
-            if (i % 100 == 0)
-            {
-                LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Waiting for SHARDING_CONSENSUS before processing");
-            }
-
-            this_thread::sleep_for(chrono::milliseconds(sleep_time_while_waiting));
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Time out while waiting for state transition and "
+                      "consensus object creation ");
         }
+
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "State transition is completed and consensus object "
+                  "creation. (check for timeout)");
     }
 
     // if (m_state != SHARDING_CONSENSUS)
     if (!CheckState(PROCESS_SHARDINGCONSENSUS))
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Ignoring consensus message");
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Ignoring consensus message");
         return false;
     }
-    
+
     bool result = m_consensusObject->ProcessMessage(message, offset, from);
     ConsensusCommon::State state = m_consensusObject->GetState();
-    LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Consensus state = " << state);
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Consensus state = " << state);
 
     if (state == ConsensusCommon::State::DONE)
     {
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), 
-                     "Sharding consensus is DONE!!!");
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Sharding consensus is DONE!!!");
+        cv_viewChangeSharding.notify_all();
 
 #ifdef STAT_TEST
         if (m_mode == PRIMARY_DS)
         {
-            LOG_STATE("[SHCON][" << std::setw(15) << std::left << 
-                      m_mediator.m_selfPeer.GetPrintableIPAddress() << "][" << 
-                      m_mediator.m_txBlockChain.GetBlockCount() << "] DONE");
+            LOG_STATE("[SHCON]["
+                      << std::setw(15) << std::left
+                      << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+                      << m_mediator.m_txBlockChain.GetBlockCount() << "] DONE");
         }
 #endif // STAT_TEST
 
-        if(m_mode == PRIMARY_DS)
+        // TODO: Refine this
+        unsigned int nodeToSendToLookUpLo = COMM_SIZE / 4;
+        unsigned int nodeToSendToLookUpHi
+            = nodeToSendToLookUpLo + TX_SHARING_CLUSTER_SIZE;
+
+        if (m_consensusMyID > nodeToSendToLookUpLo
+            && m_consensusMyID < nodeToSendToLookUpHi)
         {
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "I the DS folks that will soon be sending the "
+                      "sharding structure to the "
+                      "lookup nodes");
             SendEntireShardingStructureToLookupNodes();
         }
 
         unsigned int my_DS_cluster_num, my_shards_lo, my_shards_hi;
-        SetupMulticastConfigForShardingStructure(my_DS_cluster_num, my_shards_lo, my_shards_hi);
+        SetupMulticastConfigForShardingStructure(my_DS_cluster_num,
+                                                 my_shards_lo, my_shards_hi);
 
         // Too few target shards - avoid asking all DS clusters to send
         if ((my_DS_cluster_num + 1) <= m_shards.size())
@@ -274,22 +334,52 @@ bool DirectoryService::ProcessShardingConsensus(const vector<unsigned char> & me
         lock_guard<mutex> g(m_mutexAllPOW2);
         m_allPoW2s.clear();
         m_sortedPoW2s.clear();
+        m_viewChangeCounter = 0;
 
         // Start sharding work
         SetState(MICROBLOCK_SUBMISSION);
+
+        // Check for state change. If it get stuck at microblock submission for too long,
+        // Move on to finalblock without the microblock
+        std::unique_lock<std::mutex> cv_lk(m_MutexScheduleFinalBlockConsensus);
+        if (cv_scheduleFinalBlockConsensus.wait_for(
+                cv_lk, std::chrono::seconds(SHARDING_TIMEOUT))
+            == std::cv_status::timeout)
+        {
+            LOG_GENERAL(
+                INFO,
+                "Timeout: Didn't receive all Microblock. Proceeds without it");
+            RunConsensusOnFinalBlock();
+        }
     }
     else if (state == ConsensusCommon::State::ERROR)
     {
-        for(unsigned int i=0; i<m_mediator.m_DSCommitteeNetworkInfo.size(); i++) {
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), string(m_mediator.m_DSCommitteeNetworkInfo[i].GetPrintableIPAddress())
-             + ":" + to_string(m_mediator.m_DSCommitteeNetworkInfo[i].m_listenPortHost));
+        for (unsigned int i = 0; i < m_mediator.m_DSCommitteeNetworkInfo.size();
+             i++)
+        {
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      string(m_mediator.m_DSCommitteeNetworkInfo[i]
+                                 .GetPrintableIPAddress())
+                          + ":"
+                          + to_string(m_mediator.m_DSCommitteeNetworkInfo[i]
+                                          .m_listenPortHost));
         }
-        for(unsigned int i=0; i<m_mediator.m_DSCommitteePubKeys.size(); i++) {
-            LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-                         DataConversion::SerializableToHexStr(m_mediator.m_DSCommitteePubKeys[i]));
+        for (unsigned int i = 0; i < m_mediator.m_DSCommitteePubKeys.size();
+             i++)
+        {
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      DataConversion::SerializableToHexStr(
+                          m_mediator.m_DSCommitteePubKeys[i]));
         }
-        LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(), "Oops, no consensus reached - what to do now???");
-        throw exception();
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Oops, no consensus reached - what to do now???");
+        // throw exception();
+        // TODO: no consensus reached
+        if (m_mode != PRIMARY_DS)
+        {
+            RejoinAsDS();
+        }
+        return false;
     }
 
     return result;

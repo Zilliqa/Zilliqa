@@ -17,17 +17,20 @@
 #ifndef __P2PCOMM_H__
 #define __P2PCOMM_H__
 
-#include <vector>
-#include <set>
-#include <mutex>
-#include <functional>
 #include <deque>
+#include <functional>
+#include <mutex>
+#include <set>
+#include <vector>
 
 #include "Peer.h"
+#include "common/Constants.h"
 #include "libUtils/Logger.h"
 #include "libUtils/ThreadPool.h"
 
-typedef std::function<std::vector<Peer>(unsigned char msg_type, unsigned char ins_type, const Peer &)> broadcast_list_func;
+typedef std::function<std::vector<Peer>(unsigned char msg_type,
+                                        unsigned char ins_type, const Peer&)>
+    broadcast_list_func;
 
 /// Provides network layer functionality.
 class P2PComm
@@ -36,17 +39,35 @@ class P2PComm
     std::mutex m_broadcastHashesMutex;
     std::mutex m_broadcastCoreMutex;
     std::mutex m_startMessagePumpMutex;
-    std::mutex m_mutexPool;
+    std::mutex m_sendMessageMutex;
 
     const static uint32_t MAXRETRYCONN = 3;
-    const static uint32_t MAXMESSAGE = 128;
     const static uint32_t MAXPUMPMESSAGE = 128;
     const static uint32_t PUMPMESSAGE_MILLISECONDS = 1000;
-    uint32_t m_counterMessagePump;
 
-    void SendMessageCore(const Peer & peer, const std::vector<unsigned char> & message, unsigned char start_byte, const std::vector<unsigned char> & msg_hash);
-    bool SendMessageSocketCore(const Peer & peer, const std::vector<unsigned char> & message, unsigned char start_byte, const std::vector<unsigned char> & msg_hash);
-    void SendBroadcastMessageCore(const std::vector<Peer> & peers, const std::vector<unsigned char> & message, const std::vector<unsigned char> & message_hash);
+    void SendMessageCore(const Peer& peer,
+                         const std::vector<unsigned char>& message,
+                         unsigned char start_byte,
+                         const std::vector<unsigned char>& msg_hash);
+    bool SendMessageSocketCore(const Peer& peer,
+                               const std::vector<unsigned char>& message,
+                               unsigned char start_byte,
+                               const std::vector<unsigned char>& msg_hash);
+
+    template<typename Container>
+    void
+    SendBroadcastMessageCore(const Container& peers,
+                             const std::vector<unsigned char>& message,
+                             const std::vector<unsigned char>& message_hash);
+
+    template<typename Container>
+    void SendBroadcastMessageHelper(const Container& peers,
+                                    const std::vector<unsigned char>& message);
+
+    template<unsigned char START_BYTE, typename Container>
+    void SendMessagePoolHelper(const Container& peers,
+                               const std::vector<unsigned char>& message,
+                               const std::vector<unsigned char>& message_hash);
 
     P2PComm();
     ~P2PComm();
@@ -55,31 +76,52 @@ class P2PComm
     Peer m_selfPeer;
 #endif // STAT_TEST
 
-public:
+    ThreadPool m_SendPool{MAXMESSAGE, "SendPool"};
+    ThreadPool m_RecvPool{MAXMESSAGE, "RecvPool"};
 
+public:
     /// Returns the singleton P2PComm instance.
-    static P2PComm & GetInstance();
+    static P2PComm& GetInstance();
 
     /// Receives incoming message and assigns to designated message dispatcher.
-    void HandleAcceptedConnection(int cli_sock, Peer from, std::function<void(const std::vector<unsigned char> &, const Peer &)> dispatcher, broadcast_list_func broadcast_list_retriever);
+    static void HandleAcceptedConnection(
+        int cli_sock, Peer from,
+        std::function<void(const std::vector<unsigned char>&, const Peer&)>
+            dispatcher,
+        broadcast_list_func broadcast_list_retriever);
+
+    /// Accept TCP connection for libevent usage
+    static void ConnectionAccept(int serv_sock, short event, void* arg);
 
     /// Listens for incoming socket connections.
-    void StartMessagePump(uint32_t listen_port_host, std::function<void(const std::vector<unsigned char> &, const Peer &)> dispatcher, broadcast_list_func broadcast_list_retriever);
+    void StartMessagePump(
+        uint32_t listen_port_host,
+        std::function<void(const std::vector<unsigned char>&, const Peer&)>
+            dispatcher,
+        broadcast_list_func broadcast_list_retriever);
 
     /// Multicasts message to specified list of peers.
-    void SendMessage(const std::vector<Peer> & peers, const std::vector<unsigned char> & message);
+    void SendMessage(const std::vector<Peer>& peers,
+                     const std::vector<unsigned char>& message);
 
     /// Multicasts message to specified list of peers.
-    void SendMessage(const std::deque<Peer> & peers, const std::vector<unsigned char> & message);
+    void SendMessage(const std::deque<Peer>& peers,
+                     const std::vector<unsigned char>& message);
 
     /// Sends message to specified peer.
-    void SendMessage(const Peer & peer, const std::vector<unsigned char> & message);
+    void SendMessage(const Peer& peer,
+                     const std::vector<unsigned char>& message);
 
     /// Multicasts message of type=broadcast to specified list of peers.
-    void SendBroadcastMessage(const std::vector<Peer> & peers, const std::vector<unsigned char> & message);
+    void SendBroadcastMessage(const std::vector<Peer>& peers,
+                              const std::vector<unsigned char>& message);
+
+    /// Multicasts message of type=broadcast to specified list of peers.
+    void SendBroadcastMessage(const std::deque<Peer>& peers,
+                              const std::vector<unsigned char>& message);
 
 #ifdef STAT_TEST
-    void SetSelfPeer(const Peer & self);
+    void SetSelfPeer(const Peer& self);
 #endif // STAT_TEST
 };
 

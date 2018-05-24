@@ -14,34 +14,34 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#include "ReverseLock.h"
 #include "Scheduler.h"
+#include "ReverseLock.h"
 
 using namespace std;
 
-Scheduler::Scheduler()
-{
-}
+Scheduler::Scheduler() {}
 
-Scheduler::~Scheduler()
-{
-}
+Scheduler::~Scheduler() {}
 
 void Scheduler::ServiceQueue()
 {
     unique_lock<mutex> lock(newTaskMutex);
 
-    while (true) 
+    while (true)
     {
-        try 
-        {   
-            while (taskQueue.empty()) {
+        try
+        {
+            while (taskQueue.empty())
+            {
                 newTaskScheduled.wait(lock);
             }
 
-            while (!taskQueue.empty()) {
-                std::chrono::time_point<std::chrono::system_clock> timeToWaitFor = taskQueue.begin()->first;
-                if (newTaskScheduled.wait_until(lock, timeToWaitFor) == std::cv_status::timeout)
+            while (!taskQueue.empty())
+            {
+                std::chrono::time_point<std::chrono::system_clock> timeToWaitFor
+                    = taskQueue.begin()->first;
+                if (newTaskScheduled.wait_until(lock, timeToWaitFor)
+                    == std::cv_status::timeout)
                 {
                     break;
                 }
@@ -52,15 +52,15 @@ void Scheduler::ServiceQueue()
                 continue;
             }
 
-            std::function<void (void)> f = taskQueue.begin()->second;
+            std::function<void(void)> f = taskQueue.begin()->second;
             taskQueue.erase(taskQueue.begin());
 
             {
                 ReverseLock<unique_lock<mutex>> rlock(lock);
                 f();
             }
-        } 
-        catch (...) 
+        }
+        catch (...)
         {
             throw;
         }
@@ -68,7 +68,8 @@ void Scheduler::ServiceQueue()
     newTaskScheduled.notify_one();
 }
 
-void Scheduler::ScheduleAt(std::function<void (void)> f, chrono::time_point<chrono::system_clock> t)
+void Scheduler::ScheduleAt(std::function<void(void)> f,
+                           chrono::time_point<chrono::system_clock> t)
 {
     {
         lock_guard<mutex> lock(newTaskMutex);
@@ -77,18 +78,26 @@ void Scheduler::ScheduleAt(std::function<void (void)> f, chrono::time_point<chro
     newTaskScheduled.notify_one();
 }
 
-void Scheduler::ScheduleAfter(std::function<void (void)> f, int64_t deltaMilliSeconds)
+void Scheduler::ScheduleAfter(std::function<void(void)> f,
+                              int64_t deltaMilliSeconds)
 {
-    ScheduleAt(f, chrono::system_clock::now() + chrono::milliseconds(deltaMilliSeconds));
+    ScheduleAt(f,
+               chrono::system_clock::now()
+                   + chrono::milliseconds(deltaMilliSeconds));
 }
 
-static void SchedulePeriodicallyHelper(Scheduler* s, std::function<void (void)> f, int64_t deltaMilliSeconds)
+static void SchedulePeriodicallyHelper(Scheduler* s,
+                                       std::function<void(void)> f,
+                                       int64_t deltaMilliSeconds)
 {
     f();
-    s->ScheduleAfter(bind(&SchedulePeriodicallyHelper, s, f, deltaMilliSeconds), deltaMilliSeconds);
+    s->ScheduleAfter(bind(&SchedulePeriodicallyHelper, s, f, deltaMilliSeconds),
+                     deltaMilliSeconds);
 }
 
-void Scheduler::SchedulePeriodically(std::function<void (void)> f, int64_t deltaMilliSeconds)
+void Scheduler::SchedulePeriodically(std::function<void(void)> f,
+                                     int64_t deltaMilliSeconds)
 {
-    ScheduleAfter(bind(&SchedulePeriodicallyHelper, this, f, deltaMilliSeconds), deltaMilliSeconds);
+    ScheduleAfter(bind(&SchedulePeriodicallyHelper, this, f, deltaMilliSeconds),
+                  deltaMilliSeconds);
 }

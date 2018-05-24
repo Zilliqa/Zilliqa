@@ -29,29 +29,31 @@ using namespace std;
 BOOST_AUTO_TEST_SUITE(utils)
 
 template<class number_type>
-void test(const char * number_label, unsigned int size)
+void test(const char* number_label, unsigned int size)
 {
     LOG_MARKER();
 
     vector<unsigned char> v;
     number_type n = 65539;
 
-    LOG_MESSAGE(number_label << " value = " << n);
+    LOG_GENERAL(INFO, number_label << " value = " << n);
 
     Serializable::SetNumber<number_type>(v, 0, n, size);
-    LOG_PAYLOAD("serialized", v, Logger::MAX_BYTES_TO_DISPLAY);
+    LOG_PAYLOAD(INFO, "serialized", v, Logger::MAX_BYTES_TO_DISPLAY);
 
     n = Serializable::GetNumber<number_type>(v, 0, size);
-    LOG_MESSAGE("deserialized = " << n);
+    LOG_GENERAL(INFO, "deserialized = " << n);
 }
 
 BOOST_AUTO_TEST_CASE(testSerializable)
 {
     INIT_STDOUT_LOGGER();
 
-    test<unsigned int>("unsigned int", sizeof(unsigned int)); // native, machine-dependent size
-    test<uint32_t>("uint32_t", sizeof(uint32_t));             // cstdint, fixed size
-    test<boost::multiprecision::uint256_t>("uint256_t", 32);  // boost, fixed size
+    test<unsigned int>("unsigned int",
+                       sizeof(unsigned int)); // native, machine-dependent size
+    test<uint32_t>("uint32_t", sizeof(uint32_t)); // cstdint, fixed size
+    test<boost::multiprecision::uint256_t>("uint256_t",
+                                           32); // boost, fixed size
 }
 
 BOOST_AUTO_TEST_SUITE_END()

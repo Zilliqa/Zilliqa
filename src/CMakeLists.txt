@@ -1,3 +1,4 @@
+add_subdirectory (common)
 add_subdirectory (depends)
 add_subdirectory (libConsensus)
 add_subdirectory (libCrypto)
@@ -9,6 +10,8 @@ add_subdirectory (libPersistence)
 add_subdirectory (libPOW)
 add_subdirectory (libNetwork)
 add_subdirectory (libNode)
+add_subdirectory (libServer)
 add_subdirectory (libUtils)
 add_subdirectory (libZilliqa)
+add_subdirectory (cmd)
 

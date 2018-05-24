@@ -31,7 +31,6 @@
 class Mediator
 {
 public:
-
     /// The Zilliqa instance's key pair.
     std::pair<PrivKey, PubKey> m_selfKey;
 
@@ -39,13 +38,13 @@ public:
     Peer m_selfPeer;
 
     /// The reference to the DirectoryService instance.
-    DirectoryService *m_ds;
+    DirectoryService* m_ds;
 
     /// The reference to the Node instance.
-    Node *m_node;
+    Node* m_node;
 
     /// The reference to the Lookup instance.
-    Lookup *m_lookup;
+    Lookup* m_lookup;
 
     /// The transient DS blockchain.
     DSBlockChain m_dsBlockChain;
@@ -64,9 +63,11 @@ public:
 
     /// The current members of the DS committee.
     std::deque<Peer> m_DSCommitteeNetworkInfo;
+    std::mutex m_mutexDSCommitteeNetworkInfo;
 
     /// The public keys of the DS committee members.
     std::deque<PubKey> m_DSCommitteePubKeys;
+    std::mutex m_mutexDSCommitteePubKeys;
 
     /// The current epoch randomness from the DS blockchain.
     std::array<unsigned char, POW_SIZE> m_dsBlockRand;
@@ -74,23 +75,25 @@ public:
     /// The current epoch randomness from the Tx blockchain.
     std::array<unsigned char, POW_SIZE> m_txBlockRand;
 
-    /// Used by lookup to determine if it could successfully join the network after sync
-    bool m_isConnectedToNetwork;
+    /// To determine if the node successfully recovered from persistence
+    bool m_isRetrievedHistory;
 
     /// Constructor.
-    Mediator(const pair<PrivKey, PubKey> & key, const Peer & peer);
+    Mediator(const pair<PrivKey, PubKey>& key, const Peer& peer);
 
     /// Destructor.
     ~Mediator();
 
     /// Sets the references to the subclass instances.
-    void RegisterColleagues(DirectoryService *ds, Node *node, Lookup *lookup);
+    void RegisterColleagues(DirectoryService* ds, Node* node, Lookup* lookup);
 
     /// Updates the DS blockchain random for PoW.
     void UpdateDSBlockRand(bool isGenesis = false);
 
     /// Updates the Tx blockchain random for PoW.
     void UpdateTxBlockRand(bool isGenesis = false);
+
+    std::string GetNodeMode(const Peer& peer);
 };
 
 #endif // __MEDIATOR_H__

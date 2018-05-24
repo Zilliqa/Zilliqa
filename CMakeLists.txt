@@ -1,120 +1,96 @@
-cmake_minimum_required(VERSION 2.8)
-project (nuQoin)
+cmake_minimum_required(VERSION 3.5.1)
+
+find_program(CCACHE_PROGRAM ccache)
+if(CCACHE_PROGRAM)
+    message(STATUS "Found ccache")
+    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM}")
+endif()
+
+project(Zilliqa)
+
 # detect operating system
 message(STATUS "We are on a ${CMAKE_SYSTEM_NAME} system")
 
-set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMakeModules)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+#
+# check dependencies
+#
+include(InstallG3log)
 
-enable_testing()
+find_package(PkgConfig REQUIRED)
+
+find_package(g3logger CONFIG REQUIRED)
 
 find_package(Boost COMPONENTS filesystem system unit_test_framework)
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(JSONCPP jsoncpp)
-link_libraries(${JSONCPP_LIBRARIES})
+
+pkg_check_modules(JSONCPP REQUIRED jsoncpp)
 include_directories(${JSONCPP_INCLUDE_DIRS})
-link_libraries(${SNAPPY_LIBRARIES})
 
-###################
+find_program(HOMEBREW NAMES brew PATH /usr/local/bin)
 
-message(STATUS "checking for module 'jsoncpp'")
-
-# Look for the header file.
-find_path(JSONCPP_INCLUDE NAMES json/json.h
-                          PATHS $ENV{LEVELDB_ROOT}/include /opt/local/include /usr/local/include /usr/include
-                          DOC "Path in which the file json/json.h is located." )
-
-# Look for the library.
-find_library(JSONCPP_LIBRARY NAMES libjsoncpp.a libjsoncpp.dylib
-                             PATHS /usr/lib /usr/local/lib $ENV{LEVELDB_ROOT}/lib
-                             DOC "Path to jsoncpp library." )
-
-if(JSONCPP_INCLUDE AND JSONCPP_LIBRARY)
-  set(JSONCPP_FOUND TRUE)
-endif(JSONCPP_INCLUDE AND JSONCPP_LIBRARY)
-
-if(JSONCPP_FOUND)
-    message(STATUS "Found jsoncpp (include: ${JSONCPP_INCLUDE}, library: ${JSONCPP_LIBRARY})")
-    set(JSONCPP_INCLUDE_DIRS ${JSONCPP_INCLUDE})
-    set(JSONCPP_LIBRARIES ${JSONCPP_LIBRARY})
-else()
-    message(STATUS "  package 'jsoncpp' not found")
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin" AND HOMEBREW)
+    execute_process(
+        COMMAND ${HOMEBREW} --prefix openssl
+        OUTPUT_VARIABLE OPENSSL_ROOT_DIR
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
 endif()
 
-###################
+find_package(OpenSSL REQUIRED)
+include_directories(${OPENSSL_INCLUDE_DIR})
 
-message(STATUS "checking for module 'LevelDB'")
+find_package(LevelDB REQUIRED)
 
-# Look for the header file.
-find_path(LevelDB_INCLUDE NAMES leveldb/db.h
-                          PATHS $ENV{LEVELDB_ROOT}/include /opt/local/include /usr/local/include /usr/include
-                          DOC "Path in which the file leveldb/db.h is located." )
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
 
-# Look for the library.
-find_library(LevelDB_LIBRARY NAMES libleveldb.a libleveldb.dylib
-                             PATHS /usr/lib /usr/local/lib $ENV{LEVELDB_ROOT}/lib
-                             DOC "Path to leveldb library." )
+# export compile commands
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-if(LevelDB_INCLUDE AND LevelDB_LIBRARY)
-  set(LEVELDB_FOUND TRUE)
-endif(LevelDB_INCLUDE AND LevelDB_LIBRARY)
+# customize the flags for RELWITHDEBINFO
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -ggdb -DNDEBUG")
 
-if(LEVELDB_FOUND)
-    message(STATUS "Found LevelDB (include: ${LevelDB_INCLUDE}, library: ${LevelDB_LIBRARY})")
-    set(LevelDB_INCLUDES ${LevelDB_INCLUDE})
-    set(LevelDB_LIBRARIES ${LevelDB_LIBRARY})
-else()
-    message(STATUS "  package 'LevelDB' not found")
-endif()
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Look for the library.
-find_library(SNAPPY_LIBRARY NAMES libsnappy.a
-                             PATHS /usr/lib /usr/local/lib $ENV{LEVELDB_ROOT}/lib
-                             DOC "Path to snappy library." )
-
-if(SNAPPY_LIBRARY)
-    set(SNAPPY_FOUND TRUE)
-endif(SNAPPY_LIBRARY)
-
-if(SNAPPY_FOUND)
-    message(STATUS "Found SNAPPY (library: ${SNAPPY_LIBRARY})")
-    set(SNAPPY_LIBRARIES ${SNAPPY_LIBRARY})
-else()
-    message(STATUS "  package 'SNAPPY' not found")
-endif()
+# compiler and linker options
+add_definitions(-DSTAT_TEST)
 
 if(IS_LOOKUP_NODE)
-    if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-        SET( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} -pthread -std=c++14 -Wall -DSTAT_TEST -ggdb -DIS_LOOKUP_NODE" )
-        SET( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${GCC_COVERAGE_LINK_FLAGS} -pthread -ljsoncpp -lboost_system -lboost_filesystem -std=c++14 -Wall -DSTAT_TEST -DIS_LOOKUP_NODE" )
-    endif()
-    if(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
-        SET( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} -pthread -stdlib=libc++ -std=c++14 -Wall -DSTAT_TEST -DIS_LOOKUP_NODE -ggdb -I/usr/local/Cellar/openssl/1.0.2/include/openssl/ -I/usr/local/Cellar/boost/1.64.0_1/include -I/usr/local/include" )
-        SET( CMAKE_EXE_LINKER_FLAGS "-L/usr/local/opt/boost@1.64/lib ${CMAKE_EXE_LINKER_FLAGS} ${GCC_COVERAGE_LINK_FLAGS} -pthread ${jsoncpp_LIBRARIES}  -lboost_system -lboost_filesystem -std=c++14 -Wall -DSTAT_TEST -DIS_LOOKUP_NODE -L/usr/local/Cellar/openssl/1.0.2/lib" )
-    endif()
-    if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-        # To-do
-    endif()
-endif()
+    add_definitions(-DIS_LOOKUP_NODE)
+endif(IS_LOOKUP_NODE)
 
-if(NOT IS_LOOKUP_NODE)
-    if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-        SET( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} -pthread -std=c++14 -Wall -DSTAT_TEST -ggdb" )
-        SET( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${GCC_COVERAGE_LINK_FLAGS} -pthread -ljsoncpp -lboost_system -lboost_filesystem -std=c++14 -Wall -DSTAT_TEST" )
-    endif()
-    if(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
-        SET( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS} -pthread -stdlib=libc++ -std=c++14 -Wall -DSTAT_TEST -ggdb -I/usr/local/Cellar/openssl/1.0.2/include/openssl/ -I/usr/local/Cellar/boost/1.64.0_1/include -I/usr/local/include" )
-        SET( CMAKE_EXE_LINKER_FLAGS "-L/usr/local/opt/boost@1.64/lib ${CMAKE_EXE_LINKER_FLAGS} ${GCC_COVERAGE_LINK_FLAGS} -pthread ${jsoncpp_LIBRARIES}  -lboost_system -lboost_filesystem -lleveldb -std=c++14 -Wall -DSTAT_TEST  -L/usr/local/Cellar/openssl/1.0.2/lib" )
-    endif()
-    if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-        # To-do
-    endif()
-endif()
+add_compile_options(-Wall)
+add_compile_options(-Werror)
+# add_compile_options(-Wextra) #TODO: enable it
 
 if (CMAKE_COMPILER_IS_GNUCXX)
     include(CodeCoverage)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS}")
     add_custom_target(ctest COMMAND ${CMAKE_CTEST_COMMAND})
     setup_target_for_coverage(${PROJECT_NAME}_coverage ctest coverage)
 endif()
 
 add_subdirectory (src)
-add_subdirectory (tests)
+
+if(TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
+
+# installation
+set_target_properties(zilliqa sendcmd sendtxn genkeypair
+    PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+set_target_properties(Common Trie ethash
+    PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+
+install(
+    DIRECTORY ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib
+    DESTINATION ${CMAKE_INSTALL_PREFIX}
+    USE_SOURCE_PERMISSIONS
+)
+
+# add clang-format and clang-tidy targets lastly
+include(LLVMExtraTools)

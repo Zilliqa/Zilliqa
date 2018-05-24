@@ -28,11 +28,11 @@ BOOST_AUTO_TEST_CASE(testLogger2)
     // Write to a file and confirm log rolls to new file after max size
 
     Logger::GetLogger("test2", true, 64);
-    LOG_MESSAGE("Hello world");
-    LOG_MESSAGE("Hello world");
-    LOG_MESSAGE("Hello world");
-    LOG_MESSAGE("Hello world");
-    LOG_MESSAGE("Hello world");
+    LOG_GENERAL(INFO, "Hello world");
+    LOG_GENERAL(INFO, "Hello world");
+    LOG_GENERAL(INFO, "Hello world");
+    LOG_GENERAL(INFO, "Hello world");
+    LOG_GENERAL(INFO, "Hello world");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

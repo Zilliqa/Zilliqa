@@ -14,20 +14,24 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
+#include <jsonrpccpp/common/exception.h>
+#include <jsonrpccpp/server/connectors/httpserver.h>
+
 #include "Zilliqa.h"
+#include "common/Constants.h"
 #include "common/Messages.h"
+#include "common/Serializable.h"
+#include "libCrypto/Schnorr.h"
+#include "libCrypto/Sha2.h"
+#include "libData/AccountData/Address.h"
+#include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 
-#include "libData/AccountData/Address.h"
-#include "common/Serializable.h"
-#include "common/Constants.h"
-#include "libCrypto/Sha2.h"
-#include "libCrypto/Schnorr.h"
-#include "libUtils/DataConversion.h"
-
 using namespace std;
+using namespace jsonrpc;
 
-void Zilliqa::LogSelfNodeInfo(const std::pair<PrivKey, PubKey> & key, const Peer & peer)
+void Zilliqa::LogSelfNodeInfo(const std::pair<PrivKey, PubKey>& key,
+                              const Peer& peer)
 {
     vector<unsigned char> tmp1;
     vector<unsigned char> tmp2;
@@ -35,26 +39,43 @@ void Zilliqa::LogSelfNodeInfo(const std::pair<PrivKey, PubKey> & key, const Peer
     key.first.Serialize(tmp1, 0);
     key.second.Serialize(tmp2, 0);
 
-    LOG_PAYLOAD("Private Key", tmp1, PRIV_KEY_SIZE*2);
-    LOG_PAYLOAD("Public Key", tmp2, PUB_KEY_SIZE*2);
+    LOG_PAYLOAD(INFO, "Private Key", tmp1, PRIV_KEY_SIZE * 2);
+    LOG_PAYLOAD(INFO, "Public Key", tmp2, PUB_KEY_SIZE * 2);
 
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
     sha2.Reset();
     vector<unsigned char> message;
     key.second.Serialize(message, 0);
     sha2.Update(message, 0, PUB_KEY_SIZE);
-    const vector<unsigned char> & tmp3 = sha2.Finalize();
+    const vector<unsigned char>& tmp3 = sha2.Finalize();
     Address toAddr;
     copy(tmp3.end() - ACC_ADDR_SIZE, tmp3.end(), toAddr.asArray().begin());
 
-    LOG_MESSAGE("My address is " << toAddr << " and port is " << peer.m_listenPortHost);
+    LOG_GENERAL(INFO,
+                "My address is " << toAddr << " and port is "
+                                 << peer.m_listenPortHost);
 }
 
-Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey> & key, const Peer & peer, bool loadConfig) :
-        m_pm(key, peer, loadConfig), m_mediator(key, peer), m_ds(m_mediator), m_lookup(m_mediator), 
-        m_n(m_mediator), m_cu(key, peer)
+Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
+                 bool loadConfig, unsigned int syncType, bool toRetrieveHistory)
+    : m_pm(key, peer, loadConfig)
+    , m_mediator(key, peer)
+    , m_ds(m_mediator)
+    , m_lookup(m_mediator)
+    , m_n(m_mediator, syncType, toRetrieveHistory)
+    , m_cu(key, peer)
+#ifdef IS_LOOKUP_NODE
+    , m_httpserver(SERVER_PORT)
+    , m_server(m_mediator, m_httpserver)
+#endif // IS_LOOKUP_NODE
+
 {
     LOG_MARKER();
+
+    if (m_mediator.m_isRetrievedHistory)
+    {
+        m_ds.m_consensusID = 0;
+    }
 
     m_mediator.RegisterColleagues(&m_ds, &m_n, &m_lookup);
 
@@ -63,38 +84,84 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey> & key, const Peer & peer, bool
 #ifdef STAT_TEST
     P2PComm::GetInstance().SetSelfPeer(peer);
 #endif // STAT_TEST
+
+    switch (syncType)
+    {
+    case SyncType::NO_SYNC:
+        LOG_GENERAL(INFO, "No Sync Needed");
+        break;
 #ifndef IS_LOOKUP_NODE
-    m_n.StartSynchronization();
+    case SyncType::NEW_SYNC:
+        LOG_GENERAL(INFO, "Sync as a new node");
+        if (!toRetrieveHistory)
+        {
+            m_mediator.m_lookup->m_syncType = SyncType::NEW_SYNC;
+            m_n.m_runFromLate = true;
+            m_n.StartSynchronization();
+        }
+        else
+        {
+            LOG_GENERAL(WARNING,
+                        "Error: Sync for new node shouldn't retrieve history");
+        }
+        break;
+    case SyncType::NORMAL_SYNC:
+        LOG_GENERAL(INFO, "Sync as a normal node");
+        m_mediator.m_lookup->m_syncType = SyncType::NORMAL_SYNC;
+        m_n.m_runFromLate = true;
+        m_n.StartSynchronization();
+        break;
+    case SyncType::DS_SYNC:
+        LOG_GENERAL(INFO, "Sync as a ds node");
+        m_mediator.m_lookup->m_syncType = SyncType::DS_SYNC;
+        m_ds.StartSynchronization();
+        break;
+#else // IS_LOOKUP_NODE
+    case SyncType::LOOKUP_SYNC:
+        LOG_GENERAL(INFO, "Sync as a lookup node");
+        m_mediator.m_lookup->m_syncType = SyncType::LOOKUP_SYNC;
+        m_lookup.StartSynchronization();
+        break;
+#endif // IS_LOOKUP_NODE
+    default:
+        LOG_GENERAL(WARNING, "Invalid Sync Type");
+        break;
+    }
+
+#ifndef IS_LOOKUP_NODE
+    LOG_GENERAL(INFO, "I am a normal node.");
+#else // else for IS_LOOKUP_NODE
+    LOG_GENERAL(INFO, "I am a lookup node.");
+    if (m_server.StartListening())
+    {
+        LOG_GENERAL(INFO, "1. API Server started successfully");
+    }
+    else
+    {
+        LOG_GENERAL(WARNING, "2. API Server couldn't start");
+    }
 #endif // IS_LOOKUP_NODE
 }
 
-Zilliqa::~Zilliqa()
-{
+Zilliqa::~Zilliqa() {}
 
-}
-
-void Zilliqa::Dispatch(const vector<unsigned char> & message, const Peer & from)
+void Zilliqa::Dispatch(const vector<unsigned char>& message, const Peer& from)
 {
-    LOG_MARKER();
+    //LOG_MARKER();
 
     if (message.size() >= MessageOffset::BODY)
     {
         const unsigned char msg_type = message.at(MessageOffset::TYPE);
 
-        Executable * msg_handlers[] =
-        {
-            &m_pm,
-            &m_ds,
-            &m_n,
-            &m_cu,
-            &m_lookup
-        };
+        Executable* msg_handlers[] = {&m_pm, &m_ds, &m_n, &m_cu, &m_lookup};
 
-        const unsigned int msg_handlers_count = sizeof(msg_handlers) / sizeof(Executable*);
+        const unsigned int msg_handlers_count
+            = sizeof(msg_handlers) / sizeof(Executable*);
 
         if (msg_type < msg_handlers_count)
         {
-            bool result = msg_handlers[msg_type]->Execute(message, MessageOffset::INST, from);
+            bool result = msg_handlers[msg_type]->Execute(
+                message, MessageOffset::INST, from);
 
             if (result == false)
             {
@@ -103,23 +170,23 @@ void Zilliqa::Dispatch(const vector<unsigned char> & message, const Peer & from)
         }
         else
         {
-            LOG_MESSAGE("Unknown message type " << std::hex << (unsigned int)msg_type);
+            LOG_GENERAL(WARNING,
+                        "Unknown message type " << std::hex
+                                                << (unsigned int)msg_type);
         }
     }
 }
 
-vector<Peer> Zilliqa::RetrieveBroadcastList(unsigned char msg_type, unsigned char ins_type, const Peer & from)
+vector<Peer> Zilliqa::RetrieveBroadcastList(unsigned char msg_type,
+                                            unsigned char ins_type,
+                                            const Peer& from)
 {
     LOG_MARKER();
 
-    Broadcastable * msg_handlers[] =
-    {
-        &m_pm,
-        &m_ds,
-        &m_n
-    };
+    Broadcastable* msg_handlers[] = {&m_pm, &m_ds, &m_n, &m_cu, &m_lookup};
 
-    const unsigned int msg_handlers_count = sizeof(msg_handlers) / sizeof(Broadcastable*);
+    const unsigned int msg_handlers_count
+        = sizeof(msg_handlers) / sizeof(Broadcastable*);
 
     if (msg_type < msg_handlers_count)
     {
@@ -127,7 +194,9 @@ vector<Peer> Zilliqa::RetrieveBroadcastList(unsigned char msg_type, unsigned cha
     }
     else
     {
-        LOG_MESSAGE("Unknown message type " << std::hex << (unsigned int)msg_type);
+        LOG_GENERAL(WARNING,
+                    "Unknown message type " << std::hex
+                                            << (unsigned int)msg_type);
     }
 
     return vector<Peer>();

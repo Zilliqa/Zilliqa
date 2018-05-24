@@ -16,42 +16,22 @@
 * Test cases obtained from https://www.di-mgt.com.au/sha_testvectors.html
 **/
 
-
-#include <iomanip>
 #include "libCrypto/Sha3.h"
 #include "libUtils/DataConversion.h"
+#include <iomanip>
 
-
-#ifdef _WIN32
-#include <windows.h
-#include <Shlobj.h>
-#endif
-
-#define BOOST_TEST_MODULE Daggerhashimoto
-#define BOOST_TEST_MAIN
-
-#include <iostream>
-#include <fstream>
-#include <sstream>
-
-#include <vector>
-#include <array>
-#include <boost/filesystem.hpp>
+#define BOOST_TEST_MODULE sha3test
 #include <boost/test/unit_test.hpp>
 
 using namespace std;
-using byte = uint8_t;
-using bytes = std::vector<byte>;
-namespace fs = boost::filesystem;
 
-// Just an alloca "wrapper" to silence uint64_t to size_t conversion warnings in windows
-// consider replacing alloca calls with something better though!
-#define our_alloca(param__) alloca((size_t)(param__))
+BOOST_AUTO_TEST_SUITE(sha3test)
 
-BOOST_AUTO_TEST_CASE(SHA256_check_896bitsx3) 
+BOOST_AUTO_TEST_CASE(SHA256_check_896bitsx3)
 {
-    const unsigned char input[] = "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"; 
-    unsigned int inputSize = strlen((const char *) input);
+    const unsigned char input[]
+        = "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq";
+    unsigned int inputSize = strlen((const char*)input);
     vector<unsigned char> vec;
     copy(input, input + inputSize, back_inserter(vec));
 
@@ -59,25 +39,29 @@ BOOST_AUTO_TEST_CASE(SHA256_check_896bitsx3)
     sha3.Update(vec);
     sha3.Update(vec);
     sha3.Update(vec);
-    vector<unsigned char> output =  sha3.Finalize();
+    vector<unsigned char> output = sha3.Finalize();
 
     std::vector<unsigned char> expected;
-    expected = DataConversion::HexStrToUint8Vec("30e7724208ee5cae243e7586d0021c865d55ba0a99d46ddd1da55b528baffc40");
-    bool is_equal = std::equal(expected.begin(), expected.end(), output.begin());
+    expected = DataConversion::HexStrToUint8Vec(
+        "30e7724208ee5cae243e7586d0021c865d55ba0a99d46ddd1da55b528baffc40");
+    bool is_equal
+        = std::equal(expected.begin(), expected.end(), output.begin());
     BOOST_CHECK_EQUAL(is_equal, true);
 
-    sha3.Reset(); 
+    sha3.Reset();
     sha3.Update(vec);
-    output =  sha3.Finalize();
-    expected = DataConversion::HexStrToUint8Vec("41c0dba2a9d6240849100376a8235e2c82e1b9998a999e21db32dd97496d3376");
+    output = sha3.Finalize();
+    expected = DataConversion::HexStrToUint8Vec(
+        "41c0dba2a9d6240849100376a8235e2c82e1b9998a999e21db32dd97496d3376");
     is_equal = std::equal(expected.begin(), expected.end(), output.begin());
     BOOST_CHECK_EQUAL(is_equal, true);
 }
 
 BOOST_AUTO_TEST_CASE(SHA256_check_896bitsx3_updatewithoffset)
 {
-    const unsigned char input[] = "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"; 
-    unsigned int inputSize = strlen((const char *) input);
+    const unsigned char input[]
+        = "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq";
+    unsigned int inputSize = strlen((const char*)input);
     vector<unsigned char> vec;
     copy(input, input + inputSize, back_inserter(vec));
 
@@ -85,69 +69,86 @@ BOOST_AUTO_TEST_CASE(SHA256_check_896bitsx3_updatewithoffset)
     sha3.Update(vec, 0, inputSize);
     sha3.Update(vec, 0, inputSize);
     sha3.Update(vec, 0, inputSize);
-    vector<unsigned char> output =  sha3.Finalize();
+    vector<unsigned char> output = sha3.Finalize();
 
     std::vector<unsigned char> expected;
-    expected = DataConversion::HexStrToUint8Vec("30e7724208ee5cae243e7586d0021c865d55ba0a99d46ddd1da55b528baffc40");
-    bool is_equal = std::equal(expected.begin(), expected.end(), output.begin());
+    expected = DataConversion::HexStrToUint8Vec(
+        "30e7724208ee5cae243e7586d0021c865d55ba0a99d46ddd1da55b528baffc40");
+    bool is_equal
+        = std::equal(expected.begin(), expected.end(), output.begin());
     BOOST_CHECK_EQUAL(is_equal, true);
 
-    sha3.Reset(); 
+    sha3.Reset();
     sha3.Update(vec, 0, inputSize);
-    output =  sha3.Finalize();
-    expected = DataConversion::HexStrToUint8Vec("41c0dba2a9d6240849100376a8235e2c82e1b9998a999e21db32dd97496d3376");
+    output = sha3.Finalize();
+    expected = DataConversion::HexStrToUint8Vec(
+        "41c0dba2a9d6240849100376a8235e2c82e1b9998a999e21db32dd97496d3376");
     is_equal = std::equal(expected.begin(), expected.end(), output.begin());
     BOOST_CHECK_EQUAL(is_equal, true);
 }
 
-BOOST_AUTO_TEST_CASE(SHA512_check_896bitsx3) 
+BOOST_AUTO_TEST_CASE(SHA512_check_896bitsx3)
 {
-    const unsigned char input[] = "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"; 
-    unsigned int inputSize = strlen((const char *) input);
-    vector<unsigned char> vec ;
+    const unsigned char input[]
+        = "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq";
+    unsigned int inputSize = strlen((const char*)input);
+    vector<unsigned char> vec;
     copy(input, input + inputSize, back_inserter(vec));
 
     SHA3<HASH_TYPE::HASH_VARIANT_512> sha3;
     sha3.Update(vec);
     sha3.Update(vec);
     sha3.Update(vec);
-    vector<unsigned char> output =  sha3.Finalize();
+    vector<unsigned char> output = sha3.Finalize();
 
     std::vector<unsigned char> expected;
-    expected = DataConversion::HexStrToUint8Vec("946729b1e315ec31a40467e16f9aa20ae7ef24702052369345587ec626dd8317db84e9099cdba1096f478a37d0f4f49145a31c311fdffa23f3a9bac1a8ff22a2");
-    bool is_equal = std::equal(expected.begin(), expected.end(), output.begin());
+    expected = DataConversion::HexStrToUint8Vec(
+        "946729b1e315ec31a40467e16f9aa20ae7ef24702052369345587ec626dd8317db84e9"
+        "099cdba1096f478a37d0f4f49145a31c311fdffa23f3a9bac1a8ff22a2");
+    bool is_equal
+        = std::equal(expected.begin(), expected.end(), output.begin());
     BOOST_CHECK_EQUAL(is_equal, true);
 
-    sha3.Reset(); 
+    sha3.Reset();
     sha3.Update(vec);
-    output =  sha3.Finalize();
-    expected = DataConversion::HexStrToUint8Vec("04a371e84ecfb5b8b77cb48610fca8182dd457ce6f326a0fd3d7ec2f1e91636dee691fbe0c985302ba1b0d8dc78c086346b533b49c030d99a27daf1139d6e75e");
+    output = sha3.Finalize();
+    expected = DataConversion::HexStrToUint8Vec(
+        "04a371e84ecfb5b8b77cb48610fca8182dd457ce6f326a0fd3d7ec2f1e91636dee691f"
+        "be0c985302ba1b0d8dc78c086346b533b49c030d99a27daf1139d6e75e");
     is_equal = std::equal(expected.begin(), expected.end(), output.begin());
     BOOST_CHECK_EQUAL(is_equal, true);
 }
 
 BOOST_AUTO_TEST_CASE(SHA512_check_896bitsx3_updatewithoffset)
 {
-    const unsigned char input[] = "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"; 
-    unsigned int inputSize = strlen((const char *) input);
-    vector<unsigned char> vec ;
+    const unsigned char input[]
+        = "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq";
+    unsigned int inputSize = strlen((const char*)input);
+    vector<unsigned char> vec;
     copy(input, input + inputSize, back_inserter(vec));
 
     SHA3<HASH_TYPE::HASH_VARIANT_512> sha3;
     sha3.Update(vec, 0, inputSize);
     sha3.Update(vec, 0, inputSize);
     sha3.Update(vec, 0, inputSize);
-    vector<unsigned char> output =  sha3.Finalize();
+    vector<unsigned char> output = sha3.Finalize();
 
     std::vector<unsigned char> expected;
-    expected = DataConversion::HexStrToUint8Vec("946729b1e315ec31a40467e16f9aa20ae7ef24702052369345587ec626dd8317db84e9099cdba1096f478a37d0f4f49145a31c311fdffa23f3a9bac1a8ff22a2");
-    bool is_equal = std::equal(expected.begin(), expected.end(), output.begin());
+    expected = DataConversion::HexStrToUint8Vec(
+        "946729b1e315ec31a40467e16f9aa20ae7ef24702052369345587ec626dd8317db84e9"
+        "099cdba1096f478a37d0f4f49145a31c311fdffa23f3a9bac1a8ff22a2");
+    bool is_equal
+        = std::equal(expected.begin(), expected.end(), output.begin());
     BOOST_CHECK_EQUAL(is_equal, true);
 
-    sha3.Reset(); 
+    sha3.Reset();
     sha3.Update(vec, 0, inputSize);
-    output =  sha3.Finalize();
-    expected = DataConversion::HexStrToUint8Vec("04a371e84ecfb5b8b77cb48610fca8182dd457ce6f326a0fd3d7ec2f1e91636dee691fbe0c985302ba1b0d8dc78c086346b533b49c030d99a27daf1139d6e75e");
+    output = sha3.Finalize();
+    expected = DataConversion::HexStrToUint8Vec(
+        "04a371e84ecfb5b8b77cb48610fca8182dd457ce6f326a0fd3d7ec2f1e91636dee691f"
+        "be0c985302ba1b0d8dc78c086346b533b49c030d99a27daf1139d6e75e");
     is_equal = std::equal(expected.begin(), expected.end(), output.begin());
     BOOST_CHECK_EQUAL(is_equal, true);
 }
+
+BOOST_AUTO_TEST_SUITE_END()
