@@ -443,7 +443,6 @@ Json::Value Server::GetSmartContracts(const string& address)
             Address contractAddr = Account::GetAddressForContract(addr, i);
             const Account* contractAccount
                 = AccountStore::GetInstance().GetAccount(contractAddr);
-            LOG_GENERAL(INFO, "nonce: " << i << " " << contractAddr.hex());
             if (contractAccount != nullptr)
             {
                 if (!contractAccount->isContract())
