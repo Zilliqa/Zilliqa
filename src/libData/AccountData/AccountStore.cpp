@@ -221,9 +221,7 @@ bool AccountStore::UpdateAccounts(const uint64_t& blockNum,
         // FIXME: remove this, temporary way to test transactions
         if (account == nullptr)
         {
-            LOG_GENERAL(WARNING,
-                        "AddAccount... FIXME: remove this, temporary way to "
-                        "test transactions");
+            LOG_GENERAL(WARNING, "AddAccount... FIXME: remove this, temporary way to test transactions");
             AddAccount(fromAddr, {10000000000, 0});
         }
 
@@ -788,9 +786,7 @@ bool AccountStore::DecreaseBalance(
     // FIXME: remove this, temporary way to test transactions
     else if (account == nullptr)
     {
-        LOG_GENERAL(WARNING,
-                    "AddAccount... FIXME: remove this, temporary way to test "
-                    "transactions");
+        LOG_GENERAL(WARNING, "AddAccount... FIXME: remove this, temporary way to test transactions");
         AddAccount(address, {10000000000, 0});
     }
 
