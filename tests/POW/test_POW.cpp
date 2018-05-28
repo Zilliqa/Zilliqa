@@ -703,7 +703,7 @@ BOOST_AUTO_TEST_CASE(mining_and_verification)
     PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
 
     // Light client mine and verify
-    uint8_t difficultyToUse = 10;
+    uint8_t difficultyToUse = 8;
     uint8_t blockToUse = 0;
     ethash_mining_result_t winning_result = POWClient.PoWMine(
         blockToUse, difficultyToUse, rand1, rand2, ipAddr, pubKey, false);
@@ -735,7 +735,7 @@ BOOST_AUTO_TEST_CASE(mining_and_verification)
 BOOST_AUTO_TEST_CASE(mining_and_verification_wrong_inputs)
 {
     //expect to fail test cases
-    uint8_t difficultyToUse = 10;
+    uint8_t difficultyToUse = 8;
     uint8_t blockToUse = 0;
     POW& POWClient = POW::GetInstance();
     std::array<unsigned char, 32> rand1 = {{'0', '1'}};
@@ -756,7 +756,7 @@ BOOST_AUTO_TEST_CASE(mining_and_verification_wrong_inputs)
 BOOST_AUTO_TEST_CASE(mining_and_verification_wrong_difficulty)
 {
     //expect to fail test cases
-    uint8_t difficultyToUse = 10;
+    uint8_t difficultyToUse = 8;
     uint8_t blockToUse = 0;
     POW& POWClient = POW::GetInstance();
     std::array<unsigned char, 32> rand1 = {{'0', '1'}};
@@ -779,7 +779,7 @@ BOOST_AUTO_TEST_CASE(mining_and_verification_wrong_difficulty)
 BOOST_AUTO_TEST_CASE(mining_and_verification_different_wrong_winning_nonce)
 {
     //expect to fail test cases
-    uint8_t difficultyToUse = 10;
+    uint8_t difficultyToUse = 8;
     uint8_t blockToUse = 0;
     POW& POWClient = POW::GetInstance();
     std::array<unsigned char, 32> rand1 = {{'0', '1'}};
