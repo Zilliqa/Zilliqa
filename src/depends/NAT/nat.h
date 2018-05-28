@@ -15,8 +15,6 @@ public:
 	std::string externalIP();
 	int addRedirect(int port);
 	void removeRedirect(int port);
-
-
 	bool isIntialized() const {return m_initialized;}
 
 private:
