@@ -816,6 +816,9 @@ Json::Value Server::GetBlockchainInfo()
     _json["DSBlockRate"] = Server::GetDSBlockRate();
     _json["CurrentMiniEpoch"] = Server::GetCurrentMiniEpoch();
     _json["CurrentDSEpoch"] = Server::GetCurrentDSEpoch();
+    _json["NumTxnsDSEpoch"] = Server::GetNumTxnsDSEpoch();
+    _json["NumTxnsTxEpoch"] = Server::GetNumTxnsTxEpoch();
+    _json["ShardingStructure"] = Server::GetShardingStructure();
 
     return _json;
 }

@@ -69,7 +69,7 @@ bool DirectoryService::SendFinalBlockToLookupNodes()
 {
     vector<unsigned char> finalblock_message
         = {MessageType::NODE, NodeInstructionType::FINALBLOCK};
-    finalblock_message.resize(finalblock_message.size() + sizeof(uint256_t)
+    finalblock_message.resize(finalblock_message.size() + UINT256_SIZE
                               + sizeof(uint32_t) + sizeof(uint8_t)
                               + m_finalBlockMessage.size());
 
@@ -78,8 +78,8 @@ bool DirectoryService::SendFinalBlockToLookupNodes()
     // 32-byte DS blocknum
     uint256_t dsBlockNum = m_mediator.m_dsBlockChain.GetBlockCount() - 1;
     Serializable::SetNumber<uint256_t>(finalblock_message, curr_offset,
-                                       dsBlockNum, sizeof(uint256_t));
-    curr_offset += sizeof(uint256_t);
+                                       dsBlockNum, UINT256_SIZE);
+    curr_offset += UINT256_SIZE;
 
     // 4-byte consensusid
     Serializable::SetNumber<uint32_t>(finalblock_message, curr_offset,
@@ -159,21 +159,21 @@ void DirectoryService::SendFinalBlockToShardNodes(
     {
         vector<unsigned char> finalblock_message
             = {MessageType::NODE, NodeInstructionType::FINALBLOCK};
-        finalblock_message.resize(finalblock_message.size() + sizeof(uint256_t)
+        finalblock_message.resize(finalblock_message.size() + UINT256_SIZE
                                   + sizeof(uint32_t) + sizeof(uint8_t)
                                   + m_finalBlockMessage.size());
 
         copy(m_finalBlockMessage.begin(), m_finalBlockMessage.end(),
-             finalblock_message.begin() + MessageOffset::BODY
-                 + sizeof(uint256_t) + sizeof(uint32_t) + sizeof(uint8_t));
+             finalblock_message.begin() + MessageOffset::BODY + UINT256_SIZE
+                 + sizeof(uint32_t) + sizeof(uint8_t));
 
         unsigned char curr_offset = MessageOffset::BODY;
 
         // 32-byte DS blocknum
         uint256_t DSBlockNum = m_mediator.m_dsBlockChain.GetBlockCount() - 1;
         Serializable::SetNumber<uint256_t>(finalblock_message, curr_offset,
-                                           DSBlockNum, sizeof(uint256_t));
-        curr_offset += sizeof(uint256_t);
+                                           DSBlockNum, UINT256_SIZE);
+        curr_offset += UINT256_SIZE;
 
         // 4-byte consensusid
         Serializable::SetNumber<uint32_t>(finalblock_message, curr_offset,
@@ -389,6 +389,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
                 LOG_GENERAL(INFO,
                             "Timeout: Didn't receive all Microblock. Proceeds "
                             "without it");
+
                 RunConsensusOnFinalBlock();
             }
         }
@@ -412,26 +413,26 @@ bool DirectoryService::ProcessFinalBlockConsensus(
 
     lock_guard<mutex> g(m_mutexConsensus);
 
-    // Wait for a while in the case that primary sent announcement pretty early
-    unsigned int sleep_time_while_waiting = 100;
+    // Wait until in the case that primary sent announcement pretty early
     if ((m_state == MICROBLOCK_SUBMISSION)
         || (m_state == FINALBLOCK_CONSENSUS_PREP))
     {
-        for (unsigned int i = 0; i < 100; i++)
-        {
-            if (m_state == FINALBLOCK_CONSENSUS)
-            {
-                break;
-            }
+        std::unique_lock<std::mutex> cv_lkObject(
+            m_MutexCVFinalBlockConsensusObject);
 
-            if (i % 10 == 0)
-            {
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "Waiting for FINALBLOCK_CONSENSUS before processing");
-            }
-            this_thread::sleep_for(
-                chrono::milliseconds(sleep_time_while_waiting));
+        if (cv_finalBlockConsensusObject.wait_for(
+                cv_lkObject,
+                std::chrono::seconds(FINALBLOCK_CONSENSUS_OBJECT_TIMEOUT))
+            == std::cv_status::timeout)
+        {
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Time out while waiting for state transition and "
+                      "consensus object creation ");
         }
+
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "State transition is completed and consensus object "
+                  "creation. (check for timeout)");
     }
 
     if (!CheckState(PROCESS_FINALBLOCKCONSENSUS))
