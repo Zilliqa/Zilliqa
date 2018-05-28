@@ -59,8 +59,8 @@ void Node::SubmitMicroblockToDSCommittee() const
     // 32-byte DS blocknum
     uint256_t DSBlockNum = m_mediator.m_dsBlockChain.GetBlockCount() - 1;
     Serializable::SetNumber<uint256_t>(microblock, cur_offset, DSBlockNum,
-                                       sizeof(uint256_t));
-    cur_offset += sizeof(uint256_t);
+                                       UINT256_SIZE);
+    cur_offset += UINT256_SIZE;
 
     // 4-byte consensusid
     Serializable::SetNumber<uint32_t>(microblock, cur_offset, m_consensusID,

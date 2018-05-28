@@ -91,8 +91,8 @@ bool Node::StartPoW1(const uint256_t& block_num, uint8_t difficulty,
         unsigned int cur_offset = MessageOffset::BODY;
 
         Serializable::SetNumber<uint256_t>(pow1message, cur_offset, block_num,
-                                           sizeof(uint256_t));
-        cur_offset += sizeof(uint256_t);
+                                           UINT256_SIZE);
+        cur_offset += UINT256_SIZE;
 
         Serializable::SetNumber<uint32_t>(
             pow1message, cur_offset, m_mediator.m_selfPeer.m_listenPortHost,

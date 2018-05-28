@@ -105,8 +105,8 @@ BOOST_AUTO_TEST_CASE(testTxBlockStoring)
 
     // 32-byte DS blocknum
     Serializable::SetNumber<uint256_t>(txblockmsg, curr_offset, 0,
-                                       sizeof(uint256_t));
-    curr_offset += sizeof(uint256_t);
+                                       UINT256_SIZE);
+    curr_offset += UINT256_SIZE;
 
     // 4-byte consensusid
     Serializable::SetNumber<uint32_t>(txblockmsg, curr_offset, 0,
