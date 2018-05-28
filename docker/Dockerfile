@@ -21,9 +21,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libjsonrpccpp-dev \
     libevent-dev \
     python python-pip \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN pip install netaddr
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install netaddr
 
 #--------------------------------------------------------------------
 # BUILDING
