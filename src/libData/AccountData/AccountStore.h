@@ -49,8 +49,6 @@ class AccountStore : public Serializable
         m_state; // Our state tree, as an OverlayDB DB.
     dev::h256 prevRoot;
 
-    std::mutex m_mutexCallInterpreter;
-
     uint64_t m_curBlockNum;
     Address m_curContractAddr;
 
