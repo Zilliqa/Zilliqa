@@ -55,6 +55,7 @@ To compile and run the Zilliqa codebase, you will need the following dependencie
 * `OpenSSL`
 * `pkg-config`
 * `libevent`
+* `miniupnpc`
 
 For Ubuntu 16.04, you can use the following command (or refer to `./scripts/ci_install_deps.sh`) to install the dependencies:  
 
@@ -63,7 +64,7 @@ sudo apt-get update
 ```
 
 ```bash
-sudo apt-get install git clang-format-5.0 clang-tidy-5.0 clang-5.0 libboost-system-dev libboost-filesystem-dev libboost-test-dev libssl-dev libleveldb-dev libjsoncpp-dev libsnappy-dev cmake libmicrohttpd-dev libjsonrpccpp-dev build-essential pkg-config libevent-dev
+sudo apt-get install git clang-format-5.0 clang-tidy-5.0 clang-5.0 libboost-system-dev libboost-filesystem-dev libboost-test-dev libssl-dev libleveldb-dev libjsoncpp-dev libsnappy-dev cmake libmicrohttpd-dev libjsonrpccpp-dev build-essential pkg-config libevent-dev libminiupnpc-dev
 ```
 
 For Mac OS X (experimental), you can use the following command to install the dependencies:  
