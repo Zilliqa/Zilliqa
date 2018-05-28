@@ -119,8 +119,8 @@ bool DirectoryService::ParseMessageAndVerifyPOW1(
 
     // 32-byte block number
     uint256_t DSBlockNum = Serializable::GetNumber<uint256_t>(
-        message, curr_offset, sizeof(uint256_t));
-    curr_offset += sizeof(uint256_t);
+        message, curr_offset, UINT256_SIZE);
+    curr_offset += UINT256_SIZE;
 
     // Check block number
     if (!CheckWhetherDSBlockIsFresh(DSBlockNum))
@@ -261,7 +261,7 @@ bool DirectoryService::ProcessPoW1Submission(
     }
 
     if (IsMessageSizeInappropriate(message.size(), offset,
-                                   sizeof(uint256_t) + sizeof(uint32_t)
+                                   UINT256_SIZE + sizeof(uint32_t)
                                        + PUB_KEY_SIZE + sizeof(uint64_t)
                                        + BLOCK_HASH_SIZE + BLOCK_HASH_SIZE))
     {
