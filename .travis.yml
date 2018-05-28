@@ -34,3 +34,8 @@ script:
     else
       $BUILD_COMMAND;
     fi
+
+jobs:
+  include:
+  - stage: deploy
+    script: ./scripts/ci_make_image.sh
