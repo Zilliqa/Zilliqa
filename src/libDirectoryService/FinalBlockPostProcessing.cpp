@@ -69,7 +69,7 @@ bool DirectoryService::SendFinalBlockToLookupNodes()
 {
     vector<unsigned char> finalblock_message
         = {MessageType::NODE, NodeInstructionType::FINALBLOCK};
-    finalblock_message.resize(finalblock_message.size() + sizeof(uint256_t)
+    finalblock_message.resize(finalblock_message.size() + UINT256_SIZE
                               + sizeof(uint32_t) + sizeof(uint8_t)
                               + m_finalBlockMessage.size());
 
@@ -78,8 +78,8 @@ bool DirectoryService::SendFinalBlockToLookupNodes()
     // 32-byte DS blocknum
     uint256_t dsBlockNum = m_mediator.m_dsBlockChain.GetBlockCount() - 1;
     Serializable::SetNumber<uint256_t>(finalblock_message, curr_offset,
-                                       dsBlockNum, sizeof(uint256_t));
-    curr_offset += sizeof(uint256_t);
+                                       dsBlockNum, UINT256_SIZE);
+    curr_offset += UINT256_SIZE;
 
     // 4-byte consensusid
     Serializable::SetNumber<uint32_t>(finalblock_message, curr_offset,
@@ -159,21 +159,21 @@ void DirectoryService::SendFinalBlockToShardNodes(
     {
         vector<unsigned char> finalblock_message
             = {MessageType::NODE, NodeInstructionType::FINALBLOCK};
-        finalblock_message.resize(finalblock_message.size() + sizeof(uint256_t)
+        finalblock_message.resize(finalblock_message.size() + UINT256_SIZE
                                   + sizeof(uint32_t) + sizeof(uint8_t)
                                   + m_finalBlockMessage.size());
 
         copy(m_finalBlockMessage.begin(), m_finalBlockMessage.end(),
-             finalblock_message.begin() + MessageOffset::BODY
-                 + sizeof(uint256_t) + sizeof(uint32_t) + sizeof(uint8_t));
+             finalblock_message.begin() + MessageOffset::BODY + UINT256_SIZE
+                 + sizeof(uint32_t) + sizeof(uint8_t));
 
         unsigned char curr_offset = MessageOffset::BODY;
 
         // 32-byte DS blocknum
         uint256_t DSBlockNum = m_mediator.m_dsBlockChain.GetBlockCount() - 1;
         Serializable::SetNumber<uint256_t>(finalblock_message, curr_offset,
-                                           DSBlockNum, sizeof(uint256_t));
-        curr_offset += sizeof(uint256_t);
+                                           DSBlockNum, UINT256_SIZE);
+        curr_offset += UINT256_SIZE;
 
         // 4-byte consensusid
         Serializable::SetNumber<uint32_t>(finalblock_message, curr_offset,
