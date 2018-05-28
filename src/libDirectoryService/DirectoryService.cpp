@@ -1105,8 +1105,8 @@ void DirectoryService::InitViewChange()
 
     // Timestamp
     Serializable::SetNumber<uint256_t>(initViewChangeMessage, curr_offset,
-                                       get_time_as_int(), sizeof(uint256_t));
-    curr_offset += sizeof(uint256_t);
+                                       get_time_as_int(), UINT256_SIZE);
+    curr_offset += UINT256_SIZE;
 
     P2PComm::GetInstance().SendMessage(
         m_mediator.m_DSCommitteeNetworkInfo.at(newCandidateLeader),
