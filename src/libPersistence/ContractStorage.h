@@ -33,6 +33,10 @@ class ContractStorage
     ContractStorage()
         : m_stateDB("contractState")
         , m_codeDB("contractCode"){};
+
+    ContractStorage(ContractStorage const&) = delete;
+    void operator=(ContractStorage const&) = delete;
+
     ~ContractStorage() = default;
 
 public:
