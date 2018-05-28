@@ -17,7 +17,7 @@ pip install --user awscli
 export PATH=$PATH:$HOME/.local/bin
 
 branch=${TRAVIS_BRANCH}
-commit=${TRAVIS_COMMIT}
+commit=$(git rev-parse --short ${TRAVIS_COMMIT})
 account_id=$(aws sts get-caller-identity --output text --query 'Account')
 region_id=us-east-1
 registry_url=${account_id}.dkr.ecr.${region_id}.amazonaws.com/zilliqa:${commit}
