@@ -89,7 +89,24 @@ BOOST_AUTO_TEST_CASE(createTwoTrieOnOneDB)
     LOG_GENERAL(INFO, "h: " << h << " v: " << m_trie2.at(h));
 
     BOOST_CHECK_MESSAGE(m_trie2.contains(h),
-                        "ERROR: Trie1 cannot get the element in Trie2");
+                        "ERROR: Trie2 cannot get the element in Trie2");
+
+    // Test Rollback
+    h256 t = dev::h256::random();
+    m_trie2.insert(t, string("ttt"));
+    BOOST_CHECK_MESSAGE(m_trie2.contains(t),
+                        "ERROR: Trie2 cannot get the element not committed");
+    BOOST_CHECK_MESSAGE(
+        root2 != m_trie2.root(),
+        "ERROR, Trie2 still has the same root after insert and before commit");
+    m_trie2.db()->rollback();
+    BOOST_CHECK_MESSAGE(
+        !m_trie2.contains(t),
+        "ERROR: Trie2 still have the new element after rollback");
+    m_trie2.setRoot(root2);
+    BOOST_CHECK_MESSAGE(m_trie2.contains(h),
+                        "ERROR: Trie2 still cannot get the the old element "
+                        "after reset the root to the old one");
 }
 
 BOOST_AUTO_TEST_CASE(retrieveDataStoredInTheTwoTrie)
