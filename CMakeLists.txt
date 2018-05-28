@@ -65,7 +65,7 @@ add_compile_options(-Wall)
 add_compile_options(-Werror)
 # add_compile_options(-Wextra) #TODO: enable it
 
-if (CMAKE_COMPILER_IS_GNUCXX)
+if (${ENABLE_COVERAGE} STREQUAL "True" AND CMAKE_COMPILER_IS_GNUCXX)
     include(CodeCoverage)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS}")
     add_custom_target(ctest COMMAND ${CMAKE_CTEST_COMMAND})
