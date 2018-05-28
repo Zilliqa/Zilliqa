@@ -76,6 +76,7 @@ class AccountStore : public Serializable
 
     std::string GetCallContractCmdStr();
 
+    // Generate input for interpreter to check the correctness of contract
     bool ExportCreateContractFiles(Account* contract);
 
     bool
