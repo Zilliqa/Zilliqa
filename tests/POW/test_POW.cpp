@@ -694,6 +694,8 @@ BOOST_AUTO_TEST_CASE(test_block60000_verification)
     ethash_light_delete(light);
 }
 
+#if 0
+
 ethash_mining_result_t winning_result;
 PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
 
@@ -790,7 +792,7 @@ BOOST_AUTO_TEST_CASE(mining_and_verification_different_wrong_winning_nonce)
 // Commented out since travis tests would take too much time.
 // Uncomment and run on your own machine if you want to confirm
 // it works fine.
-#if 0
+
 static int progress_cb(unsigned _progress)
 {
     printf("CREATING DAG. PROGRESS: %u\n", _progress);
