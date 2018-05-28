@@ -39,6 +39,7 @@ jobs:
   include:
   - stage: deploy
     os: linux
+    sudo: required
     env: BUILD_COMMAND="./scripts/ci_make_image.sh"
     before_install: # left blank
     install: # left blank
