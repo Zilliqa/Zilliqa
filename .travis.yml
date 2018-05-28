@@ -43,5 +43,6 @@ jobs:
     env: BUILD_COMMAND="./scripts/ci_make_image.sh"
     before_install: # left blank
     install: # left blank
+    cache: # left blank
     script:
     - $BUILD_COMMAND
