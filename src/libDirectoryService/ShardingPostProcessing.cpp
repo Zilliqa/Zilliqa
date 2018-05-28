@@ -178,8 +178,8 @@ void DirectoryService::SendingShardingStructureToShard(
 
     Serializable::SetNumber<uint256_t>(sharding_message, curr_offset,
                                        latest_block_num_in_blockchain,
-                                       sizeof(uint256_t));
-    curr_offset += sizeof(uint256_t);
+                                       UINT256_SIZE);
+    curr_offset += UINT256_SIZE;
 
     // 4-byte shard ID - get from the leader's info in m_publicKeyToShardIdMap
     Serializable::SetNumber<uint32_t>(
