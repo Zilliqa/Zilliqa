@@ -694,10 +694,7 @@ BOOST_AUTO_TEST_CASE(test_block60000_verification)
     ethash_light_delete(light);
 }
 
-#if 0
-
-ethash_mining_result_t winning_result;
-PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
+#if 0 //Taking too much time on Travis, investigate the reason
 
 BOOST_AUTO_TEST_CASE(mining_and_verification)
 {
@@ -705,12 +702,13 @@ BOOST_AUTO_TEST_CASE(mining_and_verification)
     std::array<unsigned char, 32> rand1 = {{'0', '1'}};
     std::array<unsigned char, 32> rand2 = {{'0', '2'}};
     boost::multiprecision::uint128_t ipAddr = 2307193356;
+    PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
 
     // Light client mine and verify
-    uint8_t difficultyToUse = 4;
+    uint8_t difficultyToUse = 10;
     uint8_t blockToUse = 0;
-    winning_result = POWClient.PoWMine(blockToUse, difficultyToUse, rand1,
-                                       rand2, ipAddr, pubKey, false);
+    ethash_mining_result_t winning_result = POWClient.PoWMine(
+        blockToUse, difficultyToUse, rand1, rand2, ipAddr, pubKey, false);
     bool verifyLight
         = POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
                               pubKey, false, winning_result.winning_nonce,
@@ -739,12 +737,16 @@ BOOST_AUTO_TEST_CASE(mining_and_verification)
 BOOST_AUTO_TEST_CASE(mining_and_verification_wrong_inputs)
 {
     //expect to fail test cases
-    uint8_t difficultyToUse = 4;
+    uint8_t difficultyToUse = 10;
     uint8_t blockToUse = 0;
     POW& POWClient = POW::GetInstance();
     std::array<unsigned char, 32> rand1 = {{'0', '1'}};
     std::array<unsigned char, 32> rand2 = {{'0', '2'}};
     boost::multiprecision::uint128_t ipAddr = 2307193356;
+    PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
+
+    ethash_mining_result_t winning_result = POWClient.PoWMine(
+        blockToUse, difficultyToUse, rand1, rand2, ipAddr, pubKey, true);
     rand1 = {{'0', '3'}};
     bool verifyFullMineLightVerify
         = POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
@@ -756,12 +758,16 @@ BOOST_AUTO_TEST_CASE(mining_and_verification_wrong_inputs)
 BOOST_AUTO_TEST_CASE(mining_and_verification_wrong_difficulty)
 {
     //expect to fail test cases
-    uint8_t difficultyToUse = 4;
+    uint8_t difficultyToUse = 10;
     uint8_t blockToUse = 0;
     POW& POWClient = POW::GetInstance();
     std::array<unsigned char, 32> rand1 = {{'0', '1'}};
     std::array<unsigned char, 32> rand2 = {{'0', '2'}};
     boost::multiprecision::uint128_t ipAddr = 2307193356;
+    PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
+
+    ethash_mining_result_t winning_result = POWClient.PoWMine(
+        blockToUse, difficultyToUse, rand1, rand2, ipAddr, pubKey, true);
 
     // Now let's adjust the difficulty expectation during verification
     difficultyToUse = 30;
@@ -775,18 +781,24 @@ BOOST_AUTO_TEST_CASE(mining_and_verification_wrong_difficulty)
 BOOST_AUTO_TEST_CASE(mining_and_verification_different_wrong_winning_nonce)
 {
     //expect to fail test cases
-    uint8_t difficultyToUse = 4;
+    uint8_t difficultyToUse = 10;
     uint8_t blockToUse = 0;
     POW& POWClient = POW::GetInstance();
     std::array<unsigned char, 32> rand1 = {{'0', '1'}};
     std::array<unsigned char, 32> rand2 = {{'0', '2'}};
     boost::multiprecision::uint128_t ipAddr = 2307193356;
+    PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
+
+    ethash_mining_result_t winning_result = POWClient.PoWMine(
+        blockToUse, difficultyToUse, rand1, rand2, ipAddr, pubKey, true);
     uint64_t winning_nonce = 0;
     bool verifyFullMineLightVerify = POWClient.PoWVerify(
         blockToUse, difficultyToUse, rand1, rand2, ipAddr, pubKey, false,
         winning_nonce, winning_result.result, winning_result.mix_hash);
     BOOST_REQUIRE(!verifyFullMineLightVerify);
 }
+
+#if 0 
 
 // Test of Full DAG creation with the minimal ethash.h API.
 // Commented out since travis tests would take too much time.
@@ -809,6 +821,8 @@ BOOST_AUTO_TEST_CASE(full_dag_test)
     ethash_light_delete(light);
     ethash_full_delete(full);
 }
+#endif
+
 #endif
 
 BOOST_AUTO_TEST_SUITE_END()
