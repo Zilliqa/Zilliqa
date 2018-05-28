@@ -259,8 +259,6 @@ bool AccountStore::UpdateAccounts(const uint64_t& blockNum,
     {
         LOG_GENERAL(INFO, "Call Contract");
 
-        std::lock_guard<std::mutex> lk(m_mutexCallInterpreter);
-
         Account* toAccount = GetAccount(toAddr);
         if (toAccount == nullptr)
         {
