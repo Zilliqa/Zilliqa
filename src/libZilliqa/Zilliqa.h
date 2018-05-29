@@ -40,6 +40,7 @@ class Zilliqa
     Mediator m_mediator;
     DirectoryService m_ds;
     Lookup m_lookup;
+    shared_ptr<ValidatorBase> m_validator;
     Node m_n;
     ConsensusUser
         m_cu; // Note: This is just a test class to demo Consensus usage
