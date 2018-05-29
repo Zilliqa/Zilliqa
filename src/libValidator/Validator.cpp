@@ -73,9 +73,9 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx) const
                       << " Correct shard = " << correct_shard
                       << " This shard    = "
                       << m_mediator->m_node->getShardID());
-        // // Transaction created from the GenTransactionBulk will be rejected
-        // // by all shards but one. Next line is commented to avoid this
-        // return false;
+        // Transaction created from the GenTransactionBulk will be rejected
+        // by all shards but one. Comment the following line to avoid this
+        return false;
     }
 
     // Check if from account exists in local storage
@@ -144,10 +144,10 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
     // Check if from account exists in local storage
     if (!AccountStore::GetInstance().DoesAccountExist(fromAddr))
     {
-        LOG_GENERAL(INFO,
-                    "fromAddr not found: " << fromAddr
-                                           << ". Transaction rejected: "
-                                           << tx.GetTranID());
+        LOG_EPOCH(WARNING, to_string(m_mediator->m_currentEpochNum).c_str(),
+                  "fromAddr not found: " << fromAddr
+                                         << ". Transaction rejected: "
+                                         << tx.GetTranID());
         return false;
     }
 
