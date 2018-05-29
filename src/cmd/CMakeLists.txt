@@ -7,6 +7,14 @@ add_custom_command(TARGET zilliqa
 target_include_directories(zilliqa PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(zilliqa PUBLIC Consensus Network Utils Zilliqa DirectoryService Node)
 
+add_executable(zilliqa_lookup main.cpp)
+add_custom_command(TARGET zilliqa_lookup
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:zilliqa_lookup> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
+target_compile_definitions(zilliqa_lookup PUBLIC "-DIS_LOOKUP_NODE")
+target_include_directories(zilliqa_lookup PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(zilliqa_lookup PUBLIC Consensus Network Utils Zilliqa DirectoryService Node)
+
 add_executable(sendcmd sendcmd.cpp)
 add_custom_command(TARGET zilliqa
     POST_BUILD

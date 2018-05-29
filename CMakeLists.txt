@@ -73,7 +73,7 @@ if(TESTS)
 endif()
 
 # installation
-set_target_properties(zilliqa sendcmd sendtxn genkeypair
+set_target_properties(zilliqa zilliqa_lookup sendcmd sendtxn genkeypair
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 set_target_properties(Common Trie ethash
