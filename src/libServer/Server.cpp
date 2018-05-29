@@ -91,7 +91,7 @@ string Server::CreateTransaction(const Json::Value& _json)
 
         Transaction tx = JSONConversion::convertJsontoTx(_json);
 
-        if (!Transaction::Verify(tx))
+        if (!m_mediator.m_validator->VerifyTransaction(tx))
         {
             return "Signature incorrect";
         }
