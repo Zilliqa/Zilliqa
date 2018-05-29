@@ -1301,7 +1301,8 @@ bool Node::ToBlockMessage(unsigned char ins_byte)
         }
         else
         {
-            if (m_runFromLate && ins_byte != NodeInstructionType::SHARDING)
+            if (m_runFromLate && ins_byte != NodeInstructionType::SHARDING
+                && ins_byte != NodeInstructionType::CREATETRANSACTION)
             {
                 return true;
             }
