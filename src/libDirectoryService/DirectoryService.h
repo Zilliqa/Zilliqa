@@ -336,13 +336,13 @@ class DirectoryService : public Executable, public Broadcastable
     bool RunConsensusOnViewChangeWhenNotCandidateLeader();
     void ProcessViewChangeConsensusWhenDone();
     void ProcessNextConsensus(unsigned char viewChangeState);
-    bool SendVCBlockToLookupNodes();
     void DetermineShardsToSendVCBlockTo(unsigned int& my_DS_cluster_num,
                                         unsigned int& my_shards_lo,
                                         unsigned int& my_shards_hi) const;
     void SendVCBlockToShardNodes(unsigned int my_DS_cluster_num,
                                  unsigned int my_shards_lo,
-                                 unsigned int my_shards_hi);
+                                 unsigned int my_shards_hi,
+                                 vector<unsigned char>& vcblock_message);
 
     // Rejoin the network as a DS node in case of failure happens in protocol
     void RejoinAsDS();
