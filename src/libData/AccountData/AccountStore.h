@@ -38,18 +38,18 @@
 template<class KeyType, class DB>
 using SecureTrieDB = dev::SpecificTrieDB<dev::GenericTrieDB<DB>, KeyType>;
 
-using StateHash = dev::h256;
+using StateHash = h256;
 
 class AccountStore : public AccountStoreBase, Singleton<AccountStore>
 {
     friend class Singleton<AccountStore>;
 
-    dev::OverlayDB m_db; // Our overlay for the state tree.
+    OverlayDB m_db; // Our overlay for the state tree.
     SecureTrieDB<Address, dev::OverlayDB>
         m_state; // Our state tree, as an OverlayDB DB.
-    dev::h256 prevRoot;
+    h256 prevRoot;
 
-    // AccountStoreTemp m_tempAccountStore;
+    shared_ptr<AccountStoreTemp> m_tempAccountStore;
 
     AccountStore();
     ~AccountStore();
@@ -57,7 +57,7 @@ class AccountStore : public AccountStoreBase, Singleton<AccountStore>
     bool UpdateStateTrie(const Address& address, const Account& account);
 
     /// Store the trie root to leveldb
-    void MoveRootToDisk(const dev::h256& root);
+    void MoveRootToDisk(const h256& root);
 
     bool ParseCreateContractJsonOutput(const Json::Value& _json) override;
 
@@ -76,7 +76,7 @@ public:
     /// Returns the Account associated with the specified address.
     Account* GetAccount(const Address& address) override;
 
-    dev::h256 GetStateRootHash() const;
+    h256 GetStateRootHash() const;
 
     bool UpdateStateTrieAll();
     void MoveUpdatesToDisk();

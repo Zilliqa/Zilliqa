@@ -42,8 +42,8 @@ using AccountTrieDB = SpecificTrieDB<dev::GenericTrieDB<DB>, KeyType>;
 
 class Account : public Serializable
 {
-    boost::multiprecision::uint256_t m_balance;
-    boost::multiprecision::uint256_t m_nonce;
+    uint256_t m_balance;
+    uint256_t m_nonce;
     h256 m_storageRoot, m_prevRoot;
     h256 m_codeHash;
     // The associated code for this account.
@@ -52,7 +52,7 @@ class Account : public Serializable
 
     bool isContract() const { return m_codeHash != h256(); }
 
-    AccountTrieDB<h256, OverlayDB> m_storage;
+    AccountTrieDB<h256, dev::OverlayDB> m_storage;
 
 public:
     Account();
@@ -99,9 +99,9 @@ public:
     const h256& GetStorageRoot() const { return m_storageRoot; }
 
     /// Set the code
-    void SetCode(const std::vector<unsigned char>& code);
+    void SetCode(const vector<unsigned char>& code);
 
-    const std::vector<unsigned char>& GetCode() const { return m_codeCache; }
+    const vector<unsigned char>& GetCode() const { return m_codeCache; }
 
     /// Returns the code hash.
     const h256& GetCodeHash() const { return m_codeHash; }

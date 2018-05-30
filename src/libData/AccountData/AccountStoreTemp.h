@@ -14,8 +14,8 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#ifndef __ACCOUNTSTORE_H__
-#define __ACCOUNTSTORE_H__
+#ifndef __ACCOUNTSTORETEMP_H__
+#define __ACCOUNTSTORETEMP_H__
 
 #include <json/json.h>
 #include <unordered_map>
@@ -32,8 +32,7 @@
 
 class AccountStoreTemp : public AccountStoreBase
 {
-    std::shared_ptr<std::unordered_map<Address, Account>>
-        m_superAddressToAccount;
+    shared_ptr<unordered_map<Address, Account>> m_superAddressToAccount;
 
     bool ParseCreateContractJsonOutput(const Json::Value& _json) override;
 
@@ -41,16 +40,14 @@ class AccountStoreTemp : public AccountStoreBase
 
 public:
     AccountStoreTemp(
-        const std::shared_ptr<std::unordered_map<Address, Account>>&
-            addressToAccount);
+        const shared_ptr<unordered_map<Address, Account>>& addressToAccount);
 
-    void Reset();
+    void Init() override;
 
     /// Returns the Account associated with the specified address.
     Account* GetAccount(const Address& address) override;
 
-    const shared_ptr<std::unordered_map<Address, Account>>&
-    GetAddressToAccount();
+    const shared_ptr<unordered_map<Address, Account>>& GetAddressToAccount();
 };
 
-#endif // __ACCOUNTSTORE_H__
+#endif // __ACCOUNTSTORETEMP_H__

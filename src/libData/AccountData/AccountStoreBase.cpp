@@ -21,12 +21,9 @@
 #include "libUtils/Logger.h"
 #include "libUtils/SysCommand.h"
 
-using namespace std;
-using namespace boost::multiprecision;
-
 AccountStoreBase::AccountStoreBase()
 {
-    m_addressToAccount = make_shared<std::unordered_map<Address, Account>>();
+    m_addressToAccount = make_shared<unordered_map<Address, Account>>();
 }
 
 void AccountStoreBase::Init() { m_addressToAccount->clear(); }
@@ -77,7 +74,7 @@ unsigned int AccountStoreBase::Serialize(vector<unsigned char>& dst,
     return totalSerializedSize;
 }
 
-int AccountStoreBase::Deserialize(const std::vector<unsigned char>& src,
+int AccountStoreBase::Deserialize(const vector<unsigned char>& src,
                                   unsigned int offset)
 {
     // [Total number of accounts] [Addr 1] [Account 1] [Addr 2] [Account 2] .... [Addr n] [Account n]
@@ -281,7 +278,7 @@ bool AccountStoreBase::ExportCreateContractFiles(Account* contract)
     boost::filesystem::create_directories("./" + SCILLA_FILES);
 
     Json::StreamWriterBuilder writeBuilder;
-    std::unique_ptr<Json::StreamWriter> writer(writeBuilder.newStreamWriter());
+    unique_ptr<Json::StreamWriter> writer(writeBuilder.newStreamWriter());
     std::ofstream os;
 
     // Scilla code
@@ -311,7 +308,7 @@ bool AccountStoreBase::ExportCallContractFiles(
     boost::filesystem::create_directories("./" + SCILLA_FILES);
 
     Json::StreamWriterBuilder writeBuilder;
-    std::unique_ptr<Json::StreamWriter> writer(writeBuilder.newStreamWriter());
+    unique_ptr<Json::StreamWriter> writer(writeBuilder.newStreamWriter());
     std::ofstream os;
 
     // Scilla code
@@ -336,7 +333,7 @@ bool AccountStoreBase::ExportCallContractFiles(
 
     // Message Json
     Json::CharReaderBuilder readBuilder;
-    std::unique_ptr<Json::CharReader> reader(readBuilder.newCharReader());
+    unique_ptr<Json::CharReader> reader(readBuilder.newCharReader());
     Json::Value msgObj;
     string dataStr(contractData.begin(), contractData.end());
     LOG_GENERAL(INFO, "Contract Data: " << dataStr);
@@ -391,7 +388,7 @@ bool AccountStoreBase::ParseCreateContractOutput()
     }
     string outStr{istreambuf_iterator<char>(in), istreambuf_iterator<char>()};
     Json::CharReaderBuilder builder;
-    std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+    unique_ptr<Json::CharReader> reader(builder.newCharReader());
     Json::Value root;
     string errors;
     if (reader->parse(outStr.c_str(), outStr.c_str() + outStr.size(), &root,
@@ -421,7 +418,7 @@ bool AccountStoreBase::ParseCallContractOutput()
     }
     string outStr{istreambuf_iterator<char>(in), istreambuf_iterator<char>()};
     Json::CharReaderBuilder builder;
-    std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+    unique_ptr<Json::CharReader> reader(builder.newCharReader());
     Json::Value root;
     string errors;
     if (reader->parse(outStr.c_str(), outStr.c_str() + outStr.size(), &root,
@@ -437,10 +434,8 @@ bool AccountStoreBase::ParseCallContractOutput()
     }
 }
 
-const std::vector<unsigned char>
-AccountStoreBase::CompositeContractData(const std::string& funcName,
-                                        const std::string& amount,
-                                        const Json::Value& params)
+const vector<unsigned char> AccountStoreBase::CompositeContractData(
+    const string& funcName, const string& amount, const Json::Value& params)
 {
     LOG_MARKER();
     Json::Value obj;
@@ -449,7 +444,7 @@ AccountStoreBase::CompositeContractData(const std::string& funcName,
     obj["params"] = params;
 
     Json::StreamWriterBuilder writeBuilder;
-    std::unique_ptr<Json::StreamWriter> writer(writeBuilder.newStreamWriter());
+    unique_ptr<Json::StreamWriter> writer(writeBuilder.newStreamWriter());
     ostringstream oss;
     writer->write(obj, &oss);
     string dataStr = oss.str();
@@ -477,8 +472,8 @@ uint256_t AccountStoreBase::GetNumOfAccounts() const
     return m_addressToAccount->size();
 }
 
-bool AccountStoreBase::IncreaseBalance(
-    const Address& address, const boost::multiprecision::uint256_t& delta)
+bool AccountStoreBase::IncreaseBalance(const Address& address,
+                                       const uint256_t& delta)
 {
     // LOG_MARKER();
 
@@ -503,8 +498,8 @@ bool AccountStoreBase::IncreaseBalance(
     return false;
 }
 
-bool AccountStoreBase::DecreaseBalance(
-    const Address& address, const boost::multiprecision::uint256_t& delta)
+bool AccountStoreBase::DecreaseBalance(const Address& address,
+                                       const uint256_t& delta)
 {
     // LOG_MARKER();
 
@@ -532,9 +527,8 @@ bool AccountStoreBase::DecreaseBalance(
     return false;
 }
 
-bool AccountStoreBase::TransferBalance(
-    const Address& from, const Address& to,
-    const boost::multiprecision::uint256_t& delta)
+bool AccountStoreBase::TransferBalance(const Address& from, const Address& to,
+                                       const uint256_t& delta)
 {
     // LOG_MARKER();
 
@@ -546,8 +540,7 @@ bool AccountStoreBase::TransferBalance(
     return false;
 }
 
-boost::multiprecision::uint256_t
-AccountStoreBase::GetBalance(const Address& address)
+uint256_t AccountStoreBase::GetBalance(const Address& address)
 {
     LOG_MARKER();
 
@@ -576,8 +569,7 @@ bool AccountStoreBase::IncreaseNonce(const Address& address)
     return false;
 }
 
-boost::multiprecision::uint256_t
-AccountStoreBase::GetNonce(const Address& address)
+uint256_t AccountStoreBase::GetNonce(const Address& address)
 {
     //LOG_MARKER();
 
