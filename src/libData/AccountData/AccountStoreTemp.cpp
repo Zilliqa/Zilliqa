@@ -25,10 +25,7 @@ using namespace boost::multiprecision;
 AccountStoreTemp::AccountStoreTemp(
     const shared_ptr<unordered_map<Address, Account>>& addressToAccount)
     : m_superAddressToAccount(addressToAccount)
-{
-}
-
-void AccountStoreTemp::Init() { m_addressToAccount->clear(); }
+{}
 
 bool AccountStoreTemp::ParseCreateContractJsonOutput(const Json::Value& _json)
 {
@@ -42,6 +39,19 @@ bool AccountStoreTemp::ParseCallContractJsonOutput(const Json::Value& _json)
 
 Account* AccountStoreTemp::GetAccount(const Address& address)
 {
+    auto it = m_addressToAccount->find(address);
+    if (it != m_addressToAccount->end())
+    {
+        return &it->second;
+    }
+
+    auto it2 = m_superAddressToAccount->find(address);
+    if (it2 != m_superAddressToAccount->end())
+    {
+        m_addressToAccount->insert(*it2);
+        return &(m_addressToAccount->find(address))->second;
+    }
+
     return nullptr;
 }
 

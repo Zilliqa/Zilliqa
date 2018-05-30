@@ -457,6 +457,19 @@ void AccountStore::PrintAccountState()
     }
 }
 
-bool AccountStore::UpdateAccountsTemp() { return true; }
+void AccountStore::InitTemp() { m_tempAccountStore->Init(); }
 
-void AccountStore::CommitTemp() {}
+bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
+                                      const Transaction& transaction)
+{
+    return m_tempAccountStore->UpdateAccounts(blockNum, transaction);
+}
+
+void AccountStore::CommitTemp()
+{
+    for (auto entry : *m_tempAccountStore->GetAddressToAccount())
+    {
+        (*m_addressToAccount)[entry.first] = entry.second;
+    }
+    InitTemp();
+}

@@ -87,7 +87,9 @@ public:
 
     void PrintAccountState() override;
 
-    bool UpdateAccountsTemp();
+    void InitTemp();
+    bool UpdateAccountsTemp(const uint64_t& blockNum,
+                            const Transaction& transaction);
     void CommitTemp();
 };
 
