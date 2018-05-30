@@ -67,14 +67,15 @@ protected:
     AccountStoreBase();
 
 public:
-    void Init();
+    virtual void Init();
 
     /// Implements the Serialize function inherited from Serializable.
     unsigned int Serialize(std::vector<unsigned char>& dst,
                            unsigned int offset) const;
 
     /// Implements the Deserialize function inherited from Serializable.
-    int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+    virtual int Deserialize(const std::vector<unsigned char>& src,
+                            unsigned int offset);
 
     /// Verifies existence of Account in the list.
     bool DoesAccountExist(const Address& address);
@@ -87,7 +88,7 @@ public:
                         const Transaction& transaction);
 
     /// Returns the Account associated with the specified address.
-    Account* GetAccount(const Address& address);
+    virtual Account* GetAccount(const Address& address);
     boost::multiprecision::uint256_t GetNumOfAccounts() const;
 
     bool IncreaseBalance(const Address& address,
@@ -103,7 +104,7 @@ public:
     bool IncreaseNonce(const Address& address);
     boost::multiprecision::uint256_t GetNonce(const Address& address);
 
-    void PrintAccountState();
+    virtual void PrintAccountState();
 };
 
 #endif // __ACCOUNTSTOREBASE_H__

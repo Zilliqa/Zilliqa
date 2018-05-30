@@ -23,8 +23,9 @@
 
 #include <boost/multiprecision/cpp_int.hpp>
 
-#include "AccountStoreBase.h"
 #include "Account.h"
+#include "AccountStoreBase.h"
+#include "AccountStoreTemp.h"
 #include "Address.h"
 #include "common/Constants.h"
 #include "common/Singleton.h"
@@ -48,7 +49,7 @@ class AccountStore : public AccountStoreBase, Singleton<AccountStore>
         m_state; // Our state tree, as an OverlayDB DB.
     dev::h256 prevRoot;
 
-    AccountStoreTemp m_tempAccountStore;
+    // AccountStoreTemp m_tempAccountStore;
 
     AccountStore();
     ~AccountStore();
@@ -66,6 +67,9 @@ public:
     /// Returns the singleton AccountStore instance.
     static AccountStore& GetInstance();
 
+    int Deserialize(const vector<unsigned char>& src,
+                    unsigned int offset) override;
+
     /// Empty the state trie, must be called explicitly otherwise will retrieve the historical data
     void Init() override;
 
@@ -80,6 +84,8 @@ public:
 
     bool RetrieveFromDisk();
     void RepopulateStateTrie();
+
+    void PrintAccountState() override;
 
     bool UpdateAccountsTemp();
     void CommitTemp();

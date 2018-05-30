@@ -20,6 +20,7 @@
 #include "depends/common/RLP.h"
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
+#include "libUtils/SysCommand.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -38,7 +39,7 @@ AccountStore::~AccountStore()
 void AccountStore::Init()
 {
     LOG_MARKER();
-    m_addressToAccount.clear();
+    m_addressToAccount->clear();
     ContractStorage::GetContractStorage().GetStateDB().ResetDB();
     m_db.ResetDB();
     m_state.init();
@@ -51,7 +52,57 @@ AccountStore& AccountStore::GetInstance()
     return accountstore;
 }
 
-bool AccountStore::ParseCreateContractJsonOutput(const Json::Value& _json) override
+int AccountStore::Deserialize(const vector<unsigned char>& src,
+                              unsigned int offset)
+{
+    // [Total number of accounts] [Addr 1] [Account 1] [Addr 2] [Account 2] .... [Addr n] [Account n]
+    // LOG_MARKER();
+
+    try
+    {
+        unsigned int curOffset = offset;
+        uint256_t totalNumOfAccounts
+            = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
+        curOffset += UINT256_SIZE;
+
+        Address address;
+        Account account;
+        unsigned int numberOfAccountDeserialze = 0;
+        this->Init();
+        while (numberOfAccountDeserialze < totalNumOfAccounts)
+        {
+            numberOfAccountDeserialze++;
+
+            // Deserialize address
+            copy(src.begin() + curOffset,
+                 src.begin() + curOffset + ACC_ADDR_SIZE,
+                 address.asArray().begin());
+            curOffset += ACC_ADDR_SIZE;
+
+            // Deserialize account
+            // account.Deserialize(src, curOffset);
+            if (account.Deserialize(src, curOffset) != 0)
+            {
+                LOG_GENERAL(WARNING, "We failed to init account.");
+                return -1;
+            }
+            curOffset += ACCOUNT_SIZE;
+            (*m_addressToAccount)[address] = account;
+            UpdateStateTrie(address, account);
+            // MoveUpdatesToDisk();
+        }
+        PrintAccountState();
+    }
+    catch (const std::exception& e)
+    {
+        LOG_GENERAL(WARNING,
+                    "Error with AccountStore::Deserialize." << ' ' << e.what());
+        return -1;
+    }
+    return 0;
+}
+
+bool AccountStore::ParseCreateContractJsonOutput(const Json::Value& _json)
 {
     LOG_MARKER();
 
@@ -76,7 +127,7 @@ bool AccountStore::ParseCreateContractJsonOutput(const Json::Value& _json) overr
     }
 }
 
-bool AccountStore::ParseCallContractJsonOutput(const Json::Value& _json) override
+bool AccountStore::ParseCallContractJsonOutput(const Json::Value& _json)
 {
     LOG_MARKER();
 
@@ -128,15 +179,16 @@ bool AccountStore::ParseCallContractJsonOutput(const Json::Value& _json) overrid
         if (vname == "_balance")
         {
             int newBalance = atoi(value.c_str());
-            deducted = static_cast<int>(
-                           m_addressToAccount[m_curContractAddr].GetBalance())
+            deducted
+                = static_cast<int>(
+                      (*m_addressToAccount)[m_curContractAddr].GetBalance())
                 - newBalance;
-            m_addressToAccount[m_curContractAddr].SetBalance(newBalance);
+            (*m_addressToAccount)[m_curContractAddr].SetBalance(newBalance);
         }
         else
         {
-            m_addressToAccount[m_curContractAddr].SetStorage(vname, type,
-                                                             value);
+            (*m_addressToAccount)[m_curContractAddr].SetStorage(vname, type,
+                                                                value);
         }
     }
 
@@ -227,13 +279,13 @@ bool AccountStore::ParseCallContractJsonOutput(const Json::Value& _json) overrid
     }
 }
 
-Account* AccountStore::GetAccount(const Address& address) override
+Account* AccountStore::GetAccount(const Address& address)
 {
     //LOG_MARKER();
 
-    auto it = m_addressToAccount.find(address);
+    auto it = m_addressToAccount->find(address);
     // LOG_GENERAL(INFO, (it != m_addressToAccount.end()));
-    if (it != m_addressToAccount.end())
+    if (it != m_addressToAccount->end())
     {
         return &it->second;
     }
@@ -251,7 +303,7 @@ Account* AccountStore::GetAccount(const Address& address) override
         return nullptr;
     }
 
-    auto it2 = m_addressToAccount.emplace(
+    auto it2 = m_addressToAccount->emplace(
         std::piecewise_construct, std::forward_as_tuple(address),
         std::forward_as_tuple(
             accountDataRLP[0].toInt<boost::multiprecision::uint256_t>(),
@@ -267,7 +319,7 @@ Account* AccountStore::GetAccount(const Address& address) override
             != it2.first->second.GetCodeHash())
         {
             LOG_GENERAL(WARNING, "Account Code Content doesn't match Code Hash")
-            m_addressToAccount.erase(it2.first);
+            m_addressToAccount->erase(it2.first);
             return nullptr;
         }
         // Storage Root
@@ -280,7 +332,7 @@ Account* AccountStore::GetAccount(const Address& address) override
 bool AccountStore::UpdateStateTrieAll()
 {
     bool ret = true;
-    for (auto entry : m_addressToAccount)
+    for (auto entry : *m_addressToAccount)
     {
         if (!UpdateStateTrie(entry.first, entry.second))
         {
@@ -323,7 +375,7 @@ void AccountStore::MoveUpdatesToDisk()
     LOG_MARKER();
 
     ContractStorage::GetContractStorage().GetStateDB().commit();
-    for (auto i : m_addressToAccount)
+    for (auto i : *m_addressToAccount)
     {
         if (!ContractStorage::GetContractStorage().PutContractCode(
                 i.first, i.second.GetCode()))
@@ -343,13 +395,13 @@ void AccountStore::DiscardUnsavedUpdates()
     LOG_MARKER();
 
     ContractStorage::GetContractStorage().GetStateDB().rollback();
-    for (auto i : m_addressToAccount)
+    for (auto i : *m_addressToAccount)
     {
         i.second.RollBack();
     }
     m_state.db()->rollback();
     m_state.setRoot(prevRoot);
-    m_addressToAccount.clear();
+    m_addressToAccount->clear();
 }
 
 bool AccountStore::RetrieveFromDisk()
@@ -389,7 +441,7 @@ bool AccountStore::RetrieveFromDisk()
             // Storage Root
             account.SetStorageRoot(rlp[2].toHash<dev::h256>());
         }
-        m_addressToAccount.insert({address, account});
+        m_addressToAccount->insert({address, account});
     }
     return true;
 }
@@ -402,12 +454,15 @@ void AccountStore::RepopulateStateTrie()
     UpdateStateTrieAll();
 }
 
-bool AccountStore::UpdateAccountsTemp()
+void AccountStore::PrintAccountState()
 {
-
+    LOG_GENERAL(INFO, "Printing Account State");
+    for (auto entry : *m_addressToAccount)
+    {
+        LOG_GENERAL(INFO, entry.first << " " << entry.second);
+    }
 }
 
-void AccountStore::CommitTemp()
-{
-    
-}
+bool AccountStore::UpdateAccountsTemp() { return true; }
+
+void AccountStore::CommitTemp() {}

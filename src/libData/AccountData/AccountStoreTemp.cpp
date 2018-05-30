@@ -22,31 +22,32 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-AccountStoreTemp::AccountStoreTemp(const std::shared_ptr<std::unordered_map<Address, Account>>& addressToAccount)
-	: m_superAddressToAccount(addressToAccount)
-{}
-
-bool AccountStoreTemp::ParseCreateContractJsonOutput() override
+AccountStoreTemp::AccountStoreTemp(
+    const std::shared_ptr<std::unordered_map<Address, Account>>&
+        addressToAccount)
+    : m_superAddressToAccount(addressToAccount)
 {
-
 }
 
-bool AccountStoreTemp::ParseCallContractJsonOutput() override
+bool AccountStoreTemp::ParseCreateContractJsonOutput(const Json::Value& _json)
 {
-
+    return true;
 }
 
-Account* AccountStoreTemp::GetAccount() override
+bool AccountStoreTemp::ParseCallContractJsonOutput(const Json::Value& _json)
 {
-
+    return true;
 }
 
-void AccountStoreTemp::Reset()
+Account* AccountStoreTemp::GetAccount(const Address& address)
 {
-	
+    return nullptr;
 }
 
-const std::unordered_map<Address, Account> m_superAddressToAccount& GetAddressToAccount()
-{
+void AccountStoreTemp::Reset() { m_addressToAccount->clear(); }
 
+const shared_ptr<std::unordered_map<Address, Account>>&
+AccountStoreTemp::GetAddressToAccount()
+{
+    return m_addressToAccount;
 }

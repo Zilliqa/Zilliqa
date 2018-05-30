@@ -24,18 +24,15 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-AccountStoreBase::AccountStoreBase() 
+AccountStoreBase::AccountStoreBase()
 {
-	m_addressToAccount = make_shared<std::unordered_map<Address, Account>>();
+    m_addressToAccount = make_shared<std::unordered_map<Address, Account>>();
 }
 
-void AccountStoreBase::Init()
-{
-    m_addressToAccount.clear();
-}
+void AccountStoreBase::Init() { m_addressToAccount->clear(); }
 
 unsigned int AccountStoreBase::Serialize(vector<unsigned char>& dst,
-                                     unsigned int offset) const
+                                         unsigned int offset) const
 {
     // [Total number of accounts (uint256_t)] [Addr 1] [Account 1] [Addr 2] [Account 2] .... [Addr n] [Account n]
 
@@ -62,7 +59,7 @@ unsigned int AccountStoreBase::Serialize(vector<unsigned char>& dst,
 
     vector<unsigned char> address_vec;
     // [Addr 1] [Account 1] [Addr 2] [Account 2] .... [Addr n] [Account n]
-    for (auto entry : m_addressToAccount.get())
+    for (auto entry : *m_addressToAccount)
     {
         // Address
         address_vec = entry.first.asBytes();
@@ -80,8 +77,8 @@ unsigned int AccountStoreBase::Serialize(vector<unsigned char>& dst,
     return totalSerializedSize;
 }
 
-int AccountStoreBase::Deserialize(const vector<unsigned char>& src,
-                              unsigned int offset)
+int AccountStoreBase::Deserialize(const std::vector<unsigned char>& src,
+                                  unsigned int offset)
 {
     // [Total number of accounts] [Addr 1] [Account 1] [Addr 2] [Account 2] .... [Addr n] [Account n]
     // LOG_MARKER();
@@ -96,7 +93,6 @@ int AccountStoreBase::Deserialize(const vector<unsigned char>& src,
         Address address;
         Account account;
         unsigned int numberOfAccountDeserialze = 0;
-        this->Init();
         while (numberOfAccountDeserialze < totalNumOfAccounts)
         {
             numberOfAccountDeserialze++;
@@ -115,16 +111,15 @@ int AccountStoreBase::Deserialize(const vector<unsigned char>& src,
                 return -1;
             }
             curOffset += ACCOUNT_SIZE;
-            m_addressToAccount.get()[address] = account;
-            UpdateStateTrie(address, account);
-            // MoveUpdatesToDisk();
+            (*m_addressToAccount)[address] = account;
         }
         PrintAccountState();
     }
     catch (const std::exception& e)
     {
         LOG_GENERAL(WARNING,
-                    "Error with AccountStore::Deserialize." << ' ' << e.what());
+                    "Error with AccountStoreBase::Deserialize." << ' '
+                                                                << e.what());
         return -1;
     }
     return 0;
@@ -142,7 +137,8 @@ bool AccountStoreBase::DoesAccountExist(const Address& address)
     return false;
 }
 
-void AccountStoreBase::AddAccount(const Address& address, const Account& account)
+void AccountStoreBase::AddAccount(const Address& address,
+                                  const Account& account)
 {
     LOG_MARKER();
 
@@ -159,7 +155,7 @@ void AccountStoreBase::AddAccount(const PubKey& pubKey, const Account& account)
 }
 
 bool AccountStoreBase::UpdateAccounts(const uint64_t& blockNum,
-                                  const Transaction& transaction)
+                                      const Transaction& transaction)
 {
     LOG_MARKER();
 
@@ -206,11 +202,11 @@ bool AccountStoreBase::UpdateAccounts(const uint64_t& blockNum,
         }
 
         toAddr = Account::GetAddressForContract(
-            fromAddr, m_addressToAccount.get()[fromAddr].GetNonce());
+            fromAddr, (*m_addressToAccount)[fromAddr].GetNonce());
         AddAccount(toAddr, {0, 0});
-        m_addressToAccount.get()[toAddr].SetCode(transaction.GetCode());
+        (*m_addressToAccount)[toAddr].SetCode(transaction.GetCode());
         // Store the immutable states
-        m_addressToAccount.get()[toAddr].InitContract(transaction.GetData());
+        (*m_addressToAccount)[toAddr].InitContract(transaction.GetData());
 
         Account* toAccount = GetAccount(toAddr);
         if (toAccount == nullptr)
@@ -443,8 +439,8 @@ bool AccountStoreBase::ParseCallContractOutput()
 
 const std::vector<unsigned char>
 AccountStoreBase::CompositeContractData(const std::string& funcName,
-                                    const std::string& amount,
-                                    const Json::Value& params)
+                                        const std::string& amount,
+                                        const Json::Value& params)
 {
     LOG_MARKER();
     Json::Value obj;
@@ -471,6 +467,8 @@ Account* AccountStoreBase::GetAccount(const Address& address)
     {
         return &it->second;
     }
+
+    return nullptr;
 }
 
 uint256_t AccountStoreBase::GetNumOfAccounts() const
@@ -578,7 +576,8 @@ bool AccountStoreBase::IncreaseNonce(const Address& address)
     return false;
 }
 
-boost::multiprecision::uint256_t AccountStoreBase::GetNonce(const Address& address)
+boost::multiprecision::uint256_t
+AccountStoreBase::GetNonce(const Address& address)
 {
     //LOG_MARKER();
 
@@ -594,12 +593,9 @@ boost::multiprecision::uint256_t AccountStoreBase::GetNonce(const Address& addre
 
 void AccountStoreBase::PrintAccountState()
 {
-    LOG_MARKER();
-
     LOG_GENERAL(INFO, "Printing Account State");
-    for (auto entry : m_addressToAccount.get())
+    for (auto entry : *m_addressToAccount)
     {
         LOG_GENERAL(INFO, entry.first << " " << entry.second);
     }
-    LOG_GENERAL(INFO, "State Root: " << GetStateRootHash());
 }

@@ -22,8 +22,8 @@
 
 #include <boost/multiprecision/cpp_int.hpp>
 
-#include "AccountStoreBase.h"
 #include "Account.h"
+#include "AccountStoreBase.h"
 #include "Address.h"
 #include "common/Constants.h"
 #include "depends/common/FixedHash.h"
@@ -32,21 +32,25 @@
 
 class AccountStoreTemp : public AccountStoreBase
 {
-    std::shared_ptr<std::unordered_map<Address, Account>> m_superAddressToAccount;
+    std::shared_ptr<std::unordered_map<Address, Account>>
+        m_superAddressToAccount;
 
     bool ParseCreateContractJsonOutput(const Json::Value& _json) override;
 
     bool ParseCallContractJsonOutput(const Json::Value& _json) override;
 
 public:
-    AccountStoreTemp(const std::shared_ptr<std::unordered_map<Address, Account>>& addressToAccount);
+    AccountStoreTemp(
+        const std::shared_ptr<std::unordered_map<Address, Account>>&
+            addressToAccount);
 
     void Reset();
 
     /// Returns the Account associated with the specified address.
     Account* GetAccount(const Address& address) override;
 
-    const std::unordered_map<Address, Account> m_addressToAccount& GetAddressToAccount();
+    const shared_ptr<std::unordered_map<Address, Account>>&
+    GetAddressToAccount();
 };
 
 #endif // __ACCOUNTSTORE_H__
