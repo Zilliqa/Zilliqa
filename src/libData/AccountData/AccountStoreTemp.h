@@ -14,47 +14,39 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#ifndef CONTRACTSTORAGE_H
-#define CONTRACTSTORAGE_H
+#ifndef __ACCOUNTSTORE_H__
+#define __ACCOUNTSTORE_H__
 
-#include <leveldb/db.h>
+#include <json/json.h>
+#include <unordered_map>
 
-#include "common/Singleton.h"
-#include "depends/libDatabase/LevelDB.h"
-#include "depends/libDatabase/OverlayDB.h"
-#include "depends/libTrie/TrieDB.h"
+#include <boost/multiprecision/cpp_int.hpp>
 
-using namespace dev;
+#include "AccountStoreBase.h"
+#include "Account.h"
+#include "Address.h"
+#include "common/Constants.h"
+#include "depends/common/FixedHash.h"
+#include "libCrypto/Schnorr.h"
+#include "libData/AccountData/Transaction.h"
 
-class ContractStorage : public Singleton<ContractStorage> 
+class AccountStoreTemp : public AccountStoreBase
 {
-    friend class Singleton<ContractStorage>;
+    std::shared_ptr<std::unordered_map<Address, Account>> m_superAddressToAccount;
 
-    OverlayDB m_stateDB;
-    LevelDB m_codeDB;
+    bool ParseCreateContractJsonOutput(const Json::Value& _json) override;
 
-    ContractStorage()
-        : m_stateDB("contractState")
-        , m_codeDB("contractCode"){};
-
-    ~ContractStorage() = default;
+    bool ParseCallContractJsonOutput(const Json::Value& _json) override;
 
 public:
-    /// Returns the singleton ContractStorage instance.
-    static ContractStorage& GetContractStorage()
-    {
-        static ContractStorage cs;
-        return cs;
-    }
+    AccountStoreTemp(const std::shared_ptr<std::unordered_map<Address, Account>>& addressToAccount);
 
-    OverlayDB& GetStateDB() { return m_stateDB; }
+    void Reset();
 
-    /// Adds a contract code to persistence
-    bool PutContractCode(const h160& address,
-                         const std::vector<unsigned char>& code);
+    /// Returns the Account associated with the specified address.
+    Account* GetAccount(const Address& address) override;
 
-    /// Get the desired code from persistence
-    const std::vector<unsigned char> GetContractCode(const h160& address);
+    const std::unordered_map<Address, Account> m_addressToAccount& GetAddressToAccount();
 };
 
-#endif // CONTRACTSTORAGE_H
+#endif // __ACCOUNTSTORE_H__

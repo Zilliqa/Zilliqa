@@ -14,47 +14,32 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#ifndef CONTRACTSTORAGE_H
-#define CONTRACTSTORAGE_H
+#ifndef __SINGLETON_H__
+#define __SINGLETON_H__
 
-#include <leveldb/db.h>
-
-#include "common/Singleton.h"
-#include "depends/libDatabase/LevelDB.h"
-#include "depends/libDatabase/OverlayDB.h"
-#include "depends/libTrie/TrieDB.h"
-
-using namespace dev;
-
-class ContractStorage : public Singleton<ContractStorage> 
+template<typename T>
+class Singleton
 {
-    friend class Singleton<ContractStorage>;
+protected:
+    Singleton() noexcept = default;
 
-    OverlayDB m_stateDB;
-    LevelDB m_codeDB;
+    Singleton(const Singleton&) = delete;
 
-    ContractStorage()
-        : m_stateDB("contractState")
-        , m_codeDB("contractCode"){};
+    Singleton& operator=(const Singleton&) = delete;
 
-    ~ContractStorage() = default;
+    virtual ~Singleton() = default; // to silence base class Singleton<T> has a
+    // non-virtual destructor [-Weffc++]
 
 public:
-    /// Returns the singleton ContractStorage instance.
-    static ContractStorage& GetContractStorage()
+    static T& GetInstance() noexcept(std::is_nothrow_constructible<T>::value)
     {
-        static ContractStorage cs;
-        return cs;
+        // Guaranteed to be destroyed.
+        // Instantiated on first use.
+        // Thread safe in C++11
+        static T instance;
+
+        return instance;
     }
-
-    OverlayDB& GetStateDB() { return m_stateDB; }
-
-    /// Adds a contract code to persistence
-    bool PutContractCode(const h160& address,
-                         const std::vector<unsigned char>& code);
-
-    /// Get the desired code from persistence
-    const std::vector<unsigned char> GetContractCode(const h160& address);
 };
 
-#endif // CONTRACTSTORAGE_H
+#endif // __SINGLETON_H__

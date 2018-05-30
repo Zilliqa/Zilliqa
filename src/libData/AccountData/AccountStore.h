@@ -18,16 +18,16 @@
 #define __ACCOUNTSTORE_H__
 
 #include <json/json.h>
-#include <mutex>
 #include <set>
 #include <unordered_map>
 
 #include <boost/multiprecision/cpp_int.hpp>
 
+#include "AccountStoreBase.h"
 #include "Account.h"
 #include "Address.h"
 #include "common/Constants.h"
-#include "common/Serializable.h"
+#include "common/Singleton.h"
 #include "depends/common/FixedHash.h"
 #include "depends/libDatabase/OverlayDB.h"
 #include "depends/libTrie/TrieDB.h"
@@ -39,92 +39,38 @@ using SecureTrieDB = dev::SpecificTrieDB<dev::GenericTrieDB<DB>, KeyType>;
 
 using StateHash = dev::h256;
 
-/// Maintains the list of accounts.
-class AccountStore : public Serializable
+class AccountStore : public AccountStoreBase, Singleton<AccountStore>
 {
-    std::unordered_map<Address, Account> m_addressToAccount;
+    friend class Singleton<AccountStore>;
 
     dev::OverlayDB m_db; // Our overlay for the state tree.
     SecureTrieDB<Address, dev::OverlayDB>
         m_state; // Our state tree, as an OverlayDB DB.
     dev::h256 prevRoot;
 
-    uint64_t m_curBlockNum;
-    Address m_curContractAddr;
+    AccountStoreTemp m_tempAccountStore;
 
     AccountStore();
     ~AccountStore();
-
-    static bool Compare(const Account& l, const Account& r);
 
     bool UpdateStateTrie(const Address& address, const Account& account);
 
     /// Store the trie root to leveldb
     void MoveRootToDisk(const dev::h256& root);
 
-    bool ParseCreateContractOutput();
+    bool ParseCreateContractJsonOutput(const Json::Value& _json) override;
 
-    bool ParseCreateContractJsonOutput(const Json::Value& _json);
-
-    bool ParseCallContractOutput();
-
-    bool ParseCallContractJsonOutput(const Json::Value& _json);
-
-    Json::Value GetBlockStateJson(const uint64_t& BlockNum) const;
-
-    std::string GetCreateContractCmdStr();
-
-    std::string GetCallContractCmdStr();
-
-    // Generate input for interpreter to check the correctness of contract
-    bool ExportCreateContractFiles(Account* contract);
-
-    bool
-    ExportCallContractFiles(Account* contract,
-                            const std::vector<unsigned char>& contractData);
-
-    const std::vector<unsigned char>
-    CompositeContractData(const std::string& funcName,
-                          const std::string& amount, const Json::Value& params);
+    bool ParseCallContractJsonOutput(const Json::Value& _json) override;
 
 public:
     /// Returns the singleton AccountStore instance.
     static AccountStore& GetInstance();
+
     /// Empty the state trie, must be called explicitly otherwise will retrieve the historical data
-    void Init();
-    /// Implements the Serialize function inherited from Serializable.
-    unsigned int Serialize(std::vector<unsigned char>& dst,
-                           unsigned int offset) const;
-
-    /// Implements the Deserialize function inherited from Serializable.
-    int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
-
-    /// Verifies existence of Account in the list.
-    bool DoesAccountExist(const Address& address);
-
-    /// Adds an Account to the list.
-    void AddAccount(const Address& address, const Account& account);
-    void AddAccount(const PubKey& pubKey, const Account& account);
-
-    bool UpdateAccounts(const uint64_t& blockNum,
-                        const Transaction& transaction);
+    void Init() override;
 
     /// Returns the Account associated with the specified address.
-    Account* GetAccount(const Address& address);
-    boost::multiprecision::uint256_t GetNumOfAccounts() const;
-
-    bool IncreaseBalance(const Address& address,
-                         const boost::multiprecision::uint256_t& delta);
-    bool DecreaseBalance(const Address& address,
-                         const boost::multiprecision::uint256_t& delta);
-
-    /// Updates the source and destination accounts included in the specified Transaction.
-    bool TransferBalance(const Address& from, const Address& to,
-                         const boost::multiprecision::uint256_t& delta);
-    boost::multiprecision::uint256_t GetBalance(const Address& address);
-
-    bool IncreaseNonce(const Address& address);
-    boost::multiprecision::uint256_t GetNonce(const Address& address);
+    Account* GetAccount(const Address& address) override;
 
     dev::h256 GetStateRootHash() const;
 
@@ -132,10 +78,11 @@ public:
     void MoveUpdatesToDisk();
     void DiscardUnsavedUpdates();
 
-    void PrintAccountState();
-
     bool RetrieveFromDisk();
     void RepopulateStateTrie();
+
+    bool UpdateAccountsTemp();
+    void CommitTemp();
 };
 
 #endif // __ACCOUNTSTORE_H__
