@@ -1161,13 +1161,6 @@ bool ConsensusLeader::StartConsensus(const vector<unsigned char>& message,
     // Format: [CLA] [INS] [1-byte consensus message type] [4-byte consensus id] [32-byte blockhash] [2-byte leader id] [message] [4-byte length to co-sign] [64-byte signature]
     // Signature is over: [4-byte consensus id] [32-byte blockhash] [2-byte leader id] [message] [4-byte length to co-sign]
 
-    LOG_GENERAL(INFO,
-                "DEBUG: my ip is "
-                    << m_peerInfo.at(m_myID).GetPrintableIPAddress()
-                    << "DEBUG: my pub is "
-                    << DataConversion::SerializableToHexStr(
-                           m_pubKeys.at(m_myID)));
-
     vector<unsigned char> announcement
         = {m_classByte, m_insByte,
            static_cast<unsigned char>(ConsensusMessageType::ANNOUNCE)};
