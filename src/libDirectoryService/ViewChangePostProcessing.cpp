@@ -29,29 +29,13 @@
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
 #include "libNetwork/P2PComm.h"
+#include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SanityChecks.h"
 
 #ifndef IS_LOOKUP_NODE
-
-bool DirectoryService::SendVCBlockToLookupNodes()
-{
-    vector<unsigned char> vcblock_message
-        = {MessageType::NODE, NodeInstructionType::VCBLOCK};
-    unsigned int curr_offset = MessageOffset::BODY;
-
-    m_pendingVCBlock->Serialize(vcblock_message, MessageOffset::BODY);
-    curr_offset += m_pendingVCBlock->GetSerializedSize();
-
-    m_mediator.m_lookup->SendMessageToLookupNodes(vcblock_message);
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "I the part of the subset of DS committee that have sent the "
-              "VCBlock to the lookup nodes");
-
-    return true;
-}
 
 void DirectoryService::DetermineShardsToSendVCBlockTo(
     unsigned int& my_DS_cluster_num, unsigned int& my_shards_lo,
@@ -97,22 +81,15 @@ void DirectoryService::DetermineShardsToSendVCBlockTo(
     }
 }
 
-void DirectoryService::SendVCBlockToShardNodes(unsigned int my_DS_cluster_num,
-                                               unsigned int my_shards_lo,
-                                               unsigned int my_shards_hi)
+void DirectoryService::SendVCBlockToShardNodes(
+    unsigned int my_DS_cluster_num, unsigned int my_shards_lo,
+    unsigned int my_shards_hi, vector<unsigned char>& vcblock_message)
 {
     // Too few target shards - avoid asking all DS clusters to send
     LOG_MARKER();
 
     if ((my_DS_cluster_num + 1) <= m_shards.size())
     {
-        vector<unsigned char> vcblock_message
-            = {MessageType::NODE, NodeInstructionType::VCBLOCK};
-        unsigned int curr_offset = MessageOffset::BODY;
-
-        m_pendingVCBlock->Serialize(vcblock_message, MessageOffset::BODY);
-        curr_offset += m_pendingVCBlock->GetSerializedSize();
-
         auto p = m_shards.begin();
         advance(p, my_shards_lo);
 
@@ -144,10 +121,46 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
 
     m_pendingVCBlock->SetCoSignatures(*m_consensusObject);
 
+    unsigned int index = 0;
+    unsigned int count = 0;
+
+    vector<PubKey> keys;
+    for (auto& kv : m_mediator.m_DSCommitteePubKeys)
+    {
+        if (m_pendingVCBlock->GetB2().at(index) == true)
+        {
+            keys.push_back(kv);
+            count++;
+        }
+        index++;
+    }
+
+    // Verify cosig against vcblock
+    shared_ptr<PubKey> aggregatedKey = MultiSig::AggregatePubKeys(keys);
+    if (aggregatedKey == nullptr)
+    {
+        LOG_GENERAL(WARNING, "Aggregated key generation failed");
+    }
+
+    vector<unsigned char> message;
+    m_pendingVCBlock->GetHeader().Serialize(message, 0);
+    m_pendingVCBlock->GetCS1().Serialize(message, VCBlockHeader::SIZE);
+    BitVector::SetBitVector(message, VCBlockHeader::SIZE + BLOCK_SIG_SIZE,
+                            m_pendingVCBlock->GetB1());
+    if (Schnorr::GetInstance().Verify(message, 0, message.size(),
+                                      m_pendingVCBlock->GetCS2(),
+                                      *aggregatedKey)
+        == false)
+    {
+        LOG_GENERAL(WARNING, "cosig verification fail");
+        return;
+    }
+
     Peer newLeaderNetworkInfo;
     unsigned char viewChangeState;
     {
         lock_guard<mutex> g(m_mutexPendingVCBlock);
+
         newLeaderNetworkInfo
             = m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo();
         viewChangeState = m_pendingVCBlock->GetHeader().GetViewChangeState();
@@ -235,6 +248,14 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
 
     // TODO: Refine this
     // Broadcasting vcblock to lookup nodes
+
+    vector<unsigned char> vcblock_message
+        = {MessageType::NODE, NodeInstructionType::VCBLOCK};
+    unsigned int curr_offset = MessageOffset::BODY;
+
+    m_pendingVCBlock->Serialize(vcblock_message, MessageOffset::BODY);
+    curr_offset += m_pendingVCBlock->GetSerializedSize();
+
     unsigned int nodeToSendToLookUpLo = COMM_SIZE / 4;
     unsigned int nodeToSendToLookUpHi
         = nodeToSendToLookUpLo + TX_SHARING_CLUSTER_SIZE;
@@ -242,7 +263,10 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
     if (m_consensusMyID > nodeToSendToLookUpLo
         && m_consensusMyID < nodeToSendToLookUpHi)
     {
-        SendVCBlockToLookupNodes();
+        m_mediator.m_lookup->SendMessageToLookupNodes(vcblock_message);
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "I the part of the subset of DS committee that have sent the "
+                  "VCBlock to the lookup nodes");
     }
 
     // Broadcasting vcblock to lookup nodes
@@ -252,7 +276,8 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
 
     DetermineShardsToSendFinalBlockTo(my_DS_cluster_num, my_shards_lo,
                                       my_shards_hi);
-    SendVCBlockToShardNodes(my_DS_cluster_num, my_shards_lo, my_shards_hi);
+    SendVCBlockToShardNodes(my_DS_cluster_num, my_shards_lo, my_shards_hi,
+                            vcblock_message);
 }
 
 void DirectoryService::ProcessNextConsensus(unsigned char viewChangeState)
