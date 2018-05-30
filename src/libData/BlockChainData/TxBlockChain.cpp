@@ -58,7 +58,13 @@ TxBlock TxBlockChain::GetBlock(const uint256_t& blockNum)
     // Consider switching to uint64_t
     // For now we directly cast to uint64_t
 
-    assert(m_txBlocks[blockNum].GetHeader().GetBlockNum() == blockNum);
+    if (m_txBlocks[blockNum].GetHeader().GetBlockNum() != blockNum)
+    {
+        LOG_GENERAL(FATAL,
+                    "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
+                                         << __FUNCTION__ << ")");
+    }
+
     return m_txBlocks[blockNum];
 
     // return NULL;

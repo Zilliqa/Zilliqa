@@ -53,9 +53,9 @@ bool Node::ReadAuxilliaryInfoFromFinalBlockMsg(
     uint8_t& shard_id)
 {
     // 32-byte block number
-    uint256_t dsBlockNum = Serializable::GetNumber<uint256_t>(
-        message, cur_offset, sizeof(uint256_t));
-    cur_offset += sizeof(uint256_t);
+    uint256_t dsBlockNum
+        = Serializable::GetNumber<uint256_t>(message, cur_offset, UINT256_SIZE);
+    cur_offset += UINT256_SIZE;
 
     // Check block number
     if (!CheckWhetherDSBlockNumIsLatest(dsBlockNum + 1))

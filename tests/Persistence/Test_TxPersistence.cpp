@@ -208,7 +208,13 @@ void readBlock(int id)
         LOG_GENERAL(INFO,
                     "GetBlockNum is " << (*block).GetHeader().GetBlockNum()
                                       << ", id is " << id);
-        assert((*block).GetHeader().GetBlockNum() == id);
+
+        if ((*block).GetHeader().GetBlockNum() != id)
+        {
+            LOG_GENERAL(FATAL,
+                        "assertion failed (" << __FILE__ << ":" << __LINE__
+                                             << ": " << __FUNCTION__ << ")");
+        }
     }
     else
     {

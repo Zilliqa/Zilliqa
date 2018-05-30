@@ -77,7 +77,8 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
         m_ds.m_consensusID = 0;
     }
 
-    m_mediator.RegisterColleagues(&m_ds, &m_n, &m_lookup);
+    m_validator = make_shared<Validator>(m_mediator);
+    m_mediator.RegisterColleagues(&m_ds, &m_n, &m_lookup, m_validator.get());
 
     LogSelfNodeInfo(key, peer);
 
