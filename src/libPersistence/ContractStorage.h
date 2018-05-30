@@ -26,7 +26,7 @@
 
 using namespace dev;
 
-class ContractStorage : public Singleton<ContractStorage> 
+class ContractStorage : public Singleton<ContractStorage>
 {
     friend class Singleton<ContractStorage>;
 
