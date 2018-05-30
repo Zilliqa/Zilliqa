@@ -49,6 +49,9 @@ VCBlockHeader::VCBlockHeader(const uint64_t& vieWChangeDSEpochNo,
     , m_Timestamp(timestamp)
 {
 }
+static const unsigned int SIZE = sizeof(uint64_t) + sizeof(uint64_t)
+    + sizeof(unsigned char) + sizeof(unsigned int) + IP_SIZE + PORT_SIZE
+    + PUB_KEY_SIZE + sizeof(unsigned int) + UINT256_SIZE;
 
 unsigned int VCBlockHeader::Serialize(vector<unsigned char>& dst,
                                       unsigned int offset) const
@@ -122,8 +125,8 @@ int VCBlockHeader::Deserialize(const vector<unsigned char>& src,
         m_VCCounter
             = GetNumber<unsigned int>(src, curOffset, sizeof(unsigned int));
         curOffset += sizeof(unsigned int);
-        m_Timestamp = GetNumber<uint256_t>(src, curOffset, sizeof(uint256_t));
-        curOffset += sizeof(uint256_t);
+        m_Timestamp = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
+        curOffset += UINT256_SIZE;
     }
     catch (const std::exception& e)
     {
