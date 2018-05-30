@@ -17,7 +17,7 @@
 #ifndef __SHA3_H__
 #define __SHA3_H__
 
-#include <cassert>
+#include "libUtils/Logger.h"
 #include <vector>
 
 extern void FIPS202_SHA3_256(const unsigned char* input,
@@ -44,8 +44,13 @@ public:
     SHA3()
         : output(HASH_OUTPUT_SIZE)
     {
-        assert((SIZE == HASH_TYPE::HASH_VARIANT_256)
-               || (SIZE == HASH_TYPE::HASH_VARIANT_512));
+        if ((SIZE != HASH_TYPE::HASH_VARIANT_256)
+            && (SIZE != HASH_TYPE::HASH_VARIANT_512))
+        {
+            LOG_GENERAL(FATAL,
+                        "assertion failed (" << __FILE__ << ":" << __LINE__
+                                             << ": " << __FUNCTION__ << ")");
+        }
     }
 
     /// Destructor.
@@ -54,7 +59,13 @@ public:
     /// Hash update function.
     void Update(const std::vector<unsigned char>& input)
     {
-        assert(input.size() > 0);
+        if (input.size() <= 0)
+        {
+            LOG_GENERAL(FATAL,
+                        "assertion failed (" << __FILE__ << ":" << __LINE__
+                                             << ": " << __FUNCTION__ << ")");
+        }
+
         message.insert(message.end(), input.begin(), input.end());
     }
 
@@ -62,7 +73,13 @@ public:
     void Update(const std::vector<unsigned char>& input, unsigned int offset,
                 unsigned int size)
     {
-        assert((offset + size) <= input.size());
+        if ((offset + size) > input.size())
+        {
+            LOG_GENERAL(FATAL,
+                        "assertion failed (" << __FILE__ << ":" << __LINE__
+                                             << ": " << __FUNCTION__ << ")");
+        }
+
         message.insert(message.end(), input.begin() + offset,
                        input.begin() + offset + size);
     }
