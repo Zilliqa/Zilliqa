@@ -14,47 +14,39 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#ifndef CONTRACTSTORAGE_H
-#define CONTRACTSTORAGE_H
+#include "AccountStoreTemp.h"
 
-#include <leveldb/db.h>
+#include "libUtils/DataConversion.h"
+#include "libUtils/Logger.h"
 
-#include "common/Singleton.h"
-#include "depends/libDatabase/LevelDB.h"
-#include "depends/libDatabase/OverlayDB.h"
-#include "depends/libTrie/TrieDB.h"
+using namespace std;
+using namespace boost::multiprecision;
 
-using namespace dev;
+AccountStoreTemp::AccountStoreTemp(const std::shared_ptr<std::unordered_map<Address, Account>>& addressToAccount)
+	: m_superAddressToAccount(addressToAccount)
+{}
 
-class ContractStorage : public Singleton<ContractStorage> 
+bool AccountStoreTemp::ParseCreateContractJsonOutput() override
 {
-    friend class Singleton<ContractStorage>;
 
-    OverlayDB m_stateDB;
-    LevelDB m_codeDB;
+}
 
-    ContractStorage()
-        : m_stateDB("contractState")
-        , m_codeDB("contractCode"){};
+bool AccountStoreTemp::ParseCallContractJsonOutput() override
+{
 
-    ~ContractStorage() = default;
+}
 
-public:
-    /// Returns the singleton ContractStorage instance.
-    static ContractStorage& GetContractStorage()
-    {
-        static ContractStorage cs;
-        return cs;
-    }
+Account* AccountStoreTemp::GetAccount() override
+{
 
-    OverlayDB& GetStateDB() { return m_stateDB; }
+}
 
-    /// Adds a contract code to persistence
-    bool PutContractCode(const h160& address,
-                         const std::vector<unsigned char>& code);
+void AccountStoreTemp::Reset()
+{
+	
+}
 
-    /// Get the desired code from persistence
-    const std::vector<unsigned char> GetContractCode(const h160& address);
-};
+const std::unordered_map<Address, Account> m_superAddressToAccount& GetAddressToAccount()
+{
 
-#endif // CONTRACTSTORAGE_H
+}
