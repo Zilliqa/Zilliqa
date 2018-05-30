@@ -100,7 +100,6 @@ const std::string DS_BACKUP_MSG = "DS BACKUP NOW";
 
 extern const std::string SCILLA_PATH;
 extern const std::string SCILLA_FILES;
-extern const std::string INTERPRETER_NAME;
 extern const std::string INIT_JSON;
 extern const std::string INPUT_STATE_JSON;
 extern const std::string INPUT_BLOCKCHAIN_JSON;

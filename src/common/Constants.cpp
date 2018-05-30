@@ -110,8 +110,6 @@ const std::vector<std::string> GENESIS_KEYS{
 
 const std::string SCILLA_PATH{ReadHexStringFromConnstansFile("SCILLA_PATH")};
 const std::string SCILLA_FILES{ReadHexStringFromConnstansFile("SCILLA_FILES")};
-const std::string INTERPRETER_NAME{
-    SCILLA_PATH + ReadHexStringFromConnstansFile("INTERPRETER_NAME")};
 const std::string INIT_JSON{SCILLA_FILES
                             + ReadHexStringFromConnstansFile("INIT_JSON")};
 const std::string INPUT_STATE_JSON{
