@@ -126,6 +126,7 @@ bool Node::VerifyVCBlockCoSignature(const VCBlock& vcblock)
 
     // Generate the aggregated key
     vector<PubKey> keys;
+
     for (auto& kv : m_mediator.m_DSCommitteePubKeys)
     {
         if (B2.at(index) == true)
@@ -135,6 +136,7 @@ bool Node::VerifyVCBlockCoSignature(const VCBlock& vcblock)
         }
         index++;
     }
+
 
     if (count != ConsensusCommon::NumForConsensus(B2.size()))
     {
@@ -159,7 +161,11 @@ bool Node::VerifyVCBlockCoSignature(const VCBlock& vcblock)
                                       vcblock.GetCS2(), *aggregatedKey)
         == false)
     {
-        LOG_GENERAL(WARNING, "Cosig verification failed");
+        LOG_GENERAL(WARNING, "Cosig verification failed. Pubkeys");
+        for (auto& kv : keys)
+        {
+            LOG_GENERAL(WARNING, "" << kv);
+        }
         return false;
     }
 
@@ -170,23 +176,28 @@ bool Node::VerifyVCBlockCoSignature(const VCBlock& vcblock)
 void Node::LogReceivedDSBlockDetails(const DSBlock& dsblock)
 {
 #ifdef IS_LOOKUP_NODE
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "I the lookup node have deserialized the DS Block");
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "dsblock.GetHeader().GetDifficulty(): "
-                  << (int)dsblock.GetHeader().GetDifficulty());
-    LOG_EPOCH(
-        INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-        "dsblock.GetHeader().GetNonce(): " << dsblock.GetHeader().GetNonce());
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "dsblock.GetHeader().GetBlockNum(): "
-                  << dsblock.GetHeader().GetBlockNum());
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "dsblock.GetHeader().GetMinerPubKey(): "
-                  << dsblock.GetHeader().GetMinerPubKey());
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "dsblock.GetHeader().GetLeaderPubKey(): "
-                  << dsblock.GetHeader().GetLeaderPubKey());
+        LOG_GENERAL(
+            INFO,
+            "m_VieWChangeDSEpochNo "
+                << to_string(vcblock.GetHeader().GetVieWChangeDSEpochNo())
+                       .c_str()
+                << "\n"
+                << "m_VieWChangeEpochNo: "
+                << to_string(vcblock.GetHeader().GetViewChangeEpochNo()).c_str()
+                << "\n"
+                << "m_ViewChangeState: "
+                << vcblock.GetHeader().GetViewChangeState() << "\n"
+                << "m_CandidateLeaderIndex: "
+                << to_string(vcblock.GetHeader().GetCandidateLeaderIndex())
+                << "\n"
+                << "m_CandidateLeaderNetworkInfo: "
+                << vcblock.GetHeader().GetCandidateLeaderNetworkInfo() << "\n"
+                << "m_CandidateLeaderPubKey: "
+                << vcblock.GetHeader().GetCandidateLeaderPubKey() << "\n"
+                << "m_VCCounter: "
+                << to_string(vcblock.GetHeader().GetViewChangeCounter()).c_str()
+                << "\n"
+                << "m_Timestamp: " << vcblock.GetHeader().GetTimeStamp());
 #endif // IS_LOOKUP_NODE
 }
 **/
@@ -244,7 +255,7 @@ bool Node::ProcessVCBlock(const vector<unsigned char>& message,
     }
 
     // TODO
-    // LogReceivedDSBlockDetails(vcblock);
+    // LogReceivedVSBlockDetails(vcblock);
 
     // Check the signature of this VC block
     if (!VerifyVCBlockCoSignature(vcblock))
