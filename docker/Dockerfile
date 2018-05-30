@@ -21,21 +21,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libjsonrpccpp-dev \
     libevent-dev \
     python python-pip \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN pip install netaddr
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install netaddr
 
 #--------------------------------------------------------------------
 # BUILDING
 #--------------------------------------------------------------------
 ARG BRANCH=master
+# don't do check-out if COMMIT is empty
+ARG COMMIT=
 ARG REPO=https://github.com/Zilliqa/Zilliqa.git
 ARG SOURCE_DIR=/zilliqa
 ARG BUILD_DIR=/build
 ARG INSTALL_DIR=/usr/local
 
 # FIXME: see issue https://github.com/Zilliqa/Zilliqa/issues/240
-RUN git clone --recursive -b ${BRANCH} --depth=1 ${REPO} ${SOURCE_DIR}; \
+RUN git clone --recursive -b ${BRANCH} --depth=10 ${REPO} ${SOURCE_DIR}; \
+    git -C ${SOURCE_DIR} checkout ${COMMIT}; \
     mkdir $BUILD_DIR && cd $BUILD_DIR; \
     cmake -DIS_LOOKUP_NODE=1 -DCMAKE_BUILD_TYPE=RelWithDebInfo \
         -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} ${SOURCE_DIR}; \

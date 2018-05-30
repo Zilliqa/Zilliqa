@@ -323,15 +323,6 @@ unsigned int Transaction::GetMinSerializedSize()
         + UINT256_SIZE;
 }
 
-bool Transaction::Verify(const Transaction& tran)
-{
-    vector<unsigned char> txnData;
-    tran.SerializeCoreFields(txnData, 0);
-
-    return Schnorr::GetInstance().Verify(txnData, tran.GetSignature(),
-                                         tran.m_senderPubKey);
-}
-
 bool Transaction::operator==(const Transaction& tran) const
 {
     return ((m_tranID == tran.m_tranID) && (m_signature == tran.m_signature));
