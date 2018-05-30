@@ -13,8 +13,6 @@
 * GPLv3.0 are those programs that are located in the folders src/depends and tests/depends 
 * and which include a reference to GPLv3 in their program files.
 **/
-
-#include <cassert>
 #include <string>
 
 #include "DB.h"

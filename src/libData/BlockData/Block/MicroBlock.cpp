@@ -26,7 +26,12 @@ using namespace boost::multiprecision;
 unsigned int MicroBlock::Serialize(vector<unsigned char>& dst,
                                    unsigned int offset) const
 {
-    assert(m_header.GetNumTxs() == m_tranHashes.size());
+    if (m_header.GetNumTxs() != m_tranHashes.size())
+    {
+        LOG_GENERAL(FATAL,
+                    "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
+                                         << __FUNCTION__ << ")");
+    }
 
     unsigned int size_needed = GetSerializedSize();
 
@@ -79,7 +84,13 @@ int MicroBlock::Deserialize(const vector<unsigned char>& src,
             curOffset += TRAN_HASH_SIZE;
             m_tranHashes.push_back(tranHash);
         }
-        assert(m_header.GetNumTxs() == m_tranHashes.size());
+
+        if (m_header.GetNumTxs() != m_tranHashes.size())
+        {
+            LOG_GENERAL(FATAL,
+                        "assertion failed (" << __FILE__ << ":" << __LINE__
+                                             << ": " << __FUNCTION__ << ")");
+        }
 
         BlockBase::Deserialize(src, curOffset);
     }
@@ -116,7 +127,13 @@ MicroBlock::MicroBlock(MicroBlockHeader&& header,
     : m_header(move(header))
     , m_tranHashes(tranHashes)
 {
-    assert(m_header.GetNumTxs() == m_tranHashes.size());
+    if (m_header.GetNumTxs() != m_tranHashes.size())
+    {
+        LOG_GENERAL(FATAL,
+                    "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
+                                         << __FUNCTION__ << ")");
+    }
+
     m_cosigs = move(cosigs);
 }
 
@@ -125,7 +142,13 @@ MicroBlock::MicroBlock(MicroBlockHeader&& header, vector<TxnHash>&& tranHashes,
     : m_header(move(header))
     , m_tranHashes(move(tranHashes))
 {
-    assert(m_header.GetNumTxs() == m_tranHashes.size());
+    if (m_header.GetNumTxs() != m_tranHashes.size())
+    {
+        LOG_GENERAL(FATAL,
+                    "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
+                                         << __FUNCTION__ << ")");
+    }
+
     m_cosigs = move(cosigs);
 }
 
