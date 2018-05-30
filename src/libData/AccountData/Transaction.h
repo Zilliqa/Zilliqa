@@ -18,7 +18,6 @@
 #define __TRANSACTION_H__
 
 #include <array>
-#include <cassert>
 #include <vector>
 
 #include <boost/multiprecision/cpp_int.hpp>
