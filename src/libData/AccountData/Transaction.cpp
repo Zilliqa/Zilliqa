@@ -323,15 +323,6 @@ unsigned int Transaction::GetMinSerializedSize()
         + UINT256_SIZE;
 }
 
-bool Transaction::Verify(const Transaction& tran)
-{
-    vector<unsigned char> txnData;
-    tran.SerializeCoreFields(txnData, 0);
-
-    return Schnorr::GetInstance().Verify(txnData, tran.GetSignature(),
-                                         tran.m_senderPubKey);
-}
-
 bool Transaction::operator==(const Transaction& tran) const
 {
     return ((m_tranID == tran.m_tranID) && (m_signature == tran.m_signature));
@@ -449,49 +440,84 @@ uint8_t Predicate::GetType() const
 
 const array<unsigned char, ACC_ADDR_SIZE> & Predicate::GetAccConAddr() const
 {
-    assert((m_type & ACC_COND) == ACC_COND);
+    if((m_type & ACC_COND) != ACC_COND)
+    {
+        LOG_GENERAL(FATAL,
+                    "assertion failed (" << __FILE__ << ":" << __LINE__
+                                         << ": " << __FUNCTION__ << ")");
+    }
 
     return m_accConAddr;
 }
 
 uint8_t Predicate::GetAccConOp() const
 {
-    assert((m_type & ACC_COND) == ACC_COND);
+    if((m_type & ACC_COND) != ACC_COND)
+    {
+        LOG_GENERAL(FATAL,
+                    "assertion failed (" << __FILE__ << ":" << __LINE__
+                                         << ": " << __FUNCTION__ << ")");
+    }
 
     return (m_ops & HIGH_BITS_MASK) >> 4;
 }
 
 uint256_t Predicate::GetAccConBalance() const
 {
-    assert((m_type & ACC_COND) == ACC_COND);
+    if((m_type & ACC_COND) != ACC_COND)
+    {
+        LOG_GENERAL(FATAL,
+                    "assertion failed (" << __FILE__ << ":" << __LINE__
+                                         << ": " << __FUNCTION__ << ")");
+    }
 
     return m_accConBalance;
 }
 
 const array<unsigned char, ACC_ADDR_SIZE> & Predicate::GetTxConToAddr() const
 {
-    assert((m_type & TX_COND) == TX_COND);
+    if((m_type & TX_COND) != TX_COND)
+    {
+        LOG_GENERAL(FATAL,
+                    "assertion failed (" << __FILE__ << ":" << __LINE__
+                                         << ": " << __FUNCTION__ << ")");
+    }
 
     return m_txConToAddr;
 }
 
 const array<unsigned char, ACC_ADDR_SIZE> & Predicate::GetTxConFromAddr() const
 {
-    assert((m_type & TX_COND) == TX_COND);
+    if((m_type & TX_COND) != TX_COND)
+    {
+        LOG_GENERAL(FATAL,
+                    "assertion failed (" << __FILE__ << ":" << __LINE__
+                                         << ": " << __FUNCTION__ << ")");
+    }
 
     return m_txConFromAddr;
 }
 
 uint256_t Predicate::GetTxConAmount() const
 {
-    assert((m_type & TX_COND) == TX_COND);
+    if((m_type & TX_COND) != TX_COND)
+    {
+        LOG_GENERAL(FATAL,
+                    "assertion failed (" << __FILE__ << ":" << __LINE__
+                                         << ": " << __FUNCTION__ << ")");
+    }
 
     return m_txConAmount;
 }
 
 unsigned char Predicate::GetTxConOp() const
 {
-    assert((m_type & TX_COND) == TX_COND);
+    if((m_type & TX_COND) != TX_COND)
+    {
+        LOG_GENERAL(FATAL,
+                    "assertion failed (" << __FILE__ << ":" << __LINE__
+                                         << ": " << __FUNCTION__ << ")");
+    }
 
     return m_ops & LOW_BITS_MASK;
 }
