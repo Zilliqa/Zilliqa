@@ -31,10 +31,13 @@
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Transaction.h"
 
+using namespace std;
+using namespace boost::multiprecision;
+
 class AccountStoreBase : public Serializable
 {
 protected:
-    std::shared_ptr<std::unordered_map<Address, Account>> m_addressToAccount;
+    shared_ptr<unordered_map<Address, Account>> m_addressToAccount;
 
     uint64_t m_curBlockNum;
     Address m_curContractAddr;
@@ -49,20 +52,19 @@ protected:
 
     Json::Value GetBlockStateJson(const uint64_t& BlockNum) const;
 
-    std::string GetCreateContractCmdStr();
+    string GetCreateContractCmdStr();
 
-    std::string GetCallContractCmdStr();
+    string GetCallContractCmdStr();
 
     // Generate input for interpreter to check the correctness of contract
     bool ExportCreateContractFiles(Account* contract);
 
-    bool
-    ExportCallContractFiles(Account* contract,
-                            const std::vector<unsigned char>& contractData);
+    bool ExportCallContractFiles(Account* contract,
+                                 const vector<unsigned char>& contractData);
 
-    const std::vector<unsigned char>
-    CompositeContractData(const std::string& funcName,
-                          const std::string& amount, const Json::Value& params);
+    const vector<unsigned char>
+    CompositeContractData(const string& funcName, const string& amount,
+                          const Json::Value& params);
 
     AccountStoreBase();
 
@@ -70,11 +72,11 @@ public:
     virtual void Init();
 
     /// Implements the Serialize function inherited from Serializable.
-    unsigned int Serialize(std::vector<unsigned char>& dst,
+    unsigned int Serialize(vector<unsigned char>& dst,
                            unsigned int offset) const;
 
     /// Implements the Deserialize function inherited from Serializable.
-    virtual int Deserialize(const std::vector<unsigned char>& src,
+    virtual int Deserialize(const vector<unsigned char>& src,
                             unsigned int offset);
 
     /// Verifies existence of Account in the list.
@@ -89,20 +91,18 @@ public:
 
     /// Returns the Account associated with the specified address.
     virtual Account* GetAccount(const Address& address);
-    boost::multiprecision::uint256_t GetNumOfAccounts() const;
+    uint256_t GetNumOfAccounts() const;
 
-    bool IncreaseBalance(const Address& address,
-                         const boost::multiprecision::uint256_t& delta);
-    bool DecreaseBalance(const Address& address,
-                         const boost::multiprecision::uint256_t& delta);
+    bool IncreaseBalance(const Address& address, const uint256_t& delta);
+    bool DecreaseBalance(const Address& address, const uint256_t& delta);
 
     /// Updates the source and destination accounts included in the specified Transaction.
     bool TransferBalance(const Address& from, const Address& to,
-                         const boost::multiprecision::uint256_t& delta);
-    boost::multiprecision::uint256_t GetBalance(const Address& address);
+                         const uint256_t& delta);
+    uint256_t GetBalance(const Address& address);
 
     bool IncreaseNonce(const Address& address);
-    boost::multiprecision::uint256_t GetNonce(const Address& address);
+    uint256_t GetNonce(const Address& address);
 
     virtual void PrintAccountState();
 };

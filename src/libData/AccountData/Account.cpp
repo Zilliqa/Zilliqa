@@ -51,7 +51,7 @@ void Account::InitContract(const vector<unsigned char>& data)
         return;
     }
     Json::CharReaderBuilder builder;
-    std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+    unique_ptr<Json::CharReader> reader(builder.newCharReader());
     Json::Value root;
     string dataStr(data.begin(), data.end());
     string errors;
@@ -73,7 +73,7 @@ void Account::InitContract(const vector<unsigned char>& data)
             string type = v["type"].asString();
 
             Json::StreamWriterBuilder writeBuilder;
-            std::unique_ptr<Json::StreamWriter> writer(
+            unique_ptr<Json::StreamWriter> writer(
                 writeBuilder.newStreamWriter());
             ostringstream oss;
             writer->write(v["value"], &oss);
@@ -271,7 +271,7 @@ Json::Value Account::GetStorageJson() const
         if (tType == "Map" || tType == "ADT")
         {
             Json::CharReaderBuilder builder;
-            std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+            unique_ptr<Json::CharReader> reader(builder.newCharReader());
             Json::Value obj;
             string errors;
             if (reader->parse(tValue.c_str(), tValue.c_str() + tValue.size(),
@@ -354,7 +354,7 @@ Address Account::GetAddressForContract(const Address& sender,
     return address;
 }
 
-void Account::SetCode(const std::vector<unsigned char>& code)
+void Account::SetCode(const vector<unsigned char>& code)
 {
     LOG_MARKER();
     if (code.size() == 0)

@@ -22,9 +22,6 @@
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/SysCommand.h"
 
-using namespace std;
-using namespace boost::multiprecision;
-
 AccountStore::AccountStore()
     : m_db("state")
 {
@@ -165,7 +162,7 @@ bool AccountStore::ParseCallContractJsonOutput(const Json::Value& _json)
         if (type == "Map" || type == "ADT")
         {
             Json::StreamWriterBuilder writeBuilder;
-            std::unique_ptr<Json::StreamWriter> writer(
+            unique_ptr<Json::StreamWriter> writer(
                 writeBuilder.newStreamWriter());
             ostringstream oss;
             writer->write(s["value"], &oss);
@@ -305,25 +302,23 @@ Account* AccountStore::GetAccount(const Address& address)
 
     auto it2 = m_addressToAccount->emplace(
         std::piecewise_construct, std::forward_as_tuple(address),
-        std::forward_as_tuple(
-            accountDataRLP[0].toInt<boost::multiprecision::uint256_t>(),
-            accountDataRLP[1].toInt<boost::multiprecision::uint256_t>()));
+        std::forward_as_tuple(accountDataRLP[0].toInt<uint256_t>(),
+                              accountDataRLP[1].toInt<uint256_t>()));
 
     // Code Hash
-    if (accountDataRLP[3].toHash<dev::h256>() != dev::h256())
+    if (accountDataRLP[3].toHash<h256>() != h256())
     {
         // Extract Code Content
         it2.first->second.SetCode(
             ContractStorage::GetContractStorage().GetContractCode(address));
-        if (accountDataRLP[3].toHash<dev::h256>()
-            != it2.first->second.GetCodeHash())
+        if (accountDataRLP[3].toHash<h256>() != it2.first->second.GetCodeHash())
         {
             LOG_GENERAL(WARNING, "Account Code Content doesn't match Code Hash")
             m_addressToAccount->erase(it2.first);
             return nullptr;
         }
         // Storage Root
-        it2.first->second.SetStorageRoot(accountDataRLP[2].toHash<dev::h256>());
+        it2.first->second.SetStorageRoot(accountDataRLP[2].toHash<h256>());
     }
 
     return &it2.first->second;
@@ -356,14 +351,14 @@ bool AccountStore::UpdateStateTrie(const Address& address,
     return true;
 }
 
-dev::h256 AccountStore::GetStateRootHash() const
+h256 AccountStore::GetStateRootHash() const
 {
     LOG_MARKER();
 
     return m_state.root();
 }
 
-void AccountStore::MoveRootToDisk(const dev::h256& root)
+void AccountStore::MoveRootToDisk(const h256& root)
 {
     //convert h256 to bytes
     if (!BlockStorage::GetBlockStorage().PutMetadata(STATEROOT, root.asBytes()))
@@ -407,12 +402,12 @@ void AccountStore::DiscardUnsavedUpdates()
 bool AccountStore::RetrieveFromDisk()
 {
     LOG_MARKER();
-    std::vector<unsigned char> rootBytes;
+    vector<unsigned char> rootBytes;
     if (!BlockStorage::GetBlockStorage().GetMetadata(STATEROOT, rootBytes))
     {
         return false;
     }
-    dev::h256 root(rootBytes);
+    h256 root(rootBytes);
     m_state.setRoot(root);
     for (auto i : m_state)
     {
@@ -424,22 +419,21 @@ bool AccountStore::RetrieveFromDisk()
             LOG_GENERAL(WARNING, "Account data corrupted");
             continue;
         }
-        Account account(rlp[0].toInt<boost::multiprecision::uint256_t>(),
-                        rlp[1].toInt<boost::multiprecision::uint256_t>());
+        Account account(rlp[0].toInt<uint256_t>(), rlp[1].toInt<uint256_t>());
         // Code Hash
-        if (rlp[3].toHash<dev::h256>() != dev::h256())
+        if (rlp[3].toHash<h256>() != h256())
         {
             // Extract Code Content
             account.SetCode(
                 ContractStorage::GetContractStorage().GetContractCode(address));
-            if (rlp[3].toHash<dev::h256>() != account.GetCodeHash())
+            if (rlp[3].toHash<h256>() != account.GetCodeHash())
             {
                 LOG_GENERAL(WARNING,
                             "Account Code Content doesn't match Code Hash")
                 continue;
             }
             // Storage Root
-            account.SetStorageRoot(rlp[2].toHash<dev::h256>());
+            account.SetStorageRoot(rlp[2].toHash<h256>());
         }
         m_addressToAccount->insert({address, account});
     }
