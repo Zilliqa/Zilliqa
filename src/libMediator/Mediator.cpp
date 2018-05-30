@@ -22,6 +22,7 @@
 #include "libData/BlockChainData/DSBlockChain.h"
 #include "libData/BlockChainData/TxBlockChain.h"
 #include "libUtils/DataConversion.h"
+#include "libValidator/Validator.h"
 
 using namespace std;
 
@@ -31,6 +32,7 @@ Mediator::Mediator(const pair<PrivKey, PubKey>& key, const Peer& peer)
 {
     m_ds = nullptr;
     m_node = nullptr;
+    m_validator = nullptr;
     m_currentEpochNum = 0;
     m_isRetrievedHistory = false;
 }
@@ -38,11 +40,12 @@ Mediator::Mediator(const pair<PrivKey, PubKey>& key, const Peer& peer)
 Mediator::~Mediator() {}
 
 void Mediator::RegisterColleagues(DirectoryService* ds, Node* node,
-                                  Lookup* lookup)
+                                  Lookup* lookup, ValidatorBase* validator)
 {
     m_ds = ds;
     m_node = node;
     m_lookup = lookup;
+    m_validator = validator;
 }
 
 void Mediator::UpdateDSBlockRand(bool isGenesis)
