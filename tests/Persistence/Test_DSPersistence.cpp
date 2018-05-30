@@ -294,7 +294,13 @@ void readBlock(int id)
         LOG_GENERAL(INFO,
                     "nonce is " << (*block).GetHeader().GetNonce() << ", id is "
                                 << id);
-        assert((*block).GetHeader().GetNonce() == id);
+
+        if ((*block).GetHeader().GetNonce() != id)
+        {
+            LOG_GENERAL(FATAL,
+                        "assertion failed (" << __FILE__ << ":" << __LINE__
+                                             << ": " << __FUNCTION__ << ")");
+        }
     }
 }
 
