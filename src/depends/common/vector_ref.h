@@ -65,7 +65,16 @@ public:
     std::vector<unsigned char> toBytes() const { return std::vector<unsigned char>(reinterpret_cast<unsigned char const*>(m_data), reinterpret_cast<unsigned char const*>(m_data) + m_count * sizeof(_T)); }
     std::string toString() const { return std::string((char const*)m_data, ((char const*)m_data) + m_count * sizeof(_T)); }
 
-    template <class _T2> explicit operator vector_ref<_T2>() const { assert(m_count * sizeof(_T) / sizeof(_T2) * sizeof(_T2) / sizeof(_T) == m_count); return vector_ref<_T2>(reinterpret_cast<_T2*>(m_data), m_count * sizeof(_T) / sizeof(_T2)); }
+    template <class _T2> explicit operator vector_ref<_T2>() const
+    {
+        if(m_count * sizeof(_T) / sizeof(_T2) * sizeof(_T2) / sizeof(_T) != m_count)
+        {
+            LOG_GENERAL(FATAL,
+                        "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
+                                             << __FUNCTION__ << ")");
+        }
+        return vector_ref<_T2>(reinterpret_cast<_T2*>(m_data), m_count * sizeof(_T) / sizeof(_T2));
+    }
     operator vector_ref<_T const>() const { return vector_ref<_T const>(m_data, m_count); }
 
     _T* data() const { return m_data; }
