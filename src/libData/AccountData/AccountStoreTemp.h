@@ -42,8 +42,6 @@ public:
     AccountStoreTemp(
         const shared_ptr<unordered_map<Address, Account>>& addressToAccount);
 
-    void Init() override;
-
     /// Returns the Account associated with the specified address.
     Account* GetAccount(const Address& address) override;
 
