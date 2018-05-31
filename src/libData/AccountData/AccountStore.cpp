@@ -24,7 +24,7 @@
 
 AccountStore::AccountStore()
 {
-    m_tempAccountStore = make_shared<AccountStoreTemp>(this);
+    m_accountStoreChecker = make_shared<AccountStoreChecker>(this);
 }
 
 AccountStore::~AccountStore()
@@ -35,6 +35,7 @@ AccountStore::~AccountStore()
 void AccountStore::Init()
 {
     LOG_MARKER();
+    m_accountStoreChecker->Init();
     ContractStorage::GetContractStorage().GetStateDB().ResetDB();
     m_addressToAccount->clear();
     m_db.ResetDB();
@@ -228,19 +229,19 @@ bool AccountStore::RetrieveFromDisk()
     return true;
 }
 
-void AccountStore::InitTemp() { m_tempAccountStore->Init(); }
-
-bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
-                                      const Transaction& transaction)
+bool AccountStore::CheckUpdateAccounts(const uint64_t& blockNum,
+                                       const Transaction& transaction)
 {
-    return m_tempAccountStore->UpdateAccounts(blockNum, transaction);
+    bool ret = m_accountStoreChecker->UpdateAccounts(blockNum, transaction);
+    m_accountStoreChecker->Init();
+    return ret;
 }
 
-void AccountStore::CommitTemp()
-{
-    for (auto entry : *m_tempAccountStore->GetAddressToAccount())
-    {
-        (*m_addressToAccount)[entry.first] = entry.second;
-    }
-    InitTemp();
-}
+// void AccountStore::CommitTemp()
+// {
+//     for (auto entry : *m_tempAccountStore->GetAddressToAccount())
+//     {
+//         (*m_addressToAccount)[entry.first] = entry.second;
+//     }
+//     InitTemp();
+// }
