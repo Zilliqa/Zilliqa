@@ -177,7 +177,13 @@ Address Account::GetAddressFromPublicKey(const PubKey& pubKey)
     sha2.Update(vec);
 
     const vector<unsigned char>& output = sha2.Finalize();
-    assert(output.size() == 32);
+
+    if (output.size() != 32)
+    {
+        LOG_GENERAL(FATAL,
+                    "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
+                                         << __FUNCTION__ << ")");
+    }
 
     copy(output.end() - ACC_ADDR_SIZE, output.end(), address.asArray().begin());
 
