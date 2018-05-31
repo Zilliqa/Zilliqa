@@ -772,6 +772,7 @@ void Node::UpdateStateForNextConsensusRound()
               "MS: Next non-ds epoch begins");
 
     SetState(TX_SUBMISSION);
+    cv_txSubmission.notify_all();
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "[No PoW needed] MS: Start submit txn stage again.");
 }
@@ -792,6 +793,7 @@ void Node::ScheduleTxnSubmission()
     auto main_func2 = [this]() mutable -> void {
         // unique_lock<shared_timed_mutex> lock(m_mutexProducerConsumer);
         SetState(TX_SUBMISSION_BUFFER);
+        cv_txSubmission.notify_all();
     };
 
     DetachedFunction(1, main_func2);
