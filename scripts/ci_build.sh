@@ -26,7 +26,7 @@ esac
 
 # assume that it is run from project root directory
 mkdir build && cd build
-cmake ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTESTS=ON -DENABLE_COVERAGE=ON -DGCC_COVERAGE_COMPILE_FLAGS='-fprofile-arcs -ftest-coverage' ..
+cmake ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTESTS=ON -DENABLE_COVERAGE=ON ..
 make -j${n_parallel}
 make clang-format
 ctest --output-on-failure
