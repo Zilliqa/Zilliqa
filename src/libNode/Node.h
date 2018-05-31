@@ -123,10 +123,6 @@ class Node : public Executable, public Broadcastable
     std::mutex m_mutexCreatedTransactions;
     std::list<Transaction> m_createdTransactions;
 
-    // Nonce information
-    std::mutex m_mutexTxnNonceMap;
-    std::unordered_map<Address, boost::multiprecision::uint256_t> m_txnNonceMap;
-
     // prefilled transactions sorted by fromAddress
     std::mutex m_mutexPrefilledTxns;
     std::atomic_size_t m_nRemainingPrefilledTxns{0};
@@ -375,6 +371,12 @@ public:
 
     /// Prepare for processing protocols after initialization
     void Prepare(bool runInitializeGenesisBlocks);
+
+    /// Get number of shards
+    uint32_t getNumShards() { return m_numShards; };
+
+    /// Get this node shard ID
+    uint32_t getShardID() { return m_myShardID; };
 
     /// Sets the value of m_state.
     void SetState(NodeState state);
