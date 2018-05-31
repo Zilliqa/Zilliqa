@@ -25,8 +25,7 @@
         <N_PREFILLED_PER_ACCOUNT>10000</N_PREFILLED_PER_ACCOUNT>
         <NEW_NODE_POW_DELAY>5</NEW_NODE_POW_DELAY>
         <SCILLA_PATH></SCILLA_PATH>
-        <SCILLA_FILES>scilla_files/</SCILLA_FILES>
-        <INTERPRETER_NAME>scilla-runner</INTERPRETER_NAME>
+        <SCILLA_FILES>scilla_files</SCILLA_FILES>
         <INIT_JSON>init.json</INIT_JSON>
         <INPUT_STATE_JSON>input_state.json</INPUT_STATE_JSON>
         <INPUT_BLOCKCHAIN_JSON>input_blockchain.json</INPUT_BLOCKCHAIN_JSON>
