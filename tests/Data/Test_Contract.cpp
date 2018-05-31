@@ -294,7 +294,8 @@ string dataStr4 = R"({
     ]
 })";
 
-string outStr = R"({
+string outStr = R"(
+{
   "message": {
     "_tag": "Main",
     "_amount": "0",
@@ -302,18 +303,19 @@ string outStr = R"({
       {
         "vname": "to",
         "type": "Address",
-        "value": "0x12345678901234567890123456789012345678ab"
+        "value": "0x12345678901234567890123456789012345678cd"
       },
-      { "vname": "code", "type": "Int", "value": "1" }
+      { "vname": "code", "type": "Int", "value": "4" }
     ]
   },
   "states": [
-    { "vname": "_balance", "type": "Int", "value": "400" },
+    { "vname": "_balance", "type": "Int", "value": "300" },
     {
       "vname": "backers",
       "type": "Map",
       "value": [
         { "keyType": "Address", "valType": "Int" },
+        { "key": "0x12345678901234567890123456789012345678cd", "val": "200" },
         { "key": "0x12345678901234567890123456789012345678ab", "val": "100" }
       ]
     },
@@ -323,7 +325,26 @@ string outStr = R"({
       "value": { "constructor": "False", "argtypes": [], "arguments": [] }
     }
   ]
-})";
+}
+)";
+
+struct HammingFunc
+{
+    inline int operator()(char s1, char s2)
+    {
+        if (s1 != s2)
+            cout << s1;
+        return s1 == s2 ? 0 : 1;
+    }
+};
+
+int hd(string const& s1, string const& s2)
+{
+    int diff = std::inner_product(s1.begin(), s1.end(), s2.begin(), 0,
+                                  std::plus<int>(), HammingFunc());
+    cout << endl;
+    return diff;
+}
 
 // Create Transaction to create contract
 BOOST_AUTO_TEST_CASE(createContract)
@@ -352,7 +373,8 @@ BOOST_AUTO_TEST_CASE(createContract)
 
     Transaction tx1(1, nonce, toAddress, sender, 0, 11, 66, code, data);
 
-    /// Comment this part until the interpreter can be called
+    //// Comment this part until the interpreter can be called
+
     // AccountStore::GetInstance().UpdateAccounts(1, tx1);
 
     // toAddress = Account::GetAddressForContract(fromAddr, nonce);
@@ -361,7 +383,7 @@ BOOST_AUTO_TEST_CASE(createContract)
     // Account* account = AccountStore::GetInstance().GetAccount(toAddress);
     // if (account == nullptr)
     // {
-    // checkToAddr = false;
+    //     checkToAddr = false;
     // }
     // BOOST_CHECK_MESSAGE(checkToAddr, "Error with creation of contract account");
 
@@ -370,21 +392,6 @@ BOOST_AUTO_TEST_CASE(createContract)
     // std::vector<unsigned char> vec2;
     // Transaction tx2(1, nonce, toAddress, sender, 0, 11, 66, vec2, data2);
     // AccountStore::GetInstance().UpdateAccounts(1, tx2);
-
-    // outStr.erase(std::remove(outStr.begin(), outStr.end(), ' '), outStr.end());
-    // outStr.erase(std::remove(outStr.begin(), outStr.end(), '\n'), outStr.end());
-
-    // ifstream infile{OUTPUT_JSON};
-    // std::string output_file{istreambuf_iterator<char>(infile),
-    //                         istreambuf_iterator<char>()};
-
-    // output_file.erase(std::remove(output_file.begin(), output_file.end(), ' '),
-    //                   output_file.end());
-    // output_file.erase(std::remove(output_file.begin(), output_file.end(), '\n'),
-    //                   output_file.end());
-
-    // BOOST_CHECK_MESSAGE(outStr == output_file,
-    //                     "Error: didn't get desired output");
 
     // std::vector<unsigned char> data3(dataStr3.begin(), dataStr3.end());
 
@@ -397,6 +404,27 @@ BOOST_AUTO_TEST_CASE(createContract)
     // std::vector<unsigned char> vec4;
     // Transaction tx4(1, nonce, toAddress, sender, 0, 11, 66, vec4, data4);
     // AccountStore::GetInstance().UpdateAccounts(1, tx4);
+
+    // LOG_GENERAL(INFO, outStr);
+
+    // outStr.erase(std::remove(outStr.begin(), outStr.end(), ' '), outStr.end());
+    // outStr.erase(std::remove(outStr.begin(), outStr.end(), '\n'), outStr.end());
+
+    // ifstream infile{OUTPUT_JSON};
+    // std::string output_file{istreambuf_iterator<char>(infile),
+    //                         istreambuf_iterator<char>()};
+
+    // LOG_GENERAL(INFO, output_file);
+
+    // output_file.erase(std::remove(output_file.begin(), output_file.end(), ' '),
+    //                   output_file.end());
+    // output_file.erase(std::remove(output_file.begin(), output_file.end(), '\n'),
+    //                   output_file.end());
+
+    // BOOST_CHECK_MESSAGE(outStr == output_file,
+    //                     "Error: didn't get desired output");
+
+    // LOG_GENERAL(INFO, "Difference: " << hd(outStr, output_file));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
