@@ -17,7 +17,7 @@
 #ifndef __SHA2_H__
 #define __SHA2_H__
 
-#include <cassert>
+#include "libUtils/Logger.h"
 #include <openssl/sha.h>
 #include <vector>
 
@@ -41,7 +41,13 @@ public:
     SHA2()
         : output(HASH_OUTPUT_SIZE)
     {
-        assert((SIZE == HASH_TYPE::HASH_VARIANT_256));
+        if (SIZE != HASH_TYPE::HASH_VARIANT_256)
+        {
+            LOG_GENERAL(FATAL,
+                        "assertion failed (" << __FILE__ << ":" << __LINE__
+                                             << ": " << __FUNCTION__ << ")");
+        }
+
         Reset();
     }
 
@@ -51,7 +57,13 @@ public:
     /// Hash update function.
     void Update(const std::vector<unsigned char>& input)
     {
-        assert(input.size() > 0);
+        if (input.size() <= 0)
+        {
+            LOG_GENERAL(FATAL,
+                        "assertion failed (" << __FILE__ << ":" << __LINE__
+                                             << ": " << __FUNCTION__ << ")");
+        }
+
         SHA256_Update(&m_context, input.data(), input.size());
     }
 
@@ -59,7 +71,13 @@ public:
     void Update(const std::vector<unsigned char>& input, unsigned int offset,
                 unsigned int size)
     {
-        assert((offset + size) <= input.size());
+        if ((offset + size) > input.size())
+        {
+            LOG_GENERAL(FATAL,
+                        "assertion failed (" << __FILE__ << ":" << __LINE__
+                                             << ": " << __FUNCTION__ << ")");
+        }
+
         SHA256_Update(&m_context, input.data() + offset, size);
     }
 

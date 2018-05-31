@@ -95,7 +95,13 @@ namespace dev
 
     inline bool isLeaf(RLP const& _twoItem)
     {
-        assert(_twoItem.isList() && _twoItem.itemCount() == 2);
+        if(!_twoItem.isList() || _twoItem.itemCount() != 2)
+        {
+            LOG_GENERAL(FATAL,
+                        "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
+                                             << __FUNCTION__ << ")");
+        }
+
         auto pl = _twoItem[0].payload();
         return (pl[0] & 0x20) != 0;
     }
