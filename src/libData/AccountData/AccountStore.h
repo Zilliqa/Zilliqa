@@ -25,7 +25,6 @@
 
 #include "Account.h"
 #include "AccountStoreBase.h"
-#include "AccountStoreTemp.h"
 #include "Address.h"
 #include "common/Constants.h"
 #include "common/Singleton.h"
@@ -35,9 +34,22 @@
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Transaction.h"
 
+class AccountStoreTemp : public AccountStoreBase
+{
+    shared_ptr<unordered_map<Address, Account>> m_superAddressToAccount;
+
+public:
+    AccountStoreTemp(
+        const shared_ptr<unordered_map<Address, Account>>& addressToAccount);
+
+    /// Returns the Account associated with the specified address.
+    Account* GetAccount(const Address& address) override;
+
+    const shared_ptr<unordered_map<Address, Account>>& GetAddressToAccount();
+};
+
 template<class KeyType, class DB>
 using SecureTrieDB = dev::SpecificTrieDB<dev::GenericTrieDB<DB>, KeyType>;
-
 using StateHash = h256;
 
 class AccountStore : public AccountStoreBase, Singleton<AccountStore>
@@ -58,10 +70,6 @@ class AccountStore : public AccountStoreBase, Singleton<AccountStore>
 
     /// Store the trie root to leveldb
     void MoveRootToDisk(const h256& root);
-
-    bool ParseCreateContractJsonOutput(const Json::Value& _json) override;
-
-    bool ParseCallContractJsonOutput(const Json::Value& _json) override;
 
 public:
     /// Returns the singleton AccountStore instance.

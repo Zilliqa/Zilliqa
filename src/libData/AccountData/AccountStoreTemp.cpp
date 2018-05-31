@@ -14,7 +14,7 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#include "AccountStoreTemp.h"
+#include "AccountStore.h"
 
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
@@ -25,16 +25,7 @@ using namespace boost::multiprecision;
 AccountStoreTemp::AccountStoreTemp(
     const shared_ptr<unordered_map<Address, Account>>& addressToAccount)
     : m_superAddressToAccount(addressToAccount)
-{}
-
-bool AccountStoreTemp::ParseCreateContractJsonOutput(const Json::Value& _json)
 {
-    return true;
-}
-
-bool AccountStoreTemp::ParseCallContractJsonOutput(const Json::Value& _json)
-{
-    return true;
 }
 
 Account* AccountStoreTemp::GetAccount(const Address& address)
