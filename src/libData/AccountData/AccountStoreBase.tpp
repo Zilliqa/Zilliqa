@@ -24,9 +24,10 @@
 
 template<class DB>
 AccountStoreBase<DB>::AccountStoreBase()
-    : m_db(is_same<DB, OverlayDB>::value ? "state" : NULL)
+    : m_db(is_same<DB, OverlayDB>::value ? "state" : "")
 {
     m_addressToAccount = make_shared<unordered_map<Address, Account>>();
+    m_state = dev::SpecificTrieDB<dev::GenericTrieDB<DB>, Address>(&m_db);
 }
 
 template<class DB> void AccountStoreBase<DB>::Init()
