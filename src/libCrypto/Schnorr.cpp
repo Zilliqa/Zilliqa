@@ -64,7 +64,13 @@ shared_ptr<BIGNUM> BIGNUMSerialize::GetNumber(const vector<unsigned char>& src,
                                               unsigned int offset,
                                               unsigned int size)
 {
-    assert(size > 0);
+    if (size <= 0)
+    {
+        LOG_GENERAL(FATAL,
+                    "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
+                                         << __FUNCTION__ << ")");
+    }
+
     lock_guard<mutex> g(m_mutexBIGNUM);
 
     if (offset + size <= src.size())
@@ -89,7 +95,13 @@ shared_ptr<BIGNUM> BIGNUMSerialize::GetNumber(const vector<unsigned char>& src,
 void BIGNUMSerialize::SetNumber(vector<unsigned char>& dst, unsigned int offset,
                                 unsigned int size, shared_ptr<BIGNUM> value)
 {
-    assert(size > 0);
+    if (size <= 0)
+    {
+        LOG_GENERAL(FATAL,
+                    "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
+                                         << __FUNCTION__ << ")");
+    }
+
     lock_guard<mutex> g(m_mutexBIGNUM);
 
     const int actual_bn_size = BN_num_bytes(value.get());
