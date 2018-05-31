@@ -106,6 +106,9 @@ class Node : public Executable, public Broadcastable
     std::condition_variable cv_microblockConsensus;
     std::mutex m_MutexCVMicroblockConsensusObject;
     std::condition_variable cv_microblockConsensusObject;
+    std::mutex m_MutexCVTxSubmission;
+    std::condition_variable cv_txSubmission;
+
     // Persistence Retriever
     std::shared_ptr<Retriever> m_retriever;
 
