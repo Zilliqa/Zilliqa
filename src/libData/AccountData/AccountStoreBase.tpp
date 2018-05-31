@@ -206,16 +206,14 @@ bool AccountStoreBase<DB>::UpdateAccounts(const uint64_t& blockNum,
 
         // Create contract account
         Account* fromAccount = GetAccount(fromAddr);
-        // FIXME: remove this, temporary way to test transactions
+        if (fromAccount == nullptr)
         {
-            if (fromAccount == nullptr)
-            {
-                LOG_GENERAL(
-                    WARNING,
-                    "AddAccount... FIXME: remove this, temporary way to "
-                    "test transactions");
-                AddAccount(fromAddr, {10000000000, 0});
-            }
+	        // FIXME: remove this, temporary way to test transactions, should return false
+            LOG_GENERAL(
+                WARNING,
+                "AddAccount... FIXME: remove this, temporary way to "
+                "test transactions, should return false in the future");
+            AddAccount(fromAddr, {10000000000, 0});
             fromAccount = GetAccount(fromAddr);
         }
 
@@ -672,8 +670,12 @@ bool AccountStoreBase<DB>::IncreaseBalance(const Address& address,
         // UpdateStateTrie(address, *account);
         return true;
     }
+    // FIXME: remove this, temporary way to test transactions, should return false
     else if (account == nullptr)
     {
+        LOG_GENERAL(WARNING,
+            "AddAccount... FIXME: remove this, temporary way to test "
+            "transactions");
         AddAccount(address, {delta, 0});
         return true;
     }
@@ -699,13 +701,14 @@ bool AccountStoreBase<DB>::DecreaseBalance(const Address& address,
         // UpdateStateTrie(address, *account);
         return true;
     }
-    // FIXME: remove this, temporary way to test transactions
+    // FIXME: remove this, temporary way to test transactions, should return false
     else if (account == nullptr)
     {
         LOG_GENERAL(WARNING,
                     "AddAccount... FIXME: remove this, temporary way to test "
                     "transactions");
         AddAccount(address, {10000000000, 0});
+        return true;
     }
 
     return false;

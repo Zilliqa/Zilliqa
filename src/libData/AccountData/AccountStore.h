@@ -39,7 +39,7 @@ using StateHash = dev::h256;
 
 class AccountStore;
 
-class AccountStoreTemp : public AccountStoreBase<MemoryDB>
+class AccountStoreChecker : public AccountStoreBase<MemoryDB>
 {
     // shared_ptr<unordered_map<Address, Account>> m_superAddressToAccount;
     AccountStore* m_parent;
@@ -47,7 +47,7 @@ class AccountStoreTemp : public AccountStoreBase<MemoryDB>
 public:
     // AccountStoreTemp(
     //     const shared_ptr<unordered_map<Address, Account>>& addressToAccount);
-    AccountStoreTemp(AccountStore* parent);
+    AccountStoreChecker(AccountStore* parent);
 
     /// Returns the Account associated with the specified address.
     Account* GetAccount(const Address& address) override;
@@ -68,7 +68,7 @@ class AccountStore : public AccountStoreBase<OverlayDB>, Singleton<AccountStore>
     // m_state; // Our state tree, as an OverlayDB DB.
     // h256 prevRoot;
 
-    shared_ptr<AccountStoreTemp> m_tempAccountStore;
+    shared_ptr<AccountStoreChecker> m_accountStoreChecker;
 
     AccountStore();
     ~AccountStore();
@@ -93,10 +93,9 @@ public:
 
     bool RetrieveFromDisk();
 
-    void InitTemp();
-    bool UpdateAccountsTemp(const uint64_t& blockNum,
-                            const Transaction& transaction);
-    void CommitTemp();
+    bool CheckUpdateAccounts(const uint64_t& blockNum,
+                             const Transaction& transaction);
+    // void CommitTemp();
 };
 
 #endif // __ACCOUNTSTORE_H__
