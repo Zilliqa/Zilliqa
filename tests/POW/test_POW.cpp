@@ -713,24 +713,6 @@ BOOST_AUTO_TEST_CASE(mining_and_verification)
                               winning_result.result, winning_result.mix_hash);
     BOOST_REQUIRE(verifyLight);
 
-    // Full client mine and verify
-    winning_result = POWClient.PoWMine(blockToUse, difficultyToUse, rand1,
-                                       rand2, ipAddr, pubKey, true);
-    bool verifyFull
-        = POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
-                              pubKey, true, winning_result.winning_nonce,
-                              winning_result.result, winning_result.mix_hash);
-    BOOST_REQUIRE(verifyFull);
-
-    // Full client mine and light client verify
-    winning_result = POWClient.PoWMine(blockToUse, difficultyToUse, rand1,
-                                       rand2, ipAddr, pubKey, true);
-    bool verifyFullMineLightVerify
-        = POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
-                              pubKey, false, winning_result.winning_nonce,
-                              winning_result.result, winning_result.mix_hash);
-    BOOST_REQUIRE(verifyFullMineLightVerify);
-
     rand1 = {{'0', '3'}};
     bool verifyRand
         = POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
