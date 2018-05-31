@@ -188,31 +188,27 @@ bool AccountStoreBase::UpdateAccounts(const uint64_t& blockNum,
         }
 
         // Create contract account
-        Account* account = GetAccount(fromAddr);
+        Account* fromAccount = GetAccount(fromAddr);
         // FIXME: remove this, temporary way to test transactions
-        if (account == nullptr)
         {
-            LOG_GENERAL(WARNING,
-                        "AddAccount... FIXME: remove this, temporary way to "
-                        "test transactions");
-            AddAccount(fromAddr, {10000000000, 0});
+            if (fromAccount == nullptr)
+            {
+                LOG_GENERAL(
+                    WARNING,
+                    "AddAccount... FIXME: remove this, temporary way to "
+                    "test transactions");
+                AddAccount(fromAddr, {10000000000, 0});
+            }
+            fromAccount = GetAccount(fromAddr);
         }
 
-        toAddr = Account::GetAddressForContract(
-            fromAddr, (*m_addressToAccount)[fromAddr].GetNonce());
+        toAddr
+            = Account::GetAddressForContract(fromAddr, fromAccount->GetNonce());
         AddAccount(toAddr, {0, 0});
-        (*m_addressToAccount)[toAddr].SetCode(transaction.GetCode());
-        // Store the immutable states
-        (*m_addressToAccount)[toAddr].InitContract(transaction.GetData());
-
         Account* toAccount = GetAccount(toAddr);
-        if (toAccount == nullptr)
-        {
-            LOG_GENERAL(WARNING,
-                        "The target contract account doesn't exist, which "
-                        "shouldn't happen!");
-            return false;
-        }
+        toAccount->SetCode(transaction.GetCode());
+        // Store the immutable states
+        toAccount->InitContract(transaction.GetData());
 
         m_curBlockNum = blockNum;
 
@@ -404,6 +400,31 @@ bool AccountStoreBase::ParseCreateContractOutput()
     }
 }
 
+bool AccountStoreBase::ParseCreateContractJsonOutput(const Json::Value& _json)
+{
+    LOG_MARKER();
+
+    if (!_json.isMember("message") || !_json.isMember("states"))
+    {
+        LOG_GENERAL(WARNING, "The json output of this contract is corrupted");
+        return false;
+    }
+
+    if (_json["message"] == Json::nullValue
+        && _json["states"] == Json::arrayValue)
+    {
+        // LOG_GENERAL(INFO, "Get desired json output from the interpreter for create contract");
+        return true;
+    }
+    else
+    {
+        LOG_GENERAL(WARNING,
+                    "Didn't get desired json output from the interpreter for "
+                    "create contract");
+        return false;
+    }
+}
+
 bool AccountStoreBase::ParseCallContractOutput()
 {
     LOG_MARKER();
@@ -431,6 +452,156 @@ bool AccountStoreBase::ParseCallContractOutput()
         LOG_GENERAL(WARNING,
                     "Failed to parse contract output json: " << errors);
         return false;
+    }
+}
+
+bool AccountStoreBase::ParseCallContractJsonOutput(const Json::Value& _json)
+{
+    LOG_MARKER();
+
+    if (!_json.isMember("message") || !_json.isMember("states"))
+    {
+        LOG_GENERAL(WARNING, "The json output of this contract is corrupted");
+        return false;
+    }
+
+    if (!_json["message"].isMember("_tag")
+        || !_json["message"].isMember("_amount")
+        || !_json["message"].isMember("params"))
+    {
+        LOG_GENERAL(
+            WARNING,
+            "The message in the json output of this contract is corrupted");
+        return false;
+    }
+
+    int deducted = 0;
+
+    for (auto s : _json["states"])
+    {
+        if (!s.isMember("vname") || !s.isMember("type") || !s.isMember("value"))
+        {
+            LOG_GENERAL(WARNING,
+                        "Address: "
+                            << m_curContractAddr.hex()
+                            << ", The json output of states is corrupted");
+            continue;
+        }
+        string vname = s["vname"].asString();
+        string type = s["type"].asString();
+        string value;
+        if (type == "Map" || type == "ADT")
+        {
+            Json::StreamWriterBuilder writeBuilder;
+            unique_ptr<Json::StreamWriter> writer(
+                writeBuilder.newStreamWriter());
+            ostringstream oss;
+            writer->write(s["value"], &oss);
+            value = oss.str();
+        }
+        else
+        {
+            value = s["value"].asString();
+        }
+
+        Account* contractAccount = GetAccount(m_curContractAddr);
+        if (vname == "_balance")
+        {
+            int newBalance = atoi(value.c_str());
+            deducted
+                = static_cast<int>(contractAccount->GetBalance()) - newBalance;
+            contractAccount->SetBalance(newBalance);
+        }
+        else
+        {
+            contractAccount->SetStorage(vname, type, value);
+        }
+    }
+
+    /// The process after getting the output:
+    if (_json["message"]["_tag"].asString() == "Main")
+    {
+        Address toAddr;
+        for (auto p : _json["message"]["params"])
+        {
+            if (p["vname"].asString() == "to"
+                && p["type"].asString() == "Address")
+            {
+                toAddr = Address(p["value"].asString());
+                break;
+            }
+        }
+        // A hacky way of refunding the contract the number of amount for the transaction, because the balance was affected by the parsing of _balance and the 'Main' message. Need to fix in the future
+        int amount = atoi(_json["message"]["_amount"].asString().c_str());
+        if (amount == 0)
+        {
+            return true;
+        }
+
+        if (!TransferBalance(m_curContractAddr, toAddr, amount))
+        {
+            return false;
+        }
+        // what if the positive value is come from a failed function call
+        if (deducted > 0)
+        {
+            if (!IncreaseBalance(m_curContractAddr, deducted))
+            {
+                return false;
+            }
+        }
+        IncreaseNonce(m_curContractAddr);
+
+        return true;
+    }
+    else
+    {
+        Address toAddr;
+        Json::Value params;
+        for (auto p : _json["message"]["params"])
+        {
+            if (p["vname"].asString() == "to"
+                && p["type"].asString() == "Address")
+            {
+                toAddr = Address(p["value"].asString());
+            }
+            else
+            {
+                params.append(p);
+            }
+        }
+
+        Account* toAccount = GetAccount(toAddr);
+        if (toAccount == nullptr)
+        {
+            LOG_GENERAL(WARNING, "The target contract account doesn't exist");
+            return false;
+        }
+
+        // TODO: Implement the calling of interpreter in multi-thread
+        if (ExportCallContractFiles(
+                toAccount,
+                CompositeContractData(_json["message"]["_tag"].asString(),
+                                      _json["message"]["_amount"].asString(),
+                                      params)))
+        {
+            Address t_address = m_curContractAddr;
+            m_curContractAddr = toAddr;
+            SysCommand::ExecuteCmdWithOutput(GetCallContractCmdStr());
+            if (ParseCallContractOutput())
+            {
+                IncreaseNonce(t_address);
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        else
+        {
+            return false;
+        }
     }
 }
 

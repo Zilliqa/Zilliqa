@@ -44,11 +44,11 @@ protected:
 
     bool ParseCreateContractOutput();
 
-    virtual bool ParseCreateContractJsonOutput(const Json::Value& _json) = 0;
+    bool ParseCreateContractJsonOutput(const Json::Value& _json);
 
     bool ParseCallContractOutput();
 
-    virtual bool ParseCallContractJsonOutput(const Json::Value& _json) = 0;
+    bool ParseCallContractJsonOutput(const Json::Value& _json);
 
     Json::Value GetBlockStateJson(const uint64_t& BlockNum) const;
 
