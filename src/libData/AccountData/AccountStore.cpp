@@ -35,8 +35,8 @@ AccountStore::~AccountStore()
 void AccountStore::Init()
 {
     LOG_MARKER();
-    m_addressToAccount->clear();
     ContractStorage::GetContractStorage().GetStateDB().ResetDB();
+    m_addressToAccount->clear();
     m_db.ResetDB();
     m_state.init();
     prevRoot = m_state.root();
