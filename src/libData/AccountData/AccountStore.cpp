@@ -23,9 +23,8 @@
 #include "libUtils/SysCommand.h"
 
 AccountStore::AccountStore()
-    : m_db("state")
 {
-    m_state = SecureTrieDB<Address, dev::OverlayDB>(&m_db);
+    m_tempAccountStore = make_shared<AccountStoreTemp>(this);
 }
 
 AccountStore::~AccountStore()
@@ -147,40 +146,6 @@ Account* AccountStore::GetAccount(const Address& address)
     return &it2.first->second;
 }
 
-bool AccountStore::UpdateStateTrieAll()
-{
-    bool ret = true;
-    for (auto entry : *m_addressToAccount)
-    {
-        if (!UpdateStateTrie(entry.first, entry.second))
-        {
-            ret = false;
-            break;
-        }
-    }
-    return ret;
-}
-
-bool AccountStore::UpdateStateTrie(const Address& address,
-                                   const Account& account)
-{
-    //LOG_MARKER();
-
-    dev::RLPStream rlpStream(4);
-    rlpStream << account.GetBalance() << account.GetNonce()
-              << account.GetStorageRoot() << account.GetCodeHash();
-    m_state.insert(address, &rlpStream.out());
-
-    return true;
-}
-
-h256 AccountStore::GetStateRootHash() const
-{
-    LOG_MARKER();
-
-    return m_state.root();
-}
-
 void AccountStore::MoveRootToDisk(const h256& root)
 {
     //convert h256 to bytes
@@ -261,23 +226,6 @@ bool AccountStore::RetrieveFromDisk()
         m_addressToAccount->insert({address, account});
     }
     return true;
-}
-
-void AccountStore::RepopulateStateTrie()
-{
-    LOG_MARKER();
-    m_state.init();
-    prevRoot = m_state.root();
-    UpdateStateTrieAll();
-}
-
-void AccountStore::PrintAccountState()
-{
-    LOG_GENERAL(INFO, "Printing Account State");
-    for (auto entry : *m_addressToAccount)
-    {
-        LOG_GENERAL(INFO, entry.first << " " << entry.second);
-    }
 }
 
 void AccountStore::InitTemp() { m_tempAccountStore->Init(); }
