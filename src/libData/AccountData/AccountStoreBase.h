@@ -28,19 +28,27 @@
 #include "common/Constants.h"
 #include "common/Serializable.h"
 #include "depends/common/FixedHash.h"
+#include "depends/libDatabase/MemoryDB.h"
+#include "depends/libDatabase/OverlayDB.h"
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Transaction.h"
 
 using namespace std;
 using namespace boost::multiprecision;
 
-class AccountStoreBase : public Serializable
+template<class DB> class AccountStoreBase : public Serializable
 {
 protected:
     shared_ptr<unordered_map<Address, Account>> m_addressToAccount;
 
+    DB m_db;
+    dev::SpecificTrieDB<dev::GenericTrieDB<DB>, Address> m_state;
+    h256 prevRoot;
+
     uint64_t m_curBlockNum;
     Address m_curContractAddr;
+
+    AccountStoreBase();
 
     bool ParseCreateContractOutput();
 
@@ -66,7 +74,7 @@ protected:
     CompositeContractData(const string& funcName, const string& amount,
                           const Json::Value& params);
 
-    AccountStoreBase();
+    bool UpdateStateTrie(const Address& address, const Account& account);
 
 public:
     virtual void Init();
@@ -90,7 +98,7 @@ public:
                         const Transaction& transaction);
 
     /// Returns the Account associated with the specified address.
-    virtual Account* GetAccount(const Address& address);
+    virtual Account* GetAccount(const Address& address) = 0;
     uint256_t GetNumOfAccounts() const;
 
     bool IncreaseBalance(const Address& address, const uint256_t& delta);
@@ -104,7 +112,13 @@ public:
     bool IncreaseNonce(const Address& address);
     uint256_t GetNonce(const Address& address);
 
-    virtual void PrintAccountState();
+    h256 GetStateRootHash() const;
+    bool UpdateStateTrieAll();
+    void RepopulateStateTrie();
+
+    void PrintAccountState();
 };
+
+#include "AccountStoreBase.tpp"
 
 #endif // __ACCOUNTSTOREBASE_H__

@@ -22,9 +22,8 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-AccountStoreTemp::AccountStoreTemp(
-    const shared_ptr<unordered_map<Address, Account>>& addressToAccount)
-    : m_superAddressToAccount(addressToAccount)
+AccountStoreTemp::AccountStoreTemp(AccountStore* parent)
+    : m_parent(parent)
 {
 }
 
@@ -36,10 +35,17 @@ Account* AccountStoreTemp::GetAccount(const Address& address)
         return &it->second;
     }
 
-    auto it2 = m_superAddressToAccount->find(address);
-    if (it2 != m_superAddressToAccount->end())
+    // auto it2 = m_superAddressToAccount->find(address);
+    // if (it2 != m_superAddressToAccount->end())
+    // {
+    //     m_addressToAccount->insert(*it2);
+    //     return &(m_addressToAccount->find(address))->second;
+    // }
+
+    Account* account = m_parent->GetAccount(address);
+    if (account)
     {
-        m_addressToAccount->insert(*it2);
+        m_addressToAccount->insert(make_pair(address, *account));
         return &(m_addressToAccount->find(address))->second;
     }
 

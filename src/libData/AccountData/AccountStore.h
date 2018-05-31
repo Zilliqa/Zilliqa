@@ -29,18 +29,25 @@
 #include "common/Constants.h"
 #include "common/Singleton.h"
 #include "depends/common/FixedHash.h"
+#include "depends/libDatabase/MemoryDB.h"
 #include "depends/libDatabase/OverlayDB.h"
 #include "depends/libTrie/TrieDB.h"
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Transaction.h"
 
-class AccountStoreTemp : public AccountStoreBase
+using StateHash = dev::h256;
+
+class AccountStore;
+
+class AccountStoreTemp : public AccountStoreBase<MemoryDB>
 {
-    shared_ptr<unordered_map<Address, Account>> m_superAddressToAccount;
+    // shared_ptr<unordered_map<Address, Account>> m_superAddressToAccount;
+    AccountStore* m_parent;
 
 public:
-    AccountStoreTemp(
-        const shared_ptr<unordered_map<Address, Account>>& addressToAccount);
+    // AccountStoreTemp(
+    //     const shared_ptr<unordered_map<Address, Account>>& addressToAccount);
+    AccountStoreTemp(AccountStore* parent);
 
     /// Returns the Account associated with the specified address.
     Account* GetAccount(const Address& address) override;
@@ -48,25 +55,23 @@ public:
     const shared_ptr<unordered_map<Address, Account>>& GetAddressToAccount();
 };
 
-template<class KeyType, class DB>
-using SecureTrieDB = dev::SpecificTrieDB<dev::GenericTrieDB<DB>, KeyType>;
-using StateHash = h256;
+// template<class KeyType, class DB>
+// using SecureTrieDB = dev::SpecificTrieDB<dev::GenericTrieDB<DB>, KeyType>;
+// using StateHash = h256;
 
-class AccountStore : public AccountStoreBase, Singleton<AccountStore>
+class AccountStore : public AccountStoreBase<OverlayDB>, Singleton<AccountStore>
 {
     friend class Singleton<AccountStore>;
 
-    OverlayDB m_db; // Our overlay for the state tree.
-    SecureTrieDB<Address, dev::OverlayDB>
-        m_state; // Our state tree, as an OverlayDB DB.
-    h256 prevRoot;
+    // OverlayDB m_db; // Our overlay for the state tree.
+    // SecureTrieDB<Address, dev::OverlayDB>
+    // m_state; // Our state tree, as an OverlayDB DB.
+    // h256 prevRoot;
 
     shared_ptr<AccountStoreTemp> m_tempAccountStore;
 
     AccountStore();
     ~AccountStore();
-
-    bool UpdateStateTrie(const Address& address, const Account& account);
 
     /// Store the trie root to leveldb
     void MoveRootToDisk(const h256& root);
@@ -81,19 +86,12 @@ public:
     /// Empty the state trie, must be called explicitly otherwise will retrieve the historical data
     void Init() override;
 
-    /// Returns the Account associated with the specified address.
     Account* GetAccount(const Address& address) override;
 
-    h256 GetStateRootHash() const;
-
-    bool UpdateStateTrieAll();
     void MoveUpdatesToDisk();
     void DiscardUnsavedUpdates();
 
     bool RetrieveFromDisk();
-    void RepopulateStateTrie();
-
-    void PrintAccountState() override;
 
     void InitTemp();
     bool UpdateAccountsTemp(const uint64_t& blockNum,

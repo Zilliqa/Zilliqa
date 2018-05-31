@@ -15,21 +15,31 @@
 **/
 
 #include <boost/filesystem.hpp>
+#include <type_traits>
 
-#include "AccountStoreBase.h"
+// #include "AccountStoreBase.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SysCommand.h"
 
-AccountStoreBase::AccountStoreBase()
+template<class DB>
+AccountStoreBase<DB>::AccountStoreBase()
+    : m_db(is_same<DB, OverlayDB>::value ? "state" : NULL)
 {
     m_addressToAccount = make_shared<unordered_map<Address, Account>>();
 }
 
-void AccountStoreBase::Init() { m_addressToAccount->clear(); }
+template<class DB> void AccountStoreBase<DB>::Init()
+{
+    LOG_MARKER();
+    m_addressToAccount->clear();
+    m_state.init();
+    prevRoot = m_state.root();
+}
 
-unsigned int AccountStoreBase::Serialize(vector<unsigned char>& dst,
-                                         unsigned int offset) const
+template<class DB>
+unsigned int AccountStoreBase<DB>::Serialize(vector<unsigned char>& dst,
+                                             unsigned int offset) const
 {
     // [Total number of accounts (uint256_t)] [Addr 1] [Account 1] [Addr 2] [Account 2] .... [Addr n] [Account n]
 
@@ -74,8 +84,9 @@ unsigned int AccountStoreBase::Serialize(vector<unsigned char>& dst,
     return totalSerializedSize;
 }
 
-int AccountStoreBase::Deserialize(const vector<unsigned char>& src,
-                                  unsigned int offset)
+template<class DB>
+int AccountStoreBase<DB>::Deserialize(const vector<unsigned char>& src,
+                                      unsigned int offset)
 {
     // [Total number of accounts] [Addr 1] [Account 1] [Addr 2] [Account 2] .... [Addr n] [Account n]
     // LOG_MARKER();
@@ -122,7 +133,8 @@ int AccountStoreBase::Deserialize(const vector<unsigned char>& src,
     return 0;
 }
 
-bool AccountStoreBase::DoesAccountExist(const Address& address)
+template<class DB>
+bool AccountStoreBase<DB>::DoesAccountExist(const Address& address)
 {
     LOG_MARKER();
 
@@ -134,8 +146,9 @@ bool AccountStoreBase::DoesAccountExist(const Address& address)
     return false;
 }
 
-void AccountStoreBase::AddAccount(const Address& address,
-                                  const Account& account)
+template<class DB>
+void AccountStoreBase<DB>::AddAccount(const Address& address,
+                                      const Account& account)
 {
     LOG_MARKER();
 
@@ -146,13 +159,16 @@ void AccountStoreBase::AddAccount(const Address& address,
     }
 }
 
-void AccountStoreBase::AddAccount(const PubKey& pubKey, const Account& account)
+template<class DB>
+void AccountStoreBase<DB>::AddAccount(const PubKey& pubKey,
+                                      const Account& account)
 {
     AddAccount(Account::GetAddressFromPublicKey(pubKey), account);
 }
 
-bool AccountStoreBase::UpdateAccounts(const uint64_t& blockNum,
-                                      const Transaction& transaction)
+template<class DB>
+bool AccountStoreBase<DB>::UpdateAccounts(const uint64_t& blockNum,
+                                          const Transaction& transaction)
 {
     LOG_MARKER();
 
@@ -255,7 +271,9 @@ bool AccountStoreBase::UpdateAccounts(const uint64_t& blockNum,
     return true;
 }
 
-Json::Value AccountStoreBase::GetBlockStateJson(const uint64_t& BlockNum) const
+template<class DB>
+Json::Value
+AccountStoreBase<DB>::GetBlockStateJson(const uint64_t& BlockNum) const
 {
     Json::Value root;
     Json::Value blockItem;
@@ -266,7 +284,8 @@ Json::Value AccountStoreBase::GetBlockStateJson(const uint64_t& BlockNum) const
     return root;
 }
 
-bool AccountStoreBase::ExportCreateContractFiles(Account* contract)
+template<class DB>
+bool AccountStoreBase<DB>::ExportCreateContractFiles(Account* contract)
 {
     LOG_MARKER();
 
@@ -295,7 +314,8 @@ bool AccountStoreBase::ExportCreateContractFiles(Account* contract)
     return true;
 }
 
-bool AccountStoreBase::ExportCallContractFiles(
+template<class DB>
+bool AccountStoreBase<DB>::ExportCallContractFiles(
     Account* contract, const vector<unsigned char>& contractData)
 {
     LOG_MARKER();
@@ -352,7 +372,7 @@ bool AccountStoreBase::ExportCallContractFiles(
     return true;
 }
 
-string AccountStoreBase::GetCreateContractCmdStr()
+template<class DB> string AccountStoreBase<DB>::GetCreateContractCmdStr()
 {
     string ret = SCILLA_PATH + " -init " + INIT_JSON + " -iblockchain "
         + INPUT_BLOCKCHAIN_JSON + " -o " + OUTPUT_JSON + " -i " + INPUT_CODE;
@@ -360,7 +380,7 @@ string AccountStoreBase::GetCreateContractCmdStr()
     return ret;
 }
 
-string AccountStoreBase::GetCallContractCmdStr()
+template<class DB> string AccountStoreBase<DB>::GetCallContractCmdStr()
 {
     string ret = SCILLA_PATH + " -init " + INIT_JSON + " -istate "
         + INPUT_STATE_JSON + " -iblockchain " + INPUT_BLOCKCHAIN_JSON
@@ -370,7 +390,7 @@ string AccountStoreBase::GetCallContractCmdStr()
     return ret;
 }
 
-bool AccountStoreBase::ParseCreateContractOutput()
+template<class DB> bool AccountStoreBase<DB>::ParseCreateContractOutput()
 {
     LOG_MARKER();
 
@@ -400,7 +420,9 @@ bool AccountStoreBase::ParseCreateContractOutput()
     }
 }
 
-bool AccountStoreBase::ParseCreateContractJsonOutput(const Json::Value& _json)
+template<class DB>
+bool AccountStoreBase<DB>::ParseCreateContractJsonOutput(
+    const Json::Value& _json)
 {
     LOG_MARKER();
 
@@ -425,7 +447,7 @@ bool AccountStoreBase::ParseCreateContractJsonOutput(const Json::Value& _json)
     }
 }
 
-bool AccountStoreBase::ParseCallContractOutput()
+template<class DB> bool AccountStoreBase<DB>::ParseCallContractOutput()
 {
     LOG_MARKER();
 
@@ -455,7 +477,8 @@ bool AccountStoreBase::ParseCallContractOutput()
     }
 }
 
-bool AccountStoreBase::ParseCallContractJsonOutput(const Json::Value& _json)
+template<class DB>
+bool AccountStoreBase<DB>::ParseCallContractJsonOutput(const Json::Value& _json)
 {
     LOG_MARKER();
 
@@ -605,7 +628,8 @@ bool AccountStoreBase::ParseCallContractJsonOutput(const Json::Value& _json)
     }
 }
 
-const vector<unsigned char> AccountStoreBase::CompositeContractData(
+template<class DB>
+const vector<unsigned char> AccountStoreBase<DB>::CompositeContractData(
     const string& funcName, const string& amount, const Json::Value& params)
 {
     LOG_MARKER();
@@ -623,28 +647,15 @@ const vector<unsigned char> AccountStoreBase::CompositeContractData(
     return DataConversion::StringToCharArray(dataStr);
 }
 
-Account* AccountStoreBase::GetAccount(const Address& address)
-{
-    //LOG_MARKER();
-
-    auto it = m_addressToAccount->find(address);
-    // LOG_GENERAL(INFO, (it != m_addressToAccount.end()));
-    if (it != m_addressToAccount->end())
-    {
-        return &it->second;
-    }
-
-    return nullptr;
-}
-
-uint256_t AccountStoreBase::GetNumOfAccounts() const
+template<class DB> uint256_t AccountStoreBase<DB>::GetNumOfAccounts() const
 {
     LOG_MARKER();
     return m_addressToAccount->size();
 }
 
-bool AccountStoreBase::IncreaseBalance(const Address& address,
-                                       const uint256_t& delta)
+template<class DB>
+bool AccountStoreBase<DB>::IncreaseBalance(const Address& address,
+                                           const uint256_t& delta)
 {
     // LOG_MARKER();
 
@@ -669,8 +680,9 @@ bool AccountStoreBase::IncreaseBalance(const Address& address,
     return false;
 }
 
-bool AccountStoreBase::DecreaseBalance(const Address& address,
-                                       const uint256_t& delta)
+template<class DB>
+bool AccountStoreBase<DB>::DecreaseBalance(const Address& address,
+                                           const uint256_t& delta)
 {
     // LOG_MARKER();
 
@@ -698,8 +710,10 @@ bool AccountStoreBase::DecreaseBalance(const Address& address,
     return false;
 }
 
-bool AccountStoreBase::TransferBalance(const Address& from, const Address& to,
-                                       const uint256_t& delta)
+template<class DB>
+bool AccountStoreBase<DB>::TransferBalance(const Address& from,
+                                           const Address& to,
+                                           const uint256_t& delta)
 {
     // LOG_MARKER();
 
@@ -711,7 +725,8 @@ bool AccountStoreBase::TransferBalance(const Address& from, const Address& to,
     return false;
 }
 
-uint256_t AccountStoreBase::GetBalance(const Address& address)
+template<class DB>
+uint256_t AccountStoreBase<DB>::GetBalance(const Address& address)
 {
     LOG_MARKER();
 
@@ -725,7 +740,8 @@ uint256_t AccountStoreBase::GetBalance(const Address& address)
     return 0;
 }
 
-bool AccountStoreBase::IncreaseNonce(const Address& address)
+template<class DB>
+bool AccountStoreBase<DB>::IncreaseNonce(const Address& address)
 {
     //LOG_MARKER();
 
@@ -740,7 +756,8 @@ bool AccountStoreBase::IncreaseNonce(const Address& address)
     return false;
 }
 
-uint256_t AccountStoreBase::GetNonce(const Address& address)
+template<class DB>
+uint256_t AccountStoreBase<DB>::GetNonce(const Address& address)
 {
     //LOG_MARKER();
 
@@ -754,11 +771,55 @@ uint256_t AccountStoreBase::GetNonce(const Address& address)
     return 0;
 }
 
-void AccountStoreBase::PrintAccountState()
+template<class DB> void AccountStoreBase<DB>::PrintAccountState()
 {
     LOG_GENERAL(INFO, "Printing Account State");
     for (auto entry : *m_addressToAccount)
     {
         LOG_GENERAL(INFO, entry.first << " " << entry.second);
     }
+    LOG_GENERAL(INFO, "State Root: " << GetStateRootHash());
+}
+
+template<class DB> h256 AccountStoreBase<DB>::GetStateRootHash() const
+{
+    LOG_MARKER();
+
+    return m_state.root();
+}
+
+template<class DB>
+bool AccountStoreBase<DB>::UpdateStateTrie(const Address& address,
+                                           const Account& account)
+{
+    //LOG_MARKER();
+
+    dev::RLPStream rlpStream(4);
+    rlpStream << account.GetBalance() << account.GetNonce()
+              << account.GetStorageRoot() << account.GetCodeHash();
+    m_state.insert(address, &rlpStream.out());
+
+    return true;
+}
+
+template<class DB> bool AccountStoreBase<DB>::UpdateStateTrieAll()
+{
+    bool ret = true;
+    for (auto entry : *m_addressToAccount)
+    {
+        if (!UpdateStateTrie(entry.first, entry.second))
+        {
+            ret = false;
+            break;
+        }
+    }
+    return ret;
+}
+
+template<class DB> void AccountStoreBase<DB>::RepopulateStateTrie()
+{
+    LOG_MARKER();
+    m_state.init();
+    prevRoot = m_state.root();
+    UpdateStateTrieAll();
 }
