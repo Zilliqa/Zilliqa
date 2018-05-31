@@ -603,7 +603,8 @@ bool Node::CheckCreatedTransaction(const Transaction& tx)
     const Address& toAddr = tx.GetToAddr();
     if (!AccountStore::GetInstance().DoesAccountExist(toAddr))
     {
-        LOG_GENERAL(INFO, "New account is added: " << toAddr);
+        // FIXME: Should return false in the future
+        LOG_GENERAL(INFO, "FIXME: New account is added: " << toAddr);
         AccountStore::GetInstance().AddAccount(toAddr, {0, 0});
     }
 
@@ -622,7 +623,8 @@ bool Node::CheckCreatedTransaction(const Transaction& tx)
         return false;
     }
 
-    return true;
+    return AccountStore::GetInstance().CheckUpdateAccounts(
+        m_mediator.m_currentEpochNum, tx);
 }
 #endif // IS_LOOKUP_NODE
 
@@ -812,7 +814,6 @@ bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
     offset += sizeof(uint32_t);
 
     auto localBlockNum = (uint256_t)m_mediator.m_currentEpochNum;
-    ;
 
     if (msgBlockNum != localBlockNum)
     {
@@ -830,7 +831,7 @@ bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
 
     const auto& submittedTransaction = Transaction(message, offset);
 
-    // if (CheckCreatedTransaction(submittedTransaction))
+    if (CheckCreatedTransaction(submittedTransaction))
     {
         lock_guard<mutex> g(m_mutexReceivedTransactions);
         auto& receivedTransactions = m_receivedTransactions[msgBlockNum];
@@ -855,7 +856,7 @@ bool Node::ProcessSubmitTxnSharing(const vector<unsigned char>& message,
     }
 
     const auto& submittedTransaction = Transaction(message, offset);
-    // if (CheckCreatedTransaction(submittedTransaction))
+    if (CheckCreatedTransaction(submittedTransaction))
     {
         boost::multiprecision::uint256_t blockNum
             = (uint256_t)m_mediator.m_currentEpochNum;
@@ -1003,7 +1004,8 @@ bool Node::CheckCreatedTransactionFromLookup(const Transaction& tx)
     if (!AccountStore::GetInstance().DoesAccountExist(toAddr)
         && toAddr != dev::h160())
     {
-        LOG_GENERAL(INFO, "New account is added: " << toAddr);
+        // FIXME: Should return false in the future
+        LOG_GENERAL(INFO, "FIXME: New account is added: " << toAddr);
         AccountStore::GetInstance().AddAccount(toAddr, {0, 0});
     }
 
@@ -1022,7 +1024,8 @@ bool Node::CheckCreatedTransactionFromLookup(const Transaction& tx)
         return false;
     }
 
-    return true;
+    return AccountStore::GetInstance().CheckUpdateAccounts(
+        m_mediator.m_currentEpochNum, tx);
 }
 #endif // IS_LOOKUP_NODE
 
