@@ -216,10 +216,19 @@ namespace dev
             unsigned const c_bloomBits = M * 8;
             unsigned const c_mask = c_bloomBits - 1;
             unsigned const c_bloomBytes = (StaticLog2<c_bloomBits>::result + 7) / 8;
+            if((M & (M - 1)) != 0)
+            {
+                LOG_GENERAL(FATAL,
+                            "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
+                                                 << __FUNCTION__ << ")" << " M must be power-of-two");
+            }
 
-            static_assert((M & (M - 1)) == 0, "M must be power-of-two");
-            static_assert(P * c_bloomBytes <= N, "out of range");
-
+            if(P * c_bloomBytes > N)
+            {
+                LOG_GENERAL(FATAL,
+                            "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
+                                                 << __FUNCTION__ << ")" << " out of range");
+            }
             FixedHash<M> ret;
             byte const* p = data();
             for (unsigned i = 0; i < P; ++i)

@@ -324,7 +324,13 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
 
     {
         lock_guard<mutex> g(m_mutexPendingDSBlock);
-        assert(m_pendingDSBlock != nullptr);
+
+        if (m_pendingDSBlock == nullptr)
+        {
+            LOG_GENERAL(FATAL,
+                        "assertion failed (" << __FILE__ << ":" << __LINE__
+                                             << ": " << __FUNCTION__ << ")");
+        }
 
         // Update the DS block with the co-signatures from the consensus
         m_pendingDSBlock->SetCoSignatures(*m_consensusObject);
