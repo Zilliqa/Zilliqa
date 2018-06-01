@@ -111,7 +111,9 @@ bool Node::CheckWhetherDSBlockNumIsLatest(const uint256_t dsblockNum)
     if (dsblockNum < latestBlockNumInBlockchain)
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "We are processing duplicated blocks");
+                  "We are processing duplicated blocks\n"
+                      << "cur block num: " << latestBlockNumInBlockchain << "\n"
+                      << "incoming block num: " << dsblockNum);
         return false;
     }
     else if (dsblockNum > latestBlockNumInBlockchain)
