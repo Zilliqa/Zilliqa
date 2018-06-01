@@ -22,8 +22,6 @@
 #include <vector>
 
 #include "libData/AccountData/Transaction.h"
-#include "libData/BlockChainData/DSBlockChain.h"
-#include "libData/BlockChainData/TxBlockChain.h"
 #include "libData/BlockData/Block.h"
 
 class JSONConversion

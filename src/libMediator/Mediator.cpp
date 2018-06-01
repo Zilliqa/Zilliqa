@@ -19,8 +19,6 @@
 #include "Mediator.h"
 #include "common/Constants.h"
 #include "libCrypto/Sha2.h"
-#include "libData/BlockChainData/DSBlockChain.h"
-#include "libData/BlockChainData/TxBlockChain.h"
 #include "libUtils/DataConversion.h"
 #include "libValidator/Validator.h"
 

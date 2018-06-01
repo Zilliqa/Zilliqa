@@ -34,8 +34,7 @@
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
-#include "libData/BlockChainData/DSBlockChain.h"
-#include "libData/BlockChainData/TxBlockChain.h"
+#include "libData/BlockChainData/BlockChain.h"
 #include "libData/BlockData/Block.h"
 #include "libMediator/Mediator.h"
 #include "libNetwork/P2PComm.h"
@@ -796,7 +795,7 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Fetching DSBlock " << blockNum.convert_to<string>()
                                           << " for " << from);
-            DSBlock dsBlock = m_mediator.m_dsBlockChain.GetBlock(blockNum);
+            DSBlock dsBlock = m_mediator.m_dsBlockChain.GetDSBlock(blockNum);
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "DSBlock " << blockNum.convert_to<string>()
                                  << " serialized for " << from);
@@ -965,7 +964,7 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Fetching TxBlock " << blockNum.convert_to<string>()
                                           << " for " << from);
-            TxBlock txBlock = m_mediator.m_txBlockChain.GetBlock(blockNum);
+            TxBlock txBlock = m_mediator.m_txBlockChain.GetTxBlock(blockNum);
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "TxBlock " << blockNum.convert_to<string>()
                                  << " serialized for " << from);

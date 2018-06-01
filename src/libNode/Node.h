@@ -32,7 +32,6 @@
 #include "depends/common/FixedHash.h"
 #include "libConsensus/Consensus.h"
 #include "libData/AccountData/Transaction.h"
-#include "libData/BlockChainData/TxBlockChain.h"
 #include "libData/BlockData/Block.h"
 #include "libLookup/Synchronizer.h"
 #include "libNetwork/P2PComm.h"
