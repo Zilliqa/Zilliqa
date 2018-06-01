@@ -26,8 +26,11 @@ esac
 
 # assume that it is run from project root directory
 mkdir build && cd build
-cmake ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTESTS=ON ..
+cmake ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTESTS=ON -DENABLE_COVERAGE=ON ..
 make -j${n_parallel}
 make clang-format
 ctest --output-on-failure
-
+if [ "$os" = "Linux" ]
+then
+    make -j${n_parallel} Zilliqa_coverage
+fi

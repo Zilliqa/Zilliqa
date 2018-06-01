@@ -31,7 +31,9 @@ apt-get install -y \
     ccache \
     clang-format-5.0 \
     clang-tidy-5.0 \
-    clang-5.0
+    clang-5.0 \
+    lcov \
+    curl
 }
 
 function on_osx() {
