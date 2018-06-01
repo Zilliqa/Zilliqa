@@ -26,6 +26,7 @@
 #include "libLookup/Lookup.h"
 #include "libNetwork/Peer.h"
 #include "libNode/Node.h"
+#include "libValidator/Validator.h"
 
 /// A mediator class for providing access to global members.
 class Mediator
@@ -45,6 +46,9 @@ public:
 
     /// The reference to the Lookup instance.
     Lookup* m_lookup;
+
+    /// Pointer to the Validator instance.
+    ValidatorBase* m_validator;
 
     /// The transient DS blockchain.
     DSBlockChain m_dsBlockChain;
@@ -85,7 +89,8 @@ public:
     ~Mediator();
 
     /// Sets the references to the subclass instances.
-    void RegisterColleagues(DirectoryService* ds, Node* node, Lookup* lookup);
+    void RegisterColleagues(DirectoryService* ds, Node* node, Lookup* lookup,
+                            ValidatorBase* validator);
 
     /// Updates the DS blockchain random for PoW.
     void UpdateDSBlockRand(bool isGenesis = false);
