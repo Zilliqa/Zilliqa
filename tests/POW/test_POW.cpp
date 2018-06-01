@@ -694,8 +694,6 @@ BOOST_AUTO_TEST_CASE(test_block60000_verification)
     ethash_light_delete(light);
 }
 
-#if 0 //Taking too much time on Travis, investigate the reason
-
 BOOST_AUTO_TEST_CASE(mining_and_verification)
 {
     POW& POWClient = POW::GetInstance();
@@ -715,87 +713,28 @@ BOOST_AUTO_TEST_CASE(mining_and_verification)
                               winning_result.result, winning_result.mix_hash);
     BOOST_REQUIRE(verifyLight);
 
-    // Full client mine and verify
-    winning_result = POWClient.PoWMine(blockToUse, difficultyToUse, rand1,
-                                       rand2, ipAddr, pubKey, true);
-    bool verifyFull
-        = POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
-                              pubKey, true, winning_result.winning_nonce,
-                              winning_result.result, winning_result.mix_hash);
-    BOOST_REQUIRE(verifyFull);
-
-    // Full client mine and light client verify
-    winning_result = POWClient.PoWMine(blockToUse, difficultyToUse, rand1,
-                                       rand2, ipAddr, pubKey, true);
-    bool verifyFullMineLightVerify
-        = POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
-                              pubKey, false, winning_result.winning_nonce,
-                              winning_result.result, winning_result.mix_hash);
-    BOOST_REQUIRE(verifyFullMineLightVerify);
-}
-
-BOOST_AUTO_TEST_CASE(mining_and_verification_wrong_inputs)
-{
-    //expect to fail test cases
-    uint8_t difficultyToUse = 10;
-    uint8_t blockToUse = 0;
-    POW& POWClient = POW::GetInstance();
-    std::array<unsigned char, 32> rand1 = {{'0', '1'}};
-    std::array<unsigned char, 32> rand2 = {{'0', '2'}};
-    boost::multiprecision::uint128_t ipAddr = 2307193356;
-    PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
-
-    ethash_mining_result_t winning_result = POWClient.PoWMine(
-        blockToUse, difficultyToUse, rand1, rand2, ipAddr, pubKey, true);
     rand1 = {{'0', '3'}};
-    bool verifyFullMineLightVerify
+    bool verifyRand
         = POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
                               pubKey, false, winning_result.winning_nonce,
                               winning_result.result, winning_result.mix_hash);
-    BOOST_REQUIRE(!verifyFullMineLightVerify);
-}
-
-BOOST_AUTO_TEST_CASE(mining_and_verification_wrong_difficulty)
-{
-    //expect to fail test cases
-    uint8_t difficultyToUse = 10;
-    uint8_t blockToUse = 0;
-    POW& POWClient = POW::GetInstance();
-    std::array<unsigned char, 32> rand1 = {{'0', '1'}};
-    std::array<unsigned char, 32> rand2 = {{'0', '2'}};
-    boost::multiprecision::uint128_t ipAddr = 2307193356;
-    PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
-
-    ethash_mining_result_t winning_result = POWClient.PoWMine(
-        blockToUse, difficultyToUse, rand1, rand2, ipAddr, pubKey, true);
+    BOOST_REQUIRE(!verifyRand);
 
     // Now let's adjust the difficulty expectation during verification
+    rand1 = {{'0', '1'}};
     difficultyToUse = 30;
-    bool verifyFullMineLightVerify
+    bool verifyDifficulty
         = POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
                               pubKey, false, winning_result.winning_nonce,
                               winning_result.result, winning_result.mix_hash);
-    BOOST_REQUIRE(!verifyFullMineLightVerify);
-}
+    BOOST_REQUIRE(!verifyDifficulty);
 
-BOOST_AUTO_TEST_CASE(mining_and_verification_different_wrong_winning_nonce)
-{
-    //expect to fail test cases
-    uint8_t difficultyToUse = 10;
-    uint8_t blockToUse = 0;
-    POW& POWClient = POW::GetInstance();
-    std::array<unsigned char, 32> rand1 = {{'0', '1'}};
-    std::array<unsigned char, 32> rand2 = {{'0', '2'}};
-    boost::multiprecision::uint128_t ipAddr = 2307193356;
-    PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
-
-    ethash_mining_result_t winning_result = POWClient.PoWMine(
-        blockToUse, difficultyToUse, rand1, rand2, ipAddr, pubKey, true);
+    difficultyToUse = 10;
     uint64_t winning_nonce = 0;
-    bool verifyFullMineLightVerify = POWClient.PoWVerify(
+    bool verifyWinningNonce = POWClient.PoWVerify(
         blockToUse, difficultyToUse, rand1, rand2, ipAddr, pubKey, false,
         winning_nonce, winning_result.result, winning_result.mix_hash);
-    BOOST_REQUIRE(!verifyFullMineLightVerify);
+    BOOST_REQUIRE(!verifyWinningNonce);
 }
 
 #if 0 
@@ -821,8 +760,6 @@ BOOST_AUTO_TEST_CASE(full_dag_test)
     ethash_light_delete(light);
     ethash_full_delete(full);
 }
-#endif
-
 #endif
 
 BOOST_AUTO_TEST_SUITE_END()
