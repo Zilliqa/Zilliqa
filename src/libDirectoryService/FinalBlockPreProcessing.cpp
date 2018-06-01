@@ -147,7 +147,12 @@ void DirectoryService::ComposeFinalBlockCore()
         blockNum = lastBlock.GetHeader().GetBlockNum() + 1;
     }
 
-    assert(m_mediator.m_dsBlockChain.GetBlockCount() > 0);
+    if (m_mediator.m_dsBlockChain.GetBlockCount() <= 0)
+    {
+        LOG_GENERAL(FATAL,
+                    "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
+                                         << __FUNCTION__ << ")");
+    }
 
     DSBlock lastDSBlock = m_mediator.m_dsBlockChain.GetLastBlock();
     uint256_t lastDSBlockNum = lastDSBlock.GetHeader().GetBlockNum();

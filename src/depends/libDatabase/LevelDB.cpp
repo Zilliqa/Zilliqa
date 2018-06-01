@@ -14,7 +14,6 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#include <cassert>
 #include <string>
 
 #include <boost/filesystem.hpp>
