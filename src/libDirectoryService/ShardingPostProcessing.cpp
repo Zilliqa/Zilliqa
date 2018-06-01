@@ -163,13 +163,6 @@ void DirectoryService::SendingShardingStructureToShard(
     // Todo: Any better way to do it?
     uint256_t latest_block_num_in_blockchain
         = m_mediator.m_dsBlockChain.GetBlockCount() - 1;
-
-    // todo: Relook at this. This is not secure
-    Serializable::SetNumber<unsigned int>(sharding_message, curr_offset,
-                                          m_viewChangeCounter,
-                                          sizeof(unsigned int));
-    curr_offset += sizeof(unsigned int);
-
     Serializable::SetNumber<uint256_t>(sharding_message, curr_offset,
                                        latest_block_num_in_blockchain,
                                        UINT256_SIZE);
