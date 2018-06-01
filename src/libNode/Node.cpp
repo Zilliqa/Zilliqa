@@ -847,13 +847,11 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
             == std::cv_status::timeout)
         {
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Time out while waiting for state transition and "
-                      "consensus object creation ");
+                      "Time out while waiting for state transition ");
         }
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "State transition is completed and consensus object "
-                  "creation. (check for timeout)");
+                  "State transition is completed. (check for timeout)");
 
         ProcessSubmitTxnSharing(message, cur_offset, from);
     }
