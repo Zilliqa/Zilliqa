@@ -35,6 +35,12 @@ script:
       $BUILD_COMMAND;
     fi
 
+# Code coverage is currently only implemented for GCC builds, so OSX is currently excluded from reporting
+after_success:
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+      docker exec -e CI="true" -e TRAVIS="$TRAVIS" -e TRAVIS_PULL_REQUEST_SHA="$TRAVIS_PULL_REQUEST_SHA" -e TRAVIS_COMMIT="$TRAVIS_COMMIT" -e TRAVIS_JOB_NUMBER="$TRAVIS_JOB_NUMBER" -e TRAVIS_PULL_REQUEST="$TRAVIS_PULL_REQUEST" -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" -e TRAVIS_REPO_SLUG="$TRAVIS_REPO_SLUG" -e TRAVIS_OS_NAME="$TRAVIS_OS_NAME" -e TRAVIS_TAG="$TRAVIS_TAG" -e TRAVIS_BRANCH="$TRAVIS_BRANCH" -t ci /bin/sh -c "./scripts/ci_report_coverage.sh";
+    fi
+
 jobs:
   include:
   - stage: deploy
@@ -46,3 +52,4 @@ jobs:
     cache: # left blank
     script:
     - $BUILD_COMMAND
+    after_success: # left blank
