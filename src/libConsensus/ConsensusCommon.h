@@ -121,6 +121,12 @@ protected:
     /// Length of the part of the message to co-sign
     uint32_t m_lengthToCosign;
 
+    /// Generated commit secret
+    std::shared_ptr<CommitSecret> m_commitSecret;
+
+    /// Generated commit point
+    std::shared_ptr<CommitPoint> m_commitPoint;
+
     /// Constructor.
     ConsensusCommon(uint32_t consensus_id,
                     const std::vector<unsigned char>& block_hash,
