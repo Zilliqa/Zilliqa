@@ -155,7 +155,7 @@ bool AccountStore::DoesAccountExist(const Address& address)
 {
     LOG_MARKER();
 
-    if (GetAccount(address) != nullptr)
+    if (&GetAccount(address) != &Account::NullAccount)
     {
         return true;
     }
@@ -194,7 +194,7 @@ void AccountStore::UpdateAccounts(const Transaction& transaction)
     //TODO: Process the contract
 }
 
-Account* AccountStore::GetAccount(const Address& address)
+Account& AccountStore::GetAccount(const Address& address)
 {
     //LOG_MARKER();
 
@@ -202,13 +202,13 @@ Account* AccountStore::GetAccount(const Address& address)
     // LOG_GENERAL(INFO, (it != m_addressToAccount.end()));
     if (it != m_addressToAccount.end())
     {
-        return &it->second;
+        return it->second;
     }
 
     string accountDataString = m_state.at(address);
     if (accountDataString.empty())
     {
-        return nullptr;
+        return Account::NullAccount;
     }
 
     dev::RLP accountDataRLP(accountDataString);
@@ -220,7 +220,7 @@ Account* AccountStore::GetAccount(const Address& address)
             accountDataRLP[2].toHash<dev::h256>(),
             accountDataRLP[3].toHash<dev::h256>()));
 
-    return &it2.first->second;
+    return it2.first->second;
 }
 
 uint256_t AccountStore::GetNumOfAccounts() const
@@ -266,14 +266,14 @@ bool AccountStore::IncreaseBalance(
         return true;
     }
 
-    Account* account = GetAccount(address);
+    Account& account = GetAccount(address);
 
-    if (account != nullptr && account->IncreaseBalance(delta))
+    if (&account != &Account::NullAccount && account.IncreaseBalance(delta))
     {
         // UpdateStateTrie(address, *account);
         return true;
     }
-    else if (account == nullptr)
+    else if (&account == &Account::NullAccount)
     {
         AddAccount(address, {delta, 0, dev::h256(), dev::h256()});
         return true;
@@ -292,15 +292,15 @@ bool AccountStore::DecreaseBalance(
         return true;
     }
 
-    Account* account = GetAccount(address);
+    Account& account = GetAccount(address);
 
-    if (account != nullptr && account->DecreaseBalance(delta))
+    if (&account != &Account::NullAccount && account.DecreaseBalance(delta))
     {
         // UpdateStateTrie(address, *account);
         return true;
     }
     // TODO: remove this, temporary way to test transactions
-    else if (account == nullptr)
+    else if (&account == &Account::NullAccount)
     {
         AddAccount(address, {10000000000, 0, dev::h256(), dev::h256()});
     }
@@ -327,11 +327,11 @@ AccountStore::GetBalance(const Address& address)
 {
     LOG_MARKER();
 
-    const Account* account = GetAccount(address);
+    const Account& account = GetAccount(address);
 
-    if (account != nullptr)
+    if (&account != &Account::NullAccount)
     {
-        return account->GetBalance();
+        return account.GetBalance();
     }
 
     return 0;
@@ -341,9 +341,9 @@ bool AccountStore::IncreaseNonce(const Address& address)
 {
     //LOG_MARKER();
 
-    Account* account = GetAccount(address);
+    Account& account = GetAccount(address);
 
-    if (account != nullptr && account->IncreaseNonce())
+    if (&account != &Account::NullAccount && account.IncreaseNonce())
     {
         // UpdateStateTrie(address, *account);
         return true;
@@ -356,11 +356,11 @@ boost::multiprecision::uint256_t AccountStore::GetNonce(const Address& address)
 {
     //LOG_MARKER();
 
-    Account* account = GetAccount(address);
+    Account& account = GetAccount(address);
 
-    if (account != nullptr)
+    if (&account != &Account::NullAccount)
     {
-        return account->GetNonce();
+        return account.GetNonce();
     }
 
     return 0;

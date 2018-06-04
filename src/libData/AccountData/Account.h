@@ -53,9 +53,9 @@ class Account : public Serializable
     SecureTrieDB<bytesConstRef, OverlayDB> m_storage;
 
 public:
-    Account();
+    Account(bool init = true);
 
-    ~Account() { m_storage.init(); }
+    ~Account();
 
     /// Constructor for loading account information from a byte stream.
     Account(const vector<unsigned char>& src, unsigned int offset);
@@ -113,6 +113,8 @@ public:
 
     /// Computes an account address from a specified PubKey.
     static Address GetAddressFromPublicKey(const PubKey& pubKey);
+
+    static Account NullAccount;
 
     friend inline std::ostream& operator<<(std::ostream& _out,
                                            Account const& account);

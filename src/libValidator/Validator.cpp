@@ -74,8 +74,8 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx) const
     }
 
     // Check if from account exists in local storage
-    const Account* fromAccnt = AccountStore::GetInstance().GetAccount(fromAddr);
-    if (!fromAccnt)
+    const Account& fromAccnt = AccountStore::GetInstance().GetAccount(fromAddr);
+    if (&fromAccnt == &Account::NullAccount)
     {
         LOG_GENERAL(INFO,
                     "fromAddr not found: " << fromAddr
@@ -86,8 +86,7 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx) const
 
     // Check if to account exists in local storage
     const Address& toAddr = tx.GetToAddr();
-    const Account* toAccnt = AccountStore::GetInstance().GetAccount(toAddr);
-    if (!toAccnt)
+    if (!AccountStore::GetInstance().DoesAccountExist(toAddr))
     {
         LOG_GENERAL(INFO, "New account is added: " << toAddr);
         AccountStore::GetInstance().AddAccount(
@@ -95,12 +94,12 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx) const
     }
 
     // Check if transaction amount is valid
-    if (fromAccnt->GetBalance() < tx.GetAmount())
+    if (fromAccnt.GetBalance() < tx.GetAmount())
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Insufficient funds in source account!"
                       << " From Account  = 0x" << fromAddr
-                      << " Balance = " << fromAccnt->GetBalance()
+                      << " Balance = " << fromAccnt.GetBalance()
                       << " Debit Amount = " << tx.GetAmount());
         return false;
     }
@@ -134,8 +133,8 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
     }
 
     // Check if from account exists in local storage
-    const Account* fromAccnt = AccountStore::GetInstance().GetAccount(fromAddr);
-    if (!fromAccnt)
+    const Account& fromAccnt = AccountStore::GetInstance().GetAccount(fromAddr);
+    if (&fromAccnt == &Account::NullAccount)
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "fromAddr not found: " << fromAddr
@@ -151,14 +150,14 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
         {
             LOG_GENERAL(INFO, "Txn from " << fromAddr << "is new.");
 
-            if (tx.GetNonce() != fromAccnt->GetNonce() + 1)
+            if (tx.GetNonce() != fromAccnt.GetNonce() + 1)
             {
                 LOG_EPOCH(
                     WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                     "Tx nonce not in line with account state!"
                         << " From Account = 0x" << fromAddr
-                        << " Account Nonce = " << fromAccnt->GetNonce()
-                        << " Expected Tx Nonce = " << fromAccnt->GetNonce() + 1
+                        << " Account Nonce = " << fromAccnt.GetNonce()
+                        << " Expected Tx Nonce = " << fromAccnt.GetNonce() + 1
                         << " Actual Tx Nonce = " << tx.GetNonce());
                 return false;
             }
@@ -184,8 +183,7 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
 
     // Check if to account exists in local storage
     const Address& toAddr = tx.GetToAddr();
-    const Account* toAccnt = AccountStore::GetInstance().GetAccount(toAddr);
-    if (!toAccnt)
+    if (!AccountStore::GetInstance().DoesAccountExist(toAddr))
     {
         LOG_GENERAL(INFO, "New account is added: " << toAddr);
         AccountStore::GetInstance().AddAccount(
@@ -193,12 +191,12 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
     }
 
     // Check if transaction amount is valid
-    if (fromAccnt->GetBalance() < tx.GetAmount())
+    if (fromAccnt.GetBalance() < tx.GetAmount())
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Insufficient funds in source account!"
                       << " From Account  = 0x" << fromAddr
-                      << " Balance = " << fromAccnt->GetBalance()
+                      << " Balance = " << fromAccnt.GetBalance()
                       << " Debit Amount = " << tx.GetAmount());
         return false;
     }

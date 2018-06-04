@@ -80,7 +80,7 @@ public:
     void UpdateAccounts(const Transaction& transaction);
 
     /// Returns the Account associated with the specified address.
-    Account* GetAccount(const Address& address);
+    Account& GetAccount(const Address& address);
     boost::multiprecision::uint256_t GetNumOfAccounts() const;
 
     bool IncreaseBalance(const Address& address,

@@ -293,13 +293,13 @@ Json::Value Server::GetBalance(const string& address)
         vector<unsigned char> tmpaddr
             = DataConversion::HexStrToUint8Vec(address);
         Address addr(tmpaddr);
-        const Account* account = AccountStore::GetInstance().GetAccount(addr);
+        const Account& account = AccountStore::GetInstance().GetAccount(addr);
 
         Json::Value ret;
-        if (account != nullptr)
+        if (&account != &Account::NullAccount)
         {
-            boost::multiprecision::uint256_t balance = account->GetBalance();
-            boost::multiprecision::uint256_t nonce = account->GetNonce();
+            boost::multiprecision::uint256_t balance = account.GetBalance();
+            boost::multiprecision::uint256_t nonce = account.GetNonce();
 
             ret["balance"] = balance.str();
             //FIXME: a workaround, 256-bit unsigned int being truncated
@@ -308,7 +308,7 @@ Json::Value Server::GetBalance(const string& address)
                         "balance " << balance.str() << " nonce: "
                                    << nonce.convert_to<unsigned int>());
         }
-        else if (account == nullptr)
+        else
         {
             ret["balance"] = 0;
             ret["nonce"] = 0;

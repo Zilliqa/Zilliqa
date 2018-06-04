@@ -11,7 +11,23 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 
-Account::Account() { InitStorage(); }
+Account Account::NullAccount(false);
+
+Account::Account(bool init)
+{
+    if (init)
+    {
+        InitStorage();
+    }
+}
+
+Account::~Account()
+{
+    if (this != &NullAccount)
+    {
+        m_storage.init();
+    }
+}
 
 Account::Account(const vector<unsigned char>& src, unsigned int offset)
 {
