@@ -181,7 +181,7 @@ void DirectoryService::ComposeFinalBlockCore()
         TxBlockHeader(type, version, allGasLimit, allGasUsed, prevHash,
                       blockNum, timestamp, microblockTrieRoot, stateRoot,
                       numTxs, numMicroBlocks, m_mediator.m_selfKey.second,
-                      lastDSBlockNum, dsBlockHeader, m_viewChangeCounter),
+                      lastDSBlockNum, dsBlockHeader),
         vector<bool>(isMicroBlockEmpty), vector<TxnHash>(microBlockTxHashes),
         CoSignatures(m_mediator.m_DSCommitteePubKeys.size())));
 
@@ -453,12 +453,12 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
     vector<unsigned char> finalBlockMessage = ComposeFinalBlockMessage();
 
     // kill first ds leader
-    //if (m_consensusMyID == 0 && m_viewChangeCounter < 1)
-    //{
-    //    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-    //                 "I am killing myself to test view change");
-    //    throw exception();
-    //}
+    if (m_consensusMyID == 0 && m_viewChangeCounter < 1)
+    {
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "I am killing myself to test view change");
+        throw exception();
+    }
 
     // Create new consensus object
     // Dummy values for now
@@ -653,6 +653,7 @@ bool DirectoryService::CheckMicroBlockHashes()
         }
         if (!found)
         {
+            LOG_GENERAL(WARNING, "cannot find tx hashes. " << microBlockTxHash)
             return false;
         }
     }
@@ -771,6 +772,7 @@ bool DirectoryService::CheckFinalBlockValidity()
             || !CheckMicroBlockHashRoot() || !CheckIsMicroBlockEmpty()
             || !CheckStateRoot())
         {
+            LOG_GENERAL(WARNING, "Final block check failed");
             break;
         }
 
@@ -779,8 +781,8 @@ bool DirectoryService::CheckFinalBlockValidity()
         // TODO: Check pubkey (must be valid and = shard leader)
         // TODO: Check parent DS hash (must be = digest of last DS block header in the DS blockchain)
         // TODO: Check parent DS block number (must be = block number of last DS block header in the DS blockchain)
-
         valid = true;
+
     } while (false);
 
     return valid;
@@ -986,7 +988,7 @@ bool DirectoryService::FinalBlockValidator(
 
     if (!CheckFinalBlockValidity())
     {
-        LOG_GENERAL(INFO,
+        LOG_GENERAL(WARNING,
                     "To-do: What to do if proposed microblock is not valid?");
         // throw exception();
         // TODO: microblock is invalid
