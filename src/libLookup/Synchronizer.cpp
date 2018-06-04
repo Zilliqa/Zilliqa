@@ -48,7 +48,7 @@ DSBlock Synchronizer::ConstructGenesisDSBlock()
 
     // FIXME: Handle exceptions.
     return DSBlock(DSBlockHeader(20, prevHash, 12344, keypair.first,
-                                 keypair.second, 0, 789, 0),
+                                 keypair.second, 0, 789),
                    CoSignatures());
 }
 
