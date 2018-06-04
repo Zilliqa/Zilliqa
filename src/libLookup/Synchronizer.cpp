@@ -89,7 +89,7 @@ TxBlock Synchronizer::ConstructGenesisTxBlock()
     return TxBlock(TxBlockHeader(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1,
                                  1, BlockHash(), 0, 151384616955606, TxnHash(),
                                  StateHash(), 0, 5, keypair.second, 0,
-                                 BlockHash(), 0),
+                                 BlockHash()),
                    vector<bool>(1), vector<TxnHash>(5), CoSignatures());
 }
 
