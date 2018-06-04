@@ -17,95 +17,85 @@
 #ifndef __ACCOUNTSTORE_H__
 #define __ACCOUNTSTORE_H__
 
-#include <mutex>
+#include <json/json.h>
 #include <set>
 #include <unordered_map>
 
 #include <boost/multiprecision/cpp_int.hpp>
 
 #include "Account.h"
+#include "AccountStoreBase.h"
 #include "Address.h"
 #include "common/Constants.h"
-#include "common/Serializable.h"
+#include "common/Singleton.h"
 #include "depends/common/FixedHash.h"
+#include "depends/libDatabase/MemoryDB.h"
 #include "depends/libDatabase/OverlayDB.h"
 #include "depends/libTrie/TrieDB.h"
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Transaction.h"
 
-template<class KeyType, class DB>
-using SecureTrieDB = dev::SpecificTrieDB<dev::HashedGenericTrieDB<DB>, KeyType>;
-
 using StateHash = dev::h256;
 
-/// Maintains the list of accounts.
-class AccountStore : public Serializable
-{
-    std::unordered_map<Address, Account> m_addressToAccount;
+class AccountStore;
 
-    dev::OverlayDB m_db; // Our overlay for the state tree.
-    SecureTrieDB<Address, dev::OverlayDB>
-        m_state; // Our state tree, as an OverlayDB DB.
-    dev::h256 prevRoot;
+class AccountStoreChecker : public AccountStoreBase<MemoryDB>
+{
+    // shared_ptr<unordered_map<Address, Account>> m_superAddressToAccount;
+    AccountStore* m_parent;
+
+public:
+    // AccountStoreTemp(
+    //     const shared_ptr<unordered_map<Address, Account>>& addressToAccount);
+    AccountStoreChecker(AccountStore* parent);
+
+    /// Returns the Account associated with the specified address.
+    Account* GetAccount(const Address& address) override;
+
+    const shared_ptr<unordered_map<Address, Account>>& GetAddressToAccount();
+};
+
+// template<class KeyType, class DB>
+// using SecureTrieDB = dev::SpecificTrieDB<dev::GenericTrieDB<DB>, KeyType>;
+// using StateHash = h256;
+
+class AccountStore : public AccountStoreBase<OverlayDB>, Singleton<AccountStore>
+{
+    friend class Singleton<AccountStore>;
+
+    // OverlayDB m_db; // Our overlay for the state tree.
+    // SecureTrieDB<Address, dev::OverlayDB>
+    // m_state; // Our state tree, as an OverlayDB DB.
+    // h256 prevRoot;
+
+    shared_ptr<AccountStoreChecker> m_accountStoreChecker;
 
     AccountStore();
     ~AccountStore();
 
-    static bool Compare(const Account& l, const Account& r);
-
-    bool UpdateStateTrie(const Address& address, const Account& account);
-
     /// Store the trie root to leveldb
-    void MoveRootToDisk(const dev::h256& root);
+    void MoveRootToDisk(const h256& root);
 
 public:
     /// Returns the singleton AccountStore instance.
     static AccountStore& GetInstance();
+
+    int Deserialize(const vector<unsigned char>& src,
+                    unsigned int offset) override;
+
     /// Empty the state trie, must be called explicitly otherwise will retrieve the historical data
-    void Init();
-    /// Implements the Serialize function inherited from Serializable.
-    unsigned int Serialize(std::vector<unsigned char>& dst,
-                           unsigned int offset) const;
+    void Init() override;
 
-    /// Implements the Deserialize function inherited from Serializable.
-    int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+    Account* GetAccount(const Address& address) override;
 
-    /// Verifies existence of Account in the list.
-    bool DoesAccountExist(const Address& address);
-
-    /// Adds an Account to the list.
-    void AddAccount(const Address& address, const Account& account);
-    void AddAccount(const PubKey& pubKey, const Account& account);
-
-    void UpdateAccounts(const Transaction& transaction);
-
-    /// Returns the Account associated with the specified address.
-    Account* GetAccount(const Address& address);
-    boost::multiprecision::uint256_t GetNumOfAccounts() const;
-
-    bool IncreaseBalance(const Address& address,
-                         const boost::multiprecision::uint256_t& delta);
-    bool DecreaseBalance(const Address& address,
-                         const boost::multiprecision::uint256_t& delta);
-
-    /// Updates the source and destination accounts included in the specified Transaction.
-    bool TransferBalance(const Address& from, const Address& to,
-                         const boost::multiprecision::uint256_t& delta);
-    boost::multiprecision::uint256_t GetBalance(const Address& address);
-
-    bool IncreaseNonce(const Address& address);
-    boost::multiprecision::uint256_t GetNonce(const Address& address);
-
-    dev::h256 GetStateRootHash() const;
-
-    bool UpdateStateTrieAll();
     void MoveUpdatesToDisk();
     void DiscardUnsavedUpdates();
 
-    void PrintAccountState();
-
     bool RetrieveFromDisk();
-    void RepopulateStateTrie();
+
+    bool CheckUpdateAccounts(const uint64_t& blockNum,
+                             const Transaction& transaction);
+    // void CommitTemp();
 };
 
 #endif // __ACCOUNTSTORE_H__

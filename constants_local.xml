@@ -24,6 +24,14 @@
 		<MAXSUBMITTXNPERNODE>10</MAXSUBMITTXNPERNODE>
         <N_PREFILLED_PER_ACCOUNT>10000</N_PREFILLED_PER_ACCOUNT>
         <NEW_NODE_POW_DELAY>5</NEW_NODE_POW_DELAY>
+        <SCILLA_PATH></SCILLA_PATH>
+        <SCILLA_FILES>scilla_files</SCILLA_FILES>
+        <INIT_JSON>init.json</INIT_JSON>
+        <INPUT_STATE_JSON>input_state.json</INPUT_STATE_JSON>
+        <INPUT_BLOCKCHAIN_JSON>input_blockchain.json</INPUT_BLOCKCHAIN_JSON>
+        <INPUT_MESSAGE_JSON>input_message.json</INPUT_MESSAGE_JSON>
+        <OUTPUT_JSON>output.json</OUTPUT_JSON>
+        <INPUT_CODE>input.scilla</INPUT_CODE>
     </constants>
     <accounts>
         <account>

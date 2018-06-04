@@ -19,19 +19,24 @@
 
 #include <leveldb/db.h>
 
+#include "common/Singleton.h"
 #include "depends/libDatabase/LevelDB.h"
 #include "depends/libDatabase/OverlayDB.h"
 #include "depends/libTrie/TrieDB.h"
 
 using namespace dev;
 
-/// Manages persistent storage of DS and Tx blocks.
-class ContractStorage
+class ContractStorage : public Singleton<ContractStorage>
 {
-    OverlayDB m_contractStatesDB;
+    friend class Singleton<ContractStorage>;
+
+    OverlayDB m_stateDB;
+    LevelDB m_codeDB;
 
     ContractStorage()
-        : m_contractStatesDB("contractStates"){};
+        : m_stateDB("contractState")
+        , m_codeDB("contractCode"){};
+
     ~ContractStorage() = default;
 
 public:
@@ -42,7 +47,14 @@ public:
         return cs;
     }
 
-    OverlayDB& GetDB() { return m_contractStatesDB; }
+    OverlayDB& GetStateDB() { return m_stateDB; }
+
+    /// Adds a contract code to persistence
+    bool PutContractCode(const h160& address,
+                         const std::vector<unsigned char>& code);
+
+    /// Get the desired code from persistence
+    const std::vector<unsigned char> GetContractCode(const h160& address);
 };
 
-#endif // BLOCKSTORAGE_H
+#endif // CONTRACTSTORAGE_H

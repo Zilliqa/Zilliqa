@@ -1587,10 +1587,15 @@ bool Lookup::ProcessSetTxBodyFromSeed(const vector<unsigned char>& message,
         return false;
     }
 
+    if (!AccountStore::GetInstance().UpdateAccounts(
+            m_mediator.m_currentEpochNum - 1, transaction))
+    {
+        LOG_GENERAL(WARNING, "UpdateAccounts failed");
+        return false;
+    }
     vector<unsigned char> serializedTxBody;
     transaction.Serialize(serializedTxBody, 0);
     BlockStorage::GetBlockStorage().PutTxBody(tranHash, serializedTxBody);
-    AccountStore::GetInstance().UpdateAccounts(transaction);
 
     return true;
 }
@@ -2035,7 +2040,8 @@ bool Lookup::RsyncTxBodies()
     }
     LOG_GENERAL(INFO, cmdStr);
 
-    ExecuteCmd(cmdStr);
+    SysCommand::ExecuteCmd(cmdStr);
+    LOG_GENERAL(INFO, "ExecuteCmd: " << std::ifstream(EXEC_CMD_LOG).rdbuf());
     return true;
 }
 

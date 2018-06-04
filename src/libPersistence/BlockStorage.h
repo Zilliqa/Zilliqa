@@ -22,6 +22,7 @@
 #include <shared_mutex>
 #include <vector>
 
+#include "common/Singleton.h"
 #include "depends/libDatabase/LevelDB.h"
 #include "libData/BlockData/Block.h"
 
@@ -31,8 +32,10 @@ typedef std::shared_ptr<MicroBlock> MicroBlockSharedPtr;
 typedef std::shared_ptr<Transaction> TxBodySharedPtr;
 
 /// Manages persistent storage of DS and Tx blocks.
-class BlockStorage
+class BlockStorage : public Singleton<BlockStorage>
 {
+    friend class Singleton<BlockStorage>;
+
     LevelDB m_metadataDB;
     LevelDB m_dsBlockchainDB;
     LevelDB m_txBlockchainDB;

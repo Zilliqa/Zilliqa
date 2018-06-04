@@ -14,41 +14,31 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#ifndef __SYSCOMMAND_H__
-#define __SYSCOMMAND_H__
+#ifndef __SINGLETON_H__
+#define __SINGLETON_H__
 
-#include <array>
-#include <cstdlib>
-#include <fstream>
-#include <iostream>
-#include <memory>
-#include <string>
-
-const std::string EXEC_CMD_LOG = "ExecuteCmd.txt";
-
-class SysCommand
+template<typename T> class Singleton
 {
-public:
-    static void ExecuteCmd(const std::string cmd)
-    {
-        int ret = std::system((cmd + " > " + EXEC_CMD_LOG).c_str());
-        (void)ret;
-    }
+protected:
+    Singleton() noexcept = default;
 
-    static const std::string ExecuteCmdWithOutput(const std::string cmd)
+    Singleton(const Singleton&) = delete;
+
+    Singleton& operator=(const Singleton&) = delete;
+
+    virtual ~Singleton() = default; // to silence base class Singleton<T> has a
+    // non-virtual destructor [-Weffc++]
+
+public:
+    static T& GetInstance() noexcept(std::is_nothrow_constructible<T>::value)
     {
-        std::array<char, 128> buffer;
-        std::string result;
-        std::shared_ptr<FILE> pipe(popen(cmd.c_str(), "r"), pclose);
-        if (!pipe)
-            throw std::runtime_error("popen() failed!");
-        while (!feof(pipe.get()))
-        {
-            if (fgets(buffer.data(), 128, pipe.get()) != nullptr)
-                result += buffer.data();
-        }
-        return result;
+        // Guaranteed to be destroyed.
+        // Instantiated on first use.
+        // Thread safe in C++11
+        static T instance;
+
+        return instance;
     }
 };
 
-#endif // __SYSCOMMAND_H__
+#endif // __SINGLETON_H__

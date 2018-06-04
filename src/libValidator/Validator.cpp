@@ -87,9 +87,9 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx) const
     const Address& toAddr = tx.GetToAddr();
     if (!AccountStore::GetInstance().DoesAccountExist(toAddr))
     {
-        LOG_GENERAL(INFO, "New account is added: " << toAddr);
-        AccountStore::GetInstance().AddAccount(
-            toAddr, {0, 0, dev::h256(), dev::h256()});
+        // FIXME: Should return false in the future
+        LOG_GENERAL(INFO, "FIXME: New account is added: " << toAddr);
+        AccountStore::GetInstance().AddAccount(toAddr, {0, 0});
     }
 
     // Check if transaction amount is valid
@@ -103,7 +103,8 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx) const
         return false;
     }
 
-    return true;
+    return AccountStore::GetInstance().CheckUpdateAccounts(
+        m_mediator->m_currentEpochNum, tx);
 }
 
 bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
@@ -186,9 +187,9 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
     const Address& toAddr = tx.GetToAddr();
     if (!AccountStore::GetInstance().DoesAccountExist(toAddr))
     {
-        LOG_GENERAL(INFO, "New account is added: " << toAddr);
-        AccountStore::GetInstance().AddAccount(
-            toAddr, {0, 0, dev::h256(), dev::h256()});
+        // FIXME: Should return false in the future
+        LOG_GENERAL(INFO, "FIXME: New account is added: " << toAddr);
+        AccountStore::GetInstance().AddAccount(toAddr, {0, 0});
     }
 
     // Check if transaction amount is valid
@@ -202,6 +203,7 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
         return false;
     }
 
-    return true;
+    return AccountStore::GetInstance().CheckUpdateAccounts(
+        m_mediator->m_currentEpochNum, tx);
 }
 #endif // IS_LOOKUP_NODE

@@ -14,41 +14,46 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#ifndef __SYSCOMMAND_H__
-#define __SYSCOMMAND_H__
+#include "AccountStore.h"
 
-#include <array>
-#include <cstdlib>
-#include <fstream>
-#include <iostream>
-#include <memory>
-#include <string>
+#include "libUtils/DataConversion.h"
+#include "libUtils/Logger.h"
 
-const std::string EXEC_CMD_LOG = "ExecuteCmd.txt";
+using namespace std;
+using namespace boost::multiprecision;
 
-class SysCommand
+AccountStoreChecker::AccountStoreChecker(AccountStore* parent)
+    : m_parent(parent)
 {
-public:
-    static void ExecuteCmd(const std::string cmd)
+}
+
+Account* AccountStoreChecker::GetAccount(const Address& address)
+{
+    auto it = m_addressToAccount->find(address);
+    if (it != m_addressToAccount->end())
     {
-        int ret = std::system((cmd + " > " + EXEC_CMD_LOG).c_str());
-        (void)ret;
+        return &it->second;
     }
 
-    static const std::string ExecuteCmdWithOutput(const std::string cmd)
-    {
-        std::array<char, 128> buffer;
-        std::string result;
-        std::shared_ptr<FILE> pipe(popen(cmd.c_str(), "r"), pclose);
-        if (!pipe)
-            throw std::runtime_error("popen() failed!");
-        while (!feof(pipe.get()))
-        {
-            if (fgets(buffer.data(), 128, pipe.get()) != nullptr)
-                result += buffer.data();
-        }
-        return result;
-    }
-};
+    // auto it2 = m_superAddressToAccount->find(address);
+    // if (it2 != m_superAddressToAccount->end())
+    // {
+    //     m_addressToAccount->insert(*it2);
+    //     return &(m_addressToAccount->find(address))->second;
+    // }
 
-#endif // __SYSCOMMAND_H__
+    Account* account = m_parent->GetAccount(address);
+    if (account)
+    {
+        m_addressToAccount->insert(make_pair(address, *account));
+        return &(m_addressToAccount->find(address))->second;
+    }
+
+    return nullptr;
+}
+
+const shared_ptr<unordered_map<Address, Account>>&
+AccountStoreChecker::GetAddressToAccount()
+{
+    return m_addressToAccount;
+}

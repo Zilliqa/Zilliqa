@@ -107,3 +107,19 @@ const std::vector<std::string> GENESIS_WALLETS{
     ReadAccountsFromConstantsFile("wallet_address")};
 const std::vector<std::string> GENESIS_KEYS{
     ReadAccountsFromConstantsFile("private_key")};
+
+const std::string SCILLA_PATH{ReadHexStringFromConnstansFile("SCILLA_PATH")};
+const std::string SCILLA_FILES{ReadHexStringFromConnstansFile("SCILLA_FILES")};
+const std::string INIT_JSON{SCILLA_FILES + '/'
+                            + ReadHexStringFromConnstansFile("INIT_JSON")};
+const std::string INPUT_STATE_JSON{
+    SCILLA_FILES + '/' + ReadHexStringFromConnstansFile("INPUT_STATE_JSON")};
+const std::string INPUT_BLOCKCHAIN_JSON{
+    SCILLA_FILES + '/'
+    + ReadHexStringFromConnstansFile("INPUT_BLOCKCHAIN_JSON")};
+const std::string INPUT_MESSAGE_JSON{
+    SCILLA_FILES + '/' + ReadHexStringFromConnstansFile("INPUT_MESSAGE_JSON")};
+const std::string OUTPUT_JSON{SCILLA_FILES + '/'
+                              + ReadHexStringFromConnstansFile("OUTPUT_JSON")};
+const std::string INPUT_CODE{SCILLA_FILES + '/'
+                             + ReadHexStringFromConnstansFile("INPUT_CODE")};

@@ -58,8 +58,7 @@ void addBalanceToGenesisAccount()
     for (auto& walletHexStr : GENESIS_WALLETS)
     {
         Address addr{DataConversion::HexStrToUint8Vec(walletHexStr)};
-        AccountStore::GetInstance().AddAccount(
-            addr, {bal, nonce, dev::h256(), dev::h256()});
+        AccountStore::GetInstance().AddAccount(addr, {bal, nonce});
         LOG_GENERAL(INFO,
                     "add genesis account " << addr << " with balance " << bal);
     }
@@ -566,6 +565,69 @@ vector<Peer> Node::GetBroadcastList(unsigned char ins_type,
     return vector<Peer>();
 }
 
+#ifndef IS_LOOKUP_NODE
+bool Node::CheckCreatedTransaction(const Transaction& tx)
+{
+    LOG_MARKER();
+
+    // Check if from account is sharded here
+    const PubKey& senderPubKey = tx.GetSenderPubKey();
+    Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
+    unsigned int correct_shard
+        = Transaction::GetShardIndex(fromAddr, m_numShards);
+
+    if (correct_shard != m_myShardID)
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "This tx is not sharded to me!");
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "From Account  = 0x" << fromAddr);
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Correct shard = " << correct_shard);
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "This shard    = " << m_myShardID);
+        return false;
+    }
+
+    // Check if from account exists in local storage
+    if (!AccountStore::GetInstance().DoesAccountExist(fromAddr))
+    {
+        LOG_GENERAL(INFO,
+                    "fromAddr not found: " << fromAddr
+                                           << ". Transaction rejected: "
+                                           << tx.GetTranID());
+        return false;
+    }
+
+    // Check if to account exists in local storage
+    const Address& toAddr = tx.GetToAddr();
+    if (!AccountStore::GetInstance().DoesAccountExist(toAddr))
+    {
+        // FIXME: Should return false in the future
+        LOG_GENERAL(INFO, "FIXME: New account is added: " << toAddr);
+        AccountStore::GetInstance().AddAccount(toAddr, {0, 0});
+    }
+
+    // Check if transaction amount is valid
+    if (AccountStore::GetInstance().GetBalance(fromAddr) < tx.GetAmount())
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Insufficient funds in source account!");
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "From Account = 0x" << fromAddr);
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Balance      = "
+                      << AccountStore::GetInstance().GetBalance(fromAddr));
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Debit Amount = " << tx.GetAmount());
+        return false;
+    }
+
+    return AccountStore::GetInstance().CheckUpdateAccounts(
+        m_mediator.m_currentEpochNum, tx);
+}
+#endif // IS_LOOKUP_NODE
+
 /// Return a valid transaction from fromKeyPair to toAddr with the specified amount
 ///
 /// TODO: nonce is still no valid yet
@@ -752,7 +814,6 @@ bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
     offset += sizeof(uint32_t);
 
     auto localBlockNum = (uint256_t)m_mediator.m_currentEpochNum;
-    ;
 
     if (msgBlockNum != localBlockNum)
     {
@@ -795,6 +856,7 @@ bool Node::ProcessSubmitTxnSharing(const vector<unsigned char>& message,
     }
 
     const auto& submittedTransaction = Transaction(message, offset);
+
     // if (m_mediator.m_validator->CheckCreatedTransaction(submittedTransaction))
     {
         boost::multiprecision::uint256_t blockNum
