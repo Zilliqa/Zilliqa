@@ -56,9 +56,7 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock)
                   << dsblock.GetHeader().GetBlockNum()
                   << " with Nonce: " << dsblock.GetHeader().GetNonce()
                   << ", Difficulty: " << dsblock.GetHeader().GetDifficulty()
-                  << ", Timestamp: " << dsblock.GetHeader().GetTimestamp()
-                  << ", view change count: "
-                  << dsblock.GetHeader().GetViewChangeCount());
+                  << ", Timestamp: " << dsblock.GetHeader().GetTimestamp());
 
     // Update the rand1 value for next PoW
     m_mediator.UpdateDSBlockRand();
