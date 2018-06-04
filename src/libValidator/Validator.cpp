@@ -55,7 +55,7 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx) const
 
     // Check if from account is sharded here
     const PubKey& senderPubKey = tx.GetSenderPubKey();
-    Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
+    const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
     unsigned int shardID = m_mediator.m_node->getShardID();
     unsigned int numShards = m_mediator.m_node->getNumShards();
     unsigned int correct_shard
@@ -74,7 +74,8 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx) const
     }
 
     // Check if from account exists in local storage
-    if (!AccountStore::GetInstance().DoesAccountExist(fromAddr))
+    const Account* fromAccnt = AccountStore::GetInstance().GetAccount(fromAddr);
+    if (!fromAccnt)
     {
         LOG_GENERAL(INFO,
                     "fromAddr not found: " << fromAddr
@@ -85,7 +86,8 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx) const
 
     // Check if to account exists in local storage
     const Address& toAddr = tx.GetToAddr();
-    if (!AccountStore::GetInstance().DoesAccountExist(toAddr))
+    const Account* toAccnt = AccountStore::GetInstance().GetAccount(toAddr);
+    if (!toAccnt)
     {
         LOG_GENERAL(INFO, "New account is added: " << toAddr);
         AccountStore::GetInstance().AddAccount(
@@ -93,12 +95,12 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx) const
     }
 
     // Check if transaction amount is valid
-    if (AccountStore::GetInstance().GetBalance(fromAddr) < tx.GetAmount())
+    if (fromAccnt->GetBalance() < tx.GetAmount())
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Insufficient funds in source account!"
-                      << " From Account  = 0x" << fromAddr << " Balance = "
-                      << AccountStore::GetInstance().GetBalance(fromAddr)
+                      << " From Account  = 0x" << fromAddr
+                      << " Balance = " << fromAccnt->GetBalance()
                       << " Debit Amount = " << tx.GetAmount());
         return false;
     }
