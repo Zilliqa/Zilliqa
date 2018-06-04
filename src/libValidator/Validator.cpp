@@ -24,7 +24,7 @@ using namespace std;
 using namespace boost::multiprecision;
 
 Validator::Validator(Mediator& mediator)
-    : m_mediator(&mediator)
+    : m_mediator(mediator)
 {
 }
 
@@ -53,26 +53,21 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx) const
 {
     LOG_MARKER();
 
-    if (m_mediator == nullptr)
-    {
-        LOG_GENERAL(WARNING, "Error: pointer to Mediator is nullptr.");
-    }
-
     // Check if from account is sharded here
     const PubKey& senderPubKey = tx.GetSenderPubKey();
     Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
-    unsigned int shardID = m_mediator->m_node->getShardID();
-    unsigned int numShards = m_mediator->m_node->getNumShards();
+    unsigned int shardID = m_mediator.m_node->getShardID();
+    unsigned int numShards = m_mediator.m_node->getNumShards();
     unsigned int correct_shard
         = Transaction::GetShardIndex(fromAddr, numShards);
     if (correct_shard != shardID)
     {
-        LOG_EPOCH(WARNING, to_string(m_mediator->m_currentEpochNum).c_str(),
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "This tx is not sharded to me!"
                       << " From Account  = 0x" << fromAddr
                       << " Correct shard = " << correct_shard
                       << " This shard    = "
-                      << m_mediator->m_node->getShardID());
+                      << m_mediator.m_node->getShardID());
         // Transaction created from the GenTransactionBulk will be rejected
         // by all shards but one. Comment the following line to avoid this
         return false;
@@ -100,7 +95,7 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx) const
     // Check if transaction amount is valid
     if (AccountStore::GetInstance().GetBalance(fromAddr) < tx.GetAmount())
     {
-        LOG_EPOCH(WARNING, to_string(m_mediator->m_currentEpochNum).c_str(),
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Insufficient funds in source account!"
                       << " From Account  = 0x" << fromAddr << " Balance = "
                       << AccountStore::GetInstance().GetBalance(fromAddr)
@@ -115,26 +110,21 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
 {
     LOG_MARKER();
 
-    if (m_mediator == nullptr)
-    {
-        LOG_GENERAL(WARNING, "Error: pointer to Mediator is nullptr.");
-    }
-
     // Check if from account is sharded here
     const PubKey& senderPubKey = tx.GetSenderPubKey();
     Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
-    unsigned int shardID = m_mediator->m_node->getShardID();
-    unsigned int numShards = m_mediator->m_node->getNumShards();
+    unsigned int shardID = m_mediator.m_node->getShardID();
+    unsigned int numShards = m_mediator.m_node->getNumShards();
     unsigned int correct_shard
         = Transaction::GetShardIndex(fromAddr, numShards);
     if (correct_shard != shardID)
     {
-        LOG_EPOCH(WARNING, to_string(m_mediator->m_currentEpochNum).c_str(),
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "This tx is not sharded to me!"
                       << " From Account  = 0x" << fromAddr
                       << " Correct shard = " << correct_shard
                       << " This shard    = "
-                      << m_mediator->m_node->getShardID());
+                      << m_mediator.m_node->getShardID());
         return false;
         // // Transaction created from the GenTransactionBulk will be rejected
         // // by all shards but one. Next line is commented to avoid this
@@ -144,7 +134,7 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
     // Check if from account exists in local storage
     if (!AccountStore::GetInstance().DoesAccountExist(fromAddr))
     {
-        LOG_EPOCH(WARNING, to_string(m_mediator->m_currentEpochNum).c_str(),
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "fromAddr not found: " << fromAddr
                                          << ". Transaction rejected: "
                                          << tx.GetTranID());
@@ -162,7 +152,7 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
                 != AccountStore::GetInstance().GetNonce(fromAddr) + 1)
             {
                 LOG_EPOCH(
-                    WARNING, to_string(m_mediator->m_currentEpochNum).c_str(),
+                    WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                     "Tx nonce not in line with account state!"
                         << " From Account = 0x" << fromAddr
                         << " Account Nonce = "
@@ -179,7 +169,7 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
             if (tx.GetNonce() != m_txnNonceMap.at(fromAddr) + 1)
             {
                 LOG_EPOCH(
-                    WARNING, to_string(m_mediator->m_currentEpochNum).c_str(),
+                    WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                     "Tx nonce not in line with account state!"
                         << " From Account = 0x" << fromAddr
                         << " Account Nonce = " << m_txnNonceMap.at(fromAddr)
@@ -204,7 +194,7 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
     // Check if transaction amount is valid
     if (AccountStore::GetInstance().GetBalance(fromAddr) < tx.GetAmount())
     {
-        LOG_EPOCH(WARNING, to_string(m_mediator->m_currentEpochNum).c_str(),
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Insufficient funds in source account!"
                       << " From Account  = 0x" << fromAddr << " Balance = "
                       << AccountStore::GetInstance().GetBalance(fromAddr)
