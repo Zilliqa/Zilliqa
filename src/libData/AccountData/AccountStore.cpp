@@ -306,6 +306,11 @@ bool AccountStore::ExportCreateContractFiles(Account* contract)
     boost::filesystem::remove_all("./" + SCILLA_FILES);
     boost::filesystem::create_directories("./" + SCILLA_FILES);
 
+    if (!(boost::filesystem::exists("./" + SCILLA_LOG)))
+    {
+        boost::filesystem::create_directories("./" + SCILLA_LOG);
+    }
+
     Json::StreamWriterBuilder writeBuilder;
     std::unique_ptr<Json::StreamWriter> writer(writeBuilder.newStreamWriter());
     std::ofstream os;
@@ -399,7 +404,7 @@ string AccountStore::GetCallContractCmdStr()
         + INPUT_STATE_JSON + " -iblockchain " + INPUT_BLOCKCHAIN_JSON
         + " -imessage " + INPUT_MESSAGE_JSON + " -o " + OUTPUT_JSON + " -i "
         + INPUT_CODE;
-    LOG_GENERAL(INFO, ret);
+    // LOG_GENERAL(INFO, ret);
     return ret;
 }
 
@@ -416,6 +421,7 @@ bool AccountStore::ParseCreateContractOutput()
         return false;
     }
     string outStr{istreambuf_iterator<char>(in), istreambuf_iterator<char>()};
+    LOG_GENERAL(INFO, "Output: " << endl << outStr);
     Json::CharReaderBuilder builder;
     std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
     Json::Value root;
@@ -471,6 +477,7 @@ bool AccountStore::ParseCallContractOutput()
         return false;
     }
     string outStr{istreambuf_iterator<char>(in), istreambuf_iterator<char>()};
+    LOG_GENERAL(INFO, "Output: " << endl << outStr);
     Json::CharReaderBuilder builder;
     std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
     Json::Value root;
@@ -590,6 +597,8 @@ bool AccountStore::ParseCallContractJsonOutput(const Json::Value& _json)
     }
     else
     {
+        LOG_GENERAL(INFO, "Call another contract");
+
         Address toAddr;
         Json::Value params;
         for (auto p : _json["message"]["params"])
@@ -604,6 +613,16 @@ bool AccountStore::ParseCallContractJsonOutput(const Json::Value& _json)
                 params.append(p);
             }
         }
+        Json::Value p_sender;
+        p_sender["vname"] = "sender";
+        p_sender["type"] = "Address";
+        p_sender["value"] = "0x" + m_curContractAddr.hex();
+        params.append(p_sender);
+
+        // if (params.empty())
+        // {
+        //     params = Json::arrayValue;
+        // }
 
         Account* toAccount = GetAccount(toAddr);
         if (toAccount == nullptr)
@@ -612,7 +631,6 @@ bool AccountStore::ParseCallContractJsonOutput(const Json::Value& _json)
             return false;
         }
 
-        // TODO: Implement the calling of interpreter in multi-thread
         if (ExportCallContractFiles(
                 toAccount,
                 CompositeContractData(_json["message"]["_tag"].asString(),
