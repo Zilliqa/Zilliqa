@@ -24,7 +24,7 @@
 
 AccountStore::AccountStore()
 {
-    m_accountStoreChecker = make_shared<AccountStoreChecker>(this);
+    m_accountStoreTemp = make_shared<AccountStoreTemp>(this);
 }
 
 AccountStore::~AccountStore()
@@ -35,7 +35,7 @@ AccountStore::~AccountStore()
 void AccountStore::Init()
 {
     LOG_MARKER();
-    m_accountStoreChecker->Init();
+    m_accountStoreTemp->Init();
     ContractStorage::GetContractStorage().GetStateDB().ResetDB();
     m_addressToAccount->clear();
     m_db.ResetDB();
@@ -77,16 +77,134 @@ int AccountStore::Deserialize(const vector<unsigned char>& src,
             curOffset += ACC_ADDR_SIZE;
 
             // Deserialize account
-            // account.Deserialize(src, curOffset);
-            if (account.Deserialize(src, curOffset) != 0)
+            int accountSize = account.Deserialize(src, curOffset);
+            if (accountSize < 0)
             {
-                LOG_GENERAL(WARNING, "We failed to init account.");
-                return -1;
+                LOG_GENERAL(WARNING,
+                            "failed to deserialize account: " << address);
+                continue;
             }
-            curOffset += ACCOUNT_SIZE;
+            curOffset += accountSize;
             (*m_addressToAccount)[address] = account;
             UpdateStateTrie(address, account);
             // MoveUpdatesToDisk();
+        }
+        PrintAccountState();
+    }
+    catch (const std::exception& e)
+    {
+        LOG_GENERAL(WARNING,
+                    "Error with AccountStore::Deserialize." << ' ' << e.what());
+        return -1;
+    }
+    return 0;
+}
+
+unsigned int AccountStore::SerializeDelta(vector<unsigned char>& dst,
+                                          unsigned int offset)
+{
+    LOG_MARKER();
+    // [Total number of acount deltas (uint256_t)] [Addr 1] [AccountDelta 1] [Addr 2] [Account 2] .... [Addr n] [Account n]
+    unsigned int size_needed = UINT256_SIZE;
+    unsigned int size_remaining = dst.size() - offset;
+    unsigned int totalSerializedSize = size_needed;
+
+    if (size_remaining < size_needed)
+    {
+        dst.resize(size_needed + offset);
+    }
+
+    unsigned int curOffset = offset;
+
+    uint256_t totalNumOfAccounts = GetNumOfAccounts();
+    LOG_GENERAL(INFO,
+                "Debug: Total number of account deltas to serialize: "
+                    << totalNumOfAccounts);
+    SetNumber<uint256_t>(dst, curOffset, totalNumOfAccounts, UINT256_SIZE);
+    curOffset += UINT256_SIZE;
+
+    vector<unsigned char> address_vec;
+    // [Addr 1] [Account 1] [Addr 2] [Account 2] .... [Addr n] [Account n]
+    for (const auto& entry : *m_accountStoreTemp->GetAddressToAccount())
+    {
+        // Address
+        address_vec = entry.first.asBytes();
+
+        copy(address_vec.begin(), address_vec.end(), std::back_inserter(dst));
+        curOffset += ACC_ADDR_SIZE;
+        totalSerializedSize += ACC_ADDR_SIZE;
+
+        // Account
+        Account* account = GetAccount(entry.first);
+        size_needed
+            = Account::SerializeDelta(dst, curOffset, account, entry.second);
+        curOffset += size_needed;
+        totalSerializedSize += size_needed;
+    }
+
+    return totalSerializedSize;
+}
+
+int AccountStore::DeserializeDelta(const vector<unsigned char>& src,
+                                   unsigned int offset)
+{
+    LOG_MARKER();
+    // [Total number of acount deltas (uint256_t)] [Addr 1] [AccountDelta 1] [Addr 2] [Account 2] .... [Addr n] [Account n]
+
+    try
+    {
+        unsigned int curOffset = offset;
+        uint256_t totalNumOfAccounts
+            = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
+        curOffset += UINT256_SIZE;
+
+        Address address;
+        Account account;
+        unsigned int numberOfAccountDeserialze = 0;
+        while (numberOfAccountDeserialze < totalNumOfAccounts)
+        {
+            numberOfAccountDeserialze++;
+
+            // Deserialize address
+            copy(src.begin() + curOffset,
+                 src.begin() + curOffset + ACC_ADDR_SIZE,
+                 address.asArray().begin());
+            curOffset += ACC_ADDR_SIZE;
+
+            // Deserialize accountDelta
+            Account* oriAccount = GetAccount(address);
+            int accountSize;
+            if (oriAccount == nullptr)
+            {
+                Account account;
+                accountSize
+                    = Account::DeserializeDelta(src, curOffset, account, true);
+                if (accountSize < 0)
+                {
+                    LOG_GENERAL(WARNING,
+                                "We failed to deserialize accountDelta for new "
+                                "account: "
+                                    << address);
+                    continue;
+                }
+                AddAccount(address, account);
+            }
+            else
+            {
+                accountSize
+                    = Account::DeserializeDelta(src, curOffset, account, true);
+                if (accountSize < 0)
+                {
+                    LOG_GENERAL(WARNING,
+                                "We failed to parse accountDelta for account: "
+                                    << address);
+                    continue;
+                }
+            }
+
+            curOffset += accountSize;
+            (*m_addressToAccount)[address] = account;
+            UpdateStateTrie(address, account);
         }
         PrintAccountState();
     }
@@ -229,19 +347,17 @@ bool AccountStore::RetrieveFromDisk()
     return true;
 }
 
-bool AccountStore::CheckUpdateAccounts(const uint64_t& blockNum,
-                                       const Transaction& transaction)
+bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
+                                      const Transaction& transaction)
 {
-    bool ret = m_accountStoreChecker->UpdateAccounts(blockNum, transaction);
-    m_accountStoreChecker->Init();
-    return ret;
+    return m_accountStoreTemp->UpdateAccounts(blockNum, transaction);
 }
 
-// void AccountStore::CommitTemp()
-// {
-//     for (auto entry : *m_tempAccountStore->GetAddressToAccount())
-//     {
-//         (*m_addressToAccount)[entry.first] = entry.second;
-//     }
-//     InitTemp();
-// }
+void AccountStore::CommitTemp()
+{
+    for (const auto& entry : *m_accountStoreTemp->GetAddressToAccount())
+    {
+        (*m_addressToAccount)[entry.first] = entry.second;
+    }
+    m_accountStoreTemp->Init();
+}

@@ -82,6 +82,8 @@ public:
     /// Decreases account balance by the specified delta amount.
     bool DecreaseBalance(const uint256_t& delta);
 
+    bool ChangeBalance(const int256_t& delta);
+
     void SetBalance(const uint256_t& balance) { m_balance = balance; }
 
     /// Returns the account balance.
@@ -89,6 +91,8 @@ public:
 
     /// Increases account nonce by 1.
     bool IncreaseNonce();
+
+    bool IncreaseNonceBy(const uint256_t& nonceDelta);
 
     /// Returns the account nonce.
     const uint256_t& GetNonce() const { return m_nonce; }
@@ -106,12 +110,19 @@ public:
     /// Returns the code hash.
     const h256& GetCodeHash() const { return m_codeHash; }
 
-    void SetStorage(string _k, string _type, string _v, bool _mutable = true);
+    void SetStorage(const string& _k, const string& _type, const string& _v,
+                    bool _mutable = true);
+
+    void SetStorage(const h256& k_hash, const string& rlpStr);
 
     /// Return the data for a parameter, type + value
-    vector<string> GetStorage(string _k) const;
+    vector<string> GetStorage(const string& _k) const;
+
+    string GetRawStorage(const h256& k_hash) const;
 
     Json::Value GetInitJson() const { return m_initValJson; }
+
+    vector<h256> GetStorageKeyHashes() const;
 
     Json::Value GetStorageJson() const;
 
@@ -128,6 +139,14 @@ public:
 
     friend inline std::ostream& operator<<(std::ostream& _out,
                                            Account const& account);
+
+    static unsigned int SerializeDelta(vector<unsigned char>& src,
+                                       unsigned int offset, Account* oldAccount,
+                                       const Account& newAccount);
+
+    static int DeserializeDelta(const vector<unsigned char>& src,
+                                unsigned int offset, Account& account,
+                                bool isNew);
 };
 
 inline std::ostream& operator<<(std::ostream& _out, Account const& account)
