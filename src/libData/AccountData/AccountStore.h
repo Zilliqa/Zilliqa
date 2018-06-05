@@ -39,7 +39,7 @@ using StateHash = dev::h256;
 
 class AccountStore;
 
-class AccountStoreChecker : public AccountStoreBase<MemoryDB>
+class AccountStoreTemp : public AccountStoreBase<MemoryDB>
 {
     // shared_ptr<unordered_map<Address, Account>> m_superAddressToAccount;
     AccountStore* m_parent;
@@ -47,7 +47,7 @@ class AccountStoreChecker : public AccountStoreBase<MemoryDB>
 public:
     // AccountStoreTemp(
     //     const shared_ptr<unordered_map<Address, Account>>& addressToAccount);
-    AccountStoreChecker(AccountStore* parent);
+    AccountStoreTemp(AccountStore* parent);
 
     /// Returns the Account associated with the specified address.
     Account* GetAccount(const Address& address) override;
@@ -63,12 +63,7 @@ class AccountStore : public AccountStoreBase<OverlayDB>, Singleton<AccountStore>
 {
     friend class Singleton<AccountStore>;
 
-    // OverlayDB m_db; // Our overlay for the state tree.
-    // SecureTrieDB<Address, dev::OverlayDB>
-    // m_state; // Our state tree, as an OverlayDB DB.
-    // h256 prevRoot;
-
-    shared_ptr<AccountStoreChecker> m_accountStoreChecker;
+    shared_ptr<AccountStoreTemp> m_accountStoreTemp;
 
     AccountStore();
     ~AccountStore();
@@ -83,6 +78,11 @@ public:
     int Deserialize(const vector<unsigned char>& src,
                     unsigned int offset) override;
 
+    unsigned int SerializeDelta(vector<unsigned char>& dst,
+                                unsigned int offset);
+
+    int DeserializeDelta(const vector<unsigned char>& src, unsigned int offset);
+
     /// Empty the state trie, must be called explicitly otherwise will retrieve the historical data
     void Init() override;
 
@@ -93,9 +93,9 @@ public:
 
     bool RetrieveFromDisk();
 
-    bool CheckUpdateAccounts(const uint64_t& blockNum,
-                             const Transaction& transaction);
-    // void CommitTemp();
+    bool UpdateAccountsTemp(const uint64_t& blockNum,
+                            const Transaction& transaction);
+    void CommitTemp();
 };
 
 #endif // __ACCOUNTSTORE_H__

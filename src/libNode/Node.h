@@ -287,8 +287,6 @@ class Node : public Executable, public Broadcastable
 #ifndef IS_LOOKUP_NODE
     // Transaction functions
     void SubmitTransactions();
-    bool CheckCreatedTransaction(const Transaction& tx);
-    bool CheckCreatedTransactionFromLookup(const Transaction& tx);
 
     bool OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
                            unsigned int offset, const Peer& from);

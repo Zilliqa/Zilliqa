@@ -114,12 +114,13 @@ int AccountStoreBase<DB>::Deserialize(const vector<unsigned char>& src,
 
             // Deserialize account
             // account.Deserialize(src, curOffset);
-            if (account.Deserialize(src, curOffset) != 0)
+            int accountSize = account.Deserialize(src, curOffset);
+            if (accountSize < 0)
             {
                 LOG_GENERAL(WARNING, "We failed to init account.");
                 return -1;
             }
-            curOffset += ACCOUNT_SIZE;
+            curOffset += accountSize;
             (*m_addressToAccount)[address] = account;
         }
         PrintAccountState();
