@@ -49,9 +49,6 @@ VCBlockHeader::VCBlockHeader(const uint64_t& vieWChangeDSEpochNo,
     , m_Timestamp(timestamp)
 {
 }
-static const unsigned int SIZE = sizeof(uint64_t) + sizeof(uint64_t)
-    + sizeof(unsigned char) + sizeof(unsigned int) + IP_SIZE + PORT_SIZE
-    + PUB_KEY_SIZE + sizeof(unsigned int) + UINT256_SIZE;
 
 unsigned int VCBlockHeader::Serialize(vector<unsigned char>& dst,
                                       unsigned int offset) const
