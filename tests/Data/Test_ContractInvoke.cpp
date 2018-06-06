@@ -67,6 +67,8 @@ struct CFSampleInput
 bool InvokeFunction(string icfDataStr, string icfOutStr, int blockNum,
                     string sampleName, bool didResetCF, bool didResetICF)
 {
+    LOG_MARKER();
+
     std::vector<unsigned char> icfData(icfDataStr.begin(), icfDataStr.end());
     Transaction icfTx(1, nonce, icfAddress, sender, 0, 11, 99, emptyCode,
                       icfData);
@@ -138,9 +140,9 @@ bool CreateContract(const int& blockNum, ResetType rType)
     {
         icfAddress = Account::GetAddressForContract(fromAddr, nonce);
         LOG_GENERAL(INFO, "Invoker Address: " << icfAddress);
-        tAddress = cfAddress;
+        tAddress = icfAddress;
         initStr = regex_replace(icfInitStr, regex("\\$ADDR"),
-                                "0x" + tAddress.hex());
+                                "0x" + cfAddress.hex());
         codeStr = icfCodeStr;
         break;
     }
@@ -166,8 +168,9 @@ bool CreateContract(const int& blockNum, ResetType rType)
 
         if (rType == ICF)
         {
-            // transfer 122
-            Transaction transferTx(1, nonce, tAddress, sender, 122, 11, 66,
+            // transfer balance
+            int amount = 122;
+            Transaction transferTx(1, nonce, tAddress, sender, amount, 11, 66,
                                    emptyCode, emptyData);
             if (AccountStore::GetInstance().UpdateAccounts(blockNum,
                                                            transferTx))
@@ -301,9 +304,9 @@ BOOST_AUTO_TEST_CASE(testContractInvoking)
           {icfDataStr3, icfOutStr3, 100, "State5_Invoke3"}}},
     };
     AutoTest(true, true, samples);
-    AutoTest(true, false, samples);
-    AutoTest(false, true, samples);
-    AutoTest(false, false, samples);
+    // AutoTest(true, false, samples);
+    // AutoTest(false, true, samples);
+    // AutoTest(false, false, samples);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
