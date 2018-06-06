@@ -102,13 +102,15 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
     m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
 
-    // kill first ds leader
-    // if (m_consensusMyID == 0 && m_viewChangeCounter < 1)
-    // {
-    //    LOG_GENERAL(INFO, "I am killing myself to test view change");
-    //    throw exception();
-    // }
-
+    // kill first ds leader (used for view change testing)
+    /**
+    if (m_consensusMyID == 0 && m_viewChangeCounter < 1)
+    {
+        LOG_GENERAL(INFO, "I am killing myself to test view change");
+        throw exception();
+    }
+    **/ 
+   
     m_consensusObject.reset(new ConsensusLeader(
         consensusID, m_consensusBlockHash, m_consensusMyID,
         m_mediator.m_selfKey.first, m_mediator.m_DSCommitteePubKeys,
@@ -122,7 +124,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
     if (m_consensusObject == nullptr)
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "WARNINGUnable to create consensus object");
+                  "WARNING: Unable to create consensus object");
         return false;
     }
 
@@ -141,7 +143,6 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
                          << "][" << m_mediator.m_txBlockChain.GetBlockCount()
                          << "] BGIN");
 #endif // STAT_TEST
-
     cl->StartConsensus(m, DSBlockHeader::SIZE);
 
     return true;
