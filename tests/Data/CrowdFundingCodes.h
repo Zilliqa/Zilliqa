@@ -259,6 +259,18 @@ string cfDataStr4 = R"({
     ]
 })";
 
+string cfDataStr5 = R"({
+    "_tag": "ClaimBack",
+    "_amount": "0",
+    "params": [
+      {
+        "vname": "sender",
+        "type": "Address",
+        "value": "0x12345678901234567890123456789012345678ab"
+      }
+    ]
+})";
+
 string cfOutStr = R"({
   "message": {
     "_tag": "Main",
