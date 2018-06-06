@@ -957,8 +957,6 @@ ConsensusBackup::ConsensusBackup(
     MsgContentValidatorFunc msg_validator)
     : ConsensusCommon(consensus_id, block_hash, node_id, privkey, pubkeys,
                       peer_info, class_byte, ins_byte)
-    , m_commitSecret(nullptr)
-    , m_commitPoint(nullptr)
 {
     LOG_MARKER();
 
