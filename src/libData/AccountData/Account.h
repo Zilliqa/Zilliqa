@@ -50,8 +50,6 @@ class Account : public Serializable
     Json::Value m_initValJson;
     vector<unsigned char> m_codeCache;
 
-    bool isContract() const { return m_codeHash != h256(); }
-
     AccountTrieDB<h256, OverlayDB> m_storage;
 
 public:
@@ -62,6 +60,9 @@ public:
 
     /// Constructor for a account.
     Account(const uint256_t& balance, const uint256_t& nonce);
+
+    /// Returns true if account is a contract account
+    bool isContract() const { return m_codeHash != h256(); }
 
     /// Utilization function for trieDB
     void InitStorage();
