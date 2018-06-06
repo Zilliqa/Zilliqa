@@ -239,11 +239,9 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
     else
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "View change completed but it seems wrong to me.");
-        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "expectedLeader: " << expectedLeader
-                                     << "newLeaderNetworkInfo: "
-                                     << newLeaderNetworkInfo);
+                  "View change completed but it seems wrong to me."
+                      << "expectedLeader: " << expectedLeader
+                      << "newLeaderNetworkInfo: " << newLeaderNetworkInfo);
     }
 
     // TODO: Refine this
@@ -274,14 +272,43 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
     unsigned int my_shards_lo;
     unsigned int my_shards_hi;
 
-    DetermineShardsToSendFinalBlockTo(my_DS_cluster_num, my_shards_lo,
-                                      my_shards_hi);
-    SendVCBlockToShardNodes(my_DS_cluster_num, my_shards_lo, my_shards_hi,
-                            vcblock_message);
+    switch (viewChangeState)
+    {
+    case DSBLOCK_CONSENSUS:
+    case DSBLOCK_CONSENSUS_PREP:
+    case SHARDING_CONSENSUS:
+    case SHARDING_CONSENSUS_PREP:
+    {
+        vector<Peer> allPowSubmitter;
+        for (auto& nodeNetwork : m_allPoWConns)
+        {
+            allPowSubmitter.push_back(nodeNetwork.second);
+        }
+        P2PComm::GetInstance().SendBroadcastMessage(allPowSubmitter,
+                                                    vcblock_message);
+        break;
+    }
+    case FINALBLOCK_CONSENSUS:
+    case FINALBLOCK_CONSENSUS_PREP:
+    case VIEWCHANGE_CONSENSUS:
+    case VIEWCHANGE_CONSENSUS_PREP:
+    {
+        DetermineShardsToSendFinalBlockTo(my_DS_cluster_num, my_shards_lo,
+                                          my_shards_hi);
+        SendVCBlockToShardNodes(my_DS_cluster_num, my_shards_lo, my_shards_hi,
+                                vcblock_message);
+        break;
+    }
+    default:
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "illegal view change state. state: " << viewChangeState);
+    }
 }
 
 void DirectoryService::ProcessNextConsensus(unsigned char viewChangeState)
 {
+    this_thread::sleep_for(chrono::seconds(POST_VIEWCHANGE_BUFFER));
+
     switch (viewChangeState)
     {
     case DSBLOCK_CONSENSUS:
