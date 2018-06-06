@@ -237,6 +237,10 @@ bool Node::VerifyFinalBlockCoSignature(const TxBlock& txblock)
         == false)
     {
         LOG_GENERAL(WARNING, "Cosig verification failed");
+        for (auto& kv : keys)
+        {
+            LOG_GENERAL(WARNING, "" << kv);
+        }
         return false;
     }
 

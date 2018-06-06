@@ -180,6 +180,10 @@ bool Node::VerifyDSBlockCoSignature(const DSBlock& dsblock)
         == false)
     {
         LOG_GENERAL(WARNING, "Cosig verification failed");
+        for (auto& kv : keys)
+        {
+            LOG_GENERAL(WARNING, "" << kv);
+        }
         return false;
     }
 
@@ -216,6 +220,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
     LOG_MARKER();
 
 #ifndef IS_LOOKUP_NODE
+
     // Checks if (m_state == POW2_SUBMISSION)
     if (!CheckState(STARTPOW2))
     {
