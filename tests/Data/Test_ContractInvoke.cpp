@@ -14,6 +14,8 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
+#include <boost/filesystem.hpp>
+
 #include "common/Constants.h"
 #include "depends/common/CommonIO.h"
 #include "libCrypto/Schnorr.h"
@@ -45,10 +47,25 @@ Address fromAddr;
 Address cfAddress, icfAddress;
 KeyPair sender;
 uint256_t nonce = 0;
-std::vector<unsigned char> emptyCode;
+std::vector<unsigned char> emptyCode, emptyData;
+
+struct ICFSampleInput
+{
+    string icfDataStr;
+    string icfOutStr;
+    int blockNum;
+    string sampleName;
+};
+
+struct CFSampleInput
+{
+    string cfDataStr;
+    int blockNum;
+    vector<ICFSampleInput> icfSamples;
+};
 
 bool InvokeFunction(string icfDataStr, string icfOutStr, int blockNum,
-                    string funcName)
+                    string sampleName, bool didResetCF, bool didResetICF)
 {
     std::vector<unsigned char> icfData(icfDataStr.begin(), icfDataStr.end());
     Transaction icfTx(1, nonce, icfAddress, sender, 0, 11, 99, emptyCode,
@@ -65,16 +82,175 @@ bool InvokeFunction(string icfDataStr, string icfOutStr, int blockNum,
     std::string output_file{istreambuf_iterator<char>(infile),
                             istreambuf_iterator<char>()};
 
-    LOG_GENERAL(INFO, funcName << ":" << endl << output_file << endl);
+    LOG_GENERAL(INFO, sampleName << ":" << endl << output_file << endl);
 
+    // record the output_file
+    string logfile = "LogInvoke";
+    if (!(boost::filesystem::exists("./" + logfile)))
+    {
+        boost::filesystem::create_directories("./" + logfile);
+    }
+
+    ofstream output_log(logfile + "/" + (didResetCF ? "R+" : "")
+                        + (didResetICF ? "RI+" : "") + sampleName + ".txt");
+    output_log << output_file;
+    output_log.close();
+
+    // truncate enter and space
     output_file.erase(std::remove(output_file.begin(), output_file.end(), ' '),
                       output_file.end());
     output_file.erase(std::remove(output_file.begin(), output_file.end(), '\n'),
                       output_file.end());
 
     // BOOST_CHECK_MESSAGE(outStr == output_file,
-    //                     "Error: didn't get desired output for" << funcName);
+    //                     "Error: didn't get desired output for" << sampleName);
+
+    //
+
     return true;
+}
+
+enum ResetType
+{
+    CF,
+    ICF
+};
+
+bool CreateContract(const int& blockNum, ResetType rType)
+{
+    Address tAddress;
+    string initStr, codeStr;
+
+    switch (rType)
+    {
+    case CF:
+    {
+        // Create CrowdFunding Contract
+        cfAddress = Account::GetAddressForContract(fromAddr, nonce);
+        LOG_GENERAL(INFO, "CrowdFunding Address: " << cfAddress);
+        tAddress = cfAddress;
+        initStr
+            = regex_replace(cfInitStr, regex("\\$ADDR"), "0x" + tAddress.hex());
+        codeStr = cfCodeStr;
+        break;
+    }
+    case ICF:
+    {
+        icfAddress = Account::GetAddressForContract(fromAddr, nonce);
+        LOG_GENERAL(INFO, "Invoker Address: " << icfAddress);
+        tAddress = cfAddress;
+        initStr = regex_replace(icfInitStr, regex("\\$ADDR"),
+                                "0x" + tAddress.hex());
+        codeStr = icfCodeStr;
+        break;
+    }
+    default:
+        return false;
+    }
+
+    std::vector<unsigned char> code(codeStr.begin(), codeStr.end());
+
+    std::vector<unsigned char> initData(initStr.begin(), initStr.end());
+
+    Transaction createTx(1, nonce, dev::h160(), sender, 0, 11, 66, code,
+                         initData);
+
+    AccountStore::GetInstance().UpdateAccounts(blockNum, createTx);
+
+    bool checkAddr = false;
+    Account* account = AccountStore::GetInstance().GetAccount(tAddress);
+    if (account != nullptr)
+    {
+        checkAddr = true;
+        nonce++;
+
+        if (rType == ICF)
+        {
+            // transfer 122
+            Transaction transferTx(1, nonce, tAddress, sender, 122, 11, 66,
+                                   emptyCode, emptyData);
+            if (AccountStore::GetInstance().UpdateAccounts(blockNum,
+                                                           transferTx))
+            {
+                nonce++;
+            }
+        }
+    }
+    BOOST_CHECK_MESSAGE(checkAddr, "Error with creation of contract account");
+    return checkAddr;
+}
+
+void AutoTest(bool doResetCF, bool doResetICF,
+              const vector<CFSampleInput>& samples)
+{
+    bool didCreateCF{false}, didCreateICF{false};
+
+    for (unsigned int i = 0; i < samples.size(); i++)
+    {
+        if (!didCreateCF)
+        {
+            if (!CreateContract(samples[i].blockNum, CF))
+            {
+                continue;
+            }
+            didCreateCF = true;
+        }
+
+        for (unsigned int j = 0; j < samples[i].icfSamples.size(); j++)
+        {
+            if (!didCreateICF)
+            {
+                if (!CreateContract(samples[i].icfSamples[j].blockNum, ICF))
+                {
+                    continue;
+                }
+                didCreateICF = true;
+            }
+
+            if (samples[i].cfDataStr != "")
+            {
+                std::vector<unsigned char> cfData(samples[i].cfDataStr.begin(),
+                                                  samples[i].cfDataStr.end());
+                Transaction cfTx(1, nonce, cfAddress, sender, 0, 11, 66,
+                                 emptyCode, cfData);
+                if (!AccountStore::GetInstance().UpdateAccounts(
+                        samples[i].blockNum, cfTx))
+                {
+                    continue;
+                }
+                nonce++;
+            }
+
+            if (InvokeFunction(samples[i].icfSamples[j].icfDataStr,
+                               samples[i].icfSamples[j].icfOutStr,
+                               samples[i].icfSamples[j].blockNum,
+                               samples[i].icfSamples[j].sampleName, doResetCF,
+                               doResetICF))
+            {
+                nonce++;
+            }
+
+            if (doResetCF
+                && !(i == samples.size() - 1
+                     && j == samples[samples.size() - 1].icfSamples.size() - 1))
+            {
+                if (!CreateContract(samples[i].blockNum, CF))
+                {
+                    break;
+                }
+            }
+
+            if (doResetICF
+                && !(i == samples.size() - 1
+                     && j == samples[samples.size() - 1].icfSamples.size() - 1))
+            {
+                if (!CreateContract(samples[i].icfSamples[j].blockNum, ICF))
+                {
+                    break;
+                }
+            }
+        }
+    }
 }
 
 // Create Transaction to create contract
@@ -97,137 +273,37 @@ BOOST_AUTO_TEST_CASE(testContractInvoking)
     copy(output.end() - ACC_ADDR_SIZE, output.end(),
          fromAddr.asArray().begin());
 
-    cfAddress = Account::GetAddressForContract(fromAddr, nonce);
-    LOG_GENERAL(INFO, "CrowdFunding Address: " << cfAddress);
-
-    // Create CrowdFunding Contract
-    std::vector<unsigned char> cfCode(cfCodeStr.begin(), cfCodeStr.end());
-    cfInitStr
-        = regex_replace(cfInitStr, regex("\\$ADDR"), "0x" + cfAddress.hex());
-    std::vector<unsigned char> cfInitData(cfInitStr.begin(), cfInitStr.end());
-
-    Transaction cfCreateTx(1, nonce, dev::h160(), sender, 0, 11, 66, cfCode,
-                           cfInitData);
-
-    AccountStore::GetInstance().UpdateAccounts(100, cfCreateTx);
-
-    bool checkAddr = false;
-    Account* account = AccountStore::GetInstance().GetAccount(cfAddress);
-    if (account != nullptr)
-    {
-        checkAddr = true;
-        nonce++;
-    }
-    BOOST_CHECK_MESSAGE(checkAddr,
-                        "Error with creation of crowdfunding contract account");
-
-    // Create Invoker Contract
-    std::vector<unsigned char> icfCode(icfCodeStr.begin(), icfCodeStr.end());
-    icfInitStr
-        = regex_replace(icfInitStr, regex("\\$ADDR"), "0x" + cfAddress.hex());
-    std::vector<unsigned char> icfInitData(icfInitStr.begin(),
-                                           icfInitStr.end());
-
-    Transaction icfCreateTx(1, nonce, dev::h160(), sender, 0, 11, 66, icfCode,
-                            icfInitData);
-
-    AccountStore::GetInstance().UpdateAccounts(100, icfCreateTx);
-
-    icfAddress = Account::GetAddressForContract(fromAddr, nonce);
-    LOG_GENERAL(INFO, "Invoker Address: " << icfAddress);
-
-    checkAddr = false;
-    account = AccountStore::GetInstance().GetAccount(icfAddress);
-    if (account != nullptr)
-    {
-        checkAddr = true;
-        nonce++;
-    }
-    BOOST_CHECK_MESSAGE(checkAddr,
-                        "Error with creation of invoker contract account");
-
-    bool checkInvoke = false;
-    // State 1
-    //  State 1 Invoke 1
-    if (InvokeFunction(icfDataStr1, icfOutStr1, 100, "State 1 Invoke 1"))
-    {
-        checkInvoke = true;
-        nonce++;
-    }
-
-    (void)checkInvoke;
-    //  State 1 Invoke 2
-
-    //  State 2 Invoke 3
-
-    // Call Crowdfunding to State 2
-
-    // State 2
-    //  State 2 Invoke 1
-
-    //  State 2 Invoke 2
-
-    //  State 2 Invoke 3
-
-    // Call Crowdfunding to State 3
-
-    // State 3
-    //  State 3 Invoke 1
-
-    //  State 3 Invoke 2
-
-    //  State 3 Invoke 3
-
-    // Call Crowdfunding to State 4
-
-    // State 4
-    //  State 4 Invoke 1
-
-    //  State 4 Invoke 2
-
-    //  State 4 Invoke 3
-
-    // Call Crowdfunding to State 5
-
-    // State 5
-    //  State 5 Invoke 1
-
-    //  State 5 Invoke 2
-
-    //  State 5 Invoke 3
-
-    // std::vector<unsigned char> data2(dataStr.begin(), dataStr.end());
-
-    // std::vector<unsigned char> vec2;
-    // Transaction tx2(1, nonce, toAddress, sender, 0, 11, 66, vec2, data2);
-    // AccountStore::GetInstance().UpdateAccounts(1, tx2);
-
-    // outStr.erase(std::remove(outStr.begin(), outStr.end(), ' '), outStr.end());
-    // outStr.erase(std::remove(outStr.begin(), outStr.end(), '\n'), outStr.end());
-
-    // ifstream infile{OUTPUT_JSON};
-    // std::string output_file{istreambuf_iterator<char>(infile),
-    //                         istreambuf_iterator<char>()};
-
-    // output_file.erase(std::remove(output_file.begin(), output_file.end(), ' '),
-    //                   output_file.end());
-    // output_file.erase(std::remove(output_file.begin(), output_file.end(), '\n'),
-    //                   output_file.end());
-
-    // BOOST_CHECK_MESSAGE(outStr == output_file,
-    //                     "Error: didn't get desired output");
-
-    // std::vector<unsigned char> data3(dataStr3.begin(), dataStr3.end());
-
-    // std::vector<unsigned char> vec3;
-    // Transaction tx3(1, nonce, toAddress, sender, 0, 11, 66, vec3, data3);
-    // AccountStore::GetInstance().UpdateAccounts(1, tx3);
-
-    // std::vector<unsigned char> data4(dataStr4.begin(), dataStr4.end());
-
-    // std::vector<unsigned char> vec4;
-    // Transaction tx4(1, nonce, toAddress, sender, 0, 11, 66, vec4, data4);
-    // AccountStore::GetInstance().UpdateAccounts(1, tx4);
+    vector<CFSampleInput> samples{
+        {"",
+         100,
+         {{icfDataStr1, icfOutStr1, 100, "State1_Invoke1"},
+          {icfDataStr2, icfOutStr2, 100, "State1_Invoke2"},
+          {icfDataStr3, icfOutStr3, 100, "State1_Invoke3"}}},
+        {cfDataStr,
+         100,
+         {{icfDataStr1, icfOutStr1, 100, "State2_Invoke1"},
+          {icfDataStr2, icfOutStr2, 100, "State2_Invoke2"},
+          {icfDataStr3, icfOutStr3, 100, "State2_Invoke3"}}},
+        {cfDataStr3,
+         100,
+         {{icfDataStr1, icfOutStr1, 100, "State3_Invoke1"},
+          {icfDataStr2, icfOutStr2, 100, "State3_Invoke2"},
+          {icfDataStr3, icfOutStr3, 100, "State3_Invoke3"}}},
+        {cfDataStr4,
+         200,
+         {{icfDataStr1, icfOutStr1, 100, "State4_Invoke1"},
+          {icfDataStr2, icfOutStr2, 100, "State4_Invoke2"},
+          {icfDataStr3, icfOutStr3, 100, "State4_Invoke3"}}},
+        {cfDataStr5,
+         300,
+         {{icfDataStr1, icfOutStr1, 100, "State5_Invoke1"},
+          {icfDataStr2, icfOutStr2, 100, "State5_Invoke2"},
+          {icfDataStr3, icfOutStr3, 100, "State5_Invoke3"}}},
+    };
+    AutoTest(true, true, samples);
+    AutoTest(true, false, samples);
+    AutoTest(false, true, samples);
+    AutoTest(false, false, samples);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
