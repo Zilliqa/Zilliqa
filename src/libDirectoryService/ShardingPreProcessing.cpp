@@ -162,7 +162,7 @@ bool DirectoryService::RunConsensusOnShardingWhenDSPrimary()
     ComputeSharding();
     SerializeShardingStructure(sharding_structure);
 
-    // kill first ds leader
+    // kill first ds leader (used for view change testing)
     /**
     if (m_consensusMyID == 0 && m_viewChangeCounter < 1)
     {

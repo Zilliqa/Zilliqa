@@ -452,13 +452,15 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
     // finalBlockMessage = serialized final block + tx-body sharing setup
     vector<unsigned char> finalBlockMessage = ComposeFinalBlockMessage();
 
-    // kill first ds leader
+    // kill first ds leader (used for view change testing)
+    /**
     if (m_consensusMyID == 0 && m_viewChangeCounter < 1)
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "I am killing myself to test view change");
         throw exception();
     }
+    **/
 
     // Create new consensus object
     // Dummy values for now
