@@ -26,6 +26,7 @@
         <NEW_NODE_POW_DELAY>10</NEW_NODE_POW_DELAY>
         <SCILLA_PATH></SCILLA_PATH>
         <SCILLA_FILES>scilla_files/</SCILLA_FILES>
+        <SCILLA_LOG>_build</SCILLA_LOG>
         <INTERPRETER_NAME>scilla-runner</INTERPRETER_NAME>
         <INIT_JSON>init.json</INIT_JSON>
         <INPUT_STATE_JSON>input_state.json</INPUT_STATE_JSON>
