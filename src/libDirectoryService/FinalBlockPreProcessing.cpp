@@ -763,25 +763,22 @@ bool DirectoryService::CheckFinalBlockValidity()
 
     bool valid = false;
 
-    do
+    if (!CheckBlockTypeIsFinal() || !CheckFinalBlockVersion()
+        || !CheckFinalBlockNumber() || !CheckPreviousFinalBlockHash()
+        || !CheckFinalBlockTimestamp() || !CheckMicroBlockHashes()
+        || !CheckMicroBlockHashRoot() || !CheckIsMicroBlockEmpty()
+        || !CheckStateRoot())
     {
-        if (!CheckBlockTypeIsFinal() || !CheckFinalBlockVersion()
-            || !CheckFinalBlockNumber() || !CheckPreviousFinalBlockHash()
-            || !CheckFinalBlockTimestamp() || !CheckMicroBlockHashes()
-            || !CheckMicroBlockHashRoot() || !CheckIsMicroBlockEmpty()
-            || !CheckStateRoot())
-        {
-            break;
-        }
+        break;
+    }
 
-        // TODO: Check gas limit (must satisfy some equations)
-        // TODO: Check gas used (must be <= gas limit)
-        // TODO: Check pubkey (must be valid and = shard leader)
-        // TODO: Check parent DS hash (must be = digest of last DS block header in the DS blockchain)
-        // TODO: Check parent DS block number (must be = block number of last DS block header in the DS blockchain)
+    // TODO: Check gas limit (must satisfy some equations)
+    // TODO: Check gas used (must be <= gas limit)
+    // TODO: Check pubkey (must be valid and = shard leader)
+    // TODO: Check parent DS hash (must be = digest of last DS block header in the DS blockchain)
+    // TODO: Check parent DS block number (must be = block number of last DS block header in the DS blockchain)
 
-        valid = true;
-    } while (false);
+    valid = true;
 
     return valid;
 }
