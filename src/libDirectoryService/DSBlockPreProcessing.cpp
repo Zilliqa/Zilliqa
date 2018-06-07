@@ -109,8 +109,8 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
         LOG_GENERAL(INFO, "I am killing myself to test view change");
         throw exception();
     }
-    **/ 
-   
+    **/
+
     m_consensusObject.reset(new ConsensusLeader(
         consensusID, m_consensusBlockHash, m_consensusMyID,
         m_mediator.m_selfKey.first, m_mediator.m_DSCommitteePubKeys,
