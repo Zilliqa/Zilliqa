@@ -350,6 +350,12 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
             }
             else
             {
+                if ((uint32_t)m_consensusMyID
+                    == m_mediator.m_DSCommitteeNetworkInfo.size())
+                {
+                    m_mediator.m_node->InitiatePoW1();
+                }
+
                 std::unique_lock<std::mutex> cv_lk(m_MutexCVDSBlockConsensus);
 
                 if (cv_DSBlockConsensus.wait_for(

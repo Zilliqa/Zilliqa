@@ -145,6 +145,8 @@ class Node : public Executable, public Broadcastable
     std::unordered_map<boost::multiprecision::uint256_t, std::vector<Peer>>
         m_forwardingAssignment;
 
+    ethash_mining_result m_pow1WinningResult;
+
     bool CheckState(Action action);
 
     // To block certain types of incoming message for certain states
@@ -222,7 +224,6 @@ class Node : public Executable, public Broadcastable
     void StoreState();
     // void StoreMicroBlocks();
     void StoreFinalBlock(const TxBlock& txBlock);
-    void InitiatePoW1();
     void UpdateStateForNextConsensusRound();
     void ScheduleTxnSubmission();
     void ScheduleMicroBlockConsensus();
@@ -398,6 +399,8 @@ public:
     {
         m_committedTransactions.erase(epochNum);
     }
+
+    void InitiatePoW1();
 
 #ifndef IS_LOOKUP_NODE
 

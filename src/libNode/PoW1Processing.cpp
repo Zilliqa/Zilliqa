@@ -83,6 +83,8 @@ bool Node::StartPoW1(const uint256_t& block_num, uint8_t difficulty,
         vector<unsigned char> mixhash_vec
             = DataConversion::HexStrToUint8Vec(winning_result.mix_hash);
 
+        m_pow1WinningResult = winning_result;
+
         // Send PoW1 result
         // Message = [32-byte block number] [4-byte listening port] [33-byte public key]
         // [8-byte nonce] [32-byte resulting hash] [32-byte mixhash]

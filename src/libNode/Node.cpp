@@ -146,6 +146,7 @@ void Node::Prepare(bool runInitializeGenesisBlocks)
     SetState(POW1_SUBMISSION);
     POW::GetInstance().EthashConfigureLightClient(
         (uint64_t)m_mediator.m_dsBlockChain.GetBlockCount());
+    m_pow1WinningResult.result.erase();
 }
 
 bool Node::StartRetrieveHistory()

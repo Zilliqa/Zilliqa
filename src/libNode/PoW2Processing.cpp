@@ -90,7 +90,6 @@ void Node::SharePoW2WinningResultWithDS(
         = DataConversion::HexStrToUint8Vec(winning_result.mix_hash);
     pow2message.insert(pow2message.end(), mixhash_vec.begin(),
                        mixhash_vec.end());
-
     P2PComm::GetInstance().SendMessage(m_mediator.m_DSCommitteeNetworkInfo,
                                        pow2message);
 }
@@ -102,13 +101,20 @@ void Node::StartPoW2MiningAndShareResultWithDS(
 {
     LOG_MARKER();
 
-    ethash_mining_result winning_result = POW::GetInstance().PoWMine(
-        block_num, difficulty, rand1, rand2, m_mediator.m_selfPeer.m_ipAddress,
-        m_mediator.m_selfKey.second, false);
-
-    if (winning_result.success)
+    if (!m_pow1WinningResult.result.empty())
     {
-        SharePoW2WinningResultWithDS(block_num, winning_result);
+        SharePoW2WinningResultWithDS(block_num, m_pow1WinningResult);
+    }
+    else
+    {
+        ethash_mining_result winning_result
+            = POW::GetInstance().PoWMine(block_num, difficulty, rand1, rand2,
+                                         m_mediator.m_selfPeer.m_ipAddress,
+                                         m_mediator.m_selfKey.second, false);
+        if (winning_result.success)
+        {
+            SharePoW2WinningResultWithDS(block_num, winning_result);
+        }
     }
 }
 
