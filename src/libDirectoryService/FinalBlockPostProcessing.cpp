@@ -324,6 +324,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
     // Assumption for now: New round of PoW done after every final block
     // Reset state to be ready to accept new PoW1 submissions
     SetState(POW1_SUBMISSION);
+    cv_POW1Submission.notify_all();
 
     auto func = [this]() mutable -> void {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),

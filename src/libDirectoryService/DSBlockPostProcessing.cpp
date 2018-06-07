@@ -396,6 +396,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     if (m_mode != IDLE)
     {
         SetState(POW2_SUBMISSION);
+        NotifyPOW2Submission();
         ScheduleShardingConsensus(BACKUP_POW2_WINDOW_IN_SECONDS);
     }
     else
