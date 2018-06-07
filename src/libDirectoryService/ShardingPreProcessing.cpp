@@ -129,9 +129,8 @@ void DirectoryService::SerializeShardingStructure(
         curr_offset += sizeof(uint32_t);
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Committee size = " << shard.size());
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Members:");
+                  "Committee size = " << shard.size() << "\n"
+                                      << "Members:");
 
         for (auto& kv : shard)
         {
