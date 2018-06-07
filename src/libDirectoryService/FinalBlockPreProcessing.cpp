@@ -986,7 +986,7 @@ bool DirectoryService::FinalBlockValidator(
 
     if (!CheckFinalBlockValidity())
     {
-        LOG_GENERAL(INFO,
+        LOG_GENERAL(WARNING,
                     "To-do: What to do if proposed microblock is not valid?");
         // throw exception();
         // TODO: microblock is invalid
