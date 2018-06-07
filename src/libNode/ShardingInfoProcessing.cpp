@@ -253,6 +253,7 @@ bool Node::ProcessSharding(const vector<unsigned char>& message,
     auto main_func2 = [this]() mutable -> void {
         // unique_lock<shared_timed_mutex> lock(m_mutexProducerConsumer);
         SetState(TX_SUBMISSION_BUFFER);
+        cv_txSubmission.notify_all();
     };
 
     DetachedFunction(1, main_func2);
