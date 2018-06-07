@@ -243,7 +243,6 @@ bool DirectoryService::ProcessPoW1Submission(
                   "State transition is completed. (check for timeout)");
     }
 
-    // if (m_state != POW1_SUBMISSION)
     if (!CheckState(PROCESS_POW1SUBMISSION))
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
