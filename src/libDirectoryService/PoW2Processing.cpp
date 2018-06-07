@@ -72,7 +72,6 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
     Peer peer(ipAddr, portNo);
 
     // 33-byte public key
-    // PubKey key(message, curr_offset);
     PubKey key;
     if (key.Deserialize(message, curr_offset) != 0)
     {
@@ -156,7 +155,6 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
     {
         // Do another check on the state before accessing m_allPoWs
         // Accept slightly late entries as the primary DS might have received some of those entries and have those in his proposed shards
-        // if ((m_state != POW2_SUBMISSION) && (m_state != SHARDING_CONSENSUS_PREP))
         if (!CheckState(VERIFYPOW2))
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -175,17 +173,15 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
     }
     else
     {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Invalid PoW2 submission");
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "blockNum: " << block_num << " Difficulty: " << difficulty
-                               << " nonce: " << nonce
-                               << " ip: " << peer.GetPrintableIPAddress() << ":"
-                               << portNo);
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "rand1: " << DataConversion::charArrToHexStr(rand1)
-                            << " rand2: "
-                            << DataConversion::charArrToHexStr(rand2));
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Invalid PoW2 submission"
+                      << "\n"
+                      << "blockNum: " << block_num
+                      << " Difficulty: " << difficulty << " nonce: " << nonce
+                      << " ip: " << peer.GetPrintableIPAddress() << ":"
+                      << portNo << "\n"
+                      << "rand1: " << DataConversion::charArrToHexStr(rand1)
+                      << " rand2: " << DataConversion::charArrToHexStr(rand2));
     }
     return result;
 }
