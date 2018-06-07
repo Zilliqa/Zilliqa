@@ -761,15 +761,13 @@ bool DirectoryService::CheckFinalBlockValidity()
 {
     LOG_MARKER();
 
-    bool valid = false;
-
-    if (!CheckBlockTypeIsFinal() || !CheckFinalBlockVersion()
-        || !CheckFinalBlockNumber() || !CheckPreviousFinalBlockHash()
-        || !CheckFinalBlockTimestamp() || !CheckMicroBlockHashes()
-        || !CheckMicroBlockHashRoot() || !CheckIsMicroBlockEmpty()
-        || !CheckStateRoot())
+    if (CheckBlockTypeIsFinal() && CheckFinalBlockVersion()
+        && CheckFinalBlockNumber() && CheckPreviousFinalBlockHash()
+        && CheckFinalBlockTimestamp() && CheckMicroBlockHashes()
+        && CheckMicroBlockHashRoot() && CheckIsMicroBlockEmpty()
+        && CheckStateRoot())
     {
-        break;
+        return false;
     }
 
     // TODO: Check gas limit (must satisfy some equations)
@@ -778,9 +776,7 @@ bool DirectoryService::CheckFinalBlockValidity()
     // TODO: Check parent DS hash (must be = digest of last DS block header in the DS blockchain)
     // TODO: Check parent DS block number (must be = block number of last DS block header in the DS blockchain)
 
-    valid = true;
-
-    return valid;
+    return true;
 }
 
 void DirectoryService::SaveTxnBodySharingAssignment(
