@@ -49,7 +49,7 @@ void DirectoryService::ComputeSharding()
 
     if (numOfComms == 0)
     {
-        LOG_GENERAL(INFO,
+        LOG_GENERAL(WARNING,
                     "Zero Pow2 collected, numOfComms is temporarlly set to 1");
         numOfComms = 1;
     }
