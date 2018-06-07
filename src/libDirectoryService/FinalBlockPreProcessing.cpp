@@ -1059,7 +1059,7 @@ void DirectoryService::RunConsensusOnFinalBlock()
         */
         if (!RunConsensusOnFinalBlockWhenDSPrimary())
         {
-            LOG_GENERAL(INFO,
+            LOG_GENERAL(WARNING,
                         "Throwing exception after "
                         "RunConsensusOnFinalBlockWhenDSPrimary");
             // throw exception();
@@ -1070,7 +1070,7 @@ void DirectoryService::RunConsensusOnFinalBlock()
     {
         if (!RunConsensusOnFinalBlockWhenDSBackup())
         {
-            LOG_GENERAL(INFO,
+            LOG_GENERAL(WARNING,
                         "Throwing exception after "
                         "RunConsensusOnFinalBlockWhenDSBackup");
             // throw exception();
