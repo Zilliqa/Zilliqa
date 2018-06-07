@@ -94,9 +94,6 @@ bool DirectoryService::SendFinalBlockToLookupNodes()
     copy(m_finalBlockMessage.begin(), m_finalBlockMessage.end(),
          finalblock_message.begin() + curr_offset);
 
-    LOG_EPOCH(
-        INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-        "I the primary DS am sending the Final Block to the lookup nodes");
     m_mediator.m_lookup->SendMessageToLookupNodes(finalblock_message);
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I the primary DS have sent the Final Block to the lookup nodes");
