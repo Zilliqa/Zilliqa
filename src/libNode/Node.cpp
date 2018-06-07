@@ -840,12 +840,18 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
     }
     else if (submitTxnType == SUBMITTRANSACTIONTYPE::TXNSHARING)
     {
-        while (m_state != TX_SUBMISSION && m_state != TX_SUBMISSION_BUFFER)
+        std::unique_lock<std::mutex> cv_lk(m_MutexCVTxSubmission);
+
+        if (cv_txSubmission.wait_for(
+                cv_lk, std::chrono::seconds(TX_SUBMISSION_TIMEOUT))
+            == std::cv_status::timeout)
         {
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Not in ProcessSubmitTxn state -- waiting!")
-            this_thread::sleep_for(chrono::milliseconds(200));
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Time out while waiting for state transition ");
         }
+
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "State transition is completed. (check for timeout)");
 
         ProcessSubmitTxnSharing(message, cur_offset, from);
     }
