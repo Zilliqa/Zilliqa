@@ -203,6 +203,12 @@ class Node : public Executable, public Broadcastable
         const boost::multiprecision::uint256_t& blocknum,
         const vector<Peer>& sendingAssignment, const TxnHash& microBlockTxHash,
         vector<Transaction>& txns_to_send) const;
+
+    void BroadcastStateDeltaToSendingAssignment(
+        const boost::multiprecision::uint256_t& blocknum,
+        const vector<Peer>& sendingAssignment,
+        const StateHash& microBlockStateDeltaHash) const;
+
     void LoadUnavailableMicroBlockTxRootHashes(
         const TxBlock& finalblock,
         const boost::multiprecision::uint256_t& blocknum);
@@ -274,6 +280,8 @@ class Node : public Executable, public Broadcastable
     bool ProcessCreateTransactionFromLookup(
         const std::vector<unsigned char>& message, unsigned int offset,
         const Peer& from);
+    bool ProcessForwardStateDelta(const std::vector<unsigned char>& message,
+                                  unsigned int offset, const Peer& from);
     // bool ProcessCreateAccounts(const std::vector<unsigned char> & message, unsigned int offset, const Peer & from);
     bool ProcessDSBlock(const std::vector<unsigned char>& message,
                         unsigned int offset, const Peer& from);
@@ -307,6 +315,7 @@ class Node : public Executable, public Broadcastable
     bool CheckMicroBlockTimestamp();
     bool CheckMicroBlockHashes(std::vector<unsigned char>& errorMsg);
     bool CheckMicroBlockTxnRootHash();
+    bool CheckMicroBlockStateDeltaHash();
 
     bool ActOnFinalBlock(uint8_t tx_sharing_mode,
                          vector<Peer> my_shard_receivers,

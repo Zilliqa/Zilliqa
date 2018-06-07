@@ -322,13 +322,13 @@ bool Node::FindTxnInSubmittedTxnsList(const TxBlock& finalblock,
                        committedTransactions.back().GetTranID().asArray()));
 
         // Update from and to accounts
-        if (!AccountStore::GetInstance().UpdateAccounts(
-                m_mediator.m_currentEpochNum - 1, committedTransactions.back()))
-        {
-            LOG_GENERAL(WARNING, "UpdateAccounts failed");
-            committedTransactions.pop_back();
-            return true;
-        }
+        // if (!AccountStore::GetInstance().UpdateAccounts(
+        //         m_mediator.m_currentEpochNum - 1, committedTransactions.back()))
+        // {
+        //     LOG_GENERAL(WARNING, "UpdateAccounts failed");
+        //     committedTransactions.pop_back();
+        //     return true;
+        // }
 
         // DO NOT DELETE. PERISTENT STORAGE
         /**
@@ -396,13 +396,13 @@ bool Node::FindTxnInReceivedTxnsList(const TxBlock& finalblock,
                        committedTransactions.back().GetTranID().asArray()));
 
         // Update from and to accounts
-        if (!AccountStore::GetInstance().UpdateAccounts(
-                m_mediator.m_currentEpochNum - 1, committedTransactions.back()))
-        {
-            LOG_GENERAL(WARNING, "UpdateAccounts failed");
-            committedTransactions.pop_back();
-            return true;
-        }
+        // if (!AccountStore::GetInstance().UpdateAccounts(
+        //         m_mediator.m_currentEpochNum - 1, committedTransactions.back()))
+        // {
+        //     LOG_GENERAL(WARNING, "UpdateAccounts failed");
+        //     committedTransactions.pop_back();
+        //     return true;
+        // }
 
         /**
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "##Storing Transaction##");
@@ -464,6 +464,8 @@ void Node::CommitMyShardsMicroBlock(const TxBlock& finalblock,
                       "Cannnot find txn in submitted txn and recv list");
         }
     }
+
+    AccountStore::GetInstance().CommitTemp();
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Number of transactions to broadcast for block "
@@ -527,12 +529,55 @@ void Node::BroadcastTransactionsToSendingAssignment(
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "I will soon be sending the txn bodies to the lookup nodes");
         m_mediator.m_lookup->SendMessageToLookupNodes(forwardtxn_message);
+
+        BroadcastStateDeltaToSendingAssignment(
+            blocknum, sendingAssignment,
+            m_microblock->GetHeader().GetStateDeltaHash());
     }
     else
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "DEBUG I have no txn body to send")
     }
+}
+
+void Node::BroadcastStateDeltaToSendingAssignment(
+    const boost::multiprecision::uint256_t& blocknum,
+    const vector<Peer>& sendingAssignment,
+    const StateHash& microBlockStateDeltaHash) const
+{
+    LOG_MARKER();
+
+    unsigned int cur_offset = MessageOffset::BODY;
+    vector<unsigned char> forwardstate_message
+        = {MessageType::NODE, NodeInstructionType::FORWARDSTATEDELTA};
+
+    // block num
+    Serializable::SetNumber<uint256_t>(forwardstate_message, cur_offset,
+                                       blocknum, UINT256_SIZE);
+    cur_offset += UINT256_SIZE;
+
+    // microblock state delta hash
+    forwardstate_message.resize(cur_offset + STATE_HASH_SIZE);
+    copy(microBlockStateDeltaHash.asArray().begin(),
+         microBlockStateDeltaHash.asArray().end(),
+         forwardstate_message.begin() + cur_offset);
+    cur_offset += STATE_HASH_SIZE;
+
+    // state delta
+    cur_offset += AccountStore::GetInstance().SerializeDelta(
+        forwardstate_message, cur_offset);
+
+    // sending
+    P2PComm::GetInstance().SendBroadcastMessage(sendingAssignment,
+                                                forwardstate_message);
+
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "DEBUG: I have broadcasted the state delta!")
+
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "I will soon be sending the state delta to the lookup nodes");
+    m_mediator.m_lookup->SendMessageToLookupNodes(forwardstate_message);
 }
 
 void Node::LoadForwardingAssignmentFromFinalBlock(
@@ -1396,13 +1441,13 @@ void Node::CommitForwardedTransactions(
         {
             lock_guard<mutex> g(m_mutexCommittedTransactions);
             m_committedTransactions[blocknum].push_back(tx);
-            if (!AccountStore::GetInstance().UpdateAccounts(
-                    m_mediator.m_currentEpochNum - 1, tx))
-            {
-                LOG_GENERAL(WARNING, "UpdateAccounts failed");
-                m_committedTransactions[blocknum].pop_back();
-                continue;
-            }
+            // if (!AccountStore::GetInstance().UpdateAccounts(
+            //         m_mediator.m_currentEpochNum - 1, tx))
+            // {
+            //     LOG_GENERAL(WARNING, "UpdateAccounts failed");
+            //     m_committedTransactions[blocknum].pop_back();
+            //     continue;
+            // }
         }
 
             // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -1586,9 +1631,15 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
     {
         P2PComm::GetInstance().SendBroadcastMessage(forward_list, message);
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "DEBUG I have broadcasted the txn body!")
+                  "DEBUG I have broadcasted the txn body!");
     }
 #endif // IS_LOOKUP_NODE
 
+    return true;
+}
+
+bool Node::ProcessForwardStateDelta(const vector<unsigned char>& message,
+                                    unsigned int cur_offset, const Peer& from)
+{
     return true;
 }
