@@ -483,7 +483,7 @@ bool Node::RunConsensusOnMicroBlock()
     {
         if (!RunConsensusOnMicroBlockWhenShardLeader())
         {
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Error at RunConsensusOnMicroBlockWhenShardLeader");
             // throw exception();
             return false;
@@ -493,7 +493,7 @@ bool Node::RunConsensusOnMicroBlock()
     {
         if (!RunConsensusOnMicroBlockWhenShardBackup())
         {
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Error at RunConsensusOnMicroBlockWhenShardBackup");
             // throw exception();
             return false;
