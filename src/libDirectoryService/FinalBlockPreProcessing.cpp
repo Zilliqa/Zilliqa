@@ -761,11 +761,11 @@ bool DirectoryService::CheckFinalBlockValidity()
 {
     LOG_MARKER();
 
-    if (CheckBlockTypeIsFinal() && CheckFinalBlockVersion()
-        && CheckFinalBlockNumber() && CheckPreviousFinalBlockHash()
-        && CheckFinalBlockTimestamp() && CheckMicroBlockHashes()
-        && CheckMicroBlockHashRoot() && CheckIsMicroBlockEmpty()
-        && CheckStateRoot())
+    if (!CheckBlockTypeIsFinal() || !CheckFinalBlockVersion()
+        || !CheckFinalBlockNumber() || !CheckPreviousFinalBlockHash()
+        || !CheckFinalBlockTimestamp() || !CheckMicroBlockHashes()
+        || !CheckMicroBlockHashRoot() || !CheckIsMicroBlockEmpty()
+        || !CheckStateRoot())
     {
         return false;
     }
