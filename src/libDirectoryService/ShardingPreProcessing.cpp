@@ -357,7 +357,6 @@ void DirectoryService::RunConsensusOnSharding()
 {
     LOG_MARKER();
     SetState(SHARDING_CONSENSUS_PREP);
-    // unique_lock<shared_timed_mutex> lock(m_mutexProducerConsumer);
 
     lock_guard<mutex> g(m_mutexAllPOW2);
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),

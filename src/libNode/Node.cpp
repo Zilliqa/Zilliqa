@@ -951,7 +951,6 @@ void Node::SubmitTransactions()
     // txns needed to be shared within shard members so that it completes in the time limit
     while (txn_sent_count < MAXSUBMITTXNPERNODE)
     {
-        // shared_lock<shared_timed_mutex> lock(m_mutexProducerConsumer);
         if (m_state != TX_SUBMISSION)
         {
             break;

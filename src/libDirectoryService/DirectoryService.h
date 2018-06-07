@@ -86,7 +86,6 @@ class DirectoryService : public Executable, public Broadcastable
     std::atomic<bool> m_requesting_last_ds_block;
     unsigned int BUFFER_TIME_BEFORE_DS_BLOCK_REQUEST = 5;
 
-    // std::shared_timed_mutex m_mutexProducerConsumer;
     std::mutex m_mutexConsensus;
 
     bool m_hasAllPoWconns = true;
