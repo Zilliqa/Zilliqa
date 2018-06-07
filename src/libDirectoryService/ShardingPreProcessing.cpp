@@ -370,7 +370,7 @@ void DirectoryService::RunConsensusOnSharding()
 
     if (m_allPoW2s.size() == 0)
     {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "To-do: Code up the logic for if we didn't get any "
                   "submissions at all");
         // throw exception();
@@ -382,7 +382,7 @@ void DirectoryService::RunConsensusOnSharding()
         if (!RunConsensusOnShardingWhenDSPrimary())
         {
             LOG_EPOCH(
-                INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Exception encountered with running sharding on ds leader");
             // throw exception();
             return;
