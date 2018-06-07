@@ -39,7 +39,8 @@ MicroBlockHeader::MicroBlockHeader(
     const uint256_t& gasUsed, const BlockHash& prevHash,
     const uint256_t& blockNum, const uint256_t& timestamp,
     const TxnHash& txRootHash, uint32_t numTxs, const PubKey& minerPubKey,
-    const uint256_t& dsBlockNum, const BlockHash& dsBlockHeader)
+    const uint256_t& dsBlockNum, const BlockHash& dsBlockHeader,
+    const StateHash& stateDeltaHash)
     : m_type(type)
     , m_version(version)
     , m_gasLimit(gasLimit)
@@ -52,6 +53,7 @@ MicroBlockHeader::MicroBlockHeader(
     , m_minerPubKey(minerPubKey)
     , m_dsBlockNum(dsBlockNum)
     , m_dsBlockHeader(dsBlockHeader)
+    , m_stateDeltaHash(stateDeltaHash)
 {
 }
 
@@ -87,6 +89,9 @@ unsigned int MicroBlockHeader::Serialize(vector<unsigned char>& dst,
     copy(m_txRootHash.asArray().begin(), m_txRootHash.asArray().end(),
          dst.begin() + curOffset);
     curOffset += TRAN_HASH_SIZE;
+    copy(m_stateDeltaHash.asArray().begin(), m_stateDeltaHash.asArray().end(),
+         dst.begin() + curOffset);
+    curOffset += STATE_HASH_SIZE;
     SetNumber<uint32_t>(dst, curOffset, m_numTxs, sizeof(uint32_t));
     curOffset += sizeof(uint32_t);
     m_minerPubKey.Serialize(dst, curOffset);
@@ -125,6 +130,9 @@ int MicroBlockHeader::Deserialize(const vector<unsigned char>& src,
         copy(src.begin() + curOffset, src.begin() + curOffset + TRAN_HASH_SIZE,
              m_txRootHash.asArray().begin());
         curOffset += TRAN_HASH_SIZE;
+        copy(src.begin() + curOffset, src.begin() + curOffset + STATE_HASH_SIZE,
+             m_stateDeltaHash.asArray().begin());
+        curOffset += STATE_HASH_SIZE;
         m_numTxs = GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
         curOffset += sizeof(uint32_t);
         // m_minerPubKey.Deserialize(src, curOffset);
@@ -178,6 +186,11 @@ const uint256_t& MicroBlockHeader::GetDSBlockNum() const
 const BlockHash& MicroBlockHeader::GetDSBlockHeader() const
 {
     return m_dsBlockHeader;
+}
+
+const StateHash& MicroBlockHeader::GetStateDeltaHash() const
+{
+    return m_stateDeltaHash;
 }
 
 bool MicroBlockHeader::operator==(const MicroBlockHeader& header) const

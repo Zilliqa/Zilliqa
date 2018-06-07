@@ -95,7 +95,12 @@ public:
 
     bool UpdateAccountsTemp(const uint64_t& blockNum,
                             const Transaction& transaction);
+
+    StateHash GetTempStateHash();
+
     void CommitTemp();
+
+    void InitTemp() { m_accountStoreTemp->Init(); }
 };
 
 #endif // __ACCOUNTSTORE_H__

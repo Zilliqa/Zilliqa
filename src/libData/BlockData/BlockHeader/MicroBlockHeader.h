@@ -24,6 +24,7 @@
 #include "common/Constants.h"
 #include "common/Serializable.h"
 #include "libCrypto/Schnorr.h"
+#include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 
 /// Stores information on the header part of the microblock.
@@ -43,6 +44,7 @@ class MicroBlockHeader : public BlockHeaderBase
     boost::multiprecision::uint256_t
         m_dsBlockNum; // DS Block index at the time this Tx Block was proposed
     BlockHash m_dsBlockHeader; // DS Block hash
+    StateHash m_stateDeltaHash;
 
 public:
     static const unsigned int SIZE = sizeof(uint8_t) + sizeof(uint32_t)
@@ -67,7 +69,8 @@ public:
                      const TxnHash& txRootHash, const uint32_t numTxs,
                      const PubKey& minerPubKey,
                      const boost::multiprecision::uint256_t& dsBlockNum,
-                     const BlockHash& dsBlockHeader);
+                     const BlockHash& dsBlockHeader,
+                     const StateHash& stateDeltaHash);
 
     /// Implements the Serialize function inherited from Serializable.
     unsigned int Serialize(std::vector<unsigned char>& dst,
@@ -89,6 +92,7 @@ public:
     const PubKey& GetMinerPubKey() const;
     const boost::multiprecision::uint256_t& GetDSBlockNum() const;
     const BlockHash& GetDSBlockHeader() const;
+    const StateHash& GetStateDeltaHash() const;
 
     // Operators
     bool operator==(const MicroBlockHeader& header) const;

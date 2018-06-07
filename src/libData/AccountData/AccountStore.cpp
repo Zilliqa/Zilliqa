@@ -353,11 +353,22 @@ bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
     return m_accountStoreTemp->UpdateAccounts(blockNum, transaction);
 }
 
+StateHash AccountStore::GetTempStateHash()
+{
+    if (m_accountStoreTemp->UpdateStateTrieAll())
+    {
+        return m_accountStoreTemp->GetStateRootHash();
+    }
+    else
+    {
+        return dev::h256();
+    }
+}
+
 void AccountStore::CommitTemp()
 {
     for (const auto& entry : *m_accountStoreTemp->GetAddressToAccount())
     {
         (*m_addressToAccount)[entry.first] = entry.second;
     }
-    m_accountStoreTemp->Init();
 }

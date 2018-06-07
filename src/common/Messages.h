@@ -61,7 +61,8 @@ enum NodeInstructionType : unsigned char
     MICROBLOCKCONSENSUS = 0x05,
     FINALBLOCK = 0x06,
     FORWARDTRANSACTION = 0x07,
-    CREATETRANSACTIONFROMLOOKUP = 0x08
+    CREATETRANSACTIONFROMLOOKUP = 0x08,
+    FORWARDSTATEDELTA = 0x09,
 };
 
 enum LookupInstructionType : unsigned char
