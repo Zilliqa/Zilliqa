@@ -107,9 +107,8 @@ bool Node::ReadVariablesFromShardingMessage(
     }
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Committee size = " << comm_size);
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Members:");
+              "Committee size = " << comm_size << "\n"
+                                  << "Members:");
 
     m_myShardMembersPubKeys.clear();
     m_myShardMembersNetworkInfo.clear();
