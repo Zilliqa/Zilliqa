@@ -170,7 +170,6 @@ bool DirectoryService::RunConsensusOnShardingWhenDSPrimary()
         throw exception();
     }
     **/
-
     // Create new consensus object
 
     // Dummy values for now
