@@ -1011,7 +1011,6 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup()
     // Create new consensus object
 
     // Dummy values for now
-    //m_consensusID = 0x0;
     m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
 
