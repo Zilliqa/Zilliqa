@@ -298,19 +298,17 @@ bool Node::CheckState(Action action)
         return false;
     }
 
-    std::ostringstream error;
     if (m_state == ERROR)
     {
-        error << "Doing " << ActionString(action)
-              << " but receiving ERROR message";
-        LOG_GENERAL(WARNING, error.str());
+        LOG_GENERAL(WARNING,
+                    "Doing " << ActionString(action)
+                             << " but receiving ERROR message");
         return false;
     }
 
-    error << "Doing " << ActionString(action) << " but already in "
-          << NodeStateString(m_state);
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              error.str());
+              "Doing " << ActionString(action) << " but already in "
+                       << NodeStateString(m_state));
 
     return false;
 }
