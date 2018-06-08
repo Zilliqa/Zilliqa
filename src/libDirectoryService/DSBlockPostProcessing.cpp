@@ -112,15 +112,14 @@ void DirectoryService::DetermineNodesToSendDSBlockTo(
     LOG_EPOCH(
         INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
         "New DSBlock created with chosen nonce   = 0x"
-            << hex
-            << m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetNonce());
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "New DSBlock hash is                     = 0x"
-                  << DataConversion::charArrToHexStr(m_mediator.m_dsBlockRand));
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "New DS leader (PoW1 winner) IP          = "
-                  << winnerpeer.GetPrintableIPAddress() << ":"
-                  << winnerpeer.m_listenPortHost);
+            << hex << "\n"
+            << m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetNonce()
+            << "\n"
+            << "New DSBlock hash is                     = 0x"
+            << DataConversion::charArrToHexStr(m_mediator.m_dsBlockRand) << "\n"
+            << "New DS leader (PoW1 winner) IP          = "
+            << winnerpeer.GetPrintableIPAddress() << ":"
+            << winnerpeer.m_listenPortHost);
 
     unsigned int num_DS_clusters = m_mediator.m_DSCommitteeNetworkInfo.size()
         / DS_MULTICAST_CLUSTER_SIZE;
@@ -235,9 +234,9 @@ void DirectoryService::UpdateMyDSModeAndConsensusId()
     {
         LOG_EPOCH(
             INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "I am the oldest backup DS -> now kicked out of DS committee :-(");
-        LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
-                      DS_KICKOUT_MSG);
+            "I am the oldest backup DS -> now kicked out of DS committee :-("
+                << "\n"
+                << DS_KICKOUT_MSG);
         m_mediator.m_node->SetState(Node::NodeState::POW2_SUBMISSION);
         m_mode = IDLE;
 

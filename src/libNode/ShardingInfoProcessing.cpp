@@ -107,9 +107,8 @@ bool Node::ReadVariablesFromShardingMessage(
     }
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Committee size = " << comm_size);
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Members:");
+              "Committee size = " << comm_size << "\n"
+                                  << "Members:");
 
     m_myShardMembersPubKeys.clear();
     m_myShardMembersNetworkInfo.clear();
@@ -230,7 +229,6 @@ bool Node::ProcessSharding(const vector<unsigned char>& message,
     // auto main_func = [this]() mutable -> void { SubmitTransactions(); };
     // auto expiry_func = [this]() mutable -> void {
     //   auto main_func = [this]() mutable -> void {
-    //     unique_lock<shared_timed_mutex> lock(m_mutexProducerConsumer);
     //     SetState(TX_SUBMISSION_BUFFER);
     //   };
     //   auto expiry_func = [this]() mutable -> void {
@@ -251,7 +249,6 @@ bool Node::ProcessSharding(const vector<unsigned char>& message,
     LOG_GENERAL(INFO, "I have woken up from the sleep of 15 seconds");
 
     auto main_func2 = [this]() mutable -> void {
-        // unique_lock<shared_timed_mutex> lock(m_mutexProducerConsumer);
         SetState(TX_SUBMISSION_BUFFER);
         cv_txSubmission.notify_all();
     };

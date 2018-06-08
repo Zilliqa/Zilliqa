@@ -108,7 +108,6 @@ bool DirectoryService::ProcessMicroblockSubmission(
 
     LOG_MARKER();
 
-    // if (m_state != MICROBLOCK_SUBMISSION)
     if (!CheckState(PROCESS_MICROBLOCKSUBMISSION))
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
