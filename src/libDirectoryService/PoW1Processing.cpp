@@ -153,7 +153,6 @@ bool DirectoryService::ParseMessageAndVerifyPOW1(
         return false;
     }
 
-    // if ((m_state != POW1_SUBMISSION) && (m_state != DSBLOCK_CONSENSUS_PREP))
     if (!CheckState(VERIFYPOW1))
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -208,16 +207,14 @@ bool DirectoryService::ParseMessageAndVerifyPOW1(
     else
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Invalid PoW1 submission");
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "blockNum: " << block_num << " Difficulty: " << difficulty
-                               << " nonce: " << nonce
-                               << " ip: " << peer.GetPrintableIPAddress() << ":"
-                               << portNo);
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "rand1: " << DataConversion::charArrToHexStr(rand1)
-                            << " rand2: "
-                            << DataConversion::charArrToHexStr(rand2));
+                  "Invalid PoW1 submission"
+                      << "\n"
+                      << "blockNum: " << block_num
+                      << " Difficulty: " << difficulty << " nonce: " << nonce
+                      << " ip: " << peer.GetPrintableIPAddress() << ":"
+                      << portNo << "\n"
+                      << "rand1: " << DataConversion::charArrToHexStr(rand1)
+                      << " rand2: " << DataConversion::charArrToHexStr(rand2));
     }
     return result;
 }
@@ -246,7 +243,6 @@ bool DirectoryService::ProcessPoW1Submission(
                   "State transition is completed. (check for timeout)");
     }
 
-    // if (m_state != POW1_SUBMISSION)
     if (!CheckState(PROCESS_POW1SUBMISSION))
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),

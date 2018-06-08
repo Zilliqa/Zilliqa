@@ -129,7 +129,7 @@ bool Node::CheckWhetherDSBlockNumIsLatest(const uint256_t dsblockNum)
     }
     else if (dsblockNum > latestBlockNumInBlockchain)
     {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Warning: We are missing of some DS blocks. Requested: "
                       << dsblockNum
                       << " while Present: " << latestBlockNumInBlockchain);
