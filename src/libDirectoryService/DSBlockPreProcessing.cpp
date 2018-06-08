@@ -125,7 +125,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
     if (m_consensusObject == nullptr)
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "WARNINGUnable to create consensus object");
+                  "WARNING: Unable to create consensus object");
         return false;
     }
 
@@ -225,7 +225,6 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin)
 {
     LOG_MARKER();
     SetState(DSBLOCK_CONSENSUS_PREP);
-    // unique_lock<shared_timed_mutex> lock(m_mutexProducerConsumer);
 
     {
         lock_guard<mutex> g(m_mutexAllPOW1);
@@ -237,7 +236,7 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin)
 
         if (m_allPoW1s.size() == 0)
         {
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "To-do: Code up the logic for if we didn't get any "
                       "submissions at all");
             // throw exception();
@@ -253,7 +252,7 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin)
         if (!RunConsensusOnDSBlockWhenDSPrimary())
         {
             LOG_GENERAL(
-                INFO,
+                WARNING,
                 "Throwing exception after RunConsensusOnDSBlockWhenDSPrimary");
             // throw exception();
             return;
@@ -264,7 +263,7 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin)
         if (!RunConsensusOnDSBlockWhenDSBackup())
         {
             LOG_GENERAL(
-                INFO,
+                WARNING,
                 "Throwing exception after RunConsensusOnDSBlockWhenDSBackup");
             // throw exception();
             return;
