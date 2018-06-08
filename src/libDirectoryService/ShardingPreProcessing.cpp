@@ -49,7 +49,7 @@ void DirectoryService::ComputeSharding()
 
     if (numOfComms == 0)
     {
-        LOG_GENERAL(INFO,
+        LOG_GENERAL(WARNING,
                     "Zero Pow2 collected, numOfComms is temporarlly set to 1");
         numOfComms = 1;
     }
@@ -129,9 +129,8 @@ void DirectoryService::SerializeShardingStructure(
         curr_offset += sizeof(uint32_t);
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Committee size = " << shard.size());
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Members:");
+                  "Committee size = " << shard.size() << "\n"
+                                      << "Members:");
 
         for (auto& kv : shard)
         {
@@ -357,7 +356,6 @@ void DirectoryService::RunConsensusOnSharding()
 {
     LOG_MARKER();
     SetState(SHARDING_CONSENSUS_PREP);
-    // unique_lock<shared_timed_mutex> lock(m_mutexProducerConsumer);
 
     lock_guard<mutex> g(m_mutexAllPOW2);
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -371,7 +369,7 @@ void DirectoryService::RunConsensusOnSharding()
 
     if (m_allPoW2s.size() == 0)
     {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "To-do: Code up the logic for if we didn't get any "
                   "submissions at all");
         // throw exception();
@@ -383,7 +381,7 @@ void DirectoryService::RunConsensusOnSharding()
         if (!RunConsensusOnShardingWhenDSPrimary())
         {
             LOG_EPOCH(
-                INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Exception encountered with running sharding on ds leader");
             // throw exception();
             return;

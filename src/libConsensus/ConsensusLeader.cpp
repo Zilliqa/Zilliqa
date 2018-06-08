@@ -405,6 +405,13 @@ bool ConsensusLeader::ProcessMessageCommitCore(
 
                 m_state = nextstate;
 
+                // Add the leader to the responses
+                Response r(*m_commitSecret, m_challenge, m_myPrivKey);
+                m_responseData.push_back(r);
+                m_responseDataMap.at(m_myID) = r;
+                m_responseMap.at(m_myID) = true;
+                m_responseCounter = 1;
+
                 // Multicast to all nodes who send validated commits
                 // =================================================
 
@@ -412,7 +419,7 @@ bool ConsensusLeader::ProcessMessageCommitCore(
                 deque<Peer>::const_iterator j = m_peerInfo.begin();
                 for (unsigned int i = 0; i < m_commitMap.size(); i++, j++)
                 {
-                    if (m_commitMap.at(i) == true)
+                    if ((m_commitMap.at(i) == true) && (i != m_myID))
                     {
                         commit_peers.push_back(*j);
                     }
@@ -940,9 +947,14 @@ bool ConsensusLeader::ProcessMessageResponseCore(
                 m_CS1 = m_collectiveSig;
                 m_B1 = m_responseMap;
 
-                m_commitCounter = 0;
                 m_commitPoints.clear();
                 fill(m_commitMap.begin(), m_commitMap.end(), false);
+
+                // Add the leader to the commits
+                m_commitMap.at(m_myID) = true;
+                m_commitPoints.push_back(*m_commitPoint);
+                m_commitPointMap.at(m_myID) = *m_commitPoint;
+                m_commitCounter = 1;
 
                 m_commitFailureCounter = 0;
                 m_commitFailureMap.clear();
@@ -1121,6 +1133,15 @@ ConsensusLeader::ConsensusLeader(
 
     m_nodeCommitFailureHandlerFunc = nodeCommitFailureHandlerFunc;
     m_shardCommitFailureHandlerFunc = shardCommitFailureHandlerFunc;
+
+    m_commitSecret.reset(new CommitSecret());
+    m_commitPoint.reset(new CommitPoint(*m_commitSecret));
+
+    // Add the leader to the commits
+    m_commitMap.at(m_myID) = true;
+    m_commitPoints.push_back(*m_commitPoint);
+    m_commitPointMap.at(m_myID) = *m_commitPoint;
+    m_commitCounter = 1;
 }
 
 ConsensusLeader::~ConsensusLeader() {}
@@ -1211,10 +1232,8 @@ bool ConsensusLeader::StartConsensus(const vector<unsigned char>& message,
     // =====================
 
     m_state = ANNOUNCE_DONE;
-    m_commitCounter = 0;
     m_commitRedundantCounter = 0;
     m_commitFailureCounter = 0;
-    m_responseCounter = 0;
     m_message = message;
     m_lengthToCosign = lengthToCosign;
 
