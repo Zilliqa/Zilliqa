@@ -274,3 +274,9 @@ bool DirectoryService::ProcessPoW1Submission(
     return true;
 #endif // IS_LOOKUP_NODE
 }
+
+bool DirectoryService::ProcessPoW2Submission(
+    const vector<unsigned char>& message, unsigned int offset, const Peer& from)
+{
+    return true;
+}

@@ -387,6 +387,34 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
 
     {
         lock_guard<mutex> g(m_mutexAllPOW1);
+
+        if (m_mode != IDLE && m_allPoW2s.empty())
+        {
+            //Copy POW1 to POW2
+            lock_guard<mutex> g2(m_mutexAllPOW2);
+            lock_guard<mutex> g3(m_mutexAllPoWConns);
+
+            for (auto i : m_allPoW1s)
+            {
+                //Winner will become DS (leader), thus we should not put in POW2
+                if (m_allPoWConns[i.first] == winnerpeer)
+                {
+                    continue;
+                }
+
+                m_allPoW2s.insert(i);
+            }
+
+            //Add previous DS commitee (oldest one), because it back to normal node and should be collected
+            lock_guard<mutex> g4(m_mediator.m_mutexDSCommitteePubKeys);
+            lock_guard<mutex> g5(m_mediator.m_mutexDSCommitteeNetworkInfo);
+            m_allPoW2s.insert(make_pair(m_mediator.m_DSCommitteePubKeys.back(),
+                                        (boost::multiprecision::uint256_t)1));
+            m_allPoWConns.insert(
+                make_pair(m_mediator.m_DSCommitteePubKeys.back(),
+                          m_mediator.m_DSCommitteeNetworkInfo.back()));
+        }
+
         m_allPoW1s.clear();
     }
 
@@ -402,11 +430,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     {
         // Tell my Node class to start PoW2
         m_mediator.UpdateDSBlockRand();
-        array<unsigned char, 32> rand2{};
-        this_thread::sleep_for(chrono::seconds(3));
-        m_mediator.m_node->StartPoW2(lastDSBlock.GetHeader().GetBlockNum(),
-                                     POW2_DIFFICULTY, m_mediator.m_dsBlockRand,
-                                     rand2);
+        m_mediator.m_node->SetState(Node::NodeState::TX_SUBMISSION);
     }
 }
 #endif // IS_LOOKUP_NODE

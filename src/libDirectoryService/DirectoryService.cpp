@@ -832,6 +832,7 @@ DirectoryService::GetBroadcastList(unsigned char ins_type,
     // Regardless of the instruction type, right now all our "broadcasts" are just redundant multicasts from DS nodes to non-DS nodes
     return vector<Peer>();
 }
+#endif // IS_LOOKUP_NODE
 
 void DirectoryService::RequestAllPoWConn()
 {
@@ -856,7 +857,26 @@ void DirectoryService::RequestAllPoWConn()
     // TODO: Request from a total of 20 ds members
 }
 
-#endif // IS_LOOKUP_NODE
+void DirectoryService::RequestAllPoW2()
+{
+    LOG_MARKER();
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "I am requesting AllPow2");
+    // message: [listening port]
+
+    // In this implementation, we are only requesting it from ds leader only.
+    vector<unsigned char> requestAllPoW2Msg
+        = {MessageType::DIRECTORY, DSInstructionType::AllPoW2Request};
+    unsigned int cur_offset = MessageOffset::BODY;
+
+    Serializable::SetNumber<uint32_t>(requestAllPoW2Msg, cur_offset,
+                                      m_mediator.m_selfPeer.m_listenPortHost,
+                                      sizeof(uint32_t));
+    cur_offset += sizeof(uint32_t);
+
+    P2PComm::GetInstance().SendMessage(
+        m_mediator.m_DSCommitteeNetworkInfo.front(), requestAllPoW2Msg);
+}
 
 // Current this is only used by ds. But ideally, 20 ds nodes should
 bool DirectoryService::ProcessAllPoWConnRequest(
@@ -955,6 +975,107 @@ bool DirectoryService::ProcessAllPoWConnResponse(
         m_hasAllPoWconns = true;
     }
     cv_allPowConns.notify_all();
+
+    return true;
+}
+
+// Current this is only used by ds. But ideally, 20 ds nodes should
+bool DirectoryService::ProcessAllPoW2Request(
+    const vector<unsigned char>& message, unsigned int offset, const Peer& from)
+{
+    LOG_MARKER();
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "I am sending AllPow2 to requester");
+
+    lock_guard<mutex> g(m_mutexAllPOW2);
+
+    if (m_allPoW2s.empty())
+    {
+        lock_guard<mutex> g2(m_mutexAllPOW1);
+        lock_guard<mutex> g3(m_mutexAllPoWConns);
+
+        for (auto i : m_allPoW1s)
+        {
+            //Winner will become DS (leader), thus we should not put in POW2
+            if (m_allPoWConns[i.first] == from)
+            {
+                continue;
+            }
+
+            m_allPoW2s.insert(i);
+        }
+
+        //Add previous DS commitee (oldest one), because it back to normal node and should be collected
+        lock_guard<mutex> g4(m_mediator.m_mutexDSCommitteePubKeys);
+        lock_guard<mutex> g5(m_mediator.m_mutexDSCommitteeNetworkInfo);
+        m_allPoW2s.insert(make_pair(m_mediator.m_DSCommitteePubKeys.back(),
+                                    (boost::multiprecision::uint256_t)1));
+        m_allPoWConns.insert(
+            make_pair(m_mediator.m_DSCommitteePubKeys.back(),
+                      m_mediator.m_DSCommitteeNetworkInfo.back()));
+    }
+
+    uint32_t requesterListeningPort
+        = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
+
+    //  Contruct the message and send to the requester
+    //  Message: [size of m_allPow1] [pub key, nonce][pub key, nonce] ....
+    vector<unsigned char> allPow2Msg
+        = {MessageType::DIRECTORY, DSInstructionType::AllPoW2Response};
+    unsigned int cur_offset = MessageOffset::BODY;
+
+    Serializable::SetNumber<uint32_t>(allPow2Msg, cur_offset, m_allPoW2s.size(),
+                                      sizeof(uint32_t));
+    cur_offset += sizeof(uint32_t);
+
+    for (auto& kv : m_allPoW2s)
+    {
+        kv.first.Serialize(allPow2Msg, cur_offset);
+        cur_offset += PUB_KEY_SIZE;
+        Serializable::SetNumber<boost::multiprecision::uint256_t>(
+            allPow2Msg, cur_offset, kv.second, UINT256_SIZE);
+        cur_offset += UINT256_SIZE;
+    }
+
+    Peer peer(from.m_ipAddress, requesterListeningPort);
+    P2PComm::GetInstance().SendMessage(peer, allPow2Msg);
+    return true;
+}
+
+bool DirectoryService::ProcessAllPoW2Response(
+    const vector<unsigned char>& message, unsigned int offset, const Peer& from)
+{
+    LOG_MARKER();
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Updating AllPow2");
+
+    unsigned int cur_offset = offset;
+    // 32-byte block number
+    uint32_t sizeeOfAllPow2 = Serializable::GetNumber<uint32_t>(
+        message, cur_offset, sizeof(uint32_t));
+    cur_offset += sizeof(uint32_t);
+
+    lock_guard<mutex> g(m_mutexAllPOW2);
+
+    for (uint32_t i = 0; i < sizeeOfAllPow2; i++)
+    {
+        // PubKey key(message, cur_offset);
+        PubKey key;
+
+        if (key.Deserialize(message, cur_offset) != 0)
+        {
+            LOG_GENERAL(WARNING, "We failed to deserialize PubKey.");
+            return false;
+        }
+
+        cur_offset += PUB_KEY_SIZE;
+        boost::multiprecision::uint256_t nonce
+            = Serializable::GetNumber<uint64_t>(message, cur_offset,
+                                                UINT256_SIZE);
+        cur_offset += UINT256_SIZE;
+        m_allPoW2s[key] = nonce;
+    }
+
     return true;
 }
 
@@ -1500,7 +1621,9 @@ bool DirectoryService::Execute(const vector<unsigned char>& message,
            &DirectoryService::ProcessLastDSBlockRequest,
            &DirectoryService::ProcessLastDSBlockResponse,
            &DirectoryService::ProcessInitViewChange,
-           &DirectoryService::ProcessInitViewChangeResponse};
+           &DirectoryService::ProcessInitViewChangeResponse,
+           &DirectoryService::ProcessAllPoW2Request,
+           &DirectoryService::ProcessAllPoW2Response};
 #else
     InstructionHandler ins_handlers[]
         = {&DirectoryService::ProcessSetPrimary,

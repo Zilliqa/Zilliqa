@@ -102,8 +102,6 @@ class DirectoryService : public Executable, public Broadcastable
 
     // PoW common variables
     std::mutex m_mutexAllPoWs;
-    std::map<PubKey, Peer> m_allPoWConns;
-    std::mutex m_mutexAllPoWConns;
 
     // Consensus variables
     std::shared_ptr<ConsensusCommon> m_consensusObject;
@@ -113,12 +111,8 @@ class DirectoryService : public Executable, public Broadcastable
     std::shared_ptr<DSBlock> m_pendingDSBlock;
     std::mutex m_mutexPendingDSBlock;
     std::mutex m_mutexDSBlockConsensus;
-    std::vector<std::pair<PubKey, boost::multiprecision::uint256_t>> m_allPoW1s;
-    std::mutex m_mutexAllPOW1;
 
     // PoW2 (sharding) consensus variables
-    std::map<PubKey, boost::multiprecision::uint256_t> m_allPoW2s;
-    std::mutex m_mutexAllPOW2;
     std::map<std::array<unsigned char, BLOCK_HASH_SIZE>, PubKey> m_sortedPoW2s;
 
     // Final block consensus variables
@@ -190,15 +184,16 @@ class DirectoryService : public Executable, public Broadcastable
                                   unsigned int offset, const Peer& from);
     bool ProcessAllPoWConnResponse(const vector<unsigned char>& message,
                                    unsigned int offset, const Peer& from);
+    bool ProcessAllPoW2Request(const vector<unsigned char>& message,
+                               unsigned int offset, const Peer& from);
+    bool ProcessAllPoW2Response(const vector<unsigned char>& message,
+                                unsigned int offset, const Peer& from);
 
     // To block certain types of incoming message for certain states
     bool ToBlockMessage(unsigned char ins_byte);
 
 #ifndef IS_LOOKUP_NODE
     bool CheckState(Action action);
-    bool VerifyPOW2(const vector<unsigned char>& message, unsigned int offset,
-                    const Peer& from);
-
     void NotifySelfToStartPOW2(const vector<unsigned char>& message,
                                unsigned int offset);
     void
@@ -320,8 +315,6 @@ class DirectoryService : public Executable, public Broadcastable
 
     // void StoreMicroBlocksToDisk();
 
-    // Used to reconsile view of m_AllPowConn is different.
-    void RequestAllPoWConn();
     void LastDSBlockRequest();
 
     bool ProcessLastDSBlockRequest(const vector<unsigned char>& message,
@@ -377,6 +370,13 @@ public:
     /// The ID number of this Zilliqa instance for use with consensus operations.
     uint16_t m_consensusMyID;
 
+    std::vector<std::pair<PubKey, boost::multiprecision::uint256_t>> m_allPoW1s;
+    std::mutex m_mutexAllPOW1;
+    std::map<PubKey, Peer> m_allPoWConns;
+    std::mutex m_mutexAllPoWConns;
+    std::map<PubKey, boost::multiprecision::uint256_t> m_allPoW2s;
+    std::mutex m_mutexAllPOW2;
+
     /// Constructor. Requires mediator reference to access Node and other global members.
     DirectoryService(Mediator& mediator);
 
@@ -404,6 +404,10 @@ public:
     /// Implements the Execute function inherited from Executable.
     bool Execute(const std::vector<unsigned char>& message, unsigned int offset,
                  const Peer& from);
+
+    // Used to reconsile view of m_AllPowConn is different.
+    void RequestAllPoWConn();
+    void RequestAllPoW2();
 };
 
 #endif // __DIRECTORYSERVICE_H__

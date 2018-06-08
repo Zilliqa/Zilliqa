@@ -144,9 +144,6 @@ class Node : public Executable, public Broadcastable
     std::mutex m_mutexForwardingAssignment;
     std::unordered_map<boost::multiprecision::uint256_t, std::vector<Peer>>
         m_forwardingAssignment;
-
-    ethash_mining_result m_pow1WinningResult;
-
     bool CheckState(Action action);
 
     // To block certain types of incoming message for certain states
@@ -166,13 +163,6 @@ class Node : public Executable, public Broadcastable
         boost::multiprecision::uint256_t& block_num, uint8_t& difficulty,
         array<unsigned char, 32>& rand1, array<unsigned char, 32>& rand2);
 #ifndef IS_LOOKUP_NODE
-    void SharePoW2WinningResultWithDS(
-        const boost::multiprecision::uint256_t& block_num,
-        const ethash_mining_result& winning_result) const;
-    void StartPoW2MiningAndShareResultWithDS(
-        const boost::multiprecision::uint256_t& block_num, uint8_t difficulty,
-        const array<unsigned char, 32>& rand1,
-        const array<unsigned char, 32>& rand2) const;
     bool ProcessSubmitMissingTxn(const vector<unsigned char>& message,
                                  unsigned int offset, const Peer& from);
     bool ProcessSubmitTxnSharing(const vector<unsigned char>& message,
@@ -357,6 +347,8 @@ public:
     /// The current internal state of this Node instance.
     std::atomic<NodeState> m_state;
 
+    ethash_mining_result m_pow1WinningResult;
+
     /// Constructor. Requires mediator reference to access DirectoryService and other global members.
     Node(Mediator& mediator, unsigned int syncType, bool toRetrieveHistory);
 
@@ -415,11 +407,6 @@ public:
                    uint8_t difficulty,
                    const std::array<unsigned char, UINT256_SIZE>& rand1,
                    const std::array<unsigned char, UINT256_SIZE>& rand2);
-
-    /// Performs PoW mining and submission for sharding committee membership.
-    bool StartPoW2(const boost::multiprecision::uint256_t block_num,
-                   uint8_t difficulty, array<unsigned char, 32> rand1,
-                   array<unsigned char, 32> rand2);
 #endif // IS_LOOKUP_NODE
 };
 

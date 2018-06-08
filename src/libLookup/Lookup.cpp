@@ -1674,12 +1674,7 @@ bool Lookup::InitMining()
                 (uint64_t)m_mediator.m_dsBlockChain.GetBlockCount());
 
             this_thread::sleep_for(chrono::seconds(NEW_NODE_POW_DELAY));
-
-            m_mediator.m_node->StartPoW2(
-                m_mediator.m_dsBlockChain.GetLastBlock()
-                    .GetHeader()
-                    .GetBlockNum(),
-                POW2_DIFFICULTY, dsBlockRand, txBlockRand);
+            m_mediator.m_node->SetState(Node::NodeState::TX_SUBMISSION);
         }
         else
         {
