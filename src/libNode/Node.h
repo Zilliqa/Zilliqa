@@ -88,7 +88,6 @@ class Node : public Executable, public Broadcastable
 
     Synchronizer m_synchronizer;
 
-    // std::shared_timed_mutex m_mutexProducerConsumer;
     std::mutex m_mutexConsensus;
 
     // Sharding information
@@ -108,6 +107,9 @@ class Node : public Executable, public Broadcastable
     std::condition_variable cv_microblockConsensus;
     std::mutex m_MutexCVMicroblockConsensusObject;
     std::condition_variable cv_microblockConsensusObject;
+    std::mutex m_MutexCVTxSubmission;
+    std::condition_variable cv_txSubmission;
+
     // Persistence Retriever
     std::shared_ptr<Retriever> m_retriever;
 
