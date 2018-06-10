@@ -478,13 +478,12 @@ bool Node::RunConsensusOnMicroBlock()
     // set state first and then take writer lock so that SubmitTransactions
     // if it takes reader lock later breaks out of loop
     SetState(MICROBLOCK_CONSENSUS_PREP);
-    // unique_lock<shared_timed_mutex> lock(m_mutexProducerConsumer);
 
     if (m_isPrimary == true)
     {
         if (!RunConsensusOnMicroBlockWhenShardLeader())
         {
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Error at RunConsensusOnMicroBlockWhenShardLeader");
             // throw exception();
             return false;
@@ -494,7 +493,7 @@ bool Node::RunConsensusOnMicroBlock()
     {
         if (!RunConsensusOnMicroBlockWhenShardBackup())
         {
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Error at RunConsensusOnMicroBlockWhenShardBackup");
             // throw exception();
             return false;
