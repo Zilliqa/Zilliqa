@@ -215,7 +215,7 @@ bool Node::ComposeMicroBlock()
     uint256_t dsBlockNum = (uint256_t)m_mediator.m_currentEpochNum;
     BlockHash dsBlockHeader;
     fill(dsBlockHeader.asArray().begin(), dsBlockHeader.asArray().end(), 0x11);
-    StateHash stateDeltaHash = AccountStore::GetInstance().GetTempStateHash();
+    StateHash stateDeltaHash = AccountStore::GetInstance().GetStateDeltaHash();
 
     // TxBlock
     vector<TxnHash> tranHashes;
@@ -679,7 +679,7 @@ bool Node::CheckMicroBlockTxnRootHash()
 bool Node::CheckMicroBlockStateDeltaHash()
 {
     StateHash expectedStateDeltaHash
-        = AccountStore::GetInstance().GetTempStateHash();
+        = AccountStore::GetInstance().GetStateDeltaHash();
 
     LOG_GENERAL(INFO,
                 "Microblock state delta generation done "

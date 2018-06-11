@@ -209,14 +209,26 @@ class Node : public Executable, public Broadcastable
         const vector<Peer>& sendingAssignment,
         const StateHash& microBlockStateDeltaHash) const;
 
-    void LoadUnavailableMicroBlockTxRootHashes(
+    void LoadUnavailableMicroBlockHashes(
         const TxBlock& finalblock,
         const boost::multiprecision::uint256_t& blocknum);
+
+    bool RemoveTxRootHashFromUnavailableMicroBlock(
+        const boost::multiprecision::uint256_t& blocknum,
+        const TxnHash& txnRootHash);
+    bool RemoveStateDeltaHashFromUnavailableMicroBlock(
+        const boost::multiprecision::uint256_t& blocknum,
+        const StateHash& stateDeltaHash);
+
     bool
     CheckMicroBlockRootHash(const TxBlock& finalBlock,
                             const boost::multiprecision::uint256_t& blocknum);
     bool IsMicroBlockTxRootHashInFinalBlock(
-        TxnHash microBlockHash,
+        TxnHash microBlockTxRootHash,
+        const boost::multiprecision::uint256_t& blocknum,
+        bool& isEveryMicroBlockAvailable);
+    bool IsMicroBlockStateDeltaHashInFinalBlock(
+        StateHash microBlockStateDeltaHash,
         const boost::multiprecision::uint256_t& blocknum,
         bool& isEveryMicroBlockAvailable);
     bool IsMyShardsMicroBlockTxRootHashInFinalBlock(
@@ -250,9 +262,14 @@ class Node : public Executable, public Broadcastable
         const vector<unsigned char>& message, unsigned int cur_offset,
         TxnHash& microBlockTxHash, vector<Transaction>& txnsInForwardedMessage);
     // vector<TxnHash> & txnHashesInForwardedMessage);
+    bool
+    LoadForwardedStateDeltaAndCheckRoot(const vector<unsigned char>& message,
+                                        unsigned int cur_offset,
+                                        StateHash& microBlockStateDeltaHash);
     void CommitForwardedTransactions(
         const vector<Transaction>& txnsInForwardedMessage,
         const boost::multiprecision::uint256_t& blocknum);
+
     void DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
         const boost::multiprecision::uint256_t& blocknum);
     void LogReceivedFinalBlockDetails(const TxBlock& txblock);
@@ -354,7 +371,7 @@ public:
     // Transaction body sharing variables
     std::mutex m_mutexUnavailableMicroBlocks;
     std::unordered_map<boost::multiprecision::uint256_t,
-                       std::unordered_set<TxnHash>>
+                       std::unordered_map<MicroBlockHashSet, std::vector<bool>>>
         m_unavailableMicroBlocks;
 
     uint32_t m_consensusID;

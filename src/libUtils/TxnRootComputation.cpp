@@ -15,8 +15,6 @@
 **/
 
 #include "TxnRootComputation.h"
-#include "depends/libDatabase/MemoryDB.h"
-#include "depends/libTrie/TrieDB.h"
 
 TxnHash ComputeTransactionsRoot(const std::vector<TxnHash>& transactionHashes)
 {
@@ -129,6 +127,64 @@ TxnHash ComputeTransactionsRoot(
 
         transactionsTrie.insert(&k.out(), serializedTxn);
         // LOG_GENERAL(INFO, "Inserted to trie" << txnCount);
+    }
+
+    TxnHash txnRoot;
+    std::vector<unsigned char> t = transactionsTrie.root().asBytes();
+    copy(t.begin(), t.end(), txnRoot.asArray().begin());
+
+    return txnRoot;
+}
+
+StateHash
+ComputeDeltasRoot(const std::vector<MicroBlockHashSet>& microBlockHashes)
+{
+    LOG_MARKER();
+
+    dev::MemoryDB tm;
+    dev::GenericTrieDB<dev::MemoryDB> trie(&tm);
+    trie.init();
+
+    int count = 0;
+    for (auto it = microBlockHashes.begin(); it != microBlockHashes.end(); it++)
+    {
+        std::vector<unsigned char> serializedDelta;
+        serializedDelta.resize(STATE_HASHS_SIZE);
+        copy(it->m_stateDeltaHash.asArray().begin(),
+             it->m_stateDeltaHash.asArray().end(), serializedDelta.begin());
+        dev::RLPStream k;
+        k << txnCount;
+        count++;
+        trie.insert(&k.out(), serializedDelta);
+    }
+
+    Hash root;
+    std::vector<unsigned char> t = trie.root().asBytes();
+    copy(t.begin(), t.end(), root.asArray().begin());
+
+    return root;
+}
+
+TxnHash
+ComputeTransactionsRoot(const std::vector<MicroBlockHashSet>& microBlockHashes)
+{
+    LOG_MARKER();
+
+    dev::MemoryDB tm;
+    dev::GenericTrieDB<dev::MemoryDB> transactionsTrie(&tm);
+    transactionsTrie.init();
+
+    int txnCount = 0;
+    for (auto it = microBlockHashes.begin(); it != microBlockHashes.end(); it++)
+    {
+        std::vector<unsigned char> serializedTxn;
+        serializedTxn.resize(TRAN_HASH_SIZE);
+        copy(it->m_txRootHash.asArray().begin(),
+             it->m_txRootHash.asArray().end(), serializedTxn.begin());
+        dev::RLPStream k;
+        k << txnCount;
+        txnCount++;
+        transactionsTrie.insert(&k.out(), serializedTxn);
     }
 
     TxnHash txnRoot;

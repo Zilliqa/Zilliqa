@@ -22,7 +22,7 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-AccountStoreTemp::AccountStoreTemp(AccountStore* parent)
+AccountStoreTemp::AccountStoreTemp(AccountStore& parent)
     : m_parent(parent)
 {
 }
@@ -42,7 +42,7 @@ Account* AccountStoreTemp::GetAccount(const Address& address)
     //     return &(m_addressToAccount->find(address))->second;
     // }
 
-    Account* account = m_parent->GetAccount(address);
+    Account* account = m_parent.GetAccount(address);
     if (account)
     {
         m_addressToAccount->insert(make_pair(address, *account));
@@ -52,8 +52,7 @@ Account* AccountStoreTemp::GetAccount(const Address& address)
     return nullptr;
 }
 
-const shared_ptr<unordered_map<Address, Account>>&
-AccountStoreTemp::GetAddressToAccount()
+const shared_ptr<map<Address, Account>>& AccountStoreTemp::GetAddressToAccount()
 {
     return m_addressToAccount;
 }

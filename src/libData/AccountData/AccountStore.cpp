@@ -18,13 +18,14 @@
 
 #include "AccountStore.h"
 #include "depends/common/RLP.h"
+#include "libCrypto/Sha2.h"
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/SysCommand.h"
 
 AccountStore::AccountStore()
 {
-    m_accountStoreTemp = make_shared<AccountStoreTemp>(this);
+    m_accountStoreTemp = make_shared<AccountStoreTemp>(*this);
 }
 
 AccountStore::~AccountStore()
@@ -353,16 +354,14 @@ bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
     return m_accountStoreTemp->UpdateAccounts(blockNum, transaction);
 }
 
-StateHash AccountStore::GetTempStateHash()
+StateHash AccountStore::GetStateDeltaHash()
 {
-    if (m_accountStoreTemp->UpdateStateTrieAll())
-    {
-        return m_accountStoreTemp->GetStateRootHash();
-    }
-    else
-    {
-        return dev::h256();
-    }
+    vector<unsigned char> delta;
+    SerializeDelta(delta, 0);
+
+    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+    sha2.Update(delta);
+    return StateHash(sha2.Finalize());
 }
 
 void AccountStore::CommitTemp()

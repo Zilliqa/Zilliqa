@@ -21,7 +21,12 @@
 #include <unordered_map>
 #include <vector>
 
-#include "libData/AccountData/Transaction.h"
+#include "depends/libDatabase/MemoryDB.h"
+#include "depends/libTrie/TrieDB.h"
+#include "libData/BlockData/BlockHeader/BlockHashSet.h"
+
+StateHash
+ComputeDeltasRoot(const std::vector<MicroBlockHashSet>& microBlockHashes);
 
 TxnHash ComputeTransactionsRoot(const std::vector<TxnHash>& transactionHashes);
 
@@ -32,5 +37,8 @@ ComputeTransactionsRoot(const std::list<Transaction>& receivedTransactions,
 TxnHash ComputeTransactionsRoot(
     const std::unordered_map<TxnHash, Transaction>& receivedTransactions,
     const std::unordered_map<TxnHash, Transaction>& submittedTransactions);
+
+TxnHash
+ComputeTransactionsRoot(const std::vector<MicroBlockHashSet>& microBlockHashes);
 
 #endif // __TXNROOTCOMPUTATION_H__
