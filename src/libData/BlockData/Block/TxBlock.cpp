@@ -143,7 +143,7 @@ int TxBlock::Deserialize(const vector<unsigned char>& src, unsigned int offset)
 unsigned int TxBlock::GetSerializedSize() const
 {
     return TxBlockHeader::SIZE + sizeof(uint32_t)
-        + (m_microBlockHashes.size() * TRAN_HASH_SIZE)
+        + (m_microBlockHashes.size() * (TRAN_HASH_SIZE + STATE_HASH_SIZE))
         + BlockBase::GetSerializedSize();
     ;
 }
