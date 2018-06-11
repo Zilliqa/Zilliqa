@@ -125,6 +125,12 @@ ethash_light_t POW::EthashLightNew(uint64_t block_number)
     return ethash_light_new(block_number);
 }
 
+ethash_light_t POW::EthashLightReuse(ethash_light_t ethashLight,
+                                     uint64_t block_number)
+{
+    return ethash_light_renew(block_number, ethashLight);
+}
+
 void POW::EthashLightDelete(ethash_light_t light)
 {
     ethash_light_delete(light);
@@ -135,8 +141,8 @@ bool POW::EthashConfigureLightClient(uint64_t block_number)
     std::lock_guard<std::mutex> g(m_mutexLightClientConfigure);
     if (block_number != currentBlockNum)
     {
-        EthashLightDelete(ethash_light_client);
-        ethash_light_client = EthashLightNew(block_number);
+        ethash_light_client
+            = EthashLightReuse(ethash_light_client, block_number);
         currentBlockNum = block_number;
     }
 
