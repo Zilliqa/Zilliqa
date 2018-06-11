@@ -53,11 +53,8 @@ int main(int argc, const char* argv[])
                            "00000000000000000000000000000000000000000000064";
     vector<unsigned char> tmp = DataConversion::HexStrToUint8Vec(dummyTxn);
 
-    for (unsigned int i = 0; i < 1; i++)
-    {
-        P2PComm::GetInstance().SendMessage(my_port, tmp);
-        this_thread::sleep_for(chrono::milliseconds(50));
-    }
+    P2PComm::GetInstance().SendMessage(my_port, tmp);
+    this_thread::sleep_for(chrono::milliseconds(50));
 
     return 0;
 }

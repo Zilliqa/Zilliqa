@@ -153,7 +153,6 @@ bool DirectoryService::ParseMessageAndVerifyPOW1(
         return false;
     }
 
-    // if ((m_state != POW1_SUBMISSION) && (m_state != DSBLOCK_CONSENSUS_PREP))
     if (!CheckState(VERIFYPOW1))
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -208,16 +207,14 @@ bool DirectoryService::ParseMessageAndVerifyPOW1(
     else
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Invalid PoW1 submission");
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "blockNum: " << block_num << " Difficulty: " << difficulty
-                               << " nonce: " << nonce
-                               << " ip: " << peer.GetPrintableIPAddress() << ":"
-                               << portNo);
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "rand1: " << DataConversion::charArrToHexStr(rand1)
-                            << " rand2: "
-                            << DataConversion::charArrToHexStr(rand2));
+                  "Invalid PoW1 submission"
+                      << "\n"
+                      << "blockNum: " << block_num
+                      << " Difficulty: " << difficulty << " nonce: " << nonce
+                      << " ip: " << peer.GetPrintableIPAddress() << ":"
+                      << portNo << "\n"
+                      << "rand1: " << DataConversion::charArrToHexStr(rand1)
+                      << " rand2: " << DataConversion::charArrToHexStr(rand2));
     }
     return result;
 }
@@ -229,30 +226,23 @@ bool DirectoryService::ProcessPoW1Submission(
 #ifndef IS_LOOKUP_NODE
     // Message = [32-byte block number] [4-byte listening port] [33-byte public key] [8-byte nonce] [32-byte resulting hash] [32-byte mixhash]
     LOG_MARKER();
-    // shared_lock<shared_timed_mutex> lock(m_mutexProducerConsumer);
-    unsigned int sleep_time_while_waiting = 100;
+
     if (m_state == FINALBLOCK_CONSENSUS)
     {
-        for (unsigned int i = 0; i < POW_SUB_BUFFER_TIME; i++)
-        {
-            if (m_state == POW1_SUBMISSION)
-            {
-                break;
-            }
+        std::unique_lock<std::mutex> cv_lk(m_MutexCVPOW1Submission);
 
-            if (i % 10 == 0)
-            {
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "Waiting for POW1_SUBMISSION before processing. "
-                          "Current state is "
-                              << m_state);
-            }
-            this_thread::sleep_for(
-                chrono::milliseconds(sleep_time_while_waiting));
+        if (cv_POW1Submission.wait_for(
+                cv_lk, std::chrono::seconds(POW_SUBMISSION_TIMEOUT))
+            == std::cv_status::timeout)
+        {
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Time out while waiting for state transition ");
         }
+
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "State transition is completed. (check for timeout)");
     }
 
-    // if (m_state != POW1_SUBMISSION)
     if (!CheckState(PROCESS_POW1SUBMISSION))
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),

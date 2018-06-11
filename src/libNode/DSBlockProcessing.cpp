@@ -129,7 +129,7 @@ bool Node::CheckWhetherDSBlockNumIsLatest(const uint256_t dsblockNum)
     }
     else if (dsblockNum > latestBlockNumInBlockchain)
     {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Warning: We are missing of some DS blocks. Requested: "
                       << dsblockNum
                       << " while Present: " << latestBlockNumInBlockchain);
@@ -330,6 +330,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
         m_mediator.m_ds->m_consensusID
             = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
         m_mediator.m_ds->SetState(DirectoryService::DirState::POW2_SUBMISSION);
+        m_mediator.m_ds->NotifyPOW2Submission();
         m_mediator.m_ds->m_mode = DirectoryService::Mode::PRIMARY_DS;
         LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
                       DS_LEADER_MSG);
