@@ -32,6 +32,7 @@
 #include "common/Executable.h"
 #include "libConsensus/Consensus.h"
 #include "libData/BlockData/Block.h"
+#include "libData/BlockData/BlockHeader/BlockHashSet.h"
 #include "libLookup/Synchronizer.h"
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/PeerStore.h"
@@ -281,7 +282,8 @@ class DirectoryService : public Executable, public Broadcastable
                               unsigned int& difficulty,
                               boost::multiprecision::uint256_t& block_num);
     void ExtractDataFromMicroblocks(
-        TxnHash& microblockTrieRoot, std::vector<BlockHash>& microBlockHashes,
+        TxnHash& microblockTxnTrieRoot, StateHash& microblockDeltaTrieRoot,
+        std::vector<MicroBlockHashSet>& microblockHashes,
         boost::multiprecision::uint256_t& allGasLimit,
         boost::multiprecision::uint256_t& allGasUsed, uint32_t& numTxs,
         std::vector<bool>& isMicroBlockEmpty, uint32_t& numMicroBlocks) const;

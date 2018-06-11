@@ -36,10 +36,10 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-template<class DB> class AccountStoreBase : public Serializable
+template<class DB, class MAP> class AccountStoreBase : public Serializable
 {
 protected:
-    shared_ptr<unordered_map<Address, Account>> m_addressToAccount;
+    shared_ptr<MAP> m_addressToAccount;
 
     DB m_db;
     dev::SpecificTrieDB<dev::GenericTrieDB<DB>, Address> m_state;

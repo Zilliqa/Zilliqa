@@ -25,16 +25,17 @@
 #include "common/Constants.h"
 #include "common/Serializable.h"
 #include "libCrypto/Schnorr.h"
-#include "libData/AccountData/Transaction.h"
+#include "libData/BlockData/BlockHeader/BlockHashSet.h"
 #include "libData/BlockData/BlockHeader/TxBlockHeader.h"
 #include "libNetwork/Peer.h"
 
 /// Stores the Tx block header and signature.
+
 class TxBlock : public BlockBase
 {
     TxBlockHeader m_header;
     std::vector<bool> m_isMicroBlockEmpty;
-    std::vector<TxnHash> m_microBlockHashes;
+    std::vector<MicroBlockHashSet> m_microBlockHashes;
 
 public:
     /// Default constructor.
@@ -45,7 +46,8 @@ public:
 
     /// Constructor with specified Tx block parameters.
     TxBlock(TxBlockHeader&& header, std::vector<bool>&& isMicroBlockEmpty,
-            std::vector<TxnHash>&& microBlockHashes, CoSignatures&& cosigs);
+            std::vector<MicroBlockHashSet>&& microBlockHashes,
+            CoSignatures&& cosigs);
 
     uint32_t SerializeIsMicroBlockEmpty() const;
 
@@ -71,7 +73,7 @@ public:
     const std::vector<bool>& GetIsMicroBlockEmpty() const;
 
     /// Returns the list of MicroBlockHashes.
-    const std::vector<TxnHash>& GetMicroBlockHashes() const;
+    const std::vector<MicroBlockHashSet>& GetMicroBlockHashes() const;
 
     /// Equality comparison operator.
     bool operator==(const TxBlock& block) const;

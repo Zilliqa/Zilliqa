@@ -20,12 +20,11 @@
 #include <array>
 #include <boost/multiprecision/cpp_int.hpp>
 
+#include "BlockHashSet.h"
 #include "BlockHeaderBase.h"
 #include "common/Constants.h"
 #include "common/Serializable.h"
 #include "libCrypto/Schnorr.h"
-#include "libData/AccountData/AccountStore.h"
-#include "libData/AccountData/Transaction.h"
 
 /// Stores information on the header part of the Tx block.
 class TxBlockHeader : public BlockHeaderBase
@@ -38,8 +37,7 @@ class TxBlockHeader : public BlockHeaderBase
     boost::multiprecision::uint256_t
         m_blockNum; // Block index, starting from 0 in the genesis block
     boost::multiprecision::uint256_t m_timestamp;
-    TxnHash m_txRootHash; // Microblock merkle tree root hash
-    StateHash m_stateRootHash; // State merkle tree root hash
+    TxBlockHashSet m_hash;
     uint32_t m_numTxs; // Total number of txs included in the block
     uint32_t
         m_numMicroBlockHashes; // Total number of microblock hashes included in the block
@@ -52,7 +50,7 @@ class TxBlockHeader : public BlockHeaderBase
 public:
     static const unsigned int SIZE = sizeof(uint8_t) + sizeof(uint32_t)
         + UINT256_SIZE + UINT256_SIZE + BLOCK_HASH_SIZE + UINT256_SIZE
-        + UINT256_SIZE + TRAN_HASH_SIZE + TRAN_HASH_SIZE + sizeof(uint32_t)
+        + UINT256_SIZE + TxBlockHashSet::size() + sizeof(uint32_t)
         + sizeof(uint32_t) + PUB_KEY_SIZE + UINT256_SIZE + BLOCK_HASH_SIZE
         + sizeof(unsigned int);
 
@@ -70,8 +68,8 @@ public:
                   const boost::multiprecision::uint256_t& blockNum,
                   const boost::multiprecision::uint256_t& timestamp,
                   const TxnHash& txRootHash, const StateHash& stateRootHash,
-                  const uint32_t numTxs, const uint32_t numMicroBlockHashes,
-                  const PubKey& minerPubKey,
+                  const StateHash& deltaRootHash, const uint32_t numTxs,
+                  const uint32_t numMicroBlockHashes, const PubKey& minerPubKey,
                   const boost::multiprecision::uint256_t& dsBlockNum,
                   const BlockHash& dsBlockHeader,
                   const unsigned int viewChangeCounter);
@@ -109,6 +107,9 @@ public:
 
     /// Returns the digest that represents the root of the Merkle tree that stores all state uptil this block.
     const StateHash& GetStateRootHash() const;
+
+    /// Returns the digest that represents the root of the Merkle tree that stores all state delta uptil this block.
+    const StateHash& GetDeltaRootHash() const;
 
     /// Returns the number of transactions in this block.
     const uint32_t& GetNumTxs() const;
@@ -150,8 +151,7 @@ inline std::ostream& operator<<(std::ostream& os, const TxBlockHeader& t)
        << "m_blockNum : " << t.m_blockNum.convert_to<std::string>() << std::endl
        << "m_timestamp : " << t.m_timestamp.convert_to<std::string>()
        << std::endl
-       << "m_txRootHash : " << t.m_txRootHash.hex() << std::endl
-       << "m_stateRootHash : " << t.m_stateRootHash.hex() << std::endl
+       << t.m_hash << std::endl
        << "m_numTxs : " << t.m_numTxs << std::endl
        << "m_numMicroBlockHashes : " << t.m_numMicroBlockHashes << std::endl
        << "m_minerPubKey : " << t.m_minerPubKey << std::endl

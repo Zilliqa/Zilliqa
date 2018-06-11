@@ -48,12 +48,11 @@ MicroBlockHeader::MicroBlockHeader(
     , m_prevHash(prevHash)
     , m_blockNum(blockNum)
     , m_timestamp(timestamp)
-    , m_txRootHash(txRootHash)
+    , m_hash{txRootHash, stateDeltaHash}
     , m_numTxs(numTxs)
     , m_minerPubKey(minerPubKey)
     , m_dsBlockNum(dsBlockNum)
     , m_dsBlockHeader(dsBlockHeader)
-    , m_stateDeltaHash(stateDeltaHash)
 {
 }
 
@@ -86,12 +85,7 @@ unsigned int MicroBlockHeader::Serialize(vector<unsigned char>& dst,
     curOffset += UINT256_SIZE;
     SetNumber<uint256_t>(dst, curOffset, m_timestamp, UINT256_SIZE);
     curOffset += UINT256_SIZE;
-    copy(m_txRootHash.asArray().begin(), m_txRootHash.asArray().end(),
-         dst.begin() + curOffset);
-    curOffset += TRAN_HASH_SIZE;
-    copy(m_stateDeltaHash.asArray().begin(), m_stateDeltaHash.asArray().end(),
-         dst.begin() + curOffset);
-    curOffset += STATE_HASH_SIZE;
+    curOffset = m_hash.Serialize(dst, curOffset);
     SetNumber<uint32_t>(dst, curOffset, m_numTxs, sizeof(uint32_t));
     curOffset += sizeof(uint32_t);
     m_minerPubKey.Serialize(dst, curOffset);
@@ -127,21 +121,22 @@ int MicroBlockHeader::Deserialize(const vector<unsigned char>& src,
         curOffset += UINT256_SIZE;
         m_timestamp = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
         curOffset += UINT256_SIZE;
-        copy(src.begin() + curOffset, src.begin() + curOffset + TRAN_HASH_SIZE,
-             m_txRootHash.asArray().begin());
-        curOffset += TRAN_HASH_SIZE;
-        copy(src.begin() + curOffset, src.begin() + curOffset + STATE_HASH_SIZE,
-             m_stateDeltaHash.asArray().begin());
-        curOffset += STATE_HASH_SIZE;
+        if (m_hash.Deserialize(src, curOffset))
+        {
+            LOG_GENERAL(WARNING,
+                        "We failed to extract MicroBlockHeader::m_hash.");
+            return -1;
+        }
+        curOffset += m_hash.size();
         m_numTxs = GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
         curOffset += sizeof(uint32_t);
         // m_minerPubKey.Deserialize(src, curOffset);
         if (m_minerPubKey.Deserialize(src, curOffset) != 0)
         {
-            LOG_GENERAL(WARNING, "We failed to init m_minerPubKey.");
+            LOG_GENERAL(WARNING,
+                        "We failed to init MicroBlockHeader::m_minerPubKey.");
             return -1;
         }
-
         curOffset += PUB_KEY_SIZE;
         m_dsBlockNum = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
         curOffset += UINT256_SIZE;
@@ -172,7 +167,10 @@ const uint256_t& MicroBlockHeader::GetBlockNum() const { return m_blockNum; }
 
 const uint256_t& MicroBlockHeader::GetTimestamp() const { return m_timestamp; }
 
-const TxnHash& MicroBlockHeader::GetTxRootHash() const { return m_txRootHash; }
+const TxnHash& MicroBlockHeader::GetTxRootHash() const
+{
+    return m_hash.m_txRootHash;
+}
 
 const uint32_t& MicroBlockHeader::GetNumTxs() const { return m_numTxs; }
 
@@ -190,114 +188,31 @@ const BlockHash& MicroBlockHeader::GetDSBlockHeader() const
 
 const StateHash& MicroBlockHeader::GetStateDeltaHash() const
 {
-    return m_stateDeltaHash;
+    return m_hash.m_stateDeltaHash;
 }
 
 bool MicroBlockHeader::operator==(const MicroBlockHeader& header) const
 {
-    return ((m_type == header.m_type) && (m_version == header.m_version)
-            && (m_gasLimit == header.m_gasLimit)
-            && (m_gasUsed == header.m_gasUsed)
-            && (m_prevHash == header.m_prevHash)
-            && (m_blockNum == header.m_blockNum)
-            && (m_timestamp == header.m_timestamp)
-            && (m_txRootHash == header.m_txRootHash)
-            && (m_numTxs == header.m_numTxs)
-            && (m_minerPubKey == header.m_minerPubKey)
-            && (m_dsBlockHeader == header.m_dsBlockHeader)
-            && (m_dsBlockHeader == m_dsBlockHeader));
+    return std::tie(m_type, m_version, m_gasLimit, m_gasUsed, m_prevHash,
+                    m_blockNum, m_timestamp, m_hash, m_numTxs, m_minerPubKey,
+                    m_dsBlockNum, m_dsBlockHeader)
+        == std::tie(header.m_type, header.m_version, header.m_gasLimit,
+                    header.m_gasUsed, header.m_prevHash, header.m_blockNum,
+                    header.m_timestamp, header.m_hash, header.m_numTxs,
+                    header.m_minerPubKey, header.m_dsBlockNum,
+                    header.m_dsBlockHeader);
 }
 
 bool MicroBlockHeader::operator<(const MicroBlockHeader& header) const
 {
-    if (m_type < header.m_type)
-    {
-        return true;
-    }
-    else if (m_type > header.m_type)
-    {
-        return false;
-    }
-    else if (m_version < header.m_version)
-    {
-        return true;
-    }
-    else if (m_version > header.m_version)
-    {
-        return false;
-    }
-    else if (m_gasLimit < header.m_gasLimit)
-    {
-        return true;
-    }
-    else if (m_gasUsed > header.m_gasUsed)
-    {
-        return false;
-    }
-    else if (m_prevHash < header.m_prevHash)
-    {
-        return true;
-    }
-    else if (m_prevHash > header.m_prevHash)
-    {
-        return false;
-    }
-    else if (m_blockNum < header.m_blockNum)
-    {
-        return true;
-    }
-    else if (m_blockNum > header.m_blockNum)
-    {
-        return false;
-    }
-    else if (m_timestamp < header.m_timestamp)
-    {
-        return true;
-    }
-    else if (m_timestamp > header.m_timestamp)
-    {
-        return false;
-    }
-    else if (m_txRootHash < header.m_txRootHash)
-    {
-        return true;
-    }
-    else if (m_txRootHash > header.m_txRootHash)
-    {
-        return false;
-    }
-    else if (m_numTxs < header.m_numTxs)
-    {
-        return true;
-    }
-    else if (m_numTxs > header.m_numTxs)
-    {
-        return false;
-    }
-    else if (m_minerPubKey < header.m_minerPubKey)
-    {
-        return true;
-    }
-    else if (m_minerPubKey > header.m_minerPubKey)
-    {
-        return false;
-    }
-    else if (m_dsBlockNum < header.m_dsBlockNum)
-    {
-        return true;
-    }
-    else if (m_dsBlockNum > header.m_dsBlockNum)
-    {
-        return false;
-    }
-    else if (m_dsBlockHeader < header.m_dsBlockHeader)
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+    return std::tie(header.m_type, header.m_version, header.m_gasLimit,
+                    header.m_gasUsed, header.m_prevHash, header.m_blockNum,
+                    header.m_timestamp, header.m_hash, header.m_numTxs,
+                    header.m_minerPubKey, header.m_dsBlockNum,
+                    header.m_dsBlockHeader)
+        > std::tie(m_type, m_version, m_gasLimit, m_gasUsed, m_prevHash,
+                   m_blockNum, m_timestamp, m_hash, m_numTxs, m_minerPubKey,
+                   m_dsBlockNum, m_dsBlockHeader);
 }
 
 bool MicroBlockHeader::operator>(const MicroBlockHeader& header) const

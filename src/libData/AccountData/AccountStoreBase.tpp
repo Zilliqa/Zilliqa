@@ -22,15 +22,15 @@
 #include "libUtils/Logger.h"
 #include "libUtils/SysCommand.h"
 
-template<class DB>
-AccountStoreBase<DB>::AccountStoreBase()
+template<class DB, class MAP>
+AccountStoreBase<DB, MAP>::AccountStoreBase()
     : m_db(is_same<DB, OverlayDB>::value ? "state" : "")
 {
-    m_addressToAccount = make_shared<unordered_map<Address, Account>>();
+    m_addressToAccount = make_shared<MAP>();
     m_state = dev::SpecificTrieDB<dev::GenericTrieDB<DB>, Address>(&m_db);
 }
 
-template<class DB> void AccountStoreBase<DB>::Init()
+template<class DB, class MAP> void AccountStoreBase<DB, MAP>::Init()
 {
     LOG_MARKER();
     m_addressToAccount->clear();
@@ -38,8 +38,8 @@ template<class DB> void AccountStoreBase<DB>::Init()
     prevRoot = m_state.root();
 }
 
-template<class DB>
-unsigned int AccountStoreBase<DB>::Serialize(vector<unsigned char>& dst,
+template<class DB, class MAP>
+unsigned int AccountStoreBase<DB, MAP>::Serialize(vector<unsigned char>& dst,
                                              unsigned int offset) const
 {
     // [Total number of accounts (uint256_t)] [Addr 1] [Account 1] [Addr 2] [Account 2] .... [Addr n] [Account n]
@@ -85,8 +85,8 @@ unsigned int AccountStoreBase<DB>::Serialize(vector<unsigned char>& dst,
     return totalSerializedSize;
 }
 
-template<class DB>
-int AccountStoreBase<DB>::Deserialize(const vector<unsigned char>& src,
+template<class DB, class MAP>
+int AccountStoreBase<DB, MAP>::Deserialize(const vector<unsigned char>& src,
                                       unsigned int offset)
 {
     // [Total number of accounts] [Addr 1] [Account 1] [Addr 2] [Account 2] .... [Addr n] [Account n]
@@ -135,8 +135,8 @@ int AccountStoreBase<DB>::Deserialize(const vector<unsigned char>& src,
     return 0;
 }
 
-template<class DB>
-bool AccountStoreBase<DB>::DoesAccountExist(const Address& address)
+template<class DB, class MAP>
+bool AccountStoreBase<DB, MAP>::DoesAccountExist(const Address& address)
 {
     LOG_MARKER();
 
@@ -148,8 +148,8 @@ bool AccountStoreBase<DB>::DoesAccountExist(const Address& address)
     return false;
 }
 
-template<class DB>
-void AccountStoreBase<DB>::AddAccount(const Address& address,
+template<class DB, class MAP>
+void AccountStoreBase<DB, MAP>::AddAccount(const Address& address,
                                       const Account& account)
 {
     LOG_MARKER();
@@ -161,15 +161,15 @@ void AccountStoreBase<DB>::AddAccount(const Address& address,
     }
 }
 
-template<class DB>
-void AccountStoreBase<DB>::AddAccount(const PubKey& pubKey,
+template<class DB, class MAP>
+void AccountStoreBase<DB, MAP>::AddAccount(const PubKey& pubKey,
                                       const Account& account)
 {
     AddAccount(Account::GetAddressFromPublicKey(pubKey), account);
 }
 
-template<class DB>
-bool AccountStoreBase<DB>::UpdateAccounts(const uint64_t& blockNum,
+template<class DB, class MAP>
+bool AccountStoreBase<DB, MAP>::UpdateAccounts(const uint64_t& blockNum,
                                           const Transaction& transaction)
 {
     LOG_MARKER();
@@ -271,9 +271,9 @@ bool AccountStoreBase<DB>::UpdateAccounts(const uint64_t& blockNum,
     return true;
 }
 
-template<class DB>
+template<class DB, class MAP>
 Json::Value
-AccountStoreBase<DB>::GetBlockStateJson(const uint64_t& BlockNum) const
+AccountStoreBase<DB, MAP>::GetBlockStateJson(const uint64_t& BlockNum) const
 {
     Json::Value root;
     Json::Value blockItem;
@@ -284,8 +284,8 @@ AccountStoreBase<DB>::GetBlockStateJson(const uint64_t& BlockNum) const
     return root;
 }
 
-template<class DB>
-bool AccountStoreBase<DB>::ExportCreateContractFiles(Account* contract)
+template<class DB, class MAP>
+bool AccountStoreBase<DB, MAP>::ExportCreateContractFiles(Account* contract)
 {
     LOG_MARKER();
 
@@ -314,8 +314,8 @@ bool AccountStoreBase<DB>::ExportCreateContractFiles(Account* contract)
     return true;
 }
 
-template<class DB>
-bool AccountStoreBase<DB>::ExportCallContractFiles(
+template<class DB, class MAP>
+bool AccountStoreBase<DB, MAP>::ExportCallContractFiles(
     Account* contract, const vector<unsigned char>& contractData)
 {
     LOG_MARKER();
@@ -372,7 +372,7 @@ bool AccountStoreBase<DB>::ExportCallContractFiles(
     return true;
 }
 
-template<class DB> string AccountStoreBase<DB>::GetCreateContractCmdStr()
+template<class DB, class MAP> string AccountStoreBase<DB, MAP>::GetCreateContractCmdStr()
 {
     string ret = SCILLA_PATH + " -init " + INIT_JSON + " -iblockchain "
         + INPUT_BLOCKCHAIN_JSON + " -o " + OUTPUT_JSON + " -i " + INPUT_CODE;
@@ -380,7 +380,7 @@ template<class DB> string AccountStoreBase<DB>::GetCreateContractCmdStr()
     return ret;
 }
 
-template<class DB> string AccountStoreBase<DB>::GetCallContractCmdStr()
+template<class DB, class MAP> string AccountStoreBase<DB, MAP>::GetCallContractCmdStr()
 {
     string ret = SCILLA_PATH + " -init " + INIT_JSON + " -istate "
         + INPUT_STATE_JSON + " -iblockchain " + INPUT_BLOCKCHAIN_JSON
@@ -390,7 +390,7 @@ template<class DB> string AccountStoreBase<DB>::GetCallContractCmdStr()
     return ret;
 }
 
-template<class DB> bool AccountStoreBase<DB>::ParseCreateContractOutput()
+template<class DB, class MAP> bool AccountStoreBase<DB, MAP>::ParseCreateContractOutput()
 {
     LOG_MARKER();
 
@@ -420,8 +420,8 @@ template<class DB> bool AccountStoreBase<DB>::ParseCreateContractOutput()
     }
 }
 
-template<class DB>
-bool AccountStoreBase<DB>::ParseCreateContractJsonOutput(
+template<class DB, class MAP>
+bool AccountStoreBase<DB, MAP>::ParseCreateContractJsonOutput(
     const Json::Value& _json)
 {
     LOG_MARKER();
@@ -447,7 +447,7 @@ bool AccountStoreBase<DB>::ParseCreateContractJsonOutput(
     }
 }
 
-template<class DB> bool AccountStoreBase<DB>::ParseCallContractOutput()
+template<class DB, class MAP> bool AccountStoreBase<DB, MAP>::ParseCallContractOutput()
 {
     LOG_MARKER();
 
@@ -477,8 +477,8 @@ template<class DB> bool AccountStoreBase<DB>::ParseCallContractOutput()
     }
 }
 
-template<class DB>
-bool AccountStoreBase<DB>::ParseCallContractJsonOutput(const Json::Value& _json)
+template<class DB, class MAP>
+bool AccountStoreBase<DB, MAP>::ParseCallContractJsonOutput(const Json::Value& _json)
 {
     LOG_MARKER();
 
@@ -628,8 +628,8 @@ bool AccountStoreBase<DB>::ParseCallContractJsonOutput(const Json::Value& _json)
     }
 }
 
-template<class DB>
-const vector<unsigned char> AccountStoreBase<DB>::CompositeContractData(
+template<class DB, class MAP>
+const vector<unsigned char> AccountStoreBase<DB, MAP>::CompositeContractData(
     const string& funcName, const string& amount, const Json::Value& params)
 {
     LOG_MARKER();
@@ -647,14 +647,14 @@ const vector<unsigned char> AccountStoreBase<DB>::CompositeContractData(
     return DataConversion::StringToCharArray(dataStr);
 }
 
-template<class DB> uint256_t AccountStoreBase<DB>::GetNumOfAccounts() const
+template<class DB, class MAP> uint256_t AccountStoreBase<DB, MAP>::GetNumOfAccounts() const
 {
     LOG_MARKER();
     return m_addressToAccount->size();
 }
 
-template<class DB>
-bool AccountStoreBase<DB>::IncreaseBalance(const Address& address,
+template<class DB, class MAP>
+bool AccountStoreBase<DB, MAP>::IncreaseBalance(const Address& address,
                                            const uint256_t& delta)
 {
     // LOG_MARKER();
@@ -684,8 +684,8 @@ bool AccountStoreBase<DB>::IncreaseBalance(const Address& address,
     return false;
 }
 
-template<class DB>
-bool AccountStoreBase<DB>::DecreaseBalance(const Address& address,
+template<class DB, class MAP>
+bool AccountStoreBase<DB, MAP>::DecreaseBalance(const Address& address,
                                            const uint256_t& delta)
 {
     // LOG_MARKER();
@@ -715,8 +715,8 @@ bool AccountStoreBase<DB>::DecreaseBalance(const Address& address,
     return false;
 }
 
-template<class DB>
-bool AccountStoreBase<DB>::TransferBalance(const Address& from,
+template<class DB, class MAP>
+bool AccountStoreBase<DB, MAP>::TransferBalance(const Address& from,
                                            const Address& to,
                                            const uint256_t& delta)
 {
@@ -730,8 +730,8 @@ bool AccountStoreBase<DB>::TransferBalance(const Address& from,
     return false;
 }
 
-template<class DB>
-uint256_t AccountStoreBase<DB>::GetBalance(const Address& address)
+template<class DB, class MAP>
+uint256_t AccountStoreBase<DB, MAP>::GetBalance(const Address& address)
 {
     LOG_MARKER();
 
@@ -745,8 +745,8 @@ uint256_t AccountStoreBase<DB>::GetBalance(const Address& address)
     return 0;
 }
 
-template<class DB>
-bool AccountStoreBase<DB>::IncreaseNonce(const Address& address)
+template<class DB, class MAP>
+bool AccountStoreBase<DB, MAP>::IncreaseNonce(const Address& address)
 {
     //LOG_MARKER();
 
@@ -761,8 +761,8 @@ bool AccountStoreBase<DB>::IncreaseNonce(const Address& address)
     return false;
 }
 
-template<class DB>
-uint256_t AccountStoreBase<DB>::GetNonce(const Address& address)
+template<class DB, class MAP>
+uint256_t AccountStoreBase<DB, MAP>::GetNonce(const Address& address)
 {
     //LOG_MARKER();
 
@@ -776,7 +776,7 @@ uint256_t AccountStoreBase<DB>::GetNonce(const Address& address)
     return 0;
 }
 
-template<class DB> void AccountStoreBase<DB>::PrintAccountState()
+template<class DB, class MAP> void AccountStoreBase<DB, MAP>::PrintAccountState()
 {
     LOG_GENERAL(INFO, "Printing Account State");
     for (auto entry : *m_addressToAccount)
@@ -786,15 +786,15 @@ template<class DB> void AccountStoreBase<DB>::PrintAccountState()
     LOG_GENERAL(INFO, "State Root: " << GetStateRootHash());
 }
 
-template<class DB> h256 AccountStoreBase<DB>::GetStateRootHash() const
+template<class DB, class MAP> h256 AccountStoreBase<DB, MAP>::GetStateRootHash() const
 {
     LOG_MARKER();
 
     return m_state.root();
 }
 
-template<class DB>
-bool AccountStoreBase<DB>::UpdateStateTrie(const Address& address,
+template<class DB, class MAP>
+bool AccountStoreBase<DB, MAP>::UpdateStateTrie(const Address& address,
                                            const Account& account)
 {
     //LOG_MARKER();
@@ -807,7 +807,7 @@ bool AccountStoreBase<DB>::UpdateStateTrie(const Address& address,
     return true;
 }
 
-template<class DB> bool AccountStoreBase<DB>::UpdateStateTrieAll()
+template<class DB, class MAP> bool AccountStoreBase<DB, MAP>::UpdateStateTrieAll()
 {
     bool ret = true;
     for (auto entry : *m_addressToAccount)
@@ -821,7 +821,7 @@ template<class DB> bool AccountStoreBase<DB>::UpdateStateTrieAll()
     return ret;
 }
 
-template<class DB> void AccountStoreBase<DB>::RepopulateStateTrie()
+template<class DB, class MAP> void AccountStoreBase<DB, MAP>::RepopulateStateTrie()
 {
     LOG_MARKER();
     m_state.init();

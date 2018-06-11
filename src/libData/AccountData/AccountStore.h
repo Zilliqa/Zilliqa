@@ -18,6 +18,7 @@
 #define __ACCOUNTSTORE_H__
 
 #include <json/json.h>
+#include <map>
 #include <set>
 #include <unordered_map>
 
@@ -39,27 +40,30 @@ using StateHash = dev::h256;
 
 class AccountStore;
 
-class AccountStoreTemp : public AccountStoreBase<MemoryDB>
+class AccountStoreTemp
+    : public AccountStoreBase<MemoryDB, map<Address, Account>>
 {
     // shared_ptr<unordered_map<Address, Account>> m_superAddressToAccount;
-    AccountStore* m_parent;
+    AccountStore& m_parent;
 
 public:
     // AccountStoreTemp(
     //     const shared_ptr<unordered_map<Address, Account>>& addressToAccount);
-    AccountStoreTemp(AccountStore* parent);
+    AccountStoreTemp(AccountStore& parent);
 
     /// Returns the Account associated with the specified address.
     Account* GetAccount(const Address& address) override;
 
-    const shared_ptr<unordered_map<Address, Account>>& GetAddressToAccount();
+    const shared_ptr<map<Address, Account>>& GetAddressToAccount();
 };
 
 // template<class KeyType, class DB>
 // using SecureTrieDB = dev::SpecificTrieDB<dev::GenericTrieDB<DB>, KeyType>;
 // using StateHash = h256;
 
-class AccountStore : public AccountStoreBase<OverlayDB>, Singleton<AccountStore>
+class AccountStore
+    : public AccountStoreBase<OverlayDB, unordered_map<Address, Account>>,
+      Singleton<AccountStore>
 {
     friend class Singleton<AccountStore>;
 
@@ -96,9 +100,11 @@ public:
     bool UpdateAccountsTemp(const uint64_t& blockNum,
                             const Transaction& transaction);
 
-    StateHash GetTempStateHash();
+    StateHash GetStateDeltaHash();
 
     void CommitTemp();
+
+    bool CommitStateDelta(AccountStoreTemp& stateDeltaStore);
 
     void InitTemp() { m_accountStoreTemp->Init(); }
 };
