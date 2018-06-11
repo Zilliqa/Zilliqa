@@ -94,7 +94,7 @@ unsigned int Account::Serialize(vector<unsigned char>& dst,
 {
     // LOG_MARKER();
 
-    unsigned int size_needed = ACCOUNT_SIZE;
+    unsigned int size_needed = ACCOUNT_SIZE + m_codeCache.size();
     unsigned int size_remaining = dst.size() - offset;
 
     if (size_remaining < size_needed)
@@ -134,9 +134,16 @@ unsigned int Account::Serialize(vector<unsigned char>& dst,
                              uint256_t(GetStorageKeyHashes().size()),
                              UINT256_SIZE);
         curOffset += UINT256_SIZE;
+
         for (unsigned int i = 0; i < GetStorageKeyHashes().size(); i++)
         {
             // Key Hash
+            unsigned int length_available = dst.size() - curOffset;
+            if (length_available < COMMON_HASH_SIZE)
+            {
+                dst.resize(dst.size() + COMMON_HASH_SIZE - length_available);
+            }
+
             h256 keyHash = GetStorageKeyHashes()[i];
             copy(keyHash.asArray().begin(), keyHash.asArray().end(),
                  dst.begin() + curOffset);
@@ -148,6 +155,11 @@ unsigned int Account::Serialize(vector<unsigned char>& dst,
             SetNumber<uint256_t>(dst, curOffset, uint256_t(rlpStr.size()),
                                  UINT256_SIZE);
             curOffset += UINT256_SIZE;
+            length_available = dst.size() - curOffset;
+            if (length_available < rlpStr.size())
+            {
+                dst.resize(dst.size() + rlpStr.size() - length_available);
+            }
             // RLP string
             copy(rlpStr.begin(), rlpStr.end(), dst.begin() + curOffset);
             curOffset += rlpStr.size();
