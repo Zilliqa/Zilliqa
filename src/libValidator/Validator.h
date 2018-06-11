@@ -59,7 +59,7 @@ public:
     bool CheckCreatedTransactionFromLookup(const Transaction& tx) override;
 #endif // IS_LOOKUP_NODE
 
-    Mediator* m_mediator;
+    Mediator& m_mediator;
 };
 
 #endif // __VALIDATOR_H__

@@ -72,7 +72,6 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
     Peer peer(ipAddr, portNo);
 
     // 33-byte public key
-    // PubKey key(message, curr_offset);
     PubKey key;
     if (key.Deserialize(message, curr_offset) != 0)
     {
@@ -156,7 +155,6 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
     {
         // Do another check on the state before accessing m_allPoWs
         // Accept slightly late entries as the primary DS might have received some of those entries and have those in his proposed shards
-        // if ((m_state != POW2_SUBMISSION) && (m_state != SHARDING_CONSENSUS_PREP))
         if (!CheckState(VERIFYPOW2))
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -175,17 +173,15 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
     }
     else
     {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Invalid PoW2 submission");
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "blockNum: " << block_num << " Difficulty: " << difficulty
-                               << " nonce: " << nonce
-                               << " ip: " << peer.GetPrintableIPAddress() << ":"
-                               << portNo);
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "rand1: " << DataConversion::charArrToHexStr(rand1)
-                            << " rand2: "
-                            << DataConversion::charArrToHexStr(rand2));
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Invalid PoW2 submission"
+                      << "\n"
+                      << "blockNum: " << block_num
+                      << " Difficulty: " << difficulty << " nonce: " << nonce
+                      << " ip: " << peer.GetPrintableIPAddress() << ":"
+                      << portNo << "\n"
+                      << "rand1: " << DataConversion::charArrToHexStr(rand1)
+                      << " rand2: " << DataConversion::charArrToHexStr(rand2));
     }
     return result;
 }
@@ -197,37 +193,23 @@ bool DirectoryService::ProcessPoW2Submission(
 #ifndef IS_LOOKUP_NODE
     // Message = [32-byte block num] [4-byte listening port] [33-byte public key] [8-byte nonce] [32-byte resulting hash] [32-byte mixhash]
     LOG_MARKER();
-    // shared_lock<shared_timed_mutex> lock(m_mutexProducerConsumer);
-    unsigned int sleep_time_while_waiting = 100;
+
     if (m_state == DSBLOCK_CONSENSUS
         || (m_state != POW2_SUBMISSION && m_mode == Mode::IDLE
             && m_mediator.m_node->m_state == Node::POW2_SUBMISSION))
     {
-        for (unsigned int i = 0; i < POW_SUB_BUFFER_TIME; i++)
-        {
-            if (m_state == POW2_SUBMISSION)
-            {
-                break;
-            }
-            if (i % 100 == 0)
-            {
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "Waiting for POW2_SUBMISSION state before "
-                          "processing. Current state is "
-                              << m_state);
-            }
+        std::unique_lock<std::mutex> cv_lk(m_MutexCVPOW2Submission);
 
-            // Magic number for now.
-            // Basically, I want to wait for awhile for the dsblock to arrive before
-            // I request for one.
-            if (!m_requesting_last_ds_block and i == 300)
-            {
-                m_requesting_last_ds_block = true;
-                LastDSBlockRequest();
-            }
-            this_thread::sleep_for(
-                chrono::milliseconds(sleep_time_while_waiting));
+        if (cv_POW2Submission.wait_for(
+                cv_lk, std::chrono::seconds(POW_SUBMISSION_TIMEOUT))
+            == std::cv_status::timeout)
+        {
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Time out while waiting for state transition ");
         }
+
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "State transition is completed. (check for timeout)");
     }
 
     if (!CheckState(PROCESS_POW2SUBMISSION))

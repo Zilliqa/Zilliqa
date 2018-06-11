@@ -202,7 +202,6 @@ int AccountStore::DeserializeDelta(const vector<unsigned char>& src,
                     continue;
                 }
             }
-
             curOffset += accountSize;
             (*m_addressToAccount)[address] = account;
             UpdateStateTrie(address, account);
@@ -351,6 +350,7 @@ bool AccountStore::RetrieveFromDisk()
 bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
                                       const Transaction& transaction)
 {
+    LOG_MARKER();
     return m_accountStoreTemp->UpdateAccounts(blockNum, transaction);
 }
 
