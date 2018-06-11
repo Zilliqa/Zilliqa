@@ -103,6 +103,7 @@ const std::string DS_BACKUP_MSG = "DS BACKUP NOW";
 
 extern const std::string SCILLA_PATH;
 extern const std::string SCILLA_FILES;
+extern const std::string SCILLA_LOG;
 extern const std::string INIT_JSON;
 extern const std::string INPUT_STATE_JSON;
 extern const std::string INPUT_BLOCKCHAIN_JSON;
@@ -119,7 +120,8 @@ extern const unsigned int LEADER_SHARDING_PREPARATION_IN_SECONDS;
 extern const unsigned int LEADER_POW2_WINDOW_IN_SECONDS;
 extern const unsigned int BACKUP_POW2_WINDOW_IN_SECONDS;
 extern const unsigned int NEW_NODE_SYNC_INTERVAL;
-extern const unsigned int POW_SUB_BUFFER_TIME;
+extern const unsigned int TX_SUBMISSION_TIMEOUT;
+extern const unsigned int POW_SUBMISSION_TIMEOUT;
 extern const unsigned int POW1_DIFFICULTY;
 extern const unsigned int POW2_DIFFICULTY;
 extern const unsigned int MICROBLOCK_TIMEOUT;

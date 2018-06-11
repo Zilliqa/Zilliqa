@@ -183,13 +183,13 @@ bool AccountStoreBase<DB, MAP>::UpdateAccounts(const uint64_t& blockNum,
 
     if (transaction.GetData().size() > 0 && toAddr != NullAddress)
     {
-        if (amount != 0)
-        {
-            LOG_GENERAL(
-                WARNING,
-                "The balance for a contract transaction shouldn't be non-zero");
-            return false;
-        }
+        // if (amount == 0)
+        // {
+        //     LOG_GENERAL(
+        //         WARNING,
+        //         "The amount for calling a contract shouldn't be zero");
+        //     return false;
+        // }
         callContract = true;
     }
 
@@ -201,7 +201,7 @@ bool AccountStoreBase<DB, MAP>::UpdateAccounts(const uint64_t& blockNum,
         {
             LOG_GENERAL(
                 WARNING,
-                "The balance for a contract transaction shouldn't be non-zero");
+                "The amount for creating a contract should be zero");
             return false;
         }
 
@@ -292,8 +292,13 @@ bool AccountStoreBase<DB, MAP>::ExportCreateContractFiles(Account* contract)
     boost::filesystem::remove_all("./" + SCILLA_FILES);
     boost::filesystem::create_directories("./" + SCILLA_FILES);
 
+    if (!(boost::filesystem::exists("./" + SCILLA_LOG)))
+    {
+        boost::filesystem::create_directories("./" + SCILLA_LOG);
+    }
+
     Json::StreamWriterBuilder writeBuilder;
-    unique_ptr<Json::StreamWriter> writer(writeBuilder.newStreamWriter());
+    std::unique_ptr<Json::StreamWriter> writer(writeBuilder.newStreamWriter());
     std::ofstream os;
 
     // Scilla code
@@ -403,8 +408,9 @@ template<class DB, class MAP> bool AccountStoreBase<DB, MAP>::ParseCreateContrac
         return false;
     }
     string outStr{istreambuf_iterator<char>(in), istreambuf_iterator<char>()};
+    LOG_GENERAL(INFO, "Output: " << endl << outStr);
     Json::CharReaderBuilder builder;
-    unique_ptr<Json::CharReader> reader(builder.newCharReader());
+    std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
     Json::Value root;
     string errors;
     if (reader->parse(outStr.c_str(), outStr.c_str() + outStr.size(), &root,
@@ -460,8 +466,9 @@ template<class DB, class MAP> bool AccountStoreBase<DB, MAP>::ParseCallContractO
         return false;
     }
     string outStr{istreambuf_iterator<char>(in), istreambuf_iterator<char>()};
+    LOG_GENERAL(INFO, "Output: " << endl << outStr);
     Json::CharReaderBuilder builder;
-    unique_ptr<Json::CharReader> reader(builder.newCharReader());
+    std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
     Json::Value root;
     string errors;
     if (reader->parse(outStr.c_str(), outStr.c_str() + outStr.size(), &root,
@@ -579,6 +586,8 @@ bool AccountStoreBase<DB, MAP>::ParseCallContractJsonOutput(const Json::Value& _
     }
     else
     {
+        LOG_GENERAL(INFO, "Call another contract");
+
         Address toAddr;
         Json::Value params;
         for (auto p : _json["message"]["params"])
@@ -593,6 +602,16 @@ bool AccountStoreBase<DB, MAP>::ParseCallContractJsonOutput(const Json::Value& _
                 params.append(p);
             }
         }
+        Json::Value p_sender;
+        p_sender["vname"] = "sender";
+        p_sender["type"] = "Address";
+        p_sender["value"] = "0x" + m_curContractAddr.hex();
+        params.append(p_sender);
+
+        // if (params.empty())
+        // {
+        //     params = Json::arrayValue;
+        // }
 
         Account* toAccount = GetAccount(toAddr);
         if (toAccount == nullptr)
@@ -601,7 +620,6 @@ bool AccountStoreBase<DB, MAP>::ParseCallContractJsonOutput(const Json::Value& _
             return false;
         }
 
-        // TODO: Implement the calling of interpreter in multi-thread
         if (ExportCallContractFiles(
                 toAccount,
                 CompositeContractData(_json["message"]["_tag"].asString(),

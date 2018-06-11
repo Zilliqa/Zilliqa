@@ -523,9 +523,9 @@ Json::Value Account::GetStorageJson() const
         string tType = rlp[2].toString();
         string tValue = rlp[3].toString();
         LOG_GENERAL(INFO,
-                    "ITERATE \nvname: " << tVname << " \nmutable: " << tMutable
-                                        << " \ntype: " << tType
-                                        << " \nvalue: " << tValue);
+                    "\nvname: " << tVname << " \nmutable: " << tMutable
+                                << " \ntype: " << tType
+                                << " \nvalue: " << tValue);
         if (tMutable == "False")
         {
             continue;
@@ -561,9 +561,11 @@ Json::Value Account::GetStorageJson() const
     Json::Value _balance;
     _balance["vname"] = "_balance";
     _balance["type"] = "Int";
-    int balance = static_cast<int>(m_balance);
+    int balance = static_cast<int>(GetBalance());
     _balance["value"] = to_string(balance);
     root.append(_balance);
+
+    LOG_GENERAL(INFO, "States: " << root);
 
     return root;
 }
@@ -631,9 +633,9 @@ void Account::SetCode(const vector<unsigned char>& code)
     if (code.size() == 0)
         return;
     m_codeCache = code;
-    LOG_GENERAL(INFO,
-                "Contract Data: \n"
-                    << DataConversion::CharArrayToString(code));
+    // LOG_GENERAL(INFO,
+    //             "Contract Data: \n"
+    //                 << DataConversion::CharArrayToString(code));
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
     sha2.Update(code);
     m_codeHash = dev::h256(sha2.Finalize());

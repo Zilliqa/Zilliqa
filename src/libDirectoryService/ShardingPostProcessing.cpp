@@ -347,7 +347,7 @@ bool DirectoryService::ProcessShardingConsensus(
             == std::cv_status::timeout)
         {
             LOG_GENERAL(
-                INFO,
+                WARNING,
                 "Timeout: Didn't receive all Microblock. Proceeds without it");
             RunConsensusOnFinalBlock();
         }
@@ -371,7 +371,7 @@ bool DirectoryService::ProcessShardingConsensus(
                       DataConversion::SerializableToHexStr(
                           m_mediator.m_DSCommitteePubKeys[i]));
         }
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Oops, no consensus reached - what to do now???");
         // throw exception();
         // TODO: no consensus reached
