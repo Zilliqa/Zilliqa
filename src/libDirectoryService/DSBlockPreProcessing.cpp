@@ -142,12 +142,10 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
                 "debug after compose ds block debug vc "
                     << m_pendingDSBlock->GetHeader().GetViewChangeCount());
 
-#ifdef STAT_TEST
     LOG_STATE("[DSCON][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
                          << "][" << m_mediator.m_txBlockChain.GetBlockCount()
                          << "] BGIN");
-#endif // STAT_TEST
 
     cl->StartConsensus(m, DSBlockHeader::SIZE);
 

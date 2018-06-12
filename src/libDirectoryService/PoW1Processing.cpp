@@ -104,10 +104,8 @@ bool DirectoryService::VerifyPoW1Submission(
         block_num, difficulty, rand1, rand2, from.m_ipAddress, key, false,
         nonce, winning_hash, winning_mixhash);
 
-#ifdef STAT_TEST
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "[POWSTAT] pow1 verify (microsec): " << r_timer_end(m_timespec));
-#endif // STAT_TEST
 
     return result;
 }

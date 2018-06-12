@@ -141,14 +141,12 @@ void Node::StoreFinalBlock(const TxBlock& txBlock)
                                         .GetPrevHash()
                                         .asArray()));
 
-#ifdef STAT_TEST
     LOG_STATE(
         "[FINBK]["
         << std::setw(15) << std::left
         << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
         << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
         << "] RECV");
-#endif // STAT_TEST
 }
 
 bool Node::IsMicroBlockTxRootHashInFinalBlock(TxnHash microBlockTxRootHash,
@@ -475,12 +473,10 @@ void Node::BroadcastTransactionsToSendingAssignment(
 {
     LOG_MARKER();
 
-#ifdef STAT_TEST
     LOG_STATE("[TXBOD][" << setw(15) << left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
                          << "][" << m_mediator.m_txBlockChain.GetBlockCount()
                          << "] BEFORE TXN BODIES #" << blocknum);
-#endif // STAT_TEST
 
     if (txns_to_send.size() > 0)
     {
@@ -531,12 +527,10 @@ void Node::BroadcastTransactionsToSendingAssignment(
                   "DEBUG I have no txn body to send")
     }
 
-#ifdef STAT_TEST
     LOG_STATE("[TXBOD][" << setw(15) << left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
                          << "][" << m_mediator.m_txBlockChain.GetBlockCount()
                          << "] AFTER SENDING TXN BODIES");
-#endif // STAT_TEST
 }
 
 void Node::LoadForwardingAssignmentFromFinalBlock(
@@ -1220,12 +1214,10 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 
 #endif // IS_LOOKUP_NODE
 
-#ifdef STAT_TEST
     LOG_STATE("[FLBLK][" << setw(15) << left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
                          << "][" << m_mediator.m_txBlockChain.GetBlockCount()
                          << "] RECEIVED FINAL BLOCK");
-#endif // STAT_TEST
 
     unsigned int cur_offset = offset;
 
@@ -1502,11 +1494,9 @@ void Node::DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
             m_cvAllMicroBlocksRecvd.notify_all();
         }
 #endif // IS_LOOKUP_NODE
-#ifdef STAT_TEST
         LOG_STATE("[TXBOD][" << std::setw(15) << std::left
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
                              << "][" << blocknum << "] LAST");
-#endif // STAT_TEST
     }
 }
 
@@ -1523,12 +1513,10 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
         = Serializable::GetNumber<uint256_t>(message, cur_offset, UINT256_SIZE);
     cur_offset += UINT256_SIZE;
 
-#ifdef STAT_TEST
     LOG_STATE("[TXBOD][" << setw(15) << left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
                          << "][" << m_mediator.m_txBlockChain.GetBlockCount()
                          << "] RECEIVED TXN BODIES #" << blocknum);
-#endif // STAT_TEST
 
     LOG_GENERAL(INFO, "Received forwarded txns for block number " << blocknum);
 

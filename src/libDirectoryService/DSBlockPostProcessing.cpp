@@ -221,12 +221,10 @@ void DirectoryService::UpdateMyDSModeAndConsensusId()
         m_mode = BACKUP_DS;
         m_consensusMyID++;
 
-#ifdef STAT_TEST
         LOG_STATE("[IDENT][" << setw(15) << left
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
                              << "][" << setw(6) << left << m_consensusMyID
                              << "] DSBK");
-#endif // STAT_TEST
     }
     // Check if I am the oldest backup DS (I will no longer be part of the DS committee)
     else if ((uint32_t)(m_consensusMyID + 1)
@@ -240,23 +238,19 @@ void DirectoryService::UpdateMyDSModeAndConsensusId()
         m_mediator.m_node->SetState(Node::NodeState::POW2_SUBMISSION);
         m_mode = IDLE;
 
-#ifdef STAT_TEST
         LOG_STATE("[IDENT][" << setw(15) << left
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
                              << "][      ] IDLE");
-#endif // STAT_TEST
     }
     // Other DS nodes continue to remain DS backups
     else
     {
         m_consensusMyID++;
 
-#ifdef STAT_TEST
         LOG_STATE("[IDENT][" << setw(15) << left
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
                              << "][" << setw(6) << left << m_consensusMyID
                              << "] DSBK");
-#endif // STAT_TEST
     }
 }
 
@@ -377,12 +371,10 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
                                   my_pow1nodes_cluster_lo,
                                   my_pow1nodes_cluster_hi);
 
-#ifdef STAT_TEST
     LOG_STATE("[DSBLK][" << setw(15) << left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
                          << "][" << m_mediator.m_txBlockChain.GetBlockCount()
                          << "] BEFORE SENDING DSBLOCK");
-#endif // STAT_TEST
 
     // Too few target nodes - avoid asking all DS clusters to send
     if ((my_DS_cluster_num + 1) <= m_allPoWConns.size())
@@ -391,12 +383,10 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
                              my_pow1nodes_cluster_hi);
     }
 
-#ifdef STAT_TEST
     LOG_STATE("[DSBLK][" << setw(15) << left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
                          << "][" << m_mediator.m_txBlockChain.GetBlockCount()
                          << "] AFTER SENDING DSBLOCK");
-#endif // STAT_TEST
 
     {
         lock_guard<mutex> g(m_mutexAllPOW1);

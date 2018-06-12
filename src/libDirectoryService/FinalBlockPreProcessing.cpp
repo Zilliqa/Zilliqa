@@ -60,13 +60,12 @@ void DirectoryService::ExtractDataFromMicroblocks(
                                  << microBlock.GetHeader().GetNumTxs()
                                  << " transactions.");
 
-#ifdef STAT_TEST
         LOG_STATE("[STATS][" << std::setw(15) << std::left
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
                              << "][" << i << "    ]["
                              << microBlock.GetHeader().GetNumTxs()
                              << "] PROPOSED");
-#endif // STAT_TEST
+
         i++;
 
         microBlockTxHashes.emplace_back(microBlock.GetHeader().GetTxRootHash());
@@ -185,13 +184,11 @@ void DirectoryService::ComposeFinalBlockCore()
         vector<bool>(isMicroBlockEmpty), vector<TxnHash>(microBlockTxHashes),
         CoSignatures(m_mediator.m_DSCommitteePubKeys.size())));
 
-#ifdef STAT_TEST
     LOG_STATE("[STATS][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
                          << "][" << m_mediator.m_txBlockChain.GetBlockCount()
                          << "][" << m_finalBlock->GetHeader().GetNumTxs()
                          << "] FINAL");
-#endif // STAT_TEST
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Final block proposed with "
