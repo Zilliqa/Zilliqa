@@ -387,11 +387,12 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     {
         lock_guard<mutex> g(m_mutexAllPOW1);
 
-        if (m_mode != IDLE && m_allPoW2s.empty())
+        if (m_mode != IDLE)
         {
             //Copy POW1 to POW2
             lock_guard<mutex> g2(m_mutexAllPOW2);
             lock_guard<mutex> g3(m_mutexAllPoWConns);
+            m_allPoW2s.clear();
 
             for (auto i : m_allPoW1s)
             {

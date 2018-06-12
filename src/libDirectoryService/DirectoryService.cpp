@@ -896,6 +896,7 @@ bool DirectoryService::ProcessAllPoWConnRequest(
         = {MessageType::DIRECTORY, DSInstructionType::AllPoWConnResponse};
     unsigned int cur_offset = MessageOffset::BODY;
 
+    lock_guard<mutex> g(m_mutexAllPoWConns);
     Serializable::SetNumber<uint32_t>(allPowConnMsg, cur_offset,
                                       m_allPoWConns.size(), sizeof(uint32_t));
     cur_offset += sizeof(uint32_t);
@@ -939,7 +940,8 @@ bool DirectoryService::ProcessAllPoWConnResponse(
         message, cur_offset, sizeof(uint32_t));
     cur_offset += sizeof(uint32_t);
 
-    std::map<PubKey, Peer> allPowConn;
+    lock_guard<mutex> g(m_mutexAllPoWConns);
+    m_allPoWConns.clear();
 
     for (uint32_t i = 0; i < sizeeOfAllPowConn; i++)
     {
@@ -988,12 +990,13 @@ bool DirectoryService::ProcessAllPoW2Request(
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I am sending AllPow2 to requester");
 
-    lock_guard<mutex> g(m_mutexAllPOW2);
+    lock_guard<mutex> g(m_mutexAllPOW1);
+    lock_guard<mutex> g2(m_mutexAllPOW2);
+    lock_guard<mutex> g3(m_mutexAllPoWConns);
 
-    if (m_allPoW2s.empty())
+    if (!m_allPoW1s.empty())
     {
-        lock_guard<mutex> g2(m_mutexAllPOW1);
-        lock_guard<mutex> g3(m_mutexAllPoWConns);
+        m_allPoW2s.clear();
 
         for (auto i : m_allPoW1s)
         {
@@ -1014,6 +1017,20 @@ bool DirectoryService::ProcessAllPoW2Request(
         m_allPoWConns.insert(
             make_pair(m_mediator.m_DSCommitteePubKeys.back(),
                       m_mediator.m_DSCommitteeNetworkInfo.back()));
+    }
+    else
+    {
+        lock_guard<mutex> g3(m_mutexAllPoWConns);
+
+        //Winner will become DS (leader), thus we should not put in POW2
+        for (auto i : m_allPoW2s)
+        {
+            if (m_allPoWConns[i.first] == from)
+            {
+                m_allPoW2s.erase(i.first);
+                break;
+            }
+        }
     }
 
     uint32_t requesterListeningPort
@@ -1057,6 +1074,7 @@ bool DirectoryService::ProcessAllPoW2Response(
     cur_offset += sizeof(uint32_t);
 
     lock_guard<mutex> g(m_mutexAllPOW2);
+    m_allPoW2s.clear();
 
     for (uint32_t i = 0; i < sizeeOfAllPow2; i++)
     {
