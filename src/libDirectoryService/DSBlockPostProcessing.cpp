@@ -187,7 +187,6 @@ void DirectoryService::SendDSBlockToCluster(
                   << my_pow1nodes_cluster_lo << " to "
                   << my_pow1nodes_cluster_hi);
 
-#ifdef STAT_TEST
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
     sha256.Update(dsblock_message);
     vector<unsigned char> this_msg_hash = sha256.Finalize();
@@ -201,7 +200,6 @@ void DirectoryService::SendDSBlockToCluster(
         << "]["
         << m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()
         << "] DSBLOCKGEN");
-#endif // STAT_TEST
 
     // Sleep to give sufficient time to other ds node to receive the ds block
     this_thread::sleep_for(chrono::seconds(5));
@@ -305,7 +303,6 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "DS block consensus is DONE!!!");
 
-#ifdef STAT_TEST
     if (m_mode == PRIMARY_DS)
     {
         LOG_STATE("[DSCON]["
@@ -313,7 +310,6 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
                   << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
                   << m_mediator.m_txBlockChain.GetBlockCount() << "] DONE");
     }
-#endif // STAT_TEST
 
     {
         lock_guard<mutex> g(m_mutexPendingDSBlock);

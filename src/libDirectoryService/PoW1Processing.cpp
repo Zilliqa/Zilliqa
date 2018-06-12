@@ -96,9 +96,7 @@ bool DirectoryService::VerifyPoW1Submission(
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "dsblock_num            = " << block_num);
 
-#ifdef STAT_TEST
     m_timespec = r_timer_start();
-#endif // STAT_TEST
 
     bool result = POW::GetInstance().PoWVerify(
         block_num, difficulty, rand1, rand2, from.m_ipAddress, key, false,
