@@ -41,6 +41,11 @@ after_success:
       docker exec -e CI="true" -e TRAVIS="$TRAVIS" -e TRAVIS_PULL_REQUEST_SHA="$TRAVIS_PULL_REQUEST_SHA" -e TRAVIS_COMMIT="$TRAVIS_COMMIT" -e TRAVIS_JOB_NUMBER="$TRAVIS_JOB_NUMBER" -e TRAVIS_PULL_REQUEST="$TRAVIS_PULL_REQUEST" -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" -e TRAVIS_REPO_SLUG="$TRAVIS_REPO_SLUG" -e TRAVIS_OS_NAME="$TRAVIS_OS_NAME" -e TRAVIS_TAG="$TRAVIS_TAG" -e TRAVIS_BRANCH="$TRAVIS_BRANCH" -t ci /bin/sh -c "./scripts/ci_report_coverage.sh";
     fi
 
+stages:
+  - test
+  - name: deploy
+    if: type = push
+
 jobs:
   include:
   - stage: deploy
