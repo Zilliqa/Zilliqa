@@ -120,9 +120,7 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
     // Verify nonce
     uint256_t block_num = m_mediator.m_txBlockChain.GetBlockCount();
 
-#ifdef STAT_TEST
     m_timespec = r_timer_start();
-#endif // STAT_TEST
 
     lock(m_mutexAllPOW2, m_mutexAllPoWConns);
     lock_guard<mutex> g(m_mutexAllPOW2, adopt_lock);

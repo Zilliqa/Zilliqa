@@ -482,7 +482,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
 
     ConsensusLeader* cl
         = dynamic_cast<ConsensusLeader*>(m_consensusObject.get());
-#ifdef STAT_TEST
+
     if (m_mode == PRIMARY_DS)
     {
         LOG_STATE("[FBCON]["
@@ -490,7 +490,6 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
                   << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
                   << m_mediator.m_txBlockChain.GetBlockCount() << "] BGIN");
     }
-#endif // STAT_TEST
 
     cl->StartConsensus(finalBlockMessage, TxBlockHeader::SIZE);
 
