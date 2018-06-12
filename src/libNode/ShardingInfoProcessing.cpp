@@ -196,6 +196,12 @@ bool Node::ProcessSharding(const vector<unsigned char>& message,
                   "I am backup member of the sharded committee");
 
 #ifdef STAT_TEST
+        LOG_STATE("[SHSTU][" << setw(15) << left
+                             << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                             << "]["
+                             << m_mediator.m_txBlockChain.GetBlockCount()
+                             << "] RECEIVED SHARDING STRUCTURE");
+
         LOG_STATE("[IDENT][" << std::setw(15) << std::left
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
                              << "][" << m_myShardID << "][" << std::setw(3)

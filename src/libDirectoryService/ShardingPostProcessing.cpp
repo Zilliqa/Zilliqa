@@ -320,6 +320,14 @@ bool DirectoryService::ProcessShardingConsensus(
         SetupMulticastConfigForShardingStructure(my_DS_cluster_num,
                                                  my_shards_lo, my_shards_hi);
 
+#ifdef STAT_TEST
+        LOG_STATE("[SHSTU][" << setw(15) << left
+                             << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                             << "]["
+                             << m_mediator.m_txBlockChain.GetBlockCount()
+                             << "] BEFORE SENDING SHARDING STRUCTURE");
+#endif // STAT_TEST
+
         // Too few target shards - avoid asking all DS clusters to send
         if ((my_DS_cluster_num + 1) <= m_shards.size())
         {
@@ -330,6 +338,14 @@ bool DirectoryService::ProcessShardingConsensus(
                 SendingShardingStructureToShard(p);
             }
         }
+
+#ifdef STAT_TEST
+        LOG_STATE("[SHSTU][" << setw(15) << left
+                             << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                             << "]["
+                             << m_mediator.m_txBlockChain.GetBlockCount()
+                             << "] AFTER SENDING SHARDING STRUCTURE");
+#endif // STAT_TEST
 
         lock_guard<mutex> g(m_mutexAllPOW2);
         m_allPoW2s.clear();

@@ -475,6 +475,13 @@ void Node::BroadcastTransactionsToSendingAssignment(
 {
     LOG_MARKER();
 
+#ifdef STAT_TEST
+    LOG_STATE("[TXBOD][" << setw(15) << left
+                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                         << "][" << m_mediator.m_txBlockChain.GetBlockCount()
+                         << "] BEFORE TXN BODIES #" << blocknum);
+#endif // STAT_TEST
+
     if (txns_to_send.size() > 0)
     {
         // Transaction body sharing
@@ -523,6 +530,13 @@ void Node::BroadcastTransactionsToSendingAssignment(
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "DEBUG I have no txn body to send")
     }
+
+#ifdef STAT_TEST
+    LOG_STATE("[TXBOD][" << setw(15) << left
+                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                         << "][" << m_mediator.m_txBlockChain.GetBlockCount()
+                         << "] AFTER SENDING TXN BODIES");
+#endif // STAT_TEST
 }
 
 void Node::LoadForwardingAssignmentFromFinalBlock(
@@ -1206,6 +1220,13 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 
 #endif // IS_LOOKUP_NODE
 
+#ifdef STAT_TEST
+    LOG_STATE("[FLBLK][" << setw(15) << left
+                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                         << "][" << m_mediator.m_txBlockChain.GetBlockCount()
+                         << "] RECEIVED FINAL BLOCK");
+#endif // STAT_TEST
+
     unsigned int cur_offset = offset;
 
     uint8_t shard_id = (uint8_t)-1;
@@ -1481,10 +1502,11 @@ void Node::DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
             m_cvAllMicroBlocksRecvd.notify_all();
         }
 #endif // IS_LOOKUP_NODE
-
+#ifdef STAT_TEST
         LOG_STATE("[TXBOD][" << std::setw(15) << std::left
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
                              << "][" << blocknum << "] LAST");
+#endif // STAT_TEST
     }
 }
 
@@ -1500,6 +1522,13 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
     uint256_t blocknum
         = Serializable::GetNumber<uint256_t>(message, cur_offset, UINT256_SIZE);
     cur_offset += UINT256_SIZE;
+
+#ifdef STAT_TEST
+    LOG_STATE("[TXBOD][" << setw(15) << left
+                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                         << "][" << m_mediator.m_txBlockChain.GetBlockCount()
+                         << "] RECEIVED TXN BODIES #" << blocknum);
+#endif // STAT_TEST
 
     LOG_GENERAL(INFO, "Received forwarded txns for block number " << blocknum);
 

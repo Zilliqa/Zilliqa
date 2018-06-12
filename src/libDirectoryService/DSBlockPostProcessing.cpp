@@ -377,12 +377,26 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
                                   my_pow1nodes_cluster_lo,
                                   my_pow1nodes_cluster_hi);
 
+#ifdef STAT_TEST
+    LOG_STATE("[DSBLK][" << setw(15) << left
+                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                         << "][" << m_mediator.m_txBlockChain.GetBlockCount()
+                         << "] BEFORE SENDING DSBLOCK");
+#endif // STAT_TEST
+
     // Too few target nodes - avoid asking all DS clusters to send
     if ((my_DS_cluster_num + 1) <= m_allPoWConns.size())
     {
         SendDSBlockToCluster(winnerpeer, my_pow1nodes_cluster_lo,
                              my_pow1nodes_cluster_hi);
     }
+
+#ifdef STAT_TEST
+    LOG_STATE("[DSBLK][" << setw(15) << left
+                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                         << "][" << m_mediator.m_txBlockChain.GetBlockCount()
+                         << "] AFTER SENDING DSBLOCK");
+#endif // STAT_TEST
 
     {
         lock_guard<mutex> g(m_mutexAllPOW1);
