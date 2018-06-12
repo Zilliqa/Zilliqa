@@ -219,7 +219,6 @@ void DirectoryService::SendingShardingStructureToShard(
                               << " Port: " << kv.second.m_listenPortHost);
     }
 
-#ifdef STAT_TEST
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
     sha256.Update(sharding_message);
     vector<unsigned char> this_msg_hash = sha256.Finalize();
@@ -232,7 +231,6 @@ void DirectoryService::SendingShardingStructureToShard(
         << DataConversion::charArrToHexStr(m_mediator.m_dsBlockRand)
                .substr(0, 6)
         << "][" << m_mediator.m_txBlockChain.GetBlockCount() << "] SHMSG");
-#endif // STAT_TEST
 
     P2PComm::GetInstance().SendBroadcastMessage(shard_peers, sharding_message);
     p++;
@@ -291,7 +289,6 @@ bool DirectoryService::ProcessShardingConsensus(
                   "Sharding consensus is DONE!!!");
         cv_viewChangeSharding.notify_all();
 
-#ifdef STAT_TEST
         if (m_mode == PRIMARY_DS)
         {
             LOG_STATE("[SHCON]["
@@ -299,7 +296,6 @@ bool DirectoryService::ProcessShardingConsensus(
                       << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
                       << m_mediator.m_txBlockChain.GetBlockCount() << "] DONE");
         }
-#endif // STAT_TEST
 
         // TODO: Refine this
         unsigned int nodeToSendToLookUpLo = COMM_SIZE / 4;
