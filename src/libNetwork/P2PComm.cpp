@@ -688,23 +688,19 @@ void P2PComm::SendBroadcastMessageHelper(
         m_broadcastHashes.insert(this_msg_hash);
     }
 
-#ifdef STAT_TEST
     LOG_STATE("[BROAD]["
               << std::setw(15) << std::left
               << m_selfPeer.GetPrintableIPAddress() << "]["
               << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6)
               << "] BEGN");
-#endif // STAT_TEST
 
     SendBroadcastMessageCore(peers, message, this_msg_hash);
 
-#ifdef STAT_TEST
     LOG_STATE("[BROAD]["
               << std::setw(15) << std::left
               << m_selfPeer.GetPrintableIPAddress() << "]["
               << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6)
               << "] DONE");
-#endif // STAT_TEST
 }
 
 void P2PComm::SendBroadcastMessage(const vector<Peer>& peers,

@@ -312,23 +312,19 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
     unsigned int my_shards_lo;
     unsigned int my_shards_hi;
 
-#ifdef STAT_TEST
     LOG_STATE("[FLBLK][" << setw(15) << left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
                          << "][" << m_mediator.m_txBlockChain.GetBlockCount()
                          << "] BEFORE SENDING FINAL BLOCK");
-#endif // STAT_TEST
 
     DetermineShardsToSendFinalBlockTo(my_DS_cluster_num, my_shards_lo,
                                       my_shards_hi);
     SendFinalBlockToShardNodes(my_DS_cluster_num, my_shards_lo, my_shards_hi);
 
-#ifdef STAT_TEST
     LOG_STATE("[FLBLK][" << setw(15) << left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
                          << "][" << m_mediator.m_txBlockChain.GetBlockCount()
                          << "] AFTER SENDING FINAL BLOCK");
-#endif // STAT_TEST
 
     m_allPoWConns.clear();
 
