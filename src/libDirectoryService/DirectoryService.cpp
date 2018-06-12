@@ -1020,8 +1020,6 @@ bool DirectoryService::ProcessAllPoW2Request(
     }
     else
     {
-        lock_guard<mutex> g3(m_mutexAllPoWConns);
-
         //Winner will become DS (leader), thus we should not put in POW2
         for (auto i : m_allPoW2s)
         {
