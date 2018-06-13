@@ -129,7 +129,7 @@ bool Node::CheckWhetherDSBlockNumIsLatest(const uint256_t dsblockNum)
     }
     else if (dsblockNum > latestBlockNumInBlockchain)
     {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Warning: We are missing of some DS blocks. Requested: "
                       << dsblockNum
                       << " while Present: " << latestBlockNumInBlockchain);
@@ -298,6 +298,12 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
 
     // Add to block chain and Store the DS block to disk.
     StoreDSBlockToDisk(dsblock);
+
+    LOG_STATE("[DSBLK][" << setw(15) << left
+                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                         << "][" << m_mediator.m_txBlockChain.GetBlockCount()
+                         << "] RECEIVED DSBLOCK");
+
 #ifdef IS_LOOKUP_NODE
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I the lookup node have stored the DS Block");
@@ -320,14 +326,13 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
         m_mediator.m_ds->m_consensusID
             = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
         m_mediator.m_ds->SetState(DirectoryService::DirState::POW2_SUBMISSION);
+        m_mediator.m_ds->NotifyPOW2Submission();
         m_mediator.m_ds->m_mode = DirectoryService::Mode::PRIMARY_DS;
         LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
                       DS_LEADER_MSG);
-#ifdef STAT_TEST
         LOG_STATE("[IDENT][" << std::setw(15) << std::left
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
                              << "][0     ] DSLD");
-#endif // STAT_TEST
         m_mediator.m_ds->ScheduleShardingConsensus(
             LEADER_POW2_WINDOW_IN_SECONDS);
     }

@@ -112,15 +112,14 @@ void DirectoryService::DetermineNodesToSendDSBlockTo(
     LOG_EPOCH(
         INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
         "New DSBlock created with chosen nonce   = 0x"
-            << hex
-            << m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetNonce());
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "New DSBlock hash is                     = 0x"
-                  << DataConversion::charArrToHexStr(m_mediator.m_dsBlockRand));
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "New DS leader (PoW1 winner) IP          = "
-                  << winnerpeer.GetPrintableIPAddress() << ":"
-                  << winnerpeer.m_listenPortHost);
+            << hex << "\n"
+            << m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetNonce()
+            << "\n"
+            << "New DSBlock hash is                     = 0x"
+            << DataConversion::charArrToHexStr(m_mediator.m_dsBlockRand) << "\n"
+            << "New DS leader (PoW1 winner) IP          = "
+            << winnerpeer.GetPrintableIPAddress() << ":"
+            << winnerpeer.m_listenPortHost);
 
     unsigned int num_DS_clusters = m_mediator.m_DSCommitteeNetworkInfo.size()
         / DS_MULTICAST_CLUSTER_SIZE;
@@ -188,7 +187,6 @@ void DirectoryService::SendDSBlockToCluster(
                   << my_pow1nodes_cluster_lo << " to "
                   << my_pow1nodes_cluster_hi);
 
-#ifdef STAT_TEST
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
     sha256.Update(dsblock_message);
     vector<unsigned char> this_msg_hash = sha256.Finalize();
@@ -202,7 +200,6 @@ void DirectoryService::SendDSBlockToCluster(
         << "]["
         << m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()
         << "] DSBLOCKGEN");
-#endif // STAT_TEST
 
     // Sleep to give sufficient time to other ds node to receive the ds block
     this_thread::sleep_for(chrono::seconds(5));
@@ -222,12 +219,10 @@ void DirectoryService::UpdateMyDSModeAndConsensusId()
         m_mode = BACKUP_DS;
         m_consensusMyID++;
 
-#ifdef STAT_TEST
         LOG_STATE("[IDENT][" << setw(15) << left
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
                              << "][" << setw(6) << left << m_consensusMyID
                              << "] DSBK");
-#endif // STAT_TEST
     }
     // Check if I am the oldest backup DS (I will no longer be part of the DS committee)
     else if ((uint32_t)(m_consensusMyID + 1)
@@ -235,29 +230,25 @@ void DirectoryService::UpdateMyDSModeAndConsensusId()
     {
         LOG_EPOCH(
             INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "I am the oldest backup DS -> now kicked out of DS committee :-(");
-        LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
-                      DS_KICKOUT_MSG);
+            "I am the oldest backup DS -> now kicked out of DS committee :-("
+                << "\n"
+                << DS_KICKOUT_MSG);
         m_mediator.m_node->SetState(Node::NodeState::POW2_SUBMISSION);
         m_mode = IDLE;
 
-#ifdef STAT_TEST
         LOG_STATE("[IDENT][" << setw(15) << left
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
                              << "][      ] IDLE");
-#endif // STAT_TEST
     }
     // Other DS nodes continue to remain DS backups
     else
     {
         m_consensusMyID++;
 
-#ifdef STAT_TEST
         LOG_STATE("[IDENT][" << setw(15) << left
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
                              << "][" << setw(6) << left << m_consensusMyID
                              << "] DSBK");
-#endif // STAT_TEST
     }
 }
 
@@ -312,7 +303,6 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "DS block consensus is DONE!!!");
 
-#ifdef STAT_TEST
     if (m_mode == PRIMARY_DS)
     {
         LOG_STATE("[DSCON]["
@@ -320,7 +310,6 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
                   << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
                   << m_mediator.m_txBlockChain.GetBlockCount() << "] DONE");
     }
-#endif // STAT_TEST
 
     {
         lock_guard<mutex> g(m_mutexPendingDSBlock);
@@ -378,12 +367,22 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
                                   my_pow1nodes_cluster_lo,
                                   my_pow1nodes_cluster_hi);
 
+    LOG_STATE("[DSBLK][" << setw(15) << left
+                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                         << "][" << m_mediator.m_txBlockChain.GetBlockCount()
+                         << "] BEFORE SENDING DSBLOCK");
+
     // Too few target nodes - avoid asking all DS clusters to send
     if ((my_DS_cluster_num + 1) <= m_allPoWConns.size())
     {
         SendDSBlockToCluster(winnerpeer, my_pow1nodes_cluster_lo,
                              my_pow1nodes_cluster_hi);
     }
+
+    LOG_STATE("[DSBLK][" << setw(15) << left
+                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                         << "][" << m_mediator.m_txBlockChain.GetBlockCount()
+                         << "] AFTER SENDING DSBLOCK");
 
     {
         lock_guard<mutex> g(m_mutexAllPOW1);
@@ -396,6 +395,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     if (m_mode != IDLE)
     {
         SetState(POW2_SUBMISSION);
+        NotifyPOW2Submission();
         ScheduleShardingConsensus(BACKUP_POW2_WINDOW_IN_SECONDS);
     }
     else

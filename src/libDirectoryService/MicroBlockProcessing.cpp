@@ -108,7 +108,6 @@ bool DirectoryService::ProcessMicroblockSubmission(
 
     LOG_MARKER();
 
-    // if (m_state != MICROBLOCK_SUBMISSION)
     if (!CheckState(PROCESS_MICROBLOCKSUBMISSION))
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -201,7 +200,6 @@ bool DirectoryService::ProcessMicroblockSubmission(
 
     if (m_microBlocks.size() == m_shards.size())
     {
-#ifdef STAT_TEST
         if (m_mode == PRIMARY_DS)
         {
             LOG_STATE("[MICRO]["
@@ -209,7 +207,6 @@ bool DirectoryService::ProcessMicroblockSubmission(
                       << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
                       << m_mediator.m_txBlockChain.GetBlockCount() << "] LAST");
         }
-#endif // STAT_TEST
         for (auto& microBlock : m_microBlocks)
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -219,7 +216,6 @@ bool DirectoryService::ProcessMicroblockSubmission(
         cv_scheduleFinalBlockConsensus.notify_all();
         RunConsensusOnFinalBlock();
     }
-#ifdef STAT_TEST
     else if ((m_microBlocks.size() == 1) && (m_mode == PRIMARY_DS))
     {
         LOG_STATE("[MICRO]["
@@ -227,7 +223,6 @@ bool DirectoryService::ProcessMicroblockSubmission(
                   << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
                   << m_mediator.m_txBlockChain.GetBlockCount() << "] FRST");
     }
-#endif // STAT_TEST
 
         // TODO: Re-request from shard leader if microblock is not received after a certain time.
 #endif // IS_LOOKUP_NODE

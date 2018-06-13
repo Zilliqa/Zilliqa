@@ -43,6 +43,7 @@ DirectoryService::DirectoryService(Mediator& mediator)
 {
 #ifndef IS_LOOKUP_NODE
     SetState(POW1_SUBMISSION);
+    cv_POW1Submission.notify_all();
 #endif // IS_LOOKUP_NODE
     m_mode = IDLE;
     m_requesting_last_ds_block = false;
@@ -763,7 +764,6 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "START OF EPOCH " << m_mediator.m_dsBlockChain.GetBlockCount());
 
-#ifdef STAT_TEST
     if (primary == m_mediator.m_selfPeer)
     {
         LOG_STATE("[IDENT][" << std::setw(15) << std::left
@@ -777,7 +777,6 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
                              << "][" << std::setw(6) << std::left
                              << m_consensusMyID << "] DSBK");
     }
-#endif // STAT_TEST
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Waiting " << POW1_WINDOW_IN_SECONDS
@@ -1065,6 +1064,7 @@ bool DirectoryService::ProcessLastDSBlockResponse(
         dsblock.GetHeader().GetBlockNum());
 
     SetState(POW2_SUBMISSION);
+    NotifyPOW2Submission();
     ScheduleShardingConsensus(BACKUP_POW2_WINDOW_IN_SECONDS
                               - BUFFER_TIME_BEFORE_DS_BLOCK_REQUEST);
     return true;

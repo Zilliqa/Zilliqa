@@ -207,5 +207,5 @@ const vector<bool>& ConsensusCommon::GetB2() const
 
 unsigned int ConsensusCommon::NumForConsensus(unsigned int shardSize)
 {
-    return ceil(shardSize * TOLERANCE_FRACTION) - 1;
+    return ceil(shardSize * TOLERANCE_FRACTION);
 }

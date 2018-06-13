@@ -55,7 +55,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # compiler and linker options
-add_definitions(-DSTAT_TEST)
 
 if(IS_LOOKUP_NODE)
     add_definitions(-DIS_LOOKUP_NODE)

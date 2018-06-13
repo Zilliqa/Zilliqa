@@ -60,13 +60,12 @@ void DirectoryService::ExtractDataFromMicroblocks(
                                  << microBlock.GetHeader().GetNumTxs()
                                  << " transactions.");
 
-#ifdef STAT_TEST
         LOG_STATE("[STATS][" << std::setw(15) << std::left
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
                              << "][" << i << "    ]["
                              << microBlock.GetHeader().GetNumTxs()
                              << "] PROPOSED");
-#endif // STAT_TEST
+
         i++;
 
         microBlockTxHashes.emplace_back(microBlock.GetHeader().GetTxRootHash());
@@ -185,13 +184,11 @@ void DirectoryService::ComposeFinalBlockCore()
         vector<bool>(isMicroBlockEmpty), vector<TxnHash>(microBlockTxHashes),
         CoSignatures(m_mediator.m_DSCommitteePubKeys.size())));
 
-#ifdef STAT_TEST
     LOG_STATE("[STATS][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
                          << "][" << m_mediator.m_txBlockChain.GetBlockCount()
                          << "][" << m_finalBlock->GetHeader().GetNumTxs()
                          << "] FINAL");
-#endif // STAT_TEST
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Final block proposed with "
@@ -485,7 +482,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
 
     ConsensusLeader* cl
         = dynamic_cast<ConsensusLeader*>(m_consensusObject.get());
-#ifdef STAT_TEST
+
     if (m_mode == PRIMARY_DS)
     {
         LOG_STATE("[FBCON]["
@@ -493,7 +490,6 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
                   << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
                   << m_mediator.m_txBlockChain.GetBlockCount() << "] BGIN");
     }
-#endif // STAT_TEST
 
     cl->StartConsensus(finalBlockMessage, TxBlockHeader::SIZE);
 
@@ -761,29 +757,22 @@ bool DirectoryService::CheckFinalBlockValidity()
 {
     LOG_MARKER();
 
-    bool valid = false;
-
-    do
+    if (!CheckBlockTypeIsFinal() || !CheckFinalBlockVersion()
+        || !CheckFinalBlockNumber() || !CheckPreviousFinalBlockHash()
+        || !CheckFinalBlockTimestamp() || !CheckMicroBlockHashes()
+        || !CheckMicroBlockHashRoot() || !CheckIsMicroBlockEmpty()
+        || !CheckStateRoot())
     {
-        if (!CheckBlockTypeIsFinal() || !CheckFinalBlockVersion()
-            || !CheckFinalBlockNumber() || !CheckPreviousFinalBlockHash()
-            || !CheckFinalBlockTimestamp() || !CheckMicroBlockHashes()
-            || !CheckMicroBlockHashRoot() || !CheckIsMicroBlockEmpty()
-            || !CheckStateRoot())
-        {
-            break;
-        }
+        return false;
+    }
 
-        // TODO: Check gas limit (must satisfy some equations)
-        // TODO: Check gas used (must be <= gas limit)
-        // TODO: Check pubkey (must be valid and = shard leader)
-        // TODO: Check parent DS hash (must be = digest of last DS block header in the DS blockchain)
-        // TODO: Check parent DS block number (must be = block number of last DS block header in the DS blockchain)
+    // TODO: Check gas limit (must satisfy some equations)
+    // TODO: Check gas used (must be <= gas limit)
+    // TODO: Check pubkey (must be valid and = shard leader)
+    // TODO: Check parent DS hash (must be = digest of last DS block header in the DS blockchain)
+    // TODO: Check parent DS block number (must be = block number of last DS block header in the DS blockchain)
 
-        valid = true;
-    } while (false);
-
-    return valid;
+    return true;
 }
 
 void DirectoryService::SaveTxnBodySharingAssignment(
@@ -835,12 +824,6 @@ void DirectoryService::SaveTxnBodySharingAssignment(
     bool i_am_forwarder = false;
     for (uint32_t i = 0; i < num_ds_nodes; i++)
     {
-        // Peer tempPeer;
-        // if(tempPeer.Deserialize(finalblock, curr_offset) != 0)
-        // {
-        //     LOG_GENERAL(WARNING, "We failed to deserialize Peer.");
-        // }
-        // ds_receivers.push_back(tempPeer);
         // TODO: Handle exceptions
         ds_receivers.push_back(Peer(finalblock, curr_offset));
         curr_offset += IP_SIZE + PORT_SIZE;
@@ -986,7 +969,7 @@ bool DirectoryService::FinalBlockValidator(
 
     if (!CheckFinalBlockValidity())
     {
-        LOG_GENERAL(INFO,
+        LOG_GENERAL(WARNING,
                     "To-do: What to do if proposed microblock is not valid?");
         // throw exception();
         // TODO: microblock is invalid
@@ -1024,7 +1007,6 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup()
     // Create new consensus object
 
     // Dummy values for now
-    //m_consensusID = 0x0;
     m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
 
@@ -1055,8 +1037,6 @@ void DirectoryService::RunConsensusOnFinalBlock()
     LOG_MARKER();
 
     SetState(FINALBLOCK_CONSENSUS_PREP);
-    // LOG_GENERAL("I am going to sleep for 10 seconds for each tx epoch.");
-    // this_thread::sleep_for(chrono::seconds(10));
 
     if (m_mode == PRIMARY_DS)
     {
@@ -1073,7 +1053,7 @@ void DirectoryService::RunConsensusOnFinalBlock()
         */
         if (!RunConsensusOnFinalBlockWhenDSPrimary())
         {
-            LOG_GENERAL(INFO,
+            LOG_GENERAL(WARNING,
                         "Throwing exception after "
                         "RunConsensusOnFinalBlockWhenDSPrimary");
             // throw exception();
@@ -1084,7 +1064,7 @@ void DirectoryService::RunConsensusOnFinalBlock()
     {
         if (!RunConsensusOnFinalBlockWhenDSBackup())
         {
-            LOG_GENERAL(INFO,
+            LOG_GENERAL(WARNING,
                         "Throwing exception after "
                         "RunConsensusOnFinalBlockWhenDSBackup");
             // throw exception();

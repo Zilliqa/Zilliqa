@@ -840,12 +840,18 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
     }
     else if (submitTxnType == SUBMITTRANSACTIONTYPE::TXNSHARING)
     {
-        while (m_state != TX_SUBMISSION && m_state != TX_SUBMISSION_BUFFER)
+        std::unique_lock<std::mutex> cv_lk(m_MutexCVTxSubmission);
+
+        if (cv_txSubmission.wait_for(
+                cv_lk, std::chrono::seconds(TX_SUBMISSION_TIMEOUT))
+            == std::cv_status::timeout)
         {
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Not in ProcessSubmitTxn state -- waiting!")
-            this_thread::sleep_for(chrono::milliseconds(200));
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Time out while waiting for state transition ");
         }
+
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "State transition is completed. (check for timeout)");
 
         ProcessSubmitTxnSharing(message, cur_offset, from);
     }
@@ -945,7 +951,6 @@ void Node::SubmitTransactions()
     // txns needed to be shared within shard members so that it completes in the time limit
     while (txn_sent_count < MAXSUBMITTXNPERNODE)
     {
-        // shared_lock<shared_timed_mutex> lock(m_mutexProducerConsumer);
         if (m_state != TX_SUBMISSION)
         {
             break;
@@ -1027,12 +1032,10 @@ void Node::SubmitTransactions()
 
     m_mediator.m_validator->CleanVariables();
 
-#ifdef STAT_TEST
     LOG_STATE("[TXNSE][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
                          << "][" << m_mediator.m_currentEpochNum << "]["
                          << m_myShardID << "][" << txn_sent_count << "] CONT");
-#endif // STAT_TEST
 }
 
 void Node::RejoinAsNormal()
