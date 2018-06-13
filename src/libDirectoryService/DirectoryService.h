@@ -89,7 +89,6 @@ class DirectoryService : public Executable, public Broadcastable
     std::atomic<bool> m_requesting_last_ds_block;
     unsigned int BUFFER_TIME_BEFORE_DS_BLOCK_REQUEST = 5;
 
-    // std::shared_timed_mutex m_mutexProducerConsumer;
     std::mutex m_mutexConsensus;
 
     bool m_hasAllPoWconns = true;
@@ -159,6 +158,10 @@ class DirectoryService : public Executable, public Broadcastable
     std::mutex m_MutexCVShardingConsensusObject;
     std::condition_variable cv_finalBlockConsensusObject;
     std::mutex m_MutexCVFinalBlockConsensusObject;
+    std::condition_variable cv_POW1Submission;
+    std::mutex m_MutexCVPOW1Submission;
+    std::condition_variable cv_POW2Submission;
+    std::mutex m_MutexCVPOW2Submission;
 
     // TO Remove
     Mediator& m_mediator;
@@ -417,6 +420,9 @@ public:
     /// Implements the Execute function inherited from Executable.
     bool Execute(const std::vector<unsigned char>& message, unsigned int offset,
                  const Peer& from);
+
+    /// Notify POW2 submission to DirectoryService::ProcessPoW2Submission()
+    void NotifyPOW2Submission() { cv_POW2Submission.notify_all(); }
 };
 
 #endif // __DIRECTORYSERVICE_H__
