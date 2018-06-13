@@ -5,13 +5,6 @@
 
 set -e
 
-# skip this script if running for pull-request build
-if [ "${TRAVIS_PULL_REQUEST}" != "false" ]
-then
-    echo "skipping making images"
-    exit 0
-fi
-
 docker --version
 pip install --user awscli
 export PATH=$PATH:$HOME/.local/bin
