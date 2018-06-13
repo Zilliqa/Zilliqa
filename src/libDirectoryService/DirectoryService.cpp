@@ -937,7 +937,6 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "START OF EPOCH " << m_mediator.m_dsBlockChain.GetBlockCount());
 
-#ifdef STAT_TEST
     if (primary == m_mediator.m_selfPeer)
     {
         LOG_STATE("[IDENT][" << std::setw(15) << std::left
@@ -951,7 +950,6 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
                              << "][" << std::setw(6) << std::left
                              << m_consensusMyID << "] DSBK");
     }
-#endif // STAT_TEST
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Waiting " << POW1_WINDOW_IN_SECONDS
