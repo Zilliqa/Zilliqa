@@ -131,7 +131,7 @@ class DirectoryService : public Executable, public Broadcastable
     std::vector<Peer> m_sharingAssignment;
 
     // View Change
-    std::atomic<unsigned int> m_viewChangeCounter;
+    std::atomic<uint32_t> m_viewChangeCounter;
     Peer m_candidateLeader;
     std::shared_ptr<VCBlock> m_pendingVCBlock;
     std::mutex m_mutexPendingVCBlock;

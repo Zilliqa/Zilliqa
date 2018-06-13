@@ -144,7 +144,7 @@ void DirectoryService::ComputeNewCandidateLeader()
     LOG_GENERAL(INFO,
                 "Composing new vc block with vc count at "
                     << m_viewChangeCounter);
-    unsigned int newCandidateLeaderIndex = 1;
+    uint32_t newCandidateLeaderIndex = 1;
 
     Peer newLeaderNetworkInfo;
     if (m_mediator.m_DSCommitteeNetworkInfo.at(newCandidateLeaderIndex)

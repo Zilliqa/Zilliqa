@@ -34,10 +34,10 @@ VCBlockHeader::VCBlockHeader(const vector<unsigned char>& src,
 VCBlockHeader::VCBlockHeader(const uint64_t& vieWChangeDSEpochNo,
                              const uint64_t& viewChangeEpochNo,
                              const unsigned char viewChangeState,
-                             const unsigned int expectedCandidateLeaderIndex,
+                             const uint32_t expectedCandidateLeaderIndex,
                              const Peer& candidateLeaderNetworkInfo,
                              const PubKey& candidateLeaderPubKey,
-                             const unsigned int vcCounter,
+                             const uint32_t vcCounter,
                              const boost::multiprecision::uint256_t& timestamp)
     : m_VieWChangeDSEpochNo(vieWChangeDSEpochNo)
     , m_VieWChangeEpochNo(viewChangeEpochNo)
@@ -72,13 +72,13 @@ unsigned int VCBlockHeader::Serialize(vector<unsigned char>& dst,
     SetNumber<unsigned char>(dst, curOffset, m_ViewChangeState,
                              sizeof(unsigned char));
     curOffset += sizeof(unsigned char);
-    SetNumber<unsigned int>(dst, curOffset, m_CandidateLeaderIndex,
-                            sizeof(unsigned int));
-    curOffset += sizeof(unsigned int);
+    SetNumber<uint32_t>(dst, curOffset, m_CandidateLeaderIndex,
+                        sizeof(uint32_t));
+    curOffset += sizeof(uint32_t);
     curOffset += m_CandidateLeaderNetworkInfo.Serialize(dst, curOffset);
     curOffset += m_CandidateLeaderPubKey.Serialize(dst, curOffset);
-    SetNumber<unsigned int>(dst, curOffset, m_VCCounter, sizeof(unsigned int));
-    curOffset += sizeof(unsigned int);
+    SetNumber<uint32_t>(dst, curOffset, m_VCCounter, sizeof(uint32_t));
+    curOffset += sizeof(uint32_t);
     SetNumber<uint256_t>(dst, curOffset, m_Timestamp, UINT256_SIZE);
     curOffset += UINT256_SIZE;
     return size_needed;
@@ -100,8 +100,8 @@ int VCBlockHeader::Deserialize(const vector<unsigned char>& src,
             = GetNumber<unsigned char>(src, curOffset, sizeof(unsigned char));
         curOffset += sizeof(unsigned char);
         m_CandidateLeaderIndex
-            = GetNumber<unsigned int>(src, curOffset, sizeof(unsigned int));
-        curOffset += sizeof(unsigned int);
+            = GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
+        curOffset += sizeof(uint32_t);
         if (m_CandidateLeaderNetworkInfo.Deserialize(src, curOffset) != 0)
         {
             LOG_GENERAL(
@@ -119,9 +119,8 @@ int VCBlockHeader::Deserialize(const vector<unsigned char>& src,
         }
         curOffset += PUB_KEY_SIZE;
 
-        m_VCCounter
-            = GetNumber<unsigned int>(src, curOffset, sizeof(unsigned int));
-        curOffset += sizeof(unsigned int);
+        m_VCCounter = GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
+        curOffset += sizeof(uint32_t);
         m_Timestamp = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
         curOffset += UINT256_SIZE;
     }
@@ -151,7 +150,7 @@ const unsigned char VCBlockHeader::GetViewChangeState() const
     return m_ViewChangeState;
 }
 
-const unsigned int VCBlockHeader::GetCandidateLeaderIndex() const
+const uint32_t VCBlockHeader::GetCandidateLeaderIndex() const
 {
     return m_CandidateLeaderIndex;
 }
@@ -166,7 +165,7 @@ const PubKey& VCBlockHeader::GetCandidateLeaderPubKey() const
     return m_CandidateLeaderPubKey;
 }
 
-const unsigned int VCBlockHeader::GetViewChangeCounter() const
+const uint32_t VCBlockHeader::GetViewChangeCounter() const
 {
     return m_VCCounter;
 }
