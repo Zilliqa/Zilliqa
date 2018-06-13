@@ -198,7 +198,6 @@ void DirectoryService::SendFinalBlockToShardNodes(
             Serializable::SetNumber<uint8_t>(finalblock_message, curr_offset,
                                              (uint8_t)i, sizeof(uint8_t));
 
-#ifdef STAT_TEST
             SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
             sha256.Update(finalblock_message);
             vector<unsigned char> this_msg_hash = sha256.Finalize();
@@ -212,7 +211,6 @@ void DirectoryService::SendFinalBlockToShardNodes(
                        .substr(0, 6)
                 << "][" << m_mediator.m_txBlockChain.GetBlockCount()
                 << "] FBBLKGEN");
-#endif // STAT_TEST
 
             P2PComm::GetInstance().SendBroadcastMessage(shard_peers,
                                                         finalblock_message);
@@ -249,7 +247,6 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Final block consensus is DONE!!!");
 
-#ifdef STAT_TEST
     if (m_mode == PRIMARY_DS)
     {
         LOG_STATE("[FBCON]["
@@ -257,7 +254,6 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
                   << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
                   << m_mediator.m_txBlockChain.GetBlockCount() << "] DONE");
     }
-#endif // STAT_TEST
 
     // Update the final block with the co-signatures from the consensus
     m_finalBlock->SetCoSignatures(*m_consensusObject);
@@ -312,9 +308,19 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
     unsigned int my_shards_lo;
     unsigned int my_shards_hi;
 
+    LOG_STATE("[FLBLK][" << setw(15) << left
+                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                         << "][" << m_mediator.m_txBlockChain.GetBlockCount()
+                         << "] BEFORE SENDING FINAL BLOCK");
+
     DetermineShardsToSendFinalBlockTo(my_DS_cluster_num, my_shards_lo,
                                       my_shards_hi);
     SendFinalBlockToShardNodes(my_DS_cluster_num, my_shards_lo, my_shards_hi);
+
+    LOG_STATE("[FLBLK][" << setw(15) << left
+                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                         << "][" << m_mediator.m_txBlockChain.GetBlockCount()
+                         << "] AFTER SENDING FINAL BLOCK");
 
     m_allPoWConns.clear();
 
