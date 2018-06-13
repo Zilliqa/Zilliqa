@@ -206,7 +206,6 @@ void DirectoryService::SendingShardingStructureToShard(
                               << " Port: " << kv.second.m_listenPortHost);
     }
 
-#ifdef STAT_TEST
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
     sha256.Update(sharding_message);
     vector<unsigned char> this_msg_hash = sha256.Finalize();
@@ -219,7 +218,6 @@ void DirectoryService::SendingShardingStructureToShard(
         << DataConversion::charArrToHexStr(m_mediator.m_dsBlockRand)
                .substr(0, 6)
         << "][" << m_mediator.m_txBlockChain.GetBlockCount() << "] SHMSG");
-#endif // STAT_TEST
 
     P2PComm::GetInstance().SendBroadcastMessage(shard_peers, sharding_message);
     p++;
@@ -278,7 +276,6 @@ bool DirectoryService::ProcessShardingConsensus(
                   "Sharding consensus is DONE!!!");
         cv_viewChangeSharding.notify_all();
 
-#ifdef STAT_TEST
         if (m_mode == PRIMARY_DS)
         {
             LOG_STATE("[SHCON]["
@@ -286,7 +283,6 @@ bool DirectoryService::ProcessShardingConsensus(
                       << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
                       << m_mediator.m_txBlockChain.GetBlockCount() << "] DONE");
         }
-#endif // STAT_TEST
 
         // TODO: Refine this
         unsigned int nodeToSendToLookUpLo = COMM_SIZE / 4;
@@ -307,6 +303,12 @@ bool DirectoryService::ProcessShardingConsensus(
         SetupMulticastConfigForShardingStructure(my_DS_cluster_num,
                                                  my_shards_lo, my_shards_hi);
 
+        LOG_STATE("[SHSTU][" << setw(15) << left
+                             << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                             << "]["
+                             << m_mediator.m_txBlockChain.GetBlockCount()
+                             << "] BEFORE SENDING SHARDING STRUCTURE");
+
         // Too few target shards - avoid asking all DS clusters to send
         if ((my_DS_cluster_num + 1) <= m_shards.size())
         {
@@ -317,6 +319,12 @@ bool DirectoryService::ProcessShardingConsensus(
                 SendingShardingStructureToShard(p);
             }
         }
+
+        LOG_STATE("[SHSTU][" << setw(15) << left
+                             << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                             << "]["
+                             << m_mediator.m_txBlockChain.GetBlockCount()
+                             << "] AFTER SENDING SHARDING STRUCTURE");
 
         lock_guard<mutex> g(m_mutexAllPOW2);
         m_allPoW2s.clear();

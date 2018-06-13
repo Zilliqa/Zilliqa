@@ -460,7 +460,6 @@ void P2PComm::HandleAcceptedConnection(
                     broadcast_list, message, this_msg_hash);
             }
 
-#ifdef STAT_TEST
             vector<unsigned char> this_msg_hash(hash_buf, hash_buf + HASH_LEN);
             LOG_STATE(
                 "[BROAD]["
@@ -468,7 +467,6 @@ void P2PComm::HandleAcceptedConnection(
                 << P2PComm::GetInstance().m_selfPeer << "]["
                 << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6)
                 << "] RECV");
-#endif // STAT_TEST
 
             // Dispatch message normally
             dispatcher(message, from);
@@ -688,23 +686,19 @@ void P2PComm::SendBroadcastMessageHelper(
         m_broadcastHashes.insert(this_msg_hash);
     }
 
-#ifdef STAT_TEST
     LOG_STATE("[BROAD]["
               << std::setw(15) << std::left
               << m_selfPeer.GetPrintableIPAddress() << "]["
               << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6)
               << "] BEGN");
-#endif // STAT_TEST
 
     SendBroadcastMessageCore(peers, message, this_msg_hash);
 
-#ifdef STAT_TEST
     LOG_STATE("[BROAD]["
               << std::setw(15) << std::left
               << m_selfPeer.GetPrintableIPAddress() << "]["
               << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6)
               << "] DONE");
-#endif // STAT_TEST
 }
 
 void P2PComm::SendBroadcastMessage(const vector<Peer>& peers,
@@ -721,6 +715,4 @@ void P2PComm::SendBroadcastMessage(const deque<Peer>& peers,
     SendBroadcastMessageHelper(peers, message);
 }
 
-#ifdef STAT_TEST
 void P2PComm::SetSelfPeer(const Peer& self) { m_selfPeer = self; }
-#endif // STAT_TEST

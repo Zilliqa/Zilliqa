@@ -44,9 +44,7 @@ class Mediator;
 /// Implements Directory Service functionality including PoW verification, DS, Tx Block Consensus and sharding management.
 class DirectoryService : public Executable, public Broadcastable
 {
-#ifdef STAT_TEST
     std::chrono::system_clock::time_point m_timespec;
-#endif // STAT_TEST
 
     enum Action
     {

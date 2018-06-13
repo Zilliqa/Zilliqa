@@ -137,12 +137,11 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
         m_pendingDSBlock->Serialize(m, 0);
     }
 
-#ifdef STAT_TEST
     LOG_STATE("[DSCON][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
                          << "][" << m_mediator.m_txBlockChain.GetBlockCount()
                          << "] BGIN");
-#endif // STAT_TEST
+
     cl->StartConsensus(m, DSBlockHeader::SIZE);
 
     return true;
