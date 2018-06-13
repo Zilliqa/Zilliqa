@@ -45,10 +45,6 @@ private:
     // Consensus session settings
     uint16_t m_leaderID;
 
-    // Generated commit
-    std::shared_ptr<CommitSecret> m_commitSecret;
-    std::shared_ptr<CommitPoint> m_commitPoint;
-
     // Received challenge
     Challenge m_challenge;
 

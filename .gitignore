@@ -98,6 +98,8 @@ local_run
 lookup_local_run
 config.xml
 *log.txt
+build
+build_lookup
 
 # Mac
 .DS_Store 
