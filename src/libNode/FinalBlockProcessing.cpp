@@ -141,14 +141,12 @@ void Node::StoreFinalBlock(const TxBlock& txBlock)
                                         .GetPrevHash()
                                         .asArray()));
 
-#ifdef STAT_TEST
     LOG_STATE(
         "[FINBK]["
         << std::setw(15) << std::left
         << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
         << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
         << "] RECV");
-#endif // STAT_TEST
 }
 
 bool Node::IsMicroBlockTxRootHashInFinalBlock(TxnHash microBlockTxRootHash,
@@ -475,6 +473,11 @@ void Node::BroadcastTransactionsToSendingAssignment(
 {
     LOG_MARKER();
 
+    LOG_STATE("[TXBOD][" << setw(15) << left
+                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                         << "][" << m_mediator.m_txBlockChain.GetBlockCount()
+                         << "] BEFORE TXN BODIES #" << blocknum);
+
     if (txns_to_send.size() > 0)
     {
         // Transaction body sharing
@@ -523,6 +526,11 @@ void Node::BroadcastTransactionsToSendingAssignment(
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "DEBUG I have no txn body to send")
     }
+
+    LOG_STATE("[TXBOD][" << setw(15) << left
+                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                         << "][" << m_mediator.m_txBlockChain.GetBlockCount()
+                         << "] AFTER SENDING TXN BODIES");
 }
 
 void Node::LoadForwardingAssignmentFromFinalBlock(
@@ -772,6 +780,7 @@ void Node::UpdateStateForNextConsensusRound()
               "MS: Next non-ds epoch begins");
 
     SetState(TX_SUBMISSION);
+    cv_txSubmission.notify_all();
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "[No PoW needed] MS: Start submit txn stage again.");
 }
@@ -790,8 +799,8 @@ void Node::ScheduleTxnSubmission()
                                                      << " seconds");
 
     auto main_func2 = [this]() mutable -> void {
-        // unique_lock<shared_timed_mutex> lock(m_mutexProducerConsumer);
         SetState(TX_SUBMISSION_BUFFER);
+        cv_txSubmission.notify_all();
     };
 
     DetachedFunction(1, main_func2);
@@ -1205,6 +1214,11 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 
 #endif // IS_LOOKUP_NODE
 
+    LOG_STATE("[FLBLK][" << setw(15) << left
+                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                         << "][" << m_mediator.m_txBlockChain.GetBlockCount()
+                         << "] RECEIVED FINAL BLOCK");
+
     unsigned int cur_offset = offset;
 
     uint8_t shard_id = (uint8_t)-1;
@@ -1480,7 +1494,6 @@ void Node::DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
             m_cvAllMicroBlocksRecvd.notify_all();
         }
 #endif // IS_LOOKUP_NODE
-
         LOG_STATE("[TXBOD][" << std::setw(15) << std::left
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
                              << "][" << blocknum << "] LAST");
@@ -1499,6 +1512,11 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
     uint256_t blocknum
         = Serializable::GetNumber<uint256_t>(message, cur_offset, UINT256_SIZE);
     cur_offset += UINT256_SIZE;
+
+    LOG_STATE("[TXBOD][" << setw(15) << left
+                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                         << "][" << m_mediator.m_txBlockChain.GetBlockCount()
+                         << "] RECEIVED TXN BODIES #" << blocknum);
 
     LOG_GENERAL(INFO, "Received forwarded txns for block number " << blocknum);
 
