@@ -201,12 +201,10 @@ bool DirectoryService::RunConsensusOnShardingWhenDSPrimary()
     this_thread::sleep_for(
         chrono::seconds(LEADER_SHARDING_PREPARATION_IN_SECONDS));
 
-#ifdef STAT_TEST
     LOG_STATE("[SHCON][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
                          << "][" << m_mediator.m_txBlockChain.GetBlockCount()
                          << "] BGIN");
-#endif // STAT_TEST
 
     cl->StartConsensus(sharding_structure, sharding_structure.size());
 

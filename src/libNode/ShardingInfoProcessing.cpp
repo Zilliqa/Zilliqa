@@ -183,24 +183,27 @@ bool Node::ProcessSharding(const vector<unsigned char>& message,
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "I am primary of the sharded committee");
 
-#ifdef STAT_TEST
         LOG_STATE("[IDENT][" << std::setw(15) << std::left
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
                              << "][" << m_myShardID << "][0  ] SCLD");
-#endif
     }
     else
     {
         m_isPrimary = false;
+
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "I am backup member of the sharded committee");
 
-#ifdef STAT_TEST
+        LOG_STATE("[SHSTU][" << setw(15) << left
+                             << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                             << "]["
+                             << m_mediator.m_txBlockChain.GetBlockCount()
+                             << "] RECEIVED SHARDING STRUCTURE");
+
         LOG_STATE("[IDENT][" << std::setw(15) << std::left
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
                              << "][" << m_myShardID << "][" << std::setw(3)
                              << std::left << m_consensusMyID << "] SCBK");
-#endif // STAT_TEST
     }
 
     // Choose 4 other node to be sender of microblock to ds committee.
