@@ -14,34 +14,42 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#ifndef __BLOCK_H__
-#define __BLOCK_H__
+#ifndef __VCBLOCKCHAIN_H__
+#define __VCBLOCKCHAIN_H__
 
-#include "Block/DSBlock.h"
-#include "Block/MicroBlock.h"
-#include "Block/TxBlock.h"
-#include "Block/VCBlock.h"
-#include "BlockHeader/DSBlockHeader.h"
-#include "BlockHeader/MicroBlockHeader.h"
-#include "BlockHeader/TxBlockHeader.h"
-#include "BlockHeader/VCBlockHeader.h"
+#include <mutex>
+#include <vector>
 
-enum BlockType : unsigned int
+#include <boost/multiprecision/cpp_int.hpp>
+
+#include "libData/BlockData/Block/VCBlock.h"
+#include "libData/DataStructures/CircularArray.h"
+#include "libPersistence/BlockStorage.h"
+
+/// Transient storage for VC blocks.
+class VCBlockChain
 {
-    DS = 0,
-    Tx = 1,
-    VC = 2
+    std::mutex m_mutexVCBlocks;
+    CircularArray<VCBlock> m_vcBlocks;
+
+public:
+    /// Constructor.
+    VCBlockChain();
+
+    /// Destructor.
+    ~VCBlockChain();
+
+    /// Reset
+    void Reset();
+
+    /// Returns the last stored block.
+    VCBlock GetLastBlock();
+
+    /// Returns the block at the specified block number.
+    VCBlock GetBlock(const boost::multiprecision::uint256_t& blocknum);
+
+    /// Adds a block to the chain.
+    int AddBlock(const VCBlock& block);
 };
 
-enum TXBLOCKTYPE : unsigned char
-{
-    MICRO = 0x00,
-    FINAL = 0x01
-};
-
-enum BLOCKVERSION : unsigned char
-{
-    VERSION1 = 0x00
-};
-
-#endif // __BLOCK_H__
+#endif // __VCBLOCKCHAIN_H__

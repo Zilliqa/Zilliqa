@@ -50,6 +50,7 @@ const unsigned int ACCOUNT_SIZE = UINT256_SIZE + UINT256_SIZE + COMMON_HASH_SIZE
 
 const unsigned int DS_BLOCKCHAIN_SIZE = 50;
 const unsigned int TX_BLOCKCHAIN_SIZE = 50;
+const unsigned int VC_BLOCKCHAIN_SIZE = 50;
 
 // Number of nodes sent from lookup node to newly joined node
 const unsigned int SEED_PEER_LIST_SIZE = 20;
@@ -113,6 +114,7 @@ extern const unsigned int POW1_DIFFICULTY;
 extern const unsigned int POW2_DIFFICULTY;
 extern const unsigned int MICROBLOCK_TIMEOUT;
 extern const unsigned int VIEWCHANGE_TIME;
+extern const unsigned int VIEWCHANGE_EXTRA_TIME;
 extern const unsigned int SHARDING_TIMEOUT;
 extern const unsigned int CONSENSUS_OBJECT_TIMEOUT;
 extern const unsigned int FINALBLOCK_CONSENSUS_OBJECT_TIMEOUT;
@@ -122,8 +124,8 @@ extern const uint32_t MAXMESSAGE;
 extern const unsigned int MAXSUBMITTXNPERNODE;
 extern const unsigned int TX_SHARING_CLUSTER_SIZE;
 extern const unsigned int NEW_NODE_POW_DELAY;
-
 extern const unsigned int N_PREFILLED_PER_ACCOUNT;
+extern const unsigned int POST_VIEWCHANGE_BUFFER;
 extern const std::vector<std::string> GENESIS_WALLETS;
 extern const std::vector<std::string> GENESIS_KEYS;
 #endif // __CONSTANTS_H__
