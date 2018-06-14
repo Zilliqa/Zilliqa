@@ -89,22 +89,18 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock)
 void Node::UpdateDSCommiteeComposition()
 {
     LOG_MARKER();
+    lock(m_mediator.m_mutexDSCommitteeNetworkInfo,
+         m_mediator.m_mutexDSCommitteePubKeys);
+    lock_guard<mutex> g2(m_mediator.m_mutexDSCommitteeNetworkInfo, adopt_lock);
+    lock_guard<mutex> g3(m_mediator.m_mutexDSCommitteePubKeys, adopt_lock);
 
-    {
-        lock(m_mediator.m_mutexDSCommitteeNetworkInfo,
-             m_mediator.m_mutexDSCommitteePubKeys);
-        lock_guard<mutex> g2(m_mediator.m_mutexDSCommitteeNetworkInfo,
-                             adopt_lock);
-        lock_guard<mutex> g3(m_mediator.m_mutexDSCommitteePubKeys, adopt_lock);
+    m_mediator.m_DSCommitteeNetworkInfo.push_back(
+        m_mediator.m_DSCommitteeNetworkInfo.front());
+    m_mediator.m_DSCommitteeNetworkInfo.pop_front();
 
-        m_mediator.m_DSCommitteeNetworkInfo.push_back(
-            m_mediator.m_DSCommitteeNetworkInfo.front());
-        m_mediator.m_DSCommitteeNetworkInfo.pop_front();
-
-        m_mediator.m_DSCommitteePubKeys.push_back(
-            m_mediator.m_DSCommitteePubKeys.front());
-        m_mediator.m_DSCommitteePubKeys.pop_front();
-    }
+    m_mediator.m_DSCommitteePubKeys.push_back(
+        m_mediator.m_DSCommitteePubKeys.front());
+    m_mediator.m_DSCommitteePubKeys.pop_front();
 }
 
 bool Node::VerifyVCBlockCoSignature(const VCBlock& vcblock)
