@@ -44,7 +44,7 @@ To run Zilliqa, we recommend the following minimum system requirements:
 > building on other Ubuntu versions or other OSes is pending.
 
 ## Dependencies
-To compile and run the Zilliqa codebase, you will need the following dependencies to be installed on your machine:\
+To compile and run the Zilliqa codebase, you will need the following dependencies to be installed on your machine:  
 * `build-essential`
 * `Boost` 
 * `CMake`
