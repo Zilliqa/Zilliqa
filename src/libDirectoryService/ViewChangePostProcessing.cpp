@@ -154,7 +154,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
         LOG_GENERAL(WARNING, "cosig verification fail");
         for (auto& kv : keys)
         {
-            LOG_GENERAL(WARNING, "" << kv);
+            LOG_GENERAL(WARNING, kv);
         }
         return;
     }

@@ -182,7 +182,7 @@ bool Node::VerifyDSBlockCoSignature(const DSBlock& dsblock)
         LOG_GENERAL(WARNING, "Cosig verification failed");
         for (auto& kv : keys)
         {
-            LOG_GENERAL(WARNING, "" << kv);
+            LOG_GENERAL(WARNING, kv);
         }
         return false;
     }
