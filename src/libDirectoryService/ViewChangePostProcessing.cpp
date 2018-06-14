@@ -147,12 +147,15 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
     m_pendingVCBlock->GetCS1().Serialize(message, VCBlockHeader::SIZE);
     BitVector::SetBitVector(message, VCBlockHeader::SIZE + BLOCK_SIG_SIZE,
                             m_pendingVCBlock->GetB1());
-    if (Schnorr::GetInstance().Verify(message, 0, message.size(),
-                                      m_pendingVCBlock->GetCS2(),
-                                      *aggregatedKey)
-        == false)
+    if (not Schnorr::GetInstance().Verify(message, 0, message.size(),
+                                          m_pendingVCBlock->GetCS2(),
+                                          *aggregatedKey))
     {
         LOG_GENERAL(WARNING, "cosig verification fail");
+        for (auto& kv : keys)
+        {
+            LOG_GENERAL(WARNING, "" << kv);
+        }
         return;
     }
 
