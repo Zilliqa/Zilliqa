@@ -41,7 +41,7 @@ class VCBlockHeader : public BlockHeaderBase
 
 public:
     static const unsigned int SIZE = sizeof(uint64_t) + sizeof(uint64_t)
-        + UNSIGNEDCHAR_SIZE + sizeof(uint32_t) + IP_SIZE + PORT_SIZE
+        + sizeof(unsigned char) + sizeof(uint32_t) + IP_SIZE + PORT_SIZE
         + PUB_KEY_SIZE + sizeof(uint32_t) + UINT256_SIZE;
 
     /// Default constructor.

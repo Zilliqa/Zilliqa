@@ -73,8 +73,8 @@ unsigned int VCBlockHeader::Serialize(vector<unsigned char>& dst,
     SetNumber<uint64_t>(dst, curOffset, m_VieWChangeEpochNo, sizeof(uint64_t));
     curOffset += sizeof(uint64_t);
     SetNumber<unsigned char>(dst, curOffset, m_ViewChangeState,
-                             UNSIGNEDCHAR_SIZE);
-    curOffset += UNSIGNEDCHAR_SIZE;
+                             sizeof(unsigned char));
+    curOffset += sizeof(unsigned char);
     SetNumber<uint32_t>(dst, curOffset, m_CandidateLeaderIndex,
                         sizeof(uint32_t));
     curOffset += sizeof(uint32_t);
@@ -100,8 +100,8 @@ int VCBlockHeader::Deserialize(const vector<unsigned char>& src,
             = GetNumber<uint64_t>(src, curOffset, sizeof(uint64_t));
         curOffset += sizeof(uint64_t);
         m_ViewChangeState
-            = GetNumber<unsigned char>(src, curOffset, UNSIGNEDCHAR_SIZE);
-        curOffset += UNSIGNEDCHAR_SIZE;
+            = GetNumber<unsigned char>(src, curOffset, sizeof(unsigned char));
+        curOffset += sizeof(unsigned char);
         m_CandidateLeaderIndex
             = GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
         curOffset += sizeof(uint32_t);
