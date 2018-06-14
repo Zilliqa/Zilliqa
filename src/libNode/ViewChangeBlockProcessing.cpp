@@ -159,7 +159,7 @@ bool Node::VerifyVCBlockCoSignature(const VCBlock& vcblock)
         LOG_GENERAL(WARNING, "Cosig verification failed. Pubkeys");
         for (auto& kv : keys)
         {
-            LOG_GENERAL(WARNING, "" << kv);
+            LOG_GENERAL(WARNING, kv);
         }
         return false;
     }

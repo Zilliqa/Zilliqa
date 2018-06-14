@@ -96,7 +96,7 @@ bool DirectoryService::VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
         LOG_GENERAL(WARNING, "Cosig verification failed");
         for (auto& kv : keys)
         {
-            LOG_GENERAL(WARNING, "" << kv);
+            LOG_GENERAL(WARNING, kv);
         }
         return false;
     }
