@@ -100,18 +100,7 @@ bool VCBlock::operator==(const VCBlock& block) const
 
 bool VCBlock::operator<(const VCBlock& block) const
 {
-    if (m_header < block.m_header)
-    {
-        return true;
-    }
-    else if (m_header > block.m_header)
-    {
-        return false;
-    }
-    else
-    {
-        return false;
-    }
+    return m_header < block.m_header;
 }
 
 bool VCBlock::operator>(const VCBlock& block) const
