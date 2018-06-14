@@ -21,8 +21,8 @@ using namespace std;
 using namespace boost::multiprecision;
 
 TxBlockHeader::TxBlockHeader()
+    : m_blockNum((boost::multiprecision::uint256_t)-1)
 {
-    m_blockNum = (boost::multiprecision::uint256_t)-1;
 }
 
 TxBlockHeader::TxBlockHeader(const vector<unsigned char>& src,
