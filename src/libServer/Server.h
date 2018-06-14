@@ -199,6 +199,11 @@ public:
                 "GetSmartContractState", jsonrpc::PARAMS_BY_POSITION,
                 jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING, NULL),
             &AbstractZServer::GetSmartContractStateI);
+        this->bindAndAddMethod(
+            jsonrpc::Procedure(
+                "GetSmartContractCode", jsonrpc::PARAMS_BY_POSITION,
+                jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING, NULL),
+            &AbstractZServer::GetSmartContractCodeI);
     }
 
     inline virtual void GetClientVersionI(const Json::Value& request,
@@ -417,6 +422,11 @@ public:
     {
         response = this->GetSmartContractState(request[0u].asString());
     }
+    inline virtual void GetSmartContractCodeI(const Json::Value& request,
+                                              Json::Value& response)
+    {
+        response = this->GetSmartContractCode(request[0u].asString());
+    }
     virtual std::string GetClientVersion() = 0;
     virtual std::string GetNetworkId() = 0;
     virtual std::string GetProtocolVersion() = 0;
@@ -458,6 +468,7 @@ public:
     virtual std::string GetNumTxnsDSEpoch() = 0;
     virtual uint32_t GetNumTxnsTxEpoch() = 0;
     virtual Json::Value GetSmartContractState(const std::string& param01) = 0;
+    virtual Json::Value GetSmartContractCode(const std::string& param01) = 0;
 };
 
 class Server : public AbstractZServer
@@ -528,4 +539,5 @@ public:
     GetNumTransactions(boost::multiprecision::uint256_t blockNum);
 
     Json::Value GetSmartContractState(const std::string& address);
+    Json::Value GetSmartContractCode(const std::string& address);
 };
