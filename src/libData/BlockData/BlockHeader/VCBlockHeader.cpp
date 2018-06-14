@@ -201,7 +201,7 @@ bool VCBlockHeader::operator<(const VCBlockHeader& header) const
     }
     else
     {
-        // Cannot comparse different header or
+        // Cannot compare different header or
         // it is not smaller than the header we are comparing
         return false;
     }
@@ -220,7 +220,7 @@ bool VCBlockHeader::operator>(const VCBlockHeader& header) const
     }
     else
     {
-        // Cannot comparse different header or
+        // Cannot compare different header or
         // it is not bigger than the header we are comparing
         return false;
     }
