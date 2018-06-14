@@ -20,7 +20,10 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-VCBlockHeader::VCBlockHeader() { m_CandidateLeaderIndex = 1; }
+VCBlockHeader::VCBlockHeader()
+    : m_CandidateLeaderIndex(1)
+{
+}
 
 VCBlockHeader::VCBlockHeader(const vector<unsigned char>& src,
                              unsigned int offset)
