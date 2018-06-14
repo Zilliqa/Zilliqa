@@ -21,10 +21,10 @@ The current release has the following features implemented:
 * Persistent storage for transactions
 * [Merkle Patricia tree](https://github.com/ethereum/wiki/wiki/Patricia-Tree)
 * Transaction verification
+* View change
 * Zilliqa Wallet
 
 In the coming months, we plan to have the following features:
-* View change
 * Gossip protocol for network message broadcasting
 * Incentive structure
 * Smart contract design and implementation
@@ -44,7 +44,7 @@ To run Zilliqa, we recommend the following minimum system requirements:
 > building on other Ubuntu versions or other OSes is pending.
 
 ## Dependencies
-To compile and run the Zilliqa codebase, you will need the following dependencies to be installed on your machine:\
+To compile and run the Zilliqa codebase, you will need the following dependencies to be installed on your machine:  
 * `build-essential`
 * `Boost` 
 * `CMake`

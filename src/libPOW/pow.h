@@ -93,6 +93,8 @@ private:
     bool shouldMine;
 
     ethash_light_t EthashLightNew(uint64_t block_number);
+    ethash_light_t EthashLightReuse(ethash_light_t ethashLight,
+                                    uint64_t block_number);
     void EthashLightDelete(ethash_light_t light);
     ethash_return_value_t EthashLightCompute(ethash_light_t& light,
                                              ethash_h256_t const& header_hash,
