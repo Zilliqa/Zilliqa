@@ -439,21 +439,6 @@ bool Lookup::ProcessEntireShardingStructure(
         return false;
     }
 
-    // unsigned int view change count
-    unsigned int viewChangeCount = Serializable::GetNumber<uint32_t>(
-        message, offset, sizeof(unsigned int));
-    offset += sizeof(unsigned int);
-
-    for (unsigned int i = 0; i < viewChangeCount; i++)
-    {
-        m_mediator.m_DSCommitteeNetworkInfo.push_back(
-            m_mediator.m_DSCommitteeNetworkInfo.front());
-        m_mediator.m_DSCommitteeNetworkInfo.pop_front();
-        m_mediator.m_DSCommitteePubKeys.push_back(
-            m_mediator.m_DSCommitteePubKeys.front());
-        m_mediator.m_DSCommitteePubKeys.pop_front();
-    }
-
     // 4-byte num of shards
     uint32_t num_shards
         = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));

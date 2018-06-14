@@ -286,6 +286,12 @@ class Node : public Executable, public Broadcastable
     bool VerifyFinalBlockCoSignature(const TxBlock& txblock);
     bool CheckStateRoot(const TxBlock& finalblock);
 
+    // View change
+    void UpdateDSCommiteeComposition();
+    bool VerifyVCBlockCoSignature(const VCBlock& vcblock);
+    bool ProcessVCBlock(const vector<unsigned char>& message,
+                        unsigned int cur_offset, const Peer& from);
+
 #ifndef IS_LOOKUP_NODE
     // Transaction functions
     void SubmitTransactions();

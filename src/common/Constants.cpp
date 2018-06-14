@@ -87,6 +87,8 @@ const unsigned int POW2_DIFFICULTY{ReadFromConstantsFile("POW2_DIFFICULTY")};
 const unsigned int MICROBLOCK_TIMEOUT{
     ReadFromConstantsFile("MICROBLOCK_TIMEOUT")};
 const unsigned int VIEWCHANGE_TIME{ReadFromConstantsFile("VIEWCHANGE_TIME")};
+const unsigned int VIEWCHANGE_EXTRA_TIME{
+    ReadFromConstantsFile("VIEWCHANGE_EXTRA_TIME")};
 const unsigned int SHARDING_TIMEOUT{ReadFromConstantsFile("SHARDING_TIMEOUT")};
 const unsigned int CONSENSUS_OBJECT_TIMEOUT{
     ReadFromConstantsFile("CONSENSUS_OBJECT_TIMEOUT")};
@@ -103,6 +105,8 @@ const unsigned int TX_SHARING_CLUSTER_SIZE{
     ReadFromConstantsFile("TX_SHARING_CLUSTER_SIZE")};
 const unsigned int NEW_NODE_POW_DELAY{
     ReadFromConstantsFile("NEW_NODE_POW_DELAY")};
+const unsigned int POST_VIEWCHANGE_BUFFER{
+    ReadFromConstantsFile("POST_VIEWCHANGE_BUFFER")};
 const unsigned int N_PREFILLED_PER_ACCOUNT{
     ReadFromConstantsFile("N_PREFILLED_PER_ACCOUNT")};
 const std::vector<std::string> GENESIS_WALLETS{

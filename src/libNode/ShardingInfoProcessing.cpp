@@ -58,21 +58,6 @@ bool Node::ReadVariablesFromShardingMessage(
         return false;
     }
 
-    // view change counter
-    unsigned int viewChangeCounter = Serializable::GetNumber<unsigned int>(
-        message, cur_offset, sizeof(unsigned int));
-    cur_offset += sizeof(unsigned int);
-
-    for (unsigned int i = 0; i < viewChangeCounter; i++)
-    {
-        m_mediator.m_DSCommitteeNetworkInfo.push_back(
-            m_mediator.m_DSCommitteeNetworkInfo.front());
-        m_mediator.m_DSCommitteeNetworkInfo.pop_front();
-        m_mediator.m_DSCommitteePubKeys.push_back(
-            m_mediator.m_DSCommitteePubKeys.front());
-        m_mediator.m_DSCommitteePubKeys.pop_front();
-    }
-
     // 32-byte block number
     uint256_t dsBlockNum
         = Serializable::GetNumber<uint256_t>(message, cur_offset, UINT256_SIZE);
@@ -183,24 +168,27 @@ bool Node::ProcessSharding(const vector<unsigned char>& message,
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "I am primary of the sharded committee");
 
-#ifdef STAT_TEST
         LOG_STATE("[IDENT][" << std::setw(15) << std::left
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
                              << "][" << m_myShardID << "][0  ] SCLD");
-#endif
     }
     else
     {
         m_isPrimary = false;
+
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "I am backup member of the sharded committee");
 
-#ifdef STAT_TEST
+        LOG_STATE("[SHSTU][" << setw(15) << left
+                             << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                             << "]["
+                             << m_mediator.m_txBlockChain.GetBlockCount()
+                             << "] RECEIVED SHARDING STRUCTURE");
+
         LOG_STATE("[IDENT][" << std::setw(15) << std::left
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
                              << "][" << m_myShardID << "][" << std::setw(3)
                              << std::left << m_consensusMyID << "] SCBK");
-#endif // STAT_TEST
     }
 
     // Choose 4 other node to be sender of microblock to ds committee.

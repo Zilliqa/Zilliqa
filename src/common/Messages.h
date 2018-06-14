@@ -47,8 +47,7 @@ enum DSInstructionType : unsigned char
     AllPoWConnResponse = 0x08,
     LastDSBlockRequest = 0x09,
     LastDSBlockResponse = 0x0A,
-    INITVIEWCHANGE = 0x0B,
-    INITVIEWCHANGERESPONSE = 0x0C
+    VIEWCHANGECONSENSUS = 0X0B
 };
 
 enum NodeInstructionType : unsigned char
@@ -61,7 +60,8 @@ enum NodeInstructionType : unsigned char
     MICROBLOCKCONSENSUS = 0x05,
     FINALBLOCK = 0x06,
     FORWARDTRANSACTION = 0x07,
-    CREATETRANSACTIONFROMLOOKUP = 0x08
+    CREATETRANSACTIONFROMLOOKUP = 0x08,
+    VCBLOCK = 0x09
 };
 
 enum LookupInstructionType : unsigned char

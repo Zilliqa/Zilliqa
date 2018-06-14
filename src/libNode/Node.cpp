@@ -1031,12 +1031,10 @@ void Node::SubmitTransactions()
 
     m_mediator.m_validator->CleanVariables();
 
-#ifdef STAT_TEST
     LOG_STATE("[TXNSE][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
                          << "][" << m_mediator.m_currentEpochNum << "]["
                          << m_myShardID << "][" << txn_sent_count << "] CONT");
-#endif // STAT_TEST
 }
 
 void Node::RejoinAsNormal()
@@ -1163,7 +1161,8 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
            &Node::ProcessMicroblockConsensus,
            &Node::ProcessFinalBlock,
            &Node::ProcessForwardTransaction,
-           &Node::ProcessCreateTransactionFromLookup};
+           &Node::ProcessCreateTransactionFromLookup,
+           &Node::ProcessVCBlock};
 
     const unsigned char ins_byte = message.at(offset);
     const unsigned int ins_handlers_count

@@ -75,11 +75,10 @@ void Node::SubmitMicroblockToDSCommittee() const
     // Tx microblock
     m_microblock->Serialize(microblock, cur_offset);
 
-#ifdef STAT_TEST
     LOG_STATE("[MICRO][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
                          << "][" << m_mediator.m_currentEpochNum << "] SENT");
-#endif // STAT_TEST
+
     P2PComm::GetInstance().SendBroadcastMessage(
         m_mediator.m_DSCommitteeNetworkInfo, microblock);
 }
@@ -136,12 +135,10 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
     {
         if (m_isPrimary == true)
         {
-#ifdef STAT_TEST
             LOG_STATE("[MICON]["
                       << std::setw(15) << std::left
                       << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
                       << m_mediator.m_currentEpochNum << "] DONE");
-#endif // STAT_TEST
 
             // Update the micro block with the co-signatures from the consensus
             m_microblock->SetCoSignatures(*m_consensusObject);
@@ -418,11 +415,10 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
         return false;
     }
 
-#ifdef STAT_TEST
     LOG_STATE("[MICON][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
                          << "][" << m_mediator.m_currentEpochNum << "] BGIN");
-#endif // STAT_TEST
+
     ConsensusLeader* cl
         = dynamic_cast<ConsensusLeader*>(m_consensusObject.get());
     cl->StartConsensus(microblock, MicroBlockHeader::SIZE);
