@@ -59,10 +59,10 @@ To compile and run the Zilliqa codebase, you will need the following dependencie
 * Dependencies only required for builds with code coverage enabled
     * `gcov`
     * `lcov`
-* Dependencies only required for builds on Travis-CI
+* Dependency only required for builds on Travis-CI
     * `curl`
 
-For Ubuntu 16.04, you can use the following command (or refer to `./scripts/ci_install_deps.sh`) to install the dependencies:  
+For Ubuntu 16.04, you can use the following commands (or refer to `./scripts/ci_install_deps.sh`) to install the dependencies:  
 
 ```bash
 sudo apt-get update
