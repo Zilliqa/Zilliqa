@@ -71,18 +71,15 @@ void DirectoryService::ComposeDSBlock()
         difficulty = lastBlock.GetHeader().GetDifficulty();
     }
 
-    LOG_GENERAL(INFO,
-                "Composing new block with vc count at " << m_viewChangeCounter);
-
     // Assemble DS block
     {
         lock_guard<mutex> g(m_mutexPendingDSBlock);
         // To-do: Handle exceptions.
-        m_pendingDSBlock.reset(new DSBlock(
-            DSBlockHeader(difficulty, prevHash, winnerNonce, winnerKey,
-                          m_mediator.m_selfKey.second, blockNum,
-                          get_time_as_int(), m_viewChangeCounter),
-            CoSignatures()));
+        m_pendingDSBlock.reset(
+            new DSBlock(DSBlockHeader(difficulty, prevHash, winnerNonce,
+                                      winnerKey, m_mediator.m_selfKey.second,
+                                      blockNum, get_time_as_int()),
+                        CoSignatures()));
     }
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -105,12 +102,14 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
     m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
 
-    // kill first ds leader
-    // if (m_consensusMyID == 0 && temp_todie)
-    // {
-    //    LOG_GENERAL(INFO, "I am killing myself to test view change");
-    //    throw exception();
-    // }
+    // kill first ds leader (used for view change testing)
+    /**
+    if (m_consensusMyID == 0 && m_viewChangeCounter < 1)
+    {
+        LOG_GENERAL(INFO, "I am killing myself to test view change");
+        throw exception();
+    }
+    **/
 
     m_consensusObject.reset(new ConsensusLeader(
         consensusID, m_consensusBlockHash, m_consensusMyID,
@@ -138,16 +137,10 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
         m_pendingDSBlock->Serialize(m, 0);
     }
 
-    LOG_GENERAL(INFO,
-                "debug after compose ds block debug vc "
-                    << m_pendingDSBlock->GetHeader().GetViewChangeCount());
-
-#ifdef STAT_TEST
     LOG_STATE("[DSCON][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
                          << "][" << m_mediator.m_txBlockChain.GetBlockCount()
                          << "] BGIN");
-#endif // STAT_TEST
 
     cl->StartConsensus(m, DSBlockHeader::SIZE);
 
@@ -165,9 +158,7 @@ bool DirectoryService::DSBlockValidator(const vector<unsigned char>& dsblock,
     lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
 
     m_pendingDSBlock.reset(new DSBlock(dsblock, 0));
-    LOG_GENERAL(INFO,
-                "debug dsblock validator "
-                    << m_pendingDSBlock->GetHeader().GetViewChangeCount());
+
     if (m_allPoWConns.find(m_pendingDSBlock->GetHeader().GetMinerPubKey())
         == m_allPoWConns.end())
     {
@@ -274,16 +265,16 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin)
 
     if (m_mode != PRIMARY_DS)
     {
-        std::unique_lock<std::mutex> cv_lk(m_mutexRecoveryDSBlockConsensus);
-        if (cv_RecoveryDSBlockConsensus.wait_for(
-                cv_lk, std::chrono::seconds(VIEWCHANGE_TIME))
+        std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeDSBlock);
+        if (cv_viewChangeDSBlock.wait_for(cv_lk,
+                                          std::chrono::seconds(VIEWCHANGE_TIME))
             == std::cv_status::timeout)
         {
             //View change.
             //TODO: This is a simplified version and will be review again.
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Initiated DS block view change. ");
-            InitViewChange();
+            RunConsensusOnViewChange();
         }
     }
 }

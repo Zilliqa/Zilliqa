@@ -48,7 +48,7 @@ DSBlock Synchronizer::ConstructGenesisDSBlock()
 
     // FIXME: Handle exceptions.
     return DSBlock(DSBlockHeader(20, prevHash, 12344, keypair.first,
-                                 keypair.second, 0, 789, 0),
+                                 keypair.second, 0, 789),
                    CoSignatures());
 }
 
@@ -89,7 +89,7 @@ TxBlock Synchronizer::ConstructGenesisTxBlock()
     return TxBlock(TxBlockHeader(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1,
                                  1, BlockHash(), 0, 151384616955606, TxnHash(),
                                  StateHash(), 0, 5, keypair.second, 0,
-                                 BlockHash(), 0),
+                                 BlockHash()),
                    vector<bool>(1), vector<TxnHash>(5), CoSignatures());
 }
 
