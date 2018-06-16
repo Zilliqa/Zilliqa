@@ -33,6 +33,7 @@
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SanityChecks.h"
+#include "libWire/wire.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -150,55 +151,35 @@ void DirectoryService::SetupMulticastConfigForShardingStructure(
 }
 
 void DirectoryService::SendingShardingStructureToShard(
-    vector<std::map<PubKey, Peer>>::iterator& p)
+    const std::map<PubKey, Peer>& peers)
 {
     LOG_MARKER();
 
-    // Message = [32-byte DS blocknum] [4-byte shard ID] [4-byte committee size] [33-byte public key]
-    // [16-byte ip] [4-byte port] ... (all nodes; first entry is leader)
-    vector<unsigned char> sharding_message
-        = {MessageType::NODE, NodeInstructionType::SHARDING};
-    unsigned int curr_offset = MessageOffset::BODY;
+    vector<unsigned char> message;
+    {
+        wire::ShardInfo si;
 
-    // Todo: Any better way to do it?
-    uint256_t latest_block_num_in_blockchain
-        = m_mediator.m_dsBlockChain.GetBlockCount() - 1;
-    Serializable::SetNumber<uint256_t>(sharding_message, curr_offset,
-                                       latest_block_num_in_blockchain,
-                                       UINT256_SIZE);
-    curr_offset += UINT256_SIZE;
+        si.blockNumber = m_mediator.m_dsBlockChain.GetBlockCount() - 1;
 
-    // 4-byte shard ID - get from the leader's info in m_publicKeyToShardIdMap
-    Serializable::SetNumber<uint32_t>(
-        sharding_message, curr_offset,
-        m_publicKeyToShardIdMap.at(p->begin()->first), sizeof(uint32_t));
-    curr_offset += sizeof(uint32_t);
+        si.shardID = m_publicKeyToShardIdMap.at(peers.begin()->first);
 
-    // 4-byte number of shards
-    Serializable::SetNumber<uint32_t>(sharding_message, curr_offset,
-                                      m_shards.size(), sizeof(uint32_t));
-    curr_offset += sizeof(uint32_t);
+        si.numShards = m_shards.size();
 
-    // 4-byte committee size
-    Serializable::SetNumber<uint32_t>(sharding_message, curr_offset, p->size(),
-                                      sizeof(uint32_t));
-    curr_offset += sizeof(uint32_t);
+        // From map to vector of 'std::pair's
+        si.peers.resize(peers.size());
+        std::copy(peers.begin(), peers.end(), si.peers.begin());
+
+        si.pack(&message);
+    }
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Committee size = " << p->size());
+              "Committee size = " << peers.size());
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Members:");
 
     vector<Peer> shard_peers;
-    for (auto& kv : *p)
+    for (auto& kv : peers)
     {
-        // 33-byte public key
-        kv.first.Serialize(sharding_message, curr_offset);
-        curr_offset += PUB_KEY_SIZE;
-        // 16-byte ip + 4-byte port
-
-        kv.second.Serialize(sharding_message, curr_offset);
-        curr_offset += IP_SIZE + PORT_SIZE;
         shard_peers.push_back(kv.second);
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   " PubKey: " << DataConversion::SerializableToHexStr(kv.first)
@@ -207,8 +188,8 @@ void DirectoryService::SendingShardingStructureToShard(
     }
 
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
-    sha256.Update(sharding_message);
-    vector<unsigned char> this_msg_hash = sha256.Finalize();
+    sha256.Update(message);
+    const vector<unsigned char> this_msg_hash = sha256.Finalize();
 
     LOG_STATE(
         "[INFOR]["
@@ -219,8 +200,7 @@ void DirectoryService::SendingShardingStructureToShard(
                .substr(0, 6)
         << "][" << m_mediator.m_txBlockChain.GetBlockCount() << "] SHMSG");
 
-    P2PComm::GetInstance().SendBroadcastMessage(shard_peers, sharding_message);
-    p++;
+    P2PComm::GetInstance().SendBroadcastMessage(shard_peers, message);
 }
 #endif // IS_LOOKUP_NODE
 
@@ -316,7 +296,7 @@ bool DirectoryService::ProcessShardingConsensus(
             advance(p, my_shards_lo);
             for (unsigned int i = my_shards_lo; i <= my_shards_hi; i++)
             {
-                SendingShardingStructureToShard(p);
+                SendingShardingStructureToShard(*p);
             }
         }
 

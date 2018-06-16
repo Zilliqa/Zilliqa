@@ -13,6 +13,7 @@ add_subdirectory (libNode)
 add_subdirectory (libServer)
 add_subdirectory (libUtils)
 add_subdirectory (libValidator)
+add_subdirectory (libWire)
 add_subdirectory (libZilliqa)
 add_subdirectory (cmd)
 

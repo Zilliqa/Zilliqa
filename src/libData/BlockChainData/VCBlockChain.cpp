@@ -53,7 +53,7 @@ VCBlock VCBlockChain::GetBlock(const uint256_t& blockNum)
     // Consider switching to uint64_t
     // For now we directly cast to uint64_t
 
-    assert(m_vcBlocks[blockNum].GetHeader().GetBlockNum() == blockNum);
+    //assert(m_vcBlocks[blockNum].GetHeader().GetBlockNum() == blockNum);
     return m_vcBlocks[blockNum];
 }
 

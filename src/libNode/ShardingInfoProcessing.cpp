@@ -41,6 +41,7 @@
 #include "libUtils/SanityChecks.h"
 #include "libUtils/TimeLockedFunction.h"
 #include "libUtils/TimeUtils.h"
+#include "libWire/wire.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -50,81 +51,50 @@ bool Node::ReadVariablesFromShardingMessage(
 {
     LOG_MARKER();
 
-    if (IsMessageSizeInappropriate(message.size(), cur_offset,
-                                   sizeof(unsigned int) + UINT256_SIZE
-                                       + sizeof(uint32_t) + sizeof(uint32_t)
-                                       + sizeof(uint32_t)))
+    wire::ShardInfo si;
+    if (!wire::ShardInfo::load(&si, message, cur_offset))
     {
         return false;
     }
-
-    // 32-byte block number
-    uint256_t dsBlockNum
-        = Serializable::GetNumber<uint256_t>(message, cur_offset, UINT256_SIZE);
-    cur_offset += UINT256_SIZE;
 
     // Check block number
-    if (!CheckWhetherDSBlockNumIsLatest(dsBlockNum + 1))
-    {
-        return false;
-    }
-
-    // 4-byte shard ID
-    m_myShardID = Serializable::GetNumber<uint32_t>(message, cur_offset,
-                                                    sizeof(uint32_t));
-    cur_offset += sizeof(uint32_t);
-
-    // 4-byte number of shards
-    m_numShards = Serializable::GetNumber<uint32_t>(message, cur_offset,
-                                                    sizeof(uint32_t));
-    cur_offset += sizeof(uint32_t);
-
-    // 4-byte committee size
-    uint32_t comm_size = Serializable::GetNumber<uint32_t>(message, cur_offset,
-                                                           sizeof(uint32_t));
-    cur_offset += sizeof(uint32_t);
-
-    if (IsMessageSizeInappropriate(message.size(), cur_offset,
-                                   (PUB_KEY_SIZE + IP_SIZE + PORT_SIZE)
-                                       * comm_size))
+    if (!CheckWhetherDSBlockNumIsLatest(si.blockNumber + 1))
     {
         return false;
     }
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Committee size = " << comm_size << "\n"
+              "Committee size = " << si.blockNumber << "\n"
                                   << "Members:");
 
     m_myShardMembersPubKeys.clear();
     m_myShardMembersNetworkInfo.clear();
 
     // All nodes; first entry is leader
-    for (uint32_t i = 0; i < comm_size; i++)
+    for (uint32_t i = 0; i < si.blockNumber; i++)
     {
-        m_myShardMembersPubKeys.push_back(PubKey(message, cur_offset));
-        cur_offset += PUB_KEY_SIZE;
-
-        m_myShardMembersNetworkInfo.push_back(Peer(message, cur_offset));
-        cur_offset += IP_SIZE + PORT_SIZE;
+        auto& key = si.peers[i].first;
+        auto& peer = si.peers[i].second;
 
         // Zero out my IP to avoid sending to myself
-        if (m_mediator.m_selfPeer == m_myShardMembersNetworkInfo.back())
+        if (m_mediator.m_selfPeer == peer)
         {
             m_consensusMyID = i; // Set my ID
-            //m_myShardMembersNetworkInfo.back().m_ipAddress = 0;
-            m_myShardMembersNetworkInfo.back().m_listenPortHost = 0;
+            // peer.m_ipAddress = 0;
+            peer.m_listenPortHost = 0;
         }
 
-        LOG_EPOCH(
-            INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            " PubKey: "
-                << DataConversion::SerializableToHexStr(
-                       m_myShardMembersPubKeys.back())
-                << " IP: "
-                << m_myShardMembersNetworkInfo.back().GetPrintableIPAddress()
-                << " Port: "
-                << m_myShardMembersNetworkInfo.back().m_listenPortHost);
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  " PubKey: " << DataConversion::SerializableToHexStr(key)
+                              << " IP: " << peer.GetPrintableIPAddress()
+                              << " Port: " << peer.m_listenPortHost);
+
+        m_myShardMembersPubKeys.emplace_back(key);
+        m_myShardMembersNetworkInfo.emplace_back(peer);
     }
+
+    m_myShardID = si.shardID;
+    m_numShards = si.numShards;
 
     return true;
 }
