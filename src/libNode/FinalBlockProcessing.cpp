@@ -115,21 +115,6 @@ void Node::StoreFinalBlock(const TxBlock& txBlock)
     BlockStorage::GetBlockStorage().PutTxBlock(
         txBlock.GetHeader().GetBlockNum(), serializedTxBlock);
 
-    LOG_GENERAL(
-        INFO,
-        "View change count:  " << txBlock.GetHeader().GetViewChangeCounter());
-
-    for (unsigned int i = 0; i < txBlock.GetHeader().GetViewChangeCounter();
-         i++)
-    {
-        m_mediator.m_DSCommitteeNetworkInfo.push_back(
-            m_mediator.m_DSCommitteeNetworkInfo.front());
-        m_mediator.m_DSCommitteeNetworkInfo.pop_front();
-        m_mediator.m_DSCommitteePubKeys.push_back(
-            m_mediator.m_DSCommitteePubKeys.front());
-        m_mediator.m_DSCommitteePubKeys.pop_front();
-    }
-
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Final block " << m_mediator.m_txBlockChain.GetLastBlock()
                                     .GetHeader()
@@ -141,14 +126,12 @@ void Node::StoreFinalBlock(const TxBlock& txBlock)
                                         .GetPrevHash()
                                         .asArray()));
 
-#ifdef STAT_TEST
     LOG_STATE(
         "[FINBK]["
         << std::setw(15) << std::left
         << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
         << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
         << "] RECV");
-#endif // STAT_TEST
 }
 
 bool Node::IsMicroBlockTxRootHashInFinalBlock(TxnHash microBlockTxRootHash,
@@ -252,6 +235,10 @@ bool Node::VerifyFinalBlockCoSignature(const TxBlock& txblock)
         == false)
     {
         LOG_GENERAL(WARNING, "Cosig verification failed");
+        for (auto& kv : keys)
+        {
+            LOG_GENERAL(WARNING, kv);
+        }
         return false;
     }
 
@@ -475,6 +462,11 @@ void Node::BroadcastTransactionsToSendingAssignment(
 {
     LOG_MARKER();
 
+    LOG_STATE("[TXBOD][" << setw(15) << left
+                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                         << "][" << m_mediator.m_txBlockChain.GetBlockCount()
+                         << "] BEFORE TXN BODIES #" << blocknum);
+
     if (txns_to_send.size() > 0)
     {
         // Transaction body sharing
@@ -523,6 +515,11 @@ void Node::BroadcastTransactionsToSendingAssignment(
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "DEBUG I have no txn body to send")
     }
+
+    LOG_STATE("[TXBOD][" << setw(15) << left
+                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                         << "][" << m_mediator.m_txBlockChain.GetBlockCount()
+                         << "] AFTER SENDING TXN BODIES");
 }
 
 void Node::LoadForwardingAssignmentFromFinalBlock(
@@ -1206,6 +1203,11 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 
 #endif // IS_LOOKUP_NODE
 
+    LOG_STATE("[FLBLK][" << setw(15) << left
+                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                         << "][" << m_mediator.m_txBlockChain.GetBlockCount()
+                         << "] RECEIVED FINAL BLOCK");
+
     unsigned int cur_offset = offset;
 
     uint8_t shard_id = (uint8_t)-1;
@@ -1481,7 +1483,6 @@ void Node::DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
             m_cvAllMicroBlocksRecvd.notify_all();
         }
 #endif // IS_LOOKUP_NODE
-
         LOG_STATE("[TXBOD][" << std::setw(15) << std::left
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
                              << "][" << blocknum << "] LAST");
@@ -1500,6 +1501,11 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
     uint256_t blocknum
         = Serializable::GetNumber<uint256_t>(message, cur_offset, UINT256_SIZE);
     cur_offset += UINT256_SIZE;
+
+    LOG_STATE("[TXBOD][" << setw(15) << left
+                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                         << "][" << m_mediator.m_txBlockChain.GetBlockCount()
+                         << "] RECEIVED TXN BODIES #" << blocknum);
 
     LOG_GENERAL(INFO, "Received forwarded txns for block number " << blocknum);
 

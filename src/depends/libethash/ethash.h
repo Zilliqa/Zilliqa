@@ -75,6 +75,17 @@ typedef struct ethash_return_value {
  *                       ERRNOMEM or invalid parameters used for @ref ethash_compute_cache_nodes()
  */
 ethash_light_t ethash_light_new(uint64_t block_number);
+
+/**
+ * Allocate and initialize a new ethash_light handler
+ *
+ * @param block_number   The block number for which to create the handler
+ * @param old_client     Old value for the client. Might be freed. If still fit, memory gets reused.
+ * @return               Newly allocated ethash_light handler or NULL in case of
+ *                       ERRNOMEM or invalid parameters used for @ref ethash_compute_cache_nodes()
+ */
+ethash_light_t ethash_light_renew(uint64_t block_number, ethash_light_t old_client);
+
 /**
  * Frees a previously allocated ethash_light handler
  * @param light        The light handler to free
