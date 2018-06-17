@@ -8,6 +8,12 @@
 
 using namespace std;
 
+namespace
+{
+    const int DISCOVERY_TIME_OUT = 2000;
+    const int TTL  = 2;   
+}
+
 NAT::NAT()
 {
     m_urls = make_shared<UPNPUrls>();
@@ -18,42 +24,41 @@ NAT::NAT()
 
     m_initialized = false;
 
-    struct UPNPDev* devlist;
+    shared_ptr<struct UPNPDev> devlist;
     int error = 0;
-
+    
 #if MINIUPNPC_API_VERSION >= 14
-    devlist = upnpDiscover(2000, NULL, NULL, 0, 0, 2, &error);
+        devlist.reset((DISCOVERY_TIME_OUT, NULL/*multicast interface*/, NULL/*minissdpd socket path*/, 0/*sameport*/, 0/*ipv6*/, TTL, &error));
 #else
-    devlist = upnpDiscover(2000, NULL, NULL, 0, 0, &error);
+        devlist.reset(upnpDiscover(DISCOVERY_TIME_OUT, NULL/*multicast interface*/, NULL/*minissdpd socket path*/, 0/*sameport*/, 0/*ipv6*/, &error));
 #endif
 
-    if (devlist == NULL || error != 0)
+    if (devlist.get() == NULL || error != 0)
     {
         LOG_GENERAL(WARNING, "devlist empty or error in discovery");
-        freeUPNPDevlist(devlist);
         return;
     }
     char lan_address[INET6_ADDRSTRLEN];
 
-    int status = UPNP_GetValidIGD(devlist, m_urls.get(), m_data.get(),
+    int status = UPNP_GetValidIGD(devlist.get(), m_urls.get(), m_data.get(),
                                   lan_address, sizeof(lan_address));
 
     if (status != 1)
     {
         LOG_GENERAL(WARNING, "Unable to get Valid IGD");
-        freeUPNPDevlist(devlist);
         return;
     }
 
     m_lanAddress = lan_address;
     m_initialized = true;
-    freeUPNPDevlist(devlist);
 }
 
 string NAT::externalIP()
 {
     if (!m_initialized)
+    {
         return "0.0.0.0";
+    }
     char addr[16];
 
     if (!UPNP_GetExternalIPAddress(m_urls->controlURL,
@@ -71,12 +76,13 @@ string NAT::externalIP()
 int NAT::addRedirect(int _port)
 {
     if (!m_initialized)
+    {
         return -1;
+    }
 
-    char port_str[16];
-    sprintf(port_str, "%d", _port);
+    string port_str = to_string(_port);
     int error = UPNP_AddPortMapping(
-        m_urls->controlURL, m_data->first.servicetype, port_str, port_str,
+        m_urls->controlURL, m_data->first.servicetype, port_str.c_str(), port_str.c_str(),
         m_lanAddress.c_str(), "zilliqa", "TCP", NULL, NULL);
 
     if (!error)
@@ -86,21 +92,21 @@ int NAT::addRedirect(int _port)
     }
     else
     {
-        LOG_GENERAL(INFO, "Failed to map same port in router");
+        LOG_GENERAL(WARNING, "Failed to map same port in router");
     }
 
     if (UPNP_AddPortMapping(m_urls->controlURL, m_data->first.servicetype,
-                            port_str, NULL, m_lanAddress.c_str(), "zilliqa",
+                            port_str.c_str(), NULL, m_lanAddress.c_str(), "zilliqa",
                             "TCP", NULL, NULL))
     {
         LOG_GENERAL(WARNING, "Failed to map Port");
         return 0;
     }
 
-    unsigned num = 0;
+    unsigned int num = 0;
     UPNP_GetPortMappingNumberOfEntries(m_urls->controlURL,
                                        m_data->first.servicetype, &num);
-    for (unsigned i = 0; i < num; ++i)
+    for (unsigned int i = 0; i < num; ++i)
     {
         char extPort[16];
         char intClient[16];
@@ -133,10 +139,9 @@ void NAT::removeRedirect(int _port)
         LOG_GENERAL(WARNING, "Unitialized");
         return;
     }
-    char port_str[16];
-    sprintf(port_str, "%d", _port);
+    string port_str = to_string(_port);
     UPNP_DeletePortMapping(m_urls->controlURL, m_data->first.servicetype,
-                           port_str, "TCP", NULL);
+                           port_str.c_str(), "TCP", NULL);
     m_reg.erase(_port);
 }
 
@@ -144,26 +149,8 @@ NAT::~NAT()
 {
     auto r = m_reg;
     for (auto i : r)
+    {
         removeRedirect(i);
+    }
 }
 
-//For testing
-
-/*int main()
-{
-	NAT nt;
-
-	cout<<nt.externalIP()<<endl<<nt.addRedirect(2020)<<endl;
-
-	string s = "";
-	while(1)
-	{
-		cin>>s;
-		if(s=="break")
-		{
-			break;
-		}
-	}
-
-	return 0;
-}*/
