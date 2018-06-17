@@ -55,6 +55,7 @@ NAT::NAT()
 
 string NAT::externalIP()
 {
+    LOG_MARKER();
     if (!m_initialized)
     {
         return "0.0.0.0";
@@ -75,6 +76,7 @@ string NAT::externalIP()
 
 int NAT::addRedirect(int _port)
 {
+    LOG_MARKER();
     if (!m_initialized)
     {
         return -1;
