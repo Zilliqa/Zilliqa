@@ -28,7 +28,7 @@ NAT::NAT()
     int error = 0;
     
 #if MINIUPNPC_API_VERSION >= 14
-        devlist.reset((DISCOVERY_TIME_OUT, NULL/*multicast interface*/, NULL/*minissdpd socket path*/, 0/*sameport*/, 0/*ipv6*/, TTL, &error));
+        devlist.reset(upnpDiscover(DISCOVERY_TIME_OUT, NULL/*multicast interface*/, NULL/*minissdpd socket path*/, 0/*sameport*/, 0/*ipv6*/, TTL, &error));
 #else
         devlist.reset(upnpDiscover(DISCOVERY_TIME_OUT, NULL/*multicast interface*/, NULL/*minissdpd socket path*/, 0/*sameport*/, 0/*ipv6*/, &error));
 #endif
@@ -134,6 +134,8 @@ int NAT::addRedirect(int _port)
 
 void NAT::removeRedirect(int _port)
 {
+    LOG_MARKER();
+
     if (!m_initialized)
     {
         LOG_GENERAL(WARNING, "Unitialized");
@@ -147,6 +149,8 @@ void NAT::removeRedirect(int _port)
 
 NAT::~NAT()
 {
+    LOG_MARKER();
+
     auto r = m_reg;
     for (auto i : r)
     {
