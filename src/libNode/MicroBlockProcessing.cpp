@@ -468,10 +468,10 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup()
     return true;
 }
 
-const Address genesisAccount("0000000000000000000000000000000000000000");
+const Address genesisAccount(GENESIS_WALLETS[0]);
 const uint256_t RewardAmount = 100;
 
-bool Node::Coinbase(const MicroBlock& lastMicroblock,
+bool Node::Coinbase(const shared_ptr<MicroBlock>& lastMicroblock,
                     const TxBlock& lastTxBlock)
 {
     if (m_mediator.m_DSCommitteePubKeys.size() != lastTxBlock.GetB1().size())
@@ -482,11 +482,11 @@ bool Node::Coinbase(const MicroBlock& lastMicroblock,
     {
         return false;
     }
-    if (m_myShardMembersPubKeys.size() != lastMicroblock.GetB1().size())
+    if (m_myShardMembersPubKeys.size() != lastMicroblock->GetB1().size())
     {
         return false;
     }
-    if (m_myShardMembersPubKeys.size() != lastMicroblock.GetB2().size())
+    if (m_myShardMembersPubKeys.size() != lastMicroblock->GetB2().size())
     {
         return false;
     }
@@ -511,8 +511,8 @@ bool Node::Coinbase(const MicroBlock& lastMicroblock,
     }
 
     B.clear();
-    B.push_back(lastMicroblock.GetB1());
-    B.push_back(lastMicroblock.GetB2());
+    B.push_back(lastMicroblock->GetB1());
+    B.push_back(lastMicroblock->GetB2());
 
     for (unsigned int i = 0; i < B.size(); i++)
     {
@@ -540,8 +540,14 @@ bool Node::RunConsensusOnMicroBlock()
 
     // set state first and then take writer lock so that SubmitTransactions
     // if it takes reader lock later breaks out of loop
-
-    //Coinbase();
+    TxBlock lastTxBlock = m_mediator.m_txBlockChain.GetLastBlock();
+    if (m_microblock != nullptr)
+    {
+        if (!Coinbase(m_microblock, lastTxBlock))
+        {
+            LOG_GENERAL(WARNING, "Unable to process Coinbase");
+        }
+    }
 
     SetState(MICROBLOCK_CONSENSUS_PREP);
 

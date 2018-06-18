@@ -351,7 +351,8 @@ class Node : public Executable, public Broadcastable
                          const vector<Peer>& fellowForwarderNodes);
 
     //Coinbase txns
-    bool Coinbase(const MicroBlock& lastMicroblock, const TxBlock& lastTxBlock);
+    bool Coinbase(const shared_ptr<MicroBlock>& lastMicroblock,
+                  const TxBlock& lastTxBlock);
 
     // Is Running from New Process
     bool m_fromNewProcess = true;
