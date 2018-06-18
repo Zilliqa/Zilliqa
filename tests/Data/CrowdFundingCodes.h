@@ -285,7 +285,7 @@ string cfOutStr = R"({
     ]
   },
   "states": [
-    { "vname": "_balance", "type": "Int", "value": "400" },
+    { "vname": "_balance", "type": "Int", "value": "100" },
     {
       "vname": "backers",
       "type": "Map",
