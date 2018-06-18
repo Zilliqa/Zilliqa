@@ -31,9 +31,9 @@
 #include <thread>
 #include <chrono>
 
-#include <libdevcore/Guards.h>
-#include <libdevcore/Worker.h>
-#include <libdevcrypto/Common.h>
+#include "Guards.h"
+#include "Worker.h"
+#include "DevCryptoCommon.h"
 #include "NodeTable.h"
 #include "HostCapability.h"
 #include "Network.h"

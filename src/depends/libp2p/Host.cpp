@@ -26,11 +26,11 @@
 #include <mutex>
 #include <memory>
 #include <boost/algorithm/string.hpp>
-#include <libdevcore/Common.h>
-#include <libdevcore/Assertions.h>
-#include <libdevcore/CommonIO.h>
-#include <libdevcore/Exceptions.h>
-#include <libdevcore/FileSystem.h>
+#include "DevCoreCommon.h"
+#include "Assertions.h"
+#include "CommonIO.h"
+#include "Exceptions.h"
+//#include <libdevcore/FileSystem.h>
 #include "Session.h"
 #include "Common.h"
 #include "Capability.h"
@@ -107,7 +107,7 @@ Host::Host(string const& _clientVersion, KeyPair const& _alias, NetworkPreferenc
     m_alias(_alias),
     m_lastPing(chrono::steady_clock::time_point::min())
 {
-    cnetnote << "Id: " << id();
+    std::cout << "Id: " << id();
 }
 
 Host::Host(string const& _clientVersion, NetworkPreferences const& _n, bytesConstRef _restoreNetwork):
@@ -280,7 +280,7 @@ void Host::startPeerSession(Public const& _id, RLP const& _rlp, unique_ptr<RLPXF
     for (auto cap: caps)
         capslog << "(" << cap.first << "," << dec << cap.second << ")";
 
-    cnetlog << "Hello: " << clientVersion << " V[" << protocolVersion << "]"
+    std::cout << "Hello: " << clientVersion << " V[" << protocolVersion << "]"
             << " " << _id << " " << showbase << capslog.str() << " " << dec << listenPort;
 
     // create session so disconnects are managed
@@ -310,14 +310,14 @@ void Host::startPeerSession(Public const& _id, RLP const& _rlp, unique_ptr<RLPXF
                 if(s->isConnected())
                 {
                     // Already connected.
-                    cnetlog << "Session already exists for peer with id " << _id;
+                    std::cout << "Session already exists for peer with id " << _id;
                     ps->disconnect(DuplicatePeer);
                     return;
                 }
         
         if (!peerSlotsAvailable())
         {
-            cnetdetails << "Too many peers, can't connect. peer count: " << peerCount()
+            std::cerr << "Too many peers, can't connect. peer count: " << peerCount()
                         << " pending peers: " << m_pendingPeerConns.size();
             ps->disconnect(TooManyPeers);
             return;
@@ -394,12 +394,12 @@ void Host::determinePublic()
     bi::tcp::endpoint ep(bi::address(), m_listenPort);
     if (m_netPrefs.traverseNAT && listenIsPublic)
     {
-        cnetnote << "Listen address set to Public address: " << laddr << ". UPnP disabled.";
+        std::cout << "Listen address set to Public address: " << laddr << ". UPnP disabled.";
         ep.address(laddr);
     }
     else if (m_netPrefs.traverseNAT && publicIsHost)
     {
-        cnetnote << "Public address set to Host configured address: " << paddr << ". UPnP disabled.";
+        std::cout << "Public address set to Host configured address: " << paddr << ". UPnP disabled.";
         ep.address(paddr);
     }
     else if (m_netPrefs.traverseNAT)
@@ -432,7 +432,7 @@ void Host::runAcceptor()
 
     if (m_run && !m_accepting)
     {
-        cnetdetails << "Listening on local port " << m_listenPort << " (public: " << m_tcpPublic
+        std::cerr << "Listening on local port " << m_listenPort << " (public: " << m_tcpPublic
                     << ")";
         m_accepting = true;
 
@@ -447,7 +447,7 @@ void Host::runAcceptor()
             }
             if (peerCount() > peerSlots(Ingress))
             {
-                cnetdetails << "Dropping incoming connect due to maximum peer count (" << Ingress
+                std::cerr << "Dropping incoming connect due to maximum peer count (" << Ingress
                             << " * ideal peer count): " << socket->remoteEndpoint();
                 socket->close();
                 if (ec.value() < 1)
@@ -513,7 +513,7 @@ void Host::addNode(NodeID const& _node, NodeIPEndpoint const& _endpoint)
             return;
 
     if (_endpoint.tcpPort < 30300 || _endpoint.tcpPort > 30305)
-        cnetdetails << "Non-standard port being recorded: " << _endpoint.tcpPort;
+        std::cerr << "Non-standard port being recorded: " << _endpoint.tcpPort;
 
     addNodeToNodeTable(Node(_node, _endpoint));
 }
@@ -579,7 +579,7 @@ void Host::connect(std::shared_ptr<Peer> const& _p)
     
     if (havePeerSession(_p->id))
     {
-        cnetdetails << "Aborted connect. Node already connected.";
+        std::cerr << "Aborted connect. Node already connected.";
         return;
     }
 
@@ -595,7 +595,7 @@ void Host::connect(std::shared_ptr<Peer> const& _p)
     _p->m_lastAttempted = std::chrono::system_clock::now();
     
     bi::tcp::endpoint ep(_p->endpoint);
-    cnetdetails << "Attempting connection to node " << _p->id << "@" << ep << " from " << id();
+    std::cerr << "Attempting connection to node " << _p->id << "@" << ep << " from " << id();
     auto socket = make_shared<RLPXSocket>(m_ioService);
     socket->ref().async_connect(ep, [=](boost::system::error_code const& ec)
     {
@@ -604,14 +604,14 @@ void Host::connect(std::shared_ptr<Peer> const& _p)
         
         if (ec)
         {
-            cnetdetails << "Connection refused to node " << _p->id << "@" << ep << " ("
+            std::cerr << "Connection refused to node " << _p->id << "@" << ep << " ("
                         << ec.message() << ")";
             // Manually set error (session not present)
             _p->m_lastDisconnect = TCPError;
         }
         else
         {
-            cnetdetails << "Connecting to " << _p->id << "@" << ep;
+            std::cerr << "Connecting to " << _p->id << "@" << ep;
             auto handshake = make_shared<RLPXHandshake>(this, socket, _p->id);
             {
                 Guard l(x_connecting);

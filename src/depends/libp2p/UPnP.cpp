@@ -25,9 +25,9 @@
 #include <miniupnpc/miniupnpc.h>
 #include <miniupnpc/upnpcommands.h>
 #endif
-#include <libdevcore/Exceptions.h>
-#include <libdevcore/CommonIO.h>
-#include <libdevcore/Log.h>
+#include "Exceptions.h"
+#include "CommonIO.h"
+#include "Log.h"
 using namespace std;
 using namespace dev;
 using namespace dev::p2p;

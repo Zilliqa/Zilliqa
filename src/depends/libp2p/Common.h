@@ -34,11 +34,11 @@
 #include <boost/asio/ip/tcp.hpp>
 
 #include <chrono>
-#include <libdevcrypto/Common.h>
-#include <libdevcore/Log.h>
-#include <libdevcore/Exceptions.h>
-#include <libdevcore/RLP.h>
-#include <libdevcore/Guards.h>
+#include "DevCryptoCommon.h"
+#include "Log.h"
+#include "Exceptions.h"
+#include "RLP.h"
+#include "Guards.h"
 namespace ba = boost::asio;
 namespace bi = boost::asio::ip;
 
@@ -80,6 +80,7 @@ struct InvalidPublicIPAddress: virtual dev::Exception {};
 /// The ECDHE agreement failed during RLPx handshake.
 struct ECDHEError: virtual Exception {};
 
+#if FALSE
 #define NET_GLOBAL_LOGGER(NAME, SEVERITY)                      \
     BOOST_LOG_INLINE_GLOBAL_LOGGER_CTOR_ARGS(g_##NAME##Logger, \
         boost::log::sources::severity_channel_logger_mt<>,     \
@@ -91,6 +92,8 @@ NET_GLOBAL_LOGGER(netlog, VerbosityDebug)
 #define cnetlog LOG(dev::p2p::g_netlogLogger::get())
 NET_GLOBAL_LOGGER(netdetails, VerbosityTrace)
 #define cnetdetails LOG(dev::p2p::g_netdetailsLogger::get())
+#endif
+
 
 enum PacketType
 {

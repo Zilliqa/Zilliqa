@@ -27,11 +27,11 @@
 #include <deque>
 #include <array>
 
-#include <libdevcore/Guards.h>
-#include <libdevcrypto/Common.h>
-#include <libdevcore/SHA3.h>
-#include <libdevcore/Log.h>
-#include <libdevcore/RLP.h>
+#include "Guards.h"
+#include "DevCoreCommon.h"
+#include "SHA3.h"
+#include "Log.h"
+#include "RLP.h"
 #include "Common.h"
 namespace ba = boost::asio;
 namespace bi = ba::ip;
@@ -203,7 +203,7 @@ void UDPSocket<Handler, MaxDatagramSize>::doRead()
             return disconnectWithError(_ec);
         
         if (_ec != boost::system::errc::success)
-            cnetlog << "Receiving UDP message failed. " << _ec.value() << " : " << _ec.message();
+            std::cerr << "Receiving UDP message failed. " << _ec.value() << " : " << _ec.message();
 
         if (_len)
             m_host.onReceived(this, m_recvEndpoint, bytesConstRef(m_recvData.data(), _len));
@@ -226,7 +226,7 @@ void UDPSocket<Handler, MaxDatagramSize>::doWrite()
             return disconnectWithError(_ec);
         
         if (_ec != boost::system::errc::success)
-            cnetlog << "Failed delivering UDP message. " << _ec.value() << " : " << _ec.message();
+            std::cerr << "Failed delivering UDP message. " << _ec.value() << " : " << _ec.message();
 
         Guard l(x_sendQ);
         m_sendQ.pop_front();

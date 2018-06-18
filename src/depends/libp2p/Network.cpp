@@ -29,10 +29,10 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/split.hpp>
 
-#include <libdevcore/Common.h>
-#include <libdevcore/Assertions.h>
-#include <libdevcore/CommonIO.h>
-#include <libdevcore/Exceptions.h>
+#include "DevCoreCommon.h"
+#include "Assertions.h"
+#include "CommonIO.h"
+#include "Exceptions.h"
 #include "Common.h"
 #include "UPnP.h"
 #include "Network.h"
@@ -55,7 +55,7 @@ std::set<bi::address> Network::getInterfaceAddresses()
     char ac[80];
     if (gethostname(ac, sizeof(ac)) == SOCKET_ERROR)
     {
-        cnetlog << "Error " << WSAGetLastError() << " when getting local host name.";
+        std::cout << "Error " << WSAGetLastError() << " when getting local host name.";
         WSACleanup();
         BOOST_THROW_EXCEPTION(NoNetworking());
     }
@@ -63,7 +63,7 @@ std::set<bi::address> Network::getInterfaceAddresses()
     struct hostent* phe = gethostbyname(ac);
     if (phe == 0)
     {
-        cnetlog << "Bad host lookup.";
+        std::cout << "Bad host lookup.";
         WSACleanup();
         BOOST_THROW_EXCEPTION(NoNetworking());
     }
@@ -201,13 +201,13 @@ bi::tcp::endpoint Network::traverseNAT(std::set<bi::address> const& _ifAddresses
         bi::address eIPAddr(bi::address::from_string(eIP));
         if (extPort && eIP != string("0.0.0.0") && !isPrivateAddress(eIPAddr))
         {
-            cnetnote << "Punched through NAT and mapped local port " << _listenPort << " onto external port " << extPort << ".";
-            cnetnote << "External addr: " << eIP;
+            std::cout << "Punched through NAT and mapped local port " << _listenPort << " onto external port " << extPort << ".";
+            std::cout << "External addr: " << eIP;
             o_upnpInterfaceAddr = pAddr;
             upnpEP = bi::tcp::endpoint(eIPAddr, (unsigned short)extPort);
         }
         else
-            cnetlog << "Couldn't punch through NAT (or no NAT in place).";
+            std::cout << "Couldn't punch through NAT (or no NAT in place).";
     }
 
     return upnpEP;
@@ -241,7 +241,7 @@ bi::tcp::endpoint Network::resolveHost(string const& _addr)
         auto it = r.resolve({bi::tcp::v4(), split[0], toString(port)}, ec);
         if (ec)
         {
-            cnetlog << "Error resolving host address... " << _addr << " : " << ec.message();
+            std::cout << "Error resolving host address... " << _addr << " : " << ec.message();
             return bi::tcp::endpoint();
         }
         else

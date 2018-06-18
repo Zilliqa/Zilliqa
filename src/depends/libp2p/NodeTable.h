@@ -25,7 +25,7 @@
 
 #include <boost/integer/static_log2.hpp>
 
-#include <libp2p/UDP.h>
+#include "UDP.h"
 #include "Common.h"
 
 namespace dev

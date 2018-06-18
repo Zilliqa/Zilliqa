@@ -29,9 +29,9 @@
 #include <memory>
 #include <utility>
 
-#include <libdevcore/Common.h>
-#include <libdevcore/RLP.h>
-#include <libdevcore/Guards.h>
+#include "DevCoreCommon.h"
+#include "RLP.h"
+#include "Guards.h"
 #include "RLPXFrameCoder.h"
 #include "RLPXSocket.h"
 #include "Common.h"

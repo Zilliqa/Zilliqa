@@ -28,6 +28,9 @@ using namespace dev;
 using namespace dev::p2p;
 using namespace dev::crypto;
 
+/// Amount of bytes added when encrypting with encryptECIES.
+static const unsigned c_eciesOverhead = 113;
+
 void RLPXHandshake::writeAuth()
 {
     LOG(m_logger) << "p2p.connect.egress sending auth to " << m_socket->remoteEndpoint();
@@ -386,7 +389,7 @@ void RLPXHandshake::transition(boost::system::error_code _ech)
                         bytesRef frame(&m_handshakeInBuffer);
                         if (!m_io->authAndDecryptFrame(frame))
                         {
-                            cnetdetails
+                            std::cout
                                 << (m_originated ? "p2p.connect.egress" : "p2p.connect.ingress")
                                 << " hello frame: decrypt failed";
                             m_nextState = Error;
@@ -397,7 +400,7 @@ void RLPXHandshake::transition(boost::system::error_code _ech)
                         PacketType packetType = frame[0] == 0x80 ? HelloPacket : (PacketType)frame[0];
                         if (packetType != HelloPacket)
                         {
-                            cnetdetails
+                            std::cout
                                 << (m_originated ? "p2p.connect.egress" : "p2p.connect.ingress")
                                 << " hello frame: invalid packet type";
                             m_nextState = Error;
@@ -405,7 +408,7 @@ void RLPXHandshake::transition(boost::system::error_code _ech)
                             return;
                         }
 
-                        cnetdetails << (m_originated ? "p2p.connect.egress" : "p2p.connect.ingress")
+                        std::cout << (m_originated ? "p2p.connect.egress" : "p2p.connect.ingress")
                                     << " hello frame: success. starting session.";
                         try
                         {
@@ -414,7 +417,7 @@ void RLPXHandshake::transition(boost::system::error_code _ech)
                         }
                         catch (std::exception const& _e)
                         {
-                            cnetlog << "Handshake causing an exception: " << _e.what();
+                            std::cout << "Handshake causing an exception: " << _e.what();
                             m_nextState = Error;
                             transition();
                         }

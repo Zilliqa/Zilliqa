@@ -23,7 +23,7 @@
 #pragma once
 
 #include <memory>
-#include <libdevcrypto/Common.h>
+#include "DevCoreCommon.h"
 #include "RLPXSocket.h"
 #include "RLPXFrameCoder.h"
 #include "Common.h"

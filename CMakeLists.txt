@@ -6,12 +6,32 @@ if(CCACHE_PROGRAM)
     set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM}")
 endif()
 
-project(Zilliqa)
 
 # detect operating system
 message(STATUS "We are on a ${CMAKE_SYSTEM_NAME} system")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+
+# Map current configuration to configurations of imported targets.
+set(CMAKE_MAP_IMPORTED_CONFIG_DEBUG Release)
+set(CMAKE_MAP_IMPORTED_CONFIG_RELWITHDEBINFO Release)
+
+set(HUNTER_CONFIGURATION_TYPES Release)
+set(HUNTER_JOBS_NUMBER 4)
+set(HUNTER_CACHE_SERVERS "https://github.com/ethereum/hunter-cache")
+set(HUNTER_PASSWORDS_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Hunter/passwords.cmake)
+
+include(HunterGate)
+HunterGate(
+        URL "https://github.com/ruslo/hunter/archive/v0.21.16.tar.gz"
+        SHA1 "aa1faccd24f33dd2c368f85a4e9ca2e5d9c249cb"
+        LOCAL
+)
+
+
+project(Zilliqa)
+
+
 #
 # check dependencies
 #
@@ -44,11 +64,15 @@ find_package(LevelDB REQUIRED)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
+hunter_add_package(cryptopp)
+find_package(cryptopp CONFIG REQUIRED)
+
 # export compile commands
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # customize the flags for RELWITHDEBINFO
-set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -ggdb -DNDEBUG")
+#set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -ggdb -DNDEBUG")
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O1 -g")
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -71,6 +95,11 @@ if (ENABLE_COVERAGE AND CMAKE_COMPILER_IS_GNUCXX)
     add_custom_target(ctest COMMAND ${CMAKE_CTEST_COMMAND})
     setup_target_for_coverage(${PROJECT_NAME}_coverage ctest coverage)
 endif()
+
+set(UTILS_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/utils")
+
+#Global include path for all libs.
+include_directories("${CMAKE_SOURCE_DIR}")
 
 add_subdirectory (src)
 
