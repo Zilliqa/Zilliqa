@@ -45,7 +45,7 @@ NAT::NAT()
 
     if (status != 1)
     {
-        LOG_GENERAL(WARNING, "Unable to get Valid IGD");
+        LOG_GENERAL(WARNING, "Unable to get Valid Internet Gateway Device ");
         return;
     }
 
@@ -101,7 +101,7 @@ int NAT::addRedirect(int _port)
                             port_str.c_str(), NULL, m_lanAddress.c_str(), "zilliqa",
                             "TCP", NULL, NULL))
     {
-        LOG_GENERAL(WARNING, "Failed to map Port");
+        LOG_GENERAL(WARNING, "Failed to map any Port");
         return 0;
     }
 
