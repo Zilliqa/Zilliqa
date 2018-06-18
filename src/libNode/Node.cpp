@@ -1186,18 +1186,18 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
     typedef bool (Node::*InstructionHandler)(const vector<unsigned char>&,
                                              unsigned int, const Peer&);
 
-    InstructionHandler ins_handlers[]
-        = {&Node::ProcessStartPoW1,
-           &Node::ProcessDSBlock,
-           &Node::ProcessSharding,
-           &Node::ProcessCreateTransaction,
-           &Node::ProcessSubmitTransaction,
-           &Node::ProcessMicroblockConsensus,
-           &Node::ProcessFinalBlock,
-           &Node::ProcessForwardTransaction,
-           &Node::ProcessCreateTransactionFromLookup,
-           &Node::ProcessVCBlock,
-           &Node::ProcessForwardStateDelta,
+    InstructionHandler ins_handlers[] = {
+        &Node::ProcessStartPoW1,
+        &Node::ProcessDSBlock,
+        &Node::ProcessSharding,
+        &Node::ProcessCreateTransaction,
+        &Node::ProcessSubmitTransaction,
+        &Node::ProcessMicroblockConsensus,
+        &Node::ProcessFinalBlock,
+        &Node::ProcessForwardTransaction,
+        &Node::ProcessCreateTransactionFromLookup,
+        &Node::ProcessVCBlock,
+        &Node::ProcessForwardStateDelta,
     };
 
     const unsigned char ins_byte = message.at(offset);
