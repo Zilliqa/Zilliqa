@@ -468,12 +468,81 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup()
     return true;
 }
 
+const Address genesisAccount("0000000000000000000000000000000000000000");
+const uint256_t RewardAmount = 100;
+
+bool Node::Coinbase(const MicroBlock& lastMicroblock,
+                    const TxBlock& lastTxBlock)
+{
+    if (m_mediator.m_DSCommitteePubKeys.size() != lastTxBlock.GetB1().size())
+    {
+        return false;
+    }
+    if (m_mediator.m_DSCommitteePubKeys.size() != lastTxBlock.GetB2().size())
+    {
+        return false;
+    }
+    if (m_myShardMembersPubKeys.size() != lastMicroblock.GetB1().size())
+    {
+        return false;
+    }
+    if (m_myShardMembersPubKeys.size() != lastMicroblock.GetB2().size())
+    {
+        return false;
+    }
+
+    vector<vector<bool>> B = {lastTxBlock.GetB1(), lastTxBlock.GetB2()};
+
+    for (unsigned int i = 0; i < B.size(); i++)
+    {
+        for (unsigned int j = 0; j < B[i].size(); j++)
+        {
+            if (B[i][j])
+            {
+                Address rewardee = Account::GetAddressFromPublicKey(
+                    m_mediator.m_DSCommitteePubKeys[j]);
+                if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
+                        rewardee, genesisAccount, RewardAmount))
+                {
+                    return false;
+                }
+            }
+        }
+    }
+
+    B.clear();
+    B.push_back(lastMicroblock.GetB1());
+    B.push_back(lastMicroblock.GetB2());
+
+    for (unsigned int i = 0; i < B.size(); i++)
+    {
+        for (unsigned int j = 0; j < B[i].size(); j++)
+        {
+            if (B[i][j])
+            {
+                Address rewardee = Account::GetAddressFromPublicKey(
+                    m_myShardMembersPubKeys[j]);
+                if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
+                        rewardee, genesisAccount, RewardAmount))
+                {
+                    return false;
+                }
+            }
+        }
+    }
+
+    return true;
+}
+
 bool Node::RunConsensusOnMicroBlock()
 {
     LOG_MARKER();
 
     // set state first and then take writer lock so that SubmitTransactions
     // if it takes reader lock later breaks out of loop
+
+    //Coinbase();
+
     SetState(MICROBLOCK_CONSENSUS_PREP);
 
     AccountStore::GetInstance().SerializeDelta();
