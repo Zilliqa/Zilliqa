@@ -209,7 +209,8 @@ class Node : public Executable, public Broadcastable
     void BroadcastStateDeltaToSendingAssignment(
         const boost::multiprecision::uint256_t& blocknum,
         const vector<Peer>& sendingAssignment,
-        const StateHash& microBlockStateDeltaHash) const;
+        const StateHash& microBlockStateDeltaHash,
+        const TxnHash& microBlockTxHash) const;
 
     void LoadUnavailableMicroBlockHashes(
         const TxBlock& finalblock,
@@ -217,23 +218,26 @@ class Node : public Executable, public Broadcastable
 
     bool RemoveTxRootHashFromUnavailableMicroBlock(
         const boost::multiprecision::uint256_t& blocknum,
-        const TxnHash& txnRootHash);
+        const TxnHash& txnRootHash, const StateHash& stateDeltaHash);
     bool RemoveStateDeltaHashFromUnavailableMicroBlock(
         const boost::multiprecision::uint256_t& blocknum,
-        const StateHash& stateDeltaHash);
+        const StateHash& stateDeltaHash, const TxnHash& txnRootHash);
 
     bool
     CheckMicroBlockRootHash(const TxBlock& finalBlock,
                             const boost::multiprecision::uint256_t& blocknum);
     bool IsMicroBlockTxRootHashInFinalBlock(
-        TxnHash microBlockTxRootHash,
+        TxnHash microBlockTxRootHash, StateHash microBlockStateDeltaHash,
         const boost::multiprecision::uint256_t& blocknum,
         bool& isEveryMicroBlockAvailable);
     bool IsMicroBlockStateDeltaHashInFinalBlock(
-        StateHash microBlockStateDeltaHash,
+        StateHash microBlockStateDeltaHash, TxnHash microBlockTxRootHash,
         const boost::multiprecision::uint256_t& blocknum,
         bool& isEveryMicroBlockAvailable);
     bool IsMyShardsMicroBlockTxRootHashInFinalBlock(
+        const boost::multiprecision::uint256_t& blocknum,
+        bool& isEveryMicroBlockAvailable);
+    bool IsMyShardsMicroBlockStateDeltaHashInFinalBlock(
         const boost::multiprecision::uint256_t& blocknum,
         bool& isEveryMicroBlockAvailable);
     bool
@@ -262,12 +266,12 @@ class Node : public Executable, public Broadcastable
         vector<Peer>& forward_list);
     bool LoadForwardedTxnsAndCheckRoot(
         const vector<unsigned char>& message, unsigned int cur_offset,
-        TxnHash& microBlockTxHash, vector<Transaction>& txnsInForwardedMessage);
+        TxnHash& microBlockTxHash, StateHash& microBlockStateDeltaHash,
+        vector<Transaction>& txnsInForwardedMessage);
     // vector<TxnHash> & txnHashesInForwardedMessage);
-    bool
-    LoadForwardedStateDeltaAndCheckRoot(const vector<unsigned char>& message,
-                                        unsigned int cur_offset,
-                                        StateHash& microBlockStateDeltaHash);
+    bool LoadForwardedStateDeltaAndCheckRoot(
+        const vector<unsigned char>& message, unsigned int cur_offset,
+        StateHash& microBlockStateDeltaHash, TxnHash& microBlockTxHash);
     void CommitForwardedTransactions(
         const vector<Transaction>& txnsInForwardedMessage,
         const boost::multiprecision::uint256_t& blocknum);
@@ -369,6 +373,11 @@ public:
     std::condition_variable m_cvAllMicroBlocksRecvd;
     std::mutex m_mutexAllMicroBlocksRecvd;
     bool m_allMicroBlocksRecvd = true;
+
+    std::mutex m_mutexTempCommitted;
+    bool m_tempStateDeltaCommitted = true;
+
+    std::mutex m_mutexIsEveryMicroBlockAvailable;
 
     // Transaction body sharing variables
     std::mutex m_mutexUnavailableMicroBlocks;

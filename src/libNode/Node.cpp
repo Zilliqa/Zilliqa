@@ -849,6 +849,27 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
                       "Time out while waiting for state transition ");
         }
 
+        // bool isVacuousEpoch
+        //     = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
+
+        // if (!isVacuousEpoch)
+        // {
+        //     unique_lock<mutex> g(m_mutexAllMicroBlocksRecvd, defer_lock);
+        //     if (!m_allMicroBlocksRecvd)
+        //     {
+        //         LOG_GENERAL(INFO, "Wait for allMicroBlocksRecvd");
+        //         m_cvAllMicroBlocksRecvd.wait(
+        //             g, [this] { return m_allMicroBlocksRecvd; });
+        //         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        //                   "All microblocks recvd, moving to "
+        //                   "ProcessSubmitTxnSharing");
+        //     }
+        //     else
+        //     {
+        //         LOG_GENERAL(INFO, "No need to wait for allMicroBlocksRecvd");
+        //     }
+        // }
+
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "State transition is completed. (check for timeout)");
 
@@ -1018,10 +1039,18 @@ void Node::SubmitTransactions()
 
         if (findOneFromCreated(t))
         {
+            if (!m_mediator.m_validator->CheckCreatedTransaction(t))
+            {
+                return;
+            }
             submitOne(t);
         }
         else if (findOneFromPrefilled(t))
         {
+            if (!m_mediator.m_validator->CheckCreatedTransaction(t))
+            {
+                return;
+            }
             submitOne(t);
             txn_sent_count++;
         }
@@ -1057,6 +1086,7 @@ bool Node::CleanVariables()
     m_myShardMembersNetworkInfo.clear();
     m_isPrimary = false;
     m_isMBSender = false;
+    m_tempStateDeltaCommitted = true;
     m_myShardID = 0;
 
     m_consensusObject.reset();
@@ -1098,6 +1128,10 @@ bool Node::CleanVariables()
     {
         std::lock_guard<mutex> lock(m_mutexUnavailableMicroBlocks);
         m_unavailableMicroBlocks.clear();
+    }
+    {
+        std::lock_guard<mutex> lock(m_mutexTempCommitted);
+        m_tempStateDeltaCommitted = true;
     }
     // On Lookup
     {

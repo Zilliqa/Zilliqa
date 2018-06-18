@@ -164,7 +164,7 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
 
         SetState(WAITING_FINALBLOCK);
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Micro block consensus"
+                  "Micro block consensus "
                       << "is DONE!!! (Epoch " << m_mediator.m_currentEpochNum
                       << ")");
     }
@@ -479,6 +479,8 @@ bool Node::RunConsensusOnMicroBlock()
     // set state first and then take writer lock so that SubmitTransactions
     // if it takes reader lock later breaks out of loop
     SetState(MICROBLOCK_CONSENSUS_PREP);
+
+    AccountStore::GetInstance().SerializeDelta();
 
     if (m_isPrimary == true)
     {

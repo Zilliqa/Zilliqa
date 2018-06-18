@@ -19,6 +19,7 @@
 
 #include <json/json.h>
 #include <map>
+#include <mutex>
 #include <set>
 #include <unordered_map>
 
@@ -69,6 +70,10 @@ class AccountStore
 
     shared_ptr<AccountStoreTemp> m_accountStoreTemp;
 
+    std::mutex m_mutexDelta;
+
+    vector<unsigned char> m_stateDeltaSerialized;
+
     AccountStore();
     ~AccountStore();
 
@@ -82,8 +87,9 @@ public:
     int Deserialize(const vector<unsigned char>& src,
                     unsigned int offset) override;
 
-    unsigned int SerializeDelta(vector<unsigned char>& dst,
-                                unsigned int offset);
+    void SerializeDelta();
+
+    unsigned int GetSerializedDelta(vector<unsigned char>& dst);
 
     int DeserializeDelta(const vector<unsigned char>& src, unsigned int offset);
 
@@ -99,6 +105,11 @@ public:
 
     bool UpdateAccountsTemp(const uint64_t& blockNum,
                             const Transaction& transaction);
+
+    void AddAccountTemp(const Address& address, const Account& account)
+    {
+        m_accountStoreTemp->AddAccount(address, account);
+    }
 
     StateHash GetStateDeltaHash();
 

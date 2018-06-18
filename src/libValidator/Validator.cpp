@@ -53,6 +53,8 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx) const
 {
     LOG_MARKER();
 
+    LOG_GENERAL(INFO, "Tran: " << tx.GetTranID());
+
     // Check if from account is sharded here
     const PubKey& senderPubKey = tx.GetSenderPubKey();
     Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
@@ -62,15 +64,15 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx) const
         = Transaction::GetShardIndex(fromAddr, numShards);
     if (correct_shard != shardID)
     {
-        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "This tx is not sharded to me!"
-                      << " From Account  = 0x" << fromAddr
-                      << " Correct shard = " << correct_shard
-                      << " This shard    = "
-                      << m_mediator.m_node->getShardID());
+        // LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+        //           "This tx is not sharded to me!"
+        //               << " From Account  = 0x" << fromAddr
+        //               << " Correct shard = " << correct_shard
+        //               << " This shard    = "
+        //               << m_mediator.m_node->getShardID());
         // Transaction created from the GenTransactionBulk will be rejected
         // by all shards but one. Comment the following line to avoid this
-        return false;
+        // return false;
     }
 
     // Check if from account exists in local storage
@@ -88,8 +90,8 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx) const
     if (!AccountStore::GetInstance().DoesAccountExist(toAddr))
     {
         // FIXME: Should return false in the future
-        LOG_GENERAL(INFO, "FIXME: New account is added: " << toAddr);
-        AccountStore::GetInstance().AddAccount(toAddr, {0, 0});
+        // LOG_GENERAL(INFO, "FIXME: New account is added: " << toAddr);
+        // AccountStore::GetInstance().AddAccount(toAddr, {0, 0});
     }
 
     // Check if transaction amount is valid
@@ -188,8 +190,8 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
     if (!AccountStore::GetInstance().DoesAccountExist(toAddr))
     {
         // FIXME: Should return false in the future
-        LOG_GENERAL(INFO, "FIXME: New account is added: " << toAddr);
-        AccountStore::GetInstance().AddAccount(toAddr, {0, 0});
+        // LOG_GENERAL(INFO, "FIXME: New account is added: " << toAddr);
+        // AccountStore::GetInstance().AddAccount(toAddr, {0, 0});
     }
 
     // Check if transaction amount is valid
