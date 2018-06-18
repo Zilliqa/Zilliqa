@@ -55,37 +55,34 @@ void Account::InitContract(const vector<unsigned char>& data)
     Json::Value root;
     string dataStr(data.begin(), data.end());
     string errors;
-    if (reader->parse(dataStr.c_str(), dataStr.c_str() + dataStr.size(), &root,
-                      &errors))
-    {
-        m_initValJson = root;
-        for (auto v : root)
-        {
-            if (!v.isMember("vname") || !v.isMember("type")
-                || !v.isMember("value"))
-            {
-                LOG_GENERAL(
-                    WARNING,
-                    "This variable in initialization of contract is corrupted");
-                continue;
-            }
-            string vname = v["vname"].asString();
-            string type = v["type"].asString();
-
-            Json::StreamWriterBuilder writeBuilder;
-            std::unique_ptr<Json::StreamWriter> writer(
-                writeBuilder.newStreamWriter());
-            ostringstream oss;
-            writer->write(v["value"], &oss);
-            string value = oss.str();
-
-            SetStorage(vname, type, value, false);
-        }
-    }
-    else
+    if (!reader->parse(dataStr.c_str(), dataStr.c_str() + dataStr.size(), &root,
+                       &errors))
     {
         LOG_GENERAL(WARNING,
                     "Failed to parse initialization contract json: " << errors);
+        return;
+    }
+    m_initValJson = root;
+    for (auto& v : root)
+    {
+        if (!v.isMember("vname") || !v.isMember("type") || !v.isMember("value"))
+        {
+            LOG_GENERAL(
+                WARNING,
+                "This variable in initialization of contract is corrupted");
+            continue;
+        }
+        string vname = v["vname"].asString();
+        string type = v["type"].asString();
+
+        Json::StreamWriterBuilder writeBuilder;
+        std::unique_ptr<Json::StreamWriter> writer(
+            writeBuilder.newStreamWriter());
+        ostringstream oss;
+        writer->write(v["value"], &oss);
+        string value = oss.str();
+
+        SetStorage(vname, type, value, false);
     }
 }
 
@@ -206,27 +203,30 @@ bool Account::IncreaseNonce()
 void Account::SetStorageRoot(const h256& root)
 {
     if (!isContract())
-        return;
-    m_storageRoot = root;
-    if (m_storageRoot != h256())
     {
-        m_storage.setRoot(m_storageRoot);
-        m_prevRoot = m_storageRoot;
+        return;
     }
+    m_storageRoot = root;
+
+    if (m_storageRoot == h256())
+    {
+        return;
+    }
+
+    m_storage.setRoot(m_storageRoot);
+    m_prevRoot = m_storageRoot;
 }
 
 void Account::SetStorage(string _k, string _type, string _v, bool _mutable)
 {
     if (!isContract())
+    {
         return;
+    }
     RLPStream rlpStream(4);
     rlpStream << _k << (_mutable ? "True" : "False") << _type << _v;
 
-    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-    sha2.Update(DataConversion::StringToCharArray(_k));
-    const vector<unsigned char>& k_hash = sha2.Finalize();
-
-    m_storage.insert(dev::h256(k_hash), rlpStream.out());
+    m_storage.insert(GetKeyHash(_k), rlpStream.out());
 
     m_storageRoot = m_storage.root();
 }
@@ -234,13 +234,11 @@ void Account::SetStorage(string _k, string _type, string _v, bool _mutable)
 vector<string> Account::GetStorage(string _k) const
 {
     if (!isContract())
+    {
         return {};
+    }
 
-    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-    sha2.Update(DataConversion::StringToCharArray(_k));
-    const vector<unsigned char>& k_hash = sha2.Finalize();
-
-    dev::RLP rlp(m_storage.at(dev::h256(k_hash)));
+    dev::RLP rlp(m_storage.at(GetKeyHash(_k)));
     // mutable, type, value
     return {rlp[1].toString(), rlp[2].toString(), rlp[3].toString()};
 }
@@ -274,18 +272,16 @@ Json::Value Account::GetStorageJson() const
             std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
             Json::Value obj;
             string errors;
-            if (reader->parse(tValue.c_str(), tValue.c_str() + tValue.size(),
-                              &obj, &errors))
-            {
-                item["value"] = obj;
-            }
-            else
+            if (!reader->parse(tValue.c_str(), tValue.c_str() + tValue.size(),
+                               &obj, &errors))
             {
                 LOG_GENERAL(
                     WARNING,
                     "The map json object cannot be extracted from Storage: "
                         << errors);
+                continue;
             }
+            item["value"] = obj;
         }
         else
         {
@@ -308,7 +304,10 @@ Json::Value Account::GetStorageJson() const
 void Account::RollBack()
 {
     if (!isContract())
+    {
+        LOG_GENERAL(WARNING, "Not a contract, meaningless to call RollBack");
         return;
+    }
     m_storageRoot = m_prevRoot;
     if (m_storageRoot != h256())
     {
@@ -376,4 +375,11 @@ void Account::SetCode(const std::vector<unsigned char>& code)
     m_codeHash = dev::h256(sha2.Finalize());
 
     InitStorage();
+}
+
+const h256 Account::GetKeyHash(const string& key) const
+{
+    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+    sha2.Update(DataConversion::StringToCharArray(key));
+    return h256(sha2.Finalize());
 }

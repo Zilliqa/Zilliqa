@@ -87,6 +87,8 @@ const unsigned int POW2_DIFFICULTY{ReadFromConstantsFile("POW2_DIFFICULTY")};
 const unsigned int MICROBLOCK_TIMEOUT{
     ReadFromConstantsFile("MICROBLOCK_TIMEOUT")};
 const unsigned int VIEWCHANGE_TIME{ReadFromConstantsFile("VIEWCHANGE_TIME")};
+const unsigned int VIEWCHANGE_EXTRA_TIME{
+    ReadFromConstantsFile("VIEWCHANGE_EXTRA_TIME")};
 const unsigned int SHARDING_TIMEOUT{ReadFromConstantsFile("SHARDING_TIMEOUT")};
 const unsigned int CONSENSUS_OBJECT_TIMEOUT{
     ReadFromConstantsFile("CONSENSUS_OBJECT_TIMEOUT")};
@@ -103,6 +105,8 @@ const unsigned int TX_SHARING_CLUSTER_SIZE{
     ReadFromConstantsFile("TX_SHARING_CLUSTER_SIZE")};
 const unsigned int NEW_NODE_POW_DELAY{
     ReadFromConstantsFile("NEW_NODE_POW_DELAY")};
+const unsigned int POST_VIEWCHANGE_BUFFER{
+    ReadFromConstantsFile("POST_VIEWCHANGE_BUFFER")};
 const unsigned int N_PREFILLED_PER_ACCOUNT{
     ReadFromConstantsFile("N_PREFILLED_PER_ACCOUNT")};
 const std::vector<std::string> GENESIS_WALLETS{
@@ -113,8 +117,6 @@ const std::vector<std::string> GENESIS_KEYS{
 const std::string SCILLA_PATH{ReadHexStringFromConnstansFile("SCILLA_PATH")};
 const std::string SCILLA_FILES{ReadHexStringFromConnstansFile("SCILLA_FILES")};
 const std::string SCILLA_LOG{ReadHexStringFromConnstansFile("SCILLA_LOG")};
-const std::string INTERPRETER_NAME{
-    SCILLA_PATH + ReadHexStringFromConnstansFile("INTERPRETER_NAME")};
 const std::string INIT_JSON{SCILLA_FILES
                             + ReadHexStringFromConnstansFile("INIT_JSON")};
 const std::string INPUT_STATE_JSON{

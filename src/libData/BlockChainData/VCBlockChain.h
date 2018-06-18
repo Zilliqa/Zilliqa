@@ -14,47 +14,42 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#ifndef __SYSCOMMAND_H__
-#define __SYSCOMMAND_H__
+#ifndef __VCBLOCKCHAIN_H__
+#define __VCBLOCKCHAIN_H__
 
-#include <array>
-#include <cstdlib>
-#include <fstream>
-#include <iostream>
-#include <memory>
-#include <string>
+#include <mutex>
+#include <vector>
 
-#include "Logger.h"
+#include <boost/multiprecision/cpp_int.hpp>
 
-class SysCommand
+#include "libData/BlockData/Block/VCBlock.h"
+#include "libData/DataStructures/CircularArray.h"
+#include "libPersistence/BlockStorage.h"
+
+/// Transient storage for VC blocks.
+class VCBlockChain
 {
+    std::mutex m_mutexVCBlocks;
+    CircularArray<VCBlock> m_vcBlocks;
+
 public:
-    static const bool ExecuteCmdWithoutOutput(std::string cmd)
-    {
-        std::string str;
-        return ExecuteCmdWithOutput(cmd, str);
-    }
+    /// Constructor.
+    VCBlockChain();
 
-    static bool ExecuteCmdWithOutput(std::string cmd, std::string& output)
-    {
-        std::array<char, 128> buffer;
+    /// Destructor.
+    ~VCBlockChain();
 
-        // Log the stderr into stdout as well
-        cmd += " 2>&1 ";
-        std::unique_ptr<FILE, decltype(&pclose)> proc(popen(cmd.c_str(), "r"),
-                                                      pclose);
-        if (!proc)
-        {
-            LOG_GENERAL(WARNING, "popen() failed!");
-            return false;
-        }
-        while (!feof(proc.get()))
-        {
-            if (fgets(buffer.data(), 128, proc.get()) != nullptr)
-                output += buffer.data();
-        }
-        return true;
-    }
+    /// Reset
+    void Reset();
+
+    /// Returns the last stored block.
+    VCBlock GetLastBlock();
+
+    /// Returns the block at the specified block number.
+    VCBlock GetBlock(const boost::multiprecision::uint256_t& blocknum);
+
+    /// Adds a block to the chain.
+    int AddBlock(const VCBlock& block);
 };
 
-#endif // __SYSCOMMAND_H__
+#endif // __VCBLOCKCHAIN_H__

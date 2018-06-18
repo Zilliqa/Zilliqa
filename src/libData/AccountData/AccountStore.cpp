@@ -247,7 +247,13 @@ bool AccountStore::UpdateAccounts(const uint64_t& blockNum,
 
         if (ExportCreateContractFiles(toAccount))
         {
-            SysCommand::ExecuteCmdWithOutput(GetCreateContractCmdStr());
+            if (!SysCommand::ExecuteCmdWithoutOutput(GetCreateContractCmdStr()))
+            {
+                LOG_GENERAL(
+                    WARNING,
+                    "Interpreter does not admit this contract creation");
+                return false;
+            }
             if (!ParseCreateContractOutput())
             {
                 m_addressToAccount.erase(toAddr);
@@ -275,7 +281,13 @@ bool AccountStore::UpdateAccounts(const uint64_t& blockNum,
         if (ExportCallContractFiles(toAccount, transaction.GetData()))
         {
             m_curContractAddr = toAddr;
-            SysCommand::ExecuteCmdWithOutput(GetCallContractCmdStr());
+            if (!SysCommand::ExecuteCmdWithoutOutput(GetCallContractCmdStr()))
+            {
+                LOG_GENERAL(
+                    WARNING,
+                    "Interpreter does not admit this contract invocation");
+                return false;
+            }
             if (!ParseCallContractOutput())
             {
                 return false;
@@ -392,7 +404,7 @@ bool AccountStore::ExportCallContractFiles(
 
 string AccountStore::GetCreateContractCmdStr()
 {
-    string ret = INTERPRETER_NAME + " -init " + INIT_JSON + " -iblockchain "
+    string ret = SCILLA_PATH + " -init " + INIT_JSON + " -iblockchain "
         + INPUT_BLOCKCHAIN_JSON + " -o " + OUTPUT_JSON + " -i " + INPUT_CODE;
     LOG_GENERAL(INFO, ret);
     return ret;
@@ -400,11 +412,11 @@ string AccountStore::GetCreateContractCmdStr()
 
 string AccountStore::GetCallContractCmdStr()
 {
-    string ret = INTERPRETER_NAME + " -init " + INIT_JSON + " -istate "
+    string ret = SCILLA_PATH + " -init " + INIT_JSON + " -istate "
         + INPUT_STATE_JSON + " -iblockchain " + INPUT_BLOCKCHAIN_JSON
         + " -imessage " + INPUT_MESSAGE_JSON + " -o " + OUTPUT_JSON + " -i "
         + INPUT_CODE;
-    // LOG_GENERAL(INFO, ret);
+    LOG_GENERAL(INFO, ret);
     return ret;
 }
 
@@ -639,7 +651,13 @@ bool AccountStore::ParseCallContractJsonOutput(const Json::Value& _json)
         {
             Address t_address = m_curContractAddr;
             m_curContractAddr = toAddr;
-            SysCommand::ExecuteCmdWithOutput(GetCallContractCmdStr());
+            if (!SysCommand::ExecuteCmdWithoutOutput(GetCallContractCmdStr()))
+            {
+                LOG_GENERAL(WARNING,
+                            "Interpreter does not admit this contract chain "
+                            "invocation");
+                return false;
+            }
             if (ParseCallContractOutput())
             {
                 IncreaseNonce(t_address);

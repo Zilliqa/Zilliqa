@@ -52,6 +52,8 @@ class Account : public Serializable
 
     bool isContract() const { return m_codeHash != h256(); }
 
+    const h256 GetKeyHash(const string& key) const;
+
     AccountTrieDB<h256, OverlayDB> m_storage;
 
 public:
