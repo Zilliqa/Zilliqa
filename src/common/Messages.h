@@ -21,7 +21,13 @@ enum MessageOffset : unsigned int
 {
     TYPE = 0,
     INST = 1,
-    BODY = 2
+    BODY = 2,
+};
+
+enum NumberSign : unsigned char
+{
+    POSITIVE = 0x00,
+    NEGATIVE = 0x01,
 };
 
 enum MessageType : unsigned char

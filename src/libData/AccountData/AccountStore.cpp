@@ -101,49 +101,53 @@ int AccountStore::Deserialize(const vector<unsigned char>& src,
     return 0;
 }
 
-unsigned int AccountStore::SerializeDelta(vector<unsigned char>& dst,
-                                          unsigned int offset)
+void AccountStore::SerializeDelta()
 {
     LOG_MARKER();
+
+    lock_guard<mutex> g(m_mutexDelta);
+
+    m_stateDeltaSerialized.clear();
     // [Total number of acount deltas (uint256_t)] [Addr 1] [AccountDelta 1] [Addr 2] [Account 2] .... [Addr n] [Account n]
-    unsigned int size_needed = UINT256_SIZE;
-    unsigned int size_remaining = dst.size() - offset;
-    unsigned int totalSerializedSize = size_needed;
+    unsigned int curOffset = 0;
 
-    if (size_remaining < size_needed)
-    {
-        dst.resize(size_needed + offset);
-    }
-
-    unsigned int curOffset = offset;
-
-    uint256_t totalNumOfAccounts = GetNumOfAccounts();
+    uint256_t totalNumOfAccounts = m_accountStoreTemp->GetNumOfAccounts();
     LOG_GENERAL(INFO,
                 "Debug: Total number of account deltas to serialize: "
                     << totalNumOfAccounts);
-    SetNumber<uint256_t>(dst, curOffset, totalNumOfAccounts, UINT256_SIZE);
+    SetNumber<uint256_t>(m_stateDeltaSerialized, curOffset, totalNumOfAccounts,
+                         UINT256_SIZE);
     curOffset += UINT256_SIZE;
 
     vector<unsigned char> address_vec;
     // [Addr 1] [Account 1] [Addr 2] [Account 2] .... [Addr n] [Account n]
     for (const auto& entry : *m_accountStoreTemp->GetAddressToAccount())
     {
+        LOG_GENERAL(INFO, "Addr: " << entry.first);
+
         // Address
         address_vec = entry.first.asBytes();
 
-        copy(address_vec.begin(), address_vec.end(), std::back_inserter(dst));
+        copy(address_vec.begin(), address_vec.end(),
+             std::back_inserter(m_stateDeltaSerialized));
         curOffset += ACC_ADDR_SIZE;
-        totalSerializedSize += ACC_ADDR_SIZE;
 
         // Account
         Account* account = GetAccount(entry.first);
-        size_needed
-            = Account::SerializeDelta(dst, curOffset, account, entry.second);
+        unsigned int size_needed = Account::SerializeDelta(
+            m_stateDeltaSerialized, curOffset, account, entry.second);
         curOffset += size_needed;
-        totalSerializedSize += size_needed;
     }
+}
 
-    return totalSerializedSize;
+unsigned int AccountStore::GetSerializedDelta(vector<unsigned char>& dst)
+{
+    LOG_MARKER();
+
+    copy(m_stateDeltaSerialized.begin(), m_stateDeltaSerialized.end(),
+         back_inserter(dst));
+
+    return m_stateDeltaSerialized.size();
 }
 
 int AccountStore::DeserializeDelta(const vector<unsigned char>& src,
@@ -154,9 +158,16 @@ int AccountStore::DeserializeDelta(const vector<unsigned char>& src,
 
     try
     {
+        lock_guard<mutex> g(m_mutexDelta);
+
+        LOG_GENERAL(INFO, "Before DeserializeDelta");
+        PrintAccountState();
+
         unsigned int curOffset = offset;
         uint256_t totalNumOfAccounts
             = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
+        LOG_GENERAL(INFO,
+                    "Total Number of Accounts Delta: " << totalNumOfAccounts);
         curOffset += UINT256_SIZE;
 
         Address address;
@@ -177,7 +188,7 @@ int AccountStore::DeserializeDelta(const vector<unsigned char>& src,
             int accountSize;
             if (oriAccount == nullptr)
             {
-                Account account;
+                LOG_GENERAL(INFO, "Creating new account: " << address);
                 accountSize
                     = Account::DeserializeDelta(src, curOffset, account, true);
                 if (accountSize < 0)
@@ -192,20 +203,24 @@ int AccountStore::DeserializeDelta(const vector<unsigned char>& src,
             }
             else
             {
+                LOG_GENERAL(INFO, "Diff existing account: " << address);
+                account = *oriAccount;
                 accountSize
-                    = Account::DeserializeDelta(src, curOffset, account, true);
+                    = Account::DeserializeDelta(src, curOffset, account, false);
                 if (accountSize < 0)
                 {
                     LOG_GENERAL(WARNING,
                                 "We failed to parse accountDelta for account: "
                                     << address);
+
                     continue;
                 }
+                (*m_addressToAccount)[address] = account;
             }
             curOffset += accountSize;
-            (*m_addressToAccount)[address] = account;
             UpdateStateTrie(address, account);
         }
+        LOG_GENERAL(INFO, "After DeserializeDelta");
         PrintAccountState();
     }
     catch (const std::exception& e)
@@ -351,23 +366,36 @@ bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
                                       const Transaction& transaction)
 {
     LOG_MARKER();
+
+    lock_guard<mutex> g(m_mutexDelta);
+
     return m_accountStoreTemp->UpdateAccounts(blockNum, transaction);
 }
 
 StateHash AccountStore::GetStateDeltaHash()
 {
-    vector<unsigned char> delta;
-    SerializeDelta(delta, 0);
+    vector<unsigned char> vec;
+    GetSerializedDelta(vec);
+
+    LOG_PAYLOAD(INFO, "print vec: ", vec, 2000);
 
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-    sha2.Update(delta);
+    sha2.Update(vec);
     return StateHash(sha2.Finalize());
 }
 
 void AccountStore::CommitTemp()
 {
-    for (const auto& entry : *m_accountStoreTemp->GetAddressToAccount())
-    {
-        (*m_addressToAccount)[entry.first] = entry.second;
-    }
+    LOG_MARKER();
+
+    LOG_GENERAL(INFO, "Before CommitTemp");
+    // for (const auto& entry : *m_accountStoreTemp->GetAddressToAccount())
+    // {
+    //     (*m_addressToAccount)[entry.first] = entry.second;
+    // }
+    LOG_PAYLOAD(INFO, "m_stateDeltaSerialized: ", m_stateDeltaSerialized, 2000);
+    DeserializeDelta(m_stateDeltaSerialized, 0);
+
+    LOG_GENERAL(INFO, "After CommitTemp");
+    InitTemp();
 }

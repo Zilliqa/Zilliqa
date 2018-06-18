@@ -684,9 +684,12 @@ bool AccountStoreBase<DB, MAP>::IncreaseBalance(const Address& address,
 
     Account* account = GetAccount(address);
 
+    LOG_GENERAL(INFO, "address: " << address);
+
     if (account != nullptr && account->IncreaseBalance(delta))
     {
         // UpdateStateTrie(address, *account);
+        LOG_GENERAL(INFO, "account: " << *account);
         return true;
     }
     // FIXME: remove this, temporary way to test transactions, should return false
@@ -714,6 +717,9 @@ bool AccountStoreBase<DB, MAP>::DecreaseBalance(const Address& address,
     }
 
     Account* account = GetAccount(address);
+
+    LOG_GENERAL(INFO, "address: " << address);
+    LOG_GENERAL(INFO, "account: " << *account);
 
     if (account != nullptr && account->DecreaseBalance(delta))
     {
@@ -766,15 +772,20 @@ uint256_t AccountStoreBase<DB, MAP>::GetBalance(const Address& address)
 template<class DB, class MAP>
 bool AccountStoreBase<DB, MAP>::IncreaseNonce(const Address& address)
 {
-    //LOG_MARKER();
+    LOG_MARKER();
 
     Account* account = GetAccount(address);
 
+    LOG_GENERAL(INFO, "address: " << address);
+    LOG_GENERAL(INFO, "account: " << *account);
+
     if (account != nullptr && account->IncreaseNonce())
     {
+        LOG_GENERAL(INFO, "Increase nonce done");
         // UpdateStateTrie(address, *account);
         return true;
     }
+    LOG_GENERAL(INFO, "Increase nonce failed");
 
     return false;
 }

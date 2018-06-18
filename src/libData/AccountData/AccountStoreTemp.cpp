@@ -32,6 +32,7 @@ Account* AccountStoreTemp::GetAccount(const Address& address)
     auto it = m_addressToAccount->find(address);
     if (it != m_addressToAccount->end())
     {
+        LOG_GENERAL(INFO, "Got From Temp");
         return &it->second;
     }
 
@@ -45,9 +46,13 @@ Account* AccountStoreTemp::GetAccount(const Address& address)
     Account* account = m_parent.GetAccount(address);
     if (account)
     {
-        m_addressToAccount->insert(make_pair(address, *account));
+        LOG_GENERAL(INFO, "Got From Parent");
+        Account newaccount(*account);
+        m_addressToAccount->insert(make_pair(address, newaccount));
         return &(m_addressToAccount->find(address))->second;
     }
+
+    LOG_GENERAL(INFO, "Got Nullptr");
 
     return nullptr;
 }
