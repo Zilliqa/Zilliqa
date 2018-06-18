@@ -15,9 +15,7 @@
 **/
 #include <string>
 
-using namespace std;
-
-string cfCodeStr = R"((***************************************************)
+std::string cfCodeStr = R"((***************************************************)
 (*               Associated library                *)
 (***************************************************)
 library Crowdfunding
@@ -204,7 +202,7 @@ transition ClaimBack (sender: Address)
   end  
 end)";
 
-string cfInitStr = R"([
+std::string cfInitStr = R"([
     {
         "vname" : "owner",
         "type" : "Address", 
@@ -222,7 +220,7 @@ string cfInitStr = R"([
     }
 ])";
 
-string cfDataStr = R"({
+std::string cfDataStr = R"({
     "_tag": "Donate",
     "_amount": "100",
     "params": [
@@ -235,7 +233,7 @@ string cfDataStr = R"({
 }
 )";
 
-string cfDataStr3 = R"({
+std::string cfDataStr3 = R"({
     "_tag": "Donate",
     "_amount": "200",
     "params": [
@@ -247,7 +245,7 @@ string cfDataStr3 = R"({
     ]
 })";
 
-string cfDataStr4 = R"({
+std::string cfDataStr4 = R"({
     "_tag": "GetFunds",
     "_amount": "0",
     "params": [
@@ -259,7 +257,7 @@ string cfDataStr4 = R"({
     ]
 })";
 
-string cfDataStr5 = R"({
+std::string cfDataStr5 = R"({
     "_tag": "ClaimBack",
     "_amount": "0",
     "params": [
@@ -271,7 +269,7 @@ string cfDataStr5 = R"({
     ]
 })";
 
-string cfOutStr = R"({
+std::string cfOutStr = R"({
   "message": {
     "_tag": "Main",
     "_amount": "0",
