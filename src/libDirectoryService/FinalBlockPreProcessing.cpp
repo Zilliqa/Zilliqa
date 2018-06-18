@@ -60,13 +60,12 @@ void DirectoryService::ExtractDataFromMicroblocks(
                                  << microBlock.GetHeader().GetNumTxs()
                                  << " transactions.");
 
-#ifdef STAT_TEST
         LOG_STATE("[STATS][" << std::setw(15) << std::left
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
                              << "][" << i << "    ]["
                              << microBlock.GetHeader().GetNumTxs()
                              << "] PROPOSED");
-#endif // STAT_TEST
+
         i++;
 
         microBlockTxHashes.emplace_back(microBlock.GetHeader().GetTxRootHash());
@@ -181,17 +180,15 @@ void DirectoryService::ComposeFinalBlockCore()
         TxBlockHeader(type, version, allGasLimit, allGasUsed, prevHash,
                       blockNum, timestamp, microblockTrieRoot, stateRoot,
                       numTxs, numMicroBlocks, m_mediator.m_selfKey.second,
-                      lastDSBlockNum, dsBlockHeader, m_viewChangeCounter),
+                      lastDSBlockNum, dsBlockHeader),
         vector<bool>(isMicroBlockEmpty), vector<TxnHash>(microBlockTxHashes),
         CoSignatures(m_mediator.m_DSCommitteePubKeys.size())));
 
-#ifdef STAT_TEST
     LOG_STATE("[STATS][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
                          << "][" << m_mediator.m_txBlockChain.GetBlockCount()
                          << "][" << m_finalBlock->GetHeader().GetNumTxs()
                          << "] FINAL");
-#endif // STAT_TEST
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Final block proposed with "
@@ -452,13 +449,15 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
     // finalBlockMessage = serialized final block + tx-body sharing setup
     vector<unsigned char> finalBlockMessage = ComposeFinalBlockMessage();
 
-    // kill first ds leader
-    //if (m_consensusMyID == 0 && temp_todie)
-    //{
-    //    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-    //                 "I am killing myself to test view change");
-    //    throw exception();
-    //}
+    // kill first ds leader (used for view change testing)
+    /**
+    if (m_consensusMyID == 0 && m_viewChangeCounter < 1)
+    {
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "I am killing myself to test view change");
+        throw exception();
+    }
+    **/
 
     // Create new consensus object
     // Dummy values for now
@@ -485,7 +484,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
 
     ConsensusLeader* cl
         = dynamic_cast<ConsensusLeader*>(m_consensusObject.get());
-#ifdef STAT_TEST
+
     if (m_mode == PRIMARY_DS)
     {
         LOG_STATE("[FBCON]["
@@ -493,7 +492,6 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
                   << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
                   << m_mediator.m_txBlockChain.GetBlockCount() << "] BGIN");
     }
-#endif // STAT_TEST
 
     cl->StartConsensus(finalBlockMessage, TxBlockHeader::SIZE);
 
@@ -653,6 +651,7 @@ bool DirectoryService::CheckMicroBlockHashes()
         }
         if (!found)
         {
+            LOG_GENERAL(WARNING, "cannot find tx hashes. " << microBlockTxHash)
             return false;
         }
     }
@@ -1079,19 +1078,14 @@ void DirectoryService::RunConsensusOnFinalBlock()
     SetState(FINALBLOCK_CONSENSUS);
     cv_finalBlockConsensusObject.notify_all();
 
-    if (m_mode != PRIMARY_DS)
+    std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeFinalBlock);
+    if (cv_viewChangeFinalBlock.wait_for(cv_lk,
+                                         std::chrono::seconds(VIEWCHANGE_TIME))
+        == std::cv_status::timeout)
     {
-        std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeFinalBlock);
-        if (cv_viewChangeFinalBlock.wait_for(
-                cv_lk, std::chrono::seconds(VIEWCHANGE_TIME))
-            == std::cv_status::timeout)
-        {
-            //View change.
-            //TODO: This is a simplified version and will be review again.
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Initiated final block view change. ");
-            InitViewChange();
-        }
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Initiated final block view change. ");
+        RunConsensusOnViewChange();
     }
 }
 #endif // IS_LOOKUP_NODE

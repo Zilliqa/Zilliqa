@@ -44,9 +44,7 @@ class Mediator;
 /// Implements Directory Service functionality including PoW verification, DS, Tx Block Consensus and sharding management.
 class DirectoryService : public Executable, public Broadcastable
 {
-#ifdef STAT_TEST
     std::chrono::system_clock::time_point m_timespec;
-#endif // STAT_TEST
 
     enum Action
     {
@@ -57,7 +55,8 @@ class DirectoryService : public Executable, public Broadcastable
         VERIFYPOW2,
         PROCESS_SHARDINGCONSENSUS,
         PROCESS_MICROBLOCKSUBMISSION,
-        PROCESS_FINALBLOCKCONSENSUS
+        PROCESS_FINALBLOCKCONSENSUS,
+        PROCESS_VIEWCHANGECONSENSUS
     };
 
     string ActionString(enum Action action)
@@ -80,6 +79,8 @@ class DirectoryService : public Executable, public Broadcastable
             return "PROCESS_MICROBLOCKSUBMISSION";
         case PROCESS_FINALBLOCKCONSENSUS:
             return "PROCESS_FINALBLOCKCONSENSUS";
+        case PROCESS_VIEWCHANGECONSENSUS:
+            return "PROCESS_VIEWCHANGECONSENSUS";
         }
         return "Unknown Action";
     }
@@ -127,22 +128,13 @@ class DirectoryService : public Executable, public Broadcastable
     std::vector<unsigned char> m_finalBlockMessage;
     std::vector<Peer> m_sharingAssignment;
 
-    // Recovery (simplified view change)
-    std::atomic<unsigned int> m_viewChangeCounter;
-    std::atomic<bool> m_initiatedViewChange;
-    std::mutex m_mutexProcessViewChangeRequests;
-    std::mutex m_mutexRecoveryDSBlockConsensus;
-    std::condition_variable cv_RecoveryDSBlockConsensus;
-    std::mutex m_mutexRecoveryShardingConsensus;
-    std::condition_variable cv_RecoveryShardingConsensus;
-    std::mutex m_mutexRecoveryFinalBlockConsensus;
-    std::condition_variable cv_RecoveryFinalBlockConsensus;
-
-    const double VC_TOLERANCE_FRACTION = (double)0.667;
-    std::atomic<uint64_t> m_viewChangeEpoch;
-    std::unordered_map<unsigned int, unsigned int> m_viewChangeRequestTracker;
-    std::vector<Peer> m_viewChangeRequesters;
-    std::mutex m_mutexViewChangeRequesters;
+    // View Change
+    std::atomic<uint32_t> m_viewChangeCounter;
+    Peer m_candidateLeader;
+    std::shared_ptr<VCBlock> m_pendingVCBlock;
+    std::mutex m_mutexPendingVCBlock;
+    std::condition_variable cv_ViewChangeConsensusObj;
+    std::mutex m_MutexCVViewChangeConsensusObj;
 
     std::condition_variable cv_viewChangeDSBlock;
     std::mutex m_MutexCVViewChangeDSBlock;
@@ -150,6 +142,10 @@ class DirectoryService : public Executable, public Broadcastable
     std::mutex m_MutexCVViewChangeSharding;
     std::condition_variable cv_viewChangeFinalBlock;
     std::mutex m_MutexCVViewChangeFinalBlock;
+    std::condition_variable cv_ViewChangeVCBlock;
+    std::mutex m_MutexCVViewChangeVCBlock;
+
+    // Consensus and consensus object
     std::condition_variable cv_DSBlockConsensus;
     std::mutex m_MutexCVDSBlockConsensus;
     std::condition_variable cv_DSBlockConsensusObject;
@@ -166,8 +162,6 @@ class DirectoryService : public Executable, public Broadcastable
     std::mutex m_MutexCVPOW2Submission;
 
     // TO Remove
-    //bool temp_todie;
-
     Mediator& m_mediator;
 
     Synchronizer m_synchronizer;
@@ -193,7 +187,8 @@ class DirectoryService : public Executable, public Broadcastable
                                   unsigned int offset, const Peer& from);
     bool ProcessAllPoWConnResponse(const vector<unsigned char>& message,
                                    unsigned int offset, const Peer& from);
-
+    bool ProcessViewChangeConsensus(const vector<unsigned char>& message,
+                                    unsigned int offset, const Peer& from);
     // To block certain types of incoming message for certain states
     bool ToBlockMessage(unsigned char ins_byte);
 
@@ -333,11 +328,22 @@ class DirectoryService : public Executable, public Broadcastable
                                     unsigned int offset, const Peer& from);
 
     // View change
-    void InitViewChange();
-    bool ProcessInitViewChange(const vector<unsigned char>& message,
-                               unsigned int offset, const Peer& from);
-    bool ProcessInitViewChangeResponse(const vector<unsigned char>& message,
-                                       unsigned int offset, const Peer& from);
+    void RunConsensusOnViewChange();
+    void ScheduleViewChangeTimeout();
+    void ComputeNewCandidateLeader();
+    bool ViewChangeValidator(const vector<unsigned char>& vcBlock,
+                             std::vector<unsigned char>& errorMsg);
+    bool RunConsensusOnViewChangeWhenCandidateLeader();
+    bool RunConsensusOnViewChangeWhenNotCandidateLeader();
+    void ProcessViewChangeConsensusWhenDone();
+    void ProcessNextConsensus(unsigned char viewChangeState);
+    void DetermineShardsToSendVCBlockTo(unsigned int& my_DS_cluster_num,
+                                        unsigned int& my_shards_lo,
+                                        unsigned int& my_shards_hi) const;
+    void SendVCBlockToShardNodes(unsigned int my_DS_cluster_num,
+                                 unsigned int my_shards_lo,
+                                 unsigned int my_shards_hi,
+                                 vector<unsigned char>& vcblock_message);
 
     // Rejoin the network as a DS node in case of failure happens in protocol
     void RejoinAsDS();
@@ -365,6 +371,8 @@ public:
         MICROBLOCK_SUBMISSION,
         FINALBLOCK_CONSENSUS_PREP,
         FINALBLOCK_CONSENSUS,
+        VIEWCHANGE_CONSENSUS_PREP,
+        VIEWCHANGE_CONSENSUS,
         ERROR
     };
 
@@ -376,6 +384,9 @@ public:
 
     /// The current internal state of this DirectoryService instance.
     std::atomic<DirState> m_state;
+
+    /// The state (before view change) of this DirectoryService instance.
+    std::atomic<DirState> m_viewChangestate;
 
     /// The ID number of this Zilliqa instance for use with consensus operations.
     uint16_t m_consensusMyID;

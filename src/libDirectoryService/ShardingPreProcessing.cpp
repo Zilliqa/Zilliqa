@@ -161,13 +161,14 @@ bool DirectoryService::RunConsensusOnShardingWhenDSPrimary()
     ComputeSharding();
     SerializeShardingStructure(sharding_structure);
 
-    // kill first ds leader
-    // if (m_consensusMyID == 0 && temp_todie)
-    //{
-    //    LOG_GENERAL(INFO, "I am killing myself to test view change");
-    //    throw exception();
-    // }
-
+    // kill first ds leader (used for view change testing)
+    /**
+    if (m_consensusMyID == 0 && m_viewChangeCounter < 1)
+    {
+        LOG_GENERAL(INFO, "I am killing myself to test view change");
+        throw exception();
+    }
+    **/
     // Create new consensus object
 
     // Dummy values for now
@@ -201,12 +202,10 @@ bool DirectoryService::RunConsensusOnShardingWhenDSPrimary()
     this_thread::sleep_for(
         chrono::seconds(LEADER_SHARDING_PREPARATION_IN_SECONDS));
 
-#ifdef STAT_TEST
     LOG_STATE("[SHCON][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
                          << "][" << m_mediator.m_txBlockChain.GetBlockCount()
                          << "] BGIN");
-#endif // STAT_TEST
 
     cl->StartConsensus(sharding_structure, sharding_structure.size());
 
@@ -401,19 +400,15 @@ void DirectoryService::RunConsensusOnSharding()
 
     SetState(SHARDING_CONSENSUS);
 
-    if (m_mode != PRIMARY_DS)
+    std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeSharding);
+
+    if (cv_viewChangeSharding.wait_for(cv_lk,
+                                       std::chrono::seconds(VIEWCHANGE_TIME))
+        == std::cv_status::timeout)
     {
-        std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeSharding);
-        if (cv_viewChangeSharding.wait_for(
-                cv_lk, std::chrono::seconds(VIEWCHANGE_TIME))
-            == std::cv_status::timeout)
-        {
-            //View change.
-            //TODO: This is a simplified version and will be review again.
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Initiated sharding structure consensus view change. ");
-            InitViewChange();
-        }
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Initiated sharding structure consensus view change. ");
+        RunConsensusOnViewChange();
     }
 }
 #endif // IS_LOOKUP_NODE

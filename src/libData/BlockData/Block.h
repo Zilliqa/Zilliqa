@@ -20,14 +20,17 @@
 #include "Block/DSBlock.h"
 #include "Block/MicroBlock.h"
 #include "Block/TxBlock.h"
+#include "Block/VCBlock.h"
 #include "BlockHeader/DSBlockHeader.h"
 #include "BlockHeader/MicroBlockHeader.h"
 #include "BlockHeader/TxBlockHeader.h"
+#include "BlockHeader/VCBlockHeader.h"
 
 enum BlockType : unsigned int
 {
     DS = 0,
-    Tx = 1
+    Tx = 1,
+    VC = 2
 };
 
 enum TXBLOCKTYPE : unsigned char
