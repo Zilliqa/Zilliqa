@@ -67,6 +67,7 @@ BOOST_AUTO_TEST_CASE(fat_trie)
     //    BOOST_CHECK_MESSAGE("vegetable" == "vegetable", "ERROR: return value from DB not equal to inserted value");
 }
 
+//TODO: try to enable these commented parts by fixing the compilation errors
 // BOOST_AUTO_TEST_CASE(hex_encoded_securetrie_test)
 // {
 //     fs::path const testPath = test::getTestPath() / fs::path("TrieTests");
