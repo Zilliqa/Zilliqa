@@ -444,13 +444,10 @@ bool AccountStoreBase<DB, MAP>::ParseCreateContractJsonOutput(
         // LOG_GENERAL(INFO, "Get desired json output from the interpreter for create contract");
         return true;
     }
-    else
-    {
-        LOG_GENERAL(WARNING,
-                    "Didn't get desired json output from the interpreter for "
-                    "create contract");
-        return false;
-    }
+    LOG_GENERAL(WARNING,
+                "Didn't get desired json output from the interpreter for "
+                "create contract");
+    return false;
 }
 
 template<class DB, class MAP> bool AccountStoreBase<DB, MAP>::ParseCallContractOutput()
@@ -634,15 +631,8 @@ bool AccountStoreBase<DB, MAP>::ParseCallContractJsonOutput(const Json::Value& _
                 IncreaseNonce(t_address);
                 return true;
             }
-            else
-            {
-                return false;
-            }
         }
-        else
-        {
-            return false;
-        }
+        return false;
     }
 }
 
