@@ -350,6 +350,9 @@ class Node : public Executable, public Broadcastable
                          vector<Peer> my_shard_receivers,
                          const vector<Peer>& fellowForwarderNodes);
 
+    //Coinbase txns
+    bool Coinbase(const MicroBlock& lastMicroblock, const TxBlock& lastTxBlock);
+
     // Is Running from New Process
     bool m_fromNewProcess = true;
 

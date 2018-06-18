@@ -372,6 +372,19 @@ bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
     return m_accountStoreTemp->UpdateAccounts(blockNum, transaction);
 }
 
+bool AccountStore::UpdateCoinbaseTemp(const Address& rewardee,
+                                      const Address& genesisAddress,
+                                      const uint256_t& amount)
+{
+    LOG_MARKER();
+
+    lock_guard<mutex> g(m_mutexDelta);
+
+    return m_accountStoreTemp->TransferBalance(genesisAddress, rewardee,
+                                               amount);
+    //Should the nonce increase ??
+}
+
 StateHash AccountStore::GetStateDeltaHash()
 {
     vector<unsigned char> vec;
