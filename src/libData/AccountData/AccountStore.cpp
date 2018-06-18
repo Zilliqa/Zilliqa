@@ -380,6 +380,8 @@ bool AccountStore::UpdateCoinbaseTemp(const Address& rewardee,
 
     lock_guard<mutex> g(m_mutexDelta);
 
+    LOG_GENERAL(INFO,
+                "Rewarded " << rewardee.hex() << " with amount " << amount);
     return m_accountStoreTemp->TransferBalance(genesisAddress, rewardee,
                                                amount);
     //Should the nonce increase ??
