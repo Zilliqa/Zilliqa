@@ -25,6 +25,7 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 #include <array>
+#include <regex>
 #include <string>
 #include <vector>
 
@@ -55,67 +56,76 @@ BOOST_AUTO_TEST_CASE(testContract)
 
     sender = Schnorr::GetInstance().GenKeyPair();
 
-    std::vector<unsigned char> vec;
-    sender.second.Serialize(vec, 0);
-    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-    sha2.Update(vec);
-    const std::vector<unsigned char>& output = sha2.Finalize();
-
-    copy(output.end() - ACC_ADDR_SIZE, output.end(),
-         fromAddr.asArray().begin());
+    fromAddr = Account::GetAddressFromPublicKey(sender.second);
 
     std::vector<unsigned char> code(cfCodeStr.begin(), cfCodeStr.end());
-    std::vector<unsigned char> data(cfInitStr.begin(), cfInitStr.end());
 
-    toAddress = NullAddress;
+    toAddress = Account::GetAddressForContract(fromAddr, nonce);
+    LOG_GENERAL(INFO, "CrowdFunding Address: " << toAddress);
+    string initStr
+        = regex_replace(cfInitStr, regex("\\$ADDR"), "0x" + toAddress.hex());
+    std::vector<unsigned char> data(initStr.begin(), initStr.end());
 
-    Transaction tx1(1, nonce, toAddress, sender, 0, 11, 66, code, data);
+    Transaction tx1(1, nonce, NullAddress, sender, 0, 11, 66, code, data);
 
     /// Comment this part until the interpreter can be called
-    // AccountStore::GetInstance().UpdateAccounts(1, tx1);
+    AccountStore::GetInstance().UpdateAccounts(1, tx1);
 
-    // toAddress = Account::GetAddressForContract(fromAddr, nonce);
+    bool checkToAddr = true;
+    Account* account = AccountStore::GetInstance().GetAccount(toAddress);
+    if (account == nullptr)
+    {
+        checkToAddr = false;
+    }
+    else
+    {
+        nonce++;
+    }
+    BOOST_CHECK_MESSAGE(checkToAddr, "Error with creation of contract account");
 
-    // bool checkToAddr = true;
-    // Account* account = AccountStore::GetInstance().GetAccount(toAddress);
-    // if (account == nullptr)
-    // {
-    // checkToAddr = false;
-    // }
-    // BOOST_CHECK_MESSAGE(checkToAddr, "Error with creation of contract account");
+    std::vector<unsigned char> data2(cfDataStr.begin(), cfDataStr.end());
 
-    // std::vector<unsigned char> data2(cfDataStr.begin(), cfDataStr.end());
+    std::vector<unsigned char> vec2;
+    Transaction tx2(1, nonce, toAddress, sender, 0, 11, 66, vec2, data2);
+    if (AccountStore::GetInstance().UpdateAccounts(1, tx2))
+    {
+        nonce++;
+    }
 
-    // std::vector<unsigned char> vec2;
-    // Transaction tx2(1, nonce, toAddress, sender, 0, 11, 66, vec2, data2);
-    // AccountStore::GetInstance().UpdateAccounts(1, tx2);
+    cfOutStr.erase(std::remove(cfOutStr.begin(), cfOutStr.end(), ' '),
+                   cfOutStr.end());
+    cfOutStr.erase(std::remove(cfOutStr.begin(), cfOutStr.end(), '\n'),
+                   cfOutStr.end());
 
-    // cfOutStr.erase(std::remove(cfOutStr.begin(), cfOutStr.end(), ' '), cfOutStr.end());
-    // cfOutStr.erase(std::remove(cfOutStr.begin(), cfOutStr.end(), '\n'), cfOutStr.end());
+    ifstream infile{OUTPUT_JSON};
+    std::string output_file{istreambuf_iterator<char>(infile),
+                            istreambuf_iterator<char>()};
 
-    // ifstream infile{OUTPUT_JSON};
-    // std::string output_file{istreambuf_iterator<char>(infile),
-    //                         istreambuf_iterator<char>()};
+    output_file.erase(std::remove(output_file.begin(), output_file.end(), ' '),
+                      output_file.end());
+    output_file.erase(std::remove(output_file.begin(), output_file.end(), '\n'),
+                      output_file.end());
 
-    // output_file.erase(std::remove(output_file.begin(), output_file.end(), ' '),
-    //                   output_file.end());
-    // output_file.erase(std::remove(output_file.begin(), output_file.end(), '\n'),
-    //                   output_file.end());
+    BOOST_CHECK_MESSAGE(cfOutStr == output_file,
+                        "Error: didn't get desired output");
 
-    // BOOST_CHECK_MESSAGE(cfOutStr == output_file,
-    //                     "Error: didn't get desired output");
+    std::vector<unsigned char> data3(cfDataStr3.begin(), cfDataStr3.end());
 
-    // std::vector<unsigned char> data3(cfDataStr3.begin(), cfDataStr3.end());
+    std::vector<unsigned char> vec3;
+    Transaction tx3(1, nonce, toAddress, sender, 0, 11, 66, vec3, data3);
+    if (AccountStore::GetInstance().UpdateAccounts(1, tx3))
+    {
+        nonce++;
+    }
 
-    // std::vector<unsigned char> vec3;
-    // Transaction tx3(1, nonce, toAddress, sender, 0, 11, 66, vec3, data3);
-    // AccountStore::GetInstance().UpdateAccounts(1, tx3);
+    std::vector<unsigned char> data4(cfDataStr4.begin(), cfDataStr4.end());
 
-    // std::vector<unsigned char> data4(cfDataStr4.begin(), cfDataStr4.end());
-
-    // std::vector<unsigned char> vec4;
-    // Transaction tx4(1, nonce, toAddress, sender, 0, 11, 66, vec4, data4);
-    // AccountStore::GetInstance().UpdateAccounts(1, tx4);
+    std::vector<unsigned char> vec4;
+    Transaction tx4(1, nonce, toAddress, sender, 0, 11, 66, vec4, data4);
+    if (AccountStore::GetInstance().UpdateAccounts(1, tx4))
+    {
+        nonce++;
+    }
 }
 
 BOOST_AUTO_TEST_SUITE_END()
