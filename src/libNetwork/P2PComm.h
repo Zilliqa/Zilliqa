@@ -76,9 +76,7 @@ class P2PComm
     P2PComm(P2PComm const&) = delete;
     void operator=(P2PComm const&) = delete;
 
-#ifdef STAT_TEST
     Peer m_selfPeer;
-#endif // STAT_TEST
 
     ThreadPool m_SendPool{MAXMESSAGE, "SendPool"};
     ThreadPool m_RecvPool{MAXMESSAGE, "RecvPool"};
@@ -124,9 +122,7 @@ public:
     void SendBroadcastMessage(const std::deque<Peer>& peers,
                               const std::vector<unsigned char>& message);
 
-#ifdef STAT_TEST
     void SetSelfPeer(const Peer& self);
-#endif // STAT_TEST
 };
 
 #endif // __P2PCOMM_H__

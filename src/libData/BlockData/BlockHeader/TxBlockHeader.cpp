@@ -21,9 +21,8 @@ using namespace std;
 using namespace boost::multiprecision;
 
 TxBlockHeader::TxBlockHeader()
+    : m_blockNum((boost::multiprecision::uint256_t)-1)
 {
-    m_blockNum = (boost::multiprecision::uint256_t)-1;
-    m_viewChangeCounter = 0;
 }
 
 TxBlockHeader::TxBlockHeader(const vector<unsigned char>& src,
@@ -42,8 +41,7 @@ TxBlockHeader::TxBlockHeader(
     const TxnHash& txRootHash, const StateHash& stateRootHash,
     const StateHash& deltaRootHash, uint32_t numTxs,
     uint32_t numMicroBlockHashes, const PubKey& minerPubKey,
-    const uint256_t& dsBlockNum, const BlockHash& dsBlockHeader,
-    unsigned int viewChangeCounter)
+    const uint256_t& dsBlockNum, const BlockHash& dsBlockHeader)
     : m_type(type)
     , m_version(version)
     , m_gasLimit(gasLimit)
@@ -57,7 +55,6 @@ TxBlockHeader::TxBlockHeader(
     , m_minerPubKey(minerPubKey)
     , m_dsBlockNum(dsBlockNum)
     , m_dsBlockHeader(dsBlockHeader)
-    , m_viewChangeCounter(viewChangeCounter)
 {
 }
 
@@ -104,9 +101,6 @@ unsigned int TxBlockHeader::Serialize(vector<unsigned char>& dst,
     copy(m_dsBlockHeader.asArray().begin(), m_dsBlockHeader.asArray().end(),
          dst.begin() + curOffset);
     curOffset += BLOCK_HASH_SIZE;
-    SetNumber<unsigned int>(dst, curOffset, m_viewChangeCounter,
-                            sizeof(unsigned int));
-    curOffset += sizeof(unsigned int);
     return size_needed;
 }
 
@@ -156,9 +150,6 @@ int TxBlockHeader::Deserialize(const vector<unsigned char>& src,
         copy(src.begin() + curOffset, src.begin() + curOffset + BLOCK_HASH_SIZE,
              m_dsBlockHeader.asArray().begin());
         curOffset += BLOCK_HASH_SIZE;
-        m_viewChangeCounter
-            = GetNumber<unsigned int>(src, curOffset, sizeof(unsigned int));
-        curOffset += sizeof(unsigned int);
     }
     catch (const std::exception& e)
     {
@@ -215,22 +206,16 @@ const BlockHash& TxBlockHeader::GetDSBlockHeader() const
     return m_dsBlockHeader;
 }
 
-const unsigned int TxBlockHeader::GetViewChangeCounter() const
-{
-    return m_viewChangeCounter;
-}
-
 bool TxBlockHeader::operator==(const TxBlockHeader& header) const
 {
     return std::tie(m_type, m_version, m_gasLimit, m_gasUsed, m_prevHash,
                     m_blockNum, m_timestamp, m_hash, m_numTxs,
-                    m_numMicroBlockHashes, m_minerPubKey, m_dsBlockHeader,
-                    m_viewChangeCounter)
+                    m_numMicroBlockHashes, m_minerPubKey, m_dsBlockHeader)
         == std::tie(header.m_type, header.m_version, header.m_gasLimit,
                     header.m_gasUsed, header.m_prevHash, header.m_blockNum,
                     header.m_timestamp, header.m_hash, header.m_numTxs,
                     header.m_numMicroBlockHashes, header.m_minerPubKey,
-                    header.m_dsBlockHeader, header.m_viewChangeCounter);
+                    header.m_dsBlockHeader);
 }
 
 bool TxBlockHeader::operator<(const TxBlockHeader& header) const

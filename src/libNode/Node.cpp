@@ -1060,12 +1060,10 @@ void Node::SubmitTransactions()
 
     m_mediator.m_validator->CleanVariables();
 
-#ifdef STAT_TEST
     LOG_STATE("[TXNSE][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
                          << "][" << m_mediator.m_currentEpochNum << "]["
                          << m_myShardID << "][" << txn_sent_count << "] CONT");
-#endif // STAT_TEST
 }
 
 void Node::RejoinAsNormal()
@@ -1188,17 +1186,18 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
     typedef bool (Node::*InstructionHandler)(const vector<unsigned char>&,
                                              unsigned int, const Peer&);
 
-    InstructionHandler ins_handlers[] = {
-        &Node::ProcessStartPoW1,
-        &Node::ProcessDSBlock,
-        &Node::ProcessSharding,
-        &Node::ProcessCreateTransaction,
-        &Node::ProcessSubmitTransaction,
-        &Node::ProcessMicroblockConsensus,
-        &Node::ProcessFinalBlock,
-        &Node::ProcessForwardTransaction,
-        &Node::ProcessCreateTransactionFromLookup,
-        &Node::ProcessForwardStateDelta,
+    InstructionHandler ins_handlers[]
+        = {&Node::ProcessStartPoW1,
+           &Node::ProcessDSBlock,
+           &Node::ProcessSharding,
+           &Node::ProcessCreateTransaction,
+           &Node::ProcessSubmitTransaction,
+           &Node::ProcessMicroblockConsensus,
+           &Node::ProcessFinalBlock,
+           &Node::ProcessForwardTransaction,
+           &Node::ProcessCreateTransactionFromLookup,
+           &Node::ProcessVCBlock,
+           &Node::ProcessForwardStateDelta,
     };
 
     const unsigned char ins_byte = message.at(offset);
