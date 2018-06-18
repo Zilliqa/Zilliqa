@@ -114,13 +114,11 @@ int AccountStoreBase<DB, MAP>::Deserialize(const vector<unsigned char>& src,
 
             // Deserialize account
             // account.Deserialize(src, curOffset);
-            int accountSize = account.Deserialize(src, curOffset);
-            if (accountSize < 0)
+            if (account.DeserializeAddOffset(src, curOffset) < 0)
             {
                 LOG_GENERAL(WARNING, "We failed to init account.");
                 return -1;
             }
-            curOffset += accountSize;
             (*m_addressToAccount)[address] = account;
         }
         PrintAccountState();
@@ -230,7 +228,10 @@ bool AccountStoreBase<DB, MAP>::UpdateAccounts(const uint64_t& blockNum,
 
         if (ExportCreateContractFiles(toAccount))
         {
-            SysCommand::ExecuteCmdWithOutput(GetCreateContractCmdStr());
+            if (!SysCommand::ExecuteCmdWithoutOutput(GetCreateContractCmdStr()))
+            {
+                return false;
+            }
             if (!ParseCreateContractOutput())
             {
                 m_addressToAccount->erase(toAddr);
@@ -258,7 +259,10 @@ bool AccountStoreBase<DB, MAP>::UpdateAccounts(const uint64_t& blockNum,
         if (ExportCallContractFiles(toAccount, transaction.GetData()))
         {
             m_curContractAddr = toAddr;
-            SysCommand::ExecuteCmdWithOutput(GetCallContractCmdStr());
+            if (!SysCommand::ExecuteCmdWithoutOutput(GetCallContractCmdStr()))
+            {
+                return false;
+            }
             if (!ParseCallContractOutput())
             {
                 return false;
@@ -625,7 +629,11 @@ bool AccountStoreBase<DB, MAP>::ParseCallContractJsonOutput(const Json::Value& _
         {
             Address t_address = m_curContractAddr;
             m_curContractAddr = toAddr;
-            SysCommand::ExecuteCmdWithOutput(GetCallContractCmdStr());
+            
+            if (!SysCommand::ExecuteCmdWithoutOutput(GetCallContractCmdStr()))
+            {
+                return false;
+            }
             if (ParseCallContractOutput())
             {
                 IncreaseNonce(t_address);

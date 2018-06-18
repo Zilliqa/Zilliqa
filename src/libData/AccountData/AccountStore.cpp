@@ -78,14 +78,12 @@ int AccountStore::Deserialize(const vector<unsigned char>& src,
             curOffset += ACC_ADDR_SIZE;
 
             // Deserialize account
-            int accountSize = account.Deserialize(src, curOffset);
-            if (accountSize < 0)
+            if (account.DeserializeAddOffset(src, curOffset) < 0)
             {
                 LOG_GENERAL(WARNING,
                             "failed to deserialize account: " << address);
                 continue;
             }
-            curOffset += accountSize;
             (*m_addressToAccount)[address] = account;
             UpdateStateTrie(address, account);
             // MoveUpdatesToDisk();
@@ -185,13 +183,11 @@ int AccountStore::DeserializeDelta(const vector<unsigned char>& src,
 
             // Deserialize accountDelta
             Account* oriAccount = GetAccount(address);
-            int accountSize;
             if (oriAccount == nullptr)
             {
                 LOG_GENERAL(INFO, "Creating new account: " << address);
-                accountSize
-                    = Account::DeserializeDelta(src, curOffset, account, true);
-                if (accountSize < 0)
+                if (Account::DeserializeDelta(src, curOffset, account, true)
+                    < 0)
                 {
                     LOG_GENERAL(WARNING,
                                 "We failed to deserialize accountDelta for new "
@@ -205,9 +201,8 @@ int AccountStore::DeserializeDelta(const vector<unsigned char>& src,
             {
                 LOG_GENERAL(INFO, "Diff existing account: " << address);
                 account = *oriAccount;
-                accountSize
-                    = Account::DeserializeDelta(src, curOffset, account, false);
-                if (accountSize < 0)
+                if (Account::DeserializeDelta(src, curOffset, account, false)
+                    < 0)
                 {
                     LOG_GENERAL(WARNING,
                                 "We failed to parse accountDelta for account: "
@@ -217,7 +212,6 @@ int AccountStore::DeserializeDelta(const vector<unsigned char>& src,
                 }
                 (*m_addressToAccount)[address] = account;
             }
-            curOffset += accountSize;
             UpdateStateTrie(address, account);
         }
         LOG_GENERAL(INFO, "After DeserializeDelta");
