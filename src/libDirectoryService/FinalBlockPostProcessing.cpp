@@ -349,6 +349,15 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
                           "Waiting "
                               << POW1_WINDOW_IN_SECONDS
                               << " seconds, accepting PoW1 submissions...");
+#if 1 //clark
+
+                // Notify lookup for POW1 submission
+                vector<unsigned char> pow_message
+                    = {MessageType::LOOKUP,
+                       LookupInstructionType::RAISEPOWSUBMISSION};
+                m_mediator.m_lookup->SendMessageToLookupNodesSerial(
+                    pow_message);
+#endif
                 this_thread::sleep_for(chrono::seconds(POW1_WINDOW_IN_SECONDS));
                 RunConsensusOnDSBlock();
             }

@@ -144,11 +144,12 @@ bool DirectoryService::ParseMessageAndVerifyPOW1(
 
     // Todo: Reject PoW1 submissions from existing members of DS committee
 
+#if 0 //clark
     if (CheckWhetherMaxSubmissionsReceived(peer, key))
     {
         return false;
     }
-
+#endif
     if (!CheckState(VERIFYPOW1))
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -186,6 +187,21 @@ bool DirectoryService::ParseMessageAndVerifyPOW1(
             lock_guard<mutex> g(m_mutexAllPOW1, adopt_lock);
             lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
 
+#if 1 //clark
+            LOG_GENERAL(WARNING,
+                        "clark test, before " << m_allPoWConns.size() << ", "
+                                              << m_allPoW1s.size());
+
+            if (m_allPoWConns.find(key) == m_allPoWConns.end())
+            {
+                m_allPoWConns.insert(make_pair(key, peer));
+                m_allPoW1s.push_back(make_pair(key, nonce));
+            }
+
+            LOG_GENERAL(WARNING,
+                        "clark test, after " << m_allPoWConns.size() << ", "
+                                             << m_allPoW1s.size());
+#else
             m_allPoWConns.insert(make_pair(key, peer));
 
             if (m_allPoW1s.size() >= MAX_POW1_WINNERS)
@@ -198,6 +214,7 @@ bool DirectoryService::ParseMessageAndVerifyPOW1(
             }
 
             m_allPoW1s.push_back(make_pair(key, nonce));
+#endif
         }
     }
     else

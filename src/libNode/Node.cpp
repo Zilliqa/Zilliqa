@@ -197,7 +197,11 @@ void Node::StartSynchronization()
 {
     LOG_MARKER();
 
+#if 1 //clark
+    SetState(POW1_SUBMISSION);
+#else
     SetState(POW2_SUBMISSION);
+#endif
     auto func = [this]() -> void {
         m_synchronizer.FetchOfflineLookups(m_mediator.m_lookup);
 
@@ -225,7 +229,11 @@ void Node::StartSynchronization()
             m_synchronizer.FetchLatestTxBlocks(
                 m_mediator.m_lookup, m_mediator.m_txBlockChain.GetBlockCount());
             this_thread::sleep_for(
+#if 1 //clark
+                chrono::seconds(m_mediator.m_lookup->m_startedPoW1
+#else
                 chrono::seconds(m_mediator.m_lookup->m_startedPoW2
+#endif
                                     ? BACKUP_POW2_WINDOW_IN_SECONDS
                                     : NEW_NODE_SYNC_INTERVAL));
         }
@@ -1105,7 +1113,11 @@ bool Node::CleanVariables()
             m_mediator.m_lookup->m_mutexOfflineLookupsUpdation);
         m_mediator.m_lookup->m_fetchedOfflineLookups = false;
     }
+#if 1 //clark
+    m_mediator.m_lookup->m_startedPoW1 = false;
+#else
     m_mediator.m_lookup->m_startedPoW2 = false;
+#endif
 
     return true;
 }

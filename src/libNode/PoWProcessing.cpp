@@ -112,6 +112,11 @@ bool Node::StartPoW1(const uint256_t& block_num, uint8_t difficulty,
         pow1message.insert(pow1message.end(), mixhash_vec.begin(),
                            mixhash_vec.end());
 
+#if 1 //clark
+        LOG_GENERAL(WARNING,
+                    "clark test, m_mediator.m_DSCommitteeNetworkInfo.size() = "
+                        << m_mediator.m_DSCommitteeNetworkInfo.size());
+#endif
         P2PComm::GetInstance().SendMessage(m_mediator.m_DSCommitteeNetworkInfo,
                                            pow1message);
     }

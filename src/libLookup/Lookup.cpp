@@ -1056,6 +1056,7 @@ bool Lookup::ProcessGetTxBodyFromSeed(const vector<unsigned char>& message,
     // TODO: Revamp the sendmessage and sendbroadcastmessage
     // Currently, we use sendbroadcastmessage instead of sendmessage. The reason is a new node who want to
     // join will received similar response from mulitple lookup node. It will process them in full.
+    // join will received similar response from mulitple lookup node. It will process them in full.
     // Currently, we want the duplicated message to be drop so to ensure it do not do redundant processing.
     // In the long term, we need to track all the incoming messages from lookup or seed node more grandularly,.
     // and ensure 2/3 of such identical message is received in order to move on.
@@ -1206,6 +1207,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
         //#endif // IS_LOOKUP_NODE
 
 #ifndef IS_LOOKUP_NODE
+#if 0 //clark
     if (m_dsInfoWaitingNotifying
         && m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW
             == m_mediator.m_dsBlockChain.GetLastBlock()
@@ -1217,6 +1219,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
         m_fetchedDSInfo = true;
         cv_dsInfoUpdate.notify_one();
     }
+#endif
 #endif // IS_LOOKUP_NODE
 
     return true;
@@ -1486,6 +1489,9 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
 
     if (AlreadyJoinedNetwork())
     {
+#if 1 //clark
+        LOG_GENERAL(INFO, "This node already joined network, skip it.");
+#endif
         return true;
     }
 
@@ -1500,6 +1506,17 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
     }
 
 #ifndef IS_LOOKUP_NODE
+#if 1 //clark
+    // Wait for POW1_SUBMISSION for DS node, and then add this node into POW
+    vector<unsigned char> pow_message = {
+        MessageType::LOOKUP, LookupInstructionType::GETPOWSUBMISSIONFROMSEED};
+    curr_offset = MessageOffset::BODY;
+    Serializable::SetNumber<uint32_t>(pow_message, curr_offset,
+                                      m_mediator.m_selfPeer.m_listenPortHost,
+                                      sizeof(uint32_t));
+    curr_offset += sizeof(uint32_t);
+    m_mediator.m_lookup->SendMessageToRandomLookupNode(pow_message);
+#else
     if (m_syncType == SyncType::NEW_SYNC || m_syncType == SyncType::NORMAL_SYNC)
     {
         m_dsInfoWaitingNotifying = true;
@@ -1535,6 +1552,7 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
         }
         m_currDSExpired = false;
     }
+#endif
 #else // IS_LOOKUP_NODE
     if (m_syncType == SyncType::LOOKUP_SYNC)
     {
@@ -1629,6 +1647,11 @@ bool Lookup::InitMining()
     // General check
     if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0)
     {
+#if 1 //clark
+        LOG_GENERAL(
+            WARNING,
+            "m_mediator.m_currentEpochNum = " << m_mediator.m_currentEpochNum);
+#endif
         return false;
     }
 
@@ -1639,11 +1662,11 @@ bool Lookup::InitMining()
 
     uint256_t curDsBlockNum
         = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
-
+#if 0 //clark
     m_mediator.UpdateDSBlockRand();
     auto dsBlockRand = m_mediator.m_dsBlockRand;
     array<unsigned char, 32> txBlockRand{};
-
+#endif
     // if (m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW == curDsBlockNum)
     // {
     //     // DS block for the epoch has not been generated.
@@ -1657,11 +1680,26 @@ bool Lookup::InitMining()
     //                                     POW1_DIFFICULTY, dsBlockRand, m_mediator.m_txBlockRand);
     // }
     //else if
+#if 1 //clark
+    if (m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW == curDsBlockNum)
+#else
     if (m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW
         == curDsBlockNum - 1)
+#endif
     {
         if (CheckStateRoot())
         {
+#if 1 //clark
+
+            // Add this node into POW process
+            m_startedPoW1 = true;
+            GetDSInfoFromLookupNodes();
+            m_mediator.UpdateDSBlockRand();
+            m_mediator.UpdateTxBlockRand();
+            m_mediator.m_node->StartPoW1(
+                m_mediator.m_dsBlockChain.GetBlockCount(), POW1_DIFFICULTY,
+                m_mediator.m_dsBlockRand, m_mediator.m_txBlockRand);
+#else
             // DS block has been generated.
             // Attempt PoW2
             m_startedPoW2 = true;
@@ -1675,6 +1713,7 @@ bool Lookup::InitMining()
 
             this_thread::sleep_for(chrono::seconds(NEW_NODE_POW_DELAY));
             m_mediator.m_node->SetState(Node::NodeState::TX_SUBMISSION);
+#endif
         }
         else
         {
@@ -1683,11 +1722,19 @@ bool Lookup::InitMining()
     }
     else
     {
+#if 1 //clark
+        LOG_GENERAL(WARNING, "curDsBlockNum = " << curDsBlockNum);
+#endif
         return false;
     }
-    // Check whether is the new node connected to the network. Else, initiate re-sync process again.
+        // Check whether is the new node connected to the network. Else, initiate re-sync process again.
+#if 1 //clark
+    this_thread::sleep_for(chrono::seconds(90));
+    m_startedPoW1 = false;
+#else
     this_thread::sleep_for(chrono::seconds(BACKUP_POW2_WINDOW_IN_SECONDS));
     m_startedPoW2 = false;
+#endif
     if (m_syncType != SyncType::NO_SYNC)
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -1886,6 +1933,75 @@ bool Lookup::ProcessSetOfflineLookups(const std::vector<unsigned char>& message,
 #endif // IS_LOOKUP_NODE
     return true;
 }
+
+#if 1 //clark
+bool Lookup::ProcessRaisePowSubmission(
+    const std::vector<unsigned char>& message, unsigned int offset,
+    const Peer& from)
+{
+    LOG_MARKER();
+    bPOWSubmission = true;
+    cv_POWSubmission.notify_all();
+    return true;
+}
+
+bool Lookup::ProcessGetPowSubmissionFromSeed(
+    const std::vector<unsigned char>& message, unsigned int offset,
+    const Peer& from)
+{
+    LOG_MARKER();
+
+    if (!bPOWSubmission)
+    {
+        std::unique_lock<std::mutex> cv_lk(m_MutexCVPOWSubmission);
+
+        if (cv_POWSubmission.wait_for(
+                cv_lk, std::chrono::seconds(POW1_WINDOW_IN_SECONDS))
+            == std::cv_status::timeout)
+        {
+            LOG_GENERAL(WARNING, "Timed out for waiting POW process");
+            bPOWSubmission = false;
+            return false;
+        }
+    }
+
+    vector<unsigned char> pow_message = {
+        MessageType::LOOKUP, LookupInstructionType::SETPOWSUBMISSIONFROMSEED};
+    uint32_t portNo
+        = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
+    offset += sizeof(uint32_t);
+    uint128_t ipAddr = from.m_ipAddress;
+    Peer requestingNode(ipAddr, portNo);
+    P2PComm::GetInstance().SendMessage(requestingNode, pow_message);
+    bPOWSubmission = true;
+    cv_POWSubmission.notify_all();
+
+    return true;
+}
+
+bool Lookup::ProcessSetPowSubmissionFromSeed(
+    const std::vector<unsigned char>& message, unsigned int offset,
+    const Peer& from)
+{
+    LOG_MARKER();
+#ifndef IS_LOOKUP_NODE
+    InitMining();
+
+    if (m_syncType == SyncType::DS_SYNC)
+    {
+        if (!m_currDSExpired)
+        {
+            m_isFirstLoop = true;
+            m_syncType = SyncType::NO_SYNC;
+            m_mediator.m_ds->FinishRejoinAsDS();
+        }
+
+        m_currDSExpired = false;
+    }
+#endif
+    return true;
+}
+#endif
 
 #ifdef IS_LOOKUP_NODE
 void Lookup::StartSynchronization()
@@ -2118,27 +2234,32 @@ bool Lookup::Execute(const vector<unsigned char>& message, unsigned int offset,
     typedef bool (Lookup::*InstructionHandler)(const vector<unsigned char>&,
                                                unsigned int, const Peer&);
 
-    InstructionHandler ins_handlers[] = {
-        &Lookup::ProcessEntireShardingStructure,
-        &Lookup::ProcessGetSeedPeersFromLookup,
-        &Lookup::ProcessSetSeedPeersFromLookup,
-        &Lookup::ProcessGetDSInfoFromSeed,
-        &Lookup::ProcessSetDSInfoFromSeed,
-        &Lookup::ProcessGetDSBlockFromSeed,
-        &Lookup::ProcessSetDSBlockFromSeed,
-        &Lookup::ProcessGetTxBlockFromSeed,
-        &Lookup::ProcessSetTxBlockFromSeed,
-        &Lookup::ProcessGetTxBodyFromSeed,
-        &Lookup::ProcessSetTxBodyFromSeed,
-        &Lookup::ProcessGetNetworkId,
-        &Lookup::ProcessGetNetworkId,
-        &Lookup::ProcessGetStateFromSeed,
-        &Lookup::ProcessSetStateFromSeed,
-        &Lookup::ProcessSetLookupOffline,
-        &Lookup::ProcessSetLookupOnline,
-        &Lookup::ProcessGetOfflineLookups,
-        &Lookup::ProcessSetOfflineLookups,
-    };
+    InstructionHandler ins_handlers[]
+        = { &Lookup::ProcessEntireShardingStructure,
+            &Lookup::ProcessGetSeedPeersFromLookup,
+            &Lookup::ProcessSetSeedPeersFromLookup,
+            &Lookup::ProcessGetDSInfoFromSeed,
+            &Lookup::ProcessSetDSInfoFromSeed,
+            &Lookup::ProcessGetDSBlockFromSeed,
+            &Lookup::ProcessSetDSBlockFromSeed,
+            &Lookup::ProcessGetTxBlockFromSeed,
+            &Lookup::ProcessSetTxBlockFromSeed,
+            &Lookup::ProcessGetTxBodyFromSeed,
+            &Lookup::ProcessSetTxBodyFromSeed,
+            &Lookup::ProcessGetNetworkId,
+            &Lookup::ProcessGetNetworkId,
+            &Lookup::ProcessGetStateFromSeed,
+            &Lookup::ProcessSetStateFromSeed,
+            &Lookup::ProcessSetLookupOffline,
+            &Lookup::ProcessSetLookupOnline,
+            &Lookup::ProcessGetOfflineLookups,
+            &Lookup::ProcessSetOfflineLookups,
+#if 1 //clark
+            &Lookup::ProcessRaisePowSubmission,
+            &Lookup::ProcessGetPowSubmissionFromSeed,
+            &Lookup::ProcessSetPowSubmissionFromSeed,
+#endif
+          };
 
     const unsigned char ins_byte = message.at(offset);
     const unsigned int ins_handlers_count

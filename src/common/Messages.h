@@ -87,6 +87,11 @@ enum LookupInstructionType : unsigned char
     SETLOOKUPONLINE = 0x10,
     GETOFFLINELOOKUPS = 0x11,
     SETOFFLINELOOKUPS = 0x12,
+#if 1 //clark
+    RAISEPOWSUBMISSION = 0x13,
+    GETPOWSUBMISSIONFROMSEED = 0x14,
+    SETPOWSUBMISSIONFROMSEED = 0x15,
+#endif
 };
 
 enum TxSharingMode : unsigned char
