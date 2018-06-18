@@ -467,13 +467,10 @@ bool AccountStore::ParseCreateContractJsonOutput(const Json::Value& _json)
         // LOG_GENERAL(INFO, "Get desired json output from the interpreter for create contract");
         return true;
     }
-    else
-    {
-        LOG_GENERAL(WARNING,
-                    "Didn't get desired json output from the interpreter for "
-                    "create contract");
-        return false;
-    }
+    LOG_GENERAL(WARNING,
+                "Didn't get desired json output from the interpreter for "
+                "create contract");
+    return false;
 }
 
 bool AccountStore::ParseCallContractOutput()
