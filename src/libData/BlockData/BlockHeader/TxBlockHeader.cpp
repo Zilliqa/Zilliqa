@@ -224,11 +224,10 @@ bool TxBlockHeader::operator<(const TxBlockHeader& header) const
                     header.m_gasUsed, header.m_prevHash, header.m_blockNum,
                     header.m_timestamp, header.m_hash, header.m_numTxs,
                     header.m_numMicroBlockHashes, header.m_minerPubKey,
-                    header.m_dsBlockHeader, header.m_viewChangeCounter)
+                    header.m_dsBlockHeader)
         > std::tie(m_type, m_version, m_gasLimit, m_gasUsed, m_prevHash,
                    m_blockNum, m_timestamp, m_hash, m_numTxs,
-                   m_numMicroBlockHashes, m_minerPubKey, m_dsBlockHeader,
-                   m_viewChangeCounter);
+                   m_numMicroBlockHashes, m_minerPubKey, m_dsBlockHeader);
 }
 
 bool TxBlockHeader::operator>(const TxBlockHeader& header) const

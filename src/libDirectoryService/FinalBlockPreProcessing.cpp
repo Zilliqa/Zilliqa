@@ -669,7 +669,7 @@ bool DirectoryService::CheckMicroBlockHashes()
         }
         if (!found)
         {
-            LOG_GENERAL(WARNING, "cannot find tx hashes. " << microBlockTxHash)
+            LOG_GENERAL(WARNING, "cannot find hashes. " << microBlockHash)
             return false;
         }
     }
