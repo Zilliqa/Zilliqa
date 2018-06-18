@@ -163,6 +163,8 @@ bool Node::ProcessSharding(const vector<unsigned char>& message,
         m_runFromLate = false;
     }
 
+    m_cvFinishPOW.notify_all();
+
     // if (m_state != TX_SUBMISSION)
     if (!CheckState(PROCESS_SHARDING))
     {

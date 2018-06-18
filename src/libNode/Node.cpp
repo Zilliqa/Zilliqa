@@ -197,11 +197,8 @@ void Node::StartSynchronization()
 {
     LOG_MARKER();
 
-#if 1 //clark
     SetState(POW1_SUBMISSION);
-#else
-    SetState(POW2_SUBMISSION);
-#endif
+
     auto func = [this]() -> void {
         m_synchronizer.FetchOfflineLookups(m_mediator.m_lookup);
 
@@ -229,11 +226,7 @@ void Node::StartSynchronization()
             m_synchronizer.FetchLatestTxBlocks(
                 m_mediator.m_lookup, m_mediator.m_txBlockChain.GetBlockCount());
             this_thread::sleep_for(
-#if 1 //clark
                 chrono::seconds(m_mediator.m_lookup->m_startedPoW1
-#else
-                chrono::seconds(m_mediator.m_lookup->m_startedPoW2
-#endif
                                     ? BACKUP_POW2_WINDOW_IN_SECONDS
                                     : NEW_NODE_SYNC_INTERVAL));
         }
@@ -1113,11 +1106,7 @@ bool Node::CleanVariables()
             m_mediator.m_lookup->m_mutexOfflineLookupsUpdation);
         m_mediator.m_lookup->m_fetchedOfflineLookups = false;
     }
-#if 1 //clark
     m_mediator.m_lookup->m_startedPoW1 = false;
-#else
-    m_mediator.m_lookup->m_startedPoW2 = false;
-#endif
 
     return true;
 }
@@ -1137,12 +1126,13 @@ bool Node::ToBlockMessage(unsigned char ins_byte)
         }
         else
         {
-            if (m_runFromLate && ins_byte != NodeInstructionType::SHARDING
+            if (m_runFromLate && ins_byte != NodeInstructionType::DSBLOCK
                 && ins_byte != NodeInstructionType::CREATETRANSACTION)
             {
                 return true;
             }
         }
+
         if (m_mediator.m_lookup->m_syncType == SyncType::DS_SYNC)
         {
             return true;
@@ -1184,7 +1174,7 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
     // If the node failed and waiting for recovery, block the unwanted msg
     if (ToBlockMessage(ins_byte))
     {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Node not connected to network yet, ignore message");
         return false;
     }

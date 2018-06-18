@@ -334,6 +334,8 @@ public:
 
     std::condition_variable m_cvAllMicroBlocksRecvd;
     std::mutex m_mutexAllMicroBlocksRecvd;
+    std::condition_variable m_cvFinishPOW;
+    std::mutex m_mutexFinishPOW;
     bool m_allMicroBlocksRecvd = true;
 
     // Transaction body sharing variables
