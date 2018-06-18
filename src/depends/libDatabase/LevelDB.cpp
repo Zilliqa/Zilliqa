@@ -41,7 +41,7 @@ LevelDB::LevelDB(const string & dbName, const string & subdirectory)
     leveldb::DB* db;
     leveldb::Status status;
 
-    if(m_subdirectory.size() == 0)
+    if(m_subdirectory.empty())
     {
         status = leveldb::DB::Open(options, "./" + PERSISTENCE_PATH + "/" + this->m_dbName, &db);
     }
@@ -349,7 +349,7 @@ int LevelDB::DeleteDB()
 
 bool LevelDB::ResetDB()
 {
-    if(DeleteDB() == 0 && this->m_subdirectory.size() == 0)
+    if(DeleteDB() == 0 && this->m_subdirectory.empty())
     {
         boost::filesystem::remove_all("./" + PERSISTENCE_PATH + "/" + this->m_dbName);
 

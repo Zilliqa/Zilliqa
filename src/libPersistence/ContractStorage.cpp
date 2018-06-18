@@ -21,9 +21,7 @@
 bool ContractStorage::PutContractCode(const h160& address,
                                       const std::vector<unsigned char>& code)
 {
-    int ret = -1; // according to LevelDB::Insert return value
-    ret = m_codeDB.Insert(address.hex(), code);
-    return (ret == 0);
+    return m_codeDB.Insert(address.hex(), code) == 0;
 }
 
 const std::vector<unsigned char>

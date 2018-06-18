@@ -161,8 +161,6 @@ decltype(auto) GenWithDummyValue(const KeyPair& sender, const KeyPair& receiver,
     uint256_t amount = 123;
     uint256_t gasPrice = 456;
     uint256_t gasLimit = 789;
-    // vector<unsigned char> code(10, 0xFF);
-    // vector<unsigned char> data(10, 0xAA);
 
     for (unsigned i = 0; i < n; i++)
     {
