@@ -378,9 +378,6 @@ void Account::SetCode(const std::vector<unsigned char>& code)
     if (code.size() == 0)
         return;
     m_codeCache = code;
-    // LOG_GENERAL(INFO,
-    //             "Contract Data: \n"
-    //                 << DataConversion::CharArrayToString(code));
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
     sha2.Update(code);
     m_codeHash = dev::h256(sha2.Finalize());
