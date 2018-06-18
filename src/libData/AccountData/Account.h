@@ -77,7 +77,13 @@ public:
                            unsigned int offset) const;
 
     /// Implements the Deserialize function inherited from Serializable.
-    int Deserialize(const vector<unsigned char>& src, unsigned int offset);
+    int DeserializeAddOffset(const vector<unsigned char>& src,
+                             unsigned int& offset);
+
+    int Deserialize(const vector<unsigned char>& src, unsigned int offset)
+    {
+        return -1;
+    }
 
     /// Increases account balance by the specified delta amount.
     bool IncreaseBalance(const uint256_t& delta);
@@ -148,7 +154,7 @@ public:
                                        const Account& newAccount);
 
     static int DeserializeDelta(const vector<unsigned char>& src,
-                                unsigned int offset, Account& account,
+                                unsigned int& offset, Account& account,
                                 bool isNew);
 };
 
