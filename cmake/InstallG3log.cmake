@@ -16,6 +16,7 @@ execute_process(
         -DG3_SHARED_LIB=OFF
         -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}
         -DADD_FATAL_EXAMPLE=OFF
+        -Wno-dev
 )
 execute_process(
     COMMAND ${CMAKE_COMMAND} --build ${G3LOG_BINARY_DIR}
