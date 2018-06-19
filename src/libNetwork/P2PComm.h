@@ -23,6 +23,7 @@
 #include <set>
 #include <vector>
 
+#include "P2PGossip.h"
 #include "Peer.h"
 #include "common/Constants.h"
 #include "libUtils/Logger.h"
@@ -67,6 +68,10 @@ class P2PComm
     void SendBroadcastMessageHelper(const Container& peers,
                                     const std::vector<unsigned char>& message);
 
+    template<typename Container>
+    void SendBroadcastMessageGossip(const Container& peers,
+                                    const std::vector<unsigned char>& message);
+
     template<unsigned char START_BYTE, typename Container>
     void SendMessagePoolHelper(const Container& peers,
                                const std::vector<unsigned char>& message,
@@ -75,9 +80,28 @@ class P2PComm
     P2PComm();
     ~P2PComm();
 
+    void startTimer();
+
     // Singleton should not implement these
     P2PComm(P2PComm const&) = delete;
     void operator=(P2PComm const&) = delete;
+
+    using ShaMessage = std::vector<unsigned char>;
+    static ShaMessage shaMessage(const std::vector<unsigned char>& message);
+
+    class AtomicGossiper;
+    class AtomicGossiperActions;
+
+    using AtomicGossiperPtr = std::shared_ptr<AtomicGossiper>;
+    using Gossipers = std::map<ShaMessage, AtomicGossiperPtr>;
+
+    AtomicGossiperPtr
+    gossiperForMessage(const std::vector<unsigned char>& message,
+                       const ShaMessage& hash);
+    void perform(const AtomicGossiperActions& actions);
+
+    Gossipers m_gossipers;
+    std::mutex m_gossipersMutex;
 
     Peer m_selfPeer;
 
@@ -88,22 +112,25 @@ public:
     /// Returns the singleton P2PComm instance.
     static P2PComm& GetInstance();
 
+    using Dispatcher
+        = std::function<void(const std::vector<unsigned char>&, const Peer&)>;
+
     /// Receives incoming message and assigns to designated message dispatcher.
-    static void HandleAcceptedConnection(
-        int cli_sock, Peer from,
-        std::function<void(const std::vector<unsigned char>&, const Peer&)>
-            dispatcher,
-        broadcast_list_func broadcast_list_retriever);
+    static void
+    HandleAcceptedConnection(int cli_sock, Peer from, Dispatcher dispatcher,
+                             broadcast_list_func broadcast_list_retriever);
+
+    static void HandleAcceptedConnectionBroadcast(
+        int cli_sock, Peer from, Dispatcher dispatcher,
+        broadcast_list_func broadcast_list_retriever, uint32_t message_length,
+        std::unique_ptr<int, void (*)(int*)> cli_sock_closer);
 
     /// Accept TCP connection for libevent usage
     static void ConnectionAccept(int serv_sock, short event, void* arg);
 
     /// Listens for incoming socket connections.
-    void StartMessagePump(
-        uint32_t listen_port_host,
-        std::function<void(const std::vector<unsigned char>&, const Peer&)>
-            dispatcher,
-        broadcast_list_func broadcast_list_retriever);
+    void StartMessagePump(uint32_t listen_port_host, Dispatcher dispatcher,
+                          broadcast_list_func broadcast_list_retriever);
 
     /// Multicasts message to specified list of peers.
     void SendMessage(const std::vector<Peer>& peers,
@@ -126,6 +153,11 @@ public:
                               const std::vector<unsigned char>& message);
 
     void SetSelfPeer(const Peer& self);
+
+    Dispatcher dispatcher() const { return m_dispatcher; };
+
+private:
+    Dispatcher m_dispatcher;
 };
 
 #endif // __P2PCOMM_H__

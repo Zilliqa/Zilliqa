@@ -18,6 +18,7 @@ endif(CMAKE_CONFIGURATION_TYPES)
 #target_link_libraries (Test_PeerManager PUBLIC Utils Network Zilliqa)
 
 link_directories(${CMAKE_BINARY_DIR}/lib)
+
 add_executable (Test_PeerStore Test_PeerStore.cpp)
 target_include_directories (Test_PeerStore PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries (Test_PeerStore PUBLIC Network Utils)
@@ -26,3 +27,9 @@ add_test(NAME Test_PeerStore COMMAND Test_PeerStore)
 add_executable (Test_P2PComm Test_P2PComm.cpp)
 target_include_directories (Test_P2PComm PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries (Test_P2PComm PUBLIC Network Utils)
+add_test(NAME Test_P2PComm COMMAND Test_P2PComm)
+
+add_executable (Test_P2PGossip Test_P2PGossip.cpp)
+target_include_directories (Test_P2PGossip PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries (Test_P2PGossip PUBLIC Network Utils)
+add_test(NAME Test_P2PGossip COMMAND Test_P2PGossip)
