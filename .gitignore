@@ -87,3 +87,6 @@ build_lookup
 
 # Mac
 .DS_Store
+
+# CMake files
+compile_commands.json
