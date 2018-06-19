@@ -51,8 +51,6 @@ class DirectoryService : public Executable, public Broadcastable
         PROCESS_POW1SUBMISSION = 0x00,
         VERIFYPOW1,
         PROCESS_DSBLOCKCONSENSUS,
-        PROCESS_POW2SUBMISSION,
-        VERIFYPOW2,
         PROCESS_SHARDINGCONSENSUS,
         PROCESS_MICROBLOCKSUBMISSION,
         PROCESS_FINALBLOCKCONSENSUS,
@@ -69,10 +67,6 @@ class DirectoryService : public Executable, public Broadcastable
             return "VERIFYPOW1";
         case PROCESS_DSBLOCKCONSENSUS:
             return "PROCESS_DSBLOCKCONSENSUS";
-        case PROCESS_POW2SUBMISSION:
-            return "PROCESS_POW2SUBMISSION";
-        case VERIFYPOW2:
-            return "VERIFYPOW2";
         case PROCESS_SHARDINGCONSENSUS:
             return "PROCESS_SHARDINGCONSENSUS";
         case PROCESS_MICROBLOCKSUBMISSION:
@@ -152,9 +146,6 @@ class DirectoryService : public Executable, public Broadcastable
     std::mutex m_MutexCVFinalBlockConsensusObject;
     std::condition_variable cv_POW1Submission;
     std::mutex m_MutexCVPOW1Submission;
-    std::condition_variable cv_POW2Submission;
-    std::mutex m_MutexCVPOW2Submission;
-
     // TO Remove
     Mediator& m_mediator;
 
@@ -169,8 +160,6 @@ class DirectoryService : public Executable, public Broadcastable
                                unsigned int offset, const Peer& from);
     bool ProcessDSBlockConsensus(const std::vector<unsigned char>& message,
                                  unsigned int offset, const Peer& from);
-    bool ProcessPoW2Submission(const std::vector<unsigned char>& message,
-                               unsigned int offset, const Peer& from);
     bool ProcessShardingConsensus(const std::vector<unsigned char>& message,
                                   unsigned int offset, const Peer& from);
     bool ProcessMicroblockSubmission(const std::vector<unsigned char>& message,
@@ -357,7 +346,6 @@ public:
         POW1_SUBMISSION = 0x00,
         DSBLOCK_CONSENSUS_PREP,
         DSBLOCK_CONSENSUS,
-        POW2_SUBMISSION,
         SHARDING_CONSENSUS_PREP,
         SHARDING_CONSENSUS,
         MICROBLOCK_SUBMISSION,
@@ -421,9 +409,6 @@ public:
     // Used to reconsile view of m_AllPowConn is different.
     void RequestAllPoWConn();
     void RequestAllPoW2();
-
-    /// Notify POW2 submission to DirectoryService::ProcessPoW2Submission()
-    void NotifyPOW2Submission() { cv_POW2Submission.notify_all(); }
 };
 
 #endif // __DIRECTORYSERVICE_H__

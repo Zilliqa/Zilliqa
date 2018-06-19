@@ -127,12 +127,6 @@ bool DirectoryService::CheckState(Action action)
                       "DSBLOCK_CONSENSUS");
             result = false;
             break;
-        case POW2_SUBMISSION:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_POW1SUBMISSION but already in "
-                      "POW2_SUBMISSION");
-            result = false;
-            break;
         case SHARDING_CONSENSUS_PREP:
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Doing PROCESS_POW1SUBMISSION but already in "
@@ -204,11 +198,6 @@ bool DirectoryService::CheckState(Action action)
                       "Doing VERIFYPOW1 but already in DSBLOCK_CONSENSUS");
             result = false;
             break;
-        case POW2_SUBMISSION:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing VERIFYPOW1 but already in POW2_SUBMISSION");
-            result = false;
-            break;
         case SHARDING_CONSENSUS_PREP:
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Doing VERIFYPOW1 but already in "
@@ -277,12 +266,6 @@ bool DirectoryService::CheckState(Action action)
             break;
         case DSBLOCK_CONSENSUS:
             break;
-        case POW2_SUBMISSION:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_DSBLOCKCONSENSUS but already in "
-                      "POW2_SUBMISSION");
-            result = false;
-            break;
         case SHARDING_CONSENSUS_PREP:
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Doing PROCESS_DSBLOCKCONSENSUS but already in "
@@ -338,156 +321,6 @@ bool DirectoryService::CheckState(Action action)
             break;
         }
         break;
-    case PROCESS_POW2SUBMISSION:
-        switch (m_state)
-        {
-        case POW1_SUBMISSION:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_POW2SUBMISSION but already in "
-                      "POW1_SUBMISSION");
-            result = false;
-            break;
-        case DSBLOCK_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_POW2SUBMISSION but already in "
-                      "DSBLOCK_CONSENSUS_PREP");
-            result = false;
-            break;
-        case DSBLOCK_CONSENSUS:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_POW2SUBMISSION but already in "
-                      "DSBLOCK_CONSENSUS");
-            result = false;
-            break;
-        case POW2_SUBMISSION:
-            break;
-        case SHARDING_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_POW2SUBMISSION but already in "
-                      "SHARDING_CONSENSUS_PREP");
-            result = false;
-            break;
-        case SHARDING_CONSENSUS:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_POW2SUBMISSION but already in "
-                      "SHARDING_CONSENSUS");
-            result = false;
-            break;
-        case MICROBLOCK_SUBMISSION:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_POW2SUBMISSION but already in "
-                      "MICROBLOCK_SUBMISSION");
-            result = false;
-            break;
-        case FINALBLOCK_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_POW2SUBMISSION but already in "
-                      "FINALBLOCK_CONSENSUS_PREP");
-            result = false;
-            break;
-        case FINALBLOCK_CONSENSUS:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_POW2SUBMISSION but already in "
-                      "FINALBLOCK_CONSENSUS");
-            result = false;
-            break;
-        case VIEWCHANGE_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_POW2SUBMISSION but already in "
-                      "VIEWCHANGE_CONSENSUS_PREP");
-            result = false;
-            break;
-        case VIEWCHANGE_CONSENSUS:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_POW2SUBMISSION but already in "
-                      "VIEWCHANGE_CONSENSUS");
-            result = false;
-            break;
-        case ERROR:
-            LOG_GENERAL(WARNING,
-                        "Doing PROCESS_POW2SUBMISSION but receiving "
-                        "ERROR message");
-            result = false;
-            break;
-        default:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Unrecognized or error state");
-            result = false;
-            break;
-        }
-        break;
-    case VERIFYPOW2:
-        switch (m_state)
-        {
-        case POW1_SUBMISSION:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing VERIFYPOW2 but already in POW1_SUBMISSION");
-            result = false;
-            break;
-        case DSBLOCK_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing VERIFYPOW2 but already in "
-                      "DSBLOCK_CONSENSUS_PREP");
-            result = false;
-            break;
-        case DSBLOCK_CONSENSUS:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing VERIFYPOW2 but already in DSBLOCK_CONSENSUS");
-            result = false;
-            break;
-        case POW2_SUBMISSION:
-            break;
-        case SHARDING_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing VERIFYPOW2 but already in "
-                      "SHARDING_CONSENSUS_PREP");
-            result = false;
-            break;
-        case SHARDING_CONSENSUS:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing VERIFYPOW2 but already in SHARDING_CONSENSUS");
-            result = false;
-            break;
-        case MICROBLOCK_SUBMISSION:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing VERIFYPOW2 but already in MICROBLOCK_SUBMISSION");
-            result = false;
-            break;
-        case FINALBLOCK_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing VERIFYPOW2 but already in "
-                      "FINALBLOCK_CONSENSUS_PREP");
-            result = false;
-            break;
-        case FINALBLOCK_CONSENSUS:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing VERIFYPOW2 but already in FINALBLOCK_CONSENSUS");
-            result = false;
-            break;
-        case VIEWCHANGE_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing VERIFYPOW2 but already in "
-                      "VIEWCHANGE_CONSENSUS_PREP");
-            result = false;
-            break;
-        case VIEWCHANGE_CONSENSUS:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing VERIFYPOW2 but already in "
-                      "VIEWCHANGE_CONSENSUS");
-            result = false;
-            break;
-        case ERROR:
-            LOG_GENERAL(WARNING,
-                        "Doing VERIFYPOW2 but receiving ERROR message");
-            result = false;
-            break;
-        default:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Unrecognized or error state");
-            result = false;
-            break;
-        }
-        break;
     case PROCESS_SHARDINGCONSENSUS:
         switch (m_state)
         {
@@ -507,12 +340,6 @@ bool DirectoryService::CheckState(Action action)
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Doing PROCESS_SHARDINGCONSENSUS but already "
                       "in DSBLOCK_CONSENSUS");
-            result = false;
-            break;
-        case POW2_SUBMISSION:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_SHARDINGCONSENSUS but already "
-                      "in POW2_SUBMISSION");
             result = false;
             break;
         case SHARDING_CONSENSUS_PREP:
@@ -587,12 +414,6 @@ bool DirectoryService::CheckState(Action action)
                       "already in DSBLOCK_CONSENSUS");
             result = false;
             break;
-        case POW2_SUBMISSION:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_MICROBLOCKSUBMISSION but "
-                      "already in POW2_SUBMISSION");
-            result = false;
-            break;
         case SHARDING_CONSENSUS_PREP:
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Doing PROCESS_MICROBLOCKSUBMISSION but "
@@ -665,12 +486,6 @@ bool DirectoryService::CheckState(Action action)
                       "in DSBLOCK_CONSENSUS");
             result = false;
             break;
-        case POW2_SUBMISSION:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_FINALBLOCKCONSENSUS but already "
-                      "in POW2_SUBMISSION");
-            result = false;
-            break;
         case SHARDING_CONSENSUS_PREP:
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Doing PROCESS_FINALBLOCKCONSENSUS but already "
@@ -741,12 +556,6 @@ bool DirectoryService::CheckState(Action action)
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Doing PROCESS_VIEWCHANGECONSENSUS but already "
                       "in DSBLOCK_CONSENSUS");
-            result = false;
-            break;
-        case POW2_SUBMISSION:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_VIEWCHANGECONSENSUS but already "
-                      "in POW2_SUBMISSION");
             result = false;
             break;
         case SHARDING_CONSENSUS_PREP:
@@ -1372,9 +1181,6 @@ bool DirectoryService::ProcessLastDSBlockResponse(
         dsblock.GetHeader().GetBlockNum(), serializedDSBlock);
     BlockStorage::GetBlockStorage().PushBackTxBodyDB(
         dsblock.GetHeader().GetBlockNum());
-
-    SetState(POW2_SUBMISSION);
-    NotifyPOW2Submission();
     ScheduleShardingConsensus(BACKUP_POW2_WINDOW_IN_SECONDS
                               - BUFFER_TIME_BEFORE_DS_BLOCK_REQUEST);
     return true;
@@ -1489,7 +1295,6 @@ bool DirectoryService::Execute(const vector<unsigned char>& message,
         = {&DirectoryService::ProcessSetPrimary,
            &DirectoryService::ProcessPoW1Submission,
            &DirectoryService::ProcessDSBlockConsensus,
-           &DirectoryService::ProcessPoW2Submission,
            &DirectoryService::ProcessShardingConsensus,
            &DirectoryService::ProcessMicroblockSubmission,
            &DirectoryService::ProcessFinalBlockConsensus,
@@ -1505,7 +1310,6 @@ bool DirectoryService::Execute(const vector<unsigned char>& message,
         = {&DirectoryService::ProcessSetPrimary,
            &DirectoryService::ProcessPoW1Submission,
            &DirectoryService::ProcessDSBlockConsensus,
-           &DirectoryService::ProcessPoW2Submission,
            &DirectoryService::ProcessShardingConsensus,
            &DirectoryService::ProcessMicroblockSubmission,
            &DirectoryService::ProcessFinalBlockConsensus,
