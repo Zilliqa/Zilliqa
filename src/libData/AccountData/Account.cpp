@@ -217,16 +217,16 @@ void Account::SetStorageRoot(const h256& root)
     m_prevRoot = m_storageRoot;
 }
 
-void Account::SetStorage(string _k, string _type, string _v, bool _mutable)
+void Account::SetStorage(string k, string type, string v, bool is_mutable)
 {
     if (!isContract())
     {
         return;
     }
     RLPStream rlpStream(4);
-    rlpStream << _k << (_mutable ? "True" : "False") << _type << _v;
+    rlpStream << k << (is_mutable ? "True" : "False") << type << v;
 
-    m_storage.insert(GetKeyHash(_k), rlpStream.out());
+    m_storage.insert(GetKeyHash(k), rlpStream.out());
 
     m_storageRoot = m_storage.root();
 }
@@ -248,7 +248,7 @@ Json::Value Account::GetStorageJson() const
     if (!isContract())
         return Json::arrayValue;
     Json::Value root;
-    for (auto i : m_storage)
+    for (auto const& i : m_storage)
     {
         dev::RLP rlp(i.second);
         string tVname = rlp[0].toString();
@@ -289,12 +289,12 @@ Json::Value Account::GetStorageJson() const
         }
         root.append(item);
     }
-    Json::Value _balance;
-    _balance["vname"] = "_balance";
-    _balance["type"] = "Int";
-    int balance = static_cast<int>(GetBalance());
-    _balance["value"] = to_string(balance);
-    root.append(_balance);
+    Json::Value balance;
+    balance["vname"] = "_balance";
+    balance["type"] = "Int";
+    auto balance_value = static_cast<int>(GetBalance());
+    balance["value"] = to_string(balance_value);
+    root.append(balance);
 
     LOG_GENERAL(INFO, "States: " << root);
 

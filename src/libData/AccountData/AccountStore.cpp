@@ -451,18 +451,18 @@ bool AccountStore::ParseCreateContractOutput()
     }
 }
 
-bool AccountStore::ParseCreateContractJsonOutput(const Json::Value& _json)
+bool AccountStore::ParseCreateContractJsonOutput(const Json::Value& json)
 {
     LOG_MARKER();
 
-    if (!_json.isMember("message") || !_json.isMember("states"))
+    if (!json.isMember("message") || !json.isMember("states"))
     {
         LOG_GENERAL(WARNING, "The json output of this contract is corrupted");
         return false;
     }
 
-    if (_json["message"] == Json::nullValue
-        && _json["states"] == Json::arrayValue)
+    if (json["message"] == Json::nullValue
+        && json["states"] == Json::arrayValue)
     {
         // LOG_GENERAL(INFO, "Get desired json output from the interpreter for create contract");
         return true;
@@ -504,19 +504,19 @@ bool AccountStore::ParseCallContractOutput()
     }
 }
 
-bool AccountStore::ParseCallContractJsonOutput(const Json::Value& _json)
+bool AccountStore::ParseCallContractJsonOutput(const Json::Value& json)
 {
     LOG_MARKER();
 
-    if (!_json.isMember("message") || !_json.isMember("states"))
+    if (!json.isMember("message") || !json.isMember("states"))
     {
         LOG_GENERAL(WARNING, "The json output of this contract is corrupted");
         return false;
     }
 
-    if (!_json["message"].isMember("_tag")
-        || !_json["message"].isMember("_amount")
-        || !_json["message"].isMember("params"))
+    if (!json["message"].isMember("_tag")
+        || !json["message"].isMember("_amount")
+        || !json["message"].isMember("params"))
     {
         LOG_GENERAL(
             WARNING,
@@ -526,7 +526,7 @@ bool AccountStore::ParseCallContractJsonOutput(const Json::Value& _json)
 
     int deducted = 0;
 
-    for (auto s : _json["states"])
+    for (auto& s : json["states"])
     {
         if (!s.isMember("vname") || !s.isMember("type") || !s.isMember("value"))
         {
@@ -569,10 +569,10 @@ bool AccountStore::ParseCallContractJsonOutput(const Json::Value& _json)
     }
 
     /// The process after getting the output:
-    if (_json["message"]["_tag"].asString() == "Main")
+    if (json["message"]["_tag"].asString() == "Main")
     {
         Address toAddr;
-        for (auto p : _json["message"]["params"])
+        for (auto& p : json["message"]["params"])
         {
             if (p["vname"].asString() == "to"
                 && p["type"].asString() == "Address")
@@ -582,7 +582,7 @@ bool AccountStore::ParseCallContractJsonOutput(const Json::Value& _json)
             }
         }
         // A hacky way of refunding the contract the number of amount for the transaction, because the balance was affected by the parsing of _balance and the 'Main' message. Need to fix in the future
-        int amount = atoi(_json["message"]["_amount"].asString().c_str());
+        int amount = atoi(json["message"]["_amount"].asString().c_str());
         if (amount == 0)
         {
             return true;
@@ -610,7 +610,7 @@ bool AccountStore::ParseCallContractJsonOutput(const Json::Value& _json)
 
         Address toAddr;
         Json::Value params;
-        for (auto p : _json["message"]["params"])
+        for (auto& p : json["message"]["params"])
         {
             if (p["vname"].asString() == "to"
                 && p["type"].asString() == "Address")
@@ -642,8 +642,8 @@ bool AccountStore::ParseCallContractJsonOutput(const Json::Value& _json)
 
         if (ExportCallContractFiles(
                 toAccount,
-                CompositeContractData(_json["message"]["_tag"].asString(),
-                                      _json["message"]["_amount"].asString(),
+                CompositeContractData(json["message"]["_tag"].asString(),
+                                      json["message"]["_amount"].asString(),
                                       params)))
         {
             Address t_address = m_curContractAddr;
