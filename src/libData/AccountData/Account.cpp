@@ -258,7 +258,10 @@ vector<string> Account::GetStorage(string _k) const
 Json::Value Account::GetStorageJson() const
 {
     if (!isContract())
+    {
         return Json::arrayValue;
+    }
+
     Json::Value root;
     for (auto const& i : m_storage)
     {
@@ -275,6 +278,7 @@ Json::Value Account::GetStorageJson() const
         {
             continue;
         }
+
         Json::Value item;
         item["vname"] = tVname;
         item["type"] = tType;
