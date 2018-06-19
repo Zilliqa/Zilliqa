@@ -303,8 +303,7 @@ Json::Value Account::GetStorageJson() const
     Json::Value balance;
     balance["vname"] = "_balance";
     balance["type"] = "Int";
-    auto balance_value = static_cast<int>(GetBalance());
-    balance["value"] = to_string(balance_value);
+    balance["value"] = GetBalance().convert_to<string>();
     root.append(balance);
 
     LOG_GENERAL(INFO, "States: " << root);
