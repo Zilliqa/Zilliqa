@@ -1308,6 +1308,12 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
         if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
         {
             GetDSInfoFromLookupNodes();
+
+            // TBD: Need to be modified later
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "I lost PoW1 :-( Better luck next time!");
+            POW::GetInstance().StopMining();
+            m_mediator.m_node->SetState(Node::NodeState::TX_SUBMISSION);
         }
 
         if (m_syncType == SyncType::DS_SYNC
@@ -1425,6 +1431,12 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
         if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
         {
             GetStateFromLookupNodes();
+#ifndef IS_LOOKUP_NODE
+            if (!InitMining())
+            {
+                return false;
+            }
+#endif
         }
     }
 
