@@ -22,6 +22,7 @@ docker build -t ${registry_url} -<<EOF
 FROM zilliqa:${commit}
 RUN apt-get update && apt-get install -y --no-install-recommends \
     dnsutils \
+    gdb \
     net-tools \
     vim \
     && rm -rf /var/lib/apt/lists/*
