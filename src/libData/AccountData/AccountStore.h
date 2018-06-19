@@ -67,11 +67,11 @@ class AccountStore : public Serializable
 
     bool ParseCreateContractOutput();
 
-    bool ParseCreateContractJsonOutput(const Json::Value& _json);
+    bool ParseCreateContractJsonOutput(const Json::Value& json);
 
     bool ParseCallContractOutput();
 
-    bool ParseCallContractJsonOutput(const Json::Value& _json);
+    bool ParseCallContractJsonOutput(const Json::Value& json);
 
     Json::Value GetBlockStateJson(const uint64_t& BlockNum) const;
 
