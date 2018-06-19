@@ -27,6 +27,7 @@
 
 typedef std::shared_ptr<DSBlock> DSBlockSharedPtr;
 typedef std::shared_ptr<TxBlock> TxBlockSharedPtr;
+typedef std::shared_ptr<VCBlock> VCBlockSharedPtr;
 typedef std::shared_ptr<MicroBlock> MicroBlockSharedPtr;
 typedef std::shared_ptr<Transaction> TxBodySharedPtr;
 

@@ -26,7 +26,7 @@
 #include "libData/DataStructures/CircularArray.h"
 #include "libPersistence/BlockStorage.h"
 
-/// Transient storage for DS blocks.
+/// Transient storage for DS/Tx/VC blocks.
 template<class T> class BlockChain
 {
     std::mutex m_mutexBlocks;
@@ -34,21 +34,13 @@ template<class T> class BlockChain
 
 public:
     /// Constructor.
-    BlockChain()
-    {
-        m_blocks.resize(is_same<T, DSBlock>::value ? DS_BLOCKCHAIN_SIZE
-                                                   : TX_BLOCKCHAIN_SIZE);
-    }
+    BlockChain() { Reset(); }
 
     /// Destructor.
     ~BlockChain() {}
 
     /// Reset
-    void Reset()
-    {
-        m_blocks.resize(is_same<T, DSBlock>::value ? DS_BLOCKCHAIN_SIZE
-                                                   : TX_BLOCKCHAIN_SIZE);
-    }
+    void Reset() { m_blocks.resize(BLOCKCHAIN_SIZE); }
 
     /// Returns the number of blocks.
     boost::multiprecision::uint256_t GetBlockCount()
@@ -108,6 +100,37 @@ public:
             DSBlockSharedPtr block;
             BlockStorage::GetBlockStorage().GetDSBlock(blockNum, block);
             return *block;
+        }
+
+        // To-do: We cannot even index into a vector using uint256_t
+        // uint256_t might just be too big to begin with
+        // Consider switching to uint64_t
+        // For now we directly cast to uint64_t
+
+        if (m_blocks[blockNum].GetHeader().GetBlockNum() != blockNum)
+        {
+            LOG_GENERAL(FATAL,
+                        "assertion failed (" << __FILE__ << ":" << __LINE__
+                                             << ": " << __FUNCTION__ << ")");
+        }
+
+        return m_blocks[blockNum];
+    }
+
+    VCBlock GetVCBlock(const boost::multiprecision::uint256_t& blockNum)
+    {
+        lock_guard<mutex> g(m_mutexBlocks);
+
+        if (blockNum >= m_blocks.size())
+        {
+            throw "Blocknumber Absent";
+        }
+        else if (blockNum + m_blocks.capacity() < m_blocks.size())
+        {
+            throw "vc block persistent storage not supported";
+            //DSBlockSharedPtr block;
+            //BlockStorage::GetBlockStorage().GetDSBlock(blockNum, block);
+            //return *block;
         }
 
         // To-do: We cannot even index into a vector using uint256_t
