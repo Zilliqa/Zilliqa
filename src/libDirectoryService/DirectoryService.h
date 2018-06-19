@@ -265,7 +265,6 @@ class DirectoryService : public Executable, public Broadcastable
         vector<unsigned char>& finalBlockMessage, unsigned int curr_offset);
     bool CheckWhetherDSBlockIsFresh(
         const boost::multiprecision::uint256_t dsblock_num);
-    bool CheckWhetherMaxSubmissionsReceived(Peer peer, PubKey key);
     bool VerifyPoW1Submission(const vector<unsigned char>& message,
                               const Peer& from, PubKey& key,
                               unsigned int curr_offset, uint32_t& portNo,
