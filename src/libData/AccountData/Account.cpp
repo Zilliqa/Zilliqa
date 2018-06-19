@@ -374,8 +374,12 @@ Address Account::GetAddressForContract(const Address& sender,
 void Account::SetCode(const std::vector<unsigned char>& code)
 {
     LOG_MARKER();
+
     if (code.size() == 0)
+    {
         return;
+    }
+
     m_codeCache = code;
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
     sha2.Update(code);

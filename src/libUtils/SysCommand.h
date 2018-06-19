@@ -51,7 +51,9 @@ public:
         while (!feof(proc.get()))
         {
             if (fgets(buffer.data(), 128, proc.get()) != nullptr)
+            {
                 output += buffer.data();
+            }
         }
         return true;
     }
