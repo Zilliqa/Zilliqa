@@ -165,6 +165,7 @@ int Account::Deserialize(const vector<unsigned char>& src, unsigned int offset)
              m_codeHash.asArray().begin());
         curOffset += COMMON_HASH_SIZE;
         // Size of Code
+        // FIXME: To fix the casting
         unsigned int codeSize
             = (unsigned int)GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
         curOffset += UINT256_SIZE;
