@@ -221,8 +221,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
 
 #ifndef IS_LOOKUP_NODE
 
-    // Checks if (m_state == POW2_SUBMISSION)
-    if (!CheckState(STARTPOW2))
+    if (!CheckState(PROCESS_DS))
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Not in POW2_SUBMISSION state");

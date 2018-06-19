@@ -257,9 +257,9 @@ bool Node::CheckState(Action action)
         {
         case POW1_SUBMISSION:
             break;
-        case POW2_SUBMISSION:
+        case DSBLOCK_SUBMISSION:
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing STARTPOW1 but already in POW2_SUBMISSION");
+                      "Doing STARTPOW1 but already in DSBLOCK_SUBMISSION");
             result = false;
             break;
         case TX_SUBMISSION:
@@ -299,44 +299,45 @@ bool Node::CheckState(Action action)
             break;
         }
         break;
-    case STARTPOW2:
+    case PROCESS_DS:
         switch (m_state)
         {
         case POW1_SUBMISSION:
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing STARTPOW2 but already in POW1_SUBMISSION");
+                      "Doing PROCESS_DS but already in POW1_SUBMISSION");
             result = false;
             break;
-        case POW2_SUBMISSION:
+        case DSBLOCK_SUBMISSION:
             break;
         case TX_SUBMISSION:
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing STARTPOW2 but already in TX_SUBMISSION");
+                      "Doing PROCESS_DS but already in TX_SUBMISSION");
             result = false;
             break;
         case TX_SUBMISSION_BUFFER:
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing STARTPOW2 but already in TX_SUBMISSION_BUFFER");
+                      "Doing PROCESS_DS but already in TX_SUBMISSION_BUFFER");
             result = false;
             break;
         case MICROBLOCK_CONSENSUS_PREP:
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing STARTPOW2 but already in "
+                      "Doing PROCESS_DS but already in "
                       "MICROBLOCK_CONSENSUS_PREP");
             result = false;
             break;
         case MICROBLOCK_CONSENSUS:
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing STARTPOW2 but already in MICROBLOCK_CONSENSUS");
+                      "Doing PROCESS_DS but already in MICROBLOCK_CONSENSUS");
             result = false;
             break;
         case WAITING_FINALBLOCK:
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing STARTPOW2 but already in WAITING_FINALBLOCK");
+                      "Doing PROCESS_DS but already in WAITING_FINALBLOCK");
             result = false;
             break;
         case ERROR:
-            LOG_GENERAL(WARNING, "Doing STARTPOW2 but receiving ERROR message");
+            LOG_GENERAL(WARNING,
+                        "Doing PROCESS_DS but receiving ERROR message");
             result = false;
             break;
         default:
@@ -354,9 +355,10 @@ bool Node::CheckState(Action action)
                       "Doing PROCESS_SHARDING but already in POW1_SUBMISSION");
             result = false;
             break;
-        case POW2_SUBMISSION:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_SHARDING but already in POW2_SUBMISSION");
+        case DSBLOCK_SUBMISSION:
+            LOG_EPOCH(
+                WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Doing PROCESS_SHARDING but already in DSBLOCK_SUBMISSION");
             result = false;
             break;
         case TX_SUBMISSION:
@@ -402,10 +404,10 @@ bool Node::CheckState(Action action)
                       "in POW1_SUBMISSION");
             result = false;
             break;
-        case POW2_SUBMISSION:
+        case DSBLOCK_SUBMISSION:
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Doing PROCESS_MICROBLOCKCONSENSUS but already "
-                      "in POW2_SUBMISSION");
+                      "in DSBLOCK_SUBMISSION");
             result = false;
             break;
         case TX_SUBMISSION:
@@ -456,10 +458,10 @@ bool Node::CheckState(Action action)
                       "POW1_SUBMISSION");
             result = false;
             break;
-        case POW2_SUBMISSION:
+        case DSBLOCK_SUBMISSION:
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Doing WAITING_FINALBLOCK but already in "
-                      "POW2_SUBMISSION");
+                      "DSBLOCK_SUBMISSION");
             result = false;
             break;
         case TX_SUBMISSION:

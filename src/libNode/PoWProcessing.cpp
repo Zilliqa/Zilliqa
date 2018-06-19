@@ -116,7 +116,7 @@ bool Node::StartPoW1(const uint256_t& block_num, uint8_t difficulty,
                                            pow1message);
     }
 
-    SetState(POW2_SUBMISSION);
+    SetState(DSBLOCK_SUBMISSION);
     return true;
 }
 

@@ -231,7 +231,6 @@ void DirectoryService::UpdateMyDSModeAndConsensusId()
             "I am the oldest backup DS -> now kicked out of DS committee :-("
                 << "\n"
                 << DS_KICKOUT_MSG);
-        m_mediator.m_node->SetState(Node::NodeState::POW2_SUBMISSION);
         m_mode = IDLE;
 
         LOG_STATE("[IDENT][" << setw(15) << left

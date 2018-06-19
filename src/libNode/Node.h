@@ -48,7 +48,7 @@ class Node : public Executable, public Broadcastable
     enum Action
     {
         STARTPOW1 = 0x00,
-        STARTPOW2,
+        PROCESS_DS,
         PROCESS_SHARDING,
         PROCESS_MICROBLOCKCONSENSUS,
         PROCESS_FINALBLOCK,
@@ -67,8 +67,8 @@ class Node : public Executable, public Broadcastable
         {
         case STARTPOW1:
             return "STARTPOW1";
-        case STARTPOW2:
-            return "STARTPOW2";
+        case PROCESS_DS:
+            return "PROCESS_DS";
         case PROCESS_SHARDING:
             return "PROCESS_SHARDING";
         case PROCESS_MICROBLOCKCONSENSUS:
@@ -326,7 +326,7 @@ public:
     enum NodeState : unsigned char
     {
         POW1_SUBMISSION = 0x00,
-        POW2_SUBMISSION,
+        DSBLOCK_SUBMISSION,
         TX_SUBMISSION,
         TX_SUBMISSION_BUFFER,
         MICROBLOCK_CONSENSUS_PREP,
