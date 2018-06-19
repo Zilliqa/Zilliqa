@@ -39,10 +39,10 @@ unsigned int ReadFromConstantsFile(std::string propertyName)
     return pt.get<unsigned int>("node.constants." + propertyName);
 }
 
-std::string ReadHexStringFromConnstansFile(std::string propertyName)
+std::string ReadSmartContractConstants(std::string propertyName)
 {
     auto pt = PTree::GetInstance();
-    return pt.get<std::string>("node.constants." + propertyName);
+    return pt.get<std::string>("node.smart_contract." + propertyName);
 }
 
 const std::vector<std::string>
@@ -114,18 +114,18 @@ const std::vector<std::string> GENESIS_WALLETS{
 const std::vector<std::string> GENESIS_KEYS{
     ReadAccountsFromConstantsFile("private_key")};
 
-const std::string SCILLA_PATH{ReadHexStringFromConnstansFile("SCILLA_PATH")};
-const std::string SCILLA_FILES{ReadHexStringFromConnstansFile("SCILLA_FILES")};
-const std::string SCILLA_LOG{ReadHexStringFromConnstansFile("SCILLA_LOG")};
+const std::string SCILLA_PATH{ReadSmartContractConstants("SCILLA_PATH")};
+const std::string SCILLA_FILES{ReadSmartContractConstants("SCILLA_FILES")};
+const std::string SCILLA_LOG{ReadSmartContractConstants("SCILLA_LOG")};
 const std::string INIT_JSON{SCILLA_FILES
-                            + ReadHexStringFromConnstansFile("INIT_JSON")};
+                            + ReadSmartContractConstants("INIT_JSON")};
 const std::string INPUT_STATE_JSON{
-    SCILLA_FILES + ReadHexStringFromConnstansFile("INPUT_STATE_JSON")};
+    SCILLA_FILES + ReadSmartContractConstants("INPUT_STATE_JSON")};
 const std::string INPUT_BLOCKCHAIN_JSON{
-    SCILLA_FILES + ReadHexStringFromConnstansFile("INPUT_BLOCKCHAIN_JSON")};
+    SCILLA_FILES + ReadSmartContractConstants("INPUT_BLOCKCHAIN_JSON")};
 const std::string INPUT_MESSAGE_JSON{
-    SCILLA_FILES + ReadHexStringFromConnstansFile("INPUT_MESSAGE_JSON")};
+    SCILLA_FILES + ReadSmartContractConstants("INPUT_MESSAGE_JSON")};
 const std::string OUTPUT_JSON{SCILLA_FILES
-                              + ReadHexStringFromConnstansFile("OUTPUT_JSON")};
+                              + ReadSmartContractConstants("OUTPUT_JSON")};
 const std::string INPUT_CODE{SCILLA_FILES
-                             + ReadHexStringFromConnstansFile("INPUT_CODE")};
+                             + ReadSmartContractConstants("INPUT_CODE")};
