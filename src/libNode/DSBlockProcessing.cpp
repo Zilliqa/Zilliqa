@@ -56,9 +56,7 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock)
                   << dsblock.GetHeader().GetBlockNum()
                   << " with Nonce: " << dsblock.GetHeader().GetNonce()
                   << ", Difficulty: " << dsblock.GetHeader().GetDifficulty()
-                  << ", Timestamp: " << dsblock.GetHeader().GetTimestamp()
-                  << ", view change count: "
-                  << dsblock.GetHeader().GetViewChangeCount());
+                  << ", Timestamp: " << dsblock.GetHeader().GetTimestamp());
 
     // Update the rand1 value for next PoW
     m_mediator.UpdateDSBlockRand();
@@ -67,19 +65,6 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock)
     vector<unsigned char> serializedDSBlock;
     dsblock.Serialize(serializedDSBlock, 0);
 
-    LOG_GENERAL(
-        INFO,
-        "View change count:  " << dsblock.GetHeader().GetViewChangeCount());
-
-    for (unsigned int i = 0; i < dsblock.GetHeader().GetViewChangeCount(); i++)
-    {
-        m_mediator.m_DSCommitteeNetworkInfo.push_back(
-            m_mediator.m_DSCommitteeNetworkInfo.front());
-        m_mediator.m_DSCommitteeNetworkInfo.pop_front();
-        m_mediator.m_DSCommitteePubKeys.push_back(
-            m_mediator.m_DSCommitteePubKeys.front());
-        m_mediator.m_DSCommitteePubKeys.pop_front();
-    }
     BlockStorage::GetBlockStorage().PutDSBlock(
         dsblock.GetHeader().GetBlockNum(), serializedDSBlock);
 #ifndef IS_LOOKUP_NODE
@@ -124,7 +109,9 @@ bool Node::CheckWhetherDSBlockNumIsLatest(const uint256_t dsblockNum)
     if (dsblockNum < latestBlockNumInBlockchain)
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "We are processing duplicated blocks");
+                  "We are processing duplicated blocks\n"
+                      << "cur block num: " << latestBlockNumInBlockchain << "\n"
+                      << "incoming block num: " << dsblockNum);
         return false;
     }
     else if (dsblockNum > latestBlockNumInBlockchain)
@@ -193,6 +180,10 @@ bool Node::VerifyDSBlockCoSignature(const DSBlock& dsblock)
         == false)
     {
         LOG_GENERAL(WARNING, "Cosig verification failed");
+        for (auto& kv : keys)
+        {
+            LOG_GENERAL(WARNING, kv);
+        }
         return false;
     }
 
@@ -229,6 +220,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
     LOG_MARKER();
 
 #ifndef IS_LOOKUP_NODE
+
     // Checks if (m_state == POW2_SUBMISSION)
     if (!CheckState(STARTPOW2))
     {
