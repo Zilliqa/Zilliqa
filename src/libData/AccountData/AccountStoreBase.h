@@ -65,10 +65,13 @@ protected:
     string GetCallContractCmdStr();
 
     // Generate input for interpreter to check the correctness of contract
-    bool ExportCreateContractFiles(Account* contract);
+    void ExportCreateContractFiles(const Account& contract);
 
-    bool ExportCallContractFiles(Account* contract,
-                                 const vector<unsigned char>& contractData);
+    void ExportContractFiles(const Account& contract);
+    bool ExportCallContractFiles(const Account& contract,
+                                 const Transaction& transaction);
+    void ExportCallContractFiles(const Account& contract,
+                                 const Json::Value& contractData);
 
     const vector<unsigned char>
     CompositeContractData(const string& funcName, const string& amount,

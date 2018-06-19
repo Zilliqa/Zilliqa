@@ -17,7 +17,7 @@
 #include <boost/filesystem.hpp>
 #include <type_traits>
 
-// #include "AccountStoreBase.h"
+#include "libUtils/JsonUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SysCommand.h"
@@ -226,17 +226,15 @@ bool AccountStoreBase<DB, MAP>::UpdateAccounts(const uint64_t& blockNum,
 
         m_curBlockNum = blockNum;
 
-        if (ExportCreateContractFiles(toAccount))
+        ExportCreateContractFiles(*toAccount);
+        if (!SysCommand::ExecuteCmdWithoutOutput(GetCreateContractCmdStr()))
         {
-            if (!SysCommand::ExecuteCmdWithoutOutput(GetCreateContractCmdStr()))
-            {
-                return false;
-            }
-            if (!ParseCreateContractOutput())
-            {
-                m_addressToAccount->erase(toAddr);
-                return false;
-            }
+            return false;
+        }
+        if (!ParseCreateContractOutput())
+        {
+            m_addressToAccount->erase(toAddr);
+            return false;
         }
     }
 
@@ -256,7 +254,7 @@ bool AccountStoreBase<DB, MAP>::UpdateAccounts(const uint64_t& blockNum,
         m_curBlockNum = blockNum;
 
         // TODO: Implement the calling of interpreter in multi-thread
-        if (ExportCallContractFiles(toAccount, transaction.GetData()))
+        if (ExportCallContractFiles(*toAccount, transaction))
         {
             m_curContractAddr = toAddr;
             if (!SysCommand::ExecuteCmdWithoutOutput(GetCallContractCmdStr()))
@@ -289,7 +287,7 @@ AccountStoreBase<DB, MAP>::GetBlockStateJson(const uint64_t& BlockNum) const
 }
 
 template<class DB, class MAP>
-bool AccountStoreBase<DB, MAP>::ExportCreateContractFiles(Account* contract)
+void AccountStoreBase<DB, MAP>::ExportCreateContractFiles(const Account& contract)
 {
     LOG_MARKER();
 
@@ -301,84 +299,79 @@ bool AccountStoreBase<DB, MAP>::ExportCreateContractFiles(Account* contract)
         boost::filesystem::create_directories("./" + SCILLA_LOG);
     }
 
-    Json::StreamWriterBuilder writeBuilder;
-    std::unique_ptr<Json::StreamWriter> writer(writeBuilder.newStreamWriter());
-    std::ofstream os;
-
     // Scilla code
+    // JSONUtils::writeJsontoFile(INPUT_CODE, contract.GetCode());
+    std::ofstream os;
     os.open(INPUT_CODE);
-    os << DataConversion::CharArrayToString(contract->GetCode());
+    os << DataConversion::CharArrayToString(contract.GetCode());
     os.close();
 
     // Initialize Json
-    os.open(INIT_JSON);
-    writer->write(contract->GetInitJson(), &os);
-    os.close();
+    JSONUtils::writeJsontoFile(INIT_JSON, contract.GetInitJson());
 
     // Block Json
-    os.open(INPUT_BLOCKCHAIN_JSON);
-    writer->write(GetBlockStateJson(m_curBlockNum), &os);
-    os.close();
-
-    return true;
+    JSONUtils::writeJsontoFile(INPUT_BLOCKCHAIN_JSON, GetBlockStateJson(m_curBlockNum));
 }
 
 template<class DB, class MAP>
-bool AccountStoreBase<DB, MAP>::ExportCallContractFiles(
-    Account* contract, const vector<unsigned char>& contractData)
+void AccountStoreBase<DB, MAP>::ExportContractFiles(const Account& contract)
 {
     LOG_MARKER();
 
     boost::filesystem::remove_all("./" + SCILLA_FILES);
     boost::filesystem::create_directories("./" + SCILLA_FILES);
 
-    Json::StreamWriterBuilder writeBuilder;
-    unique_ptr<Json::StreamWriter> writer(writeBuilder.newStreamWriter());
-    std::ofstream os;
-
     // Scilla code
+    // JSONUtils::writeJsontoFile(INPUT_CODE, contract.GetCode());
+    std::ofstream os;
     os.open(INPUT_CODE);
-    os << DataConversion::CharArrayToString(contract->GetCode());
+    os << DataConversion::CharArrayToString(contract.GetCode());
     os.close();
 
     // Initialize Json
-    os.open(INIT_JSON);
-    writer->write(contract->GetInitJson(), &os);
-    os.close();
+    JSONUtils::writeJsontoFile(INIT_JSON, contract.GetInitJson());
 
     // State Json
-    os.open(INPUT_STATE_JSON);
-    writer->write(contract->GetStorageJson(), &os);
-    os.close();
+    JSONUtils::writeJsontoFile(INPUT_STATE_JSON, contract.GetStorageJson());
 
     // Block Json
-    os.open(INPUT_BLOCKCHAIN_JSON);
-    writer->write(GetBlockStateJson(m_curBlockNum), &os);
-    os.close();
+    JSONUtils::writeJsontoFile(INPUT_BLOCKCHAIN_JSON, GetBlockStateJson(m_curBlockNum));
+}
+
+template<class DB, class MAP>
+bool AccountStoreBase<DB, MAP>::ExportCallContractFiles(
+    const Account& contract, const Transaction& transaction)
+{
+    LOG_MARKER();
+
+    ExportContractFiles(contract);
 
     // Message Json
-    Json::CharReaderBuilder readBuilder;
-    unique_ptr<Json::CharReader> reader(readBuilder.newCharReader());
+    string dataStr(transaction.GetData().begin(), transaction.GetData().end());
     Json::Value msgObj;
-    string dataStr(contractData.begin(), contractData.end());
-    LOG_GENERAL(INFO, "Contract Data: " << dataStr);
-    string errors;
-    if (reader->parse(dataStr.c_str(), dataStr.c_str() + dataStr.size(),
-                      &msgObj, &errors))
+    if (!JSONUtils::convertStrtoJson(dataStr, msgObj))
     {
-        os.open(INPUT_MESSAGE_JSON);
-        os << dataStr;
-        os.close();
-    }
-    else
-    {
-        LOG_GENERAL(WARNING,
-                    "The Contract Data Json is corrupted, failed to process: "
-                        << errors);
         boost::filesystem::remove_all("./" + SCILLA_FILES);
         return false;
     }
+    string prepend = "0x";
+    msgObj["_sender"] = prepend + Account::GetAddressFromPublicKey(transaction.GetSenderPubKey()).hex();
+    msgObj["_amount"] = transaction.GetAmount().convert_to<string>();
+
+    JSONUtils::writeJsontoFile(INPUT_MESSAGE_JSON, msgObj);
+
     return true;
+}
+
+template<class DB, class MAP>
+void AccountStoreBase<DB, MAP>::ExportCallContractFiles(
+    const Account& contract, const Json::Value& contractData)
+{
+    LOG_MARKER();
+
+    ExportContractFiles(contract);
+
+    JSONUtils::writeJsontoFile(INPUT_MESSAGE_JSON, contractData);
 }
 
 template<class DB, class MAP> string AccountStoreBase<DB, MAP>::GetCreateContractCmdStr()
@@ -498,7 +491,8 @@ bool AccountStoreBase<DB, MAP>::ParseCallContractJsonOutput(const Json::Value& _
 
     if (!_json["message"].isMember("_tag")
         || !_json["message"].isMember("_amount")
-        || !_json["message"].isMember("params"))
+        || !_json["message"].isMember("params")
+        || !_json["message"].isMember("_recipient"))
     {
         LOG_GENERAL(
             WARNING,
@@ -523,12 +517,7 @@ bool AccountStoreBase<DB, MAP>::ParseCallContractJsonOutput(const Json::Value& _
         string value;
         if (type == "Map" || type == "ADT")
         {
-            Json::StreamWriterBuilder writeBuilder;
-            unique_ptr<Json::StreamWriter> writer(
-                writeBuilder.newStreamWriter());
-            ostringstream oss;
-            writer->write(s["value"], &oss);
-            value = oss.str();
+            value = JSONUtils::convertJsontoStr(s["value"]);
         }
         else
         {
@@ -549,99 +538,146 @@ bool AccountStoreBase<DB, MAP>::ParseCallContractJsonOutput(const Json::Value& _
         }
     }
 
-    /// The process after getting the output:
-    if (_json["message"]["_tag"].asString() == "Main")
+    Address recipient = Address(_json["message"]["_recipient"].asString());
+    Account* account = GetAccount(recipient);
+
+    if (account == nullptr)
     {
-        Address toAddr;
-        for (auto p : _json["message"]["params"])
-        {
-            if (p["vname"].asString() == "to"
-                && p["type"].asString() == "Address")
-            {
-                toAddr = Address(p["value"].asString());
-                break;
-            }
-        }
-        // A hacky way of refunding the contract the number of amount for the transaction, because the balance was affected by the parsing of _balance and the 'Main' message. Need to fix in the future
-        int amount = atoi(_json["message"]["_amount"].asString().c_str());
-        if (amount == 0)
-        {
-            return true;
-        }
-
-        if (!TransferBalance(m_curContractAddr, toAddr, amount))
-        {
-            return false;
-        }
-        // what if the positive value is come from a failed function call
-        if (deducted > 0)
-        {
-            if (!IncreaseBalance(m_curContractAddr, deducted))
-            {
-                return false;
-            }
-        }
-        IncreaseNonce(m_curContractAddr);
-
-        return true;
-    }
-    else
-    {
-        LOG_GENERAL(INFO, "Call another contract");
-
-        Address toAddr;
-        Json::Value params;
-        for (auto p : _json["message"]["params"])
-        {
-            if (p["vname"].asString() == "to"
-                && p["type"].asString() == "Address")
-            {
-                toAddr = Address(p["value"].asString());
-            }
-            else
-            {
-                params.append(p);
-            }
-        }
-        Json::Value p_sender;
-        p_sender["vname"] = "sender";
-        p_sender["type"] = "Address";
-        p_sender["value"] = "0x" + m_curContractAddr.hex();
-        params.append(p_sender);
-
-        // if (params.empty())
-        // {
-        //     params = Json::arrayValue;
-        // }
-
-        Account* toAccount = GetAccount(toAddr);
-        if (toAccount == nullptr)
-        {
-            LOG_GENERAL(WARNING, "The target contract account doesn't exist");
-            return false;
-        }
-
-        if (ExportCallContractFiles(
-                toAccount,
-                CompositeContractData(_json["message"]["_tag"].asString(),
-                                      _json["message"]["_amount"].asString(),
-                                      params)))
-        {
-            Address t_address = m_curContractAddr;
-            m_curContractAddr = toAddr;
-            
-            if (!SysCommand::ExecuteCmdWithoutOutput(GetCallContractCmdStr()))
-            {
-                return false;
-            }
-            if (ParseCallContractOutput())
-            {
-                IncreaseNonce(t_address);
-                return true;
-            }
-        }
+        LOG_GENERAL(WARNING, "The recipient account doesn't exist");
         return false;
     }
+
+    if (!account->isContract())
+    {
+        (void)deducted;
+        return true;
+    }
+
+    if (_json["message"]["_tag"].asString().empty())
+    {
+        LOG_GENERAL(WARNING, "_tag in the scilla output is empty when invoking a contract");
+        return false;
+    }
+
+    LOG_GENERAL(INFO, "Call another contract");
+
+    Json::Value input_message;
+    input_message["_sender"] = "0x" + m_curContractAddr.hex();
+    input_message["_amount"] = _json["message"]["_amount"];
+    input_message["_tag"] = _json["message"]["_tag"];
+    input_message["params"] = _json["message"]["params"];
+
+    ExportCallContractFiles(*account, input_message);
+    
+    if (!SysCommand::ExecuteCmdWithoutOutput(GetCallContractCmdStr()))
+    {
+        LOG_GENERAL(WARNING, "ExecuteCmd failed: " << GetCallContractCmdStr());
+        return false;
+    }
+    Address t_address = m_curContractAddr;
+    m_curContractAddr = recipient;
+    if (!ParseCallContractOutput())
+    {
+        LOG_GENERAL(WARNING, "ParseCallContractOutput failed of calling contract: " << recipient);
+        return false;
+    }
+    IncreaseNonce(t_address);
+    return true;
+
+    /// The process after getting the output:
+    // if (_json["message"]["_tag"].asString() == "Main")
+    // {
+    //     Address toAddr;
+    //     for (auto p : _json["message"]["params"])
+    //     {
+    //         if (p["vname"].asString() == "to"
+    //             && p["type"].asString() == "Address")
+    //         {
+    //             toAddr = Address(p["value"].asString());
+    //             break;
+    //         }
+    //     }
+    //     // A hacky way of refunding the contract the number of amount for the transaction, because the balance was affected by the parsing of _balance and the 'Main' message. Need to fix in the future
+    //     int amount = atoi(_json["message"]["_amount"].asString().c_str());
+    //     if (amount == 0)
+    //     {
+    //         return true;
+    //     }
+
+    //     if (!TransferBalance(m_curContractAddr, toAddr, amount))
+    //     {
+    //         return false;
+    //     }
+    //     // what if the positive value is come from a failed function call
+    //     if (deducted > 0)
+    //     {
+    //         if (!IncreaseBalance(m_curContractAddr, deducted))
+    //         {
+    //             return false;
+    //         }
+    //     }
+    //     IncreaseNonce(m_curContractAddr);
+
+    //     return true;
+    // }
+    // if ()
+    // else
+    // {
+    //     LOG_GENERAL(INFO, "Call another contract");
+
+    //     Address toAddr;
+    //     Json::Value params;
+    //     for (auto p : _json["message"]["params"])
+    //     {
+    //         if (p["vname"].asString() == "to"
+    //             && p["type"].asString() == "Address")
+    //         {
+    //             toAddr = Address(p["value"].asString());
+    //         }
+    //         else
+    //         {
+    //             params.append(p);
+    //         }
+    //     }
+    //     Json::Value p_sender;
+    //     p_sender["vname"] = "sender";
+    //     p_sender["type"] = "Address";
+    //     p_sender["value"] = "0x" + m_curContractAddr.hex();
+    //     params.append(p_sender);
+
+    //     // if (params.empty())
+    //     // {
+    //     //     params = Json::arrayValue;
+    //     // }
+
+    //     Account* toAccount = GetAccount(toAddr);
+    //     if (toAccount == nullptr)
+    //     {
+    //         LOG_GENERAL(WARNING, "The target contract account doesn't exist");
+    //         return false;
+    //     }
+
+    //     if (ExportCallContractFiles(/*fromAddr*/,/*amount*/
+    //             *toAccount,
+    //             CompositeContractData(_json["message"]["_tag"].asString(),
+    //                                   _json["message"]["_amount"].asString(),
+    //                                   params)))
+    //     {
+    //         Address t_address = m_curContractAddr;
+    //         m_curContractAddr = toAddr;
+            
+    //         if (!SysCommand::ExecuteCmdWithoutOutput(GetCallContractCmdStr()))
+    //         {
+    //             return false;
+    //         }
+    //         if (ParseCallContractOutput())
+    //         {
+    //             IncreaseNonce(t_address);
+    //             return true;
+    //         }
+    //     }
+    //     return false;
+    // }
 }
 
 template<class DB, class MAP>
