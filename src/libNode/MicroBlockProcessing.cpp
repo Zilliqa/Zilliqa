@@ -468,12 +468,19 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup()
     return true;
 }
 
-const Address genesisAccount(GENESIS_WALLETS[0]);
 const uint256_t RewardAmount = 100;
 
 bool Node::Coinbase(const shared_ptr<MicroBlock>& lastMicroblock,
                     const TxBlock& lastTxBlock)
 {
+    if (GENESIS_WALLETS.size() == 0)
+    {
+        LOG_GENERAL(WARNING, "no genesis wallet");
+        return false;
+    }
+
+    Address genesisAccount(GENESIS_WALLETS[0]);
+
     if (m_mediator.m_DSCommitteePubKeys.size() != lastTxBlock.GetB1().size())
     {
         return false;
