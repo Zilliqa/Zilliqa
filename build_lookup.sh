@@ -13,9 +13,6 @@
 # GPLv3.0 are those programs that are located in the folders src/depends and tests/depends
 # and which include a reference to GPLv3 in their program files.
 
-mkdir -p build_lookup
-cd build_lookup
-cmake -DIS_LOOKUP_NODE=1 -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTESTS=ON -DCMAKE_INSTALL_PREFIX=.. ..
-make -j4
-make clang-format-fix
-make clang-format
+cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTESTS=ON -DCMAKE_INSTALL_PREFIX=..
+cmake --build build -- -j4
+cmake --build build --target clang-format-fix
