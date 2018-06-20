@@ -333,10 +333,7 @@ void AccountStore::CommitTemp()
     LOG_MARKER();
 
     LOG_GENERAL(INFO, "Before CommitTemp");
-    // for (const auto& entry : *m_accountStoreTemp->GetAddressToAccount())
-    // {
-    //     (*m_addressToAccount)[entry.first] = entry.second;
-    // }
+
     LOG_PAYLOAD(INFO, "m_stateDeltaSerialized: ", m_stateDeltaSerialized, 2000);
     DeserializeDelta(m_stateDeltaSerialized, 0);
 

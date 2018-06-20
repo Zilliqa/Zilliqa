@@ -20,16 +20,14 @@
 #include <json/json.h>
 
 #include "AccountStoreBase.h"
+#include "Transaction.h"
 
 class AccountStoreAtomic;
 
 template<class MAP> class AccountStoreSC : public AccountStoreBase<MAP>
 {
-protected:
     uint64_t m_curBlockNum;
     Address m_curContractAddr;
-
-    AccountStoreSC();
 
     bool ParseCreateContractOutput();
     bool ParseCreateContractJsonOutput(const Json::Value& _json);
@@ -47,14 +45,14 @@ protected:
                                  const Transaction& transaction);
     void ExportCallContractFiles(const Account& contract,
                                  const Json::Value& contractData);
-    // const vector<unsigned char>
-    // CompositeContractData(const string& funcName, const string& amount,
-    //                       const Json::Value& params);
 
     bool TransferBalanceAtomic(const Address& from, const Address& to,
                                const uint256_t& delta);
     void CommitTransferBalanceAtomic();
     void DiscardTransferBalanceAtomic();
+
+protected:
+    AccountStoreSC();
 
 public:
     void Init() override;
