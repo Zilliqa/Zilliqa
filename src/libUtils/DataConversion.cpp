@@ -76,3 +76,26 @@ std::string DataConversion::SerializableToHexStr(const Serializable& input)
     boost::algorithm::hex(tmp.begin(), tmp.end(), std::back_inserter(str));
     return str;
 }
+
+const std::vector<unsigned char>
+DataConversion::StringToCharArray(const std::string& input)
+{
+    std::vector<unsigned char> v;
+    v.resize(input.size());
+
+    std::copy(input.begin(), input.end(), v.begin());
+
+    return v;
+}
+
+const std::string
+DataConversion::CharArrayToString(const std::vector<unsigned char>& v)
+{
+    std::string ret;
+
+    ret.resize(v.size());
+
+    copy(v.begin(), v.end(), ret.begin());
+
+    return ret;
+}

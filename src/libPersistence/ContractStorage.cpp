@@ -14,49 +14,18 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#ifndef __SYSCOMMAND_H__
-#define __SYSCOMMAND_H__
+#include "ContractStorage.h"
 
-#include <array>
-#include <cstdlib>
-#include <fstream>
-#include <iostream>
-#include <memory>
-#include <string>
+#include "libUtils/DataConversion.h"
 
-#include "Logger.h"
-
-class SysCommand
+bool ContractStorage::PutContractCode(const h160& address,
+                                      const std::vector<unsigned char>& code)
 {
-public:
-    static const bool ExecuteCmdWithoutOutput(std::string cmd)
-    {
-        std::string str;
-        return ExecuteCmdWithOutput(cmd, str);
-    }
+    return m_codeDB.Insert(address.hex(), code) == 0;
+}
 
-    static bool ExecuteCmdWithOutput(std::string cmd, std::string& output)
-    {
-        std::array<char, 128> buffer;
-
-        // Log the stderr into stdout as well
-        cmd += " 2>&1 ";
-        std::unique_ptr<FILE, decltype(&pclose)> proc(popen(cmd.c_str(), "r"),
-                                                      pclose);
-        if (!proc)
-        {
-            LOG_GENERAL(WARNING, "popen() failed!");
-            return false;
-        }
-        while (!feof(proc.get()))
-        {
-            if (fgets(buffer.data(), 128, proc.get()) != nullptr)
-            {
-                output += buffer.data();
-            }
-        }
-        return true;
-    }
-};
-
-#endif // __SYSCOMMAND_H__
+const std::vector<unsigned char>
+ContractStorage::GetContractCode(const h160& address)
+{
+    return DataConversion::StringToCharArray(m_codeDB.Lookup(address.hex()));
+}

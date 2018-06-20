@@ -39,10 +39,10 @@ unsigned int ReadFromConstantsFile(std::string propertyName)
     return pt.get<unsigned int>("node.constants." + propertyName);
 }
 
-std::string ReadHexStringFromConnstansFile(std::string propertyName)
+std::string ReadSmartContractConstants(std::string propertyName)
 {
     auto pt = PTree::GetInstance();
-    return pt.get<std::string>("node.constants." + propertyName);
+    return pt.get<std::string>("node.smart_contract." + propertyName);
 }
 
 const std::vector<std::string>
@@ -113,3 +113,19 @@ const std::vector<std::string> GENESIS_WALLETS{
     ReadAccountsFromConstantsFile("wallet_address")};
 const std::vector<std::string> GENESIS_KEYS{
     ReadAccountsFromConstantsFile("private_key")};
+
+const std::string SCILLA_PATH{ReadSmartContractConstants("SCILLA_PATH")};
+const std::string SCILLA_FILES{ReadSmartContractConstants("SCILLA_FILES")};
+const std::string SCILLA_LOG{ReadSmartContractConstants("SCILLA_LOG")};
+const std::string INIT_JSON{SCILLA_FILES
+                            + ReadSmartContractConstants("INIT_JSON")};
+const std::string INPUT_STATE_JSON{
+    SCILLA_FILES + ReadSmartContractConstants("INPUT_STATE_JSON")};
+const std::string INPUT_BLOCKCHAIN_JSON{
+    SCILLA_FILES + ReadSmartContractConstants("INPUT_BLOCKCHAIN_JSON")};
+const std::string INPUT_MESSAGE_JSON{
+    SCILLA_FILES + ReadSmartContractConstants("INPUT_MESSAGE_JSON")};
+const std::string OUTPUT_JSON{SCILLA_FILES
+                              + ReadSmartContractConstants("OUTPUT_JSON")};
+const std::string INPUT_CODE{SCILLA_FILES
+                             + ReadSmartContractConstants("INPUT_CODE")};
