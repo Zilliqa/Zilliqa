@@ -58,6 +58,9 @@ class BlockStorage
                   const std::vector<unsigned char>& block,
                   const BlockType& blockType);
 
+    BlockStorage(BlockStorage const&) = delete;
+    void operator=(BlockStorage const&) = delete;
+
 public:
     enum DBTYPE
     {

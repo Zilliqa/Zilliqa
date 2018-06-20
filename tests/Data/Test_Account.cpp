@@ -15,6 +15,7 @@
 **/
 
 #include "libCrypto/Schnorr.h"
+#include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/Address.h"
 #include "libPersistence/ContractStorage.h"
@@ -37,13 +38,16 @@ BOOST_AUTO_TEST_CASE(test1)
 
     PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
 
-    ContractStorage::GetContractStorage().GetDB().ResetDB();
+    ContractStorage::GetContractStorage().GetStateDB().ResetDB();
 
-    Account acc1(
-        100, 0, dev::h256(),
-        // "57136f0a3d87e187624c0adb30ff2fbdcf47ac9613b1ba46b870e57fa3b5f89c"),
-        dev::h256("12346f0a3d87e187624c0adb30ff2fbdcf47ac9613b1ba46b870e57fa3b5"
-                  "f89d"));
+    Account acc1(100, 0);
+
+    std::vector<unsigned char> code = dev::h256::random().asBytes();
+    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+    sha2.Update(code);
+    dev::h256 hash = dev::h256(sha2.Finalize());
+    acc1.SetCode(code);
+    // (void)hash;
 
     acc1.IncreaseBalance(10);
     acc1.DecreaseBalance(120);
@@ -74,13 +78,9 @@ BOOST_AUTO_TEST_CASE(test1)
     //                         << "57136f0a3d87e187624c0adb30ff2fbdcf47ac9613b1ba4"
     //                            "6b870e57fa3b5f89c"
     //                         << " actual: " << acc2.GetStorageRoot() << "\n");
-    BOOST_CHECK_MESSAGE(acc2.GetCodeHash()
-                            == dev::h256("12346f0a3d87e187624c0adb30ff2fbdcf47a"
-                                         "c9613b1ba46b870e57fa3b5f89d"),
-                        "expected: "
-                            << "12346f0a3d87e187624c0adb30ff2fbdcf47ac9613b1ba4"
-                               "6b870e57fa3b5f89d"
-                            << " actual: " << acc2.GetCodeHash() << "\n");
+    BOOST_CHECK_MESSAGE(
+        acc2.GetCodeHash() == hash,
+        "expected: " << hash << " actual: " << acc2.GetCodeHash() << "\n");
 }
 
 BOOST_AUTO_TEST_SUITE_END()
