@@ -391,7 +391,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
             lock_guard<mutex> g3(m_mutexAllPoWConns);
             m_allPoW2s.clear();
 
-            for (auto i : m_allPoW1s)
+            for (auto const& i : m_allPoW1s)
             {
                 //Winner will become DS (leader), thus we should not put in POW2
                 if (m_allPoWConns[i.first] == winnerpeer)
@@ -399,17 +399,16 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
                     continue;
                 }
 
-                m_allPoW2s.insert(i);
+                m_allPoW2s.emplace(i.first, i.second);
             }
 
             //Add previous DS commitee (oldest one), because it back to normal node and should be collected
             lock_guard<mutex> g4(m_mediator.m_mutexDSCommitteePubKeys);
             lock_guard<mutex> g5(m_mediator.m_mutexDSCommitteeNetworkInfo);
-            m_allPoW2s.insert(make_pair(m_mediator.m_DSCommitteePubKeys.back(),
-                                        (boost::multiprecision::uint256_t)1));
-            m_allPoWConns.insert(
-                make_pair(m_mediator.m_DSCommitteePubKeys.back(),
-                          m_mediator.m_DSCommitteeNetworkInfo.back()));
+            m_allPoW2s.emplace(m_mediator.m_DSCommitteePubKeys.back(),
+                               (boost::multiprecision::uint256_t){1});
+            m_allPoWConns.emplace(m_mediator.m_DSCommitteePubKeys.back(),
+                                  m_mediator.m_DSCommitteeNetworkInfo.back());
         }
 
         m_allPoW1s.clear();

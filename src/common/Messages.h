@@ -42,13 +42,13 @@ enum DSInstructionType : unsigned char
     SHARDINGCONSENSUS = 0x03,
     MICROBLOCKSUBMISSION = 0x04,
     FINALBLOCKCONSENSUS = 0x05,
-    AllPoWConnRequest = 0x06,
-    AllPoWConnResponse = 0x07,
-    LastDSBlockRequest = 0x08,
-    LastDSBlockResponse = 0x09,
+    ALLPOWCONNREQUEST = 0x06,
+    ALLPOWCONNRESPONSE = 0x07,
+    LASTDSBLOCKREQUEST = 0x08,
+    LASTDSBLOCKRESPONSE = 0x09,
     VIEWCHANGECONSENSUS = 0X0A,
-    AllPoW2Request = 0x0B,
-    AllPoW2Response = 0x0C,
+    ALLPOW2REQUEST = 0x0B,
+    ALLPOW2RESPONSE = 0x0C,
 };
 
 enum NodeInstructionType : unsigned char

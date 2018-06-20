@@ -824,7 +824,7 @@ void DirectoryService::RequestAllPoWConn()
 
     // In this implementation, we are only requesting it from ds leader only.
     vector<unsigned char> requestAllPoWConnMsg
-        = {MessageType::DIRECTORY, DSInstructionType::AllPoWConnRequest};
+        = {MessageType::DIRECTORY, DSInstructionType::ALLPOWCONNREQUEST};
     unsigned int cur_offset = MessageOffset::BODY;
 
     Serializable::SetNumber<uint32_t>(requestAllPoWConnMsg, cur_offset,
@@ -847,7 +847,7 @@ void DirectoryService::RequestAllPoW2()
 
     // In this implementation, we are only requesting it from ds leader only.
     vector<unsigned char> requestAllPoW2Msg
-        = {MessageType::DIRECTORY, DSInstructionType::AllPoW2Request};
+        = {MessageType::DIRECTORY, DSInstructionType::ALLPOW2REQUEST};
     unsigned int cur_offset = MessageOffset::BODY;
 
     Serializable::SetNumber<uint32_t>(requestAllPoW2Msg, cur_offset,
@@ -873,7 +873,7 @@ bool DirectoryService::ProcessAllPoWConnRequest(
     //  Contruct the message and send to the requester
     //  Message: [size of m_allPowConn] [pub key, peer][pub key, peer] ....
     vector<unsigned char> allPowConnMsg
-        = {MessageType::DIRECTORY, DSInstructionType::AllPoWConnResponse};
+        = {MessageType::DIRECTORY, DSInstructionType::ALLPOWCONNRESPONSE};
     unsigned int cur_offset = MessageOffset::BODY;
 
     lock_guard<mutex> g(m_mutexAllPoWConns);
@@ -949,7 +949,7 @@ bool DirectoryService::ProcessAllPoWConnResponse(
 
         if (m_allPoWConns.find(key) == m_allPoWConns.end())
         {
-            m_allPoWConns.insert(make_pair(key, peer));
+            m_allPoWConns.emplace(key, peer);
         }
     }
 
@@ -978,7 +978,7 @@ bool DirectoryService::ProcessAllPoW2Request(
     {
         m_allPoW2s.clear();
 
-        for (auto i : m_allPoW1s)
+        for (auto const& i : m_allPoW1s)
         {
             //Winner will become DS (leader), thus we should not put in POW2
             if (m_allPoWConns[i.first] == from)
@@ -986,24 +986,23 @@ bool DirectoryService::ProcessAllPoW2Request(
                 continue;
             }
 
-            m_allPoW2s.insert(i);
+            m_allPoW2s.emplace(i.first, i.second);
         }
 
         //Add previous DS commitee (oldest one), because it back to normal node and should be collected
         lock_guard<mutex> g4(m_mediator.m_mutexDSCommitteePubKeys);
         lock_guard<mutex> g5(m_mediator.m_mutexDSCommitteeNetworkInfo);
-        m_allPoW2s.insert(make_pair(m_mediator.m_DSCommitteePubKeys.back(),
-                                    (boost::multiprecision::uint256_t)1));
-        m_allPoWConns.insert(
-            make_pair(m_mediator.m_DSCommitteePubKeys.back(),
-                      m_mediator.m_DSCommitteeNetworkInfo.back()));
+        m_allPoW2s.emplace(m_mediator.m_DSCommitteePubKeys.back(),
+                           (boost::multiprecision::uint256_t){1});
+        m_allPoWConns.emplace(m_mediator.m_DSCommitteePubKeys.back(),
+                              m_mediator.m_DSCommitteeNetworkInfo.back());
     }
     else
     {
         //Winner will become DS (leader), thus we should not put in POW2
-        for (auto i : m_allPoW2s)
+        for (auto const& i : m_allPoWConns)
         {
-            if (m_allPoWConns[i.first] == from)
+            if (i.second == from)
             {
                 m_allPoW2s.erase(i.first);
                 break;
@@ -1017,7 +1016,7 @@ bool DirectoryService::ProcessAllPoW2Request(
     //  Contruct the message and send to the requester
     //  Message: [size of m_allPow1] [pub key, nonce][pub key, nonce] ....
     vector<unsigned char> allPow2Msg
-        = {MessageType::DIRECTORY, DSInstructionType::AllPoW2Response};
+        = {MessageType::DIRECTORY, DSInstructionType::ALLPOW2RESPONSE};
     unsigned int cur_offset = MessageOffset::BODY;
 
     Serializable::SetNumber<uint32_t>(allPow2Msg, cur_offset, m_allPoW2s.size(),
@@ -1047,14 +1046,14 @@ bool DirectoryService::ProcessAllPoW2Response(
 
     unsigned int cur_offset = offset;
     // 32-byte block number
-    uint32_t sizeeOfAllPow2 = Serializable::GetNumber<uint32_t>(
+    uint32_t sizeOfAllPow2 = Serializable::GetNumber<uint32_t>(
         message, cur_offset, sizeof(uint32_t));
     cur_offset += sizeof(uint32_t);
 
     lock_guard<mutex> g(m_mutexAllPOW2);
     m_allPoW2s.clear();
 
-    for (uint32_t i = 0; i < sizeeOfAllPow2; i++)
+    for (uint32_t i = 0; i < sizeOfAllPow2; i++)
     {
         // PubKey key(message, cur_offset);
         PubKey key;
@@ -1095,7 +1094,7 @@ void DirectoryService::LastDSBlockRequest()
     // message: [listening port]
     // In this implementation, we are only requesting it from ds leader only.
     vector<unsigned char> requestAllPoWConnMsg
-        = {MessageType::DIRECTORY, DSInstructionType::LastDSBlockRequest};
+        = {MessageType::DIRECTORY, DSInstructionType::LASTDSBLOCKREQUEST};
     unsigned int cur_offset = MessageOffset::BODY;
 
     Serializable::SetNumber<uint32_t>(requestAllPoWConnMsg, cur_offset,
@@ -1123,7 +1122,7 @@ bool DirectoryService::ProcessLastDSBlockRequest(
 
     // Craft the last block message
     vector<unsigned char> lastDSBlockMsg
-        = {MessageType::DIRECTORY, DSInstructionType::LastDSBlockResponse};
+        = {MessageType::DIRECTORY, DSInstructionType::LASTDSBLOCKRESPONSE};
     unsigned int cur_offset = MessageOffset::BODY;
 
     m_mediator.m_dsBlockChain.GetLastBlock().Serialize(lastDSBlockMsg,

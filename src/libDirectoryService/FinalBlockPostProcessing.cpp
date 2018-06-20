@@ -361,7 +361,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
             }
             else
             {
-                if ((uint32_t)m_consensusMyID
+                if (static_cast<uint32_t>(m_consensusMyID)
                     == m_mediator.m_DSCommitteeNetworkInfo.size())
                 {
                     m_mediator.m_node->InitiatePoW1();
