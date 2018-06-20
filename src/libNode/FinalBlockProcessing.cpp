@@ -309,8 +309,13 @@ bool Node::FindTxnInSubmittedTxnsList(const TxBlock& finalblock,
                        committedTransactions.back().GetTranID().asArray()));
 
         // Update from and to accounts
-        AccountStore::GetInstance().UpdateAccounts(
-            committedTransactions.back());
+        if (!AccountStore::GetInstance().UpdateAccounts(
+                m_mediator.m_currentEpochNum - 1, committedTransactions.back()))
+        {
+            LOG_GENERAL(WARNING, "UpdateAccounts failed");
+            committedTransactions.pop_back();
+            return true;
+        }
 
         // DO NOT DELETE. PERISTENT STORAGE
         /**
@@ -329,8 +334,8 @@ bool Node::FindTxnInSubmittedTxnsList(const TxBlock& finalblock,
         // Store TxBody to disk
         vector<unsigned char> serializedTxBody;
         committedTransactions.back().Serialize(serializedTxBody, 0);
-        if (BlockStorage::GetBlockStorage().PutTxBody(tx_hash,
-                                                      serializedTxBody))
+        if (!BlockStorage::GetBlockStorage().PutTxBody(tx_hash,
+                                                       serializedTxBody))
         {
             LOG_GENERAL(INFO, "FAIL: PutTxBody Failed");
         }
@@ -378,8 +383,13 @@ bool Node::FindTxnInReceivedTxnsList(const TxBlock& finalblock,
                        committedTransactions.back().GetTranID().asArray()));
 
         // Update from and to accounts
-        AccountStore::GetInstance().UpdateAccounts(
-            committedTransactions.back());
+        if (!AccountStore::GetInstance().UpdateAccounts(
+                m_mediator.m_currentEpochNum - 1, committedTransactions.back()))
+        {
+            LOG_GENERAL(WARNING, "UpdateAccounts failed");
+            committedTransactions.pop_back();
+            return true;
+        }
 
         /**
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "##Storing Transaction##");
@@ -1389,7 +1399,13 @@ void Node::CommitForwardedTransactions(
         {
             lock_guard<mutex> g(m_mutexCommittedTransactions);
             m_committedTransactions[blocknum].push_back(tx);
-            AccountStore::GetInstance().UpdateAccounts(tx);
+            if (!AccountStore::GetInstance().UpdateAccounts(
+                    m_mediator.m_currentEpochNum - 1, tx))
+            {
+                LOG_GENERAL(WARNING, "UpdateAccounts failed");
+                m_committedTransactions[blocknum].pop_back();
+                continue;
+            }
         }
 
             // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
