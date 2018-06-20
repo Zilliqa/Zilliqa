@@ -26,7 +26,8 @@
 #include <boost/multiprecision/cpp_int.hpp>
 
 #include "Account.h"
-#include "AccountStoreBase.h"
+#include "AccountStoreSC.h"
+#include "AccountStoreTrie.h"
 #include "Address.h"
 #include "common/Constants.h"
 #include "common/Singleton.h"
@@ -41,8 +42,7 @@ using StateHash = dev::h256;
 
 class AccountStore;
 
-class AccountStoreTemp
-    : public AccountStoreBase<MemoryDB, map<Address, Account>>
+class AccountStoreTemp : public AccountStoreSC<map<Address, Account>>
 {
     // shared_ptr<unordered_map<Address, Account>> m_superAddressToAccount;
     AccountStore& m_parent;
@@ -63,7 +63,7 @@ public:
 // using StateHash = h256;
 
 class AccountStore
-    : public AccountStoreBase<OverlayDB, unordered_map<Address, Account>>,
+    : public AccountStoreTrie<OverlayDB, unordered_map<Address, Account>>,
       Singleton<AccountStore>
 {
     friend class Singleton<AccountStore>;
@@ -95,8 +95,6 @@ public:
 
     /// Empty the state trie, must be called explicitly otherwise will retrieve the historical data
     void Init() override;
-
-    Account* GetAccount(const Address& address) override;
 
     void MoveUpdatesToDisk();
     void DiscardUnsavedUpdates();

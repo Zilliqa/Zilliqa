@@ -17,10 +17,6 @@
 #ifndef __ACCOUNTSTOREBASE_H__
 #define __ACCOUNTSTOREBASE_H__
 
-#include <json/json.h>
-#include <set>
-#include <unordered_map>
-
 #include <boost/multiprecision/cpp_int.hpp>
 
 #include "Account.h"
@@ -28,56 +24,30 @@
 #include "common/Constants.h"
 #include "common/Serializable.h"
 #include "depends/common/FixedHash.h"
-#include "depends/libDatabase/MemoryDB.h"
-#include "depends/libDatabase/OverlayDB.h"
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Transaction.h"
 
 using namespace std;
 using namespace boost::multiprecision;
 
-template<class DB, class MAP> class AccountStoreBase : public Serializable
+template<class MAP> class AccountStoreBase : public Serializable
 {
 protected:
     shared_ptr<MAP> m_addressToAccount;
 
-    DB m_db;
-    dev::SpecificTrieDB<dev::GenericTrieDB<DB>, Address> m_state;
-    h256 prevRoot;
-
-    uint64_t m_curBlockNum;
-    Address m_curContractAddr;
+    // DB m_db;
+    // dev::SpecificTrieDB<dev::GenericTrieDB<DB>, Address> m_state;
+    // h256 prevRoot;
 
     AccountStoreBase();
 
-    bool ParseCreateContractOutput();
+    // const vector<unsigned char>
+    // CompositeContractData(const string& funcName, const string& amount,
+    //                       const Json::Value& params);
 
-    bool ParseCreateContractJsonOutput(const Json::Value& _json);
+    // bool UpdateStateTrie(const Address& address, const Account& account);
 
-    bool ParseCallContractOutput();
-
-    bool ParseCallContractJsonOutput(const Json::Value& _json);
-
-    Json::Value GetBlockStateJson(const uint64_t& BlockNum) const;
-
-    string GetCreateContractCmdStr();
-
-    string GetCallContractCmdStr();
-
-    // Generate input for interpreter to check the correctness of contract
-    void ExportCreateContractFiles(const Account& contract);
-
-    void ExportContractFiles(const Account& contract);
-    bool ExportCallContractFiles(const Account& contract,
-                                 const Transaction& transaction);
-    void ExportCallContractFiles(const Account& contract,
-                                 const Json::Value& contractData);
-
-    const vector<unsigned char>
-    CompositeContractData(const string& funcName, const string& amount,
-                          const Json::Value& params);
-
-    bool UpdateStateTrie(const Address& address, const Account& account);
+    virtual Account* GetAccount(const Address& address);
 
 public:
     virtual void Init();
@@ -97,11 +67,12 @@ public:
     void AddAccount(const Address& address, const Account& account);
     void AddAccount(const PubKey& pubKey, const Account& account);
 
-    bool UpdateAccounts(const uint64_t& blockNum,
-                        const Transaction& transaction);
+    // bool UpdateAccounts(const uint64_t& blockNum,
+    //                     const Transaction& transaction);
 
     /// Returns the Account associated with the specified address.
-    virtual Account* GetAccount(const Address& address) = 0;
+    // virtual Account* GetAccount(const Address& address); // = 0;
+
     uint256_t GetNumOfAccounts() const;
 
     bool IncreaseBalance(const Address& address, const uint256_t& delta);
@@ -115,11 +86,7 @@ public:
     bool IncreaseNonce(const Address& address);
     uint256_t GetNonce(const Address& address);
 
-    h256 GetStateRootHash() const;
-    bool UpdateStateTrieAll();
-    void RepopulateStateTrie();
-
-    void PrintAccountState();
+    virtual void PrintAccountState();
 };
 
 #include "AccountStoreBase.tpp"

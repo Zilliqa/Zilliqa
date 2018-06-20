@@ -14,44 +14,37 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#include "AccountStore.h"
+#ifndef __ACCOUNTSTORETRIE_H__
+#define __ACCOUNTSTORETRIE_H__
 
-#include "libUtils/DataConversion.h"
-#include "libUtils/Logger.h"
+#include "AccountStoreSC.h"
+#include "depends/libDatabase/MemoryDB.h"
+#include "depends/libDatabase/OverlayDB.h"
 
-using namespace std;
-using namespace boost::multiprecision;
-
-AccountStoreTemp::AccountStoreTemp(AccountStore& parent)
-    : m_parent(parent)
+template<class DB, class MAP>
+class AccountStoreTrie : public AccountStoreSC<MAP>
 {
-}
+protected:
+    DB m_db;
+    dev::SpecificTrieDB<dev::GenericTrieDB<DB>, Address> m_state;
+    h256 prevRoot;
 
-Account* AccountStoreTemp::GetAccount(const Address& address)
-{
-    Account* account
-        = AccountStoreBase<map<Address, Account>>::GetAccount(address);
-    if (account != nullptr)
-    {
-        LOG_GENERAL(INFO, "Got From Temp");
-        return account;
-    }
+    AccountStoreTrie();
 
-    account = m_parent.GetAccount(address);
-    if (account)
-    {
-        LOG_GENERAL(INFO, "Got From Parent");
-        Account newaccount(*account);
-        m_addressToAccount->insert(make_pair(address, newaccount));
-        return &(m_addressToAccount->find(address))->second;
-    }
+    bool UpdateStateTrie(const Address& address, const Account& account);
 
-    LOG_GENERAL(INFO, "Got Nullptr");
+public:
+    virtual void Init() override;
 
-    return nullptr;
-}
+    Account* GetAccount(const Address& address) override;
 
-const shared_ptr<map<Address, Account>>& AccountStoreTemp::GetAddressToAccount()
-{
-    return m_addressToAccount;
-}
+    h256 GetStateRootHash() const;
+    bool UpdateStateTrieAll();
+    void RepopulateStateTrie();
+
+    void PrintAccountState() override;
+};
+
+#include "AccountStoreTrie.tpp"
+
+#endif // __ACCOUNTSTORETRIE_H__

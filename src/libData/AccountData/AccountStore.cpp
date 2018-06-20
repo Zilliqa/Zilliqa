@@ -36,12 +36,10 @@ AccountStore::~AccountStore()
 void AccountStore::Init()
 {
     LOG_MARKER();
+    AccountStoreTrie<OverlayDB, unordered_map<Address, Account>>::Init();
     m_accountStoreTemp->Init();
     ContractStorage::GetContractStorage().GetStateDB().ResetDB();
-    m_addressToAccount->clear();
     m_db.ResetDB();
-    m_state.init();
-    prevRoot = m_state.root();
 }
 
 AccountStore& AccountStore::GetInstance()
@@ -224,54 +222,6 @@ int AccountStore::DeserializeDelta(const vector<unsigned char>& src,
         return -1;
     }
     return 0;
-}
-
-Account* AccountStore::GetAccount(const Address& address)
-{
-    //LOG_MARKER();
-
-    auto it = m_addressToAccount->find(address);
-    // LOG_GENERAL(INFO, (it != m_addressToAccount.end()));
-    if (it != m_addressToAccount->end())
-    {
-        return &it->second;
-    }
-
-    string accountDataString = m_state.at(address);
-    if (accountDataString.empty())
-    {
-        return nullptr;
-    }
-
-    dev::RLP accountDataRLP(accountDataString);
-    if (accountDataRLP.itemCount() != 4)
-    {
-        LOG_GENERAL(WARNING, "Account data corrupted");
-        return nullptr;
-    }
-
-    auto it2 = m_addressToAccount->emplace(
-        std::piecewise_construct, std::forward_as_tuple(address),
-        std::forward_as_tuple(accountDataRLP[0].toInt<uint256_t>(),
-                              accountDataRLP[1].toInt<uint256_t>()));
-
-    // Code Hash
-    if (accountDataRLP[3].toHash<h256>() != h256())
-    {
-        // Extract Code Content
-        it2.first->second.SetCode(
-            ContractStorage::GetContractStorage().GetContractCode(address));
-        if (accountDataRLP[3].toHash<h256>() != it2.first->second.GetCodeHash())
-        {
-            LOG_GENERAL(WARNING, "Account Code Content doesn't match Code Hash")
-            m_addressToAccount->erase(it2.first);
-            return nullptr;
-        }
-        // Storage Root
-        it2.first->second.SetStorageRoot(accountDataRLP[2].toHash<h256>());
-    }
-
-    return &it2.first->second;
 }
 
 void AccountStore::MoveRootToDisk(const h256& root)
