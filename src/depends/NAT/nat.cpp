@@ -129,7 +129,7 @@ int NAT::addRedirect(int _port)
         }
     }
 
-    LOG_GENERAL(WARNING, "Failed to find port");
+    LOG_GENERAL(WARNING, "Failed to find port. My listening port is " << port_str);
 
     return -1;
 }
