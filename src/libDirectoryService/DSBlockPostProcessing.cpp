@@ -387,8 +387,9 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
         if (m_mode != IDLE)
         {
             //Copy POW1 to POW2
-            lock_guard<mutex> g2(m_mutexAllPOW2);
-            lock_guard<mutex> g3(m_mutexAllPoWConns);
+            lock(m_mutexAllPOW2, m_mutexAllPoWConns);
+            lock_guard<mutex> g2(m_mutexAllPOW2, adopt_lock);
+            lock_guard<mutex> g3(m_mutexAllPoWConns, adopt_lock);
             m_allPoW2s.clear();
 
             for (auto const& i : m_allPoW1s)
@@ -403,8 +404,12 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
             }
 
             //Add previous DS commitee (oldest one), because it back to normal node and should be collected
-            lock_guard<mutex> g4(m_mediator.m_mutexDSCommitteePubKeys);
-            lock_guard<mutex> g5(m_mediator.m_mutexDSCommitteeNetworkInfo);
+            lock(m_mediator.m_mutexDSCommitteePubKeys,
+                 m_mediator.m_mutexDSCommitteeNetworkInfo);
+            lock_guard<mutex> g4(m_mediator.m_mutexDSCommitteePubKeys,
+                                 adopt_lock);
+            lock_guard<mutex> g5(m_mediator.m_mutexDSCommitteeNetworkInfo,
+                                 adopt_lock);
             m_allPoW2s.emplace(m_mediator.m_DSCommitteePubKeys.back(),
                                (boost::multiprecision::uint256_t){1});
             m_allPoWConns.emplace(m_mediator.m_DSCommitteePubKeys.back(),

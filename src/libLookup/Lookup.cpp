@@ -1652,9 +1652,13 @@ bool Lookup::InitMining()
               "I have successfully join the network");
     LOG_GENERAL(INFO, "Clean TxBodyDB except the last one");
     int size_txBodyDBs = (int)BlockStorage::GetBlockStorage().GetTxBodyDBSize();
-    for (int i = 0; i < size_txBodyDBs - 1; i++)
+
+    if (size_txBodyDBs > 1)
     {
-        BlockStorage::GetBlockStorage().PopFrontTxBodyDB(true);
+        for (int i = 0; i < size_txBodyDBs - 1; ++i)
+        {
+            BlockStorage::GetBlockStorage().PopFrontTxBodyDB(true);
+        }
     }
 
     return true;

@@ -970,9 +970,10 @@ bool DirectoryService::ProcessAllPoW2Request(
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I am sending AllPow2 to requester");
 
-    lock_guard<mutex> g(m_mutexAllPOW1);
-    lock_guard<mutex> g2(m_mutexAllPOW2);
-    lock_guard<mutex> g3(m_mutexAllPoWConns);
+    lock(m_mutexAllPOW1, m_mutexAllPOW2, m_mutexAllPoWConns);
+    lock_guard<mutex> g(m_mutexAllPOW1, adopt_lock);
+    lock_guard<mutex> g2(m_mutexAllPOW2, adopt_lock);
+    lock_guard<mutex> g3(m_mutexAllPoWConns, adopt_lock);
 
     if (!m_allPoW1s.empty())
     {
@@ -990,8 +991,11 @@ bool DirectoryService::ProcessAllPoW2Request(
         }
 
         //Add previous DS commitee (oldest one), because it back to normal node and should be collected
-        lock_guard<mutex> g4(m_mediator.m_mutexDSCommitteePubKeys);
-        lock_guard<mutex> g5(m_mediator.m_mutexDSCommitteeNetworkInfo);
+        lock(m_mediator.m_mutexDSCommitteePubKeys,
+             m_mediator.m_mutexDSCommitteeNetworkInfo);
+        lock_guard<mutex> g4(m_mediator.m_mutexDSCommitteePubKeys, adopt_lock);
+        lock_guard<mutex> g5(m_mediator.m_mutexDSCommitteeNetworkInfo,
+                             adopt_lock);
         m_allPoW2s.emplace(m_mediator.m_DSCommitteePubKeys.back(),
                            (boost::multiprecision::uint256_t){1});
         m_allPoWConns.emplace(m_mediator.m_DSCommitteePubKeys.back(),
