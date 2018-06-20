@@ -88,6 +88,13 @@ int main(int argc, const char* argv[])
             LOG_GENERAL(WARNING, "NAT ERROR");
             return -1;
         }
+        else
+        {
+            LOG_GENERAL(INFO,
+                        "My external IP is " << nt.externalIP().c_str()
+                                             << " and my mapped port is "
+                                             << mappedPort);
+        }
 
         inet_aton(nt.externalIP().c_str(), &ip_addr);
         Peer my_port((uint128_t)ip_addr.s_addr, mappedPort);
