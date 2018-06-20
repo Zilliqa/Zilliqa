@@ -25,7 +25,6 @@
 #include "common/Serializable.h"
 #include "depends/common/FixedHash.h"
 #include "libCrypto/Schnorr.h"
-#include "libData/AccountData/Transaction.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -35,17 +34,7 @@ template<class MAP> class AccountStoreBase : public Serializable
 protected:
     shared_ptr<MAP> m_addressToAccount;
 
-    // DB m_db;
-    // dev::SpecificTrieDB<dev::GenericTrieDB<DB>, Address> m_state;
-    // h256 prevRoot;
-
     AccountStoreBase();
-
-    // const vector<unsigned char>
-    // CompositeContractData(const string& funcName, const string& amount,
-    //                       const Json::Value& params);
-
-    // bool UpdateStateTrie(const Address& address, const Account& account);
 
     virtual Account* GetAccount(const Address& address);
 
@@ -66,12 +55,6 @@ public:
     /// Adds an Account to the list.
     void AddAccount(const Address& address, const Account& account);
     void AddAccount(const PubKey& pubKey, const Account& account);
-
-    // bool UpdateAccounts(const uint64_t& blockNum,
-    //                     const Transaction& transaction);
-
-    /// Returns the Account associated with the specified address.
-    // virtual Account* GetAccount(const Address& address); // = 0;
 
     uint256_t GetNumOfAccounts() const;
 

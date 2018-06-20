@@ -462,25 +462,6 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json)
     return true;
 }
 
-// template<class DB, class MAP>
-// const vector<unsigned char> AccountStoreBase<DB, MAP>::CompositeContractData(
-//     const string& funcName, const string& amount, const Json::Value& params)
-// {
-//     LOG_MARKER();
-//     Json::Value obj;
-//     obj["_tag"] = funcName;
-//     obj["_amount"] = amount;
-//     obj["params"] = params;
-
-//     Json::StreamWriterBuilder writeBuilder;
-//     unique_ptr<Json::StreamWriter> writer(writeBuilder.newStreamWriter());
-//     ostringstream oss;
-//     writer->write(obj, &oss);
-//     string dataStr = oss.str();
-
-//     return DataConversion::StringToCharArray(dataStr);
-// }
-
 template<class MAP>  
 bool AccountStoreSC<MAP>::TransferBalanceAtomic(const Address& from, const Address& to,
                                                     const uint256_t& delta)
