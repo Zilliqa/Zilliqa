@@ -65,6 +65,7 @@ unsigned int Transaction::SerializeCoreFields(std::vector<unsigned char>& dst,
     SetNumber<uint32_t>(dst, offset, (uint32_t)m_data.size(), sizeof(uint32_t));
     offset += sizeof(uint32_t);
     copy(m_data.begin(), m_data.end(), dst.begin() + offset);
+    offset += m_data.size();
 
     return size_needed;
 }

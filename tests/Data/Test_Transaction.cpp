@@ -71,7 +71,7 @@ BOOST_AUTO_TEST_CASE(test1)
     copy(output.end() - ACC_ADDR_SIZE, output.end(),
          fromCheck.asArray().begin());
 
-    Transaction tx1(1, 5, toAddr, sender, 55, 11, 22, {0x33}, {0x44});
+    Transaction tx1(1, 5, toAddr, sender, 55, 11, 22, {}, {});
 
     BOOST_CHECK_MESSAGE(m_validator->VerifyTransaction(tx1),
                         "Signature not verified\n");
