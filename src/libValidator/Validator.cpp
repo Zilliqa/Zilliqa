@@ -88,8 +88,7 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx) const
     if (!AccountStore::GetInstance().DoesAccountExist(toAddr))
     {
         LOG_GENERAL(INFO, "New account is added: " << toAddr);
-        AccountStore::GetInstance().AddAccount(
-            toAddr, {0, 0, dev::h256(), dev::h256()});
+        AccountStore::GetInstance().AddAccount(toAddr, {0, 0});
     }
 
     // Check if transaction amount is valid
@@ -187,8 +186,7 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
     if (!AccountStore::GetInstance().DoesAccountExist(toAddr))
     {
         LOG_GENERAL(INFO, "New account is added: " << toAddr);
-        AccountStore::GetInstance().AddAccount(
-            toAddr, {0, 0, dev::h256(), dev::h256()});
+        AccountStore::GetInstance().AddAccount(toAddr, {0, 0});
     }
 
     // Check if transaction amount is valid
