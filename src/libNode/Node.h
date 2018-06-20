@@ -53,7 +53,8 @@ class Node : public Executable, public Broadcastable
         PROCESS_SHARDING,
         PROCESS_MICROBLOCKCONSENSUS,
         PROCESS_FINALBLOCK,
-        PROCESS_TXNBODY
+        PROCESS_TXNBODY,
+        NUM_ACTIONS
     };
 
     enum SUBMITTRANSACTIONTYPE
@@ -78,8 +79,9 @@ class Node : public Executable, public Broadcastable
             return "PROCESS_FINALBLOCK";
         case PROCESS_TXNBODY:
             return "PROCESS_TXNBODY";
+        default:
+            return "Unknown Action";
         }
-        return "Unknown Action";
     }
 
     Mediator& m_mediator;
@@ -345,6 +347,11 @@ public:
         ERROR
     };
 
+private:
+    static string NodeStateString(enum NodeState nodeState);
+    static bool compatibleState(enum NodeState state, enum Action action);
+
+public:
     // This process is newly invoked by shell from late node join script
     bool m_runFromLate = false;
 
