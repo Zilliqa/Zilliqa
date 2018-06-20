@@ -25,7 +25,7 @@
 
 AccountStore::AccountStore()
 {
-    m_accountStoreTemp = make_shared<AccountStoreTemp>(*this);
+    m_accountStoreTemp = make_unique<AccountStoreTemp>(*this);
 }
 
 AccountStore::~AccountStore()

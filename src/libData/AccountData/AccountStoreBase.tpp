@@ -128,6 +128,64 @@ int AccountStoreBase<MAP>::Deserialize(const vector<unsigned char>& src,
 }
 
 template<class MAP>
+bool AccountStoreBase<MAP>::UpdateAccounts(const uint64_t& blockNum,
+                                           const Transaction& transaction)
+{
+    const PubKey& senderPubKey = transaction.GetSenderPubKey();
+    const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
+    Address toAddr = transaction.GetToAddr();
+    const uint256_t& amount = transaction.GetAmount();
+
+    Account* fromAccount = this->GetAccount(fromAddr);
+    if (fromAccount == nullptr)
+    {
+        // FIXME: remove this, temporary way to test transactions, should return false
+        LOG_GENERAL(
+            WARNING,
+            "AddAccount... FIXME: remove this, temporary way to "
+            "test transactions, should return false in the future");
+        this->AddAccount(fromAddr, {10000000000, 0});
+        fromAccount = this->GetAccount(fromAddr);
+        // return false;
+    }
+
+    if (transaction.GetGasLimit() < NORMAL_TRAN_GAS)
+    {
+        LOG_GENERAL(WARNING, "The gas limit " << transaction.GetGasLimit() << 
+                " should be larger than the normal transaction gas (" <<
+                 NORMAL_TRAN_GAS << ")");
+        return false;
+    }
+
+    uint256_t gasDeposit = transaction.GetGasLimit() * transaction.GetGasPrice();
+
+    if (fromAccount->GetBalance() < transaction.GetAmount() + gasDeposit)
+    {
+        LOG_GENERAL(WARNING, "The account (balance: " << fromAccount->GetBalance() << ") "
+         "doesn't have enough balance to pay for the gas limit (" << gasDeposit << ") "
+         "with amount (" << transaction.GetAmount() << ") in the transaction");
+        return false;
+    }
+
+    if (DecreaseBalance(fromAddr, gasDeposit))
+    {
+        return false;
+    }
+
+    if (!TransferBalance(fromAddr, toAddr, amount))
+    {
+        IncreaseBalance(fromAddr, gasDeposit);
+        return false;
+    }
+
+    IncreaseBalance(fromAddr, gasDeposit - NORMAL_TRAN_GAS * transaction.GetGasPrice());
+
+    IncreaseNonce(fromAddr);
+
+    return true;
+}
+
+template<class MAP>
 bool AccountStoreBase<MAP>::DoesAccountExist(const Address& address)
 {
     LOG_MARKER();

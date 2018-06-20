@@ -21,6 +21,7 @@
 
 #include "Account.h"
 #include "Address.h"
+#include "Transaction.h"
 #include "common/Constants.h"
 #include "common/Serializable.h"
 #include "depends/common/FixedHash.h"
@@ -36,8 +37,6 @@ protected:
 
     AccountStoreBase();
 
-    virtual Account* GetAccount(const Address& address);
-
 public:
     virtual void Init();
 
@@ -48,6 +47,11 @@ public:
     /// Implements the Deserialize function inherited from Serializable.
     virtual int Deserialize(const vector<unsigned char>& src,
                             unsigned int offset);
+
+    virtual Account* GetAccount(const Address& address);
+
+    virtual bool UpdateAccounts(const uint64_t& blockNum,
+                                const Transaction& transaction);
 
     /// Verifies existence of Account in the list.
     bool DoesAccountExist(const Address& address);
