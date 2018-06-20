@@ -58,8 +58,7 @@ void addBalanceToGenesisAccount()
     for (auto& walletHexStr : GENESIS_WALLETS)
     {
         Address addr{DataConversion::HexStrToUint8Vec(walletHexStr)};
-        AccountStore::GetInstance().AddAccount(
-            addr, {bal, nonce, dev::h256(), dev::h256()});
+        AccountStore::GetInstance().AddAccount(addr, {bal, nonce});
         LOG_GENERAL(INFO,
                     "add genesis account " << addr << " with balance " << bal);
     }
@@ -387,7 +386,7 @@ Transaction CreateValidTestingTransaction(PrivKey& fromPrivKey,
     // << " / toAddr" << toAddr);
 
     Transaction txn(version, nonce, toAddr, make_pair(fromPrivKey, fromPubKey),
-                    amount, 0, 0, {0}, {0});
+                    amount, 0, 0, {}, {});
 
     // std::vector<unsigned char> buf;
     // txn.SerializeWithoutSignature(buf, 0);
