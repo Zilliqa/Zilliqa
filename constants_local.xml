@@ -27,7 +27,10 @@
         <N_PREFILLED_PER_ACCOUNT>10000</N_PREFILLED_PER_ACCOUNT>
         <NEW_NODE_POW_DELAY>5</NEW_NODE_POW_DELAY>
         <POST_VIEWCHANGE_BUFFER>5</POST_VIEWCHANGE_BUFFER>
-		<SCILLA_PATH></SCILLA_PATH>
+        <CONTRACT_CREATE_GAS>50</CONTRACT_CREATE_GAS>
+    </constants>
+    <smartcontract>
+        <SCILLA_PATH></SCILLA_PATH>
         <SCILLA_FILES>scilla_files/</SCILLA_FILES>
         <SCILLA_LOG>_build</SCILLA_LOG>
         <INIT_JSON>init.json</INIT_JSON>
@@ -36,7 +39,7 @@
         <INPUT_MESSAGE_JSON>input_message.json</INPUT_MESSAGE_JSON>
         <OUTPUT_JSON>output.json</OUTPUT_JSON>
         <INPUT_CODE>input.scilla</INPUT_CODE>
-    </constants>
+    </smartcontract>
     <accounts>
         <account>
             <wallet_address>027b3e103003e6f533a1253342dd03340b3f5061</wallet_address>
