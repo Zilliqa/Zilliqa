@@ -19,7 +19,6 @@
 
 #include <json/json.h>
 #include <map>
-#include <mutex>
 #include <set>
 #include <unordered_map>
 
@@ -68,7 +67,7 @@ class AccountStore
 {
     friend class Singleton<AccountStore>;
 
-    shared_ptr<AccountStoreTemp> m_accountStoreTemp;
+    unique_ptr<AccountStoreTemp> m_accountStoreTemp;
 
     std::mutex m_mutexDelta;
 

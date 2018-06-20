@@ -23,6 +23,7 @@
 template<class MAP>
 AccountStoreSC<MAP>::AccountStoreSC()
 {
+	m_accountStoreAtomic = make_unique<AccountStoreAtomic<MAP>>(*this);
 }
 
 template<class MAP> void AccountStoreSC<MAP>::Init()
@@ -35,51 +36,75 @@ template<class MAP>
 bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                                           const Transaction& transaction)
 {
-    LOG_MARKER();
+	LOG_MARKER();
+
+	lock_guard<mutex> g(m_mutexUpdateAccounts);
 
     const PubKey& senderPubKey = transaction.GetSenderPubKey();
     const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
     Address toAddr = transaction.GetToAddr();
     const uint256_t& amount = transaction.GetAmount();
+    uint256_t gasDeposit = transaction.GetGasLimit() * transaction.GetGasPrice();
+
+    if (transaction.GetData().empty() && transaction.GetCode().empty())
+    {
+    	LOG_GENERAL(INFO, "Normal transaction");
+    	return AccountStoreBase<MAP>::UpdateAccounts(blockNum, transaction);
+    }
 
     bool callContract = false;
 
     if (transaction.GetData().size() > 0 && toAddr != NullAddress)
     {
-        // if (amount == 0)
-        // {
-        //     LOG_GENERAL(
-        //         WARNING,
-        //         "The amount for calling a contract shouldn't be zero");
-        //     return false;
-        // }
         callContract = true;
+    }
+
+    // Needed by gas handling
+    bool validToTransferBalance = true;
+
+    Account* fromAccount = this->GetAccount(fromAddr);
+    if (fromAccount == nullptr)
+    {
+        // FIXME: remove this, temporary way to test transactions, should return false
+        LOG_GENERAL(
+            WARNING,
+            "AddAccount... FIXME: remove this, temporary way to "
+            "test transactions, should return false in the future");
+        this->AddAccount(fromAddr, {10000000000, 0});
+        fromAccount = this->GetAccount(fromAddr);
+        // return false;
     }
 
     if (transaction.GetCode().size() > 0 && toAddr == NullAddress)
     {
         LOG_GENERAL(INFO, "Create Contract");
 
-        if (amount != 0)
+        if (transaction.GetGasLimit() < CONTRACT_CREATE_GAS)
         {
-            LOG_GENERAL(
-                WARNING,
-                "The amount for creating a contract should be zero");
-            return false;
+        	LOG_GENERAL(WARNING, "The gas limit set for this transaction has to be larger than"
+        		" the gas to create a contract (" << CONTRACT_CREATE_GAS << ")");
+        	return false;
         }
 
-        // Create contract account
-        Account* fromAccount = this->GetAccount(fromAddr);
-        if (fromAccount == nullptr)
+        if (fromAccount->GetBalance() < gasDeposit)
         {
-	        // FIXME: remove this, temporary way to test transactions, should return false
-            LOG_GENERAL(
-                WARNING,
-                "AddAccount... FIXME: remove this, temporary way to "
-                "test transactions, should return false in the future");
-            this->AddAccount(fromAddr, {10000000000, 0});
-            fromAccount = this->GetAccount(fromAddr);
+        	LOG_GENERAL(WARNING, "The account doesn't have enough gas to create a contract");
+        	return false;
         }
+        else if (fromAccount->GetBalance() < gasDeposit
+        									 + amount)
+        {
+        	LOG_GENERAL(WARNING, "The account (balance: " << fromAccount->GetBalance() << ") "
+        		"has enough balance to pay the gas limit (" << gasDeposit << ") "
+        		"but not enough for transfer the amount (" << amount << "), "
+    			"create contract first and ignore amount transfer however");
+        	validToTransferBalance = false;
+        }
+
+	    if (this->DecreaseBalance(fromAddr, gasDeposit))
+	    {
+	        return false;
+	    }
 
         toAddr
             = Account::GetAddressForContract(fromAddr, fromAccount->GetNonce());
@@ -92,27 +117,51 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         m_curBlockNum = blockNum;
 
         ExportCreateContractFiles(*toAccount);
+
         if (!SysCommand::ExecuteCmdWithoutOutput(GetCreateContractCmdStr()))
         {
+        	this->IncreaseBalance(fromAddr, gasDeposit - CONTRACT_CREATE_GAS * transaction.GetGasPrice());
             return false;
         }
         if (!ParseCreateContractOutput())
         {
             this->m_addressToAccount->erase(toAddr);
+            this->IncreaseBalance(fromAddr, gasDeposit - CONTRACT_CREATE_GAS * transaction.GetGasPrice());
             return false;
         }
+
+        this->IncreaseBalance(fromAddr, gasDeposit - CONTRACT_CREATE_GAS * transaction.GetGasPrice());
     }
 
-    if (!callContract)
+    if (!callContract && validToTransferBalance)
     {
         if (!this->TransferBalance(fromAddr, toAddr, amount))
         {
+        	this->IncreaseNonce(fromAddr);
             return false;
         }
     }
     else
     {
         LOG_GENERAL(INFO, "Call Contract");
+
+        if (transaction.GetGasLimit() < CONTRACT_INVOKE_GAS)
+        {
+        	LOG_GENERAL(WARNING, "The gas limit set for this transaction has to be larger than"
+        		" the minimum gas to invoke contract (" << CONTRACT_INVOKE_GAS << ")");
+        	return false;
+        }
+
+        if (fromAccount->GetBalance() < gasDeposit + amount)
+        {
+        	LOG_GENERAL(WARNING, "The account (balance: " << fromAccount->GetBalance() << ") "
+        		"has not enough balance to deposit the gas limit (" << gasDeposit << ") "
+        		"and transfer the amount (" << amount << ") in the transaction, "
+        		"rejected");
+        	return false;
+        }
+
+        m_curSenderAddr = fromAddr;
 
         Account* toAccount = this->GetAccount(toAddr);
         if (toAccount == nullptr)
@@ -126,26 +175,38 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         {
             return false;
         }
+
+        DiscardTransferBalanceAtomic();
+        
+	    if (this->DecreaseBalance(fromAddr, gasDeposit))
+	    {
+	        return false;
+	    }
+	    m_curGasLimit = transaction.GetGasLimit();
+        m_curGasCum = CalculateGas();
+        m_curGasPrice = transaction.GetGasPrice();
+
         m_curContractAddr = toAddr;
 
-        //clean-up
-        DiscardTransferBalanceAtomic();
         if (!TransferBalanceAtomic(fromAddr, toAddr, amount))
         {
+        	this->IncreaseBalance(fromAddr, gasDeposit);
             return false;
         }
-
         if (!SysCommand::ExecuteCmdWithoutOutput(GetCallContractCmdStr()))
         {
             DiscardTransferBalanceAtomic();
+            this->IncreaseBalance(fromAddr, gasDeposit - m_curGasCum * m_curGasPrice);
             return false;
         }
         if (!ParseCallContractOutput())
         {
             DiscardTransferBalanceAtomic();
+            this->IncreaseBalance(fromAddr, gasDeposit - m_curGasCum * m_curGasPrice);
             return false;
         }
         CommitTransferBalanceAtomic();
+        this->IncreaseBalance(fromAddr, gasDeposit - m_curGasCum * m_curGasPrice);
     }
 
     this->IncreaseNonce(fromAddr);
@@ -445,7 +506,15 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json)
     {
         return false;
     }
-    
+
+    if (CheckGasExceededLimit(CalculateGas()))
+    {
+    	LOG_GENERAL(WARNING, "The predicted accumulated gas has already exceed the gas limit,"
+    	 						"can no longer continue the invocation");
+    	return false;
+    }
+    m_curGasCum += CalculateGas();
+
     if (!SysCommand::ExecuteCmdWithoutOutput(GetCallContractCmdStr()))
     {
         LOG_GENERAL(WARNING, "ExecuteCmd failed: " << GetCallContractCmdStr());
@@ -466,21 +535,45 @@ template<class MAP>
 bool AccountStoreSC<MAP>::TransferBalanceAtomic(const Address& from, const Address& to,
                                                     const uint256_t& delta)
 {
-    // if (DecreaseBalanceAtomic(from, delta) && IncreaseBalanceAtomic(to, delta))
-    // {
-    //     return true;
-    // }
-    return false;
+	LOG_MARKER();
+	return m_accountStoreAtomic->TransferBalance(from, to, delta);
 }
 
 template<class MAP>
 void AccountStoreSC<MAP>::CommitTransferBalanceAtomic()
 {
-
+	LOG_MARKER();
+    for (const auto& entry : *m_accountStoreAtomic->GetAddressToAccount())
+    {
+        Account* account = this->GetAccount(entry.first);
+        if (account != nullptr)
+        {
+        	account->SetBalance(entry.second.GetBalance());
+        }
+        else
+        {
+        	// this->m_addressToAccount.insert(make_pair(entry.first, entry.second));
+        	this->AddAccount(entry.first, entry.second);
+        }
+    }
 }
 
 template<class MAP>
 void AccountStoreSC<MAP>::DiscardTransferBalanceAtomic()
 {
+	LOG_MARKER();
+	m_accountStoreAtomic->Init();
+}
 
+template<class MAP>
+uint256_t AccountStoreSC<MAP>::CalculateGas()
+{
+	// TODO: return gas based on calculation of customed situations
+	return uint256_t(CONTRACT_INVOKE_GAS);
+}
+
+template<class MAP>
+bool AccountStoreSC<MAP>::CheckGasExceededLimit(const uint256_t& gas)
+{
+	return m_curGasCum + gas > m_curGasLimit;
 }

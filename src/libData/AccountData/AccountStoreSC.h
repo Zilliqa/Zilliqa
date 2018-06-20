@@ -18,16 +18,38 @@
 #define __ACCOUNTSTORESC_H__
 
 #include <json/json.h>
+#include <mutex>
 
 #include "AccountStoreBase.h"
-#include "Transaction.h"
 
-class AccountStoreAtomic;
+template<class MAP> class AccountStoreSC;
+
+template<class MAP>
+class AccountStoreAtomic
+    : public AccountStoreBase<unordered_map<Address, Account>>
+{
+    AccountStoreSC<MAP>& m_parent;
+
+public:
+    AccountStoreAtomic(AccountStoreSC<MAP>& parent);
+
+    Account* GetAccount(const Address& address) override;
+
+    const shared_ptr<unordered_map<Address, Account>>& GetAddressToAccount();
+};
 
 template<class MAP> class AccountStoreSC : public AccountStoreBase<MAP>
 {
+    unique_ptr<AccountStoreAtomic<MAP>> m_accountStoreAtomic;
+
+    std::mutex m_mutexUpdateAccounts;
+
     uint64_t m_curBlockNum;
     Address m_curContractAddr;
+    Address m_curSenderAddr;
+    uint256_t m_curGasCum;
+    uint256_t m_curGasLimit;
+    uint256_t m_curGasPrice;
 
     bool ParseCreateContractOutput();
     bool ParseCreateContractJsonOutput(const Json::Value& _json);
@@ -51,6 +73,10 @@ template<class MAP> class AccountStoreSC : public AccountStoreBase<MAP>
     void CommitTransferBalanceAtomic();
     void DiscardTransferBalanceAtomic();
 
+    bool CheckGasExceededLimit(const uint256_t& gas);
+
+    uint256_t CalculateGas();
+
 protected:
     AccountStoreSC();
 
@@ -58,9 +84,10 @@ public:
     void Init() override;
 
     bool UpdateAccounts(const uint64_t& blockNum,
-                        const Transaction& transaction);
+                        const Transaction& transaction) override;
 };
 
+#include "AccountStoreAtomic.tpp"
 #include "AccountStoreSC.tpp"
 
 #endif // __ACCOUNTSTORESC_H__
