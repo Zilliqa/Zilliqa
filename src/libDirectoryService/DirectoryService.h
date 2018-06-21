@@ -56,10 +56,11 @@ class DirectoryService : public Executable, public Broadcastable
         PROCESS_SHARDINGCONSENSUS,
         PROCESS_MICROBLOCKSUBMISSION,
         PROCESS_FINALBLOCKCONSENSUS,
-        PROCESS_VIEWCHANGECONSENSUS
+        PROCESS_VIEWCHANGECONSENSUS,
+        NUM_ACTIONS
     };
 
-    string ActionString(enum Action action)
+    static string ActionString(enum Action action)
     {
         switch (action)
         {
@@ -81,8 +82,9 @@ class DirectoryService : public Executable, public Broadcastable
             return "PROCESS_FINALBLOCKCONSENSUS";
         case PROCESS_VIEWCHANGECONSENSUS:
             return "PROCESS_VIEWCHANGECONSENSUS";
+        default:
+            return "Unknown Action";
         }
-        return "Unknown Action";
     }
     std::atomic<bool> m_requesting_last_ds_block;
     unsigned int BUFFER_TIME_BEFORE_DS_BLOCK_REQUEST = 5;
@@ -373,9 +375,15 @@ public:
         FINALBLOCK_CONSENSUS,
         VIEWCHANGE_CONSENSUS_PREP,
         VIEWCHANGE_CONSENSUS,
-        ERROR
+        ERROR,
+        NUM_STATES
     };
 
+private:
+    static string DirStateString(enum DirState state);
+    bool compatibleState(enum DirState state, enum Action action);
+
+public:
     uint32_t m_consensusID;
     uint16_t m_consensusLeaderID;
 
