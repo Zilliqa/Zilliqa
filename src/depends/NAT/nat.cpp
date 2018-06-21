@@ -51,9 +51,9 @@ NAT::NAT()
 
     if (devlist.get() == NULL || error != 0)
     {
-        //LOG_GENERAL(WARNING, "devlist empty or error in discovery");
         return;
     }
+
     char lan_address[INET6_ADDRSTRLEN];
 
     int status = UPNP_GetValidIGD(devlist.get(), m_urls.get(), m_data.get(),
@@ -61,7 +61,6 @@ NAT::NAT()
 
     if (status != 1)
     {
-        //LOG_GENERAL(WARNING, "Unable to get Valid Internet Gateway Device ");
         return;
     }
 
@@ -71,7 +70,6 @@ NAT::NAT()
 
 NAT::~NAT()
 {
-    // LOG_MARKER();
     auto r = m_reg;
     for (auto i : r)
     {
@@ -81,7 +79,6 @@ NAT::~NAT()
 
 string NAT::externalIP()
 {
-    //LOG_MARKER();
     if (!m_initialized)
     {
         return "0.0.0.0";
@@ -95,14 +92,12 @@ string NAT::externalIP()
     }
     else
     {
-        //LOG_GENERAL(WARNING, "Unable to get external IP");
         return "0.0.0.0";
     }
 }
 
 int NAT::addRedirect(int _port)
 {
-    //LOG_MARKER();
     if (!m_initialized)
     {
         return -1;
@@ -113,7 +108,9 @@ int NAT::addRedirect(int _port)
         return -1;
     }
 
+	// 1) Try direct mapping first (port external, port internal).
     string port_str = to_string(_port);
+
     int error = UPNP_AddPortMapping(
         m_urls->controlURL, m_data->first.servicetype, port_str.c_str(), port_str.c_str(),
         m_lanAddress.c_str(), "zilliqa", "TCP", NULL, NULL);
@@ -124,6 +121,20 @@ int NAT::addRedirect(int _port)
         return _port;
     }
 
+    // 2) Failed - now try (random external, port internal) and cycle up to 10 times.
+	srand(static_cast<unsigned int>(time(nullptr)));
+	for (unsigned i = 0; i < 10; ++i)
+	{
+		_port = rand() % (32768 - 1024) + 1024;
+		string ext_port_str = to_string(_port);
+		if (!UPNP_AddPortMapping(m_urls->controlURL, m_data->first.servicetype, ext_port_str.c_str(), port_str.c_str(), m_lanAddress.c_str(), "ethereum", "TCP", NULL, NULL))
+        {
+			return _port;
+        }
+	}
+
+	// 3) Failed. Try asking the router to give us a free external port.
+    // This may not works on some routers.
     if (UPNP_AddPortMapping(m_urls->controlURL, m_data->first.servicetype,
                             port_str.c_str(), NULL, m_lanAddress.c_str(), "zilliqa",
                             "TCP", NULL, NULL))
@@ -132,6 +143,8 @@ int NAT::addRedirect(int _port)
     }
 
     unsigned int num = 0;
+
+	// We got mapped, but we don't know which ports we got mapped to. Now to find...
     UPNP_GetPortMappingNumberOfEntries(m_urls->controlURL,
                                        m_data->first.servicetype, &num);
     for (unsigned int i = 0; i < num; ++i)
@@ -155,20 +168,16 @@ int NAT::addRedirect(int _port)
         }
     }
 
-    // LOG_GENERAL(WARNING, "Failed to find port. My listening port is " << port_str);
-
     return -1;
 }
 
 void NAT::removeRedirect(int _port)
 {
-    // LOG_MARKER();
-
     if (!m_initialized)
     {
-        // LOG_GENERAL(WARNING, "Unitialized");
         return;
     }
+    
     string port_str = to_string(_port);
     UPNP_DeletePortMapping(m_urls->controlURL, m_data->first.servicetype,
                            port_str.c_str(), "TCP", NULL);
