@@ -28,6 +28,8 @@
         <NEW_NODE_POW_DELAY>5</NEW_NODE_POW_DELAY>
         <POST_VIEWCHANGE_BUFFER>5</POST_VIEWCHANGE_BUFFER>
         <CONTRACT_CREATE_GAS>50</CONTRACT_CREATE_GAS>
+		<CONTRACT_INVOKE_GAS>10</CONTRACT_INVOKE_GAS>
+        <NORMAL_TRAN_GAS>1</NORMAL_TRAN_GAS>
     </constants>
     <smartcontract>
         <SCILLA_PATH></SCILLA_PATH>
@@ -42,6 +44,7 @@
     </smartcontract>
     <accounts>
         <account>
+			<private_key>FFFE8A87A980C0F32F0EDF2659684292B39D3CE7511EDE66CE6B148451739D5F</private_key>
             <wallet_address>027b3e103003e6f533a1253342dd03340b3f5061</wallet_address>
         </account>
     </accounts>
