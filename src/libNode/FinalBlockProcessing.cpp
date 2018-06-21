@@ -682,8 +682,7 @@ void Node::BroadcastStateDeltaToSendingAssignment(
     vector<unsigned char> stateDel;
     AccountStore::GetInstance().GetSerializedDelta(stateDel);
 
-    copy(stateDel.begin(), stateDel.end(),
-         forwardstate_message.begin() + cur_offset);
+    copy(stateDel.begin(), stateDel.end(), back_inserter(forwardstate_message));
 
     // sending
 
