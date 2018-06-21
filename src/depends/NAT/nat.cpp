@@ -108,6 +108,11 @@ int NAT::addRedirect(int _port)
         return -1;
     }
 
+    if (_port < 0 && _port > 65535)
+    {
+        return -1;
+    }
+
     string port_str = to_string(_port);
     int error = UPNP_AddPortMapping(
         m_urls->controlURL, m_data->first.servicetype, port_str.c_str(), port_str.c_str(),
@@ -118,16 +123,11 @@ int NAT::addRedirect(int _port)
         m_reg.insert(_port);
         return _port;
     }
-    // else
-    // {
-    //    LOG_GENERAL(WARNING, "Failed to map same port in router");
-    // }
 
     if (UPNP_AddPortMapping(m_urls->controlURL, m_data->first.servicetype,
                             port_str.c_str(), NULL, m_lanAddress.c_str(), "zilliqa",
                             "TCP", NULL, NULL))
     {
-        //LOG_GENERAL(WARNING, "Failed to map any Port");
         return 0;
     }
 
