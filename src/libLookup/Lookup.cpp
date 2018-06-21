@@ -1431,12 +1431,6 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
         if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
         {
             GetStateFromLookupNodes();
-#ifndef IS_LOOKUP_NODE
-            if (!InitMining())
-            {
-                return false;
-            }
-#endif
         }
     }
 
@@ -1494,6 +1488,11 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
                                       sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
     m_mediator.m_lookup->SendMessageToRandomLookupNode(pow_message);
+
+    if (!InitMining())
+    {
+        return false;
+    }
 #else // IS_LOOKUP_NODE
     if (m_syncType == SyncType::LOOKUP_SYNC)
     {
@@ -1508,7 +1507,6 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
         m_currDSExpired = false;
     }
 #endif // IS_LOOKUP_NODE
-
     return ret;
 }
 
