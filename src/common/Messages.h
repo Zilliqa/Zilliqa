@@ -68,7 +68,7 @@ enum NodeInstructionType : unsigned char
     FORWARDTRANSACTION = 0x07,
     CREATETRANSACTIONFROMLOOKUP = 0x08,
     VCBLOCK = 0x09,
-    FORWARDSTATEDELTA = 0x10,
+    FORWARDSTATEDELTA = 0x0A,
 };
 
 enum LookupInstructionType : unsigned char
