@@ -38,8 +38,10 @@ class Zilliqa
 {
     PeerManager m_pm;
     Mediator m_mediator;
+    MediatorAdapter m_mediatorAdapter;
     DirectoryService m_ds;
     Lookup m_lookup;
+    DefaultAccountStoreView m_dasv;
     shared_ptr<ValidatorBase> m_validator;
     Node m_n;
     ConsensusUser

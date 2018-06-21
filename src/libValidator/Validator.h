@@ -19,9 +19,66 @@
 
 #include <string>
 
+#include "libData/AccountData/Account.h"
 #include "libData/AccountData/Transaction.h"
 
 class Mediator;
+
+class MediatorView
+{
+public:
+    virtual ~MediatorView() {}
+    virtual unsigned int getShardID() const = 0;
+    virtual unsigned int getNumShards() const = 0;
+    virtual std::string currentEpochNumAsString() const = 0;
+};
+
+class MediatorAdapter : public MediatorView
+{
+    Mediator& m_mediator;
+
+public:
+    MediatorAdapter(Mediator& mediator);
+    virtual ~MediatorAdapter();
+    virtual unsigned int getShardID() const override;
+    virtual unsigned int getNumShards() const override;
+    virtual std::string currentEpochNumAsString() const override;
+};
+
+class AccountStoreView
+{
+public:
+    virtual ~AccountStoreView() {}
+
+    /// Verifies existence of Account in the list.
+    virtual bool DoesAccountExist(const Address& address) = 0;
+
+    virtual void AddAccount(const Address& address, const Account& account) = 0;
+
+    virtual boost::multiprecision::uint256_t GetBalance(const Address& address)
+        = 0;
+
+    virtual boost::multiprecision::uint256_t GetNonce(const Address& address)
+        = 0;
+};
+
+class DefaultAccountStoreView : public AccountStoreView
+{
+public:
+    virtual ~DefaultAccountStoreView();
+
+    /// Verifies existence of Account in the list.
+    virtual bool DoesAccountExist(const Address& address) override;
+
+    virtual void AddAccount(const Address& address,
+                            const Account& account) override;
+
+    virtual boost::multiprecision::uint256_t
+    GetBalance(const Address& address) override;
+
+    virtual boost::multiprecision::uint256_t
+    GetNonce(const Address& address) override;
+};
 
 class ValidatorBase
 {
@@ -35,7 +92,7 @@ public:
     virtual void CleanVariables() = 0;
 
 #ifndef IS_LOOKUP_NODE
-    virtual bool CheckCreatedTransaction(const Transaction& tx) const = 0;
+    virtual bool CheckCreatedTransaction(const Transaction& tx) = 0;
     virtual bool CheckCreatedTransactionFromLookup(const Transaction& tx) = 0;
 #endif // IS_LOOKUP_NODE
 };
@@ -47,19 +104,25 @@ class Validator : public ValidatorBase
     std::mutex m_mutexTxnNonceMap;
     std::unordered_map<Address, boost::multiprecision::uint256_t> m_txnNonceMap;
 
+#ifndef IS_LOOKUP_NODE
+    MediatorView& m_mediator;
+    AccountStoreView& m_accountStoreView;
+
+    bool checkCreatedTransactionCommon(const Transaction& tx, bool checkNonce);
+    bool checkFromAccountNonce(const Transaction& tx);
+#endif // IS_LOOKUP_NODE
+
 public:
-    Validator(Mediator& mediator);
+    Validator(MediatorView& mediator, AccountStoreView& accountStoreView);
     ~Validator();
     std::string name() const override { return "Validator"; }
     bool VerifyTransaction(const Transaction& tran) const override;
     void CleanVariables() override;
 
 #ifndef IS_LOOKUP_NODE
-    bool CheckCreatedTransaction(const Transaction& tx) const override;
+    bool CheckCreatedTransaction(const Transaction& tx) override;
     bool CheckCreatedTransactionFromLookup(const Transaction& tx) override;
 #endif // IS_LOOKUP_NODE
-
-    Mediator& m_mediator;
 };
 
 #endif // __VALIDATOR_H__

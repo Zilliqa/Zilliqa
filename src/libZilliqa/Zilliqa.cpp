@@ -60,8 +60,10 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
                  bool loadConfig, unsigned int syncType, bool toRetrieveHistory)
     : m_pm(key, peer, loadConfig)
     , m_mediator(key, peer)
+    , m_mediatorAdapter(m_mediator)
     , m_ds(m_mediator)
     , m_lookup(m_mediator)
+    , m_dasv()
     , m_n(m_mediator, syncType, toRetrieveHistory)
     , m_cu(key, peer)
 #ifdef IS_LOOKUP_NODE
@@ -77,7 +79,7 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
         m_ds.m_consensusID = 0;
     }
 
-    m_validator = make_shared<Validator>(m_mediator);
+    m_validator = make_shared<Validator>(m_mediatorAdapter, m_dasv);
     m_mediator.RegisterColleagues(&m_ds, &m_n, &m_lookup, m_validator.get());
 
     LogSelfNodeInfo(key, peer);

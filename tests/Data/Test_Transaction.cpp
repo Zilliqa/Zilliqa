@@ -35,6 +35,15 @@ using namespace std;
 
 BOOST_AUTO_TEST_SUITE(transactiontest)
 
+class NoopMediator : public MediatorView
+{
+public:
+    virtual ~NoopMediator() {}
+    virtual unsigned int getShardID() const override { return 0; }
+    virtual unsigned int getNumShards() const override { return 1; }
+    virtual string currentEpochNumAsString() const override { return "42"; }
+};
+
 BOOST_AUTO_TEST_CASE(test1)
 {
     INIT_STDOUT_LOGGER();
@@ -43,19 +52,13 @@ BOOST_AUTO_TEST_CASE(test1)
 
     Address toAddr;
 
-    Mediator* m = nullptr;
-    unique_ptr<ValidatorBase> m_validator = make_unique<Validator>(*m);
+    NoopMediator nm;
+    DefaultAccountStoreView dasv;
+    unique_ptr<ValidatorBase> m_validator = make_unique<Validator>(nm, dasv);
 
     for (unsigned int i = 0; i < toAddr.asArray().size(); i++)
     {
         toAddr.asArray().at(i) = i + 4;
-    }
-
-    Address fromAddr;
-
-    for (unsigned int i = 0; i < fromAddr.asArray().size(); i++)
-    {
-        fromAddr.asArray().at(i) = i + 8;
     }
 
     KeyPair sender = Schnorr::GetInstance().GenKeyPair();
@@ -254,6 +257,14 @@ BOOST_AUTO_TEST_CASE(test1)
     // copy(txConFromAddr2.begin(), txConFromAddr2.end(), byteVec.begin());
     // LOG_PAYLOAD("Transaction2 predicate txConFromAddr", byteVec, Logger::MAX_BYTES_TO_DISPLAY);
     // BOOST_CHECK_MESSAGE(byteVec.at(8) == 16, "expected: "<<16<<" actual: "<<byteVec.at(8)<<"\n");
+}
+
+BOOST_AUTO_TEST_CASE(NoopMediatorCoverage)
+{
+    NoopMediator nm;
+    nm.getShardID();
+    nm.getNumShards();
+    nm.currentEpochNumAsString();
 }
 
 BOOST_AUTO_TEST_SUITE_END()

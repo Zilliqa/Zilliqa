@@ -11,6 +11,7 @@ add_subdirectory (Persistence)
 add_subdirectory (POW)
 add_subdirectory (Utils)
 add_subdirectory (Zilliqa)
+add_subdirectory (Validator)
 
 file(COPY ${CMAKE_SOURCE_DIR}/constants_local.xml DESTINATION ${CMAKE_BINARY_DIR})
 #FIXME: constants.xml is not used for local_run, thus shouldn't be copied
