@@ -43,16 +43,18 @@ using namespace std;
 
 BOOST_AUTO_TEST_SUITE(contractinvokingtest)
 
-Address fromAddr;
+Address fromAddr, fromAddr2;
 Address cfAddress, icfAddress;
-KeyPair sender;
-uint256_t nonce = 0;
-std::vector<unsigned char> emptyCode, emptyData;
+KeyPair sender, sender2;
+uint256_t nonce, nonce2 = 0;
 
 struct ICFSampleInput
 {
     string icfDataStr;
     string icfOutStr;
+    uint256_t amount;
+    uint256_t gasPrice;
+    uint256_t gasLimit;
     int blockNum;
     string sampleName;
 };
@@ -60,20 +62,29 @@ struct ICFSampleInput
 struct CFSampleInput
 {
     string cfDataStr;
+    KeyPair cfSender;
+    uint256_t amount;
+    uint256_t gasPrice;
+    uint256_t gasLimit;
     int blockNum;
     vector<ICFSampleInput> icfSamples;
 };
 
 bool InvokeFunction(string icfDataStr, string icfOutStr, int blockNum,
+                    uint256_t amount, uint256_t gasPrice, uint256_t gasLimit,
                     string sampleName, bool didResetCF, bool didResetICF)
 {
     LOG_MARKER();
 
     std::vector<unsigned char> icfData(icfDataStr.begin(), icfDataStr.end());
-    Transaction icfTx(1, nonce, icfAddress, sender, 0, 11, 99, emptyCode,
-                      icfData);
+    Transaction icfTx(1, nonce, icfAddress, sender, amount, gasPrice, gasLimit,
+                      {}, icfData);
 
-    AccountStore::GetInstance().UpdateAccounts(blockNum, icfTx);
+    if (!AccountStore::GetInstance().UpdateAccounts(blockNum, icfTx))
+    {
+        LOG_GENERAL(INFO, "InvokeFunction Failed");
+        return false;
+    }
 
     string outStr = icfOutStr;
 
@@ -154,7 +165,9 @@ bool CreateContract(const int& blockNum, ResetType rType)
 
     std::vector<unsigned char> initData(initStr.begin(), initStr.end());
 
-    Transaction createTx(1, nonce, dev::h160(), sender, 0, 11, 66, code,
+    // LOG_GENERAL(INFO, "nonce: " << nonce);
+
+    Transaction createTx(1, nonce, dev::h160(), sender, 0, 1, 50, code,
                          initData);
 
     AccountStore::GetInstance().UpdateAccounts(blockNum, createTx);
@@ -170,8 +183,8 @@ bool CreateContract(const int& blockNum, ResetType rType)
         {
             // transfer balance
             int amount = 122;
-            Transaction transferTx(1, nonce, tAddress, sender, amount, 11, 66,
-                                   emptyCode, emptyData);
+            Transaction transferTx(1, nonce, tAddress, sender, amount, 1, 1, {},
+                                   {});
             if (AccountStore::GetInstance().UpdateAccounts(blockNum,
                                                            transferTx))
             {
@@ -214,19 +227,44 @@ void AutoTest(bool doResetCF, bool doResetICF,
             {
                 std::vector<unsigned char> cfData(samples[i].cfDataStr.begin(),
                                                   samples[i].cfDataStr.end());
-                Transaction cfTx(1, nonce, cfAddress, sender, 0, 11, 66,
-                                 emptyCode, cfData);
+
+                uint256_t* t_nonce;
+                if (samples[i].cfSender == sender)
+                {
+                    t_nonce = &nonce;
+                }
+                else if (samples[i].cfSender == sender2)
+                {
+                    t_nonce = &nonce2;
+                }
+                else
+                {
+                    LOG_GENERAL(WARNING,
+                                "1. Why we have this sender? "
+                                    << samples[i].cfSender.second);
+                    continue;
+                }
+
+                Transaction cfTx(1, *t_nonce, cfAddress, samples[i].cfSender,
+                                 samples[i].amount, samples[i].gasPrice,
+                                 samples[i].gasLimit, {}, cfData);
                 if (!AccountStore::GetInstance().UpdateAccounts(
                         samples[i].blockNum, cfTx))
                 {
                     continue;
                 }
-                nonce++;
+
+                (*t_nonce)++;
+
+                delete t_nonce;
             }
 
             if (InvokeFunction(samples[i].icfSamples[j].icfDataStr,
                                samples[i].icfSamples[j].icfOutStr,
                                samples[i].icfSamples[j].blockNum,
+                               samples[i].icfSamples[j].amount,
+                               samples[i].icfSamples[j].gasPrice,
+                               samples[i].icfSamples[j].gasLimit,
                                samples[i].icfSamples[j].sampleName, doResetCF,
                                doResetICF))
             {
@@ -266,43 +304,108 @@ BOOST_AUTO_TEST_CASE(testContractInvoking)
     AccountStore::GetInstance().Init();
 
     sender = Schnorr::GetInstance().GenKeyPair();
+    sender2 = Schnorr::GetInstance().GenKeyPair();
 
-    std::vector<unsigned char> vec;
-    sender.second.Serialize(vec, 0);
-    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-    sha2.Update(vec);
-    const std::vector<unsigned char>& output = sha2.Finalize();
-
-    copy(output.end() - ACC_ADDR_SIZE, output.end(),
-         fromAddr.asArray().begin());
+    fromAddr = Account::GetAddressFromPublicKey(sender.second);
+    fromAddr2 = Account::GetAddressFromPublicKey(sender2.second);
 
     vector<CFSampleInput> samples{
         {"",
+         sender,
+         0,
+         1,
+         10,
          100,
-         {{icfDataStr1, icfOutStr1, 100, "State1_Invoke1"},
-          {icfDataStr2, icfOutStr2, 100, "State1_Invoke2"},
-          {icfDataStr3, icfOutStr3, 100, "State1_Invoke3"}}},
-        {cfDataStr,
+         {{icfDataStr1, icfOutStr1, 0, 1, 10, 100, "State1_Invoke1_NG"},
+          {icfDataStr2, icfOutStr2, 0, 1, 10, 100, "State1_Invoke2_NG"},
+          {icfDataStr3, icfOutStr3, 0, 1, 10, 100, "State1_Invoke3_NG"}}},
+        {"",
+         sender,
+         0,
+         1,
+         10,
          100,
-         {{icfDataStr1, icfOutStr1, 100, "State2_Invoke1"},
-          {icfDataStr2, icfOutStr2, 100, "State2_Invoke2"},
-          {icfDataStr3, icfOutStr3, 100, "State2_Invoke3"}}},
-        {cfDataStr3,
+         {{icfDataStr1, icfOutStr1, 0, 1, 30, 100, "State1_Invoke1_G"},
+          {icfDataStr2, icfOutStr2, 0, 1, 30, 100, "State1_Invoke2_G"},
+          {icfDataStr3, icfOutStr3, 0, 1, 30, 100, "State1_Invoke3_G"}}},
+
+        {cfDataDonateStr,
+         sender,
          100,
-         {{icfDataStr1, icfOutStr1, 100, "State3_Invoke1"},
-          {icfDataStr2, icfOutStr2, 100, "State3_Invoke2"},
-          {icfDataStr3, icfOutStr3, 100, "State3_Invoke3"}}},
-        {cfDataStr4,
+         1,
+         10,
+         100,
+         {{icfDataStr1, icfOutStr1, 0, 1, 10, 100, "State2_Invoke1_NG"},
+          {icfDataStr2, icfOutStr2, 0, 1, 10, 100, "State2_Invoke2_NG"},
+          {icfDataStr3, icfOutStr3, 0, 1, 10, 100, "State2_Invoke3_NG"}}},
+        {cfDataDonateStr,
+         sender,
+         100,
+         1,
+         10,
+         100,
+         {{icfDataStr1, icfOutStr1, 0, 1, 30, 100, "State2_Invoke1_G"},
+          {icfDataStr2, icfOutStr2, 0, 1, 30, 100, "State2_Invoke2_G"},
+          {icfDataStr3, icfOutStr3, 0, 1, 30, 100, "State2_Invoke3_G"}}},
+
+        {cfDataDonateStr,
+         sender2,
          200,
-         {{icfDataStr1, icfOutStr1, 100, "State4_Invoke1"},
-          {icfDataStr2, icfOutStr2, 100, "State4_Invoke2"},
-          {icfDataStr3, icfOutStr3, 100, "State4_Invoke3"}}},
-        {cfDataStr5,
+         1,
+         10,
+         100,
+         {{icfDataStr1, icfOutStr1, 0, 1, 10, 100, "State3_Invoke1_NG"},
+          {icfDataStr2, icfOutStr2, 0, 1, 10, 100, "State3_Invoke2_NG"},
+          {icfDataStr3, icfOutStr3, 0, 1, 10, 100, "State3_Invoke3_NG"}}},
+        {cfDataDonateStr,
+         sender2,
+         200,
+         1,
+         10,
+         100,
+         {{icfDataStr1, icfOutStr1, 0, 1, 30, 100, "State3_Invoke1_G"},
+          {icfDataStr2, icfOutStr2, 0, 1, 30, 100, "State3_Invoke2_G"},
+          {icfDataStr3, icfOutStr3, 0, 1, 30, 100, "State3_Invoke3_G"}}},
+
+        {cfDataGetFundsStr,
+         sender2,
+         0,
+         1,
+         10,
+         200,
+         {{icfDataStr1, icfOutStr1, 0, 1, 10, 100, "State4_Invoke1_NG"},
+          {icfDataStr2, icfOutStr2, 0, 1, 10, 100, "State4_Invoke2_NG"},
+          {icfDataStr3, icfOutStr3, 0, 1, 10, 100, "State4_Invoke3_NG"}}},
+        {cfDataGetFundsStr,
+         sender2,
+         0,
+         1,
+         10,
+         200,
+         {{icfDataStr1, icfOutStr1, 0, 1, 30, 100, "State4_Invoke1_G"},
+          {icfDataStr2, icfOutStr2, 0, 1, 30, 100, "State4_Invoke2_G"},
+          {icfDataStr3, icfOutStr3, 0, 1, 30, 100, "State4_Invoke3_G"}}},
+
+        {cfDataClaimBackStr,
+         sender,
+         0,
+         1,
+         10,
          300,
-         {{icfDataStr1, icfOutStr1, 100, "State5_Invoke1"},
-          {icfDataStr2, icfOutStr2, 100, "State5_Invoke2"},
-          {icfDataStr3, icfOutStr3, 100, "State5_Invoke3"}}},
+         {{icfDataStr1, icfOutStr1, 0, 1, 10, 100, "State5_Invoke1_NG"},
+          {icfDataStr2, icfOutStr2, 0, 1, 10, 100, "State5_Invoke2_NG"},
+          {icfDataStr3, icfOutStr3, 0, 1, 10, 100, "State5_Invoke3_NG"}}},
+        {cfDataClaimBackStr,
+         sender,
+         0,
+         1,
+         10,
+         300,
+         {{icfDataStr1, icfOutStr1, 0, 1, 30, 100, "State5_Invoke1_G"},
+          {icfDataStr2, icfOutStr2, 0, 1, 30, 100, "State5_Invoke2_G"},
+          {icfDataStr3, icfOutStr3, 0, 1, 30, 100, "State5_Invoke3_G"}}},
     };
+
     AutoTest(true, true, samples);
     // AutoTest(true, false, samples);
     // AutoTest(false, true, samples);
