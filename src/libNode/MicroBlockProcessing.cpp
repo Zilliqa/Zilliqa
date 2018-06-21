@@ -73,7 +73,7 @@ void Node::SubmitMicroblockToDSCommittee() const
     cur_offset += sizeof(uint32_t);
 
     // Tx microblock
-    m_microblock->Serialize(microblock, cur_offset);
+    m_microblock.second->Serialize(microblock, cur_offset);
 
     LOG_STATE("[MICRO][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
@@ -141,7 +141,7 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
                       << m_mediator.m_currentEpochNum << "] DONE");
 
             // Update the micro block with the co-signatures from the consensus
-            m_microblock->SetCoSignatures(*m_consensusObject);
+            m_microblock.second->SetCoSignatures(*m_consensusObject);
 
             // Multicast micro block to all DS nodes
             SubmitMicroblockToDSCommittee();
@@ -153,7 +153,7 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
                       "I am designated as Microblock sender");
 
             // Update the micro block with the co-signature from the consensus
-            m_microblock->SetCoSignatures(*m_consensusObject);
+            m_microblock.second->SetCoSignatures(*m_consensusObject);
 
             // Multicast micro block to all DS nodes
             SubmitMicroblockToDSCommittee();
@@ -247,18 +247,19 @@ bool Node::ComposeMicroBlock()
             index++;
         }
     }
-
+    m_microblock.first = m_mediator.m_currentEpochNum;
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Creating new micro block.")
-    m_microblock.reset(new MicroBlock(
+    m_microblock.second.reset(new MicroBlock(
         MicroBlockHeader(type, version, gasLimit, gasUsed, prevHash, blockNum,
-                         timestamp, txRootHash, numTxs, minerPubKey, dsBlockNum,
-                         dsBlockHeader, stateDeltaHash),
+                         timestamp, txRootHash, numTxs + m_numCoinbaseTxs,
+                         minerPubKey, dsBlockNum, dsBlockHeader,
+                         stateDeltaHash),
         tranHashes, CoSignatures()));
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Micro block proposed with "
-                  << m_microblock->GetHeader().GetNumTxs()
+                  << m_microblock.second->GetHeader().GetNumTxs()
                   << " transactions for epoch "
                   << m_mediator.m_currentEpochNum);
 
@@ -269,6 +270,12 @@ bool Node::OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
                              unsigned int offset, const Peer& from)
 {
     LOG_MARKER();
+
+    if (errorMsg.size() < 64 + offset)
+    {
+        LOG_GENERAL(WARNING, "Malformed");
+        return false;
+    }
 
     uint32_t numOfAbsentHashes
         = Serializable::GetNumber<uint32_t>(errorMsg, offset, sizeof(uint32_t));
@@ -379,7 +386,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
     ComposeMicroBlock();
 
     vector<unsigned char> microblock;
-    m_microblock->Serialize(microblock, 0);
+    m_microblock.second->Serialize(microblock, 0);
 
     //m_consensusID = 0;
     m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
@@ -483,18 +490,25 @@ bool Node::Coinbase(const shared_ptr<MicroBlock>& lastMicroblock,
 
     if (m_mediator.m_DSCommitteePubKeys.size() != lastTxBlock.GetB1().size())
     {
+        LOG_GENERAL(WARNING, "B1 and DS pub keys size do not match");
         return false;
     }
     if (m_mediator.m_DSCommitteePubKeys.size() != lastTxBlock.GetB2().size())
     {
+        LOG_GENERAL(WARNING, "B2 and DS pub keys size do not match");
         return false;
     }
     if (m_myShardMembersPubKeys.size() != lastMicroblock->GetB1().size())
     {
+        LOG_GENERAL(WARNING,
+                    "B1 and shard members pub keys size do not match"
+                        << lastMicroblock->GetB1().size() << "  "
+                        << m_myShardMembersPubKeys.size());
         return false;
     }
     if (m_myShardMembersPubKeys.size() != lastMicroblock->GetB2().size())
     {
+        LOG_GENERAL(WARNING, "B2 and shard members pub keys size do not match");
         return false;
     }
 
@@ -511,7 +525,12 @@ bool Node::Coinbase(const shared_ptr<MicroBlock>& lastMicroblock,
                 if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
                         rewardee, genesisAccount, RewardAmount))
                 {
+                    LOG_GENERAL(WARNING, "Could not reward " << rewardee);
                     return false;
+                }
+                else
+                {
+                    //m_numCoinbaseTxs++;
                 }
             }
         }
@@ -532,7 +551,12 @@ bool Node::Coinbase(const shared_ptr<MicroBlock>& lastMicroblock,
                 if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
                         rewardee, genesisAccount, RewardAmount))
                 {
+                    LOG_GENERAL(WARNING, "Could not reward " << rewardee);
                     return false;
+                }
+                else
+                {
+                    //m_numCoinbaseTxs++;
                 }
             }
         }
@@ -548,11 +572,25 @@ bool Node::RunConsensusOnMicroBlock()
     // set state first and then take writer lock so that SubmitTransactions
     // if it takes reader lock later breaks out of loop
     TxBlock lastTxBlock = m_mediator.m_txBlockChain.GetLastBlock();
-    if (m_microblock != nullptr)
+    m_numCoinbaseTxs = 0;
+    if (m_mediator.m_currentEpochNum > 1)
     {
-        if (!Coinbase(m_microblock, lastTxBlock))
+        if (m_microblock.second != nullptr)
         {
-            LOG_GENERAL(WARNING, "Unable to process Coinbase");
+            if (m_microblock.first != m_mediator.m_currentEpochNum - 1)
+            {
+                LOG_GENERAL(WARNING, "Stale Microblock");
+            }
+
+            else if (!Coinbase(m_microblock.second, lastTxBlock))
+            {
+                LOG_GENERAL(WARNING, "Unable to process Coinbase");
+            }
+        }
+        else
+        {
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Microblock is Null for this epoch");
         }
     }
 
@@ -589,12 +627,13 @@ bool Node::RunConsensusOnMicroBlock()
 bool Node::CheckBlockTypeIsMicro()
 {
     // Check type (must be micro block type)
-    if (m_microblock->GetHeader().GetType() != TXBLOCKTYPE::MICRO)
+    if (m_microblock.second->GetHeader().GetType() != TXBLOCKTYPE::MICRO)
     {
-        LOG_GENERAL(WARNING,
-                    "Type check failed. Expected: "
-                        << (unsigned int)TXBLOCKTYPE::MICRO << " Actual: "
-                        << (unsigned int)m_microblock->GetHeader().GetType());
+        LOG_GENERAL(
+            WARNING,
+            "Type check failed. Expected: "
+                << (unsigned int)TXBLOCKTYPE::MICRO << " Actual: "
+                << (unsigned int)m_microblock.second->GetHeader().GetType());
         return false;
     }
 
@@ -606,13 +645,13 @@ bool Node::CheckBlockTypeIsMicro()
 bool Node::CheckMicroBlockVersion()
 {
     // Check version (must be most current version)
-    if (m_microblock->GetHeader().GetVersion() != BLOCKVERSION::VERSION1)
+    if (m_microblock.second->GetHeader().GetVersion() != BLOCKVERSION::VERSION1)
     {
         LOG_GENERAL(
             WARNING,
             "Version check failed. Expected: "
                 << (unsigned int)BLOCKVERSION::VERSION1 << " Actual: "
-                << (unsigned int)m_microblock->GetHeader().GetVersion());
+                << (unsigned int)m_microblock.second->GetHeader().GetVersion());
         return false;
     }
 
@@ -628,7 +667,7 @@ bool Node::CheckMicroBlockTimestamp()
     {
         const TxBlock& lastTxBlock = m_mediator.m_txBlockChain.GetLastBlock();
         uint256_t thisMicroblockTimestamp
-            = m_microblock->GetHeader().GetTimestamp();
+            = m_microblock.second->GetHeader().GetTimestamp();
         uint256_t lastTxBlockTimestamp = lastTxBlock.GetHeader().GetTimestamp();
         if (thisMicroblockTimestamp <= lastTxBlockTimestamp)
         {
@@ -660,7 +699,7 @@ bool Node::CheckLegitimacyOfTxnHashes(vector<unsigned char>& errorMsg)
 
     int offset = 0;
 
-    for (auto const& hash : m_microblock->GetTranHashes())
+    for (auto const& hash : m_microblock.second->GetTranHashes())
     {
         // Check if transaction is part of submitted Tx list
         if (submittedTransactions.find(hash) != submittedTransactions.end())
@@ -705,8 +744,9 @@ bool Node::CheckLegitimacyOfTxnHashes(vector<unsigned char>& errorMsg)
 bool Node::CheckMicroBlockHashes(vector<unsigned char>& errorMsg)
 {
     // Check transaction hashes (number of hashes must be = Tx count field)
-    uint32_t txhashessize = m_microblock->GetTranHashes().size();
-    uint32_t numtxs = m_microblock->GetHeader().GetNumTxs();
+    uint32_t txhashessize = m_microblock.second->GetTranHashes().size();
+    uint32_t numtxs
+        = m_microblock.second->GetHeader().GetNumTxs() - m_numCoinbaseTxs;
     if (txhashessize != numtxs)
     {
         LOG_GENERAL(WARNING,
@@ -734,17 +774,18 @@ bool Node::CheckMicroBlockTxnRootHash()
 {
     // Check transaction root
     TxnHash expectedTxRootHash
-        = ComputeTransactionsRoot(m_microblock->GetTranHashes());
+        = ComputeTransactionsRoot(m_microblock.second->GetTranHashes());
 
     LOG_GENERAL(
         INFO,
         "Microblock root computation done "
             << DataConversion::charArrToHexStr(expectedTxRootHash.asArray()));
-    LOG_GENERAL(INFO,
-                "Expected root: " << DataConversion::charArrToHexStr(
-                    m_microblock->GetHeader().GetTxRootHash().asArray()));
+    LOG_GENERAL(
+        INFO,
+        "Expected root: " << DataConversion::charArrToHexStr(
+            m_microblock.second->GetHeader().GetTxRootHash().asArray()));
 
-    if (expectedTxRootHash != m_microblock->GetHeader().GetTxRootHash())
+    if (expectedTxRootHash != m_microblock.second->GetHeader().GetTxRootHash())
     {
         LOG_GENERAL(WARNING, "Txn root does not match");
         return false;
@@ -764,11 +805,13 @@ bool Node::CheckMicroBlockStateDeltaHash()
                 "Microblock state delta generation done "
                     << DataConversion::charArrToHexStr(
                            expectedStateDeltaHash.asArray()));
-    LOG_GENERAL(INFO,
-                "Expected root: " << DataConversion::charArrToHexStr(
-                    m_microblock->GetHeader().GetStateDeltaHash().asArray()));
+    LOG_GENERAL(
+        INFO,
+        "Expected root: " << DataConversion::charArrToHexStr(
+            m_microblock.second->GetHeader().GetStateDeltaHash().asArray()));
 
-    if (expectedStateDeltaHash != m_microblock->GetHeader().GetStateDeltaHash())
+    if (expectedStateDeltaHash
+        != m_microblock.second->GetHeader().GetStateDeltaHash())
     {
         LOG_GENERAL(WARNING, "State delta hash does not match");
         return false;
@@ -785,7 +828,9 @@ bool Node::MicroBlockValidator(const vector<unsigned char>& microblock,
     LOG_MARKER();
 
     // [TODO] To put in the logic
-    m_microblock = make_shared<MicroBlock>(MicroBlock(microblock, 0));
+    m_microblock
+        = make_pair(m_mediator.m_currentEpochNum,
+                    make_shared<MicroBlock>(MicroBlock(microblock, 0)));
 
     bool valid = false;
 
@@ -813,7 +858,7 @@ bool Node::MicroBlockValidator(const vector<unsigned char>& microblock,
 
     if (!valid)
     {
-        m_microblock = nullptr;
+        m_microblock.second = nullptr;
         Serializable::SetNumber<uint32_t>(
             errorMsg, errorMsg.size(), m_mediator.m_selfPeer.m_listenPortHost,
             sizeof(uint32_t));

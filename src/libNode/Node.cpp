@@ -1091,7 +1091,7 @@ bool Node::CleanVariables()
     m_consensusBlockHash.clear();
     {
         std::lock_guard<mutex> lock(m_mutexMicroBlock);
-        m_microblock.reset();
+        m_microblock.second.reset();
     }
     // {
     //     std::lock_guard<mutex> lock(m_mutexCreatedTransactions);
