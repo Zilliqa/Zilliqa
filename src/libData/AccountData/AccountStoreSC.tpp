@@ -101,7 +101,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         	validToTransferBalance = false;
         }
 
-	    if (this->DecreaseBalance(fromAddr, gasDeposit))
+	    if (!this->DecreaseBalance(fromAddr, gasDeposit))
 	    {
 	        return false;
 	    }
@@ -178,7 +178,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
         DiscardTransferBalanceAtomic();
         
-	    if (this->DecreaseBalance(fromAddr, gasDeposit))
+	    if (!this->DecreaseBalance(fromAddr, gasDeposit))
 	    {
 	        return false;
 	    }
