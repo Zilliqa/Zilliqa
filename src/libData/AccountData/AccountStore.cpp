@@ -215,7 +215,7 @@ int AccountStore::DeserializeDelta(const vector<unsigned char>& src,
 
                     continue;
                 }
-                (*m_addressToAccount)[address] = account;
+                //(*m_addressToAccount)[address] = account;
             }
             curOffset += accountSize;
             UpdateStateTrie(address, account);
