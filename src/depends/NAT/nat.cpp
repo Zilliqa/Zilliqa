@@ -21,6 +21,7 @@
 #include <iostream>
 #include <miniupnpc/miniupnpc.h>
 #include <miniupnpc/upnpcommands.h>
+#include <miniupnpc/upnperrors.h>
 
 using namespace std;
 
@@ -111,7 +112,6 @@ int NAT::addRedirect(int _port)
 
 	// 1) Try direct mapping first (port external, port internal).
     string port_str = to_string(_port);
-
     int error = UPNP_AddPortMapping(
         m_urls->controlURL, m_data->first.servicetype, port_str.c_str(), port_str.c_str(),
         m_lanAddress.c_str(), "zilliqa", "TCP", NULL, NULL);
@@ -136,40 +136,19 @@ int NAT::addRedirect(int _port)
 
 	// 3) Failed. Try asking the router to give us a free external port.
     // This may not works on some routers.
-    if (UPNP_AddPortMapping(m_urls->controlURL, m_data->first.servicetype,
-                            port_str.c_str(), NULL, m_lanAddress.c_str(), "zilliqa",
-                            "TCP", NULL, NULL))
+    char reservedPort[6];
+    int result = UPNP_AddAnyPortMapping(m_urls->controlURL, m_data->first.servicetype,
+                            port_str.c_str(), port_str.c_str(), m_lanAddress.c_str(), "zilliqa",
+                            "TCP", NULL, NULL, reservedPort);
+
+    if (result)
     {
         return 0;
     }
-
-    unsigned int num = 0;
-
-	// We got mapped, but we don't know which ports we got mapped to. Now to find...
-    UPNP_GetPortMappingNumberOfEntries(m_urls->controlURL,
-                                       m_data->first.servicetype, &num);
-    for (unsigned int i = 0; i < num; ++i)
+    else
     {
-        char extPort[16];
-        char intClient[16];
-        char intPort[6];
-        char protocol[4];
-        char desc[80];
-        char enabled[4];
-        char rHost[64];
-        char duration[16];
-        UPNP_GetGenericPortMappingEntry(
-            m_urls->controlURL, m_data->first.servicetype, to_string(i).c_str(),
-            extPort, intClient, intPort, protocol, desc, enabled, rHost,
-            duration);
-        if (string("zilliqa") == desc)
-        {
-            m_reg.insert(atoi(extPort));
-            return atoi(extPort);
-        }
+        return atoi(reservedPort);
     }
-
-    return -1;
 }
 
 void NAT::removeRedirect(int _port)
