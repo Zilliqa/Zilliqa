@@ -223,6 +223,7 @@ Json::Value AccountStoreSC<MAP>::GetBlockStateJson(const uint64_t& BlockNum) con
     blockItem["type"] = "BNum";
     blockItem["value"] = to_string(BlockNum);
     root.append(blockItem);
+    LOG_GENERAL(INFO, "BNum: " << BlockNum);
     return root;
 }
 
