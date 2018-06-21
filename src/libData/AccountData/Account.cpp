@@ -412,15 +412,19 @@ int Account::DeserializeDelta(const vector<unsigned char>& src,
             LOG_GENERAL(INFO, "t_storageRoot: " << t_storageRoot);
             curOffset += COMMON_HASH_SIZE;
 
+            
+
             if (t_storageRoot != account.GetStorageRoot())
             {
                 // States storage
                 // Num of Key Hashes
-                unsigned int numKeyHashes = (unsigned int)GetNumber<uint256_t>(
-                    src, curOffset, UINT256_SIZE);
-                curOffset += UINT256_SIZE;
+                uint256_t numKeyHashes
+                = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
+            curOffset += UINT256_SIZE;
+
                 for (unsigned int i = 0; i < numKeyHashes; i++)
                 {
+
                     // Key Hash
                     h256 keyHash;
                     copy(src.begin() + curOffset,
@@ -430,16 +434,16 @@ int Account::DeserializeDelta(const vector<unsigned char>& src,
 
                     // RLP
                     // RLP size
-                    unsigned int rlpSize = (unsigned int)GetNumber<uint256_t>(
-                        src, curOffset, UINT256_SIZE);
+                    unsigned int rlpSize = static_cast<unsigned int>(
+                        GetNumber<uint256_t>(src, curOffset, UINT256_SIZE));
                     curOffset += UINT256_SIZE;
                     // RLP string
                     string rlpStr;
                     copy(src.begin() + curOffset,
                          src.begin() + curOffset + rlpSize,
                          back_inserter(rlpStr));
-                    curOffset += rlpSize;
                     account.SetStorage(keyHash, rlpStr);
+                    curOffset += rlpSize;
                 }
 
                 if (t_storageRoot != account.GetStorageRoot())
