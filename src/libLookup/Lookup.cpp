@@ -2025,8 +2025,12 @@ bool Lookup::RsyncTxBodies()
     }
     LOG_GENERAL(INFO, cmdStr);
 
-    SysCommand::ExecuteCmd(cmdStr);
-    LOG_GENERAL(INFO, "ExecuteCmd: " << std::ifstream(EXEC_CMD_LOG).rdbuf());
+    string output;
+    if (!SysCommand::ExecuteCmdWithOutput(cmdStr, output))
+    {
+        return false;
+    }
+    LOG_GENERAL(INFO, "RunRsync: " << output);
     return true;
 }
 
