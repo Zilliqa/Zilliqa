@@ -113,7 +113,7 @@ class Node : public Executable, public Broadcastable
 
     std::vector<unsigned char> m_consensusBlockHash;
     std::atomic<uint32_t> m_consensusMyID;
-    std::shared_ptr<MicroBlock> m_microblock;
+    std::pair<uint64_t, std::shared_ptr<MicroBlock>> m_microblock;
     std::mutex m_mutexMicroBlock;
 
     const static uint32_t RECVTXNDELAY_MILLISECONDS = 3000;
@@ -124,6 +124,7 @@ class Node : public Executable, public Broadcastable
     // Transactions information
     std::mutex m_mutexCreatedTransactions;
     std::list<Transaction> m_createdTransactions;
+    uint32_t m_numCoinbaseTxs;
 
     // prefilled transactions sorted by fromAddress
     std::mutex m_mutexPrefilledTxns;

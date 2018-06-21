@@ -214,7 +214,9 @@ bool DirectoryService::ProcessMicroblockSubmission(
         for (auto& microBlock : m_microBlocks)
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Timestamp: " << microBlock.GetHeader().GetTimestamp());
+                      "Timestamp: "
+                          << microBlock.GetHeader().GetTimestamp()
+                          << microBlock.GetHeader().GetStateDeltaHash());
         }
 
         cv_scheduleFinalBlockConsensus.notify_all();

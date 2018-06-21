@@ -489,7 +489,8 @@ bool Account::ChangeBalance(const int256_t& delta)
     }
     else
     {
-        return DecreaseBalance(uint256_t(delta));
+
+        return DecreaseBalance(uint256_t(-delta));
     }
 }
 

@@ -394,6 +394,23 @@ StateHash AccountStore::GetStateDeltaHash()
 
     LOG_PAYLOAD(INFO, "print vec: ", vec, 2000);
 
+    bool isEmpty = true;
+
+    for (unsigned int i = 0; i < vec.size(); i++)
+    {
+        if (vec[i] != 0)
+        {
+            isEmpty = false;
+            break;
+        }
+    }
+
+    if (isEmpty)
+    {
+        LOG_GENERAL(INFO, "Empty state hash");
+        return StateHash();
+    }
+
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
     sha2.Update(vec);
     return StateHash(sha2.Finalize());
