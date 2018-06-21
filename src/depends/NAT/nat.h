@@ -10,6 +10,8 @@
 	GNU General Public License for more details.
 	You should have received a copy of the GNU General Public License
 	along with cpp-ethereum.  If not, see <http://www.gnu.org/licenses/>.
+
+	Reference for miniupnp: http://upnp.org/specs/gw/UPnP-gw-WANIPConnection-v2-Service.pdf
 */
 /** @file UPnP.h
  * @authors:
@@ -17,9 +19,9 @@
  * @date 2014
  */
 
+#include <memory>
 #include <set>
 #include <string>
-#include <memory>
 
 struct UPNPUrls;
 struct IGDdatas;
@@ -27,19 +29,18 @@ struct IGDdatas;
 class NAT
 {
 public:
-	NAT();
-	~NAT();
+    NAT();
+    ~NAT();
 
-	std::string externalIP();
-	int addRedirect(int port);
-	void removeRedirect(int port);
-	bool isIntialized() const {return m_initialized;}
+    std::string externalIP();
+    int addRedirect(int port);
+    void removeRedirect(int port);
+    bool isIntialized() const { return m_initialized; }
 
 private:
-	std::set<unsigned int> m_reg;
-	bool m_initialized;
-	std::string m_lanAddress;
-	std::shared_ptr<UPNPUrls> m_urls;
-	std::shared_ptr<IGDdatas> m_data;
-
+    std::set<unsigned int> m_reg;
+    bool m_initialized;
+    std::string m_lanAddress;
+    std::shared_ptr<UPNPUrls> m_urls;
+    std::shared_ptr<IGDdatas> m_data;
 };
