@@ -167,7 +167,7 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const uint64_t& blockNum,
         return false;
     }
 
-    if (DecreaseBalance(fromAddr, gasDeposit))
+    if (!DecreaseBalance(fromAddr, gasDeposit))
     {
         return false;
     }
