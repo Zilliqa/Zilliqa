@@ -50,7 +50,7 @@ class Account : public Serializable
     Json::Value m_initValJson;
     vector<unsigned char> m_codeCache;
 
-    bool isContract() const { return m_codeHash != h256(); }
+    const h256 GetKeyHash(const string& key) const;
 
     AccountTrieDB<h256, dev::OverlayDB> m_storage;
 
@@ -63,6 +63,9 @@ public:
     /// Constructor for a account.
     Account(const uint256_t& balance, const uint256_t& nonce);
 
+    /// Returns true if account is a contract account
+    bool isContract() const { return m_codeHash != h256(); }
+
     /// Utilization function for trieDB
     void InitStorage();
 
@@ -74,7 +77,13 @@ public:
                            unsigned int offset) const;
 
     /// Implements the Deserialize function inherited from Serializable.
-    int Deserialize(const vector<unsigned char>& src, unsigned int offset);
+    int DeserializeAddOffset(const vector<unsigned char>& src,
+                             unsigned int& offset);
+
+    int Deserialize(const vector<unsigned char>& src, unsigned int offset)
+    {
+        return -1;
+    }
 
     /// Increases account balance by the specified delta amount.
     bool IncreaseBalance(const uint256_t& delta);
@@ -145,7 +154,7 @@ public:
                                        const Account& newAccount);
 
     static int DeserializeDelta(const vector<unsigned char>& src,
-                                unsigned int offset, Account& account,
+                                unsigned int& offset, Account& account,
                                 bool isNew);
 };
 

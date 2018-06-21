@@ -15,9 +15,7 @@
 **/
 #include <string>
 
-using namespace std;
-
-string icfCodeStr = R"(library CrowdFundingInvoke
+std::string icfCodeStr = R"(library CrowdFundingInvoke
 
 let one_msg = 
   fun (msg : Message) => 
@@ -72,7 +70,7 @@ transition Invoke (sender: Address, trans : String)
   end
 end)";
 
-string icfInitStr = R"([
+std::string icfInitStr = R"([
     {
         "vname" : "cfaddr",
         "type" : "Address", 
@@ -80,7 +78,7 @@ string icfInitStr = R"([
     }
 ])";
 
-string icfDataStr1 = R"({
+std::string icfDataStr1 = R"({
     "_tag": "Invoke",
     "_amount": "0",
     "params": [
@@ -97,7 +95,7 @@ string icfDataStr1 = R"({
     ]
 })";
 
-string icfDataStr2 = R"({
+std::string icfDataStr2 = R"({
     "_tag": "Invoke",
     "_amount": "0",
     "params": [
@@ -114,7 +112,7 @@ string icfDataStr2 = R"({
     ]
 })";
 
-string icfDataStr3 = R"({
+std::string icfDataStr3 = R"({
     "_tag": "Invoke",
     "_amount": "0",
     "params": [
@@ -131,7 +129,7 @@ string icfDataStr3 = R"({
     ]
 })";
 
-string icfOutStr1 = R"({
+std::string icfOutStr1 = R"({
   "message": {
     "_tag": "Donate",
     "_amount": "122",
@@ -149,7 +147,7 @@ string icfOutStr1 = R"({
   ]
 })";
 
-string icfOutStr2 = R"({
+std::string icfOutStr2 = R"({
   "message": {
     "_tag": "ClaimBack",
     "_amount": "0",
@@ -167,7 +165,7 @@ string icfOutStr2 = R"({
   ]
 })";
 
-string icfOutStr3 = R"({
+std::string icfOutStr3 = R"({
   "message": {
     "_tag": "GetFunds",
     "_amount": "0",

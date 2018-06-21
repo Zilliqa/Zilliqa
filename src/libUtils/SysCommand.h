@@ -24,39 +24,36 @@
 #include <memory>
 #include <string>
 
-const std::string EXEC_CMD_LOG = "ExecuteCmd.txt";
+#include "Logger.h"
 
 class SysCommand
 {
 public:
-    static void ExecuteCmd(const std::string cmd)
+    static const bool ExecuteCmdWithoutOutput(std::string cmd)
     {
-        int ret = std::system((cmd + " > " + EXEC_CMD_LOG).c_str());
-        (void)ret;
+        std::string str;
+        return ExecuteCmdWithOutput(cmd, str);
     }
 
-    static const std::string ExecuteCmdWithOutput(const std::string cmd)
+    static bool ExecuteCmdWithOutput(std::string cmd, std::string& output)
     {
         std::array<char, 128> buffer;
-        std::string result;
 
-        std::shared_ptr<FILE> pipe(popen(cmd.c_str(), "r"), pclose);
-        if (!pipe)
-            throw std::runtime_error("popen() failed!");
-        try
+        // Log the stderr into stdout as well
+        cmd += " 2>&1 ";
+        std::unique_ptr<FILE, decltype(&pclose)> proc(popen(cmd.c_str(), "r"),
+                                                      pclose);
+        if (!proc)
         {
-            while (!feof(pipe.get()))
-            {
-                if (fgets(buffer.data(), 128, pipe.get()) != nullptr)
-                    result += buffer.data();
-            }
+            LOG_GENERAL(WARNING, "popen() failed!");
+            return false;
         }
-        catch (...)
+        while (!feof(proc.get()))
         {
-            pclose(pipe.get());
-            throw;
+            if (fgets(buffer.data(), 128, proc.get()) != nullptr)
+                output += buffer.data();
         }
-        return result;
+        return true;
     }
 };
 
