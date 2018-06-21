@@ -15,7 +15,7 @@
 /// UPnP port forwarding support.
 
 #include "nat.h"
-#include "libUtils/Logger.h"
+// #include "libUtils/Logger.h"
 #include <arpa/inet.h> //INET6_ADDRSTRLEN
 #include <cstring>
 #include <iostream>
@@ -51,7 +51,7 @@ NAT::NAT()
 
     if (devlist.get() == NULL || error != 0)
     {
-        LOG_GENERAL(WARNING, "devlist empty or error in discovery");
+        //LOG_GENERAL(WARNING, "devlist empty or error in discovery");
         return;
     }
     char lan_address[INET6_ADDRSTRLEN];
@@ -61,7 +61,7 @@ NAT::NAT()
 
     if (status != 1)
     {
-        LOG_GENERAL(WARNING, "Unable to get Valid Internet Gateway Device ");
+        //LOG_GENERAL(WARNING, "Unable to get Valid Internet Gateway Device ");
         return;
     }
 
@@ -69,9 +69,19 @@ NAT::NAT()
     m_initialized = true;
 }
 
+NAT::~NAT()
+{
+    // LOG_MARKER();
+    auto r = m_reg;
+    for (auto i : r)
+    {
+        removeRedirect(i);
+    }
+}
+
 string NAT::externalIP()
 {
-    LOG_MARKER();
+    //LOG_MARKER();
     if (!m_initialized)
     {
         return "0.0.0.0";
@@ -85,14 +95,14 @@ string NAT::externalIP()
     }
     else
     {
-        LOG_GENERAL(WARNING, "Unable to get external IP");
+        //LOG_GENERAL(WARNING, "Unable to get external IP");
         return "0.0.0.0";
     }
 }
 
 int NAT::addRedirect(int _port)
 {
-    LOG_MARKER();
+    //LOG_MARKER();
     if (!m_initialized)
     {
         return -1;
@@ -108,16 +118,16 @@ int NAT::addRedirect(int _port)
         m_reg.insert(_port);
         return _port;
     }
-    else
-    {
-        LOG_GENERAL(WARNING, "Failed to map same port in router");
-    }
+    // else
+    // {
+    //    LOG_GENERAL(WARNING, "Failed to map same port in router");
+    // }
 
     if (UPNP_AddPortMapping(m_urls->controlURL, m_data->first.servicetype,
                             port_str.c_str(), NULL, m_lanAddress.c_str(), "zilliqa",
                             "TCP", NULL, NULL))
     {
-        LOG_GENERAL(WARNING, "Failed to map any Port");
+        //LOG_GENERAL(WARNING, "Failed to map any Port");
         return 0;
     }
 
@@ -145,34 +155,23 @@ int NAT::addRedirect(int _port)
         }
     }
 
-    LOG_GENERAL(WARNING, "Failed to find port. My listening port is " << port_str);
+    // LOG_GENERAL(WARNING, "Failed to find port. My listening port is " << port_str);
 
     return -1;
 }
 
 void NAT::removeRedirect(int _port)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     if (!m_initialized)
     {
-        LOG_GENERAL(WARNING, "Unitialized");
+        // LOG_GENERAL(WARNING, "Unitialized");
         return;
     }
     string port_str = to_string(_port);
     UPNP_DeletePortMapping(m_urls->controlURL, m_data->first.servicetype,
                            port_str.c_str(), "TCP", NULL);
     m_reg.erase(_port);
-}
-
-NAT::~NAT()
-{
-    LOG_MARKER();
-
-    auto r = m_reg;
-    for (auto i : r)
-    {
-        removeRedirect(i);
-    }
 }
 
