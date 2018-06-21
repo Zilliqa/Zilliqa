@@ -83,6 +83,7 @@ string NAT::externalIP()
     {
         return "0.0.0.0";
     }
+
     char addr[16];
 
     if (!UPNP_GetExternalIPAddress(m_urls->controlURL,
@@ -178,6 +179,11 @@ void NAT::removeRedirect(int _port)
         return;
     }
     
+    if (_port < 0 && _port > 65535)
+    {
+        return;
+    }
+
     string port_str = to_string(_port);
     UPNP_DeletePortMapping(m_urls->controlURL, m_data->first.servicetype,
                            port_str.c_str(), "TCP", NULL);
