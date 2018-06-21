@@ -110,8 +110,13 @@ int NAT::addRedirect(int _port)
         return -1;
     }
 
-	// 1) Try direct mapping first (port external, port internal).
     string port_str = to_string(_port);
+
+    // Remove any dangling mapping
+    UPNP_DeletePortMapping(m_urls->controlURL, m_data->first.servicetype,
+                           port_str.c_str(), "TCP", NULL);
+
+	// 1) Try direct mapping first (port external, port internal).
     int error = UPNP_AddPortMapping(
         m_urls->controlURL, m_data->first.servicetype, port_str.c_str(), port_str.c_str(),
         m_lanAddress.c_str(), "zilliqa", "TCP", NULL, NULL);
