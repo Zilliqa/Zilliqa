@@ -136,7 +136,7 @@ int NAT::addRedirect(int _port)
         UPNP_DeletePortMapping(m_urls->controlURL, m_data->first.servicetype,
                            ext_port_str.c_str(), "TCP", NULL);
 
-		if (!UPNP_AddPortMapping(m_urls->controlURL, m_data->first.servicetype, ext_port_str.c_str(), port_str.c_str(), m_lanAddress.c_str(), "ethereum", "TCP", NULL, NULL))
+		if (!UPNP_AddPortMapping(m_urls->controlURL, m_data->first.servicetype, ext_port_str.c_str(), port_str.c_str(), m_lanAddress.c_str(), "zilliqa", "TCP", NULL, NULL))
         {
             m_reg.insert(_port);
 			return _port;
@@ -144,7 +144,7 @@ int NAT::addRedirect(int _port)
 	}
 
 	// 3) Failed. Try asking the router to give us a free external port.
-    // This may not works on some routers.
+    // This may not work on some routers.
     char reservedPort[6];
     int result = UPNP_AddAnyPortMapping(m_urls->controlURL, m_data->first.servicetype,
                             port_str.c_str(), port_str.c_str(), m_lanAddress.c_str(), "zilliqa",
