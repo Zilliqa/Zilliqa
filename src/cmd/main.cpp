@@ -91,19 +91,18 @@ int main(int argc, const char* argv[])
         my_network_info = Peer((uint128_t)ip_addr.s_addr, localPort);
     }
 
-    vector<unsigned char> tmpprivkey
-        = DataConversion::HexStrToUint8Vec(argv[1]);
-    vector<unsigned char> tmppubkey = DataConversion::HexStrToUint8Vec(argv[2]);
+    vector<unsigned char> tmPrivkey = DataConversion::HexStrToUint8Vec(argv[1]);
+    vector<unsigned char> tmpPubkey = DataConversion::HexStrToUint8Vec(argv[2]);
 
     PrivKey privkey;
-    if (privkey.Deserialize(tmpprivkey, 0) != 0)
+    if (privkey.Deserialize(tmPrivkey, 0) != 0)
     {
         LOG_GENERAL(WARNING, "We failed to deserialize PrivKey.");
         return -1;
     }
 
     PubKey pubkey;
-    if (pubkey.Deserialize(tmppubkey, 0) != 0)
+    if (pubkey.Deserialize(tmpPubkey, 0) != 0)
     {
         LOG_GENERAL(WARNING, "We failed to deserialize PubKey.");
         return -1;
