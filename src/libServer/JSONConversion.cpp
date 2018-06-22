@@ -56,6 +56,33 @@ JSONConversion::convertTxnHashArraytoJson(const vector<TxnHash>& v)
     return jsonTxnHash;
 }
 
+const Json::Value
+JSONConversion::convertTxnHashArraytoJson(const vector<MicroBlockHashSet>& v)
+{
+    Json::Value jsonTxnHash;
+
+    for (auto i : v)
+    {
+        jsonTxnHash.append(i.m_txRootHash.hex());
+    }
+    return jsonTxnHash;
+}
+
+const Json::Value JSONConversion::convertMicroBlockHashSettoJson(
+    const vector<MicroBlockHashSet>& v)
+{
+    Json::Value jsonMicroBlockHashSets;
+
+    for (auto i : v)
+    {
+        Json::Value microBlockHashSet;
+        microBlockHashSet["txRootHash"] = i.m_txRootHash.hex();
+        microBlockHashSet["stateDeltaHash"] = i.m_stateDeltaHash.hex();
+        jsonMicroBlockHashSets.append(microBlockHashSet);
+    }
+    return jsonMicroBlockHashSets;
+}
+
 const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock)
 {
     Json::Value ret;

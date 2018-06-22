@@ -21,7 +21,13 @@ enum MessageOffset : unsigned int
 {
     TYPE = 0,
     INST = 1,
-    BODY = 2
+    BODY = 2,
+};
+
+enum NumberSign : unsigned char
+{
+    POSITIVE = 0x00,
+    NEGATIVE = 0x01,
 };
 
 enum MessageType : unsigned char
@@ -61,7 +67,8 @@ enum NodeInstructionType : unsigned char
     FINALBLOCK = 0x06,
     FORWARDTRANSACTION = 0x07,
     CREATETRANSACTIONFROMLOOKUP = 0x08,
-    VCBLOCK = 0x09
+    VCBLOCK = 0x09,
+    FORWARDSTATEDELTA = 0x0A,
 };
 
 enum LookupInstructionType : unsigned char

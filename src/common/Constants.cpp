@@ -107,13 +107,14 @@ const unsigned int NEW_NODE_POW_DELAY{
     ReadFromConstantsFile("NEW_NODE_POW_DELAY")};
 const unsigned int POST_VIEWCHANGE_BUFFER{
     ReadFromConstantsFile("POST_VIEWCHANGE_BUFFER")};
+const unsigned int WAITING_STATE_FORWARD_IN_SECONDS{
+    ReadFromConstantsFile("WAITING_STATE_FORWARD_IN_SECONDS")};
 const unsigned int N_PREFILLED_PER_ACCOUNT{
     ReadFromConstantsFile("N_PREFILLED_PER_ACCOUNT")};
 const std::vector<std::string> GENESIS_WALLETS{
     ReadAccountsFromConstantsFile("wallet_address")};
 const std::vector<std::string> GENESIS_KEYS{
     ReadAccountsFromConstantsFile("private_key")};
-
 const std::string SCILLA_PATH{ReadSmartContractConstants("SCILLA_PATH")};
 const std::string SCILLA_FILES{ReadSmartContractConstants("SCILLA_FILES")};
 const std::string SCILLA_LOG{ReadSmartContractConstants("SCILLA_LOG")};

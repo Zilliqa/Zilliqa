@@ -1,0 +1,206 @@
+/**
+* Copyright (c) 2018 Zilliqa 
+* This source code is being disclosed to you solely for the purpose of your participation in 
+* testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to 
+* the protocols and algorithms that are programmed into, and intended by, the code. You may 
+* not do anything else with the code without express permission from Zilliqa Research Pte. Ltd., 
+* including modifying or publishing the code (or any part of it), and developing or forming 
+* another public or private blockchain network. This source code is provided ‘as is’ and no 
+* warranties are given as to title or non-infringement, merchantability or fitness for purpose 
+* and, to the extent permitted by law, all liability for your use of the code is disclaimed. 
+* Some programs in this code are governed by the GNU General Public License v3.0 (available at 
+* https://www.gnu.org/licenses/gpl-3.0.en.html) (‘GPLv3’). The programs that are governed by 
+* GPLv3.0 are those programs that are located in the folders src/depends and tests/depends 
+* and which include a reference to GPLv3 in their program files.
+**/
+
+#ifndef __BLOCKHASHSET_H__
+#define __BLOCKHASHSET_H__
+
+#include "libData/AccountData/AccountStore.h"
+#include "libData/AccountData/Transaction.h"
+
+struct MicroBlockHashSet
+{
+    TxnHash m_txRootHash; // Tx merkle tree root hash
+    StateHash m_stateDeltaHash; // State Delta hash
+
+    /// Implements the Serialize function inherited from Serializable.
+    unsigned int Serialize(std::vector<unsigned char>& dst,
+                           unsigned int offset) const
+    {
+        copy(m_txRootHash.asArray().begin(), m_txRootHash.asArray().end(),
+             dst.begin() + offset);
+        offset += TRAN_HASH_SIZE;
+        copy(m_stateDeltaHash.asArray().begin(),
+             m_stateDeltaHash.asArray().end(), dst.begin() + offset);
+        offset += STATE_HASH_SIZE;
+        return offset;
+    }
+
+    /// Implements the Deserialize function inherited from Serializable.
+    int Deserialize(const std::vector<unsigned char>& src, unsigned int offset)
+    {
+        try
+        {
+            copy(src.begin() + offset, src.begin() + offset + TRAN_HASH_SIZE,
+                 m_txRootHash.asArray().begin());
+            offset += TRAN_HASH_SIZE;
+            copy(src.begin() + offset, src.begin() + offset + STATE_HASH_SIZE,
+                 m_stateDeltaHash.asArray().begin());
+            offset += STATE_HASH_SIZE;
+        }
+        catch (const std::exception& e)
+        {
+            LOG_GENERAL(WARNING,
+                        "Error with MicroBlockHashSet::Deserialize."
+                            << ' ' << e.what());
+            return -1;
+        }
+
+        return 0;
+    }
+
+    static constexpr unsigned int size()
+    {
+        return TRAN_HASH_SIZE + STATE_HASH_SIZE;
+    }
+
+    bool operator==(const MicroBlockHashSet& set) const
+    {
+        return std::tie(m_txRootHash, m_stateDeltaHash)
+            == std::tie(set.m_txRootHash, set.m_stateDeltaHash);
+    }
+    bool operator<(const MicroBlockHashSet& set) const
+    {
+        return std::tie(set.m_txRootHash, set.m_stateDeltaHash)
+            > std::tie(m_txRootHash, m_stateDeltaHash);
+    }
+    bool operator>(const MicroBlockHashSet& set) const
+    {
+        return !((*this == set) || (*this < set));
+    }
+
+    friend std::ostream& operator<<(std::ostream& os,
+                                    const MicroBlockHashSet& t);
+};
+
+inline std::ostream& operator<<(std::ostream& os, const MicroBlockHashSet& t)
+{
+    os << "m_txRootHash : " << t.m_txRootHash.hex() << std::endl
+       << "m_stateDeltaHash : " << t.m_stateDeltaHash.hex();
+    return os;
+}
+
+namespace std
+{
+    template<> struct hash<MicroBlockHashSet>
+    {
+        size_t operator()(MicroBlockHashSet const& set) const noexcept
+        {
+            size_t const h1(std::hash<std::string>{}(set.m_txRootHash.hex()));
+            size_t const h2(
+                std::hash<std::string>{}(set.m_stateDeltaHash.hex()));
+            return h1 ^ (h2 << 1);
+        }
+    };
+}
+
+struct TxBlockHashSet
+{
+    TxnHash m_txRootHash; // Microblock merkle tree root hash
+    StateHash m_stateRootHash; // State merkle tree root hash
+    StateHash m_deltaRootHash; // State delta merkle tree root hash
+
+    /// Implements the Serialize function inherited from Serializable.
+    unsigned int Serialize(std::vector<unsigned char>& dst,
+                           unsigned int offset) const
+    {
+        copy(m_txRootHash.asArray().begin(), m_txRootHash.asArray().end(),
+             dst.begin() + offset);
+        offset += TRAN_HASH_SIZE;
+        copy(m_stateRootHash.asArray().begin(), m_stateRootHash.asArray().end(),
+             dst.begin() + offset);
+        offset += STATE_HASH_SIZE;
+        copy(m_deltaRootHash.asArray().begin(), m_deltaRootHash.asArray().end(),
+             dst.begin() + offset);
+        offset += STATE_HASH_SIZE;
+        return offset;
+    }
+
+    /// Implements the Deserialize function inherited from Serializable.
+    int Deserialize(const std::vector<unsigned char>& src, unsigned int offset)
+    {
+        try
+        {
+            copy(src.begin() + offset, src.begin() + offset + TRAN_HASH_SIZE,
+                 m_txRootHash.asArray().begin());
+            offset += TRAN_HASH_SIZE;
+            copy(src.begin() + offset, src.begin() + offset + STATE_HASH_SIZE,
+                 m_stateRootHash.asArray().begin());
+            offset += STATE_HASH_SIZE;
+            copy(src.begin() + offset, src.begin() + offset + STATE_HASH_SIZE,
+                 m_deltaRootHash.asArray().begin());
+            offset += STATE_HASH_SIZE;
+        }
+        catch (const std::exception& e)
+        {
+            LOG_GENERAL(WARNING,
+                        "Error with TxBlockHashSet::Deserialize." << ' '
+                                                                  << e.what());
+            return -1;
+        }
+
+        return 0;
+    }
+
+    bool operator==(const TxBlockHashSet& set) const
+    {
+        return std::tie(m_txRootHash, m_stateRootHash, m_deltaRootHash)
+            == std::tie(set.m_txRootHash, set.m_stateRootHash,
+                        set.m_deltaRootHash);
+    }
+    bool operator<(const TxBlockHashSet& set) const
+    {
+        return std::tie(set.m_txRootHash, set.m_stateRootHash,
+                        set.m_deltaRootHash)
+            > std::tie(m_txRootHash, m_stateRootHash, m_deltaRootHash);
+    }
+    bool operator>(const TxBlockHashSet& set) const
+    {
+        return !((*this == set) || (*this < set));
+    }
+
+    static constexpr unsigned int size()
+    {
+        return TRAN_HASH_SIZE + STATE_HASH_SIZE + STATE_HASH_SIZE;
+    }
+
+    friend std::ostream& operator<<(std::ostream& os, const TxBlockHashSet& t);
+};
+
+namespace std
+{
+    template<> struct hash<TxBlockHashSet>
+    {
+        size_t operator()(TxBlockHashSet const& set) const noexcept
+        {
+            size_t const h1(std::hash<std::string>{}(set.m_txRootHash.hex()));
+            size_t const h2(
+                std::hash<std::string>{}(set.m_stateRootHash.hex()));
+            size_t const h3(
+                std::hash<std::string>{}(set.m_deltaRootHash.hex()));
+            return h1 ^ (h2 ^ (h3 << 1));
+        }
+    };
+}
+
+inline std::ostream& operator<<(std::ostream& os, const TxBlockHashSet& t)
+{
+    os << "m_txRootHash : " << t.m_txRootHash.hex() << std::endl
+       << "m_stateRootHash : " << t.m_stateRootHash.hex() << std::endl
+       << "m_deltaRootHash : " << t.m_deltaRootHash.hex();
+    return os;
+}
+
+#endif // __BLOCKHASHSET_H__

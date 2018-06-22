@@ -14,47 +14,50 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#ifndef CONTRACTSTORAGE_H
-#define CONTRACTSTORAGE_H
+#include "AccountStore.h"
 
-#include <leveldb/db.h>
+#include "libUtils/DataConversion.h"
+#include "libUtils/Logger.h"
 
-#include "common/Singleton.h"
-#include "depends/libDatabase/LevelDB.h"
-#include "depends/libDatabase/OverlayDB.h"
-#include "depends/libTrie/TrieDB.h"
+using namespace std;
+using namespace boost::multiprecision;
 
-using namespace dev;
-
-class ContractStorage : public Singleton<ContractStorage>
+AccountStoreTemp::AccountStoreTemp(AccountStore& parent)
+    : m_parent(parent)
 {
-    friend class Singleton<ContractStorage>;
+}
 
-    OverlayDB m_stateDB;
-    LevelDB m_codeDB;
-
-    ContractStorage()
-        : m_stateDB("contractState")
-        , m_codeDB("contractCode"){};
-
-    ~ContractStorage() = default;
-
-public:
-    /// Returns the singleton ContractStorage instance.
-    static ContractStorage& GetContractStorage()
+Account* AccountStoreTemp::GetAccount(const Address& address)
+{
+    auto it = m_addressToAccount->find(address);
+    if (it != m_addressToAccount->end())
     {
-        static ContractStorage cs;
-        return cs;
+        LOG_GENERAL(INFO, "Got From Temp");
+        return &it->second;
     }
 
-    OverlayDB& GetStateDB() { return m_stateDB; }
+    // auto it2 = m_superAddressToAccount->find(address);
+    // if (it2 != m_superAddressToAccount->end())
+    // {
+    //     m_addressToAccount->insert(*it2);
+    //     return &(m_addressToAccount->find(address))->second;
+    // }
 
-    /// Adds a contract code to persistence
-    bool PutContractCode(const h160& address,
-                         const std::vector<unsigned char>& code);
+    Account* account = m_parent.GetAccount(address);
+    if (account)
+    {
+        LOG_GENERAL(INFO, "Got From Parent");
+        Account newaccount(*account);
+        m_addressToAccount->insert(make_pair(address, newaccount));
+        return &(m_addressToAccount->find(address))->second;
+    }
 
-    /// Get the desired code from persistence
-    const std::vector<unsigned char> GetContractCode(const h160& address);
-};
+    LOG_GENERAL(INFO, "Got Nullptr");
 
-#endif // CONTRACTSTORAGE_H
+    return nullptr;
+}
+
+const shared_ptr<map<Address, Account>>& AccountStoreTemp::GetAddressToAccount()
+{
+    return m_addressToAccount;
+}

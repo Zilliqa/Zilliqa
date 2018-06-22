@@ -68,7 +68,6 @@ BOOST_AUTO_TEST_CASE(testContract)
 
     Transaction tx1(1, nonce, NullAddress, sender, 0, 11, 66, code, data);
 
-    /// Comment this part until the interpreter can be called
     AccountStore::GetInstance().UpdateAccounts(1, tx1);
 
     bool checkToAddr = true;

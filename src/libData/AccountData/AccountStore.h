@@ -18,6 +18,7 @@
 #define __ACCOUNTSTORE_H__
 
 #include <json/json.h>
+#include <map>
 #include <mutex>
 #include <set>
 #include <unordered_map>
@@ -25,120 +26,94 @@
 #include <boost/multiprecision/cpp_int.hpp>
 
 #include "Account.h"
+#include "AccountStoreBase.h"
 #include "Address.h"
 #include "common/Constants.h"
-#include "common/Serializable.h"
+#include "common/Singleton.h"
 #include "depends/common/FixedHash.h"
+#include "depends/libDatabase/MemoryDB.h"
 #include "depends/libDatabase/OverlayDB.h"
 #include "depends/libTrie/TrieDB.h"
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Transaction.h"
 
-template<class KeyType, class DB>
-using SecureTrieDB = dev::SpecificTrieDB<dev::GenericTrieDB<DB>, KeyType>;
-
 using StateHash = dev::h256;
 
-/// Maintains the list of accounts.
-class AccountStore : public Serializable
+class AccountStore;
+
+class AccountStoreTemp
+    : public AccountStoreBase<MemoryDB, map<Address, Account>>
 {
-    std::unordered_map<Address, Account> m_addressToAccount;
+    // shared_ptr<unordered_map<Address, Account>> m_superAddressToAccount;
+    AccountStore& m_parent;
 
-    dev::OverlayDB m_db; // Our overlay for the state tree.
-    SecureTrieDB<Address, dev::OverlayDB>
-        m_state; // Our state tree, as an OverlayDB DB.
-    dev::h256 prevRoot;
+public:
+    // AccountStoreTemp(
+    //     const shared_ptr<unordered_map<Address, Account>>& addressToAccount);
+    AccountStoreTemp(AccountStore& parent);
 
-    uint64_t m_curBlockNum;
-    Address m_curContractAddr;
+    /// Returns the Account associated with the specified address.
+    Account* GetAccount(const Address& address) override;
+
+    const shared_ptr<map<Address, Account>>& GetAddressToAccount();
+};
+
+class AccountStore
+    : public AccountStoreBase<OverlayDB, unordered_map<Address, Account>>,
+      Singleton<AccountStore>
+{
+    friend class Singleton<AccountStore>;
+
+    shared_ptr<AccountStoreTemp> m_accountStoreTemp;
+
+    std::mutex m_mutexDelta;
+
+    vector<unsigned char> m_stateDeltaSerialized;
 
     AccountStore();
     ~AccountStore();
 
-    AccountStore(AccountStore const&) = delete;
-    void operator=(AccountStore const&) = delete;
-
-    static bool Compare(const Account& l, const Account& r);
-
-    bool UpdateStateTrie(const Address& address, const Account& account);
-
     /// Store the trie root to leveldb
-    void MoveRootToDisk(const dev::h256& root);
-
-    bool ParseCreateContractOutput();
-
-    bool ParseCreateContractJsonOutput(const Json::Value& json);
-
-    bool ParseCallContractOutput();
-
-    bool ParseCallContractJsonOutput(const Json::Value& json);
-
-    Json::Value GetBlockStateJson(const uint64_t& BlockNum) const;
-
-    std::string GetCreateContractCmdStr();
-
-    std::string GetCallContractCmdStr();
-
-    // Generate input for interpreter to check the correctness of contract
-    bool ExportCreateContractFiles(Account* contract);
-
-    bool
-    ExportCallContractFiles(Account* contract,
-                            const std::vector<unsigned char>& contractData);
-
-    const std::vector<unsigned char>
-    CompositeContractData(const std::string& funcName,
-                          const std::string& amount, const Json::Value& params);
+    void MoveRootToDisk(const h256& root);
 
 public:
     /// Returns the singleton AccountStore instance.
     static AccountStore& GetInstance();
+
+    int Deserialize(const vector<unsigned char>& src,
+                    unsigned int offset) override;
+
+    void SerializeDelta();
+
+    unsigned int GetSerializedDelta(vector<unsigned char>& dst);
+
+    int DeserializeDelta(const vector<unsigned char>& src, unsigned int offset);
+
     /// Empty the state trie, must be called explicitly otherwise will retrieve the historical data
-    void Init();
-    /// Implements the Serialize function inherited from Serializable.
-    unsigned int Serialize(std::vector<unsigned char>& dst,
-                           unsigned int offset) const;
+    void Init() override;
 
-    /// Implements the Deserialize function inherited from Serializable.
-    int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+    Account* GetAccount(const Address& address) override;
 
-    /// Verifies existence of Account in the list.
-    bool DoesAccountExist(const Address& address);
-
-    /// Adds an Account to the list.
-    void AddAccount(const Address& address, const Account& account);
-    void AddAccount(const PubKey& pubKey, const Account& account);
-
-    bool UpdateAccounts(const uint64_t& blockNum,
-                        const Transaction& transaction);
-
-    /// Returns the Account associated with the specified address.
-    Account* GetAccount(const Address& address);
-    boost::multiprecision::uint256_t GetNumOfAccounts() const;
-
-    bool IncreaseBalance(const Address& address,
-                         const boost::multiprecision::uint256_t& delta);
-    bool DecreaseBalance(const Address& address,
-                         const boost::multiprecision::uint256_t& delta);
-
-    /// Updates the source and destination accounts included in the specified Transaction.
-    bool TransferBalance(const Address& from, const Address& to,
-                         const boost::multiprecision::uint256_t& delta);
-    boost::multiprecision::uint256_t GetBalance(const Address& address);
-
-    bool IncreaseNonce(const Address& address);
-    boost::multiprecision::uint256_t GetNonce(const Address& address);
-
-    dev::h256 GetStateRootHash() const;
-
-    bool UpdateStateTrieAll();
     void MoveUpdatesToDisk();
     void DiscardUnsavedUpdates();
 
-    void PrintAccountState();
-
     bool RetrieveFromDisk();
-    void RepopulateStateTrie();
+
+    bool UpdateAccountsTemp(const uint64_t& blockNum,
+                            const Transaction& transaction);
+
+    void AddAccountTemp(const Address& address, const Account& account)
+    {
+        m_accountStoreTemp->AddAccount(address, account);
+    }
+
+    StateHash GetStateDeltaHash();
+
+    void CommitTemp();
+
+    bool CommitStateDelta(AccountStoreTemp& stateDeltaStore);
+
+    void InitTemp() { m_accountStoreTemp->Init(); }
 };
 
 #endif // __ACCOUNTSTORE_H__

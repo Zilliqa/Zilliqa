@@ -14,31 +14,31 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#ifndef __TXNROOTCOMPUTATION_H__
-#define __TXNROOTCOMPUTATION_H__
+#ifndef __SINGLETON_H__
+#define __SINGLETON_H__
 
-#include <list>
-#include <unordered_map>
-#include <vector>
+template<typename T> class Singleton
+{
+protected:
+    Singleton() noexcept = default;
 
-#include "depends/libDatabase/MemoryDB.h"
-#include "depends/libTrie/TrieDB.h"
-#include "libData/BlockData/BlockHeader/BlockHashSet.h"
+    Singleton(const Singleton&) = delete;
 
-StateHash
-ComputeDeltasRoot(const std::vector<MicroBlockHashSet>& microBlockHashes);
+    Singleton& operator=(const Singleton&) = delete;
 
-TxnHash ComputeTransactionsRoot(const std::vector<TxnHash>& transactionHashes);
+    virtual ~Singleton() = default; // to silence base class Singleton<T> has a
+    // non-virtual destructor [-Weffc++]
 
-TxnHash
-ComputeTransactionsRoot(const std::list<Transaction>& receivedTransactions,
-                        const std::list<Transaction>& submittedTransactions);
+public:
+    static T& GetInstance() noexcept(std::is_nothrow_constructible<T>::value)
+    {
+        // Guaranteed to be destroyed.
+        // Instantiated on first use.
+        // Thread safe in C++11
+        static T instance;
 
-TxnHash ComputeTransactionsRoot(
-    const std::unordered_map<TxnHash, Transaction>& receivedTransactions,
-    const std::unordered_map<TxnHash, Transaction>& submittedTransactions);
+        return instance;
+    }
+};
 
-TxnHash
-ComputeTransactionsRoot(const std::vector<MicroBlockHashSet>& microBlockHashes);
-
-#endif // __TXNROOTCOMPUTATION_H__
+#endif // __SINGLETON_H__

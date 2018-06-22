@@ -161,7 +161,7 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
 
         SetState(WAITING_FINALBLOCK);
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Micro block consensus"
+                  "Micro block consensus "
                       << "is DONE!!! (Epoch " << m_mediator.m_currentEpochNum
                       << ")");
     }
@@ -212,6 +212,7 @@ bool Node::ComposeMicroBlock()
     uint256_t dsBlockNum = (uint256_t)m_mediator.m_currentEpochNum;
     BlockHash dsBlockHeader;
     fill(dsBlockHeader.asArray().begin(), dsBlockHeader.asArray().end(), 0x11);
+    StateHash stateDeltaHash = AccountStore::GetInstance().GetStateDeltaHash();
 
     // TxBlock
     vector<TxnHash> tranHashes;
@@ -252,7 +253,7 @@ bool Node::ComposeMicroBlock()
     m_microblock.reset(new MicroBlock(
         MicroBlockHeader(type, version, gasLimit, gasUsed, prevHash, blockNum,
                          timestamp, txRootHash, numTxs, minerPubKey, dsBlockNum,
-                         dsBlockHeader),
+                         dsBlockHeader, stateDeltaHash),
         tranHashes, CoSignatures()));
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -475,6 +476,8 @@ bool Node::RunConsensusOnMicroBlock()
     // if it takes reader lock later breaks out of loop
     SetState(MICROBLOCK_CONSENSUS_PREP);
 
+    AccountStore::GetInstance().SerializeDelta();
+
     if (m_isPrimary == true)
     {
         if (!RunConsensusOnMicroBlockWhenShardLeader())
@@ -670,6 +673,30 @@ bool Node::CheckMicroBlockTxnRootHash()
     return true;
 }
 
+bool Node::CheckMicroBlockStateDeltaHash()
+{
+    StateHash expectedStateDeltaHash
+        = AccountStore::GetInstance().GetStateDeltaHash();
+
+    LOG_GENERAL(INFO,
+                "Microblock state delta generation done "
+                    << DataConversion::charArrToHexStr(
+                           expectedStateDeltaHash.asArray()));
+    LOG_GENERAL(INFO,
+                "Expected root: " << DataConversion::charArrToHexStr(
+                    m_microblock->GetHeader().GetStateDeltaHash().asArray()));
+
+    if (expectedStateDeltaHash != m_microblock->GetHeader().GetStateDeltaHash())
+    {
+        LOG_GENERAL(WARNING, "State delta hash does not match");
+        return false;
+    }
+
+    LOG_GENERAL(INFO, "State delta hash check passed");
+
+    return true;
+}
+
 bool Node::MicroBlockValidator(const vector<unsigned char>& microblock,
                                vector<unsigned char>& errorMsg)
 {
@@ -684,7 +711,8 @@ bool Node::MicroBlockValidator(const vector<unsigned char>& microblock,
     {
         if (!CheckBlockTypeIsMicro() || !CheckMicroBlockVersion()
             || !CheckMicroBlockTimestamp() || !CheckMicroBlockHashes(errorMsg)
-            || !CheckMicroBlockTxnRootHash())
+            || !CheckMicroBlockTxnRootHash()
+            || !CheckMicroBlockStateDeltaHash())
         {
             break;
         }

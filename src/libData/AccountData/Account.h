@@ -42,8 +42,8 @@ using AccountTrieDB = SpecificTrieDB<dev::GenericTrieDB<DB>, KeyType>;
 
 class Account : public Serializable
 {
-    boost::multiprecision::uint256_t m_balance;
-    boost::multiprecision::uint256_t m_nonce;
+    uint256_t m_balance;
+    uint256_t m_nonce;
     h256 m_storageRoot, m_prevRoot;
     h256 m_codeHash;
     // The associated code for this account.
@@ -52,7 +52,7 @@ class Account : public Serializable
 
     const h256 GetKeyHash(const string& key) const;
 
-    AccountTrieDB<h256, OverlayDB> m_storage;
+    AccountTrieDB<h256, dev::OverlayDB> m_storage;
 
 public:
     Account();
@@ -77,13 +77,21 @@ public:
                            unsigned int offset) const;
 
     /// Implements the Deserialize function inherited from Serializable.
-    int Deserialize(const vector<unsigned char>& src, unsigned int offset);
+    int DeserializeAddOffset(const vector<unsigned char>& src,
+                             unsigned int& offset);
+
+    int Deserialize(const vector<unsigned char>& src, unsigned int offset)
+    {
+        return -1;
+    }
 
     /// Increases account balance by the specified delta amount.
     bool IncreaseBalance(const uint256_t& delta);
 
     /// Decreases account balance by the specified delta amount.
     bool DecreaseBalance(const uint256_t& delta);
+
+    bool ChangeBalance(const int256_t& delta);
 
     void SetBalance(const uint256_t& balance) { m_balance = balance; }
 
@@ -92,6 +100,8 @@ public:
 
     /// Increases account nonce by 1.
     bool IncreaseNonce();
+
+    bool IncreaseNonceBy(const uint256_t& nonceDelta);
 
     /// Returns the account nonce.
     const uint256_t& GetNonce() const { return m_nonce; }
@@ -102,19 +112,25 @@ public:
     const h256& GetStorageRoot() const { return m_storageRoot; }
 
     /// Set the code
-    void SetCode(const std::vector<unsigned char>& code);
+    void SetCode(const vector<unsigned char>& code);
 
-    const std::vector<unsigned char>& GetCode() const { return m_codeCache; }
+    const vector<unsigned char>& GetCode() const { return m_codeCache; }
 
     /// Returns the code hash.
     const h256& GetCodeHash() const { return m_codeHash; }
 
+    void SetStorage(const h256& k_hash, const string& rlpStr);
+
     void SetStorage(string k, string type, string v, bool is_mutable = true);
 
     /// Return the data for a parameter, type + value
-    vector<string> GetStorage(string _k) const;
+    vector<string> GetStorage(const string& _k) const;
+
+    string GetRawStorage(const h256& k_hash) const;
 
     Json::Value GetInitJson() const { return m_initValJson; }
+
+    vector<h256> GetStorageKeyHashes() const;
 
     Json::Value GetStorageJson() const;
 
@@ -131,6 +147,14 @@ public:
 
     friend inline std::ostream& operator<<(std::ostream& out,
                                            Account const& account);
+
+    static unsigned int SerializeDelta(vector<unsigned char>& src,
+                                       unsigned int offset, Account* oldAccount,
+                                       const Account& newAccount);
+
+    static int DeserializeDelta(const vector<unsigned char>& src,
+                                unsigned int& offset, Account& account,
+                                bool isNew);
 };
 
 inline std::ostream& operator<<(std::ostream& out, Account const& account)

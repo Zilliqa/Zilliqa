@@ -28,10 +28,12 @@ const unsigned int TRAN_HASH_SIZE = 32;
 const unsigned int TRAN_SIG_SIZE = 64;
 const unsigned int BLOCK_HASH_SIZE = 32;
 const unsigned int BLOCK_SIG_SIZE = 64;
+const unsigned int STATE_HASH_SIZE = 32;
 
 // Numeric types sizes
 const unsigned int UINT256_SIZE = 32;
 const unsigned int UINT128_SIZE = 16;
+const unsigned int INT256_SIZE = 32;
 
 // Cryptographic sizes
 const unsigned int PRIV_KEY_SIZE = 32;
@@ -45,7 +47,8 @@ const unsigned int RESPONSE_SIZE = 32;
 
 // Acount related sizes
 const unsigned int ACCOUNT_SIZE = UINT256_SIZE + UINT256_SIZE + COMMON_HASH_SIZE
-    + COMMON_HASH_SIZE /* + ACC_ADDR_SIZE + PUB_KEY_SIZE + STORAGE_ROOT_SIZE + CODE_HASH_SIZE*/
+    + COMMON_HASH_SIZE
+    + UINT256_SIZE /* + ACC_ADDR_SIZE + PUB_KEY_SIZE + STORAGE_ROOT_SIZE + CODE_HASH_SIZE*/
     ;
 
 const unsigned int DS_BLOCKCHAIN_SIZE = 50;
@@ -136,6 +139,7 @@ extern const unsigned int TX_SHARING_CLUSTER_SIZE;
 extern const unsigned int NEW_NODE_POW_DELAY;
 extern const unsigned int N_PREFILLED_PER_ACCOUNT;
 extern const unsigned int POST_VIEWCHANGE_BUFFER;
+extern const unsigned int WAITING_STATE_FORWARD_IN_SECONDS;
 extern const std::vector<std::string> GENESIS_WALLETS;
 extern const std::vector<std::string> GENESIS_KEYS;
 #endif // __CONSTANTS_H__
