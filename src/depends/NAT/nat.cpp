@@ -39,7 +39,19 @@ NAT::NAT()
     memset(m_data.get(), 0, sizeof(struct IGDdatas));
 
     m_initialized = false;
+}
 
+NAT::~NAT()
+{
+    auto regCopySafeToIterateDuringDelete = m_reg;
+    for (auto i : regCopySafeToIterateDuringDelete)
+    {
+        removeRedirect(i);
+    }
+}
+
+void NAT::init()
+{
     shared_ptr<struct UPNPDev> devlist;
     int error = 0;
     
@@ -68,14 +80,6 @@ NAT::NAT()
     m_initialized = true;
 }
 
-NAT::~NAT()
-{
-    auto regCopySafeToIterateDuringDelete = m_reg;
-    for (auto i : regCopySafeToIterateDuringDelete)
-    {
-        removeRedirect(i);
-    }
-}
 
 string NAT::externalIP()
 {
