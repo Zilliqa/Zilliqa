@@ -62,12 +62,12 @@ int main(int argc, const char* argv[])
     }
 
     unsigned int localPort = static_cast<unsigned int>(atoi(argv[4]));
+    unique_ptr<NAT> nt;
 
     if (string(argv[3]) == "NAT")
     {
-        NAT nt;
-
-        int mappedPort = nt.addRedirect(localPort);
+        nt = make_unique<NAT>();
+        int mappedPort = nt->addRedirect(localPort);
 
         if (mappedPort <= 0)
         {
@@ -77,12 +77,12 @@ int main(int argc, const char* argv[])
         else
         {
             LOG_GENERAL(INFO,
-                        "My external IP is " << nt.externalIP().c_str()
+                        "My external IP is " << nt->externalIP().c_str()
                                              << " and my mapped port is "
                                              << mappedPort);
         }
 
-        inet_aton(nt.externalIP().c_str(), &ip_addr);
+        inet_aton(nt->externalIP().c_str(), &ip_addr);
         my_network_info = Peer((uint128_t)ip_addr.s_addr, mappedPort);
     }
     else
