@@ -61,13 +61,13 @@ int main(int argc, const char* argv[])
         return 0;
     }
 
+    unsigned int localPort = static_cast<unsigned int>(atoi(argv[4]));
+
     if (string(argv[3]) == "NAT")
     {
         NAT nt;
 
-        unsigned int intPort = static_cast<unsigned int>(atoi(argv[4]));
-
-        int mappedPort = nt.addRedirect(intPort);
+        int mappedPort = nt.addRedirect(localPort);
 
         if (mappedPort <= 0)
         {
@@ -88,8 +88,7 @@ int main(int argc, const char* argv[])
     else
     {
         inet_aton(argv[3], &ip_addr);
-        my_network_info = Peer((uint128_t)ip_addr.s_addr,
-                               static_cast<unsigned int>(atoi(argv[4])));
+        my_network_info = Peer((uint128_t)ip_addr.s_addr, localPort);
     }
 
     vector<unsigned char> tmpprivkey
