@@ -489,8 +489,8 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json)
     // _tag field is empty
     if (_json["message"]["_tag"].asString().empty())
     {
-        LOG_GENERAL(WARNING, "_tag in the scilla output is empty when invoking a contract");
-        return false;
+        LOG_GENERAL(INFO, "_tag in the scilla output is empty when invoking a contract, transaction finished");
+        return true;
     }
 
     LOG_GENERAL(INFO, "Call another contract");
