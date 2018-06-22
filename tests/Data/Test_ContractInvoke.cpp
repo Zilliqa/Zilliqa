@@ -118,8 +118,6 @@ bool InvokeFunction(string icfDataStr, string icfOutStr, int blockNum,
     // BOOST_CHECK_MESSAGE(outStr == output_file,
     //                     "Error: didn't get desired output for" << sampleName);
 
-    //
-
     return true;
 }
 
