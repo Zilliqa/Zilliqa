@@ -57,10 +57,6 @@ public:
     const shared_ptr<map<Address, Account>>& GetAddressToAccount();
 };
 
-// template<class KeyType, class DB>
-// using SecureTrieDB = dev::SpecificTrieDB<dev::GenericTrieDB<DB>, KeyType>;
-// using StateHash = h256;
-
 class AccountStore
     : public AccountStoreTrie<OverlayDB, unordered_map<Address, Account>>,
       Singleton<AccountStore>
