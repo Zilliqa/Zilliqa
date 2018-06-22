@@ -36,7 +36,7 @@ int main(int argc, const char* argv[])
 {
     const int num_args_required = 1 + 7; // first 1 = program name
     struct in_addr ip_addr;
-    Peer my_port;
+    Peer my_network_info;
 
     INIT_FILE_LOGGER("zilliqa");
     INIT_STATE_LOGGER("state");
@@ -52,14 +52,16 @@ int main(int argc, const char* argv[])
              << endl;
         cout << "[USAGE] " << argv[0]
              << " <32-byte private_key> <33-byte public_key> "
-                "<listen_ip_address or NAT> <listen_port> <1 if loadConfig, 0 "
+                "<listen_ip_address or \"NAT\"> <listen_port> <1 if "
+                "loadConfig, 0 "
                 "otherwise> <SyncType, 0 for no, 1 for new,"
                 " 2 for normal, 3 for ds, 4 for lookup> "
                 "<1 if recovery, 0 otherwise>"
              << endl;
         return 0;
     }
-    else if (string(argv[3]) == "NAT")
+
+    if (string(argv[3]) == "NAT")
     {
         NAT nt;
 
@@ -81,13 +83,13 @@ int main(int argc, const char* argv[])
         }
 
         inet_aton(nt.externalIP().c_str(), &ip_addr);
-        Peer my_port((uint128_t)ip_addr.s_addr, mappedPort);
+        my_network_info = Peer((uint128_t)ip_addr.s_addr, mappedPort);
     }
     else
     {
         inet_aton(argv[3], &ip_addr);
-        Peer my_port((uint128_t)ip_addr.s_addr,
-                     static_cast<unsigned int>(atoi(argv[4])));
+        my_network_info = Peer((uint128_t)ip_addr.s_addr,
+                               static_cast<unsigned int>(atoi(argv[4])));
     }
 
     vector<unsigned char> tmpprivkey
@@ -108,8 +110,8 @@ int main(int argc, const char* argv[])
         return -1;
     }
 
-    Zilliqa zilliqa(make_pair(privkey, pubkey), my_port, atoi(argv[5]) == 1,
-                    atoi(argv[6]), atoi(argv[7]) == 1);
+    Zilliqa zilliqa(make_pair(privkey, pubkey), my_network_info,
+                    atoi(argv[5]) == 1, atoi(argv[6]), atoi(argv[7]) == 1);
 
     auto dispatcher = [&zilliqa](const vector<unsigned char>& message,
                                  const Peer& from) mutable -> void {
@@ -122,7 +124,7 @@ int main(int argc, const char* argv[])
     };
 
     P2PComm::GetInstance().StartMessagePump(
-        my_port.m_listenPortHost, dispatcher, broadcast_list_retriever);
+        my_network_info.m_listenPortHost, dispatcher, broadcast_list_retriever);
 
     return 0;
 }
