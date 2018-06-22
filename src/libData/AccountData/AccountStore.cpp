@@ -185,24 +185,15 @@ int AccountStore::DeserializeDelta(const vector<unsigned char>& src,
             Account* oriAccount = GetAccount(address);
             if (oriAccount == nullptr)
             {
+                Account acc(0, 0);
                 LOG_GENERAL(INFO, "Creating new account: " << address);
-                if (Account::DeserializeDelta(src, curOffset, account, true)
-                    < 0)
-                {
-                    LOG_GENERAL(WARNING,
-                                "We failed to deserialize accountDelta for new "
-                                "account: "
-                                    << address);
-                    continue;
-                }
-                AddAccount(address, account);
+                AddAccount(address, acc);
             }
-            else
             {
-                LOG_GENERAL(INFO, "Diff existing account: " << address);
+                LOG_GENERAL(INFO, "Diff account: " << address);
+                oriAccount = GetAccount(address);
                 account = *oriAccount;
-                if (Account::DeserializeDelta(src, curOffset, account, false)
-                    < 0)
+                if (Account::DeserializeDelta(src, curOffset, account) < 0)
                 {
                     LOG_GENERAL(WARNING,
                                 "We failed to parse accountDelta for account: "
@@ -210,7 +201,7 @@ int AccountStore::DeserializeDelta(const vector<unsigned char>& src,
 
                     continue;
                 }
-                //(*m_addressToAccount)[address] = account;
+                (*m_addressToAccount)[address] = account;
             }
             UpdateStateTrie(address, account);
         }
