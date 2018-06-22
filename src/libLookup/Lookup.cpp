@@ -1895,11 +1895,6 @@ bool Lookup::ProcessSetPowSubmissionFromSeed(
 {
     LOG_MARKER();
 #ifndef IS_LOOKUP_NODE
-    if (!InitMining())
-    {
-        return false;
-    }
-
     if (m_syncType == SyncType::DS_SYNC)
     {
         if (!m_currDSExpired)
