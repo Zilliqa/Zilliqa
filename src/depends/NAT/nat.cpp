@@ -15,7 +15,6 @@
 /// UPnP port forwarding support.
 
 #include "nat.h"
-// #include "libUtils/Logger.h"
 #include <arpa/inet.h> //INET6_ADDRSTRLEN
 #include <cstring>
 #include <iostream>
@@ -135,6 +134,7 @@ int NAT::addRedirect(int _port)
 		string ext_port_str = to_string(_port);
 		if (!UPNP_AddPortMapping(m_urls->controlURL, m_data->first.servicetype, ext_port_str.c_str(), port_str.c_str(), m_lanAddress.c_str(), "ethereum", "TCP", NULL, NULL))
         {
+            m_reg.insert(_port);
 			return _port;
         }
 	}
@@ -151,8 +151,9 @@ int NAT::addRedirect(int _port)
         return 0;
     }
     else
-    {
-        return atoi(reservedPort);
+    {   int obtainedPort = atoi(reservedPort);
+        m_reg.insert(obtainedPort);
+        return obtainedPort;
     }
 }
 
