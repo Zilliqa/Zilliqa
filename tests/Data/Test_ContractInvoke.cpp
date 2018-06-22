@@ -131,6 +131,8 @@ enum ResetType
 
 bool CreateContract(const int& blockNum, ResetType rType)
 {
+    LOG_MARKER();
+
     Address tAddress;
     string initStr, codeStr;
 
@@ -199,6 +201,8 @@ bool CreateContract(const int& blockNum, ResetType rType)
 void AutoTest(bool doResetCF, bool doResetICF,
               const vector<CFSampleInput>& samples)
 {
+    LOG_MARKER();
+
     bool didCreateCF{false}, didCreateICF{false};
 
     for (unsigned int i = 0; i < samples.size(); i++)
@@ -255,8 +259,6 @@ void AutoTest(bool doResetCF, bool doResetICF,
                 }
 
                 (*t_nonce)++;
-
-                delete t_nonce;
             }
 
             if (InvokeFunction(samples[i].icfSamples[j].icfDataStr,
