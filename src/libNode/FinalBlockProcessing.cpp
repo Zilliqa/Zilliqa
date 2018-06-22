@@ -535,7 +535,7 @@ void Node::CommitMyShardsMicroBlock(const TxBlock& finalblock,
     LOG_MARKER();
 
     // Loop through transactions in block
-    const vector<TxnHash>& tx_hashes = m_microblock.second->GetTranHashes();
+    const vector<TxnHash>& tx_hashes = m_microblock->GetTranHashes();
     for (unsigned int i = 0; i < tx_hashes.size(); i++)
     {
         const TxnHash& tx_hash = tx_hashes.at(i);
@@ -600,7 +600,7 @@ void Node::BroadcastTransactionsToSendingAssignment(
 
         // microblock state delta hash
         StateHash microBlockDeltaHash
-            = m_microblock.second->GetHeader().GetStateDeltaHash();
+            = m_microblock->GetHeader().GetStateDeltaHash();
         copy(microBlockDeltaHash.asArray().begin(),
              microBlockDeltaHash.asArray().end(),
              back_inserter(forwardtxn_message));
@@ -635,13 +635,12 @@ void Node::BroadcastTransactionsToSendingAssignment(
                   "DEBUG I have no txn body to send")
     }
 
-    if (m_microblock.second->GetHeader().GetStateDeltaHash() != StateHash())
+    if (m_microblock->GetHeader().GetStateDeltaHash() != StateHash())
     {
 
         BroadcastStateDeltaToSendingAssignment(
             blocknum, sendingAssignment,
-            m_microblock.second->GetHeader().GetStateDeltaHash(),
-            microBlockTxHash);
+            m_microblock->GetHeader().GetStateDeltaHash(), microBlockTxHash);
     }
 
     LOG_STATE("[TXBOD][" << setw(15) << left
@@ -757,20 +756,20 @@ void Node::LoadForwardingAssignmentFromFinalBlock(
 bool Node::IsMyShardsMicroBlockTxRootHashInFinalBlock(
     const uint256_t& blocknum, bool& isEveryMicroBlockAvailable)
 {
-    return m_microblock.second != nullptr
+    return m_microblock != nullptr
         && IsMicroBlockTxRootHashInFinalBlock(
-               m_microblock.second->GetHeader().GetTxRootHash(),
-               m_microblock.second->GetHeader().GetStateDeltaHash(), blocknum,
+               m_microblock->GetHeader().GetTxRootHash(),
+               m_microblock->GetHeader().GetStateDeltaHash(), blocknum,
                isEveryMicroBlockAvailable);
 }
 
 bool Node::IsMyShardsMicroBlockStateDeltaHashInFinalBlock(
     const uint256_t& blocknum, bool& isEveryMicroBlockAvailable)
 {
-    bool b = m_microblock.second != nullptr
+    bool b = m_microblock != nullptr
         && IsMicroBlockStateDeltaHashInFinalBlock(
-                 m_microblock.second->GetHeader().GetStateDeltaHash(),
-                 m_microblock.second->GetHeader().GetTxRootHash(), blocknum,
+                 m_microblock->GetHeader().GetStateDeltaHash(),
+                 m_microblock->GetHeader().GetTxRootHash(), blocknum,
                  isEveryMicroBlockAvailable);
 
     return b;
@@ -838,7 +837,7 @@ bool Node::ActOnFinalBlock(uint8_t tx_sharing_mode, const vector<Peer>& nodes)
         {
             BroadcastTransactionsToSendingAssignment(
                 blocknum, sendingAssignment,
-                m_microblock.second->GetHeader().GetTxRootHash(), txns_to_send);
+                m_microblock->GetHeader().GetTxRootHash(), txns_to_send);
         }
         {
             lock_guard<mutex> gt(m_mutexTempCommitted);
@@ -898,8 +897,7 @@ bool Node::ActOnFinalBlock(uint8_t tx_sharing_mode,
             {
                 BroadcastTransactionsToSendingAssignment(
                     blocknum, sendingAssignment,
-                    m_microblock.second->GetHeader().GetTxRootHash(),
-                    txns_to_send);
+                    m_microblock->GetHeader().GetTxRootHash(), txns_to_send);
             }
 
             {
@@ -1368,7 +1366,7 @@ bool Node::CheckStateRoot(const TxBlock& finalBlock)
 // void Node::StoreMicroBlocksToDisk()
 // {
 //     LOG_MARKER();
-//     for(auto microBlock : m_microblock.seconds)
+//     for(auto microBlock : m_microblocks)
 //     {
 
 //         LOG_GENERAL(INFO,  "Storing Micro Block Hash: " << microBlock.GetHeader().GetTxRootHash() <<
@@ -1382,7 +1380,7 @@ bool Node::CheckStateRoot(const TxBlock& finalBlock)
 //         BlockStorage::GetBlockStorage().PutMicroBlock(microBlock.GetHeader().GetTxRootHash(),
 //                                                serializedMicroBlock);
 //     }
-//     m_microblock.seconds.clear();
+//     m_microblocks.clear();
 // }
 
 bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
