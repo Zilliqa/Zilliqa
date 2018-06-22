@@ -189,20 +189,20 @@ int AccountStore::DeserializeDelta(const vector<unsigned char>& src,
                 LOG_GENERAL(INFO, "Creating new account: " << address);
                 AddAccount(address, acc);
             }
-            {
-                LOG_GENERAL(INFO, "Diff account: " << address);
-                oriAccount = GetAccount(address);
-                account = *oriAccount;
-                if (Account::DeserializeDelta(src, curOffset, account) < 0)
-                {
-                    LOG_GENERAL(WARNING,
-                                "We failed to parse accountDelta for account: "
-                                    << address);
 
-                    continue;
-                }
-                (*m_addressToAccount)[address] = account;
+            LOG_GENERAL(INFO, "Diff account: " << address);
+            oriAccount = GetAccount(address);
+            account = *oriAccount;
+            if (Account::DeserializeDelta(src, curOffset, account) < 0)
+            {
+                LOG_GENERAL(
+                    WARNING,
+                    "We failed to parse accountDelta for account: " << address);
+
+                continue;
             }
+            (*m_addressToAccount)[address] = account;
+
             UpdateStateTrie(address, account);
         }
         LOG_GENERAL(INFO, "After DeserializeDelta");
@@ -364,9 +364,10 @@ bool AccountStore::UpdateCoinbaseTemp(const Address& rewardee,
     LOG_MARKER();
 
     lock_guard<mutex> g(m_mutexDelta);
-
-    LOG_GENERAL(INFO,
-                "Rewarded " << rewardee.hex() << " with amount " << amount);
+    if (m_accountStoreTemp->GetAccount(rewardee) == nullptr)
+    {
+        m_accountStoreTemp->AddAccount(rewardee, {0, 0});
+    }
     return m_accountStoreTemp->TransferBalance(genesisAddress, rewardee,
                                                amount);
     //Should the nonce increase ??
@@ -376,8 +377,6 @@ StateHash AccountStore::GetStateDeltaHash()
 {
     vector<unsigned char> vec;
     GetSerializedDelta(vec);
-
-    LOG_PAYLOAD(INFO, "print vec: ", vec, 2000);
 
     bool isEmpty = true;
 
@@ -392,7 +391,6 @@ StateHash AccountStore::GetStateDeltaHash()
 
     if (isEmpty)
     {
-        LOG_GENERAL(INFO, "Empty state hash");
         return StateHash();
     }
 

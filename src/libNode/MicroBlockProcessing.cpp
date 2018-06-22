@@ -163,6 +163,8 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
                   "Micro block consensus "
                       << "is DONE!!! (Epoch " << m_mediator.m_currentEpochNum
                       << ")");
+        m_lastMicroBlockCoSig.first = m_mediator.m_currentEpochNum;
+        m_lastMicroBlockCoSig.second.SetCoSignatures(*m_consensusObject);
     }
     else if (state == ConsensusCommon::State::ERROR)
     {
@@ -246,14 +248,12 @@ bool Node::ComposeMicroBlock()
             index++;
         }
     }
-    m_microblockEpochNum = m_mediator.m_currentEpochNum;
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Creating new micro block.")
     m_microblock.reset(new MicroBlock(
         MicroBlockHeader(type, version, gasLimit, gasUsed, prevHash, blockNum,
-                         timestamp, txRootHash, numTxs + m_numCoinbaseTxs,
-                         minerPubKey, dsBlockNum, dsBlockHeader,
-                         stateDeltaHash),
+                         timestamp, txRootHash, numTxs, minerPubKey, dsBlockNum,
+                         dsBlockHeader, stateDeltaHash),
         tranHashes, CoSignatures()));
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -474,124 +474,14 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup()
     return true;
 }
 
-const uint256_t RewardAmount = 100;
-
-bool Node::Coinbase(const shared_ptr<MicroBlock>& lastMicroblock,
-                    const TxBlock& lastTxBlock)
-{
-    if (GENESIS_WALLETS.size() == 0)
-    {
-        LOG_GENERAL(WARNING, "no genesis wallet");
-        return false;
-    }
-
-    Address genesisAccount(GENESIS_WALLETS[0]);
-
-    if (m_mediator.m_DSCommitteePubKeys.size() != lastTxBlock.GetB1().size())
-    {
-        LOG_GENERAL(WARNING, "B1 and DS pub keys size do not match");
-        return false;
-    }
-    if (m_mediator.m_DSCommitteePubKeys.size() != lastTxBlock.GetB2().size())
-    {
-        LOG_GENERAL(WARNING, "B2 and DS pub keys size do not match");
-        return false;
-    }
-    if (m_myShardMembersPubKeys.size() != lastMicroblock->GetB1().size())
-    {
-        LOG_GENERAL(WARNING,
-                    "B1 and shard members pub keys size do not match"
-                        << lastMicroblock->GetB1().size() << "  "
-                        << m_myShardMembersPubKeys.size());
-        return false;
-    }
-    if (m_myShardMembersPubKeys.size() != lastMicroblock->GetB2().size())
-    {
-        LOG_GENERAL(WARNING, "B2 and shard members pub keys size do not match");
-        return false;
-    }
-
-    vector<vector<bool>> B = {lastTxBlock.GetB1(), lastTxBlock.GetB2()};
-
-    for (unsigned int i = 0; i < B.size(); i++)
-    {
-        for (unsigned int j = 0; j < B[i].size(); j++)
-        {
-            if (B[i][j])
-            {
-                Address rewardee = Account::GetAddressFromPublicKey(
-                    m_mediator.m_DSCommitteePubKeys[j]);
-                if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
-                        rewardee, genesisAccount, RewardAmount))
-                {
-                    LOG_GENERAL(WARNING, "Could not reward " << rewardee);
-                    return false;
-                }
-                else
-                {
-                    //m_numCoinbaseTxs++;
-                }
-            }
-        }
-    }
-
-    B.clear();
-    B.push_back(lastMicroblock->GetB1());
-    B.push_back(lastMicroblock->GetB2());
-
-    for (unsigned int i = 0; i < B.size(); i++)
-    {
-        for (unsigned int j = 0; j < B[i].size(); j++)
-        {
-            if (B[i][j])
-            {
-                Address rewardee = Account::GetAddressFromPublicKey(
-                    m_myShardMembersPubKeys[j]);
-                if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
-                        rewardee, genesisAccount, RewardAmount))
-                {
-                    LOG_GENERAL(WARNING, "Could not reward " << rewardee);
-                    return false;
-                }
-                else
-                {
-                    //m_numCoinbaseTxs++;
-                }
-            }
-        }
-    }
-
-    return true;
-}
-
 bool Node::RunConsensusOnMicroBlock()
 {
     LOG_MARKER();
 
     // set state first and then take writer lock so that SubmitTransactions
     // if it takes reader lock later breaks out of loop
-    TxBlock lastTxBlock = m_mediator.m_txBlockChain.GetLastBlock();
-    m_numCoinbaseTxs = 0;
-    if (m_mediator.m_currentEpochNum > 1)
-    {
-        if (m_microblock != nullptr)
-        {
-            if (m_microblockEpochNum != m_mediator.m_currentEpochNum - 1)
-            {
-                LOG_GENERAL(WARNING, "Stale Microblock");
-            }
 
-            else if (!Coinbase(m_microblock, lastTxBlock))
-            {
-                LOG_GENERAL(WARNING, "Unable to process Coinbase");
-            }
-        }
-        else
-        {
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Microblock is Null for this epoch");
-        }
-    }
+    InitCoinbase();
 
     SetState(MICROBLOCK_CONSENSUS_PREP);
 
@@ -743,7 +633,7 @@ bool Node::CheckMicroBlockHashes(vector<unsigned char>& errorMsg)
 {
     // Check transaction hashes (number of hashes must be = Tx count field)
     uint32_t txhashessize = m_microblock->GetTranHashes().size();
-    uint32_t numtxs = m_microblock->GetHeader().GetNumTxs() - m_numCoinbaseTxs;
+    uint32_t numtxs = m_microblock->GetHeader().GetNumTxs();
     if (txhashessize != numtxs)
     {
         LOG_GENERAL(WARNING,
@@ -823,7 +713,6 @@ bool Node::MicroBlockValidator(const vector<unsigned char>& microblock,
 
     // [TODO] To put in the logic
     m_microblock = make_shared<MicroBlock>(MicroBlock(microblock, 0));
-    m_microblockEpochNum = m_mediator.m_currentEpochNum;
 
     bool valid = false;
 
