@@ -70,8 +70,8 @@ NAT::NAT()
 
 NAT::~NAT()
 {
-    auto r = m_reg;
-    for (auto i : r)
+    auto regCopySafeToIterateDuringDelete = m_reg;
+    for (auto i : regCopySafeToIterateDuringDelete)
     {
         removeRedirect(i);
     }
