@@ -1043,7 +1043,8 @@ void Node::BeginNextConsensusRound()
         //         LOG_GENERAL(INFO, "No need to wait for allMicroBlocksRecvd");
         //     }
         // }
-        this_thread::sleep_for(chrono::seconds(3));
+        this_thread::sleep_for(
+            chrono::seconds(WAITING_STATE_FORWARD_IN_SECONDS));
 
         ScheduleTxnSubmission();
     }

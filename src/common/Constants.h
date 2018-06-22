@@ -142,6 +142,7 @@ extern const unsigned int POST_VIEWCHANGE_BUFFER;
 extern const unsigned int CONTRACT_CREATE_GAS;
 extern const unsigned int CONTRACT_INVOKE_GAS;
 extern const unsigned int NORMAL_TRAN_GAS;
+extern const unsigned int WAITING_STATE_FORWARD_IN_SECONDS;
 extern const std::vector<std::string> GENESIS_WALLETS;
 extern const std::vector<std::string> GENESIS_KEYS;
 #endif // __CONSTANTS_H__

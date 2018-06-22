@@ -119,10 +119,9 @@ public:
     /// Returns the code hash.
     const h256& GetCodeHash() const { return m_codeHash; }
 
-    void SetStorage(const string& _k, const string& _type, const string& _v,
-                    bool _mutable = true);
-
     void SetStorage(const h256& k_hash, const string& rlpStr);
+
+    void SetStorage(string k, string type, string v, bool is_mutable = true);
 
     /// Return the data for a parameter, type + value
     vector<string> GetStorage(const string& _k) const;
@@ -146,7 +145,7 @@ public:
     static Address GetAddressForContract(const Address& sender,
                                          const uint256_t& nonce);
 
-    friend inline std::ostream& operator<<(std::ostream& _out,
+    friend inline std::ostream& operator<<(std::ostream& out,
                                            Account const& account);
 
     static unsigned int SerializeDelta(vector<unsigned char>& src,
@@ -158,11 +157,11 @@ public:
                                 bool isNew);
 };
 
-inline std::ostream& operator<<(std::ostream& _out, Account const& account)
+inline std::ostream& operator<<(std::ostream& out, Account const& account)
 {
-    _out << account.m_balance << " " << account.m_nonce << " "
-         << account.m_storageRoot << " " << account.m_codeHash;
-    return _out;
+    out << account.m_balance << " " << account.m_nonce << " "
+        << account.m_storageRoot << " " << account.m_codeHash;
+    return out;
 }
 
 #endif // __ACCOUNT_H__
