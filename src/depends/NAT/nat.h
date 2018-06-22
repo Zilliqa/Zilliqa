@@ -32,12 +32,14 @@ public:
     NAT();
     ~NAT();
 
+	void init();
     std::string externalIP();
     int addRedirect(int port);
     void removeRedirect(int port);
     bool isIntialized() const { return m_initialized; }
 
 private:
+
     std::set<unsigned int> m_reg;
     bool m_initialized;
     std::string m_lanAddress;

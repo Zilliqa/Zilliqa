@@ -67,6 +67,8 @@ int main(int argc, const char* argv[])
     if (string(argv[3]) == "NAT")
     {
         nt = make_unique<NAT>();
+        nt->init();
+
         int mappedPort = nt->addRedirect(localPort);
 
         if (mappedPort <= 0)
