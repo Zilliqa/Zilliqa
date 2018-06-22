@@ -1046,6 +1046,7 @@ void Node::BeginNextConsensusRound()
 
     if (!isVacuousEpoch)
     {
+
         // {
         //     unique_lock<mutex> g(m_mutexAllMicroBlocksRecvd, defer_lock);
         //     if (!m_allMicroBlocksRecvd)
@@ -1556,6 +1557,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 
     CallActOnFinalBlockBasedOnSenderForwarderAssgn(i_am_sender, i_am_forwarder,
                                                    nodes, shard_id);
+
 #else // IS_LOOKUP_NODE
     if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
     {
