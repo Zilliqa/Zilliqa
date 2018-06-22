@@ -132,6 +132,10 @@ int NAT::addRedirect(int _port)
 	{
 		_port = rand() % (32768 - 1024) + 1024;
 		string ext_port_str = to_string(_port);
+
+        UPNP_DeletePortMapping(m_urls->controlURL, m_data->first.servicetype,
+                           ext_port_str.c_str(), "TCP", NULL);
+
 		if (!UPNP_AddPortMapping(m_urls->controlURL, m_data->first.servicetype, ext_port_str.c_str(), port_str.c_str(), m_lanAddress.c_str(), "ethereum", "TCP", NULL, NULL))
         {
             m_reg.insert(_port);
