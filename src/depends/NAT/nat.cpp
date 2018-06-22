@@ -125,7 +125,7 @@ int NAT::addRedirect(int _port)
         m_reg.insert(_port);
         return _port;
     }
-
+    
     // 2) Failed - now try (random external, port internal) and cycle up to 10 times.
 	srand(static_cast<unsigned int>(time(nullptr)));
 	for (unsigned i = 0; i < 10; ++i)
@@ -152,7 +152,7 @@ int NAT::addRedirect(int _port)
 
     if (result)
     {
-        return 0;
+        return -1;
     }
     else
     {   int obtainedPort = atoi(reservedPort);
