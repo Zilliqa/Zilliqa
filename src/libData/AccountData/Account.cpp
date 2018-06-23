@@ -1,6 +1,17 @@
 /**
-* Copyright (c) 2018 Zilliqa 
-* This is an alpha (internal) release and is not suitable for production.
+* Copyright (c) 2018 Zilliqa
+* This source code is being disclosed to you solely for the purpose of your participation in
+* testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to
+* the protocols and algorithms that are programmed into, and intended by, the code. You may
+* not do anything else with the code without express permission from Zilliqa Research Pte. Ltd.,
+* including modifying or publishing the code (or any part of it), and developing or forming
+* another public or private blockchain network. This source code is provided ‘as is’ and no
+* warranties are given as to title or non-infringement, merchantability or fitness for purpose
+* and, to the extent permitted by law, all liability for your use of the code is disclaimed.
+* Some programs in this code are governed by the GNU General Public License v3.0 (available at
+* https://www.gnu.org/licenses/gpl-3.0.en.html) (‘GPLv3’). The programs that are governed by
+* GPLv3.0 are those programs that are located in the folders src/depends and tests/depends
+* and which include a reference to GPLv3 in their program files.
 **/
 
 #include "Account.h"
@@ -194,6 +205,7 @@ int Account::DeserializeAddOffset(const vector<unsigned char>& src,
         LOG_GENERAL(INFO, "m_codeHash: " << m_codeHash);
         offset += COMMON_HASH_SIZE;
         // Size of Code
+        // FIXME: To fix the casting
         unsigned int codeSize
             = (unsigned int)GetNumber<uint256_t>(src, offset, UINT256_SIZE);
         LOG_GENERAL(INFO, "codeSize: " << codeSize);
@@ -498,17 +510,16 @@ void Account::SetStorageRoot(const h256& root)
     m_prevRoot = m_storageRoot;
 }
 
-void Account::SetStorage(const string& _k, const string& _type,
-                         const string& _v, bool _mutable)
+void Account::SetStorage(string k, string type, string v, bool is_mutable)
 {
     if (!isContract())
     {
         return;
     }
     RLPStream rlpStream(4);
-    rlpStream << _k << (_mutable ? "True" : "False") << _type << _v;
+    rlpStream << k << (is_mutable ? "True" : "False") << type << v;
 
-    m_storage.insert(GetKeyHash(_k), rlpStream.out());
+    m_storage.insert(GetKeyHash(k), rlpStream.out());
 
     m_storageRoot = m_storage.root();
 }
@@ -553,9 +564,12 @@ vector<h256> Account::GetStorageKeyHashes() const
 Json::Value Account::GetStorageJson() const
 {
     if (!isContract())
+    {
         return Json::arrayValue;
+    }
+
     Json::Value root;
-    for (auto i : m_storage)
+    for (auto const& i : m_storage)
     {
         dev::RLP rlp(i.second);
         string tVname = rlp[0].toString();
@@ -570,6 +584,7 @@ Json::Value Account::GetStorageJson() const
         {
             continue;
         }
+
         Json::Value item;
         item["vname"] = tVname;
         item["type"] = tType;
@@ -596,12 +611,11 @@ Json::Value Account::GetStorageJson() const
         }
         root.append(item);
     }
-    Json::Value _balance;
-    _balance["vname"] = "_balance";
-    _balance["type"] = "Int";
-    int balance = static_cast<int>(GetBalance());
-    _balance["value"] = to_string(balance);
-    root.append(_balance);
+    Json::Value balance;
+    balance["vname"] = "_balance";
+    balance["type"] = "Int";
+    balance["value"] = GetBalance().convert_to<string>();
+    root.append(balance);
 
     LOG_GENERAL(INFO, "States: " << root);
 
@@ -661,7 +675,13 @@ Address Account::GetAddressForContract(const Address& sender,
     sha2.Update(nonceBytes);
 
     const vector<unsigned char>& output = sha2.Finalize();
-    assert(output.size() == 32);
+
+    if (output.size() != 32)
+    {
+        LOG_GENERAL(FATAL,
+                    "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
+                                         << __FUNCTION__ << ")");
+    }
 
     copy(output.end() - ACC_ADDR_SIZE, output.end(), address.asArray().begin());
 
@@ -671,12 +691,13 @@ Address Account::GetAddressForContract(const Address& sender,
 void Account::SetCode(const vector<unsigned char>& code)
 {
     LOG_MARKER();
+
     if (code.size() == 0)
+    {
         return;
+    }
+
     m_codeCache = code;
-    // LOG_GENERAL(INFO,
-    //             "Contract Data: \n"
-    //                 << DataConversion::CharArrayToString(code));
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
     sha2.Update(code);
     m_codeHash = dev::h256(sha2.Finalize());
