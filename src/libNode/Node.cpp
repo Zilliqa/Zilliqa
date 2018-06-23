@@ -624,7 +624,28 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
     // This message is sent by my shard peers
     // Message = [204-byte transaction]
 
-    //LOG_MARKER();
+    LOG_MARKER();
+
+    bool isVacuousEpoch
+        = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
+
+    if (!isVacuousEpoch)
+    {
+        unique_lock<mutex> g(m_mutexAllMicroBlocksRecvd, defer_lock);
+        if (!m_allMicroBlocksRecvd)
+        {
+            LOG_GENERAL(INFO, "Wait for allMicroBlocksRecvd");
+            m_cvAllMicroBlocksRecvd.wait(
+                g, [this] { return m_allMicroBlocksRecvd; });
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "All microblocks recvd, moving to "
+                      "ProcessSubmitTxnSharing");
+        }
+        else
+        {
+            LOG_GENERAL(INFO, "No need to wait for allMicroBlocksRecvd");
+        }
+    }
 
     unsigned int cur_offset = offset;
 
@@ -655,27 +676,6 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
                       "Time out while waiting for state transition ");
         }
 
-        // bool isVacuousEpoch
-        //     = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
-
-        // if (!isVacuousEpoch)
-        // {
-        //     unique_lock<mutex> g(m_mutexAllMicroBlocksRecvd, defer_lock);
-        //     if (!m_allMicroBlocksRecvd)
-        //     {
-        //         LOG_GENERAL(INFO, "Wait for allMicroBlocksRecvd");
-        //         m_cvAllMicroBlocksRecvd.wait(
-        //             g, [this] { return m_allMicroBlocksRecvd; });
-        //         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-        //                   "All microblocks recvd, moving to "
-        //                   "ProcessSubmitTxnSharing");
-        //     }
-        //     else
-        //     {
-        //         LOG_GENERAL(INFO, "No need to wait for allMicroBlocksRecvd");
-        //     }
-        // }
-
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "State transition is completed. (check for timeout)");
 
@@ -690,7 +690,28 @@ bool Node::ProcessCreateTransactionFromLookup(
 {
 #ifndef IS_LOOKUP_NODE
 
-    //LOG_MARKER();
+    LOG_MARKER();
+
+    bool isVacuousEpoch
+        = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
+
+    if (!isVacuousEpoch)
+    {
+        unique_lock<mutex> g(m_mutexAllMicroBlocksRecvd, defer_lock);
+        if (!m_allMicroBlocksRecvd)
+        {
+            LOG_GENERAL(INFO, "Wait for allMicroBlocksRecvd");
+            m_cvAllMicroBlocksRecvd.wait(
+                g, [this] { return m_allMicroBlocksRecvd; });
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "All microblocks recvd, moving to "
+                      "ProcessSubmitTxnSharing");
+        }
+        else
+        {
+            LOG_GENERAL(INFO, "No need to wait for allMicroBlocksRecvd");
+        }
+    }
 
     if (IsMessageSizeInappropriate(message.size(), offset,
                                    Transaction::GetMinSerializedSize()))
