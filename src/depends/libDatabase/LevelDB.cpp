@@ -41,7 +41,7 @@ LevelDB::LevelDB(const string & dbName, const string & subdirectory)
     leveldb::DB* db;
     leveldb::Status status;
 
-    if(!m_subdirectory.size())
+    if(m_subdirectory.empty())
     {
         status = leveldb::DB::Open(options, "./" + PERSISTENCE_PATH + "/" + this->m_dbName, &db);
     }
@@ -66,8 +66,7 @@ LevelDB::LevelDB(const string & dbName)
 {
     this->m_dbName = dbName;
 
-    string path = "./persistence";
-    boost::filesystem::create_directories(path);
+    boost::filesystem::create_directories("./" + PERSISTENCE_PATH);
 
     leveldb::Options options;
     options.max_open_files = 256;
@@ -75,7 +74,7 @@ LevelDB::LevelDB(const string & dbName)
 
     leveldb::DB* db;
 
-    leveldb::Status status = leveldb::DB::Open(options, path + "/" + this->m_dbName, &db);
+    leveldb::Status status = leveldb::DB::Open(options, "./" + PERSISTENCE_PATH + "/" + this->m_dbName, &db);
     if(!status.ok())
     {
         // throw exception();
@@ -350,7 +349,7 @@ int LevelDB::DeleteDB()
 
 bool LevelDB::ResetDB()
 {
-    if(DeleteDB()==0 && !this->m_subdirectory.size())
+    if(DeleteDB() == 0 && this->m_subdirectory.empty())
     {
         boost::filesystem::remove_all("./" + PERSISTENCE_PATH + "/" + this->m_dbName);
 
@@ -396,8 +395,7 @@ bool LevelDB::ResetDB()
 {
     if(DeleteDB()==0)
     {
-        string path = "./persistence";
-        boost::filesystem::remove_all(path + "/" + this->m_dbName);
+        boost::filesystem::remove_all("./" + PERSISTENCE_PATH + "/" + this->m_dbName);
 
         leveldb::Options options;
         options.max_open_files = 256;
@@ -405,7 +403,7 @@ bool LevelDB::ResetDB()
 
         leveldb::DB* db;
 
-        leveldb::Status status = leveldb::DB::Open(options, path + "/" + this->m_dbName, &db);
+        leveldb::Status status = leveldb::DB::Open(options, "./" + PERSISTENCE_PATH + "/" + this->m_dbName, &db);
         if(!status.ok())
         {
             // throw exception();

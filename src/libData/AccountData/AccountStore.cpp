@@ -24,6 +24,7 @@
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
+#include "libUtils/SysCommand.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -43,7 +44,7 @@ void AccountStore::Init()
 {
     LOG_MARKER();
     m_addressToAccount.clear();
-    ContractStorage::GetContractStorage().GetDB().ResetDB();
+    ContractStorage::GetContractStorage().GetStateDB().ResetDB();
     m_db.ResetDB();
     m_state.init();
     prevRoot = m_state.root();
@@ -179,19 +180,516 @@ void AccountStore::AddAccount(const PubKey& pubKey, const Account& account)
     AddAccount(Account::GetAddressFromPublicKey(pubKey), account);
 }
 
-void AccountStore::UpdateAccounts(const Transaction& transaction)
+bool AccountStore::UpdateAccounts(const uint64_t& blockNum,
+                                  const Transaction& transaction)
 {
-    //LOG_MARKER();
+    LOG_MARKER();
 
     const PubKey& senderPubKey = transaction.GetSenderPubKey();
     const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
-    const Address& toAddr = transaction.GetToAddr();
+    Address toAddr = transaction.GetToAddr();
     const uint256_t& amount = transaction.GetAmount();
 
+    bool callContract = false;
+
+    if (transaction.GetData().size() > 0 && toAddr != NullAddress)
+    {
+        if (amount != 0)
+        {
+            LOG_GENERAL(
+                WARNING,
+                "The balance for a contract transaction shouldn't be non-zero");
+            return false;
+        }
+        callContract = true;
+    }
+
+    if (transaction.GetCode().size() > 0 && toAddr == NullAddress)
+    {
+        LOG_GENERAL(INFO, "Create Contract");
+
+        if (amount != 0)
+        {
+            LOG_GENERAL(
+                WARNING,
+                "The balance for a contract transaction shouldn't be non-zero");
+            return false;
+        }
+
+        // Create contract account
+        Account* account = GetAccount(fromAddr);
+        // FIXME: remove this, temporary way to test transactions
+        if (account == nullptr)
+        {
+            LOG_GENERAL(WARNING,
+                        "AddAccount... FIXME: remove this, temporary way to "
+                        "test transactions");
+            AddAccount(fromAddr, {10000000000, 0});
+        }
+
+        toAddr = Account::GetAddressForContract(
+            fromAddr, m_addressToAccount[fromAddr].GetNonce());
+        AddAccount(toAddr, {0, 0});
+        m_addressToAccount[toAddr].SetCode(transaction.GetCode());
+        // Store the immutable states
+        m_addressToAccount[toAddr].InitContract(transaction.GetData());
+
+        Account* toAccount = GetAccount(toAddr);
+        if (toAccount == nullptr)
+        {
+            LOG_GENERAL(WARNING,
+                        "The target contract account doesn't exist, which "
+                        "shouldn't happen!");
+            return false;
+        }
+
+        m_curBlockNum = blockNum;
+
+        if (ExportCreateContractFiles(toAccount))
+        {
+            if (!SysCommand::ExecuteCmdWithoutOutput(GetCreateContractCmdStr()))
+            {
+                LOG_GENERAL(
+                    WARNING,
+                    "Interpreter does not admit this contract creation");
+                return false;
+            }
+            if (!ParseCreateContractOutput())
+            {
+                m_addressToAccount.erase(toAddr);
+                return false;
+            }
+        }
+    }
+
     TransferBalance(fromAddr, toAddr, amount);
+
+    if (callContract)
+    {
+        LOG_GENERAL(INFO, "Call Contract");
+
+        Account* toAccount = GetAccount(toAddr);
+        if (toAccount == nullptr)
+        {
+            LOG_GENERAL(WARNING, "The target contract account doesn't exist");
+            return false;
+        }
+
+        m_curBlockNum = blockNum;
+
+        // TODO: Implement the calling of interpreter in multi-thread
+        if (ExportCallContractFiles(toAccount, transaction.GetData()))
+        {
+            m_curContractAddr = toAddr;
+            if (!SysCommand::ExecuteCmdWithoutOutput(GetCallContractCmdStr()))
+            {
+                LOG_GENERAL(
+                    WARNING,
+                    "Interpreter does not admit this contract invocation");
+                return false;
+            }
+            if (!ParseCallContractOutput())
+            {
+                return false;
+            }
+        }
+    }
+
     IncreaseNonce(fromAddr);
 
-    //TODO: Process the contract
+    return true;
+}
+
+Json::Value AccountStore::GetBlockStateJson(const uint64_t& BlockNum) const
+{
+    Json::Value root;
+    Json::Value blockItem;
+    blockItem["vname"] = "BLOCKNUMBER";
+    blockItem["type"] = "BNum";
+    blockItem["value"] = to_string(BlockNum);
+    root.append(blockItem);
+    return root;
+}
+
+bool AccountStore::ExportCreateContractFiles(Account* contract)
+{
+    LOG_MARKER();
+
+    boost::filesystem::remove_all("./" + SCILLA_FILES);
+    boost::filesystem::create_directories("./" + SCILLA_FILES);
+
+    if (!(boost::filesystem::exists("./" + SCILLA_LOG)))
+    {
+        boost::filesystem::create_directories("./" + SCILLA_LOG);
+    }
+
+    Json::StreamWriterBuilder writeBuilder;
+    std::unique_ptr<Json::StreamWriter> writer(writeBuilder.newStreamWriter());
+    std::ofstream os;
+
+    // Scilla code
+    os.open(INPUT_CODE);
+    os << DataConversion::CharArrayToString(contract->GetCode());
+    os.close();
+
+    // Initialize Json
+    os.open(INIT_JSON);
+    writer->write(contract->GetInitJson(), &os);
+    os.close();
+
+    // Block Json
+    os.open(INPUT_BLOCKCHAIN_JSON);
+    writer->write(GetBlockStateJson(m_curBlockNum), &os);
+    os.close();
+
+    return true;
+}
+
+bool AccountStore::ExportCallContractFiles(
+    Account* contract, const vector<unsigned char>& contractData)
+{
+    LOG_MARKER();
+
+    boost::filesystem::remove_all("./" + SCILLA_FILES);
+    boost::filesystem::create_directories("./" + SCILLA_FILES);
+
+    Json::StreamWriterBuilder writeBuilder;
+    std::unique_ptr<Json::StreamWriter> writer(writeBuilder.newStreamWriter());
+    std::ofstream os;
+
+    // Scilla code
+    os.open(INPUT_CODE);
+    os << DataConversion::CharArrayToString(contract->GetCode());
+    os.close();
+
+    // Initialize Json
+    os.open(INIT_JSON);
+    writer->write(contract->GetInitJson(), &os);
+    os.close();
+
+    // State Json
+    os.open(INPUT_STATE_JSON);
+    writer->write(contract->GetStorageJson(), &os);
+    os.close();
+
+    // Block Json
+    os.open(INPUT_BLOCKCHAIN_JSON);
+    writer->write(GetBlockStateJson(m_curBlockNum), &os);
+    os.close();
+
+    // Message Json
+    Json::CharReaderBuilder readBuilder;
+    std::unique_ptr<Json::CharReader> reader(readBuilder.newCharReader());
+    Json::Value msgObj;
+    string dataStr(contractData.begin(), contractData.end());
+    LOG_GENERAL(INFO, "Contract Data: " << dataStr);
+    string errors;
+    if (reader->parse(dataStr.c_str(), dataStr.c_str() + dataStr.size(),
+                      &msgObj, &errors))
+    {
+        os.open(INPUT_MESSAGE_JSON);
+        os << dataStr;
+        os.close();
+    }
+    else
+    {
+        LOG_GENERAL(WARNING,
+                    "The Contract Data Json is corrupted, failed to process: "
+                        << errors);
+        boost::filesystem::remove_all("./" + SCILLA_FILES);
+        return false;
+    }
+    return true;
+}
+
+string AccountStore::GetCreateContractCmdStr()
+{
+    string ret = SCILLA_PATH + " -init " + INIT_JSON + " -iblockchain "
+        + INPUT_BLOCKCHAIN_JSON + " -o " + OUTPUT_JSON + " -i " + INPUT_CODE;
+    LOG_GENERAL(INFO, ret);
+    return ret;
+}
+
+string AccountStore::GetCallContractCmdStr()
+{
+    string ret = SCILLA_PATH + " -init " + INIT_JSON + " -istate "
+        + INPUT_STATE_JSON + " -iblockchain " + INPUT_BLOCKCHAIN_JSON
+        + " -imessage " + INPUT_MESSAGE_JSON + " -o " + OUTPUT_JSON + " -i "
+        + INPUT_CODE;
+    LOG_GENERAL(INFO, ret);
+    return ret;
+}
+
+bool AccountStore::ParseCreateContractOutput()
+{
+    LOG_MARKER();
+
+    ifstream in(OUTPUT_JSON, ios::binary);
+
+    if (!in.is_open())
+    {
+        LOG_GENERAL(WARNING,
+                    "Error opening output file or no output file generated");
+        return false;
+    }
+    string outStr{istreambuf_iterator<char>(in), istreambuf_iterator<char>()};
+    LOG_GENERAL(INFO, "Output: " << endl << outStr);
+    Json::CharReaderBuilder builder;
+    std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+    Json::Value root;
+    string errors;
+    if (reader->parse(outStr.c_str(), outStr.c_str() + outStr.size(), &root,
+                      &errors))
+    {
+        return ParseCreateContractJsonOutput(root);
+    }
+    else
+    {
+        LOG_GENERAL(WARNING,
+                    "Failed to parse contract output json: " << errors);
+        return false;
+    }
+}
+
+bool AccountStore::ParseCreateContractJsonOutput(const Json::Value& json)
+{
+    LOG_MARKER();
+
+    if (!json.isMember("message") || !json.isMember("states"))
+    {
+        LOG_GENERAL(WARNING, "The json output of this contract is corrupted");
+        return false;
+    }
+
+    if (json["message"] == Json::nullValue
+        && json["states"] == Json::arrayValue)
+    {
+        // LOG_GENERAL(INFO, "Get desired json output from the interpreter for create contract");
+        return true;
+    }
+    LOG_GENERAL(WARNING,
+                "Didn't get desired json output from the interpreter for "
+                "create contract");
+    return false;
+}
+
+bool AccountStore::ParseCallContractOutput()
+{
+    LOG_MARKER();
+
+    ifstream in(OUTPUT_JSON, ios::binary);
+
+    if (!in.is_open())
+    {
+        LOG_GENERAL(WARNING,
+                    "Error opening output file or no output file generated");
+        return false;
+    }
+    string outStr{istreambuf_iterator<char>(in), istreambuf_iterator<char>()};
+    LOG_GENERAL(INFO, "Output: " << endl << outStr);
+    Json::CharReaderBuilder builder;
+    std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+    Json::Value root;
+    string errors;
+    if (reader->parse(outStr.c_str(), outStr.c_str() + outStr.size(), &root,
+                      &errors))
+    {
+        return ParseCallContractJsonOutput(root);
+    }
+    else
+    {
+        LOG_GENERAL(WARNING,
+                    "Failed to parse contract output json: " << errors);
+        return false;
+    }
+}
+
+bool AccountStore::ParseCallContractJsonOutput(const Json::Value& json)
+{
+    LOG_MARKER();
+
+    if (!json.isMember("message") || !json.isMember("states"))
+    {
+        LOG_GENERAL(WARNING, "The json output of this contract is corrupted");
+        return false;
+    }
+
+    if (!json["message"].isMember("_tag")
+        || !json["message"].isMember("_amount")
+        || !json["message"].isMember("params"))
+    {
+        LOG_GENERAL(
+            WARNING,
+            "The message in the json output of this contract is corrupted");
+        return false;
+    }
+
+    int deducted = 0;
+
+    for (auto& s : json["states"])
+    {
+        if (!s.isMember("vname") || !s.isMember("type") || !s.isMember("value"))
+        {
+            LOG_GENERAL(WARNING,
+                        "Address: "
+                            << m_curContractAddr.hex()
+                            << ", The json output of states is corrupted");
+            continue;
+        }
+        string vname = s["vname"].asString();
+        string type = s["type"].asString();
+        string value;
+        if (type == "Map" || type == "ADT")
+        {
+            Json::StreamWriterBuilder writeBuilder;
+            std::unique_ptr<Json::StreamWriter> writer(
+                writeBuilder.newStreamWriter());
+            ostringstream oss;
+            writer->write(s["value"], &oss);
+            value = oss.str();
+        }
+        else
+        {
+            value = s["value"].asString();
+        }
+
+        if (vname == "_balance")
+        {
+            int newBalance = atoi(value.c_str());
+            deducted = static_cast<int>(
+                           m_addressToAccount[m_curContractAddr].GetBalance())
+                - newBalance;
+            m_addressToAccount[m_curContractAddr].SetBalance(newBalance);
+        }
+        else
+        {
+            m_addressToAccount[m_curContractAddr].SetStorage(vname, type,
+                                                             value);
+        }
+    }
+
+    /// The process after getting the output:
+    if (json["message"]["_tag"].asString() == "Main")
+    {
+        Address toAddr;
+        for (auto& p : json["message"]["params"])
+        {
+            if (p["vname"].asString() == "to"
+                && p["type"].asString() == "Address")
+            {
+                toAddr = Address(p["value"].asString());
+                break;
+            }
+        }
+        // A hacky way of refunding the contract the number of amount for the transaction, because the balance was affected by the parsing of _balance and the 'Main' message. Need to fix in the future
+        int amount = atoi(json["message"]["_amount"].asString().c_str());
+        if (amount == 0)
+        {
+            return true;
+        }
+
+        if (!TransferBalance(m_curContractAddr, toAddr, amount))
+        {
+            return false;
+        }
+        // what if the positive value is come from a failed function call
+        if (deducted > 0)
+        {
+            if (!IncreaseBalance(m_curContractAddr, deducted))
+            {
+                return false;
+            }
+        }
+        IncreaseNonce(m_curContractAddr);
+
+        return true;
+    }
+    else
+    {
+        LOG_GENERAL(INFO, "Call another contract");
+
+        Address toAddr;
+        Json::Value params;
+        for (auto& p : json["message"]["params"])
+        {
+            if (p["vname"].asString() == "to"
+                && p["type"].asString() == "Address")
+            {
+                toAddr = Address(p["value"].asString());
+            }
+            else
+            {
+                params.append(p);
+            }
+        }
+        Json::Value p_sender;
+        p_sender["vname"] = "sender";
+        p_sender["type"] = "Address";
+        p_sender["value"] = "0x" + m_curContractAddr.hex();
+        params.append(p_sender);
+
+        // if (params.empty())
+        // {
+        //     params = Json::arrayValue;
+        // }
+
+        Account* toAccount = GetAccount(toAddr);
+        if (toAccount == nullptr)
+        {
+            LOG_GENERAL(WARNING, "The target contract account doesn't exist");
+            return false;
+        }
+
+        if (ExportCallContractFiles(
+                toAccount,
+                CompositeContractData(json["message"]["_tag"].asString(),
+                                      json["message"]["_amount"].asString(),
+                                      params)))
+        {
+            Address t_address = m_curContractAddr;
+            m_curContractAddr = toAddr;
+            if (!SysCommand::ExecuteCmdWithoutOutput(GetCallContractCmdStr()))
+            {
+                LOG_GENERAL(WARNING,
+                            "Interpreter does not admit this contract chain "
+                            "invocation");
+                return false;
+            }
+            if (ParseCallContractOutput())
+            {
+                IncreaseNonce(t_address);
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        else
+        {
+            return false;
+        }
+    }
+}
+
+const std::vector<unsigned char>
+AccountStore::CompositeContractData(const std::string& funcName,
+                                    const std::string& amount,
+                                    const Json::Value& params)
+{
+    LOG_MARKER();
+    Json::Value obj;
+    obj["_tag"] = funcName;
+    obj["_amount"] = amount;
+    obj["params"] = params;
+
+    Json::StreamWriterBuilder writeBuilder;
+    std::unique_ptr<Json::StreamWriter> writer(writeBuilder.newStreamWriter());
+    ostringstream oss;
+    writer->write(obj, &oss);
+    string dataStr = oss.str();
+
+    return DataConversion::StringToCharArray(dataStr);
 }
 
 Account* AccountStore::GetAccount(const Address& address)
@@ -212,13 +710,34 @@ Account* AccountStore::GetAccount(const Address& address)
     }
 
     dev::RLP accountDataRLP(accountDataString);
+    if (accountDataRLP.itemCount() != 4)
+    {
+        LOG_GENERAL(WARNING, "Account data corrupted");
+        return nullptr;
+    }
+
     auto it2 = m_addressToAccount.emplace(
         std::piecewise_construct, std::forward_as_tuple(address),
         std::forward_as_tuple(
             accountDataRLP[0].toInt<boost::multiprecision::uint256_t>(),
-            accountDataRLP[1].toInt<boost::multiprecision::uint256_t>(),
-            accountDataRLP[2].toHash<dev::h256>(),
-            accountDataRLP[3].toHash<dev::h256>()));
+            accountDataRLP[1].toInt<boost::multiprecision::uint256_t>()));
+
+    // Code Hash
+    if (accountDataRLP[3].toHash<dev::h256>() != dev::h256())
+    {
+        // Extract Code Content
+        it2.first->second.SetCode(
+            ContractStorage::GetContractStorage().GetContractCode(address));
+        if (accountDataRLP[3].toHash<dev::h256>()
+            != it2.first->second.GetCodeHash())
+        {
+            LOG_GENERAL(WARNING, "Account Code Content doesn't match Code Hash")
+            m_addressToAccount.erase(it2.first);
+            return nullptr;
+        }
+        // Storage Root
+        it2.first->second.SetStorageRoot(accountDataRLP[2].toHash<dev::h256>());
+    }
 
     return &it2.first->second;
 }
@@ -275,7 +794,7 @@ bool AccountStore::IncreaseBalance(
     }
     else if (account == nullptr)
     {
-        AddAccount(address, {delta, 0, dev::h256(), dev::h256()});
+        AddAccount(address, {delta, 0});
         return true;
     }
 
@@ -299,10 +818,13 @@ bool AccountStore::DecreaseBalance(
         // UpdateStateTrie(address, *account);
         return true;
     }
-    // TODO: remove this, temporary way to test transactions
+    // FIXME: remove this, temporary way to test transactions
     else if (account == nullptr)
     {
-        AddAccount(address, {10000000000, 0, dev::h256(), dev::h256()});
+        LOG_GENERAL(WARNING,
+                    "AddAccount... FIXME: remove this, temporary way to test "
+                    "transactions");
+        AddAccount(address, {10000000000, 0});
     }
 
     return false;
@@ -384,9 +906,15 @@ void AccountStore::MoveUpdatesToDisk()
 {
     LOG_MARKER();
 
-    ContractStorage::GetContractStorage().GetDB().commit();
+    ContractStorage::GetContractStorage().GetStateDB().commit();
     for (auto i : m_addressToAccount)
     {
+        if (!ContractStorage::GetContractStorage().PutContractCode(
+                i.first, i.second.GetCode()))
+        {
+            LOG_GENERAL(WARNING, "Write Contract Code to Disk Failed");
+            continue;
+        }
         i.second.Commit();
     }
     m_state.db()->commit();
@@ -398,7 +926,7 @@ void AccountStore::DiscardUnsavedUpdates()
 {
     LOG_MARKER();
 
-    ContractStorage::GetContractStorage().GetDB().rollback();
+    ContractStorage::GetContractStorage().GetStateDB().rollback();
     for (auto i : m_addressToAccount)
     {
         i.second.RollBack();
@@ -433,18 +961,30 @@ bool AccountStore::RetrieveFromDisk()
     for (auto i : m_state)
     {
         Address address(i.first);
+        LOG_GENERAL(INFO, "Address: " << address.hex());
         dev::RLP rlp(i.second);
-        // std::vector<uint256_t> account_data = rlp.toVector<uint256_t>();
-        // if (account_data.size() != 4)
-        // {
-        //     LOG_GENERAL(WARNING, "Account data corrupted");
-        //     return false;
-        // }
-        // Account account(account_data[0], account_data[1], account_data[2],
-        // account_data[3]);
+        if (rlp.itemCount() != 4)
+        {
+            LOG_GENERAL(WARNING, "Account data corrupted");
+            continue;
+        }
         Account account(rlp[0].toInt<boost::multiprecision::uint256_t>(),
-                        rlp[1].toInt<boost::multiprecision::uint256_t>(),
-                        rlp[2].toHash<dev::h256>(), rlp[3].toHash<dev::h256>());
+                        rlp[1].toInt<boost::multiprecision::uint256_t>());
+        // Code Hash
+        if (rlp[3].toHash<dev::h256>() != dev::h256())
+        {
+            // Extract Code Content
+            account.SetCode(
+                ContractStorage::GetContractStorage().GetContractCode(address));
+            if (rlp[3].toHash<dev::h256>() != account.GetCodeHash())
+            {
+                LOG_GENERAL(WARNING,
+                            "Account Code Content doesn't match Code Hash")
+                continue;
+            }
+            // Storage Root
+            account.SetStorageRoot(rlp[2].toHash<dev::h256>());
+        }
         m_addressToAccount.insert({address, account});
     }
     return true;
