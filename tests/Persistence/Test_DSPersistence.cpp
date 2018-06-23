@@ -15,6 +15,7 @@
 **/
 
 #include <array>
+#include <cstdlib>
 #include <string>
 #include <thread>
 #include <vector>
@@ -26,6 +27,7 @@
 
 #define BOOST_TEST_MODULE persistencetest
 #define BOOST_TEST_DYN_LINK
+#include <boost/filesystem.hpp>
 #include <boost/test/unit_test.hpp>
 
 using namespace std;
@@ -86,7 +88,32 @@ BOOST_AUTO_TEST_CASE(testSerializationDeserialization)
         "nonce shouldn't change after serailization and deserialization");
 }
 
-BOOST_AUTO_TEST_CASE(testBlockStorage)
+struct BlockStorageFixture
+{
+    static string randomPrefix()
+    {
+        const size_t PREFIX_SIZE = 20;
+        string rv(PREFIX_SIZE, '_');
+        for (size_t i = 0; i < PREFIX_SIZE - 1; ++i)
+        {
+            rv[i] = '0' + (rand() % 10);
+        }
+        return rv;
+    }
+
+    BlockStorageFixture()
+        : isolationPrefix(randomPrefix())
+        , blockStorage(isolationPrefix)
+    {
+    }
+
+    ~BlockStorageFixture() { blockStorage.Delete(); }
+
+    string isolationPrefix;
+    BlockStorage blockStorage;
+};
+
+BOOST_FIXTURE_TEST_CASE(testBlockStorage, BlockStorageFixture)
 {
     INIT_STDOUT_LOGGER();
 
@@ -97,10 +124,12 @@ BOOST_AUTO_TEST_CASE(testBlockStorage)
     std::vector<unsigned char> serializedDSBlock;
     block1.Serialize(serializedDSBlock, 0);
 
-    BlockStorage::GetBlockStorage().PutDSBlock(0, serializedDSBlock);
+    blockStorage.PutDSBlock(0, serializedDSBlock);
 
-    DSBlockSharedPtr block2;
-    BlockStorage::GetBlockStorage().GetDSBlock(0, block2);
+    DSBlockSharedPtr block2Ptr;
+    blockStorage.GetDSBlock(0, block2Ptr);
+    BOOST_REQUIRE(block2Ptr);
+    DSBlock& block2 = *block2Ptr;
 
     // using individual == tests instead of DSBlockHeader::operator== to zero in
     // which particular data type fails on writing to/ reading from disk
@@ -109,9 +138,9 @@ BOOST_AUTO_TEST_CASE(testBlockStorage)
         INFO, "Block1 nonce value entered: " << block1.GetHeader().GetNonce());
     LOG_GENERAL(
         INFO,
-        "Block2 nonce value retrieved: " << (*block2).GetHeader().GetNonce());
+        "Block2 nonce value retrieved: " << block2.GetHeader().GetNonce());
     BOOST_CHECK_MESSAGE(
-        block1.GetHeader().GetNonce() == (*block2).GetHeader().GetNonce(),
+        block1.GetHeader().GetNonce() == block2.GetHeader().GetNonce(),
         "nonce shouldn't change after writing to/ reading from disk");
 
     LOG_GENERAL(INFO,
@@ -119,10 +148,10 @@ BOOST_AUTO_TEST_CASE(testBlockStorage)
                     << (int)(block1.GetHeader().GetDifficulty()));
     LOG_GENERAL(INFO,
                 "Block2 difficulty value retrieved: "
-                    << (int)((*block2).GetHeader().GetDifficulty()));
+                    << (int)(block2.GetHeader().GetDifficulty()));
     BOOST_CHECK_MESSAGE(
         block1.GetHeader().GetDifficulty()
-            == (*block2).GetHeader().GetDifficulty(),
+            == block2.GetHeader().GetDifficulty(),
         "difficulty shouldn't change after writing to/ reading from disk");
 
     LOG_GENERAL(
@@ -130,9 +159,9 @@ BOOST_AUTO_TEST_CASE(testBlockStorage)
         "Block1 blocknum value entered: " << block1.GetHeader().GetBlockNum());
     LOG_GENERAL(INFO,
                 "Block2 blocknum value retrieved: "
-                    << (*block2).GetHeader().GetBlockNum());
+                    << block2.GetHeader().GetBlockNum());
     BOOST_CHECK_MESSAGE(
-        block1.GetHeader().GetBlockNum() == (*block2).GetHeader().GetBlockNum(),
+        block1.GetHeader().GetBlockNum() == block2.GetHeader().GetBlockNum(),
         "blocknum shouldn't change after writing to/ reading from disk");
 
     LOG_GENERAL(INFO,
@@ -140,36 +169,35 @@ BOOST_AUTO_TEST_CASE(testBlockStorage)
                     << block1.GetHeader().GetTimestamp());
     LOG_GENERAL(INFO,
                 "Block2 timestamp value retrieved: "
-                    << (*block2).GetHeader().GetTimestamp());
+                    << block2.GetHeader().GetTimestamp());
     BOOST_CHECK_MESSAGE(
-        block1.GetHeader().GetTimestamp()
-            == (*block2).GetHeader().GetTimestamp(),
+        block1.GetHeader().GetTimestamp() == block2.GetHeader().GetTimestamp(),
         "timestamp shouldn't change after writing to/ reading from disk");
 
     // LOG_GENERAL(INFO, "Block1 MinerPubKey value entered: " << block1.GetHeader().GetMinerPubKey());
-    // LOG_GENERAL(INFO, "Block2 MinerPubKey value retrieved: " << (*block2).GetHeader().GetMinerPubKey());
+    // LOG_GENERAL(INFO, "Block2 MinerPubKey value retrieved: " << block2.GetHeader().GetMinerPubKey());
     BOOST_CHECK_MESSAGE(
         block1.GetHeader().GetMinerPubKey()
-            == (*block2).GetHeader().GetMinerPubKey(),
+            == block2.GetHeader().GetMinerPubKey(),
         "MinerPubKey shouldn't change after writing to/ reading from disk");
 
     // LOG_GENERAL(INFO, "Block1 LeaderPubKey value entered: " << block1.GetHeader().GetLeaderPubKey());
-    // LOG_GENERAL(INFO, "Block2 LeaderPubKey value retrieved: " << (*block2).GetHeader().GetLeaderPubKey());
+    // LOG_GENERAL(INFO, "Block2 LeaderPubKey value retrieved: " << block2.GetHeader().GetLeaderPubKey());
     BOOST_CHECK_MESSAGE(
         block1.GetHeader().GetLeaderPubKey()
-            == (*block2).GetHeader().GetLeaderPubKey(),
+            == block2.GetHeader().GetLeaderPubKey(),
         "LeaderPubKey shouldn't change after writing to/ reading from disk");
 
     BOOST_CHECK_MESSAGE(
-        block1.GetHeader().GetPrevHash() == (*block2).GetHeader().GetPrevHash(),
+        block1.GetHeader().GetPrevHash() == block2.GetHeader().GetPrevHash(),
         "PrevHash shouldn't change after writing to/ reading from disk");
 
     BOOST_CHECK_MESSAGE(
-        block1.GetCS2() == (*block2).GetCS2(),
+        block1.GetCS2() == block2.GetCS2(),
         "Signature shouldn't change after writing to/ reading from disk");
 }
 
-BOOST_AUTO_TEST_CASE(testRandomBlockAccesses)
+BOOST_FIXTURE_TEST_CASE(testRandomBlockAccesses, BlockStorageFixture)
 {
     INIT_STDOUT_LOGGER();
 
@@ -183,22 +211,22 @@ BOOST_AUTO_TEST_CASE(testRandomBlockAccesses)
     std::vector<unsigned char> serializedDSBlock;
 
     block1.Serialize(serializedDSBlock, 0);
-    BlockStorage::GetBlockStorage().PutDSBlock(1, serializedDSBlock);
+    blockStorage.PutDSBlock(1, serializedDSBlock);
 
     serializedDSBlock.clear();
     block2.Serialize(serializedDSBlock, 0);
-    BlockStorage::GetBlockStorage().PutDSBlock(2, serializedDSBlock);
+    blockStorage.PutDSBlock(2, serializedDSBlock);
 
     serializedDSBlock.clear();
     block3.Serialize(serializedDSBlock, 0);
-    BlockStorage::GetBlockStorage().PutDSBlock(3, serializedDSBlock);
+    blockStorage.PutDSBlock(3, serializedDSBlock);
 
     serializedDSBlock.clear();
     block4.Serialize(serializedDSBlock, 0);
-    BlockStorage::GetBlockStorage().PutDSBlock(4, serializedDSBlock);
+    blockStorage.PutDSBlock(4, serializedDSBlock);
 
     DSBlockSharedPtr blockRetrieved;
-    BlockStorage::GetBlockStorage().GetDSBlock(2, blockRetrieved);
+    blockStorage.GetDSBlock(2, blockRetrieved);
 
     LOG_GENERAL(INFO,
                 "Block nonce value entered: " << block2.GetHeader().GetNonce());
@@ -210,7 +238,7 @@ BOOST_AUTO_TEST_CASE(testRandomBlockAccesses)
             == (*blockRetrieved).GetHeader().GetNonce(),
         "nonce shouldn't change after writing to/ reading from disk");
 
-    BlockStorage::GetBlockStorage().GetDSBlock(4, blockRetrieved);
+    blockStorage.GetDSBlock(4, blockRetrieved);
 
     LOG_GENERAL(INFO,
                 "Block nonce value entered: " << block4.GetHeader().GetNonce());
@@ -222,7 +250,7 @@ BOOST_AUTO_TEST_CASE(testRandomBlockAccesses)
             == (*blockRetrieved).GetHeader().GetNonce(),
         "nonce shouldn't change after writing to/ reading from disk");
 
-    BlockStorage::GetBlockStorage().GetDSBlock(1, blockRetrieved);
+    blockStorage.GetDSBlock(1, blockRetrieved);
 
     LOG_GENERAL(INFO,
                 "Block nonce value entered: " << block1.GetHeader().GetNonce());
@@ -235,26 +263,28 @@ BOOST_AUTO_TEST_CASE(testRandomBlockAccesses)
         "nonce shouldn't change after writing to/ reading from disk");
 }
 
-BOOST_AUTO_TEST_CASE(testCachedAndEvictedBlocks)
+BOOST_FIXTURE_TEST_CASE(testCachedAndEvictedBlocks, BlockStorageFixture)
 {
     INIT_STDOUT_LOGGER();
 
     LOG_MARKER();
 
+    std::vector<unsigned char> serializedDSBlock;
+
     DSBlock block = constructDummyDSBlock(0);
+    block.Serialize(serializedDSBlock, 0);
+    blockStorage.PutDSBlock(0, serializedDSBlock);
 
     for (int i = 5; i < 21; i++)
     {
         block = constructDummyDSBlock(i);
 
-        std::vector<unsigned char> serializedDSBlock;
-
         block.Serialize(serializedDSBlock, 0);
-        BlockStorage::GetBlockStorage().PutDSBlock(i, serializedDSBlock);
+        blockStorage.PutDSBlock(i, serializedDSBlock);
     }
 
     DSBlockSharedPtr blockRetrieved1;
-    BlockStorage::GetBlockStorage().GetDSBlock(20, blockRetrieved1);
+    blockStorage.GetDSBlock(20, blockRetrieved1);
 
     LOG_GENERAL(INFO,
                 "Block nonce value entered: " << block.GetHeader().GetNonce());
@@ -267,7 +297,7 @@ BOOST_AUTO_TEST_CASE(testCachedAndEvictedBlocks)
         "nonce shouldn't change after writing to/ reading from disk");
 
     DSBlockSharedPtr blockRetrieved2;
-    BlockStorage::GetBlockStorage().GetDSBlock(0, blockRetrieved2);
+    blockStorage.GetDSBlock(0, blockRetrieved2);
 
     BOOST_CHECK_MESSAGE(
         constructDummyDSBlock(0).GetHeader().GetNonce()
@@ -275,20 +305,20 @@ BOOST_AUTO_TEST_CASE(testCachedAndEvictedBlocks)
         "nonce shouldn't change after writing to/ reading from disk");
 }
 
-void writeBlock(int id)
+void writeBlock(BlockStorage& blockStorage, int id)
 {
     DSBlock block = constructDummyDSBlock(id);
 
     std::vector<unsigned char> serializedDSBlock;
 
     block.Serialize(serializedDSBlock, 0);
-    BlockStorage::GetBlockStorage().PutDSBlock(12345 + id, serializedDSBlock);
+    blockStorage.PutDSBlock(12345 + id, serializedDSBlock);
 }
 
-void readBlock(int id)
+void readBlock(BlockStorage& blockStorage, int id)
 {
     DSBlockSharedPtr block;
-    BlockStorage::GetBlockStorage().GetDSBlock(id, block);
+    blockStorage.GetDSBlock(id, block);
     if ((*block).GetHeader().GetNonce() != id)
     {
         LOG_GENERAL(INFO,
@@ -304,16 +334,18 @@ void readBlock(int id)
     }
 }
 
-void readWriteBlock(int tid)
+void readWriteBlock(BlockStorage* blockStorage, int tid)
 {
+    BOOST_REQUIRE(blockStorage);
+
     for (int j = 0; j < 100; j++)
     {
-        writeBlock(tid * 100000 + j);
-        readBlock(12345 + tid * 1000 + j);
+        writeBlock(*blockStorage, tid * 100000 + j);
+        readBlock(*blockStorage, 12345 + tid * 1000 + j);
     }
 }
 
-void bootstrap(int num_threads)
+void bootstrap(BlockStorage& blockStorage, int num_threads)
 {
     for (int i = 0; i < num_threads; i++)
     {
@@ -324,15 +356,14 @@ void bootstrap(int num_threads)
             std::vector<unsigned char> serializedDSBlock;
 
             block.Serialize(serializedDSBlock, 0);
-            BlockStorage::GetBlockStorage().PutDSBlock(12345 + i * 1000 + j,
-                                                       serializedDSBlock);
+            blockStorage.PutDSBlock(12345 + i * 1000 + j, serializedDSBlock);
         }
     }
 
     LOG_GENERAL(INFO, "Bootstrapping done!!");
 }
 
-BOOST_AUTO_TEST_CASE(testThreadSafety)
+BOOST_FIXTURE_TEST_CASE(testThreadSafety, BlockStorageFixture)
 {
     INIT_STDOUT_LOGGER();
 
@@ -340,14 +371,14 @@ BOOST_AUTO_TEST_CASE(testThreadSafety)
 
     const int num_threads = 20;
 
-    bootstrap(num_threads);
+    bootstrap(blockStorage, num_threads);
 
     std::thread t[num_threads];
 
     //Launch a group of threads
     for (int i = 0; i < num_threads; ++i)
     {
-        t[i] = std::thread(readWriteBlock, i);
+        t[i] = std::thread(readWriteBlock, &blockStorage, i);
     }
 
     std::cout << "Launched from the main\n";
@@ -363,7 +394,7 @@ BOOST_AUTO_TEST_CASE(testThreadSafety)
     tests correctness when blocks get written over a series of files
     when running this test change BLOCK_FILE_SIZE to 128*1024*1024/512 in BlockStorage.h
 */
-BOOST_AUTO_TEST_CASE(testMultipleBlocksInMultipleFiles)
+BOOST_FIXTURE_TEST_CASE(testMultipleBlocksInMultipleFiles, BlockStorageFixture)
 {
     INIT_STDOUT_LOGGER();
 
@@ -381,11 +412,11 @@ BOOST_AUTO_TEST_CASE(testMultipleBlocksInMultipleFiles)
         std::vector<unsigned char> serializedDSBlock;
 
         block.Serialize(serializedDSBlock, 0);
-        BlockStorage::GetBlockStorage().PutDSBlock(i, serializedDSBlock);
+        blockStorage.PutDSBlock(i, serializedDSBlock);
     }
 
     DSBlockSharedPtr blockRetrieved;
-    BlockStorage::GetBlockStorage().GetDSBlock(2499, blockRetrieved);
+    blockStorage.GetDSBlock(2499, blockRetrieved);
 
     LOG_GENERAL(INFO,
                 "Block nonce value entered: " << block.GetHeader().GetNonce());
@@ -401,13 +432,13 @@ BOOST_AUTO_TEST_CASE(testMultipleBlocksInMultipleFiles)
     //     BlockStorage::SetBlockFileSize(128 * ONE_MEGABYTE);
 }
 
-BOOST_AUTO_TEST_CASE(testRetrieveAllTheDSBlocksInDB)
+BOOST_FIXTURE_TEST_CASE(testRetrieveAllTheDSBlocksInDB, BlockStorageFixture)
 {
     INIT_STDOUT_LOGGER();
 
     LOG_MARKER();
 
-    if (BlockStorage::GetBlockStorage().ResetDB(BlockStorage::DBTYPE::DS_BLOCK))
+    if (blockStorage.ResetDB(BlockStorage::DBTYPE::DS_BLOCK))
     {
         std::list<DSBlock> in_blocks;
 
@@ -419,15 +450,14 @@ BOOST_AUTO_TEST_CASE(testRetrieveAllTheDSBlocksInDB)
 
             block.Serialize(serializedDSBlock, 0);
 
-            BlockStorage::GetBlockStorage().PutDSBlock(i, serializedDSBlock);
+            blockStorage.PutDSBlock(i, serializedDSBlock);
             in_blocks.push_back(block);
         }
 
         std::list<DSBlockSharedPtr> ref_blocks;
         std::list<DSBlock> out_blocks;
-        BOOST_CHECK_MESSAGE(
-            BlockStorage::GetBlockStorage().GetAllDSBlocks(ref_blocks),
-            "GetAllDSBlocks shouldn't fail");
+        BOOST_CHECK_MESSAGE(blockStorage.GetAllDSBlocks(ref_blocks),
+                            "GetAllDSBlocks shouldn't fail");
         for (auto i : ref_blocks)
         {
             LOG_GENERAL(INFO, i->GetHeader().GetNonce());
@@ -437,6 +467,29 @@ BOOST_AUTO_TEST_CASE(testRetrieveAllTheDSBlocksInDB)
             in_blocks == out_blocks,
             "DSBlocks shouldn't change after writting to/ reading from disk");
     }
+}
+
+BOOST_AUTO_TEST_CASE(testIndependentProcesses)
+{
+    namespace fs = boost::filesystem;
+
+    const fs::path bin_path
+        = fs::canonical(fs::current_path()) / fs::path("ReadWriter");
+
+    const string bin = bin_path.string();
+
+    LOG_GENERAL(INFO, "Test binary: " << bin);
+
+    const string isolationPrefix = BlockStorageFixture::randomPrefix();
+
+    int rv = std::system((bin + " write " + isolationPrefix).c_str());
+    BOOST_REQUIRE_MESSAGE(rv == 0, "Write should succeed");
+
+    rv = std::system((bin + " readAndCheck " + isolationPrefix).c_str());
+    BOOST_REQUIRE_MESSAGE(rv == 0, "Read and check should succeed");
+
+    // Cleanup
+    BlockStorage(isolationPrefix).Delete();
 }
 
 BOOST_AUTO_TEST_SUITE_END()
