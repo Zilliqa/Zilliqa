@@ -25,6 +25,8 @@
 #include "depends/libDatabase/LevelDB.h"
 #include "libData/BlockData/Block.h"
 
+const std::string TX_BODY_SUBDIR = "txBodies";
+
 typedef std::shared_ptr<DSBlock> DSBlockSharedPtr;
 typedef std::shared_ptr<TxBlock> TxBlockSharedPtr;
 typedef std::shared_ptr<MicroBlock> MicroBlockSharedPtr;
@@ -33,26 +35,35 @@ typedef std::shared_ptr<Transaction> TxBodySharedPtr;
 /// Manages persistent storage of DS and Tx blocks.
 class BlockStorage
 {
+    const std::string m_isolationPrefix;
+
     LevelDB m_metadataDB;
     LevelDB m_dsBlockchainDB;
     LevelDB m_txBlockchainDB;
 #ifndef IS_LOOKUP_NODE
     std::list<std::shared_ptr<LevelDB>> m_txBodyDBs;
+    mutable std::mutex m_txBodyDBsMutex;
 #else // IS_LOOKUP_NODE
     LevelDB m_txBodyDB;
     LevelDB m_txBodyTmpDB;
 #endif // IS_LOOKUP_NODE
 
-    BlockStorage()
-        : m_metadataDB("metadata")
-        , m_dsBlockchainDB("dsBlocks")
-        , m_txBlockchainDB("txBlocks")
+public:
+    /// Don't use outside test. Prefer to use the
+    /// singleton, you can get with 'GetBlockStorage()'
+    BlockStorage(const std::string& isolationPrefix = "")
+        : m_isolationPrefix(isolationPrefix)
+        , m_metadataDB(isolationPrefix + "metadata")
+        , m_dsBlockchainDB(isolationPrefix + "dsBlocks")
+        , m_txBlockchainDB(isolationPrefix + "txBlocks")
 #ifdef IS_LOOKUP_NODE
-        , m_txBodyDB("txBodies")
-        , m_txBodyTmpDB("txBodiesTmp")
+        , m_txBodyDB(isolationPrefix + "txBodies")
+        , m_txBodyTmpDB(isolationPrefix + "txBodiesTmp")
 #endif // IS_LOOKUP_NODE
               {};
     ~BlockStorage() = default;
+
+private:
     bool PutBlock(const boost::multiprecision::uint256_t& blockNum,
                   const std::vector<unsigned char>& block,
                   const BlockType& blockType);
@@ -84,7 +95,8 @@ public:
     /// Pop the txBody database at front.
     bool PopFrontTxBodyDB(bool mandatory = false);
 
-    /// Get the size of current TxBodyDB
+    /// Get the size of current TxBodyDB. The return value is just
+    /// indicative, if used in an environment with concurrency.
     unsigned int GetTxBodyDBSize();
 #endif // IS_LOOKUP_NODE
 
@@ -128,6 +140,9 @@ public:
 
     /// Deletes the requested transaction body
     bool DeleteTxBody(const dev::h256& key);
+
+    /// Deletes BlockStorage (used for testing)
+    void Delete();
 
     // /// Adds a transaction body to storage.
     // bool PutTxBody(const std::string & key, const std::vector<unsigned char> & body);

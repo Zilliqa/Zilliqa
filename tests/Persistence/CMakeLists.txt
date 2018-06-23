@@ -32,10 +32,9 @@ target_include_directories(Test_TxBody PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(Test_TxBody PUBLIC Crypto AccountData BlockChainData Utils Persistence)
 add_test(NAME Test_TxBody COMMAND Test_TxBody)
 
-add_executable(ReadBlock ReadBlock.cpp)
-target_include_directories(ReadBlock PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(ReadBlock PUBLIC Crypto AccountData BlockChainData Utils Persistence)
-add_test(NAME ReadBlock COMMAND ReadBlock)
+add_executable(ReadWriter ReadWriter.cpp)
+target_include_directories(ReadWriter PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(ReadWriter PUBLIC Crypto AccountData BlockChainData Utils Persistence)
 
 #add_executable(ReadTxBlock ReadTxBlock.cpp)
 #target_include_directories(ReadTxBlock PUBLIC ${CMAKE_SOURCE_DIR}/src)

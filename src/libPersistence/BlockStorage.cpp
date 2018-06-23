@@ -44,6 +44,8 @@ bool BlockStorage::PushBackTxBodyDB(
 {
     LOG_MARKER();
 
+    lock_guard<mutex> g(m_txBodyDBsMutex);
+
     if (m_txBodyDBs.size()
         >= NUM_DS_KEEP_TX_BODY + 1) // Leave one for keeping tmp txBody
     {
@@ -52,7 +54,7 @@ bool BlockStorage::PushBackTxBodyDB(
     }
 
     std::shared_ptr<LevelDB> txBodyDBPtr = std::make_shared<LevelDB>(
-        blockNum.convert_to<string>(), TX_BODY_SUBDIR);
+        m_isolationPrefix + blockNum.convert_to<string>(), TX_BODY_SUBDIR);
     m_txBodyDBs.push_back(txBodyDBPtr);
 
     return true;
@@ -61,6 +63,8 @@ bool BlockStorage::PushBackTxBodyDB(
 bool BlockStorage::PopFrontTxBodyDB(bool mandatory)
 {
     LOG_MARKER();
+
+    lock_guard<mutex> g(m_txBodyDBsMutex);
 
     if (m_txBodyDBs.empty())
     {
@@ -84,7 +88,11 @@ bool BlockStorage::PopFrontTxBodyDB(bool mandatory)
     return (ret == 0);
 }
 
-unsigned int BlockStorage::GetTxBodyDBSize() { return m_txBodyDBs.size(); }
+unsigned int BlockStorage::GetTxBodyDBSize()
+{
+    lock_guard<mutex> g(m_txBodyDBsMutex);
+    return m_txBodyDBs.size();
+}
 #endif // IS_LOOKUP_NODE
 
 bool BlockStorage::PutBlock(const boost::multiprecision::uint256_t& blockNum,
@@ -136,6 +144,7 @@ bool BlockStorage::PutTxBody(const dev::h256& key,
 {
 
 #ifndef IS_LOOKUP_NODE
+    lock_guard<mutex> g(m_txBodyDBsMutex);
     if (m_txBodyDBs.empty())
     {
         LOG_GENERAL(WARNING, "No TxBodyDB found");
@@ -186,6 +195,7 @@ bool BlockStorage::GetTxBlock(const boost::multiprecision::uint256_t& blockNum,
 bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body)
 {
 #ifndef IS_LOOKUP_NODE
+    lock_guard<mutex> g(m_txBodyDBsMutex);
     if (m_txBodyDBs.empty())
     {
         LOG_GENERAL(WARNING, "No TxBodyDB found");
@@ -224,12 +234,29 @@ bool BlockStorage::DeleteTxBlock(
 bool BlockStorage::DeleteTxBody(const dev::h256& key)
 {
 #ifndef IS_LOOKUP_NODE
+    lock_guard<mutex> g(m_txBodyDBsMutex);
     int ret = m_txBodyDBs.back()->DeleteKey(key);
 #else // IS_LOOKUP_NODE
     int ret = m_txBodyDB.DeleteKey(key);
 #endif // IS_LOOKUP_NODE
 
     return (ret == 0);
+}
+
+void BlockStorage::Delete()
+{
+    m_metadataDB.DeleteDB();
+    m_dsBlockchainDB.DeleteDB();
+    m_txBlockchainDB.DeleteDB();
+#ifndef IS_LOOKUP_NODE
+    while (GetTxBodyDBSize())
+    {
+        PopFrontTxBodyDB(true);
+    }
+#else // IS_LOOKUP_NODE
+    m_txBodyDB.DeleteDB();
+    m_txBodyTmpDB.DeleteDB();
+#endif // IS_LOOKUP_NODE
 }
 
 // bool BlockStorage::PutTxBody(const string & key, const vector<unsigned char> & body)
@@ -385,6 +412,7 @@ bool BlockStorage::ResetDB(DBTYPE type)
 #ifndef IS_LOOKUP_NODE
     case TX_BODIES:
     {
+        lock_guard<mutex> g(m_txBodyDBsMutex);
         int size_txBodyDBs = m_txBodyDBs.size();
         for (int i = 0; i < size_txBodyDBs; i++)
         {
@@ -430,6 +458,7 @@ std::vector<std::string> BlockStorage::GetDBName(DBTYPE type)
 #ifndef IS_LOOKUP_NODE
     case TX_BODIES:
     {
+        lock_guard<mutex> g(m_txBodyDBsMutex);
         for (auto txBodyDB : m_txBodyDBs)
         {
             ret.push_back(txBodyDB->GetDBName());
