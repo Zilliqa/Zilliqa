@@ -14,19 +14,20 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#include "AccountStore.h"
-
 using namespace std;
 
-AccountStoreTemp::AccountStoreTemp(AccountStore& parent)
+template<class MAP>
+AccountStoreAtomic<MAP>::AccountStoreAtomic(AccountStoreSC<MAP>& parent)
     : m_parent(parent)
 {
 }
 
-Account* AccountStoreTemp::GetAccount(const Address& address)
+template<class MAP>
+Account* AccountStoreAtomic<MAP>::GetAccount(const Address& address)
 {
     Account* account
-        = AccountStoreBase<map<Address, Account>>::GetAccount(address);
+        = AccountStoreBase<unordered_map<Address, Account>>::GetAccount(
+            address);
     if (account != nullptr)
     {
         LOG_GENERAL(INFO, "Got From Temp");
@@ -47,7 +48,9 @@ Account* AccountStoreTemp::GetAccount(const Address& address)
     return nullptr;
 }
 
-const shared_ptr<map<Address, Account>>& AccountStoreTemp::GetAddressToAccount()
+template<class MAP>
+const shared_ptr<unordered_map<Address, Account>>&
+AccountStoreAtomic<MAP>::GetAddressToAccount()
 {
     return this->m_addressToAccount;
 }
