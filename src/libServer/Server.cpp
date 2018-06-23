@@ -408,9 +408,63 @@ string Server::GetStorageAt(const string& address, const string& position)
     return "Hello";
 }
 
-Json::Value Server::GetTransactionHistory(const string& transactionHash)
+Json::Value Server::GetSmartContracts(const string& address)
 {
-    return "Hello";
+    Json::Value _json;
+
+    try
+    {
+        Json::Value _json;
+        if (address.size() != ACC_ADDR_SIZE * 2)
+        {
+            _json["Error"] = "Address size inappropriate";
+            return _json;
+        }
+        vector<unsigned char> tmpaddr
+            = DataConversion::HexStrToUint8Vec(address);
+        Address addr(tmpaddr);
+        const Account* account = AccountStore::GetInstance().GetAccount(addr);
+
+        if (account == nullptr)
+        {
+            _json["Error"] = "Address does not exist";
+            return _json;
+        }
+        if (account->isContract())
+        {
+            _json["Error"] = "A contract account queried";
+            return _json;
+        }
+        boost::multiprecision::uint256_t nonce = account->GetNonce();
+        //[TODO] find out a more efficient way (using storage)
+        do
+        {
+            Address contractAddr = Account::GetAddressForContract(addr, nonce);
+            const Account* contractAccount
+                = AccountStore::GetInstance().GetAccount(contractAddr);
+            if (contractAccount != nullptr)
+            {
+                if (!contractAccount->isContract())
+                {
+                    continue;
+                }
+                Json::Value tmpJson;
+                tmpJson["address"] = contractAddr.hex();
+                tmpJson["state"] = contractAccount->GetStorageJson();
+                _json.append(tmpJson);
+            }
+            nonce--;
+        } while (nonce > 0);
+        return _json;
+    }
+    catch (exception& e)
+    {
+        LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << address);
+        Json::Value _json;
+        _json["Error"] = "Unable To Process";
+
+        return _json;
+    }
 }
 
 string Server::GetBlockTransactionCount(const string& blockHash)
