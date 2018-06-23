@@ -59,14 +59,6 @@ void DirectoryService::StoreFinalBlockToDisk()
                   << ", Timestamp: " << m_finalBlock->GetHeader().GetTimestamp()
                   << ", NumTxs: " << m_finalBlock->GetHeader().GetNumTxs());
 
-    auto a = m_finalBlock->GetMicroBlockHashes();
-
-    for (auto i : a)
-    {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  " " << i);
-    }
-
     vector<unsigned char> serializedTxBlock;
     m_finalBlock->Serialize(serializedTxBlock, 0);
     BlockStorage::GetBlockStorage().PutTxBlock(
