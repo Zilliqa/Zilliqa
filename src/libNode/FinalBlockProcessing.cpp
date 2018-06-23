@@ -1027,24 +1027,24 @@ void Node::BeginNextConsensusRound()
 
     if (!isVacuousEpoch)
     {
-        // {
-        //     unique_lock<mutex> g(m_mutexAllMicroBlocksRecvd, defer_lock);
-        //     if (!m_allMicroBlocksRecvd)
-        //     {
-        //         LOG_GENERAL(INFO, "Wait for allMicroBlocksRecvd");
-        //         m_cvAllMicroBlocksRecvd.wait(
-        //             g, [this] { return m_allMicroBlocksRecvd; });
-        //         LOG_EPOCH(
-        //             INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-        //             "All microblocks recvd, moving to ScheduleTxnSubmission");
-        //     }
-        //     else
-        //     {
-        //         LOG_GENERAL(INFO, "No need to wait for allMicroBlocksRecvd");
-        //     }
-        // }
-        this_thread::sleep_for(
-            chrono::seconds(WAITING_STATE_FORWARD_IN_SECONDS));
+        {
+            unique_lock<mutex> g(m_mutexAllMicroBlocksRecvd, defer_lock);
+            if (!m_allMicroBlocksRecvd)
+            {
+                LOG_GENERAL(INFO, "Wait for allMicroBlocksRecvd");
+                m_cvAllMicroBlocksRecvd.wait(
+                    g, [this] { return m_allMicroBlocksRecvd; });
+                LOG_EPOCH(
+                    INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                    "All microblocks recvd, moving to ScheduleTxnSubmission");
+            }
+            else
+            {
+                LOG_GENERAL(INFO, "No need to wait for allMicroBlocksRecvd");
+            }
+        }
+        // this_thread::sleep_for(
+        //     chrono::seconds(WAITING_STATE_FORWARD_IN_SECONDS));
 
         ScheduleTxnSubmission();
     }
@@ -1747,8 +1747,7 @@ void Node::DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
 #ifndef IS_LOOKUP_NODE
         m_forwardingAssignment.erase(blocknum);
         lock_guard<mutex> gt(m_mutexTempCommitted);
-        if (m_unavailableMicroBlocks.empty()
-            && m_tempStateDeltaCommitted == true)
+        if (m_unavailableMicroBlocks.empty() && m_tempStateDeltaCommitted)
         {
             {
                 lock_guard<mutex> g2(m_mutexAllMicroBlocksRecvd);
