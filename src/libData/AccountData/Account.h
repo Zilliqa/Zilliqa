@@ -57,6 +57,8 @@ class Account : public Serializable
 public:
     Account();
 
+    //tells if the account is a contract accoun
+    bool isContract() const { return m_codeHash != h256(); }
     /// Constructor for loading account information from a byte stream.
     Account(const vector<unsigned char>& src, unsigned int offset);
 
