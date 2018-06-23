@@ -353,7 +353,6 @@ class Node : public Executable, public Broadcastable
 
     //Coinbase txns
     bool Coinbase(const BlockBase& lastMicroBlock, const TxBlock& lastTxBlock);
-
     void InitCoinbase();
 
     // Is Running from New Process

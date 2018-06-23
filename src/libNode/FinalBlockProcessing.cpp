@@ -766,13 +766,11 @@ bool Node::IsMyShardsMicroBlockTxRootHashInFinalBlock(
 bool Node::IsMyShardsMicroBlockStateDeltaHashInFinalBlock(
     const uint256_t& blocknum, bool& isEveryMicroBlockAvailable)
 {
-    bool b = m_microblock != nullptr
+    return m_microblock != nullptr
         && IsMicroBlockStateDeltaHashInFinalBlock(
-                 m_microblock->GetHeader().GetStateDeltaHash(),
-                 m_microblock->GetHeader().GetTxRootHash(), blocknum,
-                 isEveryMicroBlockAvailable);
-
-    return b;
+               m_microblock->GetHeader().GetStateDeltaHash(),
+               m_microblock->GetHeader().GetTxRootHash(), blocknum,
+               isEveryMicroBlockAvailable);
 }
 
 bool Node::ActOnFinalBlock(uint8_t tx_sharing_mode, const vector<Peer>& nodes)
@@ -899,7 +897,6 @@ bool Node::ActOnFinalBlock(uint8_t tx_sharing_mode,
                     blocknum, sendingAssignment,
                     m_microblock->GetHeader().GetTxRootHash(), txns_to_send);
             }
-
             {
                 lock_guard<mutex> gt(m_mutexTempCommitted);
                 AccountStore::GetInstance().CommitTemp();
@@ -907,7 +904,6 @@ bool Node::ActOnFinalBlock(uint8_t tx_sharing_mode,
 
                 LOG_GENERAL(INFO, "Temp State Committed");
             }
-
             if (isEveryMicroBlockAvailable)
             {
                 DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(blocknum);
@@ -1557,7 +1553,6 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 
     CallActOnFinalBlockBasedOnSenderForwarderAssgn(i_am_sender, i_am_forwarder,
                                                    nodes, shard_id);
-
 #else // IS_LOOKUP_NODE
     if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
     {
