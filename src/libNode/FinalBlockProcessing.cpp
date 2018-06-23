@@ -189,11 +189,14 @@ void Node::LoadUnavailableMicroBlockHashes(
     lock_guard<mutex> g(m_mutexUnavailableMicroBlocks);
     for (uint i = 0; i < finalBlock.GetMicroBlockHashes().size(); ++i)
     {
-        if (!finalBlock.GetIsMicroBlockEmpty()[i])
+        if (!finalBlock.GetIsMicroBlockEmpty()[i]
+            || (finalBlock.GetMicroBlockHashes()[i].m_stateDeltaHash
+                != StateHash()))
         {
             auto hash = finalBlock.GetMicroBlockHashes()[i];
             m_unavailableMicroBlocks[blocknum].insert(
-                {hash, vector<bool>{true, true}});
+                {hash,
+                 vector<bool>{!finalBlock.GetIsMicroBlockEmpty()[i], true}});
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       hash)
         }
