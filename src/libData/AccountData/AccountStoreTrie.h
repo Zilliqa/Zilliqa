@@ -14,4 +14,37 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#include "SysCommand.h"
+#ifndef __ACCOUNTSTORETRIE_H__
+#define __ACCOUNTSTORETRIE_H__
+
+#include "AccountStoreSC.h"
+#include "depends/libDatabase/MemoryDB.h"
+#include "depends/libDatabase/OverlayDB.h"
+
+template<class DB, class MAP>
+class AccountStoreTrie : public AccountStoreSC<MAP>
+{
+protected:
+    DB m_db;
+    dev::SpecificTrieDB<dev::GenericTrieDB<DB>, Address> m_state;
+    h256 prevRoot;
+
+    AccountStoreTrie();
+
+    bool UpdateStateTrie(const Address& address, const Account& account);
+
+public:
+    virtual void Init() override;
+
+    Account* GetAccount(const Address& address) override;
+
+    h256 GetStateRootHash() const;
+    bool UpdateStateTrieAll();
+    void RepopulateStateTrie();
+
+    void PrintAccountState() override;
+};
+
+#include "AccountStoreTrie.tpp"
+
+#endif // __ACCOUNTSTORETRIE_H__

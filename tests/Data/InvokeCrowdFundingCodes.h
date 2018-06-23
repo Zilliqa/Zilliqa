@@ -33,16 +33,16 @@ contract CrowdFundingInvoke
 
 (* Mutable fields *)
 (* callers only keeps track of who all called Invoke. No real use *)
-field callers : Map Address Int = Emp
+field callers : Map Address Int = Emp Address Int
 
-transition Invoke (sender: Address, trans : String)
+transition Invoke (trans : String)
   bal <- balance;
-  s = sender;
+  s = _sender;
   donate_s = "Donate";
   is_donate = builtin eq trans donate_s;
   match is_donate with
   | True =>
-    msg = {_tag : Donate; to : cfaddr; _amount : bal};
+    msg = {_tag : Donate; _recipient : cfaddr; _amount : bal};
     msgs = one_msg msg;
     send msgs
   | False =>
@@ -50,7 +50,7 @@ transition Invoke (sender: Address, trans : String)
     is_claimback = builtin eq trans claimback_s;
     match is_claimback with
     | True =>
-      msg = {_tag : ClaimBack; to : cfaddr; _amount : 0};
+      msg = {_tag : ClaimBack; _recipient : cfaddr; _amount : 0};
       msgs = one_msg msg;
       send msgs
     | False =>
@@ -58,11 +58,11 @@ transition Invoke (sender: Address, trans : String)
       is_getfunds = builtin eq trans getfunds_s;
       match is_getfunds with
       | True =>
-        msg = {_tag : GetFunds; to : cfaddr; _amount : 0};
+        msg = {_tag : GetFunds; _recipient : cfaddr; _amount : 0};
         msgs = one_msg msg;
         send msgs
       | False =>
-        msg = {_tag : Main; to : sender ; _amount : 0};
+        msg = {_tag : Main; _recipient : _sender ; _amount : 0};
         msgs = one_msg msg;
         send msgs
       end
@@ -80,13 +80,7 @@ std::string icfInitStr = R"([
 
 std::string icfDataStr1 = R"({
     "_tag": "Invoke",
-    "_amount": "0",
     "params": [
-      {
-        "vname": "sender",
-        "type": "Address",
-        "value": "0x12345678901234567890123456789012345678ab"
-      },
       {
         "vname": "trans",
         "type": "String",
@@ -97,13 +91,7 @@ std::string icfDataStr1 = R"({
 
 std::string icfDataStr2 = R"({
     "_tag": "Invoke",
-    "_amount": "0",
     "params": [
-      {
-        "vname": "sender",
-        "type": "Address",
-        "value": "0x12345678901234567890123456789012345678ab"
-      },
       {
         "vname": "trans",
         "type": "String",
@@ -114,13 +102,7 @@ std::string icfDataStr2 = R"({
 
 std::string icfDataStr3 = R"({
     "_tag": "Invoke",
-    "_amount": "0",
     "params": [
-      {
-        "vname": "sender",
-        "type": "Address",
-        "value": "0x12345678901234567890123456789012345678ab"
-      },
       {
         "vname": "trans",
         "type": "String",

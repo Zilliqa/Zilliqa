@@ -22,6 +22,7 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <signal.h>
 #include <string>
 
 #include "Logger.h"
@@ -37,7 +38,11 @@ public:
 
     static bool ExecuteCmdWithOutput(std::string cmd, std::string& output)
     {
+        LOG_MARKER();
+
         std::array<char, 128> buffer;
+
+        signal(SIGCHLD, SIG_IGN);
 
         // Log the stderr into stdout as well
         cmd += " 2>&1 ";
@@ -55,6 +60,7 @@ public:
                 output += buffer.data();
             }
         }
+
         return true;
     }
 };

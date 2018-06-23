@@ -14,32 +14,26 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#include <boost/filesystem.hpp>
+
 #include <type_traits>
 
-// #include "AccountStoreBase.h"
-#include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
-#include "libUtils/SysCommand.h"
 
-template<class DB, class MAP>
-AccountStoreBase<DB, MAP>::AccountStoreBase()
-    : m_db(is_same<DB, OverlayDB>::value ? "state" : "")
+
+template<class MAP>
+AccountStoreBase<MAP>::AccountStoreBase()
 {
     m_addressToAccount = make_shared<MAP>();
-    m_state = dev::SpecificTrieDB<dev::GenericTrieDB<DB>, Address>(&m_db);
 }
 
-template<class DB, class MAP> void AccountStoreBase<DB, MAP>::Init()
+template<class MAP> 
+void AccountStoreBase<MAP>::Init()
 {
-    LOG_MARKER();
     m_addressToAccount->clear();
-    m_state.init();
-    prevRoot = m_state.root();
 }
 
-template<class DB, class MAP>
-unsigned int AccountStoreBase<DB, MAP>::Serialize(vector<unsigned char>& dst,
+template<class MAP>
+unsigned int AccountStoreBase<MAP>::Serialize(vector<unsigned char>& dst,
                                              unsigned int offset) const
 {
     // [Total number of accounts (uint256_t)] [Addr 1] [Account 1] [Addr 2] [Account 2] .... [Addr n] [Account n]
@@ -85,8 +79,8 @@ unsigned int AccountStoreBase<DB, MAP>::Serialize(vector<unsigned char>& dst,
     return totalSerializedSize;
 }
 
-template<class DB, class MAP>
-int AccountStoreBase<DB, MAP>::Deserialize(const vector<unsigned char>& src,
+template<class MAP>
+int AccountStoreBase<MAP>::Deserialize(const vector<unsigned char>& src,
                                       unsigned int offset)
 {
     // [Total number of accounts] [Addr 1] [Account 1] [Addr 2] [Account 2] .... [Addr n] [Account n]
@@ -133,8 +127,66 @@ int AccountStoreBase<DB, MAP>::Deserialize(const vector<unsigned char>& src,
     return 0;
 }
 
-template<class DB, class MAP>
-bool AccountStoreBase<DB, MAP>::DoesAccountExist(const Address& address)
+template<class MAP>
+bool AccountStoreBase<MAP>::UpdateAccounts(const uint64_t& blockNum,
+                                           const Transaction& transaction)
+{
+    const PubKey& senderPubKey = transaction.GetSenderPubKey();
+    const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
+    Address toAddr = transaction.GetToAddr();
+    const uint256_t& amount = transaction.GetAmount();
+
+    Account* fromAccount = this->GetAccount(fromAddr);
+    if (fromAccount == nullptr)
+    {
+        // FIXME: remove this, temporary way to test transactions, should return false
+        LOG_GENERAL(
+            WARNING,
+            "AddAccount... FIXME: remove this, temporary way to "
+            "test transactions, should return false in the future");
+        this->AddAccount(fromAddr, {10000000000, 0});
+        fromAccount = this->GetAccount(fromAddr);
+        // return false;
+    }
+
+    if (transaction.GetGasLimit() < NORMAL_TRAN_GAS)
+    {
+        LOG_GENERAL(WARNING, "The gas limit " << transaction.GetGasLimit() << 
+                " should be larger than the normal transaction gas (" <<
+                 NORMAL_TRAN_GAS << ")");
+        return false;
+    }
+
+    uint256_t gasDeposit = transaction.GetGasLimit() * transaction.GetGasPrice();
+
+    if (fromAccount->GetBalance() < transaction.GetAmount() + gasDeposit)
+    {
+        LOG_GENERAL(WARNING, "The account (balance: " << fromAccount->GetBalance() << ") "
+         "doesn't have enough balance to pay for the gas limit (" << gasDeposit << ") "
+         "with amount (" << transaction.GetAmount() << ") in the transaction");
+        return false;
+    }
+
+    if (!DecreaseBalance(fromAddr, gasDeposit))
+    {
+        return false;
+    }
+
+    if (!TransferBalance(fromAddr, toAddr, amount))
+    {
+        IncreaseBalance(fromAddr, gasDeposit);
+        return false;
+    }
+
+    IncreaseBalance(fromAddr, gasDeposit - NORMAL_TRAN_GAS * transaction.GetGasPrice());
+
+    IncreaseNonce(fromAddr);
+
+    return true;
+}
+
+template<class MAP>
+bool AccountStoreBase<MAP>::DoesAccountExist(const Address& address)
 {
     LOG_MARKER();
 
@@ -146,8 +198,8 @@ bool AccountStoreBase<DB, MAP>::DoesAccountExist(const Address& address)
     return false;
 }
 
-template<class DB, class MAP>
-void AccountStoreBase<DB, MAP>::AddAccount(const Address& address,
+template<class MAP>
+void AccountStoreBase<MAP>::AddAccount(const Address& address,
                                       const Account& account)
 {
     LOG_MARKER();
@@ -159,518 +211,32 @@ void AccountStoreBase<DB, MAP>::AddAccount(const Address& address,
     }
 }
 
-template<class DB, class MAP>
-void AccountStoreBase<DB, MAP>::AddAccount(const PubKey& pubKey,
+template<class MAP>
+void AccountStoreBase<MAP>::AddAccount(const PubKey& pubKey,
                                       const Account& account)
 {
     AddAccount(Account::GetAddressFromPublicKey(pubKey), account);
 }
 
-template<class DB, class MAP>
-bool AccountStoreBase<DB, MAP>::UpdateAccounts(const uint64_t& blockNum,
-                                          const Transaction& transaction)
+template<class MAP>
+Account* AccountStoreBase<MAP>::GetAccount(const Address& address)
 {
-    LOG_MARKER();
-
-    const PubKey& senderPubKey = transaction.GetSenderPubKey();
-    const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
-    Address toAddr = transaction.GetToAddr();
-    const uint256_t& amount = transaction.GetAmount();
-
-    bool callContract = false;
-
-    if (transaction.GetData().size() > 0 && toAddr != NullAddress)
+    auto it = m_addressToAccount->find(address);
+    if (it != m_addressToAccount->end())
     {
-        // if (amount == 0)
-        // {
-        //     LOG_GENERAL(
-        //         WARNING,
-        //         "The amount for calling a contract shouldn't be zero");
-        //     return false;
-        // }
-        callContract = true;
+        return &it->second;
     }
-
-    if (transaction.GetCode().size() > 0 && toAddr == NullAddress)
-    {
-        LOG_GENERAL(INFO, "Create Contract");
-
-        if (amount != 0)
-        {
-            LOG_GENERAL(
-                WARNING,
-                "The amount for creating a contract should be zero");
-            return false;
-        }
-
-        // Create contract account
-        Account* fromAccount = GetAccount(fromAddr);
-        if (fromAccount == nullptr)
-        {
-	        // FIXME: remove this, temporary way to test transactions, should return false
-            LOG_GENERAL(
-                WARNING,
-                "AddAccount... FIXME: remove this, temporary way to "
-                "test transactions, should return false in the future");
-            AddAccount(fromAddr, {10000000000, 0});
-            fromAccount = GetAccount(fromAddr);
-        }
-
-        toAddr
-            = Account::GetAddressForContract(fromAddr, fromAccount->GetNonce());
-        AddAccount(toAddr, {0, 0});
-        Account* toAccount = GetAccount(toAddr);
-        toAccount->SetCode(transaction.GetCode());
-        // Store the immutable states
-        toAccount->InitContract(transaction.GetData());
-
-        m_curBlockNum = blockNum;
-
-        if (ExportCreateContractFiles(toAccount))
-        {
-            if (!SysCommand::ExecuteCmdWithoutOutput(GetCreateContractCmdStr()))
-            {
-                return false;
-            }
-            if (!ParseCreateContractOutput())
-            {
-                m_addressToAccount->erase(toAddr);
-                return false;
-            }
-        }
-    }
-
-    TransferBalance(fromAddr, toAddr, amount);
-
-    if (callContract)
-    {
-        LOG_GENERAL(INFO, "Call Contract");
-
-        Account* toAccount = GetAccount(toAddr);
-        if (toAccount == nullptr)
-        {
-            LOG_GENERAL(WARNING, "The target contract account doesn't exist");
-            return false;
-        }
-
-        m_curBlockNum = blockNum;
-
-        // TODO: Implement the calling of interpreter in multi-thread
-        if (ExportCallContractFiles(toAccount, transaction.GetData()))
-        {
-            m_curContractAddr = toAddr;
-            if (!SysCommand::ExecuteCmdWithoutOutput(GetCallContractCmdStr()))
-            {
-                return false;
-            }
-            if (!ParseCallContractOutput())
-            {
-                return false;
-            }
-        }
-    }
-
-    IncreaseNonce(fromAddr);
-
-    return true;
+    return nullptr;
 }
 
-template<class DB, class MAP>
-Json::Value
-AccountStoreBase<DB, MAP>::GetBlockStateJson(const uint64_t& BlockNum) const
-{
-    Json::Value root;
-    Json::Value blockItem;
-    blockItem["vname"] = "BLOCKNUMBER";
-    blockItem["type"] = "BNum";
-    blockItem["value"] = to_string(BlockNum);
-    root.append(blockItem);
-    return root;
-}
-
-template<class DB, class MAP>
-bool AccountStoreBase<DB, MAP>::ExportCreateContractFiles(Account* contract)
-{
-    LOG_MARKER();
-
-    boost::filesystem::remove_all("./" + SCILLA_FILES);
-    boost::filesystem::create_directories("./" + SCILLA_FILES);
-
-    if (!(boost::filesystem::exists("./" + SCILLA_LOG)))
-    {
-        boost::filesystem::create_directories("./" + SCILLA_LOG);
-    }
-
-    Json::StreamWriterBuilder writeBuilder;
-    std::unique_ptr<Json::StreamWriter> writer(writeBuilder.newStreamWriter());
-    std::ofstream os;
-
-    // Scilla code
-    os.open(INPUT_CODE);
-    os << DataConversion::CharArrayToString(contract->GetCode());
-    os.close();
-
-    // Initialize Json
-    os.open(INIT_JSON);
-    writer->write(contract->GetInitJson(), &os);
-    os.close();
-
-    // Block Json
-    os.open(INPUT_BLOCKCHAIN_JSON);
-    writer->write(GetBlockStateJson(m_curBlockNum), &os);
-    os.close();
-
-    return true;
-}
-
-template<class DB, class MAP>
-bool AccountStoreBase<DB, MAP>::ExportCallContractFiles(
-    Account* contract, const vector<unsigned char>& contractData)
-{
-    LOG_MARKER();
-
-    boost::filesystem::remove_all("./" + SCILLA_FILES);
-    boost::filesystem::create_directories("./" + SCILLA_FILES);
-
-    Json::StreamWriterBuilder writeBuilder;
-    unique_ptr<Json::StreamWriter> writer(writeBuilder.newStreamWriter());
-    std::ofstream os;
-
-    // Scilla code
-    os.open(INPUT_CODE);
-    os << DataConversion::CharArrayToString(contract->GetCode());
-    os.close();
-
-    // Initialize Json
-    os.open(INIT_JSON);
-    writer->write(contract->GetInitJson(), &os);
-    os.close();
-
-    // State Json
-    os.open(INPUT_STATE_JSON);
-    writer->write(contract->GetStorageJson(), &os);
-    os.close();
-
-    // Block Json
-    os.open(INPUT_BLOCKCHAIN_JSON);
-    writer->write(GetBlockStateJson(m_curBlockNum), &os);
-    os.close();
-
-    // Message Json
-    Json::CharReaderBuilder readBuilder;
-    unique_ptr<Json::CharReader> reader(readBuilder.newCharReader());
-    Json::Value msgObj;
-    string dataStr(contractData.begin(), contractData.end());
-    LOG_GENERAL(INFO, "Contract Data: " << dataStr);
-    string errors;
-    if (reader->parse(dataStr.c_str(), dataStr.c_str() + dataStr.size(),
-                      &msgObj, &errors))
-    {
-        os.open(INPUT_MESSAGE_JSON);
-        os << dataStr;
-        os.close();
-    }
-    else
-    {
-        LOG_GENERAL(WARNING,
-                    "The Contract Data Json is corrupted, failed to process: "
-                        << errors);
-        boost::filesystem::remove_all("./" + SCILLA_FILES);
-        return false;
-    }
-    return true;
-}
-
-template<class DB, class MAP> string AccountStoreBase<DB, MAP>::GetCreateContractCmdStr()
-{
-    string ret = SCILLA_PATH + " -init " + INIT_JSON + " -iblockchain "
-        + INPUT_BLOCKCHAIN_JSON + " -o " + OUTPUT_JSON + " -i " + INPUT_CODE;
-    LOG_GENERAL(INFO, ret);
-    return ret;
-}
-
-template<class DB, class MAP> string AccountStoreBase<DB, MAP>::GetCallContractCmdStr()
-{
-    string ret = SCILLA_PATH + " -init " + INIT_JSON + " -istate "
-        + INPUT_STATE_JSON + " -iblockchain " + INPUT_BLOCKCHAIN_JSON
-        + " -imessage " + INPUT_MESSAGE_JSON + " -o " + OUTPUT_JSON + " -i "
-        + INPUT_CODE;
-    LOG_GENERAL(INFO, ret);
-    return ret;
-}
-
-template<class DB, class MAP> bool AccountStoreBase<DB, MAP>::ParseCreateContractOutput()
-{
-    LOG_MARKER();
-
-    ifstream in(OUTPUT_JSON, ios::binary);
-
-    if (!in.is_open())
-    {
-        LOG_GENERAL(WARNING,
-                    "Error opening output file or no output file generated");
-        return false;
-    }
-    string outStr{istreambuf_iterator<char>(in), istreambuf_iterator<char>()};
-    LOG_GENERAL(INFO, "Output: " << endl << outStr);
-    Json::CharReaderBuilder builder;
-    std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
-    Json::Value root;
-    string errors;
-    if (reader->parse(outStr.c_str(), outStr.c_str() + outStr.size(), &root,
-                      &errors))
-    {
-        return ParseCreateContractJsonOutput(root);
-    }
-    else
-    {
-        LOG_GENERAL(WARNING,
-                    "Failed to parse contract output json: " << errors);
-        return false;
-    }
-}
-
-template<class DB, class MAP>
-bool AccountStoreBase<DB, MAP>::ParseCreateContractJsonOutput(
-    const Json::Value& _json)
-{
-    LOG_MARKER();
-
-    if (!_json.isMember("message") || !_json.isMember("states"))
-    {
-        LOG_GENERAL(WARNING, "The json output of this contract is corrupted");
-        return false;
-    }
-
-    if (_json["message"] == Json::nullValue
-        && _json["states"] == Json::arrayValue)
-    {
-        // LOG_GENERAL(INFO, "Get desired json output from the interpreter for create contract");
-        return true;
-    }
-    LOG_GENERAL(WARNING,
-                "Didn't get desired json output from the interpreter for "
-                "create contract");
-    return false;
-}
-
-template<class DB, class MAP> bool AccountStoreBase<DB, MAP>::ParseCallContractOutput()
-{
-    LOG_MARKER();
-
-    ifstream in(OUTPUT_JSON, ios::binary);
-
-    if (!in.is_open())
-    {
-        LOG_GENERAL(WARNING,
-                    "Error opening output file or no output file generated");
-        return false;
-    }
-    string outStr{istreambuf_iterator<char>(in), istreambuf_iterator<char>()};
-    LOG_GENERAL(INFO, "Output: " << endl << outStr);
-    Json::CharReaderBuilder builder;
-    std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
-    Json::Value root;
-    string errors;
-    if (reader->parse(outStr.c_str(), outStr.c_str() + outStr.size(), &root,
-                      &errors))
-    {
-        return ParseCallContractJsonOutput(root);
-    }
-    else
-    {
-        LOG_GENERAL(WARNING,
-                    "Failed to parse contract output json: " << errors);
-        return false;
-    }
-}
-
-template<class DB, class MAP>
-bool AccountStoreBase<DB, MAP>::ParseCallContractJsonOutput(const Json::Value& _json)
-{
-    LOG_MARKER();
-
-    if (!_json.isMember("message") || !_json.isMember("states"))
-    {
-        LOG_GENERAL(WARNING, "The json output of this contract is corrupted");
-        return false;
-    }
-
-    if (!_json["message"].isMember("_tag")
-        || !_json["message"].isMember("_amount")
-        || !_json["message"].isMember("params"))
-    {
-        LOG_GENERAL(
-            WARNING,
-            "The message in the json output of this contract is corrupted");
-        return false;
-    }
-
-    int deducted = 0;
-
-    for (auto s : _json["states"])
-    {
-        if (!s.isMember("vname") || !s.isMember("type") || !s.isMember("value"))
-        {
-            LOG_GENERAL(WARNING,
-                        "Address: "
-                            << m_curContractAddr.hex()
-                            << ", The json output of states is corrupted");
-            continue;
-        }
-        string vname = s["vname"].asString();
-        string type = s["type"].asString();
-        string value;
-        if (type == "Map" || type == "ADT")
-        {
-            Json::StreamWriterBuilder writeBuilder;
-            unique_ptr<Json::StreamWriter> writer(
-                writeBuilder.newStreamWriter());
-            ostringstream oss;
-            writer->write(s["value"], &oss);
-            value = oss.str();
-        }
-        else
-        {
-            value = s["value"].asString();
-        }
-
-        Account* contractAccount = GetAccount(m_curContractAddr);
-        if (vname == "_balance")
-        {
-            int newBalance = atoi(value.c_str());
-            deducted
-                = static_cast<int>(contractAccount->GetBalance()) - newBalance;
-            contractAccount->SetBalance(newBalance);
-        }
-        else
-        {
-            contractAccount->SetStorage(vname, type, value);
-        }
-    }
-
-    /// The process after getting the output:
-    if (_json["message"]["_tag"].asString() == "Main")
-    {
-        Address toAddr;
-        for (auto p : _json["message"]["params"])
-        {
-            if (p["vname"].asString() == "to"
-                && p["type"].asString() == "Address")
-            {
-                toAddr = Address(p["value"].asString());
-                break;
-            }
-        }
-        // A hacky way of refunding the contract the number of amount for the transaction, because the balance was affected by the parsing of _balance and the 'Main' message. Need to fix in the future
-        int amount = atoi(_json["message"]["_amount"].asString().c_str());
-        if (amount == 0)
-        {
-            return true;
-        }
-
-        if (!TransferBalance(m_curContractAddr, toAddr, amount))
-        {
-            return false;
-        }
-        // what if the positive value is come from a failed function call
-        if (deducted > 0)
-        {
-            if (!IncreaseBalance(m_curContractAddr, deducted))
-            {
-                return false;
-            }
-        }
-        IncreaseNonce(m_curContractAddr);
-
-        return true;
-    }
-    else
-    {
-        LOG_GENERAL(INFO, "Call another contract");
-
-        Address toAddr;
-        Json::Value params;
-        for (auto p : _json["message"]["params"])
-        {
-            if (p["vname"].asString() == "to"
-                && p["type"].asString() == "Address")
-            {
-                toAddr = Address(p["value"].asString());
-            }
-            else
-            {
-                params.append(p);
-            }
-        }
-        Json::Value p_sender;
-        p_sender["vname"] = "sender";
-        p_sender["type"] = "Address";
-        p_sender["value"] = "0x" + m_curContractAddr.hex();
-        params.append(p_sender);
-
-        // if (params.empty())
-        // {
-        //     params = Json::arrayValue;
-        // }
-
-        Account* toAccount = GetAccount(toAddr);
-        if (toAccount == nullptr)
-        {
-            LOG_GENERAL(WARNING, "The target contract account doesn't exist");
-            return false;
-        }
-
-        if (ExportCallContractFiles(
-                toAccount,
-                CompositeContractData(_json["message"]["_tag"].asString(),
-                                      _json["message"]["_amount"].asString(),
-                                      params)))
-        {
-            Address t_address = m_curContractAddr;
-            m_curContractAddr = toAddr;
-            
-            if (!SysCommand::ExecuteCmdWithoutOutput(GetCallContractCmdStr()))
-            {
-                return false;
-            }
-            if (ParseCallContractOutput())
-            {
-                IncreaseNonce(t_address);
-                return true;
-            }
-        }
-        return false;
-    }
-}
-
-template<class DB, class MAP>
-const vector<unsigned char> AccountStoreBase<DB, MAP>::CompositeContractData(
-    const string& funcName, const string& amount, const Json::Value& params)
-{
-    LOG_MARKER();
-    Json::Value obj;
-    obj["_tag"] = funcName;
-    obj["_amount"] = amount;
-    obj["params"] = params;
-
-    Json::StreamWriterBuilder writeBuilder;
-    unique_ptr<Json::StreamWriter> writer(writeBuilder.newStreamWriter());
-    ostringstream oss;
-    writer->write(obj, &oss);
-    string dataStr = oss.str();
-
-    return DataConversion::StringToCharArray(dataStr);
-}
-
-template<class DB, class MAP> uint256_t AccountStoreBase<DB, MAP>::GetNumOfAccounts() const
+template<class MAP> uint256_t AccountStoreBase<MAP>::GetNumOfAccounts() const
 {
     LOG_MARKER();
     return m_addressToAccount->size();
 }
 
-template<class DB, class MAP>
-bool AccountStoreBase<DB, MAP>::IncreaseBalance(const Address& address,
+template<class MAP>
+bool AccountStoreBase<MAP>::IncreaseBalance(const Address& address,
                                            const uint256_t& delta)
 {
     // LOG_MARKER();
@@ -703,8 +269,8 @@ bool AccountStoreBase<DB, MAP>::IncreaseBalance(const Address& address,
     return false;
 }
 
-template<class DB, class MAP>
-bool AccountStoreBase<DB, MAP>::DecreaseBalance(const Address& address,
+template<class MAP>
+bool AccountStoreBase<MAP>::DecreaseBalance(const Address& address,
                                            const uint256_t& delta)
 {
     // LOG_MARKER();
@@ -737,8 +303,8 @@ bool AccountStoreBase<DB, MAP>::DecreaseBalance(const Address& address,
     return false;
 }
 
-template<class DB, class MAP>
-bool AccountStoreBase<DB, MAP>::TransferBalance(const Address& from,
+template<class MAP>
+bool AccountStoreBase<MAP>::TransferBalance(const Address& from,
                                            const Address& to,
                                            const uint256_t& delta)
 {
@@ -752,8 +318,8 @@ bool AccountStoreBase<DB, MAP>::TransferBalance(const Address& from,
     return false;
 }
 
-template<class DB, class MAP>
-uint256_t AccountStoreBase<DB, MAP>::GetBalance(const Address& address)
+template<class MAP>
+uint256_t AccountStoreBase<MAP>::GetBalance(const Address& address)
 {
     LOG_MARKER();
 
@@ -767,8 +333,8 @@ uint256_t AccountStoreBase<DB, MAP>::GetBalance(const Address& address)
     return 0;
 }
 
-template<class DB, class MAP>
-bool AccountStoreBase<DB, MAP>::IncreaseNonce(const Address& address)
+template<class MAP>
+bool AccountStoreBase<MAP>::IncreaseNonce(const Address& address)
 {
     LOG_MARKER();
 
@@ -788,8 +354,8 @@ bool AccountStoreBase<DB, MAP>::IncreaseNonce(const Address& address)
     return false;
 }
 
-template<class DB, class MAP>
-uint256_t AccountStoreBase<DB, MAP>::GetNonce(const Address& address)
+template<class MAP>
+uint256_t AccountStoreBase<MAP>::GetNonce(const Address& address)
 {
     //LOG_MARKER();
 
@@ -803,55 +369,11 @@ uint256_t AccountStoreBase<DB, MAP>::GetNonce(const Address& address)
     return 0;
 }
 
-template<class DB, class MAP> void AccountStoreBase<DB, MAP>::PrintAccountState()
+template<class MAP> void AccountStoreBase<MAP>::PrintAccountState()
 {
     LOG_GENERAL(INFO, "Printing Account State");
     for (auto entry : *m_addressToAccount)
     {
         LOG_GENERAL(INFO, entry.first << " " << entry.second);
     }
-    LOG_GENERAL(INFO, "State Root: " << GetStateRootHash());
-}
-
-template<class DB, class MAP> h256 AccountStoreBase<DB, MAP>::GetStateRootHash() const
-{
-    LOG_MARKER();
-
-    return m_state.root();
-}
-
-template<class DB, class MAP>
-bool AccountStoreBase<DB, MAP>::UpdateStateTrie(const Address& address,
-                                           const Account& account)
-{
-    //LOG_MARKER();
-
-    dev::RLPStream rlpStream(4);
-    rlpStream << account.GetBalance() << account.GetNonce()
-              << account.GetStorageRoot() << account.GetCodeHash();
-    m_state.insert(address, &rlpStream.out());
-
-    return true;
-}
-
-template<class DB, class MAP> bool AccountStoreBase<DB, MAP>::UpdateStateTrieAll()
-{
-    bool ret = true;
-    for (auto entry : *m_addressToAccount)
-    {
-        if (!UpdateStateTrie(entry.first, entry.second))
-        {
-            ret = false;
-            break;
-        }
-    }
-    return ret;
-}
-
-template<class DB, class MAP> void AccountStoreBase<DB, MAP>::RepopulateStateTrie()
-{
-    LOG_MARKER();
-    m_state.init();
-    prevRoot = m_state.root();
-    UpdateStateTrieAll();
 }

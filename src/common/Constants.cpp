@@ -45,6 +45,12 @@ std::string ReadSmartContractConstants(std::string propertyName)
     return pt.get<std::string>("node.smart_contract." + propertyName);
 }
 
+std::string ReadHexStringFromSmartContractFile(std::string propertyName)
+{
+    auto pt = PTree::GetInstance();
+    return pt.get<std::string>("node.smartcontract." + propertyName);
+}
+
 const std::vector<std::string>
 ReadAccountsFromConstantsFile(std::string propName)
 {
@@ -111,6 +117,11 @@ const unsigned int WAITING_STATE_FORWARD_IN_SECONDS{
     ReadFromConstantsFile("WAITING_STATE_FORWARD_IN_SECONDS")};
 const unsigned int N_PREFILLED_PER_ACCOUNT{
     ReadFromConstantsFile("N_PREFILLED_PER_ACCOUNT")};
+const unsigned int CONTRACT_CREATE_GAS{
+    ReadFromConstantsFile("CONTRACT_CREATE_GAS")};
+const unsigned int CONTRACT_INVOKE_GAS{
+    ReadFromConstantsFile("CONTRACT_INVOKE_GAS")};
+const unsigned int NORMAL_TRAN_GAS{ReadFromConstantsFile("NORMAL_TRAN_GAS")};
 const std::vector<std::string> GENESIS_WALLETS{
     ReadAccountsFromConstantsFile("wallet_address")};
 const std::vector<std::string> GENESIS_KEYS{
