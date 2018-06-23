@@ -32,6 +32,17 @@ add_executable(Test_TransactionPerformance Test_TransactionPerformance.cpp)
 target_include_directories(Test_TransactionPerformance PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(Test_TransactionPerformance PUBLIC AccountData Utils)
 add_test(NAME Test_TransactionPerformance COMMAND Test_TransactionPerformance)
+
+#add_executable(Test_Contract Test_Contract.cpp)
+#target_include_directories(Test_Contract PUBLIC ${CMAKE_SOURCE_DIR}/src)
+#target_link_libraries(Test_Contract PUBLIC AccountData Crypto Trie Utils Persistence)
+#add_test(NAME Test_Contract COMMAND Test_Contract)
+
+#add_executable(Test_ContractInvoke Test_ContractInvoke.cpp)
+#target_include_directories(Test_ContractInvoke PUBLIC ${CMAKE_SOURCE_DIR}/src)
+#target_link_libraries(Test_ContractInvoke PUBLIC AccountData Crypto Trie Utils Persistence)
+#add_test(NAME Test_ContractInvoke COMMAND Test_ContractInvoke)
+
 #add_executable(Test_Block Test_Block.cpp)
 
 #target_include_directories(Test_Transaction PUBLIC ${CMAKE_SOURCE_DIR}/src)

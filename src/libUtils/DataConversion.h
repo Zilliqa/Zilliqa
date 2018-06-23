@@ -62,6 +62,12 @@ public:
 
     /// Converts a serializable object to alphanumeric hex string.
     static std::string SerializableToHexStr(const Serializable& input);
+
+    static const std::string
+    CharArrayToString(const std::vector<unsigned char>& v);
+
+    static const std::vector<unsigned char>
+    StringToCharArray(const std::string& input);
 };
 
 #endif // __DATACONVERSION_H__
