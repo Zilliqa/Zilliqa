@@ -13,6 +13,7 @@
 * GPLv3.0 are those programs that are located in the folders src/depends and tests/depends
 * and which include a reference to GPLv3 in their program files.
 **/
+#ifndef IS_LOOKUP_NODE
 #include <map>
 #include <queue>
 #include <vector>
@@ -132,3 +133,4 @@ void Node::InitCoinbase()
         LOG_GENERAL(INFO, "Coinbase Success");
     }
 }
+#endif // IS_LOOKUP_NODE
