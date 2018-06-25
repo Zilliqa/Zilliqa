@@ -37,7 +37,7 @@ unsigned int JSON_TRAN_OBJECT_SIZE = 10;
 const Json::Value JSONConversion::convertBoolArraytoJson(const vector<bool>& v)
 {
     Json::Value jsonBool;
-    for (auto const& i i : v)
+    for (auto const& i : v)
     {
         jsonBool.append(i ? 1 : 0);
     }
@@ -49,7 +49,7 @@ JSONConversion::convertTxnHashArraytoJson(const vector<TxnHash>& v)
 {
     Json::Value jsonTxnHash;
 
-    for (auto const& i i : v)
+    for (auto const& i : v)
     {
         jsonTxnHash.append(i.hex());
     }
@@ -61,7 +61,7 @@ JSONConversion::convertTxnHashArraytoJson(const vector<MicroBlockHashSet>& v)
 {
     Json::Value jsonTxnHash;
 
-    for (auto const& i i : v)
+    for (auto const& i : v)
     {
         jsonTxnHash.append(i.m_txRootHash.hex());
     }
@@ -73,7 +73,7 @@ const Json::Value JSONConversion::convertMicroBlockHashSettoJson(
 {
     Json::Value jsonMicroBlockHashSets;
 
-    for (auto const& i i : v)
+    for (auto const& i : v)
     {
         Json::Value microBlockHashSet;
         microBlockHashSet["txRootHash"] = i.m_txRootHash.hex();
