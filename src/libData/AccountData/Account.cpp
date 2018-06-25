@@ -461,7 +461,7 @@ bool Account::DecreaseBalance(const uint256_t& delta)
 bool Account::ChangeBalance(const int256_t& delta)
 {
     return (delta >= 0) ? IncreaseBalance(uint256_t(delta))
-                        : DecreaseBalance(uint256_t(delta));
+                        : DecreaseBalance(uint256_t(-delta));
 }
 
 bool Account::IncreaseNonce()
