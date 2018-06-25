@@ -27,7 +27,7 @@
 using namespace std;
 
 void Reward(const vector<bool>& b1, const vector<bool>& b2,
-            deque<PubKey>& toKeys, Address& genesisAccount)
+            const deque<PubKey>& toKeys, const Address& genesisAccount)
 {
     auto RewardEveryRound = [&genesisAccount, &toKeys](auto const& bits) {
         for (size_t i = 0; i < bits.size(); i++)
@@ -38,7 +38,7 @@ void Reward(const vector<bool>& b1, const vector<bool>& b2,
             }
 
             auto to = Account::GetAddressFromPublicKey(toKeys[i]);
-            if (AccountStore::GetInstance().UpdateCoinbaseTemp(
+            if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
                     to, genesisAccount, COINBASE_REWARD))
             {
                 LOG_GENERAL(WARNING, "Could not reward " << to);
