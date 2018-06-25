@@ -29,6 +29,7 @@
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
 #include "libNetwork/P2PComm.h"
+#include "libNetwork/Whitelist.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
@@ -197,7 +198,18 @@ bool DirectoryService::ParseMessageAndVerifyPOW1(
                 return false;
             }
 
-            m_allPoW1s.push_back(make_pair(key, nonce));
+            if (TEST_NET_MODE
+                && not Whitelist::GetInstance().IsNodeInDSWhiteList(peer, key))
+            {
+                LOG_EPOCH(WARNING,
+                          to_string(m_mediator.m_currentEpochNum).c_str(),
+                          "Submitted PoW1 but node is not in whitelist. Hence, "
+                          "not accepted!");
+            }
+            else
+            {
+                m_allPoW1s.push_back(make_pair(key, nonce));
+            }
         }
     }
     else
