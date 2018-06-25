@@ -118,10 +118,9 @@ void DirectoryService::DetermineShardsToSendFinalBlockTo(
     //    DS cluster 1 => Shard (num of DS clusters + 1)
     LOG_MARKER();
 
-    unsigned int num_DS_clusters = m_mediator.m_DSCommitteeNetworkInfo.size()
-        / DS_MULTICAST_CLUSTER_SIZE;
-    if ((m_mediator.m_DSCommitteeNetworkInfo.size() % DS_MULTICAST_CLUSTER_SIZE)
-        > 0)
+    unsigned int num_DS_clusters
+        = m_mediator.m_DSCommittee.size() / DS_MULTICAST_CLUSTER_SIZE;
+    if ((m_mediator.m_DSCommittee.size() % DS_MULTICAST_CLUSTER_SIZE) > 0)
     {
         num_DS_clusters++;
     }

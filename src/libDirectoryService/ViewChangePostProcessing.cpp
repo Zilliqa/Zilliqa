@@ -54,10 +54,9 @@ void DirectoryService::DetermineShardsToSendVCBlockTo(
     //    DS cluster 1 => Shard (num of DS clusters + 1)
     LOG_MARKER();
 
-    unsigned int num_DS_clusters = m_mediator.m_DSCommitteeNetworkInfo.size()
-        / DS_MULTICAST_CLUSTER_SIZE;
-    if ((m_mediator.m_DSCommitteeNetworkInfo.size() % DS_MULTICAST_CLUSTER_SIZE)
-        > 0)
+    unsigned int num_DS_clusters
+        = m_mediator.m_DSCommittee.size() / DS_MULTICAST_CLUSTER_SIZE;
+    if ((m_mediator.m_DSCommittee.size() % DS_MULTICAST_CLUSTER_SIZE) > 0)
     {
         num_DS_clusters++;
     }
@@ -125,11 +124,11 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
     unsigned int count = 0;
 
     vector<PubKey> keys;
-    for (auto& kv : m_mediator.m_DSCommitteePubKeys)
+    for (auto& kv : m_mediator.m_DSCommittee)
     {
         if (m_pendingVCBlock->GetB2().at(index) == true)
         {
-            keys.push_back(kv);
+            keys.push_back(kv.first);
             count++;
         }
         index++;
@@ -173,8 +172,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
     unsigned int offsetToCandidateLeader = 1;
 
     Peer expectedLeader;
-    if (m_mediator.m_DSCommitteeNetworkInfo.at(offsetToCandidateLeader)
-        == Peer())
+    if (m_mediator.m_DSCommittee.at(offsetToCandidateLeader).second == Peer())
     {
         // I am 0.0.0.0
         expectedLeader = m_mediator.m_selfPeer;
@@ -182,7 +180,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
     else
     {
         expectedLeader
-            = m_mediator.m_DSCommitteeNetworkInfo.at(offsetToCandidateLeader);
+            = m_mediator.m_DSCommittee.at(offsetToCandidateLeader).second;
     }
 
     if (expectedLeader == newLeaderNetworkInfo)
@@ -203,20 +201,10 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
         // Kick ousted leader to the back of the queue, waiting to be eject at
         // the next ds epoch
         {
-            lock(m_mediator.m_mutexDSCommitteeNetworkInfo,
-                 m_mediator.m_mutexDSCommitteePubKeys);
-            lock_guard<mutex> g2(m_mediator.m_mutexDSCommitteeNetworkInfo,
-                                 adopt_lock);
-            lock_guard<mutex> g3(m_mediator.m_mutexDSCommitteePubKeys,
-                                 adopt_lock);
-
-            m_mediator.m_DSCommitteeNetworkInfo.push_back(
-                m_mediator.m_DSCommitteeNetworkInfo.front());
-            m_mediator.m_DSCommitteeNetworkInfo.pop_front();
-
-            m_mediator.m_DSCommitteePubKeys.push_back(
-                m_mediator.m_DSCommitteePubKeys.front());
-            m_mediator.m_DSCommitteePubKeys.pop_front();
+            lock_guard<mutex> g2(m_mediator.m_mutexDSCommittee);
+            m_mediator.m_DSCommittee.push_back(
+                m_mediator.m_DSCommittee.front());
+            m_mediator.m_DSCommittee.pop_front();
         }
 
         unsigned int offsetTOustedDSLeader = 0;
@@ -225,8 +213,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
             // Now if I am the ousted leader, I will self-assinged myself to the last
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "I was a DS leader but I got ousted by the DS Committee");
-            offsetTOustedDSLeader
-                = m_mediator.m_DSCommitteeNetworkInfo.size() - 1;
+            offsetTOustedDSLeader = m_mediator.m_DSCommittee.size() - 1;
             m_consensusMyID = offsetTOustedDSLeader;
         }
         else
