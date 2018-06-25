@@ -364,85 +364,84 @@ int Account::DeserializeDelta(const vector<unsigned char>& src,
     {
         return account.DeserializeAddOffset(src, offset);
     }
-    else
+
+
+    try
     {
-        try
+        LOG_GENERAL(INFO, "Account before changing: " << account);
+        // Balance Delta
+        // Sign
+        unsigned char numsign = src[offset];
+        offset += 1;
+        // Num
+        uint256_t balanceDeltaNum
+            = GetNumber<uint256_t>(src, offset, UINT256_SIZE);
+        offset += UINT256_SIZE;
+        int balanceDelta = (numsign == NumberSign::POSITIVE)
+            ? (int)balanceDeltaNum
+            : 0 - (int)balanceDeltaNum;
+        LOG_GENERAL(INFO, "balanceDelta: " << balanceDelta);
+        account.ChangeBalance(balanceDelta);
+        // Nonce Delta
+        uint256_t nonceDelta
+            = GetNumber<uint256_t>(src, offset, UINT256_SIZE);
+        LOG_GENERAL(INFO, "nonceDelta: " << nonceDelta);
+        account.IncreaseNonceBy(nonceDelta);
+        offset += UINT256_SIZE;
+        // Storage Root
+        h256 t_storageRoot;
+        copy(src.begin() + offset, src.begin() + offset + COMMON_HASH_SIZE,
+             t_storageRoot.asArray().begin());
+        LOG_GENERAL(INFO, "t_storageRoot: " << t_storageRoot);
+        offset += COMMON_HASH_SIZE;
+
+        if (t_storageRoot != account.GetStorageRoot())
         {
-            LOG_GENERAL(INFO, "Account before changing: " << account);
-            // Balance Delta
-            // Sign
-            unsigned char numsign = src[offset];
-            offset += 1;
-            // Num
-            uint256_t balanceDeltaNum
-                = GetNumber<uint256_t>(src, offset, UINT256_SIZE);
+            // States storage
+            // Num of Key Hashes
+            unsigned int numKeyHashes = (unsigned int)GetNumber<uint256_t>(
+                src, offset, UINT256_SIZE);
             offset += UINT256_SIZE;
-            int balanceDelta = (numsign == NumberSign::POSITIVE)
-                ? (int)balanceDeltaNum
-                : 0 - (int)balanceDeltaNum;
-            LOG_GENERAL(INFO, "balanceDelta: " << balanceDelta);
-            account.ChangeBalance(balanceDelta);
-            // Nonce Delta
-            uint256_t nonceDelta
-                = GetNumber<uint256_t>(src, offset, UINT256_SIZE);
-            LOG_GENERAL(INFO, "nonceDelta: " << nonceDelta);
-            account.IncreaseNonceBy(nonceDelta);
-            offset += UINT256_SIZE;
-            // Storage Root
-            h256 t_storageRoot;
-            copy(src.begin() + offset, src.begin() + offset + COMMON_HASH_SIZE,
-                 t_storageRoot.asArray().begin());
-            LOG_GENERAL(INFO, "t_storageRoot: " << t_storageRoot);
-            offset += COMMON_HASH_SIZE;
+            for (unsigned int i = 0; i < numKeyHashes; i++)
+            {
+                // Key Hash
+                h256 keyHash;
+                copy(src.begin() + offset,
+                     src.begin() + offset + COMMON_HASH_SIZE,
+                     keyHash.asArray().begin());
+                offset += COMMON_HASH_SIZE;
+
+                // RLP
+                // RLP size
+                unsigned int rlpSize = (unsigned int)GetNumber<uint256_t>(
+                    src, offset, UINT256_SIZE);
+                offset += UINT256_SIZE;
+                // RLP string
+                string rlpStr;
+                copy(src.begin() + offset, src.begin() + offset + rlpSize,
+                     back_inserter(rlpStr));
+                offset += rlpSize;
+                account.SetStorage(keyHash, rlpStr);
+            }
 
             if (t_storageRoot != account.GetStorageRoot())
             {
-                // States storage
-                // Num of Key Hashes
-                unsigned int numKeyHashes = (unsigned int)GetNumber<uint256_t>(
-                    src, offset, UINT256_SIZE);
-                offset += UINT256_SIZE;
-                for (unsigned int i = 0; i < numKeyHashes; i++)
-                {
-                    // Key Hash
-                    h256 keyHash;
-                    copy(src.begin() + offset,
-                         src.begin() + offset + COMMON_HASH_SIZE,
-                         keyHash.asArray().begin());
-                    offset += COMMON_HASH_SIZE;
-
-                    // RLP
-                    // RLP size
-                    unsigned int rlpSize = (unsigned int)GetNumber<uint256_t>(
-                        src, offset, UINT256_SIZE);
-                    offset += UINT256_SIZE;
-                    // RLP string
-                    string rlpStr;
-                    copy(src.begin() + offset, src.begin() + offset + rlpSize,
-                         back_inserter(rlpStr));
-                    offset += rlpSize;
-                    account.SetStorage(keyHash, rlpStr);
-                }
-
-                if (t_storageRoot != account.GetStorageRoot())
-                {
-                    LOG_GENERAL(
-                        WARNING,
-                        "ERROR: StorageRoots doesn't match! Investigate why!");
-                    return -1;
-                }
+                LOG_GENERAL(
+                    WARNING,
+                    "ERROR: StorageRoots doesn't match! Investigate why!");
+                return -1;
             }
-            LOG_GENERAL(INFO, "Account after changing: " << account);
         }
-        catch (const std::exception& e)
-        {
-            LOG_GENERAL(WARNING,
-                        "Error with Account::DeserializeDelta." << ' '
-                                                                << e.what());
-            return -1;
-        }
-        return 0;
+        LOG_GENERAL(INFO, "Account after changing: " << account);
     }
+    catch (const std::exception& e)
+    {
+        LOG_GENERAL(WARNING,
+                    "Error with Account::DeserializeDelta." << ' '
+                                                            << e.what());
+        return -1;
+    }
+    return 0;
 }
 
 bool Account::IncreaseBalance(const uint256_t& delta)
