@@ -28,8 +28,6 @@ using namespace dev;
 
 class ContractStorage : public Singleton<ContractStorage>
 {
-    friend class Singleton<ContractStorage>;
-
     OverlayDB m_stateDB;
     LevelDB m_codeDB;
 
