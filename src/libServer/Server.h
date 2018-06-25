@@ -87,10 +87,10 @@ public:
                                jsonrpc::JSON_STRING, NULL),
             &AbstractZServer::GetStorageAtI);
         this->bindAndAddMethod(
-            jsonrpc::Procedure("GetTransactionHistory",
-                               jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_ARRAY,
-                               "param01", jsonrpc::JSON_STRING, NULL),
-            &AbstractZServer::GetTransactionHistoryI);
+            jsonrpc::Procedure("GetSmartContracts", jsonrpc::PARAMS_BY_POSITION,
+                               jsonrpc::JSON_ARRAY, "param01",
+                               jsonrpc::JSON_STRING, NULL),
+            &AbstractZServer::GetSmartContractsI);
         this->bindAndAddMethod(
             jsonrpc::Procedure(
                 "GetBlockTransactionCount", jsonrpc::PARAMS_BY_POSITION,
@@ -273,10 +273,10 @@ public:
         response = this->GetStorageAt(request[0u].asString(),
                                       request[1u].asString());
     }
-    inline virtual void GetTransactionHistoryI(const Json::Value& request,
-                                               Json::Value& response)
+    inline virtual void GetSmartContractsI(const Json::Value& request,
+                                           Json::Value& response)
     {
-        response = this->GetTransactionHistory(request[0u].asString());
+        response = this->GetSmartContracts(request[0u].asString());
     }
     inline virtual void GetBlockTransactionCountI(const Json::Value& request,
                                                   Json::Value& response)
@@ -441,7 +441,7 @@ public:
     virtual std::string GetStorageAt(const std::string& param01,
                                      const std::string& param02)
         = 0;
-    virtual Json::Value GetTransactionHistory(const std::string& param01) = 0;
+    virtual Json::Value GetSmartContracts(const std::string& param01) = 0;
     virtual std::string GetBlockTransactionCount(const std::string& param01)
         = 0;
     virtual std::string GetCode(const std::string& param01) = 0;
@@ -506,7 +506,7 @@ public:
     virtual std::string GetGasPrice();
     virtual std::string GetStorageAt(const std::string& address,
                                      const std::string& position);
-    virtual Json::Value GetTransactionHistory(const std::string& address);
+    virtual Json::Value GetSmartContracts(const std::string& address);
     virtual std::string GetBlockTransactionCount(const std::string& blockHash);
     virtual std::string GetCode(const std::string& address);
     virtual std::string CreateMessage(const Json::Value& _json);
