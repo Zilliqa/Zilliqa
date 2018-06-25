@@ -365,7 +365,6 @@ int Account::DeserializeDelta(const vector<unsigned char>& src,
         return account.DeserializeAddOffset(src, offset);
     }
 
-
     try
     {
         LOG_GENERAL(INFO, "Account before changing: " << account);
@@ -383,8 +382,7 @@ int Account::DeserializeDelta(const vector<unsigned char>& src,
         LOG_GENERAL(INFO, "balanceDelta: " << balanceDelta);
         account.ChangeBalance(balanceDelta);
         // Nonce Delta
-        uint256_t nonceDelta
-            = GetNumber<uint256_t>(src, offset, UINT256_SIZE);
+        uint256_t nonceDelta = GetNumber<uint256_t>(src, offset, UINT256_SIZE);
         LOG_GENERAL(INFO, "nonceDelta: " << nonceDelta);
         account.IncreaseNonceBy(nonceDelta);
         offset += UINT256_SIZE;
@@ -399,8 +397,8 @@ int Account::DeserializeDelta(const vector<unsigned char>& src,
         {
             // States storage
             // Num of Key Hashes
-            unsigned int numKeyHashes = (unsigned int)GetNumber<uint256_t>(
-                src, offset, UINT256_SIZE);
+            unsigned int numKeyHashes
+                = (unsigned int)GetNumber<uint256_t>(src, offset, UINT256_SIZE);
             offset += UINT256_SIZE;
             for (unsigned int i = 0; i < numKeyHashes; i++)
             {
@@ -437,8 +435,7 @@ int Account::DeserializeDelta(const vector<unsigned char>& src,
     catch (const std::exception& e)
     {
         LOG_GENERAL(WARNING,
-                    "Error with Account::DeserializeDelta." << ' '
-                                                            << e.what());
+                    "Error with Account::DeserializeDelta." << ' ' << e.what());
         return -1;
     }
     return 0;
@@ -544,7 +541,7 @@ string Account::GetRawStorage(const h256& k_hash) const
 vector<h256> Account::GetStorageKeyHashes() const
 {
     vector<h256> keyHashes;
-    for (auto const &i : m_storage)
+    for (auto const& i : m_storage)
     {
         keyHashes.push_back(i.first);
     }
