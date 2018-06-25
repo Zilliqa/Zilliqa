@@ -39,6 +39,12 @@ unsigned int ReadFromConstantsFile(std::string propertyName)
     return pt.get<unsigned int>("node.constants." + propertyName);
 }
 
+std::string ReadStrFromConstantsFile(std::string propertyName)
+{
+    auto pt = PTree::GetInstance();
+    return pt.get<std::string>("node.constants." + propertyName);
+}
+
 std::string ReadSmartContractConstants(std::string propertyName)
 {
     auto pt = PTree::GetInstance();
@@ -109,11 +115,12 @@ const unsigned int POST_VIEWCHANGE_BUFFER{
     ReadFromConstantsFile("POST_VIEWCHANGE_BUFFER")};
 const unsigned int N_PREFILLED_PER_ACCOUNT{
     ReadFromConstantsFile("N_PREFILLED_PER_ACCOUNT")};
+const std::string Test_Node_Mode{ReadStrFromConstantsFile("TEST_NET_MODE")};
+const bool TEST_NET_MODE = (Test_Node_Mode == "true") ? true : false;
 const std::vector<std::string> GENESIS_WALLETS{
     ReadAccountsFromConstantsFile("wallet_address")};
 const std::vector<std::string> GENESIS_KEYS{
     ReadAccountsFromConstantsFile("private_key")};
-
 const std::string SCILLA_PATH{ReadSmartContractConstants("SCILLA_PATH")};
 const std::string SCILLA_FILES{ReadSmartContractConstants("SCILLA_FILES")};
 const std::string SCILLA_LOG{ReadSmartContractConstants("SCILLA_LOG")};
