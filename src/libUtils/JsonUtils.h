@@ -51,10 +51,8 @@ public:
     {
         Json::StreamWriterBuilder writeBuilder;
         unique_ptr<Json::StreamWriter> writer(writeBuilder.newStreamWriter());
-        std::ofstream os;
-        os.open(path);
+        std::ofstream os(path);
         writer->write(_json, &os);
-        os.close();
     }
 };
 
