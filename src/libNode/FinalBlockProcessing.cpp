@@ -215,10 +215,6 @@ void Node::LoadUnavailableMicroBlockHashes(
             lock_guard<mutex> g3(m_mutexTempCommitted);
             m_tempStateDeltaCommitted = false;
         }
-        {
-            lock_guard<mutex> g4(m_mutexNewRoungStarted);
-            m_newRoundStarted = false;
-        }
     }
 #endif //IS_LOOKUP_NODE
 }

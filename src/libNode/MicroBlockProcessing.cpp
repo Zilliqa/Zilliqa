@@ -165,6 +165,11 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
                       << ")");
         m_lastMicroBlockCoSig.first = m_mediator.m_currentEpochNum;
         m_lastMicroBlockCoSig.second.SetCoSignatures(*m_consensusObject);
+
+        {
+            lock_guard<mutex> g2(m_mutexNewRoungStarted);
+            m_newRoundStarted = false;
+        }
     }
     else if (state == ConsensusCommon::State::ERROR)
     {
