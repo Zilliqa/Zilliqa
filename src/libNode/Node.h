@@ -116,6 +116,7 @@ class Node : public Executable, public Broadcastable
     std::vector<unsigned char> m_consensusBlockHash;
     std::atomic<uint32_t> m_consensusMyID;
     std::shared_ptr<MicroBlock> m_microblock;
+    std::pair<uint64_t, BlockBase> m_lastMicroBlockCoSig;
     std::mutex m_mutexMicroBlock;
 
     const static uint32_t RECVTXNDELAY_MILLISECONDS = 3000;
@@ -352,6 +353,10 @@ class Node : public Executable, public Broadcastable
                          vector<Peer> my_shard_receivers,
                          const vector<Peer>& fellowForwarderNodes);
 
+    //Coinbase txns
+    bool Coinbase(const BlockBase& lastMicroBlock, const TxBlock& lastTxBlock);
+    void InitCoinbase();
+
     // Is Running from New Process
     bool m_fromNewProcess = true;
 
@@ -389,6 +394,10 @@ public:
 
     std::mutex m_mutexTempCommitted;
     bool m_tempStateDeltaCommitted = true;
+
+    std::condition_variable m_cvNewRoundStarted;
+    std::mutex m_mutexNewRoungStarted;
+    bool m_newRoundStarted = true;
 
     std::mutex m_mutexIsEveryMicroBlockAvailable;
 

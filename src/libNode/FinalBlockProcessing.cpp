@@ -191,9 +191,10 @@ void Node::LoadUnavailableMicroBlockHashes(
     {
         if (!finalBlock.GetIsMicroBlockEmpty()[i])
         {
-            auto hash = finalBlock.GetMicroBlockHashes()[i];
+            auto& hash = finalBlock.GetMicroBlockHashes()[i];
             m_unavailableMicroBlocks[blocknum].insert(
-                {hash, vector<bool>{true, true}});
+                {hash,
+                 vector<bool>{true, true}});
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       hash)
         }
@@ -204,9 +205,18 @@ void Node::LoadUnavailableMicroBlockHashes(
             != m_unavailableMicroBlocks.end()
         && m_unavailableMicroBlocks[blocknum].size() > 0)
     {
-        lock_guard<mutex> g2(m_mutexAllMicroBlocksRecvd);
-        m_allMicroBlocksRecvd = false;
-        m_tempStateDeltaCommitted = false;
+        {
+            lock_guard<mutex> g2(m_mutexAllMicroBlocksRecvd);
+            m_allMicroBlocksRecvd = false;
+        }
+        {
+            lock_guard<mutex> g3(m_mutexTempCommitted);
+            m_tempStateDeltaCommitted = false;
+        }
+        {
+            lock_guard<mutex> g4(m_mutexNewRoungStarted);
+            m_newRoundStarted = false;
+        }
     }
 #endif //IS_LOOKUP_NODE
 }
@@ -628,14 +638,19 @@ void Node::BroadcastTransactionsToSendingAssignment(
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "I will soon be sending the txn bodies to the lookup nodes");
         m_mediator.m_lookup->SendMessageToLookupNodes(forwardtxn_message);
-
-        BroadcastStateDeltaToSendingAssignment(
-            blocknum, sendingAssignment, microBlockDeltaHash, microBlockTxHash);
     }
     else
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "DEBUG I have no txn body to send")
+    }
+
+    if (m_microblock->GetHeader().GetStateDeltaHash() != StateHash())
+    {
+
+        BroadcastStateDeltaToSendingAssignment(
+            blocknum, sendingAssignment,
+            m_microblock->GetHeader().GetStateDeltaHash(), microBlockTxHash);
     }
 
     LOG_STATE("[TXBOD][" << setw(15) << left
@@ -673,15 +688,21 @@ void Node::BroadcastStateDeltaToSendingAssignment(
     cur_offset += TRAN_HASH_SIZE;
 
     // state delta
-    cur_offset
-        += AccountStore::GetInstance().GetSerializedDelta(forwardstate_message);
+    vector<unsigned char> stateDel;
+    AccountStore::GetInstance().GetSerializedDelta(stateDel);
+
+    copy(stateDel.begin(), stateDel.end(), back_inserter(forwardstate_message));
 
     // sending
+
     P2PComm::GetInstance().SendBroadcastMessage(sendingAssignment,
                                                 forwardstate_message);
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "DEBUG: I have broadcasted the state delta!")
+              "DEBUG: I have broadcasted the state delta! "
+                  << " "
+                  << DataConversion::Uint8VecToHexStr(forwardstate_message)
+                  << " " << sendingAssignment.size());
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I will soon be sending the state delta to the lookup nodes");
@@ -825,11 +846,13 @@ bool Node::ActOnFinalBlock(uint8_t tx_sharing_mode, const vector<Peer>& nodes)
             BroadcastTransactionsToSendingAssignment(
                 blocknum, sendingAssignment,
                 m_microblock->GetHeader().GetTxRootHash(), txns_to_send);
-            {
-                lock_guard<mutex> gt(m_mutexTempCommitted);
-                AccountStore::GetInstance().CommitTemp();
-                m_tempStateDeltaCommitted = true;
-            }
+        }
+        {
+            lock_guard<mutex> gt(m_mutexTempCommitted);
+            AccountStore::GetInstance().CommitTemp();
+            m_tempStateDeltaCommitted = true;
+
+            LOG_GENERAL(INFO, "Temp State Committed");
         }
 
         if (isEveryMicroBlockAvailable)
@@ -840,7 +863,7 @@ bool Node::ActOnFinalBlock(uint8_t tx_sharing_mode, const vector<Peer>& nodes)
     else
     {
         // TODO
-        LOG_GENERAL(WARNING, "Why my shards microblock not in finalblock");
+        LOG_GENERAL(WARNING, "Why my shards microblock not in finalblock, one");
     }
     // #endif // IS_LOOKUP_NODE
     return true;
@@ -883,13 +906,14 @@ bool Node::ActOnFinalBlock(uint8_t tx_sharing_mode,
                 BroadcastTransactionsToSendingAssignment(
                     blocknum, sendingAssignment,
                     m_microblock->GetHeader().GetTxRootHash(), txns_to_send);
-                {
-                    lock_guard<mutex> gt(m_mutexTempCommitted);
-                    AccountStore::GetInstance().CommitTemp();
-                    m_tempStateDeltaCommitted = true;
-                }
             }
+            {
+                lock_guard<mutex> gt(m_mutexTempCommitted);
+                AccountStore::GetInstance().CommitTemp();
+                m_tempStateDeltaCommitted = true;
 
+                LOG_GENERAL(INFO, "Temp State Committed");
+            }
             if (isEveryMicroBlockAvailable)
             {
                 DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(blocknum);
@@ -898,7 +922,8 @@ bool Node::ActOnFinalBlock(uint8_t tx_sharing_mode,
         else
         {
             // TODO
-            LOG_GENERAL(WARNING, "Why my shards microblock not in finalblock");
+            LOG_GENERAL(WARNING,
+                        "Why my shards microblock not in finalblock, two");
         }
     }
     else
@@ -1042,6 +1067,12 @@ void Node::BeginNextConsensusRound()
             {
                 LOG_GENERAL(INFO, "No need to wait for allMicroBlocksRecvd");
             }
+
+            {
+                lock_guard<mutex> g2(m_mutexNewRoungStarted);
+                m_newRoundStarted = true;
+            }
+            m_cvNewRoundStarted.notify_all();
         }
         // this_thread::sleep_for(
         //     chrono::seconds(WAITING_STATE_FORWARD_IN_SECONDS));
@@ -1348,7 +1379,7 @@ bool Node::CheckStateRoot(const TxBlock& finalBlock)
 // void Node::StoreMicroBlocksToDisk()
 // {
 //     LOG_MARKER();
-//     for(auto microBlock : m_microBlocks)
+//     for(auto microBlock : m_microblocks)
 //     {
 
 //         LOG_GENERAL(INFO,  "Storing Micro Block Hash: " << microBlock.GetHeader().GetTxRootHash() <<
@@ -1362,7 +1393,7 @@ bool Node::CheckStateRoot(const TxBlock& finalBlock)
 //         BlockStorage::GetBlockStorage().PutMicroBlock(microBlock.GetHeader().GetTxRootHash(),
 //                                                serializedMicroBlock);
 //     }
-//     m_microBlocks.clear();
+//     m_microblocks.clear();
 // }
 
 bool Node::ProcessFinalBlock(const vector<unsigned char>& message,

@@ -19,8 +19,6 @@
 #include <functional>
 #include <thread>
 
-#include <boost/multiprecision/cpp_int.hpp>
-
 #include "Node.h"
 #include "common/Constants.h"
 #include "common/Messages.h"
@@ -44,6 +42,7 @@
 #include "libUtils/TimeLockedFunction.h"
 #include "libUtils/TimeUtils.h"
 #include "libUtils/TxnRootComputation.h"
+#include <boost/multiprecision/cpp_int.hpp>
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -164,6 +163,8 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
                   "Micro block consensus "
                       << "is DONE!!! (Epoch " << m_mediator.m_currentEpochNum
                       << ")");
+        m_lastMicroBlockCoSig.first = m_mediator.m_currentEpochNum;
+        m_lastMicroBlockCoSig.second.SetCoSignatures(*m_consensusObject);
     }
     else if (state == ConsensusCommon::State::ERROR)
     {
@@ -247,7 +248,6 @@ bool Node::ComposeMicroBlock()
             index++;
         }
     }
-
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Creating new micro block.")
     m_microblock.reset(new MicroBlock(
@@ -269,6 +269,12 @@ bool Node::OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
                              unsigned int offset, const Peer& from)
 {
     LOG_MARKER();
+
+    if (errorMsg.size() < 64 + offset)
+    {
+        LOG_GENERAL(WARNING, "Malformed");
+        return false;
+    }
 
     uint32_t numOfAbsentHashes
         = Serializable::GetNumber<uint32_t>(errorMsg, offset, sizeof(uint32_t));
@@ -474,6 +480,9 @@ bool Node::RunConsensusOnMicroBlock()
 
     // set state first and then take writer lock so that SubmitTransactions
     // if it takes reader lock later breaks out of loop
+
+    InitCoinbase();
+
     SetState(MICROBLOCK_CONSENSUS_PREP);
 
     AccountStore::GetInstance().SerializeDelta();
