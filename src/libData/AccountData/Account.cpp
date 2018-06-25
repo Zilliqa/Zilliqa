@@ -23,6 +23,7 @@
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
+#include "libUtils/SafeMath.h"
 
 Account::Account() {}
 
@@ -443,8 +444,7 @@ int Account::DeserializeDelta(const vector<unsigned char>& src,
 
 bool Account::IncreaseBalance(const uint256_t& delta)
 {
-    m_balance += delta;
-    return true;
+    return SafeMath::add(m_balance, delta, m_balance);
 }
 
 bool Account::DecreaseBalance(const uint256_t& delta)
@@ -454,8 +454,7 @@ bool Account::DecreaseBalance(const uint256_t& delta)
         return false;
     }
 
-    m_balance -= delta;
-    return true;
+    return SafeMath::sub(m_balance, delta, m_balance);
 }
 
 bool Account::ChangeBalance(const int256_t& delta)

@@ -18,6 +18,7 @@
 
 #include "libUtils/DataConversion.h"
 #include "libUtils/JsonUtils.h"
+#include "libUtils/SafeMath.h"
 #include "libUtils/SysCommand.h"
 
 template<class MAP> AccountStoreSC<MAP>::AccountStoreSC()
@@ -45,8 +46,12 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     const uint256_t& amount = transaction.GetAmount();
 
     // FIXME: Possible integer overflow here
-    uint256_t gasDeposit
-        = transaction.GetGasLimit() * transaction.GetGasPrice();
+    uint256_t gasDeposit;
+    if (!SafeMath::mul(transaction.GetGasLimit(), transaction.GetGasPrice(),
+                       gasDeposit))
+    {
+        return false;
+    }
 
     if (transaction.GetData().empty() && transaction.GetCode().empty())
     {
