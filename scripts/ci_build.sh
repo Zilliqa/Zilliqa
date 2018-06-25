@@ -29,7 +29,7 @@ mkdir build && cd build
 cmake ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTESTS=ON -DENABLE_COVERAGE=ON ..
 make -j${n_parallel}
 make clang-format
-ctest --output-on-failure
+ctest --output-on-failure -j${n_parallel}
 if [ "$os" = "Linux" ]
 then
     make -j${n_parallel} Zilliqa_coverage
