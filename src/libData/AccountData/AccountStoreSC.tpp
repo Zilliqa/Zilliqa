@@ -44,6 +44,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
     Address toAddr = transaction.GetToAddr();
     const uint256_t& amount = transaction.GetAmount();
+
+    // FIXME: Possible integer overflow here
     uint256_t gasDeposit = transaction.GetGasLimit() * transaction.GetGasPrice();
 
     if (transaction.GetData().empty() && transaction.GetCode().empty())
