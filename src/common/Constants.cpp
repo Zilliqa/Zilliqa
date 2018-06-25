@@ -116,6 +116,7 @@ const unsigned int CONTRACT_CREATE_GAS{
 const unsigned int CONTRACT_INVOKE_GAS{
     ReadFromConstantsFile("CONTRACT_INVOKE_GAS")};
 const unsigned int NORMAL_TRAN_GAS{ReadFromConstantsFile("NORMAL_TRAN_GAS")};
+const unsigned int COINBASE_REWARD{ReadFromConstantsFile("COINBASE_REWARD")};
 const std::vector<std::string> GENESIS_WALLETS{
     ReadAccountsFromConstantsFile("wallet_address")};
 const std::vector<std::string> GENESIS_KEYS{
