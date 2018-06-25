@@ -183,33 +183,24 @@ int AccountStore::DeserializeDelta(const vector<unsigned char>& src,
             Account* oriAccount = GetAccount(address);
             if (oriAccount == nullptr)
             {
+                Account acc(0, 0);
                 LOG_GENERAL(INFO, "Creating new account: " << address);
-                if (Account::DeserializeDelta(src, curOffset, account, true)
-                    < 0)
-                {
-                    LOG_GENERAL(WARNING,
-                                "We failed to deserialize accountDelta for new "
-                                "account: "
-                                    << address);
-                    continue;
-                }
-                AddAccount(address, account);
+                AddAccount(address, acc);
             }
-            else
-            {
-                LOG_GENERAL(INFO, "Diff existing account: " << address);
-                account = *oriAccount;
-                if (Account::DeserializeDelta(src, curOffset, account, false)
-                    < 0)
-                {
-                    LOG_GENERAL(WARNING,
-                                "We failed to parse accountDelta for account: "
-                                    << address);
 
-                    continue;
-                }
-                (*m_addressToAccount)[address] = account;
+            LOG_GENERAL(INFO, "Diff account: " << address);
+            oriAccount = GetAccount(address);
+            account = *oriAccount;
+            if (Account::DeserializeDelta(src, curOffset, account) < 0)
+            {
+                LOG_GENERAL(
+                    WARNING,
+                    "We failed to parse accountDelta for account: " << address);
+
+                continue;
             }
+            (*m_addressToAccount)[address] = account;
+
             UpdateStateTrie(address, account);
         }
         LOG_GENERAL(INFO, "After DeserializeDelta");
@@ -316,12 +307,42 @@ bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
     return m_accountStoreTemp->UpdateAccounts(blockNum, transaction);
 }
 
+bool AccountStore::UpdateCoinbaseTemp(const Address& rewardee,
+                                      const Address& genesisAddress,
+                                      const uint256_t& amount)
+{
+    LOG_MARKER();
+
+    lock_guard<mutex> g(m_mutexDelta);
+    if (m_accountStoreTemp->GetAccount(rewardee) == nullptr)
+    {
+        m_accountStoreTemp->AddAccount(rewardee, {0, 0});
+    }
+    return m_accountStoreTemp->TransferBalance(genesisAddress, rewardee,
+                                               amount);
+    //Should the nonce increase ??
+}
+
 StateHash AccountStore::GetStateDeltaHash()
 {
     vector<unsigned char> vec;
     GetSerializedDelta(vec);
 
-    LOG_PAYLOAD(INFO, "print vec: ", vec, 2000);
+    bool isEmpty = true;
+
+    for (unsigned int i = 0; i < vec.size(); i++)
+    {
+        if (vec[i] != 0)
+        {
+            isEmpty = false;
+            break;
+        }
+    }
+
+    if (isEmpty)
+    {
+        return StateHash();
+    }
 
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
     sha2.Update(vec);

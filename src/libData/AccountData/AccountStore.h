@@ -104,6 +104,10 @@ public:
         m_accountStoreTemp->AddAccount(address, account);
     }
 
+    bool UpdateCoinbaseTemp(const Address& rewardee,
+                            const Address& genesisAddress,
+                            const boost::multiprecision::uint256_t& amount);
+
     StateHash GetStateDeltaHash();
 
     void CommitTemp();

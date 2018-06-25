@@ -78,7 +78,8 @@ void DirectoryService::ExtractDataFromMicroblocks(
 
         ++numMicroBlocks;
 
-        bool isEmpty = microBlock.GetHeader().GetNumTxs() == 0;
+        bool isEmpty = microBlock.GetHeader().GetNumTxs() == 0
+            && microBlock.GetHeader().GetStateDeltaHash() == StateHash();
 
         if (!isVacuousEpoch && !isEmpty)
         {
@@ -728,7 +729,9 @@ bool DirectoryService::CheckIsMicroBlockEmpty()
                 == hashesInMicroBlocks[i].m_txRootHash)
             {
                 if (m_finalBlock->GetIsMicroBlockEmpty()[i]
-                    != (microBlock.GetHeader().GetNumTxs() == 0))
+                    != ((microBlock.GetHeader().GetNumTxs() == 0)
+                        && (microBlock.GetHeader().GetStateDeltaHash()
+                            == StateHash())))
                 {
                     LOG_GENERAL(WARNING,
                                 "IsMicroBlockEmpty in proposed final "

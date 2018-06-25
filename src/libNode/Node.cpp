@@ -631,19 +631,18 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
 
     if (!isVacuousEpoch)
     {
-        unique_lock<mutex> g(m_mutexAllMicroBlocksRecvd, defer_lock);
-        if (!m_allMicroBlocksRecvd)
+        unique_lock<mutex> g(m_mutexNewRoungStarted, defer_lock);
+        if (!m_newRoundStarted)
         {
-            LOG_GENERAL(INFO, "Wait for allMicroBlocksRecvd");
-            m_cvAllMicroBlocksRecvd.wait(
-                g, [this] { return m_allMicroBlocksRecvd; });
+            LOG_GENERAL(INFO, "Wait for new consensus round started");
+            m_cvNewRoundStarted.wait(g, [this] { return m_newRoundStarted; });
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "All microblocks recvd, moving to "
+                      "New consensus round started, moving to "
                       "ProcessSubmitTxnSharing");
         }
         else
         {
-            LOG_GENERAL(INFO, "No need to wait for allMicroBlocksRecvd");
+            LOG_GENERAL(INFO, "No need to wait for newRoundStarted");
         }
     }
 
@@ -697,19 +696,18 @@ bool Node::ProcessCreateTransactionFromLookup(
 
     if (!isVacuousEpoch)
     {
-        unique_lock<mutex> g(m_mutexAllMicroBlocksRecvd, defer_lock);
-        if (!m_allMicroBlocksRecvd)
+        unique_lock<mutex> g(m_mutexNewRoungStarted, defer_lock);
+        if (!m_newRoundStarted)
         {
-            LOG_GENERAL(INFO, "Wait for allMicroBlocksRecvd");
-            m_cvAllMicroBlocksRecvd.wait(
-                g, [this] { return m_allMicroBlocksRecvd; });
+            LOG_GENERAL(INFO, "Wait for new consensus round started");
+            m_cvNewRoundStarted.wait(g, [this] { return m_newRoundStarted; });
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "All microblocks recvd, moving to "
+                      "New consensus round started, moving to "
                       "ProcessSubmitTxnSharing");
         }
         else
         {
-            LOG_GENERAL(INFO, "No need to wait for allMicroBlocksRecvd");
+            LOG_GENERAL(INFO, "No need to wait for newRoundStarted");
         }
     }
 
