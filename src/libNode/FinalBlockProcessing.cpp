@@ -1055,7 +1055,7 @@ void Node::BeginNextConsensusRound()
     if (!isVacuousEpoch)
     {
         {
-            unique_lock<mutex> g(m_mutexAllMicroBlocksRecvd, defer_lock);
+            unique_lock<mutex> g(m_mutexAllMicroBlocksRecvd);
             if (!m_allMicroBlocksRecvd)
             {
                 LOG_GENERAL(INFO, "Wait for allMicroBlocksRecvd");
