@@ -443,17 +443,17 @@ Json::Value Server::GetSmartContracts(const string& address)
             Address contractAddr = Account::GetAddressForContract(addr, i);
             const Account* contractAccount
                 = AccountStore::GetInstance().GetAccount(contractAddr);
-            if (contractAccount != nullptr)
+
+            if (contractAccount == nullptr || !contractAccount->isContract())
             {
-                if (!contractAccount->isContract())
-                {
-                    continue;
-                }
-                Json::Value tmpJson;
-                tmpJson["address"] = contractAddr.hex();
-                tmpJson["state"] = contractAccount->GetStorageJson();
-                _json.append(tmpJson);
+                continue;
             }
+
+            Json::Value tmpJson;
+            tmpJson["address"] = contractAddr.hex();
+            tmpJson["state"] = contractAccount->GetStorageJson();
+
+            _json.append(tmpJson);
         }
         return _json;
     }
