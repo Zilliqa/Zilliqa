@@ -66,19 +66,19 @@ struct MicroBlockHashSet
         return TRAN_HASH_SIZE + STATE_HASH_SIZE;
     }
 
-    bool operator==(const MicroBlockHashSet& set) const
+    bool operator==(const MicroBlockHashSet& hashSet) const
     {
         return std::tie(m_txRootHash, m_stateDeltaHash)
-            == std::tie(set.m_txRootHash, set.m_stateDeltaHash);
+            == std::tie(hashSet.m_txRootHash, hashSet.m_stateDeltaHash);
     }
-    bool operator<(const MicroBlockHashSet& set) const
+    bool operator<(const MicroBlockHashSet& hashSet) const
     {
-        return std::tie(set.m_txRootHash, set.m_stateDeltaHash)
+        return std::tie(hashSet.m_txRootHash, hashSet.m_stateDeltaHash)
             > std::tie(m_txRootHash, m_stateDeltaHash);
     }
-    bool operator>(const MicroBlockHashSet& set) const
+    bool operator>(const MicroBlockHashSet& hashSet) const
     {
-        return !((*this == set) || (*this < set));
+        return !((*this == hashSet) || (*this < hashSet));
     }
 
     friend std::ostream& operator<<(std::ostream& os,
@@ -96,11 +96,12 @@ namespace std
 {
     template<> struct hash<MicroBlockHashSet>
     {
-        size_t operator()(MicroBlockHashSet const& set) const noexcept
+        size_t operator()(MicroBlockHashSet const& hashSet) const noexcept
         {
-            size_t const h1(std::hash<std::string>{}(set.m_txRootHash.hex()));
+            size_t const h1(
+                std::hash<std::string>{}(hashSet.m_txRootHash.hex()));
             size_t const h2(
-                std::hash<std::string>{}(set.m_stateDeltaHash.hex()));
+                std::hash<std::string>{}(hashSet.m_stateDeltaHash.hex()));
             return h1 ^ (h2 << 1);
         }
     };
@@ -154,21 +155,21 @@ struct TxBlockHashSet
         return 0;
     }
 
-    bool operator==(const TxBlockHashSet& set) const
+    bool operator==(const TxBlockHashSet& hashSet) const
     {
         return std::tie(m_txRootHash, m_stateRootHash, m_deltaRootHash)
-            == std::tie(set.m_txRootHash, set.m_stateRootHash,
-                        set.m_deltaRootHash);
+            == std::tie(hashSet.m_txRootHash, hashSet.m_stateRootHash,
+                        hashSet.m_deltaRootHash);
     }
-    bool operator<(const TxBlockHashSet& set) const
+    bool operator<(const TxBlockHashSet& hashSet) const
     {
-        return std::tie(set.m_txRootHash, set.m_stateRootHash,
-                        set.m_deltaRootHash)
+        return std::tie(hashSet.m_txRootHash, hashSet.m_stateRootHash,
+                        hashSet.m_deltaRootHash)
             > std::tie(m_txRootHash, m_stateRootHash, m_deltaRootHash);
     }
-    bool operator>(const TxBlockHashSet& set) const
+    bool operator>(const TxBlockHashSet& hashSet) const
     {
-        return !((*this == set) || (*this < set));
+        return !((*this == hashSet) || (*this < hashSet));
     }
 
     static constexpr unsigned int size()
@@ -183,14 +184,15 @@ namespace std
 {
     template<> struct hash<TxBlockHashSet>
     {
-        size_t operator()(TxBlockHashSet const& set) const noexcept
+        size_t operator()(TxBlockHashSet const& hashSet) const noexcept
         {
-            size_t const h1(std::hash<std::string>{}(set.m_txRootHash.hex()));
+            size_t const h1(
+                std::hash<std::string>{}(hashSet.m_txRootHash.hex()));
             size_t const h2(
-                std::hash<std::string>{}(set.m_stateRootHash.hex()));
+                std::hash<std::string>{}(hashSet.m_stateRootHash.hex()));
             size_t const h3(
-                std::hash<std::string>{}(set.m_deltaRootHash.hex()));
-            return h1 ^ (h2 ^ (h3 << 1));
+                std::hash<std::string>{}(hashSet.m_deltaRootHash.hex()));
+            return h1 ^ ((h2 ^ (h3 << 1)) << 1);
         }
     };
 }
