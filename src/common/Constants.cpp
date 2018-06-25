@@ -45,12 +45,6 @@ std::string ReadSmartContractConstants(std::string propertyName)
     return pt.get<std::string>("node.smart_contract." + propertyName);
 }
 
-std::string ReadHexStringFromSmartContractFile(std::string propertyName)
-{
-    auto pt = PTree::GetInstance();
-    return pt.get<std::string>("node.smartcontract." + propertyName);
-}
-
 const std::vector<std::string>
 ReadAccountsFromConstantsFile(std::string propName)
 {
