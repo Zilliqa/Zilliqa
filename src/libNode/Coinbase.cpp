@@ -116,6 +116,16 @@ bool Node::Coinbase(const BlockBase& lastMicroBlock, const TxBlock& lastTxBlock)
 
 void Node::InitCoinbase()
 {
+
+    uint32_t epochModuloNum
+        = (m_mediator.m_currentEpochNum + 1) % NUM_FINAL_BLOCK_PER_POW;
+    if (epochModuloNum == 1 || epochModuloNum == 0)
+    {
+        LOG_GENERAL(INFO, "Skip coinbase ");
+
+        return;
+    }
+
     TxBlock lastTxBlock = m_mediator.m_txBlockChain.GetLastBlock();
     LOG_GENERAL(INFO,
                 "Txblock num " << lastTxBlock.GetHeader().GetBlockNum()
