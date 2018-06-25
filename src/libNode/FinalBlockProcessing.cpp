@@ -1858,9 +1858,9 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
         lock_guard<mutex> gi(m_mutexIsEveryMicroBlockAvailable);
         bool isEveryMicroBlockAvailable;
 
-        if (!IsMicroBlockTxRootHashInFinalBlock(microBlockTxRootHash,
-                                                microBlockStateDeltaHash, blocknum,
-                                                isEveryMicroBlockAvailable))
+        if (!IsMicroBlockTxRootHashInFinalBlock(
+                microBlockTxRootHash, microBlockStateDeltaHash, blocknum,
+                isEveryMicroBlockAvailable))
         {
             return false;
         }
@@ -1869,10 +1869,10 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
 
         CommitForwardedTransactions(txnsInForwardedMessage, blocknum);
 
-    #ifndef IS_LOOKUP_NODE
+#ifndef IS_LOOKUP_NODE
         vector<Peer> forward_list;
         LoadFwdingAssgnForThisBlockNum(blocknum, forward_list);
-    #endif // IS_LOOKUP_NODE
+#endif // IS_LOOKUP_NODE
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "isEveryMicroBlockAvailable: " << isEveryMicroBlockAvailable);
@@ -1881,16 +1881,16 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
         {
             DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(blocknum);
         }
-    }
 
 #ifndef IS_LOOKUP_NODE
-    if (forward_list.size() > 0)
-    {
-        P2PComm::GetInstance().SendBroadcastMessage(forward_list, message);
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "DEBUG I have broadcasted the txn body!");
-    }
+        if (forward_list.size() > 0)
+        {
+            P2PComm::GetInstance().SendBroadcastMessage(forward_list, message);
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "DEBUG I have broadcasted the txn body!");
+        }
 #endif // IS_LOOKUP_NODE
+    }
 
     return true;
 }
@@ -1955,19 +1955,19 @@ bool Node::ProcessForwardStateDelta(const vector<unsigned char>& message,
         lock_guard<mutex> gi(m_mutexIsEveryMicroBlockAvailable);
         bool isEveryMicroBlockAvailable;
 
-        if (!IsMicroBlockStateDeltaHashInFinalBlock(microBlockStateDeltaHash,
-                                                    microBlockTxRootHash, blocknum,
-                                                    isEveryMicroBlockAvailable))
+        if (!IsMicroBlockStateDeltaHashInFinalBlock(
+                microBlockStateDeltaHash, microBlockTxRootHash, blocknum,
+                isEveryMicroBlockAvailable))
         {
             return false;
         }
 
         AccountStore::GetInstance().DeserializeDelta(message, cur_offset);
 
-    #ifndef IS_LOOKUP_NODE
+#ifndef IS_LOOKUP_NODE
         vector<Peer> forward_list;
         LoadFwdingAssgnForThisBlockNum(blocknum, forward_list);
-    #endif // IS_LOOKUP_NODE
+#endif // IS_LOOKUP_NODE
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "isEveryMicroBlockAvailable: " << isEveryMicroBlockAvailable);
@@ -1976,16 +1976,16 @@ bool Node::ProcessForwardStateDelta(const vector<unsigned char>& message,
         {
             DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(blocknum);
         }
-    }
 
 #ifndef IS_LOOKUP_NODE
-    if (forward_list.size() > 0)
-    {
-        P2PComm::GetInstance().SendBroadcastMessage(forward_list, message);
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "DEBUG I have broadcasted the state delta!");
-    }
+        if (forward_list.size() > 0)
+        {
+            P2PComm::GetInstance().SendBroadcastMessage(forward_list, message);
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "DEBUG I have broadcasted the state delta!");
+        }
 #endif // IS_LOOKUP_NODE
+    }
 
     return true;
 }
