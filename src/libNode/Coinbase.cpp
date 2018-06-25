@@ -1,16 +1,16 @@
 /**
-* Copyright (c) 2018 Zilliqa 
-* This source code is being disclosed to you solely for the purpose of your participation in 
-* testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to 
-* the protocols and algorithms that are programmed into, and intended by, the code. You may 
-* not do anything else with the code without express permission from Zilliqa Research Pte. Ltd., 
-* including modifying or publishing the code (or any part of it), and developing or forming 
-* another public or private blockchain network. This source code is provided ‘as is’ and no 
-* warranties are given as to title or non-infringement, merchantability or fitness for purpose 
-* and, to the extent permitted by law, all liability for your use of the code is disclaimed. 
-* Some programs in this code are governed by the GNU General Public License v3.0 (available at 
-* https://www.gnu.org/licenses/gpl-3.0.en.html) (‘GPLv3’). The programs that are governed by 
-* GPLv3.0 are those programs that are located in the folders src/depends and tests/depends 
+* Copyright (c) 2018 Zilliqa
+* This source code is being disclosed to you solely for the purpose of your participation in
+* testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to
+* the protocols and algorithms that are programmed into, and intended by, the code. You may
+* not do anything else with the code without express permission from Zilliqa Research Pte. Ltd.,
+* including modifying or publishing the code (or any part of it), and developing or forming
+* another public or private blockchain network. This source code is provided ‘as is’ and no
+* warranties are given as to title or non-infringement, merchantability or fitness for purpose
+* and, to the extent permitted by law, all liability for your use of the code is disclaimed.
+* Some programs in this code are governed by the GNU General Public License v3.0 (available at
+* https://www.gnu.org/licenses/gpl-3.0.en.html) (‘GPLv3’). The programs that are governed by
+* GPLv3.0 are those programs that are located in the folders src/depends and tests/depends
 * and which include a reference to GPLv3 in their program files.
 **/
 #include <map>
@@ -25,39 +25,33 @@
 
 using namespace std;
 
-#ifndef IS_LOOKUP_NODE
-
-namespace
+void Reward(const vector<bool>& b1, const vector<bool>& b2,
+            deque<PubKey>& toKeys, Address& genesisAccount)
 {
-    const uint256_t RewardAmount = 100;
-}
-
-bool Reward(vector<vector<bool>>& B, deque<PubKey>& bitToPubkey,
-            Address& genesisAccount)
-{
-    for (unsigned int i = 0; i < B.size(); i++)
-    {
-        for (unsigned int j = 0; j < B[i].size(); j++)
+    auto RewardEveryRound = [&genesisAccount, &toKeys](auto const& bits) {
+        for (size_t i = 0; i < bits.size(); i++)
         {
-            if (B[i][j])
+            if (!bits[i])
             {
-                Address rewardee
-                    = Account::GetAddressFromPublicKey(bitToPubkey[j]);
-                if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
-                        rewardee, genesisAccount, RewardAmount))
-                {
-                    LOG_GENERAL(WARNING, "Could not reward " << rewardee);
-                    return false;
-                }
+                continue;
+            }
+
+            auto to = Account::GetAddressFromPublicKey(toKeys[i]);
+            if (AccountStore::GetInstance().UpdateCoinbaseTemp(
+                    to, genesisAccount, COINBASE_REWARD))
+            {
+                LOG_GENERAL(WARNING, "Could not reward " << to);
             }
         }
-    }
-    return true;
+    };
+
+    RewardEveryRound(b1);
+    RewardEveryRound(b2);
 }
 
 bool Node::Coinbase(const BlockBase& lastMicroBlock, const TxBlock& lastTxBlock)
 {
-    if (GENESIS_WALLETS.size() == 0)
+    if (GENESIS_WALLETS.empty())
     {
         LOG_GENERAL(WARNING, "no genesis wallet");
         return false;
@@ -91,25 +85,15 @@ bool Node::Coinbase(const BlockBase& lastMicroBlock, const TxBlock& lastTxBlock)
                         << m_myShardMembersPubKeys.size());
         return false;
     }
-    vector<vector<bool>> B = {lastTxBlock.GetB1(), lastTxBlock.GetB2()};
 
+    // only 0th shard needs to reward DS
     if (m_myShardID == 0)
     {
-
-        if (!Reward(B, m_mediator.m_DSCommitteePubKeys, genesisAccount))
-        {
-            return false;
-        }
+        Reward(lastTxBlock.GetB1(), lastTxBlock.GetB2(),
+               m_mediator.m_DSCommitteePubKeys, genesisAccount);
     }
-
-    B.clear();
-    B.push_back(lastMicroBlock.GetB1());
-    B.push_back(lastMicroBlock.GetB2());
-
-    if (!Reward(B, m_myShardMembersPubKeys, genesisAccount))
-    {
-        return false;
-    }
+    Reward(lastMicroBlock.GetB1(), lastMicroBlock.GetB2(),
+           m_myShardMembersPubKeys, genesisAccount);
 
     return true;
 }
@@ -148,5 +132,3 @@ void Node::InitCoinbase()
         LOG_GENERAL(INFO, "Coinbase Success");
     }
 }
-
-#endif //IS_LOOKUP_NODE
