@@ -27,9 +27,6 @@
 #include "depends/common/FixedHash.h"
 #include "libCrypto/Schnorr.h"
 
-using namespace std;
-using namespace boost::multiprecision;
-
 template<class MAP> class AccountStoreBase : public Serializable
 {
 protected:
