@@ -39,13 +39,16 @@ public:
     static PeerStore& GetStore();
 
     /// Adds a Peer to the table.
-    void AddPeer(const PubKey& key, const Peer& peer);
+    void AddPeerPair(const PubKey& key, const Peer& peer);
 
     /// Returns the number of peers in the table.
     unsigned int GetPeerCount() const;
 
     /// Returns the Peer associated with the specified PubKey.
     Peer GetPeer(const PubKey& key);
+
+    /// Returns a list of all public keys and peers in the table.
+    std::vector<std::pair<PubKey, Peer>> GetAllPeerPairs() const;
 
     /// Returns a list of all peers in the table.
     std::vector<Peer> GetAllPeers() const;

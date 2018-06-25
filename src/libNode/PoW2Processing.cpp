@@ -90,8 +90,12 @@ void Node::SharePoW2WinningResultWithDS(
     pow2message.insert(pow2message.end(), mixhash_vec.begin(),
                        mixhash_vec.end());
 
-    P2PComm::GetInstance().SendMessage(m_mediator.m_DSCommitteeNetworkInfo,
-                                       pow2message);
+    deque<Peer> peerList;
+
+    for (auto it : m_mediator.m_DSCommittee)
+        peerList.push_back(it.second);
+
+    P2PComm::GetInstance().SendMessage(peerList, pow2message);
 }
 
 void Node::StartPoW2MiningAndShareResultWithDS(

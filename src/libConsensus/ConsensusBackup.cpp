@@ -378,8 +378,8 @@ bool ConsensusBackup::ProcessMessageAnnounce(
 
                 // Unicast to the leader
                 // =====================
-                P2PComm::GetInstance().SendMessage(m_peerInfo.at(m_leaderID),
-                                                   commitFailureMsg);
+                P2PComm::GetInstance().SendMessage(
+                    m_committee.at(m_leaderID).second, commitFailureMsg);
 
                 return true;
             }
@@ -425,7 +425,8 @@ bool ConsensusBackup::ProcessMessageAnnounce(
 
         // Unicast to the leader
         // =====================
-        P2PComm::GetInstance().SendMessage(m_peerInfo.at(m_leaderID), commit);
+        P2PComm::GetInstance().SendMessage(m_committee.at(m_leaderID).second,
+                                           commit);
     }
 
     return result;
@@ -676,7 +677,8 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
         // Unicast to the leader
         // =====================
 
-        P2PComm::GetInstance().SendMessage(m_peerInfo.at(m_leaderID), response);
+        P2PComm::GetInstance().SendMessage(m_committee.at(m_leaderID).second,
+                                           response);
     }
 
     return result;
@@ -760,7 +762,7 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
     const unsigned int length_available = collectivesig.size() - offset;
     const unsigned int length_needed = sizeof(uint32_t) + BLOCK_HASH_SIZE
         + sizeof(uint16_t) + SIGNATURE_CHALLENGE_SIZE + SIGNATURE_RESPONSE_SIZE
-        + BitVector::GetBitVectorSerializedSize(m_pubKeys.size())
+        + BitVector::GetBitVectorSerializedSize(m_committee.size())
         + SIGNATURE_CHALLENGE_SIZE + SIGNATURE_RESPONSE_SIZE;
 
     if (length_needed > length_available)
@@ -816,8 +818,8 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
     // N-byte bitmap
     m_responseMap = BitVector::GetBitVector(
         collectivesig, curr_offset,
-        BitVector::GetBitVectorLengthInBytes(m_pubKeys.size()));
-    curr_offset += BitVector::GetBitVectorSerializedSize(m_pubKeys.size());
+        BitVector::GetBitVectorLengthInBytes(m_committee.size()));
+    curr_offset += BitVector::GetBitVectorSerializedSize(m_committee.size());
 
     // Check the bitmap
     if (m_responseMap.empty())
@@ -905,8 +907,8 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
 
             // Unicast to the leader
             // =====================
-            P2PComm::GetInstance().SendMessage(m_peerInfo.at(m_leaderID),
-                                               finalcommit);
+            P2PComm::GetInstance().SendMessage(
+                m_committee.at(m_leaderID).second, finalcommit);
         }
     }
     else
@@ -952,11 +954,10 @@ bool ConsensusBackup::ProcessMessageFinalCollectiveSig(
 ConsensusBackup::ConsensusBackup(
     uint32_t consensus_id, const vector<unsigned char>& block_hash,
     uint16_t node_id, uint16_t leader_id, const PrivKey& privkey,
-    const deque<PubKey>& pubkeys, const deque<Peer>& peer_info,
-    unsigned char class_byte, unsigned char ins_byte,
-    MsgContentValidatorFunc msg_validator)
-    : ConsensusCommon(consensus_id, block_hash, node_id, privkey, pubkeys,
-                      peer_info, class_byte, ins_byte)
+    const deque<pair<PubKey, Peer>>& committee, unsigned char class_byte,
+    unsigned char ins_byte, MsgContentValidatorFunc msg_validator)
+    : ConsensusCommon(consensus_id, block_hash, node_id, privkey, committee,
+                      class_byte, ins_byte)
 {
     LOG_MARKER();
 

@@ -190,22 +190,22 @@ bool Node::VerifyFinalBlockCoSignature(const TxBlock& txblock)
     unsigned int count = 0;
 
     const vector<bool>& B2 = txblock.GetB2();
-    if (m_mediator.m_DSCommitteePubKeys.size() != B2.size())
+    if (m_mediator.m_DSCommittee.size() != B2.size())
     {
         LOG_GENERAL(WARNING,
                     "Mismatch: DS committee size = "
-                        << m_mediator.m_DSCommitteePubKeys.size()
+                        << m_mediator.m_DSCommittee.size()
                         << ", co-sig bitmap size = " << B2.size());
         return false;
     }
 
     // Generate the aggregated key
     vector<PubKey> keys;
-    for (auto& kv : m_mediator.m_DSCommitteePubKeys)
+    for (auto& kv : m_mediator.m_DSCommittee)
     {
         if (B2.at(index) == true)
         {
-            keys.push_back(kv);
+            keys.push_back(kv.first);
             count++;
         }
         index++;

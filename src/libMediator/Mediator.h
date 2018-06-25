@@ -65,13 +65,9 @@ public:
     // PoW1 winner will be pushed in at head of queue (new leader)
     // Oldest member will be pushed out from tail of queue
 
-    /// The current members of the DS committee.
-    std::deque<Peer> m_DSCommitteeNetworkInfo;
-    std::mutex m_mutexDSCommitteeNetworkInfo;
-
-    /// The public keys of the DS committee members.
-    std::deque<PubKey> m_DSCommitteePubKeys;
-    std::mutex m_mutexDSCommitteePubKeys;
+    /// The public keys and current members of the DS committee.
+    std::deque<pair<PubKey, Peer>> m_DSCommittee;
+    std::mutex m_mutexDSCommittee;
 
     /// The current epoch randomness from the DS blockchain.
     std::array<unsigned char, POW_SIZE> m_dsBlockRand;

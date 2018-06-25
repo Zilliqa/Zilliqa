@@ -182,7 +182,7 @@ void DirectoryService::ComposeFinalBlockCore()
                       numTxs, numMicroBlocks, m_mediator.m_selfKey.second,
                       lastDSBlockNum, dsBlockHeader),
         vector<bool>(isMicroBlockEmpty), vector<TxnHash>(microBlockTxHashes),
-        CoSignatures(m_mediator.m_DSCommitteePubKeys.size())));
+        CoSignatures(m_mediator.m_DSCommittee.size())));
 
     LOG_STATE("[STATS][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
@@ -233,14 +233,13 @@ void DirectoryService::AppendSharingSetupToFinalBlockMessage(
     // PART 1
     // First version: We just take the first X nodes in DS committee
     LOG_MARKER();
-
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "debug " << m_mediator.m_DSCommitteeNetworkInfo.size() << " "
+              "debug " << m_mediator.m_DSCommittee.size() << " "
                        << TX_SHARING_CLUSTER_SIZE);
 
     uint32_t num_ds_nodes
-        = (m_mediator.m_DSCommitteeNetworkInfo.size() < TX_SHARING_CLUSTER_SIZE)
-        ? m_mediator.m_DSCommitteeNetworkInfo.size()
+        = (m_mediator.m_DSCommittee.size() < TX_SHARING_CLUSTER_SIZE)
+        ? m_mediator.m_DSCommittee.size()
         : TX_SHARING_CLUSTER_SIZE;
     Serializable::SetNumber<uint32_t>(finalBlockMessage, curr_offset,
                                       num_ds_nodes, sizeof(uint32_t));
@@ -250,10 +249,10 @@ void DirectoryService::AppendSharingSetupToFinalBlockMessage(
 
     for (unsigned int i = 0; i < m_consensusMyID; i++)
     {
-        m_mediator.m_DSCommitteeNetworkInfo.at(i).Serialize(finalBlockMessage,
-                                                            curr_offset);
+        m_mediator.m_DSCommittee.at(i).second.Serialize(finalBlockMessage,
+                                                        curr_offset);
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  m_mediator.m_DSCommitteeNetworkInfo.at(i));
+                  m_mediator.m_DSCommittee.at(i).second);
         curr_offset += IP_SIZE + PORT_SIZE;
     }
 
@@ -266,13 +265,12 @@ void DirectoryService::AppendSharingSetupToFinalBlockMessage(
 
     for (unsigned int i = m_consensusMyID + 1; i < num_ds_nodes; i++)
     {
-        m_mediator.m_DSCommitteeNetworkInfo.at(i).Serialize(finalBlockMessage,
-                                                            curr_offset);
+        m_mediator.m_DSCommittee.at(i).second.Serialize(finalBlockMessage,
+                                                        curr_offset);
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  m_mediator.m_DSCommitteeNetworkInfo.at(i));
+                  m_mediator.m_DSCommittee.at(i).second);
         curr_offset += IP_SIZE + PORT_SIZE;
     }
-
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Number of shards: " << m_shards.size());
 
@@ -372,11 +370,11 @@ void DirectoryService::AppendSharingSetupToFinalBlockMessage(
     {
         m_sharingAssignment.clear();
 
-        for (unsigned int i = num_ds_nodes;
-             i < m_mediator.m_DSCommitteeNetworkInfo.size(); i++)
+        for (unsigned int i = num_ds_nodes; i < m_mediator.m_DSCommittee.size();
+             i++)
         {
             m_sharingAssignment.push_back(
-                m_mediator.m_DSCommitteeNetworkInfo.at(i));
+                m_mediator.m_DSCommittee.at(i).second);
         }
     }
 }
@@ -467,8 +465,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
 
     m_consensusObject.reset(new ConsensusLeader(
         m_consensusID, m_consensusBlockHash, m_consensusMyID,
-        m_mediator.m_selfKey.first, m_mediator.m_DSCommitteePubKeys,
-        m_mediator.m_DSCommitteeNetworkInfo,
+        m_mediator.m_selfKey.first, m_mediator.m_DSCommittee,
         static_cast<unsigned char>(DIRECTORY),
         static_cast<unsigned char>(FINALBLOCKCONSENSUS),
         std::function<bool(const vector<unsigned char>&, unsigned int,
@@ -845,10 +842,9 @@ void DirectoryService::SaveTxnBodySharingAssignment(
     m_sharingAssignment.clear();
 
     if ((i_am_forwarder == true)
-        && (m_mediator.m_DSCommitteeNetworkInfo.size() > num_ds_nodes))
+        && (m_mediator.m_DSCommittee.size() > num_ds_nodes))
     {
-        for (unsigned int i = 0; i < m_mediator.m_DSCommitteeNetworkInfo.size();
-             i++)
+        for (unsigned int i = 0; i < m_mediator.m_DSCommittee.size(); i++)
         {
             bool is_a_receiver = false;
 
@@ -856,7 +852,7 @@ void DirectoryService::SaveTxnBodySharingAssignment(
             {
                 for (unsigned int j = 0; j < ds_receivers.size(); j++)
                 {
-                    if (m_mediator.m_DSCommitteeNetworkInfo.at(i)
+                    if (m_mediator.m_DSCommittee.at(i).second
                         == ds_receivers.at(j))
                     {
                         is_a_receiver = true;
@@ -869,7 +865,7 @@ void DirectoryService::SaveTxnBodySharingAssignment(
             if (is_a_receiver == false)
             {
                 m_sharingAssignment.push_back(
-                    m_mediator.m_DSCommitteeNetworkInfo.at(i));
+                    m_mediator.m_DSCommittee.at(i).second);
             }
         }
     }
@@ -1021,8 +1017,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup()
     m_consensusObject.reset(new ConsensusBackup(
         m_consensusID, m_consensusBlockHash, m_consensusMyID,
         m_consensusLeaderID, m_mediator.m_selfKey.first,
-        m_mediator.m_DSCommitteePubKeys, m_mediator.m_DSCommitteeNetworkInfo,
-        static_cast<unsigned char>(DIRECTORY),
+        m_mediator.m_DSCommittee, static_cast<unsigned char>(DIRECTORY),
         static_cast<unsigned char>(FINALBLOCKCONSENSUS), func));
 
     if (m_consensusObject == nullptr)
