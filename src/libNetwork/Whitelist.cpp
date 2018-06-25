@@ -45,10 +45,13 @@ Whitelist& Whitelist::GetInstance()
 
 void Whitelist::AddToDSWhitelist()
 {
+    LOG_MARKER();
+
     ifstream config("whitelist.xml");
     if (config.fail())
     {
         LOG_GENERAL(WARNING, "No whitelist xml present");
+        return;
     }
 
     using boost::property_tree::ptree;
