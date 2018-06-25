@@ -34,8 +34,6 @@ typedef std::shared_ptr<Transaction> TxBodySharedPtr;
 /// Manages persistent storage of DS and Tx blocks.
 class BlockStorage : public Singleton<BlockStorage>
 {
-    friend class Singleton<BlockStorage>;
-
     LevelDB m_metadataDB;
     LevelDB m_dsBlockchainDB;
     LevelDB m_txBlockchainDB;
