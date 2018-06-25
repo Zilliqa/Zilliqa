@@ -528,7 +528,9 @@ void Account::SetStorage(string k, string type, string v, bool is_mutable)
 void Account::SetStorage(const h256& k_hash, const string& rlpStr)
 {
     if (!isContract())
+    {
         return;
+    }
     m_storage.insert(k_hash, rlpStr);
     m_storageRoot = m_storage.root();
 }
@@ -548,7 +550,9 @@ vector<string> Account::GetStorage(const string& _k) const
 string Account::GetRawStorage(const h256& k_hash) const
 {
     if (!isContract())
+    {
         return "";
+    }
     return m_storage.at(k_hash);
 }
 
