@@ -14,27 +14,23 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-
 #include <type_traits>
 
 #include "libUtils/Logger.h"
 
-
-template<class MAP>
-AccountStoreBase<MAP>::AccountStoreBase()
+template<class MAP> AccountStoreBase<MAP>::AccountStoreBase()
 {
     m_addressToAccount = make_shared<MAP>();
 }
 
-template<class MAP> 
-void AccountStoreBase<MAP>::Init()
+template<class MAP> void AccountStoreBase<MAP>::Init()
 {
     m_addressToAccount->clear();
 }
 
 template<class MAP>
 unsigned int AccountStoreBase<MAP>::Serialize(vector<unsigned char>& dst,
-                                             unsigned int offset) const
+                                              unsigned int offset) const
 {
     // [Total number of accounts (uint256_t)] [Addr 1] [Account 1] [Addr 2] [Account 2] .... [Addr n] [Account n]
 
@@ -81,7 +77,7 @@ unsigned int AccountStoreBase<MAP>::Serialize(vector<unsigned char>& dst,
 
 template<class MAP>
 int AccountStoreBase<MAP>::Deserialize(const vector<unsigned char>& src,
-                                      unsigned int offset)
+                                       unsigned int offset)
 {
     // [Total number of accounts] [Addr 1] [Account 1] [Addr 2] [Account 2] .... [Addr n] [Account n]
     // LOG_MARKER();
@@ -140,10 +136,9 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const uint64_t& blockNum,
     if (fromAccount == nullptr)
     {
         // FIXME: remove this, temporary way to test transactions, should return false
-        LOG_GENERAL(
-            WARNING,
-            "AddAccount... FIXME: remove this, temporary way to "
-            "test transactions, should return false in the future");
+        LOG_GENERAL(WARNING,
+                    "AddAccount... FIXME: remove this, temporary way to "
+                    "test transactions, should return false in the future");
         this->AddAccount(fromAddr, {10000000000, 0});
         fromAccount = this->GetAccount(fromAddr);
         // return false;
@@ -151,19 +146,30 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
     if (transaction.GetGasLimit() < NORMAL_TRAN_GAS)
     {
-        LOG_GENERAL(WARNING, "The gas limit " << transaction.GetGasLimit() << 
-                " should be larger than the normal transaction gas (" <<
-                 NORMAL_TRAN_GAS << ")");
+        LOG_GENERAL(WARNING,
+                    "The gas limit "
+                        << transaction.GetGasLimit()
+                        << " should be larger than the normal transaction gas ("
+                        << NORMAL_TRAN_GAS << ")");
         return false;
     }
 
-    uint256_t gasDeposit = transaction.GetGasLimit() * transaction.GetGasPrice();
+    // FIXME: Possible integer overflow here
+    uint256_t gasDeposit
+        = transaction.GetGasLimit() * transaction.GetGasPrice();
 
     if (fromAccount->GetBalance() < transaction.GetAmount() + gasDeposit)
     {
-        LOG_GENERAL(WARNING, "The account (balance: " << fromAccount->GetBalance() << ") "
-         "doesn't have enough balance to pay for the gas limit (" << gasDeposit << ") "
-         "with amount (" << transaction.GetAmount() << ") in the transaction");
+        LOG_GENERAL(
+            WARNING,
+            "The account (balance: "
+                << fromAccount->GetBalance()
+                << ") "
+                   "doesn't have enough balance to pay for the gas limit ("
+                << gasDeposit
+                << ") "
+                   "with amount ("
+                << transaction.GetAmount() << ") in the transaction");
         return false;
     }
 
@@ -178,7 +184,9 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const uint64_t& blockNum,
         return false;
     }
 
-    IncreaseBalance(fromAddr, gasDeposit - NORMAL_TRAN_GAS * transaction.GetGasPrice());
+    // FIXME: Possible integer overflow
+    IncreaseBalance(fromAddr,
+                    gasDeposit - NORMAL_TRAN_GAS * transaction.GetGasPrice());
 
     IncreaseNonce(fromAddr);
 
@@ -186,25 +194,19 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const uint64_t& blockNum,
 }
 
 template<class MAP>
-bool AccountStoreBase<MAP>::DoesAccountExist(const Address& address)
+bool AccountStoreBase<MAP>::IsAccountExist(const Address& address)
 {
     LOG_MARKER();
-
-    if (GetAccount(address) != nullptr)
-    {
-        return true;
-    }
-
-    return false;
+    return (nullptr != GetAccount(address));
 }
 
 template<class MAP>
 void AccountStoreBase<MAP>::AddAccount(const Address& address,
-                                      const Account& account)
+                                       const Account& account)
 {
     LOG_MARKER();
 
-    if (!DoesAccountExist(address))
+    if (!IsAccountExist(address))
     {
         m_addressToAccount->insert(make_pair(address, account));
         // UpdateStateTrie(address, account);
@@ -213,7 +215,7 @@ void AccountStoreBase<MAP>::AddAccount(const Address& address,
 
 template<class MAP>
 void AccountStoreBase<MAP>::AddAccount(const PubKey& pubKey,
-                                      const Account& account)
+                                       const Account& account)
 {
     AddAccount(Account::GetAddressFromPublicKey(pubKey), account);
 }
@@ -237,7 +239,7 @@ template<class MAP> uint256_t AccountStoreBase<MAP>::GetNumOfAccounts() const
 
 template<class MAP>
 bool AccountStoreBase<MAP>::IncreaseBalance(const Address& address,
-                                           const uint256_t& delta)
+                                            const uint256_t& delta)
 {
     // LOG_MARKER();
 
@@ -260,8 +262,8 @@ bool AccountStoreBase<MAP>::IncreaseBalance(const Address& address,
     else if (account == nullptr)
     {
         LOG_GENERAL(WARNING,
-            "AddAccount... FIXME: remove this, temporary way to test "
-            "transactions");
+                    "AddAccount... FIXME: remove this, temporary way to test "
+                    "transactions");
         AddAccount(address, {delta, 0});
         return true;
     }
@@ -271,7 +273,7 @@ bool AccountStoreBase<MAP>::IncreaseBalance(const Address& address,
 
 template<class MAP>
 bool AccountStoreBase<MAP>::DecreaseBalance(const Address& address,
-                                           const uint256_t& delta)
+                                            const uint256_t& delta)
 {
     // LOG_MARKER();
 
@@ -285,13 +287,8 @@ bool AccountStoreBase<MAP>::DecreaseBalance(const Address& address,
     LOG_GENERAL(INFO, "address: " << address);
     LOG_GENERAL(INFO, "account: " << *account);
 
-    if (account != nullptr && account->DecreaseBalance(delta))
-    {
-        // UpdateStateTrie(address, *account);
-        return true;
-    }
     // FIXME: remove this, temporary way to test transactions, should return false
-    else if (account == nullptr)
+    if (nullptr == account)
     {
         LOG_GENERAL(WARNING,
                     "AddAccount... FIXME: remove this, temporary way to test "
@@ -300,13 +297,13 @@ bool AccountStoreBase<MAP>::DecreaseBalance(const Address& address,
         return true;
     }
 
-    return false;
+    return account->DecreaseBalance(delta);
 }
 
 template<class MAP>
 bool AccountStoreBase<MAP>::TransferBalance(const Address& from,
-                                           const Address& to,
-                                           const uint256_t& delta)
+                                            const Address& to,
+                                            const uint256_t& delta)
 {
     // LOG_MARKER();
 
@@ -340,18 +337,26 @@ bool AccountStoreBase<MAP>::IncreaseNonce(const Address& address)
 
     Account* account = GetAccount(address);
 
-    LOG_GENERAL(INFO, "address: " << address);
-    LOG_GENERAL(INFO, "account: " << *account);
+    LOG_GENERAL(INFO, "address: " << address << " account: " << *account);
 
-    if (account != nullptr && account->IncreaseNonce())
+    if (nullptr == account)
+    {
+        LOG_GENERAL(INFO, "Increase nonce failed");
+
+        return false;
+    }
+
+    if (account->IncreaseNonce())
     {
         LOG_GENERAL(INFO, "Increase nonce done");
         // UpdateStateTrie(address, *account);
         return true;
     }
-    LOG_GENERAL(INFO, "Increase nonce failed");
-
-    return false;
+    else
+    {
+        LOG_GENERAL(INFO, "Increase nonce failed");
+        return false;
+    }
 }
 
 template<class MAP>

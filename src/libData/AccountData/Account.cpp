@@ -103,14 +103,6 @@ unsigned int Account::Serialize(vector<unsigned char>& dst,
 {
     LOG_MARKER();
 
-    unsigned int size_needed = ACCOUNT_SIZE + m_codeCache.size();
-    unsigned int size_remaining = dst.size() - offset;
-
-    if (size_remaining < size_needed)
-    {
-        // dst.resize(size_needed + offset);
-    }
-
     unsigned int curOffset = offset;
 
     // Balance
@@ -387,7 +379,12 @@ int Account::DeserializeDelta(const vector<unsigned char>& src,
         LOG_GENERAL(INFO, "balanceDelta: " << balanceDelta);
         account.ChangeBalance(balanceDelta);
         // Nonce Delta
+<<<<<<< HEAD
         uint256_t nonceDelta = GetNumber<uint256_t>(src, offset, UINT256_SIZE);
+=======
+        uint256_t nonceDelta
+            = GetNumber<uint256_t>(src, offset, UINT256_SIZE);
+>>>>>>> 5cc40105cb3c1f69567abcd8625d26513948ad8c
         LOG_GENERAL(INFO, "nonceDelta: " << nonceDelta);
         account.IncreaseNonceBy(nonceDelta);
         offset += UINT256_SIZE;
@@ -402,6 +399,7 @@ int Account::DeserializeDelta(const vector<unsigned char>& src,
         {
             // States storage
             // Num of Key Hashes
+<<<<<<< HEAD
 
             unsigned int numKeyHashes
                 = (unsigned int)GetNumber<uint256_t>(src, offset, UINT256_SIZE);
@@ -410,6 +408,13 @@ int Account::DeserializeDelta(const vector<unsigned char>& src,
             for (unsigned int i = 0; i < numKeyHashes; i++)
             {
 
+=======
+            unsigned int numKeyHashes = (unsigned int)GetNumber<uint256_t>(
+                src, offset, UINT256_SIZE);
+            offset += UINT256_SIZE;
+            for (unsigned int i = 0; i < numKeyHashes; i++)
+            {
+>>>>>>> 5cc40105cb3c1f69567abcd8625d26513948ad8c
                 // Key Hash
                 h256 keyHash;
                 copy(src.begin() + offset,
@@ -419,16 +424,25 @@ int Account::DeserializeDelta(const vector<unsigned char>& src,
 
                 // RLP
                 // RLP size
+<<<<<<< HEAD
 
                 unsigned int rlpSize = (unsigned int)GetNumber<uint256_t>(
                     src, offset, UINT256_SIZE);
                 offset += UINT256_SIZE;
 
+=======
+                unsigned int rlpSize = (unsigned int)GetNumber<uint256_t>(
+                    src, offset, UINT256_SIZE);
+                offset += UINT256_SIZE;
+>>>>>>> 5cc40105cb3c1f69567abcd8625d26513948ad8c
                 // RLP string
                 string rlpStr;
                 copy(src.begin() + offset, src.begin() + offset + rlpSize,
                      back_inserter(rlpStr));
+<<<<<<< HEAD
 
+=======
+>>>>>>> 5cc40105cb3c1f69567abcd8625d26513948ad8c
                 offset += rlpSize;
                 account.SetStorage(keyHash, rlpStr);
             }
@@ -446,7 +460,12 @@ int Account::DeserializeDelta(const vector<unsigned char>& src,
     catch (const std::exception& e)
     {
         LOG_GENERAL(WARNING,
+<<<<<<< HEAD
                     "Error with Account::DeserializeDelta." << ' ' << e.what());
+=======
+                    "Error with Account::DeserializeDelta." << ' '
+                                                            << e.what());
+>>>>>>> 5cc40105cb3c1f69567abcd8625d26513948ad8c
         return -1;
     }
     return 0;
@@ -471,6 +490,7 @@ bool Account::DecreaseBalance(const uint256_t& delta)
 
 bool Account::ChangeBalance(const int256_t& delta)
 {
+<<<<<<< HEAD
     if (delta >= 0)
     {
         return IncreaseBalance(uint256_t(delta));
@@ -479,6 +499,10 @@ bool Account::ChangeBalance(const int256_t& delta)
     {
         return DecreaseBalance(uint256_t(-delta));
     }
+=======
+    return (delta >= 0) ? IncreaseBalance(uint256_t(delta))
+                        : DecreaseBalance(uint256_t(delta));
+>>>>>>> 5cc40105cb3c1f69567abcd8625d26513948ad8c
 }
 
 bool Account::IncreaseNonce()
@@ -527,7 +551,9 @@ void Account::SetStorage(string k, string type, string v, bool is_mutable)
 void Account::SetStorage(const h256& k_hash, const string& rlpStr)
 {
     if (!isContract())
+    {
         return;
+    }
     m_storage.insert(k_hash, rlpStr);
     m_storageRoot = m_storage.root();
 }
@@ -547,7 +573,9 @@ vector<string> Account::GetStorage(const string& _k) const
 string Account::GetRawStorage(const h256& k_hash) const
 {
     if (!isContract())
+    {
         return "";
+    }
     return m_storage.at(k_hash);
 }
 
