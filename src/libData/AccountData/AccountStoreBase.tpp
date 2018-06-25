@@ -179,6 +179,7 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const uint64_t& blockNum,
         return false;
     }
 
+    // FIXME: Possible integer overflow
     IncreaseBalance(fromAddr, gasDeposit - NORMAL_TRAN_GAS * transaction.GetGasPrice());
 
     IncreaseNonce(fromAddr);
