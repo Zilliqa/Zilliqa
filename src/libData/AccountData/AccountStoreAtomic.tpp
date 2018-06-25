@@ -38,8 +38,7 @@ Account* AccountStoreAtomic<MAP>::GetAccount(const Address& address)
     if (account)
     {
         LOG_GENERAL(INFO, "Got From Parent");
-        Account newaccount(*account);
-        m_addressToAccount->insert(make_pair(address, newaccount));
+        m_addressToAccount->insert(make_pair(address, *account));
         return &(m_addressToAccount->find(address))->second;
     }
 

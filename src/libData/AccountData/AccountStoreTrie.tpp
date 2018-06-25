@@ -101,16 +101,15 @@ h256 AccountStoreTrie<DB, MAP>::GetStateRootHash() const
 template<class DB, class MAP>
 bool AccountStoreTrie<DB, MAP>::UpdateStateTrieAll()
 {
-    bool ret = true;
-    for (auto entry : *(this->m_addressToAccount))
+    for (auto const& entry : *(this->m_addressToAccount))
     {
         if (!UpdateStateTrie(entry.first, entry.second))
         {
-            ret = false;
-            break;
+            return false;
         }
     }
-    return ret;
+
+    return true;
 }
 
 template<class DB, class MAP>

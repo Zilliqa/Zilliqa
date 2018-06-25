@@ -58,25 +58,25 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx) const
     // Check if from account is sharded here
     const PubKey& senderPubKey = tx.GetSenderPubKey();
     Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
-    unsigned int shardID = m_mediator.m_node->getShardID();
-    unsigned int numShards = m_mediator.m_node->getNumShards();
-    unsigned int correct_shard
-        = Transaction::GetShardIndex(fromAddr, numShards);
-    if (correct_shard != shardID)
-    {
-        // LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-        //           "This tx is not sharded to me!"
-        //               << " From Account  = 0x" << fromAddr
-        //               << " Correct shard = " << correct_shard
-        //               << " This shard    = "
-        //               << m_mediator.m_node->getShardID());
-        // Transaction created from the GenTransactionBulk will be rejected
-        // by all shards but one. Comment the following line to avoid this
-        // return false;
-    }
+    //    unsigned int shardID = m_mediator.m_node->getShardID();
+    //    unsigned int numShards = m_mediator.m_node->getNumShards();
+    //    unsigned int correct_shard
+    //        = Transaction::GetShardIndex(fromAddr, numShards);
+    //    if (correct_shard != shardID)
+    //    {
+    // LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    //           "This tx is not sharded to me!"
+    //               << " From Account  = 0x" << fromAddr
+    //               << " Correct shard = " << correct_shard
+    //               << " This shard    = "
+    //               << m_mediator.m_node->getShardID());
+    // Transaction created from the GenTransactionBulk will be rejected
+    // by all shards but one. Comment the following line to avoid this
+    // return false;
+    //    }
 
     // Check if from account exists in local storage
-    if (!AccountStore::GetInstance().DoesAccountExist(fromAddr))
+    if (!AccountStore::GetInstance().IsAccountExist(fromAddr))
     {
         LOG_GENERAL(INFO,
                     "fromAddr not found: " << fromAddr
@@ -86,13 +86,13 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx) const
     }
 
     // Check if to account exists in local storage
-    const Address& toAddr = tx.GetToAddr();
-    if (!AccountStore::GetInstance().DoesAccountExist(toAddr))
-    {
-        // FIXME: Should return false in the future
-        // LOG_GENERAL(INFO, "FIXME: New account is added: " << toAddr);
-        // AccountStore::GetInstance().AddAccount(toAddr, {0, 0});
-    }
+    //    const Address& toAddr = tx.GetToAddr();
+    //    if (!AccountStore::GetInstance().IsAccountExist(toAddr))
+    //    {
+    // FIXME: Should return false in the future
+    // LOG_GENERAL(INFO, "FIXME: New account is added: " << toAddr);
+    // AccountStore::GetInstance().AddAccount(toAddr, {0, 0});
+    //    }
 
     // Check if transaction amount is valid
     if (AccountStore::GetInstance().GetBalance(fromAddr) < tx.GetAmount())
@@ -135,7 +135,7 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
     }
 
     // Check if from account exists in local storage
-    if (!AccountStore::GetInstance().DoesAccountExist(fromAddr))
+    if (!AccountStore::GetInstance().IsAccountExist(fromAddr))
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "fromAddr not found: " << fromAddr
@@ -186,13 +186,13 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
     }
 
     // Check if to account exists in local storage
-    const Address& toAddr = tx.GetToAddr();
-    if (!AccountStore::GetInstance().DoesAccountExist(toAddr))
-    {
-        // FIXME: Should return false in the future
-        // LOG_GENERAL(INFO, "FIXME: New account is added: " << toAddr);
-        // AccountStore::GetInstance().AddAccount(toAddr, {0, 0});
-    }
+    //    const Address& toAddr = tx.GetToAddr();
+    //    if (!AccountStore::GetInstance().IsAccountExist(toAddr))
+    //    {
+    // FIXME: Should return false in the future
+    // LOG_GENERAL(INFO, "FIXME: New account is added: " << toAddr);
+    // AccountStore::GetInstance().AddAccount(toAddr, {0, 0});
+    //    }
 
     // Check if transaction amount is valid
     if (AccountStore::GetInstance().GetBalance(fromAddr) < tx.GetAmount())

@@ -54,7 +54,7 @@ public:
                                 const Transaction& transaction);
 
     /// Verifies existence of Account in the list.
-    bool DoesAccountExist(const Address& address);
+    bool IsAccountExist(const Address& address);
 
     /// Adds an Account to the list.
     void AddAccount(const Address& address, const Account& account);
