@@ -25,7 +25,7 @@ AccountStoreTrie<DB, MAP>::AccountStoreTrie()
 
 template<class DB, class MAP> void AccountStoreTrie<DB, MAP>::Init()
 {
-	AccountStoreSC<MAP>::Init();
+    AccountStoreSC<MAP>::Init();
     m_state.init();
     prevRoot = m_state.root();
 }
@@ -78,7 +78,7 @@ Account* AccountStoreTrie<DB, MAP>::GetAccount(const Address& address)
 
 template<class DB, class MAP>
 bool AccountStoreTrie<DB, MAP>::UpdateStateTrie(const Address& address,
-                                           const Account& account)
+                                                const Account& account)
 {
     //LOG_MARKER();
 
@@ -90,7 +90,7 @@ bool AccountStoreTrie<DB, MAP>::UpdateStateTrie(const Address& address,
     return true;
 }
 
-template<class DB, class MAP> 
+template<class DB, class MAP>
 h256 AccountStoreTrie<DB, MAP>::GetStateRootHash() const
 {
     LOG_MARKER();
@@ -98,7 +98,7 @@ h256 AccountStoreTrie<DB, MAP>::GetStateRootHash() const
     return m_state.root();
 }
 
-template<class DB, class MAP> 
+template<class DB, class MAP>
 bool AccountStoreTrie<DB, MAP>::UpdateStateTrieAll()
 {
     bool ret = true;
@@ -113,7 +113,7 @@ bool AccountStoreTrie<DB, MAP>::UpdateStateTrieAll()
     return ret;
 }
 
-template<class DB, class MAP> 
+template<class DB, class MAP>
 void AccountStoreTrie<DB, MAP>::RepopulateStateTrie()
 {
     LOG_MARKER();
@@ -122,7 +122,7 @@ void AccountStoreTrie<DB, MAP>::RepopulateStateTrie()
     UpdateStateTrieAll();
 }
 
-template<class DB, class MAP> 
+template<class DB, class MAP>
 void AccountStoreTrie<DB, MAP>::PrintAccountState()
 {
     AccountStoreBase<MAP>::PrintAccountState();
