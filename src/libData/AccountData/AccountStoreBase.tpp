@@ -306,10 +306,17 @@ bool AccountStoreBase<MAP>::TransferBalance(const Address& from,
                                             const uint256_t& delta)
 {
     // LOG_MARKER();
-
-    if (DecreaseBalance(from, delta) && IncreaseBalance(to, delta))
+    // FIXME: Is there any elegent way to implement this atomic change on balance?
+    if (DecreaseBalance(from, delta))
     {
-        return true;
+        if (IncreaseBalance(to, delta))
+        {
+            return true;
+        }
+        else
+        {
+            IncreaseBalance(from, delta);
+        }
     }
 
     return false;
