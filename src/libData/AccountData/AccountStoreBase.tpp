@@ -194,16 +194,10 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const uint64_t& blockNum,
 }
 
 template<class MAP>
-bool AccountStoreBase<MAP>::DoesAccountExist(const Address& address)
+bool AccountStoreBase<MAP>::IsAccountExist(const Address& address)
 {
     LOG_MARKER();
-
-    if (GetAccount(address) != nullptr)
-    {
-        return true;
-    }
-
-    return false;
+    return (nullptr != GetAccount(address));
 }
 
 template<class MAP>
@@ -212,7 +206,7 @@ void AccountStoreBase<MAP>::AddAccount(const Address& address,
 {
     LOG_MARKER();
 
-    if (!DoesAccountExist(address))
+    if (!IsAccountExist(address))
     {
         m_addressToAccount->insert(make_pair(address, account));
         // UpdateStateTrie(address, account);
@@ -293,13 +287,8 @@ bool AccountStoreBase<MAP>::DecreaseBalance(const Address& address,
     LOG_GENERAL(INFO, "address: " << address);
     LOG_GENERAL(INFO, "account: " << *account);
 
-    if (account != nullptr && account->DecreaseBalance(delta))
-    {
-        // UpdateStateTrie(address, *account);
-        return true;
-    }
     // FIXME: remove this, temporary way to test transactions, should return false
-    else if (account == nullptr)
+    if (nullptr == account)
     {
         LOG_GENERAL(WARNING,
                     "AddAccount... FIXME: remove this, temporary way to test "
@@ -308,7 +297,7 @@ bool AccountStoreBase<MAP>::DecreaseBalance(const Address& address,
         return true;
     }
 
-    return false;
+    return account->DecreaseBalance(delta);
 }
 
 template<class MAP>
@@ -350,15 +339,24 @@ bool AccountStoreBase<MAP>::IncreaseNonce(const Address& address)
 
     LOG_GENERAL(INFO, "address: " << address << " account: " << *account);
 
-    if (account != nullptr && account->IncreaseNonce())
+    if (nullptr == account)
+    {
+        LOG_GENERAL(INFO, "Increase nonce failed");
+
+        return false;
+    }
+
+    if (account->IncreaseNonce())
     {
         LOG_GENERAL(INFO, "Increase nonce done");
         // UpdateStateTrie(address, *account);
         return true;
     }
-    LOG_GENERAL(INFO, "Increase nonce failed");
-
-    return false;
+    else
+    {
+        LOG_GENERAL(INFO, "Increase nonce failed");
+        return false;
+    }
 }
 
 template<class MAP>

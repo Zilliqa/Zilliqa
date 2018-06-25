@@ -103,14 +103,6 @@ unsigned int Account::Serialize(vector<unsigned char>& dst,
 {
     LOG_MARKER();
 
-    unsigned int size_needed = ACCOUNT_SIZE + m_codeCache.size();
-    unsigned int size_remaining = dst.size() - offset;
-
-    if (size_remaining < size_needed)
-    {
-        // dst.resize(size_needed + offset);
-    }
-
     unsigned int curOffset = offset;
 
     // Balance
@@ -472,14 +464,8 @@ bool Account::DecreaseBalance(const uint256_t& delta)
 
 bool Account::ChangeBalance(const int256_t& delta)
 {
-    if (delta >= 0)
-    {
-        return IncreaseBalance(uint256_t(delta));
-    }
-    else
-    {
-        return DecreaseBalance(uint256_t(delta));
-    }
+    return (delta >= 0) ? IncreaseBalance(uint256_t(delta))
+                        : DecreaseBalance(uint256_t(delta));
 }
 
 bool Account::IncreaseNonce()
