@@ -583,7 +583,7 @@ bool Node::CheckLegitimacyOfTxnHashes(vector<unsigned char>& errorMsg)
     auto const& submittedTransactions
         = m_submittedTransactions[m_mediator.m_currentEpochNum];
 
-    uint32_t numOfAbsentHashes = 0;
+    m_numOfAbsentTxnHashes = 0;
 
     int offset = 0;
 
@@ -612,13 +612,13 @@ bool Node::CheckLegitimacyOfTxnHashes(vector<unsigned char>& errorMsg)
             copy(hash.asArray().begin(), hash.asArray().end(),
                  errorMsg.begin() + offset);
             offset += TRAN_HASH_SIZE;
-            numOfAbsentHashes++;
+            m_numOfAbsentTxnHashes++;
         }
     }
 
-    if (numOfAbsentHashes)
+    if (m_numOfAbsentTxnHashes)
     {
-        Serializable::SetNumber<uint32_t>(errorMsg, 0, numOfAbsentHashes,
+        Serializable::SetNumber<uint32_t>(errorMsg, 0, m_numOfAbsentTxnHashes,
                                           sizeof(uint32_t));
         Serializable::SetNumber<uint32_t>(errorMsg, sizeof(uint32_t),
                                           (uint)m_mediator.m_currentEpochNum,

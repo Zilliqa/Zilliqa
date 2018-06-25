@@ -81,12 +81,14 @@ void DirectoryService::ExtractDataFromMicroblocks(
         bool isEmpty = microBlock.GetHeader().GetNumTxs() == 0
             && microBlock.GetHeader().GetStateDeltaHash() == StateHash();
 
+        bool isEmptyTxn = (microBlock.GetHeader().GetNumTxs() == 0);
+
         if (!isVacuousEpoch && !isEmpty)
         {
             m_mediator.m_node->m_unavailableMicroBlocks[blockNum].insert(
                 {{microBlock.GetHeader().GetTxRootHash(),
                   microBlock.GetHeader().GetStateDeltaHash()},
-                 {true, true}});
+                 {!isEmptyTxn, true}});
 
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Added " << microBlock.GetHeader().GetTxRootHash() << " "
@@ -95,7 +97,7 @@ void DirectoryService::ExtractDataFromMicroblocks(
                                << " MicroBlock " << blockNum);
         }
 
-        isMicroBlockEmpty.push_back(isEmpty);
+        isMicroBlockEmpty.push_back(isEmptyTxn);
     }
 
     if (m_mediator.m_node->m_unavailableMicroBlocks.find(blockNum)
@@ -729,9 +731,8 @@ bool DirectoryService::CheckIsMicroBlockEmpty()
                 == hashesInMicroBlocks[i].m_txRootHash)
             {
                 if (m_finalBlock->GetIsMicroBlockEmpty()[i]
-                    != ((microBlock.GetHeader().GetNumTxs() == 0)
-                        && (microBlock.GetHeader().GetStateDeltaHash()
-                            == StateHash())))
+                    != (microBlock.GetHeader().GetNumTxs() == 0))
+
                 {
                     LOG_GENERAL(WARNING,
                                 "IsMicroBlockEmpty in proposed final "
@@ -959,10 +960,13 @@ void DirectoryService::LoadUnavailableMicroBlocks()
                     == microBlockHash.m_txRootHash
                 && microBlock.GetHeader().GetStateDeltaHash()
                     == microBlockHash.m_stateDeltaHash
-                && microBlock.GetHeader().GetNumTxs() > 0)
+                && (microBlock.GetHeader().GetNumTxs() > 0
+                    || microBlock.GetHeader().GetStateDeltaHash()
+                        != StateHash()))
             {
+                bool b = microBlock.GetHeader().GetNumTxs() > 0;
                 m_mediator.m_node->m_unavailableMicroBlocks[blockNum].insert(
-                    {microBlockHash, {true, true}});
+                    {microBlockHash, {b, true}});
                 break;
             }
         }

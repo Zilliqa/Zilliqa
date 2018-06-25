@@ -581,7 +581,12 @@ bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
         receivedTransactions.insert(
             make_pair(submittedTransaction.GetTranID(), submittedTransaction));
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Received missing txn: " << submittedTransaction.GetTranID())
+                  "Received missing txn: " << submittedTransaction.GetTranID());
+        m_numOfAbsentTxnHashes--;
+        if (m_numOfAbsentTxnHashes == 0)
+        {
+            AccountStore::GetInstance().SerializeDelta();
+        }
     }
 
     return true;

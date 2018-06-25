@@ -143,6 +143,8 @@ class Node : public Executable, public Broadcastable
                        std::unordered_map<TxnHash, Transaction>>
         m_receivedTransactions;
 
+    uint32_t m_numOfAbsentTxnHashes;
+
     std::mutex m_mutexCommittedTransactions;
     std::unordered_map<boost::multiprecision::uint256_t, std::list<Transaction>>
         m_committedTransactions;
