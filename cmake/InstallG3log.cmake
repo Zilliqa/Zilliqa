@@ -1,30 +1,26 @@
-#include(ExternalProject)
-#ExternalProject_Add(g3log
-#    SOURCE_DIR ${CMAKE_SOURCE_DIR}/src/depends/g3log
-#    BUILD_COMMAND ""
-#    INSTALL_COMMAND ""
-#    CONFIGURE_COMMAND ""
-#)
 set(G3LOG_SOURCE_DIR ${CMAKE_SOURCE_DIR}/src/depends/g3log)
 set(G3LOG_BINARY_DIR ${CMAKE_BINARY_DIR}/src/depends/g3log)
 
-file(MAKE_DIRECTORY ${G3LOG_BINARY_DIR})
+# update submodule to the latest commit
 execute_process(
-    COMMAND ${CMAKE_COMMAND}
+    COMMAND git submodule update --init --recursive --remote src/depends/g3log
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+)
+
+# generate build directory
+execute_process(COMMAND ${CMAKE_COMMAND}
+        -H${G3LOG_SOURCE_DIR}
+        -B${G3LOG_BINARY_DIR}
         -DUSE_DYNAMIC_LOGGING_LEVELS=ON
         -DG3_SHARED_LIB=OFF
         -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}
-        -DADD_FATAL_EXAMPLE=OFF ${G3LOG_SOURCE_DIR}
-    WORKING_DIRECTORY ${G3LOG_BINARY_DIR}
+        -DADD_FATAL_EXAMPLE=OFF
+        -Wno-dev
 )
-execute_process(
-    COMMAND ${CMAKE_COMMAND} --build .
-    WORKING_DIRECTORY ${G3LOG_BINARY_DIR}
-)
-execute_process(
-    COMMAND ${CMAKE_COMMAND} --build . -- install
-    WORKING_DIRECTORY ${G3LOG_BINARY_DIR}
-)
+
+# build and install g3log
+execute_process(COMMAND ${CMAKE_COMMAND} --build ${G3LOG_BINARY_DIR})
+execute_process(COMMAND ${CMAKE_COMMAND} --build ${G3LOG_BINARY_DIR} --target install)
 
 list(APPEND CMAKE_PREFIX_PATH ${CMAKE_BINARY_DIR})
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_BINARY_DIR}/lib/cmake/g3logger")
