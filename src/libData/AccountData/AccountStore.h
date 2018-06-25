@@ -61,8 +61,6 @@ class AccountStore
     : public AccountStoreTrie<OverlayDB, unordered_map<Address, Account>>,
       Singleton<AccountStore>
 {
-    friend class Singleton<AccountStore>;
-
     unique_ptr<AccountStoreTemp> m_accountStoreTemp;
 
     std::mutex m_mutexDelta;
