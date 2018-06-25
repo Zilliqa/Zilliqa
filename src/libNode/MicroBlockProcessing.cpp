@@ -275,9 +275,9 @@ bool Node::OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
 {
     LOG_MARKER();
 
-    if (errorMsg.size() < 64 + offset)
+    if (errorMsg.size() < 2 * sizeof(uint32_t) + offset)
     {
-        LOG_GENERAL(WARNING, "Malformed");
+        LOG_GENERAL(WARNING, "Malformed Message");
         return false;
     }
 
