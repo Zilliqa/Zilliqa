@@ -80,9 +80,10 @@ public:
     int DeserializeAddOffset(const vector<unsigned char>& src,
                              unsigned int& offset);
 
+    // FIXME: This is not in use anymore. We should depreciate this. However, serializable require this function to be implemented.
     int Deserialize(const vector<unsigned char>& src, unsigned int offset)
     {
-        return -1;
+        throw exception();
     }
 
     /// Increases account balance by the specified delta amount.
