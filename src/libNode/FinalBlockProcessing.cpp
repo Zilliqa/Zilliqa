@@ -1803,8 +1803,6 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
 
     LOG_MARKER();
 
-    lock_guard<mutex> gi(m_mutexIsEveryMicroBlockAvailable);
-
     // reading [block number] from received msg
     uint256_t blocknum
         = Serializable::GetNumber<uint256_t>(message, cur_offset, UINT256_SIZE);
@@ -1856,30 +1854,33 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
         return false;
     }
 
-    bool isEveryMicroBlockAvailable;
-
-    if (!IsMicroBlockTxRootHashInFinalBlock(microBlockTxRootHash,
-                                            microBlockStateDeltaHash, blocknum,
-                                            isEveryMicroBlockAvailable))
     {
-        return false;
-    }
+        lock_guard<mutex> gi(m_mutexIsEveryMicroBlockAvailable);
+        bool isEveryMicroBlockAvailable;
 
-    // StoreTxInMicroBlock(microBlockTxRootHash, txnHashesInForwardedMessage)
+        if (!IsMicroBlockTxRootHashInFinalBlock(microBlockTxRootHash,
+                                                microBlockStateDeltaHash, blocknum,
+                                                isEveryMicroBlockAvailable))
+        {
+            return false;
+        }
 
-    CommitForwardedTransactions(txnsInForwardedMessage, blocknum);
+        // StoreTxInMicroBlock(microBlockTxRootHash, txnHashesInForwardedMessage)
 
-#ifndef IS_LOOKUP_NODE
-    vector<Peer> forward_list;
-    LoadFwdingAssgnForThisBlockNum(blocknum, forward_list);
-#endif // IS_LOOKUP_NODE
+        CommitForwardedTransactions(txnsInForwardedMessage, blocknum);
 
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "isEveryMicroBlockAvailable: " << isEveryMicroBlockAvailable);
+    #ifndef IS_LOOKUP_NODE
+        vector<Peer> forward_list;
+        LoadFwdingAssgnForThisBlockNum(blocknum, forward_list);
+    #endif // IS_LOOKUP_NODE
 
-    if (isEveryMicroBlockAvailable)
-    {
-        DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(blocknum);
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "isEveryMicroBlockAvailable: " << isEveryMicroBlockAvailable);
+
+        if (isEveryMicroBlockAvailable)
+        {
+            DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(blocknum);
+        }
     }
 
 #ifndef IS_LOOKUP_NODE
@@ -1901,8 +1902,6 @@ bool Node::ProcessForwardStateDelta(const vector<unsigned char>& message,
     // Received from other shards
 
     LOG_MARKER();
-
-    lock_guard<mutex> gi(m_mutexIsEveryMicroBlockAvailable);
 
     // reading [block number] from received msg
     uint256_t blocknum
@@ -1952,28 +1951,31 @@ bool Node::ProcessForwardStateDelta(const vector<unsigned char>& message,
 
     cur_offset += STATE_HASH_SIZE + TRAN_HASH_SIZE;
 
-    bool isEveryMicroBlockAvailable;
-
-    if (!IsMicroBlockStateDeltaHashInFinalBlock(microBlockStateDeltaHash,
-                                                microBlockTxRootHash, blocknum,
-                                                isEveryMicroBlockAvailable))
     {
-        return false;
-    }
+        lock_guard<mutex> gi(m_mutexIsEveryMicroBlockAvailable);
+        bool isEveryMicroBlockAvailable;
 
-    AccountStore::GetInstance().DeserializeDelta(message, cur_offset);
+        if (!IsMicroBlockStateDeltaHashInFinalBlock(microBlockStateDeltaHash,
+                                                    microBlockTxRootHash, blocknum,
+                                                    isEveryMicroBlockAvailable))
+        {
+            return false;
+        }
 
-#ifndef IS_LOOKUP_NODE
-    vector<Peer> forward_list;
-    LoadFwdingAssgnForThisBlockNum(blocknum, forward_list);
-#endif // IS_LOOKUP_NODE
+        AccountStore::GetInstance().DeserializeDelta(message, cur_offset);
 
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "isEveryMicroBlockAvailable: " << isEveryMicroBlockAvailable);
+    #ifndef IS_LOOKUP_NODE
+        vector<Peer> forward_list;
+        LoadFwdingAssgnForThisBlockNum(blocknum, forward_list);
+    #endif // IS_LOOKUP_NODE
 
-    if (isEveryMicroBlockAvailable)
-    {
-        DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(blocknum);
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "isEveryMicroBlockAvailable: " << isEveryMicroBlockAvailable);
+
+        if (isEveryMicroBlockAvailable)
+        {
+            DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(blocknum);
+        }
     }
 
 #ifndef IS_LOOKUP_NODE
