@@ -55,9 +55,9 @@ vector<pair<PubKey, Peer>> PeerStore::GetAllPeerPairs() const
 
     lock_guard<mutex> g(m_mutexStore);
 
-    for (auto const& it : m_store)
+    for (auto const& i : m_store)
     {
-        result.push_back(it);
+        result.push_back(i);
     }
 
     return result;

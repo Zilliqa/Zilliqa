@@ -201,7 +201,7 @@ bool Node::VerifyFinalBlockCoSignature(const TxBlock& txblock)
 
     // Generate the aggregated key
     vector<PubKey> keys;
-    for (auto& kv : m_mediator.m_DSCommittee)
+    for (auto const& kv : m_mediator.m_DSCommittee)
     {
         if (B2.at(index) == true)
         {
