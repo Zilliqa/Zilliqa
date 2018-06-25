@@ -45,12 +45,6 @@ const unsigned int COMMIT_POINT_SIZE = 33;
 const unsigned int CHALLENGE_SIZE = 32;
 const unsigned int RESPONSE_SIZE = 32;
 
-// Acount related sizes
-const unsigned int ACCOUNT_SIZE = UINT256_SIZE + UINT256_SIZE + COMMON_HASH_SIZE
-    + COMMON_HASH_SIZE
-    + UINT256_SIZE /* + ACC_ADDR_SIZE + PUB_KEY_SIZE + STORAGE_ROOT_SIZE + CODE_HASH_SIZE*/
-    ;
-
 const unsigned int DS_BLOCKCHAIN_SIZE = 50;
 const unsigned int TX_BLOCKCHAIN_SIZE = 50;
 const unsigned int VC_BLOCKCHAIN_SIZE = 50;
