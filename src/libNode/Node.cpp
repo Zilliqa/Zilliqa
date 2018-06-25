@@ -636,7 +636,7 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
 
     if (!isVacuousEpoch)
     {
-        unique_lock<mutex> g(m_mutexNewRoungStarted, defer_lock);
+        unique_lock<mutex> g(m_mutexNewRoungStarted);
         if (!m_newRoundStarted)
         {
             LOG_GENERAL(INFO, "Wait for new consensus round started");
@@ -701,7 +701,7 @@ bool Node::ProcessCreateTransactionFromLookup(
 
     if (!isVacuousEpoch)
     {
-        unique_lock<mutex> g(m_mutexNewRoungStarted, defer_lock);
+        unique_lock<mutex> g(m_mutexNewRoungStarted);
         if (!m_newRoundStarted)
         {
             LOG_GENERAL(INFO, "Wait for new consensus round started");
