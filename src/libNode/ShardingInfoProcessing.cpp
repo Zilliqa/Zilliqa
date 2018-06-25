@@ -230,6 +230,15 @@ bool Node::ProcessSharding(const vector<unsigned char>& message,
 
     auto main_func = [this]() mutable -> void { SubmitTransactions(); };
 
+    {
+        lock_guard<mutex> g2(m_mutexNewRoungStarted);
+        if (!m_newRoundStarted)
+        {
+            m_newRoundStarted = true;
+            m_cvNewRoundStarted.notify_all();
+        }
+    }
+
     DetachedFunction(1, main_func);
 
     LOG_GENERAL(INFO, "I am going to sleep for 15 seconds");

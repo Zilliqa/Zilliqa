@@ -1072,9 +1072,12 @@ void Node::BeginNextConsensusRound()
 
             {
                 lock_guard<mutex> g2(m_mutexNewRoungStarted);
-                m_newRoundStarted = true;
+                if (!m_newRoundStarted)
+                {
+                    m_newRoundStarted = true;
+                    m_cvNewRoundStarted.notify_all();
+                }
             }
-            m_cvNewRoundStarted.notify_all();
         }
         // this_thread::sleep_for(
         //     chrono::seconds(WAITING_STATE_FORWARD_IN_SECONDS));
