@@ -21,13 +21,13 @@ enum MessageOffset : unsigned int
 {
     TYPE = 0,
     INST = 1,
-    BODY = 2,
+    BODY = 2
 };
 
 enum NumberSign : unsigned char
 {
     POSITIVE = 0x00,
-    NEGATIVE = 0x01,
+    NEGATIVE = 0x01
 };
 
 enum MessageType : unsigned char
@@ -68,7 +68,7 @@ enum NodeInstructionType : unsigned char
     FORWARDTRANSACTION = 0x07,
     CREATETRANSACTIONFROMLOOKUP = 0x08,
     VCBLOCK = 0x09,
-    FORWARDSTATEDELTA = 0x0A,
+    FORWARDSTATEDELTA = 0x0A
 };
 
 enum LookupInstructionType : unsigned char
@@ -91,7 +91,7 @@ enum LookupInstructionType : unsigned char
     SETLOOKUPOFFLINE = 0x0F,
     SETLOOKUPONLINE = 0x10,
     GETOFFLINELOOKUPS = 0x11,
-    SETOFFLINELOOKUPS = 0x12,
+    SETOFFLINELOOKUPS = 0x12
 };
 
 enum TxSharingMode : unsigned char

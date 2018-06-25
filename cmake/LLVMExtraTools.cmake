@@ -7,14 +7,17 @@ set(BREW_LLVM5_PATH /usr/local/opt/llvm@5/bin)
 file(GLOB_RECURSE ALL_CXX_SOURCES
     ${CMAKE_SOURCE_DIR}/src/*.cpp
     ${CMAKE_SOURCE_DIR}/src/*.h
+    ${CMAKE_SOURCE_DIR}/src/*.tpp
     ${CMAKE_SOURCE_DIR}/tests/*.cpp
     ${CMAKE_SOURCE_DIR}/tests/*.h
+    ${CMAKE_SOURCE_DIR}/tests/*.tpp
 )
 
 # Get vendored files
 file(GLOB_RECURSE ALL_CXX_VENDOR_SOURCES
     ${CMAKE_SOURCE_DIR}/src/depends/*.cpp
     ${CMAKE_SOURCE_DIR}/src/depends/*.h
+    ${CMAKE_SOURCE_DIR}/src/depends/*.tpp
 )
 
 # Exclude third-party libraries in src/depends
