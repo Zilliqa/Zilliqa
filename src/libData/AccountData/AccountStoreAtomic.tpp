@@ -14,8 +14,6 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-using namespace std;
-
 template<class MAP>
 AccountStoreAtomic<MAP>::AccountStoreAtomic(AccountStoreSC<MAP>& parent)
     : m_parent(parent)
@@ -26,7 +24,7 @@ template<class MAP>
 Account* AccountStoreAtomic<MAP>::GetAccount(const Address& address)
 {
     Account* account
-        = AccountStoreBase<unordered_map<Address, Account>>::GetAccount(
+        = AccountStoreBase<std::unordered_map<Address, Account>>::GetAccount(
             address);
     if (account != nullptr)
     {
@@ -48,7 +46,7 @@ Account* AccountStoreAtomic<MAP>::GetAccount(const Address& address)
 }
 
 template<class MAP>
-const shared_ptr<unordered_map<Address, Account>>&
+const std::shared_ptr<std::unordered_map<Address, Account>>&
 AccountStoreAtomic<MAP>::GetAddressToAccount()
 {
     return this->m_addressToAccount;

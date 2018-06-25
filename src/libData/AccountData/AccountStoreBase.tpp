@@ -17,6 +17,7 @@
 #include <type_traits>
 
 #include "libUtils/Logger.h"
+#include "libUtils/SafeMath.h"
 
 template<class MAP> AccountStoreBase<MAP>::AccountStoreBase()
 {
@@ -185,8 +186,21 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const uint64_t& blockNum,
     }
 
     // FIXME: Possible integer overflow
-    IncreaseBalance(fromAddr,
-                    gasDeposit - NORMAL_TRAN_GAS * transaction.GetGasPrice());
+    uint256_t gasFee;
+    if (!SafeMath::mul(NORMAL_TRAN_GAS, transaction.GetGasPrice(), gasFee))
+    {
+        LOG_GENERAL(WARNING,
+                    "NORMAL_TRAN_GAS * transaction.GetGasPrice() overflow!");
+        return false;
+    }
+
+    uint256_t gasRefund;
+    if (!SafeMath::sub(gasDeposit, gasFee, gasRefund))
+    {
+        LOG_GENERAL(WARNING, "gasDeposit - gasFee overflow!");
+    }
+
+    IncreaseBalance(fromAddr, gasRefund);
 
     IncreaseNonce(fromAddr);
 
