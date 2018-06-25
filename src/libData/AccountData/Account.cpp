@@ -541,7 +541,7 @@ string Account::GetRawStorage(const h256& k_hash) const
 vector<h256> Account::GetStorageKeyHashes() const
 {
     vector<h256> keyHashes;
-    for (auto i : m_storage)
+    for (auto const& i : m_storage)
     {
         keyHashes.push_back(i.first);
     }
