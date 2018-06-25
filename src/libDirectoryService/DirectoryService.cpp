@@ -902,10 +902,9 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
 
     // Now I need to find my index in the sorted list (this will be my ID for the consensus)
     m_consensusMyID = 0;
-    for (auto i = m_mediator.m_DSCommittee.begin();
-         i != m_mediator.m_DSCommittee.end(); i++)
+    for (auto const& i : m_mediator.m_DSCommittee)
     {
-        if (i->first == m_mediator.m_selfKey.second)
+        if (i.first == m_mediator.m_selfKey.second)
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "My node ID for this PoW1 consensus is "
@@ -1286,11 +1285,10 @@ bool DirectoryService::FinishRejoinAsDS()
         LOG_GENERAL(
             INFO,
             "m_DSCommitteePubKeys size: " << m_mediator.m_DSCommittee.size());
-        for (auto i = m_mediator.m_DSCommittee.begin();
-             i != m_mediator.m_DSCommittee.end(); i++)
+        for (auto const& i : m_mediator.m_DSCommittee)
         {
             LOG_GENERAL(INFO, "Loop of m_DSCommitteePubKeys");
-            if (i->first == m_mediator.m_selfKey.second)
+            if (i.first == m_mediator.m_selfKey.second)
             {
                 LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                           "My node ID for this PoW1 consensus is "

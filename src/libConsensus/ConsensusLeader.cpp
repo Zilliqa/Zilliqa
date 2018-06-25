@@ -1254,8 +1254,8 @@ bool ConsensusLeader::StartConsensus(const vector<unsigned char>& message,
 
     deque<Peer> peer;
 
-    for (auto it : m_committee)
-        peer.push_back(it.second);
+    for (auto const& i : m_committee)
+        peer.push_back(i.second);
 
     P2PComm::GetInstance().SendMessage(peer, announcement);
 

@@ -114,8 +114,10 @@ bool Node::StartPoW1(const uint256_t& block_num, uint8_t difficulty,
 
         deque<Peer> peerList;
 
-        for (auto it : m_mediator.m_DSCommittee)
-            peerList.push_back(it.second);
+        for (auto const& i : m_mediator.m_DSCommittee)
+        {
+            peerList.push_back(i.second);
+        }
 
         P2PComm::GetInstance().SendMessage(peerList, pow1message);
     }

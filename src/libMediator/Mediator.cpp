@@ -102,9 +102,9 @@ std::string Mediator::GetNodeMode(const Peer& peer)
     std::lock_guard<mutex> lock(m_mutexDSCommittee);
     bool bFound = false;
 
-    for (auto it : m_DSCommittee)
+    for (auto const& i : m_DSCommittee)
     {
-        if (it.second == peer)
+        if (i.second == peer)
         {
             bFound = true;
             break;

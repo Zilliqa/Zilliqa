@@ -124,7 +124,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
     unsigned int count = 0;
 
     vector<PubKey> keys;
-    for (auto& kv : m_mediator.m_DSCommittee)
+    for (auto const& kv : m_mediator.m_DSCommittee)
     {
         if (m_pendingVCBlock->GetB2().at(index) == true)
         {
