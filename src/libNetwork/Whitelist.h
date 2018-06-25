@@ -22,10 +22,8 @@
 #include <unordered_map>
 #include <vector>
 
-//#include "common/Constants.h"
-//#include "common/Serializable.h"
-#include "Peer.h"
 #include "libCrypto/Schnorr.h"
+#include "Peer.h"
 
 class Whitelist
 {
