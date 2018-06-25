@@ -16,6 +16,8 @@
 
 #include "libPersistence/ContractStorage.h"
 
+#define RLP_ITEM_COUNT 4
+
 template<class DB, class MAP>
 AccountStoreTrie<DB, MAP>::AccountStoreTrie()
     : m_db(is_same<DB, OverlayDB>::value ? "state" : "")
@@ -46,7 +48,7 @@ Account* AccountStoreTrie<DB, MAP>::GetAccount(const Address& address)
     }
 
     dev::RLP accountDataRLP(accountDataString);
-    if (accountDataRLP.itemCount() != 4)
+    if (accountDataRLP.itemCount() != RLP_ITEM_COUNT)
     {
         LOG_GENERAL(WARNING, "Account data corrupted");
         return nullptr;
@@ -81,8 +83,7 @@ bool AccountStoreTrie<DB, MAP>::UpdateStateTrie(const Address& address,
                                                 const Account& account)
 {
     //LOG_MARKER();
-
-    dev::RLPStream rlpStream(4);
+    dev::RLPStream rlpStream(RLP_ITEM_COUNT);
     rlpStream << account.GetBalance() << account.GetNonce()
               << account.GetStorageRoot() << account.GetCodeHash();
     m_state.insert(address, &rlpStream.out());
