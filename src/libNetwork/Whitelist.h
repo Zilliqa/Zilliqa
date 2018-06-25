@@ -39,7 +39,7 @@ class Whitelist
     //std::unordered_map<Peer, PubKey> m_ShardWhiteList;
 
 public:
-    /// Returns the singleton P2PComm instance.
+    /// Returns the singleton Whitelist instance.
     static Whitelist& GetInstance();
     void AddToDSWhitelist();
     void AddToDSWhitelist(Peer whiteListPeer, PubKey whiteListPubKey);
