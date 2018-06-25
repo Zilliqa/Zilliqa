@@ -342,8 +342,7 @@ bool AccountStoreBase<MAP>::IncreaseNonce(const Address& address)
 
     Account* account = GetAccount(address);
 
-    LOG_GENERAL(INFO, "address: " << address);
-    LOG_GENERAL(INFO, "account: " << *account);
+    LOG_GENERAL(INFO, "address: " << address << " account: " << *account);
 
     if (account != nullptr && account->IncreaseNonce())
     {
