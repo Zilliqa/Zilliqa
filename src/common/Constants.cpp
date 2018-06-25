@@ -68,6 +68,7 @@ ReadAccountsFromConstantsFile(std::string propName)
     return result;
 }
 
+const unsigned int MSG_VERSION{ReadFromConstantsFile("MSG_VERSION")};
 const unsigned int DS_MULTICAST_CLUSTER_SIZE{
     ReadFromConstantsFile("DS_MULTICAST_CLUSTER_SIZE")};
 const unsigned int COMM_SIZE{ReadFromConstantsFile("COMM_SIZE")};
