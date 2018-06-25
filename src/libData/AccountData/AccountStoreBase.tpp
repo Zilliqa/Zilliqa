@@ -157,6 +157,7 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const uint64_t& blockNum,
         return false;
     }
 
+    // FIXME: Possible integer overflow here
     uint256_t gasDeposit = transaction.GetGasLimit() * transaction.GetGasPrice();
 
     if (fromAccount->GetBalance() < transaction.GetAmount() + gasDeposit)
