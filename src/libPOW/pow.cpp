@@ -353,7 +353,9 @@ bool POW::PoWVerify(const boost::multiprecision::uint256_t& blockNum,
                    check_hash_string.begin(), ::toupper);
     if (check_hash_string != winning_result)
     {
-        LOG_GENERAL(INFO, "Check Hash" << check_hash_string <<" Result "<<winning_result<<" did not match");
+        LOG_GENERAL(INFO,
+                    "Check Hash" << check_hash_string << " Result "
+                                 << winning_result << " did not match");
         return false;
     }
 
