@@ -185,24 +185,38 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const uint64_t& blockNum,
         return false;
     }
 
-    // FIXME: Possible integer overflow
-    uint256_t gasFee;
-    if (!SafeMath::mul(NORMAL_TRAN_GAS, transaction.GetGasPrice(), gasFee))
-    {
-        LOG_GENERAL(WARNING,
-                    "NORMAL_TRAN_GAS * transaction.GetGasPrice() overflow!");
-        return false;
-    }
-
     uint256_t gasRefund;
-    if (!SafeMath::sub(gasDeposit, gasFee, gasRefund))
+    if (!CalculateGasRefund(gasDeposit, NORMAL_TRAN_GAS,
+                            transaction.GetGasPrice(), gasRefund))
     {
-        LOG_GENERAL(WARNING, "gasDeposit - gasFee overflow!");
+        return false;
     }
 
     IncreaseBalance(fromAddr, gasRefund);
 
     IncreaseNonce(fromAddr);
+
+    return true;
+}
+
+template<class MAP>
+bool AccountStoreBase<MAP>::CalculateGasRefund(const uint256_t& gasDeposit,
+                                               const uint256_t& gasUnit,
+                                               const uint256_t& gasPrice,
+                                               uint256_t& gasRefund)
+{
+    uint256_t gasFee;
+    if (!SafeMath::mul(gasUnit, gasPrice, gasFee))
+    {
+        LOG_GENERAL(WARNING, "gasUnit * transaction.GetGasPrice() overflow!");
+        return false;
+    }
+
+    if (!SafeMath::sub(gasDeposit, gasFee, gasRefund))
+    {
+        LOG_GENERAL(WARNING, "gasDeposit - gasFee overflow!");
+        return false;
+    }
 
     return true;
 }

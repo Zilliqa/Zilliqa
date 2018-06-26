@@ -136,25 +136,28 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
         ExportCreateContractFiles(*toAccount);
 
+        bool ret = true;
         if (!SysCommand::ExecuteCmdWithoutOutput(GetCreateContractCmdStr()))
         {
-            this->IncreaseBalance(
-                fromAddr,
-                gasDeposit - CONTRACT_CREATE_GAS * transaction.GetGasPrice());
+            ret = false;
+        }
+        if (ret && !ParseCreateContractOutput())
+        {
+            ret = false;
+        }
+        uint256_t gasRefund;
+        if (AccountStoreBase<MAP>::CalculateGasRefund(
+                gasDeposit, CONTRACT_CREATE_GAS, transaction.GetGasPrice(),
+                gasRefund))
+        {
             return false;
         }
-        if (!ParseCreateContractOutput())
+        this->IncreaseBalance(fromAddr, gasRefund);
+        if (!ret)
         {
             this->m_addressToAccount->erase(toAddr);
-            this->IncreaseBalance(
-                fromAddr,
-                gasDeposit - CONTRACT_CREATE_GAS * transaction.GetGasPrice());
-            return false;
+            return ret;
         }
-
-        this->IncreaseBalance(
-            fromAddr,
-            gasDeposit - CONTRACT_CREATE_GAS * transaction.GetGasPrice());
     }
 
     if (!callContract && validToTransferBalance)
@@ -222,29 +225,42 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         m_curGasPrice = transaction.GetGasPrice();
 
         m_curContractAddr = toAddr;
+        m_curAmount = amount;
 
         // if (!TransferBalanceAtomic(fromAddr, toAddr, amount))
         // {
         //     this->IncreaseBalance(fromAddr, gasDeposit);
         //     return false;
         // }
+        bool ret = true;
         if (!SysCommand::ExecuteCmdWithoutOutput(GetCallContractCmdStr()))
         {
-            DiscardTransferBalanceAtomic();
-            this->IncreaseBalance(fromAddr,
-                                  gasDeposit - m_curGasCum * m_curGasPrice);
+            ret = false;
+        }
+        if (ret && !ParseCallContractOutput())
+        {
             return false;
         }
-        if (!ParseCallContractOutput())
+        if (!ret)
         {
             DiscardTransferBalanceAtomic();
-            this->IncreaseBalance(fromAddr,
-                                  gasDeposit - m_curGasCum * m_curGasPrice);
+        }
+        else
+        {
+            CommitTransferBalanceAtomic();
+        }
+
+        uint256_t gasRefund;
+        if (AccountStoreBase<MAP>::CalculateGasRefund(gasDeposit, m_curGasCum,
+                                                      m_curGasPrice, gasRefund))
+        {
             return false;
         }
-        CommitTransferBalanceAtomic();
-        this->IncreaseBalance(fromAddr,
-                              gasDeposit - m_curGasCum * m_curGasPrice);
+        this->IncreaseBalance(fromAddr, gasRefund);
+        if (!ret)
+        {
+            return ret;
+        }
     }
 
     this->IncreaseNonce(fromAddr);
@@ -486,11 +502,17 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json)
 
     if (_json["message"]["_accepted"].asString() == "true")
     {
-        if (!TransferBalanceAtomic(fromAddr, toAddr, amount))
+        LOG_GENERAL(INFO, "Contract accept amount transfer");
+        if (!TransferBalanceAtomic(m_curSenderAddr, m_curContractAddr,
+                                   m_curAmount))
         {
-            this->IncreaseBalance(fromAddr, gasDeposit - m_curGasCum * m_curGasPrice);
+            LOG_GENERAL(WARNING, "TransferBalance Atomic failed");
             return false;
         }
+    }
+    else
+    {
+        LOG_GENERAL(INFO, "Contract refuse amount transfer");
     }
 
     for (auto s : _json["states"])
@@ -534,6 +556,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json)
     // Recipient is non-contract
     if (!account->isContract())
     {
+        LOG_GENERAL(INFO, "The recipient is non-contract");
         return TransferBalanceAtomic(
             m_curContractAddr, recipient,
             atoi(_json["message"]["_amount"].asString().c_str()));
@@ -599,7 +622,7 @@ bool AccountStoreSC<MAP>::TransferBalanceAtomic(const Address& from,
                                                 const Address& to,
                                                 const uint256_t& delta)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
     return m_accountStoreAtomic->TransferBalance(from, to, delta);
 }
 

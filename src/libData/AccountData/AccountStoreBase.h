@@ -34,6 +34,10 @@ protected:
 
     AccountStoreBase();
 
+    bool CalculateGasRefund(const uint256_t& gasDeposit,
+                            const uint256_t& gasUnit, const uint256_t& gasPrice,
+                            uint256_t& gasRefund);
+
 public:
     virtual void Init();
 
