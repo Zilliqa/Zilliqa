@@ -600,40 +600,19 @@ bool Node::ProcessSubmitTxnSharing(const vector<unsigned char>& message,
 {
     //LOG_MARKER();
 
-    // if (IsMessageSizeInappropriate(message.size(), offset,
-    //                                Transaction::GetMinSerializedSize()))
-    // {
-    //     return false;
-    // }
-
-    // const auto& submittedTransaction = Transaction(message, offset);
-
-    // if (m_mediator.m_validator->CheckCreatedTransaction(submittedTransaction))
-    // {
-    //     boost::multiprecision::uint256_t blockNum
-    //         = (uint256_t)m_mediator.m_currentEpochNum;
-    //     lock_guard<mutex> g(m_mutexReceivedTransactions);
-    //     auto& receivedTransactions = m_receivedTransactions[blockNum];
-
-    //     receivedTransactions.insert(
-    //         make_pair(submittedTransaction.GetTranID(), submittedTransaction));
-    //     //LOG_EPOCH(to_string(m_mediator.m_currentEpochNum).c_str(),
-    //     //             "Received txn: " << submittedTransaction.GetTranID())
-    // }
-
     unsigned int cur_offset = offset;
 
-    auto it = message.begin() + cur_offset;
-    while (it != message.end())
+    while (cur_offset < message.size())
     {
         Transaction submittedTransaction;
-        if (!submittedTransaction.DeserializeAddOffset(message, cur_offset))
+        if (submittedTransaction.Deserialize(message, cur_offset) != 0)
         {
             LOG_GENERAL(WARNING,
                         "Deserialize transactions failed, stop at the previous "
                         "successful one");
-            return true;
+            return false;
         }
+        cur_offset += submittedTransaction.GetSerializedSize();
 
         if (m_mediator.m_validator->CheckCreatedTransaction(
                 submittedTransaction))
@@ -648,8 +627,6 @@ bool Node::ProcessSubmitTxnSharing(const vector<unsigned char>& message,
             //LOG_EPOCH(to_string(m_mediator.m_currentEpochNum).c_str(),
             //             "Received txn: " << submittedTransaction.GetTranID())
         }
-
-        it += cur_offset;
     }
 
     return true;
@@ -893,7 +870,8 @@ void Node::SubmitTransactions()
         };
 
         auto appendOne = [this, &blockNum, &cur_offset](Transaction& t) {
-            cur_offset += t.Serialize(m_txMessage, cur_offset);
+            t.Serialize(m_txMessage, cur_offset);
+            cur_offset += t.GetSerializedSize();
 
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Append txn: " << t.GetTranID())
