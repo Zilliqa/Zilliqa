@@ -1459,6 +1459,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 
     unsigned int cur_offset = offset;
 
+    // Initialize it with 255
     uint8_t shard_id = (uint8_t)-1;
 
     // Reads and checks DS Block number, consensus ID and Shard ID
