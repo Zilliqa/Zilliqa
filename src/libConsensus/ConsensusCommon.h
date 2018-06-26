@@ -48,7 +48,8 @@ public:
         FINALCHALLENGE_DONE,
         FINALRESPONSE_DONE,
         DONE,
-        ERROR
+        ERROR,
+        NUM_STATES
     };
 
 protected:

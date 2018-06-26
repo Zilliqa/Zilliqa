@@ -44,7 +44,8 @@ class ConsensusLeader : public ConsensusCommon
         PROCESS_COMMIT,
         PROCESS_RESPONSE,
         PROCESS_FINALCOMMIT,
-        PROCESS_FINALRESPONSE
+        PROCESS_FINALRESPONSE,
+        NUM_ACTIONS
     };
 
     // Consensus session settings
@@ -105,6 +106,10 @@ class ConsensusLeader : public ConsensusCommon
     bool
     ProcessMessageFinalResponse(const std::vector<unsigned char>& finalresponse,
                                 unsigned int offset);
+
+    static State getCompatibleState(enum Action action);
+    static string ActionString(enum Action action);
+    static string StableStateString(enum State state);
 
 public:
     /// Constructor.
