@@ -14,55 +14,40 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#ifndef __SYSCOMMAND_H__
-#define __SYSCOMMAND_H__
+#include "AccountStore.h"
 
-#include <array>
-#include <cstdlib>
-#include <fstream>
-#include <iostream>
-#include <memory>
-#include <signal.h>
-#include <string>
+using namespace std;
 
-#include "Logger.h"
-
-class SysCommand
+AccountStoreTemp::AccountStoreTemp(AccountStore& parent)
+    : m_parent(parent)
 {
-public:
-    static const bool ExecuteCmdWithoutOutput(std::string cmd)
+}
+
+Account* AccountStoreTemp::GetAccount(const Address& address)
+{
+    Account* account
+        = AccountStoreBase<map<Address, Account>>::GetAccount(address);
+    if (account != nullptr)
     {
-        std::string str;
-        return ExecuteCmdWithOutput(cmd, str);
+        LOG_GENERAL(INFO, "Got From Temp");
+        return account;
     }
 
-    static bool ExecuteCmdWithOutput(std::string cmd, std::string& output)
+    account = m_parent.GetAccount(address);
+    if (account)
     {
-        LOG_MARKER();
-
-        std::array<char, 128> buffer;
-
-        signal(SIGCHLD, SIG_IGN);
-
-        // Log the stderr into stdout as well
-        cmd += " 2>&1 ";
-        std::unique_ptr<FILE, decltype(&pclose)> proc(popen(cmd.c_str(), "r"),
-                                                      pclose);
-        if (!proc)
-        {
-            LOG_GENERAL(WARNING, "popen() failed!");
-            return false;
-        }
-        while (!feof(proc.get()))
-        {
-            if (fgets(buffer.data(), 128, proc.get()) != nullptr)
-            {
-                output += buffer.data();
-            }
-        }
-
-        return true;
+        LOG_GENERAL(INFO, "Got From Parent");
+        Account newaccount(*account);
+        m_addressToAccount->insert(make_pair(address, newaccount));
+        return &(m_addressToAccount->find(address))->second;
     }
-};
 
-#endif // __SYSCOMMAND_H__
+    LOG_GENERAL(INFO, "Got Nullptr");
+
+    return nullptr;
+}
+
+const shared_ptr<map<Address, Account>>& AccountStoreTemp::GetAddressToAccount()
+{
+    return this->m_addressToAccount;
+}

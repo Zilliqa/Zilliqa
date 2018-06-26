@@ -161,13 +161,11 @@ decltype(auto) GenWithDummyValue(const KeyPair& sender, const KeyPair& receiver,
     uint256_t amount = 123;
     uint256_t gasPrice = 456;
     uint256_t gasLimit = 789;
-    vector<unsigned char> code; //(10, 0xFF);
-    vector<unsigned char> data; //(10, 0xAA);
 
     for (unsigned i = 0; i < n; i++)
     {
         Transaction txn(version, nonce, toAddr, sender, amount, gasPrice,
-                        gasLimit, code, data);
+                        gasLimit, {}, {});
 
         // LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
         // "Created txns: " << txn.GetTranID())
