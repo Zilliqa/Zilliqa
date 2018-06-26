@@ -251,8 +251,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         }
 
         uint256_t gasRefund;
-        if (!AccountStoreBase<MAP>::CalculateGasRefund(gasDeposit, m_curGasCum,
-                                                      m_curGasPrice, gasRefund))
+        if (!AccountStoreBase<MAP>::CalculateGasRefund(
+                gasDeposit, m_curGasCum, m_curGasPrice, gasRefund))
         {
             return false;
         }
