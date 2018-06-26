@@ -205,7 +205,8 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
         return false;
     }
 
-    return AccountStore::GetInstance().UpdateAccountsTemp(
-        m_mediator.m_currentEpochNum, tx);
+    // return AccountStore::GetInstance().UpdateAccountsTemp(
+    //     m_mediator.m_currentEpochNum, tx);
+    return true;
 }
 #endif // IS_LOOKUP_NODE
