@@ -128,6 +128,8 @@ class Node : public Executable, public Broadcastable
     std::mutex m_mutexCreatedTransactions;
     std::list<Transaction> m_createdTransactions;
 
+    vector<unsigned char> m_txMessage;
+
     // prefilled transactions sorted by fromAddress
     std::mutex m_mutexPrefilledTxns;
     std::atomic_size_t m_nRemainingPrefilledTxns{0};
