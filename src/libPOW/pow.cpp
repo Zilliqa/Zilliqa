@@ -343,19 +343,18 @@ bool POW::PoWVerify(const boost::multiprecision::uint256_t& blockNum,
         = StringToBlockhash(DataConversion::Uint8VecToHexStr(sha3_result));
     ethash_h256_t winnning_result = StringToBlockhash(winning_result);
     ethash_h256_t winnning_mixhash = StringToBlockhash(winning_mixhash);
-
     ethash_h256_t check_hash;
-    ethash_quick_hash(&check_hash, &winnning_result, winning_nonce,
+    ethash_quick_hash(&check_hash, &headerHash, winning_nonce,
                       &winnning_mixhash);
-    const std::string check_hash_string
+    std::string check_hash_string
         = BytesToHexString((uint8_t*)&check_hash, POW_SIZE);
 
-    //TODO: check mix hash to prevent DDOS attack
+    std::transform(check_hash_string.begin(), check_hash_string.end(),
+                   check_hash_string.begin(), ::toupper);
     if (check_hash_string != winning_result)
     {
-        //std::cout << check_hash_string << std::endl;
-        //std::cout << winning_result << std::endl;
-        //return false;
+        LOG_GENERAL(INFO, "Check Hash" << check_hash_string <<" Result "<<winning_result<<" did not match");
+        return false;
     }
 
     bool result;
