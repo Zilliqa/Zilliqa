@@ -185,8 +185,8 @@ void Logger::LogGeneral(LEVELS level, const char* msg, const char* function)
     }
 }
 
-void Logger::LogEpoch(LEVELS level, const char* msg, const char* epoch,
-                      const char* function)
+void Logger::LogEpoch([[gnu::unused]] LEVELS level, const char* msg,
+                      const char* epoch, const char* function)
 {
     std::time_t curTime = std::chrono::system_clock::to_time_t(
         std::chrono::system_clock::now());
@@ -212,7 +212,7 @@ void Logger::LogEpoch(LEVELS level, const char* msg, const char* epoch,
     }
 }
 
-void Logger::LogPayload(LEVELS level, const char* msg,
+void Logger::LogPayload([[gnu::unused]] LEVELS level, const char* msg,
                         const std::vector<unsigned char>& payload,
                         size_t max_bytes_to_display, const char* function)
 {

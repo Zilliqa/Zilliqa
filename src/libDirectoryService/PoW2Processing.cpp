@@ -215,7 +215,8 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
 #endif // IS_LOOKUP_NODE
 
 bool DirectoryService::ProcessPoW2Submission(
-    const vector<unsigned char>& message, unsigned int offset, const Peer& from)
+    [[gnu::unused]] const vector<unsigned char>& message,
+    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
 {
 #ifndef IS_LOOKUP_NODE
     // Message = [32-byte block num] [4-byte listening port] [33-byte public key] [8-byte nonce] [32-byte resulting hash] [32-byte mixhash]

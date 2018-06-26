@@ -402,7 +402,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
 #endif // IS_LOOKUP_NODE
 
 bool DirectoryService::ProcessFinalBlockConsensus(
-    const vector<unsigned char>& message, unsigned int offset, const Peer& from)
+    [[gnu::unused]] const vector<unsigned char>& message,
+    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
 {
 #ifndef IS_LOOKUP_NODE
     LOG_MARKER();
