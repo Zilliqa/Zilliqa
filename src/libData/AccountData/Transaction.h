@@ -88,9 +88,6 @@ public:
     /// Implements the Deserialize function inherited from Serializable.
     int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
 
-    int DeserializeAddOffset(const std::vector<unsigned char>& src,
-                             unsigned int& offset);
-
     /// Returns the size in bytes when serializing the transaction.
     unsigned int GetSerializedSize();
 
