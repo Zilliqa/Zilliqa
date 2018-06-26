@@ -294,6 +294,11 @@ void P2PComm::SendBroadcastMessageCore(
     lock_guard<mutex> guard(m_broadcastCoreMutex);
 
     SendMessagePoolHelper<START_BYTE_BROADCAST>(peers, message, message_hash);
+}
+
+void P2PComm::ClearBroadcastHashAsync(const vector<unsigned char>& message_hash)
+{
+    LOG_MARKER();
     // TODO: are we sure there wont be many threads arising from this, will ThreadPool alleviate it?
     // Launch a separate, detached thread to automatically remove the hash from the list after a long time period has elapsed
     auto func2 = [this, message_hash]() -> void {
@@ -472,15 +477,16 @@ void P2PComm::HandleAcceptedConnection(
             }
             vector<Peer> broadcast_list
                 = broadcast_list_retriever(msg_type, ins_type, from);
+            vector<unsigned char> this_msg_hash(hash_buf, hash_buf + HASH_LEN);
             if (broadcast_list.size() > 0)
             {
-                vector<unsigned char> this_msg_hash(hash_buf,
-                                                    hash_buf + HASH_LEN);
                 P2PComm::GetInstance().SendBroadcastMessageCore(
                     broadcast_list, message, this_msg_hash);
             }
 
-            vector<unsigned char> this_msg_hash(hash_buf, hash_buf + HASH_LEN);
+            // Used to be done in SendBroadcastMessageCore, but it would never be called by lookup nodes
+            P2PComm::GetInstance().ClearBroadcastHashAsync(this_msg_hash);
+
             LOG_STATE(
                 "[BROAD]["
                 << std::setw(15) << std::left
