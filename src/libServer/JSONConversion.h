@@ -21,8 +21,8 @@
 #include <json/json.h>
 #include <vector>
 
-#include "libData/AccountData/Transaction.h"
 #include "libData/BlockData/Block.h"
+#include "libData/BlockData/BlockHeader/BlockHashSet.h"
 
 class JSONConversion
 {
@@ -32,6 +32,12 @@ public:
     //converts a TxnHash array to JSON array containing TxnHash strings
     static const Json::Value
     convertTxnHashArraytoJson(const std::vector<TxnHash>& v);
+    static const Json::Value
+    convertTxnHashArraytoJson(const std::vector<MicroBlockHashSet>& v);
+    //converts a MicroBlockHashSet to JSON array containing TxnHash and StateDeltaHash strings
+    //do consider replacing convertTxnHashArraytoJson with this
+    static const Json::Value
+    convertMicroBlockHashSettoJson(const std::vector<MicroBlockHashSet>& v);
     //converts a TxBlock to JSON object
     static const Json::Value convertTxBlocktoJson(const TxBlock& txblock);
     //converts a DSBlocck to JSON object

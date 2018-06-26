@@ -19,13 +19,14 @@
 
 #include <leveldb/db.h>
 
+#include "common/Singleton.h"
 #include "depends/libDatabase/LevelDB.h"
 #include "depends/libDatabase/OverlayDB.h"
 #include "depends/libTrie/TrieDB.h"
 
 using namespace dev;
 
-class ContractStorage
+class ContractStorage : public Singleton<ContractStorage>
 {
     OverlayDB m_stateDB;
     LevelDB m_codeDB;
@@ -33,9 +34,6 @@ class ContractStorage
     ContractStorage()
         : m_stateDB("contractState")
         , m_codeDB("contractCode"){};
-
-    ContractStorage(ContractStorage const&) = delete;
-    void operator=(ContractStorage const&) = delete;
 
     ~ContractStorage() = default;
 

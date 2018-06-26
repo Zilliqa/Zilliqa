@@ -232,11 +232,23 @@ bool Node::ProcessSharding(const vector<unsigned char>& message,
 
     auto main_func = [this]() mutable -> void { SubmitTransactions(); };
 
+    {
+        lock_guard<mutex> g2(m_mutexNewRoungStarted);
+        if (!m_newRoundStarted)
+        {
+            m_newRoundStarted = true;
+            m_cvNewRoundStarted.notify_all();
+        }
+    }
+
     DetachedFunction(1, main_func);
 
-    LOG_GENERAL(INFO, "I am going to sleep for 15 seconds");
-    this_thread::sleep_for(chrono::seconds(15));
-    LOG_GENERAL(INFO, "I have woken up from the sleep of 15 seconds");
+    LOG_GENERAL(INFO,
+                "I am going to sleep for " << TXN_SUBMISSION << " seconds");
+    this_thread::sleep_for(chrono::seconds(TXN_SUBMISSION));
+    LOG_GENERAL(INFO,
+                "I have woken up from the sleep of " << TXN_SUBMISSION
+                                                     << " seconds");
 
     auto main_func2 = [this]() mutable -> void {
         SetState(TX_SUBMISSION_BUFFER);
@@ -245,9 +257,12 @@ bool Node::ProcessSharding(const vector<unsigned char>& message,
 
     DetachedFunction(1, main_func2);
 
-    LOG_GENERAL(INFO, "I am going to sleep for 30 seconds");
-    this_thread::sleep_for(chrono::seconds(30));
-    LOG_GENERAL(INFO, "I have woken up from the sleep of 30 seconds");
+    LOG_GENERAL(INFO,
+                "I am going to sleep for " << TXN_BROADCAST << " seconds");
+    this_thread::sleep_for(chrono::seconds(TXN_BROADCAST));
+    LOG_GENERAL(INFO,
+                "I have woken up from the sleep of " << TXN_BROADCAST
+                                                     << " seconds");
 
     auto main_func3 = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
 

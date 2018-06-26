@@ -388,7 +388,7 @@ Transaction CreateValidTestingTransaction(PrivKey& fromPrivKey,
     // << " / toAddr" << toAddr);
 
     Transaction txn(version, nonce, toAddr, make_pair(fromPrivKey, fromPubKey),
-                    amount, 0, 0, {}, {});
+                    amount, 1, 1, {}, {});
 
     // std::vector<unsigned char> buf;
     // txn.SerializeWithoutSignature(buf, 0);
@@ -559,7 +559,6 @@ bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
     offset += sizeof(uint32_t);
 
     auto localBlockNum = (uint256_t)m_mediator.m_currentEpochNum;
-    ;
 
     if (msgBlockNum != localBlockNum)
     {
@@ -577,14 +576,22 @@ bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
 
     const auto& submittedTransaction = Transaction(message, offset);
 
-    // if (m_mediator.m_validator->CheckCreatedTransaction(submittedTransaction))
+    if (m_mediator.m_validator->CheckCreatedTransaction(submittedTransaction))
     {
         lock_guard<mutex> g(m_mutexReceivedTransactions);
         auto& receivedTransactions = m_receivedTransactions[msgBlockNum];
         receivedTransactions.insert(
             make_pair(submittedTransaction.GetTranID(), submittedTransaction));
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Received missing txn: " << submittedTransaction.GetTranID())
+                  "Received missing txn: " << submittedTransaction.GetTranID());
+        if (m_numOfAbsentTxnHashes > 0)
+        {
+            m_numOfAbsentTxnHashes--;
+        }
+        if (m_numOfAbsentTxnHashes == 0)
+        {
+            AccountStore::GetInstance().SerializeDelta();
+        }
     }
 
     return true;
@@ -602,7 +609,8 @@ bool Node::ProcessSubmitTxnSharing(const vector<unsigned char>& message,
     }
 
     const auto& submittedTransaction = Transaction(message, offset);
-    // if (m_mediator.m_validator->CheckCreatedTransaction(submittedTransaction))
+
+    if (m_mediator.m_validator->CheckCreatedTransaction(submittedTransaction))
     {
         boost::multiprecision::uint256_t blockNum
             = (uint256_t)m_mediator.m_currentEpochNum;
@@ -626,7 +634,27 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
     // This message is sent by my shard peers
     // Message = [204-byte transaction]
 
-    //LOG_MARKER();
+    LOG_MARKER();
+
+    bool isVacuousEpoch
+        = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
+
+    if (!isVacuousEpoch)
+    {
+        unique_lock<mutex> g(m_mutexNewRoungStarted);
+        if (!m_newRoundStarted)
+        {
+            LOG_GENERAL(INFO, "Wait for new consensus round started");
+            m_cvNewRoundStarted.wait(g, [this] { return m_newRoundStarted; });
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "New consensus round started, moving to "
+                      "ProcessSubmitTxnSharing");
+        }
+        else
+        {
+            LOG_GENERAL(INFO, "No need to wait for newRoundStarted");
+        }
+    }
 
     unsigned int cur_offset = offset;
 
@@ -671,7 +699,27 @@ bool Node::ProcessCreateTransactionFromLookup(
 {
 #ifndef IS_LOOKUP_NODE
 
-    //LOG_MARKER();
+    LOG_MARKER();
+
+    bool isVacuousEpoch
+        = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
+
+    if (!isVacuousEpoch)
+    {
+        unique_lock<mutex> g(m_mutexNewRoungStarted);
+        if (!m_newRoundStarted)
+        {
+            LOG_GENERAL(INFO, "Wait for new consensus round started");
+            m_cvNewRoundStarted.wait(g, [this] { return m_newRoundStarted; });
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "New consensus round started, moving to "
+                      "ProcessSubmitTxnSharing");
+        }
+        else
+        {
+            LOG_GENERAL(INFO, "No need to wait for newRoundStarted");
+        }
+    }
 
     if (IsMessageSizeInappropriate(message.size(), offset,
                                    Transaction::GetMinSerializedSize()))
@@ -826,10 +874,18 @@ void Node::SubmitTransactions()
 
         if (findOneFromCreated(t))
         {
+            if (!m_mediator.m_validator->CheckCreatedTransaction(t))
+            {
+                return;
+            }
             submitOne(t);
         }
         else if (findOneFromPrefilled(t))
         {
+            if (!m_mediator.m_validator->CheckCreatedTransaction(t))
+            {
+                return;
+            }
             submitOne(t);
             txn_sent_count++;
         }
@@ -863,6 +919,7 @@ bool Node::CleanVariables()
     m_myShardMembersNetworkInfo.clear();
     m_isPrimary = false;
     m_isMBSender = false;
+    m_tempStateDeltaCommitted = true;
     m_myShardID = 0;
 
     m_consensusObject.reset();
@@ -904,6 +961,10 @@ bool Node::CleanVariables()
     {
         std::lock_guard<mutex> lock(m_mutexUnavailableMicroBlocks);
         m_unavailableMicroBlocks.clear();
+    }
+    {
+        std::lock_guard<mutex> lock(m_mutexTempCommitted);
+        m_tempStateDeltaCommitted = true;
     }
     // On Lookup
     {
@@ -962,17 +1023,19 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
     typedef bool (Node::*InstructionHandler)(const vector<unsigned char>&,
                                              unsigned int, const Peer&);
 
-    InstructionHandler ins_handlers[]
-        = {&Node::ProcessStartPoW1,
-           &Node::ProcessDSBlock,
-           &Node::ProcessSharding,
-           &Node::ProcessCreateTransaction,
-           &Node::ProcessSubmitTransaction,
-           &Node::ProcessMicroblockConsensus,
-           &Node::ProcessFinalBlock,
-           &Node::ProcessForwardTransaction,
-           &Node::ProcessCreateTransactionFromLookup,
-           &Node::ProcessVCBlock};
+    InstructionHandler ins_handlers[] = {
+        &Node::ProcessStartPoW1,
+        &Node::ProcessDSBlock,
+        &Node::ProcessSharding,
+        &Node::ProcessCreateTransaction,
+        &Node::ProcessSubmitTransaction,
+        &Node::ProcessMicroblockConsensus,
+        &Node::ProcessFinalBlock,
+        &Node::ProcessForwardTransaction,
+        &Node::ProcessCreateTransactionFromLookup,
+        &Node::ProcessVCBlock,
+        &Node::ProcessForwardStateDelta,
+    };
 
     const unsigned char ins_byte = message.at(offset);
     const unsigned int ins_handlers_count

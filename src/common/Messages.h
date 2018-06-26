@@ -24,6 +24,12 @@ enum MessageOffset : unsigned int
     BODY = 2
 };
 
+enum NumberSign : unsigned char
+{
+    POSITIVE = 0x00,
+    NEGATIVE = 0x01
+};
+
 enum MessageType : unsigned char
 {
     PEER = 0x00,
@@ -62,7 +68,8 @@ enum NodeInstructionType : unsigned char
     FINALBLOCK = 0x06,
     FORWARDTRANSACTION = 0x07,
     CREATETRANSACTIONFROMLOOKUP = 0x08,
-    VCBLOCK = 0x09
+    VCBLOCK = 0x09,
+    FORWARDSTATEDELTA = 0x0A
 };
 
 enum LookupInstructionType : unsigned char
@@ -88,7 +95,7 @@ enum LookupInstructionType : unsigned char
     SETOFFLINELOOKUPS = 0x12,
     RAISEPOWSUBMISSION = 0x13,
     GETPOWSUBMISSIONFROMSEED = 0x14,
-    SETPOWSUBMISSIONFROMSEED = 0x15,
+    SETPOWSUBMISSIONFROMSEED = 0x15
 };
 
 enum TxSharingMode : unsigned char
