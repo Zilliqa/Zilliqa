@@ -14,6 +14,7 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
+#include <boost/algorithm/string/predicate.hpp>
 #include <ctime>
 #include <iomanip>
 #include <iostream>
@@ -349,9 +350,7 @@ bool POW::PoWVerify(const boost::multiprecision::uint256_t& blockNum,
     std::string check_hash_string
         = BytesToHexString((uint8_t*)&check_hash, POW_SIZE);
 
-    std::transform(check_hash_string.begin(), check_hash_string.end(),
-                   check_hash_string.begin(), ::toupper);
-    if (check_hash_string != winning_result)
+    if (!boost::iequals(check_hash_string, winning_result))
     {
         LOG_GENERAL(INFO,
                     "Check Hash" << check_hash_string << " Result "
