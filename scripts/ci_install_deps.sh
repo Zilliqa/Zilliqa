@@ -24,6 +24,7 @@ apt-get install -y \
     libjsoncpp-dev \
     libmicrohttpd-dev \
     libjsonrpccpp-dev \
+    libminiupnpc-dev \
     libevent-dev
 
 # install development dependencies
@@ -47,6 +48,7 @@ brew install \
     jsoncpp \
     leveldb \
     libjson-rpc-cpp \
+    miniupnpc \
     libevent \
 
 # install developement deps

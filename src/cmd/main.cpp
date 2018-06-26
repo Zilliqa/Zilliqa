@@ -22,6 +22,7 @@
 #include <arpa/inet.h>
 #include <iostream>
 
+#include "depends/NAT/nat.h"
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/PeerStore.h"
 #include "libUtils/DataConversion.h"
@@ -34,6 +35,13 @@ using namespace boost::multiprecision;
 int main(int argc, const char* argv[])
 {
     const int num_args_required = 1 + 7; // first 1 = program name
+    struct in_addr ip_addr;
+    Peer my_network_info;
+
+    INIT_FILE_LOGGER("zilliqa");
+    INIT_STATE_LOGGER("state");
+    INIT_EPOCHINFO_LOGGER("epochinfo");
+
     if (argc != num_args_required)
     {
         cout << "Copyright (C) Zilliqa. Version 1.0 (Durian). "
@@ -44,58 +52,79 @@ int main(int argc, const char* argv[])
              << endl;
         cout << "[USAGE] " << argv[0]
              << " <32-byte private_key> <33-byte public_key> "
-                "<listen_ip_address> <listen_port> <1 if loadConfig, 0 "
+                "<listen_ip_address or \"NAT\"> <listen_port> <1 if "
+                "loadConfig, 0 "
                 "otherwise> <SyncType, 0 for no, 1 for new,"
                 " 2 for normal, 3 for ds, 4 for lookup> "
                 "<1 if recovery, 0 otherwise>"
              << endl;
+        return 0;
+    }
+
+    unsigned int localPort = static_cast<unsigned int>(atoi(argv[4]));
+    unique_ptr<NAT> nt;
+
+    if (string(argv[3]) == "NAT")
+    {
+        nt = make_unique<NAT>();
+        nt->init();
+
+        int mappedPort = nt->addRedirect(localPort);
+
+        if (mappedPort <= 0)
+        {
+            LOG_GENERAL(WARNING, "NAT ERROR");
+            return -1;
+        }
+        else
+        {
+            LOG_GENERAL(INFO,
+                        "My external IP is " << nt->externalIP().c_str()
+                                             << " and my mapped port is "
+                                             << mappedPort);
+        }
+
+        inet_aton(nt->externalIP().c_str(), &ip_addr);
+        my_network_info = Peer((uint128_t)ip_addr.s_addr, mappedPort);
     }
     else
     {
-        INIT_FILE_LOGGER("zilliqa");
-        INIT_STATE_LOGGER("state");
-        INIT_EPOCHINFO_LOGGER("epochinfo");
-
-        vector<unsigned char> tmpprivkey
-            = DataConversion::HexStrToUint8Vec(argv[1]);
-        vector<unsigned char> tmppubkey
-            = DataConversion::HexStrToUint8Vec(argv[2]);
-        // PrivKey privkey(tmpprivkey, 0);
-        PrivKey privkey;
-        if (privkey.Deserialize(tmpprivkey, 0) != 0)
-        {
-            LOG_GENERAL(WARNING, "We failed to deserialize PrivKey.");
-            return -1;
-        }
-        // PubKey pubkey(tmppubkey, 0);
-        PubKey pubkey;
-        if (pubkey.Deserialize(tmppubkey, 0) != 0)
-        {
-            LOG_GENERAL(WARNING, "We failed to deserialize PubKey.");
-            return -1;
-        }
-
-        struct in_addr ip_addr;
         inet_aton(argv[3], &ip_addr);
-        Peer my_port((uint128_t)ip_addr.s_addr,
-                     static_cast<unsigned int>(atoi(argv[4])));
-
-        Zilliqa zilliqa(make_pair(privkey, pubkey), my_port, atoi(argv[5]) == 1,
-                        atoi(argv[6]), atoi(argv[7]) == 1);
-
-        auto dispatcher = [&zilliqa](const vector<unsigned char>& message,
-                                     const Peer& from) mutable -> void {
-            zilliqa.Dispatch(message, from);
-        };
-        auto broadcast_list_retriever
-            = [&zilliqa](unsigned char msg_type, unsigned char ins_type,
-                         const Peer& from) mutable -> vector<Peer> {
-            return zilliqa.RetrieveBroadcastList(msg_type, ins_type, from);
-        };
-
-        P2PComm::GetInstance().StartMessagePump(
-            my_port.m_listenPortHost, dispatcher, broadcast_list_retriever);
+        my_network_info = Peer((uint128_t)ip_addr.s_addr, localPort);
     }
+
+    vector<unsigned char> tmPrivkey = DataConversion::HexStrToUint8Vec(argv[1]);
+    vector<unsigned char> tmpPubkey = DataConversion::HexStrToUint8Vec(argv[2]);
+
+    PrivKey privkey;
+    if (privkey.Deserialize(tmPrivkey, 0) != 0)
+    {
+        LOG_GENERAL(WARNING, "We failed to deserialize PrivKey.");
+        return -1;
+    }
+
+    PubKey pubkey;
+    if (pubkey.Deserialize(tmpPubkey, 0) != 0)
+    {
+        LOG_GENERAL(WARNING, "We failed to deserialize PubKey.");
+        return -1;
+    }
+
+    Zilliqa zilliqa(make_pair(privkey, pubkey), my_network_info,
+                    atoi(argv[5]) == 1, atoi(argv[6]), atoi(argv[7]) == 1);
+
+    auto dispatcher = [&zilliqa](const vector<unsigned char>& message,
+                                 const Peer& from) mutable -> void {
+        zilliqa.Dispatch(message, from);
+    };
+    auto broadcast_list_retriever
+        = [&zilliqa](unsigned char msg_type, unsigned char ins_type,
+                     const Peer& from) mutable -> vector<Peer> {
+        return zilliqa.RetrieveBroadcastList(msg_type, ins_type, from);
+    };
+
+    P2PComm::GetInstance().StartMessagePump(
+        my_network_info.m_listenPortHost, dispatcher, broadcast_list_retriever);
 
     return 0;
 }

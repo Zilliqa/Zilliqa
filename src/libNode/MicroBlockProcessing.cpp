@@ -19,8 +19,6 @@
 #include <functional>
 #include <thread>
 
-#include <boost/multiprecision/cpp_int.hpp>
-
 #include "Node.h"
 #include "common/Constants.h"
 #include "common/Messages.h"
@@ -44,6 +42,7 @@
 #include "libUtils/TimeLockedFunction.h"
 #include "libUtils/TimeUtils.h"
 #include "libUtils/TxnRootComputation.h"
+#include <boost/multiprecision/cpp_int.hpp>
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -166,9 +165,11 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
 
         SetState(WAITING_FINALBLOCK);
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Micro block consensus"
+                  "Micro block consensus "
                       << "is DONE!!! (Epoch " << m_mediator.m_currentEpochNum
                       << ")");
+        m_lastMicroBlockCoSig.first = m_mediator.m_currentEpochNum;
+        m_lastMicroBlockCoSig.second.SetCoSignatures(*m_consensusObject);
     }
     else if (state == ConsensusCommon::State::ERROR)
     {
@@ -188,6 +189,11 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Consensus state = " << state);
+    }
+
+    {
+        lock_guard<mutex> g2(m_mutexNewRoungStarted);
+        m_newRoundStarted = false;
     }
 
     return result;
@@ -217,6 +223,7 @@ bool Node::ComposeMicroBlock()
     uint256_t dsBlockNum = (uint256_t)m_mediator.m_currentEpochNum;
     BlockHash dsBlockHeader;
     fill(dsBlockHeader.asArray().begin(), dsBlockHeader.asArray().end(), 0x11);
+    StateHash stateDeltaHash = AccountStore::GetInstance().GetStateDeltaHash();
 
     // TxBlock
     vector<TxnHash> tranHashes;
@@ -251,13 +258,12 @@ bool Node::ComposeMicroBlock()
             index++;
         }
     }
-
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Creating new micro block.")
     m_microblock.reset(new MicroBlock(
         MicroBlockHeader(type, version, gasLimit, gasUsed, prevHash, blockNum,
                          timestamp, txRootHash, numTxs, minerPubKey, dsBlockNum,
-                         dsBlockHeader),
+                         dsBlockHeader, stateDeltaHash),
         tranHashes, CoSignatures()));
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -273,6 +279,12 @@ bool Node::OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
                              unsigned int offset, const Peer& from)
 {
     LOG_MARKER();
+
+    if (errorMsg.size() < 2 * sizeof(uint32_t) + offset)
+    {
+        LOG_GENERAL(WARNING, "Malformed Message");
+        return false;
+    }
 
     uint32_t numOfAbsentHashes
         = Serializable::GetNumber<uint32_t>(errorMsg, offset, sizeof(uint32_t));
@@ -498,7 +510,12 @@ bool Node::RunConsensusOnMicroBlock()
 
     // set state first and then take writer lock so that SubmitTransactions
     // if it takes reader lock later breaks out of loop
+
+    InitCoinbase();
+
     SetState(MICROBLOCK_CONSENSUS_PREP);
+
+    AccountStore::GetInstance().SerializeDelta();
 
     if (m_isPrimary == true)
     {
@@ -596,7 +613,7 @@ bool Node::CheckLegitimacyOfTxnHashes(vector<unsigned char>& errorMsg)
     auto const& submittedTransactions
         = m_submittedTransactions[m_mediator.m_currentEpochNum];
 
-    uint32_t numOfAbsentHashes = 0;
+    m_numOfAbsentTxnHashes = 0;
 
     int offset = 0;
 
@@ -625,13 +642,13 @@ bool Node::CheckLegitimacyOfTxnHashes(vector<unsigned char>& errorMsg)
             copy(hash.asArray().begin(), hash.asArray().end(),
                  errorMsg.begin() + offset);
             offset += TRAN_HASH_SIZE;
-            numOfAbsentHashes++;
+            m_numOfAbsentTxnHashes++;
         }
     }
 
-    if (numOfAbsentHashes)
+    if (m_numOfAbsentTxnHashes)
     {
-        Serializable::SetNumber<uint32_t>(errorMsg, 0, numOfAbsentHashes,
+        Serializable::SetNumber<uint32_t>(errorMsg, 0, m_numOfAbsentTxnHashes,
                                           sizeof(uint32_t));
         Serializable::SetNumber<uint32_t>(errorMsg, sizeof(uint32_t),
                                           (uint)m_mediator.m_currentEpochNum,
@@ -695,6 +712,30 @@ bool Node::CheckMicroBlockTxnRootHash()
     return true;
 }
 
+bool Node::CheckMicroBlockStateDeltaHash()
+{
+    StateHash expectedStateDeltaHash
+        = AccountStore::GetInstance().GetStateDeltaHash();
+
+    LOG_GENERAL(INFO,
+                "Microblock state delta generation done "
+                    << DataConversion::charArrToHexStr(
+                           expectedStateDeltaHash.asArray()));
+    LOG_GENERAL(INFO,
+                "Expected root: " << DataConversion::charArrToHexStr(
+                    m_microblock->GetHeader().GetStateDeltaHash().asArray()));
+
+    if (expectedStateDeltaHash != m_microblock->GetHeader().GetStateDeltaHash())
+    {
+        LOG_GENERAL(WARNING, "State delta hash does not match");
+        return false;
+    }
+
+    LOG_GENERAL(INFO, "State delta hash check passed");
+
+    return true;
+}
+
 bool Node::MicroBlockValidator(const vector<unsigned char>& microblock,
                                vector<unsigned char>& errorMsg)
 {
@@ -709,7 +750,8 @@ bool Node::MicroBlockValidator(const vector<unsigned char>& microblock,
     {
         if (!CheckBlockTypeIsMicro() || !CheckMicroBlockVersion()
             || !CheckMicroBlockTimestamp() || !CheckMicroBlockHashes(errorMsg)
-            || !CheckMicroBlockTxnRootHash())
+            || !CheckMicroBlockTxnRootHash()
+            || !CheckMicroBlockStateDeltaHash())
         {
             break;
         }
