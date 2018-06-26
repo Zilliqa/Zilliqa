@@ -61,8 +61,8 @@ public:
                 const boost::multiprecision::uint256_t& amount,
                 const boost::multiprecision::uint256_t& gasPrice,
                 const boost::multiprecision::uint256_t& gasLimit,
-                const std::vector<unsigned char>& code,
-                const std::vector<unsigned char>& data);
+                const std::vector<unsigned char>& code = {},
+                const std::vector<unsigned char>& data = {});
 
     /// Constructor with specified transaction fields.
     Transaction(boost::multiprecision::uint256_t version,
