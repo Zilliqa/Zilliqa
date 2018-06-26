@@ -47,6 +47,7 @@ template<class MAP> class AccountStoreSC : public AccountStoreBase<MAP>
     uint64_t m_curBlockNum;
     Address m_curContractAddr;
     Address m_curSenderAddr;
+    uint256_t m_curAmount;
     uint256_t m_curGasCum;
     uint256_t m_curGasLimit;
     uint256_t m_curGasPrice;
