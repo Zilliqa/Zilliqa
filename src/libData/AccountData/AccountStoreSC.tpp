@@ -223,11 +223,11 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
         m_curContractAddr = toAddr;
 
-        if (!TransferBalanceAtomic(fromAddr, toAddr, amount))
-        {
-            this->IncreaseBalance(fromAddr, gasDeposit);
-            return false;
-        }
+        // if (!TransferBalanceAtomic(fromAddr, toAddr, amount))
+        // {
+        //     this->IncreaseBalance(fromAddr, gasDeposit);
+        //     return false;
+        // }
         if (!SysCommand::ExecuteCmdWithoutOutput(GetCallContractCmdStr()))
         {
             DiscardTransferBalanceAtomic();
@@ -475,12 +475,22 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json)
     if (!_json["message"].isMember("_tag")
         || !_json["message"].isMember("_amount")
         || !_json["message"].isMember("params")
-        || !_json["message"].isMember("_recipient"))
+        || !_json["message"].isMember("_recipient")
+        || !_json["message"].isMember("_accepted"))
     {
         LOG_GENERAL(
             WARNING,
             "The message in the json output of this contract is corrupted");
         return false;
+    }
+
+    if (_json["message"]["_accepted"].asString() == "true")
+    {
+        if (!TransferBalanceAtomic(fromAddr, toAddr, amount))
+        {
+            this->IncreaseBalance(fromAddr, gasDeposit - m_curGasCum * m_curGasPrice);
+            return false;
+        }
     }
 
     for (auto s : _json["states"])
