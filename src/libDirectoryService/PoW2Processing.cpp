@@ -29,6 +29,7 @@
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
 #include "libNetwork/P2PComm.h"
+#include "libNetwork/Whitelist.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
@@ -78,6 +79,16 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
         LOG_GENERAL(WARNING, "We failed to deserialize PubKey.");
         return false;
     }
+
+    if (TEST_NET_MODE
+        && not Whitelist::GetInstance().IsPubkeyInShardWhiteList(key))
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Submitted PoW2 but node is not in shard whitelist. Hence, "
+                  "not accepted!");
+        return false;
+    }
+
     curr_offset += PUB_KEY_SIZE;
 
     // To-do: Reject PoW2 submissions from existing members of DS committee
