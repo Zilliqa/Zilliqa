@@ -43,7 +43,7 @@ Whitelist& Whitelist::GetInstance()
     return whitelistInfo;
 }
 
-void Whitelist::AddToDSWhitelist()
+void Whitelist::UpdateDSWhitelist()
 {
     LOG_MARKER();
 
@@ -53,7 +53,7 @@ void Whitelist::AddToDSWhitelist()
         return;
     }
 
-    ifstream config("whitelist.xml");
+    ifstream config("ds_whitelist.xml");
 
     if (config.fail())
     {
@@ -79,6 +79,42 @@ void Whitelist::AddToDSWhitelist()
                       v.second.get<unsigned int>("port"));
 
             AddToDSWhitelist(peer, key);
+        }
+    }
+    config.close();
+}
+
+void Whitelist::UpdateShardWhitelist()
+{
+    LOG_MARKER();
+
+    if (!TEST_NET_MODE)
+    {
+        LOG_GENERAL(WARNING, "Not in testnet mode. Whitelisting not allowed");
+        return;
+    }
+
+    ifstream config("shard_whitelist.xml");
+
+    if (config.fail())
+    {
+        LOG_GENERAL(WARNING, "No whitelist xml present");
+        return;
+    }
+
+    using boost::property_tree::ptree;
+    ptree pt;
+    read_xml(config, pt);
+
+    lock_guard<mutex> g(m_mutexShardWhiteList);
+    m_ShardWhiteList.clear();
+    BOOST_FOREACH (ptree::value_type const& v, pt.get_child("nodes"))
+    {
+        if (v.first == "peer")
+        {
+            m_ShardWhiteList.emplace_back(PubKey(
+                DataConversion::HexStrToUint8Vec(v.second.get<string>("pubk")),
+                0));
         }
     }
     config.close();

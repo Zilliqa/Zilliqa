@@ -34,14 +34,20 @@ class Whitelist
     Whitelist(Whitelist const&) = delete;
     void operator=(Whitelist const&) = delete;
 
+    // DS whitelist
     std::mutex m_mutexDSWhiteList;
     std::unordered_map<Peer, PubKey> m_DSWhiteList;
-    //std::unordered_map<Peer, PubKey> m_ShardWhiteList;
+
+    // Shard whitelist
+    std::mutex m_mutexShardWhiteList;
+    std::vector<PubKey> m_ShardWhiteList;
 
 public:
     /// Returns the singleton Whitelist instance.
     static Whitelist& GetInstance();
-    void AddToDSWhitelist();
+    void UpdateDSWhitelist();
+    void UpdateShardWhitelist();
+
     void AddToDSWhitelist(Peer whiteListPeer, PubKey whiteListPubKey);
     bool IsNodeInDSWhiteList(Peer nodeNetworkInfo, PubKey nodePubKey);
 };

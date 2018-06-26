@@ -89,7 +89,7 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
     {
     case SyncType::NO_SYNC:
         LOG_GENERAL(INFO, "No Sync Needed");
-        Whitelist::GetInstance().AddToDSWhitelist();
+        Whitelist::GetInstance().UpdateDSWhitelist();
         break;
 #ifndef IS_LOOKUP_NODE
     case SyncType::NEW_SYNC:
