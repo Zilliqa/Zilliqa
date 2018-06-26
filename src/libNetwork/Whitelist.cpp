@@ -47,13 +47,13 @@ void Whitelist::AddToDSWhitelist()
 {
     LOG_MARKER();
 
-    ifstream config("whitelist.xml");
-
     if (!TEST_NET_MODE)
     {
         LOG_GENERAL(WARNING, "Not in testnet mode. Whitelisting not allowed");
         return;
     }
+
+    ifstream config("whitelist.xml");
 
     if (config.fail())
     {
