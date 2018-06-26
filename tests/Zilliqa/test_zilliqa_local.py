@@ -153,6 +153,9 @@ def run_start(numdsnodes):
 	tree = ET.ElementTree(nodes)
 	tree.write("config.xml")
 
+	# Clear the element tree 
+	nodes.clear()
+
 	# whitelist.xml generation
 	keys_file = open(LOCAL_RUN_FOLDER + 'keys.txt', "w")
 	for x in range(0, count):
