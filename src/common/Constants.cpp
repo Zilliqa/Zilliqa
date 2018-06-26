@@ -62,6 +62,7 @@ ReadAccountsFromConstantsFile(std::string propName)
     return result;
 }
 
+const unsigned int MSG_VERSION{ReadFromConstantsFile("MSG_VERSION")};
 const unsigned int DS_MULTICAST_CLUSTER_SIZE{
     ReadFromConstantsFile("DS_MULTICAST_CLUSTER_SIZE")};
 const unsigned int COMM_SIZE{ReadFromConstantsFile("COMM_SIZE")};
@@ -117,6 +118,8 @@ const unsigned int CONTRACT_INVOKE_GAS{
     ReadFromConstantsFile("CONTRACT_INVOKE_GAS")};
 const unsigned int NORMAL_TRAN_GAS{ReadFromConstantsFile("NORMAL_TRAN_GAS")};
 const unsigned int COINBASE_REWARD{ReadFromConstantsFile("COINBASE_REWARD")};
+const unsigned int TXN_SUBMISSION{ReadFromConstantsFile("TXN_SUBMISSION")};
+const unsigned int TXN_BROADCAST{ReadFromConstantsFile("TXN_BROADCAST")};
 const std::vector<std::string> GENESIS_WALLETS{
     ReadAccountsFromConstantsFile("wallet_address")};
 const std::vector<std::string> GENESIS_KEYS{
