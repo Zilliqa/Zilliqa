@@ -196,7 +196,8 @@ void Node::LoadUnavailableMicroBlockHashes(
             auto& hash = finalBlock.GetMicroBlockHashes()[i];
             m_unavailableMicroBlocks[blocknum].insert(
                 {hash,
-                 vector<bool>{!finalBlock.GetIsMicroBlockEmpty()[i], true}});
+                 // vector<bool>{!finalBlock.GetIsMicroBlockEmpty()[i], true}});
+                 vector<bool>{false, true}});
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       hash)
         }
@@ -627,8 +628,8 @@ void Node::BroadcastTransactionsToSendingAssignment(
                                  txns_to_send.at(i).GetTranID().asArray()));
         }
 
-        P2PComm::GetInstance().SendBroadcastMessage(sendingAssignment,
-                                                    forwardtxn_message);
+        // P2PComm::GetInstance().SendBroadcastMessage(sendingAssignment,
+        //                                             forwardtxn_message);
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "DEBUG: I have broadcasted the txn body!")
