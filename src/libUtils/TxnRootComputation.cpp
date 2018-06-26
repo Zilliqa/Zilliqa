@@ -15,82 +15,88 @@
 **/
 
 #include "TxnRootComputation.h"
-#include "depends/libDatabase/MemoryDB.h"
-#include "depends/libTrie/TrieDB.h"
+#include "libCrypto/Sha2.h"
+
+namespace
+{
+    template<typename T, typename R> const R& GetTranID(const T& item);
+
+    inline const TxnHash& GetTranID(const TxnHash& item) { return item; }
+
+    inline const TxnHash& GetTranID(const Transaction& item)
+    {
+        return item.GetTranID();
+    }
+
+    inline const TxnHash&
+    GetTranID(const std::pair<const TxnHash, Transaction>& item)
+    {
+        return item.second.GetTranID();
+    }
+
+    inline const TxnHash& GetTranID(const MicroBlockHashSet& item)
+    {
+        return item.m_txRootHash;
+    }
+
+    inline const StateHash& GetStateID(const MicroBlockHashSet& item)
+    {
+        return item.m_stateDeltaHash;
+    }
+}; // namespace ()
+
+template<typename... Container>
+TxnHash ConcatTranAndHash(const Container&... conts)
+{
+    LOG_MARKER();
+
+    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+
+    (void)std::initializer_list<int>{(
+        [](const auto& list, decltype(sha2)& sha2) {
+            for (auto& item : list)
+            {
+                sha2.Update(GetTranID(item).asBytes());
+            }
+        }(conts, sha2),
+        0)...};
+
+    return TxnHash{sha2.Finalize()};
+}
+
+template<typename... Container>
+TxnHash ConcatStateAndHash(const Container&... conts)
+{
+    LOG_MARKER();
+
+    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+
+    (void)std::initializer_list<int>{(
+        [](const auto& list, decltype(sha2)& sha2) {
+            for (auto& item : list)
+            {
+                sha2.Update(GetStateID(item).asBytes());
+            }
+        }(conts, sha2),
+        0)...};
+
+    return TxnHash{sha2.Finalize()};
+}
 
 TxnHash ComputeTransactionsRoot(const std::vector<TxnHash>& transactionHashes)
 {
     LOG_MARKER();
 
-    dev::MemoryDB tm;
-    dev::GenericTrieDB<dev::MemoryDB> transactionsTrie(&tm);
-    transactionsTrie.init();
-
-    int txnCount = 0;
-    for (auto it = transactionHashes.begin(); it != transactionHashes.end();
-         it++)
-    {
-        std::vector<unsigned char> serializedTxn;
-        serializedTxn.resize(TRAN_HASH_SIZE);
-        copy(it->asArray().begin(), it->asArray().end(), serializedTxn.begin());
-        dev::RLPStream k;
-        k << txnCount;
-        txnCount++;
-        transactionsTrie.insert(&k.out(), serializedTxn);
-    }
-
-    TxnHash txnRoot;
-    std::vector<unsigned char> t = transactionsTrie.root().asBytes();
-    copy(t.begin(), t.end(), txnRoot.asArray().begin());
-
-    return txnRoot;
+    return ConcatTranAndHash(transactionHashes);
 }
 
 TxnHash
 ComputeTransactionsRoot(const std::list<Transaction>& receivedTransactions,
                         const std::list<Transaction>& submittedTransactions)
 {
-    dev::MemoryDB tm;
-    dev::GenericTrieDB<dev::MemoryDB> transactionsTrie(&tm);
-    transactionsTrie.init();
+    LOG_MARKER();
 
-    int txnCount = 0;
-    for (auto it = receivedTransactions.begin();
-         it != receivedTransactions.end(); it++)
-    {
-        std::vector<unsigned char> serializedTxn;
-        serializedTxn.resize(TRAN_HASH_SIZE);
-        copy(it->GetTranID().begin(), it->GetTranID().end(),
-             serializedTxn.begin());
-
-        dev::RLPStream k;
-        k << txnCount;
-        txnCount++;
-
-        transactionsTrie.insert(&k.out(), serializedTxn);
-        // LOG_GENERAL(INFO, "Inserted to trie" << txnCount);
-    }
-    for (auto it = submittedTransactions.begin();
-         it != submittedTransactions.end(); it++)
-    {
-        std::vector<unsigned char> serializedTxn;
-        serializedTxn.resize(TRAN_HASH_SIZE);
-        copy(it->GetTranID().begin(), it->GetTranID().end(),
-             serializedTxn.begin());
-
-        dev::RLPStream k;
-        k << txnCount;
-        txnCount++;
-
-        transactionsTrie.insert(&k.out(), serializedTxn);
-        // LOG_GENERAL(INFO, "Inserted to trie" << txnCount);
-    }
-
-    TxnHash txnRoot;
-    std::vector<unsigned char> t = transactionsTrie.root().asBytes();
-    copy(t.begin(), t.end(), txnRoot.asArray().begin());
-
-    return txnRoot;
+    return ConcatTranAndHash(receivedTransactions, submittedTransactions);
 }
 
 TxnHash ComputeTransactionsRoot(
@@ -99,41 +105,21 @@ TxnHash ComputeTransactionsRoot(
 {
     LOG_MARKER();
 
-    dev::MemoryDB tm;
-    dev::GenericTrieDB<dev::MemoryDB> transactionsTrie(&tm);
-    transactionsTrie.init();
+    return ConcatTranAndHash(receivedTransactions, submittedTransactions);
+}
 
-    int txnCount = 0;
-    for (auto& it : receivedTransactions)
-    {
-        std::vector<unsigned char> serializedTxn;
-        serializedTxn.resize(TRAN_HASH_SIZE);
-        copy(it.first.begin(), it.first.end(), serializedTxn.begin());
+TxnHash
+ComputeTransactionsRoot(const std::vector<MicroBlockHashSet>& microBlockHashes)
+{
+    LOG_MARKER();
 
-        dev::RLPStream k;
-        k << txnCount;
-        txnCount++;
+    return ConcatTranAndHash(microBlockHashes);
+}
 
-        transactionsTrie.insert(&k.out(), serializedTxn);
-        // LOG_GENERAL(INFO, "Inserted to trie" << txnCount);
-    }
-    for (auto& it : submittedTransactions)
-    {
-        std::vector<unsigned char> serializedTxn;
-        serializedTxn.resize(TRAN_HASH_SIZE);
-        copy(it.first.begin(), it.first.end(), serializedTxn.begin());
+StateHash
+ComputeDeltasRoot(const std::vector<MicroBlockHashSet>& microBlockHashes)
+{
+    LOG_MARKER();
 
-        dev::RLPStream k;
-        k << txnCount;
-        txnCount++;
-
-        transactionsTrie.insert(&k.out(), serializedTxn);
-        // LOG_GENERAL(INFO, "Inserted to trie" << txnCount);
-    }
-
-    TxnHash txnRoot;
-    std::vector<unsigned char> t = transactionsTrie.root().asBytes();
-    copy(t.begin(), t.end(), txnRoot.asArray().begin());
-
-    return txnRoot;
+    return ConcatStateAndHash(microBlockHashes);
 }
