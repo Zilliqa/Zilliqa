@@ -115,9 +115,7 @@ void DirectoryService::DetermineNodesToSendDSBlockTo(
             << "\n"
             << "New DSBlock hash is                     = 0x"
             << DataConversion::charArrToHexStr(m_mediator.m_dsBlockRand) << "\n"
-            << "New DS leader (PoW1 winner) IP          = "
-            << winnerpeer.GetPrintableIPAddress() << ":"
-            << winnerpeer.m_listenPortHost);
+            << "New DS leader (PoW1 winner)          = " << winnerpeer);
 
     unsigned int num_DS_clusters = m_mediator.m_DSCommitteeNetworkInfo.size()
         / DS_MULTICAST_CLUSTER_SIZE;
