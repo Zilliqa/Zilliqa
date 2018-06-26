@@ -22,8 +22,8 @@
 #include <unordered_map>
 #include <vector>
 
-#include "libCrypto/Schnorr.h"
 #include "Peer.h"
+#include "libCrypto/Schnorr.h"
 
 class Whitelist
 {
