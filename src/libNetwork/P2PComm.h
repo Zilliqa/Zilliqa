@@ -60,6 +60,9 @@ class P2PComm
                              const std::vector<unsigned char>& message,
                              const std::vector<unsigned char>& message_hash);
 
+    void
+    ClearBroadcastHashAsync(const std::vector<unsigned char>& message_hash);
+
     template<typename Container>
     void SendBroadcastMessageHelper(const Container& peers,
                                     const std::vector<unsigned char>& message);
