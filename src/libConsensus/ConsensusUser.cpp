@@ -23,7 +23,8 @@
 using namespace std;
 
 bool ConsensusUser::ProcessSetLeader(const vector<unsigned char>& message,
-                                     unsigned int offset, const Peer& from)
+                                     unsigned int offset,
+                                     [[gnu::unused]] const Peer& from)
 {
     // Message = 2-byte ID of leader (0 to num nodes - 1)
 
@@ -117,7 +118,8 @@ bool ConsensusUser::ProcessSetLeader(const vector<unsigned char>& message,
 }
 
 bool ConsensusUser::ProcessStartConsensus(const vector<unsigned char>& message,
-                                          unsigned int offset, const Peer& from)
+                                          unsigned int offset,
+                                          [[gnu::unused]] const Peer& from)
 {
     // Message = [message for consensus]
 
@@ -245,8 +247,9 @@ bool ConsensusUser::Execute(const vector<unsigned char>& message,
     return result;
 }
 
-bool ConsensusUser::MyMsgValidatorFunc(const vector<unsigned char>& message,
-                                       vector<unsigned char>& errorMsg)
+bool ConsensusUser::MyMsgValidatorFunc(
+    const vector<unsigned char>& message,
+    [[gnu::unused]] vector<unsigned char>& errorMsg)
 {
     LOG_MARKER();
     LOG_PAYLOAD(INFO, "Message", message, Logger::MAX_BYTES_TO_DISPLAY);

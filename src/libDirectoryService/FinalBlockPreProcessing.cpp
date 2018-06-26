@@ -746,7 +746,8 @@ void DirectoryService::LoadUnavailableMicroBlocks()
 }
 
 bool DirectoryService::FinalBlockValidator(
-    const vector<unsigned char>& finalblock, vector<unsigned char>& errorMsg)
+    const vector<unsigned char>& finalblock,
+    [[gnu::unused]] vector<unsigned char>& errorMsg)
 {
     LOG_MARKER();
 

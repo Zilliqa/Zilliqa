@@ -398,7 +398,8 @@ bool Node::VerifyFinalBlockCoSignature(const TxBlock& txblock)
 }
 
 bool Node::CheckMicroBlockRootHash(
-    const TxBlock& finalBlock, const boost::multiprecision::uint256_t& blocknum)
+    const TxBlock& finalBlock,
+    [[gnu::unused]] const boost::multiprecision::uint256_t& blocknum)
 {
     TxnHash microBlocksHash
         = ComputeTransactionsRoot(finalBlock.GetMicroBlockHashes());
@@ -423,7 +424,7 @@ bool Node::CheckMicroBlockRootHash(
 }
 
 #ifndef IS_LOOKUP_NODE
-bool Node::FindTxnInSubmittedTxnsList(const TxBlock& finalblock,
+bool Node::FindTxnInSubmittedTxnsList([[gnu::unused]] const TxBlock& finalblock,
                                       const uint256_t& blockNum,
                                       uint8_t sharing_mode,
                                       vector<Transaction>& txns_to_send,
@@ -499,7 +500,7 @@ bool Node::FindTxnInSubmittedTxnsList(const TxBlock& finalblock,
     return false;
 }
 
-bool Node::FindTxnInReceivedTxnsList(const TxBlock& finalblock,
+bool Node::FindTxnInReceivedTxnsList([[gnu::unused]] const TxBlock& finalblock,
                                      const uint256_t& blockNum,
                                      uint8_t sharing_mode,
                                      vector<Transaction>& txns_to_send,
@@ -1271,7 +1272,7 @@ void Node::CallActOnFinalBlockBasedOnSenderForwarderAssgn(uint8_t shard_id)
 }
 #endif // IS_LOOKUP_NODE
 
-void Node::LogReceivedFinalBlockDetails(const TxBlock& txblock)
+void Node::LogReceivedFinalBlockDetails([[gnu::unused]] const TxBlock& txblock)
 {
 #ifdef IS_LOOKUP_NODE
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -1350,7 +1351,8 @@ bool Node::CheckStateRoot(const TxBlock& finalBlock)
 // }
 
 bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
-                             unsigned int offset, const Peer& from)
+                             unsigned int offset,
+                             [[gnu::unused]] const Peer& from)
 {
     // Message = [32-byte DS blocknum] [4-byte consensusid] [1-byte shard id]
     //           [Final block] [Tx body sharing setup]
@@ -1760,7 +1762,8 @@ void Node::DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
 }
 
 bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
-                                     unsigned int cur_offset, const Peer& from)
+                                     unsigned int cur_offset,
+                                     [[gnu::unused]] const Peer& from)
 {
     // Message = [block number] [microblocktxhash] [microblockdeltahash] [Transaction] [Transaction] [Transaction] ....
     // Received from other shards
@@ -1857,7 +1860,8 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
 }
 
 bool Node::ProcessForwardStateDelta(const vector<unsigned char>& message,
-                                    unsigned int cur_offset, const Peer& from)
+                                    unsigned int cur_offset,
+                                    [[gnu::unused]] const Peer& from)
 {
     // Message = [block number] [microblockdeltahash] [microblocktxhash] [AccountStateDelta]
     // Received from other shards

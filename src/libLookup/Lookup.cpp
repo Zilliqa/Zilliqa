@@ -407,7 +407,8 @@ vector<Peer> Lookup::GetNodePeers()
 #endif // IS_LOOKUP_NODE
 
 bool Lookup::ProcessEntireShardingStructure(
-    const vector<unsigned char>& message, unsigned int offset, const Peer& from)
+    [[gnu::unused]] const vector<unsigned char>& message,
+    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
 {
     LOG_MARKER();
 
@@ -545,9 +546,9 @@ bool Lookup::ProcessEntireShardingStructure(
     return true;
 }
 
-bool Lookup::ProcessGetSeedPeersFromLookup(const vector<unsigned char>& message,
-                                           unsigned int offset,
-                                           const Peer& from)
+bool Lookup::ProcessGetSeedPeersFromLookup(
+    [[gnu::unused]] const vector<unsigned char>& message,
+    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
 {
     LOG_MARKER();
 
@@ -1088,9 +1089,9 @@ bool Lookup::ProcessGetNetworkId(const vector<unsigned char>& message,
     // #endif // IS_LOOKUP_NODE
 }
 
-bool Lookup::ProcessSetSeedPeersFromLookup(const vector<unsigned char>& message,
-                                           unsigned int offset,
-                                           const Peer& from)
+bool Lookup::ProcessSetSeedPeersFromLookup(
+    [[gnu::unused]] const vector<unsigned char>& message,
+    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
 {
 #ifndef IS_LOOKUP_NODE
     // Message = [Peer info][Peer info]... SEED_PEER_LIST_SIZE times
@@ -1441,7 +1442,8 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
 }
 
 bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
-                                     unsigned int offset, const Peer& from)
+                                     unsigned int offset,
+                                     [[gnu::unused]] const Peer& from)
 {
     bool ret = true;
     // Message = [TRAN_HASH_SIZE txHashStr][Transaction::GetSerializedSize() txbody]
@@ -1539,7 +1541,8 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
 }
 
 bool Lookup::ProcessSetTxBodyFromSeed(const vector<unsigned char>& message,
-                                      unsigned int offset, const Peer& from)
+                                      unsigned int offset,
+                                      [[gnu::unused]] const Peer& from)
 {
     LOG_MARKER();
 
@@ -1703,8 +1706,9 @@ bool Lookup::InitMining()
 }
 #endif // IS_LOOKUP_NODE
 
-bool Lookup::ProcessSetLookupOffline(const vector<unsigned char>& message,
-                                     unsigned int offset, const Peer& from)
+bool Lookup::ProcessSetLookupOffline(
+    [[gnu::unused]] const vector<unsigned char>& message,
+    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
 {
     LOG_MARKER();
 #ifdef IS_LOOKUP_NODE
@@ -1740,8 +1744,9 @@ bool Lookup::ProcessSetLookupOffline(const vector<unsigned char>& message,
     return true;
 }
 
-bool Lookup::ProcessSetLookupOnline(const vector<unsigned char>& message,
-                                    unsigned int offset, const Peer& from)
+bool Lookup::ProcessSetLookupOnline(
+    [[gnu::unused]] const vector<unsigned char>& message,
+    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
 {
     LOG_MARKER();
 #ifdef IS_LOOKUP_NODE
@@ -1778,8 +1783,9 @@ bool Lookup::ProcessSetLookupOnline(const vector<unsigned char>& message,
     return true;
 }
 
-bool Lookup::ProcessGetOfflineLookups(const std::vector<unsigned char>& message,
-                                      unsigned int offset, const Peer& from)
+bool Lookup::ProcessGetOfflineLookups(
+    [[gnu::unused]] const std::vector<unsigned char>& message,
+    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
 {
     LOG_MARKER();
 #ifdef IS_LOOKUP_NODE
@@ -1828,8 +1834,9 @@ bool Lookup::ProcessGetOfflineLookups(const std::vector<unsigned char>& message,
     return true;
 }
 
-bool Lookup::ProcessSetOfflineLookups(const std::vector<unsigned char>& message,
-                                      unsigned int offset, const Peer& from)
+bool Lookup::ProcessSetOfflineLookups(
+    [[gnu::unused]] const std::vector<unsigned char>& message,
+    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
 {
     // Message = [num_offline_lookups][LookupPeer][LookupPeer]... num_offline_lookups times
     LOG_MARKER();
