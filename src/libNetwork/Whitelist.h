@@ -48,6 +48,9 @@ public:
     void UpdateDSWhitelist();
     void UpdateShardWhitelist();
 
-    void AddToDSWhitelist(Peer whiteListPeer, PubKey whiteListPubKey);
-    bool IsNodeInDSWhiteList(Peer nodeNetworkInfo, PubKey nodePubKey);
+    void AddToDSWhitelist(const Peer& whiteListPeer,
+                          const PubKey& whiteListPubKey);
+    bool IsNodeInDSWhiteList(const Peer& nodeNetworkInfo,
+                             const PubKey& nodePubKey);
+    bool IsPubkeyInShardWhiteList(const PubKey& nodePubKey);
 };

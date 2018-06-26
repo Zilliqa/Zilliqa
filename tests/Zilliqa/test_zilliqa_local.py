@@ -156,28 +156,44 @@ def run_start(numdsnodes):
 	# Clear the element tree 
 	nodes.clear()
 
-	# whitelist.xml generation
+	# ds_whitelist.xml generation
 	keys_file = open(LOCAL_RUN_FOLDER + 'keys.txt', "w")
 	for x in range(0, count):
 		keys_file.write(keypairs[x] + '\n')
 		keypair = keypairs[x].split(" ")
-
 		peer = ET.SubElement(nodes, "peer")
 		ET.SubElement(peer, "pubk").text = keypair[0]
 		ET.SubElement(peer, "ip").text = '127.0.0.1'
 		ET.SubElement(peer, "port").text = str(NODE_LISTEN_PORT + x)
 	keys_file.close()
 
-	# Create whitelist.xml with pubkey and IP info of all DS nodes
+	# Create ds_whitelist.xml with pubkey and IP info of all DS nodes
 	tree = ET.ElementTree(nodes)
-	tree.write("whitelist.xml")
+	tree.write("ds_whitelist.xml")
+
+	# clear from ds_whitelist
+	nodes.clear()
+
+	address_nodes = ET.Element("address")
+	# shard_whitelist.xml generation
+	keys_file = open(LOCAL_RUN_FOLDER + 'keys.txt', "w")
+	for x in range(0, count):
+		keys_file.write(keypairs[x] + '\n')
+		keypair = keypairs[x].split(" ")
+		ET.SubElement(address_nodes, "pubk").text = keypair[0]
+	keys_file.close()
+
+	# Create shard_whitelist.xml with pubkey
+	tree = ET.ElementTree(address_nodes)
+	tree.write("shard_whitelist.xml")
 
 	# Launch node Zilliqa process
 	for x in range(0, count):
 		keypair = keypairs[x].split(" ")
 		if (x < numdsnodes):
 			shutil.copyfile('config.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/config.xml')
-			shutil.copyfile('whitelist.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/whitelist.xml')
+			shutil.copyfile('ds_whitelist.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/ds_whitelist.xml')
+			shutil.copyfile('shard_whitelist.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/shard_whitelist.xml')
 			shutil.copyfile('constants_local.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml')
 			os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; echo \"' + keypair[0] + ' ' + keypair[1] + '\" > mykey.txt' + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; $(pwd)/zilliqa ' + keypair[1] + ' ' + keypair[0] + ' ' + '127.0.0.1' +' ' + str(NODE_LISTEN_PORT + x) + ' 1 0 1 > ./error_log_zilliqa 2>&1 &')
 		else:

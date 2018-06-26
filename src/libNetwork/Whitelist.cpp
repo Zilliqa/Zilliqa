@@ -98,7 +98,7 @@ void Whitelist::UpdateShardWhitelist()
 
     if (config.fail())
     {
-        LOG_GENERAL(WARNING, "No whitelist xml present");
+        LOG_GENERAL(WARNING, "No shard_whitelist xml present");
         return;
     }
 
@@ -108,26 +108,27 @@ void Whitelist::UpdateShardWhitelist()
 
     lock_guard<mutex> g(m_mutexShardWhiteList);
     m_ShardWhiteList.clear();
-    BOOST_FOREACH (ptree::value_type const& v, pt.get_child("nodes"))
+
+    BOOST_FOREACH (ptree::value_type const& v, pt.get_child("address"))
     {
-        if (v.first == "peer")
-        {
-            m_ShardWhiteList.emplace_back(PubKey(
-                DataConversion::HexStrToUint8Vec(v.second.get<string>("pubk")),
-                0));
-        }
+        PubKey key(DataConversion::HexStrToUint8Vec(v.second.data()), 0);
+        m_ShardWhiteList.push_back(key);
+        LOG_GENERAL(INFO, "Added " << key);
     }
+
     config.close();
 }
 
-void Whitelist::AddToDSWhitelist(Peer whiteListPeer, PubKey whiteListPubKey)
+void Whitelist::AddToDSWhitelist(const Peer& whiteListPeer,
+                                 const PubKey& whiteListPubKey)
 {
     lock_guard<mutex> g(m_mutexDSWhiteList);
     m_DSWhiteList.insert(make_pair(whiteListPeer, whiteListPubKey));
     LOG_GENERAL(INFO, "Added " << whiteListPeer << " " << whiteListPubKey);
 }
 
-bool Whitelist::IsNodeInDSWhiteList(Peer nodeNetworkInfo, PubKey nodePubKey)
+bool Whitelist::IsNodeInDSWhiteList(const Peer& nodeNetworkInfo,
+                                    const PubKey& nodePubKey)
 {
     lock_guard<mutex> g(m_mutexDSWhiteList);
     if (m_DSWhiteList.find(nodeNetworkInfo) == m_DSWhiteList.end())
@@ -149,4 +150,18 @@ bool Whitelist::IsNodeInDSWhiteList(Peer nodeNetworkInfo, PubKey nodePubKey)
                                             << nodePubKey);
         return false;
     }
+}
+
+bool Whitelist::IsPubkeyInShardWhiteList(const PubKey& nodePubKey)
+{
+    lock_guard<mutex> g(m_mutexShardWhiteList);
+
+    if (std::find(m_ShardWhiteList.begin(), m_ShardWhiteList.end(), nodePubKey)
+        != m_ShardWhiteList.end())
+    {
+        LOG_GENERAL(INFO, "Not inside whitelist " << nodePubKey);
+        return false;
+    }
+
+    return true;
 }
