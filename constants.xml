@@ -1,5 +1,7 @@
+<!-- format guideline: non-tab four-space indentation -->
 <node>
     <constants>
+        <MSG_VERSION>1</MSG_VERSION>
         <DS_MULTICAST_CLUSTER_SIZE>10</DS_MULTICAST_CLUSTER_SIZE>
         <TX_SHARING_CLUSTER_SIZE>10</TX_SHARING_CLUSTER_SIZE>
         <COMM_SIZE>200</COMM_SIZE>
@@ -32,6 +34,8 @@
         <NORMAL_TRAN_GAS>1</NORMAL_TRAN_GAS>
         <WAITING_STATE_FORWARD_IN_SECONDS>5</WAITING_STATE_FORWARD_IN_SECONDS>
         <COINBASE_REWARD>100</COINBASE_REWARD>
+        <TXN_SUBMISSION>30</TXN_SUBMISSION>
+        <TXN_BROADCAST>50</TXN_BROADCAST>
     </constants>
     <smart_contract>
         <SCILLA_PATH></SCILLA_PATH>

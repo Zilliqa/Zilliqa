@@ -38,7 +38,7 @@ using namespace boost::multiprecision;
 
 const unsigned char START_BYTE_NORMAL = 0x11;
 const unsigned char START_BYTE_BROADCAST = 0x22;
-const unsigned int HDR_LEN = 5;
+const unsigned int HDR_LEN = 6;
 const unsigned int HASH_LEN = 32;
 const unsigned int BROADCAST_EXPIRY_SECONDS = 600;
 
@@ -163,14 +163,17 @@ bool P2PComm::SendMessageSocketCore(const Peer& peer,
         }
 
         // Transmission format:
+        // 0x01 ~ 0xFF - version, defined in constant file
         // 0x11 - start byte
         // 0xLL 0xLL 0xLL 0xLL - 4-byte length of message
         // <message>
 
+        // 0x01 ~ 0xFF - version, defined in constant file
         // 0x22 - start byte (broadcast)
         // 0xLL 0xLL 0xLL 0xLL - 4-byte length of hash + message
         // <32-byte hash> <message>
 
+        // 0x01 ~ 0xFF - version, defined in constant file
         // 0x33 - start byte (report)
         // 0x00 0x00 0x00 0x01 - 4-byte length of message
         // 0x00
@@ -179,11 +182,13 @@ bool P2PComm::SendMessageSocketCore(const Peer& peer,
         {
             length += HASH_LEN;
         }
-        unsigned char buf[HDR_LEN]
-            = {start_byte, (unsigned char)((length >> 24) & 0xFF),
-               (unsigned char)((length >> 16) & 0xFF),
-               (unsigned char)((length >> 8) & 0xFF),
-               (unsigned char)(length & 0xFF)};
+
+        unsigned char buf[HDR_LEN] = {(unsigned char)(MSG_VERSION & 0xFF),
+                                      start_byte,
+                                      (unsigned char)((length >> 24) & 0xFF),
+                                      (unsigned char)((length >> 16) & 0xFF),
+                                      (unsigned char)((length >> 8) & 0xFF),
+                                      (unsigned char)(length & 0xFF)};
         uint32_t written_length = 0;
 
         while (written_length != HDR_LEN)
@@ -317,14 +322,17 @@ void P2PComm::HandleAcceptedConnection(
     vector<unsigned char> message;
 
     // Reception format:
+    // 0x01 ~ 0xFF - version, defined in constant file
     // 0x11 - start byte
     // 0xLL 0xLL 0xLL 0xLL - 4-byte length of message
     // <message>
 
+    // 0x01 ~ 0xFF - version, defined in constant file
     // 0x22 - start byte (broadcast)
     // 0xLL 0xLL 0xLL 0xLL - 4-byte length of hash + message
     // <32-byte hash> <message>
 
+    // 0x01 ~ 0xFF - version, defined in constant file
     // 0x33 - start byte (report)
     // 0x00 0x00 0x00 0x01 - 4-byte length of message
     // 0x00
@@ -347,19 +355,31 @@ void P2PComm::HandleAcceptedConnection(
         read_length += n;
     }
 
-    if (!((read_length == HDR_LEN)
-          && ((buf[0] == START_BYTE_NORMAL)
-              || (buf[0] == START_BYTE_BROADCAST))))
+    if (read_length == HDR_LEN)
     {
-        LOG_GENERAL(WARNING, "Header length or type wrong.");
-        return;
+        // If received version doesn't match expected version (defined in constant file), drop this message
+        if (buf[0] != (unsigned char)(MSG_VERSION & 0xFF))
+        {
+            LOG_GENERAL(WARNING,
+                        "Header version wrong, received ["
+                            << buf[0] - 0x00 << "] while expected ["
+                            << MSG_VERSION << "].");
+            return;
+        }
+
+        // If received start byte is not allowed, drop this message
+        if ((buf[1] != START_BYTE_NORMAL) && (buf[1] != START_BYTE_BROADCAST))
+        {
+            LOG_GENERAL(WARNING, "Header length or type wrong.");
+            return;
+        }
     }
 
     uint32_t message_length = 0;
-    message_length = (buf[1] << 24) + (buf[2] << 16) + (buf[3] << 8) + buf[4];
+    message_length = (buf[2] << 24) + (buf[3] << 16) + (buf[4] << 8) + buf[5];
 
     unsigned char hash_buf[HASH_LEN];
-    if (buf[0] == START_BYTE_BROADCAST)
+    if (buf[1] == START_BYTE_BROADCAST)
     {
         read_length = 0;
         while (read_length != HASH_LEN)
