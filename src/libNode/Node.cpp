@@ -896,16 +896,17 @@ void Node::SubmitTransactions()
                 return;
             }
             appendOne(t);
-            txn_sent_count++;
         }
         else
         {
             break;
         }
+        txn_sent_count++;
     }
 
     if (txn_sent_count > 0)
     {
+        LOG_GENERAL(INFO, "Broadcast my txns to other shard members");
         P2PComm::GetInstance().SendMessage(m_myShardMembersNetworkInfo,
                                            m_txMessage);
     }
