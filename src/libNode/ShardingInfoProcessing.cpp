@@ -254,11 +254,23 @@ bool Node::ProcessSharding(const vector<unsigned char>& message,
     DetachedFunction(1, main_func2);
 
     LOG_GENERAL(INFO,
-                "I am going to sleep for " << TXN_BROADCAST << " seconds");
-    this_thread::sleep_for(chrono::seconds(TXN_BROADCAST));
-    LOG_GENERAL(INFO,
-                "I have woken up from the sleep of " << TXN_BROADCAST
-                                                     << " seconds");
+                "I am going to use conditional variable with timeout of  "
+                    << TXN_BROADCAST << " seconds. It is ok to timeout here. ");
+    std::unique_lock<std::mutex> cv_lk(m_MutexCVMicroblockConsensus);
+    if (cv_microblockConsensus.wait_for(cv_lk,
+                                        std::chrono::seconds(TXN_BROADCAST))
+        == std::cv_status::timeout)
+    {
+        LOG_GENERAL(INFO,
+                    "I have woken up from the sleep of " << TXN_BROADCAST
+                                                         << " seconds");
+    }
+    else
+    {
+        LOG_GENERAL(
+            INFO,
+            "I have received announcement message. Time to run consensus.");
+    }
 
     auto main_func3 = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
 
