@@ -38,7 +38,8 @@ TxBlockHeader::TxBlockHeader(
     uint8_t type, uint32_t version, const uint256_t& gasLimit,
     const uint256_t& gasUsed, const BlockHash& prevHash,
     const uint256_t& blockNum, const uint256_t& timestamp,
-    const TxnHash& txRootHash, const StateHash& stateRootHash, uint32_t numTxs,
+    const TxnHash& txRootHash, const StateHash& stateRootHash,
+    const StateHash& deltaRootHash, uint32_t numTxs,
     uint32_t numMicroBlockHashes, const PubKey& minerPubKey,
     const uint256_t& dsBlockNum, const BlockHash& dsBlockHeader)
     : m_type(type)
@@ -48,8 +49,7 @@ TxBlockHeader::TxBlockHeader(
     , m_prevHash(prevHash)
     , m_blockNum(blockNum)
     , m_timestamp(timestamp)
-    , m_txRootHash(txRootHash)
-    , m_stateRootHash(stateRootHash)
+    , m_hash{txRootHash, stateRootHash, deltaRootHash}
     , m_numTxs(numTxs)
     , m_numMicroBlockHashes(numMicroBlockHashes)
     , m_minerPubKey(minerPubKey)
@@ -88,12 +88,7 @@ unsigned int TxBlockHeader::Serialize(vector<unsigned char>& dst,
     curOffset += UINT256_SIZE;
     SetNumber<uint256_t>(dst, curOffset, m_timestamp, UINT256_SIZE);
     curOffset += UINT256_SIZE;
-    copy(m_txRootHash.asArray().begin(), m_txRootHash.asArray().end(),
-         dst.begin() + curOffset);
-    curOffset += TRAN_HASH_SIZE;
-    copy(m_stateRootHash.asArray().begin(), m_stateRootHash.asArray().end(),
-         dst.begin() + curOffset);
-    curOffset += TRAN_HASH_SIZE;
+    curOffset = m_hash.Serialize(dst, curOffset);
     SetNumber<uint32_t>(dst, curOffset, m_numTxs, sizeof(uint32_t));
     curOffset += sizeof(uint32_t);
     SetNumber<uint32_t>(dst, curOffset, m_numMicroBlockHashes,
@@ -131,12 +126,12 @@ int TxBlockHeader::Deserialize(const vector<unsigned char>& src,
         curOffset += UINT256_SIZE;
         m_timestamp = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
         curOffset += UINT256_SIZE;
-        copy(src.begin() + curOffset, src.begin() + curOffset + TRAN_HASH_SIZE,
-             m_txRootHash.asArray().begin());
-        curOffset += TRAN_HASH_SIZE;
-        copy(src.begin() + curOffset, src.begin() + curOffset + TRAN_HASH_SIZE,
-             m_stateRootHash.asArray().begin());
-        curOffset += TRAN_HASH_SIZE;
+        if (m_hash.Deserialize(src, curOffset))
+        {
+            LOG_GENERAL(WARNING, "We failed to extract TxBlockHeader::m_hash.");
+            return -1;
+        }
+        curOffset += m_hash.size();
         m_numTxs = GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
         curOffset += sizeof(uint32_t);
         m_numMicroBlockHashes
@@ -145,7 +140,8 @@ int TxBlockHeader::Deserialize(const vector<unsigned char>& src,
         // m_minerPubKey.Deserialize(src, curOffset);
         if (m_minerPubKey.Deserialize(src, curOffset) != 0)
         {
-            LOG_GENERAL(WARNING, "We failed to init m_minerPubKey.");
+            LOG_GENERAL(WARNING,
+                        "We failed to init TxBlockHeader::m_minerPubKey.");
             return -1;
         }
         curOffset += PUB_KEY_SIZE;
@@ -179,11 +175,19 @@ const uint256_t& TxBlockHeader::GetBlockNum() const { return m_blockNum; }
 
 const uint256_t& TxBlockHeader::GetTimestamp() const { return m_timestamp; }
 
-const TxnHash& TxBlockHeader::GetTxRootHash() const { return m_txRootHash; }
+const TxnHash& TxBlockHeader::GetTxRootHash() const
+{
+    return m_hash.m_txRootHash;
+}
 
 const StateHash& TxBlockHeader::GetStateRootHash() const
 {
-    return m_stateRootHash;
+    return m_hash.m_stateRootHash;
+}
+
+const StateHash& TxBlockHeader::GetDeltaRootHash() const
+{
+    return m_hash.m_deltaRootHash;
 }
 
 const uint32_t& TxBlockHeader::GetNumTxs() const { return m_numTxs; }
@@ -204,126 +208,26 @@ const BlockHash& TxBlockHeader::GetDSBlockHeader() const
 
 bool TxBlockHeader::operator==(const TxBlockHeader& header) const
 {
-    return ((m_type == header.m_type) && (m_version == header.m_version)
-            && (m_gasLimit == header.m_gasLimit)
-            && (m_gasUsed == header.m_gasUsed)
-            && (m_prevHash == header.m_prevHash)
-            && (m_blockNum == header.m_blockNum)
-            && (m_timestamp == header.m_timestamp)
-            && (m_txRootHash == header.m_txRootHash)
-            && (m_stateRootHash == header.m_stateRootHash)
-            && (m_numTxs == header.m_numTxs)
-            && (m_numMicroBlockHashes == header.m_numMicroBlockHashes)
-            && (m_minerPubKey == header.m_minerPubKey)
-            && (m_dsBlockHeader == header.m_dsBlockHeader));
+    return std::tie(m_type, m_version, m_gasLimit, m_gasUsed, m_prevHash,
+                    m_blockNum, m_timestamp, m_hash, m_numTxs,
+                    m_numMicroBlockHashes, m_minerPubKey, m_dsBlockHeader)
+        == std::tie(header.m_type, header.m_version, header.m_gasLimit,
+                    header.m_gasUsed, header.m_prevHash, header.m_blockNum,
+                    header.m_timestamp, header.m_hash, header.m_numTxs,
+                    header.m_numMicroBlockHashes, header.m_minerPubKey,
+                    header.m_dsBlockHeader);
 }
 
 bool TxBlockHeader::operator<(const TxBlockHeader& header) const
 {
-    if (m_type < header.m_type)
-    {
-        return true;
-    }
-    else if (m_type > header.m_type)
-    {
-        return false;
-    }
-    else if (m_version < header.m_version)
-    {
-        return true;
-    }
-    else if (m_version > header.m_version)
-    {
-        return false;
-    }
-    else if (m_gasLimit < header.m_gasLimit)
-    {
-        return true;
-    }
-    else if (m_gasUsed > header.m_gasUsed)
-    {
-        return false;
-    }
-    else if (m_prevHash < header.m_prevHash)
-    {
-        return true;
-    }
-    else if (m_prevHash > header.m_prevHash)
-    {
-        return false;
-    }
-    else if (m_blockNum < header.m_blockNum)
-    {
-        return true;
-    }
-    else if (m_blockNum > header.m_blockNum)
-    {
-        return false;
-    }
-    else if (m_timestamp < header.m_timestamp)
-    {
-        return true;
-    }
-    else if (m_timestamp > header.m_timestamp)
-    {
-        return false;
-    }
-    else if (m_txRootHash < header.m_txRootHash)
-    {
-        return true;
-    }
-    else if (m_txRootHash > header.m_txRootHash)
-    {
-        return false;
-    }
-    else if (m_stateRootHash < header.m_stateRootHash)
-    {
-        return true;
-    }
-    else if (m_stateRootHash > header.m_stateRootHash)
-    {
-        return false;
-    }
-    else if (m_numTxs < header.m_numTxs)
-    {
-        return true;
-    }
-    else if (m_numTxs > header.m_numTxs)
-    {
-        return false;
-    }
-    else if (m_numMicroBlockHashes < header.m_numMicroBlockHashes)
-    {
-        return true;
-    }
-    else if (m_numMicroBlockHashes > header.m_numMicroBlockHashes)
-    {
-        return false;
-    }
-    else if (m_minerPubKey < header.m_minerPubKey)
-    {
-        return true;
-    }
-    else if (m_minerPubKey > header.m_minerPubKey)
-    {
-        return false;
-    }
-    else if (m_dsBlockNum < header.m_dsBlockNum)
-    {
-        return true;
-    }
-    else if (m_dsBlockNum > header.m_dsBlockNum)
-    {
-        return false;
-    }
-    else if (m_dsBlockHeader < header.m_dsBlockHeader)
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+    return std::tie(header.m_type, header.m_version, header.m_gasLimit,
+                    header.m_gasUsed, header.m_prevHash, header.m_blockNum,
+                    header.m_timestamp, header.m_hash, header.m_numTxs,
+                    header.m_numMicroBlockHashes, header.m_minerPubKey,
+                    header.m_dsBlockHeader)
+        > std::tie(m_type, m_version, m_gasLimit, m_gasUsed, m_prevHash,
+                   m_blockNum, m_timestamp, m_hash, m_numTxs,
+                   m_numMicroBlockHashes, m_minerPubKey, m_dsBlockHeader);
 }
 
 bool TxBlockHeader::operator>(const TxBlockHeader& header) const
