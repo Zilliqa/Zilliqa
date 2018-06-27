@@ -91,10 +91,15 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
         return false;
     }
 
+    if (!Whitelist::GetInstance().IsValidIP(peer.m_ipAddress))
+    {
+        LOG_GENERAL(WARNING, "IP not valid");
+        return false;
+    }
+
     curr_offset += PUB_KEY_SIZE;
 
     // To-do: Reject PoW2 submissions from existing members of DS committee
-    //Check if Pubkey belongs to whitelist
     // 8-byte nonce
     uint64_t nonce = Serializable::GetNumber<uint64_t>(message, curr_offset,
                                                        sizeof(uint64_t));
