@@ -999,12 +999,11 @@ void Node::ScheduleTxnSubmission()
     DetachedFunction(1, main_func);
 
     LOG_GENERAL(INFO,
-                "I am going to sleep for " << SUBMIT_TX_WINDOW << " seconds");
-    this_thread::sleep_for(chrono::seconds(SUBMIT_TX_WINDOW));
+                "I am going to sleep for " << TXN_SUBMISSION << " seconds");
+    this_thread::sleep_for(chrono::seconds(TXN_SUBMISSION));
     LOG_GENERAL(INFO,
-                "I have woken up from the sleep of " << SUBMIT_TX_WINDOW
+                "I have woken up from the sleep of " << TXN_SUBMISSION
                                                      << " seconds");
-
     auto main_func2
         = [this]() mutable -> void { SetState(TX_SUBMISSION_BUFFER); };
 
@@ -1015,16 +1014,15 @@ void Node::ScheduleMicroBlockConsensus()
 {
     LOG_GENERAL(INFO,
                 "I am going to use conditional variable with timeout of  "
-                    << SUBMIT_TX_WINDOW_EXTENDED
-                    << " seconds. It is ok to timeout here. ");
+                    << TXN_BROADCAST << " seconds. It is ok to timeout here. ");
     std::unique_lock<std::mutex> cv_lk(m_MutexCVMicroblockConsensus);
-    if (cv_microblockConsensus.wait_for(
-            cv_lk, std::chrono::seconds(SUBMIT_TX_WINDOW_EXTENDED))
+    if (cv_microblockConsensus.wait_for(cv_lk,
+                                        std::chrono::seconds(TXN_BROADCAST))
         == std::cv_status::timeout)
     {
         LOG_GENERAL(INFO,
-                    "I have woken up from the sleep of "
-                        << SUBMIT_TX_WINDOW_EXTENDED << " seconds");
+                    "I have woken up from the sleep of " << TXN_BROADCAST
+                                                         << " seconds");
     }
     else
     {
