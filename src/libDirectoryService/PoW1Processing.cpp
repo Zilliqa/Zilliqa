@@ -78,6 +78,18 @@ bool DirectoryService::VerifyPoW1Submission(
     string winning_mixhash = DataConversion::Uint8VecToHexStr(
         message, curr_offset, BLOCK_HASH_SIZE);
 
+    curr_offset += BLOCK_HASH_SIZE;
+
+    //64-byte signature
+    Signature sign(message, curr_offset);
+
+    if (!Schnorr::GetInstance().Verify(message, 0, curr_offset, sign, key))
+    {
+        LOG_GENERAL(WARNING, "PoW1 submission signature wrong");
+        return false;
+    }
+
+    curr_offset += SIGNATURE_CHALLENGE_SIZE + SIGNATURE_RESPONSE_SIZE;
     // Log all values
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Winner Public_key             = 0x"
@@ -160,6 +172,8 @@ bool DirectoryService::ParseMessageAndVerifyPOW1(
         return true;
     }
 
+    //Check if key belongs to whitelist
+
     uint64_t nonce;
     array<unsigned char, 32> rand1;
     array<unsigned char, 32> rand2;
@@ -232,7 +246,8 @@ bool DirectoryService::ProcessPoW1Submission(
     const vector<unsigned char>& message, unsigned int offset, const Peer& from)
 {
 #ifndef IS_LOOKUP_NODE
-    // Message = [32-byte block number] [4-byte listening port] [33-byte public key] [8-byte nonce] [32-byte resulting hash] [32-byte mixhash]
+    // Message = [32-byte block number] [4-byte listening port] [33-byte public key] [8-byte nonce] [32-byte resulting hash]
+    //[32-byte mixhash] [64-byte Sign]
     LOG_MARKER();
 
     if (m_state == FINALBLOCK_CONSENSUS)
@@ -258,11 +273,13 @@ bool DirectoryService::ProcessPoW1Submission(
         return false;
     }
 
-    if (IsMessageSizeInappropriate(message.size(), offset,
-                                   UINT256_SIZE + sizeof(uint32_t)
-                                       + PUB_KEY_SIZE + sizeof(uint64_t)
-                                       + BLOCK_HASH_SIZE + BLOCK_HASH_SIZE))
+    if (IsMessageSizeInappropriate(
+            message.size(), offset,
+            UINT256_SIZE + sizeof(uint32_t) + PUB_KEY_SIZE + sizeof(uint64_t)
+                + BLOCK_HASH_SIZE + BLOCK_HASH_SIZE + SIGNATURE_CHALLENGE_SIZE
+                + SIGNATURE_RESPONSE_SIZE))
     {
+        LOG_GENERAL(WARNING, "Pow1 message size Inappropriate ");
         return false;
     }
 
