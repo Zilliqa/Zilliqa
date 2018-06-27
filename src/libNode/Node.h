@@ -107,8 +107,6 @@ class Node : public Executable, public Broadcastable
     std::condition_variable cv_microblockConsensus;
     std::mutex m_MutexCVMicroblockConsensusObject;
     std::condition_variable cv_microblockConsensusObject;
-    std::mutex m_MutexCVTxSubmission;
-    std::condition_variable cv_txSubmission;
 
     // Persistence Retriever
     std::shared_ptr<Retriever> m_retriever;
@@ -127,6 +125,8 @@ class Node : public Executable, public Broadcastable
     // Transactions information
     std::mutex m_mutexCreatedTransactions;
     std::list<Transaction> m_createdTransactions;
+
+    vector<unsigned char> m_txMessage;
 
     // prefilled transactions sorted by fromAddress
     std::mutex m_mutexPrefilledTxns;
