@@ -205,14 +205,14 @@ public:
             std::unique_ptr<char[]> payload_string;                            \
             Logger::GetPayloadS(payload, max_bytes_to_display,                 \
                                 payload_string);                               \
-            if (payload.size() > max_bytes_to_display)                         \
+            if ((payload).size() > max_bytes_to_display)                       \
             {                                                                  \
                 LOG(level) << "[TID "                                          \
                            << PAD(Logger::GetPid(), Logger::TID_LEN) << "]["   \
                            << std::put_time(gmtime(&curTime), "%H:%M:%S")      \
                            << "]["                                             \
                            << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN)    \
-                           << "] " << msg << " (Len=" << payload.size()        \
+                           << "] " << msg << " (Len=" << (payload).size()      \
                            << "): " << payload_string.get() << "...";          \
             }                                                                  \
             else                                                               \
@@ -222,7 +222,7 @@ public:
                            << std::put_time(gmtime(&curTime), "%H:%M:%S")      \
                            << "]["                                             \
                            << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN)    \
-                           << "] " << msg << " (Len=" << payload.size()        \
+                           << "] " << msg << " (Len=" << (payload).size()      \
                            << "): " << payload_string.get();                   \
             }                                                                  \
         }                                                                      \
