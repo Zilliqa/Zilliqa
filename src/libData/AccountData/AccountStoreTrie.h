@@ -14,55 +14,37 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#ifndef __SYSCOMMAND_H__
-#define __SYSCOMMAND_H__
+#ifndef __ACCOUNTSTORETRIE_H__
+#define __ACCOUNTSTORETRIE_H__
 
-#include <array>
-#include <cstdlib>
-#include <fstream>
-#include <iostream>
-#include <memory>
-#include <signal.h>
-#include <string>
+#include "AccountStoreSC.h"
+#include "depends/libDatabase/MemoryDB.h"
+#include "depends/libDatabase/OverlayDB.h"
 
-#include "Logger.h"
-
-class SysCommand
+template<class DB, class MAP>
+class AccountStoreTrie : public AccountStoreSC<MAP>
 {
+protected:
+    DB m_db;
+    dev::SpecificTrieDB<dev::GenericTrieDB<DB>, Address> m_state;
+    h256 prevRoot;
+
+    AccountStoreTrie();
+
+    bool UpdateStateTrie(const Address& address, const Account& account);
+
 public:
-    static const bool ExecuteCmdWithoutOutput(std::string cmd)
-    {
-        std::string str;
-        return ExecuteCmdWithOutput(cmd, str);
-    }
+    virtual void Init() override;
 
-    static bool ExecuteCmdWithOutput(std::string cmd, std::string& output)
-    {
-        LOG_MARKER();
+    Account* GetAccount(const Address& address) override;
 
-        std::array<char, 128> buffer;
+    h256 GetStateRootHash() const;
+    bool UpdateStateTrieAll();
+    void RepopulateStateTrie();
 
-        signal(SIGCHLD, SIG_IGN);
-
-        // Log the stderr into stdout as well
-        cmd += " 2>&1 ";
-        std::unique_ptr<FILE, decltype(&pclose)> proc(popen(cmd.c_str(), "r"),
-                                                      pclose);
-        if (!proc)
-        {
-            LOG_GENERAL(WARNING, "popen() failed!");
-            return false;
-        }
-        while (!feof(proc.get()))
-        {
-            if (fgets(buffer.data(), 128, proc.get()) != nullptr)
-            {
-                output += buffer.data();
-            }
-        }
-
-        return true;
-    }
+    void PrintAccountState() override;
 };
 
-#endif // __SYSCOMMAND_H__
+#include "AccountStoreTrie.tpp"
+
+#endif // __ACCOUNTSTORETRIE_H__
