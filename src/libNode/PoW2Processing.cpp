@@ -85,10 +85,22 @@ void Node::SharePoW2WinningResultWithDS(
         = DataConversion::HexStrToUint8Vec(winning_result.result);
     pow2message.insert(pow2message.end(), result_vec.begin(), result_vec.end());
 
+    cur_offset += BLOCK_HASH_SIZE;
+
     vector<unsigned char> mixhash_vec
         = DataConversion::HexStrToUint8Vec(winning_result.mix_hash);
     pow2message.insert(pow2message.end(), mixhash_vec.begin(),
                        mixhash_vec.end());
+
+    cur_offset += BLOCK_HASH_SIZE;
+
+    Signature sign;
+    if (!Schnorr::GetInstance().Sign(pow2message, m_mediator.m_selfKey.first,
+                                     m_mediator.m_selfKey.second, sign))
+    {
+        LOG_GENERAL(WARNING, "Failed to sign PoW2");
+    }
+    sign.Serialize(pow2message, cur_offset);
 
     P2PComm::GetInstance().SendMessage(m_mediator.m_DSCommitteeNetworkInfo,
                                        pow2message);
@@ -128,8 +140,6 @@ bool Node::StartPoW2(uint256_t block_num, uint8_t difficulty,
     StartPoW2MiningAndShareResultWithDS(block_num, difficulty, rand1, rand2);
 
     SetState(TX_SUBMISSION);
-    cv_txSubmission.notify_all();
-
     return true;
 }
 #endif // IS_LOOKUP_NODE

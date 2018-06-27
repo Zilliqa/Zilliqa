@@ -988,7 +988,6 @@ void Node::UpdateStateForNextConsensusRound()
               "MS: Next non-ds epoch begins");
 
     SetState(TX_SUBMISSION);
-    cv_txSubmission.notify_all();
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "[No PoW needed] MS: Start submit txn stage again.");
 }
@@ -1006,10 +1005,8 @@ void Node::ScheduleTxnSubmission()
                 "I have woken up from the sleep of " << SUBMIT_TX_WINDOW
                                                      << " seconds");
 
-    auto main_func2 = [this]() mutable -> void {
-        SetState(TX_SUBMISSION_BUFFER);
-        cv_txSubmission.notify_all();
-    };
+    auto main_func2
+        = [this]() mutable -> void { SetState(TX_SUBMISSION_BUFFER); };
 
     DetachedFunction(1, main_func2);
 }
@@ -1459,6 +1456,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 
     unsigned int cur_offset = offset;
 
+    // Initialize it with 255
     uint8_t shard_id = (uint8_t)-1;
 
     // Reads and checks DS Block number, consensus ID and Shard ID

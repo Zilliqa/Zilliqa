@@ -600,25 +600,33 @@ bool Node::ProcessSubmitTxnSharing(const vector<unsigned char>& message,
 {
     //LOG_MARKER();
 
-    if (IsMessageSizeInappropriate(message.size(), offset,
-                                   Transaction::GetMinSerializedSize()))
+    unsigned int cur_offset = offset;
+
+    while (cur_offset < message.size())
     {
-        return false;
-    }
+        Transaction submittedTransaction;
+        if (submittedTransaction.Deserialize(message, cur_offset) != 0)
+        {
+            LOG_GENERAL(WARNING,
+                        "Deserialize transactions failed, stop at the previous "
+                        "successful one");
+            return false;
+        }
+        cur_offset += submittedTransaction.GetSerializedSize();
 
-    const auto& submittedTransaction = Transaction(message, offset);
+        if (m_mediator.m_validator->CheckCreatedTransaction(
+                submittedTransaction))
+        {
+            boost::multiprecision::uint256_t blockNum
+                = (uint256_t)m_mediator.m_currentEpochNum;
+            lock_guard<mutex> g(m_mutexReceivedTransactions);
+            auto& receivedTransactions = m_receivedTransactions[blockNum];
 
-    if (m_mediator.m_validator->CheckCreatedTransaction(submittedTransaction))
-    {
-        boost::multiprecision::uint256_t blockNum
-            = (uint256_t)m_mediator.m_currentEpochNum;
-        lock_guard<mutex> g(m_mutexReceivedTransactions);
-        auto& receivedTransactions = m_receivedTransactions[blockNum];
-
-        receivedTransactions.insert(
-            make_pair(submittedTransaction.GetTranID(), submittedTransaction));
-        //LOG_EPOCH(to_string(m_mediator.m_currentEpochNum).c_str(),
-        //             "Received txn: " << submittedTransaction.GetTranID())
+            receivedTransactions.insert(make_pair(
+                submittedTransaction.GetTranID(), submittedTransaction));
+            //LOG_EPOCH(to_string(m_mediator.m_currentEpochNum).c_str(),
+            //             "Received txn: " << submittedTransaction.GetTranID())
+        }
     }
 
     return true;
@@ -673,19 +681,6 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
     }
     else if (submitTxnType == SUBMITTRANSACTIONTYPE::TXNSHARING)
     {
-        std::unique_lock<std::mutex> cv_lk(m_MutexCVTxSubmission);
-
-        if (cv_txSubmission.wait_for(
-                cv_lk, std::chrono::seconds(TX_SUBMISSION_TIMEOUT))
-            == std::cv_status::timeout)
-        {
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Time out while waiting for state transition ");
-        }
-
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "State transition is completed. (check for timeout)");
-
         ProcessSubmitTxnSharing(message, cur_offset, from);
     }
 #endif // IS_LOOKUP_NODE
@@ -800,6 +795,15 @@ void Node::SubmitTransactions()
     boost::multiprecision::uint256_t blockNum
         = (uint256_t)m_mediator.m_currentEpochNum;
 
+    unsigned int cur_offset = 0;
+
+    m_txMessage = {MessageType::NODE, NodeInstructionType::SUBMITTRANSACTION};
+    cur_offset += MessageOffset::BODY;
+    Serializable::SetNumber<uint32_t>(m_txMessage, cur_offset,
+                                      SUBMITTRANSACTIONTYPE::TXNSHARING,
+                                      sizeof(uint32_t));
+    cur_offset += sizeof(uint32_t);
+
     // TODO: remove the condition on txn_sent_count -- temporary hack to artificially limit number of
     // txns needed to be shared within shard members so that it completes in the time limit
     while (txn_sent_count < MAXSUBMITTXNPERNODE)
@@ -852,18 +856,12 @@ void Node::SubmitTransactions()
             return true;
         };
 
-        auto submitOne = [this, &blockNum](Transaction& t) {
-            vector<unsigned char> tx_message
-                = {MessageType::NODE, NodeInstructionType::SUBMITTRANSACTION};
-            Serializable::SetNumber<uint32_t>(tx_message, MessageOffset::BODY,
-                                              SUBMITTRANSACTIONTYPE::TXNSHARING,
-                                              sizeof(uint32_t));
-            t.Serialize(tx_message, MessageOffset::BODY + sizeof(uint32_t));
-            P2PComm::GetInstance().SendMessage(m_myShardMembersNetworkInfo,
-                                               tx_message);
+        auto appendOne = [this, &blockNum, &cur_offset](Transaction& t) {
+            t.Serialize(m_txMessage, cur_offset);
+            cur_offset += t.GetSerializedSize();
 
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Sent txn: " << t.GetTranID())
+                      "Append txn: " << t.GetTranID())
 
             lock_guard<mutex> g(m_mutexSubmittedTransactions);
             auto& submittedTransactions = m_submittedTransactions[blockNum];
@@ -876,7 +874,7 @@ void Node::SubmitTransactions()
             {
                 return;
             }
-            submitOne(t);
+            appendOne(t);
         }
         else if (findOneFromPrefilled(t))
         {
@@ -884,10 +882,22 @@ void Node::SubmitTransactions()
             {
                 return;
             }
-            submitOne(t);
-            txn_sent_count++;
+            appendOne(t);
         }
+        else
+        {
+            break;
+        }
+        txn_sent_count++;
     }
+
+    if (txn_sent_count > 0)
+    {
+        LOG_GENERAL(INFO, "Broadcast my txns to other shard members");
+        P2PComm::GetInstance().SendMessage(m_myShardMembersNetworkInfo,
+                                           m_txMessage);
+    }
+
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "added " << txn_sent_count << " to submittedTransactions");
 

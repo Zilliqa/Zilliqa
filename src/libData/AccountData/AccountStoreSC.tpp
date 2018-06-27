@@ -156,7 +156,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         if (!ret)
         {
             this->m_addressToAccount->erase(toAddr);
-            return ret;
+            return true; // Return true because the states already changed
         }
     }
 
@@ -259,7 +259,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         this->IncreaseBalance(fromAddr, gasRefund);
         if (!ret)
         {
-            return ret;
+            return true; // Return true because the states already changed
         }
     }
 
