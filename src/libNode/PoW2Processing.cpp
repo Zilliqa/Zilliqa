@@ -140,8 +140,6 @@ bool Node::StartPoW2(uint256_t block_num, uint8_t difficulty,
     StartPoW2MiningAndShareResultWithDS(block_num, difficulty, rand1, rand2);
 
     SetState(TX_SUBMISSION);
-    cv_txSubmission.notify_all();
-
     return true;
 }
 #endif // IS_LOOKUP_NODE
