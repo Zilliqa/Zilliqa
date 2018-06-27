@@ -248,10 +248,8 @@ bool Node::ProcessSharding(const vector<unsigned char>& message,
                 "I have woken up from the sleep of " << TXN_SUBMISSION
                                                      << " seconds");
 
-    auto main_func2 = [this]() mutable -> void {
-        SetState(TX_SUBMISSION_BUFFER);
-        cv_txSubmission.notify_all();
-    };
+    auto main_func2
+        = [this]() mutable -> void { SetState(TX_SUBMISSION_BUFFER); };
 
     DetachedFunction(1, main_func2);
 
