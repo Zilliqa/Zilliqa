@@ -116,6 +116,7 @@ class Node : public Executable, public Broadcastable
     std::vector<unsigned char> m_consensusBlockHash;
     std::atomic<uint32_t> m_consensusMyID;
     std::shared_ptr<MicroBlock> m_microblock;
+    std::pair<uint64_t, BlockBase> m_lastMicroBlockCoSig;
     std::mutex m_mutexMicroBlock;
 
     const static uint32_t RECVTXNDELAY_MILLISECONDS = 3000;
@@ -141,6 +142,8 @@ class Node : public Executable, public Broadcastable
     std::unordered_map<boost::multiprecision::uint256_t,
                        std::unordered_map<TxnHash, Transaction>>
         m_receivedTransactions;
+
+    uint32_t m_numOfAbsentTxnHashes;
 
     std::mutex m_mutexCommittedTransactions;
     std::unordered_map<boost::multiprecision::uint256_t, std::list<Transaction>>
@@ -207,17 +210,39 @@ class Node : public Executable, public Broadcastable
         const boost::multiprecision::uint256_t& blocknum,
         const vector<Peer>& sendingAssignment, const TxnHash& microBlockTxHash,
         vector<Transaction>& txns_to_send) const;
-    void LoadUnavailableMicroBlockTxRootHashes(
+
+    void BroadcastStateDeltaToSendingAssignment(
+        const boost::multiprecision::uint256_t& blocknum,
+        const vector<Peer>& sendingAssignment,
+        const StateHash& microBlockStateDeltaHash,
+        const TxnHash& microBlockTxHash) const;
+
+    void LoadUnavailableMicroBlockHashes(
         const TxBlock& finalblock,
         const boost::multiprecision::uint256_t& blocknum);
+
+    bool RemoveTxRootHashFromUnavailableMicroBlock(
+        const boost::multiprecision::uint256_t& blocknum,
+        const TxnHash& txnRootHash, const StateHash& stateDeltaHash);
+    bool RemoveStateDeltaHashFromUnavailableMicroBlock(
+        const boost::multiprecision::uint256_t& blocknum,
+        const StateHash& stateDeltaHash, const TxnHash& txnRootHash);
+
     bool
     CheckMicroBlockRootHash(const TxBlock& finalBlock,
                             const boost::multiprecision::uint256_t& blocknum);
     bool IsMicroBlockTxRootHashInFinalBlock(
-        TxnHash microBlockHash,
+        TxnHash microBlockTxRootHash, StateHash microBlockStateDeltaHash,
+        const boost::multiprecision::uint256_t& blocknum,
+        bool& isEveryMicroBlockAvailable);
+    bool IsMicroBlockStateDeltaHashInFinalBlock(
+        StateHash microBlockStateDeltaHash, TxnHash microBlockTxRootHash,
         const boost::multiprecision::uint256_t& blocknum,
         bool& isEveryMicroBlockAvailable);
     bool IsMyShardsMicroBlockTxRootHashInFinalBlock(
+        const boost::multiprecision::uint256_t& blocknum,
+        bool& isEveryMicroBlockAvailable);
+    bool IsMyShardsMicroBlockStateDeltaHashInFinalBlock(
         const boost::multiprecision::uint256_t& blocknum,
         bool& isEveryMicroBlockAvailable);
     bool
@@ -246,11 +271,16 @@ class Node : public Executable, public Broadcastable
         vector<Peer>& forward_list);
     bool LoadForwardedTxnsAndCheckRoot(
         const vector<unsigned char>& message, unsigned int cur_offset,
-        TxnHash& microBlockTxHash, vector<Transaction>& txnsInForwardedMessage);
+        TxnHash& microBlockTxHash, StateHash& microBlockStateDeltaHash,
+        vector<Transaction>& txnsInForwardedMessage);
     // vector<TxnHash> & txnHashesInForwardedMessage);
+    bool LoadForwardedStateDeltaAndCheckRoot(
+        const vector<unsigned char>& message, unsigned int cur_offset,
+        StateHash& microBlockStateDeltaHash, TxnHash& microBlockTxHash);
     void CommitForwardedTransactions(
         const vector<Transaction>& txnsInForwardedMessage,
         const boost::multiprecision::uint256_t& blocknum);
+
     void DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
         const boost::multiprecision::uint256_t& blocknum);
     void LogReceivedFinalBlockDetails(const TxBlock& txblock);
@@ -278,6 +308,8 @@ class Node : public Executable, public Broadcastable
     bool ProcessCreateTransactionFromLookup(
         const std::vector<unsigned char>& message, unsigned int offset,
         const Peer& from);
+    bool ProcessForwardStateDelta(const std::vector<unsigned char>& message,
+                                  unsigned int offset, const Peer& from);
     // bool ProcessCreateAccounts(const std::vector<unsigned char> & message, unsigned int offset, const Peer & from);
     bool ProcessDSBlock(const std::vector<unsigned char>& message,
                         unsigned int offset, const Peer& from);
@@ -297,8 +329,6 @@ class Node : public Executable, public Broadcastable
 #ifndef IS_LOOKUP_NODE
     // Transaction functions
     void SubmitTransactions();
-    bool CheckCreatedTransaction(const Transaction& tx);
-    bool CheckCreatedTransactionFromLookup(const Transaction& tx);
 
     bool OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
                            unsigned int offset, const Peer& from);
@@ -319,10 +349,15 @@ class Node : public Executable, public Broadcastable
     bool CheckMicroBlockTimestamp();
     bool CheckMicroBlockHashes(std::vector<unsigned char>& errorMsg);
     bool CheckMicroBlockTxnRootHash();
+    bool CheckMicroBlockStateDeltaHash();
 
     bool ActOnFinalBlock(uint8_t tx_sharing_mode,
                          vector<Peer> my_shard_receivers,
                          const vector<Peer>& fellowForwarderNodes);
+
+    //Coinbase txns
+    bool Coinbase(const BlockBase& lastMicroBlock, const TxBlock& lastTxBlock);
+    void InitCoinbase();
 
     // Is Running from New Process
     bool m_fromNewProcess = true;
@@ -359,10 +394,19 @@ public:
     std::mutex m_mutexAllMicroBlocksRecvd;
     bool m_allMicroBlocksRecvd = true;
 
+    std::mutex m_mutexTempCommitted;
+    bool m_tempStateDeltaCommitted = true;
+
+    std::condition_variable m_cvNewRoundStarted;
+    std::mutex m_mutexNewRoungStarted;
+    bool m_newRoundStarted = true;
+
+    std::mutex m_mutexIsEveryMicroBlockAvailable;
+
     // Transaction body sharing variables
     std::mutex m_mutexUnavailableMicroBlocks;
     std::unordered_map<boost::multiprecision::uint256_t,
-                       std::unordered_set<TxnHash>>
+                       std::unordered_map<MicroBlockHashSet, std::vector<bool>>>
         m_unavailableMicroBlocks;
 
     uint32_t m_consensusID;

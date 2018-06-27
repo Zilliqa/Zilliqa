@@ -14,55 +14,31 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#ifndef __SYSCOMMAND_H__
-#define __SYSCOMMAND_H__
+#ifndef __SINGLETON_H__
+#define __SINGLETON_H__
 
-#include <array>
-#include <cstdlib>
-#include <fstream>
-#include <iostream>
-#include <memory>
-#include <signal.h>
-#include <string>
-
-#include "Logger.h"
-
-class SysCommand
+template<typename T> class Singleton
 {
+protected:
+    Singleton() noexcept = default;
+
+    Singleton(const Singleton&) = delete;
+
+    Singleton& operator=(const Singleton&) = delete;
+
+    virtual ~Singleton() = default; // to silence base class Singleton<T> has a
+    // non-virtual destructor [-Weffc++]
+
 public:
-    static const bool ExecuteCmdWithoutOutput(std::string cmd)
+    static T& GetInstance() noexcept(std::is_nothrow_constructible<T>::value)
     {
-        std::string str;
-        return ExecuteCmdWithOutput(cmd, str);
-    }
+        // Guaranteed to be destroyed.
+        // Instantiated on first use.
+        // Thread safe in C++11
+        static T instance;
 
-    static bool ExecuteCmdWithOutput(std::string cmd, std::string& output)
-    {
-        LOG_MARKER();
-
-        std::array<char, 128> buffer;
-
-        signal(SIGCHLD, SIG_IGN);
-
-        // Log the stderr into stdout as well
-        cmd += " 2>&1 ";
-        std::unique_ptr<FILE, decltype(&pclose)> proc(popen(cmd.c_str(), "r"),
-                                                      pclose);
-        if (!proc)
-        {
-            LOG_GENERAL(WARNING, "popen() failed!");
-            return false;
-        }
-        while (!feof(proc.get()))
-        {
-            if (fgets(buffer.data(), 128, proc.get()) != nullptr)
-            {
-                output += buffer.data();
-            }
-        }
-
-        return true;
+        return instance;
     }
 };
 
-#endif // __SYSCOMMAND_H__
+#endif // __SINGLETON_H__

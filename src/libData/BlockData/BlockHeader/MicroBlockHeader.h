@@ -20,11 +20,11 @@
 #include <array>
 #include <boost/multiprecision/cpp_int.hpp>
 
+#include "BlockHashSet.h"
 #include "BlockHeaderBase.h"
 #include "common/Constants.h"
 #include "common/Serializable.h"
 #include "libCrypto/Schnorr.h"
-#include "libData/AccountData/Transaction.h"
 
 /// Stores information on the header part of the microblock.
 class MicroBlockHeader : public BlockHeaderBase
@@ -37,7 +37,9 @@ class MicroBlockHeader : public BlockHeaderBase
     boost::multiprecision::uint256_t
         m_blockNum; // Block index, starting from 0 in the genesis block
     boost::multiprecision::uint256_t m_timestamp;
-    TxnHash m_txRootHash; // Tx merkle tree root hash
+    // TxnHash m_txRootHash; // Tx merkle tree root hash
+    // StateHash m_stateDeltaHash; // State Delta merkle tree root hash
+    MicroBlockHashSet m_hash;
     uint32_t m_numTxs; // Total number of txs included in the block
     PubKey m_minerPubKey; // Leader of the committee who proposed this block
     boost::multiprecision::uint256_t
@@ -47,8 +49,8 @@ class MicroBlockHeader : public BlockHeaderBase
 public:
     static const unsigned int SIZE = sizeof(uint8_t) + sizeof(uint32_t)
         + UINT256_SIZE + UINT256_SIZE + BLOCK_HASH_SIZE + UINT256_SIZE
-        + UINT256_SIZE + TRAN_HASH_SIZE + sizeof(uint32_t) + PUB_KEY_SIZE
-        + UINT256_SIZE + BLOCK_HASH_SIZE;
+        + UINT256_SIZE + MicroBlockHashSet::size() + sizeof(uint32_t)
+        + PUB_KEY_SIZE + UINT256_SIZE + BLOCK_HASH_SIZE;
 
     /// Default constructor.
     MicroBlockHeader();
@@ -67,7 +69,8 @@ public:
                      const TxnHash& txRootHash, const uint32_t numTxs,
                      const PubKey& minerPubKey,
                      const boost::multiprecision::uint256_t& dsBlockNum,
-                     const BlockHash& dsBlockHeader);
+                     const BlockHash& dsBlockHeader,
+                     const StateHash& stateDeltaHash);
 
     /// Implements the Serialize function inherited from Serializable.
     unsigned int Serialize(std::vector<unsigned char>& dst,
@@ -89,6 +92,7 @@ public:
     const PubKey& GetMinerPubKey() const;
     const boost::multiprecision::uint256_t& GetDSBlockNum() const;
     const BlockHash& GetDSBlockHeader() const;
+    const StateHash& GetStateDeltaHash() const;
 
     // Operators
     bool operator==(const MicroBlockHeader& header) const;
