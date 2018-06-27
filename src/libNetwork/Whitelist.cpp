@@ -25,6 +25,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 #include <iostream>
+#include <string>
 
 #include "Peer.h"
 #include "libUtils/DataConversion.h"
@@ -165,4 +166,80 @@ bool Whitelist::IsPubkeyInShardWhiteList(const PubKey& nodePubKey)
     }
 
     return true;
+}
+
+bool Whitelist::IsValidIP(const uint128_t& ip_addr)
+{
+    struct sockaddr_in serv_addr;
+    serv_addr.sin_addr.s_addr = ip_addr.convert_to<unsigned long>();
+    uint32_t ip_addr_c = ntohl(serv_addr.sin_addr.s_addr);
+    if (ip_addr <= 0 || ip_addr >= (uint32_t)-1)
+    {
+        LOG_GENERAL(WARNING,
+                    "Invalid IPv4 address " << inet_ntoa(serv_addr.sin_addr));
+        return false;
+    }
+    lock_guard<mutex> g(m_mutexIPexclusion);
+    for (auto& ip_pair : m_IPexclusionRange)
+    {
+        if (ip_pair.first <= ip_addr_c && ip_pair.second >= ip_addr_c)
+        {
+            LOG_GENERAL(WARNING,
+                        "In Exclusion List: " << inet_ntoa(serv_addr.sin_addr));
+            return false;
+        }
+    }
+
+    return true;
+}
+
+void Whitelist::AddToExclusionList(const string& ft, const string& sd)
+{
+
+    struct sockaddr_in serv_addr1, serv_addr2;
+    try
+    {
+        inet_aton(ft.c_str(), &serv_addr1.sin_addr);
+        inet_aton(sd.c_str(), &serv_addr2.sin_addr);
+    }
+    catch (exception& e)
+    {
+        LOG_GENERAL(WARNING, "Error " << e.what());
+        return;
+    }
+
+    AddToExclusionList(serv_addr1.sin_addr.s_addr, serv_addr2.sin_addr.s_addr);
+}
+
+void Whitelist::AddToExclusionList(const uint128_t& ft, const uint128_t& sd)
+{
+    if (ft > (uint32_t)-1 || sd > (uint32_t)-1)
+    {
+        LOG_GENERAL(WARNING, "Wrong parameters for IPv4");
+        return;
+    }
+    uint32_t ft_c = ntohl(ft.convert_to<uint32_t>());
+    uint32_t sd_c = ntohl(sd.convert_to<uint32_t>());
+    lock_guard<mutex> g(m_mutexIPexclusion);
+
+    if (ft_c > sd_c)
+    {
+        m_IPexclusionRange.push_back(make_pair(sd_c, ft_c));
+    }
+    else
+    {
+        m_IPexclusionRange.push_back(make_pair(ft_c, sd_c));
+    }
+}
+
+void Whitelist::Init()
+{
+    UpdateDSWhitelist();
+    if (EXCLUDE_PRIV_IP)
+    {
+        LOG_GENERAL(INFO, "Adding Priv IPs to Exclusion List");
+        AddToExclusionList("172.16.0.0", "172.31.255.255");
+        AddToExclusionList("192.168.0.0", "192.168.255.255");
+        AddToExclusionList("10.0.0.0", "10.255.255.255");
+    }
 }

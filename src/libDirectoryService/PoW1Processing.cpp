@@ -172,7 +172,11 @@ bool DirectoryService::ParseMessageAndVerifyPOW1(
         return true;
     }
 
-    //Check if key belongs to whitelist
+    if (!Whitelist::GetInstance().IsValidIP(peer.m_ipAddress))
+    {
+        LOG_GENERAL(WARNING, "IP not valid");
+        return false;
+    }
 
     uint64_t nonce;
     array<unsigned char, 32> rand1;

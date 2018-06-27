@@ -18,6 +18,7 @@
 * as member of DS committee.
 **/
 
+#include <boost/multiprecision/cpp_int.hpp>
 #include <mutex>
 #include <unordered_map>
 #include <vector>
@@ -42,6 +43,12 @@ class Whitelist
     std::mutex m_mutexShardWhiteList;
     std::vector<PubKey> m_ShardWhiteList;
 
+    //IPFilter
+    std::mutex m_mutexIPexclusion;
+    std::vector<std::pair<boost::multiprecision::uint128_t,
+                          boost::multiprecision::uint128_t>>
+        m_IPexclusionRange;
+
 public:
     /// Returns the singleton Whitelist instance.
     static Whitelist& GetInstance();
@@ -53,4 +60,14 @@ public:
     bool IsNodeInDSWhiteList(const Peer& nodeNetworkInfo,
                              const PubKey& nodePubKey);
     bool IsPubkeyInShardWhiteList(const PubKey& nodePubKey);
+
+    //To check if IP is a valid v4 IP and not belongs to exclusion list
+    bool IsValidIP(const boost::multiprecision::uint128_t& ip_addr);
+
+    //To add limits to the exclusion list
+    void AddToExclusionList(const boost::multiprecision::uint128_t& ft,
+                            const boost::multiprecision::uint128_t& sd);
+    void AddToExclusionList(const std::string& ft, const std::string& sd);
+    //Intialize
+    void Init();
 };
