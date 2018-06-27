@@ -165,6 +165,11 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json)
     string amount_str = _json["amount"].asString();
     uint256_t amount(amount_str);
 
+    string gasPrice_str = _json["gasPrice"].asString();
+    uint256_t gasPrice(gasPrice_str);
+    string gasLimit_str = _json["gasLimit"].asString();
+    uint256_t gasLimit(gasLimit_str);
+
     string pubKey_str = _json["pubKey"].asString();
     vector<unsigned char> pubKey_ser
         = DataConversion::HexStrToUint8Vec(pubKey_str);
@@ -178,7 +183,7 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json)
     code = DataConversion::StringToCharArray(_json["code"].asString());
     data = DataConversion::StringToCharArray(_json["data"].asString());
 
-    Transaction tx1(version, nonce, toAddr, pubKey, amount, 0, 0, code, data,
+    Transaction tx1(version, nonce, toAddr, pubKey, amount, gasPrice, gasLimit, code, data,
                     Signature(sign, 0));
     LOG_GENERAL(INFO, "Tx converted");
 
