@@ -1239,7 +1239,7 @@ bool DirectoryService::ProcessLastDSBlockResponse(
 
     if (TEST_NET_MODE)
     {
-        LOG_GENERAL(INFO, "Updating shard whitelist")
+        LOG_GENERAL(INFO, "Updating shard whitelist");
         Whitelist::GetInstance().UpdateShardWhitelist();
     }
 
