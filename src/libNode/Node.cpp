@@ -790,8 +790,7 @@ void Node::SubmitTransactions()
 {
     //LOG_MARKER();
 
-    unsigned int txn_sent_count = 0;
-
+    unsigned long long txn_sent_count = 0;
     boost::multiprecision::uint256_t blockNum
         = (uint256_t)m_mediator.m_currentEpochNum;
 
