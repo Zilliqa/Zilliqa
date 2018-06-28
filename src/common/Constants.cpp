@@ -39,6 +39,12 @@ unsigned int ReadFromConstantsFile(std::string propertyName)
     return pt.get<unsigned int>("node.constants." + propertyName);
 }
 
+std::string ReadFromOptionsFile(std::string propertyName)
+{
+    auto pt = PTree::GetInstance();
+    return pt.get<std::string>("node.options." + propertyName);
+}
+
 std::string ReadSmartContractConstants(std::string propertyName)
 {
     auto pt = PTree::GetInstance();
@@ -79,8 +85,6 @@ const unsigned int BACKUP_POW2_WINDOW_IN_SECONDS{
     ReadFromConstantsFile("BACKUP_POW2_WINDOW_IN_SECONDS")};
 const unsigned int NEW_NODE_SYNC_INTERVAL{
     ReadFromConstantsFile("NEW_NODE_SYNC_INTERVAL")};
-const unsigned int TX_SUBMISSION_TIMEOUT{
-    ReadFromConstantsFile("TX_SUBMISSION_TIMEOUT")};
 const unsigned int POW_SUBMISSION_TIMEOUT{
     ReadFromConstantsFile("POW_SUBMISSION_TIMEOUT")};
 const unsigned int POW1_DIFFICULTY{ReadFromConstantsFile("POW1_DIFFICULTY")};
@@ -112,6 +116,8 @@ const unsigned int WAITING_STATE_FORWARD_IN_SECONDS{
     ReadFromConstantsFile("WAITING_STATE_FORWARD_IN_SECONDS")};
 const unsigned int N_PREFILLED_PER_ACCOUNT{
     ReadFromConstantsFile("N_PREFILLED_PER_ACCOUNT")};
+const std::string Test_Node_Mode{ReadFromOptionsFile("TEST_NET_MODE")};
+const bool TEST_NET_MODE = (Test_Node_Mode == "true") ? true : false;
 const unsigned int CONTRACT_CREATE_GAS{
     ReadFromConstantsFile("CONTRACT_CREATE_GAS")};
 const unsigned int CONTRACT_INVOKE_GAS{

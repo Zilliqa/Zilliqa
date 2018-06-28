@@ -988,7 +988,6 @@ void Node::UpdateStateForNextConsensusRound()
               "MS: Next non-ds epoch begins");
 
     SetState(TX_SUBMISSION);
-    cv_txSubmission.notify_all();
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "[No PoW needed] MS: Start submit txn stage again.");
 }
@@ -1000,16 +999,13 @@ void Node::ScheduleTxnSubmission()
     DetachedFunction(1, main_func);
 
     LOG_GENERAL(INFO,
-                "I am going to sleep for " << SUBMIT_TX_WINDOW << " seconds");
-    this_thread::sleep_for(chrono::seconds(SUBMIT_TX_WINDOW));
+                "I am going to sleep for " << TXN_SUBMISSION << " seconds");
+    this_thread::sleep_for(chrono::seconds(TXN_SUBMISSION));
     LOG_GENERAL(INFO,
-                "I have woken up from the sleep of " << SUBMIT_TX_WINDOW
+                "I have woken up from the sleep of " << TXN_SUBMISSION
                                                      << " seconds");
-
-    auto main_func2 = [this]() mutable -> void {
-        SetState(TX_SUBMISSION_BUFFER);
-        cv_txSubmission.notify_all();
-    };
+    auto main_func2
+        = [this]() mutable -> void { SetState(TX_SUBMISSION_BUFFER); };
 
     DetachedFunction(1, main_func2);
 }
@@ -1018,16 +1014,15 @@ void Node::ScheduleMicroBlockConsensus()
 {
     LOG_GENERAL(INFO,
                 "I am going to use conditional variable with timeout of  "
-                    << SUBMIT_TX_WINDOW_EXTENDED
-                    << " seconds. It is ok to timeout here. ");
+                    << TXN_BROADCAST << " seconds. It is ok to timeout here. ");
     std::unique_lock<std::mutex> cv_lk(m_MutexCVMicroblockConsensus);
-    if (cv_microblockConsensus.wait_for(
-            cv_lk, std::chrono::seconds(SUBMIT_TX_WINDOW_EXTENDED))
+    if (cv_microblockConsensus.wait_for(cv_lk,
+                                        std::chrono::seconds(TXN_BROADCAST))
         == std::cv_status::timeout)
     {
         LOG_GENERAL(INFO,
-                    "I have woken up from the sleep of "
-                        << SUBMIT_TX_WINDOW_EXTENDED << " seconds");
+                    "I have woken up from the sleep of " << TXN_BROADCAST
+                                                         << " seconds");
     }
     else
     {
@@ -1459,6 +1454,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 
     unsigned int cur_offset = offset;
 
+    // Initialize it with 255
     uint8_t shard_id = (uint8_t)-1;
 
     // Reads and checks DS Block number, consensus ID and Shard ID
