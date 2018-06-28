@@ -98,7 +98,6 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
             "IP address belong to private ip subnet or is a broadcast address");
         return false;
     }
-
     curr_offset += PUB_KEY_SIZE;
 
     // To-do: Reject PoW2 submissions from existing members of DS committee
