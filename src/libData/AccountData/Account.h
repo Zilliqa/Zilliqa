@@ -154,7 +154,8 @@ public:
                                        const Account& newAccount);
 
     static int DeserializeDelta(const vector<unsigned char>& src,
-                                unsigned int& offset, Account& account);
+                                unsigned int& offset, Account& account,
+                                bool isNew);
 };
 
 inline std::ostream& operator<<(std::ostream& out, Account const& account)

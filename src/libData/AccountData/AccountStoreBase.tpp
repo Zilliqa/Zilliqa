@@ -218,6 +218,7 @@ bool AccountStoreBase<MAP>::CalculateGasRefund(const uint256_t& gasDeposit,
         return false;
     }
 
+    LOG_GENERAL(INFO, "gas price to refund: " << gasRefund);
     return true;
 }
 
