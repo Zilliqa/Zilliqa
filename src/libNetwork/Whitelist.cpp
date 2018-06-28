@@ -195,7 +195,6 @@ bool Whitelist::IsValidIP(const uint128_t& ip_addr)
 
 void Whitelist::AddToExclusionList(const string& ft, const string& sd)
 {
-
     struct sockaddr_in serv_addr1, serv_addr2;
     try
     {
