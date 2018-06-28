@@ -47,7 +47,9 @@ class Account : public Serializable
     h256 m_storageRoot, m_prevRoot;
     h256 m_codeHash;
     // The associated code for this account.
+    uint256_t m_createBlockNum = 0;
     Json::Value m_initValJson;
+    vector<unsigned char> m_initData;
     vector<unsigned char> m_codeCache;
 
     const h256 GetKeyHash(const string& key) const;
@@ -71,6 +73,15 @@ public:
 
     /// Parse the Immutable Data at Constract Initialization Stage
     void InitContract(const vector<unsigned char>& data);
+
+    /// Set the block number when this account was created.
+    void SetCreateBlockNum(const uint256_t& blockNum)
+    {
+        m_createBlockNum = blockNum;
+    }
+
+    /// Get the block number when this account was created.
+    const uint256_t& GetCreateBlockNum() const { return m_createBlockNum; }
 
     /// Implements the Serialize function inherited from Serializable.
     unsigned int Serialize(vector<unsigned char>& dst,
@@ -131,6 +142,15 @@ public:
 
     Json::Value GetInitJson() const { return m_initValJson; }
 
+    const vector<unsigned char>& GetInitData() const { return m_initData; }
+
+    void SetInitData(const vector<unsigned char>& initData)
+    {
+        m_initData = initData;
+    }
+
+    void InitContract();
+
     vector<h256> GetStorageKeyHashes() const;
 
     Json::Value GetStorageJson() const;
@@ -154,8 +174,7 @@ public:
                                        const Account& newAccount);
 
     static int DeserializeDelta(const vector<unsigned char>& src,
-                                unsigned int& offset, Account& account,
-                                bool isNew);
+                                unsigned int& offset, Account& account);
 };
 
 inline std::ostream& operator<<(std::ostream& out, Account const& account)

@@ -94,7 +94,7 @@ public:
 
     bool RetrieveFromDisk();
 
-    bool UpdateAccountsTemp(const uint64_t& blockNum,
+    bool UpdateAccountsTemp(const uint256_t& blockNum,
                             const Transaction& transaction);
 
     void AddAccountTemp(const Address& address, const Account& account)

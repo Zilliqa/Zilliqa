@@ -59,8 +59,14 @@ void Account::InitStorage()
 
 void Account::InitContract(const vector<unsigned char>& data)
 {
+    SetInitData(data);
+    InitContract();
+}
+
+void Account::InitContract()
+{
     LOG_MARKER();
-    if (data.empty())
+    if (m_initData.empty())
     {
         LOG_GENERAL(WARNING, "Init data for the contract is empty");
         m_initValJson = Json::arrayValue;
@@ -69,7 +75,7 @@ void Account::InitContract(const vector<unsigned char>& data)
     Json::CharReaderBuilder builder;
     unique_ptr<Json::CharReader> reader(builder.newCharReader());
     Json::Value root;
-    string dataStr(data.begin(), data.end());
+    string dataStr(m_initData.begin(), m_initData.end());
     string errors;
     if (!reader->parse(dataStr.c_str(), dataStr.c_str() + dataStr.size(), &root,
                        &errors))
@@ -139,6 +145,16 @@ unsigned int Account::Serialize(vector<unsigned char>& dst,
         LOG_PAYLOAD(INFO, "code: ", m_codeCache, 2000);
         curOffset += m_codeCache.size();
 
+        // Init Data Size
+        SetNumber<uint256_t>(dst, curOffset, uint256_t(m_initData.size()),
+                             UINT256_SIZE);
+        curOffset += UINT256_SIZE;
+        LOG_GENERAL(INFO, "initData size: " << m_initData.size());
+        // Init Data
+        copy(m_initData.begin(), m_initData.end(), back_inserter(dst));
+        LOG_GENERAL(INFO, "InitData: " << m_initData);
+        curOffset += m_initData.size();
+
         // States
         // Num of Key Hashes
         SetNumber<uint256_t>(dst, curOffset,
@@ -201,7 +217,6 @@ int Account::DeserializeAddOffset(const vector<unsigned char>& src,
         LOG_GENERAL(INFO, "m_codeHash: " << m_codeHash);
         offset += COMMON_HASH_SIZE;
         // Size of Code
-        // FIXME: To fix the casting
         unsigned int codeSize
             = (unsigned int)GetNumber<uint256_t>(src, offset, UINT256_SIZE);
         LOG_GENERAL(INFO, "codeSize: " << codeSize);
@@ -216,6 +231,22 @@ int Account::DeserializeAddOffset(const vector<unsigned char>& src,
             LOG_PAYLOAD(INFO, "code: ", code, 2000);
             offset += codeSize;
             SetCode(code);
+
+            // Init Data Size
+            unsigned int initDataSize
+                = (unsigned int)GetNumber<uint256_t>(src, offset, UINT256_SIZE);
+            offset += UINT256_SIZE;
+            LOG_GENERAL(INFO, "InitData size: " << initDataSize);
+            // Init Data
+            vector<unsigned char> initData;
+            copy(src.begin() + offset, src.begin() + offset + initDataSize,
+                 back_inserter(initData));
+            LOG_GENERAL(INFO, "InitData: " << initData);
+            offset += initDataSize;
+            if (!initData.empty())
+            {
+                InitContract(initData);
+            }
 
             // States
             // Num of Key Hashes
@@ -275,11 +306,8 @@ unsigned int Account::SerializeDelta(vector<unsigned char>& dst,
 
     Account acc(0, 0);
 
-    bool isNew = false;
-
     if (oldAccount == nullptr)
     {
-        isNew = true;
         oldAccount = &acc;
     }
     // unsigned int size_needed = ACCOUNT_SIZE;
@@ -304,6 +332,7 @@ unsigned int Account::SerializeDelta(vector<unsigned char>& dst,
     // Number
     SetNumber<uint256_t>(dst, curOffset, balanceDeltaNum, UINT256_SIZE);
     curOffset += UINT256_SIZE;
+
     // Nonce Delta
     uint256_t nonceDelta = newAccount.GetNonce() - oldAccount->GetNonce();
     LOG_GENERAL(INFO,
@@ -312,42 +341,42 @@ unsigned int Account::SerializeDelta(vector<unsigned char>& dst,
     SetNumber<uint256_t>(dst, curOffset, nonceDelta, UINT256_SIZE);
     LOG_GENERAL(INFO, "Nonce Delta: " << nonceDelta);
     curOffset += UINT256_SIZE;
-    if (isNew)
-    {
-        LOG_GENERAL(INFO, "New account");
-        // Code Size
-        SetNumber<uint256_t>(dst, curOffset,
-                             uint256_t(newAccount.GetCode().size()),
-                             UINT256_SIZE);
-        curOffset += UINT256_SIZE;
-        LOG_GENERAL(INFO, "codeSize: " << newAccount.GetCode().size());
-        // Code
-        copy(newAccount.GetCode().begin(), newAccount.GetCode().end(),
-             back_inserter(dst));
-        curOffset += newAccount.GetCode().size();
 
-        // Init Data Size
-        string initDataStr
-            = JSONUtils::convertJsontoStr(newAccount.GetInitJson());
-        SetNumber<uint256_t>(dst, curOffset, uint256_t(initDataStr.size()),
-                             UINT256_SIZE);
-        curOffset += UINT256_SIZE;
-        LOG_GENERAL(INFO, "initData size: " << initDataStr.size());
-        // Init Data
-        copy(initDataStr.begin(), initDataStr.end(), back_inserter(dst));
-        curOffset += initDataStr.size();
-    }
+    // Code Size
+    SetNumber<uint256_t>(dst, curOffset, uint256_t(newAccount.GetCode().size()),
+                         UINT256_SIZE);
+    curOffset += UINT256_SIZE;
+    LOG_GENERAL(INFO, "codeSize: " << newAccount.GetCode().size());
+    // Code
+    copy(newAccount.GetCode().begin(), newAccount.GetCode().end(),
+         back_inserter(dst));
+    curOffset += newAccount.GetCode().size();
+
+    // Init Data Size
+    SetNumber<uint256_t>(dst, curOffset,
+                         uint256_t(newAccount.GetInitData().size()),
+                         UINT256_SIZE);
+    curOffset += UINT256_SIZE;
+    LOG_GENERAL(INFO, "initData size: " << newAccount.GetInitData().size());
+    // Init Data
+    copy(newAccount.GetInitData().begin(), newAccount.GetInitData().end(),
+         back_inserter(dst));
+    LOG_GENERAL(INFO, "InitData: " << newAccount.GetInitData());
+    curOffset += newAccount.GetInitData().size();
+
     // Storage Root
     copy(newAccount.GetStorageRoot().asArray().begin(),
          newAccount.GetStorageRoot().asArray().begin() + COMMON_HASH_SIZE,
          back_inserter(dst));
-    LOG_GENERAL(INFO, "StorageRoot: " << newAccount.GetStorageRoot());
+    LOG_GENERAL(INFO,
+                "new StorageRoot: " << newAccount.GetStorageRoot()
+                                    << " old StorageRoot: "
+                                    << oldAccount->GetStorageRoot());
     curOffset += COMMON_HASH_SIZE;
     if (newAccount.GetStorageRoot() != oldAccount->GetStorageRoot())
     {
-        LOG_GENERAL(INFO,
-                    "StorageRoot Changed,"
-                        << " old: " << oldAccount->GetStorageRoot());
+        LOG_GENERAL(INFO, "StorageRoot Changed");
+
         // States storage
         // Num of Key Hashes
         SetNumber<uint256_t>(dst, curOffset,
@@ -389,8 +418,7 @@ unsigned int Account::SerializeDelta(vector<unsigned char>& dst,
 }
 
 int Account::DeserializeDelta(const vector<unsigned char>& src,
-                              unsigned int& offset, Account& account,
-                              bool isNew)
+                              unsigned int& offset, Account& account)
 {
     LOG_MARKER();
 
@@ -415,47 +443,58 @@ int Account::DeserializeDelta(const vector<unsigned char>& src,
         LOG_GENERAL(INFO, "nonceDelta: " << nonceDelta);
         account.IncreaseNonceBy(nonceDelta);
         offset += UINT256_SIZE;
-        if (isNew)
+        // Code Size
+        unsigned int codeSize
+            = (unsigned int)GetNumber<uint256_t>(src, offset, UINT256_SIZE);
+        offset += UINT256_SIZE;
+        LOG_GENERAL(INFO, "codeSize: " << codeSize);
+        // Code
+        vector<unsigned char> t_code;
+        copy(src.begin() + offset, src.begin() + offset + codeSize,
+             back_inserter(t_code));
+        offset += codeSize;
+        if (t_code != account.GetCode())
         {
-            // Code Size
-            unsigned int codeSize
-                = (unsigned int)GetNumber<uint256_t>(src, offset, UINT256_SIZE);
-            offset += UINT256_SIZE;
-            LOG_GENERAL(INFO, "codeSize: " << codeSize);
-            // Code
-            vector<unsigned char> t_code;
-            copy(src.begin() + offset, src.begin() + offset + codeSize,
-                 back_inserter(t_code));
-            offset += codeSize;
-            if (codeSize > 0)
-            {
-                account.SetCode(t_code);
-            }
-
-            // Init Data Size
-            unsigned int initDataSize
-                = (unsigned int)GetNumber<uint256_t>(src, offset, UINT256_SIZE);
-            offset += UINT256_SIZE;
-            LOG_GENERAL(INFO, "InitData size: " << initDataSize);
-            // Init Data
-            vector<unsigned char> initData;
-            copy(src.begin() + offset, src.begin() + offset + initDataSize,
-                 back_inserter(initData));
-            offset += initDataSize;
-            if (initDataSize > 0)
-            {
-                account.InitContract(initData);
-            }
+            account.SetCode(t_code);
         }
+
+        // Init Data Size
+        unsigned int initDataSize
+            = (unsigned int)GetNumber<uint256_t>(src, offset, UINT256_SIZE);
+        offset += UINT256_SIZE;
+        LOG_GENERAL(INFO, "InitData size: " << initDataSize);
+        // Init Data
+        vector<unsigned char> initData;
+        copy(src.begin() + offset, src.begin() + offset + initDataSize,
+             back_inserter(initData));
+        LOG_GENERAL(INFO, "InitData: " << initData);
+        offset += initDataSize;
+        bool doInitContract = false;
+        if (!initData.empty() && account.GetInitData().empty())
+        {
+            account.SetInitData(initData);
+            doInitContract = true;
+        }
+
         // Storage Root
         h256 t_storageRoot;
         copy(src.begin() + offset, src.begin() + offset + COMMON_HASH_SIZE,
              t_storageRoot.asArray().begin());
-        LOG_GENERAL(INFO, "t_storageRoot: " << t_storageRoot);
+        // LOG_GENERAL(INFO, "t_storageRoot: " << t_storageRoot);
         offset += COMMON_HASH_SIZE;
+
+        LOG_GENERAL(INFO,
+                    "t_storageRoot: " << t_storageRoot << " old StorageRoot: "
+                                      << account.GetStorageRoot());
 
         if (t_storageRoot != account.GetStorageRoot())
         {
+            LOG_GENERAL(INFO, "StorageRoot Changed");
+            if (doInitContract)
+            {
+                account.InitContract();
+            }
+
             // States storage
             // Num of Key Hashes
             unsigned int numKeyHashes

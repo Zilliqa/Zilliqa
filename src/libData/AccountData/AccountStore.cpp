@@ -181,19 +181,17 @@ int AccountStore::DeserializeDelta(const vector<unsigned char>& src,
 
             // Deserialize accountDelta
             Account* oriAccount = GetAccount(address);
-            bool isNew = false;
             if (oriAccount == nullptr)
             {
                 Account acc(0, 0);
                 LOG_GENERAL(INFO, "Creating new account: " << address);
                 AddAccount(address, acc);
-                isNew = true;
             }
 
             LOG_GENERAL(INFO, "Diff account: " << address);
             oriAccount = GetAccount(address);
             account = *oriAccount;
-            if (Account::DeserializeDelta(src, curOffset, account, isNew) < 0)
+            if (Account::DeserializeDelta(src, curOffset, account) < 0)
             {
                 LOG_GENERAL(
                     WARNING,
@@ -299,7 +297,7 @@ bool AccountStore::RetrieveFromDisk()
     return true;
 }
 
-bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
+bool AccountStore::UpdateAccountsTemp(const uint256_t& blockNum,
                                       const Transaction& transaction)
 {
     LOG_MARKER();
