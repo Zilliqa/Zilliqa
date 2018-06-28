@@ -57,7 +57,7 @@ public:
     TxBlockChain m_txBlockChain;
 
     /// The current epoch.
-    uint64_t m_currentEpochNum = 0;
+    uint256_t m_currentEpochNum = 0;
 
     // DS committee members
     // Fixed-sized double-ended queue depending on size of DS committee at bootstrap

@@ -278,7 +278,8 @@ bool Node::CheckState(Action action)
 {
     if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
     {
-        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(WARNING,
+                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
                   string("I am a DS node.")
                           + string(" Why am I getting this message? Action: ")
                       << ActionString(action));
@@ -292,7 +293,8 @@ bool Node::CheckState(Action action)
 
     if ((action == PROCESS_TXNBODY) || (action >= NUM_ACTIONS))
     {
-        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(WARNING,
+                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
                   "Unrecognized action");
         return false;
     }
@@ -305,7 +307,8 @@ bool Node::CheckState(Action action)
         return false;
     }
 
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING,
+              m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
               "Doing " << ActionString(action) << " but already in "
                        << NodeStateString(m_state));
 
@@ -320,15 +323,15 @@ vector<Peer> Node::GetBroadcastList(unsigned char ins_type,
     // // MessageType::NODE, NodeInstructionType::FORWARDTRANSACTION
     // if (ins_type == NodeInstructionType::FORWARDTRANSACTION)
     // {
-    //     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "Gossip Forward list:");
+    //     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(), "Gossip Forward list:");
 
     //     vector<Peer> peers;
-    //     // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "DS size: " << m_mediator.m_DSCommitteeNetworkInfo.size() << " Shard size: " << m_myShardMembersNetworkInfo.size());
+    //     // LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(), "DS size: " << m_mediator.m_DSCommitteeNetworkInfo.size() << " Shard size: " << m_myShardMembersNetworkInfo.size());
 
     //     if (m_isDSNode)
     //     {
     //         lock_guard<mutex> g(m_mutexFinalBlockProcessing);
-    //         // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "I'm a DS node. DS size: " << m_mediator.m_DSCommitteeNetworkInfo.size() << " rand: " << rand() % m_mediator.m_DSCommitteeNetworkInfo.size());
+    //         // LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(), "I'm a DS node. DS size: " << m_mediator.m_DSCommitteeNetworkInfo.size() << " rand: " << rand() % m_mediator.m_DSCommitteeNetworkInfo.size());
     //         for (unsigned int i = 0; i < m_mediator.m_DSCommitteeNetworkInfo.size(); i++)
     //         {
     //             if (i == m_consensusMyID)
@@ -338,7 +341,7 @@ vector<Peer> Node::GetBroadcastList(unsigned char ins_type,
     //             if (rand() % m_mediator.m_DSCommitteeNetworkInfo.size() <= GOSSIP_RATE)
     //             {
     //                 peers.push_back(m_mediator.m_DSCommitteeNetworkInfo.at(i));
-    //                 LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "DSNode  IP: " << peers.back().GetPrintableIPAddress() << " Port: " << peers.back().m_listenPortHost);
+    //                 LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(), "DSNode  IP: " << peers.back().GetPrintableIPAddress() << " Port: " << peers.back().m_listenPortHost);
 
     //             }
 
@@ -346,7 +349,7 @@ vector<Peer> Node::GetBroadcastList(unsigned char ins_type,
     //     }
     //     else
     //     {
-    //         // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "I'm a shard node. Shard size: " << m_myShardMembersNetworkInfo.size() << " rand: " << rand() % m_myShardMembersNetworkInfo.size());
+    //         // LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(), "I'm a shard node. Shard size: " << m_myShardMembersNetworkInfo.size() << " rand: " << rand() % m_myShardMembersNetworkInfo.size());
     //         lock_guard<mutex> g(m_mutexFinalBlockProcessing);
     //         for (unsigned int i = 0; i < m_myShardMembersNetworkInfo.size(); i++)
     //         {
@@ -357,7 +360,7 @@ vector<Peer> Node::GetBroadcastList(unsigned char ins_type,
     //             if (rand() % m_myShardMembersNetworkInfo.size() <= GOSSIP_RATE)
     //             {
     //                 peers.push_back(m_myShardMembersNetworkInfo.at(i));
-    //                 LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "  IP: " << peers.back().GetPrintableIPAddress() << " Port: " << peers.back().m_listenPortHost);
+    //                 LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(), "  IP: " << peers.back().GetPrintableIPAddress() << " Port: " << peers.back().m_listenPortHost);
 
     //             }
 
@@ -560,7 +563,8 @@ bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
 
     if (msgBlockNum != localBlockNum)
     {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO,
+                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
                   "untimely delivery of "
                       << "missing txns. received: " << msgBlockNum
                       << " , local: " << localBlockNum);
@@ -580,7 +584,8 @@ bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
         auto& receivedTransactions = m_receivedTransactions[msgBlockNum];
         receivedTransactions.insert(
             make_pair(submittedTransaction.GetTranID(), submittedTransaction));
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO,
+                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
                   "Received missing txn: " << submittedTransaction.GetTranID());
         if (m_numOfAbsentTxnHashes > 0)
         {
@@ -624,7 +629,7 @@ bool Node::ProcessSubmitTxnSharing(const vector<unsigned char>& message,
 
             receivedTransactions.insert(make_pair(
                 submittedTransaction.GetTranID(), submittedTransaction));
-            //LOG_EPOCH(to_string(m_mediator.m_currentEpochNum).c_str(),
+            //LOG_EPOCH(m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
             //             "Received txn: " << submittedTransaction.GetTranID())
         }
     }
@@ -652,7 +657,8 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
         {
             LOG_GENERAL(INFO, "Wait for new consensus round started");
             m_cvNewRoundStarted.wait(g, [this] { return m_newRoundStarted; });
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            LOG_EPOCH(INFO,
+                      m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
                       "New consensus round started, moving to "
                       "ProcessSubmitTxnSharing");
         }
@@ -673,7 +679,7 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
         if (m_state != MICROBLOCK_CONSENSUS)
         {
             LOG_EPOCH(
-                INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
                 "Not in a microblock consensus state: don't want missing txns")
         }
 
@@ -704,7 +710,8 @@ bool Node::ProcessCreateTransactionFromLookup(
         {
             LOG_GENERAL(INFO, "Wait for new consensus round started");
             m_cvNewRoundStarted.wait(g, [this] { return m_newRoundStarted; });
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            LOG_EPOCH(INFO,
+                      m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
                       "New consensus round started, moving to "
                       "ProcessSubmitTxnSharing");
         }
@@ -732,7 +739,7 @@ bool Node::ProcessCreateTransactionFromLookup(
 
     lock_guard<mutex> g(m_mutexCreatedTransactions);
 
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
               "Recvd txns: " << tx.GetTranID()
                              << " Signature: " << tx.GetSignature()
                              << " toAddr: " << tx.GetToAddr().hex());
@@ -780,7 +787,7 @@ bool Node::ProcessCreateTransactionFromLookup(
 void Node::SetState(NodeState state)
 {
     m_state = state;
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
               "Node State is now " << m_state << " at epoch "
                                    << m_mediator.m_currentEpochNum);
 }
@@ -860,7 +867,8 @@ void Node::SubmitTransactions()
             t.Serialize(m_txMessage, cur_offset);
             cur_offset += t.GetSerializedSize();
 
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            LOG_EPOCH(INFO,
+                      m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
                       "Append txn: " << t.GetTranID())
 
             lock_guard<mutex> g(m_mutexSubmittedTransactions);
@@ -898,7 +906,7 @@ void Node::SubmitTransactions()
                                            m_txMessage);
     }
 
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
               "added " << txn_sent_count << " to submittedTransactions");
 
     m_mediator.m_validator->CleanVariables();
@@ -1050,7 +1058,8 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
     // If the node failed and waiting for recovery, block the unwanted msg
     if (ToBlockMessage(ins_byte))
     {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO,
+                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
                   "Node not connected to network yet, ignore message");
         return false;
     }
@@ -1065,7 +1074,8 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
     }
     else
     {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO,
+                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
                   "Unknown instruction byte " << hex << (unsigned int)ins_byte);
     }
 

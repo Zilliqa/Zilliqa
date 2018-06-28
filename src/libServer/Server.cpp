@@ -256,7 +256,7 @@ Json::Value Server::GetLatestDsBlock()
     LOG_MARKER();
     DSBlock Latest = m_mediator.m_dsBlockChain.GetLastBlock();
 
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
               "BlockNum " << Latest.GetHeader().GetBlockNum().str()
                           << "  Timestamp:        "
                           << Latest.GetHeader().GetTimestamp().str());
@@ -269,7 +269,7 @@ Json::Value Server::GetLatestTxBlock()
     LOG_MARKER();
     TxBlock Latest = m_mediator.m_txBlockChain.GetLastBlock();
 
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
               "BlockNum " << Latest.GetHeader().GetBlockNum().str()
                           << "  Timestamp:        "
                           << Latest.GetHeader().GetTimestamp().str());
@@ -703,7 +703,7 @@ string Server::GetCurrentMiniEpoch()
 {
     LOG_MARKER();
 
-    return to_string(m_mediator.m_currentEpochNum);
+    return m_mediator.m_currentEpochNum.convert_to<string>();
 }
 
 string Server::GetCurrentDSEpoch()
