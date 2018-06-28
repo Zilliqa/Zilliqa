@@ -218,6 +218,8 @@ PeerManager::PeerManager(const std::pair<PrivKey, PubKey>& key,
                 }
             }
         }
+
+        config.close();
     }
 }
 

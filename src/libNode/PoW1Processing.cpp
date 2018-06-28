@@ -30,6 +30,7 @@
 #include "depends/libTrie/TrieDB.h"
 #include "depends/libTrie/TrieHash.h"
 #include "libConsensus/ConsensusUser.h"
+#include "libCrypto/Schnorr.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
@@ -85,7 +86,7 @@ bool Node::StartPoW1(const uint256_t& block_num, uint8_t difficulty,
 
         // Send PoW1 result
         // Message = [32-byte block number] [4-byte listening port] [33-byte public key]
-        // [8-byte nonce] [32-byte resulting hash] [32-byte mixhash]
+        // [8-byte nonce] [32-byte resulting hash] [32-byte mixhash] [64-byte Signature]
         vector<unsigned char> pow1message
             = {MessageType::DIRECTORY, DSInstructionType::POW1SUBMISSION};
         unsigned int cur_offset = MessageOffset::BODY;
@@ -109,8 +110,19 @@ bool Node::StartPoW1(const uint256_t& block_num, uint8_t difficulty,
 
         pow1message.insert(pow1message.end(), result_vec.begin(),
                            result_vec.end());
+        cur_offset += BLOCK_HASH_SIZE;
         pow1message.insert(pow1message.end(), mixhash_vec.begin(),
                            mixhash_vec.end());
+        cur_offset += BLOCK_HASH_SIZE;
+
+        Signature sign;
+        if (!Schnorr::GetInstance().Sign(pow1message,
+                                         m_mediator.m_selfKey.first,
+                                         m_mediator.m_selfKey.second, sign))
+        {
+            LOG_GENERAL(WARNING, "Failed to sign PoW1");
+        }
+        sign.Serialize(pow1message, cur_offset);
 
         deque<Peer> peerList;
 
