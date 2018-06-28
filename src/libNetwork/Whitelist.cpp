@@ -187,7 +187,7 @@ bool Whitelist::IsValidIP(const uint128_t& ip_addr)
     }
 
     lock_guard<mutex> g(m_mutexIPexclusion);
-    for (auto& ip_pair : m_IPexclusionRange)
+    for (const auto& ip_pair : m_IPexclusionRange)
     {
         if (ip_pair.first <= ip_addr_c && ip_pair.second >= ip_addr_c)
         {
