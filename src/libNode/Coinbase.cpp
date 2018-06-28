@@ -102,7 +102,7 @@ bool Node::Coinbase(const BlockBase& lastMicroBlock, const TxBlock& lastTxBlock)
 void Node::InitCoinbase()
 {
 
-    uint256_t epochModuloNum
+    uint32_t epochModuloNum
         = (m_mediator.m_currentEpochNum + 1) % NUM_FINAL_BLOCK_PER_POW;
     if (epochModuloNum == 1 || epochModuloNum == 0)
     {

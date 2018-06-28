@@ -91,7 +91,7 @@ bool Node::ReadVariablesFromShardingMessage(
         return false;
     }
 
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Committee size = " << comm_size << "\n"
                                   << "Members:");
 
@@ -116,7 +116,7 @@ bool Node::ReadVariablesFromShardingMessage(
         }
 
         LOG_EPOCH(
-            INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+            INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             " PubKey: "
                 << DataConversion::SerializableToHexStr(
                        m_myShardMembersPubKeys.back())
@@ -151,9 +151,8 @@ bool Node::ProcessSharding(const vector<unsigned char>& message,
     // if (m_state != TX_SUBMISSION)
     if (!CheckState(PROCESS_SHARDING))
     {
-        // LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(), "Valid SHARDING already received. Ignoring redundant SHARDING message.");
-        LOG_EPOCH(WARNING,
-                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "Valid SHARDING already received. Ignoring redundant SHARDING message.");
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Not in TX_SUBMISSION state");
         return false;
     }
@@ -166,8 +165,7 @@ bool Node::ProcessSharding(const vector<unsigned char>& message,
     if (m_mediator.m_selfKey.second == m_myShardMembersPubKeys.front())
     {
         m_isPrimary = true;
-        LOG_EPOCH(INFO,
-                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "I am primary of the sharded committee");
 
         LOG_STATE("[IDENT][" << std::setw(15) << std::left
@@ -178,8 +176,7 @@ bool Node::ProcessSharding(const vector<unsigned char>& message,
     {
         m_isPrimary = false;
 
-        LOG_EPOCH(INFO,
-                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "I am backup member of the sharded committee");
 
         LOG_STATE("[SHSTU][" << setw(15) << left

@@ -48,7 +48,7 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock)
     LOG_MARKER();
 
     m_mediator.m_dsBlockChain.AddBlock(dsblock);
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Storing DS Block Number: "
                   << dsblock.GetHeader().GetBlockNum()
                   << " with Nonce: " << dsblock.GetHeader().GetNonce()
@@ -255,8 +255,7 @@ bool Node::ProcessVCBlock(const vector<unsigned char>& message,
     // Check the signature of this VC block
     if (!VerifyVCBlockCoSignature(vcblock))
     {
-        LOG_EPOCH(WARNING,
-                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "VCBlock co-sig verification failed");
         return false;
     }
@@ -267,7 +266,7 @@ bool Node::ProcessVCBlock(const vector<unsigned char>& message,
     // Add to block chain and Store the VC block to disk.
     // StoreVCBlockToDisk(dsblock);
 
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I am a node and my view of leader is successfully changed.");
     return true;
 }

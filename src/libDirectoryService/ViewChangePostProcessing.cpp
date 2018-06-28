@@ -61,14 +61,14 @@ void DirectoryService::DetermineShardsToSendVCBlockTo(
     {
         num_DS_clusters++;
     }
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "DEBUG num of ds clusters " << num_DS_clusters)
     unsigned int shard_groups_count = m_shards.size() / num_DS_clusters;
     if ((m_shards.size() % num_DS_clusters) > 0)
     {
         shard_groups_count++;
     }
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "DEBUG num of shard group count " << shard_groups_count)
 
     my_DS_cluster_num = m_consensusMyID / DS_MULTICAST_CLUSTER_SIZE;
@@ -100,13 +100,11 @@ void DirectoryService::SendVCBlockToShardNodes(
             for (auto& kv : *p)
             {
                 shard_peers.push_back(kv.second);
-                LOG_EPOCH(
-                    INFO,
-                    m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
-                    " PubKey: "
-                        << DataConversion::SerializableToHexStr(kv.first)
-                        << " IP: " << kv.second.GetPrintableIPAddress()
-                        << " Port: " << kv.second.m_listenPortHost);
+                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                          " PubKey: "
+                              << DataConversion::SerializableToHexStr(kv.first)
+                              << " IP: " << kv.second.GetPrintableIPAddress()
+                              << " Port: " << kv.second.m_listenPortHost);
             }
 
             P2PComm::GetInstance().SendBroadcastMessage(shard_peers,
@@ -118,7 +116,7 @@ void DirectoryService::SendVCBlockToShardNodes(
 
 void DirectoryService::ProcessViewChangeConsensusWhenDone()
 {
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "View change consensus is DONE!!!");
 
     m_pendingVCBlock->SetCoSignatures(*m_consensusObject);
@@ -191,15 +189,13 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
     {
         if (newLeaderNetworkInfo == m_mediator.m_selfPeer)
         {
-            LOG_EPOCH(INFO,
-                      m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "After view change, I am the new leader!");
             m_mode = PRIMARY_DS;
         }
         else
         {
-            LOG_EPOCH(INFO,
-                      m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "After view change, I am ds backup");
             m_mode = BACKUP_DS;
         }
@@ -227,8 +223,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
         if (m_consensusMyID == offsetTOustedDSLeader)
         {
             // Now if I am the ousted leader, I will self-assinged myself to the last
-            LOG_EPOCH(INFO,
-                      m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "I was a DS leader but I got ousted by the DS Committee");
             offsetTOustedDSLeader
                 = m_mediator.m_DSCommitteeNetworkInfo.size() - 1;
@@ -246,8 +241,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
     }
     else
     {
-        LOG_EPOCH(WARNING,
-                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "View change completed but it seems wrong to me."
                       << "expectedLeader: " << expectedLeader
                       << "newLeaderNetworkInfo: " << newLeaderNetworkInfo);
@@ -271,8 +265,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
         && m_consensusMyID < nodeToSendToLookUpHi)
     {
         m_mediator.m_lookup->SendMessageToLookupNodes(vcblock_message);
-        LOG_EPOCH(INFO,
-                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "I the part of the subset of DS committee that have sent the "
                   "VCBlock to the lookup nodes");
     }
@@ -310,8 +303,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
         break;
     }
     default:
-        LOG_EPOCH(INFO,
-                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "illegal view change state. state: " << viewChangeState);
     }
 }
@@ -324,34 +316,29 @@ void DirectoryService::ProcessNextConsensus(unsigned char viewChangeState)
     {
     case DSBLOCK_CONSENSUS:
     case DSBLOCK_CONSENSUS_PREP:
-        LOG_EPOCH(INFO,
-                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Re-running dsblock consensus");
         RunConsensusOnDSBlock();
         break;
     case SHARDING_CONSENSUS:
     case SHARDING_CONSENSUS_PREP:
-        LOG_EPOCH(INFO,
-                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Re-running sharding consensus");
         RunConsensusOnSharding();
         break;
     case FINALBLOCK_CONSENSUS:
     case FINALBLOCK_CONSENSUS_PREP:
-        LOG_EPOCH(INFO,
-                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Re-running finalblock consensus");
         RunConsensusOnFinalBlock();
         break;
     case VIEWCHANGE_CONSENSUS:
     case VIEWCHANGE_CONSENSUS_PREP:
-        LOG_EPOCH(INFO,
-                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Re-running view change consensus");
         RunConsensusOnViewChange();
     default:
-        LOG_EPOCH(INFO,
-                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "illegal view change state. state: " << viewChangeState);
     }
 }
@@ -376,15 +363,13 @@ bool DirectoryService::ProcessViewChangeConsensus(
             cv_lk, std::chrono::seconds(CONSENSUS_OBJECT_TIMEOUT),
             [this] { return (m_state == VIEWCHANGE_CONSENSUS); }))
     {
-        LOG_EPOCH(INFO,
-                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Successfully transit to viewchange consensus or I am in the "
                   "correct state.");
     }
     else
     {
-        LOG_EPOCH(WARNING,
-                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Time out while waiting for state transition to view change "
                   "consensus and "
                   "consensus object creation. Most likely view change didn't "
@@ -395,14 +380,14 @@ bool DirectoryService::ProcessViewChangeConsensus(
     if (!CheckState(PROCESS_VIEWCHANGECONSENSUS))
     {
         LOG_EPOCH(
-            WARNING, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+            WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
             "Ignoring consensus message. Not at viewchange consensus state.");
         return false;
     }
 
     bool result = m_consensusObject->ProcessMessage(message, offset, from);
     ConsensusCommon::State state = m_consensusObject->GetState();
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Consensus state = " << state);
 
     if (state == ConsensusCommon::State::DONE)
@@ -410,14 +395,13 @@ bool DirectoryService::ProcessViewChangeConsensus(
         // VC TODO
         cv_ViewChangeVCBlock.notify_all();
         ProcessViewChangeConsensusWhenDone();
-        LOG_EPOCH(INFO,
-                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "View change consensus is DONE!!!");
     }
     else if (state == ConsensusCommon::State::ERROR)
     {
         LOG_EPOCH(
-            WARNING, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+            WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
             "Oops, no consensus reached. Will attempt to do view change again");
 
         // throw exception();

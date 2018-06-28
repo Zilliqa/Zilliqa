@@ -125,7 +125,7 @@ int AccountStoreBase<MAP>::Deserialize(const vector<unsigned char>& src,
 }
 
 template<class MAP>
-bool AccountStoreBase<MAP>::UpdateAccounts(const uint256_t& blockNum,
+bool AccountStoreBase<MAP>::UpdateAccounts(const uint64_t& blockNum,
                                            const Transaction& transaction)
 {
     const PubKey& senderPubKey = transaction.GetSenderPubKey();

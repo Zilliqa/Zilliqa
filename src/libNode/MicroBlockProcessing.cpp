@@ -98,8 +98,7 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
     if ((m_state == TX_SUBMISSION) || (m_state == TX_SUBMISSION_BUFFER)
         || (m_state == MICROBLOCK_CONSENSUS_PREP))
     {
-        LOG_EPOCH(INFO,
-                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Received microblock announcement from shard leader. I "
                   "will move on to consensus");
         cv_microblockConsensus.notify_all();
@@ -110,22 +109,19 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
                 cv_lk, std::chrono::seconds(CONSENSUS_OBJECT_TIMEOUT),
                 [this] { return (m_state == MICROBLOCK_CONSENSUS); }))
         {
-            LOG_EPOCH(INFO,
-                      m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Time out while waiting for state transition and "
                       "consensus object creation ");
         }
 
-        LOG_EPOCH(INFO,
-                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "State transition is completed and consensus object "
                   "creation. (check for timeout)");
     }
     // else if (m_state != MICROBLOCK_CONSENSUS)
     if (!CheckState(PROCESS_MICROBLOCKCONSENSUS))
     {
-        LOG_EPOCH(INFO,
-                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Not in MICROBLOCK_CONSENSUS state");
         return false;
     }
@@ -152,8 +148,7 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
 
         if (m_isMBSender == true)
         {
-            LOG_EPOCH(INFO,
-                      m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "I am designated as Microblock sender");
 
             // Update the micro block with the co-signature from the consensus
@@ -164,17 +159,16 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
         }
 
         SetState(WAITING_FINALBLOCK);
-        LOG_EPOCH(
-            INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
-            "Micro block consensus "
-                << "is DONE!!! (Epoch " << m_mediator.m_currentEpochNum << ")");
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Micro block consensus "
+                      << "is DONE!!! (Epoch " << m_mediator.m_currentEpochNum
+                      << ")");
         m_lastMicroBlockCoSig.first = m_mediator.m_currentEpochNum;
         m_lastMicroBlockCoSig.second.SetCoSignatures(*m_consensusObject);
     }
     else if (state == ConsensusCommon::State::ERROR)
     {
-        LOG_EPOCH(WARNING,
-                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Oops, no consensus reached - what to do now???");
 
         // return false;
@@ -182,15 +176,13 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
         LOG_GENERAL(WARNING,
                     "ConsensusCommon::State::ERROR here, but we move on.");
         SetState(WAITING_FINALBLOCK); // Move on to next Epoch.
-        LOG_EPOCH(INFO,
-                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "If I received a new Finalblock from DS committee. I will "
                   "still process it");
     }
     else
     {
-        LOG_EPOCH(INFO,
-                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Consensus state = " << state);
     }
 
@@ -261,7 +253,7 @@ bool Node::ComposeMicroBlock()
             index++;
         }
     }
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Creating new micro block.")
     m_microblock.reset(new MicroBlock(
         MicroBlockHeader(type, version, gasLimit, gasUsed, prevHash, blockNum,
@@ -269,7 +261,7 @@ bool Node::ComposeMicroBlock()
                          dsBlockHeader, stateDeltaHash),
         tranHashes, CoSignatures()));
 
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Micro block proposed with "
                   << m_microblock->GetHeader().GetNumTxs()
                   << " transactions for epoch "
@@ -374,13 +366,13 @@ bool Node::OnCommitFailure(
 
     // }
 
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Going to sleep before restarting consensus");
 
     std::this_thread::sleep_for(30s);
     RunConsensusOnMicroBlockWhenShardLeader();
 
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Woke from sleep after consensus restart");
 
     return true;
@@ -390,7 +382,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
 {
     LOG_MARKER();
 
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I am primary. Creating microblock for epoch"
                   << m_mediator.m_currentEpochNum);
 
@@ -403,12 +395,12 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
     //m_consensusID = 0;
     m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "MS: I am shard leader");
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "MS: m_consensusID: " << m_consensusID
                                     << " m_consensusMyID: " << m_consensusMyID);
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "MS: m_consensusLeaderID: " << m_consensusLeaderID);
 
     auto nodeMissingTxnsFunc
@@ -430,8 +422,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
 
     if (m_consensusObject == nullptr)
     {
-        LOG_EPOCH(WARNING,
-                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Unable to create consensus object");
         return false;
     }
@@ -452,7 +443,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup()
     LOG_MARKER();
 
     LOG_EPOCH(
-        INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
         "I am a backup node. Waiting for microblock announcement for epoch "
             << m_mediator.m_currentEpochNum);
     //m_consensusID = 0;
@@ -463,12 +454,12 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup()
         return MicroBlockValidator(message, errorMsg);
     };
 
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "MS: I am shard backup");
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "MS: m_consensusID: " << m_consensusID
                                     << " m_consensusMyID: " << m_consensusMyID);
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "MS: m_consensusLeaderID: " << m_consensusLeaderID);
 
     m_consensusObject.reset(new ConsensusBackup(
@@ -480,8 +471,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup()
 
     if (m_consensusObject == nullptr)
     {
-        LOG_EPOCH(WARNING,
-                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Unable to create consensus object");
         return false;
     }
@@ -506,8 +496,7 @@ bool Node::RunConsensusOnMicroBlock()
     {
         if (!RunConsensusOnMicroBlockWhenShardLeader())
         {
-            LOG_EPOCH(WARNING,
-                      m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Error at RunConsensusOnMicroBlockWhenShardLeader");
             // throw exception();
             return false;
@@ -517,8 +506,7 @@ bool Node::RunConsensusOnMicroBlock()
     {
         if (!RunConsensusOnMicroBlockWhenShardBackup())
         {
-            LOG_EPOCH(WARNING,
-                      m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Error at RunConsensusOnMicroBlockWhenShardBackup");
             // throw exception();
             return false;
@@ -615,8 +603,7 @@ bool Node::CheckLegitimacyOfTxnHashes(vector<unsigned char>& errorMsg)
         // Check if transaction is part of received Tx list
         if (receivedTransactions.find(hash) == receivedTransactions.end())
         {
-            LOG_EPOCH(INFO,
-                      m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Missing txn: " << hash)
             if (errorMsg.size() == 0)
             {

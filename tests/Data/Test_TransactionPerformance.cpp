@@ -167,7 +167,7 @@ decltype(auto) GenWithDummyValue(const KeyPair& sender, const KeyPair& receiver,
         Transaction txn(version, nonce, toAddr, sender, amount, gasPrice,
                         gasLimit, {}, {});
 
-        // LOG_MESSAGE2(m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        // LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
         // "Created txns: " << txn.GetTranID())
         // LOG_MESSAGE(txn.GetSerializedSize());
 
