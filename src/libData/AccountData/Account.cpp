@@ -22,6 +22,7 @@
 #include "libCrypto/Sha2.h"
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/JsonUtils.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SafeMath.h"
 
@@ -58,8 +59,10 @@ void Account::InitStorage()
 
 void Account::InitContract(const vector<unsigned char>& data)
 {
+    LOG_MARKER();
     if (data.empty())
     {
+        LOG_GENERAL(WARNING, "Init data for the contract is empty");
         m_initValJson = Json::arrayValue;
         return;
     }
@@ -272,9 +275,11 @@ unsigned int Account::SerializeDelta(vector<unsigned char>& dst,
 
     Account acc(0, 0);
 
+    bool isNew = false;
+
     if (oldAccount == nullptr)
     {
-
+        isNew = true;
         oldAccount = &acc;
     }
     // unsigned int size_needed = ACCOUNT_SIZE;
@@ -307,6 +312,31 @@ unsigned int Account::SerializeDelta(vector<unsigned char>& dst,
     SetNumber<uint256_t>(dst, curOffset, nonceDelta, UINT256_SIZE);
     LOG_GENERAL(INFO, "Nonce Delta: " << nonceDelta);
     curOffset += UINT256_SIZE;
+    if (isNew)
+    {
+        LOG_GENERAL(INFO, "New account");
+        // Code Size
+        SetNumber<uint256_t>(dst, curOffset,
+                             uint256_t(newAccount.GetCode().size()),
+                             UINT256_SIZE);
+        curOffset += UINT256_SIZE;
+        LOG_GENERAL(INFO, "codeSize: " << newAccount.GetCode().size());
+        // Code
+        copy(newAccount.GetCode().begin(), newAccount.GetCode().end(),
+             back_inserter(dst));
+        curOffset += newAccount.GetCode().size();
+
+        // Init Data Size
+        string initDataStr
+            = JSONUtils::convertJsontoStr(newAccount.GetInitJson());
+        SetNumber<uint256_t>(dst, curOffset, uint256_t(initDataStr.size()),
+                             UINT256_SIZE);
+        curOffset += UINT256_SIZE;
+        LOG_GENERAL(INFO, "initData size: " << initDataStr.size());
+        // Init Data
+        copy(initDataStr.begin(), initDataStr.end(), back_inserter(dst));
+        curOffset += initDataStr.size();
+    }
     // Storage Root
     copy(newAccount.GetStorageRoot().asArray().begin(),
          newAccount.GetStorageRoot().asArray().begin() + COMMON_HASH_SIZE,
@@ -359,7 +389,8 @@ unsigned int Account::SerializeDelta(vector<unsigned char>& dst,
 }
 
 int Account::DeserializeDelta(const vector<unsigned char>& src,
-                              unsigned int& offset, Account& account)
+                              unsigned int& offset, Account& account,
+                              bool isNew)
 {
     LOG_MARKER();
 
@@ -384,6 +415,38 @@ int Account::DeserializeDelta(const vector<unsigned char>& src,
         LOG_GENERAL(INFO, "nonceDelta: " << nonceDelta);
         account.IncreaseNonceBy(nonceDelta);
         offset += UINT256_SIZE;
+        if (isNew)
+        {
+            // Code Size
+            unsigned int codeSize
+                = (unsigned int)GetNumber<uint256_t>(src, offset, UINT256_SIZE);
+            offset += UINT256_SIZE;
+            LOG_GENERAL(INFO, "codeSize: " << codeSize);
+            // Code
+            vector<unsigned char> t_code;
+            copy(src.begin() + offset, src.begin() + offset + codeSize,
+                 back_inserter(t_code));
+            offset += codeSize;
+            if (codeSize > 0)
+            {
+                account.SetCode(t_code);
+            }
+
+            // Init Data Size
+            unsigned int initDataSize
+                = (unsigned int)GetNumber<uint256_t>(src, offset, UINT256_SIZE);
+            offset += UINT256_SIZE;
+            LOG_GENERAL(INFO, "InitData size: " << initDataSize);
+            // Init Data
+            vector<unsigned char> initData;
+            copy(src.begin() + offset, src.begin() + offset + initDataSize,
+                 back_inserter(initData));
+            offset += initDataSize;
+            if (initDataSize > 0)
+            {
+                account.InitContract(initData);
+            }
+        }
         // Storage Root
         h256 t_storageRoot;
         copy(src.begin() + offset, src.begin() + offset + COMMON_HASH_SIZE,
@@ -398,6 +461,7 @@ int Account::DeserializeDelta(const vector<unsigned char>& src,
             unsigned int numKeyHashes
                 = (unsigned int)GetNumber<uint256_t>(src, offset, UINT256_SIZE);
             offset += UINT256_SIZE;
+            LOG_GENERAL(INFO, "numKeyHashes:" << numKeyHashes);
 
             for (unsigned int i = 0; i < numKeyHashes; i++)
             {
@@ -407,19 +471,25 @@ int Account::DeserializeDelta(const vector<unsigned char>& src,
                      src.begin() + offset + COMMON_HASH_SIZE,
                      keyHash.asArray().begin());
                 offset += COMMON_HASH_SIZE;
+                LOG_GENERAL(INFO, "keyHash: " << keyHash);
 
                 // RLP
                 // RLP size
                 unsigned int rlpSize = (unsigned int)GetNumber<uint256_t>(
                     src, offset, UINT256_SIZE);
                 offset += UINT256_SIZE;
+                LOG_GENERAL(INFO, "rlpSize: " << rlpSize);
 
                 // RLP string
                 string rlpStr;
                 copy(src.begin() + offset, src.begin() + offset + rlpSize,
                      back_inserter(rlpStr));
-
                 offset += rlpSize;
+                LOG_GENERAL(
+                    INFO,
+                    "RLP: " << rlpStr.substr(
+                                   0, 50 > rlpStr.size() ? rlpStr.size() : 50)
+                            << " ... ");
                 account.SetStorage(keyHash, rlpStr);
             }
 
@@ -428,6 +498,10 @@ int Account::DeserializeDelta(const vector<unsigned char>& src,
                 LOG_GENERAL(
                     WARNING,
                     "ERROR: StorageRoots doesn't match! Investigate why!");
+                LOG_GENERAL(INFO, "t_storageRoot: " << t_storageRoot);
+                LOG_GENERAL(
+                    INFO,
+                    "account.GetStorageRoot: " << account.GetStorageRoot());
                 return -1;
             }
         }
@@ -510,6 +584,8 @@ void Account::SetStorage(const h256& k_hash, const string& rlpStr)
 {
     if (!isContract())
     {
+        LOG_GENERAL(WARNING,
+                    "Not contract account, why call Account::SetStorage!");
         return;
     }
     m_storage.insert(k_hash, rlpStr);
@@ -520,6 +596,8 @@ vector<string> Account::GetStorage(const string& _k) const
 {
     if (!isContract())
     {
+        LOG_GENERAL(WARNING,
+                    "Not contract account, why call Account::GetStorage!");
         return {};
     }
 
@@ -532,6 +610,8 @@ string Account::GetRawStorage(const h256& k_hash) const
 {
     if (!isContract())
     {
+        LOG_GENERAL(WARNING,
+                    "Not contract account, why call Account::GetRawStorage!");
         return "";
     }
     return m_storage.at(k_hash);
@@ -551,6 +631,8 @@ Json::Value Account::GetStorageJson() const
 {
     if (!isContract())
     {
+        LOG_GENERAL(WARNING,
+                    "Not contract account, why call Account::GetStorageJson!");
         return Json::arrayValue;
     }
 
@@ -599,7 +681,7 @@ Json::Value Account::GetStorageJson() const
     }
     Json::Value balance;
     balance["vname"] = "_balance";
-    balance["type"] = "Int";
+    balance["type"] = "Uint128";
     balance["value"] = GetBalance().convert_to<string>();
     root.append(balance);
 
@@ -612,7 +694,7 @@ void Account::RollBack()
 {
     if (!isContract())
     {
-        LOG_GENERAL(WARNING, "Not a contract, meaningless to call RollBack");
+        LOG_GENERAL(WARNING, "Not a contract, why call Account::RollBack");
         return;
     }
     m_storageRoot = m_prevRoot;
@@ -680,6 +762,7 @@ void Account::SetCode(const vector<unsigned char>& code)
 
     if (code.size() == 0)
     {
+        LOG_GENERAL(WARNING, "Code for this contract is empty");
         return;
     }
 
@@ -687,6 +770,7 @@ void Account::SetCode(const vector<unsigned char>& code)
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
     sha2.Update(code);
     m_codeHash = dev::h256(sha2.Finalize());
+    LOG_GENERAL(INFO, "m_codeHash: " << m_codeHash);
 
     InitStorage();
 }

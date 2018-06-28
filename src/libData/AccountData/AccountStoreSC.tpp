@@ -43,6 +43,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     const PubKey& senderPubKey = transaction.GetSenderPubKey();
     const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
     Address toAddr = transaction.GetToAddr();
+
     const uint256_t& amount = transaction.GetAmount();
 
     // FIXME: Possible integer overflow here
@@ -56,6 +57,19 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     if (transaction.GetData().empty() && transaction.GetCode().empty())
     {
         LOG_GENERAL(INFO, "Normal transaction");
+
+        // Disallow normal transaction to contract account
+        Account* toAccount = this->GetAccount(toAddr);
+        if (toAccount != nullptr)
+        {
+            if (toAccount->isContract())
+            {
+                LOG_GENERAL(INFO,
+                            "Contract account won't accept normal transaction");
+                return false;
+            }
+        }
+
         return AccountStoreBase<MAP>::UpdateAccounts(blockNum, transaction);
     }
 
@@ -239,7 +253,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         }
         if (ret && !ParseCallContractOutput())
         {
-            return false;
+            ret = false;
         }
         if (!ret)
         {
@@ -297,8 +311,7 @@ void AccountStoreSC<MAP>::ExportCreateContractFiles(const Account& contract)
 
     // Scilla code
     // JSONUtils::writeJsontoFile(INPUT_CODE, contract.GetCode());
-    std::ofstream os;
-    os.open(INPUT_CODE);
+    std::ofstream os(INPUT_CODE);
     os << DataConversion::CharArrayToString(contract.GetCode());
     os.close();
 
@@ -318,10 +331,14 @@ void AccountStoreSC<MAP>::ExportContractFiles(const Account& contract)
     boost::filesystem::remove_all("./" + SCILLA_FILES);
     boost::filesystem::create_directories("./" + SCILLA_FILES);
 
+    if (!(boost::filesystem::exists("./" + SCILLA_LOG)))
+    {
+        boost::filesystem::create_directories("./" + SCILLA_LOG);
+    }
+
     // Scilla code
     // JSONUtils::writeJsontoFile(INPUT_CODE, contract.GetCode());
-    std::ofstream os;
-    os.open(INPUT_CODE);
+    std::ofstream os(INPUT_CODE);
     os << DataConversion::CharArrayToString(contract.GetCode());
     os.close();
 
@@ -349,7 +366,6 @@ bool AccountStoreSC<MAP>::ExportCallContractFiles(
     Json::Value msgObj;
     if (!JSONUtils::convertStrtoJson(dataStr, msgObj))
     {
-        boost::filesystem::remove_all("./" + SCILLA_FILES);
         return false;
     }
     string prepend = "0x";
