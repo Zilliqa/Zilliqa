@@ -112,7 +112,6 @@ int AccountStoreBase<MAP>::Deserialize(const vector<unsigned char>& src,
             }
             (*m_addressToAccount)[address] = account;
         }
-        PrintAccountState();
     }
     catch (const std::exception& e)
     {
