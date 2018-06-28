@@ -347,9 +347,6 @@ class DirectoryService : public Executable, public Broadcastable
                                  unsigned int my_shards_hi,
                                  vector<unsigned char>& vcblock_message);
 
-    // Rejoin the network as a DS node in case of failure happens in protocol
-    void RejoinAsDS();
-
     // Reset certain variables to the initial state
     bool CleanVariables();
 #endif // IS_LOOKUP_NODE
@@ -423,6 +420,9 @@ public:
 
     /// Notify POW2 submission to DirectoryService::ProcessPoW2Submission()
     void NotifyPOW2Submission() { cv_POW2Submission.notify_all(); }
+
+    // Rejoin the network as a DS node in case of failure happens in protocol
+    void RejoinAsDS();
 };
 
 #endif // __DIRECTORYSERVICE_H__

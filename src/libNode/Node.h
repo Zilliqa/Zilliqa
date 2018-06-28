@@ -360,9 +360,6 @@ class Node : public Executable, public Broadcastable
     // Is Running from New Process
     bool m_fromNewProcess = true;
 
-    // Rejoin the network as a shard node in case of failure happens in protocol
-    void RejoinAsNormal();
-
     // Reset certain variables to the initial state
     bool CleanVariables();
 #endif // IS_LOOKUP_NODE
@@ -457,6 +454,8 @@ public:
         m_committedTransactions.erase(epochNum);
     }
 
+    // Rejoin the network as a shard node in case of failure happens in protocol
+    void RejoinAsNormal();
 #ifndef IS_LOOKUP_NODE
 
     // Start synchronization with lookup as a shard node

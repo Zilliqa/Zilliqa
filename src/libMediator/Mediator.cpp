@@ -22,6 +22,7 @@
 #include "libData/BlockChainData/DSBlockChain.h"
 #include "libData/BlockChainData/TxBlockChain.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/DetachedFunction.h"
 #include "libValidator/Validator.h"
 
 using namespace std;
@@ -117,4 +118,41 @@ std::string Mediator::GetNodeMode(const Peer& peer)
     {
         return "SHRD";
     }
+}
+
+void Mediator::HeartBeat_Init()
+{
+#ifndef IS_LOOKUP_NODE
+    LOG_MARKER();
+    m_heartBeatTime = 0;
+
+    auto func = [this]() -> void {
+        while (true)
+        {
+            lock_guard<mutex> guard(m_heartBeatMutex);
+
+            if (m_heartBeatTime > HEARTBEAT_TIMEOUT)
+            {
+                LOG_GENERAL(WARNING, "I am DEAD, rejoin to network");
+                (DirectoryService::Mode::IDLE == m_ds->m_mode)
+                    ? m_node->RejoinAsNormal()
+                    : m_ds->RejoinAsDS();
+                m_heartBeatTime = 0;
+                continue;
+            }
+
+            LOG_GENERAL(INFO, "Still alive...");
+            this_thread::sleep_for(chrono::seconds(HEARTBEAT_INTERVAL));
+            m_heartBeatTime += HEARTBEAT_INTERVAL;
+        }
+    };
+
+    DetachedFunction(1, func);
+#endif
+}
+
+void Mediator::HeartBeat()
+{
+    lock_guard<mutex> guard(m_heartBeatMutex);
+    m_heartBeatTime = 0;
 }

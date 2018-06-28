@@ -94,6 +94,7 @@ void Node::StoreState()
 
 void Node::StoreFinalBlock(const TxBlock& txBlock)
 {
+    m_mediator.HeartBeat();
     m_mediator.m_txBlockChain.AddBlock(txBlock);
     m_mediator.m_currentEpochNum
         = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();

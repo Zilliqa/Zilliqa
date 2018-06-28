@@ -99,6 +99,16 @@ public:
     void UpdateTxBlockRand(bool isGenesis = false);
 
     std::string GetNodeMode(const Peer& peer);
+
+    /// Initialize heart beat checking
+    void HeartBeat_Init();
+
+    /// Trigger heart beat
+    void HeartBeat();
+
+private:
+    std::mutex m_heartBeatMutex;
+    uint64_t m_heartBeatTime;
 };
 
 #endif // __MEDIATOR_H__
