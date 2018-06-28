@@ -53,7 +53,7 @@ void Node::SharePoW2WinningResultWithDS(
 {
     LOG_MARKER();
 
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
               "Winning nonce   = "
                   << winning_result.winning_nonce
                   << "Winning result  = " << winning_result.result
@@ -132,7 +132,7 @@ bool Node::StartPoW2(uint256_t block_num, uint8_t difficulty,
     LOG_MARKER();
 
     LOG_EPOCH(
-        INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
         "blockNum: " << block_num << " Difficulty: " << difficulty
                      << "rand1: " << DataConversion::charArrToHexStr(rand1)
                      << " rand2: " << DataConversion::charArrToHexStr(rand2));

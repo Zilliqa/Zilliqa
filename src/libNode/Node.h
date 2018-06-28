@@ -114,7 +114,7 @@ class Node : public Executable, public Broadcastable
     std::vector<unsigned char> m_consensusBlockHash;
     std::atomic<uint32_t> m_consensusMyID;
     std::shared_ptr<MicroBlock> m_microblock;
-    std::pair<uint64_t, BlockBase> m_lastMicroBlockCoSig;
+    std::pair<uint256_t, BlockBase> m_lastMicroBlockCoSig;
     std::mutex m_mutexMicroBlock;
 
     const static uint32_t RECVTXNDELAY_MILLISECONDS = 3000;
@@ -452,7 +452,7 @@ public:
     bool StartRetrieveHistory();
 
     //Erase m_committedTransactions for given epoch number
-    void EraseCommittedTransactions(uint64_t epochNum)
+    void EraseCommittedTransactions(uint256_t epochNum)
     {
         m_committedTransactions.erase(epochNum);
     }

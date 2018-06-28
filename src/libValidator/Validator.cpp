@@ -64,7 +64,7 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx) const
     //        = Transaction::GetShardIndex(fromAddr, numShards);
     //    if (correct_shard != shardID)
     //    {
-    // LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    // LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
     //           "This tx is not sharded to me!"
     //               << " From Account  = 0x" << fromAddr
     //               << " Correct shard = " << correct_shard
@@ -97,7 +97,8 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx) const
     // Check if transaction amount is valid
     if (AccountStore::GetInstance().GetBalance(fromAddr) < tx.GetAmount())
     {
-        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(WARNING,
+                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
                   "Insufficient funds in source account!"
                       << " From Account  = 0x" << fromAddr << " Balance = "
                       << AccountStore::GetInstance().GetBalance(fromAddr)
@@ -122,12 +123,12 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
         = Transaction::GetShardIndex(fromAddr, numShards);
     if (correct_shard != shardID)
     {
-        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "This tx is not sharded to me!"
-                      << " From Account  = 0x" << fromAddr
-                      << " Correct shard = " << correct_shard
-                      << " This shard    = "
-                      << m_mediator.m_node->getShardID());
+        LOG_EPOCH(
+            WARNING, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+            "This tx is not sharded to me!"
+                << " From Account  = 0x" << fromAddr
+                << " Correct shard = " << correct_shard
+                << " This shard    = " << m_mediator.m_node->getShardID());
         return false;
         // // Transaction created from the GenTransactionBulk will be rejected
         // // by all shards but one. Next line is commented to avoid this
@@ -137,10 +138,10 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
     // Check if from account exists in local storage
     if (!AccountStore::GetInstance().IsAccountExist(fromAddr))
     {
-        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "fromAddr not found: " << fromAddr
-                                         << ". Transaction rejected: "
-                                         << tx.GetTranID());
+        LOG_EPOCH(
+            WARNING, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+            "fromAddr not found: " << fromAddr << ". Transaction rejected: "
+                                   << tx.GetTranID());
         return false;
     }
 
@@ -155,7 +156,8 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
                 != AccountStore::GetInstance().GetNonce(fromAddr) + 1)
             {
                 LOG_EPOCH(
-                    WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                    WARNING,
+                    m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
                     "Tx nonce not in line with account state!"
                         << " From Account = 0x" << fromAddr
                         << " Account Nonce = "
@@ -172,7 +174,8 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
             if (tx.GetNonce() != m_txnNonceMap.at(fromAddr) + 1)
             {
                 LOG_EPOCH(
-                    WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                    WARNING,
+                    m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
                     "Tx nonce not in line with account state!"
                         << " From Account = 0x" << fromAddr
                         << " Account Nonce = " << m_txnNonceMap.at(fromAddr)
@@ -197,7 +200,8 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
     // Check if transaction amount is valid
     if (AccountStore::GetInstance().GetBalance(fromAddr) < tx.GetAmount())
     {
-        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(WARNING,
+                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
                   "Insufficient funds in source account!"
                       << " From Account  = 0x" << fromAddr << " Balance = "
                       << AccountStore::GetInstance().GetBalance(fromAddr)

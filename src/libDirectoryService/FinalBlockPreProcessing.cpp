@@ -56,10 +56,10 @@ void DirectoryService::ExtractDataFromMicroblocks(
 
     for (auto& microBlock : m_microBlocks)
     {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Micro block " << i << " has "
-                                 << microBlock.GetHeader().GetNumTxs()
-                                 << " transactions.");
+        LOG_EPOCH(
+            INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+            "Micro block " << i << " has " << microBlock.GetHeader().GetNumTxs()
+                           << " transactions.");
 
         LOG_STATE("[STATS][" << std::setw(15) << std::left
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
@@ -91,7 +91,8 @@ void DirectoryService::ExtractDataFromMicroblocks(
                  // {!isEmptyTxn, true}});
                  {false, true}});
 
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            LOG_EPOCH(INFO,
+                      m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
                       "Added " << microBlock.GetHeader().GetTxRootHash() << " "
                                << microBlock.GetHeader().GetStateDeltaHash()
                                << " for unavailable"
@@ -113,7 +114,7 @@ void DirectoryService::ExtractDataFromMicroblocks(
     microblockDeltaTrieRoot = ComputeDeltasRoot(microblockHashes);
 
     LOG_EPOCH(
-        INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
         "Proposed FinalBlock TxnTrieRootHash : "
             << DataConversion::charArrToHexStr(microblockTxnTrieRoot.asArray())
             << endl
@@ -156,7 +157,8 @@ void DirectoryService::ComposeFinalBlockCore()
         sha2.Update(vec);
         vector<unsigned char> hashVec = sha2.Finalize();
         copy(hashVec.begin(), hashVec.end(), prevHash.asArray().begin());
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO,
+                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
                   "Prev block hash as per leader "
                       << prevHash.hex() << endl
                       << "TxBlockHeader: " << lastBlock.GetHeader());
@@ -209,7 +211,7 @@ void DirectoryService::ComposeFinalBlockCore()
                          << "][" << m_finalBlock->GetHeader().GetNumTxs()
                          << "] FINAL");
 
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
               "Final block proposed with "
                   << m_finalBlock->GetHeader().GetNumTxs() << " transactions.");
 }
@@ -253,7 +255,7 @@ void DirectoryService::AppendSharingSetupToFinalBlockMessage(
     // First version: We just take the first X nodes in DS committee
     LOG_MARKER();
 
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
               "debug " << m_mediator.m_DSCommitteeNetworkInfo.size() << " "
                        << TX_SHARING_CLUSTER_SIZE);
 
@@ -264,14 +266,15 @@ void DirectoryService::AppendSharingSetupToFinalBlockMessage(
     Serializable::SetNumber<uint32_t>(finalBlockMessage, curr_offset,
                                       num_ds_nodes, sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
               "Forwarders inside the DS committee (" << num_ds_nodes << "):");
 
     for (unsigned int i = 0; i < m_consensusMyID; i++)
     {
         m_mediator.m_DSCommitteeNetworkInfo.at(i).Serialize(finalBlockMessage,
                                                             curr_offset);
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO,
+                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
                   m_mediator.m_DSCommitteeNetworkInfo.at(i));
         curr_offset += IP_SIZE + PORT_SIZE;
     }
@@ -279,7 +282,7 @@ void DirectoryService::AppendSharingSetupToFinalBlockMessage(
     // when i == m_consensusMyID use m_mediator.m_selfPeer since IP/ port in
     // m_mediator.m_DSCommitteeNetworkInfo.at(m_consensusMyID) is zeroed out
     m_mediator.m_selfPeer.Serialize(finalBlockMessage, curr_offset);
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
               m_mediator.m_selfPeer);
     curr_offset += IP_SIZE + PORT_SIZE;
 
@@ -287,12 +290,13 @@ void DirectoryService::AppendSharingSetupToFinalBlockMessage(
     {
         m_mediator.m_DSCommitteeNetworkInfo.at(i).Serialize(finalBlockMessage,
                                                             curr_offset);
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO,
+                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
                   m_mediator.m_DSCommitteeNetworkInfo.at(i));
         curr_offset += IP_SIZE + PORT_SIZE;
     }
 
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
               "Number of shards: " << m_shards.size());
 
     Serializable::SetNumber<uint32_t>(finalBlockMessage, curr_offset,
@@ -306,7 +310,8 @@ void DirectoryService::AppendSharingSetupToFinalBlockMessage(
     {
         const map<PubKey, Peer>& shard = m_shards.at(i);
 
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO,
+                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
                   "Shard " << i << " forwarders:");
 
         // PART 2
@@ -329,13 +334,15 @@ void DirectoryService::AppendSharingSetupToFinalBlockMessage(
             node_peer->second.Serialize(finalBlockMessage, curr_offset);
             curr_offset += IP_SIZE + PORT_SIZE;
 
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            LOG_EPOCH(INFO,
+                      m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
                       node_peer->second);
 
             node_peer++;
         }
 
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO,
+                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
                   "Shard " << i << " senders:");
 
         // PART 3
@@ -360,11 +367,14 @@ void DirectoryService::AppendSharingSetupToFinalBlockMessage(
 
         num_nodes = nodes_send_hi - nodes_send_lo + 1;
 
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO,
+                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
                   "DEBUG lo " << nodes_send_lo);
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO,
+                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
                   "DEBUG hi " << nodes_send_hi);
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO,
+                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
                   "DEBUG num_nodes " << num_nodes);
 
         Serializable::SetNumber<uint32_t>(finalBlockMessage, curr_offset,
@@ -379,7 +389,8 @@ void DirectoryService::AppendSharingSetupToFinalBlockMessage(
             node_peer->second.Serialize(finalBlockMessage, curr_offset);
             curr_offset += IP_SIZE + PORT_SIZE;
 
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            LOG_EPOCH(INFO,
+                      m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
                       node_peer->second);
 
             node_peer++;
@@ -420,25 +431,29 @@ vector<unsigned char> DirectoryService::ComposeFinalBlockMessage()
         if (isVacuousEpoch && !m_mediator.m_node->m_allMicroBlocksRecvd)
         {
             LOG_EPOCH(
-                INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
                 "Waiting for microblocks before composing final block. Count: "
                     << m_mediator.m_node->m_unavailableMicroBlocks.size());
             for (auto it : m_mediator.m_node->m_unavailableMicroBlocks)
             {
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "Waiting for finalblock " << it.first << ". Count "
-                                                    << it.second.size());
+                LOG_EPOCH(
+                    INFO,
+                    m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+                    "Waiting for finalblock " << it.first << ". Count "
+                                              << it.second.size());
                 for (auto it2 : it.second)
                 {
                     LOG_EPOCH(INFO,
-                              to_string(m_mediator.m_currentEpochNum).c_str(),
+                              m_mediator.m_currentEpochNum.convert_to<string>()
+                                  .c_str(),
                               it2.first);
                 }
             }
 
             m_mediator.m_node->m_cvAllMicroBlocksRecvd.wait(
                 g, [this] { return m_mediator.m_node->m_allMicroBlocksRecvd; });
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            LOG_EPOCH(INFO,
+                      m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
                       "All microblocks recvd, moving to compose final block");
         }
     }
@@ -462,7 +477,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
 
     // Compose the final block from all the microblocks
     // I guess only the leader has to do this
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
               "I am the leader DS node. Creating final block.");
 
     // finalBlockMessage = serialized final block + tx-body sharing setup
@@ -472,7 +487,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
     /**
     if (m_consensusMyID == 0 && m_viewChangeCounter < 1)
     {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
                   "I am killing myself to test view change");
         throw exception();
     }
@@ -496,7 +511,8 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
 
     if (m_consensusObject == nullptr)
     {
-        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(WARNING,
+                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
                   "Unable to create consensus object");
         return false;
     }
@@ -602,12 +618,13 @@ bool DirectoryService::CheckPreviousFinalBlockHash()
         vector<unsigned char> hashVec = sha2.Finalize();
         copy(hashVec.begin(), hashVec.end(),
              expectedPrevHash.asArray().begin());
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO,
+                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
                   "m_mediator.m_txBlockChain.GetLastBlock().GetHeader():"
                       << m_mediator.m_txBlockChain.GetLastBlock().GetHeader());
     }
 
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
               "Prev block hash recvd: "
                   << finalblockPrevHash.hex() << endl
                   << "Prev block hash expected: " << expectedPrevHash.hex()
@@ -692,7 +709,7 @@ bool DirectoryService::CheckMicroBlockHashRoot()
         = ComputeDeltasRoot(m_finalBlock->GetMicroBlockHashes());
 
     LOG_EPOCH(
-        INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
         "Expected FinalBlock txnHash : "
             << DataConversion::charArrToHexStr(microBlocksTxnHash.asArray())
             << endl
@@ -777,7 +794,7 @@ bool DirectoryService::CheckStateRoot()
         return false;
     }
 
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
               "State root matched "
                   << m_finalBlock->GetHeader().GetStateRootHash());
 
@@ -847,7 +864,7 @@ void DirectoryService::SaveTxnBodySharingAssignment(
         finalblock, curr_offset, sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
               "Forwarders inside the DS committee (" << num_ds_nodes << "):");
 
     vector<Peer> ds_receivers;
@@ -859,10 +876,10 @@ void DirectoryService::SaveTxnBodySharingAssignment(
         ds_receivers.push_back(Peer(finalblock, curr_offset));
         curr_offset += IP_SIZE + PORT_SIZE;
 
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "  IP: " << ds_receivers.back().GetPrintableIPAddress()
-                           << " Port: "
-                           << ds_receivers.back().m_listenPortHost);
+        LOG_EPOCH(
+            INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+            "  IP: " << ds_receivers.back().GetPrintableIPAddress()
+                     << " Port: " << ds_receivers.back().m_listenPortHost);
 
         if (ds_receivers.back() == m_mediator.m_selfPeer)
         {
@@ -920,25 +937,29 @@ bool DirectoryService::WaitForTxnBodies()
         if (isVacuousEpoch && !m_mediator.m_node->m_allMicroBlocksRecvd)
         {
             LOG_EPOCH(
-                INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
                 "Waiting for microblocks before verifying final block. Count: "
                     << m_mediator.m_node->m_unavailableMicroBlocks.size());
             for (auto it : m_mediator.m_node->m_unavailableMicroBlocks)
             {
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "Waiting for finalblock " << it.first << ". Count "
-                                                    << it.second.size());
+                LOG_EPOCH(
+                    INFO,
+                    m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+                    "Waiting for finalblock " << it.first << ". Count "
+                                              << it.second.size());
                 for (auto it2 : it.second)
                 {
                     LOG_EPOCH(INFO,
-                              to_string(m_mediator.m_currentEpochNum).c_str(),
+                              m_mediator.m_currentEpochNum.convert_to<string>()
+                                  .c_str(),
                               it2.first);
                 }
             }
 
             m_mediator.m_node->m_cvAllMicroBlocksRecvd.wait(
                 g, [this] { return m_mediator.m_node->m_allMicroBlocksRecvd; });
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            LOG_EPOCH(INFO,
+                      m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
                       "All microblocks recvd, moving to verify final block");
         }
     }
@@ -978,7 +999,8 @@ void DirectoryService::LoadUnavailableMicroBlocks()
             != m_mediator.m_node->m_unavailableMicroBlocks.end()
         && m_mediator.m_node->m_unavailableMicroBlocks[blockNum].size() > 0)
     {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO,
+                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
                   "setting false for unavailable microblock " << m_consensusID);
         unique_lock<mutex> g(m_mediator.m_node->m_mutexAllMicroBlocksRecvd);
         m_mediator.m_node->m_allMicroBlocksRecvd = false;
@@ -1019,7 +1041,7 @@ bool DirectoryService::FinalBlockValidator(
         LoadUnavailableMicroBlocks();
     }
 
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
               "Final block "
                   << m_finalBlock->GetHeader().GetBlockNum()
                   << " received with prevhash 0x"
@@ -1039,7 +1061,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup()
 {
     LOG_MARKER();
 
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
               "I am a backup DS node. Waiting for final block announcement.");
 
     // Create new consensus object
@@ -1062,7 +1084,8 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup()
 
     if (m_consensusObject == nullptr)
     {
-        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(WARNING,
+                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
                   "Unable to create consensus object");
         return false;
     }
@@ -1118,7 +1141,8 @@ void DirectoryService::RunConsensusOnFinalBlock()
                                          std::chrono::seconds(VIEWCHANGE_TIME))
         == std::cv_status::timeout)
     {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO,
+                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
                   "Initiated final block view change. ");
         RunConsensusOnViewChange();
     }
