@@ -44,13 +44,17 @@ BOOST_AUTO_TEST_CASE(test1)
 
     BOOST_CHECK_MESSAGE(!b, "255.255.255.255 is not a valid IP");
 
-    Whitelist::GetInstance().AddToExclusionList("172.16.0.0", "172.31.255.255");
-    //Whitelist::GetInstance().Init();
-    inet_aton("172.25.4.3", &serv_addr.sin_addr);
+    if (EXCLUDE_PRIV_IP)
+    {
+        Whitelist::GetInstance().AddToExclusionList("172.16.0.0",
+                                                    "172.31.255.255");
+        //Whitelist::GetInstance().Init();
+        inet_aton("172.25.4.3", &serv_addr.sin_addr);
 
-    b = Whitelist::GetInstance().IsValidIP(serv_addr.sin_addr.s_addr);
+        b = Whitelist::GetInstance().IsValidIP(serv_addr.sin_addr.s_addr);
 
-    BOOST_CHECK_MESSAGE(!b, "The address should not be valid");
+        BOOST_CHECK_MESSAGE(!b, "The address should not be valid");
+    }
     inet_aton("172.14.4.3", &serv_addr.sin_addr);
     b = Whitelist::GetInstance().IsValidIP(serv_addr.sin_addr.s_addr);
 
