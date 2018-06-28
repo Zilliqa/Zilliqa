@@ -104,7 +104,7 @@ const unsigned int NUM_FINAL_BLOCK_PER_POW{
 const unsigned int NUM_DS_KEEP_TX_BODY{
     ReadFromConstantsFile("NUM_DS_KEEP_TX_BODY")};
 const uint32_t MAXMESSAGE{ReadFromConstantsFile("MAXMESSAGE")};
-const unsigned long long MAXSUBMITTXNPERNODE{
+const unsigned int MAXSUBMITTXNPERNODE{
     ReadFromConstantsFile("MAXSUBMITTXNPERNODE")};
 const unsigned int TX_SHARING_CLUSTER_SIZE{
     ReadFromConstantsFile("TX_SHARING_CLUSTER_SIZE")};
