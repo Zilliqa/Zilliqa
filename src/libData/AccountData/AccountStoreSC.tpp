@@ -33,7 +33,7 @@ template<class MAP> void AccountStoreSC<MAP>::Init()
 }
 
 template<class MAP>
-bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
+bool AccountStoreSC<MAP>::UpdateAccounts(const uint256_t& blockNum,
                                          const Transaction& transaction)
 {
     LOG_MARKER();
@@ -70,7 +70,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             }
         }
 
-        return AccountStoreBase<MAP>::UpdateAccounts(blockNum, transaction);
+        return AccountStoreBase<MAP>::UpdateAccounts(transaction);
     }
 
     bool callContract = false;
@@ -145,6 +145,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         toAccount->SetCode(transaction.GetCode());
         // Store the immutable states
         toAccount->InitContract(transaction.GetData());
+        // Set the blockNumber when the account was created
+        toAccount->SetCreateBlockNum(blockNum);
 
         m_curBlockNum = blockNum;
 
@@ -284,15 +286,19 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
 template<class MAP>
 Json::Value
-AccountStoreSC<MAP>::GetBlockStateJson(const uint64_t& BlockNum) const
+AccountStoreSC<MAP>::GetBlockStateJson(const uint256_t& BlockNum,
+                                       const uint256_t& CreateBlockNum) const
 {
     Json::Value root;
     Json::Value blockItem;
     blockItem["vname"] = "BLOCKNUMBER";
     blockItem["type"] = "BNum";
-    blockItem["value"] = to_string(BlockNum);
+    blockItem["value"] = BlockNum.convert_to<string>();
     root.append(blockItem);
     LOG_GENERAL(INFO, "BNum: " << BlockNum);
+
+    (void)CreateBlockNum;
+
     return root;
 }
 
@@ -319,8 +325,9 @@ void AccountStoreSC<MAP>::ExportCreateContractFiles(const Account& contract)
     JSONUtils::writeJsontoFile(INIT_JSON, contract.GetInitJson());
 
     // Block Json
-    JSONUtils::writeJsontoFile(INPUT_BLOCKCHAIN_JSON,
-                               GetBlockStateJson(m_curBlockNum));
+    JSONUtils::writeJsontoFile(
+        INPUT_BLOCKCHAIN_JSON,
+        GetBlockStateJson(m_curBlockNum /*, contract.GetCreateBlockNum()*/));
 }
 
 template<class MAP>
@@ -349,8 +356,9 @@ void AccountStoreSC<MAP>::ExportContractFiles(const Account& contract)
     JSONUtils::writeJsontoFile(INPUT_STATE_JSON, contract.GetStorageJson());
 
     // Block Json
-    JSONUtils::writeJsontoFile(INPUT_BLOCKCHAIN_JSON,
-                               GetBlockStateJson(m_curBlockNum));
+    JSONUtils::writeJsontoFile(
+        INPUT_BLOCKCHAIN_JSON,
+        GetBlockStateJson(m_curBlockNum /*, contract.GetCreateBlockNum()*/));
 }
 
 template<class MAP>

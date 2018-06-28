@@ -44,7 +44,7 @@ template<class MAP> class AccountStoreSC : public AccountStoreBase<MAP>
 
     std::mutex m_mutexUpdateAccounts;
 
-    uint64_t m_curBlockNum;
+    uint256_t m_curBlockNum;
     Address m_curContractAddr;
     Address m_curSenderAddr;
     uint256_t m_curAmount;
@@ -56,7 +56,8 @@ template<class MAP> class AccountStoreSC : public AccountStoreBase<MAP>
     bool ParseCreateContractJsonOutput(const Json::Value& _json);
     bool ParseCallContractOutput();
     bool ParseCallContractJsonOutput(const Json::Value& _json);
-    Json::Value GetBlockStateJson(const uint64_t& BlockNum) const;
+    Json::Value GetBlockStateJson(const uint256_t& BlockNum,
+                                  const uint256_t& CreateBlockNum = 0) const;
     string GetCreateContractCmdStr();
     string GetCallContractCmdStr();
 
@@ -84,8 +85,8 @@ protected:
 public:
     void Init() override;
 
-    bool UpdateAccounts(const uint64_t& blockNum,
-                        const Transaction& transaction) override;
+    bool UpdateAccounts(const uint256_t& blockNum,
+                        const Transaction& transaction);
 };
 
 #include "AccountStoreAtomic.tpp"
