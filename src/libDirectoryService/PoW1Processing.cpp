@@ -155,6 +155,14 @@ bool DirectoryService::ParseMessageAndVerifyPOW1(
     }
     curr_offset += PUB_KEY_SIZE;
 
+    if (TEST_NET_MODE
+        && not Whitelist::GetInstance().IsNodeInDSWhiteList(peer, key))
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Submitted PoW1 but node is not in DS whitelist. Hence, "
+                  "not accepted!");
+    }
+
     // Todo: Reject PoW1 submissions from existing members of DS committee
 
     if (CheckWhetherMaxSubmissionsReceived(peer, key))
@@ -212,18 +220,7 @@ bool DirectoryService::ParseMessageAndVerifyPOW1(
                 return false;
             }
 
-            if (TEST_NET_MODE
-                && not Whitelist::GetInstance().IsNodeInDSWhiteList(peer, key))
-            {
-                LOG_EPOCH(
-                    WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                    "Submitted PoW1 but node is not in DS whitelist. Hence, "
-                    "not accepted!");
-            }
-            else
-            {
-                m_allPoW1s.push_back(make_pair(key, nonce));
-            }
+            m_allPoW1s.push_back(make_pair(key, nonce));
         }
     }
     else
