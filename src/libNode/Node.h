@@ -118,8 +118,6 @@ class Node : public Executable, public Broadcastable
     std::mutex m_mutexMicroBlock;
 
     const static uint32_t RECVTXNDELAY_MILLISECONDS = 3000;
-    const unsigned int SUBMIT_TX_WINDOW = 15;
-    const unsigned int SUBMIT_TX_WINDOW_EXTENDED = 30;
     const static unsigned int GOSSIP_RATE = 48;
 
     // Transactions information
