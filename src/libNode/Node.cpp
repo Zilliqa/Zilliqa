@@ -479,8 +479,8 @@ vector<Transaction> GenTransactionBulk(PrivKey& fromPrivKey, PubKey& fromPubKey,
     txns.reserve(n);
     for (auto i = 0u; i != n; i++)
     {
-        auto txn = CreateValidTestingTransaction(
-            fromPrivKey, fromPubKey, receiverAddr, i);
+        auto txn = CreateValidTestingTransaction(fromPrivKey, fromPubKey,
+                                                 receiverAddr, i);
         txns.emplace_back(txn);
     }
 
