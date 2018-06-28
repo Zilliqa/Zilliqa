@@ -186,8 +186,8 @@ bool Whitelist::IsValidIP(const uint128_t& ip_addr)
         return true;
     }
 
-    lock_guard<mutex> g(m_mutexIPexclusion);
-    for (const auto& ip_pair : m_IPexclusionRange)
+    lock_guard<mutex> g(m_mutexIPExclusion);
+    for (const auto& ip_pair : m_IPExclusionRange)
     {
         if (ip_pair.first <= ip_addr_c && ip_pair.second >= ip_addr_c)
         {
@@ -226,15 +226,15 @@ void Whitelist::AddToExclusionList(const uint128_t& ft, const uint128_t& sd)
     }
     uint32_t ft_c = ntohl(ft.convert_to<uint32_t>());
     uint32_t sd_c = ntohl(sd.convert_to<uint32_t>());
-    lock_guard<mutex> g(m_mutexIPexclusion);
+    lock_guard<mutex> g(m_mutexIPExclusion);
 
     if (ft_c > sd_c)
     {
-        m_IPexclusionRange.push_back(make_pair(sd_c, ft_c));
+        m_IPExclusionRange.push_back(make_pair(sd_c, ft_c));
     }
     else
     {
-        m_IPexclusionRange.push_back(make_pair(ft_c, sd_c));
+        m_IPExclusionRange.push_back(make_pair(ft_c, sd_c));
     }
 }
 
