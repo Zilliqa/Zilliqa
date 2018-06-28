@@ -47,7 +47,7 @@ class Account : public Serializable
     h256 m_storageRoot, m_prevRoot;
     h256 m_codeHash;
     // The associated code for this account.
-    uint256_t m_createBlockNum = 0;
+    uint64_t m_createBlockNum = 0;
     Json::Value m_initValJson;
     vector<unsigned char> m_initData;
     vector<unsigned char> m_codeCache;
@@ -75,13 +75,13 @@ public:
     void InitContract(const vector<unsigned char>& data);
 
     /// Set the block number when this account was created.
-    void SetCreateBlockNum(const uint256_t& blockNum)
+    void SetCreateBlockNum(const uint64_t& blockNum)
     {
         m_createBlockNum = blockNum;
     }
 
     /// Get the block number when this account was created.
-    const uint256_t& GetCreateBlockNum() const { return m_createBlockNum; }
+    const uint64_t& GetCreateBlockNum() const { return m_createBlockNum; }
 
     /// Implements the Serialize function inherited from Serializable.
     unsigned int Serialize(vector<unsigned char>& dst,
