@@ -179,6 +179,13 @@ bool Whitelist::IsValidIP(const uint128_t& ip_addr)
                     "Invalid IPv4 address " << inet_ntoa(serv_addr.sin_addr));
         return false;
     }
+
+    if (!EXCLUDE_PRIV_IP)
+    {
+        // No filtering enable. Hence, IP (other than 0.0.0.0 and 255.255.255.255) is allowed.
+        return true;
+    }
+
     lock_guard<mutex> g(m_mutexIPexclusion);
     for (auto& ip_pair : m_IPexclusionRange)
     {

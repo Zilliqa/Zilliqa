@@ -91,8 +91,7 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
         return false;
     }
 
-    if (EXCLUDE_PRIV_IP
-        && !Whitelist::GetInstance().IsValidIP(peer.m_ipAddress))
+    if (!Whitelist::GetInstance().IsValidIP(peer.m_ipAddress))
     {
         LOG_GENERAL(
             WARNING,

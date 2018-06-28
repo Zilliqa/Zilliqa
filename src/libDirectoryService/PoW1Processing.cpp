@@ -172,8 +172,7 @@ bool DirectoryService::ParseMessageAndVerifyPOW1(
         return true;
     }
 
-    if (EXCLUDE_PRIV_IP
-        && !Whitelist::GetInstance().IsValidIP(peer.m_ipAddress))
+    if (!Whitelist::GetInstance().IsValidIP(peer.m_ipAddress))
     {
         LOG_GENERAL(WARNING,
                     "IP belong to private ip subnet or is a broadcast address");
