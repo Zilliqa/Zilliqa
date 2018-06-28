@@ -133,6 +133,8 @@ extern const unsigned int TX_SHARING_CLUSTER_SIZE;
 extern const unsigned int NEW_NODE_POW_DELAY;
 extern const unsigned int N_PREFILLED_PER_ACCOUNT;
 extern const unsigned int POST_VIEWCHANGE_BUFFER;
+extern const bool TEST_NET_MODE;
+extern const bool EXCLUDE_PRIV_IP;
 extern const unsigned int CONTRACT_CREATE_GAS;
 extern const unsigned int CONTRACT_INVOKE_GAS;
 extern const unsigned int NORMAL_TRAN_GAS;

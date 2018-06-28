@@ -29,6 +29,7 @@
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
 #include "libNetwork/P2PComm.h"
+#include "libNetwork/Whitelist.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
@@ -42,11 +43,13 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
                                   unsigned int offset, const Peer& from)
 {
     LOG_MARKER();
-    if (IsMessageSizeInappropriate(message.size(), offset,
-                                   UINT256_SIZE + sizeof(uint32_t)
-                                       + PUB_KEY_SIZE + sizeof(uint64_t)
-                                       + BLOCK_HASH_SIZE + BLOCK_HASH_SIZE))
+    if (IsMessageSizeInappropriate(
+            message.size(), offset,
+            UINT256_SIZE + sizeof(uint32_t) + PUB_KEY_SIZE + sizeof(uint64_t)
+                + BLOCK_HASH_SIZE + BLOCK_HASH_SIZE + SIGNATURE_CHALLENGE_SIZE
+                + SIGNATURE_RESPONSE_SIZE))
     {
+        LOG_GENERAL(WARNING, "PoW2 size Inappropriate");
         return false;
     }
 
@@ -78,10 +81,26 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
         LOG_GENERAL(WARNING, "We failed to deserialize PubKey.");
         return false;
     }
+
+    if (TEST_NET_MODE
+        && not Whitelist::GetInstance().IsPubkeyInShardWhiteList(key))
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Submitted PoW2 but node is not in shard whitelist. Hence, "
+                  "not accepted!");
+        return false;
+    }
+
+    if (!Whitelist::GetInstance().IsValidIP(peer.m_ipAddress))
+    {
+        LOG_GENERAL(
+            WARNING,
+            "IP address belong to private ip subnet or is a broadcast address");
+        return false;
+    }
     curr_offset += PUB_KEY_SIZE;
 
     // To-do: Reject PoW2 submissions from existing members of DS committee
-
     // 8-byte nonce
     uint64_t nonce = Serializable::GetNumber<uint64_t>(message, curr_offset,
                                                        sizeof(uint64_t));
@@ -95,6 +114,18 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
     // 32-byte mixhash
     string winning_mixhash = DataConversion::Uint8VecToHexStr(
         message, curr_offset, BLOCK_HASH_SIZE);
+    curr_offset += BLOCK_HASH_SIZE;
+
+    //64 byte signature
+    Signature sign(message, curr_offset);
+
+    if (!Schnorr::GetInstance().Verify(message, 0, curr_offset, sign, key))
+    {
+        LOG_GENERAL(WARNING, "PoW2 submission signature wrong");
+        return false;
+    }
+
+    curr_offset += SIGNATURE_CHALLENGE_SIZE + SIGNATURE_RESPONSE_SIZE;
 
     m_mediator.UpdateDSBlockRand();
 
@@ -188,6 +219,7 @@ bool DirectoryService::ProcessPoW2Submission(
 {
 #ifndef IS_LOOKUP_NODE
     // Message = [32-byte block num] [4-byte listening port] [33-byte public key] [8-byte nonce] [32-byte resulting hash] [32-byte mixhash]
+    //[64-byte signature]
     LOG_MARKER();
 
     if (m_state == DSBLOCK_CONSENSUS
