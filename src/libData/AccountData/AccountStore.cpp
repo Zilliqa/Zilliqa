@@ -297,7 +297,7 @@ bool AccountStore::RetrieveFromDisk()
     return true;
 }
 
-bool AccountStore::UpdateAccountsTemp(const uint256_t& blockNum,
+bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
                                       const Transaction& transaction)
 {
     LOG_MARKER();

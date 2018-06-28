@@ -33,7 +33,7 @@ template<class MAP> void AccountStoreSC<MAP>::Init()
 }
 
 template<class MAP>
-bool AccountStoreSC<MAP>::UpdateAccounts(const uint256_t& blockNum,
+bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                                          const Transaction& transaction)
 {
     LOG_MARKER();
@@ -286,14 +286,14 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint256_t& blockNum,
 
 template<class MAP>
 Json::Value
-AccountStoreSC<MAP>::GetBlockStateJson(const uint256_t& BlockNum,
-                                       const uint256_t& CreateBlockNum) const
+AccountStoreSC<MAP>::GetBlockStateJson(const uint64_t& BlockNum,
+                                       const uint64_t& CreateBlockNum) const
 {
     Json::Value root;
     Json::Value blockItem;
     blockItem["vname"] = "BLOCKNUMBER";
     blockItem["type"] = "BNum";
-    blockItem["value"] = BlockNum.convert_to<string>();
+    blockItem["value"] = to_string(BlockNum);
     root.append(blockItem);
     LOG_GENERAL(INFO, "BNum: " << BlockNum);
 
