@@ -82,7 +82,7 @@ void DirectoryService::ComposeDSBlock()
                         CoSignatures()));
     }
 
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "New DSBlock created with chosen nonce = 0x" << hex
                                                            << winnerNonce);
 }
@@ -91,7 +91,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
 {
     LOG_MARKER();
 
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I am the leader DS node. Creating DS block.");
 
     ComposeDSBlock();
@@ -123,8 +123,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
 
     if (m_consensusObject == nullptr)
     {
-        LOG_EPOCH(WARNING,
-                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "WARNING: Unable to create consensus object");
         return false;
     }
@@ -163,8 +162,7 @@ bool DirectoryService::DSBlockValidator(const vector<unsigned char>& dsblock,
     if (m_allPoWConns.find(m_pendingDSBlock->GetHeader().GetMinerPubKey())
         == m_allPoWConns.end())
     {
-        LOG_EPOCH(INFO,
-                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Winning node of PoW1 not inside m_allPoWConns! Getting "
                   "from ds leader");
 
@@ -184,7 +182,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup()
 {
     LOG_MARKER();
 
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I am a backup DS node. Waiting for DS block announcement.");
 
     // Dummy values for now
@@ -206,8 +204,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup()
 
     if (m_consensusObject == nullptr)
     {
-        LOG_EPOCH(WARNING,
-                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Unable to create consensus object");
         return false;
     }
@@ -222,8 +219,7 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin)
 
     {
         lock_guard<mutex> g(m_mutexAllPOW1);
-        LOG_EPOCH(INFO,
-                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Num of PoW1 sub rec: " << m_allPoW1s.size());
         LOG_STATE("[POW1R][" << std::setw(15) << std::left
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
@@ -231,8 +227,7 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin)
 
         if (m_allPoW1s.size() == 0)
         {
-            LOG_EPOCH(WARNING,
-                      m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "To-do: Code up the logic for if we didn't get any "
                       "submissions at all");
             // throw exception();
@@ -277,8 +272,7 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin)
         {
             //View change.
             //TODO: This is a simplified version and will be review again.
-            LOG_EPOCH(INFO,
-                      m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Initiated DS block view change. ");
             RunConsensusOnViewChange();
         }

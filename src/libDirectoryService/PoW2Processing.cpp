@@ -85,8 +85,7 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
     if (TEST_NET_MODE
         && not Whitelist::GetInstance().IsPubkeyInShardWhiteList(key))
     {
-        LOG_EPOCH(WARNING,
-                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Submitted PoW2 but node is not in shard whitelist. Hence, "
                   "not accepted!");
         return false;
@@ -131,13 +130,13 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
     m_mediator.UpdateDSBlockRand();
 
     // Log all values
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Public_key             = 0x"
                   << DataConversion::SerializableToHexStr(key));
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Winning IP                = " << peer.GetPrintableIPAddress()
                                              << ":" << portNo);
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "dsb size               = "
                   << m_mediator.m_dsBlockChain.GetBlockCount())
 
@@ -161,8 +160,7 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
     // if ((m_state != POW2_SUBMISSION) && (m_state != SHARDING_CONSENSUS_PREP))
     if (!CheckState(VERIFYPOW2))
     {
-        LOG_EPOCH(INFO,
-                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Too late - current state is "
                       << m_state
                       << ". Don't verify cause I got other work to do. "
@@ -177,7 +175,7 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
                                                rand2, ipAddr, key, false, nonce,
                                                winning_hash, winning_mixhash);
 
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "[POWSTAT] pow 2 verify (microsec): " << r_timer_end(m_timespec));
 
     if (result == true)
@@ -186,14 +184,12 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
         // Accept slightly late entries as the primary DS might have received some of those entries and have those in his proposed shards
         if (!CheckState(VERIFYPOW2))
         {
-            LOG_EPOCH(INFO,
-                      m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Too late - current state is " << m_state);
         }
         else
         {
-            LOG_EPOCH(INFO,
-                      m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "POW2 verification passed");
             //lock(m_mutexAllPOW2, m_mutexAllPoWConns);
             //lock_guard<mutex> g(m_mutexAllPOW2, adopt_lock);
@@ -204,8 +200,7 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
     }
     else
     {
-        LOG_EPOCH(WARNING,
-                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Invalid PoW2 submission"
                       << "\n"
                       << "blockNum: " << block_num
@@ -237,20 +232,17 @@ bool DirectoryService::ProcessPoW2Submission(
                 cv_lk, std::chrono::seconds(POW_SUBMISSION_TIMEOUT))
             == std::cv_status::timeout)
         {
-            LOG_EPOCH(WARNING,
-                      m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Time out while waiting for state transition ");
         }
 
-        LOG_EPOCH(INFO,
-                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "State transition is completed. (check for timeout)");
     }
 
     if (!CheckState(PROCESS_POW2SUBMISSION))
     {
-        LOG_EPOCH(INFO,
-                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Not at POW2_SUBMISSION. Current state is " << m_state);
         return false;
     }

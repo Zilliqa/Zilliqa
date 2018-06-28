@@ -127,8 +127,7 @@ void DirectoryService::ScheduleViewChangeTimeout()
                                       std::chrono::seconds(VIEWCHANGE_TIME))
         == std::cv_status::timeout)
     {
-        LOG_EPOCH(WARNING,
-                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Initiated view change again. ");
 
         auto func = [this]() -> void { RunConsensusOnViewChange(); };
@@ -178,7 +177,7 @@ bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader()
 {
     LOG_MARKER();
 
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I am the candidate leader DS node. Announcing to the rest.");
 
     ComputeNewCandidateLeader();
@@ -201,8 +200,7 @@ bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader()
 
     if (m_consensusObject == nullptr)
     {
-        LOG_EPOCH(WARNING,
-                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Error: Unable to create consensus object");
         return false;
     }
@@ -226,7 +224,7 @@ bool DirectoryService::RunConsensusOnViewChangeWhenNotCandidateLeader()
 {
     LOG_MARKER();
 
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I am a backup DS node (after view change). Waiting for View "
               "Change announcement.");
 
@@ -249,8 +247,7 @@ bool DirectoryService::RunConsensusOnViewChangeWhenNotCandidateLeader()
 
     if (m_consensusObject == nullptr)
     {
-        LOG_EPOCH(WARNING,
-                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Error: Unable to create consensus object");
         return false;
     }

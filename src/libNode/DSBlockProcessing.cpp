@@ -52,7 +52,7 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock)
     LOG_MARKER();
 
     m_mediator.m_dsBlockChain.AddBlock(dsblock);
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Storing DS Block Number: "
                   << dsblock.GetHeader().GetBlockNum()
                   << " with Nonce: " << dsblock.GetHeader().GetNonce()
@@ -109,8 +109,7 @@ bool Node::CheckWhetherDSBlockNumIsLatest(const uint256_t dsblockNum)
 
     if (dsblockNum < latestBlockNumInBlockchain)
     {
-        LOG_EPOCH(WARNING,
-                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "We are processing duplicated blocks\n"
                       << "cur block num: " << latestBlockNumInBlockchain << "\n"
                       << "incoming block num: " << dsblockNum);
@@ -118,8 +117,7 @@ bool Node::CheckWhetherDSBlockNumIsLatest(const uint256_t dsblockNum)
     }
     else if (dsblockNum > latestBlockNumInBlockchain)
     {
-        LOG_EPOCH(WARNING,
-                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Warning: We are missing of some DS blocks. Requested: "
                       << dsblockNum
                       << " while Present: " << latestBlockNumInBlockchain);
@@ -196,21 +194,21 @@ bool Node::VerifyDSBlockCoSignature(const DSBlock& dsblock)
 void Node::LogReceivedDSBlockDetails(const DSBlock& dsblock)
 {
 #ifdef IS_LOOKUP_NODE
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I the lookup node have deserialized the DS Block");
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "dsblock.GetHeader().GetDifficulty(): "
                   << (int)dsblock.GetHeader().GetDifficulty());
     LOG_EPOCH(
-        INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
         "dsblock.GetHeader().GetNonce(): " << dsblock.GetHeader().GetNonce());
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "dsblock.GetHeader().GetBlockNum(): "
                   << dsblock.GetHeader().GetBlockNum());
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "dsblock.GetHeader().GetMinerPubKey(): "
                   << dsblock.GetHeader().GetMinerPubKey());
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "dsblock.GetHeader().GetLeaderPubKey(): "
                   << dsblock.GetHeader().GetLeaderPubKey());
 #endif // IS_LOOKUP_NODE
@@ -227,8 +225,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
     // Checks if (m_state == POW2_SUBMISSION)
     if (!CheckState(STARTPOW2))
     {
-        LOG_EPOCH(WARNING,
-                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Not in POW2_SUBMISSION state");
         return false;
     }
@@ -243,7 +240,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
         }
     }
 #else
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I the lookup node have received the DS Block");
 #endif // IS_LOOKUP_NODE
 
@@ -275,8 +272,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
     // Check the signature of this DS block
     if (!VerifyDSBlockCoSignature(dsblock))
     {
-        LOG_EPOCH(WARNING,
-                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "DSBlock co-sig verification failed");
         return false;
     }
@@ -302,7 +298,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
                          << "] RECEIVED DSBLOCK");
 
 #ifdef IS_LOOKUP_NODE
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I the lookup node have stored the DS Block");
 #endif // IS_LOOKUP_NODE
 
@@ -316,8 +312,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
                .GetHeader()
                .GetMinerPubKey())
     {
-        LOG_EPOCH(INFO,
-                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "I won PoW1 :-) I am now the new DS committee leader!");
 
         if (TEST_NET_MODE)
@@ -333,7 +328,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
         m_mediator.m_ds->SetState(DirectoryService::DirState::POW2_SUBMISSION);
         m_mediator.m_ds->NotifyPOW2Submission();
         m_mediator.m_ds->m_mode = DirectoryService::Mode::PRIMARY_DS;
-        LOG_EPOCHINFO(m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
                       DS_LEADER_MSG);
         LOG_STATE("[IDENT][" << std::setw(15) << std::left
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
@@ -343,8 +338,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
     }
     else
     {
-        LOG_EPOCH(INFO,
-                  m_mediator.m_currentEpochNum.convert_to<string>().c_str(),
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "I lost PoW1 :-( Better luck next time!");
         POW::GetInstance().StopMining();
 
