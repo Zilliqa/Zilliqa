@@ -125,15 +125,15 @@ const std::vector<std::string> GENESIS_KEYS{
 const std::string SCILLA_PATH{ReadSmartContractConstants("SCILLA_PATH")};
 const std::string SCILLA_FILES{ReadSmartContractConstants("SCILLA_FILES")};
 const std::string SCILLA_LOG{ReadSmartContractConstants("SCILLA_LOG")};
-const std::string INIT_JSON{SCILLA_FILES
+const std::string INIT_JSON{SCILLA_FILES + '/'
                             + ReadSmartContractConstants("INIT_JSON")};
 const std::string INPUT_STATE_JSON{
-    SCILLA_FILES + ReadSmartContractConstants("INPUT_STATE_JSON")};
+    SCILLA_FILES + '/' + ReadSmartContractConstants("INPUT_STATE_JSON")};
 const std::string INPUT_BLOCKCHAIN_JSON{
-    SCILLA_FILES + ReadSmartContractConstants("INPUT_BLOCKCHAIN_JSON")};
+    SCILLA_FILES + '/' + ReadSmartContractConstants("INPUT_BLOCKCHAIN_JSON")};
 const std::string INPUT_MESSAGE_JSON{
-    SCILLA_FILES + ReadSmartContractConstants("INPUT_MESSAGE_JSON")};
-const std::string OUTPUT_JSON{SCILLA_FILES
+    SCILLA_FILES + '/' + ReadSmartContractConstants("INPUT_MESSAGE_JSON")};
+const std::string OUTPUT_JSON{SCILLA_FILES + '/'
                               + ReadSmartContractConstants("OUTPUT_JSON")};
-const std::string INPUT_CODE{SCILLA_FILES
+const std::string INPUT_CODE{SCILLA_FILES + '/'
                              + ReadSmartContractConstants("INPUT_CODE")};
