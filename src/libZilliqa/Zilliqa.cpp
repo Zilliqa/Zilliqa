@@ -24,6 +24,7 @@
 #include "libCrypto/Schnorr.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Address.h"
+#include "libNetwork/Whitelist.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 
@@ -88,6 +89,7 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
     {
     case SyncType::NO_SYNC:
         LOG_GENERAL(INFO, "No Sync Needed");
+        Whitelist::GetInstance().Init();
         break;
 #ifndef IS_LOOKUP_NODE
     case SyncType::NEW_SYNC:

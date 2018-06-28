@@ -34,6 +34,7 @@
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 #include "libMediator/Mediator.h"
+#include "libNetwork/Whitelist.h"
 #include "libPOW/pow.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
@@ -313,6 +314,13 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "I won PoW1 :-) I am now the new DS committee leader!");
+
+        if (TEST_NET_MODE)
+        {
+            LOG_GENERAL(INFO, "Updating shard whitelist");
+            Whitelist::GetInstance().UpdateShardWhitelist();
+        }
+
         m_mediator.m_lookup->m_syncType = SyncType::NO_SYNC;
         m_mediator.m_ds->m_consensusMyID = 0;
         m_mediator.m_ds->m_consensusID
