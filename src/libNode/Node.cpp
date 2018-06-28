@@ -460,7 +460,6 @@ vector<Transaction> GenTransactionBulk(PrivKey& fromPrivKey, PubKey& fromPubKey,
                                        size_t n)
 {
     vector<Transaction> txns;
-    const size_t amountLimitMask = 0xff; // amount will vary from 0 to 255
 
     // FIXME: it's a workaround to use the first genensis account
     // auto receiver = Schnorr::GetInstance().GenKeyPair();
@@ -481,7 +480,7 @@ vector<Transaction> GenTransactionBulk(PrivKey& fromPrivKey, PubKey& fromPubKey,
     for (auto i = 0u; i != n; i++)
     {
         auto txn = CreateValidTestingTransaction(
-            fromPrivKey, fromPubKey, receiverAddr, i & amountLimitMask);
+            fromPrivKey, fromPubKey, receiverAddr, i);
         txns.emplace_back(txn);
     }
 
@@ -790,7 +789,7 @@ void Node::SubmitTransactions()
 {
     //LOG_MARKER();
 
-    unsigned long long txn_sent_count = 0;
+    unsigned int txn_sent_count = 0;
     boost::multiprecision::uint256_t blockNum
         = (uint256_t)m_mediator.m_currentEpochNum;
 
