@@ -44,10 +44,10 @@ class Whitelist
     std::vector<PubKey> m_ShardWhiteList;
 
     //IPFilter
-    std::mutex m_mutexIPexclusion;
+    std::mutex m_mutexIPExclusion;
     std::vector<std::pair<boost::multiprecision::uint128_t,
                           boost::multiprecision::uint128_t>>
-        m_IPexclusionRange;
+        m_IPExclusionRange;
 
 public:
     /// Returns the singleton Whitelist instance.
