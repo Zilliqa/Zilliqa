@@ -108,7 +108,7 @@ public:
 
 private:
     std::mutex m_heartBeatMutex;
-    uint64_t m_heartBeatTime;
+    unsigned int m_heartBeatTime;
 };
 
 #endif // __MEDIATOR_H__
