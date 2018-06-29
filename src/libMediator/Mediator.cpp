@@ -128,7 +128,8 @@ void Mediator::HeartBeat_Init()
 
     auto func = [this]() -> void {
         const unsigned int heartBeatTimeout = (2 * 60 * NUM_FINAL_BLOCK_PER_POW)
-            + POW1_WINDOW_IN_SECONDS + BACKUP_POW2_WINDOW_IN_SECONDS;
+            + POW1_WINDOW_IN_SECONDS + BACKUP_POW2_WINDOW_IN_SECONDS
+            + HEARTBEAT_DELTA;
 
         while (true)
         {
