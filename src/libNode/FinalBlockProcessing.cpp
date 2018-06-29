@@ -790,7 +790,6 @@ bool Node::IsMyShardsMicroBlockInFinalBlock(const uint256_t& blocknum)
         return false;
     }
 
-    lock_guard<mutex> g(m_mutexUnavailableMicroBlocks);
     auto it = m_unavailableMicroBlocks.find(blocknum);
     if (it == m_unavailableMicroBlocks.end())
     {
