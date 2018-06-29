@@ -129,21 +129,21 @@ void Mediator::HeartBeat_Init()
     auto func = [this]() -> void {
         while (true)
         {
+            this_thread::sleep_for(chrono::seconds(HEARTBEAT_INTERVAL));
             lock_guard<mutex> guard(m_heartBeatMutex);
+            m_heartBeatTime += HEARTBEAT_INTERVAL;
 
-            if (m_heartBeatTime > HEARTBEAT_TIMEOUT)
+            if (m_heartBeatTime < HEARTBEAT_TIMEOUT)
             {
-                LOG_GENERAL(WARNING, "I am DEAD, rejoin to network");
-                (DirectoryService::Mode::IDLE == m_ds->m_mode)
-                    ? m_node->RejoinAsNormal()
-                    : m_ds->RejoinAsDS();
-                m_heartBeatTime = 0;
+                LOG_GENERAL(INFO, "Still alive...");
                 continue;
             }
 
-            LOG_GENERAL(INFO, "Still alive...");
-            this_thread::sleep_for(chrono::seconds(HEARTBEAT_INTERVAL));
-            m_heartBeatTime += HEARTBEAT_INTERVAL;
+            LOG_GENERAL(WARNING, "I am DEAD, rejoin to network");
+            (DirectoryService::Mode::IDLE == m_ds->m_mode)
+                ? m_node->RejoinAsNormal()
+                : m_ds->RejoinAsDS();
+            m_heartBeatTime = 0;
         }
     };
 
