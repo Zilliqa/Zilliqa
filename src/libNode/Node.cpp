@@ -693,25 +693,25 @@ bool Node::ProcessCreateTransactionFromLookup(
 
     LOG_MARKER();
 
-    bool isVacuousEpoch
-        = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
+    // bool isVacuousEpoch
+    //     = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
 
-    if (!isVacuousEpoch)
-    {
-        unique_lock<mutex> g(m_mutexNewRoungStarted);
-        if (!m_newRoundStarted)
-        {
-            LOG_GENERAL(INFO, "Wait for new consensus round started");
-            m_cvNewRoundStarted.wait(g, [this] { return m_newRoundStarted; });
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "New consensus round started, moving to "
-                      "ProcessSubmitTxnSharing");
-        }
-        else
-        {
-            LOG_GENERAL(INFO, "No need to wait for newRoundStarted");
-        }
-    }
+    // if (!isVacuousEpoch)
+    // {
+    //     unique_lock<mutex> g(m_mutexNewRoungStarted);
+    //     if (!m_newRoundStarted)
+    //     {
+    //         LOG_GENERAL(INFO, "Wait for new consensus round started");
+    //         m_cvNewRoundStarted.wait(g, [this] { return m_newRoundStarted; });
+    //         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    //                   "New consensus round started, moving to "
+    //                   "ProcessSubmitTxnSharing");
+    //     }
+    //     else
+    //     {
+    //         LOG_GENERAL(INFO, "No need to wait for newRoundStarted");
+    //     }
+    // }
 
     if (IsMessageSizeInappropriate(message.size(), offset,
                                    Transaction::GetMinSerializedSize()))
