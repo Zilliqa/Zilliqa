@@ -982,6 +982,12 @@ bool Node::CleanVariables()
 
     return true;
 }
+
+void Node::CleanCreatedTransaction()
+{
+    std::lock_guard<mutex> lock(m_mutexCreatedTransactions);
+    m_createdTransactions.clear();
+}
 #endif // IS_LOOKUP_NODE
 
 bool Node::ToBlockMessage(unsigned char ins_byte)
