@@ -43,6 +43,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     const PubKey& senderPubKey = transaction.GetSenderPubKey();
     const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
     Address toAddr = transaction.GetToAddr();
+
     const uint256_t& amount = transaction.GetAmount();
 
     // FIXME: Possible integer overflow here
@@ -56,7 +57,20 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     if (transaction.GetData().empty() && transaction.GetCode().empty())
     {
         LOG_GENERAL(INFO, "Normal transaction");
-        return AccountStoreBase<MAP>::UpdateAccounts(blockNum, transaction);
+
+        // Disallow normal transaction to contract account
+        Account* toAccount = this->GetAccount(toAddr);
+        if (toAccount != nullptr)
+        {
+            if (toAccount->isContract())
+            {
+                LOG_GENERAL(INFO,
+                            "Contract account won't accept normal transaction");
+                return false;
+            }
+        }
+
+        return AccountStoreBase<MAP>::UpdateAccounts(transaction);
     }
 
     bool callContract = false;
@@ -131,6 +145,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         toAccount->SetCode(transaction.GetCode());
         // Store the immutable states
         toAccount->InitContract(transaction.GetData());
+        // Set the blockNumber when the account was created
+        toAccount->SetCreateBlockNum(blockNum);
 
         m_curBlockNum = blockNum;
 
@@ -239,7 +255,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         }
         if (ret && !ParseCallContractOutput())
         {
-            return false;
+            ret = false;
         }
         if (!ret)
         {
@@ -270,7 +286,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
 template<class MAP>
 Json::Value
-AccountStoreSC<MAP>::GetBlockStateJson(const uint64_t& BlockNum) const
+AccountStoreSC<MAP>::GetBlockStateJson(const uint64_t& BlockNum,
+                                       const uint64_t& CreateBlockNum) const
 {
     Json::Value root;
     Json::Value blockItem;
@@ -279,6 +296,9 @@ AccountStoreSC<MAP>::GetBlockStateJson(const uint64_t& BlockNum) const
     blockItem["value"] = to_string(BlockNum);
     root.append(blockItem);
     LOG_GENERAL(INFO, "BNum: " << BlockNum);
+
+    (void)CreateBlockNum;
+
     return root;
 }
 
@@ -297,8 +317,7 @@ void AccountStoreSC<MAP>::ExportCreateContractFiles(const Account& contract)
 
     // Scilla code
     // JSONUtils::writeJsontoFile(INPUT_CODE, contract.GetCode());
-    std::ofstream os;
-    os.open(INPUT_CODE);
+    std::ofstream os(INPUT_CODE);
     os << DataConversion::CharArrayToString(contract.GetCode());
     os.close();
 
@@ -306,8 +325,9 @@ void AccountStoreSC<MAP>::ExportCreateContractFiles(const Account& contract)
     JSONUtils::writeJsontoFile(INIT_JSON, contract.GetInitJson());
 
     // Block Json
-    JSONUtils::writeJsontoFile(INPUT_BLOCKCHAIN_JSON,
-                               GetBlockStateJson(m_curBlockNum));
+    JSONUtils::writeJsontoFile(
+        INPUT_BLOCKCHAIN_JSON,
+        GetBlockStateJson(m_curBlockNum /*, contract.GetCreateBlockNum()*/));
 }
 
 template<class MAP>
@@ -318,10 +338,14 @@ void AccountStoreSC<MAP>::ExportContractFiles(const Account& contract)
     boost::filesystem::remove_all("./" + SCILLA_FILES);
     boost::filesystem::create_directories("./" + SCILLA_FILES);
 
+    if (!(boost::filesystem::exists("./" + SCILLA_LOG)))
+    {
+        boost::filesystem::create_directories("./" + SCILLA_LOG);
+    }
+
     // Scilla code
     // JSONUtils::writeJsontoFile(INPUT_CODE, contract.GetCode());
-    std::ofstream os;
-    os.open(INPUT_CODE);
+    std::ofstream os(INPUT_CODE);
     os << DataConversion::CharArrayToString(contract.GetCode());
     os.close();
 
@@ -332,8 +356,9 @@ void AccountStoreSC<MAP>::ExportContractFiles(const Account& contract)
     JSONUtils::writeJsontoFile(INPUT_STATE_JSON, contract.GetStorageJson());
 
     // Block Json
-    JSONUtils::writeJsontoFile(INPUT_BLOCKCHAIN_JSON,
-                               GetBlockStateJson(m_curBlockNum));
+    JSONUtils::writeJsontoFile(
+        INPUT_BLOCKCHAIN_JSON,
+        GetBlockStateJson(m_curBlockNum /*, contract.GetCreateBlockNum()*/));
 }
 
 template<class MAP>
@@ -349,7 +374,6 @@ bool AccountStoreSC<MAP>::ExportCallContractFiles(
     Json::Value msgObj;
     if (!JSONUtils::convertStrtoJson(dataStr, msgObj))
     {
-        boost::filesystem::remove_all("./" + SCILLA_FILES);
         return false;
     }
     string prepend = "0x";

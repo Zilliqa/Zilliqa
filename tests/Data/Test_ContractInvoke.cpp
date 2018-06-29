@@ -152,8 +152,10 @@ bool CreateContract(const int& blockNum, ResetType rType)
         icfAddress = Account::GetAddressForContract(fromAddr, nonce);
         LOG_GENERAL(INFO, "Invoker Address: " << icfAddress);
         tAddress = icfAddress;
-        initStr = regex_replace(icfInitStr, regex("\\$ADDR"),
+        initStr = regex_replace(icfInitStr, regex("\\$CONTRACT"),
                                 "0x" + cfAddress.hex());
+        initStr
+            = regex_replace(initStr, regex("\\$OWNER"), "0x" + fromAddr.hex());
         codeStr = icfCodeStr;
         break;
     }
@@ -179,18 +181,19 @@ bool CreateContract(const int& blockNum, ResetType rType)
         checkAddr = true;
         nonce++;
 
-        if (rType == ICF)
-        {
-            // transfer balance
-            int amount = 122;
-            Transaction transferTx(1, nonce, tAddress, sender, amount, 1, 1, {},
-                                   {});
-            if (AccountStore::GetInstance().UpdateAccounts(blockNum,
-                                                           transferTx))
-            {
-                nonce++;
-            }
-        }
+        // if (rType == ICF)
+        // {
+        //     // transfer balance
+        //     LOG_GENERAL(INFO, "Try making normal transaction to invoker");
+        //     int amount = 122;
+        //     Transaction transferTx(1, nonce, tAddress, sender, amount, 1, 1, {},
+        //                            {});
+        //     if (AccountStore::GetInstance().UpdateAccounts(blockNum,
+        //                                                    transferTx))
+        //     {
+        //         nonce++;
+        //     }
+        // }
     }
     BOOST_CHECK_MESSAGE(checkAddr, "Error with creation of contract account");
     return checkAddr;
@@ -271,6 +274,20 @@ void AutoTest(bool doResetCF, bool doResetICF,
                 nonce++;
             }
 
+            LOG_GENERAL(INFO, "Balance: ");
+            LOG_GENERAL(INFO,
+                        "fromAddr:" << AccountStore::GetInstance().GetBalance(
+                            fromAddr));
+            LOG_GENERAL(INFO,
+                        "fromAddr2:" << AccountStore::GetInstance().GetBalance(
+                            fromAddr2));
+            LOG_GENERAL(INFO,
+                        "cfAddress:" << AccountStore::GetInstance().GetBalance(
+                            cfAddress));
+            LOG_GENERAL(INFO,
+                        "icfAddress:" << AccountStore::GetInstance().GetBalance(
+                            icfAddress));
+
             if (doResetCF
                 && !(i == samples.size() - 1
                      && j == samples[samples.size() - 1].icfSamples.size() - 1))
@@ -307,7 +324,9 @@ BOOST_AUTO_TEST_CASE(testContractInvoking)
     sender2 = Schnorr::GetInstance().GenKeyPair();
 
     fromAddr = Account::GetAddressFromPublicKey(sender.second);
+    LOG_GENERAL(INFO, "fromAddr: " << fromAddr);
     fromAddr2 = Account::GetAddressFromPublicKey(sender2.second);
+    LOG_GENERAL(INFO, "fromAddr2: " << fromAddr2);
 
     vector<CFSampleInput> samples{
         {"",
@@ -316,7 +335,7 @@ BOOST_AUTO_TEST_CASE(testContractInvoking)
          1,
          10,
          100,
-         {{icfDataStr1, icfOutStr1, 0, 1, 10, 100, "State1_Invoke1_NG"},
+         {{icfDataStr1, icfOutStr1, 100, 1, 10, 100, "State1_Invoke1_NG"},
           {icfDataStr2, icfOutStr2, 0, 1, 10, 100, "State1_Invoke2_NG"},
           {icfDataStr3, icfOutStr3, 0, 1, 10, 100, "State1_Invoke3_NG"}}},
         {"",
@@ -325,7 +344,7 @@ BOOST_AUTO_TEST_CASE(testContractInvoking)
          1,
          10,
          100,
-         {{icfDataStr1, icfOutStr1, 0, 1, 30, 100, "State1_Invoke1_G"},
+         {{icfDataStr1, icfOutStr1, 100, 1, 30, 100, "State1_Invoke1_G"},
           {icfDataStr2, icfOutStr2, 0, 1, 30, 100, "State1_Invoke2_G"},
           {icfDataStr3, icfOutStr3, 0, 1, 30, 100, "State1_Invoke3_G"}}},
 
@@ -335,7 +354,7 @@ BOOST_AUTO_TEST_CASE(testContractInvoking)
          1,
          10,
          100,
-         {{icfDataStr1, icfOutStr1, 0, 1, 10, 100, "State2_Invoke1_NG"},
+         {{icfDataStr1, icfOutStr1, 100, 1, 10, 100, "State2_Invoke1_NG"},
           {icfDataStr2, icfOutStr2, 0, 1, 10, 100, "State2_Invoke2_NG"},
           {icfDataStr3, icfOutStr3, 0, 1, 10, 100, "State2_Invoke3_NG"}}},
         {cfDataDonateStr,
@@ -344,7 +363,7 @@ BOOST_AUTO_TEST_CASE(testContractInvoking)
          1,
          10,
          100,
-         {{icfDataStr1, icfOutStr1, 0, 1, 30, 100, "State2_Invoke1_G"},
+         {{icfDataStr1, icfOutStr1, 100, 1, 30, 100, "State2_Invoke1_G"},
           {icfDataStr2, icfOutStr2, 0, 1, 30, 100, "State2_Invoke2_G"},
           {icfDataStr3, icfOutStr3, 0, 1, 30, 100, "State2_Invoke3_G"}}},
 
@@ -354,7 +373,7 @@ BOOST_AUTO_TEST_CASE(testContractInvoking)
          1,
          10,
          100,
-         {{icfDataStr1, icfOutStr1, 0, 1, 10, 100, "State3_Invoke1_NG"},
+         {{icfDataStr1, icfOutStr1, 100, 1, 10, 100, "State3_Invoke1_NG"},
           {icfDataStr2, icfOutStr2, 0, 1, 10, 100, "State3_Invoke2_NG"},
           {icfDataStr3, icfOutStr3, 0, 1, 10, 100, "State3_Invoke3_NG"}}},
         {cfDataDonateStr,
@@ -363,7 +382,7 @@ BOOST_AUTO_TEST_CASE(testContractInvoking)
          1,
          10,
          100,
-         {{icfDataStr1, icfOutStr1, 0, 1, 30, 100, "State3_Invoke1_G"},
+         {{icfDataStr1, icfOutStr1, 100, 1, 30, 100, "State3_Invoke1_G"},
           {icfDataStr2, icfOutStr2, 0, 1, 30, 100, "State3_Invoke2_G"},
           {icfDataStr3, icfOutStr3, 0, 1, 30, 100, "State3_Invoke3_G"}}},
 
@@ -373,7 +392,7 @@ BOOST_AUTO_TEST_CASE(testContractInvoking)
          1,
          10,
          200,
-         {{icfDataStr1, icfOutStr1, 0, 1, 10, 100, "State4_Invoke1_NG"},
+         {{icfDataStr1, icfOutStr1, 100, 1, 10, 100, "State4_Invoke1_NG"},
           {icfDataStr2, icfOutStr2, 0, 1, 10, 100, "State4_Invoke2_NG"},
           {icfDataStr3, icfOutStr3, 0, 1, 10, 100, "State4_Invoke3_NG"}}},
         {cfDataGetFundsStr,
@@ -382,7 +401,7 @@ BOOST_AUTO_TEST_CASE(testContractInvoking)
          1,
          10,
          200,
-         {{icfDataStr1, icfOutStr1, 0, 1, 30, 100, "State4_Invoke1_G"},
+         {{icfDataStr1, icfOutStr1, 100, 1, 30, 100, "State4_Invoke1_G"},
           {icfDataStr2, icfOutStr2, 0, 1, 30, 100, "State4_Invoke2_G"},
           {icfDataStr3, icfOutStr3, 0, 1, 30, 100, "State4_Invoke3_G"}}},
 
@@ -392,7 +411,7 @@ BOOST_AUTO_TEST_CASE(testContractInvoking)
          1,
          10,
          300,
-         {{icfDataStr1, icfOutStr1, 0, 1, 10, 100, "State5_Invoke1_NG"},
+         {{icfDataStr1, icfOutStr1, 100, 1, 10, 100, "State5_Invoke1_NG"},
           {icfDataStr2, icfOutStr2, 0, 1, 10, 100, "State5_Invoke2_NG"},
           {icfDataStr3, icfOutStr3, 0, 1, 10, 100, "State5_Invoke3_NG"}}},
         {cfDataClaimBackStr,
@@ -401,7 +420,7 @@ BOOST_AUTO_TEST_CASE(testContractInvoking)
          1,
          10,
          300,
-         {{icfDataStr1, icfOutStr1, 0, 1, 30, 100, "State5_Invoke1_G"},
+         {{icfDataStr1, icfOutStr1, 100, 1, 30, 100, "State5_Invoke1_G"},
           {icfDataStr2, icfOutStr2, 0, 1, 30, 100, "State5_Invoke2_G"},
           {icfDataStr3, icfOutStr3, 0, 1, 30, 100, "State5_Invoke3_G"}}},
     };

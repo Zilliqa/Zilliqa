@@ -55,15 +55,15 @@ let one_msg =
     Cons {Message} msg nil_msg
     
 let check_update = 
-  fun (bs : Map Address Int) =>
+  fun (bs : Map Address Uint128) =>
   fun (_sender : Address) =>
-  fun (_amount : Int) =>
+  fun (_amount : Uint128) =>
     let c = builtin contains bs _sender in
     match c with 
     | False => 
       let bs1 = builtin put bs _sender _amount in
-      Some {Map Address Int} bs1 
-    | True  => None {Map Address Int}
+      Some {Map Address Uint128} bs1 
+    | True  => None {Map Address Uint128}
     end
 
 let blk_leq =
@@ -73,15 +73,15 @@ let blk_leq =
     let bc2 = builtin eq blk1 blk2 in 
     orb bc1 bc2
 
-let accepted_code = 1
-let missed_deadline_code = 2
-let already_backed_code  = 3
-let not_owner_code  = 4
-let too_early_code  = 5
-let got_funds_code  = 6
-let cannot_get_funds  = 7
-let cannot_reclaim_code = 8
-let reclaimed_code = 9
+let accepted_code = Int32 1
+let missed_deadline_code = Int32 2
+let already_backed_code  = Int32 3
+let not_owner_code  = Int32 4
+let too_early_code  = Int32 5
+let got_funds_code  = Int32 6
+let cannot_get_funds  = Int32 7
+let cannot_reclaim_code = Int32 8
+let reclaimed_code = Int32 9
   
 (***************************************************)
 (*             The contract definition             *)
@@ -91,10 +91,10 @@ contract Crowdfunding
 (*  Parameters *)
 (owner     : Address,
  max_block : BNum,
- goal      : Int)
+ goal      : Uint128)
 
 (* Mutable fields *)
-field backers : Map Address Int = Emp Address Int
+field backers : Map Address Uint128 = Emp Address Uint128
 field funded : Bool = False
 
 transition Donate ()
@@ -106,21 +106,21 @@ transition Donate ()
     res = check_update bs _sender _amount;
     match res with
     | None => 
-      msg  = {_tag : Main; _recipient : _sender; _amount : 0; 
+      msg  = {_tag : ""; _recipient : _sender; _amount : Uint128 0; 
               code : already_backed_code};
       msgs = one_msg msg;
       send msgs
     | Some bs1 =>
       backers := bs1; 
       accept; 
-      msg  = {_tag : Main; _recipient : _sender; _amount : 0; 
+      msg  = {_tag : ""; _recipient : _sender; _amount : Uint128 0; 
               code : accepted_code};
       msgs = one_msg msg;
       send msgs     
     end  
   | False => 
-    msg  = {_tag : Main; _recipient : _sender; _amount : 0; 
-            code : missed_dealine_code};
+    msg  = {_tag : ""; _recipient : _sender; _amount : Uint128 0; 
+            code : missed_deadline_code};
     msgs = one_msg msg;
     send msgs
   end 
@@ -130,7 +130,7 @@ transition GetFunds ()
   is_owner = builtin eq owner _sender;
   match is_owner with
   | False => 
-    msg  = {_tag : Main; _recipient : _sender; _amount : 0; 
+    msg  = {_tag : ""; _recipient : _sender; _amount : Uint128 0;
             code : not_owner_code};
     msgs = one_msg msg;
     send msgs
@@ -144,7 +144,7 @@ transition GetFunds ()
     c4 = andb c1 c3;
     match c4 with 
     | False =>  
-      msg  = {_tag : Main; _recipient : _sender; _amount : 0; 
+      msg  = {_tag : ""; _recipient : _sender; _amount : Uint128 0;
               code : cannot_get_funds};
       msgs = one_msg msg;
       send msgs
@@ -165,13 +165,13 @@ transition ClaimBack ()
   after_deadline = builtin blt max_block blk;
   match after_deadline with
   | False =>
-    msg  = {_tag : Main; _recipient : _sender; _amount : 0; 
+    msg  = {_tag : ""; _recipient : _sender; _amount : Uint128 0;
             code : too_early_code};
     msgs = one_msg msg;
     send msgs
   | True =>
     bs <- backers;
-    bal <- balance;
+    bal <- _balance;
     (* Goal has not been reached *)
     f <- funded;
     c1 = builtin lt bal goal;
@@ -181,7 +181,7 @@ transition ClaimBack ()
     c5 = andb c3 c4;
     match c5 with
     | False =>
-      msg  = {_tag : Main; _recipient : _sender; _amount : 0; 
+      msg  = {_tag : ""; _recipient : _sender; _amount : Uint128 0;
               code : cannot_reclaim_code};
       msgs = one_msg msg;
       send msgs
@@ -189,7 +189,7 @@ transition ClaimBack ()
       res = builtin get bs _sender;
       match res with
       | None =>
-        msg  = {_tag : Main; _recipient : _sender; _amount : 0; 
+        msg  = {_tag : ""; _recipient : _sender; _amount : Uint128 0;
                 code : cannot_reclaim_code};
         msgs = one_msg msg;
         send msgs
@@ -218,7 +218,7 @@ std::string cfInitStr = R"([
     },
     { 
         "vname" : "goal",
-        "type" : "Int",
+        "type" : "Uint128",
         "value" : "500"
     }
 ])";
