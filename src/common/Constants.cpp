@@ -130,8 +130,6 @@ const unsigned int TXN_SUBMISSION{ReadFromConstantsFile("TXN_SUBMISSION")};
 const unsigned int TXN_BROADCAST{ReadFromConstantsFile("TXN_BROADCAST")};
 const unsigned int HEARTBEAT_INTERVAL{
     ReadFromConstantsFile("HEARTBEAT_INTERVAL")};
-const unsigned int HEARTBEAT_TIMEOUT{
-    ReadFromConstantsFile("HEARTBEAT_TIMEOUT")};
 const std::vector<std::string> GENESIS_WALLETS{
     ReadAccountsFromConstantsFile("wallet_address")};
 const std::vector<std::string> GENESIS_KEYS{

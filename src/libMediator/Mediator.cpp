@@ -127,13 +127,16 @@ void Mediator::HeartBeat_Init()
     m_heartBeatTime = 0;
 
     auto func = [this]() -> void {
+        const uint64_t heartBeatTimeout = (2 * 60 * NUM_FINAL_BLOCK_PER_POW)
+            + POW1_WINDOW_IN_SECONDS + BACKUP_POW2_WINDOW_IN_SECONDS;
+
         while (true)
         {
             this_thread::sleep_for(chrono::seconds(HEARTBEAT_INTERVAL));
             lock_guard<mutex> guard(m_heartBeatMutex);
             m_heartBeatTime += HEARTBEAT_INTERVAL;
 
-            if (m_heartBeatTime < HEARTBEAT_TIMEOUT)
+            if (m_heartBeatTime < heartBeatTimeout)
             {
                 LOG_GENERAL(INFO, "Still alive...");
                 continue;
