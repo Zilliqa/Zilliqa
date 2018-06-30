@@ -216,14 +216,14 @@ bool AccountStoreBase<MAP>::CalculateGasRefund(const uint256_t& gasDeposit,
         return false;
     }
 
-    LOG_GENERAL(INFO, "gas price to refund: " << gasRefund);
+    // LOG_GENERAL(INFO, "gas price to refund: " << gasRefund);
     return true;
 }
 
 template<class MAP>
 bool AccountStoreBase<MAP>::IsAccountExist(const Address& address)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
     return (nullptr != GetAccount(address));
 }
 
@@ -260,7 +260,7 @@ Account* AccountStoreBase<MAP>::GetAccount(const Address& address)
 
 template<class MAP> uint256_t AccountStoreBase<MAP>::GetNumOfAccounts() const
 {
-    LOG_MARKER();
+    // LOG_MARKER();
     return m_addressToAccount->size();
 }
 
@@ -277,12 +277,12 @@ bool AccountStoreBase<MAP>::IncreaseBalance(const Address& address,
 
     Account* account = GetAccount(address);
 
-    LOG_GENERAL(INFO, "address: " << address);
+    // LOG_GENERAL(INFO, "address: " << address);
 
     if (account != nullptr && account->IncreaseBalance(delta))
     {
         // UpdateStateTrie(address, *account);
-        LOG_GENERAL(INFO, "account: " << *account);
+        // LOG_GENERAL(INFO, "account: " << *account);
         return true;
     }
     // FIXME: remove this, temporary way to test transactions, should return false
@@ -311,8 +311,8 @@ bool AccountStoreBase<MAP>::DecreaseBalance(const Address& address,
 
     Account* account = GetAccount(address);
 
-    LOG_GENERAL(INFO, "address: " << address);
-    LOG_GENERAL(INFO, "account: " << *account);
+    // LOG_GENERAL(INFO, "address: " << address);
+    // LOG_GENERAL(INFO, "account: " << *account);
 
     // FIXME: remove this, temporary way to test transactions, should return false
     if (nullptr == account)
@@ -352,7 +352,7 @@ bool AccountStoreBase<MAP>::TransferBalance(const Address& from,
 template<class MAP>
 uint256_t AccountStoreBase<MAP>::GetBalance(const Address& address)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     const Account* account = GetAccount(address);
 
@@ -367,15 +367,15 @@ uint256_t AccountStoreBase<MAP>::GetBalance(const Address& address)
 template<class MAP>
 bool AccountStoreBase<MAP>::IncreaseNonce(const Address& address)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     Account* account = GetAccount(address);
 
-    LOG_GENERAL(INFO, "address: " << address << " account: " << *account);
+    // LOG_GENERAL(INFO, "address: " << address << " account: " << *account);
 
     if (nullptr == account)
     {
-        LOG_GENERAL(INFO, "Increase nonce failed");
+        LOG_GENERAL(WARNING, "Increase nonce failed");
 
         return false;
     }
@@ -388,7 +388,7 @@ bool AccountStoreBase<MAP>::IncreaseNonce(const Address& address)
     }
     else
     {
-        LOG_GENERAL(INFO, "Increase nonce failed");
+        LOG_GENERAL(WARNING, "Increase nonce failed");
         return false;
     }
 }
@@ -410,7 +410,7 @@ uint256_t AccountStoreBase<MAP>::GetNonce(const Address& address)
 
 template<class MAP> void AccountStoreBase<MAP>::PrintAccountState()
 {
-    LOG_GENERAL(INFO, "Printing Account State");
+    LOG_MARKER();
     for (auto entry : *m_addressToAccount)
     {
         LOG_GENERAL(INFO, entry.first << " " << entry.second);
