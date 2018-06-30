@@ -41,6 +41,8 @@ class PeerManager : public Executable, public Broadcastable
     bool ProcessBroadcast(const std::vector<unsigned char>& message,
                           unsigned int offset, const Peer& from);
 
+    void SetupLogLevel();
+
 public:
     enum InstructionType : unsigned char
     {
