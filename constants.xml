@@ -35,6 +35,7 @@
         <COINBASE_REWARD>100</COINBASE_REWARD>
         <TXN_SUBMISSION>5</TXN_SUBMISSION>
         <TXN_BROADCAST>10</TXN_BROADCAST>
+        <DEBUG_LEVEL>3</DEBUG_LEVEL>
     </constants>
     <options>
         <TEST_NET_MODE>false</TEST_NET_MODE>
