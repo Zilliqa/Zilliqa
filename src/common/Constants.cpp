@@ -128,6 +128,7 @@ const unsigned int NORMAL_TRAN_GAS{ReadFromConstantsFile("NORMAL_TRAN_GAS")};
 const unsigned int COINBASE_REWARD{ReadFromConstantsFile("COINBASE_REWARD")};
 const unsigned int TXN_SUBMISSION{ReadFromConstantsFile("TXN_SUBMISSION")};
 const unsigned int TXN_BROADCAST{ReadFromConstantsFile("TXN_BROADCAST")};
+const unsigned int DEBUG_LEVEL{ReadFromConstantsFile("DEBUG_LEVEL")};
 const std::vector<std::string> GENESIS_WALLETS{
     ReadAccountsFromConstantsFile("wallet_address")};
 const std::vector<std::string> GENESIS_KEYS{
@@ -135,15 +136,15 @@ const std::vector<std::string> GENESIS_KEYS{
 const std::string SCILLA_PATH{ReadSmartContractConstants("SCILLA_PATH")};
 const std::string SCILLA_FILES{ReadSmartContractConstants("SCILLA_FILES")};
 const std::string SCILLA_LOG{ReadSmartContractConstants("SCILLA_LOG")};
-const std::string INIT_JSON{SCILLA_FILES
+const std::string INIT_JSON{SCILLA_FILES + '/'
                             + ReadSmartContractConstants("INIT_JSON")};
 const std::string INPUT_STATE_JSON{
-    SCILLA_FILES + ReadSmartContractConstants("INPUT_STATE_JSON")};
+    SCILLA_FILES + '/' + ReadSmartContractConstants("INPUT_STATE_JSON")};
 const std::string INPUT_BLOCKCHAIN_JSON{
-    SCILLA_FILES + ReadSmartContractConstants("INPUT_BLOCKCHAIN_JSON")};
+    SCILLA_FILES + '/' + ReadSmartContractConstants("INPUT_BLOCKCHAIN_JSON")};
 const std::string INPUT_MESSAGE_JSON{
-    SCILLA_FILES + ReadSmartContractConstants("INPUT_MESSAGE_JSON")};
-const std::string OUTPUT_JSON{SCILLA_FILES
+    SCILLA_FILES + '/' + ReadSmartContractConstants("INPUT_MESSAGE_JSON")};
+const std::string OUTPUT_JSON{SCILLA_FILES + '/'
                               + ReadSmartContractConstants("OUTPUT_JSON")};
-const std::string INPUT_CODE{SCILLA_FILES
+const std::string INPUT_CODE{SCILLA_FILES + '/'
                              + ReadSmartContractConstants("INPUT_CODE")};
