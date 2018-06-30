@@ -361,6 +361,46 @@ Json::Value Server::GetSmartContractState(const string& address)
     }
 }
 
+Json::Value Server::GetSmartContractInit(const string& address)
+{
+    LOG_MARKER();
+
+    try
+    {
+        Json::Value _json;
+        if (address.size() != ACC_ADDR_SIZE * 2)
+        {
+            _json["Error"] = "Address size inappropriate";
+            return _json;
+        }
+        vector<unsigned char> tmpaddr
+            = DataConversion::HexStrToUint8Vec(address);
+        Address addr(tmpaddr);
+        const Account* account = AccountStore::GetInstance().GetAccount(addr);
+
+        if (account == nullptr)
+        {
+            _json["Error"] = "Address does not exist";
+            return _json;
+        }
+        if (!account->isContract())
+        {
+            _json["Error"] = "Address not contract address";
+            return _json;
+        }
+
+        return account->GetInitJson();
+    }
+    catch (exception& e)
+    {
+        LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << address);
+        Json::Value _json;
+        _json["Error"] = "Unable To Process";
+
+        return _json;
+    }
+}
+
 Json::Value Server::GetSmartContractCode(const string& address)
 {
     LOG_MARKER();
