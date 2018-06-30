@@ -197,8 +197,11 @@ void Node::LoadUnavailableMicroBlockHashes(
             auto& hash = finalBlock.GetMicroBlockHashes()[i];
             m_unavailableMicroBlocks[blocknum].insert(
                 {hash,
-                 // vector<bool>{!finalBlock.GetIsMicroBlockEmpty()[i], true}});
+#ifdef IS_LOOKUP_NODE
+                 vector<bool>{!finalBlock.GetIsMicroBlockEmpty()[i], true}});
+#else // IS_LOOKUP_NODE
                  vector<bool>{false, true}});
+#endif // IS_LOOKUP_NODE
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       hash)
         }
@@ -213,6 +216,7 @@ void Node::LoadUnavailableMicroBlockHashes(
             lock_guard<mutex> g2(m_mutexAllMicroBlocksRecvd);
             m_allMicroBlocksRecvd = false;
         }
+        if (IsMyShardsMicroBlockInFinalBlock(blocknum))
         {
             lock_guard<mutex> g3(m_mutexTempCommitted);
             m_tempStateDeltaCommitted = false;
@@ -781,6 +785,36 @@ bool Node::IsMyShardsMicroBlockStateDeltaHashInFinalBlock(
                m_microblock->GetHeader().GetStateDeltaHash(),
                m_microblock->GetHeader().GetTxRootHash(), blocknum,
                isEveryMicroBlockAvailable);
+}
+
+bool Node::IsMyShardsMicroBlockInFinalBlock(const uint256_t& blocknum)
+{
+    if (m_microblock == nullptr)
+    {
+        return false;
+    }
+
+    auto it = m_unavailableMicroBlocks.find(blocknum);
+    if (it == m_unavailableMicroBlocks.end())
+    {
+        return false;
+    }
+
+    for (auto it2 = m_unavailableMicroBlocks[blocknum].begin();
+         it2 != m_unavailableMicroBlocks[blocknum].end(); it2++)
+    {
+        if (it2->first.m_stateDeltaHash
+                == m_microblock->GetHeader().GetStateDeltaHash()
+            && it2->first.m_txRootHash
+                == m_microblock->GetHeader().GetTxRootHash())
+        {
+            LOG_GENERAL(INFO, "Found my shards microblock in finalblock");
+            return true;
+        }
+    }
+
+    LOG_GENERAL(WARNING, "Didn't find my shards microblock in finalblock");
+    return false;
 }
 
 bool Node::ActOnFinalBlock(uint8_t tx_sharing_mode, const vector<Peer>& nodes)
