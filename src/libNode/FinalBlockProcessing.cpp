@@ -196,8 +196,11 @@ void Node::LoadUnavailableMicroBlockHashes(
             auto& hash = finalBlock.GetMicroBlockHashes()[i];
             m_unavailableMicroBlocks[blocknum].insert(
                 {hash,
-                 // vector<bool>{!finalBlock.GetIsMicroBlockEmpty()[i], true}});
+#ifdef IS_LOOKUP_NODE
+                 vector<bool>{!finalBlock.GetIsMicroBlockEmpty()[i], true}});
+#else // IS_LOOKUP_NODE
                  vector<bool>{false, true}});
+#endif // IS_LOOKUP_NODE
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       hash)
         }
@@ -890,7 +893,8 @@ bool Node::ActOnFinalBlock(uint8_t tx_sharing_mode, const vector<Peer>& nodes)
             DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(blocknum);
         }
     }
-    else
+    else if (m_microblock != nullptr
+             && m_microblock->GetHeader().GetNumTxs() > 0)
     {
         // TODO
         LOG_GENERAL(WARNING, "Why my shards microblock not in finalblock, one");
