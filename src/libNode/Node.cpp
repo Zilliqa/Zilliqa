@@ -456,7 +456,6 @@ vector<Transaction> GenTransactionBulk(PrivKey& fromPrivKey, PubKey& fromPubKey,
                                        size_t n)
 {
     vector<Transaction> txns;
-    const size_t amountLimitMask = 0xff; // amount will vary from 0 to 255
 
     // FIXME: it's a workaround to use the first genensis account
     // auto receiver = Schnorr::GetInstance().GenKeyPair();
@@ -476,8 +475,8 @@ vector<Transaction> GenTransactionBulk(PrivKey& fromPrivKey, PubKey& fromPubKey,
     txns.reserve(n);
     for (auto i = 0u; i != n; i++)
     {
-        auto txn = CreateValidTestingTransaction(
-            fromPrivKey, fromPubKey, receiverAddr, i & amountLimitMask);
+        auto txn = CreateValidTestingTransaction(fromPrivKey, fromPubKey,
+                                                 receiverAddr, i);
         txns.emplace_back(txn);
     }
 
@@ -646,7 +645,7 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
         unique_lock<mutex> g(m_mutexNewRoungStarted);
         if (!m_newRoundStarted)
         {
-            LOG_GENERAL(INFO, "Wait for new consensus round started");
+            // LOG_GENERAL(INFO, "Wait for new consensus round started");
             m_cvNewRoundStarted.wait(g, [this] { return m_newRoundStarted; });
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "New consensus round started, moving to "
@@ -654,7 +653,7 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
         }
         else
         {
-            LOG_GENERAL(INFO, "No need to wait for newRoundStarted");
+            // LOG_GENERAL(INFO, "No need to wait for newRoundStarted");
         }
     }
 
@@ -690,25 +689,25 @@ bool Node::ProcessCreateTransactionFromLookup(
 
     LOG_MARKER();
 
-    bool isVacuousEpoch
-        = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
+    // bool isVacuousEpoch
+    //     = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
 
-    if (!isVacuousEpoch)
-    {
-        unique_lock<mutex> g(m_mutexNewRoungStarted);
-        if (!m_newRoundStarted)
-        {
-            LOG_GENERAL(INFO, "Wait for new consensus round started");
-            m_cvNewRoundStarted.wait(g, [this] { return m_newRoundStarted; });
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "New consensus round started, moving to "
-                      "ProcessSubmitTxnSharing");
-        }
-        else
-        {
-            LOG_GENERAL(INFO, "No need to wait for newRoundStarted");
-        }
-    }
+    // if (!isVacuousEpoch)
+    // {
+    //     unique_lock<mutex> g(m_mutexNewRoungStarted);
+    //     if (!m_newRoundStarted)
+    //     {
+    //         LOG_GENERAL(INFO, "Wait for new consensus round started");
+    //         m_cvNewRoundStarted.wait(g, [this] { return m_newRoundStarted; });
+    //         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    //                   "New consensus round started, moving to "
+    //                   "ProcessSubmitTxnSharing");
+    //     }
+    //     else
+    //     {
+    //         LOG_GENERAL(INFO, "No need to wait for newRoundStarted");
+    //     }
+    // }
 
     if (IsMessageSizeInappropriate(message.size(), offset,
                                    Transaction::GetMinSerializedSize()))
@@ -787,7 +786,6 @@ void Node::SubmitTransactions()
     //LOG_MARKER();
 
     unsigned int txn_sent_count = 0;
-
     boost::multiprecision::uint256_t blockNum
         = (uint256_t)m_mediator.m_currentEpochNum;
 
@@ -979,6 +977,12 @@ bool Node::CleanVariables()
     m_mediator.m_lookup->m_startedPoW2 = false;
 
     return true;
+}
+
+void Node::CleanCreatedTransaction()
+{
+    std::lock_guard<mutex> lock(m_mutexCreatedTransactions);
+    m_createdTransactions.clear();
 }
 #endif // IS_LOOKUP_NODE
 
