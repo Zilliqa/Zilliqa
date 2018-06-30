@@ -64,7 +64,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         {
             if (toAccount->isContract())
             {
-                LOG_GENERAL(INFO,
+                LOG_GENERAL(WARNING,
                             "Contract account won't accept normal transaction");
                 return false;
             }
@@ -295,7 +295,7 @@ AccountStoreSC<MAP>::GetBlockStateJson(const uint64_t& BlockNum,
     blockItem["type"] = "BNum";
     blockItem["value"] = to_string(BlockNum);
     root.append(blockItem);
-    LOG_GENERAL(INFO, "BNum: " << BlockNum);
+    // LOG_GENERAL(INFO, "BNum: " << BlockNum);
 
     (void)CreateBlockNum;
 
@@ -401,7 +401,7 @@ template<class MAP> string AccountStoreSC<MAP>::GetCreateContractCmdStr()
 {
     string ret = SCILLA_PATH + " -init " + INIT_JSON + " -iblockchain "
         + INPUT_BLOCKCHAIN_JSON + " -o " + OUTPUT_JSON + " -i " + INPUT_CODE;
-    LOG_GENERAL(INFO, ret);
+    // LOG_GENERAL(INFO, ret);
     return ret;
 }
 
@@ -411,7 +411,7 @@ template<class MAP> string AccountStoreSC<MAP>::GetCallContractCmdStr()
         + INPUT_STATE_JSON + " -iblockchain " + INPUT_BLOCKCHAIN_JSON
         + " -imessage " + INPUT_MESSAGE_JSON + " -o " + OUTPUT_JSON + " -i "
         + INPUT_CODE;
-    LOG_GENERAL(INFO, ret);
+    // LOG_GENERAL(INFO, ret);
     return ret;
 }
 
@@ -526,7 +526,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json)
 
     if (_json["message"]["_accepted"].asString() == "true")
     {
-        LOG_GENERAL(INFO, "Contract accept amount transfer");
+        // LOG_GENERAL(INFO, "Contract accept amount transfer");
         if (!TransferBalanceAtomic(m_curSenderAddr, m_curContractAddr,
                                    m_curAmount))
         {
@@ -536,7 +536,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json)
     }
     else
     {
-        LOG_GENERAL(INFO, "Contract refuse amount transfer");
+        LOG_GENERAL(WARNING, "Contract refuse amount transfer");
     }
 
     for (auto s : _json["states"])
