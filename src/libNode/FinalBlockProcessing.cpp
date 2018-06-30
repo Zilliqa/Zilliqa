@@ -893,7 +893,8 @@ bool Node::ActOnFinalBlock(uint8_t tx_sharing_mode, const vector<Peer>& nodes)
             DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(blocknum);
         }
     }
-    else
+    else if (m_microblock != nullptr
+             && m_microblock->GetHeader().GetNumTxs() > 0)
     {
         // TODO
         LOG_GENERAL(WARNING, "Why my shards microblock not in finalblock, one");
