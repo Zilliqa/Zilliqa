@@ -649,7 +649,7 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
         unique_lock<mutex> g(m_mutexNewRoungStarted);
         if (!m_newRoundStarted)
         {
-            LOG_GENERAL(INFO, "Wait for new consensus round started");
+            // LOG_GENERAL(INFO, "Wait for new consensus round started");
             m_cvNewRoundStarted.wait(g, [this] { return m_newRoundStarted; });
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "New consensus round started, moving to "
@@ -657,7 +657,7 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
         }
         else
         {
-            LOG_GENERAL(INFO, "No need to wait for newRoundStarted");
+            // LOG_GENERAL(INFO, "No need to wait for newRoundStarted");
         }
     }
 

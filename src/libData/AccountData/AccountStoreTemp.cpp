@@ -29,20 +29,20 @@ Account* AccountStoreTemp::GetAccount(const Address& address)
         = AccountStoreBase<map<Address, Account>>::GetAccount(address);
     if (account != nullptr)
     {
-        LOG_GENERAL(INFO, "Got From Temp");
+        // LOG_GENERAL(INFO, "Got From Temp");
         return account;
     }
 
     account = m_parent.GetAccount(address);
     if (account)
     {
-        LOG_GENERAL(INFO, "Got From Parent");
+        // LOG_GENERAL(INFO, "Got From Parent");
         Account newaccount(*account);
         m_addressToAccount->insert(make_pair(address, newaccount));
         return &(m_addressToAccount->find(address))->second;
     }
 
-    LOG_GENERAL(INFO, "Got Nullptr");
+    // LOG_GENERAL(INFO, "Got Nullptr");
 
     return nullptr;
 }
