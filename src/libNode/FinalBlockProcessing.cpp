@@ -221,8 +221,10 @@ bool Node::LoadUnavailableMicroBlockHashes(
             m_tempStateDeltaCommitted = false;
             if (m_lastMicroBlockCoSig.first != m_mediator.m_currentEpochNum - 1)
             {
-                LOG_GENERAL(WARNING, "Why I failed the last microblock consensus but still found my shard microblock, "
-                    " need to Rejoin");
+                LOG_GENERAL(WARNING,
+                            "Why I failed the last microblock consensus but "
+                            "still found my shard microblock, "
+                            " need to Rejoin");
                 RejoinAsNormal();
                 return false;
             }
@@ -1541,7 +1543,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     if (!isVacuousEpoch)
     {
         if (!LoadUnavailableMicroBlockHashes(txBlock,
-                                        txBlock.GetHeader().GetBlockNum()))
+                                             txBlock.GetHeader().GetBlockNum()))
         {
             return false;
         }
