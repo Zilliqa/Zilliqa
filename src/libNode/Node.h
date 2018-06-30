@@ -243,6 +243,8 @@ class Node : public Executable, public Broadcastable
     bool IsMyShardsMicroBlockStateDeltaHashInFinalBlock(
         const boost::multiprecision::uint256_t& blocknum,
         bool& isEveryMicroBlockAvailable);
+    bool IsMyShardsMicroBlockInFinalBlock(
+        const boost::multiprecision::uint256_t& blocknum);
     bool
     ReadAuxilliaryInfoFromFinalBlockMsg(const vector<unsigned char>& message,
                                         unsigned int& cur_offset,
@@ -475,6 +477,9 @@ public:
     bool StartPoW2(const boost::multiprecision::uint256_t block_num,
                    uint8_t difficulty, array<unsigned char, 32> rand1,
                    array<unsigned char, 32> rand2);
+
+    /// Call when the normal node be promoted to DS
+    void CleanCreatedTransaction();
 #endif // IS_LOOKUP_NODE
 };
 
