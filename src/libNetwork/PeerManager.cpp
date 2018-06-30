@@ -181,6 +181,7 @@ PeerManager::PeerManager(const std::pair<PrivKey, PubKey>& key,
     , m_selfPeer(peer)
 {
     LOG_MARKER();
+    SetupLogLevel();
 
     if (loadConfig)
     {
@@ -270,4 +271,28 @@ vector<Peer> PeerManager::GetBroadcastList(unsigned char ins_type,
 {
     LOG_MARKER();
     return Broadcastable::GetBroadcastList(ins_type, broadcast_originator);
+}
+
+void PeerManager::SetupLogLevel()
+{
+    LOG_MARKER();
+    switch (DEBUG_LEVEL)
+    {
+    case 1:
+    {
+        LOG_DISPLAY_LEVEL_ABOVE(FATAL);
+        break;
+    }
+    case 2:
+    {
+        LOG_DISPLAY_LEVEL_ABOVE(WARNING);
+        break;
+    }
+    case 3:
+    default:
+    {
+        LOG_DISPLAY_LEVEL_ABOVE(INFO);
+        break;
+    }
+    }
 }

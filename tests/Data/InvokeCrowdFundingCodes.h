@@ -29,20 +29,25 @@ let one_msg =
 contract CrowdFundingInvoke
 
 (*  Parameters *)
-(cfaddr     : Address) (* address of the crowdfunding contract *)
+(cfaddr     : Address, (* address of the crowdfunding contract *)
+ owner      : Address) (* address of the owner of this contract *)
 
-(* Mutable fields *)
-(* callers only keeps track of who all called Invoke. No real use *)
-field callers : Map Address Int = Emp Address Int
+transition Main ()
+  accept;
+  msg = {_tag : ""; _recipient : owner; _amount : _amount};
+  msgs = one_msg msg;
+  send msgs
+end
 
 transition Invoke (trans : String)
-  bal <- balance;
+  bal <- _balance;
   s = _sender;
   donate_s = "Donate";
   is_donate = builtin eq trans donate_s;
   match is_donate with
   | True =>
-    msg = {_tag : Donate; _recipient : cfaddr; _amount : bal};
+    accept;
+    msg = {_tag : Donate; _recipient : cfaddr; _amount : _amount};
     msgs = one_msg msg;
     send msgs
   | False =>
@@ -50,7 +55,7 @@ transition Invoke (trans : String)
     is_claimback = builtin eq trans claimback_s;
     match is_claimback with
     | True =>
-      msg = {_tag : ClaimBack; _recipient : cfaddr; _amount : 0};
+      msg = {_tag : ClaimBack; _recipient : cfaddr; _amount : Uint128 0};
       msgs = one_msg msg;
       send msgs
     | False =>
@@ -58,11 +63,11 @@ transition Invoke (trans : String)
       is_getfunds = builtin eq trans getfunds_s;
       match is_getfunds with
       | True =>
-        msg = {_tag : GetFunds; _recipient : cfaddr; _amount : 0};
+        msg = {_tag : GetFunds; _recipient : cfaddr; _amount : Uint128 0};
         msgs = one_msg msg;
         send msgs
       | False =>
-        msg = {_tag : Main; _recipient : _sender ; _amount : 0};
+        msg = {_tag : Main; _recipient : _sender ; _amount : Uint128 0};
         msgs = one_msg msg;
         send msgs
       end
@@ -74,8 +79,14 @@ std::string icfInitStr = R"([
     {
         "vname" : "cfaddr",
         "type" : "Address", 
-        "value" : "$ADDR"
+        "value" : "$CONTRACT"
+    },
+    {
+        "vname" : "owner",
+        "type" : "Address", 
+        "value" : "$OWNER"
     }
+
 ])";
 
 std::string icfDataStr1 = R"({
