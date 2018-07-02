@@ -29,8 +29,8 @@ The current release has the following features implemented:
 * [Merkle Patricia tree](https://github.com/ethereum/wiki/wiki/Patricia-Tree)
 * Transaction verification
 * View change
-* [Zilliqa Wallet] (https://github.com/Zilliqa/Zilliqa-Wallet)
-* [Smart contract design and implementation] (https://readthedocs.org/projects/scylla/)
+* [Zilliqa Wallet](https://github.com/Zilliqa/Zilliqa-Wallet)
+* [Smart contract design and implementation](https://scilla.readthedocs.io)
 
 In the coming months, we plan to have the following features:
 * Gossip protocol for network message broadcasting
