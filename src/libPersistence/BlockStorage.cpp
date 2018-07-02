@@ -53,7 +53,7 @@ bool BlockStorage::PushBackTxBodyDB(
 
     std::shared_ptr<LevelDB> txBodyDBPtr = std::make_shared<LevelDB>(
         blockNum.convert_to<string>(), TX_BODY_SUBDIR);
-    m_txBodyDBs.push_back(txBodyDBPtr);
+    m_txBodyDBs.emplace_back(txBodyDBPtr);
 
     return true;
 }
@@ -269,7 +269,7 @@ bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr>& blocks)
         DSBlockSharedPtr block = DSBlockSharedPtr(new DSBlock(
             std::vector<unsigned char>(blockString.begin(), blockString.end()),
             0));
-        blocks.push_back(block);
+        blocks.emplace_back(block);
     }
 
     delete it;
@@ -305,7 +305,7 @@ bool BlockStorage::GetAllTxBlocks(std::list<TxBlockSharedPtr>& blocks)
         TxBlockSharedPtr block = TxBlockSharedPtr(new TxBlock(
             std::vector<unsigned char>(blockString.begin(), blockString.end()),
             0));
-        blocks.push_back(block);
+        blocks.emplace_back(block);
     }
 
     delete it;
@@ -336,7 +336,7 @@ bool BlockStorage::GetAllTxBodiesTmp(std::list<TxnHash>& txnHashes)
             return false;
         }
         TxnHash txnHash(hashString);
-        txnHashes.push_back(txnHash);
+        txnHashes.emplace_back(txnHash);
     }
 
     delete it;
@@ -419,29 +419,29 @@ std::vector<std::string> BlockStorage::GetDBName(DBTYPE type)
     switch (type)
     {
     case META:
-        ret.push_back(m_metadataDB.GetDBName());
+        ret.emplace_back(m_metadataDB.GetDBName());
         break;
     case DS_BLOCK:
-        ret.push_back(m_dsBlockchainDB.GetDBName());
+        ret.emplace_back(m_dsBlockchainDB.GetDBName());
         break;
     case TX_BLOCK:
-        ret.push_back(m_txBlockchainDB.GetDBName());
+        ret.emplace_back(m_txBlockchainDB.GetDBName());
         break;
 #ifndef IS_LOOKUP_NODE
     case TX_BODIES:
     {
         for (auto txBodyDB : m_txBodyDBs)
         {
-            ret.push_back(txBodyDB->GetDBName());
+            ret.emplace_back(txBodyDB->GetDBName());
         }
         break;
     }
 #else // IS_LOOKUP_NODE
     case TX_BODY:
-        ret.push_back(m_txBodyDB.GetDBName());
+        ret.emplace_back(m_txBodyDB.GetDBName());
         break;
     case TX_BODY_TMP:
-        ret.push_back(m_txBodyTmpDB.GetDBName());
+        ret.emplace_back(m_txBodyTmpDB.GetDBName());
         break;
 #endif // IS_LOOKUP_NODE
     }

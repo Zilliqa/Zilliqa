@@ -87,7 +87,7 @@ BOOST_AUTO_TEST_CASE(fat_trie)
 //         vector<pair<string, string>> ss;
 //         for (auto i : o["in"].get_obj())
 //         {
-//             ss.push_back(make_pair(i.first, i.second.get_str()));
+//             ss.emplace_back(make_pair(i.first, i.second.get_str()));
 //             if (!ss.back().first.find("0x"))
 //                 ss.back().first = asString(fromHex(ss.back().first.substr(2)));
 //             if (!ss.back().second.find("0x"))
@@ -162,7 +162,7 @@ BOOST_AUTO_TEST_CASE(fat_trie)
 //         vector<pair<string, string>> ss;
 //         for (auto i : o["in"].get_obj())
 //         {
-//             ss.push_back(make_pair(i.first, i.second.get_str()));
+//             ss.emplace_back(make_pair(i.first, i.second.get_str()));
 //             if (!ss.back().first.find("0x"))
 //                 ss.back().first = asString(fromHex(ss.back().first.substr(2)));
 //             if (!ss.back().second.find("0x"))
@@ -238,21 +238,21 @@ BOOST_AUTO_TEST_CASE(fat_trie)
 //             for (auto& s : i.get_array())
 //             {
 //                 if (s.type() == json_spirit::str_type)
-//                     values.push_back(s.get_str());
+//                     values.emplace_back(s.get_str());
 //                 else if (s.type() == json_spirit::null_type)
 //                 {
 //                     // mark entry for deletion
-//                     values.push_back("");
+//                     values.emplace_back("");
 //                     if (!values[0].find("0x"))
 //                         values[0] = asString(fromHex(values[0].substr(2)));
-//                     keysToBeDeleted.push_back(values[0]);
+//                     keysToBeDeleted.emplace_back(values[0]);
 //                 }
 //                 else
 //                     BOOST_FAIL("Bad type (expected string)");
 //             }
 
 //             BOOST_REQUIRE(values.size() == 2);
-//             ss.push_back(make_pair(values[0], values[1]));
+//             ss.emplace_back(make_pair(values[0], values[1]));
 //             if (!ss.back().first.find("0x"))
 //                 ss.back().first = asString(fromHex(ss.back().first.substr(2)));
 //             if (!ss.back().second.find("0x"))

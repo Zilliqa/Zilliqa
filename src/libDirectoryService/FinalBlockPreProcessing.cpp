@@ -98,7 +98,7 @@ void DirectoryService::ExtractDataFromMicroblocks(
                                << " MicroBlock " << blockNum);
         }
 
-        isMicroBlockEmpty.push_back(isEmptyTxn);
+        isMicroBlockEmpty.emplace_back(isEmptyTxn);
     }
 
     if (m_mediator.m_node->m_unavailableMicroBlocks.find(blockNum)
@@ -394,7 +394,7 @@ void DirectoryService::AppendSharingSetupToFinalBlockMessage(
         for (unsigned int i = num_ds_nodes;
              i < m_mediator.m_DSCommitteeNetworkInfo.size(); i++)
         {
-            m_sharingAssignment.push_back(
+            m_sharingAssignment.emplace_back(
                 m_mediator.m_DSCommitteeNetworkInfo.at(i));
         }
     }
@@ -856,7 +856,7 @@ void DirectoryService::SaveTxnBodySharingAssignment(
     for (uint32_t i = 0; i < num_ds_nodes; i++)
     {
         // TODO: Handle exceptions
-        ds_receivers.push_back(Peer(finalblock, curr_offset));
+        ds_receivers.emplace_back(Peer(finalblock, curr_offset));
         curr_offset += IP_SIZE + PORT_SIZE;
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -896,7 +896,7 @@ void DirectoryService::SaveTxnBodySharingAssignment(
 
             if (is_a_receiver == false)
             {
-                m_sharingAssignment.push_back(
+                m_sharingAssignment.emplace_back(
                     m_mediator.m_DSCommitteeNetworkInfo.at(i));
             }
         }

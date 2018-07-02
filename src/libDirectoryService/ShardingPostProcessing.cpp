@@ -199,7 +199,7 @@ void DirectoryService::SendingShardingStructureToShard(
 
         kv.second.Serialize(sharding_message, curr_offset);
         curr_offset += IP_SIZE + PORT_SIZE;
-        shard_peers.push_back(kv.second);
+        shard_peers.emplace_back(kv.second);
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   " PubKey: " << DataConversion::SerializableToHexStr(kv.first)
                               << " IP: " << kv.second.GetPrintableIPAddress()

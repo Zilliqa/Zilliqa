@@ -82,7 +82,7 @@ vector<bool> TxBlock::DeserializeIsMicroBlockEmpty(uint32_t arg)
     vector<bool> ret;
     for (uint i = 0; i < m_header.GetNumMicroBlockHashes(); ++i)
     {
-        ret.push_back((bool)(arg % 2));
+        ret.emplace_back((bool)(arg % 2));
         arg /= 2;
     }
     return ret;
@@ -120,7 +120,7 @@ int TxBlock::Deserialize(const vector<unsigned char>& src, unsigned int offset)
                  microBlockHash.m_stateDeltaHash.asArray().begin());
             curOffset += STATE_HASH_SIZE;
 
-            m_microBlockHashes.push_back(microBlockHash);
+            m_microBlockHashes.emplace_back(microBlockHash);
         }
         if (m_header.GetNumMicroBlockHashes() != m_microBlockHashes.size())
         {

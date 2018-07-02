@@ -331,7 +331,7 @@ bool Node::VerifyFinalBlockCoSignature(const TxBlock& txblock)
     {
         if (B2.at(index) == true)
         {
-            keys.push_back(kv);
+            keys.emplace_back(kv);
             count++;
         }
         index++;
@@ -420,11 +420,11 @@ bool Node::FindTxnInSubmittedTxnsList(const TxBlock& finalblock,
     {
         if ((sharing_mode == SEND_ONLY) || (sharing_mode == SEND_AND_FORWARD))
         {
-            txns_to_send.push_back(txnIt->second);
+            txns_to_send.emplace_back(txnIt->second);
         }
 
         // Move entry from submitted Tx list to committed Tx list
-        committedTransactions.push_back(txnIt->second);
+        committedTransactions.emplace_back(txnIt->second);
         submittedTransactions.erase(txnIt);
 
         LOG_EPOCH(
@@ -494,11 +494,11 @@ bool Node::FindTxnInReceivedTxnsList(const TxBlock& finalblock,
     {
         if ((sharing_mode == SEND_ONLY) || (sharing_mode == SEND_AND_FORWARD))
         {
-            txns_to_send.push_back(txnIt->second);
+            txns_to_send.emplace_back(txnIt->second);
         }
 
         // Move entry from received Tx list to committed Tx list
-        committedTransactions.push_back(txnIt->second);
+        committedTransactions.emplace_back(txnIt->second);
         receivedTransactions.erase(txnIt);
 
         LOG_EPOCH(
@@ -749,9 +749,9 @@ void Node::LoadForwardingAssignmentFromFinalBlock(
         }
         // if (rand() % m_myShardMembersNetworkInfo.size() <= GOSSIP_RATE)
         // {
-        //     peers.push_back(m_myShardMembersNetworkInfo.at(i));
+        //     peers.emplace_back(m_myShardMembersNetworkInfo.at(i));
         // }
-        peers.push_back(m_myShardMembersNetworkInfo.at(i));
+        peers.emplace_back(m_myShardMembersNetworkInfo.at(i));
     }
 
     for (unsigned int i = 0; i < fellowForwarderNodes.size(); i++)
@@ -1175,11 +1175,11 @@ void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Forwarders inside the DS committee (" << num_ds_nodes << "):");
 
-    nodes.push_back(vector<Peer>());
+    nodes.emplace_back(vector<Peer>());
 
     for (unsigned int i = 0; i < num_ds_nodes; i++)
     {
-        nodes.back().push_back(Peer(message, cur_offset));
+        nodes.back().emplace_back(Peer(message, cur_offset));
         cur_offset += IP_SIZE + PORT_SIZE;
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -1197,7 +1197,7 @@ void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
     {
         if (i == shard_id)
         {
-            nodes.push_back(vector<Peer>());
+            nodes.emplace_back(vector<Peer>());
 
             uint32_t num_recv = Serializable::GetNumber<uint32_t>(
                 message, cur_offset, sizeof(uint32_t));
@@ -1208,7 +1208,7 @@ void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
 
             for (unsigned int j = 0; j < num_recv; j++)
             {
-                nodes.back().push_back(Peer(message, cur_offset));
+                nodes.back().emplace_back(Peer(message, cur_offset));
                 cur_offset += IP_SIZE + PORT_SIZE;
 
                 LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -1220,7 +1220,7 @@ void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
                 }
             }
 
-            nodes.push_back(vector<Peer>());
+            nodes.emplace_back(vector<Peer>());
 
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "  Shard " << i << " senders:");
@@ -1231,7 +1231,7 @@ void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
 
             for (unsigned int j = 0; j < num_send; j++)
             {
-                nodes.back().push_back(Peer(message, cur_offset));
+                nodes.back().emplace_back(Peer(message, cur_offset));
                 cur_offset += IP_SIZE + PORT_SIZE;
 
                 LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -1245,7 +1245,7 @@ void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
         }
         else
         {
-            nodes.push_back(vector<Peer>());
+            nodes.emplace_back(vector<Peer>());
 
             uint32_t num_recv = Serializable::GetNumber<uint32_t>(
                 message, cur_offset, sizeof(uint32_t));
@@ -1256,14 +1256,14 @@ void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
 
             for (unsigned int j = 0; j < num_recv; j++)
             {
-                nodes.back().push_back(Peer(message, cur_offset));
+                nodes.back().emplace_back(Peer(message, cur_offset));
                 cur_offset += IP_SIZE + PORT_SIZE;
 
                 LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                           nodes.back().back());
             }
 
-            nodes.push_back(vector<Peer>());
+            nodes.emplace_back(vector<Peer>());
 
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "  Shard " << i << " senders:");
@@ -1274,7 +1274,7 @@ void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
 
             for (unsigned int j = 0; j < num_send; j++)
             {
-                nodes.back().push_back(Peer(message, cur_offset));
+                nodes.back().emplace_back(Peer(message, cur_offset));
                 cur_offset += IP_SIZE + PORT_SIZE;
 
                 LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -1304,7 +1304,7 @@ void Node::CallActOnFinalBlockBasedOnSenderForwarderAssgn(
         // Give myself the list of all receiving nodes in all other committees including DS
         for (unsigned int i = 0; i < nodes.at(0).size(); i++)
         {
-            nodes_to_send.push_back(nodes[0][i]);
+            nodes_to_send.emplace_back(nodes[0][i]);
         }
 
         for (unsigned int i = 1; i < nodes.size(); i += 2)
@@ -1317,7 +1317,7 @@ void Node::CallActOnFinalBlockBasedOnSenderForwarderAssgn(
             const vector<Peer>& shard = nodes.at(i);
             for (unsigned int j = 0; j < shard.size(); j++)
             {
-                nodes_to_send.push_back(shard[j]);
+                nodes_to_send.emplace_back(shard[j]);
             }
         }
 
@@ -1333,7 +1333,7 @@ void Node::CallActOnFinalBlockBasedOnSenderForwarderAssgn(
         // Give myself the list of all receiving nodes in all other committees including DS
         for (unsigned int i = 0; i < nodes.at(0).size(); i++)
         {
-            fellowForwarderNodes.push_back(nodes[0][i]);
+            fellowForwarderNodes.emplace_back(nodes[0][i]);
         }
 
         for (unsigned int i = 1; i < nodes.size(); i += 2)
@@ -1346,7 +1346,7 @@ void Node::CallActOnFinalBlockBasedOnSenderForwarderAssgn(
             const vector<Peer>& shard = nodes.at(i);
             for (unsigned int j = 0; j < shard.size(); j++)
             {
-                fellowForwarderNodes.push_back(shard[j]);
+                fellowForwarderNodes.emplace_back(shard[j]);
             }
         }
 
@@ -1674,8 +1674,8 @@ bool Node::LoadForwardedTxnsAndCheckRoot(
         }
         cur_offset += tx.GetSerializedSize();
 
-        txnsInForwardedMessage.push_back(tx);
-        txnHashesInForwardedMessage.push_back(tx.GetTranID());
+        txnsInForwardedMessage.emplace_back(tx);
+        txnHashesInForwardedMessage.emplace_back(tx.GetTranID());
     }
 
     return ComputeTransactionsRoot(txnHashesInForwardedMessage)
@@ -1731,7 +1731,7 @@ void Node::CommitForwardedTransactions(
     {
         {
             lock_guard<mutex> g(m_mutexCommittedTransactions);
-            m_committedTransactions[blocknum].push_back(tx);
+            m_committedTransactions[blocknum].emplace_back(tx);
             // if (!AccountStore::GetInstance().UpdateAccounts(
             //         m_mediator.m_currentEpochNum - 1, tx))
             // {
