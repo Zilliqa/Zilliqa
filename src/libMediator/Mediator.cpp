@@ -131,6 +131,7 @@ void Mediator::HeartBeat_Init()
             = (TXN_SUBMISSION + TXN_BROADCAST) * NUM_FINAL_BLOCK_PER_POW
             + POW1_WINDOW_IN_SECONDS + BACKUP_POW2_WINDOW_IN_SECONDS
             + HEARTBEAT_DELTA;
+
         while (true)
         {
             this_thread::sleep_for(chrono::seconds(HEARTBEAT_INTERVAL));
@@ -139,7 +140,8 @@ void Mediator::HeartBeat_Init()
 
             if (m_heartBeatTime < heartBeatTimeout)
             {
-                LOG_GENERAL(INFO, "Still alive...");
+                LOG_GENERAL(INFO,
+                            "Still alive " << m_heartBeatTime << " seconds...");
                 continue;
             }
 
