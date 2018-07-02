@@ -181,7 +181,7 @@ bool Node::IsMicroBlockStateDeltaHashInFinalBlock(
     return found;
 }
 
-void Node::LoadUnavailableMicroBlockHashes(
+bool Node::LoadUnavailableMicroBlockHashes(
     const TxBlock& finalBlock, const boost::multiprecision::uint256_t& blocknum)
 {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -220,9 +220,19 @@ void Node::LoadUnavailableMicroBlockHashes(
         {
             lock_guard<mutex> g3(m_mutexTempCommitted);
             m_tempStateDeltaCommitted = false;
+            if (m_lastMicroBlockCoSig.first != m_mediator.m_currentEpochNum - 1)
+            {
+                LOG_GENERAL(WARNING,
+                            "Why I failed the last microblock consensus but "
+                            "still found my shard microblock, "
+                            " need to Rejoin");
+                RejoinAsNormal();
+                return false;
+            }
         }
     }
 #endif //IS_LOOKUP_NODE
+    return true;
 }
 
 bool Node::RemoveTxRootHashFromUnavailableMicroBlock(
@@ -1533,8 +1543,11 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
     if (!isVacuousEpoch)
     {
-        LoadUnavailableMicroBlockHashes(txBlock,
-                                        txBlock.GetHeader().GetBlockNum());
+        if (!LoadUnavailableMicroBlockHashes(txBlock,
+                                             txBlock.GetHeader().GetBlockNum()))
+        {
+            return false;
+        }
     }
     else
     {

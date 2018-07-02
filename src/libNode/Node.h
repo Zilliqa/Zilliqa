@@ -215,7 +215,7 @@ class Node : public Executable, public Broadcastable
         const StateHash& microBlockStateDeltaHash,
         const TxnHash& microBlockTxHash) const;
 
-    void LoadUnavailableMicroBlockHashes(
+    bool LoadUnavailableMicroBlockHashes(
         const TxBlock& finalblock,
         const boost::multiprecision::uint256_t& blocknum);
 
