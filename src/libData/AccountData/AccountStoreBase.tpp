@@ -231,7 +231,7 @@ template<class MAP>
 void AccountStoreBase<MAP>::AddAccount(const Address& address,
                                        const Account& account)
 {
-    LOG_MARKER();
+//     LOG_MARKER();
 
     if (!IsAccountExist(address))
     {
