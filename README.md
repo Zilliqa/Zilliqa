@@ -8,6 +8,13 @@ Zilliqa is a new blockchain platform capable of processing thousands of transact
 ## Red Prawn Testnet  
 * [Block Explorer](https://explorer.zilliqa.com/home)
 * [Wallet](https://wallet.zilliqa.com/)  
+  
+## D24 Testnet with Scilla support 
+* [Interpreter IDE](https://ide.zilliqa.com/)  
+* [Block Explorer](https://explorer-scilla.zilliqa.com)  
+* [Wallet](https://wallet-scilla.zilliqa.com/)  
+
+
 
 ## Available Features
 The current release has the following features implemented:
@@ -22,12 +29,12 @@ The current release has the following features implemented:
 * [Merkle Patricia tree](https://github.com/ethereum/wiki/wiki/Patricia-Tree)
 * Transaction verification
 * View change
-* Zilliqa Wallet
+* [Zilliqa Wallet] (https://github.com/Zilliqa/Zilliqa-Wallet)
+* [Smart contract design and implementation] (https://readthedocs.org/projects/scylla/)
 
 In the coming months, we plan to have the following features:
 * Gossip protocol for network message broadcasting
 * Incentive structure
-* Smart contract design and implementation
 * GPU support for PoW
 * Further unit and integration tests
 * Enhancement of existing features
@@ -91,7 +98,7 @@ brew install pkg-config jsoncpp leveldb libjson-rpc-cpp libevent miniupnpc
 `pkill zilliqa` 
 
 ## Running a Zilliqa Node on the public testnet 
-Coming soon...
+If you are interested in running a node on the Zilliqa testnet, please register [here](https://docs.google.com/forms/d/e/1FAIpQLSesn-MxThl4ocKCrjUYSPGc463E7-1I1O1v_GGccYbqfFr7zg/viewform)
 
 ## For further enquiries
 If you have issues running a node, please feel free to join our [Slack](https://invite.zilliqa.com/) and ask questions. You can also submit your issue at our [Github repository](https://github.com/Zilliqa/zilliqa/issues)
