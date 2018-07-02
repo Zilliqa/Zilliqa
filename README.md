@@ -5,7 +5,7 @@
 ## Overview
 Zilliqa is a new blockchain platform capable of processing thousands of transactions per second with sharding built into it. With sharding, Zilliqa has the potential to match throughput benchmarks set by traditional payment methods (such as _VISA_ and _MasterCard_). More importantly, Zilliqa’s transaction throughput increases (roughly) linearly with its network size.
 
-## Red Prawn Testnet  
+## D24 Testnet  
 * [Block Explorer](https://explorer.zilliqa.com/home)
 * [Wallet](https://wallet.zilliqa.com/)  
   
