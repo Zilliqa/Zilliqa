@@ -165,8 +165,6 @@ class DirectoryService : public Executable, public Broadcastable
     // TO Remove
     Mediator& m_mediator;
 
-    Synchronizer m_synchronizer;
-
     const uint32_t RESHUFFLE_INTERVAL = 500;
 
     // Message handlers
@@ -389,6 +387,8 @@ public:
 
     /// The ID number of this Zilliqa instance for use with consensus operations.
     uint16_t m_consensusMyID;
+
+    Synchronizer m_synchronizer;
 
     /// Constructor. Requires mediator reference to access Node and other global members.
     DirectoryService(Mediator& mediator);

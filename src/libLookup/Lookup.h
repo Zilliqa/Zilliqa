@@ -52,9 +52,6 @@ class Lookup : public Executable, public Broadcastable
 #ifndef IS_LOOKUP_NODE
     bool m_dsInfoWaitingNotifying = false;
     bool m_fetchedDSInfo = false;
-    std::mutex m_mutexDSInfoUpdation;
-    std::condition_variable cv_dsInfoUpdate;
-
     bool CheckStateRoot();
 #endif // IS_LOOKUP_NODE
 
@@ -231,6 +228,8 @@ public:
     bool m_fetchedOfflineLookups = false;
     std::mutex m_mutexOfflineLookupsUpdation;
     std::condition_variable cv_offlineLookups;
+    std::mutex m_mutexDSInfoUpdation;
+    std::condition_variable cv_dsInfoUpdate;
 
     bool InitMining();
 #endif // IS_LOOKUP_NODE

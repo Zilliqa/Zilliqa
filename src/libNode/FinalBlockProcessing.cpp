@@ -94,6 +94,8 @@ void Node::StoreState()
 
 void Node::StoreFinalBlock(const TxBlock& txBlock)
 {
+    LOG_MARKER();
+
     m_mediator.HeartBeat();
     m_mediator.m_txBlockChain.AddBlock(txBlock);
     m_mediator.m_currentEpochNum
