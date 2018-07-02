@@ -89,6 +89,8 @@ public:
     /// Empty the state trie, must be called explicitly otherwise will retrieve the historical data
     void Init() override;
 
+    void InitSoft();
+
     void MoveUpdatesToDisk();
     void DiscardUnsavedUpdates();
 
@@ -109,8 +111,6 @@ public:
     StateHash GetStateDeltaHash();
 
     void CommitTemp();
-
-    bool CommitStateDelta(AccountStoreTemp& stateDeltaStore);
 
     void InitTemp() { m_accountStoreTemp->Init(); }
 };
