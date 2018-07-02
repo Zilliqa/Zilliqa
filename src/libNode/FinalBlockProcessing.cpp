@@ -219,7 +219,7 @@ bool Node::LoadUnavailableMicroBlockHashes(
         {
             lock_guard<mutex> g3(m_mutexTempCommitted);
             m_tempStateDeltaCommitted = false;
-            if (m_lastMicroBlockCoSig.first != m_mediator.m_currentEpochNum - 1)
+            if (m_lastMicroBlockCoSig.first != m_mediator.m_currentEpochNum)
             {
                 LOG_GENERAL(WARNING,
                             "Why I failed the last microblock consensus but "
