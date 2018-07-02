@@ -36,10 +36,20 @@ AccountStore::~AccountStore()
 void AccountStore::Init()
 {
     LOG_MARKER();
-    AccountStoreTrie<OverlayDB, unordered_map<Address, Account>>::Init();
-    m_accountStoreTemp->Init();
+
+    InitSoft();
     ContractStorage::GetContractStorage().GetStateDB().ResetDB();
     m_db.ResetDB();
+}
+
+void AccountStore::InitSoft()
+{
+    LOG_MARKER();
+
+    AccountStoreTrie<OverlayDB, unordered_map<Address, Account>>::Init();
+
+    std::lock_guard<mutex> lock(m_mutexDelta);
+    m_accountStoreTemp->Init();
 }
 
 AccountStore& AccountStore::GetInstance()
