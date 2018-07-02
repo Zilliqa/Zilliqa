@@ -64,7 +64,7 @@ bool DirectoryService::VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
     {
         if (B2.at(index) == true)
         {
-            keys.push_back(kv.first);
+            keys.emplace_back(kv.first);
             count++;
         }
         index++;

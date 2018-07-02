@@ -70,10 +70,10 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock)
 
     for (unsigned int i = 0; i < dsblock.GetHeader().GetViewChangeCount(); i++)
     {
-        m_mediator.m_DSCommitteeNetworkInfo.push_back(
+        m_mediator.m_DSCommitteeNetworkInfo.emplace_back(
             m_mediator.m_DSCommitteeNetworkInfo.front());
         m_mediator.m_DSCommitteeNetworkInfo.pop_front();
-        m_mediator.m_DSCommitteePubKeys.push_back(
+        m_mediator.m_DSCommitteePubKeys.emplace_back(
             m_mediator.m_DSCommitteePubKeys.front());
         m_mediator.m_DSCommitteePubKeys.pop_front();
     }
@@ -94,11 +94,11 @@ void Node::UpdateDSCommiteeComposition()
     lock_guard<mutex> g2(m_mediator.m_mutexDSCommitteeNetworkInfo, adopt_lock);
     lock_guard<mutex> g3(m_mediator.m_mutexDSCommitteePubKeys, adopt_lock);
 
-    m_mediator.m_DSCommitteeNetworkInfo.push_back(
+    m_mediator.m_DSCommitteeNetworkInfo.emplace_back(
         m_mediator.m_DSCommitteeNetworkInfo.front());
     m_mediator.m_DSCommitteeNetworkInfo.pop_front();
 
-    m_mediator.m_DSCommitteePubKeys.push_back(
+    m_mediator.m_DSCommitteePubKeys.emplace_back(
         m_mediator.m_DSCommitteePubKeys.front());
     m_mediator.m_DSCommitteePubKeys.pop_front();
 }
@@ -127,7 +127,7 @@ bool Node::VerifyVCBlockCoSignature(const VCBlock& vcblock)
     {
         if (B2.at(index) == true)
         {
-            keys.push_back(kv);
+            keys.emplace_back(kv);
             count++;
         }
         index++;

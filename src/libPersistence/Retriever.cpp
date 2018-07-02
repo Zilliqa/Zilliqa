@@ -125,7 +125,7 @@ bool Retriever::RetrieveTxBodiesDB()
         {
             LOG_GENERAL(INFO,
                         "Load txBodyDB: " << entry.path().filename().string());
-            dbNames.push_back(entry.path().filename().string());
+            dbNames.emplace_back(entry.path().filename().string());
         }
         std::sort(dbNames.begin(), dbNames.end());
 

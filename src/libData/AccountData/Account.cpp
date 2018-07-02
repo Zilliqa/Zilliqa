@@ -336,8 +336,8 @@ unsigned int Account::SerializeDelta(vector<unsigned char>& dst,
         - int256_t(oldAccount->GetBalance());
     // LOG_GENERAL(INFO, "Balance Delta: " << balanceDelta);
     // Sign
-    dst.push_back(balanceDelta > 0 ? NumberSign::POSITIVE
-                                   : NumberSign::NEGATIVE);
+    dst.emplace_back(balanceDelta > 0 ? NumberSign::POSITIVE
+                                      : NumberSign::NEGATIVE);
     curOffset += 1;
     uint256_t balanceDeltaNum(abs(balanceDelta));
     // Number
@@ -695,7 +695,7 @@ vector<h256> Account::GetStorageKeyHashes() const
     vector<h256> keyHashes;
     for (auto const& i : m_storage)
     {
-        keyHashes.push_back(i.first);
+        keyHashes.emplace_back(i.first);
     }
     return keyHashes;
 }

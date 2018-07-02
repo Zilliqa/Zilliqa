@@ -337,7 +337,7 @@ vector<Peer> Node::GetBroadcastList(unsigned char ins_type,
     //             }
     //             if (rand() % m_mediator.m_DSCommitteeNetworkInfo.size() <= GOSSIP_RATE)
     //             {
-    //                 peers.push_back(m_mediator.m_DSCommitteeNetworkInfo.at(i));
+    //                 peers.emplace_back(m_mediator.m_DSCommitteeNetworkInfo.at(i));
     //                 LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "DSNode  IP: " << peers.back().GetPrintableIPAddress() << " Port: " << peers.back().m_listenPortHost);
 
     //             }
@@ -356,7 +356,7 @@ vector<Peer> Node::GetBroadcastList(unsigned char ins_type,
     //             }
     //             if (rand() % m_myShardMembersNetworkInfo.size() <= GOSSIP_RATE)
     //             {
-    //                 peers.push_back(m_myShardMembersNetworkInfo.at(i));
+    //                 peers.emplace_back(m_myShardMembersNetworkInfo.at(i));
     //                 LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "  IP: " << peers.back().GetPrintableIPAddress() << " Port: " << peers.back().m_listenPortHost);
 
     //             }
@@ -737,7 +737,7 @@ bool Node::ProcessCreateTransactionFromLookup(
                              << " toAddr: " << tx.GetToAddr().hex());
     if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(tx))
     {
-        m_createdTransactions.push_back(tx);
+        m_createdTransactions.emplace_back(tx);
     }
     else
     {

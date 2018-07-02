@@ -62,20 +62,21 @@ std::vector<uint8_t> POW::HexStringToBytes(std::string const& _s)
     if (_s.size() % 2)
         try
         {
-            ret.push_back(FromHex(_s[s++]));
+            ret.emplace_back(FromHex(_s[s++]));
         }
         catch (...)
         {
-            ret.push_back(0);
+            ret.emplace_back(0);
         }
     for (unsigned i = s; i < _s.size(); i += 2)
         try
         {
-            ret.push_back((uint8_t)(FromHex(_s[i]) * 16 + FromHex(_s[i + 1])));
+            ret.emplace_back(
+                (uint8_t)(FromHex(_s[i]) * 16 + FromHex(_s[i + 1])));
         }
         catch (...)
         {
-            ret.push_back(0);
+            ret.emplace_back(0);
         }
     return ret;
 }
@@ -266,12 +267,12 @@ POW::ConcatAndhash(const std::array<unsigned char, UINT256_SIZE>& rand1,
     std::vector<unsigned char> vec;
     for (const auto& s1 : rand1)
     {
-        vec.push_back(s1);
+        vec.emplace_back(s1);
     }
 
     for (const auto& s1 : rand2)
     {
-        vec.push_back(s1);
+        vec.emplace_back(s1);
     }
 
     std::vector<unsigned char> ipAddrVec;

@@ -90,7 +90,7 @@ PubKey ConsensusCommon::AggregateKeys(const vector<bool> peer_map)
     {
         if (peer_map.at(i) == true)
         {
-            keys.push_back(*j);
+            keys.emplace_back(*j);
         }
     }
 

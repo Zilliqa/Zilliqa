@@ -56,7 +56,7 @@ void DirectoryService::ComputeSharding()
 
     for (unsigned int i = 0; i < numOfComms; i++)
     {
-        m_shards.push_back(map<PubKey, Peer>());
+        m_shards.emplace_back(map<PubKey, Peer>());
     }
 
     for (auto& kv : m_allPoW2s)
@@ -252,7 +252,7 @@ bool DirectoryService::ShardingValidator(
 
     for (unsigned int i = 0; i < numOfComms; i++)
     {
-        m_shards.push_back(map<PubKey, Peer>());
+        m_shards.emplace_back(map<PubKey, Peer>());
 
         // 4-byte committee size
         uint32_t shard_size = Serializable::GetNumber<uint32_t>(

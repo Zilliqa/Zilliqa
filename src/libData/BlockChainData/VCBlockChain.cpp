@@ -59,6 +59,6 @@ VCBlock VCBlockChain::GetBlock(const uint256_t& blockNum)
 
 int VCBlockChain::AddBlock(const VCBlock& block)
 {
-    m_vcBlocks.push_back(block);
+    m_vcBlocks.emplace_back(block);
     return 1;
 }

@@ -87,13 +87,13 @@ void Node::UpdateDSCommiteeComposition(const Peer& winnerpeer)
                .GetHeader()
                .GetMinerPubKey())
     {
-        m_mediator.m_DSCommitteeNetworkInfo.push_front(Peer());
+        m_mediator.m_DSCommitteeNetworkInfo.emplace_front(Peer());
     }
     else
     {
-        m_mediator.m_DSCommitteeNetworkInfo.push_front(winnerpeer);
+        m_mediator.m_DSCommitteeNetworkInfo.emplace_front(winnerpeer);
     }
-    m_mediator.m_DSCommitteePubKeys.push_front(
+    m_mediator.m_DSCommitteePubKeys.emplace_front(
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetMinerPubKey());
 
     m_mediator.m_DSCommitteeNetworkInfo.pop_back();
@@ -151,7 +151,7 @@ bool Node::VerifyDSBlockCoSignature(const DSBlock& dsblock)
     {
         if (B2.at(index) == true)
         {
-            keys.push_back(kv);
+            keys.emplace_back(kv);
             count++;
         }
         index++;
