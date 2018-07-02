@@ -155,17 +155,20 @@ void Mediator::HeartBeat_Init()
             }
 
             m_ds->m_synchronizer.FetchDSInfo(m_lookup);
-            unique_lock<mutex> lock(m_lookup->m_mutexDSInfoUpdation);
 
-            if (m_lookup->cv_dsInfoUpdate.wait_for(
-                    lock,
-                    chrono::seconds(POW1_WINDOW_IN_SECONDS
-                                    + BACKUP_POW2_WINDOW_IN_SECONDS))
-                == std::cv_status::timeout)
             {
-                m_node->RejoinAsNormal();
-                m_heartBeatTime = 0;
-                continue;
+                unique_lock<mutex> lock(m_lookup->m_mutexDSInfoUpdation);
+
+                if (m_lookup->cv_dsInfoUpdate.wait_for(
+                        lock,
+                        chrono::seconds(POW1_WINDOW_IN_SECONDS
+                                        + BACKUP_POW2_WINDOW_IN_SECONDS))
+                    == std::cv_status::timeout)
+                {
+                    m_node->RejoinAsNormal();
+                    m_heartBeatTime = 0;
+                    continue;
+                }
             }
 
             bool bFound = false;
