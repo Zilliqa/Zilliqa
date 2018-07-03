@@ -713,9 +713,6 @@ void Node::BroadcastStateDeltaToSendingAssignment(
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "DEBUG: I have broadcasted the state delta! ");
-    // << " "
-    // << DataConversion::CharArrayToString(forwardstate_message)
-    // << " " << sendingAssignment.size());
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I will soon be sending the state delta to the lookup nodes");
