@@ -180,7 +180,7 @@ bool Node::IsMicroBlockStateDeltaHashInFinalBlock(
     return found;
 }
 
-void Node::LoadUnavailableMicroBlockHashes(
+bool Node::LoadUnavailableMicroBlockHashes(
     const TxBlock& finalBlock, const boost::multiprecision::uint256_t& blocknum)
 {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -219,9 +219,19 @@ void Node::LoadUnavailableMicroBlockHashes(
         {
             lock_guard<mutex> g3(m_mutexTempCommitted);
             m_tempStateDeltaCommitted = false;
+            if (m_lastMicroBlockCoSig.first != m_mediator.m_currentEpochNum)
+            {
+                LOG_GENERAL(WARNING,
+                            "Why I failed the last microblock consensus but "
+                            "still found my shard microblock, "
+                            " need to Rejoin");
+                RejoinAsNormal();
+                return false;
+            }
         }
     }
 #endif //IS_LOOKUP_NODE
+    return true;
 }
 
 bool Node::RemoveTxRootHashFromUnavailableMicroBlock(
@@ -898,6 +908,7 @@ bool Node::ActOnFinalBlock(uint8_t tx_sharing_mode, const vector<Peer>& nodes)
     {
         // TODO
         LOG_GENERAL(WARNING, "Why my shards microblock not in finalblock, one");
+        AccountStore::GetInstance().InitTemp();
     }
     // #endif // IS_LOOKUP_NODE
     return true;
@@ -958,6 +969,7 @@ bool Node::ActOnFinalBlock(uint8_t tx_sharing_mode,
             // TODO
             LOG_GENERAL(WARNING,
                         "Why my shards microblock not in finalblock, two");
+            AccountStore::GetInstance().InitTemp();
         }
     }
     else
@@ -1532,8 +1544,11 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
     if (!isVacuousEpoch)
     {
-        LoadUnavailableMicroBlockHashes(txBlock,
-                                        txBlock.GetHeader().GetBlockNum());
+        if (!LoadUnavailableMicroBlockHashes(txBlock,
+                                             txBlock.GetHeader().GetBlockNum()))
+        {
+            return false;
+        }
     }
     else
     {
@@ -1894,9 +1909,10 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
                 microBlockTxRootHash, microBlockStateDeltaHash, blocknum,
                 isEveryMicroBlockAvailable))
         {
+            LOG_GENERAL(WARNING,
+                        "The forwarded data is not in finalblock, why?");
             return false;
         }
-
         // StoreTxInMicroBlock(microBlockTxRootHash, txnHashesInForwardedMessage)
 
         CommitForwardedTransactions(txnsInForwardedMessage, blocknum);
@@ -1991,6 +2007,8 @@ bool Node::ProcessForwardStateDelta(const vector<unsigned char>& message,
                 microBlockStateDeltaHash, microBlockTxRootHash, blocknum,
                 isEveryMicroBlockAvailable))
         {
+            LOG_GENERAL(WARNING,
+                        "The forwarded data is not in finalblock, why?");
             return false;
         }
 
