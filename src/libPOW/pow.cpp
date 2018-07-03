@@ -288,8 +288,7 @@ POW::ConcatAndhash(const std::array<unsigned char, UINT256_SIZE>& rand1,
 }
 
 ethash_mining_result_t
-POW::PoWMine(const boost::multiprecision::uint256_t& blockNum,
-             uint8_t difficulty,
+POW::PoWMine(const uint64_t& blockNum, uint8_t difficulty,
              const std::array<unsigned char, UINT256_SIZE>& rand1,
              const std::array<unsigned char, UINT256_SIZE>& rand2,
              const boost::multiprecision::uint128_t& ipAddr,
@@ -299,7 +298,7 @@ POW::PoWMine(const boost::multiprecision::uint256_t& blockNum,
     // mutex required to prevent a new mining to begin before previous mining operation has ended(ie. shouldMine=false
     // has been processed) and result.success has been returned)
     std::lock_guard<std::mutex> g(m_mutexPoWMine);
-    EthashConfigureLightClient((uint64_t)blockNum);
+    EthashConfigureLightClient(blockNum);
     ethash_h256_t diffForPoW = DifficultyLevelInInt(difficulty);
     std::vector<unsigned char> sha3_result
         = ConcatAndhash(rand1, rand2, ipAddr, pubKey);
@@ -326,8 +325,7 @@ POW::PoWMine(const boost::multiprecision::uint256_t& blockNum,
     return result;
 }
 
-bool POW::PoWVerify(const boost::multiprecision::uint256_t& blockNum,
-                    uint8_t difficulty,
+bool POW::PoWVerify(const uint64_t& blockNum, uint8_t difficulty,
                     const std::array<unsigned char, UINT256_SIZE>& rand1,
                     const std::array<unsigned char, UINT256_SIZE>& rand2,
                     const boost::multiprecision::uint128_t& ipAddr,
@@ -336,7 +334,7 @@ bool POW::PoWVerify(const boost::multiprecision::uint256_t& blockNum,
                     std::string& winning_mixhash)
 {
     LOG_MARKER();
-    EthashConfigureLightClient((uint64_t)blockNum);
+    EthashConfigureLightClient(blockNum);
     ethash_h256_t diffForPoW = DifficultyLevelInInt(difficulty);
     std::vector<unsigned char> sha3_result
         = ConcatAndhash(rand1, rand2, ipAddr, pubKey);

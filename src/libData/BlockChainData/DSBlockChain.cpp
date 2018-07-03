@@ -26,7 +26,7 @@ DSBlockChain::~DSBlockChain() {}
 
 void DSBlockChain::Reset() { m_dsBlocks.resize(DS_BLOCKCHAIN_SIZE); }
 
-uint256_t DSBlockChain::GetBlockCount()
+uint64_t DSBlockChain::GetBlockCount()
 {
     lock_guard<mutex> g(m_mutexDSBlocks);
     return m_dsBlocks.size();

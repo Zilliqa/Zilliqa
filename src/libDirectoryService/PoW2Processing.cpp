@@ -45,9 +45,9 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
     LOG_MARKER();
     if (IsMessageSizeInappropriate(
             message.size(), offset,
-            UINT256_SIZE + sizeof(uint32_t) + PUB_KEY_SIZE + sizeof(uint64_t)
-                + BLOCK_HASH_SIZE + BLOCK_HASH_SIZE + SIGNATURE_CHALLENGE_SIZE
-                + SIGNATURE_RESPONSE_SIZE))
+            sizeof(uint64_t) + sizeof(uint32_t) + PUB_KEY_SIZE
+                + sizeof(uint64_t) + BLOCK_HASH_SIZE + BLOCK_HASH_SIZE
+                + SIGNATURE_CHALLENGE_SIZE + SIGNATURE_RESPONSE_SIZE))
     {
         LOG_GENERAL(WARNING, "PoW2 size Inappropriate");
         return false;
@@ -56,9 +56,9 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
     unsigned int curr_offset = offset;
 
     // 32-byte block number
-    uint256_t DSBlockNum = Serializable::GetNumber<uint256_t>(
-        message, curr_offset, UINT256_SIZE);
-    curr_offset += UINT256_SIZE;
+    uint64_t DSBlockNum = Serializable::GetNumber<uint64_t>(
+        message, curr_offset, sizeof(uint64_t));
+    curr_offset += sizeof(uint64_t);
 
     // Check block number
     if (!CheckWhetherDSBlockIsFresh(DSBlockNum + 1))
@@ -149,7 +149,7 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
     rand2.fill(0);
 
     // Verify nonce
-    uint256_t block_num = m_mediator.m_txBlockChain.GetBlockCount();
+    uint64_t block_num = m_mediator.m_txBlockChain.GetBlockCount();
 
     m_timespec = r_timer_start();
 
