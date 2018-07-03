@@ -138,8 +138,7 @@ void Node::Init()
 void Node::Prepare(bool runInitializeGenesisBlocks)
 {
     LOG_MARKER();
-    m_mediator.m_currentEpochNum
-        = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
+    m_mediator.m_currentEpochNum = m_mediator.m_txBlockChain.GetBlockCount();
     m_mediator.UpdateDSBlockRand(runInitializeGenesisBlocks);
     m_mediator.UpdateTxBlockRand(runInitializeGenesisBlocks);
     SetState(POW1_SUBMISSION);
@@ -555,14 +554,12 @@ bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
         = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
     offset += sizeof(uint32_t);
 
-    auto localBlockNum = (uint256_t)m_mediator.m_currentEpochNum;
-
-    if (msgBlockNum != localBlockNum)
+    if (msgBlockNum != m_mediator.m_currentEpochNum)
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "untimely delivery of "
                       << "missing txns. received: " << msgBlockNum
-                      << " , local: " << localBlockNum);
+                      << " , local: " << m_mediator.m_currentEpochNum);
     }
 
     if (IsMessageSizeInappropriate(message.size(), offset,
@@ -616,10 +613,9 @@ bool Node::ProcessSubmitTxnSharing(const vector<unsigned char>& message,
         if (m_mediator.m_validator->CheckCreatedTransaction(
                 submittedTransaction))
         {
-            boost::multiprecision::uint256_t blockNum
-                = (uint256_t)m_mediator.m_currentEpochNum;
             lock_guard<mutex> g(m_mutexReceivedTransactions);
-            auto& receivedTransactions = m_receivedTransactions[blockNum];
+            auto& receivedTransactions
+                = m_receivedTransactions[m_mediator.m_currentEpochNum];
 
             receivedTransactions.insert(make_pair(
                 submittedTransaction.GetTranID(), submittedTransaction));
@@ -803,8 +799,7 @@ void Node::SubmitTransactions()
     //LOG_MARKER();
 
     unsigned int txn_sent_count = 0;
-    boost::multiprecision::uint256_t blockNum
-        = (uint256_t)m_mediator.m_currentEpochNum;
+    uint64_t blockNum = m_mediator.m_currentEpochNum;
 
     unsigned int cur_offset = 0;
 

@@ -161,12 +161,12 @@ void DirectoryService::SendingShardingStructureToShard(
     unsigned int curr_offset = MessageOffset::BODY;
 
     // Todo: Any better way to do it?
-    uint256_t latest_block_num_in_blockchain
+    uint64_t latest_block_num_in_blockchain
         = m_mediator.m_dsBlockChain.GetBlockCount() - 1;
-    Serializable::SetNumber<uint256_t>(sharding_message, curr_offset,
-                                       latest_block_num_in_blockchain,
-                                       UINT256_SIZE);
-    curr_offset += UINT256_SIZE;
+    Serializable::SetNumber<uint64_t>(sharding_message, curr_offset,
+                                      latest_block_num_in_blockchain,
+                                      sizeof(uint64_t));
+    curr_offset += sizeof(uint64_t);
 
     // 4-byte shard ID - get from the leader's info in m_publicKeyToShardIdMap
     Serializable::SetNumber<uint32_t>(

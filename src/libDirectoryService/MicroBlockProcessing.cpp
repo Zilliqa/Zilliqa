@@ -120,7 +120,7 @@ bool DirectoryService::ProcessMicroblockSubmission(
     }
 
     if (IsMessageSizeInappropriate(message.size(), offset,
-                                   UINT256_SIZE + sizeof(uint32_t)
+                                   sizeof(uint64_t) + sizeof(uint32_t)
                                        + sizeof(uint32_t)
                                        + TxBlock::GetMinSize()))
     {
@@ -130,9 +130,9 @@ bool DirectoryService::ProcessMicroblockSubmission(
     unsigned int curr_offset = offset;
 
     // 32-byte block number
-    uint256_t DSBlockNum = Serializable::GetNumber<uint256_t>(
-        message, curr_offset, UINT256_SIZE);
-    curr_offset += UINT256_SIZE;
+    uint64_t DSBlockNum = Serializable::GetNumber<uint64_t>(
+        message, curr_offset, sizeof(uint64_t));
+    curr_offset += sizeof(uint64_t);
 
     // Check block number
     if (!CheckWhetherDSBlockIsFresh(DSBlockNum + 1))

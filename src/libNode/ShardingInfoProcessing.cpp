@@ -51,7 +51,7 @@ bool Node::ReadVariablesFromShardingMessage(
     LOG_MARKER();
 
     if (IsMessageSizeInappropriate(message.size(), cur_offset,
-                                   sizeof(unsigned int) + UINT256_SIZE
+                                   sizeof(unsigned int) + sizeof(uint64_t)
                                        + sizeof(uint32_t) + sizeof(uint32_t)
                                        + sizeof(uint32_t)))
     {
@@ -59,9 +59,9 @@ bool Node::ReadVariablesFromShardingMessage(
     }
 
     // 32-byte block number
-    uint256_t dsBlockNum
-        = Serializable::GetNumber<uint256_t>(message, cur_offset, UINT256_SIZE);
-    cur_offset += UINT256_SIZE;
+    uint64_t dsBlockNum = Serializable::GetNumber<uint64_t>(message, cur_offset,
+                                                            sizeof(uint64_t));
+    cur_offset += sizeof(uint64_t);
 
     // Check block number
     if (!CheckWhetherDSBlockNumIsLatest(dsBlockNum + 1))

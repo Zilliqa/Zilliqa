@@ -26,7 +26,7 @@ TxBlockChain::~TxBlockChain() {}
 
 void TxBlockChain::Reset() { m_txBlocks.resize(TX_BLOCKCHAIN_SIZE); }
 
-uint256_t TxBlockChain::GetBlockCount()
+uint64_t TxBlockChain::GetBlockCount()
 {
     lock_guard<mutex> g(m_mutexTxBlocks);
     return m_txBlocks.size();

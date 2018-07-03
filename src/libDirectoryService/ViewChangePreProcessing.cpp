@@ -164,8 +164,8 @@ void DirectoryService::ComputeNewCandidateLeader()
         // To-do: Handle exceptions.
         m_pendingVCBlock.reset(new VCBlock(
             VCBlockHeader(
-                (uint64_t)m_mediator.m_dsBlockChain.GetBlockCount(),
-                (uint64_t)m_mediator.m_currentEpochNum, m_viewChangestate,
+                m_mediator.m_dsBlockChain.GetBlockCount(),
+                m_mediator.m_currentEpochNum, m_viewChangestate,
                 newCandidateLeaderIndex, newLeaderNetworkInfo,
                 m_mediator.m_DSCommitteePubKeys.at(newCandidateLeaderIndex),
                 m_viewChangeCounter, get_time_as_int()),

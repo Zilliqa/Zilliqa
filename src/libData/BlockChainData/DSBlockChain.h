@@ -43,7 +43,7 @@ public:
     void Reset();
 
     /// Returns the number of blocks.
-    boost::multiprecision::uint256_t GetBlockCount();
+    uint64_t GetBlockCount();
 
     /// Returns the last stored block.
     DSBlock GetLastBlock();

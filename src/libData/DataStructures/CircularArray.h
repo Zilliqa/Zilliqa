@@ -28,7 +28,7 @@ template<class T> class CircularArray
     std::vector<T> m_array;
 
     int m_capacity;
-    boost::multiprecision::uint256_t m_size;
+    uint64_t m_size;
 
 public:
     /// Default constructor.
@@ -102,7 +102,7 @@ public:
     }
 
     /// Returns the number of elements stored till now in the array.
-    boost::multiprecision::uint256_t size() { return m_size; }
+    uint64_t size() { return m_size; }
 
     /// Returns the storage capacity of the array.
     int capacity() { return m_capacity; }

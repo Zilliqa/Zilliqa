@@ -146,7 +146,7 @@ void DirectoryService::ComposeFinalBlockCore()
     BlockHash prevHash;
     uint256_t timestamp = get_time_as_int();
 
-    uint256_t blockNum = 0;
+    uint64_t blockNum = 0;
     if (m_mediator.m_txBlockChain.GetBlockCount() > 0)
     {
         TxBlock lastBlock = m_mediator.m_txBlockChain.GetLastBlock();
@@ -171,7 +171,7 @@ void DirectoryService::ComposeFinalBlockCore()
     }
 
     DSBlock lastDSBlock = m_mediator.m_dsBlockChain.GetLastBlock();
-    uint256_t lastDSBlockNum = lastDSBlock.GetHeader().GetBlockNum();
+    uint64_t lastDSBlockNum = lastDSBlock.GetHeader().GetBlockNum();
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
     vector<unsigned char> vec;
     lastDSBlock.GetHeader().Serialize(vec, 0);

@@ -100,11 +100,11 @@ void Node::UpdateDSCommiteeComposition(const Peer& winnerpeer)
     m_mediator.m_DSCommitteePubKeys.pop_back();
 }
 
-bool Node::CheckWhetherDSBlockNumIsLatest(const uint256_t dsblockNum)
+bool Node::CheckWhetherDSBlockNumIsLatest(const uint64_t dsblockNum)
 {
     LOG_MARKER();
 
-    uint256_t latestBlockNumInBlockchain
+    uint64_t latestBlockNumInBlockchain
         = m_mediator.m_dsBlockChain.GetBlockCount();
 
     if (dsblockNum < latestBlockNumInBlockchain)
