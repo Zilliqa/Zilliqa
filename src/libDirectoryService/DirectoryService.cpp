@@ -1276,6 +1276,7 @@ void DirectoryService::RejoinAsDS()
         && m_mode == BACKUP_DS)
     {
         m_mediator.m_lookup->m_syncType = SyncType::DS_SYNC;
+        m_mediator.m_node->CleanVariables();
         m_mediator.m_node->Install(SyncType::DS_SYNC, true);
         this->StartSynchronization();
     }
