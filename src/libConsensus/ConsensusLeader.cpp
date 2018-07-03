@@ -992,7 +992,7 @@ bool ConsensusLeader::ProcessMessageResponseCore(
                 peerInfo.push_back(i.second);
             }
 
-          P2PComm::GetInstance().SendMessage(m_peerInfo, collectivesig);
+            P2PComm::GetInstance().SendMessage(peerInfo, collectivesig);
         }
     }
 
