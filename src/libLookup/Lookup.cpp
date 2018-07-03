@@ -464,7 +464,7 @@ bool Lookup::ProcessEntireShardingStructure(
             return false;
         }
 
-        m_shards.emplace_back(map<PubKey, Peer>());
+        m_shards.emplace_back();
 
         // 4-byte shard size
         uint32_t shard_size = Serializable::GetNumber<uint32_t>(
@@ -502,7 +502,7 @@ bool Lookup::ProcessEntireShardingStructure(
 
             offset += IP_SIZE + PORT_SIZE;
 
-            shard.emplace(make_pair(key, peer));
+            shard.emplace(key, peer);
 
             m_nodesInNetwork.emplace_back(peer);
             t_nodesInNetwork.emplace(peer);
@@ -1162,7 +1162,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
 
     for (unsigned int i = 0; i < numDSPeers; i++)
     {
-        dsPubKeys.emplace_back(PubKey(message, offset));
+        dsPubKeys.emplace_back(message, offset);
         offset += PUB_KEY_SIZE;
 
         Peer peer(message, offset);

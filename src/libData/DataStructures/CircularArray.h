@@ -89,7 +89,7 @@ public:
     }
 
     /// Adds an element to the end of the array.
-    void emplace_back(T element)
+    void push_back(T element)
     {
         if (!m_array.size())
         {
