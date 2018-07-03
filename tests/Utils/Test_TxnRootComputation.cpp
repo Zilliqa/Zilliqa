@@ -51,7 +51,7 @@ decltype(auto) generateDummyTransactions(size_t n)
     for (auto i = 0u; i != n; i++)
     {
         auto txn = createDummyTransaction();
-        txns.insert({txn.GetTranID(), txn});
+        txns.emplace(txn.GetTranID(), txn);
     }
 
     return txns;

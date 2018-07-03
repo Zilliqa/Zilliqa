@@ -447,7 +447,7 @@ void P2PComm::HandleAcceptedConnection(
 
                 if (this_msg_hash == msg_hash)
                 {
-                    P2PComm::GetInstance().m_broadcastHashes.insert(
+                    P2PComm::GetInstance().m_broadcastHashes.emplace(
                         this_msg_hash);
                 }
                 else
@@ -709,7 +709,7 @@ void P2PComm::SendBroadcastMessageHelper(
 
     {
         lock_guard<mutex> guard(m_broadcastHashesMutex);
-        m_broadcastHashes.insert(this_msg_hash);
+        m_broadcastHashes.emplace(this_msg_hash);
     }
 
     LOG_STATE("[BROAD]["

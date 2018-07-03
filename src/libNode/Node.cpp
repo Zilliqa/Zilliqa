@@ -534,7 +534,7 @@ bool Node::ProcessCreateTransaction(const vector<unsigned char>& message,
 
     // {
     // lock_guard<mutex> g(m_mutexCreatedTransactions);
-    // m_createdTransactions.insert(m_createdTransactions.end(),
+    // m_createdTransactions.emplace(m_createdTransactions.end(),
     // txnToCreate.begin(), txnToCreate.end());
     // }
 
@@ -577,7 +577,7 @@ bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
     {
         lock_guard<mutex> g(m_mutexReceivedTransactions);
         auto& receivedTransactions = m_receivedTransactions[msgBlockNum];
-        receivedTransactions.insert(
+        receivedTransactions.emplace(
             make_pair(submittedTransaction.GetTranID(), submittedTransaction));
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Received missing txn: " << submittedTransaction.GetTranID());
@@ -621,7 +621,7 @@ bool Node::ProcessSubmitTxnSharing(const vector<unsigned char>& message,
             lock_guard<mutex> g(m_mutexReceivedTransactions);
             auto& receivedTransactions = m_receivedTransactions[blockNum];
 
-            receivedTransactions.insert(make_pair(
+            receivedTransactions.emplace(make_pair(
                 submittedTransaction.GetTranID(), submittedTransaction));
             //LOG_EPOCH(to_string(m_mediator.m_currentEpochNum).c_str(),
             //             "Received txn: " << submittedTransaction.GetTranID())
@@ -863,7 +863,7 @@ void Node::SubmitTransactions()
 
             lock_guard<mutex> g(m_mutexSubmittedTransactions);
             auto& submittedTransactions = m_submittedTransactions[blockNum];
-            submittedTransactions.insert(make_pair(t.GetTranID(), t));
+            submittedTransactions.emplace(make_pair(t.GetTranID(), t));
         };
 
         if (findOneFromCreated(t))

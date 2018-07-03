@@ -502,10 +502,10 @@ bool Lookup::ProcessEntireShardingStructure(
 
             offset += IP_SIZE + PORT_SIZE;
 
-            shard.insert(make_pair(key, peer));
+            shard.emplace(make_pair(key, peer));
 
             m_nodesInNetwork.emplace_back(peer);
-            t_nodesInNetwork.insert(peer);
+            t_nodesInNetwork.emplace(peer);
 
             LOG_GENERAL(INFO,
                         "[SHARD "
@@ -611,7 +611,7 @@ bool Lookup::ProcessGetSeedPeersFromLookup(const vector<unsigned char>& message,
         {
             index = dis(gen);
         }
-        indicesAlreadyAdded.insert(index);
+        indicesAlreadyAdded.emplace(index);
 
         Peer candidateSeed = m_nodesInNetwork[index];
 
