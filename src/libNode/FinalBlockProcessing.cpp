@@ -908,6 +908,7 @@ bool Node::ActOnFinalBlock(uint8_t tx_sharing_mode, const vector<Peer>& nodes)
     {
         // TODO
         LOG_GENERAL(WARNING, "Why my shards microblock not in finalblock, one");
+        AccountStore::GetInstance().InitTemp();
     }
     // #endif // IS_LOOKUP_NODE
     return true;
@@ -968,6 +969,7 @@ bool Node::ActOnFinalBlock(uint8_t tx_sharing_mode,
             // TODO
             LOG_GENERAL(WARNING,
                         "Why my shards microblock not in finalblock, two");
+            AccountStore::GetInstance().InitTemp();
         }
     }
     else
@@ -1907,9 +1909,10 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
                 microBlockTxRootHash, microBlockStateDeltaHash, blocknum,
                 isEveryMicroBlockAvailable))
         {
+            LOG_GENERAL(WARNING,
+                        "The forwarded data is not in finalblock, why?");
             return false;
         }
-
         // StoreTxInMicroBlock(microBlockTxRootHash, txnHashesInForwardedMessage)
 
         CommitForwardedTransactions(txnsInForwardedMessage, blocknum);
@@ -2004,6 +2007,8 @@ bool Node::ProcessForwardStateDelta(const vector<unsigned char>& message,
                 microBlockStateDeltaHash, microBlockTxRootHash, blocknum,
                 isEveryMicroBlockAvailable))
         {
+            LOG_GENERAL(WARNING,
+                        "The forwarded data is not in finalblock, why?");
             return false;
         }
 
