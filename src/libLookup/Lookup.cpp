@@ -1614,6 +1614,18 @@ bool Lookup::InitMining()
 {
     LOG_MARKER();
 
+    {
+        lock_guard<mutex> g(m_mediator.m_node->m_mutexNewRoungStarted);
+        if (!m_mediator.m_node->m_newRoundStarted)
+        {
+            LOG_GENERAL(INFO,
+                        "Started new round of rejoining, discard all blocked "
+                        "forwarded message submitted from other shard nodes");
+            m_mediator.m_node->m_newRoundStarted = true;
+            m_mediator.m_node->m_cvNewRoundStarted.notify_all();
+        }
+    }
+
     m_mediator.m_currentEpochNum
         = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
 
@@ -2040,6 +2052,7 @@ void Lookup::RejoinAsLookup()
     if (m_syncType == SyncType::NO_SYNC)
     {
         m_syncType = SyncType::LOOKUP_SYNC;
+        AccountStore::GetInstance().InitSoft();
         m_mediator.m_node->Install(SyncType::LOOKUP_SYNC, true);
         this->StartSynchronization();
     }
