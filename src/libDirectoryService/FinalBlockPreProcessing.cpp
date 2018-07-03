@@ -406,6 +406,7 @@ vector<unsigned char> DirectoryService::ComposeFinalBlockMessage()
 
     vector<unsigned char> finalBlockMessage;
     unsigned int curr_offset = 0;
+    /** To remove. Redundant code. 
 
     bool isVacuousEpoch
         = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
@@ -442,6 +443,7 @@ vector<unsigned char> DirectoryService::ComposeFinalBlockMessage()
                       "All microblocks recvd, moving to compose final block");
         }
     }
+    **/
 
     ComposeFinalBlockCore(); // stores it in m_finalBlock
 
@@ -903,6 +905,8 @@ void DirectoryService::SaveTxnBodySharingAssignment(
     }
 }
 
+/** To remove. Redundant code. 
+
 bool DirectoryService::WaitForTxnBodies()
 {
     LOG_MARKER();
@@ -945,6 +949,7 @@ bool DirectoryService::WaitForTxnBodies()
 
     return true;
 }
+**/
 
 void DirectoryService::LoadUnavailableMicroBlocks()
 {
@@ -995,7 +1000,7 @@ bool DirectoryService::FinalBlockValidator(
     m_finalBlock.reset(new TxBlock(finalblock, curr_offset));
     curr_offset += m_finalBlock->GetSerializedSize();
 
-    WaitForTxnBodies();
+    // WaitForTxnBodies();
 
     bool isVacuousEpoch
         = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
