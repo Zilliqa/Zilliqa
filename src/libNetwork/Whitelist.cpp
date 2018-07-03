@@ -127,7 +127,7 @@ void Whitelist::AddToDSWhitelist(const Peer& whiteListPeer,
     }
 
     lock_guard<mutex> g(m_mutexDSWhiteList);
-    m_DSWhiteList.insert(make_pair(whiteListPeer, whiteListPubKey));
+    m_DSWhiteList.emplace(make_pair(whiteListPeer, whiteListPubKey));
     LOG_GENERAL(INFO, "Added " << whiteListPeer << " " << whiteListPubKey);
 }
 

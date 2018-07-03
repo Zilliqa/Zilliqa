@@ -735,7 +735,7 @@ void Node::LoadForwardingAssignmentFromFinalBlock(
 
     lock_guard<mutex> g2(m_mutexForwardingAssignment);
 
-    m_forwardingAssignment.insert(make_pair(blocknum, vector<Peer>()));
+    m_forwardingAssignment.emplace(make_pair(blocknum, vector<Peer>()));
     vector<Peer>& peers = m_forwardingAssignment.at(blocknum);
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -851,7 +851,7 @@ bool Node::ActOnFinalBlock(uint8_t tx_sharing_mode, const vector<Peer>& nodes)
     case DS_FORWARD_ONLY:
     {
         lock_guard<mutex> g2(m_mutexForwardingAssignment);
-        m_forwardingAssignment.insert(make_pair(blocknum, nodes));
+        m_forwardingAssignment.emplace(make_pair(blocknum, nodes));
         break;
     }
     case NODE_FORWARD_ONLY:

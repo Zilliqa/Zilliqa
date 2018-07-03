@@ -1119,7 +1119,7 @@ bool DirectoryService::ProcessAllPoWConnResponse(
 
         if (m_allPoWConns.find(key) == m_allPoWConns.end())
         {
-            m_allPoWConns.insert(make_pair(key, peer));
+            m_allPoWConns.emplace(make_pair(key, peer));
         }
     }
 

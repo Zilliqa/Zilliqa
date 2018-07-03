@@ -62,7 +62,7 @@ Transaction constructDummyTxBody(int instanceNum)
 //     RLPStream k;
 //     k << 1;
 
-//     transactionsTrie.insert(&k.out(), serializedTxn1);
+//     transactionsTrie.emplace(&k.out(), serializedTxn1);
 
 //     LOG_GENERAL(INFO, transactionsTrie);
 //     LOG_GENERAL(INFO, tm);
@@ -74,7 +74,7 @@ Transaction constructDummyTxBody(int instanceNum)
 
 //     k << 2;
 
-//     transactionsTrie.insert(&k.out(), serializedTxn2);
+//     transactionsTrie.emplace(&k.out(), serializedTxn2);
 
 //     LOG_GENERAL(INFO, transactionsTrie);
 //     LOG_GENERAL(INFO, tm);
@@ -100,7 +100,7 @@ BOOST_AUTO_TEST_CASE(fat_trie2)
     RLPStream k;
     k << 1;
 
-    transactionsTrie.insert(&k.out(), serializedTxn1);
+    transactionsTrie.emplace(&k.out(), serializedTxn1);
 
     LOG_GENERAL(INFO, transactionsTrie);
     LOG_GENERAL(INFO, tm);
@@ -112,7 +112,7 @@ BOOST_AUTO_TEST_CASE(fat_trie2)
 
     k << 2;
 
-    transactionsTrie.insert(&k.out(), serializedTxn2);
+    transactionsTrie.emplace(&k.out(), serializedTxn2);
 
     LOG_GENERAL(INFO, transactionsTrie);
     LOG_GENERAL(INFO, tm);
@@ -127,7 +127,7 @@ BOOST_AUTO_TEST_CASE(fat_trie2)
 
     k << 2;
 
-    transactionsTrie2.insert(&k.out(), serializedTxn1);
+    transactionsTrie2.emplace(&k.out(), serializedTxn1);
 
     LOG_GENERAL(INFO, transactionsTrie2);
     LOG_GENERAL(INFO, tm2);
@@ -138,7 +138,7 @@ BOOST_AUTO_TEST_CASE(fat_trie2)
 
     k << 1;
 
-    transactionsTrie2.insert(&k.out(), serializedTxn2);
+    transactionsTrie2.emplace(&k.out(), serializedTxn2);
 
     LOG_GENERAL(INFO, transactionsTrie2);
     LOG_GENERAL(INFO, tm2);
