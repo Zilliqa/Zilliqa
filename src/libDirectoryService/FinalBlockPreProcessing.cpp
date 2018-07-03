@@ -85,7 +85,7 @@ void DirectoryService::ExtractDataFromMicroblocks(
 
         if (!isVacuousEpoch && !isEmpty)
         {
-            m_mediator.m_node->m_unavailableMicroBlocks[blockNum].emplace(
+            m_mediator.m_node->m_unavailableMicroBlocks[blockNum].insert(
                 {{microBlock.GetHeader().GetTxRootHash(),
                   microBlock.GetHeader().GetStateDeltaHash()},
                  // {!isEmptyTxn, true}});
@@ -966,9 +966,9 @@ void DirectoryService::LoadUnavailableMicroBlocks()
                         != StateHash()))
             {
                 // bool b = microBlock.GetHeader().GetNumTxs() > 0;
-                m_mediator.m_node->m_unavailableMicroBlocks[blockNum].emplace(
+                m_mediator.m_node->m_unavailableMicroBlocks[blockNum].insert(
                     // {microBlockHash, {b, true}});
-                    microBlockHash, {false, true});
+                    {microBlockHash, {false, true}});
                 break;
             }
         }
