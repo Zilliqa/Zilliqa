@@ -19,6 +19,7 @@
         <VIEWCHANGE_TIME>180</VIEWCHANGE_TIME>
         <VIEWCHANGE_EXTRA_TIME>10</VIEWCHANGE_EXTRA_TIME>
         <SHARDING_TIMEOUT>180</SHARDING_TIMEOUT>
+        <CONSENSUS_COSIG_WINDOW>3</CONSENSUS_COSIG_WINDOW>
         <CONSENSUS_OBJECT_TIMEOUT>10</CONSENSUS_OBJECT_TIMEOUT>
         <FINALBLOCK_CONSENSUS_OBJECT_TIMEOUT>30</FINALBLOCK_CONSENSUS_OBJECT_TIMEOUT>
         <NUM_FINAL_BLOCK_PER_POW>5</NUM_FINAL_BLOCK_PER_POW>
@@ -54,7 +55,7 @@
     </smart_contract>
     <accounts>
         <account>
-            <wallet_address>027b3e103003e6f533a1253342dd03340b3f5061</wallet_address>
+            <wallet_address>cc02a3c906612cc5bdb087a30e6093c9f0aa04fc</wallet_address>
         </account>
     </accounts>
     <lookups>
