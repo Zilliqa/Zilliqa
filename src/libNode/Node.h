@@ -361,9 +361,6 @@ class Node : public Executable, public Broadcastable
 
     // Is Running from New Process
     bool m_fromNewProcess = true;
-
-    // Reset certain variables to the initial state
-    bool CleanVariables();
 #endif // IS_LOOKUP_NODE
 
 public:
@@ -424,6 +421,9 @@ public:
 
     /// Set initial state, variables, and clean-up storage
     void Init();
+
+    // Reset certain variables to the initial state
+    bool CleanVariables();
 
     /// Prepare for processing protocols after initialization
     void Prepare(bool runInitializeGenesisBlocks);

@@ -300,7 +300,8 @@ class DirectoryService : public Executable, public Broadcastable
     void LoadUnavailableMicroBlocks();
     void SaveTxnBodySharingAssignment(const vector<unsigned char>& finalblock,
                                       unsigned int& curr_offset);
-    bool WaitForTxnBodies();
+    // Redundant code
+    // bool WaitForTxnBodies();
 
     // DS block consensus validator function
     bool DSBlockValidator(const std::vector<unsigned char>& dsblock,
