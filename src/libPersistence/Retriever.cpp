@@ -26,6 +26,7 @@
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 #include "libPersistence/BlockStorage.h"
+#include "libUtils/DataConversion.h"
 
 using namespace boost::filesystem;
 namespace filesys = boost::filesystem;
@@ -51,28 +52,44 @@ void Retriever::RetrieveDSBlocks(bool& result)
         return a->GetHeader().GetBlockNum() < b->GetHeader().GetBlockNum();
     });
 
-    /// Check whether the termination of last running happens before the last DSEpoch properly ended.
-    std::vector<unsigned char> isDSIncompleted;
-    if (BlockStorage::GetBlockStorage().GetMetadata(MetaType::DSINCOMPLETED,
-                                                    isDSIncompleted))
+    if (!blocks.empty())
     {
-        if (isDSIncompleted[0] == '1')
+        if (m_mediator.m_ds->m_latestActiveDSBlockNum == 0)
         {
-            LOG_GENERAL(INFO, "Has incompleted DS Block");
-            blocks.pop_back();
-            if (BlockStorage::GetBlockStorage().DeleteDSBlock(blocks.size()))
+            std::vector<unsigned char> latestActiveDSBlockNumVec;
+            if (!BlockStorage::GetBlockStorage().GetMetadata(
+                    MetaType::LATESTACTIVEDSBLOCKNUM,
+                    latestActiveDSBlockNumVec))
             {
-                BlockStorage::GetBlockStorage().PutMetadata(
-                    MetaType::DSINCOMPLETED, {'0'});
+                LOG_GENERAL(WARNING, "Get LatestActiveDSBlockNum failed");
+                result = false;
+                return;
             }
-            hasIncompletedDS = true;
+            m_mediator.m_ds->m_latestActiveDSBlockNum = std::stoull(
+                DataConversion::CharArrayToString(latestActiveDSBlockNumVec));
         }
     }
-    else
+
+    /// Check whether the termination of last running happens before the last DSEpoch properly ended.
+    std::vector<unsigned char> isDSIncompleted;
+    if (!BlockStorage::GetBlockStorage().GetMetadata(MetaType::DSINCOMPLETED,
+                                                     isDSIncompleted))
     {
         LOG_GENERAL(WARNING, "No GetMetadata or failed");
         result = false;
         return;
+    }
+
+    if (isDSIncompleted[0] == '1')
+    {
+        LOG_GENERAL(INFO, "Has incompleted DS Block");
+        blocks.pop_back();
+        if (BlockStorage::GetBlockStorage().DeleteDSBlock(blocks.size()))
+        {
+            BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
+                                                        {'0'});
+        }
+        hasIncompletedDS = true;
     }
 
     for (const auto& block : blocks)
