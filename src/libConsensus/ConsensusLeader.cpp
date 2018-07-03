@@ -427,13 +427,6 @@ bool ConsensusLeader::ProcessMessageCommitCore(
                     }
                 }
 
-                // FIXME: quick fix: 0106'08' comes to the backup ealier than 0106'04'
-                // if (action == FINALCOMMIT)
-                // {
-                //     this_thread::sleep_for(chrono::milliseconds(1000));
-                // }
-                this_thread::sleep_for(chrono::milliseconds(1000));
-
                 P2PComm::GetInstance().SendMessage(commit_peers, challenge);
             }
         }
@@ -985,6 +978,13 @@ bool ConsensusLeader::ProcessMessageResponseCore(
             // Multicast to all nodes in the committee
             // =======================================
 
+            // FIXME: quick fix: 0106'08' comes to the backup ealier than 0106'04'
+            // if (action == FINALCOMMIT)
+            // {
+            //     this_thread::sleep_for(chrono::milliseconds(1000));
+            // }
+            this_thread::sleep_for(chrono::seconds(CONSENSUS_COSIG_WINDOW));
+
             deque<Peer> peerInfo;
 
             for (auto const& i : m_committee)
@@ -992,7 +992,7 @@ bool ConsensusLeader::ProcessMessageResponseCore(
                 peerInfo.push_back(i.second);
             }
 
-            P2PComm::GetInstance().SendMessage(peerInfo, collectivesig);
+          P2PComm::GetInstance().SendMessage(m_peerInfo, collectivesig);
         }
     }
 

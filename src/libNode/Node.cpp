@@ -637,6 +637,14 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
 
     LOG_MARKER();
 
+    if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
+    {
+        if (m_consensusID != 0)
+        {
+            return false;
+        }
+    }
+
     bool isVacuousEpoch
         = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
 
@@ -650,6 +658,11 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "New consensus round started, moving to "
                       "ProcessSubmitTxnSharing");
+            if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
+            {
+                LOG_GENERAL(WARNING, "The node started rejoin, discard it");
+                return false;
+            }
         }
         else
         {
@@ -917,6 +930,7 @@ void Node::RejoinAsNormal()
 
 bool Node::CleanVariables()
 {
+    AccountStore::GetInstance().InitSoft();
     m_myShardMembersPubKeys.clear();
     m_myShardMembersNetworkInfo.clear();
     m_isPrimary = false;
@@ -993,7 +1007,8 @@ bool Node::ToBlockMessage(unsigned char ins_byte)
     {
         if (!m_fromNewProcess)
         {
-            if (ins_byte != NodeInstructionType::SHARDING)
+            if (ins_byte != NodeInstructionType::SHARDING
+                && ins_byte != NodeInstructionType::SUBMITTRANSACTION)
             {
                 return true;
             }
@@ -1001,7 +1016,8 @@ bool Node::ToBlockMessage(unsigned char ins_byte)
         else
         {
             if (m_runFromLate && ins_byte != NodeInstructionType::SHARDING
-                && ins_byte != NodeInstructionType::CREATETRANSACTION)
+                && ins_byte != NodeInstructionType::CREATETRANSACTION
+                && ins_byte != NodeInstructionType::SUBMITTRANSACTION)
             {
                 return true;
             }

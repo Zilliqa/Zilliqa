@@ -364,9 +364,6 @@ class Node : public Executable, public Broadcastable
 
     // Rejoin the network as a shard node in case of failure happens in protocol
     void RejoinAsNormal();
-
-    // Reset certain variables to the initial state
-    bool CleanVariables();
 #endif // IS_LOOKUP_NODE
 
 public:
@@ -427,6 +424,9 @@ public:
 
     /// Set initial state, variables, and clean-up storage
     void Init();
+
+    // Reset certain variables to the initial state
+    bool CleanVariables();
 
     /// Prepare for processing protocols after initialization
     void Prepare(bool runInitializeGenesisBlocks);
