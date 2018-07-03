@@ -735,7 +735,7 @@ void Node::LoadForwardingAssignmentFromFinalBlock(
 
     lock_guard<mutex> g2(m_mutexForwardingAssignment);
 
-    m_forwardingAssignment.emplace(make_pair(blocknum, vector<Peer>()));
+    m_forwardingAssignment.emplace(blocknum, vector<Peer>());
     vector<Peer>& peers = m_forwardingAssignment.at(blocknum);
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -851,7 +851,7 @@ bool Node::ActOnFinalBlock(uint8_t tx_sharing_mode, const vector<Peer>& nodes)
     case DS_FORWARD_ONLY:
     {
         lock_guard<mutex> g2(m_mutexForwardingAssignment);
-        m_forwardingAssignment.emplace(make_pair(blocknum, nodes));
+        m_forwardingAssignment.emplace(blocknum, nodes);
         break;
     }
     case NODE_FORWARD_ONLY:
@@ -1175,11 +1175,11 @@ void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Forwarders inside the DS committee (" << num_ds_nodes << "):");
 
-    nodes.emplace_back(vector<Peer>());
+    nodes.emplace_back();
 
     for (unsigned int i = 0; i < num_ds_nodes; i++)
     {
-        nodes.back().emplace_back(Peer(message, cur_offset));
+        nodes.back().emplace_back(message, cur_offset);
         cur_offset += IP_SIZE + PORT_SIZE;
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -1197,7 +1197,7 @@ void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
     {
         if (i == shard_id)
         {
-            nodes.emplace_back(vector<Peer>());
+            nodes.emplace_back();
 
             uint32_t num_recv = Serializable::GetNumber<uint32_t>(
                 message, cur_offset, sizeof(uint32_t));
@@ -1208,7 +1208,7 @@ void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
 
             for (unsigned int j = 0; j < num_recv; j++)
             {
-                nodes.back().emplace_back(Peer(message, cur_offset));
+                nodes.back().emplace_back(message, cur_offset);
                 cur_offset += IP_SIZE + PORT_SIZE;
 
                 LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -1220,7 +1220,7 @@ void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
                 }
             }
 
-            nodes.emplace_back(vector<Peer>());
+            nodes.emplace_back();
 
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "  Shard " << i << " senders:");
@@ -1231,7 +1231,7 @@ void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
 
             for (unsigned int j = 0; j < num_send; j++)
             {
-                nodes.back().emplace_back(Peer(message, cur_offset));
+                nodes.back().emplace_back(message, cur_offset);
                 cur_offset += IP_SIZE + PORT_SIZE;
 
                 LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -1245,7 +1245,7 @@ void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
         }
         else
         {
-            nodes.emplace_back(vector<Peer>());
+            nodes.emplace_back();
 
             uint32_t num_recv = Serializable::GetNumber<uint32_t>(
                 message, cur_offset, sizeof(uint32_t));
@@ -1256,14 +1256,14 @@ void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
 
             for (unsigned int j = 0; j < num_recv; j++)
             {
-                nodes.back().emplace_back(Peer(message, cur_offset));
+                nodes.back().emplace_back(message, cur_offset);
                 cur_offset += IP_SIZE + PORT_SIZE;
 
                 LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                           nodes.back().back());
             }
 
-            nodes.emplace_back(vector<Peer>());
+            nodes.emplace_back();
 
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "  Shard " << i << " senders:");
@@ -1274,7 +1274,7 @@ void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
 
             for (unsigned int j = 0; j < num_send; j++)
             {
-                nodes.back().emplace_back(Peer(message, cur_offset));
+                nodes.back().emplace_back(message, cur_offset);
                 cur_offset += IP_SIZE + PORT_SIZE;
 
                 LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),

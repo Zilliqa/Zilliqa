@@ -856,7 +856,7 @@ void DirectoryService::SaveTxnBodySharingAssignment(
     for (uint32_t i = 0; i < num_ds_nodes; i++)
     {
         // TODO: Handle exceptions
-        ds_receivers.emplace_back(Peer(finalblock, curr_offset));
+        ds_receivers.emplace_back(finalblock, curr_offset);
         curr_offset += IP_SIZE + PORT_SIZE;
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),

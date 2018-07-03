@@ -51,7 +51,7 @@ bool DirectoryService::CheckWhetherMaxSubmissionsReceived(Peer peer, PubKey key)
                   "Already validated maximum number of PoW1 submissions - "
                   "dropping this submission but noting down the IP of "
                   "submitter");
-        m_allPoWConns.emplace(make_pair(key, peer));
+        m_allPoWConns.emplace(key, peer);
         return true;
     }
 
@@ -214,7 +214,7 @@ bool DirectoryService::ParseMessageAndVerifyPOW1(
             lock_guard<mutex> g(m_mutexAllPOW1, adopt_lock);
             lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
 
-            m_allPoWConns.emplace(make_pair(key, peer));
+            m_allPoWConns.emplace(key, peer);
 
             if (m_allPoW1s.size() >= MAX_POW1_WINNERS)
             {
@@ -225,7 +225,7 @@ bool DirectoryService::ParseMessageAndVerifyPOW1(
                 return false;
             }
 
-            m_allPoW1s.emplace_back(make_pair(key, nonce));
+            m_allPoW1s.emplace_back(key, nonce);
         }
     }
     else

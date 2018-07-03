@@ -87,7 +87,7 @@ void Node::UpdateDSCommiteeComposition(const Peer& winnerpeer)
                .GetHeader()
                .GetMinerPubKey())
     {
-        m_mediator.m_DSCommitteeNetworkInfo.emplace_front(Peer());
+        m_mediator.m_DSCommitteeNetworkInfo.emplace_front();
     }
     else
     {
