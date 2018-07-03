@@ -82,7 +82,7 @@ vector<bool> TxBlock::DeserializeIsMicroBlockEmpty(uint32_t arg)
     vector<bool> ret;
     for (uint i = 0; i < m_header.GetNumMicroBlockHashes(); ++i)
     {
-        ret.emplace_back((bool)(arg % 2));
+        ret.emplace_back(arg % 2);
         arg /= 2;
     }
     return ret;

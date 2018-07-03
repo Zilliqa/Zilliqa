@@ -781,7 +781,7 @@ Json::Value Server::DSBlockListing(unsigned int page)
             dshead.Serialize(vec, 0);
             sha2.Update(vec);
             const vector<unsigned char>& resVec = sha2.Finalize();
-            m_DSBlockCache.second.emplace_back(
+            m_DSBlockCache.second.push_back(
                 DataConversion::Uint8VecToHexStr(resVec));
         }
         catch (const char* msg)
@@ -802,7 +802,7 @@ Json::Value Server::DSBlockListing(unsigned int page)
         for (boost::multiprecision::uint256_t i = m_DSBlockCache.first + 1;
              i < currBlockNum; i++)
         {
-            m_DSBlockCache.second.emplace_back(
+            m_DSBlockCache.second.push_back(
                 m_mediator.m_dsBlockChain.GetBlock(i + 1)
                     .GetHeader()
                     .GetPrevHash()
@@ -817,7 +817,7 @@ Json::Value Server::DSBlockListing(unsigned int page)
         sha2.Update(vec);
         const vector<unsigned char>& resVec = sha2.Finalize();
 
-        m_DSBlockCache.second.emplace_back(
+        m_DSBlockCache.second.push_back(
             DataConversion::Uint8VecToHexStr(resVec));
         m_DSBlockCache.first = currBlockNum;
     }
@@ -889,7 +889,7 @@ Json::Value Server::TxBlockListing(unsigned int page)
             txhead.Serialize(vec, 0);
             sha2.Update(vec);
             const vector<unsigned char>& resVec = sha2.Finalize();
-            m_TxBlockCache.second.emplace_back(
+            m_TxBlockCache.second.push_back(
                 DataConversion::Uint8VecToHexStr(resVec));
         }
         catch (const char* msg)
@@ -910,7 +910,7 @@ Json::Value Server::TxBlockListing(unsigned int page)
         for (boost::multiprecision::uint256_t i = m_TxBlockCache.first + 1;
              i < currBlockNum; i++)
         {
-            m_TxBlockCache.second.emplace_back(
+            m_TxBlockCache.second.push_back(
                 m_mediator.m_txBlockChain.GetBlock(i + 1)
                     .GetHeader()
                     .GetPrevHash()
@@ -925,7 +925,7 @@ Json::Value Server::TxBlockListing(unsigned int page)
         sha2.Update(vec);
         const vector<unsigned char>& resVec = sha2.Finalize();
 
-        m_TxBlockCache.second.emplace_back(
+        m_TxBlockCache.second.push_back(
             DataConversion::Uint8VecToHexStr(resVec));
         m_TxBlockCache.first = currBlockNum;
     }
@@ -1020,7 +1020,7 @@ Json::Value Server::GetRecentTransactions()
 void Server::AddToRecentTransactions(const TxnHash& txhash)
 {
     lock_guard<mutex> g(m_mutexRecentTxns);
-    m_RecentTransactions.emplace_back(txhash.hex());
+    m_RecentTransactions.push_back(txhash.hex());
 }
 Json::Value Server::GetShardingStructure()
 {
