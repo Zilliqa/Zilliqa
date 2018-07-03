@@ -73,7 +73,7 @@ void DirectoryService::ComputeSharding()
         const vector<unsigned char>& sortHashVec = sha2.Finalize();
         array<unsigned char, BLOCK_HASH_SIZE> sortHash;
         copy(sortHashVec.begin(), sortHashVec.end(), sortHash.begin());
-        m_sortedPoW2s.emplace(make_pair(sortHash, key));
+        m_sortedPoW2s.emplace(sortHash, key);
     }
 
     lock_guard<mutex> g(m_mutexAllPoWConns, adopt_lock);
@@ -82,8 +82,8 @@ void DirectoryService::ComputeSharding()
     {
         PubKey key = kv.second;
         map<PubKey, Peer>& shard = m_shards.at(i % numOfComms);
-        shard.emplace(make_pair(key, m_allPoWConns.at(key)));
-        m_publicKeyToShardIdMap.emplace(make_pair(key, i % numOfComms));
+        shard.emplace(key, m_allPoWConns.at(key));
+        m_publicKeyToShardIdMap.emplace(key, i % numOfComms);
         i++;
     }
 }
@@ -299,9 +299,8 @@ bool DirectoryService::ShardingValidator(
             }
 
             // To-do: Should we check for a public key that's been assigned to more than 1 shard?
-            m_shards.back().emplace(
-                make_pair(memberPubkey, memberPeer->second));
-            m_publicKeyToShardIdMap.emplace(make_pair(memberPubkey, i));
+            m_shards.back().emplace(memberPubkey, memberPeer->second);
+            m_publicKeyToShardIdMap.emplace(memberPubkey, i);
 
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       " PubKey = "

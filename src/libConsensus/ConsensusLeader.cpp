@@ -369,8 +369,8 @@ bool ConsensusLeader::ProcessMessageCommitCore(
         // 33-byte commit
         if (m_commitCounter < m_numForConsensus)
         {
-            m_commitPoints.emplace_back(
-                CommitPoint(commit, curr_offset - COMMIT_POINT_SIZE));
+            m_commitPoints.emplace_back(commit,
+                                        curr_offset - COMMIT_POINT_SIZE);
             m_commitPointMap.at(backup_id)
                 = CommitPoint(commit, curr_offset - COMMIT_POINT_SIZE);
             m_commitMap.at(backup_id) = true;
