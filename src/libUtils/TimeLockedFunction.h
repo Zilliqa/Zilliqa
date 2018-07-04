@@ -75,12 +75,12 @@ public:
             try
             {
                 LOG_GENERAL(INFO,
-                            "I am going to sleep for "
+                            "Entering sleep for "
                                 + to_string(expiration_in_seconds)
                                 + " seconds");
                 this_thread::sleep_for(chrono::seconds(expiration_in_seconds));
                 LOG_GENERAL(INFO,
-                            "I have woken up from the sleep of "
+                            "Woken up from the sleep of "
                                 + to_string(expiration_in_seconds)
                                 + " seconds");
                 result_promise->set_value(-1);

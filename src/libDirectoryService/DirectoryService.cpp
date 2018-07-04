@@ -1000,7 +1000,7 @@ vector<Peer>
 DirectoryService::GetBroadcastList(unsigned char ins_type,
                                    const Peer& broadcast_originator)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     // Regardless of the instruction type, right now all our "broadcasts" are just redundant multicasts from DS nodes to non-DS nodes
     return vector<Peer>();
