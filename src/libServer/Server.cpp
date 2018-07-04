@@ -192,7 +192,7 @@ Json::Value Server::GetDsBlock(const string& blockNum)
 
     try
     {
-        boost::multiprecision::uint256_t BlockNum(blockNum);
+        uint64_t BlockNum = stoi(blockNum);
         return JSONConversion::convertDSblocktoJson(
             m_mediator.m_dsBlockChain.GetBlock(BlockNum));
     }
@@ -223,7 +223,7 @@ Json::Value Server::GetTxBlock(const string& blockNum)
 
     try
     {
-        boost::multiprecision::uint256_t BlockNum(blockNum);
+        uint64_t BlockNum = stoi(blockNum);
         return JSONConversion::convertTxBlocktoJson(
             m_mediator.m_txBlockChain.GetBlock(BlockNum));
     }
@@ -825,7 +825,7 @@ Json::Value Server::DSBlockListing(unsigned int page)
             cacheSize = m_DSBlockCache.second.size();
         }
 
-        boost::multiprecision::uint256_t size = m_DSBlockCache.second.size();
+        uint64_t size = m_DSBlockCache.second.size();
 
         for (unsigned int i = offset; i < PAGE_SIZE + offset && i < cacheSize;
              i++)
@@ -932,7 +932,7 @@ Json::Value Server::TxBlockListing(unsigned int page)
             cacheSize = m_TxBlockCache.second.size();
         }
 
-        boost::multiprecision::uint256_t size = m_TxBlockCache.second.size();
+        uint64_t size = m_TxBlockCache.second.size();
 
         for (unsigned int i = offset; i < PAGE_SIZE + offset && i < cacheSize;
              i++)
@@ -989,16 +989,15 @@ Json::Value Server::GetRecentTransactions()
 
     lock_guard<mutex> g(m_mutexRecentTxns);
     Json::Value _json;
-    boost::multiprecision::uint256_t actualSize(
-        m_RecentTransactions.capacity());
+    uint64_t actualSize(m_RecentTransactions.capacity());
     if (actualSize > m_RecentTransactions.size())
     {
         actualSize = m_RecentTransactions.size();
     }
-    boost::multiprecision::uint256_t size = m_RecentTransactions.size();
+    uint64_t size = m_RecentTransactions.size();
     _json["number"] = int(actualSize);
     _json["TxnHashes"] = Json::Value(Json::arrayValue);
-    for (boost::multiprecision::uint256_t i = 0; i < actualSize; i++)
+    for (uint64_t i = 0; i < actualSize; i++)
     {
         _json["TxnHashes"].append(m_RecentTransactions[size - i - 1]);
     }
