@@ -55,7 +55,7 @@ public:
     ~CircularArray() {}
 
     /// Index operator.
-    T& operator[](boost::multiprecision::uint256_t index)
+    T& operator[](uint64_t index)
     {
         if (!m_array.size())
         {
@@ -66,7 +66,7 @@ public:
     }
 
     /// Adds an element to the array at the specified index.
-    void insert_new(boost::multiprecision::uint256_t index, const T& element)
+    void insert_new(uint64_t index, const T& element)
     {
         if (!m_array.size())
         {

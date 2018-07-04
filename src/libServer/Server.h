@@ -486,9 +486,7 @@ class Server : public AbstractZServer
 {
     Mediator& m_mediator;
     std::pair<uint64_t, boost::multiprecision::uint256_t> m_BlockTxPair;
-    std::pair<boost::multiprecision::uint256_t,
-              boost::multiprecision::uint256_t>
-        m_TxBlockCountSumPair;
+    std::pair<uint64_t, boost::multiprecision::uint256_t> m_TxBlockCountSumPair;
     boost::multiprecision::uint256_t m_StartTimeTx;
     boost::multiprecision::uint256_t m_StartTimeDs;
     std::pair<uint64_t, CircularArray<std::string>> m_DSBlockCache;
