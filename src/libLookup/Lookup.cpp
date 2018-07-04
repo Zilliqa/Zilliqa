@@ -1513,7 +1513,11 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
     }
     else if (m_syncType == SyncType::DS_SYNC)
     {
-        if (!m_currDSExpired)
+        if (!m_currDSExpired
+            && m_mediator.m_ds->m_latestActiveDSBlockNum
+                < m_mediator.m_dsBlockChain.GetLastBlock()
+                      .GetHeader()
+                      .GetBlockNum())
         {
             m_isFirstLoop = true;
             m_syncType = SyncType::NO_SYNC;

@@ -1013,7 +1013,7 @@ bool DirectoryService::FinalBlockValidator(
     if (!CheckFinalBlockValidity())
     {
         LOG_GENERAL(WARNING,
-                    "To-do: What to do if proposed microblock is not valid?");
+                    "To-do: What to do if proposed finalblock is not valid?");
         // throw exception();
         // TODO: microblock is invalid
         return false;
