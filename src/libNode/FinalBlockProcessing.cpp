@@ -222,7 +222,7 @@ bool Node::LoadUnavailableMicroBlockHashes(
             if (m_lastMicroBlockCoSig.first != m_mediator.m_currentEpochNum)
             {
                 LOG_GENERAL(WARNING,
-                            "Why I failed the last microblock consensus but "
+                            "Failed the last microblock consensus but "
                             "still found my shard microblock, "
                             " need to Rejoin");
                 RejoinAsNormal();
@@ -706,16 +706,14 @@ void Node::BroadcastStateDeltaToSendingAssignment(
 
     copy(stateDel.begin(), stateDel.end(), back_inserter(forwardstate_message));
 
-    // sending
-
     P2PComm::GetInstance().SendBroadcastMessage(sendingAssignment,
                                                 forwardstate_message);
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "DEBUG: I have broadcasted the state delta! ");
+              "Broadcasted the state delta! ");
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "I will soon be sending the state delta to the lookup nodes");
+              "Sending the state delta to the lookup nodes");
     m_mediator.m_lookup->SendMessageToLookupNodes(forwardstate_message);
 }
 
@@ -985,8 +983,8 @@ void Node::InitiatePoW1()
 
     SetState(POW1_SUBMISSION);
     POW::GetInstance().EthashConfigureLightClient(
-        (uint64_t)m_mediator.m_dsBlockChain
-            .GetBlockCount()); // hack hack hack -- typecasting
+        (uint64_t)
+            m_mediator.m_dsBlockChain.GetBlockCount()); // FIXME -- typecasting
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Start pow1 ");
     auto func = [this]() mutable -> void {
@@ -1007,7 +1005,7 @@ void Node::UpdateStateForNextConsensusRound()
     if (m_isPrimary == true)
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "MS: I am no longer the shard leader ");
+                  "I am no longer the shard leader ");
         m_isPrimary = false;
     }
 
@@ -1018,13 +1016,13 @@ void Node::UpdateStateForNextConsensusRound()
     if (m_consensusMyID == m_consensusLeaderID)
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "MS: I am the new shard leader ");
+                  "I am the new shard leader ");
         m_isPrimary = true;
     }
     else
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "MS: The new shard leader is m_consensusMyID "
+                  "The new shard leader is m_consensusMyID "
                       << m_consensusLeaderID);
     }
 
@@ -1042,12 +1040,10 @@ void Node::ScheduleTxnSubmission()
 
     DetachedFunction(1, main_func);
 
-    LOG_GENERAL(INFO,
-                "I am going to sleep for " << TXN_SUBMISSION << " seconds");
+    LOG_GENERAL(INFO, "Sleep for " << TXN_SUBMISSION << " seconds");
     this_thread::sleep_for(chrono::seconds(TXN_SUBMISSION));
     LOG_GENERAL(INFO,
-                "I have woken up from the sleep of " << TXN_SUBMISSION
-                                                     << " seconds");
+                "Woken up from the sleep of " << TXN_SUBMISSION << " seconds");
     auto main_func2
         = [this]() mutable -> void { SetState(TX_SUBMISSION_BUFFER); };
 
@@ -1064,15 +1060,13 @@ void Node::ScheduleMicroBlockConsensus()
                                         std::chrono::seconds(TXN_BROADCAST))
         == std::cv_status::timeout)
     {
-        LOG_GENERAL(INFO,
-                    "I have woken up from the sleep of " << TXN_BROADCAST
-                                                         << " seconds");
+        LOG_GENERAL(
+            INFO, "Woken up from the sleep of " << TXN_BROADCAST << " seconds");
     }
     else
     {
-        LOG_GENERAL(
-            INFO,
-            "I have received announcement message. Time to run consensus.");
+        LOG_GENERAL(INFO,
+                    "Received announcement message. Time to run consensus.");
     }
     auto main_func3 = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
 
@@ -1449,7 +1443,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "I may have missed the micrblock consensus. However, if I "
-                  "recent a valid finalblock. I will accept it");
+                  "recently received a valid finalblock, I will accept it");
         // TODO: Optimize state transition.
         SetState(WAITING_FINALBLOCK);
     }
