@@ -46,8 +46,6 @@ Whitelist& Whitelist::GetInstance()
 
 void Whitelist::UpdateDSWhitelist()
 {
-    LOG_MARKER();
-
     if (!TEST_NET_MODE)
     {
         LOG_GENERAL(WARNING, "Not in testnet mode. Whitelisting not allowed");
@@ -82,12 +80,14 @@ void Whitelist::UpdateDSWhitelist()
             AddToDSWhitelist(peer, key);
         }
     }
+
+    LOG_GENERAL(
+        INFO,
+        "Total number of entries in DS whitelist:  " << m_DSWhiteList.size());
 }
 
 void Whitelist::UpdateShardWhitelist()
 {
-    LOG_MARKER();
-
     if (!TEST_NET_MODE)
     {
         LOG_GENERAL(WARNING, "Not in testnet mode. Whitelisting not allowed");
@@ -113,8 +113,12 @@ void Whitelist::UpdateShardWhitelist()
     {
         PubKey key(DataConversion::HexStrToUint8Vec(addr.second.data()), 0);
         m_ShardWhiteList.push_back(key);
-        LOG_GENERAL(INFO, "Added " << key);
+        // LOG_GENERAL(INFO, "Added " << key);
     }
+
+    LOG_GENERAL(INFO,
+                "Total number of entries in shard whitelist:  "
+                    << m_ShardWhiteList.size());
 }
 
 void Whitelist::AddToDSWhitelist(const Peer& whiteListPeer,
@@ -122,13 +126,13 @@ void Whitelist::AddToDSWhitelist(const Peer& whiteListPeer,
 {
     if (!TEST_NET_MODE)
     {
-        LOG_GENERAL(WARNING, "Not in testnet mode. Whitelisting not allowed");
+        // LOG_GENERAL(WARNING, "Not in testnet mode. Whitelisting not allowed");
         return;
     }
 
     lock_guard<mutex> g(m_mutexDSWhiteList);
     m_DSWhiteList.insert(make_pair(whiteListPeer, whiteListPubKey));
-    LOG_GENERAL(INFO, "Added " << whiteListPeer << " " << whiteListPubKey);
+    // LOG_GENERAL(INFO, "Added " << whiteListPeer << " " << whiteListPubKey);
 }
 
 bool Whitelist::IsNodeInDSWhiteList(const Peer& nodeNetworkInfo,
