@@ -282,13 +282,13 @@ void DirectoryService::ScheduleShardingConsensus(const unsigned int wait_window)
             == std::cv_status::timeout)
         {
             LOG_GENERAL(INFO,
-                        "I have woken up from the sleep of " << wait_window
-                                                             << " seconds");
+                        "Woken up from the sleep of " << wait_window
+                                                      << " seconds");
         }
         else
         {
             LOG_GENERAL(INFO,
-                        "I have received announcement message. Time to "
+                        "Received announcement message. Time to "
                         "run consensus.");
         }
 
