@@ -338,7 +338,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
 
             POW::GetInstance().EthashConfigureLightClient(
                 (uint64_t)m_mediator.m_dsBlockChain
-                    .GetBlockCount()); // hack hack hack -- typecasting
+                    .GetBlockCount()); // FIXME -- typecasting
             m_consensusID = 0;
             m_mediator.m_node->m_consensusID = 0;
             m_mediator.m_node->m_consensusLeaderID = 0;
