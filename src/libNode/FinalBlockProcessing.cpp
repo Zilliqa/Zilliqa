@@ -715,10 +715,7 @@ void Node::BroadcastStateDeltaToSendingAssignment(
                                                 forwardstate_message);
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "DEBUG: I have broadcasted the state delta! "
-                  << " "
-                  << DataConversion::Uint8VecToHexStr(forwardstate_message)
-                  << " " << sendingAssignment.size());
+              "DEBUG: I have broadcasted the state delta! ");
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I will soon be sending the state delta to the lookup nodes");

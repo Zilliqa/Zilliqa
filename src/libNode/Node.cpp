@@ -883,7 +883,10 @@ void Node::SubmitTransactions()
         {
             if (!m_mediator.m_validator->CheckCreatedTransaction(t))
             {
-                return;
+                if (t.GetCode().empty() && t.GetData().empty())
+                {
+                    continue;
+                }
             }
             appendOne(t);
         }
@@ -891,7 +894,10 @@ void Node::SubmitTransactions()
         {
             if (!m_mediator.m_validator->CheckCreatedTransaction(t))
             {
-                return;
+                if (t.GetCode().empty() && t.GetData().empty())
+                {
+                    continue;
+                }
             }
             appendOne(t);
         }
