@@ -1633,7 +1633,7 @@ bool Lookup::InitMining()
         m_mediator.m_node->m_consensusID = 0;
     }
 
-    uint256_t curDsBlockNum
+    uint64_t curDsBlockNum
         = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
     m_mediator.UpdateDSBlockRand();

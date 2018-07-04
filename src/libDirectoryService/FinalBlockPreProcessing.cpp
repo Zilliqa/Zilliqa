@@ -559,9 +559,9 @@ bool DirectoryService::CheckFinalBlockNumber()
 {
     LOG_MARKER();
 
-    const uint256_t& finalblockBlocknum
+    const uint64_t& finalblockBlocknum
         = m_finalBlock->GetHeader().GetBlockNum();
-    uint256_t expectedBlocknum = 0;
+    uint64_t expectedBlocknum = 0;
     if (m_mediator.m_txBlockChain.GetBlockCount() > 0)
     {
         expectedBlocknum
