@@ -68,6 +68,12 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock)
 
     BlockStorage::GetBlockStorage().PutDSBlock(
         dsblock.GetHeader().GetBlockNum(), serializedDSBlock);
+    m_mediator.m_ds->m_latestActiveDSBlockNum
+        = dsblock.GetHeader().GetBlockNum().convert_to<uint64_t>();
+    BlockStorage::GetBlockStorage().PutMetadata(
+        LATESTACTIVEDSBLOCKNUM,
+        DataConversion::StringToCharArray(
+            to_string(m_mediator.m_ds->m_latestActiveDSBlockNum)));
 #ifndef IS_LOOKUP_NODE
     BlockStorage::GetBlockStorage().PushBackTxBodyDB(
         dsblock.GetHeader().GetBlockNum());
