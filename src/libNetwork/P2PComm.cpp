@@ -109,7 +109,7 @@ bool P2PComm::SendMessageSocketCore(const Peer& peer,
                                     unsigned char start_byte,
                                     const vector<unsigned char>& msg_hash)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
     LOG_PAYLOAD(INFO, "Sending message to " << peer, message,
                 Logger::MAX_BYTES_TO_DISPLAY);
 
@@ -290,7 +290,7 @@ void P2PComm::SendBroadcastMessageCore(
     const Container& peers, const vector<unsigned char>& message,
     const vector<unsigned char>& message_hash)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
     lock_guard<mutex> guard(m_broadcastCoreMutex);
 
     SendMessagePoolHelper<START_BYTE_BROADCAST>(peers, message, message_hash);
@@ -318,7 +318,7 @@ void P2PComm::HandleAcceptedConnection(
     function<void(const vector<unsigned char>&, const Peer&)> dispatcher,
     broadcast_list_func broadcast_list_retriever)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     unique_ptr<int, void (*)(int*)> cli_sock_closer(&cli_sock, close_socket);
 
