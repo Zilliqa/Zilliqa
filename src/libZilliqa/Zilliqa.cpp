@@ -135,11 +135,11 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
     LOG_GENERAL(INFO, "I am a lookup node.");
     if (m_server.StartListening())
     {
-        LOG_GENERAL(INFO, "1. API Server started successfully");
+        LOG_GENERAL(INFO, "API Server started successfully");
     }
     else
     {
-        LOG_GENERAL(WARNING, "2. API Server couldn't start");
+        LOG_GENERAL(WARNING, "API Server couldn't start");
     }
 #endif // IS_LOOKUP_NODE
 }
