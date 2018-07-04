@@ -336,9 +336,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "[PoW needed]");
 
-            POW::GetInstance().EthashConfigureLightClient(
-                (uint64_t)m_mediator.m_dsBlockChain
-                    .GetBlockCount()); // hack hack hack -- typecasting
+            POW::GetInstance().EthashConfigureLightClient(m_mediator.m_dsBlockChain.GetBlockCount());
             m_consensusID = 0;
             m_mediator.m_node->m_consensusID = 0;
             m_mediator.m_node->m_consensusLeaderID = 0;
