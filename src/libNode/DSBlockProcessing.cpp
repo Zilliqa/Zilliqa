@@ -68,6 +68,12 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock)
 
     BlockStorage::GetBlockStorage().PutDSBlock(
         dsblock.GetHeader().GetBlockNum(), serializedDSBlock);
+    m_mediator.m_ds->m_latestActiveDSBlockNum
+        = dsblock.GetHeader().GetBlockNum().convert_to<uint64_t>();
+    BlockStorage::GetBlockStorage().PutMetadata(
+        LATESTACTIVEDSBLOCKNUM,
+        DataConversion::StringToCharArray(
+            to_string(m_mediator.m_ds->m_latestActiveDSBlockNum)));
 #ifndef IS_LOOKUP_NODE
     BlockStorage::GetBlockStorage().PushBackTxBodyDB(
         dsblock.GetHeader().GetBlockNum());
@@ -118,7 +124,7 @@ bool Node::CheckWhetherDSBlockNumIsLatest(const uint64_t dsblockNum)
     else if (dsblockNum > latestBlockNumInBlockchain)
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Warning: We are missing of some DS blocks. Requested: "
+                  "Missing of some DS blocks. Requested: "
                       << dsblockNum
                       << " while Present: " << latestBlockNumInBlockchain);
         // Todo: handle missing DS blocks.

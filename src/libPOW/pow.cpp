@@ -149,9 +149,10 @@ bool POW::EthashConfigureLightClient(uint64_t block_number)
 
     if (block_number < currentBlockNum)
     {
-        LOG_GENERAL(INFO,
+        LOG_GENERAL(WARNING,
                     "WARNING: How come the latest block number is smaller than "
-                    "I what?");
+                    "current block number.  block_number: "
+                        << " currentBlockNum: " << currentBlockNum);
     }
 
     return true;
