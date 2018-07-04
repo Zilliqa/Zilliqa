@@ -162,7 +162,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             ret = false;
         }
         uint256_t gasRefund;
-        if (AccountStoreBase<MAP>::CalculateGasRefund(
+        if (!AccountStoreBase<MAP>::CalculateGasRefund(
                 gasDeposit, CONTRACT_CREATE_GAS, transaction.GetGasPrice(),
                 gasRefund))
         {
