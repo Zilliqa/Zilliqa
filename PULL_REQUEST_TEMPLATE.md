@@ -12,4 +12,5 @@ A few sentences describing the overall goals of the pull request's commits.
 
 ## For Zilliqa Core Team Only
 - [ ] Tested on local machione 
-- [ ] Tested on small scale on AWS 
+- [ ] Tested on small scale in AWS 
+- [ ] NA
