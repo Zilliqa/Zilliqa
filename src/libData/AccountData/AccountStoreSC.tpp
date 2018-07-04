@@ -36,7 +36,7 @@ template<class MAP>
 bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                                          const Transaction& transaction)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     lock_guard<mutex> g(m_mutexUpdateAccounts);
 

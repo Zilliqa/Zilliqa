@@ -182,7 +182,7 @@ vector<Peer> Zilliqa::RetrieveBroadcastList(unsigned char msg_type,
                                             unsigned char ins_type,
                                             const Peer& from)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     Broadcastable* msg_handlers[] = {&m_pm, &m_ds, &m_n, &m_cu, &m_lookup};
 

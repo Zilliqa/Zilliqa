@@ -403,7 +403,7 @@ bool Node::FindTxnInSubmittedTxnsList(const TxBlock& finalblock,
                                       vector<Transaction>& txns_to_send,
                                       const TxnHash& tx_hash)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     // boost::multiprecision::uint256_t blockNum = m_mediator.m_txBlockChain.GetBlockCount();
 
@@ -427,12 +427,12 @@ bool Node::FindTxnInSubmittedTxnsList(const TxBlock& finalblock,
         committedTransactions.push_back(txnIt->second);
         submittedTransactions.erase(txnIt);
 
-        LOG_EPOCH(
-            INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "[TXN] ["
-                << blockNum << "] Committed     = 0x"
-                << DataConversion::charArrToHexStr(
-                       committedTransactions.back().GetTranID().asArray()));
+        // LOG_EPOCH(
+        //     INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        //     "[TXN] ["
+        //         << blockNum << "] Committed     = 0x"
+        //         << DataConversion::charArrToHexStr(
+        //                committedTransactions.back().GetTranID().asArray()));
 
         // Update from and to accounts
         // if (!AccountStore::GetInstance().UpdateAccounts(
@@ -479,7 +479,7 @@ bool Node::FindTxnInReceivedTxnsList(const TxBlock& finalblock,
                                      vector<Transaction>& txns_to_send,
                                      const TxnHash& tx_hash)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     lock(m_mutexReceivedTransactions, m_mutexCommittedTransactions);
     lock_guard<mutex> g(m_mutexReceivedTransactions, adopt_lock);
@@ -501,12 +501,12 @@ bool Node::FindTxnInReceivedTxnsList(const TxBlock& finalblock,
         committedTransactions.push_back(txnIt->second);
         receivedTransactions.erase(txnIt);
 
-        LOG_EPOCH(
-            INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "[TXN] ["
-                << blockNum << "] Committed     = 0x"
-                << DataConversion::charArrToHexStr(
-                       committedTransactions.back().GetTranID().asArray()));
+        // LOG_EPOCH(
+        //     INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        //     "[TXN] ["
+        //         << blockNum << "] Committed     = 0x"
+        //         << DataConversion::charArrToHexStr(
+        //                committedTransactions.back().GetTranID().asArray()));
 
         // Update from and to accounts
         // if (!AccountStore::GetInstance().UpdateAccounts(
@@ -525,14 +525,14 @@ bool Node::FindTxnInReceivedTxnsList(const TxBlock& finalblock,
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), DataConversion::charArrToHexStr((*entry).GetFromAddr()));
         **/
 
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "ReceivedTransaction: Storing Transaction: "
-                      << DataConversion::charArrToHexStr(tx_hash.asArray())
-                      << " with amount: "
-                      << committedTransactions.back().GetAmount() << ", to: "
-                      << committedTransactions.back().GetToAddr() << ", from: "
-                      << Account::GetAddressFromPublicKey(
-                             committedTransactions.back().GetSenderPubKey()));
+        // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        //           "ReceivedTransaction: Storing Transaction: "
+        //               << DataConversion::charArrToHexStr(tx_hash.asArray())
+        //               << " with amount: "
+        //               << committedTransactions.back().GetAmount() << ", to: "
+        //               << committedTransactions.back().GetToAddr() << ", from: "
+        //               << Account::GetAddressFromPublicKey(
+        //                      committedTransactions.back().GetSenderPubKey()));
 
         // Store TxBody to disk
         vector<unsigned char> serializedTxBody;
