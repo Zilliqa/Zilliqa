@@ -404,8 +404,8 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
               "I am shard leader. "
                   << " m_consensusID: " << m_consensusID
                   << " m_consensusMyID: " << m_consensusMyID
-                  << "m_consensusLeaderID: " << m_consensusLeaderID
-                  << "Shard Leader: "
+                  << " m_consensusLeaderID: " << m_consensusLeaderID
+                  << " Shard Leader: "
                   << m_myShardMembersNetworkInfo[m_consensusLeaderID]);
 
     auto nodeMissingTxnsFunc
@@ -463,7 +463,9 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup()
               "I am shard backup. "
                   << " m_consensusID: " << m_consensusID
                   << " m_consensusMyID: " << m_consensusMyID
-                  << " m_consensusLeaderID: " << m_consensusLeaderID);
+                  << " m_consensusLeaderID: " << m_consensusLeaderID
+                  << " Shard Leader: "
+                  << m_myShardMembersNetworkInfo[m_consensusLeaderID]);
 
     m_consensusObject.reset(new ConsensusBackup(
         m_consensusID, m_consensusBlockHash, m_consensusMyID,
