@@ -463,7 +463,7 @@ void P2PComm::HandleAcceptedConnection(
         if (found)
         {
             // We already sent and/or received this message before -> discard
-            LOG_GENERAL(INFO, "Discarding duplicate broadcast message");
+            // LOG_GENERAL(INFO, "Discarding duplicate broadcast message");
             return;
         }
         else
@@ -555,8 +555,8 @@ void P2PComm::ConnectionAccept(int serv_sock, short event, void* arg)
 
         Peer from(uint128_t(cli_addr.sin_addr.s_addr), cli_addr.sin_port);
 
-        LOG_GENERAL(INFO,
-                    "DEBUG: I got an incoming message from "
+        // LOG_GENERAL(INFO,
+        //             "DEBUG: I got an incoming message from "
                         << from.GetPrintableIPAddress());
 
         function<void(const vector<unsigned char>&, const Peer&)> dispatcher

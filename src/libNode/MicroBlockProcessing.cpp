@@ -407,9 +407,6 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
                                     << " m_consensusMyID: " << m_consensusMyID);
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "MS: m_consensusLeaderID: " << m_consensusLeaderID);
-    LOG_EPOCH(
-        INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-        "Shard Leader: " << m_myShardMembersNetworkInfo[m_consensusLeaderID]);
 
     auto nodeMissingTxnsFunc
         = [this](const vector<unsigned char>& errorMsg, unsigned int offset,
@@ -469,6 +466,9 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup()
                                     << " m_consensusMyID: " << m_consensusMyID);
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "MS: m_consensusLeaderID: " << m_consensusLeaderID);
+    LOG_EPOCH(
+        INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        "Shard Leader: " << m_myShardMembersNetworkInfo[m_consensusLeaderID]);
 
     m_consensusObject.reset(new ConsensusBackup(
         m_consensusID, m_consensusBlockHash, m_consensusMyID,

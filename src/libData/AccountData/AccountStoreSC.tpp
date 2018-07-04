@@ -418,7 +418,7 @@ template<class MAP> string AccountStoreSC<MAP>::GetCallContractCmdStr()
 
 template<class MAP> bool AccountStoreSC<MAP>::ParseCreateContractOutput()
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     ifstream in(OUTPUT_JSON, ios::binary);
 
@@ -451,7 +451,7 @@ template<class MAP>
 bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
     const Json::Value& _json)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     if (!_json.isMember("message") || !_json.isMember("states"))
     {
@@ -473,7 +473,7 @@ bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
 
 template<class MAP> bool AccountStoreSC<MAP>::ParseCallContractOutput()
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     ifstream in(OUTPUT_JSON, ios::binary);
 
@@ -505,7 +505,7 @@ template<class MAP> bool AccountStoreSC<MAP>::ParseCallContractOutput()
 template<class MAP>
 bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     if (!_json.isMember("message") || !_json.isMember("states"))
     {
