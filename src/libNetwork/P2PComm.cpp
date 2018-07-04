@@ -306,8 +306,8 @@ void P2PComm::ClearBroadcastHashAsync(const vector<unsigned char>& message_hash)
         this_thread::sleep_for(chrono::seconds(BROADCAST_EXPIRY_SECONDS));
         lock_guard<mutex> guard(m_broadcastHashesMutex);
         m_broadcastHashes.erase(msg_hash_copy);
-        LOG_PAYLOAD(INFO, "Removing msg hash from broadcast list",
-                    msg_hash_copy, Logger::MAX_BYTES_TO_DISPLAY);
+        // LOG_PAYLOAD(INFO, "Removing msg hash from broadcast list",
+        //             msg_hash_copy, Logger::MAX_BYTES_TO_DISPLAY);
     };
 
     DetachedFunction(1, func2);
@@ -557,7 +557,7 @@ void P2PComm::ConnectionAccept(int serv_sock, short event, void* arg)
 
         // LOG_GENERAL(INFO,
         //             "DEBUG: I got an incoming message from "
-                        << from.GetPrintableIPAddress());
+        // << from.GetPrintableIPAddress());
 
         function<void(const vector<unsigned char>&, const Peer&)> dispatcher
             = ((ConnectionData*)arg)->dispatcher;

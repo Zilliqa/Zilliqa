@@ -635,11 +635,11 @@ void Node::BroadcastTransactionsToSendingAssignment(
             txns_to_send.at(i).Serialize(forwardtxn_message, cur_offset);
             cur_offset += txns_to_send.at(i).GetSerializedSize();
 
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "[TXN] ["
-                          << blocknum << "] Broadcasted   = 0x"
-                          << DataConversion::charArrToHexStr(
-                                 txns_to_send.at(i).GetTranID().asArray()));
+            // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            //           "[TXN] ["
+            //               << blocknum << "] Broadcasted   = 0x"
+            //               << DataConversion::charArrToHexStr(
+            //                      txns_to_send.at(i).GetTranID().asArray()));
         }
 
         // P2PComm::GetInstance().SendBroadcastMessage(sendingAssignment,
