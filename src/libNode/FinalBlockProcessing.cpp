@@ -983,8 +983,8 @@ void Node::InitiatePoW1()
 
     SetState(POW1_SUBMISSION);
     POW::GetInstance().EthashConfigureLightClient(
-        (uint64_t)m_mediator.m_dsBlockChain
-            .GetBlockCount()); // hack hack hack -- typecasting
+        (uint64_t)
+            m_mediator.m_dsBlockChain.GetBlockCount()); // FIXME -- typecasting
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Start pow1 ");
     auto func = [this]() mutable -> void {
