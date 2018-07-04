@@ -66,6 +66,11 @@ void DirectoryService::StoreDSBlockToStorage()
         m_pendingDSBlock->GetHeader().GetBlockNum(), serializedDSBlock);
     BlockStorage::GetBlockStorage().PushBackTxBodyDB(
         m_pendingDSBlock->GetHeader().GetBlockNum());
+    m_latestActiveDSBlockNum
+        = m_pendingDSBlock->GetHeader().GetBlockNum().convert_to<uint64_t>();
+    BlockStorage::GetBlockStorage().PutMetadata(
+        LATESTACTIVEDSBLOCKNUM,
+        DataConversion::StringToCharArray(to_string(m_latestActiveDSBlockNum)));
 }
 
 bool DirectoryService::SendDSBlockToLookupNodes(DSBlock& lastDSBlock,
@@ -277,13 +282,13 @@ void DirectoryService::ScheduleShardingConsensus(const unsigned int wait_window)
             == std::cv_status::timeout)
         {
             LOG_GENERAL(INFO,
-                        "I have woken up from the sleep of " << wait_window
-                                                             << " seconds");
+                        "Woken up from the sleep of " << wait_window
+                                                      << " seconds");
         }
         else
         {
             LOG_GENERAL(INFO,
-                        "I have received announcement message. Time to "
+                        "Received announcement message. Time to "
                         "run consensus.");
         }
 

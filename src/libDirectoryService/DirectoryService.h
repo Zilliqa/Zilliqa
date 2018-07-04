@@ -392,6 +392,9 @@ public:
     /// The ID number of this Zilliqa instance for use with consensus operations.
     uint16_t m_consensusMyID;
 
+    /// The epoch number when DS tries doing Rejoin
+    uint64_t m_latestActiveDSBlockNum = 0;
+
     /// Constructor. Requires mediator reference to access Node and other global members.
     DirectoryService(Mediator& mediator);
 

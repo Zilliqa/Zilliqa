@@ -79,7 +79,7 @@ string Server::GetProtocolVersion() { return "Hello"; }
 
 string Server::CreateTransaction(const Json::Value& _json)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     try
     {

@@ -57,7 +57,7 @@ class Node : public Executable, public Broadcastable
         NUM_ACTIONS
     };
 
-    enum SUBMITTRANSACTIONTYPE
+    enum SUBMITTRANSACTIONTYPE : unsigned char
     {
         TXNSHARING = 0x00,
         MISSINGTXN = 0x01
