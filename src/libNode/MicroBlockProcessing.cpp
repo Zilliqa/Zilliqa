@@ -149,7 +149,7 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
         if (m_isMBSender == true)
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "I am designated as Microblock sender");
+                      "Designated as Microblock sender");
 
             // Update the micro block with the co-signature from the consensus
             m_microblock->SetCoSignatures(*m_consensusObject);
@@ -388,7 +388,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
     LOG_MARKER();
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "I am primary. Creating microblock for epoch"
+              "I am shard leader. Creating microblock for epoch"
                   << m_mediator.m_currentEpochNum);
 
     // composed microblock stored in m_microblock
@@ -401,11 +401,12 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
     m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "MS: I am shard leader"
-                  << endl
-                  << "MS: m_consensusID: " << m_consensusID
-                  << " m_consensusMyID: " << m_consensusMyID << endl
-                  << "MS: m_consensusLeaderID: " << m_consensusLeaderID);
+              "I am shard leader. "
+                  << " m_consensusID: " << m_consensusID
+                  << " m_consensusMyID: " << m_consensusMyID
+                  << " m_consensusLeaderID: " << m_consensusLeaderID
+                  << " Shard Leader: "
+                  << m_myShardMembersNetworkInfo[m_consensusLeaderID]);
 
     auto nodeMissingTxnsFunc
         = [this](const vector<unsigned char>& errorMsg, unsigned int offset,
@@ -459,12 +460,11 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup()
     };
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "MS: I am shard backup"
-                  << endl
-                  << "MS: m_consensusID: " << m_consensusID
-                  << " m_consensusMyID: " << m_consensusMyID << endl
-                  << "MS: m_consensusLeaderID: " << m_consensusLeaderID << endl
-                  << "Shard Leader: "
+              "I am shard backup. "
+                  << " m_consensusID: " << m_consensusID
+                  << " m_consensusMyID: " << m_consensusMyID
+                  << " m_consensusLeaderID: " << m_consensusLeaderID
+                  << " Shard Leader: "
                   << m_myShardMembersNetworkInfo[m_consensusLeaderID]);
 
     m_consensusObject.reset(new ConsensusBackup(
