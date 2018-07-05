@@ -231,7 +231,7 @@ bool Node::ProcessSharding(const vector<unsigned char>& message,
     auto main_func = [this]() mutable -> void { SubmitTransactions(); };
 
     {
-        lock_guard<mutex> g2(m_mutexNewRoungStarted);
+        lock_guard<mutex> g2(m_mutexNewRoundStarted);
         if (!m_newRoundStarted)
         {
             m_newRoundStarted = true;

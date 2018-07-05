@@ -395,7 +395,7 @@ public:
     bool m_tempStateDeltaCommitted = true;
 
     std::condition_variable m_cvNewRoundStarted;
-    std::mutex m_mutexNewRoungStarted;
+    std::mutex m_mutexNewRoundStarted;
     bool m_newRoundStarted = true;
 
     std::mutex m_mutexIsEveryMicroBlockAvailable;
