@@ -405,11 +405,15 @@ void P2PComm::HandleAcceptedConnection(
         // Check if this message has been received before
         bool found = false;
         {
-            lock_guard<mutex> guard(
-                P2PComm::GetInstance().m_broadcastHashesMutex);
             vector<unsigned char> msg_hash(hash_buf, hash_buf + HASH_LEN);
-            found = (P2PComm::GetInstance().m_broadcastHashes.find(msg_hash)
-                     != P2PComm::GetInstance().m_broadcastHashes.end());
+
+            {
+                lock_guard<mutex> guard(
+                    P2PComm::GetInstance().m_broadcastHashesMutex);
+                found = (P2PComm::GetInstance().m_broadcastHashes.find(msg_hash)
+                         != P2PComm::GetInstance().m_broadcastHashes.end());
+            }
+
             // While we have the lock, we should quickly add the hash
             if (!found)
             {
@@ -447,6 +451,8 @@ void P2PComm::HandleAcceptedConnection(
 
                 if (this_msg_hash == msg_hash)
                 {
+                    lock_guard<mutex> guard(
+                        P2PComm::GetInstance().m_broadcastHashesMutex);
                     P2PComm::GetInstance().m_broadcastHashes.insert(
                         this_msg_hash);
                 }
