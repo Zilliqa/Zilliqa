@@ -1086,10 +1086,6 @@ void Node::BeginNextConsensusRound()
     if (!isVacuousEpoch)
     {
         {
-            // if (cv_shardingConsensus.wait_for(cv_lk,
-            //                               std::chrono::seconds(wait_window))
-            // == std::cv_status::timeout)
-
             unique_lock<mutex> g(m_mutexAllMicroBlocksRecvd);
             if (!m_allMicroBlocksRecvd)
             {
