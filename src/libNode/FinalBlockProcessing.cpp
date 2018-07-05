@@ -979,7 +979,8 @@ void Node::InitiatePoW1()
     m_consensusLeaderID = 0;
 
     SetState(POW1_SUBMISSION);
-    POW::GetInstance().EthashConfigureLightClient(m_mediator.m_dsBlockChain.GetBlockCount());
+    POW::GetInstance().EthashConfigureLightClient(
+        m_mediator.m_dsBlockChain.GetBlockCount());
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Start pow1 ");
     auto func = [this]() mutable -> void {

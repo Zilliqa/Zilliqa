@@ -69,7 +69,7 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock)
     BlockStorage::GetBlockStorage().PutDSBlock(
         dsblock.GetHeader().GetBlockNum(), serializedDSBlock);
     m_mediator.m_ds->m_latestActiveDSBlockNum
-        = dsblock.GetHeader().GetBlockNum().convert_to<uint64_t>();
+        = dsblock.GetHeader().GetBlockNum();
     BlockStorage::GetBlockStorage().PutMetadata(
         LATESTACTIVEDSBLOCKNUM,
         DataConversion::StringToCharArray(
