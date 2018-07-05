@@ -279,8 +279,7 @@ bool Node::CheckState(Action action)
     if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  string("I am a DS node.")
-                          + string(" Why am I getting this message? Action: ")
+                  "I am a DS node. Why am I getting this message? Action: "
                       << ActionString(action));
         return false;
     }
@@ -315,7 +314,7 @@ bool Node::CheckState(Action action)
 vector<Peer> Node::GetBroadcastList(unsigned char ins_type,
                                     const Peer& broadcast_originator)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     // // MessageType::NODE, NodeInstructionType::FORWARDTRANSACTION
     // if (ins_type == NodeInstructionType::FORWARDTRANSACTION)
@@ -551,45 +550,48 @@ bool Node::ProcessCreateTransaction(const vector<unsigned char>& message,
 bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
                                    unsigned int offset, const Peer& from)
 {
+    unsigned int cur_offset = offset;
+
     auto msgBlockNum
-        = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
-    offset += sizeof(uint32_t);
+        = Serializable::GetNumber<uint64_t>(message, offset, sizeof(uint64_t));
+    cur_offset += sizeof(uint64_t);
 
-    auto localBlockNum = (uint256_t)m_mediator.m_currentEpochNum;
-
-    if (msgBlockNum != localBlockNum)
+    if (msgBlockNum != m_mediator.m_currentEpochNum)
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "untimely delivery of "
                       << "missing txns. received: " << msgBlockNum
-                      << " , local: " << localBlockNum);
+                      << " , local: " << m_mediator.m_currentEpochNum);
     }
 
-    if (IsMessageSizeInappropriate(message.size(), offset,
-                                   Transaction::GetMinSerializedSize()))
+    while (cur_offset < message.size())
     {
-        return false;
+        Transaction submittedTransaction;
+        if (submittedTransaction.Deserialize(message, cur_offset) != 0)
+        {
+            LOG_GENERAL(WARNING,
+                        "Deserialize transactions failed, stop at the previous "
+                        "successful one");
+            return false;
+        }
+        cur_offset += submittedTransaction.GetSerializedSize();
+
+        if (m_mediator.m_validator->CheckCreatedTransaction(
+                submittedTransaction))
+        {
+            boost::multiprecision::uint256_t blockNum
+                = (uint256_t)m_mediator.m_currentEpochNum;
+            lock_guard<mutex> g(m_mutexReceivedTransactions);
+            auto& receivedTransactions = m_receivedTransactions[blockNum];
+
+            receivedTransactions.insert(make_pair(
+                submittedTransaction.GetTranID(), submittedTransaction));
+            //LOG_EPOCH(to_string(m_mediator.m_currentEpochNum).c_str(),
+            //             "Received txn: " << submittedTransaction.GetTranID())
+        }
     }
 
-    const auto& submittedTransaction = Transaction(message, offset);
-
-    if (m_mediator.m_validator->CheckCreatedTransaction(submittedTransaction))
-    {
-        lock_guard<mutex> g(m_mutexReceivedTransactions);
-        auto& receivedTransactions = m_receivedTransactions[msgBlockNum];
-        receivedTransactions.insert(
-            make_pair(submittedTransaction.GetTranID(), submittedTransaction));
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Received missing txn: " << submittedTransaction.GetTranID());
-        if (m_numOfAbsentTxnHashes > 0)
-        {
-            m_numOfAbsentTxnHashes--;
-        }
-        if (m_numOfAbsentTxnHashes == 0)
-        {
-            AccountStore::GetInstance().SerializeDelta();
-        }
-    }
+    AccountStore::GetInstance().SerializeDelta();
 
     return true;
 }
@@ -654,7 +656,7 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
 
     if (!isVacuousEpoch)
     {
-        unique_lock<mutex> g(m_mutexNewRoungStarted);
+        unique_lock<mutex> g(m_mutexNewRoundStarted);
         if (!m_newRoundStarted)
         {
             // LOG_GENERAL(INFO, "Wait for new consensus round started");
@@ -676,9 +678,8 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
 
     unsigned int cur_offset = offset;
 
-    auto submitTxnType = Serializable::GetNumber<uint32_t>(message, cur_offset,
-                                                           sizeof(uint32_t));
-    cur_offset += sizeof(uint32_t);
+    unsigned char submitTxnType = message[cur_offset];
+    cur_offset += MessageOffset::INST;
 
     if (submitTxnType == SUBMITTRANSACTIONTYPE::MISSINGTXN)
     {
@@ -711,7 +712,7 @@ bool Node::ProcessCreateTransactionFromLookup(
 
     // if (!isVacuousEpoch)
     // {
-    //     unique_lock<mutex> g(m_mutexNewRoungStarted);
+    //     unique_lock<mutex> g(m_mutexNewRoundStarted);
     //     if (!m_newRoundStarted)
     //     {
     //         LOG_GENERAL(INFO, "Wait for new consensus round started");
@@ -810,10 +811,9 @@ void Node::SubmitTransactions()
 
     m_txMessage = {MessageType::NODE, NodeInstructionType::SUBMITTRANSACTION};
     cur_offset += MessageOffset::BODY;
-    Serializable::SetNumber<uint32_t>(m_txMessage, cur_offset,
-                                      SUBMITTRANSACTIONTYPE::TXNSHARING,
-                                      sizeof(uint32_t));
-    cur_offset += sizeof(uint32_t);
+
+    m_txMessage.push_back(SUBMITTRANSACTIONTYPE::TXNSHARING);
+    cur_offset += MessageOffset::INST;
 
     // TODO: remove the condition on txn_sent_count -- temporary hack to artificially limit number of
     // txns needed to be shared within shard members so that it completes in the time limit
@@ -931,10 +931,13 @@ void Node::RejoinAsNormal()
     LOG_MARKER();
     if (m_mediator.m_lookup->m_syncType == SyncType::NO_SYNC)
     {
-        m_mediator.m_lookup->m_syncType = SyncType::NORMAL_SYNC;
-        this->CleanVariables();
-        this->Install(true);
-        this->StartSynchronization();
+        auto func = [this]() mutable -> void {
+            m_mediator.m_lookup->m_syncType = SyncType::NORMAL_SYNC;
+            this->CleanVariables();
+            this->Install(true);
+            this->StartSynchronization();
+        };
+        DetachedFunction(1, func);
     }
 }
 
