@@ -187,7 +187,7 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
     }
 
     {
-        lock_guard<mutex> g2(m_mutexNewRoungStarted);
+        lock_guard<mutex> g2(m_mutexNewRoundStarted);
         m_newRoundStarted = false;
     }
 

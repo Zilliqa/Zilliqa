@@ -656,7 +656,7 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
 
     if (!isVacuousEpoch)
     {
-        unique_lock<mutex> g(m_mutexNewRoungStarted);
+        unique_lock<mutex> g(m_mutexNewRoundStarted);
         if (!m_newRoundStarted)
         {
             // LOG_GENERAL(INFO, "Wait for new consensus round started");
@@ -712,7 +712,7 @@ bool Node::ProcessCreateTransactionFromLookup(
 
     // if (!isVacuousEpoch)
     // {
-    //     unique_lock<mutex> g(m_mutexNewRoungStarted);
+    //     unique_lock<mutex> g(m_mutexNewRoundStarted);
     //     if (!m_newRoundStarted)
     //     {
     //         LOG_GENERAL(INFO, "Wait for new consensus round started");
@@ -931,10 +931,13 @@ void Node::RejoinAsNormal()
     LOG_MARKER();
     if (m_mediator.m_lookup->m_syncType == SyncType::NO_SYNC)
     {
-        m_mediator.m_lookup->m_syncType = SyncType::NORMAL_SYNC;
-        this->CleanVariables();
-        this->Install(true);
-        this->StartSynchronization();
+        auto func = [this]() mutable -> void {
+            m_mediator.m_lookup->m_syncType = SyncType::NORMAL_SYNC;
+            this->CleanVariables();
+            this->Install(true);
+            this->StartSynchronization();
+        };
+        DetachedFunction(1, func);
     }
 }
 
