@@ -413,6 +413,10 @@ public:
     /// The current internal state of this Node instance.
     std::atomic<NodeState> m_state;
 
+    uint64_t m_latestForwardBlockNum;
+    std::condition_variable m_cvForwardBlockNumSync;
+    std::mutex m_mutexForwardBlockNumSync;
+
     /// Constructor. Requires mediator reference to access DirectoryService and other global members.
     Node(Mediator& mediator, unsigned int syncType, bool toRetrieveHistory);
 

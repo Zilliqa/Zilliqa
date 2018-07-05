@@ -999,6 +999,7 @@ bool Node::CleanVariables()
         m_mediator.m_lookup->m_fetchedOfflineLookups = false;
     }
     m_mediator.m_lookup->m_startedPoW2 = false;
+    m_latestForwardBlockNum = 0;
 
     return true;
 }
