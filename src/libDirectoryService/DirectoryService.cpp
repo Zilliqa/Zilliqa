@@ -1296,10 +1296,13 @@ void DirectoryService::RejoinAsDS()
     if (m_mediator.m_lookup->m_syncType == SyncType::NO_SYNC
         && m_mode == BACKUP_DS)
     {
-        m_mediator.m_lookup->m_syncType = SyncType::DS_SYNC;
-        m_mediator.m_node->CleanVariables();
-        m_mediator.m_node->Install(SyncType::DS_SYNC, true);
-        this->StartSynchronization();
+        auto func = [this]() mutable -> void {
+            m_mediator.m_lookup->m_syncType = SyncType::DS_SYNC;
+            m_mediator.m_node->CleanVariables();
+            m_mediator.m_node->Install(SyncType::DS_SYNC, true);
+            this->StartSynchronization();
+        };
+        DetachedFunction(1, func);
     }
 }
 

@@ -463,7 +463,7 @@ void P2PComm::HandleAcceptedConnection(
         if (found)
         {
             // We already sent and/or received this message before -> discard
-            // LOG_GENERAL(INFO, "Discarding duplicate broadcast message");
+            LOG_GENERAL(INFO, "Discarding duplicate broadcast message");
             return;
         }
         else
