@@ -481,10 +481,10 @@ bool DirectoryService::ProcessDSBlockConsensus(
 
         // Wait for view change to happen
         //throw exception();
-        if (m_mode != PRIMARY_DS)
-        {
-            RejoinAsDS();
-        }
+        // if (m_mode != PRIMARY_DS)
+        // {
+        //     RejoinAsDS();
+        // }
     }
     else
     {
