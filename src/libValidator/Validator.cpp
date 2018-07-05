@@ -51,9 +51,9 @@ void Validator::CleanVariables()
 #ifndef IS_LOOKUP_NODE
 bool Validator::CheckCreatedTransaction(const Transaction& tx) const
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
-    LOG_GENERAL(INFO, "Tran: " << tx.GetTranID());
+    // LOG_GENERAL(INFO, "Tran: " << tx.GetTranID());
 
     // Check if from account is sharded here
     const PubKey& senderPubKey = tx.GetSenderPubKey();
@@ -111,7 +111,7 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx) const
 
 bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     // Check if from account is sharded here
     const PubKey& senderPubKey = tx.GetSenderPubKey();

@@ -130,6 +130,8 @@ const unsigned int COINBASE_REWARD{ReadFromConstantsFile("COINBASE_REWARD")};
 const unsigned int TXN_SUBMISSION{ReadFromConstantsFile("TXN_SUBMISSION")};
 const unsigned int TXN_BROADCAST{ReadFromConstantsFile("TXN_BROADCAST")};
 const unsigned int DEBUG_LEVEL{ReadFromConstantsFile("DEBUG_LEVEL")};
+const unsigned int WAIT_ALL_MB_RECVD_TIMEOUT{
+    ReadFromConstantsFile("WAIT_ALL_MB_RECVD_TIMEOUT")};
 const std::vector<std::string> GENESIS_WALLETS{
     ReadAccountsFromConstantsFile("wallet_address")};
 const std::vector<std::string> GENESIS_KEYS{

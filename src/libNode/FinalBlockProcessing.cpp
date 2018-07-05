@@ -228,10 +228,11 @@ bool Node::LoadUnavailableMicroBlockHashes(
             if (m_lastMicroBlockCoSig.first != m_mediator.m_currentEpochNum)
             {
                 LOG_GENERAL(WARNING,
-                            "Why I failed the last microblock consensus but "
+                            "Failed the last microblock consensus but "
                             "still found my shard microblock, "
                             " need to Rejoin");
                 RejoinAsNormal();
+
                 return false;
             }
         }
@@ -409,7 +410,7 @@ bool Node::FindTxnInSubmittedTxnsList(const TxBlock& finalblock,
                                       vector<Transaction>& txns_to_send,
                                       const TxnHash& tx_hash)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     // boost::multiprecision::uint256_t blockNum = m_mediator.m_txBlockChain.GetBlockCount();
 
@@ -433,12 +434,12 @@ bool Node::FindTxnInSubmittedTxnsList(const TxBlock& finalblock,
         committedTransactions.push_back(txnIt->second);
         submittedTransactions.erase(txnIt);
 
-        LOG_EPOCH(
-            INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "[TXN] ["
-                << blockNum << "] Committed     = 0x"
-                << DataConversion::charArrToHexStr(
-                       committedTransactions.back().GetTranID().asArray()));
+        // LOG_EPOCH(
+        //     INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        //     "[TXN] ["
+        //         << blockNum << "] Committed     = 0x"
+        //         << DataConversion::charArrToHexStr(
+        //                committedTransactions.back().GetTranID().asArray()));
 
         // Update from and to accounts
         // if (!AccountStore::GetInstance().UpdateAccounts(
@@ -485,7 +486,7 @@ bool Node::FindTxnInReceivedTxnsList(const TxBlock& finalblock,
                                      vector<Transaction>& txns_to_send,
                                      const TxnHash& tx_hash)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     lock(m_mutexReceivedTransactions, m_mutexCommittedTransactions);
     lock_guard<mutex> g(m_mutexReceivedTransactions, adopt_lock);
@@ -507,12 +508,12 @@ bool Node::FindTxnInReceivedTxnsList(const TxBlock& finalblock,
         committedTransactions.push_back(txnIt->second);
         receivedTransactions.erase(txnIt);
 
-        LOG_EPOCH(
-            INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "[TXN] ["
-                << blockNum << "] Committed     = 0x"
-                << DataConversion::charArrToHexStr(
-                       committedTransactions.back().GetTranID().asArray()));
+        // LOG_EPOCH(
+        //     INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        //     "[TXN] ["
+        //         << blockNum << "] Committed     = 0x"
+        //         << DataConversion::charArrToHexStr(
+        //                committedTransactions.back().GetTranID().asArray()));
 
         // Update from and to accounts
         // if (!AccountStore::GetInstance().UpdateAccounts(
@@ -531,14 +532,14 @@ bool Node::FindTxnInReceivedTxnsList(const TxBlock& finalblock,
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), DataConversion::charArrToHexStr((*entry).GetFromAddr()));
         **/
 
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "ReceivedTransaction: Storing Transaction: "
-                      << DataConversion::charArrToHexStr(tx_hash.asArray())
-                      << " with amount: "
-                      << committedTransactions.back().GetAmount() << ", to: "
-                      << committedTransactions.back().GetToAddr() << ", from: "
-                      << Account::GetAddressFromPublicKey(
-                             committedTransactions.back().GetSenderPubKey()));
+        // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        //           "ReceivedTransaction: Storing Transaction: "
+        //               << DataConversion::charArrToHexStr(tx_hash.asArray())
+        //               << " with amount: "
+        //               << committedTransactions.back().GetAmount() << ", to: "
+        //               << committedTransactions.back().GetToAddr() << ", from: "
+        //               << Account::GetAddressFromPublicKey(
+        //                      committedTransactions.back().GetSenderPubKey()));
 
         // Store TxBody to disk
         vector<unsigned char> serializedTxBody;
@@ -641,11 +642,11 @@ void Node::BroadcastTransactionsToSendingAssignment(
             txns_to_send.at(i).Serialize(forwardtxn_message, cur_offset);
             cur_offset += txns_to_send.at(i).GetSerializedSize();
 
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "[TXN] ["
-                          << blocknum << "] Broadcasted   = 0x"
-                          << DataConversion::charArrToHexStr(
-                                 txns_to_send.at(i).GetTranID().asArray()));
+            // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            //           "[TXN] ["
+            //               << blocknum << "] Broadcasted   = 0x"
+            //               << DataConversion::charArrToHexStr(
+            //                      txns_to_send.at(i).GetTranID().asArray()));
         }
 
         // P2PComm::GetInstance().SendBroadcastMessage(sendingAssignment,
@@ -712,16 +713,14 @@ void Node::BroadcastStateDeltaToSendingAssignment(
 
     copy(stateDel.begin(), stateDel.end(), back_inserter(forwardstate_message));
 
-    // sending
-
     P2PComm::GetInstance().SendBroadcastMessage(sendingAssignment,
                                                 forwardstate_message);
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "DEBUG: I have broadcasted the state delta! ");
+              "Broadcasted the state delta! ");
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "I will soon be sending the state delta to the lookup nodes");
+              "Sending the state delta to the lookup nodes");
     m_mediator.m_lookup->SendMessageToLookupNodes(forwardstate_message);
 }
 
@@ -991,8 +990,8 @@ void Node::InitiatePoW1()
 
     SetState(POW1_SUBMISSION);
     POW::GetInstance().EthashConfigureLightClient(
-        (uint64_t)m_mediator.m_dsBlockChain
-            .GetBlockCount()); // hack hack hack -- typecasting
+        (uint64_t)
+            m_mediator.m_dsBlockChain.GetBlockCount()); // FIXME -- typecasting
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Start pow1 ");
     auto func = [this]() mutable -> void {
@@ -1013,7 +1012,7 @@ void Node::UpdateStateForNextConsensusRound()
     if (m_isPrimary == true)
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "MS: I am no longer the shard leader ");
+                  "I am no longer the shard leader ");
         m_isPrimary = false;
     }
 
@@ -1024,13 +1023,13 @@ void Node::UpdateStateForNextConsensusRound()
     if (m_consensusMyID == m_consensusLeaderID)
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "MS: I am the new shard leader ");
+                  "I am the new shard leader ");
         m_isPrimary = true;
     }
     else
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "MS: The new shard leader is m_consensusMyID "
+                  "The new shard leader is m_consensusMyID "
                       << m_consensusLeaderID);
     }
 
@@ -1048,12 +1047,10 @@ void Node::ScheduleTxnSubmission()
 
     DetachedFunction(1, main_func);
 
-    LOG_GENERAL(INFO,
-                "I am going to sleep for " << TXN_SUBMISSION << " seconds");
+    LOG_GENERAL(INFO, "Sleep for " << TXN_SUBMISSION << " seconds");
     this_thread::sleep_for(chrono::seconds(TXN_SUBMISSION));
     LOG_GENERAL(INFO,
-                "I have woken up from the sleep of " << TXN_SUBMISSION
-                                                     << " seconds");
+                "Woken up from the sleep of " << TXN_SUBMISSION << " seconds");
     auto main_func2
         = [this]() mutable -> void { SetState(TX_SUBMISSION_BUFFER); };
 
@@ -1070,15 +1067,13 @@ void Node::ScheduleMicroBlockConsensus()
                                         std::chrono::seconds(TXN_BROADCAST))
         == std::cv_status::timeout)
     {
-        LOG_GENERAL(INFO,
-                    "I have woken up from the sleep of " << TXN_BROADCAST
-                                                         << " seconds");
+        LOG_GENERAL(
+            INFO, "Woken up from the sleep of " << TXN_BROADCAST << " seconds");
     }
     else
     {
-        LOG_GENERAL(
-            INFO,
-            "I have received announcement message. Time to run consensus.");
+        LOG_GENERAL(INFO,
+                    "Received announcement message. Time to run consensus.");
     }
     auto main_func3 = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
 
@@ -1101,11 +1096,32 @@ void Node::BeginNextConsensusRound()
             if (!m_allMicroBlocksRecvd)
             {
                 LOG_GENERAL(INFO, "Wait for allMicroBlocksRecvd");
-                m_cvAllMicroBlocksRecvd.wait(
-                    g, [this] { return m_allMicroBlocksRecvd; });
-                LOG_EPOCH(
-                    INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                    "All microblocks recvd, moving to ScheduleTxnSubmission");
+                if (m_cvAllMicroBlocksRecvd.wait_for(
+                        g, std::chrono::seconds(WAIT_ALL_MB_RECVD_TIMEOUT))
+                    == std::cv_status::timeout)
+                {
+                    LOG_EPOCH(WARNING,
+                              to_string(m_mediator.m_currentEpochNum).c_str(),
+                              "Wake up from "
+                                  << WAIT_ALL_MB_RECVD_TIMEOUT
+                                  << "of waiting for all microblock received");
+                    if (m_mediator.m_lookup->m_syncType == SyncType::NO_SYNC)
+                    {
+                        LOG_EPOCH(
+                            WARNING,
+                            to_string(m_mediator.m_currentEpochNum).c_str(),
+                            "Not in rejoin mode, try rejoining as normal");
+                        RejoinAsNormal();
+                        return;
+                    }
+                }
+                else
+                {
+                    LOG_EPOCH(INFO,
+                              to_string(m_mediator.m_currentEpochNum).c_str(),
+                              "All microblocks recvd, moving to "
+                              "ScheduleTxnSubmission");
+                }
             }
             else
             {
@@ -1113,7 +1129,7 @@ void Node::BeginNextConsensusRound()
             }
 
             {
-                lock_guard<mutex> g2(m_mutexNewRoungStarted);
+                lock_guard<mutex> g2(m_mutexNewRoundStarted);
                 if (!m_newRoundStarted)
                 {
                     m_newRoundStarted = true;
@@ -1453,7 +1469,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "I may have missed the micrblock consensus. However, if I "
-                  "recent a valid finalblock. I will accept it");
+                  "recently received a valid finalblock, I will accept it");
         // TODO: Optimize state transition.
         SetState(WAITING_FINALBLOCK);
     }

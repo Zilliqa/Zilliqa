@@ -166,7 +166,7 @@ bool Node::ProcessSharding(const vector<unsigned char>& message,
     {
         m_isPrimary = true;
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "I am primary of the sharded committee");
+                  "I am leader of the sharded committee");
 
         LOG_STATE("[IDENT][" << std::setw(15) << std::left
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
@@ -231,7 +231,7 @@ bool Node::ProcessSharding(const vector<unsigned char>& message,
     auto main_func = [this]() mutable -> void { SubmitTransactions(); };
 
     {
-        lock_guard<mutex> g2(m_mutexNewRoungStarted);
+        lock_guard<mutex> g2(m_mutexNewRoundStarted);
         if (!m_newRoundStarted)
         {
             m_newRoundStarted = true;
@@ -241,12 +241,10 @@ bool Node::ProcessSharding(const vector<unsigned char>& message,
 
     DetachedFunction(1, main_func);
 
-    LOG_GENERAL(INFO,
-                "I am going to sleep for " << TXN_SUBMISSION << " seconds");
+    LOG_GENERAL(INFO, "Entering sleep for " << TXN_SUBMISSION << " seconds");
     this_thread::sleep_for(chrono::seconds(TXN_SUBMISSION));
     LOG_GENERAL(INFO,
-                "I have woken up from the sleep of " << TXN_SUBMISSION
-                                                     << " seconds");
+                "Woken up from the sleep of " << TXN_SUBMISSION << " seconds");
 
     auto main_func2
         = [this]() mutable -> void { SetState(TX_SUBMISSION_BUFFER); };
@@ -254,7 +252,7 @@ bool Node::ProcessSharding(const vector<unsigned char>& message,
     DetachedFunction(1, main_func2);
 
     LOG_GENERAL(INFO,
-                "I am going to use conditional variable with timeout of  "
+                "Using conditional variable with timeout of  "
                     << TXN_BROADCAST << " seconds. It is ok to timeout here. ");
     std::unique_lock<std::mutex> cv_lk(m_MutexCVMicroblockConsensus);
     if (cv_microblockConsensus.wait_for(cv_lk,
@@ -262,8 +260,8 @@ bool Node::ProcessSharding(const vector<unsigned char>& message,
         == std::cv_status::timeout)
     {
         LOG_GENERAL(INFO,
-                    "I have woken up from the sleep of " << TXN_BROADCAST
-                                                         << " seconds");
+                    "Woken up from the sleep (timeout) of " << TXN_BROADCAST
+                                                            << " seconds");
     }
     else
     {
