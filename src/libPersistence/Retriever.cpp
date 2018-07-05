@@ -125,7 +125,15 @@ void Retriever::RetrieveTxBlocks(bool& result)
     }
 
     for (const auto& block : blocks)
+    {
         m_mediator.m_txBlockChain.AddBlock(*block);
+
+        if (block->GetHeader().GetBlockNum()
+            == m_mediator.m_node->m_latestForwardBlockNum)
+        {
+            m_mediator.m_node->m_cvForwardBlockNumSync.notify_all();
+        }
+    }
 
     result = true;
 }

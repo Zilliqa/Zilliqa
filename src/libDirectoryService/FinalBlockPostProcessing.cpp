@@ -44,6 +44,13 @@ void DirectoryService::StoreFinalBlockToDisk()
 
     // Add finalblock to txblockchain
     m_mediator.m_txBlockChain.AddBlock(*m_finalBlock);
+
+    if (m_finalBlock->GetHeader().GetBlockNum()
+        == m_mediator.m_node->m_latestForwardBlockNum)
+    {
+        m_mediator.m_node->m_cvForwardBlockNumSync.notify_all();
+    }
+
     m_mediator.m_currentEpochNum
         = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
 

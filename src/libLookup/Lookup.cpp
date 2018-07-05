@@ -1425,6 +1425,12 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
 
             m_mediator.m_txBlockChain.AddBlock(txBlock);
 
+            if (txBlock.GetHeader().GetBlockNum()
+                == m_mediator.m_node->m_latestForwardBlockNum)
+            {
+                m_mediator.m_node->m_cvForwardBlockNumSync.notify_all();
+            }
+
             // Store Tx Block to disk
             vector<unsigned char> serializedTxBlock;
             txBlock.Serialize(serializedTxBlock, 0);
