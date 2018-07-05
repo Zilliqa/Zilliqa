@@ -126,7 +126,7 @@ bool Node::StartPoW2(uint64_t block_num, uint8_t difficulty,
                      array<unsigned char, 32> rand1,
                      array<unsigned char, 32> rand2)
 {
-    // Message = [32-byte block num] [1-byte difficulty] [32-byte rand1] [32-byte rand2] [16-byte ip] [4-byte port] ... (all the DS nodes)
+    // Message = [8-byte block num] [1-byte difficulty] [32-byte rand1] [32-byte rand2] [16-byte ip] [4-byte port] ... (all the DS nodes)
 
     LOG_MARKER();
 

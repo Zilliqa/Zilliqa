@@ -74,7 +74,7 @@ bool DirectoryService::SendFinalBlockToLookupNodes()
 
     unsigned int curr_offset = MessageOffset::BODY;
 
-    // 32-byte DS blocknum
+    // 8-byte DS blocknum
     uint64_t dsBlockNum = m_mediator.m_dsBlockChain.GetBlockCount() - 1;
     Serializable::SetNumber<uint64_t>(finalblock_message, curr_offset,
                                       dsBlockNum, sizeof(uint64_t));
@@ -163,7 +163,7 @@ void DirectoryService::SendFinalBlockToShardNodes(
 
         unsigned int curr_offset = MessageOffset::BODY;
 
-        // 32-byte DS blocknum
+        // 8-byte DS blocknum
         uint64_t DSBlockNum = m_mediator.m_dsBlockChain.GetBlockCount() - 1;
         Serializable::SetNumber<uint64_t>(finalblock_message, curr_offset,
                                           DSBlockNum, sizeof(uint64_t));

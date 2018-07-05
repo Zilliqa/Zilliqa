@@ -726,7 +726,7 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
                                        unsigned int offset, const Peer& from)
 {
     //#ifndef IS_LOOKUP_NODE // TODO: remove the comment
-    // Message = [32-byte lowBlockNum][32-byte highBlockNum][4-byte portNo]
+    // Message = [8-byte lowBlockNum][8-byte highBlockNum][4-byte portNo]
 
     LOG_MARKER();
 
@@ -737,12 +737,12 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
         return false;
     }
 
-    // 32-byte lower-limit block number
+    // 8-byte lower-limit block number
     uint64_t lowBlockNum
         = Serializable::GetNumber<uint64_t>(message, offset, sizeof(uint64_t));
     offset += sizeof(uint64_t);
 
-    // 32-byte upper-limit block number
+    // 8-byte upper-limit block number
     uint64_t highBlockNum
         = Serializable::GetNumber<uint64_t>(message, offset, sizeof(uint64_t));
     offset += sizeof(uint64_t);
@@ -893,7 +893,7 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
                                        unsigned int offset, const Peer& from)
 {
     // #ifndef IS_LOOKUP_NODE // TODO: remove the comment
-    // Message = [32-byte lowBlockNum][32-byte highBlockNum][4-byte portNo]
+    // Message = [8-byte lowBlockNum][8-byte highBlockNum][4-byte portNo]
 
     LOG_MARKER();
 
@@ -904,12 +904,12 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
         return false;
     }
 
-    // 32-byte lower-limit block number
+    // 8-byte lower-limit block number
     uint64_t lowBlockNum
         = Serializable::GetNumber<uint64_t>(message, offset, sizeof(uint64_t));
     offset += sizeof(uint64_t);
 
-    // 32-byte upper-limit block number
+    // 8-byte upper-limit block number
     uint64_t highBlockNum
         = Serializable::GetNumber<uint64_t>(message, offset, sizeof(uint64_t));
     offset += sizeof(uint64_t);
@@ -1208,7 +1208,7 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
                                        unsigned int offset, const Peer& from)
 {
     // #ifndef IS_LOOKUP_NODE TODO: uncomment later
-    // Message = [32-byte lowBlockNum][32-byte highBlockNum][DSBlock][DSBlock]... (highBlockNum - lowBlockNum + 1) times
+    // Message = [8-byte lowBlockNum][8-byte highBlockNum][DSBlock][DSBlock]... (highBlockNum - lowBlockNum + 1) times
 
     LOG_MARKER();
 
@@ -1225,12 +1225,12 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
         return false;
     }
 
-    // 32-byte lower-limit block number
+    // 8-byte lower-limit block number
     uint64_t lowBlockNum
         = Serializable::GetNumber<uint64_t>(message, offset, sizeof(uint64_t));
     offset += sizeof(uint64_t);
 
-    // 32-byte upper-limit block number
+    // 8-byte upper-limit block number
     uint64_t highBlockNum
         = Serializable::GetNumber<uint64_t>(message, offset, sizeof(uint64_t));
     offset += sizeof(uint64_t);
@@ -1341,7 +1341,7 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
                                        unsigned int offset, const Peer& from)
 {
     //#ifndef IS_LOOKUP_NODE
-    // Message = [32-byte lowBlockNum][32-byte highBlockNum][TxBlock][TxBlock]... (highBlockNum - lowBlockNum + 1) times
+    // Message = [8-byte lowBlockNum][8-byte highBlockNum][TxBlock][TxBlock]... (highBlockNum - lowBlockNum + 1) times
     LOG_MARKER();
 
     if (AlreadyJoinedNetwork())
@@ -1357,12 +1357,12 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
         return false;
     }
 
-    // 32-byte lower-limit block number
+    // 8-byte lower-limit block number
     uint64_t lowBlockNum
         = Serializable::GetNumber<uint64_t>(message, offset, sizeof(uint64_t));
     offset += sizeof(uint64_t);
 
-    // 32-byte upper-limit block number
+    // 8-byte upper-limit block number
     uint64_t highBlockNum
         = Serializable::GetNumber<uint64_t>(message, offset, sizeof(uint64_t));
     offset += sizeof(uint64_t);
