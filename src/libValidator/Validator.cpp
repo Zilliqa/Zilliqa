@@ -53,7 +53,7 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx) const
 {
     // LOG_MARKER();
 
-    LOG_GENERAL(INFO, "Tran: " << tx.GetTranID());
+    // LOG_GENERAL(INFO, "Tran: " << tx.GetTranID());
 
     // Check if from account is sharded here
     const PubKey& senderPubKey = tx.GetSenderPubKey();

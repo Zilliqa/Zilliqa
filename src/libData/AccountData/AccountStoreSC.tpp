@@ -56,7 +56,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
     if (transaction.GetData().empty() && transaction.GetCode().empty())
     {
-        LOG_GENERAL(INFO, "Normal transaction");
+        // LOG_GENERAL(INFO, "Normal transaction");
 
         // Disallow normal transaction to contract account
         Account* toAccount = this->GetAccount(toAddr);

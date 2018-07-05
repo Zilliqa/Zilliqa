@@ -1619,7 +1619,7 @@ bool Lookup::InitMining()
     LOG_MARKER();
 
     {
-        lock_guard<mutex> g(m_mediator.m_node->m_mutexNewRoungStarted);
+        lock_guard<mutex> g(m_mediator.m_node->m_mutexNewRoundStarted);
         if (!m_mediator.m_node->m_newRoundStarted)
         {
             LOG_GENERAL(INFO,
@@ -2055,10 +2055,13 @@ void Lookup::RejoinAsLookup()
     LOG_MARKER();
     if (m_syncType == SyncType::NO_SYNC)
     {
-        m_syncType = SyncType::LOOKUP_SYNC;
-        AccountStore::GetInstance().InitSoft();
-        m_mediator.m_node->Install(SyncType::LOOKUP_SYNC, true);
-        this->StartSynchronization();
+        auto func = [this]() mutable -> void {
+            m_syncType = SyncType::LOOKUP_SYNC;
+            AccountStore::GetInstance().InitSoft();
+            m_mediator.m_node->Install(SyncType::LOOKUP_SYNC, true);
+            this->StartSynchronization();
+        };
+        DetachedFunction(1, func);
     }
 }
 
