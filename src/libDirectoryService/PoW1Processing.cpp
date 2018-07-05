@@ -126,7 +126,7 @@ bool DirectoryService::ParseMessageAndVerifyPOW1(
 {
     unsigned int curr_offset = offset;
 
-    // 32-byte block number
+    // 8-byte block number
     uint64_t DSBlockNum = Serializable::GetNumber<uint64_t>(
         message, curr_offset, sizeof(uint64_t));
     curr_offset += sizeof(uint64_t);
@@ -248,7 +248,7 @@ bool DirectoryService::ProcessPoW1Submission(
     const vector<unsigned char>& message, unsigned int offset, const Peer& from)
 {
 #ifndef IS_LOOKUP_NODE
-    // Message = [32-byte block number] [4-byte listening port] [33-byte public key] [8-byte nonce] [32-byte resulting hash]
+    // Message = [8-byte block number] [4-byte listening port] [33-byte public key] [8-byte nonce] [32-byte resulting hash]
     //[32-byte mixhash] [64-byte Sign]
     LOG_MARKER();
 

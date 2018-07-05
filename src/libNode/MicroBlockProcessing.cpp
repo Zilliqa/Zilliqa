@@ -50,12 +50,12 @@ using namespace boost::multiprecision;
 #ifndef IS_LOOKUP_NODE
 void Node::SubmitMicroblockToDSCommittee() const
 {
-    // Message = [32-byte DS blocknum] [4-byte consensusid] [4-byte shard ID] [Tx microblock]
+    // Message = [8-byte DS blocknum] [4-byte consensusid] [4-byte shard ID] [Tx microblock]
     vector<unsigned char> microblock
         = {MessageType::DIRECTORY, DSInstructionType::MICROBLOCKSUBMISSION};
     unsigned int cur_offset = MessageOffset::BODY;
 
-    // 32-byte DS blocknum
+    // 8-byte DS blocknum
     uint64_t DSBlockNum = m_mediator.m_dsBlockChain.GetBlockCount() - 1;
     Serializable::SetNumber<uint64_t>(microblock, cur_offset, DSBlockNum,
                                       sizeof(uint64_t));

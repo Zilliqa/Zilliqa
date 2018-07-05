@@ -58,7 +58,7 @@ bool Node::ReadVariablesFromShardingMessage(
         return false;
     }
 
-    // 32-byte block number
+    // 8-byte block number
     uint64_t dsBlockNum = Serializable::GetNumber<uint64_t>(message, cur_offset,
                                                             sizeof(uint64_t));
     cur_offset += sizeof(uint64_t);
@@ -133,7 +133,7 @@ bool Node::ProcessSharding(const vector<unsigned char>& message,
                            unsigned int offset, const Peer& from)
 {
 #ifndef IS_LOOKUP_NODE
-    // Message = [32-byte DS blocknum] [4-byte shard ID] [4-byte committee size] [33-byte public key]
+    // Message = [8-byte DS blocknum] [4-byte shard ID] [4-byte committee size] [33-byte public key]
     // [16-byte ip] [4-byte port] ... (all nodes; first entry is leader)
     LOG_MARKER();
 

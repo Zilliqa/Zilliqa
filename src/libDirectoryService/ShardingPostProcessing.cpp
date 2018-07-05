@@ -154,7 +154,7 @@ void DirectoryService::SendingShardingStructureToShard(
 {
     LOG_MARKER();
 
-    // Message = [32-byte DS blocknum] [4-byte shard ID] [4-byte committee size] [33-byte public key]
+    // Message = [8-byte DS blocknum] [4-byte shard ID] [4-byte committee size] [33-byte public key]
     // [16-byte ip] [4-byte port] ... (all nodes; first entry is leader)
     vector<unsigned char> sharding_message
         = {MessageType::NODE, NodeInstructionType::SHARDING};

@@ -85,7 +85,7 @@ bool Node::StartPoW1(const uint64_t& block_num, uint8_t difficulty,
             = DataConversion::HexStrToUint8Vec(winning_result.mix_hash);
 
         // Send PoW1 result
-        // Message = [32-byte block number] [4-byte listening port] [33-byte public key]
+        // Message = [8-byte block number] [4-byte listening port] [33-byte public key]
         // [8-byte nonce] [32-byte resulting hash] [32-byte mixhash] [64-byte Signature]
         vector<unsigned char> pow1message
             = {MessageType::DIRECTORY, DSInstructionType::POW1SUBMISSION};
@@ -145,7 +145,7 @@ bool Node::ReadVariablesFromStartPoW1Message(
         return false;
     }
 
-    // 32-byte block num
+    // 8-byte block num
     block_num = Serializable::GetNumber<uint64_t>(message, cur_offset,
                                                   sizeof(uint64_t));
     cur_offset += sizeof(uint64_t);
@@ -212,7 +212,7 @@ bool Node::ProcessStartPoW1(const vector<unsigned char>& message,
 {
 #ifndef IS_LOOKUP_NODE
     // Note: This function should only be invoked on a new node that was not part of the sharding committees in previous epoch
-    // Message = [32-byte block num] [1-byte difficulty] [32-byte rand1] [32-byte rand2] [33-byte pubkey] [16-byte ip] [4-byte port] ... (all the DS nodes)
+    // Message = [8-byte block num] [1-byte difficulty] [32-byte rand1] [32-byte rand2] [33-byte pubkey] [16-byte ip] [4-byte port] ... (all the DS nodes)
 
     LOG_MARKER();
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),

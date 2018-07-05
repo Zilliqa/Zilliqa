@@ -108,7 +108,7 @@ bool DirectoryService::ProcessMicroblockSubmission(
     const vector<unsigned char>& message, unsigned int offset, const Peer& from)
 {
 #ifndef IS_LOOKUP_NODE
-    // Message = [32-byte DS blocknum] [4-byte consensusid] [4-byte shard ID] [Tx microblock]
+    // Message = [8-byte DS blocknum] [4-byte consensusid] [4-byte shard ID] [Tx microblock]
 
     LOG_MARKER();
 
@@ -129,7 +129,7 @@ bool DirectoryService::ProcessMicroblockSubmission(
 
     unsigned int curr_offset = offset;
 
-    // 32-byte block number
+    // 8-byte block number
     uint64_t DSBlockNum = Serializable::GetNumber<uint64_t>(
         message, curr_offset, sizeof(uint64_t));
     curr_offset += sizeof(uint64_t);

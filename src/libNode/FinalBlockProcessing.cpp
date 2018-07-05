@@ -52,7 +52,7 @@ bool Node::ReadAuxilliaryInfoFromFinalBlockMsg(
     const vector<unsigned char>& message, unsigned int& cur_offset,
     uint8_t& shard_id)
 {
-    // 32-byte block number
+    // 8-byte block number
     uint64_t dsBlockNum = Serializable::GetNumber<uint64_t>(message, cur_offset,
                                                             sizeof(uint64_t));
     cur_offset += sizeof(uint64_t);
@@ -1430,7 +1430,7 @@ bool Node::CheckStateRoot(const TxBlock& finalBlock)
 bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
                              unsigned int offset, const Peer& from)
 {
-    // Message = [32-byte DS blocknum] [4-byte consensusid] [1-byte shard id]
+    // Message = [8-byte DS blocknum] [4-byte consensusid] [1-byte shard id]
     //           [Final block] [Tx body sharing setup]
     LOG_MARKER();
 
