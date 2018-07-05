@@ -149,7 +149,7 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
         if (m_isMBSender == true)
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "I am designated as Microblock sender");
+                      "Designated as Microblock sender");
 
             // Update the micro block with the co-signature from the consensus
             m_microblock->SetCoSignatures(*m_consensusObject);
@@ -187,7 +187,7 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
     }
 
     {
-        lock_guard<mutex> g2(m_mutexNewRoungStarted);
+        lock_guard<mutex> g2(m_mutexNewRoundStarted);
         m_newRoundStarted = false;
     }
 
@@ -285,9 +285,9 @@ bool Node::OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
         = Serializable::GetNumber<uint32_t>(errorMsg, offset, sizeof(uint32_t));
     offset += sizeof(uint32_t);
 
-    uint32_t blockNum
-        = Serializable::GetNumber<uint32_t>(errorMsg, offset, sizeof(uint32_t));
-    offset += sizeof(uint32_t);
+    uint64_t blockNum
+        = Serializable::GetNumber<uint64_t>(errorMsg, offset, sizeof(uint64_t));
+    offset += sizeof(uint64_t);
 
     vector<TxnHash> missingTransactions;
 
@@ -315,11 +315,20 @@ bool Node::OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
     auto& receivedTransactions = m_receivedTransactions[blockNum];
     auto& submittedTransactions = m_submittedTransactions[blockNum];
 
+    unsigned int cur_offset = 0;
+    vector<unsigned char> tx_message
+        = {MessageType::NODE, NodeInstructionType::SUBMITTRANSACTION};
+    cur_offset += MessageOffset::BODY;
+    tx_message.push_back(SUBMITTRANSACTIONTYPE::MISSINGTXN);
+    cur_offset += MessageOffset::INST;
+    Serializable::SetNumber<uint64_t>(tx_message, cur_offset, blockNum,
+                                      sizeof(uint64_t));
+    cur_offset += sizeof(uint64_t);
+
     for (uint32_t i = 0; i < numOfAbsentHashes; i++)
     {
         // LOG_GENERAL(INFO, "Peer " << from << " : " << portNo << " missing txn " << missingTransactions[i])
-        vector<unsigned char> tx_message
-            = {MessageType::NODE, NodeInstructionType::SUBMITTRANSACTION};
+
         Transaction t;
         if (submittedTransactions.find(missingTransactions[i])
             != submittedTransactions.end())
@@ -337,21 +346,13 @@ bool Node::OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
                         "Leader unable to find txn proposed in microblock "
                             << missingTransactions[i]);
             // throw exception();
-            return false;
+            // return false;
+            continue;
         }
-
-        Serializable::SetNumber<uint32_t>(tx_message, MessageOffset::BODY,
-                                          SUBMITTRANSACTIONTYPE::MISSINGTXN,
-                                          sizeof(uint32_t));
-
-        Serializable::SetNumber<uint32_t>(
-            tx_message, MessageOffset::BODY + sizeof(uint32_t), blockNum,
-            sizeof(uint32_t));
-
-        t.Serialize(tx_message,
-                    MessageOffset::BODY + sizeof(uint32_t) + sizeof(uint32_t));
-        P2PComm::GetInstance().SendMessage(peer, tx_message);
+        t.Serialize(tx_message, cur_offset);
+        cur_offset += t.GetSerializedSize();
     }
+    P2PComm::GetInstance().SendMessage(peer, tx_message);
 
     return true;
 }
@@ -366,14 +367,18 @@ bool Node::OnCommitFailure(
 
     // }
 
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Going to sleep before restarting consensus");
+    // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    //           "Going to sleep before restarting consensus");
 
-    std::this_thread::sleep_for(30s);
-    RunConsensusOnMicroBlockWhenShardLeader();
+    // std::this_thread::sleep_for(30s);
+    // RunConsensusOnMicroBlockWhenShardLeader();
+
+    // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    //           "Woke from sleep after consensus restart");
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Woke from sleep after consensus restart");
+              "Microblock consensus failed, going to wait for final block "
+              "announcement");
 
     return true;
 }
@@ -383,7 +388,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
     LOG_MARKER();
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "I am primary. Creating microblock for epoch"
+              "I am shard leader. Creating microblock for epoch"
                   << m_mediator.m_currentEpochNum);
 
     // composed microblock stored in m_microblock
@@ -396,12 +401,12 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
     m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "MS: I am shard leader");
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "MS: m_consensusID: " << m_consensusID
-                                    << " m_consensusMyID: " << m_consensusMyID);
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "MS: m_consensusLeaderID: " << m_consensusLeaderID);
+              "I am shard leader. "
+                  << " m_consensusID: " << m_consensusID
+                  << " m_consensusMyID: " << m_consensusMyID
+                  << " m_consensusLeaderID: " << m_consensusLeaderID
+                  << " Shard Leader: "
+                  << m_myShardMembersNetworkInfo[m_consensusLeaderID]);
 
     auto nodeMissingTxnsFunc
         = [this](const vector<unsigned char>& errorMsg, unsigned int offset,
@@ -455,12 +460,12 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup()
     };
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "MS: I am shard backup");
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "MS: m_consensusID: " << m_consensusID
-                                    << " m_consensusMyID: " << m_consensusMyID);
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "MS: m_consensusLeaderID: " << m_consensusLeaderID);
+              "I am shard backup. "
+                  << " m_consensusID: " << m_consensusID
+                  << " m_consensusMyID: " << m_consensusMyID
+                  << " m_consensusLeaderID: " << m_consensusLeaderID
+                  << " Shard Leader: "
+                  << m_myShardMembersNetworkInfo[m_consensusLeaderID]);
 
     m_consensusObject.reset(new ConsensusBackup(
         m_consensusID, m_consensusBlockHash, m_consensusMyID,
@@ -607,8 +612,9 @@ bool Node::CheckLegitimacyOfTxnHashes(vector<unsigned char>& errorMsg)
                       "Missing txn: " << hash)
             if (errorMsg.size() == 0)
             {
-                errorMsg.resize(2 * sizeof(uint32_t) + TRAN_HASH_SIZE);
-                offset += (2 * sizeof(uint32_t));
+                errorMsg.resize(sizeof(uint32_t) + sizeof(uint64_t)
+                                + TRAN_HASH_SIZE);
+                offset += (sizeof(uint32_t) + sizeof(uint64_t));
             }
             else
             {
@@ -625,9 +631,9 @@ bool Node::CheckLegitimacyOfTxnHashes(vector<unsigned char>& errorMsg)
     {
         Serializable::SetNumber<uint32_t>(errorMsg, 0, m_numOfAbsentTxnHashes,
                                           sizeof(uint32_t));
-        Serializable::SetNumber<uint32_t>(errorMsg, sizeof(uint32_t),
-                                          (uint)m_mediator.m_currentEpochNum,
-                                          sizeof(uint32_t));
+        Serializable::SetNumber<uint64_t>(errorMsg, sizeof(uint32_t),
+                                          m_mediator.m_currentEpochNum,
+                                          sizeof(uint64_t));
         return false;
     }
 

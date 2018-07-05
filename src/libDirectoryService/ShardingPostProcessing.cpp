@@ -344,7 +344,11 @@ bool DirectoryService::ProcessShardingConsensus(
             LOG_GENERAL(
                 WARNING,
                 "Timeout: Didn't receive all Microblock. Proceeds without it");
-            RunConsensusOnFinalBlock();
+
+            auto func
+                = [this]() mutable -> void { RunConsensusOnFinalBlock(); };
+
+            DetachedFunction(1, func);
         }
     }
     else if (state == ConsensusCommon::State::ERROR)
@@ -370,10 +374,10 @@ bool DirectoryService::ProcessShardingConsensus(
                   "Oops, no consensus reached - what to do now???");
         // throw exception();
         // TODO: no consensus reached
-        if (m_mode != PRIMARY_DS)
-        {
-            RejoinAsDS();
-        }
+        // if (m_mode != PRIMARY_DS)
+        // {
+        //     RejoinAsDS();
+        // }
         return false;
     }
 
