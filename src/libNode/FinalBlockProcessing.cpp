@@ -226,6 +226,7 @@ bool Node::LoadUnavailableMicroBlockHashes(
                             "still found my shard microblock, "
                             " need to Rejoin");
                 RejoinAsNormal();
+
                 return false;
             }
         }
@@ -1085,15 +1086,40 @@ void Node::BeginNextConsensusRound()
     if (!isVacuousEpoch)
     {
         {
+            // if (cv_shardingConsensus.wait_for(cv_lk,
+            //                               std::chrono::seconds(wait_window))
+            // == std::cv_status::timeout)
+
             unique_lock<mutex> g(m_mutexAllMicroBlocksRecvd);
             if (!m_allMicroBlocksRecvd)
             {
                 LOG_GENERAL(INFO, "Wait for allMicroBlocksRecvd");
-                m_cvAllMicroBlocksRecvd.wait(
-                    g, [this] { return m_allMicroBlocksRecvd; });
-                LOG_EPOCH(
-                    INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                    "All microblocks recvd, moving to ScheduleTxnSubmission");
+                if (m_cvAllMicroBlocksRecvd.wait_for(
+                        g, std::chrono::seconds(WAIT_ALL_MB_RECVD_TIMEOUT))
+                    == std::cv_status::timeout)
+                {
+                    LOG_EPOCH(WARNING,
+                              to_string(m_mediator.m_currentEpochNum).c_str(),
+                              "Wake up from "
+                                  << WAIT_ALL_MB_RECVD_TIMEOUT
+                                  << "of waiting for all microblock received");
+                    if (m_mediator.m_lookup->m_syncType == SyncType::NO_SYNC)
+                    {
+                        LOG_EPOCH(
+                            WARNING,
+                            to_string(m_mediator.m_currentEpochNum).c_str(),
+                            "Not in rejoin mode, try rejoining as normal");
+                        RejoinAsNormal();
+                        return;
+                    }
+                }
+                else
+                {
+                    LOG_EPOCH(INFO,
+                              to_string(m_mediator.m_currentEpochNum).c_str(),
+                              "All microblocks recvd, moving to "
+                              "ScheduleTxnSubmission");
+                }
             }
             else
             {
@@ -1101,7 +1127,7 @@ void Node::BeginNextConsensusRound()
             }
 
             {
-                lock_guard<mutex> g2(m_mutexNewRoungStarted);
+                lock_guard<mutex> g2(m_mutexNewRoundStarted);
                 if (!m_newRoundStarted)
                 {
                     m_newRoundStarted = true;
