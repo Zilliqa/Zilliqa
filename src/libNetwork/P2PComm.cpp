@@ -346,22 +346,18 @@ void P2PComm::HandleAcceptedConnection(
     uint32_t read_length = 0;
 
     // Read out just the header first
+    while (read_length != HDR_LEN)
     {
-        lock_guard<mutex> guard(P2PComm::GetInstance().m_receiveMessageMutex);
-
-        while (read_length != HDR_LEN)
+        int n = read(cli_sock, buf + read_length, HDR_LEN - read_length);
+        if (n <= 0)
         {
-            int n = read(cli_sock, buf + read_length, HDR_LEN - read_length);
-            if (n <= 0)
-            {
-                LOG_GENERAL(WARNING,
-                            "Socket read failed. Code = "
-                                << errno << " Desc: " << std::strerror(errno)
-                                << ". IP address: " << from);
-                return;
-            }
-            read_length += n;
+            LOG_GENERAL(WARNING,
+                        "Socket read failed. Code = "
+                            << errno << " Desc: " << std::strerror(errno)
+                            << ". IP address: " << from);
+            return;
         }
+        read_length += n;
     }
 
     if (read_length == HDR_LEN)
@@ -392,38 +388,29 @@ void P2PComm::HandleAcceptedConnection(
     {
         read_length = 0;
 
+        while (read_length != HASH_LEN)
         {
-            lock_guard<mutex> guard(
-                P2PComm::GetInstance().m_receiveMessageMutex);
-
-            while (read_length != HASH_LEN)
+            int n = read(cli_sock, hash_buf + read_length,
+                         HASH_LEN - read_length);
+            if (n <= 0)
             {
-                int n = read(cli_sock, hash_buf + read_length,
-                             HASH_LEN - read_length);
-                if (n <= 0)
-                {
-                    LOG_GENERAL(WARNING,
-                                "Socket read failed. Code = "
-                                    << errno
-                                    << " Desc: " << std::strerror(errno)
-                                    << ". IP address: " << from);
-                    return;
-                }
-                read_length += n;
+                LOG_GENERAL(WARNING,
+                            "Socket read failed. Code = "
+                                << errno << " Desc: " << std::strerror(errno)
+                                << ". IP address: " << from);
+                return;
             }
+            read_length += n;
         }
 
         // Check if this message has been received before
         bool found = false;
         {
+            lock_guard<mutex> guard(
+                P2PComm::GetInstance().m_broadcastHashesMutex);
             vector<unsigned char> msg_hash(hash_buf, hash_buf + HASH_LEN);
-
-            {
-                lock_guard<mutex> guard(
-                    P2PComm::GetInstance().m_broadcastHashesMutex);
-                found = (P2PComm::GetInstance().m_broadcastHashes.find(msg_hash)
-                         != P2PComm::GetInstance().m_broadcastHashes.end());
-            }
+            found = (P2PComm::GetInstance().m_broadcastHashes.find(msg_hash)
+                     != P2PComm::GetInstance().m_broadcastHashes.end());
 
             // While we have the lock, we should quickly add the hash
             if (!found)
@@ -432,25 +419,20 @@ void P2PComm::HandleAcceptedConnection(
                 read_length = 0;
                 message.resize(message_length - HASH_LEN);
 
+                while (read_length != message_length - HASH_LEN)
                 {
-                    lock_guard<mutex> guard(
-                        P2PComm::GetInstance().m_receiveMessageMutex);
-
-                    while (read_length != message_length - HASH_LEN)
+                    int n = read(cli_sock, &message.at(read_length),
+                                 message_length - HASH_LEN - read_length);
+                    if (n <= 0)
                     {
-                        int n = read(cli_sock, &message.at(read_length),
-                                     message_length - HASH_LEN - read_length);
-                        if (n <= 0)
-                        {
-                            LOG_GENERAL(WARNING,
-                                        "Socket read failed. Code = "
-                                            << errno
-                                            << " Desc: " << std::strerror(errno)
-                                            << ". IP address: " << from);
-                            return;
-                        }
-                        read_length += n;
+                        LOG_GENERAL(WARNING,
+                                    "Socket read failed. Code = "
+                                        << errno
+                                        << " Desc: " << std::strerror(errno)
+                                        << ". IP address: " << from);
+                        return;
                     }
+                    read_length += n;
                 }
 
                 LOG_PAYLOAD(INFO, "Message received", message,
@@ -468,8 +450,6 @@ void P2PComm::HandleAcceptedConnection(
 
                 if (this_msg_hash == msg_hash)
                 {
-                    lock_guard<mutex> guard(
-                        P2PComm::GetInstance().m_broadcastHashesMutex);
                     P2PComm::GetInstance().m_broadcastHashes.emplace(
                         this_msg_hash);
                 }
@@ -527,25 +507,19 @@ void P2PComm::HandleAcceptedConnection(
         read_length = 0;
         message.resize(message_length);
 
+        while (read_length != message_length)
         {
-            lock_guard<mutex> guard(
-                P2PComm::GetInstance().m_receiveMessageMutex);
-
-            while (read_length != message_length)
+            int n = read(cli_sock, &message.at(read_length),
+                         message_length - read_length);
+            if (n <= 0)
             {
-                int n = read(cli_sock, &message.at(read_length),
-                             message_length - read_length);
-                if (n <= 0)
-                {
-                    LOG_GENERAL(WARNING,
-                                "Socket read failed. Code = "
-                                    << errno
-                                    << " Desc: " << std::strerror(errno)
-                                    << ". IP address: " << from);
-                    return;
-                }
-                read_length += n;
+                LOG_GENERAL(WARNING,
+                            "Socket read failed. Code = "
+                                << errno << " Desc: " << std::strerror(errno)
+                                << ". IP address: " << from);
+                return;
             }
+            read_length += n;
         }
 
         LOG_PAYLOAD(INFO, "Message received", message,

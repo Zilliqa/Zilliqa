@@ -37,7 +37,7 @@ unsigned int TxBlock::Serialize(vector<unsigned char>& dst,
 {
     if (m_header.GetNumMicroBlockHashes() != m_microBlockHashes.size())
     {
-        LOG_GENERAL(FATAL,
+        LOG_GENERAL(WARNING,
                     "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
                                          << __FUNCTION__ << ")");
     }
@@ -124,7 +124,7 @@ int TxBlock::Deserialize(const vector<unsigned char>& src, unsigned int offset)
         }
         if (m_header.GetNumMicroBlockHashes() != m_microBlockHashes.size())
         {
-            LOG_GENERAL(FATAL,
+            LOG_GENERAL(WARNING,
                         "assertion failed (" << __FILE__ << ":" << __LINE__
                                              << ": " << __FUNCTION__ << ")");
         }
@@ -170,7 +170,7 @@ TxBlock::TxBlock(TxBlockHeader&& header, vector<bool>&& isMicroBlockEmpty,
 {
     if (m_header.GetNumMicroBlockHashes() != m_microBlockHashes.size())
     {
-        LOG_GENERAL(FATAL,
+        LOG_GENERAL(WARNING,
                     "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
                                          << __FUNCTION__ << ")");
     }

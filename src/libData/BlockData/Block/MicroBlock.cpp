@@ -28,7 +28,7 @@ unsigned int MicroBlock::Serialize(vector<unsigned char>& dst,
 {
     if (m_header.GetNumTxs() != m_tranHashes.size())
     {
-        LOG_GENERAL(FATAL,
+        LOG_GENERAL(WARNING,
                     "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
                                          << __FUNCTION__ << ")");
     }
@@ -87,7 +87,7 @@ int MicroBlock::Deserialize(const vector<unsigned char>& src,
 
         if (m_header.GetNumTxs() != m_tranHashes.size())
         {
-            LOG_GENERAL(FATAL,
+            LOG_GENERAL(WARNING,
                         "assertion failed (" << __FILE__ << ":" << __LINE__
                                              << ": " << __FUNCTION__ << ")");
         }
@@ -129,7 +129,7 @@ MicroBlock::MicroBlock(MicroBlockHeader&& header,
 {
     if (m_header.GetNumTxs() != m_tranHashes.size())
     {
-        LOG_GENERAL(FATAL,
+        LOG_GENERAL(WARNING,
                     "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
                                          << __FUNCTION__ << ")");
     }
@@ -144,7 +144,7 @@ MicroBlock::MicroBlock(MicroBlockHeader&& header, vector<TxnHash>&& tranHashes,
 {
     if (m_header.GetNumTxs() != m_tranHashes.size())
     {
-        LOG_GENERAL(FATAL,
+        LOG_GENERAL(WARNING,
                     "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
                                          << __FUNCTION__ << ")");
     }
