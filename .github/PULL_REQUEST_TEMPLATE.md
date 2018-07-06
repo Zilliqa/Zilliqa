@@ -1,16 +1,20 @@
-## Status
-**READY/IN DEVELOPMENT/HOLD**
-
 ## Description
-A few sentences describing the overall goals of the pull request's commits.
+<!-- What is the overall goals of your pull request? -->
+<!-- What is the context of your pull request? -->
+<!-- What are the related issues and pull requests? -->
 
-## Related PRs (List related PRs against other branches)
+## Review Suggestion
+<!-- How should the reviewers get started on reviewing your pull request-->
+<!-- How can the reviewers verify the pull request is working as expected -->
 
-## Related Issues (List related PRs against other branches)
+## Status
 
-## Todos (if any)
+### Implementation
+<!-- Add more TODOs before "ready for review", if any  -->
+- [ ] implement ...
+- [ ] **ready for review**
 
-## For Zilliqa Core Team Only
-- [ ] Tested on local machione 
-- [ ] Tested on small scale in AWS 
-- [ ] NA
+### Integration Test (Core Team)
+<!-- This is for core team only, ignore this if you are a community contributor -->
+- [ ] local machine test
+- [ ] small-scale cloud test
