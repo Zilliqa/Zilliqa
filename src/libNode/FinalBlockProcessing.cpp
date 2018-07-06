@@ -1467,6 +1467,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
                   "I may have missed the micrblock consensus. However, if I "
                   "recently received a valid finalblock, I will accept it");
         // TODO: Optimize state transition.
+        AccountStore::GetInstance().InitTemp();
         SetState(WAITING_FINALBLOCK);
     }
 
