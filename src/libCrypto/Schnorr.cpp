@@ -66,7 +66,7 @@ shared_ptr<BIGNUM> BIGNUMSerialize::GetNumber(const vector<unsigned char>& src,
 {
     if (size <= 0)
     {
-        LOG_GENERAL(FATAL,
+        LOG_GENERAL(WARNING,
                     "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
                                          << __FUNCTION__ << ")");
     }
@@ -97,7 +97,7 @@ void BIGNUMSerialize::SetNumber(vector<unsigned char>& dst, unsigned int offset,
 {
     if (size <= 0)
     {
-        LOG_GENERAL(FATAL,
+        LOG_GENERAL(WARNING,
                     "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
                                          << __FUNCTION__ << ")");
     }

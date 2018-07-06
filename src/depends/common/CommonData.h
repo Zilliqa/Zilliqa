@@ -45,7 +45,7 @@ namespace dev
         typedef std::iterator_traits<Iterator> traits;
         if(sizeof(typename traits::value_type) != 1)
         {
-            LOG_GENERAL(FATAL,
+            LOG_GENERAL(WARNING,
                         "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
                                              << __FUNCTION__ << ")" << " toHex needs byte-sized element type");
         }
@@ -122,7 +122,7 @@ namespace dev
     inline void toBigEndian(T _val, Out &o_out) {
         if(!std::is_same<bigint, T>::value && std::numeric_limits<T>::is_signed)
         {
-            LOG_GENERAL(FATAL,
+            LOG_GENERAL(WARNING,
                         "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
                                              << __FUNCTION__ << ")" << " only unsigned types or bigint supported");
         }
@@ -174,7 +174,7 @@ namespace dev
     inline bytes toCompactBigEndian(T _val, unsigned _min = 0) {
         if(!std::is_same<bigint, T>::value && std::numeric_limits<T>::is_signed)
         {
-            LOG_GENERAL(FATAL,
+            LOG_GENERAL(WARNING,
                         "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
                                              << __FUNCTION__ << ")" << " only unsigned types or bigint supported");
         }
@@ -195,7 +195,7 @@ namespace dev
     inline std::string toCompactBigEndianString(T _val, unsigned _min = 0) {
         if(!std::is_same<bigint, T>::value && std::numeric_limits<T>::is_signed)
         {
-            LOG_GENERAL(FATAL,
+            LOG_GENERAL(WARNING,
                         "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
                                              << __FUNCTION__ << ")" << " only unsigned types or bigint supported");
         }
@@ -240,7 +240,7 @@ namespace dev
     inline unsigned bytesRequired(T _i) {
         if(!std::is_same<bigint, T>::value && std::numeric_limits<T>::is_signed)
         {
-            LOG_GENERAL(FATAL,
+            LOG_GENERAL(WARNING,
                         "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
                                              << __FUNCTION__ << ")" << " only unsigned types or bigint supported");
         }
@@ -255,7 +255,7 @@ namespace dev
     void trimFront(T &_t, unsigned _elements) {
         if(!std::is_pod<typename T::value_type>::value)
         {
-            LOG_GENERAL(FATAL,
+            LOG_GENERAL(WARNING,
                         "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
                                              << __FUNCTION__ << ")");
         }
@@ -269,7 +269,7 @@ namespace dev
     void pushFront(T &_t, _U _e) {
         if(!std::is_pod<typename T::value_type>::value)
         {
-            LOG_GENERAL(FATAL,
+            LOG_GENERAL(WARNING,
                         "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
                                              << __FUNCTION__ << ")");
         }
