@@ -318,7 +318,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
 
         if (m_pendingDSBlock == nullptr)
         {
-            LOG_GENERAL(FATAL,
+            LOG_GENERAL(WARNING,
                         "assertion failed (" << __FILE__ << ":" << __LINE__
                                              << ": " << __FUNCTION__ << ")");
         }
