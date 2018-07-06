@@ -1423,13 +1423,7 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
                       "txBlock.GetHeader().GetStateRootHash(): "
                           << txBlock.GetHeader().GetStateRootHash());
 
-            m_mediator.m_txBlockChain.AddBlock(txBlock);
-
-            if (txBlock.GetHeader().GetBlockNum()
-                == m_mediator.m_node->m_latestForwardBlockNum)
-            {
-                m_mediator.m_node->m_cvForwardBlockNumSync.notify_all();
-            }
+            m_mediator.m_node->AddBlock(txBlock);
 
             // Store Tx Block to disk
             vector<unsigned char> serializedTxBlock;
