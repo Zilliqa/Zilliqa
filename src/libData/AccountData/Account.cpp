@@ -794,7 +794,7 @@ Address Account::GetAddressFromPublicKey(const PubKey& pubKey)
 
     if (output.size() != 32)
     {
-        LOG_GENERAL(FATAL,
+        LOG_GENERAL(WARNING,
                     "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
                                          << __FUNCTION__ << ")");
     }
@@ -819,7 +819,7 @@ Address Account::GetAddressForContract(const Address& sender,
 
     if (output.size() != 32)
     {
-        LOG_GENERAL(FATAL,
+        LOG_GENERAL(WARNING,
                     "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
                                          << __FUNCTION__ << ")");
     }
