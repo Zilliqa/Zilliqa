@@ -798,6 +798,16 @@ void Node::SetState(NodeState state)
                                    << m_mediator.m_currentEpochNum);
 }
 
+void Node::AddBlock(const TxBlock& block)
+{
+    m_mediator.m_txBlockChain.AddBlock(block);
+
+    if (block.GetHeader().GetBlockNum() == m_latestForwardBlockNum)
+    {
+        m_cvForwardBlockNumSync.notify_all();
+    }
+}
+
 #ifndef IS_LOOKUP_NODE
 void Node::SubmitTransactions()
 {

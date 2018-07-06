@@ -151,6 +151,10 @@ class Node : public Executable, public Broadcastable
     std::unordered_map<boost::multiprecision::uint256_t, std::vector<Peer>>
         m_forwardingAssignment;
 
+    uint64_t m_latestForwardBlockNum;
+    std::condition_variable m_cvForwardBlockNumSync;
+    std::mutex m_mutexForwardBlockNumSync;
+
     bool CheckState(Action action);
 
     // To block certain types of incoming message for certain states
@@ -413,10 +417,6 @@ public:
     /// The current internal state of this Node instance.
     std::atomic<NodeState> m_state;
 
-    uint64_t m_latestForwardBlockNum;
-    std::condition_variable m_cvForwardBlockNumSync;
-    std::mutex m_mutexForwardBlockNumSync;
-
     /// Constructor. Requires mediator reference to access DirectoryService and other global members.
     Node(Mediator& mediator, unsigned int syncType, bool toRetrieveHistory);
 
@@ -463,6 +463,8 @@ public:
         m_committedTransactions.erase(epochNum);
     }
 
+    /// Add new block into tx blockchain
+    void AddBlock(const TxBlock& block);
 #ifndef IS_LOOKUP_NODE
 
     // Start synchronization with lookup as a shard node
