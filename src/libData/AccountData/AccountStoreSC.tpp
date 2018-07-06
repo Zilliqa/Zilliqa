@@ -552,15 +552,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json)
         }
         string vname = s["vname"].asString();
         string type = s["type"].asString();
-        string value;
-        if (type == "Map" || type == "ADT")
-        {
-            value = JSONUtils::convertJsontoStr(s["value"]);
-        }
-        else
-        {
-            value = s["value"].asString();
-        }
+        string value = JSONUtils::convertJsontoStr(s["value"]);
 
         Account* contractAccount = this->GetAccount(m_curContractAddr);
         if (vname != "_balance")
