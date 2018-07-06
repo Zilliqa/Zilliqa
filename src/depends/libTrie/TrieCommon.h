@@ -97,7 +97,7 @@ namespace dev
     {
         if(!_twoItem.isList() || _twoItem.itemCount() != 2)
         {
-            LOG_GENERAL(WARNING,
+            LOG_GENERAL(FATAL,
                         "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
                                              << __FUNCTION__ << ")");
         }

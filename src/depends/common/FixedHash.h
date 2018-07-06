@@ -218,14 +218,14 @@ namespace dev
             unsigned const c_bloomBytes = (StaticLog2<c_bloomBits>::result + 7) / 8;
             if((M & (M - 1)) != 0)
             {
-                LOG_GENERAL(WARNING,
+                LOG_GENERAL(FATAL,
                             "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
                                                  << __FUNCTION__ << ")" << " M must be power-of-two");
             }
 
             if(P * c_bloomBytes > N)
             {
-                LOG_GENERAL(WARNING,
+                LOG_GENERAL(FATAL,
                             "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
                                                  << __FUNCTION__ << ")" << " out of range");
             }
