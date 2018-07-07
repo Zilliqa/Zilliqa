@@ -35,15 +35,20 @@ typedef std::function<std::vector<Peer>(unsigned char msg_type,
 /// Provides network layer functionality.
 class P2PComm
 {
+    const static uint32_t MAXRETRYCONN = 3;
+    const static uint32_t MAXPUMPMESSAGE = 128;
+    const static uint32_t PUMPMESSAGE_MILLISECONDS = 1000;
+
     std::set<std::vector<unsigned char>> m_broadcastHashes;
     std::mutex m_broadcastHashesMutex;
     std::mutex m_broadcastCoreMutex;
     std::mutex m_startMessagePumpMutex;
     std::mutex m_sendMessageMutex;
 
-    const static uint32_t MAXRETRYCONN = 3;
-    const static uint32_t MAXPUMPMESSAGE = 128;
-    const static uint32_t PUMPMESSAGE_MILLISECONDS = 1000;
+    Peer m_selfPeer;
+
+    ThreadPool m_SendPool{MAXMESSAGE, "SendPool"};
+    ThreadPool m_RecvPool{MAXMESSAGE, "RecvPool"};
 
     void SendMessageCore(const Peer& peer,
                          const std::vector<unsigned char>& message,
@@ -78,11 +83,6 @@ class P2PComm
     // Singleton should not implement these
     P2PComm(P2PComm const&) = delete;
     void operator=(P2PComm const&) = delete;
-
-    Peer m_selfPeer;
-
-    ThreadPool m_SendPool{MAXMESSAGE, "SendPool"};
-    ThreadPool m_RecvPool{MAXMESSAGE, "RecvPool"};
 
 public:
     /// Returns the singleton P2PComm instance.

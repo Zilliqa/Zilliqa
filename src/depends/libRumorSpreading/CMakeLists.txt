@@ -1,8 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
-
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-
 file(GLOB SOURCES *.cpp)
-file(GLOB HEADERS *.h)
-
-add_library(libRumorSpreading ${SOURCES})
+add_library (RumorSpreading ${SOURCES})
+target_include_directories (RumorSpreading PUBLIC ${PROJECT_SOURCE_DIR}/src)
+target_link_libraries (RumorSpreading PUBLIC)
