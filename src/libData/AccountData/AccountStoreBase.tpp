@@ -382,7 +382,7 @@ bool AccountStoreBase<MAP>::IncreaseNonce(const Address& address)
 
     if (account->IncreaseNonce())
     {
-        LOG_GENERAL(INFO, "Increase nonce done");
+        // LOG_GENERAL(INFO, "Increase nonce done");
         // UpdateStateTrie(address, *account);
         return true;
     }

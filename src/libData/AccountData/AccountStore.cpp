@@ -305,7 +305,7 @@ bool AccountStore::RetrieveFromDisk()
 bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
                                       const Transaction& transaction)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     lock_guard<mutex> g(m_mutexDelta);
 
@@ -316,7 +316,7 @@ bool AccountStore::UpdateCoinbaseTemp(const Address& rewardee,
                                       const Address& genesisAddress,
                                       const uint256_t& amount)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     lock_guard<mutex> g(m_mutexDelta);
     if (m_accountStoreTemp->GetAccount(rewardee) == nullptr)

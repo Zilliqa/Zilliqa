@@ -165,7 +165,7 @@ void DirectoryService::ComposeFinalBlockCore()
 
     if (m_mediator.m_dsBlockChain.GetBlockCount() <= 0)
     {
-        LOG_GENERAL(FATAL,
+        LOG_GENERAL(WARNING,
                     "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
                                          << __FUNCTION__ << ")");
     }
@@ -1083,21 +1083,10 @@ void DirectoryService::RunConsensusOnFinalBlock()
 
     if (m_mode == PRIMARY_DS)
     {
-        /*
-        bool isVacuousEpoch
-            = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
-
-        if (isVacuousEpoch)
-        {
-            LOG_GENERAL(
-                "I am going to sleep for 5 seconds for vacuous epoch.");
-            this_thread::sleep_for(chrono::seconds(5));
-        }
-        */
         if (!RunConsensusOnFinalBlockWhenDSPrimary())
         {
             LOG_GENERAL(WARNING,
-                        "Throwing exception after "
+                        "Consensus failed at "
                         "RunConsensusOnFinalBlockWhenDSPrimary");
             // throw exception();
             return;
@@ -1108,7 +1097,7 @@ void DirectoryService::RunConsensusOnFinalBlock()
         if (!RunConsensusOnFinalBlockWhenDSBackup())
         {
             LOG_GENERAL(WARNING,
-                        "Throwing exception after "
+                        "Consensus failed at "
                         "RunConsensusOnFinalBlockWhenDSBackup");
             // throw exception();
             return;

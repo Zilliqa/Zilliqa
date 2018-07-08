@@ -73,7 +73,7 @@ bool DirectoryService::SendFinalBlockToLookupNodes()
                               + sizeof(uint32_t) + sizeof(uint8_t)
                               + m_finalBlockMessage.size());
 
-    unsigned char curr_offset = MessageOffset::BODY;
+    unsigned int curr_offset = MessageOffset::BODY;
 
     // 32-byte DS blocknum
     uint256_t dsBlockNum = m_mediator.m_dsBlockChain.GetBlockCount() - 1;
@@ -95,8 +95,6 @@ bool DirectoryService::SendFinalBlockToLookupNodes()
          finalblock_message.begin() + curr_offset);
 
     m_mediator.m_lookup->SendMessageToLookupNodes(finalblock_message);
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "I the primary DS have sent the Final Block to the lookup nodes");
 
     return true;
 }
@@ -164,7 +162,7 @@ void DirectoryService::SendFinalBlockToShardNodes(
              finalblock_message.begin() + MessageOffset::BODY + UINT256_SIZE
                  + sizeof(uint32_t) + sizeof(uint8_t));
 
-        unsigned char curr_offset = MessageOffset::BODY;
+        unsigned int curr_offset = MessageOffset::BODY;
 
         // 32-byte DS blocknum
         uint256_t DSBlockNum = m_mediator.m_dsBlockChain.GetBlockCount() - 1;
@@ -293,7 +291,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
         && m_consensusMyID < nodeToSendToLookUpHi)
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "I the DS folks that will soon be sending the Final Block to "
+                  "Part of the DS committeement (assigned) that will send the "
+                  "Final Block to "
                   "the lookup nodes");
         SendFinalBlockToLookupNodes();
     }
@@ -339,7 +338,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
 
             POW::GetInstance().EthashConfigureLightClient(
                 (uint64_t)m_mediator.m_dsBlockChain
-                    .GetBlockCount()); // hack hack hack -- typecasting
+                    .GetBlockCount()); // FIXME -- typecasting
             m_consensusID = 0;
             m_mediator.m_node->m_consensusID = 0;
             m_mediator.m_node->m_consensusLeaderID = 0;
@@ -362,14 +361,14 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
                     == std::cv_status::timeout)
                 {
                     LOG_GENERAL(INFO,
-                                "I have woken up from the sleep of "
+                                "Woken up from the sleep of "
                                     << POW1_BACKUP_WINDOW_IN_SECONDS
                                     << " seconds");
                 }
                 else
                 {
                     LOG_GENERAL(INFO,
-                                "I have received announcement message. Time to "
+                                "Received announcement message. Time to "
                                 "run consensus.");
                 }
 
@@ -390,7 +389,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
                     cv_lk, std::chrono::seconds(MICROBLOCK_TIMEOUT))
                 == std::cv_status::timeout)
             {
-                LOG_GENERAL(INFO,
+                LOG_GENERAL(WARNING,
                             "Timeout: Didn't receive all Microblock. Proceeds "
                             "without it");
 
@@ -458,14 +457,14 @@ bool DirectoryService::ProcessFinalBlockConsensus(
     }
     else if (state == ConsensusCommon::State::ERROR)
     {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Oops, no consensus reached - what to do now???");
         // throw exception();
         // TODO: no consensus reached
-        if (m_mode != PRIMARY_DS)
-        {
-            RejoinAsDS();
-        }
+        // if (m_mode != PRIMARY_DS)
+        // {
+        //     RejoinAsDS();
+        // }
         return false;
     }
     else
