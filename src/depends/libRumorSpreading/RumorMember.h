@@ -57,6 +57,7 @@ class RumorMember : public RumorSpreadingInterface {
 
   public:
     // CONSTRUCTORS
+    /// Default constructor
     RumorMember();
 
     /// Create an instance which automatically figures out the network parameters.
@@ -74,8 +75,10 @@ class RumorMember : public RumorSpreadingInterface {
                 const NextMemberCb& cb,
                 int id = MemberID::next());
 
+    /// Copy contrsuctor
     RumorMember(const RumorMember& other);
 
+    /// Move contrsuctor
     RumorMember(RumorMember&& other) noexcept;
 
     // METHODS
