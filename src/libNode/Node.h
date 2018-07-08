@@ -57,7 +57,7 @@ class Node : public Executable, public Broadcastable
         NUM_ACTIONS
     };
 
-    enum SUBMITTRANSACTIONTYPE
+    enum SUBMITTRANSACTIONTYPE : unsigned char
     {
         TXNSHARING = 0x00,
         MISSINGTXN = 0x01
@@ -395,7 +395,7 @@ public:
     bool m_tempStateDeltaCommitted = true;
 
     std::condition_variable m_cvNewRoundStarted;
-    std::mutex m_mutexNewRoungStarted;
+    std::mutex m_mutexNewRoundStarted;
     bool m_newRoundStarted = true;
 
     std::mutex m_mutexIsEveryMicroBlockAvailable;
