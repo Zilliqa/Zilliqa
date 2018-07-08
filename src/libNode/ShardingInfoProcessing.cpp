@@ -137,17 +137,6 @@ bool Node::ProcessSharding(const vector<unsigned char>& message,
     // [16-byte ip] [4-byte port] ... (all nodes; first entry is leader)
     LOG_MARKER();
 
-    POW::GetInstance().StopMining();
-
-    /// if it is a node joining after finishing pow2, commit the state into db
-    if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
-    {
-        m_mediator.m_lookup->m_syncType = SyncType::NO_SYNC;
-        AccountStore::GetInstance().MoveUpdatesToDisk();
-        m_fromNewProcess = false;
-        m_runFromLate = false;
-    }
-
     // if (m_state != TX_SUBMISSION)
     if (!CheckState(PROCESS_SHARDING))
     {
@@ -161,6 +150,16 @@ bool Node::ProcessSharding(const vector<unsigned char>& message,
     {
         return false;
     }
+
+    POW::GetInstance().StopMining();
+    /// if it is a node joining after finishing pow2, commit the state into db
+    if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
+    {
+        m_mediator.m_lookup->m_syncType = SyncType::NO_SYNC;
+        AccountStore::GetInstance().MoveUpdatesToDisk();
+        m_runFromLate = false;
+    }
+    m_fromNewProcess = false;
 
     if (m_mediator.m_selfKey.second == m_myShardMembersPubKeys.front())
     {
