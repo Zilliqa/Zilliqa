@@ -78,6 +78,8 @@ P2PComm& P2PComm::GetInstance()
     return comm;
 }
 
+void P2PComm::SetSelfPeer(const Peer& self) { m_selfPeer = self; }
+
 void P2PComm::SendMessageCore(const Peer& peer,
                               const std::vector<unsigned char>& message,
                               unsigned char start_byte,
@@ -745,4 +747,9 @@ void P2PComm::SendBroadcastMessage(const deque<Peer>& peers,
     SendBroadcastMessageHelper(peers, message);
 }
 
-void P2PComm::SetSelfPeer(const Peer& self) { m_selfPeer = self; }
+void P2PComm::SpreadRumor(const std::vector<Peer>& peers,
+                          const std::vector<unsigned char>& message)
+{
+    LOG_MARKER();
+    m_rumorManager.addRumor(peers, message);
+}

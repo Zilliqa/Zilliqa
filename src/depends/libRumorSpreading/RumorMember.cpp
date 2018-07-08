@@ -48,6 +48,16 @@ void RumorMember::increaseStatValue(StatisticKey key, double value)
 }
 
 // CONSTRUCTORS
+RumorMember::RumorMember()
+: m_id()
+, m_networkConfig(0)
+, m_peers()
+, m_rumors()
+, m_mutex()
+, m_nextMemberCb()
+{
+}
+
 RumorMember::RumorMember(const std::unordered_set<int>& peers, int id)
 : m_id(id)
 , m_networkConfig(peers.size())
@@ -212,6 +222,11 @@ std::pair<int, std::vector<Message>> RumorMember::advanceRound()
 int RumorMember::id() const
 {
     return m_id;
+}
+
+const NetworkConfig& RumorMember::networkConfig() const
+{
+    return m_networkConfig;
 }
 
 const std::unordered_map<int, RumorStateMachine>& RumorMember::rumorsMap() const

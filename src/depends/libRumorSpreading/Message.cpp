@@ -1,4 +1,3 @@
-#include <Message.h>
 #include "Message.h"
 
 namespace RRS {

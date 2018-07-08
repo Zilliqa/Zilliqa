@@ -55,6 +55,12 @@ bool Peer::operator!=(const Peer& r) const
         || (m_listenPortHost != r.m_listenPortHost);
 }
 
+bool Peer::operator<(const Peer& r) const
+{
+    return (m_ipAddress <= r.m_ipAddress)
+        && (m_listenPortHost <= r.m_listenPortHost);
+}
+
 const char* Peer::GetPrintableIPAddress() const
 {
     struct sockaddr_in serv_addr;

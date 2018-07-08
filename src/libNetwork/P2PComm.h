@@ -24,6 +24,7 @@
 #include <vector>
 
 #include "Peer.h"
+#include "RumorManager.h"
 #include "common/Constants.h"
 #include "libUtils/Logger.h"
 #include "libUtils/ThreadPool.h"
@@ -44,11 +45,10 @@ class P2PComm
     std::mutex m_broadcastCoreMutex;
     std::mutex m_startMessagePumpMutex;
     std::mutex m_sendMessageMutex;
-
     Peer m_selfPeer;
-
     ThreadPool m_SendPool{MAXMESSAGE, "SendPool"};
     ThreadPool m_RecvPool{MAXMESSAGE, "RecvPool"};
+    RumorManager m_rumorManager;
 
     void SendMessageCore(const Peer& peer,
                          const std::vector<unsigned char>& message,
@@ -84,9 +84,13 @@ class P2PComm
     P2PComm(P2PComm const&) = delete;
     void operator=(P2PComm const&) = delete;
 
+    friend class RumorManager;
+
 public:
     /// Returns the singleton P2PComm instance.
     static P2PComm& GetInstance();
+
+    void SetSelfPeer(const Peer& self);
 
     /// Receives incoming message and assigns to designated message dispatcher.
     static void HandleAcceptedConnection(
@@ -125,7 +129,8 @@ public:
     void SendBroadcastMessage(const std::deque<Peer>& peers,
                               const std::vector<unsigned char>& message);
 
-    void SetSelfPeer(const Peer& self);
+    void SpreadRumor(const std::vector<Peer>& peers,
+                     const std::vector<unsigned char>& message);
 };
 
 #endif // __P2PCOMM_H__
