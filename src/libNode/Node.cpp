@@ -150,6 +150,10 @@ void Node::Prepare(bool runInitializeGenesisBlocks)
 bool Node::StartRetrieveHistory()
 {
     LOG_MARKER();
+
+    m_mediator.m_txBlockChain.Reset();
+    m_mediator.m_dsBlockChain.Reset();
+
     m_retriever = make_shared<Retriever>(m_mediator);
 
     bool ds_result;
