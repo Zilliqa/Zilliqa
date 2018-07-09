@@ -40,7 +40,6 @@ const unsigned char START_BYTE_NORMAL = 0x11;
 const unsigned char START_BYTE_BROADCAST = 0x22;
 const unsigned int HDR_LEN = 6;
 const unsigned int HASH_LEN = 32;
-const unsigned int BROADCAST_EXPIRY_SECONDS = 600;
 
 /// Comparison operator for ordering the list of message hashes.
 struct hash_compare
@@ -73,22 +72,23 @@ P2PComm::P2PComm()
     auto func = [this]() -> void {
         while (true)
         {
-            this_thread::sleep_for(chrono::seconds(100));
+            this_thread::sleep_for(chrono::seconds(BROADCAST_INTERVAL));
             lock_guard<mutex> guard(m_broadcastToRemovedMutex);
-            auto it = m_broadcastToRemoved.find(time(nullptr)
-                                                - BROADCAST_EXPIRY_SECONDS);
 
-            if (m_broadcastToRemoved.end() == it)
-                continue;
+            for (unsigned int i = 0; i < BROADCAST_INTERVAL; ++i)
+            {
+                auto it = m_broadcastToRemoved.find(time(nullptr)
+                                                    - BROADCAST_EXPIRY - i);
 
-            lock_guard<mutex> guard2(m_broadcastHashesMutex);
-            auto it2 = m_broadcastHashes.find(it->second);
+                if (m_broadcastToRemoved.end() == it)
+                    continue;
 
-            if (m_broadcastHashes.end() == it2)
-                continue;
-
-            m_broadcastHashes.erase(m_broadcastHashes.begin(), it2);
-            m_broadcastToRemoved.erase(it);
+                lock_guard<mutex> guard2(m_broadcastHashesMutex);
+                auto it2 = m_broadcastHashes.find(it->second);
+                m_broadcastHashes.erase(m_broadcastHashes.begin(), it2);
+                m_broadcastToRemoved.erase(it);
+                break;
+            }
         }
     };
 

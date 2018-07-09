@@ -146,6 +146,8 @@ extern const unsigned int TXN_SUBMISSION;
 extern const unsigned int TXN_BROADCAST;
 extern const unsigned int DEBUG_LEVEL;
 extern const unsigned int WAIT_ALL_MB_RECVD_TIMEOUT;
+extern const unsigned int BROADCAST_INTERVAL;
+extern const unsigned int BROADCAST_EXPIRY;
 extern const std::vector<std::string> GENESIS_WALLETS;
 extern const std::vector<std::string> GENESIS_KEYS;
 #endif // __CONSTANTS_H__
