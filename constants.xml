@@ -41,6 +41,7 @@
     <options>
         <TEST_NET_MODE>false</TEST_NET_MODE>
         <EXCLUDE_PRIV_IP>false</EXCLUDE_PRIV_IP>
+        <ENABLE_DO_REJOIN>true</ENABLE_DO_REJOIN>
     </options>
     <smart_contract>
         <SCILLA_PATH></SCILLA_PATH>

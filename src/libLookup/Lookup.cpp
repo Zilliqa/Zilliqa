@@ -747,6 +747,11 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
         = Serializable::GetNumber<uint256_t>(message, offset, UINT256_SIZE);
     offset += UINT256_SIZE;
 
+    if (lowBlockNum == 1)
+    {
+        lowBlockNum = m_mediator.m_dsBlockChain.GetBlockCount() - 1;
+    }
+
     if (highBlockNum == 0)
     {
         highBlockNum = m_mediator.m_dsBlockChain.GetBlockCount() - 1;
@@ -778,13 +783,13 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
     {
         try
         {
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Fetching DSBlock " << blockNum.convert_to<string>()
-                                          << " for " << from);
+            // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            //           "Fetching DSBlock " << blockNum.convert_to<string>()
+            //                               << " for " << from);
             DSBlock dsBlock = m_mediator.m_dsBlockChain.GetBlock(blockNum);
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "DSBlock " << blockNum.convert_to<string>()
-                                 << " serialized for " << from);
+            // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            //           "DSBlock " << blockNum.convert_to<string>()
+            //                      << " serialized for " << from);
             dsBlock.Serialize(dsBlockMessage, curr_offset);
             curr_offset += dsBlock.GetSerializedSize();
         }
@@ -916,6 +921,11 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
         = Serializable::GetNumber<uint256_t>(message, offset, UINT256_SIZE);
     offset += UINT256_SIZE;
 
+    if (lowBlockNum == 1)
+    {
+        lowBlockNum = m_mediator.m_txBlockChain.GetBlockCount() - 1;
+    }
+
     if (highBlockNum == 0)
     {
         highBlockNum = m_mediator.m_txBlockChain.GetBlockCount() - 1;
@@ -947,13 +957,13 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
     {
         try
         {
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Fetching TxBlock " << blockNum.convert_to<string>()
-                                          << " for " << from);
+            // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            //           "Fetching TxBlock " << blockNum.convert_to<string>()
+            //                               << " for " << from);
             TxBlock txBlock = m_mediator.m_txBlockChain.GetBlock(blockNum);
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "TxBlock " << blockNum.convert_to<string>()
-                                 << " serialized for " << from);
+            // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            //           "TxBlock " << blockNum.convert_to<string>()
+            //                      << " serialized for " << from);
             txBlock.Serialize(txBlockMessage, curr_offset);
             curr_offset += txBlock.GetSerializedSize();
         }
@@ -1253,7 +1263,11 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
     }
 
     uint64_t latestSynBlockNum
-        = (uint64_t)m_mediator.m_dsBlockChain.GetBlockCount();
+        // = (uint64_t)m_mediator.m_dsBlockChain.GetBlockCount();
+        = (uint64_t)m_mediator.m_txBlockChain.GetLastBlock()
+              .GetHeader()
+              .GetBlockNum()
+        + 1;
 
     if (latestSynBlockNum > highBlockNum)
     {
@@ -1378,7 +1392,11 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
                   << " to " << highBlockNum.convert_to<string>());
 
     uint64_t latestSynBlockNum
-        = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
+        // = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
+        = (uint64_t)m_mediator.m_txBlockChain.GetLastBlock()
+              .GetHeader()
+              .GetBlockNum()
+        + 1;
 
     if (latestSynBlockNum > highBlockNum)
     {

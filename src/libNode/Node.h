@@ -313,6 +313,8 @@ class Node : public Executable, public Broadcastable
     // bool ProcessCreateAccounts(const std::vector<unsigned char> & message, unsigned int offset, const Peer & from);
     bool ProcessDSBlock(const std::vector<unsigned char>& message,
                         unsigned int offset, const Peer& from);
+    bool ProcessDoRejoin(const std::vector<unsigned char>& message,
+                         unsigned int offset, const Peer& from);
 
     bool CheckWhetherDSBlockNumIsLatest(
         const boost::multiprecision::uint256_t dsblock_num);
