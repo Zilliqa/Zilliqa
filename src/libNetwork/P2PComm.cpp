@@ -36,15 +36,14 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-const unsigned char START_BYTE_NORMAL = 0x11;
-const unsigned char START_BYTE_BROADCAST = 0x22;
-const unsigned char START_BYTE_GOSSIP = 0x33;
-const unsigned int HDR_LEN = 6;
-const unsigned int HASH_LEN = 32;
-const unsigned int BROADCAST_EXPIRY_SECONDS = 600;
-
 namespace
 {
+    const unsigned int HDR_LEN = 6;
+    const unsigned int HASH_LEN = 32;
+    const unsigned int GOSSIP_TYPE_LEN = 1;
+    const unsigned int GOSSIP_ROUND_LEN = 4;
+    const unsigned int BROADCAST_EXPIRY_SECONDS = 600;
+
     /// Comparison operator for ordering the list of message hashes.
     struct hash_compare
     {
@@ -70,11 +69,11 @@ namespace
         }
     }
 
-    bool isValidHeader(unsigned char headerByte)
+    bool isValidStartByte(unsigned char headerByte)
     {
-        return headerByte == START_BYTE_NORMAL
-            || headerByte == START_BYTE_BROADCAST
-            || headerByte == START_BYTE_GOSSIP;
+        return headerByte == HeaderStartByte::NORMAL
+            || headerByte == HeaderStartByte::BROADCAST
+            || headerByte == HeaderStartByte::GOSSIP;
     }
 
     bool isValidVersion(unsigned char versionByte)
@@ -266,7 +265,7 @@ bool P2PComm::SendMessageSocketCore(const Peer& peer,
         }
 
         uint32_t length = message.size();
-        if (start_byte == START_BYTE_BROADCAST)
+        if (start_byte == HeaderStartByte::BROADCAST)
         {
             length += HASH_LEN;
         }
@@ -294,7 +293,7 @@ bool P2PComm::SendMessageSocketCore(const Peer& peer,
             written_length += n;
         }
 
-        if (start_byte == START_BYTE_BROADCAST)
+        if (start_byte == HeaderStartByte::BROADCAST)
         {
             written_length = 0;
             while (written_length != HASH_LEN)
@@ -381,7 +380,8 @@ void P2PComm::SendBroadcastMessageCore(
     // LOG_MARKER();
     lock_guard<mutex> guard(m_broadcastCoreMutex);
 
-    SendMessagePoolHelper<START_BYTE_BROADCAST>(peers, message, message_hash);
+    SendMessagePoolHelper<HeaderStartByte::BROADCAST>(peers, message,
+                                                      message_hash);
 }
 
 void P2PComm::ClearBroadcastHashAsync(const vector<unsigned char>& message_hash)
@@ -428,29 +428,33 @@ bool P2PComm::HandleAcceptedConnection(
     }
 
     // If received start byte is not allowed, drop this message
-    if (!isValidHeader(header[1]))
+    if (!isValidStartByte(header[1]))
     {
-        LOG_GENERAL(WARNING, "Header length or type wrong.");
+        LOG_GENERAL(WARNING, "Unexpected header start byte.");
         return false;
     }
 
     unsigned char startByte = header[1];
-    if (startByte == START_BYTE_BROADCAST)
+    if (startByte == HeaderStartByte::BROADCAST)
     {
         HandleAcceptedConnectionBroadcast(
             cli_sock, from, dispatcher, broadcast_list_retriever,
             messageLength(header), std::move(cli_sock_closer));
     }
-    else if (startByte == START_BYTE_NORMAL)
+    else if (startByte == HeaderStartByte::NORMAL)
     {
         HandleAcceptedConnectionNormal(cli_sock, from, dispatcher,
                                        messageLength(header),
                                        std::move(cli_sock_closer));
     }
+    else if (startByte == HeaderStartByte::GOSSIP)
+    {
+        // TODO: extract type, round and message (rumor) and call m_rumorManager.rumorReceived
+    }
     else
     {
         // Unexpected start byte. Drop this message
-        LOG_GENERAL(WARNING, "Unexpected start byte: " << startByte);
+        LOG_GENERAL(WARNING, "Unexpected header start byte: " << startByte);
     }
 
     return true;
@@ -474,8 +478,8 @@ void P2PComm::HandleAcceptedConnectionNormal(int cli_sock, const Peer& from,
 
 void P2PComm::HandleAcceptedConnectionBroadcast(
     int cli_sock, const Peer& from, const Dispatcher& dispatcher,
-    broadcast_list_func broadcast_list_retriever, uint32_t message_length,
-    SocketCloser cli_sock_closer)
+    const broadcast_list_func& broadcast_list_retriever,
+    uint32_t message_length, SocketCloser cli_sock_closer)
 {
     unsigned char hash_buf[HASH_LEN];
     if (!readHash(hash_buf, cli_sock, from))
@@ -695,7 +699,7 @@ void P2PComm::SendMessage(const vector<Peer>& peers,
     LOG_MARKER();
     lock_guard<mutex> guard(m_sendMessageMutex);
 
-    SendMessagePoolHelper<START_BYTE_NORMAL>(peers, message, {});
+    SendMessagePoolHelper<HeaderStartByte::NORMAL>(peers, message, {});
 }
 
 void P2PComm::SendMessage(const deque<Peer>& peers,
@@ -704,7 +708,7 @@ void P2PComm::SendMessage(const deque<Peer>& peers,
     LOG_MARKER();
     lock_guard<mutex> guard(m_sendMessageMutex);
 
-    SendMessagePoolHelper<START_BYTE_NORMAL>(peers, message, {});
+    SendMessagePoolHelper<HeaderStartByte::NORMAL>(peers, message, {});
 }
 
 void P2PComm::SendMessage(const Peer& peer,
@@ -712,7 +716,8 @@ void P2PComm::SendMessage(const Peer& peer,
 {
     LOG_MARKER();
     lock_guard<mutex> guard(m_sendMessageMutex);
-    SendMessageCore(peer, message, START_BYTE_NORMAL, vector<unsigned char>());
+    SendMessageCore(peer, message, HeaderStartByte::NORMAL,
+                    vector<unsigned char>());
 }
 
 template<typename Container>

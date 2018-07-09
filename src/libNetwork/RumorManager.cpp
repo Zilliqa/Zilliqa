@@ -3,13 +3,27 @@
 #include <chrono>
 #include <thread>
 
+// TODO: would be nice to decouple from this header
 #include "P2PComm.h"
+#include "common/Messages.h"
 
 namespace
 {
-
     // TODO: allow them to passed in as parameters
     const std::chrono::milliseconds ROUND_TIME(500);
+
+    Message::Type convertType(uint32_t type)
+    {
+        switch (type)
+        {
+        case 1:
+            return Message::PUSH;
+        case 2:
+            return Message::PUSH;
+        default:
+            return Message::UNDEFINED;
+        }
+    }
 
 } // anonymous namespace
 
@@ -69,8 +83,9 @@ void RumorManager::scheduleRounds(int rumorId)
                 const Peer& peer = peerBimap.left.at(result.first);
 
                 const RawBytes& rumorMessage = m_rumorIdBimap.left.at(rumorId);
-                P2PComm::GetInstance().SendMessageCore(peer, rumorMessage, '0',
-                                                       RawBytes());
+                // TODO: add type and round
+                P2PComm::GetInstance().SendMessageCore(
+                    peer, rumorMessage, HeaderStartByte::GOSSIP, RawBytes());
             } // end critical section
             std::this_thread::sleep_for(ROUND_TIME);
         }
@@ -106,6 +121,28 @@ void RumorManager::addRumor(const std::deque<Peer>& peers,
                             const RawBytes& message)
 {
     addRumorImp(peers, message);
+}
+
+void RumorManager::rumorReceived(uint8_t type, int32_t round,
+                                 const RawBytes& message, const Peer& from)
+{
+    std::lock_guard<std::mutex> guard(m_mutex);
+    int recvRumorId = m_rumorIdBimap.right.at(message);
+
+    auto it = m_rumorState.find(recvRumorId);
+    if (it == m_rumorState.end())
+    {
+        return;
+    }
+
+    PeerBimap& peerBimap = it->second.m_peerIdBimap;
+    int peerId = peerBimap.right.at(from);
+
+    RumorMember& member = it->second.m_member;
+
+    Message recvMsg(convertType(type), recvRumorId, round);
+    member.receivedMessage(recvMsg, peerId);
+    // TODO handle PULL messages
 }
 
 // PUBLIC CONST METHODS

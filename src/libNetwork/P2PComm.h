@@ -90,7 +90,6 @@ private:
       * 0x00
       *
       * 0x01 ~ 0xFF - version, defined in constant file
-      * 0x33 - start byte (gossip)
       * 0x44 - start byte (gosisp)
       * 0xLL 0xLL 0xLL 0xLL - 4-byte length of type + round + message
       * <type> <round> <message>
@@ -125,8 +124,8 @@ private:
 
     static void HandleAcceptedConnectionBroadcast(
         int cli_sock, const Peer& from, const Dispatcher& dispatcher,
-        broadcast_list_func broadcast_list_retriever, uint32_t message_length,
-        SocketCloser cli_sock_closer);
+        const broadcast_list_func& broadcast_list_retriever,
+        uint32_t message_length, SocketCloser cli_sock_closer);
 
     // CONSTRUCTORS
     P2PComm();

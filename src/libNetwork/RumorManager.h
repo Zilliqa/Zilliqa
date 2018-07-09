@@ -55,6 +55,9 @@ public:
     void addRumor(const std::vector<Peer>& peers, const RawBytes& message);
     void addRumor(const std::deque<Peer>& peers, const RawBytes& message);
 
+    void rumorReceived(uint8_t type, int32_t round, const RawBytes& message,
+                       const Peer& from);
+
     // CONST METHODS
     const RumorBimap& rumors() const;
 };
