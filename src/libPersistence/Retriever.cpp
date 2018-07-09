@@ -158,7 +158,7 @@ bool Retriever::RetrieveTxBodiesDB()
             {
                 LOG_GENERAL(WARNING,
                             "PushBackTxBodyDB Failed, investigate why!");
-                return false;
+                // return false;
             }
         }
 
@@ -202,7 +202,7 @@ bool Retriever::CleanExtraTxBodies()
             if (!BlockStorage::GetBlockStorage().DeleteTxBody(i))
             {
                 LOG_GENERAL(WARNING, "FAIL: To delete TxHash in TxBodiesTmpDB");
-                return false;
+                // return false;
             }
         }
     }
