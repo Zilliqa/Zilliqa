@@ -376,7 +376,8 @@ public:
         MICROBLOCK_CONSENSUS_PREP,
         MICROBLOCK_CONSENSUS,
         WAITING_FINALBLOCK,
-        ERROR
+        ERROR,
+        SYNC
     };
 
 private:
