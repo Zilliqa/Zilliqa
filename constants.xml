@@ -37,11 +37,11 @@
         <TXN_SUBMISSION>5</TXN_SUBMISSION>
         <TXN_BROADCAST>10</TXN_BROADCAST>
         <DEBUG_LEVEL>3</DEBUG_LEVEL>
-        <WAIT_ALL_MB_RECVD_TIMEOUT>15</WAIT_ALL_MB_RECVD_TIMEOUT>
     </constants>
     <options>
         <TEST_NET_MODE>false</TEST_NET_MODE>
         <EXCLUDE_PRIV_IP>false</EXCLUDE_PRIV_IP>
+        <ENABLE_DO_REJOIN>true</ENABLE_DO_REJOIN>
     </options>
     <smart_contract>
         <SCILLA_PATH></SCILLA_PATH>
