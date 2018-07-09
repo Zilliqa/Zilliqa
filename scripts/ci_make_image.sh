@@ -26,7 +26,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     less \
     net-tools \
     vim \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install setuptools \
+    && pip install kubernetes
 EOF
 
 docker push ${registry_url}
