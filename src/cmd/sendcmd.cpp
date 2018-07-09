@@ -217,6 +217,7 @@ int main(int argc, const char* argv[])
 
     if (!processed)
     {
+        instruction = argv[3];
         for (int i = 0; i < num_handlers_2; i++)
         {
             if (!strcmp(instruction, message_handlers_2[i].ins))
@@ -232,7 +233,7 @@ int main(int argc, const char* argv[])
 
     if (!processed)
     {
-        cout << "Unknown command parameter supplied: " << instruction << endl;
+        cout << "Unknown command parameter supplied" << endl;
     }
 
     return 0;
