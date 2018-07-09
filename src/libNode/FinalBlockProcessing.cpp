@@ -1091,13 +1091,13 @@ void Node::BeginNextConsensusRound()
             {
                 LOG_GENERAL(INFO, "Wait for allMicroBlocksRecvd");
                 if (m_cvAllMicroBlocksRecvd.wait_for(
-                        g, std::chrono::seconds(WAIT_ALL_MB_RECVD_TIMEOUT))
+                        g, std::chrono::seconds(TXN_SUBMISSION + TXN_BROADCAST))
                     == std::cv_status::timeout)
                 {
                     LOG_EPOCH(WARNING,
                               to_string(m_mediator.m_currentEpochNum).c_str(),
                               "Wake up from "
-                                  << WAIT_ALL_MB_RECVD_TIMEOUT
+                                  << TXN_SUBMISSION + TXN_BROADCAST
                                   << "of waiting for all microblock received");
                     if (m_mediator.m_lookup->m_syncType == SyncType::NO_SYNC)
                     {

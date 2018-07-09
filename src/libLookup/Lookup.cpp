@@ -1698,12 +1698,14 @@ bool Lookup::InitMining()
         return false;
     }
     // Check whether is the new node connected to the network. Else, initiate re-sync process again.
-    this_thread::sleep_for(chrono::seconds(BACKUP_POW2_WINDOW_IN_SECONDS));
+    this_thread::sleep_for(chrono::seconds(BACKUP_POW2_WINDOW_IN_SECONDS
+                                           + TXN_SUBMISSION + TXN_BROADCAST));
     m_startedPoW2 = false;
     if (m_syncType != SyncType::NO_SYNC)
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Not yet connected to network");
+        m_mediator.m_node->SetState(Node::SYNC);
     }
     else
     {

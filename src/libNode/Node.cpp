@@ -195,7 +195,7 @@ void Node::StartSynchronization()
 {
     LOG_MARKER();
 
-    SetState(POW2_SUBMISSION);
+    SetState(SYNC);
     auto func = [this]() -> void {
         m_synchronizer.FetchOfflineLookups(m_mediator.m_lookup);
 
@@ -225,6 +225,7 @@ void Node::StartSynchronization()
             this_thread::sleep_for(
                 chrono::seconds(m_mediator.m_lookup->m_startedPoW2
                                     ? BACKUP_POW2_WINDOW_IN_SECONDS
+                                        + TXN_SUBMISSION + TXN_BROADCAST
                                     : NEW_NODE_SYNC_INTERVAL));
         }
     };
@@ -645,7 +646,7 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
 
     if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
     {
-        if (m_consensusID != 0)
+        if (m_state != TX_SUBMISSION)
         {
             return false;
         }
@@ -660,13 +661,21 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
         if (!m_newRoundStarted)
         {
             // LOG_GENERAL(INFO, "Wait for new consensus round started");
-            m_cvNewRoundStarted.wait(g, [this] { return m_newRoundStarted; });
+            if (m_cvNewRoundStarted.wait_for(
+                    g, std::chrono::seconds(TXN_SUBMISSION + TXN_BROADCAST))
+                == std::cv_status::timeout)
+            {
+                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                          "Waiting for new round started timeout, ignore");
+                return false;
+            }
+
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "New consensus round started, moving to "
                       "ProcessSubmitTxnSharing");
             if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
             {
-                LOG_GENERAL(WARNING, "The node started rejoin, discard it");
+                LOG_GENERAL(WARNING, "The node started rejoin, ignore");
                 return false;
             }
         }
