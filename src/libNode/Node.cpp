@@ -612,6 +612,47 @@ bool Node::ProcessSubmitTxnSharing(const vector<unsigned char>& message,
 {
     //LOG_MARKER();
 
+    if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
+    {
+        if (m_state != TX_SUBMISSION)
+        {
+            return false;
+        }
+    }
+
+    bool isVacuousEpoch
+        = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
+
+    if (!isVacuousEpoch)
+    {
+        unique_lock<mutex> g(m_mutexNewRoundStarted);
+        if (!m_newRoundStarted)
+        {
+            // LOG_GENERAL(INFO, "Wait for new consensus round started");
+            if (m_cvNewRoundStarted.wait_for(
+                    g, std::chrono::seconds(TXN_SUBMISSION + TXN_BROADCAST))
+                == std::cv_status::timeout)
+            {
+                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                          "Waiting for new round started timeout, ignore");
+                return false;
+            }
+
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "New consensus round started, moving to "
+                      "ProcessSubmitTxnSharing");
+            if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
+            {
+                LOG_GENERAL(WARNING, "The node started rejoin, ignore");
+                return false;
+            }
+        }
+        else
+        {
+            // LOG_GENERAL(INFO, "No need to wait for newRoundStarted");
+        }
+    }
+
     unsigned int cur_offset = offset;
 
     while (cur_offset < message.size())
@@ -653,47 +694,6 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
     // Message = [204-byte transaction]
 
     LOG_MARKER();
-
-    if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
-    {
-        if (m_state != TX_SUBMISSION)
-        {
-            return false;
-        }
-    }
-
-    bool isVacuousEpoch
-        = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
-
-    if (!isVacuousEpoch)
-    {
-        unique_lock<mutex> g(m_mutexNewRoundStarted);
-        if (!m_newRoundStarted)
-        {
-            // LOG_GENERAL(INFO, "Wait for new consensus round started");
-            if (m_cvNewRoundStarted.wait_for(
-                    g, std::chrono::seconds(TXN_SUBMISSION + TXN_BROADCAST))
-                == std::cv_status::timeout)
-            {
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "Waiting for new round started timeout, ignore");
-                return false;
-            }
-
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "New consensus round started, moving to "
-                      "ProcessSubmitTxnSharing");
-            if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
-            {
-                LOG_GENERAL(WARNING, "The node started rejoin, ignore");
-                return false;
-            }
-        }
-        else
-        {
-            // LOG_GENERAL(INFO, "No need to wait for newRoundStarted");
-        }
-    }
 
     unsigned int cur_offset = offset;
 
@@ -955,9 +955,17 @@ void Node::RejoinAsNormal()
             this->CleanVariables();
             this->Install(true);
             this->StartSynchronization();
+            this->ResetRejoinFlags();
         };
         DetachedFunction(1, func);
     }
+}
+
+void Node::ResetRejoinFlags()
+{
+    m_doRejoinAtNextRound = false;
+    m_doRejoinAtStateRoot = false;
+    m_doRejoinAtFinalBlock = false;
 }
 
 bool Node::CleanVariables()
@@ -1050,7 +1058,31 @@ bool Node::ProcessDoRejoin(const std::vector<unsigned char>& message,
         return false;
     }
 
-    RejoinAsNormal();
+    unsigned int cur_offset = offset;
+
+    if (IsMessageSizeInappropriate(message.size(), cur_offset,
+                                   MessageOffset::INST))
+    {
+        return false;
+    }
+
+    unsigned char rejoinType = message[cur_offset];
+    cur_offset += MessageOffset::INST;
+
+    switch (rejoinType)
+    {
+    case REJOINTYPE::ATFINALBLOCK:
+        m_doRejoinAtFinalBlock = true;
+        break;
+    case REJOINTYPE::ATNEXTROUND:
+        m_doRejoinAtNextRound = true;
+        break;
+    case REJOINTYPE::ATSTATEROOT:
+        m_doRejoinAtStateRoot = true;
+        break;
+    default:
+        return false;
+    }
 #endif // IS_LOOKUP_NODE
     return true;
 }

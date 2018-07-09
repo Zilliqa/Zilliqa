@@ -63,6 +63,13 @@ class Node : public Executable, public Broadcastable
         MISSINGTXN = 0x01
     };
 
+    enum REJOINTYPE : unsigned char
+    {
+        ATFINALBLOCK = 0x00,
+        ATNEXTROUND = 0x01,
+        ATSTATEROOT = 0x02
+    };
+
     string ActionString(enum Action action)
     {
         switch (action)
@@ -363,6 +370,12 @@ class Node : public Executable, public Broadcastable
 
     // Is Running from New Process
     bool m_fromNewProcess = true;
+
+    bool m_doRejoinAtNextRound = false;
+    bool m_doRejoinAtStateRoot = false;
+    bool m_doRejoinAtFinalBlock = false;
+
+    void ResetRejoinFlags();
 
     // Rejoin the network as a shard node in case of failure happens in protocol
     void RejoinAsNormal();
