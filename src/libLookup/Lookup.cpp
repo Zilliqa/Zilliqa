@@ -1264,7 +1264,7 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
 
     uint64_t latestSynBlockNum
         // = (uint64_t)m_mediator.m_dsBlockChain.GetBlockCount();
-        = (uint64_t)m_mediator.m_txBlockChain.GetLastBlock()
+        = (uint64_t)m_mediator.m_dsBlockChain.GetLastBlock()
               .GetHeader()
               .GetBlockNum()
         + 1;
