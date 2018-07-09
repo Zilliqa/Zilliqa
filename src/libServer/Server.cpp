@@ -209,6 +209,20 @@ Json::Value Server::GetDsBlock(const string& blockNum)
         _json["Error"] = "String not numeric";
         return _json;
     }
+    catch (invalid_argument& e)
+    {
+        Json::Value _json;
+        LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
+        _json["Error"] = "Invalid arugment";
+        return _json;
+    }
+    catch (out_of_range& e)
+    {
+        Json::Value _json;
+        LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
+        _json["Error"] = "Out of range";
+        return _json;
+    }
     catch (exception& e)
     {
         Json::Value _json;
@@ -238,6 +252,20 @@ Json::Value Server::GetTxBlock(const string& blockNum)
         Json::Value _json;
         LOG_GENERAL(INFO, "Error " << e.what());
         _json["Error"] = "String not numeric";
+        return _json;
+    }
+    catch (invalid_argument& e)
+    {
+        Json::Value _json;
+        LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
+        _json["Error"] = "Invalid arugment";
+        return _json;
+    }
+    catch (out_of_range& e)
+    {
+        Json::Value _json;
+        LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
+        _json["Error"] = "Out of range";
         return _json;
     }
     catch (exception& e)

@@ -250,9 +250,7 @@ bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr>& blocks)
     for (it->SeekToFirst(); it->Valid(); it->Next())
     {
         string bns = it->key().ToString();
-        uint64_t blockNum = stoi(bns);
-        LOG_GENERAL(INFO, "blockNum: " << blockNum);
-
+        LOG_GENERAL(INFO, "blockNum: " << bns);
         string blockString = it->value().ToString();
         if (blockString.empty())
         {
@@ -287,9 +285,7 @@ bool BlockStorage::GetAllTxBlocks(std::list<TxBlockSharedPtr>& blocks)
     for (it->SeekToFirst(); it->Valid(); it->Next())
     {
         string bns = it->key().ToString();
-        uint64_t blockNum = stoi(bns);
-        LOG_GENERAL(INFO, "blockNum: " << blockNum);
-
+        LOG_GENERAL(INFO, "blockNum: " << bns);
         string blockString = it->value().ToString();
         if (blockString.empty())
         {
