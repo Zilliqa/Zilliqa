@@ -219,9 +219,19 @@ void Node::StartSynchronization()
         while (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
         {
             m_synchronizer.FetchLatestDSBlocks(
-                m_mediator.m_lookup, m_mediator.m_dsBlockChain.GetBlockCount());
+                m_mediator.m_lookup,
+                // m_mediator.m_dsBlockChain.GetBlockCount());
+                m_mediator.m_dsBlockChain.GetLastBlock()
+                        .GetHeader()
+                        .GetBlockNum()
+                    + 1);
             m_synchronizer.FetchLatestTxBlocks(
-                m_mediator.m_lookup, m_mediator.m_txBlockChain.GetBlockCount());
+                m_mediator.m_lookup,
+                // m_mediator.m_txBlockChain.GetBlockCount());
+                m_mediator.m_txBlockChain.GetLastBlock()
+                        .GetHeader()
+                        .GetBlockNum()
+                    + 1);
             this_thread::sleep_for(
                 chrono::seconds(m_mediator.m_lookup->m_startedPoW2
                                     ? BACKUP_POW2_WINDOW_IN_SECONDS
@@ -1022,6 +1032,29 @@ void Node::CleanCreatedTransaction()
 }
 #endif // IS_LOOKUP_NODE
 
+bool Node::ProcessDoRejoin(const std::vector<unsigned char>& message,
+                           unsigned int offset, const Peer& from)
+{
+#ifndef IS_LOOKUP_NODE
+
+    LOG_MARKER();
+
+    if (!ENABLE_DO_REJOIN)
+    {
+        return false;
+    }
+
+    if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
+    {
+        LOG_GENERAL(WARNING, "Already in rejoining!");
+        return false;
+    }
+
+    RejoinAsNormal();
+#endif // IS_LOOKUP_NODE
+    return true;
+}
+
 bool Node::ToBlockMessage(unsigned char ins_byte)
 {
     if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
@@ -1067,19 +1100,19 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
     typedef bool (Node::*InstructionHandler)(const vector<unsigned char>&,
                                              unsigned int, const Peer&);
 
-    InstructionHandler ins_handlers[] = {
-        &Node::ProcessStartPoW1,
-        &Node::ProcessDSBlock,
-        &Node::ProcessSharding,
-        &Node::ProcessCreateTransaction,
-        &Node::ProcessSubmitTransaction,
-        &Node::ProcessMicroblockConsensus,
-        &Node::ProcessFinalBlock,
-        &Node::ProcessForwardTransaction,
-        &Node::ProcessCreateTransactionFromLookup,
-        &Node::ProcessVCBlock,
-        &Node::ProcessForwardStateDelta,
-    };
+    InstructionHandler ins_handlers[]
+        = {&Node::ProcessStartPoW1,
+           &Node::ProcessDSBlock,
+           &Node::ProcessSharding,
+           &Node::ProcessCreateTransaction,
+           &Node::ProcessSubmitTransaction,
+           &Node::ProcessMicroblockConsensus,
+           &Node::ProcessFinalBlock,
+           &Node::ProcessForwardTransaction,
+           &Node::ProcessCreateTransactionFromLookup,
+           &Node::ProcessVCBlock,
+           &Node::ProcessForwardStateDelta,
+           &Node::ProcessDoRejoin};
 
     const unsigned char ins_byte = message.at(offset);
     const unsigned int ins_handlers_count
