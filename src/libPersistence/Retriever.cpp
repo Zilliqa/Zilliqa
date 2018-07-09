@@ -83,12 +83,12 @@ void Retriever::RetrieveDSBlocks(bool& result)
     if (isDSIncompleted[0] == '1')
     {
         LOG_GENERAL(INFO, "Has incompleted DS Block");
-        blocks.pop_back();
-        if (BlockStorage::GetBlockStorage().DeleteDSBlock(blocks.size()))
+        if (BlockStorage::GetBlockStorage().DeleteDSBlock(blocks.size() - 1))
         {
             BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
                                                         {'0'});
         }
+        blocks.pop_back();
         hasIncompletedDS = true;
     }
 
@@ -120,12 +120,14 @@ void Retriever::RetrieveTxBlocks(bool& result)
     int extra_txblocks = totalSize % NUM_FINAL_BLOCK_PER_POW;
     for (int i = 0; i < extra_txblocks; ++i)
     {
-        BlockStorage::GetBlockStorage().DeleteTxBlock(totalSize - i);
+        BlockStorage::GetBlockStorage().DeleteTxBlock(totalSize - 1 - i);
         blocks.pop_back();
     }
 
     for (const auto& block : blocks)
+    {
         m_mediator.m_txBlockChain.AddBlock(*block);
+    }
 
     result = true;
 }
@@ -147,24 +149,29 @@ bool Retriever::RetrieveTxBodiesDB()
         std::sort(dbNames.begin(), dbNames.end());
 
         // keep at most NUM_DS_KEEP_TX_BODY num of DB, ignore the temp one if exists
-        for (unsigned int i = 0;
-             i < (dbNames.size() <= NUM_DS_KEEP_TX_BODY
-                      ? (hasIncompletedDS ? dbNames.size() - 1 : dbNames.size())
-                      : NUM_DS_KEEP_TX_BODY);
-             i++)
+        if (BlockStorage::GetBlockStorage().GetTxBodyDBSize() == 0)
         {
-            if (!BlockStorage::GetBlockStorage().PushBackTxBodyDB(
-                    std::stoi(dbNames[i])))
+            for (unsigned int i = 0;
+                 i < (dbNames.size() <= NUM_DS_KEEP_TX_BODY
+                          ? (hasIncompletedDS ? dbNames.size() - 1
+                                              : dbNames.size())
+                          : NUM_DS_KEEP_TX_BODY);
+                 i++)
             {
-                LOG_GENERAL(WARNING,
-                            "PushBackTxBodyDB Failed, investigate why!");
-                // return false;
+                if (!BlockStorage::GetBlockStorage().PushBackTxBodyDB(
+                        std::stoi(dbNames[i])))
+                {
+                    LOG_GENERAL(WARNING,
+                                "PushBackTxBodyDB Failed, investigate why!");
+                    // return false;
+                }
             }
         }
 
         // remove the temp txbodydb if it exists
         if (dbNames.size() > NUM_DS_KEEP_TX_BODY)
         {
+            LOG_GENERAL(INFO, "remove the temp txbodydb");
             if (dbNames.size() == NUM_DS_KEEP_TX_BODY + 1)
             {
                 filesys::remove_all(p.string() + "/"
@@ -179,6 +186,8 @@ bool Retriever::RetrieveTxBodiesDB()
         }
         else if (hasIncompletedDS)
         {
+            LOG_GENERAL(INFO,
+                        "remove the temp txbodydb because hasIncompletedDS");
             filesys::remove_all(p.string() + "/" + dbNames.back());
         }
     }
@@ -229,6 +238,18 @@ bool Retriever::ValidateStates()
     else
     {
         LOG_GENERAL(WARNING, "ValidateStates failed.");
+        LOG_GENERAL(INFO,
+                    "StateRoot in FinalBlock(BlockNum: "
+                        << m_mediator.m_txBlockChain.GetLastBlock()
+                               .GetHeader()
+                               .GetBlockNum()
+                        << "): "
+                        << m_mediator.m_txBlockChain.GetLastBlock()
+                               .GetHeader()
+                               .GetStateRootHash()
+                        << endl
+                        << "Retrieved StateRoot: "
+                        << AccountStore::GetInstance().GetStateRootHash());
         return false;
     }
 }
