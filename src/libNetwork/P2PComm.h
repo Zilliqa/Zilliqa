@@ -35,10 +35,8 @@ typedef std::function<std::vector<Peer>(unsigned char msg_type,
 /// Provides network layer functionality.
 class P2PComm
 {
-    std::set<std::vector<unsigned char>> m_broadcastHashes;
+    std::map<std::vector<unsigned char>, time_t> m_broadcastHashes;
     std::mutex m_broadcastHashesMutex;
-    std::unordered_map<time_t, std::vector<unsigned char>> m_broadcastToRemoved;
-    std::mutex m_broadcastToRemovedMutex;
     std::mutex m_broadcastCoreMutex;
     std::mutex m_startMessagePumpMutex;
     std::mutex m_sendMessageMutex;
