@@ -73,7 +73,9 @@ P2PComm::P2PComm()
         while (true)
         {
             this_thread::sleep_for(chrono::seconds(BROADCAST_INTERVAL));
-            lock_guard<mutex> guard(m_broadcastToRemovedMutex);
+            lock(m_broadcastToRemovedMutex, m_broadcastHashesMutex);
+            lock_guard<mutex> g(m_broadcastToRemovedMutex, adopt_lock);
+            lock_guard<mutex> g2(m_broadcastHashesMutex, adopt_lock);
 
             for (unsigned int i = 0; i < BROADCAST_INTERVAL; ++i)
             {
@@ -81,9 +83,10 @@ P2PComm::P2PComm()
                                                     - BROADCAST_EXPIRY - i);
 
                 if (m_broadcastToRemoved.end() == it)
+                {
                     continue;
+                }
 
-                lock_guard<mutex> guard2(m_broadcastHashesMutex);
                 auto it2 = m_broadcastHashes.find(it->second);
                 m_broadcastHashes.erase(m_broadcastHashes.begin(), it2);
                 m_broadcastToRemoved.erase(it);
