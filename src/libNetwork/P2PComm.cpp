@@ -68,7 +68,32 @@ static void close_socket(int* cli_sock)
     }
 }
 
-P2PComm::P2PComm() {}
+P2PComm::P2PComm()
+{
+    auto func = [this]() -> void {
+        while (true)
+        {
+            this_thread::sleep_for(chrono::seconds(100));
+            lock_guard<mutex> guard(m_broadcastToRemovedMutex);
+            auto it = m_broadcastToRemoved.find(time(nullptr)
+                                                - BROADCAST_EXPIRY_SECONDS);
+
+            if (m_broadcastToRemoved.end() == it)
+                continue;
+
+            lock_guard<mutex> guard2(m_broadcastHashesMutex);
+            auto it2 = m_broadcastHashes.find(it->second);
+
+            if (m_broadcastHashes.end() == it2)
+                continue;
+
+            m_broadcastHashes.erase(m_broadcastHashes.begin(), it2);
+            m_broadcastToRemoved.erase(it);
+        }
+    };
+
+    DetachedFunction(1, func);
+}
 
 P2PComm::~P2PComm() {}
 
@@ -299,18 +324,8 @@ void P2PComm::SendBroadcastMessageCore(
 void P2PComm::ClearBroadcastHashAsync(const vector<unsigned char>& message_hash)
 {
     LOG_MARKER();
-    // TODO: are we sure there wont be many threads arising from this, will ThreadPool alleviate it?
-    // Launch a separate, detached thread to automatically remove the hash from the list after a long time period has elapsed
-    auto func2 = [this, message_hash]() -> void {
-        vector<unsigned char> msg_hash_copy(message_hash);
-        this_thread::sleep_for(chrono::seconds(BROADCAST_EXPIRY_SECONDS));
-        lock_guard<mutex> guard(m_broadcastHashesMutex);
-        m_broadcastHashes.erase(msg_hash_copy);
-        // LOG_PAYLOAD(INFO, "Removing msg hash from broadcast list",
-        //             msg_hash_copy, Logger::MAX_BYTES_TO_DISPLAY);
-    };
-
-    DetachedFunction(1, func2);
+    lock_guard<mutex> guard(m_broadcastToRemovedMutex);
+    m_broadcastToRemoved[time(nullptr)] = message_hash;
 }
 
 void P2PComm::HandleAcceptedConnection(
