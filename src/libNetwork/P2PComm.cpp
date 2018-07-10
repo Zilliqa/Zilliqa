@@ -67,16 +67,18 @@ static void close_socket(int* cli_sock)
     }
 }
 
-static bool mycomp(const std::pair<std::vector<unsigned char>, time_t>& a,
-                   const std::pair<std::vector<unsigned char>, time_t>& b)
+static bool
+comparePairSecond(const std::pair<std::vector<unsigned char>, time_t>& a,
+                  const std::pair<std::vector<unsigned char>, time_t>& b)
 {
     return a.second < b.second;
 }
 
 P2PComm::P2PComm()
 {
-
     auto func = [this]() -> void {
+        std::vector<unsigned char> emptyHash;
+
         while (true)
         {
             this_thread::sleep_for(chrono::seconds(BROADCAST_INTERVAL));
@@ -91,10 +93,10 @@ P2PComm::P2PComm()
                 continue;
             }
 
-            std::vector<unsigned char> tmp;
             auto up = upper_bound(
                 m_broadcastToRemoved.begin(), m_broadcastToRemoved.end(),
-                make_pair(tmp, time(nullptr) - BROADCAST_EXPIRY), mycomp);
+                make_pair(emptyHash, time(nullptr) - BROADCAST_EXPIRY),
+                comparePairSecond);
 
             for (auto it = m_broadcastToRemoved.begin(); it != up; ++it)
             {
