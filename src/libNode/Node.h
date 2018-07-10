@@ -247,13 +247,13 @@ class Node : public Executable, public Broadcastable
         StateHash microBlockStateDeltaHash, TxnHash microBlockTxRootHash,
         const boost::multiprecision::uint256_t& blocknum,
         bool& isEveryMicroBlockAvailable);
-    bool IsMyShardsMicroBlockTxRootHashInFinalBlock(
+    bool IsMyShardMicroBlockTxRootHashInFinalBlock(
         const boost::multiprecision::uint256_t& blocknum,
         bool& isEveryMicroBlockAvailable);
-    bool IsMyShardsMicroBlockStateDeltaHashInFinalBlock(
+    bool IsMyShardMicroBlockStateDeltaHashInFinalBlock(
         const boost::multiprecision::uint256_t& blocknum,
         bool& isEveryMicroBlockAvailable);
-    bool IsMyShardsMicroBlockInFinalBlock(
+    bool IsMyShardMicroBlockInFinalBlock(
         const boost::multiprecision::uint256_t& blocknum);
     bool
     ReadAuxilliaryInfoFromFinalBlockMsg(const vector<unsigned char>& message,
