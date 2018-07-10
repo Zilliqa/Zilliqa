@@ -218,7 +218,7 @@ bool Node::LoadUnavailableMicroBlockHashes(
 
         bool doRejoin = false;
 
-        if (IsMyShardsMicroBlockInFinalBlock(blocknum))
+        if (IsMyShardMicroBlockInFinalBlock(blocknum))
         {
             {
                 lock_guard<mutex> g3(m_mutexTempCommitted);
@@ -233,7 +233,7 @@ bool Node::LoadUnavailableMicroBlockHashes(
         }
         else
         {
-            if (IsMyShardsIdInFinalBlock(blocknum))
+            if (IsMyShardIdInFinalBlock(blocknum))
             {
                 LOG_GENERAL(WARNING,
                             "Didn't found my micorblock but found shard ID");
@@ -792,7 +792,7 @@ void Node::LoadForwardingAssignmentFromFinalBlock(
     }
 }
 
-bool Node::IsMyShardsMicroBlockTxRootHashInFinalBlock(
+bool Node::IsMyShardMicroBlockTxRootHashInFinalBlock(
     const uint256_t& blocknum, bool& isEveryMicroBlockAvailable)
 {
     return m_microblock != nullptr
@@ -802,7 +802,7 @@ bool Node::IsMyShardsMicroBlockTxRootHashInFinalBlock(
                isEveryMicroBlockAvailable);
 }
 
-bool Node::IsMyShardsMicroBlockStateDeltaHashInFinalBlock(
+bool Node::IsMyShardMicroBlockStateDeltaHashInFinalBlock(
     const uint256_t& blocknum, bool& isEveryMicroBlockAvailable)
 {
     return m_microblock != nullptr
@@ -812,7 +812,7 @@ bool Node::IsMyShardsMicroBlockStateDeltaHashInFinalBlock(
                isEveryMicroBlockAvailable);
 }
 
-bool Node::IsMyShardsMicroBlockInFinalBlock(const uint256_t& blocknum)
+bool Node::IsMyShardMicroBlockInFinalBlock(const uint256_t& blocknum)
 {
     if (m_microblock == nullptr)
     {
@@ -890,9 +890,9 @@ bool Node::ActOnFinalBlock(uint8_t tx_sharing_mode, const vector<Peer>& nodes)
 
     // For now, since each sharding setup only processes one block, then whatever transactions we
     // failed to submit have to be discarded m_createdTransactions.clear();
-    if (IsMyShardsMicroBlockTxRootHashInFinalBlock(blocknum,
+    if (IsMyShardMicroBlockTxRootHashInFinalBlock(blocknum,
                                                    isEveryMicroBlockAvailable)
-        && IsMyShardsMicroBlockStateDeltaHashInFinalBlock(
+        && IsMyShardMicroBlockStateDeltaHashInFinalBlock(
                blocknum, isEveryMicroBlockAvailable))
     {
         vector<Transaction> txns_to_send;
@@ -952,9 +952,9 @@ bool Node::ActOnFinalBlock(uint8_t tx_sharing_mode,
         lock_guard<mutex> gi(m_mutexIsEveryMicroBlockAvailable);
         bool isEveryMicroBlockAvailable;
 
-        if (IsMyShardsMicroBlockTxRootHashInFinalBlock(
+        if (IsMyShardMicroBlockTxRootHashInFinalBlock(
                 blocknum, isEveryMicroBlockAvailable)
-            && IsMyShardsMicroBlockStateDeltaHashInFinalBlock(
+            && IsMyShardMicroBlockStateDeltaHashInFinalBlock(
                    blocknum, isEveryMicroBlockAvailable))
         {
             vector<Transaction> txns_to_send;
