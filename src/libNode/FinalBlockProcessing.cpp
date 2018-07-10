@@ -215,21 +215,40 @@ bool Node::LoadUnavailableMicroBlockHashes(
             lock_guard<mutex> g2(m_mutexAllMicroBlocksRecvd);
             m_allMicroBlocksRecvd = false;
         }
+
+        bool doRejoin = false;
+
         if (IsMyShardsMicroBlockInFinalBlock(blocknum))
         {
-            lock_guard<mutex> g3(m_mutexTempCommitted);
-            m_tempStateDeltaCommitted = false;
-            if (m_lastMicroBlockCoSig.first != m_mediator.m_currentEpochNum
-                || m_doRejoinAtFinalBlock)
+            {
+                lock_guard<mutex> g3(m_mutexTempCommitted);
+                m_tempStateDeltaCommitted = false;
+            }
+            if (m_lastMicroBlockCoSig.first != m_mediator.m_currentEpochNum)
             {
                 LOG_GENERAL(WARNING,
-                            "Failed the last microblock consensus but "
-                            "still found my shard microblock, "
-                            " need to Rejoin");
-                RejoinAsNormal();
-
-                return false;
+                            "Found my microblock but Cosig not updated");
+                doRejoin = true;
             }
+        }
+        else
+        {
+            if (IsMyShardsIdInFinalBlock(blocknum))
+            {
+                LOG_GENERAL(WARNING,
+                            "Didn't found my micorblock but found shard ID");
+                doRejoin = true;
+            }
+        }
+
+        if (doRejoin || m_doRejoinAtFinalBlock)
+        {
+            LOG_GENERAL(WARNING,
+                        "Failed the last microblock consensus but "
+                        "still found my shard microblock, "
+                        " need to Rejoin");
+            RejoinAsNormal();
+            return false;
         }
     }
 #endif //IS_LOOKUP_NODE
@@ -1469,7 +1488,8 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         if (cv_FBWaitMB.wait_for(cv_lk, std::chrono::seconds(TX_SUBMISSION))
             == std::cv_status::timeout)
         {
-            LOG_GENERAL(WARNING, "Timeout, didn't finish microblock consensus");
+            LOG_GENERAL(WARNING,
+                        "Timeout, I didn't finish microblock consensus");
         }
     }
 
