@@ -1002,7 +1002,7 @@ bool ConsensusLeader::ProcessMessageResponseCore(
             // {
             //     this_thread::sleep_for(chrono::milliseconds(1000));
             // }
-            this_thread::sleep_for(chrono::seconds(CONSENSUS_COSIG_WINDOW));
+            //this_thread::sleep_for(chrono::seconds(CONSENSUS_COSIG_WINDOW));
 
             P2PComm::GetInstance().SendMessage(m_peerInfo, collectivesig);
         }
