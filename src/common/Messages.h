@@ -104,4 +104,11 @@ enum TxSharingMode : unsigned char
     SEND_AND_FORWARD = 0x04
 };
 
+enum HeaderStartByte : unsigned char
+{
+    NORMAL = 0x11,
+    BROADCAST = 0x22,
+    GOSSIP = 0x44
+};
+
 #endif // __MESSAGES_H__
