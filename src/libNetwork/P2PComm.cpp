@@ -67,8 +67,15 @@ static void close_socket(int* cli_sock)
     }
 }
 
+static bool mycomp(const std::pair<std::vector<unsigned char>, time_t>& a,
+                   const std::pair<std::vector<unsigned char>, time_t>& b)
+{
+    return a.second < b.second;
+}
+
 P2PComm::P2PComm()
 {
+
     auto func = [this]() -> void {
         while (true)
         {
@@ -77,21 +84,25 @@ P2PComm::P2PComm()
             lock_guard<mutex> g(m_broadcastToRemovedMutex, adopt_lock);
             lock_guard<mutex> g2(m_broadcastHashesMutex, adopt_lock);
 
-            for (unsigned int i = 0; i < BROADCAST_INTERVAL; ++i)
+            if (m_broadcastToRemoved.empty()
+                || m_broadcastToRemoved[0].second
+                    > time(nullptr) - BROADCAST_EXPIRY)
             {
-                auto it = m_broadcastToRemoved.find(time(nullptr)
-                                                    - BROADCAST_EXPIRY - i);
-
-                if (m_broadcastToRemoved.end() == it)
-                {
-                    continue;
-                }
-
-                auto it2 = m_broadcastHashes.find(it->second);
-                m_broadcastHashes.erase(m_broadcastHashes.begin(), it2);
-                m_broadcastToRemoved.erase(it);
-                break;
+                continue;
             }
+
+            std::vector<unsigned char> tmp;
+            auto up = upper_bound(
+                m_broadcastToRemoved.begin(), m_broadcastToRemoved.end(),
+                make_pair(tmp, time(nullptr) - BROADCAST_EXPIRY), mycomp);
+
+            for (auto it = m_broadcastToRemoved.begin(); it != up; ++it)
+            {
+                m_broadcastHashes.erase(it->first);
+            }
+
+            m_broadcastToRemoved.erase(m_broadcastToRemoved.begin(), up);
+
         }
     };
 
@@ -328,7 +339,7 @@ void P2PComm::ClearBroadcastHashAsync(const vector<unsigned char>& message_hash)
 {
     LOG_MARKER();
     lock_guard<mutex> guard(m_broadcastToRemovedMutex);
-    m_broadcastToRemoved[time(nullptr)] = message_hash;
+    m_broadcastToRemoved.emplace_back(message_hash, time(nullptr));
 }
 
 void P2PComm::HandleAcceptedConnection(
