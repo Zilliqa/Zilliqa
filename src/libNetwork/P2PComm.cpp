@@ -67,24 +67,31 @@ static void close_socket(int* cli_sock)
     }
 }
 
-static bool myComp(const std::pair<std::vector<unsigned char>, time_t>& a,
-                   const std::pair<std::vector<unsigned char>, time_t>& b)
-{
-    return a.second < b.second;
-}
-
 P2PComm::P2PComm()
 {
     auto func = [this]() -> void {
         while (true)
         {
             this_thread::sleep_for(chrono::seconds(BROADCAST_INTERVAL));
-            lock_guard<mutex> g(m_broadcastHashesMutex);
-            std::vector<unsigned char> tmp;
-            auto up = upper_bound(
-                m_broadcastHashes.begin(), m_broadcastHashes.end(),
-                make_pair(tmp, time(nullptr) - BROADCAST_EXPIRY), myComp);
-            m_broadcastHashes.erase(m_broadcastHashes.begin(), up);
+            lock(m_broadcastToRemovedMutex, m_broadcastHashesMutex);
+            lock_guard<mutex> g(m_broadcastToRemovedMutex, adopt_lock);
+            lock_guard<mutex> g2(m_broadcastHashesMutex, adopt_lock);
+
+            for (unsigned int i = 0; i < BROADCAST_INTERVAL; ++i)
+            {
+                auto it = m_broadcastToRemoved.find(time(nullptr)
+                                                    - BROADCAST_EXPIRY - i);
+
+                if (m_broadcastToRemoved.end() == it)
+                {
+                    continue;
+                }
+
+                auto it2 = m_broadcastHashes.find(it->second);
+                m_broadcastHashes.erase(m_broadcastHashes.begin(), it2);
+                m_broadcastToRemoved.erase(it);
+                break;
+            }
         }
     };
 
@@ -320,8 +327,8 @@ void P2PComm::SendBroadcastMessageCore(
 void P2PComm::ClearBroadcastHashAsync(const vector<unsigned char>& message_hash)
 {
     LOG_MARKER();
-    lock_guard<mutex> g(m_broadcastHashesMutex);
-    m_broadcastHashes[message_hash] = time(nullptr);
+    lock_guard<mutex> guard(m_broadcastToRemovedMutex);
+    m_broadcastToRemoved[time(nullptr)] = message_hash;
 }
 
 void P2PComm::HandleAcceptedConnection(
@@ -461,7 +468,8 @@ void P2PComm::HandleAcceptedConnection(
 
                 if (this_msg_hash == msg_hash)
                 {
-                    P2PComm::GetInstance().m_broadcastHashes[this_msg_hash] = 0;
+                    P2PComm::GetInstance().m_broadcastHashes.insert(
+                        this_msg_hash);
                 }
                 else
                 {
@@ -723,7 +731,7 @@ void P2PComm::SendBroadcastMessageHelper(
 
     {
         lock_guard<mutex> guard(m_broadcastHashesMutex);
-        m_broadcastHashes[this_msg_hash] = 0;
+        m_broadcastHashes.insert(this_msg_hash);
     }
 
     LOG_STATE("[BROAD]["
