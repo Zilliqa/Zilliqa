@@ -1463,6 +1463,16 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     LOG_MARKER();
 
 #ifndef IS_LOOKUP_NODE
+    if (m_lastMicroBlockCoSig.first != m_mediator.m_currentEpochNum)
+    {
+        std::unique_lock<mutex> cv_lk(m_MutexCVFBWaitMB);
+        if (cv_FBWaitMB.wait_for(cv_lk, std::chrono::seconds(TX_SUBMISSION))
+            == std::cv_status::timeout)
+        {
+            LOG_GENERAL(WARNING, "Timeout, didn't finish microblock consensus");
+        }
+    }
+
     if (m_state == MICROBLOCK_CONSENSUS)
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),

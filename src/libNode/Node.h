@@ -115,6 +115,9 @@ class Node : public Executable, public Broadcastable
     std::mutex m_MutexCVMicroblockConsensusObject;
     std::condition_variable cv_microblockConsensusObject;
 
+    std::mutex m_MutexCVFBWaitMB;
+    std::condition_variable cv_FBWaitMB;
+
     // Persistence Retriever
     std::shared_ptr<Retriever> m_retriever;
 
