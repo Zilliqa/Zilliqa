@@ -109,9 +109,11 @@ namespace std
 
 struct TxBlockHashSet
 {
-    TxnHash m_txRootHash; // Microblock merkle tree root hash
-    StateHash m_stateRootHash; // State merkle tree root hash
-    StateHash m_deltaRootHash; // State delta merkle tree root hash
+    TxnHash m_txRootHash; // root hash concated from all microblock tx hash
+    StateHash
+        m_stateRootHash; // State merkle tree root hash only valid in vacuous epoch
+    StateHash
+        m_deltaRootHash; // root hash concated from all microblock state hash
 
     /// Implements the Serialize function inherited from Serializable.
     unsigned int Serialize(std::vector<unsigned char>& dst,
