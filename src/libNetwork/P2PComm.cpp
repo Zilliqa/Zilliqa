@@ -102,7 +102,6 @@ P2PComm::P2PComm()
             }
 
             m_broadcastToRemoved.erase(m_broadcastToRemoved.begin(), up);
-
         }
     };
 
