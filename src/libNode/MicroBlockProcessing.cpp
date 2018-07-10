@@ -165,6 +165,9 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
                       << ")");
         m_lastMicroBlockCoSig.first = m_mediator.m_currentEpochNum;
         m_lastMicroBlockCoSig.second.SetCoSignatures(*m_consensusObject);
+
+        lock_guard<mutex> cv_lk(m_MutexCVFBWaitMB);
+        cv_FBWaitMB.notify_all();
     }
     else if (state == ConsensusCommon::State::ERROR)
     {
