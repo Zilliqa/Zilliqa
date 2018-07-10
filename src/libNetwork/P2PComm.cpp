@@ -87,7 +87,7 @@ P2PComm::P2PComm()
             lock_guard<mutex> g2(m_broadcastHashesMutex, adopt_lock);
 
             if (m_broadcastToRemoved.empty()
-                || m_broadcastToRemoved[0].second
+                || m_broadcastToRemoved.front().second
                     > time(nullptr) - BROADCAST_EXPIRY)
             {
                 continue;

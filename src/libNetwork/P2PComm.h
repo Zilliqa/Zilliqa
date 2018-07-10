@@ -37,7 +37,7 @@ class P2PComm
 {
     std::set<std::vector<unsigned char>> m_broadcastHashes;
     std::mutex m_broadcastHashesMutex;
-    std::vector<std::pair<std::vector<unsigned char>, time_t>>
+    std::deque<std::pair<std::vector<unsigned char>, time_t>>
         m_broadcastToRemoved;
     std::mutex m_broadcastToRemovedMutex;
     std::mutex m_broadcastCoreMutex;
