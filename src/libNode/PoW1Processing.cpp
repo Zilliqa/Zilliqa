@@ -68,7 +68,7 @@ bool Node::StartPoW1(const uint256_t& block_num, uint8_t difficulty,
     //POW POWClient;
     ethash_mining_result winning_result = POW::GetInstance().PoWMine(
         block_num, difficulty, rand1, rand2, m_mediator.m_selfPeer.m_ipAddress,
-        m_mediator.m_selfKey.second, false);
+        m_mediator.m_selfKey.second, true);
 
     if (winning_result.success)
     {
