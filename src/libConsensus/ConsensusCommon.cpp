@@ -214,7 +214,6 @@ bool ConsensusCommon::CanProcessMessage(const vector<unsigned char>& message,
                                         unsigned int offset)
 {
     const unsigned char messageType = message.at(offset);
-
     if (messageType == ConsensusMessageType::COLLECTIVESIG)
     {
         if (m_state == INITIAL)
