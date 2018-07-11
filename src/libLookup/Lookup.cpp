@@ -1264,9 +1264,7 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
 
     uint64_t latestSynBlockNum
         // = (uint64_t)m_mediator.m_dsBlockChain.GetBlockCount();
-        = m_mediator.m_dsBlockChain.GetLastBlock()
-              .GetHeader()
-              .GetBlockNum()
+        = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()
         + 1;
 
     if (latestSynBlockNum > highBlockNum)
@@ -1393,9 +1391,7 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
 
     uint64_t latestSynBlockNum
         // = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
-        = m_mediator.m_txBlockChain.GetLastBlock()
-              .GetHeader()
-              .GetBlockNum()
+        = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
         + 1;
 
     if (latestSynBlockNum > highBlockNum)
