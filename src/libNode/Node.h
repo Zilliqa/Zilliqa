@@ -34,6 +34,7 @@
 #include "libData/AccountData/Transaction.h"
 #include "libData/BlockChainData/TxBlockChain.h"
 #include "libData/BlockData/Block.h"
+#include "libData/BlockData/BlockHeader/UnavailableMicroBlock.h"
 #include "libLookup/Synchronizer.h"
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/PeerStore.h"
@@ -256,6 +257,8 @@ class Node : public Executable, public Broadcastable
     bool IsMyShardMicroBlockInFinalBlock(
         const boost::multiprecision::uint256_t& blocknum);
     bool
+    IsMyShardIdInFinalBlock(const boost::multiprecision::uint256_t& blocknum);
+    bool
     ReadAuxilliaryInfoFromFinalBlockMsg(const vector<unsigned char>& message,
                                         unsigned int& cur_offset,
                                         uint32_t& shard_id);
@@ -273,7 +276,7 @@ class Node : public Executable, public Broadcastable
                             vector<vector<Peer>>& nodes);
     void CallActOnFinalBlockBasedOnSenderForwarderAssgn(
         bool i_am_sender, bool i_am_forwarder,
-        const vector<vector<Peer>>& nodes, uint8_t shard_id);
+        const vector<vector<Peer>>& nodes, uint32_t shard_id);
 
     // internal calls from ProcessForwardTransaction
     void LoadFwdingAssgnForThisBlockNum(
@@ -421,8 +424,9 @@ public:
 
     // Transaction body sharing variables
     std::mutex m_mutexUnavailableMicroBlocks;
-    std::unordered_map<boost::multiprecision::uint256_t,
-                       std::unordered_map<MicroBlockHashSet, std::vector<bool>>>
+    std::unordered_map<
+        boost::multiprecision::uint256_t,
+        std::unordered_map<UnavailableMicroBlock, std::vector<bool>>>
         m_unavailableMicroBlocks;
 
     uint32_t m_consensusID;

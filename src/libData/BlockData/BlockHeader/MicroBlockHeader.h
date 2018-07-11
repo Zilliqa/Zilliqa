@@ -48,10 +48,10 @@ class MicroBlockHeader : public BlockHeaderBase
     BlockHash m_dsBlockHeader; // DS Block hash
 
 public:
-    static const unsigned int SIZE = sizeof(uint8_t) + sizeof(uint32_t) + sizeof(uint32_t)
-        + UINT256_SIZE + UINT256_SIZE + BLOCK_HASH_SIZE + UINT256_SIZE
-        + UINT256_SIZE + MicroBlockHashSet::size() + sizeof(uint32_t)
-        + PUB_KEY_SIZE + UINT256_SIZE + BLOCK_HASH_SIZE;
+    static const unsigned int SIZE = sizeof(uint8_t) + sizeof(uint32_t)
+        + sizeof(uint32_t) + UINT256_SIZE + UINT256_SIZE + BLOCK_HASH_SIZE
+        + UINT256_SIZE + UINT256_SIZE + MicroBlockHashSet::size()
+        + sizeof(uint32_t) + PUB_KEY_SIZE + UINT256_SIZE + BLOCK_HASH_SIZE;
 
     /// Default constructor.
     MicroBlockHeader();
@@ -61,7 +61,8 @@ public:
                      unsigned int offset);
 
     /// Constructor with predefined member values.
-    MicroBlockHeader(const uint8_t type, const uint32_t version, const uint32_t shardID
+    MicroBlockHeader(const uint8_t type, const uint32_t version,
+                     const uint32_t shardID,
                      const boost::multiprecision::uint256_t& gasLimit,
                      const boost::multiprecision::uint256_t& gasUsed,
                      const BlockHash& prevHash,
