@@ -89,6 +89,18 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
 #ifndef IS_LOOKUP_NODE
     LOG_MARKER();
 
+    std::shared_lock<shared_timed_mutex> cv_lk(m_mutexProcessConsensusMessage);
+    if (cv_processConsensusMessage.wait_for(
+            cv_lk, std::chrono::seconds(10), [this, message, offset]() -> bool {
+                return m_consensusObject->CanProcessMessage(message, offset);
+            }))
+    {
+        LOG_GENERAL(
+            WARNING,
+            "Timeout while waiting for correct order of consensus messages");
+        return false;
+    }
+
     lock_guard<mutex> g(m_mutexConsensus);
 
     // Consensus messages must be processed in correct sequence as they come in
