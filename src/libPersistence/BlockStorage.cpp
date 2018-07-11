@@ -217,6 +217,7 @@ bool BlockStorage::DeleteDSBlock(
 bool BlockStorage::DeleteTxBlock(
     const boost::multiprecision::uint256_t& blocknum)
 {
+    LOG_GENERAL(INFO, "Delete TxBlock Num: " << blocknum);
     int ret = m_txBlockchainDB.DeleteKey(blocknum);
     return (ret == 0);
 }
