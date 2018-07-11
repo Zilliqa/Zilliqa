@@ -217,13 +217,15 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
         {
             lock_guard<mutex> g3(m_mutexTempCommitted);
             m_tempStateDeltaCommitted = false;
-            if (m_lastMicroBlockCoSig.first != m_mediator.m_currentEpochNum)
+            if (m_lastMicroBlockCoSig.first != m_mediator.m_currentEpochNum
+                || m_doRejoinAtFinalBlock)
             {
                 LOG_GENERAL(WARNING,
                             "Failed the last microblock consensus but "
                             "still found my shard microblock, "
                             " need to Rejoin");
                 RejoinAsNormal();
+
                 return false;
             }
         }
@@ -1085,11 +1087,33 @@ void Node::BeginNextConsensusRound()
             if (!m_allMicroBlocksRecvd)
             {
                 LOG_GENERAL(INFO, "Wait for allMicroBlocksRecvd");
-                m_cvAllMicroBlocksRecvd.wait(
-                    g, [this] { return m_allMicroBlocksRecvd; });
-                LOG_EPOCH(
-                    INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                    "All microblocks recvd, moving to ScheduleTxnSubmission");
+                if (m_cvAllMicroBlocksRecvd.wait_for(
+                        g, std::chrono::seconds(TXN_SUBMISSION + TXN_BROADCAST))
+                        == std::cv_status::timeout
+                    || m_doRejoinAtNextRound)
+                {
+                    LOG_EPOCH(WARNING,
+                              to_string(m_mediator.m_currentEpochNum).c_str(),
+                              "Wake up from "
+                                  << TXN_SUBMISSION + TXN_BROADCAST
+                                  << "of waiting for all microblock received");
+                    if (m_mediator.m_lookup->m_syncType == SyncType::NO_SYNC)
+                    {
+                        LOG_EPOCH(
+                            WARNING,
+                            to_string(m_mediator.m_currentEpochNum).c_str(),
+                            "Not in rejoin mode, try rejoining as normal");
+                        RejoinAsNormal();
+                        return;
+                    }
+                }
+                else
+                {
+                    LOG_EPOCH(INFO,
+                              to_string(m_mediator.m_currentEpochNum).c_str(),
+                              "All microblocks recvd, moving to "
+                              "ScheduleTxnSubmission");
+                }
             }
             else
             {
@@ -1097,7 +1121,7 @@ void Node::BeginNextConsensusRound()
             }
 
             {
-                lock_guard<mutex> g2(m_mutexNewRoungStarted);
+                lock_guard<mutex> g2(m_mutexNewRoundStarted);
                 if (!m_newRoundStarted)
                 {
                     m_newRoundStarted = true;
@@ -1441,6 +1465,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
                   "I may have missed the micrblock consensus. However, if I "
                   "recently received a valid finalblock, I will accept it");
         // TODO: Optimize state transition.
+        AccountStore::GetInstance().InitTemp();
         SetState(WAITING_FINALBLOCK);
     }
 
@@ -1547,10 +1572,14 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
             return false;
         }
 
-        if (!CheckStateRoot(txBlock))
-        {
+        if (!CheckStateRoot(txBlock)
 #ifndef IS_LOOKUP_NODE
+            || m_doRejoinAtStateRoot)
+        {
             RejoinAsNormal();
+#else // IS_LOOKUP_NODE
+        )
+        {
 #endif // IS_LOOKUP_NODE
             return false;
         }

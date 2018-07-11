@@ -212,6 +212,7 @@ bool BlockStorage::DeleteDSBlock(const uint64_t& blocknum)
 
 bool BlockStorage::DeleteTxBlock(const uint64_t& blocknum)
 {
+    LOG_GENERAL(INFO, "Delete TxBlock Num: " << blocknum);
     int ret = m_txBlockchainDB.DeleteKey(blocknum);
     return (ret == 0);
 }

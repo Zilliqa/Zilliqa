@@ -95,8 +95,8 @@ const unsigned int VIEWCHANGE_TIME{ReadFromConstantsFile("VIEWCHANGE_TIME")};
 const unsigned int VIEWCHANGE_EXTRA_TIME{
     ReadFromConstantsFile("VIEWCHANGE_EXTRA_TIME")};
 const unsigned int SHARDING_TIMEOUT{ReadFromConstantsFile("SHARDING_TIMEOUT")};
-const unsigned int CONSENSUS_COSIG_WINDOW{
-    ReadFromConstantsFile("CONSENSUS_COSIG_WINDOW")};
+const unsigned int CONSENSUS_STATE_BLOCK_WINDOW{
+    ReadFromConstantsFile("CONSENSUS_STATE_BLOCK_WINDOW")};
 const unsigned int CONSENSUS_OBJECT_TIMEOUT{
     ReadFromConstantsFile("CONSENSUS_OBJECT_TIMEOUT")};
 const unsigned int FINALBLOCK_CONSENSUS_OBJECT_TIMEOUT{
@@ -120,8 +120,10 @@ const unsigned int N_PREFILLED_PER_ACCOUNT{
     ReadFromConstantsFile("N_PREFILLED_PER_ACCOUNT")};
 const std::string Test_Node_Mode{ReadFromOptionsFile("TEST_NET_MODE")};
 const std::string ex_priv_ip{ReadFromOptionsFile("EXCLUDE_PRIV_IP")};
+const std::string enable_do_rejoin{ReadFromOptionsFile("ENABLE_DO_REJOIN")};
 const bool EXCLUDE_PRIV_IP = (ex_priv_ip == "true") ? true : false;
 const bool TEST_NET_MODE = (Test_Node_Mode == "true") ? true : false;
+const bool ENABLE_DO_REJOIN = (enable_do_rejoin == "true") ? true : false;
 const unsigned int CONTRACT_CREATE_GAS{
     ReadFromConstantsFile("CONTRACT_CREATE_GAS")};
 const unsigned int CONTRACT_INVOKE_GAS{
