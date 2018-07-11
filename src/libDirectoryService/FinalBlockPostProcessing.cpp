@@ -88,7 +88,7 @@ bool DirectoryService::SendFinalBlockToLookupNodes()
 
     // always setting shard id to 0 -- shouldn't matter
     Serializable::SetNumber<uint32_t>(finalblock_message, curr_offset,
-                                     (uint32_t)0, sizeof(uint32_t));
+                                      (uint32_t)0, sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
     copy(m_finalBlockMessage.begin(), m_finalBlockMessage.end(),
@@ -194,7 +194,7 @@ void DirectoryService::SendFinalBlockToShardNodes(
 
             // Modify the shard id part of the message
             Serializable::SetNumber<uint32_t>(finalblock_message, curr_offset,
-                                             (uint32_t)i, sizeof(uint32_t));
+                                              (uint32_t)i, sizeof(uint32_t));
             curr_offset += sizeof(uint32_t);
 
             SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;

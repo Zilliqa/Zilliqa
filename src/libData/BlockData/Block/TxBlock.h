@@ -47,8 +47,8 @@ public:
 
     /// Constructor with specified Tx block parameters.
     TxBlock(TxBlockHeader&& header, std::vector<bool>&& isMicroBlockEmpty,
-            std::vector<MicroBlockHashSet>&& microBlockHashes, std::vector<uint32_t>&& shardIDs,
-            CoSignatures&& cosigs);
+            std::vector<MicroBlockHashSet>&& microBlockHashes,
+            std::vector<uint32_t>&& shardIDs, CoSignatures&& cosigs);
 
     uint32_t SerializeIsMicroBlockEmpty() const;
 

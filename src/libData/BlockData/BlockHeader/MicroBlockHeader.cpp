@@ -200,26 +200,26 @@ const StateHash& MicroBlockHeader::GetStateDeltaHash() const
 
 bool MicroBlockHeader::operator==(const MicroBlockHeader& header) const
 {
-    return std::tie(m_type, m_version, m_shardId, m_gasLimit, m_gasUsed, m_prevHash,
-                    m_blockNum, m_timestamp, m_hash, m_numTxs, m_minerPubKey,
-                    m_dsBlockNum, m_dsBlockHeader)
-        == std::tie(header.m_type, header.m_version, header.m_shardId, header.m_gasLimit,
-                    header.m_gasUsed, header.m_prevHash, header.m_blockNum,
-                    header.m_timestamp, header.m_hash, header.m_numTxs,
-                    header.m_minerPubKey, header.m_dsBlockNum,
+    return std::tie(m_type, m_version, m_shardID, m_gasLimit, m_gasUsed,
+                    m_prevHash, m_blockNum, m_timestamp, m_hash, m_numTxs,
+                    m_minerPubKey, m_dsBlockNum, m_dsBlockHeader)
+        == std::tie(header.m_type, header.m_version, header.m_shardID,
+                    header.m_gasLimit, header.m_gasUsed, header.m_prevHash,
+                    header.m_blockNum, header.m_timestamp, header.m_hash,
+                    header.m_numTxs, header.m_minerPubKey, header.m_dsBlockNum,
                     header.m_dsBlockHeader);
 }
 
 bool MicroBlockHeader::operator<(const MicroBlockHeader& header) const
 {
-    return std::tie(header.m_type, header.m_version, header.m_shardId, header.m_gasLimit,
-                    header.m_gasUsed, header.m_prevHash, header.m_blockNum,
-                    header.m_timestamp, header.m_hash, header.m_numTxs,
-                    header.m_minerPubKey, header.m_dsBlockNum,
+    return std::tie(header.m_type, header.m_version, header.m_shardID,
+                    header.m_gasLimit, header.m_gasUsed, header.m_prevHash,
+                    header.m_blockNum, header.m_timestamp, header.m_hash,
+                    header.m_numTxs, header.m_minerPubKey, header.m_dsBlockNum,
                     header.m_dsBlockHeader)
-        > std::tie(m_type, m_version, m_gasLimit, m_gasUsed, m_prevHash,
-                   m_blockNum, m_timestamp, m_hash, m_numTxs, m_minerPubKey,
-                   m_dsBlockNum, m_dsBlockHeader);
+        > std::tie(m_type, m_version, m_shardID, m_gasLimit, m_gasUsed,
+                   m_prevHash, m_blockNum, m_timestamp, m_hash, m_numTxs,
+                   m_minerPubKey, m_dsBlockNum, m_dsBlockHeader);
 }
 
 bool MicroBlockHeader::operator>(const MicroBlockHeader& header) const

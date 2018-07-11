@@ -260,9 +260,9 @@ bool Node::ComposeMicroBlock()
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Creating new micro block.")
     m_microblock.reset(new MicroBlock(
-        MicroBlockHeader(type, version, shardID, gasLimit, gasUsed, prevHash, blockNum,
-                         timestamp, txRootHash, numTxs, minerPubKey, dsBlockNum,
-                         dsBlockHeader, stateDeltaHash),
+        MicroBlockHeader(type, version, shardID, gasLimit, gasUsed, prevHash,
+                         blockNum, timestamp, txRootHash, numTxs, minerPubKey,
+                         dsBlockNum, dsBlockHeader, stateDeltaHash),
         tranHashes, CoSignatures()));
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
