@@ -834,16 +834,36 @@ bool Node::IsMyShardMicroBlockInFinalBlock(const uint256_t& blocknum)
             && it2->first.m_hash.m_txRootHash
                 == m_microblock->GetHeader().GetTxRootHash())
         {
-            LOG_GENERAL(INFO, "Found my shards microblock in finalblock");
+            LOG_GENERAL(INFO, "Found my shard microblock in finalblock");
             return true;
         }
     }
 
-    LOG_GENERAL(WARNING, "Didn't find my shards microblock in finalblock");
+    LOG_GENERAL(WARNING, "Didn't find my shard microblock in finalblock");
     return false;
 }
 
-bool Node::IsMyShardIdInFinalBlock(const uint256_t& blocknum) { return true; }
+bool Node::IsMyShardIdInFinalBlock(const uint256_t& blocknum) 
+{
+    auto it = m_unavailableMicroBlocks.find(blocknum);
+    if (it == m_unavailableMicroBlocks.end())
+    {
+        return false;
+    }
+
+    for (auto it2 = m_unavailableMicroBlocks[blocknum].begin();
+         it2 != m_unavailableMicroBlocks[blocknum].end(); it2++)
+    {
+        if (it2->first.m_shardID == m_myShardID)
+        {
+            LOG_GENERAL(INFO, "Found my shard ID in finalblock");
+            return true;
+        }
+    }
+
+    LOG_GENERAL(WARNING, "Didn't find my shard ID in finalblock");
+    return false;
+}
 
 bool Node::ActOnFinalBlock(uint8_t tx_sharing_mode, const vector<Peer>& nodes)
 {
