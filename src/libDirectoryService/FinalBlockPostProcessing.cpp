@@ -195,7 +195,6 @@ void DirectoryService::SendFinalBlockToShardNodes(
             // Modify the shard id part of the message
             Serializable::SetNumber<uint32_t>(finalblock_message, curr_offset,
                                               (uint32_t)i, sizeof(uint32_t));
-            curr_offset += sizeof(uint32_t);
 
             SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
             sha256.Update(finalblock_message);
