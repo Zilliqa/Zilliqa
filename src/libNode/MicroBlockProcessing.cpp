@@ -72,7 +72,7 @@ void Node::SubmitMicroblockToDSCommittee() const
     // cur_offset += sizeof(uint32_t);
 
     // Tx microblock
-    m_microblock->Serialize(microblock, cur_offset);
+    m_microblock->SerializeMin(microblock, cur_offset);
 
     LOG_STATE("[MICRO][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
