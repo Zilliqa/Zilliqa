@@ -194,8 +194,8 @@ bool Node::LoadUnavailableMicroBlockHashes(
                 != StateHash()))
         {
             m_unavailableMicroBlocks[blocknum].insert(
-                {{finalBlock.GetMicroBlockHashes()[i],
-                  finalBlock.GetShardIDs()[i]},
+                {UnavailableMicroBlock{finalBlock.GetMicroBlockHashes()[i],
+                                       finalBlock.GetShardIDs()[i]},
 #ifdef IS_LOOKUP_NODE
                  vector<bool>{!finalBlock.GetIsMicroBlockEmpty()[i], true}});
 #else // IS_LOOKUP_NODE
