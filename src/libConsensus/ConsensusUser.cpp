@@ -171,6 +171,10 @@ bool ConsensusUser::ProcessConsensusMessage(
                 return m_consensus->CanProcessMessage(message, offset);
             }))
     {
+        // order preserved
+    }
+    else
+    {
         LOG_GENERAL(
             WARNING,
             "Timeout while waiting for correct order of consensus messages");
