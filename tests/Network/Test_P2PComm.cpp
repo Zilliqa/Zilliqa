@@ -52,8 +52,10 @@ void process_message(const vector<unsigned char>& message, const Peer& from)
 }
 
 static bool
-comparePairSecond(const std::pair<std::vector<unsigned char>, time_t>& a,
-                  const std::pair<std::vector<unsigned char>, time_t>& b)
+comparePairSecond(const std::pair<std::vector<unsigned char>,
+                                  chrono::time_point<chrono::system_clock>>& a,
+                  const std::pair<std::vector<unsigned char>,
+                                  chrono::time_point<chrono::system_clock>>& b)
 {
     return a.second < b.second;
 }
@@ -67,15 +69,18 @@ void TestRemoveBroadcast()
     static const unsigned int hashNum = 100000;
     static set<vector<unsigned char>> broadcastHashes;
     static mutex broadcastHashesMutex;
-    static deque<pair<vector<unsigned char>, time_t>> broadcastToRemoved;
+    static deque<
+        pair<vector<unsigned char>, chrono::time_point<chrono::system_clock>>>
+        broadcastToRemoved;
     static mutex broadcastToRemovedMutex;
-    static const time_t initTime
-        = chrono::system_clock::to_time_t(chrono::system_clock::now());
+    static const chrono::time_point<chrono::system_clock> initTime
+        = chrono::system_clock::now();
 
     LOG_GENERAL(INFO,
                 "Start TestRemoveBroadcast, BROADCAST_INTERVAL = "
                     << BROADCAST_INTERVAL << ", BROADCAST_EXPIRY = "
                     << BROADCAST_EXPIRY << ", hashNum = " << hashNum << ".");
+
     //Filled in broadcastHashes (hashNum)
     auto FillHash = []() mutable -> void {
         LOG_GENERAL(INFO, "Start to fill broadcastHashes...");
@@ -98,7 +103,7 @@ void TestRemoveBroadcast()
     //Filled in broadcastToRemoved (hashNum / 2)
     auto FillRemove = []() mutable -> void {
         LOG_GENERAL(INFO, "Start to fill broadcastToRemoved...");
-        time_t currentTime = initTime;
+        chrono::time_point<chrono::system_clock> currentTime = initTime;
         for (unsigned int i = 0; i < hashNum; i += 2)
         {
             lock_guard<mutex> g(broadcastToRemovedMutex);
@@ -107,7 +112,7 @@ void TestRemoveBroadcast()
 
             if (i > 0 && 0 == (i % 100))
             {
-                ++currentTime;
+                currentTime += chrono::seconds(1);
             }
 
             broadcastToRemoved.emplace_back(hashS, currentTime);
@@ -135,25 +140,29 @@ void TestRemoveBroadcast()
         }
 
         vector<unsigned char> emptyHash;
-        time_t currentTime = initTime;
+        chrono::time_point<chrono::system_clock> currentTime = initTime;
 
         while (true)
         {
             this_thread::sleep_for(chrono::seconds(BROADCAST_INTERVAL));
-            currentTime += BROADCAST_INTERVAL;
+            currentTime += chrono::seconds(BROADCAST_INTERVAL);
             lock(broadcastToRemovedMutex, broadcastHashesMutex);
             lock_guard<mutex> g(broadcastToRemovedMutex, adopt_lock);
             lock_guard<mutex> g2(broadcastHashesMutex, adopt_lock);
 
             if (broadcastToRemoved.empty()
                 || broadcastToRemoved.front().second
-                    > currentTime - BROADCAST_EXPIRY)
+                    > currentTime - chrono::seconds(BROADCAST_EXPIRY))
             {
+
                 LOG_GENERAL(INFO,
                             "After "
-                                << currentTime - initTime
+                                << chrono::duration_cast<chrono::seconds>(
+                                       currentTime - initTime)
+                                       .count()
                                 << " seconds, broadcastHashes size remained "
                                 << broadcastHashes.size());
+
                 LOG_GENERAL(INFO,
                             "Checking "
                                 << ((answer.front() == broadcastHashes.size())
@@ -165,7 +174,8 @@ void TestRemoveBroadcast()
 
             auto up = upper_bound(
                 broadcastToRemoved.begin(), broadcastToRemoved.end(),
-                make_pair(emptyHash, currentTime - BROADCAST_EXPIRY),
+                make_pair(emptyHash,
+                          currentTime - chrono::seconds(BROADCAST_EXPIRY)),
                 comparePairSecond);
 
             for (auto it = broadcastToRemoved.begin(); it != up; ++it)
@@ -176,9 +186,12 @@ void TestRemoveBroadcast()
             broadcastToRemoved.erase(broadcastToRemoved.begin(), up);
 
             LOG_GENERAL(INFO,
-                        "After " << currentTime - initTime
+                        "After " << chrono::duration_cast<chrono::seconds>(
+                                        currentTime - initTime)
+                                        .count()
                                  << " seconds, broadcastHashes size reduce to "
                                  << broadcastHashes.size());
+
             LOG_GENERAL(INFO,
                         "Checking "
                             << ((answer.front() == broadcastHashes.size())

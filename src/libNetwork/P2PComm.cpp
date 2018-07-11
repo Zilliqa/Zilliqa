@@ -67,9 +67,11 @@ static void close_socket(int* cli_sock)
     }
 }
 
-static bool
-comparePairSecond(const std::pair<std::vector<unsigned char>, time_t>& a,
-                  const std::pair<std::vector<unsigned char>, time_t>& b)
+static bool comparePairSecond(
+    const pair<vector<unsigned char>, chrono::time_point<chrono::system_clock>>&
+        a,
+    const pair<vector<unsigned char>, chrono::time_point<chrono::system_clock>>&
+        b)
 {
     return a.second < b.second;
 }
@@ -88,14 +90,17 @@ P2PComm::P2PComm()
 
             if (m_broadcastToRemoved.empty()
                 || m_broadcastToRemoved.front().second
-                    > time(nullptr) - BROADCAST_EXPIRY)
+                    > chrono::system_clock::now()
+                        - chrono::seconds(BROADCAST_EXPIRY))
             {
                 continue;
             }
 
             auto up = upper_bound(
                 m_broadcastToRemoved.begin(), m_broadcastToRemoved.end(),
-                make_pair(emptyHash, time(nullptr) - BROADCAST_EXPIRY),
+                make_pair(emptyHash,
+                          chrono::system_clock::now()
+                              - chrono::seconds(BROADCAST_EXPIRY)),
                 comparePairSecond);
 
             for (auto it = m_broadcastToRemoved.begin(); it != up; ++it)
@@ -340,7 +345,8 @@ void P2PComm::ClearBroadcastHashAsync(const vector<unsigned char>& message_hash)
 {
     LOG_MARKER();
     lock_guard<mutex> guard(m_broadcastToRemovedMutex);
-    m_broadcastToRemoved.emplace_back(message_hash, time(nullptr));
+    m_broadcastToRemoved.emplace_back(message_hash,
+                                      chrono::system_clock::now());
 }
 
 void P2PComm::HandleAcceptedConnection(
