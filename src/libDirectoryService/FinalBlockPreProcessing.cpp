@@ -165,7 +165,7 @@ void DirectoryService::ComposeFinalBlockCore()
 
     if (m_mediator.m_dsBlockChain.GetBlockCount() <= 0)
     {
-        LOG_GENERAL(FATAL,
+        LOG_GENERAL(WARNING,
                     "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
                                          << __FUNCTION__ << ")");
     }

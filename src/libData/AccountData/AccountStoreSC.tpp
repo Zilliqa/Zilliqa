@@ -56,7 +56,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
     if (transaction.GetData().empty() && transaction.GetCode().empty())
     {
-        LOG_GENERAL(INFO, "Normal transaction");
+        // LOG_GENERAL(INFO, "Normal transaction");
 
         // Disallow normal transaction to contract account
         Account* toAccount = this->GetAccount(toAddr);
@@ -552,15 +552,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json)
         }
         string vname = s["vname"].asString();
         string type = s["type"].asString();
-        string value;
-        if (type == "Map" || type == "ADT")
-        {
-            value = JSONUtils::convertJsontoStr(s["value"]);
-        }
-        else
-        {
-            value = s["value"].asString();
-        }
+        string value = JSONUtils::convertJsontoStr(s["value"]);
 
         Account* contractAccount = this->GetAccount(m_curContractAddr);
         if (vname != "_balance")

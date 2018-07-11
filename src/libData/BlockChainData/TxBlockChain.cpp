@@ -60,7 +60,7 @@ TxBlock TxBlockChain::GetBlock(const uint64_t& blockNum)
 
     if (m_txBlocks[blockNum].GetHeader().GetBlockNum() != blockNum)
     {
-        LOG_GENERAL(FATAL,
+        LOG_GENERAL(WARNING,
                     "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
                                          << __FUNCTION__ << ")");
     }
