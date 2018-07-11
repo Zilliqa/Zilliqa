@@ -51,6 +51,161 @@ void process_message(const vector<unsigned char>& message, const Peer& from)
     }
 }
 
+static bool
+comparePairSecond(const std::pair<std::vector<unsigned char>,
+                                  chrono::time_point<chrono::system_clock>>& a,
+                  const std::pair<std::vector<unsigned char>,
+                                  chrono::time_point<chrono::system_clock>>& b)
+{
+    return a.second < b.second;
+}
+
+void TestRemoveBroadcast()
+{
+    LOG_MARKER();
+
+    static const unsigned int BROADCAST_INTERVAL = 5;
+    static const unsigned int BROADCAST_EXPIRY = 10;
+    static const unsigned int hashNum = 100000;
+    static set<vector<unsigned char>> broadcastHashes;
+    static mutex broadcastHashesMutex;
+    static deque<
+        pair<vector<unsigned char>, chrono::time_point<chrono::system_clock>>>
+        broadcastToRemoved;
+    static mutex broadcastToRemovedMutex;
+    static const chrono::time_point<chrono::system_clock> initTime
+        = chrono::system_clock::now();
+
+    LOG_GENERAL(INFO,
+                "Start TestRemoveBroadcast, BROADCAST_INTERVAL = "
+                    << BROADCAST_INTERVAL << ", BROADCAST_EXPIRY = "
+                    << BROADCAST_EXPIRY << ", hashNum = " << hashNum << ".");
+
+    //Filled in broadcastHashes (hashNum)
+    auto FillHash = []() mutable -> void {
+        LOG_GENERAL(INFO, "Start to fill broadcastHashes...");
+
+        for (unsigned int i = 0; i < hashNum; ++i)
+        {
+            lock_guard<mutex> g(broadcastHashesMutex);
+            string hash = to_string(i);
+            broadcastHashes.emplace(hash.begin(), hash.end());
+        }
+
+        LOG_GENERAL(INFO,
+                    "Finished fill " << broadcastHashes.size()
+                                     << " broadcastHashes.");
+    };
+
+    DetachedFunction(1, FillHash);
+    this_thread::sleep_for(chrono::seconds(1));
+
+    //Filled in broadcastToRemoved (hashNum / 2)
+    auto FillRemove = []() mutable -> void {
+        LOG_GENERAL(INFO, "Start to fill broadcastToRemoved...");
+        chrono::time_point<chrono::system_clock> currentTime = initTime;
+        for (unsigned int i = 0; i < hashNum; i += 2)
+        {
+            lock_guard<mutex> g(broadcastToRemovedMutex);
+            string hash = to_string(i);
+            vector<unsigned char> hashS(hash.begin(), hash.end());
+
+            if (i > 0 && 0 == (i % 100))
+            {
+                currentTime += chrono::seconds(1);
+            }
+
+            broadcastToRemoved.emplace_back(hashS, currentTime);
+        }
+
+        LOG_GENERAL(INFO,
+                    "Finished fill " << broadcastToRemoved.size()
+                                     << " broadcastToRemoved.");
+    };
+
+    DetachedFunction(1, FillRemove);
+    this_thread::sleep_for(chrono::seconds(1));
+
+    auto RemoveChecking = []() mutable -> void {
+        LOG_GENERAL(INFO, "Start to remove hash, 100 seconds checking...");
+
+        queue<unsigned int> answer;
+        answer.push(100000);
+        unsigned int cur = 99950;
+
+        for (unsigned int i = 0; i < 19; ++i)
+        {
+            answer.push(cur);
+            cur -= 250;
+        }
+
+        vector<unsigned char> emptyHash;
+        chrono::time_point<chrono::system_clock> currentTime = initTime;
+
+        while (true)
+        {
+            this_thread::sleep_for(chrono::seconds(BROADCAST_INTERVAL));
+            currentTime += chrono::seconds(BROADCAST_INTERVAL);
+            lock(broadcastToRemovedMutex, broadcastHashesMutex);
+            lock_guard<mutex> g(broadcastToRemovedMutex, adopt_lock);
+            lock_guard<mutex> g2(broadcastHashesMutex, adopt_lock);
+
+            if (broadcastToRemoved.empty()
+                || broadcastToRemoved.front().second
+                    > currentTime - chrono::seconds(BROADCAST_EXPIRY))
+            {
+
+                LOG_GENERAL(INFO,
+                            "After "
+                                << chrono::duration_cast<chrono::seconds>(
+                                       currentTime - initTime)
+                                       .count()
+                                << " seconds, broadcastHashes size remained "
+                                << broadcastHashes.size());
+
+                LOG_GENERAL(INFO,
+                            "Checking "
+                                << ((answer.front() == broadcastHashes.size())
+                                        ? "PASS!"
+                                        : "FAILED!"));
+                answer.pop();
+                continue;
+            }
+
+            auto up = upper_bound(
+                broadcastToRemoved.begin(), broadcastToRemoved.end(),
+                make_pair(emptyHash,
+                          currentTime - chrono::seconds(BROADCAST_EXPIRY)),
+                comparePairSecond);
+
+            for (auto it = broadcastToRemoved.begin(); it != up; ++it)
+            {
+                broadcastHashes.erase(it->first);
+            }
+
+            broadcastToRemoved.erase(broadcastToRemoved.begin(), up);
+
+            LOG_GENERAL(INFO,
+                        "After " << chrono::duration_cast<chrono::seconds>(
+                                        currentTime - initTime)
+                                        .count()
+                                 << " seconds, broadcastHashes size reduce to "
+                                 << broadcastHashes.size());
+
+            LOG_GENERAL(INFO,
+                        "Checking "
+                            << ((answer.front() == broadcastHashes.size())
+                                    ? "PASS!"
+                                    : "FAILED!"));
+
+            answer.pop();
+        }
+    };
+
+    DetachedFunction(1, RemoveChecking);
+    this_thread::sleep_for(chrono::seconds(100));
+}
+
 int main()
 {
     INIT_STDOUT_LOGGER();
@@ -83,6 +238,8 @@ int main()
 
     startTime = chrono::high_resolution_clock::now();
     P2PComm::GetInstance().SendMessage(peer, longMsg);
+
+    TestRemoveBroadcast();
 
     return 0;
 }
