@@ -26,7 +26,9 @@ using namespace boost::multiprecision;
 unsigned int MicroBlock::Serialize(vector<unsigned char>& dst,
                                    unsigned int offset) const
 {
-    offset += SerializeCore(dst, offset);
+    unsigned int size_core = SerializeCore(dst, offset);
+
+    offset += size_core;
 
     unsigned int size_needed = GetSerializedTxnHashesSize();
 
@@ -49,7 +51,7 @@ unsigned int MicroBlock::Serialize(vector<unsigned char>& dst,
 
     // BlockBase::Serialize(dst, curOffset);
 
-    return GetSerializedCoreSize() + GetSerializedTxnHashesSize();
+    return size_core + GetSerializedTxnHashesSize();
 }
 
 int MicroBlock::Deserialize(const vector<unsigned char>& src,
