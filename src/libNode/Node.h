@@ -258,7 +258,7 @@ class Node : public Executable, public Broadcastable
     bool
     ReadAuxilliaryInfoFromFinalBlockMsg(const vector<unsigned char>& message,
                                         unsigned int& cur_offset,
-                                        uint8_t& shard_id);
+                                        uint32_t& shard_id);
     void StoreState();
     // void StoreMicroBlocks();
     void StoreFinalBlock(const TxBlock& txBlock);
@@ -268,7 +268,7 @@ class Node : public Executable, public Broadcastable
     void ScheduleMicroBlockConsensus();
     void BeginNextConsensusRound();
     void LoadTxnSharingInfo(const vector<unsigned char>& message,
-                            unsigned int& cur_offset, uint8_t shard_id,
+                            unsigned int& cur_offset, uint32_t shard_id,
                             bool& i_am_sender, bool& i_am_forwarder,
                             vector<vector<Peer>>& nodes);
     void CallActOnFinalBlockBasedOnSenderForwarderAssgn(
