@@ -150,6 +150,10 @@ void Node::Prepare(bool runInitializeGenesisBlocks)
 bool Node::StartRetrieveHistory()
 {
     LOG_MARKER();
+
+    m_mediator.m_txBlockChain.Reset();
+    m_mediator.m_dsBlockChain.Reset();
+
     m_retriever = make_shared<Retriever>(m_mediator);
 
     bool ds_result;
@@ -195,7 +199,7 @@ void Node::StartSynchronization()
 {
     LOG_MARKER();
 
-    SetState(POW2_SUBMISSION);
+    SetState(SYNC);
     auto func = [this]() -> void {
         m_synchronizer.FetchOfflineLookups(m_mediator.m_lookup);
 
@@ -219,12 +223,23 @@ void Node::StartSynchronization()
         while (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
         {
             m_synchronizer.FetchLatestDSBlocks(
-                m_mediator.m_lookup, m_mediator.m_dsBlockChain.GetBlockCount());
+                m_mediator.m_lookup,
+                // m_mediator.m_dsBlockChain.GetBlockCount());
+                m_mediator.m_dsBlockChain.GetLastBlock()
+                        .GetHeader()
+                        .GetBlockNum()
+                    + 1);
             m_synchronizer.FetchLatestTxBlocks(
-                m_mediator.m_lookup, m_mediator.m_txBlockChain.GetBlockCount());
+                m_mediator.m_lookup,
+                // m_mediator.m_txBlockChain.GetBlockCount());
+                m_mediator.m_txBlockChain.GetLastBlock()
+                        .GetHeader()
+                        .GetBlockNum()
+                    + 1);
             this_thread::sleep_for(
                 chrono::seconds(m_mediator.m_lookup->m_startedPoW2
                                     ? BACKUP_POW2_WINDOW_IN_SECONDS
+                                        + TXN_SUBMISSION + TXN_BROADCAST
                                     : NEW_NODE_SYNC_INTERVAL));
         }
     };
@@ -601,6 +616,47 @@ bool Node::ProcessSubmitTxnSharing(const vector<unsigned char>& message,
 {
     //LOG_MARKER();
 
+    if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
+    {
+        if (m_state != TX_SUBMISSION)
+        {
+            return false;
+        }
+    }
+
+    bool isVacuousEpoch
+        = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
+
+    if (!isVacuousEpoch)
+    {
+        unique_lock<mutex> g(m_mutexNewRoundStarted);
+        if (!m_newRoundStarted)
+        {
+            // LOG_GENERAL(INFO, "Wait for new consensus round started");
+            if (m_cvNewRoundStarted.wait_for(
+                    g, std::chrono::seconds(TXN_SUBMISSION + TXN_BROADCAST))
+                == std::cv_status::timeout)
+            {
+                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                          "Waiting for new round started timeout, ignore");
+                return false;
+            }
+
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "New consensus round started, moving to "
+                      "ProcessSubmitTxnSharing");
+            if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
+            {
+                LOG_GENERAL(WARNING, "The node started rejoin, ignore");
+                return false;
+            }
+        }
+        else
+        {
+            // LOG_GENERAL(INFO, "No need to wait for newRoundStarted");
+        }
+    }
+
     unsigned int cur_offset = offset;
 
     while (cur_offset < message.size())
@@ -642,39 +698,6 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
     // Message = [204-byte transaction]
 
     LOG_MARKER();
-
-    if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
-    {
-        if (m_consensusID != 0)
-        {
-            return false;
-        }
-    }
-
-    bool isVacuousEpoch
-        = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
-
-    if (!isVacuousEpoch)
-    {
-        unique_lock<mutex> g(m_mutexNewRoundStarted);
-        if (!m_newRoundStarted)
-        {
-            // LOG_GENERAL(INFO, "Wait for new consensus round started");
-            m_cvNewRoundStarted.wait(g, [this] { return m_newRoundStarted; });
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "New consensus round started, moving to "
-                      "ProcessSubmitTxnSharing");
-            if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
-            {
-                LOG_GENERAL(WARNING, "The node started rejoin, discard it");
-                return false;
-            }
-        }
-        else
-        {
-            // LOG_GENERAL(INFO, "No need to wait for newRoundStarted");
-        }
-    }
 
     unsigned int cur_offset = offset;
 
@@ -946,9 +969,17 @@ void Node::RejoinAsNormal()
             this->CleanVariables();
             this->Install(true);
             this->StartSynchronization();
+            this->ResetRejoinFlags();
         };
         DetachedFunction(1, func);
     }
+}
+
+void Node::ResetRejoinFlags()
+{
+    m_doRejoinAtNextRound = false;
+    m_doRejoinAtStateRoot = false;
+    m_doRejoinAtFinalBlock = false;
 }
 
 bool Node::CleanVariables()
@@ -1024,6 +1055,53 @@ void Node::CleanCreatedTransaction()
 }
 #endif // IS_LOOKUP_NODE
 
+bool Node::ProcessDoRejoin(const std::vector<unsigned char>& message,
+                           unsigned int offset, const Peer& from)
+{
+#ifndef IS_LOOKUP_NODE
+
+    LOG_MARKER();
+
+    if (!ENABLE_DO_REJOIN)
+    {
+        return false;
+    }
+
+    if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
+    {
+        LOG_GENERAL(WARNING, "Already in rejoining!");
+        return false;
+    }
+
+    unsigned int cur_offset = offset;
+
+    if (IsMessageSizeInappropriate(message.size(), cur_offset,
+                                   MessageOffset::INST))
+    {
+        return false;
+    }
+
+    unsigned char rejoinType = message[cur_offset];
+    cur_offset += MessageOffset::INST;
+
+    switch (rejoinType)
+    {
+    case REJOINTYPE::ATFINALBLOCK:
+        m_doRejoinAtFinalBlock = true;
+        break;
+    case REJOINTYPE::ATNEXTROUND:
+        m_doRejoinAtNextRound = true;
+        break;
+    case REJOINTYPE::ATSTATEROOT:
+        m_doRejoinAtStateRoot = true;
+        break;
+    default:
+        return false;
+    }
+#endif // IS_LOOKUP_NODE
+    return true;
+}
+
 bool Node::ToBlockMessage(unsigned char ins_byte)
 {
     if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
@@ -1069,19 +1147,19 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
     typedef bool (Node::*InstructionHandler)(const vector<unsigned char>&,
                                              unsigned int, const Peer&);
 
-    InstructionHandler ins_handlers[] = {
-        &Node::ProcessStartPoW1,
-        &Node::ProcessDSBlock,
-        &Node::ProcessSharding,
-        &Node::ProcessCreateTransaction,
-        &Node::ProcessSubmitTransaction,
-        &Node::ProcessMicroblockConsensus,
-        &Node::ProcessFinalBlock,
-        &Node::ProcessForwardTransaction,
-        &Node::ProcessCreateTransactionFromLookup,
-        &Node::ProcessVCBlock,
-        &Node::ProcessForwardStateDelta,
-    };
+    InstructionHandler ins_handlers[]
+        = {&Node::ProcessStartPoW1,
+           &Node::ProcessDSBlock,
+           &Node::ProcessSharding,
+           &Node::ProcessCreateTransaction,
+           &Node::ProcessSubmitTransaction,
+           &Node::ProcessMicroblockConsensus,
+           &Node::ProcessFinalBlock,
+           &Node::ProcessForwardTransaction,
+           &Node::ProcessCreateTransactionFromLookup,
+           &Node::ProcessVCBlock,
+           &Node::ProcessForwardStateDelta,
+           &Node::ProcessDoRejoin};
 
     const unsigned char ins_byte = message.at(offset);
     const unsigned int ins_handlers_count

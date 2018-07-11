@@ -47,7 +47,7 @@ public:
         if ((SIZE != HASH_TYPE::HASH_VARIANT_256)
             && (SIZE != HASH_TYPE::HASH_VARIANT_512))
         {
-            LOG_GENERAL(FATAL,
+            LOG_GENERAL(WARNING,
                         "assertion failed (" << __FILE__ << ":" << __LINE__
                                              << ": " << __FUNCTION__ << ")");
         }
@@ -61,7 +61,7 @@ public:
     {
         if (input.size() <= 0)
         {
-            LOG_GENERAL(FATAL,
+            LOG_GENERAL(WARNING,
                         "assertion failed (" << __FILE__ << ":" << __LINE__
                                              << ": " << __FUNCTION__ << ")");
         }
@@ -75,7 +75,7 @@ public:
     {
         if ((offset + size) > input.size())
         {
-            LOG_GENERAL(FATAL,
+            LOG_GENERAL(WARNING,
                         "assertion failed (" << __FILE__ << ":" << __LINE__
                                              << ": " << __FUNCTION__ << ")");
         }
