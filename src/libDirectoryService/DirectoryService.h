@@ -281,7 +281,7 @@ class DirectoryService : public Executable, public Broadcastable
                               boost::multiprecision::uint256_t& block_num);
     void ExtractDataFromMicroblocks(
         TxnHash& microblockTxnTrieRoot, StateHash& microblockDeltaTrieRoot,
-        std::vector<MicroBlockHashSet>& microblockHashes,
+        std::vector<MicroBlockHashSet>& microblockHashes, std::vector<uint32_t>& shardIDs,
         boost::multiprecision::uint256_t& allGasLimit,
         boost::multiprecision::uint256_t& allGasUsed, uint32_t& numTxs,
         std::vector<bool>& isMicroBlockEmpty, uint32_t& numMicroBlocks) const;

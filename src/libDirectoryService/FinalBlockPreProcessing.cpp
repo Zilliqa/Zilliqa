@@ -41,8 +41,8 @@ using namespace boost::multiprecision;
 #ifndef IS_LOOKUP_NODE
 void DirectoryService::ExtractDataFromMicroblocks(
     TxnHash& microblockTxnTrieRoot, StateHash& microblockDeltaTrieRoot,
-    std::vector<MicroBlockHashSet>& microblockHashes, uint256_t& allGasLimit,
-    uint256_t& allGasUsed, uint32_t& numTxs,
+    std::vector<MicroBlockHashSet>& microblockHashes, std::vector<uint32_t>& shardIDs, 
+    uint256_t& allGasLimit, uint256_t& allGasUsed, uint32_t& numTxs,
     std::vector<bool>& isMicroBlockEmpty, uint32_t& numMicroBlocks) const
 {
     LOG_MARKER();
@@ -72,6 +72,7 @@ void DirectoryService::ExtractDataFromMicroblocks(
         microblockHashes.push_back(
             {microBlock.GetHeader().GetTxRootHash(),
              microBlock.GetHeader().GetStateDeltaHash()});
+        shardIDs.emplace_back(microBlock.GetShardID());
         allGasLimit += microBlock.GetHeader().GetGasLimit();
         allGasUsed += microBlock.GetHeader().GetGasUsed();
         numTxs += microBlock.GetHeader().GetNumTxs();
@@ -129,6 +130,7 @@ void DirectoryService::ComposeFinalBlockCore()
     TxnHash microblockTxnTrieRoot;
     StateHash microblockDeltaTrieRoot;
     std::vector<MicroBlockHashSet> microBlockHashes;
+    std::vector<uint32_t> shardIDs;
     uint8_t type = TXBLOCKTYPE::FINAL;
     uint32_t version = BLOCKVERSION::VERSION1;
     uint256_t allGasLimit = 0;
@@ -138,7 +140,7 @@ void DirectoryService::ComposeFinalBlockCore()
     uint32_t numMicroBlocks = 0;
 
     ExtractDataFromMicroblocks(microblockTxnTrieRoot, microblockDeltaTrieRoot,
-                               microBlockHashes, allGasLimit, allGasUsed,
+                               microBlockHashes, shardIDs, allGasLimit, allGasUsed,
                                numTxs, isMicroBlockEmpty, numMicroBlocks);
 
     m_microBlocks.clear();
@@ -201,6 +203,7 @@ void DirectoryService::ComposeFinalBlockCore()
                       dsBlockHeader),
         vector<bool>(isMicroBlockEmpty),
         vector<MicroBlockHashSet>(microBlockHashes),
+        vector<uint32_t>(shardIDs),
         CoSignatures(m_mediator.m_DSCommitteePubKeys.size())));
 
     LOG_STATE("[STATS][" << std::setw(15) << std::left
