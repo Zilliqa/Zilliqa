@@ -95,9 +95,13 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
                 return m_consensusObject->CanProcessMessage(message, offset);
             }))
     {
-        LOG_GENERAL(
-            WARNING,
-            "Timeout while waiting for correct order of consensus messages");
+        // Correct order preserved
+    }
+    else
+    {
+        LOG_GENERAL(WARNING,
+                    "Timeout while waiting for correct order of consensus "
+                    "messages");
         return false;
     }
 
