@@ -1508,7 +1508,8 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     if (m_lastMicroBlockCoSig.first != m_mediator.m_currentEpochNum)
     {
         std::unique_lock<mutex> cv_lk(m_MutexCVFBWaitMB);
-        if (cv_FBWaitMB.wait_for(cv_lk, std::chrono::seconds(TX_SUBMISSION))
+        if (cv_FBWaitMB.wait_for(
+                cv_lk, std::chrono::seconds(TXN_SUBMISSION + TXN_BROADCAST))
             == std::cv_status::timeout)
         {
             LOG_GENERAL(WARNING,
