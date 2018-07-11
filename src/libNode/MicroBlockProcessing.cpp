@@ -72,7 +72,7 @@ void Node::SubmitMicroblockToDSCommittee() const
     // cur_offset += sizeof(uint32_t);
 
     // Tx microblock
-    m_microblock->SerializeMin(microblock, cur_offset);
+    m_microblock->SerializeCore(microblock, cur_offset);
 
     LOG_STATE("[MICRO][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
@@ -721,6 +721,23 @@ bool Node::CheckMicroBlockStateDeltaHash()
     return true;
 }
 
+bool Node::CheckMicroBlockShardID()
+{
+    // Check version (must be most current version)
+    if (m_microblock->GetHeader().GetShardID() != m_myShardID)
+    {
+        LOG_GENERAL(WARNING,
+                    "ShardID check failed. Expected: "
+                        << m_myShardID << " Actual: "
+                        << m_microblock->GetHeader().GetShardID());
+        return false;
+    }
+
+    LOG_GENERAL(INFO, "ShardID check passed");
+
+    return true;
+}
+
 bool Node::MicroBlockValidator(const vector<unsigned char>& microblock,
                                vector<unsigned char>& errorMsg)
 {
@@ -735,8 +752,8 @@ bool Node::MicroBlockValidator(const vector<unsigned char>& microblock,
     {
         if (!CheckBlockTypeIsMicro() || !CheckMicroBlockVersion()
             || !CheckMicroBlockTimestamp() || !CheckMicroBlockHashes(errorMsg)
-            || !CheckMicroBlockTxnRootHash()
-            || !CheckMicroBlockStateDeltaHash())
+            || !CheckMicroBlockTxnRootHash() || !CheckMicroBlockStateDeltaHash()
+            || !CheckMicroBlockShardID())
         {
             break;
         }
