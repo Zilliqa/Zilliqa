@@ -127,7 +127,7 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
         {
             // condition passed without timeout
         }
-        else 
+        else
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Time out while waiting for state transition and "
@@ -138,7 +138,7 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
                   "State transition is completed and consensus object "
                   "creation.");
     }
-    // else if (m_state != MICROBLOCK_CONSENSUS)
+
     if (!CheckState(PROCESS_MICROBLOCKCONSENSUS))
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
