@@ -49,7 +49,7 @@ unsigned int MicroBlock::Serialize(vector<unsigned char>& dst,
 
     // BlockBase::Serialize(dst, curOffset);
 
-    return GetMinSize() + size_needed;
+    return GetSerializedCoreSize() + GetSerializedTxnHashesSize();
 }
 
 int MicroBlock::Deserialize(const vector<unsigned char>& src,
