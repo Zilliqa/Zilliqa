@@ -63,6 +63,13 @@ class Node : public Executable, public Broadcastable
         MISSINGTXN = 0x01
     };
 
+    enum REJOINTYPE : unsigned char
+    {
+        ATFINALBLOCK = 0x00,
+        ATNEXTROUND = 0x01,
+        ATSTATEROOT = 0x02
+    };
+
     string ActionString(enum Action action)
     {
         switch (action)
@@ -313,6 +320,8 @@ class Node : public Executable, public Broadcastable
     // bool ProcessCreateAccounts(const std::vector<unsigned char> & message, unsigned int offset, const Peer & from);
     bool ProcessDSBlock(const std::vector<unsigned char>& message,
                         unsigned int offset, const Peer& from);
+    bool ProcessDoRejoin(const std::vector<unsigned char>& message,
+                         unsigned int offset, const Peer& from);
 
     bool CheckWhetherDSBlockNumIsLatest(
         const boost::multiprecision::uint256_t dsblock_num);
@@ -362,6 +371,12 @@ class Node : public Executable, public Broadcastable
     // Is Running from New Process
     bool m_fromNewProcess = true;
 
+    bool m_doRejoinAtNextRound = false;
+    bool m_doRejoinAtStateRoot = false;
+    bool m_doRejoinAtFinalBlock = false;
+
+    void ResetRejoinFlags();
+
     // Rejoin the network as a shard node in case of failure happens in protocol
     void RejoinAsNormal();
 #endif // IS_LOOKUP_NODE
@@ -376,7 +391,8 @@ public:
         MICROBLOCK_CONSENSUS_PREP,
         MICROBLOCK_CONSENSUS,
         WAITING_FINALBLOCK,
-        ERROR
+        ERROR,
+        SYNC
     };
 
 private:

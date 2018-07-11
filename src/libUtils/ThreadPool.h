@@ -91,7 +91,7 @@ public:
         ++_jobsLeft;
         _jobAvailableVar.notify_one();
 
-        if (_jobsLeft % 100 == 0)
+        if (0 == _jobsLeft % 10)
         {
             LOG_GENERAL(INFO,
                         "PoolName: " << _poolName << " JobLeft: " << _jobsLeft
