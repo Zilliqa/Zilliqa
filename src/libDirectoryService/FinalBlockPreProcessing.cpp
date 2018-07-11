@@ -88,10 +88,10 @@ void DirectoryService::ExtractDataFromMicroblocks(
         if (!isVacuousEpoch && !isEmpty)
         {
             m_mediator.m_node->m_unavailableMicroBlocks[blockNum].insert(
-                {{microBlock.GetHeader().GetTxRootHash(),
-                  microBlock.GetHeader().GetStateDeltaHash()},
+                {{{microBlock.GetHeader().GetTxRootHash(),
+                   microBlock.GetHeader().GetStateDeltaHash()}},
                  // {!isEmptyTxn, true}});
-                 {false, true}});
+                 vector<bool>{false, true}});
 
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Added " << microBlock.GetHeader().GetTxRootHash() << " "
