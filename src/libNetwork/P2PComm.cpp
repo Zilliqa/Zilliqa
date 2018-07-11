@@ -40,7 +40,6 @@ const unsigned char START_BYTE_NORMAL = 0x11;
 const unsigned char START_BYTE_BROADCAST = 0x22;
 const unsigned int HDR_LEN = 6;
 const unsigned int HASH_LEN = 32;
-const unsigned int BROADCAST_EXPIRY_SECONDS = 600;
 
 /// Comparison operator for ordering the list of message hashes.
 struct hash_compare
@@ -68,7 +67,53 @@ static void close_socket(int* cli_sock)
     }
 }
 
-P2PComm::P2PComm() {}
+static bool comparePairSecond(
+    const pair<vector<unsigned char>, chrono::time_point<chrono::system_clock>>&
+        a,
+    const pair<vector<unsigned char>, chrono::time_point<chrono::system_clock>>&
+        b)
+{
+    return a.second < b.second;
+}
+
+P2PComm::P2PComm()
+{
+    auto func = [this]() -> void {
+        std::vector<unsigned char> emptyHash;
+
+        while (true)
+        {
+            this_thread::sleep_for(chrono::seconds(BROADCAST_INTERVAL));
+            lock(m_broadcastToRemovedMutex, m_broadcastHashesMutex);
+            lock_guard<mutex> g(m_broadcastToRemovedMutex, adopt_lock);
+            lock_guard<mutex> g2(m_broadcastHashesMutex, adopt_lock);
+
+            if (m_broadcastToRemoved.empty()
+                || m_broadcastToRemoved.front().second
+                    > chrono::system_clock::now()
+                        - chrono::seconds(BROADCAST_EXPIRY))
+            {
+                continue;
+            }
+
+            auto up = upper_bound(
+                m_broadcastToRemoved.begin(), m_broadcastToRemoved.end(),
+                make_pair(emptyHash,
+                          chrono::system_clock::now()
+                              - chrono::seconds(BROADCAST_EXPIRY)),
+                comparePairSecond);
+
+            for (auto it = m_broadcastToRemoved.begin(); it != up; ++it)
+            {
+                m_broadcastHashes.erase(it->first);
+            }
+
+            m_broadcastToRemoved.erase(m_broadcastToRemoved.begin(), up);
+        }
+    };
+
+    DetachedFunction(1, func);
+}
 
 P2PComm::~P2PComm() {}
 
@@ -299,18 +344,9 @@ void P2PComm::SendBroadcastMessageCore(
 void P2PComm::ClearBroadcastHashAsync(const vector<unsigned char>& message_hash)
 {
     LOG_MARKER();
-    // TODO: are we sure there wont be many threads arising from this, will ThreadPool alleviate it?
-    // Launch a separate, detached thread to automatically remove the hash from the list after a long time period has elapsed
-    auto func2 = [this, message_hash]() -> void {
-        vector<unsigned char> msg_hash_copy(message_hash);
-        this_thread::sleep_for(chrono::seconds(BROADCAST_EXPIRY_SECONDS));
-        lock_guard<mutex> guard(m_broadcastHashesMutex);
-        m_broadcastHashes.erase(msg_hash_copy);
-        // LOG_PAYLOAD(INFO, "Removing msg hash from broadcast list",
-        //             msg_hash_copy, Logger::MAX_BYTES_TO_DISPLAY);
-    };
-
-    DetachedFunction(1, func2);
+    lock_guard<mutex> guard(m_broadcastToRemovedMutex);
+    m_broadcastToRemoved.emplace_back(message_hash,
+                                      chrono::system_clock::now());
 }
 
 void P2PComm::HandleAcceptedConnection(
@@ -346,22 +382,18 @@ void P2PComm::HandleAcceptedConnection(
     uint32_t read_length = 0;
 
     // Read out just the header first
+    while (read_length != HDR_LEN)
     {
-        lock_guard<mutex> guard(P2PComm::GetInstance().m_receiveMessageMutex);
-
-        while (read_length != HDR_LEN)
+        int n = read(cli_sock, buf + read_length, HDR_LEN - read_length);
+        if (n <= 0)
         {
-            int n = read(cli_sock, buf + read_length, HDR_LEN - read_length);
-            if (n <= 0)
-            {
-                LOG_GENERAL(WARNING,
-                            "Socket read failed. Code = "
-                                << errno << " Desc: " << std::strerror(errno)
-                                << ". IP address: " << from);
-                return;
-            }
-            read_length += n;
+            LOG_GENERAL(WARNING,
+                        "Socket read failed. Code = "
+                            << errno << " Desc: " << std::strerror(errno)
+                            << ". IP address: " << from);
+            return;
         }
+        read_length += n;
     }
 
     if (read_length == HDR_LEN)
@@ -392,38 +424,29 @@ void P2PComm::HandleAcceptedConnection(
     {
         read_length = 0;
 
+        while (read_length != HASH_LEN)
         {
-            lock_guard<mutex> guard(
-                P2PComm::GetInstance().m_receiveMessageMutex);
-
-            while (read_length != HASH_LEN)
+            int n = read(cli_sock, hash_buf + read_length,
+                         HASH_LEN - read_length);
+            if (n <= 0)
             {
-                int n = read(cli_sock, hash_buf + read_length,
-                             HASH_LEN - read_length);
-                if (n <= 0)
-                {
-                    LOG_GENERAL(WARNING,
-                                "Socket read failed. Code = "
-                                    << errno
-                                    << " Desc: " << std::strerror(errno)
-                                    << ". IP address: " << from);
-                    return;
-                }
-                read_length += n;
+                LOG_GENERAL(WARNING,
+                            "Socket read failed. Code = "
+                                << errno << " Desc: " << std::strerror(errno)
+                                << ". IP address: " << from);
+                return;
             }
+            read_length += n;
         }
 
         // Check if this message has been received before
         bool found = false;
         {
+            lock_guard<mutex> guard(
+                P2PComm::GetInstance().m_broadcastHashesMutex);
             vector<unsigned char> msg_hash(hash_buf, hash_buf + HASH_LEN);
-
-            {
-                lock_guard<mutex> guard(
-                    P2PComm::GetInstance().m_broadcastHashesMutex);
-                found = (P2PComm::GetInstance().m_broadcastHashes.find(msg_hash)
-                         != P2PComm::GetInstance().m_broadcastHashes.end());
-            }
+            found = (P2PComm::GetInstance().m_broadcastHashes.find(msg_hash)
+                     != P2PComm::GetInstance().m_broadcastHashes.end());
 
             // While we have the lock, we should quickly add the hash
             if (!found)
@@ -432,25 +455,20 @@ void P2PComm::HandleAcceptedConnection(
                 read_length = 0;
                 message.resize(message_length - HASH_LEN);
 
+                while (read_length != message_length - HASH_LEN)
                 {
-                    lock_guard<mutex> guard(
-                        P2PComm::GetInstance().m_receiveMessageMutex);
-
-                    while (read_length != message_length - HASH_LEN)
+                    int n = read(cli_sock, &message.at(read_length),
+                                 message_length - HASH_LEN - read_length);
+                    if (n <= 0)
                     {
-                        int n = read(cli_sock, &message.at(read_length),
-                                     message_length - HASH_LEN - read_length);
-                        if (n <= 0)
-                        {
-                            LOG_GENERAL(WARNING,
-                                        "Socket read failed. Code = "
-                                            << errno
-                                            << " Desc: " << std::strerror(errno)
-                                            << ". IP address: " << from);
-                            return;
-                        }
-                        read_length += n;
+                        LOG_GENERAL(WARNING,
+                                    "Socket read failed. Code = "
+                                        << errno
+                                        << " Desc: " << std::strerror(errno)
+                                        << ". IP address: " << from);
+                        return;
                     }
+                    read_length += n;
                 }
 
                 LOG_PAYLOAD(INFO, "Message received", message,
@@ -468,8 +486,6 @@ void P2PComm::HandleAcceptedConnection(
 
                 if (this_msg_hash == msg_hash)
                 {
-                    lock_guard<mutex> guard(
-                        P2PComm::GetInstance().m_broadcastHashesMutex);
                     P2PComm::GetInstance().m_broadcastHashes.insert(
                         this_msg_hash);
                 }
@@ -527,25 +543,19 @@ void P2PComm::HandleAcceptedConnection(
         read_length = 0;
         message.resize(message_length);
 
+        while (read_length != message_length)
         {
-            lock_guard<mutex> guard(
-                P2PComm::GetInstance().m_receiveMessageMutex);
-
-            while (read_length != message_length)
+            int n = read(cli_sock, &message.at(read_length),
+                         message_length - read_length);
+            if (n <= 0)
             {
-                int n = read(cli_sock, &message.at(read_length),
-                             message_length - read_length);
-                if (n <= 0)
-                {
-                    LOG_GENERAL(WARNING,
-                                "Socket read failed. Code = "
-                                    << errno
-                                    << " Desc: " << std::strerror(errno)
-                                    << ". IP address: " << from);
-                    return;
-                }
-                read_length += n;
+                LOG_GENERAL(WARNING,
+                            "Socket read failed. Code = "
+                                << errno << " Desc: " << std::strerror(errno)
+                                << ". IP address: " << from);
+                return;
             }
+            read_length += n;
         }
 
         LOG_PAYLOAD(INFO, "Message received", message,
