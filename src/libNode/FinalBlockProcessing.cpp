@@ -50,7 +50,7 @@ using namespace boost::multiprecision;
 
 bool Node::ReadAuxilliaryInfoFromFinalBlockMsg(
     const vector<unsigned char>& message, unsigned int& cur_offset,
-    uint8_t& shard_id)
+    uint32_t& shard_id)
 {
     // 32-byte block number
     uint256_t dsBlockNum
@@ -76,9 +76,9 @@ bool Node::ReadAuxilliaryInfoFromFinalBlockMsg(
         return false;
     }
 
-    shard_id = Serializable::GetNumber<uint8_t>(message, cur_offset,
-                                                sizeof(uint8_t));
-    cur_offset += sizeof(uint8_t);
+    shard_id = Serializable::GetNumber<uint32_t>(message, cur_offset,
+                                                sizeof(uint32_t));
+    cur_offset += sizeof(uint32_t);
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "DEBUG shard id is " << (unsigned int)shard_id)
@@ -1167,7 +1167,7 @@ void Node::BeginNextConsensusRound()
 }
 
 void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
-                              unsigned int& cur_offset, uint8_t shard_id,
+                              unsigned int& cur_offset, uint32_t shard_id,
                               bool& i_am_sender, bool& i_am_forwarder,
                               vector<vector<Peer>>& nodes)
 {
@@ -1322,7 +1322,7 @@ void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
 
 void Node::CallActOnFinalBlockBasedOnSenderForwarderAssgn(
     bool i_am_sender, bool i_am_forwarder, const vector<vector<Peer>>& nodes,
-    uint8_t shard_id)
+    uint32_t shard_id)
 {
     if ((i_am_sender == false) && (i_am_forwarder == true))
     {
@@ -1548,7 +1548,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     unsigned int cur_offset = offset;
 
     // Initialize it with 255
-    uint8_t shard_id = (uint8_t)-1;
+    uint32_t shard_id = (uint32_t)-1;
 
     // Reads and checks DS Block number, consensus ID and Shard ID
     if (!ReadAuxilliaryInfoFromFinalBlockMsg(message, cur_offset, shard_id))
