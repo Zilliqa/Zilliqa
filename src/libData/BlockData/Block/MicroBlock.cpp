@@ -109,6 +109,61 @@ unsigned int MicroBlock::GetSerializedSize() const
         + BlockBase::GetSerializedSize();
 }
 
+unsigned int MicroBlock::SerializeMin(vector<unsigned char>& dst,
+                                      unsigned int offset) const
+{
+    if (m_header.GetNumTxs() != m_tranHashes.size())
+    {
+        LOG_GENERAL(WARNING,
+                    "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
+                                         << __FUNCTION__ << ")");
+    }
+
+    unsigned int size_needed = GetMinSize();
+
+    unsigned int size_remaining = dst.size() - offset;
+
+    if (size_remaining < size_needed)
+    {
+        dst.resize(size_needed + offset);
+    }
+
+    m_header.Serialize(dst, offset);
+
+    unsigned int curOffset = offset + MicroBlockHeader::SIZE;
+
+    BlockBase::Serialize(dst, curOffset);
+
+    return size_needed;
+}
+
+int MicroBlock::DeserializeMin(const vector<unsigned char>& src,
+                               unsigned int offset)
+{
+    try
+    {
+        // MicroBlockHeader header(src, offset);
+        MicroBlockHeader header;
+        if (header.Deserialize(src, offset) != 0)
+        {
+            LOG_GENERAL(WARNING, "We failed to deserialize MicroBlockHeader.");
+            return -1;
+        }
+        m_header = header;
+
+        unsigned int curOffset = offset + MicroBlockHeader::SIZE;
+
+        BlockBase::Deserialize(src, curOffset);
+    }
+    catch (const std::exception& e)
+    {
+        LOG_GENERAL(WARNING,
+                    "Error with MicroBlock::Deserialize." << ' ' << e.what());
+        return -1;
+    }
+    return 0;
+}
+
 unsigned int MicroBlock::GetMinSize() { return MicroBlockHeader::SIZE; }
 
 // creates a dummy invalid placeholder block -- blocknum is maxsize of uint256
