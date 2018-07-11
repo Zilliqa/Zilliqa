@@ -125,6 +125,10 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
                 cv_lk, std::chrono::seconds(CONSENSUS_OBJECT_TIMEOUT),
                 [this] { return (m_state == MICROBLOCK_CONSENSUS); }))
         {
+            // condition passed without timeout
+        }
+        else 
+        {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Time out while waiting for state transition and "
                       "consensus object creation ");
@@ -132,7 +136,7 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "State transition is completed and consensus object "
-                  "creation. (check for timeout)");
+                  "creation.");
     }
     // else if (m_state != MICROBLOCK_CONSENSUS)
     if (!CheckState(PROCESS_MICROBLOCKCONSENSUS))
