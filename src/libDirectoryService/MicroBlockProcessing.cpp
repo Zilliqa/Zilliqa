@@ -122,7 +122,7 @@ bool DirectoryService::ProcessMicroblockSubmission(
     if (IsMessageSizeInappropriate(message.size(), offset,
                                    UINT256_SIZE + sizeof(uint32_t)
                                        + sizeof(uint32_t)
-                                       + TxBlock::GetMinSize()))
+                                       + MicroBlock::GetMinSize()))
     {
         return false;
     }
@@ -154,20 +154,24 @@ bool DirectoryService::ProcessMicroblockSubmission(
     }
 
     // 4-byte shard ID
-    uint32_t shardId = Serializable::GetNumber<uint32_t>(message, curr_offset,
-                                                         sizeof(uint32_t));
-    curr_offset += sizeof(uint32_t);
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "shard_id " << shardId);
+    // uint32_t shardId = Serializable::GetNumber<uint32_t>(message, curr_offset,
+    //                                                      sizeof(uint32_t));
+    // curr_offset += sizeof(uint32_t);
+    // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    //           "shard_id " << shardId);
 
     // Tx microblock
     // MicroBlock microBlock(message, curr_offset);
     MicroBlock microBlock;
-    if (microBlock.Deserialize(message, curr_offset) != 0)
+    if (microBlock.DeserializeCore(message, curr_offset) != 0)
     {
         LOG_GENERAL(WARNING, "We failed to deserialize MicroBlock.");
         return false;
     }
+
+    uint32_t shardId = microBlock.GetHeader().GetShardID();
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "shard_id " << shardId);
 
     const PubKey& pubKey = microBlock.GetHeader().GetMinerPubKey();
 
