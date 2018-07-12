@@ -37,6 +37,7 @@
         <TXN_SUBMISSION>5</TXN_SUBMISSION>
         <TXN_BROADCAST>10</TXN_BROADCAST>
         <DEBUG_LEVEL>3</DEBUG_LEVEL>
+        <FULL_DATASET_MINE>0</FULL_DATASET_MINE>
     </constants>
     <options>
         <TEST_NET_MODE>false</TEST_NET_MODE>
