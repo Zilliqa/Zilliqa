@@ -34,6 +34,7 @@
 #include "libData/AccountData/Transaction.h"
 #include "libData/BlockChainData/TxBlockChain.h"
 #include "libData/BlockData/Block.h"
+#include "libData/BlockData/BlockHeader/UnavailableMicroBlock.h"
 #include "libLookup/Synchronizer.h"
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/PeerStore.h"
@@ -114,6 +115,9 @@ class Node : public Executable, public Broadcastable
     std::condition_variable cv_microblockConsensus;
     std::mutex m_MutexCVMicroblockConsensusObject;
     std::condition_variable cv_microblockConsensusObject;
+
+    std::mutex m_MutexCVFBWaitMB;
+    std::condition_variable cv_FBWaitMB;
 
     // Persistence Retriever
     std::shared_ptr<Retriever> m_retriever;
@@ -242,15 +246,17 @@ class Node : public Executable, public Broadcastable
     bool IsMicroBlockStateDeltaHashInFinalBlock(
         StateHash microBlockStateDeltaHash, TxnHash microBlockTxRootHash,
         const uint64_t& blocknum, bool& isEveryMicroBlockAvailable);
-    bool IsMyShardsMicroBlockTxRootHashInFinalBlock(
+    bool IsMyShardMicroBlockTxRootHashInFinalBlock(
         const uint64_t& blocknum, bool& isEveryMicroBlockAvailable);
-    bool IsMyShardsMicroBlockStateDeltaHashInFinalBlock(
+    bool IsMyShardMicroBlockStateDeltaHashInFinalBlock(
         const uint64_t& blocknum, bool& isEveryMicroBlockAvailable);
-    bool IsMyShardsMicroBlockInFinalBlock(const uint64_t& blocknum);
+    bool IsMyShardMicroBlockInFinalBlock(const uint64_t& blocknum);
+    bool
+    IsMyShardIdInFinalBlock(const boost::multiprecision::uint256_t& blocknum);
     bool
     ReadAuxilliaryInfoFromFinalBlockMsg(const vector<unsigned char>& message,
                                         unsigned int& cur_offset,
-                                        uint8_t& shard_id);
+                                        uint32_t& shard_id);
     void StoreState();
     // void StoreMicroBlocks();
     void StoreFinalBlock(const TxBlock& txBlock);
@@ -260,12 +266,12 @@ class Node : public Executable, public Broadcastable
     void ScheduleMicroBlockConsensus();
     void BeginNextConsensusRound();
     void LoadTxnSharingInfo(const vector<unsigned char>& message,
-                            unsigned int& cur_offset, uint8_t shard_id,
+                            unsigned int& cur_offset, uint32_t shard_id,
                             bool& i_am_sender, bool& i_am_forwarder,
                             vector<vector<Peer>>& nodes);
     void CallActOnFinalBlockBasedOnSenderForwarderAssgn(
         bool i_am_sender, bool i_am_forwarder,
-        const vector<vector<Peer>>& nodes, uint8_t shard_id);
+        const vector<vector<Peer>>& nodes, uint32_t shard_id);
 
     // internal calls from ProcessForwardTransaction
     void LoadFwdingAssgnForThisBlockNum(const uint64_t& blocknum,
@@ -352,6 +358,7 @@ class Node : public Executable, public Broadcastable
     bool CheckMicroBlockHashes(std::vector<unsigned char>& errorMsg);
     bool CheckMicroBlockTxnRootHash();
     bool CheckMicroBlockStateDeltaHash();
+    bool CheckMicroBlockShardID();
 
     bool ActOnFinalBlock(uint8_t tx_sharing_mode,
                          vector<Peer> my_shard_receivers,
@@ -412,7 +419,7 @@ public:
     // Transaction body sharing variables
     std::mutex m_mutexUnavailableMicroBlocks;
     std::unordered_map<uint64_t,
-                       std::unordered_map<MicroBlockHashSet, std::vector<bool>>>
+                       std::unordered_map<UnavailableMicroBlock, std::vector<bool>>>
         m_unavailableMicroBlocks;
 
     uint32_t m_consensusID;
