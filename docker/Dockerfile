@@ -40,13 +40,13 @@ ARG INSTALL_DIR=/usr/local
 RUN git clone --recursive -b ${BRANCH} --depth=10 ${REPO} ${SOURCE_DIR}; \
     git -C ${SOURCE_DIR} checkout ${COMMIT}; \
     mkdir $BUILD_DIR && cd $BUILD_DIR; \
-    cmake -DIS_LOOKUP_NODE=1 -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+    cmake -DIS_LOOKUP_NODE=1 -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} ${SOURCE_DIR}; \
     make -j2 && make install; \
     cd .. && rm -rf ${BUILD_DIR}; \
     mv ${INSTALL_DIR}/bin/zilliqa ${INSTALL_DIR}/bin/zilliqa_lookup; \
     mkdir $BUILD_DIR && cd $BUILD_DIR; \
-    cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+    cmake -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} ${SOURCE_DIR}; \
     make -j2 && make install; \
     cd ${INSTALL_DIR} && rm -rf ${BUILD_DIR}
