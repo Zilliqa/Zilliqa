@@ -110,6 +110,8 @@ class Node : public Executable, public Broadcastable
     bool m_isDSNode = true;
 
     // Consensus variables
+    std::shared_timed_mutex m_mutexProcessConsensusMessage;
+    std::condition_variable_any cv_processConsensusMessage;
     std::shared_ptr<ConsensusCommon> m_consensusObject;
     std::mutex m_MutexCVMicroblockConsensus;
     std::condition_variable cv_microblockConsensus;
