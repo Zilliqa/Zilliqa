@@ -269,7 +269,7 @@ bool PeerManager::Execute(const vector<unsigned char>& message,
 vector<Peer> PeerManager::GetBroadcastList(unsigned char ins_type,
                                            const Peer& broadcast_originator)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
     return Broadcastable::GetBroadcastList(ins_type, broadcast_originator);
 }
 

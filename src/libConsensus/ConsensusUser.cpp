@@ -216,8 +216,9 @@ bool ConsensusUser::Execute(const vector<unsigned char>& message,
     }
     else
     {
-        LOG_GENERAL(
-            INFO, "Unknown instruction byte " << hex << (unsigned int)ins_byte);
+        LOG_GENERAL(WARNING,
+                    "Unknown instruction byte " << hex
+                                                << (unsigned int)ins_byte);
     }
 
     return result;
@@ -228,7 +229,7 @@ bool ConsensusUser::MyMsgValidatorFunc(const vector<unsigned char>& message,
 {
     LOG_MARKER();
     LOG_PAYLOAD(INFO, "Message", message, Logger::MAX_BYTES_TO_DISPLAY);
-    LOG_GENERAL(INFO, "Message is valid. I don't really care...");
+    LOG_GENERAL(INFO, "Message is valid. ");
 
     return true;
 }

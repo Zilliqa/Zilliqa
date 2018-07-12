@@ -29,10 +29,20 @@ using namespace boost::multiprecision;
 
 typedef void (*handler_func)(int, const char*, const char*, uint32_t,
                              const char* []);
+
+typedef void (*handler_func_2)(int, const char*, const char*, const char*,
+                               uint32_t, const char* []);
+
 struct message_handler
 {
     const char* ins;
     handler_func func;
+};
+
+struct message_handler_2
+{
+    const char* ins;
+    handler_func_2 func;
 };
 
 void process_addpeers(int numargs, const char* progname, const char* cmdname,
@@ -143,6 +153,29 @@ void process_cmd(int numargs, const char* progname, const char* cmdname,
     }
 }
 
+void process_remote_cmd(int numargs, const char* progname, const char* cmdname,
+                        const char* remote_ip, uint32_t listen_port,
+                        const char* args[])
+{
+    const int num_args_required = 1;
+
+    if (numargs != num_args_required)
+    {
+        cout << "[USAGE] " << progname
+             << " <remote node ip_address> <remote node listen_port> "
+             << cmdname << " <hex string message>" << endl;
+    }
+    else
+    {
+        struct in_addr ip_addr;
+        inet_aton(remote_ip, &ip_addr);
+        Peer my_port((uint128_t)ip_addr.s_addr, listen_port);
+
+        vector<unsigned char> tmp = DataConversion::HexStrToUint8Vec(args[0]);
+        P2PComm::GetInstance().SendMessage(my_port, tmp);
+    }
+}
+
 int main(int argc, const char* argv[])
 {
     if (argc < 3)
@@ -155,14 +188,19 @@ int main(int argc, const char* argv[])
 
     const char* instruction = argv[2];
 
-    const message_handler message_handlers[] = {
-        {"addpeers", &process_addpeers},
-        {"broadcast", &process_broadcast},
-        {"cmd", &process_cmd},
-    };
+    const message_handler message_handlers[]
+        = {{"addpeers", &process_addpeers},
+           {"broadcast", &process_broadcast},
+           {"cmd", &process_cmd}};
+
+    const message_handler_2 message_handlers_2[]
+        = {{"remotecmd", &process_remote_cmd}};
 
     const int num_handlers
         = sizeof(message_handlers) / sizeof(message_handlers[0]);
+
+    const int num_handlers_2
+        = sizeof(message_handlers_2) / sizeof(message_handlers_2[0]);
 
     bool processed = false;
     for (int i = 0; i < num_handlers; i++)
@@ -179,7 +217,23 @@ int main(int argc, const char* argv[])
 
     if (!processed)
     {
-        cout << "Unknown command parameter supplied: " << instruction << endl;
+        instruction = argv[3];
+        for (int i = 0; i < num_handlers_2; i++)
+        {
+            if (!strcmp(instruction, message_handlers_2[i].ins))
+            {
+                (*message_handlers_2[i].func)(
+                    argc - 4, argv[0], argv[3], argv[1],
+                    static_cast<unsigned int>(atoi(argv[2])), argv + 4);
+                processed = true;
+                break;
+            }
+        }
+    }
+
+    if (!processed)
+    {
+        cout << "Unknown command parameter supplied" << endl;
     }
 
     return 0;

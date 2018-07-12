@@ -146,6 +146,10 @@ void Node::Prepare(bool runInitializeGenesisBlocks)
 bool Node::StartRetrieveHistory()
 {
     LOG_MARKER();
+
+    m_mediator.m_txBlockChain.Reset();
+    m_mediator.m_dsBlockChain.Reset();
+
     m_retriever = make_shared<Retriever>(m_mediator);
 
     bool ds_result;
@@ -191,7 +195,7 @@ void Node::StartSynchronization()
 {
     LOG_MARKER();
 
-    SetState(POW2_SUBMISSION);
+    SetState(SYNC);
     auto func = [this]() -> void {
         m_synchronizer.FetchOfflineLookups(m_mediator.m_lookup);
 
@@ -215,12 +219,23 @@ void Node::StartSynchronization()
         while (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
         {
             m_synchronizer.FetchLatestDSBlocks(
-                m_mediator.m_lookup, m_mediator.m_dsBlockChain.GetBlockCount());
+                m_mediator.m_lookup,
+                // m_mediator.m_dsBlockChain.GetBlockCount());
+                m_mediator.m_dsBlockChain.GetLastBlock()
+                        .GetHeader()
+                        .GetBlockNum()
+                    + 1);
             m_synchronizer.FetchLatestTxBlocks(
-                m_mediator.m_lookup, m_mediator.m_txBlockChain.GetBlockCount());
+                m_mediator.m_lookup,
+                // m_mediator.m_txBlockChain.GetBlockCount());
+                m_mediator.m_txBlockChain.GetLastBlock()
+                        .GetHeader()
+                        .GetBlockNum()
+                    + 1);
             this_thread::sleep_for(
                 chrono::seconds(m_mediator.m_lookup->m_startedPoW2
                                     ? BACKUP_POW2_WINDOW_IN_SECONDS
+                                        + TXN_SUBMISSION + TXN_BROADCAST
                                     : NEW_NODE_SYNC_INTERVAL));
         }
     };
@@ -275,8 +290,7 @@ bool Node::CheckState(Action action)
     if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  string("I am a DS node.")
-                          + string(" Why am I getting this message? Action: ")
+                  "I am a DS node. Why am I getting this message? Action: "
                       << ActionString(action));
         return false;
     }
@@ -311,7 +325,7 @@ bool Node::CheckState(Action action)
 vector<Peer> Node::GetBroadcastList(unsigned char ins_type,
                                     const Peer& broadcast_originator)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     // // MessageType::NODE, NodeInstructionType::FORWARDTRANSACTION
     // if (ins_type == NodeInstructionType::FORWARDTRANSACTION)
@@ -446,7 +460,7 @@ Address GenOneReceiver()
         auto receiver = Schnorr::GetInstance().GenKeyPair();
         receiverAddr = Account::GetAddressFromPublicKey(receiver.second);
         LOG_GENERAL(INFO,
-                    "Generate testing transaction receiver" << receiverAddr);
+                    "Generate testing transaction receiver " << receiverAddr);
     });
     return receiverAddr;
 }
@@ -547,45 +561,48 @@ bool Node::ProcessCreateTransaction(const vector<unsigned char>& message,
 bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
                                    unsigned int offset, const Peer& from)
 {
+    unsigned int cur_offset = offset;
+
     auto msgBlockNum
-        = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
-    offset += sizeof(uint32_t);
+        = Serializable::GetNumber<uint64_t>(message, offset, sizeof(uint64_t));
+    cur_offset += sizeof(uint64_t);
 
-    auto localBlockNum = (uint256_t)m_mediator.m_currentEpochNum;
-
-    if (msgBlockNum != localBlockNum)
+    if (msgBlockNum != m_mediator.m_currentEpochNum)
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "untimely delivery of "
                       << "missing txns. received: " << msgBlockNum
-                      << " , local: " << localBlockNum);
+                      << " , local: " << m_mediator.m_currentEpochNum);
     }
 
-    if (IsMessageSizeInappropriate(message.size(), offset,
-                                   Transaction::GetMinSerializedSize()))
+    while (cur_offset < message.size())
     {
-        return false;
+        Transaction submittedTransaction;
+        if (submittedTransaction.Deserialize(message, cur_offset) != 0)
+        {
+            LOG_GENERAL(WARNING,
+                        "Deserialize transactions failed, stop at the previous "
+                        "successful one");
+            return false;
+        }
+        cur_offset += submittedTransaction.GetSerializedSize();
+
+        if (m_mediator.m_validator->CheckCreatedTransaction(
+                submittedTransaction))
+        {
+            boost::multiprecision::uint256_t blockNum
+                = (uint256_t)m_mediator.m_currentEpochNum;
+            lock_guard<mutex> g(m_mutexReceivedTransactions);
+            auto& receivedTransactions = m_receivedTransactions[blockNum];
+
+            receivedTransactions.insert(make_pair(
+                submittedTransaction.GetTranID(), submittedTransaction));
+            //LOG_EPOCH(to_string(m_mediator.m_currentEpochNum).c_str(),
+            //             "Received txn: " << submittedTransaction.GetTranID())
+        }
     }
 
-    const auto& submittedTransaction = Transaction(message, offset);
-
-    if (m_mediator.m_validator->CheckCreatedTransaction(submittedTransaction))
-    {
-        lock_guard<mutex> g(m_mutexReceivedTransactions);
-        auto& receivedTransactions = m_receivedTransactions[msgBlockNum];
-        receivedTransactions.insert(
-            make_pair(submittedTransaction.GetTranID(), submittedTransaction));
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Received missing txn: " << submittedTransaction.GetTranID());
-        if (m_numOfAbsentTxnHashes > 0)
-        {
-            m_numOfAbsentTxnHashes--;
-        }
-        if (m_numOfAbsentTxnHashes == 0)
-        {
-            AccountStore::GetInstance().SerializeDelta();
-        }
-    }
+    AccountStore::GetInstance().SerializeDelta();
 
     return true;
 }
@@ -594,6 +611,47 @@ bool Node::ProcessSubmitTxnSharing(const vector<unsigned char>& message,
                                    unsigned int offset, const Peer& from)
 {
     //LOG_MARKER();
+
+    if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
+    {
+        if (m_state != TX_SUBMISSION)
+        {
+            return false;
+        }
+    }
+
+    bool isVacuousEpoch
+        = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
+
+    if (!isVacuousEpoch)
+    {
+        unique_lock<mutex> g(m_mutexNewRoundStarted);
+        if (!m_newRoundStarted)
+        {
+            // LOG_GENERAL(INFO, "Wait for new consensus round started");
+            if (m_cvNewRoundStarted.wait_for(
+                    g, std::chrono::seconds(TXN_SUBMISSION + TXN_BROADCAST))
+                == std::cv_status::timeout)
+            {
+                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                          "Waiting for new round started timeout, ignore");
+                return false;
+            }
+
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "New consensus round started, moving to "
+                      "ProcessSubmitTxnSharing");
+            if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
+            {
+                LOG_GENERAL(WARNING, "The node started rejoin, ignore");
+                return false;
+            }
+        }
+        else
+        {
+            // LOG_GENERAL(INFO, "No need to wait for newRoundStarted");
+        }
+    }
 
     unsigned int cur_offset = offset;
 
@@ -637,44 +695,10 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
 
     LOG_MARKER();
 
-    if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
-    {
-        if (m_consensusID != 0)
-        {
-            return false;
-        }
-    }
-
-    bool isVacuousEpoch
-        = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
-
-    if (!isVacuousEpoch)
-    {
-        unique_lock<mutex> g(m_mutexNewRoungStarted);
-        if (!m_newRoundStarted)
-        {
-            // LOG_GENERAL(INFO, "Wait for new consensus round started");
-            m_cvNewRoundStarted.wait(g, [this] { return m_newRoundStarted; });
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "New consensus round started, moving to "
-                      "ProcessSubmitTxnSharing");
-            if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
-            {
-                LOG_GENERAL(WARNING, "The node started rejoin, discard it");
-                return false;
-            }
-        }
-        else
-        {
-            // LOG_GENERAL(INFO, "No need to wait for newRoundStarted");
-        }
-    }
-
     unsigned int cur_offset = offset;
 
-    auto submitTxnType = Serializable::GetNumber<uint32_t>(message, cur_offset,
-                                                           sizeof(uint32_t));
-    cur_offset += sizeof(uint32_t);
+    unsigned char submitTxnType = message[cur_offset];
+    cur_offset += MessageOffset::INST;
 
     if (submitTxnType == SUBMITTRANSACTIONTYPE::MISSINGTXN)
     {
@@ -707,7 +731,7 @@ bool Node::ProcessCreateTransactionFromLookup(
 
     // if (!isVacuousEpoch)
     // {
-    //     unique_lock<mutex> g(m_mutexNewRoungStarted);
+    //     unique_lock<mutex> g(m_mutexNewRoundStarted);
     //     if (!m_newRoundStarted)
     //     {
     //         LOG_GENERAL(INFO, "Wait for new consensus round started");
@@ -806,10 +830,9 @@ void Node::SubmitTransactions()
 
     m_txMessage = {MessageType::NODE, NodeInstructionType::SUBMITTRANSACTION};
     cur_offset += MessageOffset::BODY;
-    Serializable::SetNumber<uint32_t>(m_txMessage, cur_offset,
-                                      SUBMITTRANSACTIONTYPE::TXNSHARING,
-                                      sizeof(uint32_t));
-    cur_offset += sizeof(uint32_t);
+
+    m_txMessage.push_back(SUBMITTRANSACTIONTYPE::TXNSHARING);
+    cur_offset += MessageOffset::INST;
 
     // TODO: remove the condition on txn_sent_count -- temporary hack to artificially limit number of
     // txns needed to be shared within shard members so that it completes in the time limit
@@ -879,7 +902,10 @@ void Node::SubmitTransactions()
         {
             if (!m_mediator.m_validator->CheckCreatedTransaction(t))
             {
-                return;
+                if (t.GetCode().empty() && t.GetData().empty())
+                {
+                    continue;
+                }
             }
             appendOne(t);
         }
@@ -887,7 +913,10 @@ void Node::SubmitTransactions()
         {
             if (!m_mediator.m_validator->CheckCreatedTransaction(t))
             {
-                return;
+                if (t.GetCode().empty() && t.GetData().empty())
+                {
+                    continue;
+                }
             }
             appendOne(t);
         }
@@ -921,11 +950,22 @@ void Node::RejoinAsNormal()
     LOG_MARKER();
     if (m_mediator.m_lookup->m_syncType == SyncType::NO_SYNC)
     {
-        m_mediator.m_lookup->m_syncType = SyncType::NORMAL_SYNC;
-        this->CleanVariables();
-        this->Install(true);
-        this->StartSynchronization();
+        auto func = [this]() mutable -> void {
+            m_mediator.m_lookup->m_syncType = SyncType::NORMAL_SYNC;
+            this->CleanVariables();
+            this->Install(true);
+            this->StartSynchronization();
+            this->ResetRejoinFlags();
+        };
+        DetachedFunction(1, func);
     }
+}
+
+void Node::ResetRejoinFlags()
+{
+    m_doRejoinAtNextRound = false;
+    m_doRejoinAtStateRoot = false;
+    m_doRejoinAtFinalBlock = false;
 }
 
 bool Node::CleanVariables()
@@ -1000,6 +1040,53 @@ void Node::CleanCreatedTransaction()
 }
 #endif // IS_LOOKUP_NODE
 
+bool Node::ProcessDoRejoin(const std::vector<unsigned char>& message,
+                           unsigned int offset, const Peer& from)
+{
+#ifndef IS_LOOKUP_NODE
+
+    LOG_MARKER();
+
+    if (!ENABLE_DO_REJOIN)
+    {
+        return false;
+    }
+
+    if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
+    {
+        LOG_GENERAL(WARNING, "Already in rejoining!");
+        return false;
+    }
+
+    unsigned int cur_offset = offset;
+
+    if (IsMessageSizeInappropriate(message.size(), cur_offset,
+                                   MessageOffset::INST))
+    {
+        return false;
+    }
+
+    unsigned char rejoinType = message[cur_offset];
+    cur_offset += MessageOffset::INST;
+
+    switch (rejoinType)
+    {
+    case REJOINTYPE::ATFINALBLOCK:
+        m_doRejoinAtFinalBlock = true;
+        break;
+    case REJOINTYPE::ATNEXTROUND:
+        m_doRejoinAtNextRound = true;
+        break;
+    case REJOINTYPE::ATSTATEROOT:
+        m_doRejoinAtStateRoot = true;
+        break;
+    default:
+        return false;
+    }
+#endif // IS_LOOKUP_NODE
+    return true;
+}
+
 bool Node::ToBlockMessage(unsigned char ins_byte)
 {
     if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
@@ -1045,19 +1132,19 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
     typedef bool (Node::*InstructionHandler)(const vector<unsigned char>&,
                                              unsigned int, const Peer&);
 
-    InstructionHandler ins_handlers[] = {
-        &Node::ProcessStartPoW1,
-        &Node::ProcessDSBlock,
-        &Node::ProcessSharding,
-        &Node::ProcessCreateTransaction,
-        &Node::ProcessSubmitTransaction,
-        &Node::ProcessMicroblockConsensus,
-        &Node::ProcessFinalBlock,
-        &Node::ProcessForwardTransaction,
-        &Node::ProcessCreateTransactionFromLookup,
-        &Node::ProcessVCBlock,
-        &Node::ProcessForwardStateDelta,
-    };
+    InstructionHandler ins_handlers[]
+        = {&Node::ProcessStartPoW1,
+           &Node::ProcessDSBlock,
+           &Node::ProcessSharding,
+           &Node::ProcessCreateTransaction,
+           &Node::ProcessSubmitTransaction,
+           &Node::ProcessMicroblockConsensus,
+           &Node::ProcessFinalBlock,
+           &Node::ProcessForwardTransaction,
+           &Node::ProcessCreateTransactionFromLookup,
+           &Node::ProcessVCBlock,
+           &Node::ProcessForwardStateDelta,
+           &Node::ProcessDoRejoin};
 
     const unsigned char ins_byte = message.at(offset);
     const unsigned int ins_handlers_count

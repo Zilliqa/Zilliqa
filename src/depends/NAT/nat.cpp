@@ -108,7 +108,7 @@ int NAT::addRedirect(int _port)
         return -1;
     }
 
-    if (_port < 0 && _port > 65535)
+    if ((_port < 0) || (_port > 65535))
     {
         return -1;
     }
@@ -172,7 +172,7 @@ void NAT::removeRedirect(int _port)
         return;
     }
     
-    if (_port < 0 && _port > 65535)
+    if ((_port < 0) || (_port > 65535))
     {
         return;
     }
