@@ -80,8 +80,7 @@ int DSBlockChain::AddBlock(const DSBlock& block)
     if (blockNumOfExistingBlock < blockNumOfNewBlock
         || blockNumOfExistingBlock == (uint256_t)-1)
     {
-        // m_dsBlocks.insert_new(blockNumOfNewBlock, block);
-        m_dsBlocks.push_back(block);
+        m_dsBlocks.insert_new(blockNumOfNewBlock, block);
     }
     else
     {

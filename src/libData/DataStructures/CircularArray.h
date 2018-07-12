@@ -74,7 +74,7 @@ public:
             throw;
         }
         m_array[(int)(index % m_capacity)] = element;
-        m_size++;
+        m_size = (index % m_capacity) + 1;
     }
 
     /// Returns the element at the back of the array.
