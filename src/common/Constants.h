@@ -146,6 +146,7 @@ extern const unsigned int COINBASE_REWARD;
 extern const unsigned int TXN_SUBMISSION;
 extern const unsigned int TXN_BROADCAST;
 extern const unsigned int DEBUG_LEVEL;
+extern const unsigned int FULL_DATASET_MINE;
 extern const std::vector<std::string> GENESIS_WALLETS;
 extern const std::vector<std::string> GENESIS_KEYS;
 #endif // __CONSTANTS_H__

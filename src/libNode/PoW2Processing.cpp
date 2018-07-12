@@ -115,7 +115,7 @@ void Node::StartPoW2MiningAndShareResultWithDS(
 
     ethash_mining_result winning_result = POW::GetInstance().PoWMine(
         block_num, difficulty, rand1, rand2, m_mediator.m_selfPeer.m_ipAddress,
-        m_mediator.m_selfKey.second, true);
+        m_mediator.m_selfKey.second, FULL_DATASET_MINE);
 
     if (winning_result.success)
     {
