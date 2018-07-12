@@ -323,7 +323,7 @@ bool Node::OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
     vector<unsigned char> tx_message
         = {MessageType::NODE, NodeInstructionType::SUBMITTRANSACTION};
     cur_offset += MessageOffset::BODY;
-    tx_message.emplace_back(SUBMITTRANSACTIONTYPE::MISSINGTXN);
+    tx_message.push_back(SUBMITTRANSACTIONTYPE::MISSINGTXN);
     cur_offset += MessageOffset::INST;
     Serializable::SetNumber<uint64_t>(tx_message, cur_offset, blockNum,
                                       sizeof(uint64_t));

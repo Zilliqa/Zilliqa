@@ -611,7 +611,7 @@ bool Lookup::ProcessGetSeedPeersFromLookup(const vector<unsigned char>& message,
         {
             index = dis(gen);
         }
-        indicesAlreadyAdded.emplace(index);
+        indicesAlreadyAdded.insert(index);
 
         Peer candidateSeed = m_nodesInNetwork[index];
 

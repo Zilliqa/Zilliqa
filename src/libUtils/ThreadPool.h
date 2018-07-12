@@ -62,7 +62,7 @@ public:
         _threads.reserve(threadCount);
         for (unsigned int index = 0; index < threadCount; ++index)
         {
-            _threads.emplace_back(std::thread([this] { this->Task(); }));
+            _threads.push_back(std::thread([this] { this->Task(); }));
         }
 
 #if CONTIGUOUS_JOBS_MEMORY
@@ -84,7 +84,7 @@ public:
         std::lock_guard<std::mutex> lg2(_jobsLeftMutex, std::adopt_lock);
 
 #if CONTIGUOUS_JOBS_MEMORY
-        _queue.emplace_back(job);
+        _queue.push_back(job);
 #else
         _queue.push(job);
 #endif

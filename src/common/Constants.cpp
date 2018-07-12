@@ -62,7 +62,7 @@ ReadAccountsFromConstantsFile(std::string propName)
         if (child)
         {
             // LOG_GENERAL("constants " << child.get());
-            result.emplace_back(child.get());
+            result.push_back(child.get());
         }
     }
     return result;
