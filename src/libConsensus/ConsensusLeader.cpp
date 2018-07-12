@@ -246,6 +246,33 @@ bool ConsensusLeader::CheckState(Action action)
             break;
         }
         break;
+    case PROCESS_COMMITFAILURE:
+        switch (m_state)
+        {
+        case INITIAL:
+            break;
+        case ANNOUNCE_DONE:
+            break;
+        case CHALLENGE_DONE:
+            break;
+        case COLLECTIVESIG_DONE:
+            break;
+        case FINALCHALLENGE_DONE:
+            break;
+        case DONE:
+            break;
+        case ERROR:
+            LOG_GENERAL(WARNING,
+                        "Processing finalresponse but receiving "
+                        "ERROR message.");
+            result = false;
+            break;
+        default:
+            LOG_GENERAL(WARNING, "Unrecognized or error state");
+            result = false;
+            break;
+        }
+        break;
     default:
         LOG_GENERAL(WARNING, "Unrecognized action");
         result = false;
@@ -577,7 +604,7 @@ bool ConsensusLeader::ProcessMessageCommitFailure(
 {
     LOG_MARKER();
 
-    if (!CheckState(PROCESS_COMMIT))
+    if (!CheckState(PROCESS_COMMITFAILURE))
     {
         return false;
     }
@@ -983,7 +1010,7 @@ bool ConsensusLeader::ProcessMessageResponseCore(
             // {
             //     this_thread::sleep_for(chrono::milliseconds(1000));
             // }
-            this_thread::sleep_for(chrono::seconds(CONSENSUS_COSIG_WINDOW));
+            //this_thread::sleep_for(chrono::seconds(CONSENSUS_COSIG_WINDOW));
 
             deque<Peer> peerInfo;
 

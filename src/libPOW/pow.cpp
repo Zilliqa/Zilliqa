@@ -140,18 +140,20 @@ void POW::EthashLightDelete(ethash_light_t light)
 bool POW::EthashConfigureLightClient(uint64_t block_number)
 {
     std::lock_guard<std::mutex> g(m_mutexLightClientConfigure);
+
+    if (block_number < currentBlockNum)
+    {
+        LOG_GENERAL(WARNING,
+                    "WARNING: How come the latest block number is smaller than "
+                    "current block number.  block_number: "
+                        << " currentBlockNum: " << currentBlockNum);
+    }
+
     if (block_number != currentBlockNum)
     {
         ethash_light_client
             = EthashLightReuse(ethash_light_client, block_number);
         currentBlockNum = block_number;
-    }
-
-    if (block_number < currentBlockNum)
-    {
-        LOG_GENERAL(INFO,
-                    "WARNING: How come the latest block number is smaller than "
-                    "I what?");
     }
 
     return true;

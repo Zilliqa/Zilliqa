@@ -36,7 +36,7 @@ template<class MAP>
 bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                                          const Transaction& transaction)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     lock_guard<mutex> g(m_mutexUpdateAccounts);
 
@@ -56,7 +56,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
     if (transaction.GetData().empty() && transaction.GetCode().empty())
     {
-        LOG_GENERAL(INFO, "Normal transaction");
+        // LOG_GENERAL(INFO, "Normal transaction");
 
         // Disallow normal transaction to contract account
         Account* toAccount = this->GetAccount(toAddr);
@@ -162,7 +162,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             ret = false;
         }
         uint256_t gasRefund;
-        if (AccountStoreBase<MAP>::CalculateGasRefund(
+        if (!AccountStoreBase<MAP>::CalculateGasRefund(
                 gasDeposit, CONTRACT_CREATE_GAS, transaction.GetGasPrice(),
                 gasRefund))
         {
@@ -418,7 +418,7 @@ template<class MAP> string AccountStoreSC<MAP>::GetCallContractCmdStr()
 
 template<class MAP> bool AccountStoreSC<MAP>::ParseCreateContractOutput()
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     ifstream in(OUTPUT_JSON, ios::binary);
 
@@ -451,7 +451,7 @@ template<class MAP>
 bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
     const Json::Value& _json)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     if (!_json.isMember("message") || !_json.isMember("states"))
     {
@@ -473,7 +473,7 @@ bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
 
 template<class MAP> bool AccountStoreSC<MAP>::ParseCallContractOutput()
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     ifstream in(OUTPUT_JSON, ios::binary);
 
@@ -505,7 +505,7 @@ template<class MAP> bool AccountStoreSC<MAP>::ParseCallContractOutput()
 template<class MAP>
 bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     if (!_json.isMember("message") || !_json.isMember("states"))
     {
@@ -552,15 +552,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json)
         }
         string vname = s["vname"].asString();
         string type = s["type"].asString();
-        string value;
-        if (type == "Map" || type == "ADT")
-        {
-            value = JSONUtils::convertJsontoStr(s["value"]);
-        }
-        else
-        {
-            value = s["value"].asString();
-        }
+        string value = JSONUtils::convertJsontoStr(s["value"]);
 
         Account* contractAccount = this->GetAccount(m_curContractAddr);
         if (vname != "_balance")

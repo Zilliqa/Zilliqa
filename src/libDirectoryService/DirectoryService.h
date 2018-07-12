@@ -282,6 +282,7 @@ class DirectoryService : public Executable, public Broadcastable
     void ExtractDataFromMicroblocks(
         TxnHash& microblockTxnTrieRoot, StateHash& microblockDeltaTrieRoot,
         std::vector<MicroBlockHashSet>& microblockHashes,
+        std::vector<uint32_t>& shardIDs,
         boost::multiprecision::uint256_t& allGasLimit,
         boost::multiprecision::uint256_t& allGasUsed, uint32_t& numTxs,
         std::vector<bool>& isMicroBlockEmpty, uint32_t& numMicroBlocks) const;
@@ -393,6 +394,9 @@ public:
 
     /// The ID number of this Zilliqa instance for use with consensus operations.
     uint16_t m_consensusMyID;
+
+    /// The epoch number when DS tries doing Rejoin
+    uint64_t m_latestActiveDSBlockNum = 0;
 
     /// Constructor. Requires mediator reference to access Node and other global members.
     DirectoryService(Mediator& mediator);

@@ -18,6 +18,7 @@
 #ifndef __CONSENSUSBACKUP_H__
 #define __CONSENSUSBACKUP_H__
 
+#include <condition_variable>
 #include <deque>
 #include <functional>
 #include <memory>
@@ -51,8 +52,18 @@ private:
     // Function handler for validating message content
     MsgContentValidatorFunc m_msgContentValidator;
 
+    // Announcement State block
+    std::condition_variable cv_announcementBlock;
+    std::mutex m_MutexCVAnnouncementBlock;
+
+    // Cosig1 State block
+    std::condition_variable cv_cosig1Block;
+    std::mutex m_MutexCVCosig1Block;
+
     // Internal functions
     bool CheckState(Action action);
+    bool BlockState(Action action);
+
     bool ProcessMessageAnnounce(const std::vector<unsigned char>& announcement,
                                 unsigned int offset);
     bool GenerateCommitFailureMessage(vector<unsigned char>& commitFailure,

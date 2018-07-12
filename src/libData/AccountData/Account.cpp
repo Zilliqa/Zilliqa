@@ -46,7 +46,7 @@ Account::Account(const uint256_t& balance, const uint256_t& nonce)
 
 void Account::InitStorage()
 {
-    LOG_MARKER();
+    // LOG_MARKER();
     m_storage = AccountTrieDB<dev::h256, OverlayDB>(
         &(ContractStorage::GetContractStorage().GetStateDB()));
     m_storage.init();
@@ -65,7 +65,7 @@ void Account::InitContract(const vector<unsigned char>& data)
 
 void Account::InitContract()
 {
-    LOG_MARKER();
+    // LOG_MARKER();
     if (m_initData.empty())
     {
         LOG_GENERAL(WARNING, "Init data for the contract is empty");
@@ -794,7 +794,7 @@ Address Account::GetAddressFromPublicKey(const PubKey& pubKey)
 
     if (output.size() != 32)
     {
-        LOG_GENERAL(FATAL,
+        LOG_GENERAL(WARNING,
                     "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
                                          << __FUNCTION__ << ")");
     }
@@ -819,7 +819,7 @@ Address Account::GetAddressForContract(const Address& sender,
 
     if (output.size() != 32)
     {
-        LOG_GENERAL(FATAL,
+        LOG_GENERAL(WARNING,
                     "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
                                          << __FUNCTION__ << ")");
     }
@@ -831,7 +831,7 @@ Address Account::GetAddressForContract(const Address& sender,
 
 void Account::SetCode(const vector<unsigned char>& code)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     if (code.size() == 0)
     {
