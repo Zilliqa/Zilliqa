@@ -49,8 +49,8 @@ std::vector<bool> BitVector::GetBitVector(const std::vector<unsigned char>& src,
         result.reserve(actual_length);
         for (unsigned int index = 0; index < actual_length; index++)
         {
-            result.emplace_back(src.at(offset + 2 + (index >> 3))
-                                & (1 << (7 - (index & 0x07))));
+            result.push_back(src.at(offset + 2 + (index >> 3))
+                             & (1 << (7 - (index & 0x07))));
         }
     }
 
@@ -75,8 +75,8 @@ std::vector<bool> BitVector::GetBitVector(const std::vector<unsigned char>& src,
         result.reserve(actual_length);
         for (unsigned int index = 0; index < actual_length; index++)
         {
-            result.emplace_back(src.at(offset + 2 + (index >> 3))
-                                & (1 << (7 - (index & 0x07))));
+            result.push_back(src.at(offset + 2 + (index >> 3))
+                             & (1 << (7 - (index & 0x07))));
         }
     }
 

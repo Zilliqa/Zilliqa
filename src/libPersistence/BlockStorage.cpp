@@ -420,29 +420,29 @@ std::vector<std::string> BlockStorage::GetDBName(DBTYPE type)
     switch (type)
     {
     case META:
-        ret.emplace_back(m_metadataDB.GetDBName());
+        ret.push_back(m_metadataDB.GetDBName());
         break;
     case DS_BLOCK:
-        ret.emplace_back(m_dsBlockchainDB.GetDBName());
+        ret.push_back(m_dsBlockchainDB.GetDBName());
         break;
     case TX_BLOCK:
-        ret.emplace_back(m_txBlockchainDB.GetDBName());
+        ret.push_back(m_txBlockchainDB.GetDBName());
         break;
 #ifndef IS_LOOKUP_NODE
     case TX_BODIES:
     {
         for (auto txBodyDB : m_txBodyDBs)
         {
-            ret.emplace_back(txBodyDB->GetDBName());
+            ret.push_back(txBodyDB->GetDBName());
         }
         break;
     }
 #else // IS_LOOKUP_NODE
     case TX_BODY:
-        ret.emplace_back(m_txBodyDB.GetDBName());
+        ret.push_back(m_txBodyDB.GetDBName());
         break;
     case TX_BODY_TMP:
-        ret.emplace_back(m_txBodyTmpDB.GetDBName());
+        ret.push_back(m_txBodyTmpDB.GetDBName());
         break;
 #endif // IS_LOOKUP_NODE
     }

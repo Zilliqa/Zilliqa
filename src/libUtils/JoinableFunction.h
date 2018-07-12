@@ -39,7 +39,7 @@ public:
 
         for (int i = 0; i < num_threads; i++)
         {
-            futures.emplace_back(std::async(std::launch::async, task));
+            futures.push_back(std::async(std::launch::async, task));
         }
 
         joined = false;
