@@ -86,11 +86,12 @@ TxBlock Synchronizer::ConstructGenesisTxBlock()
 
     std::pair<PrivKey, PubKey> keypair = make_pair(privKey, pubKey);
 
-    return TxBlock(
-        TxBlockHeader(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1, 1,
-                      BlockHash(), 0, 151384616955606, TxnHash(), StateHash(),
-                      StateHash(), 0, 5, keypair.second, 0, BlockHash()),
-        vector<bool>(1), vector<MicroBlockHashSet>(5), CoSignatures());
+    return TxBlock(TxBlockHeader(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1,
+                                 1, BlockHash(), 0, 151384616955606, TxnHash(),
+                                 StateHash(), StateHash(), 0, 5, keypair.second,
+                                 0, BlockHash()),
+                   vector<bool>(1), vector<MicroBlockHashSet>(5),
+                   vector<uint32_t>(5), CoSignatures());
 }
 
 bool Synchronizer::AddGenesisTxBlockToBlockChain(TxBlockChain& txBlockChain,
