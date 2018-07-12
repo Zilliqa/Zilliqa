@@ -29,6 +29,7 @@
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
 #include "libNetwork/P2PComm.h"
+#include "libNetwork/Whitelist.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
@@ -65,6 +66,11 @@ void DirectoryService::StoreDSBlockToStorage()
         m_pendingDSBlock->GetHeader().GetBlockNum(), serializedDSBlock);
     BlockStorage::GetBlockStorage().PushBackTxBodyDB(
         m_pendingDSBlock->GetHeader().GetBlockNum());
+    m_latestActiveDSBlockNum
+        = m_pendingDSBlock->GetHeader().GetBlockNum().convert_to<uint64_t>();
+    BlockStorage::GetBlockStorage().PutMetadata(
+        LATESTACTIVEDSBLOCKNUM,
+        DataConversion::StringToCharArray(to_string(m_latestActiveDSBlockNum)));
 }
 
 bool DirectoryService::SendDSBlockToLookupNodes(DSBlock& lastDSBlock,
@@ -115,9 +121,7 @@ void DirectoryService::DetermineNodesToSendDSBlockTo(
             << "\n"
             << "New DSBlock hash is                     = 0x"
             << DataConversion::charArrToHexStr(m_mediator.m_dsBlockRand) << "\n"
-            << "New DS leader (PoW1 winner) IP          = "
-            << winnerpeer.GetPrintableIPAddress() << ":"
-            << winnerpeer.m_listenPortHost);
+            << "New DS leader (PoW1 winner)          = " << winnerpeer);
 
     unsigned int num_DS_clusters = m_mediator.m_DSCommitteeNetworkInfo.size()
         / DS_MULTICAST_CLUSTER_SIZE;
@@ -277,13 +281,13 @@ void DirectoryService::ScheduleShardingConsensus(const unsigned int wait_window)
             == std::cv_status::timeout)
         {
             LOG_GENERAL(INFO,
-                        "I have woken up from the sleep of " << wait_window
-                                                             << " seconds");
+                        "Woken up from the sleep of " << wait_window
+                                                      << " seconds");
         }
         else
         {
             LOG_GENERAL(INFO,
-                        "I have received announcement message. Time to "
+                        "Received announcement message. Time to "
                         "run consensus.");
         }
 
@@ -424,6 +428,12 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
 
     if (m_mode != IDLE)
     {
+        if (TEST_NET_MODE)
+        {
+            LOG_GENERAL(INFO, "Updating shard whitelist");
+            Whitelist::GetInstance().UpdateShardWhitelist();
+        }
+
         ScheduleShardingConsensus(BACKUP_POW2_WINDOW_IN_SECONDS);
     }
     else
@@ -497,10 +507,10 @@ bool DirectoryService::ProcessDSBlockConsensus(
 
         // Wait for view change to happen
         //throw exception();
-        if (m_mode != PRIMARY_DS)
-        {
-            RejoinAsDS();
-        }
+        // if (m_mode != PRIMARY_DS)
+        // {
+        //     RejoinAsDS();
+        // }
     }
     else
     {

@@ -36,13 +36,14 @@ template<class MAP>
 bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                                          const Transaction& transaction)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     lock_guard<mutex> g(m_mutexUpdateAccounts);
 
     const PubKey& senderPubKey = transaction.GetSenderPubKey();
     const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
     Address toAddr = transaction.GetToAddr();
+
     const uint256_t& amount = transaction.GetAmount();
 
     // FIXME: Possible integer overflow here
@@ -55,8 +56,21 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
     if (transaction.GetData().empty() && transaction.GetCode().empty())
     {
-        LOG_GENERAL(INFO, "Normal transaction");
-        return AccountStoreBase<MAP>::UpdateAccounts(blockNum, transaction);
+        // LOG_GENERAL(INFO, "Normal transaction");
+
+        // Disallow normal transaction to contract account
+        Account* toAccount = this->GetAccount(toAddr);
+        if (toAccount != nullptr)
+        {
+            if (toAccount->isContract())
+            {
+                LOG_GENERAL(WARNING,
+                            "Contract account won't accept normal transaction");
+                return false;
+            }
+        }
+
+        return AccountStoreBase<MAP>::UpdateAccounts(transaction);
     }
 
     bool callContract = false;
@@ -131,6 +145,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         toAccount->SetCode(transaction.GetCode());
         // Store the immutable states
         toAccount->InitContract(transaction.GetData());
+        // Set the blockNumber when the account was created
+        toAccount->SetCreateBlockNum(blockNum);
 
         m_curBlockNum = blockNum;
 
@@ -150,13 +166,14 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                 gasDeposit, CONTRACT_CREATE_GAS, transaction.GetGasPrice(),
                 gasRefund))
         {
+            this->m_addressToAccount->erase(toAddr);
             return false;
         }
         this->IncreaseBalance(fromAddr, gasRefund);
         if (!ret)
         {
             this->m_addressToAccount->erase(toAddr);
-            return ret;
+            return true; // Return true because the states already changed
         }
     }
 
@@ -239,7 +256,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         }
         if (ret && !ParseCallContractOutput())
         {
-            return false;
+            ret = false;
         }
         if (!ret)
         {
@@ -259,7 +276,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         this->IncreaseBalance(fromAddr, gasRefund);
         if (!ret)
         {
-            return ret;
+            return true; // Return true because the states already changed
         }
     }
 
@@ -270,7 +287,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
 template<class MAP>
 Json::Value
-AccountStoreSC<MAP>::GetBlockStateJson(const uint64_t& BlockNum) const
+AccountStoreSC<MAP>::GetBlockStateJson(const uint64_t& BlockNum,
+                                       const uint64_t& CreateBlockNum) const
 {
     Json::Value root;
     Json::Value blockItem;
@@ -278,7 +296,10 @@ AccountStoreSC<MAP>::GetBlockStateJson(const uint64_t& BlockNum) const
     blockItem["type"] = "BNum";
     blockItem["value"] = to_string(BlockNum);
     root.append(blockItem);
-    LOG_GENERAL(INFO, "BNum: " << BlockNum);
+    // LOG_GENERAL(INFO, "BNum: " << BlockNum);
+
+    (void)CreateBlockNum;
+
     return root;
 }
 
@@ -297,8 +318,7 @@ void AccountStoreSC<MAP>::ExportCreateContractFiles(const Account& contract)
 
     // Scilla code
     // JSONUtils::writeJsontoFile(INPUT_CODE, contract.GetCode());
-    std::ofstream os;
-    os.open(INPUT_CODE);
+    std::ofstream os(INPUT_CODE);
     os << DataConversion::CharArrayToString(contract.GetCode());
     os.close();
 
@@ -306,8 +326,9 @@ void AccountStoreSC<MAP>::ExportCreateContractFiles(const Account& contract)
     JSONUtils::writeJsontoFile(INIT_JSON, contract.GetInitJson());
 
     // Block Json
-    JSONUtils::writeJsontoFile(INPUT_BLOCKCHAIN_JSON,
-                               GetBlockStateJson(m_curBlockNum));
+    JSONUtils::writeJsontoFile(
+        INPUT_BLOCKCHAIN_JSON,
+        GetBlockStateJson(m_curBlockNum /*, contract.GetCreateBlockNum()*/));
 }
 
 template<class MAP>
@@ -318,10 +339,14 @@ void AccountStoreSC<MAP>::ExportContractFiles(const Account& contract)
     boost::filesystem::remove_all("./" + SCILLA_FILES);
     boost::filesystem::create_directories("./" + SCILLA_FILES);
 
+    if (!(boost::filesystem::exists("./" + SCILLA_LOG)))
+    {
+        boost::filesystem::create_directories("./" + SCILLA_LOG);
+    }
+
     // Scilla code
     // JSONUtils::writeJsontoFile(INPUT_CODE, contract.GetCode());
-    std::ofstream os;
-    os.open(INPUT_CODE);
+    std::ofstream os(INPUT_CODE);
     os << DataConversion::CharArrayToString(contract.GetCode());
     os.close();
 
@@ -332,8 +357,9 @@ void AccountStoreSC<MAP>::ExportContractFiles(const Account& contract)
     JSONUtils::writeJsontoFile(INPUT_STATE_JSON, contract.GetStorageJson());
 
     // Block Json
-    JSONUtils::writeJsontoFile(INPUT_BLOCKCHAIN_JSON,
-                               GetBlockStateJson(m_curBlockNum));
+    JSONUtils::writeJsontoFile(
+        INPUT_BLOCKCHAIN_JSON,
+        GetBlockStateJson(m_curBlockNum /*, contract.GetCreateBlockNum()*/));
 }
 
 template<class MAP>
@@ -349,7 +375,6 @@ bool AccountStoreSC<MAP>::ExportCallContractFiles(
     Json::Value msgObj;
     if (!JSONUtils::convertStrtoJson(dataStr, msgObj))
     {
-        boost::filesystem::remove_all("./" + SCILLA_FILES);
         return false;
     }
     string prepend = "0x";
@@ -377,7 +402,7 @@ template<class MAP> string AccountStoreSC<MAP>::GetCreateContractCmdStr()
 {
     string ret = SCILLA_PATH + " -init " + INIT_JSON + " -iblockchain "
         + INPUT_BLOCKCHAIN_JSON + " -o " + OUTPUT_JSON + " -i " + INPUT_CODE;
-    LOG_GENERAL(INFO, ret);
+    // LOG_GENERAL(INFO, ret);
     return ret;
 }
 
@@ -387,13 +412,13 @@ template<class MAP> string AccountStoreSC<MAP>::GetCallContractCmdStr()
         + INPUT_STATE_JSON + " -iblockchain " + INPUT_BLOCKCHAIN_JSON
         + " -imessage " + INPUT_MESSAGE_JSON + " -o " + OUTPUT_JSON + " -i "
         + INPUT_CODE;
-    LOG_GENERAL(INFO, ret);
+    // LOG_GENERAL(INFO, ret);
     return ret;
 }
 
 template<class MAP> bool AccountStoreSC<MAP>::ParseCreateContractOutput()
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     ifstream in(OUTPUT_JSON, ios::binary);
 
@@ -426,7 +451,7 @@ template<class MAP>
 bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
     const Json::Value& _json)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     if (!_json.isMember("message") || !_json.isMember("states"))
     {
@@ -448,7 +473,7 @@ bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
 
 template<class MAP> bool AccountStoreSC<MAP>::ParseCallContractOutput()
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     ifstream in(OUTPUT_JSON, ios::binary);
 
@@ -480,7 +505,7 @@ template<class MAP> bool AccountStoreSC<MAP>::ParseCallContractOutput()
 template<class MAP>
 bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     if (!_json.isMember("message") || !_json.isMember("states"))
     {
@@ -502,7 +527,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json)
 
     if (_json["message"]["_accepted"].asString() == "true")
     {
-        LOG_GENERAL(INFO, "Contract accept amount transfer");
+        // LOG_GENERAL(INFO, "Contract accept amount transfer");
         if (!TransferBalanceAtomic(m_curSenderAddr, m_curContractAddr,
                                    m_curAmount))
         {
@@ -512,7 +537,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json)
     }
     else
     {
-        LOG_GENERAL(INFO, "Contract refuse amount transfer");
+        LOG_GENERAL(WARNING, "Contract refuse amount transfer");
     }
 
     for (auto s : _json["states"])
@@ -527,15 +552,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json)
         }
         string vname = s["vname"].asString();
         string type = s["type"].asString();
-        string value;
-        if (type == "Map" || type == "ADT")
-        {
-            value = JSONUtils::convertJsontoStr(s["value"]);
-        }
-        else
-        {
-            value = s["value"].asString();
-        }
+        string value = JSONUtils::convertJsontoStr(s["value"]);
 
         Account* contractAccount = this->GetAccount(m_curContractAddr);
         if (vname != "_balance")

@@ -26,6 +26,7 @@
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 #include "libPersistence/BlockStorage.h"
+#include "libUtils/DataConversion.h"
 
 using namespace boost::filesystem;
 namespace filesys = boost::filesystem;
@@ -51,28 +52,44 @@ void Retriever::RetrieveDSBlocks(bool& result)
         return a->GetHeader().GetBlockNum() < b->GetHeader().GetBlockNum();
     });
 
-    /// Check whether the termination of last running happens before the last DSEpoch properly ended.
-    std::vector<unsigned char> isDSIncompleted;
-    if (BlockStorage::GetBlockStorage().GetMetadata(MetaType::DSINCOMPLETED,
-                                                    isDSIncompleted))
+    if (!blocks.empty())
     {
-        if (isDSIncompleted[0] == '1')
+        if (m_mediator.m_ds->m_latestActiveDSBlockNum == 0)
         {
-            LOG_GENERAL(INFO, "Has incompleted DS Block");
-            blocks.pop_back();
-            if (BlockStorage::GetBlockStorage().DeleteDSBlock(blocks.size()))
+            std::vector<unsigned char> latestActiveDSBlockNumVec;
+            if (!BlockStorage::GetBlockStorage().GetMetadata(
+                    MetaType::LATESTACTIVEDSBLOCKNUM,
+                    latestActiveDSBlockNumVec))
             {
-                BlockStorage::GetBlockStorage().PutMetadata(
-                    MetaType::DSINCOMPLETED, {'0'});
+                LOG_GENERAL(WARNING, "Get LatestActiveDSBlockNum failed");
+                result = false;
+                return;
             }
-            hasIncompletedDS = true;
+            m_mediator.m_ds->m_latestActiveDSBlockNum = std::stoull(
+                DataConversion::CharArrayToString(latestActiveDSBlockNumVec));
         }
     }
-    else
+
+    /// Check whether the termination of last running happens before the last DSEpoch properly ended.
+    std::vector<unsigned char> isDSIncompleted;
+    if (!BlockStorage::GetBlockStorage().GetMetadata(MetaType::DSINCOMPLETED,
+                                                     isDSIncompleted))
     {
         LOG_GENERAL(WARNING, "No GetMetadata or failed");
         result = false;
         return;
+    }
+
+    if (isDSIncompleted[0] == '1')
+    {
+        LOG_GENERAL(INFO, "Has incompleted DS Block");
+        if (BlockStorage::GetBlockStorage().DeleteDSBlock(blocks.size() - 1))
+        {
+            BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
+                                                        {'0'});
+        }
+        blocks.pop_back();
+        hasIncompletedDS = true;
     }
 
     for (const auto& block : blocks)
@@ -103,12 +120,14 @@ void Retriever::RetrieveTxBlocks(bool& result)
     int extra_txblocks = totalSize % NUM_FINAL_BLOCK_PER_POW;
     for (int i = 0; i < extra_txblocks; ++i)
     {
-        BlockStorage::GetBlockStorage().DeleteTxBlock(totalSize - i);
+        BlockStorage::GetBlockStorage().DeleteTxBlock(totalSize - 1 - i);
         blocks.pop_back();
     }
 
     for (const auto& block : blocks)
+    {
         m_mediator.m_txBlockChain.AddBlock(*block);
+    }
 
     result = true;
 }
@@ -130,24 +149,29 @@ bool Retriever::RetrieveTxBodiesDB()
         std::sort(dbNames.begin(), dbNames.end());
 
         // keep at most NUM_DS_KEEP_TX_BODY num of DB, ignore the temp one if exists
-        for (unsigned int i = 0;
-             i < (dbNames.size() <= NUM_DS_KEEP_TX_BODY
-                      ? (hasIncompletedDS ? dbNames.size() - 1 : dbNames.size())
-                      : NUM_DS_KEEP_TX_BODY);
-             i++)
+        if (BlockStorage::GetBlockStorage().GetTxBodyDBSize() == 0)
         {
-            if (!BlockStorage::GetBlockStorage().PushBackTxBodyDB(
-                    std::stoi(dbNames[i])))
+            for (unsigned int i = 0;
+                 i < (dbNames.size() <= NUM_DS_KEEP_TX_BODY
+                          ? (hasIncompletedDS ? dbNames.size() - 1
+                                              : dbNames.size())
+                          : NUM_DS_KEEP_TX_BODY);
+                 i++)
             {
-                LOG_GENERAL(WARNING,
-                            "PushBackTxBodyDB Failed, investigate why!");
-                return false;
+                if (!BlockStorage::GetBlockStorage().PushBackTxBodyDB(
+                        std::stoi(dbNames[i])))
+                {
+                    LOG_GENERAL(WARNING,
+                                "PushBackTxBodyDB Failed, investigate why!");
+                    // return false;
+                }
             }
         }
 
         // remove the temp txbodydb if it exists
         if (dbNames.size() > NUM_DS_KEEP_TX_BODY)
         {
+            LOG_GENERAL(INFO, "remove the temp txbodydb");
             if (dbNames.size() == NUM_DS_KEEP_TX_BODY + 1)
             {
                 filesys::remove_all(p.string() + "/"
@@ -162,6 +186,8 @@ bool Retriever::RetrieveTxBodiesDB()
         }
         else if (hasIncompletedDS)
         {
+            LOG_GENERAL(INFO,
+                        "remove the temp txbodydb because hasIncompletedDS");
             filesys::remove_all(p.string() + "/" + dbNames.back());
         }
     }
@@ -185,7 +211,7 @@ bool Retriever::CleanExtraTxBodies()
             if (!BlockStorage::GetBlockStorage().DeleteTxBody(i))
             {
                 LOG_GENERAL(WARNING, "FAIL: To delete TxHash in TxBodiesTmpDB");
-                return false;
+                // return false;
             }
         }
     }
@@ -212,6 +238,18 @@ bool Retriever::ValidateStates()
     else
     {
         LOG_GENERAL(WARNING, "ValidateStates failed.");
+        LOG_GENERAL(INFO,
+                    "StateRoot in FinalBlock(BlockNum: "
+                        << m_mediator.m_txBlockChain.GetLastBlock()
+                               .GetHeader()
+                               .GetBlockNum()
+                        << "): "
+                        << m_mediator.m_txBlockChain.GetLastBlock()
+                               .GetHeader()
+                               .GetStateRootHash()
+                        << endl
+                        << "Retrieved StateRoot: "
+                        << AccountStore::GetInstance().GetStateRootHash());
         return false;
     }
 }

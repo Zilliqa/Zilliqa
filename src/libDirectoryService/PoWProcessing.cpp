@@ -29,6 +29,7 @@
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
 #include "libNetwork/P2PComm.h"
+#include "libNetwork/Whitelist.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
@@ -58,6 +59,18 @@ bool DirectoryService::VerifyPoW1Submission(
     string winning_mixhash = DataConversion::Uint8VecToHexStr(
         message, curr_offset, BLOCK_HASH_SIZE);
 
+    curr_offset += BLOCK_HASH_SIZE;
+
+    //64-byte signature
+    Signature sign(message, curr_offset);
+
+    if (!Schnorr::GetInstance().Verify(message, 0, curr_offset, sign, key))
+    {
+        LOG_GENERAL(WARNING, "PoW1 submission signature wrong");
+        return false;
+    }
+
+    curr_offset += SIGNATURE_CHALLENGE_SIZE + SIGNATURE_RESPONSE_SIZE;
     // Log all values
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Winner Public_key             = 0x"
@@ -123,6 +136,14 @@ bool DirectoryService::ParseMessageAndVerifyPOW1(
     }
     curr_offset += PUB_KEY_SIZE;
 
+    if (TEST_NET_MODE
+        && not Whitelist::GetInstance().IsNodeInDSWhiteList(peer, key))
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Submitted PoW1 but node is not in DS whitelist. Hence, "
+                  "not accepted!");
+    }
+
     // Todo: Reject PoW1 submissions from existing members of DS committee
 
     if (!CheckState(VERIFYPOW1))
@@ -133,6 +154,13 @@ bool DirectoryService::ParseMessageAndVerifyPOW1(
                       << ". Don't verify cause I have other work to do. "
                          "Assume true as it has no impact.");
         return true;
+    }
+
+    if (!Whitelist::GetInstance().IsValidIP(peer.m_ipAddress))
+    {
+        LOG_GENERAL(WARNING,
+                    "IP belong to private ip subnet or is a broadcast address");
+        return false;
     }
 
     uint64_t nonce;
@@ -194,7 +222,8 @@ bool DirectoryService::ProcessPoW1Submission(
     const vector<unsigned char>& message, unsigned int offset, const Peer& from)
 {
 #ifndef IS_LOOKUP_NODE
-    // Message = [32-byte block number] [4-byte listening port] [33-byte public key] [8-byte nonce] [32-byte resulting hash] [32-byte mixhash]
+    // Message = [32-byte block number] [4-byte listening port] [33-byte public key] [8-byte nonce] [32-byte resulting hash]
+    //[32-byte mixhash] [64-byte Sign]
     LOG_MARKER();
 
     if (m_state == FINALBLOCK_CONSENSUS)
@@ -220,11 +249,13 @@ bool DirectoryService::ProcessPoW1Submission(
         return false;
     }
 
-    if (IsMessageSizeInappropriate(message.size(), offset,
-                                   UINT256_SIZE + sizeof(uint32_t)
-                                       + PUB_KEY_SIZE + sizeof(uint64_t)
-                                       + BLOCK_HASH_SIZE + BLOCK_HASH_SIZE))
+    if (IsMessageSizeInappropriate(
+            message.size(), offset,
+            UINT256_SIZE + sizeof(uint32_t) + PUB_KEY_SIZE + sizeof(uint64_t)
+                + BLOCK_HASH_SIZE + BLOCK_HASH_SIZE + SIGNATURE_CHALLENGE_SIZE
+                + SIGNATURE_RESPONSE_SIZE))
     {
+        LOG_GENERAL(WARNING, "Pow1 message size Inappropriate ");
         return false;
     }
 

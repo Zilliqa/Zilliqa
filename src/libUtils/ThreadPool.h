@@ -33,27 +33,36 @@
 #include <queue>
 #endif
 
-/// Simple thread pool that creates `threadCount` threads upon its creation, and pulls from a queue to get new jobs.
-class
-    ThreadPool // This class requires a number of c++11 features be present in your compiler.
+/**
+ * Simple thread pool that creates `threadCount` threads upon its creation, and pulls from a queue to get new jobs.
+ * This class requires a number of C++11 features be present in your compiler.
+ */
+class ThreadPool
 {
 public:
+    typedef std::function<void()> Job;
+
     /// Constructor.
 #if CONTIGUOUS_JOBS_MEMORY
-    explicit ThreadPool(const unsigned int threadCount, std::string poolName,
+    explicit ThreadPool(const unsigned int threadCount,
+                        const std::string& poolName,
                         const unsigned int jobsReserveCount = 0)
-        :
 #else
-    explicit ThreadPool(const unsigned int threadCount, std::string poolName)
-        :
+    explicit ThreadPool(const unsigned int threadCount,
+                        const std::string& poolName)
 #endif
-        _jobsLeft(0)
+        : _jobsLeft(0)
         , _bailout(false)
+        , _poolName(poolName)
+        , _jobAvailableVar()
+        , _waitVar()
+        , _jobsLeftMutex()
+        , _queueMutex()
     {
         _threads.reserve(threadCount);
         for (unsigned int index = 0; index < threadCount; ++index)
         {
-            _threads.push_back(std::thread([this] { this->Task(); }));
+            _threads.emplace_back(std::thread([this] { this->Task(); }));
         }
 
 #if CONTIGUOUS_JOBS_MEMORY
@@ -68,7 +77,7 @@ public:
     ~ThreadPool() { JoinAll(); }
 
     /// Adds a new job to the pool. If there are no jobs in the queue, a thread is woken up to take the job. If all threads are busy, the job is added to the end of the queue.
-    void AddJob(const std::function<void()>& job)
+    void AddJob(const Job& job)
     {
         std::lock(_queueMutex, _jobsLeftMutex);
         std::lock_guard<std::mutex> lg1(_queueMutex, std::adopt_lock);
@@ -82,10 +91,10 @@ public:
         ++_jobsLeft;
         _jobAvailableVar.notify_one();
 
-        if (_jobsLeft % 100 == 0)
+        if (0 == _jobsLeft % 10)
         {
             LOG_GENERAL(INFO,
-                        "PoolName: " << poolName << " JobLeft: " << _jobsLeft
+                        "PoolName: " << _poolName << " JobLeft: " << _jobsLeft
                                      << '\n');
         }
     }
@@ -147,7 +156,7 @@ private:
     {
         while (true)
         {
-            std::function<void()> job;
+            Job job;
 
             // scoped lock
             {
@@ -191,14 +200,14 @@ private:
 
     std::vector<std::thread> _threads;
 #if CONTIGUOUS_JOBS_MEMORY
-    std::vector<std::function<void()>> _queue;
+    std::vector<Job> _queue;
 #else
-    std::queue<std::function<void()>> _queue;
+    std::queue<Job> _queue;
 #endif
 
     int _jobsLeft;
     bool _bailout;
-    std::string poolName;
+    std::string _poolName;
     std::condition_variable _jobAvailableVar;
     std::condition_variable _waitVar;
     std::mutex _jobsLeftMutex;

@@ -265,6 +265,7 @@ class DirectoryService : public Executable, public Broadcastable
     void ExtractDataFromMicroblocks(
         TxnHash& microblockTxnTrieRoot, StateHash& microblockDeltaTrieRoot,
         std::vector<MicroBlockHashSet>& microblockHashes,
+        std::vector<uint32_t>& shardIDs,
         boost::multiprecision::uint256_t& allGasLimit,
         boost::multiprecision::uint256_t& allGasUsed, uint32_t& numTxs,
         std::vector<bool>& isMicroBlockEmpty, uint32_t& numMicroBlocks) const;
@@ -285,7 +286,8 @@ class DirectoryService : public Executable, public Broadcastable
     void LoadUnavailableMicroBlocks();
     void SaveTxnBodySharingAssignment(const vector<unsigned char>& finalblock,
                                       unsigned int& curr_offset);
-    bool WaitForTxnBodies();
+    // Redundant code
+    // bool WaitForTxnBodies();
 
     // DS block consensus validator function
     bool DSBlockValidator(const std::vector<unsigned char>& dsblock,
@@ -379,6 +381,9 @@ public:
     std::mutex m_mutexAllPoWConns;
     std::map<PubKey, boost::multiprecision::uint256_t> m_allPoW2s;
     std::mutex m_mutexAllPOW2;
+
+    /// The epoch number when DS tries doing Rejoin
+    uint64_t m_latestActiveDSBlockNum = 0;
 
     /// Constructor. Requires mediator reference to access Node and other global members.
     DirectoryService(Mediator& mediator);

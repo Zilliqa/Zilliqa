@@ -39,6 +39,12 @@ unsigned int ReadFromConstantsFile(std::string propertyName)
     return pt.get<unsigned int>("node.constants." + propertyName);
 }
 
+std::string ReadFromOptionsFile(std::string propertyName)
+{
+    auto pt = PTree::GetInstance();
+    return pt.get<std::string>("node.options." + propertyName);
+}
+
 std::string ReadSmartContractConstants(std::string propertyName)
 {
     auto pt = PTree::GetInstance();
@@ -79,8 +85,6 @@ const unsigned int BACKUP_POW2_WINDOW_IN_SECONDS{
     ReadFromConstantsFile("BACKUP_POW2_WINDOW_IN_SECONDS")};
 const unsigned int NEW_NODE_SYNC_INTERVAL{
     ReadFromConstantsFile("NEW_NODE_SYNC_INTERVAL")};
-const unsigned int TX_SUBMISSION_TIMEOUT{
-    ReadFromConstantsFile("TX_SUBMISSION_TIMEOUT")};
 const unsigned int POW_SUBMISSION_TIMEOUT{
     ReadFromConstantsFile("POW_SUBMISSION_TIMEOUT")};
 const unsigned int POW1_DIFFICULTY{ReadFromConstantsFile("POW1_DIFFICULTY")};
@@ -91,6 +95,8 @@ const unsigned int VIEWCHANGE_TIME{ReadFromConstantsFile("VIEWCHANGE_TIME")};
 const unsigned int VIEWCHANGE_EXTRA_TIME{
     ReadFromConstantsFile("VIEWCHANGE_EXTRA_TIME")};
 const unsigned int SHARDING_TIMEOUT{ReadFromConstantsFile("SHARDING_TIMEOUT")};
+const unsigned int CONSENSUS_STATE_BLOCK_WINDOW{
+    ReadFromConstantsFile("CONSENSUS_STATE_BLOCK_WINDOW")};
 const unsigned int CONSENSUS_OBJECT_TIMEOUT{
     ReadFromConstantsFile("CONSENSUS_OBJECT_TIMEOUT")};
 const unsigned int FINALBLOCK_CONSENSUS_OBJECT_TIMEOUT{
@@ -112,6 +118,12 @@ const unsigned int WAITING_STATE_FORWARD_IN_SECONDS{
     ReadFromConstantsFile("WAITING_STATE_FORWARD_IN_SECONDS")};
 const unsigned int N_PREFILLED_PER_ACCOUNT{
     ReadFromConstantsFile("N_PREFILLED_PER_ACCOUNT")};
+const std::string Test_Node_Mode{ReadFromOptionsFile("TEST_NET_MODE")};
+const std::string ex_priv_ip{ReadFromOptionsFile("EXCLUDE_PRIV_IP")};
+const std::string enable_do_rejoin{ReadFromOptionsFile("ENABLE_DO_REJOIN")};
+const bool EXCLUDE_PRIV_IP = (ex_priv_ip == "true") ? true : false;
+const bool TEST_NET_MODE = (Test_Node_Mode == "true") ? true : false;
+const bool ENABLE_DO_REJOIN = (enable_do_rejoin == "true") ? true : false;
 const unsigned int CONTRACT_CREATE_GAS{
     ReadFromConstantsFile("CONTRACT_CREATE_GAS")};
 const unsigned int CONTRACT_INVOKE_GAS{
@@ -120,6 +132,10 @@ const unsigned int NORMAL_TRAN_GAS{ReadFromConstantsFile("NORMAL_TRAN_GAS")};
 const unsigned int COINBASE_REWARD{ReadFromConstantsFile("COINBASE_REWARD")};
 const unsigned int TXN_SUBMISSION{ReadFromConstantsFile("TXN_SUBMISSION")};
 const unsigned int TXN_BROADCAST{ReadFromConstantsFile("TXN_BROADCAST")};
+const unsigned int DEBUG_LEVEL{ReadFromConstantsFile("DEBUG_LEVEL")};
+const unsigned int BROADCAST_INTERVAL{
+    ReadFromConstantsFile("BROADCAST_INTERVAL")};
+const unsigned int BROADCAST_EXPIRY{ReadFromConstantsFile("BROADCAST_EXPIRY")};
 const std::vector<std::string> GENESIS_WALLETS{
     ReadAccountsFromConstantsFile("wallet_address")};
 const std::vector<std::string> GENESIS_KEYS{
@@ -127,15 +143,15 @@ const std::vector<std::string> GENESIS_KEYS{
 const std::string SCILLA_PATH{ReadSmartContractConstants("SCILLA_PATH")};
 const std::string SCILLA_FILES{ReadSmartContractConstants("SCILLA_FILES")};
 const std::string SCILLA_LOG{ReadSmartContractConstants("SCILLA_LOG")};
-const std::string INIT_JSON{SCILLA_FILES
+const std::string INIT_JSON{SCILLA_FILES + '/'
                             + ReadSmartContractConstants("INIT_JSON")};
 const std::string INPUT_STATE_JSON{
-    SCILLA_FILES + ReadSmartContractConstants("INPUT_STATE_JSON")};
+    SCILLA_FILES + '/' + ReadSmartContractConstants("INPUT_STATE_JSON")};
 const std::string INPUT_BLOCKCHAIN_JSON{
-    SCILLA_FILES + ReadSmartContractConstants("INPUT_BLOCKCHAIN_JSON")};
+    SCILLA_FILES + '/' + ReadSmartContractConstants("INPUT_BLOCKCHAIN_JSON")};
 const std::string INPUT_MESSAGE_JSON{
-    SCILLA_FILES + ReadSmartContractConstants("INPUT_MESSAGE_JSON")};
-const std::string OUTPUT_JSON{SCILLA_FILES
+    SCILLA_FILES + '/' + ReadSmartContractConstants("INPUT_MESSAGE_JSON")};
+const std::string OUTPUT_JSON{SCILLA_FILES + '/'
                               + ReadSmartContractConstants("OUTPUT_JSON")};
-const std::string INPUT_CODE{SCILLA_FILES
+const std::string INPUT_CODE{SCILLA_FILES + '/'
                              + ReadSmartContractConstants("INPUT_CODE")};

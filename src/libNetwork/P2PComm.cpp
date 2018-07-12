@@ -40,7 +40,6 @@ const unsigned char START_BYTE_NORMAL = 0x11;
 const unsigned char START_BYTE_BROADCAST = 0x22;
 const unsigned int HDR_LEN = 6;
 const unsigned int HASH_LEN = 32;
-const unsigned int BROADCAST_EXPIRY_SECONDS = 600;
 
 /// Comparison operator for ordering the list of message hashes.
 struct hash_compare
@@ -68,7 +67,53 @@ static void close_socket(int* cli_sock)
     }
 }
 
-P2PComm::P2PComm() {}
+static bool comparePairSecond(
+    const pair<vector<unsigned char>, chrono::time_point<chrono::system_clock>>&
+        a,
+    const pair<vector<unsigned char>, chrono::time_point<chrono::system_clock>>&
+        b)
+{
+    return a.second < b.second;
+}
+
+P2PComm::P2PComm()
+{
+    auto func = [this]() -> void {
+        std::vector<unsigned char> emptyHash;
+
+        while (true)
+        {
+            this_thread::sleep_for(chrono::seconds(BROADCAST_INTERVAL));
+            lock(m_broadcastToRemovedMutex, m_broadcastHashesMutex);
+            lock_guard<mutex> g(m_broadcastToRemovedMutex, adopt_lock);
+            lock_guard<mutex> g2(m_broadcastHashesMutex, adopt_lock);
+
+            if (m_broadcastToRemoved.empty()
+                || m_broadcastToRemoved.front().second
+                    > chrono::system_clock::now()
+                        - chrono::seconds(BROADCAST_EXPIRY))
+            {
+                continue;
+            }
+
+            auto up = upper_bound(
+                m_broadcastToRemoved.begin(), m_broadcastToRemoved.end(),
+                make_pair(emptyHash,
+                          chrono::system_clock::now()
+                              - chrono::seconds(BROADCAST_EXPIRY)),
+                comparePairSecond);
+
+            for (auto it = m_broadcastToRemoved.begin(); it != up; ++it)
+            {
+                m_broadcastHashes.erase(it->first);
+            }
+
+            m_broadcastToRemoved.erase(m_broadcastToRemoved.begin(), up);
+        }
+    };
+
+    DetachedFunction(1, func);
+}
 
 P2PComm::~P2PComm() {}
 
@@ -109,7 +154,7 @@ bool P2PComm::SendMessageSocketCore(const Peer& peer,
                                     unsigned char start_byte,
                                     const vector<unsigned char>& msg_hash)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
     LOG_PAYLOAD(INFO, "Sending message to " << peer, message,
                 Logger::MAX_BYTES_TO_DISPLAY);
 
@@ -290,22 +335,18 @@ void P2PComm::SendBroadcastMessageCore(
     const Container& peers, const vector<unsigned char>& message,
     const vector<unsigned char>& message_hash)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
     lock_guard<mutex> guard(m_broadcastCoreMutex);
 
     SendMessagePoolHelper<START_BYTE_BROADCAST>(peers, message, message_hash);
-    // TODO: are we sure there wont be many threads arising from this, will ThreadPool alleviate it?
-    // Launch a separate, detached thread to automatically remove the hash from the list after a long time period has elapsed
-    auto func2 = [this, message_hash]() -> void {
-        vector<unsigned char> msg_hash_copy(message_hash);
-        this_thread::sleep_for(chrono::seconds(BROADCAST_EXPIRY_SECONDS));
-        lock_guard<mutex> guard(m_broadcastHashesMutex);
-        m_broadcastHashes.erase(msg_hash_copy);
-        LOG_PAYLOAD(INFO, "Removing msg hash from broadcast list",
-                    msg_hash_copy, Logger::MAX_BYTES_TO_DISPLAY);
-    };
+}
 
-    DetachedFunction(1, func2);
+void P2PComm::ClearBroadcastHashAsync(const vector<unsigned char>& message_hash)
+{
+    LOG_MARKER();
+    lock_guard<mutex> guard(m_broadcastToRemovedMutex);
+    m_broadcastToRemoved.emplace_back(message_hash,
+                                      chrono::system_clock::now());
 }
 
 void P2PComm::HandleAcceptedConnection(
@@ -313,7 +354,7 @@ void P2PComm::HandleAcceptedConnection(
     function<void(const vector<unsigned char>&, const Peer&)> dispatcher,
     broadcast_list_func broadcast_list_retriever)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     unique_ptr<int, void (*)(int*)> cli_sock_closer(&cli_sock, close_socket);
 
@@ -382,6 +423,7 @@ void P2PComm::HandleAcceptedConnection(
     if (buf[1] == START_BYTE_BROADCAST)
     {
         read_length = 0;
+
         while (read_length != HASH_LEN)
         {
             int n = read(cli_sock, hash_buf + read_length,
@@ -405,12 +447,14 @@ void P2PComm::HandleAcceptedConnection(
             vector<unsigned char> msg_hash(hash_buf, hash_buf + HASH_LEN);
             found = (P2PComm::GetInstance().m_broadcastHashes.find(msg_hash)
                      != P2PComm::GetInstance().m_broadcastHashes.end());
+
             // While we have the lock, we should quickly add the hash
             if (!found)
             {
                 // Read the rest of the message
                 read_length = 0;
                 message.resize(message_length - HASH_LEN);
+
                 while (read_length != message_length - HASH_LEN)
                 {
                     int n = read(cli_sock, &message.at(read_length),
@@ -472,15 +516,16 @@ void P2PComm::HandleAcceptedConnection(
             }
             vector<Peer> broadcast_list
                 = broadcast_list_retriever(msg_type, ins_type, from);
+            vector<unsigned char> this_msg_hash(hash_buf, hash_buf + HASH_LEN);
             if (broadcast_list.size() > 0)
             {
-                vector<unsigned char> this_msg_hash(hash_buf,
-                                                    hash_buf + HASH_LEN);
                 P2PComm::GetInstance().SendBroadcastMessageCore(
                     broadcast_list, message, this_msg_hash);
             }
 
-            vector<unsigned char> this_msg_hash(hash_buf, hash_buf + HASH_LEN);
+            // Used to be done in SendBroadcastMessageCore, but it would never be called by lookup nodes
+            P2PComm::GetInstance().ClearBroadcastHashAsync(this_msg_hash);
+
             LOG_STATE(
                 "[BROAD]["
                 << std::setw(15) << std::left
@@ -497,6 +542,7 @@ void P2PComm::HandleAcceptedConnection(
         // Read the rest of the message
         read_length = 0;
         message.resize(message_length);
+
         while (read_length != message_length)
         {
             int n = read(cli_sock, &message.at(read_length),
@@ -549,9 +595,9 @@ void P2PComm::ConnectionAccept(int serv_sock, short event, void* arg)
 
         Peer from(uint128_t(cli_addr.sin_addr.s_addr), cli_addr.sin_port);
 
-        LOG_GENERAL(INFO,
-                    "DEBUG: I got an incoming message from "
-                        << from.GetPrintableIPAddress());
+        // LOG_GENERAL(INFO,
+        //             "DEBUG: I got an incoming message from "
+        // << from.GetPrintableIPAddress());
 
         function<void(const vector<unsigned char>&, const Peer&)> dispatcher
             = ((ConnectionData*)arg)->dispatcher;

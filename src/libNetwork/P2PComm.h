@@ -37,6 +37,10 @@ class P2PComm
 {
     std::set<std::vector<unsigned char>> m_broadcastHashes;
     std::mutex m_broadcastHashesMutex;
+    std::deque<std::pair<std::vector<unsigned char>,
+                         std::chrono::time_point<std::chrono::system_clock>>>
+        m_broadcastToRemoved;
+    std::mutex m_broadcastToRemovedMutex;
     std::mutex m_broadcastCoreMutex;
     std::mutex m_startMessagePumpMutex;
     std::mutex m_sendMessageMutex;
@@ -59,6 +63,9 @@ class P2PComm
     SendBroadcastMessageCore(const Container& peers,
                              const std::vector<unsigned char>& message,
                              const std::vector<unsigned char>& message_hash);
+
+    void
+    ClearBroadcastHashAsync(const std::vector<unsigned char>& message_hash);
 
     template<typename Container>
     void SendBroadcastMessageHelper(const Container& peers,

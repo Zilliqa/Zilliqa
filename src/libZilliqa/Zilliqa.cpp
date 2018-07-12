@@ -24,6 +24,7 @@
 #include "libCrypto/Schnorr.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Address.h"
+#include "libNetwork/Whitelist.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 
@@ -88,6 +89,7 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
     {
     case SyncType::NO_SYNC:
         LOG_GENERAL(INFO, "No Sync Needed");
+        Whitelist::GetInstance().Init();
         break;
 #ifndef IS_LOOKUP_NODE
     case SyncType::NEW_SYNC:
@@ -133,11 +135,11 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
     LOG_GENERAL(INFO, "I am a lookup node.");
     if (m_server.StartListening())
     {
-        LOG_GENERAL(INFO, "1. API Server started successfully");
+        LOG_GENERAL(INFO, "API Server started successfully");
     }
     else
     {
-        LOG_GENERAL(WARNING, "2. API Server couldn't start");
+        LOG_GENERAL(WARNING, "API Server couldn't start");
     }
 #endif // IS_LOOKUP_NODE
 }
@@ -180,7 +182,7 @@ vector<Peer> Zilliqa::RetrieveBroadcastList(unsigned char msg_type,
                                             unsigned char ins_type,
                                             const Peer& from)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     Broadcastable* msg_handlers[] = {&m_pm, &m_ds, &m_n, &m_cu, &m_lookup};
 

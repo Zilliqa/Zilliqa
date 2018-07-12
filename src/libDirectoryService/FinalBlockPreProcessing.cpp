@@ -41,7 +41,8 @@ using namespace boost::multiprecision;
 #ifndef IS_LOOKUP_NODE
 void DirectoryService::ExtractDataFromMicroblocks(
     TxnHash& microblockTxnTrieRoot, StateHash& microblockDeltaTrieRoot,
-    std::vector<MicroBlockHashSet>& microblockHashes, uint256_t& allGasLimit,
+    std::vector<MicroBlockHashSet>& microblockHashes,
+    std::vector<uint32_t>& shardIDs, uint256_t& allGasLimit,
     uint256_t& allGasUsed, uint32_t& numTxs,
     std::vector<bool>& isMicroBlockEmpty, uint32_t& numMicroBlocks) const
 {
@@ -72,6 +73,7 @@ void DirectoryService::ExtractDataFromMicroblocks(
         microblockHashes.push_back(
             {microBlock.GetHeader().GetTxRootHash(),
              microBlock.GetHeader().GetStateDeltaHash()});
+        shardIDs.emplace_back(microBlock.GetHeader().GetShardID());
         allGasLimit += microBlock.GetHeader().GetGasLimit();
         allGasUsed += microBlock.GetHeader().GetGasUsed();
         numTxs += microBlock.GetHeader().GetNumTxs();
@@ -86,8 +88,9 @@ void DirectoryService::ExtractDataFromMicroblocks(
         if (!isVacuousEpoch && !isEmpty)
         {
             m_mediator.m_node->m_unavailableMicroBlocks[blockNum].insert(
-                {{microBlock.GetHeader().GetTxRootHash(),
-                  microBlock.GetHeader().GetStateDeltaHash()},
+                {{{microBlock.GetHeader().GetTxRootHash(),
+                   microBlock.GetHeader().GetStateDeltaHash()},
+                  microBlock.GetHeader().GetShardID()},
                  // {!isEmptyTxn, true}});
                  {false, true}});
 
@@ -129,6 +132,7 @@ void DirectoryService::ComposeFinalBlockCore()
     TxnHash microblockTxnTrieRoot;
     StateHash microblockDeltaTrieRoot;
     std::vector<MicroBlockHashSet> microBlockHashes;
+    std::vector<uint32_t> shardIDs;
     uint8_t type = TXBLOCKTYPE::FINAL;
     uint32_t version = BLOCKVERSION::VERSION1;
     uint256_t allGasLimit = 0;
@@ -138,8 +142,9 @@ void DirectoryService::ComposeFinalBlockCore()
     uint32_t numMicroBlocks = 0;
 
     ExtractDataFromMicroblocks(microblockTxnTrieRoot, microblockDeltaTrieRoot,
-                               microBlockHashes, allGasLimit, allGasUsed,
-                               numTxs, isMicroBlockEmpty, numMicroBlocks);
+                               microBlockHashes, shardIDs, allGasLimit,
+                               allGasUsed, numTxs, isMicroBlockEmpty,
+                               numMicroBlocks);
 
     m_microBlocks.clear();
 
@@ -165,7 +170,7 @@ void DirectoryService::ComposeFinalBlockCore()
 
     if (m_mediator.m_dsBlockChain.GetBlockCount() <= 0)
     {
-        LOG_GENERAL(FATAL,
+        LOG_GENERAL(WARNING,
                     "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
                                          << __FUNCTION__ << ")");
     }
@@ -200,7 +205,7 @@ void DirectoryService::ComposeFinalBlockCore()
                       m_mediator.m_selfKey.second, lastDSBlockNum,
                       dsBlockHeader),
         vector<bool>(isMicroBlockEmpty),
-        vector<MicroBlockHashSet>(microBlockHashes),
+        vector<MicroBlockHashSet>(microBlockHashes), vector<uint32_t>(shardIDs),
         CoSignatures(m_mediator.m_DSCommitteePubKeys.size())));
 
     LOG_STATE("[STATS][" << std::setw(15) << std::left
@@ -406,6 +411,7 @@ vector<unsigned char> DirectoryService::ComposeFinalBlockMessage()
 
     vector<unsigned char> finalBlockMessage;
     unsigned int curr_offset = 0;
+    /** To remove. Redundant code. 
 
     bool isVacuousEpoch
         = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
@@ -442,6 +448,7 @@ vector<unsigned char> DirectoryService::ComposeFinalBlockMessage()
                       "All microblocks recvd, moving to compose final block");
         }
     }
+    **/
 
     ComposeFinalBlockCore(); // stores it in m_finalBlock
 
@@ -903,6 +910,8 @@ void DirectoryService::SaveTxnBodySharingAssignment(
     }
 }
 
+/** To remove. Redundant code. 
+
 bool DirectoryService::WaitForTxnBodies()
 {
     LOG_MARKER();
@@ -945,6 +954,7 @@ bool DirectoryService::WaitForTxnBodies()
 
     return true;
 }
+**/
 
 void DirectoryService::LoadUnavailableMicroBlocks()
 {
@@ -968,7 +978,8 @@ void DirectoryService::LoadUnavailableMicroBlocks()
                 // bool b = microBlock.GetHeader().GetNumTxs() > 0;
                 m_mediator.m_node->m_unavailableMicroBlocks[blockNum].insert(
                     // {microBlockHash, {b, true}});
-                    {microBlockHash, {false, true}});
+                    {{microBlockHash, microBlock.GetHeader().GetShardID()},
+                     {false, true}});
                 break;
             }
         }
@@ -995,7 +1006,7 @@ bool DirectoryService::FinalBlockValidator(
     m_finalBlock.reset(new TxBlock(finalblock, curr_offset));
     curr_offset += m_finalBlock->GetSerializedSize();
 
-    WaitForTxnBodies();
+    // WaitForTxnBodies();
 
     bool isVacuousEpoch
         = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
@@ -1008,7 +1019,7 @@ bool DirectoryService::FinalBlockValidator(
     if (!CheckFinalBlockValidity())
     {
         LOG_GENERAL(WARNING,
-                    "To-do: What to do if proposed microblock is not valid?");
+                    "To-do: What to do if proposed finalblock is not valid?");
         // throw exception();
         // TODO: microblock is invalid
         return false;
@@ -1078,21 +1089,10 @@ void DirectoryService::RunConsensusOnFinalBlock()
 
     if (m_mode == PRIMARY_DS)
     {
-        /*
-        bool isVacuousEpoch
-            = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
-
-        if (isVacuousEpoch)
-        {
-            LOG_GENERAL(
-                "I am going to sleep for 5 seconds for vacuous epoch.");
-            this_thread::sleep_for(chrono::seconds(5));
-        }
-        */
         if (!RunConsensusOnFinalBlockWhenDSPrimary())
         {
             LOG_GENERAL(WARNING,
-                        "Throwing exception after "
+                        "Consensus failed at "
                         "RunConsensusOnFinalBlockWhenDSPrimary");
             // throw exception();
             return;
@@ -1103,7 +1103,7 @@ void DirectoryService::RunConsensusOnFinalBlock()
         if (!RunConsensusOnFinalBlockWhenDSBackup())
         {
             LOG_GENERAL(WARNING,
-                        "Throwing exception after "
+                        "Consensus failed at "
                         "RunConsensusOnFinalBlockWhenDSBackup");
             // throw exception();
             return;

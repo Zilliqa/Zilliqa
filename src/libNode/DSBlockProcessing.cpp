@@ -34,6 +34,7 @@
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 #include "libMediator/Mediator.h"
+#include "libNetwork/Whitelist.h"
 #include "libPOW/pow.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
@@ -67,6 +68,12 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock)
 
     BlockStorage::GetBlockStorage().PutDSBlock(
         dsblock.GetHeader().GetBlockNum(), serializedDSBlock);
+    m_mediator.m_ds->m_latestActiveDSBlockNum
+        = dsblock.GetHeader().GetBlockNum().convert_to<uint64_t>();
+    BlockStorage::GetBlockStorage().PutMetadata(
+        LATESTACTIVEDSBLOCKNUM,
+        DataConversion::StringToCharArray(
+            to_string(m_mediator.m_ds->m_latestActiveDSBlockNum)));
 #ifndef IS_LOOKUP_NODE
     BlockStorage::GetBlockStorage().PushBackTxBodyDB(
         dsblock.GetHeader().GetBlockNum());
@@ -117,7 +124,7 @@ bool Node::CheckWhetherDSBlockNumIsLatest(const uint256_t dsblockNum)
     else if (dsblockNum > latestBlockNumInBlockchain)
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Warning: We are missing of some DS blocks. Requested: "
+                  "Missing of some DS blocks. Requested: "
                       << dsblockNum
                       << " while Present: " << latestBlockNumInBlockchain);
         // Todo: handle missing DS blocks.
@@ -322,11 +329,19 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "I won PoW1 :-) I am now the new DS committee leader!");
+
+        if (TEST_NET_MODE)
+        {
+            LOG_GENERAL(INFO, "Updating shard whitelist");
+            Whitelist::GetInstance().UpdateShardWhitelist();
+        }
+
         m_mediator.m_lookup->m_syncType = SyncType::NO_SYNC;
         m_mediator.m_ds->m_consensusMyID = 0;
         m_mediator.m_ds->m_consensusID
             = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
         m_mediator.m_ds->m_mode = DirectoryService::Mode::PRIMARY_DS;
+        m_mediator.m_node->CleanCreatedTransaction();
         LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
                       DS_LEADER_MSG);
         LOG_STATE("[IDENT][" << std::setw(15) << std::left

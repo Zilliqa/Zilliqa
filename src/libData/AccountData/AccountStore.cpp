@@ -36,10 +36,20 @@ AccountStore::~AccountStore()
 void AccountStore::Init()
 {
     LOG_MARKER();
-    AccountStoreTrie<OverlayDB, unordered_map<Address, Account>>::Init();
-    m_accountStoreTemp->Init();
+
+    InitSoft();
     ContractStorage::GetContractStorage().GetStateDB().ResetDB();
     m_db.ResetDB();
+}
+
+void AccountStore::InitSoft()
+{
+    LOG_MARKER();
+
+    AccountStoreTrie<OverlayDB, unordered_map<Address, Account>>::Init();
+
+    std::lock_guard<mutex> lock(m_mutexDelta);
+    m_accountStoreTemp->Init();
 }
 
 AccountStore& AccountStore::GetInstance()
@@ -119,7 +129,7 @@ void AccountStore::SerializeDelta()
     // [Addr 1] [Account 1] [Addr 2] [Account 2] .... [Addr n] [Account n]
     for (const auto& entry : *m_accountStoreTemp->GetAddressToAccount())
     {
-        LOG_GENERAL(INFO, "Addr: " << entry.first);
+        // LOG_GENERAL(INFO, "Addr: " << entry.first);
 
         // Address
         address_vec = entry.first.asBytes();
@@ -138,7 +148,7 @@ void AccountStore::SerializeDelta()
 
 unsigned int AccountStore::GetSerializedDelta(vector<unsigned char>& dst)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     copy(m_stateDeltaSerialized.begin(), m_stateDeltaSerialized.end(),
          back_inserter(dst));
@@ -155,9 +165,6 @@ int AccountStore::DeserializeDelta(const vector<unsigned char>& src,
     try
     {
         lock_guard<mutex> g(m_mutexDelta);
-
-        LOG_GENERAL(INFO, "Before DeserializeDelta");
-        PrintAccountState();
 
         unsigned int curOffset = offset;
         uint256_t totalNumOfAccounts
@@ -184,11 +191,11 @@ int AccountStore::DeserializeDelta(const vector<unsigned char>& src,
             if (oriAccount == nullptr)
             {
                 Account acc(0, 0);
-                LOG_GENERAL(INFO, "Creating new account: " << address);
+                // LOG_GENERAL(INFO, "Creating new account: " << address);
                 AddAccount(address, acc);
             }
 
-            LOG_GENERAL(INFO, "Diff account: " << address);
+            // LOG_GENERAL(INFO, "Diff account: " << address);
             oriAccount = GetAccount(address);
             account = *oriAccount;
             if (Account::DeserializeDelta(src, curOffset, account) < 0)
@@ -203,8 +210,6 @@ int AccountStore::DeserializeDelta(const vector<unsigned char>& src,
 
             UpdateStateTrie(address, account);
         }
-        LOG_GENERAL(INFO, "After DeserializeDelta");
-        PrintAccountState();
     }
     catch (const std::exception& e)
     {
@@ -300,7 +305,7 @@ bool AccountStore::RetrieveFromDisk()
 bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
                                       const Transaction& transaction)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     lock_guard<mutex> g(m_mutexDelta);
 
@@ -311,7 +316,7 @@ bool AccountStore::UpdateCoinbaseTemp(const Address& rewardee,
                                       const Address& genesisAddress,
                                       const uint256_t& amount)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     lock_guard<mutex> g(m_mutexDelta);
     if (m_accountStoreTemp->GetAccount(rewardee) == nullptr)
@@ -353,11 +358,11 @@ void AccountStore::CommitTemp()
 {
     LOG_MARKER();
 
-    LOG_GENERAL(INFO, "Before CommitTemp");
+    // LOG_GENERAL(INFO, "Before CommitTemp");
 
-    LOG_PAYLOAD(INFO, "m_stateDeltaSerialized: ", m_stateDeltaSerialized, 2000);
+    // LOG_PAYLOAD(INFO, "m_stateDeltaSerialized: ", m_stateDeltaSerialized, 2000);
     DeserializeDelta(m_stateDeltaSerialized, 0);
 
-    LOG_GENERAL(INFO, "After CommitTemp");
+    // LOG_GENERAL(INFO, "After CommitTemp");
     InitTemp();
 }

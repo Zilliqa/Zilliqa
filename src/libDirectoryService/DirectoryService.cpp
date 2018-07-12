@@ -29,6 +29,7 @@
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
 #include "libNetwork/P2PComm.h"
+#include "libNetwork/Whitelist.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
@@ -808,7 +809,7 @@ vector<Peer>
 DirectoryService::GetBroadcastList(unsigned char ins_type,
                                    const Peer& broadcast_originator)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     // Regardless of the instruction type, right now all our "broadcasts" are just redundant multicasts from DS nodes to non-DS nodes
     return vector<Peer>();
@@ -1184,6 +1185,13 @@ bool DirectoryService::ProcessLastDSBlockResponse(
         dsblock.GetHeader().GetBlockNum(), serializedDSBlock);
     BlockStorage::GetBlockStorage().PushBackTxBodyDB(
         dsblock.GetHeader().GetBlockNum());
+
+    if (TEST_NET_MODE)
+    {
+        LOG_GENERAL(INFO, "Updating shard whitelist");
+        Whitelist::GetInstance().UpdateShardWhitelist();
+    }
+
     ScheduleShardingConsensus(BACKUP_POW2_WINDOW_IN_SECONDS
                               - BUFFER_TIME_BEFORE_DS_BLOCK_REQUEST);
     return true;
@@ -1235,9 +1243,13 @@ void DirectoryService::RejoinAsDS()
     if (m_mediator.m_lookup->m_syncType == SyncType::NO_SYNC
         && m_mode == BACKUP_DS)
     {
-        m_mediator.m_lookup->m_syncType = SyncType::DS_SYNC;
-        m_mediator.m_node->Install(SyncType::DS_SYNC, true);
-        this->StartSynchronization();
+        auto func = [this]() mutable -> void {
+            m_mediator.m_lookup->m_syncType = SyncType::DS_SYNC;
+            m_mediator.m_node->CleanVariables();
+            m_mediator.m_node->Install(SyncType::DS_SYNC, true);
+            this->StartSynchronization();
+        };
+        DetachedFunction(1, func);
     }
 }
 

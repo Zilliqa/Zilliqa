@@ -79,7 +79,7 @@ string Server::GetProtocolVersion() { return "Hello"; }
 
 string Server::CreateTransaction(const Json::Value& _json)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     try
     {
@@ -350,6 +350,46 @@ Json::Value Server::GetSmartContractState(const string& address)
         }
 
         return account->GetStorageJson();
+    }
+    catch (exception& e)
+    {
+        LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << address);
+        Json::Value _json;
+        _json["Error"] = "Unable To Process";
+
+        return _json;
+    }
+}
+
+Json::Value Server::GetSmartContractInit(const string& address)
+{
+    LOG_MARKER();
+
+    try
+    {
+        Json::Value _json;
+        if (address.size() != ACC_ADDR_SIZE * 2)
+        {
+            _json["Error"] = "Address size inappropriate";
+            return _json;
+        }
+        vector<unsigned char> tmpaddr
+            = DataConversion::HexStrToUint8Vec(address);
+        Address addr(tmpaddr);
+        const Account* account = AccountStore::GetInstance().GetAccount(addr);
+
+        if (account == nullptr)
+        {
+            _json["Error"] = "Address does not exist";
+            return _json;
+        }
+        if (!account->isContract())
+        {
+            _json["Error"] = "Address not contract address";
+            return _json;
+        }
+
+        return account->GetInitJson();
     }
     catch (exception& e)
     {
