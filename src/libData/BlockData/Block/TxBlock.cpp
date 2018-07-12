@@ -60,6 +60,10 @@ unsigned int TxBlock::Serialize(vector<unsigned char>& dst,
 
     for (unsigned int i = 0; i < m_header.GetNumMicroBlockHashes(); i++)
     {
+        const uint32_t& shardID = m_shardIDs[i];
+        SetNumber<uint32_t>(dst, curOffset, shardID, sizeof(uint32_t));
+        curOffset += sizeof(uint32_t);
+
         const TxnHash& microBlockTxHash = m_microBlockHashes.at(i).m_txRootHash;
         copy(microBlockTxHash.asArray().begin(),
              microBlockTxHash.asArray().end(), dst.begin() + curOffset);
@@ -108,6 +112,12 @@ int TxBlock::Deserialize(const vector<unsigned char>& src, unsigned int offset)
 
         for (unsigned int i = 0; i < m_header.GetNumMicroBlockHashes(); i++)
         {
+            uint32_t shardID
+                = GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
+            curOffset += sizeof(uint32_t);
+
+            m_shardIDs.emplace_back(shardID);
+
             MicroBlockHashSet microBlockHash;
 
             copy(src.begin() + curOffset,
@@ -143,7 +153,8 @@ int TxBlock::Deserialize(const vector<unsigned char>& src, unsigned int offset)
 unsigned int TxBlock::GetSerializedSize() const
 {
     return TxBlockHeader::SIZE + sizeof(uint32_t)
-        + (m_microBlockHashes.size() * (TRAN_HASH_SIZE + STATE_HASH_SIZE))
+        + (m_microBlockHashes.size()
+           * (TRAN_HASH_SIZE + STATE_HASH_SIZE + sizeof(uint32_t)))
         + BlockBase::GetSerializedSize();
     ;
 }
@@ -163,12 +174,14 @@ TxBlock::TxBlock(const vector<unsigned char>& src, unsigned int offset)
 
 TxBlock::TxBlock(TxBlockHeader&& header, vector<bool>&& isMicroBlockEmpty,
                  vector<MicroBlockHashSet>&& microBlockHashes,
-                 CoSignatures&& cosigs)
+                 vector<uint32_t>&& shardIDs, CoSignatures&& cosigs)
     : m_header(move(header))
     , m_isMicroBlockEmpty(move(isMicroBlockEmpty))
     , m_microBlockHashes(move(microBlockHashes))
+    , m_shardIDs(move(shardIDs))
 {
-    if (m_header.GetNumMicroBlockHashes() != m_microBlockHashes.size())
+    if (m_header.GetNumMicroBlockHashes() != m_microBlockHashes.size()
+        && m_header.GetNumMicroBlockHashes() != m_shardIDs.size())
     {
         LOG_GENERAL(WARNING,
                     "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
@@ -189,6 +202,8 @@ const vector<MicroBlockHashSet>& TxBlock::GetMicroBlockHashes() const
 {
     return m_microBlockHashes;
 }
+
+const vector<uint32_t>& TxBlock::GetShardIDs() const { return m_shardIDs; }
 
 bool TxBlock::operator==(const TxBlock& block) const
 {

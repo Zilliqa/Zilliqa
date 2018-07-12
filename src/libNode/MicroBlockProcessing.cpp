@@ -66,10 +66,10 @@ void Node::SubmitMicroblockToDSCommittee() const
                                       sizeof(uint32_t));
     cur_offset += sizeof(uint32_t);
 
-    // 4-byte shard ID
-    Serializable::SetNumber<uint32_t>(microblock, cur_offset, m_myShardID,
-                                      sizeof(uint32_t));
-    cur_offset += sizeof(uint32_t);
+    // // 4-byte shard ID
+    // Serializable::SetNumber<uint32_t>(microblock, cur_offset, m_myShardID,
+    //                                   sizeof(uint32_t));
+    // cur_offset += sizeof(uint32_t);
 
     // Tx microblock
     m_microblock->Serialize(microblock, cur_offset);
@@ -165,6 +165,9 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
                       << ")");
         m_lastMicroBlockCoSig.first = m_mediator.m_currentEpochNum;
         m_lastMicroBlockCoSig.second.SetCoSignatures(*m_consensusObject);
+
+        lock_guard<mutex> cv_lk(m_MutexCVFBWaitMB);
+        cv_FBWaitMB.notify_all();
     }
     else if (state == ConsensusCommon::State::ERROR)
     {
@@ -206,6 +209,7 @@ bool Node::ComposeMicroBlock()
     // TxBlockHeader
     uint8_t type = TXBLOCKTYPE::MICRO;
     uint32_t version = BLOCKVERSION::VERSION1;
+    uint32_t shardID = m_myShardID;
     uint256_t gasLimit = 100;
     uint256_t gasUsed = 1;
     BlockHash prevHash;
@@ -256,9 +260,9 @@ bool Node::ComposeMicroBlock()
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Creating new micro block.")
     m_microblock.reset(new MicroBlock(
-        MicroBlockHeader(type, version, gasLimit, gasUsed, prevHash, blockNum,
-                         timestamp, txRootHash, numTxs, minerPubKey, dsBlockNum,
-                         dsBlockHeader, stateDeltaHash),
+        MicroBlockHeader(type, version, shardID, gasLimit, gasUsed, prevHash,
+                         blockNum, timestamp, txRootHash, numTxs, minerPubKey,
+                         dsBlockNum, dsBlockHeader, stateDeltaHash),
         tranHashes, CoSignatures()));
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
