@@ -375,9 +375,6 @@ class Node : public Executable, public Broadcastable
     bool m_doRejoinAtFinalBlock = false;
 
     void ResetRejoinFlags();
-
-    // Rejoin the network as a shard node in case of failure happens in protocol
-    void RejoinAsNormal();
 #endif // IS_LOOKUP_NODE
 
 public:
