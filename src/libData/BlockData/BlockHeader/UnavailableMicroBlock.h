@@ -54,6 +54,7 @@ inline std::ostream& operator<<(std::ostream& os,
     return os;
 }
 
+// define its hash function in order to used as key in map
 namespace std
 {
     template<> struct hash<UnavailableMicroBlock>
