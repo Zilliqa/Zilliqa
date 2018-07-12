@@ -83,10 +83,11 @@ int TxBlockChain::AddBlock(const TxBlock& block)
     if (blockNumOfExistingBlock < blockNumOfNewBlock
         || blockNumOfExistingBlock == (boost::multiprecision::uint256_t)-1)
     {
-        m_txBlocks.insert_new(blockNumOfNewBlock, block);
+        m_txBlocks.insert_new(m_txBlocks.size(), block);
     }
     else
     {
+        LOG_GENERAL(WARNING, "AddBlock failed");
         return -1;
     }
 
