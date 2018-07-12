@@ -73,7 +73,7 @@ bool DirectoryService::SendFinalBlockToLookupNodes()
     vector<unsigned char> finalblock_message
         = {MessageType::NODE, NodeInstructionType::FINALBLOCK};
     finalblock_message.resize(finalblock_message.size() + UINT256_SIZE
-                              + sizeof(uint32_t) + sizeof(uint8_t)
+                              + sizeof(uint32_t) + sizeof(uint32_t)
                               + m_finalBlockMessage.size());
 
     unsigned int curr_offset = MessageOffset::BODY;
@@ -89,10 +89,10 @@ bool DirectoryService::SendFinalBlockToLookupNodes()
                                       m_consensusID, sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
-    // randomly setting shard id to 0 -- shouldn't matter
-    Serializable::SetNumber<uint8_t>(finalblock_message, curr_offset,
-                                     (uint8_t)0, sizeof(uint8_t));
-    curr_offset += sizeof(uint8_t);
+    // always setting shard id to 0 -- shouldn't matter
+    Serializable::SetNumber<uint32_t>(finalblock_message, curr_offset,
+                                      (uint32_t)0, sizeof(uint32_t));
+    curr_offset += sizeof(uint32_t);
 
     copy(m_finalBlockMessage.begin(), m_finalBlockMessage.end(),
          finalblock_message.begin() + curr_offset);
@@ -158,12 +158,12 @@ void DirectoryService::SendFinalBlockToShardNodes(
         vector<unsigned char> finalblock_message
             = {MessageType::NODE, NodeInstructionType::FINALBLOCK};
         finalblock_message.resize(finalblock_message.size() + UINT256_SIZE
-                                  + sizeof(uint32_t) + sizeof(uint8_t)
+                                  + sizeof(uint32_t) + sizeof(uint32_t)
                                   + m_finalBlockMessage.size());
 
         copy(m_finalBlockMessage.begin(), m_finalBlockMessage.end(),
              finalblock_message.begin() + MessageOffset::BODY + UINT256_SIZE
-                 + sizeof(uint32_t) + sizeof(uint8_t));
+                 + sizeof(uint32_t) + sizeof(uint32_t));
 
         unsigned int curr_offset = MessageOffset::BODY;
 
@@ -196,8 +196,8 @@ void DirectoryService::SendFinalBlockToShardNodes(
             }
 
             // Modify the shard id part of the message
-            Serializable::SetNumber<uint8_t>(finalblock_message, curr_offset,
-                                             (uint8_t)i, sizeof(uint8_t));
+            Serializable::SetNumber<uint32_t>(finalblock_message, curr_offset,
+                                              (uint32_t)i, sizeof(uint32_t));
 
             SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
             sha256.Update(finalblock_message);
