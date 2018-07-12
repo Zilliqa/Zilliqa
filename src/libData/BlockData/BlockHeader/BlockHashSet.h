@@ -92,6 +92,7 @@ inline std::ostream& operator<<(std::ostream& os, const MicroBlockHashSet& t)
     return os;
 }
 
+// define its hash function in order to used as key in map
 namespace std
 {
     template<> struct hash<MicroBlockHashSet>
@@ -109,9 +110,11 @@ namespace std
 
 struct TxBlockHashSet
 {
-    TxnHash m_txRootHash; // Microblock merkle tree root hash
-    StateHash m_stateRootHash; // State merkle tree root hash
-    StateHash m_deltaRootHash; // State delta merkle tree root hash
+    TxnHash m_txRootHash; // root hash concated from all microblock tx hash
+    StateHash
+        m_stateRootHash; // State merkle tree root hash only valid in vacuous epoch
+    StateHash
+        m_deltaRootHash; // root hash concated from all microblock state hash
 
     /// Implements the Serialize function inherited from Serializable.
     unsigned int Serialize(std::vector<unsigned char>& dst,
@@ -180,6 +183,7 @@ struct TxBlockHashSet
     friend std::ostream& operator<<(std::ostream& os, const TxBlockHashSet& t);
 };
 
+// define its hash function in order to used as key in map
 namespace std
 {
     template<> struct hash<TxBlockHashSet>
