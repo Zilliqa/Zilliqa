@@ -18,6 +18,7 @@
 #include <boost/multiprecision/cpp_int.hpp>
 #include <chrono>
 #include <functional>
+#include <limits>
 #include <thread>
 
 #include "Node.h"
@@ -1571,8 +1572,8 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 
     unsigned int cur_offset = offset;
 
-    // Initialize it with 255
-    uint32_t shard_id = (uint32_t)-1;
+    // Initialize it with maximum number
+    uint32_t shard_id = std::numeric_limits<uint32_t>::max();
 
     // Reads and checks DS Block number, consensus ID and Shard ID
     if (!ReadAuxilliaryInfoFromFinalBlockMsg(message, cur_offset, shard_id))
