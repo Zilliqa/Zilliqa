@@ -365,6 +365,7 @@ class Node : public Executable, public Broadcastable
     bool CheckMicroBlockHashes(std::vector<unsigned char>& errorMsg);
     bool CheckMicroBlockTxnRootHash();
     bool CheckMicroBlockStateDeltaHash();
+    bool CheckMicroBlockShardID();
 
     bool ActOnFinalBlock(uint8_t tx_sharing_mode,
                          vector<Peer> my_shard_receivers,

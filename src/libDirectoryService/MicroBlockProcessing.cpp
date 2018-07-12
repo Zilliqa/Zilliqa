@@ -122,7 +122,7 @@ bool DirectoryService::ProcessMicroblockSubmission(
     if (IsMessageSizeInappropriate(message.size(), offset,
                                    UINT256_SIZE + sizeof(uint32_t)
                                        + sizeof(uint32_t)
-                                       + TxBlock::GetMinSize()))
+                                       + MicroBlock::GetMinSize()))
     {
         return false;
     }
@@ -163,7 +163,7 @@ bool DirectoryService::ProcessMicroblockSubmission(
     // Tx microblock
     // MicroBlock microBlock(message, curr_offset);
     MicroBlock microBlock;
-    if (microBlock.Deserialize(message, curr_offset) != 0)
+    if (microBlock.DeserializeCore(message, curr_offset) != 0)
     {
         LOG_GENERAL(WARNING, "We failed to deserialize MicroBlock.");
         return false;
