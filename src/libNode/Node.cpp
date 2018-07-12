@@ -139,7 +139,10 @@ void Node::Prepare(bool runInitializeGenesisBlocks)
 {
     LOG_MARKER();
     m_mediator.m_currentEpochNum
-        = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
+        = (uint64_t)m_mediator.m_txBlockChain.GetLastBlock()
+              .GetHeader()
+              .GetBlockNum()
+        + 1;
     m_mediator.UpdateDSBlockRand(runInitializeGenesisBlocks);
     m_mediator.UpdateTxBlockRand(runInitializeGenesisBlocks);
     SetState(POW1_SUBMISSION);
