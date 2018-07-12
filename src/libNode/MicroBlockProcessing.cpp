@@ -91,7 +91,8 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
 
     std::shared_lock<shared_timed_mutex> cv_lk(m_mutexProcessConsensusMessage);
     if (cv_processConsensusMessage.wait_for(
-            cv_lk, std::chrono::seconds(10), [this, message, offset]() -> bool {
+            cv_lk, std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW),
+            [this, message, offset]() -> bool {
                 return m_consensusObject->CanProcessMessage(message, offset);
             }))
     {
