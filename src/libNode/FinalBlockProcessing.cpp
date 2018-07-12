@@ -195,12 +195,12 @@ bool Node::LoadUnavailableMicroBlockHashes(
                 != StateHash()))
         {
             m_unavailableMicroBlocks[blocknum].insert(
-                {UnavailableMicroBlock{finalBlock.GetMicroBlockHashes()[i],
-                                       finalBlock.GetShardIDs()[i]},
+                {{finalBlock.GetMicroBlockHashes()[i],
+                  finalBlock.GetShardIDs()[i]},
 #ifdef IS_LOOKUP_NODE
-                 vector<bool>{!finalBlock.GetIsMicroBlockEmpty()[i], true}});
+                 {!finalBlock.GetIsMicroBlockEmpty()[i], true}});
 #else // IS_LOOKUP_NODE
-                 vector<bool>{false, true}});
+                 {false, true}});
 #endif // IS_LOOKUP_NODE
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       finalBlock.GetMicroBlockHashes()[i]);
