@@ -60,12 +60,12 @@ bool Node::Coinbase(const BlockBase& lastMicroBlock, const TxBlock& lastTxBlock)
 
     Address genesisAccount(GENESIS_WALLETS[0]);
 
-    if (m_mediator.m_DSCommitteePubKeys.size() != lastTxBlock.GetB1().size())
+    if (m_mediator.m_DSCommittee.size() != lastTxBlock.GetB1().size())
     {
         LOG_GENERAL(WARNING, "B1 and DS pub keys size do not match");
         return false;
     }
-    if (m_mediator.m_DSCommitteePubKeys.size() != lastTxBlock.GetB2().size())
+    if (m_mediator.m_DSCommittee.size() != lastTxBlock.GetB2().size())
     {
         LOG_GENERAL(WARNING, "B2 and DS pub keys size do not match");
         return false;
@@ -90,9 +90,17 @@ bool Node::Coinbase(const BlockBase& lastMicroBlock, const TxBlock& lastTxBlock)
     // only 0th shard needs to reward DS
     if (m_myShardID == 0)
     {
-        Reward(lastTxBlock.GetB1(), lastTxBlock.GetB2(),
-               m_mediator.m_DSCommitteePubKeys, genesisAccount);
+        deque<PubKey> pubkey;
+
+        for (auto const& i : m_mediator.m_DSCommittee)
+        {
+            pubkey.push_back(i.first);
+        }
+
+        Reward(lastTxBlock.GetB1(), lastTxBlock.GetB2(), pubkey,
+               genesisAccount);
     }
+
     Reward(lastMicroBlock.GetB1(), lastMicroBlock.GetB2(),
            m_myShardMembersPubKeys, genesisAccount);
 

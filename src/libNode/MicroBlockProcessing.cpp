@@ -77,9 +77,14 @@ void Node::SubmitMicroblockToDSCommittee() const
     LOG_STATE("[MICRO][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
                          << "][" << m_mediator.m_currentEpochNum << "] SENT");
+    deque<Peer> peerList;
 
-    P2PComm::GetInstance().SendBroadcastMessage(
-        m_mediator.m_DSCommitteeNetworkInfo, microblock);
+    for (auto const& i : m_mediator.m_DSCommittee)
+    {
+        peerList.push_back(i.second);
+    }
+
+    P2PComm::GetInstance().SendBroadcastMessage(peerList, microblock);
 }
 #endif // IS_LOOKUP_NODE
 
@@ -422,10 +427,20 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
         = [this](const map<unsigned int, vector<unsigned char>>& m) mutable
         -> bool { return OnCommitFailure(m); };
 
+    deque<pair<PubKey, Peer>> peerList;
+    auto it1 = m_myShardMembersPubKeys.begin();
+    auto it2 = m_myShardMembersNetworkInfo.begin();
+
+    while (it1 != m_myShardMembersPubKeys.end())
+    {
+        peerList.push_back(make_pair(*it1, *it2));
+        ++it1;
+        ++it2;
+    }
+
     m_consensusObject.reset(new ConsensusLeader(
         m_consensusID, m_consensusBlockHash, m_consensusMyID,
-        m_mediator.m_selfKey.first, m_myShardMembersPubKeys,
-        m_myShardMembersNetworkInfo, static_cast<unsigned char>(NODE),
+        m_mediator.m_selfKey.first, peerList, static_cast<unsigned char>(NODE),
         static_cast<unsigned char>(MICROBLOCKCONSENSUS), nodeMissingTxnsFunc,
         commitFailureFunc));
 
@@ -471,10 +486,20 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup()
                   << " Shard Leader: "
                   << m_myShardMembersNetworkInfo[m_consensusLeaderID]);
 
+    deque<pair<PubKey, Peer>> peerList;
+    auto it1 = m_myShardMembersPubKeys.begin();
+    auto it2 = m_myShardMembersNetworkInfo.begin();
+
+    while (it1 != m_myShardMembersPubKeys.end())
+    {
+        peerList.push_back(make_pair(*it1, *it2));
+        ++it1;
+        ++it2;
+    }
+
     m_consensusObject.reset(new ConsensusBackup(
         m_consensusID, m_consensusBlockHash, m_consensusMyID,
-        m_consensusLeaderID, m_mediator.m_selfKey.first,
-        m_myShardMembersPubKeys, m_myShardMembersNetworkInfo,
+        m_consensusLeaderID, m_mediator.m_selfKey.first, peerList,
         static_cast<unsigned char>(NODE),
         static_cast<unsigned char>(MICROBLOCKCONSENSUS), func));
 

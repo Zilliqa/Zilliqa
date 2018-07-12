@@ -39,9 +39,9 @@ BOOST_AUTO_TEST_CASE(test1)
     pair<PrivKey, PubKey> keypair1 = Schnorr::GetInstance().GenKeyPair();
     Peer peer(std::rand(), std::rand());
 
-    ps.AddPeer(keypair1.second, peer);
-    ps.AddPeer(keypair1.second, peer);
-    ps.AddPeer(keypair1.second, peer);
+    ps.AddPeerPair(keypair1.second, peer);
+    ps.AddPeerPair(keypair1.second, peer);
+    ps.AddPeerPair(keypair1.second, peer);
     BOOST_CHECK_MESSAGE(ps.GetPeerCount() == 1,
                         "PeerStore uniqueness check failed");
 
@@ -50,7 +50,7 @@ BOOST_AUTO_TEST_CASE(test1)
 
     peer.m_ipAddress++;
     peer.m_listenPortHost--;
-    ps.AddPeer(keypair1.second, peer);
+    ps.AddPeerPair(keypair1.second, peer);
     BOOST_CHECK_MESSAGE(ps.GetPeerCount() == 1,
                         "PeerStore peer replacement check #1 failed");
     peer2 = ps.GetPeer(keypair1.second);
@@ -58,7 +58,7 @@ BOOST_AUTO_TEST_CASE(test1)
                         "PeerStore peer replacement check #2 failed");
 
     pair<PrivKey, PubKey> keypair2 = Schnorr::GetInstance().GenKeyPair();
-    ps.AddPeer(keypair2.second, peer);
+    ps.AddPeerPair(keypair2.second, peer);
     BOOST_CHECK_MESSAGE(ps.GetPeerCount() == 2,
                         "PeerStore AddPeer check #2 failed");
     BOOST_CHECK_MESSAGE(ps.GetAllPeers().size() == 2,
