@@ -92,7 +92,7 @@ inline std::ostream& operator<<(std::ostream& os, const MicroBlockHashSet& t)
     return os;
 }
 
-// define its hash function in order to used as key in map 
+// define its hash function in order to used as key in map
 namespace std
 {
     template<> struct hash<MicroBlockHashSet>
