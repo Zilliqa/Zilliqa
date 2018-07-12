@@ -464,7 +464,7 @@ Address GenOneReceiver()
         auto receiver = Schnorr::GetInstance().GenKeyPair();
         receiverAddr = Account::GetAddressFromPublicKey(receiver.second);
         LOG_GENERAL(INFO,
-                    "Generate testing transaction receiver" << receiverAddr);
+                    "Generate testing transaction receiver " << receiverAddr);
     });
     return receiverAddr;
 }
