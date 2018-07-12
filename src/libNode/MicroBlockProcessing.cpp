@@ -189,11 +189,6 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
                   "Consensus state = " << state);
     }
 
-    {
-        lock_guard<mutex> g2(m_mutexNewRoundStarted);
-        m_newRoundStarted = false;
-    }
-
     return result;
 #else // IS_LOOKUP_NODE
     return true;
@@ -500,6 +495,11 @@ bool Node::RunConsensusOnMicroBlock()
     SetState(MICROBLOCK_CONSENSUS_PREP);
 
     AccountStore::GetInstance().SerializeDelta();
+
+    {
+        lock_guard<mutex> g2(m_mutexNewRoundStarted);
+        m_newRoundStarted = false;
+    }
 
     if (m_isPrimary == true)
     {
