@@ -25,6 +25,7 @@
 /// Utility class - circular array data queue.
 template<class T> class CircularArray
 {
+protected:
     std::vector<T> m_array;
 
     int m_capacity;
@@ -48,6 +49,7 @@ public:
     {
         m_array.clear();
         m_array.resize(capacity);
+        fill(m_array.begin(), m_array.end(), T());
         m_size = 0;
         m_index = 0;
         m_capacity = capacity;
@@ -79,8 +81,8 @@ public:
             LOG_GENERAL(WARNING, "m_array is empty")
             throw;
         }
-        m_array[(int)(index % m_capacity)] = element;
-        m_index = (int)(index % m_capacity) + 1;
+        m_index = (int)index % m_capacity;
+        m_array[m_index] = element;
         m_size++;
     }
 
@@ -92,21 +94,7 @@ public:
             LOG_GENERAL(WARNING, "m_array is empty")
             throw;
         }
-        return m_array[m_index - 1];
-    }
-
-    /// Adds an element to the end of the array.
-    void push_back(T element)
-    {
-        if (!m_array.size())
-        {
-            LOG_GENERAL(WARNING, "m_array is empty")
-            throw;
-        }
-        // modulo arithmetic of 256-bit will probably be slow
-        m_array[(int)(m_size % m_capacity)] = element;
-        m_size++;
-        m_index = (m_index + 1) % m_capacity;
+        return m_array[m_index];
     }
 
     /// Returns the number of elements stored till now in the array.
