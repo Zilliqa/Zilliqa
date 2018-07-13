@@ -28,7 +28,12 @@ template<class T> class CircularArray
     std::vector<T> m_array;
 
     int m_capacity;
+
+    /// return the actual size of how many blocks being stored in the array
     boost::multiprecision::uint256_t m_size;
+
+    /// return the index of the latest block inserted
+    boost::multiprecision::uint256_t m_index;
 
 public:
     /// Default constructor.
@@ -44,6 +49,7 @@ public:
         m_array.clear();
         m_array.resize(capacity);
         m_size = 0;
+        m_index = 0;
         m_capacity = capacity;
     }
 
@@ -74,7 +80,8 @@ public:
             throw;
         }
         m_array[(int)(index % m_capacity)] = element;
-        m_size = (index % m_capacity) + 1;
+        m_index = (index % m_capacity) + 1;
+        m_size++;
     }
 
     /// Returns the element at the back of the array.
@@ -85,7 +92,7 @@ public:
             LOG_GENERAL(WARNING, "m_array is empty")
             throw;
         }
-        return m_array[(int)((m_size - 1) % m_capacity)];
+        return m_array[(int)((m_index - 1) % m_capacity)];
     }
 
     /// Adds an element to the end of the array.
@@ -99,6 +106,7 @@ public:
         // modulo arithmetic of 256-bit will probably be slow
         m_array[(int)(m_size % m_capacity)] = element;
         m_size++;
+        m_index++;
     }
 
     /// Returns the number of elements stored till now in the array.
