@@ -106,6 +106,11 @@ class Node : public Executable, public Broadcastable
     std::atomic<uint32_t> m_myShardID;
     std::atomic<uint32_t> m_numShards;
 
+    // Transaction sharing assignments
+    std::atomic<bool> m_txnSharingIAmSender;
+    std::atomic<bool> m_txnSharingIAmForwarder;
+    std::vector<std::vector<Peer>> m_txnSharingAssignedNodes;
+
     // DS committee information
     bool m_isDSNode = true;
 
@@ -198,7 +203,7 @@ class Node : public Executable, public Broadcastable
 
     // internal call from ProcessSharding
     bool ReadVariablesFromShardingMessage(const vector<unsigned char>& message,
-                                          unsigned int offset);
+                                          unsigned int& offset);
 
     // internal calls from ActOnFinalBlock for NODE_FORWARD_ONLY and SEND_AND_FORWARD
     void LoadForwardingAssignmentFromFinalBlock(
@@ -273,12 +278,8 @@ class Node : public Executable, public Broadcastable
     void ScheduleMicroBlockConsensus();
     void BeginNextConsensusRound();
     void LoadTxnSharingInfo(const vector<unsigned char>& message,
-                            unsigned int& cur_offset, uint32_t shard_id,
-                            bool& i_am_sender, bool& i_am_forwarder,
-                            vector<vector<Peer>>& nodes);
-    void CallActOnFinalBlockBasedOnSenderForwarderAssgn(
-        bool i_am_sender, bool i_am_forwarder,
-        const vector<vector<Peer>>& nodes, uint32_t shard_id);
+                            unsigned int cur_offset);
+    void CallActOnFinalBlockBasedOnSenderForwarderAssgn(uint8_t shard_id);
 
     // internal calls from ProcessForwardTransaction
     void LoadFwdingAssgnForThisBlockNum(
