@@ -187,6 +187,10 @@ public:
 
     /// Returns the fraction of the shard required to achieve consensus
     static unsigned int NumForConsensus(unsigned int shardSize);
+
+    /// Checks whether the message can be processed now
+    bool CanProcessMessage(const std::vector<unsigned char>& message,
+                           unsigned int offset);
 };
 
 #endif // __CONSENSUSCOMMON_H__

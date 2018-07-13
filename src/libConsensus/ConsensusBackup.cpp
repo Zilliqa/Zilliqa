@@ -255,60 +255,6 @@ bool ConsensusBackup::CheckState(Action action)
     return result;
 }
 
-bool ConsensusBackup::BlockState(Action action)
-{
-
-    if (action == PROCESS_COLLECTIVESIG)
-    {
-
-        if (m_state == INITIAL)
-        {
-            LOG_GENERAL(WARNING,
-                        "Processing collectivesig but announcement not yet "
-                        "received. Blocking till announcement received or "
-                        "timeout. m_state "
-                            << m_state);
-
-            std::unique_lock<std::mutex> cv_lk(m_MutexCVAnnouncementBlock);
-            if (cv_announcementBlock.wait_for(
-                    cv_lk, std::chrono::seconds(CONSENSUS_STATE_BLOCK_WINDOW))
-                == std::cv_status::timeout)
-            {
-                LOG_GENERAL(WARNING,
-                            "Timeout. Didn't received announcement message.");
-                return false;
-            }
-        }
-        return true;
-    }
-
-    if (action == PROCESS_FINALCOLLECTIVESIG)
-    {
-        if (m_state == INITIAL || m_state == COMMIT_DONE
-            || m_state == RESPONSE_DONE)
-        {
-            LOG_GENERAL(WARNING,
-                        "Processing final collectivesig but cosig1 not yet "
-                        "received. Blocking till cosig1 received or "
-                        "timeout. m_state "
-                            << m_state);
-
-            std::unique_lock<std::mutex> cv_lk(m_MutexCVCosig1Block);
-            if (cv_cosig1Block.wait_for(
-                    cv_lk, std::chrono::seconds(CONSENSUS_STATE_BLOCK_WINDOW))
-                == std::cv_status::timeout)
-            {
-                LOG_GENERAL(WARNING,
-                            "Timeout. Didn't received cosig1 message.");
-                return false;
-            }
-        }
-        return true;
-    }
-
-    return true;
-}
-
 bool ConsensusBackup::ProcessMessageAnnounce(
     const vector<unsigned char>& announcement, unsigned int offset)
 {
@@ -800,13 +746,6 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
 
     // Initial checks
     // ==============
-
-    if (BlockState(action) == false)
-    {
-        LOG_GENERAL(WARNING, "Failed to enter correct state");
-        return false;
-    }
-
     if (CheckState(action) == false)
     {
         return false;

@@ -62,7 +62,6 @@ private:
 
     // Internal functions
     bool CheckState(Action action);
-    bool BlockState(Action action);
 
     bool ProcessMessageAnnounce(const std::vector<unsigned char>& announcement,
                                 unsigned int offset);

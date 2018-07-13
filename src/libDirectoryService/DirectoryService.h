@@ -92,6 +92,9 @@ class DirectoryService : public Executable, public Broadcastable
     std::vector<std::map<PubKey, Peer>> m_shards;
     std::map<PubKey, uint32_t> m_publicKeyToShardIdMap;
 
+    // Transaction sharing assignments
+    std::vector<unsigned char> m_txnSharingMessage;
+
     std::mutex m_MutexScheduleFinalBlockConsensus;
     std::condition_variable cv_scheduleFinalBlockConsensus;
 
@@ -251,8 +254,8 @@ class DirectoryService : public Executable, public Broadcastable
     vector<unsigned char> ComposeFinalBlockMessage();
     bool ParseMessageAndVerifyPOW1(const vector<unsigned char>& message,
                                    unsigned int offset, const Peer& from);
-    void AppendSharingSetupToFinalBlockMessage(
-        vector<unsigned char>& finalBlockMessage, unsigned int curr_offset);
+    void AppendSharingSetupToShardingStructure(
+        vector<unsigned char>& sharding_structure, unsigned int curr_offset);
     bool CheckWhetherDSBlockIsFresh(
         const boost::multiprecision::uint256_t dsblock_num);
     bool VerifyPoW1Submission(const vector<unsigned char>& message,
@@ -284,8 +287,9 @@ class DirectoryService : public Executable, public Broadcastable
     bool CheckIsMicroBlockEmpty();
     bool CheckStateRoot();
     void LoadUnavailableMicroBlocks();
-    void SaveTxnBodySharingAssignment(const vector<unsigned char>& finalblock,
-                                      unsigned int& curr_offset);
+    void SaveTxnBodySharingAssignment(
+        const vector<unsigned char>& sharding_structure,
+        unsigned int curr_offset);
     // Redundant code
     // bool WaitForTxnBodies();
 

@@ -94,6 +94,23 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
 #ifndef IS_LOOKUP_NODE
     LOG_MARKER();
 
+    std::shared_lock<shared_timed_mutex> cv_lk(m_mutexProcessConsensusMessage);
+    if (cv_processConsensusMessage.wait_for(
+            cv_lk, std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW),
+            [this, message, offset]() -> bool {
+                return m_consensusObject->CanProcessMessage(message, offset);
+            }))
+    {
+        // Correct order preserved
+    }
+    else
+    {
+        LOG_GENERAL(WARNING,
+                    "Timeout while waiting for correct order of consensus "
+                    "messages");
+        return false;
+    }
+
     lock_guard<mutex> g(m_mutexConsensus);
 
     // Consensus messages must be processed in correct sequence as they come in
@@ -114,6 +131,10 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
                 cv_lk, std::chrono::seconds(CONSENSUS_OBJECT_TIMEOUT),
                 [this] { return (m_state == MICROBLOCK_CONSENSUS); }))
         {
+            // condition passed without timeout
+        }
+        else
+        {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Time out while waiting for state transition and "
                       "consensus object creation ");
@@ -121,9 +142,9 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "State transition is completed and consensus object "
-                  "creation. (check for timeout)");
+                  "creation.");
     }
-    // else if (m_state != MICROBLOCK_CONSENSUS)
+
     if (!CheckState(PROCESS_MICROBLOCKCONSENSUS))
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
