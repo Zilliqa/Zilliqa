@@ -95,7 +95,7 @@ void Node::StoreState()
 
 void Node::StoreFinalBlock(const TxBlock& txBlock)
 {
-    m_mediator.m_txBlockChain.AddBlock(txBlock);
+    AddBlock(txBlock);
     m_mediator.m_currentEpochNum
         = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
 
@@ -1176,8 +1176,6 @@ void Node::BeginNextConsensusRound()
                 }
             }
         }
-        // this_thread::sleep_for(
-        //     chrono::seconds(WAITING_STATE_FORWARD_IN_SECONDS));
 
         ScheduleTxnSubmission();
     }
@@ -1768,41 +1766,35 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
     LOG_MARKER();
 
     // reading [block number] from received msg
-    uint256_t blocknum
-        = Serializable::GetNumber<uint256_t>(message, cur_offset, UINT256_SIZE);
+    m_latestForwardBlockNum = (uint64_t)Serializable::GetNumber<uint256_t>(
+        message, cur_offset, UINT256_SIZE);
     cur_offset += UINT256_SIZE;
 
     LOG_STATE("[TXBOD][" << setw(15) << left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
                          << "][" << m_mediator.m_txBlockChain.GetBlockCount()
-                         << "] RECEIVED TXN BODIES #" << blocknum);
+                         << "] RECEIVED TXN BODIES #"
+                         << m_latestForwardBlockNum);
 
-    LOG_GENERAL(INFO, "Received forwarded txns for block number " << blocknum);
+    LOG_GENERAL(INFO,
+                "Received forwarded txns for block number "
+                    << m_latestForwardBlockNum);
 
     if (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
-        < blocknum)
+        < m_latestForwardBlockNum)
     {
-        unsigned int time_pass = 0;
-        while (
-            m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
-            < blocknum)
+        std::unique_lock<std::mutex> cv_lk(m_mutexForwardBlockNumSync);
+
+        if (m_cvForwardBlockNumSync.wait_for(
+                cv_lk, std::chrono::seconds(WAITING_FORWARD))
+            == std::cv_status::timeout)
         {
-            if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
-            {
-                return false;
-            }
-
-            if (time_pass % 600 == 0)
-            {
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "Blocknum " + blocknum.convert_to<string>()
-                              + " waiting "
-                              + "for state change from WAITING_FINALBLOCK "
-                                "to TX_SUBMISSION");
-            }
-            time_pass++;
-
-            this_thread::sleep_for(chrono::milliseconds(100));
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Blocknum "
+                          << m_latestForwardBlockNum
+                          << " waiting for state change from "
+                             "WAITING_FINALBLOCK to TX_SUBMISSION too long!");
+            return false;
         }
     }
 
@@ -1823,8 +1815,8 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
         bool isEveryMicroBlockAvailable;
 
         if (!IsMicroBlockTxRootHashInFinalBlock(
-                microBlockTxRootHash, microBlockStateDeltaHash, blocknum,
-                isEveryMicroBlockAvailable))
+                microBlockTxRootHash, microBlockStateDeltaHash,
+                m_latestForwardBlockNum, isEveryMicroBlockAvailable))
         {
             LOG_GENERAL(WARNING,
                         "The forwarded data is not in finalblock, why?");
@@ -1832,11 +1824,12 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
         }
         // StoreTxInMicroBlock(microBlockTxRootHash, txnHashesInForwardedMessage)
 
-        CommitForwardedTransactions(txnsInForwardedMessage, blocknum);
+        CommitForwardedTransactions(txnsInForwardedMessage,
+                                    m_latestForwardBlockNum);
 
 #ifndef IS_LOOKUP_NODE
         vector<Peer> forward_list;
-        LoadFwdingAssgnForThisBlockNum(blocknum, forward_list);
+        LoadFwdingAssgnForThisBlockNum(m_latestForwardBlockNum, forward_list);
 #endif // IS_LOOKUP_NODE
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -1844,7 +1837,8 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
 
         if (isEveryMicroBlockAvailable)
         {
-            DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(blocknum);
+            DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
+                m_latestForwardBlockNum);
         }
 
 #ifndef IS_LOOKUP_NODE
@@ -1869,36 +1863,30 @@ bool Node::ProcessForwardStateDelta(const vector<unsigned char>& message,
     LOG_MARKER();
 
     // reading [block number] from received msg
-    uint256_t blocknum
-        = Serializable::GetNumber<uint256_t>(message, cur_offset, UINT256_SIZE);
+    m_latestForwardBlockNum = (uint64_t)Serializable::GetNumber<uint256_t>(
+        message, cur_offset, UINT256_SIZE);
+
     cur_offset += UINT256_SIZE;
 
-    LOG_GENERAL(INFO, "Received state delta for block number " << blocknum);
+    LOG_GENERAL(INFO,
+                "Received state delta for block number "
+                    << m_latestForwardBlockNum);
 
     if (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
-        < blocknum)
+        < m_latestForwardBlockNum)
     {
-        unsigned int time_pass = 0;
-        while (
-            m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
-            < blocknum)
+        std::unique_lock<std::mutex> cv_lk(m_mutexForwardBlockNumSync);
+
+        if (m_cvForwardBlockNumSync.wait_for(
+                cv_lk, std::chrono::seconds(WAITING_FORWARD))
+            == std::cv_status::timeout)
         {
-            if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
-            {
-                return false;
-            }
-
-            if (time_pass % 600 == 0)
-            {
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "Blocknum " + blocknum.convert_to<string>()
-                              + " waiting "
-                              + "for state change from WAITING_FINALBLOCK "
-                                "to TX_SUBMISSION");
-            }
-            time_pass++;
-
-            this_thread::sleep_for(chrono::milliseconds(100));
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Blocknum "
+                          << m_latestForwardBlockNum
+                          << " waiting for state change from "
+                             "WAITING_FINALBLOCK to TX_SUBMISSION too long!");
+            return false;
         }
     }
 
@@ -1921,8 +1909,8 @@ bool Node::ProcessForwardStateDelta(const vector<unsigned char>& message,
         bool isEveryMicroBlockAvailable;
 
         if (!IsMicroBlockStateDeltaHashInFinalBlock(
-                microBlockStateDeltaHash, microBlockTxRootHash, blocknum,
-                isEveryMicroBlockAvailable))
+                microBlockStateDeltaHash, microBlockTxRootHash,
+                m_latestForwardBlockNum, isEveryMicroBlockAvailable))
         {
             LOG_GENERAL(WARNING,
                         "The forwarded data is not in finalblock, why?");
@@ -1933,7 +1921,7 @@ bool Node::ProcessForwardStateDelta(const vector<unsigned char>& message,
 
 #ifndef IS_LOOKUP_NODE
         vector<Peer> forward_list;
-        LoadFwdingAssgnForThisBlockNum(blocknum, forward_list);
+        LoadFwdingAssgnForThisBlockNum(m_latestForwardBlockNum, forward_list);
 #endif // IS_LOOKUP_NODE
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -1941,7 +1929,8 @@ bool Node::ProcessForwardStateDelta(const vector<unsigned char>& message,
 
         if (isEveryMicroBlockAvailable)
         {
-            DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(blocknum);
+            DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
+                m_latestForwardBlockNum);
         }
 
 #ifndef IS_LOOKUP_NODE
