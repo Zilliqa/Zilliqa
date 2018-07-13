@@ -422,12 +422,12 @@ bool ConsensusBackup::ProcessMessageAnnounce(
         // Update internal state
         // =====================
         m_state = COMMIT_DONE;
+        cv_announcementBlock.notify_all();
 
         // Unicast to the leader
         // =====================
         P2PComm::GetInstance().SendMessage(m_peerInfo.at(m_leaderID), commit);
     }
-
     return result;
 }
 
@@ -744,7 +744,6 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
 
     // Initial checks
     // ==============
-
     if (CheckState(action) == false)
     {
         return false;
@@ -928,8 +927,10 @@ bool ConsensusBackup::ProcessMessageCollectiveSig(
     const vector<unsigned char>& collectivesig, unsigned int offset)
 {
     LOG_MARKER();
-    return ProcessMessageCollectiveSigCore(
+    bool collectiveSigResult = ProcessMessageCollectiveSigCore(
         collectivesig, offset, PROCESS_COLLECTIVESIG, FINALCOMMIT_DONE);
+    cv_cosig1Block.notify_all();
+    return collectiveSigResult;
 }
 
 bool ConsensusBackup::ProcessMessageFinalChallenge(
