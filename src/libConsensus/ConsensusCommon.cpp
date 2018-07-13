@@ -209,3 +209,34 @@ unsigned int ConsensusCommon::NumForConsensus(unsigned int shardSize)
 {
     return ceil(shardSize * TOLERANCE_FRACTION);
 }
+
+bool ConsensusCommon::CanProcessMessage(const vector<unsigned char>& message,
+                                        unsigned int offset)
+{
+    const unsigned char messageType = message.at(offset);
+    if (messageType == ConsensusMessageType::COLLECTIVESIG)
+    {
+        if (m_state == INITIAL)
+        {
+            LOG_GENERAL(WARNING,
+                        "Processing collectivesig but announcement not yet "
+                        "received. m_state "
+                            << m_state);
+            return false;
+        }
+    }
+    else if (messageType == ConsensusMessageType::FINALCOLLECTIVESIG)
+    {
+        if (m_state == INITIAL || m_state == COMMIT_DONE
+            || m_state == RESPONSE_DONE)
+        {
+            LOG_GENERAL(WARNING,
+                        "Processing final collectivesig but cosig1 not yet "
+                        "received. m_state "
+                            << m_state);
+            return false;
+        }
+    }
+
+    return true;
+}
