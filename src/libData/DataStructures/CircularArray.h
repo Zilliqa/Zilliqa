@@ -33,7 +33,7 @@ template<class T> class CircularArray
     boost::multiprecision::uint256_t m_size;
 
     /// return the index of the latest block inserted
-    boost::multiprecision::uint256_t m_index;
+    int m_index;
 
 public:
     /// Default constructor.
@@ -80,7 +80,7 @@ public:
             throw;
         }
         m_array[(int)(index % m_capacity)] = element;
-        m_index = (index % m_capacity) + 1;
+        m_index = (int)(index % m_capacity) + 1;
         m_size++;
     }
 
@@ -92,7 +92,7 @@ public:
             LOG_GENERAL(WARNING, "m_array is empty")
             throw;
         }
-        return m_array[(int)((m_index - 1) % m_capacity)];
+        return m_array[m_index - 1];
     }
 
     /// Adds an element to the end of the array.
