@@ -22,6 +22,7 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <string>
 #include <vector>
 
 #include "libCrypto/MultiSig.h"
@@ -51,6 +52,25 @@ public:
         ERROR
     };
 
+    enum ConsensusErrorCode : uint16_t
+    {
+        NO_ERROR = 0x00,
+        GENERIC_ERROR,
+        INVALID_DSBLOCK,
+        INVALID_MICROBLOCK,
+        INVALID_FINALBLOCK,
+        INVALID_VIEWCHANGEBLOCK,
+        INVALID_DSBLOCK_VERSION,
+        INVALID_MICROBLOCK_VERSION,
+        INVALID_FINALBLOCK_VERSION,
+        INVALID_VIEWCHANGEBLOCK_VERSION,
+        INVALID_TIMESTAMP,
+        INVALID_BLOCK_HASH,
+        INVALID_MICROBLOCK_ROOT_HASH,
+        INVALID_MICROBLOCK_STATE_DELTA_HASH,
+        INVALID_MICROBLOCK_SHARD_ID
+    };
+
 protected:
     enum ConsensusMessageType : unsigned char
     {
@@ -67,8 +87,28 @@ protected:
         CONSENSUSFAILURE = 0x10,
     };
 
+    std::vector<std::string> ConsensusErrorMsg
+        = {"NO_ERROR",
+           "GENERIC_ERROR",
+           "INVALID_DSBLOCK",
+           "INVALID_MICROBLOCK",
+           "INVALID_FINALBLOCK",
+           "INVALID_VIEWCHANGEBLOCK",
+           "INVALID_DSBLOCK_VERSION",
+           "INVALID_MICROBLOCK_VERSION",
+           "INVALID_FINALBLOCK_VERSION",
+           "INVALID_VIEWCHANGEBLOCK_VERSION",
+           "INVALID_TIMESTAMP",
+           "INVALID_BLOCK_HASH",
+           "INVALID_MICROBLOCK_ROOT_HASH",
+           "INVALID_MICROBLOCK_STATE_DELTA_HASH",
+           "INVALID_MICROBLOCK_SHARD_ID"};
+
     /// State of the active consensus session.
     State m_state;
+
+    /// State of the active consensus session.
+    ConsensusErrorCode m_consensusErrorCode;
 
     /// The minimum fraction of peers necessary to achieve consensus.
     static constexpr double TOLERANCE_FRACTION = 0.667;
@@ -176,6 +216,14 @@ public:
 
     /// Returns the state of the active consensus session
     State GetState() const;
+
+    /// Return the consensus error code
+    ConsensusErrorCode GetConsensusErrorCode() const;
+
+    /// Return the consensus error message
+    std::string GetConsensusErrorMsg() const;
+
+    void SetConsensusErrorCode(ConsensusErrorCode ErrorCode);
 
     /// Returns the co-sig for first round
     const Signature& GetCS1() const;
