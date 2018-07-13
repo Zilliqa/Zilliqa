@@ -135,9 +135,6 @@ extern const unsigned int TX_SHARING_CLUSTER_SIZE;
 extern const unsigned int NEW_NODE_POW_DELAY;
 extern const unsigned int N_PREFILLED_PER_ACCOUNT;
 extern const unsigned int POST_VIEWCHANGE_BUFFER;
-extern const bool TEST_NET_MODE;
-extern const bool EXCLUDE_PRIV_IP;
-extern const bool ENABLE_DO_REJOIN;
 extern const unsigned int CONTRACT_CREATE_GAS;
 extern const unsigned int CONTRACT_INVOKE_GAS;
 extern const unsigned int NORMAL_TRAN_GAS;
@@ -146,9 +143,14 @@ extern const unsigned int COINBASE_REWARD;
 extern const unsigned int TXN_SUBMISSION;
 extern const unsigned int TXN_BROADCAST;
 extern const unsigned int DEBUG_LEVEL;
-extern const unsigned int FULL_DATASET_MINE;
 extern const unsigned int BROADCAST_INTERVAL;
 extern const unsigned int BROADCAST_EXPIRY;
+
+extern const bool TEST_NET_MODE;
+extern const bool EXCLUDE_PRIV_IP;
+extern const bool ENABLE_DO_REJOIN;
+extern const bool FULL_DATASET_MINE;
+
 extern const std::vector<std::string> GENESIS_WALLETS;
 extern const std::vector<std::string> GENESIS_KEYS;
 #endif // __CONSTANTS_H__
