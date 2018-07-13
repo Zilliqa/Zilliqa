@@ -135,7 +135,7 @@ bool Synchronizer::FetchDSInfo(Lookup* lookup)
 }
 
 bool Synchronizer::FetchLatestDSBlocks(Lookup* lookup,
-                                       uint256_t currentBlockChainSize)
+                                       uint64_t currentBlockChainSize)
 {
     lookup->GetDSBlockFromLookupNodes(currentBlockChainSize, 0);
     // lookup->GetDSBlockFromSeedNodes(currentBlockChainSize, 0);
@@ -143,7 +143,7 @@ bool Synchronizer::FetchLatestDSBlocks(Lookup* lookup,
 }
 
 bool Synchronizer::FetchLatestTxBlocks(Lookup* lookup,
-                                       uint256_t currentBlockChainSize)
+                                       uint64_t currentBlockChainSize)
 {
     lookup->GetTxBlockFromLookupNodes(currentBlockChainSize, 0);
     // lookup->GetTxBlockFromSeedNodes(currentBlockChainSize, 0);

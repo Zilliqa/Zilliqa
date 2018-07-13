@@ -50,16 +50,16 @@ using namespace boost::multiprecision;
 #ifndef IS_LOOKUP_NODE
 void Node::SubmitMicroblockToDSCommittee() const
 {
-    // Message = [32-byte DS blocknum] [4-byte consensusid] [4-byte shard ID] [Tx microblock]
+    // Message = [8-byte DS blocknum] [4-byte consensusid] [4-byte shard ID] [Tx microblock]
     vector<unsigned char> microblock
         = {MessageType::DIRECTORY, DSInstructionType::MICROBLOCKSUBMISSION};
     unsigned int cur_offset = MessageOffset::BODY;
 
-    // 32-byte DS blocknum
-    uint256_t DSBlockNum = m_mediator.m_dsBlockChain.GetBlockCount() - 1;
-    Serializable::SetNumber<uint256_t>(microblock, cur_offset, DSBlockNum,
-                                       UINT256_SIZE);
-    cur_offset += UINT256_SIZE;
+    // 8-byte DS blocknum
+    uint64_t DSBlockNum = m_mediator.m_dsBlockChain.GetBlockCount() - 1;
+    Serializable::SetNumber<uint64_t>(microblock, cur_offset, DSBlockNum,
+                                      sizeof(uint64_t));
+    cur_offset += sizeof(uint64_t);
 
     // 4-byte consensusid
     Serializable::SetNumber<uint32_t>(microblock, cur_offset, m_consensusID,
@@ -235,12 +235,12 @@ bool Node::ComposeMicroBlock()
     uint256_t gasUsed = 1;
     BlockHash prevHash;
     fill(prevHash.asArray().begin(), prevHash.asArray().end(), 0x77);
-    uint256_t blockNum = (uint256_t)m_mediator.m_currentEpochNum;
+    uint64_t blockNum = m_mediator.m_currentEpochNum;
     uint256_t timestamp = get_time_as_int();
     TxnHash txRootHash;
     uint32_t numTxs = 0;
     const PubKey& minerPubKey = m_mediator.m_selfKey.second;
-    uint256_t dsBlockNum = (uint256_t)m_mediator.m_currentEpochNum;
+    uint64_t dsBlockNum = m_mediator.m_currentEpochNum;
     BlockHash dsBlockHeader;
     fill(dsBlockHeader.asArray().begin(), dsBlockHeader.asArray().end(), 0x11);
     StateHash stateDeltaHash = AccountStore::GetInstance().GetStateDeltaHash();

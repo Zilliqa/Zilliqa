@@ -21,7 +21,7 @@ using namespace std;
 using namespace boost::multiprecision;
 
 TxBlockHeader::TxBlockHeader()
-    : m_blockNum((boost::multiprecision::uint256_t)-1)
+    : m_blockNum((uint64_t)-1)
 {
 }
 
@@ -37,11 +37,11 @@ TxBlockHeader::TxBlockHeader(const vector<unsigned char>& src,
 TxBlockHeader::TxBlockHeader(
     uint8_t type, uint32_t version, const uint256_t& gasLimit,
     const uint256_t& gasUsed, const BlockHash& prevHash,
-    const uint256_t& blockNum, const uint256_t& timestamp,
+    const uint64_t& blockNum, const uint256_t& timestamp,
     const TxnHash& txRootHash, const StateHash& stateRootHash,
     const StateHash& deltaRootHash, uint32_t numTxs,
     uint32_t numMicroBlockHashes, const PubKey& minerPubKey,
-    const uint256_t& dsBlockNum, const BlockHash& dsBlockHeader)
+    const uint64_t& dsBlockNum, const BlockHash& dsBlockHeader)
     : m_type(type)
     , m_version(version)
     , m_gasLimit(gasLimit)
@@ -84,8 +84,8 @@ unsigned int TxBlockHeader::Serialize(vector<unsigned char>& dst,
     copy(m_prevHash.asArray().begin(), m_prevHash.asArray().end(),
          dst.begin() + curOffset);
     curOffset += BLOCK_HASH_SIZE;
-    SetNumber<uint256_t>(dst, curOffset, m_blockNum, UINT256_SIZE);
-    curOffset += UINT256_SIZE;
+    SetNumber<uint64_t>(dst, curOffset, m_blockNum, sizeof(uint64_t));
+    curOffset += sizeof(uint64_t);
     SetNumber<uint256_t>(dst, curOffset, m_timestamp, UINT256_SIZE);
     curOffset += UINT256_SIZE;
     curOffset = m_hash.Serialize(dst, curOffset);
@@ -96,8 +96,8 @@ unsigned int TxBlockHeader::Serialize(vector<unsigned char>& dst,
     curOffset += sizeof(uint32_t);
     m_minerPubKey.Serialize(dst, curOffset);
     curOffset += PUB_KEY_SIZE;
-    SetNumber<uint256_t>(dst, curOffset, m_dsBlockNum, UINT256_SIZE);
-    curOffset += UINT256_SIZE;
+    SetNumber<uint64_t>(dst, curOffset, m_dsBlockNum, sizeof(uint64_t));
+    curOffset += sizeof(uint64_t);
     copy(m_dsBlockHeader.asArray().begin(), m_dsBlockHeader.asArray().end(),
          dst.begin() + curOffset);
     curOffset += BLOCK_HASH_SIZE;
@@ -122,8 +122,8 @@ int TxBlockHeader::Deserialize(const vector<unsigned char>& src,
         copy(src.begin() + curOffset, src.begin() + curOffset + BLOCK_HASH_SIZE,
              m_prevHash.asArray().begin());
         curOffset += BLOCK_HASH_SIZE;
-        m_blockNum = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
-        curOffset += UINT256_SIZE;
+        m_blockNum = GetNumber<uint64_t>(src, curOffset, sizeof(uint64_t));
+        curOffset += sizeof(uint64_t);
         m_timestamp = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
         curOffset += UINT256_SIZE;
         if (m_hash.Deserialize(src, curOffset))
@@ -145,8 +145,8 @@ int TxBlockHeader::Deserialize(const vector<unsigned char>& src,
             return -1;
         }
         curOffset += PUB_KEY_SIZE;
-        m_dsBlockNum = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
-        curOffset += UINT256_SIZE;
+        m_dsBlockNum = GetNumber<uint64_t>(src, curOffset, sizeof(uint64_t));
+        curOffset += sizeof(uint64_t);
         copy(src.begin() + curOffset, src.begin() + curOffset + BLOCK_HASH_SIZE,
              m_dsBlockHeader.asArray().begin());
         curOffset += BLOCK_HASH_SIZE;
@@ -171,7 +171,7 @@ const uint256_t& TxBlockHeader::GetGasUsed() const { return m_gasUsed; }
 
 const BlockHash& TxBlockHeader::GetPrevHash() const { return m_prevHash; }
 
-const uint256_t& TxBlockHeader::GetBlockNum() const { return m_blockNum; }
+const uint64_t& TxBlockHeader::GetBlockNum() const { return m_blockNum; }
 
 const uint256_t& TxBlockHeader::GetTimestamp() const { return m_timestamp; }
 
@@ -199,7 +199,7 @@ const uint32_t& TxBlockHeader::GetNumMicroBlockHashes() const
 
 const PubKey& TxBlockHeader::GetMinerPubKey() const { return m_minerPubKey; }
 
-const uint256_t& TxBlockHeader::GetDSBlockNum() const { return m_dsBlockNum; }
+const uint64_t& TxBlockHeader::GetDSBlockNum() const { return m_dsBlockNum; }
 
 const BlockHash& TxBlockHeader::GetDSBlockHeader() const
 {

@@ -32,7 +32,7 @@ VCBlock VCBlockChain::GetLastBlock()
     return m_vcBlocks.back();
 }
 
-VCBlock VCBlockChain::GetBlock(const uint256_t& blockNum)
+VCBlock VCBlockChain::GetBlock(const uint64_t& blockNum)
 {
     lock_guard<mutex> g(m_mutexVCBlocks);
 

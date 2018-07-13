@@ -43,13 +43,13 @@ public:
     void Reset();
 
     /// Returns the number of blocks.
-    boost::multiprecision::uint256_t GetBlockCount();
+    uint64_t GetBlockCount();
 
     /// Returns the last stored block.
     DSBlock GetLastBlock();
 
     /// Returns the block at the specified block number.
-    DSBlock GetBlock(const boost::multiprecision::uint256_t& blocknum);
+    DSBlock GetBlock(const uint64_t& blocknum);
 
     /// Adds a block to the chain.
     int AddBlock(const DSBlock& block);

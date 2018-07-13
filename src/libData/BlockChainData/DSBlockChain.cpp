@@ -26,7 +26,7 @@ DSBlockChain::~DSBlockChain() {}
 
 void DSBlockChain::Reset() { m_dsBlocks.resize(DS_BLOCKCHAIN_SIZE); }
 
-uint256_t DSBlockChain::GetBlockCount()
+uint64_t DSBlockChain::GetBlockCount()
 {
     lock_guard<mutex> g(m_mutexDSBlocks);
     return m_dsBlocks.size();
@@ -38,7 +38,7 @@ DSBlock DSBlockChain::GetLastBlock()
     return m_dsBlocks.back();
 }
 
-DSBlock DSBlockChain::GetBlock(const uint256_t& blockNum)
+DSBlock DSBlockChain::GetBlock(const uint64_t& blockNum)
 {
     lock_guard<mutex> g(m_mutexDSBlocks);
 
@@ -70,15 +70,15 @@ DSBlock DSBlockChain::GetBlock(const uint256_t& blockNum)
 
 int DSBlockChain::AddBlock(const DSBlock& block)
 {
-    uint256_t blockNumOfNewBlock = block.GetHeader().GetBlockNum();
+    uint64_t blockNumOfNewBlock = block.GetHeader().GetBlockNum();
 
     lock_guard<mutex> g(m_mutexDSBlocks);
 
-    uint256_t blockNumOfExistingBlock
+    uint64_t blockNumOfExistingBlock
         = m_dsBlocks[blockNumOfNewBlock].GetHeader().GetBlockNum();
 
     if (blockNumOfExistingBlock < blockNumOfNewBlock
-        || blockNumOfExistingBlock == (uint256_t)-1)
+        || blockNumOfExistingBlock == (uint64_t)-1)
     {
         m_dsBlocks.insert_new(blockNumOfNewBlock, block);
     }

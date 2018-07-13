@@ -204,13 +204,13 @@ void readBlock(int id)
 {
     TxBlockSharedPtr block;
     BlockStorage::GetBlockStorage().GetTxBlock(id, block);
-    if ((*block).GetHeader().GetBlockNum() != id)
+    if ((*block).GetHeader().GetBlockNum() != (uint64_t)id)
     {
         LOG_GENERAL(INFO,
                     "GetBlockNum is " << (*block).GetHeader().GetBlockNum()
                                       << ", id is " << id);
 
-        if ((*block).GetHeader().GetBlockNum() != id)
+        if ((*block).GetHeader().GetBlockNum() != (uint64_t)id)
         {
             LOG_GENERAL(FATAL,
                         "assertion failed (" << __FILE__ << ":" << __LINE__

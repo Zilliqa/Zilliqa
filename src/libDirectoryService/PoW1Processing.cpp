@@ -62,7 +62,7 @@ bool DirectoryService::VerifyPoW1Submission(
     const vector<unsigned char>& message, const Peer& from, PubKey& key,
     unsigned int curr_offset, uint32_t& portNo, uint64_t& nonce,
     array<unsigned char, 32>& rand1, array<unsigned char, 32>& rand2,
-    unsigned int& difficulty, uint256_t& block_num)
+    unsigned int& difficulty, uint64_t& block_num)
 {
     // 8-byte nonce
     nonce = Serializable::GetNumber<uint64_t>(message, curr_offset,
@@ -126,10 +126,10 @@ bool DirectoryService::ParseMessageAndVerifyPOW1(
 {
     unsigned int curr_offset = offset;
 
-    // 32-byte block number
-    uint256_t DSBlockNum = Serializable::GetNumber<uint256_t>(
-        message, curr_offset, UINT256_SIZE);
-    curr_offset += UINT256_SIZE;
+    // 8-byte block number
+    uint64_t DSBlockNum = Serializable::GetNumber<uint64_t>(
+        message, curr_offset, sizeof(uint64_t));
+    curr_offset += sizeof(uint64_t);
 
     // Check block number
     if (!CheckWhetherDSBlockIsFresh(DSBlockNum))
@@ -191,7 +191,7 @@ bool DirectoryService::ParseMessageAndVerifyPOW1(
     array<unsigned char, 32> rand1;
     array<unsigned char, 32> rand2;
     unsigned int difficulty;
-    uint256_t block_num;
+    uint64_t block_num;
     bool result
         = VerifyPoW1Submission(message, from, key, curr_offset, portNo, nonce,
                                rand1, rand2, difficulty, block_num);
@@ -248,7 +248,7 @@ bool DirectoryService::ProcessPoW1Submission(
     const vector<unsigned char>& message, unsigned int offset, const Peer& from)
 {
 #ifndef IS_LOOKUP_NODE
-    // Message = [32-byte block number] [4-byte listening port] [33-byte public key] [8-byte nonce] [32-byte resulting hash]
+    // Message = [8-byte block number] [4-byte listening port] [33-byte public key] [8-byte nonce] [32-byte resulting hash]
     //[32-byte mixhash] [64-byte Sign]
     LOG_MARKER();
 
@@ -277,9 +277,9 @@ bool DirectoryService::ProcessPoW1Submission(
 
     if (IsMessageSizeInappropriate(
             message.size(), offset,
-            UINT256_SIZE + sizeof(uint32_t) + PUB_KEY_SIZE + sizeof(uint64_t)
-                + BLOCK_HASH_SIZE + BLOCK_HASH_SIZE + SIGNATURE_CHALLENGE_SIZE
-                + SIGNATURE_RESPONSE_SIZE))
+            sizeof(uint64_t) + sizeof(uint32_t) + PUB_KEY_SIZE
+                + sizeof(uint64_t) + BLOCK_HASH_SIZE + BLOCK_HASH_SIZE
+                + SIGNATURE_CHALLENGE_SIZE + SIGNATURE_RESPONSE_SIZE))
     {
         LOG_GENERAL(WARNING, "Pow1 message size Inappropriate ");
         return false;

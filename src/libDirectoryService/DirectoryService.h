@@ -269,17 +269,15 @@ class DirectoryService : public Executable, public Broadcastable
     bool ParseMessageAndVerifyPOW1(const vector<unsigned char>& message,
                                    unsigned int offset, const Peer& from);
     void AppendSharingSetupToShardingStructure(
-        vector<unsigned char>& sharding_structure, unsigned int curr_offset);
-    bool CheckWhetherDSBlockIsFresh(
-        const boost::multiprecision::uint256_t dsblock_num);
+        vector<unsigned char>& finalBlockMessage, unsigned int curr_offset);
+    bool CheckWhetherDSBlockIsFresh(const uint64_t dsblock_num);
     bool CheckWhetherMaxSubmissionsReceived(Peer peer, PubKey key);
     bool VerifyPoW1Submission(const vector<unsigned char>& message,
                               const Peer& from, PubKey& key,
                               unsigned int curr_offset, uint32_t& portNo,
                               uint64_t& nonce, array<unsigned char, 32>& rand1,
                               array<unsigned char, 32>& rand2,
-                              unsigned int& difficulty,
-                              boost::multiprecision::uint256_t& block_num);
+                              unsigned int& difficulty, uint64_t& block_num);
     void ExtractDataFromMicroblocks(
         TxnHash& microblockTxnTrieRoot, StateHash& microblockDeltaTrieRoot,
         std::vector<MicroBlockHashSet>& microblockHashes,

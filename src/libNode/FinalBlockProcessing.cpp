@@ -53,10 +53,10 @@ bool Node::ReadAuxilliaryInfoFromFinalBlockMsg(
     const vector<unsigned char>& message, unsigned int& cur_offset,
     uint32_t& shard_id)
 {
-    // 32-byte block number
-    uint256_t dsBlockNum
-        = Serializable::GetNumber<uint256_t>(message, cur_offset, UINT256_SIZE);
-    cur_offset += UINT256_SIZE;
+    // 8-byte block number
+    uint64_t dsBlockNum = Serializable::GetNumber<uint64_t>(message, cur_offset,
+                                                            sizeof(uint64_t));
+    cur_offset += sizeof(uint64_t);
 
     // Check block number
     if (!CheckWhetherDSBlockNumIsLatest(dsBlockNum + 1))
@@ -99,8 +99,7 @@ void Node::StoreFinalBlock(const TxBlock& txBlock)
 
     m_mediator.HeartBeat();
     AddBlock(txBlock);
-    m_mediator.m_currentEpochNum
-        = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
+    m_mediator.m_currentEpochNum = m_mediator.m_txBlockChain.GetBlockCount();
 
     // At this point, the transactions in the last Epoch is no longer useful, thus erase.
     EraseCommittedTransactions(m_mediator.m_currentEpochNum - 2);
@@ -140,7 +139,7 @@ void Node::StoreFinalBlock(const TxBlock& txBlock)
 
 bool Node::IsMicroBlockTxRootHashInFinalBlock(
     TxnHash microBlockTxRootHash, StateHash microBlockStateDeltaHash,
-    const uint256_t& blocknum, bool& isEveryMicroBlockAvailable)
+    const uint64_t& blocknum, bool& isEveryMicroBlockAvailable)
 {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Deleting unavailable "
@@ -163,8 +162,7 @@ bool Node::IsMicroBlockTxRootHashInFinalBlock(
 
 bool Node::IsMicroBlockStateDeltaHashInFinalBlock(
     StateHash microBlockStateDeltaHash, TxnHash microBlockTxRootHash,
-    const boost::multiprecision::uint256_t& blocknum,
-    bool& isEveryMicroBlockAvailable)
+    const uint64_t& blocknum, bool& isEveryMicroBlockAvailable)
 {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Deleting unavailable "
@@ -184,8 +182,8 @@ bool Node::IsMicroBlockStateDeltaHashInFinalBlock(
     return found;
 }
 
-bool Node::LoadUnavailableMicroBlockHashes(
-    const TxBlock& finalBlock, const boost::multiprecision::uint256_t& blocknum)
+bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
+                                           const uint64_t& blocknum)
 {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Unavailable microblock hashes in final block : ")
@@ -260,8 +258,8 @@ bool Node::LoadUnavailableMicroBlockHashes(
 }
 
 bool Node::RemoveTxRootHashFromUnavailableMicroBlock(
-    const boost::multiprecision::uint256_t& blocknum,
-    const TxnHash& txnRootHash, const StateHash& stateDeltaHash)
+    const uint64_t& blocknum, const TxnHash& txnRootHash,
+    const StateHash& stateDeltaHash)
 {
     for (auto it = m_unavailableMicroBlocks[blocknum].begin();
          it != m_unavailableMicroBlocks[blocknum].end(); it++)
@@ -297,8 +295,8 @@ bool Node::RemoveTxRootHashFromUnavailableMicroBlock(
 }
 
 bool Node::RemoveStateDeltaHashFromUnavailableMicroBlock(
-    const boost::multiprecision::uint256_t& blocknum,
-    const StateHash& stateDeltaHash, const TxnHash& txnRootHash)
+    const uint64_t& blocknum, const StateHash& stateDeltaHash,
+    const TxnHash& txnRootHash)
 {
     for (auto it = m_unavailableMicroBlocks[blocknum].begin();
          it != m_unavailableMicroBlocks[blocknum].end(); it++)
@@ -397,8 +395,8 @@ bool Node::VerifyFinalBlockCoSignature(const TxBlock& txblock)
     return true;
 }
 
-bool Node::CheckMicroBlockRootHash(
-    const TxBlock& finalBlock, const boost::multiprecision::uint256_t& blocknum)
+bool Node::CheckMicroBlockRootHash(const TxBlock& finalBlock,
+                                   const uint64_t& blocknum)
 {
     TxnHash microBlocksHash
         = ComputeTransactionsRoot(finalBlock.GetMicroBlockHashes());
@@ -424,7 +422,7 @@ bool Node::CheckMicroBlockRootHash(
 
 #ifndef IS_LOOKUP_NODE
 bool Node::FindTxnInSubmittedTxnsList(const TxBlock& finalblock,
-                                      const uint256_t& blockNum,
+                                      const uint64_t& blockNum,
                                       uint8_t sharing_mode,
                                       vector<Transaction>& txns_to_send,
                                       const TxnHash& tx_hash)
@@ -500,7 +498,7 @@ bool Node::FindTxnInSubmittedTxnsList(const TxBlock& finalblock,
 }
 
 bool Node::FindTxnInReceivedTxnsList(const TxBlock& finalblock,
-                                     const uint256_t& blockNum,
+                                     const uint64_t& blockNum,
                                      uint8_t sharing_mode,
                                      vector<Transaction>& txns_to_send,
                                      const TxnHash& tx_hash)
@@ -577,7 +575,7 @@ bool Node::FindTxnInReceivedTxnsList(const TxBlock& finalblock,
 }
 
 void Node::CommitMyShardsMicroBlock(const TxBlock& finalblock,
-                                    const uint256_t& blocknum,
+                                    const uint64_t& blocknum,
                                     uint8_t sharing_mode,
                                     vector<Transaction>& txns_to_send)
 {
@@ -619,7 +617,7 @@ void Node::CommitMyShardsMicroBlock(const TxBlock& finalblock,
 }
 
 void Node::BroadcastTransactionsToSendingAssignment(
-    const uint256_t& blocknum, const vector<Peer>& sendingAssignment,
+    const uint64_t& blocknum, const vector<Peer>& sendingAssignment,
     const TxnHash& microBlockTxHash, vector<Transaction>& txns_to_send) const
 {
     LOG_MARKER();
@@ -637,9 +635,9 @@ void Node::BroadcastTransactionsToSendingAssignment(
             = {MessageType::NODE, NodeInstructionType::FORWARDTRANSACTION};
 
         // block num
-        Serializable::SetNumber<uint256_t>(forwardtxn_message, cur_offset,
-                                           blocknum, UINT256_SIZE);
-        cur_offset += UINT256_SIZE;
+        Serializable::SetNumber<uint64_t>(forwardtxn_message, cur_offset,
+                                          blocknum, sizeof(uint64_t));
+        cur_offset += sizeof(uint64_t);
 
         // microblock tx hash
         copy(microBlockTxHash.asArray().begin(),
@@ -699,8 +697,7 @@ void Node::BroadcastTransactionsToSendingAssignment(
 }
 
 void Node::BroadcastStateDeltaToSendingAssignment(
-    const boost::multiprecision::uint256_t& blocknum,
-    const vector<Peer>& sendingAssignment,
+    const uint64_t& blocknum, const vector<Peer>& sendingAssignment,
     const StateHash& microBlockStateDeltaHash,
     const TxnHash& microBlockTxHash) const
 {
@@ -711,9 +708,9 @@ void Node::BroadcastStateDeltaToSendingAssignment(
         = {MessageType::NODE, NodeInstructionType::FORWARDSTATEDELTA};
 
     // block num
-    Serializable::SetNumber<uint256_t>(forwardstate_message, cur_offset,
-                                       blocknum, UINT256_SIZE);
-    cur_offset += UINT256_SIZE;
+    Serializable::SetNumber<uint64_t>(forwardstate_message, cur_offset,
+                                      blocknum, sizeof(uint64_t));
+    cur_offset += sizeof(uint64_t);
 
     // microblock state delta hash
     copy(microBlockStateDeltaHash.asArray().begin(),
@@ -744,7 +741,7 @@ void Node::BroadcastStateDeltaToSendingAssignment(
 }
 
 void Node::LoadForwardingAssignmentFromFinalBlock(
-    const vector<Peer>& fellowForwarderNodes, const uint256_t& blocknum)
+    const vector<Peer>& fellowForwarderNodes, const uint64_t& blocknum)
 {
     // For now, since each sharding setup only processes one block, then whatever transactions we
     // failed to submit have to be discarded m_createdTransactions.clear();
@@ -798,7 +795,7 @@ void Node::LoadForwardingAssignmentFromFinalBlock(
 }
 
 bool Node::IsMyShardMicroBlockTxRootHashInFinalBlock(
-    const uint256_t& blocknum, bool& isEveryMicroBlockAvailable)
+    const uint64_t& blocknum, bool& isEveryMicroBlockAvailable)
 {
     return m_microblock != nullptr
         && IsMicroBlockTxRootHashInFinalBlock(
@@ -808,7 +805,7 @@ bool Node::IsMyShardMicroBlockTxRootHashInFinalBlock(
 }
 
 bool Node::IsMyShardMicroBlockStateDeltaHashInFinalBlock(
-    const uint256_t& blocknum, bool& isEveryMicroBlockAvailable)
+    const uint64_t& blocknum, bool& isEveryMicroBlockAvailable)
 {
     return m_microblock != nullptr
         && IsMicroBlockStateDeltaHashInFinalBlock(
@@ -817,7 +814,7 @@ bool Node::IsMyShardMicroBlockStateDeltaHashInFinalBlock(
                isEveryMicroBlockAvailable);
 }
 
-bool Node::IsMyShardMicroBlockInFinalBlock(const uint256_t& blocknum)
+bool Node::IsMyShardMicroBlockInFinalBlock(const uint64_t& blocknum)
 {
     if (m_microblock == nullptr)
     {
@@ -847,7 +844,7 @@ bool Node::IsMyShardMicroBlockInFinalBlock(const uint256_t& blocknum)
     return false;
 }
 
-bool Node::IsMyShardIdInFinalBlock(const uint256_t& blocknum)
+bool Node::IsMyShardIdInFinalBlock(const uint64_t& blocknum)
 {
     auto it = m_unavailableMicroBlocks.find(blocknum);
     if (it == m_unavailableMicroBlocks.end())
@@ -880,7 +877,7 @@ bool Node::ActOnFinalBlock(uint8_t tx_sharing_mode, const vector<Peer>& nodes)
 
     lock_guard<mutex> g(m_mutexMicroBlock);
     const TxBlock finalblock = m_mediator.m_txBlockChain.GetLastBlock();
-    const uint256_t& blocknum = finalblock.GetHeader().GetBlockNum();
+    const uint64_t& blocknum = finalblock.GetHeader().GetBlockNum();
 
     vector<Peer> sendingAssignment;
 
@@ -971,7 +968,7 @@ bool Node::ActOnFinalBlock(uint8_t tx_sharing_mode,
     if (tx_sharing_mode == SEND_AND_FORWARD)
     {
         const TxBlock finalblock = m_mediator.m_txBlockChain.GetLastBlock();
-        const uint256_t& blocknum = finalblock.GetHeader().GetBlockNum();
+        const uint64_t& blocknum = finalblock.GetHeader().GetBlockNum();
 
         LoadForwardingAssignmentFromFinalBlock(fellowForwarderNodes, blocknum);
 
@@ -1031,8 +1028,7 @@ void Node::InitiatePoW1()
 
     SetState(POW1_SUBMISSION);
     POW::GetInstance().EthashConfigureLightClient(
-        (uint64_t)
-            m_mediator.m_dsBlockChain.GetBlockCount()); // FIXME -- typecasting
+        m_mediator.m_dsBlockChain.GetBlockCount());
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Start pow1 ");
     auto func = [this]() mutable -> void {
@@ -1352,7 +1348,7 @@ bool Node::CheckStateRoot(const TxBlock& finalBlock)
 bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
                              unsigned int offset, const Peer& from)
 {
-    // Message = [32-byte DS blocknum] [4-byte consensusid] [1-byte shard id]
+    // Message = [8-byte DS blocknum] [4-byte consensusid] [1-byte shard id]
     //           [Final block] [Tx body sharing setup]
     LOG_MARKER();
 
@@ -1641,8 +1637,7 @@ bool Node::LoadForwardedStateDeltaAndCheckRoot(
 }
 
 void Node::CommitForwardedTransactions(
-    const vector<Transaction>& txnsInForwardedMessage,
-    const uint256_t& blocknum)
+    const vector<Transaction>& txnsInForwardedMessage, const uint64_t& blocknum)
 {
     LOG_MARKER();
 
@@ -1692,7 +1687,7 @@ void Node::CommitForwardedTransactions(
 }
 
 #ifndef IS_LOOKUP_NODE
-void Node::LoadFwdingAssgnForThisBlockNum(const uint256_t& blocknum,
+void Node::LoadFwdingAssgnForThisBlockNum(const uint64_t& blocknum,
                                           vector<Peer>& forward_list)
 {
     LOG_MARKER();
@@ -1707,7 +1702,7 @@ void Node::LoadFwdingAssgnForThisBlockNum(const uint256_t& blocknum,
 #endif // IS_LOOKUP_NODE
 
 void Node::DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
-    const uint256_t& blocknum)
+    const uint64_t& blocknum)
 {
     LOG_MARKER();
 
@@ -1769,9 +1764,9 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
     LOG_MARKER();
 
     // reading [block number] from received msg
-    m_latestForwardBlockNum = (uint64_t)Serializable::GetNumber<uint256_t>(
-        message, cur_offset, UINT256_SIZE);
-    cur_offset += UINT256_SIZE;
+    m_latestForwardBlockNum = Serializable::GetNumber<uint64_t>(
+        message, cur_offset, sizeof(uint64_t));
+    cur_offset += sizeof(uint64_t);
 
     LOG_STATE("[TXBOD][" << setw(15) << left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
@@ -1866,10 +1861,10 @@ bool Node::ProcessForwardStateDelta(const vector<unsigned char>& message,
     LOG_MARKER();
 
     // reading [block number] from received msg
-    m_latestForwardBlockNum = (uint64_t)Serializable::GetNumber<uint256_t>(
-        message, cur_offset, UINT256_SIZE);
+    m_latestForwardBlockNum = Serializable::GetNumber<uint64_t>(
+        message, cur_offset, sizeof(uint64_t));
 
-    cur_offset += UINT256_SIZE;
+    cur_offset += sizeof(uint64_t);
 
     LOG_GENERAL(INFO,
                 "Received state delta for block number "

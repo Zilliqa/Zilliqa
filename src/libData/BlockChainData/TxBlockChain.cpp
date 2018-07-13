@@ -26,7 +26,7 @@ TxBlockChain::~TxBlockChain() {}
 
 void TxBlockChain::Reset() { m_txBlocks.resize(TX_BLOCKCHAIN_SIZE); }
 
-uint256_t TxBlockChain::GetBlockCount()
+uint64_t TxBlockChain::GetBlockCount()
 {
     lock_guard<mutex> g(m_mutexTxBlocks);
     return m_txBlocks.size();
@@ -38,7 +38,7 @@ TxBlock TxBlockChain::GetLastBlock()
     return m_txBlocks.back();
 }
 
-TxBlock TxBlockChain::GetBlock(const uint256_t& blockNum)
+TxBlock TxBlockChain::GetBlock(const uint64_t& blockNum)
 {
     lock_guard<mutex> g(m_mutexTxBlocks);
 
@@ -72,16 +72,15 @@ TxBlock TxBlockChain::GetBlock(const uint256_t& blockNum)
 
 int TxBlockChain::AddBlock(const TxBlock& block)
 {
-    boost::multiprecision::uint256_t blockNumOfNewBlock
-        = block.GetHeader().GetBlockNum();
+    uint64_t blockNumOfNewBlock = block.GetHeader().GetBlockNum();
 
     lock_guard<mutex> g(m_mutexTxBlocks);
 
-    boost::multiprecision::uint256_t blockNumOfExistingBlock
+    uint64_t blockNumOfExistingBlock
         = m_txBlocks[blockNumOfNewBlock].GetHeader().GetBlockNum();
 
     if (blockNumOfExistingBlock < blockNumOfNewBlock
-        || blockNumOfExistingBlock == (boost::multiprecision::uint256_t)-1)
+        || blockNumOfExistingBlock == (uint64_t)-1)
     {
         m_txBlocks.insert_new(blockNumOfNewBlock, block);
     }

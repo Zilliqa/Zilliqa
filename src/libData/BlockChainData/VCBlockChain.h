@@ -46,7 +46,7 @@ public:
     VCBlock GetLastBlock();
 
     /// Returns the block at the specified block number.
-    VCBlock GetBlock(const boost::multiprecision::uint256_t& blocknum);
+    VCBlock GetBlock(const uint64_t& blocknum);
 
     /// Adds a block to the chain.
     int AddBlock(const VCBlock& block);
