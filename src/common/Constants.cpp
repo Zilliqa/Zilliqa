@@ -99,6 +99,8 @@ const unsigned int CONSENSUS_MSG_ORDER_BLOCK_WINDOW{
     ReadFromConstantsFile("CONSENSUS_MSG_ORDER_BLOCK_WINDOW")};
 const unsigned int CONSENSUS_OBJECT_TIMEOUT{
     ReadFromConstantsFile("CONSENSUS_OBJECT_TIMEOUT")};
+const unsigned int FETCHING_MISSING_TXNS_TIMEOUT{
+    ReadFromConstantsFile("FETCHING_MISSING_TXNS_TIMEOUT")};
 const unsigned int FINALBLOCK_CONSENSUS_OBJECT_TIMEOUT{
     ReadFromConstantsFile("FINALBLOCK_CONSENSUS_OBJECT_TIMEOUT")};
 const unsigned int NUM_FINAL_BLOCK_PER_POW{
