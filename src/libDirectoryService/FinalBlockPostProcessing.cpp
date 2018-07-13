@@ -304,8 +304,6 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
         = (m_sharingAssignment.size() > 0) ? DS_FORWARD_ONLY : ::IDLE;
     m_mediator.m_node->ActOnFinalBlock(tx_sharing_mode, m_sharingAssignment);
 
-    m_sharingAssignment.clear();
-
     unsigned int my_DS_cluster_num;
     unsigned int my_shards_lo;
     unsigned int my_shards_hi;
