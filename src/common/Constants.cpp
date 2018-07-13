@@ -68,11 +68,14 @@ ReadAccountsFromConstantsFile(std::string propName)
     return result;
 }
 
-const unsigned int MSG_VERSION{ReadFromConstantsFile("MSG_VERSION")};
+const unsigned int MSG_VERSION{
+    ReadFromConstantsFile("MSG_VERSION")};
 const unsigned int DS_MULTICAST_CLUSTER_SIZE{
     ReadFromConstantsFile("DS_MULTICAST_CLUSTER_SIZE")};
-const unsigned int COMM_SIZE{ReadFromConstantsFile("COMM_SIZE")};
-const unsigned int MAX_POW1_WINNERS{ReadFromConstantsFile("MAX_POW1_WINNERS")};
+const unsigned int COMM_SIZE{
+    ReadFromConstantsFile("COMM_SIZE")};
+const unsigned int MAX_POW1_WINNERS{
+    ReadFromConstantsFile("MAX_POW1_WINNERS")};
 const unsigned int POW1_WINDOW_IN_SECONDS{
     ReadFromConstantsFile("POW1_WINDOW_IN_SECONDS")};
 const unsigned int POW1_BACKUP_WINDOW_IN_SECONDS{
@@ -87,14 +90,18 @@ const unsigned int NEW_NODE_SYNC_INTERVAL{
     ReadFromConstantsFile("NEW_NODE_SYNC_INTERVAL")};
 const unsigned int POW_SUBMISSION_TIMEOUT{
     ReadFromConstantsFile("POW_SUBMISSION_TIMEOUT")};
-const unsigned int POW1_DIFFICULTY{ReadFromConstantsFile("POW1_DIFFICULTY")};
-const unsigned int POW2_DIFFICULTY{ReadFromConstantsFile("POW2_DIFFICULTY")};
+const unsigned int POW1_DIFFICULTY{
+    ReadFromConstantsFile("POW1_DIFFICULTY")};
+const unsigned int POW2_DIFFICULTY{
+    ReadFromConstantsFile("POW2_DIFFICULTY")};
 const unsigned int MICROBLOCK_TIMEOUT{
     ReadFromConstantsFile("MICROBLOCK_TIMEOUT")};
-const unsigned int VIEWCHANGE_TIME{ReadFromConstantsFile("VIEWCHANGE_TIME")};
+const unsigned int VIEWCHANGE_TIME{
+    ReadFromConstantsFile("VIEWCHANGE_TIME")};
 const unsigned int VIEWCHANGE_EXTRA_TIME{
     ReadFromConstantsFile("VIEWCHANGE_EXTRA_TIME")};
-const unsigned int SHARDING_TIMEOUT{ReadFromConstantsFile("SHARDING_TIMEOUT")};
+const unsigned int SHARDING_TIMEOUT{
+    ReadFromConstantsFile("SHARDING_TIMEOUT")};
 const unsigned int CONSENSUS_MSG_ORDER_BLOCK_WINDOW{
     ReadFromConstantsFile("CONSENSUS_MSG_ORDER_BLOCK_WINDOW")};
 const unsigned int CONSENSUS_OBJECT_TIMEOUT{
@@ -105,7 +112,8 @@ const unsigned int NUM_FINAL_BLOCK_PER_POW{
     ReadFromConstantsFile("NUM_FINAL_BLOCK_PER_POW")};
 const unsigned int NUM_DS_KEEP_TX_BODY{
     ReadFromConstantsFile("NUM_DS_KEEP_TX_BODY")};
-const uint32_t MAXMESSAGE{ReadFromConstantsFile("MAXMESSAGE")};
+const uint32_t MAXMESSAGE{
+    ReadFromConstantsFile("MAXMESSAGE")};
 const unsigned int MAXSUBMITTXNPERNODE{
     ReadFromConstantsFile("MAXSUBMITTXNPERNODE")};
 const unsigned int TX_SHARING_CLUSTER_SIZE{
@@ -114,29 +122,38 @@ const unsigned int NEW_NODE_POW_DELAY{
     ReadFromConstantsFile("NEW_NODE_POW_DELAY")};
 const unsigned int POST_VIEWCHANGE_BUFFER{
     ReadFromConstantsFile("POST_VIEWCHANGE_BUFFER")};
-const unsigned int WAITING_FORWARD{ReadFromConstantsFile("WAITING_FORWARD")};
+const unsigned int WAITING_FORWARD{
+    ReadFromConstantsFile("WAITING_FORWARD")};
 const unsigned int N_PREFILLED_PER_ACCOUNT{
     ReadFromConstantsFile("N_PREFILLED_PER_ACCOUNT")};
-const std::string Test_Node_Mode{ReadFromOptionsFile("TEST_NET_MODE")};
-const std::string ex_priv_ip{ReadFromOptionsFile("EXCLUDE_PRIV_IP")};
-const std::string enable_do_rejoin{ReadFromOptionsFile("ENABLE_DO_REJOIN")};
-const bool EXCLUDE_PRIV_IP = (ex_priv_ip == "true") ? true : false;
-const bool TEST_NET_MODE = (Test_Node_Mode == "true") ? true : false;
-const bool ENABLE_DO_REJOIN = (enable_do_rejoin == "true") ? true : false;
 const unsigned int CONTRACT_CREATE_GAS{
     ReadFromConstantsFile("CONTRACT_CREATE_GAS")};
 const unsigned int CONTRACT_INVOKE_GAS{
     ReadFromConstantsFile("CONTRACT_INVOKE_GAS")};
-const unsigned int NORMAL_TRAN_GAS{ReadFromConstantsFile("NORMAL_TRAN_GAS")};
-const unsigned int COINBASE_REWARD{ReadFromConstantsFile("COINBASE_REWARD")};
-const unsigned int TXN_SUBMISSION{ReadFromConstantsFile("TXN_SUBMISSION")};
-const unsigned int TXN_BROADCAST{ReadFromConstantsFile("TXN_BROADCAST")};
-const unsigned int DEBUG_LEVEL{ReadFromConstantsFile("DEBUG_LEVEL")};
-const unsigned int FULL_DATASET_MINE{
-    ReadFromConstantsFile("FULL_DATASET_MINE")};
+const unsigned int NORMAL_TRAN_GAS{
+    ReadFromConstantsFile("NORMAL_TRAN_GAS")};
+const unsigned int COINBASE_REWARD{
+    ReadFromConstantsFile("COINBASE_REWARD")};
+const unsigned int TXN_SUBMISSION{
+    ReadFromConstantsFile("TXN_SUBMISSION")};
+const unsigned int TXN_BROADCAST{
+    ReadFromConstantsFile("TXN_BROADCAST")};
+const unsigned int DEBUG_LEVEL{
+    ReadFromConstantsFile("DEBUG_LEVEL")};
 const unsigned int BROADCAST_INTERVAL{
     ReadFromConstantsFile("BROADCAST_INTERVAL")};
-const unsigned int BROADCAST_EXPIRY{ReadFromConstantsFile("BROADCAST_EXPIRY")};
+const unsigned int BROADCAST_EXPIRY{
+    ReadFromConstantsFile("BROADCAST_EXPIRY")};
+
+const bool EXCLUDE_PRIV_IP{
+    ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true" ? true : false};
+const bool TEST_NET_MODE{
+    ReadFromOptionsFile("TEST_NET_MODE") == "true" ? true : false};
+const bool ENABLE_DO_REJOIN{
+    ReadFromOptionsFile("ENABLE_DO_REJOIN") == "true" ? true : false};
+const bool FULL_DATASET_MINE{
+    ReadFromOptionsFile("FULL_DATASET_MINE") == "true" ? true : false};
+
 const std::vector<std::string> GENESIS_WALLETS{
     ReadAccountsFromConstantsFile("wallet_address")};
 const std::vector<std::string> GENESIS_KEYS{
