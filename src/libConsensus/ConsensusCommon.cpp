@@ -177,6 +177,11 @@ void ConsensusCommon::SetConsensusErrorCode(
     m_consensusErrorCode = ErrorCode;
 }
 
+void ConsensusCommon::RecoveryAndProcessFromANewState(State newState)
+{
+    m_state = newState;
+}
+
 const Signature& ConsensusCommon::GetCS1() const
 {
     if (m_state != DONE)

@@ -237,7 +237,11 @@ public:
     /// Return the consensus error message
     std::string GetConsensusErrorMsg() const;
 
+    /// Set consensus error code
     void SetConsensusErrorCode(ConsensusErrorCode ErrorCode);
+
+    /// For recovery. Roll back to a certain state
+    void RecoveryAndProcessFromANewState(State newState);
 
     /// Returns the co-sig for first round
     const Signature& GetCS1() const;
