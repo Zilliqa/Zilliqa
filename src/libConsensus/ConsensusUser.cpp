@@ -165,6 +165,23 @@ bool ConsensusUser::ProcessConsensusMessage(
 {
     LOG_MARKER();
 
+    std::shared_lock<shared_timed_mutex> cv_lk(m_mutexProcessConsensusMessage);
+    if (cv_processConsensusMessage.wait_for(
+            cv_lk, std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW),
+            [this, message, offset]() -> bool {
+                return m_consensus->CanProcessMessage(message, offset);
+            }))
+    {
+        // order preserved
+    }
+    else
+    {
+        LOG_GENERAL(
+            WARNING,
+            "Timeout while waiting for correct order of consensus messages");
+        return false;
+    }
+
     bool result = m_consensus->ProcessMessage(message, offset, from);
 
     if (m_consensus->GetState() == ConsensusCommon::State::DONE)

@@ -106,10 +106,17 @@ class Node : public Executable, public Broadcastable
     std::atomic<uint32_t> m_myShardID;
     std::atomic<uint32_t> m_numShards;
 
+    // Transaction sharing assignments
+    std::atomic<bool> m_txnSharingIAmSender;
+    std::atomic<bool> m_txnSharingIAmForwarder;
+    std::vector<std::vector<Peer>> m_txnSharingAssignedNodes;
+
     // DS committee information
     bool m_isDSNode = true;
 
     // Consensus variables
+    std::shared_timed_mutex m_mutexProcessConsensusMessage;
+    std::condition_variable_any cv_processConsensusMessage;
     std::shared_ptr<ConsensusCommon> m_consensusObject;
     std::mutex m_MutexCVMicroblockConsensus;
     std::condition_variable cv_microblockConsensus;
@@ -159,6 +166,10 @@ class Node : public Executable, public Broadcastable
     std::mutex m_mutexForwardingAssignment;
     std::unordered_map<uint64_t, std::vector<Peer>> m_forwardingAssignment;
 
+    uint64_t m_latestForwardBlockNum;
+    std::condition_variable m_cvForwardBlockNumSync;
+    std::mutex m_mutexForwardBlockNumSync;
+
     bool CheckState(Action action);
 
     // To block certain types of incoming message for certain states
@@ -197,7 +208,7 @@ class Node : public Executable, public Broadcastable
 
     // internal call from ProcessSharding
     bool ReadVariablesFromShardingMessage(const vector<unsigned char>& message,
-                                          unsigned int offset);
+                                          unsigned int& offset);
 
     // internal calls from ActOnFinalBlock for NODE_FORWARD_ONLY and SEND_AND_FORWARD
     void LoadForwardingAssignmentFromFinalBlock(
@@ -266,12 +277,8 @@ class Node : public Executable, public Broadcastable
     void ScheduleMicroBlockConsensus();
     void BeginNextConsensusRound();
     void LoadTxnSharingInfo(const vector<unsigned char>& message,
-                            unsigned int& cur_offset, uint32_t shard_id,
-                            bool& i_am_sender, bool& i_am_forwarder,
-                            vector<vector<Peer>>& nodes);
-    void CallActOnFinalBlockBasedOnSenderForwarderAssgn(
-        bool i_am_sender, bool i_am_forwarder,
-        const vector<vector<Peer>>& nodes, uint32_t shard_id);
+                            unsigned int cur_offset);
+    void CallActOnFinalBlockBasedOnSenderForwarderAssgn(uint8_t shard_id);
 
     // internal calls from ProcessForwardTransaction
     void LoadFwdingAssgnForThisBlockNum(const uint64_t& blocknum,
@@ -475,6 +482,8 @@ public:
         m_committedTransactions.erase(epochNum);
     }
 
+    /// Add new block into tx blockchain
+    void AddBlock(const TxBlock& block);
 #ifndef IS_LOOKUP_NODE
 
     // Start synchronization with lookup as a shard node

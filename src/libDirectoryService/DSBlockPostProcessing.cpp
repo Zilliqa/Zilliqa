@@ -202,7 +202,11 @@ void DirectoryService::SendDSBlockToCluster(
         << m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()
         << "] DSBLOCKGEN");
 
-    // Sleep to give sufficient time to other ds node to receive the ds block
+    // Not all DS nodes have received the final ds block consensus message.
+    // If some ds nodes send ds block too fast to shard nodes,
+    // pow submissions may arrive before ds nodes have transit to pow submission state.
+    // This result in pow submission being drop.
+    // Hence, a small sleep is set to have some buffer.
     this_thread::sleep_for(chrono::seconds(5));
     P2PComm::GetInstance().SendBroadcastMessage(pow1nodes_cluster,
                                                 dsblock_message);
