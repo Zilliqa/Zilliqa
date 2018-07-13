@@ -20,8 +20,7 @@
 #include <deque>
 
 #include "libCrypto/Schnorr.h"
-#include "libData/BlockChainData/DSBlockChain.h"
-#include "libData/BlockChainData/TxBlockChain.h"
+#include "libData/BlockChainData/BlockChain.h"
 #include "libDirectoryService/DirectoryService.h"
 #include "libLookup/Lookup.h"
 #include "libNetwork/Peer.h"
@@ -51,10 +50,10 @@ public:
     ValidatorBase* m_validator;
 
     /// The transient DS blockchain.
-    DSBlockChain m_dsBlockChain;
+    BlockChain<DSBlock> m_dsBlockChain;
 
     /// The transient Tx blockchain.
-    TxBlockChain m_txBlockChain;
+    BlockChain<TxBlock> m_txBlockChain;
 
     /// The current epoch.
     uint64_t m_currentEpochNum = 0;
@@ -65,13 +64,9 @@ public:
     // PoW1 winner will be pushed in at head of queue (new leader)
     // Oldest member will be pushed out from tail of queue
 
-    /// The current members of the DS committee.
-    std::deque<Peer> m_DSCommitteeNetworkInfo;
-    std::mutex m_mutexDSCommitteeNetworkInfo;
-
-    /// The public keys of the DS committee members.
-    std::deque<PubKey> m_DSCommitteePubKeys;
-    std::mutex m_mutexDSCommitteePubKeys;
+    /// The public keys and current members of the DS committee.
+    std::deque<pair<PubKey, Peer>> m_DSCommittee;
+    std::mutex m_mutexDSCommittee;
 
     /// The current epoch randomness from the DS blockchain.
     std::array<unsigned char, POW_SIZE> m_dsBlockRand;

@@ -85,11 +85,8 @@ protected:
     /// Private key of this peer.
     PrivKey m_myPrivKey;
 
-    /// List of public keys for the committee.
-    std::deque<PubKey> m_pubKeys;
-
-    /// List of peers for the committee.
-    std::deque<Peer> m_peerInfo;
+    /// List of <public keys, peers> for the committee.
+    std::deque<std::pair<PubKey, Peer>> m_committee;
 
     /// The payload to be evaluated for the active consensus session.
     std::vector<unsigned char> m_message;
@@ -131,9 +128,8 @@ protected:
     ConsensusCommon(uint32_t consensus_id,
                     const std::vector<unsigned char>& block_hash,
                     uint16_t my_id, const PrivKey& privkey,
-                    const std::deque<PubKey>& pubkeys,
-                    const std::deque<Peer>& peer_info, unsigned char class_byte,
-                    unsigned char ins_byte);
+                    const std::deque<std::pair<PubKey, Peer>>& committee,
+                    unsigned char class_byte, unsigned char ins_byte);
 
     /// Destructor.
     ~ConsensusCommon();

@@ -206,7 +206,7 @@ void DirectoryService::ComposeFinalBlockCore()
                       dsBlockHeader),
         vector<bool>(isMicroBlockEmpty),
         vector<MicroBlockHashSet>(microBlockHashes), vector<uint32_t>(shardIDs),
-        CoSignatures(m_mediator.m_DSCommitteePubKeys.size())));
+        CoSignatures(m_mediator.m_DSCommittee.size())));
 
     LOG_STATE("[STATS][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
@@ -304,8 +304,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
 
     m_consensusObject.reset(new ConsensusLeader(
         m_consensusID, m_consensusBlockHash, m_consensusMyID,
-        m_mediator.m_selfKey.first, m_mediator.m_DSCommitteePubKeys,
-        m_mediator.m_DSCommitteeNetworkInfo,
+        m_mediator.m_selfKey.first, m_mediator.m_DSCommittee,
         static_cast<unsigned char>(DIRECTORY),
         static_cast<unsigned char>(FINALBLOCKCONSENSUS),
         std::function<bool(const vector<unsigned char>&, unsigned int,
@@ -779,8 +778,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup()
     m_consensusObject.reset(new ConsensusBackup(
         m_consensusID, m_consensusBlockHash, m_consensusMyID,
         m_consensusLeaderID, m_mediator.m_selfKey.first,
-        m_mediator.m_DSCommitteePubKeys, m_mediator.m_DSCommitteeNetworkInfo,
-        static_cast<unsigned char>(DIRECTORY),
+        m_mediator.m_DSCommittee, static_cast<unsigned char>(DIRECTORY),
         static_cast<unsigned char>(FINALBLOCKCONSENSUS), func));
 
     if (m_consensusObject == nullptr)

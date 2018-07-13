@@ -50,11 +50,6 @@ class Lookup : public Executable, public Broadcastable
     std::vector<Peer> m_lookupNodesOffline;
     std::vector<Peer> m_seedNodes;
 #ifndef IS_LOOKUP_NODE
-    bool m_dsInfoWaitingNotifying = false;
-    bool m_fetchedDSInfo = false;
-    std::mutex m_mutexDSInfoUpdation;
-    std::condition_variable cv_dsInfoUpdate;
-
     bool CheckStateRoot();
 #endif // IS_LOOKUP_NODE
 
@@ -92,6 +87,10 @@ class Lookup : public Executable, public Broadcastable
     std::mutex m_mutexSetTxBlockFromSeed;
     std::mutex m_mutexSetTxBodyFromSeed;
     std::mutex m_mutexSetState;
+
+    bool bPOWSubmission = false;
+    std::condition_variable cv_POWSubmission;
+    std::mutex m_MutexCVPOWSubmission;
 
     std::vector<unsigned char> ComposeGetDSInfoMessage();
     std::vector<unsigned char> ComposeGetStateMessage();
@@ -224,6 +223,16 @@ public:
 
     bool ProcessSetOfflineLookups(const std::vector<unsigned char>& message,
                                   unsigned int offset, const Peer& from);
+    bool ProcessRaisePowSubmission(const std::vector<unsigned char>& message,
+                                   unsigned int offset, const Peer& from);
+
+    bool
+    ProcessGetPowSubmissionFromSeed(const std::vector<unsigned char>& message,
+                                    unsigned int offset, const Peer& from);
+
+    bool
+    ProcessSetPowSubmissionFromSeed(const std::vector<unsigned char>& message,
+                                    unsigned int offset, const Peer& from);
 
     bool Execute(const std::vector<unsigned char>& message, unsigned int offset,
                  const Peer& from);
@@ -239,7 +248,7 @@ public:
     unsigned int m_syncType = SyncType::NO_SYNC;
 
     /// Helper variables used by new node synchronization
-    bool m_startedPoW2 = false;
+    bool m_startedPoW1 = false;
 
     bool AlreadyJoinedNetwork();
 };

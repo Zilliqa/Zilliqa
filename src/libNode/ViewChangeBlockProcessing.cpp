@@ -89,18 +89,9 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock)
 void Node::UpdateDSCommiteeComposition()
 {
     LOG_MARKER();
-    lock(m_mediator.m_mutexDSCommitteeNetworkInfo,
-         m_mediator.m_mutexDSCommitteePubKeys);
-    lock_guard<mutex> g2(m_mediator.m_mutexDSCommitteeNetworkInfo, adopt_lock);
-    lock_guard<mutex> g3(m_mediator.m_mutexDSCommitteePubKeys, adopt_lock);
-
-    m_mediator.m_DSCommitteeNetworkInfo.push_back(
-        m_mediator.m_DSCommitteeNetworkInfo.front());
-    m_mediator.m_DSCommitteeNetworkInfo.pop_front();
-
-    m_mediator.m_DSCommitteePubKeys.push_back(
-        m_mediator.m_DSCommitteePubKeys.front());
-    m_mediator.m_DSCommitteePubKeys.pop_front();
+    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+    m_mediator.m_DSCommittee.push_back(m_mediator.m_DSCommittee.front());
+    m_mediator.m_DSCommittee.pop_front();
 }
 
 bool Node::VerifyVCBlockCoSignature(const VCBlock& vcblock)
@@ -111,11 +102,11 @@ bool Node::VerifyVCBlockCoSignature(const VCBlock& vcblock)
     unsigned int count = 0;
 
     const vector<bool>& B2 = vcblock.GetB2();
-    if (m_mediator.m_DSCommitteePubKeys.size() != B2.size())
+    if (m_mediator.m_DSCommittee.size() != B2.size())
     {
         LOG_GENERAL(WARNING,
                     "Mismatch: DS committee size = "
-                        << m_mediator.m_DSCommitteePubKeys.size()
+                        << m_mediator.m_DSCommittee.size()
                         << ", co-sig bitmap size = " << B2.size());
         return false;
     }
@@ -123,11 +114,11 @@ bool Node::VerifyVCBlockCoSignature(const VCBlock& vcblock)
     // Generate the aggregated key
     vector<PubKey> keys;
 
-    for (auto& kv : m_mediator.m_DSCommitteePubKeys)
+    for (auto const& kv : m_mediator.m_DSCommittee)
     {
         if (B2.at(index) == true)
         {
-            keys.push_back(kv);
+            keys.push_back(kv.first);
             count++;
         }
         index++;
@@ -233,9 +224,10 @@ bool Node::ProcessVCBlock(const vector<unsigned char>& message,
 
     unsigned int newCandidateLeader
         = 1; // TODO: To be change to a random node using VRF
-    if (!(m_mediator.m_DSCommitteeNetworkInfo.at(newCandidateLeader)
+
+    if (!(m_mediator.m_DSCommittee.at(newCandidateLeader).second
               == vcblock.GetHeader().GetCandidateLeaderNetworkInfo()
-          && m_mediator.m_DSCommitteePubKeys.at(newCandidateLeader)
+          && m_mediator.m_DSCommittee.at(newCandidateLeader).first
               == vcblock.GetHeader().GetCandidateLeaderPubKey()))
     {
 
@@ -243,12 +235,11 @@ bool Node::ProcessVCBlock(const vector<unsigned char>& message,
             WARNING,
             "View change expectation mismatched "
             "expected new leader: "
-                << m_mediator.m_DSCommitteeNetworkInfo.at(newCandidateLeader)
+                << m_mediator.m_DSCommittee.at(newCandidateLeader).second
                 << "actual vc new leader "
                 << vcblock.GetHeader().GetCandidateLeaderNetworkInfo());
         return false;
     }
-
     // TODO
     // LogReceivedVSBlockDetails(vcblock);
 

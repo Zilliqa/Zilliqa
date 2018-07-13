@@ -28,7 +28,7 @@ PeerStore& PeerStore::GetStore()
     return ps;
 }
 
-void PeerStore::AddPeer(const PubKey& key, const Peer& peer)
+void PeerStore::AddPeerPair(const PubKey& key, const Peer& peer)
 {
     lock_guard<mutex> g(m_mutexStore);
     m_store[key] = peer;
@@ -47,6 +47,20 @@ Peer PeerStore::GetPeer(const PubKey& key)
     {
         return Peer(0, 0);
     }
+}
+
+vector<pair<PubKey, Peer>> PeerStore::GetAllPeerPairs() const
+{
+    vector<pair<PubKey, Peer>> result;
+
+    lock_guard<mutex> g(m_mutexStore);
+
+    for (auto const& i : m_store)
+    {
+        result.push_back(i);
+    }
+
+    return result;
 }
 
 vector<Peer> PeerStore::GetAllPeers() const

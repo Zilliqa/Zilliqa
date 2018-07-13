@@ -123,10 +123,9 @@ void DirectoryService::DetermineNodesToSendDSBlockTo(
             << DataConversion::charArrToHexStr(m_mediator.m_dsBlockRand) << "\n"
             << "New DS leader (PoW1 winner)          = " << winnerpeer);
 
-    unsigned int num_DS_clusters = m_mediator.m_DSCommitteeNetworkInfo.size()
-        / DS_MULTICAST_CLUSTER_SIZE;
-    if ((m_mediator.m_DSCommitteeNetworkInfo.size() % DS_MULTICAST_CLUSTER_SIZE)
-        > 0)
+    unsigned int num_DS_clusters
+        = m_mediator.m_DSCommittee.size() / DS_MULTICAST_CLUSTER_SIZE;
+    if ((m_mediator.m_DSCommittee.size() % DS_MULTICAST_CLUSTER_SIZE) > 0)
     {
         num_DS_clusters++;
     }
@@ -231,15 +230,13 @@ void DirectoryService::UpdateMyDSModeAndConsensusId()
                              << "] DSBK");
     }
     // Check if I am the oldest backup DS (I will no longer be part of the DS committee)
-    else if ((uint32_t)(m_consensusMyID + 1)
-             == m_mediator.m_DSCommitteeNetworkInfo.size())
+    else if ((uint32_t)(m_consensusMyID + 1) == m_mediator.m_DSCommittee.size())
     {
         LOG_EPOCH(
             INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "I am the oldest backup DS -> now kicked out of DS committee :-("
                 << "\n"
                 << DS_KICKOUT_MSG);
-        m_mediator.m_node->SetState(Node::NodeState::POW2_SUBMISSION);
         m_mode = IDLE;
 
         LOG_STATE("[IDENT][" << setw(15) << left
@@ -263,12 +260,10 @@ void DirectoryService::UpdateDSCommiteeComposition(const Peer& winnerpeer)
     // Update the DS committee composition
     LOG_MARKER();
 
-    m_mediator.m_DSCommitteeNetworkInfo.push_front(winnerpeer);
-    m_mediator.m_DSCommitteePubKeys.push_front(
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetMinerPubKey());
-    m_mediator.m_DSCommitteeNetworkInfo.pop_back();
-    m_mediator.m_DSCommitteePubKeys.pop_back();
-
+    m_mediator.m_DSCommittee.push_front(make_pair(
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetMinerPubKey(),
+        winnerpeer));
+    m_mediator.m_DSCommittee.pop_back();
     // Remove the new winner of pow1 from m_allpowconn. He is the new ds leader and do not need to do pow anymore
     m_allPoWConns.erase(
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetMinerPubKey());
@@ -392,6 +387,34 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
 
     {
         lock_guard<mutex> g(m_mutexAllPOW1);
+
+        if (m_mode != IDLE)
+        {
+            //Copy POW1 to POW2
+            lock(m_mutexAllPOW2, m_mutexAllPoWConns);
+            lock_guard<mutex> g2(m_mutexAllPOW2, adopt_lock);
+            lock_guard<mutex> g3(m_mutexAllPoWConns, adopt_lock);
+            m_allPoW2s.clear();
+
+            for (auto const& i : m_allPoW1s)
+            {
+                //Winner will become DS (leader), thus we should not put in POW2
+                if (m_allPoWConns[i.first] == winnerpeer)
+                {
+                    continue;
+                }
+
+                m_allPoW2s.emplace(i.first, i.second);
+            }
+
+            //Add previous DS commitee (oldest one), because it back to normal node and should be collected
+            lock_guard<mutex> g4(m_mediator.m_mutexDSCommittee);
+            m_allPoW2s.emplace(m_mediator.m_DSCommittee.back().first,
+                               (boost::multiprecision::uint256_t){1});
+            m_allPoWConns.emplace(m_mediator.m_DSCommittee.back().first,
+                                  m_mediator.m_DSCommittee.back().second);
+        }
+
         m_allPoW1s.clear();
     }
 
@@ -406,19 +429,13 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
             Whitelist::GetInstance().UpdateShardWhitelist();
         }
 
-        SetState(POW2_SUBMISSION);
-        NotifyPOW2Submission();
         ScheduleShardingConsensus(BACKUP_POW2_WINDOW_IN_SECONDS);
     }
     else
     {
         // Tell my Node class to start PoW2
         m_mediator.UpdateDSBlockRand();
-        array<unsigned char, 32> rand2{};
-        this_thread::sleep_for(chrono::seconds(3));
-        m_mediator.m_node->StartPoW2(lastDSBlock.GetHeader().GetBlockNum(),
-                                     POW2_DIFFICULTY, m_mediator.m_dsBlockRand,
-                                     rand2);
+        m_mediator.m_node->SetState(Node::NodeState::TX_SUBMISSION);
     }
 }
 #endif // IS_LOOKUP_NODE

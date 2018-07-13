@@ -114,10 +114,9 @@ void DirectoryService::SetupMulticastConfigForShardingStructure(
 
     LOG_MARKER();
 
-    unsigned int num_DS_clusters = m_mediator.m_DSCommitteeNetworkInfo.size()
-        / DS_MULTICAST_CLUSTER_SIZE;
-    if ((m_mediator.m_DSCommitteeNetworkInfo.size() % DS_MULTICAST_CLUSTER_SIZE)
-        > 0)
+    unsigned int num_DS_clusters
+        = m_mediator.m_DSCommittee.size() / DS_MULTICAST_CLUSTER_SIZE;
+    if ((m_mediator.m_DSCommittee.size() % DS_MULTICAST_CLUSTER_SIZE) > 0)
     {
         // If there are still ds lefts, add a new ds cluster
         num_DS_clusters++;
@@ -242,7 +241,7 @@ bool DirectoryService::ProcessShardingConsensus(
 
     lock_guard<mutex> g(m_mutexConsensus);
     // Wait until in the case that primary sent announcement pretty early
-    if ((m_state == POW2_SUBMISSION) || (m_state == SHARDING_CONSENSUS_PREP))
+    if (m_state == SHARDING_CONSENSUS_PREP)
     {
         cv_shardingConsensus.notify_all();
 
@@ -359,22 +358,21 @@ bool DirectoryService::ProcessShardingConsensus(
     }
     else if (state == ConsensusCommon::State::ERROR)
     {
-        for (unsigned int i = 0; i < m_mediator.m_DSCommitteeNetworkInfo.size();
-             i++)
+        for (unsigned int i = 0; i < m_mediator.m_DSCommittee.size(); i++)
         {
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      string(m_mediator.m_DSCommitteeNetworkInfo[i]
-                                 .GetPrintableIPAddress())
-                          + ":"
-                          + to_string(m_mediator.m_DSCommitteeNetworkInfo[i]
-                                          .m_listenPortHost));
+            LOG_EPOCH(
+                INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                string(
+                    m_mediator.m_DSCommittee[i].second.GetPrintableIPAddress())
+                    + ":"
+                    + to_string(
+                          m_mediator.m_DSCommittee[i].second.m_listenPortHost));
         }
-        for (unsigned int i = 0; i < m_mediator.m_DSCommitteePubKeys.size();
-             i++)
+        for (unsigned int i = 0; i < m_mediator.m_DSCommittee.size(); i++)
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       DataConversion::SerializableToHexStr(
-                          m_mediator.m_DSCommitteePubKeys[i]));
+                          m_mediator.m_DSCommittee[i].first));
         }
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Oops, no consensus reached - what to do now???");

@@ -52,8 +52,6 @@ class DirectoryService : public Executable, public Broadcastable
         PROCESS_POW1SUBMISSION = 0x00,
         VERIFYPOW1,
         PROCESS_DSBLOCKCONSENSUS,
-        PROCESS_POW2SUBMISSION,
-        VERIFYPOW2,
         PROCESS_SHARDINGCONSENSUS,
         PROCESS_MICROBLOCKSUBMISSION,
         PROCESS_FINALBLOCKCONSENSUS,
@@ -70,10 +68,6 @@ class DirectoryService : public Executable, public Broadcastable
             return "VERIFYPOW1";
         case PROCESS_DSBLOCKCONSENSUS:
             return "PROCESS_DSBLOCKCONSENSUS";
-        case PROCESS_POW2SUBMISSION:
-            return "PROCESS_POW2SUBMISSION";
-        case VERIFYPOW2:
-            return "VERIFYPOW2";
         case PROCESS_SHARDINGCONSENSUS:
             return "PROCESS_SHARDINGCONSENSUS";
         case PROCESS_MICROBLOCKSUBMISSION:
@@ -106,8 +100,6 @@ class DirectoryService : public Executable, public Broadcastable
 
     // PoW common variables
     std::mutex m_mutexAllPoWs;
-    std::map<PubKey, Peer> m_allPoWConns;
-    std::mutex m_mutexAllPoWConns;
 
     // Consensus variables
     std::shared_ptr<ConsensusCommon> m_consensusObject;
@@ -117,12 +109,8 @@ class DirectoryService : public Executable, public Broadcastable
     std::shared_ptr<DSBlock> m_pendingDSBlock;
     std::mutex m_mutexPendingDSBlock;
     std::mutex m_mutexDSBlockConsensus;
-    std::vector<std::pair<PubKey, boost::multiprecision::uint256_t>> m_allPoW1s;
-    std::mutex m_mutexAllPOW1;
 
     // PoW2 (sharding) consensus variables
-    std::map<PubKey, boost::multiprecision::uint256_t> m_allPoW2s;
-    std::mutex m_mutexAllPOW2;
     std::map<std::array<unsigned char, BLOCK_HASH_SIZE>, PubKey> m_sortedPoW2s;
 
     // Final block consensus variables
@@ -162,9 +150,6 @@ class DirectoryService : public Executable, public Broadcastable
     std::mutex m_MutexCVFinalBlockConsensusObject;
     std::condition_variable cv_POW1Submission;
     std::mutex m_MutexCVPOW1Submission;
-    std::condition_variable cv_POW2Submission;
-    std::mutex m_MutexCVPOW2Submission;
-
     // TO Remove
     Mediator& m_mediator;
 
@@ -179,8 +164,6 @@ class DirectoryService : public Executable, public Broadcastable
                                unsigned int offset, const Peer& from);
     bool ProcessDSBlockConsensus(const std::vector<unsigned char>& message,
                                  unsigned int offset, const Peer& from);
-    bool ProcessPoW2Submission(const std::vector<unsigned char>& message,
-                               unsigned int offset, const Peer& from);
     bool ProcessShardingConsensus(const std::vector<unsigned char>& message,
                                   unsigned int offset, const Peer& from);
     bool ProcessMicroblockSubmission(const std::vector<unsigned char>& message,
@@ -193,14 +176,15 @@ class DirectoryService : public Executable, public Broadcastable
                                    unsigned int offset, const Peer& from);
     bool ProcessViewChangeConsensus(const vector<unsigned char>& message,
                                     unsigned int offset, const Peer& from);
+    bool ProcessAllPoW2Request(const vector<unsigned char>& message,
+                               unsigned int offset, const Peer& from);
+    bool ProcessAllPoW2Response(const vector<unsigned char>& message,
+                                unsigned int offset, const Peer& from);
     // To block certain types of incoming message for certain states
     bool ToBlockMessage(unsigned char ins_byte);
 
 #ifndef IS_LOOKUP_NODE
     bool CheckState(Action action);
-    bool VerifyPOW2(const vector<unsigned char>& message, unsigned int offset,
-                    const Peer& from);
-
     void NotifySelfToStartPOW2(const vector<unsigned char>& message,
                                unsigned int offset);
     void
@@ -274,7 +258,6 @@ class DirectoryService : public Executable, public Broadcastable
         vector<unsigned char>& sharding_structure, unsigned int curr_offset);
     bool CheckWhetherDSBlockIsFresh(
         const boost::multiprecision::uint256_t dsblock_num);
-    bool CheckWhetherMaxSubmissionsReceived(Peer peer, PubKey key);
     bool VerifyPoW1Submission(const vector<unsigned char>& message,
                               const Peer& from, PubKey& key,
                               unsigned int curr_offset, uint32_t& portNo,
@@ -326,8 +309,6 @@ class DirectoryService : public Executable, public Broadcastable
 
     // void StoreMicroBlocksToDisk();
 
-    // Used to reconsile view of m_AllPowConn is different.
-    void RequestAllPoWConn();
     void LastDSBlockRequest();
 
     bool ProcessLastDSBlockRequest(const vector<unsigned char>& message,
@@ -373,7 +354,6 @@ public:
         POW1_SUBMISSION = 0x00,
         DSBLOCK_CONSENSUS_PREP,
         DSBLOCK_CONSENSUS,
-        POW2_SUBMISSION,
         SHARDING_CONSENSUS_PREP,
         SHARDING_CONSENSUS,
         MICROBLOCK_SUBMISSION,
@@ -398,6 +378,13 @@ public:
 
     /// The ID number of this Zilliqa instance for use with consensus operations.
     uint16_t m_consensusMyID;
+
+    std::vector<std::pair<PubKey, boost::multiprecision::uint256_t>> m_allPoW1s;
+    std::mutex m_mutexAllPOW1;
+    std::map<PubKey, Peer> m_allPoWConns;
+    std::mutex m_mutexAllPoWConns;
+    std::map<PubKey, boost::multiprecision::uint256_t> m_allPoW2s;
+    std::mutex m_mutexAllPOW2;
 
     /// The epoch number when DS tries doing Rejoin
     uint64_t m_latestActiveDSBlockNum = 0;
@@ -430,8 +417,9 @@ public:
     bool Execute(const std::vector<unsigned char>& message, unsigned int offset,
                  const Peer& from);
 
-    /// Notify POW2 submission to DirectoryService::ProcessPoW2Submission()
-    void NotifyPOW2Submission() { cv_POW2Submission.notify_all(); }
+    // Used to reconsile view of m_AllPowConn is different.
+    void RequestAllPoWConn();
+    void RequestAllPoW2();
 };
 
 #endif // __DIRECTORYSERVICE_H__

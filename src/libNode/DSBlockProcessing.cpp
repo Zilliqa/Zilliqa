@@ -88,22 +88,20 @@ void Node::UpdateDSCommiteeComposition(const Peer& winnerpeer)
     // 1. Insert new leader at the head of the queue
     // 2. Pop out the oldest backup from the tail of the queue
     // Note: If I am the primary, push a placeholder with ip=0 and port=0 in place of my real port
-    if (m_mediator.m_selfKey.second
-        == m_mediator.m_dsBlockChain.GetLastBlock()
-               .GetHeader()
-               .GetMinerPubKey())
-    {
-        m_mediator.m_DSCommitteeNetworkInfo.push_front(Peer());
-    }
-    else
-    {
-        m_mediator.m_DSCommitteeNetworkInfo.push_front(winnerpeer);
-    }
-    m_mediator.m_DSCommitteePubKeys.push_front(
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetMinerPubKey());
+    Peer peer;
 
-    m_mediator.m_DSCommitteeNetworkInfo.pop_back();
-    m_mediator.m_DSCommitteePubKeys.pop_back();
+    if (!(m_mediator.m_selfKey.second
+          == m_mediator.m_dsBlockChain.GetLastBlock()
+                 .GetHeader()
+                 .GetMinerPubKey()))
+    {
+        peer = winnerpeer;
+    }
+
+    m_mediator.m_DSCommittee.push_front(make_pair(
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetMinerPubKey(),
+        peer));
+    m_mediator.m_DSCommittee.pop_back();
 }
 
 bool Node::CheckWhetherDSBlockNumIsLatest(const uint256_t dsblockNum)
@@ -142,22 +140,22 @@ bool Node::VerifyDSBlockCoSignature(const DSBlock& dsblock)
     unsigned int count = 0;
 
     const vector<bool>& B2 = dsblock.GetB2();
-    if (m_mediator.m_DSCommitteePubKeys.size() != B2.size())
+    if (m_mediator.m_DSCommittee.size() != B2.size())
     {
         LOG_GENERAL(WARNING,
                     "Mismatch: DS committee size = "
-                        << m_mediator.m_DSCommitteePubKeys.size()
+                        << m_mediator.m_DSCommittee.size()
                         << ", co-sig bitmap size = " << B2.size());
         return false;
     }
 
     // Generate the aggregated key
     vector<PubKey> keys;
-    for (auto& kv : m_mediator.m_DSCommitteePubKeys)
+    for (auto const& kv : m_mediator.m_DSCommittee)
     {
         if (B2.at(index) == true)
         {
-            keys.push_back(kv);
+            keys.push_back(kv.first);
             count++;
         }
         index++;
@@ -228,8 +226,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
 
 #ifndef IS_LOOKUP_NODE
 
-    // Checks if (m_state == POW2_SUBMISSION)
-    if (!CheckState(STARTPOW2))
+    if (!CheckState(PROCESS_DS))
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Not in POW2_SUBMISSION state");
@@ -309,6 +306,16 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
 #endif // IS_LOOKUP_NODE
 
     m_mediator.UpdateDSBlockRand(); // Update the rand1 value for next PoW
+
+    if (m_mediator.m_selfKey.second
+        == m_mediator.m_dsBlockChain.GetLastBlock()
+               .GetHeader()
+               .GetMinerPubKey())
+    {
+        m_mediator.m_ds->RequestAllPoW2();
+        m_mediator.m_ds->RequestAllPoWConn();
+    }
+
     UpdateDSCommiteeComposition(newleaderIP);
 
 #ifndef IS_LOOKUP_NODE
@@ -331,10 +338,8 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
         m_mediator.m_ds->m_consensusMyID = 0;
         m_mediator.m_ds->m_consensusID
             = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
-        m_mediator.m_ds->SetState(DirectoryService::DirState::POW2_SUBMISSION);
         m_mediator.m_ds->m_mode = DirectoryService::Mode::PRIMARY_DS;
         m_mediator.m_node->CleanCreatedTransaction();
-        m_mediator.m_ds->NotifyPOW2Submission();
         LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
                       DS_LEADER_MSG);
         LOG_STATE("[IDENT][" << std::setw(15) << std::left
@@ -348,12 +353,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "I lost PoW1 :-( Better luck next time!");
         POW::GetInstance().StopMining();
-
-        // Tell my Node class to start PoW2 if I didn't win PoW1
-        array<unsigned char, 32> rand2 = {};
-        StartPoW2(
-            m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
-            POW2_DIFFICULTY, m_mediator.m_dsBlockRand, rand2);
+        SetState(TX_SUBMISSION);
     }
 #endif // IS_LOOKUP_NODE
 

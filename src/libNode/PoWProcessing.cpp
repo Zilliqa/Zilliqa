@@ -124,11 +124,17 @@ bool Node::StartPoW1(const uint256_t& block_num, uint8_t difficulty,
         }
         sign.Serialize(pow1message, cur_offset);
 
-        P2PComm::GetInstance().SendMessage(m_mediator.m_DSCommitteeNetworkInfo,
-                                           pow1message);
+        deque<Peer> peerList;
+
+        for (auto const& i : m_mediator.m_DSCommittee)
+        {
+            peerList.push_back(i.second);
+        }
+
+        P2PComm::GetInstance().SendMessage(peerList, pow1message);
     }
 
-    SetState(POW2_SUBMISSION);
+    SetState(DSBLOCK_SUBMISSION);
     return true;
 }
 
@@ -182,24 +188,22 @@ bool Node::ReadVariablesFromStartPoW1Message(
 
     // Create and keep a view of the DS committee
     // We'll need this if we win PoW1
-    m_mediator.m_DSCommitteeNetworkInfo.clear();
-    m_mediator.m_DSCommitteePubKeys.clear();
-
+    m_mediator.m_DSCommittee.clear();
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "DS nodes count    = " << numDS);
     for (unsigned int i = 0; i < numDS; i++)
     {
-        m_mediator.m_DSCommitteePubKeys.push_back(PubKey(message, cur_offset));
+        PubKey pubkey(message, cur_offset);
         cur_offset += PUB_KEY_SIZE;
 
-        m_mediator.m_DSCommitteeNetworkInfo.push_back(
-            Peer(message, cur_offset));
+        m_mediator.m_DSCommittee.push_back(
+            make_pair(pubkey, Peer(message, cur_offset)));
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "DS Node IP: " << m_mediator.m_DSCommitteeNetworkInfo.back()
-                                        .GetPrintableIPAddress()
+                  "DS Node IP: " << m_mediator.m_DSCommittee.back()
+                                        .second.GetPrintableIPAddress()
                                  << " Port: "
-                                 << m_mediator.m_DSCommitteeNetworkInfo.back()
-                                        .m_listenPortHost);
+                                 << m_mediator.m_DSCommittee.back()
+                                        .second.m_listenPortHost);
         cur_offset += IP_SIZE + PORT_SIZE;
     }
 
