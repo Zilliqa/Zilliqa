@@ -42,6 +42,7 @@ ConsensusCommon::ConsensusCommon(uint32_t consensus_id,
     m_myID = my_id;
     m_classByte = class_byte;
     m_insByte = ins_byte;
+    m_consensusErrorCode = NO_ERROR;
 }
 
 ConsensusCommon::~ConsensusCommon() {}
@@ -158,6 +159,23 @@ Challenge ConsensusCommon::GetChallenge(const vector<unsigned char>& msg,
 }
 
 ConsensusCommon::State ConsensusCommon::GetState() const { return m_state; }
+
+ConsensusCommon::ConsensusErrorCode
+ConsensusCommon::GetConsensusErrorCode() const
+{
+    return m_consensusErrorCode;
+}
+
+std::string ConsensusCommon::GetConsensusErrorMsg() const
+{
+    return ConsensusErrorMsg.at(m_consensusErrorCode);
+}
+
+void ConsensusCommon::SetConsensusErrorCode(
+    ConsensusCommon::ConsensusErrorCode ErrorCode)
+{
+    m_consensusErrorCode = ErrorCode;
+}
 
 const Signature& ConsensusCommon::GetCS1() const
 {
