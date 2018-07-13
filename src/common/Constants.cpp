@@ -95,8 +95,8 @@ const unsigned int VIEWCHANGE_TIME{ReadFromConstantsFile("VIEWCHANGE_TIME")};
 const unsigned int VIEWCHANGE_EXTRA_TIME{
     ReadFromConstantsFile("VIEWCHANGE_EXTRA_TIME")};
 const unsigned int SHARDING_TIMEOUT{ReadFromConstantsFile("SHARDING_TIMEOUT")};
-const unsigned int CONSENSUS_STATE_BLOCK_WINDOW{
-    ReadFromConstantsFile("CONSENSUS_STATE_BLOCK_WINDOW")};
+const unsigned int CONSENSUS_MSG_ORDER_BLOCK_WINDOW{
+    ReadFromConstantsFile("CONSENSUS_MSG_ORDER_BLOCK_WINDOW")};
 const unsigned int CONSENSUS_OBJECT_TIMEOUT{
     ReadFromConstantsFile("CONSENSUS_OBJECT_TIMEOUT")};
 const unsigned int FINALBLOCK_CONSENSUS_OBJECT_TIMEOUT{
@@ -114,8 +114,7 @@ const unsigned int NEW_NODE_POW_DELAY{
     ReadFromConstantsFile("NEW_NODE_POW_DELAY")};
 const unsigned int POST_VIEWCHANGE_BUFFER{
     ReadFromConstantsFile("POST_VIEWCHANGE_BUFFER")};
-const unsigned int WAITING_STATE_FORWARD_IN_SECONDS{
-    ReadFromConstantsFile("WAITING_STATE_FORWARD_IN_SECONDS")};
+const unsigned int WAITING_FORWARD{ReadFromConstantsFile("WAITING_FORWARD")};
 const unsigned int N_PREFILLED_PER_ACCOUNT{
     ReadFromConstantsFile("N_PREFILLED_PER_ACCOUNT")};
 const std::string Test_Node_Mode{ReadFromOptionsFile("TEST_NET_MODE")};
@@ -135,6 +134,9 @@ const unsigned int TXN_BROADCAST{ReadFromConstantsFile("TXN_BROADCAST")};
 const unsigned int DEBUG_LEVEL{ReadFromConstantsFile("DEBUG_LEVEL")};
 const unsigned int FULL_DATASET_MINE{
     ReadFromConstantsFile("FULL_DATASET_MINE")};
+const unsigned int BROADCAST_INTERVAL{
+    ReadFromConstantsFile("BROADCAST_INTERVAL")};
+const unsigned int BROADCAST_EXPIRY{ReadFromConstantsFile("BROADCAST_EXPIRY")};
 const std::vector<std::string> GENESIS_WALLETS{
     ReadAccountsFromConstantsFile("wallet_address")};
 const std::vector<std::string> GENESIS_KEYS{
