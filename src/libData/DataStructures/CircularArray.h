@@ -49,6 +49,7 @@ public:
     {
         m_array.clear();
         m_array.resize(capacity);
+        fill(m_array.begin(), m_array.end(), T());
         m_size = 0;
         m_index = 0;
         m_capacity = capacity;
