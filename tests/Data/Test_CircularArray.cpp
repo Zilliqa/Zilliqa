@@ -61,7 +61,7 @@ BOOST_AUTO_TEST_CASE(CircularArray_test)
     arr.insert_new(102, value);
     BOOST_CHECK_MESSAGE(arr[102] == -1, "arr[102] != -1!");
 
-    arr.push_back(2);
+    arr.insert_new(arr.size(), 2);
     BOOST_CHECK_MESSAGE(arr[103] == 2, "arr[103] != 2!");
 }
 
