@@ -43,7 +43,7 @@ void DirectoryService::StoreFinalBlockToDisk()
     LOG_MARKER();
 
     // Add finalblock to txblockchain
-    m_mediator.m_txBlockChain.AddBlock(*m_finalBlock);
+    m_mediator.m_node->AddBlock(*m_finalBlock);
     m_mediator.m_currentEpochNum
         = (uint64_t)m_mediator.m_txBlockChain.GetLastBlock()
               .GetHeader()
