@@ -36,6 +36,7 @@ class TxBlock : public BlockBase
     TxBlockHeader m_header;
     std::vector<bool> m_isMicroBlockEmpty;
     std::vector<MicroBlockHashSet> m_microBlockHashes;
+    std::vector<uint32_t> m_shardIDs;
 
 public:
     /// Default constructor.
@@ -47,7 +48,7 @@ public:
     /// Constructor with specified Tx block parameters.
     TxBlock(TxBlockHeader&& header, std::vector<bool>&& isMicroBlockEmpty,
             std::vector<MicroBlockHashSet>&& microBlockHashes,
-            CoSignatures&& cosigs);
+            std::vector<uint32_t>&& shardIDs, CoSignatures&& cosigs);
 
     uint32_t SerializeIsMicroBlockEmpty() const;
 
@@ -74,6 +75,9 @@ public:
 
     /// Returns the list of MicroBlockHashes.
     const std::vector<MicroBlockHashSet>& GetMicroBlockHashes() const;
+
+    /// Returns the list of shardIDs
+    const std::vector<uint32_t>& GetShardIDs() const;
 
     /// Equality comparison operator.
     bool operator==(const TxBlock& block) const;
