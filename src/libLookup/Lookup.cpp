@@ -92,7 +92,7 @@ void Lookup::SetLookupNodes()
             inet_aton(v.second.get<string>("ip").c_str(), &ip_addr);
             Peer lookup_node((uint128_t)ip_addr.s_addr,
                              v.second.get<uint32_t>("port"));
-            m_lookupNodes.push_back(lookup_node);
+            m_lookupNodes.emplace_back(lookup_node);
         }
     }
 }
@@ -119,7 +119,7 @@ void Lookup::SendMessageToLookupNodes(
                                                 << ":"
                                                 << node.m_listenPortHost);
 
-        allLookupNodes.push_back(node);
+        allLookupNodes.emplace_back(node);
     }
 
     P2PComm::GetInstance().SendBroadcastMessage(allLookupNodes, message);
@@ -140,7 +140,7 @@ void Lookup::SendMessageToLookupNodesSerial(
                                                 << ":"
                                                 << node.m_listenPortHost);
 
-        allLookupNodes.push_back(node);
+        allLookupNodes.emplace_back(node);
     }
 
     P2PComm::GetInstance().SendMessage(allLookupNodes, message);
@@ -385,13 +385,13 @@ bool Lookup::SetDSCommitteInfo()
             PubKey key(
                 DataConversion::HexStrToUint8Vec(v.second.get<string>("pubk")),
                 0);
-            m_mediator.m_DSCommitteePubKeys.push_back(key);
+            m_mediator.m_DSCommitteePubKeys.emplace_back(key);
 
             struct in_addr ip_addr;
             inet_aton(v.second.get<string>("ip").c_str(), &ip_addr);
             Peer peer((uint128_t)ip_addr.s_addr,
                       v.second.get<unsigned int>("port"));
-            m_mediator.m_DSCommitteeNetworkInfo.push_back(peer);
+            m_mediator.m_DSCommitteeNetworkInfo.emplace_back(peer);
         }
     }
 
@@ -464,7 +464,7 @@ bool Lookup::ProcessEntireShardingStructure(
             return false;
         }
 
-        m_shards.push_back(map<PubKey, Peer>());
+        m_shards.emplace_back();
 
         // 4-byte shard size
         uint32_t shard_size = Serializable::GetNumber<uint32_t>(
@@ -502,10 +502,10 @@ bool Lookup::ProcessEntireShardingStructure(
 
             offset += IP_SIZE + PORT_SIZE;
 
-            shard.insert(make_pair(key, peer));
+            shard.emplace(key, peer);
 
-            m_nodesInNetwork.push_back(peer);
-            t_nodesInNetwork.insert(peer);
+            m_nodesInNetwork.emplace_back(peer);
+            t_nodesInNetwork.emplace(peer);
 
             LOG_GENERAL(INFO,
                         "[SHARD "
@@ -713,7 +713,7 @@ bool Lookup::ProcessGetDSInfoFromSeed(const vector<unsigned char>& message,
     // and ensure 2/3 of such identical message is received in order to move on.
 
     // vector<Peer> node;
-    // node.push_back(requestingNode);
+    // node.emplace_back(requestingNode);
 
     P2PComm::GetInstance().SendMessage(requestingNode, dsInfoMessage);
 
@@ -828,7 +828,7 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
     // and ensure 2/3 of such identical message is received in order to move on.
 
     // vector<Peer> node;
-    // node.push_back(requestingNode);
+    // node.emplace_back(requestingNode);
 
     P2PComm::GetInstance().SendMessage(requestingNode, dsBlockMessage);
 
@@ -881,7 +881,7 @@ bool Lookup::ProcessGetStateFromSeed(const vector<unsigned char>& message,
     // and ensure 2/3 of such identical message is received in order to move on.
 
     // vector<Peer> node;
-    // node.push_back(requestingNode);
+    // node.emplace_back(requestingNode);
 
     vector<unsigned char> setStateMessage
         = {MessageType::LOOKUP, LookupInstructionType::SETSTATEFROMSEED};
@@ -1002,7 +1002,7 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
     // and ensure 2/3 of such identical message is received in order to move on.
 
     // vector<Peer> node;
-    // node.push_back(requestingNode);
+    // node.emplace_back(requestingNode);
 
     P2PComm::GetInstance().SendMessage(requestingNode, txBlockMessage);
 
@@ -1057,7 +1057,7 @@ bool Lookup::ProcessGetTxBodyFromSeed(const vector<unsigned char>& message,
     // and ensure 2/3 of such identical message is received in order to move on.
 
     // vector<Peer> node;
-    // node.push_back(requestingNode);
+    // node.emplace_back(requestingNode);
 
     P2PComm::GetInstance().SendMessage(requestingNode, txBodyMessage);
 
@@ -1097,7 +1097,7 @@ bool Lookup::ProcessGetNetworkId(const vector<unsigned char>& message,
     // and ensure 2/3 of such identical message is received in order to move on.
 
     // vector<Peer> node;
-    // node.push_back(requestingNode);
+    // node.emplace_back(requestingNode);
 
     P2PComm::GetInstance().SendMessage(requestingNode, networkIdMessage);
 
@@ -1130,7 +1130,7 @@ bool Lookup::ProcessSetSeedPeersFromLookup(const vector<unsigned char>& message,
             return false;
         }
 
-        m_seedNodes.push_back(peer);
+        m_seedNodes.emplace_back(peer);
         LOG_GENERAL(INFO, "Peer " + to_string(i) + ": " << string(peer));
         offset += (IP_SIZE + PORT_SIZE);
     }
@@ -1172,7 +1172,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
 
     for (unsigned int i = 0; i < numDSPeers; i++)
     {
-        dsPubKeys.push_back(PubKey(message, offset));
+        dsPubKeys.emplace_back(message, offset);
         offset += PUB_KEY_SIZE;
 
         Peer peer(message, offset);
@@ -1182,7 +1182,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
         {
             peer = Peer();
         }
-        dsPeers.push_back(peer);
+        dsPeers.emplace_back(peer);
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "ProcessSetDSInfoFromSeed recvd peer " << i << ": " << peer);
@@ -1761,7 +1761,7 @@ bool Lookup::ProcessSetLookupOffline(const vector<unsigned char>& message,
                               requestingNode);
         if (iter != m_lookupNodes.end())
         {
-            m_lookupNodesOffline.push_back(requestingNode);
+            m_lookupNodesOffline.emplace_back(requestingNode);
             m_lookupNodes.erase(iter);
         }
         else
@@ -1798,7 +1798,7 @@ bool Lookup::ProcessSetLookupOnline(const vector<unsigned char>& message,
                               m_lookupNodesOffline.end(), requestingNode);
         if (iter != m_lookupNodes.end())
         {
-            m_lookupNodes.push_back(requestingNode);
+            m_lookupNodes.emplace_back(requestingNode);
             m_lookupNodesOffline.erase(iter);
         }
         else
@@ -1832,7 +1832,7 @@ bool Lookup::ProcessGetOfflineLookups(const std::vector<unsigned char>& message,
     LOG_GENERAL(INFO, requestingNode);
 
     // vector<Peer> node;
-    // node.push_back(requestingNode);
+    // node.emplace_back(requestingNode);
 
     // curLookupMessage = [num_offline_lookups][LookupPeer][LookupPeer]... num_offline_lookups times
     vector<unsigned char> offlineLookupsMessage
@@ -1896,7 +1896,7 @@ bool Lookup::ProcessSetOfflineLookups(const std::vector<unsigned char>& message,
         auto iter = std::find(m_lookupNodes.begin(), m_lookupNodes.end(), peer);
         if (iter != m_lookupNodes.end())
         {
-            m_lookupNodesOffline.push_back(peer);
+            m_lookupNodesOffline.emplace_back(peer);
             m_lookupNodes.erase(iter);
 
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -1945,7 +1945,7 @@ Peer Lookup::GetLookupPeerToRsync()
     {
         if (p != m_mediator.m_selfPeer)
         {
-            t_Peers.push_back(p);
+            t_Peers.emplace_back(p);
         }
     }
 
@@ -1997,7 +1997,7 @@ bool Lookup::GetMyLookupOffline()
                           m_mediator.m_selfPeer);
     if (iter != m_lookupNodes.end())
     {
-        m_lookupNodesOffline.push_back(m_mediator.m_selfPeer);
+        m_lookupNodesOffline.emplace_back(m_mediator.m_selfPeer);
         m_lookupNodes.erase(iter);
     }
     else
@@ -2019,7 +2019,7 @@ bool Lookup::GetMyLookupOnline()
     if (iter != m_lookupNodesOffline.end())
     {
         SendMessageToLookupNodesSerial(ComposeGetLookupOnlineMessage());
-        m_lookupNodes.push_back(m_mediator.m_selfPeer);
+        m_lookupNodes.emplace_back(m_mediator.m_selfPeer);
         m_lookupNodesOffline.erase(iter);
     }
     else

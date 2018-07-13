@@ -655,7 +655,7 @@ template<class MAP> void AccountStoreSC<MAP>::CommitTransferBalanceAtomic()
         }
         else
         {
-            // this->m_addressToAccount.insert(make_pair(entry.first, entry.second));
+            // this->m_addressToAccount.emplace(make_pair(entry.first, entry.second));
             this->AddAccount(entry.first, entry.second);
         }
     }

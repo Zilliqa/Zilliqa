@@ -91,5 +91,5 @@ int TxBlockChain::AddBlock(const TxBlock& block)
 
     return 1;
     // lock_guard<mutex> g(m_mutexTxBlocks);
-    // m_txBlocks.push_back(block);
+    // m_txBlocks.emplace_back(block);
 }

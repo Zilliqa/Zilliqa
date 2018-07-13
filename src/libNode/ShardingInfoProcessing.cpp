@@ -101,10 +101,10 @@ bool Node::ReadVariablesFromShardingMessage(
     // All nodes; first entry is leader
     for (uint32_t i = 0; i < comm_size; i++)
     {
-        m_myShardMembersPubKeys.push_back(PubKey(message, cur_offset));
+        m_myShardMembersPubKeys.emplace_back(message, cur_offset);
         cur_offset += PUB_KEY_SIZE;
 
-        m_myShardMembersNetworkInfo.push_back(Peer(message, cur_offset));
+        m_myShardMembersNetworkInfo.emplace_back(message, cur_offset);
         cur_offset += IP_SIZE + PORT_SIZE;
 
         // Zero out my IP to avoid sending to myself

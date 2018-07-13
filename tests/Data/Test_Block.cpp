@@ -205,12 +205,12 @@ BOOST_AUTO_TEST_CASE(TxBlock_test)
     copy(tx2HashVec.begin(), tx2HashVec.end(), tx2Hash.begin());
 
     std::vector<std::array<unsigned char, TRAN_HASH_SIZE>> tranHashes1;
-    tranHashes1.push_back(tx1Hash);
-    tranHashes1.push_back(tx2Hash);
+    tranHashes1.emplace_back(tx1Hash);
+    tranHashes1.emplace_back(tx2Hash);
 
     std::vector<Transaction> tranData1;
-    tranData1.push_back(tx1);
-    tranData1.push_back(tx2);
+    tranData1.emplace_back(tx1);
+    tranData1.emplace_back(tx2);
 
     std::array<unsigned char, PUB_KEY_SIZE> pubKey1;
 

@@ -324,7 +324,7 @@ bool Node::OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
              txnHash.asArray().begin());
         offset += TRAN_HASH_SIZE;
 
-        missingTransactions.push_back(txnHash);
+        missingTransactions.emplace_back(txnHash);
     }
 
     uint32_t portNo
