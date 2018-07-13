@@ -43,7 +43,7 @@ void DirectoryService::StoreFinalBlockToDisk()
     LOG_MARKER();
 
     // Add finalblock to txblockchain
-    m_mediator.m_txBlockChain.AddBlock(*m_finalBlock);
+    m_mediator.m_node->AddBlock(*m_finalBlock);
     m_mediator.m_currentEpochNum
         = (uint64_t)m_mediator.m_txBlockChain.GetLastBlock()
               .GetHeader()
@@ -303,8 +303,6 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
     uint8_t tx_sharing_mode
         = (m_sharingAssignment.size() > 0) ? DS_FORWARD_ONLY : ::IDLE;
     m_mediator.m_node->ActOnFinalBlock(tx_sharing_mode, m_sharingAssignment);
-
-    m_sharingAssignment.clear();
 
     unsigned int my_DS_cluster_num;
     unsigned int my_shards_lo;
