@@ -106,7 +106,7 @@ public:
         // modulo arithmetic of 256-bit will probably be slow
         m_array[(int)(m_size % m_capacity)] = element;
         m_size++;
-        m_index++;
+        m_index = (m_index + 1) % m_capacity;
     }
 
     /// Returns the number of elements stored till now in the array.
