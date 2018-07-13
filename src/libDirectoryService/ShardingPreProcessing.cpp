@@ -326,7 +326,7 @@ void DirectoryService::AppendSharingSetupToShardingStructure(
         for (unsigned int i = num_ds_nodes;
              i < m_mediator.m_DSCommitteeNetworkInfo.size(); i++)
         {
-            m_sharingAssignment.push_back(
+            m_sharingAssignment.emplace_back(
                 m_mediator.m_DSCommitteeNetworkInfo.at(i));
         }
     }
@@ -457,7 +457,7 @@ void DirectoryService::SaveTxnBodySharingAssignment(
     for (uint32_t i = 0; i < num_ds_nodes; i++)
     {
         // TODO: Handle exceptions
-        ds_receivers.push_back(Peer(sharding_structure, curr_offset));
+        ds_receivers.emplace_back(sharding_structure, curr_offset);
         curr_offset += IP_SIZE + PORT_SIZE;
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -497,7 +497,7 @@ void DirectoryService::SaveTxnBodySharingAssignment(
 
             if (is_a_receiver == false)
             {
-                m_sharingAssignment.push_back(
+                m_sharingAssignment.emplace_back(
                     m_mediator.m_DSCommitteeNetworkInfo.at(i));
             }
         }
