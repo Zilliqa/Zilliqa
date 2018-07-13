@@ -168,8 +168,6 @@ class DirectoryService : public Executable, public Broadcastable
     // TO Remove
     Mediator& m_mediator;
 
-    Synchronizer m_synchronizer;
-
     const uint32_t RESHUFFLE_INTERVAL = 500;
 
     // Message handlers
@@ -271,17 +269,15 @@ class DirectoryService : public Executable, public Broadcastable
     bool ParseMessageAndVerifyPOW1(const vector<unsigned char>& message,
                                    unsigned int offset, const Peer& from);
     void AppendSharingSetupToShardingStructure(
-        vector<unsigned char>& sharding_structure, unsigned int curr_offset);
-    bool CheckWhetherDSBlockIsFresh(
-        const boost::multiprecision::uint256_t dsblock_num);
+        vector<unsigned char>& finalBlockMessage, unsigned int curr_offset);
+    bool CheckWhetherDSBlockIsFresh(const uint64_t dsblock_num);
     bool CheckWhetherMaxSubmissionsReceived(Peer peer, PubKey key);
     bool VerifyPoW1Submission(const vector<unsigned char>& message,
                               const Peer& from, PubKey& key,
                               unsigned int curr_offset, uint32_t& portNo,
                               uint64_t& nonce, array<unsigned char, 32>& rand1,
                               array<unsigned char, 32>& rand2,
-                              unsigned int& difficulty,
-                              boost::multiprecision::uint256_t& block_num);
+                              unsigned int& difficulty, uint64_t& block_num);
     void ExtractDataFromMicroblocks(
         TxnHash& microblockTxnTrieRoot, StateHash& microblockDeltaTrieRoot,
         std::vector<MicroBlockHashSet>& microblockHashes,
@@ -353,9 +349,6 @@ class DirectoryService : public Executable, public Broadcastable
                                  unsigned int my_shards_hi,
                                  vector<unsigned char>& vcblock_message);
 
-    // Rejoin the network as a DS node in case of failure happens in protocol
-    void RejoinAsDS();
-
     // Reset certain variables to the initial state
     bool CleanVariables();
 #endif // IS_LOOKUP_NODE
@@ -402,6 +395,8 @@ public:
     /// The epoch number when DS tries doing Rejoin
     uint64_t m_latestActiveDSBlockNum = 0;
 
+    Synchronizer m_synchronizer;
+
     /// Constructor. Requires mediator reference to access Node and other global members.
     DirectoryService(Mediator& mediator);
 
@@ -432,6 +427,9 @@ public:
 
     /// Notify POW2 submission to DirectoryService::ProcessPoW2Submission()
     void NotifyPOW2Submission() { cv_POW2Submission.notify_all(); }
+
+    // Rejoin the network as a DS node in case of failure happens in protocol
+    void RejoinAsDS();
 };
 
 #endif // __DIRECTORYSERVICE_H__

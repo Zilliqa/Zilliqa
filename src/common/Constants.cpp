@@ -135,6 +135,9 @@ const unsigned int DEBUG_LEVEL{ReadFromConstantsFile("DEBUG_LEVEL")};
 const unsigned int BROADCAST_INTERVAL{
     ReadFromConstantsFile("BROADCAST_INTERVAL")};
 const unsigned int BROADCAST_EXPIRY{ReadFromConstantsFile("BROADCAST_EXPIRY")};
+const unsigned int HEARTBEAT_INTERVAL{
+    ReadFromConstantsFile("HEARTBEAT_INTERVAL")};
+const unsigned int HEARTBEAT_DELTA{ReadFromConstantsFile("HEARTBEAT_DELTA")};
 const std::vector<std::string> GENESIS_WALLETS{
     ReadAccountsFromConstantsFile("wallet_address")};
 const std::vector<std::string> GENESIS_KEYS{

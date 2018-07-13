@@ -52,9 +52,6 @@ class Lookup : public Executable, public Broadcastable
 #ifndef IS_LOOKUP_NODE
     bool m_dsInfoWaitingNotifying = false;
     bool m_fetchedDSInfo = false;
-    std::mutex m_mutexDSInfoUpdation;
-    std::condition_variable cv_dsInfoUpdate;
-
     bool CheckStateRoot();
 #endif // IS_LOOKUP_NODE
 
@@ -96,12 +93,10 @@ class Lookup : public Executable, public Broadcastable
     std::vector<unsigned char> ComposeGetDSInfoMessage();
     std::vector<unsigned char> ComposeGetStateMessage();
 
-    std::vector<unsigned char>
-    ComposeGetDSBlockMessage(boost::multiprecision::uint256_t lowBlockNum,
-                             boost::multiprecision::uint256_t highBlockNum);
-    std::vector<unsigned char>
-    ComposeGetTxBlockMessage(boost::multiprecision::uint256_t lowBlockNum,
-                             boost::multiprecision::uint256_t highBlockNum);
+    std::vector<unsigned char> ComposeGetDSBlockMessage(uint64_t lowBlockNum,
+                                                        uint64_t highBlockNum);
+    std::vector<unsigned char> ComposeGetTxBlockMessage(uint64_t lowBlockNum,
+                                                        uint64_t highBlockNum);
 
     std::vector<unsigned char> ComposeGetLookupOfflineMessage();
     std::vector<unsigned char> ComposeGetLookupOnlineMessage();
@@ -145,17 +140,11 @@ public:
     // TODO: move the Get and ProcessSet functions to Synchronizer
     bool GetSeedPeersFromLookup();
     bool GetDSInfoFromSeedNodes();
-    bool GetDSBlockFromSeedNodes(boost::multiprecision::uint256_t lowBlockNum,
-                                 boost::multiprecision::uint256_t highBlockNum);
-    bool GetTxBlockFromSeedNodes(boost::multiprecision::uint256_t lowBlockNum,
-                                 boost::multiprecision::uint256_t highBlockNum);
+    bool GetDSBlockFromSeedNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
+    bool GetTxBlockFromSeedNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
     bool GetDSInfoFromLookupNodes();
-    bool
-    GetDSBlockFromLookupNodes(boost::multiprecision::uint256_t lowBlockNum,
-                              boost::multiprecision::uint256_t highBlockNum);
-    bool
-    GetTxBlockFromLookupNodes(boost::multiprecision::uint256_t lowBlockNum,
-                              boost::multiprecision::uint256_t highBlockNum);
+    bool GetDSBlockFromLookupNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
+    bool GetTxBlockFromLookupNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
     bool GetTxBodyFromSeedNodes(std::string txHashStr);
     bool GetStateFromLookupNodes();
 
@@ -231,6 +220,8 @@ public:
     bool m_fetchedOfflineLookups = false;
     std::mutex m_mutexOfflineLookupsUpdation;
     std::condition_variable cv_offlineLookups;
+    std::mutex m_mutexDSInfoUpdation;
+    std::condition_variable cv_dsInfoUpdate;
 
     bool InitMining();
 #endif // IS_LOOKUP_NODE

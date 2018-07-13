@@ -97,7 +97,7 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock)
     ret_head["GasUsed"] = txheader.GetGasUsed().str();
 
     ret_head["prevBlockHash"] = txheader.GetPrevHash().hex();
-    ret_head["BlockNum"] = txheader.GetBlockNum().str();
+    ret_head["BlockNum"] = to_string(txheader.GetBlockNum());
     ret_head["Timestamp"] = txheader.GetTimestamp().str();
 
     ret_head["TxnHash"] = txheader.GetTxRootHash().hex();
@@ -106,7 +106,7 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock)
     ret_head["NumMicroBlocks"] = txheader.GetNumMicroBlockHashes();
 
     ret_head["MinerPubKey"] = static_cast<string>(txheader.GetMinerPubKey());
-    ret_head["DSBlockNum"] = txheader.GetDSBlockNum().str();
+    ret_head["DSBlockNum"] = to_string(txheader.GetDSBlockNum());
 
     ret_body["HeaderSign"]
         = DataConversion::SerializableToHexStr(txblock.GetCS2());
@@ -139,7 +139,7 @@ const Json::Value JSONConversion::convertDSblocktoJson(const DSBlock& dsblock)
     ret_header["nonce"] = dshead.GetNonce().str();
     ret_header["minerPubKey"] = static_cast<string>(dshead.GetMinerPubKey());
     ret_header["leaderPubKey"] = static_cast<string>(dshead.GetLeaderPubKey());
-    ret_header["blockNum"] = dshead.GetBlockNum().str();
+    ret_header["blockNum"] = to_string(dshead.GetBlockNum());
     ret_header["timestamp"] = dshead.GetTimestamp().str();
 
     ret["header"] = ret_header;

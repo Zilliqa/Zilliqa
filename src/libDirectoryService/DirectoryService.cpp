@@ -965,10 +965,10 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
 }
 
 #ifndef IS_LOOKUP_NODE
-bool DirectoryService::CheckWhetherDSBlockIsFresh(const uint256_t dsblock_num)
+bool DirectoryService::CheckWhetherDSBlockIsFresh(const uint64_t dsblock_num)
 {
     // uint256_t latest_block_num_in_blockchain = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
-    uint256_t latest_block_num_in_blockchain
+    uint64_t latest_block_num_in_blockchain
         = m_mediator.m_dsBlockChain.GetBlockCount();
 
     if (dsblock_num < latest_block_num_in_blockchain)
@@ -1119,7 +1119,7 @@ bool DirectoryService::ProcessAllPoWConnResponse(
 
         if (m_allPoWConns.find(key) == m_allPoWConns.end())
         {
-            m_allPoWConns.insert(make_pair(key, peer));
+            m_allPoWConns.emplace(key, peer);
         }
     }
 

@@ -69,7 +69,7 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock)
     BlockStorage::GetBlockStorage().PutDSBlock(
         dsblock.GetHeader().GetBlockNum(), serializedDSBlock);
     m_mediator.m_ds->m_latestActiveDSBlockNum
-        = dsblock.GetHeader().GetBlockNum().convert_to<uint64_t>();
+        = dsblock.GetHeader().GetBlockNum();
     BlockStorage::GetBlockStorage().PutMetadata(
         LATESTACTIVEDSBLOCKNUM,
         DataConversion::StringToCharArray(
@@ -93,24 +93,24 @@ void Node::UpdateDSCommiteeComposition(const Peer& winnerpeer)
                .GetHeader()
                .GetMinerPubKey())
     {
-        m_mediator.m_DSCommitteeNetworkInfo.push_front(Peer());
+        m_mediator.m_DSCommitteeNetworkInfo.emplace_front();
     }
     else
     {
-        m_mediator.m_DSCommitteeNetworkInfo.push_front(winnerpeer);
+        m_mediator.m_DSCommitteeNetworkInfo.emplace_front(winnerpeer);
     }
-    m_mediator.m_DSCommitteePubKeys.push_front(
+    m_mediator.m_DSCommitteePubKeys.emplace_front(
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetMinerPubKey());
 
     m_mediator.m_DSCommitteeNetworkInfo.pop_back();
     m_mediator.m_DSCommitteePubKeys.pop_back();
 }
 
-bool Node::CheckWhetherDSBlockNumIsLatest(const uint256_t dsblockNum)
+bool Node::CheckWhetherDSBlockNumIsLatest(const uint64_t dsblockNum)
 {
     LOG_MARKER();
 
-    uint256_t latestBlockNumInBlockchain
+    uint64_t latestBlockNumInBlockchain
         = m_mediator.m_dsBlockChain.GetBlockCount();
 
     if (dsblockNum < latestBlockNumInBlockchain)
@@ -157,7 +157,7 @@ bool Node::VerifyDSBlockCoSignature(const DSBlock& dsblock)
     {
         if (B2.at(index) == true)
         {
-            keys.push_back(kv);
+            keys.emplace_back(kv);
             count++;
         }
         index++;

@@ -37,8 +37,8 @@ BOOST_AUTO_TEST_CASE(test_multisig)
     for (unsigned int i = 0; i < nbsigners; i++)
     {
         pair<PrivKey, PubKey> keypair = schnorr.GenKeyPair();
-        privkeys.push_back(keypair.first);
-        pubkeys.push_back(keypair.second);
+        privkeys.emplace_back(keypair.first);
+        pubkeys.emplace_back(keypair.second);
     }
 
     // 1 MB message
@@ -56,7 +56,7 @@ BOOST_AUTO_TEST_CASE(test_multisig)
     vector<CommitPoint> points;
     for (unsigned int i = 0; i < nbsigners; i++)
     {
-        points.push_back(CommitPoint(secrets.at(i)));
+        points.emplace_back(secrets.at(i));
     }
 
     // Aggregate commits
@@ -73,7 +73,7 @@ BOOST_AUTO_TEST_CASE(test_multisig)
     vector<Response> responses;
     for (unsigned int i = 0; i < nbsigners; i++)
     {
-        responses.push_back(Response(secrets.at(i), challenge, privkeys.at(i)));
+        responses.emplace_back(secrets.at(i), challenge, privkeys.at(i));
         BOOST_CHECK_MESSAGE(responses.back().Initialized() == true,
                             "Response generation failed");
     }
@@ -124,8 +124,8 @@ BOOST_AUTO_TEST_CASE(test_serialization)
     for (unsigned int i = 0; i < nbsigners; i++)
     {
         pair<PrivKey, PubKey> keypair = schnorr.GenKeyPair();
-        privkeys.push_back(keypair.first);
-        pubkeys.push_back(keypair.second);
+        privkeys.emplace_back(keypair.first);
+        pubkeys.emplace_back(keypair.second);
     }
 
     // 1 MB message
@@ -147,10 +147,10 @@ BOOST_AUTO_TEST_CASE(test_serialization)
     {
         vector<unsigned char> tmp1, tmp2;
         secrets.at(i).Serialize(tmp1, 0);
-        secrets1.push_back(CommitSecret(tmp1, 0));
-        points.push_back(CommitPoint(secrets.at(i)));
+        secrets1.emplace_back(tmp1, 0);
+        points.emplace_back(secrets.at(i));
         points.back().Serialize(tmp2, 0);
-        points1.push_back(CommitPoint(tmp2, 0));
+        points1.emplace_back(tmp2, 0);
     }
 
     // Aggregate commits
@@ -178,12 +178,12 @@ BOOST_AUTO_TEST_CASE(test_serialization)
     vector<Response> responses1;
     for (unsigned int i = 0; i < nbsigners; i++)
     {
-        responses.push_back(Response(secrets.at(i), challenge, privkeys.at(i)));
+        responses.emplace_back(secrets.at(i), challenge, privkeys.at(i));
         BOOST_CHECK_MESSAGE(responses.back().Initialized() == true,
                             "Response generation failed");
         vector<unsigned char> tmp;
         responses.back().Serialize(tmp, 0);
-        responses1.push_back(Response(tmp, 0));
+        responses1.emplace_back(tmp, 0);
         // Verify response
         BOOST_CHECK_MESSAGE(MultiSig::VerifyResponse(responses.at(i), challenge,
                                                      pubkeys.at(i),

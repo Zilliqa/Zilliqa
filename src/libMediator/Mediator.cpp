@@ -22,6 +22,7 @@
 #include "libData/BlockChainData/DSBlockChain.h"
 #include "libData/BlockChainData/TxBlockChain.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/DetachedFunction.h"
 #include "libValidator/Validator.h"
 
 using namespace std;
@@ -117,4 +118,90 @@ std::string Mediator::GetNodeMode(const Peer& peer)
     {
         return "SHRD";
     }
+}
+
+void Mediator::HeartBeat_Init()
+{
+#ifndef IS_LOOKUP_NODE
+    LOG_MARKER();
+    m_heartBeatTime = 0;
+
+    auto func = [this]() -> void {
+        const unsigned int heartBeatTimeout
+            = (TXN_SUBMISSION + TXN_BROADCAST) * NUM_FINAL_BLOCK_PER_POW
+            + POW1_WINDOW_IN_SECONDS + BACKUP_POW2_WINDOW_IN_SECONDS
+            + HEARTBEAT_DELTA;
+
+        while (true)
+        {
+            this_thread::sleep_for(chrono::seconds(HEARTBEAT_INTERVAL));
+            lock_guard<mutex> guard(m_heartBeatMutex);
+            m_heartBeatTime += HEARTBEAT_INTERVAL;
+
+            if (m_heartBeatTime < heartBeatTimeout)
+            {
+                LOG_GENERAL(INFO,
+                            "Still alive " << m_heartBeatTime << " seconds...");
+                continue;
+            }
+
+            LOG_GENERAL(WARNING, "I am DEAD, rejoin to network");
+
+            if (DirectoryService::Mode::IDLE == m_ds->m_mode)
+            {
+                m_node->RejoinAsNormal();
+                m_heartBeatTime = 0;
+                continue;
+            }
+
+            m_ds->m_synchronizer.FetchDSInfo(m_lookup);
+
+            {
+                unique_lock<mutex> lock(m_lookup->m_mutexDSInfoUpdation);
+
+                if (m_lookup->cv_dsInfoUpdate.wait_for(
+                        lock,
+                        chrono::seconds(POW1_WINDOW_IN_SECONDS
+                                        + BACKUP_POW2_WINDOW_IN_SECONDS))
+                    == std::cv_status::timeout)
+                {
+                    m_node->RejoinAsNormal();
+                    m_heartBeatTime = 0;
+                    continue;
+                }
+            }
+
+            bool bFound = false;
+
+            {
+                lock_guard<mutex> g(m_mutexDSCommitteePubKeys);
+
+                for (auto const& i : m_DSCommitteePubKeys)
+                {
+                    if (m_selfKey.second == i)
+                    {
+                        m_ds->RejoinAsDS();
+                        bFound = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!bFound)
+            {
+                m_node->RejoinAsNormal();
+            }
+
+            m_heartBeatTime = 0;
+        }
+    };
+
+    DetachedFunction(1, func);
+#endif
+}
+
+void Mediator::HeartBeat()
+{
+    lock_guard<mutex> guard(m_heartBeatMutex);
+    m_heartBeatTime = 0;
 }

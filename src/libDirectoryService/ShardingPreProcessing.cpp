@@ -56,7 +56,7 @@ void DirectoryService::ComputeSharding()
 
     for (unsigned int i = 0; i < numOfComms; i++)
     {
-        m_shards.push_back(map<PubKey, Peer>());
+        m_shards.emplace_back();
     }
 
     for (auto& kv : m_allPoW2s)
@@ -73,7 +73,7 @@ void DirectoryService::ComputeSharding()
         const vector<unsigned char>& sortHashVec = sha2.Finalize();
         array<unsigned char, BLOCK_HASH_SIZE> sortHash;
         copy(sortHashVec.begin(), sortHashVec.end(), sortHash.begin());
-        m_sortedPoW2s.insert(make_pair(sortHash, key));
+        m_sortedPoW2s.emplace(sortHash, key);
     }
 
     lock_guard<mutex> g(m_mutexAllPoWConns, adopt_lock);
@@ -82,8 +82,8 @@ void DirectoryService::ComputeSharding()
     {
         PubKey key = kv.second;
         map<PubKey, Peer>& shard = m_shards.at(i % numOfComms);
-        shard.insert(make_pair(key, m_allPoWConns.at(key)));
-        m_publicKeyToShardIdMap.insert(make_pair(key, i % numOfComms));
+        shard.emplace(key, m_allPoWConns.at(key));
+        m_publicKeyToShardIdMap.emplace(key, i % numOfComms);
         i++;
     }
 }
@@ -326,7 +326,7 @@ void DirectoryService::AppendSharingSetupToShardingStructure(
         for (unsigned int i = num_ds_nodes;
              i < m_mediator.m_DSCommitteeNetworkInfo.size(); i++)
         {
-            m_sharingAssignment.push_back(
+            m_sharingAssignment.emplace_back(
                 m_mediator.m_DSCommitteeNetworkInfo.at(i));
         }
     }
@@ -457,7 +457,7 @@ void DirectoryService::SaveTxnBodySharingAssignment(
     for (uint32_t i = 0; i < num_ds_nodes; i++)
     {
         // TODO: Handle exceptions
-        ds_receivers.push_back(Peer(sharding_structure, curr_offset));
+        ds_receivers.emplace_back(sharding_structure, curr_offset);
         curr_offset += IP_SIZE + PORT_SIZE;
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -497,7 +497,7 @@ void DirectoryService::SaveTxnBodySharingAssignment(
 
             if (is_a_receiver == false)
             {
-                m_sharingAssignment.push_back(
+                m_sharingAssignment.emplace_back(
                     m_mediator.m_DSCommitteeNetworkInfo.at(i));
             }
         }
@@ -544,7 +544,7 @@ bool DirectoryService::ShardingValidator(
 
     for (unsigned int i = 0; i < numOfComms; i++)
     {
-        m_shards.push_back(map<PubKey, Peer>());
+        m_shards.emplace_back();
 
         // 4-byte committee size
         uint32_t shard_size = Serializable::GetNumber<uint32_t>(
@@ -591,8 +591,8 @@ bool DirectoryService::ShardingValidator(
             }
 
             // To-do: Should we check for a public key that's been assigned to more than 1 shard?
-            m_shards.back().insert(make_pair(memberPubkey, memberPeer->second));
-            m_publicKeyToShardIdMap.insert(make_pair(memberPubkey, i));
+            m_shards.back().emplace(memberPubkey, memberPeer->second);
+            m_publicKeyToShardIdMap.emplace(memberPubkey, i);
 
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       " PubKey = "

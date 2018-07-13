@@ -42,10 +42,11 @@ void DirectoryService::StoreFinalBlockToDisk()
 {
     LOG_MARKER();
 
+    m_mediator.HeartBeat();
+
     // Add finalblock to txblockchain
     m_mediator.m_node->AddBlock(*m_finalBlock);
-    m_mediator.m_currentEpochNum
-        = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
+    m_mediator.m_currentEpochNum = m_mediator.m_txBlockChain.GetBlockCount();
 
     // At this point, the transactions in the last Epoch is no longer useful, thus erase.
     m_mediator.m_node->EraseCommittedTransactions(m_mediator.m_currentEpochNum
@@ -69,17 +70,17 @@ bool DirectoryService::SendFinalBlockToLookupNodes()
 {
     vector<unsigned char> finalblock_message
         = {MessageType::NODE, NodeInstructionType::FINALBLOCK};
-    finalblock_message.resize(finalblock_message.size() + UINT256_SIZE
+    finalblock_message.resize(finalblock_message.size() + sizeof(uint64_t)
                               + sizeof(uint32_t) + sizeof(uint32_t)
                               + m_finalBlockMessage.size());
 
     unsigned int curr_offset = MessageOffset::BODY;
 
-    // 32-byte DS blocknum
-    uint256_t dsBlockNum = m_mediator.m_dsBlockChain.GetBlockCount() - 1;
-    Serializable::SetNumber<uint256_t>(finalblock_message, curr_offset,
-                                       dsBlockNum, UINT256_SIZE);
-    curr_offset += UINT256_SIZE;
+    // 8-byte DS blocknum
+    uint64_t dsBlockNum = m_mediator.m_dsBlockChain.GetBlockCount() - 1;
+    Serializable::SetNumber<uint64_t>(finalblock_message, curr_offset,
+                                      dsBlockNum, sizeof(uint64_t));
+    curr_offset += sizeof(uint64_t);
 
     // 4-byte consensusid
     Serializable::SetNumber<uint32_t>(finalblock_message, curr_offset,
@@ -154,21 +155,22 @@ void DirectoryService::SendFinalBlockToShardNodes(
     {
         vector<unsigned char> finalblock_message
             = {MessageType::NODE, NodeInstructionType::FINALBLOCK};
-        finalblock_message.resize(finalblock_message.size() + UINT256_SIZE
+
+        finalblock_message.resize(finalblock_message.size() + sizeof(uint64_t)
                                   + sizeof(uint32_t) + sizeof(uint32_t)
                                   + m_finalBlockMessage.size());
 
         copy(m_finalBlockMessage.begin(), m_finalBlockMessage.end(),
-             finalblock_message.begin() + MessageOffset::BODY + UINT256_SIZE
+             finalblock_message.begin() + MessageOffset::BODY + sizeof(uint64_t)
                  + sizeof(uint32_t) + sizeof(uint32_t));
 
         unsigned int curr_offset = MessageOffset::BODY;
 
-        // 32-byte DS blocknum
-        uint256_t DSBlockNum = m_mediator.m_dsBlockChain.GetBlockCount() - 1;
-        Serializable::SetNumber<uint256_t>(finalblock_message, curr_offset,
-                                           DSBlockNum, UINT256_SIZE);
-        curr_offset += UINT256_SIZE;
+        // 8-byte DS blocknum
+        uint64_t DSBlockNum = m_mediator.m_dsBlockChain.GetBlockCount() - 1;
+        Serializable::SetNumber<uint64_t>(finalblock_message, curr_offset,
+                                          DSBlockNum, sizeof(uint64_t));
+        curr_offset += sizeof(uint64_t);
 
         // 4-byte consensusid
         Serializable::SetNumber<uint32_t>(finalblock_message, curr_offset,
@@ -184,7 +186,7 @@ void DirectoryService::SendFinalBlockToShardNodes(
 
             for (auto& kv : *p)
             {
-                shard_peers.push_back(kv.second);
+                shard_peers.emplace_back(kv.second);
                 LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                           " PubKey: "
                               << DataConversion::SerializableToHexStr(kv.first)
@@ -335,8 +337,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
                       "[PoW needed]");
 
             POW::GetInstance().EthashConfigureLightClient(
-                (uint64_t)m_mediator.m_dsBlockChain
-                    .GetBlockCount()); // FIXME -- typecasting
+                m_mediator.m_dsBlockChain.GetBlockCount());
             m_consensusID = 0;
             m_mediator.m_node->m_consensusID = 0;
             m_mediator.m_node->m_consensusLeaderID = 0;

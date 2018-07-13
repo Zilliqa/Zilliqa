@@ -204,13 +204,13 @@ void readBlock(int id)
 {
     TxBlockSharedPtr block;
     BlockStorage::GetBlockStorage().GetTxBlock(id, block);
-    if ((*block).GetHeader().GetBlockNum() != id)
+    if ((*block).GetHeader().GetBlockNum() != (uint64_t)id)
     {
         LOG_GENERAL(INFO,
                     "GetBlockNum is " << (*block).GetHeader().GetBlockNum()
                                       << ", id is " << id);
 
-        if ((*block).GetHeader().GetBlockNum() != id)
+        if ((*block).GetHeader().GetBlockNum() != (uint64_t)id)
         {
             LOG_GENERAL(FATAL,
                         "assertion failed (" << __FILE__ << ":" << __LINE__
@@ -336,7 +336,7 @@ BOOST_AUTO_TEST_CASE(testRetrieveAllTheTxBlocksInDB)
             block.Serialize(serializedTxBlock, 0);
 
             BlockStorage::GetBlockStorage().PutTxBlock(i, serializedTxBlock);
-            in_blocks.push_back(block);
+            in_blocks.emplace_back(block);
         }
 
         std::list<TxBlockSharedPtr> ref_blocks;
@@ -347,7 +347,7 @@ BOOST_AUTO_TEST_CASE(testRetrieveAllTheTxBlocksInDB)
         for (auto i : ref_blocks)
         {
             LOG_GENERAL(INFO, i->GetHeader().GetDSBlockNum());
-            out_blocks.push_back(*i);
+            out_blocks.emplace_back(*i);
         }
         BOOST_CHECK_MESSAGE(
             in_blocks == out_blocks,

@@ -130,6 +130,10 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
     }
 
 #ifndef IS_LOOKUP_NODE
+    m_mediator.HeartBeat_Init();
+#endif
+
+#ifndef IS_LOOKUP_NODE
     LOG_GENERAL(INFO, "I am a normal node.");
 #else // else for IS_LOOKUP_NODE
     LOG_GENERAL(INFO, "I am a lookup node.");

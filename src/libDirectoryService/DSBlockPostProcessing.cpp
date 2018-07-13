@@ -66,8 +66,7 @@ void DirectoryService::StoreDSBlockToStorage()
         m_pendingDSBlock->GetHeader().GetBlockNum(), serializedDSBlock);
     BlockStorage::GetBlockStorage().PushBackTxBodyDB(
         m_pendingDSBlock->GetHeader().GetBlockNum());
-    m_latestActiveDSBlockNum
-        = m_pendingDSBlock->GetHeader().GetBlockNum().convert_to<uint64_t>();
+    m_latestActiveDSBlockNum = m_pendingDSBlock->GetHeader().GetBlockNum();
     BlockStorage::GetBlockStorage().PutMetadata(
         LATESTACTIVEDSBLOCKNUM,
         DataConversion::StringToCharArray(to_string(m_latestActiveDSBlockNum)));
@@ -180,7 +179,7 @@ void DirectoryService::SendDSBlockToCluster(
     for (unsigned int i = my_pow1nodes_cluster_lo; i <= my_pow1nodes_cluster_hi;
          i++)
     {
-        pow1nodes_cluster.push_back(p->second);
+        pow1nodes_cluster.emplace_back(p->second);
         p++;
     }
 
@@ -263,8 +262,8 @@ void DirectoryService::UpdateDSCommiteeComposition(const Peer& winnerpeer)
     // Update the DS committee composition
     LOG_MARKER();
 
-    m_mediator.m_DSCommitteeNetworkInfo.push_front(winnerpeer);
-    m_mediator.m_DSCommitteePubKeys.push_front(
+    m_mediator.m_DSCommitteeNetworkInfo.emplace_front(winnerpeer);
+    m_mediator.m_DSCommitteePubKeys.emplace_front(
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetMinerPubKey());
     m_mediator.m_DSCommitteeNetworkInfo.pop_back();
     m_mediator.m_DSCommitteePubKeys.pop_back();

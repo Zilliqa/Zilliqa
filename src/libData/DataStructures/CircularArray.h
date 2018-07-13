@@ -28,7 +28,7 @@ template<class T> class CircularArray
     std::vector<T> m_array;
 
     int m_capacity;
-    boost::multiprecision::uint256_t m_size;
+    uint64_t m_size;
 
 public:
     /// Default constructor.
@@ -55,7 +55,7 @@ public:
     ~CircularArray() {}
 
     /// Index operator.
-    T& operator[](boost::multiprecision::uint256_t index)
+    T& operator[](uint64_t index)
     {
         if (!m_array.size())
         {
@@ -66,7 +66,7 @@ public:
     }
 
     /// Adds an element to the array at the specified index.
-    void insert_new(boost::multiprecision::uint256_t index, const T& element)
+    void insert_new(uint64_t index, const T& element)
     {
         if (!m_array.size())
         {
@@ -102,7 +102,7 @@ public:
     }
 
     /// Returns the number of elements stored till now in the array.
-    boost::multiprecision::uint256_t size() { return m_size; }
+    uint64_t size() { return m_size; }
 
     /// Returns the storage capacity of the array.
     int capacity() { return m_capacity; }
