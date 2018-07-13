@@ -841,7 +841,7 @@ bool Node::IsMyShardMicroBlockInFinalBlock(const uint64_t& blocknum)
     return false;
 }
 
-bool Node::IsMyShardIdInFinalBlock(const uint256_t& blocknum)
+bool Node::IsMyShardIdInFinalBlock(const uint64_t& blocknum)
 {
     auto it = m_unavailableMicroBlocks.find(blocknum);
     if (it == m_unavailableMicroBlocks.end())

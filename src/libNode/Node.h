@@ -246,13 +246,13 @@ class Node : public Executable, public Broadcastable
     bool IsMicroBlockStateDeltaHashInFinalBlock(
         StateHash microBlockStateDeltaHash, TxnHash microBlockTxRootHash,
         const uint64_t& blocknum, bool& isEveryMicroBlockAvailable);
-    bool IsMyShardMicroBlockTxRootHashInFinalBlock(
-        const uint64_t& blocknum, bool& isEveryMicroBlockAvailable);
+    bool
+    IsMyShardMicroBlockTxRootHashInFinalBlock(const uint64_t& blocknum,
+                                              bool& isEveryMicroBlockAvailable);
     bool IsMyShardMicroBlockStateDeltaHashInFinalBlock(
         const uint64_t& blocknum, bool& isEveryMicroBlockAvailable);
     bool IsMyShardMicroBlockInFinalBlock(const uint64_t& blocknum);
-    bool
-    IsMyShardIdInFinalBlock(const boost::multiprecision::uint256_t& blocknum);
+    bool IsMyShardIdInFinalBlock(const uint64_t& blocknum);
     bool
     ReadAuxilliaryInfoFromFinalBlockMsg(const vector<unsigned char>& message,
                                         unsigned int& cur_offset,
@@ -418,8 +418,8 @@ public:
 
     // Transaction body sharing variables
     std::mutex m_mutexUnavailableMicroBlocks;
-    std::unordered_map<uint64_t,
-                       std::unordered_map<UnavailableMicroBlock, std::vector<bool>>>
+    std::unordered_map<
+        uint64_t, std::unordered_map<UnavailableMicroBlock, std::vector<bool>>>
         m_unavailableMicroBlocks;
 
     uint32_t m_consensusID;
