@@ -195,11 +195,58 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Oops, no consensus reached - what to do now???");
 
+        if (m_consensusObject->GetConsensusErrorCode()
+            == ConsensusCommon::MISSING_TXN)
+        {
+            // Missing txns in microblock proposed by leader. Will attempt to fetch
+            // missing txns from leader, set to a valid state to accept cosig1 and cosig2
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Oops, no consensus reached - consensus error. "
+                      "error number: "
+                          << m_consensusObject->GetConsensusErrorCode()
+                          << " error message: "
+                          << m_consensusObject->GetConsensusErrorMsg());
+
+            // Block till txn is fetched
+            unique_lock<mutex> lock(m_mutexCVMicroBlockMissingTxn);
+            if (cv_MicroBlockMissingTxn.wait_for(
+                    lock, chrono::seconds(FETCHING_MISSING_TXNS_TIMEOUT))
+                == std::cv_status::timeout)
+            {
+                LOG_EPOCH(WARNING,
+                          to_string(m_mediator.m_currentEpochNum).c_str(),
+                          "fetching missing txn timeout");
+            }
+            else
+            {
+                // Re-run consensus
+                m_consensusObject->RecoveryAndProcessFromANewState(
+                    ConsensusCommon::INITIAL);
+
+                auto rerunconsensus = [this, message, offset, from]() {
+                    ProcessMicroblockConsensus(message, offset, from);
+                };
+                DetachedFunction(1, rerunconsensus);
+                return true;
+            }
+        }
+        else
+        {
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Oops, no consensus reached - unhandled consensus error. "
+                      "error number: "
+                          << m_consensusObject->GetConsensusErrorCode()
+                          << " error message: "
+                          << m_consensusObject->GetConsensusErrorMsg());
+        }
+
         // return false;
         // TODO: Optimize state transition.
         LOG_GENERAL(WARNING,
                     "ConsensusCommon::State::ERROR here, but we move on.");
+
         SetState(WAITING_FINALBLOCK); // Move on to next Epoch.
+
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "If I received a new Finalblock from DS committee. I will "
                   "still process it");
