@@ -23,7 +23,38 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 
+#define LITERAL(s) #s
+
 using namespace std;
+
+map<ConsensusCommon::ConsensusErrorCode, std::string>
+    ConsensusCommon::CONSENSUSERRORMSG
+    = {{NO_ERROR, LITERAL(NO_ERROR)},
+       {GENERIC_ERROR, LITERAL(GENERIC_ERROR)},
+       {INVALID_DSBLOCK, LITERAL(INVALID_DSBLOCK)},
+       {INVALID_MICROBLOCK, LITERAL(INVALID_MICROBLOCK)},
+       {INVALID_FINALBLOCK, LITERAL(INVALID_FINALBLOCK)},
+       {INVALID_VIEWCHANGEBLOCK, LITERAL(INVALID_VIEWCHANGEBLOCK)},
+       {INVALID_DSBLOCK_VERSION, LITERAL(INVALID_DSBLOCK_VERSION)},
+       {INVALID_MICROBLOCK_VERSION, LITERAL(INVALID_MICROBLOCK_VERSION)},
+       {INVALID_FINALBLOCK_VERSION, LITERAL(INVALID_FINALBLOCK_VERSION)},
+       {INVALID_FINALBLOCK_NUMBER, LITERAL(INVALID_FINALBLOCK_NUMBER)},
+       {INVALID_PREV_FINALBLOCK_HASH, LITERAL(INVALID_PREV_FINALBLOCK_HASH)},
+       {INVALID_VIEWCHANGEBLOCK_VERSION,
+        LITERAL(INVALID_VIEWCHANGEBLOCK_VERSION)},
+       {INVALID_TIMESTAMP, LITERAL(INVALID_TIMESTAMP)},
+       {INVALID_BLOCK_HASH, LITERAL(INVALID_BLOCK_HASH)},
+       {INVALID_MICROBLOCK_ROOT_HASH, LITERAL(INVALID_MICROBLOCK_ROOT_HASH)},
+       {MISSING_TXN, LITERAL(MISSING_TXN)},
+       {FINALBLOCK_MISSING_HASH, LITERAL(FINALBLOCK_MISSING_HASH)},
+       {FINALBLOCK_INVALID_MICROBLOCK_ROOT_HASH,
+        LITERAL(FINALBLOCK_INVALID_MICROBLOCK_ROOT_HASH)},
+       {FINALBLOCK_MICROBLOCK_EMPTY_ERROR,
+        LITERAL(FINALBLOCK_MICROBLOCK_EMPTY_ERROR)},
+       {INVALID_MICROBLOCK_STATE_DELTA_HASH,
+        LITERAL(INVALID_MICROBLOCK_STATE_DELTA_HASH)},
+       {INVALID_MICROBLOCK_SHARD_ID, LITERAL(INVALID_MICROBLOCK_SHARD_ID)},
+       {INVALID_FINALBLOCK_STATE_ROOT, LITERAL(INVALID_FINALBLOCK_STATE_ROOT)}};
 
 ConsensusCommon::ConsensusCommon(uint32_t consensus_id,
                                  const vector<unsigned char>& block_hash,
@@ -32,16 +63,17 @@ ConsensusCommon::ConsensusCommon(uint32_t consensus_id,
                                  const deque<Peer>& peer_info,
                                  unsigned char class_byte,
                                  unsigned char ins_byte)
-    : m_blockHash(block_hash)
+    : m_consensusErrorCode(NO_ERROR)
+    , m_consensusID(consensus_id)
+    , m_blockHash(block_hash)
+    , m_myID(my_id)
     , m_myPrivKey(privkey)
     , m_pubKeys(pubkeys)
     , m_peerInfo(peer_info)
+    , m_classByte(class_byte)
+    , m_insByte(ins_byte)
     , m_responseMap(pubkeys.size(), false)
 {
-    m_consensusID = consensus_id;
-    m_myID = my_id;
-    m_classByte = class_byte;
-    m_insByte = ins_byte;
 }
 
 ConsensusCommon::~ConsensusCommon() {}
@@ -158,6 +190,39 @@ Challenge ConsensusCommon::GetChallenge(const vector<unsigned char>& msg,
 }
 
 ConsensusCommon::State ConsensusCommon::GetState() const { return m_state; }
+
+ConsensusCommon::ConsensusErrorCode
+ConsensusCommon::GetConsensusErrorCode() const
+{
+    return m_consensusErrorCode;
+}
+
+std::string ConsensusCommon::GetConsensusErrorMsg() const
+{
+    if (CONSENSUSERRORMSG.find(m_consensusErrorCode) == CONSENSUSERRORMSG.end())
+    {
+        LOG_GENERAL(WARNING,
+                    "Consensus error code description not found. Error no: "
+                        << to_string(m_consensusErrorCode));
+
+        return "Error. No such error code.";
+    }
+    else
+    {
+        return CONSENSUSERRORMSG.at(m_consensusErrorCode);
+    }
+}
+
+void ConsensusCommon::SetConsensusErrorCode(
+    ConsensusCommon::ConsensusErrorCode ErrorCode)
+{
+    m_consensusErrorCode = ErrorCode;
+}
+
+void ConsensusCommon::RecoveryAndProcessFromANewState(State newState)
+{
+    m_state = newState;
+}
 
 const Signature& ConsensusCommon::GetCS1() const
 {
