@@ -200,12 +200,13 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
         {
             // Missing txns in microblock proposed by leader. Will attempt to fetch
             // missing txns from leader, set to a valid state to accept cosig1 and cosig2
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Oops, no consensus reached - consensus error. "
-                      "error number: "
-                          << (m_consensusObject->GetConsensusErrorCode())
-                          << " error message: "
-                          << (m_consensusObject->GetConsensusErrorMsg()));
+            LOG_EPOCH(
+                WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Oops, no consensus reached - consensus error. "
+                "error number: "
+                    << to_string(m_consensusObject->GetConsensusErrorCode())
+                    << " error message: "
+                    << (m_consensusObject->GetConsensusErrorMsg()));
 
             // Block till txn is fetched
             unique_lock<mutex> lock(m_mutexCVMicroBlockMissingTxn);
