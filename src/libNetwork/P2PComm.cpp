@@ -347,7 +347,7 @@ void P2PComm::ClearBroadcastHashAsync(const vector<unsigned char>& message_hash)
     // TODO: are we sure there wont be many threads arising from this, will ThreadPool alleviate it?
     // Launch a separate, detached thread to automatically remove the hash from the list after a long time period has elapsed
     auto func2 = [this, message_hash]() -> void {
-        this_thread::sleep_for(chrono::seconds(BROADCAST_EXPIRY_SECONDS));
+        this_thread::sleep_for(chrono::seconds(BROADCAST_EXPIRY));
         lock_guard<mutex> guard(m_broadcastHashesMutex);
         m_broadcastHashes.erase(message_hash);
         LOG_PAYLOAD(INFO, "Removing msg hash from broadcast list", message_hash,
