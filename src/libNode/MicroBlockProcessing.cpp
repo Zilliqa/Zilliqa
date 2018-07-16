@@ -236,7 +236,7 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Oops, no consensus reached - unhandled consensus error. "
                       "error number: "
-                          << m_consensusObject->GetConsensusErrorCode()
+                          << to_string(m_consensusObject->GetConsensusErrorCode())
                           << " error message: "
                           << m_consensusObject->GetConsensusErrorMsg());
         }
