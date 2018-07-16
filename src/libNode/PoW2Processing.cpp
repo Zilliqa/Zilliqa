@@ -56,8 +56,8 @@ void Node::SharePoW2WinningResultWithDS(
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Winning nonce   = "
                   << winning_result.winning_nonce
-                  << "Winning result  = " << winning_result.result
-                  << "Winning mixhash = " << winning_result.mix_hash);
+                  << " Winning result  = " << winning_result.result
+                  << " Winning mixhash = " << winning_result.mix_hash);
 
     // Send result
     vector<unsigned char> pow2message

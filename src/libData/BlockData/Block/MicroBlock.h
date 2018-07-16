@@ -56,8 +56,19 @@ public:
     /// Implements the Deserialize function inherited from Serializable.
     int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
 
-    /// Returns the expected size of this microblock when serialized into a byte stream.
-    unsigned int GetSerializedSize() const;
+    /// Returns the expected size of m_header and BlockBase when serialized into a byte stream.
+    unsigned int GetSerializedCoreSize() const;
+
+    /// Returns the expected size of m_tranHashes when serialized into a byte stream.
+    unsigned int GetSerializedTxnHashesSize() const;
+
+    /// Serialize function used for sending MB to DS Committee where tranHashes is not needed
+    unsigned int SerializeCore(std::vector<unsigned char>& dst,
+                               unsigned int offset) const;
+
+    /// Deserialize function used in DS Committee where tranHashes is not needed
+    int DeserializeCore(const std::vector<unsigned char>& src,
+                        unsigned int offset);
 
     /// Returns the minimum required size in bytes for obtaining a microblock from a byte stream.
     static unsigned int GetMinSize();

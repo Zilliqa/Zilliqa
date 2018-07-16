@@ -44,7 +44,8 @@ class ConsensusLeader : public ConsensusCommon
         PROCESS_COMMIT,
         PROCESS_RESPONSE,
         PROCESS_FINALCOMMIT,
-        PROCESS_FINALRESPONSE
+        PROCESS_FINALRESPONSE,
+        PROCESS_COMMITFAILURE
     };
 
     // Consensus session settings

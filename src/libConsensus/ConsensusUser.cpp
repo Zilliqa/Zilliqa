@@ -165,6 +165,23 @@ bool ConsensusUser::ProcessConsensusMessage(
 {
     LOG_MARKER();
 
+    std::shared_lock<shared_timed_mutex> cv_lk(m_mutexProcessConsensusMessage);
+    if (cv_processConsensusMessage.wait_for(
+            cv_lk, std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW),
+            [this, message, offset]() -> bool {
+                return m_consensus->CanProcessMessage(message, offset);
+            }))
+    {
+        // order preserved
+    }
+    else
+    {
+        LOG_GENERAL(
+            WARNING,
+            "Timeout while waiting for correct order of consensus messages");
+        return false;
+    }
+
     bool result = m_consensus->ProcessMessage(message, offset, from);
 
     if (m_consensus->GetState() == ConsensusCommon::State::DONE)
@@ -223,8 +240,9 @@ bool ConsensusUser::Execute(const vector<unsigned char>& message,
     }
     else
     {
-        LOG_GENERAL(
-            INFO, "Unknown instruction byte " << hex << (unsigned int)ins_byte);
+        LOG_GENERAL(WARNING,
+                    "Unknown instruction byte " << hex
+                                                << (unsigned int)ins_byte);
     }
 
     return result;
@@ -235,7 +253,7 @@ bool ConsensusUser::MyMsgValidatorFunc(const vector<unsigned char>& message,
 {
     LOG_MARKER();
     LOG_PAYLOAD(INFO, "Message", message, Logger::MAX_BYTES_TO_DISPLAY);
-    LOG_GENERAL(INFO, "Message is valid. I don't really care...");
+    LOG_GENERAL(INFO, "Message is valid. ");
 
     return true;
 }

@@ -40,7 +40,6 @@ const unsigned char START_BYTE_NORMAL = 0x11;
 const unsigned char START_BYTE_BROADCAST = 0x22;
 const unsigned int HDR_LEN = 6;
 const unsigned int HASH_LEN = 32;
-const unsigned int BROADCAST_EXPIRY_SECONDS = 600;
 
 /// Comparison operator for ordering the list of message hashes.
 struct hash_compare
@@ -67,7 +66,53 @@ static void close_socket(int* cli_sock)
     }
 }
 
-P2PComm::P2PComm() {}
+static bool comparePairSecond(
+    const pair<vector<unsigned char>, chrono::time_point<chrono::system_clock>>&
+        a,
+    const pair<vector<unsigned char>, chrono::time_point<chrono::system_clock>>&
+        b)
+{
+    return a.second < b.second;
+}
+
+P2PComm::P2PComm()
+{
+    auto func = [this]() -> void {
+        std::vector<unsigned char> emptyHash;
+
+        while (true)
+        {
+            this_thread::sleep_for(chrono::seconds(BROADCAST_INTERVAL));
+            lock(m_broadcastToRemovedMutex, m_broadcastHashesMutex);
+            lock_guard<mutex> g(m_broadcastToRemovedMutex, adopt_lock);
+            lock_guard<mutex> g2(m_broadcastHashesMutex, adopt_lock);
+
+            if (m_broadcastToRemoved.empty()
+                || m_broadcastToRemoved.front().second
+                    > chrono::system_clock::now()
+                        - chrono::seconds(BROADCAST_EXPIRY))
+            {
+                continue;
+            }
+
+            auto up = upper_bound(
+                m_broadcastToRemoved.begin(), m_broadcastToRemoved.end(),
+                make_pair(emptyHash,
+                          chrono::system_clock::now()
+                              - chrono::seconds(BROADCAST_EXPIRY)),
+                comparePairSecond);
+
+            for (auto it = m_broadcastToRemoved.begin(); it != up; ++it)
+            {
+                m_broadcastHashes.erase(it->first);
+            }
+
+            m_broadcastToRemoved.erase(m_broadcastToRemoved.begin(), up);
+        }
+    };
+
+    DetachedFunction(1, func);
+}
 
 P2PComm::~P2PComm() {}
 
@@ -108,7 +153,7 @@ bool P2PComm::SendMessageSocketCore(const Peer& peer,
                                     unsigned char start_byte,
                                     const vector<unsigned char>& msg_hash)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
     LOG_PAYLOAD(INFO, "Sending message to " << peer, message,
                 Logger::MAX_BYTES_TO_DISPLAY);
 
@@ -289,7 +334,7 @@ void P2PComm::SendBroadcastMessageCore(
     const Container& peers, const vector<unsigned char>& message,
     const vector<unsigned char>& message_hash)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
     lock_guard<mutex> guard(m_broadcastCoreMutex);
 
     SendMessagePoolHelper<START_BYTE_BROADCAST>(peers, message, message_hash);
@@ -298,6 +343,7 @@ void P2PComm::SendBroadcastMessageCore(
 void P2PComm::ClearBroadcastHashAsync(const vector<unsigned char>& message_hash)
 {
     LOG_MARKER();
+
     // TODO: are we sure there wont be many threads arising from this, will ThreadPool alleviate it?
     // Launch a separate, detached thread to automatically remove the hash from the list after a long time period has elapsed
     auto func2 = [this, message_hash]() -> void {
@@ -404,7 +450,8 @@ void P2PComm::HandleAcceptedConnection(
     int cli_sock, Peer from, Dispatcher dispatcher,
     broadcast_list_func broadcast_list_retriever)
 {
-    LOG_MARKER();
+    //LOG_MARKER();
+
     LOG_GENERAL(INFO, "Incoming message from " << from);
 
     SocketCloser cli_sock_closer(&cli_sock, close_socket);
@@ -586,9 +633,9 @@ void P2PComm::ConnectionAccept(int serv_sock, short event, void* arg)
 
         Peer from(uint128_t(cli_addr.sin_addr.s_addr), cli_addr.sin_port);
 
-        LOG_GENERAL(INFO,
-                    "DEBUG: I got an incoming message from "
-                        << from.GetPrintableIPAddress());
+        // LOG_GENERAL(INFO,
+        //             "DEBUG: I got an incoming message from "
+        // << from.GetPrintableIPAddress());
 
         function<void(const vector<unsigned char>&, const Peer&)> dispatcher
             = ((ConnectionData*)arg)->dispatcher;

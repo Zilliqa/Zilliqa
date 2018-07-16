@@ -66,6 +66,11 @@ void DirectoryService::StoreDSBlockToStorage()
         m_pendingDSBlock->GetHeader().GetBlockNum(), serializedDSBlock);
     BlockStorage::GetBlockStorage().PushBackTxBodyDB(
         m_pendingDSBlock->GetHeader().GetBlockNum());
+    m_latestActiveDSBlockNum
+        = m_pendingDSBlock->GetHeader().GetBlockNum().convert_to<uint64_t>();
+    BlockStorage::GetBlockStorage().PutMetadata(
+        LATESTACTIVEDSBLOCKNUM,
+        DataConversion::StringToCharArray(to_string(m_latestActiveDSBlockNum)));
 }
 
 bool DirectoryService::SendDSBlockToLookupNodes(DSBlock& lastDSBlock,
@@ -198,7 +203,11 @@ void DirectoryService::SendDSBlockToCluster(
         << m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()
         << "] DSBLOCKGEN");
 
-    // Sleep to give sufficient time to other ds node to receive the ds block
+    // Not all DS nodes have received the final ds block consensus message.
+    // If some ds nodes send ds block too fast to shard nodes,
+    // pow submissions may arrive before ds nodes have transit to pow submission state.
+    // This result in pow submission being drop.
+    // Hence, a small sleep is set to have some buffer.
     this_thread::sleep_for(chrono::seconds(5));
     P2PComm::GetInstance().SendBroadcastMessage(pow1nodes_cluster,
                                                 dsblock_message);
@@ -277,13 +286,13 @@ void DirectoryService::ScheduleShardingConsensus(const unsigned int wait_window)
             == std::cv_status::timeout)
         {
             LOG_GENERAL(INFO,
-                        "I have woken up from the sleep of " << wait_window
-                                                             << " seconds");
+                        "Woken up from the sleep of " << wait_window
+                                                      << " seconds");
         }
         else
         {
             LOG_GENERAL(INFO,
-                        "I have received announcement message. Time to "
+                        "Received announcement message. Time to "
                         "run consensus.");
         }
 
@@ -476,10 +485,10 @@ bool DirectoryService::ProcessDSBlockConsensus(
 
         // Wait for view change to happen
         //throw exception();
-        if (m_mode != PRIMARY_DS)
-        {
-            RejoinAsDS();
-        }
+        // if (m_mode != PRIMARY_DS)
+        // {
+        //     RejoinAsDS();
+        // }
     }
     else
     {
