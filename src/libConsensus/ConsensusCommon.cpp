@@ -32,17 +32,17 @@ ConsensusCommon::ConsensusCommon(uint32_t consensus_id,
                                  const deque<Peer>& peer_info,
                                  unsigned char class_byte,
                                  unsigned char ins_byte)
-    : m_blockHash(block_hash)
+    : m_consensusErrorCode(NO_ERROR)
+    , m_consensusID(consensus_id)
+    , m_blockHash(block_hash)
+    , m_myID(my_id)
     , m_myPrivKey(privkey)
     , m_pubKeys(pubkeys)
     , m_peerInfo(peer_info)
+    , m_classByte(class_byte)
+    , m_insByte(ins_byte)
     , m_responseMap(pubkeys.size(), false)
 {
-    m_consensusID = consensus_id;
-    m_myID = my_id;
-    m_classByte = class_byte;
-    m_insByte = ins_byte;
-    m_consensusErrorCode = NO_ERROR;
 }
 
 ConsensusCommon::~ConsensusCommon() {}
