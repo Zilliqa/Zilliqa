@@ -207,9 +207,9 @@ bool ConsensusUser::ProcessConsensusMessage(
 ConsensusUser::ConsensusUser(const pair<PrivKey, PubKey>& key, const Peer& peer)
     : m_selfKey(key)
     , m_selfPeer(peer)
+    , m_leaderOrBackup(false)
     , m_consensus(nullptr)
 {
-    m_leaderOrBackup = false;
 }
 
 ConsensusUser::~ConsensusUser() {}
