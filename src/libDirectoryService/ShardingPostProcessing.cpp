@@ -206,6 +206,11 @@ void DirectoryService::SendingShardingStructureToShard(
                               << " Port: " << kv.second.m_listenPortHost);
     }
 
+    sharding_message.resize(sharding_message.size()
+                            + m_txnSharingMessage.size());
+    copy(m_txnSharingMessage.begin(), m_txnSharingMessage.end(),
+         sharding_message.begin() + curr_offset);
+
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
     sha256.Update(sharding_message);
     vector<unsigned char> this_msg_hash = sha256.Finalize();
@@ -318,6 +323,7 @@ bool DirectoryService::ProcessShardingConsensus(
             {
                 SendingShardingStructureToShard(p);
             }
+            m_txnSharingMessage.clear();
         }
 
         LOG_STATE("[SHSTU][" << setw(15) << left
@@ -344,7 +350,11 @@ bool DirectoryService::ProcessShardingConsensus(
             LOG_GENERAL(
                 WARNING,
                 "Timeout: Didn't receive all Microblock. Proceeds without it");
-            RunConsensusOnFinalBlock();
+
+            auto func
+                = [this]() mutable -> void { RunConsensusOnFinalBlock(); };
+
+            DetachedFunction(1, func);
         }
     }
     else if (state == ConsensusCommon::State::ERROR)
@@ -370,10 +380,10 @@ bool DirectoryService::ProcessShardingConsensus(
                   "Oops, no consensus reached - what to do now???");
         // throw exception();
         // TODO: no consensus reached
-        if (m_mode != PRIMARY_DS)
-        {
-            RejoinAsDS();
-        }
+        // if (m_mode != PRIMARY_DS)
+        // {
+        //     RejoinAsDS();
+        // }
         return false;
     }
 

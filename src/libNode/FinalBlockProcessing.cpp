@@ -18,6 +18,7 @@
 #include <boost/multiprecision/cpp_int.hpp>
 #include <chrono>
 #include <functional>
+#include <limits>
 #include <thread>
 
 #include "Node.h"
@@ -50,7 +51,7 @@ using namespace boost::multiprecision;
 
 bool Node::ReadAuxilliaryInfoFromFinalBlockMsg(
     const vector<unsigned char>& message, unsigned int& cur_offset,
-    uint8_t& shard_id)
+    uint32_t& shard_id)
 {
     // 32-byte block number
     uint256_t dsBlockNum
@@ -76,9 +77,9 @@ bool Node::ReadAuxilliaryInfoFromFinalBlockMsg(
         return false;
     }
 
-    shard_id = Serializable::GetNumber<uint8_t>(message, cur_offset,
-                                                sizeof(uint8_t));
-    cur_offset += sizeof(uint8_t);
+    shard_id = Serializable::GetNumber<uint32_t>(message, cur_offset,
+                                                 sizeof(uint32_t));
+    cur_offset += sizeof(uint32_t);
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "DEBUG shard id is " << (unsigned int)shard_id)
@@ -94,7 +95,7 @@ void Node::StoreState()
 
 void Node::StoreFinalBlock(const TxBlock& txBlock)
 {
-    m_mediator.m_txBlockChain.AddBlock(txBlock);
+    AddBlock(txBlock);
     m_mediator.m_currentEpochNum
         = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
 
@@ -193,16 +194,16 @@ bool Node::LoadUnavailableMicroBlockHashes(
             || (finalBlock.GetMicroBlockHashes()[i].m_stateDeltaHash
                 != StateHash()))
         {
-            auto& hash = finalBlock.GetMicroBlockHashes()[i];
             m_unavailableMicroBlocks[blocknum].insert(
-                {hash,
+                {{finalBlock.GetMicroBlockHashes()[i],
+                  finalBlock.GetShardIDs()[i]},
 #ifdef IS_LOOKUP_NODE
-                 vector<bool>{!finalBlock.GetIsMicroBlockEmpty()[i], true}});
+                 {!finalBlock.GetIsMicroBlockEmpty()[i], true}});
 #else // IS_LOOKUP_NODE
-                 vector<bool>{false, true}});
+                 {false, true}});
 #endif // IS_LOOKUP_NODE
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      hash)
+                      finalBlock.GetMicroBlockHashes()[i]);
         }
     }
 
@@ -215,19 +216,40 @@ bool Node::LoadUnavailableMicroBlockHashes(
             lock_guard<mutex> g2(m_mutexAllMicroBlocksRecvd);
             m_allMicroBlocksRecvd = false;
         }
-        if (IsMyShardsMicroBlockInFinalBlock(blocknum))
+
+        bool doRejoin = false;
+
+        if (IsMyShardMicroBlockInFinalBlock(blocknum))
         {
-            lock_guard<mutex> g3(m_mutexTempCommitted);
-            m_tempStateDeltaCommitted = false;
+            {
+                lock_guard<mutex> g3(m_mutexTempCommitted);
+                m_tempStateDeltaCommitted = false;
+            }
             if (m_lastMicroBlockCoSig.first != m_mediator.m_currentEpochNum)
             {
                 LOG_GENERAL(WARNING,
-                            "Why I failed the last microblock consensus but "
-                            "still found my shard microblock, "
-                            " need to Rejoin");
-                RejoinAsNormal();
-                return false;
+                            "Found my microblock but Cosig not updated");
+                doRejoin = true;
             }
+        }
+        else
+        {
+            if (IsMyShardIdInFinalBlock(blocknum))
+            {
+                LOG_GENERAL(WARNING,
+                            "Didn't found my micorblock but found shard ID");
+                doRejoin = true;
+            }
+        }
+
+        if (doRejoin || m_doRejoinAtFinalBlock)
+        {
+            LOG_GENERAL(WARNING,
+                        "Failed the last microblock consensus but "
+                        "still found my shard microblock, "
+                        " need to Rejoin");
+            RejoinAsNormal();
+            return false;
         }
     }
 #endif //IS_LOOKUP_NODE
@@ -241,8 +263,8 @@ bool Node::RemoveTxRootHashFromUnavailableMicroBlock(
     for (auto it = m_unavailableMicroBlocks[blocknum].begin();
          it != m_unavailableMicroBlocks[blocknum].end(); it++)
     {
-        if (it->first.m_txRootHash == txnRootHash
-            && it->first.m_stateDeltaHash == stateDeltaHash)
+        if (it->first.m_hash.m_txRootHash == txnRootHash
+            && it->first.m_hash.m_stateDeltaHash == stateDeltaHash)
         {
             LOG_GENERAL(INFO,
                         "Found microblock txnRootHash: " << txnRootHash
@@ -254,7 +276,7 @@ bool Node::RemoveTxRootHashFromUnavailableMicroBlock(
                 LOG_GENERAL(INFO,
                             "Remove microblock (txRootHash: "
                                 << txnRootHash << " stateDeltaHash: "
-                                << it->first.m_stateDeltaHash << ")");
+                                << it->first.m_hash.m_stateDeltaHash << ")");
                 LOG_GENERAL(INFO,
                             "Microblocks count before removing: "
                                 << m_unavailableMicroBlocks[blocknum].size());
@@ -278,8 +300,8 @@ bool Node::RemoveStateDeltaHashFromUnavailableMicroBlock(
     for (auto it = m_unavailableMicroBlocks[blocknum].begin();
          it != m_unavailableMicroBlocks[blocknum].end(); it++)
     {
-        if (it->first.m_stateDeltaHash == stateDeltaHash
-            && it->first.m_txRootHash == txnRootHash)
+        if (it->first.m_hash.m_stateDeltaHash == stateDeltaHash
+            && it->first.m_hash.m_txRootHash == txnRootHash)
         {
             LOG_GENERAL(INFO,
                         "Found microblock stateDeltaHash: " << stateDeltaHash
@@ -290,8 +312,9 @@ bool Node::RemoveStateDeltaHashFromUnavailableMicroBlock(
             {
                 LOG_GENERAL(INFO,
                             "Remove microblock (txRootHash: "
-                                << it->first.m_txRootHash << " stateDeltaHash: "
-                                << stateDeltaHash << ")");
+                                << it->first.m_hash.m_txRootHash
+                                << " stateDeltaHash: " << stateDeltaHash
+                                << ")");
                 LOG_GENERAL(INFO,
                             "Microblocks count before removing: "
                                 << m_unavailableMicroBlocks[blocknum].size());
@@ -403,7 +426,7 @@ bool Node::FindTxnInSubmittedTxnsList(const TxBlock& finalblock,
                                       vector<Transaction>& txns_to_send,
                                       const TxnHash& tx_hash)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     // boost::multiprecision::uint256_t blockNum = m_mediator.m_txBlockChain.GetBlockCount();
 
@@ -427,12 +450,12 @@ bool Node::FindTxnInSubmittedTxnsList(const TxBlock& finalblock,
         committedTransactions.push_back(txnIt->second);
         submittedTransactions.erase(txnIt);
 
-        LOG_EPOCH(
-            INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "[TXN] ["
-                << blockNum << "] Committed     = 0x"
-                << DataConversion::charArrToHexStr(
-                       committedTransactions.back().GetTranID().asArray()));
+        // LOG_EPOCH(
+        //     INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        //     "[TXN] ["
+        //         << blockNum << "] Committed     = 0x"
+        //         << DataConversion::charArrToHexStr(
+        //                committedTransactions.back().GetTranID().asArray()));
 
         // Update from and to accounts
         // if (!AccountStore::GetInstance().UpdateAccounts(
@@ -479,7 +502,7 @@ bool Node::FindTxnInReceivedTxnsList(const TxBlock& finalblock,
                                      vector<Transaction>& txns_to_send,
                                      const TxnHash& tx_hash)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     lock(m_mutexReceivedTransactions, m_mutexCommittedTransactions);
     lock_guard<mutex> g(m_mutexReceivedTransactions, adopt_lock);
@@ -501,12 +524,12 @@ bool Node::FindTxnInReceivedTxnsList(const TxBlock& finalblock,
         committedTransactions.push_back(txnIt->second);
         receivedTransactions.erase(txnIt);
 
-        LOG_EPOCH(
-            INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "[TXN] ["
-                << blockNum << "] Committed     = 0x"
-                << DataConversion::charArrToHexStr(
-                       committedTransactions.back().GetTranID().asArray()));
+        // LOG_EPOCH(
+        //     INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        //     "[TXN] ["
+        //         << blockNum << "] Committed     = 0x"
+        //         << DataConversion::charArrToHexStr(
+        //                committedTransactions.back().GetTranID().asArray()));
 
         // Update from and to accounts
         // if (!AccountStore::GetInstance().UpdateAccounts(
@@ -525,14 +548,14 @@ bool Node::FindTxnInReceivedTxnsList(const TxBlock& finalblock,
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), DataConversion::charArrToHexStr((*entry).GetFromAddr()));
         **/
 
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "ReceivedTransaction: Storing Transaction: "
-                      << DataConversion::charArrToHexStr(tx_hash.asArray())
-                      << " with amount: "
-                      << committedTransactions.back().GetAmount() << ", to: "
-                      << committedTransactions.back().GetToAddr() << ", from: "
-                      << Account::GetAddressFromPublicKey(
-                             committedTransactions.back().GetSenderPubKey()));
+        // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        //           "ReceivedTransaction: Storing Transaction: "
+        //               << DataConversion::charArrToHexStr(tx_hash.asArray())
+        //               << " with amount: "
+        //               << committedTransactions.back().GetAmount() << ", to: "
+        //               << committedTransactions.back().GetToAddr() << ", from: "
+        //               << Account::GetAddressFromPublicKey(
+        //                      committedTransactions.back().GetSenderPubKey()));
 
         // Store TxBody to disk
         vector<unsigned char> serializedTxBody;
@@ -635,11 +658,11 @@ void Node::BroadcastTransactionsToSendingAssignment(
             txns_to_send.at(i).Serialize(forwardtxn_message, cur_offset);
             cur_offset += txns_to_send.at(i).GetSerializedSize();
 
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "[TXN] ["
-                          << blocknum << "] Broadcasted   = 0x"
-                          << DataConversion::charArrToHexStr(
-                                 txns_to_send.at(i).GetTranID().asArray()));
+            // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            //           "[TXN] ["
+            //               << blocknum << "] Broadcasted   = 0x"
+            //               << DataConversion::charArrToHexStr(
+            //                      txns_to_send.at(i).GetTranID().asArray()));
         }
 
         // P2PComm::GetInstance().SendBroadcastMessage(sendingAssignment,
@@ -706,19 +729,14 @@ void Node::BroadcastStateDeltaToSendingAssignment(
 
     copy(stateDel.begin(), stateDel.end(), back_inserter(forwardstate_message));
 
-    // sending
-
     P2PComm::GetInstance().SendBroadcastMessage(sendingAssignment,
                                                 forwardstate_message);
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "DEBUG: I have broadcasted the state delta! "
-                  << " "
-                  << DataConversion::Uint8VecToHexStr(forwardstate_message)
-                  << " " << sendingAssignment.size());
+              "Broadcasted the state delta! ");
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "I will soon be sending the state delta to the lookup nodes");
+              "Sending the state delta to the lookup nodes");
     m_mediator.m_lookup->SendMessageToLookupNodes(forwardstate_message);
 }
 
@@ -776,7 +794,7 @@ void Node::LoadForwardingAssignmentFromFinalBlock(
     }
 }
 
-bool Node::IsMyShardsMicroBlockTxRootHashInFinalBlock(
+bool Node::IsMyShardMicroBlockTxRootHashInFinalBlock(
     const uint256_t& blocknum, bool& isEveryMicroBlockAvailable)
 {
     return m_microblock != nullptr
@@ -786,7 +804,7 @@ bool Node::IsMyShardsMicroBlockTxRootHashInFinalBlock(
                isEveryMicroBlockAvailable);
 }
 
-bool Node::IsMyShardsMicroBlockStateDeltaHashInFinalBlock(
+bool Node::IsMyShardMicroBlockStateDeltaHashInFinalBlock(
     const uint256_t& blocknum, bool& isEveryMicroBlockAvailable)
 {
     return m_microblock != nullptr
@@ -796,7 +814,7 @@ bool Node::IsMyShardsMicroBlockStateDeltaHashInFinalBlock(
                isEveryMicroBlockAvailable);
 }
 
-bool Node::IsMyShardsMicroBlockInFinalBlock(const uint256_t& blocknum)
+bool Node::IsMyShardMicroBlockInFinalBlock(const uint256_t& blocknum)
 {
     if (m_microblock == nullptr)
     {
@@ -812,17 +830,39 @@ bool Node::IsMyShardsMicroBlockInFinalBlock(const uint256_t& blocknum)
     for (auto it2 = m_unavailableMicroBlocks[blocknum].begin();
          it2 != m_unavailableMicroBlocks[blocknum].end(); it2++)
     {
-        if (it2->first.m_stateDeltaHash
+        if (it2->first.m_hash.m_stateDeltaHash
                 == m_microblock->GetHeader().GetStateDeltaHash()
-            && it2->first.m_txRootHash
+            && it2->first.m_hash.m_txRootHash
                 == m_microblock->GetHeader().GetTxRootHash())
         {
-            LOG_GENERAL(INFO, "Found my shards microblock in finalblock");
+            LOG_GENERAL(INFO, "Found my shard microblock in finalblock");
             return true;
         }
     }
 
-    LOG_GENERAL(WARNING, "Didn't find my shards microblock in finalblock");
+    LOG_GENERAL(WARNING, "Didn't find my shard microblock in finalblock");
+    return false;
+}
+
+bool Node::IsMyShardIdInFinalBlock(const uint256_t& blocknum)
+{
+    auto it = m_unavailableMicroBlocks.find(blocknum);
+    if (it == m_unavailableMicroBlocks.end())
+    {
+        return false;
+    }
+
+    for (auto it2 = m_unavailableMicroBlocks[blocknum].begin();
+         it2 != m_unavailableMicroBlocks[blocknum].end(); it2++)
+    {
+        if (it2->first.m_shardID == m_myShardID)
+        {
+            LOG_GENERAL(INFO, "Found my shard ID in finalblock");
+            return true;
+        }
+    }
+
+    LOG_GENERAL(WARNING, "Didn't find my shard ID in finalblock");
     return false;
 }
 
@@ -874,9 +914,9 @@ bool Node::ActOnFinalBlock(uint8_t tx_sharing_mode, const vector<Peer>& nodes)
 
     // For now, since each sharding setup only processes one block, then whatever transactions we
     // failed to submit have to be discarded m_createdTransactions.clear();
-    if (IsMyShardsMicroBlockTxRootHashInFinalBlock(blocknum,
-                                                   isEveryMicroBlockAvailable)
-        && IsMyShardsMicroBlockStateDeltaHashInFinalBlock(
+    if (IsMyShardMicroBlockTxRootHashInFinalBlock(blocknum,
+                                                  isEveryMicroBlockAvailable)
+        && IsMyShardMicroBlockStateDeltaHashInFinalBlock(
                blocknum, isEveryMicroBlockAvailable))
     {
         vector<Transaction> txns_to_send;
@@ -936,9 +976,9 @@ bool Node::ActOnFinalBlock(uint8_t tx_sharing_mode,
         lock_guard<mutex> gi(m_mutexIsEveryMicroBlockAvailable);
         bool isEveryMicroBlockAvailable;
 
-        if (IsMyShardsMicroBlockTxRootHashInFinalBlock(
+        if (IsMyShardMicroBlockTxRootHashInFinalBlock(
                 blocknum, isEveryMicroBlockAvailable)
-            && IsMyShardsMicroBlockStateDeltaHashInFinalBlock(
+            && IsMyShardMicroBlockStateDeltaHashInFinalBlock(
                    blocknum, isEveryMicroBlockAvailable))
         {
             vector<Transaction> txns_to_send;
@@ -988,8 +1028,8 @@ void Node::InitiatePoW1()
 
     SetState(POW1_SUBMISSION);
     POW::GetInstance().EthashConfigureLightClient(
-        (uint64_t)m_mediator.m_dsBlockChain
-            .GetBlockCount()); // hack hack hack -- typecasting
+        (uint64_t)
+            m_mediator.m_dsBlockChain.GetBlockCount()); // FIXME -- typecasting
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Start pow1 ");
     auto func = [this]() mutable -> void {
@@ -1010,7 +1050,7 @@ void Node::UpdateStateForNextConsensusRound()
     if (m_isPrimary == true)
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "MS: I am no longer the shard leader ");
+                  "I am no longer the shard leader ");
         m_isPrimary = false;
     }
 
@@ -1021,13 +1061,13 @@ void Node::UpdateStateForNextConsensusRound()
     if (m_consensusMyID == m_consensusLeaderID)
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "MS: I am the new shard leader ");
+                  "I am the new shard leader ");
         m_isPrimary = true;
     }
     else
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "MS: The new shard leader is m_consensusMyID "
+                  "The new shard leader is m_consensusMyID "
                       << m_consensusLeaderID);
     }
 
@@ -1045,12 +1085,10 @@ void Node::ScheduleTxnSubmission()
 
     DetachedFunction(1, main_func);
 
-    LOG_GENERAL(INFO,
-                "I am going to sleep for " << TXN_SUBMISSION << " seconds");
+    LOG_GENERAL(INFO, "Sleep for " << TXN_SUBMISSION << " seconds");
     this_thread::sleep_for(chrono::seconds(TXN_SUBMISSION));
     LOG_GENERAL(INFO,
-                "I have woken up from the sleep of " << TXN_SUBMISSION
-                                                     << " seconds");
+                "Woken up from the sleep of " << TXN_SUBMISSION << " seconds");
     auto main_func2
         = [this]() mutable -> void { SetState(TX_SUBMISSION_BUFFER); };
 
@@ -1067,15 +1105,13 @@ void Node::ScheduleMicroBlockConsensus()
                                         std::chrono::seconds(TXN_BROADCAST))
         == std::cv_status::timeout)
     {
-        LOG_GENERAL(INFO,
-                    "I have woken up from the sleep of " << TXN_BROADCAST
-                                                         << " seconds");
+        LOG_GENERAL(
+            INFO, "Woken up from the sleep of " << TXN_BROADCAST << " seconds");
     }
     else
     {
-        LOG_GENERAL(
-            INFO,
-            "I have received announcement message. Time to run consensus.");
+        LOG_GENERAL(INFO,
+                    "Received announcement message. Time to run consensus.");
     }
     auto main_func3 = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
 
@@ -1098,11 +1134,33 @@ void Node::BeginNextConsensusRound()
             if (!m_allMicroBlocksRecvd)
             {
                 LOG_GENERAL(INFO, "Wait for allMicroBlocksRecvd");
-                m_cvAllMicroBlocksRecvd.wait(
-                    g, [this] { return m_allMicroBlocksRecvd; });
-                LOG_EPOCH(
-                    INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                    "All microblocks recvd, moving to ScheduleTxnSubmission");
+                if (m_cvAllMicroBlocksRecvd.wait_for(
+                        g, std::chrono::seconds(TXN_SUBMISSION + TXN_BROADCAST))
+                        == std::cv_status::timeout
+                    || m_doRejoinAtNextRound)
+                {
+                    LOG_EPOCH(WARNING,
+                              to_string(m_mediator.m_currentEpochNum).c_str(),
+                              "Wake up from "
+                                  << TXN_SUBMISSION + TXN_BROADCAST
+                                  << "of waiting for all microblock received");
+                    if (m_mediator.m_lookup->m_syncType == SyncType::NO_SYNC)
+                    {
+                        LOG_EPOCH(
+                            WARNING,
+                            to_string(m_mediator.m_currentEpochNum).c_str(),
+                            "Not in rejoin mode, try rejoining as normal");
+                        RejoinAsNormal();
+                        return;
+                    }
+                }
+                else
+                {
+                    LOG_EPOCH(INFO,
+                              to_string(m_mediator.m_currentEpochNum).c_str(),
+                              "All microblocks recvd, moving to "
+                              "ScheduleTxnSubmission");
+                }
             }
             else
             {
@@ -1110,7 +1168,7 @@ void Node::BeginNextConsensusRound()
             }
 
             {
-                lock_guard<mutex> g2(m_mutexNewRoungStarted);
+                lock_guard<mutex> g2(m_mutexNewRoundStarted);
                 if (!m_newRoundStarted)
                 {
                     m_newRoundStarted = true;
@@ -1118,8 +1176,6 @@ void Node::BeginNextConsensusRound()
                 }
             }
         }
-        // this_thread::sleep_for(
-        //     chrono::seconds(WAITING_STATE_FORWARD_IN_SECONDS));
 
         ScheduleTxnSubmission();
     }
@@ -1132,171 +1188,17 @@ void Node::BeginNextConsensusRound()
     ScheduleMicroBlockConsensus();
 }
 
-void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
-                              unsigned int& cur_offset, uint8_t shard_id,
-                              bool& i_am_sender, bool& i_am_forwarder,
-                              vector<vector<Peer>>& nodes)
+void Node::CallActOnFinalBlockBasedOnSenderForwarderAssgn(uint8_t shard_id)
 {
-    // Transaction body sharing setup
-    // Everyone (DS and non-DS) needs to remember their sharing assignments for this particular block
-
-    // Transaction body sharing assignments:
-    // PART 1. Select X random nodes from DS committee for receiving Tx bodies and broadcasting to other DS nodes
-    // PART 2. Select X random nodes per shard for receiving Tx bodies and broadcasting to other nodes in the shard
-    // PART 3. Select X random nodes per shard for sending Tx bodies to the receiving nodes in other committees (DS and shards)
-
-    // Message format:
-    // [4-byte num of DS nodes]
-    //   [16-byte IP] [4-byte port]
-    //   [16-byte IP] [4-byte port]
-    //   ...
-    // [4-byte num of committees]
-    // [4-byte num of committee receiving nodes]
-    //   [16-byte IP] [4-byte port]
-    //   [16-byte IP] [4-byte port]
-    //   ...
-    // [4-byte num of committee sending nodes]
-    //   [16-byte IP] [4-byte port]
-    //   [16-byte IP] [4-byte port]
-    //   ...
-    // [4-byte num of committee receiving nodes]
-    //   [16-byte IP] [4-byte port]
-    //   [16-byte IP] [4-byte port]
-    //   ...
-    // [4-byte num of committee sending nodes]
-    //   [16-byte IP] [4-byte port]
-    //   [16-byte IP] [4-byte port]
-    //   ...
-    // ...
-    LOG_MARKER();
-
-    uint32_t num_ds_nodes = Serializable::GetNumber<uint32_t>(
-        message, cur_offset, sizeof(uint32_t));
-    cur_offset += sizeof(uint32_t);
-
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Forwarders inside the DS committee (" << num_ds_nodes << "):");
-
-    nodes.push_back(vector<Peer>());
-
-    for (unsigned int i = 0; i < num_ds_nodes; i++)
-    {
-        nodes.back().push_back(Peer(message, cur_offset));
-        cur_offset += IP_SIZE + PORT_SIZE;
-
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  nodes.back().back());
-    }
-
-    uint32_t num_shards = Serializable::GetNumber<uint32_t>(message, cur_offset,
-                                                            sizeof(uint32_t));
-    cur_offset += sizeof(uint32_t);
-
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Number of shards: " << num_shards);
-
-    for (unsigned int i = 0; i < num_shards; i++)
-    {
-        if (i == shard_id)
-        {
-            nodes.push_back(vector<Peer>());
-
-            uint32_t num_recv = Serializable::GetNumber<uint32_t>(
-                message, cur_offset, sizeof(uint32_t));
-            cur_offset += sizeof(uint32_t);
-
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "  Shard " << i << " forwarders:");
-
-            for (unsigned int j = 0; j < num_recv; j++)
-            {
-                nodes.back().push_back(Peer(message, cur_offset));
-                cur_offset += IP_SIZE + PORT_SIZE;
-
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          nodes.back().back());
-
-                if (nodes.back().back() == m_mediator.m_selfPeer)
-                {
-                    i_am_forwarder = true;
-                }
-            }
-
-            nodes.push_back(vector<Peer>());
-
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "  Shard " << i << " senders:");
-
-            uint32_t num_send = Serializable::GetNumber<uint32_t>(
-                message, cur_offset, sizeof(uint32_t));
-            cur_offset += sizeof(uint32_t);
-
-            for (unsigned int j = 0; j < num_send; j++)
-            {
-                nodes.back().push_back(Peer(message, cur_offset));
-                cur_offset += IP_SIZE + PORT_SIZE;
-
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          nodes.back().back());
-
-                if (nodes.back().back() == m_mediator.m_selfPeer)
-                {
-                    i_am_sender = true;
-                }
-            }
-        }
-        else
-        {
-            nodes.push_back(vector<Peer>());
-
-            uint32_t num_recv = Serializable::GetNumber<uint32_t>(
-                message, cur_offset, sizeof(uint32_t));
-            cur_offset += sizeof(uint32_t);
-
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "  Shard " << i << " forwarders:");
-
-            for (unsigned int j = 0; j < num_recv; j++)
-            {
-                nodes.back().push_back(Peer(message, cur_offset));
-                cur_offset += IP_SIZE + PORT_SIZE;
-
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          nodes.back().back());
-            }
-
-            nodes.push_back(vector<Peer>());
-
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "  Shard " << i << " senders:");
-
-            uint32_t num_send = Serializable::GetNumber<uint32_t>(
-                message, cur_offset, sizeof(uint32_t));
-            cur_offset += sizeof(uint32_t);
-
-            for (unsigned int j = 0; j < num_send; j++)
-            {
-                nodes.back().push_back(Peer(message, cur_offset));
-                cur_offset += IP_SIZE + PORT_SIZE;
-
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          nodes.back().back());
-            }
-        }
-    }
-}
-
-void Node::CallActOnFinalBlockBasedOnSenderForwarderAssgn(
-    bool i_am_sender, bool i_am_forwarder, const vector<vector<Peer>>& nodes,
-    uint8_t shard_id)
-{
-    if ((i_am_sender == false) && (i_am_forwarder == true))
+    if ((m_txnSharingIAmSender == false) && (m_txnSharingIAmForwarder == true))
     {
         // Give myself the list of my fellow forwarders
-        const vector<Peer>& my_shard_receivers = nodes.at(shard_id + 1);
+        const vector<Peer>& my_shard_receivers
+            = m_txnSharingAssignedNodes.at(shard_id + 1);
         ActOnFinalBlock(TxSharingMode::NODE_FORWARD_ONLY, my_shard_receivers);
     }
-    else if ((i_am_sender == true) && (i_am_forwarder == false))
+    else if ((m_txnSharingIAmSender == true)
+             && (m_txnSharingIAmForwarder == false))
     {
         vector<Peer> nodes_to_send;
 
@@ -1304,19 +1206,20 @@ void Node::CallActOnFinalBlockBasedOnSenderForwarderAssgn(
                   "iii amam herehere");
 
         // Give myself the list of all receiving nodes in all other committees including DS
-        for (unsigned int i = 0; i < nodes.at(0).size(); i++)
+        for (unsigned int i = 0; i < m_txnSharingAssignedNodes.at(0).size();
+             i++)
         {
-            nodes_to_send.push_back(nodes[0][i]);
+            nodes_to_send.push_back(m_txnSharingAssignedNodes[0][i]);
         }
 
-        for (unsigned int i = 1; i < nodes.size(); i += 2)
+        for (unsigned int i = 1; i < m_txnSharingAssignedNodes.size(); i += 2)
         {
             if (((i - 1) / 2) == shard_id)
             {
                 continue;
             }
 
-            const vector<Peer>& shard = nodes.at(i);
+            const vector<Peer>& shard = m_txnSharingAssignedNodes.at(i);
             for (unsigned int j = 0; j < shard.size(); j++)
             {
                 nodes_to_send.push_back(shard[j]);
@@ -1325,27 +1228,30 @@ void Node::CallActOnFinalBlockBasedOnSenderForwarderAssgn(
 
         ActOnFinalBlock(TxSharingMode::SEND_ONLY, nodes_to_send);
     }
-    else if ((i_am_sender == true) && (i_am_forwarder == true))
+    else if ((m_txnSharingIAmSender == true)
+             && (m_txnSharingIAmForwarder == true))
     {
         // Give myself the list of my fellow forwarders
-        const vector<Peer>& my_shard_receivers = nodes.at(shard_id + 1);
+        const vector<Peer>& my_shard_receivers
+            = m_txnSharingAssignedNodes.at(shard_id + 1);
 
         vector<Peer> fellowForwarderNodes;
 
         // Give myself the list of all receiving nodes in all other committees including DS
-        for (unsigned int i = 0; i < nodes.at(0).size(); i++)
+        for (unsigned int i = 0; i < m_txnSharingAssignedNodes.at(0).size();
+             i++)
         {
-            fellowForwarderNodes.push_back(nodes[0][i]);
+            fellowForwarderNodes.push_back(m_txnSharingAssignedNodes[0][i]);
         }
 
-        for (unsigned int i = 1; i < nodes.size(); i += 2)
+        for (unsigned int i = 1; i < m_txnSharingAssignedNodes.size(); i += 2)
         {
             if (((i - 1) / 2) == shard_id)
             {
                 continue;
             }
 
-            const vector<Peer>& shard = nodes.at(i);
+            const vector<Peer>& shard = m_txnSharingAssignedNodes.at(i);
             for (unsigned int j = 0; j < shard.size(); j++)
             {
                 fellowForwarderNodes.push_back(shard[j]);
@@ -1448,12 +1354,25 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     LOG_MARKER();
 
 #ifndef IS_LOOKUP_NODE
+    if (m_lastMicroBlockCoSig.first != m_mediator.m_currentEpochNum)
+    {
+        std::unique_lock<mutex> cv_lk(m_MutexCVFBWaitMB);
+        if (cv_FBWaitMB.wait_for(
+                cv_lk, std::chrono::seconds(TXN_SUBMISSION + TXN_BROADCAST))
+            == std::cv_status::timeout)
+        {
+            LOG_GENERAL(WARNING,
+                        "Timeout, I didn't finish microblock consensus");
+        }
+    }
+
     if (m_state == MICROBLOCK_CONSENSUS)
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "I may have missed the micrblock consensus. However, if I "
-                  "recent a valid finalblock. I will accept it");
+                  "recently received a valid finalblock, I will accept it");
         // TODO: Optimize state transition.
+        AccountStore::GetInstance().InitTemp();
         SetState(WAITING_FINALBLOCK);
     }
 
@@ -1501,8 +1420,8 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 
     unsigned int cur_offset = offset;
 
-    // Initialize it with 255
-    uint8_t shard_id = (uint8_t)-1;
+    // Initialize it with maximum number
+    uint32_t shard_id = std::numeric_limits<uint32_t>::max();
 
     // Reads and checks DS Block number, consensus ID and Shard ID
     if (!ReadAuxilliaryInfoFromFinalBlockMsg(message, cur_offset, shard_id))
@@ -1560,10 +1479,14 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
             return false;
         }
 
-        if (!CheckStateRoot(txBlock))
-        {
+        if (!CheckStateRoot(txBlock)
 #ifndef IS_LOOKUP_NODE
+            || m_doRejoinAtStateRoot)
+        {
             RejoinAsNormal();
+#else // IS_LOOKUP_NODE
+        )
+        {
 #endif // IS_LOOKUP_NODE
             return false;
         }
@@ -1608,15 +1531,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         DetachedFunction(1, main_func);
     }
 
-    bool i_am_sender = false;
-    bool i_am_forwarder = false;
-    vector<vector<Peer>> nodes;
-
-    LoadTxnSharingInfo(message, cur_offset, shard_id, i_am_sender,
-                       i_am_forwarder, nodes);
-
-    CallActOnFinalBlockBasedOnSenderForwarderAssgn(i_am_sender, i_am_forwarder,
-                                                   nodes, shard_id);
+    CallActOnFinalBlockBasedOnSenderForwarderAssgn(shard_id);
 #else // IS_LOOKUP_NODE
     if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
     {
@@ -1851,41 +1766,35 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
     LOG_MARKER();
 
     // reading [block number] from received msg
-    uint256_t blocknum
-        = Serializable::GetNumber<uint256_t>(message, cur_offset, UINT256_SIZE);
+    m_latestForwardBlockNum = (uint64_t)Serializable::GetNumber<uint256_t>(
+        message, cur_offset, UINT256_SIZE);
     cur_offset += UINT256_SIZE;
 
     LOG_STATE("[TXBOD][" << setw(15) << left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
                          << "][" << m_mediator.m_txBlockChain.GetBlockCount()
-                         << "] RECEIVED TXN BODIES #" << blocknum);
+                         << "] RECEIVED TXN BODIES #"
+                         << m_latestForwardBlockNum);
 
-    LOG_GENERAL(INFO, "Received forwarded txns for block number " << blocknum);
+    LOG_GENERAL(INFO,
+                "Received forwarded txns for block number "
+                    << m_latestForwardBlockNum);
 
     if (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
-        < blocknum)
+        < m_latestForwardBlockNum)
     {
-        unsigned int time_pass = 0;
-        while (
-            m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
-            < blocknum)
+        std::unique_lock<std::mutex> cv_lk(m_mutexForwardBlockNumSync);
+
+        if (m_cvForwardBlockNumSync.wait_for(
+                cv_lk, std::chrono::seconds(WAITING_FORWARD))
+            == std::cv_status::timeout)
         {
-            if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
-            {
-                return false;
-            }
-
-            if (time_pass % 600 == 0)
-            {
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "Blocknum " + blocknum.convert_to<string>()
-                              + " waiting "
-                              + "for state change from WAITING_FINALBLOCK "
-                                "to TX_SUBMISSION");
-            }
-            time_pass++;
-
-            this_thread::sleep_for(chrono::milliseconds(100));
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Blocknum "
+                          << m_latestForwardBlockNum
+                          << " waiting for state change from "
+                             "WAITING_FINALBLOCK to TX_SUBMISSION too long!");
+            return false;
         }
     }
 
@@ -1906,8 +1815,8 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
         bool isEveryMicroBlockAvailable;
 
         if (!IsMicroBlockTxRootHashInFinalBlock(
-                microBlockTxRootHash, microBlockStateDeltaHash, blocknum,
-                isEveryMicroBlockAvailable))
+                microBlockTxRootHash, microBlockStateDeltaHash,
+                m_latestForwardBlockNum, isEveryMicroBlockAvailable))
         {
             LOG_GENERAL(WARNING,
                         "The forwarded data is not in finalblock, why?");
@@ -1915,11 +1824,12 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
         }
         // StoreTxInMicroBlock(microBlockTxRootHash, txnHashesInForwardedMessage)
 
-        CommitForwardedTransactions(txnsInForwardedMessage, blocknum);
+        CommitForwardedTransactions(txnsInForwardedMessage,
+                                    m_latestForwardBlockNum);
 
 #ifndef IS_LOOKUP_NODE
         vector<Peer> forward_list;
-        LoadFwdingAssgnForThisBlockNum(blocknum, forward_list);
+        LoadFwdingAssgnForThisBlockNum(m_latestForwardBlockNum, forward_list);
 #endif // IS_LOOKUP_NODE
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -1927,7 +1837,8 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
 
         if (isEveryMicroBlockAvailable)
         {
-            DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(blocknum);
+            DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
+                m_latestForwardBlockNum);
         }
 
 #ifndef IS_LOOKUP_NODE
@@ -1952,36 +1863,30 @@ bool Node::ProcessForwardStateDelta(const vector<unsigned char>& message,
     LOG_MARKER();
 
     // reading [block number] from received msg
-    uint256_t blocknum
-        = Serializable::GetNumber<uint256_t>(message, cur_offset, UINT256_SIZE);
+    m_latestForwardBlockNum = (uint64_t)Serializable::GetNumber<uint256_t>(
+        message, cur_offset, UINT256_SIZE);
+
     cur_offset += UINT256_SIZE;
 
-    LOG_GENERAL(INFO, "Received state delta for block number " << blocknum);
+    LOG_GENERAL(INFO,
+                "Received state delta for block number "
+                    << m_latestForwardBlockNum);
 
     if (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
-        < blocknum)
+        < m_latestForwardBlockNum)
     {
-        unsigned int time_pass = 0;
-        while (
-            m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
-            < blocknum)
+        std::unique_lock<std::mutex> cv_lk(m_mutexForwardBlockNumSync);
+
+        if (m_cvForwardBlockNumSync.wait_for(
+                cv_lk, std::chrono::seconds(WAITING_FORWARD))
+            == std::cv_status::timeout)
         {
-            if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
-            {
-                return false;
-            }
-
-            if (time_pass % 600 == 0)
-            {
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "Blocknum " + blocknum.convert_to<string>()
-                              + " waiting "
-                              + "for state change from WAITING_FINALBLOCK "
-                                "to TX_SUBMISSION");
-            }
-            time_pass++;
-
-            this_thread::sleep_for(chrono::milliseconds(100));
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Blocknum "
+                          << m_latestForwardBlockNum
+                          << " waiting for state change from "
+                             "WAITING_FINALBLOCK to TX_SUBMISSION too long!");
+            return false;
         }
     }
 
@@ -2004,8 +1909,8 @@ bool Node::ProcessForwardStateDelta(const vector<unsigned char>& message,
         bool isEveryMicroBlockAvailable;
 
         if (!IsMicroBlockStateDeltaHashInFinalBlock(
-                microBlockStateDeltaHash, microBlockTxRootHash, blocknum,
-                isEveryMicroBlockAvailable))
+                microBlockStateDeltaHash, microBlockTxRootHash,
+                m_latestForwardBlockNum, isEveryMicroBlockAvailable))
         {
             LOG_GENERAL(WARNING,
                         "The forwarded data is not in finalblock, why?");
@@ -2016,7 +1921,7 @@ bool Node::ProcessForwardStateDelta(const vector<unsigned char>& message,
 
 #ifndef IS_LOOKUP_NODE
         vector<Peer> forward_list;
-        LoadFwdingAssgnForThisBlockNum(blocknum, forward_list);
+        LoadFwdingAssgnForThisBlockNum(m_latestForwardBlockNum, forward_list);
 #endif // IS_LOOKUP_NODE
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -2024,7 +1929,8 @@ bool Node::ProcessForwardStateDelta(const vector<unsigned char>& message,
 
         if (isEveryMicroBlockAvailable)
         {
-            DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(blocknum);
+            DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
+                m_latestForwardBlockNum);
         }
 
 #ifndef IS_LOOKUP_NODE

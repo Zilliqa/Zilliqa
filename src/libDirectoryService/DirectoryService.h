@@ -98,6 +98,9 @@ class DirectoryService : public Executable, public Broadcastable
     std::vector<std::map<PubKey, Peer>> m_shards;
     std::map<PubKey, uint32_t> m_publicKeyToShardIdMap;
 
+    // Transaction sharing assignments
+    std::vector<unsigned char> m_txnSharingMessage;
+
     std::mutex m_MutexScheduleFinalBlockConsensus;
     std::condition_variable cv_scheduleFinalBlockConsensus;
 
@@ -267,8 +270,8 @@ class DirectoryService : public Executable, public Broadcastable
     vector<unsigned char> ComposeFinalBlockMessage();
     bool ParseMessageAndVerifyPOW1(const vector<unsigned char>& message,
                                    unsigned int offset, const Peer& from);
-    void AppendSharingSetupToFinalBlockMessage(
-        vector<unsigned char>& finalBlockMessage, unsigned int curr_offset);
+    void AppendSharingSetupToShardingStructure(
+        vector<unsigned char>& sharding_structure, unsigned int curr_offset);
     bool CheckWhetherDSBlockIsFresh(
         const boost::multiprecision::uint256_t dsblock_num);
     bool CheckWhetherMaxSubmissionsReceived(Peer peer, PubKey key);
@@ -282,6 +285,7 @@ class DirectoryService : public Executable, public Broadcastable
     void ExtractDataFromMicroblocks(
         TxnHash& microblockTxnTrieRoot, StateHash& microblockDeltaTrieRoot,
         std::vector<MicroBlockHashSet>& microblockHashes,
+        std::vector<uint32_t>& shardIDs,
         boost::multiprecision::uint256_t& allGasLimit,
         boost::multiprecision::uint256_t& allGasUsed, uint32_t& numTxs,
         std::vector<bool>& isMicroBlockEmpty, uint32_t& numMicroBlocks) const;
@@ -300,8 +304,9 @@ class DirectoryService : public Executable, public Broadcastable
     bool CheckIsMicroBlockEmpty();
     bool CheckStateRoot();
     void LoadUnavailableMicroBlocks();
-    void SaveTxnBodySharingAssignment(const vector<unsigned char>& finalblock,
-                                      unsigned int& curr_offset);
+    void SaveTxnBodySharingAssignment(
+        const vector<unsigned char>& sharding_structure,
+        unsigned int curr_offset);
     // Redundant code
     // bool WaitForTxnBodies();
 
@@ -393,6 +398,9 @@ public:
 
     /// The ID number of this Zilliqa instance for use with consensus operations.
     uint16_t m_consensusMyID;
+
+    /// The epoch number when DS tries doing Rejoin
+    uint64_t m_latestActiveDSBlockNum = 0;
 
     /// Constructor. Requires mediator reference to access Node and other global members.
     DirectoryService(Mediator& mediator);

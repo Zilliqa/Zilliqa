@@ -747,6 +747,11 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
         = Serializable::GetNumber<uint256_t>(message, offset, UINT256_SIZE);
     offset += UINT256_SIZE;
 
+    if (lowBlockNum == 1)
+    {
+        lowBlockNum = m_mediator.m_dsBlockChain.GetBlockCount() - 1;
+    }
+
     if (highBlockNum == 0)
     {
         highBlockNum = m_mediator.m_dsBlockChain.GetBlockCount() - 1;
@@ -778,13 +783,13 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
     {
         try
         {
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Fetching DSBlock " << blockNum.convert_to<string>()
-                                          << " for " << from);
+            // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            //           "Fetching DSBlock " << blockNum.convert_to<string>()
+            //                               << " for " << from);
             DSBlock dsBlock = m_mediator.m_dsBlockChain.GetBlock(blockNum);
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "DSBlock " << blockNum.convert_to<string>()
-                                 << " serialized for " << from);
+            // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            //           "DSBlock " << blockNum.convert_to<string>()
+            //                      << " serialized for " << from);
             dsBlock.Serialize(dsBlockMessage, curr_offset);
             curr_offset += dsBlock.GetSerializedSize();
         }
@@ -916,6 +921,11 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
         = Serializable::GetNumber<uint256_t>(message, offset, UINT256_SIZE);
     offset += UINT256_SIZE;
 
+    if (lowBlockNum == 1)
+    {
+        lowBlockNum = m_mediator.m_txBlockChain.GetBlockCount() - 1;
+    }
+
     if (highBlockNum == 0)
     {
         highBlockNum = m_mediator.m_txBlockChain.GetBlockCount() - 1;
@@ -947,13 +957,13 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
     {
         try
         {
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Fetching TxBlock " << blockNum.convert_to<string>()
-                                          << " for " << from);
+            // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            //           "Fetching TxBlock " << blockNum.convert_to<string>()
+            //                               << " for " << from);
             TxBlock txBlock = m_mediator.m_txBlockChain.GetBlock(blockNum);
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "TxBlock " << blockNum.convert_to<string>()
-                                 << " serialized for " << from);
+            // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            //           "TxBlock " << blockNum.convert_to<string>()
+            //                      << " serialized for " << from);
             txBlock.Serialize(txBlockMessage, curr_offset);
             curr_offset += txBlock.GetSerializedSize();
         }
@@ -1253,7 +1263,11 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
     }
 
     uint64_t latestSynBlockNum
-        = (uint64_t)m_mediator.m_dsBlockChain.GetBlockCount();
+        // = (uint64_t)m_mediator.m_dsBlockChain.GetBlockCount();
+        = (uint64_t)m_mediator.m_dsBlockChain.GetLastBlock()
+              .GetHeader()
+              .GetBlockNum()
+        + 1;
 
     if (latestSynBlockNum > highBlockNum)
     {
@@ -1378,7 +1392,11 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
                   << " to " << highBlockNum.convert_to<string>());
 
     uint64_t latestSynBlockNum
-        = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
+        // = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
+        = (uint64_t)m_mediator.m_txBlockChain.GetLastBlock()
+              .GetHeader()
+              .GetBlockNum()
+        + 1;
 
     if (latestSynBlockNum > highBlockNum)
     {
@@ -1423,7 +1441,7 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
                       "txBlock.GetHeader().GetStateRootHash(): "
                           << txBlock.GetHeader().GetStateRootHash());
 
-            m_mediator.m_txBlockChain.AddBlock(txBlock);
+            m_mediator.m_node->AddBlock(txBlock);
 
             // Store Tx Block to disk
             vector<unsigned char> serializedTxBlock;
@@ -1513,7 +1531,11 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
     }
     else if (m_syncType == SyncType::DS_SYNC)
     {
-        if (!m_currDSExpired)
+        if (!m_currDSExpired
+            && m_mediator.m_ds->m_latestActiveDSBlockNum
+                < m_mediator.m_dsBlockChain.GetLastBlock()
+                      .GetHeader()
+                      .GetBlockNum())
         {
             m_isFirstLoop = true;
             m_syncType = SyncType::NO_SYNC;
@@ -1615,7 +1637,7 @@ bool Lookup::InitMining()
     LOG_MARKER();
 
     {
-        lock_guard<mutex> g(m_mediator.m_node->m_mutexNewRoungStarted);
+        lock_guard<mutex> g(m_mediator.m_node->m_mutexNewRoundStarted);
         if (!m_mediator.m_node->m_newRoundStarted)
         {
             LOG_GENERAL(INFO,
@@ -1694,12 +1716,14 @@ bool Lookup::InitMining()
         return false;
     }
     // Check whether is the new node connected to the network. Else, initiate re-sync process again.
-    this_thread::sleep_for(chrono::seconds(BACKUP_POW2_WINDOW_IN_SECONDS));
+    this_thread::sleep_for(chrono::seconds(BACKUP_POW2_WINDOW_IN_SECONDS
+                                           + TXN_SUBMISSION + TXN_BROADCAST));
     m_startedPoW2 = false;
     if (m_syncType != SyncType::NO_SYNC)
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Not yet connected to network");
+        m_mediator.m_node->SetState(Node::SYNC);
     }
     else
     {
@@ -2051,10 +2075,13 @@ void Lookup::RejoinAsLookup()
     LOG_MARKER();
     if (m_syncType == SyncType::NO_SYNC)
     {
-        m_syncType = SyncType::LOOKUP_SYNC;
-        AccountStore::GetInstance().InitSoft();
-        m_mediator.m_node->Install(SyncType::LOOKUP_SYNC, true);
-        this->StartSynchronization();
+        auto func = [this]() mutable -> void {
+            m_syncType = SyncType::LOOKUP_SYNC;
+            AccountStore::GetInstance().InitSoft();
+            m_mediator.m_node->Install(SyncType::LOOKUP_SYNC, true);
+            this->StartSynchronization();
+        };
+        DetachedFunction(1, func);
     }
 }
 
