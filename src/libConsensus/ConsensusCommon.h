@@ -78,6 +78,8 @@ public:
         INVALID_FINALBLOCK_STATE_ROOT
     };
 
+    static std::map<ConsensusErrorCode, std::string> CONSENSUSERRORMSG;
+
 protected:
     enum ConsensusMessageType : unsigned char
     {
@@ -93,30 +95,6 @@ protected:
         COMMITFAILURE = 0x09,
         CONSENSUSFAILURE = 0x10,
     };
-
-    std::vector<std::string> ConsensusErrorMsg
-        = {"NO_ERROR",
-           "GENERIC_ERROR",
-           "INVALID_DSBLOCK",
-           "INVALID_MICROBLOCK",
-           "INVALID_FINALBLOCK",
-           "INVALID_VIEWCHANGEBLOCK",
-           "INVALID_DSBLOCK_VERSION",
-           "INVALID_MICROBLOCK_VERSION",
-           "INVALID_FINALBLOCK_VERSION",
-           "INVALID_FINALBLOCK_NUMBER",
-           "INVALID_PREV_FINALBLOCK_HASH",
-           "INVALID_VIEWCHANGEBLOCK_VERSION",
-           "INVALID_TIMESTAMP",
-           "INVALID_BLOCK_HASH",
-           "INVALID_MICROBLOCK_ROOT_HASH",
-           "MISSING_TXN",
-           "FINALBLOCK_MISSING_HASH",
-           "FINALBLOCK_INVALID_MICROBLOCK_ROOT_HASH",
-           "FINALBLOCK_MICROBLOCK_EMPTY_ERROR",
-           "INVALID_MICROBLOCK_STATE_DELTA_HASH",
-           "INVALID_MICROBLOCK_SHARD_ID",
-           "INVALID_FINALBLOCK_STATE_ROOT"};
 
     /// State of the active consensus session.
     State m_state;
