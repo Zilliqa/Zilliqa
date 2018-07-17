@@ -83,12 +83,12 @@ P2PComm::P2PComm()
         while (true)
         {
             this_thread::sleep_for(chrono::seconds(BROADCAST_INTERVAL));
-            lock(m_broadcastToRemovedMutex, m_broadcastHashesMutex);
-            lock_guard<mutex> g(m_broadcastToRemovedMutex, adopt_lock);
+            lock(m_broadcastToRemoveMutex, m_broadcastHashesMutex);
+            lock_guard<mutex> g(m_broadcastToRemoveMutex, adopt_lock);
             lock_guard<mutex> g2(m_broadcastHashesMutex, adopt_lock);
 
-            if (m_broadcastToRemoved.empty()
-                || m_broadcastToRemoved.front().second
+            if (m_broadcastToRemove.empty()
+                || m_broadcastToRemove.front().second
                     > chrono::system_clock::now()
                         - chrono::seconds(BROADCAST_EXPIRY))
             {
@@ -96,18 +96,18 @@ P2PComm::P2PComm()
             }
 
             auto up = upper_bound(
-                m_broadcastToRemoved.begin(), m_broadcastToRemoved.end(),
+                m_broadcastToRemove.begin(), m_broadcastToRemove.end(),
                 make_pair(emptyHash,
                           chrono::system_clock::now()
                               - chrono::seconds(BROADCAST_EXPIRY)),
                 comparePairSecond);
 
-            for (auto it = m_broadcastToRemoved.begin(); it != up; ++it)
+            for (auto it = m_broadcastToRemove.begin(); it != up; ++it)
             {
                 m_broadcastHashes.erase(it->first);
             }
 
-            m_broadcastToRemoved.erase(m_broadcastToRemoved.begin(), up);
+            m_broadcastToRemove.erase(m_broadcastToRemove.begin(), up);
         }
     };
 
@@ -343,18 +343,8 @@ void P2PComm::SendBroadcastMessageCore(
 void P2PComm::ClearBroadcastHashAsync(const vector<unsigned char>& message_hash)
 {
     LOG_MARKER();
-
-    // TODO: are we sure there wont be many threads arising from this, will ThreadPool alleviate it?
-    // Launch a separate, detached thread to automatically remove the hash from the list after a long time period has elapsed
-    auto func2 = [this, message_hash]() -> void {
-        this_thread::sleep_for(chrono::seconds(BROADCAST_EXPIRY));
-        lock_guard<mutex> guard(m_broadcastHashesMutex);
-        m_broadcastHashes.erase(message_hash);
-        LOG_PAYLOAD(INFO, "Removing msg hash from broadcast list", message_hash,
-                    Logger::MAX_BYTES_TO_DISPLAY);
-    };
-
-    DetachedFunction(1, func2);
+    lock_guard<mutex> guard(m_broadcastToRemoveMutex);
+    m_broadcastToRemove.emplace_back(message_hash, chrono::system_clock::now());
 }
 
 namespace
