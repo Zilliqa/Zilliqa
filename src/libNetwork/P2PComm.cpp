@@ -53,8 +53,7 @@ struct hash_compare
 
 struct ConnectionData
 {
-    std::function<void(const std::vector<unsigned char>&, const Peer&)>
-        dispatcher;
+    P2PComm::Dispatcher dispatcher;
     broadcast_list_func broadcast_list_retriever;
 };
 
@@ -84,12 +83,12 @@ P2PComm::P2PComm()
         while (true)
         {
             this_thread::sleep_for(chrono::seconds(BROADCAST_INTERVAL));
-            lock(m_broadcastToRemovedMutex, m_broadcastHashesMutex);
-            lock_guard<mutex> g(m_broadcastToRemovedMutex, adopt_lock);
+            lock(m_broadcastToRemoveMutex, m_broadcastHashesMutex);
+            lock_guard<mutex> g(m_broadcastToRemoveMutex, adopt_lock);
             lock_guard<mutex> g2(m_broadcastHashesMutex, adopt_lock);
 
-            if (m_broadcastToRemoved.empty()
-                || m_broadcastToRemoved.front().second
+            if (m_broadcastToRemove.empty()
+                || m_broadcastToRemove.front().second
                     > chrono::system_clock::now()
                         - chrono::seconds(BROADCAST_EXPIRY))
             {
@@ -97,18 +96,18 @@ P2PComm::P2PComm()
             }
 
             auto up = upper_bound(
-                m_broadcastToRemoved.begin(), m_broadcastToRemoved.end(),
+                m_broadcastToRemove.begin(), m_broadcastToRemove.end(),
                 make_pair(emptyHash,
                           chrono::system_clock::now()
                               - chrono::seconds(BROADCAST_EXPIRY)),
                 comparePairSecond);
 
-            for (auto it = m_broadcastToRemoved.begin(); it != up; ++it)
+            for (auto it = m_broadcastToRemove.begin(); it != up; ++it)
             {
                 m_broadcastHashes.erase(it->first);
             }
 
-            m_broadcastToRemoved.erase(m_broadcastToRemoved.begin(), up);
+            m_broadcastToRemove.erase(m_broadcastToRemove.begin(), up);
         }
     };
 
@@ -238,8 +237,8 @@ bool P2PComm::SendMessageSocketCore(const Peer& peer,
 
         while (written_length != HDR_LEN)
         {
-            int n = write(cli_sock, buf + written_length,
-                          HDR_LEN - written_length);
+            ssize_t n = write(cli_sock, buf + written_length,
+                              HDR_LEN - written_length);
             if (n <= 0)
             {
                 LOG_GENERAL(WARNING,
@@ -256,8 +255,8 @@ bool P2PComm::SendMessageSocketCore(const Peer& peer,
             written_length = 0;
             while (written_length != HASH_LEN)
             {
-                int n = write(cli_sock, &msg_hash.at(0) + written_length,
-                              HASH_LEN - written_length);
+                ssize_t n = write(cli_sock, &msg_hash.at(0) + written_length,
+                                  HASH_LEN - written_length);
                 if (n <= 0)
                 {
                     LOG_GENERAL(WARNING,
@@ -287,8 +286,8 @@ bool P2PComm::SendMessageSocketCore(const Peer& peer,
             written_length = 0;
             while (written_length != length)
             {
-                int n = write(cli_sock, &message.at(0) + written_length,
-                              length - written_length);
+                ssize_t n = write(cli_sock, &message.at(0) + written_length,
+                                  length - written_length);
 
                 if (errno == EPIPE)
                 {
@@ -344,23 +343,108 @@ void P2PComm::SendBroadcastMessageCore(
 void P2PComm::ClearBroadcastHashAsync(const vector<unsigned char>& message_hash)
 {
     LOG_MARKER();
-    lock_guard<mutex> guard(m_broadcastToRemovedMutex);
-    m_broadcastToRemoved.emplace_back(message_hash,
-                                      chrono::system_clock::now());
+    lock_guard<mutex> guard(m_broadcastToRemoveMutex);
+    m_broadcastToRemove.emplace_back(message_hash, chrono::system_clock::now());
 }
 
+namespace
+{
+    bool readHeader(unsigned char* buf, int cli_sock, Peer from)
+    {
+        assert(buf);
+        uint32_t read_length = 0;
+
+        // Read out just the header first
+        while (read_length != HDR_LEN)
+        {
+            ssize_t n
+                = read(cli_sock, buf + read_length, HDR_LEN - read_length);
+            if (n <= 0)
+            {
+                LOG_GENERAL(WARNING,
+                            "Socket read failed. Code = "
+                                << errno << " Desc: " << std::strerror(errno)
+                                << ". IP address: " << from);
+                return false;
+            }
+            read_length += n;
+        }
+
+        return true;
+    }
+
+    bool readHash(unsigned char* hash_buf, int cli_sock, Peer from)
+    {
+        assert(hash_buf);
+        uint32_t read_length = 0;
+        while (read_length != HASH_LEN)
+        {
+            ssize_t n = read(cli_sock, hash_buf + read_length,
+                             HASH_LEN - read_length);
+            if (n <= 0)
+            {
+                LOG_GENERAL(WARNING,
+                            "Socket read failed. Code = "
+                                << errno << " Desc: " << std::strerror(errno)
+                                << ". IP address: " << from);
+                return false;
+            }
+            read_length += n;
+        }
+        return true;
+    }
+
+    bool readMessage(vector<unsigned char>* message, int cli_sock, Peer from,
+                     uint32_t message_length)
+    {
+        // Read the rest of the message
+        assert(message);
+        uint32_t read_length = 0;
+        message->resize(message_length);
+        while (read_length != message_length)
+        {
+            ssize_t n = read(cli_sock, &message->at(read_length),
+                             message_length - read_length);
+            if (n <= 0)
+            {
+                LOG_GENERAL(WARNING,
+                            "Socket read failed. Code = "
+                                << errno << " Desc: " << std::strerror(errno)
+                                << ". IP address: " << from);
+                return false;
+            }
+            read_length += n;
+        }
+
+        LOG_PAYLOAD(INFO, "Message received", *message,
+                    Logger::MAX_BYTES_TO_DISPLAY);
+
+        if (read_length != message_length)
+        {
+            LOG_GENERAL(WARNING, "Incorrect message length.");
+            return false;
+        }
+
+        return true;
+    }
+
+    uint32_t messageLength(unsigned char* buf)
+    {
+        assert(buf);
+        return (buf[2] << 24) + (buf[3] << 16) + (buf[4] << 8) + buf[5];
+    }
+
+} // anonymous namespace
+
 void P2PComm::HandleAcceptedConnection(
-    int cli_sock, Peer from,
-    function<void(const vector<unsigned char>&, const Peer&)> dispatcher,
+    int cli_sock, Peer from, Dispatcher dispatcher,
     broadcast_list_func broadcast_list_retriever)
 {
-    // LOG_MARKER();
-
-    unique_ptr<int, void (*)(int*)> cli_sock_closer(&cli_sock, close_socket);
+    //LOG_MARKER();
 
     LOG_GENERAL(INFO, "Incoming message from " << from);
 
-    vector<unsigned char> message;
+    SocketCloser cli_sock_closer(&cli_sock, close_socket);
 
     // Reception format:
     // 0x01 ~ 0xFF - version, defined in constant file
@@ -378,197 +462,141 @@ void P2PComm::HandleAcceptedConnection(
     // 0x00 0x00 0x00 0x01 - 4-byte length of message
     // 0x00
 
-    unsigned char buf[HDR_LEN] = {0};
-    uint32_t read_length = 0;
-
-    // Read out just the header first
-    while (read_length != HDR_LEN)
+    unsigned char header[HDR_LEN] = {0};
+    if (!readHeader(header, cli_sock, from))
     {
-        int n = read(cli_sock, buf + read_length, HDR_LEN - read_length);
-        if (n <= 0)
-        {
-            LOG_GENERAL(WARNING,
-                        "Socket read failed. Code = "
-                            << errno << " Desc: " << std::strerror(errno)
-                            << ". IP address: " << from);
-            return;
-        }
-        read_length += n;
+        return;
     }
 
-    if (read_length == HDR_LEN)
-    {
-        // If received version doesn't match expected version (defined in constant file), drop this message
-        if (buf[0] != (unsigned char)(MSG_VERSION & 0xFF))
-        {
-            LOG_GENERAL(WARNING,
-                        "Header version wrong, received ["
-                            << buf[0] - 0x00 << "] while expected ["
-                            << MSG_VERSION << "].");
-            return;
-        }
+    const unsigned char version = header[0];
+    const unsigned char startByte = header[1];
 
-        // If received start byte is not allowed, drop this message
-        if ((buf[1] != START_BYTE_NORMAL) && (buf[1] != START_BYTE_BROADCAST))
-        {
-            LOG_GENERAL(WARNING, "Header length or type wrong.");
-            return;
-        }
+    // If received version doesn't match expected version (defined in constant file), drop this message
+    if (version != (unsigned char)(MSG_VERSION & 0xFF))
+    {
+        LOG_GENERAL(WARNING,
+                    "Header version wrong, received ["
+                        << version - 0x00 << "] while expected [" << MSG_VERSION
+                        << "].");
+        return;
     }
 
-    uint32_t message_length = 0;
-    message_length = (buf[2] << 24) + (buf[3] << 16) + (buf[4] << 8) + buf[5];
-
-    unsigned char hash_buf[HASH_LEN];
-    if (buf[1] == START_BYTE_BROADCAST)
+    if (startByte == START_BYTE_BROADCAST)
     {
-        read_length = 0;
-
-        while (read_length != HASH_LEN)
-        {
-            int n = read(cli_sock, hash_buf + read_length,
-                         HASH_LEN - read_length);
-            if (n <= 0)
-            {
-                LOG_GENERAL(WARNING,
-                            "Socket read failed. Code = "
-                                << errno << " Desc: " << std::strerror(errno)
-                                << ". IP address: " << from);
-                return;
-            }
-            read_length += n;
-        }
-
-        // Check if this message has been received before
-        bool found = false;
-        {
-            lock_guard<mutex> guard(
-                P2PComm::GetInstance().m_broadcastHashesMutex);
-            vector<unsigned char> msg_hash(hash_buf, hash_buf + HASH_LEN);
-            found = (P2PComm::GetInstance().m_broadcastHashes.find(msg_hash)
-                     != P2PComm::GetInstance().m_broadcastHashes.end());
-
-            // While we have the lock, we should quickly add the hash
-            if (!found)
-            {
-                // Read the rest of the message
-                read_length = 0;
-                message.resize(message_length - HASH_LEN);
-
-                while (read_length != message_length - HASH_LEN)
-                {
-                    int n = read(cli_sock, &message.at(read_length),
-                                 message_length - HASH_LEN - read_length);
-                    if (n <= 0)
-                    {
-                        LOG_GENERAL(WARNING,
-                                    "Socket read failed. Code = "
-                                        << errno
-                                        << " Desc: " << std::strerror(errno)
-                                        << ". IP address: " << from);
-                        return;
-                    }
-                    read_length += n;
-                }
-
-                LOG_PAYLOAD(INFO, "Message received", message,
-                            Logger::MAX_BYTES_TO_DISPLAY);
-
-                if (read_length != message_length - HASH_LEN)
-                {
-                    LOG_GENERAL(WARNING, "Incorrect message length.");
-                    return;
-                }
-
-                SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
-                sha256.Update(message);
-                vector<unsigned char> this_msg_hash = sha256.Finalize();
-
-                if (this_msg_hash == msg_hash)
-                {
-                    P2PComm::GetInstance().m_broadcastHashes.insert(
-                        this_msg_hash);
-                }
-                else
-                {
-                    LOG_GENERAL(WARNING, "Incorrect message hash.");
-                    return;
-                }
-            }
-        }
-
-        cli_sock_closer.reset(); // close socket now so it can be reused
-
-        if (found)
-        {
-            // We already sent and/or received this message before -> discard
-            LOG_GENERAL(INFO, "Discarding duplicate broadcast message");
-            return;
-        }
-        else
-        {
-            unsigned char msg_type = 0xFF;
-            unsigned char ins_type = 0xFF;
-            if (message.size() > MessageOffset::INST)
-            {
-                msg_type = message.at(MessageOffset::TYPE);
-                ins_type = message.at(MessageOffset::INST);
-            }
-            vector<Peer> broadcast_list
-                = broadcast_list_retriever(msg_type, ins_type, from);
-            vector<unsigned char> this_msg_hash(hash_buf, hash_buf + HASH_LEN);
-            if (broadcast_list.size() > 0)
-            {
-                P2PComm::GetInstance().SendBroadcastMessageCore(
-                    broadcast_list, message, this_msg_hash);
-            }
-
-            // Used to be done in SendBroadcastMessageCore, but it would never be called by lookup nodes
-            P2PComm::GetInstance().ClearBroadcastHashAsync(this_msg_hash);
-
-            LOG_STATE(
-                "[BROAD]["
-                << std::setw(15) << std::left
-                << P2PComm::GetInstance().m_selfPeer << "]["
-                << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6)
-                << "] RECV");
-
-            // Dispatch message normally
-            dispatcher(message, from);
-        }
+        HandleAcceptedConnectionBroadcast(
+            cli_sock, from, dispatcher, broadcast_list_retriever,
+            messageLength(header), move(cli_sock_closer));
+    }
+    else if (startByte == START_BYTE_NORMAL)
+    {
+        HandleAcceptedConnectionNormal(cli_sock, from, dispatcher,
+                                       messageLength(header),
+                                       move(cli_sock_closer));
     }
     else
     {
-        // Read the rest of the message
-        read_length = 0;
-        message.resize(message_length);
+        // Unexpected start byte. Drop this message
+        LOG_GENERAL(WARNING, "Header length or type wrong.");
+    }
+}
 
-        while (read_length != message_length)
+void P2PComm::HandleAcceptedConnectionNormal(int cli_sock, Peer from,
+                                             Dispatcher dispatcher,
+                                             uint32_t message_length,
+                                             SocketCloser cli_sock_closer)
+{
+    vector<unsigned char> message;
+    if (!readMessage(&message, cli_sock, from, message_length))
+    {
+        return;
+    }
+
+    cli_sock_closer.reset(); // close socket now so it can be reused
+
+    dispatcher(message, from);
+}
+
+void P2PComm::HandleAcceptedConnectionBroadcast(
+    int cli_sock, Peer from, Dispatcher dispatcher,
+    broadcast_list_func broadcast_list_retriever, uint32_t message_length,
+    SocketCloser cli_sock_closer)
+{
+    unsigned char hash_buf[HASH_LEN];
+    if (!readHash(hash_buf, cli_sock, from))
+    {
+        return;
+    }
+
+    const vector<unsigned char> msg_hash(hash_buf, hash_buf + HASH_LEN);
+
+    // Check if this message has been received before
+    vector<unsigned char> message;
+    bool found = false;
+    {
+        lock_guard<mutex> guard(P2PComm::GetInstance().m_broadcastHashesMutex);
+
+        found = (P2PComm::GetInstance().m_broadcastHashes.find(msg_hash)
+                 != P2PComm::GetInstance().m_broadcastHashes.end());
+        // While we have the lock, we should quickly add the hash
+        if (!found)
         {
-            int n = read(cli_sock, &message.at(read_length),
-                         message_length - read_length);
-            if (n <= 0)
+            if (!readMessage(&message, cli_sock, from,
+                             message_length - HASH_LEN))
             {
-                LOG_GENERAL(WARNING,
-                            "Socket read failed. Code = "
-                                << errno << " Desc: " << std::strerror(errno)
-                                << ". IP address: " << from);
                 return;
             }
-            read_length += n;
-        }
 
-        LOG_PAYLOAD(INFO, "Message received", message,
-                    Logger::MAX_BYTES_TO_DISPLAY);
-        if (read_length != message_length)
-        {
-            LOG_GENERAL(WARNING, "Incorrect message length.");
-            return;
-        }
+            SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
+            sha256.Update(message);
+            vector<unsigned char> this_msg_hash = sha256.Finalize();
 
-        cli_sock_closer.reset(); // close socket now so it can be reused
-        dispatcher(message, from);
+            if (this_msg_hash == msg_hash)
+            {
+                P2PComm::GetInstance().m_broadcastHashes.insert(this_msg_hash);
+            }
+            else
+            {
+                LOG_GENERAL(WARNING, "Incorrect message hash.");
+                return;
+            }
+        }
     }
+
+    cli_sock_closer.reset(); // close socket now so it can be reused
+
+    if (found)
+    {
+        // We already sent and/or received this message before -> discard
+        LOG_GENERAL(INFO, "Discarding duplicate broadcast message");
+        return;
+    }
+
+    unsigned char msg_type = 0xFF;
+    unsigned char ins_type = 0xFF;
+    if (message.size() > MessageOffset::INST)
+    {
+        msg_type = message.at(MessageOffset::TYPE);
+        ins_type = message.at(MessageOffset::INST);
+    }
+    vector<Peer> broadcast_list
+        = broadcast_list_retriever(msg_type, ins_type, from);
+    if (broadcast_list.size() > 0)
+    {
+        P2PComm::GetInstance().SendBroadcastMessageCore(broadcast_list, message,
+                                                        msg_hash);
+    }
+
+    // Used to be done in SendBroadcastMessageCore, but it would never be called by lookup nodes
+    P2PComm::GetInstance().ClearBroadcastHashAsync(msg_hash);
+
+    LOG_STATE(
+        "[BROAD][" << std::setw(15) << std::left
+                   << P2PComm::GetInstance().m_selfPeer << "]["
+                   << DataConversion::Uint8VecToHexStr(msg_hash).substr(0, 6)
+                   << "] RECV");
+
+    // Dispatch message normally
+    dispatcher(message, from);
 }
 
 void P2PComm::ConnectionAccept(int serv_sock, short event, void* arg)
