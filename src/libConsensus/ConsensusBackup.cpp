@@ -958,12 +958,11 @@ ConsensusBackup::ConsensusBackup(
     MsgContentValidatorFunc msg_validator)
     : ConsensusCommon(consensus_id, block_hash, node_id, privkey, pubkeys,
                       peer_info, class_byte, ins_byte)
+    , m_leaderID(leader_id)
+    , m_msgContentValidator(msg_validator)
 {
     LOG_MARKER();
-
     m_state = INITIAL;
-    m_leaderID = leader_id;
-    m_msgContentValidator = msg_validator;
 }
 
 ConsensusBackup::~ConsensusBackup() {}

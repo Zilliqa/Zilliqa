@@ -610,7 +610,7 @@ bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
     }
 
     AccountStore::GetInstance().SerializeDelta();
-
+    cv_MicroBlockMissingTxn.notify_all();
     return true;
 }
 
