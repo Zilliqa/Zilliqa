@@ -346,6 +346,10 @@ bool DirectoryService::CheckBlockTypeIsFinal()
                     "Type check failed. Expected: "
                         << (unsigned int)TXBLOCKTYPE::FINAL << " Actual: "
                         << (unsigned int)m_finalBlock->GetHeader().GetType());
+
+        m_consensusObject->SetConsensusErrorCode(
+            ConsensusCommon::INVALID_FINALBLOCK);
+
         return false;
     }
 
@@ -364,6 +368,10 @@ bool DirectoryService::CheckFinalBlockVersion()
             "Version check failed. Expected: "
                 << (unsigned int)BLOCKVERSION::VERSION1 << " Actual: "
                 << (unsigned int)m_finalBlock->GetHeader().GetVersion());
+
+        m_consensusObject->SetConsensusErrorCode(
+            ConsensusCommon::INVALID_FINALBLOCK_VERSION);
+
         return false;
     }
 
@@ -390,6 +398,10 @@ bool DirectoryService::CheckFinalBlockNumber()
                     "Block number check failed. Expected: "
                         << expectedBlocknum
                         << " Actual: " << finalblockBlocknum);
+
+        m_consensusObject->SetConsensusErrorCode(
+            ConsensusCommon::INVALID_FINALBLOCK_NUMBER);
+
         return false;
     }
     else
@@ -436,6 +448,10 @@ bool DirectoryService::CheckPreviousFinalBlockHash()
     if (finalblockPrevHash != expectedPrevHash)
     {
         LOG_GENERAL(WARNING, "Previous hash check failed.");
+
+        m_consensusObject->SetConsensusErrorCode(
+            ConsensusCommon::INVALID_PREV_FINALBLOCK_HASH);
+
         return false;
     }
 
@@ -459,6 +475,10 @@ bool DirectoryService::CheckFinalBlockTimestamp()
                         "Timestamp check failed. Last Tx Block: "
                             << lastTxBlockTimestamp
                             << " Final block: " << finalblockTimestamp);
+
+            m_consensusObject->SetConsensusErrorCode(
+                ConsensusCommon::INVALID_TIMESTAMP);
+
             return false;
         }
     }
@@ -492,6 +512,10 @@ bool DirectoryService::CheckMicroBlockHashes()
         if (!found)
         {
             LOG_GENERAL(WARNING, "cannot find hashes. " << microBlockHash)
+
+            m_consensusObject->SetConsensusErrorCode(
+                ConsensusCommon::FINALBLOCK_MISSING_HASH);
+
             return false;
         }
     }
@@ -523,6 +547,10 @@ bool DirectoryService::CheckMicroBlockHashRoot()
         LOG_GENERAL(WARNING,
                     "Microblock root hash in proposed final block by "
                     "leader is incorrect");
+
+        m_consensusObject->SetConsensusErrorCode(
+            ConsensusCommon::FINALBLOCK_INVALID_MICROBLOCK_ROOT_HASH);
+
         return false;
     }
 
@@ -560,6 +588,10 @@ bool DirectoryService::CheckIsMicroBlockEmpty()
                                     << (microBlock.GetHeader().GetNumTxs() == 0)
                                     << " Received: "
                                     << m_finalBlock->GetIsMicroBlockEmpty()[i]);
+
+                    m_consensusObject->SetConsensusErrorCode(
+                        ConsensusCommon::FINALBLOCK_MICROBLOCK_EMPTY_ERROR);
+
                     return false;
                 }
                 break;
@@ -592,6 +624,10 @@ bool DirectoryService::CheckStateRoot()
                         << stateRoot << ". "
                         << "Received = "
                         << m_finalBlock->GetHeader().GetStateRootHash());
+
+        m_consensusObject->SetConsensusErrorCode(
+            ConsensusCommon::INVALID_FINALBLOCK_STATE_ROOT);
+
         return false;
     }
 

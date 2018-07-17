@@ -89,7 +89,7 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
 #ifndef IS_LOOKUP_NODE
     LOG_MARKER();
 
-    std::shared_lock<shared_timed_mutex> cv_lk(m_mutexProcessConsensusMessage);
+    std::unique_lock<mutex> cv_lk(m_mutexProcessConsensusMessage);
     if (cv_processConsensusMessage.wait_for(
             cv_lk, std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW),
             [this, message, offset]() -> bool {
@@ -208,6 +208,8 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Consensus state = " << state);
+
+        cv_processConsensusMessage.notify_all();
     }
 
     return result;
@@ -557,6 +559,10 @@ bool Node::CheckBlockTypeIsMicro()
                     "Type check failed. Expected: "
                         << (unsigned int)TXBLOCKTYPE::MICRO << " Actual: "
                         << (unsigned int)m_microblock->GetHeader().GetType());
+
+        m_consensusObject->SetConsensusErrorCode(
+            ConsensusCommon::INVALID_MICROBLOCK);
+
         return false;
     }
 
@@ -575,6 +581,10 @@ bool Node::CheckMicroBlockVersion()
             "Version check failed. Expected: "
                 << (unsigned int)BLOCKVERSION::VERSION1 << " Actual: "
                 << (unsigned int)m_microblock->GetHeader().GetVersion());
+
+        m_consensusObject->SetConsensusErrorCode(
+            ConsensusCommon::INVALID_MICROBLOCK_VERSION);
+
         return false;
     }
 
@@ -598,6 +608,10 @@ bool Node::CheckMicroBlockTimestamp()
                         "Timestamp check failed. Last Tx Block: "
                             << lastTxBlockTimestamp
                             << " Microblock: " << thisMicroblockTimestamp);
+
+            m_consensusObject->SetConsensusErrorCode(
+                ConsensusCommon::INVALID_TIMESTAMP);
+
             return false;
         }
     }
@@ -675,6 +689,10 @@ bool Node::CheckMicroBlockHashes(vector<unsigned char>& errorMsg)
         LOG_GENERAL(WARNING,
                     "Tx hashes check failed. Tx hashes size: "
                         << txhashessize << " Num txs: " << numtxs);
+
+        m_consensusObject->SetConsensusErrorCode(
+            ConsensusCommon::INVALID_BLOCK_HASH);
+
         return false;
     }
 
@@ -685,6 +703,9 @@ bool Node::CheckMicroBlockHashes(vector<unsigned char>& errorMsg)
     {
         LOG_GENERAL(WARNING,
                     "Missing a txn hash included in proposed microblock");
+
+        m_consensusObject->SetConsensusErrorCode(ConsensusCommon::MISSING_TXN);
+
         return false;
     }
 
@@ -710,6 +731,10 @@ bool Node::CheckMicroBlockTxnRootHash()
     if (expectedTxRootHash != m_microblock->GetHeader().GetTxRootHash())
     {
         LOG_GENERAL(WARNING, "Txn root does not match");
+
+        m_consensusObject->SetConsensusErrorCode(
+            ConsensusCommon::INVALID_MICROBLOCK_ROOT_HASH);
+
         return false;
     }
 
@@ -734,6 +759,10 @@ bool Node::CheckMicroBlockStateDeltaHash()
     if (expectedStateDeltaHash != m_microblock->GetHeader().GetStateDeltaHash())
     {
         LOG_GENERAL(WARNING, "State delta hash does not match");
+
+        m_consensusObject->SetConsensusErrorCode(
+            ConsensusCommon::INVALID_MICROBLOCK_STATE_DELTA_HASH);
+
         return false;
     }
 
@@ -751,6 +780,10 @@ bool Node::CheckMicroBlockShardID()
                     "ShardID check failed. Expected: "
                         << m_myShardID << " Actual: "
                         << m_microblock->GetHeader().GetShardID());
+
+        m_consensusObject->SetConsensusErrorCode(
+            ConsensusCommon::INVALID_MICROBLOCK_SHARD_ID);
+
         return false;
     }
 
