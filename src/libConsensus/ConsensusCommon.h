@@ -239,6 +239,12 @@ public:
     /// Checks whether the message can be processed now
     bool CanProcessMessage(const std::vector<unsigned char>& message,
                            unsigned int offset);
+
+    /// Returns a string representation of the current state
+    std::string GetStateString() const;
+
+private:
+    static std::map<State, std::string> ConsensusStateStrings;
 };
 
 #endif // __CONSENSUSCOMMON_H__
