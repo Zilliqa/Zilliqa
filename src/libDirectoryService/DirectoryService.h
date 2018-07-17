@@ -433,6 +433,10 @@ public:
 
     /// Notify POW2 submission to DirectoryService::ProcessPoW2Submission()
     void NotifyPOW2Submission() { cv_POW2Submission.notify_all(); }
+
+private:
+    static std::map<DirState, std::string> DirStateStrings;
+    std::string GetStateString() const;
 };
 
 #endif // __DIRECTORYSERVICE_H__

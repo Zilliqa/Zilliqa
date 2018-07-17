@@ -407,7 +407,7 @@ bool DirectoryService::ProcessViewChangeConsensus(
     bool result = m_consensusObject->ProcessMessage(message, offset, from);
     ConsensusCommon::State state = m_consensusObject->GetState();
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Consensus state = " << state);
+              "Consensus state = " << m_consensusObject->GetStateString());
 
     if (state == ConsensusCommon::State::DONE)
     {

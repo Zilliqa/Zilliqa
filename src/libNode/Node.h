@@ -413,7 +413,6 @@ public:
     };
 
 private:
-    static string NodeStateString(enum NodeState nodeState);
     static bool compatibleState(enum NodeState state, enum Action action);
 
 public:
@@ -517,6 +516,10 @@ public:
     /// Call when the normal node be promoted to DS
     void CleanCreatedTransaction();
 #endif // IS_LOOKUP_NODE
+
+private:
+    static std::map<NodeState, std::string> NodeStateStrings;
+    std::string GetStateString() const;
 };
 
 #endif // __NODE_H__
