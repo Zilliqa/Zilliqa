@@ -117,12 +117,6 @@ const unsigned int POST_VIEWCHANGE_BUFFER{
 const unsigned int WAITING_FORWARD{ReadFromConstantsFile("WAITING_FORWARD")};
 const unsigned int N_PREFILLED_PER_ACCOUNT{
     ReadFromConstantsFile("N_PREFILLED_PER_ACCOUNT")};
-const std::string Test_Node_Mode{ReadFromOptionsFile("TEST_NET_MODE")};
-const std::string ex_priv_ip{ReadFromOptionsFile("EXCLUDE_PRIV_IP")};
-const std::string enable_do_rejoin{ReadFromOptionsFile("ENABLE_DO_REJOIN")};
-const bool EXCLUDE_PRIV_IP = (ex_priv_ip == "true") ? true : false;
-const bool TEST_NET_MODE = (Test_Node_Mode == "true") ? true : false;
-const bool ENABLE_DO_REJOIN = (enable_do_rejoin == "true") ? true : false;
 const unsigned int CONTRACT_CREATE_GAS{
     ReadFromConstantsFile("CONTRACT_CREATE_GAS")};
 const unsigned int CONTRACT_INVOKE_GAS{
@@ -135,6 +129,16 @@ const unsigned int DEBUG_LEVEL{ReadFromConstantsFile("DEBUG_LEVEL")};
 const unsigned int BROADCAST_INTERVAL{
     ReadFromConstantsFile("BROADCAST_INTERVAL")};
 const unsigned int BROADCAST_EXPIRY{ReadFromConstantsFile("BROADCAST_EXPIRY")};
+
+const bool EXCLUDE_PRIV_IP{
+    ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true" ? true : false};
+const bool TEST_NET_MODE{
+    ReadFromOptionsFile("TEST_NET_MODE") == "true" ? true : false};
+const bool ENABLE_DO_REJOIN{
+    ReadFromOptionsFile("ENABLE_DO_REJOIN") == "true" ? true : false};
+const bool FULL_DATASET_MINE{
+    ReadFromOptionsFile("FULL_DATASET_MINE") == "true" ? true : false};
+
 const std::vector<std::string> GENESIS_WALLETS{
     ReadAccountsFromConstantsFile("wallet_address")};
 const std::vector<std::string> GENESIS_KEYS{
