@@ -39,8 +39,8 @@ private:
     bool m_leaderOrBackup; // false = leader, true = backup
     std::shared_ptr<ConsensusCommon> m_consensus;
 
-    std::shared_timed_mutex m_mutexProcessConsensusMessage;
-    std::condition_variable_any cv_processConsensusMessage;
+    std::mutex m_mutexProcessConsensusMessage;
+    std::condition_variable cv_processConsensusMessage;
 
 public:
     enum InstructionType : unsigned char

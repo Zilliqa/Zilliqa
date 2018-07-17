@@ -1451,7 +1451,10 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
         }
 
         m_mediator.m_currentEpochNum
-            = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
+            = (uint64_t)m_mediator.m_txBlockChain.GetLastBlock()
+                  .GetHeader()
+                  .GetBlockNum()
+            + 1;
         m_mediator.UpdateTxBlockRand();
 
         if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
@@ -1648,9 +1651,6 @@ bool Lookup::InitMining()
         }
     }
 
-    m_mediator.m_currentEpochNum
-        = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
-
     // General check
     if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0)
     {
@@ -1669,19 +1669,6 @@ bool Lookup::InitMining()
     auto dsBlockRand = m_mediator.m_dsBlockRand;
     array<unsigned char, 32> txBlockRand{};
 
-    // if (m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW == curDsBlockNum)
-    // {
-    //     // DS block for the epoch has not been generated.
-    //     // Attempt PoW1
-    //     m_mediator.UpdateTxBlockRand();
-    //     dsBlockRand = m_mediator.m_dsBlockRand;
-
-    //     m_mediator.m_node->SetState(Node::POW1_SUBMISSION);
-    //     POW::GetInstance().EthashConfigureLightClient((uint64_t)m_mediator.m_dsBlockChain.GetBlockCount());
-    //     m_mediator.m_node->StartPoW1(m_mediator.m_dsBlockChain.GetBlockCount(),
-    //                                     POW1_DIFFICULTY, dsBlockRand, m_mediator.m_txBlockRand);
-    // }
-    //else if
     if (m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW
         == curDsBlockNum - 1)
     {
