@@ -89,7 +89,7 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
 #ifndef IS_LOOKUP_NODE
     LOG_MARKER();
 
-    std::shared_lock<shared_timed_mutex> cv_lk(m_mutexProcessConsensusMessage);
+    std::unique_lock<mutex> cv_lk(m_mutexProcessConsensusMessage);
     if (cv_processConsensusMessage.wait_for(
             cv_lk, std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW),
             [this, message, offset]() -> bool {
@@ -257,11 +257,8 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Consensus state = " << state);
-    }
 
-    {
-        lock_guard<mutex> g2(m_mutexNewRoundStarted);
-        m_newRoundStarted = false;
+        cv_processConsensusMessage.notify_all();
     }
 
     return result;
@@ -570,6 +567,11 @@ bool Node::RunConsensusOnMicroBlock()
     SetState(MICROBLOCK_CONSENSUS_PREP);
 
     AccountStore::GetInstance().SerializeDelta();
+
+    {
+        lock_guard<mutex> g2(m_mutexNewRoundStarted);
+        m_newRoundStarted = false;
+    }
 
     if (m_isPrimary == true)
     {

@@ -59,6 +59,24 @@ VCBlock VCBlockChain::GetBlock(const uint256_t& blockNum)
 
 int VCBlockChain::AddBlock(const VCBlock& block)
 {
-    m_vcBlocks.push_back(block);
+    boost::multiprecision::uint256_t blockNumOfNewBlock
+        = block.GetHeader().GetViewChangeEpochNo();
+
+    lock_guard<mutex> g(m_mutexVCBlocks);
+
+    boost::multiprecision::uint256_t blockNumOfExistingBlock
+        = m_vcBlocks[blockNumOfNewBlock].GetHeader().GetViewChangeEpochNo();
+
+    if (blockNumOfExistingBlock < blockNumOfNewBlock
+        || blockNumOfExistingBlock == (boost::multiprecision::uint256_t)-1)
+    {
+        m_vcBlocks.insert_new(blockNumOfNewBlock, block);
+    }
+    else
+    {
+        LOG_GENERAL(WARNING, "AddBlock failed");
+        return -1;
+    }
+
     return 1;
 }

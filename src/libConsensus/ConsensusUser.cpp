@@ -165,7 +165,7 @@ bool ConsensusUser::ProcessConsensusMessage(
 {
     LOG_MARKER();
 
-    std::shared_lock<shared_timed_mutex> cv_lk(m_mutexProcessConsensusMessage);
+    std::unique_lock<mutex> cv_lk(m_mutexProcessConsensusMessage);
     if (cv_processConsensusMessage.wait_for(
             cv_lk, std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW),
             [this, message, offset]() -> bool {
@@ -195,6 +195,10 @@ bool ConsensusUser::ProcessConsensusMessage(
         tmp.clear();
         BitVector::SetBitVector(tmp, 0, m_consensus->GetB2());
         LOG_PAYLOAD(INFO, "Final collective signature bitmap", tmp, 100);
+    }
+    else
+    {
+        cv_processConsensusMessage.notify_all();
     }
 
     return result;
