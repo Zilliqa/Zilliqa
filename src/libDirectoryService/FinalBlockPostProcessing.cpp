@@ -415,6 +415,24 @@ bool DirectoryService::ProcessFinalBlockConsensus(
     // If COLLECTIVESIG also comes in, it's then possible COLLECTIVESIG will be processed before ANNOUNCE!
     // So, ANNOUNCE should acquire a lock here
 
+    std::unique_lock<mutex> cv_lk(m_mutexProcessConsensusMessage);
+    if (cv_processConsensusMessage.wait_for(
+            cv_lk, std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW),
+            [this, message, offset]() -> bool {
+                return m_consensusObject->CanProcessMessage(message, offset);
+            }))
+    {
+        // Correct order preserved
+    }
+    else
+    {
+        LOG_GENERAL(
+            WARNING,
+            "Timeout while waiting for correct order of Final Block consensus "
+            "messages");
+        return false;
+    }
+
     lock_guard<mutex> g(m_mutexConsensus);
 
     // Wait until in the case that primary sent announcement pretty early
@@ -472,6 +490,7 @@ bool DirectoryService::ProcessFinalBlockConsensus(
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Consensus state = " << m_consensusObject->GetStateString());
+        cv_processConsensusMessage.notify_all();
     }
 
     return result;

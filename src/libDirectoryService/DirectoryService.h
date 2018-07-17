@@ -164,7 +164,8 @@ class DirectoryService : public Executable, public Broadcastable
     std::mutex m_MutexCVPOW1Submission;
     std::condition_variable cv_POW2Submission;
     std::mutex m_MutexCVPOW2Submission;
-
+    std::mutex m_mutexProcessConsensusMessage;
+    std::condition_variable cv_processConsensusMessage;
     // TO Remove
     Mediator& m_mediator;
 
