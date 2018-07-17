@@ -38,8 +38,8 @@ BOOST_AUTO_TEST_CASE(CircularArray_test)
     CircularArray<int> arr;
     arr.resize(100);
 
-    arr.push_back(1);
-    arr.push_back(2);
+    arr.insert_new(arr.size(), 1);
+    arr.insert_new(arr.size(), 2);
 
     BOOST_CHECK_MESSAGE(arr[0] == 1, "arr[0] != 1!");
     BOOST_CHECK_MESSAGE(arr[1] == 2, "arr[1] != 2!");
@@ -48,7 +48,7 @@ BOOST_AUTO_TEST_CASE(CircularArray_test)
 
     for (int i = 0; i < 100; i++)
     {
-        arr.push_back(11);
+        arr.insert_new(arr.size(), 11);
     }
 
     BOOST_CHECK_MESSAGE(arr[101] == 11, "arr[101] != 2!");
@@ -61,7 +61,7 @@ BOOST_AUTO_TEST_CASE(CircularArray_test)
     arr.insert_new(102, value);
     BOOST_CHECK_MESSAGE(arr[102] == -1, "arr[102] != -1!");
 
-    arr.push_back(2);
+    arr.insert_new(arr.size(), 2);
     BOOST_CHECK_MESSAGE(arr[103] == 2, "arr[103] != 2!");
 }
 
