@@ -706,7 +706,7 @@ BOOST_AUTO_TEST_CASE(mining_and_verification)
     uint8_t difficultyToUse = 10;
     uint8_t blockToUse = 0;
     ethash_mining_result_t winning_result = POWClient.PoWMine(
-        blockToUse, difficultyToUse, rand1, rand2, ipAddr, pubKey, false);
+        blockToUse, difficultyToUse, rand1, rand2, ipAddr, pubKey, true);
     bool verifyLight
         = POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
                               pubKey, false, winning_result.winning_nonce,
