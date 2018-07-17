@@ -158,6 +158,23 @@ bool ConsensusUser::ProcessConsensusMessage(
 {
     LOG_MARKER();
 
+    std::unique_lock<mutex> cv_lk(m_mutexProcessConsensusMessage);
+    if (cv_processConsensusMessage.wait_for(
+            cv_lk, std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW),
+            [this, message, offset]() -> bool {
+                return m_consensus->CanProcessMessage(message, offset);
+            }))
+    {
+        // order preserved
+    }
+    else
+    {
+        LOG_GENERAL(
+            WARNING,
+            "Timeout while waiting for correct order of consensus messages");
+        return false;
+    }
+
     bool result = m_consensus->ProcessMessage(message, offset, from);
 
     if (m_consensus->GetState() == ConsensusCommon::State::DONE)
@@ -172,6 +189,10 @@ bool ConsensusUser::ProcessConsensusMessage(
         BitVector::SetBitVector(tmp, 0, m_consensus->GetB2());
         LOG_PAYLOAD(INFO, "Final collective signature bitmap", tmp, 100);
     }
+    else
+    {
+        cv_processConsensusMessage.notify_all();
+    }
 
     return result;
 }
@@ -179,9 +200,9 @@ bool ConsensusUser::ProcessConsensusMessage(
 ConsensusUser::ConsensusUser(const pair<PrivKey, PubKey>& key, const Peer& peer)
     : m_selfKey(key)
     , m_selfPeer(peer)
+    , m_leaderOrBackup(false)
     , m_consensus(nullptr)
 {
-    m_leaderOrBackup = false;
 }
 
 ConsensusUser::~ConsensusUser() {}

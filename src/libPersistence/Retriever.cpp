@@ -126,7 +126,7 @@ void Retriever::RetrieveTxBlocks(bool& result)
 
     for (const auto& block : blocks)
     {
-        m_mediator.m_txBlockChain.AddBlock(*block);
+        m_mediator.m_node->AddBlock(*block);
     }
 
     result = true;

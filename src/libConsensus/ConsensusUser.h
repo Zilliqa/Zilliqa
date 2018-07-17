@@ -21,6 +21,7 @@
 #include "Consensus.h"
 #include "common/Broadcastable.h"
 #include "common/Executable.h"
+#include <shared_mutex>
 
 /// [TEST ONLY] Internal class for testing consensus.
 class ConsensusUser : public Executable, public Broadcastable
@@ -37,6 +38,9 @@ private:
     Peer m_selfPeer;
     bool m_leaderOrBackup; // false = leader, true = backup
     std::shared_ptr<ConsensusCommon> m_consensus;
+
+    std::mutex m_mutexProcessConsensusMessage;
+    std::condition_variable cv_processConsensusMessage;
 
 public:
     enum InstructionType : unsigned char
