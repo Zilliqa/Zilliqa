@@ -201,10 +201,6 @@ std::string ConsensusCommon::GetConsensusErrorMsg() const
 {
     if (CONSENSUSERRORMSG.find(m_consensusErrorCode) == CONSENSUSERRORMSG.end())
     {
-        LOG_GENERAL(WARNING,
-                    "Consensus error code description not found. Error no: "
-                        << to_string(m_consensusErrorCode));
-
         return "Error. No such error code.";
     }
     else
