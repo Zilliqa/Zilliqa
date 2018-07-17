@@ -723,8 +723,8 @@ void P2PComm::StartMessagePump(
                             "DEBUG: I can't accept any incoming conn. I am "
                             "sleeping for "
                                 << PUMPMESSAGE_MILLISECONDS << "ms");
-                this_thread::sleep_for(
-                    chrono::milliseconds(rand() % PUMPMESSAGE_MILLISECONDS));
+                // this_thread::sleep_for(
+                //     chrono::milliseconds(rand() % PUMPMESSAGE_MILLISECONDS));
                 continue;
             }
 
