@@ -661,21 +661,61 @@ void P2PComm::StartMessagePump(
 
     listen(serv_sock, 5000);
 
-    struct event_base* base = event_base_new();
-    struct event ev;
-    static ConnectionData* pConnData = new struct ConnectionData;
-    pConnData->dispatcher = dispatcher;
-    pConnData->broadcast_list_retriever = broadcast_list_retriever;
-    event_set(&ev, serv_sock, EV_READ | EV_PERSIST, ConnectionAccept,
-              pConnData);
-    event_base_set(base, &ev);
-    event_add(&ev, nullptr);
-    event_base_dispatch(base);
+    // struct event_base* base = event_base_new();
+    // struct event ev;
+    // static ConnectionData* pConnData = new struct ConnectionData;
+    // pConnData->dispatcher = dispatcher;
+    // pConnData->broadcast_list_retriever = broadcast_list_retriever;
+    // event_set(&ev, serv_sock, EV_READ | EV_PERSIST, ConnectionAccept,
+    //           pConnData);
+    // event_base_set(base, &ev);
+    // event_add(&ev, nullptr);
+    // event_base_dispatch(base);
 
-    close(serv_sock);
-    delete pConnData;
-    event_del(&ev);
-    event_base_free(base);
+    // close(serv_sock);
+    // delete pConnData;
+    // event_del(&ev);
+    // event_base_free(base);
+    uint32_t cli_len = sizeof(struct sockaddr_in);
+    struct sockaddr_in cli_addr;
+
+    while (true)
+    {
+        try
+        {
+            int cli_sock
+                = accept(serv_sock, (struct sockaddr*)&cli_addr, &cli_len);
+            if (cli_sock < 0)
+            {
+                LOG_GENERAL(WARNING,
+                            "Socket accept failed. Socket ret code: "
+                                << cli_sock << ". TCP error code = " << errno
+                                << " Desc: " << std::strerror(errno));
+                LOG_GENERAL(INFO,
+                            "DEBUG: I can't accept any incoming conn. I am "
+                            "sleeping for "
+                                << PUMPMESSAGE_MILLISECONDS << "ms");
+                this_thread::sleep_for(
+                    chrono::milliseconds(rand() % PUMPMESSAGE_MILLISECONDS));
+                continue;
+            }
+
+            Peer from(uint128_t(cli_addr.sin_addr.s_addr), cli_addr.sin_port);
+            LOG_GENERAL(INFO,
+                        "DEBUG: I got an incoming message from "
+                            << from.GetPrintableIPAddress());
+            auto func = [this, cli_sock, from, dispatcher,
+                         broadcast_list_retriever]() -> void {
+                HandleAcceptedConnection(cli_sock, from, dispatcher,
+                                         broadcast_list_retriever);
+            };
+            m_RecvPool.AddJob(func);
+        }
+        catch (const std::exception& e)
+        {
+            LOG_GENERAL(WARNING, "Socket accept error" << ' ' << e.what());
+        }
+    }
 }
 
 /// Send message to the peers using the threads from the pool
