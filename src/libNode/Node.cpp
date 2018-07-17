@@ -81,6 +81,11 @@ void Node::Install(unsigned int syncType, bool toRetrieveHistory)
     {
         if (StartRetrieveHistory())
         {
+            m_mediator.m_currentEpochNum
+                = (uint64_t)m_mediator.m_txBlockChain.GetLastBlock()
+                      .GetHeader()
+                      .GetBlockNum()
+                + 1;
             m_consensusID = 0;
             m_consensusLeaderID = 0;
             runInitializeGenesisBlocks = false;
@@ -135,7 +140,10 @@ void Node::Prepare(bool runInitializeGenesisBlocks)
 {
     LOG_MARKER();
     m_mediator.m_currentEpochNum
-        = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
+        = (uint64_t)m_mediator.m_txBlockChain.GetLastBlock()
+              .GetHeader()
+              .GetBlockNum()
+        + 1;
     m_mediator.UpdateDSBlockRand(runInitializeGenesisBlocks);
     m_mediator.UpdateTxBlockRand(runInitializeGenesisBlocks);
     SetState(POW1_SUBMISSION);
@@ -603,7 +611,7 @@ bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
     }
 
     AccountStore::GetInstance().SerializeDelta();
-
+    cv_MicroBlockMissingTxn.notify_all();
     return true;
 }
 
@@ -815,6 +823,16 @@ void Node::SetState(NodeState state)
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Node State is now " << m_state << " at epoch "
                                    << m_mediator.m_currentEpochNum);
+}
+
+void Node::AddBlock(const TxBlock& block)
+{
+    m_mediator.m_txBlockChain.AddBlock(block);
+
+    if (block.GetHeader().GetBlockNum() == m_latestForwardBlockNum)
+    {
+        m_cvForwardBlockNumSync.notify_all();
+    }
 }
 
 #ifndef IS_LOOKUP_NODE
@@ -1029,6 +1047,7 @@ bool Node::CleanVariables()
         m_mediator.m_lookup->m_fetchedOfflineLookups = false;
     }
     m_mediator.m_lookup->m_startedPoW2 = false;
+    m_latestForwardBlockNum = 0;
 
     return true;
 }

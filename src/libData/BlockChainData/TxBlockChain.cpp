@@ -42,32 +42,17 @@ TxBlock TxBlockChain::GetBlock(const uint256_t& blockNum)
 {
     lock_guard<mutex> g(m_mutexTxBlocks);
 
-    if (blockNum >= m_txBlocks.size())
-    {
-        throw "Blocknumber Absent";
-    }
-    else if (blockNum + m_txBlocks.capacity() < m_txBlocks.size())
-    {
-        TxBlockSharedPtr block;
-        BlockStorage::GetBlockStorage().GetTxBlock(blockNum, block);
-        return *block;
-    }
-
-    // To-do: We cannot even index into a vector using uint256_t
-    // uint256_t might just be too big to begin with
-    // Consider switching to uint64_t
-    // For now we directly cast to uint64_t
-
     if (m_txBlocks[blockNum].GetHeader().GetBlockNum() != blockNum)
     {
-        LOG_GENERAL(WARNING,
-                    "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
-                                         << __FUNCTION__ << ")");
+        TxBlockSharedPtr block;
+        if (BlockStorage::GetBlockStorage().GetTxBlock(blockNum, block))
+        {
+            return *block;
+        }
+        throw "Blocknumber Absent";
     }
 
     return m_txBlocks[blockNum];
-
-    // return NULL;
 }
 
 int TxBlockChain::AddBlock(const TxBlock& block)
@@ -87,10 +72,9 @@ int TxBlockChain::AddBlock(const TxBlock& block)
     }
     else
     {
+        LOG_GENERAL(WARNING, "AddBlock failed");
         return -1;
     }
 
     return 1;
-    // lock_guard<mutex> g(m_mutexTxBlocks);
-    // m_txBlocks.push_back(block);
 }
