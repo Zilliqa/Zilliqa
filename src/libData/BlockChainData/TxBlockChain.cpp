@@ -87,6 +87,7 @@ int TxBlockChain::AddBlock(const TxBlock& block)
     }
     else
     {
+        LOG_GENERAL(WARNING, "AddBlock failed");
         return -1;
     }
 
