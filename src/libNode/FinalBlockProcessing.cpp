@@ -1360,8 +1360,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     if (m_lastMicroBlockCoSig.first != m_mediator.m_currentEpochNum)
     {
         std::unique_lock<mutex> cv_lk(m_MutexCVFBWaitMB);
-        if (cv_FBWaitMB.wait_for(
-                cv_lk, std::chrono::seconds(TXN_SUBMISSION + TXN_BROADCAST))
+        if (cv_FBWaitMB.wait_for(cv_lk, std::chrono::seconds(TXN_SUBMISSION))
             == std::cv_status::timeout)
         {
             LOG_GENERAL(WARNING,
@@ -1789,7 +1788,7 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
         std::unique_lock<std::mutex> cv_lk(m_mutexForwardBlockNumSync);
 
         if (m_cvForwardBlockNumSync.wait_for(
-                cv_lk, std::chrono::seconds(WAITING_FORWARD))
+                cv_lk, std::chrono::seconds(TXN_SUBMISSION + WAITING_FORWARD))
             == std::cv_status::timeout)
         {
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -1881,7 +1880,7 @@ bool Node::ProcessForwardStateDelta(const vector<unsigned char>& message,
         std::unique_lock<std::mutex> cv_lk(m_mutexForwardBlockNumSync);
 
         if (m_cvForwardBlockNumSync.wait_for(
-                cv_lk, std::chrono::seconds(WAITING_FORWARD))
+                cv_lk, std::chrono::seconds(TXN_SUBMISSION + WAITING_FORWARD))
             == std::cv_status::timeout)
         {
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
