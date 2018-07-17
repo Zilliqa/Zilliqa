@@ -993,7 +993,7 @@ void DirectoryService::SetState(DirState state)
 {
     m_state = state;
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "DS State is now " << m_state);
+              "DS State is now " << GetStateString());
 }
 
 vector<Peer>
@@ -1413,4 +1413,35 @@ bool DirectoryService::Execute(const vector<unsigned char>& message,
     }
 
     return result;
+}
+
+#define MAKE_LITERAL_PAIR(s)                                                   \
+    {                                                                          \
+        s, #s                                                                  \
+    }
+
+map<DirectoryService::DirState, string> DirectoryService::DirStateStrings
+    = {MAKE_LITERAL_PAIR(POW1_SUBMISSION),
+       MAKE_LITERAL_PAIR(DSBLOCK_CONSENSUS_PREP),
+       MAKE_LITERAL_PAIR(DSBLOCK_CONSENSUS),
+       MAKE_LITERAL_PAIR(POW2_SUBMISSION),
+       MAKE_LITERAL_PAIR(SHARDING_CONSENSUS_PREP),
+       MAKE_LITERAL_PAIR(SHARDING_CONSENSUS),
+       MAKE_LITERAL_PAIR(MICROBLOCK_SUBMISSION),
+       MAKE_LITERAL_PAIR(FINALBLOCK_CONSENSUS_PREP),
+       MAKE_LITERAL_PAIR(FINALBLOCK_CONSENSUS),
+       MAKE_LITERAL_PAIR(VIEWCHANGE_CONSENSUS_PREP),
+       MAKE_LITERAL_PAIR(VIEWCHANGE_CONSENSUS),
+       MAKE_LITERAL_PAIR(ERROR)};
+
+string DirectoryService::GetStateString() const
+{
+    if (DirStateStrings.find(m_state) == DirStateStrings.end())
+    {
+        return "Unknown";
+    }
+    else
+    {
+        return DirStateStrings.at(m_state);
+    }
 }

@@ -23,38 +23,37 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 
-#define LITERAL(s) #s
+#define MAKE_LITERAL_PAIR(s)                                                   \
+    {                                                                          \
+        s, #s                                                                  \
+    }
 
 using namespace std;
 
 map<ConsensusCommon::ConsensusErrorCode, std::string>
     ConsensusCommon::CONSENSUSERRORMSG
-    = {{NO_ERROR, LITERAL(NO_ERROR)},
-       {GENERIC_ERROR, LITERAL(GENERIC_ERROR)},
-       {INVALID_DSBLOCK, LITERAL(INVALID_DSBLOCK)},
-       {INVALID_MICROBLOCK, LITERAL(INVALID_MICROBLOCK)},
-       {INVALID_FINALBLOCK, LITERAL(INVALID_FINALBLOCK)},
-       {INVALID_VIEWCHANGEBLOCK, LITERAL(INVALID_VIEWCHANGEBLOCK)},
-       {INVALID_DSBLOCK_VERSION, LITERAL(INVALID_DSBLOCK_VERSION)},
-       {INVALID_MICROBLOCK_VERSION, LITERAL(INVALID_MICROBLOCK_VERSION)},
-       {INVALID_FINALBLOCK_VERSION, LITERAL(INVALID_FINALBLOCK_VERSION)},
-       {INVALID_FINALBLOCK_NUMBER, LITERAL(INVALID_FINALBLOCK_NUMBER)},
-       {INVALID_PREV_FINALBLOCK_HASH, LITERAL(INVALID_PREV_FINALBLOCK_HASH)},
-       {INVALID_VIEWCHANGEBLOCK_VERSION,
-        LITERAL(INVALID_VIEWCHANGEBLOCK_VERSION)},
-       {INVALID_TIMESTAMP, LITERAL(INVALID_TIMESTAMP)},
-       {INVALID_BLOCK_HASH, LITERAL(INVALID_BLOCK_HASH)},
-       {INVALID_MICROBLOCK_ROOT_HASH, LITERAL(INVALID_MICROBLOCK_ROOT_HASH)},
-       {MISSING_TXN, LITERAL(MISSING_TXN)},
-       {FINALBLOCK_MISSING_HASH, LITERAL(FINALBLOCK_MISSING_HASH)},
-       {FINALBLOCK_INVALID_MICROBLOCK_ROOT_HASH,
-        LITERAL(FINALBLOCK_INVALID_MICROBLOCK_ROOT_HASH)},
-       {FINALBLOCK_MICROBLOCK_EMPTY_ERROR,
-        LITERAL(FINALBLOCK_MICROBLOCK_EMPTY_ERROR)},
-       {INVALID_MICROBLOCK_STATE_DELTA_HASH,
-        LITERAL(INVALID_MICROBLOCK_STATE_DELTA_HASH)},
-       {INVALID_MICROBLOCK_SHARD_ID, LITERAL(INVALID_MICROBLOCK_SHARD_ID)},
-       {INVALID_FINALBLOCK_STATE_ROOT, LITERAL(INVALID_FINALBLOCK_STATE_ROOT)}};
+    = {MAKE_LITERAL_PAIR(NO_ERROR),
+       MAKE_LITERAL_PAIR(GENERIC_ERROR),
+       MAKE_LITERAL_PAIR(INVALID_DSBLOCK),
+       MAKE_LITERAL_PAIR(INVALID_MICROBLOCK),
+       MAKE_LITERAL_PAIR(INVALID_FINALBLOCK),
+       MAKE_LITERAL_PAIR(INVALID_VIEWCHANGEBLOCK),
+       MAKE_LITERAL_PAIR(INVALID_DSBLOCK_VERSION),
+       MAKE_LITERAL_PAIR(INVALID_MICROBLOCK_VERSION),
+       MAKE_LITERAL_PAIR(INVALID_FINALBLOCK_VERSION),
+       MAKE_LITERAL_PAIR(INVALID_FINALBLOCK_NUMBER),
+       MAKE_LITERAL_PAIR(INVALID_PREV_FINALBLOCK_HASH),
+       MAKE_LITERAL_PAIR(INVALID_VIEWCHANGEBLOCK_VERSION),
+       MAKE_LITERAL_PAIR(INVALID_TIMESTAMP),
+       MAKE_LITERAL_PAIR(INVALID_BLOCK_HASH),
+       MAKE_LITERAL_PAIR(INVALID_MICROBLOCK_ROOT_HASH),
+       MAKE_LITERAL_PAIR(MISSING_TXN),
+       MAKE_LITERAL_PAIR(FINALBLOCK_MISSING_HASH),
+       MAKE_LITERAL_PAIR(FINALBLOCK_INVALID_MICROBLOCK_ROOT_HASH),
+       MAKE_LITERAL_PAIR(FINALBLOCK_MICROBLOCK_EMPTY_ERROR),
+       MAKE_LITERAL_PAIR(INVALID_MICROBLOCK_STATE_DELTA_HASH),
+       MAKE_LITERAL_PAIR(INVALID_MICROBLOCK_SHARD_ID),
+       MAKE_LITERAL_PAIR(INVALID_FINALBLOCK_STATE_ROOT)};
 
 ConsensusCommon::ConsensusCommon(uint32_t consensus_id,
                                  const vector<unsigned char>& block_hash,
@@ -282,7 +281,7 @@ bool ConsensusCommon::CanProcessMessage(const vector<unsigned char>& message,
             LOG_GENERAL(WARNING,
                         "Processing collectivesig but announcement not yet "
                         "received. m_state "
-                            << m_state);
+                            << GetStateString());
             return false;
         }
     }
@@ -294,10 +293,35 @@ bool ConsensusCommon::CanProcessMessage(const vector<unsigned char>& message,
             LOG_GENERAL(WARNING,
                         "Processing final collectivesig but cosig1 not yet "
                         "received. m_state "
-                            << m_state);
+                            << GetStateString());
             return false;
         }
     }
 
     return true;
+}
+
+map<ConsensusCommon::State, string> ConsensusCommon::ConsensusStateStrings
+    = {MAKE_LITERAL_PAIR(INITIAL),
+       MAKE_LITERAL_PAIR(ANNOUNCE_DONE),
+       MAKE_LITERAL_PAIR(COMMIT_DONE),
+       MAKE_LITERAL_PAIR(CHALLENGE_DONE),
+       MAKE_LITERAL_PAIR(RESPONSE_DONE),
+       MAKE_LITERAL_PAIR(COLLECTIVESIG_DONE),
+       MAKE_LITERAL_PAIR(FINALCOMMIT_DONE),
+       MAKE_LITERAL_PAIR(FINALCHALLENGE_DONE),
+       MAKE_LITERAL_PAIR(FINALRESPONSE_DONE),
+       MAKE_LITERAL_PAIR(DONE),
+       MAKE_LITERAL_PAIR(ERROR)};
+
+string ConsensusCommon::GetStateString() const
+{
+    if (ConsensusStateStrings.find(m_state) == ConsensusStateStrings.end())
+    {
+        return "Unknown";
+    }
+    else
+    {
+        return ConsensusStateStrings.at(m_state);
+    }
 }

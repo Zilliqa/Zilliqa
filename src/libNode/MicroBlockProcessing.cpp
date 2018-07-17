@@ -256,7 +256,7 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
     else
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Consensus state = " << state);
+                  "Consensus state = " << m_consensusObject->GetStateString());
 
         cv_processConsensusMessage.notify_all();
     }
