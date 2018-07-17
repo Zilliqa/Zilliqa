@@ -145,9 +145,13 @@ const std::vector<std::string> GENESIS_WALLETS{
     ReadAccountsFromConstantsFile("wallet_address")};
 const std::vector<std::string> GENESIS_KEYS{
     ReadAccountsFromConstantsFile("private_key")};
-const std::string SCILLA_PATH{ReadSmartContractConstants("SCILLA_PATH")};
+const std::string SCILLA_ROOT{ReadSmartContractConstants("SCILLA_ROOT")};
+const std::string SCILLA_BINARY{SCILLA_ROOT + '/'
+                                + ReadSmartContractConstants("SCILLA_BINARY")};
 const std::string SCILLA_FILES{ReadSmartContractConstants("SCILLA_FILES")};
 const std::string SCILLA_LOG{ReadSmartContractConstants("SCILLA_LOG")};
+const std::string SCILLA_LIB{SCILLA_ROOT + '/'
+                             + ReadSmartContractConstants("SCILLA_LIB")};
 const std::string INIT_JSON{SCILLA_FILES + '/'
                             + ReadSmartContractConstants("INIT_JSON")};
 const std::string INPUT_STATE_JSON{

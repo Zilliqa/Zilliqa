@@ -85,6 +85,16 @@ void Account::InitContract()
         return;
     }
     m_initValJson = root;
+
+    // Append createBlockNum
+    {
+        Json::Value createBlockNumObj;
+        createBlockNumObj["vname"] = "_creation_block";
+        createBlockNumObj["type"] = "BNum";
+        createBlockNumObj["value"] = to_string(GetCreateBlockNum());
+        m_initValJson.append(createBlockNumObj);
+    }
+
     for (auto& v : root)
     {
         if (!v.isMember("vname") || !v.isMember("type") || !v.isMember("value"))
