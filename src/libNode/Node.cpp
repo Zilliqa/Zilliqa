@@ -81,6 +81,11 @@ void Node::Install(unsigned int syncType, bool toRetrieveHistory)
     {
         if (StartRetrieveHistory())
         {
+            m_mediator.m_currentEpochNum
+                = (uint64_t)m_mediator.m_txBlockChain.GetLastBlock()
+                      .GetHeader()
+                      .GetBlockNum()
+                + 1;
             m_consensusID = 0;
             m_consensusLeaderID = 0;
             runInitializeGenesisBlocks = false;
