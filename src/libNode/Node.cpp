@@ -922,25 +922,19 @@ void Node::SubmitTransactions()
 
         if (findOneFromCreated(t))
         {
-            if (!m_mediator.m_validator->CheckCreatedTransaction(t))
+            if (m_mediator.m_validator->CheckCreatedTransaction(t)
+                || (t.GetCode().empty() && t.GetData().empty()))
             {
-                if (t.GetCode().empty() && t.GetData().empty())
-                {
-                    continue;
-                }
+                appendOne(t);
             }
-            appendOne(t);
         }
         else if (findOneFromPrefilled(t))
         {
-            if (!m_mediator.m_validator->CheckCreatedTransaction(t))
+            if (m_mediator.m_validator->CheckCreatedTransaction(t)
+                || (t.GetCode().empty() && t.GetData().empty()))
             {
-                if (t.GetCode().empty() && t.GetData().empty())
-                {
-                    continue;
-                }
+                appendOne(t);
             }
-            appendOne(t);
         }
         else
         {
