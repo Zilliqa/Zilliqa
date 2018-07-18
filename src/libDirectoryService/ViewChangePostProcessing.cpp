@@ -356,6 +356,25 @@ bool DirectoryService::ProcessViewChangeConsensus(
     // If COLLECTIVESIG also comes in, it's then possible COLLECTIVESIG will be processed before ANNOUNCE!
     // So, ANNOUNCE should acquire a lock here
 
+    std::unique_lock<mutex> cv_lk_con_msg(m_mutexProcessConsensusMessage);
+    if (cv_processConsensusMessage.wait_for(
+            cv_lk_con_msg,
+            std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW),
+            [this, message, offset]() -> bool {
+                return m_consensusObject->CanProcessMessage(message, offset);
+            }))
+    {
+        // Correct order preserved
+    }
+    else
+    {
+        LOG_GENERAL(WARNING,
+                    "Timeout while waiting for correct order of View Change "
+                    "Block consensus "
+                    "messages");
+        return false;
+    }
+
     lock_guard<mutex> g(m_mutexConsensus);
 
     std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeConsensusObj);
@@ -388,7 +407,7 @@ bool DirectoryService::ProcessViewChangeConsensus(
     bool result = m_consensusObject->ProcessMessage(message, offset, from);
     ConsensusCommon::State state = m_consensusObject->GetState();
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Consensus state = " << state);
+              "Consensus state = " << m_consensusObject->GetStateString());
 
     if (state == ConsensusCommon::State::DONE)
     {
@@ -407,6 +426,13 @@ bool DirectoryService::ProcessViewChangeConsensus(
         // throw exception();
         // TODO: no consensus reached
         return false;
+    }
+    else
+    {
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Consensus state = " << state);
+
+        cv_processConsensusMessage.notify_all();
     }
 
     return result;

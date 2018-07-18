@@ -257,31 +257,6 @@ void Node::StartSynchronization()
 
 #endif //IS_LOOKUP_NODE
 
-string Node::NodeStateString(enum NodeState nodeState)
-{
-    switch (nodeState)
-    {
-    case POW1_SUBMISSION:
-        return "POW1_SUBMISSION";
-    case POW2_SUBMISSION:
-        return "POW2_SUBMISSION";
-    case TX_SUBMISSION:
-        return "TX_SUBMISSION";
-    case TX_SUBMISSION_BUFFER:
-        return "TX_SUBMISSION_BUFFER";
-    case MICROBLOCK_CONSENSUS_PREP:
-        return "MICROBLOCK_CONSENSUS_PREP";
-    case MICROBLOCK_CONSENSUS:
-        return "MICROBLOCK_CONSENSUS";
-    case WAITING_FINALBLOCK:
-        return "WAITING_FINALBLOCK";
-    case ERROR:
-        return "ERROR";
-    default:
-        return "Unknown Node State";
-    }
-}
-
 bool Node::compatibleState(enum NodeState state, enum Action action)
 {
     const static std::map<NodeState, Action> ACTION_FOR_STATE
@@ -329,7 +304,7 @@ bool Node::CheckState(Action action)
 
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Doing " << ActionString(action) << " but already in "
-                       << NodeStateString(m_state));
+                       << GetStateString());
 
     return false;
 }
@@ -825,7 +800,7 @@ void Node::SetState(NodeState state)
 {
     m_state = state;
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Node State is now " << m_state << " at epoch "
+              "Node State is now " << GetStateString() << " at epoch "
                                    << m_mediator.m_currentEpochNum);
 }
 
@@ -1190,4 +1165,32 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
     }
 
     return result;
+}
+
+#define MAKE_LITERAL_PAIR(s)                                                   \
+    {                                                                          \
+        s, #s                                                                  \
+    }
+
+map<Node::NodeState, string> Node::NodeStateStrings
+    = {MAKE_LITERAL_PAIR(POW1_SUBMISSION),
+       MAKE_LITERAL_PAIR(POW2_SUBMISSION),
+       MAKE_LITERAL_PAIR(TX_SUBMISSION),
+       MAKE_LITERAL_PAIR(TX_SUBMISSION_BUFFER),
+       MAKE_LITERAL_PAIR(MICROBLOCK_CONSENSUS_PREP),
+       MAKE_LITERAL_PAIR(MICROBLOCK_CONSENSUS),
+       MAKE_LITERAL_PAIR(WAITING_FINALBLOCK),
+       MAKE_LITERAL_PAIR(ERROR),
+       MAKE_LITERAL_PAIR(SYNC)};
+
+string Node::GetStateString() const
+{
+    if (NodeStateStrings.find(m_state) == NodeStateStrings.end())
+    {
+        return "Unknown";
+    }
+    else
+    {
+        return NodeStateStrings.at(m_state);
+    }
 }
