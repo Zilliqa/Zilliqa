@@ -438,6 +438,7 @@ bool DirectoryService::ProcessDSBlockConsensus(
     if (cv_processConsensusMessage.wait_for(
             cv_lk, std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW),
             [this, message, offset]() -> bool {
+                lock_guard<mutex> g(m_mutexConsensus);
                 return m_consensusObject->CanProcessMessage(message, offset);
             }))
     {
