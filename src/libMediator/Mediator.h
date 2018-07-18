@@ -20,8 +20,7 @@
 #include <deque>
 
 #include "libCrypto/Schnorr.h"
-#include "libData/BlockChainData/DSBlockChain.h"
-#include "libData/BlockChainData/TxBlockChain.h"
+#include "libData/BlockChainData/BlockChain.h"
 #include "libDirectoryService/DirectoryService.h"
 #include "libLookup/Lookup.h"
 #include "libNetwork/Peer.h"
@@ -51,10 +50,10 @@ public:
     ValidatorBase* m_validator;
 
     /// The transient DS blockchain.
-    DSBlockChain m_dsBlockChain;
+    BlockChain<DSBlock> m_dsBlockChain;
 
     /// The transient Tx blockchain.
-    TxBlockChain m_txBlockChain;
+    BlockChain<TxBlock> m_txBlockChain;
 
     /// The current epoch.
     uint64_t m_currentEpochNum = 0;

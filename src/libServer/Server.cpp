@@ -194,7 +194,7 @@ Json::Value Server::GetDsBlock(const string& blockNum)
     {
         boost::multiprecision::uint256_t BlockNum(blockNum);
         return JSONConversion::convertDSblocktoJson(
-            m_mediator.m_dsBlockChain.GetBlock(BlockNum));
+            m_mediator.m_dsBlockChain.GetDSBlock(BlockNum));
     }
     catch (const char* msg)
     {
@@ -225,7 +225,7 @@ Json::Value Server::GetTxBlock(const string& blockNum)
     {
         boost::multiprecision::uint256_t BlockNum(blockNum);
         return JSONConversion::convertTxBlocktoJson(
-            m_mediator.m_txBlockChain.GetBlock(BlockNum));
+            m_mediator.m_txBlockChain.GetTxBlock(BlockNum));
     }
     catch (const char* msg)
     {
@@ -562,7 +562,7 @@ string Server::GetNumTransactions()
         for (boost::multiprecision::uint256_t i = m_BlockTxPair.first + 1;
              i <= currBlock; i++)
         {
-            m_BlockTxPair.second += m_mediator.m_txBlockChain.GetBlock(i)
+            m_BlockTxPair.second += m_mediator.m_txBlockChain.GetTxBlock(i)
                                         .GetHeader()
                                         .GetNumTxs();
         }
@@ -588,7 +588,7 @@ Server::GetNumTransactions(boost::multiprecision::uint256_t blockNum)
     for (i = blockNum + 1; i <= currBlockNum; i++)
     {
 
-        res += m_mediator.m_txBlockChain.GetBlock(i).GetHeader().GetNumTxs();
+        res += m_mediator.m_txBlockChain.GetTxBlock(i).GetHeader().GetNumTxs();
     }
 
     return res;
@@ -626,7 +626,7 @@ double Server::GetTransactionRate()
     try
     {
 
-        TxBlock tx = m_mediator.m_txBlockChain.GetBlock(refBlockNum);
+        TxBlock tx = m_mediator.m_txBlockChain.GetTxBlock(refBlockNum);
         refTimeTx = tx.GetHeader().GetTimestamp();
     }
     catch (const char* msg)
@@ -670,7 +670,7 @@ double Server::GetDSBlockRate()
         try
         {
             //Refernce time chosen to be the first block's timestamp
-            DSBlock dsb = m_mediator.m_dsBlockChain.GetBlock(1);
+            DSBlock dsb = m_mediator.m_dsBlockChain.GetDSBlock(1);
             m_StartTimeDs = dsb.GetHeader().GetTimestamp();
         }
         catch (const char* msg)
@@ -711,7 +711,7 @@ double Server::GetTxBlockRate()
         try
         {
             //Reference Time chosen to be first block's timestamp
-            TxBlock txb = m_mediator.m_txBlockChain.GetBlock(1);
+            TxBlock txb = m_mediator.m_txBlockChain.GetTxBlock(1);
             m_StartTimeTx = txb.GetHeader().GetTimestamp();
         }
         catch (const char* msg)
@@ -775,7 +775,7 @@ Json::Value Server::DSBlockListing(unsigned int page)
         {
             //add the hash of genesis block
             DSBlockHeader dshead
-                = m_mediator.m_dsBlockChain.GetBlock(0).GetHeader();
+                = m_mediator.m_dsBlockChain.GetDSBlock(0).GetHeader();
             SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
             vector<unsigned char> vec;
             dshead.Serialize(vec, 0);
@@ -805,14 +805,14 @@ Json::Value Server::DSBlockListing(unsigned int page)
         {
             m_DSBlockCache.second.insert_new(
                 m_DSBlockCache.second.size(),
-                m_mediator.m_dsBlockChain.GetBlock(i + 1)
+                m_mediator.m_dsBlockChain.GetDSBlock(i + 1)
                     .GetHeader()
                     .GetPrevHash()
                     .hex());
         }
         //for the latest block
         DSBlockHeader dshead
-            = m_mediator.m_dsBlockChain.GetBlock(currBlockNum).GetHeader();
+            = m_mediator.m_dsBlockChain.GetDSBlock(currBlockNum).GetHeader();
         SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
         vector<unsigned char> vec;
         dshead.Serialize(vec, 0);
@@ -855,7 +855,7 @@ Json::Value Server::DSBlockListing(unsigned int page)
         {
             tmpJson.clear();
             tmpJson["Hash"]
-                = m_mediator.m_dsBlockChain.GetBlock(currBlockNum - i + 1)
+                = m_mediator.m_dsBlockChain.GetDSBlock(currBlockNum - i + 1)
                       .GetHeader()
                       .GetPrevHash()
                       .hex();
@@ -886,7 +886,7 @@ Json::Value Server::TxBlockListing(unsigned int page)
 
             //add the hash of genesis block
             TxBlockHeader txhead
-                = m_mediator.m_txBlockChain.GetBlock(0).GetHeader();
+                = m_mediator.m_txBlockChain.GetTxBlock(0).GetHeader();
             SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
             vector<unsigned char> vec;
             txhead.Serialize(vec, 0);
@@ -916,14 +916,14 @@ Json::Value Server::TxBlockListing(unsigned int page)
         {
             m_TxBlockCache.second.insert_new(
                 m_TxBlockCache.second.size(),
-                m_mediator.m_txBlockChain.GetBlock(i + 1)
+                m_mediator.m_txBlockChain.GetTxBlock(i + 1)
                     .GetHeader()
                     .GetPrevHash()
                     .hex());
         }
         //for the latest block
         TxBlockHeader txhead
-            = m_mediator.m_txBlockChain.GetBlock(currBlockNum).GetHeader();
+            = m_mediator.m_txBlockChain.GetTxBlock(currBlockNum).GetHeader();
         SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
         vector<unsigned char> vec;
         txhead.Serialize(vec, 0);
@@ -968,7 +968,7 @@ Json::Value Server::TxBlockListing(unsigned int page)
         {
             tmpJson.clear();
             tmpJson["Hash"]
-                = m_mediator.m_txBlockChain.GetBlock(currBlockNum - i + 1)
+                = m_mediator.m_txBlockChain.GetTxBlock(currBlockNum - i + 1)
                       .GetHeader()
                       .GetPrevHash()
                       .hex();
@@ -1093,7 +1093,8 @@ string Server::GetNumTxnsDSEpoch()
         {
 
             //Case where the DS Epoch is same
-            if (m_mediator.m_txBlockChain.GetBlock(m_TxBlockCountSumPair.first)
+            if (m_mediator.m_txBlockChain
+                    .GetTxBlock(m_TxBlockCountSumPair.first)
                     .GetHeader()
                     .GetDSBlockNum()
                 == latestDSBlockNum)
@@ -1102,7 +1103,7 @@ string Server::GetNumTxnsDSEpoch()
                      i--)
                 {
                     m_TxBlockCountSumPair.second
-                        += m_mediator.m_txBlockChain.GetBlock(i)
+                        += m_mediator.m_txBlockChain.GetTxBlock(i)
                                .GetHeader()
                                .GetNumTxs();
                 }
@@ -1115,7 +1116,7 @@ string Server::GetNumTxnsDSEpoch()
                 for (auto i = latestTxBlockNum; i > m_TxBlockCountSumPair.first;
                      i--)
                 {
-                    if (m_mediator.m_txBlockChain.GetBlock(i)
+                    if (m_mediator.m_txBlockChain.GetTxBlock(i)
                             .GetHeader()
                             .GetDSBlockNum()
                         < latestDSBlockNum)
@@ -1123,7 +1124,7 @@ string Server::GetNumTxnsDSEpoch()
                         break;
                     }
                     m_TxBlockCountSumPair.second
-                        += m_mediator.m_txBlockChain.GetBlock(i)
+                        += m_mediator.m_txBlockChain.GetTxBlock(i)
                                .GetHeader()
                                .GetNumTxs();
                 }

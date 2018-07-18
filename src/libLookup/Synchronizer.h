@@ -17,8 +17,7 @@
 #ifndef __SYNCHRONIZER_H__
 #define __SYNCHRONIZER_H__
 
-#include "libData/BlockChainData/DSBlockChain.h"
-#include "libData/BlockChainData/TxBlockChain.h"
+#include "libData/BlockChainData/BlockChain.h"
 #include "libLookup/Lookup.h"
 #include "libNetwork/Peer.h"
 #include "libUtils/Logger.h"
@@ -26,18 +25,18 @@
 class Synchronizer
 {
     DSBlock ConstructGenesisDSBlock();
-    bool AddGenesisDSBlockToBlockChain(DSBlockChain& dsBlockChain,
+    bool AddGenesisDSBlockToBlockChain(BlockChain<DSBlock>& dsBlockChain,
                                        const DSBlock& dsBlock);
-    bool InitializeGenesisDSBlock(DSBlockChain& dsBlockChain);
+    bool InitializeGenesisDSBlock(BlockChain<DSBlock>& dsBlockChain);
 
     TxBlock ConstructGenesisTxBlock();
-    bool AddGenesisTxBlockToBlockChain(TxBlockChain& txBlockChain,
+    bool AddGenesisTxBlockToBlockChain(BlockChain<TxBlock>& txBlockChain,
                                        const TxBlock& txBlock);
-    bool InitializeGenesisTxBlock(TxBlockChain& txBlockChain);
+    bool InitializeGenesisTxBlock(BlockChain<TxBlock>& txBlockChain);
 
 public:
-    bool InitializeGenesisBlocks(DSBlockChain& dsBlockChain,
-                                 TxBlockChain& txBlockChain);
+    bool InitializeGenesisBlocks(BlockChain<DSBlock>& dsBlockChain,
+                                 BlockChain<TxBlock>& txBlockChain);
 #ifndef IS_LOOKUP_NODE
     bool FetchDSInfo(Lookup* lookup);
     bool
