@@ -361,6 +361,7 @@ bool DirectoryService::ProcessViewChangeConsensus(
             cv_lk_con_msg,
             std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW),
             [this, message, offset]() -> bool {
+                lock_guard<mutex> g(m_mutexConsensus);
                 return m_consensusObject->CanProcessMessage(message, offset);
             }))
     {
