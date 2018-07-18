@@ -12,6 +12,15 @@ then
     exit 1
 fi
 
+if [ "$EUID" -eq 0 ]
+then
+    echo "Please do not run as root"
+    echo
+    echo "If you see docker permission error previously, check if you have sudo-less docker."
+    echo "See https://docs.docker.com/install/linux/linux-postinstall"
+    exit 1
+fi
+
 commit=$1
 
 if [ -z "$commit" ]
@@ -25,10 +34,16 @@ github_commit=https://github.com/Zilliqa/Zilliqa/commit/$commit
 
 curl -sf $github_commit > /dev/null
 
-if [ $? != 0 ]
+if [ "$?" -ne 0 ]
 then
     echo "Checking '$github_commit' failed. Have you pushed the commit '$commit'?"
     exit 1
 fi
 
 TRAVIS_COMMIT=$commit ./scripts/ci_make_image.sh
+
+if [ "$?" -ne 0 ]
+then
+    echo "Making image failed"
+    exit 1
+fi
