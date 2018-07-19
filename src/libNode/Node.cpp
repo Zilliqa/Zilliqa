@@ -47,6 +47,7 @@
 
 using namespace std;
 using namespace boost::multiprecision;
+using namespace boost::multi_index;
 
 void addBalanceToGenesisAccount()
 {
@@ -571,7 +572,9 @@ bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
         cur_offset += submittedTransaction.GetSerializedSize();
 
         lock_guard<mutex> g(m_mutexCreatedTransactions);
-        m_createdTransactions.emplace_back(submittedTransaction);
+        // m_createdTransactions.push_back(submittedTransaction);
+        auto& listIdx = m_createdTransactions.get<0>();
+        listIdx.push_back(submittedTransaction);
     }
 
     vector<TxnHash> missingTxnHashes;
@@ -754,7 +757,8 @@ bool Node::ProcessCreateTransactionFromLookup(
                              << " toAddr: " << tx.GetToAddr().hex());
     if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(tx))
     {
-        m_createdTransactions.push_back(tx);
+        auto& listIdx = m_createdTransactions.get<0>();
+        listIdx.push_back(tx);
     }
     else
     {
@@ -1031,7 +1035,8 @@ bool Node::CleanVariables()
 void Node::CleanCreatedTransaction()
 {
     std::lock_guard<mutex> lock(m_mutexCreatedTransactions);
-    m_createdTransactions.clear();
+    // m_createdTransactions.clear();
+    m_createdTransactions.get<0>().clear();
 }
 #endif // IS_LOOKUP_NODE
 

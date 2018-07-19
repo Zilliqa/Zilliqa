@@ -485,13 +485,14 @@ void Node::ProcessTransactionWhenShardLeader()
     auto findOneFromCreated = [this](Transaction& t) -> bool {
         lock_guard<mutex> g(m_mutexCreatedTransactions);
 
-        if (m_createdTransactions.empty())
+        auto& listIdx = m_createdTransactions.get<0>();
+        if (!listIdx.size())
         {
             return false;
         }
 
-        t = move(m_createdTransactions.front());
-        m_createdTransactions.pop_front();
+        t = move(listIdx.front());
+        listIdx.pop_front();
         return true;
     };
 
@@ -824,23 +825,36 @@ bool Node::ProcessTransactionWhenShardBackup(const vector<TxnHash>& tranHashes,
     auto findFromCreated = [this](Transaction& t, const TxnHash& th) -> bool {
         lock_guard<mutex> g(m_mutexCreatedTransactions);
 
-        if (m_createdTransactions.empty())
+        auto& hashIdx = m_createdTransactions.get<1>();
+        if (!hashIdx.size())
         {
             return false;
         }
 
-        auto it = find_if(
-            begin(m_createdTransactions), end(m_createdTransactions),
-            [&th](const Transaction& t) { return t.GetTranID() == th; });
+        // auto it = find_if(
+        //     begin(m_createdTransactions), end(m_createdTransactions),
+        //     [&th](const Transaction& t) { return t.GetTranID() == th; });
 
-        if (m_createdTransactions.end() == it)
+        // if (m_createdTransactions.end() == it)
+        // {
+        //     LOG_GENERAL(WARNING, "txn is not found");
+        //     return false;
+        // }
+
+        // t = move(*it);
+        // m_createdTransactions.erase(it);
+
+        auto it = hashIdx.find(th);
+
+        if (hashIdx.end() == it)
         {
             LOG_GENERAL(WARNING, "txn is not found");
             return false;
         }
 
         t = move(*it);
-        m_createdTransactions.erase(it);
+        hashIdx.erase(it);
+
         return true;
     };
 
