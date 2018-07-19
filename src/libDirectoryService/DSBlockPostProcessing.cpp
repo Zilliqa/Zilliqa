@@ -434,6 +434,23 @@ bool DirectoryService::ProcessDSBlockConsensus(
     if (cv_processConsensusMessage.wait_for(
             cv_lk, std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW),
             [this, message, offset]() -> bool {
+                lock_guard<mutex> g(m_mutexConsensus);
+                if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
+                {
+                    LOG_GENERAL(WARNING,
+                                "The node started the process of rejoining, "
+                                "Ignore rest of "
+                                "consensus msg.")
+                    return false;
+                }
+
+                if (m_consensusObject == nullptr)
+                {
+                    LOG_GENERAL(WARNING,
+                                "m_consensusObject is a nullptr. It has not "
+                                "been initialized.")
+                    return false;
+                }
                 return m_consensusObject->CanProcessMessage(message, offset);
             }))
     {
