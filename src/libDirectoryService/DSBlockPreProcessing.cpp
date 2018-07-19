@@ -238,27 +238,24 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin)
         }
     }
 
+    if (m_mode == PRIMARY_DS)
     {
-        lock_guard<mutex> lock(m_mutexConsensus);
-        if (m_mode == PRIMARY_DS)
+        if (!RunConsensusOnDSBlockWhenDSPrimary())
         {
-            if (!RunConsensusOnDSBlockWhenDSPrimary())
-            {
-                LOG_GENERAL(WARNING,
-                            "Error after RunConsensusOnDSBlockWhenDSPrimary");
-                // throw exception();
-                return;
-            }
+            LOG_GENERAL(WARNING,
+                        "Error after RunConsensusOnDSBlockWhenDSPrimary");
+            // throw exception();
+            return;
         }
-        else
+    }
+    else
+    {
+        if (!RunConsensusOnDSBlockWhenDSBackup())
         {
-            if (!RunConsensusOnDSBlockWhenDSBackup())
-            {
-                LOG_GENERAL(WARNING,
-                            "Error after RunConsensusOnDSBlockWhenDSBackup");
-                // throw exception();
-                return;
-            }
+            LOG_GENERAL(WARNING,
+                        "Error after RunConsensusOnDSBlockWhenDSBackup");
+            // throw exception();
+            return;
         }
     }
 
