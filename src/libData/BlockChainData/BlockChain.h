@@ -32,10 +32,15 @@ template<class T> class BlockChain
     std::mutex m_mutexBlocks;
     CircularArray<T> m_blocks;
 
-public:
+protected:
     /// Constructor.
     BlockChain() { Reset(); }
 
+    virtual T GetBlockFromPersistentStorage(
+        const boost::multiprecision::uint256_t& blockNum)
+        = 0;
+
+public:
     /// Destructor.
     ~BlockChain() {}
 
@@ -53,84 +58,29 @@ public:
     T GetLastBlock()
     {
         lock_guard<mutex> g(m_mutexBlocks);
-        return m_blocks.back();
+        try
+        {
+            return m_blocks.back();
+        }
+        catch (...)
+        {
+            return T();
+        }
     }
 
     /// Returns the block at the specified block number.
-    TxBlock GetTxBlock(const boost::multiprecision::uint256_t& blockNum)
+    T GetBlock(const boost::multiprecision::uint256_t& blockNum)
     {
         lock_guard<mutex> g(m_mutexBlocks);
 
         if (blockNum >= m_blocks.size())
         {
-            throw "Blocknumber Absent";
+            LOG_GENERAL(WARNING, "Block number " << blockNum << " absent");
+            return T();
         }
         else if (blockNum + m_blocks.capacity() < m_blocks.size())
         {
-            TxBlockSharedPtr block;
-            BlockStorage::GetBlockStorage().GetTxBlock(blockNum, block);
-            return *block;
-        }
-
-        // To-do: We cannot even index into a vector using uint256_t
-        // uint256_t might just be too big to begin with
-        // Consider switching to uint64_t
-        // For now we directly cast to uint64_t
-
-        if (m_blocks[blockNum].GetHeader().GetBlockNum() != blockNum)
-        {
-            LOG_GENERAL(FATAL,
-                        "assertion failed (" << __FILE__ << ":" << __LINE__
-                                             << ": " << __FUNCTION__ << ")");
-        }
-
-        return m_blocks[blockNum];
-    }
-
-    DSBlock GetDSBlock(const boost::multiprecision::uint256_t& blockNum)
-    {
-        lock_guard<mutex> g(m_mutexBlocks);
-
-        if (blockNum >= m_blocks.size())
-        {
-            throw "Blocknumber Absent";
-        }
-        else if (blockNum + m_blocks.capacity() < m_blocks.size())
-        {
-            DSBlockSharedPtr block;
-            BlockStorage::GetBlockStorage().GetDSBlock(blockNum, block);
-            return *block;
-        }
-
-        // To-do: We cannot even index into a vector using uint256_t
-        // uint256_t might just be too big to begin with
-        // Consider switching to uint64_t
-        // For now we directly cast to uint64_t
-
-        if (m_blocks[blockNum].GetHeader().GetBlockNum() != blockNum)
-        {
-            LOG_GENERAL(FATAL,
-                        "assertion failed (" << __FILE__ << ":" << __LINE__
-                                             << ": " << __FUNCTION__ << ")");
-        }
-
-        return m_blocks[blockNum];
-    }
-
-    VCBlock GetVCBlock(const boost::multiprecision::uint256_t& blockNum)
-    {
-        lock_guard<mutex> g(m_mutexBlocks);
-
-        if (blockNum >= m_blocks.size())
-        {
-            throw "Blocknumber Absent";
-        }
-        else if (blockNum + m_blocks.capacity() < m_blocks.size())
-        {
-            throw "vc block persistent storage not supported";
-            //DSBlockSharedPtr block;
-            //BlockStorage::GetBlockStorage().GetDSBlock(blockNum, block);
-            //return *block;
+            return GetBlockFromPersistentStorage(blockNum);
         }
 
         // To-do: We cannot even index into a vector using uint256_t
@@ -170,6 +120,40 @@ public:
         }
 
         return 1;
+    }
+};
+
+class DSBlockChain : public BlockChain<DSBlock>
+{
+public:
+    DSBlock GetBlockFromPersistentStorage(
+        const boost::multiprecision::uint256_t& blockNum)
+    {
+        DSBlockSharedPtr block;
+        BlockStorage::GetBlockStorage().GetDSBlock(blockNum, block);
+        return *block;
+    }
+};
+
+class TxBlockChain : public BlockChain<TxBlock>
+{
+public:
+    TxBlock GetBlockFromPersistentStorage(
+        const boost::multiprecision::uint256_t& blockNum)
+    {
+        TxBlockSharedPtr block;
+        BlockStorage::GetBlockStorage().GetTxBlock(blockNum, block);
+        return *block;
+    }
+};
+
+class VCBlockChain : public BlockChain<VCBlock>
+{
+public:
+    VCBlock GetBlockFromPersistentStorage(
+        const boost::multiprecision::uint256_t& blockNum)
+    {
+        throw "vc block persistent storage not supported";
     }
 };
 

@@ -50,10 +50,10 @@ public:
     ValidatorBase* m_validator;
 
     /// The transient DS blockchain.
-    BlockChain<DSBlock> m_dsBlockChain;
+    DSBlockChain m_dsBlockChain;
 
     /// The transient Tx blockchain.
-    BlockChain<TxBlock> m_txBlockChain;
+    TxBlockChain m_txBlockChain;
 
     /// The current epoch.
     uint64_t m_currentEpochNum = 0;
