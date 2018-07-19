@@ -674,30 +674,26 @@ void DirectoryService::RunConsensusOnSharding()
         return;
     }
 
+    if (m_mode == PRIMARY_DS)
     {
-        lock_guard<mutex> lock(m_mutexConsensus);
-        if (m_mode == PRIMARY_DS)
+        if (!RunConsensusOnShardingWhenDSPrimary())
         {
-            if (!RunConsensusOnShardingWhenDSPrimary())
-            {
-                LOG_EPOCH(WARNING,
-                          to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "Error encountered with running sharding consensus "
-                          "as ds leader");
-                // throw exception();
-                return;
-            }
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Error encountered with running sharding consensus "
+                      "as ds leader");
+            // throw exception();
+            return;
         }
-        else
+    }
+    else
+    {
+        if (!RunConsensusOnShardingWhenDSBackup())
         {
-            if (!RunConsensusOnShardingWhenDSBackup())
-            {
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "Error encountered with running sharding consensus "
-                          "as ds backup")
-                // throw exception();
-                return;
-            }
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Error encountered with running sharding consensus "
+                      "as ds backup")
+            // throw exception();
+            return;
         }
     }
 

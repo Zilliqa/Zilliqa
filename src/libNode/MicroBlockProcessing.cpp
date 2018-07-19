@@ -102,6 +102,13 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
                                 "consensus msg.")
                     return false;
                 }
+                if (m_consensusObject == nullptr)
+                {
+                    LOG_GENERAL(WARNING,
+                                "m_consensusObject is a nullptr. It has not "
+                                "been initialized.")
+                    return false;
+                }
                 return m_consensusObject->CanProcessMessage(message, offset);
             }))
     {
@@ -581,29 +588,25 @@ bool Node::RunConsensusOnMicroBlock()
         lock_guard<mutex> g2(m_mutexNewRoundStarted);
         m_newRoundStarted = false;
     }
+
+    if (m_isPrimary == true)
     {
-        lock_guard<mutex> lock(m_mutexConsensus);
-        if (m_isPrimary == true)
+        if (!RunConsensusOnMicroBlockWhenShardLeader())
         {
-            if (!RunConsensusOnMicroBlockWhenShardLeader())
-            {
-                LOG_EPOCH(WARNING,
-                          to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "Error at RunConsensusOnMicroBlockWhenShardLeader");
-                // throw exception();
-                return false;
-            }
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Error at RunConsensusOnMicroBlockWhenShardLeader");
+            // throw exception();
+            return false;
         }
-        else
+    }
+    else
+    {
+        if (!RunConsensusOnMicroBlockWhenShardBackup())
         {
-            if (!RunConsensusOnMicroBlockWhenShardBackup())
-            {
-                LOG_EPOCH(WARNING,
-                          to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "Error at RunConsensusOnMicroBlockWhenShardBackup");
-                // throw exception();
-                return false;
-            }
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Error at RunConsensusOnMicroBlockWhenShardBackup");
+            // throw exception();
+            return false;
         }
     }
 

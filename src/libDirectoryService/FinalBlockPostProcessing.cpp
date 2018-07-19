@@ -428,6 +428,14 @@ bool DirectoryService::ProcessFinalBlockConsensus(
                                 "consensus msg.")
                     return false;
                 }
+
+                if (m_consensusObject == nullptr)
+                {
+                    LOG_GENERAL(WARNING,
+                                "m_consensusObject is a nullptr. It has not "
+                                "been initialized.")
+                    return false;
+                }
                 return m_consensusObject->CanProcessMessage(message, offset);
             }))
     {
