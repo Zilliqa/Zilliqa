@@ -71,6 +71,13 @@ class Node : public Executable, public Broadcastable
         ATSTATEROOT = 0x02
     };
 
+    enum LEGITIMACYRESULT : unsigned char
+    {
+        SUCCESS = 0x00,
+        MISSEDTXN,
+        WRONGORDER
+    };
+
     string ActionString(enum Action action)
     {
         switch (action)
@@ -147,20 +154,17 @@ class Node : public Executable, public Broadcastable
 
     vector<unsigned char> m_txMessage;
 
+    std::vector<TxnHash> m_txnsOrdering;
+
     // prefilled transactions sorted by fromAddress
     std::mutex m_mutexPrefilledTxns;
     std::atomic_size_t m_nRemainingPrefilledTxns{0};
     std::unordered_map<Address, std::list<Transaction>> m_prefilledTxns{};
 
-    std::mutex m_mutexSubmittedTransactions;
+    std::mutex m_mutexProcessedTransactions;
     std::unordered_map<boost::multiprecision::uint256_t,
                        std::unordered_map<TxnHash, Transaction>>
-        m_submittedTransactions;
-
-    std::mutex m_mutexReceivedTransactions;
-    std::unordered_map<boost::multiprecision::uint256_t,
-                       std::unordered_map<TxnHash, Transaction>>
-        m_receivedTransactions;
+        m_processedTransactions;
 
     uint32_t m_numOfAbsentTxnHashes;
 
@@ -216,11 +220,7 @@ class Node : public Executable, public Broadcastable
     void LoadForwardingAssignmentFromFinalBlock(
         const vector<Peer>& fellowForwarderNodes,
         const boost::multiprecision::uint256_t& blocknum);
-    bool FindTxnInSubmittedTxnsList(
-        const TxBlock& finalblock,
-        const boost::multiprecision::uint256_t& blocknum, uint8_t sharing_mode,
-        vector<Transaction>& txns_to_send, const TxnHash& tx_hash);
-    bool FindTxnInReceivedTxnsList(
+    bool FindTxnInProcessedTxnsList(
         const TxBlock& finalblock,
         const boost::multiprecision::uint256_t& blocknum, uint8_t sharing_mode,
         vector<Transaction>& txns_to_send, const TxnHash& tx_hash);
@@ -368,7 +368,8 @@ class Node : public Executable, public Broadcastable
     bool
     MicroBlockValidator(const std::vector<unsigned char>& sharding_structure,
                         std::vector<unsigned char>& errorMsg);
-    bool CheckLegitimacyOfTxnHashes(std::vector<unsigned char>& errorMsg);
+    unsigned char
+    CheckLegitimacyOfTxnHashes(std::vector<unsigned char>& errorMsg);
     bool CheckBlockTypeIsMicro();
     bool CheckMicroBlockVersion();
     bool CheckMicroBlockTimestamp();
@@ -376,6 +377,13 @@ class Node : public Executable, public Broadcastable
     bool CheckMicroBlockTxnRootHash();
     bool CheckMicroBlockStateDeltaHash();
     bool CheckMicroBlockShardID();
+
+    void OrderingTxns(std::list<Transaction>& txns);
+    bool VerifyTxnsOrdering(const list<Transaction>& txns);
+
+    void ProcessTransactionWhenShardLeader();
+    bool ProcessTransactionWhenShardBackup(const vector<TxnHash>& tranHashes,
+                                           vector<TxnHash>& missingtranHashes);
 
     bool ActOnFinalBlock(uint8_t tx_sharing_mode,
                          vector<Peer> my_shard_receivers,

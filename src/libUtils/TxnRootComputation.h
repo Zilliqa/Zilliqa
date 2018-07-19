@@ -35,6 +35,9 @@ ComputeTransactionsRoot(const std::list<Transaction>& receivedTransactions,
                         const std::list<Transaction>& submittedTransactions);
 
 TxnHash ComputeTransactionsRoot(
+    const std::unordered_map<TxnHash, Transaction>& processedTransactions);
+
+TxnHash ComputeTransactionsRoot(
     const std::unordered_map<TxnHash, Transaction>& receivedTransactions,
     const std::unordered_map<TxnHash, Transaction>& submittedTransactions);
 
