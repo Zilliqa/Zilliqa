@@ -835,26 +835,29 @@ void DirectoryService::RunConsensusOnFinalBlock()
 
     SetState(FINALBLOCK_CONSENSUS_PREP);
 
-    if (m_mode == PRIMARY_DS)
     {
-        if (!RunConsensusOnFinalBlockWhenDSPrimary())
+        lock_guard<mutex> lock(m_mutexConsensus);
+        if (m_mode == PRIMARY_DS)
         {
-            LOG_GENERAL(WARNING,
-                        "Consensus failed at "
-                        "RunConsensusOnFinalBlockWhenDSPrimary");
-            // throw exception();
-            return;
+            if (!RunConsensusOnFinalBlockWhenDSPrimary())
+            {
+                LOG_GENERAL(WARNING,
+                            "Consensus failed at "
+                            "RunConsensusOnFinalBlockWhenDSPrimary");
+                // throw exception();
+                return;
+            }
         }
-    }
-    else
-    {
-        if (!RunConsensusOnFinalBlockWhenDSBackup())
+        else
         {
-            LOG_GENERAL(WARNING,
-                        "Consensus failed at "
-                        "RunConsensusOnFinalBlockWhenDSBackup");
-            // throw exception();
-            return;
+            if (!RunConsensusOnFinalBlockWhenDSBackup())
+            {
+                LOG_GENERAL(WARNING,
+                            "Consensus failed at "
+                            "RunConsensusOnFinalBlockWhenDSBackup");
+                // throw exception();
+                return;
+            }
         }
     }
 

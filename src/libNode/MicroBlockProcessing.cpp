@@ -581,25 +581,29 @@ bool Node::RunConsensusOnMicroBlock()
         lock_guard<mutex> g2(m_mutexNewRoundStarted);
         m_newRoundStarted = false;
     }
-
-    if (m_isPrimary == true)
     {
-        if (!RunConsensusOnMicroBlockWhenShardLeader())
+        lock_guard<mutex> lock(m_mutexConsensus);
+        if (m_isPrimary == true)
         {
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Error at RunConsensusOnMicroBlockWhenShardLeader");
-            // throw exception();
-            return false;
+            if (!RunConsensusOnMicroBlockWhenShardLeader())
+            {
+                LOG_EPOCH(WARNING,
+                          to_string(m_mediator.m_currentEpochNum).c_str(),
+                          "Error at RunConsensusOnMicroBlockWhenShardLeader");
+                // throw exception();
+                return false;
+            }
         }
-    }
-    else
-    {
-        if (!RunConsensusOnMicroBlockWhenShardBackup())
+        else
         {
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Error at RunConsensusOnMicroBlockWhenShardBackup");
-            // throw exception();
-            return false;
+            if (!RunConsensusOnMicroBlockWhenShardBackup())
+            {
+                LOG_EPOCH(WARNING,
+                          to_string(m_mediator.m_currentEpochNum).c_str(),
+                          "Error at RunConsensusOnMicroBlockWhenShardBackup");
+                // throw exception();
+                return false;
+            }
         }
     }
 
