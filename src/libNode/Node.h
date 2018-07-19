@@ -50,7 +50,7 @@ class Node : public Executable, public Broadcastable
     enum Action
     {
         STARTPOW1 = 0x00,
-        STARTPOW2,
+        PROCESS_DS,
         PROCESS_SHARDING,
         PROCESS_MICROBLOCKCONSENSUS,
         PROCESS_FINALBLOCK,
@@ -77,8 +77,8 @@ class Node : public Executable, public Broadcastable
         {
         case STARTPOW1:
             return "STARTPOW1";
-        case STARTPOW2:
-            return "STARTPOW2";
+        case PROCESS_DS:
+            return "PROCESS_DS";
         case PROCESS_SHARDING:
             return "PROCESS_SHARDING";
         case PROCESS_MICROBLOCKCONSENSUS:
@@ -195,13 +195,6 @@ class Node : public Executable, public Broadcastable
         boost::multiprecision::uint256_t& block_num, uint8_t& difficulty,
         array<unsigned char, 32>& rand1, array<unsigned char, 32>& rand2);
 #ifndef IS_LOOKUP_NODE
-    void SharePoW2WinningResultWithDS(
-        const boost::multiprecision::uint256_t& block_num,
-        const ethash_mining_result& winning_result) const;
-    void StartPoW2MiningAndShareResultWithDS(
-        const boost::multiprecision::uint256_t& block_num, uint8_t difficulty,
-        const array<unsigned char, 32>& rand1,
-        const array<unsigned char, 32>& rand2) const;
     bool ProcessSubmitMissingTxn(const vector<unsigned char>& message,
                                  unsigned int offset, const Peer& from);
     bool ProcessSubmitTxnSharing(const vector<unsigned char>& message,
@@ -279,7 +272,6 @@ class Node : public Executable, public Broadcastable
     void StoreState();
     // void StoreMicroBlocks();
     void StoreFinalBlock(const TxBlock& txBlock);
-    void InitiatePoW1();
     void UpdateStateForNextConsensusRound();
     void ScheduleTxnSubmission();
     void ScheduleMicroBlockConsensus();
@@ -402,7 +394,7 @@ public:
     enum NodeState : unsigned char
     {
         POW1_SUBMISSION = 0x00,
-        POW2_SUBMISSION,
+        DSBLOCK_SUBMISSION,
         TX_SUBMISSION,
         TX_SUBMISSION_BUFFER,
         MICROBLOCK_CONSENSUS_PREP,
@@ -421,6 +413,8 @@ public:
 
     std::condition_variable m_cvAllMicroBlocksRecvd;
     std::mutex m_mutexAllMicroBlocksRecvd;
+    std::condition_variable m_cvFinishPOW;
+    std::mutex m_mutexFinishPOW;
     bool m_allMicroBlocksRecvd = true;
 
     std::mutex m_mutexTempCommitted;
@@ -445,6 +439,8 @@ public:
 
     /// The current internal state of this Node instance.
     std::atomic<NodeState> m_state;
+
+    ethash_mining_result m_pow1WinningResult;
 
     /// Constructor. Requires mediator reference to access DirectoryService and other global members.
     Node(Mediator& mediator, unsigned int syncType, bool toRetrieveHistory);
@@ -492,6 +488,8 @@ public:
         m_committedTransactions.erase(epochNum);
     }
 
+    void InitiatePoW1();
+
     /// Add new block into tx blockchain
     void AddBlock(const TxBlock& block);
 #ifndef IS_LOOKUP_NODE
@@ -507,11 +505,6 @@ public:
                    uint8_t difficulty,
                    const std::array<unsigned char, UINT256_SIZE>& rand1,
                    const std::array<unsigned char, UINT256_SIZE>& rand2);
-
-    /// Performs PoW mining and submission for sharding committee membership.
-    bool StartPoW2(const boost::multiprecision::uint256_t block_num,
-                   uint8_t difficulty, array<unsigned char, 32> rand1,
-                   array<unsigned char, 32> rand2);
 
     /// Call when the normal node be promoted to DS
     void CleanCreatedTransaction();

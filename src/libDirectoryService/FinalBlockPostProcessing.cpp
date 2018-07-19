@@ -348,11 +348,24 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
                           "Waiting "
                               << POW1_WINDOW_IN_SECONDS
                               << " seconds, accepting PoW1 submissions...");
+
+                // Notify lookup for POW1 submission
+                vector<unsigned char> pow_message
+                    = {MessageType::LOOKUP,
+                       LookupInstructionType::RAISEPOWSUBMISSION};
+                m_mediator.m_lookup->SendMessageToLookupNodesSerial(
+                    pow_message);
                 this_thread::sleep_for(chrono::seconds(POW1_WINDOW_IN_SECONDS));
                 RunConsensusOnDSBlock();
             }
             else
             {
+                if (static_cast<uint32_t>(m_consensusMyID)
+                    == m_mediator.m_DSCommittee.size())
+                {
+                    m_mediator.m_node->InitiatePoW1();
+                }
+
                 std::unique_lock<std::mutex> cv_lk(m_MutexCVDSBlockConsensus);
 
                 if (cv_DSBlockConsensus.wait_for(

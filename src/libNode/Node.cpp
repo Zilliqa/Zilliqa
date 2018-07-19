@@ -149,6 +149,7 @@ void Node::Prepare(bool runInitializeGenesisBlocks)
     SetState(POW1_SUBMISSION);
     POW::GetInstance().EthashConfigureLightClient(
         (uint64_t)m_mediator.m_dsBlockChain.GetBlockCount());
+    m_pow1WinningResult.result.erase();
 }
 
 bool Node::StartRetrieveHistory()
@@ -241,7 +242,7 @@ void Node::StartSynchronization()
                         .GetBlockNum()
                     + 1);
             this_thread::sleep_for(
-                chrono::seconds(m_mediator.m_lookup->m_startedPoW2
+                chrono::seconds(m_mediator.m_lookup->m_startedPoW1
                                     ? BACKUP_POW2_WINDOW_IN_SECONDS
                                         + TXN_SUBMISSION + TXN_BROADCAST
                                     : NEW_NODE_SYNC_INTERVAL));
@@ -257,7 +258,7 @@ bool Node::compatibleState(enum NodeState state, enum Action action)
 {
     const static std::map<NodeState, Action> ACTION_FOR_STATE
         = {{POW1_SUBMISSION, STARTPOW1},
-           {POW2_SUBMISSION, STARTPOW2},
+           {DSBLOCK_SUBMISSION, PROCESS_DS},
            {TX_SUBMISSION, PROCESS_SHARDING},
            {TX_SUBMISSION_BUFFER, PROCESS_SHARDING},
            {MICROBLOCK_CONSENSUS, PROCESS_MICROBLOCKCONSENSUS},
@@ -687,9 +688,9 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
     {
         if (m_state != MICROBLOCK_CONSENSUS)
         {
-            LOG_EPOCH(
-                INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Not in a microblock consensus state: don't want missing txns")
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Not in a microblock consensus state: don't want "
+                      "missing txns");
         }
 
         ProcessSubmitMissingTxn(message, cur_offset, from);
@@ -1021,7 +1022,7 @@ bool Node::CleanVariables()
             m_mediator.m_lookup->m_mutexOfflineLookupsUpdation);
         m_mediator.m_lookup->m_fetchedOfflineLookups = false;
     }
-    m_mediator.m_lookup->m_startedPoW2 = false;
+    m_mediator.m_lookup->m_startedPoW1 = false;
     m_latestForwardBlockNum = 0;
 
     return true;
@@ -1096,7 +1097,8 @@ bool Node::ToBlockMessage(unsigned char ins_byte)
         }
         else
         {
-            if (m_runFromLate && ins_byte != NodeInstructionType::SHARDING
+            if (m_runFromLate && ins_byte != NodeInstructionType::DSBLOCK
+                && ins_byte != NodeInstructionType::SHARDING
                 && ins_byte != NodeInstructionType::CREATETRANSACTION
                 && ins_byte != NodeInstructionType::SUBMITTRANSACTION)
             {
@@ -1147,7 +1149,7 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
     // If the node failed and waiting for recovery, block the unwanted msg
     if (ToBlockMessage(ins_byte))
     {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Node not connected to network yet, ignore message");
         return false;
     }
@@ -1176,7 +1178,7 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
 
 map<Node::NodeState, string> Node::NodeStateStrings
     = {MAKE_LITERAL_PAIR(POW1_SUBMISSION),
-       MAKE_LITERAL_PAIR(POW2_SUBMISSION),
+       MAKE_LITERAL_PAIR(DSBLOCK_SUBMISSION),
        MAKE_LITERAL_PAIR(TX_SUBMISSION),
        MAKE_LITERAL_PAIR(TX_SUBMISSION_BUFFER),
        MAKE_LITERAL_PAIR(MICROBLOCK_CONSENSUS_PREP),

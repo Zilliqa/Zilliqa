@@ -237,7 +237,6 @@ void DirectoryService::UpdateMyDSModeAndConsensusId()
             "I am the oldest backup DS -> now kicked out of DS committee :-("
                 << "\n"
                 << DS_KICKOUT_MSG);
-        m_mediator.m_node->SetState(Node::NodeState::POW2_SUBMISSION);
         m_mode = IDLE;
 
         LOG_STATE("[IDENT][" << setw(15) << left
@@ -388,6 +387,34 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
 
     {
         lock_guard<mutex> g(m_mutexAllPOW1);
+
+        if (m_mode != IDLE)
+        {
+            // Copy POW1 to POW2
+            lock(m_mutexAllPOW2, m_mutexAllPoWConns);
+            lock_guard<mutex> g2(m_mutexAllPOW2, adopt_lock);
+            lock_guard<mutex> g3(m_mutexAllPoWConns, adopt_lock);
+            m_allPoW2s.clear();
+
+            for (auto const& i : m_allPoW1s)
+            {
+                // Winner will become DS (leader), thus we should not put in POW2
+                if (m_allPoWConns[i.first] == winnerpeer)
+                {
+                    continue;
+                }
+
+                m_allPoW2s.emplace(i.first, i.second);
+            }
+
+            // Add the previous DS committee's oldest member, because it will be back to being a normal node and should be collected here
+            lock_guard<mutex> g4(m_mediator.m_mutexDSCommittee);
+            m_allPoW2s.emplace(m_mediator.m_DSCommittee.back().first,
+                               (boost::multiprecision::uint256_t){1});
+            m_allPoWConns.emplace(m_mediator.m_DSCommittee.back().first,
+                                  m_mediator.m_DSCommittee.back().second);
+        }
+
         m_allPoW1s.clear();
     }
 
@@ -402,19 +429,13 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
             Whitelist::GetInstance().UpdateShardWhitelist();
         }
 
-        SetState(POW2_SUBMISSION);
-        NotifyPOW2Submission();
         ScheduleShardingConsensus(BACKUP_POW2_WINDOW_IN_SECONDS);
     }
     else
     {
-        // Tell my Node class to start PoW2
+        // Tell my Node class to start Tx submission
         m_mediator.UpdateDSBlockRand();
-        array<unsigned char, 32> rand2{};
-        this_thread::sleep_for(chrono::seconds(3));
-        m_mediator.m_node->StartPoW2(lastDSBlock.GetHeader().GetBlockNum(),
-                                     POW2_DIFFICULTY, m_mediator.m_dsBlockRand,
-                                     rand2);
+        m_mediator.m_node->SetState(Node::NodeState::TX_SUBMISSION);
     }
 }
 #endif // IS_LOOKUP_NODE
