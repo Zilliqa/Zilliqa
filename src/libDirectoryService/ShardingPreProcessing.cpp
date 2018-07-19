@@ -675,9 +675,9 @@ void DirectoryService::RunConsensusOnSharding()
     {
         if (!RunConsensusOnShardingWhenDSPrimary())
         {
-            LOG_EPOCH(
-                WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Exception encountered with running sharding on ds leader");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Error encountered with running sharding consensus "
+                      "as ds leader");
             // throw exception();
             return;
         }
@@ -686,9 +686,9 @@ void DirectoryService::RunConsensusOnSharding()
     {
         if (!RunConsensusOnShardingWhenDSBackup())
         {
-            LOG_EPOCH(
-                INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Exception encountered with running sharding on ds backup")
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Error encountered with running sharding consensus "
+                      "as ds backup")
             // throw exception();
             return;
         }
@@ -704,7 +704,8 @@ void DirectoryService::RunConsensusOnSharding()
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Initiated sharding structure consensus view change. ");
-        RunConsensusOnViewChange();
+        auto func = [this]() -> void { RunConsensusOnViewChange(); };
+        DetachedFunction(1, func);
     }
 }
 #endif // IS_LOOKUP_NODE

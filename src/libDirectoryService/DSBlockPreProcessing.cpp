@@ -240,9 +240,8 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin)
     {
         if (!RunConsensusOnDSBlockWhenDSPrimary())
         {
-            LOG_GENERAL(
-                WARNING,
-                "Throwing exception after RunConsensusOnDSBlockWhenDSPrimary");
+            LOG_GENERAL(WARNING,
+                        "Error after RunConsensusOnDSBlockWhenDSPrimary");
             // throw exception();
             return;
         }
@@ -251,9 +250,8 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin)
     {
         if (!RunConsensusOnDSBlockWhenDSBackup())
         {
-            LOG_GENERAL(
-                WARNING,
-                "Throwing exception after RunConsensusOnDSBlockWhenDSBackup");
+            LOG_GENERAL(WARNING,
+                        "Error after RunConsensusOnDSBlockWhenDSBackup");
             // throw exception();
             return;
         }
@@ -269,10 +267,10 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin)
             == std::cv_status::timeout)
         {
             //View change.
-            //TODO: This is a simplified version and will be review again.
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Initiated DS block view change. ");
-            RunConsensusOnViewChange();
+            auto func = [this]() -> void { RunConsensusOnViewChange(); };
+            DetachedFunction(1, func);
         }
     }
 }

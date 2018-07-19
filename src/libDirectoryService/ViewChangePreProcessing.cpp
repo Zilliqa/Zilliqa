@@ -90,13 +90,13 @@ void DirectoryService::RunConsensusOnViewChange()
 
     // TODO
     // We compare with empty peer is due to the fact that DSCommittee for yourself is 0.0.0.0 with port 0.
+
     if (m_mediator.m_DSCommittee.at(newCandidateLeader).second == Peer())
     {
         if (!RunConsensusOnViewChangeWhenCandidateLeader())
         {
-            LOG_GENERAL(
-                WARNING,
-                "Throwing exception after RunConsensusOnDSBlockWhenDSPrimary");
+            LOG_GENERAL(WARNING,
+                        "Error after RunConsensusOnDSBlockWhenDSPrimary");
             return;
         }
     }
@@ -105,7 +105,7 @@ void DirectoryService::RunConsensusOnViewChange()
         if (!RunConsensusOnViewChangeWhenNotCandidateLeader())
         {
             LOG_GENERAL(WARNING,
-                        "Throwing exception after "
+                        "Error after "
                         "RunConsensusOnViewChangeWhenNotCandidateLeader");
             return;
         }
