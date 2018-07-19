@@ -1261,7 +1261,12 @@ bool DirectoryService::CleanVariables()
     m_shards.clear();
     m_publicKeyToShardIdMap.clear();
     m_allPoWConns.clear();
-    m_consensusObject.reset();
+
+    {
+        std::lock_guard<mutex> lock(m_mutexConsensus);
+        m_consensusObject.reset();
+    }
+
     m_consensusBlockHash.clear();
     {
         std::lock_guard<mutex> lock(m_mutexPendingDSBlock);
