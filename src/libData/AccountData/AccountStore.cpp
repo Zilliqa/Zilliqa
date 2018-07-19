@@ -48,8 +48,7 @@ void AccountStore::InitSoft()
 
     AccountStoreTrie<OverlayDB, unordered_map<Address, Account>>::Init();
 
-    std::lock_guard<mutex> lock(m_mutexDelta);
-    m_accountStoreTemp->Init();
+    InitTemp();
 }
 
 AccountStore& AccountStore::GetInstance()
@@ -149,6 +148,7 @@ void AccountStore::SerializeDelta()
 unsigned int AccountStore::GetSerializedDelta(vector<unsigned char>& dst)
 {
     // LOG_MARKER();
+    lock_guard<mutex> g(m_mutexDelta);
 
     copy(m_stateDeltaSerialized.begin(), m_stateDeltaSerialized.end(),
          back_inserter(dst));
@@ -365,4 +365,13 @@ void AccountStore::CommitTemp()
 
     // LOG_GENERAL(INFO, "After CommitTemp");
     InitTemp();
+}
+
+void AccountStore::InitTemp()
+{
+    LOG_MARKER();
+
+    lock_guard<mutex> g(m_mutexDelta);
+
+    m_accountStoreTemp->Init();
 }

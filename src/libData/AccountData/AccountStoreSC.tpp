@@ -28,8 +28,14 @@ template<class MAP> AccountStoreSC<MAP>::AccountStoreSC()
 
 template<class MAP> void AccountStoreSC<MAP>::Init()
 {
+    lock_guard<mutex> g(m_mutexUpdateAccounts);
     AccountStoreBase<MAP>::Init();
     m_curContractAddr.clear();
+    m_curSenderAddr.clear();
+    m_curAmount = 0;
+    m_curGasCum = 0;
+    m_curGasLimit = 0;
+    m_curGasPrice = 0;
 }
 
 template<class MAP>
@@ -287,8 +293,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
 template<class MAP>
 Json::Value
-AccountStoreSC<MAP>::GetBlockStateJson(const uint64_t& BlockNum,
-                                       const uint64_t& CreateBlockNum) const
+AccountStoreSC<MAP>::GetBlockStateJson(const uint64_t& BlockNum) const
 {
     Json::Value root;
     Json::Value blockItem;
@@ -296,9 +301,6 @@ AccountStoreSC<MAP>::GetBlockStateJson(const uint64_t& BlockNum,
     blockItem["type"] = "BNum";
     blockItem["value"] = to_string(BlockNum);
     root.append(blockItem);
-    // LOG_GENERAL(INFO, "BNum: " << BlockNum);
-
-    (void)CreateBlockNum;
 
     return root;
 }
@@ -326,9 +328,8 @@ void AccountStoreSC<MAP>::ExportCreateContractFiles(const Account& contract)
     JSONUtils::writeJsontoFile(INIT_JSON, contract.GetInitJson());
 
     // Block Json
-    JSONUtils::writeJsontoFile(
-        INPUT_BLOCKCHAIN_JSON,
-        GetBlockStateJson(m_curBlockNum /*, contract.GetCreateBlockNum()*/));
+    JSONUtils::writeJsontoFile(INPUT_BLOCKCHAIN_JSON,
+                               GetBlockStateJson(m_curBlockNum));
 }
 
 template<class MAP>
@@ -357,9 +358,8 @@ void AccountStoreSC<MAP>::ExportContractFiles(const Account& contract)
     JSONUtils::writeJsontoFile(INPUT_STATE_JSON, contract.GetStorageJson());
 
     // Block Json
-    JSONUtils::writeJsontoFile(
-        INPUT_BLOCKCHAIN_JSON,
-        GetBlockStateJson(m_curBlockNum /*, contract.GetCreateBlockNum()*/));
+    JSONUtils::writeJsontoFile(INPUT_BLOCKCHAIN_JSON,
+                               GetBlockStateJson(m_curBlockNum));
 }
 
 template<class MAP>
@@ -400,19 +400,20 @@ void AccountStoreSC<MAP>::ExportCallContractFiles(
 
 template<class MAP> string AccountStoreSC<MAP>::GetCreateContractCmdStr()
 {
-    string ret = SCILLA_PATH + " -init " + INIT_JSON + " -iblockchain "
-        + INPUT_BLOCKCHAIN_JSON + " -o " + OUTPUT_JSON + " -i " + INPUT_CODE;
-    // LOG_GENERAL(INFO, ret);
+    string ret = SCILLA_BINARY + " -init " + INIT_JSON + " -iblockchain "
+        + INPUT_BLOCKCHAIN_JSON + " -o " + OUTPUT_JSON + " -i " + INPUT_CODE
+        + " -libdir " + SCILLA_LIB;
+    LOG_GENERAL(INFO, ret);
     return ret;
 }
 
 template<class MAP> string AccountStoreSC<MAP>::GetCallContractCmdStr()
 {
-    string ret = SCILLA_PATH + " -init " + INIT_JSON + " -istate "
+    string ret = SCILLA_BINARY + " -init " + INIT_JSON + " -istate "
         + INPUT_STATE_JSON + " -iblockchain " + INPUT_BLOCKCHAIN_JSON
         + " -imessage " + INPUT_MESSAGE_JSON + " -o " + OUTPUT_JSON + " -i "
-        + INPUT_CODE;
-    // LOG_GENERAL(INFO, ret);
+        + INPUT_CODE + " -libdir " + SCILLA_LIB;
+    LOG_GENERAL(INFO, ret);
     return ret;
 }
 

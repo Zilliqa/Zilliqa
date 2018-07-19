@@ -103,9 +103,8 @@ public:
         uint16_t
             leader_id, // leader's identifier (= index in some ordered lookup table shared by all nodes)
         const PrivKey& privkey, // backup's private key
-        const std::deque<PubKey>&
-            pubkeys, // ordered lookup table of pubkeys for this committee (includes leader)
-        const std::deque<Peer>& peer_info, // IP addresses of peers
+        const std::deque<std::pair<PubKey, Peer>>&
+            committee, // ordered lookup table of pubkeys for this committee (includes leader)
         unsigned char
             class_byte, // class byte representing Executable class using this instance of ConsensusBackup
         unsigned char

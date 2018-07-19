@@ -373,10 +373,7 @@ bool Lookup::SetDSCommitteInfo()
     ptree pt;
     read_xml("config.xml", pt);
 
-    lock(m_mediator.m_mutexDSCommitteeNetworkInfo,
-         m_mediator.m_mutexDSCommitteePubKeys);
-    lock_guard<mutex> g(m_mediator.m_mutexDSCommitteeNetworkInfo, adopt_lock);
-    lock_guard<mutex> g2(m_mediator.m_mutexDSCommitteePubKeys, adopt_lock);
+    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
 
     for (ptree::value_type const& v : pt.get_child("nodes"))
     {
@@ -385,13 +382,12 @@ bool Lookup::SetDSCommitteInfo()
             PubKey key(
                 DataConversion::HexStrToUint8Vec(v.second.get<string>("pubk")),
                 0);
-            m_mediator.m_DSCommitteePubKeys.emplace_back(key);
 
             struct in_addr ip_addr;
             inet_aton(v.second.get<string>("ip").c_str(), &ip_addr);
             Peer peer((uint128_t)ip_addr.s_addr,
                       v.second.get<unsigned int>("port"));
-            m_mediator.m_DSCommitteeNetworkInfo.emplace_back(peer);
+            m_mediator.m_DSCommittee.emplace_back(make_pair(key, peer));
         }
     }
 
@@ -653,43 +649,31 @@ bool Lookup::ProcessGetDSInfoFromSeed(const vector<unsigned char>& message,
     //#ifndef IS_LOOKUP_NODE
     // Message = [Port]
     LOG_MARKER();
-
-    deque<PubKey> dsPubKeys;
-    deque<Peer> dsPeers;
-    {
-        lock(m_mediator.m_mutexDSCommitteeNetworkInfo,
-             m_mediator.m_mutexDSCommitteePubKeys);
-        lock_guard<mutex> g(m_mediator.m_mutexDSCommitteeNetworkInfo,
-                            adopt_lock);
-        lock_guard<mutex> g2(m_mediator.m_mutexDSCommitteePubKeys, adopt_lock);
-
-        dsPubKeys = m_mediator.m_DSCommitteePubKeys;
-        dsPeers
-            = m_mediator
-                  .m_DSCommitteeNetworkInfo; // Data::GetInstance().GetDSPeers();
-    }
-
     // dsInfoMessage = [num_ds_peers][DSPeer][DSPeer]... num_ds_peers times
     vector<unsigned char> dsInfoMessage
         = {MessageType::LOOKUP, LookupInstructionType::SETDSINFOFROMSEED};
     unsigned int curr_offset = MessageOffset::BODY;
 
-    Serializable::SetNumber<uint32_t>(dsInfoMessage, curr_offset,
-                                      dsPeers.size(), sizeof(uint32_t));
-    curr_offset += sizeof(uint32_t);
-
-    for (unsigned int i = 0; i < dsPeers.size(); i++)
     {
-        PubKey& pubKey = dsPubKeys.at(i);
-        pubKey.Serialize(dsInfoMessage, curr_offset);
-        curr_offset += (PUB_KEY_SIZE);
+        lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+        Serializable::SetNumber<uint32_t>(dsInfoMessage, curr_offset,
+                                          m_mediator.m_DSCommittee.size(),
+                                          sizeof(uint32_t));
+        curr_offset += sizeof(uint32_t);
 
-        Peer& peer = dsPeers.at(i);
-        peer.Serialize(dsInfoMessage, curr_offset);
-        curr_offset += (IP_SIZE + PORT_SIZE);
+        for (unsigned int i = 0; i < m_mediator.m_DSCommittee.size(); i++)
+        {
+            PubKey& pubKey = m_mediator.m_DSCommittee.at(i).first;
+            pubKey.Serialize(dsInfoMessage, curr_offset);
+            curr_offset += (PUB_KEY_SIZE);
 
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "IP:" << peer.GetPrintableIPAddress());
+            Peer& peer = m_mediator.m_DSCommittee.at(i).second;
+            peer.Serialize(dsInfoMessage, curr_offset);
+            curr_offset += (IP_SIZE + PORT_SIZE);
+
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "IP:" << peer.GetPrintableIPAddress());
+        }
     }
 
     if (IsMessageSizeInappropriate(message.size(), offset, sizeof(uint32_t)))
@@ -1167,12 +1151,13 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
         return false;
     }
 
-    deque<PubKey> dsPubKeys;
-    deque<Peer> dsPeers;
+    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+    m_mediator.m_DSCommittee.clear();
 
     for (unsigned int i = 0; i < numDSPeers; i++)
     {
-        dsPubKeys.emplace_back(message, offset);
+        PubKey pubkey(message, offset);
+
         offset += PUB_KEY_SIZE;
 
         Peer peer(message, offset);
@@ -1182,22 +1167,12 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
         {
             peer = Peer();
         }
-        dsPeers.emplace_back(peer);
+
+        m_mediator.m_DSCommittee.emplace_back(make_pair(pubkey, peer));
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "ProcessSetDSInfoFromSeed recvd peer " << i << ": " << peer);
     }
-
-    {
-        lock(m_mediator.m_mutexDSCommitteeNetworkInfo,
-             m_mediator.m_mutexDSCommitteePubKeys);
-        lock_guard<mutex> g(m_mediator.m_mutexDSCommitteeNetworkInfo,
-                            adopt_lock);
-        lock_guard<mutex> g2(m_mediator.m_mutexDSCommitteePubKeys, adopt_lock);
-        m_mediator.m_DSCommitteePubKeys = dsPubKeys;
-        m_mediator.m_DSCommitteeNetworkInfo = dsPeers;
-    }
-
         //    Data::GetInstance().SetDSPeers(dsPeers);
         //#endif // IS_LOOKUP_NODE
 
@@ -1451,7 +1426,10 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
         }
 
         m_mediator.m_currentEpochNum
-            = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
+            = (uint64_t)m_mediator.m_txBlockChain.GetLastBlock()
+                  .GetHeader()
+                  .GetBlockNum()
+            + 1;
         m_mediator.UpdateTxBlockRand();
 
         if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
@@ -1648,9 +1626,6 @@ bool Lookup::InitMining()
         }
     }
 
-    m_mediator.m_currentEpochNum
-        = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
-
     // General check
     if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0)
     {
@@ -1669,19 +1644,6 @@ bool Lookup::InitMining()
     auto dsBlockRand = m_mediator.m_dsBlockRand;
     array<unsigned char, 32> txBlockRand{};
 
-    // if (m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW == curDsBlockNum)
-    // {
-    //     // DS block for the epoch has not been generated.
-    //     // Attempt PoW1
-    //     m_mediator.UpdateTxBlockRand();
-    //     dsBlockRand = m_mediator.m_dsBlockRand;
-
-    //     m_mediator.m_node->SetState(Node::POW1_SUBMISSION);
-    //     POW::GetInstance().EthashConfigureLightClient((uint64_t)m_mediator.m_dsBlockChain.GetBlockCount());
-    //     m_mediator.m_node->StartPoW1(m_mediator.m_dsBlockChain.GetBlockCount(),
-    //                                     POW1_DIFFICULTY, dsBlockRand, m_mediator.m_txBlockRand);
-    // }
-    //else if
     if (m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW
         == curDsBlockNum - 1)
     {

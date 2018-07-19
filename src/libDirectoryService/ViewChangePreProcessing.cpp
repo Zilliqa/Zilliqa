@@ -44,14 +44,14 @@ bool DirectoryService::ViewChangeValidator(const vector<unsigned char>& vcBlock,
     m_pendingVCBlock.reset(new VCBlock(vcBlock, 0));
     uint32_t offsetToNewLeader = 1;
 
-    if (m_mediator.m_DSCommitteeNetworkInfo.at(offsetToNewLeader)
+    if (m_mediator.m_DSCommittee.at(offsetToNewLeader).second
         != m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo())
     {
         LOG_GENERAL(WARNING, "Candidate network info mismatched");
         return false;
     }
 
-    if (!(m_mediator.m_DSCommitteePubKeys.at(offsetToNewLeader)
+    if (!(m_mediator.m_DSCommittee.at(offsetToNewLeader).first
           == m_pendingVCBlock->GetHeader().GetCandidateLeaderPubKey()))
     {
         LOG_GENERAL(WARNING, "Candidate pubkey mismatched");
@@ -81,24 +81,22 @@ void DirectoryService::RunConsensusOnViewChange()
     SetState(VIEWCHANGE_CONSENSUS_PREP); //change
 
     m_viewChangeCounter++;
-
-    for (unsigned i = 0; i < m_mediator.m_DSCommitteeNetworkInfo.size(); i++)
+    for (unsigned i = 0; i < m_mediator.m_DSCommittee.size(); i++)
     {
-        LOG_GENERAL(INFO, m_mediator.m_DSCommitteeNetworkInfo.at(i));
+        LOG_GENERAL(INFO, m_mediator.m_DSCommittee.at(i).second);
     }
-
     unsigned int newCandidateLeader
         = 1; // TODO: To be change to a random node using VRF
 
     // TODO
     // We compare with empty peer is due to the fact that DSCommittee for yourself is 0.0.0.0 with port 0.
-    if (m_mediator.m_DSCommitteeNetworkInfo.at(newCandidateLeader) == Peer())
+
+    if (m_mediator.m_DSCommittee.at(newCandidateLeader).second == Peer())
     {
         if (!RunConsensusOnViewChangeWhenCandidateLeader())
         {
-            LOG_GENERAL(
-                WARNING,
-                "Throwing exception after RunConsensusOnDSBlockWhenDSPrimary");
+            LOG_GENERAL(WARNING,
+                        "Error after RunConsensusOnDSBlockWhenDSPrimary");
             return;
         }
     }
@@ -107,7 +105,7 @@ void DirectoryService::RunConsensusOnViewChange()
         if (!RunConsensusOnViewChangeWhenNotCandidateLeader())
         {
             LOG_GENERAL(WARNING,
-                        "Throwing exception after "
+                        "Error after "
                         "RunConsensusOnViewChangeWhenNotCandidateLeader");
             return;
         }
@@ -147,8 +145,7 @@ void DirectoryService::ComputeNewCandidateLeader()
     uint32_t newCandidateLeaderIndex = 1;
 
     Peer newLeaderNetworkInfo;
-    if (m_mediator.m_DSCommitteeNetworkInfo.at(newCandidateLeaderIndex)
-        == Peer())
+    if (m_mediator.m_DSCommittee.at(newCandidateLeaderIndex).second == Peer())
     {
         // I am the leader but in the Peer store, it is put as 0.0.0.0 with port 0
         newLeaderNetworkInfo = m_mediator.m_selfPeer;
@@ -156,7 +153,7 @@ void DirectoryService::ComputeNewCandidateLeader()
     else
     {
         newLeaderNetworkInfo
-            = m_mediator.m_DSCommitteeNetworkInfo.at(newCandidateLeaderIndex);
+            = m_mediator.m_DSCommittee.at(newCandidateLeaderIndex).second;
     }
 
     {
@@ -167,7 +164,7 @@ void DirectoryService::ComputeNewCandidateLeader()
                 (uint64_t)m_mediator.m_dsBlockChain.GetBlockCount(),
                 (uint64_t)m_mediator.m_currentEpochNum, m_viewChangestate,
                 newCandidateLeaderIndex, newLeaderNetworkInfo,
-                m_mediator.m_DSCommitteePubKeys.at(newCandidateLeaderIndex),
+                m_mediator.m_DSCommittee.at(newCandidateLeaderIndex).first,
                 m_viewChangeCounter, get_time_as_int()),
             CoSignatures()));
     }
@@ -190,8 +187,7 @@ bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader()
 
     m_consensusObject.reset(new ConsensusLeader(
         consensusID, m_consensusBlockHash, m_consensusMyID,
-        m_mediator.m_selfKey.first, m_mediator.m_DSCommitteePubKeys,
-        m_mediator.m_DSCommitteeNetworkInfo,
+        m_mediator.m_selfKey.first, m_mediator.m_DSCommittee,
         static_cast<unsigned char>(DIRECTORY),
         static_cast<unsigned char>(VIEWCHANGECONSENSUS),
         std::function<bool(const vector<unsigned char>&, unsigned int,
@@ -241,8 +237,7 @@ bool DirectoryService::RunConsensusOnViewChangeWhenNotCandidateLeader()
     m_consensusObject.reset(new ConsensusBackup(
         consensusID, m_consensusBlockHash, m_consensusMyID,
         m_consensusLeaderID + offsetToNewLeader, m_mediator.m_selfKey.first,
-        m_mediator.m_DSCommitteePubKeys, m_mediator.m_DSCommitteeNetworkInfo,
-        static_cast<unsigned char>(DIRECTORY),
+        m_mediator.m_DSCommittee, static_cast<unsigned char>(DIRECTORY),
         static_cast<unsigned char>(VIEWCHANGECONSENSUS), func));
 
     if (m_consensusObject == nullptr)
