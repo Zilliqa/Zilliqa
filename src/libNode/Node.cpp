@@ -898,7 +898,7 @@ void Node::SubmitTransactions()
         if (findOneFromCreated(t))
         {
             if (m_mediator.m_validator->CheckCreatedTransaction(t)
-                || (t.GetCode().empty() && t.GetData().empty()))
+                || !t.GetCode().empty() || !t.GetData().empty())
             {
                 appendOne(t);
             }
@@ -906,7 +906,7 @@ void Node::SubmitTransactions()
         else if (findOneFromPrefilled(t))
         {
             if (m_mediator.m_validator->CheckCreatedTransaction(t)
-                || (t.GetCode().empty() && t.GetData().empty()))
+                || !t.GetCode().empty() || !t.GetData().empty())
             {
                 appendOne(t);
             }
