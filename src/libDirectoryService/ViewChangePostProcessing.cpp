@@ -54,10 +54,9 @@ void DirectoryService::DetermineShardsToSendVCBlockTo(
     //    DS cluster 1 => Shard (num of DS clusters + 1)
     LOG_MARKER();
 
-    unsigned int num_DS_clusters = m_mediator.m_DSCommitteeNetworkInfo.size()
-        / DS_MULTICAST_CLUSTER_SIZE;
-    if ((m_mediator.m_DSCommitteeNetworkInfo.size() % DS_MULTICAST_CLUSTER_SIZE)
-        > 0)
+    unsigned int num_DS_clusters
+        = m_mediator.m_DSCommittee.size() / DS_MULTICAST_CLUSTER_SIZE;
+    if ((m_mediator.m_DSCommittee.size() % DS_MULTICAST_CLUSTER_SIZE) > 0)
     {
         num_DS_clusters++;
     }
@@ -125,11 +124,11 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
     unsigned int count = 0;
 
     vector<PubKey> keys;
-    for (auto& kv : m_mediator.m_DSCommitteePubKeys)
+    for (auto const& kv : m_mediator.m_DSCommittee)
     {
         if (m_pendingVCBlock->GetB2().at(index) == true)
         {
-            keys.emplace_back(kv);
+            keys.emplace_back(kv.first);
             count++;
         }
         index++;
@@ -173,8 +172,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
     unsigned int offsetToCandidateLeader = 1;
 
     Peer expectedLeader;
-    if (m_mediator.m_DSCommitteeNetworkInfo.at(offsetToCandidateLeader)
-        == Peer())
+    if (m_mediator.m_DSCommittee.at(offsetToCandidateLeader).second == Peer())
     {
         // I am 0.0.0.0
         expectedLeader = m_mediator.m_selfPeer;
@@ -182,7 +180,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
     else
     {
         expectedLeader
-            = m_mediator.m_DSCommitteeNetworkInfo.at(offsetToCandidateLeader);
+            = m_mediator.m_DSCommittee.at(offsetToCandidateLeader).second;
     }
 
     if (expectedLeader == newLeaderNetworkInfo)
@@ -203,20 +201,10 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
         // Kick ousted leader to the back of the queue, waiting to be eject at
         // the next ds epoch
         {
-            lock(m_mediator.m_mutexDSCommitteeNetworkInfo,
-                 m_mediator.m_mutexDSCommitteePubKeys);
-            lock_guard<mutex> g2(m_mediator.m_mutexDSCommitteeNetworkInfo,
-                                 adopt_lock);
-            lock_guard<mutex> g3(m_mediator.m_mutexDSCommitteePubKeys,
-                                 adopt_lock);
-
-            m_mediator.m_DSCommitteeNetworkInfo.emplace_back(
-                m_mediator.m_DSCommitteeNetworkInfo.front());
-            m_mediator.m_DSCommitteeNetworkInfo.pop_front();
-
-            m_mediator.m_DSCommitteePubKeys.emplace_back(
-                m_mediator.m_DSCommitteePubKeys.front());
-            m_mediator.m_DSCommitteePubKeys.pop_front();
+            lock_guard<mutex> g2(m_mediator.m_mutexDSCommittee);
+            m_mediator.m_DSCommittee.emplace_back(
+                m_mediator.m_DSCommittee.front());
+            m_mediator.m_DSCommittee.pop_front();
         }
 
         unsigned int offsetTOustedDSLeader = 0;
@@ -225,8 +213,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
             // Now if I am the ousted leader, I will self-assinged myself to the last
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "I was a DS leader but I got ousted by the DS Committee");
-            offsetTOustedDSLeader
-                = m_mediator.m_DSCommitteeNetworkInfo.size() - 1;
+            offsetTOustedDSLeader = m_mediator.m_DSCommittee.size() - 1;
             m_consensusMyID = offsetTOustedDSLeader;
         }
         else
@@ -356,6 +343,42 @@ bool DirectoryService::ProcessViewChangeConsensus(
     // If COLLECTIVESIG also comes in, it's then possible COLLECTIVESIG will be processed before ANNOUNCE!
     // So, ANNOUNCE should acquire a lock here
 
+    std::unique_lock<mutex> cv_lk_con_msg(m_mutexProcessConsensusMessage);
+    if (cv_processConsensusMessage.wait_for(
+            cv_lk_con_msg,
+            std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW),
+            [this, message, offset]() -> bool {
+                lock_guard<mutex> g(m_mutexConsensus);
+                if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
+                {
+                    LOG_GENERAL(WARNING,
+                                "The node started the process of rejoining, "
+                                "Ignore rest of "
+                                "consensus msg.")
+                    return false;
+                }
+
+                if (m_consensusObject == nullptr)
+                {
+                    LOG_GENERAL(WARNING,
+                                "m_consensusObject is a nullptr. It has not "
+                                "been initialized.")
+                    return false;
+                }
+                return m_consensusObject->CanProcessMessage(message, offset);
+            }))
+    {
+        // Correct order preserved
+    }
+    else
+    {
+        LOG_GENERAL(WARNING,
+                    "Timeout while waiting for correct order of View Change "
+                    "Block consensus "
+                    "messages");
+        return false;
+    }
+
     lock_guard<mutex> g(m_mutexConsensus);
 
     std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeConsensusObj);
@@ -388,7 +411,7 @@ bool DirectoryService::ProcessViewChangeConsensus(
     bool result = m_consensusObject->ProcessMessage(message, offset, from);
     ConsensusCommon::State state = m_consensusObject->GetState();
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Consensus state = " << state);
+              "Consensus state = " << m_consensusObject->GetStateString());
 
     if (state == ConsensusCommon::State::DONE)
     {
@@ -407,6 +430,13 @@ bool DirectoryService::ProcessViewChangeConsensus(
         // throw exception();
         // TODO: no consensus reached
         return false;
+    }
+    else
+    {
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Consensus state = " << state);
+
+        cv_processConsensusMessage.notify_all();
     }
 
     return result;

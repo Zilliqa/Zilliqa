@@ -81,6 +81,11 @@ void Node::Install(unsigned int syncType, bool toRetrieveHistory)
     {
         if (StartRetrieveHistory())
         {
+            m_mediator.m_currentEpochNum
+                = (uint64_t)m_mediator.m_txBlockChain.GetLastBlock()
+                      .GetHeader()
+                      .GetBlockNum()
+                + 1;
             m_consensusID = 0;
             m_consensusLeaderID = 0;
             runInitializeGenesisBlocks = false;
@@ -121,12 +126,8 @@ void Node::Init()
     m_mediator.m_dsBlockChain.Reset();
     m_mediator.m_txBlockChain.Reset();
     {
-        std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommitteeNetworkInfo);
-        m_mediator.m_DSCommitteeNetworkInfo.clear();
-    }
-    {
-        std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommitteePubKeys);
-        m_mediator.m_DSCommitteePubKeys.clear();
+        std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
+        m_mediator.m_DSCommittee.clear();
     }
     m_committedTransactions.clear();
     AccountStore::GetInstance().Init();
@@ -139,7 +140,10 @@ void Node::Prepare(bool runInitializeGenesisBlocks)
 {
     LOG_MARKER();
     m_mediator.m_currentEpochNum
-        = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
+        = (uint64_t)m_mediator.m_txBlockChain.GetLastBlock()
+              .GetHeader()
+              .GetBlockNum()
+        + 1;
     m_mediator.UpdateDSBlockRand(runInitializeGenesisBlocks);
     m_mediator.UpdateTxBlockRand(runInitializeGenesisBlocks);
     SetState(POW1_SUBMISSION);
@@ -249,31 +253,6 @@ void Node::StartSynchronization()
 
 #endif //IS_LOOKUP_NODE
 
-string Node::NodeStateString(enum NodeState nodeState)
-{
-    switch (nodeState)
-    {
-    case POW1_SUBMISSION:
-        return "POW1_SUBMISSION";
-    case POW2_SUBMISSION:
-        return "POW2_SUBMISSION";
-    case TX_SUBMISSION:
-        return "TX_SUBMISSION";
-    case TX_SUBMISSION_BUFFER:
-        return "TX_SUBMISSION_BUFFER";
-    case MICROBLOCK_CONSENSUS_PREP:
-        return "MICROBLOCK_CONSENSUS_PREP";
-    case MICROBLOCK_CONSENSUS:
-        return "MICROBLOCK_CONSENSUS";
-    case WAITING_FINALBLOCK:
-        return "WAITING_FINALBLOCK";
-    case ERROR:
-        return "ERROR";
-    default:
-        return "Unknown Node State";
-    }
-}
-
 bool Node::compatibleState(enum NodeState state, enum Action action)
 {
     const static std::map<NodeState, Action> ACTION_FOR_STATE
@@ -321,7 +300,7 @@ bool Node::CheckState(Action action)
 
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Doing " << ActionString(action) << " but already in "
-                       << NodeStateString(m_state));
+                       << GetStateString());
 
     return false;
 }
@@ -607,7 +586,7 @@ bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
     }
 
     AccountStore::GetInstance().SerializeDelta();
-
+    cv_MicroBlockMissingTxn.notify_all();
     return true;
 }
 
@@ -817,7 +796,7 @@ void Node::SetState(NodeState state)
 {
     m_state = state;
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Node State is now " << m_state << " at epoch "
+              "Node State is now " << GetStateString() << " at epoch "
                                    << m_mediator.m_currentEpochNum);
 }
 
@@ -914,25 +893,19 @@ void Node::SubmitTransactions()
 
         if (findOneFromCreated(t))
         {
-            if (!m_mediator.m_validator->CheckCreatedTransaction(t))
+            if (m_mediator.m_validator->CheckCreatedTransaction(t)
+                || !t.GetCode().empty() || !t.GetData().empty())
             {
-                if (t.GetCode().empty() && t.GetData().empty())
-                {
-                    continue;
-                }
+                appendOne(t);
             }
-            appendOne(t);
         }
         else if (findOneFromPrefilled(t))
         {
-            if (!m_mediator.m_validator->CheckCreatedTransaction(t))
+            if (m_mediator.m_validator->CheckCreatedTransaction(t)
+                || !t.GetCode().empty() || !t.GetData().empty())
             {
-                if (t.GetCode().empty() && t.GetData().empty())
-                {
-                    continue;
-                }
+                appendOne(t);
             }
-            appendOne(t);
         }
         else
         {
@@ -992,7 +965,11 @@ bool Node::CleanVariables()
     m_tempStateDeltaCommitted = true;
     m_myShardID = 0;
 
-    m_consensusObject.reset();
+    {
+        std::lock_guard<mutex> lock(m_mutexConsensus);
+        m_consensusObject.reset();
+    }
+
     m_consensusBlockHash.clear();
     {
         std::lock_guard<mutex> lock(m_mutexMicroBlock);
@@ -1188,4 +1165,32 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
     }
 
     return result;
+}
+
+#define MAKE_LITERAL_PAIR(s)                                                   \
+    {                                                                          \
+        s, #s                                                                  \
+    }
+
+map<Node::NodeState, string> Node::NodeStateStrings
+    = {MAKE_LITERAL_PAIR(POW1_SUBMISSION),
+       MAKE_LITERAL_PAIR(POW2_SUBMISSION),
+       MAKE_LITERAL_PAIR(TX_SUBMISSION),
+       MAKE_LITERAL_PAIR(TX_SUBMISSION_BUFFER),
+       MAKE_LITERAL_PAIR(MICROBLOCK_CONSENSUS_PREP),
+       MAKE_LITERAL_PAIR(MICROBLOCK_CONSENSUS),
+       MAKE_LITERAL_PAIR(WAITING_FINALBLOCK),
+       MAKE_LITERAL_PAIR(ERROR),
+       MAKE_LITERAL_PAIR(SYNC)};
+
+string Node::GetStateString() const
+{
+    if (NodeStateStrings.find(m_state) == NodeStateStrings.end())
+    {
+        return "Unknown";
+    }
+    else
+    {
+        return NodeStateStrings.at(m_state);
+    }
 }

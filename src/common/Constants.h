@@ -97,9 +97,11 @@ const std::string DS_KICKOUT_MSG = "KICKED OUT FROM DS";
 const std::string DS_LEADER_MSG = "DS LEADER NOW";
 const std::string DS_BACKUP_MSG = "DS BACKUP NOW";
 
-extern const std::string SCILLA_PATH;
+extern const std::string SCILLA_ROOT;
+extern const std::string SCILLA_BINARY;
 extern const std::string SCILLA_FILES;
 extern const std::string SCILLA_LOG;
+extern const std::string SCILLA_LIB;
 extern const std::string INIT_JSON;
 extern const std::string INPUT_STATE_JSON;
 extern const std::string INPUT_BLOCKCHAIN_JSON;
@@ -126,6 +128,7 @@ extern const unsigned int VIEWCHANGE_EXTRA_TIME;
 extern const unsigned int SHARDING_TIMEOUT;
 extern const unsigned int CONSENSUS_MSG_ORDER_BLOCK_WINDOW;
 extern const unsigned int CONSENSUS_OBJECT_TIMEOUT;
+extern const unsigned int FETCHING_MISSING_TXNS_TIMEOUT;
 extern const unsigned int FINALBLOCK_CONSENSUS_OBJECT_TIMEOUT;
 extern const unsigned int NUM_FINAL_BLOCK_PER_POW;
 extern const unsigned int NUM_DS_KEEP_TX_BODY;
@@ -135,9 +138,6 @@ extern const unsigned int TX_SHARING_CLUSTER_SIZE;
 extern const unsigned int NEW_NODE_POW_DELAY;
 extern const unsigned int N_PREFILLED_PER_ACCOUNT;
 extern const unsigned int POST_VIEWCHANGE_BUFFER;
-extern const bool TEST_NET_MODE;
-extern const bool EXCLUDE_PRIV_IP;
-extern const bool ENABLE_DO_REJOIN;
 extern const unsigned int CONTRACT_CREATE_GAS;
 extern const unsigned int CONTRACT_INVOKE_GAS;
 extern const unsigned int NORMAL_TRAN_GAS;
@@ -148,6 +148,12 @@ extern const unsigned int TXN_BROADCAST;
 extern const unsigned int DEBUG_LEVEL;
 extern const unsigned int BROADCAST_INTERVAL;
 extern const unsigned int BROADCAST_EXPIRY;
+
+extern const bool TEST_NET_MODE;
+extern const bool EXCLUDE_PRIV_IP;
+extern const bool ENABLE_DO_REJOIN;
+extern const bool FULL_DATASET_MINE;
+
 extern const std::vector<std::string> GENESIS_WALLETS;
 extern const std::vector<std::string> GENESIS_KEYS;
 #endif // __CONSTANTS_H__

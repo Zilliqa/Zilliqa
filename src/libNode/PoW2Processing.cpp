@@ -102,8 +102,14 @@ void Node::SharePoW2WinningResultWithDS(
     }
     sign.Serialize(pow2message, cur_offset);
 
-    P2PComm::GetInstance().SendMessage(m_mediator.m_DSCommitteeNetworkInfo,
-                                       pow2message);
+    deque<Peer> peerList;
+
+    for (auto const& i : m_mediator.m_DSCommittee)
+    {
+        peerList.push_back(i.second);
+    }
+
+    P2PComm::GetInstance().SendMessage(peerList, pow2message);
 }
 
 void Node::StartPoW2MiningAndShareResultWithDS(
@@ -115,7 +121,7 @@ void Node::StartPoW2MiningAndShareResultWithDS(
 
     ethash_mining_result winning_result = POW::GetInstance().PoWMine(
         block_num, difficulty, rand1, rand2, m_mediator.m_selfPeer.m_ipAddress,
-        m_mediator.m_selfKey.second, false);
+        m_mediator.m_selfKey.second, FULL_DATASET_MINE);
 
     if (winning_result.success)
     {
