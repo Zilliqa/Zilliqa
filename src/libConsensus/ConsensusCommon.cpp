@@ -58,8 +58,7 @@ map<ConsensusCommon::ConsensusErrorCode, std::string>
 ConsensusCommon::ConsensusCommon(uint32_t consensus_id,
                                  const vector<unsigned char>& block_hash,
                                  uint16_t my_id, const PrivKey& privkey,
-                                 const deque<PubKey>& pubkeys,
-                                 const deque<Peer>& peer_info,
+                                 const deque<pair<PubKey, Peer>>& committee,
                                  unsigned char class_byte,
                                  unsigned char ins_byte)
     : m_consensusErrorCode(NO_ERROR)
@@ -67,11 +66,10 @@ ConsensusCommon::ConsensusCommon(uint32_t consensus_id,
     , m_blockHash(block_hash)
     , m_myID(my_id)
     , m_myPrivKey(privkey)
-    , m_pubKeys(pubkeys)
-    , m_peerInfo(peer_info)
+    , m_committee(committee)
     , m_classByte(class_byte)
     , m_insByte(ins_byte)
-    , m_responseMap(pubkeys.size(), false)
+    , m_responseMap(committee.size(), false)
 {
 }
 
@@ -83,8 +81,9 @@ Signature ConsensusCommon::SignMessage(const vector<unsigned char>& msg,
     LOG_MARKER();
 
     Signature signature;
-    bool result = Schnorr::GetInstance().Sign(msg, offset, size, m_myPrivKey,
-                                              m_pubKeys.at(m_myID), signature);
+    bool result
+        = Schnorr::GetInstance().Sign(msg, offset, size, m_myPrivKey,
+                                      m_committee.at(m_myID).first, signature);
     if (result == false)
     {
         return Signature();
@@ -98,15 +97,15 @@ bool ConsensusCommon::VerifyMessage(const vector<unsigned char>& msg,
 {
     LOG_MARKER();
     bool result = Schnorr::GetInstance().Verify(msg, offset, size, toverify,
-                                                m_pubKeys.at(peer_id));
+                                                m_committee.at(peer_id).first);
 
     if (result == false)
     {
         LOG_GENERAL(INFO,
                     "Peer id: " << peer_id << " pubkey: 0x"
                                 << DataConversion::SerializableToHexStr(
-                                       m_pubKeys.at(peer_id)));
-        LOG_GENERAL(INFO, "pubkeys size: " << m_pubKeys.size());
+                                       m_committee.at(peer_id).first));
+        LOG_GENERAL(INFO, "pubkeys size: " << m_committee.size());
     }
     return result;
 }
@@ -116,15 +115,14 @@ PubKey ConsensusCommon::AggregateKeys(const vector<bool> peer_map)
     LOG_MARKER();
 
     vector<PubKey> keys;
-    deque<PubKey>::const_iterator j = m_pubKeys.begin();
+    deque<pair<PubKey, Peer>>::const_iterator j = m_committee.begin();
     for (unsigned int i = 0; i < peer_map.size(); i++, j++)
     {
         if (peer_map.at(i) == true)
         {
-            keys.push_back(*j);
+            keys.push_back(j->first);
         }
     }
-
     shared_ptr<PubKey> result = MultiSig::AggregatePubKeys(keys);
     if (result == nullptr)
     {
