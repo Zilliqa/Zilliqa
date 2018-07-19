@@ -56,7 +56,7 @@ bool PeerManager::ProcessHello(const vector<unsigned char>& message,
                       message, offset + PUB_KEY_SIZE, sizeof(uint32_t)));
 
         PeerStore& ps = PeerStore::GetStore();
-        ps.AddPeer(key, peer);
+        ps.AddPeerPair(key, peer);
 
         LOG_GENERAL(INFO,
                     "Added peer with port " << peer.m_listenPortHost
@@ -97,7 +97,7 @@ bool PeerManager::ProcessAddPeer(const vector<unsigned char>& message,
                       sizeof(uint32_t)));
 
         PeerStore& ps = PeerStore::GetStore();
-        ps.AddPeer(key, peer);
+        ps.AddPeerPair(key, peer);
 
         LOG_GENERAL(INFO,
                     "Added peer with port " << peer.m_listenPortHost
@@ -151,7 +151,6 @@ bool PeerManager::ProcessPingAll(const vector<unsigned char>& message,
     ping_message.resize(ping_message.size() + message.size() - offset);
     copy(message.begin() + offset, message.end(),
          ping_message.begin() + MessageOffset::BODY);
-
     P2PComm::GetInstance().SendMessage(PeerStore::GetStore().GetAllPeers(),
                                        ping_message);
 
@@ -212,7 +211,7 @@ PeerManager::PeerManager(const std::pair<PrivKey, PubKey>& key,
                           v.second.get<unsigned int>("port"));
                 if (peer != m_selfPeer)
                 {
-                    ps.AddPeer(key, peer);
+                    ps.AddPeerPair(key, peer);
                     LOG_GENERAL(INFO,
                                 "Added peer with port "
                                     << peer.m_listenPortHost << " at address "
