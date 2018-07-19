@@ -97,9 +97,11 @@ const std::string DS_KICKOUT_MSG = "KICKED OUT FROM DS";
 const std::string DS_LEADER_MSG = "DS LEADER NOW";
 const std::string DS_BACKUP_MSG = "DS BACKUP NOW";
 
-extern const std::string SCILLA_PATH;
+extern const std::string SCILLA_ROOT;
+extern const std::string SCILLA_BINARY;
 extern const std::string SCILLA_FILES;
 extern const std::string SCILLA_LOG;
+extern const std::string SCILLA_LIB;
 extern const std::string INIT_JSON;
 extern const std::string INPUT_STATE_JSON;
 extern const std::string INPUT_BLOCKCHAIN_JSON;
