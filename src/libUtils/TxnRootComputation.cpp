@@ -100,6 +100,14 @@ ComputeTransactionsRoot(const std::list<Transaction>& receivedTransactions,
 }
 
 TxnHash ComputeTransactionsRoot(
+    const std::unordered_map<TxnHash, Transaction>& processedTransactions)
+{
+    LOG_MARKER();
+
+    return ConcatTranAndHash(processedTransactions);
+}
+
+TxnHash ComputeTransactionsRoot(
     const std::unordered_map<TxnHash, Transaction>& receivedTransactions,
     const std::unordered_map<TxnHash, Transaction>& submittedTransactions)
 {
