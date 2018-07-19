@@ -36,24 +36,10 @@ VCBlock VCBlockChain::GetBlock(const uint256_t& blockNum)
 {
     lock_guard<mutex> g(m_mutexVCBlocks);
 
-    if (blockNum >= m_vcBlocks.size())
+    if (m_vcBlocks[blockNum].GetHeader().GetViewChangeEpochNo() != blockNum)
     {
         throw "Blocknumber Absent";
     }
-    else if (blockNum + m_vcBlocks.capacity() < m_vcBlocks.size())
-    {
-        throw "vc block persistent storage not supported";
-        //DSBlockSharedPtr block;
-        //BlockStorage::GetBlockStorage().GetDSBlock(blockNum, block);
-        //return *block;
-    }
-
-    // To-do: We cannot even index into a vector using uint256_t
-    // uint256_t might just be too big to begin with
-    // Consider switching to uint64_t
-    // For now we directly cast to uint64_t
-
-    assert(m_vcBlocks[blockNum].GetHeader().GetBlockNum() == blockNum);
     return m_vcBlocks[blockNum];
 }
 
