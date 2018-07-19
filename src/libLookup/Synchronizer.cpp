@@ -52,8 +52,8 @@ DSBlock Synchronizer::ConstructGenesisDSBlock()
                    CoSignatures());
 }
 
-bool Synchronizer::AddGenesisDSBlockToBlockChain(
-    BlockChain<DSBlock>& dsBlockChain, const DSBlock& dsBlock)
+bool Synchronizer::AddGenesisDSBlockToBlockChain(DSBlockChain& dsBlockChain,
+                                                 const DSBlock& dsBlock)
 {
     dsBlockChain.AddBlock(dsBlock);
 
@@ -66,7 +66,7 @@ bool Synchronizer::AddGenesisDSBlockToBlockChain(
     return true;
 }
 
-bool Synchronizer::InitializeGenesisDSBlock(BlockChain<DSBlock>& dsBlockChain)
+bool Synchronizer::InitializeGenesisDSBlock(DSBlockChain& dsBlockChain)
 {
     DSBlock dsBlock = ConstructGenesisDSBlock();
     AddGenesisDSBlockToBlockChain(dsBlockChain, dsBlock);
@@ -94,8 +94,8 @@ TxBlock Synchronizer::ConstructGenesisTxBlock()
                    vector<uint32_t>(5), CoSignatures());
 }
 
-bool Synchronizer::AddGenesisTxBlockToBlockChain(
-    BlockChain<TxBlock>& txBlockChain, const TxBlock& txBlock)
+bool Synchronizer::AddGenesisTxBlockToBlockChain(TxBlockChain& txBlockChain,
+                                                 const TxBlock& txBlock)
 {
     txBlockChain.AddBlock(txBlock);
 
@@ -108,7 +108,7 @@ bool Synchronizer::AddGenesisTxBlockToBlockChain(
     return true;
 }
 
-bool Synchronizer::InitializeGenesisTxBlock(BlockChain<TxBlock>& txBlockChain)
+bool Synchronizer::InitializeGenesisTxBlock(TxBlockChain& txBlockChain)
 {
     TxBlock txBlock = ConstructGenesisTxBlock();
     AddGenesisTxBlockToBlockChain(txBlockChain, txBlock);
@@ -116,8 +116,8 @@ bool Synchronizer::InitializeGenesisTxBlock(BlockChain<TxBlock>& txBlockChain)
     return true;
 }
 
-bool Synchronizer::InitializeGenesisBlocks(BlockChain<DSBlock>& dsBlockChain,
-                                           BlockChain<TxBlock>& txBlockChain)
+bool Synchronizer::InitializeGenesisBlocks(DSBlockChain& dsBlockChain,
+                                           TxBlockChain& txBlockChain)
 {
     LOG_MARKER();
     InitializeGenesisDSBlock(dsBlockChain);

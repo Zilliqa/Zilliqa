@@ -25,18 +25,18 @@
 class Synchronizer
 {
     DSBlock ConstructGenesisDSBlock();
-    bool AddGenesisDSBlockToBlockChain(BlockChain<DSBlock>& dsBlockChain,
+    bool AddGenesisDSBlockToBlockChain(DSBlockChain& dsBlockChain,
                                        const DSBlock& dsBlock);
-    bool InitializeGenesisDSBlock(BlockChain<DSBlock>& dsBlockChain);
+    bool InitializeGenesisDSBlock(DSBlockChain& dsBlockChain);
 
     TxBlock ConstructGenesisTxBlock();
-    bool AddGenesisTxBlockToBlockChain(BlockChain<TxBlock>& txBlockChain,
+    bool AddGenesisTxBlockToBlockChain(TxBlockChain& txBlockChain,
                                        const TxBlock& txBlock);
-    bool InitializeGenesisTxBlock(BlockChain<TxBlock>& txBlockChain);
+    bool InitializeGenesisTxBlock(TxBlockChain& txBlockChain);
 
 public:
-    bool InitializeGenesisBlocks(BlockChain<DSBlock>& dsBlockChain,
-                                 BlockChain<TxBlock>& txBlockChain);
+    bool InitializeGenesisBlocks(DSBlockChain& dsBlockChain,
+                                 TxBlockChain& txBlockChain);
 #ifndef IS_LOOKUP_NODE
     bool FetchDSInfo(Lookup* lookup);
     bool
