@@ -274,7 +274,8 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin)
             //View change.
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Initiated DS block view change. ");
-            RunConsensusOnViewChange();
+            auto func = [this]() -> void { RunConsensusOnViewChange(); };
+            DetachedFunction(1, func);
         }
     }
 }
