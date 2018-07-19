@@ -112,7 +112,7 @@ public:
 
     void CommitTemp();
 
-    void InitTemp() { m_accountStoreTemp->Init(); }
+    void InitTemp();
 };
 
 #endif // __ACCOUNTSTORE_H__
