@@ -16,6 +16,10 @@
 #ifndef __NODE_H__
 #define __NODE_H__
 
+#include <boost/multi_index/hashed_index.hpp>
+#include <boost/multi_index/key_extractors.hpp>
+#include <boost/multi_index/sequenced_index.hpp>
+#include <boost/multi_index_container.hpp>
 #include <condition_variable>
 #include <deque>
 #include <list>
@@ -23,7 +27,6 @@
 #include <mutex>
 #include <shared_mutex>
 #include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 #include "common/Broadcastable.h"
@@ -43,6 +46,15 @@
 
 class Mediator;
 class Retriever;
+
+using namespace boost::multi_index;
+
+typedef multi_index_container<
+    Transaction,
+    indexed_by<sequenced<>,
+               hashed_unique<const_mem_fun<Transaction, const TxnHash&,
+                                           &Transaction::GetTranID>>>>
+    seq_ra_txns;
 
 /// Implements PoW submission and sharding node functionality.
 class Node : public Executable, public Broadcastable
@@ -150,7 +162,8 @@ class Node : public Executable, public Broadcastable
 
     // Transactions information
     std::mutex m_mutexCreatedTransactions;
-    std::list<Transaction> m_createdTransactions;
+    // std::list<Transaction> m_createdTransactions;
+    seq_ra_txns m_createdTransactions;
 
     vector<unsigned char> m_txMessage;
 
