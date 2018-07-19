@@ -871,7 +871,8 @@ void DirectoryService::RunConsensusOnFinalBlock()
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Initiated final block view change. ");
-        RunConsensusOnViewChange();
+        auto func = [this]() -> void { RunConsensusOnViewChange(); };
+        DetachedFunction(1, func);
     }
 }
 #endif // IS_LOOKUP_NODE
