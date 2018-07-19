@@ -28,8 +28,14 @@ template<class MAP> AccountStoreSC<MAP>::AccountStoreSC()
 
 template<class MAP> void AccountStoreSC<MAP>::Init()
 {
+    lock_guard<mutex> g(m_mutexUpdateAccounts);
     AccountStoreBase<MAP>::Init();
     m_curContractAddr.clear();
+    m_curSenderAddr.clear();
+    m_curAmount = 0;
+    m_curGasCum = 0;
+    m_curGasLimit = 0;
+    m_curGasPrice = 0;
 }
 
 template<class MAP>
