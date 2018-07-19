@@ -54,6 +54,8 @@ jobs:
     env: BUILD_COMMAND="./scripts/ci_make_image.sh"
     before_install: # left blank
     install: # left blank
+    - pip install --user awscli
+    - export PATH=$PATH:$HOME/.local/bin
     cache: # left blank
     script:
     - $BUILD_COMMAND

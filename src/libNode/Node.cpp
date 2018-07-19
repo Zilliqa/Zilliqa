@@ -126,12 +126,8 @@ void Node::Init()
     m_mediator.m_dsBlockChain.Reset();
     m_mediator.m_txBlockChain.Reset();
     {
-        std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommitteeNetworkInfo);
-        m_mediator.m_DSCommitteeNetworkInfo.clear();
-    }
-    {
-        std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommitteePubKeys);
-        m_mediator.m_DSCommitteePubKeys.clear();
+        std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
+        m_mediator.m_DSCommittee.clear();
     }
     m_committedTransactions.clear();
     AccountStore::GetInstance().Init();
@@ -924,6 +920,7 @@ void Node::SubmitTransactions()
     //     }
     //     txn_sent_count++;
     // }
+
 
     // if (txn_sent_count > 0)
     // {
