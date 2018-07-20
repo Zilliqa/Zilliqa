@@ -176,6 +176,44 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
 
     lock_guard<mutex> g(m_mutexConsensus);
 
+    // Consensus messages must be processed in correct sequence as they come in
+    // It is possible for ANNOUNCE to arrive before correct DS state
+    // In that case, state transition will occurs and ANNOUNCE will be processed.
+
+    if (m_state == MICROBLOCK_CONSENSUS_PREP)
+    {
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Received microblock announcement from shard leader. I "
+                  "will move on to consensus");
+        cv_microblockConsensus.notify_all();
+
+        std::unique_lock<std::mutex> cv_lk(m_MutexCVMicroblockConsensusObject);
+
+        if (cv_microblockConsensusObject.wait_for(
+                cv_lk, std::chrono::seconds(CONSENSUS_OBJECT_TIMEOUT),
+                [this] { return (m_state == MICROBLOCK_CONSENSUS); }))
+        {
+            // condition passed without timeout
+        }
+        else
+        {
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Time out while waiting for state transition and "
+                      "consensus object creation ");
+        }
+
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "State transition is completed and consensus object "
+                  "creation.");
+    }
+
+    if (!CheckState(PROCESS_MICROBLOCKCONSENSUS))
+    {
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Not in MICROBLOCK_CONSENSUS state");
+        return false;
+    }
+
     bool result = m_consensusObject->ProcessMessage(message, offset, from);
 
     ConsensusCommon::State state = m_consensusObject->GetState();
