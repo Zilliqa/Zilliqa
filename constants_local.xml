@@ -61,6 +61,9 @@
         <INPUT_CODE>input.scilla</INPUT_CODE>
     </smart_contract>
     <accounts>
+        <account>
+            <wallet_address>cc02a3c906612cc5bdb087a30e6093c9f0aa04fc</wallet_address>
+        </account>
     </accounts>
     <lookups>
         <peer>
