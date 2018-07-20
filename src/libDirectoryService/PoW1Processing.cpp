@@ -26,6 +26,7 @@
 #include "depends/libDatabase/MemoryDB.h"
 #include "depends/libTrie/TrieDB.h"
 #include "depends/libTrie/TrieHash.h"
+#include "depends/protobuf/PoW1.pb.h"
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
 #include "libNetwork/P2PComm.h"
@@ -37,6 +38,7 @@
 
 using namespace std;
 using namespace boost::multiprecision;
+using namespace ProtoMsg;
 
 #ifndef IS_LOOKUP_NODE
 bool DirectoryService::CheckWhetherMaxSubmissionsReceived(Peer peer, PubKey key)
@@ -64,32 +66,58 @@ bool DirectoryService::VerifyPoW1Submission(
     array<unsigned char, 32>& rand1, array<unsigned char, 32>& rand2,
     unsigned int& difficulty, uint256_t& block_num)
 {
+    PoW1 powTestMsg;
+
+    powTestMsg.ParseFromArray((void*)message.data(), message.size());
     // 8-byte nonce
-    nonce = Serializable::GetNumber<uint64_t>(message, curr_offset,
+    nonce = static_cast<uint64_t>(powTestMsg.nonce());
+
+    /*nonce = Serializable::GetNumber<uint64_t>(message, curr_offset,
                                               sizeof(uint64_t));
-    curr_offset += sizeof(uint64_t);
+    curr_offset += sizeof(uint64_t);*/
 
     // 32-byte resulting hash
-    string winning_hash = DataConversion::Uint8VecToHexStr(message, curr_offset,
+
+    vector<unsigned char> result_hash(powTestMsg.result_hash().begin(),
+                                      powTestMsg.result_hash().end());
+
+    string winning_hash
+        = DataConversion::Uint8VecToHexStr(result_hash, 0, BLOCK_HASH_SIZE);
+    /*string winning_hash = DataConversion::Uint8VecToHexStr(message, curr_offset,
                                                            BLOCK_HASH_SIZE);
-    curr_offset += BLOCK_HASH_SIZE;
+    curr_offset += BLOCK_HASH_SIZE;*/
 
     // 32-byte mixhash
-    string winning_mixhash = DataConversion::Uint8VecToHexStr(
+    vector<unsigned char> mixhash(powTestMsg.mixhash().begin(),
+                                  powTestMsg.mixhash().end());
+    string winning_mixhash
+        = DataConversion::Uint8VecToHexStr(mixhash, 0, BLOCK_HASH_SIZE);
+
+    /*string winning_mixhash = DataConversion::Uint8VecToHexStr(
         message, curr_offset, BLOCK_HASH_SIZE);
 
-    curr_offset += BLOCK_HASH_SIZE;
+    curr_offset += BLOCK_HASH_SIZE;*/
 
     //64-byte signature
-    Signature sign(message, curr_offset);
+    vector<unsigned char> signature(powTestMsg.signature().begin(),
+                                    powTestMsg.signature().end());
+    Signature sign(signature, 0);
 
-    if (!Schnorr::GetInstance().Verify(message, 0, curr_offset, sign, key))
+    /* if (!Schnorr::GetInstance().Verify(message, 0, message.size(), sign, key))
     {
         LOG_GENERAL(WARNING, "PoW1 submission signature wrong");
         return false;
-    }
+    }*/
 
-    curr_offset += SIGNATURE_CHALLENGE_SIZE + SIGNATURE_RESPONSE_SIZE;
+    // Signature sign(message, curr_offset);
+
+    /*if (!Schnorr::GetInstance().Verify(message, 0, curr_offset, sign, key))
+    {
+        LOG_GENERAL(WARNING, "PoW1 submission signature wrong");
+        return false;
+    }*/
+
+    //curr_offset += SIGNATURE_CHALLENGE_SIZE + SIGNATURE_RESPONSE_SIZE;
     // Log all values
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Winner Public_key             = 0x"
@@ -126,10 +154,21 @@ bool DirectoryService::ParseMessageAndVerifyPOW1(
 {
     unsigned int curr_offset = offset;
 
+    PoW1 powTestMsg;
+
     // 32-byte block number
-    uint256_t DSBlockNum = Serializable::GetNumber<uint256_t>(
+    if (!powTestMsg.ParseFromArray((void*)(message.data()), message.size()))
+    {
+        LOG_GENERAL(WARNING, "We can't parse message");
+        return false;
+    }
+
+    uint256_t DSBlockNum
+        = static_cast<uint256_t>((*powTestMsg.block_number().data()));
+
+    /*uint256_t DSBlockNum = Serializable::GetNumber<uint256_t>(
         message, curr_offset, UINT256_SIZE);
-    curr_offset += UINT256_SIZE;
+    curr_offset += UINT256_SIZE;*/
 
     // Check block number
     if (!CheckWhetherDSBlockIsFresh(DSBlockNum))
@@ -138,22 +177,33 @@ bool DirectoryService::ParseMessageAndVerifyPOW1(
     }
 
     // 4-byte listening port
-    uint32_t portNo = Serializable::GetNumber<uint32_t>(message, curr_offset,
-                                                        sizeof(uint32_t));
-    curr_offset += sizeof(uint32_t);
+    uint32_t portNo = static_cast<uint32_t>(powTestMsg.listening_port());
+
+    /*uint32_t portNo = Serializable::GetNumber<uint32_t>(message, curr_offset,
+                                                    sizeof(uint32_t));*/
+    //curr_offset += sizeof(uint32_t);
 
     uint128_t ipAddr = from.m_ipAddress;
     Peer peer(ipAddr, portNo);
 
     // 33-byte public key
-    // PubKey key(message, curr_offset);
+    vector<unsigned char> serialize_pub_key(powTestMsg.pub_key().begin(),
+                                            powTestMsg.pub_key().end());
+
     PubKey key;
+    if (key.Deserialize(serialize_pub_key, 0) != 0)
+    {
+        LOG_GENERAL(WARNING, "We failed to deserialize PubKey.");
+        return false;
+    }
+    // PubKey key(message, curr_offset);
+    /*PubKey key;
     if (key.Deserialize(message, curr_offset) != 0)
     {
         LOG_GENERAL(WARNING, "We failed to deserialize PubKey.");
         return false;
     }
-    curr_offset += PUB_KEY_SIZE;
+    curr_offset += PUB_KEY_SIZE;*/
 
     if (TEST_NET_MODE
         && not Whitelist::GetInstance().IsNodeInDSWhiteList(peer, key))
@@ -275,7 +325,15 @@ bool DirectoryService::ProcessPoW1Submission(
         return false;
     }
 
-    if (IsMessageSizeInappropriate(
+    PoW1 powTestMsg;
+    if (!powTestMsg.ParseFromArray((void*)message.data(), message.size())
+        && powTestMsg.block_number().size())
+    {
+        LOG_GENERAL(WARNING, "Pow1 message size Inappropriate ");
+        return false;
+    }
+
+    /*if (IsMessageSizeInappropriate(
             message.size(), offset,
             UINT256_SIZE + sizeof(uint32_t) + PUB_KEY_SIZE + sizeof(uint64_t)
                 + BLOCK_HASH_SIZE + BLOCK_HASH_SIZE + SIGNATURE_CHALLENGE_SIZE
@@ -283,9 +341,10 @@ bool DirectoryService::ProcessPoW1Submission(
     {
         LOG_GENERAL(WARNING, "Pow1 message size Inappropriate ");
         return false;
-    }
+    }*/
 
     bool result = ParseMessageAndVerifyPOW1(message, offset, from);
+
     return result;
 #else // IS_LOOKUP_NODE
     return true;

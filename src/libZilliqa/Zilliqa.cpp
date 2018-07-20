@@ -21,6 +21,7 @@
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
+#include "depends/protobuf/PoW1.pb.h"
 #include "libCrypto/Schnorr.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Address.h"
@@ -30,6 +31,7 @@
 
 using namespace std;
 using namespace jsonrpc;
+using namespace ProtoMsg;
 
 void Zilliqa::LogSelfNodeInfo(const std::pair<PrivKey, PubKey>& key,
                               const Peer& peer)
@@ -149,8 +151,35 @@ Zilliqa::~Zilliqa() {}
 void Zilliqa::Dispatch(const vector<unsigned char>& message, const Peer& from)
 {
     //LOG_MARKER();
+    PoW1 powTestMsg;
+    if (message.size() > 0
+        && powTestMsg.ParseFromArray((void*)(message.data()), message.size()))
+    {
+        const unsigned char msg_type = DSInstructionType::POW1SUBMISSION;
 
-    if (message.size() >= MessageOffset::BODY)
+        Executable* msg_handlers[] = {&m_pm, &m_ds, &m_n, &m_cu, &m_lookup};
+
+        const unsigned int msg_handlers_count
+            = sizeof(msg_handlers) / sizeof(Executable*);
+
+        if (msg_type < msg_handlers_count)
+        {
+            bool result = msg_handlers[msg_type]->Execute(message, 0, from);
+
+            if (result == false)
+            {
+                // To-do: Error recovery
+            }
+        }
+        else
+        {
+            LOG_GENERAL(WARNING,
+                        "Unknown message type " << std::hex
+                                                << (unsigned int)msg_type);
+        }
+    }
+
+    else if (message.size() >= MessageOffset::BODY)
     {
         const unsigned char msg_type = message.at(MessageOffset::TYPE);
 
