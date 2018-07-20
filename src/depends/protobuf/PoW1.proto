@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package ProtoMsg;
+
+message PoW1 {
+	bytes block_number	 	= 1;
+	uint32 listening_port 	= 2;
+	bytes pub_key 			= 3;
+	uint64 nonce 			= 4;
+	bytes result_hash 		= 5;
+	bytes mixhash 			= 6;
+	bytes signature 		= 7;
+}
