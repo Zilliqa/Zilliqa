@@ -894,25 +894,19 @@ void Node::SubmitTransactions()
 
         if (findOneFromCreated(t))
         {
-            if (!m_mediator.m_validator->CheckCreatedTransaction(t))
+            if (m_mediator.m_validator->CheckCreatedTransaction(t)
+                || !t.GetCode().empty() || !t.GetData().empty())
             {
-                if (t.GetCode().empty() && t.GetData().empty())
-                {
-                    continue;
-                }
+                appendOne(t);
             }
-            appendOne(t);
         }
         else if (findOneFromPrefilled(t))
         {
-            if (!m_mediator.m_validator->CheckCreatedTransaction(t))
+            if (m_mediator.m_validator->CheckCreatedTransaction(t)
+                || !t.GetCode().empty() || !t.GetData().empty())
             {
-                if (t.GetCode().empty() && t.GetData().empty())
-                {
-                    continue;
-                }
+                appendOne(t);
             }
-            appendOne(t);
         }
         else
         {
@@ -972,7 +966,11 @@ bool Node::CleanVariables()
     m_tempStateDeltaCommitted = true;
     m_myShardID = 0;
 
-    m_consensusObject.reset();
+    {
+        std::lock_guard<mutex> lock(m_mutexConsensus);
+        m_consensusObject.reset();
+    }
+
     m_consensusBlockHash.clear();
     {
         std::lock_guard<mutex> lock(m_mutexMicroBlock);
