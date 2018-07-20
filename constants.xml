@@ -37,7 +37,7 @@
         <COINBASE_REWARD>100</COINBASE_REWARD>
         <TXN_SUBMISSION>5</TXN_SUBMISSION>
         <TXN_BROADCAST>10</TXN_BROADCAST>
-        <DEBUG_LEVEL>3</DEBUG_LEVEL>        
+        <DEBUG_LEVEL>3</DEBUG_LEVEL>
         <BROADCAST_INTERVAL>60</BROADCAST_INTERVAL>
         <BROADCAST_EXPIRY>600</BROADCAST_EXPIRY>
     </constants>
@@ -49,7 +49,7 @@
     </options>
     <smart_contract>
         <SCILLA_ROOT></SCILLA_ROOT>
-        <SCILLA_BINARY>bin/scilla-runner</SCILLA_BINARY>>
+        <SCILLA_BINARY>bin/scilla-runner</SCILLA_BINARY>
         <SCILLA_FILES>scilla_files</SCILLA_FILES>
         <SCILLA_LOG>_build</SCILLA_LOG>
         <SCILLA_LIB>src/stdlib</SCILLA_LIB>
