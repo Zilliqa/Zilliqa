@@ -29,6 +29,7 @@
 #include "depends/libDatabase/MemoryDB.h"
 #include "depends/libTrie/TrieDB.h"
 #include "depends/libTrie/TrieHash.h"
+#include "depends/protobuf/PoW1.pb.h"
 #include "libConsensus/ConsensusUser.h"
 #include "libCrypto/Schnorr.h"
 #include "libCrypto/Sha2.h"
@@ -46,6 +47,7 @@
 
 using namespace std;
 using namespace boost::multiprecision;
+using namespace ProtoMsg;
 
 #ifndef IS_LOOKUP_NODE
 bool Node::StartPoW1(const uint256_t& block_num, uint8_t difficulty,
@@ -83,22 +85,38 @@ bool Node::StartPoW1(const uint256_t& block_num, uint8_t difficulty,
             = DataConversion::HexStrToUint8Vec(winning_result.result);
         vector<unsigned char> mixhash_vec
             = DataConversion::HexStrToUint8Vec(winning_result.mix_hash);
-
         // Send PoW1 result
         // Message = [32-byte block number] [4-byte listening port] [33-byte public key]
         // [8-byte nonce] [32-byte resulting hash] [32-byte mixhash] [64-byte Signature]
+        GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+        PoW1 powTestMsg;
+
         vector<unsigned char> pow1message
             = {MessageType::DIRECTORY, DSInstructionType::POW1SUBMISSION};
         unsigned int cur_offset = MessageOffset::BODY;
+
+        powTestMsg.set_block_number(static_cast<void*>(pow1message.data()),
+                                    UINT256_SIZE);
 
         Serializable::SetNumber<uint256_t>(pow1message, cur_offset, block_num,
                                            UINT256_SIZE);
         cur_offset += UINT256_SIZE;
 
+        powTestMsg.set_listening_port(m_mediator.m_selfPeer.m_listenPortHost);
+
         Serializable::SetNumber<uint32_t>(
             pow1message, cur_offset, m_mediator.m_selfPeer.m_listenPortHost,
             sizeof(uint32_t));
         cur_offset += sizeof(uint32_t);
+
+        vector<unsigned char> pub_key;
+        m_mediator.m_selfKey.second.Serialize(pub_key, pub_key.size());
+
+        powTestMsg.set_pub_key(static_cast<void*>(pub_key.data()),
+                               PUB_KEY_SIZE);
+
+        powTestMsg.set_nonce(winning_result.winning_nonce);
 
         m_mediator.m_selfKey.second.Serialize(pow1message, cur_offset);
         cur_offset += PUB_KEY_SIZE;
@@ -108,9 +126,16 @@ bool Node::StartPoW1(const uint256_t& block_num, uint8_t difficulty,
                                           sizeof(uint64_t));
         cur_offset += sizeof(uint64_t);
 
+        powTestMsg.set_result_hash(static_cast<void*>(result_vec.data()),
+                                   result_vec.size());
+
         pow1message.insert(pow1message.end(), result_vec.begin(),
                            result_vec.end());
         cur_offset += BLOCK_HASH_SIZE;
+
+        powTestMsg.set_mixhash(static_cast<void*>(mixhash_vec.data()),
+                               mixhash_vec.size());
+
         pow1message.insert(pow1message.end(), mixhash_vec.begin(),
                            mixhash_vec.end());
         cur_offset += BLOCK_HASH_SIZE;
@@ -122,16 +147,24 @@ bool Node::StartPoW1(const uint256_t& block_num, uint8_t difficulty,
         {
             LOG_GENERAL(WARNING, "Failed to sign PoW1");
         }
+
+        vector<unsigned char> signature;
+        sign.Serialize(signature, signature.size());
+        powTestMsg.set_signature(static_cast<void*>(signature.data()),
+                                 signature.size());
+
+        unsigned char* serialized
+            = (unsigned char*)malloc(powTestMsg.ByteSizeLong());
+
+        powTestMsg.SerializeToArray((void*)serialized,
+                                    powTestMsg.ByteSizeLong());
+        vector<unsigned char> serialized_msg(
+            serialized, serialized + powTestMsg.ByteSizeLong());
+        free(serialized);
         sign.Serialize(pow1message, cur_offset);
 
-        deque<Peer> peerList;
-
-        for (auto const& i : m_mediator.m_DSCommittee)
-        {
-            peerList.push_back(i.second);
-        }
-
-        P2PComm::GetInstance().SendMessage(peerList, pow1message);
+        P2PComm::GetInstance().SendMessage(m_mediator.m_DSCommitteeNetworkInfo,
+                                           serialized_msg);
     }
 
     SetState(POW2_SUBMISSION);
@@ -143,6 +176,7 @@ bool Node::ReadVariablesFromStartPoW1Message(
     uint256_t& block_num, uint8_t& difficulty, array<unsigned char, 32>& rand1,
     array<unsigned char, 32>& rand2)
 {
+
     if (IsMessageSizeInappropriate(message.size(), cur_offset,
                                    UINT256_SIZE + sizeof(uint8_t) + UINT256_SIZE
                                        + UINT256_SIZE,
@@ -151,7 +185,6 @@ bool Node::ReadVariablesFromStartPoW1Message(
         return false;
     }
 
-    // 32-byte block num
     block_num
         = Serializable::GetNumber<uint256_t>(message, cur_offset, UINT256_SIZE);
     cur_offset += UINT256_SIZE;
@@ -185,25 +218,26 @@ bool Node::ReadVariablesFromStartPoW1Message(
     // DS nodes ip addr and port
     const unsigned int numDS
         = (message.size() - cur_offset) / (PUB_KEY_SIZE + IP_SIZE + PORT_SIZE);
-
     // Create and keep a view of the DS committee
     // We'll need this if we win PoW1
-    m_mediator.m_DSCommittee.clear();
+    m_mediator.m_DSCommitteeNetworkInfo.clear();
+    m_mediator.m_DSCommitteePubKeys.clear();
+
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "DS nodes count    = " << numDS);
     for (unsigned int i = 0; i < numDS; i++)
     {
-        PubKey pubkey(message, cur_offset);
+        m_mediator.m_DSCommitteePubKeys.push_back(PubKey(message, cur_offset));
         cur_offset += PUB_KEY_SIZE;
 
-        m_mediator.m_DSCommittee.push_back(
-            make_pair(pubkey, Peer(message, cur_offset)));
+        m_mediator.m_DSCommitteeNetworkInfo.push_back(
+            Peer(message, cur_offset));
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "DS Node IP: " << m_mediator.m_DSCommittee.back()
-                                        .second.GetPrintableIPAddress()
+                  "DS Node IP: " << m_mediator.m_DSCommitteeNetworkInfo.back()
+                                        .GetPrintableIPAddress()
                                  << " Port: "
-                                 << m_mediator.m_DSCommittee.back()
-                                        .second.m_listenPortHost);
+                                 << m_mediator.m_DSCommitteeNetworkInfo.back()
+                                        .m_listenPortHost);
         cur_offset += IP_SIZE + PORT_SIZE;
     }
 

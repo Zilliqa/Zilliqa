@@ -26,6 +26,7 @@
 #include "depends/libDatabase/MemoryDB.h"
 #include "depends/libTrie/TrieDB.h"
 #include "depends/libTrie/TrieHash.h"
+#include "depends/protobuf/PoW1.pb.h"
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
 #include "libNetwork/P2PComm.h"
@@ -38,6 +39,7 @@
 
 using namespace std;
 using namespace boost::multiprecision;
+using namespace ProtoMsg;
 
 DirectoryService::DirectoryService(Mediator& mediator)
     : m_mediator(mediator)
@@ -863,49 +865,69 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
     {
 
         PeerStore& dsstore = PeerStore::GetStore();
-        dsstore.AddPeerPair(
+        dsstore.AddPeer(
             m_mediator.m_selfKey.second,
             m_mediator.m_selfPeer); // Add myself, but with dummy IP info
-        vector<pair<PubKey, Peer>> ds = dsstore.GetAllPeerPairs();
-        m_mediator.m_DSCommittee.resize(ds.size());
-        copy(ds.begin(), ds.end(), m_mediator.m_DSCommittee.begin());
+
+        vector<PubKey> dsPub = dsstore.GetAllKeys();
+        m_mediator.m_DSCommitteePubKeys.resize(dsPub.size());
+        copy(dsPub.begin(), dsPub.end(),
+             m_mediator.m_DSCommitteePubKeys
+                 .begin()); // These are the sorted PubKeys
+
+        vector<Peer> dsPeer = dsstore.GetAllPeers();
+        m_mediator.m_DSCommitteeNetworkInfo.resize(dsPeer.size());
+        copy(dsPeer.begin(), dsPeer.end(),
+             m_mediator.m_DSCommitteeNetworkInfo
+                 .begin()); // This will be sorted by PubKey
+
         // Message = [numDSPeers][DSPeer][DSPeer]... numDSPeers times
         vector<unsigned char> setDSBootstrapNodeMessage
             = {MessageType::LOOKUP, LookupInstructionType::SETDSINFOFROMSEED};
         unsigned int curr_offset = MessageOffset::BODY;
 
         Serializable::SetNumber<uint32_t>(setDSBootstrapNodeMessage,
-                                          curr_offset, ds.size(),
+                                          curr_offset, dsPeer.size(),
                                           sizeof(uint32_t));
         curr_offset += sizeof(uint32_t);
 
-        for (unsigned int i = 0; i < ds.size(); i++)
+        for (unsigned int i = 0; i < dsPeer.size(); i++)
         {
             // PubKey
-            curr_offset += ds.at(i).first.Serialize(setDSBootstrapNodeMessage,
-                                                    curr_offset);
+            curr_offset += dsPub.at(i).Serialize(setDSBootstrapNodeMessage,
+                                                 curr_offset);
             // Peer
-            curr_offset += ds.at(i).second.Serialize(setDSBootstrapNodeMessage,
-                                                     curr_offset);
+            curr_offset += dsPeer.at(i).Serialize(setDSBootstrapNodeMessage,
+                                                  curr_offset);
         }
         m_mediator.m_lookup->SendMessageToLookupNodes(
             setDSBootstrapNodeMessage);
     }
 
     PeerStore& peerstore = PeerStore::GetStore();
-    peerstore.AddPeerPair(m_mediator.m_selfKey.second,
-                          Peer()); // Add myself, but with dummy IP info
+    peerstore.AddPeer(m_mediator.m_selfKey.second,
+                      Peer()); // Add myself, but with dummy IP info
 
-    vector<pair<PubKey, Peer>> tmp1 = peerstore.GetAllPeerPairs();
-    m_mediator.m_DSCommittee.resize(tmp1.size());
-    copy(tmp1.begin(), tmp1.end(), m_mediator.m_DSCommittee.begin());
+    vector<Peer> tmp1 = peerstore.GetAllPeers();
+    m_mediator.m_DSCommitteeNetworkInfo.resize(tmp1.size());
+    copy(tmp1.begin(), tmp1.end(),
+         m_mediator.m_DSCommitteeNetworkInfo
+             .begin()); // This will be sorted by PubKey
+
+    vector<PubKey> tmp2 = peerstore.GetAllKeys();
+    m_mediator.m_DSCommitteePubKeys.resize(tmp2.size());
+    copy(tmp2.begin(), tmp2.end(),
+         m_mediator.m_DSCommitteePubKeys
+             .begin()); // These are the sorted PubKeys
+
     peerstore.RemovePeer(m_mediator.m_selfKey.second); // Remove myself
 
     // Now I need to find my index in the sorted list (this will be my ID for the consensus)
     m_consensusMyID = 0;
-    for (auto const& i : m_mediator.m_DSCommittee)
+    for (auto i = m_mediator.m_DSCommitteePubKeys.begin();
+         i != m_mediator.m_DSCommitteePubKeys.end(); i++)
     {
-        if (i.first == m_mediator.m_selfKey.second)
+        if (*i == m_mediator.m_selfKey.second)
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "My node ID for this PoW1 consensus is "
@@ -1003,8 +1025,8 @@ void DirectoryService::RequestAllPoWConn()
                                       sizeof(uint32_t));
     cur_offset += sizeof(uint32_t);
 
-    P2PComm::GetInstance().SendMessage(m_mediator.m_DSCommittee.front().second,
-                                       requestAllPoWConnMsg);
+    P2PComm::GetInstance().SendMessage(
+        m_mediator.m_DSCommitteeNetworkInfo.front(), requestAllPoWConnMsg);
 
     // TODO: Request from a total of 20 ds members
 }
@@ -1138,8 +1160,9 @@ void DirectoryService::LastDSBlockRequest()
                                       sizeof(uint32_t));
     cur_offset += sizeof(uint32_t);
 
-    P2PComm::GetInstance().SendMessage(m_mediator.m_DSCommittee.front().second,
-                                       requestAllPoWConnMsg);
+    P2PComm::GetInstance().SendMessage(
+        m_mediator.m_DSCommitteeNetworkInfo.front(), requestAllPoWConnMsg);
+
     // TODO: Request from a total of 20 ds members
 }
 
@@ -1240,12 +1263,7 @@ bool DirectoryService::CleanVariables()
     m_shards.clear();
     m_publicKeyToShardIdMap.clear();
     m_allPoWConns.clear();
-
-    {
-        std::lock_guard<mutex> lock(m_mutexConsensus);
-        m_consensusObject.reset();
-    }
-
+    m_consensusObject.reset();
     m_consensusBlockHash.clear();
     {
         std::lock_guard<mutex> lock(m_mutexPendingDSBlock);
@@ -1297,14 +1315,15 @@ bool DirectoryService::FinishRejoinAsDS()
 
     m_consensusMyID = 0;
     {
-        std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
-        LOG_GENERAL(
-            INFO,
-            "m_DSCommitteePubKeys size: " << m_mediator.m_DSCommittee.size());
-        for (auto const& i : m_mediator.m_DSCommittee)
+        std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommitteePubKeys);
+        LOG_GENERAL(INFO,
+                    "m_DSCommitteePubKeys size: "
+                        << m_mediator.m_DSCommitteePubKeys.size());
+        for (auto i = m_mediator.m_DSCommitteePubKeys.begin();
+             i != m_mediator.m_DSCommitteePubKeys.end(); i++)
         {
             LOG_GENERAL(INFO, "Loop of m_DSCommitteePubKeys");
-            if (i.first == m_mediator.m_selfKey.second)
+            if (*i == m_mediator.m_selfKey.second)
             {
                 LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                           "My node ID for this PoW1 consensus is "
@@ -1335,6 +1354,7 @@ bool DirectoryService::Execute(const vector<unsigned char>& message,
                                unsigned int offset, const Peer& from)
 {
     //LOG_MARKER();
+    PoW1 powTestMsg;
 
     bool result = false;
 
@@ -1368,7 +1388,16 @@ bool DirectoryService::Execute(const vector<unsigned char>& message,
            &DirectoryService::ProcessAllPoWConnResponse};
 #endif // IS_LOOKUP_NODE
 
-    const unsigned char ins_byte = message.at(offset);
+    unsigned char ins_byte;
+
+    if (powTestMsg.ParseFromArray((void*)message.data(), message.size()))
+    {
+        ins_byte = DSInstructionType::POW1SUBMISSION;
+    }
+    else
+    {
+        ins_byte = message.at(offset);
+    }
 
     const unsigned int ins_handlers_count
         = sizeof(ins_handlers) / sizeof(InstructionHandler);
