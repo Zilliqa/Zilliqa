@@ -488,56 +488,56 @@ vector<Transaction> GenTransactionBulk(PrivKey& fromPrivKey, PubKey& fromPubKey,
 bool Node::ProcessCreateTransaction(const vector<unsigned char>& message,
                                     unsigned int offset, const Peer& from)
 {
-#ifndef IS_LOOKUP_NODE
-    LOG_MARKER();
+    // #ifndef IS_LOOKUP_NODE
+    //     LOG_MARKER();
 
-    // vector<Transaction> txnToCreate;
-    size_t nTxnPerAccount{N_PREFILLED_PER_ACCOUNT};
-    // size_t nTxnDelta{MAXSUBMITTXNPERNODE};
+    //     // vector<Transaction> txnToCreate;
+    //     size_t nTxnPerAccount{N_PREFILLED_PER_ACCOUNT};
+    //     // size_t nTxnDelta{MAXSUBMITTXNPERNODE};
 
-    // if (not GetOneGoodKeyPair(senderPrivKey, senderPubKey, m_myShardID,
-    // m_numShards))
-    // {
-    // LOG_GENERAL(
-    // "No proper genesis account, cannot send testing transactions");
-    // return false;
-    // }
+    //     // if (not GetOneGoodKeyPair(senderPrivKey, senderPubKey, m_myShardID,
+    //     // m_numShards))
+    //     // {
+    //     // LOG_GENERAL(
+    //     // "No proper genesis account, cannot send testing transactions");
+    //     // return false;
+    //     // }
 
-    // for (auto nTxn = 0u; nTxn < nTxnPerAccount; nTxn += nTxnDelta)
-    // {
-    unsigned int count = 0;
-    for (auto& privKeyHexStr : GENESIS_KEYS)
-    {
-        auto privKeyBytes{DataConversion::HexStrToUint8Vec(privKeyHexStr)};
-        auto privKey = PrivKey{privKeyBytes, 0};
-        auto pubKey = PubKey{privKey};
-        auto addr = Account::GetAddressFromPublicKey(pubKey);
-        auto txns = GenTransactionBulk(privKey, pubKey, nTxnPerAccount);
-        m_nRemainingPrefilledTxns += txns.size();
-        {
-            lock_guard<mutex> lg{m_mutexPrefilledTxns};
-            auto& txnsDst = m_prefilledTxns[addr];
-            txnsDst.insert(txnsDst.end(), txns.begin(), txns.end());
-        }
-        count++;
-        if (count == 1)
-            break;
-    }
-    // LOG_GENERAL("prefilled " << (nTxn + nTxnDelta) * GENESIS_KEYS.size()
-    // << " txns");
+    //     // for (auto nTxn = 0u; nTxn < nTxnPerAccount; nTxn += nTxnDelta)
+    //     // {
+    //     unsigned int count = 0;
+    //     for (auto& privKeyHexStr : GENESIS_KEYS)
+    //     {
+    //         auto privKeyBytes{DataConversion::HexStrToUint8Vec(privKeyHexStr)};
+    //         auto privKey = PrivKey{privKeyBytes, 0};
+    //         auto pubKey = PubKey{privKey};
+    //         auto addr = Account::GetAddressFromPublicKey(pubKey);
+    //         auto txns = GenTransactionBulk(privKey, pubKey, nTxnPerAccount);
+    //         m_nRemainingPrefilledTxns += txns.size();
+    //         {
+    //             lock_guard<mutex> lg{m_mutexPrefilledTxns};
+    //             auto& txnsDst = m_prefilledTxns[addr];
+    //             txnsDst.insert(txnsDst.end(), txns.begin(), txns.end());
+    //         }
+    //         count++;
+    //         if (count == 1)
+    //             break;
+    //     }
+    //     // LOG_GENERAL("prefilled " << (nTxn + nTxnDelta) * GENESIS_KEYS.size()
+    //     // << " txns");
 
-    // {
-    // lock_guard<mutex> g(m_mutexCreatedTransactions);
-    // m_createdTransactions.insert(m_createdTransactions.end(),
-    // txnToCreate.begin(), txnToCreate.end());
-    // }
+    //     // {
+    //     // lock_guard<mutex> g(m_mutexCreatedTransactions);
+    //     // m_createdTransactions.insert(m_createdTransactions.end(),
+    //     // txnToCreate.begin(), txnToCreate.end());
+    //     // }
 
-    LOG_GENERAL(INFO,
-                "Finished prefilling " << nTxnPerAccount * GENESIS_KEYS.size()
-                                       << " transactions");
+    //     LOG_GENERAL(INFO,
+    //                 "Finished prefilling " << nTxnPerAccount * GENESIS_KEYS.size()
+    //                                        << " transactions");
 
-    return true;
-#endif // IS_LOOKUP_NODE
+    //     return true;
+    // #endif // IS_LOOKUP_NODE
     return true;
 }
 

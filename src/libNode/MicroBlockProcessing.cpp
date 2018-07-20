@@ -488,26 +488,26 @@ void Node::ProcessTransactionWhenShardLeader()
         return true;
     };
 
-    auto findOneFromPrefilled = [this](Transaction& t) -> bool {
-        lock_guard<mutex> g{m_mutexPrefilledTxns};
+    // auto findOneFromPrefilled = [this](Transaction& t) -> bool {
+    //     lock_guard<mutex> g{m_mutexPrefilledTxns};
 
-        for (auto& txns : m_prefilledTxns)
-        {
-            auto& txnsList = txns.second;
-            if (txnsList.empty())
-            {
-                continue;
-            }
+    //     for (auto& txns : m_prefilledTxns)
+    //     {
+    //         auto& txnsList = txns.second;
+    //         if (txnsList.empty())
+    //         {
+    //             continue;
+    //         }
 
-            t = move(txnsList.front());
-            txnsList.pop_front();
-            m_nRemainingPrefilledTxns--;
+    //         t = move(txnsList.front());
+    //         txnsList.pop_front();
+    //         m_nRemainingPrefilledTxns--;
 
-            return true;
-        }
+    //         return true;
+    //     }
 
-        return false;
-    };
+    //     return false;
+    // };
 
     while (txn_sent_count
            < MAXSUBMITTXNPERNODE * m_myShardMembersPubKeys.size())
@@ -518,10 +518,10 @@ void Node::ProcessTransactionWhenShardLeader()
         {
             curTxns.emplace_back(t);
         }
-        else if (findOneFromPrefilled(t))
-        {
-            curTxns.emplace_back(t);
-        }
+        // else if (findOneFromPrefilled(t))
+        // {
+        //     curTxns.emplace_back(t);
+        // }
         else
         {
             break;
@@ -850,35 +850,35 @@ bool Node::ProcessTransactionWhenShardBackup(const vector<TxnHash>& tranHashes,
         return true;
     };
 
-    auto findFromPrefilled = [this](Transaction& t, const TxnHash& th) -> bool {
-        lock_guard<mutex> g{m_mutexPrefilledTxns};
+    // auto findFromPrefilled = [this](Transaction& t, const TxnHash& th) -> bool {
+    //     lock_guard<mutex> g{m_mutexPrefilledTxns};
 
-        for (auto& txns : m_prefilledTxns)
-        {
-            auto& txnsList = txns.second;
-            if (txnsList.empty())
-            {
-                continue;
-            }
+    //     for (auto& txns : m_prefilledTxns)
+    //     {
+    //         auto& txnsList = txns.second;
+    //         if (txnsList.empty())
+    //         {
+    //             continue;
+    //         }
 
-            auto it = find_if(
-                begin(txnsList), end(txnsList),
-                [&th](const Transaction& t) { return t.GetTranID() == th; });
+    //         auto it = find_if(
+    //             begin(txnsList), end(txnsList),
+    //             [&th](const Transaction& t) { return t.GetTranID() == th; });
 
-            if (txnsList.end() == it)
-            {
-                continue;
-            }
+    //         if (txnsList.end() == it)
+    //         {
+    //             continue;
+    //         }
 
-            t = move(*it);
-            txnsList.erase(it);
-            m_nRemainingPrefilledTxns--;
+    //         t = move(*it);
+    //         txnsList.erase(it);
+    //         m_nRemainingPrefilledTxns--;
 
-            return true;
-        }
+    //         return true;
+    //     }
 
-        return false;
-    };
+    //     return false;
+    // };
 
     std::list<Transaction> curTxns;
 
@@ -890,10 +890,10 @@ bool Node::ProcessTransactionWhenShardBackup(const vector<TxnHash>& tranHashes,
         {
             curTxns.emplace_back(t);
         }
-        else if (findFromPrefilled(t, tranHash))
-        {
-            curTxns.emplace_back(t);
-        }
+        // else if (findFromPrefilled(t, tranHash))
+        // {
+        //     curTxns.emplace_back(t);
+        // }
         else
         {
             missingtranHashes.emplace_back(tranHash);
