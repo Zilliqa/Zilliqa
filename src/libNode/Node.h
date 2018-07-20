@@ -47,13 +47,12 @@
 class Mediator;
 class Retriever;
 
-using namespace boost::multi_index;
-
-typedef multi_index_container<
+typedef boost::multi_index::multi_index_container<
     Transaction,
-    indexed_by<sequenced<>,
-               hashed_unique<const_mem_fun<Transaction, const TxnHash&,
-                                           &Transaction::GetTranID>>>>
+    boost::multi_index::indexed_by<
+        boost::multi_index::sequenced<>,
+        boost::multi_index::hashed_unique<boost::multi_index::const_mem_fun<
+            Transaction, const TxnHash&, &Transaction::GetTranID>>>>
     seq_ra_txns;
 
 /// Implements PoW submission and sharding node functionality.
@@ -162,7 +161,6 @@ class Node : public Executable, public Broadcastable
 
     // Transactions information
     std::mutex m_mutexCreatedTransactions;
-    // std::list<Transaction> m_createdTransactions;
     seq_ra_txns m_createdTransactions;
 
     vector<unsigned char> m_txMessage;
