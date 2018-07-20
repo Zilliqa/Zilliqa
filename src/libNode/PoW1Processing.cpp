@@ -177,9 +177,6 @@ bool Node::ReadVariablesFromStartPoW1Message(
     array<unsigned char, 32>& rand2)
 {
 
-    ofstream ofs("2.txt");
-    ofs.write((const char*)(message.data()), message.size());
-    ofs.close();
     if (IsMessageSizeInappropriate(message.size(), cur_offset,
                                    UINT256_SIZE + sizeof(uint8_t) + UINT256_SIZE
                                        + UINT256_SIZE,
