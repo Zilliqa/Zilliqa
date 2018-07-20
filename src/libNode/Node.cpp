@@ -921,7 +921,6 @@ void Node::SubmitTransactions()
     //     txn_sent_count++;
     // }
 
-
     // if (txn_sent_count > 0)
     // {
     //     LOG_GENERAL(INFO, "Broadcast my txns to other shard members");
