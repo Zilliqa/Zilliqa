@@ -961,22 +961,6 @@ void Node::UpdateStateForNextConsensusRound()
               "[No PoW needed] MS: Start submit txn stage again.");
 }
 
-void Node::ScheduleTxnSubmission()
-{
-    auto main_func = [this]() mutable -> void { SubmitTransactions(); };
-
-    DetachedFunction(1, main_func);
-
-    LOG_GENERAL(INFO, "Sleep for " << TXN_SUBMISSION << " seconds");
-    this_thread::sleep_for(chrono::seconds(TXN_SUBMISSION));
-    LOG_GENERAL(INFO,
-                "Woken up from the sleep of " << TXN_SUBMISSION << " seconds");
-    auto main_func2
-        = [this]() mutable -> void { SetState(TX_SUBMISSION_BUFFER); };
-
-    DetachedFunction(1, main_func2);
-}
-
 void Node::ScheduleMicroBlockConsensus()
 {
     LOG_GENERAL(INFO,
@@ -1048,18 +1032,7 @@ void Node::BeginNextConsensusRound()
             {
                 LOG_GENERAL(INFO, "No need to wait for allMicroBlocksRecvd");
             }
-
-            {
-                lock_guard<mutex> g2(m_mutexNewRoundStarted);
-                if (!m_newRoundStarted)
-                {
-                    m_newRoundStarted = true;
-                    m_cvNewRoundStarted.notify_all();
-                }
-            }
         }
-
-        // ScheduleTxnSubmission();
     }
     else
     {
