@@ -168,10 +168,10 @@ class Node : public Executable, public Broadcastable
 
     std::vector<TxnHash> m_txnsOrdering;
 
-    // prefilled transactions sorted by fromAddress
-    std::mutex m_mutexPrefilledTxns;
-    std::atomic_size_t m_nRemainingPrefilledTxns{0};
-    std::unordered_map<Address, std::list<Transaction>> m_prefilledTxns{};
+    // // prefilled transactions sorted by fromAddress
+    // std::mutex m_mutexPrefilledTxns;
+    // std::atomic_size_t m_nRemainingPrefilledTxns{0};
+    // std::unordered_map<Address, std::list<Transaction>> m_prefilledTxns{};
 
     std::mutex m_mutexProcessedTransactions;
     std::unordered_map<boost::multiprecision::uint256_t,
