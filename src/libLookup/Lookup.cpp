@@ -1665,8 +1665,9 @@ bool Lookup::InitMining()
         return false;
     }
     // Check whether is the new node connected to the network. Else, initiate re-sync process again.
-    this_thread::sleep_for(chrono::seconds(BACKUP_POW2_WINDOW_IN_SECONDS
-                                           + TXN_SUBMISSION + TXN_BROADCAST));
+    this_thread::sleep_for(
+        chrono::seconds(BACKUP_POW2_WINDOW_IN_SECONDS
+                        + LEADER_SHARDING_PREPARATION_IN_SECONDS));
     m_startedPoW2 = false;
     if (m_syncType != SyncType::NO_SYNC)
     {

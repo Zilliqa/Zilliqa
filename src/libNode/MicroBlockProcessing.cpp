@@ -133,8 +133,7 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
     // It is possible for ANNOUNCE to arrive before correct DS state
     // In that case, state transition will occurs and ANNOUNCE will be processed.
 
-    if ((m_state == TX_SUBMISSION) || (m_state == TX_SUBMISSION_BUFFER)
-        || (m_state == MICROBLOCK_CONSENSUS_PREP))
+    if (m_state == MICROBLOCK_CONSENSUS_PREP)
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Received microblock announcement from shard leader. I "
