@@ -244,7 +244,7 @@ void Node::StartSynchronization()
             this_thread::sleep_for(
                 chrono::seconds(m_mediator.m_lookup->m_startedPoW2
                                     ? BACKUP_POW2_WINDOW_IN_SECONDS
-                                        + TXN_SUBMISSION + TXN_BROADCAST
+                                        + LEADER_SHARDING_PREPARATION_IN_SECONDS
                                     : NEW_NODE_SYNC_INTERVAL));
         }
     };
@@ -259,8 +259,7 @@ bool Node::compatibleState(enum NodeState state, enum Action action)
     const static std::map<NodeState, Action> ACTION_FOR_STATE
         = {{POW1_SUBMISSION, STARTPOW1},
            {POW2_SUBMISSION, STARTPOW2},
-           {TX_SUBMISSION, PROCESS_SHARDING},
-           {TX_SUBMISSION_BUFFER, PROCESS_SHARDING},
+           {MICROBLOCK_CONSENSUS_PREP, PROCESS_SHARDING},
            {MICROBLOCK_CONSENSUS, PROCESS_MICROBLOCKCONSENSUS},
            {WAITING_FINALBLOCK, PROCESS_FINALBLOCK}};
 
@@ -806,7 +805,7 @@ bool Node::ToBlockMessage(unsigned char ins_byte)
         if (!m_fromNewProcess)
         {
             if (ins_byte != NodeInstructionType::SHARDING
-                && ins_byte != NodeInstructionType::SUBMITTRANSACTION)
+                && ins_byte != NodeInstructionType::CREATETRANSACTIONFROMLOOKUP)
             {
                 return true;
             }
@@ -814,7 +813,7 @@ bool Node::ToBlockMessage(unsigned char ins_byte)
         else
         {
             if (m_runFromLate && ins_byte != NodeInstructionType::SHARDING
-                && ins_byte != NodeInstructionType::SUBMITTRANSACTION)
+                && ins_byte != NodeInstructionType::CREATETRANSACTIONFROMLOOKUP)
             {
                 return true;
             }
@@ -892,8 +891,6 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
 map<Node::NodeState, string> Node::NodeStateStrings
     = {MAKE_LITERAL_PAIR(POW1_SUBMISSION),
        MAKE_LITERAL_PAIR(POW2_SUBMISSION),
-       MAKE_LITERAL_PAIR(TX_SUBMISSION),
-       MAKE_LITERAL_PAIR(TX_SUBMISSION_BUFFER),
        MAKE_LITERAL_PAIR(MICROBLOCK_CONSENSUS_PREP),
        MAKE_LITERAL_PAIR(MICROBLOCK_CONSENSUS),
        MAKE_LITERAL_PAIR(WAITING_FINALBLOCK),

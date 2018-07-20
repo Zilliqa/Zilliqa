@@ -956,29 +956,13 @@ void Node::UpdateStateForNextConsensusRound()
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "MS: Next non-ds epoch begins");
 
-    SetState(TX_SUBMISSION);
+    SetState(MICROBLOCK_CONSENSUS_PREP);
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "[No PoW needed] MS: Start submit txn stage again.");
 }
 
 void Node::ScheduleMicroBlockConsensus()
 {
-    LOG_GENERAL(INFO,
-                "I am going to use conditional variable with timeout of  "
-                    << TXN_BROADCAST << " seconds. It is ok to timeout here. ");
-    std::unique_lock<std::mutex> cv_lk(m_MutexCVMicroblockConsensus);
-    if (cv_microblockConsensus.wait_for(cv_lk,
-                                        std::chrono::seconds(TXN_BROADCAST))
-        == std::cv_status::timeout)
-    {
-        LOG_GENERAL(
-            INFO, "Woken up from the sleep of " << TXN_BROADCAST << " seconds");
-    }
-    else
-    {
-        LOG_GENERAL(INFO,
-                    "Received announcement message. Time to run consensus.");
-    }
     auto main_func3 = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
 
     DetachedFunction(1, main_func3);
@@ -1001,14 +985,14 @@ void Node::BeginNextConsensusRound()
             {
                 LOG_GENERAL(INFO, "Wait for allMicroBlocksRecvd");
                 if (m_cvAllMicroBlocksRecvd.wait_for(
-                        g, std::chrono::seconds(TXN_SUBMISSION + TXN_BROADCAST))
+                        g, std::chrono::seconds(WAITING_FORWARD))
                         == std::cv_status::timeout
                     || m_doRejoinAtNextRound)
                 {
                     LOG_EPOCH(WARNING,
                               to_string(m_mediator.m_currentEpochNum).c_str(),
                               "Wake up from "
-                                  << TXN_SUBMISSION + TXN_BROADCAST
+                                  << WAITING_FORWARD
                                   << "of waiting for all microblock received");
                     if (m_mediator.m_lookup->m_syncType == SyncType::NO_SYNC)
                     {
@@ -1212,7 +1196,8 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     if (m_lastMicroBlockCoSig.first != m_mediator.m_currentEpochNum)
     {
         std::unique_lock<mutex> cv_lk(m_MutexCVFBWaitMB);
-        if (cv_FBWaitMB.wait_for(cv_lk, std::chrono::seconds(TXN_SUBMISSION))
+        if (cv_FBWaitMB.wait_for(
+                cv_lk, std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW))
             == std::cv_status::timeout)
         {
             LOG_GENERAL(WARNING,
@@ -1640,14 +1625,14 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
         std::unique_lock<std::mutex> cv_lk(m_mutexForwardBlockNumSync);
 
         if (m_cvForwardBlockNumSync.wait_for(
-                cv_lk, std::chrono::seconds(TXN_SUBMISSION + WAITING_FORWARD))
+                cv_lk, std::chrono::seconds(WAITING_FORWARD))
             == std::cv_status::timeout)
         {
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Blocknum "
-                          << m_latestForwardBlockNum
-                          << " waiting for state change from "
-                             "WAITING_FINALBLOCK to TX_SUBMISSION too long!");
+                      "Blocknum " << m_latestForwardBlockNum
+                                  << " waiting for state change from "
+                                     "WAITING_FINALBLOCK to "
+                                     "MICROBLOCK_CONSENSUS_PREP too long!");
             return false;
         }
     }
@@ -1732,14 +1717,14 @@ bool Node::ProcessForwardStateDelta(const vector<unsigned char>& message,
         std::unique_lock<std::mutex> cv_lk(m_mutexForwardBlockNumSync);
 
         if (m_cvForwardBlockNumSync.wait_for(
-                cv_lk, std::chrono::seconds(TXN_SUBMISSION + WAITING_FORWARD))
+                cv_lk, std::chrono::seconds(WAITING_FORWARD))
             == std::cv_status::timeout)
         {
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Blocknum "
-                          << m_latestForwardBlockNum
-                          << " waiting for state change from "
-                             "WAITING_FINALBLOCK to TX_SUBMISSION too long!");
+                      "Blocknum " << m_latestForwardBlockNum
+                                  << " waiting for state change from "
+                                     "WAITING_FINALBLOCK to "
+                                     "MICROBLOCK_CONSENSUS_PREP too long!");
             return false;
         }
     }
