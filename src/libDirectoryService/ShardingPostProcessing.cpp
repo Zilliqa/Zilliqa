@@ -114,10 +114,9 @@ void DirectoryService::SetupMulticastConfigForShardingStructure(
 
     LOG_MARKER();
 
-    unsigned int num_DS_clusters = m_mediator.m_DSCommitteeNetworkInfo.size()
-        / DS_MULTICAST_CLUSTER_SIZE;
-    if ((m_mediator.m_DSCommitteeNetworkInfo.size() % DS_MULTICAST_CLUSTER_SIZE)
-        > 0)
+    unsigned int num_DS_clusters
+        = m_mediator.m_DSCommittee.size() / DS_MULTICAST_CLUSTER_SIZE;
+    if ((m_mediator.m_DSCommittee.size() % DS_MULTICAST_CLUSTER_SIZE) > 0)
     {
         // If there are still ds lefts, add a new ds cluster
         num_DS_clusters++;
@@ -244,6 +243,23 @@ bool DirectoryService::ProcessShardingConsensus(
     if (cv_processConsensusMessage.wait_for(
             cv_lk, std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW),
             [this, message, offset]() -> bool {
+                lock_guard<mutex> g(m_mutexConsensus);
+                if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
+                {
+                    LOG_GENERAL(WARNING,
+                                "The node started the process of rejoining, "
+                                "Ignore rest of "
+                                "consensus msg.")
+                    return false;
+                }
+
+                if (m_consensusObject == nullptr)
+                {
+                    LOG_GENERAL(WARNING,
+                                "m_consensusObject is a nullptr. It has not "
+                                "been initialized.")
+                    return false;
+                }
                 return m_consensusObject->CanProcessMessage(message, offset);
             }))
     {
@@ -377,22 +393,21 @@ bool DirectoryService::ProcessShardingConsensus(
     }
     else if (state == ConsensusCommon::State::ERROR)
     {
-        for (unsigned int i = 0; i < m_mediator.m_DSCommitteeNetworkInfo.size();
-             i++)
+        for (unsigned int i = 0; i < m_mediator.m_DSCommittee.size(); i++)
         {
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      string(m_mediator.m_DSCommitteeNetworkInfo[i]
-                                 .GetPrintableIPAddress())
-                          + ":"
-                          + to_string(m_mediator.m_DSCommitteeNetworkInfo[i]
-                                          .m_listenPortHost));
+            LOG_EPOCH(
+                INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                string(
+                    m_mediator.m_DSCommittee[i].second.GetPrintableIPAddress())
+                    + ":"
+                    + to_string(
+                          m_mediator.m_DSCommittee[i].second.m_listenPortHost));
         }
-        for (unsigned int i = 0; i < m_mediator.m_DSCommitteePubKeys.size();
-             i++)
+        for (unsigned int i = 0; i < m_mediator.m_DSCommittee.size(); i++)
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       DataConversion::SerializableToHexStr(
-                          m_mediator.m_DSCommitteePubKeys[i]));
+                          m_mediator.m_DSCommittee[i].first));
         }
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Oops, no consensus reached - what to do now???");
