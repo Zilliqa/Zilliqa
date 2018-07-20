@@ -377,33 +377,6 @@ bool Node::ProcessSharding(const vector<unsigned char>& message,
 
     // SetState(TX_SUBMISSION);
 
-    // auto main_func = [this]() mutable -> void { SubmitTransactions(); };
-    // auto expiry_func = [this]() mutable -> void {
-    //   auto main_func = [this]() mutable -> void {
-    //     SetState(TX_SUBMISSION_BUFFER);
-    //   };
-    //   auto expiry_func = [this]() mutable -> void {
-    //     RunConsensusOnMicroBlock();
-    //   };
-
-    //   TimeLockedFunction tlf(SUBMIT_TX_WINDOW_EXTENDED, main_func, expiry_func, true);
-    // };
-
-    // TimeLockedFunction tlf(SUBMIT_TX_WINDOW, main_func, expiry_func, true);
-
-    // auto main_func = [this]() mutable -> void { SubmitTransactions(); };
-
-    {
-        lock_guard<mutex> g2(m_mutexNewRoundStarted);
-        if (!m_newRoundStarted)
-        {
-            m_newRoundStarted = true;
-            m_cvNewRoundStarted.notify_all();
-        }
-    }
-
-    // DetachedFunction(1, main_func);
-
     LOG_GENERAL(INFO, "Entering sleep for " << TXN_SUBMISSION << " seconds");
     this_thread::sleep_for(chrono::seconds(TXN_SUBMISSION));
     LOG_GENERAL(INFO,

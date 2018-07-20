@@ -71,7 +71,6 @@ class Node : public Executable, public Broadcastable
 
     enum SUBMITTRANSACTIONTYPE : unsigned char
     {
-        TXNSHARING = 0x00,
         MISSINGTXN = 0x01
     };
 
@@ -168,11 +167,6 @@ class Node : public Executable, public Broadcastable
 
     std::vector<TxnHash> m_txnsOrdering;
 
-    // // prefilled transactions sorted by fromAddress
-    // std::mutex m_mutexPrefilledTxns;
-    // std::atomic_size_t m_nRemainingPrefilledTxns{0};
-    // std::unordered_map<Address, std::list<Transaction>> m_prefilledTxns{};
-
     std::mutex m_mutexProcessedTransactions;
     std::unordered_map<boost::multiprecision::uint256_t,
                        std::unordered_map<TxnHash, Transaction>>
@@ -219,8 +213,6 @@ class Node : public Executable, public Broadcastable
         const array<unsigned char, 32>& rand1,
         const array<unsigned char, 32>& rand2) const;
     bool ProcessSubmitMissingTxn(const vector<unsigned char>& message,
-                                 unsigned int offset, const Peer& from);
-    bool ProcessSubmitTxnSharing(const vector<unsigned char>& message,
                                  unsigned int offset, const Peer& from);
 #endif // IS_LOOKUP_NODE
 
@@ -293,7 +285,6 @@ class Node : public Executable, public Broadcastable
     void StoreFinalBlock(const TxBlock& txBlock);
     void InitiatePoW1();
     void UpdateStateForNextConsensusRound();
-    void ScheduleTxnSubmission();
     void ScheduleMicroBlockConsensus();
     void BeginNextConsensusRound();
     void LoadTxnSharingInfo(const vector<unsigned char>& message,
@@ -330,8 +321,6 @@ class Node : public Executable, public Broadcastable
                           unsigned int offset, const Peer& from);
     bool ProcessSharding(const std::vector<unsigned char>& message,
                          unsigned int offset, const Peer& from);
-    bool ProcessCreateTransaction(const std::vector<unsigned char>& message,
-                                  unsigned int offset, const Peer& from);
     bool ProcessSubmitTransaction(const std::vector<unsigned char>& message,
                                   unsigned int offset, const Peer& from);
     bool ProcessMicroblockConsensus(const std::vector<unsigned char>& message,
@@ -365,8 +354,6 @@ class Node : public Executable, public Broadcastable
 
 #ifndef IS_LOOKUP_NODE
     // Transaction functions
-    void SubmitTransactions();
-
     bool OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
                            unsigned int offset, const Peer& from);
     bool
@@ -445,10 +432,6 @@ public:
 
     std::mutex m_mutexTempCommitted;
     bool m_tempStateDeltaCommitted = true;
-
-    std::condition_variable m_cvNewRoundStarted;
-    std::mutex m_mutexNewRoundStarted;
-    bool m_newRoundStarted = true;
 
     std::mutex m_mutexIsEveryMicroBlockAvailable;
 
