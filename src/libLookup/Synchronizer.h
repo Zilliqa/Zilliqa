@@ -17,8 +17,7 @@
 #ifndef __SYNCHRONIZER_H__
 #define __SYNCHRONIZER_H__
 
-#include "libData/BlockChainData/DSBlockChain.h"
-#include "libData/BlockChainData/TxBlockChain.h"
+#include "libData/BlockChainData/BlockChain.h"
 #include "libLookup/Lookup.h"
 #include "libNetwork/Peer.h"
 #include "libUtils/Logger.h"

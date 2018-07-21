@@ -20,8 +20,7 @@
 #include <deque>
 
 #include "libCrypto/Schnorr.h"
-#include "libData/BlockChainData/DSBlockChain.h"
-#include "libData/BlockChainData/TxBlockChain.h"
+#include "libData/BlockChainData/BlockChain.h"
 #include "libDirectoryService/DirectoryService.h"
 #include "libLookup/Lookup.h"
 #include "libNetwork/Peer.h"
