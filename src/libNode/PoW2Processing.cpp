@@ -145,7 +145,7 @@ bool Node::StartPoW2(uint256_t block_num, uint8_t difficulty,
 
     StartPoW2MiningAndShareResultWithDS(block_num, difficulty, rand1, rand2);
 
-    SetState(TX_SUBMISSION);
+    SetState(MICROBLOCK_CONSENSUS_PREP);
     return true;
 }
 #endif // IS_LOOKUP_NODE

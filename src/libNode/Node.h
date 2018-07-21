@@ -16,6 +16,10 @@
 #ifndef __NODE_H__
 #define __NODE_H__
 
+#include <boost/multi_index/hashed_index.hpp>
+#include <boost/multi_index/key_extractors.hpp>
+#include <boost/multi_index/sequenced_index.hpp>
+#include <boost/multi_index_container.hpp>
 #include <condition_variable>
 #include <deque>
 #include <list>
@@ -23,7 +27,6 @@
 #include <mutex>
 #include <shared_mutex>
 #include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 #include "common/Broadcastable.h"
@@ -43,6 +46,14 @@
 class Mediator;
 class Retriever;
 
+typedef boost::multi_index::multi_index_container<
+    Transaction,
+    boost::multi_index::indexed_by<
+        boost::multi_index::sequenced<>,
+        boost::multi_index::hashed_unique<boost::multi_index::const_mem_fun<
+            Transaction, const TxnHash&, &Transaction::GetTranID>>>>
+    seq_ra_txns;
+
 /// Implements PoW submission and sharding node functionality.
 class Node : public Executable, public Broadcastable
 {
@@ -59,7 +70,6 @@ class Node : public Executable, public Broadcastable
 
     enum SUBMITTRANSACTIONTYPE : unsigned char
     {
-        TXNSHARING = 0x00,
         MISSINGTXN = 0x01
     };
 
@@ -68,6 +78,13 @@ class Node : public Executable, public Broadcastable
         ATFINALBLOCK = 0x00,
         ATNEXTROUND = 0x01,
         ATSTATEROOT = 0x02
+    };
+
+    enum LEGITIMACYRESULT : unsigned char
+    {
+        SUCCESS = 0x00,
+        MISSEDTXN,
+        WRONGORDER
     };
 
     string ActionString(enum Action action)
@@ -142,24 +159,16 @@ class Node : public Executable, public Broadcastable
 
     // Transactions information
     std::mutex m_mutexCreatedTransactions;
-    std::list<Transaction> m_createdTransactions;
+    seq_ra_txns m_createdTransactions;
 
     vector<unsigned char> m_txMessage;
 
-    // prefilled transactions sorted by fromAddress
-    std::mutex m_mutexPrefilledTxns;
-    std::atomic_size_t m_nRemainingPrefilledTxns{0};
-    std::unordered_map<Address, std::list<Transaction>> m_prefilledTxns{};
+    std::vector<TxnHash> m_txnsOrdering;
 
-    std::mutex m_mutexSubmittedTransactions;
+    std::mutex m_mutexProcessedTransactions;
     std::unordered_map<boost::multiprecision::uint256_t,
                        std::unordered_map<TxnHash, Transaction>>
-        m_submittedTransactions;
-
-    std::mutex m_mutexReceivedTransactions;
-    std::unordered_map<boost::multiprecision::uint256_t,
-                       std::unordered_map<TxnHash, Transaction>>
-        m_receivedTransactions;
+        m_processedTransactions;
 
     uint32_t m_numOfAbsentTxnHashes;
 
@@ -203,8 +212,6 @@ class Node : public Executable, public Broadcastable
         const array<unsigned char, 32>& rand2) const;
     bool ProcessSubmitMissingTxn(const vector<unsigned char>& message,
                                  unsigned int offset, const Peer& from);
-    bool ProcessSubmitTxnSharing(const vector<unsigned char>& message,
-                                 unsigned int offset, const Peer& from);
 #endif // IS_LOOKUP_NODE
 
     // internal call from ProcessSharding
@@ -215,11 +222,7 @@ class Node : public Executable, public Broadcastable
     void LoadForwardingAssignmentFromFinalBlock(
         const vector<Peer>& fellowForwarderNodes,
         const boost::multiprecision::uint256_t& blocknum);
-    bool FindTxnInSubmittedTxnsList(
-        const TxBlock& finalblock,
-        const boost::multiprecision::uint256_t& blocknum, uint8_t sharing_mode,
-        vector<Transaction>& txns_to_send, const TxnHash& tx_hash);
-    bool FindTxnInReceivedTxnsList(
+    bool FindTxnInProcessedTxnsList(
         const TxBlock& finalblock,
         const boost::multiprecision::uint256_t& blocknum, uint8_t sharing_mode,
         vector<Transaction>& txns_to_send, const TxnHash& tx_hash);
@@ -280,7 +283,6 @@ class Node : public Executable, public Broadcastable
     void StoreFinalBlock(const TxBlock& txBlock);
     void InitiatePoW1();
     void UpdateStateForNextConsensusRound();
-    void ScheduleTxnSubmission();
     void ScheduleMicroBlockConsensus();
     void BeginNextConsensusRound();
     void LoadTxnSharingInfo(const vector<unsigned char>& message,
@@ -317,8 +319,6 @@ class Node : public Executable, public Broadcastable
                           unsigned int offset, const Peer& from);
     bool ProcessSharding(const std::vector<unsigned char>& message,
                          unsigned int offset, const Peer& from);
-    bool ProcessCreateTransaction(const std::vector<unsigned char>& message,
-                                  unsigned int offset, const Peer& from);
     bool ProcessSubmitTransaction(const std::vector<unsigned char>& message,
                                   unsigned int offset, const Peer& from);
     bool ProcessMicroblockConsensus(const std::vector<unsigned char>& message,
@@ -352,8 +352,6 @@ class Node : public Executable, public Broadcastable
 
 #ifndef IS_LOOKUP_NODE
     // Transaction functions
-    void SubmitTransactions();
-
     bool OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
                            unsigned int offset, const Peer& from);
     bool
@@ -367,7 +365,8 @@ class Node : public Executable, public Broadcastable
     bool
     MicroBlockValidator(const std::vector<unsigned char>& sharding_structure,
                         std::vector<unsigned char>& errorMsg);
-    bool CheckLegitimacyOfTxnHashes(std::vector<unsigned char>& errorMsg);
+    unsigned char
+    CheckLegitimacyOfTxnHashes(std::vector<unsigned char>& errorMsg);
     bool CheckBlockTypeIsMicro();
     bool CheckMicroBlockVersion();
     bool CheckMicroBlockTimestamp();
@@ -375,6 +374,13 @@ class Node : public Executable, public Broadcastable
     bool CheckMicroBlockTxnRootHash();
     bool CheckMicroBlockStateDeltaHash();
     bool CheckMicroBlockShardID();
+
+    void OrderingTxns(std::list<Transaction>& txns);
+    bool VerifyTxnsOrdering(const list<Transaction>& txns);
+
+    void ProcessTransactionWhenShardLeader();
+    bool ProcessTransactionWhenShardBackup(const vector<TxnHash>& tranHashes,
+                                           vector<TxnHash>& missingtranHashes);
 
     bool ActOnFinalBlock(uint8_t tx_sharing_mode,
                          vector<Peer> my_shard_receivers,
@@ -402,8 +408,6 @@ public:
     {
         POW1_SUBMISSION = 0x00,
         POW2_SUBMISSION,
-        TX_SUBMISSION,
-        TX_SUBMISSION_BUFFER,
         MICROBLOCK_CONSENSUS_PREP,
         MICROBLOCK_CONSENSUS,
         WAITING_FINALBLOCK,
@@ -424,10 +428,6 @@ public:
 
     std::mutex m_mutexTempCommitted;
     bool m_tempStateDeltaCommitted = true;
-
-    std::condition_variable m_cvNewRoundStarted;
-    std::mutex m_mutexNewRoundStarted;
-    bool m_newRoundStarted = true;
 
     std::mutex m_mutexIsEveryMicroBlockAvailable;
 

@@ -1612,18 +1612,6 @@ bool Lookup::InitMining()
 {
     LOG_MARKER();
 
-    {
-        lock_guard<mutex> g(m_mediator.m_node->m_mutexNewRoundStarted);
-        if (!m_mediator.m_node->m_newRoundStarted)
-        {
-            LOG_GENERAL(INFO,
-                        "Started new round of rejoining, discard all blocked "
-                        "forwarded message submitted from other shard nodes");
-            m_mediator.m_node->m_newRoundStarted = true;
-            m_mediator.m_node->m_cvNewRoundStarted.notify_all();
-        }
-    }
-
     // General check
     if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0)
     {
@@ -1676,8 +1664,9 @@ bool Lookup::InitMining()
         return false;
     }
     // Check whether is the new node connected to the network. Else, initiate re-sync process again.
-    this_thread::sleep_for(chrono::seconds(BACKUP_POW2_WINDOW_IN_SECONDS
-                                           + TXN_SUBMISSION + TXN_BROADCAST));
+    this_thread::sleep_for(
+        chrono::seconds(BACKUP_POW2_WINDOW_IN_SECONDS
+                        + LEADER_SHARDING_PREPARATION_IN_SECONDS));
     m_startedPoW2 = false;
     if (m_syncType != SyncType::NO_SYNC)
     {
