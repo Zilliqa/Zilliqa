@@ -45,9 +45,7 @@ const unsigned int COMMIT_POINT_SIZE = 33;
 const unsigned int CHALLENGE_SIZE = 32;
 const unsigned int RESPONSE_SIZE = 32;
 
-const unsigned int DS_BLOCKCHAIN_SIZE = 50;
-const unsigned int TX_BLOCKCHAIN_SIZE = 50;
-const unsigned int VC_BLOCKCHAIN_SIZE = 50;
+const unsigned int BLOCKCHAIN_SIZE = 50;
 
 // Number of nodes sent from lookup node to newly joined node
 const unsigned int SEED_PEER_LIST_SIZE = 20;
