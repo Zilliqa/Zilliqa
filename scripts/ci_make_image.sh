@@ -29,6 +29,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     less \
     logrotate \
     net-tools \
+    rsyslog \
     vim \
     && rm -rf /var/lib/apt/lists/* \
     && pip install setuptools \
