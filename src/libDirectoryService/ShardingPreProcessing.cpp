@@ -696,8 +696,9 @@ void DirectoryService::RunConsensusOnSharding()
 
     SetState(SHARDING_CONSENSUS);
 
+    // View change will wait for timeout. If conditional variable is notified before timeout, the thread will return
+    // without triggering view change.
     std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeSharding);
-
     if (cv_viewChangeSharding.wait_for(cv_lk,
                                        std::chrono::seconds(VIEWCHANGE_TIME))
         == std::cv_status::timeout)
