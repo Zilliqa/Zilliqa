@@ -47,6 +47,7 @@
 
 using namespace std;
 using namespace boost::multiprecision;
+using namespace boost::multi_index;
 
 void addBalanceToGenesisAccount()
 {
@@ -570,19 +571,22 @@ bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
         }
         cur_offset += submittedTransaction.GetSerializedSize();
 
-        if (m_mediator.m_validator->CheckCreatedTransaction(
-                submittedTransaction))
-        {
-            boost::multiprecision::uint256_t blockNum
-                = (uint256_t)m_mediator.m_currentEpochNum;
-            lock_guard<mutex> g(m_mutexReceivedTransactions);
-            auto& receivedTransactions = m_receivedTransactions[blockNum];
+        lock_guard<mutex> g(m_mutexCreatedTransactions);
+        // m_createdTransactions.push_back(submittedTransaction);
+        auto& listIdx = m_createdTransactions.get<0>();
+        listIdx.push_back(submittedTransaction);
+    }
 
-            receivedTransactions.insert(make_pair(
-                submittedTransaction.GetTranID(), submittedTransaction));
-            //LOG_EPOCH(to_string(m_mediator.m_currentEpochNum).c_str(),
-            //             "Received txn: " << submittedTransaction.GetTranID())
-        }
+    vector<TxnHash> missingTxnHashes;
+    if (!ProcessTransactionWhenShardBackup(m_txnsOrdering, missingTxnHashes))
+    {
+        LOG_GENERAL(WARNING, "Wrong order after receiving missing txns");
+        return false;
+    }
+    if (!missingTxnHashes.empty())
+    {
+        LOG_GENERAL(WARNING, "Still missed txns");
+        return false;
     }
 
     AccountStore::GetInstance().SerializeDelta();
@@ -593,77 +597,77 @@ bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
 bool Node::ProcessSubmitTxnSharing(const vector<unsigned char>& message,
                                    unsigned int offset, const Peer& from)
 {
-    //LOG_MARKER();
+    // // LOG_MARKER();
 
-    if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
-    {
-        if (m_state != TX_SUBMISSION)
-        {
-            return false;
-        }
-    }
+    // if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
+    // {
+    //     if (m_state != TX_SUBMISSION)
+    //     {
+    //         return false;
+    //     }
+    // }
 
-    bool isVacuousEpoch
-        = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
+    // bool isVacuousEpoch
+    //     = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
 
-    if (!isVacuousEpoch)
-    {
-        unique_lock<mutex> g(m_mutexNewRoundStarted);
-        if (!m_newRoundStarted)
-        {
-            // LOG_GENERAL(INFO, "Wait for new consensus round started");
-            if (m_cvNewRoundStarted.wait_for(
-                    g, std::chrono::seconds(TXN_SUBMISSION + TXN_BROADCAST))
-                == std::cv_status::timeout)
-            {
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "Waiting for new round started timeout, ignore");
-                return false;
-            }
+    // if (!isVacuousEpoch)
+    // {
+    //     unique_lock<mutex> g(m_mutexNewRoundStarted);
+    //     if (!m_newRoundStarted)
+    //     {
+    //         // LOG_GENERAL(INFO, "Wait for new consensus round started");
+    //         if (m_cvNewRoundStarted.wait_for(
+    //                 g, std::chrono::seconds(TXN_SUBMISSION + TXN_BROADCAST))
+    //             == std::cv_status::timeout)
+    //         {
+    //             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    //                       "Waiting for new round started timeout, ignore");
+    //             return false;
+    //         }
 
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "New consensus round started, moving to "
-                      "ProcessSubmitTxnSharing");
-            if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
-            {
-                LOG_GENERAL(WARNING, "The node started rejoin, ignore");
-                return false;
-            }
-        }
-        else
-        {
-            // LOG_GENERAL(INFO, "No need to wait for newRoundStarted");
-        }
-    }
+    //         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    //                   "New consensus round started, moving to "
+    //                   "ProcessSubmitTxnSharing");
+    //         if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
+    //         {
+    //             LOG_GENERAL(WARNING, "The node started rejoin, ignore");
+    //             return false;
+    //         }
+    //     }
+    //     else
+    //     {
+    //         // LOG_GENERAL(INFO, "No need to wait for newRoundStarted");
+    //     }
+    // }
 
-    unsigned int cur_offset = offset;
+    // unsigned int cur_offset = offset;
 
-    while (cur_offset < message.size())
-    {
-        Transaction submittedTransaction;
-        if (submittedTransaction.Deserialize(message, cur_offset) != 0)
-        {
-            LOG_GENERAL(WARNING,
-                        "Deserialize transactions failed, stop at the previous "
-                        "successful one");
-            return false;
-        }
-        cur_offset += submittedTransaction.GetSerializedSize();
+    // while (cur_offset < message.size())
+    // {
+    //     Transaction submittedTransaction;
+    //     if (submittedTransaction.Deserialize(message, cur_offset) != 0)
+    //     {
+    //         LOG_GENERAL(WARNING,
+    //                     "Deserialize transactions failed, stop at the previous "
+    //                     "successful one");
+    //         return false;
+    //     }
+    //     cur_offset += submittedTransaction.GetSerializedSize();
 
-        if (m_mediator.m_validator->CheckCreatedTransaction(
-                submittedTransaction))
-        {
-            boost::multiprecision::uint256_t blockNum
-                = (uint256_t)m_mediator.m_currentEpochNum;
-            lock_guard<mutex> g(m_mutexReceivedTransactions);
-            auto& receivedTransactions = m_receivedTransactions[blockNum];
+    //     if (m_mediator.m_validator->CheckCreatedTransaction(
+    //             submittedTransaction))
+    //     {
+    //         boost::multiprecision::uint256_t blockNum
+    //             = (uint256_t)m_mediator.m_currentEpochNum;
+    //         lock_guard<mutex> g(m_mutexReceivedTransactions);
+    //         auto& receivedTransactions = m_receivedTransactions[blockNum];
 
-            receivedTransactions.insert(make_pair(
-                submittedTransaction.GetTranID(), submittedTransaction));
-            //LOG_EPOCH(to_string(m_mediator.m_currentEpochNum).c_str(),
-            //             "Received txn: " << submittedTransaction.GetTranID())
-        }
-    }
+    //         receivedTransactions.insert(make_pair(
+    //             submittedTransaction.GetTranID(), submittedTransaction));
+    //         //LOG_EPOCH(to_string(m_mediator.m_currentEpochNum).c_str(),
+    //         //             "Received txn: " << submittedTransaction.GetTranID())
+    //     }
+    // }
 
     return true;
 }
@@ -753,7 +757,8 @@ bool Node::ProcessCreateTransactionFromLookup(
                              << " toAddr: " << tx.GetToAddr().hex());
     if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(tx))
     {
-        m_createdTransactions.push_back(tx);
+        auto& listIdx = m_createdTransactions.get<0>();
+        listIdx.push_back(tx);
     }
     else
     {
@@ -813,123 +818,129 @@ void Node::AddBlock(const TxBlock& block)
 #ifndef IS_LOOKUP_NODE
 void Node::SubmitTransactions()
 {
-    //LOG_MARKER();
+    // //LOG_MARKER();
 
-    unsigned int txn_sent_count = 0;
-    boost::multiprecision::uint256_t blockNum
-        = (uint256_t)m_mediator.m_currentEpochNum;
+    // unsigned int txn_sent_count = 0;
+    // boost::multiprecision::uint256_t blockNum
+    //     = (uint256_t)m_mediator.m_currentEpochNum;
 
-    unsigned int cur_offset = 0;
+    // unsigned int cur_offset = 0;
 
-    m_txMessage = {MessageType::NODE, NodeInstructionType::SUBMITTRANSACTION};
-    cur_offset += MessageOffset::BODY;
+    // m_txMessage = {MessageType::NODE, NodeInstructionType::SUBMITTRANSACTION};
+    // cur_offset += MessageOffset::BODY;
 
-    m_txMessage.push_back(SUBMITTRANSACTIONTYPE::TXNSHARING);
-    cur_offset += MessageOffset::INST;
+    // m_txMessage.push_back(SUBMITTRANSACTIONTYPE::TXNSHARING);
+    // cur_offset += MessageOffset::INST;
 
-    // TODO: remove the condition on txn_sent_count -- temporary hack to artificially limit number of
-    // txns needed to be shared within shard members so that it completes in the time limit
-    while (txn_sent_count < MAXSUBMITTXNPERNODE)
-    {
-        if (m_state != TX_SUBMISSION)
-        {
-            break;
-        }
+    // // TODO: remove the condition on txn_sent_count -- temporary hack to artificially limit number of
+    // // txns needed to be shared within shard members so that it completes in the time limit
+    // while (txn_sent_count < MAXSUBMITTXNPERNODE)
+    // {
+    //     if (m_state != TX_SUBMISSION)
+    //     {
+    //         break;
+    //     }
 
-        Transaction t;
+    //     Transaction t;
 
-        auto findOneFromPrefilled = [this](Transaction& t) -> bool {
-            lock_guard<mutex> g{m_mutexPrefilledTxns};
+    //     auto findOneFromPrefilled = [this](Transaction& t) -> bool {
+    //         lock_guard<mutex> g{m_mutexPrefilledTxns};
 
-            for (auto& txns : m_prefilledTxns)
-            {
-                auto& txnsList = txns.second;
-                if (txnsList.empty())
-                {
-                    continue;
-                }
+    //         for (auto& txns : m_prefilledTxns)
+    //         {
+    //             auto& txnsList = txns.second;
+    //             if (txnsList.empty())
+    //             {
+    //                 continue;
+    //             }
 
-                // auto& addr = txns.first;
-                // auto shard = Transaction::GetShardIndex(addr, m_numShards);
-                // if (shard != m_myShardID)
-                // {
-                // continue;
-                // }
+    //             // auto& addr = txns.first;
+    //             // auto shard = Transaction::GetShardIndex(addr, m_numShards);
+    //             // if (shard != m_myShardID)
+    //             // {
+    //             // continue;
+    //             // }
 
-                t = move(txnsList.front());
-                txnsList.pop_front();
-                m_nRemainingPrefilledTxns--;
+    //             t = move(txnsList.front());
+    //             txnsList.pop_front();
+    //             m_nRemainingPrefilledTxns--;
 
-                return true;
-            }
+    //             return true;
+    //         }
 
-            return false;
-        };
+    //         return false;
+    //     };
 
-        auto findOneFromCreated = [this](Transaction& t) -> bool {
-            lock_guard<mutex> g(m_mutexCreatedTransactions);
+    //     auto findOneFromCreated = [this](Transaction& t) -> bool {
+    //         lock_guard<mutex> g(m_mutexCreatedTransactions);
 
-            if (m_createdTransactions.empty())
-            {
-                return false;
-            }
+    //         if (m_createdTransactions.empty())
+    //         {
+    //             return false;
+    //         }
 
-            t = move(m_createdTransactions.front());
-            m_createdTransactions.pop_front();
-            return true;
-        };
+    //         t = move(m_createdTransactions.front());
+    //         m_createdTransactions.pop_front();
+    //         return true;
+    //     };
 
-        auto appendOne = [this, &blockNum, &cur_offset](Transaction& t) {
-            t.Serialize(m_txMessage, cur_offset);
-            cur_offset += t.GetSerializedSize();
+    //     auto appendOne = [this, &blockNum, &cur_offset](Transaction& t) {
+    //         t.Serialize(m_txMessage, cur_offset);
+    //         cur_offset += t.GetSerializedSize();
 
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Append txn: " << t.GetTranID())
+    //         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    //                   "Append txn: " << t.GetTranID())
 
-            lock_guard<mutex> g(m_mutexSubmittedTransactions);
-            auto& submittedTransactions = m_submittedTransactions[blockNum];
-            submittedTransactions.insert(make_pair(t.GetTranID(), t));
-        };
+    //         lock_guard<mutex> g(m_mutexSubmittedTransactions);
+    //         auto& submittedTransactions = m_submittedTransactions[blockNum];
+    //         submittedTransactions.insert(make_pair(t.GetTranID(), t));
+    //     };
 
-        if (findOneFromCreated(t))
-        {
-            if (m_mediator.m_validator->CheckCreatedTransaction(t)
-                || !t.GetCode().empty() || !t.GetData().empty())
-            {
-                appendOne(t);
-            }
-        }
-        else if (findOneFromPrefilled(t))
-        {
-            if (m_mediator.m_validator->CheckCreatedTransaction(t)
-                || !t.GetCode().empty() || !t.GetData().empty())
-            {
-                appendOne(t);
-            }
-        }
-        else
-        {
-            break;
-        }
-        txn_sent_count++;
-    }
+    //     if (findOneFromCreated(t))
+    //     {
+    //         if (!m_mediator.m_validator->CheckCreatedTransaction(t))
+    //         {
+    //             if (t.GetCode().empty() && t.GetData().empty())
+    //             {
+    //                 continue;
+    //             }
+    //         }
+    //         appendOne(t);
+    //     }
+    //     else if (findOneFromPrefilled(t))
+    //     {
+    //         if (!m_mediator.m_validator->CheckCreatedTransaction(t))
+    //         {
+    //             if (t.GetCode().empty() && t.GetData().empty())
+    //             {
+    //                 continue;
+    //             }
+    //         }
+    //         appendOne(t);
+    //     }
+    //     else
+    //     {
+    //         break;
+    //     }
+    //     txn_sent_count++;
+    // }
 
-    if (txn_sent_count > 0)
-    {
-        LOG_GENERAL(INFO, "Broadcast my txns to other shard members");
-        P2PComm::GetInstance().SendMessage(m_myShardMembersNetworkInfo,
-                                           m_txMessage);
-    }
+    // if (txn_sent_count > 0)
+    // {
+    //     LOG_GENERAL(INFO, "Broadcast my txns to other shard members");
+    //     P2PComm::GetInstance().SendMessage(m_myShardMembersNetworkInfo,
+    //                                        m_txMessage);
+    // }
 
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "added " << txn_sent_count << " to submittedTransactions");
+    // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    //           "added " << txn_sent_count << " to submittedTransactions");
 
-    m_mediator.m_validator->CleanVariables();
+    // m_mediator.m_validator->CleanVariables();
 
-    LOG_STATE("[TXNSE][" << std::setw(15) << std::left
-                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                         << "][" << m_mediator.m_currentEpochNum << "]["
-                         << m_myShardID << "][" << txn_sent_count << "] CONT");
+    // LOG_STATE("[TXNSE][" << std::setw(15) << std::left
+    //                      << m_mediator.m_selfPeer.GetPrintableIPAddress()
+    //                      << "][" << m_mediator.m_currentEpochNum << "]["
+    //                      << m_myShardID << "][" << txn_sent_count << "] CONT");
 }
 
 void Node::RejoinAsNormal()
@@ -986,12 +997,8 @@ bool Node::CleanVariables()
     //     m_prefilledTxns.clear();
     // }
     {
-        std::lock_guard<mutex> lock(m_mutexSubmittedTransactions);
-        m_submittedTransactions.clear();
-    }
-    {
-        std::lock_guard<mutex> lock(m_mutexReceivedTransactions);
-        m_receivedTransactions.clear();
+        std::lock_guard<mutex> lock(m_mutexProcessedTransactions);
+        m_processedTransactions.clear();
     }
     {
         std::lock_guard<mutex> lock(m_mutexCommittedTransactions);
@@ -1028,7 +1035,8 @@ bool Node::CleanVariables()
 void Node::CleanCreatedTransaction()
 {
     std::lock_guard<mutex> lock(m_mutexCreatedTransactions);
-    m_createdTransactions.clear();
+    // m_createdTransactions.clear();
+    m_createdTransactions.get<0>().clear();
 }
 #endif // IS_LOOKUP_NODE
 

@@ -325,27 +325,16 @@ bool Node::ComposeMicroBlock()
 
     unsigned int index = 0;
     {
-        lock(m_mutexReceivedTransactions, m_mutexSubmittedTransactions);
-        lock_guard<mutex> g(m_mutexReceivedTransactions, adopt_lock);
-        lock_guard<mutex> g2(m_mutexSubmittedTransactions, adopt_lock);
 
-        auto& receivedTransactions = m_receivedTransactions[blockNum];
-        auto& submittedTransactions = m_submittedTransactions[blockNum];
+        lock_guard<mutex> g(m_mutexProcessedTransactions);
 
-        txRootHash = ComputeTransactionsRoot(receivedTransactions,
-                                             submittedTransactions);
+        auto& processedTransactions = m_processedTransactions[blockNum];
 
-        numTxs = receivedTransactions.size() + submittedTransactions.size();
+        txRootHash = ComputeTransactionsRoot(processedTransactions);
+
+        numTxs = processedTransactions.size();
         tranHashes.resize(numTxs);
-        for (const auto& tx : receivedTransactions)
-        {
-            const auto& txid = tx.first.asArray();
-            copy(txid.begin(), txid.end(),
-                 tranHashes.at(index).asArray().begin());
-            index++;
-        }
-
-        for (const auto& tx : submittedTransactions)
+        for (const auto& tx : processedTransactions)
         {
             const auto& txid = tx.first.asArray();
             copy(txid.begin(), txid.end(),
@@ -408,12 +397,9 @@ bool Node::OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
     uint128_t ipAddr = from.m_ipAddress;
     Peer peer(ipAddr, portNo);
 
-    lock(m_mutexReceivedTransactions, m_mutexSubmittedTransactions);
-    lock_guard<mutex> g(m_mutexReceivedTransactions, adopt_lock);
-    lock_guard<mutex> g2(m_mutexSubmittedTransactions, adopt_lock);
+    lock_guard<mutex> g(m_mutexProcessedTransactions);
 
-    auto& receivedTransactions = m_receivedTransactions[blockNum];
-    auto& submittedTransactions = m_submittedTransactions[blockNum];
+    auto& processedTransactions = m_processedTransactions[blockNum];
 
     unsigned int cur_offset = 0;
     vector<unsigned char> tx_message
@@ -430,15 +416,20 @@ bool Node::OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
         // LOG_GENERAL(INFO, "Peer " << from << " : " << portNo << " missing txn " << missingTransactions[i])
 
         Transaction t;
-        if (submittedTransactions.find(missingTransactions[i])
-            != submittedTransactions.end())
+        // if (submittedTransactions.find(missingTransactions[i])
+        //     != submittedTransactions.end())
+        // {
+        //     t = submittedTransactions[missingTransactions[i]];
+        // }
+        // else if (receivedTransactions.find(missingTransactions[i])
+        //          != receivedTransactions.end())
+        // {
+        //     t = receivedTransactions[missingTransactions[i]];
+        // }
+        if (processedTransactions.find(missingTransactions[i])
+            != processedTransactions.end())
         {
-            t = submittedTransactions[missingTransactions[i]];
-        }
-        else if (receivedTransactions.find(missingTransactions[i])
-                 != receivedTransactions.end())
-        {
-            t = receivedTransactions[missingTransactions[i]];
+            t = processedTransactions[missingTransactions[i]];
         }
         else
         {
@@ -483,6 +474,103 @@ bool Node::OnCommitFailure(
     return true;
 }
 
+void Node::ProcessTransactionWhenShardLeader()
+{
+    LOG_MARKER();
+
+    unsigned int txn_sent_count = 0;
+
+    std::list<Transaction> curTxns;
+
+    auto findOneFromCreated = [this](Transaction& t) -> bool {
+        lock_guard<mutex> g(m_mutexCreatedTransactions);
+
+        auto& listIdx = m_createdTransactions.get<0>();
+        if (!listIdx.size())
+        {
+            return false;
+        }
+
+        t = move(listIdx.front());
+        listIdx.pop_front();
+        return true;
+    };
+
+    auto findOneFromPrefilled = [this](Transaction& t) -> bool {
+        lock_guard<mutex> g{m_mutexPrefilledTxns};
+
+        for (auto& txns : m_prefilledTxns)
+        {
+            auto& txnsList = txns.second;
+            if (txnsList.empty())
+            {
+                continue;
+            }
+
+            t = move(txnsList.front());
+            txnsList.pop_front();
+            m_nRemainingPrefilledTxns--;
+
+            return true;
+        }
+
+        return false;
+    };
+
+    while (txn_sent_count
+           < MAXSUBMITTXNPERNODE * m_myShardMembersPubKeys.size())
+    {
+        Transaction t;
+
+        if (findOneFromCreated(t))
+        {
+            curTxns.emplace_back(t);
+        }
+        else if (findOneFromPrefilled(t))
+        {
+            curTxns.emplace_back(t);
+        }
+        else
+        {
+            break;
+        }
+        txn_sent_count++;
+    }
+
+    OrderingTxns(curTxns);
+
+    boost::multiprecision::uint256_t blockNum
+        = (uint256_t)m_mediator.m_currentEpochNum;
+
+    auto appendOne = [this, &blockNum](const Transaction& t) {
+        lock_guard<mutex> g(m_mutexProcessedTransactions);
+        auto& processedTransactions = m_processedTransactions[blockNum];
+        processedTransactions.insert(make_pair(t.GetTranID(), t));
+    };
+
+    for (const auto& t : curTxns)
+    {
+        if (m_mediator.m_validator->CheckCreatedTransaction(t)
+            || !t.GetCode().empty() || !t.GetData().empty())
+        {
+            appendOne(t);
+        }
+    }
+}
+
+void Node::OrderingTxns(list<Transaction>& txns)
+{
+    // TODO: Implement the proper ordering of txns
+    (void)txns;
+}
+
+bool Node::VerifyTxnsOrdering(const list<Transaction>& txns)
+{
+    // TODO: Implement after the proper ordering of txns is done
+    (void)txns;
+    return true;
+}
+
 bool Node::RunConsensusOnMicroBlockWhenShardLeader()
 {
     LOG_MARKER();
@@ -490,6 +578,18 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I am shard leader. Creating microblock for epoch"
                   << m_mediator.m_currentEpochNum);
+
+    bool isVacuousEpoch
+        = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
+    if (!isVacuousEpoch)
+    {
+        ProcessTransactionWhenShardLeader();
+    }
+    else
+    {
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Vacuous epoch: Skipping submit transactions");
+    }
 
     // composed microblock stored in m_microblock
     ComposeMicroBlock();
@@ -615,8 +715,6 @@ bool Node::RunConsensusOnMicroBlock()
 
     SetState(MICROBLOCK_CONSENSUS_PREP);
 
-    AccountStore::GetInstance().SerializeDelta();
-
     {
         lock_guard<mutex> g2(m_mutexNewRoundStarted);
         m_newRoundStarted = false;
@@ -719,62 +817,178 @@ bool Node::CheckMicroBlockTimestamp()
     return true;
 }
 
-bool Node::CheckLegitimacyOfTxnHashes(vector<unsigned char>& errorMsg)
+bool Node::ProcessTransactionWhenShardBackup(const vector<TxnHash>& tranHashes,
+                                             vector<TxnHash>& missingtranHashes)
 {
-    lock(m_mutexReceivedTransactions, m_mutexSubmittedTransactions);
-    lock_guard<mutex> g(m_mutexReceivedTransactions, adopt_lock);
-    lock_guard<mutex> g2(m_mutexSubmittedTransactions, adopt_lock);
+    LOG_MARKER();
 
-    auto const& receivedTransactions
-        = m_receivedTransactions[m_mediator.m_currentEpochNum];
-    auto const& submittedTransactions
-        = m_submittedTransactions[m_mediator.m_currentEpochNum];
+    auto findFromCreated = [this](Transaction& t, const TxnHash& th) -> bool {
+        lock_guard<mutex> g(m_mutexCreatedTransactions);
+
+        auto& hashIdx = m_createdTransactions.get<1>();
+        if (!hashIdx.size())
+        {
+            return false;
+        }
+
+        // auto it = find_if(
+        //     begin(m_createdTransactions), end(m_createdTransactions),
+        //     [&th](const Transaction& t) { return t.GetTranID() == th; });
+
+        // if (m_createdTransactions.end() == it)
+        // {
+        //     LOG_GENERAL(WARNING, "txn is not found");
+        //     return false;
+        // }
+
+        // t = move(*it);
+        // m_createdTransactions.erase(it);
+
+        auto it = hashIdx.find(th);
+
+        if (hashIdx.end() == it)
+        {
+            LOG_GENERAL(WARNING, "txn is not found");
+            return false;
+        }
+
+        t = move(*it);
+        hashIdx.erase(it);
+
+        return true;
+    };
+
+    auto findFromPrefilled = [this](Transaction& t, const TxnHash& th) -> bool {
+        lock_guard<mutex> g{m_mutexPrefilledTxns};
+
+        for (auto& txns : m_prefilledTxns)
+        {
+            auto& txnsList = txns.second;
+            if (txnsList.empty())
+            {
+                continue;
+            }
+
+            auto it = find_if(
+                begin(txnsList), end(txnsList),
+                [&th](const Transaction& t) { return t.GetTranID() == th; });
+
+            if (txnsList.end() == it)
+            {
+                continue;
+            }
+
+            t = move(*it);
+            txnsList.erase(it);
+            m_nRemainingPrefilledTxns--;
+
+            return true;
+        }
+
+        return false;
+    };
+
+    std::list<Transaction> curTxns;
+
+    for (const auto& tranHash : tranHashes)
+    {
+        Transaction t;
+
+        if (findFromCreated(t, tranHash))
+        {
+            curTxns.emplace_back(t);
+        }
+        else if (findFromPrefilled(t, tranHash))
+        {
+            curTxns.emplace_back(t);
+        }
+        else
+        {
+            missingtranHashes.emplace_back(tranHash);
+        }
+    }
+
+    if (!missingtranHashes.empty())
+    {
+        return true;
+    }
+
+    if (!VerifyTxnsOrdering(curTxns))
+    {
+        return false;
+    }
+
+    boost::multiprecision::uint256_t blockNum
+        = (uint256_t)m_mediator.m_currentEpochNum;
+
+    auto appendOne = [this, &blockNum](const Transaction& t) {
+        lock_guard<mutex> g(m_mutexProcessedTransactions);
+        auto& processedTransactions = m_processedTransactions[blockNum];
+        processedTransactions.insert(make_pair(t.GetTranID(), t));
+    };
+
+    for (const auto& t : curTxns)
+    {
+        if (m_mediator.m_validator->CheckCreatedTransaction(t)
+            || !t.GetCode().empty() || !t.GetData().empty())
+        {
+            appendOne(t);
+        }
+    }
+
+    AccountStore::GetInstance().SerializeDelta();
+
+    return true;
+}
+
+unsigned char Node::CheckLegitimacyOfTxnHashes(vector<unsigned char>& errorMsg)
+{
+    lock_guard<mutex> g(m_mutexProcessedTransactions);
+
+    vector<TxnHash> missingTxnHashes;
+    if (!ProcessTransactionWhenShardBackup(m_microblock->GetTranHashes(),
+                                           missingTxnHashes))
+    {
+        return LEGITIMACYRESULT::WRONGORDER;
+    }
 
     m_numOfAbsentTxnHashes = 0;
 
     int offset = 0;
 
-    for (auto const& hash : m_microblock->GetTranHashes())
+    for (auto const& hash : missingTxnHashes)
     {
-        // Check if transaction is part of submitted Tx list
-        if (submittedTransactions.find(hash) != submittedTransactions.end())
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Missing txn: " << hash)
+        if (errorMsg.size() == 0)
         {
-            continue;
+            errorMsg.resize(sizeof(uint32_t) + sizeof(uint64_t)
+                            + TRAN_HASH_SIZE);
+            offset += (sizeof(uint32_t) + sizeof(uint64_t));
         }
-
-        // Check if transaction is part of received Tx list
-        if (receivedTransactions.find(hash) == receivedTransactions.end())
+        else
         {
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Missing txn: " << hash)
-            if (errorMsg.size() == 0)
-            {
-                errorMsg.resize(sizeof(uint32_t) + sizeof(uint64_t)
-                                + TRAN_HASH_SIZE);
-                offset += (sizeof(uint32_t) + sizeof(uint64_t));
-            }
-            else
-            {
-                errorMsg.resize(offset + TRAN_HASH_SIZE);
-            }
-            copy(hash.asArray().begin(), hash.asArray().end(),
-                 errorMsg.begin() + offset);
-            offset += TRAN_HASH_SIZE;
-            m_numOfAbsentTxnHashes++;
+            errorMsg.resize(offset + TRAN_HASH_SIZE);
         }
+        copy(hash.asArray().begin(), hash.asArray().end(),
+             errorMsg.begin() + offset);
+        offset += TRAN_HASH_SIZE;
+        m_numOfAbsentTxnHashes++;
     }
 
-    if (m_numOfAbsentTxnHashes)
+    if (m_numOfAbsentTxnHashes > 0)
     {
         Serializable::SetNumber<uint32_t>(errorMsg, 0, m_numOfAbsentTxnHashes,
                                           sizeof(uint32_t));
         Serializable::SetNumber<uint64_t>(errorMsg, sizeof(uint32_t),
                                           m_mediator.m_currentEpochNum,
                                           sizeof(uint64_t));
-        return false;
+
+        m_txnsOrdering = m_microblock->GetTranHashes();
+        return LEGITIMACYRESULT::MISSEDTXN;
     }
 
-    return true;
+    return LEGITIMACYRESULT::SUCCESS;
 }
 
 bool Node::CheckMicroBlockHashes(vector<unsigned char>& errorMsg)
@@ -796,14 +1010,21 @@ bool Node::CheckMicroBlockHashes(vector<unsigned char>& errorMsg)
 
     LOG_GENERAL(INFO, "Hash count check passed");
 
-    // Check if I have the txn bodies corresponding to the hashes included in the microblock
-    if (!CheckLegitimacyOfTxnHashes(errorMsg))
+    switch (CheckLegitimacyOfTxnHashes(errorMsg))
     {
+    case LEGITIMACYRESULT::SUCCESS:
+        break;
+    case LEGITIMACYRESULT::MISSEDTXN:
         LOG_GENERAL(WARNING,
                     "Missing a txn hash included in proposed microblock");
-
         m_consensusObject->SetConsensusErrorCode(ConsensusCommon::MISSING_TXN);
-
+        return false;
+    case LEGITIMACYRESULT::WRONGORDER:
+        LOG_GENERAL(WARNING, "Order of txns proposed by leader is wrong");
+        m_consensusObject->SetConsensusErrorCode(
+            ConsensusCommon::WRONG_TXN_ORDER);
+        return false;
+    default:
         return false;
     }
 
