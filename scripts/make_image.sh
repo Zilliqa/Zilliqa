@@ -56,8 +56,21 @@ then
     exit 1
 fi
 
+# set n_parallel to fully utilize the resources
+case "$(uname)" in
+    'Linux')
+        jobs=$(nproc)
+        ;;
+    'Darwin')
+        jobs=$(sysctl -n hw.ncpu)
+        ;;
+    *)
+        jobs=2
+        ;;
+esac
+
 # Making images and checking result
-TRAVIS_COMMIT=$commit ./scripts/ci_make_image.sh
+TRAVIS_COMMIT=$commit ./scripts/ci_make_image.sh $jobs
 if [ "$?" -ne 0 ]
 then
     echo "Making image failed"
