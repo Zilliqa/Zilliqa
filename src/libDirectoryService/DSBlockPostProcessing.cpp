@@ -429,6 +429,42 @@ bool DirectoryService::ProcessDSBlockConsensus(
     // In that case, ANNOUNCE will sleep for a second below
     // If COLLECTIVESIG also comes in, it's then possible COLLECTIVESIG will be processed before ANNOUNCE!
     // So, ANNOUNCE should acquire a lock here
+    {
+        lock_guard<mutex> g(m_mutexConsensus);
+
+        // Wait until ProcessDSBlock in the case that primary sent announcement pretty early
+        if ((m_state == POW1_SUBMISSION) || (m_state == DSBLOCK_CONSENSUS_PREP))
+        {
+            cv_DSBlockConsensus.notify_all();
+
+            std::unique_lock<std::mutex> cv_lk(m_MutexCVDSBlockConsensusObject);
+
+            if (cv_DSBlockConsensusObject.wait_for(
+                    cv_lk, std::chrono::seconds(CONSENSUS_OBJECT_TIMEOUT))
+                == std::cv_status::timeout)
+            {
+                LOG_EPOCH(WARNING,
+                          to_string(m_mediator.m_currentEpochNum).c_str(),
+                          "Time out while waiting for state transition and "
+                          "consensus object creation ");
+            }
+
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "State transition is completed and consensus object "
+                      "creation. (check for timeout)");
+        }
+
+        if (!CheckState(PROCESS_DSBLOCKCONSENSUS))
+        {
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Ignoring consensus message");
+            return false;
+        }
+    }
+
+    // Consensus messages must be processed in correct sequence as they come in
+    // It is possible for ANNOUNCE to arrive before correct DS state
+    // In that case, state transition will occurs and ANNOUNCE will be processed.
 
     std::unique_lock<mutex> cv_lk(m_mutexProcessConsensusMessage);
     if (cv_processConsensusMessage.wait_for(
@@ -467,34 +503,6 @@ bool DirectoryService::ProcessDSBlockConsensus(
 
     lock_guard<mutex> g(m_mutexConsensus);
 
-    // Wait until ProcessDSBlock in the case that primary sent announcement pretty early
-    if ((m_state == POW1_SUBMISSION) || (m_state == DSBLOCK_CONSENSUS_PREP))
-    {
-        cv_DSBlockConsensus.notify_all();
-
-        std::unique_lock<std::mutex> cv_lk(m_MutexCVDSBlockConsensusObject);
-
-        if (cv_DSBlockConsensusObject.wait_for(
-                cv_lk, std::chrono::seconds(CONSENSUS_OBJECT_TIMEOUT))
-            == std::cv_status::timeout)
-        {
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Time out while waiting for state transition and "
-                      "consensus object creation ");
-        }
-
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "State transition is completed and consensus object "
-                  "creation. (check for timeout)");
-    }
-
-    if (!CheckState(PROCESS_DSBLOCKCONSENSUS))
-    {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Ignoring consensus message");
-        return false;
-    }
-
     bool result = m_consensusObject->ProcessMessage(message, offset, from);
     ConsensusCommon::State state = m_consensusObject->GetState();
 
@@ -507,19 +515,12 @@ bool DirectoryService::ProcessDSBlockConsensus(
     else if (state == ConsensusCommon::State::ERROR)
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Oops, no consensus reached - what to do now???");
+                  "No consensus reached. Wait for view change");
         LOG_EPOCH(
             INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "DEBUG for verify sig m_allPoWConns  size is "
                 << m_allPoWConns.size()
                 << ". Please check numbers of pow1 receivied by this node");
-
-        // Wait for view change to happen
-        //throw exception();
-        // if (m_mode != PRIMARY_DS)
-        // {
-        //     RejoinAsDS();
-        // }
     }
     else
     {

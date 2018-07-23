@@ -238,7 +238,44 @@ bool DirectoryService::ProcessShardingConsensus(
     // In that case, ANNOUNCE will sleep for a second below
     // If COLLECTIVESIG also comes in, it's then possible COLLECTIVESIG will be processed before ANNOUNCE!
     // So, ANNOUNCE should acquire a lock here
+    {
+        lock_guard<mutex> g(m_mutexConsensus);
+        // Wait until in the case that primary sent announcement pretty early
+        if ((m_state == POW2_SUBMISSION)
+            || (m_state == SHARDING_CONSENSUS_PREP))
+        {
+            cv_shardingConsensus.notify_all();
 
+            std::unique_lock<std::mutex> cv_lk(
+                m_MutexCVShardingConsensusObject);
+
+            if (cv_shardingConsensusObject.wait_for(
+                    cv_lk, std::chrono::seconds(CONSENSUS_OBJECT_TIMEOUT))
+                == std::cv_status::timeout)
+            {
+                LOG_EPOCH(WARNING,
+                          to_string(m_mediator.m_currentEpochNum).c_str(),
+                          "Time out while waiting for state transition and "
+                          "consensus object creation ");
+            }
+
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "State transition is completed and consensus object "
+                      "creation. (check for timeout)");
+        }
+
+        // if (m_state != SHARDING_CONSENSUS)
+        if (!CheckState(PROCESS_SHARDINGCONSENSUS))
+        {
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Ignoring consensus message");
+            return false;
+        }
+    }
+
+    // Consensus messages must be processed in correct sequence as they come in
+    // It is possible for ANNOUNCE to arrive before correct DS state
+    // In that case, state transition will occurs and ANNOUNCE will be processed.
     std::unique_lock<mutex> cv_lk(m_mutexProcessConsensusMessage);
     if (cv_processConsensusMessage.wait_for(
             cv_lk, std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW),
@@ -410,13 +447,7 @@ bool DirectoryService::ProcessShardingConsensus(
                           m_mediator.m_DSCommittee[i].first));
         }
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Oops, no consensus reached - what to do now???");
-        // throw exception();
-        // TODO: no consensus reached
-        // if (m_mode != PRIMARY_DS)
-        // {
-        //     RejoinAsDS();
-        // }
+                  "No consensus reached. Wait for view change");
         return false;
     }
     else
