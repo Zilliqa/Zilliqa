@@ -513,7 +513,7 @@ bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
         lock_guard<mutex> g(m_mutexCreatedTransactions);
         // m_createdTransactions.push_back(submittedTransaction);
         auto& listIdx = m_createdTransactions.get<0>();
-        listIdx.push_back(submittedTransaction);
+        listIdx.insert(submittedTransaction);
     }
 
     vector<TxnHash> missingTxnHashes;
@@ -595,7 +595,7 @@ bool Node::ProcessCreateTransactionFromLookup(
     if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(tx))
     {
         auto& listIdx = m_createdTransactions.get<0>();
-        listIdx.push_back(tx);
+        listIdx.insert(tx);
     }
     else
     {

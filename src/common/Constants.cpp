@@ -110,6 +110,8 @@ const unsigned int NUM_DS_KEEP_TX_BODY{
 const uint32_t MAXMESSAGE{ReadFromConstantsFile("MAXMESSAGE")};
 const unsigned int MAXSUBMITTXNPERNODE{
     ReadFromConstantsFile("MAXSUBMITTXNPERNODE")};
+const unsigned int MICROBLOCK_GAS_LIMIT{
+    ReadFromConstantsFile("MICROBLOCK_GAS_LIMIT")};
 const unsigned int TX_SHARING_CLUSTER_SIZE{
     ReadFromConstantsFile("TX_SHARING_CLUSTER_SIZE")};
 const unsigned int NEW_NODE_POW_DELAY{

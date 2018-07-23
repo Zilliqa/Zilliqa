@@ -15,6 +15,7 @@
 **/
 
 #include <array>
+#include <boost/range/adaptor/reversed.hpp>
 #include <chrono>
 #include <functional>
 #include <thread>
@@ -46,6 +47,7 @@
 
 using namespace std;
 using namespace boost::multiprecision;
+using namespace boost::multi_index;
 
 #ifndef IS_LOOKUP_NODE
 void Node::SubmitMicroblockToDSCommittee() const
@@ -344,7 +346,7 @@ bool Node::ComposeMicroBlock()
     uint8_t type = TXBLOCKTYPE::MICRO;
     uint32_t version = BLOCKVERSION::VERSION1;
     uint32_t shardID = m_myShardID;
-    uint256_t gasLimit = 100;
+    uint256_t gasLimit = MICROBLOCK_GAS_LIMIT;
     uint256_t gasUsed = 1;
     BlockHash prevHash;
     fill(prevHash.asArray().begin(), prevHash.asArray().end(), 0x77);
@@ -520,6 +522,14 @@ void Node::ProcessTransactionWhenShardLeader()
 
     std::list<Transaction> curTxns;
 
+    if (!m_leftTxns.empty())
+    {
+        txn_sent_count += m_leftTxns.size();
+        std::move(m_leftTxns.begin(), m_leftTxns.end(), back_inserter(curTxns));
+
+        m_leftTxns.clear();
+    }
+
     auto findOneFromCreated = [this](Transaction& t) -> bool {
         lock_guard<mutex> g(m_mutexCreatedTransactions);
 
@@ -529,8 +539,10 @@ void Node::ProcessTransactionWhenShardLeader()
             return false;
         }
 
-        t = move(listIdx.front());
-        listIdx.pop_front();
+        auto it = listIdx.end();
+        it--;
+        t = std::move(*it);
+        listIdx.erase(it);
         return true;
     };
 
@@ -550,10 +562,9 @@ void Node::ProcessTransactionWhenShardLeader()
         txn_sent_count++;
     }
 
-    OrderingTxns(curTxns);
+    curTxns = OrderingTxns(curTxns);
 
-    boost::multiprecision::uint256_t blockNum
-        = (uint256_t)m_mediator.m_currentEpochNum;
+    uint256_t blockNum = (uint256_t)m_mediator.m_currentEpochNum;
 
     auto appendOne = [this, &blockNum](const Transaction& t) {
         lock_guard<mutex> g(m_mutexProcessedTransactions);
@@ -561,20 +572,65 @@ void Node::ProcessTransactionWhenShardLeader()
         processedTransactions.insert(make_pair(t.GetTranID(), t));
     };
 
-    for (const auto& t : curTxns)
+    uint256_t gasUsedTotal = 0;
+
+    while (gasUsedTotal < MICROBLOCK_GAS_LIMIT && !curTxns.empty())
     {
-        if (m_mediator.m_validator->CheckCreatedTransaction(t)
-            || !t.GetCode().empty() || !t.GetData().empty())
+        uint256_t gasUsed = 0;
+        if (m_mediator.m_validator->CheckCreatedTransaction(curTxns.front(),
+                                                            gasUsed)
+            || !curTxns.front().GetCode().empty()
+            || !curTxns.front().GetData().empty())
         {
-            appendOne(t);
+            appendOne(curTxns.front());
+            gasUsedTotal += gasUsed;
         }
+        curTxns.pop_front();
+    }
+
+    if (!curTxns.empty())
+    {
+        std::move(curTxns.begin(), curTxns.end(),
+                  std::back_inserter(m_leftTxns));
     }
 }
 
-void Node::OrderingTxns(list<Transaction>& txns)
+list<Transaction> Node::OrderingTxns(const list<Transaction>& txns)
 {
     // TODO: Implement the proper ordering of txns
-    (void)txns;
+    multi_index_container<
+        Transaction,
+        indexed_by<
+            hashed_unique<const_mem_fun<Transaction, Address,
+                                        &Transaction::GetSenderAddr>>,
+            ordered_non_unique<const_mem_fun<Transaction, const uint256_t&,
+                                             &Transaction::GetGasPrice>>>>
+        addr_gas_txns;
+
+    for (const auto& t : txns)
+    {
+        auto& hash_index = addr_gas_txns.get<0>();
+        auto it = hash_index.find(t.GetSenderAddr());
+        if (it != hash_index.end())
+        {
+            if (t.GetGasPrice() > it->GetGasPrice())
+            {
+                addr_gas_txns.replace(it, t);
+            }
+            continue;
+        }
+        hash_index.insert(t);
+    }
+
+    list<Transaction> ret;
+
+    auto& list_index = addr_gas_txns.get<1>();
+    for (auto& t : list_index | boost::adaptors::reversed)
+    {
+        ret.emplace_back(t);
+    }
+
+    return ret;
 }
 
 bool Node::VerifyTxnsOrdering(const list<Transaction>& txns)
@@ -892,8 +948,7 @@ bool Node::ProcessTransactionWhenShardBackup(const vector<TxnHash>& tranHashes,
         return false;
     }
 
-    boost::multiprecision::uint256_t blockNum
-        = (uint256_t)m_mediator.m_currentEpochNum;
+    uint256_t blockNum = (uint256_t)m_mediator.m_currentEpochNum;
 
     auto appendOne = [this, &blockNum](const Transaction& t) {
         lock_guard<mutex> g(m_mutexProcessedTransactions);
@@ -903,7 +958,8 @@ bool Node::ProcessTransactionWhenShardBackup(const vector<TxnHash>& tranHashes,
 
     for (const auto& t : curTxns)
     {
-        if (m_mediator.m_validator->CheckCreatedTransaction(t)
+        uint256_t gasUsed = 0;
+        if (m_mediator.m_validator->CheckCreatedTransaction(t, gasUsed)
             || !t.GetCode().empty() || !t.GetData().empty())
         {
             appendOne(t);

@@ -109,6 +109,9 @@ public:
     //// Returns the sender's Public Key.
     const PubKey& GetSenderPubKey() const;
 
+    /// Returns the sender's Address
+    Address GetSenderAddr() const;
+
     /// Returns the transaction amount.
     const boost::multiprecision::uint256_t& GetAmount() const;
 

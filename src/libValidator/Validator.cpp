@@ -49,7 +49,8 @@ void Validator::CleanVariables()
 }
 
 #ifndef IS_LOOKUP_NODE
-bool Validator::CheckCreatedTransaction(const Transaction& tx) const
+bool Validator::CheckCreatedTransaction(const Transaction& tx,
+                                        uint256_t& gasUsed) const
 {
     // LOG_MARKER();
 
@@ -106,7 +107,7 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx) const
     }
 
     return AccountStore::GetInstance().UpdateAccountsTemp(
-        m_mediator.m_currentEpochNum, tx);
+        m_mediator.m_currentEpochNum, tx, gasUsed);
 }
 
 bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
