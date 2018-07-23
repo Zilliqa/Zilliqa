@@ -423,26 +423,22 @@ bool Node::CheckMicroBlockRootHash(
 }
 
 #ifndef IS_LOOKUP_NODE
-bool Node::FindTxnInSubmittedTxnsList(const TxBlock& finalblock,
+bool Node::FindTxnInProcessedTxnsList(const TxBlock& finalblock,
                                       const uint256_t& blockNum,
                                       uint8_t sharing_mode,
                                       vector<Transaction>& txns_to_send,
                                       const TxnHash& tx_hash)
 {
-    // LOG_MARKER();
-
-    // boost::multiprecision::uint256_t blockNum = m_mediator.m_txBlockChain.GetBlockCount();
-
-    lock(m_mutexSubmittedTransactions, m_mutexCommittedTransactions);
-    lock_guard<mutex> g(m_mutexSubmittedTransactions, adopt_lock);
+    lock(m_mutexProcessedTransactions, m_mutexCommittedTransactions);
+    lock_guard<mutex> g(m_mutexProcessedTransactions, adopt_lock);
     lock_guard<mutex> g2(m_mutexCommittedTransactions, adopt_lock);
 
-    auto& submittedTransactions = m_submittedTransactions[blockNum];
+    auto& processedTransactions = m_processedTransactions[blockNum];
     auto& committedTransactions = m_committedTransactions[blockNum];
-    const auto& txnIt = submittedTransactions.find(tx_hash);
+    const auto& txnIt = processedTransactions.find(tx_hash);
 
     // Check if transaction is part of submitted Tx list
-    if (txnIt != submittedTransactions.end())
+    if (txnIt != processedTransactions.end())
     {
         if ((sharing_mode == SEND_ONLY) || (sharing_mode == SEND_AND_FORWARD))
         {
@@ -451,114 +447,7 @@ bool Node::FindTxnInSubmittedTxnsList(const TxBlock& finalblock,
 
         // Move entry from submitted Tx list to committed Tx list
         committedTransactions.push_back(txnIt->second);
-        submittedTransactions.erase(txnIt);
-
-        // LOG_EPOCH(
-        //     INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-        //     "[TXN] ["
-        //         << blockNum << "] Committed     = 0x"
-        //         << DataConversion::charArrToHexStr(
-        //                committedTransactions.back().GetTranID().asArray()));
-
-        // Update from and to accounts
-        // if (!AccountStore::GetInstance().UpdateAccounts(
-        //         m_mediator.m_currentEpochNum - 1, committedTransactions.back()))
-        // {
-        //     LOG_GENERAL(WARNING, "UpdateAccounts failed");
-        //     committedTransactions.pop_back();
-        //     return true;
-        // }
-
-        // DO NOT DELETE. PERISTENT STORAGE
-        /**
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "##Storing Transaction##");
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), DataConversion::charArrToHexStr(tx_hash));
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), (*entry).GetAmount());
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), DataConversion::charArrToHexStr((*entry).GetToAddr()));
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), DataConversion::charArrToHexStr((*entry).GetFromAddr()));
-        **/
-
-        //LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "Storing Transaction: "<< DataConversion::charArrToHexStr(tx_hash) <<
-        //    " with amount: "<<(*entry).GetAmount()<<
-        //    ", to: "<<DataConversion::charArrToHexStr((*entry).GetToAddr())<<
-        //   ", from: "<<DataConversion::charArrToHexStr((*entry).GetFromAddr()));
-
-        // Store TxBody to disk
-        vector<unsigned char> serializedTxBody;
-        committedTransactions.back().Serialize(serializedTxBody, 0);
-        if (!BlockStorage::GetBlockStorage().PutTxBody(tx_hash,
-                                                       serializedTxBody))
-        {
-            LOG_GENERAL(INFO, "FAIL: PutTxBody Failed");
-        }
-
-        // Move on to next transaction in block
-        return true;
-    }
-
-    return false;
-}
-
-bool Node::FindTxnInReceivedTxnsList(const TxBlock& finalblock,
-                                     const uint256_t& blockNum,
-                                     uint8_t sharing_mode,
-                                     vector<Transaction>& txns_to_send,
-                                     const TxnHash& tx_hash)
-{
-    // LOG_MARKER();
-
-    lock(m_mutexReceivedTransactions, m_mutexCommittedTransactions);
-    lock_guard<mutex> g(m_mutexReceivedTransactions, adopt_lock);
-    lock_guard<mutex> g2(m_mutexCommittedTransactions, adopt_lock);
-
-    auto& receivedTransactions = m_receivedTransactions[blockNum];
-    auto& committedTransactions = m_committedTransactions[blockNum];
-    const auto& txnIt = receivedTransactions.find(tx_hash);
-
-    // Check if transaction is part of received Tx list
-    if (txnIt != receivedTransactions.end())
-    {
-        if ((sharing_mode == SEND_ONLY) || (sharing_mode == SEND_AND_FORWARD))
-        {
-            txns_to_send.push_back(txnIt->second);
-        }
-
-        // Move entry from received Tx list to committed Tx list
-        committedTransactions.push_back(txnIt->second);
-        receivedTransactions.erase(txnIt);
-
-        // LOG_EPOCH(
-        //     INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-        //     "[TXN] ["
-        //         << blockNum << "] Committed     = 0x"
-        //         << DataConversion::charArrToHexStr(
-        //                committedTransactions.back().GetTranID().asArray()));
-
-        // Update from and to accounts
-        // if (!AccountStore::GetInstance().UpdateAccounts(
-        //         m_mediator.m_currentEpochNum - 1, committedTransactions.back()))
-        // {
-        //     LOG_GENERAL(WARNING, "UpdateAccounts failed");
-        //     committedTransactions.pop_back();
-        //     return true;
-        // }
-
-        /**
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "##Storing Transaction##");
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), DataConversion::charArrToHexStr(tx_hash));
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), (*entry).GetAmount());
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), DataConversion::charArrToHexStr((*entry).GetToAddr()));
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), DataConversion::charArrToHexStr((*entry).GetFromAddr()));
-        **/
-
-        // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-        //           "ReceivedTransaction: Storing Transaction: "
-        //               << DataConversion::charArrToHexStr(tx_hash.asArray())
-        //               << " with amount: "
-        //               << committedTransactions.back().GetAmount() << ", to: "
-        //               << committedTransactions.back().GetToAddr() << ", from: "
-        //               << Account::GetAddressFromPublicKey(
-        //                      committedTransactions.back().GetSenderPubKey()));
+        processedTransactions.erase(txnIt);
 
         // Store TxBody to disk
         vector<unsigned char> serializedTxBody;
@@ -589,14 +478,8 @@ void Node::CommitMyShardsMicroBlock(const TxBlock& finalblock,
     {
         const TxnHash& tx_hash = tx_hashes.at(i);
 
-        if (FindTxnInSubmittedTxnsList(finalblock, blocknum, sharing_mode,
-                                       txns_to_send, tx_hash))
-        {
-            continue;
-        }
-
-        if (!FindTxnInReceivedTxnsList(finalblock, blocknum, sharing_mode,
-                                       txns_to_send, tx_hash))
+        if (!FindTxnInProcessedTxnsList(finalblock, blocknum, sharing_mode,
+                                        txns_to_send, tx_hash))
         {
             // TODO
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -609,12 +492,8 @@ void Node::CommitMyShardsMicroBlock(const TxBlock& finalblock,
                   << blocknum << " = " << txns_to_send.size());
 
     {
-        lock_guard<mutex> g(m_mutexReceivedTransactions);
-        m_receivedTransactions.erase(blocknum);
-    }
-    {
-        lock_guard<mutex> g2(m_mutexSubmittedTransactions);
-        m_submittedTransactions.erase(blocknum);
+        lock_guard<mutex> g(m_mutexProcessedTransactions);
+        m_processedTransactions.erase(blocknum);
     }
 }
 
@@ -1180,7 +1059,7 @@ void Node::BeginNextConsensusRound()
             }
         }
 
-        ScheduleTxnSubmission();
+        // ScheduleTxnSubmission();
     }
     else
     {

@@ -391,7 +391,7 @@ bool Node::ProcessSharding(const vector<unsigned char>& message,
 
     // TimeLockedFunction tlf(SUBMIT_TX_WINDOW, main_func, expiry_func, true);
 
-    auto main_func = [this]() mutable -> void { SubmitTransactions(); };
+    // auto main_func = [this]() mutable -> void { SubmitTransactions(); };
 
     {
         lock_guard<mutex> g2(m_mutexNewRoundStarted);
@@ -402,17 +402,17 @@ bool Node::ProcessSharding(const vector<unsigned char>& message,
         }
     }
 
-    DetachedFunction(1, main_func);
+    // DetachedFunction(1, main_func);
 
     LOG_GENERAL(INFO, "Entering sleep for " << TXN_SUBMISSION << " seconds");
     this_thread::sleep_for(chrono::seconds(TXN_SUBMISSION));
     LOG_GENERAL(INFO,
                 "Woken up from the sleep of " << TXN_SUBMISSION << " seconds");
 
-    auto main_func2
-        = [this]() mutable -> void { SetState(TX_SUBMISSION_BUFFER); };
+    // auto main_func2
+    //     = [this]() mutable -> void { SetState(TX_SUBMISSION_BUFFER); };
 
-    DetachedFunction(1, main_func2);
+    // DetachedFunction(1, main_func2);
 
     LOG_GENERAL(INFO,
                 "Using conditional variable with timeout of  "
