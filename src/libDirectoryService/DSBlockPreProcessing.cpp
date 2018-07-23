@@ -259,8 +259,8 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin)
 
     SetState(DSBLOCK_CONSENSUS);
 
-    // View change will wait for timeout. If conditional variable is notified before timeout, the thread will return 
-    // without triggering view change. 
+    // View change will wait for timeout. If conditional variable is notified before timeout, the thread will return
+    // without triggering view change.
     std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeDSBlock);
     if (cv_viewChangeDSBlock.wait_for(cv_lk,
                                       std::chrono::seconds(VIEWCHANGE_TIME))
