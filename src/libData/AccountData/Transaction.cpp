@@ -15,6 +15,7 @@
 **/
 
 #include "Transaction.h"
+#include "Account.h"
 #include "libCrypto/Sha2.h"
 #include "libUtils/Logger.h"
 #include <algorithm>
@@ -264,6 +265,11 @@ const uint256_t& Transaction::GetNonce() const { return m_nonce; }
 const Address& Transaction::GetToAddr() const { return m_toAddr; }
 
 const PubKey& Transaction::GetSenderPubKey() const { return m_senderPubKey; }
+
+Address Transaction::GetSenderAddr() const
+{
+    return Account::GetAddressFromPublicKey(GetSenderPubKey());
+}
 
 const uint256_t& Transaction::GetAmount() const { return m_amount; }
 

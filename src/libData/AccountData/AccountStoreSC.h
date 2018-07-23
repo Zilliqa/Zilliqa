@@ -22,6 +22,8 @@
 
 #include "AccountStoreBase.h"
 
+static uint256_t DEFAULT_GASUSED = 0;
+
 template<class MAP> class AccountStoreSC;
 
 template<class MAP>
@@ -85,7 +87,8 @@ public:
     void Init() override;
 
     bool UpdateAccounts(const uint64_t& blockNum,
-                        const Transaction& transaction);
+                        const Transaction& transaction,
+                        uint256_t& gasUsed = DEFAULT_GASUSED);
 };
 
 #include "AccountStoreAtomic.tpp"

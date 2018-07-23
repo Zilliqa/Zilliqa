@@ -97,7 +97,8 @@ public:
     bool RetrieveFromDisk();
 
     bool UpdateAccountsTemp(const uint64_t& blockNum,
-                            const Transaction& transaction);
+                            const Transaction& transaction,
+                            boost::multiprecision::uint256_t& gasUsed);
 
     void AddAccountTemp(const Address& address, const Account& account)
     {
