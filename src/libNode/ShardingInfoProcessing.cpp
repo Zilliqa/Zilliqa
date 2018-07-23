@@ -324,6 +324,7 @@ bool Node::ProcessSharding(const vector<unsigned char>& message,
         m_runFromLate = false;
     }
     m_fromNewProcess = false;
+    m_cvFinishPOW.notify_all();
 
     if (m_mediator.m_selfKey.second == m_myShardMembersPubKeys.front())
     {

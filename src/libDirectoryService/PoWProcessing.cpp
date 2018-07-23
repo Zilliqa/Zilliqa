@@ -39,25 +39,6 @@ using namespace std;
 using namespace boost::multiprecision;
 
 #ifndef IS_LOOKUP_NODE
-bool DirectoryService::CheckWhetherMaxSubmissionsReceived(Peer peer, PubKey key)
-{
-    lock(m_mutexAllPOW1, m_mutexAllPoWConns);
-    lock_guard<mutex> g(m_mutexAllPOW1, adopt_lock);
-    lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
-
-    if (m_allPoW1s.size() >= MAX_POW1_WINNERS)
-    {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Already validated maximum number of PoW1 submissions - "
-                  "dropping this submission but noting down the IP of "
-                  "submitter");
-        m_allPoWConns.insert(make_pair(key, peer));
-        return true;
-    }
-
-    return false;
-}
-
 bool DirectoryService::VerifyPoW1Submission(
     const vector<unsigned char>& message, const Peer& from, PubKey& key,
     unsigned int curr_offset, uint32_t& portNo, uint64_t& nonce,
@@ -165,11 +146,6 @@ bool DirectoryService::ParseMessageAndVerifyPOW1(
 
     // Todo: Reject PoW1 submissions from existing members of DS committee
 
-    if (CheckWhetherMaxSubmissionsReceived(peer, key))
-    {
-        return false;
-    }
-
     if (!CheckState(VERIFYPOW1))
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -214,18 +190,16 @@ bool DirectoryService::ParseMessageAndVerifyPOW1(
             lock_guard<mutex> g(m_mutexAllPOW1, adopt_lock);
             lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
 
-            m_allPoWConns.insert(make_pair(key, peer));
-
-            if (m_allPoW1s.size() >= MAX_POW1_WINNERS)
+            if (m_allPoWConns.find(key) == m_allPoWConns.end())
             {
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "Already validated maximum number of PoW1 "
-                          "submissions - dropping this submission but "
-                          "noting down the IP of submitter");
-                return false;
+                m_allPoWConns.emplace(key, peer);
+                m_allPoW1s.push_back(make_pair(key, nonce));
             }
 
-            m_allPoW1s.push_back(make_pair(key, nonce));
+            LOG_GENERAL(INFO,
+                        "POW1 size = " << m_allPoW1s.size()
+                                       << ", PoWConns size = "
+                                       << m_allPoWConns.size());
         }
     }
     else
