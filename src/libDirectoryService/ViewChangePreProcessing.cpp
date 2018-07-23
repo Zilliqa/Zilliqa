@@ -85,8 +85,8 @@ void DirectoryService::RunConsensusOnViewChange()
     {
         LOG_GENERAL(INFO, m_mediator.m_DSCommittee.at(i).second);
     }
-    // The intention of adding the counter is to ensure that in the event of a new view change,
-    // where current view change failed, the new candidate leader will faulty candidate leader
+    // The intention of adding the m_viewChangeCounter is to ensure that in the event of a new view change,
+    // where the current view change failed, the new candidate leader will not be the old faulty candidate leader
     unsigned int newCandidateLeader = (1 + m_viewChangeCounter)
         % m_mediator.m_DSCommittee
               .size(); // TODO: To be change to a random node using VRF
