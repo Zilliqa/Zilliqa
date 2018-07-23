@@ -695,6 +695,7 @@ void DirectoryService::RunConsensusOnSharding()
     }
 
     SetState(SHARDING_CONSENSUS);
+    cv_shardingConsensusObject.notify_all();
 
     // View change will wait for timeout. If conditional variable is notified before timeout, the thread will return
     // without triggering view change.
