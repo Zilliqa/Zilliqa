@@ -21,6 +21,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     dnsutils \
     gdb \
     less \
+    logrotate \
     net-tools \
     vim \
     && rm -rf /var/lib/apt/lists/* \
