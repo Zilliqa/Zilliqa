@@ -373,7 +373,6 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
                 }
 
                 RunConsensusOnDSBlock();
-                cv_DSBlockConsensusObject.notify_all();
             }
         }
         else
