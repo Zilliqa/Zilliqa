@@ -22,7 +22,7 @@
 
 #include "libData/AccountData/Transaction.h"
 
-enum KEY_INDEX : unsigned int
+enum MULTI_INDEX_KEY : unsigned int
 {
     GAS_PRICE = 0,
     TXN_ID,

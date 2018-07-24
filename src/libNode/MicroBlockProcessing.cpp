@@ -541,7 +541,8 @@ void Node::ProcessTransactionWhenShardLeader()
     };
 
     auto findSameNonceButHigherGasPrice = [this](Transaction& t) -> void {
-        auto& compIdx = m_createdTransactions.get<KEY_INDEX::ADDR_NONCE>();
+        auto& compIdx
+            = m_createdTransactions.get<MULTI_INDEX_KEY::ADDR_NONCE>();
         auto it = compIdx.find(make_tuple(t.GetSenderAddr(), t.GetNonce()));
         if (it != compIdx.end())
         {
@@ -556,7 +557,7 @@ void Node::ProcessTransactionWhenShardLeader()
     auto findOneFromCreated = [this](Transaction& t) -> bool {
         lock_guard<mutex> g(m_mutexCreatedTransactions);
 
-        auto& listIdx = m_createdTransactions.get<KEY_INDEX::GAS_PRICE>();
+        auto& listIdx = m_createdTransactions.get<MULTI_INDEX_KEY::GAS_PRICE>();
         if (!listIdx.size())
         {
             return false;
@@ -908,7 +909,7 @@ bool Node::ProcessTransactionWhenShardBackup(const vector<TxnHash>& tranHashes,
     auto findFromCreated = [this](Transaction& t, const TxnHash& th) -> bool {
         lock_guard<mutex> g(m_mutexCreatedTransactions);
 
-        auto& hashIdx = m_createdTransactions.get<KEY_INDEX::TXN_ID>();
+        auto& hashIdx = m_createdTransactions.get<MULTI_INDEX_KEY::TXN_ID>();
         if (!hashIdx.size())
         {
             return false;
