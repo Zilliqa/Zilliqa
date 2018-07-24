@@ -15,7 +15,6 @@
 **/
 
 #include <array>
-// #include <boost/range/adaptor/reversed.hpp>
 #include <chrono>
 #include <functional>
 #include <thread>
@@ -542,7 +541,7 @@ void Node::ProcessTransactionWhenShardLeader()
     };
 
     auto findSameNonceButHigherGasPrice = [this](Transaction& t) -> void {
-        auto& compIdx = m_createdTransactions.get<2>();
+        auto& compIdx = m_createdTransactions.get<KEY_INDEX::ADDR_NONCE>();
         auto it = compIdx.find(make_tuple(t.GetSenderAddr(), t.GetNonce()));
         if (it != compIdx.end())
         {
@@ -557,7 +556,7 @@ void Node::ProcessTransactionWhenShardLeader()
     auto findOneFromCreated = [this](Transaction& t) -> bool {
         lock_guard<mutex> g(m_mutexCreatedTransactions);
 
-        auto& listIdx = m_createdTransactions.get<0>();
+        auto& listIdx = m_createdTransactions.get<KEY_INDEX::GAS_PRICE>();
         if (!listIdx.size())
         {
             return false;
@@ -909,7 +908,7 @@ bool Node::ProcessTransactionWhenShardBackup(const vector<TxnHash>& tranHashes,
     auto findFromCreated = [this](Transaction& t, const TxnHash& th) -> bool {
         lock_guard<mutex> g(m_mutexCreatedTransactions);
 
-        auto& hashIdx = m_createdTransactions.get<1>();
+        auto& hashIdx = m_createdTransactions.get<KEY_INDEX::TXN_ID>();
         if (!hashIdx.size())
         {
             return false;
