@@ -594,7 +594,7 @@ bool Node::ProcessCreateTransactionFromLookup(
                              << " toAddr: " << tx.GetToAddr().hex());
     if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(tx))
     {
-        auto& listIdx = m_createdTransactions.get<KEY_INDEX::GAS_PRICE>();
+        auto& listIdx = m_createdTransactions.get<MULTI_INDEX_KEY::GAS_PRICE>();
         listIdx.insert(tx);
     }
     else
