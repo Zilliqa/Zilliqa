@@ -85,8 +85,11 @@ void DirectoryService::RunConsensusOnViewChange()
     {
         LOG_GENERAL(INFO, m_mediator.m_DSCommittee.at(i).second);
     }
-    unsigned int newCandidateLeader
-        = 1; // TODO: To be change to a random node using VRF
+    // The intention of adding the m_viewChangeCounter is to ensure that in the event of a new view change,
+    // where the current view change failed, the new candidate leader will not be the old faulty candidate leader
+    unsigned int newCandidateLeader = (1 + m_viewChangeCounter)
+        % m_mediator.m_DSCommittee
+              .size(); // TODO: To be change to a random node using VRF
 
     // TODO
     // We compare with empty peer is due to the fact that DSCommittee for yourself is 0.0.0.0 with port 0.
