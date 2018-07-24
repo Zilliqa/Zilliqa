@@ -15,7 +15,7 @@
 **/
 
 #include <array>
-#include <boost/range/adaptor/reversed.hpp>
+// #include <boost/range/adaptor/reversed.hpp>
 #include <chrono>
 #include <functional>
 #include <thread>
@@ -103,8 +103,7 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
         // It is possible for ANNOUNCE to arrive before correct DS state
         // In that case, state transition will occurs and ANNOUNCE will be processed.
 
-        if ((m_state == TX_SUBMISSION) || (m_state == TX_SUBMISSION_BUFFER)
-            || (m_state == MICROBLOCK_CONSENSUS_PREP))
+        if (m_state == MICROBLOCK_CONSENSUS_PREP)
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Received microblock announcement from shard leader. I "
@@ -522,14 +521,6 @@ void Node::ProcessTransactionWhenShardLeader()
 
     std::list<Transaction> curTxns;
 
-    if (!m_leftTxns.empty())
-    {
-        txn_sent_count += m_leftTxns.size();
-        std::move(m_leftTxns.begin(), m_leftTxns.end(), back_inserter(curTxns));
-
-        m_leftTxns.clear();
-    }
-
     auto findOneFromCreated = [this](Transaction& t) -> bool {
         lock_guard<mutex> g(m_mutexCreatedTransactions);
 
@@ -546,24 +537,6 @@ void Node::ProcessTransactionWhenShardLeader()
         return true;
     };
 
-    while (txn_sent_count
-           < MAXSUBMITTXNPERNODE * m_myShardMembersPubKeys.size())
-    {
-        Transaction t;
-
-        if (findOneFromCreated(t))
-        {
-            curTxns.emplace_back(t);
-        }
-        else
-        {
-            break;
-        }
-        txn_sent_count++;
-    }
-
-    curTxns = OrderingTxns(curTxns);
-
     uint256_t blockNum = (uint256_t)m_mediator.m_currentEpochNum;
 
     auto appendOne = [this, &blockNum](const Transaction& t) {
@@ -574,64 +547,67 @@ void Node::ProcessTransactionWhenShardLeader()
 
     uint256_t gasUsedTotal = 0;
 
-    while (gasUsedTotal < MICROBLOCK_GAS_LIMIT && !curTxns.empty())
+    while (txn_sent_count < MAXSUBMITTXNPERNODE * m_myShardMembersPubKeys.size()
+           && gasUsedTotal < MICROBLOCK_GAS_LIMIT)
     {
-        uint256_t gasUsed = 0;
-        if (m_mediator.m_validator->CheckCreatedTransaction(curTxns.front(),
-                                                            gasUsed)
-            || !curTxns.front().GetCode().empty()
-            || !curTxns.front().GetData().empty())
+        Transaction t;
+
+        if (findOneFromCreated(t))
         {
-            appendOne(curTxns.front());
-            gasUsedTotal += gasUsed;
-        }
-        curTxns.pop_front();
-    }
-
-    if (!curTxns.empty())
-    {
-        std::move(curTxns.begin(), curTxns.end(),
-                  std::back_inserter(m_leftTxns));
-    }
-}
-
-list<Transaction> Node::OrderingTxns(const list<Transaction>& txns)
-{
-    // TODO: Implement the proper ordering of txns
-    multi_index_container<
-        Transaction,
-        indexed_by<
-            hashed_unique<const_mem_fun<Transaction, Address,
-                                        &Transaction::GetSenderAddr>>,
-            ordered_non_unique<const_mem_fun<Transaction, const uint256_t&,
-                                             &Transaction::GetGasPrice>>>>
-        addr_gas_txns;
-
-    for (const auto& t : txns)
-    {
-        auto& hash_index = addr_gas_txns.get<0>();
-        auto it = hash_index.find(t.GetSenderAddr());
-        if (it != hash_index.end())
-        {
-            if (t.GetGasPrice() > it->GetGasPrice())
+            // curTxns.emplace_back(t);
+            uint256_t gasUsed = 0;
+            if (m_mediator.m_validator->CheckCreatedTransaction(t, gasUsed)
+                || !t.GetCode().empty() || !t.GetData().empty())
             {
-                addr_gas_txns.replace(it, t);
+                appendOne(t);
+                gasUsedTotal += gasUsed;
             }
-            continue;
         }
-        hash_index.insert(t);
+        else
+        {
+            break;
+        }
+        txn_sent_count++;
     }
-
-    list<Transaction> ret;
-
-    auto& list_index = addr_gas_txns.get<1>();
-    for (auto& t : list_index | boost::adaptors::reversed)
-    {
-        ret.emplace_back(t);
-    }
-
-    return ret;
 }
+
+// list<Transaction> Node::OrderingTxns(const list<Transaction>& txns)
+// {
+//     // TODO: Implement the proper ordering of txns
+//     multi_index_container<
+//         Transaction,
+//         indexed_by<
+//             hashed_unique<const_mem_fun<Transaction, Address,
+//                                         &Transaction::GetSenderAddr>>,
+//             ordered_non_unique<const_mem_fun<Transaction, const uint256_t&,
+//                                              &Transaction::GetGasPrice>>>>
+//         addr_gas_txns;
+
+//     for (const auto& t : txns)
+//     {
+//         auto& hash_index = addr_gas_txns.get<0>();
+//         auto it = hash_index.find(t.GetSenderAddr());
+//         if (it != hash_index.end())
+//         {
+//             if (t.GetGasPrice() > it->GetGasPrice())
+//             {
+//                 addr_gas_txns.replace(it, t);
+//             }
+//             continue;
+//         }
+//         hash_index.insert(t);
+//     }
+
+//     list<Transaction> ret;
+
+//     auto& list_index = addr_gas_txns.get<1>();
+//     for (auto& t : list_index | boost::adaptors::reversed)
+//     {
+//         ret.emplace_back(t);
+//     }
+
+//     return ret;
+// }
 
 bool Node::VerifyTxnsOrdering(const list<Transaction>& txns)
 {
