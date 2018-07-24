@@ -541,6 +541,19 @@ void Node::ProcessTransactionWhenShardLeader()
         return false;
     };
 
+    auto findSameNonceButHigherGasPrice = [this](Transaction& t) -> void {
+        auto& compIdx = m_createdTransactions.get<2>();
+        auto it = compIdx.find(make_tuple(t.GetSenderAddr(), t.GetNonce()));
+        if (it != compIdx.end())
+        {
+            if (it->GetGasPrice() > t.GetGasPrice())
+            {
+                t = std::move(*it);
+                compIdx.erase(it);
+            }
+        }
+    };
+
     auto findOneFromCreated = [this](Transaction& t) -> bool {
         lock_guard<mutex> g(m_mutexCreatedTransactions);
 
@@ -579,16 +592,7 @@ void Node::ProcessTransactionWhenShardLeader()
         {
             // check whether m_createdTransaction have transaction with same Addr and nonce
             // if has and with larger gasPrice then replace with that one. (*optional step)
-            auto& compIdx = m_createdTransactions.get<2>();
-            auto it = compIdx.find(make_tuple(t.GetSenderAddr(), t.GetNonce()));
-            if (it != compIdx.end())
-            {
-                if (it->GetGasPrice() > t.GetGasPrice())
-                {
-                    t = std::move(*it);
-                    compIdx.erase(it);
-                }
-            }
+            findSameNonceButHigherGasPrice(t);
 
             uint256_t gasUsed = 0;
             if (m_mediator.m_validator->CheckCreatedTransaction(t, gasUsed)

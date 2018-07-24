@@ -78,8 +78,7 @@ typedef boost::multi_index::multi_index_container<
                 &Transaction::GetGasPrice>>,
         boost::multi_index::hashed_unique<boost::multi_index::const_mem_fun<
             Transaction, const TxnHash&, &Transaction::GetTranID>>,
-        boost::multi_index::hashed_unique<
-            addr_nonce_key>>>
+        boost::multi_index::hashed_unique<addr_nonce_key>>>
     gas_ra_txns;
 
 /// Implements PoW submission and sharding node functionality.
