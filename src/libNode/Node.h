@@ -16,6 +16,7 @@
 #ifndef __NODE_H__
 #define __NODE_H__
 
+#include <boost/multi_index/composite_key.hpp>
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/key_extractors.hpp>
 #include <boost/multi_index/ordered_index.hpp>
@@ -46,9 +47,29 @@
 class Mediator;
 class Retriever;
 
-using namespace boost::multi_index;
+typedef boost::multi_index::composite_key<
+    Transaction,
+    boost::multi_index::const_mem_fun<Transaction, Address,
+                                      &Transaction::GetSenderAddr>,
+    boost::multi_index::const_mem_fun<Transaction,
+                                      const boost::multiprecision::uint256_t&,
+                                      &Transaction::GetNonce>>
+    addr_nonce_key;
 
-typedef multi_index_container<
+namespace boost
+{
+    namespace multiprecision
+    {
+        static std::size_t hash_value(const uint256_t& value)
+        {
+            std::size_t seed = 0;
+            boost::hash_combine(seed, value);
+            return seed;
+        }
+    }
+}
+
+typedef boost::multi_index::multi_index_container<
     Transaction,
     boost::multi_index::indexed_by<
         boost::multi_index::ordered_non_unique<
@@ -56,7 +77,9 @@ typedef multi_index_container<
                 Transaction, const boost::multiprecision::uint256_t&,
                 &Transaction::GetGasPrice>>,
         boost::multi_index::hashed_unique<boost::multi_index::const_mem_fun<
-            Transaction, const TxnHash&, &Transaction::GetTranID>>>>
+            Transaction, const TxnHash&, &Transaction::GetTranID>>,
+        boost::multi_index::hashed_unique<
+            addr_nonce_key>>>
     gas_ra_txns;
 
 /// Implements PoW submission and sharding node functionality.
