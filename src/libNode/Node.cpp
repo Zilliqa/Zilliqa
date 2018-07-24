@@ -146,7 +146,7 @@ void Node::Prepare(bool runInitializeGenesisBlocks)
         + 1;
     m_mediator.UpdateDSBlockRand(runInitializeGenesisBlocks);
     m_mediator.UpdateTxBlockRand(runInitializeGenesisBlocks);
-    SetState(POW1_SUBMISSION);
+    SetState(POW_SUBMISSION);
     POW::GetInstance().EthashConfigureLightClient(
         (uint64_t)m_mediator.m_dsBlockChain.GetBlockCount());
 }
@@ -214,7 +214,7 @@ void Node::StartSynchronization()
             {
                 if (m_mediator.m_lookup->cv_offlineLookups.wait_for(
                         lock,
-                        chrono::seconds(POW1_WINDOW_IN_SECONDS
+                        chrono::seconds(POW_WINDOW_IN_SECONDS
                                         + BACKUP_POW2_WINDOW_IN_SECONDS))
                     == std::cv_status::timeout)
                 {
@@ -256,7 +256,7 @@ void Node::StartSynchronization()
 bool Node::compatibleState(enum NodeState state, enum Action action)
 {
     const static std::map<NodeState, Action> ACTION_FOR_STATE
-        = {{POW1_SUBMISSION, STARTPOW1},
+        = {{POW_SUBMISSION, STARTPOW},
            {POW2_SUBMISSION, STARTPOW2},
            {TX_SUBMISSION, PROCESS_SHARDING},
            {TX_SUBMISSION_BUFFER, PROCESS_SHARDING},
@@ -1125,7 +1125,7 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
                                              unsigned int, const Peer&);
 
     InstructionHandler ins_handlers[]
-        = {&Node::ProcessStartPoW1,
+        = {&Node::ProcessStartPoW,
            &Node::ProcessDSBlock,
            &Node::ProcessSharding,
            &Node::ProcessCreateTransaction,
@@ -1173,7 +1173,7 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
     }
 
 map<Node::NodeState, string> Node::NodeStateStrings
-    = {MAKE_LITERAL_PAIR(POW1_SUBMISSION),
+    = {MAKE_LITERAL_PAIR(POW_SUBMISSION),
        MAKE_LITERAL_PAIR(POW2_SUBMISSION),
        MAKE_LITERAL_PAIR(TX_SUBMISSION),
        MAKE_LITERAL_PAIR(TX_SUBMISSION_BUFFER),

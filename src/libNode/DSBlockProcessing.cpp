@@ -317,7 +317,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
                .GetMinerPubKey())
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "I won PoW1 :-) I am now the new DS committee leader!");
+                  "I won PoW :-) I am now the new DS committee leader!");
 
         if (TEST_NET_MODE)
         {
@@ -344,10 +344,10 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
     else
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "I lost PoW1 :-( Better luck next time!");
+                  "I lost PoW :-( Better luck next time!");
         POW::GetInstance().StopMining();
 
-        // Tell my Node class to start PoW2 if I didn't win PoW1
+        // Tell my Node class to start PoW2 if I didn't win PoW
         array<unsigned char, 32> rand2 = {};
         StartPoW2(
             m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
