@@ -85,6 +85,16 @@ void Account::InitContract()
         return;
     }
     m_initValJson = root;
+
+    // Append createBlockNum
+    {
+        Json::Value createBlockNumObj;
+        createBlockNumObj["vname"] = "_creation_block";
+        createBlockNumObj["type"] = "BNum";
+        createBlockNumObj["value"] = to_string(GetCreateBlockNum());
+        m_initValJson.append(createBlockNumObj);
+    }
+
     for (auto& v : root)
     {
         if (!v.isMember("vname") || !v.isMember("type") || !v.isMember("value"))
@@ -729,7 +739,7 @@ Json::Value Account::GetStorageJson() const
         Json::Value item;
         item["vname"] = tVname;
         item["type"] = tType;
-        if (tType == "Map" || tType == "ADT")
+        if (tValue[0] == '[' || tValue[0] == '{')
         {
             Json::CharReaderBuilder builder;
             unique_ptr<Json::CharReader> reader(builder.newCharReader());
@@ -738,10 +748,10 @@ Json::Value Account::GetStorageJson() const
             if (!reader->parse(tValue.c_str(), tValue.c_str() + tValue.size(),
                                &obj, &errors))
             {
-                LOG_GENERAL(
-                    WARNING,
-                    "The map json object cannot be extracted from Storage: "
-                        << errors);
+                LOG_GENERAL(WARNING,
+                            "The json object cannot be extracted from Storage: "
+                                << tValue << endl
+                                << "Error: " << errors);
                 continue;
             }
             item["value"] = obj;

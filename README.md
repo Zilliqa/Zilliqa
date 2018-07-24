@@ -1,6 +1,6 @@
 # Zilliqa (codename _Durian_)
 
-[![Build Status](https://travis-ci.org/Zilliqa/Zilliqa.svg?branch=master)](https://travis-ci.org/Zilliqa/Zilliqa)
+[![Build Status](https://travis-ci.com/Zilliqa/Zilliqa.svg?branch=master)](https://travis-ci.com/Zilliqa/Zilliqa)
 [![codecov](https://codecov.io/gh/Zilliqa/Zilliqa/branch/master/graph/badge.svg)](https://codecov.io/gh/Zilliqa/Zilliqa)
 [![Gitter chat](http://img.shields.io/badge/chat-on%20gitter-077a8f.svg)](https://gitter.im/Zilliqa/)
 

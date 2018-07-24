@@ -77,9 +77,14 @@ void Node::SubmitMicroblockToDSCommittee() const
     LOG_STATE("[MICRO][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
                          << "][" << m_mediator.m_currentEpochNum << "] SENT");
+    deque<Peer> peerList;
 
-    P2PComm::GetInstance().SendBroadcastMessage(
-        m_mediator.m_DSCommitteeNetworkInfo, microblock);
+    for (auto const& i : m_mediator.m_DSCommittee)
+    {
+        peerList.push_back(i.second);
+    }
+
+    P2PComm::GetInstance().SendBroadcastMessage(peerList, microblock);
 }
 #endif // IS_LOOKUP_NODE
 
@@ -89,10 +94,73 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
 #ifndef IS_LOOKUP_NODE
     LOG_MARKER();
 
-    std::shared_lock<shared_timed_mutex> cv_lk(m_mutexProcessConsensusMessage);
+    {
+        lock_guard<mutex> g(m_mutexConsensus);
+
+        // Consensus messages must be processed in correct sequence as they come in
+        // It is possible for ANNOUNCE to arrive before correct DS state
+        // In that case, state transition will occurs and ANNOUNCE will be processed.
+
+        if ((m_state == TX_SUBMISSION) || (m_state == TX_SUBMISSION_BUFFER)
+            || (m_state == MICROBLOCK_CONSENSUS_PREP))
+        {
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Received microblock announcement from shard leader. I "
+                      "will move on to consensus");
+            cv_microblockConsensus.notify_all();
+
+            std::unique_lock<std::mutex> cv_lk(
+                m_MutexCVMicroblockConsensusObject);
+
+            if (cv_microblockConsensusObject.wait_for(
+                    cv_lk, std::chrono::seconds(CONSENSUS_OBJECT_TIMEOUT),
+                    [this] { return (m_state == MICROBLOCK_CONSENSUS); }))
+            {
+                // condition passed without timeout
+            }
+            else
+            {
+                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                          "Time out while waiting for state transition and "
+                          "consensus object creation ");
+            }
+
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "State transition is completed and consensus object "
+                      "creation.");
+        }
+    }
+
+    if (!CheckState(PROCESS_MICROBLOCKCONSENSUS))
+    {
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Not in MICROBLOCK_CONSENSUS state");
+        return false;
+    }
+
+    // Consensus message must be processed in order. The following will block till it is the right order.
+
+    std::unique_lock<mutex> cv_lk(m_mutexProcessConsensusMessage);
     if (cv_processConsensusMessage.wait_for(
             cv_lk, std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW),
             [this, message, offset]() -> bool {
+                lock_guard<mutex> g(m_mutexConsensus);
+                if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
+                {
+                    LOG_GENERAL(WARNING,
+                                "The node started the process of rejoining, "
+                                "Ignore rest of "
+                                "consensus msg.")
+                    return false;
+                }
+
+                if (m_consensusObject == nullptr)
+                {
+                    LOG_GENERAL(WARNING,
+                                "m_consensusObject should have been created "
+                                "but it is not")
+                    return false;
+                }
                 return m_consensusObject->CanProcessMessage(message, offset);
             }))
     {
@@ -107,45 +175,6 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
     }
 
     lock_guard<mutex> g(m_mutexConsensus);
-
-    // Consensus messages must be processed in correct sequence as they come in
-    // It is possible for ANNOUNCE to arrive before correct DS state
-    // In that case, state transition will occurs and ANNOUNCE will be processed.
-
-    if ((m_state == TX_SUBMISSION) || (m_state == TX_SUBMISSION_BUFFER)
-        || (m_state == MICROBLOCK_CONSENSUS_PREP))
-    {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Received microblock announcement from shard leader. I "
-                  "will move on to consensus");
-        cv_microblockConsensus.notify_all();
-
-        std::unique_lock<std::mutex> cv_lk(m_MutexCVMicroblockConsensusObject);
-
-        if (cv_microblockConsensusObject.wait_for(
-                cv_lk, std::chrono::seconds(CONSENSUS_OBJECT_TIMEOUT),
-                [this] { return (m_state == MICROBLOCK_CONSENSUS); }))
-        {
-            // condition passed without timeout
-        }
-        else
-        {
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Time out while waiting for state transition and "
-                      "consensus object creation ");
-        }
-
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "State transition is completed and consensus object "
-                  "creation.");
-    }
-
-    if (!CheckState(PROCESS_MICROBLOCKCONSENSUS))
-    {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Not in MICROBLOCK_CONSENSUS state");
-        return false;
-    }
 
     bool result = m_consensusObject->ProcessMessage(message, offset, from);
 
@@ -195,11 +224,60 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Oops, no consensus reached - what to do now???");
 
+        if (m_consensusObject->GetConsensusErrorCode()
+            == ConsensusCommon::MISSING_TXN)
+        {
+            // Missing txns in microblock proposed by leader. Will attempt to fetch
+            // missing txns from leader, set to a valid state to accept cosig1 and cosig2
+            LOG_EPOCH(
+                WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Oops, no consensus reached - consensus error. "
+                "error number: "
+                    << to_string(m_consensusObject->GetConsensusErrorCode())
+                    << " error message: "
+                    << (m_consensusObject->GetConsensusErrorMsg()));
+
+            // Block till txn is fetched
+            unique_lock<mutex> lock(m_mutexCVMicroBlockMissingTxn);
+            if (cv_MicroBlockMissingTxn.wait_for(
+                    lock, chrono::seconds(FETCHING_MISSING_TXNS_TIMEOUT))
+                == std::cv_status::timeout)
+            {
+                LOG_EPOCH(WARNING,
+                          to_string(m_mediator.m_currentEpochNum).c_str(),
+                          "fetching missing txn timeout");
+            }
+            else
+            {
+                // Re-run consensus
+                m_consensusObject->RecoveryAndProcessFromANewState(
+                    ConsensusCommon::INITIAL);
+
+                auto rerunconsensus = [this, message, offset, from]() {
+                    ProcessMicroblockConsensus(message, offset, from);
+                };
+                DetachedFunction(1, rerunconsensus);
+                return true;
+            }
+        }
+        else
+        {
+            LOG_EPOCH(
+                WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Oops, no consensus reached - unhandled consensus error. "
+                "error number: "
+                    << to_string(m_consensusObject->GetConsensusErrorCode())
+                    << " error message: "
+                    << m_consensusObject->GetConsensusErrorMsg());
+        }
+
         // return false;
         // TODO: Optimize state transition.
         LOG_GENERAL(WARNING,
                     "ConsensusCommon::State::ERROR here, but we move on.");
+
         SetState(WAITING_FINALBLOCK); // Move on to next Epoch.
+
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "If I received a new Finalblock from DS committee. I will "
                   "still process it");
@@ -207,12 +285,9 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
     else
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Consensus state = " << state);
-    }
+                  "Consensus state = " << m_consensusObject->GetStateString());
 
-    {
-        lock_guard<mutex> g2(m_mutexNewRoundStarted);
-        m_newRoundStarted = false;
+        cv_processConsensusMessage.notify_all();
     }
 
     return result;
@@ -443,10 +518,20 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
         = [this](const map<unsigned int, vector<unsigned char>>& m) mutable
         -> bool { return OnCommitFailure(m); };
 
+    deque<pair<PubKey, Peer>> peerList;
+    auto it1 = m_myShardMembersPubKeys.begin();
+    auto it2 = m_myShardMembersNetworkInfo.begin();
+
+    while (it1 != m_myShardMembersPubKeys.end())
+    {
+        peerList.push_back(make_pair(*it1, *it2));
+        ++it1;
+        ++it2;
+    }
+
     m_consensusObject.reset(new ConsensusLeader(
         m_consensusID, m_consensusBlockHash, m_consensusMyID,
-        m_mediator.m_selfKey.first, m_myShardMembersPubKeys,
-        m_myShardMembersNetworkInfo, static_cast<unsigned char>(NODE),
+        m_mediator.m_selfKey.first, peerList, static_cast<unsigned char>(NODE),
         static_cast<unsigned char>(MICROBLOCKCONSENSUS), nodeMissingTxnsFunc,
         commitFailureFunc));
 
@@ -492,10 +577,20 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup()
                   << " Shard Leader: "
                   << m_myShardMembersNetworkInfo[m_consensusLeaderID]);
 
+    deque<pair<PubKey, Peer>> peerList;
+    auto it1 = m_myShardMembersPubKeys.begin();
+    auto it2 = m_myShardMembersNetworkInfo.begin();
+
+    while (it1 != m_myShardMembersPubKeys.end())
+    {
+        peerList.push_back(make_pair(*it1, *it2));
+        ++it1;
+        ++it2;
+    }
+
     m_consensusObject.reset(new ConsensusBackup(
         m_consensusID, m_consensusBlockHash, m_consensusMyID,
-        m_consensusLeaderID, m_mediator.m_selfKey.first,
-        m_myShardMembersPubKeys, m_myShardMembersNetworkInfo,
+        m_consensusLeaderID, m_mediator.m_selfKey.first, peerList,
         static_cast<unsigned char>(NODE),
         static_cast<unsigned char>(MICROBLOCKCONSENSUS), func));
 
@@ -521,6 +616,11 @@ bool Node::RunConsensusOnMicroBlock()
     SetState(MICROBLOCK_CONSENSUS_PREP);
 
     AccountStore::GetInstance().SerializeDelta();
+
+    {
+        lock_guard<mutex> g2(m_mutexNewRoundStarted);
+        m_newRoundStarted = false;
+    }
 
     if (m_isPrimary == true)
     {
@@ -557,6 +657,10 @@ bool Node::CheckBlockTypeIsMicro()
                     "Type check failed. Expected: "
                         << (unsigned int)TXBLOCKTYPE::MICRO << " Actual: "
                         << (unsigned int)m_microblock->GetHeader().GetType());
+
+        m_consensusObject->SetConsensusErrorCode(
+            ConsensusCommon::INVALID_MICROBLOCK);
+
         return false;
     }
 
@@ -575,6 +679,10 @@ bool Node::CheckMicroBlockVersion()
             "Version check failed. Expected: "
                 << (unsigned int)BLOCKVERSION::VERSION1 << " Actual: "
                 << (unsigned int)m_microblock->GetHeader().GetVersion());
+
+        m_consensusObject->SetConsensusErrorCode(
+            ConsensusCommon::INVALID_MICROBLOCK_VERSION);
+
         return false;
     }
 
@@ -598,6 +706,10 @@ bool Node::CheckMicroBlockTimestamp()
                         "Timestamp check failed. Last Tx Block: "
                             << lastTxBlockTimestamp
                             << " Microblock: " << thisMicroblockTimestamp);
+
+            m_consensusObject->SetConsensusErrorCode(
+                ConsensusCommon::INVALID_TIMESTAMP);
+
             return false;
         }
     }
@@ -675,6 +787,10 @@ bool Node::CheckMicroBlockHashes(vector<unsigned char>& errorMsg)
         LOG_GENERAL(WARNING,
                     "Tx hashes check failed. Tx hashes size: "
                         << txhashessize << " Num txs: " << numtxs);
+
+        m_consensusObject->SetConsensusErrorCode(
+            ConsensusCommon::INVALID_BLOCK_HASH);
+
         return false;
     }
 
@@ -685,6 +801,9 @@ bool Node::CheckMicroBlockHashes(vector<unsigned char>& errorMsg)
     {
         LOG_GENERAL(WARNING,
                     "Missing a txn hash included in proposed microblock");
+
+        m_consensusObject->SetConsensusErrorCode(ConsensusCommon::MISSING_TXN);
+
         return false;
     }
 
@@ -710,6 +829,10 @@ bool Node::CheckMicroBlockTxnRootHash()
     if (expectedTxRootHash != m_microblock->GetHeader().GetTxRootHash())
     {
         LOG_GENERAL(WARNING, "Txn root does not match");
+
+        m_consensusObject->SetConsensusErrorCode(
+            ConsensusCommon::INVALID_MICROBLOCK_ROOT_HASH);
+
         return false;
     }
 
@@ -734,6 +857,10 @@ bool Node::CheckMicroBlockStateDeltaHash()
     if (expectedStateDeltaHash != m_microblock->GetHeader().GetStateDeltaHash())
     {
         LOG_GENERAL(WARNING, "State delta hash does not match");
+
+        m_consensusObject->SetConsensusErrorCode(
+            ConsensusCommon::INVALID_MICROBLOCK_STATE_DELTA_HASH);
+
         return false;
     }
 
@@ -751,6 +878,10 @@ bool Node::CheckMicroBlockShardID()
                     "ShardID check failed. Expected: "
                         << m_myShardID << " Actual: "
                         << m_microblock->GetHeader().GetShardID());
+
+        m_consensusObject->SetConsensusErrorCode(
+            ConsensusCommon::INVALID_MICROBLOCK_SHARD_ID);
+
         return false;
     }
 

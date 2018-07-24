@@ -96,7 +96,9 @@ void Node::StoreState()
 void Node::StoreFinalBlock(const TxBlock& txBlock)
 {
     AddBlock(txBlock);
-    m_mediator.m_currentEpochNum = m_mediator.m_txBlockChain.GetBlockCount();
+    m_mediator.m_currentEpochNum
+        = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
+        + 1;
 
     // At this point, the transactions in the last Epoch is no longer useful, thus erase.
     EraseCommittedTransactions(m_mediator.m_currentEpochNum - 2);
@@ -337,22 +339,22 @@ bool Node::VerifyFinalBlockCoSignature(const TxBlock& txblock)
     unsigned int count = 0;
 
     const vector<bool>& B2 = txblock.GetB2();
-    if (m_mediator.m_DSCommitteePubKeys.size() != B2.size())
+    if (m_mediator.m_DSCommittee.size() != B2.size())
     {
         LOG_GENERAL(WARNING,
                     "Mismatch: DS committee size = "
-                        << m_mediator.m_DSCommitteePubKeys.size()
+                        << m_mediator.m_DSCommittee.size()
                         << ", co-sig bitmap size = " << B2.size());
         return false;
     }
 
     // Generate the aggregated key
     vector<PubKey> keys;
-    for (auto& kv : m_mediator.m_DSCommitteePubKeys)
+    for (auto const& kv : m_mediator.m_DSCommittee)
     {
         if (B2.at(index) == true)
         {
-            keys.push_back(kv);
+            keys.push_back(kv.first);
             count++;
         }
         index++;
@@ -1353,8 +1355,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     if (m_lastMicroBlockCoSig.first != m_mediator.m_currentEpochNum)
     {
         std::unique_lock<mutex> cv_lk(m_MutexCVFBWaitMB);
-        if (cv_FBWaitMB.wait_for(
-                cv_lk, std::chrono::seconds(TXN_SUBMISSION + TXN_BROADCAST))
+        if (cv_FBWaitMB.wait_for(cv_lk, std::chrono::seconds(TXN_SUBMISSION))
             == std::cv_status::timeout)
         {
             LOG_GENERAL(WARNING,
@@ -1781,7 +1782,7 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
         std::unique_lock<std::mutex> cv_lk(m_mutexForwardBlockNumSync);
 
         if (m_cvForwardBlockNumSync.wait_for(
-                cv_lk, std::chrono::seconds(WAITING_FORWARD))
+                cv_lk, std::chrono::seconds(TXN_SUBMISSION + WAITING_FORWARD))
             == std::cv_status::timeout)
         {
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -1873,7 +1874,7 @@ bool Node::ProcessForwardStateDelta(const vector<unsigned char>& message,
         std::unique_lock<std::mutex> cv_lk(m_mutexForwardBlockNumSync);
 
         if (m_cvForwardBlockNumSync.wait_for(
-                cv_lk, std::chrono::seconds(WAITING_FORWARD))
+                cv_lk, std::chrono::seconds(TXN_SUBMISSION + WAITING_FORWARD))
             == std::cv_status::timeout)
         {
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),

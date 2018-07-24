@@ -164,7 +164,8 @@ class DirectoryService : public Executable, public Broadcastable
     std::mutex m_MutexCVPOW1Submission;
     std::condition_variable cv_POW2Submission;
     std::mutex m_MutexCVPOW2Submission;
-
+    std::mutex m_mutexProcessConsensusMessage;
+    std::condition_variable cv_processConsensusMessage;
     // TO Remove
     Mediator& m_mediator;
 
@@ -430,6 +431,10 @@ public:
 
     /// Notify POW2 submission to DirectoryService::ProcessPoW2Submission()
     void NotifyPOW2Submission() { cv_POW2Submission.notify_all(); }
+
+private:
+    static std::map<DirState, std::string> DirStateStrings;
+    std::string GetStateString() const;
 };
 
 #endif // __DIRECTORYSERVICE_H__

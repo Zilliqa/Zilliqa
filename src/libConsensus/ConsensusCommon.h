@@ -22,6 +22,7 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <string>
 #include <vector>
 
 #include "libCrypto/MultiSig.h"
@@ -51,6 +52,34 @@ public:
         ERROR
     };
 
+    enum ConsensusErrorCode : uint16_t
+    {
+        NO_ERROR = 0x00,
+        GENERIC_ERROR,
+        INVALID_DSBLOCK,
+        INVALID_MICROBLOCK,
+        INVALID_FINALBLOCK,
+        INVALID_VIEWCHANGEBLOCK,
+        INVALID_DSBLOCK_VERSION,
+        INVALID_MICROBLOCK_VERSION,
+        INVALID_FINALBLOCK_VERSION,
+        INVALID_FINALBLOCK_NUMBER,
+        INVALID_PREV_FINALBLOCK_HASH,
+        INVALID_VIEWCHANGEBLOCK_VERSION,
+        INVALID_TIMESTAMP,
+        INVALID_BLOCK_HASH,
+        INVALID_MICROBLOCK_ROOT_HASH,
+        MISSING_TXN,
+        FINALBLOCK_MISSING_HASH,
+        FINALBLOCK_INVALID_MICROBLOCK_ROOT_HASH,
+        FINALBLOCK_MICROBLOCK_EMPTY_ERROR,
+        INVALID_MICROBLOCK_STATE_DELTA_HASH,
+        INVALID_MICROBLOCK_SHARD_ID,
+        INVALID_FINALBLOCK_STATE_ROOT
+    };
+
+    static std::map<ConsensusErrorCode, std::string> CONSENSUSERRORMSG;
+
 protected:
     enum ConsensusMessageType : unsigned char
     {
@@ -68,7 +97,10 @@ protected:
     };
 
     /// State of the active consensus session.
-    State m_state;
+    std::atomic<State> m_state;
+
+    /// State of the active consensus session.
+    ConsensusErrorCode m_consensusErrorCode;
 
     /// The minimum fraction of peers necessary to achieve consensus.
     static constexpr double TOLERANCE_FRACTION = 0.667;
@@ -85,11 +117,8 @@ protected:
     /// Private key of this peer.
     PrivKey m_myPrivKey;
 
-    /// List of public keys for the committee.
-    std::deque<PubKey> m_pubKeys;
-
-    /// List of peers for the committee.
-    std::deque<Peer> m_peerInfo;
+    /// List of <public keys, peers> for the committee.
+    std::deque<std::pair<PubKey, Peer>> m_committee;
 
     /// The payload to be evaluated for the active consensus session.
     std::vector<unsigned char> m_message;
@@ -131,9 +160,8 @@ protected:
     ConsensusCommon(uint32_t consensus_id,
                     const std::vector<unsigned char>& block_hash,
                     uint16_t my_id, const PrivKey& privkey,
-                    const std::deque<PubKey>& pubkeys,
-                    const std::deque<Peer>& peer_info, unsigned char class_byte,
-                    unsigned char ins_byte);
+                    const std::deque<std::pair<PubKey, Peer>>& committee,
+                    unsigned char class_byte, unsigned char ins_byte);
 
     /// Destructor.
     ~ConsensusCommon();
@@ -177,6 +205,18 @@ public:
     /// Returns the state of the active consensus session
     State GetState() const;
 
+    /// Return the consensus error code
+    ConsensusErrorCode GetConsensusErrorCode() const;
+
+    /// Return the consensus error message
+    std::string GetConsensusErrorMsg() const;
+
+    /// Set consensus error code
+    void SetConsensusErrorCode(ConsensusErrorCode ErrorCode);
+
+    /// For recovery. Roll back to a certain state
+    void RecoveryAndProcessFromANewState(State newState);
+
     /// Returns the co-sig for first round
     const Signature& GetCS1() const;
 
@@ -195,6 +235,12 @@ public:
     /// Checks whether the message can be processed now
     bool CanProcessMessage(const std::vector<unsigned char>& message,
                            unsigned int offset);
+
+    /// Returns a string representation of the current state
+    std::string GetStateString() const;
+
+private:
+    static std::map<State, std::string> ConsensusStateStrings;
 };
 
 #endif // __CONSENSUSCOMMON_H__

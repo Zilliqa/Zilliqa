@@ -113,8 +113,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
 
     m_consensusObject.reset(new ConsensusLeader(
         consensusID, m_consensusBlockHash, m_consensusMyID,
-        m_mediator.m_selfKey.first, m_mediator.m_DSCommitteePubKeys,
-        m_mediator.m_DSCommitteeNetworkInfo,
+        m_mediator.m_selfKey.first, m_mediator.m_DSCommittee,
         static_cast<unsigned char>(DIRECTORY),
         static_cast<unsigned char>(DSBLOCKCONSENSUS),
         std::function<bool(const vector<unsigned char>&, unsigned int,
@@ -197,8 +196,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup()
 
     m_consensusObject.reset(new ConsensusBackup(
         consensusID, m_consensusBlockHash, m_consensusMyID, m_consensusLeaderID,
-        m_mediator.m_selfKey.first, m_mediator.m_DSCommitteePubKeys,
-        m_mediator.m_DSCommitteeNetworkInfo,
+        m_mediator.m_selfKey.first, m_mediator.m_DSCommittee,
         static_cast<unsigned char>(DIRECTORY),
         static_cast<unsigned char>(DSBLOCKCONSENSUS), func));
 
@@ -242,9 +240,8 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin)
     {
         if (!RunConsensusOnDSBlockWhenDSPrimary())
         {
-            LOG_GENERAL(
-                WARNING,
-                "Throwing exception after RunConsensusOnDSBlockWhenDSPrimary");
+            LOG_GENERAL(WARNING,
+                        "Error after RunConsensusOnDSBlockWhenDSPrimary");
             // throw exception();
             return;
         }
@@ -253,9 +250,8 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin)
     {
         if (!RunConsensusOnDSBlockWhenDSBackup())
         {
-            LOG_GENERAL(
-                WARNING,
-                "Throwing exception after RunConsensusOnDSBlockWhenDSBackup");
+            LOG_GENERAL(WARNING,
+                        "Error after RunConsensusOnDSBlockWhenDSBackup");
             // throw exception();
             return;
         }
@@ -263,19 +259,17 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin)
 
     SetState(DSBLOCK_CONSENSUS);
 
-    if (m_mode != PRIMARY_DS)
+    // View change will wait for timeout. If conditional variable is notified before timeout, the thread will return
+    // without triggering view change.
+    std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeDSBlock);
+    if (cv_viewChangeDSBlock.wait_for(cv_lk,
+                                      std::chrono::seconds(VIEWCHANGE_TIME))
+        == std::cv_status::timeout)
     {
-        std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeDSBlock);
-        if (cv_viewChangeDSBlock.wait_for(cv_lk,
-                                          std::chrono::seconds(VIEWCHANGE_TIME))
-            == std::cv_status::timeout)
-        {
-            //View change.
-            //TODO: This is a simplified version and will be review again.
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Initiated DS block view change. ");
-            RunConsensusOnViewChange();
-        }
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Initiated DS block view change. ");
+        auto func = [this]() -> void { RunConsensusOnViewChange(); };
+        DetachedFunction(1, func);
     }
 }
 
