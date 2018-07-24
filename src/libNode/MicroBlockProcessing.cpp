@@ -521,6 +521,26 @@ void Node::ProcessTransactionWhenShardLeader()
 
     std::list<Transaction> curTxns;
 
+    auto findOneFromAddrNonceTxnMap = [this](Transaction& t) -> bool {
+        for (auto it = m_addrNonceTxnMap.begin(); it != m_addrNonceTxnMap.end();
+             it++)
+        {
+            if (it->second.begin()->first
+                == AccountStore::GetInstance().GetNonceTemp(it->first) + 1)
+            {
+                t = std::move(it->second.begin()->second);
+                it->second.erase(it->second.begin());
+
+                if (it->second.empty())
+                {
+                    m_addrNonceTxnMap.erase(it);
+                }
+                return true;
+            }
+        }
+        return false;
+    };
+
     auto findOneFromCreated = [this](Transaction& t) -> bool {
         lock_guard<mutex> g(m_mutexCreatedTransactions);
 
@@ -552,12 +572,51 @@ void Node::ProcessTransactionWhenShardLeader()
     {
         Transaction t;
 
-        if (findOneFromCreated(t))
+        // check the previous u_map contains any txn meet right nonce,
+        // if contains, process it withou increment the txn_sent_count as it's already
+        // incremented when inserting
+        if (findOneFromAddrNonceTxnMap(t))
         {
-            // curTxns.emplace_back(t);
             uint256_t gasUsed = 0;
             if (m_mediator.m_validator->CheckCreatedTransaction(t, gasUsed)
                 || !t.GetCode().empty() || !t.GetData().empty())
+            {
+                appendOne(t);
+                gasUsedTotal += gasUsed;
+                continue;
+            }
+        }
+        // if no txn in u_map meet right nonce process new come-in transactions
+        else if (findOneFromCreated(t))
+        {
+            uint256_t gasUsed = 0;
+
+            // check nonce, if nonce is not correct
+            if (t.GetNonce()
+                != AccountStore::GetInstance().GetNonceTemp(t.GetSenderAddr())
+                    + 1)
+            {
+                auto it1 = m_addrNonceTxnMap.find(t.GetSenderAddr());
+                if (it1 != m_addrNonceTxnMap.end())
+                {
+                    auto it2 = it1->second.find(t.GetNonce());
+                    if (it2 != it1->second.end())
+                    {
+                        // found the txn with same addr and same nonce
+                        // then compare the gasprice and remains the higher one
+                        if (t.GetGasPrice() > it2->second.GetGasPrice())
+                        {
+                            it2->second = t;
+                        }
+                        txn_sent_count++;
+                        continue;
+                    }
+                }
+                m_addrNonceTxnMap[t.GetSenderAddr()].insert({t.GetNonce(), t});
+            }
+            // if nonce correct, directly process it
+            else if (m_mediator.m_validator->CheckCreatedTransaction(t, gasUsed)
+                     || !t.GetCode().empty() || !t.GetData().empty())
             {
                 appendOne(t);
                 gasUsedTotal += gasUsed;
@@ -570,44 +629,6 @@ void Node::ProcessTransactionWhenShardLeader()
         txn_sent_count++;
     }
 }
-
-// list<Transaction> Node::OrderingTxns(const list<Transaction>& txns)
-// {
-//     // TODO: Implement the proper ordering of txns
-//     multi_index_container<
-//         Transaction,
-//         indexed_by<
-//             hashed_unique<const_mem_fun<Transaction, Address,
-//                                         &Transaction::GetSenderAddr>>,
-//             ordered_non_unique<const_mem_fun<Transaction, const uint256_t&,
-//                                              &Transaction::GetGasPrice>>>>
-//         addr_gas_txns;
-
-//     for (const auto& t : txns)
-//     {
-//         auto& hash_index = addr_gas_txns.get<0>();
-//         auto it = hash_index.find(t.GetSenderAddr());
-//         if (it != hash_index.end())
-//         {
-//             if (t.GetGasPrice() > it->GetGasPrice())
-//             {
-//                 addr_gas_txns.replace(it, t);
-//             }
-//             continue;
-//         }
-//         hash_index.insert(t);
-//     }
-
-//     list<Transaction> ret;
-
-//     auto& list_index = addr_gas_txns.get<1>();
-//     for (auto& t : list_index | boost::adaptors::reversed)
-//     {
-//         ret.emplace_back(t);
-//     }
-
-//     return ret;
-// }
 
 bool Node::VerifyTxnsOrdering(const list<Transaction>& txns)
 {

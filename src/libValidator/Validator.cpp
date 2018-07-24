@@ -42,10 +42,10 @@ bool Validator::VerifyTransaction(const Transaction& tran) const
 void Validator::CleanVariables()
 {
     // Clear m_txnNonceMap
-    {
-        lock_guard<mutex> g(m_mutexTxnNonceMap);
-        m_txnNonceMap.clear();
-    }
+    // {
+    //     lock_guard<mutex> g(m_mutexTxnNonceMap);
+    //     m_txnNonceMap.clear();
+    // }
 }
 
 #ifndef IS_LOOKUP_NODE
@@ -145,46 +145,46 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
         return false;
     }
 
-    {
-        // Check from account nonce
-        lock_guard<mutex> g(m_mutexTxnNonceMap);
-        if (m_txnNonceMap.find(fromAddr) == m_txnNonceMap.end())
-        {
-            LOG_GENERAL(INFO, "Txn from " << fromAddr << "is new.");
+    // {
+    //     // Check from account nonce
+    //     lock_guard<mutex> g(m_mutexTxnNonceMap);
+    //     if (m_txnNonceMap.find(fromAddr) == m_txnNonceMap.end())
+    //     {
+    //         LOG_GENERAL(INFO, "Txn from " << fromAddr << "is new.");
 
-            if (tx.GetNonce()
-                != AccountStore::GetInstance().GetNonce(fromAddr) + 1)
-            {
-                LOG_EPOCH(
-                    WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                    "Tx nonce not in line with account state!"
-                        << " From Account = 0x" << fromAddr
-                        << " Account Nonce = "
-                        << AccountStore::GetInstance().GetNonce(fromAddr)
-                        << " Expected Tx Nonce = "
-                        << AccountStore::GetInstance().GetNonce(fromAddr) + 1
-                        << " Actual Tx Nonce = " << tx.GetNonce());
-                return false;
-            }
-            m_txnNonceMap.insert(make_pair(fromAddr, tx.GetNonce()));
-        }
-        else
-        {
-            if (tx.GetNonce() != m_txnNonceMap.at(fromAddr) + 1)
-            {
-                LOG_EPOCH(
-                    WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                    "Tx nonce not in line with account state!"
-                        << " From Account = 0x" << fromAddr
-                        << " Account Nonce = " << m_txnNonceMap.at(fromAddr)
-                        << " Expected Tx Nonce = "
-                        << m_txnNonceMap.at(fromAddr) + 1
-                        << " Actual Tx Nonce   = " << tx.GetNonce());
-                return false;
-            }
-            m_txnNonceMap.at(fromAddr) += 1;
-        }
-    }
+    //         if (tx.GetNonce()
+    //             != AccountStore::GetInstance().GetNonce(fromAddr) + 1)
+    //         {
+    //             LOG_EPOCH(
+    //                 WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    //                 "Tx nonce not in line with account state!"
+    //                     << " From Account = 0x" << fromAddr
+    //                     << " Account Nonce = "
+    //                     << AccountStore::GetInstance().GetNonce(fromAddr)
+    //                     << " Expected Tx Nonce = "
+    //                     << AccountStore::GetInstance().GetNonce(fromAddr) + 1
+    //                     << " Actual Tx Nonce = " << tx.GetNonce());
+    //             return false;
+    //         }
+    //         m_txnNonceMap.insert(make_pair(fromAddr, tx.GetNonce()));
+    //     }
+    //     else
+    //     {
+    //         if (tx.GetNonce() != m_txnNonceMap.at(fromAddr) + 1)
+    //         {
+    //             LOG_EPOCH(
+    //                 WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    //                 "Tx nonce not in line with account state!"
+    //                     << " From Account = 0x" << fromAddr
+    //                     << " Account Nonce = " << m_txnNonceMap.at(fromAddr)
+    //                     << " Expected Tx Nonce = "
+    //                     << m_txnNonceMap.at(fromAddr) + 1
+    //                     << " Actual Tx Nonce   = " << tx.GetNonce());
+    //             return false;
+    //         }
+    //         m_txnNonceMap.at(fromAddr) += 1;
+    //     }
+    // }
 
     // Check if to account exists in local storage
     //    const Address& toAddr = tx.GetToAddr();
