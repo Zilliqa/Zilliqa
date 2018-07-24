@@ -171,7 +171,7 @@ decltype(auto) GenWithDummyValue(const KeyPair& sender, const KeyPair& receiver,
         // "Created txns: " << txn.GetTranID())
         // LOG_MESSAGE(txn.GetSerializedSize());
 
-        txns.push_back(txn);
+        txns.emplace_back(txn);
         nonce++;
         amount++;
         gasPrice++;

@@ -98,7 +98,7 @@ void Node::UpdateDSCommiteeComposition(const Peer& winnerpeer)
         peer = winnerpeer;
     }
 
-    m_mediator.m_DSCommittee.push_front(make_pair(
+    m_mediator.m_DSCommittee.emplace_front(make_pair(
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetMinerPubKey(),
         peer));
     m_mediator.m_DSCommittee.pop_back();
@@ -155,7 +155,7 @@ bool Node::VerifyDSBlockCoSignature(const DSBlock& dsblock)
     {
         if (B2.at(index) == true)
         {
-            keys.push_back(kv.first);
+            keys.emplace_back(kv.first);
             count++;
         }
         index++;

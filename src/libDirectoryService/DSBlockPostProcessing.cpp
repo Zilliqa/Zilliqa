@@ -178,7 +178,7 @@ void DirectoryService::SendDSBlockToCluster(
     for (unsigned int i = my_pow1nodes_cluster_lo; i <= my_pow1nodes_cluster_hi;
          i++)
     {
-        pow1nodes_cluster.push_back(p->second);
+        pow1nodes_cluster.emplace_back(p->second);
         p++;
     }
 
@@ -260,10 +260,11 @@ void DirectoryService::UpdateDSCommiteeComposition(const Peer& winnerpeer)
     // Update the DS committee composition
     LOG_MARKER();
 
-    m_mediator.m_DSCommittee.push_front(make_pair(
+    m_mediator.m_DSCommittee.emplace_front(make_pair(
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetMinerPubKey(),
         winnerpeer));
     m_mediator.m_DSCommittee.pop_back();
+
     // Remove the new winner of pow1 from m_allpowconn. He is the new ds leader and do not need to do pow anymore
     m_allPoWConns.erase(
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetMinerPubKey());
@@ -292,7 +293,6 @@ void DirectoryService::ScheduleShardingConsensus(const unsigned int wait_window)
         }
 
         RunConsensusOnSharding();
-        cv_shardingConsensusObject.notify_all();
     };
 
     DetachedFunction(1, func);

@@ -354,7 +354,7 @@ bool Node::VerifyFinalBlockCoSignature(const TxBlock& txblock)
     {
         if (B2.at(index) == true)
         {
-            keys.push_back(kv.first);
+            keys.emplace_back(kv.first);
             count++;
         }
         index++;
@@ -443,11 +443,11 @@ bool Node::FindTxnInSubmittedTxnsList(const TxBlock& finalblock,
     {
         if ((sharing_mode == SEND_ONLY) || (sharing_mode == SEND_AND_FORWARD))
         {
-            txns_to_send.push_back(txnIt->second);
+            txns_to_send.emplace_back(txnIt->second);
         }
 
         // Move entry from submitted Tx list to committed Tx list
-        committedTransactions.push_back(txnIt->second);
+        committedTransactions.emplace_back(txnIt->second);
         submittedTransactions.erase(txnIt);
 
         // LOG_EPOCH(
@@ -517,11 +517,11 @@ bool Node::FindTxnInReceivedTxnsList(const TxBlock& finalblock,
     {
         if ((sharing_mode == SEND_ONLY) || (sharing_mode == SEND_AND_FORWARD))
         {
-            txns_to_send.push_back(txnIt->second);
+            txns_to_send.emplace_back(txnIt->second);
         }
 
         // Move entry from received Tx list to committed Tx list
-        committedTransactions.push_back(txnIt->second);
+        committedTransactions.emplace_back(txnIt->second);
         receivedTransactions.erase(txnIt);
 
         // LOG_EPOCH(
@@ -752,7 +752,7 @@ void Node::LoadForwardingAssignmentFromFinalBlock(
 
     lock_guard<mutex> g2(m_mutexForwardingAssignment);
 
-    m_forwardingAssignment.insert(make_pair(blocknum, vector<Peer>()));
+    m_forwardingAssignment.emplace(blocknum, vector<Peer>());
     vector<Peer>& peers = m_forwardingAssignment.at(blocknum);
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -766,9 +766,9 @@ void Node::LoadForwardingAssignmentFromFinalBlock(
         }
         // if (rand() % m_myShardMembersNetworkInfo.size() <= GOSSIP_RATE)
         // {
-        //     peers.push_back(m_myShardMembersNetworkInfo.at(i));
+        //     peers.emplace_back(m_myShardMembersNetworkInfo.at(i));
         // }
-        peers.push_back(m_myShardMembersNetworkInfo.at(i));
+        peers.emplace_back(m_myShardMembersNetworkInfo.at(i));
     }
 
     for (unsigned int i = 0; i < fellowForwarderNodes.size(); i++)
@@ -890,7 +890,7 @@ bool Node::ActOnFinalBlock(uint8_t tx_sharing_mode, const vector<Peer>& nodes)
     case DS_FORWARD_ONLY:
     {
         lock_guard<mutex> g2(m_mutexForwardingAssignment);
-        m_forwardingAssignment.insert(make_pair(blocknum, nodes));
+        m_forwardingAssignment.emplace(blocknum, nodes);
         break;
     }
     case NODE_FORWARD_ONLY:
@@ -1207,7 +1207,7 @@ void Node::CallActOnFinalBlockBasedOnSenderForwarderAssgn(uint8_t shard_id)
         for (unsigned int i = 0; i < m_txnSharingAssignedNodes.at(0).size();
              i++)
         {
-            nodes_to_send.push_back(m_txnSharingAssignedNodes[0][i]);
+            nodes_to_send.emplace_back(m_txnSharingAssignedNodes[0][i]);
         }
 
         for (unsigned int i = 1; i < m_txnSharingAssignedNodes.size(); i += 2)
@@ -1220,7 +1220,7 @@ void Node::CallActOnFinalBlockBasedOnSenderForwarderAssgn(uint8_t shard_id)
             const vector<Peer>& shard = m_txnSharingAssignedNodes.at(i);
             for (unsigned int j = 0; j < shard.size(); j++)
             {
-                nodes_to_send.push_back(shard[j]);
+                nodes_to_send.emplace_back(shard[j]);
             }
         }
 
@@ -1239,7 +1239,7 @@ void Node::CallActOnFinalBlockBasedOnSenderForwarderAssgn(uint8_t shard_id)
         for (unsigned int i = 0; i < m_txnSharingAssignedNodes.at(0).size();
              i++)
         {
-            fellowForwarderNodes.push_back(m_txnSharingAssignedNodes[0][i]);
+            fellowForwarderNodes.emplace_back(m_txnSharingAssignedNodes[0][i]);
         }
 
         for (unsigned int i = 1; i < m_txnSharingAssignedNodes.size(); i += 2)
@@ -1252,7 +1252,7 @@ void Node::CallActOnFinalBlockBasedOnSenderForwarderAssgn(uint8_t shard_id)
             const vector<Peer>& shard = m_txnSharingAssignedNodes.at(i);
             for (unsigned int j = 0; j < shard.size(); j++)
             {
-                fellowForwarderNodes.push_back(shard[j]);
+                fellowForwarderNodes.emplace_back(shard[j]);
             }
         }
 
@@ -1588,8 +1588,8 @@ bool Node::LoadForwardedTxnsAndCheckRoot(
         }
         cur_offset += tx.GetSerializedSize();
 
-        txnsInForwardedMessage.push_back(tx);
-        txnHashesInForwardedMessage.push_back(tx.GetTranID());
+        txnsInForwardedMessage.emplace_back(tx);
+        txnHashesInForwardedMessage.emplace_back(tx.GetTranID());
     }
 
     return ComputeTransactionsRoot(txnHashesInForwardedMessage)
@@ -1644,7 +1644,7 @@ void Node::CommitForwardedTransactions(
     {
         {
             lock_guard<mutex> g(m_mutexCommittedTransactions);
-            m_committedTransactions[blocknum].push_back(tx);
+            m_committedTransactions[blocknum].emplace_back(tx);
             // if (!AccountStore::GetInstance().UpdateAccounts(
             //         m_mediator.m_currentEpochNum - 1, tx))
             // {
