@@ -32,7 +32,6 @@
 #include "depends/common/FixedHash.h"
 #include "libConsensus/Consensus.h"
 #include "libData/AccountData/Transaction.h"
-#include "libData/BlockChainData/TxBlockChain.h"
 #include "libData/BlockData/Block.h"
 #include "libData/BlockData/BlockHeader/UnavailableMicroBlock.h"
 #include "libLookup/Synchronizer.h"
@@ -115,8 +114,8 @@ class Node : public Executable, public Broadcastable
     bool m_isDSNode = true;
 
     // Consensus variables
-    std::shared_timed_mutex m_mutexProcessConsensusMessage;
-    std::condition_variable_any cv_processConsensusMessage;
+    std::mutex m_mutexProcessConsensusMessage;
+    std::condition_variable cv_processConsensusMessage;
     std::shared_ptr<ConsensusCommon> m_consensusObject;
     std::mutex m_MutexCVMicroblockConsensus;
     std::condition_variable cv_microblockConsensus;
@@ -125,6 +124,9 @@ class Node : public Executable, public Broadcastable
 
     std::mutex m_MutexCVFBWaitMB;
     std::condition_variable cv_FBWaitMB;
+
+    std::mutex m_mutexCVMicroBlockMissingTxn;
+    std::condition_variable cv_MicroBlockMissingTxn;
 
     // Persistence Retriever
     std::shared_ptr<Retriever> m_retriever;
@@ -403,7 +405,6 @@ public:
     };
 
 private:
-    static string NodeStateString(enum NodeState nodeState);
     static bool compatibleState(enum NodeState state, enum Action action);
 
 public:
@@ -505,6 +506,10 @@ public:
     /// Call when the normal node be promoted to DS
     void CleanCreatedTransaction();
 #endif // IS_LOOKUP_NODE
+
+private:
+    static std::map<NodeState, std::string> NodeStateStrings;
+    std::string GetStateString() const;
 };
 
 #endif // __NODE_H__

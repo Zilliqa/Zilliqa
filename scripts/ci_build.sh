@@ -24,6 +24,14 @@ case $os in
         ;;
 esac
 
+echo "n_parallel=${n_parallel}"
+
+echo "ccache configuration"
+ccache -p
+
+echo "ccache status"
+ccache -s
+
 # assume that it is run from project root directory
 mkdir build && cd build
 cmake ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTESTS=ON -DENABLE_COVERAGE=ON ..
@@ -34,3 +42,6 @@ if [ "$os" = "Linux" ]
 then
     make -j${n_parallel} Zilliqa_coverage
 fi
+
+echo "ccache status"
+ccache -s

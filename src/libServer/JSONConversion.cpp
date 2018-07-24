@@ -23,8 +23,6 @@
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Address.h"
 #include "libData/AccountData/Transaction.h"
-#include "libData/BlockChainData/DSBlockChain.h"
-#include "libData/BlockChainData/TxBlockChain.h"
 #include "libData/BlockData/Block.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"

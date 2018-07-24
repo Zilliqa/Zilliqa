@@ -56,8 +56,7 @@ template<class MAP> class AccountStoreSC : public AccountStoreBase<MAP>
     bool ParseCreateContractJsonOutput(const Json::Value& _json);
     bool ParseCallContractOutput();
     bool ParseCallContractJsonOutput(const Json::Value& _json);
-    Json::Value GetBlockStateJson(const uint64_t& BlockNum,
-                                  const uint64_t& CreateBlockNum = 0) const;
+    Json::Value GetBlockStateJson(const uint64_t& BlockNum) const;
     string GetCreateContractCmdStr();
     string GetCallContractCmdStr();
 

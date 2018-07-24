@@ -206,7 +206,7 @@ void DirectoryService::ComposeFinalBlockCore()
                       dsBlockHeader),
         vector<bool>(isMicroBlockEmpty),
         vector<MicroBlockHashSet>(microBlockHashes), vector<uint32_t>(shardIDs),
-        CoSignatures(m_mediator.m_DSCommitteePubKeys.size())));
+        CoSignatures(m_mediator.m_DSCommittee.size())));
 
     LOG_STATE("[STATS][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
@@ -304,8 +304,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
 
     m_consensusObject.reset(new ConsensusLeader(
         m_consensusID, m_consensusBlockHash, m_consensusMyID,
-        m_mediator.m_selfKey.first, m_mediator.m_DSCommitteePubKeys,
-        m_mediator.m_DSCommitteeNetworkInfo,
+        m_mediator.m_selfKey.first, m_mediator.m_DSCommittee,
         static_cast<unsigned char>(DIRECTORY),
         static_cast<unsigned char>(FINALBLOCKCONSENSUS),
         std::function<bool(const vector<unsigned char>&, unsigned int,
@@ -346,6 +345,10 @@ bool DirectoryService::CheckBlockTypeIsFinal()
                     "Type check failed. Expected: "
                         << (unsigned int)TXBLOCKTYPE::FINAL << " Actual: "
                         << (unsigned int)m_finalBlock->GetHeader().GetType());
+
+        m_consensusObject->SetConsensusErrorCode(
+            ConsensusCommon::INVALID_FINALBLOCK);
+
         return false;
     }
 
@@ -364,6 +367,10 @@ bool DirectoryService::CheckFinalBlockVersion()
             "Version check failed. Expected: "
                 << (unsigned int)BLOCKVERSION::VERSION1 << " Actual: "
                 << (unsigned int)m_finalBlock->GetHeader().GetVersion());
+
+        m_consensusObject->SetConsensusErrorCode(
+            ConsensusCommon::INVALID_FINALBLOCK_VERSION);
+
         return false;
     }
 
@@ -390,6 +397,10 @@ bool DirectoryService::CheckFinalBlockNumber()
                     "Block number check failed. Expected: "
                         << expectedBlocknum
                         << " Actual: " << finalblockBlocknum);
+
+        m_consensusObject->SetConsensusErrorCode(
+            ConsensusCommon::INVALID_FINALBLOCK_NUMBER);
+
         return false;
     }
     else
@@ -436,6 +447,10 @@ bool DirectoryService::CheckPreviousFinalBlockHash()
     if (finalblockPrevHash != expectedPrevHash)
     {
         LOG_GENERAL(WARNING, "Previous hash check failed.");
+
+        m_consensusObject->SetConsensusErrorCode(
+            ConsensusCommon::INVALID_PREV_FINALBLOCK_HASH);
+
         return false;
     }
 
@@ -459,6 +474,10 @@ bool DirectoryService::CheckFinalBlockTimestamp()
                         "Timestamp check failed. Last Tx Block: "
                             << lastTxBlockTimestamp
                             << " Final block: " << finalblockTimestamp);
+
+            m_consensusObject->SetConsensusErrorCode(
+                ConsensusCommon::INVALID_TIMESTAMP);
+
             return false;
         }
     }
@@ -492,6 +511,10 @@ bool DirectoryService::CheckMicroBlockHashes()
         if (!found)
         {
             LOG_GENERAL(WARNING, "cannot find hashes. " << microBlockHash)
+
+            m_consensusObject->SetConsensusErrorCode(
+                ConsensusCommon::FINALBLOCK_MISSING_HASH);
+
             return false;
         }
     }
@@ -523,6 +546,10 @@ bool DirectoryService::CheckMicroBlockHashRoot()
         LOG_GENERAL(WARNING,
                     "Microblock root hash in proposed final block by "
                     "leader is incorrect");
+
+        m_consensusObject->SetConsensusErrorCode(
+            ConsensusCommon::FINALBLOCK_INVALID_MICROBLOCK_ROOT_HASH);
+
         return false;
     }
 
@@ -560,6 +587,10 @@ bool DirectoryService::CheckIsMicroBlockEmpty()
                                     << (microBlock.GetHeader().GetNumTxs() == 0)
                                     << " Received: "
                                     << m_finalBlock->GetIsMicroBlockEmpty()[i]);
+
+                    m_consensusObject->SetConsensusErrorCode(
+                        ConsensusCommon::FINALBLOCK_MICROBLOCK_EMPTY_ERROR);
+
                     return false;
                 }
                 break;
@@ -592,6 +623,10 @@ bool DirectoryService::CheckStateRoot()
                         << stateRoot << ". "
                         << "Received = "
                         << m_finalBlock->GetHeader().GetStateRootHash());
+
+        m_consensusObject->SetConsensusErrorCode(
+            ConsensusCommon::INVALID_FINALBLOCK_STATE_ROOT);
+
         return false;
     }
 
@@ -779,8 +814,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup()
     m_consensusObject.reset(new ConsensusBackup(
         m_consensusID, m_consensusBlockHash, m_consensusMyID,
         m_consensusLeaderID, m_mediator.m_selfKey.first,
-        m_mediator.m_DSCommitteePubKeys, m_mediator.m_DSCommitteeNetworkInfo,
-        static_cast<unsigned char>(DIRECTORY),
+        m_mediator.m_DSCommittee, static_cast<unsigned char>(DIRECTORY),
         static_cast<unsigned char>(FINALBLOCKCONSENSUS), func));
 
     if (m_consensusObject == nullptr)
@@ -825,6 +859,8 @@ void DirectoryService::RunConsensusOnFinalBlock()
     SetState(FINALBLOCK_CONSENSUS);
     cv_finalBlockConsensusObject.notify_all();
 
+    // View change will wait for timeout. If conditional variable is notified before timeout, the thread will return
+    // without triggering view change.
     std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeFinalBlock);
     if (cv_viewChangeFinalBlock.wait_for(cv_lk,
                                          std::chrono::seconds(VIEWCHANGE_TIME))
@@ -832,7 +868,8 @@ void DirectoryService::RunConsensusOnFinalBlock()
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Initiated final block view change. ");
-        RunConsensusOnViewChange();
+        auto func = [this]() -> void { RunConsensusOnViewChange(); };
+        DetachedFunction(1, func);
     }
 }
 #endif // IS_LOOKUP_NODE

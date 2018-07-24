@@ -58,26 +58,20 @@ bool ConsensusUser::ProcessSetLeader(const vector<unsigned char>& message,
     // The DS block should have the info we need, and the peerstore only needs to be used to get the IP addresses
 
     PeerStore& peerstore = PeerStore::GetStore();
-    peerstore.AddPeer(m_selfKey.second,
-                      Peer()); // Add myself, but with dummy IP info
+    peerstore.AddPeerPair(m_selfKey.second,
+                          Peer()); // Add myself, but with dummy IP info
 
-    vector<Peer> tmp1 = peerstore.GetAllPeers();
-    deque<Peer> peer_info(tmp1.size());
-    copy(tmp1.begin(), tmp1.end(),
-         peer_info.begin()); // This will be sorted by PubKey
-
-    vector<PubKey> tmp2 = peerstore.GetAllKeys();
-    deque<PubKey> pubkeys(tmp2.size());
-    copy(tmp2.begin(), tmp2.end(),
-         pubkeys.begin()); // These are the sorted PubKeys
-
+    vector<pair<PubKey, Peer>> tmp = peerstore.GetAllPeerPairs();
+    deque<pair<PubKey, Peer>> peerList(tmp.size());
+    copy(tmp.begin(), tmp.end(),
+         peerList.begin()); // This will be sorted by PubKey
     peerstore.RemovePeer(m_selfKey.second); // Remove myself
 
     // Now I need to find my index in the sorted list (this will be my ID for the consensus)
     uint16_t my_id = 0;
-    for (auto i = pubkeys.begin(); i != pubkeys.end(); i++)
+    for (auto const& i : peerList)
     {
-        if (*i == m_selfKey.second)
+        if (i.first == m_selfKey.second)
         {
             LOG_GENERAL(INFO, "My node ID for this consensus is " << my_id);
             break;
@@ -85,7 +79,7 @@ bool ConsensusUser::ProcessSetLeader(const vector<unsigned char>& message,
         my_id++;
     }
 
-    LOG_GENERAL(INFO, "The leader is using " << peer_info.at(leader_id));
+    LOG_GENERAL(INFO, "The leader is using " << peerList.at(leader_id).second);
 
     m_leaderOrBackup = (leader_id != my_id);
 
@@ -93,8 +87,7 @@ bool ConsensusUser::ProcessSetLeader(const vector<unsigned char>& message,
     {
         m_consensus.reset(new ConsensusLeader(
             dummy_consensus_id, dummy_block_hash, my_id, m_selfKey.first,
-            pubkeys, peer_info,
-            static_cast<unsigned char>(MessageType::CONSENSUSUSER),
+            peerList, static_cast<unsigned char>(MessageType::CONSENSUSUSER),
             static_cast<unsigned char>(InstructionType::CONSENSUS),
             std::function<bool(const vector<unsigned char>& errorMsg,
                                unsigned int, const Peer& from)>(),
@@ -109,7 +102,7 @@ bool ConsensusUser::ProcessSetLeader(const vector<unsigned char>& message,
 
         m_consensus.reset(new ConsensusBackup(
             dummy_consensus_id, dummy_block_hash, my_id, leader_id,
-            m_selfKey.first, pubkeys, peer_info,
+            m_selfKey.first, peerList,
             static_cast<unsigned char>(MessageType::CONSENSUSUSER),
             static_cast<unsigned char>(InstructionType::CONSENSUS), func));
     }
@@ -165,7 +158,7 @@ bool ConsensusUser::ProcessConsensusMessage(
 {
     LOG_MARKER();
 
-    std::shared_lock<shared_timed_mutex> cv_lk(m_mutexProcessConsensusMessage);
+    std::unique_lock<mutex> cv_lk(m_mutexProcessConsensusMessage);
     if (cv_processConsensusMessage.wait_for(
             cv_lk, std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW),
             [this, message, offset]() -> bool {
@@ -196,6 +189,10 @@ bool ConsensusUser::ProcessConsensusMessage(
         BitVector::SetBitVector(tmp, 0, m_consensus->GetB2());
         LOG_PAYLOAD(INFO, "Final collective signature bitmap", tmp, 100);
     }
+    else
+    {
+        cv_processConsensusMessage.notify_all();
+    }
 
     return result;
 }
@@ -203,9 +200,9 @@ bool ConsensusUser::ProcessConsensusMessage(
 ConsensusUser::ConsensusUser(const pair<PrivKey, PubKey>& key, const Peer& peer)
     : m_selfKey(key)
     , m_selfPeer(peer)
+    , m_leaderOrBackup(false)
     , m_consensus(nullptr)
 {
-    m_leaderOrBackup = false;
 }
 
 ConsensusUser::~ConsensusUser() {}
