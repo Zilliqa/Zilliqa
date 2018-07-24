@@ -328,7 +328,7 @@ vector<Peer> Node::GetBroadcastList(unsigned char ins_type,
     //             }
     //             if (rand() % m_mediator.m_DSCommitteeNetworkInfo.size() <= GOSSIP_RATE)
     //             {
-    //                 peers.push_back(m_mediator.m_DSCommitteeNetworkInfo.at(i));
+    //                 peers.emplace_back(m_mediator.m_DSCommitteeNetworkInfo.at(i));
     //                 LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "DSNode  IP: " << peers.back().GetPrintableIPAddress() << " Port: " << peers.back().m_listenPortHost);
 
     //             }
@@ -347,7 +347,7 @@ vector<Peer> Node::GetBroadcastList(unsigned char ins_type,
     //             }
     //             if (rand() % m_myShardMembersNetworkInfo.size() <= GOSSIP_RATE)
     //             {
-    //                 peers.push_back(m_myShardMembersNetworkInfo.at(i));
+    //                 peers.emplace_back(m_myShardMembersNetworkInfo.at(i));
     //                 LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "  IP: " << peers.back().GetPrintableIPAddress() << " Port: " << peers.back().m_listenPortHost);
 
     //             }
@@ -525,7 +525,7 @@ bool Node::ProcessCreateTransaction(const vector<unsigned char>& message,
 
     // {
     // lock_guard<mutex> g(m_mutexCreatedTransactions);
-    // m_createdTransactions.insert(m_createdTransactions.end(),
+    // m_createdTransactions.emplace(m_createdTransactions.end(),
     // txnToCreate.begin(), txnToCreate.end());
     // }
 
@@ -654,8 +654,8 @@ bool Node::ProcessSubmitTxnSharing(const vector<unsigned char>& message,
             auto& receivedTransactions
                 = m_receivedTransactions[m_mediator.m_currentEpochNum];
 
-            receivedTransactions.insert(make_pair(
-                submittedTransaction.GetTranID(), submittedTransaction));
+            receivedTransactions.emplace(submittedTransaction.GetTranID(),
+                                         submittedTransaction);
             //LOG_EPOCH(to_string(m_mediator.m_currentEpochNum).c_str(),
             //             "Received txn: " << submittedTransaction.GetTranID())
         }
@@ -749,7 +749,7 @@ bool Node::ProcessCreateTransactionFromLookup(
                              << " toAddr: " << tx.GetToAddr().hex());
     if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(tx))
     {
-        m_createdTransactions.push_back(tx);
+        m_createdTransactions.emplace_back(tx);
     }
     else
     {
@@ -883,7 +883,7 @@ void Node::SubmitTransactions()
 
             lock_guard<mutex> g(m_mutexSubmittedTransactions);
             auto& submittedTransactions = m_submittedTransactions[blockNum];
-            submittedTransactions.insert(make_pair(t.GetTranID(), t));
+            submittedTransactions.emplace(t.GetTranID(), t);
         };
 
         if (findOneFromCreated(t))

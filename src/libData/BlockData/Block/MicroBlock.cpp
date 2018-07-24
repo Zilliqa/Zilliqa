@@ -73,7 +73,7 @@ int MicroBlock::Deserialize(const vector<unsigned char>& src,
                  src.begin() + curOffset + TRAN_HASH_SIZE,
                  tranHash.asArray().begin());
             curOffset += TRAN_HASH_SIZE;
-            m_tranHashes.push_back(tranHash);
+            m_tranHashes.emplace_back(tranHash);
         }
 
         if (m_header.GetNumTxs() != m_tranHashes.size())

@@ -52,7 +52,7 @@ bool BlockStorage::PushBackTxBodyDB(const uint64_t& blockNum)
 
     std::shared_ptr<LevelDB> txBodyDBPtr
         = std::make_shared<LevelDB>(to_string(blockNum), TX_BODY_SUBDIR);
-    m_txBodyDBs.push_back(txBodyDBPtr);
+    m_txBodyDBs.emplace_back(txBodyDBPtr);
 
     return true;
 }
@@ -263,7 +263,7 @@ bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr>& blocks)
         DSBlockSharedPtr block = DSBlockSharedPtr(new DSBlock(
             std::vector<unsigned char>(blockString.begin(), blockString.end()),
             0));
-        blocks.push_back(block);
+        blocks.emplace_back(block);
     }
 
     delete it;
@@ -297,7 +297,7 @@ bool BlockStorage::GetAllTxBlocks(std::list<TxBlockSharedPtr>& blocks)
         TxBlockSharedPtr block = TxBlockSharedPtr(new TxBlock(
             std::vector<unsigned char>(blockString.begin(), blockString.end()),
             0));
-        blocks.push_back(block);
+        blocks.emplace_back(block);
     }
 
     delete it;
@@ -328,7 +328,7 @@ bool BlockStorage::GetAllTxBodiesTmp(std::list<TxnHash>& txnHashes)
             return false;
         }
         TxnHash txnHash(hashString);
-        txnHashes.push_back(txnHash);
+        txnHashes.emplace_back(txnHash);
     }
 
     delete it;

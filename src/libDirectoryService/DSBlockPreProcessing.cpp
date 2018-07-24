@@ -258,6 +258,7 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin)
     }
 
     SetState(DSBLOCK_CONSENSUS);
+    cv_DSBlockConsensusObject.notify_all();
 
     // View change will wait for timeout. If conditional variable is notified before timeout, the thread will return
     // without triggering view change.

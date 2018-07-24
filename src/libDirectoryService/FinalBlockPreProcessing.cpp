@@ -73,7 +73,7 @@ void DirectoryService::ExtractDataFromMicroblocks(
         microblockHashes.push_back(
             {microBlock.GetHeader().GetTxRootHash(),
              microBlock.GetHeader().GetStateDeltaHash()});
-        shardIDs.emplace_back(microBlock.GetHeader().GetShardID());
+        shardIDs.push_back(microBlock.GetHeader().GetShardID());
         allGasLimit += microBlock.GetHeader().GetGasLimit();
         allGasUsed += microBlock.GetHeader().GetGasUsed();
         numTxs += microBlock.GetHeader().GetNumTxs();
