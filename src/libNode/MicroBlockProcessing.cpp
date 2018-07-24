@@ -591,9 +591,9 @@ void Node::ProcessTransactionWhenShardLeader()
         {
             uint256_t gasUsed = 0;
 
-            // check nonce, if nonce is not correct, put it into m_addrNonceTxnMap
+            // check nonce, if nonce larger than expected, put it into m_addrNonceTxnMap
             if (t.GetNonce()
-                != AccountStore::GetInstance().GetNonceTemp(t.GetSenderAddr())
+                > AccountStore::GetInstance().GetNonceTemp(t.GetSenderAddr())
                     + 1)
             {
                 auto it1 = m_addrNonceTxnMap.find(t.GetSenderAddr());
@@ -614,7 +614,13 @@ void Node::ProcessTransactionWhenShardLeader()
                 }
                 m_addrNonceTxnMap[t.GetSenderAddr()].insert({t.GetNonce(), t});
             }
-            // if nonce correct, directly process it
+            // if nonce too small, ignore it
+            else if (t.GetNonce() < AccountStore::GetInstance().GetNonceTemp(
+                                        t.GetSenderAddr())
+                         + 1)
+            {
+            }
+            // if nonce correct, process it
             else if (m_mediator.m_validator->CheckCreatedTransaction(t, gasUsed)
                      || !t.GetCode().empty() || !t.GetData().empty())
             {
