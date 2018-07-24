@@ -572,7 +572,7 @@ void Node::ProcessTransactionWhenShardLeader()
     {
         Transaction t;
 
-        // check the previous u_map contains any txn meet right nonce,
+        // check m_addrNonceTxnMap contains any txn meets right nonce,
         // if contains, process it withou increment the txn_sent_count as it's already
         // incremented when inserting
         if (findOneFromAddrNonceTxnMap(t))
@@ -591,7 +591,7 @@ void Node::ProcessTransactionWhenShardLeader()
         {
             uint256_t gasUsed = 0;
 
-            // check nonce, if nonce is not correct
+            // check nonce, if nonce is not correct, put it into m_addrNonceTxnMap
             if (t.GetNonce()
                 != AccountStore::GetInstance().GetNonceTemp(t.GetSenderAddr())
                     + 1)
