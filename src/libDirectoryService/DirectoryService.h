@@ -60,31 +60,6 @@ class DirectoryService : public Executable, public Broadcastable
         PROCESS_VIEWCHANGECONSENSUS
     };
 
-    string ActionString(enum Action action)
-    {
-        switch (action)
-        {
-        case PROCESS_POW1SUBMISSION:
-            return "PROCESS_POW1SUBMISSION";
-        case VERIFYPOW1:
-            return "VERIFYPOW1";
-        case PROCESS_DSBLOCKCONSENSUS:
-            return "PROCESS_DSBLOCKCONSENSUS";
-        case PROCESS_POW2SUBMISSION:
-            return "PROCESS_POW2SUBMISSION";
-        case VERIFYPOW2:
-            return "VERIFYPOW2";
-        case PROCESS_SHARDINGCONSENSUS:
-            return "PROCESS_SHARDINGCONSENSUS";
-        case PROCESS_MICROBLOCKSUBMISSION:
-            return "PROCESS_MICROBLOCKSUBMISSION";
-        case PROCESS_FINALBLOCKCONSENSUS:
-            return "PROCESS_FINALBLOCKCONSENSUS";
-        case PROCESS_VIEWCHANGECONSENSUS:
-            return "PROCESS_VIEWCHANGECONSENSUS";
-        }
-        return "Unknown Action";
-    }
     std::atomic<bool> m_requesting_last_ds_block;
     unsigned int BUFFER_TIME_BEFORE_DS_BLOCK_REQUEST = 5;
 
@@ -437,6 +412,8 @@ public:
 private:
     static std::map<DirState, std::string> DirStateStrings;
     std::string GetStateString() const;
+    static std::map<Action, std::string> ActionStrings;
+    std::string GetActionString(Action action) const;
 };
 
 #endif // __DIRECTORYSERVICE_H__
