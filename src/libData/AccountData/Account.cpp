@@ -705,7 +705,7 @@ vector<h256> Account::GetStorageKeyHashes() const
     vector<h256> keyHashes;
     for (auto const& i : m_storage)
     {
-        keyHashes.push_back(i.first);
+        keyHashes.emplace_back(i.first);
     }
     return keyHashes;
 }

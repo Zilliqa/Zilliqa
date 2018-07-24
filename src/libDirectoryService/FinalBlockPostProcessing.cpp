@@ -186,7 +186,7 @@ void DirectoryService::SendFinalBlockToShardNodes(
 
             for (auto& kv : *p)
             {
-                shard_peers.push_back(kv.second);
+                shard_peers.emplace_back(kv.second);
                 LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                           " PubKey: "
                               << DataConversion::SerializableToHexStr(kv.first)

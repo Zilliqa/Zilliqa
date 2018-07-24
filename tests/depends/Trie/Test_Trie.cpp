@@ -87,7 +87,7 @@ BOOST_AUTO_TEST_CASE(fat_trie)
 //         vector<pair<string, string>> ss;
 //         for (auto i : o["in"].get_obj())
 //         {
-//             ss.push_back(make_pair(i.first, i.second.get_str()));
+//             ss.emplace_back(make_pair(i.first, i.second.get_str()));
 //             if (!ss.back().first.find("0x"))
 //                 ss.back().first = asString(fromHex(ss.back().first.substr(2)));
 //             if (!ss.back().second.find("0x"))
@@ -115,9 +115,9 @@ BOOST_AUTO_TEST_CASE(fat_trie)
 //             BOOST_REQUIRE(ft.check(true));
 //             for (auto const& k : ss)
 //             {
-//                 t.insert(k.first, k.second);
-//                 ht.insert(k.first, k.second);
-//                 ft.insert(k.first, k.second);
+//                 t.emplace(k.first, k.second);
+//                 ht.emplace(k.first, k.second);
+//                 ft.emplace(k.first, k.second);
 //                 BOOST_REQUIRE(t.check(true));
 //                 BOOST_REQUIRE(ht.check(true));
 //                 BOOST_REQUIRE(ft.check(true));
@@ -162,7 +162,7 @@ BOOST_AUTO_TEST_CASE(fat_trie)
 //         vector<pair<string, string>> ss;
 //         for (auto i : o["in"].get_obj())
 //         {
-//             ss.push_back(make_pair(i.first, i.second.get_str()));
+//             ss.emplace_back(make_pair(i.first, i.second.get_str()));
 //             if (!ss.back().first.find("0x"))
 //                 ss.back().first = asString(fromHex(ss.back().first.substr(2)));
 //             if (!ss.back().second.find("0x"))
@@ -189,9 +189,9 @@ BOOST_AUTO_TEST_CASE(fat_trie)
 //             BOOST_REQUIRE(ft.check(true));
 //             for (auto const& k : ss)
 //             {
-//                 t.insert(k.first, k.second);
-//                 ht.insert(k.first, k.second);
-//                 ft.insert(k.first, k.second);
+//                 t.emplace(k.first, k.second);
+//                 ht.emplace(k.first, k.second);
+//                 ft.emplace(k.first, k.second);
 //                 BOOST_REQUIRE(t.check(true));
 //                 BOOST_REQUIRE(ht.check(true));
 //                 BOOST_REQUIRE(ft.check(true));
@@ -238,21 +238,21 @@ BOOST_AUTO_TEST_CASE(fat_trie)
 //             for (auto& s : i.get_array())
 //             {
 //                 if (s.type() == json_spirit::str_type)
-//                     values.push_back(s.get_str());
+//                     values.emplace_back(s.get_str());
 //                 else if (s.type() == json_spirit::null_type)
 //                 {
 //                     // mark entry for deletion
-//                     values.push_back("");
+//                     values.emplace_back("");
 //                     if (!values[0].find("0x"))
 //                         values[0] = asString(fromHex(values[0].substr(2)));
-//                     keysToBeDeleted.push_back(values[0]);
+//                     keysToBeDeleted.emplace_back(values[0]);
 //                 }
 //                 else
 //                     BOOST_FAIL("Bad type (expected string)");
 //             }
 
 //             BOOST_REQUIRE(values.size() == 2);
-//             ss.push_back(make_pair(values[0], values[1]));
+//             ss.emplace_back(make_pair(values[0], values[1]));
 //             if (!ss.back().first.find("0x"))
 //                 ss.back().first = asString(fromHex(ss.back().first.substr(2)));
 //             if (!ss.back().second.find("0x"))
@@ -283,8 +283,8 @@ BOOST_AUTO_TEST_CASE(fat_trie)
 //                 && k.second.empty())
 //                 t.remove(k.first), ht.remove(k.first), ft.remove(k.first);
 //             else
-//                 t.insert(k.first, k.second), ht.insert(k.first, k.second),
-//                     ft.insert(k.first, k.second);
+//                 t.emplace(k.first, k.second), ht.emplace(k.first, k.second),
+//                     ft.emplace(k.first, k.second);
 //             BOOST_REQUIRE(t.check(true));
 //             BOOST_REQUIRE(ht.check(true));
 //             BOOST_REQUIRE(ft.check(true));
@@ -309,7 +309,7 @@ BOOST_AUTO_TEST_CASE(fat_trie)
 // {
 //     BytesMap bytesMap;
 //     for (auto const& _v : _s)
-//         bytesMap.insert(
+//         bytesMap.emplace(
 //             std::make_pair(bytes(_v.first.begin(), _v.first.end()),
 //                            bytes(_v.second.begin(), _v.second.end())));
 //     return hash256(bytesMap);
@@ -319,7 +319,7 @@ BOOST_AUTO_TEST_CASE(fat_trie)
 // {
 //     BytesMap bytesMap;
 //     for (auto const& _v : _s)
-//         bytesMap.insert(
+//         bytesMap.emplace(
 //             std::make_pair(bytes(_v.first.begin(), _v.first.end()),
 //                            bytes(_v.second.begin(), _v.second.end())));
 //     return rlp256(bytesMap);
@@ -338,13 +338,13 @@ BOOST_AUTO_TEST_CASE(fat_trie)
 //         LOG_GENERAL(INFO, t.root());
 //         LOG_GENERAL(INFO, stringMapHash256(StringMap()));
 
-//         t.insert(string("test"), string("test"));
+//         t.emplace(string("test"), string("test"));
 //         LOG_GENERAL(INFO, t);
 //         LOG_GENERAL(INFO, m);
 //         LOG_GENERAL(INFO, t.root());
 //         LOG_GENERAL(INFO, stringMapHash256({{"test", "test"}}));
 
-//         t.insert(string("te"), string("testy"));
+//         t.emplace(string("te"), string("testy"));
 //         LOG_GENERAL(INFO, t);
 //         LOG_GENERAL(INFO, m);
 //         LOG_GENERAL(INFO, t.root());
@@ -368,8 +368,8 @@ BOOST_AUTO_TEST_CASE(fat_trie)
 //         MemoryDB m;
 //         GenericTrieDB<MemoryDB> t(&m);
 //         t.init(); // initialise as empty tree.
-//         t.insert(string("a"), string("A"));
-//         t.insert(string("b"), string("B"));
+//         t.emplace(string("a"), string("A"));
+//         t.emplace(string("b"), string("B"));
 //         LOG_GENERAL(INFO, t);
 //         LOG_GENERAL(INFO, m);
 //         LOG_GENERAL(INFO, t.root());
@@ -379,15 +379,15 @@ BOOST_AUTO_TEST_CASE(fat_trie)
 //     }
 //     {
 //         MemTrie t;
-//         t.insert("dog", "puppy");
+//         t.emplace("dog", "puppy");
 //         LOG_GENERAL(INFO, hex << t.hash256());
 //         bytes r(t.rlp());
 //         LOG_GENERAL(INFO, RLP(r));
 //     }
 //     {
 //         MemTrie t;
-//         t.insert("bed", "d");
-//         t.insert("be", "e");
+//         t.emplace("bed", "d");
+//         t.emplace("be", "e");
 //         LOG_GENERAL(INFO, hex << t.hash256());
 //         bytes r(t.rlp());
 //         LOG_GENERAL(INFO, RLP(r));
@@ -397,8 +397,8 @@ BOOST_AUTO_TEST_CASE(fat_trie)
 //             INFO,
 //             hex << stringMapHash256({{"dog", "puppy"}, {"doe", "reindeer"}}));
 //         MemTrie t;
-//         t.insert("dog", "puppy");
-//         t.insert("doe", "reindeer");
+//         t.emplace("dog", "puppy");
+//         t.emplace("doe", "reindeer");
 //         LOG_GENERAL(INFO, hex << t.hash256());
 //         bytes r(t.rlp());
 //         LOG_GENERAL(INFO, RLP(r));
@@ -413,8 +413,8 @@ BOOST_AUTO_TEST_CASE(fat_trie)
 //         StringMap s;
 
 //         auto add = [&](char const* a, char const* b) {
-//             d.insert(string(a), string(b));
-//             t.insert(a, b);
+//             d.emplace(string(a), string(b));
+//             t.emplace(a, b);
 //             s[a] = b;
 
 //             LOG_GENERAL(INFO, "/n-------------------------------");
@@ -537,8 +537,8 @@ BOOST_AUTO_TEST_CASE(trieLowerBound)
 //                 auto k = randomWord();
 //                 auto v = toString(i);
 //                 m[k] = v;
-//                 t.insert(k, v);
-//                 d.insert(k, v);
+//                 t.emplace(k, v);
+//                 d.emplace(k, v);
 //                 BOOST_REQUIRE_EQUAL(stringMapHash256(m), t.hash256());
 //                 BOOST_REQUIRE_EQUAL(stringMapHash256(m), d.root());
 //                 BOOST_REQUIRE(d.check(true));
@@ -562,7 +562,7 @@ BOOST_AUTO_TEST_CASE(trieLowerBound)
 //                     GenericTrieDB<MemoryDB> d2(&dm2);
 //                     d2.init(); // initialise as empty tree.
 //                     for (auto i : d)
-//                         d2.insert(i.first, i.second);
+//                         d2.emplace(i.first, i.second);
 
 //                     LOG_GENERAL(INFO, "Good:" << d2.root());
 //                     //					for (auto i: dm2.get())
@@ -576,7 +576,7 @@ BOOST_AUTO_TEST_CASE(trieLowerBound)
 //                     //						cwarn << i.first << ": " << RLP(i.second);
 //                     d.debugStructure(cerr);
 
-//                     d2.insert(k, v);
+//                     d2.emplace(k, v);
 //                     LOG_GENERAL(INFO, "Pres:" << d2.root());
 //                     //					for (auto i: dm2.get())
 //                     //						cwarn << i.first << ": " << RLP(i.second);

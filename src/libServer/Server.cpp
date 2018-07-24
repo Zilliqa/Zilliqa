@@ -127,7 +127,7 @@ string Server::CreateTransaction(const Json::Value& _json)
             for (unsigned int i = 0; i < 1 && it != shardMembers.end();
                  i++, it++)
             {
-                toSend.push_back(it->second);
+                toSend.emplace_back(it->second);
             }
 
             P2PComm::GetInstance().SendMessage(toSend, tx_message);

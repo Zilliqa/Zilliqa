@@ -98,7 +98,7 @@ void DirectoryService::SendVCBlockToShardNodes(
 
             for (auto& kv : *p)
             {
-                shard_peers.push_back(kv.second);
+                shard_peers.emplace_back(kv.second);
                 LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                           " PubKey: "
                               << DataConversion::SerializableToHexStr(kv.first)
@@ -128,7 +128,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
     {
         if (m_pendingVCBlock->GetB2().at(index) == true)
         {
-            keys.push_back(kv.first);
+            keys.emplace_back(kv.first);
             count++;
         }
         index++;
@@ -202,7 +202,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
         // the next ds epoch
         {
             lock_guard<mutex> g2(m_mediator.m_mutexDSCommittee);
-            m_mediator.m_DSCommittee.push_back(
+            m_mediator.m_DSCommittee.emplace_back(
                 m_mediator.m_DSCommittee.front());
             m_mediator.m_DSCommittee.pop_front();
         }
@@ -272,7 +272,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
         vector<Peer> allPowSubmitter;
         for (auto& nodeNetwork : m_allPoWConns)
         {
-            allPowSubmitter.push_back(nodeNetwork.second);
+            allPowSubmitter.emplace_back(nodeNetwork.second);
         }
         P2PComm::GetInstance().SendBroadcastMessage(allPowSubmitter,
                                                     vcblock_message);
