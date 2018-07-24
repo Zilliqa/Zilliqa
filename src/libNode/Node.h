@@ -166,8 +166,6 @@ class Node : public Executable, public Broadcastable
     std::mutex m_mutexCreatedTransactions;
     gas_ra_txns m_createdTransactions;
 
-    list<Transaction> m_leftTxns;
-
     vector<unsigned char> m_txMessage;
 
     std::vector<TxnHash> m_txnsOrdering;
@@ -382,7 +380,7 @@ class Node : public Executable, public Broadcastable
     bool CheckMicroBlockStateDeltaHash();
     bool CheckMicroBlockShardID();
 
-    std::list<Transaction> OrderingTxns(const std::list<Transaction>& txns);
+    // std::list<Transaction> OrderingTxns(const std::list<Transaction>& txns);
     bool VerifyTxnsOrdering(const list<Transaction>& txns);
 
     void ProcessTransactionWhenShardLeader();
