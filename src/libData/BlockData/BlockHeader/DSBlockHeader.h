@@ -29,11 +29,11 @@
 /// Stores information on the header part of the DS block.
 class DSBlockHeader : public BlockHeaderBase
 {
-    uint8_t m_difficulty; // Number of PoW1 leading zeros
+    uint8_t m_difficulty; // Number of PoW leading zeros
     BlockHash m_prevHash; // Hash of the previous block
     boost::multiprecision::uint256_t
-        m_nonce; // Nonce value of the winning miner for PoW1
-    PubKey m_minerPubKey; // Public key of the winning miner for PoW1
+        m_nonce; // Nonce value of the winning miner for PoW
+    PubKey m_minerPubKey; // Public key of the winning miner for PoW
     PubKey m_leaderPubKey; // The one who proposed this DS block
     boost::multiprecision::uint256_t
         m_blockNum; // Block index, starting from 0 in the genesis block
