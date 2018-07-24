@@ -293,7 +293,6 @@ void DirectoryService::ScheduleShardingConsensus(const unsigned int wait_window)
         }
 
         RunConsensusOnSharding();
-        cv_shardingConsensusObject.notify_all();
     };
 
     DetachedFunction(1, func);
