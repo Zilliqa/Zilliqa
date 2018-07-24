@@ -64,7 +64,7 @@ bool DirectoryService::VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
     {
         if (B2.at(index) == true)
         {
-            keys.push_back(kv.first);
+            keys.emplace_back(kv.first);
             count++;
         }
         index++;
@@ -200,7 +200,7 @@ bool DirectoryService::ProcessMicroblockSubmission(
     }
 
     lock_guard<mutex> g(m_mutexMicroBlocks);
-    m_microBlocks.insert(microBlock);
+    m_microBlocks.emplace(microBlock);
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               m_microBlocks.size()

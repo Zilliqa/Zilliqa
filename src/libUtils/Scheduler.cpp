@@ -73,7 +73,7 @@ void Scheduler::ScheduleAt(std::function<void(void)> f,
 {
     {
         lock_guard<mutex> lock(newTaskMutex);
-        taskQueue.insert(make_pair(t, f));
+        taskQueue.emplace(t, f);
     }
     newTaskScheduled.notify_one();
 }

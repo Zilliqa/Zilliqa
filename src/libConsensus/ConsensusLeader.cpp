@@ -396,8 +396,8 @@ bool ConsensusLeader::ProcessMessageCommitCore(
         // 33-byte commit
         if (m_commitCounter < m_numForConsensus)
         {
-            m_commitPoints.push_back(
-                CommitPoint(commit, curr_offset - COMMIT_POINT_SIZE));
+            m_commitPoints.emplace_back(commit,
+                                        curr_offset - COMMIT_POINT_SIZE);
             m_commitPointMap.at(backup_id)
                 = CommitPoint(commit, curr_offset - COMMIT_POINT_SIZE);
             m_commitMap.at(backup_id) = true;
@@ -434,7 +434,7 @@ bool ConsensusLeader::ProcessMessageCommitCore(
 
                 // Add the leader to the responses
                 Response r(*m_commitSecret, m_challenge, m_myPrivKey);
-                m_responseData.push_back(r);
+                m_responseData.emplace_back(r);
                 m_responseDataMap.at(m_myID) = r;
                 m_responseMap.at(m_myID) = true;
                 m_responseCounter = 1;
@@ -450,7 +450,7 @@ bool ConsensusLeader::ProcessMessageCommitCore(
                 {
                     if ((m_commitMap.at(i) == true) && (i != m_myID))
                     {
-                        commit_peers.push_back(j->second);
+                        commit_peers.emplace_back(j->second);
                     }
                 }
 
@@ -525,7 +525,7 @@ bool ConsensusLeader::ProcessMessageCommitCore(
                 {
                     if ((m_commitMap.at(i) == true) && (m_responseMap.at(i) == true))
                     {
-                        m_commitPoints.push_back(m_commitPointMap.at(i));
+                        m_commitPoints.emplace_back(m_commitPointMap.at(i));
                         m_commitCounter++;
                     }
                     if ((m_commitMap.at(i) == true) && (m_responseMap.at(i) == false))
@@ -541,7 +541,7 @@ bool ConsensusLeader::ProcessMessageCommitCore(
                     {
                         if (m_commitRedundantMap.at(i) == true)
                         {
-                            m_commitPoints.push_back(m_commitRedundantPointMap.at(i));
+                            m_commitPoints.emplace_back(m_commitRedundantPointMap.at(i));
                             m_commitCounter++;
                             m_commitMap.at(i) = true;
                             m_commitRedundantMap.at(i) = false;
@@ -577,7 +577,7 @@ bool ConsensusLeader::ProcessMessageCommitCore(
                         {
                             if (m_commitMap.at(i) == true)
                             {
-                                commit_peers.push_back(m_peerInfo.at(i));
+                                commit_peers.emplace_back(m_peerInfo.at(i));
                             }
                         }
                         P2PComm::GetInstance().SendMessage(commit_peers, challenge);
@@ -714,7 +714,7 @@ bool ConsensusLeader::ProcessMessageCommitFailure(
         //     {
         //         if (m_commitMap.at(i) == true)
         //         {
-        //             commit_peers.push_back(*j);
+        //             commit_peers.emplace_back(*j);
         //         }
         //     }
         //     P2PComm::GetInstance().SendMessage(commit_peers, challenge);
@@ -934,7 +934,7 @@ bool ConsensusLeader::ProcessMessageResponseCore(
     }
 
     // 32-byte response
-    m_responseData.push_back(tmp_response);
+    m_responseData.emplace_back(tmp_response);
     m_responseDataMap.at(backup_id) = tmp_response;
     m_responseMap.at(backup_id) = true;
     m_responseCounter++;
@@ -980,7 +980,7 @@ bool ConsensusLeader::ProcessMessageResponseCore(
 
                 // Add the leader to the commits
                 m_commitMap.at(m_myID) = true;
-                m_commitPoints.push_back(*m_commitPoint);
+                m_commitPoints.emplace_back(*m_commitPoint);
                 m_commitPointMap.at(m_myID) = *m_commitPoint;
                 m_commitCounter = 1;
 
@@ -1182,7 +1182,7 @@ ConsensusLeader::ConsensusLeader(
 
     // Add the leader to the commits
     m_commitMap.at(m_myID) = true;
-    m_commitPoints.push_back(*m_commitPoint);
+    m_commitPoints.emplace_back(*m_commitPoint);
     m_commitPointMap.at(m_myID) = *m_commitPoint;
     m_commitCounter = 1;
 }

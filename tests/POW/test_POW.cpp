@@ -89,20 +89,20 @@ bytes hexStringToBytes(std::string const& _s)
     if (_s.size() % 2)
         try
         {
-            ret.push_back(fromHex(_s[s++]));
+            ret.emplace_back(fromHex(_s[s++]));
         }
         catch (...)
         {
-            ret.push_back(0);
+            ret.emplace_back(0);
         }
     for (unsigned i = s; i < _s.size(); i += 2)
         try
         {
-            ret.push_back((byte)(fromHex(_s[i]) * 16 + fromHex(_s[i + 1])));
+            ret.emplace_back((byte)(fromHex(_s[i]) * 16 + fromHex(_s[i + 1])));
         }
         catch (...)
         {
-            ret.push_back(0);
+            ret.emplace_back(0);
         }
     return ret;
 }

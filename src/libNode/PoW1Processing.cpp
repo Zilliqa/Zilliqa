@@ -196,8 +196,9 @@ bool Node::ReadVariablesFromStartPoW1Message(
         PubKey pubkey(message, cur_offset);
         cur_offset += PUB_KEY_SIZE;
 
-        m_mediator.m_DSCommittee.push_back(
+        m_mediator.m_DSCommittee.emplace_back(
             make_pair(pubkey, Peer(message, cur_offset)));
+
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "DS Node IP: " << m_mediator.m_DSCommittee.back()
                                         .second.GetPrintableIPAddress()
