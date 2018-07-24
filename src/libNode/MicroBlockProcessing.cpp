@@ -577,6 +577,19 @@ void Node::ProcessTransactionWhenShardLeader()
         // incremented when inserting
         if (findOneFromAddrNonceTxnMap(t))
         {
+            // check whether m_createdTransaction have transaction with same Addr and nonce
+            // if has and with larger gasPrice then replace with that one. (*optional step)
+            auto& compIdx = m_createdTransactions.get<2>();
+            auto it = compIdx.find(make_tuple(t.GetSenderAddr(), t.GetNonce()));
+            if (it != compIdx.end())
+            {
+                if (it->GetGasPrice() > t.GetGasPrice())
+                {
+                    t = std::move(*it);
+                    compIdx.erase(it);
+                }
+            }
+
             uint256_t gasUsed = 0;
             if (m_mediator.m_validator->CheckCreatedTransaction(t, gasUsed)
                 || !t.GetCode().empty() || !t.GetData().empty())
