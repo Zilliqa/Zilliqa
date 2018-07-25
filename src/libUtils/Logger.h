@@ -58,7 +58,7 @@ public:
     static const size_t MAX_BYTES_TO_DISPLAY = 100;
 
     /// Limits the number of characters of the current function to display.
-    static const size_t MAX_FUNCNAME_LEN = 20;
+    static const size_t MAX_FUNCNAME_LEN = 30;
 
     /// Limits the number of digits of the current thread ID to display.
     static const size_t TID_LEN = 5;
