@@ -460,12 +460,12 @@ bool DirectoryService::ShardingValidator(
 
     // [4-byte num of committees]
     // [4-byte committee size]
-    //   [33-byte public key]
-    //   [33-byte public key]
+    //   [33-byte public key] [16-byte ip] [4-byte port] <- IP and port ignored in this version
+    //   [33-byte public key] [16-byte ip] [4-byte port] <- IP and port ignored in this version
     //   ...
     // [4-byte committee size]
-    //   [33-byte public key]
-    //   [33-byte public key]
+    //   [33-byte public key] [16-byte ip] [4-byte port] <- IP and port ignored in this version
+    //   [33-byte public key] [16-byte ip] [4-byte port] <- IP and port ignored in this version
     //   ...
     // ...
     lock_guard<mutex> g(m_mutexAllPoWConns);
@@ -498,6 +498,9 @@ bool DirectoryService::ShardingValidator(
         {
             PubKey memberPubkey(sharding_structure, curr_offset);
             curr_offset += PUB_KEY_SIZE;
+
+            curr_offset
+                += IP_SIZE + PORT_SIZE; // IP and port ignored in this version
 
             auto memberPeer = m_allPoWConns.find(memberPubkey);
             if (memberPeer == m_allPoWConns.end())
