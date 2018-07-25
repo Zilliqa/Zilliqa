@@ -1387,34 +1387,6 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         return false;
     }
 
-        /*
-    unsigned int sleep_time_while_waiting = 100;
-    if (m_state == MICROBLOCK_CONSENSUS)
-    {
-        for (unsigned int i = 0; i < 50; i++)
-        {
-            if (m_state == WAITING_FINALBLOCK)
-            {
-                break;
-            }
-
-            if (i % 10 == 0)
-            {
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                             "Waiting for MICROBLOCK_CONSENSUS before "
-                             "proceeding to process finalblock");
-            }
-            this_thread::sleep_for(
-                chrono::milliseconds(sleep_time_while_waiting));
-        }
-        LOG_GENERAL(INFO,
-            "I got stuck at process final block but move on. Current state is "
-            "MICROBLOCK_CONSENSUS, ")
-        // return false;
-        SetState(WAITING_FINALBLOCK);
-    }
-    */
-
 #endif // IS_LOOKUP_NODE
 
     LOG_STATE("[FLBLK][" << setw(15) << left
