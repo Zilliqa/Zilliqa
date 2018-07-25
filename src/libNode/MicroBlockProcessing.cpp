@@ -656,7 +656,25 @@ void Node::ProcessTransactionWhenShardLeader()
 bool Node::VerifyTxnsOrdering(const list<Transaction>& txns)
 {
     // TODO: Implement after the proper ordering of txns is done
-    (void)txns;
+    unordered_map<Address, uint256_t> nonceMap;
+
+    for (const auto& t : txns)
+    {
+        auto it = nonceMap.find(t.GetSenderAddr());
+        if (it == nonceMap.end())
+        {
+            nonceMap.insert({t.GetSenderAddr(), t.GetNonce()});
+        }
+        else
+        {
+            if (t.GetNonce() != nonceMap[t.GetSenderAddr()] + 1)
+            {
+                return false;
+            }
+            nonceMap[t.GetSenderAddr()] = t.GetNonce();
+        }
+    }
+
     return true;
 }
 
