@@ -264,7 +264,7 @@ bool Node::CheckState(Action action)
     }
 
     static const std::multimap<NodeState, Action> ACTIONS_FOR_STATE
-        = {{POW1_SUBMISSION, STARTPOW1},
+        = {{POW_SUBMISSION, STARTPOW},
            {POW2_SUBMISSION, STARTPOW2},
            {TX_SUBMISSION, PROCESS_SHARDING},
            {TX_SUBMISSION_BUFFER, PROCESS_SHARDING},
@@ -1185,7 +1185,7 @@ string Node::GetStateString() const
 }
 
 map<Node::Action, string> Node::ActionStrings
-    = {MAKE_LITERAL_PAIR(STARTPOW1),
+    = {MAKE_LITERAL_PAIR(STARTPOW),
        MAKE_LITERAL_PAIR(STARTPOW2),
        MAKE_LITERAL_PAIR(PROCESS_SHARDING),
        MAKE_LITERAL_PAIR(PROCESS_MICROBLOCKCONSENSUS),
