@@ -655,7 +655,6 @@ void Node::ProcessTransactionWhenShardLeader()
 
 bool Node::VerifyTxnsOrdering(const list<Transaction>& txns)
 {
-    // TODO: Implement after the proper ordering of txns is done
     unordered_map<Address, uint256_t> nonceMap;
 
     for (const auto& t : txns)
