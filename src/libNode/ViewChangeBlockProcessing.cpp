@@ -190,7 +190,8 @@ void Node::LogReceivedDSBlockDetails(const DSBlock& dsblock)
 **/
 
 bool Node::ProcessVCBlock(const vector<unsigned char>& message,
-                          unsigned int cur_offset, const Peer& from)
+                          unsigned int cur_offset,
+                          [[gnu::unused]] const Peer& from)
 {
     // Message = [VC block]
     LOG_MARKER();

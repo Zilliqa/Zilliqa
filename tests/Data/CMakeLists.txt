@@ -1,10 +1,4 @@
-if(CMAKE_CONFIGURATION_TYPES)
-    foreach(config ${CMAKE_CONFIGURATION_TYPES})
-        configure_file(${CMAKE_SOURCE_DIR}/constants.xml ${config}/constants.xml COPYONLY)
-    endforeach(config)
-else(CMAKE_CONFIGURATION_TYPES)
-    configure_file(${CMAKE_SOURCE_DIR}/constants.xml constants.xml COPYONLY)
-endif(CMAKE_CONFIGURATION_TYPES)
+configure_file(${CMAKE_SOURCE_DIR}/constants.xml constants.xml COPYONLY)
 
 link_directories(${CMAKE_BINARY_DIR}/lib)
 

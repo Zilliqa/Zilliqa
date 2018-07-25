@@ -196,8 +196,9 @@ protected:
 
 public:
     /// Consensus message processing function
-    virtual bool ProcessMessage(const std::vector<unsigned char>& message,
-                                unsigned int offset, const Peer& from)
+    virtual bool ProcessMessage(
+        [[gnu::unused]] const std::vector<unsigned char>& message,
+        [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
     {
         return false; // Should be implemented by ConsensusLeader and ConsensusBackup
     }

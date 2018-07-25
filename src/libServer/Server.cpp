@@ -443,7 +443,8 @@ Json::Value Server::GetSmartContractCode(const string& address)
     }
 }
 
-string Server::GetStorageAt(const string& address, const string& position)
+string Server::GetStorageAt([[gnu::unused]] const string& address,
+                            [[gnu::unused]] const string& position)
 {
     return "Hello";
 }
@@ -507,18 +508,28 @@ Json::Value Server::GetSmartContracts(const string& address)
     }
 }
 
-string Server::GetBlockTransactionCount(const string& blockHash)
+string Server::GetBlockTransactionCount([[gnu::unused]] const string& blockHash)
 {
     return "Hello";
 }
 
-string Server::GetCode(const string& address) { return "Hello"; }
+string Server::GetCode([[gnu::unused]] const string& address)
+{
+    return "Hello";
+}
 
-string Server::CreateMessage(const Json::Value& _json) { return "Hello"; }
+string Server::CreateMessage([[gnu::unused]] const Json::Value& _json)
+{
+    return "Hello";
+}
 
-string Server::GetGasEstimate(const Json::Value& _json) { return "Hello"; }
+string Server::GetGasEstimate([[gnu::unused]] const Json::Value& _json)
+{
+    return "Hello";
+}
 
-Json::Value Server::GetTransactionReceipt(const string& transactionHash)
+Json::Value Server::GetTransactionReceipt([
+    [gnu::unused]] const string& transactionHash)
 {
     return "Hello";
 }
