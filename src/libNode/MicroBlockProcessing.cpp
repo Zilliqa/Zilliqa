@@ -88,8 +88,9 @@ void Node::SubmitMicroblockToDSCommittee() const
 }
 #endif // IS_LOOKUP_NODE
 
-bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
-                                      unsigned int offset, const Peer& from)
+bool Node::ProcessMicroblockConsensus(
+    [[gnu::unused]] const vector<unsigned char>& message,
+    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
 {
 #ifndef IS_LOOKUP_NODE
     LOG_MARKER();
@@ -457,8 +458,9 @@ bool Node::OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
     return true;
 }
 
-bool Node::OnCommitFailure(
-    const std::map<unsigned int, std::vector<unsigned char>>& commitFailureMap)
+bool Node::OnCommitFailure([
+    [gnu::unused]] const std::map<unsigned int, std::vector<unsigned char>>&
+                               commitFailureMap)
 {
     LOG_MARKER();
 
