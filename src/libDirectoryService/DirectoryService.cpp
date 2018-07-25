@@ -43,8 +43,8 @@ DirectoryService::DirectoryService(Mediator& mediator)
     : m_mediator(mediator)
 {
 #ifndef IS_LOOKUP_NODE
-    SetState(POW1_SUBMISSION);
-    cv_POW1Submission.notify_all();
+    SetState(POW_SUBMISSION);
+    cv_POWSubmission.notify_all();
 #endif // IS_LOOKUP_NODE
     m_mode = IDLE;
     m_requesting_last_ds_block = false;
@@ -73,7 +73,7 @@ void DirectoryService::StartSynchronization()
             {
                 if (m_mediator.m_lookup->cv_offlineLookups.wait_for(
                         lock,
-                        chrono::seconds(POW1_WINDOW_IN_SECONDS
+                        chrono::seconds(POW_WINDOW_IN_SECONDS
                                         + BACKUP_POW2_WINDOW_IN_SECONDS))
                     == std::cv_status::timeout)
                 {
@@ -108,8 +108,8 @@ bool DirectoryService::CheckState(Action action)
     }
 
     static const std::multimap<DirState, Action> ACTIONS_FOR_STATE
-        = {{POW1_SUBMISSION, PROCESS_POW1SUBMISSION},
-           {POW1_SUBMISSION, VERIFYPOW1},
+        = {{POW_SUBMISSION, PROCESS_POWSUBMISSION},
+           {POW_SUBMISSION, VERIFYPOW},
            {DSBLOCK_CONSENSUS, PROCESS_DSBLOCKCONSENSUS},
            {POW2_SUBMISSION, PROCESS_POW2SUBMISSION},
            {POW2_SUBMISSION, VERIFYPOW2},
@@ -237,7 +237,7 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
         if (i.first == m_mediator.m_selfKey.second)
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "My node ID for this PoW1 consensus is "
+                      "My node ID for this PoW consensus is "
                           << m_consensusMyID);
             break;
         }
@@ -262,9 +262,9 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
     }
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Waiting " << POW1_WINDOW_IN_SECONDS
-                         << " seconds, accepting PoW1 submissions...");
-    this_thread::sleep_for(chrono::seconds(POW1_WINDOW_IN_SECONDS));
+              "Waiting " << POW_WINDOW_IN_SECONDS
+                         << " seconds, accepting PoW submissions...");
+    this_thread::sleep_for(chrono::seconds(POW_WINDOW_IN_SECONDS));
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Starting consensus on ds block");
     RunConsensusOnDSBlock();
@@ -581,8 +581,8 @@ bool DirectoryService::CleanVariables()
         m_pendingDSBlock.reset();
     }
     {
-        std::lock_guard<mutex> lock(m_mutexAllPOW1);
-        m_allPoW1s.clear();
+        std::lock_guard<mutex> lock(m_mutexAllPOW);
+        m_allPoWs.clear();
     }
     {
         std::lock_guard<mutex> lock(m_mutexAllPOW2);
@@ -636,7 +636,7 @@ bool DirectoryService::FinishRejoinAsDS()
             if (i.first == m_mediator.m_selfKey.second)
             {
                 LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "My node ID for this PoW1 consensus is "
+                          "My node ID for this PoW consensus is "
                               << m_consensusMyID);
                 break;
             }
@@ -673,7 +673,7 @@ bool DirectoryService::Execute(const vector<unsigned char>& message,
 #ifndef IS_LOOKUP_NODE
     InstructionHandler ins_handlers[]
         = {&DirectoryService::ProcessSetPrimary,
-           &DirectoryService::ProcessPoW1Submission,
+           &DirectoryService::ProcessPoWSubmission,
            &DirectoryService::ProcessDSBlockConsensus,
            &DirectoryService::ProcessPoW2Submission,
            &DirectoryService::ProcessShardingConsensus,
@@ -687,7 +687,7 @@ bool DirectoryService::Execute(const vector<unsigned char>& message,
 #else
     InstructionHandler ins_handlers[]
         = {&DirectoryService::ProcessSetPrimary,
-           &DirectoryService::ProcessPoW1Submission,
+           &DirectoryService::ProcessPoWSubmission,
            &DirectoryService::ProcessDSBlockConsensus,
            &DirectoryService::ProcessPoW2Submission,
            &DirectoryService::ProcessShardingConsensus,
@@ -733,7 +733,7 @@ bool DirectoryService::Execute(const vector<unsigned char>& message,
     }
 
 map<DirectoryService::DirState, string> DirectoryService::DirStateStrings
-    = {MAKE_LITERAL_PAIR(POW1_SUBMISSION),
+    = {MAKE_LITERAL_PAIR(POW_SUBMISSION),
        MAKE_LITERAL_PAIR(DSBLOCK_CONSENSUS_PREP),
        MAKE_LITERAL_PAIR(DSBLOCK_CONSENSUS),
        MAKE_LITERAL_PAIR(POW2_SUBMISSION),
@@ -754,8 +754,8 @@ string DirectoryService::GetStateString() const
 }
 
 map<DirectoryService::Action, string> DirectoryService::ActionStrings
-    = {MAKE_LITERAL_PAIR(PROCESS_POW1SUBMISSION),
-       MAKE_LITERAL_PAIR(VERIFYPOW1),
+    = {MAKE_LITERAL_PAIR(PROCESS_POWSUBMISSION),
+       MAKE_LITERAL_PAIR(VERIFYPOW),
        MAKE_LITERAL_PAIR(PROCESS_DSBLOCKCONSENSUS),
        MAKE_LITERAL_PAIR(PROCESS_POW2SUBMISSION),
        MAKE_LITERAL_PAIR(VERIFYPOW2),

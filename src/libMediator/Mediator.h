@@ -61,7 +61,7 @@ public:
     // DS committee members
     // Fixed-sized double-ended queue depending on size of DS committee at bootstrap
     // Leader is at head of queue
-    // PoW1 winner will be pushed in at head of queue (new leader)
+    // PoW winner will be pushed in at head of queue (new leader)
     // Oldest member will be pushed out from tail of queue
 
     /// The public keys and current members of the DS committee.
