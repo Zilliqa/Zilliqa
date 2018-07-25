@@ -150,8 +150,8 @@ public:
 class VCBlockChain : public BlockChain<VCBlock>
 {
 public:
-    VCBlock GetBlockFromPersistentStorage(
-        const boost::multiprecision::uint256_t& blockNum)
+    VCBlock GetBlockFromPersistentStorage([
+        [gnu::unused]] const boost::multiprecision::uint256_t& blockNum)
     {
         throw "vc block persistent storage not supported";
     }

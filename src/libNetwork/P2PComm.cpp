@@ -599,7 +599,8 @@ void P2PComm::HandleAcceptedConnectionBroadcast(
     dispatcher(message, from);
 }
 
-void P2PComm::ConnectionAccept(int serv_sock, short event, void* arg)
+void P2PComm::ConnectionAccept(int serv_sock, [[gnu::unused]] short event,
+                               void* arg)
 {
     struct sockaddr_in cli_addr;
     socklen_t cli_len = sizeof(struct sockaddr_in);

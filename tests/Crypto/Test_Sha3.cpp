@@ -21,6 +21,7 @@
 #include <iomanip>
 
 #define BOOST_TEST_MODULE sha3test
+#define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 
 using namespace std;
