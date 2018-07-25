@@ -541,6 +541,8 @@ void Node::ProcessTransactionWhenShardLeader()
     };
 
     auto findSameNonceButHigherGasPrice = [this](Transaction& t) -> void {
+        lock_guard<mutex> g(m_mutexCreatedTransactions);
+
         auto& compIdx
             = m_createdTransactions.get<MULTI_INDEX_KEY::ADDR_NONCE>();
         auto it = compIdx.find(make_tuple(t.GetSenderAddr(), t.GetNonce()));
@@ -563,8 +565,7 @@ void Node::ProcessTransactionWhenShardLeader()
             return false;
         }
 
-        auto it = listIdx.end();
-        it--;
+        auto it = listIdx.begin();
         t = std::move(*it);
         listIdx.erase(it);
         return true;
