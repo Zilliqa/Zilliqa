@@ -70,27 +70,6 @@ class Node : public Executable, public Broadcastable
         ATSTATEROOT = 0x02
     };
 
-    string ActionString(enum Action action)
-    {
-        switch (action)
-        {
-        case STARTPOW:
-            return "STARTPOW";
-        case STARTPOW2:
-            return "STARTPOW2";
-        case PROCESS_SHARDING:
-            return "PROCESS_SHARDING";
-        case PROCESS_MICROBLOCKCONSENSUS:
-            return "PROCESS_MICROBLOCKCONSENSUS";
-        case PROCESS_FINALBLOCK:
-            return "PROCESS_FINALBLOCK";
-        case PROCESS_TXNBODY:
-            return "PROCESS_TXNBODY";
-        default:
-            return "Unknown Action";
-        }
-    }
-
     Mediator& m_mediator;
 
     Synchronizer m_synchronizer;
@@ -411,10 +390,6 @@ public:
         SYNC
     };
 
-private:
-    static bool compatibleState(enum NodeState state, enum Action action);
-
-public:
     // This process is newly invoked by shell from late node join script
     bool m_runFromLate = false;
 
@@ -519,6 +494,8 @@ public:
 private:
     static std::map<NodeState, std::string> NodeStateStrings;
     std::string GetStateString() const;
+    static std::map<Action, std::string> ActionStrings;
+    std::string GetActionString(Action action) const;
 };
 
 #endif // __NODE_H__
