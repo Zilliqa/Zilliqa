@@ -49,8 +49,8 @@ class DirectoryService : public Executable, public Broadcastable
 
     enum Action
     {
-        PROCESS_POW1SUBMISSION = 0x00,
-        VERIFYPOW1,
+        PROCESS_POWSUBMISSION = 0x00,
+        VERIFYPOW,
         PROCESS_DSBLOCKCONSENSUS,
         PROCESS_POW2SUBMISSION,
         VERIFYPOW2,
@@ -88,12 +88,12 @@ class DirectoryService : public Executable, public Broadcastable
     std::shared_ptr<ConsensusCommon> m_consensusObject;
     std::vector<unsigned char> m_consensusBlockHash;
 
-    // PoW1 (DS block) consensus variables
+    // PoW (DS block) consensus variables
     std::shared_ptr<DSBlock> m_pendingDSBlock;
     std::mutex m_mutexPendingDSBlock;
     std::mutex m_mutexDSBlockConsensus;
-    std::vector<std::pair<PubKey, boost::multiprecision::uint256_t>> m_allPoW1s;
-    std::mutex m_mutexAllPOW1;
+    std::vector<std::pair<PubKey, boost::multiprecision::uint256_t>> m_allPoWs;
+    std::mutex m_mutexAllPOW;
 
     // PoW2 (sharding) consensus variables
     std::map<PubKey, boost::multiprecision::uint256_t> m_allPoW2s;
@@ -135,8 +135,8 @@ class DirectoryService : public Executable, public Broadcastable
     std::mutex m_MutexCVShardingConsensusObject;
     std::condition_variable cv_finalBlockConsensusObject;
     std::mutex m_MutexCVFinalBlockConsensusObject;
-    std::condition_variable cv_POW1Submission;
-    std::mutex m_MutexCVPOW1Submission;
+    std::condition_variable cv_POWSubmission;
+    std::mutex m_MutexCVPOWSubmission;
     std::condition_variable cv_POW2Submission;
     std::mutex m_MutexCVPOW2Submission;
     std::mutex m_mutexProcessConsensusMessage;
@@ -151,8 +151,8 @@ class DirectoryService : public Executable, public Broadcastable
     // Message handlers
     bool ProcessSetPrimary(const std::vector<unsigned char>& message,
                            unsigned int offset, const Peer& from);
-    bool ProcessPoW1Submission(const std::vector<unsigned char>& message,
-                               unsigned int offset, const Peer& from);
+    bool ProcessPoWSubmission(const std::vector<unsigned char>& message,
+                              unsigned int offset, const Peer& from);
     bool ProcessDSBlockConsensus(const std::vector<unsigned char>& message,
                                  unsigned int offset, const Peer& from);
     bool ProcessPoW2Submission(const std::vector<unsigned char>& message,
@@ -186,7 +186,7 @@ class DirectoryService : public Executable, public Broadcastable
     void SendingShardingStructureToShard(
         vector<std::map<PubKey, Peer>>::iterator& p);
 
-    // PoW1 (DS block) consensus functions
+    // PoW (DS block) consensus functions
     void RunConsensusOnDSBlock(bool isRejoin = false);
     void ComposeDSBlock();
 
@@ -216,11 +216,11 @@ class DirectoryService : public Executable, public Broadcastable
     void
     DetermineNodesToSendDSBlockTo(const Peer& winnerpeer,
                                   unsigned int& my_DS_cluster_num,
-                                  unsigned int& my_pow1nodes_cluster_lo,
-                                  unsigned int& my_pow1nodes_cluster_hi) const;
+                                  unsigned int& my_pownodes_cluster_lo,
+                                  unsigned int& my_pownodes_cluster_hi) const;
     void SendDSBlockToCluster(const Peer& winnerpeer,
-                              unsigned int my_pow1nodes_cluster_lo,
-                              unsigned int my_pow1nodes_cluster_hi);
+                              unsigned int my_pownodes_cluster_lo,
+                              unsigned int my_pownodes_cluster_hi);
     void UpdateMyDSModeAndConsensusId();
     void UpdateDSCommiteeComposition(const Peer& winnerpeer); //TODO: Refactor
 
@@ -244,20 +244,20 @@ class DirectoryService : public Executable, public Broadcastable
     bool RunConsensusOnFinalBlockWhenDSBackup();
     void ComposeFinalBlockCore();
     vector<unsigned char> ComposeFinalBlockMessage();
-    bool ParseMessageAndVerifyPOW1(const vector<unsigned char>& message,
-                                   unsigned int offset, const Peer& from);
+    bool ParseMessageAndVerifyPOW(const vector<unsigned char>& message,
+                                  unsigned int offset, const Peer& from);
     void AppendSharingSetupToShardingStructure(
         vector<unsigned char>& sharding_structure, unsigned int curr_offset);
     bool CheckWhetherDSBlockIsFresh(
         const boost::multiprecision::uint256_t dsblock_num);
     bool CheckWhetherMaxSubmissionsReceived(Peer peer, PubKey key);
-    bool VerifyPoW1Submission(const vector<unsigned char>& message,
-                              const Peer& from, PubKey& key,
-                              unsigned int curr_offset, uint32_t& portNo,
-                              uint64_t& nonce, array<unsigned char, 32>& rand1,
-                              array<unsigned char, 32>& rand2,
-                              unsigned int& difficulty,
-                              boost::multiprecision::uint256_t& block_num);
+    bool VerifyPoWSubmission(const vector<unsigned char>& message,
+                             const Peer& from, PubKey& key,
+                             unsigned int curr_offset, uint32_t& portNo,
+                             uint64_t& nonce, array<unsigned char, 32>& rand1,
+                             array<unsigned char, 32>& rand2,
+                             unsigned int& difficulty,
+                             boost::multiprecision::uint256_t& block_num);
     void ExtractDataFromMicroblocks(
         TxnHash& microblockTxnTrieRoot, StateHash& microblockDeltaTrieRoot,
         std::vector<MicroBlockHashSet>& microblockHashes,
@@ -346,7 +346,7 @@ public:
 
     enum DirState : unsigned char
     {
-        POW1_SUBMISSION = 0x00,
+        POW_SUBMISSION = 0x00,
         DSBLOCK_CONSENSUS_PREP,
         DSBLOCK_CONSENSUS,
         POW2_SUBMISSION,

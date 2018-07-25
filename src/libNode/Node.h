@@ -48,7 +48,7 @@ class Node : public Executable, public Broadcastable
 {
     enum Action
     {
-        STARTPOW1 = 0x00,
+        STARTPOW = 0x00,
         STARTPOW2,
         PROCESS_SHARDING,
         PROCESS_MICROBLOCKCONSENSUS,
@@ -160,8 +160,8 @@ class Node : public Executable, public Broadcastable
     bool ToBlockMessage(unsigned char ins_byte);
 
 #ifndef IS_LOOKUP_NODE
-    // internal calls from ProcessStartPoW1
-    bool ReadVariablesFromStartPoW1Message(
+    // internal calls from ProcessStartPoW
+    bool ReadVariablesFromStartPoWMessage(
         const vector<unsigned char>& message, unsigned int offset,
         boost::multiprecision::uint256_t& block_num, uint8_t& difficulty,
         array<unsigned char, 32>& rand1, array<unsigned char, 32>& rand2);
@@ -257,7 +257,7 @@ class Node : public Executable, public Broadcastable
     void StoreState();
     // void StoreMicroBlocks();
     void StoreFinalBlock(const TxBlock& txBlock);
-    void InitiatePoW1();
+    void InitiatePoW();
     void UpdateStateForNextConsensusRound();
     void ScheduleTxnSubmission();
     void ScheduleMicroBlockConsensus();
@@ -292,8 +292,8 @@ class Node : public Executable, public Broadcastable
     void UpdateDSCommiteeComposition(const Peer& winnerpeer); //TODO: Refactor
 
     // Message handlers
-    bool ProcessStartPoW1(const std::vector<unsigned char>& message,
-                          unsigned int offset, const Peer& from);
+    bool ProcessStartPoW(const std::vector<unsigned char>& message,
+                         unsigned int offset, const Peer& from);
     bool ProcessSharding(const std::vector<unsigned char>& message,
                          unsigned int offset, const Peer& from);
     bool ProcessCreateTransaction(const std::vector<unsigned char>& message,
@@ -379,7 +379,7 @@ class Node : public Executable, public Broadcastable
 public:
     enum NodeState : unsigned char
     {
-        POW1_SUBMISSION = 0x00,
+        POW_SUBMISSION = 0x00,
         POW2_SUBMISSION,
         TX_SUBMISSION,
         TX_SUBMISSION_BUFFER,
@@ -477,10 +477,10 @@ public:
     bool ActOnFinalBlock(uint8_t tx_sharing_mode, const vector<Peer>& nodes);
 
     /// Performs PoW mining and submission for DirectoryService committee membership.
-    bool StartPoW1(const boost::multiprecision::uint256_t& block_num,
-                   uint8_t difficulty,
-                   const std::array<unsigned char, UINT256_SIZE>& rand1,
-                   const std::array<unsigned char, UINT256_SIZE>& rand2);
+    bool StartPoW(const boost::multiprecision::uint256_t& block_num,
+                  uint8_t difficulty,
+                  const std::array<unsigned char, UINT256_SIZE>& rand1,
+                  const std::array<unsigned char, UINT256_SIZE>& rand2);
 
     /// Performs PoW mining and submission for sharding committee membership.
     bool StartPoW2(const boost::multiprecision::uint256_t block_num,
