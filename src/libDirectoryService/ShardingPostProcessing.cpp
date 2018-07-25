@@ -38,58 +38,13 @@ using namespace std;
 using namespace boost::multiprecision;
 
 #ifndef IS_LOOKUP_NODE
-unsigned int DirectoryService::SerializeEntireShardingStructure(
-    vector<unsigned char>& sharding_message, unsigned int curr_offset)
-{
-    LOG_MARKER();
-
-    // 4-byte number of shards
-    Serializable::SetNumber<uint32_t>(sharding_message, curr_offset,
-                                      m_shards.size(), sizeof(uint32_t));
-    curr_offset += sizeof(uint32_t);
-
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Number of shards = " << m_shards.size());
-
-    for (auto it_vec = m_shards.begin(); it_vec != m_shards.end(); it_vec++)
-    {
-        // 4-byte shard size
-        Serializable::SetNumber<uint32_t>(sharding_message, curr_offset,
-                                          it_vec->size(), sizeof(uint32_t));
-        curr_offset += sizeof(uint32_t);
-
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Shard size = " << it_vec->size());
-
-        for (auto it_map = it_vec->begin(); it_map != it_vec->end(); it_map++)
-        {
-            // 33-byte public key
-            (*it_map).first.Serialize(sharding_message, curr_offset);
-            curr_offset += PUB_KEY_SIZE;
-
-            // 16-byte ip + 4-byte port
-            (*it_map).second.Serialize(sharding_message, curr_offset);
-            curr_offset += IP_SIZE + PORT_SIZE;
-
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "PubKey: "
-                          << DataConversion::SerializableToHexStr(
-                                 (*it_map).first)
-                          << " IP: " << (*it_map).second.GetPrintableIPAddress()
-                          << " Port: " << (*it_map).second.m_listenPortHost);
-        }
-    }
-
-    return true;
-}
-
 bool DirectoryService::SendEntireShardingStructureToLookupNodes()
 {
     vector<unsigned char> sharding_message
         = {MessageType::LOOKUP, LookupInstructionType::ENTIRESHARDINGSTRUCTURE};
     unsigned int curr_offset = MessageOffset::BODY;
 
-    SerializeEntireShardingStructure(sharding_message, curr_offset);
+    ShardingStructure::Serialize(m_shards, sharding_message, curr_offset);
 
     m_mediator.m_lookup->SendMessageToLookupNodes(sharding_message);
 
