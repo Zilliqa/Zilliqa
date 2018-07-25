@@ -418,6 +418,12 @@ bool DirectoryService::ProcessViewChangeConsensus(
     lock_guard<mutex> g(m_mutexConsensus);
 
     bool result = m_consensusObject->ProcessMessage(message, offset, from);
+
+    if (!result)
+    {
+        return result;
+    }
+
     ConsensusCommon::State state = m_consensusObject->GetState();
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Consensus state = " << m_consensusObject->GetStateString());
