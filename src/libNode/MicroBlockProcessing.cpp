@@ -178,6 +178,11 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
 
     bool result = m_consensusObject->ProcessMessage(message, offset, from);
 
+    if (!result)
+    {
+        return result;
+    }
+
     ConsensusCommon::State state = m_consensusObject->GetState();
 
     if (state == ConsensusCommon::State::DONE)
