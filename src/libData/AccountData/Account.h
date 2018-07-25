@@ -26,7 +26,12 @@
 #include "Address.h"
 #include "common/Constants.h"
 #include "common/Serializable.h"
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "depends/libDatabase/OverlayDB.h"
+#pragma GCC diagnostic pop
+
 #include "depends/libTrie/TrieDB.h"
 #include "libCrypto/Schnorr.h"
 
@@ -92,7 +97,8 @@ public:
                              unsigned int& offset);
 
     [[deprecated("not used anymore")]] int
-    Deserialize(const vector<unsigned char>& src, unsigned int offset)
+        Deserialize([[gnu::unused]] const vector<unsigned char>& src,
+                    [[gnu::unused]] unsigned int offset)
     {
         return -1;
     }
