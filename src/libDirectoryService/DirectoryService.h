@@ -60,9 +60,6 @@ class DirectoryService : public Executable, public Broadcastable
         PROCESS_VIEWCHANGECONSENSUS
     };
 
-    std::atomic<bool> m_requesting_last_ds_block;
-    unsigned int BUFFER_TIME_BEFORE_DS_BLOCK_REQUEST = 5;
-
     std::mutex m_mutexConsensus;
 
     bool m_hasAllPoWconns = true;
