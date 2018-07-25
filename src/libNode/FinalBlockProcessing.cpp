@@ -1019,27 +1019,27 @@ bool Node::ActOnFinalBlock(uint8_t tx_sharing_mode,
     return true;
 }
 
-void Node::InitiatePoW1()
+void Node::InitiatePoW()
 {
     // reset consensusID and first consensusLeader is index 0
     m_consensusID = 0;
     m_consensusLeaderID = 0;
 
-    SetState(POW1_SUBMISSION);
+    SetState(POW_SUBMISSION);
     POW::GetInstance().EthashConfigureLightClient(
         m_mediator.m_dsBlockChain.GetBlockCount());
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Start pow1 ");
+              "Start pow ");
     auto func = [this]() mutable -> void {
         auto epochNumber = m_mediator.m_dsBlockChain.GetBlockCount();
         auto dsBlockRand = m_mediator.m_dsBlockRand;
         auto txBlockRand = m_mediator.m_txBlockRand;
-        StartPoW1(epochNumber, POW1_DIFFICULTY, dsBlockRand, txBlockRand);
+        StartPoW(epochNumber, POW_DIFFICULTY, dsBlockRand, txBlockRand);
     };
 
     DetachedFunction(1, func);
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Soln to pow1 found ");
+              "Soln to pow found ");
 }
 
 void Node::UpdateStateForNextConsensusRound()
@@ -1508,9 +1508,9 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
                              << "] LAST");
     }
 
-    // Assumption: New PoW1 done after every block committed
+    // Assumption: New PoW done after every block committed
     // If I am not a DS committee member (and since I got this FinalBlock message,
-    // then I know I'm not), I can start doing PoW1 again
+    // then I know I'm not), I can start doing PoW again
     m_mediator.UpdateDSBlockRand();
     m_mediator.UpdateTxBlockRand();
 
@@ -1518,7 +1518,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 
     if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
     {
-        InitiatePoW1();
+        InitiatePoW();
     }
     else
     {

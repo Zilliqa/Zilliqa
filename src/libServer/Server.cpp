@@ -192,7 +192,7 @@ Json::Value Server::GetDsBlock(const string& blockNum)
 
     try
     {
-        uint64_t BlockNum = stoi(blockNum);
+        uint64_t BlockNum = stoull(blockNum);
         return JSONConversion::convertDSblocktoJson(
             m_mediator.m_dsBlockChain.GetBlock(BlockNum));
     }
@@ -237,7 +237,7 @@ Json::Value Server::GetTxBlock(const string& blockNum)
 
     try
     {
-        uint64_t BlockNum = stoi(blockNum);
+        uint64_t BlockNum = stoull(blockNum);
         return JSONConversion::convertTxBlocktoJson(
             m_mediator.m_txBlockChain.GetBlock(BlockNum));
     }

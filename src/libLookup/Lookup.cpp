@@ -1485,7 +1485,7 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
             {
                 if (cv_dsInfoUpdate.wait_for(
                         lock,
-                        chrono::seconds(POW1_WINDOW_IN_SECONDS
+                        chrono::seconds(POW_WINDOW_IN_SECONDS
                                         + BACKUP_POW2_WINDOW_IN_SECONDS))
                     == std::cv_status::timeout)
                 {

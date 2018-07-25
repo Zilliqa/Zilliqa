@@ -323,9 +323,9 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
     m_allPoWConns.clear();
 
     // Assumption for now: New round of PoW done after every final block
-    // Reset state to be ready to accept new PoW1 submissions
-    SetState(POW1_SUBMISSION);
-    cv_POW1Submission.notify_all();
+    // Reset state to be ready to accept new PoW submissions
+    SetState(POW_SUBMISSION);
+    cv_POWSubmission.notify_all();
 
     auto func = [this]() mutable -> void {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -344,9 +344,9 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
             {
                 LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                           "Waiting "
-                              << POW1_WINDOW_IN_SECONDS
-                              << " seconds, accepting PoW1 submissions...");
-                this_thread::sleep_for(chrono::seconds(POW1_WINDOW_IN_SECONDS));
+                              << POW_WINDOW_IN_SECONDS
+                              << " seconds, accepting PoW submissions...");
+                this_thread::sleep_for(chrono::seconds(POW_WINDOW_IN_SECONDS));
                 RunConsensusOnDSBlock();
             }
             else
@@ -355,12 +355,12 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
 
                 if (cv_DSBlockConsensus.wait_for(
                         cv_lk,
-                        std::chrono::seconds(POW1_BACKUP_WINDOW_IN_SECONDS))
+                        std::chrono::seconds(POW_BACKUP_WINDOW_IN_SECONDS))
                     == std::cv_status::timeout)
                 {
                     LOG_GENERAL(INFO,
                                 "Woken up from the sleep of "
-                                    << POW1_BACKUP_WINDOW_IN_SECONDS
+                                    << POW_BACKUP_WINDOW_IN_SECONDS
                                     << " seconds");
                 }
                 else
