@@ -417,11 +417,9 @@ bool DirectoryService::ProcessViewChangeConsensus(
 
     lock_guard<mutex> g(m_mutexConsensus);
 
-    bool result = m_consensusObject->ProcessMessage(message, offset, from);
-
-    if (!result)
+    if (!m_consensusObject->ProcessMessage(message, offset, from))
     {
-        return result;
+        return false;
     }
 
     ConsensusCommon::State state = m_consensusObject->GetState();
@@ -447,9 +445,6 @@ bool DirectoryService::ProcessViewChangeConsensus(
                   "Consensus state = " << state);
         cv_processConsensusMessage.notify_all();
     }
-
-    return result;
-#else // IS_LOOKUP_NODE
-    return true;
 #endif // IS_LOOKUP_NODE
+    return true;
 }
