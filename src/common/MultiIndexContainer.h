@@ -19,6 +19,7 @@
 #include <boost/multi_index/key_extractors.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index_container.hpp>
+#include <functional>
 
 #include "libData/AccountData/Transaction.h"
 
@@ -32,7 +33,8 @@ enum MULTI_INDEX_KEY : unsigned int
 typedef boost::multi_index::ordered_non_unique<
     boost::multi_index::const_mem_fun<Transaction,
                                       const boost::multiprecision::uint256_t&,
-                                      &Transaction::GetGasPrice>>
+                                      &Transaction::GetGasPrice>,
+    std::greater<boost::multiprecision::uint256_t>>
     ordered_non_unique_gas_key;
 
 typedef boost::multi_index::hashed_unique<boost::multi_index::const_mem_fun<
