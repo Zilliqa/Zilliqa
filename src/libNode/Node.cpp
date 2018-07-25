@@ -253,9 +253,17 @@ void Node::StartSynchronization()
 
 #endif //IS_LOOKUP_NODE
 
-bool Node::compatibleState(enum NodeState state, enum Action action)
+bool Node::CheckState(Action action)
 {
-    const static std::map<NodeState, Action> ACTION_FOR_STATE
+    if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "I am a DS node. Why am I getting this message? Action: "
+                      << GetActionString(action));
+        return false;
+    }
+
+    static const std::multimap<NodeState, Action> ACTIONS_FOR_STATE
         = {{POW1_SUBMISSION, STARTPOW1},
            {POW2_SUBMISSION, STARTPOW2},
            {TX_SUBMISSION, PROCESS_SHARDING},
@@ -263,46 +271,27 @@ bool Node::compatibleState(enum NodeState state, enum Action action)
            {MICROBLOCK_CONSENSUS, PROCESS_MICROBLOCKCONSENSUS},
            {WAITING_FINALBLOCK, PROCESS_FINALBLOCK}};
 
-    const auto srcAction = ACTION_FOR_STATE.find(state);
-    return ((srcAction != ACTION_FOR_STATE.end())
-            && (srcAction->second == action));
-}
+    bool found = false;
 
-bool Node::CheckState(Action action)
-{
-    if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
+    for (auto pos = ACTIONS_FOR_STATE.lower_bound(m_state);
+         pos != ACTIONS_FOR_STATE.upper_bound(m_state); pos++)
+    {
+        if (pos->second == action)
+        {
+            found = true;
+            break;
+        }
+    }
+
+    if (!found)
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "I am a DS node. Why am I getting this message? Action: "
-                      << ActionString(action));
+                  "Action " << GetActionString(action)
+                            << " not allowed in state " << GetStateString());
         return false;
     }
 
-    if (compatibleState(m_state, action))
-    {
-        return true;
-    }
-
-    if ((action == PROCESS_TXNBODY) || (action >= NUM_ACTIONS))
-    {
-        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Unrecognized action");
-        return false;
-    }
-
-    if (m_state == ERROR)
-    {
-        LOG_GENERAL(WARNING,
-                    "Doing " << ActionString(action)
-                             << " but receiving ERROR message");
-        return false;
-    }
-
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Doing " << ActionString(action) << " but already in "
-                       << GetStateString());
-
-    return false;
+    return true;
 }
 
 vector<Peer> Node::GetBroadcastList(unsigned char ins_type,
@@ -1193,4 +1182,20 @@ string Node::GetStateString() const
     {
         return NodeStateStrings.at(m_state);
     }
+}
+
+map<Node::Action, string> Node::ActionStrings
+    = {MAKE_LITERAL_PAIR(STARTPOW1),
+       MAKE_LITERAL_PAIR(STARTPOW2),
+       MAKE_LITERAL_PAIR(PROCESS_SHARDING),
+       MAKE_LITERAL_PAIR(PROCESS_MICROBLOCKCONSENSUS),
+       MAKE_LITERAL_PAIR(PROCESS_FINALBLOCK),
+       MAKE_LITERAL_PAIR(PROCESS_TXNBODY),
+       MAKE_LITERAL_PAIR(NUM_ACTIONS)};
+
+std::string Node::GetActionString(Action action) const
+{
+    return (ActionStrings.find(action) == ActionStrings.end())
+        ? "Unknown"
+        : ActionStrings.at(action);
 }
