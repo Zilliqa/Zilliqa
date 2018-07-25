@@ -144,7 +144,7 @@ void Node::Prepare(bool runInitializeGenesisBlocks)
         + 1;
     m_mediator.UpdateDSBlockRand(runInitializeGenesisBlocks);
     m_mediator.UpdateTxBlockRand(runInitializeGenesisBlocks);
-    SetState(POW1_SUBMISSION);
+    SetState(POW_SUBMISSION);
     POW::GetInstance().EthashConfigureLightClient(
         m_mediator.m_dsBlockChain.GetBlockCount());
 }
@@ -212,7 +212,7 @@ void Node::StartSynchronization()
             {
                 if (m_mediator.m_lookup->cv_offlineLookups.wait_for(
                         lock,
-                        chrono::seconds(POW1_WINDOW_IN_SECONDS
+                        chrono::seconds(POW_WINDOW_IN_SECONDS
                                         + BACKUP_POW2_WINDOW_IN_SECONDS))
                     == std::cv_status::timeout)
                 {
@@ -251,56 +251,45 @@ void Node::StartSynchronization()
 
 #endif //IS_LOOKUP_NODE
 
-bool Node::compatibleState(enum NodeState state, enum Action action)
-{
-    const static std::map<NodeState, Action> ACTION_FOR_STATE
-        = {{POW1_SUBMISSION, STARTPOW1},
-           {POW2_SUBMISSION, STARTPOW2},
-           {TX_SUBMISSION, PROCESS_SHARDING},
-           {TX_SUBMISSION_BUFFER, PROCESS_SHARDING},
-           {MICROBLOCK_CONSENSUS, PROCESS_MICROBLOCKCONSENSUS},
-           {WAITING_FINALBLOCK, PROCESS_FINALBLOCK}};
-
-    const auto srcAction = ACTION_FOR_STATE.find(state);
-    return ((srcAction != ACTION_FOR_STATE.end())
-            && (srcAction->second == action));
-}
-
 bool Node::CheckState(Action action)
 {
     if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "I am a DS node. Why am I getting this message? Action: "
-                      << ActionString(action));
+                      << GetActionString(action));
         return false;
     }
 
-    if (compatibleState(m_state, action))
+    static const std::multimap<NodeState, Action> ACTIONS_FOR_STATE
+        = {{POW_SUBMISSION, STARTPOW},
+           {POW2_SUBMISSION, STARTPOW2},
+           {TX_SUBMISSION, PROCESS_SHARDING},
+           {TX_SUBMISSION_BUFFER, PROCESS_SHARDING},
+           {MICROBLOCK_CONSENSUS, PROCESS_MICROBLOCKCONSENSUS},
+           {WAITING_FINALBLOCK, PROCESS_FINALBLOCK}};
+
+    bool found = false;
+
+    for (auto pos = ACTIONS_FOR_STATE.lower_bound(m_state);
+         pos != ACTIONS_FOR_STATE.upper_bound(m_state); pos++)
     {
-        return true;
+        if (pos->second == action)
+        {
+            found = true;
+            break;
+        }
     }
 
-    if ((action == PROCESS_TXNBODY) || (action >= NUM_ACTIONS))
+    if (!found)
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Unrecognized action");
+                  "Action " << GetActionString(action)
+                            << " not allowed in state " << GetStateString());
         return false;
     }
 
-    if (m_state == ERROR)
-    {
-        LOG_GENERAL(WARNING,
-                    "Doing " << ActionString(action)
-                             << " but receiving ERROR message");
-        return false;
-    }
-
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Doing " << ActionString(action) << " but already in "
-                       << GetStateString());
-
-    return false;
+    return true;
 }
 
 vector<Peer> Node::GetBroadcastList(unsigned char ins_type,
@@ -1120,7 +1109,7 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
                                              unsigned int, const Peer&);
 
     InstructionHandler ins_handlers[]
-        = {&Node::ProcessStartPoW1,
+        = {&Node::ProcessStartPoW,
            &Node::ProcessDSBlock,
            &Node::ProcessSharding,
            &Node::ProcessCreateTransaction,
@@ -1168,7 +1157,7 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
     }
 
 map<Node::NodeState, string> Node::NodeStateStrings
-    = {MAKE_LITERAL_PAIR(POW1_SUBMISSION),
+    = {MAKE_LITERAL_PAIR(POW_SUBMISSION),
        MAKE_LITERAL_PAIR(POW2_SUBMISSION),
        MAKE_LITERAL_PAIR(TX_SUBMISSION),
        MAKE_LITERAL_PAIR(TX_SUBMISSION_BUFFER),
@@ -1188,4 +1177,20 @@ string Node::GetStateString() const
     {
         return NodeStateStrings.at(m_state);
     }
+}
+
+map<Node::Action, string> Node::ActionStrings
+    = {MAKE_LITERAL_PAIR(STARTPOW),
+       MAKE_LITERAL_PAIR(STARTPOW2),
+       MAKE_LITERAL_PAIR(PROCESS_SHARDING),
+       MAKE_LITERAL_PAIR(PROCESS_MICROBLOCKCONSENSUS),
+       MAKE_LITERAL_PAIR(PROCESS_FINALBLOCK),
+       MAKE_LITERAL_PAIR(PROCESS_TXNBODY),
+       MAKE_LITERAL_PAIR(NUM_ACTIONS)};
+
+std::string Node::GetActionString(Action action) const
+{
+    return (ActionStrings.find(action) == ActionStrings.end())
+        ? "Unknown"
+        : ActionStrings.at(action);
 }
