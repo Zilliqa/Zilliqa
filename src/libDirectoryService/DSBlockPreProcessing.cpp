@@ -297,12 +297,14 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
 
     // kill first ds leader (used for view change testing)
     // Either do killing of ds leader or make ds leader do nothing.
+    /**
     if (m_consensusMyID == 0 && m_viewChangeCounter < 1)
     {
         LOG_GENERAL(INFO, "I am killing/suspending myself to test view change");
         // throw exception();
         return false;
     }
+    **/
 
     m_consensusObject.reset(new ConsensusLeader(
         consensusID, m_consensusBlockHash, m_consensusMyID,
