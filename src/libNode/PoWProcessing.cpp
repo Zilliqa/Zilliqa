@@ -48,7 +48,7 @@ using namespace std;
 using namespace boost::multiprecision;
 
 #ifndef IS_LOOKUP_NODE
-bool Node::StartPoW(const uint256_t& block_num, uint8_t difficulty,
+bool Node::StartPoW(const uint64_t& block_num, uint8_t difficulty,
                     const array<unsigned char, UINT256_SIZE>& rand1,
                     const array<unsigned char, UINT256_SIZE>& rand2)
 {
@@ -85,15 +85,15 @@ bool Node::StartPoW(const uint256_t& block_num, uint8_t difficulty,
             = DataConversion::HexStrToUint8Vec(winning_result.mix_hash);
 
         // Send PoW result
-        // Message = [32-byte block number] [4-byte listening port] [33-byte public key]
+        // Message = [8-byte block number] [4-byte listening port] [33-byte public key]
         // [8-byte nonce] [32-byte resulting hash] [32-byte mixhash] [64-byte Signature]
         vector<unsigned char> powmessage
             = {MessageType::DIRECTORY, DSInstructionType::POWSUBMISSION};
         unsigned int cur_offset = MessageOffset::BODY;
 
-        Serializable::SetNumber<uint256_t>(powmessage, cur_offset, block_num,
-                                           UINT256_SIZE);
-        cur_offset += UINT256_SIZE;
+        Serializable::SetNumber<uint64_t>(powmessage, cur_offset, block_num,
+                                          sizeof(uint64_t));
+        cur_offset += sizeof(uint64_t);
 
         Serializable::SetNumber<uint32_t>(
             powmessage, cur_offset, m_mediator.m_selfPeer.m_listenPortHost,
@@ -139,21 +139,21 @@ bool Node::StartPoW(const uint256_t& block_num, uint8_t difficulty,
 
 bool Node::ReadVariablesFromStartPoWMessage(
     const vector<unsigned char>& message, unsigned int cur_offset,
-    uint256_t& block_num, uint8_t& difficulty, array<unsigned char, 32>& rand1,
+    uint64_t& block_num, uint8_t& difficulty, array<unsigned char, 32>& rand1,
     array<unsigned char, 32>& rand2)
 {
     if (IsMessageSizeInappropriate(message.size(), cur_offset,
-                                   UINT256_SIZE + sizeof(uint8_t) + UINT256_SIZE
-                                       + UINT256_SIZE,
+                                   sizeof(uint64_t) + sizeof(uint8_t)
+                                       + UINT256_SIZE + UINT256_SIZE,
                                    PUB_KEY_SIZE + IP_SIZE + PORT_SIZE))
     {
         return false;
     }
 
-    // 32-byte block num
-    block_num
-        = Serializable::GetNumber<uint256_t>(message, cur_offset, UINT256_SIZE);
-    cur_offset += UINT256_SIZE;
+    // 8-byte block num
+    block_num = Serializable::GetNumber<uint64_t>(message, cur_offset,
+                                                  sizeof(uint64_t));
+    cur_offset += sizeof(uint64_t);
 
     // 1-byte difficulty
     difficulty = Serializable::GetNumber<uint8_t>(message, cur_offset,
@@ -217,13 +217,13 @@ bool Node::ProcessStartPoW([[gnu::unused]] const vector<unsigned char>& message,
 {
 #ifndef IS_LOOKUP_NODE
     // Note: This function should only be invoked on a new node that was not part of the sharding committees in previous epoch
-    // Message = [32-byte block num] [1-byte difficulty] [32-byte rand1] [32-byte rand2] [33-byte pubkey] [16-byte ip] [4-byte port] ... (all the DS nodes)
+    // Message = [8-byte block num] [1-byte difficulty] [32-byte rand1] [32-byte rand2] [33-byte pubkey] [16-byte ip] [4-byte port] ... (all the DS nodes)
 
     LOG_MARKER();
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "START OF EPOCH " << m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1);
 
-    uint256_t block_num;
+    uint64_t block_num;
     uint8_t difficulty;
     array<unsigned char, 32> rand1;
     array<unsigned char, 32> rand2;
