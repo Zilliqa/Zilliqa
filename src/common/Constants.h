@@ -135,7 +135,6 @@ extern const unsigned int MAXSUBMITTXNPERNODE;
 extern const unsigned int MICROBLOCK_GAS_LIMIT;
 extern const unsigned int TX_SHARING_CLUSTER_SIZE;
 extern const unsigned int NEW_NODE_POW_DELAY;
-extern const unsigned int N_PREFILLED_PER_ACCOUNT;
 extern const unsigned int POST_VIEWCHANGE_BUFFER;
 extern const unsigned int CONTRACT_CREATE_GAS;
 extern const unsigned int CONTRACT_INVOKE_GAS;
