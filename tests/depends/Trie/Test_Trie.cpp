@@ -17,7 +17,12 @@
 #include "depends/common/CommonIO.h"
 #include "depends/common/FixedHash.h"
 // #include "depends/json_spirit/JsonSpiritHeaders.h"
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "depends/libDatabase/MemoryDB.h"
+#pragma GCC diagnostic pop
+
 #include "depends/libTrie/TrieDB.h"
 #include "depends/libTrie/TrieHash.h"
 // #include "libTestUtils/MemTrie.h"

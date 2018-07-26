@@ -333,7 +333,8 @@ void DirectoryService::ProcessNextConsensus(unsigned char viewChangeState)
 #endif // IS_LOOKUP_NODE
 
 bool DirectoryService::ProcessViewChangeConsensus(
-    const vector<unsigned char>& message, unsigned int offset, const Peer& from)
+    [[gnu::unused]] const vector<unsigned char>& message,
+    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
 {
 #ifndef IS_LOOKUP_NODE
     LOG_MARKER();
@@ -417,7 +418,11 @@ bool DirectoryService::ProcessViewChangeConsensus(
 
     lock_guard<mutex> g(m_mutexConsensus);
 
-    bool result = m_consensusObject->ProcessMessage(message, offset, from);
+    if (!m_consensusObject->ProcessMessage(message, offset, from))
+    {
+        return false;
+    }
+
     ConsensusCommon::State state = m_consensusObject->GetState();
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Consensus state = " << m_consensusObject->GetStateString());
@@ -441,9 +446,6 @@ bool DirectoryService::ProcessViewChangeConsensus(
                   "Consensus state = " << state);
         cv_processConsensusMessage.notify_all();
     }
-
-    return result;
-#else // IS_LOOKUP_NODE
-    return true;
 #endif // IS_LOOKUP_NODE
+    return true;
 }

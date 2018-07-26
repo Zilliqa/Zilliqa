@@ -39,7 +39,7 @@ void Print(const vector<unsigned char>& payload)
     cout << payload_string.get();
 }
 
-int main(int argc, const char* argv[])
+int main([[gnu::unused]] int argc, [[gnu::unused]] const char* argv[])
 {
     pair<PrivKey, PubKey> keypair = Schnorr::GetInstance().GenKeyPair();
 

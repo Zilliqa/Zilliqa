@@ -292,8 +292,9 @@ bool Node::CheckState(Action action)
     return true;
 }
 
-vector<Peer> Node::GetBroadcastList(unsigned char ins_type,
-                                    const Peer& broadcast_originator)
+vector<Peer>
+    Node::GetBroadcastList([[gnu::unused]] unsigned char ins_type,
+                           [[gnu::unused]] const Peer& broadcast_originator)
 {
     // LOG_MARKER();
 
@@ -471,8 +472,9 @@ vector<Transaction> GenTransactionBulk(PrivKey& fromPrivKey, PubKey& fromPubKey,
 ///
 /// XXX The message format below is no ignored
 ///     Message = [33-byte from pubkey] [33-byte to pubkey] [32-byte amount]
-bool Node::ProcessCreateTransaction(const vector<unsigned char>& message,
-                                    unsigned int offset, const Peer& from)
+bool Node::ProcessCreateTransaction(
+    [[gnu::unused]] const vector<unsigned char>& message,
+    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
 {
 #ifndef IS_LOOKUP_NODE
     LOG_MARKER();
@@ -529,7 +531,8 @@ bool Node::ProcessCreateTransaction(const vector<unsigned char>& message,
 
 #ifndef IS_LOOKUP_NODE
 bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
-                                   unsigned int offset, const Peer& from)
+                                   unsigned int offset,
+                                   [[gnu::unused]] const Peer& from)
 {
     unsigned int cur_offset = offset;
 
@@ -577,7 +580,8 @@ bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
 }
 
 bool Node::ProcessSubmitTxnSharing(const vector<unsigned char>& message,
-                                   unsigned int offset, const Peer& from)
+                                   unsigned int offset,
+                                   [[gnu::unused]] const Peer& from)
 {
     //LOG_MARKER();
 
@@ -654,8 +658,9 @@ bool Node::ProcessSubmitTxnSharing(const vector<unsigned char>& message,
 }
 #endif // IS_LOOKUP_NODE
 
-bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
-                                    unsigned int offset, const Peer& from)
+bool Node::ProcessSubmitTransaction(
+    [[gnu::unused]] const vector<unsigned char>& message,
+    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
 {
 #ifndef IS_LOOKUP_NODE
     // This message is sent by my shard peers
@@ -688,7 +693,8 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
 }
 
 bool Node::ProcessCreateTransactionFromLookup(
-    const vector<unsigned char>& message, unsigned int offset, const Peer& from)
+    [[gnu::unused]] const vector<unsigned char>& message,
+    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
 {
 #ifndef IS_LOOKUP_NODE
 
@@ -1016,8 +1022,9 @@ void Node::CleanCreatedTransaction()
 }
 #endif // IS_LOOKUP_NODE
 
-bool Node::ProcessDoRejoin(const std::vector<unsigned char>& message,
-                           unsigned int offset, const Peer& from)
+bool Node::ProcessDoRejoin(
+    [[gnu::unused]] const std::vector<unsigned char>& message,
+    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
 {
 #ifndef IS_LOOKUP_NODE
 
@@ -1063,7 +1070,7 @@ bool Node::ProcessDoRejoin(const std::vector<unsigned char>& message,
     return true;
 }
 
-bool Node::ToBlockMessage(unsigned char ins_byte)
+bool Node::ToBlockMessage([[gnu::unused]] unsigned char ins_byte)
 {
     if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
 #ifndef IS_LOOKUP_NODE
