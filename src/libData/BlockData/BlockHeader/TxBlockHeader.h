@@ -34,23 +34,22 @@ class TxBlockHeader : public BlockHeaderBase
     boost::multiprecision::uint256_t m_gasLimit;
     boost::multiprecision::uint256_t m_gasUsed;
     BlockHash m_prevHash; // Hash of the previous block
-    boost::multiprecision::uint256_t
-        m_blockNum; // Block index, starting from 0 in the genesis block
+    uint64_t m_blockNum; // Block index, starting from 0 in the genesis block
     boost::multiprecision::uint256_t m_timestamp;
     TxBlockHashSet m_hash;
     uint32_t m_numTxs; // Total number of txs included in the block
     uint32_t
         m_numMicroBlockHashes; // Total number of microblock hashes included in the block
     PubKey m_minerPubKey; // Leader of the committee who proposed this block
-    boost::multiprecision::uint256_t
+    uint64_t
         m_dsBlockNum; // DS Block index at the time this Tx Block was proposed
     BlockHash m_dsBlockHeader; // DS Block hash
 
 public:
     static const unsigned int SIZE = sizeof(uint8_t) + sizeof(uint32_t)
-        + UINT256_SIZE + UINT256_SIZE + BLOCK_HASH_SIZE + UINT256_SIZE
+        + UINT256_SIZE + UINT256_SIZE + BLOCK_HASH_SIZE + sizeof(uint64_t)
         + UINT256_SIZE + TxBlockHashSet::size() + sizeof(uint32_t)
-        + sizeof(uint32_t) + PUB_KEY_SIZE + UINT256_SIZE + BLOCK_HASH_SIZE;
+        + sizeof(uint32_t) + PUB_KEY_SIZE + sizeof(uint64_t) + BLOCK_HASH_SIZE;
 
     /// Default constructor.
     TxBlockHeader();
@@ -62,14 +61,12 @@ public:
     TxBlockHeader(const uint8_t type, const uint32_t version,
                   const boost::multiprecision::uint256_t& gasLimit,
                   const boost::multiprecision::uint256_t& gasUsed,
-                  const BlockHash& prevHash,
-                  const boost::multiprecision::uint256_t& blockNum,
+                  const BlockHash& prevHash, const uint64_t& blockNum,
                   const boost::multiprecision::uint256_t& timestamp,
                   const TxnHash& txRootHash, const StateHash& stateRootHash,
                   const StateHash& deltaRootHash, const uint32_t numTxs,
                   const uint32_t numMicroBlockHashes, const PubKey& minerPubKey,
-                  const boost::multiprecision::uint256_t& dsBlockNum,
-                  const BlockHash& dsBlockHeader);
+                  const uint64_t& dsBlockNum, const BlockHash& dsBlockHeader);
 
     /// Implements the Serialize function inherited from Serializable.
     unsigned int Serialize(std::vector<unsigned char>& dst,
@@ -94,7 +91,7 @@ public:
     const BlockHash& GetPrevHash() const;
 
     /// Returns the number of ancestor blocks.
-    const boost::multiprecision::uint256_t& GetBlockNum() const;
+    const uint64_t& GetBlockNum() const;
 
     /// Returns the Unix time at the time of creation of this block.
     const boost::multiprecision::uint256_t& GetTimestamp() const;
@@ -118,7 +115,7 @@ public:
     const PubKey& GetMinerPubKey() const;
 
     /// Returns the parent DS block number.
-    const boost::multiprecision::uint256_t& GetDSBlockNum() const;
+    const uint64_t& GetDSBlockNum() const;
 
     /// Returns the digest of the parent DS block header.
     const BlockHash& GetDSBlockHeader() const;
@@ -142,15 +139,14 @@ inline std::ostream& operator<<(std::ostream& os, const TxBlockHeader& t)
        << "m_gasLimit : " << t.m_gasLimit.convert_to<std::string>() << std::endl
        << "m_gasUsed : " << t.m_gasUsed.convert_to<std::string>() << std::endl
        << "m_prevHash : " << t.m_prevHash.hex() << std::endl
-       << "m_blockNum : " << t.m_blockNum.convert_to<std::string>() << std::endl
+       << "m_blockNum : " << to_string(t.m_blockNum) << std::endl
        << "m_timestamp : " << t.m_timestamp.convert_to<std::string>()
        << std::endl
        << t.m_hash << std::endl
        << "m_numTxs : " << t.m_numTxs << std::endl
        << "m_numMicroBlockHashes : " << t.m_numMicroBlockHashes << std::endl
        << "m_minerPubKey : " << t.m_minerPubKey << std::endl
-       << "m_dsBlockNum : " << t.m_dsBlockNum.convert_to<std::string>()
-       << std::endl
+       << "m_dsBlockNum : " << to_string(t.m_dsBlockNum) << std::endl
        << "m_dsBlockHeader : " << t.m_dsBlockHeader.hex();
     return os;
 }

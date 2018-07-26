@@ -20,10 +20,7 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-DSBlockHeader::DSBlockHeader()
-{
-    m_blockNum = (boost::multiprecision::uint256_t)-1;
-}
+DSBlockHeader::DSBlockHeader() { m_blockNum = (uint64_t)-1; }
 
 DSBlockHeader::DSBlockHeader(const vector<unsigned char>& src,
                              unsigned int offset)
@@ -38,7 +35,7 @@ DSBlockHeader::DSBlockHeader(const uint8_t difficulty,
                              const BlockHash& prevHash, const uint256_t& nonce,
                              const PubKey& minerPubKey,
                              const PubKey& leaderPubKey,
-                             const uint256_t& blockNum,
+                             const uint64_t& blockNum,
                              const uint256_t& timestamp)
     : m_difficulty(difficulty)
     , m_prevHash(prevHash)
@@ -75,8 +72,8 @@ unsigned int DSBlockHeader::Serialize(vector<unsigned char>& dst,
     curOffset += PUB_KEY_SIZE;
     m_leaderPubKey.Serialize(dst, curOffset);
     curOffset += PUB_KEY_SIZE;
-    SetNumber<uint256_t>(dst, curOffset, m_blockNum, UINT256_SIZE);
-    curOffset += UINT256_SIZE;
+    SetNumber<uint64_t>(dst, curOffset, m_blockNum, sizeof(uint64_t));
+    curOffset += sizeof(uint64_t);
     SetNumber<uint256_t>(dst, curOffset, m_timestamp, UINT256_SIZE);
     curOffset += UINT256_SIZE;
 
@@ -112,8 +109,8 @@ int DSBlockHeader::Deserialize(const vector<unsigned char>& src,
             return -1;
         }
         curOffset += PUB_KEY_SIZE;
-        m_blockNum = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
-        curOffset += UINT256_SIZE;
+        m_blockNum = GetNumber<uint64_t>(src, curOffset, sizeof(uint64_t));
+        curOffset += sizeof(uint64_t);
         m_timestamp = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
         curOffset += UINT256_SIZE;
     }
@@ -137,7 +134,7 @@ const PubKey& DSBlockHeader::GetMinerPubKey() const { return m_minerPubKey; }
 
 const PubKey& DSBlockHeader::GetLeaderPubKey() const { return m_leaderPubKey; }
 
-const uint256_t& DSBlockHeader::GetBlockNum() const { return m_blockNum; }
+const uint64_t& DSBlockHeader::GetBlockNum() const { return m_blockNum; }
 
 const uint256_t& DSBlockHeader::GetTimestamp() const { return m_timestamp; }
 

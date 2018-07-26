@@ -20,10 +20,7 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-MicroBlockHeader::MicroBlockHeader()
-{
-    m_blockNum = (boost::multiprecision::uint256_t)-1;
-}
+MicroBlockHeader::MicroBlockHeader() { m_blockNum = (uint64_t)-1; }
 
 MicroBlockHeader::MicroBlockHeader(const vector<unsigned char>& src,
                                    unsigned int offset)
@@ -37,9 +34,9 @@ MicroBlockHeader::MicroBlockHeader(const vector<unsigned char>& src,
 MicroBlockHeader::MicroBlockHeader(
     uint8_t type, uint32_t version, uint32_t shardID, const uint256_t& gasLimit,
     const uint256_t& gasUsed, const BlockHash& prevHash,
-    const uint256_t& blockNum, const uint256_t& timestamp,
+    const uint64_t& blockNum, const uint256_t& timestamp,
     const TxnHash& txRootHash, uint32_t numTxs, const PubKey& minerPubKey,
-    const uint256_t& dsBlockNum, const BlockHash& dsBlockHeader,
+    const uint64_t& dsBlockNum, const BlockHash& dsBlockHeader,
     const StateHash& stateDeltaHash)
     : m_type(type)
     , m_version(version)
@@ -84,8 +81,8 @@ unsigned int MicroBlockHeader::Serialize(vector<unsigned char>& dst,
     copy(m_prevHash.asArray().begin(), m_prevHash.asArray().end(),
          dst.begin() + curOffset);
     curOffset += BLOCK_HASH_SIZE;
-    SetNumber<uint256_t>(dst, curOffset, m_blockNum, UINT256_SIZE);
-    curOffset += UINT256_SIZE;
+    SetNumber<uint64_t>(dst, curOffset, m_blockNum, sizeof(uint64_t));
+    curOffset += sizeof(uint64_t);
     SetNumber<uint256_t>(dst, curOffset, m_timestamp, UINT256_SIZE);
     curOffset += UINT256_SIZE;
     curOffset = m_hash.Serialize(dst, curOffset);
@@ -93,8 +90,8 @@ unsigned int MicroBlockHeader::Serialize(vector<unsigned char>& dst,
     curOffset += sizeof(uint32_t);
     m_minerPubKey.Serialize(dst, curOffset);
     curOffset += PUB_KEY_SIZE;
-    SetNumber<uint256_t>(dst, curOffset, m_dsBlockNum, UINT256_SIZE);
-    curOffset += UINT256_SIZE;
+    SetNumber<uint64_t>(dst, curOffset, m_dsBlockNum, sizeof(uint64_t));
+    curOffset += sizeof(uint64_t);
     copy(m_dsBlockHeader.asArray().begin(), m_dsBlockHeader.asArray().end(),
          dst.begin() + curOffset);
 
@@ -122,8 +119,8 @@ int MicroBlockHeader::Deserialize(const vector<unsigned char>& src,
         copy(src.begin() + curOffset, src.begin() + curOffset + BLOCK_HASH_SIZE,
              m_prevHash.asArray().begin());
         curOffset += BLOCK_HASH_SIZE;
-        m_blockNum = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
-        curOffset += UINT256_SIZE;
+        m_blockNum = GetNumber<uint64_t>(src, curOffset, sizeof(uint64_t));
+        curOffset += sizeof(uint64_t);
         m_timestamp = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
         curOffset += UINT256_SIZE;
         if (m_hash.Deserialize(src, curOffset))
@@ -143,8 +140,8 @@ int MicroBlockHeader::Deserialize(const vector<unsigned char>& src,
             return -1;
         }
         curOffset += PUB_KEY_SIZE;
-        m_dsBlockNum = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
-        curOffset += UINT256_SIZE;
+        m_dsBlockNum = GetNumber<uint64_t>(src, curOffset, sizeof(uint64_t));
+        curOffset += sizeof(uint64_t);
         copy(src.begin() + curOffset, src.begin() + curOffset + BLOCK_HASH_SIZE,
              m_dsBlockHeader.asArray().begin());
     }
@@ -170,7 +167,7 @@ const uint256_t& MicroBlockHeader::GetGasUsed() const { return m_gasUsed; }
 
 const BlockHash& MicroBlockHeader::GetPrevHash() const { return m_prevHash; }
 
-const uint256_t& MicroBlockHeader::GetBlockNum() const { return m_blockNum; }
+const uint64_t& MicroBlockHeader::GetBlockNum() const { return m_blockNum; }
 
 const uint256_t& MicroBlockHeader::GetTimestamp() const { return m_timestamp; }
 
@@ -183,10 +180,7 @@ const uint32_t& MicroBlockHeader::GetNumTxs() const { return m_numTxs; }
 
 const PubKey& MicroBlockHeader::GetMinerPubKey() const { return m_minerPubKey; }
 
-const uint256_t& MicroBlockHeader::GetDSBlockNum() const
-{
-    return m_dsBlockNum;
-}
+const uint64_t& MicroBlockHeader::GetDSBlockNum() const { return m_dsBlockNum; }
 
 const BlockHash& MicroBlockHeader::GetDSBlockHeader() const
 {

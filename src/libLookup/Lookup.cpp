@@ -245,8 +245,8 @@ bool Lookup::GetStateFromLookupNodes()
     return true;
 }
 
-vector<unsigned char> Lookup::ComposeGetDSBlockMessage(uint256_t lowBlockNum,
-                                                       uint256_t highBlockNum)
+vector<unsigned char> Lookup::ComposeGetDSBlockMessage(uint64_t lowBlockNum,
+                                                       uint64_t highBlockNum)
 {
     LOG_MARKER();
 
@@ -255,13 +255,13 @@ vector<unsigned char> Lookup::ComposeGetDSBlockMessage(uint256_t lowBlockNum,
         = {MessageType::LOOKUP, LookupInstructionType::GETDSBLOCKFROMSEED};
     unsigned int curr_offset = MessageOffset::BODY;
 
-    Serializable::SetNumber<uint256_t>(getDSBlockMessage, curr_offset,
-                                       lowBlockNum, UINT256_SIZE);
-    curr_offset += UINT256_SIZE;
+    Serializable::SetNumber<uint64_t>(getDSBlockMessage, curr_offset,
+                                      lowBlockNum, sizeof(uint64_t));
+    curr_offset += sizeof(uint64_t);
 
-    Serializable::SetNumber<uint256_t>(getDSBlockMessage, curr_offset,
-                                       highBlockNum, UINT256_SIZE);
-    curr_offset += UINT256_SIZE;
+    Serializable::SetNumber<uint64_t>(getDSBlockMessage, curr_offset,
+                                      highBlockNum, sizeof(uint64_t));
+    curr_offset += sizeof(uint64_t);
 
     Serializable::SetNumber<uint32_t>(getDSBlockMessage, curr_offset,
                                       m_mediator.m_selfPeer.m_listenPortHost,
@@ -273,16 +273,16 @@ vector<unsigned char> Lookup::ComposeGetDSBlockMessage(uint256_t lowBlockNum,
 
 // low and high denote the range of blocknumbers being requested(inclusive).
 // use 0 to denote the latest blocknumber since obviously no one will request for the genesis block
-bool Lookup::GetDSBlockFromSeedNodes(uint256_t lowBlockNum,
-                                     uint256_t highBlockNum)
+bool Lookup::GetDSBlockFromSeedNodes(uint64_t lowBlockNum,
+                                     uint64_t highBlockNum)
 {
     LOG_MARKER();
     SendMessageToSeedNodes(ComposeGetDSBlockMessage(lowBlockNum, highBlockNum));
     return true;
 }
 
-bool Lookup::GetDSBlockFromLookupNodes(uint256_t lowBlockNum,
-                                       uint256_t highBlockNum)
+bool Lookup::GetDSBlockFromLookupNodes(uint64_t lowBlockNum,
+                                       uint64_t highBlockNum)
 {
     LOG_MARKER();
     SendMessageToRandomLookupNode(
@@ -290,8 +290,8 @@ bool Lookup::GetDSBlockFromLookupNodes(uint256_t lowBlockNum,
     return true;
 }
 
-vector<unsigned char> Lookup::ComposeGetTxBlockMessage(uint256_t lowBlockNum,
-                                                       uint256_t highBlockNum)
+vector<unsigned char> Lookup::ComposeGetTxBlockMessage(uint64_t lowBlockNum,
+                                                       uint64_t highBlockNum)
 {
     LOG_MARKER();
 
@@ -300,13 +300,13 @@ vector<unsigned char> Lookup::ComposeGetTxBlockMessage(uint256_t lowBlockNum,
         = {MessageType::LOOKUP, LookupInstructionType::GETTXBLOCKFROMSEED};
     unsigned int curr_offset = MessageOffset::BODY;
 
-    Serializable::SetNumber<uint256_t>(getTxBlockMessage, curr_offset,
-                                       lowBlockNum, UINT256_SIZE);
-    curr_offset += UINT256_SIZE;
+    Serializable::SetNumber<uint64_t>(getTxBlockMessage, curr_offset,
+                                      lowBlockNum, sizeof(uint64_t));
+    curr_offset += sizeof(uint64_t);
 
-    Serializable::SetNumber<uint256_t>(getTxBlockMessage, curr_offset,
-                                       highBlockNum, UINT256_SIZE);
-    curr_offset += UINT256_SIZE;
+    Serializable::SetNumber<uint64_t>(getTxBlockMessage, curr_offset,
+                                      highBlockNum, sizeof(uint64_t));
+    curr_offset += sizeof(uint64_t);
 
     Serializable::SetNumber<uint32_t>(getTxBlockMessage, curr_offset,
                                       m_mediator.m_selfPeer.m_listenPortHost,
@@ -318,16 +318,16 @@ vector<unsigned char> Lookup::ComposeGetTxBlockMessage(uint256_t lowBlockNum,
 
 // low and high denote the range of blocknumbers being requested(inclusive).
 // use 0 to denote the latest blocknumber since obviously no one will request for the genesis block
-bool Lookup::GetTxBlockFromSeedNodes(uint256_t lowBlockNum,
-                                     uint256_t highBlockNum)
+bool Lookup::GetTxBlockFromSeedNodes(uint64_t lowBlockNum,
+                                     uint64_t highBlockNum)
 {
     LOG_MARKER();
     SendMessageToSeedNodes(ComposeGetTxBlockMessage(lowBlockNum, highBlockNum));
     return true;
 }
 
-bool Lookup::GetTxBlockFromLookupNodes(uint256_t lowBlockNum,
-                                       uint256_t highBlockNum)
+bool Lookup::GetTxBlockFromLookupNodes(uint64_t lowBlockNum,
+                                       uint64_t highBlockNum)
 {
     LOG_MARKER();
 
@@ -710,26 +710,26 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
                                        unsigned int offset, const Peer& from)
 {
     //#ifndef IS_LOOKUP_NODE // TODO: remove the comment
-    // Message = [32-byte lowBlockNum][32-byte highBlockNum][4-byte portNo]
+    // Message = [8-byte lowBlockNum][8-byte highBlockNum][4-byte portNo]
 
     LOG_MARKER();
 
     if (IsMessageSizeInappropriate(message.size(), offset,
-                                   UINT256_SIZE + UINT256_SIZE
+                                   sizeof(uint64_t) + sizeof(uint64_t)
                                        + sizeof(uint32_t)))
     {
         return false;
     }
 
-    // 32-byte lower-limit block number
-    boost::multiprecision::uint256_t lowBlockNum
-        = Serializable::GetNumber<uint256_t>(message, offset, UINT256_SIZE);
-    offset += UINT256_SIZE;
+    // 8-byte lower-limit block number
+    uint64_t lowBlockNum
+        = Serializable::GetNumber<uint64_t>(message, offset, sizeof(uint64_t));
+    offset += sizeof(uint64_t);
 
-    // 32-byte upper-limit block number
-    boost::multiprecision::uint256_t highBlockNum
-        = Serializable::GetNumber<uint256_t>(message, offset, UINT256_SIZE);
-    offset += UINT256_SIZE;
+    // 8-byte upper-limit block number
+    uint64_t highBlockNum
+        = Serializable::GetNumber<uint64_t>(message, offset, sizeof(uint64_t));
+    offset += sizeof(uint64_t);
 
     if (lowBlockNum == 1)
     {
@@ -743,25 +743,25 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "ProcessGetDSBlockFromSeed requested by "
-                  << from << " for blocks " << lowBlockNum.convert_to<string>()
-                  << " to " << highBlockNum.convert_to<string>());
+                  << from << " for blocks " << lowBlockNum << " to "
+                  << highBlockNum);
 
     // dsBlockMessage = [lowBlockNum][highBlockNum][DSBlock][DSBlock]... (highBlockNum - lowBlockNum + 1) times
     vector<unsigned char> dsBlockMessage
         = {MessageType::LOOKUP, LookupInstructionType::SETDSBLOCKFROMSEED};
     unsigned int curr_offset = MessageOffset::BODY;
 
-    Serializable::SetNumber<uint256_t>(dsBlockMessage, curr_offset, lowBlockNum,
-                                       UINT256_SIZE);
-    curr_offset += UINT256_SIZE;
+    Serializable::SetNumber<uint64_t>(dsBlockMessage, curr_offset, lowBlockNum,
+                                      sizeof(uint64_t));
+    curr_offset += sizeof(uint64_t);
 
     unsigned int highBlockNumOffset = curr_offset;
 
-    Serializable::SetNumber<uint256_t>(dsBlockMessage, curr_offset,
-                                       highBlockNum, UINT256_SIZE);
-    curr_offset += UINT256_SIZE;
+    Serializable::SetNumber<uint64_t>(dsBlockMessage, curr_offset, highBlockNum,
+                                      sizeof(uint64_t));
+    curr_offset += sizeof(uint64_t);
 
-    boost::multiprecision::uint256_t blockNum;
+    uint64_t blockNum;
 
     for (blockNum = lowBlockNum; blockNum <= highBlockNum; blockNum++)
     {
@@ -780,10 +780,10 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
         catch (const char* e)
         {
             LOG_GENERAL(INFO,
-                        "Block Number " + blockNum.convert_to<string>()
-                                + " absent. Didn't include it in response "
-                                  "message. Reason: "
-                            << e);
+                        "Block Number " << blockNum
+                                        << " absent. Didn't include it in "
+                                           "response message. Reason: "
+                                        << e);
             break;
         }
     }
@@ -791,8 +791,8 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
     // if serialization got interrupted in between, reset the highBlockNum value in msg
     if (blockNum != highBlockNum + 1)
     {
-        Serializable::SetNumber<uint256_t>(dsBlockMessage, highBlockNumOffset,
-                                           blockNum - 1, UINT256_SIZE);
+        Serializable::SetNumber<uint64_t>(dsBlockMessage, highBlockNumOffset,
+                                          blockNum - 1, sizeof(uint64_t));
     }
 
     // 4-byte portNo
@@ -884,26 +884,26 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
                                        unsigned int offset, const Peer& from)
 {
     // #ifndef IS_LOOKUP_NODE // TODO: remove the comment
-    // Message = [32-byte lowBlockNum][32-byte highBlockNum][4-byte portNo]
+    // Message = [8-byte lowBlockNum][8-byte highBlockNum][4-byte portNo]
 
     LOG_MARKER();
 
     if (IsMessageSizeInappropriate(message.size(), offset,
-                                   UINT256_SIZE + UINT256_SIZE
+                                   sizeof(uint64_t) + sizeof(uint64_t)
                                        + sizeof(uint32_t)))
     {
         return false;
     }
 
-    // 32-byte lower-limit block number
-    boost::multiprecision::uint256_t lowBlockNum
-        = Serializable::GetNumber<uint256_t>(message, offset, UINT256_SIZE);
-    offset += UINT256_SIZE;
+    // 8-byte lower-limit block number
+    uint64_t lowBlockNum
+        = Serializable::GetNumber<uint64_t>(message, offset, sizeof(uint64_t));
+    offset += sizeof(uint64_t);
 
-    // 32-byte upper-limit block number
-    boost::multiprecision::uint256_t highBlockNum
-        = Serializable::GetNumber<uint256_t>(message, offset, UINT256_SIZE);
-    offset += UINT256_SIZE;
+    // 8-byte upper-limit block number
+    uint64_t highBlockNum
+        = Serializable::GetNumber<uint64_t>(message, offset, sizeof(uint64_t));
+    offset += sizeof(uint64_t);
 
     if (lowBlockNum == 1)
     {
@@ -917,25 +917,25 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "ProcessGetTxBlockFromSeed requested by "
-                  << from << " for blocks " << lowBlockNum.convert_to<string>()
-                  << " to " << highBlockNum.convert_to<string>());
+                  << from << " for blocks " << lowBlockNum << " to "
+                  << highBlockNum);
 
     // txBlockMessage = [lowBlockNum][highBlockNum][TxBlock][TxBlock]... (highBlockNum - lowBlockNum + 1) times
     vector<unsigned char> txBlockMessage
         = {MessageType::LOOKUP, LookupInstructionType::SETTXBLOCKFROMSEED};
     unsigned int curr_offset = MessageOffset::BODY;
 
-    Serializable::SetNumber<uint256_t>(txBlockMessage, curr_offset, lowBlockNum,
-                                       UINT256_SIZE);
-    curr_offset += UINT256_SIZE;
+    Serializable::SetNumber<uint64_t>(txBlockMessage, curr_offset, lowBlockNum,
+                                      sizeof(uint64_t));
+    curr_offset += sizeof(uint64_t);
 
     unsigned int highBlockNumOffset = curr_offset;
 
-    Serializable::SetNumber<uint256_t>(txBlockMessage, curr_offset,
-                                       highBlockNum, UINT256_SIZE);
-    curr_offset += UINT256_SIZE;
+    Serializable::SetNumber<uint64_t>(txBlockMessage, curr_offset, highBlockNum,
+                                      sizeof(uint64_t));
+    curr_offset += sizeof(uint64_t);
 
-    boost::multiprecision::uint256_t blockNum;
+    uint64_t blockNum;
 
     for (blockNum = lowBlockNum; blockNum <= highBlockNum; blockNum++)
     {
@@ -954,10 +954,10 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
         catch (const char* e)
         {
             LOG_GENERAL(INFO,
-                        "Block Number " + blockNum.convert_to<string>()
-                                + " absent. Didn't include it in response "
-                                  "message. Reason: "
-                            << e);
+                        "Block Number " << blockNum
+                                        << " absent. Didn't include it in "
+                                           "response message. Reason: "
+                                        << e);
             break;
         }
     }
@@ -965,8 +965,8 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
     // if serialization got interrupted in between, reset the highBlockNum value in msg
     if (blockNum != highBlockNum + 1)
     {
-        Serializable::SetNumber<uint256_t>(txBlockMessage, highBlockNumOffset,
-                                           blockNum - 1, UINT256_SIZE);
+        Serializable::SetNumber<uint64_t>(txBlockMessage, highBlockNumOffset,
+                                          blockNum - 1, sizeof(uint64_t));
     }
 
     // 4-byte portNo
@@ -1197,7 +1197,7 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
                                        unsigned int offset, const Peer& from)
 {
     // #ifndef IS_LOOKUP_NODE TODO: uncomment later
-    // Message = [32-byte lowBlockNum][32-byte highBlockNum][DSBlock][DSBlock]... (highBlockNum - lowBlockNum + 1) times
+    // Message = [8-byte lowBlockNum][8-byte highBlockNum][DSBlock][DSBlock]... (highBlockNum - lowBlockNum + 1) times
 
     LOG_MARKER();
 
@@ -1209,25 +1209,25 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
     unique_lock<mutex> lock(m_mutexSetDSBlockFromSeed);
 
     if (IsMessageSizeInappropriate(message.size(), offset,
-                                   UINT256_SIZE + UINT256_SIZE))
+                                   sizeof(uint64_t) + sizeof(uint64_t)))
     {
         return false;
     }
 
-    // 32-byte lower-limit block number
-    boost::multiprecision::uint256_t lowBlockNum
-        = Serializable::GetNumber<uint256_t>(message, offset, UINT256_SIZE);
-    offset += UINT256_SIZE;
+    // 8-byte lower-limit block number
+    uint64_t lowBlockNum
+        = Serializable::GetNumber<uint64_t>(message, offset, sizeof(uint64_t));
+    offset += sizeof(uint64_t);
 
-    // 32-byte upper-limit block number
-    boost::multiprecision::uint256_t highBlockNum
-        = Serializable::GetNumber<uint256_t>(message, offset, UINT256_SIZE);
-    offset += UINT256_SIZE;
+    // 8-byte upper-limit block number
+    uint64_t highBlockNum
+        = Serializable::GetNumber<uint64_t>(message, offset, sizeof(uint64_t));
+    offset += sizeof(uint64_t);
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "ProcessSetDSBlockFromSeed sent by "
-                  << from << " for blocks " << lowBlockNum.convert_to<string>()
-                  << " to " << highBlockNum.convert_to<string>());
+              "ProcessSetDSBlockFromSeed sent by " << from << " for blocks "
+                                                   << lowBlockNum << " to "
+                                                   << highBlockNum);
 
     // since we will usually only enable sending of 500 blocks max, casting to uint32_t should be safe
     if (IsMessageSizeInappropriate(message.size(), offset,
@@ -1239,9 +1239,7 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
 
     uint64_t latestSynBlockNum
         // = (uint64_t)m_mediator.m_dsBlockChain.GetBlockCount();
-        = (uint64_t)m_mediator.m_dsBlockChain.GetLastBlock()
-              .GetHeader()
-              .GetBlockNum()
+        = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()
         + 1;
 
     if (latestSynBlockNum > highBlockNum)
@@ -1252,8 +1250,8 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
     }
     else
     {
-        for (boost::multiprecision::uint256_t blockNum = lowBlockNum;
-             blockNum <= highBlockNum; blockNum++)
+        for (uint64_t blockNum = lowBlockNum; blockNum <= highBlockNum;
+             blockNum++)
         {
             // DSBlock dsBlock(message, offset);
             DSBlock dsBlock;
@@ -1335,7 +1333,7 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
                                        unsigned int offset, const Peer& from)
 {
     //#ifndef IS_LOOKUP_NODE
-    // Message = [32-byte lowBlockNum][32-byte highBlockNum][TxBlock][TxBlock]... (highBlockNum - lowBlockNum + 1) times
+    // Message = [8-byte lowBlockNum][8-byte highBlockNum][TxBlock][TxBlock]... (highBlockNum - lowBlockNum + 1) times
     LOG_MARKER();
 
     if (AlreadyJoinedNetwork())
@@ -1346,31 +1344,29 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
     unique_lock<mutex> lock(m_mutexSetTxBlockFromSeed);
 
     if (IsMessageSizeInappropriate(message.size(), offset,
-                                   UINT256_SIZE + UINT256_SIZE))
+                                   sizeof(uint64_t) + sizeof(uint64_t)))
     {
         return false;
     }
 
-    // 32-byte lower-limit block number
-    boost::multiprecision::uint256_t lowBlockNum
-        = Serializable::GetNumber<uint256_t>(message, offset, UINT256_SIZE);
-    offset += UINT256_SIZE;
+    // 8-byte lower-limit block number
+    uint64_t lowBlockNum
+        = Serializable::GetNumber<uint64_t>(message, offset, sizeof(uint64_t));
+    offset += sizeof(uint64_t);
 
-    // 32-byte upper-limit block number
-    boost::multiprecision::uint256_t highBlockNum
-        = Serializable::GetNumber<uint256_t>(message, offset, UINT256_SIZE);
-    offset += UINT256_SIZE;
+    // 8-byte upper-limit block number
+    uint64_t highBlockNum
+        = Serializable::GetNumber<uint64_t>(message, offset, sizeof(uint64_t));
+    offset += sizeof(uint64_t);
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "ProcessSetTxBlockFromSeed sent by "
-                  << from << " for blocks " << lowBlockNum.convert_to<string>()
-                  << " to " << highBlockNum.convert_to<string>());
+              "ProcessSetTxBlockFromSeed sent by " << from << " for blocks "
+                                                   << lowBlockNum << " to "
+                                                   << highBlockNum);
 
     uint64_t latestSynBlockNum
         // = (uint64_t)m_mediator.m_txBlockChain.GetBlockCount();
-        = (uint64_t)m_mediator.m_txBlockChain.GetLastBlock()
-              .GetHeader()
-              .GetBlockNum()
+        = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
         + 1;
 
     if (latestSynBlockNum > highBlockNum)
@@ -1382,8 +1378,8 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
     }
     else
     {
-        for (boost::multiprecision::uint256_t blockNum = lowBlockNum;
-             blockNum <= highBlockNum; blockNum++)
+        for (uint64_t blockNum = lowBlockNum; blockNum <= highBlockNum;
+             blockNum++)
         {
             TxBlock txBlock(message, offset);
             offset += txBlock.GetSerializedSize();
@@ -1426,10 +1422,9 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
         }
 
         m_mediator.m_currentEpochNum
-            = (uint64_t)m_mediator.m_txBlockChain.GetLastBlock()
-                  .GetHeader()
-                  .GetBlockNum()
+            = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
             + 1;
+
         m_mediator.UpdateTxBlockRand();
 
         if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
@@ -1639,7 +1634,7 @@ bool Lookup::InitMining()
         m_mediator.m_node->m_consensusID = 0;
     }
 
-    uint256_t curDsBlockNum
+    uint64_t curDsBlockNum
         = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
     m_mediator.UpdateDSBlockRand();
@@ -1660,7 +1655,7 @@ bool Lookup::InitMining()
 
             m_mediator.m_node->SetState(Node::POW2_SUBMISSION);
             POW::GetInstance().EthashConfigureLightClient(
-                (uint64_t)m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1);
+                m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1);
 
             this_thread::sleep_for(chrono::seconds(NEW_NODE_POW_DELAY));
 

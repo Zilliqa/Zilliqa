@@ -62,7 +62,7 @@ void DirectoryService::ComposeDSBlock()
     const PubKey& winnerKey = m_allPoWs.front().first;
     const uint256_t& winnerNonce = m_allPoWs.front().second;
 
-    uint256_t blockNum = 0;
+    uint64_t blockNum = 0;
     uint8_t difficulty = POW2_DIFFICULTY;
     if (m_mediator.m_dsBlockChain.GetBlockCount() > 0)
     {
