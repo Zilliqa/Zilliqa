@@ -394,9 +394,8 @@ bool Node::VerifyFinalBlockCoSignature(const TxBlock& txblock)
     return true;
 }
 
-bool Node::CheckMicroBlockRootHash(
-    const TxBlock& finalBlock,
-    [[gnu::unused]] const uint64_t& blocknum)
+bool Node::CheckMicroBlockRootHash(const TxBlock& finalBlock,
+                                   [[gnu::unused]] const uint64_t& blocknum)
 {
     TxnHash microBlocksHash
         = ComputeTransactionsRoot(finalBlock.GetMicroBlockHashes());
