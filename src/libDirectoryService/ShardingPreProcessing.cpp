@@ -340,7 +340,7 @@ bool DirectoryService::RunConsensusOnShardingWhenDSPrimary()
 
     LOG_STATE("[SHCON][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                         << "][" << m_mediator.m_txBlockChain.GetBlockCount()
+                         << "][" << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
                          << "] BGIN");
 
     cl->StartConsensus(sharding_structure, sharding_structure.size());

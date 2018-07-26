@@ -733,12 +733,12 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
 
     if (lowBlockNum == 1)
     {
-        lowBlockNum = m_mediator.m_dsBlockChain.GetBlockCount() - 1;
+        lowBlockNum = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
     }
 
     if (highBlockNum == 0)
     {
-        highBlockNum = m_mediator.m_dsBlockChain.GetBlockCount() - 1;
+        highBlockNum = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
     }
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -907,12 +907,12 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
 
     if (lowBlockNum == 1)
     {
-        lowBlockNum = m_mediator.m_txBlockChain.GetBlockCount() - 1;
+        lowBlockNum = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
     }
 
     if (highBlockNum == 0)
     {
-        highBlockNum = m_mediator.m_txBlockChain.GetBlockCount() - 1;
+        highBlockNum = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
     }
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -1660,7 +1660,7 @@ bool Lookup::InitMining()
 
             m_mediator.m_node->SetState(Node::POW2_SUBMISSION);
             POW::GetInstance().EthashConfigureLightClient(
-                (uint64_t)m_mediator.m_dsBlockChain.GetBlockCount());
+                (uint64_t)m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1);
 
             this_thread::sleep_for(chrono::seconds(NEW_NODE_POW_DELAY));
 

@@ -309,7 +309,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
         LOG_STATE("[DSCON]["
                   << setw(15) << left
                   << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-                  << m_mediator.m_txBlockChain.GetBlockCount() << "] DONE");
+                  << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1 << "] DONE");
     }
 
     {
@@ -326,7 +326,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
         m_pendingDSBlock->SetCoSignatures(*m_consensusObject);
 
         if (m_pendingDSBlock->GetHeader().GetBlockNum()
-            == m_mediator.m_dsBlockChain.GetBlockCount() + 1)
+            > m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1)
         {
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "We are missing some blocks. What to do here?");
@@ -370,7 +370,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
 
     LOG_STATE("[DSBLK][" << setw(15) << left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                         << "][" << m_mediator.m_txBlockChain.GetBlockCount()
+                         << "][" << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
                          << "] BEFORE SENDING DSBLOCK");
 
     // Too few target nodes - avoid asking all DS clusters to send
@@ -382,7 +382,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
 
     LOG_STATE("[DSBLK][" << setw(15) << left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                         << "][" << m_mediator.m_txBlockChain.GetBlockCount()
+                         << "][" << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
                          << "] AFTER SENDING DSBLOCK");
 
     {

@@ -346,7 +346,7 @@ bool Node::ProcessSharding([[gnu::unused]] const vector<unsigned char>& message,
         LOG_STATE("[SHSTU][" << setw(15) << left
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
                              << "]["
-                             << m_mediator.m_txBlockChain.GetBlockCount()
+                             << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
                              << "] RECEIVED SHARDING STRUCTURE");
 
         LOG_STATE("[IDENT][" << std::setw(15) << std::left

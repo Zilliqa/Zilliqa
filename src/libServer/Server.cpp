@@ -567,7 +567,7 @@ string Server::GetNumTransactions()
     LOG_MARKER();
 
     boost::multiprecision::uint256_t currBlock
-        = m_mediator.m_txBlockChain.GetBlockCount() - 1;
+        = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
     if (m_BlockTxPair.first < currBlock)
     {
         for (boost::multiprecision::uint256_t i = m_BlockTxPair.first + 1;
@@ -587,7 +587,7 @@ boost::multiprecision::uint256_t
 Server::GetNumTransactions(boost::multiprecision::uint256_t blockNum)
 {
     boost::multiprecision::uint256_t currBlockNum
-        = m_mediator.m_txBlockChain.GetBlockCount() - 1;
+        = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
     if (blockNum >= currBlockNum)
     {
@@ -609,7 +609,7 @@ double Server::GetTransactionRate()
     LOG_MARKER();
 
     boost::multiprecision::uint256_t refBlockNum
-        = m_mediator.m_txBlockChain.GetBlockCount() - 1,
+        = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
         refTimeTx = 0;
 
     if (refBlockNum <= REF_BLOCK_DIFF)
@@ -773,7 +773,7 @@ Json::Value Server::DSBlockListing(unsigned int page)
     LOG_MARKER();
 
     boost::multiprecision::uint256_t currBlockNum
-        = m_mediator.m_dsBlockChain.GetBlockCount() - 1;
+        = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
     Json::Value _json;
 
     auto maxPages = (currBlockNum / PAGE_SIZE) + 1;
@@ -883,7 +883,7 @@ Json::Value Server::TxBlockListing(unsigned int page)
     LOG_MARKER();
 
     boost::multiprecision::uint256_t currBlockNum
-        = m_mediator.m_txBlockChain.GetBlockCount() - 1;
+        = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
     Json::Value _json;
 
     auto maxPages = (currBlockNum / PAGE_SIZE) + 1;

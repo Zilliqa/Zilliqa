@@ -210,7 +210,7 @@ void DirectoryService::ComposeFinalBlockCore()
 
     LOG_STATE("[STATS][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                         << "][" << m_mediator.m_txBlockChain.GetBlockCount()
+                         << "][" << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
                          << "][" << m_finalBlock->GetHeader().GetNumTxs()
                          << "] FINAL");
 
@@ -326,7 +326,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
         LOG_STATE("[FBCON]["
                   << setw(15) << left
                   << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-                  << m_mediator.m_txBlockChain.GetBlockCount() << "] BGIN");
+                  << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1 << "] BGIN");
     }
 
     cl->StartConsensus(finalBlockMessage, TxBlockHeader::SIZE);
