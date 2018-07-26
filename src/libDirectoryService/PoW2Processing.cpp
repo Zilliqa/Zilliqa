@@ -138,7 +138,7 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
                                              << ":" << portNo);
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "dsb size               = "
-                  << m_mediator.m_dsBlockChain.GetBlockCount())
+                  << m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1)
 
     // Define the PoW2 parameters
     array<unsigned char, UINT256_SIZE> rand1, rand2;
@@ -149,7 +149,7 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
     rand2.fill(0);
 
     // Verify nonce
-    uint256_t block_num = m_mediator.m_txBlockChain.GetBlockCount();
+    uint256_t block_num = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
 
     m_timespec = r_timer_start();
 

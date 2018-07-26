@@ -79,7 +79,7 @@ bool DirectoryService::SendFinalBlockToLookupNodes()
     unsigned int curr_offset = MessageOffset::BODY;
 
     // 32-byte DS blocknum
-    uint256_t dsBlockNum = m_mediator.m_dsBlockChain.GetBlockCount() - 1;
+    uint256_t dsBlockNum = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
     Serializable::SetNumber<uint256_t>(finalblock_message, curr_offset,
                                        dsBlockNum, UINT256_SIZE);
     curr_offset += UINT256_SIZE;
@@ -167,7 +167,7 @@ void DirectoryService::SendFinalBlockToShardNodes(
         unsigned int curr_offset = MessageOffset::BODY;
 
         // 32-byte DS blocknum
-        uint256_t DSBlockNum = m_mediator.m_dsBlockChain.GetBlockCount() - 1;
+        uint256_t DSBlockNum = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
         Serializable::SetNumber<uint256_t>(finalblock_message, curr_offset,
                                            DSBlockNum, UINT256_SIZE);
         curr_offset += UINT256_SIZE;
@@ -209,7 +209,7 @@ void DirectoryService::SendFinalBlockToShardNodes(
                 << "]["
                 << DataConversion::charArrToHexStr(m_mediator.m_dsBlockRand)
                        .substr(0, 6)
-                << "][" << m_mediator.m_txBlockChain.GetBlockCount()
+                << "][" << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
                 << "] FBBLKGEN");
 
             P2PComm::GetInstance().SendBroadcastMessage(shard_peers,
@@ -252,7 +252,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
         LOG_STATE("[FBCON]["
                   << setw(15) << left
                   << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-                  << m_mediator.m_txBlockChain.GetBlockCount() << "] DONE");
+                  << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1 << "] DONE");
     }
 
     // Update the final block with the co-signatures from the consensus
@@ -309,7 +309,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
 
     LOG_STATE("[FLBLK][" << setw(15) << left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                         << "][" << m_mediator.m_txBlockChain.GetBlockCount()
+                         << "][" << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
                          << "] BEFORE SENDING FINAL BLOCK");
 
     DetermineShardsToSendFinalBlockTo(my_DS_cluster_num, my_shards_lo,
@@ -318,7 +318,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
 
     LOG_STATE("[FLBLK][" << setw(15) << left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                         << "][" << m_mediator.m_txBlockChain.GetBlockCount()
+                         << "][" << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
                          << "] AFTER SENDING FINAL BLOCK");
 
     m_allPoWConns.clear();
@@ -338,7 +338,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
 
             POW::GetInstance().EthashConfigureLightClient(
                 (uint64_t)m_mediator.m_dsBlockChain
-                    .GetBlockCount()); // FIXME -- typecasting
+                    .GetLastBlock().GetHeader().GetBlockNum() + 1); // FIXME -- typecasting
             m_consensusID = 0;
             m_mediator.m_node->m_consensusID = 0;
             m_mediator.m_node->m_consensusLeaderID = 0;

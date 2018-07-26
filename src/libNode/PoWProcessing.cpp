@@ -221,7 +221,7 @@ bool Node::ProcessStartPoW([[gnu::unused]] const vector<unsigned char>& message,
 
     LOG_MARKER();
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "START OF EPOCH " << m_mediator.m_dsBlockChain.GetBlockCount());
+              "START OF EPOCH " << m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1);
 
     uint256_t block_num;
     uint8_t difficulty;
@@ -236,7 +236,7 @@ bool Node::ProcessStartPoW([[gnu::unused]] const vector<unsigned char>& message,
 
     if (m_mediator.m_isRetrievedHistory)
     {
-        block_num = m_mediator.m_dsBlockChain.GetBlockCount();
+        block_num = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
         difficulty = POW_DIFFICULTY;
         rand1 = m_mediator.m_dsBlockRand;
         rand2 = m_mediator.m_txBlockRand;

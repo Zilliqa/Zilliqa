@@ -214,7 +214,7 @@ bool DirectoryService::ProcessMicroblockSubmission(
             LOG_STATE("[MICRO]["
                       << std::setw(15) << std::left
                       << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-                      << m_mediator.m_txBlockChain.GetBlockCount() << "] LAST");
+                      << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1 << "] LAST");
         }
         for (auto& microBlock : m_microBlocks)
         {
@@ -232,7 +232,7 @@ bool DirectoryService::ProcessMicroblockSubmission(
         LOG_STATE("[MICRO]["
                   << std::setw(15) << std::left
                   << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-                  << m_mediator.m_txBlockChain.GetBlockCount() << "] FRST");
+                  << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1 << "] FRST");
     }
 
         // TODO: Re-request from shard leader if microblock is not received after a certain time.
