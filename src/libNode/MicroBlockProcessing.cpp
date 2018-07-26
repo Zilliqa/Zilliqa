@@ -536,7 +536,7 @@ void Node::ProcessTransactionWhenShardLeader()
         return true;
     };
 
-    uint256_t blockNum = (uint256_t)m_mediator.m_currentEpochNum;
+    uint64_t blockNum = m_mediator.m_currentEpochNum;
 
     auto appendOne = [this, &blockNum](const Transaction& t) {
         lock_guard<mutex> g(m_mutexProcessedTransactions);
@@ -951,7 +951,7 @@ bool Node::ProcessTransactionWhenShardBackup(const vector<TxnHash>& tranHashes,
         return false;
     }
 
-    uint256_t blockNum = (uint256_t)m_mediator.m_currentEpochNum;
+    uint64_t blockNum = m_mediator.m_currentEpochNum;
 
     auto appendOne = [this, &blockNum](const Transaction& t) {
         lock_guard<mutex> g(m_mutexProcessedTransactions);
