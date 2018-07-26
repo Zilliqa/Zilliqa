@@ -463,7 +463,8 @@ bool DirectoryService::ProcessFinalBlockConsensus(
 
         // Wait until in the case that primary sent announcement pretty early
         if ((m_state == MICROBLOCK_SUBMISSION)
-            || (m_state == FINALBLOCK_CONSENSUS_PREP) || (m_state == VIEWCHANGE_CONSENSUS) )
+            || (m_state == FINALBLOCK_CONSENSUS_PREP)
+            || (m_state == VIEWCHANGE_CONSENSUS))
         {
             std::unique_lock<std::mutex> cv_lkObject(
                 m_MutexCVFinalBlockConsensusObject);
