@@ -63,10 +63,6 @@ class DirectoryService : public Executable, public Broadcastable
 
     std::mutex m_mutexConsensus;
 
-    bool m_hasAllPoWconns = true;
-    std::condition_variable cv_allPowConns;
-    std::mutex m_MutexCVAllPowConn;
-
     // Sharding committee members
     std::vector<std::map<PubKey, Peer>> m_shards;
     std::map<PubKey, uint32_t> m_publicKeyToShardIdMap;
@@ -161,10 +157,6 @@ class DirectoryService : public Executable, public Broadcastable
                                      unsigned int offset, const Peer& from);
     bool ProcessFinalBlockConsensus(const std::vector<unsigned char>& message,
                                     unsigned int offset, const Peer& from);
-    bool ProcessAllPoWConnRequest(const vector<unsigned char>& message,
-                                  unsigned int offset, const Peer& from);
-    bool ProcessAllPoWConnResponse(const vector<unsigned char>& message,
-                                   unsigned int offset, const Peer& from);
     bool ProcessViewChangeConsensus(const vector<unsigned char>& message,
                                     unsigned int offset, const Peer& from);
     // To block certain types of incoming message for certain states
@@ -294,7 +286,6 @@ class DirectoryService : public Executable, public Broadcastable
     // void StoreMicroBlocksToDisk();
 
     // Used to reconsile view of m_AllPowConn is different.
-    void RequestAllPoWConn();
     void LastDSBlockRequest();
 
     bool ProcessLastDSBlockRequest(const vector<unsigned char>& message,
