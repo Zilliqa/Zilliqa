@@ -35,13 +35,12 @@ class DSBlockHeader : public BlockHeaderBase
         m_nonce; // Nonce value of the winning miner for PoW
     PubKey m_minerPubKey; // Public key of the winning miner for PoW
     PubKey m_leaderPubKey; // The one who proposed this DS block
-    boost::multiprecision::uint256_t
-        m_blockNum; // Block index, starting from 0 in the genesis block
+    uint64_t m_blockNum; // Block index, starting from 0 in the genesis block
     boost::multiprecision::uint256_t m_timestamp;
 
 public:
     static const unsigned int SIZE = sizeof(uint8_t) + BLOCK_HASH_SIZE
-        + UINT256_SIZE + PUB_KEY_SIZE + PUB_KEY_SIZE + UINT256_SIZE
+        + UINT256_SIZE + PUB_KEY_SIZE + PUB_KEY_SIZE + sizeof(uint64_t)
         + UINT256_SIZE;
 
     /// Default constructor.
@@ -54,7 +53,7 @@ public:
     DSBlockHeader(const uint8_t difficulty, const BlockHash& prevHash,
                   const boost::multiprecision::uint256_t& nonce,
                   const PubKey& minerPubKey, const PubKey& leaderPubKey,
-                  const boost::multiprecision::uint256_t& blockNum,
+                  const uint64_t& blockNum,
                   const boost::multiprecision::uint256_t& timestamp);
 
     /// Implements the Serialize function inherited from Serializable.
@@ -80,7 +79,7 @@ public:
     const PubKey& GetLeaderPubKey() const;
 
     /// Returns the number of ancestor blocks.
-    const boost::multiprecision::uint256_t& GetBlockNum() const;
+    const uint64_t& GetBlockNum() const;
 
     /// Returns the Unix time at the time of creation of this block.
     const boost::multiprecision::uint256_t& GetTimestamp() const;

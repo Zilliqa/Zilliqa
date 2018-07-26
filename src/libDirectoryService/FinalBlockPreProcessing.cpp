@@ -151,7 +151,7 @@ void DirectoryService::ComposeFinalBlockCore()
     BlockHash prevHash;
     uint256_t timestamp = get_time_as_int();
 
-    uint256_t blockNum = 0;
+    uint64_t blockNum = 0;
     if (m_mediator.m_txBlockChain.GetBlockCount() > 0)
     {
         TxBlock lastBlock = m_mediator.m_txBlockChain.GetLastBlock();
@@ -176,7 +176,7 @@ void DirectoryService::ComposeFinalBlockCore()
     }
 
     DSBlock lastDSBlock = m_mediator.m_dsBlockChain.GetLastBlock();
-    uint256_t lastDSBlockNum = lastDSBlock.GetHeader().GetBlockNum();
+    uint64_t lastDSBlockNum = lastDSBlock.GetHeader().GetBlockNum();
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
     vector<unsigned char> vec;
     lastDSBlock.GetHeader().Serialize(vec, 0);
@@ -208,11 +208,13 @@ void DirectoryService::ComposeFinalBlockCore()
         vector<MicroBlockHashSet>(microBlockHashes), vector<uint32_t>(shardIDs),
         CoSignatures(m_mediator.m_DSCommittee.size())));
 
-    LOG_STATE("[STATS][" << std::setw(15) << std::left
-                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                         << "][" << m_mediator.m_txBlockChain.GetBlockCount()
-                         << "][" << m_finalBlock->GetHeader().GetNumTxs()
-                         << "] FINAL");
+    LOG_STATE(
+        "[STATS]["
+        << std::setw(15) << std::left
+        << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
+            + 1
+        << "][" << m_finalBlock->GetHeader().GetNumTxs() << "] FINAL");
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Final block proposed with "
@@ -323,10 +325,13 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
 
     if (m_mode == PRIMARY_DS)
     {
-        LOG_STATE("[FBCON]["
-                  << setw(15) << left
-                  << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-                  << m_mediator.m_txBlockChain.GetBlockCount() << "] BGIN");
+        LOG_STATE("[FBCON][" << setw(15) << left
+                             << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                             << "]["
+                             << m_mediator.m_txBlockChain.GetLastBlock()
+                                    .GetHeader()
+                                    .GetBlockNum()
+                      + 1 << "] BGIN");
     }
 
     cl->StartConsensus(finalBlockMessage, TxBlockHeader::SIZE);
@@ -382,9 +387,9 @@ bool DirectoryService::CheckFinalBlockNumber()
 {
     LOG_MARKER();
 
-    const uint256_t& finalblockBlocknum
+    const uint64_t& finalblockBlocknum
         = m_finalBlock->GetHeader().GetBlockNum();
-    uint256_t expectedBlocknum = 0;
+    uint64_t expectedBlocknum = 0;
     if (m_mediator.m_txBlockChain.GetBlockCount() > 0)
     {
         expectedBlocknum

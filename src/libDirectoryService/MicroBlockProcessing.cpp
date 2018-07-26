@@ -109,7 +109,7 @@ bool DirectoryService::ProcessMicroblockSubmission(
     [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
 {
 #ifndef IS_LOOKUP_NODE
-    // Message = [32-byte DS blocknum] [4-byte consensusid] [4-byte shard ID] [Tx microblock]
+    // Message = [8-byte DS blocknum] [4-byte consensusid] [4-byte shard ID] [Tx microblock]
 
     LOG_MARKER();
 
@@ -121,7 +121,7 @@ bool DirectoryService::ProcessMicroblockSubmission(
     }
 
     if (IsMessageSizeInappropriate(message.size(), offset,
-                                   UINT256_SIZE + sizeof(uint32_t)
+                                   sizeof(uint64_t) + sizeof(uint32_t)
                                        + sizeof(uint32_t)
                                        + MicroBlock::GetMinSize()))
     {
@@ -130,10 +130,10 @@ bool DirectoryService::ProcessMicroblockSubmission(
 
     unsigned int curr_offset = offset;
 
-    // 32-byte block number
-    uint256_t DSBlockNum = Serializable::GetNumber<uint256_t>(
-        message, curr_offset, UINT256_SIZE);
-    curr_offset += UINT256_SIZE;
+    // 8-byte block number
+    uint64_t DSBlockNum = Serializable::GetNumber<uint64_t>(
+        message, curr_offset, sizeof(uint64_t));
+    curr_offset += sizeof(uint64_t);
 
     // Check block number
     if (!CheckWhetherDSBlockIsFresh(DSBlockNum + 1))
@@ -214,7 +214,11 @@ bool DirectoryService::ProcessMicroblockSubmission(
             LOG_STATE("[MICRO]["
                       << std::setw(15) << std::left
                       << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-                      << m_mediator.m_txBlockChain.GetBlockCount() << "] LAST");
+                      << m_mediator.m_txBlockChain.GetLastBlock()
+                              .GetHeader()
+                              .GetBlockNum()
+                          + 1
+                      << "] LAST");
         }
         for (auto& microBlock : m_microBlocks)
         {
@@ -229,10 +233,13 @@ bool DirectoryService::ProcessMicroblockSubmission(
     }
     else if ((m_microBlocks.size() == 1) && (m_mode == PRIMARY_DS))
     {
-        LOG_STATE("[MICRO]["
-                  << std::setw(15) << std::left
-                  << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-                  << m_mediator.m_txBlockChain.GetBlockCount() << "] FRST");
+        LOG_STATE("[MICRO][" << std::setw(15) << std::left
+                             << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                             << "]["
+                             << m_mediator.m_txBlockChain.GetLastBlock()
+                                    .GetHeader()
+                                    .GetBlockNum()
+                      + 1 << "] FRST");
     }
 
         // TODO: Re-request from shard leader if microblock is not received after a certain time.
