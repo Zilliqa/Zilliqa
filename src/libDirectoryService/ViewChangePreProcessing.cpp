@@ -35,8 +35,9 @@
 #include "libUtils/SanityChecks.h"
 
 #ifndef IS_LOOKUP_NODE
-bool DirectoryService::ViewChangeValidator(const vector<unsigned char>& vcBlock,
-                                           std::vector<unsigned char>& errorMsg)
+bool DirectoryService::ViewChangeValidator(
+    const vector<unsigned char>& vcBlock,
+    [[gnu::unused]] std::vector<unsigned char>& errorMsg)
 {
     LOG_MARKER();
     lock_guard<mutex> g(m_mutexPendingVCBlock);

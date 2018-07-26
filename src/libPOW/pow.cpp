@@ -229,7 +229,8 @@ ethash_mining_result_t POW::MineFull(ethash_full_t& full,
 
 bool POW::VerifyLight(ethash_light_t& light, ethash_h256_t const& header_hash,
                       uint64_t winning_nonce, ethash_h256_t& difficulty,
-                      ethash_h256_t& result, ethash_h256_t& mixhash)
+                      [[gnu::unused]] ethash_h256_t& result,
+                      [[gnu::unused]] ethash_h256_t& mixhash)
 {
     ethash_return_value_t mineResult
         = EthashLightCompute(light, header_hash, winning_nonce);
@@ -245,7 +246,8 @@ bool POW::VerifyLight(ethash_light_t& light, ethash_h256_t const& header_hash,
 
 bool POW::VerifyFull(ethash_full_t& full, ethash_h256_t const& header_hash,
                      uint64_t winning_nonce, ethash_h256_t& difficulty,
-                     ethash_h256_t& result, ethash_h256_t& mixhash)
+                     [[gnu::unused]] ethash_h256_t& result,
+                     [[gnu::unused]] ethash_h256_t& mixhash)
 {
     ethash_return_value_t mineResult
         = EthashFullCompute(full, header_hash, winning_nonce);

@@ -394,8 +394,9 @@ bool Node::VerifyFinalBlockCoSignature(const TxBlock& txblock)
     return true;
 }
 
-bool Node::CheckMicroBlockRootHash(const TxBlock& finalBlock,
-                                   const uint64_t& blocknum)
+bool Node::CheckMicroBlockRootHash(
+    const TxBlock& finalBlock,
+    [[gnu::unused]] const uint64_t& blocknum)
 {
     TxnHash microBlocksHash
         = ComputeTransactionsRoot(finalBlock.GetMicroBlockHashes());
@@ -420,7 +421,7 @@ bool Node::CheckMicroBlockRootHash(const TxBlock& finalBlock,
 }
 
 #ifndef IS_LOOKUP_NODE
-bool Node::FindTxnInSubmittedTxnsList(const TxBlock& finalblock,
+bool Node::FindTxnInSubmittedTxnsList([[gnu::unused]] const TxBlock& finalblock,
                                       const uint64_t& blockNum,
                                       uint8_t sharing_mode,
                                       vector<Transaction>& txns_to_send,
@@ -496,7 +497,7 @@ bool Node::FindTxnInSubmittedTxnsList(const TxBlock& finalblock,
     return false;
 }
 
-bool Node::FindTxnInReceivedTxnsList(const TxBlock& finalblock,
+bool Node::FindTxnInReceivedTxnsList([[gnu::unused]] const TxBlock& finalblock,
                                      const uint64_t& blockNum,
                                      uint8_t sharing_mode,
                                      vector<Transaction>& txns_to_send,
@@ -1266,7 +1267,7 @@ void Node::CallActOnFinalBlockBasedOnSenderForwarderAssgn(uint8_t shard_id)
 }
 #endif // IS_LOOKUP_NODE
 
-void Node::LogReceivedFinalBlockDetails(const TxBlock& txblock)
+void Node::LogReceivedFinalBlockDetails([[gnu::unused]] const TxBlock& txblock)
 {
 #ifdef IS_LOOKUP_NODE
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -1345,7 +1346,8 @@ bool Node::CheckStateRoot(const TxBlock& finalBlock)
 // }
 
 bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
-                             unsigned int offset, const Peer& from)
+                             unsigned int offset,
+                             [[gnu::unused]] const Peer& from)
 {
     // Message = [8-byte DS blocknum] [4-byte consensusid] [1-byte shard id]
     //           [Final block] [Tx body sharing setup]
@@ -1379,34 +1381,6 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
                   "Too late - current state is " << m_state << ".");
         return false;
     }
-
-        /*
-    unsigned int sleep_time_while_waiting = 100;
-    if (m_state == MICROBLOCK_CONSENSUS)
-    {
-        for (unsigned int i = 0; i < 50; i++)
-        {
-            if (m_state == WAITING_FINALBLOCK)
-            {
-                break;
-            }
-
-            if (i % 10 == 0)
-            {
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                             "Waiting for MICROBLOCK_CONSENSUS before "
-                             "proceeding to process finalblock");
-            }
-            this_thread::sleep_for(
-                chrono::milliseconds(sleep_time_while_waiting));
-        }
-        LOG_GENERAL(INFO,
-            "I got stuck at process final block but move on. Current state is "
-            "MICROBLOCK_CONSENSUS, ")
-        // return false;
-        SetState(WAITING_FINALBLOCK);
-    }
-    */
 
 #endif // IS_LOOKUP_NODE
 
@@ -1754,7 +1728,8 @@ void Node::DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
 }
 
 bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
-                                     unsigned int cur_offset, const Peer& from)
+                                     unsigned int cur_offset,
+                                     [[gnu::unused]] const Peer& from)
 {
     // Message = [block number] [microblocktxhash] [microblockdeltahash] [Transaction] [Transaction] [Transaction] ....
     // Received from other shards
@@ -1851,7 +1826,8 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
 }
 
 bool Node::ProcessForwardStateDelta(const vector<unsigned char>& message,
-                                    unsigned int cur_offset, const Peer& from)
+                                    unsigned int cur_offset,
+                                    [[gnu::unused]] const Peer& from)
 {
     // Message = [block number] [microblockdeltahash] [microblocktxhash] [AccountStateDelta]
     // Received from other shards

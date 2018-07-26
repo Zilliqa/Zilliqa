@@ -38,58 +38,13 @@ using namespace std;
 using namespace boost::multiprecision;
 
 #ifndef IS_LOOKUP_NODE
-unsigned int DirectoryService::SerializeEntireShardingStructure(
-    vector<unsigned char>& sharding_message, unsigned int curr_offset)
-{
-    LOG_MARKER();
-
-    // 4-byte number of shards
-    Serializable::SetNumber<uint32_t>(sharding_message, curr_offset,
-                                      m_shards.size(), sizeof(uint32_t));
-    curr_offset += sizeof(uint32_t);
-
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Number of shards = " << m_shards.size());
-
-    for (auto it_vec = m_shards.begin(); it_vec != m_shards.end(); it_vec++)
-    {
-        // 4-byte shard size
-        Serializable::SetNumber<uint32_t>(sharding_message, curr_offset,
-                                          it_vec->size(), sizeof(uint32_t));
-        curr_offset += sizeof(uint32_t);
-
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Shard size = " << it_vec->size());
-
-        for (auto it_map = it_vec->begin(); it_map != it_vec->end(); it_map++)
-        {
-            // 33-byte public key
-            (*it_map).first.Serialize(sharding_message, curr_offset);
-            curr_offset += PUB_KEY_SIZE;
-
-            // 16-byte ip + 4-byte port
-            (*it_map).second.Serialize(sharding_message, curr_offset);
-            curr_offset += IP_SIZE + PORT_SIZE;
-
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "PubKey: "
-                          << DataConversion::SerializableToHexStr(
-                                 (*it_map).first)
-                          << " IP: " << (*it_map).second.GetPrintableIPAddress()
-                          << " Port: " << (*it_map).second.m_listenPortHost);
-        }
-    }
-
-    return true;
-}
-
 bool DirectoryService::SendEntireShardingStructureToLookupNodes()
 {
     vector<unsigned char> sharding_message
         = {MessageType::LOOKUP, LookupInstructionType::ENTIRESHARDINGSTRUCTURE};
     unsigned int curr_offset = MessageOffset::BODY;
 
-    SerializeEntireShardingStructure(sharding_message, curr_offset);
+    ShardingStructure::Serialize(m_shards, sharding_message, curr_offset);
 
     m_mediator.m_lookup->SendMessageToLookupNodes(sharding_message);
 
@@ -229,7 +184,8 @@ void DirectoryService::SendingShardingStructureToShard(
 #endif // IS_LOOKUP_NODE
 
 bool DirectoryService::ProcessShardingConsensus(
-    const vector<unsigned char>& message, unsigned int offset, const Peer& from)
+    [[gnu::unused]] const vector<unsigned char>& message,
+    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
 {
 #ifndef IS_LOOKUP_NODE
     LOG_MARKER();
@@ -333,7 +289,6 @@ bool DirectoryService::ProcessShardingConsensus(
                   "creation. (check for timeout)");
     }
 
-    // if (m_state != SHARDING_CONSENSUS)
     if (!CheckState(PROCESS_SHARDINGCONSENSUS))
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -341,7 +296,11 @@ bool DirectoryService::ProcessShardingConsensus(
         return false;
     }
 
-    bool result = m_consensusObject->ProcessMessage(message, offset, from);
+    if (!m_consensusObject->ProcessMessage(message, offset, from))
+    {
+        return false;
+    }
+
     ConsensusCommon::State state = m_consensusObject->GetState();
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Consensus state = " << m_consensusObject->GetStateString());
@@ -458,8 +417,6 @@ bool DirectoryService::ProcessShardingConsensus(
         cv_processConsensusMessage.notify_all();
     }
 
-    return result;
-#else // IS_LOOKUP_NODE
-    return true;
 #endif // IS_LOOKUP_NODE
+    return true;
 }

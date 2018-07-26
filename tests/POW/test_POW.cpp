@@ -564,7 +564,10 @@ static int test_full_callback(unsigned _progress)
     return 0;
 }
 
-static int test_full_callback_that_fails(unsigned _progress) { return 1; }
+static int test_full_callback_that_fails([[gnu::unused]] unsigned _progress)
+{
+    return 1;
+}
 
 static int test_full_callback_create_incomplete_dag(unsigned _progress)
 {

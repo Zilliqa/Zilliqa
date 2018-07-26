@@ -145,7 +145,8 @@ public:
 class VCBlockChain : public BlockChain<VCBlock>
 {
 public:
-    VCBlock GetBlockFromPersistentStorage(const uint64_t& blockNum)
+    VCBlock GetBlockFromPersistentStorage([
+        [gnu::unused]] const uint64_t& blockNum)
     {
         throw "vc block persistent storage not supported";
     }

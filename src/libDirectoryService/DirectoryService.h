@@ -28,6 +28,7 @@
 #include <shared_mutex>
 #include <vector>
 
+#include "DSBlockMessage.h"
 #include "common/Broadcastable.h"
 #include "common/Executable.h"
 #include "libConsensus/Consensus.h"
@@ -59,9 +60,6 @@ class DirectoryService : public Executable, public Broadcastable
         PROCESS_FINALBLOCKCONSENSUS,
         PROCESS_VIEWCHANGECONSENSUS
     };
-
-    std::atomic<bool> m_requesting_last_ds_block;
-    unsigned int BUFFER_TIME_BEFORE_DS_BLOCK_REQUEST = 5;
 
     std::mutex m_mutexConsensus;
 
@@ -191,15 +189,10 @@ class DirectoryService : public Executable, public Broadcastable
     void ComposeDSBlock();
 
     // internal calls from RunConsensusOnSharding
-    void
-    SerializeShardingStructure(vector<unsigned char>& sharding_structure) const;
     bool RunConsensusOnShardingWhenDSPrimary();
     bool RunConsensusOnShardingWhenDSBackup();
 
     // internal calls from ProcessShardingConsensus
-    unsigned int
-    SerializeEntireShardingStructure(vector<unsigned char>& sharding_message,
-                                     unsigned int curr_offset);
     bool SendEntireShardingStructureToLookupNodes();
 
     // PoW2 (sharding) consensus functions

@@ -148,12 +148,12 @@ const uint64_t& VCBlockHeader::GetViewChangeEpochNo() const
     return m_VieWChangeEpochNo;
 }
 
-const unsigned char VCBlockHeader::GetViewChangeState() const
+unsigned char VCBlockHeader::GetViewChangeState() const
 {
     return m_ViewChangeState;
 }
 
-const uint32_t VCBlockHeader::GetCandidateLeaderIndex() const
+uint32_t VCBlockHeader::GetCandidateLeaderIndex() const
 {
     return m_CandidateLeaderIndex;
 }
@@ -168,10 +168,7 @@ const PubKey& VCBlockHeader::GetCandidateLeaderPubKey() const
     return m_CandidateLeaderPubKey;
 }
 
-const uint32_t VCBlockHeader::GetViewChangeCounter() const
-{
-    return m_VCCounter;
-}
+uint32_t VCBlockHeader::GetViewChangeCounter() const { return m_VCCounter; }
 
 const boost::multiprecision::uint256_t& VCBlockHeader::GetTimeStamp() const
 {
