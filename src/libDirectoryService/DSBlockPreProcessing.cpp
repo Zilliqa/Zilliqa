@@ -174,15 +174,15 @@ bool DirectoryService::DSBlockValidator(
     m_pendingDSBlock.reset(new DSBlock(dsblock, 0));
 
     // PoW winner IP
-    Peer deserializedWinnerPeer(dsblock, m_pendingDSBlock->GetSerializedSize());
+    Peer winnerPeer(dsblock, m_pendingDSBlock->GetSerializedSize());
 
-    auto expectedWinnerPeer
+    auto storedMember
         = m_allPoWConns.find(m_pendingDSBlock->GetHeader().GetMinerPubKey());
 
     // I know the winner but the winner IP given by the leader is different!
-    if (expectedWinnerPeer != m_allPoWConns.end())
+    if (storedMember != m_allPoWConns.end())
     {
-        if (expectedWinnerPeer->second != deserializedWinnerPeer)
+        if (storedMember->second != winnerPeer)
         {
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "WARNING: Why is the IP of the winner different from "
@@ -194,7 +194,7 @@ bool DirectoryService::DSBlockValidator(
     else
     {
         m_allPoWConns.emplace(m_pendingDSBlock->GetHeader().GetMinerPubKey(),
-                              deserializedWinnerPeer);
+                              winnerPeer);
     }
 
     return true;
