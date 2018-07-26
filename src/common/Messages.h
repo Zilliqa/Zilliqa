@@ -43,7 +43,7 @@ enum MessageType : unsigned char
 enum DSInstructionType : unsigned char
 {
     SETPRIMARY = 0x00,
-    POW1SUBMISSION = 0x01,
+    POWSUBMISSION = 0x01,
     DSBLOCKCONSENSUS = 0x02,
     POW2SUBMISSION = 0x03,
     SHARDINGCONSENSUS = 0x04,
@@ -51,14 +51,12 @@ enum DSInstructionType : unsigned char
     FINALBLOCKCONSENSUS = 0x06,
     AllPoWConnRequest = 0x07,
     AllPoWConnResponse = 0x08,
-    LastDSBlockRequest = 0x09,
-    LastDSBlockResponse = 0x0A,
-    VIEWCHANGECONSENSUS = 0X0B
+    VIEWCHANGECONSENSUS = 0X09
 };
 
 enum NodeInstructionType : unsigned char
 {
-    STARTPOW1 = 0x00,
+    STARTPOW = 0x00,
     DSBLOCK = 0x01,
     SHARDING = 0x02,
     SUBMITTRANSACTION = 0x03,

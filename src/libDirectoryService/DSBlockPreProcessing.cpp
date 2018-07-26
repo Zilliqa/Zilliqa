@@ -58,9 +58,9 @@ void DirectoryService::ComposeDSBlock()
 
     // Assemble DS block header
 
-    lock_guard<mutex> g(m_mutexAllPOW1);
-    const PubKey& winnerKey = m_allPoW1s.front().first;
-    const uint256_t& winnerNonce = m_allPoW1s.front().second;
+    lock_guard<mutex> g(m_mutexAllPOW);
+    const PubKey& winnerKey = m_allPoWs.front().first;
+    const uint256_t& winnerNonce = m_allPoWs.front().second;
 
     uint256_t blockNum = 0;
     uint8_t difficulty = POW2_DIFFICULTY;
@@ -146,8 +146,9 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
     return true;
 }
 
-bool DirectoryService::DSBlockValidator(const vector<unsigned char>& dsblock,
-                                        std::vector<unsigned char>& errorMsg)
+bool DirectoryService::DSBlockValidator(
+    const vector<unsigned char>& dsblock,
+    [[gnu::unused]] std::vector<unsigned char>& errorMsg)
 {
     LOG_MARKER();
 
@@ -162,7 +163,7 @@ bool DirectoryService::DSBlockValidator(const vector<unsigned char>& dsblock,
         == m_allPoWConns.end())
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Winning node of PoW1 not inside m_allPoWConns! Getting "
+                  "Winning node of PoW not inside m_allPoWConns! Getting "
                   "from ds leader");
 
         m_hasAllPoWconns = false;
@@ -216,14 +217,14 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin)
     SetState(DSBLOCK_CONSENSUS_PREP);
 
     {
-        lock_guard<mutex> g(m_mutexAllPOW1);
+        lock_guard<mutex> g(m_mutexAllPOW);
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Num of PoW1 sub rec: " << m_allPoW1s.size());
-        LOG_STATE("[POW1R][" << std::setw(15) << std::left
-                             << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                             << "][" << m_allPoW1s.size() << "] ");
+                  "Num of PoW sub rec: " << m_allPoWs.size());
+        LOG_STATE("[POWR][" << std::setw(15) << std::left
+                            << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                            << "][" << m_allPoWs.size() << "] ");
 
-        if (m_allPoW1s.size() == 0)
+        if (m_allPoWs.size() == 0)
         {
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "To-do: Code up the logic for if we didn't get any "
@@ -258,6 +259,7 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin)
     }
 
     SetState(DSBLOCK_CONSENSUS);
+    cv_DSBlockConsensusObject.notify_all();
 
     // View change will wait for timeout. If conditional variable is notified before timeout, the thread will return
     // without triggering view change.

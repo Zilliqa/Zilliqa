@@ -98,7 +98,7 @@ void Node::UpdateDSCommiteeComposition(const Peer& winnerpeer)
         peer = winnerpeer;
     }
 
-    m_mediator.m_DSCommittee.push_front(make_pair(
+    m_mediator.m_DSCommittee.emplace_front(make_pair(
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetMinerPubKey(),
         peer));
     m_mediator.m_DSCommittee.pop_back();
@@ -155,7 +155,7 @@ bool Node::VerifyDSBlockCoSignature(const DSBlock& dsblock)
     {
         if (B2.at(index) == true)
         {
-            keys.push_back(kv.first);
+            keys.emplace_back(kv.first);
             count++;
         }
         index++;
@@ -195,7 +195,7 @@ bool Node::VerifyDSBlockCoSignature(const DSBlock& dsblock)
     return true;
 }
 
-void Node::LogReceivedDSBlockDetails(const DSBlock& dsblock)
+void Node::LogReceivedDSBlockDetails([[gnu::unused]] const DSBlock& dsblock)
 {
 #ifdef IS_LOOKUP_NODE
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -219,7 +219,8 @@ void Node::LogReceivedDSBlockDetails(const DSBlock& dsblock)
 }
 
 bool Node::ProcessDSBlock(const vector<unsigned char>& message,
-                          unsigned int cur_offset, const Peer& from)
+                          unsigned int cur_offset,
+                          [[gnu::unused]] const Peer& from)
 {
     // Message = [259-byte DS block] [32-byte DS block hash / rand1] [16-byte winner IP] [4-byte winner port]
     LOG_MARKER();
@@ -317,7 +318,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
                .GetMinerPubKey())
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "I won PoW1 :-) I am now the new DS committee leader!");
+                  "I won PoW :-) I am now the new DS committee leader!");
 
         if (TEST_NET_MODE)
         {
@@ -344,10 +345,10 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
     else
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "I lost PoW1 :-( Better luck next time!");
+                  "I lost PoW :-( Better luck next time!");
         POW::GetInstance().StopMining();
 
-        // Tell my Node class to start PoW2 if I didn't win PoW1
+        // Tell my Node class to start PoW2 if I didn't win PoW
         array<unsigned char, 32> rand2 = {};
         StartPoW2(
             m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(),

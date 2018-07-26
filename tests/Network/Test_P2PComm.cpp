@@ -234,7 +234,7 @@ int main()
     P2PComm::GetInstance().SendMessage(peers, message2);
 
     vector<unsigned char> longMsg(1024 * 1024 * 1024, 'z');
-    longMsg.push_back('\0');
+    longMsg.emplace_back('\0');
 
     startTime = chrono::high_resolution_clock::now();
     P2PComm::GetInstance().SendMessage(peer, longMsg);

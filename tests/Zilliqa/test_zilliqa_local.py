@@ -43,7 +43,7 @@ def print_usage():
 		"\t\tclean                       - Remove test output files (e.g., logs)\n"
 		"\t\tsendcmd [nodenum] [hex msg] - Send hex msg to port\n"
 		"\t\tsendcmdrandom [nodenum] [msgsize] - Send msg to port\n"
-		"\t\tstartpow1 [nodenum] [ds count] [blocknum] [diff] [rand1] [rand2] - Send STARTPOW1 to node\n"
+		"\t\tstartpow [nodenum] [ds count] [blocknum] [diff] [rand1] [rand2] - Send STARTPOW to node\n"
 		"\t\tcreatetx [nodenum] [from] [to] [amount] - Send CREATETRANSACTION to node\n"
 		"\t\tdelete                      - Delete the set-up nodes\n"
 		"\t\tsendtxn [port]              - Delete dummy txn at the interval of 1 per seconds\n")
@@ -73,8 +73,8 @@ def main():
 			print_usage() if (numargs != 4) else run_sendcmd(nodenum=int(sys.argv[2]), msg=sys.argv[3])
 		elif (command == 'sendcmdrandom'):
 			print_usage() if (numargs != 4) else run_sendcmdrandom(nodenum=int(sys.argv[2]), msg_size=sys.argv[3])
-		elif (command == 'startpow1'):
-			print_usage() if (numargs != 8) else run_startpow1(nodenum=int(sys.argv[2]), dscount=int(sys.argv[3]), blocknum=sys.argv[4], diff=sys.argv[5], rand1=sys.argv[6], rand2=sys.argv[7])
+		elif (command == 'startpow'):
+			print_usage() if (numargs != 8) else run_startpow(nodenum=int(sys.argv[2]), dscount=int(sys.argv[3]), blocknum=sys.argv[4], diff=sys.argv[5], rand1=sys.argv[6], rand2=sys.argv[7])
 		elif (command == 'createtx'):
 			print_usage() if (numargs != 6) else run_createtx(nodenum=int(sys.argv[2]), fromnode=int(sys.argv[3]), tonode=int(sys.argv[4]), amount=int(sys.argv[5]))
 		elif (command == 'delete'):
@@ -262,7 +262,7 @@ def run_sendcmdrandom(nodenum, msg_size):
 	# os.system('tests/Zilliqa/sendcmd ' + str(NODE_LISTEN_PORT + nodenum - 1) + ' cmd ' + msg)
 	os.system('tests/Zilliqa/sendcmd ' + str(NODE_LISTEN_PORT) + ' broadcast ' + msg_size)
 
-def run_startpow1(nodenum, dscount, blocknum, diff, rand1, rand2):
+def run_startpow(nodenum, dscount, blocknum, diff, rand1, rand2):
 	testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)
 	count = len(testfolders_list)
 
@@ -272,14 +272,14 @@ def run_startpow1(nodenum, dscount, blocknum, diff, rand1, rand2):
 		keypairs = f.readlines()
 	keypairs = [x.strip() for x in keypairs]
 
-	# Assemble the STARTPOW1 message
-	startpow1_cmd = 'tests/Zilliqa/sendcmd ' + str(NODE_LISTEN_PORT + nodenum - 1) + ' cmd 0200' + blocknum + diff + rand1 + rand2
+	# Assemble the STARTPOW message
+	startpow_cmd = 'tests/Zilliqa/sendcmd ' + str(NODE_LISTEN_PORT + nodenum - 1) + ' cmd 0200' + blocknum + diff + rand1 + rand2
 	for x in range(0, dscount):
 		keypair = keypairs[x].split(" ")
-		startpow1_cmd = startpow1_cmd + keypair[0] + '0000000000000000000000000100007F' + "{0:0{1}x}".format(NODE_LISTEN_PORT + x, 8)
+		startpow_cmd = startpow_cmd + keypair[0] + '0000000000000000000000000100007F' + "{0:0{1}x}".format(NODE_LISTEN_PORT + x, 8)
 
 	# Send to node
-	os.system(startpow1_cmd)
+	os.system(startpow_cmd)
 
 def run_sendtxn(portnum):
 	os.system('tests/Zilliqa/sendtxn ' + str(portnum) + ' &')

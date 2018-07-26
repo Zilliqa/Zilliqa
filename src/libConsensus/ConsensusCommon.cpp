@@ -121,7 +121,7 @@ PubKey ConsensusCommon::AggregateKeys(const vector<bool> peer_map)
     {
         if (peer_map.at(i) == true)
         {
-            keys.push_back(j->first);
+            keys.emplace_back(j->first);
         }
     }
     shared_ptr<PubKey> result = MultiSig::AggregatePubKeys(keys);

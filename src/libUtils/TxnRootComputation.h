@@ -21,7 +21,11 @@
 #include <unordered_map>
 #include <vector>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "depends/libDatabase/MemoryDB.h"
+#pragma GCC diagnostic pop
+
 #include "depends/libTrie/TrieDB.h"
 #include "libData/BlockData/BlockHeader/BlockHashSet.h"
 
