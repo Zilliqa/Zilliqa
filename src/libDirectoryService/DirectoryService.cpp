@@ -87,9 +87,17 @@ void DirectoryService::StartSynchronization()
         while (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
         {
             m_synchronizer.FetchLatestDSBlocks(
-                m_mediator.m_lookup, m_mediator.m_dsBlockChain.GetBlockCount());
+                m_mediator.m_lookup,
+                m_mediator.m_dsBlockChain.GetLastBlock()
+                        .GetHeader()
+                        .GetBlockNum()
+                    + 1);
             m_synchronizer.FetchLatestTxBlocks(
-                m_mediator.m_lookup, m_mediator.m_txBlockChain.GetBlockCount());
+                m_mediator.m_lookup,
+                m_mediator.m_txBlockChain.GetLastBlock()
+                        .GetHeader()
+                        .GetBlockNum()
+                    + 1);
             this_thread::sleep_for(chrono::seconds(NEW_NODE_SYNC_INTERVAL));
         }
     };
@@ -245,7 +253,10 @@ bool DirectoryService::ProcessSetPrimary(
     }
     m_consensusLeaderID = 0;
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "START OF EPOCH " << m_mediator.m_dsBlockChain.GetBlockCount());
+              "START OF EPOCH " << m_mediator.m_dsBlockChain.GetLastBlock()
+                                       .GetHeader()
+                                       .GetBlockNum()
+                      + 1);
 
     if (primary == m_mediator.m_selfPeer)
     {
@@ -278,15 +289,15 @@ bool DirectoryService::CheckWhetherDSBlockIsFresh(const uint64_t dsblock_num)
 {
     // uint256_t latest_block_num_in_blockchain = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
     uint64_t latest_block_num_in_blockchain
-        = m_mediator.m_dsBlockChain.GetBlockCount();
+        = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
-    if (dsblock_num < latest_block_num_in_blockchain)
+    if (dsblock_num < latest_block_num_in_blockchain + 1)
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "We are processing duplicated blocks");
         return false;
     }
-    else if (dsblock_num > latest_block_num_in_blockchain)
+    else if (dsblock_num > latest_block_num_in_blockchain + 1)
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Warning: We are missing of some DS blocks. Cur: "

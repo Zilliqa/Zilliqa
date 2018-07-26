@@ -147,10 +147,13 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
         winnerPeer->second.Serialize(m, m.size());
     }
 
-    LOG_STATE("[DSCON][" << std::setw(15) << std::left
-                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                         << "][" << m_mediator.m_txBlockChain.GetBlockCount()
-                         << "] BGIN");
+    LOG_STATE(
+        "[DSCON]["
+        << std::setw(15) << std::left
+        << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
+            + 1
+        << "] BGIN");
 
     cl->StartConsensus(m, DSBlockHeader::SIZE);
 

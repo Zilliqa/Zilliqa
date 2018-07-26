@@ -305,10 +305,13 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
 
     if (m_mode == PRIMARY_DS)
     {
-        LOG_STATE("[DSCON]["
-                  << setw(15) << left
-                  << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-                  << m_mediator.m_txBlockChain.GetBlockCount() << "] DONE");
+        LOG_STATE("[DSCON][" << setw(15) << left
+                             << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                             << "]["
+                             << m_mediator.m_txBlockChain.GetLastBlock()
+                                    .GetHeader()
+                                    .GetBlockNum()
+                      + 1 << "] DONE");
     }
 
     {
@@ -325,7 +328,8 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
         m_pendingDSBlock->SetCoSignatures(*m_consensusObject);
 
         if (m_pendingDSBlock->GetHeader().GetBlockNum()
-            == m_mediator.m_dsBlockChain.GetBlockCount() + 1)
+            > m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()
+                + 1)
         {
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "We are missing some blocks. What to do here?");
@@ -367,10 +371,13 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
                                   my_pownodes_cluster_lo,
                                   my_pownodes_cluster_hi);
 
-    LOG_STATE("[DSBLK][" << setw(15) << left
-                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                         << "][" << m_mediator.m_txBlockChain.GetBlockCount()
-                         << "] BEFORE SENDING DSBLOCK");
+    LOG_STATE(
+        "[DSBLK]["
+        << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
+        << "]["
+        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
+            + 1
+        << "] BEFORE SENDING DSBLOCK");
 
     // Too few target nodes - avoid asking all DS clusters to send
     if ((my_DS_cluster_num + 1) <= m_allPoWConns.size())
@@ -379,10 +386,13 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
                              my_pownodes_cluster_hi);
     }
 
-    LOG_STATE("[DSBLK][" << setw(15) << left
-                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                         << "][" << m_mediator.m_txBlockChain.GetBlockCount()
-                         << "] AFTER SENDING DSBLOCK");
+    LOG_STATE(
+        "[DSBLK]["
+        << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
+        << "]["
+        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
+            + 1
+        << "] AFTER SENDING DSBLOCK");
 
     {
         lock_guard<mutex> g(m_mutexAllPOW);
