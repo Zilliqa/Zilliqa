@@ -70,10 +70,10 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock)
 
     for (unsigned int i = 0; i < dsblock.GetHeader().GetViewChangeCount(); i++)
     {
-        m_mediator.m_DSCommitteeNetworkInfo.push_back(
+        m_mediator.m_DSCommitteeNetworkInfo.emplace_back(
             m_mediator.m_DSCommitteeNetworkInfo.front());
         m_mediator.m_DSCommitteeNetworkInfo.pop_front();
-        m_mediator.m_DSCommitteePubKeys.push_back(
+        m_mediator.m_DSCommitteePubKeys.emplace_back(
             m_mediator.m_DSCommitteePubKeys.front());
         m_mediator.m_DSCommitteePubKeys.pop_front();
     }
@@ -89,8 +89,9 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock)
 void Node::UpdateDSCommiteeComposition()
 {
     LOG_MARKER();
+
     lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
-    m_mediator.m_DSCommittee.push_back(m_mediator.m_DSCommittee.front());
+    m_mediator.m_DSCommittee.emplace_back(m_mediator.m_DSCommittee.front());
     m_mediator.m_DSCommittee.pop_front();
 }
 
@@ -118,7 +119,7 @@ bool Node::VerifyVCBlockCoSignature(const VCBlock& vcblock)
     {
         if (B2.at(index) == true)
         {
-            keys.push_back(kv.first);
+            keys.emplace_back(kv.first);
             count++;
         }
         index++;
@@ -189,7 +190,8 @@ void Node::LogReceivedDSBlockDetails(const DSBlock& dsblock)
 **/
 
 bool Node::ProcessVCBlock(const vector<unsigned char>& message,
-                          unsigned int cur_offset, const Peer& from)
+                          unsigned int cur_offset,
+                          [[gnu::unused]] const Peer& from)
 {
     // Message = [VC block]
     LOG_MARKER();

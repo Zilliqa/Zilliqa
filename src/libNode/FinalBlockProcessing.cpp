@@ -357,7 +357,7 @@ bool Node::VerifyFinalBlockCoSignature(const TxBlock& txblock)
     {
         if (B2.at(index) == true)
         {
-            keys.push_back(kv.first);
+            keys.emplace_back(kv.first);
             count++;
         }
         index++;
@@ -398,7 +398,8 @@ bool Node::VerifyFinalBlockCoSignature(const TxBlock& txblock)
 }
 
 bool Node::CheckMicroBlockRootHash(
-    const TxBlock& finalBlock, const boost::multiprecision::uint256_t& blocknum)
+    const TxBlock& finalBlock,
+    [[gnu::unused]] const boost::multiprecision::uint256_t& blocknum)
 {
     TxnHash microBlocksHash
         = ComputeTransactionsRoot(finalBlock.GetMicroBlockHashes());
@@ -442,7 +443,7 @@ bool Node::FindTxnInProcessedTxnsList(const TxBlock& finalblock,
     {
         if ((sharing_mode == SEND_ONLY) || (sharing_mode == SEND_AND_FORWARD))
         {
-            txns_to_send.push_back(txnIt->second);
+            txns_to_send.emplace_back(txnIt->second);
         }
 
         // Move entry from submitted Tx list to committed Tx list
@@ -635,7 +636,7 @@ void Node::LoadForwardingAssignmentFromFinalBlock(
 
     lock_guard<mutex> g2(m_mutexForwardingAssignment);
 
-    m_forwardingAssignment.insert(make_pair(blocknum, vector<Peer>()));
+    m_forwardingAssignment.emplace(blocknum, vector<Peer>());
     vector<Peer>& peers = m_forwardingAssignment.at(blocknum);
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -649,9 +650,9 @@ void Node::LoadForwardingAssignmentFromFinalBlock(
         }
         // if (rand() % m_myShardMembersNetworkInfo.size() <= GOSSIP_RATE)
         // {
-        //     peers.push_back(m_myShardMembersNetworkInfo.at(i));
+        //     peers.emplace_back(m_myShardMembersNetworkInfo.at(i));
         // }
-        peers.push_back(m_myShardMembersNetworkInfo.at(i));
+        peers.emplace_back(m_myShardMembersNetworkInfo.at(i));
     }
 
     for (unsigned int i = 0; i < fellowForwarderNodes.size(); i++)
@@ -773,7 +774,7 @@ bool Node::ActOnFinalBlock(uint8_t tx_sharing_mode, const vector<Peer>& nodes)
     case DS_FORWARD_ONLY:
     {
         lock_guard<mutex> g2(m_mutexForwardingAssignment);
-        m_forwardingAssignment.insert(make_pair(blocknum, nodes));
+        m_forwardingAssignment.emplace(blocknum, nodes);
         break;
     }
     case NODE_FORWARD_ONLY:
@@ -902,28 +903,28 @@ bool Node::ActOnFinalBlock(uint8_t tx_sharing_mode,
     return true;
 }
 
-void Node::InitiatePoW1()
+void Node::InitiatePoW()
 {
     // reset consensusID and first consensusLeader is index 0
     m_consensusID = 0;
     m_consensusLeaderID = 0;
 
-    SetState(POW1_SUBMISSION);
+    SetState(POW_SUBMISSION);
     POW::GetInstance().EthashConfigureLightClient(
         (uint64_t)
             m_mediator.m_dsBlockChain.GetBlockCount()); // FIXME -- typecasting
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Start pow1 ");
+              "Start pow ");
     auto func = [this]() mutable -> void {
         auto epochNumber = m_mediator.m_dsBlockChain.GetBlockCount();
         auto dsBlockRand = m_mediator.m_dsBlockRand;
         auto txBlockRand = m_mediator.m_txBlockRand;
-        StartPoW1(epochNumber, POW1_DIFFICULTY, dsBlockRand, txBlockRand);
+        StartPoW(epochNumber, POW_DIFFICULTY, dsBlockRand, txBlockRand);
     };
 
     DetachedFunction(1, func);
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Soln to pow1 found ");
+              "Soln to pow found ");
 }
 
 void Node::UpdateStateForNextConsensusRound()
@@ -1048,7 +1049,7 @@ void Node::CallActOnFinalBlockBasedOnSenderForwarderAssgn(uint8_t shard_id)
         for (unsigned int i = 0; i < m_txnSharingAssignedNodes.at(0).size();
              i++)
         {
-            nodes_to_send.push_back(m_txnSharingAssignedNodes[0][i]);
+            nodes_to_send.emplace_back(m_txnSharingAssignedNodes[0][i]);
         }
 
         for (unsigned int i = 1; i < m_txnSharingAssignedNodes.size(); i += 2)
@@ -1061,7 +1062,7 @@ void Node::CallActOnFinalBlockBasedOnSenderForwarderAssgn(uint8_t shard_id)
             const vector<Peer>& shard = m_txnSharingAssignedNodes.at(i);
             for (unsigned int j = 0; j < shard.size(); j++)
             {
-                nodes_to_send.push_back(shard[j]);
+                nodes_to_send.emplace_back(shard[j]);
             }
         }
 
@@ -1080,7 +1081,7 @@ void Node::CallActOnFinalBlockBasedOnSenderForwarderAssgn(uint8_t shard_id)
         for (unsigned int i = 0; i < m_txnSharingAssignedNodes.at(0).size();
              i++)
         {
-            fellowForwarderNodes.push_back(m_txnSharingAssignedNodes[0][i]);
+            fellowForwarderNodes.emplace_back(m_txnSharingAssignedNodes[0][i]);
         }
 
         for (unsigned int i = 1; i < m_txnSharingAssignedNodes.size(); i += 2)
@@ -1093,7 +1094,7 @@ void Node::CallActOnFinalBlockBasedOnSenderForwarderAssgn(uint8_t shard_id)
             const vector<Peer>& shard = m_txnSharingAssignedNodes.at(i);
             for (unsigned int j = 0; j < shard.size(); j++)
             {
-                fellowForwarderNodes.push_back(shard[j]);
+                fellowForwarderNodes.emplace_back(shard[j]);
             }
         }
 
@@ -1107,7 +1108,7 @@ void Node::CallActOnFinalBlockBasedOnSenderForwarderAssgn(uint8_t shard_id)
 }
 #endif // IS_LOOKUP_NODE
 
-void Node::LogReceivedFinalBlockDetails(const TxBlock& txblock)
+void Node::LogReceivedFinalBlockDetails([[gnu::unused]] const TxBlock& txblock)
 {
 #ifdef IS_LOOKUP_NODE
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -1186,7 +1187,8 @@ bool Node::CheckStateRoot(const TxBlock& finalBlock)
 // }
 
 bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
-                             unsigned int offset, const Peer& from)
+                             unsigned int offset,
+                             [[gnu::unused]] const Peer& from)
 {
     // Message = [32-byte DS blocknum] [4-byte consensusid] [1-byte shard id]
     //           [Final block] [Tx body sharing setup]
@@ -1221,34 +1223,6 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
                   "Too late - current state is " << m_state << ".");
         return false;
     }
-
-        /*
-    unsigned int sleep_time_while_waiting = 100;
-    if (m_state == MICROBLOCK_CONSENSUS)
-    {
-        for (unsigned int i = 0; i < 50; i++)
-        {
-            if (m_state == WAITING_FINALBLOCK)
-            {
-                break;
-            }
-
-            if (i % 10 == 0)
-            {
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                             "Waiting for MICROBLOCK_CONSENSUS before "
-                             "proceeding to process finalblock");
-            }
-            this_thread::sleep_for(
-                chrono::milliseconds(sleep_time_while_waiting));
-        }
-        LOG_GENERAL(INFO,
-            "I got stuck at process final block but move on. Current state is "
-            "MICROBLOCK_CONSENSUS, ")
-        // return false;
-        SetState(WAITING_FINALBLOCK);
-    }
-    */
 
 #endif // IS_LOOKUP_NODE
 
@@ -1350,9 +1324,9 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
                              << "] LAST");
     }
 
-    // Assumption: New PoW1 done after every block committed
+    // Assumption: New PoW done after every block committed
     // If I am not a DS committee member (and since I got this FinalBlock message,
-    // then I know I'm not), I can start doing PoW1 again
+    // then I know I'm not), I can start doing PoW again
     m_mediator.UpdateDSBlockRand();
     m_mediator.UpdateTxBlockRand();
 
@@ -1360,7 +1334,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 
     if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
     {
-        InitiatePoW1();
+        InitiatePoW();
     }
     else
     {
@@ -1430,8 +1404,8 @@ bool Node::LoadForwardedTxnsAndCheckRoot(
         }
         cur_offset += tx.GetSerializedSize();
 
-        txnsInForwardedMessage.push_back(tx);
-        txnHashesInForwardedMessage.push_back(tx.GetTranID());
+        txnsInForwardedMessage.emplace_back(tx);
+        txnHashesInForwardedMessage.emplace_back(tx.GetTranID());
     }
 
     return ComputeTransactionsRoot(txnHashesInForwardedMessage)
@@ -1487,7 +1461,7 @@ void Node::CommitForwardedTransactions(
     {
         {
             lock_guard<mutex> g(m_mutexCommittedTransactions);
-            m_committedTransactions[blocknum].push_back(tx);
+            m_committedTransactions[blocknum].emplace_back(tx);
             // if (!AccountStore::GetInstance().UpdateAccounts(
             //         m_mediator.m_currentEpochNum - 1, tx))
             // {
@@ -1597,7 +1571,8 @@ void Node::DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
 }
 
 bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
-                                     unsigned int cur_offset, const Peer& from)
+                                     unsigned int cur_offset,
+                                     [[gnu::unused]] const Peer& from)
 {
     // Message = [block number] [microblocktxhash] [microblockdeltahash] [Transaction] [Transaction] [Transaction] ....
     // Received from other shards
@@ -1694,7 +1669,8 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
 }
 
 bool Node::ProcessForwardStateDelta(const vector<unsigned char>& message,
-                                    unsigned int cur_offset, const Peer& from)
+                                    unsigned int cur_offset,
+                                    [[gnu::unused]] const Peer& from)
 {
     // Message = [block number] [microblockdeltahash] [microblocktxhash] [AccountStateDelta]
     // Received from other shards

@@ -170,7 +170,7 @@ BOOST_AUTO_TEST_CASE(testDSBlockRetrieval)
 
 //     for(int i=0; i<5; i++)
 //     {
-//         tranHashes.push_back(TxnHash());
+//         tranHashes.emplace_back(TxnHash());
 //     }
 
 //     TxBlock txblock(header, emptySig, tranHashes);

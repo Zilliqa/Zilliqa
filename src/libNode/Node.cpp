@@ -147,7 +147,7 @@ void Node::Prepare(bool runInitializeGenesisBlocks)
         + 1;
     m_mediator.UpdateDSBlockRand(runInitializeGenesisBlocks);
     m_mediator.UpdateTxBlockRand(runInitializeGenesisBlocks);
-    SetState(POW1_SUBMISSION);
+    SetState(POW_SUBMISSION);
     POW::GetInstance().EthashConfigureLightClient(
         (uint64_t)m_mediator.m_dsBlockChain.GetBlockCount());
 }
@@ -215,7 +215,7 @@ void Node::StartSynchronization()
             {
                 if (m_mediator.m_lookup->cv_offlineLookups.wait_for(
                         lock,
-                        chrono::seconds(POW1_WINDOW_IN_SECONDS
+                        chrono::seconds(POW_WINDOW_IN_SECONDS
                                         + BACKUP_POW2_WINDOW_IN_SECONDS))
                     == std::cv_status::timeout)
                 {
@@ -254,59 +254,50 @@ void Node::StartSynchronization()
 
 #endif //IS_LOOKUP_NODE
 
-bool Node::compatibleState(enum NodeState state, enum Action action)
-{
-    const static std::map<NodeState, Action> ACTION_FOR_STATE
-        = {{POW1_SUBMISSION, STARTPOW1},
-           {POW2_SUBMISSION, STARTPOW2},
-           {MICROBLOCK_CONSENSUS_PREP, PROCESS_SHARDING},
-           {MICROBLOCK_CONSENSUS, PROCESS_MICROBLOCKCONSENSUS},
-           {WAITING_FINALBLOCK, PROCESS_FINALBLOCK}};
-
-    const auto srcAction = ACTION_FOR_STATE.find(state);
-    return ((srcAction != ACTION_FOR_STATE.end())
-            && (srcAction->second == action));
-}
-
 bool Node::CheckState(Action action)
 {
     if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "I am a DS node. Why am I getting this message? Action: "
-                      << ActionString(action));
+                      << GetActionString(action));
         return false;
     }
 
-    if (compatibleState(m_state, action))
+    static const std::multimap<NodeState, Action> ACTIONS_FOR_STATE
+        = {{POW_SUBMISSION, STARTPOW},
+           {POW2_SUBMISSION, STARTPOW2},
+           {TX_SUBMISSION, PROCESS_SHARDING},
+           {TX_SUBMISSION_BUFFER, PROCESS_SHARDING},
+           {MICROBLOCK_CONSENSUS, PROCESS_MICROBLOCKCONSENSUS},
+           {WAITING_FINALBLOCK, PROCESS_FINALBLOCK}};
+
+    bool found = false;
+
+    for (auto pos = ACTIONS_FOR_STATE.lower_bound(m_state);
+         pos != ACTIONS_FOR_STATE.upper_bound(m_state); pos++)
     {
-        return true;
+        if (pos->second == action)
+        {
+            found = true;
+            break;
+        }
     }
 
-    if ((action == PROCESS_TXNBODY) || (action >= NUM_ACTIONS))
+    if (!found)
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Unrecognized action");
+                  "Action " << GetActionString(action)
+                            << " not allowed in state " << GetStateString());
         return false;
     }
 
-    if (m_state == ERROR)
-    {
-        LOG_GENERAL(WARNING,
-                    "Doing " << ActionString(action)
-                             << " but receiving ERROR message");
-        return false;
-    }
-
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Doing " << ActionString(action) << " but already in "
-                       << GetStateString());
-
-    return false;
+    return true;
 }
 
-vector<Peer> Node::GetBroadcastList(unsigned char ins_type,
-                                    const Peer& broadcast_originator)
+vector<Peer>
+    Node::GetBroadcastList([[gnu::unused]] unsigned char ins_type,
+                           [[gnu::unused]] const Peer& broadcast_originator)
 {
     // LOG_MARKER();
 
@@ -330,7 +321,7 @@ vector<Peer> Node::GetBroadcastList(unsigned char ins_type,
     //             }
     //             if (rand() % m_mediator.m_DSCommitteeNetworkInfo.size() <= GOSSIP_RATE)
     //             {
-    //                 peers.push_back(m_mediator.m_DSCommitteeNetworkInfo.at(i));
+    //                 peers.emplace_back(m_mediator.m_DSCommitteeNetworkInfo.at(i));
     //                 LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "DSNode  IP: " << peers.back().GetPrintableIPAddress() << " Port: " << peers.back().m_listenPortHost);
 
     //             }
@@ -349,7 +340,7 @@ vector<Peer> Node::GetBroadcastList(unsigned char ins_type,
     //             }
     //             if (rand() % m_myShardMembersNetworkInfo.size() <= GOSSIP_RATE)
     //             {
-    //                 peers.push_back(m_myShardMembersNetworkInfo.at(i));
+    //                 peers.emplace_back(m_myShardMembersNetworkInfo.at(i));
     //                 LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "  IP: " << peers.back().GetPrintableIPAddress() << " Port: " << peers.back().m_listenPortHost);
 
     //             }
@@ -482,7 +473,8 @@ vector<Transaction> GenTransactionBulk(PrivKey& fromPrivKey, PubKey& fromPubKey,
 
 #ifndef IS_LOOKUP_NODE
 bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
-                                   unsigned int offset, const Peer& from)
+                                   unsigned int offset,
+                                   [[gnu::unused]] const Peer& from)
 {
     unsigned int cur_offset = offset;
 
@@ -534,8 +526,9 @@ bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
 }
 #endif // IS_LOOKUP_NODE
 
-bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
-                                    unsigned int offset, const Peer& from)
+bool Node::ProcessSubmitTransaction(
+    [[gnu::unused]] const vector<unsigned char>& message,
+    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
 {
 #ifndef IS_LOOKUP_NODE
     // This message is sent by my shard peers
@@ -564,7 +557,8 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
 }
 
 bool Node::ProcessCreateTransactionFromLookup(
-    const vector<unsigned char>& message, unsigned int offset, const Peer& from)
+    [[gnu::unused]] const vector<unsigned char>& message,
+    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
 {
 #ifndef IS_LOOKUP_NODE
 
@@ -750,8 +744,9 @@ void Node::CleanCreatedTransaction()
 }
 #endif // IS_LOOKUP_NODE
 
-bool Node::ProcessDoRejoin(const std::vector<unsigned char>& message,
-                           unsigned int offset, const Peer& from)
+bool Node::ProcessDoRejoin(
+    [[gnu::unused]] const std::vector<unsigned char>& message,
+    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
 {
 #ifndef IS_LOOKUP_NODE
 
@@ -797,7 +792,7 @@ bool Node::ProcessDoRejoin(const std::vector<unsigned char>& message,
     return true;
 }
 
-bool Node::ToBlockMessage(unsigned char ins_byte)
+bool Node::ToBlockMessage([[gnu::unused]] unsigned char ins_byte)
 {
     if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
 #ifndef IS_LOOKUP_NODE
@@ -842,7 +837,7 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
                                              unsigned int, const Peer&);
 
     InstructionHandler ins_handlers[]
-        = {&Node::ProcessStartPoW1,
+        = {&Node::ProcessStartPoW,
            &Node::ProcessDSBlock,
            &Node::ProcessSharding,
            &Node::ProcessSubmitTransaction,
@@ -889,7 +884,7 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
     }
 
 map<Node::NodeState, string> Node::NodeStateStrings
-    = {MAKE_LITERAL_PAIR(POW1_SUBMISSION),
+    = {MAKE_LITERAL_PAIR(POW_SUBMISSION),
        MAKE_LITERAL_PAIR(POW2_SUBMISSION),
        MAKE_LITERAL_PAIR(MICROBLOCK_CONSENSUS_PREP),
        MAKE_LITERAL_PAIR(MICROBLOCK_CONSENSUS),
@@ -907,4 +902,20 @@ string Node::GetStateString() const
     {
         return NodeStateStrings.at(m_state);
     }
+}
+
+map<Node::Action, string> Node::ActionStrings
+    = {MAKE_LITERAL_PAIR(STARTPOW),
+       MAKE_LITERAL_PAIR(STARTPOW2),
+       MAKE_LITERAL_PAIR(PROCESS_SHARDING),
+       MAKE_LITERAL_PAIR(PROCESS_MICROBLOCKCONSENSUS),
+       MAKE_LITERAL_PAIR(PROCESS_FINALBLOCK),
+       MAKE_LITERAL_PAIR(PROCESS_TXNBODY),
+       MAKE_LITERAL_PAIR(NUM_ACTIONS)};
+
+std::string Node::GetActionString(Action action) const
+{
+    return (ActionStrings.find(action) == ActionStrings.end())
+        ? "Unknown"
+        : ActionStrings.at(action);
 }

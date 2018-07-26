@@ -64,7 +64,7 @@ bool DirectoryService::VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
     {
         if (B2.at(index) == true)
         {
-            keys.push_back(kv.first);
+            keys.emplace_back(kv.first);
             count++;
         }
         index++;
@@ -105,7 +105,8 @@ bool DirectoryService::VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
 }
 #endif // IS_LOOKUP_NODE
 bool DirectoryService::ProcessMicroblockSubmission(
-    const vector<unsigned char>& message, unsigned int offset, const Peer& from)
+    [[gnu::unused]] const vector<unsigned char>& message,
+    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
 {
 #ifndef IS_LOOKUP_NODE
     // Message = [32-byte DS blocknum] [4-byte consensusid] [4-byte shard ID] [Tx microblock]
@@ -200,7 +201,7 @@ bool DirectoryService::ProcessMicroblockSubmission(
     }
 
     lock_guard<mutex> g(m_mutexMicroBlocks);
-    m_microBlocks.insert(microBlock);
+    m_microBlocks.emplace(microBlock);
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               m_microBlocks.size()

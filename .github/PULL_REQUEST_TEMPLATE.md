@@ -11,7 +11,6 @@
 
 ### Implementation
 <!-- Add more TODOs before "ready for review", if any  -->
-- [ ] implement ...
 - [ ] **ready for review**
 
 ### Integration Test (Core Team)

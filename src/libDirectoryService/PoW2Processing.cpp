@@ -167,7 +167,7 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
                          "Assume true as it has no impact.");
 
         // TODO: This need to be changed.
-        m_allPoWConns.insert(make_pair(key, peer));
+        m_allPoWConns.emplace(key, peer);
         return true;
     }
 
@@ -194,8 +194,8 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
             //lock(m_mutexAllPOW2, m_mutexAllPoWConns);
             //lock_guard<mutex> g(m_mutexAllPOW2, adopt_lock);
             //lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
-            m_allPoW2s.insert(make_pair(key, nonce));
-            m_allPoWConns.insert(make_pair(key, peer));
+            m_allPoW2s.emplace(key, nonce);
+            m_allPoWConns.emplace(key, peer);
         }
     }
     else
@@ -215,7 +215,8 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
 #endif // IS_LOOKUP_NODE
 
 bool DirectoryService::ProcessPoW2Submission(
-    const vector<unsigned char>& message, unsigned int offset, const Peer& from)
+    [[gnu::unused]] const vector<unsigned char>& message,
+    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
 {
 #ifndef IS_LOOKUP_NODE
     // Message = [32-byte block num] [4-byte listening port] [33-byte public key] [8-byte nonce] [32-byte resulting hash] [32-byte mixhash]

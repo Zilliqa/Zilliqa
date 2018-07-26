@@ -91,7 +91,7 @@ void Lookup::SetLookupNodes()
             inet_aton(v.second.get<string>("ip").c_str(), &ip_addr);
             Peer lookup_node((uint128_t)ip_addr.s_addr,
                              v.second.get<uint32_t>("port"));
-            m_lookupNodes.push_back(lookup_node);
+            m_lookupNodes.emplace_back(lookup_node);
         }
     }
 }
@@ -118,7 +118,7 @@ void Lookup::SendMessageToLookupNodes(
                                                 << ":"
                                                 << node.m_listenPortHost);
 
-        allLookupNodes.push_back(node);
+        allLookupNodes.emplace_back(node);
     }
 
     P2PComm::GetInstance().SendBroadcastMessage(allLookupNodes, message);
@@ -139,7 +139,7 @@ void Lookup::SendMessageToLookupNodesSerial(
                                                 << ":"
                                                 << node.m_listenPortHost);
 
-        allLookupNodes.push_back(node);
+        allLookupNodes.emplace_back(node);
     }
 
     P2PComm::GetInstance().SendMessage(allLookupNodes, message);
@@ -386,7 +386,7 @@ bool Lookup::SetDSCommitteInfo()
             inet_aton(v.second.get<string>("ip").c_str(), &ip_addr);
             Peer peer((uint128_t)ip_addr.s_addr,
                       v.second.get<unsigned int>("port"));
-            m_mediator.m_DSCommittee.push_back(make_pair(key, peer));
+            m_mediator.m_DSCommittee.emplace_back(make_pair(key, peer));
         }
     }
 
@@ -407,7 +407,8 @@ vector<Peer> Lookup::GetNodePeers()
 #endif // IS_LOOKUP_NODE
 
 bool Lookup::ProcessEntireShardingStructure(
-    const vector<unsigned char>& message, unsigned int offset, const Peer& from)
+    [[gnu::unused]] const vector<unsigned char>& message,
+    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
 {
     LOG_MARKER();
 
@@ -459,7 +460,7 @@ bool Lookup::ProcessEntireShardingStructure(
             return false;
         }
 
-        m_shards.push_back(map<PubKey, Peer>());
+        m_shards.emplace_back();
 
         // 4-byte shard size
         uint32_t shard_size = Serializable::GetNumber<uint32_t>(
@@ -497,10 +498,10 @@ bool Lookup::ProcessEntireShardingStructure(
 
             offset += IP_SIZE + PORT_SIZE;
 
-            shard.insert(make_pair(key, peer));
+            shard.emplace(key, peer);
 
-            m_nodesInNetwork.push_back(peer);
-            t_nodesInNetwork.insert(peer);
+            m_nodesInNetwork.emplace_back(peer);
+            t_nodesInNetwork.emplace(peer);
 
             LOG_GENERAL(INFO,
                         "[SHARD "
@@ -545,9 +546,9 @@ bool Lookup::ProcessEntireShardingStructure(
     return true;
 }
 
-bool Lookup::ProcessGetSeedPeersFromLookup(const vector<unsigned char>& message,
-                                           unsigned int offset,
-                                           const Peer& from)
+bool Lookup::ProcessGetSeedPeersFromLookup(
+    [[gnu::unused]] const vector<unsigned char>& message,
+    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
 {
     LOG_MARKER();
 
@@ -696,7 +697,7 @@ bool Lookup::ProcessGetDSInfoFromSeed(const vector<unsigned char>& message,
     // and ensure 2/3 of such identical message is received in order to move on.
 
     // vector<Peer> node;
-    // node.push_back(requestingNode);
+    // node.emplace_back(requestingNode);
 
     P2PComm::GetInstance().SendMessage(requestingNode, dsInfoMessage);
 
@@ -811,7 +812,7 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
     // and ensure 2/3 of such identical message is received in order to move on.
 
     // vector<Peer> node;
-    // node.push_back(requestingNode);
+    // node.emplace_back(requestingNode);
 
     P2PComm::GetInstance().SendMessage(requestingNode, dsBlockMessage);
 
@@ -864,7 +865,7 @@ bool Lookup::ProcessGetStateFromSeed(const vector<unsigned char>& message,
     // and ensure 2/3 of such identical message is received in order to move on.
 
     // vector<Peer> node;
-    // node.push_back(requestingNode);
+    // node.emplace_back(requestingNode);
 
     vector<unsigned char> setStateMessage
         = {MessageType::LOOKUP, LookupInstructionType::SETSTATEFROMSEED};
@@ -985,7 +986,7 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
     // and ensure 2/3 of such identical message is received in order to move on.
 
     // vector<Peer> node;
-    // node.push_back(requestingNode);
+    // node.emplace_back(requestingNode);
 
     P2PComm::GetInstance().SendMessage(requestingNode, txBlockMessage);
 
@@ -1040,7 +1041,7 @@ bool Lookup::ProcessGetTxBodyFromSeed(const vector<unsigned char>& message,
     // and ensure 2/3 of such identical message is received in order to move on.
 
     // vector<Peer> node;
-    // node.push_back(requestingNode);
+    // node.emplace_back(requestingNode);
 
     P2PComm::GetInstance().SendMessage(requestingNode, txBodyMessage);
 
@@ -1080,7 +1081,7 @@ bool Lookup::ProcessGetNetworkId(const vector<unsigned char>& message,
     // and ensure 2/3 of such identical message is received in order to move on.
 
     // vector<Peer> node;
-    // node.push_back(requestingNode);
+    // node.emplace_back(requestingNode);
 
     P2PComm::GetInstance().SendMessage(requestingNode, networkIdMessage);
 
@@ -1088,9 +1089,9 @@ bool Lookup::ProcessGetNetworkId(const vector<unsigned char>& message,
     // #endif // IS_LOOKUP_NODE
 }
 
-bool Lookup::ProcessSetSeedPeersFromLookup(const vector<unsigned char>& message,
-                                           unsigned int offset,
-                                           const Peer& from)
+bool Lookup::ProcessSetSeedPeersFromLookup(
+    [[gnu::unused]] const vector<unsigned char>& message,
+    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
 {
 #ifndef IS_LOOKUP_NODE
     // Message = [Peer info][Peer info]... SEED_PEER_LIST_SIZE times
@@ -1113,7 +1114,7 @@ bool Lookup::ProcessSetSeedPeersFromLookup(const vector<unsigned char>& message,
             return false;
         }
 
-        m_seedNodes.push_back(peer);
+        m_seedNodes.emplace_back(peer);
         LOG_GENERAL(INFO, "Peer " + to_string(i) + ": " << string(peer));
         offset += (IP_SIZE + PORT_SIZE);
     }
@@ -1156,6 +1157,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
     for (unsigned int i = 0; i < numDSPeers; i++)
     {
         PubKey pubkey(message, offset);
+
         offset += PUB_KEY_SIZE;
 
         Peer peer(message, offset);
@@ -1166,7 +1168,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
             peer = Peer();
         }
 
-        m_mediator.m_DSCommittee.push_back(make_pair(pubkey, peer));
+        m_mediator.m_DSCommittee.emplace_back(make_pair(pubkey, peer));
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "ProcessSetDSInfoFromSeed recvd peer " << i << ": " << peer);
@@ -1440,7 +1442,8 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
 }
 
 bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
-                                     unsigned int offset, const Peer& from)
+                                     unsigned int offset,
+                                     [[gnu::unused]] const Peer& from)
 {
     bool ret = true;
     // Message = [TRAN_HASH_SIZE txHashStr][Transaction::GetSerializedSize() txbody]
@@ -1489,7 +1492,7 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
             {
                 if (cv_dsInfoUpdate.wait_for(
                         lock,
-                        chrono::seconds(POW1_WINDOW_IN_SECONDS
+                        chrono::seconds(POW_WINDOW_IN_SECONDS
                                         + BACKUP_POW2_WINDOW_IN_SECONDS))
                     == std::cv_status::timeout)
                 {
@@ -1538,7 +1541,8 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
 }
 
 bool Lookup::ProcessSetTxBodyFromSeed(const vector<unsigned char>& message,
-                                      unsigned int offset, const Peer& from)
+                                      unsigned int offset,
+                                      [[gnu::unused]] const Peer& from)
 {
     LOG_MARKER();
 
@@ -1691,8 +1695,9 @@ bool Lookup::InitMining()
 }
 #endif // IS_LOOKUP_NODE
 
-bool Lookup::ProcessSetLookupOffline(const vector<unsigned char>& message,
-                                     unsigned int offset, const Peer& from)
+bool Lookup::ProcessSetLookupOffline(
+    [[gnu::unused]] const vector<unsigned char>& message,
+    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
 {
     LOG_MARKER();
 #ifdef IS_LOOKUP_NODE
@@ -1715,7 +1720,7 @@ bool Lookup::ProcessSetLookupOffline(const vector<unsigned char>& message,
                               requestingNode);
         if (iter != m_lookupNodes.end())
         {
-            m_lookupNodesOffline.push_back(requestingNode);
+            m_lookupNodesOffline.emplace_back(requestingNode);
             m_lookupNodes.erase(iter);
         }
         else
@@ -1728,8 +1733,9 @@ bool Lookup::ProcessSetLookupOffline(const vector<unsigned char>& message,
     return true;
 }
 
-bool Lookup::ProcessSetLookupOnline(const vector<unsigned char>& message,
-                                    unsigned int offset, const Peer& from)
+bool Lookup::ProcessSetLookupOnline(
+    [[gnu::unused]] const vector<unsigned char>& message,
+    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
 {
     LOG_MARKER();
 #ifdef IS_LOOKUP_NODE
@@ -1752,7 +1758,7 @@ bool Lookup::ProcessSetLookupOnline(const vector<unsigned char>& message,
                               m_lookupNodesOffline.end(), requestingNode);
         if (iter != m_lookupNodes.end())
         {
-            m_lookupNodes.push_back(requestingNode);
+            m_lookupNodes.emplace_back(requestingNode);
             m_lookupNodesOffline.erase(iter);
         }
         else
@@ -1766,8 +1772,9 @@ bool Lookup::ProcessSetLookupOnline(const vector<unsigned char>& message,
     return true;
 }
 
-bool Lookup::ProcessGetOfflineLookups(const std::vector<unsigned char>& message,
-                                      unsigned int offset, const Peer& from)
+bool Lookup::ProcessGetOfflineLookups(
+    [[gnu::unused]] const std::vector<unsigned char>& message,
+    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
 {
     LOG_MARKER();
 #ifdef IS_LOOKUP_NODE
@@ -1786,7 +1793,7 @@ bool Lookup::ProcessGetOfflineLookups(const std::vector<unsigned char>& message,
     LOG_GENERAL(INFO, requestingNode);
 
     // vector<Peer> node;
-    // node.push_back(requestingNode);
+    // node.emplace_back(requestingNode);
 
     // curLookupMessage = [num_offline_lookups][LookupPeer][LookupPeer]... num_offline_lookups times
     vector<unsigned char> offlineLookupsMessage
@@ -1816,8 +1823,9 @@ bool Lookup::ProcessGetOfflineLookups(const std::vector<unsigned char>& message,
     return true;
 }
 
-bool Lookup::ProcessSetOfflineLookups(const std::vector<unsigned char>& message,
-                                      unsigned int offset, const Peer& from)
+bool Lookup::ProcessSetOfflineLookups(
+    [[gnu::unused]] const std::vector<unsigned char>& message,
+    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
 {
     // Message = [num_offline_lookups][LookupPeer][LookupPeer]... num_offline_lookups times
     LOG_MARKER();
@@ -1850,7 +1858,7 @@ bool Lookup::ProcessSetOfflineLookups(const std::vector<unsigned char>& message,
         auto iter = std::find(m_lookupNodes.begin(), m_lookupNodes.end(), peer);
         if (iter != m_lookupNodes.end())
         {
-            m_lookupNodesOffline.push_back(peer);
+            m_lookupNodesOffline.emplace_back(peer);
             m_lookupNodes.erase(iter);
 
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -1899,7 +1907,7 @@ Peer Lookup::GetLookupPeerToRsync()
     {
         if (p != m_mediator.m_selfPeer)
         {
-            t_Peers.push_back(p);
+            t_Peers.emplace_back(p);
         }
     }
 
@@ -1951,7 +1959,7 @@ bool Lookup::GetMyLookupOffline()
                           m_mediator.m_selfPeer);
     if (iter != m_lookupNodes.end())
     {
-        m_lookupNodesOffline.push_back(m_mediator.m_selfPeer);
+        m_lookupNodesOffline.emplace_back(m_mediator.m_selfPeer);
         m_lookupNodes.erase(iter);
     }
     else
@@ -1973,7 +1981,7 @@ bool Lookup::GetMyLookupOnline()
     if (iter != m_lookupNodesOffline.end())
     {
         SendMessageToLookupNodesSerial(ComposeGetLookupOnlineMessage());
-        m_lookupNodes.push_back(m_mediator.m_selfPeer);
+        m_lookupNodes.emplace_back(m_mediator.m_selfPeer);
         m_lookupNodesOffline.erase(iter);
     }
     else
