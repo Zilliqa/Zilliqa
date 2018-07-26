@@ -315,141 +315,10 @@ vector<Peer> DirectoryService::GetBroadcastList(
     return vector<Peer>();
 }
 
-void DirectoryService::RequestAllPoWConn()
-{
-    LOG_MARKER();
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "I am requeesting AllPowConn");
-    // message: [listening port]
-
-    // In this implementation, we are only requesting it from ds leader only.
-    vector<unsigned char> requestAllPoWConnMsg
-        = {MessageType::DIRECTORY, DSInstructionType::AllPoWConnRequest};
-    unsigned int cur_offset = MessageOffset::BODY;
-
-    Serializable::SetNumber<uint32_t>(requestAllPoWConnMsg, cur_offset,
-                                      m_mediator.m_selfPeer.m_listenPortHost,
-                                      sizeof(uint32_t));
-    cur_offset += sizeof(uint32_t);
-
-    P2PComm::GetInstance().SendMessage(m_mediator.m_DSCommittee.front().second,
-                                       requestAllPoWConnMsg);
-
-    // TODO: Request from a total of 20 ds members
-}
-
-#endif // IS_LOOKUP_NODE
-
-// Current this is only used by ds. But ideally, 20 ds nodes should
-bool DirectoryService::ProcessAllPoWConnRequest(
-    const vector<unsigned char>& message, unsigned int offset, const Peer& from)
-{
-    LOG_MARKER();
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "I am sending AllPowConn to requester");
-
-    uint32_t requesterListeningPort
-        = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
-
-    //  Contruct the message and send to the requester
-    //  Message: [size of m_allPowConn] [pub key, peer][pub key, peer] ....
-    vector<unsigned char> allPowConnMsg
-        = {MessageType::DIRECTORY, DSInstructionType::AllPoWConnResponse};
-    unsigned int cur_offset = MessageOffset::BODY;
-
-    Serializable::SetNumber<uint32_t>(allPowConnMsg, cur_offset,
-                                      m_allPoWConns.size(), sizeof(uint32_t));
-    cur_offset += sizeof(uint32_t);
-
-    unsigned int offset_to_increment;
-    for (auto& kv : m_allPoWConns)
-    {
-        if (kv.first == m_mediator.m_selfKey.second)
-        {
-            m_mediator.m_selfKey.second.Serialize(allPowConnMsg, cur_offset);
-            cur_offset += PUB_KEY_SIZE;
-            offset_to_increment
-                = m_mediator.m_selfPeer.Serialize(allPowConnMsg, cur_offset);
-            cur_offset += offset_to_increment;
-        }
-        else
-        {
-            kv.first.Serialize(allPowConnMsg, cur_offset);
-            cur_offset += PUB_KEY_SIZE;
-            offset_to_increment
-                = kv.second.Serialize(allPowConnMsg, cur_offset);
-            cur_offset += offset_to_increment;
-        }
-    }
-
-    Peer peer(from.m_ipAddress, requesterListeningPort);
-    P2PComm::GetInstance().SendMessage(peer, allPowConnMsg);
-    return true;
-}
-
-bool DirectoryService::ProcessAllPoWConnResponse(
-    const vector<unsigned char>& message, unsigned int offset,
-    [[gnu::unused]] const Peer& from)
-{
-    LOG_MARKER();
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Updating AllPowConn");
-
-    unsigned int cur_offset = offset;
-    // 32-byte block number
-    uint32_t sizeeOfAllPowConn = Serializable::GetNumber<uint32_t>(
-        message, cur_offset, sizeof(uint32_t));
-    cur_offset += sizeof(uint32_t);
-
-    std::map<PubKey, Peer> allPowConn;
-
-    for (uint32_t i = 0; i < sizeeOfAllPowConn; i++)
-    {
-        // PubKey key(message, cur_offset);
-        PubKey key;
-        if (key.Deserialize(message, cur_offset) != 0)
-        {
-            LOG_GENERAL(WARNING, "We failed to deserialize PubKey.");
-            return false;
-        }
-        cur_offset += PUB_KEY_SIZE;
-
-        // Peer peer(message, cur_offset);
-        Peer peer;
-        if (peer.Deserialize(message, cur_offset) != 0)
-        {
-            LOG_GENERAL(WARNING, "We failed to deserialize Peer.");
-            return false;
-        }
-
-        cur_offset += IP_SIZE + PORT_SIZE;
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "updating = " << peer.GetPrintableIPAddress() << ":"
-                                << peer.m_listenPortHost);
-
-        if (m_allPoWConns.find(key) == m_allPoWConns.end())
-        {
-            m_allPoWConns.emplace(key, peer);
-        }
-    }
-
-    {
-        std::unique_lock<std::mutex> lk(m_MutexCVAllPowConn);
-        m_hasAllPoWconns = true;
-    }
-    cv_allPowConns.notify_all();
-    return true;
-}
-
-#ifndef IS_LOOKUP_NODE
-
 bool DirectoryService::CleanVariables()
 {
     LOG_MARKER();
-    {
-        std::lock_guard<mutex> lock(m_MutexCVAllPowConn);
-        m_hasAllPoWconns = true;
-    }
+
     m_shards.clear();
     m_publicKeyToShardIdMap.clear();
     m_allPoWConns.clear();
@@ -563,8 +432,6 @@ bool DirectoryService::Execute(const vector<unsigned char>& message,
            &DirectoryService::ProcessShardingConsensus,
            &DirectoryService::ProcessMicroblockSubmission,
            &DirectoryService::ProcessFinalBlockConsensus,
-           &DirectoryService::ProcessAllPoWConnRequest,
-           &DirectoryService::ProcessAllPoWConnResponse,
            &DirectoryService::ProcessViewChangeConsensus};
 #else
     InstructionHandler ins_handlers[]
@@ -574,9 +441,7 @@ bool DirectoryService::Execute(const vector<unsigned char>& message,
            &DirectoryService::ProcessPoW2Submission,
            &DirectoryService::ProcessShardingConsensus,
            &DirectoryService::ProcessMicroblockSubmission,
-           &DirectoryService::ProcessFinalBlockConsensus,
-           &DirectoryService::ProcessAllPoWConnRequest,
-           &DirectoryService::ProcessAllPoWConnResponse};
+           &DirectoryService::ProcessFinalBlockConsensus};
 #endif // IS_LOOKUP_NODE
 
     const unsigned char ins_byte = message.at(offset);
