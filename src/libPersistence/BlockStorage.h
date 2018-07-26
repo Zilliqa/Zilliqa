@@ -55,7 +55,7 @@ class BlockStorage : public Singleton<BlockStorage>
 #endif // IS_LOOKUP_NODE
               {};
     ~BlockStorage() = default;
-    bool PutBlock(const boost::multiprecision::uint256_t& blockNum,
+    bool PutBlock(const uint64_t& blockNum,
                   const std::vector<unsigned char>& block,
                   const BlockType& blockType);
 
@@ -78,7 +78,7 @@ public:
 
 #ifndef IS_LOOKUP_NODE
     /// Adds a txBody database for a new DSEpoch.
-    bool PushBackTxBodyDB(const boost::multiprecision::uint256_t& blockNum);
+    bool PushBackTxBodyDB(const uint64_t& blockNum);
 
     /// Pop the txBody database at front.
     bool PopFrontTxBodyDB(bool mandatory = false);
@@ -88,11 +88,11 @@ public:
 #endif // IS_LOOKUP_NODE
 
     /// Adds a DS block to storage.
-    bool PutDSBlock(const boost::multiprecision::uint256_t& blockNum,
+    bool PutDSBlock(const uint64_t& blockNum,
                     const std::vector<unsigned char>& block);
 
     /// Adds a Tx block to storage.
-    bool PutTxBlock(const boost::multiprecision::uint256_t& blockNum,
+    bool PutTxBlock(const uint64_t& blockNum,
                     const std::vector<unsigned char>& block);
 
     // /// Adds a micro block to storage.
@@ -103,12 +103,10 @@ public:
                    const std::vector<unsigned char>& body);
 
     /// Retrieves the requested DS block.
-    bool GetDSBlock(const boost::multiprecision::uint256_t& blocknum,
-                    DSBlockSharedPtr& block);
+    bool GetDSBlock(const uint64_t& blocknum, DSBlockSharedPtr& block);
 
     /// Retrieves the requested Tx block.
-    bool GetTxBlock(const boost::multiprecision::uint256_t& blocknum,
-                    TxBlockSharedPtr& block);
+    bool GetTxBlock(const uint64_t& blocknum, TxBlockSharedPtr& block);
 
     // /// Retrieves the requested Micro block
     // bool GetMicroBlock(const dev::h256 & key, MicroBlockSharedPtr & block);
@@ -117,10 +115,10 @@ public:
     bool GetTxBody(const dev::h256& key, TxBodySharedPtr& body);
 
     /// Deletes the requested DS block
-    bool DeleteDSBlock(const boost::multiprecision::uint256_t& blocknum);
+    bool DeleteDSBlock(const uint64_t& blocknum);
 
     /// Deletes the requested Tx block
-    bool DeleteTxBlock(const boost::multiprecision::uint256_t& blocknum);
+    bool DeleteTxBlock(const uint64_t& blocknum);
 
     // /// Deletes the requested Micro block
     // bool DeleteMicroBlock(const dev::h256 & key);

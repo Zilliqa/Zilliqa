@@ -338,10 +338,13 @@ bool DirectoryService::RunConsensusOnShardingWhenDSPrimary()
     this_thread::sleep_for(
         chrono::seconds(LEADER_SHARDING_PREPARATION_IN_SECONDS));
 
-    LOG_STATE("[SHCON][" << std::setw(15) << std::left
-                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                         << "][" << m_mediator.m_txBlockChain.GetBlockCount()
-                         << "] BGIN");
+    LOG_STATE(
+        "[SHCON]["
+        << std::setw(15) << std::left
+        << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
+            + 1
+        << "] BGIN");
 
     cl->StartConsensus(sharding_structure, sharding_structure.size());
 
@@ -460,12 +463,12 @@ bool DirectoryService::ShardingValidator(
 
     // [4-byte num of committees]
     // [4-byte committee size]
-    //   [33-byte public key] [16-byte ip] [4-byte port] <- IP and port ignored in this version
-    //   [33-byte public key] [16-byte ip] [4-byte port] <- IP and port ignored in this version
+    //   [33-byte public key] [16-byte ip] [4-byte port]
+    //   [33-byte public key] [16-byte ip] [4-byte port]
     //   ...
     // [4-byte committee size]
-    //   [33-byte public key] [16-byte ip] [4-byte port] <- IP and port ignored in this version
-    //   [33-byte public key] [16-byte ip] [4-byte port] <- IP and port ignored in this version
+    //   [33-byte public key] [16-byte ip] [4-byte port]
+    //   [33-byte public key] [16-byte ip] [4-byte port]
     //   ...
     // ...
     lock_guard<mutex> g(m_mutexAllPoWConns);
@@ -499,48 +502,39 @@ bool DirectoryService::ShardingValidator(
             PubKey memberPubkey(sharding_structure, curr_offset);
             curr_offset += PUB_KEY_SIZE;
 
-            curr_offset
-                += IP_SIZE + PORT_SIZE; // IP and port ignored in this version
+            Peer memberPeer(sharding_structure, curr_offset);
+            curr_offset += IP_SIZE + PORT_SIZE;
 
-            auto memberPeer = m_allPoWConns.find(memberPubkey);
-            if (memberPeer == m_allPoWConns.end())
+            auto storedMember = m_allPoWConns.find(memberPubkey);
+
+            // I know the member but the member IP given by the leader is different!
+            if (storedMember != m_allPoWConns.end())
             {
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "Shard node not inside m_allPoWConns. "
-                              << memberPeer->second.GetPrintableIPAddress()
-                              << " Port: "
-                              << memberPeer->second.m_listenPortHost);
-
-                m_hasAllPoWconns = false;
-                std::unique_lock<std::mutex> lk(m_MutexCVAllPowConn);
-
-                RequestAllPoWConn();
-                while (!m_hasAllPoWconns)
+                if (storedMember->second != memberPeer)
                 {
-                    cv_allPowConns.wait(lk);
-                }
-                memberPeer = m_allPoWConns.find(memberPubkey);
-
-                if (memberPeer == m_allPoWConns.end())
-                {
-                    LOG_EPOCH(INFO,
-                              to_string(m_mediator.m_currentEpochNum).c_str(),
-                              "Sharding validator error");
-                    // throw exception();
+                    LOG_EPOCH(
+                        WARNING,
+                        to_string(m_mediator.m_currentEpochNum).c_str(),
+                        "WARNING: Why is the IP of the member different from "
+                        "what I have in m_allPoWConns???");
                     return false;
                 }
             }
+            // I don't know the member -> store the IP given by the leader
+            else
+            {
+                m_allPoWConns.emplace(memberPubkey, memberPeer);
+            }
 
             // To-do: Should we check for a public key that's been assigned to more than 1 shard?
-            m_shards.back().emplace(memberPubkey, memberPeer->second);
+            m_shards.back().emplace(memberPubkey, memberPeer);
             m_publicKeyToShardIdMap.emplace(memberPubkey, i);
 
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       " PubKey = "
                           << DataConversion::SerializableToHexStr(memberPubkey)
-                          << " at "
-                          << memberPeer->second.GetPrintableIPAddress()
-                          << " Port: " << memberPeer->second.m_listenPortHost);
+                          << " at " << memberPeer.GetPrintableIPAddress()
+                          << " Port: " << memberPeer.m_listenPortHost);
         }
     }
 

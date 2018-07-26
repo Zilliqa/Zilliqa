@@ -67,8 +67,7 @@ public:
 
     /// Triggers the proof-of-work mining.
     ethash_mining_result_t
-    PoWMine(const boost::multiprecision::uint256_t& blockNum,
-            uint8_t difficulty,
+    PoWMine(const uint64_t& blockNum, uint8_t difficulty,
             const std::array<unsigned char, UINT256_SIZE>& rand1,
             const std::array<unsigned char, UINT256_SIZE>& rand2,
             const boost::multiprecision::uint128_t& ipAddr,
@@ -78,8 +77,7 @@ public:
     void StopMining();
 
     /// Verifies a proof-of-work submission.
-    bool PoWVerify(const boost::multiprecision::uint256_t& blockNum,
-                   uint8_t difficulty,
+    bool PoWVerify(const uint64_t& blockNum, uint8_t difficulty,
                    const std::array<unsigned char, UINT256_SIZE>& rand1,
                    const std::array<unsigned char, UINT256_SIZE>& rand2,
                    const boost::multiprecision::uint128_t& ipAddr,

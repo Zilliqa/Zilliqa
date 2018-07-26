@@ -141,15 +141,13 @@ void Node::Prepare(bool runInitializeGenesisBlocks)
 {
     LOG_MARKER();
     m_mediator.m_currentEpochNum
-        = (uint64_t)m_mediator.m_txBlockChain.GetLastBlock()
-              .GetHeader()
-              .GetBlockNum()
+        = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
         + 1;
     m_mediator.UpdateDSBlockRand(runInitializeGenesisBlocks);
     m_mediator.UpdateTxBlockRand(runInitializeGenesisBlocks);
     SetState(POW_SUBMISSION);
     POW::GetInstance().EthashConfigureLightClient(
-        (uint64_t)m_mediator.m_dsBlockChain.GetBlockCount());
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1);
 }
 
 bool Node::StartRetrieveHistory()

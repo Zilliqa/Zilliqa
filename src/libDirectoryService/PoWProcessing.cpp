@@ -62,7 +62,7 @@ bool DirectoryService::VerifyPoWSubmission(
     const vector<unsigned char>& message, const Peer& from, PubKey& key,
     unsigned int curr_offset, uint32_t& portNo, uint64_t& nonce,
     array<unsigned char, 32>& rand1, array<unsigned char, 32>& rand2,
-    unsigned int& difficulty, uint256_t& block_num)
+    unsigned int& difficulty, uint64_t& block_num)
 {
     // 8-byte nonce
     nonce = Serializable::GetNumber<uint64_t>(message, curr_offset,
@@ -105,7 +105,9 @@ bool DirectoryService::VerifyPoWSubmission(
     difficulty
         = POW_DIFFICULTY; // TODO: Need to get the latest blocknum, diff, rand1, rand2
     // Verify nonce
-    block_num = m_mediator.m_dsBlockChain.GetBlockCount();
+    block_num
+        = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()
+        + 1;
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "dsblock_num            = " << block_num);
 
@@ -126,10 +128,10 @@ bool DirectoryService::ParseMessageAndVerifyPOW(
 {
     unsigned int curr_offset = offset;
 
-    // 32-byte block number
-    uint256_t DSBlockNum = Serializable::GetNumber<uint256_t>(
-        message, curr_offset, UINT256_SIZE);
-    curr_offset += UINT256_SIZE;
+    // 8-byte block number
+    uint64_t DSBlockNum = Serializable::GetNumber<uint64_t>(
+        message, curr_offset, sizeof(uint64_t));
+    curr_offset += sizeof(uint64_t);
 
     // Check block number
     if (!CheckWhetherDSBlockIsFresh(DSBlockNum))
@@ -191,7 +193,7 @@ bool DirectoryService::ParseMessageAndVerifyPOW(
     array<unsigned char, 32> rand1;
     array<unsigned char, 32> rand2;
     unsigned int difficulty;
-    uint256_t block_num;
+    uint64_t block_num;
     bool result
         = VerifyPoWSubmission(message, from, key, curr_offset, portNo, nonce,
                               rand1, rand2, difficulty, block_num);
@@ -249,7 +251,7 @@ bool DirectoryService::ProcessPoWSubmission(
     [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
 {
 #ifndef IS_LOOKUP_NODE
-    // Message = [32-byte block number] [4-byte listening port] [33-byte public key] [8-byte nonce] [32-byte resulting hash]
+    // Message = [8-byte block number] [4-byte listening port] [33-byte public key] [8-byte nonce] [32-byte resulting hash]
     //[32-byte mixhash] [64-byte Sign]
     LOG_MARKER();
 
@@ -278,9 +280,9 @@ bool DirectoryService::ProcessPoWSubmission(
 
     if (IsMessageSizeInappropriate(
             message.size(), offset,
-            UINT256_SIZE + sizeof(uint32_t) + PUB_KEY_SIZE + sizeof(uint64_t)
-                + BLOCK_HASH_SIZE + BLOCK_HASH_SIZE + SIGNATURE_CHALLENGE_SIZE
-                + SIGNATURE_RESPONSE_SIZE))
+            sizeof(uint64_t) + sizeof(uint32_t) + PUB_KEY_SIZE
+                + sizeof(uint64_t) + BLOCK_HASH_SIZE + BLOCK_HASH_SIZE
+                + SIGNATURE_CHALLENGE_SIZE + SIGNATURE_RESPONSE_SIZE))
     {
         LOG_GENERAL(WARNING, "Pow message size Inappropriate ");
         return false;

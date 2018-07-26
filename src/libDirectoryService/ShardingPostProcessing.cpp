@@ -108,19 +108,19 @@ void DirectoryService::SendingShardingStructureToShard(
 {
     LOG_MARKER();
 
-    // Message = [32-byte DS blocknum] [4-byte shard ID] [4-byte committee size] [33-byte public key]
+    // Message = [8-byte DS blocknum] [4-byte shard ID] [4-byte committee size] [33-byte public key]
     // [16-byte ip] [4-byte port] ... (all nodes; first entry is leader)
     vector<unsigned char> sharding_message
         = {MessageType::NODE, NodeInstructionType::SHARDING};
     unsigned int curr_offset = MessageOffset::BODY;
 
     // Todo: Any better way to do it?
-    uint256_t latest_block_num_in_blockchain
-        = m_mediator.m_dsBlockChain.GetBlockCount() - 1;
-    Serializable::SetNumber<uint256_t>(sharding_message, curr_offset,
-                                       latest_block_num_in_blockchain,
-                                       UINT256_SIZE);
-    curr_offset += UINT256_SIZE;
+    uint64_t latest_block_num_in_blockchain
+        = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+    Serializable::SetNumber<uint64_t>(sharding_message, curr_offset,
+                                      latest_block_num_in_blockchain,
+                                      sizeof(uint64_t));
+    curr_offset += sizeof(uint64_t);
 
     // 4-byte shard ID - get from the leader's info in m_publicKeyToShardIdMap
     Serializable::SetNumber<uint32_t>(
@@ -176,7 +176,10 @@ void DirectoryService::SendingShardingStructureToShard(
         << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6) << "]["
         << DataConversion::charArrToHexStr(m_mediator.m_dsBlockRand)
                .substr(0, 6)
-        << "][" << m_mediator.m_txBlockChain.GetBlockCount() << "] SHMSG");
+        << "]["
+        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
+            + 1
+        << "] SHMSG");
 
     P2PComm::GetInstance().SendBroadcastMessage(shard_peers, sharding_message);
     p++;
@@ -316,7 +319,11 @@ bool DirectoryService::ProcessShardingConsensus(
             LOG_STATE("[SHCON]["
                       << std::setw(15) << std::left
                       << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-                      << m_mediator.m_txBlockChain.GetBlockCount() << "] DONE");
+                      << m_mediator.m_txBlockChain.GetLastBlock()
+                              .GetHeader()
+                              .GetBlockNum()
+                          + 1
+                      << "] DONE");
         }
 
         // TODO: Refine this
@@ -341,8 +348,10 @@ bool DirectoryService::ProcessShardingConsensus(
         LOG_STATE("[SHSTU][" << setw(15) << left
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
                              << "]["
-                             << m_mediator.m_txBlockChain.GetBlockCount()
-                             << "] BEFORE SENDING SHARDING STRUCTURE");
+                             << m_mediator.m_txBlockChain.GetLastBlock()
+                                    .GetHeader()
+                                    .GetBlockNum()
+                      + 1 << "] BEFORE SENDING SHARDING STRUCTURE");
 
         // Too few target shards - avoid asking all DS clusters to send
         if ((my_DS_cluster_num + 1) <= m_shards.size())
@@ -359,8 +368,10 @@ bool DirectoryService::ProcessShardingConsensus(
         LOG_STATE("[SHSTU][" << setw(15) << left
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
                              << "]["
-                             << m_mediator.m_txBlockChain.GetBlockCount()
-                             << "] AFTER SENDING SHARDING STRUCTURE");
+                             << m_mediator.m_txBlockChain.GetLastBlock()
+                                    .GetHeader()
+                                    .GetBlockNum()
+                      + 1 << "] AFTER SENDING SHARDING STRUCTURE");
 
         lock_guard<mutex> g(m_mutexAllPOW2);
         m_allPoW2s.clear();
