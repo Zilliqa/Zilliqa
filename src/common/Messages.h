@@ -49,9 +49,7 @@ enum DSInstructionType : unsigned char
     SHARDINGCONSENSUS = 0x04,
     MICROBLOCKSUBMISSION = 0x05,
     FINALBLOCKCONSENSUS = 0x06,
-    AllPoWConnRequest = 0x07,
-    AllPoWConnResponse = 0x08,
-    VIEWCHANGECONSENSUS = 0X09
+    VIEWCHANGECONSENSUS = 0X07
 };
 
 enum NodeInstructionType : unsigned char
