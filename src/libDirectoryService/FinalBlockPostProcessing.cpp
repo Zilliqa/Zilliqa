@@ -323,11 +323,6 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
 
     m_allPoWConns.clear();
 
-    // Assumption for now: New round of PoW done after every final block
-    // Reset state to be ready to accept new PoW submissions
-    SetState(POW_SUBMISSION);
-    cv_POWSubmission.notify_all();
-
     auto func = [this]() mutable -> void {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "START OF a new EPOCH");
@@ -335,6 +330,9 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "[PoW needed]");
+
+            SetState(POW_SUBMISSION);
+            cv_POWSubmission.notify_all();
 
             POW::GetInstance().EthashConfigureLightClient(
                 (uint64_t)m_mediator.m_dsBlockChain
