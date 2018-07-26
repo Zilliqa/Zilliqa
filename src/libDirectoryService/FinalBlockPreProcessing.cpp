@@ -208,11 +208,13 @@ void DirectoryService::ComposeFinalBlockCore()
         vector<MicroBlockHashSet>(microBlockHashes), vector<uint32_t>(shardIDs),
         CoSignatures(m_mediator.m_DSCommittee.size())));
 
-    LOG_STATE("[STATS][" << std::setw(15) << std::left
-                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                         << "][" << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
-                         << "][" << m_finalBlock->GetHeader().GetNumTxs()
-                         << "] FINAL");
+    LOG_STATE(
+        "[STATS]["
+        << std::setw(15) << std::left
+        << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
+            + 1
+        << "][" << m_finalBlock->GetHeader().GetNumTxs() << "] FINAL");
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Final block proposed with "
@@ -323,10 +325,13 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
 
     if (m_mode == PRIMARY_DS)
     {
-        LOG_STATE("[FBCON]["
-                  << setw(15) << left
-                  << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-                  << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1 << "] BGIN");
+        LOG_STATE("[FBCON][" << setw(15) << left
+                             << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                             << "]["
+                             << m_mediator.m_txBlockChain.GetLastBlock()
+                                    .GetHeader()
+                                    .GetBlockNum()
+                      + 1 << "] BGIN");
     }
 
     cl->StartConsensus(finalBlockMessage, TxBlockHeader::SIZE);
