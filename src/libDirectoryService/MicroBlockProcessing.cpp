@@ -109,7 +109,7 @@ bool DirectoryService::ProcessMicroblockSubmission(
     [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
 {
 #ifndef IS_LOOKUP_NODE
-    // Message = [32-byte DS blocknum] [4-byte consensusid] [4-byte shard ID] [Tx microblock]
+    // Message = [8-byte DS blocknum] [4-byte consensusid] [4-byte shard ID] [Tx microblock]
 
     LOG_MARKER();
 
@@ -121,7 +121,7 @@ bool DirectoryService::ProcessMicroblockSubmission(
     }
 
     if (IsMessageSizeInappropriate(message.size(), offset,
-                                   UINT256_SIZE + sizeof(uint32_t)
+                                   sizeof(uint64_t) + sizeof(uint32_t)
                                        + sizeof(uint32_t)
                                        + MicroBlock::GetMinSize()))
     {
@@ -130,10 +130,10 @@ bool DirectoryService::ProcessMicroblockSubmission(
 
     unsigned int curr_offset = offset;
 
-    // 32-byte block number
-    uint256_t DSBlockNum = Serializable::GetNumber<uint256_t>(
-        message, curr_offset, UINT256_SIZE);
-    curr_offset += UINT256_SIZE;
+    // 8-byte block number
+    uint64_t DSBlockNum = Serializable::GetNumber<uint64_t>(
+        message, curr_offset, sizeof(uint64_t));
+    curr_offset += sizeof(uint64_t);
 
     // Check block number
     if (!CheckWhetherDSBlockIsFresh(DSBlockNum + 1))
