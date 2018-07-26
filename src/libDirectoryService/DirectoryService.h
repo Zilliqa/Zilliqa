@@ -69,6 +69,9 @@ class DirectoryService : public Executable, public Broadcastable
 
     // Transaction sharing assignments
     std::vector<unsigned char> m_txnSharingMessage;
+    std::vector<Peer> m_DSReceivers;
+    std::vector<std::vector<Peer>> m_shardReceivers;
+    std::vector<std::vector<Peer>> m_shardSenders;
 
     std::mutex m_MutexScheduleFinalBlockConsensus;
     std::condition_variable cv_scheduleFinalBlockConsensus;
@@ -190,6 +193,7 @@ class DirectoryService : public Executable, public Broadcastable
     // PoW2 (sharding) consensus functions
     void RunConsensusOnSharding();
     void ComputeSharding();
+    void ComputeTxnSharingAssignments();
 
     // internal calls from RunConsensusOnDSBlock
     bool RunConsensusOnDSBlockWhenDSPrimary();
@@ -231,8 +235,6 @@ class DirectoryService : public Executable, public Broadcastable
     vector<unsigned char> ComposeFinalBlockMessage();
     bool ParseMessageAndVerifyPOW(const vector<unsigned char>& message,
                                   unsigned int offset, const Peer& from);
-    void AppendSharingSetupToShardingStructure(
-        vector<unsigned char>& finalBlockMessage, unsigned int curr_offset);
     bool CheckWhetherDSBlockIsFresh(const uint64_t dsblock_num);
     bool CheckWhetherMaxSubmissionsReceived(Peer peer, PubKey key);
     bool VerifyPoWSubmission(const vector<unsigned char>& message,

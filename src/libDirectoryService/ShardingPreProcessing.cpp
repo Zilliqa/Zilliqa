@@ -88,104 +88,64 @@ void DirectoryService::ComputeSharding()
     }
 }
 
-void DirectoryService::AppendSharingSetupToShardingStructure(
-    vector<unsigned char>& sharding_structure, unsigned int curr_offset)
+void DirectoryService::ComputeTxnSharingAssignments()
 {
-    // Transaction body sharing setup
-    // Everyone (DS and non-DS) needs to remember their sharing assignments for this particular block
-
-    // Transaction body sharing assignments:
-    // PART 1. Select X random nodes from DS committee for receiving Tx bodies and broadcasting to other DS nodes
-    // PART 2. Select X random nodes per shard for receiving Tx bodies and broadcasting to other nodes in the shard
-    // PART 3. Select X random nodes per shard for sending Tx bodies to the receiving nodes in other committees (DS and shards)
-
-    // Message format:
-    // [4-byte num of DS nodes]
-    //   [16-byte IP] [4-byte port]
-    //   [16-byte IP] [4-byte port]
-    //   ...
-    // [4-byte num of committees]
-    // [4-byte num of committee receiving nodes]
-    //   [16-byte IP] [4-byte port]
-    //   [16-byte IP] [4-byte port]
-    //   ...
-    // [4-byte num of committee sending nodes]
-    //   [16-byte IP] [4-byte port]
-    //   [16-byte IP] [4-byte port]
-    //   ...
-    // [4-byte num of committee receiving nodes]
-    //   [16-byte IP] [4-byte port]
-    //   [16-byte IP] [4-byte port]
-    //   ...
-    // [4-byte num of committee sending nodes]
-    //   [16-byte IP] [4-byte port]
-    //   [16-byte IP] [4-byte port]
-    //   ...
-    // ...
+    LOG_MARKER();
 
     // PART 1
     // First version: We just take the first X nodes in DS committee
-    LOG_MARKER();
 
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "debug " << m_mediator.m_DSCommittee.size() << " "
-                       << TX_SHARING_CLUSTER_SIZE);
+    m_DSReceivers.clear();
+
+    LOG_GENERAL(INFO,
+                "debug " << m_mediator.m_DSCommittee.size() << " "
+                         << TX_SHARING_CLUSTER_SIZE);
 
     uint32_t num_ds_nodes
         = (m_mediator.m_DSCommittee.size() < TX_SHARING_CLUSTER_SIZE)
         ? m_mediator.m_DSCommittee.size()
         : TX_SHARING_CLUSTER_SIZE;
-    Serializable::SetNumber<uint32_t>(sharding_structure, curr_offset,
-                                      num_ds_nodes, sizeof(uint32_t));
-    curr_offset += sizeof(uint32_t);
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Forwarders inside the DS committee (" << num_ds_nodes << "):");
 
-    for (unsigned int i = 0; i < m_consensusMyID; i++)
+    for (unsigned int i = 0; i < num_ds_nodes; i++)
     {
-        m_mediator.m_DSCommittee.at(i).second.Serialize(sharding_structure,
-                                                        curr_offset);
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  m_mediator.m_DSCommittee.at(i).second);
-        curr_offset += IP_SIZE + PORT_SIZE;
+        if (i != m_consensusMyID)
+        {
+            m_DSReceivers.emplace_back(m_mediator.m_DSCommittee.at(i).second);
+        }
+        else
+        {
+            // when i == m_consensusMyID use m_mediator.m_selfPeer since IP/ port in m_mediator.m_DSCommittee.at(m_consensusMyID).second is zeroed out
+            m_DSReceivers.emplace_back(m_mediator.m_selfPeer);
+        }
     }
 
-    // when i == m_consensusMyID use m_mediator.m_selfPeer since IP/ port in
-    // m_mediator.m_DSCommitteeNetworkInfo.at(m_consensusMyID) is zeroed out
-    m_mediator.m_selfPeer.Serialize(sharding_structure, curr_offset);
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              m_mediator.m_selfPeer);
-    curr_offset += IP_SIZE + PORT_SIZE;
+    // For this version, DS leader (the one invoking this function) is part of the X nodes to receive and share Tx bodies -> fill up leader's assigned nodes
 
-    for (unsigned int i = m_consensusMyID + 1; i < num_ds_nodes; i++)
+    m_sharingAssignment.clear();
+
+    for (unsigned int i = num_ds_nodes; i < m_mediator.m_DSCommittee.size();
+         i++)
     {
-        m_mediator.m_DSCommittee.at(i).second.Serialize(sharding_structure,
-                                                        curr_offset);
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  m_mediator.m_DSCommittee.at(i).second);
-        curr_offset += IP_SIZE + PORT_SIZE;
+        m_sharingAssignment.emplace_back(m_mediator.m_DSCommittee.at(i).second);
     }
-
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Number of shards: " << m_shards.size());
-
-    Serializable::SetNumber<uint32_t>(sharding_structure, curr_offset,
-                                      (uint32_t)m_shards.size(),
-                                      sizeof(uint32_t));
-    curr_offset += sizeof(uint32_t);
 
     // PART 2 and 3
     // First version: We just take the first X nodes for receiving and next X nodes for sending
+
+    m_shardReceivers.clear();
+    m_shardSenders.clear();
+
     for (unsigned int i = 0; i < m_shards.size(); i++)
     {
         const map<PubKey, Peer>& shard = m_shards.at(i);
 
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Shard " << i << " forwarders:");
-
         // PART 2
+
+        m_shardReceivers.emplace_back(vector<Peer>());
+
         uint32_t nodes_recv_lo = 0;
         uint32_t nodes_recv_hi = nodes_recv_lo + TX_SHARING_CLUSTER_SIZE - 1;
+
         if (nodes_recv_hi >= shard.size())
         {
             nodes_recv_hi = shard.size() - 1;
@@ -193,26 +153,17 @@ void DirectoryService::AppendSharingSetupToShardingStructure(
 
         unsigned int num_nodes = nodes_recv_hi - nodes_recv_lo + 1;
 
-        Serializable::SetNumber<uint32_t>(sharding_structure, curr_offset,
-                                          num_nodes, sizeof(uint32_t));
-        curr_offset += sizeof(uint32_t);
-
         map<PubKey, Peer>::const_iterator node_peer = shard.begin();
         for (unsigned int j = 0; j < num_nodes; j++)
         {
-            node_peer->second.Serialize(sharding_structure, curr_offset);
-            curr_offset += IP_SIZE + PORT_SIZE;
-
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      node_peer->second);
-
+            m_shardReceivers.back().emplace_back(node_peer->second);
             node_peer++;
         }
 
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Shard " << i << " senders:");
-
         // PART 3
+
+        m_shardSenders.emplace_back(vector<Peer>());
+
         uint32_t nodes_send_lo = 0;
         uint32_t nodes_send_hi = 0;
 
@@ -234,42 +185,13 @@ void DirectoryService::AppendSharingSetupToShardingStructure(
 
         num_nodes = nodes_send_hi - nodes_send_lo + 1;
 
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "DEBUG lo " << nodes_send_lo);
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "DEBUG hi " << nodes_send_hi);
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "DEBUG num_nodes " << num_nodes);
-
-        Serializable::SetNumber<uint32_t>(sharding_structure, curr_offset,
-                                          num_nodes, sizeof(uint32_t));
-        curr_offset += sizeof(uint32_t);
-
         node_peer = shard.begin();
         advance(node_peer, nodes_send_lo);
 
         for (unsigned int j = 0; j < num_nodes; j++)
         {
-            node_peer->second.Serialize(sharding_structure, curr_offset);
-            curr_offset += IP_SIZE + PORT_SIZE;
-
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      node_peer->second);
-
+            m_shardSenders.back().emplace_back(node_peer->second);
             node_peer++;
-        }
-    }
-
-    // For this version, DS leader is part of the X nodes to receive and share Tx bodies
-    if (true)
-    {
-        m_sharingAssignment.clear();
-
-        for (unsigned int i = num_ds_nodes; i < m_mediator.m_DSCommittee.size();
-             i++)
-        {
-            m_sharingAssignment.emplace_back(
-                m_mediator.m_DSCommittee.at(i).second);
         }
     }
 }
@@ -287,11 +209,13 @@ bool DirectoryService::RunConsensusOnShardingWhenDSPrimary()
     vector<unsigned char> sharding_structure;
 
     ComputeSharding();
-
     unsigned int txn_sharing_offset
         = ShardingStructure::Serialize(m_shards, sharding_structure, 0);
-    AppendSharingSetupToShardingStructure(sharding_structure,
-                                          txn_sharing_offset);
+
+    ComputeTxnSharingAssignments();
+    TxnSharingAssignments::Serialize(m_DSReceivers, m_shardReceivers,
+                                     m_shardSenders, sharding_structure,
+                                     txn_sharing_offset);
 
     // Save the raw transaction body sharing assignment message for propagating later to shard nodes
     m_txnSharingMessage.resize(sharding_structure.size() - txn_sharing_offset);
@@ -318,9 +242,9 @@ bool DirectoryService::RunConsensusOnShardingWhenDSPrimary()
         m_mediator.m_selfKey.first, m_mediator.m_DSCommittee,
         static_cast<unsigned char>(DIRECTORY),
         static_cast<unsigned char>(SHARDINGCONSENSUS),
-        std::function<bool(const vector<unsigned char>&, unsigned int,
-                           const Peer&)>(),
-        std::function<bool(map<unsigned int, std::vector<unsigned char>>)>()));
+        function<bool(const vector<unsigned char>&, unsigned int,
+                      const Peer&)>(),
+        function<bool(map<unsigned int, vector<unsigned char>>)>()));
 
     if (m_consensusObject == nullptr)
     {
@@ -338,10 +262,13 @@ bool DirectoryService::RunConsensusOnShardingWhenDSPrimary()
     this_thread::sleep_for(
         chrono::seconds(LEADER_SHARDING_PREPARATION_IN_SECONDS));
 
-    LOG_STATE("[SHCON][" << std::setw(15) << std::left
-                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                         << "][" << m_mediator.m_txBlockChain.GetBlockCount()
-                         << "] BGIN");
+    LOG_STATE(
+        "[SHCON]["
+        << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
+        << "]["
+        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
+            + 1
+        << "] BGIN");
 
     cl->StartConsensus(sharding_structure, sharding_structure.size());
 
@@ -392,21 +319,21 @@ void DirectoryService::SaveTxnBodySharingAssignment(
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Forwarders inside the DS committee (" << num_ds_nodes << "):");
 
-    vector<Peer> ds_receivers;
+    vector<Peer> m_DSReceivers;
 
     bool i_am_forwarder = false;
     for (uint32_t i = 0; i < num_ds_nodes; i++)
     {
         // TODO: Handle exceptions
-        ds_receivers.emplace_back(sharding_structure, curr_offset);
+        m_DSReceivers.emplace_back(sharding_structure, curr_offset);
         curr_offset += IP_SIZE + PORT_SIZE;
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "  IP: " << ds_receivers.back().GetPrintableIPAddress()
+                  "  IP: " << m_DSReceivers.back().GetPrintableIPAddress()
                            << " Port: "
-                           << ds_receivers.back().m_listenPortHost);
+                           << m_DSReceivers.back().m_listenPortHost);
 
-        if (ds_receivers.back() == m_mediator.m_selfPeer)
+        if (m_DSReceivers.back() == m_mediator.m_selfPeer)
         {
             i_am_forwarder = true;
         }
@@ -423,10 +350,10 @@ void DirectoryService::SaveTxnBodySharingAssignment(
 
             if (num_ds_nodes > 0)
             {
-                for (unsigned int j = 0; j < ds_receivers.size(); j++)
+                for (unsigned int j = 0; j < m_DSReceivers.size(); j++)
                 {
                     if (m_mediator.m_DSCommittee.at(i).second
-                        == ds_receivers.at(j))
+                        == m_DSReceivers.at(j))
                     {
                         is_a_receiver = true;
                         break;
@@ -446,7 +373,7 @@ void DirectoryService::SaveTxnBodySharingAssignment(
 
 bool DirectoryService::ShardingValidator(
     const vector<unsigned char>& sharding_structure,
-    [[gnu::unused]] std::vector<unsigned char>& errorMsg)
+    [[gnu::unused]] vector<unsigned char>& errorMsg)
 {
     LOG_MARKER();
 
@@ -589,7 +516,7 @@ void DirectoryService::RunConsensusOnSharding()
     lock_guard<mutex> g(m_mutexAllPOW2);
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Num of PoW2 sub rec: " << m_allPoW2s.size());
-    LOG_STATE("[POW2R][" << std::setw(15) << std::left
+    LOG_STATE("[POW2R][" << setw(15) << left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
                          << "][" << m_allPoW2s.size() << "] ");
 
@@ -633,10 +560,9 @@ void DirectoryService::RunConsensusOnSharding()
 
     // View change will wait for timeout. If conditional variable is notified before timeout, the thread will return
     // without triggering view change.
-    std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeSharding);
-    if (cv_viewChangeSharding.wait_for(cv_lk,
-                                       std::chrono::seconds(VIEWCHANGE_TIME))
-        == std::cv_status::timeout)
+    unique_lock<mutex> cv_lk(m_MutexCVViewChangeSharding);
+    if (cv_viewChangeSharding.wait_for(cv_lk, chrono::seconds(VIEWCHANGE_TIME))
+        == cv_status::timeout)
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Initiated sharding structure consensus view change. ");

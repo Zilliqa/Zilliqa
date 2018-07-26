@@ -90,4 +90,108 @@ public:
     }
 };
 
+class TxnSharingAssignments
+{
+    // Transaction body sharing assignments:
+    // PART 1. Select X random nodes from DS committee for receiving Tx bodies and broadcasting to other DS nodes
+    // PART 2. Select X random nodes per shard for receiving Tx bodies and broadcasting to other nodes in the shard
+    // PART 3. Select X random nodes per shard for sending Tx bodies to the receiving nodes in other committees (DS and shards)
+
+    // Message format:
+    // [4-byte num of DS nodes]
+    //   [16-byte IP] [4-byte port]
+    //   [16-byte IP] [4-byte port]
+    //   ...
+    // [4-byte num of committees]
+    // [4-byte num of committee receiving nodes]
+    //   [16-byte IP] [4-byte port]
+    //   [16-byte IP] [4-byte port]
+    //   ...
+    // [4-byte num of committee sending nodes]
+    //   [16-byte IP] [4-byte port]
+    //   [16-byte IP] [4-byte port]
+    //   ...
+    // [4-byte num of committee receiving nodes]
+    //   [16-byte IP] [4-byte port]
+    //   [16-byte IP] [4-byte port]
+    //   ...
+    // [4-byte num of committee sending nodes]
+    //   [16-byte IP] [4-byte port]
+    //   [16-byte IP] [4-byte port]
+    //   ...
+    // ...
+
+public:
+    static unsigned int
+    Serialize(const std::vector<Peer>& ds_receivers,
+              const std::vector<std::vector<Peer>>& shard_receivers,
+              const std::vector<std::vector<Peer>>& shard_senders,
+              std::vector<unsigned char>& output, unsigned int cur_offset)
+    {
+        LOG_MARKER();
+
+        // [4-byte num of DS nodes]
+        LOG_GENERAL(INFO,
+                    "Forwarders inside the DS committee ("
+                        << ds_receivers.size() << "):");
+        Serializable::SetNumber<uint32_t>(
+            output, cur_offset, ds_receivers.size(), sizeof(uint32_t));
+        cur_offset += sizeof(uint32_t);
+
+        for (unsigned int i = 0; i < ds_receivers.size(); i++)
+        {
+            // [16-byte IP] [4-byte port]
+            ds_receivers.at(i).Serialize(output, cur_offset);
+            LOG_GENERAL(INFO, ds_receivers.at(i));
+            cur_offset += IP_SIZE + PORT_SIZE;
+        }
+
+        // [4-byte num of committees]
+        LOG_GENERAL(INFO, "Number of shards: " << shard_receivers.size());
+        Serializable::SetNumber<uint32_t>(output, cur_offset,
+                                          (uint32_t)shard_receivers.size(),
+                                          sizeof(uint32_t));
+        cur_offset += sizeof(uint32_t);
+
+        for (unsigned int i = 0; i < shard_receivers.size(); i++)
+        {
+            const std::vector<Peer>& shard_x_receivers = shard_receivers.at(i);
+
+            // [4-byte num of committee receiving nodes]
+            LOG_GENERAL(INFO, "Shard " << i << " forwarders:");
+            Serializable::SetNumber<uint32_t>(
+                output, cur_offset, shard_x_receivers.size(), sizeof(uint32_t));
+            cur_offset += sizeof(uint32_t);
+
+            for (unsigned int j = 0; j < shard_x_receivers.size(); j++)
+            {
+                // [16-byte IP] [4-byte port]
+                shard_x_receivers.at(j).Serialize(output, cur_offset);
+                cur_offset += IP_SIZE + PORT_SIZE;
+
+                LOG_GENERAL(INFO, shard_x_receivers.at(j));
+            }
+
+            const std::vector<Peer>& shard_x_senders = shard_senders.at(i);
+
+            // [4-byte num of committee sending nodes]
+            LOG_GENERAL(INFO, "Shard " << i << " senders:");
+            Serializable::SetNumber<uint32_t>(
+                output, cur_offset, shard_x_senders.size(), sizeof(uint32_t));
+            cur_offset += sizeof(uint32_t);
+
+            for (unsigned int j = 0; j < shard_x_senders.size(); j++)
+            {
+                // [16-byte IP] [4-byte port]
+                shard_x_senders.at(j).Serialize(output, cur_offset);
+                cur_offset += IP_SIZE + PORT_SIZE;
+
+                LOG_GENERAL(INFO, shard_x_senders.at(j));
+            }
+        }
+
+        return cur_offset;
+    }
+};
+
 #endif // __DSBLOCKMESSAGE_H__
