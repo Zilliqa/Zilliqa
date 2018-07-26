@@ -114,14 +114,6 @@ void DirectoryService::RunConsensusOnViewChange()
 
     if (m_mediator.m_DSCommittee.at(m_viewChangeCounter).second == Peer())
     {
-        if (m_viewChangeCounter == 1)
-        {
-            LOG_GENERAL(INFO, "do nothing" << m_viewChangeCounter);
-
-            while (true)
-            {
-            }
-        }
         if (!RunConsensusOnViewChangeWhenCandidateLeader())
         {
             LOG_GENERAL(WARNING,
