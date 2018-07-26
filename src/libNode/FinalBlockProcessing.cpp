@@ -424,7 +424,7 @@ bool Node::CheckMicroBlockRootHash(
 }
 
 #ifndef IS_LOOKUP_NODE
-bool Node::FindTxnInProcessedTxnsList(const TxBlock& finalblock,
+bool Node::FindTxnInProcessedTxnsList([[gnu::unused]] const TxBlock& finalblock,
                                       const uint256_t& blockNum,
                                       uint8_t sharing_mode,
                                       vector<Transaction>& txns_to_send,
