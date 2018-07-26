@@ -56,7 +56,8 @@ void Node::SubmitMicroblockToDSCommittee() const
     unsigned int cur_offset = MessageOffset::BODY;
 
     // 8-byte DS blocknum
-    uint64_t DSBlockNum = m_mediator.m_dsBlockChain.GetBlockCount() - 1;
+    uint64_t DSBlockNum
+        = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
     Serializable::SetNumber<uint64_t>(microblock, cur_offset, DSBlockNum,
                                       sizeof(uint64_t));
     cur_offset += sizeof(uint64_t);

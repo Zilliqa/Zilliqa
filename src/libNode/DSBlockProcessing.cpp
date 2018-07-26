@@ -109,9 +109,9 @@ bool Node::CheckWhetherDSBlockNumIsLatest(const uint64_t dsblockNum)
     LOG_MARKER();
 
     uint64_t latestBlockNumInBlockchain
-        = m_mediator.m_dsBlockChain.GetBlockCount();
+        = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
-    if (dsblockNum < latestBlockNumInBlockchain)
+    if (dsblockNum < latestBlockNumInBlockchain + 1)
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "We are processing duplicated blocks\n"
@@ -119,7 +119,7 @@ bool Node::CheckWhetherDSBlockNumIsLatest(const uint64_t dsblockNum)
                       << "incoming block num: " << dsblockNum);
         return false;
     }
-    else if (dsblockNum > latestBlockNumInBlockchain)
+    else if (dsblockNum > latestBlockNumInBlockchain + 1)
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Missing of some DS blocks. Requested: "
@@ -297,10 +297,13 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
     // Add to block chain and Store the DS block to disk.
     StoreDSBlockToDisk(dsblock);
 
-    LOG_STATE("[DSBLK][" << setw(15) << left
-                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                         << "][" << m_mediator.m_txBlockChain.GetBlockCount()
-                         << "] RECEIVED DSBLOCK");
+    LOG_STATE(
+        "[DSBLK]["
+        << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
+        << "]["
+        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
+            + 1
+        << "] RECEIVED DSBLOCK");
 
 #ifdef IS_LOOKUP_NODE
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),

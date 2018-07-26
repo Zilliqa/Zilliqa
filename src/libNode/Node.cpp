@@ -146,7 +146,7 @@ void Node::Prepare(bool runInitializeGenesisBlocks)
     m_mediator.UpdateTxBlockRand(runInitializeGenesisBlocks);
     SetState(POW_SUBMISSION);
     POW::GetInstance().EthashConfigureLightClient(
-        m_mediator.m_dsBlockChain.GetBlockCount());
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1);
 }
 
 bool Node::StartRetrieveHistory()

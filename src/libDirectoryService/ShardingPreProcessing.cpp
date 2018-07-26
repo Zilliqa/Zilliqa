@@ -242,9 +242,9 @@ bool DirectoryService::RunConsensusOnShardingWhenDSPrimary()
         m_mediator.m_selfKey.first, m_mediator.m_DSCommittee,
         static_cast<unsigned char>(DIRECTORY),
         static_cast<unsigned char>(SHARDINGCONSENSUS),
-        function<bool(const vector<unsigned char>&, unsigned int,
-                      const Peer&)>(),
-        function<bool(map<unsigned int, vector<unsigned char>>)>()));
+        std::function<bool(const vector<unsigned char>&, unsigned int,
+                           const Peer&)>(),
+        std::function<bool(map<unsigned int, std::vector<unsigned char>>)>()));
 
     if (m_consensusObject == nullptr)
     {
@@ -264,8 +264,8 @@ bool DirectoryService::RunConsensusOnShardingWhenDSPrimary()
 
     LOG_STATE(
         "[SHCON]["
-        << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
-        << "]["
+        << std::setw(15) << std::left
+        << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
         << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
             + 1
         << "] BGIN");
@@ -319,21 +319,21 @@ void DirectoryService::SaveTxnBodySharingAssignment(
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Forwarders inside the DS committee (" << num_ds_nodes << "):");
 
-    vector<Peer> m_DSReceivers;
+    vector<Peer> ds_receivers;
 
     bool i_am_forwarder = false;
     for (uint32_t i = 0; i < num_ds_nodes; i++)
     {
         // TODO: Handle exceptions
-        m_DSReceivers.emplace_back(sharding_structure, curr_offset);
+        ds_receivers.emplace_back(sharding_structure, curr_offset);
         curr_offset += IP_SIZE + PORT_SIZE;
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "  IP: " << m_DSReceivers.back().GetPrintableIPAddress()
+                  "  IP: " << ds_receivers.back().GetPrintableIPAddress()
                            << " Port: "
-                           << m_DSReceivers.back().m_listenPortHost);
+                           << ds_receivers.back().m_listenPortHost);
 
-        if (m_DSReceivers.back() == m_mediator.m_selfPeer)
+        if (ds_receivers.back() == m_mediator.m_selfPeer)
         {
             i_am_forwarder = true;
         }
@@ -350,10 +350,10 @@ void DirectoryService::SaveTxnBodySharingAssignment(
 
             if (num_ds_nodes > 0)
             {
-                for (unsigned int j = 0; j < m_DSReceivers.size(); j++)
+                for (unsigned int j = 0; j < ds_receivers.size(); j++)
                 {
                     if (m_mediator.m_DSCommittee.at(i).second
-                        == m_DSReceivers.at(j))
+                        == ds_receivers.at(j))
                     {
                         is_a_receiver = true;
                         break;
@@ -373,7 +373,7 @@ void DirectoryService::SaveTxnBodySharingAssignment(
 
 bool DirectoryService::ShardingValidator(
     const vector<unsigned char>& sharding_structure,
-    [[gnu::unused]] vector<unsigned char>& errorMsg)
+    [[gnu::unused]] std::vector<unsigned char>& errorMsg)
 {
     LOG_MARKER();
 
@@ -516,7 +516,7 @@ void DirectoryService::RunConsensusOnSharding()
     lock_guard<mutex> g(m_mutexAllPOW2);
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Num of PoW2 sub rec: " << m_allPoW2s.size());
-    LOG_STATE("[POW2R][" << setw(15) << left
+    LOG_STATE("[POW2R][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
                          << "][" << m_allPoW2s.size() << "] ");
 
@@ -560,9 +560,10 @@ void DirectoryService::RunConsensusOnSharding()
 
     // View change will wait for timeout. If conditional variable is notified before timeout, the thread will return
     // without triggering view change.
-    unique_lock<mutex> cv_lk(m_MutexCVViewChangeSharding);
-    if (cv_viewChangeSharding.wait_for(cv_lk, chrono::seconds(VIEWCHANGE_TIME))
-        == cv_status::timeout)
+    std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeSharding);
+    if (cv_viewChangeSharding.wait_for(cv_lk,
+                                       std::chrono::seconds(VIEWCHANGE_TIME))
+        == std::cv_status::timeout)
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Initiated sharding structure consensus view change. ");
