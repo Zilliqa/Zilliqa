@@ -26,6 +26,7 @@
 #include <vector>
 
 #include "common/Constants.h"
+#include "depends/common/Miner.h"
 #include "depends/libethash/ethash.h"
 #include "depends/libethash/internal.h"
 #include "libCrypto/Schnorr.h"
@@ -86,11 +87,20 @@ public:
                    const PubKey& pubKey, bool fullDataset,
                    uint64_t winning_nonce, std::string& winning_result,
                    std::string& winning_mixhash);
+    std::vector<unsigned char>
+    ConcatAndhash(const std::array<unsigned char, UINT256_SIZE>& rand1,
+                  const std::array<unsigned char, UINT256_SIZE>& rand2,
+                  const boost::multiprecision::uint128_t& ipAddr,
+                  const PubKey& pubKey);
+    ethash_return_value_t
+    LightHash(const boost::multiprecision::uint256_t& blockNum,
+              ethash_h256_t const& header_hash, uint64_t nonce);
 
 private:
     ethash_light_t ethash_light_client;
     uint64_t currentBlockNum;
     bool shouldMine;
+    std::unique_ptr<dev::eth::Miner> m_miner;
 
     ethash_light_t EthashLightNew(uint64_t block_number);
     ethash_light_t EthashLightReuse(ethash_light_t ethashLight,
@@ -111,11 +121,9 @@ private:
     ethash_mining_result_t MineFull(ethash_full_t& full,
                                     ethash_h256_t const& header_hash,
                                     ethash_h256_t& difficulty);
-    std::vector<unsigned char>
-    ConcatAndhash(const std::array<unsigned char, UINT256_SIZE>& rand1,
-                  const std::array<unsigned char, UINT256_SIZE>& rand2,
-                  const boost::multiprecision::uint128_t& ipAddr,
-                  const PubKey& pubKey);
+    ethash_mining_result_t
+    MineFullOpenCL(const boost::multiprecision::uint256_t& blockNum,
+                   ethash_h256_t const& header_hash, uint8_t difficulty);
     bool VerifyLight(ethash_light_t& light, ethash_h256_t const& header_hash,
                      uint64_t winning_nonce, ethash_h256_t& difficulty,
                      ethash_h256_t& winning_result,

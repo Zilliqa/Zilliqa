@@ -22,6 +22,7 @@
 #include "pow.h"
 //#include "libCrypto/Sha3.h"
 #include "common/Serializable.h"
+#include "depends/libethash-cl/CLMiner.h"
 #include "libCrypto/Sha2.h"
 #include "libUtils/DataConversion.h"
 
@@ -30,6 +31,21 @@ POW::POW()
     currentBlockNum = 0;
     ethash_light_client = EthashLightNew(
         0); // TODO: Do we still need this? Can we call it at mediator?
+    if (OPENCL_GPU_MINE)
+    {
+        dev::eth::CLMiner::setCLKernel(0);
+        dev::eth::CLMiner::setThreadsPerHash(8);
+
+        if (!dev::eth::CLMiner::configureGPU(128, 8192, 0, 0, 0, 0, false,
+                                             false))
+        {
+            LOG_GENERAL(
+                FATAL, "Failed to configure OpenCL GPU, please check hardware");
+        };
+
+        dev::eth::CLMiner::setNumInstances(UINT_MAX);
+        m_miner = std::make_unique<dev::eth::CLMiner>();
+    }
 }
 
 POW::~POW() { EthashLightDelete(ethash_light_client); }
@@ -227,6 +243,38 @@ ethash_mining_result_t POW::MineFull(ethash_full_t& full,
     return failure_result;
 }
 
+ethash_mining_result_t
+POW::MineFullOpenCL(const boost::multiprecision::uint256_t& blockNum,
+                    ethash_h256_t const& header_hash, uint8_t difficulty)
+{
+    LOG_MARKER();
+    dev::eth::WorkPackage wp;
+    wp.blockNumber = (uint64_t)blockNum;
+    wp.boundary = (dev::h256)(dev::u256)((dev::bigint(1) << 256)
+                                         / (dev::u256(1) << difficulty));
+
+    wp.header = dev::h256{header_hash.b, dev::h256::ConstructFromPointer};
+    wp.startNonce = std::time(0);
+
+    dev::eth::Solution solution;
+    while (shouldMine)
+    {
+        m_miner->mine(wp, solution);
+        auto hashResult = LightHash(blockNum, header_hash, solution.nonce);
+        ethash_h256_t diffForPoW = DifficultyLevelInInt(difficulty);
+        if (ethash_check_difficulty(&hashResult.result, &diffForPoW))
+        {
+            ethash_mining_result_t winning_result
+                = {BlockhashToHexString(&hashResult.result),
+                   solution.mixHash.hex(), solution.nonce, true};
+            return winning_result;
+        }
+        wp.startNonce = solution.nonce;
+    }
+    ethash_mining_result_t failure_result = {"", "", 0, false};
+    return failure_result;
+}
+
 bool POW::VerifyLight(ethash_light_t& light, ethash_h256_t const& header_hash,
                       uint64_t winning_nonce, ethash_h256_t& difficulty,
                       ethash_h256_t& result, ethash_h256_t& mixhash)
@@ -315,11 +363,18 @@ POW::PoWMine(const boost::multiprecision::uint256_t& blockNum,
 
     if (fullDataset)
     {
-        ethash_callback_t CallBack = NULL;
-        ethash_full_t fullClient
-            = POW::EthashFullNew(ethash_light_client, CallBack);
-        result = MineFull(fullClient, headerHash, diffForPoW);
-        EthashFullDelete(fullClient);
+        if (OPENCL_GPU_MINE)
+        {
+            result = MineFullOpenCL(blockNum, headerHash, difficulty);
+        }
+        else
+        {
+            ethash_callback_t CallBack = NULL;
+            ethash_full_t fullClient
+                = POW::EthashFullNew(ethash_light_client, CallBack);
+            result = MineFull(fullClient, headerHash, diffForPoW);
+            EthashFullDelete(fullClient);
+        }
     }
     else
     {
@@ -376,4 +431,12 @@ bool POW::PoWVerify(const boost::multiprecision::uint256_t& blockNum,
                              diffForPoW, winnning_result, winnning_mixhash);
     }
     return result;
+}
+
+ethash_return_value_t
+POW::LightHash(const boost::multiprecision::uint256_t& blockNum,
+               ethash_h256_t const& header_hash, uint64_t nonce)
+{
+    EthashConfigureLightClient((uint64_t)blockNum);
+    return EthashLightCompute(ethash_light_client, header_hash, nonce);
 }

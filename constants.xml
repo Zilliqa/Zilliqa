@@ -46,6 +46,7 @@
         <EXCLUDE_PRIV_IP>false</EXCLUDE_PRIV_IP>
         <ENABLE_DO_REJOIN>true</ENABLE_DO_REJOIN>
         <FULL_DATASET_MINE>false</FULL_DATASET_MINE>
+        <OPENCL_GPU_MINE>false</OPENCL_GPU_MINE>
     </options>
     <smart_contract>
         <SCILLA_ROOT></SCILLA_ROOT>
