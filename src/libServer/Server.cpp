@@ -635,8 +635,9 @@ double Server::GetTransactionRate()
     LOG_MARKER();
 
     uint64_t refBlockNum
-        = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
-        refTimeTx = 0;
+        = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+
+    boost::multiprecision::uint256_t refTimeTx = 0;
 
     if (refBlockNum <= REF_BLOCK_DIFF)
     {

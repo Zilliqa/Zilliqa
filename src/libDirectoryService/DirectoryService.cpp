@@ -87,12 +87,14 @@ void DirectoryService::StartSynchronization()
         while (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
         {
             m_synchronizer.FetchLatestDSBlocks(
-                m_mediator.m_lookup, m_mediator.m_dsBlockChain.GetLastBlock()
+                m_mediator.m_lookup,
+                m_mediator.m_dsBlockChain.GetLastBlock()
                         .GetHeader()
                         .GetBlockNum()
                     + 1);
             m_synchronizer.FetchLatestTxBlocks(
-                m_mediator.m_lookup, m_mediator.m_txBlockChain.GetLastBlock()
+                m_mediator.m_lookup,
+                m_mediator.m_txBlockChain.GetLastBlock()
                         .GetHeader()
                         .GetBlockNum()
                     + 1);
@@ -251,7 +253,10 @@ bool DirectoryService::ProcessSetPrimary(
     }
     m_consensusLeaderID = 0;
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "START OF EPOCH " << m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1);
+              "START OF EPOCH " << m_mediator.m_dsBlockChain.GetLastBlock()
+                                       .GetHeader()
+                                       .GetBlockNum()
+                      + 1);
 
     if (primary == m_mediator.m_selfPeer)
     {

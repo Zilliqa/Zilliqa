@@ -77,7 +77,8 @@ bool DirectoryService::SendFinalBlockToLookupNodes()
     unsigned int curr_offset = MessageOffset::BODY;
 
     // 8-byte DS blocknum
-    uint64_t dsBlockNum = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+    uint64_t dsBlockNum
+        = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
     Serializable::SetNumber<uint64_t>(finalblock_message, curr_offset,
                                       dsBlockNum, sizeof(uint64_t));
     curr_offset += sizeof(uint64_t);
@@ -166,7 +167,9 @@ void DirectoryService::SendFinalBlockToShardNodes(
         unsigned int curr_offset = MessageOffset::BODY;
 
         // 8-byte DS blocknum
-        uint64_t DSBlockNum = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+        uint64_t DSBlockNum = m_mediator.m_dsBlockChain.GetLastBlock()
+                                  .GetHeader()
+                                  .GetBlockNum();
         Serializable::SetNumber<uint64_t>(finalblock_message, curr_offset,
                                           DSBlockNum, sizeof(uint64_t));
         curr_offset += sizeof(uint64_t);
@@ -208,7 +211,11 @@ void DirectoryService::SendFinalBlockToShardNodes(
                 << "]["
                 << DataConversion::charArrToHexStr(m_mediator.m_dsBlockRand)
                        .substr(0, 6)
-                << "][" << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
+                << "]["
+                << m_mediator.m_txBlockChain.GetLastBlock()
+                        .GetHeader()
+                        .GetBlockNum()
+                    + 1
                 << "] FBBLKGEN");
 
             P2PComm::GetInstance().SendBroadcastMessage(shard_peers,
@@ -248,10 +255,13 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
 
     if (m_mode == PRIMARY_DS)
     {
-        LOG_STATE("[FBCON]["
-                  << setw(15) << left
-                  << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-                  << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1 << "] DONE");
+        LOG_STATE("[FBCON][" << setw(15) << left
+                             << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                             << "]["
+                             << m_mediator.m_txBlockChain.GetLastBlock()
+                                    .GetHeader()
+                                    .GetBlockNum()
+                      + 1 << "] DONE");
     }
 
     // Update the final block with the co-signatures from the consensus
@@ -306,19 +316,25 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
     unsigned int my_shards_lo;
     unsigned int my_shards_hi;
 
-    LOG_STATE("[FLBLK][" << setw(15) << left
-                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                         << "][" << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
-                         << "] BEFORE SENDING FINAL BLOCK");
+    LOG_STATE(
+        "[FLBLK]["
+        << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
+        << "]["
+        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
+            + 1
+        << "] BEFORE SENDING FINAL BLOCK");
 
     DetermineShardsToSendFinalBlockTo(my_DS_cluster_num, my_shards_lo,
                                       my_shards_hi);
     SendFinalBlockToShardNodes(my_DS_cluster_num, my_shards_lo, my_shards_hi);
 
-    LOG_STATE("[FLBLK][" << setw(15) << left
-                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                         << "][" << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
-                         << "] AFTER SENDING FINAL BLOCK");
+    LOG_STATE(
+        "[FLBLK]["
+        << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
+        << "]["
+        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
+            + 1
+        << "] AFTER SENDING FINAL BLOCK");
 
     m_allPoWConns.clear();
 
@@ -334,7 +350,10 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
             cv_POWSubmission.notify_all();
 
             POW::GetInstance().EthashConfigureLightClient(
-                m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1);
+                m_mediator.m_dsBlockChain.GetLastBlock()
+                    .GetHeader()
+                    .GetBlockNum()
+                + 1);
             m_consensusID = 0;
             m_mediator.m_node->m_consensusID = 0;
             m_mediator.m_node->m_consensusLeaderID = 0;

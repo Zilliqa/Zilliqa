@@ -297,10 +297,13 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
     // Add to block chain and Store the DS block to disk.
     StoreDSBlockToDisk(dsblock);
 
-    LOG_STATE("[DSBLK][" << setw(15) << left
-                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                         << "][" << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
-                         << "] RECEIVED DSBLOCK");
+    LOG_STATE(
+        "[DSBLK]["
+        << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
+        << "]["
+        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
+            + 1
+        << "] RECEIVED DSBLOCK");
 
 #ifdef IS_LOOKUP_NODE
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
