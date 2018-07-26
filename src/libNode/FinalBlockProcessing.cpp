@@ -133,6 +133,7 @@ void Node::StoreFinalBlock(const TxBlock& txBlock)
         << std::setw(15) << std::left
         << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
         << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
+            + 1
         << "] RECV");
 }
 
@@ -621,10 +622,13 @@ void Node::BroadcastTransactionsToSendingAssignment(
 {
     LOG_MARKER();
 
-    LOG_STATE("[TXBOD][" << setw(15) << left
-                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                         << "][" << m_mediator.m_txBlockChain.GetBlockCount()
-                         << "] BEFORE TXN BODIES #" << blocknum);
+    LOG_STATE(
+        "[TXBOD]["
+        << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
+        << "]["
+        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
+            + 1
+        << "] BEFORE TXN BODIES #" << blocknum);
 
     if (txns_to_send.size() > 0)
     {
@@ -689,10 +693,13 @@ void Node::BroadcastTransactionsToSendingAssignment(
             m_microblock->GetHeader().GetStateDeltaHash(), microBlockTxHash);
     }
 
-    LOG_STATE("[TXBOD][" << setw(15) << left
-                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                         << "][" << m_mediator.m_txBlockChain.GetBlockCount()
-                         << "] AFTER SENDING TXN BODIES");
+    LOG_STATE(
+        "[TXBOD]["
+        << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
+        << "]["
+        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
+            + 1
+        << "] AFTER SENDING TXN BODIES");
 }
 
 void Node::BroadcastStateDeltaToSendingAssignment(
@@ -1027,11 +1034,13 @@ void Node::InitiatePoW()
 
     SetState(POW_SUBMISSION);
     POW::GetInstance().EthashConfigureLightClient(
-        m_mediator.m_dsBlockChain.GetBlockCount());
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1);
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Start pow ");
     auto func = [this]() mutable -> void {
-        auto epochNumber = m_mediator.m_dsBlockChain.GetBlockCount();
+        auto epochNumber
+            = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()
+            + 1;
         auto dsBlockRand = m_mediator.m_dsBlockRand;
         auto txBlockRand = m_mediator.m_txBlockRand;
         StartPoW(epochNumber, POW_DIFFICULTY, dsBlockRand, txBlockRand);
@@ -1383,10 +1392,13 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 
 #endif // IS_LOOKUP_NODE
 
-    LOG_STATE("[FLBLK][" << setw(15) << left
-                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                         << "][" << m_mediator.m_txBlockChain.GetBlockCount()
-                         << "] RECEIVED FINAL BLOCK");
+    LOG_STATE(
+        "[FLBLK]["
+        << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
+        << "]["
+        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
+            + 1
+        << "] RECEIVED FINAL BLOCK");
 
     unsigned int cur_offset = offset;
 
@@ -1740,11 +1752,13 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
         message, cur_offset, sizeof(uint64_t));
     cur_offset += sizeof(uint64_t);
 
-    LOG_STATE("[TXBOD][" << setw(15) << left
-                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                         << "][" << m_mediator.m_txBlockChain.GetBlockCount()
-                         << "] RECEIVED TXN BODIES #"
-                         << m_latestForwardBlockNum);
+    LOG_STATE(
+        "[TXBOD]["
+        << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
+        << "]["
+        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
+            + 1
+        << "] RECEIVED TXN BODIES #" << m_latestForwardBlockNum);
 
     LOG_GENERAL(INFO,
                 "Received forwarded txns for block number "
