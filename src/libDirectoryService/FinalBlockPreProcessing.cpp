@@ -869,31 +869,34 @@ void DirectoryService::RunConsensusOnFinalBlock()
 
     AccountStore::GetInstance().SerializeDelta();
 
+    // Upon consensus object creation failure, one should not return from the function, but rather wait for view change.
+    bool ConsensusObjCreation = true;
     if (m_mode == PRIMARY_DS)
     {
-        if (!RunConsensusOnFinalBlockWhenDSPrimary())
+        ConsensusObjCreation = RunConsensusOnFinalBlockWhenDSPrimary();
+        if (!ConsensusObjCreation)
         {
             LOG_GENERAL(WARNING,
                         "Consensus failed at "
                         "RunConsensusOnFinalBlockWhenDSPrimary");
-            // throw exception();
-            return;
         }
     }
     else
     {
-        if (!RunConsensusOnFinalBlockWhenDSBackup())
+        ConsensusObjCreation = RunConsensusOnFinalBlockWhenDSBackup();
+        if (!ConsensusObjCreation)
         {
             LOG_GENERAL(WARNING,
                         "Consensus failed at "
                         "RunConsensusOnFinalBlockWhenDSBackup");
-            // throw exception();
-            return;
         }
     }
 
-    SetState(FINALBLOCK_CONSENSUS);
-    cv_finalBlockConsensusObject.notify_all();
+    if (ConsensusObjCreation)
+    {
+        SetState(FINALBLOCK_CONSENSUS);
+        cv_finalBlockConsensusObject.notify_all();
+    }
 
     // View change will wait for timeout. If conditional variable is notified before timeout, the thread will return
     // without triggering view change.

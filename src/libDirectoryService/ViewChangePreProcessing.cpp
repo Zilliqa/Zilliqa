@@ -93,7 +93,7 @@ void DirectoryService::RunConsensusOnViewChange()
     LOG_MARKER();
 
     SetLastKnownGoodState();
-    SetState(VIEWCHANGE_CONSENSUS_PREP); //change
+    SetState(VIEWCHANGE_CONSENSUS_PREP);
 
     m_viewChangeCounter++;
     m_viewChangeCounter = m_viewChangeCounter
@@ -109,31 +109,35 @@ void DirectoryService::RunConsensusOnViewChange()
         LOG_GENERAL(INFO, m_mediator.m_DSCommittee.at(i).second);
     }
 
-    // TODO
-    // We compare with empty peer is due to the fact that DSCommittee for yourself is 0.0.0.0 with port 0.
+    // Upon consensus object creation failure, one should not return from the function, but rather wait for view change.
+    bool ConsensusObjCreation = true;
 
+    // We compare with empty peer is due to the fact that DSCommittee for yourself is 0.0.0.0 with port 0.
     if (m_mediator.m_DSCommittee.at(m_viewChangeCounter).second == Peer())
     {
-        if (!RunConsensusOnViewChangeWhenCandidateLeader())
+        ConsensusObjCreation = RunConsensusOnViewChangeWhenCandidateLeader();
+        if (!ConsensusObjCreation)
         {
             LOG_GENERAL(WARNING,
                         "Error after RunConsensusOnDSBlockWhenDSPrimary");
-            return;
         }
     }
     else
     {
-        if (!RunConsensusOnViewChangeWhenNotCandidateLeader())
+        ConsensusObjCreation = RunConsensusOnViewChangeWhenNotCandidateLeader();
+        if (!ConsensusObjCreation)
         {
             LOG_GENERAL(WARNING,
                         "Error after "
                         "RunConsensusOnViewChangeWhenNotCandidateLeader");
-            return;
         }
     }
 
-    SetState(VIEWCHANGE_CONSENSUS);
-    cv_ViewChangeConsensusObj.notify_all();
+    if (ConsensusObjCreation)
+    {
+        SetState(VIEWCHANGE_CONSENSUS);
+        cv_ViewChangeConsensusObj.notify_all();
+    }
 
     auto func = [this]() -> void { ScheduleViewChangeTimeout(); };
     DetachedFunction(1, func);
