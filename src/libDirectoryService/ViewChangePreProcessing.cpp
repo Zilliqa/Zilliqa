@@ -58,7 +58,9 @@ bool DirectoryService::ViewChangeValidator(
         return false;
     }
 
-    if (m_viewChangestate != m_pendingVCBlock->GetHeader().GetViewChangeState())
+    if (ValidateViewChangeState(
+            m_viewChangestate,
+            (DirState)m_pendingVCBlock->GetHeader().GetViewChangeState()))
     {
         LOG_GENERAL(WARNING, "View change state mismatched");
         return false;
@@ -71,6 +73,37 @@ bool DirectoryService::ViewChangeValidator(
         return false;
     }
     return true;
+}
+
+bool DirectoryService::ValidateViewChangeState(DirState NodeState,
+                                               DirState StatePropose)
+{
+    const std::multimap<DirState, DirState> STATE_CHECK_STATE
+        = {{DSBLOCK_CONSENSUS_PREP, DSBLOCK_CONSENSUS_PREP},
+           {DSBLOCK_CONSENSUS_PREP, DSBLOCK_CONSENSUS},
+           {DSBLOCK_CONSENSUS, DSBLOCK_CONSENSUS_PREP},
+           {DSBLOCK_CONSENSUS, DSBLOCK_CONSENSUS},
+           {SHARDING_CONSENSUS_PREP, SHARDING_CONSENSUS_PREP},
+           {SHARDING_CONSENSUS_PREP, SHARDING_CONSENSUS},
+           {SHARDING_CONSENSUS, SHARDING_CONSENSUS_PREP},
+           {SHARDING_CONSENSUS, SHARDING_CONSENSUS},
+           {FINALBLOCK_CONSENSUS_PREP, FINALBLOCK_CONSENSUS_PREP},
+           {FINALBLOCK_CONSENSUS_PREP, FINALBLOCK_CONSENSUS},
+           {FINALBLOCK_CONSENSUS, FINALBLOCK_CONSENSUS_PREP},
+           {FINALBLOCK_CONSENSUS, FINALBLOCK_CONSENSUS}};
+
+    bool found = false;
+
+    for (auto pos = STATE_CHECK_STATE.lower_bound(NodeState);
+         pos != STATE_CHECK_STATE.upper_bound(NodeState); pos++)
+    {
+        if (pos->second == StatePropose)
+        {
+            found = true;
+            break;
+        }
+    }
+    return found;
 }
 
 // The idea of this function is to set the last know good state of the network before view change happens.
