@@ -239,6 +239,92 @@ public:
 
         return cur_offset;
     }
+
+    static unsigned int
+    Deserialize(const std::vector<unsigned char>& input,
+                unsigned int cur_offset, std::vector<Peer>& ds_receivers,
+                std::vector<std::vector<Peer>>& shard_receivers,
+                std::vector<std::vector<Peer>>& shard_senders)
+    {
+        LOG_MARKER();
+
+        // [4-byte num of DS nodes]
+        uint32_t num_ds_nodes = Serializable::GetNumber<uint32_t>(
+            input, cur_offset, sizeof(uint32_t));
+        cur_offset += sizeof(uint32_t);
+
+        LOG_GENERAL(INFO,
+                    "Forwarders inside the DS committee (" << num_ds_nodes
+                                                           << "):");
+
+        for (unsigned int i = 0; i < num_ds_nodes; i++)
+        {
+            // [16-byte IP] [4-byte port]
+            ds_receivers.emplace_back(input, cur_offset);
+            cur_offset += IP_SIZE + PORT_SIZE;
+
+            LOG_GENERAL(INFO,
+                        "  IP: " << ds_receivers.back().GetPrintableIPAddress()
+                                 << " Port: "
+                                 << ds_receivers.back().m_listenPortHost);
+        }
+
+        // [4-byte num of committees]
+        uint32_t num_shards = Serializable::GetNumber<uint32_t>(
+            input, cur_offset, sizeof(uint32_t));
+        cur_offset += sizeof(uint32_t);
+
+        for (unsigned int i = 0; i < num_shards; i++)
+        {
+            shard_receivers.emplace_back();
+
+            // [4-byte num of committee receiving nodes]
+            uint32_t num_shard_receivers = Serializable::GetNumber<uint32_t>(
+                input, cur_offset, sizeof(uint32_t));
+            cur_offset += sizeof(uint32_t);
+
+            LOG_GENERAL(INFO, "Shard " << i << " forwarders:");
+
+            for (unsigned int j = 0; j < num_shard_receivers; j++)
+            {
+                // [16-byte IP] [4-byte port]
+                shard_receivers.back().emplace_back(input, cur_offset);
+                cur_offset += IP_SIZE + PORT_SIZE;
+
+                LOG_GENERAL(
+                    INFO,
+                    "  IP: "
+                        << shard_receivers.back().back().GetPrintableIPAddress()
+                        << " Port: "
+                        << shard_receivers.back().back().m_listenPortHost);
+            }
+
+            shard_senders.emplace_back();
+
+            // [4-byte num of committee sending nodes]
+            uint32_t num_shard_senders = Serializable::GetNumber<uint32_t>(
+                input, cur_offset, sizeof(uint32_t));
+            cur_offset += sizeof(uint32_t);
+
+            LOG_GENERAL(INFO, "Shard " << i << " senders:");
+
+            for (unsigned int j = 0; j < num_shard_senders; j++)
+            {
+                // [16-byte IP] [4-byte port]
+                shard_senders.back().emplace_back(input, cur_offset);
+                cur_offset += IP_SIZE + PORT_SIZE;
+
+                LOG_GENERAL(
+                    INFO,
+                    "  IP: "
+                        << shard_senders.back().back().GetPrintableIPAddress()
+                        << " Port: "
+                        << shard_senders.back().back().m_listenPortHost);
+            }
+        }
+
+        return cur_offset;
+    }
 };
 
 #endif // __DSBLOCKMESSAGE_H__

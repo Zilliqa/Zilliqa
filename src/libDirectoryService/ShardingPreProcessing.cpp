@@ -278,66 +278,24 @@ bool DirectoryService::RunConsensusOnShardingWhenDSPrimary()
 void DirectoryService::SaveTxnBodySharingAssignment(
     const vector<unsigned char>& sharding_structure, unsigned int curr_offset)
 {
-    // Transaction body sharing setup
-    // Everyone (DS and non-DS) needs to remember their sharing assignments for this particular block
+    m_DSReceivers.clear();
+    m_shardReceivers.clear();
+    m_shardSenders.clear();
 
-    // Transaction body sharing assignments:
-    // PART 1. Select X random nodes from DS committee for receiving Tx bodies and broadcasting to other DS nodes
-    // PART 2. Select X random nodes per shard for receiving Tx bodies and broadcasting to other nodes in the shard
-    // PART 3. Select X random nodes per shard for sending Tx bodies to the receiving nodes in other committees (DS and shards)
-
-    // Message format:
-    // [4-byte num of DS nodes]
-    //   [16-byte IP] [4-byte port]
-    //   [16-byte IP] [4-byte port]
-    //   ...
-    // [4-byte num of committees]
-    // [4-byte num of committee receiving nodes]
-    //   [16-byte IP] [4-byte port]
-    //   [16-byte IP] [4-byte port]
-    //   ...
-    // [4-byte num of committee sending nodes]
-    //   [16-byte IP] [4-byte port]
-    //   [16-byte IP] [4-byte port]
-    //   ...
-    // [4-byte num of committee receiving nodes]
-    //   [16-byte IP] [4-byte port]
-    //   [16-byte IP] [4-byte port]
-    //   ...
-    // [4-byte num of committee sending nodes]
-    //   [16-byte IP] [4-byte port]
-    //   [16-byte IP] [4-byte port]
-    //   ...
-    // ...
-
-    // To-do: Put in the logic here for checking the sharing configuration
-
-    uint32_t num_ds_nodes = Serializable::GetNumber<uint32_t>(
-        sharding_structure, curr_offset, sizeof(uint32_t));
-    curr_offset += sizeof(uint32_t);
-
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Forwarders inside the DS committee (" << num_ds_nodes << "):");
-
-    vector<Peer> ds_receivers;
+    TxnSharingAssignments::Deserialize(sharding_structure, curr_offset,
+                                       m_DSReceivers, m_shardReceivers,
+                                       m_shardSenders);
 
     bool i_am_forwarder = false;
-    for (uint32_t i = 0; i < num_ds_nodes; i++)
+    for (uint32_t i = 0; i < m_DSReceivers.size(); i++)
     {
-        // TODO: Handle exceptions
-        ds_receivers.emplace_back(sharding_structure, curr_offset);
-        curr_offset += IP_SIZE + PORT_SIZE;
-
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "  IP: " << ds_receivers.back().GetPrintableIPAddress()
-                           << " Port: "
-                           << ds_receivers.back().m_listenPortHost);
-
-        if (ds_receivers.back() == m_mediator.m_selfPeer)
+        if (m_DSReceivers.at(i) == m_mediator.m_selfPeer)
         {
             i_am_forwarder = true;
         }
     }
+
+    unsigned int num_ds_nodes = m_DSReceivers.size();
 
     m_sharingAssignment.clear();
 
@@ -350,10 +308,10 @@ void DirectoryService::SaveTxnBodySharingAssignment(
 
             if (num_ds_nodes > 0)
             {
-                for (unsigned int j = 0; j < ds_receivers.size(); j++)
+                for (unsigned int j = 0; j < m_DSReceivers.size(); j++)
                 {
                     if (m_mediator.m_DSCommittee.at(i).second
-                        == ds_receivers.at(j))
+                        == m_DSReceivers.at(j))
                     {
                         is_a_receiver = true;
                         break;
