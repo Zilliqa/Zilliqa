@@ -389,6 +389,10 @@ public:
     std::mutex m_mutexTempCommitted;
     bool m_tempStateDeltaCommitted = true;
 
+    std::condition_variable m_cvNewRoundStarted;
+    std::mutex m_mutexNewRoundStarted;
+    bool m_newRoundStarted = true;
+
     std::mutex m_mutexIsEveryMicroBlockAvailable;
 
     // Transaction body sharing variables
