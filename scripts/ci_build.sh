@@ -27,20 +27,25 @@ esac
 echo "n_parallel=${n_parallel}"
 
 echo "ccache configuration"
+ccache --version
+ccache -M 5G
 ccache -p
 
+ccache -z
 echo "ccache status"
 ccache -s
 
 # assume that it is run from project root directory
 mkdir build && cd build
-cmake ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTESTS=ON -DENABLE_COVERAGE=ON ..
+cmake ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=Debug -DTESTS=ON -DENABLE_COVERAGE=ON ..
 make -j${n_parallel}
 make clang-format
-ctest --output-on-failure -j${n_parallel}
 if [ "$os" = "Linux" ]
 then
-    make -j${n_parallel} Zilliqa_coverage
+    # this target already include "ctest" command, see cmake/CodeCoverage.cmake
+    make Zilliqa_coverage
+else
+    ctest --output-on-failure -j${n_parallel}
 fi
 
 echo "ccache status"
