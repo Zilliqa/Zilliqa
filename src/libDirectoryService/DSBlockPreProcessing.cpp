@@ -58,11 +58,11 @@ void DirectoryService::ComposeDSBlock()
 
     // Assemble DS block header
 
-    lock_guard<mutex> g(m_mutexAllPOW1);
-    const PubKey& winnerKey = m_allPoW1s.front().first;
-    const uint256_t& winnerNonce = m_allPoW1s.front().second;
+    lock_guard<mutex> g(m_mutexAllPOW);
+    const PubKey& winnerKey = m_allPoWs.front().first;
+    const uint256_t& winnerNonce = m_allPoWs.front().second;
 
-    uint256_t blockNum = 0;
+    uint64_t blockNum = 0;
     uint8_t difficulty = POW2_DIFFICULTY;
     if (m_mediator.m_dsBlockChain.GetBlockCount() > 0)
     {
@@ -134,46 +134,72 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
     {
         lock_guard<mutex> g(m_mutexPendingDSBlock);
         m_pendingDSBlock->Serialize(m, 0);
+
+        // Add the IP info of the PoW winner so the backups don't need to query this anymore
+        auto winnerPeer = m_allPoWConns.find(
+            m_pendingDSBlock->GetHeader().GetMinerPubKey());
+        if (winnerPeer == m_allPoWConns.end())
+        {
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "WARNING: Why don't I know the IP of the winner???");
+            return false;
+        }
+        winnerPeer->second.Serialize(m, m.size());
     }
 
-    LOG_STATE("[DSCON][" << std::setw(15) << std::left
-                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                         << "][" << m_mediator.m_txBlockChain.GetBlockCount()
-                         << "] BGIN");
+    LOG_STATE(
+        "[DSCON]["
+        << std::setw(15) << std::left
+        << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
+            + 1
+        << "] BGIN");
 
     cl->StartConsensus(m, DSBlockHeader::SIZE);
 
     return true;
 }
 
-bool DirectoryService::DSBlockValidator(const vector<unsigned char>& dsblock,
-                                        std::vector<unsigned char>& errorMsg)
+bool DirectoryService::DSBlockValidator(
+    const vector<unsigned char>& dsblock,
+    [[gnu::unused]] std::vector<unsigned char>& errorMsg)
 {
     LOG_MARKER();
+
+    // Message = [DS block] [PoW winner IP]
 
     // To-do: Put in the logic here for checking the proposed DS block
     lock(m_mutexPendingDSBlock, m_mutexAllPoWConns);
     lock_guard<mutex> g(m_mutexPendingDSBlock, adopt_lock);
     lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
 
+    // DS block
     m_pendingDSBlock.reset(new DSBlock(dsblock, 0));
 
-    if (m_allPoWConns.find(m_pendingDSBlock->GetHeader().GetMinerPubKey())
-        == m_allPoWConns.end())
+    // PoW winner IP
+    Peer winnerPeer(dsblock, m_pendingDSBlock->GetSerializedSize());
+
+    auto storedMember
+        = m_allPoWConns.find(m_pendingDSBlock->GetHeader().GetMinerPubKey());
+
+    // I know the winner but the winner IP given by the leader is different!
+    if (storedMember != m_allPoWConns.end())
     {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Winning node of PoW1 not inside m_allPoWConns! Getting "
-                  "from ds leader");
-
-        m_hasAllPoWconns = false;
-        std::unique_lock<std::mutex> lk(m_MutexCVAllPowConn);
-
-        RequestAllPoWConn();
-        while (!m_hasAllPoWconns)
+        if (storedMember->second != winnerPeer)
         {
-            cv_allPowConns.wait(lk);
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "WARNING: Why is the IP of the winner different from "
+                      "what I have in m_allPoWConns???");
+            return false;
         }
     }
+    // I don't know the winner -> store the IP given by the leader
+    else
+    {
+        m_allPoWConns.emplace(m_pendingDSBlock->GetHeader().GetMinerPubKey(),
+                              winnerPeer);
+    }
+
     return true;
 }
 
@@ -216,14 +242,14 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin)
     SetState(DSBLOCK_CONSENSUS_PREP);
 
     {
-        lock_guard<mutex> g(m_mutexAllPOW1);
+        lock_guard<mutex> g(m_mutexAllPOW);
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Num of PoW1 sub rec: " << m_allPoW1s.size());
-        LOG_STATE("[POW1R][" << std::setw(15) << std::left
-                             << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                             << "][" << m_allPoW1s.size() << "] ");
+                  "Num of PoW sub rec: " << m_allPoWs.size());
+        LOG_STATE("[POWR][" << std::setw(15) << std::left
+                            << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                            << "][" << m_allPoWs.size() << "] ");
 
-        if (m_allPoW1s.size() == 0)
+        if (m_allPoWs.size() == 0)
         {
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "To-do: Code up the logic for if we didn't get any "
@@ -258,20 +284,19 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin)
     }
 
     SetState(DSBLOCK_CONSENSUS);
+    cv_DSBlockConsensusObject.notify_all();
 
-    if (m_mode != PRIMARY_DS)
+    // View change will wait for timeout. If conditional variable is notified before timeout, the thread will return
+    // without triggering view change.
+    std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeDSBlock);
+    if (cv_viewChangeDSBlock.wait_for(cv_lk,
+                                      std::chrono::seconds(VIEWCHANGE_TIME))
+        == std::cv_status::timeout)
     {
-        std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeDSBlock);
-        if (cv_viewChangeDSBlock.wait_for(cv_lk,
-                                          std::chrono::seconds(VIEWCHANGE_TIME))
-            == std::cv_status::timeout)
-        {
-            //View change.
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Initiated DS block view change. ");
-            auto func = [this]() -> void { RunConsensusOnViewChange(); };
-            DetachedFunction(1, func);
-        }
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Initiated DS block view change. ");
+        auto func = [this]() -> void { RunConsensusOnViewChange(); };
+        DetachedFunction(1, func);
     }
 }
 

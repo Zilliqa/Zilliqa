@@ -21,7 +21,12 @@
 
 #include "common/Singleton.h"
 #include "depends/libDatabase/LevelDB.h"
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "depends/libDatabase/OverlayDB.h"
+#pragma GCC diagnostic pop
+
 #include "depends/libTrie/TrieDB.h"
 
 using namespace dev;

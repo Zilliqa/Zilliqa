@@ -48,20 +48,20 @@ using namespace std;
 using namespace boost::multiprecision;
 
 #ifndef IS_LOOKUP_NODE
-bool Node::StartPoW1(const uint256_t& block_num, uint8_t difficulty,
-                     const array<unsigned char, UINT256_SIZE>& rand1,
-                     const array<unsigned char, UINT256_SIZE>& rand2)
+bool Node::StartPoW(const uint64_t& block_num, uint8_t difficulty,
+                    const array<unsigned char, UINT256_SIZE>& rand1,
+                    const array<unsigned char, UINT256_SIZE>& rand2)
 {
     LOG_MARKER();
-    // if (m_state == POW1_SUBMISSION)
-    if (!CheckState(STARTPOW1))
+    // if (m_state == POW_SUBMISSION)
+    if (!CheckState(STARTPOW))
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Not in POW1_SUBMISSION state");
+                  "Not in POW_SUBMISSION state");
         return false;
     }
 
-    // SetState(POW1_SUBMISSION);
+    // SetState(POW_SUBMISSION);
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Current dsblock is " << block_num);
@@ -84,45 +84,44 @@ bool Node::StartPoW1(const uint256_t& block_num, uint8_t difficulty,
         vector<unsigned char> mixhash_vec
             = DataConversion::HexStrToUint8Vec(winning_result.mix_hash);
 
-        // Send PoW1 result
-        // Message = [32-byte block number] [4-byte listening port] [33-byte public key]
+        // Send PoW result
+        // Message = [8-byte block number] [4-byte listening port] [33-byte public key]
         // [8-byte nonce] [32-byte resulting hash] [32-byte mixhash] [64-byte Signature]
-        vector<unsigned char> pow1message
-            = {MessageType::DIRECTORY, DSInstructionType::POW1SUBMISSION};
+        vector<unsigned char> powmessage
+            = {MessageType::DIRECTORY, DSInstructionType::POWSUBMISSION};
         unsigned int cur_offset = MessageOffset::BODY;
 
-        Serializable::SetNumber<uint256_t>(pow1message, cur_offset, block_num,
-                                           UINT256_SIZE);
-        cur_offset += UINT256_SIZE;
+        Serializable::SetNumber<uint64_t>(powmessage, cur_offset, block_num,
+                                          sizeof(uint64_t));
+        cur_offset += sizeof(uint64_t);
 
         Serializable::SetNumber<uint32_t>(
-            pow1message, cur_offset, m_mediator.m_selfPeer.m_listenPortHost,
+            powmessage, cur_offset, m_mediator.m_selfPeer.m_listenPortHost,
             sizeof(uint32_t));
         cur_offset += sizeof(uint32_t);
 
-        m_mediator.m_selfKey.second.Serialize(pow1message, cur_offset);
+        m_mediator.m_selfKey.second.Serialize(powmessage, cur_offset);
         cur_offset += PUB_KEY_SIZE;
 
-        Serializable::SetNumber<uint64_t>(pow1message, cur_offset,
+        Serializable::SetNumber<uint64_t>(powmessage, cur_offset,
                                           winning_result.winning_nonce,
                                           sizeof(uint64_t));
         cur_offset += sizeof(uint64_t);
 
-        pow1message.insert(pow1message.end(), result_vec.begin(),
-                           result_vec.end());
+        powmessage.insert(powmessage.end(), result_vec.begin(),
+                          result_vec.end());
         cur_offset += BLOCK_HASH_SIZE;
-        pow1message.insert(pow1message.end(), mixhash_vec.begin(),
-                           mixhash_vec.end());
+        powmessage.insert(powmessage.end(), mixhash_vec.begin(),
+                          mixhash_vec.end());
         cur_offset += BLOCK_HASH_SIZE;
 
         Signature sign;
-        if (!Schnorr::GetInstance().Sign(pow1message,
-                                         m_mediator.m_selfKey.first,
+        if (!Schnorr::GetInstance().Sign(powmessage, m_mediator.m_selfKey.first,
                                          m_mediator.m_selfKey.second, sign))
         {
-            LOG_GENERAL(WARNING, "Failed to sign PoW1");
+            LOG_GENERAL(WARNING, "Failed to sign PoW");
         }
-        sign.Serialize(pow1message, cur_offset);
+        sign.Serialize(powmessage, cur_offset);
 
         deque<Peer> peerList;
 
@@ -131,30 +130,30 @@ bool Node::StartPoW1(const uint256_t& block_num, uint8_t difficulty,
             peerList.push_back(i.second);
         }
 
-        P2PComm::GetInstance().SendMessage(peerList, pow1message);
+        P2PComm::GetInstance().SendMessage(peerList, powmessage);
     }
 
     SetState(POW2_SUBMISSION);
     return true;
 }
 
-bool Node::ReadVariablesFromStartPoW1Message(
+bool Node::ReadVariablesFromStartPoWMessage(
     const vector<unsigned char>& message, unsigned int cur_offset,
-    uint256_t& block_num, uint8_t& difficulty, array<unsigned char, 32>& rand1,
+    uint64_t& block_num, uint8_t& difficulty, array<unsigned char, 32>& rand1,
     array<unsigned char, 32>& rand2)
 {
     if (IsMessageSizeInappropriate(message.size(), cur_offset,
-                                   UINT256_SIZE + sizeof(uint8_t) + UINT256_SIZE
-                                       + UINT256_SIZE,
+                                   sizeof(uint64_t) + sizeof(uint8_t)
+                                       + UINT256_SIZE + UINT256_SIZE,
                                    PUB_KEY_SIZE + IP_SIZE + PORT_SIZE))
     {
         return false;
     }
 
-    // 32-byte block num
-    block_num
-        = Serializable::GetNumber<uint256_t>(message, cur_offset, UINT256_SIZE);
-    cur_offset += UINT256_SIZE;
+    // 8-byte block num
+    block_num = Serializable::GetNumber<uint64_t>(message, cur_offset,
+                                                  sizeof(uint64_t));
+    cur_offset += sizeof(uint64_t);
 
     // 1-byte difficulty
     difficulty = Serializable::GetNumber<uint8_t>(message, cur_offset,
@@ -187,7 +186,7 @@ bool Node::ReadVariablesFromStartPoW1Message(
         = (message.size() - cur_offset) / (PUB_KEY_SIZE + IP_SIZE + PORT_SIZE);
 
     // Create and keep a view of the DS committee
-    // We'll need this if we win PoW1
+    // We'll need this if we win PoW
     m_mediator.m_DSCommittee.clear();
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "DS nodes count    = " << numDS);
@@ -196,8 +195,9 @@ bool Node::ReadVariablesFromStartPoW1Message(
         PubKey pubkey(message, cur_offset);
         cur_offset += PUB_KEY_SIZE;
 
-        m_mediator.m_DSCommittee.push_back(
+        m_mediator.m_DSCommittee.emplace_back(
             make_pair(pubkey, Peer(message, cur_offset)));
+
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "DS Node IP: " << m_mediator.m_DSCommittee.back()
                                         .second.GetPrintableIPAddress()
@@ -211,38 +211,44 @@ bool Node::ReadVariablesFromStartPoW1Message(
 }
 #endif // IS_LOOKUP_NODE
 
-bool Node::ProcessStartPoW1(const vector<unsigned char>& message,
-                            unsigned int offset, const Peer& from)
+bool Node::ProcessStartPoW([[gnu::unused]] const vector<unsigned char>& message,
+                           [[gnu::unused]] unsigned int offset,
+                           [[gnu::unused]] const Peer& from)
 {
 #ifndef IS_LOOKUP_NODE
     // Note: This function should only be invoked on a new node that was not part of the sharding committees in previous epoch
-    // Message = [32-byte block num] [1-byte difficulty] [32-byte rand1] [32-byte rand2] [33-byte pubkey] [16-byte ip] [4-byte port] ... (all the DS nodes)
+    // Message = [8-byte block num] [1-byte difficulty] [32-byte rand1] [32-byte rand2] [33-byte pubkey] [16-byte ip] [4-byte port] ... (all the DS nodes)
 
     LOG_MARKER();
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "START OF EPOCH " << m_mediator.m_dsBlockChain.GetBlockCount());
+              "START OF EPOCH " << m_mediator.m_dsBlockChain.GetLastBlock()
+                                       .GetHeader()
+                                       .GetBlockNum()
+                      + 1);
 
-    uint256_t block_num;
+    uint64_t block_num;
     uint8_t difficulty;
     array<unsigned char, 32> rand1;
     array<unsigned char, 32> rand2;
 
-    if (!ReadVariablesFromStartPoW1Message(message, offset, block_num,
-                                           difficulty, rand1, rand2))
+    if (!ReadVariablesFromStartPoWMessage(message, offset, block_num,
+                                          difficulty, rand1, rand2))
     {
         return false;
     }
 
     if (m_mediator.m_isRetrievedHistory)
     {
-        block_num = m_mediator.m_dsBlockChain.GetBlockCount();
-        difficulty = POW1_DIFFICULTY;
+        block_num
+            = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()
+            + 1;
+        difficulty = POW_DIFFICULTY;
         rand1 = m_mediator.m_dsBlockRand;
         rand2 = m_mediator.m_txBlockRand;
     }
 
     // Start mining
-    StartPoW1(block_num, difficulty, rand1, rand2);
+    StartPoW(block_num, difficulty, rand1, rand2);
 #endif // IS_LOOKUP_NODE
 
     return true;

@@ -48,8 +48,7 @@ using namespace boost::multiprecision;
 
 #ifndef IS_LOOKUP_NODE
 void Node::SharePoW2WinningResultWithDS(
-    const uint256_t& block_num,
-    const ethash_mining_result& winning_result) const
+    const uint64_t& block_num, const ethash_mining_result& winning_result) const
 {
     LOG_MARKER();
 
@@ -64,9 +63,9 @@ void Node::SharePoW2WinningResultWithDS(
         = {MessageType::DIRECTORY, DSInstructionType::POW2SUBMISSION};
     unsigned int cur_offset = MessageOffset::BODY;
 
-    Serializable::SetNumber<uint256_t>(pow2message, cur_offset, block_num,
-                                       UINT256_SIZE);
-    cur_offset += UINT256_SIZE;
+    Serializable::SetNumber<uint64_t>(pow2message, cur_offset, block_num,
+                                      sizeof(uint64_t));
+    cur_offset += sizeof(uint64_t);
 
     Serializable::SetNumber<uint32_t>(pow2message, cur_offset,
                                       m_mediator.m_selfPeer.m_listenPortHost,
@@ -113,7 +112,7 @@ void Node::SharePoW2WinningResultWithDS(
 }
 
 void Node::StartPoW2MiningAndShareResultWithDS(
-    const uint256_t& block_num, uint8_t difficulty,
+    const uint64_t& block_num, uint8_t difficulty,
     const array<unsigned char, 32>& rand1,
     const array<unsigned char, 32>& rand2) const
 {
@@ -129,11 +128,11 @@ void Node::StartPoW2MiningAndShareResultWithDS(
     }
 }
 
-bool Node::StartPoW2(uint256_t block_num, uint8_t difficulty,
+bool Node::StartPoW2(uint64_t block_num, uint8_t difficulty,
                      array<unsigned char, 32> rand1,
                      array<unsigned char, 32> rand2)
 {
-    // Message = [32-byte block num] [1-byte difficulty] [32-byte rand1] [32-byte rand2] [16-byte ip] [4-byte port] ... (all the DS nodes)
+    // Message = [8-byte block num] [1-byte difficulty] [32-byte rand1] [32-byte rand2] [16-byte ip] [4-byte port] ... (all the DS nodes)
 
     LOG_MARKER();
 

@@ -39,8 +39,7 @@ BlockStorage& BlockStorage::GetBlockStorage()
 }
 
 #ifndef IS_LOOKUP_NODE
-bool BlockStorage::PushBackTxBodyDB(
-    const boost::multiprecision::uint256_t& blockNum)
+bool BlockStorage::PushBackTxBodyDB(const uint64_t& blockNum)
 {
     LOG_MARKER();
 
@@ -51,9 +50,9 @@ bool BlockStorage::PushBackTxBodyDB(
         return false;
     }
 
-    std::shared_ptr<LevelDB> txBodyDBPtr = std::make_shared<LevelDB>(
-        blockNum.convert_to<string>(), TX_BODY_SUBDIR);
-    m_txBodyDBs.push_back(txBodyDBPtr);
+    std::shared_ptr<LevelDB> txBodyDBPtr
+        = std::make_shared<LevelDB>(to_string(blockNum), TX_BODY_SUBDIR);
+    m_txBodyDBs.emplace_back(txBodyDBPtr);
 
     return true;
 }
@@ -87,7 +86,7 @@ bool BlockStorage::PopFrontTxBodyDB(bool mandatory)
 unsigned int BlockStorage::GetTxBodyDBSize() { return m_txBodyDBs.size(); }
 #endif // IS_LOOKUP_NODE
 
-bool BlockStorage::PutBlock(const boost::multiprecision::uint256_t& blockNum,
+bool BlockStorage::PutBlock(const uint64_t& blockNum,
                             const vector<unsigned char>& body,
                             const BlockType& blockType)
 {
@@ -103,7 +102,7 @@ bool BlockStorage::PutBlock(const boost::multiprecision::uint256_t& blockNum,
     return (ret == 0);
 }
 
-bool BlockStorage::PutDSBlock(const boost::multiprecision::uint256_t& blockNum,
+bool BlockStorage::PutDSBlock(const uint64_t& blockNum,
                               const vector<unsigned char>& body)
 {
     bool ret = false;
@@ -125,7 +124,7 @@ bool BlockStorage::PutDSBlock(const boost::multiprecision::uint256_t& blockNum,
     return ret;
 }
 
-bool BlockStorage::PutTxBlock(const boost::multiprecision::uint256_t& blockNum,
+bool BlockStorage::PutTxBlock(const uint64_t& blockNum,
                               const vector<unsigned char>& body)
 {
     return PutBlock(blockNum, body, BlockType::Tx);
@@ -149,8 +148,7 @@ bool BlockStorage::PutTxBody(const dev::h256& key,
     return (ret == 0);
 }
 
-bool BlockStorage::GetDSBlock(const boost::multiprecision::uint256_t& blockNum,
-                              DSBlockSharedPtr& block)
+bool BlockStorage::GetDSBlock(const uint64_t& blockNum, DSBlockSharedPtr& block)
 {
     string blockString = m_dsBlockchainDB.Lookup(blockNum);
 
@@ -167,8 +165,7 @@ bool BlockStorage::GetDSBlock(const boost::multiprecision::uint256_t& blockNum,
     return true;
 }
 
-bool BlockStorage::GetTxBlock(const boost::multiprecision::uint256_t& blockNum,
-                              TxBlockSharedPtr& block)
+bool BlockStorage::GetTxBlock(const uint64_t& blockNum, TxBlockSharedPtr& block)
 {
     string blockString = m_txBlockchainDB.Lookup(blockNum);
 
@@ -206,16 +203,14 @@ bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body)
     return true;
 }
 
-bool BlockStorage::DeleteDSBlock(
-    const boost::multiprecision::uint256_t& blocknum)
+bool BlockStorage::DeleteDSBlock(const uint64_t& blocknum)
 {
     LOG_GENERAL(INFO, "Delete DSBlock Num: " << blocknum);
     int ret = m_dsBlockchainDB.DeleteKey(blocknum);
     return (ret == 0);
 }
 
-bool BlockStorage::DeleteTxBlock(
-    const boost::multiprecision::uint256_t& blocknum)
+bool BlockStorage::DeleteTxBlock(const uint64_t& blocknum)
 {
     LOG_GENERAL(INFO, "Delete TxBlock Num: " << blocknum);
     int ret = m_txBlockchainDB.DeleteKey(blocknum);
@@ -256,9 +251,7 @@ bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr>& blocks)
     for (it->SeekToFirst(); it->Valid(); it->Next())
     {
         string bns = it->key().ToString();
-        boost::multiprecision::uint256_t blockNum(bns);
-        LOG_GENERAL(INFO, "blockNum: " << blockNum);
-
+        LOG_GENERAL(INFO, "blockNum: " << bns);
         string blockString = it->value().ToString();
         if (blockString.empty())
         {
@@ -270,7 +263,7 @@ bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr>& blocks)
         DSBlockSharedPtr block = DSBlockSharedPtr(new DSBlock(
             std::vector<unsigned char>(blockString.begin(), blockString.end()),
             0));
-        blocks.push_back(block);
+        blocks.emplace_back(block);
     }
 
     delete it;
@@ -293,9 +286,7 @@ bool BlockStorage::GetAllTxBlocks(std::list<TxBlockSharedPtr>& blocks)
     for (it->SeekToFirst(); it->Valid(); it->Next())
     {
         string bns = it->key().ToString();
-        boost::multiprecision::uint256_t blockNum(bns);
-        LOG_GENERAL(INFO, "blockNum: " << blockNum);
-
+        LOG_GENERAL(INFO, "blockNum: " << bns);
         string blockString = it->value().ToString();
         if (blockString.empty())
         {
@@ -306,7 +297,7 @@ bool BlockStorage::GetAllTxBlocks(std::list<TxBlockSharedPtr>& blocks)
         TxBlockSharedPtr block = TxBlockSharedPtr(new TxBlock(
             std::vector<unsigned char>(blockString.begin(), blockString.end()),
             0));
-        blocks.push_back(block);
+        blocks.emplace_back(block);
     }
 
     delete it;
@@ -337,7 +328,7 @@ bool BlockStorage::GetAllTxBodiesTmp(std::list<TxnHash>& txnHashes)
             return false;
         }
         TxnHash txnHash(hashString);
-        txnHashes.push_back(txnHash);
+        txnHashes.emplace_back(txnHash);
     }
 
     delete it;

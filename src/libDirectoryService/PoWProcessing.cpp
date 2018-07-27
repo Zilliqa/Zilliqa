@@ -41,28 +41,28 @@ using namespace boost::multiprecision;
 #ifndef IS_LOOKUP_NODE
 bool DirectoryService::CheckWhetherMaxSubmissionsReceived(Peer peer, PubKey key)
 {
-    lock(m_mutexAllPOW1, m_mutexAllPoWConns);
-    lock_guard<mutex> g(m_mutexAllPOW1, adopt_lock);
+    lock(m_mutexAllPOW, m_mutexAllPoWConns);
+    lock_guard<mutex> g(m_mutexAllPOW, adopt_lock);
     lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
 
-    if (m_allPoW1s.size() >= MAX_POW1_WINNERS)
+    if (m_allPoWs.size() >= MAX_POW_WINNERS)
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Already validated maximum number of PoW1 submissions - "
+                  "Already validated maximum number of PoW submissions - "
                   "dropping this submission but noting down the IP of "
                   "submitter");
-        m_allPoWConns.insert(make_pair(key, peer));
+        m_allPoWConns.emplace(key, peer);
         return true;
     }
 
     return false;
 }
 
-bool DirectoryService::VerifyPoW1Submission(
+bool DirectoryService::VerifyPoWSubmission(
     const vector<unsigned char>& message, const Peer& from, PubKey& key,
     unsigned int curr_offset, uint32_t& portNo, uint64_t& nonce,
     array<unsigned char, 32>& rand1, array<unsigned char, 32>& rand2,
-    unsigned int& difficulty, uint256_t& block_num)
+    unsigned int& difficulty, uint64_t& block_num)
 {
     // 8-byte nonce
     nonce = Serializable::GetNumber<uint64_t>(message, curr_offset,
@@ -85,7 +85,7 @@ bool DirectoryService::VerifyPoW1Submission(
 
     if (!Schnorr::GetInstance().Verify(message, 0, curr_offset, sign, key))
     {
-        LOG_GENERAL(WARNING, "PoW1 submission signature wrong");
+        LOG_GENERAL(WARNING, "PoW submission signature wrong");
         return false;
     }
 
@@ -98,14 +98,16 @@ bool DirectoryService::VerifyPoW1Submission(
               "Winner Peer ip addr           = " << from.GetPrintableIPAddress()
                                                  << ":" << portNo);
 
-    // Define the PoW1 parameters
+    // Define the PoW parameters
     rand1 = m_mediator.m_dsBlockRand;
     rand2 = m_mediator.m_txBlockRand;
 
     difficulty
-        = POW1_DIFFICULTY; // TODO: Need to get the latest blocknum, diff, rand1, rand2
+        = POW_DIFFICULTY; // TODO: Need to get the latest blocknum, diff, rand1, rand2
     // Verify nonce
-    block_num = m_mediator.m_dsBlockChain.GetBlockCount();
+    block_num
+        = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()
+        + 1;
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "dsblock_num            = " << block_num);
 
@@ -116,20 +118,20 @@ bool DirectoryService::VerifyPoW1Submission(
         nonce, winning_hash, winning_mixhash);
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "[POWSTAT] pow1 verify (microsec): " << r_timer_end(m_timespec));
+              "[POWSTAT] pow verify (microsec): " << r_timer_end(m_timespec));
 
     return result;
 }
 
-bool DirectoryService::ParseMessageAndVerifyPOW1(
+bool DirectoryService::ParseMessageAndVerifyPOW(
     const vector<unsigned char>& message, unsigned int offset, const Peer& from)
 {
     unsigned int curr_offset = offset;
 
-    // 32-byte block number
-    uint256_t DSBlockNum = Serializable::GetNumber<uint256_t>(
-        message, curr_offset, UINT256_SIZE);
-    curr_offset += UINT256_SIZE;
+    // 8-byte block number
+    uint64_t DSBlockNum = Serializable::GetNumber<uint64_t>(
+        message, curr_offset, sizeof(uint64_t));
+    curr_offset += sizeof(uint64_t);
 
     // Check block number
     if (!CheckWhetherDSBlockIsFresh(DSBlockNum))
@@ -159,18 +161,18 @@ bool DirectoryService::ParseMessageAndVerifyPOW1(
         && not Whitelist::GetInstance().IsNodeInDSWhiteList(peer, key))
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Submitted PoW1 but node is not in DS whitelist. Hence, "
+                  "Submitted PoW but node is not in DS whitelist. Hence, "
                   "not accepted!");
     }
 
-    // Todo: Reject PoW1 submissions from existing members of DS committee
+    // Todo: Reject PoW submissions from existing members of DS committee
 
     if (CheckWhetherMaxSubmissionsReceived(peer, key))
     {
         return false;
     }
 
-    if (!CheckState(VERIFYPOW1))
+    if (!CheckState(VERIFYPOW))
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Too late - current state is "
@@ -191,17 +193,17 @@ bool DirectoryService::ParseMessageAndVerifyPOW1(
     array<unsigned char, 32> rand1;
     array<unsigned char, 32> rand2;
     unsigned int difficulty;
-    uint256_t block_num;
+    uint64_t block_num;
     bool result
-        = VerifyPoW1Submission(message, from, key, curr_offset, portNo, nonce,
-                               rand1, rand2, difficulty, block_num);
+        = VerifyPoWSubmission(message, from, key, curr_offset, portNo, nonce,
+                              rand1, rand2, difficulty, block_num);
 
     if (result == true)
     {
         // Do another check on the state before accessing m_allPoWs
         // Accept slightly late entries as we need to multicast the DSBLOCK to everyone
-        // if ((m_state != POW1_SUBMISSION) && (m_state != DSBLOCK_CONSENSUS_PREP))
-        if (!CheckState(VERIFYPOW1))
+        // if ((m_state != POW_SUBMISSION) && (m_state != DSBLOCK_CONSENSUS_PREP))
+        if (!CheckState(VERIFYPOW))
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Too late - current state is " << m_state);
@@ -209,29 +211,29 @@ bool DirectoryService::ParseMessageAndVerifyPOW1(
         else
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "POW1 verification passed");
-            lock(m_mutexAllPOW1, m_mutexAllPoWConns);
-            lock_guard<mutex> g(m_mutexAllPOW1, adopt_lock);
+                      "POW verification passed");
+            lock(m_mutexAllPOW, m_mutexAllPoWConns);
+            lock_guard<mutex> g(m_mutexAllPOW, adopt_lock);
             lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
 
-            m_allPoWConns.insert(make_pair(key, peer));
+            m_allPoWConns.emplace(key, peer);
 
-            if (m_allPoW1s.size() >= MAX_POW1_WINNERS)
+            if (m_allPoWs.size() >= MAX_POW_WINNERS)
             {
                 LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "Already validated maximum number of PoW1 "
+                          "Already validated maximum number of PoW "
                           "submissions - dropping this submission but "
                           "noting down the IP of submitter");
                 return false;
             }
 
-            m_allPoW1s.push_back(make_pair(key, nonce));
+            m_allPoWs.emplace_back(key, nonce);
         }
     }
     else
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Invalid PoW1 submission"
+                  "Invalid PoW submission"
                       << "\n"
                       << "blockNum: " << block_num
                       << " Difficulty: " << difficulty << " nonce: " << nonce
@@ -244,19 +246,20 @@ bool DirectoryService::ParseMessageAndVerifyPOW1(
 }
 #endif // IS_LOOKUP_NODE
 
-bool DirectoryService::ProcessPoW1Submission(
-    const vector<unsigned char>& message, unsigned int offset, const Peer& from)
+bool DirectoryService::ProcessPoWSubmission(
+    [[gnu::unused]] const vector<unsigned char>& message,
+    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
 {
 #ifndef IS_LOOKUP_NODE
-    // Message = [32-byte block number] [4-byte listening port] [33-byte public key] [8-byte nonce] [32-byte resulting hash]
+    // Message = [8-byte block number] [4-byte listening port] [33-byte public key] [8-byte nonce] [32-byte resulting hash]
     //[32-byte mixhash] [64-byte Sign]
     LOG_MARKER();
 
     if (m_state == FINALBLOCK_CONSENSUS)
     {
-        std::unique_lock<std::mutex> cv_lk(m_MutexCVPOW1Submission);
+        std::unique_lock<std::mutex> cv_lk(m_MutexCVPOWSubmission);
 
-        if (cv_POW1Submission.wait_for(
+        if (cv_POWSubmission.wait_for(
                 cv_lk, std::chrono::seconds(POW_SUBMISSION_TIMEOUT))
             == std::cv_status::timeout)
         {
@@ -268,24 +271,24 @@ bool DirectoryService::ProcessPoW1Submission(
                   "State transition is completed. (check for timeout)");
     }
 
-    if (!CheckState(PROCESS_POW1SUBMISSION))
+    if (!CheckState(PROCESS_POWSUBMISSION))
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Not at POW1_SUBMISSION. Current state is " << m_state);
+                  "Not at POW_SUBMISSION. Current state is " << m_state);
         return false;
     }
 
     if (IsMessageSizeInappropriate(
             message.size(), offset,
-            UINT256_SIZE + sizeof(uint32_t) + PUB_KEY_SIZE + sizeof(uint64_t)
-                + BLOCK_HASH_SIZE + BLOCK_HASH_SIZE + SIGNATURE_CHALLENGE_SIZE
-                + SIGNATURE_RESPONSE_SIZE))
+            sizeof(uint64_t) + sizeof(uint32_t) + PUB_KEY_SIZE
+                + sizeof(uint64_t) + BLOCK_HASH_SIZE + BLOCK_HASH_SIZE
+                + SIGNATURE_CHALLENGE_SIZE + SIGNATURE_RESPONSE_SIZE))
     {
-        LOG_GENERAL(WARNING, "Pow1 message size Inappropriate ");
+        LOG_GENERAL(WARNING, "Pow message size Inappropriate ");
         return false;
     }
 
-    bool result = ParseMessageAndVerifyPOW1(message, offset, from);
+    bool result = ParseMessageAndVerifyPOW(message, offset, from);
     return result;
 #else // IS_LOOKUP_NODE
     return true;

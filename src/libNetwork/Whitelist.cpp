@@ -112,7 +112,7 @@ void Whitelist::UpdateShardWhitelist()
     for (auto& addr : pt.get_child("address"))
     {
         PubKey key(DataConversion::HexStrToUint8Vec(addr.second.data()), 0);
-        m_ShardWhiteList.push_back(key);
+        m_ShardWhiteList.emplace_back(key);
         // LOG_GENERAL(INFO, "Added " << key);
     }
 
@@ -131,7 +131,7 @@ void Whitelist::AddToDSWhitelist(const Peer& whiteListPeer,
     }
 
     lock_guard<mutex> g(m_mutexDSWhiteList);
-    m_DSWhiteList.insert(make_pair(whiteListPeer, whiteListPubKey));
+    m_DSWhiteList.emplace(whiteListPeer, whiteListPubKey);
     // LOG_GENERAL(INFO, "Added " << whiteListPeer << " " << whiteListPubKey);
 }
 
@@ -234,11 +234,11 @@ void Whitelist::AddToExclusionList(const uint128_t& ft, const uint128_t& sd)
 
     if (ft_c > sd_c)
     {
-        m_IPExclusionRange.push_back(make_pair(sd_c, ft_c));
+        m_IPExclusionRange.emplace_back(sd_c, ft_c);
     }
     else
     {
-        m_IPExclusionRange.push_back(make_pair(ft_c, sd_c));
+        m_IPExclusionRange.emplace_back(ft_c, sd_c);
     }
 }
 

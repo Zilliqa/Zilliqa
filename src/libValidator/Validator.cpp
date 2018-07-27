@@ -165,7 +165,7 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
                         << " Actual Tx Nonce = " << tx.GetNonce());
                 return false;
             }
-            m_txnNonceMap.insert(make_pair(fromAddr, tx.GetNonce()));
+            m_txnNonceMap.emplace(fromAddr, tx.GetNonce());
         }
         else
         {

@@ -23,9 +23,9 @@
 class SafeMath
 {
 public:
-    static const bool mul(const boost::multiprecision::uint256_t& a,
-                          const boost::multiprecision::uint256_t& b,
-                          boost::multiprecision::uint256_t& result)
+    static bool mul(const boost::multiprecision::uint256_t& a,
+                    const boost::multiprecision::uint256_t& b,
+                    boost::multiprecision::uint256_t& result)
     {
         if (a == 0)
         {
@@ -43,9 +43,9 @@ public:
         return true;
     }
 
-    static const bool div(const boost::multiprecision::uint256_t& a,
-                          const boost::multiprecision::uint256_t& b,
-                          boost::multiprecision::uint256_t& result)
+    static bool div(const boost::multiprecision::uint256_t& a,
+                    const boost::multiprecision::uint256_t& b,
+                    boost::multiprecision::uint256_t& result)
     {
         if (b <= 0)
         {
@@ -63,9 +63,9 @@ public:
         return true;
     }
 
-    static const bool sub(const boost::multiprecision::uint256_t& a,
-                          const boost::multiprecision::uint256_t& b,
-                          boost::multiprecision::uint256_t& result)
+    static bool sub(const boost::multiprecision::uint256_t& a,
+                    const boost::multiprecision::uint256_t& b,
+                    boost::multiprecision::uint256_t& result)
     {
         if (b > a)
         {
@@ -77,9 +77,9 @@ public:
         return true;
     }
 
-    static const bool add(const boost::multiprecision::uint256_t& a,
-                          const boost::multiprecision::uint256_t& b,
-                          boost::multiprecision::uint256_t& result)
+    static bool add(const boost::multiprecision::uint256_t& a,
+                    const boost::multiprecision::uint256_t& b,
+                    boost::multiprecision::uint256_t& result)
     {
         boost::multiprecision::uint256_t c = a + b;
         if (c - a != b)

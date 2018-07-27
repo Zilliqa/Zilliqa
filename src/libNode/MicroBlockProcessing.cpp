@@ -50,16 +50,17 @@ using namespace boost::multiprecision;
 #ifndef IS_LOOKUP_NODE
 void Node::SubmitMicroblockToDSCommittee() const
 {
-    // Message = [32-byte DS blocknum] [4-byte consensusid] [4-byte shard ID] [Tx microblock]
+    // Message = [8-byte DS blocknum] [4-byte consensusid] [4-byte shard ID] [Tx microblock]
     vector<unsigned char> microblock
         = {MessageType::DIRECTORY, DSInstructionType::MICROBLOCKSUBMISSION};
     unsigned int cur_offset = MessageOffset::BODY;
 
-    // 32-byte DS blocknum
-    uint256_t DSBlockNum = m_mediator.m_dsBlockChain.GetBlockCount() - 1;
-    Serializable::SetNumber<uint256_t>(microblock, cur_offset, DSBlockNum,
-                                       UINT256_SIZE);
-    cur_offset += UINT256_SIZE;
+    // 8-byte DS blocknum
+    uint64_t DSBlockNum
+        = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+    Serializable::SetNumber<uint64_t>(microblock, cur_offset, DSBlockNum,
+                                      sizeof(uint64_t));
+    cur_offset += sizeof(uint64_t);
 
     // 4-byte consensusid
     Serializable::SetNumber<uint32_t>(microblock, cur_offset, m_consensusID,
@@ -88,11 +89,58 @@ void Node::SubmitMicroblockToDSCommittee() const
 }
 #endif // IS_LOOKUP_NODE
 
-bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
-                                      unsigned int offset, const Peer& from)
+bool Node::ProcessMicroblockConsensus(
+    [[gnu::unused]] const vector<unsigned char>& message,
+    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
 {
 #ifndef IS_LOOKUP_NODE
     LOG_MARKER();
+
+    {
+        lock_guard<mutex> g(m_mutexConsensus);
+
+        // Consensus messages must be processed in correct sequence as they come in
+        // It is possible for ANNOUNCE to arrive before correct DS state
+        // In that case, state transition will occurs and ANNOUNCE will be processed.
+
+        if ((m_state == TX_SUBMISSION) || (m_state == TX_SUBMISSION_BUFFER)
+            || (m_state == MICROBLOCK_CONSENSUS_PREP))
+        {
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Received microblock announcement from shard leader. I "
+                      "will move on to consensus");
+            cv_microblockConsensus.notify_all();
+
+            std::unique_lock<std::mutex> cv_lk(
+                m_MutexCVMicroblockConsensusObject);
+
+            if (cv_microblockConsensusObject.wait_for(
+                    cv_lk, std::chrono::seconds(CONSENSUS_OBJECT_TIMEOUT),
+                    [this] { return (m_state == MICROBLOCK_CONSENSUS); }))
+            {
+                // condition passed without timeout
+            }
+            else
+            {
+                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                          "Time out while waiting for state transition and "
+                          "consensus object creation ");
+            }
+
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "State transition is completed and consensus object "
+                      "creation.");
+        }
+    }
+
+    if (!CheckState(PROCESS_MICROBLOCKCONSENSUS))
+    {
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Not in MICROBLOCK_CONSENSUS state");
+        return false;
+    }
+
+    // Consensus message must be processed in order. The following will block till it is the right order.
 
     std::unique_lock<mutex> cv_lk(m_mutexProcessConsensusMessage);
     if (cv_processConsensusMessage.wait_for(
@@ -107,11 +155,12 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
                                 "consensus msg.")
                     return false;
                 }
+
                 if (m_consensusObject == nullptr)
                 {
                     LOG_GENERAL(WARNING,
-                                "m_consensusObject is a nullptr. It has not "
-                                "been initialized.")
+                                "m_consensusObject should have been created "
+                                "but it is not")
                     return false;
                 }
                 return m_consensusObject->CanProcessMessage(message, offset);
@@ -129,46 +178,10 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
 
     lock_guard<mutex> g(m_mutexConsensus);
 
-    // Consensus messages must be processed in correct sequence as they come in
-    // It is possible for ANNOUNCE to arrive before correct DS state
-    // In that case, state transition will occurs and ANNOUNCE will be processed.
-
-    if ((m_state == TX_SUBMISSION) || (m_state == TX_SUBMISSION_BUFFER)
-        || (m_state == MICROBLOCK_CONSENSUS_PREP))
+    if (!m_consensusObject->ProcessMessage(message, offset, from))
     {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Received microblock announcement from shard leader. I "
-                  "will move on to consensus");
-        cv_microblockConsensus.notify_all();
-
-        std::unique_lock<std::mutex> cv_lk(m_MutexCVMicroblockConsensusObject);
-
-        if (cv_microblockConsensusObject.wait_for(
-                cv_lk, std::chrono::seconds(CONSENSUS_OBJECT_TIMEOUT),
-                [this] { return (m_state == MICROBLOCK_CONSENSUS); }))
-        {
-            // condition passed without timeout
-        }
-        else
-        {
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Time out while waiting for state transition and "
-                      "consensus object creation ");
-        }
-
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "State transition is completed and consensus object "
-                  "creation.");
-    }
-
-    if (!CheckState(PROCESS_MICROBLOCKCONSENSUS))
-    {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Not in MICROBLOCK_CONSENSUS state");
         return false;
     }
-
-    bool result = m_consensusObject->ProcessMessage(message, offset, from);
 
     ConsensusCommon::State state = m_consensusObject->GetState();
 
@@ -281,11 +294,8 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
 
         cv_processConsensusMessage.notify_all();
     }
-
-    return result;
-#else // IS_LOOKUP_NODE
-    return true;
 #endif // IS_LOOKUP_NODE
+    return true;
 }
 
 #ifndef IS_LOOKUP_NODE
@@ -302,12 +312,12 @@ bool Node::ComposeMicroBlock()
     uint256_t gasUsed = 1;
     BlockHash prevHash;
     fill(prevHash.asArray().begin(), prevHash.asArray().end(), 0x77);
-    uint256_t blockNum = (uint256_t)m_mediator.m_currentEpochNum;
+    uint64_t blockNum = m_mediator.m_currentEpochNum;
     uint256_t timestamp = get_time_as_int();
     TxnHash txRootHash;
     uint32_t numTxs = 0;
     const PubKey& minerPubKey = m_mediator.m_selfKey.second;
-    uint256_t dsBlockNum = (uint256_t)m_mediator.m_currentEpochNum;
+    uint64_t dsBlockNum = m_mediator.m_currentEpochNum;
     BlockHash dsBlockHeader;
     fill(dsBlockHeader.asArray().begin(), dsBlockHeader.asArray().end(), 0x11);
     StateHash stateDeltaHash = AccountStore::GetInstance().GetStateDeltaHash();
@@ -391,7 +401,7 @@ bool Node::OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
              txnHash.asArray().begin());
         offset += TRAN_HASH_SIZE;
 
-        missingTransactions.push_back(txnHash);
+        missingTransactions.emplace_back(txnHash);
     }
 
     uint32_t portNo
@@ -449,8 +459,9 @@ bool Node::OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
     return true;
 }
 
-bool Node::OnCommitFailure(
-    const std::map<unsigned int, std::vector<unsigned char>>& commitFailureMap)
+bool Node::OnCommitFailure([
+    [gnu::unused]] const std::map<unsigned int, std::vector<unsigned char>>&
+                               commitFailureMap)
 {
     LOG_MARKER();
 
