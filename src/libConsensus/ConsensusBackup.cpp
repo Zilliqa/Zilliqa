@@ -27,232 +27,42 @@ using namespace std;
 
 bool ConsensusBackup::CheckState(Action action)
 {
-    bool result = true;
+    static const std::multimap<ConsensusCommon::State, Action> ACTIONS_FOR_STATE
+        = {{INITIAL, PROCESS_ANNOUNCE},
+           {COMMIT_DONE, PROCESS_CHALLENGE},
+           {COMMIT_DONE, PROCESS_COLLECTIVESIG},
+           {COMMIT_DONE,
+            PROCESS_FINALCOLLECTIVESIG}, // TODO: check this logic again. Issue #43 Node cannot proceed if finalcollectivesig arrived earlier (and get ignored by the node)
+           {RESPONSE_DONE, PROCESS_CHALLENGE},
+           {RESPONSE_DONE, PROCESS_COLLECTIVESIG},
+           {RESPONSE_DONE, PROCESS_FINALCHALLENGE},
+           {RESPONSE_DONE,
+            PROCESS_FINALCOLLECTIVESIG}, // TODO: check this logic again. Issue #43 Node cannot proceed if finalcollectivesig arrived earlier (and get ignored by the node)
+           {FINALCOMMIT_DONE, PROCESS_FINALCHALLENGE},
+           {FINALCOMMIT_DONE, PROCESS_FINALCOLLECTIVESIG},
+           {FINALRESPONSE_DONE, PROCESS_FINALCOLLECTIVESIG}};
 
-    switch (action)
+    bool found = false;
+
+    for (auto pos = ACTIONS_FOR_STATE.lower_bound(m_state);
+         pos != ACTIONS_FOR_STATE.upper_bound(m_state); pos++)
     {
-    case PROCESS_ANNOUNCE:
-        switch (m_state)
+        if (pos->second == action)
         {
-        case INITIAL:
-            break;
-        case COMMIT_DONE:
-            LOG_GENERAL(WARNING, "Processing announce but commit already done");
-            result = false;
-            break;
-        case RESPONSE_DONE:
-            LOG_GENERAL(WARNING,
-                        "Processing announce but response already done");
-            result = false;
-            break;
-        case FINALCOMMIT_DONE:
-            LOG_GENERAL(WARNING,
-                        "Processing announce but finalcommit already done");
-            result = false;
-            break;
-        case FINALRESPONSE_DONE:
-            LOG_GENERAL(WARNING,
-                        "Processing announce but finalresponse already done");
-            result = false;
-            break;
-        case DONE:
-            LOG_GENERAL(WARNING,
-                        "Processing announce but consensus already done");
-            result = false;
-            break;
-        case ERROR:
-            LOG_GENERAL(WARNING,
-                        "Processing announce but receiving ERROR message.");
-            result = false;
-            break;
-        default:
-            LOG_GENERAL(WARNING, "Unrecognized or error state");
-            result = false;
+            found = true;
             break;
         }
-        break;
-    case PROCESS_CHALLENGE:
-        switch (m_state)
-        {
-        case INITIAL:
-            LOG_GENERAL(WARNING,
-                        "Processing challenge but commit not yet done");
-            result = false;
-            break;
-        case COMMIT_DONE:
-            break;
-        case RESPONSE_DONE:
-            LOG_GENERAL(INFO, "Processing challenge but response already done");
-            // LOG_GENERAL(WARNING, "Processing challenge but response already done");
-            // result = false;
-            break;
-        case FINALCOMMIT_DONE:
-            LOG_GENERAL(WARNING,
-                        "Processing challenge but finalcommit already done");
-            result = false;
-            break;
-        case FINALRESPONSE_DONE:
-            LOG_GENERAL(WARNING,
-                        "Processing challenge but finalresponse already done");
-            result = false;
-            break;
-        case DONE:
-            LOG_GENERAL(WARNING,
-                        "Processing challenge but consensus already done");
-            result = false;
-            break;
-        case ERROR:
-            LOG_GENERAL(WARNING,
-                        "Processing challenge but receiving ERROR message.");
-            result = false;
-            break;
-        default:
-            LOG_GENERAL(WARNING, "Unrecognized or error state");
-            result = false;
-            break;
-        }
-        break;
-    case PROCESS_COLLECTIVESIG:
-        switch (m_state)
-        {
-        case INITIAL:
-            LOG_GENERAL(WARNING,
-                        "Processing collectivesig but commit not yet done");
-            result = false;
-            break;
-        case COMMIT_DONE:
-            break;
-        case RESPONSE_DONE:
-            break;
-        case FINALCOMMIT_DONE:
-            LOG_GENERAL(
-                WARNING,
-                "Processing collectivesig but finalcommit already done");
-            result = false;
-            break;
-        case FINALRESPONSE_DONE:
-            LOG_GENERAL(WARNING,
-                        "Processing collectivesig but finalresponse "
-                        "already done");
-            result = false;
-            break;
-        case DONE:
-            LOG_GENERAL(WARNING,
-                        "Processing collectivesig but consensus already done");
-            result = false;
-            break;
-        case ERROR:
-            LOG_GENERAL(
-                WARNING,
-                "Processing collectivesig but receiving ERROR message.");
-            result = false;
-            break;
-        default:
-            LOG_GENERAL(WARNING, "Unrecognized or error state");
-            result = false;
-            break;
-        }
-        break;
-    case PROCESS_FINALCHALLENGE:
-        switch (m_state)
-        {
-        case INITIAL:
-            LOG_GENERAL(WARNING,
-                        "Processing finalchallenge but commit not yet done");
-            result = false;
-            break;
-        case COMMIT_DONE:
-            LOG_GENERAL(WARNING,
-                        "Processing finalchallenge but response not yet done");
-            result = false;
-            break;
-        case RESPONSE_DONE:
-            LOG_GENERAL(
-                INFO, "Processing finalchallenge but finalcommit not yet done");
-            // LOG_GENERAL(WARNING, "Processing finalchallenge but finalcommit not yet done");
-            // result = false;
-            break;
-        case FINALCOMMIT_DONE:
-            break;
-        case FINALRESPONSE_DONE:
-            LOG_GENERAL(WARNING,
-                        "Processing finalchallenge but finalresponse "
-                        "already done");
-            result = false;
-            break;
-        case DONE:
-            LOG_GENERAL(WARNING,
-                        "Processing finalchallenge but consensus already done");
-            result = false;
-            break;
-        case ERROR:
-            LOG_GENERAL(WARNING,
-                        "Processing finalchallenge but receiving ERROR "
-                        "message.");
-            result = false;
-            break;
-        default:
-            LOG_GENERAL(WARNING, "Unrecognized or error state");
-            result = false;
-            break;
-        }
-        break;
-    case PROCESS_FINALCOLLECTIVESIG:
-        switch (m_state)
-        {
-        case INITIAL:
-            LOG_GENERAL(
-                WARNING,
-                "Processing finalcollectivesig but commit not yet done");
-            result = false;
-            break;
-        case COMMIT_DONE:
-            LOG_GENERAL(WARNING,
-                        "Processing finalcollectivesig but response not "
-                        "yet done");
-            // TODO: check this logic again.
-            // Issue #43
-            // Node cannot proceed if finalcollectivesig arrive earler (and get ignore by the node)
-            //result = false;
-            break;
-        case RESPONSE_DONE:
-            LOG_GENERAL(WARNING,
-                        "Processing finalcollectivesig but finalcommit "
-                        "not yet done");
-            // TODO: check this logic again.
-            // Issue #43
-            // Node cannot proceed if finalcollectivesig arrive earler (and get ignore by the node)
-            //result = false;
-            break;
-        case FINALCOMMIT_DONE:
-            break;
-        case FINALRESPONSE_DONE:
-            break;
-        case DONE:
-            LOG_GENERAL(WARNING,
-                        "Processing finalcollectivesig but consensus "
-                        "already done");
-            result = false;
-            break;
-        case ERROR:
-            LOG_GENERAL(WARNING,
-                        "Processing finalcollectivesig but receiving "
-                        "ERROR message.");
-            result = false;
-            break;
-        default:
-            LOG_GENERAL(WARNING, "Unrecognized or error state");
-            result = false;
-            break;
-        }
-        break;
-    default:
-        LOG_GENERAL(WARNING, "Unrecognized action");
-        result = false;
-        break;
     }
 
-    return result;
+    if (!found)
+    {
+        LOG_GENERAL(WARNING,
+                    "Action " << GetActionString(action)
+                              << " not allowed in state " << GetStateString());
+        return false;
+    }
+
+    return true;
 }
 
 bool ConsensusBackup::ProcessMessageAnnounce(
@@ -1004,4 +814,22 @@ bool ConsensusBackup::ProcessMessage(const vector<unsigned char>& message,
     }
 
     return result;
+}
+
+#define MAKE_LITERAL_PAIR(s)                                                   \
+    {                                                                          \
+        s, #s                                                                  \
+    }
+
+map<ConsensusBackup::Action, string> ConsensusBackup::ActionStrings = {
+    MAKE_LITERAL_PAIR(PROCESS_ANNOUNCE), MAKE_LITERAL_PAIR(PROCESS_CHALLENGE),
+    MAKE_LITERAL_PAIR(PROCESS_COLLECTIVESIG),
+    MAKE_LITERAL_PAIR(PROCESS_FINALCHALLENGE),
+    MAKE_LITERAL_PAIR(PROCESS_FINALCOLLECTIVESIG)};
+
+std::string ConsensusBackup::GetActionString(Action action) const
+{
+    return (ActionStrings.find(action) == ActionStrings.end())
+        ? "Unknown"
+        : ActionStrings.at(action);
 }
