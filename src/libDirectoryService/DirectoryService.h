@@ -176,8 +176,8 @@ class DirectoryService : public Executable, public Broadcastable
     SetupMulticastConfigForShardingStructure(unsigned int& my_DS_cluster_num,
                                              unsigned int& my_shards_lo,
                                              unsigned int& my_shards_hi);
-    void SendingShardingStructureToShard(
-        vector<std::map<PubKey, Peer>>::iterator& p);
+    void SendEntireShardingStructureToShardNodes(unsigned int my_shards_lo,
+                                                 unsigned int my_shards_hi);
 
     // PoW (DS block) consensus functions
     void RunConsensusOnDSBlock(bool isRejoin = false);
