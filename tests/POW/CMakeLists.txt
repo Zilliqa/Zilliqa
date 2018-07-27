@@ -1,3 +1,11 @@
+if(CMAKE_CONFIGURATION_TYPES)
+    foreach(config ${CMAKE_CONFIGURATION_TYPES})
+        configure_file(${CMAKE_SOURCE_DIR}/constants.xml ${config}/constants.xml COPYONLY)
+    endforeach(config)
+else(CMAKE_CONFIGURATION_TYPES)
+    configure_file(${CMAKE_SOURCE_DIR}/constants.xml constants.xml COPYONLY)
+endif(CMAKE_CONFIGURATION_TYPES)
+
 if (MSVC)
     if (NOT BOOST_ROOT)
         set (BOOST_ROOT "$ENV{BOOST_ROOT}")
