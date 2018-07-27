@@ -58,11 +58,16 @@ bool DirectoryService::ViewChangeValidator(
         return false;
     }
 
-    if (ValidateViewChangeState(
+    if (!ValidateViewChangeState(
             m_viewChangestate,
             (DirState)m_pendingVCBlock->GetHeader().GetViewChangeState()))
     {
-        LOG_GENERAL(WARNING, "View change state mismatched");
+
+        LOG_GENERAL(WARNING,
+                    "View change state mismatched. m_viewChangestate: "
+                        << m_viewChangestate << " Proposed: "
+                        << (DirState)m_pendingVCBlock->GetHeader()
+                               .GetViewChangeState());
         return false;
     }
 
