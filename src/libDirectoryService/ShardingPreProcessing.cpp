@@ -377,88 +377,41 @@ bool DirectoryService::ShardingValidator(
 {
     LOG_MARKER();
 
-    // To-do: Put in the logic here for checking the proposed sharding structure
-    // We have some below but might not be enough
-
     m_shards.clear();
     m_publicKeyToShardIdMap.clear();
 
-    // Sharding structure message format:
-
-    // [4-byte num of committees]
-    // [4-byte committee size]
-    //   [33-byte public key] [16-byte ip] [4-byte port]
-    //   [33-byte public key] [16-byte ip] [4-byte port]
-    //   ...
-    // [4-byte committee size]
-    //   [33-byte public key] [16-byte ip] [4-byte port]
-    //   [33-byte public key] [16-byte ip] [4-byte port]
-    //   ...
-    // ...
     lock_guard<mutex> g(m_mutexAllPoWConns);
 
     unsigned int curr_offset = 0;
 
-    // 4-byte num of committees
-    uint32_t numOfComms = Serializable::GetNumber<uint32_t>(
-        sharding_structure, curr_offset, sizeof(uint32_t));
-    curr_offset += sizeof(uint32_t);
+    curr_offset = ShardingStructure::Deserialize(sharding_structure,
+                                                 curr_offset, m_shards);
 
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Number of committees = " << numOfComms);
-
-    for (unsigned int i = 0; i < numOfComms; i++)
+    for (unsigned int i = 0; i < m_shards.size(); i++)
     {
-        m_shards.emplace_back();
-
-        // 4-byte committee size
-        uint32_t shard_size = Serializable::GetNumber<uint32_t>(
-            sharding_structure, curr_offset, sizeof(uint32_t));
-        curr_offset += sizeof(uint32_t);
-
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Committee size = " << shard_size);
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Members:");
-
-        for (unsigned int j = 0; j < shard_size; j++)
+        for (auto& j : m_shards.at(i))
         {
-            PubKey memberPubkey(sharding_structure, curr_offset);
-            curr_offset += PUB_KEY_SIZE;
-
-            Peer memberPeer(sharding_structure, curr_offset);
-            curr_offset += IP_SIZE + PORT_SIZE;
-
-            auto storedMember = m_allPoWConns.find(memberPubkey);
+            auto storedMember = m_allPoWConns.find(j.first);
 
             // I know the member but the member IP given by the leader is different!
             if (storedMember != m_allPoWConns.end())
             {
-                if (storedMember->second != memberPeer)
+                if (storedMember->second != j.second)
                 {
-                    LOG_EPOCH(
-                        WARNING,
-                        to_string(m_mediator.m_currentEpochNum).c_str(),
-                        "WARNING: Why is the IP of the member different from "
-                        "what I have in m_allPoWConns???");
+                    LOG_EPOCH(WARNING,
+                              to_string(m_mediator.m_currentEpochNum).c_str(),
+                              "WARNING: Why is the IP of the member different "
+                              "from what I have in m_allPoWConns???");
                     return false;
                 }
             }
             // I don't know the member -> store the IP given by the leader
             else
             {
-                m_allPoWConns.emplace(memberPubkey, memberPeer);
+                m_allPoWConns.emplace(j.first, j.second);
             }
 
-            // To-do: Should we check for a public key that's been assigned to more than 1 shard?
-            m_shards.back().emplace(memberPubkey, memberPeer);
-            m_publicKeyToShardIdMap.emplace(memberPubkey, i);
-
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      " PubKey = "
-                          << DataConversion::SerializableToHexStr(memberPubkey)
-                          << " at " << memberPeer.GetPrintableIPAddress()
-                          << " Port: " << memberPeer.m_listenPortHost);
+            m_publicKeyToShardIdMap.emplace(j.first, i);
         }
     }
 
