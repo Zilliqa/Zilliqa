@@ -967,7 +967,16 @@ void Node::UpdateStateForNextConsensusRound()
 
 void Node::ScheduleMicroBlockConsensus()
 {
-    auto main_func3 = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
+    auto main_func3 = [this]() mutable -> void {
+        RunConsensusOnMicroBlock();
+
+        lock_guard<mutex> g2(m_mutexNewRoundStarted);
+        if (!m_newRoundStarted)
+        {
+            m_newRoundStarted = true;
+            m_cvNewRoundStarted.notify_all();
+        }
+    };
 
     DetachedFunction(1, main_func3);
 }
@@ -1292,6 +1301,9 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     {
         LOG_GENERAL(INFO, "isVacuousEpoch now");
 
+        // Remove because shard nodes will be shuffled in next epoch.
+        m_createdTransactions.get<0>().clear();
+
         if (!AccountStore::GetInstance().UpdateStateTrieAll())
         {
             LOG_GENERAL(WARNING, "UpdateStateTrieAll Failed");
@@ -1337,7 +1349,6 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     m_mediator.UpdateTxBlockRand();
 
 #ifndef IS_LOOKUP_NODE
-
     if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
     {
         InitiatePoW();

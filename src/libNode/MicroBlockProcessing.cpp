@@ -98,6 +98,35 @@ bool Node::ProcessMicroblockConsensus(
     LOG_MARKER();
 
     {
+        unique_lock<mutex> g(m_mutexNewRoundStarted);
+        if (!m_newRoundStarted)
+        {
+            // LOG_GENERAL(INFO, "Wait for new consensus round started");
+            if (m_cvNewRoundStarted.wait_for(
+                    g, std::chrono::seconds(CONSENSUS_OBJECT_TIMEOUT))
+                == std::cv_status::timeout)
+            {
+                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                          "Waiting for new round started timeout, ignore");
+                return false;
+            }
+
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "New consensus round started, moving to "
+                      "ProcessSubmitTxnSharing");
+            if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
+            {
+                LOG_GENERAL(WARNING, "The node started rejoin, ignore");
+                return false;
+            }
+        }
+        else
+        {
+            // LOG_GENERAL(INFO, "No need to wait for newRoundStarted");
+        }
+    }
+
+    {
         lock_guard<mutex> g(m_mutexConsensus);
 
         // Consensus messages must be processed in correct sequence as they come in
@@ -187,6 +216,11 @@ bool Node::ProcessMicroblockConsensus(
 
     if (state == ConsensusCommon::State::DONE)
     {
+        {
+            lock_guard<mutex> g2(m_mutexNewRoundStarted);
+            m_newRoundStarted = false;
+        }
+
         if (m_isPrimary == true)
         {
             LOG_STATE("[MICON]["
@@ -280,6 +314,11 @@ bool Node::ProcessMicroblockConsensus(
         // TODO: Optimize state transition.
         LOG_GENERAL(WARNING,
                     "ConsensusCommon::State::ERROR here, but we move on.");
+
+        {
+            lock_guard<mutex> g2(m_mutexNewRoundStarted);
+            m_newRoundStarted = false;
+        }
 
         SetState(WAITING_FINALBLOCK); // Move on to next Epoch.
 
@@ -662,6 +701,8 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Vacuous epoch: Skipping submit transactions");
     }
+
+    AccountStore::GetInstance().SerializeDelta();
 
     // composed microblock stored in m_microblock
     ComposeMicroBlock();
