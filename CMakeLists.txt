@@ -41,6 +41,8 @@ include_directories(${OPENSSL_INCLUDE_DIR})
 
 find_package(LevelDB REQUIRED)
 
+find_package(OpenCL REQUIRED)
+
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
