@@ -144,6 +144,7 @@ extern const unsigned int COINBASE_REWARD;
 extern const unsigned int DEBUG_LEVEL;
 extern const unsigned int BROADCAST_INTERVAL;
 extern const unsigned int BROADCAST_EXPIRY;
+extern const unsigned int TX_DISTRIBUTE_TIME_IN_MS;
 
 extern const bool TEST_NET_MODE;
 extern const bool EXCLUDE_PRIV_IP;
