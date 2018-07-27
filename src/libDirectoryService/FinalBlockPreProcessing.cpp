@@ -286,7 +286,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
               "I am the leader DS node. Creating final block.");
 
     std::this_thread::sleep_for(
-        std::chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS));
+        std::chrono::milliseconds(std::min(TX_DISTRIBUTE_TIME_IN_MS, 1000 * FINALBLOCK_CONSENSUS_OBJECT_TIMEOUT)));
 
     // finalBlockMessage = serialized final block + tx-body sharing setup
     vector<unsigned char> finalBlockMessage = ComposeFinalBlockMessage();
