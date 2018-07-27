@@ -23,7 +23,7 @@ class JSONUtils
 {
 public:
     //Convert a string to Json object
-    static const bool convertStrtoJson(const string& str, Json::Value& dstObj)
+    static bool convertStrtoJson(const string& str, Json::Value& dstObj)
     {
         Json::CharReaderBuilder readBuilder;
         unique_ptr<Json::CharReader> reader(readBuilder.newCharReader());
@@ -38,7 +38,7 @@ public:
         return true;
     }
     //Convert a Json object to string
-    static const string convertJsontoStr(const Json::Value& _json)
+    static string convertJsontoStr(const Json::Value& _json)
     {
         Json::StreamWriterBuilder writeBuilder;
         unique_ptr<Json::StreamWriter> writer(writeBuilder.newStreamWriter());

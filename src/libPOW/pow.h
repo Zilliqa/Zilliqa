@@ -68,8 +68,7 @@ public:
 
     /// Triggers the proof-of-work mining.
     ethash_mining_result_t
-    PoWMine(const boost::multiprecision::uint256_t& blockNum,
-            uint8_t difficulty,
+    PoWMine(uint64_t blockNum, uint8_t difficulty,
             const std::array<unsigned char, UINT256_SIZE>& rand1,
             const std::array<unsigned char, UINT256_SIZE>& rand2,
             const boost::multiprecision::uint128_t& ipAddr,
@@ -79,8 +78,7 @@ public:
     void StopMining();
 
     /// Verifies a proof-of-work submission.
-    bool PoWVerify(const boost::multiprecision::uint256_t& blockNum,
-                   uint8_t difficulty,
+    bool PoWVerify(uint64_t blockNum, uint8_t difficulty,
                    const std::array<unsigned char, UINT256_SIZE>& rand1,
                    const std::array<unsigned char, UINT256_SIZE>& rand2,
                    const boost::multiprecision::uint128_t& ipAddr,
@@ -92,9 +90,9 @@ public:
                   const std::array<unsigned char, UINT256_SIZE>& rand2,
                   const boost::multiprecision::uint128_t& ipAddr,
                   const PubKey& pubKey);
-    ethash_return_value_t
-    LightHash(const boost::multiprecision::uint256_t& blockNum,
-              ethash_h256_t const& header_hash, uint64_t nonce);
+    ethash_return_value_t LightHash(uint64_t blockNum,
+                                    ethash_h256_t const& header_hash,
+                                    uint64_t nonce);
 
 private:
     ethash_light_t ethash_light_client;
@@ -121,9 +119,9 @@ private:
     ethash_mining_result_t MineFull(ethash_full_t& full,
                                     ethash_h256_t const& header_hash,
                                     ethash_h256_t& difficulty);
-    ethash_mining_result_t
-    MineFullOpenCL(const boost::multiprecision::uint256_t& blockNum,
-                   ethash_h256_t const& header_hash, uint8_t difficulty);
+    ethash_mining_result_t MineFullOpenCL(uint64_t blockNum,
+                                          ethash_h256_t const& header_hash,
+                                          uint8_t difficulty);
     bool VerifyLight(ethash_light_t& light, ethash_h256_t const& header_hash,
                      uint64_t winning_nonce, ethash_h256_t& difficulty,
                      ethash_h256_t& winning_result,

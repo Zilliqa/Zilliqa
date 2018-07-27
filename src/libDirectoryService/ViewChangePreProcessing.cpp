@@ -35,8 +35,9 @@
 #include "libUtils/SanityChecks.h"
 
 #ifndef IS_LOOKUP_NODE
-bool DirectoryService::ViewChangeValidator(const vector<unsigned char>& vcBlock,
-                                           std::vector<unsigned char>& errorMsg)
+bool DirectoryService::ViewChangeValidator(
+    const vector<unsigned char>& vcBlock,
+    [[gnu::unused]] std::vector<unsigned char>& errorMsg)
 {
     LOG_MARKER();
     lock_guard<mutex> g(m_mutexPendingVCBlock);
@@ -161,8 +162,11 @@ void DirectoryService::ComputeNewCandidateLeader()
         // To-do: Handle exceptions.
         m_pendingVCBlock.reset(new VCBlock(
             VCBlockHeader(
-                (uint64_t)m_mediator.m_dsBlockChain.GetBlockCount(),
-                (uint64_t)m_mediator.m_currentEpochNum, m_viewChangestate,
+                m_mediator.m_dsBlockChain.GetLastBlock()
+                        .GetHeader()
+                        .GetBlockNum()
+                    + 1,
+                m_mediator.m_currentEpochNum, m_viewChangestate,
                 newCandidateLeaderIndex, newLeaderNetworkInfo,
                 m_mediator.m_DSCommittee.at(newCandidateLeaderIndex).first,
                 m_viewChangeCounter, get_time_as_int()),

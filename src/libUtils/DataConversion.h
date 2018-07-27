@@ -50,7 +50,7 @@ public:
                      unsigned int offset, unsigned int len);
 
     /// Converts fixed-sized byte array to alphanumeric hex string.
-    template<long unsigned int SIZE>
+    template<size_t SIZE>
     static std::string
     charArrToHexStr(const std::array<unsigned char, SIZE>& hex_arr)
     {

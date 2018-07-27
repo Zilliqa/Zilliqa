@@ -43,9 +43,9 @@ void test1()
     LOG_MARKER();
 
     shared_ptr<vector<string>> s = make_shared<vector<string>>();
-    s->push_back("one");
-    s->push_back("two");
-    s->push_back("three");
+    s->emplace_back("one");
+    s->emplace_back("two");
+    s->emplace_back("three");
 
     DetachedFunction(3, test2, s);
 }

@@ -45,9 +45,9 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
     LOG_MARKER();
     if (IsMessageSizeInappropriate(
             message.size(), offset,
-            UINT256_SIZE + sizeof(uint32_t) + PUB_KEY_SIZE + sizeof(uint64_t)
-                + BLOCK_HASH_SIZE + BLOCK_HASH_SIZE + SIGNATURE_CHALLENGE_SIZE
-                + SIGNATURE_RESPONSE_SIZE))
+            sizeof(uint64_t) + sizeof(uint32_t) + PUB_KEY_SIZE
+                + sizeof(uint64_t) + BLOCK_HASH_SIZE + BLOCK_HASH_SIZE
+                + SIGNATURE_CHALLENGE_SIZE + SIGNATURE_RESPONSE_SIZE))
     {
         LOG_GENERAL(WARNING, "PoW2 size Inappropriate");
         return false;
@@ -55,10 +55,10 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
 
     unsigned int curr_offset = offset;
 
-    // 32-byte block number
-    uint256_t DSBlockNum = Serializable::GetNumber<uint256_t>(
-        message, curr_offset, UINT256_SIZE);
-    curr_offset += UINT256_SIZE;
+    // 8-byte block number
+    uint64_t DSBlockNum = Serializable::GetNumber<uint64_t>(
+        message, curr_offset, sizeof(uint64_t));
+    curr_offset += sizeof(uint64_t);
 
     // Check block number
     if (!CheckWhetherDSBlockIsFresh(DSBlockNum + 1))
@@ -136,9 +136,12 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Winning IP                = " << peer.GetPrintableIPAddress()
                                              << ":" << portNo);
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "dsb size               = "
-                  << m_mediator.m_dsBlockChain.GetBlockCount())
+    LOG_EPOCH(
+        INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        "dsb size               = " << m_mediator.m_dsBlockChain.GetLastBlock()
+                                           .GetHeader()
+                                           .GetBlockNum()
+                + 1)
 
     // Define the PoW2 parameters
     array<unsigned char, UINT256_SIZE> rand1, rand2;
@@ -149,7 +152,9 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
     rand2.fill(0);
 
     // Verify nonce
-    uint256_t block_num = m_mediator.m_txBlockChain.GetBlockCount();
+    uint64_t block_num
+        = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
+        + 1;
 
     m_timespec = r_timer_start();
 
@@ -167,7 +172,7 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
                          "Assume true as it has no impact.");
 
         // TODO: This need to be changed.
-        m_allPoWConns.insert(make_pair(key, peer));
+        m_allPoWConns.emplace(key, peer);
         return true;
     }
 
@@ -194,8 +199,8 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
             //lock(m_mutexAllPOW2, m_mutexAllPoWConns);
             //lock_guard<mutex> g(m_mutexAllPOW2, adopt_lock);
             //lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
-            m_allPoW2s.insert(make_pair(key, nonce));
-            m_allPoWConns.insert(make_pair(key, peer));
+            m_allPoW2s.emplace(key, nonce);
+            m_allPoWConns.emplace(key, peer);
         }
     }
     else
@@ -215,10 +220,11 @@ bool DirectoryService::VerifyPOW2(const vector<unsigned char>& message,
 #endif // IS_LOOKUP_NODE
 
 bool DirectoryService::ProcessPoW2Submission(
-    const vector<unsigned char>& message, unsigned int offset, const Peer& from)
+    [[gnu::unused]] const vector<unsigned char>& message,
+    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
 {
 #ifndef IS_LOOKUP_NODE
-    // Message = [32-byte block num] [4-byte listening port] [33-byte public key] [8-byte nonce] [32-byte resulting hash] [32-byte mixhash]
+    // Message = [8-byte block num] [4-byte listening port] [33-byte public key] [8-byte nonce] [32-byte resulting hash] [32-byte mixhash]
     //[64-byte signature]
     LOG_MARKER();
 

@@ -30,7 +30,7 @@
 class SysCommand
 {
 public:
-    static const bool ExecuteCmdWithoutOutput(std::string cmd)
+    static bool ExecuteCmdWithoutOutput(std::string cmd)
     {
         std::string str;
         return ExecuteCmdWithOutput(cmd, str);

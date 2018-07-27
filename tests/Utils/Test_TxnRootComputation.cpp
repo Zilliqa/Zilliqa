@@ -51,7 +51,7 @@ decltype(auto) generateDummyTransactions(size_t n)
     for (auto i = 0u; i != n; i++)
     {
         auto txn = createDummyTransaction();
-        txns.insert({txn.GetTranID(), txn});
+        txns.emplace(txn.GetTranID(), txn);
     }
 
     return txns;
@@ -67,14 +67,14 @@ BOOST_AUTO_TEST_CASE(compareAllThreeVersions)
 
     for (auto& txnPair : txnMap1)
     {
-        txnHashVec.push_back(txnPair.first);
-        txnList1.push_back(txnPair.second);
+        txnHashVec.emplace_back(txnPair.first);
+        txnList1.emplace_back(txnPair.second);
     }
 
     for (auto& txnPair : txnMap2)
     {
-        txnHashVec.push_back(txnPair.first);
-        txnList2.push_back(txnPair.second);
+        txnHashVec.emplace_back(txnPair.first);
+        txnList2.emplace_back(txnPair.second);
     }
 
     auto hashRoot1 = ComputeTransactionsRoot(txnHashVec);

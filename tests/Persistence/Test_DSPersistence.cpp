@@ -420,7 +420,7 @@ BOOST_AUTO_TEST_CASE(testRetrieveAllTheDSBlocksInDB)
             block.Serialize(serializedDSBlock, 0);
 
             BlockStorage::GetBlockStorage().PutDSBlock(i, serializedDSBlock);
-            in_blocks.push_back(block);
+            in_blocks.emplace_back(block);
         }
 
         std::list<DSBlockSharedPtr> ref_blocks;
@@ -431,7 +431,7 @@ BOOST_AUTO_TEST_CASE(testRetrieveAllTheDSBlocksInDB)
         for (auto i : ref_blocks)
         {
             LOG_GENERAL(INFO, i->GetHeader().GetNonce());
-            out_blocks.push_back(*i);
+            out_blocks.emplace_back(*i);
         }
         BOOST_CHECK_MESSAGE(
             in_blocks == out_blocks,

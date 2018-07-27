@@ -72,11 +72,11 @@ const unsigned int MSG_VERSION{ReadFromConstantsFile("MSG_VERSION")};
 const unsigned int DS_MULTICAST_CLUSTER_SIZE{
     ReadFromConstantsFile("DS_MULTICAST_CLUSTER_SIZE")};
 const unsigned int COMM_SIZE{ReadFromConstantsFile("COMM_SIZE")};
-const unsigned int MAX_POW1_WINNERS{ReadFromConstantsFile("MAX_POW1_WINNERS")};
-const unsigned int POW1_WINDOW_IN_SECONDS{
-    ReadFromConstantsFile("POW1_WINDOW_IN_SECONDS")};
-const unsigned int POW1_BACKUP_WINDOW_IN_SECONDS{
-    ReadFromConstantsFile("POW1_BACKUP_WINDOW_IN_SECONDS")};
+const unsigned int MAX_POW_WINNERS{ReadFromConstantsFile("MAX_POW_WINNERS")};
+const unsigned int POW_WINDOW_IN_SECONDS{
+    ReadFromConstantsFile("POW_WINDOW_IN_SECONDS")};
+const unsigned int POW_BACKUP_WINDOW_IN_SECONDS{
+    ReadFromConstantsFile("POW_BACKUP_WINDOW_IN_SECONDS")};
 const unsigned int LEADER_SHARDING_PREPARATION_IN_SECONDS{
     ReadFromConstantsFile("LEADER_SHARDING_PREPARATION_IN_SECONDS")};
 const unsigned int LEADER_POW2_WINDOW_IN_SECONDS{
@@ -87,7 +87,7 @@ const unsigned int NEW_NODE_SYNC_INTERVAL{
     ReadFromConstantsFile("NEW_NODE_SYNC_INTERVAL")};
 const unsigned int POW_SUBMISSION_TIMEOUT{
     ReadFromConstantsFile("POW_SUBMISSION_TIMEOUT")};
-const unsigned int POW1_DIFFICULTY{ReadFromConstantsFile("POW1_DIFFICULTY")};
+const unsigned int POW_DIFFICULTY{ReadFromConstantsFile("POW_DIFFICULTY")};
 const unsigned int POW2_DIFFICULTY{ReadFromConstantsFile("POW2_DIFFICULTY")};
 const unsigned int MICROBLOCK_TIMEOUT{
     ReadFromConstantsFile("MICROBLOCK_TIMEOUT")};
