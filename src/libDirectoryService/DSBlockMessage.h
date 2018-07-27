@@ -88,6 +88,53 @@ public:
 
         return cur_offset;
     }
+
+    static unsigned int Deserialize(const std::vector<unsigned char>& input,
+                                    unsigned int cur_offset,
+                                    std::vector<std::map<PubKey, Peer>>& shards)
+    {
+        LOG_MARKER();
+
+        // 4-byte num of committees
+        uint32_t numOfComms = Serializable::GetNumber<uint32_t>(
+            input, cur_offset, sizeof(uint32_t));
+        cur_offset += sizeof(uint32_t);
+
+        LOG_GENERAL(INFO, "Number of committees = " << numOfComms);
+
+        for (unsigned int i = 0; i < numOfComms; i++)
+        {
+            shards.emplace_back();
+
+            // 4-byte committee size
+            uint32_t shard_size = Serializable::GetNumber<uint32_t>(
+                input, cur_offset, sizeof(uint32_t));
+            cur_offset += sizeof(uint32_t);
+
+            LOG_GENERAL(INFO, "Committee size = " << shard_size);
+            LOG_GENERAL(INFO, "Members:");
+
+            for (unsigned int j = 0; j < shard_size; j++)
+            {
+                PubKey memberPubkey(input, cur_offset);
+                cur_offset += PUB_KEY_SIZE;
+
+                Peer memberPeer(input, cur_offset);
+                cur_offset += IP_SIZE + PORT_SIZE;
+
+                shards.back().emplace(memberPubkey, memberPeer);
+
+                LOG_GENERAL(
+                    INFO,
+                    " PubKey = "
+                        << DataConversion::SerializableToHexStr(memberPubkey)
+                        << " at " << memberPeer.GetPrintableIPAddress()
+                        << " Port: " << memberPeer.m_listenPortHost);
+            }
+        }
+
+        return cur_offset;
+    }
 };
 
 class TxnSharingAssignments
