@@ -38,6 +38,8 @@
 class Logger
 {
 private:
+    std::mutex m_nonG3LogMutex;
+    static std::mutex m_timeMutex;
     bool m_logToFile;
     std::streampos m_maxFileSize;
     std::unique_ptr<g3::LogWorker> logworker;
@@ -129,7 +131,14 @@ public:
                             size_t max_bytes_to_display,
                             std::unique_ptr<char[]>& res);
 
-    static std::mutex m_logMutex;
+    /// Get current time with mutex protection (thread-safe)
+    static struct std::tm* GetCurTime()
+    {
+        std::lock_guard<std::mutex> guard(Logger::m_timeMutex);
+        std::time_t curTime = std::chrono::system_clock::to_time_t(
+            std::chrono::system_clock::now());
+        return gmtime(&curTime);
+    }
 };
 
 /// Utility class for automatically logging function or code block exit.
@@ -163,11 +172,9 @@ public:
     {                                                                          \
         if (Logger::GetLogger(NULL, true).IsG3Log())                           \
         {                                                                      \
-            std::time_t curTime = std::chrono::system_clock::to_time_t(        \
-                std::chrono::system_clock::now());                             \
-            std::lock_guard<std::mutex> guard(Logger::m_logMutex);             \
             LOG(level) << "[TID " << PAD(Logger::GetPid(), Logger::TID_LEN)    \
-                       << "][" << std::put_time(gmtime(&curTime), "%H:%M:%S")  \
+                       << "]["                                                 \
+                       << std::put_time(Logger::GetCurTime(), "%H:%M:%S")      \
                        << "]["                                                 \
                        << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN)        \
                        << "] " << msg;                                         \
@@ -184,11 +191,9 @@ public:
     {                                                                          \
         if (Logger::GetLogger(NULL, true).IsG3Log())                           \
         {                                                                      \
-            std::time_t curTime = std::chrono::system_clock::to_time_t(        \
-                std::chrono::system_clock::now());                             \
-            std::lock_guard<std::mutex> guard(Logger::m_logMutex);             \
             LOG(level) << "[TID " << PAD(Logger::GetPid(), Logger::TID_LEN)    \
-                       << "][" << std::put_time(gmtime(&curTime), "%H:%M:%S")  \
+                       << "]["                                                 \
+                       << std::put_time(Logger::GetCurTime(), "%H:%M:%S")      \
                        << "]["                                                 \
                        << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN) << "]" \
                        << "[Epoch " << epoch << "] " << msg;                   \
@@ -205,17 +210,14 @@ public:
     {                                                                          \
         if (Logger::GetLogger(NULL, true).IsG3Log())                           \
         {                                                                      \
-            std::time_t curTime = std::chrono::system_clock::to_time_t(        \
-                std::chrono::system_clock::now());                             \
             std::unique_ptr<char[]> payload_string;                            \
             Logger::GetPayloadS(payload, max_bytes_to_display,                 \
                                 payload_string);                               \
-            std::lock_guard<std::mutex> guard(Logger::m_logMutex);             \
             if ((payload).size() > max_bytes_to_display)                       \
             {                                                                  \
                 LOG(level) << "[TID "                                          \
                            << PAD(Logger::GetPid(), Logger::TID_LEN) << "]["   \
-                           << std::put_time(gmtime(&curTime), "%H:%M:%S")      \
+                           << std::put_time(Logger::GetCurTime(), "%H:%M:%S")  \
                            << "]["                                             \
                            << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN)    \
                            << "] " << msg << " (Len=" << (payload).size()      \
@@ -225,7 +227,7 @@ public:
             {                                                                  \
                 LOG(level) << "[TID "                                          \
                            << PAD(Logger::GetPid(), Logger::TID_LEN) << "]["   \
-                           << std::put_time(gmtime(&curTime), "%H:%M:%S")      \
+                           << std::put_time(Logger::GetCurTime(), "%H:%M:%S")  \
                            << "]["                                             \
                            << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN)    \
                            << "] " << msg << " (Len=" << (payload).size()      \
