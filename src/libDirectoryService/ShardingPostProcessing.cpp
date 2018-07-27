@@ -103,87 +103,81 @@ void DirectoryService::SetupMulticastConfigForShardingStructure(
                                       << m_shards.size());
 }
 
-void DirectoryService::SendingShardingStructureToShard(
-    vector<std::map<PubKey, Peer>>::iterator& p)
+void DirectoryService::SendEntireShardingStructureToShardNodes(
+    unsigned int my_shards_lo, unsigned int my_shards_hi)
 {
     LOG_MARKER();
 
-    // Message = [8-byte DS blocknum] [4-byte shard ID] [4-byte committee size] [33-byte public key]
-    // [16-byte ip] [4-byte port] ... (all nodes; first entry is leader)
+    // Message = [8-byte DS blocknum] [4-byte shard ID] [Sharding structure] [Txn sharing assignments]
     vector<unsigned char> sharding_message
         = {MessageType::NODE, NodeInstructionType::SHARDING};
     unsigned int curr_offset = MessageOffset::BODY;
 
-    // Todo: Any better way to do it?
-    uint64_t latest_block_num_in_blockchain
-        = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
-    Serializable::SetNumber<uint64_t>(sharding_message, curr_offset,
-                                      latest_block_num_in_blockchain,
-                                      sizeof(uint64_t));
+    // [8-byte DS blocknum]
+    Serializable::SetNumber<uint64_t>(
+        sharding_message, curr_offset,
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
+        sizeof(uint64_t));
     curr_offset += sizeof(uint64_t);
 
-    // 4-byte shard ID - get from the leader's info in m_publicKeyToShardIdMap
-    Serializable::SetNumber<uint32_t>(
-        sharding_message, curr_offset,
-        m_publicKeyToShardIdMap.at(p->begin()->first), sizeof(uint32_t));
-    curr_offset += sizeof(uint32_t);
-
-    // 4-byte number of shards
-    Serializable::SetNumber<uint32_t>(sharding_message, curr_offset,
-                                      m_shards.size(), sizeof(uint32_t));
-    curr_offset += sizeof(uint32_t);
-
-    // 4-byte committee size
-    Serializable::SetNumber<uint32_t>(sharding_message, curr_offset, p->size(),
+    // [4-byte shard ID] -> dummy value at this point; will be updated in loop below
+    Serializable::SetNumber<uint32_t>(sharding_message, curr_offset, 0,
                                       sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Committee size = " << p->size());
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Members:");
+    // [Sharding structure]
+    curr_offset
+        = ShardingStructure::Serialize(m_shards, sharding_message, curr_offset);
 
-    vector<Peer> shard_peers;
-    for (auto& kv : *p)
-    {
-        // 33-byte public key
-        kv.first.Serialize(sharding_message, curr_offset);
-        curr_offset += PUB_KEY_SIZE;
-        // 16-byte ip + 4-byte port
-
-        kv.second.Serialize(sharding_message, curr_offset);
-        curr_offset += IP_SIZE + PORT_SIZE;
-        shard_peers.emplace_back(kv.second);
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  " PubKey: " << DataConversion::SerializableToHexStr(kv.first)
-                              << " IP: " << kv.second.GetPrintableIPAddress()
-                              << " Port: " << kv.second.m_listenPortHost);
-    }
-
+    // [Txn sharing assignments]
     sharding_message.resize(sharding_message.size()
                             + m_txnSharingMessage.size());
     copy(m_txnSharingMessage.begin(), m_txnSharingMessage.end(),
          sharding_message.begin() + curr_offset);
 
-    SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
-    sha256.Update(sharding_message);
-    vector<unsigned char> this_msg_hash = sha256.Finalize();
+    auto p = m_shards.begin();
+    advance(p, my_shards_lo);
+    for (unsigned int i = my_shards_lo; i <= my_shards_hi; i++)
+    {
+        // [4-byte shard ID] -> get from the leader's info in m_publicKeyToShardIdMap
+        Serializable::SetNumber<uint32_t>(
+            sharding_message, MessageOffset::BODY + sizeof(uint64_t),
+            m_publicKeyToShardIdMap.at(p->begin()->first), sizeof(uint32_t));
 
-    LOG_STATE(
-        "[INFOR]["
-        << std::setw(15) << std::left
-        << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-        << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6) << "]["
-        << DataConversion::charArrToHexStr(m_mediator.m_dsBlockRand)
-               .substr(0, 6)
-        << "]["
-        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
-            + 1
-        << "] SHMSG");
+        // Send the message
+        SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
+        sha256.Update(sharding_message);
+        vector<unsigned char> this_msg_hash = sha256.Finalize();
 
-    P2PComm::GetInstance().SendBroadcastMessage(shard_peers, sharding_message);
-    p++;
+        LOG_STATE(
+            "[INFOR]["
+            << std::setw(15) << std::left
+            << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+            << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6)
+            << "]["
+            << DataConversion::charArrToHexStr(m_mediator.m_dsBlockRand)
+                   .substr(0, 6)
+            << "]["
+            << m_mediator.m_txBlockChain.GetLastBlock()
+                    .GetHeader()
+                    .GetBlockNum()
+                + 1
+            << "] SHMSG");
+
+        vector<Peer> shard_peers;
+        for (auto& kv : *p)
+        {
+            shard_peers.emplace_back(kv.second);
+        }
+
+        P2PComm::GetInstance().SendBroadcastMessage(shard_peers,
+                                                    sharding_message);
+        p++;
+    }
+
+    m_txnSharingMessage.clear();
 }
+
 #endif // IS_LOOKUP_NODE
 
 bool DirectoryService::ProcessShardingConsensus(
@@ -356,13 +350,7 @@ bool DirectoryService::ProcessShardingConsensus(
         // Too few target shards - avoid asking all DS clusters to send
         if ((my_DS_cluster_num + 1) <= m_shards.size())
         {
-            auto p = m_shards.begin();
-            advance(p, my_shards_lo);
-            for (unsigned int i = my_shards_lo; i <= my_shards_hi; i++)
-            {
-                SendingShardingStructureToShard(p);
-            }
-            m_txnSharingMessage.clear();
+            SendEntireShardingStructureToShardNodes(my_shards_lo, my_shards_hi);
         }
 
         LOG_STATE("[SHSTU][" << setw(15) << left
