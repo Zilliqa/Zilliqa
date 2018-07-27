@@ -41,6 +41,7 @@ POW::POW()
         {
             LOG_GENERAL(
                 FATAL, "Failed to configure OpenCL GPU, please check hardware");
+            exit(1);
         };
 
         dev::eth::CLMiner::setNumInstances(UINT_MAX);
