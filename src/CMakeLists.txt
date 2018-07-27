@@ -15,4 +15,5 @@ add_subdirectory (libUtils)
 add_subdirectory (libValidator)
 add_subdirectory (libZilliqa)
 add_subdirectory (cmd)
+add_subdirectory (libDB)
 
