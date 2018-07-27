@@ -25,7 +25,8 @@ apt-get install -y \
     libmicrohttpd-dev \
     libjsonrpccpp-dev \
     libminiupnpc-dev \
-    libevent-dev
+    libevent-dev \
+    ocl-icd-opencl-dev
 
 # install development dependencies
 apt-get install -y \
