@@ -377,7 +377,16 @@ bool Node::ProcessSharding([[gnu::unused]] const vector<unsigned char>& message,
 
     m_consensusLeaderID = 0;
 
-    auto main_func3 = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
+    auto main_func3 = [this]() mutable -> void {
+        RunConsensusOnMicroBlock();
+
+        lock_guard<mutex> g2(m_mutexNewRoundStarted);
+        if (!m_newRoundStarted)
+        {
+            m_newRoundStarted = true;
+            m_cvNewRoundStarted.notify_all();
+        }
+    };
 
     DetachedFunction(1, main_func3);
 
