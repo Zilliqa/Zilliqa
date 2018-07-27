@@ -57,11 +57,6 @@ void DirectoryService::ExtractDataFromMicroblocks(
 
     for (auto& microBlock : m_microBlocks)
     {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Micro block " << i << " has "
-                                 << microBlock.GetHeader().GetNumTxs()
-                                 << " transactions.");
-
         LOG_STATE("[STATS][" << std::setw(15) << std::left
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
                              << "][" << i << "    ]["
@@ -145,6 +140,11 @@ void DirectoryService::ComposeFinalBlockCore()
                                microBlockHashes, shardIDs, allGasLimit,
                                allGasUsed, numTxs, isMicroBlockEmpty,
                                numMicroBlocks);
+
+    for (const auto& h : microBlockHashes)
+    {
+        LOG_GENERAL(INFO, "microblockhash: " << h);
+    }
 
     m_microBlocks.clear();
 
@@ -284,6 +284,9 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
     // I guess only the leader has to do this
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I am the leader DS node. Creating final block.");
+
+    std::this_thread::sleep_for(
+        std::chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS));
 
     // finalBlockMessage = serialized final block + tx-body sharing setup
     vector<unsigned char> finalBlockMessage = ComposeFinalBlockMessage();

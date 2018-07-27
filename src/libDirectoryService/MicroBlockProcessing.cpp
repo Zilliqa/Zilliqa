@@ -200,6 +200,12 @@ bool DirectoryService::ProcessMicroblockSubmission(
         return false;
     }
 
+    LOG_GENERAL(INFO,
+                "MicroBlock StateDeltaHash: "
+                    << microBlock.GetHeader().GetStateDeltaHash() << endl
+                    << "TxRootHash: "
+                    << microBlock.GetHeader().GetTxRootHash(););
+
     lock_guard<mutex> g(m_mutexMicroBlocks);
     m_microBlocks.emplace(microBlock);
 
