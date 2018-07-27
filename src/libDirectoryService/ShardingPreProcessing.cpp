@@ -141,7 +141,7 @@ void DirectoryService::ComputeTxnSharingAssignments()
 
         // PART 2
 
-        m_shardReceivers.emplace_back(vector<Peer>());
+        m_shardReceivers.emplace_back();
 
         uint32_t nodes_recv_lo = 0;
         uint32_t nodes_recv_hi = nodes_recv_lo + TX_SHARING_CLUSTER_SIZE - 1;
@@ -153,7 +153,7 @@ void DirectoryService::ComputeTxnSharingAssignments()
 
         unsigned int num_nodes = nodes_recv_hi - nodes_recv_lo + 1;
 
-        map<PubKey, Peer>::const_iterator node_peer = shard.begin();
+        auto node_peer = shard.begin();
         for (unsigned int j = 0; j < num_nodes; j++)
         {
             m_shardReceivers.back().emplace_back(node_peer->second);
@@ -162,7 +162,7 @@ void DirectoryService::ComputeTxnSharingAssignments()
 
         // PART 3
 
-        m_shardSenders.emplace_back(vector<Peer>());
+        m_shardSenders.emplace_back();
 
         uint32_t nodes_send_lo = 0;
         uint32_t nodes_send_hi = 0;
