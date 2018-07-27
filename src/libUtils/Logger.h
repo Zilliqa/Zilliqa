@@ -38,7 +38,6 @@
 class Logger
 {
 private:
-    std::mutex m;
     bool m_logToFile;
     std::streampos m_maxFileSize;
     std::unique_ptr<g3::LogWorker> logworker;
@@ -129,6 +128,8 @@ public:
     static void GetPayloadS(const std::vector<unsigned char>& payload,
                             size_t max_bytes_to_display,
                             std::unique_ptr<char[]>& res);
+
+    static std::mutex m_logMutex;
 };
 
 /// Utility class for automatically logging function or code block exit.
@@ -164,6 +165,7 @@ public:
         {                                                                      \
             std::time_t curTime = std::chrono::system_clock::to_time_t(        \
                 std::chrono::system_clock::now());                             \
+            std::lock_guard<std::mutex> guard(Logger::m_logMutex);             \
             LOG(level) << "[TID " << PAD(Logger::GetPid(), Logger::TID_LEN)    \
                        << "][" << std::put_time(gmtime(&curTime), "%H:%M:%S")  \
                        << "]["                                                 \
@@ -184,6 +186,7 @@ public:
         {                                                                      \
             std::time_t curTime = std::chrono::system_clock::to_time_t(        \
                 std::chrono::system_clock::now());                             \
+            std::lock_guard<std::mutex> guard(Logger::m_logMutex);             \
             LOG(level) << "[TID " << PAD(Logger::GetPid(), Logger::TID_LEN)    \
                        << "][" << std::put_time(gmtime(&curTime), "%H:%M:%S")  \
                        << "]["                                                 \
@@ -207,6 +210,7 @@ public:
             std::unique_ptr<char[]> payload_string;                            \
             Logger::GetPayloadS(payload, max_bytes_to_display,                 \
                                 payload_string);                               \
+            std::lock_guard<std::mutex> guard(Logger::m_logMutex);             \
             if ((payload).size() > max_bytes_to_display)                       \
             {                                                                  \
                 LOG(level) << "[TID "                                          \

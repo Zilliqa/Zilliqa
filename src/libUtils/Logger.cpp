@@ -25,6 +25,8 @@
 using namespace std;
 using namespace g3;
 
+mutex Logger::m_logMutex;
+
 string MyCustomFormatting(const LogMessage& msg)
 {
     string res = string("[") + msg.level();
@@ -136,7 +138,7 @@ Logger& Logger::GetEpochInfoLogger(const char* fname_prefix, bool log_to_file,
 
 void Logger::LogState(const char* msg, const char*)
 {
-    lock_guard<mutex> guard(m);
+    lock_guard<mutex> guard(m_logMutex);
 
     if (m_logToFile)
     {
@@ -154,6 +156,8 @@ void Logger::LogGeneral(LEVELS level, const char* msg, const char* function)
     std::time_t curTime = std::chrono::system_clock::to_time_t(
         std::chrono::system_clock::now());
 
+    lock_guard<mutex> guard(m_logMutex);
+
     if (IsG3Log())
     {
         LOG(level) << "[TID " << PAD(GetPid(), TID_LEN) << "]["
@@ -161,8 +165,6 @@ void Logger::LogGeneral(LEVELS level, const char* msg, const char* function)
                    << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg;
         return;
     }
-
-    lock_guard<mutex> guard(m);
 
     if (m_logToFile)
     {
@@ -188,7 +190,7 @@ void Logger::LogEpoch([[gnu::unused]] LEVELS level, const char* msg,
     std::time_t curTime = std::chrono::system_clock::to_time_t(
         std::chrono::system_clock::now());
 
-    lock_guard<mutex> guard(m);
+    lock_guard<mutex> guard(m_logMutex);
 
     if (m_logToFile)
     {
@@ -218,7 +220,7 @@ void Logger::LogPayload([[gnu::unused]] LEVELS level, const char* msg,
     std::time_t curTime = std::chrono::system_clock::to_time_t(
         std::chrono::system_clock::now());
 
-    lock_guard<mutex> guard(m);
+    lock_guard<mutex> guard(m_logMutex);
 
     if (m_logToFile)
     {
@@ -274,7 +276,7 @@ void Logger::LogEpochInfo(const char* msg, const char* function,
     std::time_t curTime = std::chrono::system_clock::to_time_t(
         std::chrono::system_clock::now());
 
-    lock_guard<mutex> guard(m);
+    lock_guard<mutex> guard(m_logMutex);
 
     if (m_logToFile)
     {
