@@ -212,22 +212,10 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
         //                    = 5 - 1 - 1 = 3
         // X3 m_consensusMyID = (size of ds committee) - 1 - faultyLeaderIndex (original)
         //                    = 5 - 1 - 2 = 4
+
+        bool isCurrentNodeFaulty = false;
         {
             lock_guard<mutex> g2(m_mediator.m_mutexDSCommittee);
-
-            // Adjust good nodes m_consensusMyID
-            if (m_consensusMyID >= m_viewChangeCounter)
-            {
-                LOG_GENERAL(INFO, "Old m_consensusMyID " << m_consensusMyID);
-                m_consensusMyID -= m_viewChangeCounter;
-                LOG_GENERAL(INFO, "New m_consensusMyID " << m_consensusMyID);
-            }
-            else
-            {
-                LOG_GENERAL(INFO,
-                            "Current node deemed to be faulty ds node "
-                                << m_consensusMyID);
-            }
 
             for (unsigned int faultyLeaderIndex = 0;
                  faultyLeaderIndex < m_viewChangeCounter; faultyLeaderIndex++)
@@ -235,13 +223,14 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
                 LOG_GENERAL(INFO,
                             "Ejecting "
                                 << m_mediator.m_DSCommittee.front().second);
+
                 // Adjust ds commiteee
                 m_mediator.m_DSCommittee.push_back(
                     m_mediator.m_DSCommittee.front());
                 m_mediator.m_DSCommittee.pop_front();
 
                 // Adjust faulty DS leader and/or faulty ds candidate leader
-                if (m_consensusMyID == index)
+                if (m_consensusMyID == faultyLeaderIndex)
                 {
                     if (m_consensusMyID == 0)
                     {
@@ -264,9 +253,20 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
 
                     // calculate (new) my consensus id for faulty ds nodes.
                     // Good ds nodes adjustment have already been done previously.
-                    m_consensusMyID
-                        = m_mediator.m_DSCommittee.size() - 1 - index;
+                    m_consensusMyID = m_mediator.m_DSCommittee.size() - 1
+                        - faultyLeaderIndex;
+                    isCurrentNodeFaulty = true;
+                    LOG_GENERAL(INFO,
+                                "new m_consensusMyID  is " << m_consensusMyID);
                 }
+            }
+
+            // Faulty node already adjusted. Hence, only adjust current node here if it is not faultu.
+            if (!isCurrentNodeFaulty)
+            {
+                LOG_GENERAL(INFO, "Old m_consensusMyID " << m_consensusMyID);
+                m_consensusMyID -= m_viewChangeCounter;
+                LOG_GENERAL(INFO, "New m_consensusMyID " << m_consensusMyID);
             }
         }
 
