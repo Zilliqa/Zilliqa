@@ -85,7 +85,7 @@ endif()
 set_target_properties(zilliqa sendcmd sendtxn genkeypair
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-set_target_properties(Common Trie ethash NAT
+set_target_properties(Common Trie ethash NAT ethash-cl
     PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 install(
