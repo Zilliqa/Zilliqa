@@ -236,7 +236,6 @@ class DirectoryService : public Executable, public Broadcastable
     bool ParseMessageAndVerifyPOW(const vector<unsigned char>& message,
                                   unsigned int offset, const Peer& from);
     bool CheckWhetherDSBlockIsFresh(const uint64_t dsblock_num);
-    bool CheckWhetherMaxSubmissionsReceived(Peer peer, PubKey key);
     bool VerifyPoWSubmission(const vector<unsigned char>& message,
                              const Peer& from, PubKey& key,
                              unsigned int curr_offset, uint32_t& portNo,
