@@ -110,7 +110,6 @@ extern const std::string INPUT_CODE;
 extern const unsigned int MSG_VERSION;
 extern const unsigned int DS_MULTICAST_CLUSTER_SIZE;
 extern const unsigned int COMM_SIZE;
-extern const unsigned int MAX_POW_WINNERS;
 extern const unsigned int POW_WINDOW_IN_SECONDS;
 extern const unsigned int POW_BACKUP_WINDOW_IN_SECONDS;
 extern const unsigned int LEADER_SHARDING_PREPARATION_IN_SECONDS;
