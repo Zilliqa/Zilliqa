@@ -1498,6 +1498,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     m_mediator.UpdateTxBlockRand();
 
 #ifndef IS_LOOKUP_NODE
+    CallActOnFinalBlockBasedOnSenderForwarderAssgn(shard_id);
 
     if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
     {
@@ -1510,8 +1511,6 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 
         DetachedFunction(1, main_func);
     }
-
-    CallActOnFinalBlockBasedOnSenderForwarderAssgn(shard_id);
 #else // IS_LOOKUP_NODE
     if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
     {
