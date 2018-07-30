@@ -277,7 +277,6 @@ class Node : public Executable, public Broadcastable
     void CommitForwardedTransactions(
         const vector<Transaction>& txnsInForwardedMessage,
         const uint64_t& blocknum);
-    void CommitForwardedMsgBuffer();
 
     void
     DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(const uint64_t& blocknum);
@@ -468,6 +467,8 @@ public:
 
     /// Add new block into tx blockchain
     void AddBlock(const TxBlock& block);
+
+    void CommitForwardedMsgBuffer();
 #ifndef IS_LOOKUP_NODE
 
     // Start synchronization with lookup as a shard node
