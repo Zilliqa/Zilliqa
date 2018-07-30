@@ -187,10 +187,6 @@ class Node : public Executable, public Broadcastable
                                  unsigned int offset, const Peer& from);
 #endif // IS_LOOKUP_NODE
 
-    // internal call from ProcessSharding
-    bool ReadVariablesFromShardingMessage(const vector<unsigned char>& message,
-                                          unsigned int& offset);
-
     // internal calls from ActOnFinalBlock for NODE_FORWARD_ONLY and SEND_AND_FORWARD
     void LoadForwardingAssignmentFromFinalBlock(
         const vector<Peer>& fellowForwarderNodes, const uint64_t& blocknum);
@@ -257,6 +253,8 @@ class Node : public Executable, public Broadcastable
     void ScheduleTxnSubmission();
     void ScheduleMicroBlockConsensus();
     void BeginNextConsensusRound();
+    bool LoadShardingStructure(const vector<unsigned char>& message,
+                               unsigned int& cur_offset);
     void LoadTxnSharingInfo(const vector<unsigned char>& message,
                             unsigned int cur_offset);
     void CallActOnFinalBlockBasedOnSenderForwarderAssgn(uint8_t shard_id);
