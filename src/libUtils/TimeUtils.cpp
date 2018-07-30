@@ -15,9 +15,10 @@
 **/
 
 #include "TimeUtils.h"
-
+#include <mutex>
 using namespace std::chrono;
 using namespace boost::multiprecision;
+static std::mutex gmtimeMutex;
 
 system_clock::time_point r_timer_start() { return system_clock::now(); }
 
@@ -32,4 +33,17 @@ uint256_t get_time_as_int()
     microseconds microsecs
         = duration_cast<microseconds>(system_clock::now().time_since_epoch());
     return static_cast<uint256_t>(microsecs.count());
+}
+
+struct tm* gmtime_safe(const time_t* timer)
+{
+    std::lock_guard<std::mutex> guard(gmtimeMutex);
+    return gmtime(timer);
+}
+
+long int get_ms(const time_point<high_resolution_clock> time)
+{
+    return duration_cast<milliseconds>(
+               time - system_clock::from_time_t(system_clock::to_time_t(time)))
+        .count();
 }
