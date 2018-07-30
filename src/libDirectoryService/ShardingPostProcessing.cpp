@@ -130,10 +130,9 @@ void DirectoryService::SendEntireShardingStructureToShardNodes(
         = ShardingStructure::Serialize(m_shards, sharding_message, curr_offset);
 
     // [Txn sharing assignments]
-    sharding_message.resize(sharding_message.size()
-                            + m_txnSharingMessage.size());
-    copy(m_txnSharingMessage.begin(), m_txnSharingMessage.end(),
-         sharding_message.begin() + curr_offset);
+    TxnSharingAssignments::Serialize(m_DSReceivers, m_shardReceivers,
+                                     m_shardSenders, sharding_message,
+                                     curr_offset);
 
     auto p = m_shards.begin();
     advance(p, my_shards_lo);
@@ -174,8 +173,6 @@ void DirectoryService::SendEntireShardingStructureToShardNodes(
                                                     sharding_message);
         p++;
     }
-
-    m_txnSharingMessage.clear();
 }
 
 #endif // IS_LOOKUP_NODE
