@@ -1491,6 +1491,8 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
                              << "] LAST");
     }
 
+    CommitForwardedMsgBuffer();
+
     // Assumption: New PoW done after every block committed
     // If I am not a DS committee member (and since I got this FinalBlock message,
     // then I know I'm not), I can start doing PoW again
@@ -1745,7 +1747,7 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
     LOG_MARKER();
 
     // reading [block number] from received msg
-    m_latestForwardBlockNum = Serializable::GetNumber<uint64_t>(
+    uint64_t latestForwardBlockNum = Serializable::GetNumber<uint64_t>(
         message, cur_offset, sizeof(uint64_t));
     cur_offset += sizeof(uint64_t);
 
@@ -1755,30 +1757,43 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
         << "]["
         << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
             + 1
-        << "] RECEIVED TXN BODIES #" << m_latestForwardBlockNum);
+        << "] RECEIVED TXN BODIES #" << latestForwardBlockNum);
 
     LOG_GENERAL(INFO,
                 "Received forwarded txns for block number "
-                    << m_latestForwardBlockNum);
+                    << latestForwardBlockNum);
 
     if (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
-        < m_latestForwardBlockNum)
+        < latestForwardBlockNum)
     {
-        std::unique_lock<std::mutex> cv_lk(m_mutexForwardBlockNumSync);
+        vector<unsigned char> txnMsg;
+        copy(message.begin() + cur_offset, message.end(),
+             back_inserter(txnMsg));
 
-        if (m_cvForwardBlockNumSync.wait_for(
-                cv_lk, std::chrono::seconds(TXN_SUBMISSION + WAITING_FORWARD))
-            == std::cv_status::timeout)
-        {
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Blocknum "
-                          << m_latestForwardBlockNum
-                          << " waiting for state change from "
-                             "WAITING_FINALBLOCK to TX_SUBMISSION too long!");
-            return false;
-        }
+        lock_guard<mutex> g(m_mutexForwardedTxnBuffer);
+        m_forwardedTxnBuffer[latestForwardBlockNum].push_back(txnMsg);
+
+        return true;
+    }
+    else if (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
+             == latestForwardBlockNum)
+    {
+        return ProcessForwardTransactionCore(message, cur_offset);
     }
 
+    LOG_GENERAL(WARNING,
+                "Current block num: "
+                    << m_mediator.m_txBlockChain.GetLastBlock()
+                           .GetHeader()
+                           .GetBlockNum()
+                    << " this forwarded delta msg is too late");
+
+    return false;
+}
+
+bool Node::ProcessForwardTransactionCore(const vector<unsigned char>& message,
+                                         unsigned int cur_offset)
+{
     TxnHash microBlockTxRootHash;
     StateHash microBlockStateDeltaHash;
     vector<Transaction> txnsInForwardedMessage;
@@ -1797,7 +1812,10 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
 
         if (!IsMicroBlockTxRootHashInFinalBlock(
                 microBlockTxRootHash, microBlockStateDeltaHash,
-                m_latestForwardBlockNum, isEveryMicroBlockAvailable))
+                m_mediator.m_txBlockChain.GetLastBlock()
+                    .GetHeader()
+                    .GetBlockNum(),
+                isEveryMicroBlockAvailable))
         {
             LOG_GENERAL(WARNING,
                         "The forwarded data is not in finalblock, why?");
@@ -1805,12 +1823,15 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
         }
         // StoreTxInMicroBlock(microBlockTxRootHash, txnHashesInForwardedMessage)
 
-        CommitForwardedTransactions(txnsInForwardedMessage,
-                                    m_latestForwardBlockNum);
+        CommitForwardedTransactions(
+            txnsInForwardedMessage,
+            m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum());
 
 #ifndef IS_LOOKUP_NODE
         vector<Peer> forward_list;
-        LoadFwdingAssgnForThisBlockNum(m_latestForwardBlockNum, forward_list);
+        LoadFwdingAssgnForThisBlockNum(
+            m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
+            forward_list);
 #endif // IS_LOOKUP_NODE
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -1819,7 +1840,9 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
         if (isEveryMicroBlockAvailable)
         {
             DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
-                m_latestForwardBlockNum);
+                m_mediator.m_txBlockChain.GetLastBlock()
+                    .GetHeader()
+                    .GetBlockNum());
         }
 
 #ifndef IS_LOOKUP_NODE
@@ -1845,33 +1868,46 @@ bool Node::ProcessForwardStateDelta(const vector<unsigned char>& message,
     LOG_MARKER();
 
     // reading [block number] from received msg
-    m_latestForwardBlockNum = Serializable::GetNumber<uint64_t>(
+    uint64_t latestForwardBlockNum = Serializable::GetNumber<uint64_t>(
         message, cur_offset, sizeof(uint64_t));
 
     cur_offset += sizeof(uint64_t);
 
     LOG_GENERAL(INFO,
                 "Received state delta for block number "
-                    << m_latestForwardBlockNum);
+                    << latestForwardBlockNum);
 
     if (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
-        < m_latestForwardBlockNum)
+        < latestForwardBlockNum)
     {
-        std::unique_lock<std::mutex> cv_lk(m_mutexForwardBlockNumSync);
+        vector<unsigned char> deltaMsg;
+        copy(message.begin() + cur_offset, message.end(),
+             back_inserter(deltaMsg));
 
-        if (m_cvForwardBlockNumSync.wait_for(
-                cv_lk, std::chrono::seconds(TXN_SUBMISSION + WAITING_FORWARD))
-            == std::cv_status::timeout)
-        {
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Blocknum "
-                          << m_latestForwardBlockNum
-                          << " waiting for state change from "
-                             "WAITING_FINALBLOCK to TX_SUBMISSION too long!");
-            return false;
-        }
+        lock_guard<mutex> g(m_mutexForwardedDeltaBuffer);
+        m_forwardedDeltaBuffer[latestForwardBlockNum].push_back(deltaMsg);
+
+        return true;
+    }
+    else if (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
+             == latestForwardBlockNum)
+    {
+        return ProcessForwardStateDeltaCore(message, cur_offset);
     }
 
+    LOG_GENERAL(WARNING,
+                "Current block num: "
+                    << m_mediator.m_txBlockChain.GetLastBlock()
+                           .GetHeader()
+                           .GetBlockNum()
+                    << " this forwarded delta msg is too late");
+
+    return false;
+}
+
+bool Node::ProcessForwardStateDeltaCore(
+    const std::vector<unsigned char>& message, unsigned int cur_offset)
+{
     StateHash microBlockStateDeltaHash;
     TxnHash microBlockTxRootHash;
 
@@ -1892,7 +1928,10 @@ bool Node::ProcessForwardStateDelta(const vector<unsigned char>& message,
 
         if (!IsMicroBlockStateDeltaHashInFinalBlock(
                 microBlockStateDeltaHash, microBlockTxRootHash,
-                m_latestForwardBlockNum, isEveryMicroBlockAvailable))
+                m_mediator.m_txBlockChain.GetLastBlock()
+                    .GetHeader()
+                    .GetBlockNum(),
+                isEveryMicroBlockAvailable))
         {
             LOG_GENERAL(WARNING,
                         "The forwarded data is not in finalblock, why?");
@@ -1903,7 +1942,9 @@ bool Node::ProcessForwardStateDelta(const vector<unsigned char>& message,
 
 #ifndef IS_LOOKUP_NODE
         vector<Peer> forward_list;
-        LoadFwdingAssgnForThisBlockNum(m_latestForwardBlockNum, forward_list);
+        LoadFwdingAssgnForThisBlockNum(
+            m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
+            forward_list);
 #endif // IS_LOOKUP_NODE
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -1912,7 +1953,9 @@ bool Node::ProcessForwardStateDelta(const vector<unsigned char>& message,
         if (isEveryMicroBlockAvailable)
         {
             DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
-                m_latestForwardBlockNum);
+                m_mediator.m_txBlockChain.GetLastBlock()
+                    .GetHeader()
+                    .GetBlockNum());
         }
 
 #ifndef IS_LOOKUP_NODE
@@ -1926,4 +1969,61 @@ bool Node::ProcessForwardStateDelta(const vector<unsigned char>& message,
     }
 
     return true;
+}
+
+void Node::CommitForwardedMsgBuffer()
+{
+    {
+        lock_guard<mutex> g(m_mutexForwardedTxnBuffer);
+
+        for (auto it = m_forwardedTxnBuffer.begin();
+             it != m_forwardedTxnBuffer.end();)
+        {
+            if (it->first < m_mediator.m_txBlockChain.GetLastBlock()
+                                .GetHeader()
+                                .GetBlockNum())
+            {
+                it = m_forwardedTxnBuffer.erase(it);
+            }
+            else if (it->first
+                     == m_mediator.m_txBlockChain.GetLastBlock()
+                            .GetHeader()
+                            .GetBlockNum())
+            {
+                for (const auto& msg : it->second)
+                {
+                    ProcessForwardTransactionCore(msg, 0);
+                }
+                m_forwardedTxnBuffer.erase(it);
+                break;
+            }
+        }
+    }
+
+    {
+        lock_guard<mutex> g(m_mutexForwardedDeltaBuffer);
+
+        for (auto it = m_forwardedDeltaBuffer.begin();
+             it != m_forwardedDeltaBuffer.end();)
+        {
+            if (it->first < m_mediator.m_txBlockChain.GetLastBlock()
+                                .GetHeader()
+                                .GetBlockNum())
+            {
+                it = m_forwardedDeltaBuffer.erase(it);
+            }
+            else if (it->first
+                     == m_mediator.m_txBlockChain.GetLastBlock()
+                            .GetHeader()
+                            .GetBlockNum())
+            {
+                for (const auto& msg : it->second)
+                {
+                    ProcessForwardStateDeltaCore(msg, 0);
+                }
+                m_forwardedDeltaBuffer.erase(it);
+                break;
+            }
+        }
+    }
 }
