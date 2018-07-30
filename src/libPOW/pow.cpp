@@ -33,18 +33,20 @@ POW::POW()
         0); // TODO: Do we still need this? Can we call it at mediator?
     if (OPENCL_GPU_MINE)
     {
-        dev::eth::CLMiner::setCLKernel(0);
-        dev::eth::CLMiner::setThreadsPerHash(8);
+        using namespace dev::eth;
+        CLMiner::setCLKernel(0);
+        CLMiner::setThreadsPerHash(8);
 
-        if (!dev::eth::CLMiner::configureGPU(128, 8192, 0, 0, 0, 0, false,
-                                             false))
+        if (!CLMiner::configureGPU(CLMiner::c_defaultLocalWorkSize,
+                                   CLMiner::c_defaultGlobalWorkSizeMultiplier,
+                                   0, 0, 0, 0, false, false))
         {
             LOG_GENERAL(
                 FATAL, "Failed to configure OpenCL GPU, please check hardware");
             exit(1);
         };
 
-        dev::eth::CLMiner::setNumInstances(UINT_MAX);
+        CLMiner::setNumInstances(UINT_MAX);
         m_miner = std::make_unique<dev::eth::CLMiner>();
     }
 }
@@ -438,6 +440,6 @@ ethash_return_value_t POW::LightHash(uint64_t blockNum,
                                      ethash_h256_t const& header_hash,
                                      uint64_t nonce)
 {
-    EthashConfigureLightClient((uint64_t)blockNum);
+    EthashConfigureLightClient(blockNum);
     return EthashLightCompute(ethash_light_client, header_hash, nonce);
 }

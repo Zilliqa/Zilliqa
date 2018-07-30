@@ -743,7 +743,10 @@ BOOST_AUTO_TEST_CASE(mining_and_verification)
 BOOST_AUTO_TEST_CASE(opencl_gpu_mining_and_verification_1)
 {
     if (!OPENCL_GPU_MINE)
+    {
         return;
+    }
+
     POW& POWClient = POW::GetInstance();
     std::array<unsigned char, 32> rand1 = {{'0', '1'}};
     std::array<unsigned char, 32> rand2 = {{'0', '2'}};
@@ -788,7 +791,10 @@ BOOST_AUTO_TEST_CASE(opencl_gpu_mining_and_verification_1)
 BOOST_AUTO_TEST_CASE(opencl_gpu_mining_and_verification_2)
 {
     if (!OPENCL_GPU_MINE)
+    {
         return;
+    }
+
     POW& POWClient = POW::GetInstance();
     std::array<unsigned char, 32> rand1 = {{'0', '1'}};
     std::array<unsigned char, 32> rand2 = {{'0', '2'}};
