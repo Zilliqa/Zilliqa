@@ -147,8 +147,6 @@ void DirectoryService::ComposeFinalBlockCore()
                                allGasUsed, numTxs, isMicroBlockEmpty,
                                numMicroBlocks);
 
-    m_microBlocks.clear();
-
     BlockHash prevHash;
     uint256_t timestamp = get_time_as_int();
 
@@ -819,8 +817,6 @@ bool DirectoryService::FinalBlockValidator(
                   << " received with prevhash 0x"
                   << DataConversion::charArrToHexStr(
                          m_finalBlock->GetHeader().GetPrevHash().asArray()));
-
-    m_microBlocks.clear();
 
     m_finalBlockMessage = finalblock;
 
