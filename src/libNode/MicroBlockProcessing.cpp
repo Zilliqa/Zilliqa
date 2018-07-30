@@ -87,6 +87,291 @@ void Node::SubmitMicroblockToDSCommittee() const
 
     P2PComm::GetInstance().SendBroadcastMessage(peerList, microblock);
 }
+
+void Node::LoadForwardingAssignment(
+    const vector<Peer>& fellowForwarderNodes, const uint64_t& blocknum)
+{
+    // For now, since each sharding setup only processes one block, then whatever transactions we
+    // failed to submit have to be discarded m_createdTransactions.clear();
+
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "[shard " << m_myShardID
+                        << "] I am a forwarder for transactions in block "
+                        << blocknum);
+
+    lock_guard<mutex> g2(m_mutexForwardingAssignment);
+
+    m_forwardingAssignment.emplace(blocknum, vector<Peer>());
+    vector<Peer>& peers = m_forwardingAssignment.at(blocknum);
+
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Forward list:");
+
+    for (unsigned int i = 0; i < m_myShardMembersNetworkInfo.size(); i++)
+    {
+        if (i == m_consensusMyID)
+        {
+            continue;
+        }
+        // if (rand() % m_myShardMembersNetworkInfo.size() <= GOSSIP_RATE)
+        // {
+        //     peers.emplace_back(m_myShardMembersNetworkInfo.at(i));
+        // }
+        peers.emplace_back(m_myShardMembersNetworkInfo.at(i));
+    }
+
+    for (unsigned int i = 0; i < fellowForwarderNodes.size(); i++)
+    {
+        Peer fellowforwarder = fellowForwarderNodes[i];
+
+        for (unsigned int j = 0; j < peers.size(); j++)
+        {
+            if (peers.at(j) == fellowforwarder)
+            {
+                peers.at(j) = move(peers.back());
+                peers.pop_back();
+                break;
+            }
+        }
+    }
+
+    for (unsigned int i = 0; i < peers.size(); i++)
+    {
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  peers.at(i));
+    }
+}
+
+void Node::ActOnMicroblockDone(uint8_t tx_sharing_mode, const vector<Peer>& nodes)
+{
+    // If tx_sharing_mode=IDLE              ==> Body = [ignored]
+    // If tx_sharing_mode=SEND_ONLY         ==> Body = [num receivers in other shards] [IP and node] ... [IP and node]
+    // If tx_sharing_mode=DS_FORWARD_ONLY   ==> Body = [num receivers in DS comm] [IP and node] ... [IP and node]
+    // If tx_sharing_mode=NODE_FORWARD_ONLY ==> Body = [num fellow forwarders] [IP and node] ... [IP and node]
+    LOG_MARKER();
+
+    const uint64_t& blocknum = m_mediator.m_currentEpochNum;
+
+    vector<Peer> sendingAssignment;
+
+    switch (tx_sharing_mode)
+    {
+    case SEND_ONLY:
+    {
+        sendingAssignment = nodes;
+        break;
+    }
+    case DS_FORWARD_ONLY:
+    {
+        lock_guard<mutex> g2(m_mutexForwardingAssignment);
+        m_forwardingAssignment.emplace(blocknum, nodes);
+        break;
+    }
+    case NODE_FORWARD_ONLY:
+    {
+        LoadForwardingAssignment(nodes, blocknum);
+        break;
+    }
+    case IDLE:
+    default:
+    {
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "I am idle for transactions in block " << blocknum);
+        break;
+    }
+    }
+
+    vector<Transaction> txns_to_send;
+
+    GetMyShardsMicroBlock(blocknum, tx_sharing_mode, txns_to_send);
+
+    if (sendingAssignment.size() > 0)
+    {
+        BroadcastTransactionsToSendingAssignment(
+                blocknum, sendingAssignment,
+                m_microblock->GetHeader().GetTxRootHash(), txns_to_send);
+    }
+}
+
+
+void Node::ActOnMicroblockDone(uint8_t tx_sharing_mode,
+                               vector<Peer> sendingAssignment,
+                               const vector<Peer>& fellowForwarderNodes)
+{
+    // Body = [num receivers in  other shards] [IP and node] ... [IP and node]
+    //        [num fellow forwarders] [IP and node] ... [IP and node]
+
+    LOG_MARKER();
+
+    if (tx_sharing_mode == SEND_AND_FORWARD)
+    {
+        const uint64_t& blocknum = m_mediator.m_currentEpochNum;
+
+        LoadForwardingAssignment(fellowForwarderNodes, blocknum);
+
+        vector<Transaction> txns_to_send;
+
+        GetMyShardsMicroBlock(blocknum, tx_sharing_mode, txns_to_send);
+
+        if (sendingAssignment.size() > 0)
+        {
+            BroadcastTransactionsToSendingAssignment(
+                    blocknum, sendingAssignment,
+                    m_microblock->GetHeader().GetTxRootHash(), txns_to_send);
+        }
+    }
+}
+
+void Node::GetMyShardsMicroBlock(const uint64_t& blocknum,
+                                 uint8_t sharing_mode,
+                                 vector<Transaction>& txns_to_send)
+{
+    LOG_MARKER();
+
+    const vector<TxnHash>& tx_hashes = m_microblock->GetTranHashes();
+    for (unsigned i = 0; i < tx_hashes.size(); i++)
+    {
+        const TxnHash& tx_hash = tx_hashes.at(i);
+
+        if (TryFindTxnInSubmittedTxnsList())
+        {
+            continue;
+        }
+
+        if (!TryFindTxnInReceivedTxnsList())
+        {
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Failed trying to find txn in submitted txn and recv list");
+        }
+    }
+
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Number of transactions to broadcast for block "
+                  << blocknum << " = " << txns_to_send.size());
+}
+
+bool Node::FindTxnInSubmittedTxnsList(const uint64_t& blocknum,
+                                      uint8_t sharing_mode,
+                                      vector<Transaction>& txns_to_send,
+                                      const TxnHash& tx_hash)
+{
+    lock_guard<mutex> g(m_mutexSubmittedTransactions);
+
+    auto& submittedTransactions = m_submittedTransactions[blockNum];
+    const auto& txnIt = submittedTransactions.find(tx_hash);
+
+    // Check if transaction is part of submitted Tx list
+    if (txnIt != submittedTransactions.end())
+    {
+        if ((sharing_mode == SEND_ONLY) || (sharing_mode == SEND_AND_FORWARD))
+        {
+            txns_to_send.emplace_back(txnIt->second);
+        }
+
+        return true;
+    }
+
+    return false;
+}
+
+bool Node::TryFindTxnInReceivedTxnsList(const uint64_t& blockNum,
+                                        uint8_t sharing_mode,
+                                        vector<Transaction>& txns_to_send,
+                                        const TxnHash& tx_hash)
+{
+    lock_guard<mutex> g(m_mutexReceivedTransactions);
+
+    auto& receivedTransactions = m_receivedTransactions[blockNum];
+    const auto& txnIt = receivedTransactions.find(tx_hash);
+
+    // Check if transaction is part of received Tx list
+    if (txnIt != receivedTransactions.end())
+    {
+        if ((sharing_mode == SEND_ONLY) || (sharing_mode == SEND_AND_FORWARD))
+        {
+            txns_to_send.emplace_back(txnIt->second);
+        }
+        return true;
+    }
+
+    return false;
+}
+
+void Node::CallActOnMicroblockDoneBasedOnSenderForwarderAssign(uint8_t shard_id)
+{
+    if ((m_txnSharingIAmSender == false) && (m_txnSharingIAmForwarder == true))
+    {
+        // Give myself the list of my fellow forwarders
+        const vector<Peer>& my_shard_receivers
+            = m_txnSharingAssignedNodes.at(shard_id + 1);
+        ActOnMicroblockDone(TxSharingMode::NODE_FORWARD_ONLY, my_shard_receivers);
+    }
+    else if ((m_txnSharingIAmSender == true)
+             && (m_txnSharingIAmForwarder == false))
+    {
+        vector<Peer> nodes_to_send;
+
+        // Give myself the list of all receiving nodes in all other committees including DS
+        for (unsigned int i = 0; i < m_txnSharingAssignedNodes.at(0).size();
+             i++)
+        {
+            nodes_to_send.emplace_back(m_txnSharingAssignedNodes[0][i]);
+        }
+
+        for (unsigned int i = 1; i < m_txnSharingAssignedNodes.size(); i += 2)
+        {
+            if (((i - 1) / 2) == shard_id)
+            {
+                continue;
+            }
+
+            const vector<Peer>& shard = m_txnSharingAssignedNodes.at(i);
+            for (unsigned int j = 0; j < shard.size(); j++)
+            {
+                nodes_to_send.emplace_back(shard[j]);
+            }
+        }
+
+        ActOnMicroblockDone(TxSharingMode::SEND_ONLY, nodes_to_send);
+    }
+    else if ((m_txnSharingIAmSender == true)
+             && (m_txnSharingIAmForwarder == true))
+    {
+        // Give myself the list of my fellow forwarders
+        const vector<Peer>& my_shard_receivers
+            = m_txnSharingAssignedNodes.at(shard_id + 1);
+
+        vector<Peer> fellowForwarderNodes;
+
+        // Give myself the list of all receiving nodes in all other committees including DS
+        for (unsigned int i = 0; i < m_txnSharingAssignedNodes.at(0).size();
+             i++)
+        {
+            fellowForwarderNodes.emplace_back(m_txnSharingAssignedNodes[0][i]);
+        }
+
+        for (unsigned int i = 1; i < m_txnSharingAssignedNodes.size(); i += 2)
+        {
+            if (((i - 1) / 2) == shard_id)
+            {
+                continue;
+            }
+
+            const vector<Peer>& shard = m_txnSharingAssignedNodes.at(i);
+            for (unsigned int j = 0; j < shard.size(); j++)
+            {
+                fellowForwarderNodes.emplace_back(shard[j]);
+            }
+        }
+
+        ActOnMicroblockDone(TxSharingMode::SEND_AND_FORWARD, fellowForwarderNodes,
+                            my_shard_receivers);
+    }
+    else
+    {
+        ActOnMicroblockDone(TxSharingMode::IDLE, vector<Peer>());
+    }
+}
 #endif // IS_LOOKUP_NODE
 
 bool Node::ProcessMicroblockConsensus(
@@ -220,6 +505,8 @@ bool Node::ProcessMicroblockConsensus(
                       << ")");
         m_lastMicroBlockCoSig.first = m_mediator.m_currentEpochNum;
         m_lastMicroBlockCoSig.second.SetCoSignatures(*m_consensusObject);
+
+        CallActOnMicroblockDoneBasedOnSenderForwarderAssign(m_microblock->GetHeader().GetShardID());
 
         lock_guard<mutex> cv_lk(m_MutexCVFBWaitMB);
         cv_FBWaitMB.notify_all();
