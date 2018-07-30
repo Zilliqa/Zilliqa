@@ -907,7 +907,7 @@ Json::Value Server::TxBlockListing(unsigned int page)
     LOG_MARKER();
 
     uint64_t currBlockNum
-        = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+        = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
     Json::Value _json;
 
     auto maxPages = (currBlockNum / PAGE_SIZE) + 1;
