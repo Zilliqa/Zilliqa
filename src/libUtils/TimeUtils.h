@@ -25,6 +25,5 @@ double r_timer_end(std::chrono::system_clock::time_point start_time);
 
 boost::multiprecision::uint256_t get_time_as_int();
 struct tm* gmtime_safe(const time_t* timer);
-long int
-get_ms(const std::chrono::time_point<std::chrono::high_resolution_clock> time);
+long int get_ms(const std::chrono::time_point<std::chrono::system_clock>& time);
 #endif // __TIMEUTILS_H__

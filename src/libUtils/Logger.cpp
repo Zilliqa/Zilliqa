@@ -152,7 +152,7 @@ void Logger::LogGeneral(LEVELS level, const char* msg, const char* function)
 {
     if (IsG3Log())
     {
-        auto cur = chrono::high_resolution_clock::now();
+        auto cur = chrono::system_clock::now();
         auto cur_time_t = chrono::system_clock::to_time_t(cur);
         LOG(level) << "[TID " << PAD(GetPid(), TID_LEN) << "]["
                    << put_time(gmtime_safe(&cur_time_t), "%H:%M:%S:")
@@ -166,7 +166,7 @@ void Logger::LogGeneral(LEVELS level, const char* msg, const char* function)
     if (m_logToFile)
     {
         checkLog();
-        auto cur = chrono::high_resolution_clock::now();
+        auto cur = chrono::system_clock::now();
         auto cur_time_t = chrono::system_clock::to_time_t(cur);
         m_logFile << "[TID " << PAD(GetPid(), TID_LEN) << "]["
                   << put_time(gmtime_safe(&cur_time_t), "%H:%M:%S:")
@@ -176,7 +176,7 @@ void Logger::LogGeneral(LEVELS level, const char* msg, const char* function)
     }
     else
     {
-        auto cur = chrono::high_resolution_clock::now();
+        auto cur = chrono::system_clock::now();
         auto cur_time_t = chrono::system_clock::to_time_t(cur);
         cout << "[TID " << PAD(GetPid(), TID_LEN) << "]["
              << put_time(gmtime_safe(&cur_time_t), "%H:%M:%S:")
@@ -194,7 +194,7 @@ void Logger::LogEpoch([[gnu::unused]] LEVELS level, const char* msg,
     if (m_logToFile)
     {
         checkLog();
-        auto cur = chrono::high_resolution_clock::now();
+        auto cur = chrono::system_clock::now();
         auto cur_time_t = chrono::system_clock::to_time_t(cur);
         m_logFile << "[TID " << PAD(GetPid(), TID_LEN) << "]["
                   << put_time(gmtime_safe(&cur_time_t), "%H:%M:%S:")
@@ -205,7 +205,7 @@ void Logger::LogEpoch([[gnu::unused]] LEVELS level, const char* msg,
     }
     else
     {
-        auto cur = chrono::high_resolution_clock::now();
+        auto cur = chrono::system_clock::now();
         auto cur_time_t = chrono::system_clock::to_time_t(cur);
         cout << "[TID " << PAD(GetPid(), TID_LEN) << "]["
              << put_time(gmtime_safe(&cur_time_t), "%H:%M:%S:")
@@ -228,7 +228,7 @@ void Logger::LogPayload([[gnu::unused]] LEVELS level, const char* msg,
     if (m_logToFile)
     {
         checkLog();
-        auto cur = chrono::high_resolution_clock::now();
+        auto cur = chrono::system_clock::now();
         auto cur_time_t = chrono::system_clock::to_time_t(cur);
 
         if (payload.size() > max_bytes_to_display)
@@ -254,7 +254,7 @@ void Logger::LogPayload([[gnu::unused]] LEVELS level, const char* msg,
     }
     else
     {
-        auto cur = chrono::high_resolution_clock::now();
+        auto cur = chrono::system_clock::now();
         auto cur_time_t = chrono::system_clock::to_time_t(cur);
 
         if (payload.size() > max_bytes_to_display)
@@ -289,7 +289,7 @@ void Logger::LogEpochInfo(const char* msg, const char* function,
     if (m_logToFile)
     {
         checkLog();
-        auto cur = chrono::high_resolution_clock::now();
+        auto cur = chrono::system_clock::now();
         auto cur_time_t = chrono::system_clock::to_time_t(cur);
         m_logFile << "[TID " << PAD(tid, TID_LEN) << "]["
                   << put_time(gmtime_safe(&cur_time_t), "%H:%M:%S:")
@@ -300,7 +300,7 @@ void Logger::LogEpochInfo(const char* msg, const char* function,
     }
     else
     {
-        auto cur = chrono::high_resolution_clock::now();
+        auto cur = chrono::system_clock::now();
         auto cur_time_t = chrono::system_clock::to_time_t(cur);
         cout << "[TID " << PAD(tid, TID_LEN) << "]["
              << put_time(gmtime_safe(&cur_time_t), "%H:%M:%S:")
