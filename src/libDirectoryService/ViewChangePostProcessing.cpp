@@ -253,8 +253,9 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
 
                     // calculate (new) my consensus id for faulty ds nodes.
                     // Good ds nodes adjustment have already been done previously.
-                    m_consensusMyID = m_mediator.m_DSCommittee.size() - 1
-                        - faultyLeaderIndex;
+                    // m_consensusMyID = last index - num of time vc occur + faulty index
+                    m_consensusMyID = (m_mediator.m_DSCommittee.size() - 1)
+                        - m_viewChangeCounter + faultyLeaderIndex;
                     isCurrentNodeFaulty = true;
                     LOG_GENERAL(INFO,
                                 "new m_consensusMyID  is " << m_consensusMyID);
