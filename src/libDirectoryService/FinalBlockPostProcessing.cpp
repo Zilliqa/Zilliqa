@@ -290,6 +290,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
         }
     }
 
+    m_mediator.m_node->CommitForwardedMsgBuffer();
+
     m_mediator.UpdateDSBlockRand();
     m_mediator.UpdateTxBlockRand();
 
@@ -308,9 +310,9 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
         SendFinalBlockToLookupNodes();
     }
 
-    uint8_t tx_sharing_mode
-        = (m_sharingAssignment.size() > 0) ? DS_FORWARD_ONLY : ::IDLE;
-    m_mediator.m_node->ActOnFinalBlock(tx_sharing_mode, m_sharingAssignment);
+    // uint8_t tx_sharing_mode
+    //     = (m_sharingAssignment.size() > 0) ? DS_FORWARD_ONLY : ::IDLE;
+    // m_mediator.m_node->ActOnFinalBlock(tx_sharing_mode, m_sharingAssignment);
 
     unsigned int my_DS_cluster_num;
     unsigned int my_shards_lo;
