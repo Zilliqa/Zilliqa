@@ -63,16 +63,15 @@ class DirectoryService : public Executable, public Broadcastable
 
     std::mutex m_mutexConsensus;
 
-    bool m_hasAllPoWconns = true;
-    std::condition_variable cv_allPowConns;
-    std::mutex m_MutexCVAllPowConn;
-
     // Sharding committee members
     std::vector<std::map<PubKey, Peer>> m_shards;
     std::map<PubKey, uint32_t> m_publicKeyToShardIdMap;
 
     // Transaction sharing assignments
     std::vector<unsigned char> m_txnSharingMessage;
+    std::vector<Peer> m_DSReceivers;
+    std::vector<std::vector<Peer>> m_shardReceivers;
+    std::vector<std::vector<Peer>> m_shardSenders;
 
     std::mutex m_MutexScheduleFinalBlockConsensus;
     std::condition_variable cv_scheduleFinalBlockConsensus;
@@ -161,10 +160,6 @@ class DirectoryService : public Executable, public Broadcastable
                                      unsigned int offset, const Peer& from);
     bool ProcessFinalBlockConsensus(const std::vector<unsigned char>& message,
                                     unsigned int offset, const Peer& from);
-    bool ProcessAllPoWConnRequest(const vector<unsigned char>& message,
-                                  unsigned int offset, const Peer& from);
-    bool ProcessAllPoWConnResponse(const vector<unsigned char>& message,
-                                   unsigned int offset, const Peer& from);
     bool ProcessViewChangeConsensus(const vector<unsigned char>& message,
                                     unsigned int offset, const Peer& from);
     // To block certain types of incoming message for certain states
@@ -181,8 +176,8 @@ class DirectoryService : public Executable, public Broadcastable
     SetupMulticastConfigForShardingStructure(unsigned int& my_DS_cluster_num,
                                              unsigned int& my_shards_lo,
                                              unsigned int& my_shards_hi);
-    void SendingShardingStructureToShard(
-        vector<std::map<PubKey, Peer>>::iterator& p);
+    void SendEntireShardingStructureToShardNodes(unsigned int my_shards_lo,
+                                                 unsigned int my_shards_hi);
 
     // PoW (DS block) consensus functions
     void RunConsensusOnDSBlock(bool isRejoin = false);
@@ -198,6 +193,7 @@ class DirectoryService : public Executable, public Broadcastable
     // PoW2 (sharding) consensus functions
     void RunConsensusOnSharding();
     void ComputeSharding();
+    void ComputeTxnSharingAssignments();
 
     // internal calls from RunConsensusOnDSBlock
     bool RunConsensusOnDSBlockWhenDSPrimary();
@@ -239,8 +235,6 @@ class DirectoryService : public Executable, public Broadcastable
     vector<unsigned char> ComposeFinalBlockMessage();
     bool ParseMessageAndVerifyPOW(const vector<unsigned char>& message,
                                   unsigned int offset, const Peer& from);
-    void AppendSharingSetupToShardingStructure(
-        vector<unsigned char>& finalBlockMessage, unsigned int curr_offset);
     bool CheckWhetherDSBlockIsFresh(const uint64_t dsblock_num);
     bool CheckWhetherMaxSubmissionsReceived(Peer peer, PubKey key);
     bool VerifyPoWSubmission(const vector<unsigned char>& message,
@@ -294,7 +288,6 @@ class DirectoryService : public Executable, public Broadcastable
     // void StoreMicroBlocksToDisk();
 
     // Used to reconsile view of m_AllPowConn is different.
-    void RequestAllPoWConn();
     void LastDSBlockRequest();
 
     bool ProcessLastDSBlockRequest(const vector<unsigned char>& message,

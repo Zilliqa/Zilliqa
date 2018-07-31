@@ -135,6 +135,10 @@ public:
     /// Function to process any consensus message received.
     bool ProcessMessage(const std::vector<unsigned char>& message,
                         unsigned int offset, const Peer& from);
+
+private:
+    static std::map<Action, std::string> ActionStrings;
+    std::string GetActionString(Action action) const;
 };
 
 #endif // __CONSENSUSLEADER_H__

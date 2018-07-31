@@ -56,7 +56,7 @@ jobs:
     install: # left blank
     - pip install --user awscli
     - export PATH=$PATH:$HOME/.local/bin
-    cache: # left blank
+    cache: false
     script:
     - $BUILD_COMMAND
     after_success: # left blank
