@@ -740,10 +740,14 @@ BOOST_AUTO_TEST_CASE(mining_and_verification)
     BOOST_REQUIRE(!verifyWinningNonce);
 }
 
+// Please enable the OPENCL_GPU_MINE option in constants.xml to run this test case
 BOOST_AUTO_TEST_CASE(opencl_gpu_mining_and_verification_1)
 {
     if (!OPENCL_GPU_MINE)
     {
+        std::cout << "OPENCL_GPU_MINE option is not enabled, skip test case "
+                     "opencl_gpu_mining_and_verification_1"
+                  << std::endl;
         return;
     }
 
@@ -788,10 +792,14 @@ BOOST_AUTO_TEST_CASE(opencl_gpu_mining_and_verification_1)
     BOOST_REQUIRE(!verifyWinningNonce);
 }
 
+// Please enable the OPENCL_GPU_MINE option in constants.xml to run this test case
 BOOST_AUTO_TEST_CASE(opencl_gpu_mining_and_verification_2)
 {
     if (!OPENCL_GPU_MINE)
     {
+        std::cout << "OPENCL_GPU_MINE option is not enabled, skip test case "
+                     "opencl_gpu_mining_and_verification_2"
+                  << std::endl;
         return;
     }
 
