@@ -147,9 +147,13 @@ class Node : public Executable, public Broadcastable
     std::mutex m_mutexForwardingAssignment;
     std::unordered_map<uint64_t, std::vector<Peer>> m_forwardingAssignment;
 
-    uint64_t m_latestForwardBlockNum;
-    std::condition_variable m_cvForwardBlockNumSync;
-    std::mutex m_mutexForwardBlockNumSync;
+    std::mutex m_mutexForwardedTxnBuffer;
+    std::unordered_map<uint64_t, std::vector<std::vector<unsigned char>>>
+        m_forwardedTxnBuffer;
+
+    std::mutex m_mutexForwardedDeltaBuffer;
+    std::map<uint64_t, std::vector<std::vector<unsigned char>>>
+        m_forwardedDeltaBuffer;
 
     bool CheckState(Action action);
 
@@ -298,11 +302,16 @@ class Node : public Executable, public Broadcastable
                            unsigned int offset, const Peer& from);
     bool ProcessForwardTransaction(const std::vector<unsigned char>& message,
                                    unsigned int offset, const Peer& from);
+    bool
+    ProcessForwardTransactionCore(const std::vector<unsigned char>& message,
+                                  unsigned int offset);
     bool ProcessCreateTransactionFromLookup(
         const std::vector<unsigned char>& message, unsigned int offset,
         const Peer& from);
     bool ProcessForwardStateDelta(const std::vector<unsigned char>& message,
                                   unsigned int offset, const Peer& from);
+    bool ProcessForwardStateDeltaCore(const std::vector<unsigned char>& message,
+                                      unsigned int offset);
     // bool ProcessCreateAccounts(const std::vector<unsigned char> & message, unsigned int offset, const Peer & from);
     bool ProcessDSBlock(const std::vector<unsigned char>& message,
                         unsigned int offset, const Peer& from);
@@ -458,6 +467,8 @@ public:
 
     /// Add new block into tx blockchain
     void AddBlock(const TxBlock& block);
+
+    void CommitForwardedMsgBuffer();
 #ifndef IS_LOOKUP_NODE
 
     // Start synchronization with lookup as a shard node

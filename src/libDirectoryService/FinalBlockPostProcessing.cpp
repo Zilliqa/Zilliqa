@@ -290,6 +290,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
         }
     }
 
+    m_mediator.m_node->CommitForwardedMsgBuffer();
+
     m_mediator.UpdateDSBlockRand();
     m_mediator.UpdateTxBlockRand();
 
