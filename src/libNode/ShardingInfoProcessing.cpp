@@ -45,73 +45,37 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-bool Node::ReadVariablesFromShardingMessage(
-    const vector<unsigned char>& message, unsigned int& cur_offset)
+bool Node::LoadShardingStructure(const vector<unsigned char>& message,
+                                 unsigned int& cur_offset)
 {
-    LOG_MARKER();
+    vector<map<PubKey, Peer>> shards;
+    cur_offset = ShardingStructure::Deserialize(message, cur_offset, shards);
 
-    if (IsMessageSizeInappropriate(message.size(), cur_offset,
-                                   sizeof(unsigned int) + sizeof(uint64_t)
-                                       + sizeof(uint32_t) + sizeof(uint32_t)
-                                       + sizeof(uint32_t)))
+    // Check the shard ID against the deserialized structure
+    if (m_myShardID >= shards.size())
     {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Shard ID " << m_myShardID << " >= num shards "
+                              << shards.size());
         return false;
     }
 
-    // 8-byte block number
-    uint64_t dsBlockNum = Serializable::GetNumber<uint64_t>(message, cur_offset,
-                                                            sizeof(uint64_t));
-    cur_offset += sizeof(uint64_t);
-
-    // Check block number
-    if (!CheckWhetherDSBlockNumIsLatest(dsBlockNum + 1))
-    {
-        return false;
-    }
-
-    // 4-byte shard ID
-    m_myShardID = Serializable::GetNumber<uint32_t>(message, cur_offset,
-                                                    sizeof(uint32_t));
-    cur_offset += sizeof(uint32_t);
-
-    // 4-byte number of shards
-    m_numShards = Serializable::GetNumber<uint32_t>(message, cur_offset,
-                                                    sizeof(uint32_t));
-    cur_offset += sizeof(uint32_t);
-
-    // 4-byte committee size
-    uint32_t comm_size = Serializable::GetNumber<uint32_t>(message, cur_offset,
-                                                           sizeof(uint32_t));
-    cur_offset += sizeof(uint32_t);
-
-    if (IsMessageSizeInappropriate(message.size(), cur_offset,
-                                   (PUB_KEY_SIZE + IP_SIZE + PORT_SIZE)
-                                       * comm_size))
-    {
-        return false;
-    }
-
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Committee size = " << comm_size << "\n"
-                                  << "Members:");
+    const map<PubKey, Peer>& my_shard = shards.at(m_myShardID);
 
     m_myShardMembersPubKeys.clear();
     m_myShardMembersNetworkInfo.clear();
 
     // All nodes; first entry is leader
-    for (uint32_t i = 0; i < comm_size; i++)
+    unsigned int index = 0;
+    for (const auto& i : my_shard)
     {
-        m_myShardMembersPubKeys.emplace_back(message, cur_offset);
-        cur_offset += PUB_KEY_SIZE;
-
-        m_myShardMembersNetworkInfo.emplace_back(message, cur_offset);
-        cur_offset += IP_SIZE + PORT_SIZE;
+        m_myShardMembersPubKeys.emplace_back(i.first);
+        m_myShardMembersNetworkInfo.emplace_back(i.second);
 
         // Zero out my IP to avoid sending to myself
         if (m_mediator.m_selfPeer == m_myShardMembersNetworkInfo.back())
         {
-            m_consensusMyID = i; // Set my ID
-            //m_myShardMembersNetworkInfo.back().m_ipAddress = 0;
+            m_consensusMyID = index; // Set my ID
             m_myShardMembersNetworkInfo.back().m_listenPortHost = 0;
         }
 
@@ -124,6 +88,8 @@ bool Node::ReadVariablesFromShardingMessage(
                 << m_myShardMembersNetworkInfo.back().GetPrintableIPAddress()
                 << " Port: "
                 << m_myShardMembersNetworkInfo.back().m_listenPortHost);
+
+        index++;
     }
 
     return true;
@@ -132,160 +98,58 @@ bool Node::ReadVariablesFromShardingMessage(
 void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
                               unsigned int cur_offset)
 {
-    // Transaction body sharing setup
-    // Everyone (DS and non-DS) needs to remember their sharing assignments for this particular block
-
-    // Transaction body sharing assignments:
-    // PART 1. Select X random nodes from DS committee for receiving Tx bodies and broadcasting to other DS nodes
-    // PART 2. Select X random nodes per shard for receiving Tx bodies and broadcasting to other nodes in the shard
-    // PART 3. Select X random nodes per shard for sending Tx bodies to the receiving nodes in other committees (DS and shards)
-
-    // Message format:
-    // [4-byte num of DS nodes]
-    //   [16-byte IP] [4-byte port]
-    //   [16-byte IP] [4-byte port]
-    //   ...
-    // [4-byte num of committees]
-    // [4-byte num of committee receiving nodes]
-    //   [16-byte IP] [4-byte port]
-    //   [16-byte IP] [4-byte port]
-    //   ...
-    // [4-byte num of committee sending nodes]
-    //   [16-byte IP] [4-byte port]
-    //   [16-byte IP] [4-byte port]
-    //   ...
-    // [4-byte num of committee receiving nodes]
-    //   [16-byte IP] [4-byte port]
-    //   [16-byte IP] [4-byte port]
-    //   ...
-    // [4-byte num of committee sending nodes]
-    //   [16-byte IP] [4-byte port]
-    //   [16-byte IP] [4-byte port]
-    //   ...
-    // ...
     LOG_MARKER();
 
     m_txnSharingIAmSender = false;
     m_txnSharingIAmForwarder = false;
     m_txnSharingAssignedNodes.clear();
 
-    uint32_t num_ds_nodes = Serializable::GetNumber<uint32_t>(
-        message, cur_offset, sizeof(uint32_t));
-    cur_offset += sizeof(uint32_t);
+    vector<Peer> ds_receivers;
+    vector<vector<Peer>> shard_receivers;
+    vector<vector<Peer>> shard_senders;
 
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Forwarders inside the DS committee (" << num_ds_nodes << "):");
+    TxnSharingAssignments::Deserialize(message, cur_offset, ds_receivers,
+                                       shard_receivers, shard_senders);
 
-    m_txnSharingAssignedNodes.push_back(vector<Peer>());
+    // m_txnSharingAssignedNodes below is basically just the combination of ds_receivers, shard_receivers, and shard_senders
+    // We will get rid of this inefficiency eventually
 
-    for (unsigned int i = 0; i < num_ds_nodes; i++)
+    m_txnSharingAssignedNodes.emplace_back();
+
+    for (unsigned int i = 0; i < ds_receivers.size(); i++)
     {
-        m_txnSharingAssignedNodes.back().push_back(Peer(message, cur_offset));
-        cur_offset += IP_SIZE + PORT_SIZE;
-
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  m_txnSharingAssignedNodes.back().back());
+        m_txnSharingAssignedNodes.back().emplace_back(ds_receivers.at(i));
     }
 
-    uint32_t num_shards = Serializable::GetNumber<uint32_t>(message, cur_offset,
-                                                            sizeof(uint32_t));
-    cur_offset += sizeof(uint32_t);
-
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Number of shards: " << num_shards);
-
-    for (unsigned int i = 0; i < num_shards; i++)
+    for (unsigned int i = 0; i < shard_receivers.size(); i++)
     {
-        if (i == m_myShardID)
+        m_txnSharingAssignedNodes.emplace_back();
+
+        for (unsigned int j = 0; j < shard_receivers.at(i).size(); j++)
         {
-            m_txnSharingAssignedNodes.push_back(vector<Peer>());
+            m_txnSharingAssignedNodes.back().emplace_back(
+                shard_receivers.at(i).at(j));
 
-            uint32_t num_recv = Serializable::GetNumber<uint32_t>(
-                message, cur_offset, sizeof(uint32_t));
-            cur_offset += sizeof(uint32_t);
-
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "  Shard " << i << " forwarders:");
-
-            for (unsigned int j = 0; j < num_recv; j++)
+            if ((i == m_myShardID)
+                && (m_txnSharingAssignedNodes.back().back()
+                    == m_mediator.m_selfPeer))
             {
-                m_txnSharingAssignedNodes.back().push_back(
-                    Peer(message, cur_offset));
-                cur_offset += IP_SIZE + PORT_SIZE;
-
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          m_txnSharingAssignedNodes.back().back());
-
-                if (m_txnSharingAssignedNodes.back().back()
-                    == m_mediator.m_selfPeer)
-                {
-                    m_txnSharingIAmForwarder = true;
-                }
-            }
-
-            m_txnSharingAssignedNodes.push_back(vector<Peer>());
-
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "  Shard " << i << " senders:");
-
-            uint32_t num_send = Serializable::GetNumber<uint32_t>(
-                message, cur_offset, sizeof(uint32_t));
-            cur_offset += sizeof(uint32_t);
-
-            for (unsigned int j = 0; j < num_send; j++)
-            {
-                m_txnSharingAssignedNodes.back().push_back(
-                    Peer(message, cur_offset));
-                cur_offset += IP_SIZE + PORT_SIZE;
-
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          m_txnSharingAssignedNodes.back().back());
-
-                if (m_txnSharingAssignedNodes.back().back()
-                    == m_mediator.m_selfPeer)
-                {
-                    m_txnSharingIAmSender = true;
-                }
+                m_txnSharingIAmForwarder = true;
             }
         }
-        else
+
+        m_txnSharingAssignedNodes.emplace_back();
+
+        for (unsigned int j = 0; j < shard_senders.at(i).size(); j++)
         {
-            m_txnSharingAssignedNodes.push_back(vector<Peer>());
+            m_txnSharingAssignedNodes.back().emplace_back(
+                shard_senders.at(i).at(j));
 
-            uint32_t num_recv = Serializable::GetNumber<uint32_t>(
-                message, cur_offset, sizeof(uint32_t));
-            cur_offset += sizeof(uint32_t);
-
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "  Shard " << i << " forwarders:");
-
-            for (unsigned int j = 0; j < num_recv; j++)
+            if ((i == m_myShardID)
+                && (m_txnSharingAssignedNodes.back().back()
+                    == m_mediator.m_selfPeer))
             {
-                m_txnSharingAssignedNodes.back().push_back(
-                    Peer(message, cur_offset));
-                cur_offset += IP_SIZE + PORT_SIZE;
-
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          m_txnSharingAssignedNodes.back().back());
-            }
-
-            m_txnSharingAssignedNodes.push_back(vector<Peer>());
-
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "  Shard " << i << " senders:");
-
-            uint32_t num_send = Serializable::GetNumber<uint32_t>(
-                message, cur_offset, sizeof(uint32_t));
-            cur_offset += sizeof(uint32_t);
-
-            for (unsigned int j = 0; j < num_send; j++)
-            {
-                m_txnSharingAssignedNodes.back().push_back(
-                    Peer(message, cur_offset));
-                cur_offset += IP_SIZE + PORT_SIZE;
-
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          m_txnSharingAssignedNodes.back().back());
+                m_txnSharingIAmSender = true;
             }
         }
     }
@@ -296,23 +160,41 @@ bool Node::ProcessSharding([[gnu::unused]] const vector<unsigned char>& message,
                            [[gnu::unused]] const Peer& from)
 {
 #ifndef IS_LOOKUP_NODE
-    // Message = [8-byte DS blocknum] [4-byte shard ID] [4-byte committee size] [33-byte public key]
-    // [16-byte ip] [4-byte port] ... (all nodes; first entry is leader)
+
+    // Message = [8-byte DS blocknum] [4-byte shard ID] [Sharding structure] [Txn sharing assignments]
+
     LOG_MARKER();
 
     if (!CheckState(PROCESS_SHARDING))
     {
-        // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "Valid SHARDING already received. Ignoring redundant SHARDING message.");
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Not in MICROBLOCK_CONSENSUS_PREP state");
         return false;
     }
 
-    if (!ReadVariablesFromShardingMessage(message, offset))
+    // [8-byte DS blocknum]
+    uint64_t dsBlockNum
+        = Serializable::GetNumber<uint64_t>(message, offset, sizeof(uint64_t));
+    offset += sizeof(uint64_t);
+
+    // Check block number
+    if (!CheckWhetherDSBlockNumIsLatest(dsBlockNum + 1))
     {
         return false;
     }
 
+    // [4-byte shard ID]
+    m_myShardID
+        = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
+    offset += sizeof(uint32_t);
+
+    // [Sharding structure]
+    if (LoadShardingStructure(message, offset) == false)
+    {
+        return false;
+    }
+
+    // [Txn sharing assignments]
     LoadTxnSharingInfo(message, offset);
 
     POW::GetInstance().StopMining();
