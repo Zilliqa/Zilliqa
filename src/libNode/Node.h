@@ -133,8 +133,6 @@ class Node : public Executable, public Broadcastable
                        std::map<boost::multiprecision::uint256_t, Transaction>>
         m_addrNonceTxnMap;
 
-    vector<unsigned char> m_txMessage;
-
     std::vector<TxnHash> m_txnsOrdering;
 
     std::mutex m_mutexProcessedTransactions;
@@ -202,11 +200,6 @@ class Node : public Executable, public Broadcastable
                                     uint8_t sharing_mode,
                                     vector<Transaction>& txns_to_send,
                                     const TxnHash& tx_hash);
-
-    void CommitMyShardsMicroBlock(const TxBlock& finalblock,
-                                  const uint64_t& blocknum,
-                                  uint8_t sharing_mode,
-                                  vector<Transaction>& txns_to_send);
 
     void GetMyShardsMicroBlock(const uint64_t& blocknum, uint8_t sharing_mode,
                                vector<Transaction>& txns_to_send);
