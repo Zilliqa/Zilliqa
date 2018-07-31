@@ -1446,6 +1446,10 @@ void Node::CommitForwardedMsgBuffer()
                 m_forwardedTxnBuffer.erase(it);
                 break;
             }
+            else
+            {
+                it++;
+            }
         }
     }
 
@@ -1472,6 +1476,10 @@ void Node::CommitForwardedMsgBuffer()
                 }
                 m_forwardedDeltaBuffer.erase(it);
                 break;
+            }
+            else
+            {
+                it++;
             }
         }
     }
