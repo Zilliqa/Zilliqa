@@ -4,17 +4,20 @@
 #include <vector>
 #include <memory>
 #include <ostream>
+#include <map>
 
 namespace RRS {
 
 class Message {
   public:
     // ENUMS
-    enum Type {
+    enum class Type {
         UNDEFINED,
         PUSH,
         PULL,
     };
+
+    static std::map<Type, std::string> s_enumKeyToString;
 
   private:
     // MEMBERS

@@ -1,5 +1,5 @@
-#ifndef ZILLIQA_RUMORS_H
-#define ZILLIQA_RUMORS_H
+#ifndef ZILLIQA_RUMORMANAGER_H
+#define ZILLIQA_RUMORMANAGER_H
 
 #include <boost/bimap.hpp>
 #include <deque>
@@ -55,8 +55,11 @@ public:
     void addRumor(const std::vector<Peer>& peers, const RawBytes& message);
     void addRumor(const std::deque<Peer>& peers, const RawBytes& message);
 
+    void rumorReceived(uint8_t type, int32_t round, const RawBytes& message,
+                       const Peer& from);
+
     // CONST METHODS
     const RumorBimap& rumors() const;
 };
 
-#endif //ZILLIQA_RUMORS_H
+#endif //ZILLIQA_RUMORMANAGER_H

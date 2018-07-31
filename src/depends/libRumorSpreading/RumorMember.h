@@ -20,7 +20,7 @@ class RumorMember : public RumorSpreadingInterface {
     typedef std::function<int()> NextMemberCb;
 
     // ENUMS
-    enum StatisticKey {
+    enum class StatisticKey {
         NumPeers,
         NumMessagesReceived,
         Rounds,
@@ -36,8 +36,6 @@ class RumorMember : public RumorSpreadingInterface {
     // MEMBERS
     const int                                  m_id;
     NetworkConfig                              m_networkConfig;
-
-  private:
     std::vector<int>                           m_peers;
     std::unordered_set<int>                    m_peersInCurrentRound;
     std::unordered_map<int, RumorStateMachine> m_rumors;
@@ -57,8 +55,6 @@ class RumorMember : public RumorSpreadingInterface {
 
   public:
     // CONSTRUCTORS
-    RumorMember();
-
     /// Create an instance which automatically figures out the network parameters.
     RumorMember(const std::unordered_set<int>& peers, int id = MemberID::next());
     RumorMember(const std::unordered_set<int>& peers,

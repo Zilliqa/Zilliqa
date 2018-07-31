@@ -9,13 +9,13 @@ namespace RRS {
 
 // STATIC MEMBERS
 std::map<RumorMember::StatisticKey, std::string> RumorMember::s_enumKeyToString = {
-    {NumPeers,             LITERAL(NumPeers)},
-    {NumMessagesReceived,  LITERAL(NumMessagesReceived)},
-    {Rounds,               LITERAL(Rounds)},
-    {NumPushMessages,      LITERAL(NumPushMessages)},
-    {NumEmptyPushMessages, LITERAL(NumEmptyPushMessages)},
-    {NumPullMessages,      LITERAL(NumPullMessages)},
-    {NumEmptyPullMessages, LITERAL(NumEmptyPullMessages)},
+    {StatisticKey::NumPeers,             LITERAL(NumPeers)},
+    {StatisticKey::NumMessagesReceived,  LITERAL(NumMessagesReceived)},
+    {StatisticKey::Rounds,               LITERAL(Rounds)},
+    {StatisticKey::NumPushMessages,      LITERAL(NumPushMessages)},
+    {StatisticKey::NumEmptyPushMessages, LITERAL(NumEmptyPushMessages)},
+    {StatisticKey::NumPullMessages,      LITERAL(NumPullMessages)},
+    {StatisticKey::NumEmptyPullMessages, LITERAL(NumEmptyPullMessages)},
 };
 
 // PRIVATE METHODS
@@ -48,16 +48,6 @@ void RumorMember::increaseStatValue(StatisticKey key, double value)
 }
 
 // CONSTRUCTORS
-RumorMember::RumorMember()
-: m_id()
-, m_networkConfig(0)
-, m_peers()
-, m_rumors()
-, m_mutex()
-, m_nextMemberCb()
-{
-}
-
 RumorMember::RumorMember(const std::unordered_set<int>& peers, int id)
 : m_id(id)
 , m_networkConfig(peers.size())
@@ -149,24 +139,26 @@ RumorMember::receivedMessage(const Message& message, int fromPeer)
     std::lock_guard<std::mutex> guard(m_mutex); // critical section
 
     bool isNewPeer = m_peersInCurrentRound.insert(fromPeer).second;
-    increaseStatValue(NumMessagesReceived, 1);
+    increaseStatValue(StatisticKey::NumMessagesReceived, 1);
 
+    // If this is the first time 'fromPeer' sent a PUSH message in this round
+    // then respond with a PULL message for each rumor
     std::vector<Message> pullMessages;
-    if (isNewPeer && message.type() == Message::PUSH) {
+    if (isNewPeer && message.type() == Message::Type::PUSH) {
         for (auto& kv : m_rumors) {
             RumorStateMachine& stateMach = kv.second;
             if (stateMach.age() >= 0) {
-                pullMessages.emplace_back(Message(Message::PULL, kv.first, kv.second.age()));
+                pullMessages.emplace_back(Message(Message::Type::PULL, kv.first, kv.second.age()));
             }
         }
 
         // No PULL messages to sent i.e. no rumors received yet
         if (pullMessages.empty()) {
-            pullMessages.emplace_back(Message(Message::PULL, -1, 0));
-            increaseStatValue(NumEmptyPullMessages, 1);
+            pullMessages.emplace_back(Message(Message::Type::PULL, -1, 0));
+            increaseStatValue(StatisticKey::NumEmptyPullMessages, 1);
         }
         else {
-            increaseStatValue(NumPullMessages, pullMessages.size());
+            increaseStatValue(StatisticKey::NumPullMessages, pullMessages.size());
         }
     }
 
@@ -193,7 +185,7 @@ std::pair<int, std::vector<Message>> RumorMember::advanceRound()
         return {-1, std::vector<Message>()};
     }
 
-    increaseStatValue(Rounds, 1);
+    increaseStatValue(StatisticKey::Rounds, 1);
 
     int toMember = m_nextMemberCb ? m_nextMemberCb() : chooseRandomMember();
 
@@ -202,14 +194,14 @@ std::pair<int, std::vector<Message>> RumorMember::advanceRound()
     for (auto& kv : m_rumors) {
         RumorStateMachine& stateMach = kv.second;
         stateMach.advanceRound(m_peersInCurrentRound);
-        pushMessages.emplace_back(Message(Message::PUSH, kv.first, kv.second.age()));
+        pushMessages.emplace_back(Message(Message::Type::PUSH, kv.first, kv.second.age()));
     }
-    increaseStatValue(NumPushMessages, pushMessages.size());
+    increaseStatValue(StatisticKey::NumPushMessages, pushMessages.size());
 
     // No PUSH messages but still want to sent a response to peer.
     if (pushMessages.empty()) {
-        pushMessages.emplace_back(Message(Message::PUSH, -1, 0));
-        increaseStatValue(NumEmptyPushMessages, 1);
+        pushMessages.emplace_back(Message(Message::Type::PUSH, -1, 0));
+        increaseStatValue(StatisticKey::NumEmptyPushMessages, 1);
     }
 
     // Clear round state

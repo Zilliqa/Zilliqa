@@ -6,20 +6,20 @@ namespace RRS {
 
 // STATIC MEMBERS
 std::map<RumorStateMachine::State, std::string> RumorStateMachine::s_enumKeyToString = {
-    {UNKNOWN,    LITERAL(UNKNOWN)},
-    {NEW,        LITERAL(NEW)},
-    {KNOWN,      LITERAL(KNOWN)},
-    {OLD,        LITERAL(OLD)},
-    {NUM_STATES, LITERAL(NUM_STATES)}
+    {State::UNKNOWN,    LITERAL(UNKNOWN)},
+    {State::NEW,        LITERAL(NEW)},
+    {State::KNOWN,      LITERAL(KNOWN)},
+    {State::OLD,        LITERAL(OLD)},
+    {State::NUM_STATES, LITERAL(NUM_STATES)}
 };
 
 
 // PRIVATE METHODS
-void RumorStateMachine::advanceNew(const std::unordered_set<int>& membersInRound)
+void RumorStateMachine::advanceFromNew(const std::unordered_set<int> &membersInRound)
 {
     m_roundsInB++;
     if (m_age >= m_networkConfigPtr->maxRoundsTotal()) {
-        advanceOld();
+        advanceToOld();
         return;
     }
 
@@ -35,7 +35,7 @@ void RumorStateMachine::advanceNew(const std::unordered_set<int>& membersInRound
         if (theirRound < m_age) {
             numLess++;
         } else if (theirRound >= m_networkConfigPtr->maxRoundsInB()) {
-            m_state = KNOWN;
+            m_state = State::KNOWN;
         } else {
             numGreaterOrEqual++;
         }
@@ -46,24 +46,24 @@ void RumorStateMachine::advanceNew(const std::unordered_set<int>& membersInRound
     }
 
     if (m_roundsInB >= m_networkConfigPtr->maxRoundsInB()) {
-        m_state = KNOWN;
+        m_state = State::KNOWN;
     }
     m_memberRounds.clear();
 }
 
-void RumorStateMachine::advanceKnown()
+void RumorStateMachine::advanceFromKnown()
 {
     m_roundsInC++;
     if (m_age >= m_networkConfigPtr->maxRoundsTotal() ||
         m_roundsInC >= m_networkConfigPtr->maxRoundsInC()) {
-        advanceOld();
+        advanceToOld();
     }
 
 }
 
-void RumorStateMachine::advanceOld()
+void RumorStateMachine::advanceToOld()
 {
-    m_state = OLD;
+    m_state = State::OLD;
     m_memberRounds.clear();
 }
 
@@ -100,7 +100,7 @@ RumorStateMachine::RumorStateMachine(const NetworkConfig* networkConfigPtr,
 {
     // Maximum number of rounds reached
     if (theirRound > m_networkConfigPtr->maxRoundsTotal()) {
-        advanceOld();
+        advanceToOld();
         return;
     }
 
@@ -111,7 +111,7 @@ RumorStateMachine::RumorStateMachine(const NetworkConfig* networkConfigPtr,
 void RumorStateMachine::rumorReceived(int memberId, int theirRound)
 {
     // Only care about other members when the rumor is NEW
-    if (m_state == NEW) {
+    if (m_state == State::NEW) {
         if (m_memberRounds.count(memberId) > 0) {
             throw std::logic_error("Received a message from the same member within a single round");
         }
@@ -123,16 +123,16 @@ void RumorStateMachine::advanceRound(const std::unordered_set<int>& peersInCurre
 {
     m_age++;
     switch (m_state) {
-        case NEW:
-            advanceNew(peersInCurrentRound);
+        case State::NEW:
+            advanceFromNew(peersInCurrentRound);
             return;
-        case KNOWN:
-            advanceKnown();
+        case State::KNOWN:
+            advanceFromKnown();
             return;
-        case OLD:
+        case State::OLD:
             m_age++;
             return;
-        case UNKNOWN:
+        case State::UNKNOWN:
         default:
             throw std::logic_error("Unexpected state: " + s_enumKeyToString[m_state]);
     }
@@ -150,7 +150,7 @@ const int RumorStateMachine::age() const
 
 const bool RumorStateMachine::isOld() const
 {
-    return m_state == OLD;
+    return m_state == State::OLD;
 }
 
 std::ostream& operator<<(std::ostream& os, const RumorStateMachine& machine)

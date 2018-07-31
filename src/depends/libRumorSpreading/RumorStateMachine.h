@@ -14,7 +14,7 @@ namespace RRS {
 class RumorStateMachine {
   public:
     // ENUMS
-    enum State {
+    enum class State {
         UNKNOWN,   // initial state where the peer 'v' doesn't know about the rumor 'r'
         NEW,       // the peer 'v' knows 'r' and counter(v,r) = m
         KNOWN,     // cooling state, stay in this state for a 'm_maxRounds' rounds
@@ -34,11 +34,11 @@ class RumorStateMachine {
     std::unordered_map<int, int> m_memberRounds; // Member ID --> age
 
     // METHODS
-    void advanceNew(const std::unordered_set<int>& membersInRound);
+    void advanceFromNew(const std::unordered_set<int> &membersInRound);
 
-    void advanceKnown();
+    void advanceFromKnown();
 
-    void advanceOld();
+    void advanceToOld();
 
   public:
     // CONSTRUCTORS
