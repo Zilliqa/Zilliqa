@@ -223,7 +223,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
                           [[gnu::unused]] const Peer& from)
 {
     // Message = [DS block] [PoW winner IP] [Sharding structure] [Txn sharing assignments]
-    // This is the same as the PoW consensus announcement message
+    // This is the same as the DS Block consensus announcement message
 
     // For this version, only the lookup node processes Sharding structure
     // For this version, Txn sharing assignments is ignored
