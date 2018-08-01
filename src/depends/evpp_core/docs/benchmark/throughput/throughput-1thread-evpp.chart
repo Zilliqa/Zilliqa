@@ -1,0 +1,30 @@
+# The chart type , option : spline/line/bar/column/area
+ChartType = spline
+Title = Throughput 
+SubTitle = 1 thread, 100 seconds, X Axis is the connection count
+ValueSuffix = MB/s
+
+# The x Axis numbers. The count this numbers MUST be the same with the data series
+XAxisNumbers = 1, 10, 100, 1000, 10000
+
+# The y Axis text
+YAxisText = Throughput (MB/s)
+
+# The data and the name of the lines
+Data|evpp-1024   = 64.2529,188.201,198.164,167.661,105.592
+Data|evpp-2048   = 119.362,342.96,369.187,265.609,198.586
+Data|evpp-4096   = 229.274,631.611,671.219,495.566,366.071
+Data|evpp-8192   = 394.162,1079.67,1127.09,786.706,645.866
+Data|evpp-16384  = 631.047,1593.7,1662.23,1104.53,949.325
+Data|evpp-81920  = 1565.22,2079.77,1464.16,1323.09,1297.18
+Data|evpp-409600 = 1950.79,2363.68,1528.97,1290.17,1039.96
+
+Data|evpp-fixed-size-1024   = 63.6883,187.08,197.526,165.117,106.053
+Data|evpp-fixed-size-2048   = 121.263,344.689,365.014,264.316,197.626
+Data|evpp-fixed-size-4096   = 226.614,635.582,665.151,491.015,374.453
+Data|evpp-fixed-size-8192   = 393.795,1061.85,1128.93,785.937,640.106
+Data|evpp-fixed-size-16384  = 640.559,1571.12,1648.69,1107.34,939.425
+Data|evpp-fixed-size-81920  = 1170.6,2043.03,1486.63,1313.34,1323.37
+Data|evpp-fixed-size-409600 = 1852.45,2198.88,1421.41,1311.22,1232.36
+
+# evpp : v0.2.4
