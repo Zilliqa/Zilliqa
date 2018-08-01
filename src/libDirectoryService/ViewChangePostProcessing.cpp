@@ -328,8 +328,6 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
     }
     case FINALBLOCK_CONSENSUS:
     case FINALBLOCK_CONSENSUS_PREP:
-    case VIEWCHANGE_CONSENSUS:
-    case VIEWCHANGE_CONSENSUS_PREP:
     {
         DetermineShardsToSendFinalBlockTo(my_DS_cluster_num, my_shards_lo,
                                           my_shards_hi);
@@ -337,6 +335,8 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
                                 vcblock_message);
         break;
     }
+    case VIEWCHANGE_CONSENSUS:
+    case VIEWCHANGE_CONSENSUS_PREP:
     default:
         LOG_EPOCH(
             INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
