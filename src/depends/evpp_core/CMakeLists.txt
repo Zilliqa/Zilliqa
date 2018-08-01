@@ -28,7 +28,9 @@ if (UNIX)
          -w
     )
     include_directories (${PROJECT_SOURCE_DIR}
-                         ${PROJECT_SOURCE_DIR}/3rdparty)
+                         ${PROJECT_SOURCE_DIR}/3rdparty
+                         ${PROJECT_SOURCE_DIR}/../../
+                         ${G3LOG_INCLUDE_DIRS})
 else (UNIX)
 set (CXX_FLAGS -DWIN32 -D_WIN32 -EHsc)
     set(VcpkgRoot ${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET})
