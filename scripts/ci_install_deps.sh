@@ -26,6 +26,7 @@ apt-get install -y \
     libjsonrpccpp-dev \
     libminiupnpc-dev \
     libevent-dev \
+    ocl-icd-opencl-dev \
     libgoogle-glog-dev
 
 # install development dependencies

@@ -68,7 +68,6 @@ class DirectoryService : public Executable, public Broadcastable
     std::map<PubKey, uint32_t> m_publicKeyToShardIdMap;
 
     // Transaction sharing assignments
-    std::vector<unsigned char> m_txnSharingMessage;
     std::vector<Peer> m_DSReceivers;
     std::vector<std::vector<Peer>> m_shardReceivers;
     std::vector<std::vector<Peer>> m_shardSenders;
@@ -80,6 +79,7 @@ class DirectoryService : public Executable, public Broadcastable
     std::mutex m_mutexAllPoWs;
     std::map<PubKey, Peer> m_allPoWConns;
     std::mutex m_mutexAllPoWConns;
+    std::vector<unsigned char> m_PoWConsensusMessage;
 
     // Consensus variables
     std::shared_ptr<ConsensusCommon> m_consensusObject;
