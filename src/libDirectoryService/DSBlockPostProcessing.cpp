@@ -75,7 +75,7 @@ void DirectoryService::StoreDSBlockToStorage()
 bool DirectoryService::SendDSBlockToLookupNodes()
 {
     // Message = [DS block] [PoW winner IP] [Sharding structure] [Txn sharing assignments]
-    // This is the same as the PoW consensus announcement message
+    // This is the same as the DS Block consensus announcement message
 
     vector<unsigned char> dsblock_message(MessageOffset::BODY
                                           + m_PoWConsensusMessage.size());
@@ -316,8 +316,11 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
                                              << ": " << __FUNCTION__ << ")");
         }
 
-        // Update the DS block with the co-signatures from the consensus
+        // Update the DS Block with the co-signatures from the consensus
         m_pendingDSBlock->SetCoSignatures(*m_consensusObject);
+
+        // Re-serialize the DS Block part of the cached DS Block consensus announcement message so we get the updated co-signatures
+        m_pendingDSBlock->Serialize(m_PoWConsensusMessage, 0);
 
         if (m_pendingDSBlock->GetHeader().GetBlockNum()
             > m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()
