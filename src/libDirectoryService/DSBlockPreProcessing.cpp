@@ -356,6 +356,7 @@ void DirectoryService::SaveTxnBodySharingAssignment(
         if (m_DSReceivers.at(i) == m_mediator.m_selfPeer)
         {
             i_am_forwarder = true;
+            break;
         }
     }
 
