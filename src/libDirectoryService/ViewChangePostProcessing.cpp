@@ -271,6 +271,12 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
             }
         }
 
+        LOG_GENERAL(INFO, "New view of ds committee: ");
+        for (unsigned i = 0; i < m_mediator.m_DSCommittee.size(); i++)
+        {
+            LOG_GENERAL(INFO, m_mediator.m_DSCommittee.at(i).second);
+        }
+
         auto func = [this, viewChangeState]() -> void {
             ProcessNextConsensus(viewChangeState);
         };
@@ -330,7 +336,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
     case FINALBLOCK_CONSENSUS_PREP:
     {
         DetermineShardsToSendVCBlockTo(my_DS_cluster_num, my_shards_lo,
-                                          my_shards_hi);
+                                       my_shards_hi);
         SendVCBlockToShardNodes(my_DS_cluster_num, my_shards_lo, my_shards_hi,
                                 vcblock_message);
         break;
@@ -364,9 +370,6 @@ void DirectoryService::ProcessNextConsensus(unsigned char viewChangeState)
         break;
     case VIEWCHANGE_CONSENSUS:
     case VIEWCHANGE_CONSENSUS_PREP:
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Re-running view change consensus");
-        RunConsensusOnViewChange();
     default:
         LOG_EPOCH(
             INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
