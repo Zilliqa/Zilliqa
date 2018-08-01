@@ -222,11 +222,15 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
                           unsigned int cur_offset,
                           [[gnu::unused]] const Peer& from)
 {
-    // Message = [259-byte DS block] [32-byte DS block hash / rand1] [16-byte winner IP] [4-byte winner port]
+    // Message = [DS block] [PoW winner IP] [Sharding structure] [Txn sharing assignments]
+    // This is the same as the PoW consensus announcement message
+
+    // For this version, only the lookup node processes Sharding structure
+    // For this version, Txn sharing assignments is ignored
+
     LOG_MARKER();
 
 #ifndef IS_LOOKUP_NODE
-
     // Checks if (m_state == POW2_SUBMISSION)
     if (!CheckState(STARTPOW2))
     {
@@ -255,8 +259,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
         return false;
     }
 
-    // 259-byte DS block
-    // DSBlock dsblock(message, cur_offset);
+    // [DS block]
     DSBlock dsblock;
     if (dsblock.Deserialize(message, cur_offset) != 0)
     {
@@ -282,15 +285,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
         return false;
     }
 
-    // 32-byte DS block hash / rand1
-    array<unsigned char, BLOCK_HASH_SIZE> dsblockhash;
-    copy(message.begin() + cur_offset,
-         message.begin() + cur_offset + BLOCK_HASH_SIZE, dsblockhash.begin());
-    cur_offset += BLOCK_HASH_SIZE;
-
-    // To-do: Verify the hash / rand1 value (if necessary)
-
-    // 16-byte winner IP and 4-byte winner port
+    // [PoW winner IP]
     Peer newleaderIP(message, cur_offset);
     cur_offset += (IP_SIZE + PORT_SIZE);
 
@@ -308,6 +303,10 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
 #ifdef IS_LOOKUP_NODE
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I the lookup node have stored the DS Block");
+
+    // [Sharding structure]
+    m_mediator.m_lookup->ProcessEntireShardingStructure(message, cur_offset,
+                                                        from);
 #endif // IS_LOOKUP_NODE
 
     m_mediator.UpdateDSBlockRand(); // Update the rand1 value for next PoW
