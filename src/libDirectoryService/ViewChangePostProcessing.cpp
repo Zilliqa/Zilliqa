@@ -324,6 +324,7 @@ void DirectoryService::ProcessNextConsensus(unsigned char viewChangeState)
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Re-running view change consensus");
         RunConsensusOnViewChange();
+        break;
     default:
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "illegal view change state. state: " << viewChangeState);
