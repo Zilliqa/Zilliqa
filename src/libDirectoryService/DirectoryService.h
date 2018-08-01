@@ -187,9 +187,6 @@ class DirectoryService : public Executable, public Broadcastable
     bool RunConsensusOnShardingWhenDSPrimary();
     bool RunConsensusOnShardingWhenDSBackup();
 
-    // internal calls from ProcessShardingConsensus
-    bool SendEntireShardingStructureToLookupNodes();
-
     // PoW2 (sharding) consensus functions
     void RunConsensusOnSharding();
     void ComputeSharding();
@@ -201,7 +198,7 @@ class DirectoryService : public Executable, public Broadcastable
 
     // internal calls from ProcessDSBlockConsensus
     void StoreDSBlockToStorage(); // To further refactor
-    bool SendDSBlockToLookupNodes(DSBlock& lastDSBlock, Peer& winnerpeer);
+    bool SendDSBlockToLookupNodes();
     void
     DetermineNodesToSendDSBlockTo(const Peer& winnerpeer,
                                   unsigned int& my_DS_cluster_num,

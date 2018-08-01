@@ -2071,7 +2071,6 @@ bool Lookup::Execute(const vector<unsigned char>& message, unsigned int offset,
                                                unsigned int, const Peer&);
 
     InstructionHandler ins_handlers[] = {
-        &Lookup::ProcessEntireShardingStructure,
         &Lookup::ProcessGetSeedPeersFromLookup,
         &Lookup::ProcessSetSeedPeersFromLookup,
         &Lookup::ProcessGetDSInfoFromSeed,
