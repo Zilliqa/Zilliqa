@@ -41,8 +41,8 @@ void DirectoryService::DetermineShardsToSendVCBlockTo(
     unsigned int& my_DS_cluster_num, unsigned int& my_shards_lo,
     unsigned int& my_shards_hi) const
 {
-    // Multicast final block to my assigned shard's nodes - send FINALBLOCK message
-    // Message = [Final block]
+    // Multicast VC block to my assigned shard's nodes - send VCBLOCK message
+    // Message = [VC block]
 
     // Multicast assignments:
     // 1. Divide DS committee into clusters of size 20
