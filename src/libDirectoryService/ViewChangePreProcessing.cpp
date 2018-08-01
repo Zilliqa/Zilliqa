@@ -120,7 +120,7 @@ void DirectoryService::SetLastKnownGoodState()
     case VIEWCHANGE_CONSENSUS_PREP:
     case VIEWCHANGE_CONSENSUS:
     case ERROR:
-        return;
+        break;
     default:
         m_viewChangestate = (DirState)m_state;
     }
@@ -238,6 +238,18 @@ void DirectoryService::ComputeNewCandidateLeader()
 bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader()
 {
     LOG_MARKER();
+
+    // view change testing code (for failure of candidate leader)
+    /**
+    if (true && m_viewChangeCounter < 2)
+    {
+        LOG_EPOCH(
+            WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+            "I am killing/suspending myself to test recursive view change.");
+        throw Exception();
+        // return false;
+    }
+    **/
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I am the candidate leader DS node. Announcing to the rest.");
