@@ -28,9 +28,14 @@
 #include "libUtils/Logger.h"
 #include "libUtils/ThreadPool.h"
 
-typedef std::function<std::vector<Peer>(unsigned char msg_type,
-                                        unsigned char ins_type, const Peer&)>
-    broadcast_list_func;
+#if 1 //clark
+namespace evpp
+{
+    class Buffer;
+    class TCPConn;
+    typedef std::shared_ptr<TCPConn> TCPConnPtr;
+}
+#endif
 
 /// Provides network layer functionality.
 class P2PComm
@@ -97,32 +102,47 @@ public:
 
     using Dispatcher
         = std::function<void(const std::vector<unsigned char>&, const Peer&)>;
+    using Broadcast_list_func = std::function<std::vector<Peer>(
+        unsigned char msg_type, unsigned char ins_type, const Peer&)>;
 
     /// Receives incoming message and assigns to designated message dispatcher.
-    static void
-    HandleAcceptedConnection(int cli_sock, Peer from, Dispatcher dispatcher,
-                             broadcast_list_func broadcast_list_retriever);
-
+#if 1 //clark
+    static void HandleAcceptedConnection(const evpp::TCPConnPtr& conn,
+                                         evpp::Buffer* msg);
+#else
+    static void HandleAcceptedConnection(int cli_sock, Peer from);
+#endif
 private:
     using SocketCloser = std::unique_ptr<int, void (*)(int*)>;
 
-    static void HandleAcceptedConnectionNormal(int cli_sock, Peer from,
-                                               Dispatcher dispatcher,
+    static Dispatcher m_dispatcher;
+    static Broadcast_list_func m_broadcast_list_retriever;
+
+#if 1 //clark
+    static void HandleAcceptedConnectionNormal(evpp::Buffer* msg, Peer from,
                                                uint32_t message_length,
                                                SocketCloser cli_sock_closer);
 
-    static void HandleAcceptedConnectionBroadcast(
-        int cli_sock, Peer from, Dispatcher dispatcher,
-        broadcast_list_func broadcast_list_retriever, uint32_t message_length,
-        SocketCloser cli_sock_closer);
+    static void HandleAcceptedConnectionBroadcast(evpp::Buffer* msg, Peer from,
+                                                  uint32_t message_length,
+                                                  SocketCloser cli_sock_closer);
+#else
+    static void HandleAcceptedConnectionNormal(int cli_sock, Peer from,
+                                               uint32_t message_length,
+                                               SocketCloser cli_sock_closer);
 
+    static void HandleAcceptedConnectionBroadcast(int cli_sock, Peer from,
+                                                  uint32_t message_length,
+                                                  SocketCloser cli_sock_closer);
+#endif
 public:
+#if 0 //clark
     /// Accept TCP connection for libevent usage
     static void ConnectionAccept(int serv_sock, short event, void* arg);
-
+#endif
     /// Listens for incoming socket connections.
     void StartMessagePump(uint32_t listen_port_host, Dispatcher dispatcher,
-                          broadcast_list_func broadcast_list_retriever);
+                          Broadcast_list_func broadcast_list_retriever);
 
     /// Multicasts message to specified list of peers.
     void SendMessage(const std::vector<Peer>& peers,

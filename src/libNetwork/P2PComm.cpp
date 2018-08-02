@@ -33,6 +33,12 @@
 #include "libUtils/JoinableFunction.h"
 #include "libUtils/Logger.h"
 
+#if 1 //clark
+#include "evpp/buffer.h"
+#include "evpp/tcp_conn.h"
+#include "evpp/tcp_server.h"
+#endif
+
 using namespace std;
 using namespace boost::multiprecision;
 
@@ -40,6 +46,9 @@ const unsigned char START_BYTE_NORMAL = 0x11;
 const unsigned char START_BYTE_BROADCAST = 0x22;
 const unsigned int HDR_LEN = 6;
 const unsigned int HASH_LEN = 32;
+
+P2PComm::Dispatcher P2PComm::m_dispatcher;
+P2PComm::Broadcast_list_func P2PComm::m_broadcast_list_retriever;
 
 /// Comparison operator for ordering the list of message hashes.
 struct hash_compare
@@ -49,12 +58,6 @@ struct hash_compare
     {
         return equal(l.begin(), l.end(), r.begin());
     }
-};
-
-struct ConnectionData
-{
-    P2PComm::Dispatcher dispatcher;
-    broadcast_list_func broadcast_list_retriever;
 };
 
 static void close_socket(int* cli_sock)
@@ -349,9 +352,16 @@ void P2PComm::ClearBroadcastHashAsync(const vector<unsigned char>& message_hash)
 
 namespace
 {
+#if 1 //clark
+    bool readHeader(unsigned char* buf, evpp::Buffer* msg)
+#else
     bool readHeader(unsigned char* buf, int cli_sock, Peer from)
+#endif
     {
         assert(buf);
+#if 1 //clark
+        memcpy(buf, msg->NextString(HDR_LEN).c_str(), HDR_LEN);
+#else
         uint32_t read_length = 0;
 
         // Read out just the header first
@@ -369,13 +379,20 @@ namespace
             }
             read_length += n;
         }
-
+#endif
         return true;
     }
 
+#if 1 //clark
+    bool readHash(unsigned char* hash_buf, evpp::Buffer* msg)
+#else
     bool readHash(unsigned char* hash_buf, int cli_sock, Peer from)
+#endif
     {
         assert(hash_buf);
+#if 1 //clark
+        memcpy(hash_buf, msg->NextString(HASH_LEN).c_str(), HASH_LEN);
+#else
         uint32_t read_length = 0;
         while (read_length != HASH_LEN)
         {
@@ -391,14 +408,36 @@ namespace
             }
             read_length += n;
         }
+#endif
         return true;
     }
 
+#if 1 //clark
+    bool readMessage(vector<unsigned char>* message, evpp::Buffer* msg,
+                     uint32_t message_length)
+#else
     bool readMessage(vector<unsigned char>* message, int cli_sock, Peer from,
                      uint32_t message_length)
+#endif
     {
         // Read the rest of the message
         assert(message);
+#if 1 //clark
+        string read = msg->NextString(message_length);
+
+        if (read.size() != message_length)
+        {
+            LOG_GENERAL(WARNING, "Incorrect message length.");
+            return false;
+        }
+
+        message->resize(message_length);
+
+        for (size_t i = 0; i < read.size(); ++i)
+        {
+            message->at(i) = read[i];
+        }
+#else
         uint32_t read_length = 0;
         message->resize(message_length);
         while (read_length != message_length)
@@ -415,16 +454,16 @@ namespace
             }
             read_length += n;
         }
-
+#endif
         LOG_PAYLOAD(INFO, "Message received", *message,
                     Logger::MAX_BYTES_TO_DISPLAY);
-
+#if 0 //clark
         if (read_length != message_length)
         {
             LOG_GENERAL(WARNING, "Incorrect message length.");
             return false;
         }
-
+#endif
         return true;
     }
 
@@ -436,11 +475,22 @@ namespace
 
 } // anonymous namespace
 
-void P2PComm::HandleAcceptedConnection(
-    int cli_sock, Peer from, Dispatcher dispatcher,
-    broadcast_list_func broadcast_list_retriever)
+#if 1 //clark
+void P2PComm::HandleAcceptedConnection(const evpp::TCPConnPtr& conn,
+                                       evpp::Buffer* msg)
+#else
+void P2PComm::HandleAcceptedConnection(int cli_sock, Peer from)
+#endif
 {
-    //LOG_MARKER();
+//LOG_MARKER();
+#if 1 //clark
+    int cli_sock = conn->fd();
+    Peer from(
+        uint128_t(inet_addr(conn->remote_addr()
+                                .substr(0, conn->remote_addr().find(':'))
+                                .c_str())),
+        stoull(conn->remote_addr().substr(conn->remote_addr().find(':') + 1)));
+#endif
 
     LOG_GENERAL(INFO, "Incoming message from " << from);
 
@@ -463,7 +513,12 @@ void P2PComm::HandleAcceptedConnection(
     // 0x00
 
     unsigned char header[HDR_LEN] = {0};
+
+#if 1 //clark
+    if (!readHeader(header, msg))
+#else
     if (!readHeader(header, cli_sock, from))
+#endif
     {
         return;
     }
@@ -483,15 +538,23 @@ void P2PComm::HandleAcceptedConnection(
 
     if (startByte == START_BYTE_BROADCAST)
     {
-        HandleAcceptedConnectionBroadcast(
-            cli_sock, from, dispatcher, broadcast_list_retriever,
-            messageLength(header), move(cli_sock_closer));
+#if 1 //clark
+        HandleAcceptedConnectionBroadcast(msg, from, messageLength(header),
+                                          move(cli_sock_closer));
+#else
+        HandleAcceptedConnectionBroadcast(cli_sock, from, messageLength(header),
+                                          move(cli_sock_closer));
+#endif
     }
     else if (startByte == START_BYTE_NORMAL)
     {
-        HandleAcceptedConnectionNormal(cli_sock, from, dispatcher,
-                                       messageLength(header),
+#if 1 //clark
+        HandleAcceptedConnectionNormal(msg, from, messageLength(header),
                                        move(cli_sock_closer));
+#else
+        HandleAcceptedConnectionNormal(cli_sock, from, messageLength(header),
+                                       move(cli_sock_closer));
+#endif
     }
     else
     {
@@ -499,30 +562,48 @@ void P2PComm::HandleAcceptedConnection(
         LOG_GENERAL(WARNING, "Header length or type wrong.");
     }
 }
-
-void P2PComm::HandleAcceptedConnectionNormal(int cli_sock, Peer from,
-                                             Dispatcher dispatcher,
+#if 1 //clark
+void P2PComm::HandleAcceptedConnectionNormal(evpp::Buffer* msg, Peer from,
                                              uint32_t message_length,
                                              SocketCloser cli_sock_closer)
+#else
+void P2PComm::HandleAcceptedConnectionNormal(int cli_sock, Peer from,
+                                             uint32_t message_length,
+                                             SocketCloser cli_sock_closer)
+#endif
 {
     vector<unsigned char> message;
+
+#if 1 //clark
+    if (!readMessage(&message, msg, message_length))
+#else
     if (!readMessage(&message, cli_sock, from, message_length))
+#endif
     {
         return;
     }
 
     cli_sock_closer.reset(); // close socket now so it can be reused
-
-    dispatcher(message, from);
+    m_dispatcher(message, from);
 }
 
-void P2PComm::HandleAcceptedConnectionBroadcast(
-    int cli_sock, Peer from, Dispatcher dispatcher,
-    broadcast_list_func broadcast_list_retriever, uint32_t message_length,
-    SocketCloser cli_sock_closer)
+#if 1 //clark
+void P2PComm::HandleAcceptedConnectionBroadcast(evpp::Buffer* msg, Peer from,
+                                                uint32_t message_length,
+                                                SocketCloser cli_sock_closer)
+#else
+void P2PComm::HandleAcceptedConnectionBroadcast(int cli_sock, Peer from,
+                                                uint32_t message_length,
+                                                SocketCloser cli_sock_closer)
+#endif
 {
     unsigned char hash_buf[HASH_LEN];
+
+#if 1 //clark
+    if (!readHash(hash_buf, msg))
+#else
     if (!readHash(hash_buf, cli_sock, from))
+#endif
     {
         return;
     }
@@ -540,8 +621,12 @@ void P2PComm::HandleAcceptedConnectionBroadcast(
         // While we have the lock, we should quickly add the hash
         if (!found)
         {
+#if 1 //clark
+            if (!readMessage(&message, msg, message_length - HASH_LEN))
+#else
             if (!readMessage(&message, cli_sock, from,
                              message_length - HASH_LEN))
+#endif
             {
                 return;
             }
@@ -579,7 +664,8 @@ void P2PComm::HandleAcceptedConnectionBroadcast(
         ins_type = message.at(MessageOffset::INST);
     }
     vector<Peer> broadcast_list
-        = broadcast_list_retriever(msg_type, ins_type, from);
+        = m_broadcast_list_retriever(msg_type, ins_type, from);
+
     if (broadcast_list.size() > 0)
     {
         P2PComm::GetInstance().SendBroadcastMessageCore(broadcast_list, message,
@@ -596,11 +682,42 @@ void P2PComm::HandleAcceptedConnectionBroadcast(
                    << "] RECV");
 
     // Dispatch message normally
-    dispatcher(message, from);
+    m_dispatcher(message, from);
 }
 
+#if 1 //clark
+/*
+void OnMessage(const evpp::TCPConnPtr& conn, evpp::Buffer* msg)
+{
+    LOG_MARKER();
+
+    std::string s = msg->NextAllString();
+    LOG_GENERAL(INFO, "Received a message [" << s << "]");
+    conn->Send(s);
+
+    if (s == "quit" || s == "exit")
+    {
+        conn->Close();
+    }
+}
+*/
+void OnConnection(const evpp::TCPConnPtr& conn)
+{
+    LOG_MARKER();
+
+    if (conn->IsConnected())
+    {
+        LOG_GENERAL(INFO,
+                    "Accept a new connection from " << conn->remote_addr());
+    }
+    else
+    {
+        LOG_GENERAL(INFO, "Disconnected from " << conn->remote_addr());
+    }
+}
+#else
 void P2PComm::ConnectionAccept(int serv_sock, [[gnu::unused]] short event,
-                               void* arg)
+                               [[gnu::unused]] void* arg)
 {
     struct sockaddr_in cli_addr;
     socklen_t cli_len = sizeof(struct sockaddr_in);
@@ -628,14 +745,8 @@ void P2PComm::ConnectionAccept(int serv_sock, [[gnu::unused]] short event,
         //             "DEBUG: I got an incoming message from "
         // << from.GetPrintableIPAddress());
 
-        function<void(const vector<unsigned char>&, const Peer&)> dispatcher
-            = ((ConnectionData*)arg)->dispatcher;
-        broadcast_list_func broadcast_list_retriever
-            = ((ConnectionData*)arg)->broadcast_list_retriever;
-        auto func
-            = [cli_sock, from, dispatcher, broadcast_list_retriever]() -> void {
-            HandleAcceptedConnection(cli_sock, from, dispatcher,
-                                     broadcast_list_retriever);
+        auto func = [cli_sock, from]() -> void {
+            HandleAcceptedConnection(cli_sock, from);
         };
 
         P2PComm::GetInstance().m_RecvPool.AddJob(func);
@@ -645,14 +756,25 @@ void P2PComm::ConnectionAccept(int serv_sock, [[gnu::unused]] short event,
         LOG_GENERAL(WARNING, "Socket accept error" << ' ' << e.what());
     }
 }
+#endif
 
-void P2PComm::StartMessagePump(
-    uint32_t listen_port_host,
-    function<void(const vector<unsigned char>&, const Peer&)> dispatcher,
-    broadcast_list_func broadcast_list_retriever)
+void P2PComm::StartMessagePump(uint32_t listen_port_host, Dispatcher dispatcher,
+                               Broadcast_list_func broadcast_list_retriever)
 {
     LOG_MARKER();
+#if 1 //clark
+    m_dispatcher = dispatcher;
+    m_broadcast_list_retriever = broadcast_list_retriever;
 
+    std::string addr = std::string("0.0.0.0:") + to_string(listen_port_host);
+    evpp::EventLoop loop;
+    evpp::TCPServer server(&loop, addr, "ZilliqaServer", MAXMESSAGE);
+    server.SetMessageCallback(&HandleAcceptedConnection);
+    server.SetConnectionCallback(&OnConnection);
+    server.Init();
+    server.Start();
+    loop.Run();
+#else
     int serv_sock = socket(AF_INET, SOCK_STREAM, 0);
     if (serv_sock < 0)
     {
@@ -692,19 +814,17 @@ void P2PComm::StartMessagePump(
 
     struct event_base* base = event_base_new();
     struct event ev;
-    static ConnectionData* pConnData = new struct ConnectionData;
-    pConnData->dispatcher = dispatcher;
-    pConnData->broadcast_list_retriever = broadcast_list_retriever;
-    event_set(&ev, serv_sock, EV_READ | EV_PERSIST, ConnectionAccept,
-              pConnData);
+    m_dispatcher = dispatcher;
+    m_broadcast_list_retriever = broadcast_list_retriever;
+    event_set(&ev, serv_sock, EV_READ | EV_PERSIST, ConnectionAccept, nullptr);
     event_base_set(base, &ev);
     event_add(&ev, nullptr);
     event_base_dispatch(base);
 
     close(serv_sock);
-    delete pConnData;
     event_del(&ev);
     event_base_free(base);
+#endif
 }
 
 /// Send message to the peers using the threads from the pool

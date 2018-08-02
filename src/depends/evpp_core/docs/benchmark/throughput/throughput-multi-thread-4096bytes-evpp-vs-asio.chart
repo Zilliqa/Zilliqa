@@ -1,0 +1,26 @@
+# The chart type , option : spline/line/bar/column/area
+ChartType = spline
+Title = Multi-thread Throughput 
+SubTitle = 60 seconds, message size 4096 bytes, X Axis is the thread numbers, 100c means 100 sessions, 1000c means 1000 sessions.
+ValueSuffix = MB/s
+
+# The x Axis numbers. The count this numbers MUST be the same with the data series
+XAxisNumbers = 1, 2, 4, 6, 8
+
+# The y Axis text
+YAxisText = Throughput (MB/s)
+
+#Height = 600
+
+# The data and the name of the lines
+Data|evpp-100c      = 527.447, 886.546, 1500.39, 2206.41, 2099.97
+Data|evpp-1000c     = 382.304, 692.345, 1286.34, 1930.41, 1950.87
+Data|asio-100c      = 324.166, 678.729, 1177.19, 1372.17, 1426.02
+Data|asio-1000c     = 371.053, 638.697, 1093.74, 1247.36, 1225.62
+
+# evpp : v0.2.1 base on libevent 2.0.21
+# asio : from boost-1.53 , code is at here : https://github.com/chenshuo/recipes/tree/master/pingpong/asio
+
+
+
+ 
