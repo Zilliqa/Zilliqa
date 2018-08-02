@@ -64,7 +64,8 @@ enum NodeInstructionType : unsigned char
     CREATETRANSACTIONFROMLOOKUP = 0x07,
     VCBLOCK = 0x08,
     FORWARDSTATEDELTA = 0x09,
-    DOREJOIN = 0x0A
+    DOREJOIN = 0x0A,
+    FORWARDTXNBLOCK = 0x0B
 };
 
 enum LookupInstructionType : unsigned char
@@ -87,7 +88,8 @@ enum LookupInstructionType : unsigned char
     SETLOOKUPOFFLINE = 0x0F,
     SETLOOKUPONLINE = 0x10,
     GETOFFLINELOOKUPS = 0x11,
-    SETOFFLINELOOKUPS = 0x12
+    SETOFFLINELOOKUPS = 0x12,
+
 };
 
 enum TxSharingMode : unsigned char

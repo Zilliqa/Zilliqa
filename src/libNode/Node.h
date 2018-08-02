@@ -306,6 +306,8 @@ class Node : public Executable, public Broadcastable
     bool ProcessCreateTransactionFromLookup(
         const std::vector<unsigned char>& message, unsigned int offset,
         const Peer& from);
+    bool ProcessTxnPacketFromLookup(const std::vector<unsigned char>& message,
+                                    unsigned int offset, const Peer& from);
     bool ProcessForwardStateDelta(const std::vector<unsigned char>& message,
                                   unsigned int offset, const Peer& from);
     bool ProcessForwardStateDeltaCore(const std::vector<unsigned char>& message,
@@ -458,6 +460,12 @@ public:
 
     /// Recover the previous state by retrieving persistence data
     bool StartRetrieveHistory();
+
+    Address GenOneReceiver();
+    Transaction CreateValidTestingTransaction(PrivKey& fromPrivKey,
+                                              PubKey& fromPubKey,
+                                              const Address& toAddr,
+                                              uint256_t amount);
 
     //Erase m_committedTransactions for given epoch number
     void EraseCommittedTransactions(uint64_t epochNum)

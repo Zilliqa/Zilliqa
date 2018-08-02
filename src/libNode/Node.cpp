@@ -355,32 +355,6 @@ vector<Peer>
 /// Return a valid transaction from fromKeyPair to toAddr with the specified amount
 ///
 /// TODO: nonce is still no valid yet
-Transaction CreateValidTestingTransaction(PrivKey& fromPrivKey,
-                                          PubKey& fromPubKey,
-                                          const Address& toAddr,
-                                          uint256_t amount)
-{
-    unsigned int version = 0;
-    auto nonce = 0;
-
-    // LOG_GENERAL("fromPrivKey " << fromPrivKey << " / fromPubKey " << fromPubKey
-    // << " / toAddr" << toAddr);
-
-    Transaction txn(version, nonce, toAddr, make_pair(fromPrivKey, fromPubKey),
-                    amount, 1, 1, {}, {});
-
-    // std::vector<unsigned char> buf;
-    // txn.SerializeWithoutSignature(buf, 0);
-
-    // Signature sig;
-    // Schnorr::GetInstance().Sign(buf, fromPrivKey, fromPubKey, sig);
-
-    // vector<unsigned char> sigBuf;
-    // sig.Serialize(sigBuf, 0);
-    // txn.SetSignature(sigBuf);
-
-    return txn;
-}
 
 bool GetOneGoodKeyPair(PrivKey& oPrivKey, PubKey& oPubKey, uint32_t myShard,
                        uint32_t nShard)
@@ -422,22 +396,8 @@ bool GetOneGenesisAddress(Address& oAddr)
     return true;
 }
 
-std::once_flag generateReceiverOnce;
-
-Address GenOneReceiver()
-{
-    static Address receiverAddr;
-    std::call_once(generateReceiverOnce, []() {
-        auto receiver = Schnorr::GetInstance().GenKeyPair();
-        receiverAddr = Account::GetAddressFromPublicKey(receiver.second);
-        LOG_GENERAL(INFO,
-                    "Generate testing transaction receiver " << receiverAddr);
-    });
-    return receiverAddr;
-}
-
-/// generate transation from one to many random accounts
-vector<Transaction> GenTransactionBulk(PrivKey& fromPrivKey, PubKey& fromPubKey,
+    /// generate transation from one to many random accounts
+    /*vector<Transaction> GenTransactionBulk(PrivKey& fromPrivKey, PubKey& fromPubKey,
                                        size_t n)
 {
     vector<Transaction> txns;
@@ -466,7 +426,7 @@ vector<Transaction> GenTransactionBulk(PrivKey& fromPrivKey, PubKey& fromPubKey,
     }
 
     return txns;
-}
+}*/
 
 #ifndef IS_LOOKUP_NODE
 bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
@@ -594,8 +554,69 @@ bool Node::ProcessCreateTransactionFromLookup(
         return false;
     }
 
-#endif //IS_LOOKUP_NODE
+#endif //IS_LOOKUP_NOD
 
+    return true;
+}
+
+bool Node::ProcessTxnPacketFromLookup(
+    [[gnu::unused]] const vector<unsigned char>& message,
+    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
+{
+#ifndef IS_LOOKUP_NODE
+    if (!IsMessageSizeInappropriate(message.size(), offset,
+                                    2 * sizeof(uint32_t)))
+    {
+        return false;
+    }
+    unsigned int curr_offset = offset;
+    uint32_t shardId = Serializable::GetNumber<uint32_t>(message, curr_offset,
+                                                         sizeof(uint32_t));
+    curr_offset += sizeof(uint32_t);
+    uint32_t num = Serializable::GetNumber<uint32_t>(message, curr_offset,
+                                                     sizeof(uint32_t));
+    curr_offset += sizeof(uint32_t);
+
+    if (!IsMessageSizeInappropriate(message.size(), curr_offset,
+                                    Transaction::GetMinSerializedSize() * num))
+    {
+        return false;
+    }
+
+    if (shardId != m_myShardID)
+    {
+        LOG_GENERAL(WARNING, "Wrong Shard");
+        return false;
+    }
+    unsigned int txn_sent_count = 0;
+    for (unsigned int i = 0; i < num; i++)
+    {
+        Transaction tx;
+        if (tx.Deserialize(message, curr_offset) != 0)
+        {
+            LOG_GENERAL(WARNING, "Failed to deserialize");
+            return false;
+        }
+        if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(tx))
+        {
+            auto& listIdx
+                = m_createdTransactions.get<MULTI_INDEX_KEY::GAS_PRICE>();
+            listIdx.insert(tx);
+            txn_sent_count++;
+        }
+        else
+        {
+            LOG_GENERAL(WARNING, "Txn is not valid.");
+        }
+        curr_offset += tx.GetSerializedSize();
+    }
+    if (txn_sent_count > 0)
+    {
+        LOG_GENERAL(INFO, "Broadcast my txns to other shard members");
+        P2PComm::GetInstance().SendBroadcastMessage(m_myShardMembersNetworkInfo,
+                                                    message);
+    }
+#endif //IS_LOOKUP_NOD
     return true;
 }
 
@@ -838,7 +859,8 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
            &Node::ProcessCreateTransactionFromLookup,
            &Node::ProcessVCBlock,
            &Node::ProcessForwardStateDelta,
-           &Node::ProcessDoRejoin};
+           &Node::ProcessDoRejoin,
+           &Node::ProcessTxnPacketFromLookup};
 
     const unsigned char ins_byte = message.at(offset);
     const unsigned int ins_handlers_count
