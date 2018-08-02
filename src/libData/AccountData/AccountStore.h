@@ -51,6 +51,8 @@ public:
     //     const shared_ptr<unordered_map<Address, Account>>& addressToAccount);
     AccountStoreTemp(AccountStore& parent);
 
+    int DeserializeDelta(const vector<unsigned char>& src, unsigned int offset);
+
     /// Returns the Account associated with the specified address.
     Account* GetAccount(const Address& address) override;
 
@@ -85,6 +87,9 @@ public:
     unsigned int GetSerializedDelta(vector<unsigned char>& dst);
 
     int DeserializeDelta(const vector<unsigned char>& src, unsigned int offset);
+
+    int DeserializeDeltaTemp(const vector<unsigned char>& src,
+                             unsigned int offset);
 
     /// Empty the state trie, must be called explicitly otherwise will retrieve the historical data
     void Init() override;
