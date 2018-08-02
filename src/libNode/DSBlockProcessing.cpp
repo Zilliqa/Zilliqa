@@ -54,9 +54,9 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock)
     m_mediator.m_dsBlockChain.AddBlock(dsblock);
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Storing DS Block Number: "
-                  << dsblock.GetHeader().GetBlockNum()
-                  << " with Nonce: " << dsblock.GetHeader().GetNonce()
-                  << ", Difficulty: " << dsblock.GetHeader().GetDifficulty()
+                  << dsblock.GetHeader().GetBlockNum() << " with Nonce: "
+                  << dsblock.GetHeader().GetNonce() << ", Difficulty: "
+                  << to_string(dsblock.GetHeader().GetDifficulty())
                   << ", Timestamp: " << dsblock.GetHeader().GetTimestamp());
 
     // Update the rand1 value for next PoW
