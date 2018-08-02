@@ -27,6 +27,16 @@
 #include "common/Constants.h"
 #include "libUtils/Logger.h"
 #include "libUtils/ThreadPool.h"
+
+#if 1 //clark
+namespace evpp
+{
+    class Buffer;
+    class TCPConn;
+    typedef std::shared_ptr<TCPConn> TCPConnPtr;
+}
+#endif
+
 /// Provides network layer functionality.
 class P2PComm
 {
@@ -96,14 +106,27 @@ public:
         unsigned char msg_type, unsigned char ins_type, const Peer&)>;
 
     /// Receives incoming message and assigns to designated message dispatcher.
+#if 1 //clark
+    static void HandleAcceptedConnection(const evpp::TCPConnPtr& conn,
+                                         evpp::Buffer* msg);
+#else
     static void HandleAcceptedConnection(int cli_sock, Peer from);
-
+#endif
 private:
     using SocketCloser = std::unique_ptr<int, void (*)(int*)>;
 
     static Dispatcher m_dispatcher;
     static Broadcast_list_func m_broadcast_list_retriever;
 
+#if 1 //clark
+    static void HandleAcceptedConnectionNormal(evpp::Buffer* msg, Peer from,
+                                               uint32_t message_length,
+                                               SocketCloser cli_sock_closer);
+
+    static void HandleAcceptedConnectionBroadcast(evpp::Buffer* msg, Peer from,
+                                                  uint32_t message_length,
+                                                  SocketCloser cli_sock_closer);
+#else
     static void HandleAcceptedConnectionNormal(int cli_sock, Peer from,
                                                uint32_t message_length,
                                                SocketCloser cli_sock_closer);
@@ -111,11 +134,12 @@ private:
     static void HandleAcceptedConnectionBroadcast(int cli_sock, Peer from,
                                                   uint32_t message_length,
                                                   SocketCloser cli_sock_closer);
-
+#endif
 public:
+#if 0 //clark
     /// Accept TCP connection for libevent usage
     static void ConnectionAccept(int serv_sock, short event, void* arg);
-
+#endif
     /// Listens for incoming socket connections.
     void StartMessagePump(uint32_t listen_port_host, Dispatcher dispatcher,
                           Broadcast_list_func broadcast_list_retriever);
