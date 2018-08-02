@@ -1325,12 +1325,8 @@ bool Node::ProcessForwardStateDelta(const vector<unsigned char>& message,
     if (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
         < latestForwardBlockNum)
     {
-        vector<unsigned char> deltaMsg;
-        copy(message.begin() + cur_offset, message.end(),
-             back_inserter(deltaMsg));
-
         lock_guard<mutex> g(m_mutexForwardedDeltaBuffer);
-        m_forwardedDeltaBuffer[latestForwardBlockNum].push_back(deltaMsg);
+        m_forwardedDeltaBuffer[latestForwardBlockNum].push_back(message);
 
         return true;
     }
