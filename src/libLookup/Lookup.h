@@ -29,6 +29,7 @@
 #include "common/Broadcastable.h"
 #include "common/Executable.h"
 #include "libCrypto/Schnorr.h"
+#include "libData/AccountData/Transaction.h"
 #include "libNetwork/Peer.h"
 #include "libUtils/Logger.h"
 
@@ -123,6 +124,13 @@ public:
 
     // Getter for m_lookupNodes
     std::vector<Peer> GetLookupNodes();
+
+    //Gen n valid txns
+    uint32_t GenTxnToSend(size_t n, std::vector<Transaction>&);
+
+    uint32_t CreateTxnPacket(size_t n, std::vector<unsigned char>& msg);
+
+    void SendTxnPacketToNodes();
 
     // Calls P2PComm::SendBroadcastMessage to Lookup Nodes
     void

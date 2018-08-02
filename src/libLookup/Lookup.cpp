@@ -96,6 +96,135 @@ void Lookup::SetLookupNodes()
     }
 }
 
+std::once_flag generateReceiverOnce;
+
+Address GenOneReceiver()
+{
+    static Address receiverAddr;
+    std::call_once(generateReceiverOnce, []() {
+        auto receiver = Schnorr::GetInstance().GenKeyPair();
+        receiverAddr = Account::GetAddressFromPublicKey(receiver.second);
+        LOG_GENERAL(INFO,
+                    "Generate testing transaction receiver " << receiverAddr);
+    });
+    return receiverAddr;
+}
+
+Transaction CreateValidTestingTransaction(PrivKey& fromPrivKey,
+                                          PubKey& fromPubKey,
+                                          const Address& toAddr,
+                                          uint256_t amount)
+{
+    unsigned int version = 0;
+    auto nonce = 0;
+
+    // LOG_GENERAL("fromPrivKey " << fromPrivKey << " / fromPubKey " << fromPubKey
+    // << " / toAddr" << toAddr);
+
+    Transaction txn(version, nonce, toAddr, make_pair(fromPrivKey, fromPubKey),
+                    amount, 1, 1, {}, {});
+
+    // std::vector<unsigned char> buf;
+    // txn.SerializeWithoutSignature(buf, 0);
+
+    // Signature sig;
+    // Schnorr::GetInstance().Sign(buf, fromPrivKey, fromPubKey, sig);
+
+    // vector<unsigned char> sigBuf;
+    // sig.Serialize(sigBuf, 0);
+    // txn.SetSignature(sigBuf);
+
+    return txn;
+}
+
+uint32_t Lookup::GenTxnToSend(size_t n, vector<Transaction>& vec)
+{
+    vector<Transaction> txns;
+
+    auto receiverAddr = GenOneReceiver();
+    auto testKeyPair = Schnorr::GetInstance().GenKeyPair();
+
+    txns.reserve(n);
+    for (auto i = 0u; i != n; i++)
+    {
+
+        auto txn = CreateValidTestingTransaction(
+            testKeyPair.first, testKeyPair.second, receiverAddr, i);
+        txns.emplace_back(txn);
+    }
+    unsigned int num_shards = m_shards.size();
+    uint32_t shard;
+    if (num_shards > 0)
+    {
+        const Address fromAddr
+            = Account::GetAddressFromPublicKey(testKeyPair.second);
+        shard = Transaction::GetShardIndex(fromAddr, num_shards);
+
+        copy(txns.begin(), txns.end(), back_inserter(vec));
+    }
+    else
+    {
+        shard = uint32_t() - 1;
+    }
+
+    return shard;
+}
+
+uint32_t Lookup::CreateTxnPacket(size_t n, vector<unsigned char>& msg)
+{
+    //[shard_id][numTxns][txn1][txn2]...
+    //Clears msg
+    vector<Transaction> vec;
+    vec.clear();
+    msg.clear();
+    uint32_t shardId = GenTxnToSend(n, vec);
+    if (shardId == uint32_t() - 1)
+    {
+        return shardId;
+    }
+    unsigned int curr_offset = 0;
+    Serializable::SetNumber<uint32_t>(msg, curr_offset, shardId,
+                                      sizeof(uint32_t));
+    curr_offset += sizeof(uint32_t);
+    uint32_t num = static_cast<uint32_t>(n);
+    Serializable::SetNumber<uint32_t>(msg, curr_offset, num, sizeof(uint32_t));
+    curr_offset += sizeof(uint32_t);
+
+    for (uint32_t i = 0; i < num; i++)
+    {
+        curr_offset += vec[i].Serialize(msg, curr_offset);
+    }
+
+    return shardId;
+}
+
+void Lookup::SendTxnPacketToNodes()
+{
+    vector<unsigned char> vec;
+    uint32_t shardId = CreateTxnPacket(10000, vec);
+
+    if (shardId == uint32_t() - 1)
+    {
+        LOG_GENERAL(WARNING, "No Shards Yet");
+        return;
+    }
+
+    vector<unsigned char> msg
+        = {MessageType::NODE, NodeInstructionType::FORWARDTXNBLOCK};
+
+    copy(vec.begin(), vec.end(), back_inserter(msg));
+
+    auto it = m_shards.at(shardId).begin();
+    vector<Peer> toSend;
+    for (unsigned int i = 0; i < 5 && it != m_shards.at(shardId).end();
+         i++, it++)
+    {
+        toSend.emplace_back(it->second);
+    }
+
+    P2PComm::GetInstance().SendMessage(toSend, msg);
+}
+
 vector<Peer> Lookup::GetLookupNodes()
 {
     LOG_MARKER();
