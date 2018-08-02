@@ -72,25 +72,17 @@ void DirectoryService::StoreDSBlockToStorage()
         DataConversion::StringToCharArray(to_string(m_latestActiveDSBlockNum)));
 }
 
-bool DirectoryService::SendDSBlockToLookupNodes(DSBlock& lastDSBlock,
-                                                Peer& winnerpeer)
+bool DirectoryService::SendDSBlockToLookupNodes()
 {
-    vector<unsigned char> dsblock_message
-        = {MessageType::NODE, NodeInstructionType::DSBLOCK};
-    unsigned int curr_offset = MessageOffset::BODY;
+    // Message = [DS block] [PoW winner IP] [Sharding structure] [Txn sharing assignments]
+    // This is the same as the DS Block consensus announcement message
 
-    // 259-byte DS block
-    lastDSBlock.Serialize(dsblock_message, MessageOffset::BODY);
-    curr_offset += lastDSBlock.GetSerializedSize();
-
-    // 32-byte DS block hash / rand1
-    dsblock_message.resize(dsblock_message.size() + BLOCK_HASH_SIZE);
-    copy(m_mediator.m_dsBlockRand.begin(), m_mediator.m_dsBlockRand.end(),
-         dsblock_message.begin() + curr_offset);
-    curr_offset += BLOCK_HASH_SIZE;
-
-    // 16-byte winner IP and 4-byte winner port
-    winnerpeer.Serialize(dsblock_message, curr_offset);
+    vector<unsigned char> dsblock_message(MessageOffset::BODY
+                                          + m_PoWConsensusMessage.size());
+    dsblock_message.at(MessageOffset::TYPE) = MessageType::NODE;
+    dsblock_message.at(MessageOffset::INST) = NodeInstructionType::DSBLOCK;
+    copy(m_PoWConsensusMessage.begin(), m_PoWConsensusMessage.end(),
+         dsblock_message.begin() + MessageOffset::BODY);
 
     m_mediator.m_lookup->SendMessageToLookupNodes(dsblock_message);
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -324,8 +316,11 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
                                              << ": " << __FUNCTION__ << ")");
         }
 
-        // Update the DS block with the co-signatures from the consensus
+        // Update the DS Block with the co-signatures from the consensus
         m_pendingDSBlock->SetCoSignatures(*m_consensusObject);
+
+        // Re-serialize the DS Block part of the cached DS Block consensus announcement message so we get the updated co-signatures
+        m_pendingDSBlock->Serialize(m_PoWConsensusMessage, 0);
 
         if (m_pendingDSBlock->GetHeader().GetBlockNum()
             > m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()
@@ -362,7 +357,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "I the DS folks that will soon be sending the DSBlock to the "
                   "lookup nodes");
-        SendDSBlockToLookupNodes(lastDSBlock, winnerpeer);
+        SendDSBlockToLookupNodes();
     }
 
     unsigned int my_DS_cluster_num, my_pownodes_cluster_lo,
