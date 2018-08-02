@@ -26,8 +26,7 @@ apt-get install -y \
     libjsonrpccpp-dev \
     libminiupnpc-dev \
     libevent-dev \
-    ocl-icd-opencl-dev \
-    libgoogle-glog-dev
+    ocl-icd-opencl-dev
 
 # install development dependencies
 apt-get install -y \
@@ -52,7 +51,6 @@ brew install \
     libjson-rpc-cpp \
     miniupnpc \
     libevent \
-    glog \
 
 # install developement deps
 brew install \
