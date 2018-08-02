@@ -251,6 +251,9 @@ class DirectoryService : public Executable, public Broadcastable
         std::vector<bool>& isMicroBlockEmpty, uint32_t& numMicroBlocks) const;
     bool VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
                                      uint32_t shardId);
+    bool ProcessStateDelta(const vector<unsigned char>& message,
+                           unsigned int cur_offset,
+                           const StateHash& microBlockStateDeltaHash);
 
     // FinalBlockValidator functions
     bool CheckFinalBlockValidity();
@@ -263,6 +266,7 @@ class DirectoryService : public Executable, public Broadcastable
     bool CheckMicroBlockHashRoot();
     bool CheckIsMicroBlockEmpty();
     bool CheckStateRoot();
+    bool CheckStateDeltaHash();
     void LoadUnavailableMicroBlocks();
     void SaveTxnBodySharingAssignment(
         const vector<unsigned char>& sharding_structure,
