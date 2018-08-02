@@ -1437,7 +1437,8 @@ void Node::CommitForwardedMsgBuffer()
             {
                 for (const auto& msg : it->second)
                 {
-                    ProcessForwardTransactionCore(msg, 0);
+                    ProcessForwardTransactionCore(
+                        msg, MessageOffset::BODY + sizeof(uint64_t));
                 }
                 m_forwardedTxnBuffer.erase(it);
                 break;
