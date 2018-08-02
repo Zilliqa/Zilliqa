@@ -947,7 +947,6 @@ bool Node::CleanVariables()
     m_myShardMembersNetworkInfo.clear();
     m_isPrimary = false;
     m_isMBSender = false;
-    m_tempStateDeltaCommitted = true;
     m_myShardID = 0;
 
     {
@@ -983,20 +982,8 @@ bool Node::CleanVariables()
         m_committedTransactions.clear();
     }
     {
-        std::lock_guard<mutex> lock(m_mutexForwardingAssignment);
-        m_forwardingAssignment.clear();
-    }
-    {
-        std::lock_guard<mutex> lock(m_mutexAllMicroBlocksRecvd);
-        m_allMicroBlocksRecvd = true;
-    }
-    {
         std::lock_guard<mutex> lock(m_mutexUnavailableMicroBlocks);
         m_unavailableMicroBlocks.clear();
-    }
-    {
-        std::lock_guard<mutex> lock(m_mutexTempCommitted);
-        m_tempStateDeltaCommitted = true;
     }
     // On Lookup
     {
@@ -1120,7 +1107,6 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
            &Node::ProcessForwardTransaction,
            &Node::ProcessCreateTransactionFromLookup,
            &Node::ProcessVCBlock,
-           &Node::ProcessForwardStateDelta,
            &Node::ProcessDoRejoin};
 
     const unsigned char ins_byte = message.at(offset);
