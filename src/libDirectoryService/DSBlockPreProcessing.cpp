@@ -435,9 +435,6 @@ bool DirectoryService::DSBlockValidator(
                               winnerPeer);
     }
 
-    m_shards.clear();
-    m_publicKeyToShardIdMap.clear();
-
     // [Sharding structure]
     curr_offset = PopulateShardingStructure(message, curr_offset);
 
@@ -486,6 +483,9 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup()
 unsigned int DirectoryService::PopulateShardingStructure(
     const vector<unsigned char>& message, unsigned int offset)
 {
+    m_shards.clear();
+    m_publicKeyToShardIdMap.clear();
+
     offset = ShardingStructure::Deserialize(message, offset, m_shards);
 
     for (unsigned int i = 0; i < m_shards.size(); i++)
