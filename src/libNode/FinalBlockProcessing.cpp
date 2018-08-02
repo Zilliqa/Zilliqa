@@ -1215,12 +1215,8 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
     if (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
         < latestForwardBlockNum)
     {
-        vector<unsigned char> txnMsg;
-        copy(message.begin() + cur_offset, message.end(),
-             back_inserter(txnMsg));
-
         lock_guard<mutex> g(m_mutexForwardedTxnBuffer);
-        m_forwardedTxnBuffer[latestForwardBlockNum].push_back(txnMsg);
+        m_forwardedTxnBuffer[latestForwardBlockNum].push_back(message);
 
         return true;
     }
@@ -1472,7 +1468,8 @@ void Node::CommitForwardedMsgBuffer()
             {
                 for (const auto& msg : it->second)
                 {
-                    ProcessForwardStateDeltaCore(msg, 0);
+                    ProcessForwardStateDeltaCore(
+                        msg, MessageOffset::BODY + sizeof(uint64_t));
                 }
                 m_forwardedDeltaBuffer.erase(it);
                 break;
