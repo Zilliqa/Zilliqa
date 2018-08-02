@@ -1,3 +1,3 @@
 add_library (Network Peer.cpp PeerStore.cpp PeerManager.cpp P2PComm.cpp Whitelist.cpp)
 target_include_directories (Network PUBLIC ${PROJECT_SOURCE_DIR}/src ${PROJECT_SOURCE_DIR}/src/depends/evpp_core)
-target_link_libraries (Network PUBLIC Crypto Constants event glog evpp)
+target_link_libraries (Network PUBLIC Crypto Constants event evpp)
