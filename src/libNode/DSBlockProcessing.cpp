@@ -343,6 +343,8 @@ void Node::StartNewTxEpoch()
 {
     LOG_MARKER();
 
+    SetState(TX_SUBMISSION);
+
     // Check if I am the leader or backup of the shard
     if (m_mediator.m_selfKey.second == m_myShardMembersPubKeys.front())
     {
