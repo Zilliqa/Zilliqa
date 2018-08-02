@@ -902,8 +902,15 @@ void Node::SubmitTransactions()
     if (txn_sent_count > 0)
     {
         LOG_GENERAL(INFO, "Broadcast my txns to other shard members");
-        P2PComm::GetInstance().SendMessage(m_myShardMembersNetworkInfo,
-                                           m_txMessage);
+        deque<Peer> peers;
+
+        for (auto it = m_myShardMembers.begin(); it != m_myShardMembers.end();
+             ++it)
+        {
+            peers.emplace_back(it->second);
+        }
+
+        P2PComm::GetInstance().SendMessage(peers, m_txMessage);
     }
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -943,8 +950,7 @@ void Node::ResetRejoinFlags()
 bool Node::CleanVariables()
 {
     AccountStore::GetInstance().InitSoft();
-    m_myShardMembersPubKeys.clear();
-    m_myShardMembersNetworkInfo.clear();
+    m_myShardMembers.clear();
     m_isPrimary = false;
     m_isMBSender = false;
     m_tempStateDeltaCommitted = true;
