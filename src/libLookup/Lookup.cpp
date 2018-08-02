@@ -137,92 +137,117 @@ Transaction CreateValidTestingTransaction(PrivKey& fromPrivKey,
     return txn;
 }
 
-uint32_t Lookup::GenTxnToSend(size_t n, vector<Transaction>& vec)
+bool Lookup::GenTxnToSend(size_t n, map<uint32_t, vector<Transaction>>& mp,
+                          uint32_t nShard)
 {
     vector<Transaction> txns;
 
-    auto receiverAddr = GenOneReceiver();
-    auto testKeyPair = Schnorr::GetInstance().GenKeyPair();
-
-    txns.reserve(n);
-    for (auto i = 0u; i != n; i++)
+    for (auto& privKeyHexStr : GENESIS_KEYS)
     {
+        auto privKeyBytes{DataConversion::HexStrToUint8Vec(privKeyHexStr)};
+        auto privKey = PrivKey{privKeyBytes, 0};
+        auto pubKey = PubKey{privKey};
+        auto addr = Account::GetAddressFromPublicKey(pubKey);
 
-        auto txn = CreateValidTestingTransaction(
-            testKeyPair.first, testKeyPair.second, receiverAddr, i);
-        txns.emplace_back(txn);
-    }
-    unsigned int num_shards = m_shards.size();
-    uint32_t shard;
-    if (num_shards > 0)
-    {
-        const Address fromAddr
-            = Account::GetAddressFromPublicKey(testKeyPair.second);
-        shard = Transaction::GetShardIndex(fromAddr, num_shards);
+        if (nShard == 0)
+        {
+            return false;
+        }
+        auto txnShard = Transaction::GetShardIndex(addr, nShard);
 
-        copy(txns.begin(), txns.end(), back_inserter(vec));
-    }
-    else
-    {
-        shard = uint32_t() - 1;
+        txns.clear();
+
+        Address receiverAddr = GenOneReceiver();
+
+        txns.reserve(n);
+        for (auto i = 0u; i != n; i++)
+        {
+
+            auto txn = CreateValidTestingTransaction(privKey, pubKey,
+                                                     receiverAddr, i);
+            txns.emplace_back(txn);
+        }
+
+        copy(txns.begin(), txns.end(), back_inserter(mp[txnShard]));
     }
 
-    return shard;
+    return true;
 }
 
-uint32_t Lookup::CreateTxnPacket(size_t n, vector<unsigned char>& msg)
+bool Lookup::CreateTxnPacket(vector<unsigned char>& msg, uint32_t shardId,
+                             uint32_t nShard)
 {
     //[shard_id][numTxns][txn1][txn2]...
     //Clears msg
-    vector<Transaction> vec;
-    vec.clear();
+
+    map<uint32_t, vector<Transaction>> mp;
+    mp.clear();
     msg.clear();
-    uint32_t shardId = GenTxnToSend(n, vec);
-    if (shardId == uint32_t() - 1)
+    if (!GenTxnToSend(5000, mp, nShard))
     {
-        return shardId;
+        return false;
     }
+    unsigned int size_dummy = mp[shardId].size();
     unsigned int curr_offset = 0;
-    Serializable::SetNumber<uint32_t>(msg, curr_offset, shardId,
-                                      sizeof(uint32_t));
-    curr_offset += sizeof(uint32_t);
-    uint32_t num = static_cast<uint32_t>(n);
-    Serializable::SetNumber<uint32_t>(msg, curr_offset, num, sizeof(uint32_t));
-    curr_offset += sizeof(uint32_t);
-
-    for (uint32_t i = 0; i < num; i++)
+    lock_guard<mutex> g(m_txnShardMapMutex);
     {
-        curr_offset += vec[i].Serialize(msg, curr_offset);
+        unsigned int size_already = m_txnShardMap.at(shardId).size();
+        Serializable::SetNumber<uint32_t>(msg, curr_offset, shardId,
+                                          sizeof(uint32_t));
+        curr_offset += sizeof(uint32_t);
+        uint32_t num = size_already + size_dummy;
+        Serializable::SetNumber<uint32_t>(msg, curr_offset, num,
+                                          sizeof(uint32_t));
+        LOG_GENERAL(INFO, "Generated " << num << " txns for shard " << shardId);
+        curr_offset += sizeof(uint32_t);
+
+        for (uint32_t i = 0; i < size_already; i++)
+        {
+            curr_offset
+                += m_txnShardMap.at(shardId)[i].Serialize(msg, curr_offset);
+        }
     }
 
-    return shardId;
+    for (uint32_t i = 0; i < size_dummy; i++)
+    {
+        curr_offset += mp.at(shardId)[i].Serialize(msg, curr_offset);
+    }
+
+    return true;
 }
 
 void Lookup::SendTxnPacketToNodes()
 {
     vector<unsigned char> vec;
-    uint32_t shardId = CreateTxnPacket(10000, vec);
 
-    if (shardId == uint32_t() - 1)
+    uint32_t nShard = m_shards.size();
+
+    for (unsigned int i = 0; i < nShard; i++)
     {
-        LOG_GENERAL(WARNING, "No Shards Yet");
-        return;
+        if (!CreateTxnPacket(vec, i, nShard))
+        {
+            LOG_GENERAL(WARNING, "Cannot create packet for " << i << " shard");
+            continue;
+        }
+
+        vector<unsigned char> msg
+            = {MessageType::NODE, NodeInstructionType::FORWARDTXNBLOCK};
+
+        copy(vec.begin(), vec.end(), back_inserter(msg));
+
+        auto it = m_shards.at(i).begin();
+        vector<Peer> toSend;
+        for (unsigned int i = 0; i < 5 && it != m_shards.at(i).end(); i++, it++)
+        {
+            toSend.emplace_back(it->second);
+        }
+
+        P2PComm::GetInstance().SendMessage(toSend, msg);
+
+        LOG_GENERAL(INFO, "Packet disposed off to " << i << " shard");
+
+        DeleteTxnShardMap(i);
     }
-
-    vector<unsigned char> msg
-        = {MessageType::NODE, NodeInstructionType::FORWARDTXNBLOCK};
-
-    copy(vec.begin(), vec.end(), back_inserter(msg));
-
-    auto it = m_shards.at(shardId).begin();
-    vector<Peer> toSend;
-    for (unsigned int i = 0; i < 5 && it != m_shards.at(shardId).end();
-         i++, it++)
-    {
-        toSend.emplace_back(it->second);
-    }
-
-    P2PComm::GetInstance().SendMessage(toSend, msg);
 }
 
 vector<Peer> Lookup::GetLookupNodes()
@@ -2315,3 +2340,42 @@ bool Lookup::AlreadyJoinedNetwork()
         return false;
     }
 }
+
+#ifdef IS_LOOKUP_NODE
+
+bool Lookup::AddToTxnShardMap(const Transaction& tx, uint32_t shardId)
+{
+    lock_guard<mutex> g(m_txnShardMapMutex);
+
+    m_txnShardMap[shardId].push_back(tx);
+
+    return true;
+}
+
+bool Lookup::DeleteTxnShardMap(uint32_t shardId)
+{
+    lock_guard<mutex> g(m_txnShardMapMutex);
+
+    m_txnShardMap[shardId].clear();
+
+    return true;
+}
+
+void Lookup::SenderTxnBatchThread()
+{
+    auto main_func = [this]() mutable -> void {
+
+        while (true)
+        {
+            if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0)
+            {
+                SendTxnPacketToNodes();
+            }
+
+            this_thread::sleep_for(chrono::milliseconds(10000));
+        }
+    };
+    DetachedFunction(1, main_func);
+}
+
+#endif //IS_LOOKUP_NODE
