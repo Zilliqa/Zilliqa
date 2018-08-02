@@ -102,13 +102,15 @@ string Server::CreateTransaction(const Json::Value& _json)
 
         const PubKey& senderPubKey = tx.GetSenderPubKey();
         const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
-        unsigned int curr_offset = 0;
+        //unsigned int curr_offset = 0;
 
         if (num_shards > 0)
         {
             unsigned int shard
                 = Transaction::GetShardIndex(fromAddr, num_shards);
-            map<PubKey, Peer> shardMembers
+
+            m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
+            /*map<PubKey, Peer> shardMembers
                 = m_mediator.m_lookup->GetShardPeers().at(shard);
             LOG_GENERAL(INFO, "The Tx Belongs to " << shard << " Shard");
 
@@ -121,7 +123,7 @@ string Server::CreateTransaction(const Json::Value& _json)
 
             LOG_GENERAL(INFO, "Tx Serialized");
 
-            vector<Peer> toSend;
+            (vector<Peer> toSend;
 
             auto it = shardMembers.begin();
             for (unsigned int i = 0; i < 1 && it != shardMembers.end();
@@ -130,7 +132,7 @@ string Server::CreateTransaction(const Json::Value& _json)
                 toSend.emplace_back(it->second);
             }
 
-            P2PComm::GetInstance().SendMessage(toSend, tx_message);
+            P2PComm::GetInstance().SendMessage(toSend, tx_message);*/
         }
         else
         {

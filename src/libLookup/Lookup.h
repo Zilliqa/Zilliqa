@@ -71,9 +71,9 @@ class Lookup : public Executable, public Broadcastable
     std::vector<std::map<PubKey, Peer>> m_shards;
     std::vector<Peer> m_nodesInNetwork;
     std::unordered_set<Peer> l_nodesInNetwork;
-
+    std::map<uint32_t, std::vector<Transaction>> m_txnShardMap;
     std::mutex m_mutexOfflineLookups;
-
+    std::mutex m_txnShardMapMutex;
     // Rsync the lost txBodies from remote lookup nodes if this lookup are doing its recovery
     Peer GetLookupPeerToRsync();
 
@@ -126,9 +126,12 @@ public:
     std::vector<Peer> GetLookupNodes();
 
     //Gen n valid txns
-    uint32_t GenTxnToSend(size_t n, std::vector<Transaction>&);
+    bool GenTxnToSend(size_t n,
+                      std::map<uint32_t, std::vector<Transaction>>& mp,
+                      uint32_t nShard);
 
-    uint32_t CreateTxnPacket(size_t n, std::vector<unsigned char>& msg);
+    bool CreateTxnPacket(std::vector<unsigned char>& msg, uint32_t shardId,
+                         uint32_t nShard);
 
     void SendTxnPacketToNodes();
 
@@ -178,6 +181,13 @@ public:
 
     // Rejoin the network as a lookup node in case of failure happens in protocol
     void RejoinAsLookup();
+
+    bool AddToTxnShardMap(const Transaction& tx, uint32_t shardID);
+
+    bool DeleteTxnShardMap(uint32_t shardId);
+
+    void SenderTxnBatchThread();
+
 #endif // IS_LOOKUP_NODE
 
     bool
