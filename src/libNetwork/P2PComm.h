@@ -27,11 +27,6 @@
 #include "common/Constants.h"
 #include "libUtils/Logger.h"
 #include "libUtils/ThreadPool.h"
-
-typedef std::function<std::vector<Peer>(unsigned char msg_type,
-                                        unsigned char ins_type, const Peer&)>
-    broadcast_list_func;
-
 /// Provides network layer functionality.
 class P2PComm
 {
@@ -97,24 +92,25 @@ public:
 
     using Dispatcher
         = std::function<void(const std::vector<unsigned char>&, const Peer&)>;
+    using Broadcast_list_func = std::function<std::vector<Peer>(
+        unsigned char msg_type, unsigned char ins_type, const Peer&)>;
 
     /// Receives incoming message and assigns to designated message dispatcher.
-    static void
-    HandleAcceptedConnection(int cli_sock, Peer from, Dispatcher dispatcher,
-                             broadcast_list_func broadcast_list_retriever);
+    static void HandleAcceptedConnection(int cli_sock, Peer from);
 
 private:
     using SocketCloser = std::unique_ptr<int, void (*)(int*)>;
 
+    static Dispatcher m_dispatcher;
+    static Broadcast_list_func m_broadcast_list_retriever;
+
     static void HandleAcceptedConnectionNormal(int cli_sock, Peer from,
-                                               Dispatcher dispatcher,
                                                uint32_t message_length,
                                                SocketCloser cli_sock_closer);
 
-    static void HandleAcceptedConnectionBroadcast(
-        int cli_sock, Peer from, Dispatcher dispatcher,
-        broadcast_list_func broadcast_list_retriever, uint32_t message_length,
-        SocketCloser cli_sock_closer);
+    static void HandleAcceptedConnectionBroadcast(int cli_sock, Peer from,
+                                                  uint32_t message_length,
+                                                  SocketCloser cli_sock_closer);
 
 public:
     /// Accept TCP connection for libevent usage
@@ -122,7 +118,7 @@ public:
 
     /// Listens for incoming socket connections.
     void StartMessagePump(uint32_t listen_port_host, Dispatcher dispatcher,
-                          broadcast_list_func broadcast_list_retriever);
+                          Broadcast_list_func broadcast_list_retriever);
 
     /// Multicasts message to specified list of peers.
     void SendMessage(const std::vector<Peer>& peers,
