@@ -187,13 +187,10 @@ class DirectoryService : public Executable, public Broadcastable
     bool RunConsensusOnShardingWhenDSPrimary();
     bool RunConsensusOnShardingWhenDSBackup();
 
-    // internal calls from ProcessShardingConsensus
-    bool SendEntireShardingStructureToLookupNodes();
-
     // PoW2 (sharding) consensus functions
     void RunConsensusOnSharding();
     void ComputeSharding();
-    void ComputeTxnSharingAssignments();
+    void ComputeTxnSharingAssignments(const Peer& winnerpeer);
 
     // internal calls from RunConsensusOnDSBlock
     bool RunConsensusOnDSBlockWhenDSPrimary();
@@ -201,15 +198,13 @@ class DirectoryService : public Executable, public Broadcastable
 
     // internal calls from ProcessDSBlockConsensus
     void StoreDSBlockToStorage(); // To further refactor
-    bool SendDSBlockToLookupNodes(DSBlock& lastDSBlock, Peer& winnerpeer);
-    void
-    DetermineNodesToSendDSBlockTo(const Peer& winnerpeer,
-                                  unsigned int& my_DS_cluster_num,
-                                  unsigned int& my_pownodes_cluster_lo,
-                                  unsigned int& my_pownodes_cluster_hi) const;
-    void SendDSBlockToCluster(const Peer& winnerpeer,
-                              unsigned int my_pownodes_cluster_lo,
-                              unsigned int my_pownodes_cluster_hi);
+    void SendDSBlockToLookupNodes();
+    void SendDSBlockToNewDSLeader(const Peer& winnerpeer);
+    void SetupMulticastConfigForDSBlock(unsigned int& my_DS_cluster_num,
+                                        unsigned int& my_shards_lo,
+                                        unsigned int& my_shards_hi) const;
+    void SendDSBlockToShardNodes(unsigned int my_shards_lo,
+                                 unsigned int my_shards_hi);
     void UpdateMyDSModeAndConsensusId();
     void UpdateDSCommiteeComposition(const Peer& winnerpeer); //TODO: Refactor
 
@@ -268,9 +263,7 @@ class DirectoryService : public Executable, public Broadcastable
     bool CheckStateRoot();
     bool CheckStateDeltaHash();
     void LoadUnavailableMicroBlocks();
-    void SaveTxnBodySharingAssignment(
-        const vector<unsigned char>& sharding_structure,
-        unsigned int curr_offset);
+
     // Redundant code
     // bool WaitForTxnBodies();
 
@@ -395,6 +388,18 @@ public:
 
     /// Notify POW2 submission to DirectoryService::ProcessPoW2Submission()
     void NotifyPOW2Submission() { cv_POW2Submission.notify_all(); }
+
+    /// Used by PoW winner to configure sharding variables as the next DS leader
+    unsigned int PopulateShardingStructure(const vector<unsigned char>& message,
+                                           unsigned int offset);
+
+    /// Used by PoW winner to configure txn sharing assignment variables as the next DS leader
+    void SaveTxnBodySharingAssignment(
+        const vector<unsigned char>& sharding_structure,
+        unsigned int curr_offset);
+
+    /// Used by PoW winner to finish setup as the next DS leader
+    void StartNewTxEpoch();
 
 private:
     static std::map<DirState, std::string> DirStateStrings;

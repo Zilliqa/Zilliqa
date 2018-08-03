@@ -355,7 +355,7 @@ void Node::BroadcastTransactionsToLookup()
 {
     LOG_MARKER();
 
-    const uint64_t& blocknum
+    uint64_t blocknum
         = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
     LOG_STATE(
@@ -365,6 +365,9 @@ void Node::BroadcastTransactionsToLookup()
         << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
             + 1
         << "] BEFORE TXN BODIES #" << blocknum);
+
+    LOG_GENERAL(INFO,
+                "BroadcastTransactionsToLookup for blocknum: " << blocknum);
 
     // Broadcast Txns to Lookup
     if (m_txns_to_send.size() > 0)
@@ -746,7 +749,7 @@ bool Node::FindTxnInReceivedTxnsList(const uint64_t& blockNum,
 
 void Node::CallActOnFinalblock()
 {
-    const uint64_t& blocknum
+    uint64_t blocknum
         = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
     if ((m_txnSharingIAmSender == false) && (m_txnSharingIAmForwarder == true))
@@ -1058,6 +1061,12 @@ bool Node::ProcessStateDeltaFromFinalBlock(
     copy(message.begin() + cur_offset, message.end(),
          back_inserter(stateDeltaBytes));
 
+    if (stateDeltaBytes.empty())
+    {
+        LOG_GENERAL(INFO, "State Delta is empty");
+        return true;
+    }
+
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
     sha2.Update(stateDeltaBytes);
     StateHash stateDeltaHash(sha2.Finalize());
@@ -1268,12 +1277,8 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
     if (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
         < latestForwardBlockNum)
     {
-        vector<unsigned char> txnMsg;
-        copy(message.begin() + cur_offset, message.end(),
-             back_inserter(txnMsg));
-
         lock_guard<mutex> g(m_mutexForwardedTxnBuffer);
-        m_forwardedTxnBuffer[latestForwardBlockNum].push_back(txnMsg);
+        m_forwardedTxnBuffer[latestForwardBlockNum].push_back(message);
 
         return true;
     }
@@ -1296,6 +1301,8 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
 bool Node::ProcessForwardTransactionCore(const vector<unsigned char>& message,
                                          unsigned int cur_offset)
 {
+    LOG_MARKER();
+
     TxnHash microBlockTxRootHash;
     StateHash microBlockStateDeltaHash;
     vector<Transaction> txnsInForwardedMessage;
@@ -1305,6 +1312,7 @@ bool Node::ProcessForwardTransactionCore(const vector<unsigned char>& message,
             message, cur_offset, microBlockTxRootHash, microBlockStateDeltaHash,
             txnsInForwardedMessage /*, txnHashesInForwardedMessage*/))
     {
+        LOG_GENERAL(WARNING, "LoadForwardedTxnsAndCheckRoot FAILED");
         return false;
     }
 
@@ -1362,6 +1370,8 @@ bool Node::ProcessForwardTransactionCore(const vector<unsigned char>& message,
 
 void Node::CommitForwardedMsgBuffer()
 {
+    LOG_MARKER();
+
     lock_guard<mutex> g(m_mutexForwardedTxnBuffer);
 
     for (auto it = m_forwardedTxnBuffer.begin();
@@ -1380,7 +1390,8 @@ void Node::CommitForwardedMsgBuffer()
         {
             for (const auto& msg : it->second)
             {
-                ProcessForwardTransactionCore(msg, 0);
+                ProcessForwardTransactionCore(
+                    msg, MessageOffset::BODY + sizeof(uint64_t));
             }
             m_forwardedTxnBuffer.erase(it);
             break;

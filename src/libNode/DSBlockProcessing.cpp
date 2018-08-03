@@ -218,20 +218,249 @@ void Node::LogReceivedDSBlockDetails([[gnu::unused]] const DSBlock& dsblock)
 #endif // IS_LOOKUP_NODE
 }
 
+bool Node::LoadShardingStructure(
+    [[gnu::unused]] const vector<unsigned char>& message,
+    [[gnu::unused]] unsigned int& cur_offset)
+{
+#ifndef IS_LOOKUP_NODE
+
+    vector<map<PubKey, Peer>> shards;
+    cur_offset = ShardingStructure::Deserialize(message, cur_offset, shards);
+
+    // Check the shard ID against the deserialized structure
+    if (m_myShardID >= shards.size())
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Shard ID " << m_myShardID << " >= num shards "
+                              << shards.size());
+        return false;
+    }
+
+    const map<PubKey, Peer>& my_shard = shards.at(m_myShardID);
+
+    m_myShardMembersPubKeys.clear();
+    m_myShardMembersNetworkInfo.clear();
+
+    // All nodes; first entry is leader
+    unsigned int index = 0;
+    for (const auto& i : my_shard)
+    {
+        m_myShardMembersPubKeys.emplace_back(i.first);
+        m_myShardMembersNetworkInfo.emplace_back(i.second);
+
+        // Zero out my IP to avoid sending to myself
+        if (m_mediator.m_selfPeer == m_myShardMembersNetworkInfo.back())
+        {
+            m_consensusMyID = index; // Set my ID
+            m_myShardMembersNetworkInfo.back().m_listenPortHost = 0;
+        }
+
+        LOG_EPOCH(
+            INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            " PubKey: "
+                << DataConversion::SerializableToHexStr(
+                       m_myShardMembersPubKeys.back())
+                << " IP: "
+                << m_myShardMembersNetworkInfo.back().GetPrintableIPAddress()
+                << " Port: "
+                << m_myShardMembersNetworkInfo.back().m_listenPortHost);
+
+        index++;
+    }
+
+#endif // IS_LOOKUP_NODE
+
+    return true;
+}
+
+void Node::LoadTxnSharingInfo(
+    [[gnu::unused]] const vector<unsigned char>& message,
+    [[gnu::unused]] unsigned int cur_offset)
+{
+#ifndef IS_LOOKUP_NODE
+
+    LOG_MARKER();
+
+    m_txnSharingIAmSender = false;
+    m_txnSharingIAmForwarder = false;
+    m_txnSharingAssignedNodes.clear();
+
+    vector<Peer> ds_receivers;
+    vector<vector<Peer>> shard_receivers;
+    vector<vector<Peer>> shard_senders;
+
+    TxnSharingAssignments::Deserialize(message, cur_offset, ds_receivers,
+                                       shard_receivers, shard_senders);
+
+    // m_txnSharingAssignedNodes below is basically just the combination of ds_receivers, shard_receivers, and shard_senders
+    // We will get rid of this inefficiency eventually
+
+    m_txnSharingAssignedNodes.emplace_back();
+
+    for (unsigned int i = 0; i < ds_receivers.size(); i++)
+    {
+        m_txnSharingAssignedNodes.back().emplace_back(ds_receivers.at(i));
+    }
+
+    for (unsigned int i = 0; i < shard_receivers.size(); i++)
+    {
+        m_txnSharingAssignedNodes.emplace_back();
+
+        for (unsigned int j = 0; j < shard_receivers.at(i).size(); j++)
+        {
+            m_txnSharingAssignedNodes.back().emplace_back(
+                shard_receivers.at(i).at(j));
+
+            if ((i == m_myShardID)
+                && (m_txnSharingAssignedNodes.back().back()
+                    == m_mediator.m_selfPeer))
+            {
+                m_txnSharingIAmForwarder = true;
+            }
+        }
+
+        m_txnSharingAssignedNodes.emplace_back();
+
+        for (unsigned int j = 0; j < shard_senders.at(i).size(); j++)
+        {
+            m_txnSharingAssignedNodes.back().emplace_back(
+                shard_senders.at(i).at(j));
+
+            if ((i == m_myShardID)
+                && (m_txnSharingAssignedNodes.back().back()
+                    == m_mediator.m_selfPeer))
+            {
+                m_txnSharingIAmSender = true;
+            }
+        }
+    }
+
+#endif // IS_LOOKUP_NODE
+}
+
+#ifndef IS_LOOKUP_NODE
+void Node::StartNewTxEpoch()
+{
+    LOG_MARKER();
+
+    SetState(TX_SUBMISSION);
+
+    // Check if I am the leader or backup of the shard
+    if (m_mediator.m_selfKey.second == m_myShardMembersPubKeys.front())
+    {
+        m_isPrimary = true;
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "I am leader of the sharded committee");
+
+        LOG_STATE("[IDENT][" << std::setw(15) << std::left
+                             << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                             << "][" << m_myShardID << "][0  ] SCLD");
+    }
+    else
+    {
+        m_isPrimary = false;
+
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "I am backup member of the sharded committee");
+
+        LOG_STATE("[SHSTU][" << setw(15) << left
+                             << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                             << "]["
+                             << m_mediator.m_txBlockChain.GetLastBlock()
+                                    .GetHeader()
+                                    .GetBlockNum()
+                      + 1 << "] RECEIVED SHARDING STRUCTURE");
+
+        LOG_STATE("[IDENT][" << std::setw(15) << std::left
+                             << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                             << "][" << m_myShardID << "][" << std::setw(3)
+                             << std::left << m_consensusMyID << "] SCBK");
+    }
+
+    // Choose 4 other nodes to be sender of microblock to ds committee.
+    // TODO: Randomly choose these nodes?
+    m_isMBSender = false;
+    unsigned int numOfMBSender = 5;
+    if (m_myShardMembersPubKeys.size() < numOfMBSender)
+    {
+        numOfMBSender = m_myShardMembersPubKeys.size();
+    }
+
+    // Shard leader will not have the flag set
+    for (unsigned int i = 1; i < numOfMBSender; i++)
+    {
+        if (m_mediator.m_selfKey.second == m_myShardMembersPubKeys.at(i))
+        {
+            // Selected node to be sender of its shard's micrblock
+            m_isMBSender = true;
+            break;
+        }
+    }
+
+    m_consensusLeaderID = 0;
+
+    auto main_func = [this]() mutable -> void { SubmitTransactions(); };
+
+    {
+        lock_guard<mutex> g2(m_mutexNewRoundStarted);
+        if (!m_newRoundStarted)
+        {
+            m_newRoundStarted = true;
+            m_cvNewRoundStarted.notify_all();
+        }
+    }
+
+    DetachedFunction(1, main_func);
+
+    LOG_GENERAL(INFO, "Entering sleep for " << TXN_SUBMISSION << " seconds");
+    this_thread::sleep_for(chrono::seconds(TXN_SUBMISSION));
+    LOG_GENERAL(INFO,
+                "Woken up from the sleep of " << TXN_SUBMISSION << " seconds");
+
+    auto main_func2
+        = [this]() mutable -> void { SetState(TX_SUBMISSION_BUFFER); };
+
+    DetachedFunction(1, main_func2);
+
+    LOG_GENERAL(INFO,
+                "Using conditional variable with timeout of  "
+                    << TXN_BROADCAST << " seconds. It is ok to timeout here. ");
+    std::unique_lock<std::mutex> cv_lk(m_MutexCVMicroblockConsensus);
+    if (cv_microblockConsensus.wait_for(cv_lk,
+                                        std::chrono::seconds(TXN_BROADCAST))
+        == std::cv_status::timeout)
+    {
+        LOG_GENERAL(INFO,
+                    "Woken up from the sleep (timeout) of " << TXN_BROADCAST
+                                                            << " seconds");
+    }
+    else
+    {
+        LOG_GENERAL(
+            INFO,
+            "I have received announcement message. Time to run consensus.");
+    }
+
+    auto main_func3 = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
+
+    DetachedFunction(1, main_func3);
+}
+#endif // IS_LOOKUP_NODE
+
 bool Node::ProcessDSBlock(const vector<unsigned char>& message,
                           unsigned int cur_offset,
                           [[gnu::unused]] const Peer& from)
 {
-    // Message = [259-byte DS block] [32-byte DS block hash / rand1] [16-byte winner IP] [4-byte winner port]
     LOG_MARKER();
 
-#ifndef IS_LOOKUP_NODE
+    lock_guard<mutex> g(m_mutexDSBlock);
 
-    // Checks if (m_state == POW2_SUBMISSION)
-    if (!CheckState(STARTPOW2))
+#ifndef IS_LOOKUP_NODE
+    // Message = [Shard ID] [DS block] [PoW winner IP] [Sharding structure] [Txn sharing assignments]
+    // This is the same as the DS Block consensus announcement message, plus the additional Shard ID
+
+    if (!CheckState(PROCESS_SHARDING))
     {
-        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Not in POW2_SUBMISSION state");
         return false;
     }
 
@@ -243,20 +472,27 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
         {
             m_fromNewProcess = false;
         }
+
+        // Are these necessary? Commented out for now
+        //AccountStore::GetInstance().MoveUpdatesToDisk();
+        //m_runFromLate = false;
     }
+
+    // [Shard ID]
+    m_myShardID = Serializable::GetNumber<uint32_t>(message, cur_offset,
+                                                    sizeof(uint32_t));
+    cur_offset += sizeof(uint32_t);
+
 #else
+    // Message = [DS block] [PoW winner IP] [Sharding structure] [Txn sharing assignments]
+    // This is the same as the DS Block consensus announcement message
+    // Lookup node ignores Txn sharing assignments
+
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I the lookup node have received the DS Block");
 #endif // IS_LOOKUP_NODE
 
-    if (IsMessageSizeInappropriate(message.size(), cur_offset,
-                                   DSBlock::GetMinSize() + BLOCK_HASH_SIZE))
-    {
-        return false;
-    }
-
-    // 259-byte DS block
-    // DSBlock dsblock(message, cur_offset);
+    // [DS block]
     DSBlock dsblock;
     if (dsblock.Deserialize(message, cur_offset) != 0)
     {
@@ -282,15 +518,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
         return false;
     }
 
-    // 32-byte DS block hash / rand1
-    array<unsigned char, BLOCK_HASH_SIZE> dsblockhash;
-    copy(message.begin() + cur_offset,
-         message.begin() + cur_offset + BLOCK_HASH_SIZE, dsblockhash.begin());
-    cur_offset += BLOCK_HASH_SIZE;
-
-    // To-do: Verify the hash / rand1 value (if necessary)
-
-    // 16-byte winner IP and 4-byte winner port
+    // [PoW winner IP]
     Peer newleaderIP(message, cur_offset);
     cur_offset += (IP_SIZE + PORT_SIZE);
 
@@ -314,7 +542,10 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
     UpdateDSCommiteeComposition(newleaderIP);
 
 #ifndef IS_LOOKUP_NODE
-    // Check if I am the next DS leader
+
+    POW::GetInstance().StopMining();
+
+    // If I am the next DS leader -> need to set myself up as a DS node
     if (m_mediator.m_selfKey.second
         == m_mediator.m_dsBlockChain.GetLastBlock()
                .GetHeader()
@@ -323,40 +554,53 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "I won PoW :-) I am now the new DS committee leader!");
 
-        if (TEST_NET_MODE)
-        {
-            LOG_GENERAL(INFO, "Updating shard whitelist");
-            Whitelist::GetInstance().UpdateShardWhitelist();
-        }
+        // [Sharding structure] -> Use the loading function for DS node
+        cur_offset
+            = m_mediator.m_ds->PopulateShardingStructure(message, cur_offset);
 
-        m_mediator.m_lookup->m_syncType = SyncType::NO_SYNC;
+        // [Txn sharing assignments] -> Use the loading function for DS node
+        m_mediator.m_ds->SaveTxnBodySharingAssignment(message, cur_offset);
+
+        // Update my DS mode and ID
         m_mediator.m_ds->m_consensusMyID = 0;
         m_mediator.m_ds->m_consensusID
             = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
-        m_mediator.m_ds->SetState(DirectoryService::DirState::POW2_SUBMISSION);
         m_mediator.m_ds->m_mode = DirectoryService::Mode::PRIMARY_DS;
+
+        // (We're getting rid of this eventually) Clean up my txn list since I'm a DS node now
         m_mediator.m_node->CleanCreatedTransaction();
-        m_mediator.m_ds->NotifyPOW2Submission();
+
         LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
                       DS_LEADER_MSG);
         LOG_STATE("[IDENT][" << std::setw(15) << std::left
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
                              << "][0     ] DSLD");
-        m_mediator.m_ds->ScheduleShardingConsensus(
-            LEADER_POW2_WINDOW_IN_SECONDS);
+
+        // Finally, start as the DS leader
+        m_mediator.m_ds->StartNewTxEpoch();
     }
+    // If I am a shard node
     else
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "I lost PoW :-( Better luck next time!");
-        POW::GetInstance().StopMining();
 
-        // Tell my Node class to start PoW2 if I didn't win PoW
-        array<unsigned char, 32> rand2 = {};
-        StartPoW2(
-            m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
-            POW2_DIFFICULTY, m_mediator.m_dsBlockRand, rand2);
+        // [Sharding structure] -> Use the loading function for shard node
+        if (LoadShardingStructure(message, cur_offset) == false)
+        {
+            return false;
+        }
+
+        // [Txn sharing assignments] -> Use the loading function for shard node
+        LoadTxnSharingInfo(message, cur_offset);
+
+        // Finally, start as a shard node
+        StartNewTxEpoch();
     }
+#else
+    // [Sharding structure]
+    m_mediator.m_lookup->ProcessEntireShardingStructure(message, cur_offset,
+                                                        from);
 #endif // IS_LOOKUP_NODE
 
     return true;
