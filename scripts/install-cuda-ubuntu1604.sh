@@ -12,7 +12,7 @@ set -e
 
 export CUDA_VER=9.2.148-1
 apt-key adv --fetch-keys http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/7fa2af80.pub
-wget http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/cuda-repo-ubuntu1604_${CUDA_VER}_amd64.deb
+Wget http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/cuda-repo-ubuntu1604_${CUDA_VER}_amd64.deb
 dpkg -i cuda-repo-ubuntu1604_${CUDA_VER}_amd64.deb
 apt-get update -qq
 export CUDA_APT=${CUDA_VER:0:3}
