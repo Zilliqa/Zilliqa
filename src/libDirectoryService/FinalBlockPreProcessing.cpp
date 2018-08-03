@@ -104,13 +104,13 @@ void DirectoryService::ExtractDataFromMicroblocks(
         isMicroBlockEmpty.push_back(isEmptyTxn);
     }
 
-    if (m_mediator.m_node->m_unavailableMicroBlocks.find(blockNum)
-            != m_mediator.m_node->m_unavailableMicroBlocks.end()
-        && m_mediator.m_node->m_unavailableMicroBlocks[blockNum].size() > 0)
-    {
-        unique_lock<mutex> g(m_mediator.m_node->m_mutexAllMicroBlocksRecvd);
-        m_mediator.m_node->m_allMicroBlocksRecvd = false;
-    }
+    // if (m_mediator.m_node->m_unavailableMicroBlocks.find(blockNum)
+    //         != m_mediator.m_node->m_unavailableMicroBlocks.end()
+    //     && m_mediator.m_node->m_unavailableMicroBlocks[blockNum].size() > 0)
+    // {
+    //     unique_lock<mutex> g(m_mediator.m_node->m_mutexAllMicroBlocksRecvd);
+    //     m_mediator.m_node->m_allMicroBlocksRecvd = false;
+    // }
 
     microblockTxnTrieRoot = ComputeTransactionsRoot(microblockHashes);
     microblockDeltaTrieRoot = ComputeDeltasRoot(microblockHashes);
@@ -140,6 +140,7 @@ void DirectoryService::ComposeFinalBlockCore()
     uint32_t numTxs = 0;
     std::vector<bool> isMicroBlockEmpty;
     uint32_t numMicroBlocks = 0;
+    StateHash stateDeltaHash = AccountStore::GetInstance().GetStateDeltaHash();
 
     ExtractDataFromMicroblocks(microblockTxnTrieRoot, microblockDeltaTrieRoot,
                                microBlockHashes, shardIDs, allGasLimit,
@@ -201,9 +202,9 @@ void DirectoryService::ComposeFinalBlockCore()
     m_finalBlock.reset(new TxBlock(
         TxBlockHeader(type, version, allGasLimit, allGasUsed, prevHash,
                       blockNum, timestamp, microblockTxnTrieRoot, stateRoot,
-                      microblockDeltaTrieRoot, numTxs, numMicroBlocks,
-                      m_mediator.m_selfKey.second, lastDSBlockNum,
-                      dsBlockHeader),
+                      microblockDeltaTrieRoot, stateDeltaHash, numTxs,
+                      numMicroBlocks, m_mediator.m_selfKey.second,
+                      lastDSBlockNum, dsBlockHeader),
         vector<bool>(isMicroBlockEmpty),
         vector<MicroBlockHashSet>(microBlockHashes), vector<uint32_t>(shardIDs),
         CoSignatures(m_mediator.m_DSCommittee.size())));
@@ -642,6 +643,33 @@ bool DirectoryService::CheckStateRoot()
     return true;
 }
 
+bool DirectoryService::CheckStateDeltaHash()
+{
+    LOG_MARKER();
+
+    StateHash stateRootHash = AccountStore::GetInstance().GetStateDeltaHash();
+
+    if (stateRootHash != m_finalBlock->GetHeader().GetStateDeltaHash())
+    {
+        LOG_GENERAL(WARNING,
+                    "State delta hash doesn't match. Expected = "
+                        << stateRootHash << ". "
+                        << "Received = "
+                        << m_finalBlock->GetHeader().GetStateDeltaHash());
+
+        m_consensusObject->SetConsensusErrorCode(
+            ConsensusCommon::INVALID_FINALBLOCK_STATE_DELTA_HASH);
+
+        return false;
+    }
+
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "State delta hash matched "
+                  << m_finalBlock->GetHeader().GetStateDeltaHash());
+
+    return true;
+}
+
 bool DirectoryService::CheckFinalBlockValidity()
 {
     LOG_MARKER();
@@ -650,7 +678,7 @@ bool DirectoryService::CheckFinalBlockValidity()
         || !CheckFinalBlockNumber() || !CheckPreviousFinalBlockHash()
         || !CheckFinalBlockTimestamp() || !CheckMicroBlockHashes()
         || !CheckMicroBlockHashRoot() || !CheckIsMicroBlockEmpty()
-        || !CheckStateRoot())
+        || !CheckStateRoot() || !CheckStateDeltaHash())
     {
         return false;
     }
@@ -710,45 +738,45 @@ bool DirectoryService::WaitForTxnBodies()
 }
 **/
 
-void DirectoryService::LoadUnavailableMicroBlocks()
-{
-    LOG_MARKER();
+// void DirectoryService::LoadUnavailableMicroBlocks()
+// {
+//     LOG_MARKER();
 
-    auto blockNum = m_finalBlock->GetHeader().GetBlockNum();
-    auto& hashesInMicroBlocks = m_finalBlock->GetMicroBlockHashes();
-    lock_guard<mutex> g(m_mediator.m_node->m_mutexUnavailableMicroBlocks);
-    for (auto& microBlockHash : hashesInMicroBlocks)
-    {
-        for (auto& microBlock : m_microBlocks)
-        {
-            if (microBlock.GetHeader().GetTxRootHash()
-                    == microBlockHash.m_txRootHash
-                && microBlock.GetHeader().GetStateDeltaHash()
-                    == microBlockHash.m_stateDeltaHash
-                && (microBlock.GetHeader().GetNumTxs() > 0
-                    || microBlock.GetHeader().GetStateDeltaHash()
-                        != StateHash()))
-            {
-                // bool b = microBlock.GetHeader().GetNumTxs() > 0;
-                m_mediator.m_node->m_unavailableMicroBlocks[blockNum].insert(
-                    // {microBlockHash, {b, true}});
-                    {{microBlockHash, microBlock.GetHeader().GetShardID()},
-                     {false, true}});
-                break;
-            }
-        }
-    }
+//     auto blockNum = m_finalBlock->GetHeader().GetBlockNum();
+//     auto& hashesInMicroBlocks = m_finalBlock->GetMicroBlockHashes();
+//     lock_guard<mutex> g(m_mediator.m_node->m_mutexUnavailableMicroBlocks);
+//     for (auto& microBlockHash : hashesInMicroBlocks)
+//     {
+//         for (auto& microBlock : m_microBlocks)
+//         {
+//             if (microBlock.GetHeader().GetTxRootHash()
+//                     == microBlockHash.m_txRootHash
+//                 && microBlock.GetHeader().GetStateDeltaHash()
+//                     == microBlockHash.m_stateDeltaHash
+//                 && (microBlock.GetHeader().GetNumTxs() > 0
+//                     || microBlock.GetHeader().GetStateDeltaHash()
+//                         != StateHash()))
+//             {
+//                 // bool b = microBlock.GetHeader().GetNumTxs() > 0;
+//                 m_mediator.m_node->m_unavailableMicroBlocks[blockNum].insert(
+//                     // {microBlockHash, {b, true}});
+//                     {{microBlockHash, microBlock.GetHeader().GetShardID()},
+//                      {false, true}});
+//                 break;
+//             }
+//         }
+//     }
 
-    if (m_mediator.m_node->m_unavailableMicroBlocks.find(blockNum)
-            != m_mediator.m_node->m_unavailableMicroBlocks.end()
-        && m_mediator.m_node->m_unavailableMicroBlocks[blockNum].size() > 0)
-    {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "setting false for unavailable microblock " << m_consensusID);
-        unique_lock<mutex> g(m_mediator.m_node->m_mutexAllMicroBlocksRecvd);
-        m_mediator.m_node->m_allMicroBlocksRecvd = false;
-    }
-}
+//     // if (m_mediator.m_node->m_unavailableMicroBlocks.find(blockNum)
+//     //         != m_mediator.m_node->m_unavailableMicroBlocks.end()
+//     //     && m_mediator.m_node->m_unavailableMicroBlocks[blockNum].size() > 0)
+//     // {
+//     //     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+//     //               "setting false for unavailable microblock " << m_consensusID);
+//     //     unique_lock<mutex> g(m_mediator.m_node->m_mutexAllMicroBlocksRecvd);
+//     //     m_mediator.m_node->m_allMicroBlocksRecvd = false;
+//     // }
+// }
 
 bool DirectoryService::FinalBlockValidator(
     const vector<unsigned char>& finalblock,
@@ -780,10 +808,10 @@ bool DirectoryService::FinalBlockValidator(
         return false;
     }
 
-    if (!isVacuousEpoch)
-    {
-        LoadUnavailableMicroBlocks();
-    }
+    // if (!isVacuousEpoch)
+    // {
+    //     LoadUnavailableMicroBlocks();
+    // }
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Final block "
@@ -838,6 +866,8 @@ void DirectoryService::RunConsensusOnFinalBlock()
     LOG_MARKER();
 
     SetState(FINALBLOCK_CONSENSUS_PREP);
+
+    AccountStore::GetInstance().SerializeDelta();
 
     if (m_mode == PRIMARY_DS)
     {

@@ -70,11 +70,26 @@ bool DirectoryService::SendFinalBlockToLookupNodes()
 {
     vector<unsigned char> finalblock_message
         = {MessageType::NODE, NodeInstructionType::FINALBLOCK};
-    finalblock_message.resize(finalblock_message.size() + sizeof(uint64_t)
-                              + sizeof(uint32_t) + sizeof(uint32_t)
-                              + m_finalBlockMessage.size());
 
     unsigned int curr_offset = MessageOffset::BODY;
+
+    vector<unsigned char> stateDelta;
+    AccountStore::GetInstance().GetSerializedDelta(stateDelta);
+
+    finalblock_message.resize(finalblock_message.size() + sizeof(uint64_t)
+                              + sizeof(uint32_t) + sizeof(uint32_t)
+                              + m_finalBlockMessage.size() + stateDelta.size());
+
+    // Finalblock
+    copy(m_finalBlockMessage.begin(), m_finalBlockMessage.end(),
+         finalblock_message.begin() + MessageOffset::BODY + sizeof(uint64_t)
+             + sizeof(uint32_t) + sizeof(uint32_t));
+
+    // State delta
+    copy(stateDelta.begin(), stateDelta.end(),
+         finalblock_message.begin() + MessageOffset::BODY + sizeof(uint64_t)
+             + sizeof(uint32_t) + sizeof(uint32_t)
+             + m_finalBlockMessage.size());
 
     // 8-byte DS blocknum
     uint64_t dsBlockNum
@@ -93,8 +108,8 @@ bool DirectoryService::SendFinalBlockToLookupNodes()
                                       (uint32_t)0, sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
-    copy(m_finalBlockMessage.begin(), m_finalBlockMessage.end(),
-         finalblock_message.begin() + curr_offset);
+    // copy(m_finalBlockMessage.begin(), m_finalBlockMessage.end(),
+    //      finalblock_message.begin() + curr_offset);
 
     m_mediator.m_lookup->SendMessageToLookupNodes(finalblock_message);
 
@@ -156,15 +171,26 @@ void DirectoryService::SendFinalBlockToShardNodes(
         vector<unsigned char> finalblock_message
             = {MessageType::NODE, NodeInstructionType::FINALBLOCK};
 
+        unsigned int curr_offset = MessageOffset::BODY;
+
+        vector<unsigned char> stateDelta;
+        AccountStore::GetInstance().GetSerializedDelta(stateDelta);
+
         finalblock_message.resize(finalblock_message.size() + sizeof(uint64_t)
                                   + sizeof(uint32_t) + sizeof(uint32_t)
-                                  + m_finalBlockMessage.size());
+                                  + m_finalBlockMessage.size()
+                                  + stateDelta.size());
 
+        // Finalblock
         copy(m_finalBlockMessage.begin(), m_finalBlockMessage.end(),
              finalblock_message.begin() + MessageOffset::BODY + sizeof(uint64_t)
                  + sizeof(uint32_t) + sizeof(uint32_t));
 
-        unsigned int curr_offset = MessageOffset::BODY;
+        // State delta
+        copy(stateDelta.begin(), stateDelta.end(),
+             finalblock_message.begin() + MessageOffset::BODY + sizeof(uint64_t)
+                 + sizeof(uint32_t) + sizeof(uint32_t)
+                 + m_finalBlockMessage.size());
 
         // 8-byte DS blocknum
         uint64_t DSBlockNum = m_mediator.m_dsBlockChain.GetLastBlock()
@@ -274,6 +300,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
 
     // StoreMicroBlocksToDisk();
     StoreFinalBlockToDisk();
+
+    AccountStore::GetInstance().CommitTemp();
 
     bool isVacuousEpoch
         = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
