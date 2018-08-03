@@ -141,6 +141,8 @@ const bool FULL_DATASET_MINE{
     ReadFromOptionsFile("FULL_DATASET_MINE") == "true" ? true : false};
 const bool OPENCL_GPU_MINE{
     ReadFromOptionsFile("OPENCL_GPU_MINE") == "true" ? true : false};
+const bool CUDA_GPU_MINE{
+    ReadFromOptionsFile("CUDA_GPU_MINE") == "true" ? true : false};
 
 const std::vector<std::string> GENESIS_WALLETS{
     ReadAccountsFromConstantsFile("wallet_address")};
