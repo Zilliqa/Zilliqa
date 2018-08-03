@@ -397,7 +397,7 @@ public:
         unsigned int curr_offset);
 
     /// Used by PoW winner to finish setup as the next DS leader
-    void StartNewTxEpoch();
+    void StartFirstTxEpoch();
 
 private:
     static std::map<DirState, std::string> DirStateStrings;

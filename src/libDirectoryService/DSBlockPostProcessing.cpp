@@ -267,7 +267,7 @@ void DirectoryService::UpdateDSCommiteeComposition(const Peer& winnerpeer)
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetMinerPubKey());
 }
 
-void DirectoryService::StartNewTxEpoch()
+void DirectoryService::StartFirstTxEpoch()
 {
     LOG_MARKER();
 
@@ -350,7 +350,7 @@ void DirectoryService::StartNewTxEpoch()
                                               cur_offset);
 
         // Finally, start as a shard node
-        m_mediator.m_node->StartNewTxEpoch();
+        m_mediator.m_node->StartFirstTxEpoch();
     }
 }
 
@@ -479,7 +479,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
 
     UpdateDSCommiteeComposition(winnerpeer);
 
-    StartNewTxEpoch();
+    StartFirstTxEpoch();
 }
 #endif // IS_LOOKUP_NODE
 
