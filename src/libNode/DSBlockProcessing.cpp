@@ -226,6 +226,7 @@ bool Node::LoadShardingStructure(
 
     vector<map<PubKey, Peer>> shards;
     cur_offset = ShardingStructure::Deserialize(message, cur_offset, shards);
+    m_numShards = shards.size();
 
     // Check the shard ID against the deserialized structure
     if (m_myShardID >= shards.size())
@@ -339,7 +340,7 @@ void Node::LoadTxnSharingInfo(
 }
 
 #ifndef IS_LOOKUP_NODE
-void Node::StartNewTxEpoch()
+void Node::StartFirstTxEpoch()
 {
     LOG_MARKER();
 
@@ -577,7 +578,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
                              << "][0     ] DSLD");
 
         // Finally, start as the DS leader
-        m_mediator.m_ds->StartNewTxEpoch();
+        m_mediator.m_ds->StartFirstTxEpoch();
     }
     // If I am a shard node
     else
@@ -595,7 +596,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
         LoadTxnSharingInfo(message, cur_offset);
 
         // Finally, start as a shard node
-        StartNewTxEpoch();
+        StartFirstTxEpoch();
     }
 #else
     // [Sharding structure]
