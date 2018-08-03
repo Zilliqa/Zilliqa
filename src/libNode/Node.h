@@ -496,7 +496,7 @@ public:
     void SetMyShardID(uint32_t shardID);
 
     /// Used by oldest DS node to finish setup as a new shard node
-    void StartNewTxEpoch();
+    void StartFirstTxEpoch();
 #endif // IS_LOOKUP_NODE
 
     /// Used by oldest DS node to configure sharding variables as a new shard node
