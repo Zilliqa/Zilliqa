@@ -74,6 +74,9 @@ class Node : public Executable, public Broadcastable
 
     Synchronizer m_synchronizer;
 
+    // DS block information
+    std::mutex m_mutexDSBlock;
+
     std::mutex m_mutexConsensus;
 
     // Sharding information
@@ -256,10 +259,6 @@ class Node : public Executable, public Broadcastable
     void ScheduleTxnSubmission();
     void ScheduleMicroBlockConsensus();
     void BeginNextConsensusRound();
-    bool LoadShardingStructure(const vector<unsigned char>& message,
-                               unsigned int& cur_offset);
-    void LoadTxnSharingInfo(const vector<unsigned char>& message,
-                            unsigned int cur_offset);
     void CallActOnMicroblockDoneBasedOnSenderForwarderAssign(uint8_t shard_id);
 
     void CallActOnFinalBlock();
@@ -492,7 +491,21 @@ public:
 
     /// Call when the normal node be promoted to DS
     void CleanCreatedTransaction();
+
+    /// Used by oldest DS node to configure shard ID as a new shard node
+    void SetMyShardID(uint32_t shardID);
+
+    /// Used by oldest DS node to finish setup as a new shard node
+    void StartFirstTxEpoch();
 #endif // IS_LOOKUP_NODE
+
+    /// Used by oldest DS node to configure sharding variables as a new shard node
+    bool LoadShardingStructure(const vector<unsigned char>& message,
+                               unsigned int& cur_offset);
+
+    /// Used by oldest DS node to configure txn sharing assignments as a new shard node
+    void LoadTxnSharingInfo(const vector<unsigned char>& message,
+                            unsigned int cur_offset);
 
 private:
     static std::map<NodeState, std::string> NodeStateStrings;

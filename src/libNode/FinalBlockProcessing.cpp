@@ -1129,6 +1129,14 @@ void Node::LoadFwdingAssgnForThisBlockNum(const uint64_t& blocknum,
     {
         forward_list = f->second;
     }
+
+    // If I am a DS node, I should also check if I have to forward this to my DS peers
+    if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
+    {
+        copy(m_mediator.m_ds->m_sharingAssignment.begin(),
+             m_mediator.m_ds->m_sharingAssignment.end(),
+             std::back_inserter(forward_list));
+    }
 }
 #endif // IS_LOOKUP_NODE
 
@@ -1215,12 +1223,8 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
     if (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
         < latestForwardBlockNum)
     {
-        vector<unsigned char> txnMsg;
-        copy(message.begin() + cur_offset, message.end(),
-             back_inserter(txnMsg));
-
         lock_guard<mutex> g(m_mutexForwardedTxnBuffer);
-        m_forwardedTxnBuffer[latestForwardBlockNum].push_back(txnMsg);
+        m_forwardedTxnBuffer[latestForwardBlockNum].push_back(message);
 
         return true;
     }
@@ -1329,12 +1333,8 @@ bool Node::ProcessForwardStateDelta(const vector<unsigned char>& message,
     if (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
         < latestForwardBlockNum)
     {
-        vector<unsigned char> deltaMsg;
-        copy(message.begin() + cur_offset, message.end(),
-             back_inserter(deltaMsg));
-
         lock_guard<mutex> g(m_mutexForwardedDeltaBuffer);
-        m_forwardedDeltaBuffer[latestForwardBlockNum].push_back(deltaMsg);
+        m_forwardedDeltaBuffer[latestForwardBlockNum].push_back(message);
 
         return true;
     }
@@ -1441,7 +1441,8 @@ void Node::CommitForwardedMsgBuffer()
             {
                 for (const auto& msg : it->second)
                 {
-                    ProcessForwardTransactionCore(msg, 0);
+                    ProcessForwardTransactionCore(
+                        msg, MessageOffset::BODY + sizeof(uint64_t));
                 }
                 m_forwardedTxnBuffer.erase(it);
                 break;
@@ -1472,7 +1473,8 @@ void Node::CommitForwardedMsgBuffer()
             {
                 for (const auto& msg : it->second)
                 {
-                    ProcessForwardStateDeltaCore(msg, 0);
+                    ProcessForwardStateDeltaCore(
+                        msg, MessageOffset::BODY + sizeof(uint64_t));
                 }
                 m_forwardedDeltaBuffer.erase(it);
                 break;
