@@ -103,6 +103,62 @@ bool DirectoryService::VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
 
     return true;
 }
+
+bool DirectoryService::ProcessStateDelta(
+    const vector<unsigned char>& message, unsigned int cur_offset,
+    const StateHash& microBlockStateDeltaHash)
+{
+    LOG_MARKER();
+
+    LOG_GENERAL(INFO,
+                "Received MicroBlock State Delta root : "
+                    << DataConversion::charArrToHexStr(
+                           microBlockStateDeltaHash.asArray()));
+
+    vector<unsigned char> stateDeltaBytes;
+    copy(message.begin() + cur_offset, message.end(),
+         back_inserter(stateDeltaBytes));
+
+    LOG_GENERAL(INFO,
+                "stateDeltaBytes:"
+                    << DataConversion::CharArrayToString(stateDeltaBytes));
+
+    if (stateDeltaBytes.empty())
+    {
+        LOG_GENERAL(INFO, "State Delta is empty");
+        return true;
+    }
+
+    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+    sha2.Update(stateDeltaBytes);
+    StateHash stateDeltaHash(sha2.Finalize());
+
+    LOG_GENERAL(INFO, "Calculated StateHash: " << stateDeltaHash);
+
+    if (stateDeltaHash != microBlockStateDeltaHash)
+    {
+        LOG_GENERAL(WARNING,
+                    "State delta hash calculated does not match microblock");
+        return false;
+    }
+
+    if (microBlockStateDeltaHash == StateHash())
+    {
+        LOG_GENERAL(INFO, "State Delta from microblock is empty");
+        return false;
+    }
+
+    if (AccountStore::GetInstance().DeserializeDeltaTemp(stateDeltaBytes, 0)
+        != 0)
+    {
+        LOG_GENERAL(WARNING,
+                    "AccountStore::GetInstance().DeserializeDeltaTemp failed");
+        return false;
+    }
+
+    return true;
+}
+
 #endif // IS_LOOKUP_NODE
 bool DirectoryService::ProcessMicroblockSubmission(
     [[gnu::unused]] const vector<unsigned char>& message,
@@ -169,6 +225,7 @@ bool DirectoryService::ProcessMicroblockSubmission(
         LOG_GENERAL(WARNING, "We failed to deserialize MicroBlock.");
         return false;
     }
+    curr_offset += microBlock.GetSerializedCoreSize();
 
     uint32_t shardId = microBlock.GetHeader().GetShardID();
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -206,6 +263,9 @@ bool DirectoryService::ProcessMicroblockSubmission(
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               m_microBlocks.size()
                   << " of " << m_shards.size() << " microblocks received");
+
+    ProcessStateDelta(message, curr_offset,
+                      microBlock.GetHeader().GetStateDeltaHash());
 
     if (m_microBlocks.size() == m_shards.size())
     {
