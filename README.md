@@ -84,7 +84,7 @@ sudo apt-get update
 sudo apt-get install git clang-format-5.0 clang-tidy-5.0 clang-5.0 libboost-system-dev libboost-filesystem-dev libboost-test-dev libssl-dev libleveldb-dev libjsoncpp-dev libsnappy-dev cmake libmicrohttpd-dev libjsonrpccpp-dev build-essential pkg-config libevent-dev libminiupnpc-dev ocl-icd-opencl-dev
 ```
 
-Please use `./scripts/install-cuda-ubuntu1604.sh` to install cuda library.
+If you want to use CUDA GPU, please use `sudo ./scripts/install-cuda-ubuntu1604.sh` to install CUDA library first.
 
 For Mac OS X (experimental), you can use the following command to install the dependencies:  
 ```bash

@@ -35,11 +35,7 @@ apt-get install -y \
     clang-tidy-5.0 \
     clang-5.0 \
     lcov \
-    curl \
-    wget
-
-echo "Installing CUDA..."
-./scripts/install-cuda-ubuntu1604.sh
+    curl
 }
 
 function on_osx() {
