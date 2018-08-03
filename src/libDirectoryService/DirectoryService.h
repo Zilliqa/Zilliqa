@@ -102,7 +102,6 @@ class DirectoryService : public Executable, public Broadcastable
     std::mutex m_mutexMicroBlocks;
     std::shared_ptr<TxBlock> m_finalBlock;
     std::vector<unsigned char> m_finalBlockMessage;
-    std::vector<Peer> m_sharingAssignment;
 
     // View Change
     std::atomic<uint32_t> m_viewChangeCounter;
@@ -340,6 +339,9 @@ public:
         ERROR
     };
 
+    /// Sharing assignment for state delta
+    std::vector<Peer> m_sharingAssignment;
+
     uint32_t m_consensusID;
     uint16_t m_consensusLeaderID;
 
@@ -399,7 +401,7 @@ public:
         unsigned int curr_offset);
 
     /// Used by PoW winner to finish setup as the next DS leader
-    void StartNewTxEpoch();
+    void StartFirstTxEpoch();
 
 private:
     static std::map<DirState, std::string> DirStateStrings;
