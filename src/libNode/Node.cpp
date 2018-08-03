@@ -1014,6 +1014,9 @@ void Node::CleanCreatedTransaction()
     std::lock_guard<mutex> lock(m_mutexCreatedTransactions);
     m_createdTransactions.clear();
 }
+
+void Node::SetMyShardID(uint32_t shardID) { m_myShardID = shardID; }
+
 #endif // IS_LOOKUP_NODE
 
 bool Node::ProcessDoRejoin(
