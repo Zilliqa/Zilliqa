@@ -29,7 +29,7 @@ apt-get install -y \
     ocl-icd-opencl-dev
 
 echo "Installing CUDA..."
-sh ./install-cuda-ubuntu1604.sh
+sh "./scripts/install-cuda-ubuntu1604.sh"
 
 # install development dependencies
 apt-get install -y \
