@@ -36,10 +36,9 @@ unsigned int Transaction::SerializeCoreFields(std::vector<unsigned char>& dst,
         + PUB_KEY_SIZE /*m_senderPubKey*/ + UINT256_SIZE /*m_amount*/
         + UINT256_SIZE /*m_gasPrice*/ + UINT256_SIZE /*m_gasLimit*/
         + sizeof(uint32_t) + m_code.size() /*m_code*/
-        + sizeof(uint32_t) + m_data.size() /*m_data*/;
-    unsigned int size_remaining = dst.size() - offset;
+        + sizeof(uint32_t) + m_data.size(); /*m_data*/
 
-    if (size_remaining < size_needed)
+    if (dst.size() < size_needed + offset)
     {
         dst.resize(size_needed + offset);
     }

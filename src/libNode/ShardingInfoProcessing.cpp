@@ -51,6 +51,7 @@ bool Node::LoadShardingStructure(const vector<unsigned char>& message,
     vector<map<PubKey, Peer>> shards;
     cur_offset = ShardingStructure::Deserialize(message, cur_offset, shards);
 
+    m_numShards = shards.size();
     // Check the shard ID against the deserialized structure
     if (m_myShardID >= shards.size())
     {

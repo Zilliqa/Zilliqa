@@ -136,6 +136,7 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
     if (m_server.StartListening())
     {
         LOG_GENERAL(INFO, "API Server started successfully");
+        m_lookup.SenderTxnBatchThread();
     }
     else
     {

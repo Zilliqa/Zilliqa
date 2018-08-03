@@ -563,9 +563,10 @@ bool Node::ProcessTxnPacketFromLookup(
     [[gnu::unused]] const vector<unsigned char>& message,
     [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
 {
+    LOG_MARKER();
 #ifndef IS_LOOKUP_NODE
-    if (!IsMessageSizeInappropriate(message.size(), offset,
-                                    2 * sizeof(uint32_t)))
+    if (IsMessageSizeInappropriate(message.size(), offset,
+                                   2 * sizeof(uint32_t)))
     {
         return false;
     }
@@ -577,8 +578,8 @@ bool Node::ProcessTxnPacketFromLookup(
                                                      sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
-    if (!IsMessageSizeInappropriate(message.size(), curr_offset,
-                                    Transaction::GetMinSerializedSize() * num))
+    if (IsMessageSizeInappropriate(message.size(), curr_offset,
+                                   Transaction::GetMinSerializedSize() * num))
     {
         return false;
     }
@@ -599,6 +600,8 @@ bool Node::ProcessTxnPacketFromLookup(
         }
         if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(tx))
         {
+            LOG_GENERAL(INFO,"HEREE");
+            lock_guard<mutex> g(m_mutexCreatedTransactions);
             auto& listIdx
                 = m_createdTransactions.get<MULTI_INDEX_KEY::GAS_PRICE>();
             listIdx.insert(tx);
@@ -612,7 +615,8 @@ bool Node::ProcessTxnPacketFromLookup(
     }
     if (txn_sent_count > 0)
     {
-        LOG_GENERAL(INFO, "Broadcast my txns to other shard members");
+        LOG_GENERAL(INFO,
+                    "[Batching] Broadcast my txns to other shard members");
         P2PComm::GetInstance().SendBroadcastMessage(m_myShardMembersNetworkInfo,
                                                     message);
     }
