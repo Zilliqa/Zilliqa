@@ -1129,6 +1129,14 @@ void Node::LoadFwdingAssgnForThisBlockNum(const uint64_t& blocknum,
     {
         forward_list = f->second;
     }
+
+    // If I am a DS node, I should also check if I have to forward this to my DS peers
+    if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
+    {
+        copy(m_mediator.m_ds->m_sharingAssignment.begin(),
+             m_mediator.m_ds->m_sharingAssignment.end(),
+             std::back_inserter(forward_list));
+    }
 }
 #endif // IS_LOOKUP_NODE
 
