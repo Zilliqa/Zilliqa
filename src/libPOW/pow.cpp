@@ -20,12 +20,14 @@
 #include <iostream>
 
 #include "pow.h"
-//#include "libCrypto/Sha3.h"
 #include "common/Serializable.h"
 #include "depends/libethash-cl/CLMiner.h"
-#include "depends/libethash-cuda/CUDAMiner.h"
 #include "libCrypto/Sha2.h"
 #include "libUtils/DataConversion.h"
+
+#ifdef ETHASH_CUDA
+#include "depends/libethash-cuda/CUDAMiner.h"
+#endif
 
 POW::POW()
 {
@@ -53,6 +55,7 @@ POW::POW()
     }
     else if (CUDA_GPU_MINE)
     {
+#ifdef ETHASH_CUDA
         using namespace dev::eth;
         CUDAMiner::setNumInstances(UINT_MAX);
         if (!CUDAMiner::configureGPU(
@@ -65,6 +68,12 @@ POW::POW()
         }
         m_miner = std::make_unique<CUDAMiner>();
         LOG_GENERAL(INFO, "CUDA GPU initialized in POW");
+#else
+        LOG_GENERAL(FATAL,
+                    "The software is not build with CUDA. Please install CUDA "
+                    "and build software again");
+        exit(1);
+#endif
     }
 }
 
