@@ -280,13 +280,11 @@ bool CLMiner::mine(const WorkPackage &w, Solution &solution)
     uint32_t const c_zero = 0;
 
     // The work package currently processed by GPU.
-    static WorkPackage current;
-    current.header = h256{1u};
     bool result = true;
     try {
-        if (current.header != w.header)
+        if (m_currentWP.header != w.header)
         {
-            if (current.blockNumber / ETHASH_EPOCH_LENGTH != w.blockNumber / ETHASH_EPOCH_LENGTH)
+            if (m_currentWP.blockNumber / ETHASH_EPOCH_LENGTH != w.blockNumber / ETHASH_EPOCH_LENGTH)
             {
                 if (s_dagLoadMode == DAG_LOAD_MODE_SEQUENTIAL)
                 {
@@ -295,7 +293,8 @@ bool CLMiner::mine(const WorkPackage &w, Solution &solution)
                     ++s_dagLoadIndex;
                 }
 
-                init(w.blockNumber);
+                if(!init(w.blockNumber))
+                    return false;
             }
 
             // Upper 64 bits of the boundary.
@@ -337,12 +336,11 @@ bool CLMiner::mine(const WorkPackage &w, Solution &solution)
             h256 mix;
             memcpy(mix.data(), results.mix, sizeof(results.mix));
             solution
-                = Solution{nonce, mix, current.header != w.header};
+                = Solution{nonce, mix, m_currentWP.header != w.header};
         }else 
             solution.nonce = w.startNonce + m_globalWorkSize;
 
-        current = w;  // kernel now processing newest work
-        current.startNonce = w.startNonce;
+        m_currentWP = w;  // kernel now processing newest work
 
         // Report hash count
         addHashCount(m_globalWorkSize);
@@ -582,7 +580,7 @@ bool CLMiner::init(uint64_t blockNumber)
 		    	cnote << "Adjusting CL work multiplier for " << computeUnits << " CUs."
 		    		<< "Adjusted work multiplier: " << m_globalWorkSize / m_workgroupSize;
 		    }
-        }
+        }        
 
         const auto lightSize = ethash_get_cachesize(blockNumber);
         const auto lightNumItems = lightSize / ETHASH_HASH_BYTES;
