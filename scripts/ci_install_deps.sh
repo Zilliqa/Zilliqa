@@ -35,7 +35,8 @@ apt-get install -y \
     clang-tidy-5.0 \
     clang-5.0 \
     lcov \
-    curl
+    curl \
+    wget
 
 echo "Installing CUDA..."
 sh "./scripts/install-cuda-ubuntu1604.sh"
