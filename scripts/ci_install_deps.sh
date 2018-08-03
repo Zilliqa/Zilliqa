@@ -28,9 +28,6 @@ apt-get install -y \
     libevent-dev \
     ocl-icd-opencl-dev
 
-echo "Installing CUDA..."
-sh "./scripts/install-cuda-ubuntu1604.sh"
-
 # install development dependencies
 apt-get install -y \
     ccache \
@@ -39,6 +36,9 @@ apt-get install -y \
     clang-5.0 \
     lcov \
     curl
+
+echo "Installing CUDA..."
+sh "./scripts/install-cuda-ubuntu1604.sh"
 }
 
 function on_osx() {
