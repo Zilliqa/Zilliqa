@@ -39,7 +39,7 @@ apt-get install -y \
     wget
 
 echo "Installing CUDA..."
-sh "./scripts/install-cuda-ubuntu1604.sh"
+./scripts/install-cuda-ubuntu1604.sh
 }
 
 function on_osx() {
