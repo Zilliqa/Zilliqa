@@ -80,8 +80,7 @@ void Node::SubmitMicroblockToDSCommittee() const
     vector<unsigned char> stateDelta;
     AccountStore::GetInstance().GetSerializedDelta(stateDelta);
 
-    // copy(stateDelta.begin(), stateDelta.end(), back_inserter(microblock));
-    
+    copy(stateDelta.begin(), stateDelta.end(), back_inserter(microblock));
 
     LOG_STATE("[MICRO][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
