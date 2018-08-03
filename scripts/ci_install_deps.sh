@@ -28,6 +28,9 @@ apt-get install -y \
     libevent-dev \
     ocl-icd-opencl-dev
 
+echo "Installing CUDA..."
+sh ./install-cuda-ubuntu1604.sh
+
 # install development dependencies
 apt-get install -y \
     ccache \
