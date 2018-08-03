@@ -130,11 +130,6 @@ public:
                       std::map<uint32_t, std::vector<Transaction>>& mp,
                       uint32_t nShard);
 
-    bool CreateTxnPacket(std::vector<unsigned char>& msg, uint32_t shardId,
-                         uint32_t nShard);
-
-    void SendTxnPacketToNodes();
-
     // Calls P2PComm::SendBroadcastMessage to Lookup Nodes
     void
     SendMessageToLookupNodes(const std::vector<unsigned char>& message) const;
@@ -187,6 +182,11 @@ public:
     bool DeleteTxnShardMap(uint32_t shardId);
 
     void SenderTxnBatchThread();
+
+    void SendTxnPacketToNodes(uint32_t);
+
+    bool CreateTxnPacket(std::vector<unsigned char>& msg, uint32_t shardId,
+                         uint32_t nShard, unsigned int offset);
 
 #endif // IS_LOOKUP_NODE
 
