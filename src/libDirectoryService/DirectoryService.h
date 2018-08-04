@@ -53,9 +53,6 @@ class DirectoryService : public Executable, public Broadcastable
         PROCESS_POWSUBMISSION = 0x00,
         VERIFYPOW,
         PROCESS_DSBLOCKCONSENSUS,
-        PROCESS_POW2SUBMISSION,
-        VERIFYPOW2,
-        PROCESS_SHARDINGCONSENSUS,
         PROCESS_MICROBLOCKSUBMISSION,
         PROCESS_FINALBLOCKCONSENSUS,
         PROCESS_VIEWCHANGECONSENSUS
@@ -92,11 +89,6 @@ class DirectoryService : public Executable, public Broadcastable
     std::vector<std::pair<PubKey, boost::multiprecision::uint256_t>> m_allPoWs;
     std::mutex m_mutexAllPOW;
 
-    // PoW2 (sharding) consensus variables
-    std::map<PubKey, boost::multiprecision::uint256_t> m_allPoW2s;
-    std::mutex m_mutexAllPOW2;
-    std::map<std::array<unsigned char, BLOCK_HASH_SIZE>, PubKey> m_sortedPoW2s;
-
     // Final block consensus variables
     std::set<MicroBlock> m_microBlocks;
     std::mutex m_mutexMicroBlocks;
@@ -113,8 +105,6 @@ class DirectoryService : public Executable, public Broadcastable
 
     std::condition_variable cv_viewChangeDSBlock;
     std::mutex m_MutexCVViewChangeDSBlock;
-    std::condition_variable cv_viewChangeSharding;
-    std::mutex m_MutexCVViewChangeSharding;
     std::condition_variable cv_viewChangeFinalBlock;
     std::mutex m_MutexCVViewChangeFinalBlock;
     std::condition_variable cv_ViewChangeVCBlock;
@@ -125,16 +115,10 @@ class DirectoryService : public Executable, public Broadcastable
     std::mutex m_MutexCVDSBlockConsensus;
     std::condition_variable cv_DSBlockConsensusObject;
     std::mutex m_MutexCVDSBlockConsensusObject;
-    std::condition_variable cv_shardingConsensus;
-    std::mutex m_MutexCVShardingConsensus;
-    std::condition_variable cv_shardingConsensusObject;
-    std::mutex m_MutexCVShardingConsensusObject;
     std::condition_variable cv_finalBlockConsensusObject;
     std::mutex m_MutexCVFinalBlockConsensusObject;
     std::condition_variable cv_POWSubmission;
     std::mutex m_MutexCVPOWSubmission;
-    std::condition_variable cv_POW2Submission;
-    std::mutex m_MutexCVPOW2Submission;
     std::mutex m_mutexProcessConsensusMessage;
     std::condition_variable cv_processConsensusMessage;
     // TO Remove
@@ -151,10 +135,6 @@ class DirectoryService : public Executable, public Broadcastable
                               unsigned int offset, const Peer& from);
     bool ProcessDSBlockConsensus(const std::vector<unsigned char>& message,
                                  unsigned int offset, const Peer& from);
-    bool ProcessPoW2Submission(const std::vector<unsigned char>& message,
-                               unsigned int offset, const Peer& from);
-    bool ProcessShardingConsensus(const std::vector<unsigned char>& message,
-                                  unsigned int offset, const Peer& from);
     bool ProcessMicroblockSubmission(const std::vector<unsigned char>& message,
                                      unsigned int offset, const Peer& from);
     bool ProcessFinalBlockConsensus(const std::vector<unsigned char>& message,
@@ -166,11 +146,6 @@ class DirectoryService : public Executable, public Broadcastable
 
 #ifndef IS_LOOKUP_NODE
     bool CheckState(Action action);
-    bool VerifyPOW2(const vector<unsigned char>& message, unsigned int offset,
-                    const Peer& from);
-
-    void NotifySelfToStartPOW2(const vector<unsigned char>& message,
-                               unsigned int offset);
     void
     SetupMulticastConfigForShardingStructure(unsigned int& my_DS_cluster_num,
                                              unsigned int& my_shards_lo,
@@ -181,13 +156,6 @@ class DirectoryService : public Executable, public Broadcastable
     // PoW (DS block) consensus functions
     void RunConsensusOnDSBlock(bool isRejoin = false);
     void ComposeDSBlock();
-
-    // internal calls from RunConsensusOnSharding
-    bool RunConsensusOnShardingWhenDSPrimary();
-    bool RunConsensusOnShardingWhenDSBackup();
-
-    // PoW2 (sharding) consensus functions
-    void RunConsensusOnSharding();
     void ComputeSharding();
     void ComputeTxnSharingAssignments(const Peer& winnerpeer);
 
@@ -328,9 +296,6 @@ public:
         POW_SUBMISSION = 0x00,
         DSBLOCK_CONSENSUS_PREP,
         DSBLOCK_CONSENSUS,
-        POW2_SUBMISSION,
-        SHARDING_CONSENSUS_PREP,
-        SHARDING_CONSENSUS,
         MICROBLOCK_SUBMISSION,
         FINALBLOCK_CONSENSUS_PREP,
         FINALBLOCK_CONSENSUS,
@@ -387,9 +352,6 @@ public:
     /// Implements the Execute function inherited from Executable.
     bool Execute(const std::vector<unsigned char>& message, unsigned int offset,
                  const Peer& from);
-
-    /// Notify POW2 submission to DirectoryService::ProcessPoW2Submission()
-    void NotifyPOW2Submission() { cv_POW2Submission.notify_all(); }
 
     /// Used by PoW winner to configure sharding variables as the next DS leader
     unsigned int PopulateShardingStructure(const vector<unsigned char>& message,

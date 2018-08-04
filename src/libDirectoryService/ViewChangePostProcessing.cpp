@@ -266,8 +266,6 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
     {
     case DSBLOCK_CONSENSUS:
     case DSBLOCK_CONSENSUS_PREP:
-    case SHARDING_CONSENSUS:
-    case SHARDING_CONSENSUS_PREP:
     {
         vector<Peer> allPowSubmitter;
         for (auto& nodeNetwork : m_allPoWConns)
@@ -306,12 +304,6 @@ void DirectoryService::ProcessNextConsensus(unsigned char viewChangeState)
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Re-running dsblock consensus");
         RunConsensusOnDSBlock();
-        break;
-    case SHARDING_CONSENSUS:
-    case SHARDING_CONSENSUS_PREP:
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Re-running sharding consensus");
-        RunConsensusOnSharding();
         break;
     case FINALBLOCK_CONSENSUS:
     case FINALBLOCK_CONSENSUS_PREP:
