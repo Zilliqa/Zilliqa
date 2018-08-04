@@ -69,10 +69,9 @@ POW::POW()
         m_miner = std::make_unique<CUDAMiner>();
         LOG_GENERAL(INFO, "CUDA GPU initialized in POW");
 #else
-        LOG_GENERAL(FATAL,
-                    "The software is not build with CUDA. Please install CUDA "
-                    "and build software again");
-        exit(1);
+        throw std::runtime_error(
+            "The software is not build with CUDA. Please install CUDA "
+            "and build software again");
 #endif
     }
 }
