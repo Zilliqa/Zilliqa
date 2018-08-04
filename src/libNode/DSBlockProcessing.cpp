@@ -460,7 +460,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
     // Message = [Shard ID] [DS block] [PoW winner IP] [Sharding structure] [Txn sharing assignments]
     // This is the same as the DS Block consensus announcement message, plus the additional Shard ID
 
-    if (!CheckState(PROCESS_SHARDING))
+    if (!CheckState(PROCESS_DSBLOCK))
     {
         return false;
     }
