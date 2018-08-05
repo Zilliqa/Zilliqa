@@ -106,7 +106,7 @@ void Node::StoreFinalBlock(const TxBlock& txBlock)
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Storing Tx Block Number: "
                   << txBlock.GetHeader().GetBlockNum()
-                  << " with Type: " << txBlock.GetHeader().GetType()
+                  << " with Type: " << to_string(txBlock.GetHeader().GetType())
                   << ", Version: " << txBlock.GetHeader().GetVersion()
                   << ", Timestamp: " << txBlock.GetHeader().GetTimestamp()
                   << ", NumTxs: " << txBlock.GetHeader().GetNumTxs());

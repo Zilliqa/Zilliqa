@@ -324,7 +324,8 @@ bool Node::ComposeMicroBlock()
     TxnHash txRootHash;
     uint32_t numTxs = 0;
     const PubKey& minerPubKey = m_mediator.m_selfKey.second;
-    uint64_t dsBlockNum = m_mediator.m_currentEpochNum;
+    uint64_t dsBlockNum
+        = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
     BlockHash dsBlockHeader;
     fill(dsBlockHeader.asArray().begin(), dsBlockHeader.asArray().end(), 0x11);
     StateHash stateDeltaHash = AccountStore::GetInstance().GetStateDeltaHash();
