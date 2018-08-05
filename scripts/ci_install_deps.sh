@@ -53,6 +53,8 @@ brew install \
     libjson-rpc-cpp \
     miniupnpc \
     libevent \
+    libprotobuf-dev \
+    protobuf-compiler
 
 # install developement deps
 brew install \
