@@ -26,7 +26,9 @@ apt-get install -y \
     libjsonrpccpp-dev \
     libminiupnpc-dev \
     libevent-dev \
-    ocl-icd-opencl-dev
+    ocl-icd-opencl-dev \
+    libprotobuf-dev \
+    protobuf-compiler
 
 # install development dependencies
 apt-get install -y \
