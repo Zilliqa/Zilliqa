@@ -62,7 +62,7 @@ void DirectoryService::ComposeDSBlock()
     const uint256_t& winnerNonce = m_allPoWs.front().second;
 
     uint64_t blockNum = 0;
-    uint8_t difficulty = POW2_DIFFICULTY;
+    uint8_t difficulty = POW_DIFFICULTY;
     if (m_mediator.m_dsBlockChain.GetBlockCount() > 0)
     {
         DSBlock lastBlock = m_mediator.m_dsBlockChain.GetLastBlock();

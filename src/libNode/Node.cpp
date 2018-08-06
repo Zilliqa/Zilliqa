@@ -211,9 +211,7 @@ void Node::StartSynchronization()
             while (!m_mediator.m_lookup->m_fetchedOfflineLookups)
             {
                 if (m_mediator.m_lookup->cv_offlineLookups.wait_for(
-                        lock,
-                        chrono::seconds(POW_WINDOW_IN_SECONDS
-                                        + BACKUP_POW2_WINDOW_IN_SECONDS))
+                        lock, chrono::seconds(POW_WINDOW_IN_SECONDS))
                     == std::cv_status::timeout)
                 {
                     LOG_GENERAL(WARNING, "FetchOfflineLookups Timeout...");
@@ -238,11 +236,10 @@ void Node::StartSynchronization()
                         .GetHeader()
                         .GetBlockNum()
                     + 1);
-            this_thread::sleep_for(
-                chrono::seconds(m_mediator.m_lookup->m_startedPoW2
-                                    ? BACKUP_POW2_WINDOW_IN_SECONDS
-                                        + TXN_SUBMISSION + TXN_BROADCAST
-                                    : NEW_NODE_SYNC_INTERVAL));
+            this_thread::sleep_for(chrono::seconds(
+                m_mediator.m_lookup->m_startedPoW ? POW_BACKUP_WINDOW_IN_SECONDS
+                        + TXN_SUBMISSION + TXN_BROADCAST
+                                                  : NEW_NODE_SYNC_INTERVAL));
         }
     };
 
@@ -263,9 +260,8 @@ bool Node::CheckState(Action action)
 
     static const std::multimap<NodeState, Action> ACTIONS_FOR_STATE
         = {{POW_SUBMISSION, STARTPOW},
-           {POW2_SUBMISSION, STARTPOW2},
-           {TX_SUBMISSION, PROCESS_SHARDING},
-           {TX_SUBMISSION_BUFFER, PROCESS_SHARDING},
+           {TX_SUBMISSION, PROCESS_DSBLOCK},
+           {TX_SUBMISSION_BUFFER, PROCESS_DSBLOCK},
            {MICROBLOCK_CONSENSUS, PROCESS_MICROBLOCKCONSENSUS},
            {WAITING_FINALBLOCK, PROCESS_FINALBLOCK}};
 
@@ -997,7 +993,7 @@ bool Node::CleanVariables()
             m_mediator.m_lookup->m_mutexOfflineLookupsUpdation);
         m_mediator.m_lookup->m_fetchedOfflineLookups = false;
     }
-    m_mediator.m_lookup->m_startedPoW2 = false;
+    m_mediator.m_lookup->m_startedPoW = false;
 
     return true;
 }
@@ -1067,7 +1063,7 @@ bool Node::ToBlockMessage([[gnu::unused]] unsigned char ins_byte)
     {
         if (!m_fromNewProcess)
         {
-            if (ins_byte != NodeInstructionType::SHARDING
+            if (ins_byte != NodeInstructionType::DSBLOCK
                 && ins_byte != NodeInstructionType::SUBMITTRANSACTION)
             {
                 return true;
@@ -1075,7 +1071,7 @@ bool Node::ToBlockMessage([[gnu::unused]] unsigned char ins_byte)
         }
         else
         {
-            if (m_runFromLate && ins_byte != NodeInstructionType::SHARDING
+            if (m_runFromLate && ins_byte != NodeInstructionType::DSBLOCK
                 && ins_byte != NodeInstructionType::CREATETRANSACTION
                 && ins_byte != NodeInstructionType::SUBMITTRANSACTION)
             {
@@ -1108,7 +1104,6 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
     InstructionHandler ins_handlers[]
         = {&Node::ProcessStartPoW,
            &Node::ProcessDSBlock,
-           &Node::ProcessSharding,
            &Node::ProcessCreateTransaction,
            &Node::ProcessSubmitTransaction,
            &Node::ProcessMicroblockConsensus,
@@ -1154,7 +1149,6 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
 
 map<Node::NodeState, string> Node::NodeStateStrings
     = {MAKE_LITERAL_PAIR(POW_SUBMISSION),
-       MAKE_LITERAL_PAIR(POW2_SUBMISSION),
        MAKE_LITERAL_PAIR(TX_SUBMISSION),
        MAKE_LITERAL_PAIR(TX_SUBMISSION_BUFFER),
        MAKE_LITERAL_PAIR(MICROBLOCK_CONSENSUS_PREP),
@@ -1177,8 +1171,7 @@ string Node::GetStateString() const
 
 map<Node::Action, string> Node::ActionStrings
     = {MAKE_LITERAL_PAIR(STARTPOW),
-       MAKE_LITERAL_PAIR(STARTPOW2),
-       MAKE_LITERAL_PAIR(PROCESS_SHARDING),
+       MAKE_LITERAL_PAIR(PROCESS_DSBLOCK),
        MAKE_LITERAL_PAIR(PROCESS_MICROBLOCKCONSENSUS),
        MAKE_LITERAL_PAIR(PROCESS_FINALBLOCK),
        MAKE_LITERAL_PAIR(PROCESS_TXNBODY),
