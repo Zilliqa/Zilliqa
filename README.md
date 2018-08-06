@@ -83,7 +83,7 @@ sudo apt-get update
 sudo apt-get install git clang-format-5.0 clang-tidy-5.0 clang-5.0 libboost-system-dev libboost-filesystem-dev libboost-test-dev libssl-dev libleveldb-dev libjsoncpp-dev libsnappy-dev cmake libmicrohttpd-dev libjsonrpccpp-dev build-essential pkg-config libevent-dev libminiupnpc-dev ocl-icd-opencl-dev
 ```
 
-If you want to use CUDA GPU, please download CUDA package from https://developer.nvidia.com/cuda-downloads and follow the installation instructions.
+If you want to use CUDA GPU, please download CUDA package from https://developer.nvidia.com/cuda-downloads and follow the instruction to install. And add `-DCUDA_MINE=ON` in ` ./build.sh` as the cmake option to enable the CUDA mine library.
 
 For Mac OS X (experimental), you can use the following command to install the dependencies:  
 ```bash
