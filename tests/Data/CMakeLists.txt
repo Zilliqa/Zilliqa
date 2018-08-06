@@ -17,6 +17,11 @@ target_include_directories(Test_CircularArray PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(Test_CircularArray PUBLIC Utils)
 add_test(NAME Test_CircularArray COMMAND Test_CircularArray)
 
+add_executable(Test_MultiIndex Test_MultiIndex.cpp)
+target_include_directories(Test_MultiIndex PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(Test_MultiIndex PUBLIC Utils AccountData Crypto)
+add_test(NAME Test_MultiIndex COMMAND Test_MultiIndex)
+
 add_executable(Test_Transaction Test_Transaction.cpp)
 target_include_directories(Test_Transaction PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(Test_Transaction PUBLIC AccountData Utils Validator)
