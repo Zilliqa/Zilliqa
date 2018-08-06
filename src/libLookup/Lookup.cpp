@@ -1431,9 +1431,7 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
             while (!m_fetchedDSInfo)
             {
                 if (cv_dsInfoUpdate.wait_for(
-                        lock,
-                        chrono::seconds(POW_WINDOW_IN_SECONDS
-                                        + BACKUP_POW2_WINDOW_IN_SECONDS))
+                        lock, chrono::seconds(POW_WINDOW_IN_SECONDS))
                     == std::cv_status::timeout)
                 {
                     // timed out
@@ -1580,13 +1578,13 @@ bool Lookup::InitMining()
         if (CheckStateRoot())
         {
             // DS block has been generated.
-            // Attempt PoW2
-            m_startedPoW2 = true;
+            // Attempt PoW
+            m_startedPoW = true;
             m_mediator.UpdateDSBlockRand();
             dsBlockRand = m_mediator.m_dsBlockRand;
             txBlockRand = {};
 
-            m_mediator.m_node->SetState(Node::POW2_SUBMISSION);
+            m_mediator.m_node->SetState(Node::POW_SUBMISSION);
             POW::GetInstance().EthashConfigureLightClient(
                 m_mediator.m_dsBlockChain.GetLastBlock()
                     .GetHeader()
@@ -1595,11 +1593,11 @@ bool Lookup::InitMining()
 
             this_thread::sleep_for(chrono::seconds(NEW_NODE_POW_DELAY));
 
-            m_mediator.m_node->StartPoW2(
-                m_mediator.m_dsBlockChain.GetLastBlock()
-                    .GetHeader()
-                    .GetBlockNum(),
-                POW2_DIFFICULTY, dsBlockRand, txBlockRand);
+            m_mediator.m_node->StartPoW(m_mediator.m_dsBlockChain.GetLastBlock()
+                                            .GetHeader()
+                                            .GetBlockNum(),
+                                        POW_DIFFICULTY, dsBlockRand,
+                                        txBlockRand);
         }
         else
         {
@@ -1611,10 +1609,8 @@ bool Lookup::InitMining()
         return false;
     }
     // Check whether is the new node connected to the network. Else, initiate re-sync process again.
-    this_thread::sleep_for(
-        chrono::seconds(BACKUP_POW2_WINDOW_IN_SECONDS
-                        + LEADER_SHARDING_PREPARATION_IN_SECONDS));
-    m_startedPoW2 = false;
+    this_thread::sleep_for(chrono::seconds(POW_BACKUP_WINDOW_IN_SECONDS));
+    m_startedPoW = false;
     if (m_syncType != SyncType::NO_SYNC)
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
