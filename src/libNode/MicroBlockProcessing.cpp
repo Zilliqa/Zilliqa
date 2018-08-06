@@ -826,8 +826,6 @@ bool Node::RunConsensusOnMicroBlock()
 
     InitCoinbase();
 
-    SetState(MICROBLOCK_CONSENSUS_PREP);
-
     if (m_isPrimary == true)
     {
         if (!RunConsensusOnMicroBlockWhenShardLeader())
