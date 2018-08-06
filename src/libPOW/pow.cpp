@@ -25,7 +25,7 @@
 #include "libCrypto/Sha2.h"
 #include "libUtils/DataConversion.h"
 
-#ifdef ETHASH_CUDA
+#ifdef CUDA_MINE
 #include "depends/libethash-cuda/CUDAMiner.h"
 #endif
 
@@ -55,7 +55,7 @@ POW::POW()
     }
     else if (CUDA_GPU_MINE)
     {
-#ifdef ETHASH_CUDA
+#ifdef CUDA_MINE
         using namespace dev::eth;
         CUDAMiner::setNumInstances(UINT_MAX);
         if (!CUDAMiner::configureGPU(
