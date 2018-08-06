@@ -324,7 +324,8 @@ bool Node::ComposeMicroBlock()
     TxnHash txRootHash;
     uint32_t numTxs = 0;
     const PubKey& minerPubKey = m_mediator.m_selfKey.second;
-    uint64_t dsBlockNum = m_mediator.m_currentEpochNum;
+    uint64_t dsBlockNum
+        = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
     BlockHash dsBlockHeader;
     fill(dsBlockHeader.asArray().begin(), dsBlockHeader.asArray().end(), 0x11);
     StateHash stateDeltaHash = AccountStore::GetInstance().GetStateDeltaHash();
@@ -516,7 +517,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
                   << " m_consensusMyID: " << m_consensusMyID
                   << " m_consensusLeaderID: " << m_consensusLeaderID
                   << " Shard Leader: "
-                  << m_myShardMembersNetworkInfo[m_consensusLeaderID]);
+                  << m_myShardMembers[m_consensusLeaderID].second);
 
     auto nodeMissingTxnsFunc
         = [this](const vector<unsigned char>& errorMsg, unsigned int offset,
@@ -529,14 +530,10 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
         -> bool { return OnCommitFailure(m); };
 
     deque<pair<PubKey, Peer>> peerList;
-    auto it1 = m_myShardMembersPubKeys.begin();
-    auto it2 = m_myShardMembersNetworkInfo.begin();
 
-    while (it1 != m_myShardMembersPubKeys.end())
+    for (auto it = m_myShardMembers.begin(); it != m_myShardMembers.end(); ++it)
     {
-        peerList.push_back(make_pair(*it1, *it2));
-        ++it1;
-        ++it2;
+        peerList.emplace_back(*it);
     }
 
     m_consensusObject.reset(new ConsensusLeader(
@@ -585,17 +582,13 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup()
                   << " m_consensusMyID: " << m_consensusMyID
                   << " m_consensusLeaderID: " << m_consensusLeaderID
                   << " Shard Leader: "
-                  << m_myShardMembersNetworkInfo[m_consensusLeaderID]);
+                  << m_myShardMembers[m_consensusLeaderID].second);
 
     deque<pair<PubKey, Peer>> peerList;
-    auto it1 = m_myShardMembersPubKeys.begin();
-    auto it2 = m_myShardMembersNetworkInfo.begin();
 
-    while (it1 != m_myShardMembersPubKeys.end())
+    for (auto it = m_myShardMembers.begin(); it != m_myShardMembers.end(); ++it)
     {
-        peerList.push_back(make_pair(*it1, *it2));
-        ++it1;
-        ++it2;
+        peerList.emplace_back(*it);
     }
 
     m_consensusObject.reset(new ConsensusBackup(

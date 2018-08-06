@@ -70,20 +70,20 @@ bool Node::Coinbase(const BlockBase& lastMicroBlock, const TxBlock& lastTxBlock)
         LOG_GENERAL(WARNING, "B2 and DS pub keys size do not match");
         return false;
     }
-    if (m_myShardMembersPubKeys.size() != lastMicroBlock.GetB1().size())
+    if (m_myShardMembers.size() != lastMicroBlock.GetB1().size())
     {
         LOG_GENERAL(WARNING,
                     "B1 and shard members pub keys size do not match "
                         << lastMicroBlock.GetB1().size() << "  "
-                        << m_myShardMembersPubKeys.size());
+                        << m_myShardMembers.size());
         return false;
     }
-    if (m_myShardMembersPubKeys.size() != lastMicroBlock.GetB2().size())
+    if (m_myShardMembers.size() != lastMicroBlock.GetB2().size())
     {
         LOG_GENERAL(WARNING,
                     "B2 and shard members pub keys size do not match "
                         << lastMicroBlock.GetB2().size() << "  "
-                        << m_myShardMembersPubKeys.size());
+                        << m_myShardMembers.size());
         return false;
     }
 
@@ -101,8 +101,15 @@ bool Node::Coinbase(const BlockBase& lastMicroBlock, const TxBlock& lastTxBlock)
                genesisAccount);
     }
 
-    Reward(lastMicroBlock.GetB1(), lastMicroBlock.GetB2(),
-           m_myShardMembersPubKeys, genesisAccount);
+    deque<PubKey> toKeys;
+
+    for (auto it = m_myShardMembers.begin(); it != m_myShardMembers.end(); ++it)
+    {
+        toKeys.emplace_back(it->first);
+    }
+
+    Reward(lastMicroBlock.GetB1(), lastMicroBlock.GetB2(), toKeys,
+           genesisAccount);
 
     return true;
 }
