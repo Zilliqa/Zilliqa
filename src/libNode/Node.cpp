@@ -953,7 +953,6 @@ bool Node::CleanVariables()
     m_myShardMembers.clear();
     m_isPrimary = false;
     m_isMBSender = false;
-    m_tempStateDeltaCommitted = true;
     m_myShardID = 0;
 
     {
@@ -989,20 +988,8 @@ bool Node::CleanVariables()
         m_committedTransactions.clear();
     }
     {
-        std::lock_guard<mutex> lock(m_mutexForwardingAssignment);
-        m_forwardingAssignment.clear();
-    }
-    {
-        std::lock_guard<mutex> lock(m_mutexAllMicroBlocksRecvd);
-        m_allMicroBlocksRecvd = true;
-    }
-    {
         std::lock_guard<mutex> lock(m_mutexUnavailableMicroBlocks);
         m_unavailableMicroBlocks.clear();
-    }
-    {
-        std::lock_guard<mutex> lock(m_mutexTempCommitted);
-        m_tempStateDeltaCommitted = true;
     }
     // On Lookup
     {
@@ -1020,6 +1007,9 @@ void Node::CleanCreatedTransaction()
     std::lock_guard<mutex> lock(m_mutexCreatedTransactions);
     m_createdTransactions.clear();
 }
+
+void Node::SetMyShardID(uint32_t shardID) { m_myShardID = shardID; }
+
 #endif // IS_LOOKUP_NODE
 
 bool Node::ProcessDoRejoin(
@@ -1126,7 +1116,6 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
            &Node::ProcessForwardTransaction,
            &Node::ProcessCreateTransactionFromLookup,
            &Node::ProcessVCBlock,
-           &Node::ProcessForwardStateDelta,
            &Node::ProcessDoRejoin};
 
     const unsigned char ins_byte = message.at(offset);
