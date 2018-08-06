@@ -95,6 +95,10 @@ class DirectoryService : public Executable, public Broadcastable
     std::shared_ptr<TxBlock> m_finalBlock;
     std::vector<unsigned char> m_finalBlockMessage;
 
+    std::mutex m_mutexMBSubmissionBuffer;
+    std::unordered_map<uint64_t, std::vector<std::vector<unsigned char>>>
+        m_MBSubmissionBuffer;
+
     // View Change
     std::atomic<uint32_t> m_viewChangeCounter;
     Peer m_candidateLeader;
@@ -204,6 +208,9 @@ class DirectoryService : public Executable, public Broadcastable
                              uint64_t& nonce, array<unsigned char, 32>& rand1,
                              array<unsigned char, 32>& rand2,
                              unsigned int& difficulty, uint64_t& block_num);
+    void CommitMBSubmissionMsgBuffer();
+    bool ProcessMicroblockSubmissionCore(const vector<unsigned char>& message,
+                                         unsigned int curr_offset);
     void ExtractDataFromMicroblocks(
         TxnHash& microblockTxnTrieRoot, StateHash& microblockDeltaTrieRoot,
         std::vector<MicroBlockHashSet>& microblockHashes,

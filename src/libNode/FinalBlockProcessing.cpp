@@ -729,7 +729,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
                              [[gnu::unused]] const Peer& from)
 {
     // Message = [8-byte DS blocknum] [4-byte consensusid] [1-byte shard id]
-    //           [Final block] [Tx body sharing setup]
+    //           [Final block] [Final state delta]
     LOG_MARKER();
 
 #ifndef IS_LOOKUP_NODE
