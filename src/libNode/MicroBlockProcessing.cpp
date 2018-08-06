@@ -56,17 +56,17 @@ void Node::SubmitMicroblockToDSCommittee() const
         = {MessageType::DIRECTORY, DSInstructionType::MICROBLOCKSUBMISSION};
     unsigned int cur_offset = MessageOffset::BODY;
 
-    // 8-byte DS blocknum
-    uint64_t DSBlockNum
-        = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
-    Serializable::SetNumber<uint64_t>(microblock, cur_offset, DSBlockNum,
+    // 8-byte tx blocknum
+    uint64_t txBlockNum
+        = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+    Serializable::SetNumber<uint64_t>(microblock, cur_offset, txBlockNum,
                                       sizeof(uint64_t));
     cur_offset += sizeof(uint64_t);
 
-    // 4-byte consensusid
-    Serializable::SetNumber<uint32_t>(microblock, cur_offset, m_consensusID,
-                                      sizeof(uint32_t));
-    cur_offset += sizeof(uint32_t);
+    // // 4-byte consensusid
+    // Serializable::SetNumber<uint32_t>(microblock, cur_offset, m_consensusID,
+    //                                   sizeof(uint32_t));
+    // cur_offset += sizeof(uint32_t);
 
     // // 4-byte shard ID
     // Serializable::SetNumber<uint32_t>(microblock, cur_offset, m_myShardID,
