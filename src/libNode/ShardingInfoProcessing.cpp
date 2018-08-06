@@ -97,7 +97,7 @@ bool Node::ProcessSharding([[gnu::unused]] const vector<unsigned char>& message,
     }
     m_fromNewProcess = false;
 
-    if (m_mediator.m_selfKey.second == m_myShardMembersPubKeys.front())
+    if (m_mediator.m_selfKey.second == m_myShardMembers.front().first)
     {
         m_isPrimary = true;
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -132,15 +132,15 @@ bool Node::ProcessSharding([[gnu::unused]] const vector<unsigned char>& message,
     // TODO: Randomly choose these nodes?
     m_isMBSender = false;
     unsigned int numOfMBSender = 5;
-    if (m_myShardMembersPubKeys.size() < numOfMBSender)
+    if (m_myShardMembers.size() < numOfMBSender)
     {
-        numOfMBSender = m_myShardMembersPubKeys.size();
+        numOfMBSender = m_myShardMembers.size();
     }
 
     // Shard leader will not have the flag set
     for (unsigned int i = 1; i < numOfMBSender; i++)
     {
-        if (m_mediator.m_selfKey.second == m_myShardMembersPubKeys.at(i))
+        if (m_mediator.m_selfKey.second == m_myShardMembers.at(i).first)
         {
             // Selected node to be sender of its shard's micrblock
             m_isMBSender = true;
