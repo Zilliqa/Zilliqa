@@ -461,7 +461,7 @@ bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
 
         lock_guard<mutex> g(m_mutexCreatedTransactions);
         // m_createdTransactions.push_back(submittedTransaction);
-        auto& listIdx = m_createdTransactions.get<0>();
+        auto& listIdx = m_createdTransactions.get<MULTI_INDEX_KEY::GAS_PRICE>();
         listIdx.insert(submittedTransaction);
     }
 
