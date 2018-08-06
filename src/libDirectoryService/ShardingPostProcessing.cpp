@@ -38,19 +38,6 @@ using namespace std;
 using namespace boost::multiprecision;
 
 #ifndef IS_LOOKUP_NODE
-bool DirectoryService::SendEntireShardingStructureToLookupNodes()
-{
-    vector<unsigned char> sharding_message
-        = {MessageType::LOOKUP, LookupInstructionType::ENTIRESHARDINGSTRUCTURE};
-    unsigned int curr_offset = MessageOffset::BODY;
-
-    ShardingStructure::Serialize(m_shards, sharding_message, curr_offset);
-
-    m_mediator.m_lookup->SendMessageToLookupNodes(sharding_message);
-
-    return true;
-}
-
 void DirectoryService::SetupMulticastConfigForShardingStructure(
     unsigned int& my_DS_cluster_num, unsigned int& my_shards_lo,
     unsigned int& my_shards_hi)
@@ -130,10 +117,9 @@ void DirectoryService::SendEntireShardingStructureToShardNodes(
         = ShardingStructure::Serialize(m_shards, sharding_message, curr_offset);
 
     // [Txn sharing assignments]
-    sharding_message.resize(sharding_message.size()
-                            + m_txnSharingMessage.size());
-    copy(m_txnSharingMessage.begin(), m_txnSharingMessage.end(),
-         sharding_message.begin() + curr_offset);
+    TxnSharingAssignments::Serialize(m_DSReceivers, m_shardReceivers,
+                                     m_shardSenders, sharding_message,
+                                     curr_offset);
 
     auto p = m_shards.begin();
     advance(p, my_shards_lo);
@@ -174,8 +160,6 @@ void DirectoryService::SendEntireShardingStructureToShardNodes(
                                                     sharding_message);
         p++;
     }
-
-    m_txnSharingMessage.clear();
 }
 
 #endif // IS_LOOKUP_NODE
@@ -318,21 +302,6 @@ bool DirectoryService::ProcessShardingConsensus(
                               .GetBlockNum()
                           + 1
                       << "] DONE");
-        }
-
-        // TODO: Refine this
-        unsigned int nodeToSendToLookUpLo = COMM_SIZE / 4;
-        unsigned int nodeToSendToLookUpHi
-            = nodeToSendToLookUpLo + TX_SHARING_CLUSTER_SIZE;
-
-        if (m_consensusMyID > nodeToSendToLookUpLo
-            && m_consensusMyID < nodeToSendToLookUpHi)
-        {
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "I the DS folks that will soon be sending the "
-                      "sharding structure to the "
-                      "lookup nodes");
-            SendEntireShardingStructureToLookupNodes();
         }
 
         unsigned int my_DS_cluster_num, my_shards_lo, my_shards_hi;

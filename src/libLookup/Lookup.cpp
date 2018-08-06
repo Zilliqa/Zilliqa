@@ -413,92 +413,27 @@ bool Lookup::ProcessEntireShardingStructure(
     LOG_MARKER();
 
 #ifdef IS_LOOKUP_NODE
-    // Sharding structure message format:
 
-    // [4-byte num of shards]
-    // [4-byte shard size]
-    //   [33-byte public key][16-byte IP][4-byte port]
-    //   [33-byte public key][16-byte IP][4-byte port]
-    //   ...
-    // [4-byte shard size]
-    //   [33-byte public key][16-byte IP][4-byte port]
-    //   [33-byte public key][16-byte IP][4-byte port]
-    //   ...
-    // ...
     LOG_GENERAL(INFO, "[LOOKUP received sharding structure]");
-
-    unsigned int length_available = message.size() - offset;
-
-    if (length_available < 4)
-    {
-        LOG_GENERAL(WARNING, "Malformed message");
-        return false;
-    }
-
-    // 4-byte num of shards
-    uint32_t num_shards
-        = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
-    offset += sizeof(uint32_t);
-
-    LOG_GENERAL(INFO, "Number of shards: " << to_string(num_shards));
 
     lock(m_mutexShards, m_mutexNodesInNetwork);
     lock_guard<mutex> g(m_mutexShards, adopt_lock);
     lock_guard<mutex> h(m_mutexNodesInNetwork, adopt_lock);
 
     m_shards.clear();
+
+    ShardingStructure::Deserialize(message, offset, m_shards);
+
     m_nodesInNetwork.clear();
-    std::unordered_set<Peer> t_nodesInNetwork;
+    unordered_set<Peer> t_nodesInNetwork;
 
-    for (unsigned int i = 0; i < num_shards; i++)
+    for (unsigned int i = 0; i < m_shards.size(); i++)
     {
-        length_available = message.size() - offset;
-
-        if (length_available < 4)
+        unsigned int index = 0;
+        for (auto& j : m_shards.at(i))
         {
-            LOG_GENERAL(WARNING, "Malformed message");
-            return false;
-        }
-
-        m_shards.emplace_back();
-
-        // 4-byte shard size
-        uint32_t shard_size = Serializable::GetNumber<uint32_t>(
-            message, offset, sizeof(uint32_t));
-        offset += sizeof(uint32_t);
-
-        length_available = message.size() - offset;
-
-        LOG_GENERAL(INFO,
-                    "Size of shard " << to_string(i) << ": "
-                                     << to_string(shard_size));
-
-        if (length_available < (33 + 16 + 4) * shard_size)
-        {
-            LOG_GENERAL(WARNING, "Malformed message");
-            return false;
-        }
-
-        map<PubKey, Peer>& shard = m_shards.at(i);
-
-        for (unsigned int j = 0; j < shard_size; j++)
-        {
-            // 33-byte public key
-            PubKey key = PubKey(message, offset);
-            offset += PUB_KEY_SIZE;
-
-            // 16-byte IP + 4-byte port
-            // Peer peer = Peer(message, offset);
-            Peer peer;
-            if (peer.Deserialize(message, offset) != 0)
-            {
-                LOG_GENERAL(WARNING, "We failed to deserialize Peer.");
-                return false;
-            }
-
-            offset += IP_SIZE + PORT_SIZE;
-
-            shard.emplace(key, peer);
+            const PubKey& key = j.first;
+            const Peer& peer = j.second;
 
             m_nodesInNetwork.emplace_back(peer);
             t_nodesInNetwork.emplace(peer);
@@ -506,16 +441,18 @@ bool Lookup::ProcessEntireShardingStructure(
             LOG_GENERAL(INFO,
                         "[SHARD "
                             << to_string(i) << "] "
-                            << "[PEER " << to_string(j) << "] "
+                            << "[PEER " << to_string(index) << "] "
                             << "Inserting Pubkey to shard : " << string(key));
             LOG_GENERAL(INFO,
                         "[SHARD " << to_string(i) << "] "
-                                  << "[PEER " << to_string(j) << "] "
+                                  << "[PEER " << to_string(index) << "] "
                                   << "Corresponding peer : " << string(peer));
+
+            index++;
         }
     }
 
-    for (auto peer : t_nodesInNetwork)
+    for (auto& peer : t_nodesInNetwork)
     {
         if (!l_nodesInNetwork.erase(peer))
         {
@@ -529,7 +466,7 @@ bool Lookup::ProcessEntireShardingStructure(
         }
     }
 
-    for (auto peer : l_nodesInNetwork)
+    for (auto& peer : l_nodesInNetwork)
     {
         LOG_STATE("[LOSTPEER]["
                   << std::setw(15) << std::left
@@ -2123,7 +2060,6 @@ bool Lookup::Execute(const vector<unsigned char>& message, unsigned int offset,
                                                unsigned int, const Peer&);
 
     InstructionHandler ins_handlers[] = {
-        &Lookup::ProcessEntireShardingStructure,
         &Lookup::ProcessGetSeedPeersFromLookup,
         &Lookup::ProcessSetSeedPeersFromLookup,
         &Lookup::ProcessGetDSInfoFromSeed,

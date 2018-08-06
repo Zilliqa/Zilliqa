@@ -184,7 +184,7 @@ bool ConsensusBackup::ProcessMessageAnnounce(
             {
                 // Update internal state
                 // =====================
-                m_state = INITIAL; // TODO: replace it by a more specific state
+                m_state = ERROR;
 
                 // Unicast to the leader
                 // =====================

@@ -72,7 +72,6 @@ const unsigned int MSG_VERSION{ReadFromConstantsFile("MSG_VERSION")};
 const unsigned int DS_MULTICAST_CLUSTER_SIZE{
     ReadFromConstantsFile("DS_MULTICAST_CLUSTER_SIZE")};
 const unsigned int COMM_SIZE{ReadFromConstantsFile("COMM_SIZE")};
-const unsigned int MAX_POW_WINNERS{ReadFromConstantsFile("MAX_POW_WINNERS")};
 const unsigned int POW_WINDOW_IN_SECONDS{
     ReadFromConstantsFile("POW_WINDOW_IN_SECONDS")};
 const unsigned int POW_BACKUP_WINDOW_IN_SECONDS{
@@ -140,6 +139,8 @@ const bool ENABLE_DO_REJOIN{
     ReadFromOptionsFile("ENABLE_DO_REJOIN") == "true" ? true : false};
 const bool FULL_DATASET_MINE{
     ReadFromOptionsFile("FULL_DATASET_MINE") == "true" ? true : false};
+const bool OPENCL_GPU_MINE{
+    ReadFromOptionsFile("OPENCL_GPU_MINE") == "true" ? true : false};
 
 const std::vector<std::string> GENESIS_WALLETS{
     ReadAccountsFromConstantsFile("wallet_address")};

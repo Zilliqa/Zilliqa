@@ -53,7 +53,7 @@ void addBalanceToGenesisAccount()
 {
     LOG_MARKER();
 
-    const uint256_t bal{100000000000};
+    const uint256_t bal{std::numeric_limits<uint64_t>::max()};
     const uint256_t nonce{0};
 
     for (auto& walletHexStr : GENESIS_WALLETS)
@@ -665,11 +665,9 @@ void Node::ResetRejoinFlags()
 bool Node::CleanVariables()
 {
     AccountStore::GetInstance().InitSoft();
-    m_myShardMembersPubKeys.clear();
-    m_myShardMembersNetworkInfo.clear();
+    m_myShardMembers.clear();
     m_isPrimary = false;
     m_isMBSender = false;
-    m_tempStateDeltaCommitted = true;
     m_myShardID = 0;
 
     {
@@ -701,20 +699,8 @@ bool Node::CleanVariables()
         m_committedTransactions.clear();
     }
     {
-        std::lock_guard<mutex> lock(m_mutexForwardingAssignment);
-        m_forwardingAssignment.clear();
-    }
-    {
-        std::lock_guard<mutex> lock(m_mutexAllMicroBlocksRecvd);
-        m_allMicroBlocksRecvd = true;
-    }
-    {
         std::lock_guard<mutex> lock(m_mutexUnavailableMicroBlocks);
         m_unavailableMicroBlocks.clear();
-    }
-    {
-        std::lock_guard<mutex> lock(m_mutexTempCommitted);
-        m_tempStateDeltaCommitted = true;
     }
     // On Lookup
     {
@@ -733,6 +719,9 @@ void Node::CleanCreatedTransaction()
     // m_createdTransactions.clear();
     m_createdTransactions.get<0>().clear();
 }
+
+void Node::SetMyShardID(uint32_t shardID) { m_myShardID = shardID; }
+
 #endif // IS_LOOKUP_NODE
 
 bool Node::ProcessDoRejoin(
@@ -837,7 +826,6 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
            &Node::ProcessForwardTransaction,
            &Node::ProcessCreateTransactionFromLookup,
            &Node::ProcessVCBlock,
-           &Node::ProcessForwardStateDelta,
            &Node::ProcessDoRejoin};
 
     const unsigned char ins_byte = message.at(offset);

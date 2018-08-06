@@ -39,25 +39,6 @@ using namespace std;
 using namespace boost::multiprecision;
 
 #ifndef IS_LOOKUP_NODE
-bool DirectoryService::CheckWhetherMaxSubmissionsReceived(Peer peer, PubKey key)
-{
-    lock(m_mutexAllPOW, m_mutexAllPoWConns);
-    lock_guard<mutex> g(m_mutexAllPOW, adopt_lock);
-    lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
-
-    if (m_allPoWs.size() >= MAX_POW_WINNERS)
-    {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Already validated maximum number of PoW submissions - "
-                  "dropping this submission but noting down the IP of "
-                  "submitter");
-        m_allPoWConns.emplace(key, peer);
-        return true;
-    }
-
-    return false;
-}
-
 bool DirectoryService::VerifyPoWSubmission(
     const vector<unsigned char>& message, const Peer& from, PubKey& key,
     unsigned int curr_offset, uint32_t& portNo, uint64_t& nonce,
@@ -167,11 +148,6 @@ bool DirectoryService::ParseMessageAndVerifyPOW(
 
     // Todo: Reject PoW submissions from existing members of DS committee
 
-    if (CheckWhetherMaxSubmissionsReceived(peer, key))
-    {
-        return false;
-    }
-
     if (!CheckState(VERIFYPOW))
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -217,16 +193,6 @@ bool DirectoryService::ParseMessageAndVerifyPOW(
             lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
 
             m_allPoWConns.emplace(key, peer);
-
-            if (m_allPoWs.size() >= MAX_POW_WINNERS)
-            {
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "Already validated maximum number of PoW "
-                          "submissions - dropping this submission but "
-                          "noting down the IP of submitter");
-                return false;
-            }
-
             m_allPoWs.emplace_back(key, nonce);
         }
     }
