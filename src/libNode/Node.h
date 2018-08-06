@@ -49,8 +49,7 @@ class Node : public Executable, public Broadcastable
     enum Action
     {
         STARTPOW = 0x00,
-        STARTPOW2,
-        PROCESS_SHARDING,
+        PROCESS_DSBLOCK,
         PROCESS_MICROBLOCKCONSENSUS,
         PROCESS_FINALBLOCK,
         PROCESS_TXNBODY,
@@ -161,23 +160,6 @@ class Node : public Executable, public Broadcastable
                                           uint8_t& difficulty,
                                           array<unsigned char, 32>& rand1,
                                           array<unsigned char, 32>& rand2);
-#endif // IS_LOOKUP_NODE
-
-    // internal calls from ProcessStartPoW2
-    bool ReadVariablesFromStartPoW2Message(const vector<unsigned char>& message,
-                                           unsigned int offset,
-                                           uint64_t& block_num,
-                                           uint8_t& difficulty,
-                                           array<unsigned char, 32>& rand1,
-                                           array<unsigned char, 32>& rand2);
-#ifndef IS_LOOKUP_NODE
-    void SharePoW2WinningResultWithDS(
-        const uint64_t& block_num,
-        const ethash_mining_result& winning_result) const;
-    void StartPoW2MiningAndShareResultWithDS(
-        const uint64_t& block_num, uint8_t difficulty,
-        const array<unsigned char, 32>& rand1,
-        const array<unsigned char, 32>& rand2) const;
     bool ProcessSubmitMissingTxn(const vector<unsigned char>& message,
                                  unsigned int offset, const Peer& from);
     // internal calls from ActOnMicroBlock for NODE_FORWARD_ONLY and SEND_AND_FORWARD
@@ -345,7 +327,6 @@ public:
     enum NodeState : unsigned char
     {
         POW_SUBMISSION = 0x00,
-        POW2_SUBMISSION,
         MICROBLOCK_CONSENSUS_PREP,
         MICROBLOCK_CONSENSUS,
         WAITING_FINALBLOCK,
@@ -439,11 +420,6 @@ public:
     bool StartPoW(const uint64_t& block_num, uint8_t difficulty,
                   const std::array<unsigned char, UINT256_SIZE>& rand1,
                   const std::array<unsigned char, UINT256_SIZE>& rand2);
-
-    /// Performs PoW mining and submission for sharding committee membership.
-    bool StartPoW2(const uint64_t block_num, uint8_t difficulty,
-                   array<unsigned char, 32> rand1,
-                   array<unsigned char, 32> rand2);
 
     /// Call when the normal node be promoted to DS
     void CleanCreatedTransaction();
