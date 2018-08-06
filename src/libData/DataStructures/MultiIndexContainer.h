@@ -41,7 +41,7 @@ typedef boost::multi_index::hashed_unique<boost::multi_index::const_mem_fun<
     Transaction, const TxnHash&, &Transaction::GetTranID>>
     hashed_unique_txnid_key;
 
-typedef boost::multi_index::hashed_unique<boost::multi_index::composite_key<
+typedef boost::multi_index::ordered_unique<boost::multi_index::composite_key<
     Transaction,
     boost::multi_index::const_mem_fun<Transaction, Address,
                                       &Transaction::GetSenderAddr>,
