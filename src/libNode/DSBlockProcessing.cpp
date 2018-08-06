@@ -54,9 +54,9 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock)
     m_mediator.m_dsBlockChain.AddBlock(dsblock);
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Storing DS Block Number: "
-                  << dsblock.GetHeader().GetBlockNum()
-                  << " with Nonce: " << dsblock.GetHeader().GetNonce()
-                  << ", Difficulty: " << dsblock.GetHeader().GetDifficulty()
+                  << dsblock.GetHeader().GetBlockNum() << " with Nonce: "
+                  << dsblock.GetHeader().GetNonce() << ", Difficulty: "
+                  << to_string(dsblock.GetHeader().GetDifficulty())
                   << ", Timestamp: " << dsblock.GetHeader().GetTimestamp());
 
     // Update the rand1 value for next PoW
@@ -239,32 +239,29 @@ bool Node::LoadShardingStructure(
 
     const map<PubKey, Peer>& my_shard = shards.at(m_myShardID);
 
-    m_myShardMembersPubKeys.clear();
-    m_myShardMembersNetworkInfo.clear();
+    m_myShardMembers.clear();
 
     // All nodes; first entry is leader
     unsigned int index = 0;
     for (const auto& i : my_shard)
     {
-        m_myShardMembersPubKeys.emplace_back(i.first);
-        m_myShardMembersNetworkInfo.emplace_back(i.second);
+        m_myShardMembers.emplace_back(i);
 
         // Zero out my IP to avoid sending to myself
-        if (m_mediator.m_selfPeer == m_myShardMembersNetworkInfo.back())
+        if (m_mediator.m_selfPeer == m_myShardMembers.back().second)
         {
             m_consensusMyID = index; // Set my ID
-            m_myShardMembersNetworkInfo.back().m_listenPortHost = 0;
+            m_myShardMembers.back().second.m_listenPortHost = 0;
         }
 
-        LOG_EPOCH(
-            INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            " PubKey: "
-                << DataConversion::SerializableToHexStr(
-                       m_myShardMembersPubKeys.back())
-                << " IP: "
-                << m_myShardMembersNetworkInfo.back().GetPrintableIPAddress()
-                << " Port: "
-                << m_myShardMembersNetworkInfo.back().m_listenPortHost);
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  " PubKey: "
+                      << DataConversion::SerializableToHexStr(
+                             m_myShardMembers.back().first)
+                      << " IP: "
+                      << m_myShardMembers.back().second.GetPrintableIPAddress()
+                      << " Port: "
+                      << m_myShardMembers.back().second.m_listenPortHost);
 
         index++;
     }
@@ -347,7 +344,7 @@ void Node::StartFirstTxEpoch()
     SetState(TX_SUBMISSION);
 
     // Check if I am the leader or backup of the shard
-    if (m_mediator.m_selfKey.second == m_myShardMembersPubKeys.front())
+    if (m_mediator.m_selfKey.second == m_myShardMembers.front().first)
     {
         m_isPrimary = true;
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -382,15 +379,15 @@ void Node::StartFirstTxEpoch()
     // TODO: Randomly choose these nodes?
     m_isMBSender = false;
     unsigned int numOfMBSender = 5;
-    if (m_myShardMembersPubKeys.size() < numOfMBSender)
+    if (m_myShardMembers.size() < numOfMBSender)
     {
-        numOfMBSender = m_myShardMembersPubKeys.size();
+        numOfMBSender = m_myShardMembers.size();
     }
 
     // Shard leader will not have the flag set
     for (unsigned int i = 1; i < numOfMBSender; i++)
     {
-        if (m_mediator.m_selfKey.second == m_myShardMembersPubKeys.at(i))
+        if (m_mediator.m_selfKey.second == m_myShardMembers.at(i).first)
         {
             // Selected node to be sender of its shard's micrblock
             m_isMBSender = true;

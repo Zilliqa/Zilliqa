@@ -88,7 +88,7 @@ BOOST_AUTO_TEST_CASE(DSBlock_test)
     const std::array<unsigned char, BLOCK_SIG_SIZE>& signature2
         = block2.GetSignature();
 
-    LOG_GENERAL(INFO, "Block 2 difficulty: " << diff2);
+    LOG_GENERAL(INFO, "Block 2 difficulty: " << to_string(diff2);
     BOOST_CHECK_MESSAGE(diff2 == 20,
                         "expected: " << 20 << " actual: " << diff2 << "\n");
 
