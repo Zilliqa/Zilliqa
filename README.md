@@ -33,11 +33,11 @@ The current release has the following features implemented:
 * View change
 * [Zilliqa Wallet](https://github.com/Zilliqa/Zilliqa-Wallet)
 * [Smart contract design and implementation](https://scilla.readthedocs.io)
+* GPU support for PoW
 
 In the coming months, we plan to have the following features:
 * Gossip protocol for network message broadcasting
 * Incentive structure
-* GPU support for PoW
 * Further unit and integration tests
 * Enhancement of existing features
 * More operating system support
@@ -67,7 +67,6 @@ To compile and run the Zilliqa codebase, you will need the following dependencie
 * `libevent`
 * `miniupnpc`
 * `ocl-icd-opencl-dev`
-* `cuda9.2`
 * Dependencies only required for builds with code coverage enabled
     * `gcov`
     * `lcov`
@@ -84,7 +83,7 @@ sudo apt-get update
 sudo apt-get install git clang-format-5.0 clang-tidy-5.0 clang-5.0 libboost-system-dev libboost-filesystem-dev libboost-test-dev libssl-dev libleveldb-dev libjsoncpp-dev libsnappy-dev cmake libmicrohttpd-dev libjsonrpccpp-dev build-essential pkg-config libevent-dev libminiupnpc-dev ocl-icd-opencl-dev
 ```
 
-If you want to use CUDA GPU, please use `sudo ./scripts/install-cuda-ubuntu1604.sh` to install CUDA library first, you may need to reboot your PC to make the CUDA installation take effect.
+If you want to use CUDA GPU, please download CUDA package from https://developer.nvidia.com/cuda-downloads and follow the installation instructions.
 
 For Mac OS X (experimental), you can use the following command to install the dependencies:  
 ```bash
