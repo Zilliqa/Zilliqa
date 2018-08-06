@@ -254,11 +254,6 @@ bool CUDAMiner::cuda_init(
         m_search_buf = new volatile search_results *[s_numStreams];
         m_streams = new cudaStream_t[s_numStreams];
 
-        // const auto& context = ethash::managed::get_epoch_context(epoch);
-        // const auto lightNumItems = context.light_cache_num_items;
-        // const auto lightSize = ethash::get_light_cache_size(lightNumItems);
-        // const auto dagNumItems = context.full_dataset_num_items;
-        // const auto dagSize = ethash::get_full_dataset_size(dagNumItems);
         const auto lightSize = ethash_get_cachesize(blockNumber);
         const auto lightNumItems = lightSize / ETHASH_HASH_BYTES;
         const auto dagSize = ethash_get_datasize(blockNumber);
@@ -442,7 +437,9 @@ bool CUDAMiner::mine(const WorkPackage &w, Solution &solution)
     if (m_currentWP.blockNumber / ETHASH_EPOCH_LENGTH != w.blockNumber / ETHASH_EPOCH_LENGTH)
     {
         if (!init(w.blockNumber))
+        {
             return false;
+        }
     }
 
     // Persist most recent job anyway. No need to do another

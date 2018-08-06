@@ -294,7 +294,9 @@ bool CLMiner::mine(const WorkPackage &w, Solution &solution)
                 }
 
                 if(!init(w.blockNumber))
+                {
                     return false;
+                }
             }
 
             // Upper 64 bits of the boundary.

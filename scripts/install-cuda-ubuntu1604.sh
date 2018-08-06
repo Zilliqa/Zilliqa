@@ -19,5 +19,6 @@ export CUDA_APT=${CUDA_VER:0:3}
 export CUDA_APT=${CUDA_APT/./-}
 apt-get install -qy cuda-nvcc-${CUDA_APT} cuda-cudart-dev-${CUDA_APT}
 apt-get clean
+rm cuda-repo-ubuntu1604_${CUDA_VER}_amd64.deb
 export CUDA_HOME=/usr/local/cuda-${CUDA_VER:0:3}
 export PATH=${CUDA_HOME}/bin:${PATH}
