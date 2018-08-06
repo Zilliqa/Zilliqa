@@ -18,6 +18,7 @@
 #define __P2PCOMM_H__
 
 #include <deque>
+#include <event2/util.h>
 #include <functional>
 #include <mutex>
 #include <set>
@@ -27,6 +28,8 @@
 #include "common/Constants.h"
 #include "libUtils/Logger.h"
 #include "libUtils/ThreadPool.h"
+
+struct evconnlistener;
 
 /// Provides network layer functionality.
 class P2PComm
@@ -115,7 +118,10 @@ private:
 
 public:
     /// Accept TCP connection for libevent usage
-    static void ConnectionAccept(int serv_sock, short event, void* arg);
+    static void ConnectionAccept(evconnlistener* listener,
+                                 evutil_socket_t cli_sock,
+                                 struct sockaddr* cli_addr, int socklen,
+                                 void* arg);
 
     /// Listens for incoming socket connections.
     void StartMessagePump(uint32_t listen_port_host, Dispatcher dispatcher,

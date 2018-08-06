@@ -16,7 +16,8 @@
 
 #include <cstring>
 #include <errno.h>
-#include <event.h>
+#include <event2/event.h>
+#include <event2/listener.h>
 #include <memory>
 #include <netinet/in.h>
 #include <signal.h>
@@ -350,6 +351,7 @@ namespace
     {
         assert(buf);
         uint32_t read_length = 0;
+        uint32_t retryDuration = 1;
 
         // Read out just the header first
         while (read_length != HDR_LEN)
@@ -362,6 +364,14 @@ namespace
                             "Socket read failed. Code = "
                                 << errno << " Desc: " << std::strerror(errno)
                                 << ". IP address: " << from);
+
+                if (EAGAIN == errno)
+                {
+                    this_thread::sleep_for(chrono::milliseconds(retryDuration));
+                    retryDuration <<= 1;
+                    continue;
+                }
+
                 return false;
             }
             read_length += n;
@@ -374,6 +384,8 @@ namespace
     {
         assert(hash_buf);
         uint32_t read_length = 0;
+        uint32_t retryDuration = 1;
+
         while (read_length != HASH_LEN)
         {
             ssize_t n = read(cli_sock, hash_buf + read_length,
@@ -384,6 +396,14 @@ namespace
                             "Socket read failed. Code = "
                                 << errno << " Desc: " << std::strerror(errno)
                                 << ". IP address: " << from);
+
+                if (EAGAIN == errno)
+                {
+                    this_thread::sleep_for(chrono::milliseconds(retryDuration));
+                    retryDuration <<= 1;
+                    continue;
+                }
+
                 return false;
             }
             read_length += n;
@@ -398,6 +418,8 @@ namespace
         assert(message);
         uint32_t read_length = 0;
         message->resize(message_length);
+        uint32_t retryDuration = 1;
+
         while (read_length != message_length)
         {
             ssize_t n = read(cli_sock, &message->at(read_length),
@@ -408,6 +430,14 @@ namespace
                             "Socket read failed. Code = "
                                 << errno << " Desc: " << std::strerror(errno)
                                 << ". IP address: " << from);
+
+                if (EAGAIN == errno)
+                {
+                    this_thread::sleep_for(chrono::milliseconds(retryDuration));
+                    retryDuration <<= 1;
+                    continue;
+                }
+
                 return false;
             }
             read_length += n;
@@ -592,48 +622,23 @@ void P2PComm::HandleAcceptedConnectionBroadcast(int cli_sock, Peer from,
     m_dispatcher(message, from);
 }
 
-void P2PComm::ConnectionAccept(int serv_sock, [[gnu::unused]] short event,
+void P2PComm::ConnectionAccept([[gnu::unused]] evconnlistener* listener,
+                               evutil_socket_t cli_sock,
+                               struct sockaddr* cli_addr,
+                               [[gnu::unused]] int socklen,
                                [[gnu::unused]] void* arg)
 {
-    struct sockaddr_in cli_addr;
-    socklen_t cli_len = sizeof(struct sockaddr_in);
+    Peer from(uint128_t(((struct sockaddr_in*)cli_addr)->sin_addr.s_addr),
+              ((struct sockaddr_in*)cli_addr)->sin_port);
 
-    try
-    {
-        int cli_sock = accept(serv_sock, (struct sockaddr*)&cli_addr, &cli_len);
+    auto func = [cli_sock, from]() -> void {
+        HandleAcceptedConnection(cli_sock, from);
+    };
 
-        if (cli_sock < 0)
-        {
-            LOG_GENERAL(WARNING,
-                        "Socket accept failed. Socket ret code: "
-                            << cli_sock << ". TCP error code = " << errno
-                            << " Desc: " << std::strerror(errno));
-            LOG_GENERAL(INFO,
-                        "DEBUG: I can't accept any incoming conn. I am "
-                        "sleeping for "
-                            << PUMPMESSAGE_MILLISECONDS << "ms");
-            return;
-        }
-
-        Peer from(uint128_t(cli_addr.sin_addr.s_addr), cli_addr.sin_port);
-
-        // LOG_GENERAL(INFO,
-        //             "DEBUG: I got an incoming message from "
-        // << from.GetPrintableIPAddress());
-        auto func = [cli_sock, from]() -> void {
-            HandleAcceptedConnection(cli_sock, from);
-        };
-
-        P2PComm::GetInstance().m_RecvPool.AddJob(func);
-    }
-    catch (const std::exception& e)
-    {
-        LOG_GENERAL(WARNING, "Socket accept error" << ' ' << e.what());
-    }
+    GetInstance().m_RecvPool.AddJob(func);
 }
 
-void P2PComm::StartMessagePump(uint32_t listen_port_host,
-                               Dispatcher dispatcher,
+void P2PComm::StartMessagePump(uint32_t listen_port_host, Dispatcher dispatcher,
                                Broadcast_list_func broadcast_list_retriever)
 {
     LOG_MARKER();
@@ -666,26 +671,14 @@ void P2PComm::StartMessagePump(uint32_t listen_port_host,
     serv_addr.sin_port = htons(listen_port_host);
     serv_addr.sin_addr.s_addr = INADDR_ANY;
 
-    int bind_ret
-        = ::bind(serv_sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr));
-    if (bind_ret < 0)
-    {
-        LOG_GENERAL(WARNING,
-                    "Socket bind failed. Code = " << errno << " Desc: "
-                                                  << std::strerror(errno));
-        return;
-    }
-
-    listen(serv_sock, 5000);
-
     struct event_base* base = event_base_new();
-    struct event* ev = event_new(base, serv_sock, EV_READ | EV_PERSIST,
-                                 ConnectionAccept, nullptr);
-    event_add(ev, nullptr);
+    struct evconnlistener* listener = evconnlistener_new_bind(
+        base, ConnectionAccept, nullptr,
+        LEV_OPT_REUSEABLE | LEV_OPT_CLOSE_ON_FREE, -1,
+        (struct sockaddr*)&serv_addr, sizeof(struct sockaddr_in));
     event_base_dispatch(base);
 
-    close(serv_sock);
-    event_del(ev);
+    evconnlistener_free(listener);
     event_base_free(base);
 }
 
