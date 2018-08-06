@@ -810,7 +810,7 @@ BOOST_AUTO_TEST_CASE(gpu_mining_and_verification_2)
     {
         std::cout << "OPENCL_GPU_MINE and CUDA_GPU_MINE option are not "
                      "enabled, skip test case "
-                     "gpu_mining_and_verification_1"
+                     "gpu_mining_and_verification_2"
                   << std::endl;
         return;
     }
