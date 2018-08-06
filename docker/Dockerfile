@@ -21,6 +21,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libjsonrpccpp-dev \
     libevent-dev \
     libminiupnpc-dev \
+    ocl-icd-opencl-dev \
     python python-pip \
     && rm -rf /var/lib/apt/lists/* \
     && pip install netaddr

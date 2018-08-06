@@ -110,7 +110,6 @@ extern const std::string INPUT_CODE;
 extern const unsigned int MSG_VERSION;
 extern const unsigned int DS_MULTICAST_CLUSTER_SIZE;
 extern const unsigned int COMM_SIZE;
-extern const unsigned int MAX_POW_WINNERS;
 extern const unsigned int POW_WINDOW_IN_SECONDS;
 extern const unsigned int POW_BACKUP_WINDOW_IN_SECONDS;
 extern const unsigned int LEADER_SHARDING_PREPARATION_IN_SECONDS;
@@ -150,6 +149,7 @@ extern const bool TEST_NET_MODE;
 extern const bool EXCLUDE_PRIV_IP;
 extern const bool ENABLE_DO_REJOIN;
 extern const bool FULL_DATASET_MINE;
+extern const bool OPENCL_GPU_MINE;
 
 extern const std::vector<std::string> GENESIS_WALLETS;
 extern const std::vector<std::string> GENESIS_KEYS;
