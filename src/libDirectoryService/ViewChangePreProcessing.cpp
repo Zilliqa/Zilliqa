@@ -97,18 +97,15 @@ bool DirectoryService::ValidateViewChangeState(DirState NodeState,
            {FINALBLOCK_CONSENSUS, FINALBLOCK_CONSENSUS_PREP},
            {FINALBLOCK_CONSENSUS, FINALBLOCK_CONSENSUS}};
 
-    bool found = false;
-
     for (auto pos = STATE_CHECK_STATE.lower_bound(NodeState);
          pos != STATE_CHECK_STATE.upper_bound(NodeState); pos++)
     {
         if (pos->second == StatePropose)
         {
-            found = true;
-            break;
+            return true;
         }
     }
-    return found;
+    return false;
 }
 
 // The idea of this function is to set the last know good state of the network before view change happens.
@@ -133,8 +130,7 @@ void DirectoryService::RunConsensusOnViewChange()
     SetLastKnownGoodState();
     SetState(VIEWCHANGE_CONSENSUS_PREP);
 
-    m_viewChangeCounter++;
-    m_viewChangeCounter = m_viewChangeCounter
+    m_viewChangeCounter = (m_viewChangeCounter + 1)
         % m_mediator.m_DSCommittee
               .size(); // TODO: To be change to a random node using VRF
 
