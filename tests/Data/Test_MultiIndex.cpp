@@ -18,7 +18,6 @@
 #include "libUtils/Logger.h"
 
 #define BOOST_TEST_MODULE multiindextest
-#include <boost/foreach.hpp>
 #include <boost/test/included/unit_test.hpp>
 
 using namespace std;
@@ -26,19 +25,6 @@ using namespace boost::multiprecision;
 using namespace boost::multi_index;
 
 BOOST_AUTO_TEST_SUITE(multiindextest)
-
-BOOST_AUTO_TEST_CASE(Basic_Multi_Index)
-{
-    INIT_STDOUT_LOGGER();
-
-    LOG_MARKER();
-
-    multi_index_container<int> mic;
-    assert(mic.empty());
-
-    mic.insert(1);
-    assert(mic.size() == 1);
-}
 
 BOOST_AUTO_TEST_CASE(MultiIndex_test)
 {
@@ -75,7 +61,7 @@ BOOST_AUTO_TEST_CASE(MultiIndex_test)
 
     uint256_t index = 1;
 
-    BOOST_FOREACH (Transaction tx, listIdx)
+    for (Transaction tx : listIdx)
     {
         LOG_GENERAL(INFO, "Tx nonce: " << tx.GetNonce());
         BOOST_CHECK_MESSAGE(tx.GetNonce() == index,
