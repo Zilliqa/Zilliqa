@@ -41,6 +41,9 @@ const unsigned char START_BYTE_BROADCAST = 0x22;
 const unsigned int HDR_LEN = 6;
 const unsigned int HASH_LEN = 32;
 
+P2PComm::Dispatcher P2PComm::m_dispatcher;
+P2PComm::Broadcast_list_func P2PComm::m_broadcast_list_retriever;
+
 /// Comparison operator for ordering the list of message hashes.
 struct hash_compare
 {
@@ -49,12 +52,6 @@ struct hash_compare
     {
         return equal(l.begin(), l.end(), r.begin());
     }
-};
-
-struct ConnectionData
-{
-    P2PComm::Dispatcher dispatcher;
-    broadcast_list_func broadcast_list_retriever;
 };
 
 static void close_socket(int* cli_sock)
@@ -436,9 +433,7 @@ namespace
 
 } // anonymous namespace
 
-void P2PComm::HandleAcceptedConnection(
-    int cli_sock, Peer from, Dispatcher dispatcher,
-    broadcast_list_func broadcast_list_retriever)
+void P2PComm::HandleAcceptedConnection(int cli_sock, Peer from)
 {
     //LOG_MARKER();
 
@@ -483,14 +478,12 @@ void P2PComm::HandleAcceptedConnection(
 
     if (startByte == START_BYTE_BROADCAST)
     {
-        HandleAcceptedConnectionBroadcast(
-            cli_sock, from, dispatcher, broadcast_list_retriever,
-            messageLength(header), move(cli_sock_closer));
+        HandleAcceptedConnectionBroadcast(cli_sock, from, messageLength(header),
+                                          move(cli_sock_closer));
     }
     else if (startByte == START_BYTE_NORMAL)
     {
-        HandleAcceptedConnectionNormal(cli_sock, from, dispatcher,
-                                       messageLength(header),
+        HandleAcceptedConnectionNormal(cli_sock, from, messageLength(header),
                                        move(cli_sock_closer));
     }
     else
@@ -501,7 +494,6 @@ void P2PComm::HandleAcceptedConnection(
 }
 
 void P2PComm::HandleAcceptedConnectionNormal(int cli_sock, Peer from,
-                                             Dispatcher dispatcher,
                                              uint32_t message_length,
                                              SocketCloser cli_sock_closer)
 {
@@ -513,13 +505,12 @@ void P2PComm::HandleAcceptedConnectionNormal(int cli_sock, Peer from,
 
     cli_sock_closer.reset(); // close socket now so it can be reused
 
-    dispatcher(message, from);
+    m_dispatcher(message, from);
 }
 
-void P2PComm::HandleAcceptedConnectionBroadcast(
-    int cli_sock, Peer from, Dispatcher dispatcher,
-    broadcast_list_func broadcast_list_retriever, uint32_t message_length,
-    SocketCloser cli_sock_closer)
+void P2PComm::HandleAcceptedConnectionBroadcast(int cli_sock, Peer from,
+                                                uint32_t message_length,
+                                                SocketCloser cli_sock_closer)
 {
     unsigned char hash_buf[HASH_LEN];
     if (!readHash(hash_buf, cli_sock, from))
@@ -578,8 +569,10 @@ void P2PComm::HandleAcceptedConnectionBroadcast(
         msg_type = message.at(MessageOffset::TYPE);
         ins_type = message.at(MessageOffset::INST);
     }
+
     vector<Peer> broadcast_list
-        = broadcast_list_retriever(msg_type, ins_type, from);
+        = m_broadcast_list_retriever(msg_type, ins_type, from);
+
     if (broadcast_list.size() > 0)
     {
         P2PComm::GetInstance().SendBroadcastMessageCore(broadcast_list, message,
@@ -596,11 +589,11 @@ void P2PComm::HandleAcceptedConnectionBroadcast(
                    << "] RECV");
 
     // Dispatch message normally
-    dispatcher(message, from);
+    m_dispatcher(message, from);
 }
 
 void P2PComm::ConnectionAccept(int serv_sock, [[gnu::unused]] short event,
-                               void* arg)
+                               [[gnu::unused]] void* arg)
 {
     struct sockaddr_in cli_addr;
     socklen_t cli_len = sizeof(struct sockaddr_in);
@@ -627,15 +620,8 @@ void P2PComm::ConnectionAccept(int serv_sock, [[gnu::unused]] short event,
         // LOG_GENERAL(INFO,
         //             "DEBUG: I got an incoming message from "
         // << from.GetPrintableIPAddress());
-
-        function<void(const vector<unsigned char>&, const Peer&)> dispatcher
-            = ((ConnectionData*)arg)->dispatcher;
-        broadcast_list_func broadcast_list_retriever
-            = ((ConnectionData*)arg)->broadcast_list_retriever;
-        auto func
-            = [cli_sock, from, dispatcher, broadcast_list_retriever]() -> void {
-            HandleAcceptedConnection(cli_sock, from, dispatcher,
-                                     broadcast_list_retriever);
+        auto func = [cli_sock, from]() -> void {
+            HandleAcceptedConnection(cli_sock, from);
         };
 
         P2PComm::GetInstance().m_RecvPool.AddJob(func);
@@ -646,10 +632,9 @@ void P2PComm::ConnectionAccept(int serv_sock, [[gnu::unused]] short event,
     }
 }
 
-void P2PComm::StartMessagePump(
-    uint32_t listen_port_host,
-    function<void(const vector<unsigned char>&, const Peer&)> dispatcher,
-    broadcast_list_func broadcast_list_retriever)
+void P2PComm::StartMessagePump(uint32_t listen_port_host,
+                               Dispatcher dispatcher,
+                               Broadcast_list_func broadcast_list_retriever)
 {
     LOG_MARKER();
 
@@ -672,6 +657,9 @@ void P2PComm::StartMessagePump(
         return;
     }
 
+    m_dispatcher = dispatcher;
+    m_broadcast_list_retriever = broadcast_list_retriever;
+
     struct sockaddr_in serv_addr;
     memset(&serv_addr, 0, sizeof(struct sockaddr_in));
     serv_addr.sin_family = AF_INET;
@@ -691,19 +679,13 @@ void P2PComm::StartMessagePump(
     listen(serv_sock, 5000);
 
     struct event_base* base = event_base_new();
-    struct event ev;
-    static ConnectionData* pConnData = new struct ConnectionData;
-    pConnData->dispatcher = dispatcher;
-    pConnData->broadcast_list_retriever = broadcast_list_retriever;
-    event_set(&ev, serv_sock, EV_READ | EV_PERSIST, ConnectionAccept,
-              pConnData);
-    event_base_set(base, &ev);
-    event_add(&ev, nullptr);
+    struct event* ev = event_new(base, serv_sock, EV_READ | EV_PERSIST,
+                                 ConnectionAccept, nullptr);
+    event_add(ev, nullptr);
     event_base_dispatch(base);
 
     close(serv_sock);
-    delete pConnData;
-    event_del(&ev);
+    event_del(ev);
     event_base_free(base);
 }
 
