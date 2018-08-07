@@ -142,13 +142,6 @@ void DirectoryService::ComposeFinalBlockCore()
                                allGasUsed, numTxs, isMicroBlockEmpty,
                                numMicroBlocks);
 
-    for (const auto& h : microBlockHashes)
-    {
-        LOG_GENERAL(INFO, "microblockhash: " << h);
-    }
-
-    m_microBlocks.clear();
-
     BlockHash prevHash;
     uint256_t timestamp = get_time_as_int();
 
@@ -302,9 +295,9 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
     /**
     if (m_consensusMyID == 0 && m_viewChangeCounter < 1)
     {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "I am killing myself to test view change");
-        throw exception();
+        LOG_GENERAL(INFO, "I am killing/suspending myself to test view change");
+        // throw exception();
+        return false;
     }
     **/
 
@@ -829,8 +822,6 @@ bool DirectoryService::FinalBlockValidator(
                   << DataConversion::charArrToHexStr(
                          m_finalBlock->GetHeader().GetPrevHash().asArray()));
 
-    m_microBlocks.clear();
-
     m_finalBlockMessage = finalblock;
 
     return true;
@@ -878,31 +869,34 @@ void DirectoryService::RunConsensusOnFinalBlock()
 
     AccountStore::GetInstance().SerializeDelta();
 
+    // Upon consensus object creation failure, one should not return from the function, but rather wait for view change.
+    bool ConsensusObjCreation = true;
     if (m_mode == PRIMARY_DS)
     {
-        if (!RunConsensusOnFinalBlockWhenDSPrimary())
+        ConsensusObjCreation = RunConsensusOnFinalBlockWhenDSPrimary();
+        if (!ConsensusObjCreation)
         {
             LOG_GENERAL(WARNING,
                         "Consensus failed at "
                         "RunConsensusOnFinalBlockWhenDSPrimary");
-            // throw exception();
-            return;
         }
     }
     else
     {
-        if (!RunConsensusOnFinalBlockWhenDSBackup())
+        ConsensusObjCreation = RunConsensusOnFinalBlockWhenDSBackup();
+        if (!ConsensusObjCreation)
         {
             LOG_GENERAL(WARNING,
                         "Consensus failed at "
                         "RunConsensusOnFinalBlockWhenDSBackup");
-            // throw exception();
-            return;
         }
     }
 
-    SetState(FINALBLOCK_CONSENSUS);
-    cv_finalBlockConsensusObject.notify_all();
+    if (ConsensusObjCreation)
+    {
+        SetState(FINALBLOCK_CONSENSUS);
+        cv_finalBlockConsensusObject.notify_all();
+    }
 
     // View change will wait for timeout. If conditional variable is notified before timeout, the thread will return
     // without triggering view change.

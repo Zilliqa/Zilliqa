@@ -296,11 +296,13 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
 
     // kill first ds leader (used for view change testing)
+    // Either do killing of ds leader or make ds leader do nothing.
     /**
     if (m_consensusMyID == 0 && m_viewChangeCounter < 1)
     {
-        LOG_GENERAL(INFO, "I am killing myself to test view change");
-        throw exception();
+        LOG_GENERAL(INFO, "I am killing/suspending myself to test view change");
+        // throw exception();
+        return false;
     }
     **/
 
@@ -545,29 +547,32 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin)
         }
     }
 
+    // Upon consensus object creation failure, one should not return from the function, but rather wait for view change.
+    bool ConsensusObjCreation = true;
     if (m_mode == PRIMARY_DS)
     {
-        if (!RunConsensusOnDSBlockWhenDSPrimary())
+        ConsensusObjCreation = RunConsensusOnDSBlockWhenDSPrimary();
+        if (!ConsensusObjCreation)
         {
             LOG_GENERAL(WARNING,
                         "Error after RunConsensusOnDSBlockWhenDSPrimary");
-            // throw exception();
-            return;
         }
     }
     else
     {
-        if (!RunConsensusOnDSBlockWhenDSBackup())
+        ConsensusObjCreation = RunConsensusOnDSBlockWhenDSBackup();
+        if (!ConsensusObjCreation)
         {
             LOG_GENERAL(WARNING,
                         "Error after RunConsensusOnDSBlockWhenDSBackup");
-            // throw exception();
-            return;
         }
     }
 
-    SetState(DSBLOCK_CONSENSUS);
-    cv_DSBlockConsensusObject.notify_all();
+    if (ConsensusObjCreation)
+    {
+        SetState(DSBLOCK_CONSENSUS);
+        cv_DSBlockConsensusObject.notify_all();
+    }
 
     // View change will wait for timeout. If conditional variable is notified before timeout, the thread will return
     // without triggering view change.

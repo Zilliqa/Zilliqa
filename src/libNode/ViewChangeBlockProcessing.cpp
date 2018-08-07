@@ -225,7 +225,18 @@ bool Node::ProcessVCBlock(const vector<unsigned char>& message,
     // TODO State machine check
 
     unsigned int newCandidateLeader
-        = 1; // TODO: To be change to a random node using VRF
+        = vcblock.GetHeader().GetViewChangeCounter();
+
+    if (newCandidateLeader > m_mediator.m_DSCommittee.size())
+    {
+        LOG_GENERAL(WARNING,
+                    "View change counter is more than size of ds commitee. "
+                    "This may be due view of ds committee is wrong. "
+                        << m_mediator.m_currentEpochNum << "vc epoch: "
+                        << vcblock.GetHeader().GetViewChangeEpochNo());
+        newCandidateLeader
+            = newCandidateLeader % m_mediator.m_DSCommittee.size();
+    }
 
     if (!(m_mediator.m_DSCommittee.at(newCandidateLeader).second
               == vcblock.GetHeader().GetCandidateLeaderNetworkInfo()
@@ -253,7 +264,10 @@ bool Node::ProcessVCBlock(const vector<unsigned char>& message,
         return false;
     }
 
-    UpdateDSCommiteeComposition();
+    for (unsigned int x = 0; x < newCandidateLeader; x++)
+    {
+        UpdateDSCommiteeComposition(); // TODO: If VC select a random leader, we need to change the way we update ds composition.
+    }
 
     // TDOO
     // Add to block chain and Store the VC block to disk.
