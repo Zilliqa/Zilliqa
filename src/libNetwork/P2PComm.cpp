@@ -148,83 +148,20 @@ void P2PComm::SendMessageCore(const Peer& peer,
 
 namespace
 {
-    bool readHeader(unsigned char* buf, int cli_sock, const Peer& from)
-    {
-        assert(buf);
-        uint32_t read_length = 0;
-        uint32_t retryDuration = 1;
-
-        // Read out just the header first
-        while (read_length != HDR_LEN)
-        {
-            ssize_t n
-                = read(cli_sock, buf + read_length, HDR_LEN - read_length);
-            if (n <= 0)
-            {
-                LOG_GENERAL(WARNING,
-                            "Socket read failed. Code = "
-                                << errno << " Desc: " << std::strerror(errno)
-                                << ". IP address: " << from);
-
-                if (EAGAIN == errno)
-                {
-                    this_thread::sleep_for(chrono::milliseconds(retryDuration));
-                    retryDuration <<= 1;
-                    continue;
-                }
-
-                return false;
-            }
-            read_length += n;
-        }
-
-        return true;
-    }
-
-    bool readHash(unsigned char* hash_buf, int cli_sock, const Peer& from)
-    {
-        assert(hash_buf);
-        uint32_t read_length = 0;
-        uint32_t retryDuration = 1;
-
-        while (read_length != HASH_LEN)
-        {
-            ssize_t n = read(cli_sock, hash_buf + read_length,
-                             HASH_LEN - read_length);
-            if (n <= 0)
-            {
-                LOG_GENERAL(WARNING,
-                            "Socket read failed. Code = "
-                                << errno << " Desc: " << std::strerror(errno)
-                                << ". IP address: " << from);
-
-                if (EAGAIN == errno)
-                {
-                    this_thread::sleep_for(chrono::milliseconds(retryDuration));
-                    retryDuration <<= 1;
-                    continue;
-                }
-
-                return false;
-            }
-            read_length += n;
-        }
-        return true;
-    }
-
-    bool readMessage(vector<unsigned char>* message, int cli_sock,
-                     const Peer& from, uint32_t message_length)
+    bool readMsg(vector<unsigned char>* buf, int cli_sock, const Peer& from,
+                 const uint32_t message_length)
     {
         // Read the rest of the message
-        assert(message);
+        assert(buf);
+        buf->resize(message_length);
         uint32_t read_length = 0;
-        message->resize(message_length);
         uint32_t retryDuration = 1;
 
         while (read_length != message_length)
         {
-            ssize_t n = read(cli_sock, &message->at(read_length),
+            ssize_t n = read(cli_sock, &buf->at(read_length),
                              message_length - read_length);
+
             if (n <= 0)
             {
                 LOG_GENERAL(WARNING,
@@ -241,11 +178,15 @@ namespace
 
                 return false;
             }
+
             read_length += n;
         }
 
-        LOG_PAYLOAD(INFO, "Message received", *message,
-                    Logger::MAX_BYTES_TO_DISPLAY);
+        if (HDR_LEN != message_length && HASH_LEN != message_length)
+        {
+            LOG_PAYLOAD(INFO, "Message received", *buf,
+                        Logger::MAX_BYTES_TO_DISPLAY);
+        }
 
         if (read_length != message_length)
         {
@@ -296,9 +237,8 @@ namespace
         return written_length;
     }
 
-    uint32_t messageLength(unsigned char* buf)
+    uint32_t messageLength(const vector<unsigned char>& buf)
     {
-        assert(buf);
         return (buf[2] << 24) + (buf[3] << 16) + (buf[4] << 8) + buf[5];
     }
 
@@ -461,8 +401,9 @@ void P2PComm::HandleAcceptedConnection(int cli_sock, Peer from)
     // 0x00 0x00 0x00 0x01 - 4-byte length of message
     // 0x00
 
-    unsigned char header[HDR_LEN] = {0};
-    if (!readHeader(header, cli_sock, from))
+    vector<unsigned char> header = {0};
+
+    if (!readMsg(&header, cli_sock, from, HDR_LEN))
     {
         return;
     }
@@ -502,7 +443,8 @@ void P2PComm::HandleAcceptedConnectionNormal(int cli_sock, Peer from,
                                              SocketCloser cli_sock_closer)
 {
     vector<unsigned char> message;
-    if (!readMessage(&message, cli_sock, from, message_length))
+
+    if (!readMsg(&message, cli_sock, from, message_length))
     {
         return;
     }
@@ -516,13 +458,12 @@ void P2PComm::HandleAcceptedConnectionBroadcast(int cli_sock, Peer from,
                                                 uint32_t message_length,
                                                 SocketCloser cli_sock_closer)
 {
-    unsigned char hash_buf[HASH_LEN];
-    if (!readHash(hash_buf, cli_sock, from))
+    vector<unsigned char> msg_hash;
+
+    if (!readMsg(&msg_hash, cli_sock, from, HASH_LEN))
     {
         return;
     }
-
-    const vector<unsigned char> msg_hash(hash_buf, hash_buf + HASH_LEN);
 
     // Check if this message has been received before
     vector<unsigned char> message;
@@ -535,8 +476,7 @@ void P2PComm::HandleAcceptedConnectionBroadcast(int cli_sock, Peer from,
         // While we have the lock, we should quickly add the hash
         if (!found)
         {
-            if (!readMessage(&message, cli_sock, from,
-                             message_length - HASH_LEN))
+            if (!readMsg(&message, cli_sock, from, message_length - HASH_LEN))
             {
                 return;
             }
