@@ -231,7 +231,7 @@ public:
     unsigned int m_syncType = SyncType::NO_SYNC;
 
     /// Helper variables used by new node synchronization
-    bool m_startedPoW2 = false;
+    bool m_startedPoW = false;
 
     bool AlreadyJoinedNetwork();
 };

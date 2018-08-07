@@ -133,7 +133,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t difficulty,
         P2PComm::GetInstance().SendMessage(peerList, powmessage);
     }
 
-    SetState(POW2_SUBMISSION);
+    SetState(TX_SUBMISSION);
     return true;
 }
 

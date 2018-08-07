@@ -43,10 +43,15 @@ find_package(LevelDB REQUIRED)
 
 find_package(OpenCL REQUIRED)
 
+
 if(CUDA_MINE)
     find_package(CUDA REQUIRED)
     add_definitions(-DCUDA_MINE)
 endif()
+
+include(FindProtobuf)
+find_package(Protobuf REQUIRED)
+include_directories(${PROTOBUF_INCLUDE_DIR})
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)

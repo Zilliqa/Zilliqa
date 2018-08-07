@@ -220,6 +220,13 @@ int AccountStore::DeserializeDelta(const vector<unsigned char>& src,
     return 0;
 }
 
+int AccountStore::DeserializeDeltaTemp(const vector<unsigned char>& src,
+                                       unsigned int offset)
+{
+    lock_guard<mutex> g(m_mutexDelta);
+    return m_accountStoreTemp->DeserializeDelta(src, offset);
+}
+
 void AccountStore::MoveRootToDisk(const h256& root)
 {
     //convert h256 to bytes
