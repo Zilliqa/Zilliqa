@@ -87,7 +87,7 @@ void Node::SubmitMicroblockToDSCommittee() const
                          << "][" << m_mediator.m_currentEpochNum << "] SENT");
     deque<Peer> peerList;
 
-    for (auto const& i : m_mediator.m_DSCommittee)
+    for (auto const& i : *m_mediator.m_DSCommittee)
     {
         peerList.push_back(i.second);
     }

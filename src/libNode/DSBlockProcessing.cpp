@@ -98,10 +98,10 @@ void Node::UpdateDSCommiteeComposition(const Peer& winnerpeer)
         peer = winnerpeer;
     }
 
-    m_mediator.m_DSCommittee.emplace_front(make_pair(
+    m_mediator.m_DSCommittee->emplace_front(make_pair(
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetMinerPubKey(),
         peer));
-    m_mediator.m_DSCommittee.pop_back();
+    m_mediator.m_DSCommittee->pop_back();
 }
 
 bool Node::CheckWhetherDSBlockNumIsLatest(const uint64_t dsblockNum)
@@ -140,18 +140,18 @@ bool Node::VerifyDSBlockCoSignature(const DSBlock& dsblock)
     unsigned int count = 0;
 
     const vector<bool>& B2 = dsblock.GetB2();
-    if (m_mediator.m_DSCommittee.size() != B2.size())
+    if (m_mediator.m_DSCommittee->size() != B2.size())
     {
         LOG_GENERAL(WARNING,
                     "Mismatch: DS committee size = "
-                        << m_mediator.m_DSCommittee.size()
+                        << m_mediator.m_DSCommittee->size()
                         << ", co-sig bitmap size = " << B2.size());
         return false;
     }
 
     // Generate the aggregated key
     vector<PubKey> keys;
-    for (auto const& kv : m_mediator.m_DSCommittee)
+    for (auto const& kv : *m_mediator.m_DSCommittee)
     {
         if (B2.at(index) == true)
         {

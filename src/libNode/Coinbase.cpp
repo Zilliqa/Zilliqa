@@ -60,12 +60,12 @@ bool Node::Coinbase(const BlockBase& lastMicroBlock, const TxBlock& lastTxBlock)
 
     Address genesisAccount(GENESIS_WALLETS[0]);
 
-    if (m_mediator.m_DSCommittee.size() != lastTxBlock.GetB1().size())
+    if (m_mediator.m_DSCommittee->size() != lastTxBlock.GetB1().size())
     {
         LOG_GENERAL(WARNING, "B1 and DS pub keys size do not match");
         return false;
     }
-    if (m_mediator.m_DSCommittee.size() != lastTxBlock.GetB2().size())
+    if (m_mediator.m_DSCommittee->size() != lastTxBlock.GetB2().size())
     {
         LOG_GENERAL(WARNING, "B2 and DS pub keys size do not match");
         return false;
@@ -92,7 +92,7 @@ bool Node::Coinbase(const BlockBase& lastMicroBlock, const TxBlock& lastTxBlock)
     {
         deque<PubKey> pubkey;
 
-        for (auto const& i : m_mediator.m_DSCommittee)
+        for (auto const& i : *m_mediator.m_DSCommittee)
         {
             pubkey.push_back(i.first);
         }
