@@ -85,7 +85,6 @@ class Node : public Executable, public Broadcastable
     std::mutex m_mutexConsensus;
 
     // Sharding information
-    std::deque<pair<PubKey, Peer>> m_myShardMembers;
     std::atomic<bool> m_isPrimary;
     std::atomic<bool> m_isMBSender;
     std::atomic<uint32_t> m_myShardID;
@@ -340,6 +339,8 @@ public:
     // std::condition_variable m_cvAllMicroBlocksRecvd;
     // std::mutex m_mutexAllMicroBlocksRecvd;
     // bool m_allMicroBlocksRecvd = true;
+
+    std::shared_ptr<std::deque<pair<PubKey, Peer>>> m_myShardMembers;
 
     std::condition_variable m_cvNewRoundStarted;
     std::mutex m_mutexNewRoundStarted;

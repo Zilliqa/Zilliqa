@@ -98,10 +98,10 @@ void Node::UpdateDSCommiteeComposition(const Peer& winnerpeer)
         peer = winnerpeer;
     }
 
-    m_mediator.m_DSCommittee.emplace_front(make_pair(
+    m_mediator.m_DSCommittee->emplace_front(make_pair(
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetMinerPubKey(),
         peer));
-    m_mediator.m_DSCommittee.pop_back();
+    m_mediator.m_DSCommittee->pop_back();
 }
 
 bool Node::CheckWhetherDSBlockNumIsLatest(const uint64_t dsblockNum)
@@ -140,18 +140,18 @@ bool Node::VerifyDSBlockCoSignature(const DSBlock& dsblock)
     unsigned int count = 0;
 
     const vector<bool>& B2 = dsblock.GetB2();
-    if (m_mediator.m_DSCommittee.size() != B2.size())
+    if (m_mediator.m_DSCommittee->size() != B2.size())
     {
         LOG_GENERAL(WARNING,
                     "Mismatch: DS committee size = "
-                        << m_mediator.m_DSCommittee.size()
+                        << m_mediator.m_DSCommittee->size()
                         << ", co-sig bitmap size = " << B2.size());
         return false;
     }
 
     // Generate the aggregated key
     vector<PubKey> keys;
-    for (auto const& kv : m_mediator.m_DSCommittee)
+    for (auto const& kv : *m_mediator.m_DSCommittee)
     {
         if (B2.at(index) == true)
         {
@@ -239,29 +239,30 @@ bool Node::LoadShardingStructure(
 
     const map<PubKey, Peer>& my_shard = shards.at(m_myShardID);
 
-    m_myShardMembers.clear();
+    // m_myShardMembers->clear();
+    m_myShardMembers.reset(new std::deque<pair<PubKey, Peer>>);
 
     // All nodes; first entry is leader
     unsigned int index = 0;
     for (const auto& i : my_shard)
     {
-        m_myShardMembers.emplace_back(i);
+        m_myShardMembers->emplace_back(i);
 
         // Zero out my IP to avoid sending to myself
-        if (m_mediator.m_selfPeer == m_myShardMembers.back().second)
+        if (m_mediator.m_selfPeer == m_myShardMembers->back().second)
         {
             m_consensusMyID = index; // Set my ID
-            m_myShardMembers.back().second.m_listenPortHost = 0;
+            m_myShardMembers->back().second.m_listenPortHost = 0;
         }
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   " PubKey: "
                       << DataConversion::SerializableToHexStr(
-                             m_myShardMembers.back().first)
+                             m_myShardMembers->back().first)
                       << " IP: "
-                      << m_myShardMembers.back().second.GetPrintableIPAddress()
+                      << m_myShardMembers->back().second.GetPrintableIPAddress()
                       << " Port: "
-                      << m_myShardMembers.back().second.m_listenPortHost);
+                      << m_myShardMembers->back().second.m_listenPortHost);
 
         index++;
     }
@@ -342,7 +343,7 @@ void Node::StartFirstTxEpoch()
     LOG_MARKER();
 
     // Check if I am the leader or backup of the shard
-    if (m_mediator.m_selfKey.second == m_myShardMembers.front().first)
+    if (m_mediator.m_selfKey.second == m_myShardMembers->front().first)
     {
         m_isPrimary = true;
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -377,15 +378,15 @@ void Node::StartFirstTxEpoch()
     // TODO: Randomly choose these nodes?
     m_isMBSender = false;
     unsigned int numOfMBSender = 5;
-    if (m_myShardMembers.size() < numOfMBSender)
+    if (m_myShardMembers->size() < numOfMBSender)
     {
-        numOfMBSender = m_myShardMembers.size();
+        numOfMBSender = m_myShardMembers->size();
     }
 
     // Shard leader will not have the flag set
     for (unsigned int i = 1; i < numOfMBSender; i++)
     {
-        if (m_mediator.m_selfKey.second == m_myShardMembers.at(i).first)
+        if (m_mediator.m_selfKey.second == m_myShardMembers->at(i).first)
         {
             // Selected node to be sender of its shard's micrblock
             m_isMBSender = true;

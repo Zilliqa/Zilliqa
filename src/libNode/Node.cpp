@@ -128,7 +128,7 @@ void Node::Init()
     m_mediator.m_txBlockChain.Reset();
     {
         std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
-        m_mediator.m_DSCommittee.clear();
+        m_mediator.m_DSCommittee->clear();
     }
     m_committedTransactions.clear();
     AccountStore::GetInstance().Init();
@@ -660,7 +660,7 @@ void Node::ResetRejoinFlags()
 bool Node::CleanVariables()
 {
     AccountStore::GetInstance().InitSoft();
-    m_myShardMembers.clear();
+    m_myShardMembers->clear();
     m_isPrimary = false;
     m_isMBSender = false;
     m_myShardID = 0;
