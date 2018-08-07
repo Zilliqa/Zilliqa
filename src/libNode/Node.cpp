@@ -590,6 +590,8 @@ bool Node::ProcessTxnPacketFromLookup(
         return false;
     }
     unsigned int txn_sent_count = 0;
+    lock_guard<mutex> g(m_mutexCreatedTransactions);
+
     for (unsigned int i = 0; i < num; i++)
     {
         Transaction tx;
@@ -598,10 +600,10 @@ bool Node::ProcessTxnPacketFromLookup(
             LOG_GENERAL(WARNING, "Failed to deserialize");
             return false;
         }
+
         if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(tx))
         {
-            LOG_GENERAL(INFO,"HEREE");
-            lock_guard<mutex> g(m_mutexCreatedTransactions);
+            LOG_GENERAL(INFO, "HEREE");
             auto& listIdx
                 = m_createdTransactions.get<MULTI_INDEX_KEY::GAS_PRICE>();
             listIdx.insert(tx);
@@ -613,6 +615,7 @@ bool Node::ProcessTxnPacketFromLookup(
         }
         curr_offset += tx.GetSerializedSize();
     }
+    LOG_GENERAL(INFO, "TXN COUNT" << txn_sent_count);
     if (txn_sent_count > 0)
     {
         LOG_GENERAL(INFO,
