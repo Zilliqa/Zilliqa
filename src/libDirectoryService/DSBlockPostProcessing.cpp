@@ -498,7 +498,8 @@ bool DirectoryService::ProcessDSBlockConsensus(
         lock_guard<mutex> g(m_mutexConsensus);
 
         // Wait until ProcessDSBlock in the case that primary sent announcement pretty early
-        if ((m_state == POW_SUBMISSION) || (m_state == DSBLOCK_CONSENSUS_PREP))
+        if ((m_state == POW_SUBMISSION) || (m_state == DSBLOCK_CONSENSUS_PREP)
+            || (m_state == VIEWCHANGE_CONSENSUS))
         {
             cv_DSBlockConsensus.notify_all();
 
