@@ -44,14 +44,14 @@ bool DirectoryService::ViewChangeValidator(
 
     m_pendingVCBlock.reset(new VCBlock(vcBlock, 0));
 
-    if (m_mediator.m_DSCommittee.at(m_viewChangeCounter).second
+    if (m_mediator.m_DSCommittee->at(m_viewChangeCounter).second
         != m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo())
     {
         LOG_GENERAL(WARNING, "Candidate network info mismatched");
         return false;
     }
 
-    if (!(m_mediator.m_DSCommittee.at(m_viewChangeCounter).first
+    if (!(m_mediator.m_DSCommittee->at(m_viewChangeCounter).first
           == m_pendingVCBlock->GetHeader().GetCandidateLeaderPubKey()))
     {
         LOG_GENERAL(WARNING, "Candidate pubkey mismatched");
@@ -128,22 +128,22 @@ void DirectoryService::RunConsensusOnViewChange()
 
     m_viewChangeCounter = (m_viewChangeCounter + 1)
         % m_mediator.m_DSCommittee
-              .size(); // TODO: To be change to a random node using VRF
+              ->size(); // TODO: To be change to a random node using VRF
 
     LOG_GENERAL(INFO,
                 "The new consensus leader is at index "
                     << to_string(m_viewChangeCounter));
 
-    for (unsigned i = 0; i < m_mediator.m_DSCommittee.size(); i++)
+    for (unsigned i = 0; i < m_mediator.m_DSCommittee->size(); i++)
     {
-        LOG_GENERAL(INFO, m_mediator.m_DSCommittee.at(i).second);
+        LOG_GENERAL(INFO, m_mediator.m_DSCommittee->at(i).second);
     }
 
     // Upon consensus object creation failure, one should not return from the function, but rather wait for view change.
     bool ConsensusObjCreation = true;
 
     // We compare with empty peer is due to the fact that DSCommittee for yourself is 0.0.0.0 with port 0.
-    if (m_mediator.m_DSCommittee.at(m_viewChangeCounter).second == Peer())
+    if (m_mediator.m_DSCommittee->at(m_viewChangeCounter).second == Peer())
     {
         ConsensusObjCreation = RunConsensusOnViewChangeWhenCandidateLeader();
         if (!ConsensusObjCreation)
@@ -199,7 +199,7 @@ void DirectoryService::ComputeNewCandidateLeader()
                     << m_viewChangeCounter);
 
     Peer newLeaderNetworkInfo;
-    if (m_mediator.m_DSCommittee.at(m_viewChangeCounter).second == Peer())
+    if (m_mediator.m_DSCommittee->at(m_viewChangeCounter).second == Peer())
     {
         // I am the leader but in the Peer store, it is put as 0.0.0.0 with port 0
         newLeaderNetworkInfo = m_mediator.m_selfPeer;
@@ -207,7 +207,7 @@ void DirectoryService::ComputeNewCandidateLeader()
     else
     {
         newLeaderNetworkInfo
-            = m_mediator.m_DSCommittee.at(m_viewChangeCounter).second;
+            = m_mediator.m_DSCommittee->at(m_viewChangeCounter).second;
     }
 
     {
@@ -221,7 +221,7 @@ void DirectoryService::ComputeNewCandidateLeader()
                     + 1,
                 m_mediator.m_currentEpochNum, m_viewChangestate,
                 m_viewChangeCounter, newLeaderNetworkInfo,
-                m_mediator.m_DSCommittee.at(m_viewChangeCounter).first,
+                m_mediator.m_DSCommittee->at(m_viewChangeCounter).first,
                 m_viewChangeCounter, get_time_as_int()),
             CoSignatures()));
     }
@@ -256,7 +256,7 @@ bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader()
 
     m_consensusObject.reset(new ConsensusLeader(
         consensusID, m_consensusBlockHash, m_consensusMyID,
-        m_mediator.m_selfKey.first, m_mediator.m_DSCommittee,
+        m_mediator.m_selfKey.first, *m_mediator.m_DSCommittee,
         static_cast<unsigned char>(DIRECTORY),
         static_cast<unsigned char>(VIEWCHANGECONSENSUS),
         std::function<bool(const vector<unsigned char>&, unsigned int,
@@ -304,7 +304,7 @@ bool DirectoryService::RunConsensusOnViewChangeWhenNotCandidateLeader()
     uint32_t consensusID = m_viewChangeCounter;
     m_consensusObject.reset(new ConsensusBackup(
         consensusID, m_consensusBlockHash, m_consensusMyID, m_viewChangeCounter,
-        m_mediator.m_selfKey.first, m_mediator.m_DSCommittee,
+        m_mediator.m_selfKey.first, *m_mediator.m_DSCommittee,
         static_cast<unsigned char>(DIRECTORY),
         static_cast<unsigned char>(VIEWCHANGECONSENSUS), func));
 
