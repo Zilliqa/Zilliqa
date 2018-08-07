@@ -259,6 +259,7 @@ class DirectoryService : public Executable, public Broadcastable
                                     unsigned int offset, const Peer& from);
 
     // View change
+    void SetLastKnownGoodState();
     void RunConsensusOnViewChange();
     void ScheduleViewChangeTimeout();
     void ComputeNewCandidateLeader();
@@ -370,6 +371,7 @@ private:
     std::string GetStateString() const;
     static std::map<Action, std::string> ActionStrings;
     std::string GetActionString(Action action) const;
+    bool ValidateViewChangeState(DirState NodeState, DirState StatePropose);
 };
 
 #endif // __DIRECTORYSERVICE_H__
