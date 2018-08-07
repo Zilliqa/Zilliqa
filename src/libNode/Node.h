@@ -79,7 +79,7 @@ class Node : public Executable, public Broadcastable
     std::mutex m_mutexConsensus;
 
     // Sharding information
-    std::deque<pair<PubKey, Peer>> m_myShardMembers;
+    std::shared_ptr<std::deque<pair<PubKey, Peer>>> m_myShardMembers;
     std::atomic<bool> m_isPrimary;
     std::atomic<bool> m_isMBSender;
     std::atomic<uint32_t> m_myShardID;
