@@ -87,7 +87,7 @@ void Node::SubmitMicroblockToDSCommittee() const
                          << "][" << m_mediator.m_currentEpochNum << "] SENT");
     deque<Peer> peerList;
 
-    for (auto const& i : m_mediator.m_DSCommittee)
+    for (auto const& i : *m_mediator.m_DSCommittee)
     {
         peerList.push_back(i.second);
     }
@@ -517,7 +517,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
                   << " m_consensusMyID: " << m_consensusMyID
                   << " m_consensusLeaderID: " << m_consensusLeaderID
                   << " Shard Leader: "
-                  << m_myShardMembers[m_consensusLeaderID].second);
+                  << (*m_myShardMembers)[m_consensusLeaderID].second);
 
     auto nodeMissingTxnsFunc
         = [this](const vector<unsigned char>& errorMsg, unsigned int offset,
@@ -531,7 +531,8 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
 
     deque<pair<PubKey, Peer>> peerList;
 
-    for (auto it = m_myShardMembers.begin(); it != m_myShardMembers.end(); ++it)
+    for (auto it = m_myShardMembers->begin(); it != m_myShardMembers->end();
+         ++it)
     {
         peerList.emplace_back(*it);
     }
@@ -582,11 +583,12 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup()
                   << " m_consensusMyID: " << m_consensusMyID
                   << " m_consensusLeaderID: " << m_consensusLeaderID
                   << " Shard Leader: "
-                  << m_myShardMembers[m_consensusLeaderID].second);
+                  << (*m_myShardMembers)[m_consensusLeaderID].second);
 
     deque<pair<PubKey, Peer>> peerList;
 
-    for (auto it = m_myShardMembers.begin(); it != m_myShardMembers.end(); ++it)
+    for (auto it = m_myShardMembers->begin(); it != m_myShardMembers->end();
+         ++it)
     {
         peerList.emplace_back(*it);
     }

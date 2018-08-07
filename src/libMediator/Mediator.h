@@ -65,7 +65,7 @@ public:
     // Oldest member will be pushed out from tail of queue
 
     /// The public keys and current members of the DS committee.
-    std::deque<pair<PubKey, Peer>> m_DSCommittee;
+    std::shared_ptr<std::deque<pair<PubKey, Peer>>> m_DSCommittee;
     std::mutex m_mutexDSCommittee;
 
     /// The current epoch randomness from the DS blockchain.
