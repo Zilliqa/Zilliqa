@@ -969,7 +969,9 @@ void Node::ProcessTransactionWhenShardLeader()
         lock_guard<mutex> g(m_mutexCreatedTransactions);
 
         auto& listIdx = m_createdTransactions.get<MULTI_INDEX_KEY::GAS_PRICE>();
-        if (!listIdx.size())
+
+        LOG_GENERAL(INFO, "Size List Idx " << listIdx.size());
+        if (listIdx.size() == 0)
         {
             return false;
         }
@@ -986,6 +988,7 @@ void Node::ProcessTransactionWhenShardLeader()
         lock_guard<mutex> g(m_mutexProcessedTransactions);
         auto& processedTransactions = m_processedTransactions[blockNum];
         processedTransactions.insert(make_pair(t.GetTranID(), t));
+        LOG_GENERAL(INFO, "Hereeeee");
     };
 
     uint256_t gasUsedTotal = 0;
@@ -1017,9 +1020,10 @@ void Node::ProcessTransactionWhenShardLeader()
         else if (findOneFromCreated(t))
         {
             uint256_t gasUsed = 0;
+            LOG_GENERAL(INFO, "Num: " << txn_sent_count);
 
             // check nonce, if nonce larger than expected, put it into m_addrNonceTxnMap
-            if (t.GetNonce()
+            /*if (t.GetNonce()
                 > AccountStore::GetInstance().GetNonceTemp(t.GetSenderAddr())
                     + 1)
             {
@@ -1048,11 +1052,14 @@ void Node::ProcessTransactionWhenShardLeader()
             {
             }
             // if nonce correct, process it
-            else if (m_mediator.m_validator->CheckCreatedTransaction(t, gasUsed)
-                     || !t.GetCode().empty() || !t.GetData().empty())
+            else*/ if (m_mediator.m_validator->CheckCreatedTransaction(t,
+                                                                       gasUsed)
+                       || !t.GetCode().empty() || !t.GetData().empty())
             {
+
                 appendOne(t);
                 gasUsedTotal += gasUsed;
+                LOG_GENERAL(INFO, "Gas Used Total: " << gasUsedTotal);
             }
         }
         else
@@ -1063,8 +1070,9 @@ void Node::ProcessTransactionWhenShardLeader()
     }
 }
 
-bool Node::VerifyTxnsOrdering(const list<Transaction>& txns)
+bool Node::VerifyTxnsOrdering([[gnu::unused]] const list<Transaction>& txns)
 {
+    /*
     unordered_map<Address, uint256_t> nonceMap;
 
     for (const auto& t : txns)
@@ -1082,7 +1090,7 @@ bool Node::VerifyTxnsOrdering(const list<Transaction>& txns)
             }
             nonceMap[t.GetSenderAddr()] = t.GetNonce();
         }
-    }
+    }*/
 
     return true;
 }
@@ -1339,7 +1347,8 @@ bool Node::ProcessTransactionWhenShardBackup(const vector<TxnHash>& tranHashes,
         lock_guard<mutex> g(m_mutexCreatedTransactions);
 
         auto& hashIdx = m_createdTransactions.get<MULTI_INDEX_KEY::TXN_ID>();
-        if (!hashIdx.size())
+        LOG_GENERAL(INFO, "Hash: " << th);
+        if (hashIdx.size() == 0)
         {
             return false;
         }
@@ -1379,6 +1388,7 @@ bool Node::ProcessTransactionWhenShardBackup(const vector<TxnHash>& tranHashes,
 
         if (findFromCreated(t, tranHash))
         {
+            LOG_GENERAL(INFO, "TranHash added to curTxns " << tranHash);
             curTxns.emplace_back(t);
         }
         else
@@ -1389,11 +1399,13 @@ bool Node::ProcessTransactionWhenShardBackup(const vector<TxnHash>& tranHashes,
 
     if (!missingtranHashes.empty())
     {
+        LOG_GENERAL(WARNING, "Not found Missing Txns");
         return true;
     }
 
     if (!VerifyTxnsOrdering(curTxns))
     {
+        LOG_GENERAL(WARNING, "Not ordered txns propertly")
         return false;
     }
 
@@ -1403,15 +1415,23 @@ bool Node::ProcessTransactionWhenShardBackup(const vector<TxnHash>& tranHashes,
         lock_guard<mutex> g(m_mutexProcessedTransactions);
         auto& processedTransactions = m_processedTransactions[blockNum];
         processedTransactions.insert(make_pair(t.GetTranID(), t));
+        LOG_GENERAL(INFO, "inside appendOne");
     };
 
     for (const auto& t : curTxns)
     {
+        LOG_GENERAL(INFO, "inside loop");
         uint256_t gasUsed = 0;
         if (m_mediator.m_validator->CheckCreatedTransaction(t, gasUsed)
             || !t.GetCode().empty() || !t.GetData().empty())
         {
+            LOG_GENERAL(INFO, "inside if 2");
             appendOne(t);
+            LOG_GENERAL(INFO, "inside if");
+        }
+        else
+        {
+            LOG_GENERAL(INFO, "inside else");
         }
     }
 
@@ -1422,7 +1442,6 @@ bool Node::ProcessTransactionWhenShardBackup(const vector<TxnHash>& tranHashes,
 
 unsigned char Node::CheckLegitimacyOfTxnHashes(vector<unsigned char>& errorMsg)
 {
-    lock_guard<mutex> g(m_mutexProcessedTransactions);
 
     vector<TxnHash> missingTxnHashes;
     if (!ProcessTransactionWhenShardBackup(m_microblock->GetTranHashes(),

@@ -113,10 +113,10 @@ Address GenOneReceiver()
 Transaction CreateValidTestingTransaction(PrivKey& fromPrivKey,
                                           PubKey& fromPubKey,
                                           const Address& toAddr,
-                                          uint256_t amount)
+                                          uint256_t amount, uint256_t prevNonce)
 {
     unsigned int version = 0;
-    auto nonce = 0;
+    auto nonce = prevNonce + 1;
 
     // LOG_GENERAL("fromPrivKey " << fromPrivKey << " / fromPubKey " << fromPubKey
     // << " / toAddr" << toAddr);
@@ -155,6 +155,8 @@ bool Lookup::GenTxnToSend(size_t n, map<uint32_t, vector<Transaction>>& mp,
         }
         auto txnShard = Transaction::GetShardIndex(addr, nShard);
 
+        auto nonce = AccountStore::GetInstance().GetNonceTemp(addr);
+
         txns.clear();
 
         Address receiverAddr = GenOneReceiver();
@@ -163,8 +165,8 @@ bool Lookup::GenTxnToSend(size_t n, map<uint32_t, vector<Transaction>>& mp,
         for (auto i = 0u; i != n; i++)
         {
 
-            auto txn = CreateValidTestingTransaction(privKey, pubKey,
-                                                     receiverAddr, i);
+            auto txn = CreateValidTestingTransaction(
+                privKey, pubKey, receiverAddr, i + 10000, nonce + i);
             txns.emplace_back(txn);
         }
 
@@ -2289,9 +2291,11 @@ void Lookup::SenderTxnBatchThread()
 {
     auto main_func = [this]() mutable -> void {
         uint32_t nShard;
-        while (true)
+        bool sentOnce = false;
+        while (!sentOnce)
         {
-            if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0)
+            if (!(m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0
+                  || m_mediator.m_currentEpochNum == 1))
             {
                 {
                     lock_guard<mutex> g(m_mutexShards);
@@ -2304,6 +2308,8 @@ void Lookup::SenderTxnBatchThread()
                 }
 
                 SendTxnPacketToNodes(nShard);
+                LOG_GENERAL(INFO, "Sent txns");
+                sentOnce = true;
             }
 
             this_thread::sleep_for(chrono::milliseconds(10000));
@@ -2327,7 +2333,6 @@ bool Lookup::CreateTxnPacket(vector<unsigned char>& msg, uint32_t shardId,
     }
     unsigned int size_dummy = mp[shardId].size();
     unsigned int curr_offset = offset;
-    LOG_GENERAL(INFO, "Reached Here!!!!");
 
     {
         lock_guard<mutex> g(m_txnShardMapMutex);
@@ -2351,9 +2356,8 @@ bool Lookup::CreateTxnPacket(vector<unsigned char>& msg, uint32_t shardId,
 
     for (uint32_t i = 0; i < size_dummy; i++)
     {
-        LOG_GENERAL(INFO, "abcde1");
+
         curr_offset = mp.at(shardId)[i].Serialize(msg, curr_offset);
-        LOG_GENERAL(INFO, "currrentOffset " << curr_offset);
     }
 
     return true;
@@ -2373,20 +2377,19 @@ void Lookup::SendTxnPacketToNodes(uint32_t nShard)
             continue;
         }
 
-        LOG_GENERAL(INFO, "abcde");
         vector<Peer> toSend;
         {
             lock_guard<mutex> g(m_mutexShards);
             auto it = m_shards.at(i).begin();
 
-            for (unsigned int j = 0; j < 5 && it != m_shards.at(i).end();
+            for (unsigned int j = 0; j < 3 && it != m_shards.at(i).end();
                  j++, it++)
             {
                 toSend.push_back(it->second);
             }
         }
 
-        P2PComm::GetInstance().SendMessage(toSend, msg);
+        P2PComm::GetInstance().SendBroadcastMessage(toSend, msg);
 
         LOG_GENERAL(INFO, "Packet disposed off to " << i << " shard");
 
