@@ -582,7 +582,7 @@ bool CLMiner::init(uint64_t blockNumber)
 		    	cnote << "Adjusting CL work multiplier for " << computeUnits << " CUs."
 		    		<< "Adjusted work multiplier: " << m_globalWorkSize / m_workgroupSize;
 		    }
-        }        
+        }
 
         const auto lightSize = ethash_get_cachesize(blockNumber);
         const auto lightNumItems = lightSize / ETHASH_HASH_BYTES;
