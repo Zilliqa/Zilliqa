@@ -123,8 +123,8 @@ void DirectoryService::SetupMulticastConfigForDSBlock(
     LOG_MARKER();
 
     unsigned int num_DS_clusters
-        = m_mediator.m_DSCommittee.size() / DS_MULTICAST_CLUSTER_SIZE;
-    if ((m_mediator.m_DSCommittee.size() % DS_MULTICAST_CLUSTER_SIZE) > 0)
+        = m_mediator.m_DSCommittee->size() / DS_MULTICAST_CLUSTER_SIZE;
+    if ((m_mediator.m_DSCommittee->size() % DS_MULTICAST_CLUSTER_SIZE) > 0)
     {
         // If there are still ds lefts, add a new ds cluster
         num_DS_clusters++;
@@ -228,7 +228,8 @@ void DirectoryService::UpdateMyDSModeAndConsensusId()
                              << "] DSBK");
     }
     // Check if I am the oldest backup DS (I will no longer be part of the DS committee)
-    else if ((uint32_t)(m_consensusMyID + 1) == m_mediator.m_DSCommittee.size())
+    else if ((uint32_t)(m_consensusMyID + 1)
+             == m_mediator.m_DSCommittee->size())
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "I am the oldest backup DS -> I am now just a shard node"
@@ -257,10 +258,10 @@ void DirectoryService::UpdateDSCommiteeComposition(const Peer& winnerpeer)
     // Update the DS committee composition
     LOG_MARKER();
 
-    m_mediator.m_DSCommittee.emplace_front(make_pair(
+    m_mediator.m_DSCommittee->emplace_front(make_pair(
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetMinerPubKey(),
         winnerpeer));
-    m_mediator.m_DSCommittee.pop_back();
+    m_mediator.m_DSCommittee->pop_back();
 
     // Remove the new winner of pow from m_allpowconn. He is the new ds leader and do not need to do pow anymore
     m_allPoWConns.erase(
@@ -280,6 +281,8 @@ void DirectoryService::StartFirstTxEpoch()
 
     if (m_mode != IDLE)
     {
+        m_mediator.m_node->m_myShardMembers = m_mediator.m_DSCommittee;
+
         if (TEST_NET_MODE)
         {
             LOG_GENERAL(INFO, "Updating shard whitelist");

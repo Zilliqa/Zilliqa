@@ -199,8 +199,8 @@ bool DirectoryService::ProcessSetPrimary(
             m_mediator.m_selfKey.second,
             m_mediator.m_selfPeer); // Add myself, but with dummy IP info
         vector<pair<PubKey, Peer>> ds = dsstore.GetAllPeerPairs();
-        m_mediator.m_DSCommittee.resize(ds.size());
-        copy(ds.begin(), ds.end(), m_mediator.m_DSCommittee.begin());
+        m_mediator.m_DSCommittee->resize(ds.size());
+        copy(ds.begin(), ds.end(), m_mediator.m_DSCommittee->begin());
         // Message = [numDSPeers][DSPeer][DSPeer]... numDSPeers times
         vector<unsigned char> setDSBootstrapNodeMessage
             = {MessageType::LOOKUP, LookupInstructionType::SETDSINFOFROMSEED};
@@ -229,13 +229,13 @@ bool DirectoryService::ProcessSetPrimary(
                           Peer()); // Add myself, but with dummy IP info
 
     vector<pair<PubKey, Peer>> tmp1 = peerstore.GetAllPeerPairs();
-    m_mediator.m_DSCommittee.resize(tmp1.size());
-    copy(tmp1.begin(), tmp1.end(), m_mediator.m_DSCommittee.begin());
+    m_mediator.m_DSCommittee->resize(tmp1.size());
+    copy(tmp1.begin(), tmp1.end(), m_mediator.m_DSCommittee->begin());
     peerstore.RemovePeer(m_mediator.m_selfKey.second); // Remove myself
 
     // Now I need to find my index in the sorted list (this will be my ID for the consensus)
     m_consensusMyID = 0;
-    for (auto const& i : m_mediator.m_DSCommittee)
+    for (auto const& i : *m_mediator.m_DSCommittee)
     {
         if (i.first == m_mediator.m_selfKey.second)
         {
@@ -381,12 +381,11 @@ bool DirectoryService::FinishRejoinAsDS()
     m_consensusMyID = 0;
     {
         std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
-        LOG_GENERAL(
-            INFO,
-            "m_DSCommitteePubKeys size: " << m_mediator.m_DSCommittee.size());
-        for (auto const& i : m_mediator.m_DSCommittee)
+        LOG_GENERAL(INFO,
+                    "m_DSCommittee size: " << m_mediator.m_DSCommittee->size());
+        for (auto const& i : *m_mediator.m_DSCommittee)
         {
-            LOG_GENERAL(INFO, "Loop of m_DSCommitteePubKeys");
+            LOG_GENERAL(INFO, "Loop of m_DSCommittee");
             if (i.first == m_mediator.m_selfKey.second)
             {
                 LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
