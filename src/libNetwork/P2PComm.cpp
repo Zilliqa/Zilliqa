@@ -146,6 +146,164 @@ void P2PComm::SendMessageCore(const Peer& peer,
     }
 }
 
+namespace
+{
+    bool readHeader(unsigned char* buf, int cli_sock, const Peer& from)
+    {
+        assert(buf);
+        uint32_t read_length = 0;
+        uint32_t retryDuration = 1;
+
+        // Read out just the header first
+        while (read_length != HDR_LEN)
+        {
+            ssize_t n
+                = read(cli_sock, buf + read_length, HDR_LEN - read_length);
+            if (n <= 0)
+            {
+                LOG_GENERAL(WARNING,
+                            "Socket read failed. Code = "
+                                << errno << " Desc: " << std::strerror(errno)
+                                << ". IP address: " << from);
+
+                if (EAGAIN == errno)
+                {
+                    this_thread::sleep_for(chrono::milliseconds(retryDuration));
+                    retryDuration <<= 1;
+                    continue;
+                }
+
+                return false;
+            }
+            read_length += n;
+        }
+
+        return true;
+    }
+
+    bool readHash(unsigned char* hash_buf, int cli_sock, const Peer& from)
+    {
+        assert(hash_buf);
+        uint32_t read_length = 0;
+        uint32_t retryDuration = 1;
+
+        while (read_length != HASH_LEN)
+        {
+            ssize_t n = read(cli_sock, hash_buf + read_length,
+                             HASH_LEN - read_length);
+            if (n <= 0)
+            {
+                LOG_GENERAL(WARNING,
+                            "Socket read failed. Code = "
+                                << errno << " Desc: " << std::strerror(errno)
+                                << ". IP address: " << from);
+
+                if (EAGAIN == errno)
+                {
+                    this_thread::sleep_for(chrono::milliseconds(retryDuration));
+                    retryDuration <<= 1;
+                    continue;
+                }
+
+                return false;
+            }
+            read_length += n;
+        }
+        return true;
+    }
+
+    bool readMessage(vector<unsigned char>* message, int cli_sock,
+                     const Peer& from, uint32_t message_length)
+    {
+        // Read the rest of the message
+        assert(message);
+        uint32_t read_length = 0;
+        message->resize(message_length);
+        uint32_t retryDuration = 1;
+
+        while (read_length != message_length)
+        {
+            ssize_t n = read(cli_sock, &message->at(read_length),
+                             message_length - read_length);
+            if (n <= 0)
+            {
+                LOG_GENERAL(WARNING,
+                            "Socket read failed. Code = "
+                                << errno << " Desc: " << std::strerror(errno)
+                                << ". IP address: " << from);
+
+                if (EAGAIN == errno)
+                {
+                    this_thread::sleep_for(chrono::milliseconds(retryDuration));
+                    retryDuration <<= 1;
+                    continue;
+                }
+
+                return false;
+            }
+            read_length += n;
+        }
+
+        LOG_PAYLOAD(INFO, "Message received", *message,
+                    Logger::MAX_BYTES_TO_DISPLAY);
+
+        if (read_length != message_length)
+        {
+            LOG_GENERAL(WARNING, "Incorrect message length.");
+            return false;
+        }
+
+        return true;
+    }
+
+    uint32_t writeMsg(const void* buf, int cli_sock, const Peer& from,
+                      const uint32_t message_length)
+    {
+        uint32_t written_length = 0;
+
+        while (written_length != message_length)
+        {
+            ssize_t n = write(cli_sock, (unsigned char*)buf + written_length,
+                              message_length - written_length);
+
+            if (errno == EPIPE)
+            {
+                LOG_GENERAL(WARNING,
+                            " SIGPIPE detected. Error No: "
+                                << errno << " Desc: " << std::strerror(errno));
+                return written_length;
+                // No retry as it is likely the other end terminate the conn due to duplicated msg.
+            }
+
+            if (n <= 0)
+            {
+                LOG_GENERAL(WARNING,
+                            "Socket write failed in message header. Code = "
+                                << errno << " Desc: " << std::strerror(errno)
+                                << ". IP address:" << from);
+                return written_length;
+            }
+
+            written_length += n;
+        }
+
+        if (written_length > 1000000)
+        {
+            LOG_GENERAL(
+                INFO, "DEBUG: Sent a total of " << written_length << " bytes");
+        }
+
+        return written_length;
+    }
+
+    uint32_t messageLength(unsigned char* buf)
+    {
+        assert(buf);
+        return (buf[2] << 24) + (buf[3] << 16) + (buf[4] << 8) + buf[5];
+    }
+
+} // anonymous namespace
+
 bool P2PComm::SendMessageSocketCore(const Peer& peer,
                                     const std::vector<unsigned char>& message,
                                     unsigned char start_byte,
@@ -220,6 +378,7 @@ bool P2PComm::SendMessageSocketCore(const Peer& peer,
         // 0x00 0x00 0x00 0x01 - 4-byte length of message
         // 0x00
         uint32_t length = message.size();
+
         if (start_byte == START_BYTE_BROADCAST)
         {
             length += HASH_LEN;
@@ -231,93 +390,26 @@ bool P2PComm::SendMessageSocketCore(const Peer& peer,
                                       (unsigned char)((length >> 16) & 0xFF),
                                       (unsigned char)((length >> 8) & 0xFF),
                                       (unsigned char)(length & 0xFF)};
-        uint32_t written_length = 0;
 
-        while (written_length != HDR_LEN)
+        if (HDR_LEN != writeMsg(buf, cli_sock, peer, HDR_LEN))
         {
-            ssize_t n = write(cli_sock, buf + written_length,
-                              HDR_LEN - written_length);
-            if (n <= 0)
-            {
-                LOG_GENERAL(WARNING,
-                            "Socket write failed in message header. Code = "
-                                << errno << " Desc: " << std::strerror(errno)
-                                << ". IP address:" << peer);
-                return false;
-            }
-            written_length += n;
+            LOG_GENERAL(INFO, "DEBUG: not written_length == " << HDR_LEN);
         }
 
-        if (start_byte == START_BYTE_BROADCAST)
+        if (start_byte != START_BYTE_BROADCAST)
         {
-            written_length = 0;
-            while (written_length != HASH_LEN)
-            {
-                ssize_t n = write(cli_sock, &msg_hash.at(0) + written_length,
-                                  HASH_LEN - written_length);
-                if (n <= 0)
-                {
-                    LOG_GENERAL(WARNING,
-                                "Socket write failed in hash header. Code = "
-                                    << errno
-                                    << " Desc: " << std::strerror(errno));
-                    return false;
-                }
-                written_length += n;
-            }
-
-            if (written_length == HASH_LEN)
-            {
-                written_length = HDR_LEN;
-            }
-            else
-            {
-                LOG_GENERAL(WARNING, "Wrong message hash length.");
-                return false;
-            }
-
-            length -= HASH_LEN;
+            writeMsg(&message.at(0), cli_sock, peer, length);
+            return true;
         }
 
-        if (written_length == HDR_LEN)
+        if (HASH_LEN != writeMsg(&msg_hash.at(0), cli_sock, peer, HASH_LEN))
         {
-            written_length = 0;
-            while (written_length != length)
-            {
-                ssize_t n = write(cli_sock, &message.at(0) + written_length,
-                                  length - written_length);
-
-                if (errno == EPIPE)
-                {
-                    LOG_GENERAL(WARNING,
-                                " SIGPIPE detected. Error No: "
-                                    << errno
-                                    << " Desc: " << std::strerror(errno));
-                    return true;
-                    // No retry as it is likely the other end terminate the conn due to duplicated msg.
-                }
-
-                if (n <= 0)
-                {
-                    LOG_GENERAL(WARNING,
-                                "Socket write failed in message body. Code = "
-                                    << errno
-                                    << " Desc: " << std::strerror(errno));
-                    return false;
-                }
-                written_length += n;
-            }
-        }
-        else
-        {
-            LOG_GENERAL(INFO, "DEBUG: not written_length == HDR_LEN");
+            LOG_GENERAL(WARNING, "Wrong message hash length.");
+            return false;
         }
 
-        if (written_length > 1000000)
-        {
-            LOG_GENERAL(
-                INFO, "DEBUG: Sent a total of " << written_length << " bytes");
-        }
+        length -= HASH_LEN;
+        writeMsg(&message.at(0), cli_sock, peer, length);
     }
     catch (const std::exception& e)
     {
@@ -344,124 +436,6 @@ void P2PComm::ClearBroadcastHashAsync(const vector<unsigned char>& message_hash)
     lock_guard<mutex> guard(m_broadcastToRemoveMutex);
     m_broadcastToRemove.emplace_back(message_hash, chrono::system_clock::now());
 }
-
-namespace
-{
-    bool readHeader(unsigned char* buf, int cli_sock, Peer from)
-    {
-        assert(buf);
-        uint32_t read_length = 0;
-        uint32_t retryDuration = 1;
-
-        // Read out just the header first
-        while (read_length != HDR_LEN)
-        {
-            ssize_t n
-                = read(cli_sock, buf + read_length, HDR_LEN - read_length);
-            if (n <= 0)
-            {
-                LOG_GENERAL(WARNING,
-                            "Socket read failed. Code = "
-                                << errno << " Desc: " << std::strerror(errno)
-                                << ". IP address: " << from);
-
-                if (EAGAIN == errno)
-                {
-                    this_thread::sleep_for(chrono::milliseconds(retryDuration));
-                    retryDuration <<= 1;
-                    continue;
-                }
-
-                return false;
-            }
-            read_length += n;
-        }
-
-        return true;
-    }
-
-    bool readHash(unsigned char* hash_buf, int cli_sock, Peer from)
-    {
-        assert(hash_buf);
-        uint32_t read_length = 0;
-        uint32_t retryDuration = 1;
-
-        while (read_length != HASH_LEN)
-        {
-            ssize_t n = read(cli_sock, hash_buf + read_length,
-                             HASH_LEN - read_length);
-            if (n <= 0)
-            {
-                LOG_GENERAL(WARNING,
-                            "Socket read failed. Code = "
-                                << errno << " Desc: " << std::strerror(errno)
-                                << ". IP address: " << from);
-
-                if (EAGAIN == errno)
-                {
-                    this_thread::sleep_for(chrono::milliseconds(retryDuration));
-                    retryDuration <<= 1;
-                    continue;
-                }
-
-                return false;
-            }
-            read_length += n;
-        }
-        return true;
-    }
-
-    bool readMessage(vector<unsigned char>* message, int cli_sock, Peer from,
-                     uint32_t message_length)
-    {
-        // Read the rest of the message
-        assert(message);
-        uint32_t read_length = 0;
-        message->resize(message_length);
-        uint32_t retryDuration = 1;
-
-        while (read_length != message_length)
-        {
-            ssize_t n = read(cli_sock, &message->at(read_length),
-                             message_length - read_length);
-            if (n <= 0)
-            {
-                LOG_GENERAL(WARNING,
-                            "Socket read failed. Code = "
-                                << errno << " Desc: " << std::strerror(errno)
-                                << ". IP address: " << from);
-
-                if (EAGAIN == errno)
-                {
-                    this_thread::sleep_for(chrono::milliseconds(retryDuration));
-                    retryDuration <<= 1;
-                    continue;
-                }
-
-                return false;
-            }
-            read_length += n;
-        }
-
-        LOG_PAYLOAD(INFO, "Message received", *message,
-                    Logger::MAX_BYTES_TO_DISPLAY);
-
-        if (read_length != message_length)
-        {
-            LOG_GENERAL(WARNING, "Incorrect message length.");
-            return false;
-        }
-
-        return true;
-    }
-
-    uint32_t messageLength(unsigned char* buf)
-    {
-        assert(buf);
-        return (buf[2] << 24) + (buf[3] << 16) + (buf[4] << 8) + buf[5];
-    }
-
-} // anonymous namespace
 
 void P2PComm::HandleAcceptedConnection(int cli_sock, Peer from)
 {
