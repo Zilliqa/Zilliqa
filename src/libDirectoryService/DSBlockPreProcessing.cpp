@@ -75,7 +75,7 @@ void DirectoryService::ComposeDSBlock()
     m_pendingDSBlock.reset(new DSBlock(
         DSBlockHeader(difficulty, prevHash, winnerNonce, winnerKey,
                       m_mediator.m_selfKey.second, blockNum, get_time_as_int()),
-        CoSignatures(m_mediator.m_DSCommittee.size())));
+        CoSignatures(m_mediator.m_DSCommittee->size())));
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "New DSBlock created with chosen nonce = 0x" << hex
@@ -145,12 +145,12 @@ void DirectoryService::ComputeTxnSharingAssignments(const Peer& winnerpeer)
     m_DSReceivers.clear();
 
     LOG_GENERAL(INFO,
-                "debug " << m_mediator.m_DSCommittee.size() << " "
+                "debug " << m_mediator.m_DSCommittee->size() << " "
                          << TX_SHARING_CLUSTER_SIZE);
 
     uint32_t num_ds_nodes
-        = (m_mediator.m_DSCommittee.size() < TX_SHARING_CLUSTER_SIZE)
-        ? m_mediator.m_DSCommittee.size()
+        = (m_mediator.m_DSCommittee->size() < TX_SHARING_CLUSTER_SIZE)
+        ? m_mediator.m_DSCommittee->size()
         : TX_SHARING_CLUSTER_SIZE;
 
     // Add the new DS leader first
@@ -162,11 +162,11 @@ void DirectoryService::ComputeTxnSharingAssignments(const Peer& winnerpeer)
     {
         if (i != m_consensusMyID)
         {
-            m_DSReceivers.emplace_back(m_mediator.m_DSCommittee.at(i).second);
+            m_DSReceivers.emplace_back(m_mediator.m_DSCommittee->at(i).second);
         }
         else
         {
-            // when i == m_consensusMyID use m_mediator.m_selfPeer since IP/ port in m_mediator.m_DSCommittee.at(m_consensusMyID).second is zeroed out
+            // when i == m_consensusMyID use m_mediator.m_selfPeer since IP/ port in m_mediator.m_DSCommittee->at(m_consensusMyID).second is zeroed out
             m_DSReceivers.emplace_back(m_mediator.m_selfPeer);
         }
     }
@@ -256,8 +256,8 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
     m_allPoWs.pop_back();
 
     // Add the oldest DS committee member to m_allPoWs and m_allPoWConns so it gets included in sharding structure
-    m_allPoWs.emplace_back(m_mediator.m_DSCommittee.back().first, 0);
-    m_allPoWConns.emplace(m_mediator.m_DSCommittee.back());
+    m_allPoWs.emplace_back(m_mediator.m_DSCommittee->back().first, 0);
+    m_allPoWConns.emplace(m_mediator.m_DSCommittee->back());
 
     const auto& winnerPeer
         = m_allPoWConns.find(m_pendingDSBlock->GetHeader().GetMinerPubKey());
@@ -308,7 +308,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
 
     m_consensusObject.reset(new ConsensusLeader(
         consensusID, m_consensusBlockHash, m_consensusMyID,
-        m_mediator.m_selfKey.first, m_mediator.m_DSCommittee,
+        m_mediator.m_selfKey.first, *m_mediator.m_DSCommittee,
         static_cast<unsigned char>(DIRECTORY),
         static_cast<unsigned char>(DSBLOCKCONSENSUS),
         std::function<bool(const vector<unsigned char>&, unsigned int,
@@ -364,9 +364,9 @@ void DirectoryService::SaveTxnBodySharingAssignment(
     m_sharingAssignment.clear();
 
     if ((i_am_forwarder == true)
-        && (m_mediator.m_DSCommittee.size() > num_ds_nodes))
+        && (m_mediator.m_DSCommittee->size() > num_ds_nodes))
     {
-        for (unsigned int i = 0; i < m_mediator.m_DSCommittee.size(); i++)
+        for (unsigned int i = 0; i < m_mediator.m_DSCommittee->size(); i++)
         {
             bool is_a_receiver = false;
 
@@ -374,7 +374,7 @@ void DirectoryService::SaveTxnBodySharingAssignment(
             {
                 for (unsigned int j = 0; j < m_DSReceivers.size(); j++)
                 {
-                    if (m_mediator.m_DSCommittee.at(i).second
+                    if (m_mediator.m_DSCommittee->at(i).second
                         == m_DSReceivers.at(j))
                     {
                         is_a_receiver = true;
@@ -387,7 +387,7 @@ void DirectoryService::SaveTxnBodySharingAssignment(
             if (is_a_receiver == false)
             {
                 m_sharingAssignment.emplace_back(
-                    m_mediator.m_DSCommittee.at(i).second);
+                    m_mediator.m_DSCommittee->at(i).second);
             }
         }
     }
@@ -468,7 +468,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup()
 
     m_consensusObject.reset(new ConsensusBackup(
         consensusID, m_consensusBlockHash, m_consensusMyID, m_consensusLeaderID,
-        m_mediator.m_selfKey.first, m_mediator.m_DSCommittee,
+        m_mediator.m_selfKey.first, *m_mediator.m_DSCommittee,
         static_cast<unsigned char>(DIRECTORY),
         static_cast<unsigned char>(DSBLOCKCONSENSUS), func));
 

@@ -386,7 +386,7 @@ bool Lookup::SetDSCommitteInfo()
             inet_aton(v.second.get<string>("ip").c_str(), &ip_addr);
             Peer peer((uint128_t)ip_addr.s_addr,
                       v.second.get<unsigned int>("port"));
-            m_mediator.m_DSCommittee.emplace_back(make_pair(key, peer));
+            m_mediator.m_DSCommittee->emplace_back(make_pair(key, peer));
         }
     }
 
@@ -594,17 +594,17 @@ bool Lookup::ProcessGetDSInfoFromSeed(const vector<unsigned char>& message,
     {
         lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
         Serializable::SetNumber<uint32_t>(dsInfoMessage, curr_offset,
-                                          m_mediator.m_DSCommittee.size(),
+                                          m_mediator.m_DSCommittee->size(),
                                           sizeof(uint32_t));
         curr_offset += sizeof(uint32_t);
 
-        for (unsigned int i = 0; i < m_mediator.m_DSCommittee.size(); i++)
+        for (unsigned int i = 0; i < m_mediator.m_DSCommittee->size(); i++)
         {
-            PubKey& pubKey = m_mediator.m_DSCommittee.at(i).first;
+            PubKey& pubKey = m_mediator.m_DSCommittee->at(i).first;
             pubKey.Serialize(dsInfoMessage, curr_offset);
             curr_offset += (PUB_KEY_SIZE);
 
-            Peer& peer = m_mediator.m_DSCommittee.at(i).second;
+            Peer& peer = m_mediator.m_DSCommittee->at(i).second;
             peer.Serialize(dsInfoMessage, curr_offset);
             curr_offset += (IP_SIZE + PORT_SIZE);
 
@@ -1097,7 +1097,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
     }
 
     lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
-    m_mediator.m_DSCommittee.clear();
+    m_mediator.m_DSCommittee->clear();
 
     for (unsigned int i = 0; i < numDSPeers; i++)
     {
@@ -1113,7 +1113,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
             peer = Peer();
         }
 
-        m_mediator.m_DSCommittee.emplace_back(make_pair(pubkey, peer));
+        m_mediator.m_DSCommittee->emplace_back(make_pair(pubkey, peer));
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "ProcessSetDSInfoFromSeed recvd peer " << i << ": " << peer);

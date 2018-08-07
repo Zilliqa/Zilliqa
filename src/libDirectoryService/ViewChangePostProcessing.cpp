@@ -55,8 +55,8 @@ void DirectoryService::DetermineShardsToSendVCBlockTo(
     LOG_MARKER();
 
     unsigned int num_DS_clusters
-        = m_mediator.m_DSCommittee.size() / DS_MULTICAST_CLUSTER_SIZE;
-    if ((m_mediator.m_DSCommittee.size() % DS_MULTICAST_CLUSTER_SIZE) > 0)
+        = m_mediator.m_DSCommittee->size() / DS_MULTICAST_CLUSTER_SIZE;
+    if ((m_mediator.m_DSCommittee->size() % DS_MULTICAST_CLUSTER_SIZE) > 0)
     {
         num_DS_clusters++;
     }
@@ -124,7 +124,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
     unsigned int count = 0;
 
     vector<PubKey> keys;
-    for (auto const& kv : m_mediator.m_DSCommittee)
+    for (auto const& kv : *m_mediator.m_DSCommittee)
     {
         if (m_pendingVCBlock->GetB2().at(index) == true)
         {
@@ -171,7 +171,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
     // StoreVCBlockToStorage(); TODO
 
     Peer expectedLeader;
-    if (m_mediator.m_DSCommittee.at(m_viewChangeCounter).second == Peer())
+    if (m_mediator.m_DSCommittee->at(m_viewChangeCounter).second == Peer())
     {
         // I am 0.0.0.0
         expectedLeader = m_mediator.m_selfPeer;
@@ -179,7 +179,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
     else
     {
         expectedLeader
-            = m_mediator.m_DSCommittee.at(m_viewChangeCounter).second;
+            = m_mediator.m_DSCommittee->at(m_viewChangeCounter).second;
     }
 
     if (expectedLeader == newLeaderNetworkInfo)
@@ -222,12 +222,12 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
             {
                 LOG_GENERAL(INFO,
                             "Ejecting "
-                                << m_mediator.m_DSCommittee.front().second);
+                                << m_mediator.m_DSCommittee->front().second);
 
                 // Adjust ds commiteee
-                m_mediator.m_DSCommittee.push_back(
-                    m_mediator.m_DSCommittee.front());
-                m_mediator.m_DSCommittee.pop_front();
+                m_mediator.m_DSCommittee->push_back(
+                    m_mediator.m_DSCommittee->front());
+                m_mediator.m_DSCommittee->pop_front();
 
                 // Adjust faulty DS leader and/or faulty ds candidate leader
                 if (m_consensusMyID == faultyLeaderIndex)
@@ -255,7 +255,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
                     // Good ds nodes adjustment have already been done previously.
                     // m_consensusMyID = last index - num of time vc occur + faulty index
                     // Need to add +1 at the end as vc counter begin at 1.
-                    m_consensusMyID = (m_mediator.m_DSCommittee.size() - 1)
+                    m_consensusMyID = (m_mediator.m_DSCommittee->size() - 1)
                         - m_viewChangeCounter + faultyLeaderIndex + 1;
                     isCurrentNodeFaulty = true;
                     LOG_GENERAL(INFO,
@@ -273,9 +273,9 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
         }
 
         LOG_GENERAL(INFO, "New view of ds committee: ");
-        for (unsigned i = 0; i < m_mediator.m_DSCommittee.size(); i++)
+        for (unsigned i = 0; i < m_mediator.m_DSCommittee->size(); i++)
         {
-            LOG_GENERAL(INFO, m_mediator.m_DSCommittee.at(i).second);
+            LOG_GENERAL(INFO, m_mediator.m_DSCommittee->at(i).second);
         }
 
         auto func = [this, viewChangeState]() -> void {

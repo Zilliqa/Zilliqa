@@ -127,7 +127,7 @@ void Node::Init()
     m_mediator.m_txBlockChain.Reset();
     {
         std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
-        m_mediator.m_DSCommittee.clear();
+        m_mediator.m_DSCommittee->clear();
     }
     m_committedTransactions.clear();
     AccountStore::GetInstance().Init();
