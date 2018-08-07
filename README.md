@@ -66,7 +66,7 @@ To compile and run the Zilliqa codebase, you will need the following dependencie
 * `pkg-config`
 * `libevent`
 * `miniupnpc`
-* `ocl-icd-opencl-dev`
+* `opencl`
 * `Protobuf`
 * Dependencies only required for builds with code coverage enabled
     * `gcov`
