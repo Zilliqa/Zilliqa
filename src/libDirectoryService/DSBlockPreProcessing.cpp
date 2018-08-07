@@ -62,7 +62,7 @@ void DirectoryService::ComposeDSBlock()
     const uint256_t& winnerNonce = m_allPoWs.front().second;
 
     uint64_t blockNum = 0;
-    uint8_t difficulty = POW2_DIFFICULTY;
+    uint8_t difficulty = POW_DIFFICULTY;
     if (m_mediator.m_dsBlockChain.GetBlockCount() > 0)
     {
         DSBlock lastBlock = m_mediator.m_dsBlockChain.GetLastBlock();
@@ -134,12 +134,13 @@ void DirectoryService::ComputeSharding()
     }
 }
 
-void DirectoryService::ComputeTxnSharingAssignments()
+void DirectoryService::ComputeTxnSharingAssignments(const Peer& winnerpeer)
 {
     LOG_MARKER();
 
     // PART 1
     // First version: We just take the first X nodes in DS committee
+    // Take note that this is the OLD DS committee -> we must consider that winnerpeer is the new DS leader (and the last node in the committee will no longer be a DS node)
 
     m_DSReceivers.clear();
 
@@ -152,6 +153,11 @@ void DirectoryService::ComputeTxnSharingAssignments()
         ? m_mediator.m_DSCommittee.size()
         : TX_SHARING_CLUSTER_SIZE;
 
+    // Add the new DS leader first
+    m_DSReceivers.emplace_back(winnerpeer);
+    num_ds_nodes--;
+
+    // Add the rest from the current DS committee
     for (unsigned int i = 0; i < num_ds_nodes; i++)
     {
         if (i != m_consensusMyID)
@@ -163,16 +169,6 @@ void DirectoryService::ComputeTxnSharingAssignments()
             // when i == m_consensusMyID use m_mediator.m_selfPeer since IP/ port in m_mediator.m_DSCommittee.at(m_consensusMyID).second is zeroed out
             m_DSReceivers.emplace_back(m_mediator.m_selfPeer);
         }
-    }
-
-    // For this version, DS leader (the one invoking this function) is part of the X nodes to receive and share Tx bodies -> fill up leader's assigned nodes
-
-    m_sharingAssignment.clear();
-
-    for (unsigned int i = num_ds_nodes; i < m_mediator.m_DSCommittee.size();
-         i++)
-    {
-        m_sharingAssignment.emplace_back(m_mediator.m_DSCommittee.at(i).second);
     }
 
     // PART 2 and 3
@@ -263,8 +259,11 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
     m_allPoWs.emplace_back(m_mediator.m_DSCommittee.back().first, 0);
     m_allPoWConns.emplace(m_mediator.m_DSCommittee.back());
 
+    const auto& winnerPeer
+        = m_allPoWConns.find(m_pendingDSBlock->GetHeader().GetMinerPubKey());
+
     ComputeSharding();
-    ComputeTxnSharingAssignments();
+    ComputeTxnSharingAssignments(winnerPeer->second);
 
     // DSBlock consensus announcement = [DS block] [PoW winner IP] [Sharding structure] [Txn sharing assignments]
     // Consensus cosig will be over the DS block header
@@ -278,8 +277,6 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
         += m_pendingDSBlock->Serialize(m_PoWConsensusMessage, curr_offset);
 
     // [PoW winner IP]
-    const auto& winnerPeer
-        = m_allPoWConns.find(m_pendingDSBlock->GetHeader().GetMinerPubKey());
     curr_offset
         += winnerPeer->second.Serialize(m_PoWConsensusMessage, curr_offset);
 
@@ -438,40 +435,8 @@ bool DirectoryService::DSBlockValidator(
                               winnerPeer);
     }
 
-    m_shards.clear();
-    m_publicKeyToShardIdMap.clear();
-
     // [Sharding structure]
-    curr_offset
-        = ShardingStructure::Deserialize(message, curr_offset, m_shards);
-
-    for (unsigned int i = 0; i < m_shards.size(); i++)
-    {
-        for (auto& j : m_shards.at(i))
-        {
-            auto storedMember = m_allPoWConns.find(j.first);
-
-            // I know the member but the member IP given by the leader is different!
-            if (storedMember != m_allPoWConns.end())
-            {
-                if (storedMember->second != j.second)
-                {
-                    LOG_EPOCH(WARNING,
-                              to_string(m_mediator.m_currentEpochNum).c_str(),
-                              "WARNING: Why is the IP of the member different "
-                              "from what I have in m_allPoWConns???");
-                    return false;
-                }
-            }
-            // I don't know the member -> store the IP given by the leader
-            else
-            {
-                m_allPoWConns.emplace(j.first, j.second);
-            }
-
-            m_publicKeyToShardIdMap.emplace(j.first, i);
-        }
-    }
+    curr_offset = PopulateShardingStructure(message, curr_offset);
 
     // [Txn sharing assignments]
     SaveTxnBodySharingAssignment(message, curr_offset);
@@ -513,6 +478,45 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup()
     }
 
     return true;
+}
+
+unsigned int DirectoryService::PopulateShardingStructure(
+    const vector<unsigned char>& message, unsigned int offset)
+{
+    m_shards.clear();
+    m_publicKeyToShardIdMap.clear();
+
+    offset = ShardingStructure::Deserialize(message, offset, m_shards);
+
+    for (unsigned int i = 0; i < m_shards.size(); i++)
+    {
+        for (auto& j : m_shards.at(i))
+        {
+            auto storedMember = m_allPoWConns.find(j.first);
+
+            // I know the member but the member IP given by the leader is different!
+            if (storedMember != m_allPoWConns.end())
+            {
+                if (storedMember->second != j.second)
+                {
+                    LOG_EPOCH(WARNING,
+                              to_string(m_mediator.m_currentEpochNum).c_str(),
+                              "WARNING: Why is the IP of the member different "
+                              "from what I have in m_allPoWConns???");
+                    return false;
+                }
+            }
+            // I don't know the member -> store the IP given by the leader
+            else
+            {
+                m_allPoWConns.emplace(j.first, j.second);
+            }
+
+            m_publicKeyToShardIdMap.emplace(j.first, i);
+        }
+    }
+
+    return offset;
 }
 
 void DirectoryService::RunConsensusOnDSBlock(bool isRejoin)

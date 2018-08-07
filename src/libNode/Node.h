@@ -49,8 +49,7 @@ class Node : public Executable, public Broadcastable
     enum Action
     {
         STARTPOW = 0x00,
-        STARTPOW2,
-        PROCESS_SHARDING,
+        PROCESS_DSBLOCK,
         PROCESS_MICROBLOCKCONSENSUS,
         PROCESS_FINALBLOCK,
         PROCESS_TXNBODY,
@@ -74,11 +73,13 @@ class Node : public Executable, public Broadcastable
 
     Synchronizer m_synchronizer;
 
+    // DS block information
+    std::mutex m_mutexDSBlock;
+
     std::mutex m_mutexConsensus;
 
     // Sharding information
-    std::deque<PubKey> m_myShardMembersPubKeys;
-    std::deque<Peer> m_myShardMembersNetworkInfo;
+    std::deque<pair<PubKey, Peer>> m_myShardMembers;
     std::atomic<bool> m_isPrimary;
     std::atomic<bool> m_isMBSender;
     std::atomic<uint32_t> m_myShardID;
@@ -88,9 +89,6 @@ class Node : public Executable, public Broadcastable
     std::atomic<bool> m_txnSharingIAmSender;
     std::atomic<bool> m_txnSharingIAmForwarder;
     std::vector<std::vector<Peer>> m_txnSharingAssignedNodes;
-
-    // DS committee information
-    bool m_isDSNode = true;
 
     // Consensus variables
     std::mutex m_mutexProcessConsensusMessage;
@@ -144,16 +142,11 @@ class Node : public Executable, public Broadcastable
     std::unordered_map<uint64_t, std::list<Transaction>>
         m_committedTransactions;
 
-    std::mutex m_mutexForwardingAssignment;
-    std::unordered_map<uint64_t, std::vector<Peer>> m_forwardingAssignment;
+    std::vector<Transaction> m_txns_to_send;
 
     std::mutex m_mutexForwardedTxnBuffer;
     std::unordered_map<uint64_t, std::vector<std::vector<unsigned char>>>
         m_forwardedTxnBuffer;
-
-    std::mutex m_mutexForwardedDeltaBuffer;
-    std::map<uint64_t, std::vector<std::vector<unsigned char>>>
-        m_forwardedDeltaBuffer;
 
     bool CheckState(Action action);
 
@@ -168,23 +161,6 @@ class Node : public Executable, public Broadcastable
                                           uint8_t& difficulty,
                                           array<unsigned char, 32>& rand1,
                                           array<unsigned char, 32>& rand2);
-#endif // IS_LOOKUP_NODE
-
-    // internal calls from ProcessStartPoW2
-    bool ReadVariablesFromStartPoW2Message(const vector<unsigned char>& message,
-                                           unsigned int offset,
-                                           uint64_t& block_num,
-                                           uint8_t& difficulty,
-                                           array<unsigned char, 32>& rand1,
-                                           array<unsigned char, 32>& rand2);
-#ifndef IS_LOOKUP_NODE
-    void SharePoW2WinningResultWithDS(
-        const uint64_t& block_num,
-        const ethash_mining_result& winning_result) const;
-    void StartPoW2MiningAndShareResultWithDS(
-        const uint64_t& block_num, uint8_t difficulty,
-        const array<unsigned char, 32>& rand1,
-        const array<unsigned char, 32>& rand2) const;
     bool ProcessSubmitMissingTxn(const vector<unsigned char>& message,
                                  unsigned int offset, const Peer& from);
     bool ProcessSubmitTxnSharing(const vector<unsigned char>& message,
@@ -204,29 +180,23 @@ class Node : public Executable, public Broadcastable
                                    const TxnHash& tx_hash);
     void GetMyShardsMicroBlock(const uint64_t& blocknum, uint8_t sharing_mode,
                                vector<Transaction>& txns_to_send);
-    void CommitMyShardsMicroBlock();
 
-    void BroadcastTransactionsToSendingAssignment(
-        const uint64_t& blocknum, const vector<Peer>& sendingAssignment,
-        const TxnHash& microBlockTxHash,
-        vector<Transaction>& txns_to_send) const;
-
-    void BroadcastStateDeltaToSendingAssignment(
-        const uint64_t& blocknum, const vector<Peer>& sendingAssignment,
-        const StateHash& microBlockStateDeltaHash,
-        const TxnHash& microBlockTxHash) const;
+    void BroadcastTransactionsToLookup();
 #endif // IS_LOOKUP_NODE
 
     bool LoadUnavailableMicroBlockHashes(const TxBlock& finalblock,
-                                         const uint64_t& blocknum);
+                                         const uint64_t& blocknum,
+                                         bool& toSendTxnToLookup);
+
+    bool
+    ProcessStateDeltaFromFinalBlock(const vector<unsigned char>& message,
+                                    unsigned int cur_offset,
+                                    const StateHash& finalBlockStateDeltaHash);
 
     bool
     RemoveTxRootHashFromUnavailableMicroBlock(const uint64_t& blocknum,
                                               const TxnHash& txnRootHash,
                                               const StateHash& stateDeltaHash);
-    bool RemoveStateDeltaHashFromUnavailableMicroBlock(
-        const uint64_t& blocknum, const StateHash& stateDeltaHash,
-        const TxnHash& txnRootHash);
 
     bool CheckMicroBlockRootHash(const TxBlock& finalBlock,
                                  const uint64_t& blocknum);
@@ -234,14 +204,9 @@ class Node : public Executable, public Broadcastable
                                             StateHash microBlockStateDeltaHash,
                                             const uint64_t& blocknum,
                                             bool& isEveryMicroBlockAvailable);
-    bool IsMicroBlockStateDeltaHashInFinalBlock(
-        StateHash microBlockStateDeltaHash, TxnHash microBlockTxRootHash,
-        const uint64_t& blocknum, bool& isEveryMicroBlockAvailable);
     bool
     IsMyShardMicroBlockTxRootHashInFinalBlock(const uint64_t& blocknum,
                                               bool& isEveryMicroBlockAvailable);
-    bool IsMyShardMicroBlockStateDeltaHashInFinalBlock(
-        const uint64_t& blocknum, bool& isEveryMicroBlockAvailable);
     bool IsMyShardMicroBlockInFinalBlock(const uint64_t& blocknum);
     bool IsMyShardIdInFinalBlock(const uint64_t& blocknum);
     bool
@@ -256,25 +221,15 @@ class Node : public Executable, public Broadcastable
     void ScheduleTxnSubmission();
     void ScheduleMicroBlockConsensus();
     void BeginNextConsensusRound();
-    bool LoadShardingStructure(const vector<unsigned char>& message,
-                               unsigned int& cur_offset);
-    void LoadTxnSharingInfo(const vector<unsigned char>& message,
-                            unsigned int cur_offset);
-    void CallActOnMicroblockDoneBasedOnSenderForwarderAssign(uint8_t shard_id);
 
-    void CallActOnFinalBlock();
+    void CallActOnFinalblock();
 
     // internal calls from ProcessForwardTransaction
-    void LoadFwdingAssgnForThisBlockNum(const uint64_t& blocknum,
-                                        vector<Peer>& forward_list);
     bool LoadForwardedTxnsAndCheckRoot(
         const vector<unsigned char>& message, unsigned int cur_offset,
         TxnHash& microBlockTxHash, StateHash& microBlockStateDeltaHash,
         vector<Transaction>& txnsInForwardedMessage);
     // vector<TxnHash> & txnHashesInForwardedMessage);
-    bool LoadForwardedStateDeltaAndCheckRoot(
-        const vector<unsigned char>& message, unsigned int cur_offset,
-        StateHash& microBlockStateDeltaHash, TxnHash& microBlockTxHash);
     void CommitForwardedTransactions(
         const vector<Transaction>& txnsInForwardedMessage,
         const uint64_t& blocknum);
@@ -309,10 +264,6 @@ class Node : public Executable, public Broadcastable
     bool ProcessCreateTransactionFromLookup(
         const std::vector<unsigned char>& message, unsigned int offset,
         const Peer& from);
-    bool ProcessForwardStateDelta(const std::vector<unsigned char>& message,
-                                  unsigned int offset, const Peer& from);
-    bool ProcessForwardStateDeltaCore(const std::vector<unsigned char>& message,
-                                      unsigned int offset);
     // bool ProcessCreateAccounts(const std::vector<unsigned char> & message, unsigned int offset, const Peer & from);
     bool ProcessDSBlock(const std::vector<unsigned char>& message,
                         unsigned int offset, const Peer& from);
@@ -356,10 +307,6 @@ class Node : public Executable, public Broadcastable
     bool CheckMicroBlockStateDeltaHash();
     bool CheckMicroBlockShardID();
 
-    void ActOnMicroBlockDone(uint8_t tx_sharing_mode,
-                             vector<Peer> my_shard_receivers,
-                             const vector<Peer>& fellowForwarderNodes);
-
     //Coinbase txns
     bool Coinbase(const BlockBase& lastMicroBlock, const TxBlock& lastTxBlock);
     void InitCoinbase();
@@ -381,7 +328,6 @@ public:
     enum NodeState : unsigned char
     {
         POW_SUBMISSION = 0x00,
-        POW2_SUBMISSION,
         TX_SUBMISSION,
         TX_SUBMISSION_BUFFER,
         MICROBLOCK_CONSENSUS_PREP,
@@ -394,12 +340,9 @@ public:
     // This process is newly invoked by shell from late node join script
     bool m_runFromLate = false;
 
-    std::condition_variable m_cvAllMicroBlocksRecvd;
-    std::mutex m_mutexAllMicroBlocksRecvd;
-    bool m_allMicroBlocksRecvd = true;
-
-    std::mutex m_mutexTempCommitted;
-    bool m_tempStateDeltaCommitted = true;
+    // std::condition_variable m_cvAllMicroBlocksRecvd;
+    // std::mutex m_mutexAllMicroBlocksRecvd;
+    // bool m_allMicroBlocksRecvd = true;
 
     std::condition_variable m_cvNewRoundStarted;
     std::mutex m_mutexNewRoundStarted;
@@ -476,23 +419,28 @@ public:
     // Start synchronization with lookup as a shard node
     void StartSynchronization();
 
-    /// Called from DirectoryService during FINALBLOCK processing.
-    void ActOnMicroBlockDone(uint8_t tx_sharing_mode,
-                             const vector<Peer>& nodes);
-
     /// Performs PoW mining and submission for DirectoryService committee membership.
     bool StartPoW(const uint64_t& block_num, uint8_t difficulty,
                   const std::array<unsigned char, UINT256_SIZE>& rand1,
                   const std::array<unsigned char, UINT256_SIZE>& rand2);
 
-    /// Performs PoW mining and submission for sharding committee membership.
-    bool StartPoW2(const uint64_t block_num, uint8_t difficulty,
-                   array<unsigned char, 32> rand1,
-                   array<unsigned char, 32> rand2);
-
     /// Call when the normal node be promoted to DS
     void CleanCreatedTransaction();
+
+    /// Used by oldest DS node to configure shard ID as a new shard node
+    void SetMyShardID(uint32_t shardID);
+
+    /// Used by oldest DS node to finish setup as a new shard node
+    void StartFirstTxEpoch();
 #endif // IS_LOOKUP_NODE
+
+    /// Used by oldest DS node to configure sharding variables as a new shard node
+    bool LoadShardingStructure(const vector<unsigned char>& message,
+                               unsigned int& cur_offset);
+
+    /// Used by oldest DS node to configure txn sharing assignments as a new shard node
+    void LoadTxnSharingInfo(const vector<unsigned char>& message,
+                            unsigned int cur_offset);
 
 private:
     static std::map<NodeState, std::string> NodeStateStrings;
