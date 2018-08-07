@@ -43,7 +43,6 @@ find_package(LevelDB REQUIRED)
 
 find_package(OpenCL REQUIRED)
 
-
 if(CUDA_MINE)
     find_package(CUDA REQUIRED)
     add_definitions(-DCUDA_MINE)
