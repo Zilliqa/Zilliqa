@@ -16,6 +16,7 @@
 
 #include <cstring>
 #include <errno.h>
+#include <event2/bufferevent.h>
 #include <event2/event.h>
 #include <event2/listener.h>
 #include <memory>
@@ -54,15 +55,6 @@ struct hash_compare
         return equal(l.begin(), l.end(), r.begin());
     }
 };
-
-static void close_socket(int* cli_sock)
-{
-    if (cli_sock != NULL)
-    {
-        shutdown(*cli_sock, SHUT_RDWR);
-        close(*cli_sock);
-    }
-}
 
 static bool comparePairSecond(
     const pair<vector<unsigned char>, chrono::time_point<chrono::system_clock>>&
@@ -241,7 +233,6 @@ namespace
     {
         return (buf[2] << 24) + (buf[3] << 16) + (buf[4] << 8) + buf[5];
     }
-
 } // anonymous namespace
 
 bool P2PComm::SendMessageSocketCore(const Peer& peer,
@@ -267,95 +258,95 @@ bool P2PComm::SendMessageSocketCore(const Peer& peer,
         return true;
     }
 
-    try
+    struct sockaddr_in serv_addr;
+    memset(&serv_addr, 0, sizeof(struct sockaddr_in));
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_addr.s_addr = peer.m_ipAddress.convert_to<unsigned long>();
+    serv_addr.sin_port = htons(peer.m_listenPortHost);
+
+    struct event_base* base = event_base_new();
+    struct bufferevent* bev
+        = bufferevent_socket_new(base, -1, BEV_OPT_CLOSE_ON_FREE);
+    if (bufferevent_socket_connect(bev, (struct sockaddr*)&serv_addr,
+                                   sizeof(struct sockaddr_in))
+        < 0)
     {
-        int cli_sock = socket(AF_INET, SOCK_STREAM, 0);
-        unique_ptr<int, void (*)(int*)> cli_sock_closer(&cli_sock,
-                                                        close_socket);
-
-        // LINUX HAS NO SO_NOSIGPIPE
-        //int set = 1;
-        //setsockopt(cli_sock, SOL_SOCKET, SO_NOSIGPIPE, (void *)&set, sizeof(int));
-        signal(SIGPIPE, SIG_IGN);
-        if (cli_sock < 0)
-        {
-            LOG_GENERAL(WARNING,
-                        "Socket creation failed. Code = "
-                            << errno << " Desc: " << std::strerror(errno)
-                            << ". IP address: " << peer);
-            return false;
-        }
-
-        struct sockaddr_in serv_addr;
-        serv_addr.sin_family = AF_INET;
-        serv_addr.sin_addr.s_addr
-            = peer.m_ipAddress.convert_to<unsigned long>();
-        serv_addr.sin_port = htons(peer.m_listenPortHost);
-
-        if (connect(cli_sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr))
-            < 0)
-        {
-            LOG_GENERAL(WARNING,
-                        "Socket connect failed. Code = "
-                            << errno << " Desc: " << std::strerror(errno)
-                            << ". IP address: " << peer);
-            return false;
-        }
-
-        // Transmission format:
-        // 0x01 ~ 0xFF - version, defined in constant file
-        // 0x11 - start byte
-        // 0xLL 0xLL 0xLL 0xLL - 4-byte length of message
-        // <message>
-
-        // 0x01 ~ 0xFF - version, defined in constant file
-        // 0x22 - start byte (broadcast)
-        // 0xLL 0xLL 0xLL 0xLL - 4-byte length of hash + message
-        // <32-byte hash> <message>
-
-        // 0x01 ~ 0xFF - version, defined in constant file
-        // 0x33 - start byte (report)
-        // 0x00 0x00 0x00 0x01 - 4-byte length of message
-        // 0x00
-        uint32_t length = message.size();
-
-        if (start_byte == START_BYTE_BROADCAST)
-        {
-            length += HASH_LEN;
-        }
-
-        unsigned char buf[HDR_LEN] = {(unsigned char)(MSG_VERSION & 0xFF),
-                                      start_byte,
-                                      (unsigned char)((length >> 24) & 0xFF),
-                                      (unsigned char)((length >> 16) & 0xFF),
-                                      (unsigned char)((length >> 8) & 0xFF),
-                                      (unsigned char)(length & 0xFF)};
-
-        if (HDR_LEN != writeMsg(buf, cli_sock, peer, HDR_LEN))
-        {
-            LOG_GENERAL(INFO, "DEBUG: not written_length == " << HDR_LEN);
-        }
-
-        if (start_byte != START_BYTE_BROADCAST)
-        {
-            writeMsg(&message.at(0), cli_sock, peer, length);
-            return true;
-        }
-
-        if (HASH_LEN != writeMsg(&msg_hash.at(0), cli_sock, peer, HASH_LEN))
-        {
-            LOG_GENERAL(WARNING, "Wrong message hash length.");
-            return false;
-        }
-
-        length -= HASH_LEN;
-        writeMsg(&message.at(0), cli_sock, peer, length);
-    }
-    catch (const std::exception& e)
-    {
-        LOG_GENERAL(WARNING, "Error with write socket." << ' ' << e.what());
+        LOG_GENERAL(WARNING,
+                    "Socket connect failed. Code = "
+                        << errno << " Desc: " << std::strerror(errno)
+                        << ". IP address: " << peer);
         return false;
     }
+
+    evutil_socket_t cli_sock = bufferevent_getfd(bev);
+
+    // Transmission format:
+    // 0x01 ~ 0xFF - version, defined in constant file
+    // 0x11 - start byte
+    // 0xLL 0xLL 0xLL 0xLL - 4-byte length of message
+    // <message>
+
+    // 0x01 ~ 0xFF - version, defined in constant file
+    // 0x22 - start byte (broadcast)
+    // 0xLL 0xLL 0xLL 0xLL - 4-byte length of hash + message
+    // <32-byte hash> <message>
+
+    // 0x01 ~ 0xFF - version, defined in constant file
+    // 0x33 - start byte (report)
+    // 0x00 0x00 0x00 0x01 - 4-byte length of message
+    // 0x00
+    uint32_t length = message.size();
+
+    if (start_byte == START_BYTE_BROADCAST)
+    {
+        length += HASH_LEN;
+    }
+
+    unsigned char buf[HDR_LEN] = {(unsigned char)(MSG_VERSION & 0xFF),
+                                  start_byte,
+                                  (unsigned char)((length >> 24) & 0xFF),
+                                  (unsigned char)((length >> 16) & 0xFF),
+                                  (unsigned char)((length >> 8) & 0xFF),
+                                  (unsigned char)(length & 0xFF)};
+
+    signal(SIGPIPE, SIG_IGN);
+
+    if (HDR_LEN != writeMsg(buf, cli_sock, peer, HDR_LEN))
+    {
+        LOG_GENERAL(WARNING, "Cannot write header message.");
+
+        event_base_dispatch(base);
+        bufferevent_free(bev);
+        event_base_free(base);
+        return false;
+    }
+
+    if (start_byte != START_BYTE_BROADCAST)
+    {
+        writeMsg(&message.at(0), cli_sock, peer, length);
+
+        event_base_dispatch(base);
+        bufferevent_free(bev);
+        event_base_free(base);
+        return true;
+    }
+
+    if (HASH_LEN != writeMsg(&msg_hash.at(0), cli_sock, peer, HASH_LEN))
+    {
+        LOG_GENERAL(WARNING, "Cannot write hash message.");
+
+        event_base_dispatch(base);
+        bufferevent_free(bev);
+        event_base_free(base);
+        return false;
+    }
+
+    length -= HASH_LEN;
+    writeMsg(&message.at(0), cli_sock, peer, length);
+
+    event_base_dispatch(base);
+    bufferevent_free(bev);
+    event_base_free(base);
     return true;
 }
 
@@ -382,8 +373,6 @@ void P2PComm::HandleAcceptedConnection(int cli_sock, Peer from)
     //LOG_MARKER();
 
     LOG_GENERAL(INFO, "Incoming message from " << from);
-
-    SocketCloser cli_sock_closer(&cli_sock, close_socket);
 
     // Reception format:
     // 0x01 ~ 0xFF - version, defined in constant file
@@ -423,13 +412,12 @@ void P2PComm::HandleAcceptedConnection(int cli_sock, Peer from)
 
     if (startByte == START_BYTE_BROADCAST)
     {
-        HandleAcceptedConnectionBroadcast(cli_sock, from, messageLength(header),
-                                          move(cli_sock_closer));
+        HandleAcceptedConnectionBroadcast(cli_sock, from,
+                                          messageLength(header));
     }
     else if (startByte == START_BYTE_NORMAL)
     {
-        HandleAcceptedConnectionNormal(cli_sock, from, messageLength(header),
-                                       move(cli_sock_closer));
+        HandleAcceptedConnectionNormal(cli_sock, from, messageLength(header));
     }
     else
     {
@@ -439,8 +427,7 @@ void P2PComm::HandleAcceptedConnection(int cli_sock, Peer from)
 }
 
 void P2PComm::HandleAcceptedConnectionNormal(int cli_sock, Peer from,
-                                             uint32_t message_length,
-                                             SocketCloser cli_sock_closer)
+                                             uint32_t message_length)
 {
     vector<unsigned char> message;
 
@@ -449,14 +436,11 @@ void P2PComm::HandleAcceptedConnectionNormal(int cli_sock, Peer from,
         return;
     }
 
-    cli_sock_closer.reset(); // close socket now so it can be reused
-
     m_dispatcher(message, from);
 }
 
 void P2PComm::HandleAcceptedConnectionBroadcast(int cli_sock, Peer from,
-                                                uint32_t message_length,
-                                                SocketCloser cli_sock_closer)
+                                                uint32_t message_length)
 {
     vector<unsigned char> msg_hash;
 
@@ -496,8 +480,6 @@ void P2PComm::HandleAcceptedConnectionBroadcast(int cli_sock, Peer from,
             }
         }
     }
-
-    cli_sock_closer.reset(); // close socket now so it can be reused
 
     if (found)
     {
