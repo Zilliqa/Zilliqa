@@ -20,11 +20,14 @@
 #include <iostream>
 
 #include "pow.h"
-//#include "libCrypto/Sha3.h"
 #include "common/Serializable.h"
 #include "depends/libethash-cl/CLMiner.h"
 #include "libCrypto/Sha2.h"
 #include "libUtils/DataConversion.h"
+
+#ifdef CUDA_MINE
+#include "depends/libethash-cuda/CUDAMiner.h"
+#endif
 
 POW::POW()
 {
@@ -47,7 +50,29 @@ POW::POW()
         };
 
         CLMiner::setNumInstances(UINT_MAX);
-        m_miner = std::make_unique<dev::eth::CLMiner>();
+        m_miner = std::make_unique<CLMiner>();
+        LOG_GENERAL(INFO, "OpenCL GPU initialized in POW");
+    }
+    else if (CUDA_GPU_MINE)
+    {
+#ifdef CUDA_MINE
+        using namespace dev::eth;
+        CUDAMiner::setNumInstances(UINT_MAX);
+        if (!CUDAMiner::configureGPU(
+                CUDAMiner::c_defaultBlockSize, CUDAMiner::c_defaultGridSize,
+                CUDAMiner::c_defaultNumStreams, 4, 0, 0, false, false))
+        {
+            LOG_GENERAL(FATAL,
+                        "Failed to configure CUDA GPU, please check hardware");
+            exit(1);
+        }
+        m_miner = std::make_unique<CUDAMiner>();
+        LOG_GENERAL(INFO, "CUDA GPU initialized in POW");
+#else
+        throw std::runtime_error(
+            "The software is not build with CUDA. Please install CUDA "
+            "and build software again");
+#endif
     }
 }
 
@@ -246,9 +271,9 @@ ethash_mining_result_t POW::MineFull(ethash_full_t& full,
     return failure_result;
 }
 
-ethash_mining_result_t POW::MineFullOpenCL(uint64_t blockNum,
-                                           ethash_h256_t const& header_hash,
-                                           uint8_t difficulty)
+ethash_mining_result_t POW::MineFullGPU(uint64_t blockNum,
+                                        ethash_h256_t const& header_hash,
+                                        uint8_t difficulty)
 {
     LOG_MARKER();
     dev::eth::WorkPackage wp;
@@ -262,7 +287,14 @@ ethash_mining_result_t POW::MineFullOpenCL(uint64_t blockNum,
     dev::eth::Solution solution;
     while (shouldMine)
     {
-        m_miner->mine(wp, solution);
+        if (!m_miner->mine(wp, solution))
+        {
+            LOG_GENERAL(
+                WARNING,
+                "GPU failed to do mine, GPU miner log: " << m_miner->getLog());
+            ethash_mining_result_t failure_result = {"", "", 0, false};
+            return failure_result;
+        }
         auto hashResult = LightHash(blockNum, header_hash, solution.nonce);
         ethash_h256_t diffForPoW = DifficultyLevelInInt(difficulty);
         if (ethash_check_difficulty(&hashResult.result, &diffForPoW))
@@ -367,9 +399,9 @@ POW::PoWMine(uint64_t blockNum, uint8_t difficulty,
 
     if (fullDataset)
     {
-        if (OPENCL_GPU_MINE)
+        if (OPENCL_GPU_MINE || CUDA_GPU_MINE)
         {
-            result = MineFullOpenCL(blockNum, headerHash, difficulty);
+            result = MineFullGPU(blockNum, headerHash, difficulty);
         }
         else
         {

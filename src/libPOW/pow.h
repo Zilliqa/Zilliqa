@@ -119,9 +119,9 @@ private:
     ethash_mining_result_t MineFull(ethash_full_t& full,
                                     ethash_h256_t const& header_hash,
                                     ethash_h256_t& difficulty);
-    ethash_mining_result_t MineFullOpenCL(uint64_t blockNum,
-                                          ethash_h256_t const& header_hash,
-                                          uint8_t difficulty);
+    ethash_mining_result_t MineFullGPU(uint64_t blockNum,
+                                       ethash_h256_t const& header_hash,
+                                       uint8_t difficulty);
     bool VerifyLight(ethash_light_t& light, ethash_h256_t const& header_hash,
                      uint64_t winning_nonce, ethash_h256_t& difficulty,
                      ethash_h256_t& winning_result,

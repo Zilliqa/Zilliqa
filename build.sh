@@ -15,6 +15,17 @@
 
 dir=build
 
-cmake -H. -B${dir} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTESTS=ON -DCMAKE_INSTALL_PREFIX=..
+if [ "$1" = "lookup" ]
+then
+    CMAKE_EXTRA_OPTIONS="-DIS_LOOKUP_NODE=1"
+    dir=build_lookup
+    echo build lookup node
+elif [ "$1" = "cuda" ]
+then
+    CMAKE_EXTRA_OPTIONS="-DCUDA_MINE=1"
+    echo build normal node with cuda
+fi
+
+cmake -H. -B${dir} ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTESTS=ON -DCMAKE_INSTALL_PREFIX=..
 cmake --build ${dir} -- -j4
 cmake --build ${dir} --target clang-format-fix
