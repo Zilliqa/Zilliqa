@@ -264,6 +264,8 @@ bool P2PComm::SendMessageSocketCore(const Peer& peer,
     serv_addr.sin_addr.s_addr = peer.m_ipAddress.convert_to<unsigned long>();
     serv_addr.sin_port = htons(peer.m_listenPortHost);
 
+    signal(SIGPIPE, SIG_IGN);
+
     struct event_base* base = event_base_new();
     struct bufferevent* bev
         = bufferevent_socket_new(base, -1, BEV_OPT_CLOSE_ON_FREE);
@@ -308,8 +310,6 @@ bool P2PComm::SendMessageSocketCore(const Peer& peer,
                                   (unsigned char)((length >> 16) & 0xFF),
                                   (unsigned char)((length >> 8) & 0xFF),
                                   (unsigned char)(length & 0xFF)};
-
-    signal(SIGPIPE, SIG_IGN);
 
     if (HDR_LEN != writeMsg(buf, cli_sock, peer, HDR_LEN))
     {
