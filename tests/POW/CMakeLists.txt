@@ -1,9 +1,11 @@
 if(CMAKE_CONFIGURATION_TYPES)
     foreach(config ${CMAKE_CONFIGURATION_TYPES})
         configure_file(${CMAKE_SOURCE_DIR}/constants.xml ${config}/constants.xml COPYONLY)
+        configure_file(${CMAKE_SOURCE_DIR}/gpu_config.xml ${config}/gpu_config.xml COPYONLY)
     endforeach(config)
 else(CMAKE_CONFIGURATION_TYPES)
     configure_file(${CMAKE_SOURCE_DIR}/constants.xml constants.xml COPYONLY)
+    configure_file(${CMAKE_SOURCE_DIR}/gpu_config.xml gpu_config.xml COPYONLY)
 endif(CMAKE_CONFIGURATION_TYPES)
 
 link_directories(${CMAKE_BINARY_DIR}/lib)
