@@ -580,6 +580,25 @@ bool Node::ProcessCreateTransactionFromLookup(
                              << " toAddr: " << tx.GetToAddr().hex());
     if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(tx))
     {
+        auto& compIdx
+            = m_createdTransactions.get<MULTI_INDEX_KEY::ADDR_NONCE>();
+        auto it = compIdx.find(make_tuple(tx.GetSenderAddr(), tx.GetNonce()));
+        if (it != compIdx.end())
+        {
+            if (it->GetGasPrice() < tx.GetGasPrice())
+            {
+                compIdx.replace(it, tx);
+                return true;
+            }
+            else
+            {
+                LOG_GENERAL(WARNING,
+                            "Txn with same address and nonce already "
+                            "exists with higher gas price");
+                return false;
+            }
+        }
+
         auto& listIdx = m_createdTransactions.get<MULTI_INDEX_KEY::GAS_PRICE>();
         listIdx.insert(tx);
     }
