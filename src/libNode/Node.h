@@ -138,6 +138,8 @@ class Node : public Executable, public Broadcastable
     std::mutex m_mutexProcessedTransactions;
     std::unordered_map<uint64_t, std::unordered_map<TxnHash, Transaction>>
         m_processedTransactions;
+    //operates under m_mutexProcessedTransaction
+    std::vector<TxnHash> m_TxnOrder;
 
     uint32_t m_numOfAbsentTxnHashes;
 

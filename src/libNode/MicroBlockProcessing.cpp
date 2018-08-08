@@ -769,24 +769,22 @@ bool Node::ComposeMicroBlock()
     // TxBlock
     vector<TxnHash> tranHashes;
 
-    unsigned int index = 0;
+    //unsigned int index = 0;
     {
 
         lock_guard<mutex> g(m_mutexProcessedTransactions);
 
         auto& processedTransactions = m_processedTransactions[blockNum];
 
-        txRootHash = ComputeTransactionsRoot(processedTransactions);
+        txRootHash = ComputeTransactionsRoot(m_TxnOrder);
 
         numTxs = processedTransactions.size();
-        tranHashes.resize(numTxs);
-        for (const auto& tx : processedTransactions)
+        if (numTxs != m_TxnOrder.size())
         {
-            const auto& txid = tx.first.asArray();
-            copy(txid.begin(), txid.end(),
-                 tranHashes.at(index).asArray().begin());
-            index++;
+            LOG_GENERAL(FATAL, "Num txns and Order size not same");
         }
+        tranHashes = m_TxnOrder;
+        m_TxnOrder.clear();
     }
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Creating new micro block.")
@@ -984,11 +982,13 @@ void Node::ProcessTransactionWhenShardLeader()
 
     uint64_t blockNum = m_mediator.m_currentEpochNum;
 
+    list<Transaction> lstTx;
+
     auto appendOne = [this, &blockNum](const Transaction& t) {
         lock_guard<mutex> g(m_mutexProcessedTransactions);
         auto& processedTransactions = m_processedTransactions[blockNum];
         processedTransactions.insert(make_pair(t.GetTranID(), t));
-        LOG_GENERAL(INFO, "Hereeeee");
+        m_TxnOrder.push_back(t.GetTranID());
     };
 
     uint256_t gasUsedTotal = 0;
@@ -1020,10 +1020,9 @@ void Node::ProcessTransactionWhenShardLeader()
         else if (findOneFromCreated(t))
         {
             uint256_t gasUsed = 0;
-            LOG_GENERAL(INFO, "Num: " << txn_sent_count);
 
             // check nonce, if nonce larger than expected, put it into m_addrNonceTxnMap
-            /*if (t.GetNonce()
+            if (t.GetNonce()
                 > AccountStore::GetInstance().GetNonceTemp(t.GetSenderAddr())
                     + 1)
             {
@@ -1050,16 +1049,15 @@ void Node::ProcessTransactionWhenShardLeader()
                                         t.GetSenderAddr())
                          + 1)
             {
+                LOG_GENERAL(INFO, "Nonce too small");
             }
             // if nonce correct, process it
-            else*/ if (m_mediator.m_validator->CheckCreatedTransaction(t,
-                                                                       gasUsed)
-                       || !t.GetCode().empty() || !t.GetData().empty())
+            else if (m_mediator.m_validator->CheckCreatedTransaction(t, gasUsed)
+                     || !t.GetCode().empty() || !t.GetData().empty())
             {
 
                 appendOne(t);
                 gasUsedTotal += gasUsed;
-                LOG_GENERAL(INFO, "Gas Used Total: " << gasUsedTotal);
             }
         }
         else
@@ -1072,27 +1070,35 @@ void Node::ProcessTransactionWhenShardLeader()
 
 bool Node::VerifyTxnsOrdering([[gnu::unused]] const list<Transaction>& txns)
 {
-    /*
+
+    LOG_MARKER();
     unordered_map<Address, uint256_t> nonceMap;
+    bool ret = true;
 
     for (const auto& t : txns)
     {
         auto it = nonceMap.find(t.GetSenderAddr());
         if (it == nonceMap.end())
         {
+
             nonceMap.insert({t.GetSenderAddr(), t.GetNonce()});
         }
         else
         {
             if (t.GetNonce() != nonceMap[t.GetSenderAddr()] + 1)
             {
-                return false;
+                LOG_GENERAL(INFO,
+                            "Nonce of txn: "
+                                << t.GetNonce() << " Nonce Map: "
+                                << nonceMap[t.GetSenderAddr()] + 1);
+                ret = false;
             }
             nonceMap[t.GetSenderAddr()] = t.GetNonce();
         }
-    }*/
+        LOG_GENERAL(INFO, "Nonce : " << t.GetNonce());
+    }
 
-    return true;
+    return ret;
 }
 
 bool Node::RunConsensusOnMicroBlockWhenShardLeader()
@@ -1388,7 +1394,7 @@ bool Node::ProcessTransactionWhenShardBackup(const vector<TxnHash>& tranHashes,
 
         if (findFromCreated(t, tranHash))
         {
-            LOG_GENERAL(INFO, "TranHash added to curTxns " << tranHash);
+
             curTxns.emplace_back(t);
         }
         else
@@ -1399,13 +1405,11 @@ bool Node::ProcessTransactionWhenShardBackup(const vector<TxnHash>& tranHashes,
 
     if (!missingtranHashes.empty())
     {
-        LOG_GENERAL(WARNING, "Not found Missing Txns");
         return true;
     }
 
     if (!VerifyTxnsOrdering(curTxns))
     {
-        LOG_GENERAL(WARNING, "Not ordered txns propertly")
         return false;
     }
 
@@ -1415,23 +1419,15 @@ bool Node::ProcessTransactionWhenShardBackup(const vector<TxnHash>& tranHashes,
         lock_guard<mutex> g(m_mutexProcessedTransactions);
         auto& processedTransactions = m_processedTransactions[blockNum];
         processedTransactions.insert(make_pair(t.GetTranID(), t));
-        LOG_GENERAL(INFO, "inside appendOne");
     };
 
     for (const auto& t : curTxns)
     {
-        LOG_GENERAL(INFO, "inside loop");
         uint256_t gasUsed = 0;
         if (m_mediator.m_validator->CheckCreatedTransaction(t, gasUsed)
             || !t.GetCode().empty() || !t.GetData().empty())
         {
-            LOG_GENERAL(INFO, "inside if 2");
             appendOne(t);
-            LOG_GENERAL(INFO, "inside if");
-        }
-        else
-        {
-            LOG_GENERAL(INFO, "inside else");
         }
     }
 
