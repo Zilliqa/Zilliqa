@@ -332,8 +332,9 @@ void DirectoryService::StartFirstTxEpoch()
         SetState(MICROBLOCK_SUBMISSION);
 
         // Check for state change. If it get stuck at microblock submission for too long, move on to finalblock without the microblock
-        std::unique_lock<std::mutex> cv_lk(m_MutexScheduleFinalBlockConsensus);
-        if (cv_scheduleFinalBlockConsensus.wait_for(
+        std::unique_lock<std::mutex> cv_lk(
+            m_MutexScheduleDSMicroBlockConsensus);
+        if (cv_scheduleDSMicroBlockConsensus.wait_for(
                 cv_lk, std::chrono::seconds(MICROBLOCK_TIMEOUT))
             == std::cv_status::timeout)
         {

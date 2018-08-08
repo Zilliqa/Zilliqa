@@ -315,6 +315,9 @@ public:
     uint32_t m_consensusID;
     uint16_t m_consensusLeaderID;
 
+    std::mutex m_MutexScheduleDSMicroBlockConsensus;
+    std::condition_variable cv_scheduleDSMicroBlockConsensus;
+
     std::mutex m_MutexScheduleFinalBlockConsensus;
     std::condition_variable cv_scheduleFinalBlockConsensus;
 

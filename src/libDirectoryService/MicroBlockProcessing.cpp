@@ -111,9 +111,17 @@ bool DirectoryService::ProcessStateDelta(
     LOG_MARKER();
 
     LOG_GENERAL(INFO,
-                "Received MicroBlock State Delta root : "
+                "Received MicroBlock State Delta hash : "
                     << DataConversion::charArrToHexStr(
                            microBlockStateDeltaHash.asArray()));
+
+    if (microBlockStateDeltaHash == StateHash())
+    {
+        LOG_GENERAL(INFO,
+                    "State Delta hash received from microblock is null, "
+                    "skip processing state delta");
+        return true;
+    }
 
     vector<unsigned char> stateDeltaBytes;
     copy(message.begin() + cur_offset, message.end(),
@@ -252,6 +260,7 @@ bool DirectoryService::ProcessMicroblockSubmissionCore(
         // m_mediator.m_node->RunConsensusOnMicroBlock();
 
         auto func = [this]() mutable -> void {
+            cv_scheduleDSMicroBlockConsensus.notify_all();
             m_mediator.m_node->RunConsensusOnMicroBlock();
         };
 
