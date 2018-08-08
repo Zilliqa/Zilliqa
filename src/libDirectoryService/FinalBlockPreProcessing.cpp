@@ -861,11 +861,18 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup()
     return true;
 }
 
-void DirectoryService::RunConsensusOnFinalBlock()
+void DirectoryService::RunConsensusOnFinalBlock(bool revertStateDelta)
 {
     LOG_MARKER();
 
     SetState(FINALBLOCK_CONSENSUS_PREP);
+
+    if (revertStateDelta)
+    {
+        AccountStore::GetInstance().InitTemp();
+        AccountStore::GetInstance().DeserializeDeltaTemp(m_stateDeltaFromShards,
+                                                         0);
+    }
 
     AccountStore::GetInstance().SerializeDelta();
 
