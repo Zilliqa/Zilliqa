@@ -2291,8 +2291,7 @@ void Lookup::SenderTxnBatchThread()
 {
     auto main_func = [this]() mutable -> void {
         uint32_t nShard;
-        bool sentOnce = false;
-        while (!sentOnce)
+        while (true)
         {
             if (!(m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0
                   || m_mediator.m_currentEpochNum == 1))
@@ -2309,7 +2308,6 @@ void Lookup::SenderTxnBatchThread()
 
                 SendTxnPacketToNodes(nShard);
                 LOG_GENERAL(INFO, "Sent txns");
-                sentOnce = true;
             }
 
             this_thread::sleep_for(chrono::milliseconds(10000));
@@ -2327,7 +2325,7 @@ bool Lookup::CreateTxnPacket(vector<unsigned char>& msg, uint32_t shardId,
 
     map<uint32_t, vector<Transaction>> mp;
     mp.clear();
-    if (!GenTxnToSend(10, mp, nShard))
+    if (!GenTxnToSend(100, mp, nShard))
     {
         return false;
     }

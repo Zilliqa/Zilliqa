@@ -603,16 +603,37 @@ bool Node::ProcessTxnPacketFromLookup(
 
         if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(tx))
         {
-            LOG_GENERAL(INFO, "HEREE");
-            auto& listIdx
-                = m_createdTransactions.get<MULTI_INDEX_KEY::GAS_PRICE>();
-            listIdx.insert(tx);
-            txn_sent_count++;
+
+            auto& compIdx
+                = m_createdTransactions.get<MULTI_INDEX_KEY::ADDR_NONCE>();
+            auto it
+                = compIdx.find(make_tuple(tx.GetSenderAddr(), tx.GetNonce()));
+            if (it != compIdx.end())
+            {
+                if (it->GetGasPrice() < tx.GetGasPrice())
+                {
+                    compIdx.replace(it, tx);
+                }
+                else
+                {
+                    LOG_GENERAL(WARNING,
+                                "Txn with same address and nonce already "
+                                "exists with higher gas price");
+                }
+            }
+            else
+            {
+                auto& listIdx
+                    = m_createdTransactions.get<MULTI_INDEX_KEY::GAS_PRICE>();
+                listIdx.insert(tx);
+                txn_sent_count++;
+            }
         }
         else
         {
             LOG_GENERAL(WARNING, "Txn is not valid.");
         }
+
         curr_offset += tx.GetSerializedSize();
     }
     LOG_GENERAL(INFO, "TXN COUNT" << txn_sent_count);
