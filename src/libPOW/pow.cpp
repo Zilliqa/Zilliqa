@@ -15,6 +15,8 @@
 **/
 
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/xml_parser.hpp>
 #include <ctime>
 #include <iomanip>
 #include <iostream>
@@ -29,50 +31,21 @@
 #include "depends/libethash-cuda/CUDAMiner.h"
 #endif
 
+using boost::property_tree::ptree;
+
 POW::POW()
 {
     currentBlockNum = 0;
     ethash_light_client = EthashLightNew(
         0); // TODO: Do we still need this? Can we call it at mediator?
+
     if (OPENCL_GPU_MINE)
     {
-        using namespace dev::eth;
-        CLMiner::setCLKernel(0);
-        CLMiner::setThreadsPerHash(8);
-
-        if (!CLMiner::configureGPU(CLMiner::c_defaultLocalWorkSize,
-                                   CLMiner::c_defaultGlobalWorkSizeMultiplier,
-                                   0, 0, 0, 0, false, false))
-        {
-            LOG_GENERAL(
-                FATAL, "Failed to configure OpenCL GPU, please check hardware");
-            exit(1);
-        };
-
-        CLMiner::setNumInstances(UINT_MAX);
-        m_miner = std::make_unique<CLMiner>();
-        LOG_GENERAL(INFO, "OpenCL GPU initialized in POW");
+        InitOpenCL();
     }
     else if (CUDA_GPU_MINE)
     {
-#ifdef CUDA_MINE
-        using namespace dev::eth;
-        CUDAMiner::setNumInstances(UINT_MAX);
-        if (!CUDAMiner::configureGPU(
-                CUDAMiner::c_defaultBlockSize, CUDAMiner::c_defaultGridSize,
-                CUDAMiner::c_defaultNumStreams, 4, 0, 0, false, false))
-        {
-            LOG_GENERAL(FATAL,
-                        "Failed to configure CUDA GPU, please check hardware");
-            exit(1);
-        }
-        m_miner = std::make_unique<CUDAMiner>();
-        LOG_GENERAL(INFO, "CUDA GPU initialized in POW");
-#else
-        throw std::runtime_error(
-            "The software is not build with CUDA. Please install CUDA "
-            "and build software again");
-#endif
+        InitCUDA();
     }
 }
 
@@ -474,4 +447,60 @@ ethash_return_value_t POW::LightHash(uint64_t blockNum,
 {
     EthashConfigureLightClient(blockNum);
     return EthashLightCompute(ethash_light_client, header_hash, nonce);
+}
+
+void POW::InitOpenCL()
+{
+    using namespace dev::eth;
+    CLMiner::setCLKernel(CLKernelName::Stable);
+
+    ptree pt;
+    read_xml("gpu_config.xml", pt);
+    std::string parentNode = "gpu.opencl.";
+    auto localWorkSize = pt.get<unsigned int>(parentNode + "LOCAL_WORK_SIZE");
+    auto globalWorkSizeMultiplier
+        = pt.get<unsigned int>(parentNode + "GLOBAL_WORK_SIZE_MULTIPLIER");
+    auto startEpoch = pt.get<unsigned int>(parentNode + "START_EPOCH");
+
+    if (!CLMiner::configureGPU(localWorkSize, globalWorkSizeMultiplier, 0,
+                               startEpoch, 0, 0, false, false))
+    {
+        throw std::runtime_error(
+            "Failed to configure OpenCL GPU, please check hardware");
+    }
+
+    CLMiner::setNumInstances(UINT_MAX);
+    m_miner = std::make_unique<CLMiner>();
+    LOG_GENERAL(INFO, "OpenCL GPU initialized in POW");
+}
+
+void POW::InitCUDA()
+{
+#ifdef CUDA_MINE
+    using namespace dev::eth;
+
+    ptree pt;
+    read_xml("gpu_config.xml", pt);
+    std::string parentNode = "gpu.cuda.";
+    auto blockSize = pt.get<unsigned int>(parentNode + "BLOCK_SIZE");
+    auto gridSize = pt.get<unsigned int>(parentNode + "GRID_SIZE");
+    auto streamNum = pt.get<unsigned int>(parentNode + "STREAM_NUM");
+    auto scheduleFlag = pt.get<unsigned int>(parentNode + "SCHEDULE_FLAG");
+
+    if (!CUDAMiner::configureGPU(blockSize, gridSize, streamNum, scheduleFlag,
+                                 0, 0, false, false))
+    {
+        LOG_GENERAL(FATAL,
+                    "Failed to configure CUDA GPU, please check hardware");
+        exit(1);
+    }
+
+    CUDAMiner::setNumInstances(UINT_MAX);
+    m_miner = std::make_unique<CUDAMiner>();
+    LOG_GENERAL(INFO, "CUDA GPU initialized in POW");
+#else
+    throw std::runtime_error(
+        "The software is not build with CUDA. Please install CUDA "
+        "and build software again");
+#endif
 }
