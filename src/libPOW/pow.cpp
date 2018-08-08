@@ -39,6 +39,7 @@ POW::POW()
     ethash_light_client = EthashLightNew(
         0); // TODO: Do we still need this? Can we call it at mediator?
 
+#ifndef IS_LOOKUP_NODE
     if (OPENCL_GPU_MINE)
     {
         InitOpenCL();
@@ -47,6 +48,7 @@ POW::POW()
     {
         InitCUDA();
     }
+#endif // IS_LOOKUP_NODE
 }
 
 POW::~POW() { EthashLightDelete(ethash_light_client); }
@@ -490,9 +492,8 @@ void POW::InitCUDA()
     if (!CUDAMiner::configureGPU(blockSize, gridSize, streamNum, scheduleFlag,
                                  0, 0, false, false))
     {
-        LOG_GENERAL(FATAL,
-                    "Failed to configure CUDA GPU, please check hardware");
-        exit(1);
+        throw std::runtime_error(
+            "Failed to configure CUDA GPU, please check hardware");
     }
 
     CUDAMiner::setNumInstances(UINT_MAX);
