@@ -166,7 +166,7 @@ struct WorkPackage
     explicit operator bool() const { return header != h256(); }
 
     h256 boundary;
-    h256 header;  ///< When h256() means "pause until notified a new work package is available".
+    h256 header = h256{1u};  ///< When h256() means "pause until notified a new work package is available".
     h256 job;
     uint64_t blockNumber = -1;
 
@@ -203,16 +203,6 @@ public:
 	unsigned Index() { return index; };
 	HwMonitorInfo hwmonInfo() { return m_hwmoninfo; }
 
-	uint64_t get_start_nonce()
-	{
-		// Each GPU is given a non-overlapping 2^40 range to search
-		// return m_ptrFarm->get_nonce_scrambler() + ((uint64_t) index << 40);
-		
-		// Now segment size is adjustable
-		//return m_ptrFarm->get_nonce_scrambler() + (uint64_t)(pow(2, m_ptrFarm->get_segment_width()) * index);
-		return 0;
-	}
-
 	void set_mining_paused(MinigPauseReason pause_reason)
 	{
 		m_mining_paused.set_mining_paused(pause_reason);
@@ -229,6 +219,7 @@ public:
 	}
 
 	virtual bool mine(const WorkPackage &w, Solution &solution) = 0;
+	std::string getLog() const { return s_ssLog.str(); }
 
 protected:
 	void addHashCount(uint64_t _n) { m_hashCount.fetch_add(_n, std::memory_order_relaxed); }
@@ -246,6 +237,7 @@ protected:
 	static std::stringstream s_ssLog;
 	static std::stringstream s_ssNote;
 	static std::stringstream s_ssWarn;
+	WorkPackage m_currentWP;
 
 private:
 	std::atomic<uint64_t> m_hashCount = {0};
