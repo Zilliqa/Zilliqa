@@ -250,7 +250,8 @@ void Node::StartSynchronization()
 
 bool Node::CheckState(Action action)
 {
-    if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
+    if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE
+        && action != PROCESS_MICROBLOCKCONSENSUS)
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "I am a DS node. Why am I getting this message? Action: "

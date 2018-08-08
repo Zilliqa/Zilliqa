@@ -442,7 +442,25 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
                             "Timeout: Didn't receive all Microblock. Proceeds "
                             "without it");
 
-                RunConsensusOnFinalBlock();
+                auto func1 = [this]() mutable -> void {
+                    m_mediator.m_node->RunConsensusOnMicroBlock();
+                };
+
+                DetachedFunction(1, func1);
+
+                std::unique_lock<std::mutex> cv_lk(
+                    m_MutexScheduleFinalBlockConsensus);
+                if (cv_scheduleFinalBlockConsensus.wait_for(
+                        cv_lk, std::chrono::seconds(MICROBLOCK_TIMEOUT))
+                    == std::cv_status::timeout)
+                {
+                    LOG_GENERAL(
+                        WARNING,
+                        "Timeout: Didn't finish DS Microblock. Proceeds "
+                        "without it");
+
+                    RunConsensusOnFinalBlock(true);
+                }
             }
         }
     };
