@@ -125,7 +125,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t difficulty,
 
         deque<Peer> peerList;
 
-        for (auto const& i : m_mediator.m_DSCommittee)
+        for (auto const& i : *m_mediator.m_DSCommittee)
         {
             peerList.push_back(i.second);
         }
@@ -133,7 +133,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t difficulty,
         P2PComm::GetInstance().SendMessage(peerList, powmessage);
     }
 
-    SetState(POW2_SUBMISSION);
+    SetState(MICROBLOCK_CONSENSUS_PREP);
     return true;
 }
 
@@ -187,7 +187,7 @@ bool Node::ReadVariablesFromStartPoWMessage(
 
     // Create and keep a view of the DS committee
     // We'll need this if we win PoW
-    m_mediator.m_DSCommittee.clear();
+    m_mediator.m_DSCommittee->clear();
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "DS nodes count    = " << numDS);
     for (unsigned int i = 0; i < numDS; i++)
@@ -195,14 +195,14 @@ bool Node::ReadVariablesFromStartPoWMessage(
         PubKey pubkey(message, cur_offset);
         cur_offset += PUB_KEY_SIZE;
 
-        m_mediator.m_DSCommittee.emplace_back(
+        m_mediator.m_DSCommittee->emplace_back(
             make_pair(pubkey, Peer(message, cur_offset)));
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "DS Node IP: " << m_mediator.m_DSCommittee.back()
+                  "DS Node IP: " << m_mediator.m_DSCommittee->back()
                                         .second.GetPrintableIPAddress()
                                  << " Port: "
-                                 << m_mediator.m_DSCommittee.back()
+                                 << m_mediator.m_DSCommittee->back()
                                         .second.m_listenPortHost);
         cur_offset += IP_SIZE + PORT_SIZE;
     }

@@ -54,8 +54,8 @@ void DirectoryService::StoreFinalBlockToDisk()
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Storing Tx Block Number: "
-                  << m_finalBlock->GetHeader().GetBlockNum()
-                  << " with Type: " << m_finalBlock->GetHeader().GetType()
+                  << m_finalBlock->GetHeader().GetBlockNum() << " with Type: "
+                  << to_string(m_finalBlock->GetHeader().GetType())
                   << ", Version: " << m_finalBlock->GetHeader().GetVersion()
                   << ", Timestamp: " << m_finalBlock->GetHeader().GetTimestamp()
                   << ", NumTxs: " << m_finalBlock->GetHeader().GetNumTxs());
@@ -70,11 +70,26 @@ bool DirectoryService::SendFinalBlockToLookupNodes()
 {
     vector<unsigned char> finalblock_message
         = {MessageType::NODE, NodeInstructionType::FINALBLOCK};
-    finalblock_message.resize(finalblock_message.size() + sizeof(uint64_t)
-                              + sizeof(uint32_t) + sizeof(uint32_t)
-                              + m_finalBlockMessage.size());
 
     unsigned int curr_offset = MessageOffset::BODY;
+
+    vector<unsigned char> stateDelta;
+    AccountStore::GetInstance().GetSerializedDelta(stateDelta);
+
+    finalblock_message.resize(finalblock_message.size() + sizeof(uint64_t)
+                              + sizeof(uint32_t) + sizeof(uint32_t)
+                              + m_finalBlockMessage.size() + stateDelta.size());
+
+    // Finalblock
+    copy(m_finalBlockMessage.begin(), m_finalBlockMessage.end(),
+         finalblock_message.begin() + MessageOffset::BODY + sizeof(uint64_t)
+             + sizeof(uint32_t) + sizeof(uint32_t));
+
+    // State delta
+    copy(stateDelta.begin(), stateDelta.end(),
+         finalblock_message.begin() + MessageOffset::BODY + sizeof(uint64_t)
+             + sizeof(uint32_t) + sizeof(uint32_t)
+             + m_finalBlockMessage.size());
 
     // 8-byte DS blocknum
     uint64_t dsBlockNum
@@ -93,8 +108,8 @@ bool DirectoryService::SendFinalBlockToLookupNodes()
                                       (uint32_t)0, sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
-    copy(m_finalBlockMessage.begin(), m_finalBlockMessage.end(),
-         finalblock_message.begin() + curr_offset);
+    // copy(m_finalBlockMessage.begin(), m_finalBlockMessage.end(),
+    //      finalblock_message.begin() + curr_offset);
 
     m_mediator.m_lookup->SendMessageToLookupNodes(finalblock_message);
 
@@ -119,8 +134,8 @@ void DirectoryService::DetermineShardsToSendFinalBlockTo(
     LOG_MARKER();
 
     unsigned int num_DS_clusters
-        = m_mediator.m_DSCommittee.size() / DS_MULTICAST_CLUSTER_SIZE;
-    if ((m_mediator.m_DSCommittee.size() % DS_MULTICAST_CLUSTER_SIZE) > 0)
+        = m_mediator.m_DSCommittee->size() / DS_MULTICAST_CLUSTER_SIZE;
+    if ((m_mediator.m_DSCommittee->size() % DS_MULTICAST_CLUSTER_SIZE) > 0)
     {
         num_DS_clusters++;
     }
@@ -156,15 +171,26 @@ void DirectoryService::SendFinalBlockToShardNodes(
         vector<unsigned char> finalblock_message
             = {MessageType::NODE, NodeInstructionType::FINALBLOCK};
 
+        unsigned int curr_offset = MessageOffset::BODY;
+
+        vector<unsigned char> stateDelta;
+        AccountStore::GetInstance().GetSerializedDelta(stateDelta);
+
         finalblock_message.resize(finalblock_message.size() + sizeof(uint64_t)
                                   + sizeof(uint32_t) + sizeof(uint32_t)
-                                  + m_finalBlockMessage.size());
+                                  + m_finalBlockMessage.size()
+                                  + stateDelta.size());
 
+        // Finalblock
         copy(m_finalBlockMessage.begin(), m_finalBlockMessage.end(),
              finalblock_message.begin() + MessageOffset::BODY + sizeof(uint64_t)
                  + sizeof(uint32_t) + sizeof(uint32_t));
 
-        unsigned int curr_offset = MessageOffset::BODY;
+        // State delta
+        copy(stateDelta.begin(), stateDelta.end(),
+             finalblock_message.begin() + MessageOffset::BODY + sizeof(uint64_t)
+                 + sizeof(uint32_t) + sizeof(uint32_t)
+                 + m_finalBlockMessage.size());
 
         // 8-byte DS blocknum
         uint64_t DSBlockNum = m_mediator.m_dsBlockChain.GetLastBlock()
@@ -253,6 +279,9 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Final block consensus is DONE!!!");
 
+    // Clear microblock(s)
+    m_microBlocks.clear();
+
     if (m_mode == PRIMARY_DS)
     {
         LOG_STATE("[FBCON][" << setw(15) << left
@@ -274,6 +303,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
 
     // StoreMicroBlocksToDisk();
     StoreFinalBlockToDisk();
+
+    AccountStore::GetInstance().CommitTemp();
 
     bool isVacuousEpoch
         = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
@@ -399,6 +430,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "[No PoW needed] Waiting for Microblock.");
 
+            CommitMBSubmissionMsgBuffer();
+
             std::unique_lock<std::mutex> cv_lk(
                 m_MutexScheduleFinalBlockConsensus);
             if (cv_scheduleFinalBlockConsensus.wait_for(
@@ -435,7 +468,8 @@ bool DirectoryService::ProcessFinalBlockConsensus(
 
         // Wait until in the case that primary sent announcement pretty early
         if ((m_state == MICROBLOCK_SUBMISSION)
-            || (m_state == FINALBLOCK_CONSENSUS_PREP))
+            || (m_state == FINALBLOCK_CONSENSUS_PREP)
+            || (m_state == VIEWCHANGE_CONSENSUS))
         {
             std::unique_lock<std::mutex> cv_lkObject(
                 m_MutexCVFinalBlockConsensusObject);

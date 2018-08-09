@@ -53,7 +53,7 @@ void addBalanceToGenesisAccount()
 {
     LOG_MARKER();
 
-    const uint256_t bal{100000000000};
+    const uint256_t bal{std::numeric_limits<uint64_t>::max()};
     const uint256_t nonce{0};
 
     for (auto& walletHexStr : GENESIS_WALLETS)
@@ -128,7 +128,7 @@ void Node::Init()
     m_mediator.m_txBlockChain.Reset();
     {
         std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
-        m_mediator.m_DSCommittee.clear();
+        m_mediator.m_DSCommittee->clear();
     }
     m_committedTransactions.clear();
     AccountStore::GetInstance().Init();
@@ -212,9 +212,7 @@ void Node::StartSynchronization()
             while (!m_mediator.m_lookup->m_fetchedOfflineLookups)
             {
                 if (m_mediator.m_lookup->cv_offlineLookups.wait_for(
-                        lock,
-                        chrono::seconds(POW_WINDOW_IN_SECONDS
-                                        + BACKUP_POW2_WINDOW_IN_SECONDS))
+                        lock, chrono::seconds(POW_WINDOW_IN_SECONDS))
                     == std::cv_status::timeout)
                 {
                     LOG_GENERAL(WARNING, "FetchOfflineLookups Timeout...");
@@ -239,11 +237,9 @@ void Node::StartSynchronization()
                         .GetHeader()
                         .GetBlockNum()
                     + 1);
-            this_thread::sleep_for(
-                chrono::seconds(m_mediator.m_lookup->m_startedPoW2
-                                    ? BACKUP_POW2_WINDOW_IN_SECONDS
-                                        + LEADER_SHARDING_PREPARATION_IN_SECONDS
-                                    : NEW_NODE_SYNC_INTERVAL));
+            this_thread::sleep_for(chrono::seconds(
+                m_mediator.m_lookup->m_startedPoW ? POW_BACKUP_WINDOW_IN_SECONDS
+                                                  : NEW_NODE_SYNC_INTERVAL));
         }
     };
 
@@ -264,8 +260,7 @@ bool Node::CheckState(Action action)
 
     static const std::multimap<NodeState, Action> ACTIONS_FOR_STATE
         = {{POW_SUBMISSION, STARTPOW},
-           {POW2_SUBMISSION, STARTPOW2},
-           {MICROBLOCK_CONSENSUS_PREP, PROCESS_SHARDING},
+           {MICROBLOCK_CONSENSUS_PREP, PROCESS_DSBLOCK},
            {MICROBLOCK_CONSENSUS, PROCESS_MICROBLOCKCONSENSUS},
            {WAITING_FINALBLOCK, PROCESS_FINALBLOCK}};
 
@@ -545,6 +540,25 @@ bool Node::ProcessCreateTransactionFromLookup(
                              << " toAddr: " << tx.GetToAddr().hex());
     if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(tx))
     {
+        auto& compIdx
+            = m_createdTransactions.get<MULTI_INDEX_KEY::ADDR_NONCE>();
+        auto it = compIdx.find(make_tuple(tx.GetSenderAddr(), tx.GetNonce()));
+        if (it != compIdx.end())
+        {
+            if (it->GetGasPrice() < tx.GetGasPrice())
+            {
+                compIdx.replace(it, tx);
+                return true;
+            }
+            else
+            {
+                LOG_GENERAL(WARNING,
+                            "Txn with same address and nonce already "
+                            "exists with higher gas price");
+                return false;
+            }
+        }
+
         auto& listIdx = m_createdTransactions.get<MULTI_INDEX_KEY::GAS_PRICE>();
         listIdx.insert(tx);
     }
@@ -637,12 +651,18 @@ bool Node::ProcessTxnPacketFromLookup(
         curr_offset += tx.GetSerializedSize();
     }
     LOG_GENERAL(INFO, "TXN COUNT" << txn_sent_count);
+    vector<Peer> toSend;
+
+    for (auto it = m_myShardMembers->begin(); it != m_myShardMembers->end();
+         it++)
+    {
+        toSend.push_back(it->second);
+    }
     if (txn_sent_count > 0)
     {
         LOG_GENERAL(INFO,
                     "[Batching] Broadcast my txns to other shard members");
-        P2PComm::GetInstance().SendBroadcastMessage(m_myShardMembersNetworkInfo,
-                                                    message);
+        P2PComm::GetInstance().SendBroadcastMessage(toSend, message);
     }
 #endif //IS_LOOKUP_NOD
     return true;
@@ -714,11 +734,9 @@ void Node::ResetRejoinFlags()
 bool Node::CleanVariables()
 {
     AccountStore::GetInstance().InitSoft();
-    m_myShardMembersPubKeys.clear();
-    m_myShardMembersNetworkInfo.clear();
+    m_myShardMembers->clear();
     m_isPrimary = false;
     m_isMBSender = false;
-    m_tempStateDeltaCommitted = true;
     m_myShardID = 0;
 
     {
@@ -750,20 +768,8 @@ bool Node::CleanVariables()
         m_committedTransactions.clear();
     }
     {
-        std::lock_guard<mutex> lock(m_mutexForwardingAssignment);
-        m_forwardingAssignment.clear();
-    }
-    {
-        std::lock_guard<mutex> lock(m_mutexAllMicroBlocksRecvd);
-        m_allMicroBlocksRecvd = true;
-    }
-    {
         std::lock_guard<mutex> lock(m_mutexUnavailableMicroBlocks);
         m_unavailableMicroBlocks.clear();
-    }
-    {
-        std::lock_guard<mutex> lock(m_mutexTempCommitted);
-        m_tempStateDeltaCommitted = true;
     }
     // On Lookup
     {
@@ -771,7 +777,7 @@ bool Node::CleanVariables()
             m_mediator.m_lookup->m_mutexOfflineLookupsUpdation);
         m_mediator.m_lookup->m_fetchedOfflineLookups = false;
     }
-    m_mediator.m_lookup->m_startedPoW2 = false;
+    m_mediator.m_lookup->m_startedPoW = false;
 
     return true;
 }
@@ -782,6 +788,9 @@ void Node::CleanCreatedTransaction()
     // m_createdTransactions.clear();
     m_createdTransactions.get<0>().clear();
 }
+
+void Node::SetMyShardID(uint32_t shardID) { m_myShardID = shardID; }
+
 #endif // IS_LOOKUP_NODE
 
 bool Node::ProcessDoRejoin(
@@ -837,9 +846,13 @@ bool Node::ToBlockMessage([[gnu::unused]] unsigned char ins_byte)
     if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
 #ifndef IS_LOOKUP_NODE
     {
+        if (m_mediator.m_lookup->m_syncType == SyncType::DS_SYNC)
+        {
+            return true;
+        }
         if (!m_fromNewProcess)
         {
-            if (ins_byte != NodeInstructionType::SHARDING
+            if (ins_byte != NodeInstructionType::DSBLOCK
                 && ins_byte != NodeInstructionType::CREATETRANSACTIONFROMLOOKUP)
             {
                 return true;
@@ -847,15 +860,11 @@ bool Node::ToBlockMessage([[gnu::unused]] unsigned char ins_byte)
         }
         else
         {
-            if (m_runFromLate && ins_byte != NodeInstructionType::SHARDING
+            if (m_runFromLate && ins_byte != NodeInstructionType::DSBLOCK
                 && ins_byte != NodeInstructionType::CREATETRANSACTIONFROMLOOKUP)
             {
                 return true;
             }
-        }
-        if (m_mediator.m_lookup->m_syncType == SyncType::DS_SYNC)
-        {
-            return true;
         }
     }
 #else // IS_LOOKUP_NODE
@@ -879,14 +888,12 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
     InstructionHandler ins_handlers[]
         = {&Node::ProcessStartPoW,
            &Node::ProcessDSBlock,
-           &Node::ProcessSharding,
            &Node::ProcessSubmitTransaction,
            &Node::ProcessMicroblockConsensus,
            &Node::ProcessFinalBlock,
            &Node::ProcessForwardTransaction,
            &Node::ProcessCreateTransactionFromLookup,
            &Node::ProcessVCBlock,
-           &Node::ProcessForwardStateDelta,
            &Node::ProcessDoRejoin,
            &Node::ProcessTxnPacketFromLookup};
 
@@ -926,7 +933,6 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
 
 map<Node::NodeState, string> Node::NodeStateStrings
     = {MAKE_LITERAL_PAIR(POW_SUBMISSION),
-       MAKE_LITERAL_PAIR(POW2_SUBMISSION),
        MAKE_LITERAL_PAIR(MICROBLOCK_CONSENSUS_PREP),
        MAKE_LITERAL_PAIR(MICROBLOCK_CONSENSUS),
        MAKE_LITERAL_PAIR(WAITING_FINALBLOCK),
@@ -947,8 +953,7 @@ string Node::GetStateString() const
 
 map<Node::Action, string> Node::ActionStrings
     = {MAKE_LITERAL_PAIR(STARTPOW),
-       MAKE_LITERAL_PAIR(STARTPOW2),
-       MAKE_LITERAL_PAIR(PROCESS_SHARDING),
+       MAKE_LITERAL_PAIR(PROCESS_DSBLOCK),
        MAKE_LITERAL_PAIR(PROCESS_MICROBLOCKCONSENSUS),
        MAKE_LITERAL_PAIR(PROCESS_FINALBLOCK),
        MAKE_LITERAL_PAIR(PROCESS_TXNBODY),

@@ -7,16 +7,14 @@
 ## Overview
 Zilliqa is a new blockchain platform capable of processing thousands of transactions per second with sharding built into it. With sharding, Zilliqa has the potential to match throughput benchmarks set by traditional payment methods (such as _VISA_ and _MasterCard_). More importantly, Zilliqa’s transaction throughput increases (roughly) linearly with its network size.
 
-## D24 Testnet  
+## _D24_ Testnet  
 * [Block Explorer](https://explorer.zilliqa.com/home)
 * [Wallet](https://wallet.zilliqa.com/)  
   
-## D24 Testnet with Scilla support 
+## _D24_ Testnet with Scilla support 
 * [Interpreter IDE](https://ide.zilliqa.com/)  
 * [Block Explorer](https://explorer-scilla.zilliqa.com)  
 * [Wallet](https://wallet-scilla.zilliqa.com/)  
-
-
 
 ## Available Features
 The current release has the following features implemented:
@@ -33,11 +31,11 @@ The current release has the following features implemented:
 * View change
 * [Zilliqa Wallet](https://github.com/Zilliqa/Zilliqa-Wallet)
 * [Smart contract design and implementation](https://scilla.readthedocs.io)
+* GPU (OpenCL and CUDA) support for PoW
 
 In the coming months, we plan to have the following features:
 * Gossip protocol for network message broadcasting
 * Incentive structure
-* GPU support for PoW
 * Further unit and integration tests
 * Enhancement of existing features
 * More operating system support
@@ -66,6 +64,8 @@ To compile and run the Zilliqa codebase, you will need the following dependencie
 * `pkg-config`
 * `libevent`
 * `miniupnpc`
+* `opencl`
+* `Protobuf`
 * Dependencies only required for builds with code coverage enabled
     * `gcov`
     * `lcov`
@@ -79,7 +79,7 @@ sudo apt-get update
 ```
 
 ```bash
-sudo apt-get install git clang-format-5.0 clang-tidy-5.0 clang-5.0 libboost-system-dev libboost-filesystem-dev libboost-test-dev libssl-dev libleveldb-dev libjsoncpp-dev libsnappy-dev cmake libmicrohttpd-dev libjsonrpccpp-dev build-essential pkg-config libevent-dev libminiupnpc-dev
+sudo apt-get install git clang-format-5.0 clang-tidy-5.0 clang-5.0 libboost-system-dev libboost-filesystem-dev libboost-test-dev libssl-dev libleveldb-dev libjsoncpp-dev libsnappy-dev cmake libmicrohttpd-dev libjsonrpccpp-dev build-essential pkg-config libevent-dev libminiupnpc-dev ocl-icd-opencl-dev libprotobuf-dev protobuf-compiler
 ```
 
 For Mac OS X (experimental), you can use the following command to install the dependencies:  
@@ -98,6 +98,9 @@ brew install pkg-config jsoncpp leveldb libjson-rpc-cpp libevent miniupnpc
 
 4. To terminate Zilliqa,   
 `pkill zilliqa` 
+
+If you wish to use CUDA supported GPU for PoW, please download and install CUDA package from [NVIDIA offical webpage](https://developer.nvidia.com/cuda-downloads). You may need to reboot your PC for the installation take effect. After which, please use the following build option to build Zilliqa with CUDA support.  
+`./build.sh cuda`
 
 ## Running a Zilliqa Node on the public testnet 
 If you are interested in running a node on the Zilliqa testnet, please register [here](https://docs.google.com/forms/d/e/1FAIpQLSesn-MxThl4ocKCrjUYSPGc463E7-1I1O1v_GGccYbqfFr7zg/viewform)
