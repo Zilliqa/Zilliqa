@@ -25,7 +25,10 @@ apt-get install -y \
     libmicrohttpd-dev \
     libjsonrpccpp-dev \
     libminiupnpc-dev \
-    libevent-dev
+    libevent-dev \
+    ocl-icd-opencl-dev \
+    libprotobuf-dev \
+    protobuf-compiler
 
 # install development dependencies
 apt-get install -y \
@@ -50,6 +53,7 @@ brew install \
     libjson-rpc-cpp \
     miniupnpc \
     libevent \
+    protobuf
 
 # install developement deps
 brew install \

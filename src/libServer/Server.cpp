@@ -575,7 +575,7 @@ unsigned int Server::GetNumPeers()
     LOG_MARKER();
     unsigned int numPeers = m_mediator.m_lookup->GetNodePeers().size();
     lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
-    return numPeers + m_mediator.m_DSCommittee.size();
+    return numPeers + m_mediator.m_DSCommittee->size();
 }
 
 string Server::GetNumTxBlocks()
@@ -909,7 +909,7 @@ Json::Value Server::TxBlockListing(unsigned int page)
     LOG_MARKER();
 
     uint64_t currBlockNum
-        = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+        = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
     Json::Value _json;
 
     auto maxPages = (currBlockNum / PAGE_SIZE) + 1;

@@ -41,8 +41,8 @@ void DirectoryService::DetermineShardsToSendVCBlockTo(
     unsigned int& my_DS_cluster_num, unsigned int& my_shards_lo,
     unsigned int& my_shards_hi) const
 {
-    // Multicast final block to my assigned shard's nodes - send FINALBLOCK message
-    // Message = [Final block]
+    // Multicast VC block to my assigned shard's nodes - send VCBLOCK message
+    // Message = [VC block]
 
     // Multicast assignments:
     // 1. Divide DS committee into clusters of size 20
@@ -55,8 +55,8 @@ void DirectoryService::DetermineShardsToSendVCBlockTo(
     LOG_MARKER();
 
     unsigned int num_DS_clusters
-        = m_mediator.m_DSCommittee.size() / DS_MULTICAST_CLUSTER_SIZE;
-    if ((m_mediator.m_DSCommittee.size() % DS_MULTICAST_CLUSTER_SIZE) > 0)
+        = m_mediator.m_DSCommittee->size() / DS_MULTICAST_CLUSTER_SIZE;
+    if ((m_mediator.m_DSCommittee->size() % DS_MULTICAST_CLUSTER_SIZE) > 0)
     {
         num_DS_clusters++;
     }
@@ -124,7 +124,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
     unsigned int count = 0;
 
     vector<PubKey> keys;
-    for (auto const& kv : m_mediator.m_DSCommittee)
+    for (auto const& kv : *m_mediator.m_DSCommittee)
     {
         if (m_pendingVCBlock->GetB2().at(index) == true)
         {
@@ -169,10 +169,9 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
     }
 
     // StoreVCBlockToStorage(); TODO
-    unsigned int offsetToCandidateLeader = 1;
 
     Peer expectedLeader;
-    if (m_mediator.m_DSCommittee.at(offsetToCandidateLeader).second == Peer())
+    if (m_mediator.m_DSCommittee->at(m_viewChangeCounter).second == Peer())
     {
         // I am 0.0.0.0
         expectedLeader = m_mediator.m_selfPeer;
@@ -180,7 +179,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
     else
     {
         expectedLeader
-            = m_mediator.m_DSCommittee.at(offsetToCandidateLeader).second;
+            = m_mediator.m_DSCommittee->at(m_viewChangeCounter).second;
     }
 
     if (expectedLeader == newLeaderNetworkInfo)
@@ -198,27 +197,85 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
             m_mode = BACKUP_DS;
         }
 
-        // Kick ousted leader to the back of the queue, waiting to be eject at
+        // Kick ousted leader and/or faulty candidate leader to the back of the queue, waiting to be eject at
         // the next ds epoch
+        // Suppose X1 - X3 are faulty ds nodes
+        // [X1][X2][X3][N1][N2]
+        // View change happen 3 times
+        // The view change will restructure the ds committee into this
+        // [X2][X3][N1][N2][X1] first vc. vc counter = 1
+        // [X3][N1][N2][X1][X2] second vc. vc counter = 2
+        // [N1][N2][X1][X2][X3] third vc. vc counter = 3
+        // X1 m_consensusMyID = (size of ds committee) - 1 - faultyLeaderIndex (original)
+        //                    = 5 - 1 - 0 = 2
+        // X2 m_consensusMyID = (size of ds committee) - 1 - faultyLeaderIndex (original)
+        //                    = 5 - 1 - 1 = 3
+        // X3 m_consensusMyID = (size of ds committee) - 1 - faultyLeaderIndex (original)
+        //                    = 5 - 1 - 2 = 4
+
+        bool isCurrentNodeFaulty = false;
         {
             lock_guard<mutex> g2(m_mediator.m_mutexDSCommittee);
-            m_mediator.m_DSCommittee.emplace_back(
-                m_mediator.m_DSCommittee.front());
-            m_mediator.m_DSCommittee.pop_front();
+
+            for (unsigned int faultyLeaderIndex = 0;
+                 faultyLeaderIndex < m_viewChangeCounter; faultyLeaderIndex++)
+            {
+                LOG_GENERAL(INFO,
+                            "Ejecting "
+                                << m_mediator.m_DSCommittee->front().second);
+
+                // Adjust ds commiteee
+                m_mediator.m_DSCommittee->push_back(
+                    m_mediator.m_DSCommittee->front());
+                m_mediator.m_DSCommittee->pop_front();
+
+                // Adjust faulty DS leader and/or faulty ds candidate leader
+                if (m_consensusMyID == faultyLeaderIndex)
+                {
+                    if (m_consensusMyID == 0)
+                    {
+                        LOG_EPOCH(
+                            INFO,
+                            to_string(m_mediator.m_currentEpochNum).c_str(),
+                            "Current node is a faulty DS leader and got ousted "
+                            "by the DS "
+                            "Committee");
+                    }
+                    else
+                    {
+                        LOG_EPOCH(
+                            INFO,
+                            to_string(m_mediator.m_currentEpochNum).c_str(),
+                            "Current node is a faulty DS candidate leader and "
+                            "got ousted by the DS "
+                            "Committee");
+                    }
+
+                    // calculate (new) my consensus id for faulty ds nodes.
+                    // Good ds nodes adjustment have already been done previously.
+                    // m_consensusMyID = last index - num of time vc occur + faulty index
+                    // Need to add +1 at the end as vc counter begin at 1.
+                    m_consensusMyID = (m_mediator.m_DSCommittee->size() - 1)
+                        - m_viewChangeCounter + faultyLeaderIndex + 1;
+                    isCurrentNodeFaulty = true;
+                    LOG_GENERAL(INFO,
+                                "new m_consensusMyID  is " << m_consensusMyID);
+                }
+            }
+
+            // Faulty node already adjusted. Hence, only adjust current node here if it is not faultu.
+            if (!isCurrentNodeFaulty)
+            {
+                LOG_GENERAL(INFO, "Old m_consensusMyID " << m_consensusMyID);
+                m_consensusMyID -= m_viewChangeCounter;
+                LOG_GENERAL(INFO, "New m_consensusMyID " << m_consensusMyID);
+            }
         }
 
-        unsigned int offsetTOustedDSLeader = 0;
-        if (m_consensusMyID == offsetTOustedDSLeader)
+        LOG_GENERAL(INFO, "New view of ds committee: ");
+        for (unsigned i = 0; i < m_mediator.m_DSCommittee->size(); i++)
         {
-            // Now if I am the ousted leader, I will self-assinged myself to the last
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "I was a DS leader but I got ousted by the DS Committee");
-            offsetTOustedDSLeader = m_mediator.m_DSCommittee.size() - 1;
-            m_consensusMyID = offsetTOustedDSLeader;
-        }
-        else
-        {
-            m_consensusMyID--;
+            LOG_GENERAL(INFO, m_mediator.m_DSCommittee->at(i).second);
         }
 
         auto func = [this, viewChangeState]() -> void {
@@ -266,8 +323,6 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
     {
     case DSBLOCK_CONSENSUS:
     case DSBLOCK_CONSENSUS_PREP:
-    case SHARDING_CONSENSUS:
-    case SHARDING_CONSENSUS_PREP:
     {
         vector<Peer> allPowSubmitter;
         for (auto& nodeNetwork : m_allPoWConns)
@@ -280,18 +335,19 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
     }
     case FINALBLOCK_CONSENSUS:
     case FINALBLOCK_CONSENSUS_PREP:
-    case VIEWCHANGE_CONSENSUS:
-    case VIEWCHANGE_CONSENSUS_PREP:
     {
-        DetermineShardsToSendFinalBlockTo(my_DS_cluster_num, my_shards_lo,
-                                          my_shards_hi);
+        DetermineShardsToSendVCBlockTo(my_DS_cluster_num, my_shards_lo,
+                                       my_shards_hi);
         SendVCBlockToShardNodes(my_DS_cluster_num, my_shards_lo, my_shards_hi,
                                 vcblock_message);
         break;
     }
+    case VIEWCHANGE_CONSENSUS:
+    case VIEWCHANGE_CONSENSUS_PREP:
     default:
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "illegal view change state. state: " << viewChangeState);
+        LOG_EPOCH(
+            INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            "illegal view change state. state: " << to_string(viewChangeState));
     }
 }
 
@@ -307,12 +363,6 @@ void DirectoryService::ProcessNextConsensus(unsigned char viewChangeState)
                   "Re-running dsblock consensus");
         RunConsensusOnDSBlock();
         break;
-    case SHARDING_CONSENSUS:
-    case SHARDING_CONSENSUS_PREP:
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Re-running sharding consensus");
-        RunConsensusOnSharding();
-        break;
     case FINALBLOCK_CONSENSUS:
     case FINALBLOCK_CONSENSUS_PREP:
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -321,12 +371,10 @@ void DirectoryService::ProcessNextConsensus(unsigned char viewChangeState)
         break;
     case VIEWCHANGE_CONSENSUS:
     case VIEWCHANGE_CONSENSUS_PREP:
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Re-running view change consensus");
-        RunConsensusOnViewChange();
     default:
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "illegal view change state. state: " << viewChangeState);
+        LOG_EPOCH(
+            INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            "illegal view change state. state: " << to_string(viewChangeState));
     }
 }
 

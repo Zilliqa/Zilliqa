@@ -71,9 +71,7 @@ void DirectoryService::StartSynchronization()
             while (!m_mediator.m_lookup->m_fetchedOfflineLookups)
             {
                 if (m_mediator.m_lookup->cv_offlineLookups.wait_for(
-                        lock,
-                        chrono::seconds(POW_WINDOW_IN_SECONDS
-                                        + BACKUP_POW2_WINDOW_IN_SECONDS))
+                        lock, chrono::seconds(POW_WINDOW_IN_SECONDS))
                     == std::cv_status::timeout)
                 {
                     LOG_GENERAL(WARNING, "FetchOfflineLookups Timeout...");
@@ -118,9 +116,6 @@ bool DirectoryService::CheckState(Action action)
         = {{POW_SUBMISSION, PROCESS_POWSUBMISSION},
            {POW_SUBMISSION, VERIFYPOW},
            {DSBLOCK_CONSENSUS, PROCESS_DSBLOCKCONSENSUS},
-           {POW2_SUBMISSION, PROCESS_POW2SUBMISSION},
-           {POW2_SUBMISSION, VERIFYPOW2},
-           {SHARDING_CONSENSUS, PROCESS_SHARDINGCONSENSUS},
            {MICROBLOCK_SUBMISSION, PROCESS_MICROBLOCKSUBMISSION},
            {FINALBLOCK_CONSENSUS, PROCESS_FINALBLOCKCONSENSUS},
            {VIEWCHANGE_CONSENSUS, PROCESS_VIEWCHANGECONSENSUS}};
@@ -204,8 +199,8 @@ bool DirectoryService::ProcessSetPrimary(
             m_mediator.m_selfKey.second,
             m_mediator.m_selfPeer); // Add myself, but with dummy IP info
         vector<pair<PubKey, Peer>> ds = dsstore.GetAllPeerPairs();
-        m_mediator.m_DSCommittee.resize(ds.size());
-        copy(ds.begin(), ds.end(), m_mediator.m_DSCommittee.begin());
+        m_mediator.m_DSCommittee->resize(ds.size());
+        copy(ds.begin(), ds.end(), m_mediator.m_DSCommittee->begin());
         // Message = [numDSPeers][DSPeer][DSPeer]... numDSPeers times
         vector<unsigned char> setDSBootstrapNodeMessage
             = {MessageType::LOOKUP, LookupInstructionType::SETDSINFOFROMSEED};
@@ -234,13 +229,13 @@ bool DirectoryService::ProcessSetPrimary(
                           Peer()); // Add myself, but with dummy IP info
 
     vector<pair<PubKey, Peer>> tmp1 = peerstore.GetAllPeerPairs();
-    m_mediator.m_DSCommittee.resize(tmp1.size());
-    copy(tmp1.begin(), tmp1.end(), m_mediator.m_DSCommittee.begin());
+    m_mediator.m_DSCommittee->resize(tmp1.size());
+    copy(tmp1.begin(), tmp1.end(), m_mediator.m_DSCommittee->begin());
     peerstore.RemovePeer(m_mediator.m_selfKey.second); // Remove myself
 
     // Now I need to find my index in the sorted list (this will be my ID for the consensus)
     m_consensusMyID = 0;
-    for (auto const& i : m_mediator.m_DSCommittee)
+    for (auto const& i : *m_mediator.m_DSCommittee)
     {
         if (i.first == m_mediator.m_selfKey.second)
         {
@@ -349,11 +344,6 @@ bool DirectoryService::CleanVariables()
         m_allPoWs.clear();
     }
     {
-        std::lock_guard<mutex> lock(m_mutexAllPOW2);
-        m_allPoW2s.clear();
-        m_sortedPoW2s.clear();
-    }
-    {
         std::lock_guard<mutex> lock(m_mutexMicroBlocks);
         m_microBlocks.clear();
     }
@@ -391,12 +381,11 @@ bool DirectoryService::FinishRejoinAsDS()
     m_consensusMyID = 0;
     {
         std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
-        LOG_GENERAL(
-            INFO,
-            "m_DSCommitteePubKeys size: " << m_mediator.m_DSCommittee.size());
-        for (auto const& i : m_mediator.m_DSCommittee)
+        LOG_GENERAL(INFO,
+                    "m_DSCommittee size: " << m_mediator.m_DSCommittee->size());
+        for (auto const& i : *m_mediator.m_DSCommittee)
         {
-            LOG_GENERAL(INFO, "Loop of m_DSCommitteePubKeys");
+            LOG_GENERAL(INFO, "Loop of m_DSCommittee");
             if (i.first == m_mediator.m_selfKey.second)
             {
                 LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -439,8 +428,6 @@ bool DirectoryService::Execute(const vector<unsigned char>& message,
         = {&DirectoryService::ProcessSetPrimary,
            &DirectoryService::ProcessPoWSubmission,
            &DirectoryService::ProcessDSBlockConsensus,
-           &DirectoryService::ProcessPoW2Submission,
-           &DirectoryService::ProcessShardingConsensus,
            &DirectoryService::ProcessMicroblockSubmission,
            &DirectoryService::ProcessFinalBlockConsensus,
            &DirectoryService::ProcessViewChangeConsensus};
@@ -449,8 +436,6 @@ bool DirectoryService::Execute(const vector<unsigned char>& message,
         = {&DirectoryService::ProcessSetPrimary,
            &DirectoryService::ProcessPoWSubmission,
            &DirectoryService::ProcessDSBlockConsensus,
-           &DirectoryService::ProcessPoW2Submission,
-           &DirectoryService::ProcessShardingConsensus,
            &DirectoryService::ProcessMicroblockSubmission,
            &DirectoryService::ProcessFinalBlockConsensus};
 #endif // IS_LOOKUP_NODE
@@ -494,9 +479,6 @@ map<DirectoryService::DirState, string> DirectoryService::DirStateStrings
     = {MAKE_LITERAL_PAIR(POW_SUBMISSION),
        MAKE_LITERAL_PAIR(DSBLOCK_CONSENSUS_PREP),
        MAKE_LITERAL_PAIR(DSBLOCK_CONSENSUS),
-       MAKE_LITERAL_PAIR(POW2_SUBMISSION),
-       MAKE_LITERAL_PAIR(SHARDING_CONSENSUS_PREP),
-       MAKE_LITERAL_PAIR(SHARDING_CONSENSUS),
        MAKE_LITERAL_PAIR(MICROBLOCK_SUBMISSION),
        MAKE_LITERAL_PAIR(FINALBLOCK_CONSENSUS_PREP),
        MAKE_LITERAL_PAIR(FINALBLOCK_CONSENSUS),
@@ -515,9 +497,6 @@ map<DirectoryService::Action, string> DirectoryService::ActionStrings
     = {MAKE_LITERAL_PAIR(PROCESS_POWSUBMISSION),
        MAKE_LITERAL_PAIR(VERIFYPOW),
        MAKE_LITERAL_PAIR(PROCESS_DSBLOCKCONSENSUS),
-       MAKE_LITERAL_PAIR(PROCESS_POW2SUBMISSION),
-       MAKE_LITERAL_PAIR(VERIFYPOW2),
-       MAKE_LITERAL_PAIR(PROCESS_SHARDINGCONSENSUS),
        MAKE_LITERAL_PAIR(PROCESS_MICROBLOCKSUBMISSION),
        MAKE_LITERAL_PAIR(PROCESS_FINALBLOCKCONSENSUS),
        MAKE_LITERAL_PAIR(PROCESS_VIEWCHANGECONSENSUS)};

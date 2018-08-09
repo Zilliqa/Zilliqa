@@ -137,10 +137,10 @@ Transaction CreateValidTestingTransaction(PrivKey& fromPrivKey,
     return txn;
 }
 
-bool Lookup::GenTxnToSend(size_t n, map<uint32_t, vector<Transaction>>& mp,
+bool Lookup::GenTxnToSend(size_t n, map<uint32_t, vector<unsigned char>>& mp,
                           uint32_t nShard)
 {
-    vector<Transaction> txns;
+    vector<unsigned char> txns;
 
     for (auto& privKeyHexStr : GENESIS_KEYS)
     {
@@ -155,22 +155,26 @@ bool Lookup::GenTxnToSend(size_t n, map<uint32_t, vector<Transaction>>& mp,
         }
         auto txnShard = Transaction::GetShardIndex(addr, nShard);
 
-        auto nonce = AccountStore::GetInstance().GetNonceTemp(addr);
+        auto nonce = AccountStore::GetInstance().GetAccount(addr)->GetNonce();
 
         txns.clear();
 
         Address receiverAddr = GenOneReceiver();
-
+        unsigned int curr_offset = 0;
         txns.reserve(n);
         for (auto i = 0u; i != n; i++)
         {
 
-            auto txn = CreateValidTestingTransaction(
-                privKey, pubKey, receiverAddr, i + 10000, nonce + i);
-            txns.emplace_back(txn);
+            Transaction txn(0, nonce + i + 1, receiverAddr,
+                            make_pair(privKey, pubKey), 10 * i + 2, 1, 1, {},
+                            {});
+            /*txns.emplace_back(txn);*/
+            curr_offset = txn.Serialize(txns, curr_offset);
         }
 
         copy(txns.begin(), txns.end(), back_inserter(mp[txnShard]));
+
+        LOG_GENERAL(INFO, "[Batching] Last Nonce sent " << nonce + n);
     }
 
     return true;
@@ -466,7 +470,7 @@ bool Lookup::SetDSCommitteInfo()
             inet_aton(v.second.get<string>("ip").c_str(), &ip_addr);
             Peer peer((uint128_t)ip_addr.s_addr,
                       v.second.get<unsigned int>("port"));
-            m_mediator.m_DSCommittee.emplace_back(make_pair(key, peer));
+            m_mediator.m_DSCommittee->emplace_back(make_pair(key, peer));
         }
     }
 
@@ -493,92 +497,27 @@ bool Lookup::ProcessEntireShardingStructure(
     LOG_MARKER();
 
 #ifdef IS_LOOKUP_NODE
-    // Sharding structure message format:
 
-    // [4-byte num of shards]
-    // [4-byte shard size]
-    //   [33-byte public key][16-byte IP][4-byte port]
-    //   [33-byte public key][16-byte IP][4-byte port]
-    //   ...
-    // [4-byte shard size]
-    //   [33-byte public key][16-byte IP][4-byte port]
-    //   [33-byte public key][16-byte IP][4-byte port]
-    //   ...
-    // ...
     LOG_GENERAL(INFO, "[LOOKUP received sharding structure]");
-
-    unsigned int length_available = message.size() - offset;
-
-    if (length_available < 4)
-    {
-        LOG_GENERAL(WARNING, "Malformed message");
-        return false;
-    }
-
-    // 4-byte num of shards
-    uint32_t num_shards
-        = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
-    offset += sizeof(uint32_t);
-
-    LOG_GENERAL(INFO, "Number of shards: " << to_string(num_shards));
 
     lock(m_mutexShards, m_mutexNodesInNetwork);
     lock_guard<mutex> g(m_mutexShards, adopt_lock);
     lock_guard<mutex> h(m_mutexNodesInNetwork, adopt_lock);
 
     m_shards.clear();
+
+    ShardingStructure::Deserialize(message, offset, m_shards);
+
     m_nodesInNetwork.clear();
-    std::unordered_set<Peer> t_nodesInNetwork;
+    unordered_set<Peer> t_nodesInNetwork;
 
-    for (unsigned int i = 0; i < num_shards; i++)
+    for (unsigned int i = 0; i < m_shards.size(); i++)
     {
-        length_available = message.size() - offset;
-
-        if (length_available < 4)
+        unsigned int index = 0;
+        for (auto& j : m_shards.at(i))
         {
-            LOG_GENERAL(WARNING, "Malformed message");
-            return false;
-        }
-
-        m_shards.emplace_back();
-
-        // 4-byte shard size
-        uint32_t shard_size = Serializable::GetNumber<uint32_t>(
-            message, offset, sizeof(uint32_t));
-        offset += sizeof(uint32_t);
-
-        length_available = message.size() - offset;
-
-        LOG_GENERAL(INFO,
-                    "Size of shard " << to_string(i) << ": "
-                                     << to_string(shard_size));
-
-        if (length_available < (33 + 16 + 4) * shard_size)
-        {
-            LOG_GENERAL(WARNING, "Malformed message");
-            return false;
-        }
-
-        map<PubKey, Peer>& shard = m_shards.at(i);
-
-        for (unsigned int j = 0; j < shard_size; j++)
-        {
-            // 33-byte public key
-            PubKey key = PubKey(message, offset);
-            offset += PUB_KEY_SIZE;
-
-            // 16-byte IP + 4-byte port
-            // Peer peer = Peer(message, offset);
-            Peer peer;
-            if (peer.Deserialize(message, offset) != 0)
-            {
-                LOG_GENERAL(WARNING, "We failed to deserialize Peer.");
-                return false;
-            }
-
-            offset += IP_SIZE + PORT_SIZE;
-
-            shard.emplace(key, peer);
+            const PubKey& key = j.first;
+            const Peer& peer = j.second;
 
             m_nodesInNetwork.emplace_back(peer);
             t_nodesInNetwork.emplace(peer);
@@ -586,16 +525,18 @@ bool Lookup::ProcessEntireShardingStructure(
             LOG_GENERAL(INFO,
                         "[SHARD "
                             << to_string(i) << "] "
-                            << "[PEER " << to_string(j) << "] "
+                            << "[PEER " << to_string(index) << "] "
                             << "Inserting Pubkey to shard : " << string(key));
             LOG_GENERAL(INFO,
                         "[SHARD " << to_string(i) << "] "
-                                  << "[PEER " << to_string(j) << "] "
+                                  << "[PEER " << to_string(index) << "] "
                                   << "Corresponding peer : " << string(peer));
+
+            index++;
         }
     }
 
-    for (auto peer : t_nodesInNetwork)
+    for (auto& peer : t_nodesInNetwork)
     {
         if (!l_nodesInNetwork.erase(peer))
         {
@@ -609,7 +550,7 @@ bool Lookup::ProcessEntireShardingStructure(
         }
     }
 
-    for (auto peer : l_nodesInNetwork)
+    for (auto& peer : l_nodesInNetwork)
     {
         LOG_STATE("[LOSTPEER]["
                   << std::setw(15) << std::left
@@ -737,17 +678,17 @@ bool Lookup::ProcessGetDSInfoFromSeed(const vector<unsigned char>& message,
     {
         lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
         Serializable::SetNumber<uint32_t>(dsInfoMessage, curr_offset,
-                                          m_mediator.m_DSCommittee.size(),
+                                          m_mediator.m_DSCommittee->size(),
                                           sizeof(uint32_t));
         curr_offset += sizeof(uint32_t);
 
-        for (unsigned int i = 0; i < m_mediator.m_DSCommittee.size(); i++)
+        for (unsigned int i = 0; i < m_mediator.m_DSCommittee->size(); i++)
         {
-            PubKey& pubKey = m_mediator.m_DSCommittee.at(i).first;
+            PubKey& pubKey = m_mediator.m_DSCommittee->at(i).first;
             pubKey.Serialize(dsInfoMessage, curr_offset);
             curr_offset += (PUB_KEY_SIZE);
 
-            Peer& peer = m_mediator.m_DSCommittee.at(i).second;
+            Peer& peer = m_mediator.m_DSCommittee->at(i).second;
             peer.Serialize(dsInfoMessage, curr_offset);
             curr_offset += (IP_SIZE + PORT_SIZE);
 
@@ -1240,7 +1181,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
     }
 
     lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
-    m_mediator.m_DSCommittee.clear();
+    m_mediator.m_DSCommittee->clear();
 
     for (unsigned int i = 0; i < numDSPeers; i++)
     {
@@ -1256,7 +1197,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
             peer = Peer();
         }
 
-        m_mediator.m_DSCommittee.emplace_back(make_pair(pubkey, peer));
+        m_mediator.m_DSCommittee->emplace_back(make_pair(pubkey, peer));
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "ProcessSetDSInfoFromSeed recvd peer " << i << ": " << peer);
@@ -1574,9 +1515,7 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
             while (!m_fetchedDSInfo)
             {
                 if (cv_dsInfoUpdate.wait_for(
-                        lock,
-                        chrono::seconds(POW_WINDOW_IN_SECONDS
-                                        + BACKUP_POW2_WINDOW_IN_SECONDS))
+                        lock, chrono::seconds(POW_WINDOW_IN_SECONDS))
                     == std::cv_status::timeout)
                 {
                     // timed out
@@ -1723,13 +1662,13 @@ bool Lookup::InitMining()
         if (CheckStateRoot())
         {
             // DS block has been generated.
-            // Attempt PoW2
-            m_startedPoW2 = true;
+            // Attempt PoW
+            m_startedPoW = true;
             m_mediator.UpdateDSBlockRand();
             dsBlockRand = m_mediator.m_dsBlockRand;
             txBlockRand = {};
 
-            m_mediator.m_node->SetState(Node::POW2_SUBMISSION);
+            m_mediator.m_node->SetState(Node::POW_SUBMISSION);
             POW::GetInstance().EthashConfigureLightClient(
                 m_mediator.m_dsBlockChain.GetLastBlock()
                     .GetHeader()
@@ -1738,11 +1677,11 @@ bool Lookup::InitMining()
 
             this_thread::sleep_for(chrono::seconds(NEW_NODE_POW_DELAY));
 
-            m_mediator.m_node->StartPoW2(
-                m_mediator.m_dsBlockChain.GetLastBlock()
-                    .GetHeader()
-                    .GetBlockNum(),
-                POW2_DIFFICULTY, dsBlockRand, txBlockRand);
+            m_mediator.m_node->StartPoW(m_mediator.m_dsBlockChain.GetLastBlock()
+                                            .GetHeader()
+                                            .GetBlockNum(),
+                                        POW_DIFFICULTY, dsBlockRand,
+                                        txBlockRand);
         }
         else
         {
@@ -1754,10 +1693,8 @@ bool Lookup::InitMining()
         return false;
     }
     // Check whether is the new node connected to the network. Else, initiate re-sync process again.
-    this_thread::sleep_for(
-        chrono::seconds(BACKUP_POW2_WINDOW_IN_SECONDS
-                        + LEADER_SHARDING_PREPARATION_IN_SECONDS));
-    m_startedPoW2 = false;
+    this_thread::sleep_for(chrono::seconds(POW_BACKUP_WINDOW_IN_SECONDS));
+    m_startedPoW = false;
     if (m_syncType != SyncType::NO_SYNC)
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -2203,7 +2140,6 @@ bool Lookup::Execute(const vector<unsigned char>& message, unsigned int offset,
                                                unsigned int, const Peer&);
 
     InstructionHandler ins_handlers[] = {
-        &Lookup::ProcessEntireShardingStructure,
         &Lookup::ProcessGetSeedPeersFromLookup,
         &Lookup::ProcessSetSeedPeersFromLookup,
         &Lookup::ProcessGetDSInfoFromSeed,
@@ -2291,10 +2227,12 @@ void Lookup::SenderTxnBatchThread()
 {
     auto main_func = [this]() mutable -> void {
         uint32_t nShard;
+        uint64_t lastBlockNum = 1;
         while (true)
         {
-            if (!(m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0
-                  || m_mediator.m_currentEpochNum == 1))
+            if (!((m_mediator.m_currentEpochNum + 1) % NUM_FINAL_BLOCK_PER_POW
+                      == 0
+                  || m_mediator.m_currentEpochNum == lastBlockNum))
             {
                 {
                     lock_guard<mutex> g(m_mutexShards);
@@ -2302,34 +2240,38 @@ void Lookup::SenderTxnBatchThread()
                 }
                 if (nShard == 0)
                 {
-                    this_thread::sleep_for(chrono::milliseconds(1000));
+                    this_thread::sleep_for(chrono::milliseconds(100));
                     continue;
                 }
-
+                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                          "[Batching] Accessing SendTxn");
                 SendTxnPacketToNodes(nShard);
-                LOG_GENERAL(INFO, "Sent txns");
-            }
+                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                          "[Batching] Leaving SendTxn");
 
-            this_thread::sleep_for(chrono::milliseconds(10000));
+                lastBlockNum = m_mediator.m_currentEpochNum;
+            }
+            else
+            {
+
+                this_thread::sleep_for(chrono::milliseconds(100));
+            }
         }
     };
     DetachedFunction(1, main_func);
 }
 
 bool Lookup::CreateTxnPacket(vector<unsigned char>& msg, uint32_t shardId,
-                             uint32_t nShard, unsigned int offset)
+                             unsigned int offset,
+                             const map<uint32_t, vector<unsigned char>>& mp)
 {
     //[shard_id][numTxns][txn1][txn2]...
     //Clears msg
     LOG_MARKER();
 
-    map<uint32_t, vector<Transaction>> mp;
-    mp.clear();
-    if (!GenTxnToSend(100, mp, nShard))
-    {
-        return false;
-    }
-    unsigned int size_dummy = mp[shardId].size();
+    unsigned int size_dummy
+        = (mp.find(shardId) != mp.end()) ? mp.at(shardId).size() : 0;
+    size_dummy = size_dummy / 317;
     unsigned int curr_offset = offset;
 
     {
@@ -2352,10 +2294,14 @@ bool Lookup::CreateTxnPacket(vector<unsigned char>& msg, uint32_t shardId,
         }
     }
 
-    for (uint32_t i = 0; i < size_dummy; i++)
+    /*for (uint32_t i = 0; i < size_dummy; i++)
     {
 
         curr_offset = mp.at(shardId)[i].Serialize(msg, curr_offset);
+    }*/
+    if (size_dummy > 0)
+    {
+        copy(mp.at(shardId).begin(), mp.at(shardId).end(), back_inserter(msg));
     }
 
     return true;
@@ -2364,12 +2310,23 @@ bool Lookup::CreateTxnPacket(vector<unsigned char>& msg, uint32_t shardId,
 void Lookup::SendTxnPacketToNodes(uint32_t nShard)
 {
     LOG_MARKER();
-    vector<unsigned char> msg
-        = {MessageType::NODE, NodeInstructionType::FORWARDTXNBLOCK};
+
+    map<uint32_t, vector<unsigned char>> mp;
+    mp.clear();
+
+    uint32_t numTx = 10000;
+
+    if (!GenTxnToSend(numTx, mp, nShard))
+    {
+        LOG_GENERAL(WARNING, "GenTxnToSend failed");
+        return;
+    }
 
     for (unsigned int i = 0; i < nShard; i++)
     {
-        if (!CreateTxnPacket(msg, i, nShard, MessageOffset::BODY))
+        vector<unsigned char> msg
+            = {MessageType::NODE, NodeInstructionType::FORWARDTXNBLOCK};
+        if (!CreateTxnPacket(msg, i, MessageOffset::BODY, mp))
         {
             LOG_GENERAL(WARNING, "Cannot create packet for " << i << " shard");
             continue;

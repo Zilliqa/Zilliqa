@@ -740,6 +740,132 @@ BOOST_AUTO_TEST_CASE(mining_and_verification)
     BOOST_REQUIRE(!verifyWinningNonce);
 }
 
+// Please enable the OPENCL_GPU_MINE option in constants.xml to run this test case
+BOOST_AUTO_TEST_CASE(gpu_mining_and_verification_1)
+{
+    if (!OPENCL_GPU_MINE && !CUDA_GPU_MINE)
+    {
+        std::cout << "OPENCL_GPU_MINE and CUDA_GPU_MINE option are not "
+                     "enabled, skip test case "
+                     "gpu_mining_and_verification_1"
+                  << std::endl;
+        return;
+    }
+
+    if (OPENCL_GPU_MINE)
+    {
+        std::cout << "OPENCL_GPU_MINE enabled, test with OpenCL GPU"
+                  << std::endl;
+    }
+    else if (CUDA_GPU_MINE)
+    {
+        std::cout << "CUDA_GPU_MINE enabled, test with CUDA GPU" << std::endl;
+    }
+
+    POW& POWClient = POW::GetInstance();
+    std::array<unsigned char, 32> rand1 = {{'0', '1'}};
+    std::array<unsigned char, 32> rand2 = {{'0', '2'}};
+    boost::multiprecision::uint128_t ipAddr = 2307193356;
+    PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
+
+    // Light client mine and verify
+    uint8_t difficultyToUse = 10;
+    uint8_t blockToUse = 0;
+    ethash_mining_result_t winning_result = POWClient.PoWMine(
+        blockToUse, difficultyToUse, rand1, rand2, ipAddr, pubKey, true);
+    bool verifyLight
+        = POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
+                              pubKey, false, winning_result.winning_nonce,
+                              winning_result.result, winning_result.mix_hash);
+    BOOST_REQUIRE(verifyLight);
+
+    rand1 = {{'0', '3'}};
+    bool verifyRand
+        = POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
+                              pubKey, false, winning_result.winning_nonce,
+                              winning_result.result, winning_result.mix_hash);
+    BOOST_REQUIRE(!verifyRand);
+
+    // Now let's adjust the difficulty expectation during verification
+    rand1 = {{'0', '1'}};
+    difficultyToUse = 30;
+    bool verifyDifficulty
+        = POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
+                              pubKey, false, winning_result.winning_nonce,
+                              winning_result.result, winning_result.mix_hash);
+    BOOST_REQUIRE(!verifyDifficulty);
+
+    difficultyToUse = 10;
+    uint64_t winning_nonce = 0;
+    bool verifyWinningNonce = POWClient.PoWVerify(
+        blockToUse, difficultyToUse, rand1, rand2, ipAddr, pubKey, false,
+        winning_nonce, winning_result.result, winning_result.mix_hash);
+    BOOST_REQUIRE(!verifyWinningNonce);
+}
+
+// Please enable the OPENCL_GPU_MINE or CUDA_GPU_MINE option in constants.xml to run this test case
+BOOST_AUTO_TEST_CASE(gpu_mining_and_verification_2)
+{
+    if (!OPENCL_GPU_MINE && !CUDA_GPU_MINE)
+    {
+        std::cout << "OPENCL_GPU_MINE and CUDA_GPU_MINE option are not "
+                     "enabled, skip test case "
+                     "gpu_mining_and_verification_2"
+                  << std::endl;
+        return;
+    }
+
+    if (OPENCL_GPU_MINE)
+    {
+        std::cout << "OPENCL_GPU_MINE enabled, test with OpenCL GPU"
+                  << std::endl;
+    }
+    else if (CUDA_GPU_MINE)
+    {
+        std::cout << "CUDA_GPU_MINE enabled, test with CUDA GPU" << std::endl;
+    }
+
+    POW& POWClient = POW::GetInstance();
+    std::array<unsigned char, 32> rand1 = {{'0', '1'}};
+    std::array<unsigned char, 32> rand2 = {{'0', '2'}};
+    boost::multiprecision::uint128_t ipAddr = 2307193356;
+    PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
+
+    // Light client mine and verify
+    uint8_t difficultyToUse = 20;
+    uint64_t blockToUse = 1234567;
+    ethash_mining_result_t winning_result = POWClient.PoWMine(
+        blockToUse, difficultyToUse, rand1, rand2, ipAddr, pubKey, true);
+    bool verifyLight
+        = POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
+                              pubKey, false, winning_result.winning_nonce,
+                              winning_result.result, winning_result.mix_hash);
+    BOOST_REQUIRE(verifyLight);
+
+    rand1 = {{'0', '3'}};
+    bool verifyRand
+        = POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
+                              pubKey, false, winning_result.winning_nonce,
+                              winning_result.result, winning_result.mix_hash);
+    BOOST_REQUIRE(!verifyRand);
+
+    // Now let's adjust the difficulty expectation during verification
+    rand1 = {{'0', '1'}};
+    difficultyToUse = 30;
+    bool verifyDifficulty
+        = POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
+                              pubKey, false, winning_result.winning_nonce,
+                              winning_result.result, winning_result.mix_hash);
+    BOOST_REQUIRE(!verifyDifficulty);
+
+    difficultyToUse = 10;
+    uint64_t winning_nonce = 0;
+    bool verifyWinningNonce = POWClient.PoWVerify(
+        blockToUse, difficultyToUse, rand1, rand2, ipAddr, pubKey, false,
+        winning_nonce, winning_result.result, winning_result.mix_hash);
+    BOOST_REQUIRE(!verifyWinningNonce);
+}
+
 #if 0 
 
 // Test of Full DAG creation with the minimal ethash.h API.

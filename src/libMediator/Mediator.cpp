@@ -33,6 +33,7 @@ Mediator::Mediator(const pair<PrivKey, PubKey>& key, const Peer& peer)
     m_validator = nullptr;
     m_currentEpochNum = 0;
     m_isRetrievedHistory = false;
+    m_DSCommittee = make_shared<std::deque<pair<PubKey, Peer>>>();
 }
 
 Mediator::~Mediator() {}
@@ -100,7 +101,7 @@ std::string Mediator::GetNodeMode(const Peer& peer)
     std::lock_guard<mutex> lock(m_mutexDSCommittee);
     bool bFound = false;
 
-    for (auto const& i : m_DSCommittee)
+    for (auto const& i : *m_DSCommittee)
     {
         if (i.second == peer)
         {
@@ -111,7 +112,7 @@ std::string Mediator::GetNodeMode(const Peer& peer)
 
     if (bFound)
     {
-        if (peer == m_DSCommittee[0].second)
+        if (peer == (*m_DSCommittee)[0].second)
         {
             return "DSLD";
         }

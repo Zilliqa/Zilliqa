@@ -89,7 +89,7 @@ public:
     int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
 
     /// Returns the size in bytes when serializing the transaction.
-    unsigned int GetSerializedSize();
+    unsigned int GetSerializedSize() const;
 
     /// Return the size of static typed variables for a minimum size check
     static unsigned int GetMinSerializedSize();

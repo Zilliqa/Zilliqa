@@ -314,7 +314,7 @@ unsigned int Transaction::GetShardIndex(const Address& fromAddr,
     return target_shard;
 }
 
-unsigned int Transaction::GetSerializedSize()
+unsigned int Transaction::GetSerializedSize() const
 {
     return TRAN_HASH_SIZE + TRAN_SIG_SIZE + UINT256_SIZE + UINT256_SIZE
         + ACC_ADDR_SIZE + PUB_KEY_SIZE + UINT256_SIZE + UINT256_SIZE

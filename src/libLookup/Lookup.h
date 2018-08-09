@@ -127,7 +127,7 @@ public:
 
     //Gen n valid txns
     bool GenTxnToSend(size_t n,
-                      std::map<uint32_t, std::vector<Transaction>>& mp,
+                      std::map<uint32_t, std::vector<unsigned char>>& mp,
                       uint32_t nShard);
 
     // Calls P2PComm::SendBroadcastMessage to Lookup Nodes
@@ -186,7 +186,8 @@ public:
     void SendTxnPacketToNodes(uint32_t);
 
     bool CreateTxnPacket(std::vector<unsigned char>& msg, uint32_t shardId,
-                         uint32_t nShard, unsigned int offset);
+                         unsigned int offset,
+                         const std::map<uint32_t, std::vector<unsigned char>>&);
 
 #endif // IS_LOOKUP_NODE
 
@@ -249,7 +250,7 @@ public:
     unsigned int m_syncType = SyncType::NO_SYNC;
 
     /// Helper variables used by new node synchronization
-    bool m_startedPoW2 = false;
+    bool m_startedPoW = false;
 
     bool AlreadyJoinedNetwork();
 };
