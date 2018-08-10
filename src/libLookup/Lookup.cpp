@@ -41,6 +41,7 @@
 #include "libPersistence/BlockStorage.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
+#include "libUtils/GetTxnFromFile.h"
 #include "libUtils/SanityChecks.h"
 #include "libUtils/SysCommand.h"
 
@@ -155,11 +156,22 @@ bool Lookup::GenTxnToSend(size_t n, map<uint32_t, vector<unsigned char>>& mp,
         }
         auto txnShard = Transaction::GetShardIndex(addr, nShard);
 
-        auto nonce = AccountStore::GetInstance().GetAccount(addr)->GetNonce();
+        uint256_t nonce
+            = AccountStore::GetInstance().GetAccount(addr)->GetNonce();
 
-        txns.clear();
+        if (nonce >= 1000000)
+        {
+            LOG_GENERAL(INFO, "Exhausted the txns");
+            return false;
+        }
+        if (!GetTxnFromFile::GetFromFile(addr, static_cast<uint32_t>(nonce) + 1,
+                                         n, txns))
+        {
+            LOG_GENERAL(WARNING, "Failed to get txns from file");
+            return false;
+        }
 
-        Address receiverAddr = GenOneReceiver();
+        /*Address receiverAddr = GenOneReceiver();
         unsigned int curr_offset = 0;
         txns.reserve(n);
         for (auto i = 0u; i != n; i++)
@@ -168,13 +180,13 @@ bool Lookup::GenTxnToSend(size_t n, map<uint32_t, vector<unsigned char>>& mp,
             Transaction txn(0, nonce + i + 1, receiverAddr,
                             make_pair(privKey, pubKey), 10 * i + 2, 1, 1, {},
                             {});
-            /*txns.emplace_back(txn);*/
+            
             curr_offset = txn.Serialize(txns, curr_offset);
-        }
+        }*/
 
         copy(txns.begin(), txns.end(), back_inserter(mp[txnShard]));
 
-        LOG_GENERAL(INFO, "[Batching] Last Nonce sent " << nonce + n);
+        LOG_GENERAL(INFO, "[Batching] Last Nonce sent " << nonce + n <<" of Addr "<<addr.hex());
     }
 
     return true;
@@ -2234,6 +2246,7 @@ void Lookup::SenderTxnBatchThread()
                       == 0
                   || m_mediator.m_currentEpochNum == lastBlockNum))
             {
+                this_thread::sleep_for(chrono::milliseconds(2000));
                 {
                     lock_guard<mutex> g(m_mutexShards);
                     nShard = m_shards.size();
@@ -2314,7 +2327,7 @@ void Lookup::SendTxnPacketToNodes(uint32_t nShard)
     map<uint32_t, vector<unsigned char>> mp;
     mp.clear();
 
-    uint32_t numTx = 10000;
+    uint32_t numTx = 5000;
 
     if (!GenTxnToSend(numTx, mp, nShard))
     {
