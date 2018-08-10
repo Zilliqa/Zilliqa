@@ -457,8 +457,10 @@ void POW::InitOpenCL()
                                OPENCL_GLOBAL_WORK_SIZE_MULTIPLIER, 0,
                                OPENCL_START_EPOCH, 0, 0, false, false))
     {
-        throw std::runtime_error(
+        std::string msg(
             "Failed to configure OpenCL GPU, please check hardware");
+        LOG_GENERAL(FATAL, msg);
+        throw std::runtime_error(msg);
     }
 
     CLMiner::setNumInstances(UINT_MAX);
@@ -475,16 +477,18 @@ void POW::InitCUDA()
                                  CUDA_STREAM_NUM, CUDA_SCHEDULE_FLAG, 0, 0,
                                  false, false))
     {
-        throw std::runtime_error(
-            "Failed to configure CUDA GPU, please check hardware");
+        std::string msg("Failed to configure CUDA GPU, please check hardware");
+        LOG_GENERAL(FATAL, msg);
+        throw std::runtime_error(msg);
     }
 
     CUDAMiner::setNumInstances(UINT_MAX);
     m_miner = std::make_unique<CUDAMiner>();
     LOG_GENERAL(INFO, "CUDA GPU initialized in POW");
 #else
-    throw std::runtime_error(
-        "The software is not build with CUDA. Please install CUDA "
-        "and build software again");
+    std::string msg("The software is not build with CUDA. Please install CUDA "
+                    "and build software again");
+    LOG_GENERAL(FATAL, msg);
+    throw std::runtime_error(msg);
 #endif
 }
