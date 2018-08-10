@@ -15,8 +15,6 @@
 **/
 
 #include <boost/algorithm/string/predicate.hpp>
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/xml_parser.hpp>
 #include <ctime>
 #include <iomanip>
 #include <iostream>
@@ -30,8 +28,6 @@
 #ifdef CUDA_MINE
 #include "depends/libethash-cuda/CUDAMiner.h"
 #endif
-
-using boost::property_tree::ptree;
 
 POW::POW()
 {
