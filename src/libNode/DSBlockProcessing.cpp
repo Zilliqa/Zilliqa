@@ -396,7 +396,11 @@ void Node::StartFirstTxEpoch()
 
     m_consensusLeaderID = 0;
 
-    auto main_func3 = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
+    auto main_func3 = [this]() mutable -> void {
+        std::this_thread::sleep_for(
+            std::chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS));
+        RunConsensusOnMicroBlock();
+    };
 
     DetachedFunction(1, main_func3);
 }
