@@ -43,7 +43,7 @@ const unsigned int HDR_LEN = 6;
 const unsigned int HASH_LEN = 32;
 
 P2PComm::Dispatcher P2PComm::m_dispatcher;
-P2PComm::Broadcast_list_func P2PComm::m_broadcast_list_retriever;
+P2PComm::BroadcastListFunc P2PComm::m_broadcast_list_retriever;
 
 /// Comparison operator for ordering the list of message hashes.
 struct hash_compare
@@ -157,7 +157,7 @@ namespace
         uint32_t read_length = 0;
         uint32_t retryDuration = 1;
 
-        while (read_length != message_length)
+        while (read_length < message_length)
         {
             ssize_t n = read(cli_sock, &buf->at(read_length),
                              message_length - read_length);
@@ -202,7 +202,7 @@ namespace
     {
         uint32_t written_length = 0;
 
-        while (written_length != message_length)
+        while (written_length < message_length)
         {
             ssize_t n = write(cli_sock, (unsigned char*)buf + written_length,
                               message_length - written_length);
@@ -553,7 +553,7 @@ void P2PComm::ConnectionAccept([[gnu::unused]] evconnlistener* listener,
 }
 
 void P2PComm::StartMessagePump(uint32_t listen_port_host, Dispatcher dispatcher,
-                               Broadcast_list_func broadcast_list_retriever)
+                               BroadcastListFunc broadcast_list_retriever)
 {
     LOG_MARKER();
 
