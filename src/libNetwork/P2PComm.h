@@ -97,7 +97,7 @@ public:
     using Dispatcher
         = std::function<void(const std::vector<unsigned char>&, const Peer&)>;
 
-    using Broadcast_list_func = std::function<std::vector<Peer>(
+    using BroadcastListFunc = std::function<std::vector<Peer>(
         unsigned char msg_type, unsigned char ins_type, const Peer&)>;
 
     /// Receives incoming message and assigns to designated message dispatcher.
@@ -106,7 +106,7 @@ public:
 private:
     using SocketCloser = std::unique_ptr<int, void (*)(int*)>;
     static Dispatcher m_dispatcher;
-    static Broadcast_list_func m_broadcast_list_retriever;
+    static BroadcastListFunc m_broadcast_list_retriever;
 
     static void HandleAcceptedConnectionNormal(int cli_sock, Peer from,
                                                uint32_t message_length,
@@ -125,7 +125,7 @@ public:
 
     /// Listens for incoming socket connections.
     void StartMessagePump(uint32_t listen_port_host, Dispatcher dispatcher,
-                          Broadcast_list_func broadcast_list_retriever);
+                          BroadcastListFunc broadcast_list_retriever);
 
     /// Multicasts message to specified list of peers.
     void SendMessage(const std::vector<Peer>& peers,
