@@ -396,16 +396,30 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
                           "Waiting "
                               << POW_WINDOW_IN_SECONDS
                               << " seconds, accepting PoW submissions...");
-                this_thread::sleep_for(chrono::seconds(POW_WINDOW_IN_SECONDS));
+
+                // Notify lookup that it's time to do PoW
+                vector<unsigned char> startpow_message = {
+                    MessageType::LOOKUP, LookupInstructionType::RAISESTARTPOW};
+                m_mediator.m_lookup->SendMessageToLookupNodesSerial(
+                    startpow_message);
+
+                // New nodes poll DSInfo from the lookups every NEW_NODE_SYNC_INTERVAL
+                // So let's add that to our wait time to allow new nodes to get SETSTARTPOW and submit a PoW
+                this_thread::sleep_for(chrono::seconds(
+                    NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS));
+
                 RunConsensusOnDSBlock();
             }
             else
             {
                 std::unique_lock<std::mutex> cv_lk(m_MutexCVDSBlockConsensus);
 
+                // New nodes poll DSInfo from the lookups every NEW_NODE_SYNC_INTERVAL
+                // So let's add that to our wait time to allow new nodes to get SETSTARTPOW and submit a PoW
                 if (cv_DSBlockConsensus.wait_for(
                         cv_lk,
-                        std::chrono::seconds(POW_BACKUP_WINDOW_IN_SECONDS))
+                        std::chrono::seconds(NEW_NODE_SYNC_INTERVAL
+                                             + POW_BACKUP_WINDOW_IN_SECONDS))
                     == std::cv_status::timeout)
                 {
                     LOG_GENERAL(INFO,
