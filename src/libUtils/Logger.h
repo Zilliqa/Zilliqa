@@ -19,6 +19,7 @@
 
 #include "g3log/g3log.hpp"
 #include "g3log/loglevels.hpp"
+#include "g3log/logworker.hpp"
 #include <boost/multiprecision/cpp_int.hpp>
 #include <chrono>
 #include <fstream>
@@ -40,6 +41,7 @@ private:
     std::mutex m;
     bool m_logToFile;
     std::streampos m_maxFileSize;
+    std::unique_ptr<g3::LogWorker> logworker;
 
     Logger(const char* prefix, bool log_to_file, std::streampos max_file_size);
     ~Logger();

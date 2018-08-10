@@ -16,7 +16,6 @@
 
 #include "Logger.h"
 
-#include "g3log/logworker.hpp"
 #include <cstring>
 #include <iostream>
 #include <pthread.h>
@@ -25,8 +24,6 @@
 
 using namespace std;
 using namespace g3;
-
-unique_ptr<LogWorker> logworker;
 
 string MyCustomFormatting(const LogMessage& msg)
 {
