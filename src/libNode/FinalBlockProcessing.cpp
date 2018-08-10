@@ -876,6 +876,10 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 #ifdef IS_LOOKUP_NODE
     // Now only forwarded txn are left, so only call in lookup
     CommitForwardedMsgBuffer();
+    if (m_mediator.m_lookup->GetIsServer())
+    {
+        m_mediator.m_lookup->SenderTxnBatchThread();
+    }
 #endif // IS_LOOKUP_NODE
 
     // Assumption: New PoW done after every block committed
