@@ -540,9 +540,17 @@ void Node::UpdateStateForNextConsensusRound()
 
 void Node::ScheduleMicroBlockConsensus()
 {
-    auto main_func3 = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
+    auto main_func = [this]() mutable -> void {
+        if ((m_mediator.m_currentEpochNum + 1) % NUM_FINAL_BLOCK_PER_POW
+            != 0) // VacuousEpoch
+        {
+            std::this_thread::sleep_for(
+                std::chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS));
+        }
+        RunConsensusOnMicroBlock();
+    };
 
-    DetachedFunction(1, main_func3);
+    DetachedFunction(1, main_func);
 }
 
 void Node::BeginNextConsensusRound()
