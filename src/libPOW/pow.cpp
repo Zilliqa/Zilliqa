@@ -189,7 +189,8 @@ bool POW::EthashConfigureLightClient(uint64_t block_number)
     {
         LOG_GENERAL(WARNING,
                     "WARNING: How come the latest block number is smaller than "
-                    "current block number.  block_number: "
+                    "current block number? block_number: "
+                        << block_number
                         << " currentBlockNum: " << currentBlockNum);
     }
 
