@@ -456,16 +456,9 @@ void POW::InitOpenCL()
     using namespace dev::eth;
     CLMiner::setCLKernel(CLKernelName::Stable);
 
-    ptree pt;
-    read_xml("constants.xml", pt);
-    std::string parentNode = "node.gpu.opencl.";
-    auto localWorkSize = pt.get<unsigned int>(parentNode + "LOCAL_WORK_SIZE");
-    auto globalWorkSizeMultiplier
-        = pt.get<unsigned int>(parentNode + "GLOBAL_WORK_SIZE_MULTIPLIER");
-    auto startEpoch = pt.get<unsigned int>(parentNode + "START_EPOCH");
-
-    if (!CLMiner::configureGPU(localWorkSize, globalWorkSizeMultiplier, 0,
-                               startEpoch, 0, 0, false, false))
+    if (!CLMiner::configureGPU(OPENCL_LOCAL_WORK_SIZE,
+                               OPENCL_GLOBAL_WORK_SIZE_MULTIPLIER, 0,
+                               OPENCL_START_EPOCH, 0, 0, false, false))
     {
         throw std::runtime_error(
             "Failed to configure OpenCL GPU, please check hardware");
@@ -481,16 +474,9 @@ void POW::InitCUDA()
 #ifdef CUDA_MINE
     using namespace dev::eth;
 
-    ptree pt;
-    read_xml("constants.xml", pt);
-    std::string parentNode = "node.gpu.cuda.";
-    auto blockSize = pt.get<unsigned int>(parentNode + "BLOCK_SIZE");
-    auto gridSize = pt.get<unsigned int>(parentNode + "GRID_SIZE");
-    auto streamNum = pt.get<unsigned int>(parentNode + "STREAM_NUM");
-    auto scheduleFlag = pt.get<unsigned int>(parentNode + "SCHEDULE_FLAG");
-
-    if (!CUDAMiner::configureGPU(blockSize, gridSize, streamNum, scheduleFlag,
-                                 0, 0, false, false))
+    if (!CUDAMiner::configureGPU(CUDA_BLOCK_SIZE, CUDA_GRID_SIZE,
+                                 CUDA_STREAM_NUM, CUDA_SCHEDULE_FLAG, 0, 0,
+                                 false, false))
     {
         throw std::runtime_error(
             "Failed to configure CUDA GPU, please check hardware");
