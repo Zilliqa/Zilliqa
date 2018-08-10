@@ -13,7 +13,7 @@ Zilliqa is a new blockchain platform capable of processing thousands of transact
 * [Block Explorer](https://explorer.zilliqa.com/home)
 * [Wallet](https://wallet.zilliqa.com/)  
   
-## _D24_ Testnet with Scilla support
+## _D24_ Testnet with [Scilla](https://scilla-lang.org/) support
 
 * [Interpreter IDE](https://ide.zilliqa.com/)  
 * [Block Explorer](https://explorer-scilla.zilliqa.com)  
@@ -25,6 +25,7 @@ The current release has the following features implemented:
 
 * Proof of Work (PoW) for joining the network
 * Network sharding
+* Transaction sharding
 * Directory Service
 * Consensus for DS block (with sharding structure), Shard microblock and Final block 
 * [EC-Schnorr signature](https://en.wikipedia.org/wiki/Schnorr_signature)
@@ -112,7 +113,7 @@ If you are interested in running a node on the Zilliqa testnet, please register 
 * General question: [Slack](https://invite.zilliqa.com/)
 * Development discussion: [Gitter](https://gitter.im/Zilliqa/)
 * Bug report: [Github Issues](https://github.com/Zilliqa/zilliqa/issues)
-
+* Security contact: `security` :globe_with_meridians: `zilliqa.com`
 
 ## Licence
 
