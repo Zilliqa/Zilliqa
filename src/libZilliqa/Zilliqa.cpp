@@ -80,6 +80,7 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
 
     m_validator = make_shared<Validator>(m_mediator);
     m_mediator.RegisterColleagues(&m_ds, &m_n, &m_lookup, m_validator.get());
+    m_n.Install(syncType, toRetrieveHistory);
 
     LogSelfNodeInfo(key, peer);
 
