@@ -97,7 +97,6 @@ def run_start():
 	for x in range(0, count):
 		keys_file.write(keypairs[x] + '\n')
 		shutil.copyfile('constants_local.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml')
-		shutil.copyfile('gpu_config.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/gpu_config.xml')
 	keys_file.close()
 
 	# Launch node zilliqa process

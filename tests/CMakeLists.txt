@@ -17,5 +17,4 @@ file(COPY ${CMAKE_SOURCE_DIR}/constants_local.xml DESTINATION ${CMAKE_BINARY_DIR
 #FIXME: constants.xml is not used for local_run, thus shouldn't be copied
 # presently, it's a workaround to silence the error thrown by tests_zilliqa_local.py
 file(COPY ${CMAKE_SOURCE_DIR}/constants.xml DESTINATION ${CMAKE_BINARY_DIR})
-file(COPY ${CMAKE_SOURCE_DIR}/gpu_config.xml DESTINATION ${CMAKE_BINARY_DIR})
 file(COPY Node DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
