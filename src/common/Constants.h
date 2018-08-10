@@ -150,4 +150,13 @@ extern const bool CUDA_GPU_MINE;
 
 extern const std::vector<std::string> GENESIS_WALLETS;
 extern const std::vector<std::string> GENESIS_KEYS;
+
+extern const unsigned int OPENCL_LOCAL_WORK_SIZE;
+extern const unsigned int OPENCL_GLOBAL_WORK_SIZE_MULTIPLIER;
+extern const unsigned int OPENCL_START_EPOCH;
+extern const unsigned int CUDA_BLOCK_SIZE;
+extern const unsigned int CUDA_GRID_SIZE;
+extern const unsigned int CUDA_STREAM_NUM;
+extern const unsigned int CUDA_SCHEDULE_FLAG;
+
 #endif // __CONSTANTS_H__
