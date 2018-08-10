@@ -94,23 +94,27 @@ public:
     /// Returns the singleton P2PComm instance.
     static P2PComm& GetInstance();
 
+    using Dispatcher
+        = std::function<void(const std::vector<unsigned char>&, const Peer&)>;
+
+    using Broadcast_list_func = std::function<std::vector<Peer>(
+        unsigned char msg_type, unsigned char ins_type, const Peer&)>;
+
     /// Receives incoming message and assigns to designated message dispatcher.
     static void HandleAcceptedConnection(int cli_sock, Peer from);
 
 private:
-    using Dispatcher
-        = std::function<void(const std::vector<unsigned char>&, const Peer&)>;
+    using SocketCloser = std::unique_ptr<int, void (*)(int*)>;
     static Dispatcher m_dispatcher;
-
-    using Broadcast_list_func = std::function<std::vector<Peer>(
-        unsigned char msg_type, unsigned char ins_type, const Peer&)>;
     static Broadcast_list_func m_broadcast_list_retriever;
 
     static void HandleAcceptedConnectionNormal(int cli_sock, Peer from,
-                                               uint32_t message_length);
+                                               uint32_t message_length,
+                                               SocketCloser cli_sock_closer);
 
     static void HandleAcceptedConnectionBroadcast(int cli_sock, Peer from,
-                                                  uint32_t message_length);
+                                                  uint32_t message_length,
+                                                  SocketCloser cli_sock_closer);
 
 public:
     /// Accept TCP connection for libevent usage
