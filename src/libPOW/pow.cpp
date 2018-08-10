@@ -457,8 +457,8 @@ void POW::InitOpenCL()
     CLMiner::setCLKernel(CLKernelName::Stable);
 
     ptree pt;
-    read_xml("gpu_config.xml", pt);
-    std::string parentNode = "gpu.opencl.";
+    read_xml("constants.xml", pt);
+    std::string parentNode = "node.gpu.opencl.";
     auto localWorkSize = pt.get<unsigned int>(parentNode + "LOCAL_WORK_SIZE");
     auto globalWorkSizeMultiplier
         = pt.get<unsigned int>(parentNode + "GLOBAL_WORK_SIZE_MULTIPLIER");
@@ -482,8 +482,8 @@ void POW::InitCUDA()
     using namespace dev::eth;
 
     ptree pt;
-    read_xml("gpu_config.xml", pt);
-    std::string parentNode = "gpu.cuda.";
+    read_xml("constants.xml", pt);
+    std::string parentNode = "node.gpu.cuda.";
     auto blockSize = pt.get<unsigned int>(parentNode + "BLOCK_SIZE");
     auto gridSize = pt.get<unsigned int>(parentNode + "GRID_SIZE");
     auto streamNum = pt.get<unsigned int>(parentNode + "STREAM_NUM");
