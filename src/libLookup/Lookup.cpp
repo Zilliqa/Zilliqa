@@ -186,7 +186,9 @@ bool Lookup::GenTxnToSend(size_t n, map<uint32_t, vector<unsigned char>>& mp,
 
         copy(txns.begin(), txns.end(), back_inserter(mp[txnShard]));
 
-        LOG_GENERAL(INFO, "[Batching] Last Nonce sent " << nonce + n <<" of Addr "<<addr.hex());
+        LOG_GENERAL(INFO,
+                    "[Batching] Last Nonce sent " << nonce + n << " of Addr "
+                                                  << addr.hex());
     }
 
     return true;
@@ -2239,14 +2241,11 @@ void Lookup::SenderTxnBatchThread()
 {
     auto main_func = [this]() mutable -> void {
         uint32_t nShard;
-        uint64_t lastBlockNum = 1;
         while (true)
         {
-            if (!((m_mediator.m_currentEpochNum + 1) % NUM_FINAL_BLOCK_PER_POW
-                      == 0
-                  || m_mediator.m_currentEpochNum == lastBlockNum))
+            if (!(m_mediator.m_currentEpochNum + 1) % NUM_FINAL_BLOCK_PER_POW
+                == 0)
             {
-                this_thread::sleep_for(chrono::milliseconds(2000));
                 {
                     lock_guard<mutex> g(m_mutexShards);
                     nShard = m_shards.size();
@@ -2261,15 +2260,10 @@ void Lookup::SenderTxnBatchThread()
                 SendTxnPacketToNodes(nShard);
                 LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                           "[Batching] Leaving SendTxn");
-
-                lastBlockNum = m_mediator.m_currentEpochNum;
             }
-            else
-            {
-
-                this_thread::sleep_for(chrono::milliseconds(100));
-            }
+            break;
         }
+
     };
     DetachedFunction(1, main_func);
 }
@@ -2290,14 +2284,15 @@ bool Lookup::CreateTxnPacket(vector<unsigned char>& msg, uint32_t shardId,
     {
         lock_guard<mutex> g(m_txnShardMapMutex);
         unsigned int size_already = m_txnShardMap[shardId].size();
-        LOG_GENERAL(INFO, "Size Already " << size_already);
         Serializable::SetNumber<uint32_t>(msg, curr_offset, shardId,
                                           sizeof(uint32_t));
         curr_offset += sizeof(uint32_t);
         uint32_t num = size_already + size_dummy;
         Serializable::SetNumber<uint32_t>(msg, curr_offset, num,
                                           sizeof(uint32_t));
-        LOG_GENERAL(INFO, "Generated " << num << " txns for shard " << shardId);
+        LOG_GENERAL(INFO,
+                    "[Batching] Generated " << num << " txns for shard "
+                                            << shardId);
         curr_offset += sizeof(uint32_t);
 
         for (uint32_t i = 0; i < size_already; i++)
@@ -2327,7 +2322,7 @@ void Lookup::SendTxnPacketToNodes(uint32_t nShard)
     map<uint32_t, vector<unsigned char>> mp;
     mp.clear();
 
-    uint32_t numTx = 5000;
+    uint32_t numTx = 4000;
 
     if (!GenTxnToSend(numTx, mp, nShard))
     {
@@ -2364,5 +2359,9 @@ void Lookup::SendTxnPacketToNodes(uint32_t nShard)
         DeleteTxnShardMap(i);
     }
 }
+
+void Lookup::SetServerTrue() { m_isServer = true; }
+
+bool Lookup::GetIsServer() { return m_isServer; }
 
 #endif //IS_LOOKUP_NODE

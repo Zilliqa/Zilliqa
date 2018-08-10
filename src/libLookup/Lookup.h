@@ -63,6 +63,8 @@ class Lookup : public Executable, public Broadcastable
     // It receiving a new DS block
     bool m_currDSExpired = false;
     bool m_isFirstLoop = true;
+    //tells if server is running or not
+    bool m_isServer = false;
 
 #ifdef IS_LOOKUP_NODE
     // Sharding committee members
@@ -74,6 +76,7 @@ class Lookup : public Executable, public Broadcastable
     std::map<uint32_t, std::vector<Transaction>> m_txnShardMap;
     std::mutex m_mutexOfflineLookups;
     std::mutex m_txnShardMapMutex;
+
     // Rsync the lost txBodies from remote lookup nodes if this lookup are doing its recovery
     Peer GetLookupPeerToRsync();
 
@@ -180,6 +183,10 @@ public:
     bool AddToTxnShardMap(const Transaction& tx, uint32_t shardID);
 
     bool DeleteTxnShardMap(uint32_t shardId);
+
+    void SetServerTrue();
+
+    bool GetIsServer();
 
     void SenderTxnBatchThread();
 

@@ -93,7 +93,7 @@ BOOST_AUTO_TEST_CASE(test1)
     INIT_STDOUT_LOGGER();
 
     LOG_MARKER();
-//for Generating Offline
+    //for Generating Offline
     /*fstream file;
 
     Address toAddr;
@@ -107,8 +107,7 @@ BOOST_AUTO_TEST_CASE(test1)
 
     GenTxn(num_txns, toAddr);*/
 
-
-//for Checking the File
+    //for Checking the File
     /*vector<unsigned char> vec;
     auto& privKeyHexStr = GENESIS_KEYS[0];
 
@@ -125,7 +124,6 @@ BOOST_AUTO_TEST_CASE(test1)
 
         BOOST_CHECK_MESSAGE(tx.GetNonce() == i + 1, "Nonce Incorrect");
     }*/
-
 }
 
 BOOST_AUTO_TEST_SUITE_END()
