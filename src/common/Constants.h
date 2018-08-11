@@ -139,6 +139,8 @@ extern const unsigned int DEBUG_LEVEL;
 extern const unsigned int BROADCAST_INTERVAL;
 extern const unsigned int BROADCAST_EXPIRY;
 extern const unsigned int TX_DISTRIBUTE_TIME_IN_MS;
+extern const unsigned int NUM_NODES_TO_SEND_LOOKUP;
+extern const unsigned int NUM_TXN_TO_SEND_PER_ACCOUNT;
 
 extern const bool TEST_NET_MODE;
 extern const bool EXCLUDE_PRIV_IP;

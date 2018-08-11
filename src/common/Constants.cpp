@@ -122,6 +122,10 @@ const unsigned int BROADCAST_INTERVAL{
 const unsigned int BROADCAST_EXPIRY{ReadFromConstantsFile("BROADCAST_EXPIRY")};
 const unsigned int TX_DISTRIBUTE_TIME_IN_MS{
     ReadFromConstantsFile("TX_DISTRIBUTE_TIME_IN_MS")};
+const unsigned int NUM_NODES_TO_SEND_LOOKUP{
+    ReadFromConstantsFile("NUM_NODES_TO_SEND_LOOKUP")};
+const unsigned int NUM_TXN_TO_SEND_PER_ACCOUNT{
+    ReadFromConstantsFile("NUM_TXN_TO_SEND_PER_ACCOUNT")};
 
 const bool EXCLUDE_PRIV_IP{
     ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true" ? true : false};
