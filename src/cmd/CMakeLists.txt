@@ -29,3 +29,10 @@ add_custom_command(TARGET zilliqa
     COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:genkeypair> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
 target_include_directories(genkeypair PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(genkeypair PUBLIC Crypto)
+
+add_executable(Gen_txn Gen_Test_Transaction.cpp)
+add_custom_command(TARGET zilliqa
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:Gen_txn> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
+target_include_directories(Gen_txn PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(Gen_txn PUBLIC AccountData)

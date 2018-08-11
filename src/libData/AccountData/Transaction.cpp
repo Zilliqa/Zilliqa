@@ -326,7 +326,7 @@ unsigned int Transaction::GetMinSerializedSize()
 {
     return TRAN_HASH_SIZE + TRAN_SIG_SIZE + UINT256_SIZE + UINT256_SIZE
         + ACC_ADDR_SIZE + PUB_KEY_SIZE + UINT256_SIZE + UINT256_SIZE
-        + UINT256_SIZE;
+        + UINT256_SIZE + sizeof(uint32_t) + sizeof(uint32_t);
 }
 
 bool Transaction::operator==(const Transaction& tran) const

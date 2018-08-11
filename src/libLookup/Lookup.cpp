@@ -159,11 +159,6 @@ bool Lookup::GenTxnToSend(size_t n, map<uint32_t, vector<unsigned char>>& mp,
         uint256_t nonce
             = AccountStore::GetInstance().GetAccount(addr)->GetNonce();
 
-        if (nonce >= 1000000)
-        {
-            LOG_GENERAL(INFO, "Exhausted the txns");
-            return false;
-        }
         if (!GetTxnFromFile::GetFromFile(addr, static_cast<uint32_t>(nonce) + 1,
                                          n, txns))
         {
@@ -2243,8 +2238,8 @@ void Lookup::SenderTxnBatchThread()
         uint32_t nShard;
         while (true)
         {
-            if (!(m_mediator.m_currentEpochNum + 1) % NUM_FINAL_BLOCK_PER_POW
-                == 0)
+            if ((m_mediator.m_currentEpochNum + 1) % NUM_FINAL_BLOCK_PER_POW
+                != 0)
             {
                 {
                     lock_guard<mutex> g(m_mutexShards);
@@ -2255,11 +2250,7 @@ void Lookup::SenderTxnBatchThread()
                     this_thread::sleep_for(chrono::milliseconds(100));
                     continue;
                 }
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "[Batching] Accessing SendTxn");
                 SendTxnPacketToNodes(nShard);
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "[Batching] Leaving SendTxn");
             }
             break;
         }
@@ -2278,7 +2269,7 @@ bool Lookup::CreateTxnPacket(vector<unsigned char>& msg, uint32_t shardId,
 
     unsigned int size_dummy
         = (mp.find(shardId) != mp.end()) ? mp.at(shardId).size() : 0;
-    size_dummy = size_dummy / 317;
+    size_dummy = size_dummy / Transaction::GetMinSerializedSize();
     unsigned int curr_offset = offset;
 
     {
@@ -2320,11 +2311,8 @@ void Lookup::SendTxnPacketToNodes(uint32_t nShard)
     LOG_MARKER();
 
     map<uint32_t, vector<unsigned char>> mp;
-    mp.clear();
 
-    uint32_t numTx = 4000;
-
-    if (!GenTxnToSend(numTx, mp, nShard))
+    if (!GenTxnToSend(NUM_TXN_TO_SEND_PER_ACCOUNT, mp, nShard))
     {
         LOG_GENERAL(WARNING, "GenTxnToSend failed");
         return;
@@ -2345,7 +2333,8 @@ void Lookup::SendTxnPacketToNodes(uint32_t nShard)
             lock_guard<mutex> g(m_mutexShards);
             auto it = m_shards.at(i).begin();
 
-            for (unsigned int j = 0; j < 3 && it != m_shards.at(i).end();
+            for (unsigned int j = 0;
+                 j < NUM_NODES_TO_SEND_LOOKUP && it != m_shards.at(i).end();
                  j++, it++)
             {
                 toSend.push_back(it->second);

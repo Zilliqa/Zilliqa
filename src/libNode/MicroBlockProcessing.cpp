@@ -585,8 +585,6 @@ void Node::ProcessTransactionWhenShardLeader()
 
     uint64_t blockNum = m_mediator.m_currentEpochNum;
 
-    list<Transaction> lstTx;
-
     auto appendOne = [this, &blockNum](const Transaction& t) {
         lock_guard<mutex> g(m_mutexProcessedTransactions);
         auto& processedTransactions = m_processedTransactions[blockNum];

@@ -27,7 +27,7 @@ using namespace std;
 
 #include "Logger.h"
 
-unsigned int TXN_SIZE = 317;
+unsigned int TXN_SIZE = Transaction::GetMinSerializedSize();
 
 bool getTransactionsFromFile(fstream& f, unsigned int startNum,
                              unsigned int totalNum, vector<unsigned char>& vec)
@@ -45,20 +45,7 @@ bool getTransactionsFromFile(fstream& f, unsigned int startNum,
     }
     return true;
 }
-int getCwd()
-{
-    char cwd[PATH_MAX];
-    if (getcwd(cwd, sizeof(cwd)) != NULL)
-    {
-        LOG_GENERAL(INFO, "Hi " << cwd);
-    }
-    else
-    {
-        perror("getcwd() error");
-        return 1;
-    }
-    return 0;
-}
+
 class GetTxnFromFile
 {
 public:

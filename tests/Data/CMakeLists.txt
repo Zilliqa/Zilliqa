@@ -32,12 +32,6 @@ target_include_directories(Test_TransactionPerformance PUBLIC ${CMAKE_SOURCE_DIR
 target_link_libraries(Test_TransactionPerformance PUBLIC AccountData Utils)
 add_test(NAME Test_TransactionPerformance COMMAND Test_TransactionPerformance)
 
-
-add_executable(Gen_Transaction Create_Testing_Transaction.cpp)
-target_include_directories(Gen_Transaction PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(Gen_Transaction PUBLIC AccountData Utils Validator)
-add_test(NAME Gen_Transaction COMMAND Gen_Transaction)
-
 #add_executable(Test_Contract Test_Contract.cpp)
 #target_include_directories(Test_Contract PUBLIC ${CMAKE_SOURCE_DIR}/src)
 #target_link_libraries(Test_Contract PUBLIC AccountData Crypto Trie Utils Persistence)
