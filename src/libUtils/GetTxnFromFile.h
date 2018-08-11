@@ -26,6 +26,7 @@ using namespace std;
 #define __GetTxnFromFile_H__
 
 #include "Logger.h"
+#include "libData/AccountData/Transaction.h"
 
 unsigned int TXN_SIZE = Transaction::GetMinSerializedSize();
 
@@ -56,9 +57,7 @@ public:
         fstream file;
         vec.clear();
 
-        file.open("/home/kaustubh/Documents/LookupTxn/Zilliqa/txns/"
-                      + addr.hex() + ".zil",
-                  ios::binary | ios::in);
+        file.open(TXN_PATH + addr.hex() + ".zil", ios::binary | ios::in);
 
         if (!file.is_open())
         {
