@@ -88,9 +88,11 @@ public:
 
         if (m_blocks[blockNum].GetHeader().GetBlockNum() != blockNum)
         {
-            LOG_GENERAL(FATAL,
-                        "assertion failed (" << __FILE__ << ":" << __LINE__
-                                             << ": " << __FUNCTION__ << ")");
+            LOG_GENERAL(WARNING,
+                        "BlockNum : "
+                            << blockNum << " != GetBlockNum() : "
+                            << m_blocks[blockNum].GetHeader().GetBlockNum());
+            return T();
         }
 
         return m_blocks[blockNum];
