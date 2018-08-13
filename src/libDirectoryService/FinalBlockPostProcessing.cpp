@@ -310,15 +310,15 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
         = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
     if (isVacuousEpoch)
     {
-        if (CheckStateRoot())
-        {
+        // if (CheckStateRoot())
+        // {
             AccountStore::GetInstance().MoveUpdatesToDisk();
             BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
                                                         {'0'});
 #ifndef IS_LOOKUP_NODE
             BlockStorage::GetBlockStorage().PopFrontTxBodyDB();
 #endif // IS_LOOKUP_NODE
-        }
+        // }
     }
 
     m_mediator.m_node->CommitForwardedMsgBuffer();
