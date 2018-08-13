@@ -21,9 +21,12 @@
 
 #include "pow.h"
 #include "common/Serializable.h"
-#include "depends/libethash-cl/CLMiner.h"
 #include "libCrypto/Sha2.h"
 #include "libUtils/DataConversion.h"
+
+#ifdef OPENCL_MINE
+#include "depends/libethash-cl/CLMiner.h"
+#endif
 
 #ifdef CUDA_MINE
 #include "depends/libethash-cuda/CUDAMiner.h"
@@ -450,6 +453,7 @@ ethash_return_value_t POW::LightHash(uint64_t blockNum,
 
 void POW::InitOpenCL()
 {
+#ifdef OPENCL_MINE
     using namespace dev::eth;
     CLMiner::setCLKernel(CLKernelName::Stable);
 
@@ -464,6 +468,12 @@ void POW::InitOpenCL()
     CLMiner::setNumInstances(UINT_MAX);
     m_miner = std::make_unique<CLMiner>();
     LOG_GENERAL(INFO, "OpenCL GPU initialized in POW");
+#else
+    LOG_GENERAL(FATAL,
+                "The software is not build with OpenCL. Please enable the "
+                "OpenCL build option and "
+                "and build software again");
+#endif
 }
 
 void POW::InitCUDA()
@@ -484,7 +494,8 @@ void POW::InitCUDA()
     LOG_GENERAL(INFO, "CUDA GPU initialized in POW");
 #else
     LOG_GENERAL(FATAL,
-                "The software is not build with CUDA. Please install CUDA "
+                "The software is not build with CUDA. Please enable the CUDA "
+                "build option "
                 "and build software again");
 #endif
 }
