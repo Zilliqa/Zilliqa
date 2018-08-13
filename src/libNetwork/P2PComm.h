@@ -18,6 +18,7 @@
 #define __P2PCOMM_H__
 
 #include <deque>
+#include <event2/util.h>
 #include <functional>
 #include <mutex>
 #include <set>
@@ -28,9 +29,7 @@
 #include "libUtils/Logger.h"
 #include "libUtils/ThreadPool.h"
 
-typedef std::function<std::vector<Peer>(unsigned char msg_type,
-                                        unsigned char ins_type, const Peer&)>
-    broadcast_list_func;
+struct evconnlistener;
 
 /// Provides network layer functionality.
 class P2PComm
@@ -98,31 +97,35 @@ public:
     using Dispatcher
         = std::function<void(const std::vector<unsigned char>&, const Peer&)>;
 
+    using BroadcastListFunc = std::function<std::vector<Peer>(
+        unsigned char msg_type, unsigned char ins_type, const Peer&)>;
+
     /// Receives incoming message and assigns to designated message dispatcher.
-    static void
-    HandleAcceptedConnection(int cli_sock, Peer from, Dispatcher dispatcher,
-                             broadcast_list_func broadcast_list_retriever);
+    static void HandleAcceptedConnection(int cli_sock, Peer from);
 
 private:
     using SocketCloser = std::unique_ptr<int, void (*)(int*)>;
+    static Dispatcher m_dispatcher;
+    static BroadcastListFunc m_broadcast_list_retriever;
 
     static void HandleAcceptedConnectionNormal(int cli_sock, Peer from,
-                                               Dispatcher dispatcher,
                                                uint32_t message_length,
                                                SocketCloser cli_sock_closer);
 
-    static void HandleAcceptedConnectionBroadcast(
-        int cli_sock, Peer from, Dispatcher dispatcher,
-        broadcast_list_func broadcast_list_retriever, uint32_t message_length,
-        SocketCloser cli_sock_closer);
+    static void HandleAcceptedConnectionBroadcast(int cli_sock, Peer from,
+                                                  uint32_t message_length,
+                                                  SocketCloser cli_sock_closer);
 
 public:
     /// Accept TCP connection for libevent usage
-    static void ConnectionAccept(int serv_sock, short event, void* arg);
+    static void ConnectionAccept(evconnlistener* listener,
+                                 evutil_socket_t cli_sock,
+                                 struct sockaddr* cli_addr, int socklen,
+                                 void* arg);
 
     /// Listens for incoming socket connections.
     void StartMessagePump(uint32_t listen_port_host, Dispatcher dispatcher,
-                          broadcast_list_func broadcast_list_retriever);
+                          BroadcastListFunc broadcast_list_retriever);
 
     /// Multicasts message to specified list of peers.
     void SendMessage(const std::vector<Peer>& peers,
