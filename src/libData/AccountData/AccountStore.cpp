@@ -95,7 +95,7 @@ int AccountStore::Deserialize(const vector<unsigned char>& src,
             UpdateStateTrie(address, account);
             // MoveUpdatesToDisk();
         }
-        PrintAccountState();
+        // PrintAccountState();
     }
     catch (const std::exception& e)
     {
