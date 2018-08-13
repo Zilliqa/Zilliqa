@@ -310,6 +310,7 @@ bool AccountStore::RetrieveFromDisk()
 }
 
 bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
+                                      const unsigned int& numShards,
                                       const Transaction& transaction,
                                       uint256_t& gasUsed)
 {
@@ -317,7 +318,7 @@ bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
 
     lock_guard<mutex> g(m_mutexDelta);
 
-    return m_accountStoreTemp->UpdateAccounts(blockNum, transaction, gasUsed);
+    return m_accountStoreTemp->UpdateAccounts(blockNum, numShards, transaction, gasUsed);
 }
 
 bool AccountStore::UpdateCoinbaseTemp(const Address& rewardee,

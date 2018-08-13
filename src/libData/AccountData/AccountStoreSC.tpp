@@ -40,6 +40,7 @@ template<class MAP> void AccountStoreSC<MAP>::Init()
 
 template<class MAP>
 bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
+                                         const unsigned int& numShards,
                                          const Transaction& transaction,
                                          uint256_t& gasUsed)
 {
@@ -61,7 +62,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         return false;
     }
 
-    if (transaction.GetData().empty() && transaction.GetCode().empty())
+    if (transaction.GetData().empty() && transaction.GetCode().empty()
+        || !transaction.GetCode().empty())
     {
         // LOG_GENERAL(INFO, "Normal transaction");
 
@@ -251,6 +253,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
         m_curContractAddr = toAddr;
         m_curAmount = amount;
+        m_curNumShards = numShards;
 
         // if (!TransferBalanceAtomic(fromAddr, toAddr, amount))
         // {
@@ -596,6 +599,14 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json)
     }
 
     LOG_GENERAL(INFO, "Call another contract");
+
+    // check whether the recipient contract is in the same shard with the current contract
+    if (Transaction::GetShardIndex(m_curContractAddr,m_curNumShards) 
+            != Transaction::GetShardIndex(recipient, m_curNumShards))
+    {
+        LOG_GENERAL(WARNING, "another contract doesn't belong to the same shard with current contract");
+        return false;
+    }
 
     Json::Value input_message;
     input_message["_sender"] = "0x" + m_curContractAddr.hex();
