@@ -106,10 +106,30 @@ string Server::CreateTransaction(const Json::Value& _json)
 
         if (num_shards > 0)
         {
+
             unsigned int shard
                 = Transaction::GetShardIndex(fromAddr, num_shards);
 
-            m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
+            if (tx.GetData().empty() || tx.GetToAddr() == NullAddress)
+            {
+                m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
+                return "Created A shard Txn";
+            }
+            else
+            {
+                unsigned int to_shard
+                    = Transaction::GetShardIndex(tx.GetToAddr(), num_shards);
+                if (to_shard == shard)
+                {
+                    m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
+                    return "Shards Match of the sender and reciever";
+                }
+                else
+                {
+                    m_mediator.m_lookup->AddToTxnShardMap(tx, num_shards);
+                    return "Sent to Ds for processing";
+                }
+            }
             /*map<PubKey, Peer> shardMembers
                 = m_mediator.m_lookup->GetShardPeers().at(shard);
             LOG_GENERAL(INFO, "The Tx Belongs to " << shard << " Shard");
