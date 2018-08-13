@@ -250,7 +250,8 @@ void Node::StartSynchronization()
 
 bool Node::CheckState(Action action)
 {
-    if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
+    if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE
+        && action != PROCESS_MICROBLOCKCONSENSUS)
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "I am a DS node. Why am I getting this message? Action: "
@@ -532,12 +533,12 @@ bool Node::ProcessCreateTransactionFromLookup(
         return false;
     }
 
-    lock_guard<mutex> g(m_mutexCreatedTransactions);
-
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Recvd txns: " << tx.GetTranID()
                              << " Signature: " << tx.GetSignature()
                              << " toAddr: " << tx.GetToAddr().hex());
+
+    lock_guard<mutex> g(m_mutexCreatedTransactions);
     if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(tx))
     {
         auto& compIdx

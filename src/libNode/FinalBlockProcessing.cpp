@@ -693,7 +693,7 @@ bool Node::CheckStateRoot(const TxBlock& finalBlock)
 {
     StateHash stateRoot = AccountStore::GetInstance().GetStateRootHash();
 
-    AccountStore::GetInstance().PrintAccountState();
+    // AccountStore::GetInstance().PrintAccountState();
 
     if (stateRoot != finalBlock.GetHeader().GetStateRootHash())
     {
@@ -821,15 +821,15 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         return false;
     }
 
-    ProcessStateDeltaFromFinalBlock(message, cur_offset,
-                                    txBlock.GetHeader().GetStateDeltaHash());
-
     bool toSendTxnToLookup = false;
 
     bool isVacuousEpoch
         = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
     if (!isVacuousEpoch)
     {
+        ProcessStateDeltaFromFinalBlock(
+            message, cur_offset, txBlock.GetHeader().GetStateDeltaHash());
+
         if (!LoadUnavailableMicroBlockHashes(
                 txBlock, txBlock.GetHeader().GetBlockNum(), toSendTxnToLookup))
         {
@@ -845,7 +845,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 
         if (!AccountStore::GetInstance().UpdateStateTrieAll())
         {
-            LOG_GENERAL(WARNING, "UpdateStateTrieAll Failed");
+            LOG_GENERAL(WARNING, "UpdateStateTrieAll Failed 1");
             return false;
         }
 
@@ -860,6 +860,16 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 #endif // IS_LOOKUP_NODE
             return false;
         }
+
+        ProcessStateDeltaFromFinalBlock(
+            message, cur_offset, txBlock.GetHeader().GetStateDeltaHash());
+
+        if (!AccountStore::GetInstance().UpdateStateTrieAll())
+        {
+            LOG_GENERAL(WARNING, "UpdateStateTrieAll Failed 2");
+            return false;
+        }
+
         StoreState();
         BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
                                                     {'0'});
