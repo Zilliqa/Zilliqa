@@ -85,7 +85,6 @@ class Node : public Executable, public Broadcastable
     std::mutex m_mutexConsensus;
 
     // Sharding information
-    std::atomic<bool> m_isPrimary;
     std::atomic<bool> m_isMBSender;
     std::atomic<uint32_t> m_myShardID;
     std::atomic<uint32_t> m_numShards;
@@ -114,7 +113,6 @@ class Node : public Executable, public Broadcastable
     std::shared_ptr<Retriever> m_retriever;
 
     std::vector<unsigned char> m_consensusBlockHash;
-    std::atomic<uint32_t> m_consensusMyID;
     std::shared_ptr<MicroBlock> m_microblock;
     std::pair<uint64_t, BlockBase> m_lastMicroBlockCoSig;
     std::mutex m_mutexMicroBlock;
@@ -288,7 +286,6 @@ class Node : public Executable, public Broadcastable
 
     bool RunConsensusOnMicroBlockWhenShardLeader();
     bool RunConsensusOnMicroBlockWhenShardBackup();
-    bool RunConsensusOnMicroBlock();
     bool ComposeMicroBlock();
     void SubmitMicroblockToDSCommittee() const;
     bool
@@ -361,6 +358,9 @@ public:
 
     uint32_t m_consensusID;
 
+    /// Sharding variables
+    std::atomic<uint32_t> m_consensusMyID;
+    std::atomic<bool> m_isPrimary;
     std::atomic<uint32_t> m_consensusLeaderID;
 
     /// The current internal state of this Node instance.
@@ -435,6 +435,9 @@ public:
 
     /// Used by oldest DS node to finish setup as a new shard node
     void StartFirstTxEpoch();
+
+    /// Used for start consensus on microblock
+    bool RunConsensusOnMicroBlock();
 #endif // IS_LOOKUP_NODE
 
     /// Used by oldest DS node to configure sharding variables as a new shard node

@@ -107,7 +107,8 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx,
     }
 
     return AccountStore::GetInstance().UpdateAccountsTemp(
-        m_mediator.m_currentEpochNum, tx, gasUsed);
+        m_mediator.m_currentEpochNum, m_mediator.m_node->getNumShards(), tx,
+        gasUsed);
 }
 
 bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
@@ -119,20 +120,37 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
     Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
     unsigned int shardID = m_mediator.m_node->getShardID();
     unsigned int numShards = m_mediator.m_node->getNumShards();
-    unsigned int correct_shard
+    unsigned int correct_shard_from
         = Transaction::GetShardIndex(fromAddr, numShards);
-    if (correct_shard != shardID)
+
+    if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE)
     {
-        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "This tx is not sharded to me!"
-                      << " From Account  = 0x" << fromAddr
-                      << " Correct shard = " << correct_shard
-                      << " This shard    = "
-                      << m_mediator.m_node->getShardID());
-        return false;
-        // // Transaction created from the GenTransactionBulk will be rejected
-        // // by all shards but one. Next line is commented to avoid this
-        // return false;
+        if (correct_shard_from != shardID)
+        {
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "This tx is not sharded to me!"
+                          << " From Account  = 0x" << fromAddr
+                          << " Correct shard = " << correct_shard_from
+                          << " This shard    = "
+                          << m_mediator.m_node->getShardID());
+            return false;
+            // // Transaction created from the GenTransactionBulk will be rejected
+            // // by all shards but one. Next line is commented to avoid this
+            // return false;
+        }
+
+        if (tx.GetData().size() > 0 && tx.GetToAddr() != NullAddress)
+        {
+            unsigned int correct_shard_to
+                = Transaction::GetShardIndex(tx.GetToAddr(), numShards);
+            if (correct_shard_to != correct_shard_from)
+                LOG_EPOCH(
+                    WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                    "The fromShard " << correct_shard_from << " and toShard "
+                                     << correct_shard_to
+                                     << " is different for the call SC txn");
+            return false;
+        }
     }
 
     // Check if from account exists in local storage

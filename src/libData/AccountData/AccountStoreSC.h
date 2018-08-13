@@ -53,6 +53,7 @@ template<class MAP> class AccountStoreSC : public AccountStoreBase<MAP>
     uint256_t m_curGasCum;
     uint256_t m_curGasLimit;
     uint256_t m_curGasPrice;
+    unsigned int m_curNumShards;
 
     bool ParseCreateContractOutput();
     bool ParseCreateContractJsonOutput(const Json::Value& _json);
@@ -86,7 +87,7 @@ protected:
 public:
     void Init() override;
 
-    bool UpdateAccounts(const uint64_t& blockNum,
+    bool UpdateAccounts(const uint64_t& blockNum, const unsigned int& numShards,
                         const Transaction& transaction,
                         uint256_t& gasUsed = DEFAULT_GASUSED);
 };
