@@ -1218,6 +1218,10 @@ bool Node::CheckMicroBlockStateDeltaHash()
 bool Node::CheckMicroBlockShardID()
 {
     // Check version (must be most current version)
+    if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
+    {
+        return true;
+    }
     if (m_microblock->GetHeader().GetShardID() != m_myShardID)
     {
         LOG_GENERAL(WARNING,

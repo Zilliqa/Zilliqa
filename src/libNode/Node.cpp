@@ -599,10 +599,20 @@ bool Node::ProcessTxnPacketFromLookup(
         return false;
     }
 
-    if (shardId != m_myShardID)
+    if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE)
     {
-        LOG_GENERAL(WARNING, "Wrong Shard");
-        return false;
+
+        if (shardId != m_myShardID)
+        {
+            LOG_GENERAL(WARNING, "Wrong Shard");
+            return false;
+        }
+    }
+    else
+    {
+        LOG_GENERAL(INFO,
+                    "[DSMB]"
+                        << " DSNode");
     }
     unsigned int txn_sent_count = 0;
     lock_guard<mutex> g(m_mutexCreatedTransactions);
@@ -654,16 +664,35 @@ bool Node::ProcessTxnPacketFromLookup(
     LOG_GENERAL(INFO, "TXN COUNT" << txn_sent_count);
     vector<Peer> toSend;
 
-    for (auto it = m_myShardMembers->begin(); it != m_myShardMembers->end();
-         it++)
+    if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE)
     {
-        toSend.push_back(it->second);
+        for (auto it = m_myShardMembers->begin(); it != m_myShardMembers->end();
+             it++)
+        {
+            toSend.push_back(it->second);
+        }
+        if (txn_sent_count > 0)
+        {
+            LOG_GENERAL(INFO,
+                        "[Batching] Broadcast my txns to other shard members");
+            P2PComm::GetInstance().SendBroadcastMessage(toSend, message);
+        }
     }
-    if (txn_sent_count > 0)
+    else
     {
-        LOG_GENERAL(INFO,
-                    "[Batching] Broadcast my txns to other shard members");
-        P2PComm::GetInstance().SendBroadcastMessage(toSend, message);
+        for (auto it = m_mediator.m_DSCommittee->begin();
+             it != m_mediator.m_DSCommittee->end(); it++)
+        {
+            toSend.push_back(it->second);
+        }
+        if (txn_sent_count > 0)
+        {
+            LOG_GENERAL(INFO,
+                        "[DSMB] "
+                            << " Send to other DS committee");
+
+            P2PComm::GetInstance().SendBroadcastMessage(toSend, message);
+        }
     }
 #endif //IS_LOOKUP_NOD
     return true;
