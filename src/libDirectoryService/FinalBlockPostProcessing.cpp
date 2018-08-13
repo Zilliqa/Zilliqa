@@ -312,11 +312,11 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
     {
         // if (CheckStateRoot())
         // {
-            AccountStore::GetInstance().MoveUpdatesToDisk();
-            BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
-                                                        {'0'});
+        AccountStore::GetInstance().MoveUpdatesToDisk();
+        BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
+                                                    {'0'});
 #ifndef IS_LOOKUP_NODE
-            BlockStorage::GetBlockStorage().PopFrontTxBodyDB();
+        BlockStorage::GetBlockStorage().PopFrontTxBodyDB();
 #endif // IS_LOOKUP_NODE
         // }
     }
