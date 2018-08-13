@@ -122,8 +122,6 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
     unsigned int numShards = m_mediator.m_node->getNumShards();
     unsigned int correct_shard_from
         = Transaction::GetShardIndex(fromAddr, numShards);
-    unsigned int correct_shard_to
-        = Transaction::GetShardIndex(tx.GetToAddr(), numShards);
 
     if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE)
     {
@@ -141,13 +139,16 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
             // return false;
         }
 
-        if (transaction.GetData().size() > 0 && toAddr != NullAddress
-            && correct_shard_to != correct_shard_from)
+        if (tx.GetData().size() > 0 && tx.GetToAddr() != NullAddress)
         {
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "The fromShard " << correct_shard_from << " and toShard "
-                                       << correct_shard_to
-                                       << " is different for the call SC txn");
+            unsigned int correct_shard_to
+                = Transaction::GetShardIndex(tx.GetToAddr(), numShards);
+            if (correct_shard_to != correct_shard_from)
+                LOG_EPOCH(
+                    WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                    "The fromShard " << correct_shard_from << " and toShard "
+                                     << correct_shard_to
+                                     << " is different for the call SC txn");
             return false;
         }
     }
