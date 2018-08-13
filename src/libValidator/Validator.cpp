@@ -107,7 +107,8 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx,
     }
 
     return AccountStore::GetInstance().UpdateAccountsTemp(
-        m_mediator.m_currentEpochNum, tx, gasUsed);
+        m_mediator.m_currentEpochNum, m_mediator.m_node->getNumShards(), tx,
+        gasUsed);
 }
 
 bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
@@ -140,11 +141,13 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
             // return false;
         }
 
-        if (transaction.GetData().size() > 0 && toAddr != NullAddress && correct_shard_to != correct_shard_from)
+        if (transaction.GetData().size() > 0 && toAddr != NullAddress
+            && correct_shard_to != correct_shard_from)
         {
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "The fromShard " << correct_shard_from << " and toShard "
-                                       << correct_shard_to << " is different for the call SC txn");
+                                       << correct_shard_to
+                                       << " is different for the call SC txn");
             return false;
         }
     }
