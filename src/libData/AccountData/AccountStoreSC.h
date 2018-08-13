@@ -87,8 +87,7 @@ protected:
 public:
     void Init() override;
 
-    bool UpdateAccounts(const uint64_t& blockNum,
-                        const unsigned int& numShards,
+    bool UpdateAccounts(const uint64_t& blockNum, const unsigned int& numShards,
                         const Transaction& transaction,
                         uint256_t& gasUsed = DEFAULT_GASUSED);
 };
