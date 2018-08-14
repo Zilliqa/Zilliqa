@@ -833,7 +833,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         LOG_GENERAL(INFO, "isVacuousEpoch now");
 
         // Remove because shard nodes will be shuffled in next epoch.
-        m_createdTransactions.get<0>().clear();
+        CleanCreatedTransaction();
 
         if (!AccountStore::GetInstance().UpdateStateTrieAll())
         {

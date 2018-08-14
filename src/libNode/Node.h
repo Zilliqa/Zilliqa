@@ -412,6 +412,8 @@ public:
     void AddBlock(const TxBlock& block);
 
     void CommitForwardedMsgBuffer();
+
+    void CleanCreatedTransaction();
 #ifndef IS_LOOKUP_NODE
 
     // Start synchronization with lookup as a shard node
@@ -421,9 +423,6 @@ public:
     bool StartPoW(const uint64_t& block_num, uint8_t difficulty,
                   const std::array<unsigned char, UINT256_SIZE>& rand1,
                   const std::array<unsigned char, UINT256_SIZE>& rand2);
-
-    /// Call when the normal node be promoted to DS
-    void CleanCreatedTransaction();
 
     /// Used by oldest DS node to configure shard ID as a new shard node
     void SetMyShardID(uint32_t shardID);

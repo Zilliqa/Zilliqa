@@ -727,6 +727,8 @@ bool Node::CleanVariables()
 
     return true;
 }
+void Node::SetMyShardID(uint32_t shardID) { m_myShardID = shardID; }
+#endif // IS_LOOKUP_NODE
 
 void Node::CleanCreatedTransaction()
 {
@@ -734,10 +736,6 @@ void Node::CleanCreatedTransaction()
     // m_createdTransactions.clear();
     m_createdTransactions.get<0>().clear();
 }
-
-void Node::SetMyShardID(uint32_t shardID) { m_myShardID = shardID; }
-
-#endif // IS_LOOKUP_NODE
 
 bool Node::ProcessDoRejoin(
     [[gnu::unused]] const std::vector<unsigned char>& message,
