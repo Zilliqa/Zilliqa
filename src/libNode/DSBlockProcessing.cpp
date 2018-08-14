@@ -560,6 +560,10 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
     // [Sharding structure]
     m_mediator.m_lookup->ProcessEntireShardingStructure(message, cur_offset,
                                                         from);
+    if (m_mediator.m_lookup->GetIsServer())
+    {
+        m_mediator.m_lookup->SenderTxnBatchThread();
+    }
 #endif // IS_LOOKUP_NODE
 
     return true;

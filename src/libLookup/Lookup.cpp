@@ -2293,11 +2293,7 @@ bool Lookup::CreateTxnPacket(vector<unsigned char>& msg, uint32_t shardId,
         }
     }
 
-    /*for (uint32_t i = 0; i < size_dummy; i++)
-    {
 
-        curr_offset = mp.at(shardId)[i].Serialize(msg, curr_offset);
-    }*/
     if (size_dummy > 0)
     {
         copy(mp.at(shardId).begin(), mp.at(shardId).end(), back_inserter(msg));
