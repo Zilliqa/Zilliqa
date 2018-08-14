@@ -635,7 +635,9 @@ void Node::ProcessTransactionWhenShardLeader()
 
             uint256_t gasUsed = 0;
             if (m_mediator.m_validator->CheckCreatedTransaction(t, gasUsed)
-                || !t.GetCode().empty() || !t.GetData().empty())
+                || (!t.GetCode().empty() && t.GetToAddr() == NullAddress)
+                || (!t.GetData().empty() && t.GetToAddr() != NullAddress
+                    && t.GetCode().empty()))
             {
                 appendOne(t);
                 gasUsedTotal += gasUsed;
@@ -678,7 +680,9 @@ void Node::ProcessTransactionWhenShardLeader()
             }
             // if nonce correct, process it
             else if (m_mediator.m_validator->CheckCreatedTransaction(t, gasUsed)
-                     || !t.GetCode().empty() || !t.GetData().empty())
+                     || (!t.GetCode().empty() && t.GetToAddr() == NullAddress)
+                     || (!t.GetData().empty() && t.GetToAddr() != NullAddress
+                         && t.GetCode().empty()))
             {
                 appendOne(t);
                 gasUsedTotal += gasUsed;
@@ -1039,7 +1043,9 @@ bool Node::ProcessTransactionWhenShardBackup(const vector<TxnHash>& tranHashes,
     {
         uint256_t gasUsed = 0;
         if (m_mediator.m_validator->CheckCreatedTransaction(t, gasUsed)
-            || !t.GetCode().empty() || !t.GetData().empty())
+            || (!t.GetCode().empty() && t.GetToAddr() == NullAddress)
+            || (!t.GetData().empty() && t.GetToAddr() != NullAddress
+                && t.GetCode().empty()))
         {
             appendOne(t);
         }
