@@ -41,10 +41,12 @@ template<class MAP> void AccountStoreSC<MAP>::Init()
 template<class MAP>
 bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                                          const unsigned int& numShards,
+                                         const bool& isDS,
                                          const Transaction& transaction,
                                          uint256_t& gasUsed)
 {
     // LOG_MARKER();
+    m_curIsDS = isDS;
 
     lock_guard<mutex> g(m_mutexUpdateAccounts);
 
@@ -610,8 +612,9 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json)
     LOG_GENERAL(INFO, "Call another contract");
 
     // check whether the recipient contract is in the same shard with the current contract
-    if (Transaction::GetShardIndex(m_curContractAddr, m_curNumShards)
-        != Transaction::GetShardIndex(recipient, m_curNumShards))
+    if (!m_curIsDS
+        && Transaction::GetShardIndex(m_curContractAddr, m_curNumShards)
+            != Transaction::GetShardIndex(recipient, m_curNumShards))
     {
         LOG_GENERAL(WARNING,
                     "another contract doesn't belong to the same shard with "
