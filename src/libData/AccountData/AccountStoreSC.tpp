@@ -85,7 +85,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
     bool callContract = false;
 
-    if (transaction.GetData().size() > 0 && toAddr != NullAddress)
+    if (transaction.GetData().size() > 0 && toAddr != NullAddress
+        && transaction.GetCode().empty())
     {
         callContract = true;
     }
