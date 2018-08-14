@@ -25,6 +25,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include "Blacklist.h"
 #include "P2PComm.h"
 #include "PeerStore.h"
 #include "common/Messages.h"
@@ -545,6 +546,15 @@ void P2PComm::ConnectionAccept([[gnu::unused]] evconnlistener* listener,
     Peer from(uint128_t(((struct sockaddr_in*)cli_addr)->sin_addr.s_addr),
               ((struct sockaddr_in*)cli_addr)->sin_port);
 
+    if (Blacklist::GetInstance().Exist(from.m_ipAddress))
+    {
+        LOG_GENERAL(INFO,
+                    "The node "
+                        << from
+                        << " is in black list, block all message from it.");
+        return;
+    }
+
     auto func = [cli_sock, from]() -> void {
         HandleAcceptedConnection(cli_sock, from);
     };
@@ -617,6 +627,17 @@ void P2PComm::SendMessagePoolHelper(const Container& peers,
          curr < indexes.end(); curr++)
     {
         Peer peer = peers.at(*curr);
+
+        /// TBD: Update the container dynamically when blacklist is updated
+        if (Blacklist::GetInstance().Exist(peer.m_ipAddress))
+        {
+            LOG_GENERAL(INFO,
+                        "The node "
+                            << peer
+                            << " is in black list, block all message to it.");
+            continue;
+        }
+
         auto func1
             = [this, peer, sharedMessage, sharedMessageHash]() mutable -> void {
             SendMessageCore(peer, *sharedMessage.get(), START_BYTE,
@@ -648,6 +669,16 @@ void P2PComm::SendMessage(const Peer& peer,
                           const vector<unsigned char>& message)
 {
     LOG_MARKER();
+
+    if (Blacklist::GetInstance().Exist(peer.m_ipAddress))
+    {
+        LOG_GENERAL(INFO,
+                    "The node "
+                        << peer
+                        << " is in black list, block all message to it.");
+        return;
+    }
+
     lock_guard<mutex> guard(m_sendMessageMutex);
     SendMessageCore(peer, message, START_BYTE_NORMAL, vector<unsigned char>());
 }
