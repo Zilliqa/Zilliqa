@@ -86,7 +86,6 @@ class Node : public Executable, public Broadcastable
 
     // Sharding information
     std::atomic<bool> m_isMBSender;
-    std::atomic<uint32_t> m_myShardID;
     std::atomic<uint32_t> m_numShards;
 
     // Transaction sharing assignments
@@ -354,6 +353,7 @@ public:
     uint32_t m_consensusID;
 
     /// Sharding variables
+    std::atomic<uint32_t> m_myShardID;
     std::atomic<uint32_t> m_consensusMyID;
     std::atomic<bool> m_isPrimary;
     std::atomic<uint32_t> m_consensusLeaderID;

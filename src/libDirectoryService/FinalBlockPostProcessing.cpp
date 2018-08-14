@@ -317,8 +317,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
                                                     {'0'});
 #ifndef IS_LOOKUP_NODE
         BlockStorage::GetBlockStorage().PopFrontTxBodyDB();
-#endif // IS_LOOKUP_NODE                                                       \
-    // }
+#endif // IS_LOOKUP_NODE
+        // }
     }
 
     m_mediator.m_node->CommitForwardedMsgBuffer();
