@@ -135,6 +135,15 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
         // return false;
     }
 
+    if (!VerifyTransaction(tx))
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Signature incorrect: " << fromAddr
+                                          << ". Transaction rejected: "
+                                          << tx.GetTranID());
+        return false;
+    }
+
     // Check if from account exists in local storage
     if (!AccountStore::GetInstance().IsAccountExist(fromAddr))
     {
