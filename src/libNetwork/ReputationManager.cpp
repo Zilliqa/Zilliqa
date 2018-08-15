@@ -83,12 +83,13 @@ void ReputationManager::UpdateReputation(
     boost::multiprecision::uint128_t IPAddress, int32_t ReputationScoreDelta)
 {
     AddNodeIfNotKnown(IPAddress);
-    std::lock_guard<std::mutex> lock(m_mutexReputations);
-    m_Reputations[IPAddress] += ReputationScoreDelta;
-    if (m_Reputations[IPAddress] <= REPTHRASHHOLD && !IsNodeBanned(IPAddress))
+
+    // TODO: check overflow
+    int32_t NewRep = GetReputation(IPAddress) + ReputationScoreDelta;
+    if (NewRep && !IsNodeBanned(IPAddress))
     {
-        // Ban for <BAN_MULTIPLIER> epoch
         LOG_GENERAL(INFO, "Node " << IPAddress << " banned.");
-        m_Reputations[IPAddress] -= BAN_MULTIPLIER * AWARD_FOR_GOOD_NODES;
+        NewRep -= BAN_MULTIPLIER * AWARD_FOR_GOOD_NODES;
     }
+    SetReputation(IPAddress, NewRep);
 }
