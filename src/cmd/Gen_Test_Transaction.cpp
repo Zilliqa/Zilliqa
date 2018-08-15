@@ -26,9 +26,7 @@
 #include <string>
 #include <vector>
 
-unsigned int NUM_TXN = 10000;
-
-void GenTxn(unsigned int k, const Address& fromAddr)
+void GenTxn(unsigned int k, const Address& fromAddr, unsigned int iteration)
 {
 
     vector<unsigned char> txns;
@@ -41,8 +39,10 @@ void GenTxn(unsigned int k, const Address& fromAddr)
         auto privKey = PrivKey{privKeyBytes, 0};
         auto pubKey = PubKey{privKey};
         auto address = Account::GetAddressFromPublicKey(pubKey);
+        auto nonce = iteration * NUM_TXN;
 
-        file.open(address.hex() + ".zil", ios ::app | ios::binary);
+        file.open(address.hex() + "_" + to_string(nonce) + ".zil",
+                  ios ::app | ios::binary);
 
         if (!file.is_open())
         {
@@ -50,7 +50,6 @@ void GenTxn(unsigned int k, const Address& fromAddr)
             continue;
         }
 
-        auto nonce = 0;
         size_t n = k;
         txns.clear();
 
@@ -86,6 +85,8 @@ int main()
     {
         toAddr.asArray().at(i) = i + 4;
     }
-
-    GenTxn(NUM_TXN, toAddr);
+    for (unsigned int i = 0; i < 5; i++)
+    {
+        GenTxn(NUM_TXN, toAddr, i);
+    }
 }

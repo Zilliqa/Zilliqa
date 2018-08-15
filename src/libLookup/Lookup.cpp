@@ -143,6 +143,14 @@ bool Lookup::GenTxnToSend(size_t n, map<uint32_t, vector<unsigned char>>& mp,
 {
     vector<unsigned char> txns;
 
+    if (GENESIS_KEYS.size() == 0)
+    {
+        LOG_GENERAL(WARNING, "No genesis keys found");
+        return false;
+    }
+
+    unsigned int NUM_TXN_TO_DS = n / GENESIS_KEYS.size();
+
     for (auto& privKeyHexStr : GENESIS_KEYS)
     {
         auto privKeyBytes{DataConversion::HexStrToUint8Vec(privKeyHexStr)};
@@ -154,19 +162,20 @@ bool Lookup::GenTxnToSend(size_t n, map<uint32_t, vector<unsigned char>>& mp,
         {
             return false;
         }
-        //auto txnShard = Transaction::GetShardIndex(addr, nShard);
+        auto txnShard = Transaction::GetShardIndex(addr, nShard);
+        txns.clear();
 
         uint256_t nonce
             = AccountStore::GetInstance().GetAccount(addr)->GetNonce();
 
-        /*if (!GetTxnFromFile::GetFromFile(addr, static_cast<uint32_t>(nonce) + 1,
+        if (!GetTxnFromFile::GetFromFile(addr, static_cast<uint32_t>(nonce) + 1,
                                          n, txns))
         {
             LOG_GENERAL(WARNING, "Failed to get txns from file");
             return false;
-        }*/
+        }
 
-        Address receiverAddr = GenOneReceiver();
+        /*Address receiverAddr = GenOneReceiver();
         unsigned int curr_offset = 0;
         txns.reserve(n);
         for (auto i = 0u; i != n; i++)
@@ -177,13 +186,23 @@ bool Lookup::GenTxnToSend(size_t n, map<uint32_t, vector<unsigned char>>& mp,
                             {});
 
             curr_offset = txn.Serialize(txns, curr_offset);
-        }
+        }*/
         //[Change back here]
-        copy(txns.begin(), txns.end(), back_inserter(mp[nShard]));
+        copy(txns.begin(), txns.end(), back_inserter(mp[txnShard]));
 
         LOG_GENERAL(INFO,
                     "[Batching] Last Nonce sent " << nonce + n << " of Addr "
                                                   << addr.hex());
+        txns.clear();
+
+        if (!GetTxnFromFile::GetFromFile(addr,
+                                         static_cast<uint32_t>(nonce) + n + 1,
+                                         NUM_TXN_TO_DS, txns))
+        {
+            LOG_GENERAL(WARNING, "Failed to get txns for DS");
+        }
+
+        copy(txns.begin(), txns.end(), back_inserter(mp[nShard]));
     }
 
     return true;
@@ -2347,10 +2366,6 @@ void Lookup::SendTxnPacketToNodes(uint32_t nShard)
         else if (i == nShard)
         {
             //To send DS
-
-            LOG_GENERAL(INFO,
-                        "[DSMB]"
-                            << " Accessing SendTxn");
             {
                 lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
                 auto it = m_mediator.m_DSCommittee->begin();
