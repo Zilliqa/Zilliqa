@@ -75,7 +75,19 @@ void ReputationManager::SetReputation(
     boost::multiprecision::uint128_t IPAddress, int32_t ReputationScore)
 {
     AddNodeIfNotKnown(IPAddress);
+
     std::lock_guard<std::mutex> lock(m_mutexReputations);
+    if (ReputationScore > UPPERREPTHRASHHOLD)
+    {
+        LOG_GENERAL(
+            WARNING,
+            "Reputation score too high. Exceed upper bound. ReputationScore: "
+                << ReputationScore << ". Setting reputation to "
+                << UPPERREPTHRASHHOLD);
+        m_Reputations[IPAddress] = UPPERREPTHRASHHOLD;
+        return;
+    }
+
     m_Reputations[IPAddress] = ReputationScore;
 }
 
