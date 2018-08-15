@@ -646,51 +646,52 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
     }
 
     unsigned int txn_sent_count = 0;
-    lock_guard<mutex> g(m_mutexCreatedTransactions);
-
-    for (unsigned int i = 0; i < num; i++)
     {
-        Transaction tx;
-        if (tx.Deserialize(message, curr_offset) != 0)
+        lock_guard<mutex> g(m_mutexCreatedTransactions);
+        for (unsigned int i = 0; i < num; i++)
         {
-            LOG_GENERAL(WARNING, "Failed to deserialize");
-            return false;
-        }
-
-        if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(tx))
-        {
-
-            auto& compIdx
-                = m_createdTransactions.get<MULTI_INDEX_KEY::ADDR_NONCE>();
-            auto it
-                = compIdx.find(make_tuple(tx.GetSenderAddr(), tx.GetNonce()));
-            if (it != compIdx.end())
+            Transaction tx;
+            if (tx.Deserialize(message, curr_offset) != 0)
             {
-                if (it->GetGasPrice() < tx.GetGasPrice())
+                LOG_GENERAL(WARNING, "Failed to deserialize");
+                return false;
+            }
+
+            if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(tx))
+            {
+
+                auto& compIdx
+                    = m_createdTransactions.get<MULTI_INDEX_KEY::ADDR_NONCE>();
+                auto it = compIdx.find(
+                    make_tuple(tx.GetSenderAddr(), tx.GetNonce()));
+                if (it != compIdx.end())
                 {
-                    compIdx.replace(it, tx);
+                    if (it->GetGasPrice() < tx.GetGasPrice())
+                    {
+                        compIdx.replace(it, tx);
+                    }
+                    else
+                    {
+                        LOG_GENERAL(WARNING,
+                                    "Txn with same address and nonce already "
+                                    "exists with higher gas price");
+                    }
                 }
                 else
                 {
-                    LOG_GENERAL(WARNING,
-                                "Txn with same address and nonce already "
-                                "exists with higher gas price");
+                    auto& listIdx = m_createdTransactions
+                                        .get<MULTI_INDEX_KEY::GAS_PRICE>();
+                    listIdx.insert(tx);
+                    txn_sent_count++;
                 }
             }
             else
             {
-                auto& listIdx
-                    = m_createdTransactions.get<MULTI_INDEX_KEY::GAS_PRICE>();
-                listIdx.insert(tx);
-                txn_sent_count++;
+                LOG_GENERAL(WARNING, "Txn is not valid.");
             }
-        }
-        else
-        {
-            LOG_GENERAL(WARNING, "Txn is not valid.");
-        }
 
-        curr_offset += tx.GetSerializedSize();
+            curr_offset += tx.GetSerializedSize();
+        }
     }
     LOG_GENERAL(INFO, "TXN COUNT" << txn_sent_count);
     vector<Peer> toSend;
