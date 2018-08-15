@@ -145,6 +145,9 @@ class Node : public Executable, public Broadcastable
     std::unordered_map<uint64_t, std::vector<std::vector<unsigned char>>>
         m_forwardedTxnBuffer;
 
+    std::mutex m_mutexTxnPacketBuffer;
+    std::vector<std::vector<unsigned char>> m_txnPacketBuffer;
+
     bool CheckState(Action action);
 
     // To block certain types of incoming message for certain states
@@ -258,6 +261,8 @@ class Node : public Executable, public Broadcastable
         const Peer& from);
     bool ProcessTxnPacketFromLookup(const std::vector<unsigned char>& message,
                                     unsigned int offset, const Peer& from);
+    bool ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
+                                        unsigned int offset);
 
     // bool ProcessCreateAccounts(const std::vector<unsigned char> & message, unsigned int offset, const Peer & from);
     bool ProcessDSBlock(const std::vector<unsigned char>& message,
@@ -437,6 +442,9 @@ public:
 
     /// Used for start consensus on microblock
     bool RunConsensusOnMicroBlock();
+
+    /// Used for commit buffered txn packet
+    void CommitTxnPacketBuffer();
 #endif // IS_LOOKUP_NODE
 
     /// Used by oldest DS node to configure sharding variables as a new shard node
