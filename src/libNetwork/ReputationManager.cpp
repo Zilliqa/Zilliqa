@@ -15,6 +15,7 @@
 **/
 
 #include "ReputationManager.h"
+#include "Blacklist.h"
 
 ReputationManager::ReputationManager()
 {
@@ -45,12 +46,23 @@ void ReputationManager::PunishNode(boost::multiprecision::uint128_t IPAddress)
 {
     AddNodeIfNotKnown(IPAddress);
     UpdateReputation(IPAddress, AWARD_FOR_GOOD_NODES);
+    if (!Blacklist::GetInstance().Exist(IPAddress) and IsNodeBanned(IPAddress))
+    {
+        LOG_GENERAL(INFO, "Node " << IPAddress << " banned.");
+        Blacklist::GetInstance().Add(IPAddress);
+    }
 }
 
 void ReputationManager::AwardNode(boost::multiprecision::uint128_t IPAddress)
 {
     AddNodeIfNotKnown(IPAddress);
     UpdateReputation(IPAddress, AWARD_FOR_GOOD_NODES);
+
+    if (Blacklist::GetInstance().Exist(IPAddress) and !IsNodeBanned(IPAddress))
+    {
+        LOG_GENERAL(INFO, "Node " << IPAddress << " unbanned.");
+        Blacklist::GetInstance().Remove(IPAddress);
+    }
 }
 
 void ReputationManager::AddNodeIfNotKnown(
@@ -100,7 +112,6 @@ void ReputationManager::UpdateReputation(
     int32_t NewRep = GetReputation(IPAddress) + ReputationScoreDelta;
     if (NewRep && !IsNodeBanned(IPAddress))
     {
-        LOG_GENERAL(INFO, "Node " << IPAddress << " banned.");
         NewRep -= BAN_MULTIPLIER * AWARD_FOR_GOOD_NODES;
     }
     SetReputation(IPAddress, NewRep);
