@@ -886,7 +886,9 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 #ifdef IS_LOOKUP_NODE
     // Now only forwarded txn are left, so only call in lookup
     CommitForwardedMsgBuffer();
-    if (m_mediator.m_lookup->GetIsServer())
+
+    if (m_mediator.m_lookup->GetIsServer()
+        && m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0)
     {
         m_mediator.m_lookup->SenderTxnBatchThread();
     }
@@ -910,6 +912,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     }
     else
     {
+
         auto main_func
             = [this]() mutable -> void { BeginNextConsensusRound(); };
 
