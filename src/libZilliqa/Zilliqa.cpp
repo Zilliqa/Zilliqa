@@ -137,6 +137,10 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
     {
         LOG_GENERAL(INFO, "API Server started successfully");
         m_lookup.SetServerTrue();
+        if (true)
+        {
+            m_lookup.LaunchTxnSyncThread("52.40.233.204");
+        }
     }
     else
     {
