@@ -287,7 +287,8 @@ int PrivKey::Deserialize(const vector<unsigned char>& src, unsigned int offset)
         m_d = BIGNUMSerialize::GetNumber(src, offset, PRIV_KEY_SIZE);
         if (m_d == nullptr)
         {
-            LOG_GENERAL(WARNING, "Deserialization failure");
+            LOG_GENERAL(WARNING, "Deserialization failure. offset: " << offset);
+            LOG_PAYLOAD(WARNING, "Payload: ", src, src.size());
             m_initialized = false;
         }
         else
@@ -427,7 +428,8 @@ int PubKey::Deserialize(const vector<unsigned char>& src, unsigned int offset)
         m_P = ECPOINTSerialize::GetNumber(src, offset, PUB_KEY_SIZE);
         if (m_P == nullptr)
         {
-            LOG_GENERAL(WARNING, "Deserialization failure");
+            LOG_GENERAL(WARNING, "Deserialization failure. offset: " << offset);
+            LOG_PAYLOAD(WARNING, "Payload: ", src, src.size());
             m_initialized = false;
         }
         else
@@ -439,6 +441,8 @@ int PubKey::Deserialize(const vector<unsigned char>& src, unsigned int offset)
     {
         LOG_GENERAL(WARNING,
                     "Error with PubKey::Deserialize." << ' ' << e.what());
+        LOG_GENERAL(WARNING, "Deserialization failure. offset: " << offset);
+        LOG_PAYLOAD(WARNING, "Payload: ", src, src.size());
         return -1;
     }
     return 0;
@@ -595,7 +599,8 @@ int Signature::Deserialize(const vector<unsigned char>& src,
         m_r = BIGNUMSerialize::GetNumber(src, offset, SIGNATURE_CHALLENGE_SIZE);
         if (m_r == nullptr)
         {
-            LOG_GENERAL(WARNING, "Deserialization failure");
+            LOG_GENERAL(WARNING, "Deserialization failure. offset: " << offset);
+            LOG_PAYLOAD(WARNING, "Payload: ", src, src.size());
             m_initialized = false;
         }
         else
@@ -604,8 +609,9 @@ int Signature::Deserialize(const vector<unsigned char>& src,
                                              offset + SIGNATURE_CHALLENGE_SIZE,
                                              SIGNATURE_RESPONSE_SIZE);
             if (m_s == nullptr)
-            {
-                LOG_GENERAL(WARNING, "Deserialization failure");
+            {   
+                LOG_GENERAL(WARNING, "Deserialization failure. offset: " << offset);
+                LOG_PAYLOAD(WARNING, "Payload: ", src, src.size());
                 m_initialized = false;
             }
             else
@@ -618,6 +624,8 @@ int Signature::Deserialize(const vector<unsigned char>& src,
     {
         LOG_GENERAL(WARNING,
                     "Error with Signature::Deserialize." << ' ' << e.what());
+        LOG_GENERAL(WARNING, "Deserialization failure. offset: " << offset);
+        LOG_PAYLOAD(WARNING, "Payload: ", src, src.size());
         return -1;
     }
     return 0;
