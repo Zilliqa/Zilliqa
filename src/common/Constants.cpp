@@ -51,10 +51,10 @@ std::string ReadSmartContractConstants(std::string propertyName)
     return pt.get<std::string>("node.smart_contract." + propertyName);
 }
 
-std::string ReadTransactionPath(std::string propertyName)
+std::string ReadTransactionDispatcher(std::string propertyName)
 {
     auto pt = PTree::GetInstance();
-    return pt.get<std::string>("node.TransactionPath." + propertyName);
+    return pt.get<std::string>("node.TransactionDispatcher." + propertyName);
 }
 
 const std::vector<std::string>
@@ -169,4 +169,9 @@ const std::string OUTPUT_JSON{SCILLA_FILES + '/'
                               + ReadSmartContractConstants("OUTPUT_JSON")};
 const std::string INPUT_CODE{SCILLA_FILES + '/'
                              + ReadSmartContractConstants("INPUT_CODE")};
-const std::string TXN_PATH{ReadTransactionPath("PATH")};
+const std::string TXN_PATH{ReadTransactionDispatcher("PATH")};
+const bool USE_REMOTE_TXN_CREATOR{
+    ReadTransactionDispatcher("USE_REMOTE_TXN_CREATOR") == "true" ? true
+                                                                  : false};
+const std::string REMOTE_TXN_CREATOR_IP{
+    ReadTransactionDispatcher(REMOTE_TXN_CREATOR_IP)};
