@@ -524,9 +524,6 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
             = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
         m_mediator.m_ds->m_mode = DirectoryService::Mode::PRIMARY_DS;
 
-        // (We're getting rid of this eventually) Clean up my txn list since I'm a DS node now
-        // m_mediator.m_node->CleanCreatedTransaction();
-
         LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
                       DS_LEADER_MSG);
         LOG_STATE("[IDENT][" << std::setw(15) << std::left

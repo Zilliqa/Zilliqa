@@ -323,6 +323,11 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
     m_mediator.UpdateDSBlockRand();
     m_mediator.UpdateTxBlockRand();
 
+    if (m_toSendTxnToLookup)
+    {
+        m_mediator.m_node->CallActOnFinalblock();
+    }
+
     // TODO: Refine this
     unsigned int nodeToSendToLookUpLo = COMM_SIZE / 4;
     unsigned int nodeToSendToLookUpHi
