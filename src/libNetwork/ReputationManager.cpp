@@ -137,4 +137,5 @@ void ReputationManager::AwardNode(boost::multiprecision::uint128_t IPAddress)
         LOG_GENERAL(INFO, "Node " << IPAddress << " unbanned.");
         Blacklist::GetInstance().Remove(IPAddress);
     }
+    SetReputation(IPAddress, NewRep);
 }
