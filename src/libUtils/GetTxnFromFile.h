@@ -29,6 +29,7 @@ using namespace std;
 #include "libData/AccountData/Transaction.h"
 
 unsigned int TXN_SIZE = Transaction::GetMinSerializedSize();
+unsigned int NUM_TXN = 100;
 
 bool getTransactionsFromFile(fstream& f, unsigned int startNum,
                              unsigned int totalNum, vector<unsigned char>& vec)
@@ -57,11 +58,24 @@ public:
         fstream file;
         vec.clear();
 
-        file.open(TXN_PATH + addr.hex() + ".zil", ios::binary | ios::in);
+        if (startNum % NUM_TXN + totalNum > NUM_TXN)
+        {
+            LOG_GENERAL(WARNING,
+                        "A single file does not hold txns " << startNum << " "
+                                                            << totalNum);
+            return false;
+        }
+
+        unsigned int num = startNum / NUM_TXN;
+
+        const string fileString
+            = TXN_PATH + addr.hex() + "_" + to_string(num) + ".zil";
+
+        file.open(fileString, ios::binary | ios::in);
 
         if (!file.is_open())
         {
-            LOG_GENERAL(WARNING, "File failed to open");
+            LOG_GENERAL(WARNING, "File failed to open " << fileString);
             return false;
         }
 
