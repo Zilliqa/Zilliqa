@@ -25,6 +25,7 @@
 
 class ReputationManager
 {
+
     // Custom hasher
     // Ref: https://stackoverflow.com/questions/32082786/why-i-cannot-use-neither-stdunordered-map-nor-boostunordered-map-with-boost
     template<typename T> struct hash_str
@@ -51,14 +52,16 @@ public:
     void AwardNode(boost::multiprecision::uint128_t IPAddress);
     int32_t GetReputation(boost::multiprecision::uint128_t IPAddress);
 
+    enum PenaltyType : int32_t
+    {
+        PENALTY_CONN_REFUSE = -5,
+        PENALTY_INVALID_MESSAGE = -50
+    };
+
     // Score
     static const int32_t UPPERREPTHRASHHOLD = 500;
     static const int32_t REPTHRASHHOLD = -500;
     static const int32_t GOOD = 0;
-
-    // PENALTY
-    static const int32_t PENALTY_CONN_REFUSE = -5;
-    static const int32_t PENALTY_INVALID_MESSAGE = -50;
     static const int32_t BAN_MULTIPLIER = 24;
 
     // AWARD
