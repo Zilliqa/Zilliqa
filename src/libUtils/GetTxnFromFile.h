@@ -58,7 +58,7 @@ public:
         fstream file;
         vec.clear();
 
-        if (startNum % NUM_TXN + totalNum > NUM_TXN)
+        if (startNum % NUM_TXN + totalNum - 1 > NUM_TXN)
         {
             LOG_GENERAL(WARNING,
                         "A single file does not hold txns " << startNum << " "
@@ -69,7 +69,7 @@ public:
         unsigned int num = startNum / NUM_TXN;
 
         const string fileString
-            = TXN_PATH + addr.hex() + "_" + to_string(num) + ".zil";
+            = TXN_PATH + addr.hex() + "_" + to_string(num * NUM_TXN) + ".zil";
 
         file.open(fileString, ios::binary | ios::in);
 
@@ -79,7 +79,8 @@ public:
             return false;
         }
 
-        bool b = getTransactionsFromFile(file, startNum, totalNum, vec);
+        bool b
+            = getTransactionsFromFile(file, startNum % NUM_TXN, totalNum, vec);
 
         file.close();
 
