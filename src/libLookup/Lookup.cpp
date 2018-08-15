@@ -154,19 +154,19 @@ bool Lookup::GenTxnToSend(size_t n, map<uint32_t, vector<unsigned char>>& mp,
         {
             return false;
         }
-        auto txnShard = Transaction::GetShardIndex(addr, nShard);
+        //auto txnShard = Transaction::GetShardIndex(addr, nShard);
 
         uint256_t nonce
             = AccountStore::GetInstance().GetAccount(addr)->GetNonce();
 
-        if (!GetTxnFromFile::GetFromFile(addr, static_cast<uint32_t>(nonce) + 1,
+        /*if (!GetTxnFromFile::GetFromFile(addr, static_cast<uint32_t>(nonce) + 1,
                                          n, txns))
         {
             LOG_GENERAL(WARNING, "Failed to get txns from file");
             return false;
-        }
+        }*/
 
-        /*Address receiverAddr = GenOneReceiver();
+        Address receiverAddr = GenOneReceiver();
         unsigned int curr_offset = 0;
         txns.reserve(n);
         for (auto i = 0u; i != n; i++)
@@ -175,11 +175,11 @@ bool Lookup::GenTxnToSend(size_t n, map<uint32_t, vector<unsigned char>>& mp,
             Transaction txn(0, nonce + i + 1, receiverAddr,
                             make_pair(privKey, pubKey), 10 * i + 2, 1, 1, {},
                             {});
-            
-            curr_offset = txn.Serialize(txns, curr_offset);
-        }*/
 
-        copy(txns.begin(), txns.end(), back_inserter(mp[txnShard]));
+            curr_offset = txn.Serialize(txns, curr_offset);
+        }
+        //[Change back here]
+        copy(txns.begin(), txns.end(), back_inserter(mp[nShard]));
 
         LOG_GENERAL(INFO,
                     "[Batching] Last Nonce sent " << nonce + n << " of Addr "
@@ -2313,7 +2313,7 @@ void Lookup::SendTxnPacketToNodes(uint32_t nShard)
         return;
     }
 
-    for (unsigned int i = 0; i < nShard; i++)
+    for (unsigned int i = 0; i < nShard + 1; i++)
     {
         vector<unsigned char> msg
             = {MessageType::NODE, NodeInstructionType::FORWARDTXNBLOCK};
@@ -2322,25 +2322,53 @@ void Lookup::SendTxnPacketToNodes(uint32_t nShard)
             LOG_GENERAL(WARNING, "Cannot create packet for " << i << " shard");
             continue;
         }
-
         vector<Peer> toSend;
+        if (i < nShard)
         {
-            lock_guard<mutex> g(m_mutexShards);
-            auto it = m_shards.at(i).begin();
 
-            for (unsigned int j = 0;
-                 j < NUM_NODES_TO_SEND_LOOKUP && it != m_shards.at(i).end();
-                 j++, it++)
             {
-                toSend.push_back(it->second);
+                lock_guard<mutex> g(m_mutexShards);
+                auto it = m_shards.at(i).begin();
+
+                for (unsigned int j = 0;
+                     j < NUM_NODES_TO_SEND_LOOKUP && it != m_shards.at(i).end();
+                     j++, it++)
+                {
+                    toSend.push_back(it->second);
+                }
             }
+
+            P2PComm::GetInstance().SendBroadcastMessage(toSend, msg);
+
+            LOG_GENERAL(INFO, "Packet disposed off to " << i << " shard");
+
+            DeleteTxnShardMap(i);
         }
+        else if (i == nShard)
+        {
+            //To send DS
 
-        P2PComm::GetInstance().SendBroadcastMessage(toSend, msg);
+            LOG_GENERAL(INFO,
+                        "[DSMB]"
+                            << " Accessing SendTxn");
+            {
+                lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+                auto it = m_mediator.m_DSCommittee->begin();
 
-        LOG_GENERAL(INFO, "Packet disposed off to " << i << " shard");
+                for (unsigned int j = 0; j < NUM_NODES_TO_SEND_LOOKUP
+                     && it != m_mediator.m_DSCommittee->end();
+                     j++, it++)
+                {
+                    toSend.push_back(it->second);
+                }
+            }
 
-        DeleteTxnShardMap(i);
+            P2PComm::GetInstance().SendBroadcastMessage(toSend, msg);
+
+            LOG_GENERAL(INFO,
+                        "[DSMB]"
+                            << " Sent DS the txns");
+        }
     }
 }
 
