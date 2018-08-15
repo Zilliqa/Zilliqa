@@ -89,7 +89,6 @@ class Node : public Executable, public Broadcastable
     std::atomic<uint32_t> m_numShards;
 
     // Transaction sharing assignments
-    std::atomic<bool> m_txnSharingIAmSender;
     std::atomic<bool> m_txnSharingIAmForwarder;
     std::vector<std::vector<Peer>> m_txnSharingAssignedNodes;
 
@@ -218,8 +217,6 @@ class Node : public Executable, public Broadcastable
     void UpdateStateForNextConsensusRound();
     void ScheduleMicroBlockConsensus();
     void BeginNextConsensusRound();
-
-    void CallActOnFinalblock();
 
     // internal calls from ProcessForwardTransaction
     bool LoadForwardedTxnsAndCheckRoot(
@@ -354,6 +351,9 @@ public:
 
     std::mutex m_mutexIsEveryMicroBlockAvailable;
 
+    // Transaction sharing assignment
+    std::atomic<bool> m_txnSharingIAmSender;
+
     // Transaction body sharing variables
     std::mutex m_mutexUnavailableMicroBlocks;
     std::unordered_map<
@@ -424,6 +424,9 @@ public:
     void CommitForwardedMsgBuffer();
 
     void CleanCreatedTransaction();
+
+    void CallActOnFinalblock();
+
 #ifndef IS_LOOKUP_NODE
 
     // Start synchronization with lookup as a shard node

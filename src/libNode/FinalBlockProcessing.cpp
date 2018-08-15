@@ -626,8 +626,10 @@ void Node::CallActOnFinalblock()
         GetMyShardsMicroBlock(blocknum, TxSharingMode::NODE_FORWARD_ONLY,
                               txns_to_send);
     }
-    else if ((m_txnSharingIAmSender == true)
-             && (m_txnSharingIAmForwarder == false))
+    else if (((m_txnSharingIAmSender == true)
+              && (m_txnSharingIAmForwarder == false))
+             || ((m_txnSharingIAmSender == true)
+                 && (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE)))
     {
         GetMyShardsMicroBlock(blocknum, TxSharingMode::SEND_ONLY, txns_to_send);
     }

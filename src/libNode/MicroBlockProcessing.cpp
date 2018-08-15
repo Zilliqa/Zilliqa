@@ -273,6 +273,11 @@ bool Node::ProcessMicroblockConsensus(
         else
         {
             m_mediator.m_ds->cv_scheduleFinalBlockConsensus.notify_all();
+            {
+                lock_guard<mutex> g(m_mediator.m_ds->m_mutexMicroBlocks);
+                m_mediator.m_ds->m_microBlocks.emplace(*m_microblock);
+            }
+            m_mediator.m_ds->m_toSendTxnToLookup = true;
             m_mediator.m_ds->RunConsensusOnFinalBlock();
         }
     }
@@ -740,11 +745,17 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
     LOG_MARKER();
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "I am shard leader. Creating microblock for epoch"
-                  << m_mediator.m_currentEpochNum << " going to sleep for "
-                  << TX_DISTRIBUTE_TIME_IN_MS << " milliseconds");
+              "I am shard leader. Creating microblock for epoch "
+                  << m_mediator.m_currentEpochNum);
 
-    std::this_thread::sleep_for(chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS));
+    if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE)
+    {
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "going to sleep for " << TX_DISTRIBUTE_TIME_IN_MS
+                                        << " milliseconds");
+        std::this_thread::sleep_for(
+            chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS));
+    }
 
     bool isVacuousEpoch
         = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
@@ -874,6 +885,10 @@ bool Node::RunConsensusOnMicroBlock()
     if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE)
     {
         InitCoinbase();
+    }
+    else
+    {
+        m_mediator.m_ds->m_toSendTxnToLookup = false;
     }
 
     if (m_isPrimary == true)
