@@ -322,6 +322,7 @@ void DirectoryService::StartFirstTxEpoch()
 
         m_mediator.m_node->m_consensusLeaderID = 0;
         m_mediator.m_node->m_myShardID = std::numeric_limits<uint32_t>::max();
+        m_mediator.m_node->CommitTxnPacketBuffer();
 
         if (TEST_NET_MODE)
         {

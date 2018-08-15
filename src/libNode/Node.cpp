@@ -580,6 +580,45 @@ bool Node::ProcessTxnPacketFromLookup(
 {
     LOG_MARKER();
 #ifndef IS_LOOKUP_NODE
+    // check it's at inappropriate timing
+    // vacuous epoch -> reject
+    // new ds epoch but didn't received ds block yet -> buffer
+    // else -> process
+
+    bool isVacuousEpoch
+        = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
+    if (isVacuousEpoch)
+    {
+        return false;
+    }
+    else if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
+
+    {
+        // check for recieval of new ds block
+        // need to wait the ProcessDSBlock finish
+        lock_guard<mutex> g(m_mutexDSBlock);
+        if (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()
+            < (m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW) + 1)
+        {
+            lock_guard<mutex> g(m_mutexTxnPacketBuffer);
+            m_txnPacketBuffer.emplace_back(message);
+        }
+    }
+    else
+    {
+        return ProcessTxnPacketFromLookupCore(message, offset);
+    }
+#endif //IS_LOOKUP_NOD
+    return true;
+}
+
+#ifndef IS_LOOKUP_NODE
+bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
+                                          unsigned int offset)
+{
+    LOG_MARKER();
+
+    // core part:
     if (IsMessageSizeInappropriate(message.size(), offset,
                                    2 * sizeof(uint32_t)))
     {
@@ -589,6 +628,13 @@ bool Node::ProcessTxnPacketFromLookup(
     uint32_t shardId = Serializable::GetNumber<uint32_t>(message, curr_offset,
                                                          sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
+
+    if (shardId != m_myShardID)
+    {
+        LOG_GENERAL(WARNING, "Wrong Shard");
+        return false;
+    }
+
     uint32_t num = Serializable::GetNumber<uint32_t>(message, curr_offset,
                                                      sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
@@ -599,11 +645,6 @@ bool Node::ProcessTxnPacketFromLookup(
         return false;
     }
 
-    if (shardId != m_myShardID)
-    {
-        LOG_GENERAL(WARNING, "Wrong Shard");
-        return false;
-    }
     unsigned int txn_sent_count = 0;
     lock_guard<mutex> g(m_mutexCreatedTransactions);
 
@@ -665,9 +706,24 @@ bool Node::ProcessTxnPacketFromLookup(
                     "[Batching] Broadcast my txns to other shard members");
         P2PComm::GetInstance().SendBroadcastMessage(toSend, message);
     }
-#endif //IS_LOOKUP_NOD
+
     return true;
 }
+
+void Node::CommitTxnPacketBuffer()
+{
+    LOG_MARKER();
+
+    lock_guard<mutex> g(m_mutexTxnPacketBuffer);
+
+    for (const auto& msg : m_txnPacketBuffer)
+    {
+        ProcessTxnPacketFromLookupCore(msg, MessageOffset::BODY);
+    }
+
+    m_txnPacketBuffer.clear();
+}
+#endif //IS_LOOKUP_NOD
 
 // Used by Zilliqa in pow branch. This will be useful for us when doing the accounts and wallet in the future.
 // bool Node::ProcessCreateAccounts(const vector<unsigned char> & message, unsigned int offset, const Peer & from)
