@@ -80,7 +80,6 @@ private:
     std::unordered_map<boost::multiprecision::uint128_t, int32_t,
                        hash_str<boost::multiprecision::uint128_t>>
         m_Reputations;
-
     void SetReputation(boost::multiprecision::uint128_t IPAddress,
                        int32_t ReputationScore);
     void UpdateReputation(boost::multiprecision::uint128_t IPAddress,
