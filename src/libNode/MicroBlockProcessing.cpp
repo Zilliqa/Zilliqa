@@ -726,7 +726,10 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I am shard leader. Creating microblock for epoch"
-                  << m_mediator.m_currentEpochNum);
+                  << m_mediator.m_currentEpochNum << " going to sleep for "
+                  << TX_DISTRIBUTE_TIME_IN_MS << " milliseconds");
+
+    std::this_thread::sleep_for(chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS));
 
     bool isVacuousEpoch
         = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
