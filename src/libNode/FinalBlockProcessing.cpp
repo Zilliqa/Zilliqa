@@ -540,11 +540,7 @@ void Node::UpdateStateForNextConsensusRound()
 
 void Node::ScheduleMicroBlockConsensus()
 {
-    auto main_func = [this]() mutable -> void {
-        std::this_thread::sleep_for(
-            std::chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS));
-        RunConsensusOnMicroBlock();
-    };
+    auto main_func = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
 
     DetachedFunction(1, main_func);
 }
@@ -689,7 +685,7 @@ bool Node::CheckStateRoot(const TxBlock& finalBlock)
 {
     StateHash stateRoot = AccountStore::GetInstance().GetStateRootHash();
 
-    AccountStore::GetInstance().PrintAccountState();
+    // AccountStore::GetInstance().PrintAccountState();
 
     if (stateRoot != finalBlock.GetHeader().GetStateRootHash())
     {
@@ -817,15 +813,15 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         return false;
     }
 
-    ProcessStateDeltaFromFinalBlock(message, cur_offset,
-                                    txBlock.GetHeader().GetStateDeltaHash());
-
     bool toSendTxnToLookup = false;
 
     bool isVacuousEpoch
         = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
     if (!isVacuousEpoch)
     {
+        ProcessStateDeltaFromFinalBlock(
+            message, cur_offset, txBlock.GetHeader().GetStateDeltaHash());
+
         if (!LoadUnavailableMicroBlockHashes(
                 txBlock, txBlock.GetHeader().GetBlockNum(), toSendTxnToLookup))
         {
@@ -837,11 +833,11 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         LOG_GENERAL(INFO, "isVacuousEpoch now");
 
         // Remove because shard nodes will be shuffled in next epoch.
-        m_createdTransactions.get<0>().clear();
+        CleanCreatedTransaction();
 
         if (!AccountStore::GetInstance().UpdateStateTrieAll())
         {
-            LOG_GENERAL(WARNING, "UpdateStateTrieAll Failed");
+            LOG_GENERAL(WARNING, "UpdateStateTrieAll Failed 1");
             return false;
         }
 
@@ -856,6 +852,16 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 #endif // IS_LOOKUP_NODE
             return false;
         }
+
+        ProcessStateDeltaFromFinalBlock(
+            message, cur_offset, txBlock.GetHeader().GetStateDeltaHash());
+
+        if (!AccountStore::GetInstance().UpdateStateTrieAll())
+        {
+            LOG_GENERAL(WARNING, "UpdateStateTrieAll Failed 2");
+            return false;
+        }
+
         StoreState();
         BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
                                                     {'0'});
