@@ -25,3 +25,8 @@ add_executable (Test_IPFilter Test_IPFilter.cpp)
 target_include_directories (Test_IPFilter PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries (Test_IPFilter PUBLIC Network Utils)
 add_test(NAME Test_IPFilter COMMAND Test_IPFilter)
+
+add_executable (Test_Blacklist Test_Blacklist.cpp)
+target_include_directories (Test_Blacklist PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries (Test_Blacklist PUBLIC Network Utils)
+add_test(NAME Test_Blacklist COMMAND Test_Blacklist)
