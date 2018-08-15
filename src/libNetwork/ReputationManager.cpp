@@ -12,10 +12,6 @@
 * https://www.gnu.org/licenses/gpl-3.0.en.html) (‘GPLv3’). The programs that are governed by
 * GPLv3.0 are those programs that are located in the folders src/depends and tests/depends
 * and which include a reference to GPLv3 in their program files.
-*
-* This should only be used in testnet release  only. This is to ensure the stability of testnet.
-* Mainnet will not require this function and nodes will be incentivise to perform the role
-* as member of DS committee.
 **/
 
 #include "ReputationManager.h"
