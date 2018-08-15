@@ -51,7 +51,12 @@ using namespace boost::multi_index;
 #ifndef IS_LOOKUP_NODE
 void Node::SubmitMicroblockToDSCommittee() const
 {
-    // Message = [8-byte DS blocknum] [4-byte consensusid] [4-byte shard ID] [Tx microblock]
+    if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
+    {
+        return;
+    }
+
+    // Message = [8-byte Tx blocknum] [Tx microblock core] [State Delta]
     vector<unsigned char> microblock
         = {MessageType::DIRECTORY, DSInstructionType::MICROBLOCKSUBMISSION};
     unsigned int cur_offset = MessageOffset::BODY;
@@ -78,10 +83,7 @@ void Node::SubmitMicroblockToDSCommittee() const
     cur_offset += m_microblock->GetSerializedCoreSize();
 
     // Append State Delta
-    vector<unsigned char> stateDelta;
-    AccountStore::GetInstance().GetSerializedDelta(stateDelta);
-
-    copy(stateDelta.begin(), stateDelta.end(), back_inserter(microblock));
+    AccountStore::GetInstance().GetSerializedDelta(microblock);
 
     LOG_STATE("[MICRO][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
@@ -254,7 +256,6 @@ bool Node::ProcessMicroblockConsensus(
             SubmitMicroblockToDSCommittee();
         }
 
-        SetState(WAITING_FINALBLOCK);
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Micro block consensus "
                       << "is DONE!!! (Epoch " << m_mediator.m_currentEpochNum
@@ -262,8 +263,18 @@ bool Node::ProcessMicroblockConsensus(
         m_lastMicroBlockCoSig.first = m_mediator.m_currentEpochNum;
         m_lastMicroBlockCoSig.second.SetCoSignatures(*m_consensusObject);
 
-        lock_guard<mutex> cv_lk(m_MutexCVFBWaitMB);
-        cv_FBWaitMB.notify_all();
+        if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE)
+        {
+            SetState(WAITING_FINALBLOCK);
+
+            lock_guard<mutex> cv_lk(m_MutexCVFBWaitMB);
+            cv_FBWaitMB.notify_all();
+        }
+        else
+        {
+            m_mediator.m_ds->cv_scheduleFinalBlockConsensus.notify_all();
+            m_mediator.m_ds->RunConsensusOnFinalBlock();
+        }
     }
     else if (state == ConsensusCommon::State::ERROR)
     {
@@ -327,11 +338,26 @@ bool Node::ProcessMicroblockConsensus(
             m_newRoundStarted = false;
         }
 
-        SetState(WAITING_FINALBLOCK); // Move on to next Epoch.
+        if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE)
+        {
+            // SetState(WAITING_FINALBLOCK); // Move on to next Epoch.
 
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "If I received a new Finalblock from DS committee. I will "
-                  "still process it");
+            LOG_EPOCH(
+                INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "If I received a new Finalblock from DS committee. I will "
+                "still process it");
+
+            lock_guard<mutex> cv_lk(m_MutexCVFBWaitMB);
+            cv_FBWaitMB.notify_all();
+        }
+        else
+        {
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "DS Microblock failed, discard changes on microblock and "
+                      "proceed to finalblock consensus");
+            m_mediator.m_ds->cv_scheduleFinalBlockConsensus.notify_all();
+            m_mediator.m_ds->RunConsensusOnFinalBlock(true);
+        }
     }
     else
     {
@@ -610,7 +636,9 @@ void Node::ProcessTransactionWhenShardLeader()
 
             uint256_t gasUsed = 0;
             if (m_mediator.m_validator->CheckCreatedTransaction(t, gasUsed)
-                || !t.GetCode().empty() || !t.GetData().empty())
+                || (!t.GetCode().empty() && t.GetToAddr() == NullAddress)
+                || (!t.GetData().empty() && t.GetToAddr() != NullAddress
+                    && t.GetCode().empty()))
             {
                 appendOne(t);
                 gasUsedTotal += gasUsed;
@@ -659,7 +687,9 @@ void Node::ProcessTransactionWhenShardLeader()
             }
             // if nonce correct, process it
             else if (m_mediator.m_validator->CheckCreatedTransaction(t, gasUsed)
-                     || !t.GetCode().empty() || !t.GetData().empty())
+                     || (!t.GetCode().empty() && t.GetToAddr() == NullAddress)
+                     || (!t.GetData().empty() && t.GetToAddr() != NullAddress
+                         && t.GetCode().empty()))
             {
 
                 appendOne(t);
@@ -711,7 +741,10 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I am shard leader. Creating microblock for epoch"
-                  << m_mediator.m_currentEpochNum);
+                  << m_mediator.m_currentEpochNum << " going to sleep for "
+                  << TX_DISTRIBUTE_TIME_IN_MS << " milliseconds");
+
+    std::this_thread::sleep_for(chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS));
 
     bool isVacuousEpoch
         = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
@@ -838,10 +871,10 @@ bool Node::RunConsensusOnMicroBlock()
 {
     LOG_MARKER();
 
-    // set state first and then take writer lock so that SubmitTransactions
-    // if it takes reader lock later breaks out of loop
-
-    InitCoinbase();
+    if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE)
+    {
+        InitCoinbase();
+    }
 
     if (m_isPrimary == true)
     {
@@ -1030,7 +1063,9 @@ bool Node::ProcessTransactionWhenShardBackup(const vector<TxnHash>& tranHashes,
     {
         uint256_t gasUsed = 0;
         if (m_mediator.m_validator->CheckCreatedTransaction(t, gasUsed)
-            || !t.GetCode().empty() || !t.GetData().empty())
+            || (!t.GetCode().empty() && t.GetToAddr() == NullAddress)
+            || (!t.GetData().empty() && t.GetToAddr() != NullAddress
+                && t.GetCode().empty()))
         {
             appendOne(t);
         }

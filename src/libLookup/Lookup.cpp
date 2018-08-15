@@ -906,7 +906,7 @@ bool Lookup::ProcessGetStateFromSeed(const vector<unsigned char>& message,
     unsigned int curr_offset = MessageOffset::BODY;
     curr_offset
         += AccountStore::GetInstance().Serialize(setStateMessage, curr_offset);
-    AccountStore::GetInstance().PrintAccountState();
+    // AccountStore::GetInstance().PrintAccountState();
 
     P2PComm::GetInstance().SendMessage(requestingNode, setStateMessage);
     // #endif // IS_LOOKUP_NODE
@@ -2292,7 +2292,6 @@ bool Lookup::CreateTxnPacket(vector<unsigned char>& msg, uint32_t shardId,
                 = m_txnShardMap.at(shardId)[i].Serialize(msg, curr_offset);
         }
     }
-
 
     if (size_dummy > 0)
     {

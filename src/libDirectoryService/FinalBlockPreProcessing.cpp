@@ -279,15 +279,6 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I am the leader DS node. Creating final block.");
 
-    // LOG_GENERAL(
-    //     INFO,
-    //     "I'm going to sleep for "
-    //         << std::min(TX_DISTRIBUTE_TIME_IN_MS,
-    //                     1000 * FINALBLOCK_CONSENSUS_OBJECT_TIMEOUT)
-    //         << " ms for txn to be distributed to nodes within same epoch");
-    // std::this_thread::sleep_for(std::chrono::milliseconds(std::min(
-    //     TX_DISTRIBUTE_TIME_IN_MS, 1000 * FINALBLOCK_CONSENSUS_OBJECT_TIMEOUT)));
-
     // finalBlockMessage = serialized final block + tx-body sharing setup
     vector<unsigned char> finalBlockMessage = ComposeFinalBlockMessage();
 
@@ -620,7 +611,7 @@ bool DirectoryService::CheckStateRoot()
         = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
     if (isVacuousEpoch)
     {
-        AccountStore::GetInstance().PrintAccountState();
+        // AccountStore::GetInstance().PrintAccountState();
         stateRoot = AccountStore::GetInstance().GetStateRootHash();
     }
 
@@ -861,11 +852,18 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup()
     return true;
 }
 
-void DirectoryService::RunConsensusOnFinalBlock()
+void DirectoryService::RunConsensusOnFinalBlock(bool revertStateDelta)
 {
     LOG_MARKER();
 
     SetState(FINALBLOCK_CONSENSUS_PREP);
+
+    if (revertStateDelta)
+    {
+        AccountStore::GetInstance().InitTemp();
+        AccountStore::GetInstance().DeserializeDeltaTemp(m_stateDeltaFromShards,
+                                                         0);
+    }
 
     AccountStore::GetInstance().SerializeDelta();
 
