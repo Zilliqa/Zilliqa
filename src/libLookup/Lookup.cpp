@@ -2392,7 +2392,6 @@ void Lookup::SetServerTrue() { m_isServer = true; }
 bool Lookup::GetIsServer() { return m_isServer; }
 
 unsigned int TxnSyncTimeout = 5;
-string REMOTE_TXN_DIR = "/home/ubuntu/Kaustubh/tests/txns";
 
 void Lookup::LaunchTxnSyncThread(const string& ipAddr)
 {
