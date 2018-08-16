@@ -42,10 +42,11 @@ bool ReputationManager::IsNodeBanned(boost::multiprecision::uint128_t IPAddress)
     return false;
 }
 
-void ReputationManager::PunishNode(boost::multiprecision::uint128_t IPAddress)
+void ReputationManager::PunishNode(boost::multiprecision::uint128_t IPAddress,
+                                   int32_t PenaltyType)
 {
     AddNodeIfNotKnown(IPAddress);
-    UpdateReputation(IPAddress, AWARD_FOR_GOOD_NODES);
+    UpdateReputation(IPAddress, PenaltyType);
     if (!Blacklist::GetInstance().Exist(IPAddress) and IsNodeBanned(IPAddress))
     {
         LOG_GENERAL(INFO, "Node " << IPAddress << " banned.");
