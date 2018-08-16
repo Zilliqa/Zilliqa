@@ -17,12 +17,9 @@
 #include "ReputationManager.h"
 #include "Blacklist.h"
 
-ReputationManager::ReputationManager()
-{
-    m_Reputations
-        = std::unordered_map<boost::multiprecision::uint128_t, int32_t,
-                             hash_str<boost::multiprecision::uint128_t>>();
-}
+//static const int32_t ReputationManager::GOOD = 0;
+
+ReputationManager::ReputationManager() {}
 
 ReputationManager::~ReputationManager() {}
 
@@ -70,7 +67,7 @@ void ReputationManager::AddNodeIfNotKnown(
     std::lock_guard<std::mutex> lock(m_mutexReputations);
     if (m_Reputations.find(IPAddress) == m_Reputations.end())
     {
-        m_Reputations.emplace(IPAddress, ReputationManager::GOOD);
+        m_Reputations.emplace(IPAddress, ScoreType::GOOD);
     }
 }
 
@@ -90,14 +87,14 @@ void ReputationManager::SetReputation(
     AddNodeIfNotKnown(IPAddress);
 
     std::lock_guard<std::mutex> lock(m_mutexReputations);
-    if (ReputationScore > UPPERREPTHRESHHOLD)
+    if (ReputationScore > ScoreType::UPPERREPTHRESHHOLD)
     {
         LOG_GENERAL(
             WARNING,
             "Reputation score too high. Exceed upper bound. ReputationScore: "
                 << ReputationScore << ". Setting reputation to "
-                << UPPERREPTHRESHHOLD);
-        m_Reputations[IPAddress] = UPPERREPTHRESHHOLD;
+                << ScoreType::UPPERREPTHRESHHOLD);
+        m_Reputations[IPAddress] = ScoreType::UPPERREPTHRESHHOLD;
         return;
     }
 
@@ -113,7 +110,7 @@ void ReputationManager::UpdateReputation(
     int32_t NewRep = GetReputation(IPAddress) + ReputationScoreDelta;
     if (NewRep && !IsNodeBanned(IPAddress))
     {
-        NewRep -= BAN_MULTIPLIER * AWARD_FOR_GOOD_NODES;
+        NewRep -= ScoreType::BAN_MULTIPLIER * ScoreType::AWARD_FOR_GOOD_NODES;
     }
     SetReputation(IPAddress, NewRep);
 }
@@ -127,14 +124,13 @@ std::vector<boost::multiprecision::uint128_t> ReputationManager::GetAllKnownIP()
     {
         AllKnownIPs.emplace_back(node.first);
     }
-
     return AllKnownIPs;
 }
 
 void ReputationManager::AwardNode(boost::multiprecision::uint128_t IPAddress)
 {
     AddNodeIfNotKnown(IPAddress);
-    UpdateReputation(IPAddress, AWARD_FOR_GOOD_NODES);
+    UpdateReputation(IPAddress, ScoreType::AWARD_FOR_GOOD_NODES);
 
     if (Blacklist::GetInstance().Exist(IPAddress) and !IsNodeBanned(IPAddress))
     {
