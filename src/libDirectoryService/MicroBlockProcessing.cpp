@@ -165,6 +165,7 @@ bool DirectoryService::ProcessStateDelta(
     }
 
     m_stateDeltaFromShards.clear();
+    AccountStore::GetInstance().SerializeDelta();
     AccountStore::GetInstance().GetSerializedDelta(m_stateDeltaFromShards);
 
     return true;

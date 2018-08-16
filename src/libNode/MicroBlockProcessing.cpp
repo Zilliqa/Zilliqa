@@ -617,6 +617,7 @@ void Node::ProcessTransactionWhenShardLeader()
     uint64_t blockNum = m_mediator.m_currentEpochNum;
 
     auto appendOne = [this, &blockNum](const Transaction& t) {
+        // LOG_GENERAL(INFO, "appendOne: " << t.GetTranID().hex());
         lock_guard<mutex> g(m_mutexProcessedTransactions);
         auto& processedTransactions = m_processedTransactions[blockNum];
         processedTransactions.insert(make_pair(t.GetTranID(), t));
@@ -653,6 +654,7 @@ void Node::ProcessTransactionWhenShardLeader()
         // if no txn in u_map meet right nonce process new come-in transactions
         else if (findOneFromCreated(t))
         {
+            // LOG_GENERAL(INFO, "findOneFromCreated");
             uint256_t gasUsed = 0;
 
             // check nonce, if nonce larger than expected, put it into m_addrNonceTxnMap
@@ -660,6 +662,11 @@ void Node::ProcessTransactionWhenShardLeader()
                 > AccountStore::GetInstance().GetNonceTemp(t.GetSenderAddr())
                     + 1)
             {
+                // LOG_GENERAL(INFO,
+                //             "High nonce: "
+                //                 << t.GetNonce() << " cur sender nonce: "
+                //                 << AccountStore::GetInstance().GetNonceTemp(
+                //                        t.GetSenderAddr()));
                 auto it1 = m_addrNonceTxnMap.find(t.GetSenderAddr());
                 if (it1 != m_addrNonceTxnMap.end())
                 {
@@ -683,12 +690,12 @@ void Node::ProcessTransactionWhenShardLeader()
                                         t.GetSenderAddr())
                          + 1)
             {
-                LOG_GENERAL(INFO,
-                            "Nonce too small"
-                                << " Expected "
-                                << AccountStore::GetInstance().GetNonceTemp(
-                                       t.GetSenderAddr())
-                                << " Found " << t.GetNonce());
+                // LOG_GENERAL(INFO,
+                //             "Nonce too small"
+                //                 << " Expected "
+                //                 << AccountStore::GetInstance().GetNonceTemp(
+                //                        t.GetSenderAddr())
+                //                 << " Found " << t.GetNonce());
             }
             // if nonce correct, process it
             else if (m_mediator.m_validator->CheckCreatedTransaction(t, gasUsed)
@@ -699,6 +706,10 @@ void Node::ProcessTransactionWhenShardLeader()
 
                 appendOne(t);
                 gasUsedTotal += gasUsed;
+            }
+            else
+            {
+                // LOG_GENERAL(WARNING, "CheckCreatedTransaction failed");
             }
         }
         else
@@ -1029,7 +1040,7 @@ bool Node::ProcessTransactionWhenShardBackup(const vector<TxnHash>& tranHashes,
 
         if (hashIdx.end() == it)
         {
-            LOG_GENERAL(WARNING, "txn is not found");
+            // LOG_GENERAL(WARNING, "txn is not found");
             return false;
         }
 
@@ -1069,6 +1080,7 @@ bool Node::ProcessTransactionWhenShardBackup(const vector<TxnHash>& tranHashes,
     uint64_t blockNum = m_mediator.m_currentEpochNum;
 
     auto appendOne = [this, &blockNum](const Transaction& t) {
+        // LOG_GENERAL(INFO, "appendOne: " << t.GetTranID().hex());
         lock_guard<mutex> g(m_mutexProcessedTransactions);
         auto& processedTransactions = m_processedTransactions[blockNum];
         processedTransactions.insert(make_pair(t.GetTranID(), t));
@@ -1085,8 +1097,6 @@ bool Node::ProcessTransactionWhenShardBackup(const vector<TxnHash>& tranHashes,
             appendOne(t);
         }
     }
-
-    AccountStore::GetInstance().SerializeDelta();
 
     return true;
 }
@@ -1134,8 +1144,19 @@ unsigned char Node::CheckLegitimacyOfTxnHashes(vector<unsigned char>& errorMsg)
                                           sizeof(uint64_t));
 
         m_txnsOrdering = m_microblock->GetTranHashes();
+
+        AccountStore::GetInstance().InitTemp();
+        if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE)
+        {
+            LOG_GENERAL(WARNING, "Got missing txns, revert state delta");
+            AccountStore::GetInstance().DeserializeDeltaTemp(
+                m_mediator.m_ds->m_stateDeltaFromShards, 0);
+        }
+
         return LEGITIMACYRESULT::MISSEDTXN;
     }
+
+    AccountStore::GetInstance().SerializeDelta();
 
     return LEGITIMACYRESULT::SUCCESS;
 }
