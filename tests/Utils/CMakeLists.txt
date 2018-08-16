@@ -52,3 +52,8 @@ add_executable(Test_TxnRootComputation Test_TxnRootComputation.cpp)
 target_include_directories(Test_TxnRootComputation PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(Test_TxnRootComputation LINK_PUBLIC Utils Crypto Common Database AccountData)
 add_test(NAME Test_TxnRootComputation COMMAND Test_TxnRootComputation)
+
+add_executable(Test_IPConverter Test_IPConverter.cpp)
+target_include_directories(Test_IPConverter PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(Test_IPConverter LINK_PUBLIC Utils)
+add_test(NAME Test_IPConverter COMMAND Test_IPConverter)
