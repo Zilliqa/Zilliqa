@@ -20,11 +20,19 @@
 #include "Logger.h"
 #include <boost/multiprecision/cpp_int.hpp>
 
+/// Important: SafeMath ONLY support positive value!!!
+
 template<class T> class SafeMath
 {
 public:
     static bool mul(const T& a, const T& b, T& result)
     {
+        if (a < 0 || b < 0)
+        {
+            LOG_GENERAL(WARNING, "SafeMath only support positive value!");
+            return false;
+        }
+
         if (a == 0)
         {
             result = 0;
@@ -43,6 +51,12 @@ public:
 
     static bool div(const T& a, const T& b, T& result)
     {
+        if (a < 0 || b < 0)
+        {
+            LOG_GENERAL(WARNING, "SafeMath only support positive value!");
+            return false;
+        }
+
         if (b <= 0)
         {
             LOG_GENERAL(WARNING, "Denominator cannot be zero!");
@@ -61,6 +75,12 @@ public:
 
     static bool sub(const T& a, const T& b, T& result)
     {
+        if (a < 0 || b < 0)
+        {
+            LOG_GENERAL(WARNING, "SafeMath only support positive value!");
+            return false;
+        }
+
         if (b > a)
         {
             LOG_GENERAL(WARNING, "Invalid Subtraction for Unsigned Integer!");
@@ -73,8 +93,15 @@ public:
 
     static bool add(const T& a, const T& b, T& result)
     {
+        if (a < 0 || b < 0)
+        {
+            LOG_GENERAL(WARNING, "SafeMath only support positive value!");
+            return false;
+        }
+
         T c = a + b;
-        if (c - a != b)
+
+        if (c < a || c < b)
         {
             LOG_GENERAL(WARNING, "Addition Overflow!");
             return false;
