@@ -22,6 +22,7 @@
 #include <functional>
 #include <mutex>
 #include <unordered_map>
+#include <vector>
 
 class ReputationManager
 {
@@ -50,7 +51,7 @@ public:
     bool IsNodeBanned(boost::multiprecision::uint128_t IPAddress);
     void PunishNode(boost::multiprecision::uint128_t IPAddress,
                     int32_t PenaltyType);
-    void AwardNode(boost::multiprecision::uint128_t IPAddress);
+    void AwardAllNodes();
     int32_t GetReputation(boost::multiprecision::uint128_t IPAddress);
 
     enum PenaltyType : int32_t
@@ -74,8 +75,11 @@ private:
     std::unordered_map<boost::multiprecision::uint128_t, int32_t,
                        hash_str<boost::multiprecision::uint128_t>>
         m_Reputations;
+
     void SetReputation(boost::multiprecision::uint128_t IPAddress,
                        int32_t ReputationScore);
     void UpdateReputation(boost::multiprecision::uint128_t IPAddress,
                           int32_t ReputationScoreDelta);
+    std::vector<boost::multiprecision::uint128_t> GetAllKnownIP();
+    void AwardNode(boost::multiprecision::uint128_t IPAddress);
 };
