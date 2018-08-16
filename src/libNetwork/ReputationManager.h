@@ -53,6 +53,7 @@ public:
                     int32_t PenaltyType);
     void AwardAllNodes();
     int32_t GetReputation(boost::multiprecision::uint128_t IPAddress);
+    void Clear();
 
     enum PenaltyType : int32_t
     {
