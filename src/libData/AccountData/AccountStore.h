@@ -111,10 +111,7 @@ public:
         m_accountStoreTemp->AddAccount(address, account);
     }
 
-    boost::multiprecision::uint256_t GetNonceTemp(const Address& address)
-    {
-        return m_accountStoreTemp->GetNonce(address);
-    }
+    boost::multiprecision::uint256_t GetNonceTemp(const Address& address);
 
     bool UpdateCoinbaseTemp(const Address& rewardee,
                             const Address& genesisAddress,
