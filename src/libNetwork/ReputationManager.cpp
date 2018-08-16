@@ -82,6 +82,8 @@ ReputationManager::GetReputation(boost::multiprecision::uint128_t IPAddress)
     return m_Reputations[IPAddress];
 }
 
+void ReputationManager::Clear() { m_Reputations.clear(); }
+
 void ReputationManager::SetReputation(
     boost::multiprecision::uint128_t IPAddress, int32_t ReputationScore)
 {
