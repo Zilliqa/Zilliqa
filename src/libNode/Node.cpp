@@ -604,6 +604,10 @@ bool Node::ProcessTxnPacketFromLookup(
             lock_guard<mutex> g(m_mutexTxnPacketBuffer);
             m_txnPacketBuffer.emplace_back(message);
         }
+        else
+        {
+            return ProcessTxnPacketFromLookupCore(message, offset);
+        }
     }
     else
     {
