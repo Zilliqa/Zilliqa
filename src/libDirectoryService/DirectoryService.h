@@ -87,7 +87,6 @@ class DirectoryService : public Executable, public Broadcastable
     std::mutex m_mutexAllPOW;
 
     // Final block consensus variables
-    std::vector<unsigned char> m_stateDeltaFromShards;
     std::shared_ptr<TxBlock> m_finalBlock;
     std::vector<unsigned char> m_finalBlockMessage;
 
@@ -333,6 +332,9 @@ public:
 
     /// The epoch number when DS tries doing Rejoin
     uint64_t m_latestActiveDSBlockNum = 0;
+
+    /// Serialized account store temp to revert to if ds microblock consensus failed
+    std::vector<unsigned char> m_stateDeltaFromShards;
 
     /// Whether to send txn from ds microblock to lookup at finalblock consensus done
     std::atomic<bool> m_toSendTxnToLookup;
