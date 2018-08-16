@@ -461,19 +461,19 @@ bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
         listIdx.insert(submittedTransaction);
     }
 
-    vector<TxnHash> missingTxnHashes;
-    if (!ProcessTransactionWhenShardBackup(m_txnsOrdering, missingTxnHashes))
-    {
-        LOG_GENERAL(WARNING, "Wrong order after receiving missing txns");
-        return false;
-    }
-    if (!missingTxnHashes.empty())
-    {
-        LOG_GENERAL(WARNING, "Still missed txns");
-        return false;
-    }
+    // vector<TxnHash> missingTxnHashes;
+    // if (!ProcessTransactionWhenShardBackup(m_txnsOrdering, missingTxnHashes))
+    // {
+    //     LOG_GENERAL(WARNING, "Wrong order after receiving missing txns");
+    //     return false;
+    // }
+    // if (!missingTxnHashes.empty())
+    // {
+    //     LOG_GENERAL(WARNING, "Still missed txns");
+    //     return false;
+    // }
 
-    AccountStore::GetInstance().SerializeDelta();
+    // AccountStore::GetInstance().SerializeDelta();
     cv_MicroBlockMissingTxn.notify_all();
     return true;
 }
