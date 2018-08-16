@@ -59,8 +59,8 @@ public:
     };
 
     // Score
-    static const int32_t UPPERREPTHRASHHOLD = 500;
-    static const int32_t REPTHRASHHOLD = -500;
+    static const int32_t UPPERREPTHRESHHOLD = 500;
+    static const int32_t REPTHRESHHOLD = -500;
     static const int32_t GOOD = 0;
     static const int32_t BAN_MULTIPLIER = 24;
 
