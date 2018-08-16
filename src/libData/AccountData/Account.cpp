@@ -601,7 +601,7 @@ int Account::DeserializeDelta(const vector<unsigned char>& src,
 
 bool Account::IncreaseBalance(const uint256_t& delta)
 {
-    return SafeMath::add(m_balance, delta, m_balance);
+    return SafeMath<uint256_t>::add(m_balance, delta, m_balance);
 }
 
 bool Account::DecreaseBalance(const uint256_t& delta)
@@ -611,7 +611,7 @@ bool Account::DecreaseBalance(const uint256_t& delta)
         return false;
     }
 
-    return SafeMath::sub(m_balance, delta, m_balance);
+    return SafeMath<uint256_t>::sub(m_balance, delta, m_balance);
 }
 
 bool Account::ChangeBalance(const int256_t& delta)

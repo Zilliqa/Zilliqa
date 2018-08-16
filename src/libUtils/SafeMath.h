@@ -20,12 +20,10 @@
 #include "Logger.h"
 #include <boost/multiprecision/cpp_int.hpp>
 
-class SafeMath
+template<class T> class SafeMath
 {
 public:
-    static bool mul(const boost::multiprecision::uint256_t& a,
-                    const boost::multiprecision::uint256_t& b,
-                    boost::multiprecision::uint256_t& result)
+    static bool mul(const T& a, const T& b, T& result)
     {
         if (a == 0)
         {
@@ -33,7 +31,7 @@ public:
             return true;
         }
 
-        boost::multiprecision::uint256_t c = a * b;
+        T c = a * b;
         if (c / a != b)
         {
             LOG_GENERAL(WARNING, "Multiplication Overflow!");
@@ -43,9 +41,7 @@ public:
         return true;
     }
 
-    static bool div(const boost::multiprecision::uint256_t& a,
-                    const boost::multiprecision::uint256_t& b,
-                    boost::multiprecision::uint256_t& result)
+    static bool div(const T& a, const T& b, T& result)
     {
         if (b <= 0)
         {
@@ -53,7 +49,7 @@ public:
             return false;
         }
 
-        boost::multiprecision::uint256_t c = a / b;
+        T c = a / b;
         if (a != b * c + a % b)
         {
             return false;
@@ -63,9 +59,7 @@ public:
         return true;
     }
 
-    static bool sub(const boost::multiprecision::uint256_t& a,
-                    const boost::multiprecision::uint256_t& b,
-                    boost::multiprecision::uint256_t& result)
+    static bool sub(const T& a, const T& b, T& result)
     {
         if (b > a)
         {
@@ -77,11 +71,9 @@ public:
         return true;
     }
 
-    static bool add(const boost::multiprecision::uint256_t& a,
-                    const boost::multiprecision::uint256_t& b,
-                    boost::multiprecision::uint256_t& result)
+    static bool add(const T& a, const T& b, T& result)
     {
-        boost::multiprecision::uint256_t c = a + b;
+        T c = a + b;
         if (c - a != b)
         {
             LOG_GENERAL(WARNING, "Addition Overflow!");
