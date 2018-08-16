@@ -149,14 +149,13 @@ std::vector<boost::multiprecision::uint128_t> ReputationManager::GetAllKnownIP()
     {
         AllKnownIPs.emplace_back(node.first);
     }
-
     return AllKnownIPs;
 }
 
 void ReputationManager::AwardNode(boost::multiprecision::uint128_t IPAddress)
 {
     AddNodeIfNotKnown(IPAddress);
-    UpdateReputation(IPAddress, AWARD_FOR_GOOD_NODES);
+    UpdateReputation(IPAddress, ScoreType::AWARD_FOR_GOOD_NODES);
 
     if (Blacklist::GetInstance().Exist(IPAddress) and !IsNodeBanned(IPAddress))
     {
