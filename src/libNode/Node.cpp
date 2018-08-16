@@ -591,7 +591,8 @@ bool Node::ProcessTxnPacketFromLookup(
     {
         return false;
     }
-    else if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
+    else if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0
+             || m_mediator.m_currentEpochNum == 1)
 
     {
         // check for recieval of new ds block
