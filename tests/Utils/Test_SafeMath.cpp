@@ -24,6 +24,33 @@ using namespace std;
 
 BOOST_AUTO_TEST_SUITE(safemath)
 
+BOOST_AUTO_TEST_CASE(test_integrity)
+{
+    INIT_STDOUT_LOGGER();
+
+    LOG_GENERAL(INFO, "Test integrity start...");
+
+    int8_t num;
+    BOOST_CHECK_MESSAGE(false == SafeMath<int8_t>::add(-1, 1, num),
+                        "Test add integrity failed!");
+    BOOST_CHECK_MESSAGE(false == SafeMath<int8_t>::add(1, -1, num),
+                        "Test add integrity failed!");
+    BOOST_CHECK_MESSAGE(false == SafeMath<int8_t>::sub(-1, 1, num),
+                        "Test sub integrity failed!");
+    BOOST_CHECK_MESSAGE(false == SafeMath<int8_t>::sub(1, -1, num),
+                        "Test sub integrity failed!");
+    BOOST_CHECK_MESSAGE(false == SafeMath<int8_t>::mul(-1, 1, num),
+                        "Test mul integrity failed!");
+    BOOST_CHECK_MESSAGE(false == SafeMath<int8_t>::mul(1, -1, num),
+                        "Test mul integrity failed!");
+    BOOST_CHECK_MESSAGE(false == SafeMath<int8_t>::div(-1, 1, num),
+                        "Test div integrity failed!");
+    BOOST_CHECK_MESSAGE(false == SafeMath<int8_t>::div(1, -1, num),
+                        "Test div integrity failed!");
+
+    LOG_GENERAL(INFO, "Test integrity done!");
+}
+
 BOOST_AUTO_TEST_CASE(test_uint8_t)
 {
     INIT_STDOUT_LOGGER();
