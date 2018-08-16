@@ -61,14 +61,15 @@ public:
         PENALTY_INVALID_MESSAGE = -50
     };
 
-    // Score
-    static const int32_t UPPERREPTHRESHHOLD = 500;
-    static const int32_t REPTHRESHHOLD = -500;
-    static const int32_t GOOD = 0;
-    static const int32_t BAN_MULTIPLIER = 24;
+    enum ScoreType : int32_t
+    {
+        UPPERREPTHRESHHOLD = 500,
+        REPTHRESHHOLD = -500,
+        GOOD = 0,
+        BAN_MULTIPLIER = 24,
+        AWARD_FOR_GOOD_NODES = 50
 
-    // AWARD
-    static const int32_t AWARD_FOR_GOOD_NODES = 50;
+    };
 
     std::mutex m_mutexReputations;
 
