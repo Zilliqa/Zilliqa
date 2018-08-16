@@ -530,8 +530,11 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
                              << "][0     ] DSLD");
 
-        // Finally, start as the DS leader
-        m_mediator.m_ds->StartFirstTxEpoch();
+        auto func = [this]() mutable -> void {
+            // Finally, start as the DS leader
+            m_mediator.m_ds->StartFirstTxEpoch();
+        };
+        DetachedFunction(1, func);
     }
     // If I am a shard node
     else
@@ -550,6 +553,12 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
 
         // Finally, start as a shard node
         StartFirstTxEpoch();
+
+        auto func = [this]() mutable -> void {
+            // Finally, start as a shard node
+            StartFirstTxEpoch();
+        };
+        DetachedFunction(1, func);
     }
 #else
     // [Sharding structure]
