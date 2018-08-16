@@ -90,6 +90,7 @@ const std::string RAND2_GENESIS
 const std::string REMOTE_TEST_DIR = "zilliqa-test";
 const std::string PERSISTENCE_PATH = "persistence";
 const std::string TX_BODY_SUBDIR = "txBodies";
+const std::string REMOTE_TXN_DIR = "/home/ubuntu/Dispatcher/txns";
 
 const std::string DS_KICKOUT_MSG = "KICKED OUT FROM DS";
 const std::string DS_LEADER_MSG = "DS LEADER NOW";
