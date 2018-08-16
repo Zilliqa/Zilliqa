@@ -35,7 +35,7 @@ ReputationManager& ReputationManager::GetInstance()
 bool ReputationManager::IsNodeBanned(boost::multiprecision::uint128_t IPAddress)
 {
     AddNodeIfNotKnown(IPAddress);
-    if (GetReputation(IPAddress) <= REPTHRASHHOLD)
+    if (GetReputation(IPAddress) <= REPTHRESHHOLD)
     {
         return true;
     }
@@ -89,14 +89,14 @@ void ReputationManager::SetReputation(
     AddNodeIfNotKnown(IPAddress);
 
     std::lock_guard<std::mutex> lock(m_mutexReputations);
-    if (ReputationScore > UPPERREPTHRASHHOLD)
+    if (ReputationScore > UPPERREPTHRESHHOLD)
     {
         LOG_GENERAL(
             WARNING,
             "Reputation score too high. Exceed upper bound. ReputationScore: "
                 << ReputationScore << ". Setting reputation to "
-                << UPPERREPTHRASHHOLD);
-        m_Reputations[IPAddress] = UPPERREPTHRASHHOLD;
+                << UPPERREPTHRESHHOLD);
+        m_Reputations[IPAddress] = UPPERREPTHRESHHOLD;
         return;
     }
 
