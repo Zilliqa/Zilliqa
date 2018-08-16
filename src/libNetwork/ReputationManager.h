@@ -14,6 +14,9 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
+#ifndef __REPUTATION_MANAGER_H__
+#define __REPUTATION_MANAGER_H__
+
 #include "Peer.h"
 #include "common/Constants.h"
 #include "libUtils/Logger.h"
@@ -85,3 +88,5 @@ private:
     std::vector<boost::multiprecision::uint128_t> GetAllKnownIP();
     void AwardNode(boost::multiprecision::uint128_t IPAddress);
 };
+
+#endif // __REPUTATION_MANAGER_H__
