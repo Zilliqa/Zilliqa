@@ -339,6 +339,20 @@ bool AccountStore::UpdateCoinbaseTemp(const Address& rewardee,
     //Should the nonce increase ??
 }
 
+boost::multiprecision::uint256_t
+AccountStore::GetNonceTemp(const Address& address)
+{
+    auto it = m_accountStoreTemp->GetAddressToAccount()->find(address);
+    if (it != m_accountStoreTemp->GetAddressToAccount()->end())
+    {
+        return m_accountStoreTemp->GetNonce(address);
+    }
+    else
+    {
+        return this->GetNonce(address);
+    }
+}
+
 StateHash AccountStore::GetStateDeltaHash()
 {
     vector<unsigned char> vec;
