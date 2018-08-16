@@ -860,6 +860,8 @@ void DirectoryService::RunConsensusOnFinalBlock(bool revertStateDelta)
 
     if (revertStateDelta)
     {
+        LOG_GENERAL(WARNING,
+                    "Failed DS microblock consensus, revert state delta");
         AccountStore::GetInstance().InitTemp();
         AccountStore::GetInstance().DeserializeDeltaTemp(m_stateDeltaFromShards,
                                                          0);

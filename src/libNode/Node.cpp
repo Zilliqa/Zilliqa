@@ -553,9 +553,9 @@ bool Node::ProcessCreateTransactionFromLookup(
             }
             else
             {
-                LOG_GENERAL(WARNING,
-                            "Txn with same address and nonce already "
-                            "exists with higher gas price");
+                // LOG_GENERAL(WARNING,
+                //             "Txn with same address and nonce already "
+                //             "exists with higher gas price");
                 return false;
             }
         }
@@ -648,6 +648,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
     unsigned int txn_sent_count = 0;
     {
         lock_guard<mutex> g(m_mutexCreatedTransactions);
+        LOG_GENERAL(INFO, "Start check txn packet from lookup");
         for (unsigned int i = 0; i < num; i++)
         {
             Transaction tx;
@@ -672,9 +673,9 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
                     }
                     else
                     {
-                        LOG_GENERAL(WARNING,
-                                    "Txn with same address and nonce already "
-                                    "exists with higher gas price");
+                        // LOG_GENERAL(WARNING,
+                        //             "Txn with same address and nonce already "
+                        //             "exists with higher gas price");
                     }
                 }
                 else
