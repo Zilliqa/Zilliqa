@@ -14,6 +14,9 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
+#ifndef __BLACKLIST_H__
+#define __BLACKLIST_H__
+
 #include <boost/multiprecision/cpp_int.hpp>
 #include <mutex>
 #include <unordered_map>
@@ -57,3 +60,5 @@ public:
     /// Reputation Manager may use this function
     void Clear();
 };
+
+#endif // __BLACKLIST_H__
