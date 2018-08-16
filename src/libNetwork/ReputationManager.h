@@ -48,7 +48,8 @@ public:
     static ReputationManager& GetInstance();
     void AddNodeIfNotKnown(boost::multiprecision::uint128_t IPAddress);
     bool IsNodeBanned(boost::multiprecision::uint128_t IPAddress);
-    void PunishNode(boost::multiprecision::uint128_t IPAddress);
+    void PunishNode(boost::multiprecision::uint128_t IPAddress,
+                    int32_t PenaltyType);
     void AwardNode(boost::multiprecision::uint128_t IPAddress);
     int32_t GetReputation(boost::multiprecision::uint128_t IPAddress);
 
