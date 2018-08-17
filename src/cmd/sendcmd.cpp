@@ -97,7 +97,7 @@ void process_addpeers(int numargs, const char* progname, const char* cmdname,
                 static_cast<unsigned int>(atoi(args[i++])), sizeof(uint32_t));
 
             // Send the ADDNODE message to the local node
-            P2PComm::GetInstance().SendMessage(my_port, addnode_message);
+            P2PComm::GetInstance().SendMessageNoQueue(my_port, addnode_message);
         }
     }
 }
@@ -127,7 +127,7 @@ void process_broadcast(int numargs, const char* progname, const char* cmdname,
         broadcast_message.at(MessageOffset::BODY) = MessageType::PEER;
 
         // Send the BROADCAST message to the local node
-        P2PComm::GetInstance().SendMessage(my_port, broadcast_message);
+        P2PComm::GetInstance().SendMessageNoQueue(my_port, broadcast_message);
     }
 }
 
@@ -149,7 +149,7 @@ void process_cmd(int numargs, const char* progname, const char* cmdname,
 
         // Send the generic message to the local node
         vector<unsigned char> tmp = DataConversion::HexStrToUint8Vec(args[0]);
-        P2PComm::GetInstance().SendMessage(my_port, tmp);
+        P2PComm::GetInstance().SendMessageNoQueue(my_port, tmp);
     }
 }
 
@@ -172,7 +172,7 @@ void process_remote_cmd(int numargs, const char* progname, const char* cmdname,
         Peer my_port((uint128_t)ip_addr.s_addr, listen_port);
 
         vector<unsigned char> tmp = DataConversion::HexStrToUint8Vec(args[0]);
-        P2PComm::GetInstance().SendMessage(my_port, tmp);
+        P2PComm::GetInstance().SendMessageNoQueue(my_port, tmp);
     }
 }
 
