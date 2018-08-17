@@ -28,7 +28,7 @@ public:
     ToStrFromNumericalIP(const boost::multiprecision::uint128_t& ip);
 
     static const boost::multiprecision::uint128_t
-    ToNumericalIPFromStr(const std::string ipStr);
+    ToNumericalIPFromStr(const std::string& ipStr);
 };
 
 #endif // __IP_CONVERTER_H__
