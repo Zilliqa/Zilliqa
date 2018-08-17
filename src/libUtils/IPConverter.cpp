@@ -18,7 +18,7 @@
 #include <arpa/inet.h>
 
 const std::string
-IPConverter::ToStrFromNumercialIP(const boost::multiprecision::uint128_t& ip)
+IPConverter::ToStrFromNumericalIP(const boost::multiprecision::uint128_t& ip)
 {
     struct sockaddr_in serv_addr;
     serv_addr.sin_addr.s_addr = ip.convert_to<unsigned long>();
@@ -26,7 +26,7 @@ IPConverter::ToStrFromNumercialIP(const boost::multiprecision::uint128_t& ip)
 }
 
 const boost::multiprecision::uint128_t
-IPConverter::ToNumercialIPFromStr(std::string ipStr)
+IPConverter::ToNumericalIPFromStr(std::string ipStr)
 {
     struct in_addr ip_addr;
     inet_aton(ipStr.c_str(), &ip_addr);
