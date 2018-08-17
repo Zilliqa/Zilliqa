@@ -174,4 +174,4 @@ const bool USE_REMOTE_TXN_CREATOR{
     ReadTransactionDispatcher("USE_REMOTE_TXN_CREATOR") == "true" ? true
                                                                   : false};
 const std::string REMOTE_TXN_CREATOR_IP{
-    ReadTransactionDispatcher(REMOTE_TXN_CREATOR_IP)};
+    ReadTransactionDispatcher("REMOTE_TXN_CREATOR_IP")};
