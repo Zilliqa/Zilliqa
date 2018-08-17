@@ -26,7 +26,7 @@ IPConverter::ToStrFromNumericalIP(const boost::multiprecision::uint128_t& ip)
 }
 
 const boost::multiprecision::uint128_t
-IPConverter::ToNumericalIPFromStr(std::string ipStr)
+IPConverter::ToNumericalIPFromStr(const std::string ipStr)
 {
     struct in_addr ip_addr;
     inet_aton(ipStr.c_str(), &ip_addr);
