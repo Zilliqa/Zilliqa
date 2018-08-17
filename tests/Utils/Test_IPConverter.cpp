@@ -27,20 +27,20 @@ using namespace std;
 
 BOOST_AUTO_TEST_SUITE(ipconverter)
 
-BOOST_AUTO_TEST_CASE(test_IPNumercialtoString)
+BOOST_AUTO_TEST_CASE(test_IPNumericaltoString)
 {
     INIT_STDOUT_LOGGER();
-    string ipStr = IPConverter::ToStrFromNumercialIP(
+    string ipStr = IPConverter::ToStrFromNumericalIP(
         (boost::multiprecision::uint128_t)16777343);
     BOOST_CHECK_EQUAL(ipStr, "127.0.0.1");
 }
 
-BOOST_AUTO_TEST_CASE(test_IPStringToNumercial)
+BOOST_AUTO_TEST_CASE(test_IPStringToNumerical)
 {
     INIT_STDOUT_LOGGER();
-    boost::multiprecision::uint128_t ipNumercial
-        = IPConverter::ToNumercialIPFromStr("127.0.0.1");
-    BOOST_CHECK_EQUAL(ipNumercial, 16777343);
+    boost::multiprecision::uint128_t ipNumerical
+        = IPConverter::ToNumericalIPFromStr("127.0.0.1");
+    BOOST_CHECK_EQUAL(ipNumerical, 16777343);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

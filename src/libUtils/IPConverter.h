@@ -20,15 +20,15 @@
 #include <boost/multiprecision/cpp_int.hpp>
 #include <string>
 
-/// Utility class for converter from ip address string to numercial represetation.
+/// Utility class for converter from ip address string to numerical represetation.
 class IPConverter
 {
 public:
     static const std::string
-    ToStrFromNumercialIP(const boost::multiprecision::uint128_t& ip);
+    ToStrFromNumericalIP(const boost::multiprecision::uint128_t& ip);
 
     static const boost::multiprecision::uint128_t
-    ToNumercialIPFromStr(std::string ipStr);
+    ToNumericalIPFromStr(std::string ipStr);
 };
 
 #endif // __IP_CONVERTER_H__
