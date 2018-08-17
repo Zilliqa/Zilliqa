@@ -895,7 +895,7 @@ bool Node::RunConsensusOnMicroBlock()
 
     if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE)
     {
-        InitCoinbase();
+        // InitCoinbase();
     }
     else
     {
