@@ -335,36 +335,40 @@ void DirectoryService::StartFirstTxEpoch()
         // Start sharding work
         SetState(MICROBLOCK_SUBMISSION);
 
-        // Check for state change. If it get stuck at microblock submission for too long, move on to finalblock without the microblock
-        std::unique_lock<std::mutex> cv_lk(
-            m_MutexScheduleDSMicroBlockConsensus);
-        if (cv_scheduleDSMicroBlockConsensus.wait_for(
-                cv_lk, std::chrono::seconds(MICROBLOCK_TIMEOUT))
-            == std::cv_status::timeout)
-        {
-            LOG_GENERAL(
-                WARNING,
-                "Timeout: Didn't receive all Microblock. Proceeds without it");
-
-            auto func = [this]() mutable -> void {
-                m_mediator.m_node->RunConsensusOnMicroBlock();
-            };
-
-            DetachedFunction(1, func);
-
+        auto func = [this]() mutable -> void {
+            // Check for state change. If it get stuck at microblock submission for too long, move on to finalblock without the microblock
             std::unique_lock<std::mutex> cv_lk(
-                m_MutexScheduleFinalBlockConsensus);
-            if (cv_scheduleFinalBlockConsensus.wait_for(
+                m_MutexScheduleDSMicroBlockConsensus);
+            if (cv_scheduleDSMicroBlockConsensus.wait_for(
                     cv_lk, std::chrono::seconds(MICROBLOCK_TIMEOUT))
                 == std::cv_status::timeout)
             {
                 LOG_GENERAL(WARNING,
-                            "Timeout: Didn't finish DS Microblock. Proceeds "
+                            "Timeout: Didn't receive all Microblock. Proceeds "
                             "without it");
 
-                RunConsensusOnFinalBlock(true);
+                auto func = [this]() mutable -> void {
+                    m_mediator.m_node->RunConsensusOnMicroBlock();
+                };
+
+                DetachedFunction(1, func);
+
+                std::unique_lock<std::mutex> cv_lk(
+                    m_MutexScheduleFinalBlockConsensus);
+                if (cv_scheduleFinalBlockConsensus.wait_for(
+                        cv_lk, std::chrono::seconds(MICROBLOCK_TIMEOUT))
+                    == std::cv_status::timeout)
+                {
+                    LOG_GENERAL(
+                        WARNING,
+                        "Timeout: Didn't finish DS Microblock. Proceeds "
+                        "without it");
+
+                    RunConsensusOnFinalBlock(true);
+                }
             }
-        }
+        };
+        DetachedFunction(1, func);
     }
     else
     {
@@ -421,6 +425,8 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
 {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "DS block consensus is DONE!!!");
+
+    lock_guard<mutex> g(m_mediator.m_node->m_mutexDSBlock);
 
     if (m_mode == PRIMARY_DS)
     {

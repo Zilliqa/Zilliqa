@@ -269,17 +269,22 @@ bool DirectoryService::ProcessMicroblockSubmissionCore(
 
         DetachedFunction(1, func);
 
-        std::unique_lock<std::mutex> cv_lk(m_MutexScheduleFinalBlockConsensus);
-        if (cv_scheduleFinalBlockConsensus.wait_for(
-                cv_lk, std::chrono::seconds(MICROBLOCK_TIMEOUT))
-            == std::cv_status::timeout)
-        {
-            LOG_GENERAL(WARNING,
-                        "Timeout: Didn't finish DS Microblock. Proceeds "
-                        "without it");
+        auto func2 = [this]() mutable -> void {
+            std::unique_lock<std::mutex> cv_lk(
+                m_MutexScheduleFinalBlockConsensus);
+            if (cv_scheduleFinalBlockConsensus.wait_for(
+                    cv_lk, std::chrono::seconds(MICROBLOCK_TIMEOUT))
+                == std::cv_status::timeout)
+            {
+                LOG_GENERAL(WARNING,
+                            "Timeout: Didn't finish DS Microblock. Proceeds "
+                            "without it");
 
-            RunConsensusOnFinalBlock(true);
-        }
+                RunConsensusOnFinalBlock(true);
+            }
+        };
+
+        DetachedFunction(1, func2);
     }
     else if ((m_microBlocks.size() == 1) && (m_mode == PRIMARY_DS))
     {

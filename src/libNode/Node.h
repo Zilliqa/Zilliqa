@@ -80,8 +80,6 @@ class Node : public Executable, public Broadcastable
     Synchronizer m_synchronizer;
 
     // DS block information
-    std::mutex m_mutexDSBlock;
-
     std::mutex m_mutexConsensus;
 
     // Sharding information
@@ -367,6 +365,9 @@ public:
     std::atomic<uint32_t> m_consensusMyID;
     std::atomic<bool> m_isPrimary;
     std::atomic<uint32_t> m_consensusLeaderID;
+
+    // DS block information
+    std::mutex m_mutexDSBlock;
 
     /// The current internal state of this Node instance.
     std::atomic<NodeState> m_state;
