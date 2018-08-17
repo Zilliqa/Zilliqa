@@ -30,18 +30,21 @@ BOOST_AUTO_TEST_SUITE(ipconverter)
 BOOST_AUTO_TEST_CASE(test_IPNumericaltoString)
 {
     INIT_STDOUT_LOGGER();
-    BOOST_CHECK_MESSAGE(IPConverter::ToStrFromNumericalIP(
-                            (boost::multiprecision::uint128_t)16777343)
-                            == "127.0.0.1",
-                        "IP int -> IP Str conversion");
+    std::string result = IPConverter::ToStrFromNumericalIP(
+        (boost::multiprecision::uint128_t)16777343);
+
+    BOOST_CHECK_MESSAGE(result == "127.0.0.1",
+                        "Expected: 127.0.0.1. Result: " + result);
 }
 
 BOOST_AUTO_TEST_CASE(test_IPStringToNumerical)
 {
     INIT_STDOUT_LOGGER();
-    BOOST_CHECK_MESSAGE(16777343
-                            == IPConverter::ToNumericalIPFromStr("127.0.0.1"),
-                        "IP Str -> IP Int conversion is wrong.");
+    boost::multiprecision::uint128_t result
+        = IPConverter::ToNumericalIPFromStr("127.0.0.1");
+
+    BOOST_CHECK_MESSAGE(result == 16777343,
+                        "Expected: 16777343. Result: " + string(result));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
