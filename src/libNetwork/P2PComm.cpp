@@ -165,18 +165,22 @@ namespace
 
             if (n <= 0)
             {
-                LOG_GENERAL(WARNING,
-                            "Socket read failed. Code = "
-                                << errno << " Desc: " << std::strerror(errno)
-                                << ". IP address: " << from);
-
                 if (EAGAIN == errno)
                 {
+                    LOG_GENERAL(INFO,
+                                "Socket read suspended. Code = "
+                                    << errno
+                                    << " Desc: " << std::strerror(errno)
+                                    << ". IP address: " << from);
                     this_thread::sleep_for(chrono::milliseconds(retryDuration));
                     retryDuration <<= 1;
                     continue;
                 }
 
+                LOG_GENERAL(WARNING,
+                            "Socket read failed. Code = "
+                                << errno << " Desc: " << std::strerror(errno)
+                                << ". IP address: " << from);
                 return false;
             }
 

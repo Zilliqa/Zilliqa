@@ -609,8 +609,9 @@ int Signature::Deserialize(const vector<unsigned char>& src,
                                              offset + SIGNATURE_CHALLENGE_SIZE,
                                              SIGNATURE_RESPONSE_SIZE);
             if (m_s == nullptr)
-            {   
-                LOG_GENERAL(WARNING, "Deserialization failure. offset: " << offset);
+            {
+                LOG_GENERAL(WARNING,
+                            "Deserialization failure. offset: " << offset);
                 LOG_PAYLOAD(WARNING, "Payload: ", src, src.size());
                 m_initialized = false;
             }
