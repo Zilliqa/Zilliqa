@@ -34,8 +34,8 @@ unsigned int NUM_TXN = 100;
 bool getTransactionsFromFile(fstream& f, unsigned int startNum,
                              unsigned int totalNum, vector<unsigned char>& vec)
 {
-    f.seekg((startNum - 1) * TXN_SIZE, ios::beg);
-    vec.resize(TXN_SIZE * totalNum);
+    f.seekg(startNum * TXN_SIZE, ios::beg);
+    //vec.resize(TXN_SIZE * totalNum);
     for (unsigned int i = 0; i < TXN_SIZE * totalNum; i++)
     {
         if (!f.good())
@@ -43,7 +43,7 @@ bool getTransactionsFromFile(fstream& f, unsigned int startNum,
             LOG_GENERAL(WARNING, "Bad byte accessed");
             return false;
         }
-        vec[i] = f.get();
+        vec.emplace_back(f.get());
     }
     return true;
 }
@@ -58,33 +58,74 @@ public:
         fstream file;
         vec.clear();
 
-        if (startNum % NUM_TXN + totalNum - 1 > NUM_TXN)
+        if (totalNum > NUM_TXN)
         {
             LOG_GENERAL(WARNING,
-                        "A single file does not hold txns " << startNum << " "
-                                                            << totalNum);
+                        "A single file does not hold txns " << totalNum);
             return false;
         }
 
-        unsigned int num = startNum / NUM_TXN;
+        auto getFile = [&addr](const unsigned int& num, fstream& file) {
+            string fileString = TXN_PATH + addr.hex() + "_"
+                + to_string(num * NUM_TXN) + ".zil";
 
-        const string fileString
-            = TXN_PATH + addr.hex() + "_" + to_string(num * NUM_TXN) + ".zil";
+            file.open(fileString, ios::binary | ios::in);
 
-        file.open(fileString, ios::binary | ios::in);
+            if (!file.is_open())
+            {
+                LOG_GENERAL(WARNING, "File failed to open " << fileString);
+                return false;
+            }
 
-        if (!file.is_open())
+            return true;
+        };
+
+        unsigned int fileNum = (startNum - 1) / NUM_TXN;
+        bool breakCall = false;
+        bool b = false;
+        vector<unsigned char> remainTxn;
+        unsigned int startNumInFile = (startNum - 1) % NUM_TXN;
+        if (startNumInFile + totalNum > NUM_TXN)
         {
-            LOG_GENERAL(WARNING, "File failed to open " << fileString);
+            breakCall = true;
+            unsigned int remainNum = totalNum + startNumInFile - NUM_TXN;
+            if (!getFile(fileNum + 1, file))
+            {
+                return false;
+            }
+
+            b = getTransactionsFromFile(file, 0, remainNum, remainTxn);
+
+            file.close();
+
+            if (!b)
+            {
+                return false;
+            }
+
+            totalNum -= remainNum;
+        }
+
+        if (!getFile(fileNum, file))
+        {
             return false;
         }
 
-        bool b
-            = getTransactionsFromFile(file, startNum % NUM_TXN, totalNum, vec);
+        b = getTransactionsFromFile(file, startNumInFile, totalNum, vec);
 
         file.close();
 
-        return b;
+        if (!b)
+        {
+            return false;
+        }
+
+        if (breakCall)
+        {
+            copy(remainTxn.begin(), remainTxn.end(), back_inserter(vec));
+        }
+
+        return true;
     }
 };
 
