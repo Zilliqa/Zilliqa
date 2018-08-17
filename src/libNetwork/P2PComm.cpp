@@ -75,7 +75,7 @@ static bool comparePairSecond(
 }
 
 P2PComm::P2PComm()
-    : m_sendQueue(128)
+    : m_sendQueue(SENDQUEUE_SIZE)
 {
     auto func = [this]() -> void {
         std::vector<unsigned char> emptyHash;
@@ -512,7 +512,7 @@ void P2PComm::HandleAcceptedConnectionNormal(int cli_sock, Peer from,
 
     cli_sock_closer.reset(); // close socket now so it can be reused
 
-    m_dispatcher(message, from);
+    m_dispatcher(new pair<vector<unsigned char>, Peer>(message, from));
 }
 
 void P2PComm::HandleAcceptedConnectionBroadcast(int cli_sock, Peer from,
@@ -593,7 +593,7 @@ void P2PComm::HandleAcceptedConnectionBroadcast(int cli_sock, Peer from,
                    << "] RECV");
 
     // Dispatch message normally
-    m_dispatcher(message, from);
+    m_dispatcher(new pair<vector<unsigned char>, Peer>(message, from));
 }
 
 void P2PComm::ConnectionAccept([[gnu::unused]] evconnlistener* listener,
