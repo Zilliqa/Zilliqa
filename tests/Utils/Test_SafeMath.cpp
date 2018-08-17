@@ -24,33 +24,6 @@ using namespace std;
 
 BOOST_AUTO_TEST_SUITE(safemath)
 
-BOOST_AUTO_TEST_CASE(test_integrity)
-{
-    INIT_STDOUT_LOGGER();
-
-    LOG_GENERAL(INFO, "Test integrity start...");
-
-    int8_t num;
-    BOOST_CHECK_MESSAGE(false == SafeMath<int8_t>::add(-1, 1, num),
-                        "Test add integrity failed!");
-    BOOST_CHECK_MESSAGE(false == SafeMath<int8_t>::add(1, -1, num),
-                        "Test add integrity failed!");
-    BOOST_CHECK_MESSAGE(false == SafeMath<int8_t>::sub(-1, 1, num),
-                        "Test sub integrity failed!");
-    BOOST_CHECK_MESSAGE(false == SafeMath<int8_t>::sub(1, -1, num),
-                        "Test sub integrity failed!");
-    BOOST_CHECK_MESSAGE(false == SafeMath<int8_t>::mul(-1, 1, num),
-                        "Test mul integrity failed!");
-    BOOST_CHECK_MESSAGE(false == SafeMath<int8_t>::mul(1, -1, num),
-                        "Test mul integrity failed!");
-    BOOST_CHECK_MESSAGE(false == SafeMath<int8_t>::div(-1, 1, num),
-                        "Test div integrity failed!");
-    BOOST_CHECK_MESSAGE(false == SafeMath<int8_t>::div(1, -1, num),
-                        "Test div integrity failed!");
-
-    LOG_GENERAL(INFO, "Test integrity done!");
-}
-
 BOOST_AUTO_TEST_CASE(test_uint8_t)
 {
     INIT_STDOUT_LOGGER();
@@ -71,8 +44,6 @@ BOOST_AUTO_TEST_CASE(test_uint8_t)
     num2 = 0x01;
     BOOST_CHECK_MESSAGE(false == SafeMath<uint8_t>::add(num1, num2, addRes),
                         "Test add overflow failed!");
-    BOOST_CHECK_MESSAGE(false == SafeMath<uint8_t>::sub(num2, num1, subRes1),
-                        "Test sub error-handling failed!");
 
     num1 = 0x0F;
     num2 = 0x0B;
@@ -116,8 +87,6 @@ BOOST_AUTO_TEST_CASE(test_uint16_t)
     num2 = 0x0001;
     BOOST_CHECK_MESSAGE(false == SafeMath<uint16_t>::add(num1, num2, addRes),
                         "Test add overflow failed!");
-    BOOST_CHECK_MESSAGE(false == SafeMath<uint16_t>::sub(num2, num1, subRes1),
-                        "Test sub error-handling failed!");
 
     num1 = 0x0FFF;
     num2 = 0x000B;
@@ -161,8 +130,6 @@ BOOST_AUTO_TEST_CASE(test_uint32_t)
     num2 = 0x00000001;
     BOOST_CHECK_MESSAGE(false == SafeMath<uint32_t>::add(num1, num2, addRes),
                         "Test add overflow failed!");
-    BOOST_CHECK_MESSAGE(false == SafeMath<uint32_t>::sub(num2, num1, subRes1),
-                        "Test sub error-handling failed!");
 
     num1 = 0x00FFFFFF;
     num2 = 0x000000BB;
@@ -207,8 +174,6 @@ BOOST_AUTO_TEST_CASE(test_uint64_t)
     num2 = 0x0000000000000001;
     BOOST_CHECK_MESSAGE(false == SafeMath<uint64_t>::add(num1, num2, addRes),
                         "Test add overflow failed!");
-    BOOST_CHECK_MESSAGE(false == SafeMath<uint64_t>::sub(num2, num1, subRes1),
-                        "Test sub error-handling failed!");
 
     num1 = 0x000000FFFFFFFFFF;
     num2 = 0x000000000000BBBB;
@@ -263,10 +228,6 @@ BOOST_AUTO_TEST_CASE(test_boost_uint128_t)
                             == SafeMath<boost::multiprecision::uint128_t>::add(
                                    num1, num2, addRes),
                         "Test add overflow failed!");
-    BOOST_CHECK_MESSAGE(false
-                            == SafeMath<boost::multiprecision::uint128_t>::sub(
-                                   num2, num1, subRes1),
-                        "Test sub error-handling failed!");
 
     num1 = boost::multiprecision::uint128_t(
         "0x00000000000000000FFFFFFFFFFFFFFF");
@@ -338,10 +299,6 @@ BOOST_AUTO_TEST_CASE(test_boost_uint256_t)
                             == SafeMath<boost::multiprecision::uint256_t>::add(
                                    num1, num2, addRes),
                         "Test add overflow failed!");
-    BOOST_CHECK_MESSAGE(false
-                            == SafeMath<boost::multiprecision::uint256_t>::sub(
-                                   num2, num1, subRes1),
-                        "Test sub error-handling failed!");
 
     num1 = boost::multiprecision::uint256_t(
         "0x000000000000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF");
@@ -417,10 +374,6 @@ BOOST_AUTO_TEST_CASE(test_boost_uint512_t)
                             == SafeMath<boost::multiprecision::uint512_t>::add(
                                    num1, num2, addRes),
                         "Test add overflow failed!");
-    BOOST_CHECK_MESSAGE(false
-                            == SafeMath<boost::multiprecision::uint512_t>::sub(
-                                   num2, num1, subRes1),
-                        "Test sub error-handling failed!");
 
     num1 = boost::multiprecision::uint512_t(
         "0x0000000000000000000000000000000000000000000000000000FFFFFFFFFFFFFFFF"
@@ -507,10 +460,6 @@ BOOST_AUTO_TEST_CASE(test_boost_uint1024_t)
                             == SafeMath<boost::multiprecision::uint1024_t>::add(
                                    num1, num2, addRes),
                         "Test add overflow failed!");
-    BOOST_CHECK_MESSAGE(false
-                            == SafeMath<boost::multiprecision::uint1024_t>::sub(
-                                   num2, num1, subRes1),
-                        "Test sub error-handling failed!");
 
     num1 = boost::multiprecision::uint1024_t(
         "0x00000000000000000000000000000000000000000000000000000000000000000000"
