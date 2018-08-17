@@ -27,13 +27,7 @@ template<class T> class SafeMath
 public:
     static bool mul(const T& a, const T& b, T& result)
     {
-        if (a < 0 || b < 0)
-        {
-            LOG_GENERAL(WARNING, "SafeMath only support positive value!");
-            return false;
-        }
-
-        if (a == 0)
+        if (a == 0 || b == 0)
         {
             result = 0;
             return true;
@@ -51,13 +45,7 @@ public:
 
     static bool div(const T& a, const T& b, T& result)
     {
-        if (a < 0 || b < 0)
-        {
-            LOG_GENERAL(WARNING, "SafeMath only support positive value!");
-            return false;
-        }
-
-        if (b <= 0)
+        if (b == 0)
         {
             LOG_GENERAL(WARNING, "Denominator cannot be zero!");
             return false;
@@ -75,33 +63,52 @@ public:
 
     static bool sub(const T& a, const T& b, T& result)
     {
-        if (a < 0 || b < 0)
+        if (a == b)
         {
-            LOG_GENERAL(WARNING, "SafeMath only support positive value!");
+            result = 0;
+            return true;
+        }
+
+        T aa = a, bb = b;
+        bool bPos = true;
+
+        if (a < b)
+        {
+            bPos = false;
+            aa = b;
+            bb = a;
+        }
+
+        if (aa == 0)
+        {
+            result = bPos ? (0 - bb) : bb;
+            return true;
+        }
+
+        if (bb == 0)
+        {
+            result = bPos ? aa : (0 - aa);
+            return true;
+        }
+
+        T c = aa - bb;
+
+        if (aa > 0 && bb < 0 && (c < aa || c < (0 - bb)))
+        {
+            LOG_GENERAL(WARNING, "Subtraction Overflow!");
             return false;
         }
 
-        if (b > a)
-        {
-            LOG_GENERAL(WARNING, "Invalid Subtraction for Unsigned Integer!");
-            return false;
-        }
-
-        result = a - b;
+        result = bPos ? c : (0 - c);
         return true;
     }
 
     static bool add(const T& a, const T& b, T& result)
     {
-        if (a < 0 || b < 0)
-        {
-            LOG_GENERAL(WARNING, "SafeMath only support positive value!");
-            return false;
-        }
-
         T c = a + b;
 
-        if (c < a || c < b)
+        if ((a > 0 && b > 0 && (c < a || c < b))
+            || (a < 0 && b < 0 && (c > a || c > b)))
         {
             LOG_GENERAL(WARNING, "Addition Overflow!");
             return false;
