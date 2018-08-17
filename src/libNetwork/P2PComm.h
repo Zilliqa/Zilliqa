@@ -82,7 +82,6 @@ class P2PComm
                          std::chrono::time_point<std::chrono::system_clock>>>
         m_broadcastToRemove;
     std::mutex m_broadcastToRemoveMutex;
-    std::mutex m_startMessagePumpMutex;
 
     const static uint32_t MAXPUMPMESSAGE = 128;
 
@@ -112,7 +111,7 @@ public:
     static P2PComm& GetInstance();
 
     using Dispatcher
-        = std::function<void(const std::vector<unsigned char>&, const Peer&)>;
+        = std::function<void(std::pair<std::vector<unsigned char>, Peer>*)>;
 
     using BroadcastListFunc = std::function<std::vector<Peer>(
         unsigned char msg_type, unsigned char ins_type, const Peer&)>;
