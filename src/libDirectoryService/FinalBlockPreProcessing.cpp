@@ -79,6 +79,7 @@ void DirectoryService::ExtractDataFromMicroblocks(
             && microBlock.GetHeader().GetStateDeltaHash() == StateHash();
 
         bool isEmptyTxn = (microBlock.GetHeader().GetNumTxs() == 0);
+        //[CNBSE]
 
         if (!isVacuousEpoch && !isEmpty)
         {

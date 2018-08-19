@@ -232,6 +232,9 @@ bool DirectoryService::ProcessMicroblockSubmissionCore(
         m_microBlocks.emplace(microBlock);
     }
 
+    SaveCoinbase(microBlock.GetB1(), microBlock.GetB2(),
+                 microBlock.GetHeader().GetShardID());
+
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               m_microBlocks.size()
                   << " of " << m_shards.size() << " microblocks received");

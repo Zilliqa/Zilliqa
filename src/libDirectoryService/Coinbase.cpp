@@ -18,7 +18,7 @@
 #include <queue>
 #include <vector>
 
-#include "Node.h"
+#include "DirectoryService.h"
 #include "common/Constants.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
@@ -26,79 +26,18 @@
 
 using namespace std;
 
-void Reward()
+template<class Container>
+bool DirectoryService::SaveCoinbaseCore(const vector<bool>& b1,
+                                        const vector<bool>& b2,
+                                        const Container& shard,
+                                        const uint32_t& shard_id)
 {
-    if (GENESIS_WALLETS.empty())
-    {
-        LOG_GENERAL(WARNING, "no genesis wallet");
-        return;
-    }
+    LOG_MARKER();
 
-    Address genesisAccount(GENESIS_WALLETS[0]);
-
-    for (auto const& epochNum : m_coinbaseRewardees)
-    {
-        LOG_GENERAL(INFO, "[CNBSE] Rewarding " << epochNum.first << " epoch");
-
-        for (auto const& shardId : epochNum.second)
-        {
-            LOG_GENERAL(INFO,
-                        "[CNBSE] Rewarding " << shardId.first << " shard");
-
-            for (auto const& addr : shardId.second)
-            {
-                if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
-                        addr, genesisAccount, COINBASE_REWARD))
-                {
-                    LOG_GENERAL(WARNING, "Could Not reward " << addr);
-                }
-            }
-        }
-    }
-    /*auto RewardEveryRound = [&genesisAccount, &toKeys](auto const& bits) {
-        for (size_t i = 0; i < bits.size(); i++)
-        {
-            if (!bits[i])
-            {
-                continue;
-            }
-
-            auto to = Account::GetAddressFromPublicKey(toKeys[i]);
-            if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
-                    to, genesisAccount, COINBASE_REWARD))
-            {
-                LOG_GENERAL(WARNING, "Could not reward " << to);
-            }
-        }
-    };
-
-    RewardEveryRound(b1);
-    RewardEveryRound(b2);
-    */
-}
-
-bool DirectoryService::SaveCoinbase(const vector<bool>& b1,
-                                    const vector<bool>& b2, uint32_t shard_id)
-{
-
-    lock_guard<mutex> g(m_mutexCoinbaseRewardees);
-
-    const map<Peer, Pubkey>& shard;
-
-    if (shard_id == m_shards.size())
-    {
-        //DS
-        shard = m_DSCommittee;
-    }
-    else
-    {
-        shard = m_shards.at(shard_id);
-    }
-
-    auto it = m_coinbaseRewardees.find(m_currentEpochNum);
+    auto it = m_coinbaseRewardees.find(m_mediator.m_currentEpochNum);
     if (it != m_coinbaseRewardees.end())
     {
-        if (it->find(shardId) != it->end())
+        if (it->second.find(shard_id) != it->second.end())
         {
             LOG_GENERAL(INFO, "Already have cosigs of shard " << shard_id);
             return false;
@@ -126,13 +65,13 @@ bool DirectoryService::SaveCoinbase(const vector<bool>& b1,
     {
         if (b1.at(i))
         {
-            m_coinbaseRewardees[m_currentEpochNum][shard_id].push_back(
-                Account::GetAddressFromPublicKey(kv.first));
+            m_coinbaseRewardees[m_mediator.m_currentEpochNum][shard_id]
+                .push_back(Account::GetAddressFromPublicKey(kv.first));
         }
         if (b2.at(i))
         {
-            m_coinbaseRewardees[m_currentEpochNum][shard_id].push_back(
-                Account::GetAddressFromPublicKey(kv.first));
+            m_coinbaseRewardees[m_mediator.m_currentEpochNum][shard_id]
+                .push_back(Account::GetAddressFromPublicKey(kv.first));
         }
         i++;
     }
@@ -151,8 +90,32 @@ bool DirectoryService::SaveCoinbase(const vector<bool>& b1,
     return true;
 }
 
+bool DirectoryService::SaveCoinbase(const vector<bool>& b1,
+                                    const vector<bool>& b2,
+                                    const uint32_t& shard_id)
+{
+    LOG_MARKER();
+    if (shard_id == m_shards.size())
+    {
+        //DS
+        LOG_GENERAL(INFO,
+                    "[CNBSE] "
+                        << "Hereee");
+        lock(m_mediator.m_mutexDSCommittee, m_mutexCoinbaseRewardees);
+        lock_guard<mutex> g(m_mediator.m_mutexDSCommittee, adopt_lock);
+        lock_guard<mutex> g1(m_mutexCoinbaseRewardees, adopt_lock);
+        return SaveCoinbaseCore(b1, b2, *m_mediator.m_DSCommittee, shard_id);
+    }
+    else
+    {
+        lock_guard<mutex> g(m_mutexCoinbaseRewardees);
+        return SaveCoinbaseCore(b1, b2, m_shards.at(shard_id), shard_id);
+    }
+}
+
 void DirectoryService::InitCoinbase()
 {
+    LOG_MARKER();
     lock_guard<mutex> g(m_mutexCoinbaseRewardees);
 
     if (m_coinbaseRewardees.size() < NUM_FINAL_BLOCK_PER_POW)
@@ -162,7 +125,7 @@ void DirectoryService::InitCoinbase()
                         << "Less then expected rewardees "
                         << m_coinbaseRewardees.size());
     }
-    else if (m_coinbaseRewardees > NUM_FINAL_BLOCK_PER_POW)
+    else if (m_coinbaseRewardees.size() > NUM_FINAL_BLOCK_PER_POW)
     {
         LOG_GENERAL(INFO,
                     "[CNBSE]"
@@ -170,6 +133,32 @@ void DirectoryService::InitCoinbase()
                         << m_coinbaseRewardees.size());
     }
 
-    Reward();
+    if (GENESIS_WALLETS.empty())
+    {
+        LOG_GENERAL(WARNING, "no genesis wallet");
+        return;
+    }
+
+    Address genesisAccount(GENESIS_WALLETS[0]);
+
+    for (auto const& epochNum : m_coinbaseRewardees)
+    {
+        LOG_GENERAL(INFO, "[CNBSE] Rewarding " << epochNum.first << " epoch");
+
+        for (auto const& shardId : epochNum.second)
+        {
+            LOG_GENERAL(INFO,
+                        "[CNBSE] Rewarding " << shardId.first << " shard");
+
+            for (auto const& addr : shardId.second)
+            {
+                if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
+                        addr, genesisAccount, COINBASE_REWARD))
+                {
+                    LOG_GENERAL(WARNING, "Could Not reward " << addr);
+                }
+            }
+        }
+    }
 }
 #endif // IS_LOOKUP_NODE
