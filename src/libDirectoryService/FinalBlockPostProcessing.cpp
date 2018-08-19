@@ -301,6 +301,9 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
         - ((BlockBase)(*m_finalBlock)).GetSerializedSize();
     ((BlockBase)(*m_finalBlock)).Serialize(m_finalBlockMessage, cosigOffset);
 
+    //Coinbase
+    SaveCoinbase(m_finalBlock->GetB1(), m_finalBlock->GetB2(), m_shards.size());
+
     // StoreMicroBlocksToDisk();
     StoreFinalBlockToDisk();
 

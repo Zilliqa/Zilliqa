@@ -306,10 +306,6 @@ class Node : public Executable, public Broadcastable
     bool ProcessTransactionWhenShardBackup(const vector<TxnHash>& tranHashes,
                                            vector<TxnHash>& missingtranHashes);
 
-    //Coinbase txns
-    bool Coinbase(const BlockBase& lastMicroBlock, const TxBlock& lastTxBlock);
-    void InitCoinbase();
-
     // Is Running from New Process
     bool m_fromNewProcess = true;
 
