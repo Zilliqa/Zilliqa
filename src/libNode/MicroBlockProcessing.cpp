@@ -923,6 +923,8 @@ bool Node::RunConsensusOnMicroBlock()
         }
     }
 
+    SetState(MICROBLOCK_CONSENSUS);
+
     {
         lock_guard<mutex> g2(m_mutexNewRoundStarted);
         if (!m_newRoundStarted)
@@ -932,7 +934,6 @@ bool Node::RunConsensusOnMicroBlock()
         }
     }
 
-    SetState(MICROBLOCK_CONSENSUS);
     cv_microblockConsensusObject.notify_all();
     return true;
 }
