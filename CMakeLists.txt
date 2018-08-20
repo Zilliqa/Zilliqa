@@ -67,6 +67,8 @@ set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -ggdb -DNDEBUG")
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 
 # compiler and linker options
 
@@ -101,7 +103,7 @@ endif()
 set_target_properties(zilliqa sendcmd sendtxn genkeypair
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-set_target_properties(Common Trie ethash NAT
+set_target_properties(Common Trie ethash NAT schnorr
     PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 if(OPENCL_MINE)

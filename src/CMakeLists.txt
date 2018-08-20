@@ -1,5 +1,6 @@
 add_subdirectory (common)
 add_subdirectory (depends)
+add_subdirectory (interfaces)
 add_subdirectory (libConsensus)
 add_subdirectory (libCrypto)
 add_subdirectory (libData)
