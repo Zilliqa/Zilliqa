@@ -16,8 +16,12 @@
 
 #include <cstring>
 #include <errno.h>
+#include <event2/buffer.h>
+#include <event2/bufferevent.h>
+#include <event2/event-config.h>
 #include <event2/event.h>
 #include <event2/listener.h>
+#include <event2/util.h>
 #include <memory>
 #include <netinet/in.h>
 #include <signal.h>
@@ -373,64 +377,6 @@ void P2PComm::ProcessSendJob(SendJob* job)
     m_SendPool.AddJob(funcSendMsg);
 }
 
-namespace
-{
-    bool readMsg(vector<unsigned char>* buf, int cli_sock, const Peer& from,
-                 const uint32_t message_length)
-    {
-        // Read the rest of the message
-        assert(buf);
-        buf->resize(message_length);
-        uint32_t read_length = 0;
-        uint32_t retryDuration = 1;
-
-        while (read_length < message_length)
-        {
-            ssize_t n = read(cli_sock, &buf->at(read_length),
-                             message_length - read_length);
-
-            if (n <= 0)
-            {
-                LOG_GENERAL(WARNING,
-                            "Socket read failed. Code = "
-                                << errno << " Desc: " << std::strerror(errno)
-                                << ". IP address: " << from);
-
-                if (EAGAIN == errno)
-                {
-                    this_thread::sleep_for(chrono::milliseconds(retryDuration));
-                    retryDuration <<= 1;
-                    continue;
-                }
-
-                return false;
-            }
-
-            read_length += n;
-        }
-
-        if (HDR_LEN != message_length && HASH_LEN != message_length)
-        {
-            LOG_PAYLOAD(INFO, "Message received", *buf,
-                        Logger::MAX_BYTES_TO_DISPLAY);
-        }
-
-        if (read_length != message_length)
-        {
-            LOG_GENERAL(WARNING, "Incorrect message length.");
-            return false;
-        }
-
-        return true;
-    }
-
-    uint32_t messageLength(const vector<unsigned char>& buf)
-    {
-        return (buf[2] << 24) + (buf[3] << 16) + (buf[4] << 8) + buf[5];
-    }
-
-} // anonymous namespace
-
 void P2PComm::ClearBroadcastHashAsync(const vector<unsigned char>& message_hash)
 {
     LOG_MARKER();
@@ -438,187 +384,199 @@ void P2PComm::ClearBroadcastHashAsync(const vector<unsigned char>& message_hash)
     m_broadcastToRemove.emplace_back(message_hash, chrono::system_clock::now());
 }
 
-void P2PComm::HandleAcceptedConnection(int cli_sock, Peer from)
+void P2PComm::EventCallback(struct bufferevent* bev, short events,
+                            [[gnu::unused]] void* ctx)
 {
-    //LOG_MARKER();
+    shared_ptr<Peer> from(static_cast<Peer*>(ctx));
 
-    LOG_GENERAL(INFO, "Incoming message from " << from);
-
-    SocketCloser cli_sock_closer(&cli_sock, close_socket);
-
-    // Reception format:
-    // 0x01 ~ 0xFF - version, defined in constant file
-    // 0x11 - start byte
-    // 0xLL 0xLL 0xLL 0xLL - 4-byte length of message
-    // <message>
-
-    // 0x01 ~ 0xFF - version, defined in constant file
-    // 0x22 - start byte (broadcast)
-    // 0xLL 0xLL 0xLL 0xLL - 4-byte length of hash + message
-    // <32-byte hash> <message>
-
-    // 0x01 ~ 0xFF - version, defined in constant file
-    // 0x33 - start byte (report)
-    // 0x00 0x00 0x00 0x01 - 4-byte length of message
-    // 0x00
-
-    vector<unsigned char> header = {0};
-
-    if (!readMsg(&header, cli_sock, from, HDR_LEN))
+    if (events & BEV_EVENT_ERROR)
     {
-        return;
+        LOG_GENERAL(WARNING, "Error from bufferevent");
     }
 
-    const unsigned char version = header[0];
-    const unsigned char startByte = header[1];
-
-    // If received version doesn't match expected version (defined in constant file), drop this message
-    if (version != (unsigned char)(MSG_VERSION & 0xFF))
+    // All bytes read out
+    if (events & (BEV_EVENT_EOF | BEV_EVENT_ERROR))
     {
-        LOG_GENERAL(WARNING,
-                    "Header version wrong, received ["
-                        << version - 0x00 << "] while expected [" << MSG_VERSION
-                        << "].");
-        return;
-    }
+        // Get the data stored in buffer
+        struct evbuffer* input = bufferevent_get_input(bev);
+        size_t len = evbuffer_get_length(input);
+        vector<unsigned char> message(len);
+        evbuffer_copyout(input, message.data(), len);
+        evbuffer_drain(input, len);
 
-    if (startByte == START_BYTE_BROADCAST)
-    {
-        HandleAcceptedConnectionBroadcast(cli_sock, from, messageLength(header),
-                                          move(cli_sock_closer));
-    }
-    else if (startByte == START_BYTE_NORMAL)
-    {
-        HandleAcceptedConnectionNormal(cli_sock, from, messageLength(header),
-                                       move(cli_sock_closer));
-    }
-    else
-    {
-        // Unexpected start byte. Drop this message
-        LOG_GENERAL(WARNING, "Header length or type wrong.");
-    }
-}
+        // Close the socket
+        bufferevent_free(bev);
 
-void P2PComm::HandleAcceptedConnectionNormal(int cli_sock, Peer from,
-                                             uint32_t message_length,
-                                             SocketCloser cli_sock_closer)
-{
-    vector<unsigned char> message;
+        // Reception format:
+        // 0x01 ~ 0xFF - version, defined in constant file
+        // 0x11 - start byte
+        // 0xLL 0xLL 0xLL 0xLL - 4-byte length of message
+        // <message>
 
-    if (!readMsg(&message, cli_sock, from, message_length))
-    {
-        return;
-    }
+        // 0x01 ~ 0xFF - version, defined in constant file
+        // 0x22 - start byte (broadcast)
+        // 0xLL 0xLL 0xLL 0xLL - 4-byte length of hash + message
+        // <32-byte hash> <message>
 
-    cli_sock_closer.reset(); // close socket now so it can be reused
+        // 0x01 ~ 0xFF - version, defined in constant file
+        // 0x33 - start byte (report)
+        // 0x00 0x00 0x00 0x01 - 4-byte length of message
+        // 0x00
 
-    m_dispatcher(new pair<vector<unsigned char>, Peer>(message, from));
-}
-
-void P2PComm::HandleAcceptedConnectionBroadcast(int cli_sock, Peer from,
-                                                uint32_t message_length,
-                                                SocketCloser cli_sock_closer)
-{
-    vector<unsigned char> msg_hash;
-
-    if (!readMsg(&msg_hash, cli_sock, from, HASH_LEN))
-    {
-        return;
-    }
-
-    // Check if this message has been received before
-    vector<unsigned char> message;
-    bool found = false;
-    {
-        lock_guard<mutex> guard(P2PComm::GetInstance().m_broadcastHashesMutex);
-
-        found = (P2PComm::GetInstance().m_broadcastHashes.find(msg_hash)
-                 != P2PComm::GetInstance().m_broadcastHashes.end());
-        // While we have the lock, we should quickly add the hash
-        if (!found)
+        // Check for minimum message size
+        if (message.size() <= HDR_LEN)
         {
-            if (!readMsg(&message, cli_sock, from, message_length - HASH_LEN))
+            LOG_GENERAL(WARNING, "Empty message received.");
+            return;
+        }
+
+        const unsigned char version = message[0];
+        const unsigned char startByte = message[1];
+
+        // Check for version requirement
+        if (version != (unsigned char)(MSG_VERSION & 0xFF))
+        {
+            LOG_GENERAL(WARNING,
+                        "Header version wrong, received ["
+                            << version - 0x00 << "] while expected ["
+                            << MSG_VERSION << "].");
+            return;
+        }
+
+        const uint32_t messageLength = (message[2] << 24) + (message[3] << 16)
+            + (message[4] << 8) + message[5];
+
+        // Check for length consistency
+        if (messageLength != message.size() - HDR_LEN)
+        {
+            LOG_GENERAL(WARNING, "Incorrect message length.");
+            return;
+        }
+
+        if (startByte == START_BYTE_BROADCAST)
+        {
+            if ((messageLength - HDR_LEN) <= HASH_LEN)
             {
+                LOG_GENERAL(
+                    WARNING,
+                    "Hash missing or empty broadcast message (messageLength = "
+                        << messageLength << ")");
                 return;
             }
 
-            SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
-            sha256.Update(message);
-            vector<unsigned char> this_msg_hash = sha256.Finalize();
+            vector<unsigned char> msg_hash(message.begin() + HDR_LEN,
+                                           message.begin() + HDR_LEN
+                                               + HASH_LEN);
 
-            if (this_msg_hash == msg_hash)
+            // Check if this message has been received before
+            bool found = false;
             {
-                P2PComm::GetInstance().m_broadcastHashes.insert(this_msg_hash);
+                lock_guard<mutex> guard(
+                    P2PComm::GetInstance().m_broadcastHashesMutex);
+
+                found = (P2PComm::GetInstance().m_broadcastHashes.find(msg_hash)
+                         != P2PComm::GetInstance().m_broadcastHashes.end());
+                // While we have the lock, we should quickly add the hash
+                if (!found)
+                {
+                    SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
+                    sha256.Update(message, HDR_LEN + HASH_LEN,
+                                  message.size() - HDR_LEN - HASH_LEN);
+                    vector<unsigned char> this_msg_hash = sha256.Finalize();
+
+                    if (this_msg_hash == msg_hash)
+                    {
+                        P2PComm::GetInstance().m_broadcastHashes.insert(
+                            this_msg_hash);
+                    }
+                    else
+                    {
+                        LOG_GENERAL(WARNING, "Incorrect message hash.");
+                        return;
+                    }
+                }
             }
-            else
+
+            if (found)
             {
-                LOG_GENERAL(WARNING, "Incorrect message hash.");
+                // We already sent and/or received this message before -> discard
+                LOG_GENERAL(INFO, "Discarding duplicate broadcast message.");
                 return;
             }
+
+            unsigned char msg_type = 0xFF;
+            unsigned char ins_type = 0xFF;
+            if (messageLength - HASH_LEN > MessageOffset::INST)
+            {
+                msg_type = message.at(HDR_LEN + HASH_LEN + MessageOffset::TYPE);
+                ins_type = message.at(HDR_LEN + HASH_LEN + MessageOffset::INST);
+            }
+
+            vector<Peer> broadcast_list
+                = m_broadcast_list_retriever(msg_type, ins_type, *from);
+
+            if (broadcast_list.size() > 0)
+            {
+                P2PComm::GetInstance().RebroadcastMessage(broadcast_list,
+                                                          message, msg_hash);
+            }
+
+            P2PComm::GetInstance().ClearBroadcastHashAsync(msg_hash);
+
+            LOG_STATE("[BROAD]["
+                      << std::setw(15) << std::left
+                      << P2PComm::GetInstance().m_selfPeer << "]["
+                      << DataConversion::Uint8VecToHexStr(msg_hash).substr(0, 6)
+                      << "] RECV");
+
+            // Move the shared_ptr message to raw pointer type
+            pair<vector<unsigned char>, Peer>* raw_message
+                = new pair<vector<unsigned char>, Peer>(
+                    vector<unsigned char>(message.begin() + HDR_LEN + HASH_LEN,
+                                          message.end()),
+                    *from);
+
+            // Queue the message
+            m_dispatcher(raw_message);
+        }
+        else if (startByte == START_BYTE_NORMAL)
+        {
+            // Move the shared_ptr message to raw pointer type
+            pair<vector<unsigned char>, Peer>* raw_message
+                = new pair<vector<unsigned char>, Peer>(
+                    vector<unsigned char>(message.begin() + HDR_LEN,
+                                          message.end()),
+                    *from);
+
+            // Queue the message
+            m_dispatcher(raw_message);
+        }
+        else
+        {
+            // Unexpected start byte. Drop this message
+            LOG_GENERAL(WARNING, "Incorrect start byte.");
         }
     }
-
-    cli_sock_closer.reset(); // close socket now so it can be reused
-
-    if (found)
-    {
-        // We already sent and/or received this message before -> discard
-        LOG_GENERAL(INFO, "Discarding duplicate broadcast message");
-        return;
-    }
-
-    unsigned char msg_type = 0xFF;
-    unsigned char ins_type = 0xFF;
-    if (message.size() > MessageOffset::INST)
-    {
-        msg_type = message.at(MessageOffset::TYPE);
-        ins_type = message.at(MessageOffset::INST);
-    }
-
-    vector<Peer> broadcast_list
-        = m_broadcast_list_retriever(msg_type, ins_type, from);
-
-    if (broadcast_list.size() > 0)
-    {
-        P2PComm::GetInstance().RebroadcastMessage(broadcast_list, message,
-                                                  msg_hash);
-    }
-
-    P2PComm::GetInstance().ClearBroadcastHashAsync(msg_hash);
-
-    LOG_STATE(
-        "[BROAD][" << std::setw(15) << std::left
-                   << P2PComm::GetInstance().m_selfPeer << "]["
-                   << DataConversion::Uint8VecToHexStr(msg_hash).substr(0, 6)
-                   << "] RECV");
-
-    // Dispatch message normally
-    m_dispatcher(new pair<vector<unsigned char>, Peer>(message, from));
 }
 
-void P2PComm::ConnectionAccept([[gnu::unused]] evconnlistener* listener,
-                               evutil_socket_t cli_sock,
-                               struct sockaddr* cli_addr,
-                               [[gnu::unused]] int socklen,
-                               [[gnu::unused]] void* arg)
+void P2PComm::AcceptConnectionCallback([[gnu::unused]] evconnlistener* listener,
+                                       evutil_socket_t cli_sock,
+                                       struct sockaddr* cli_addr,
+                                       [[gnu::unused]] int socklen,
+                                       [[gnu::unused]] void* arg)
 {
-    Peer from(uint128_t(((struct sockaddr_in*)cli_addr)->sin_addr.s_addr),
-              ((struct sockaddr_in*)cli_addr)->sin_port);
+    Peer* from
+        = new Peer(uint128_t(((struct sockaddr_in*)cli_addr)->sin_addr.s_addr),
+                   ((struct sockaddr_in*)cli_addr)->sin_port);
 
-    if (Blacklist::GetInstance().Exist(from.m_ipAddress))
-    {
-        LOG_GENERAL(INFO,
-                    "The node "
-                        << from
-                        << " is in black list, block all message from it.");
-        return;
-    }
+    LOG_GENERAL(INFO, "Incoming message from " << *from);
 
-    auto func = [cli_sock, from]() -> void {
-        HandleAcceptedConnection(cli_sock, from);
-    };
-
-    GetInstance().m_RecvPool.AddJob(func);
+    // Set up buffer event for this new connection
+    struct event_base* base = evconnlistener_get_base(listener);
+    struct bufferevent* bev = bufferevent_socket_new(
+        base, cli_sock, BEV_OPT_CLOSE_ON_FREE | BEV_OPT_DEFER_CALLBACKS);
+    bufferevent_setcb(bev, NULL, NULL, EventCallback, from);
+    bufferevent_enable(bev, EV_READ | EV_WRITE);
 }
 
 void P2PComm::StartMessagePump(uint32_t listen_port_host, Dispatcher dispatcher,
@@ -667,13 +625,13 @@ void P2PComm::StartMessagePump(uint32_t listen_port_host, Dispatcher dispatcher,
     serv_addr.sin_port = htons(listen_port_host);
     serv_addr.sin_addr.s_addr = INADDR_ANY;
 
+    // Create the listener
     struct event_base* base = event_base_new();
     struct evconnlistener* listener = evconnlistener_new_bind(
-        base, ConnectionAccept, nullptr,
+        base, AcceptConnectionCallback, nullptr,
         LEV_OPT_REUSEABLE | LEV_OPT_CLOSE_ON_FREE, -1,
         (struct sockaddr*)&serv_addr, sizeof(struct sockaddr_in));
     event_base_dispatch(base);
-
     evconnlistener_free(listener);
     event_base_free(base);
 }
@@ -821,7 +779,8 @@ void P2PComm::RebroadcastMessage(const vector<Peer>& peers,
     dynamic_cast<SendJobPeers<vector<Peer>>*>(job)->m_peers = peers;
     job->m_selfPeer = Peer();
     job->m_startbyte = START_BYTE_BROADCAST;
-    job->m_message = message;
+    copy(message.begin() + HDR_LEN + HASH_LEN, message.end(),
+         back_inserter(job->m_message));
     job->m_hash = msg_hash;
 
     // Queue job
