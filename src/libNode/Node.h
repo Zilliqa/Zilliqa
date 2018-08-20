@@ -212,7 +212,6 @@ class Node : public Executable, public Broadcastable
     // void StoreMicroBlocks();
     void StoreFinalBlock(const TxBlock& txBlock);
     void InitiatePoW();
-    void UpdateStateForNextConsensusRound();
     void ScheduleMicroBlockConsensus();
     void BeginNextConsensusRound();
 
@@ -427,6 +426,8 @@ public:
     void CleanCreatedTransaction();
 
     void CallActOnFinalblock();
+
+    void UpdateStateForNextConsensusRound();
 
 #ifndef IS_LOOKUP_NODE
 
