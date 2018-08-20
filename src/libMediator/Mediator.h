@@ -30,6 +30,8 @@
 /// A mediator class for providing access to global members.
 class Mediator
 {
+    uint8_t m_currentDifficulty = POW_DIFFICULTY;
+
 public:
     /// The Zilliqa instance's key pair.
     std::pair<PrivKey, PubKey> m_selfKey;
@@ -94,6 +96,9 @@ public:
     void UpdateTxBlockRand(bool isGenesis = false);
 
     std::string GetNodeMode(const Peer& peer);
+
+    void setCurrentDifficulty(uint8_t difficulty);
+    uint8_t getCurrentDifficulty() const;
 };
 
 #endif // __MEDIATOR_H__

@@ -494,7 +494,8 @@ void Node::InitiatePoW()
             + 1;
         auto dsBlockRand = m_mediator.m_dsBlockRand;
         auto txBlockRand = m_mediator.m_txBlockRand;
-        StartPoW(epochNumber, POW_DIFFICULTY, dsBlockRand, txBlockRand);
+        StartPoW(epochNumber, m_mediator.getCurrentDifficulty(), dsBlockRand,
+                 txBlockRand);
     };
 
     DetachedFunction(1, func);

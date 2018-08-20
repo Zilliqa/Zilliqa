@@ -544,6 +544,8 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
 
     POW::GetInstance().StopMining();
 
+    m_mediator.setCurrentDifficulty(dsblock.GetHeader().GetDifficulty());
+
     // If I am the next DS leader -> need to set myself up as a DS node
     if (m_mediator.m_selfKey.second
         == m_mediator.m_dsBlockChain.GetLastBlock()

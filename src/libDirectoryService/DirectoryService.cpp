@@ -507,3 +507,66 @@ std::string DirectoryService::GetActionString(Action action) const
         ? "Unknown"
         : ActionStrings.at(action);
 }
+
+uint8_t
+DirectoryService::CalculateNewDifficulty(const uint8_t& currentDifficulty)
+{
+    const uint8_t MAX_ADJUST_STEP = 2;
+    int requiredNodes, prevSubmissions;
+    {
+        lock_guard<mutex> g(m_mutexAllPOW);
+        prevSubmissions = static_cast<int>(m_allPoWs.size());
+
+        requiredNodes = static_cast<int>(m_shards.size() * COMM_SIZE);
+    }
+
+    LOG_GENERAL(INFO,
+                "requiredNodes " << requiredNodes << ", prevSubmissions "
+                                 << prevSubmissions);
+    if (requiredNodes <= 0)
+    {
+        return currentDifficulty;
+    }
+    int submissionsDiff = requiredNodes - prevSubmissions;
+
+    // To make the adjustment work on small network.
+    int adjustThreshold = requiredNodes * 0.1f;
+    if (adjustThreshold > 99)
+    {
+        adjustThreshold = 99;
+    }
+
+    // If not over the adjust threshold, then keep the current difficulty.
+    if (abs(submissionsDiff) < adjustThreshold)
+    {
+        return currentDifficulty;
+    }
+
+    int adjustment = -submissionsDiff / adjustThreshold;
+
+    // Restrict the adjustment step, prevent the difficulty jump up/down dramatically.
+    if (adjustment > MAX_ADJUST_STEP)
+    {
+        adjustment = MAX_ADJUST_STEP;
+    }
+    else if (adjustment < -MAX_ADJUST_STEP)
+    {
+        adjustment = -MAX_ADJUST_STEP;
+    }
+
+    uint8_t newDifficulty
+        = std::max(static_cast<uint8_t>(adjustment + currentDifficulty),
+                   static_cast<uint8_t>(POW_DIFFICULTY));
+
+    // Every year, always increase the difficulty by 1, to encourage miners to upgrade the hardware over time.
+    // If POW_WINDOW_IN_SECONDS = 300, NUM_FINAL_BLOCK_PER_POW = 5, TXN_SUBMISSION = 4, TXN_BROADCAST = 10, estimated blocks in a year is 420480.
+    int estimatedBlocksOneYear = 365 * 24 * 3600
+        / ((POW_WINDOW_IN_SECONDS / NUM_FINAL_BLOCK_PER_POW)
+           + (TXN_SUBMISSION + TXN_BROADCAST));
+
+    // After 10 years, the difficulty will not automatically increase anymore..
+    newDifficulty += std::min(static_cast<uint8_t>(m_mediator.m_currentEpochNum
+                                                   / estimatedBlocksOneYear),
+                              (uint8_t)10);
+    return newDifficulty;
+}
