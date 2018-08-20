@@ -84,7 +84,8 @@ bool DirectoryService::VerifyPoWSubmission(
     rand2 = m_mediator.m_txBlockRand;
 
     difficulty
-        = POW_DIFFICULTY; // TODO: Need to get the latest blocknum, diff, rand1, rand2
+        = m_mediator
+              .getCurrentDifficulty(); // TODO: Need to get the latest blocknum, diff, rand1, rand2
     // Verify nonce
     block_num
         = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()

@@ -126,3 +126,10 @@ std::string Mediator::GetNodeMode(const Peer& peer)
         return "SHRD";
     }
 }
+
+void Mediator::setCurrentDifficulty(uint8_t difficulty)
+{
+    m_currentDifficulty = difficulty;
+}
+
+uint8_t Mediator::getCurrentDifficulty() const { return m_currentDifficulty; }
