@@ -128,6 +128,8 @@ const unsigned int DEBUG_LEVEL{ReadFromConstantsFile("DEBUG_LEVEL")};
 const unsigned int BROADCAST_INTERVAL{
     ReadFromConstantsFile("BROADCAST_INTERVAL")};
 const unsigned int BROADCAST_EXPIRY{ReadFromConstantsFile("BROADCAST_EXPIRY")};
+const unsigned int MAX_INDEXES_PER_TXN{
+    ReadFromConstantsFile("MAX_INDEXES_PER_TXN")};
 
 const bool EXCLUDE_PRIV_IP{
     ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true" ? true : false};

@@ -140,6 +140,7 @@ extern const unsigned int TXN_BROADCAST;
 extern const unsigned int DEBUG_LEVEL;
 extern const unsigned int BROADCAST_INTERVAL;
 extern const unsigned int BROADCAST_EXPIRY;
+extern const unsigned int MAX_INDEXES_PER_TXN;
 
 extern const bool TEST_NET_MODE;
 extern const bool EXCLUDE_PRIV_IP;
