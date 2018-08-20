@@ -27,7 +27,7 @@ void genKeyPair_Z(RawBytes_Z* privKey, RawBytes_Z* pubKey)
     std::vector<unsigned char> privK, pubK;
     int privKSize = kpair.first.Serialize(privK, 0);
     int pubKSize = kpair.second.Serialize(pubK, 0);
-    assert(privKSize == privK.size() && pubKSize == pubK.size()
+    assert(privKSize == (int)privK.size() && pubKSize == (int)pubK.size()
            && "Output size of generate key mismatches reported size");
     if (privKey->len != privKSize)
         err_abort("Schnorr::genKeyPair_Z: Incorrect memory allocated for "
@@ -69,7 +69,7 @@ void sign_Z(const RawBytes_Z* privKey, const RawBytes_Z* pubKey,
     // Extract signature into byte array.
     sig.Serialize(S, 0);
 
-    if (S.size() != (unsigned)signature->len)
+    if ((int)S.size() != signature->len)
         err_abort("Schnorr::size_Z: Incorrect memory allocated for signature");
 
     // Copy the results for use by caller.
