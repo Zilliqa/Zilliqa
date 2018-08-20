@@ -540,15 +540,7 @@ void Node::UpdateStateForNextConsensusRound()
 
 void Node::ScheduleMicroBlockConsensus()
 {
-    auto main_func = [this]() mutable -> void {
-        if ((m_mediator.m_currentEpochNum + 1) % NUM_FINAL_BLOCK_PER_POW
-            != 0) // VacuousEpoch
-        {
-            std::this_thread::sleep_for(
-                std::chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS));
-        }
-        RunConsensusOnMicroBlock();
-    };
+    auto main_func = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
 
     DetachedFunction(1, main_func);
 }
@@ -634,8 +626,10 @@ void Node::CallActOnFinalblock()
         GetMyShardsMicroBlock(blocknum, TxSharingMode::NODE_FORWARD_ONLY,
                               txns_to_send);
     }
-    else if ((m_txnSharingIAmSender == true)
-             && (m_txnSharingIAmForwarder == false))
+    else if (((m_txnSharingIAmSender == true)
+              && (m_txnSharingIAmForwarder == false))
+             || ((m_txnSharingIAmSender == true)
+                 && (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE)))
     {
         GetMyShardsMicroBlock(blocknum, TxSharingMode::SEND_ONLY, txns_to_send);
     }
@@ -693,7 +687,7 @@ bool Node::CheckStateRoot(const TxBlock& finalBlock)
 {
     StateHash stateRoot = AccountStore::GetInstance().GetStateRootHash();
 
-    AccountStore::GetInstance().PrintAccountState();
+    // AccountStore::GetInstance().PrintAccountState();
 
     if (stateRoot != finalBlock.GetHeader().GetStateRootHash())
     {
@@ -821,15 +815,15 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         return false;
     }
 
-    ProcessStateDeltaFromFinalBlock(message, cur_offset,
-                                    txBlock.GetHeader().GetStateDeltaHash());
-
     bool toSendTxnToLookup = false;
 
     bool isVacuousEpoch
         = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
     if (!isVacuousEpoch)
     {
+        ProcessStateDeltaFromFinalBlock(
+            message, cur_offset, txBlock.GetHeader().GetStateDeltaHash());
+
         if (!LoadUnavailableMicroBlockHashes(
                 txBlock, txBlock.GetHeader().GetBlockNum(), toSendTxnToLookup))
         {
@@ -841,11 +835,11 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         LOG_GENERAL(INFO, "isVacuousEpoch now");
 
         // Remove because shard nodes will be shuffled in next epoch.
-        m_createdTransactions.get<0>().clear();
+        CleanCreatedTransaction();
 
         if (!AccountStore::GetInstance().UpdateStateTrieAll())
         {
-            LOG_GENERAL(WARNING, "UpdateStateTrieAll Failed");
+            LOG_GENERAL(WARNING, "UpdateStateTrieAll Failed 1");
             return false;
         }
 
@@ -860,6 +854,16 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 #endif // IS_LOOKUP_NODE
             return false;
         }
+
+        ProcessStateDeltaFromFinalBlock(
+            message, cur_offset, txBlock.GetHeader().GetStateDeltaHash());
+
+        if (!AccountStore::GetInstance().UpdateStateTrieAll())
+        {
+            LOG_GENERAL(WARNING, "UpdateStateTrieAll Failed 2");
+            return false;
+        }
+
         StoreState();
         BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
                                                     {'0'});
@@ -884,6 +888,12 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 #ifdef IS_LOOKUP_NODE
     // Now only forwarded txn are left, so only call in lookup
     CommitForwardedMsgBuffer();
+
+    if (m_mediator.m_lookup->GetIsServer()
+        && m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0)
+    {
+        m_mediator.m_lookup->SenderTxnBatchThread();
+    }
 #endif // IS_LOOKUP_NODE
 
     // Assumption: New PoW done after every block committed
@@ -904,6 +914,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     }
     else
     {
+
         auto main_func
             = [this]() mutable -> void { BeginNextConsensusRound(); };
 

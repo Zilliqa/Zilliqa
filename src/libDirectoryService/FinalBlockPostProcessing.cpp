@@ -310,21 +310,23 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
         = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
     if (isVacuousEpoch)
     {
-        if (CheckStateRoot())
-        {
-            AccountStore::GetInstance().MoveUpdatesToDisk();
-            BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
-                                                        {'0'});
+        AccountStore::GetInstance().MoveUpdatesToDisk();
+        BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
+                                                    {'0'});
 #ifndef IS_LOOKUP_NODE
-            BlockStorage::GetBlockStorage().PopFrontTxBodyDB();
+        BlockStorage::GetBlockStorage().PopFrontTxBodyDB();
 #endif // IS_LOOKUP_NODE
-        }
     }
 
     m_mediator.m_node->CommitForwardedMsgBuffer();
 
     m_mediator.UpdateDSBlockRand();
     m_mediator.UpdateTxBlockRand();
+
+    if (m_toSendTxnToLookup)
+    {
+        m_mediator.m_node->CallActOnFinalblock();
+    }
 
     // TODO: Refine this
     unsigned int nodeToSendToLookUpLo = COMM_SIZE / 4;
@@ -433,8 +435,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
             CommitMBSubmissionMsgBuffer();
 
             std::unique_lock<std::mutex> cv_lk(
-                m_MutexScheduleFinalBlockConsensus);
-            if (cv_scheduleFinalBlockConsensus.wait_for(
+                m_MutexScheduleDSMicroBlockConsensus);
+            if (cv_scheduleDSMicroBlockConsensus.wait_for(
                     cv_lk, std::chrono::seconds(MICROBLOCK_TIMEOUT))
                 == std::cv_status::timeout)
             {
@@ -442,7 +444,25 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
                             "Timeout: Didn't receive all Microblock. Proceeds "
                             "without it");
 
-                RunConsensusOnFinalBlock();
+                auto func1 = [this]() mutable -> void {
+                    m_mediator.m_node->RunConsensusOnMicroBlock();
+                };
+
+                DetachedFunction(1, func1);
+
+                std::unique_lock<std::mutex> cv_lk(
+                    m_MutexScheduleFinalBlockConsensus);
+                if (cv_scheduleFinalBlockConsensus.wait_for(
+                        cv_lk, std::chrono::seconds(MICROBLOCK_TIMEOUT))
+                    == std::cv_status::timeout)
+                {
+                    LOG_GENERAL(
+                        WARNING,
+                        "Timeout: Didn't finish DS Microblock. Proceeds "
+                        "without it");
+
+                    RunConsensusOnFinalBlock(true);
+                }
             }
         }
     };

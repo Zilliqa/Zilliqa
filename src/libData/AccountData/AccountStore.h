@@ -102,6 +102,7 @@ public:
     bool RetrieveFromDisk();
 
     bool UpdateAccountsTemp(const uint64_t& blockNum,
+                            const unsigned int& numShards, const bool& isDS,
                             const Transaction& transaction,
                             boost::multiprecision::uint256_t& gasUsed);
 
@@ -110,10 +111,7 @@ public:
         m_accountStoreTemp->AddAccount(address, account);
     }
 
-    boost::multiprecision::uint256_t GetNonceTemp(const Address& address)
-    {
-        return m_accountStoreTemp->GetNonce(address);
-    }
+    boost::multiprecision::uint256_t GetNonceTemp(const Address& address);
 
     bool UpdateCoinbaseTemp(const Address& rewardee,
                             const Address& genesisAddress,

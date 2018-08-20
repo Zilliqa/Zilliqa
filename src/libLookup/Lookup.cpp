@@ -41,6 +41,7 @@
 #include "libPersistence/BlockStorage.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
+#include "libUtils/GetTxnFromFile.h"
 #include "libUtils/SanityChecks.h"
 #include "libUtils/SysCommand.h"
 
@@ -94,6 +95,117 @@ void Lookup::SetLookupNodes()
             m_lookupNodes.emplace_back(lookup_node);
         }
     }
+}
+
+std::once_flag generateReceiverOnce;
+
+Address GenOneReceiver()
+{
+    static Address receiverAddr;
+    std::call_once(generateReceiverOnce, []() {
+        auto receiver = Schnorr::GetInstance().GenKeyPair();
+        receiverAddr = Account::GetAddressFromPublicKey(receiver.second);
+        LOG_GENERAL(INFO,
+                    "Generate testing transaction receiver " << receiverAddr);
+    });
+    return receiverAddr;
+}
+
+Transaction CreateValidTestingTransaction(PrivKey& fromPrivKey,
+                                          PubKey& fromPubKey,
+                                          const Address& toAddr,
+                                          uint256_t amount, uint256_t prevNonce)
+{
+    unsigned int version = 0;
+    auto nonce = prevNonce + 1;
+
+    // LOG_GENERAL("fromPrivKey " << fromPrivKey << " / fromPubKey " << fromPubKey
+    // << " / toAddr" << toAddr);
+
+    Transaction txn(version, nonce, toAddr, make_pair(fromPrivKey, fromPubKey),
+                    amount, 1, 1, {}, {});
+
+    // std::vector<unsigned char> buf;
+    // txn.SerializeWithoutSignature(buf, 0);
+
+    // Signature sig;
+    // Schnorr::GetInstance().Sign(buf, fromPrivKey, fromPubKey, sig);
+
+    // vector<unsigned char> sigBuf;
+    // sig.Serialize(sigBuf, 0);
+    // txn.SetSignature(sigBuf);
+
+    return txn;
+}
+
+bool Lookup::GenTxnToSend(size_t n, map<uint32_t, vector<unsigned char>>& mp,
+                          uint32_t nShard)
+{
+    vector<unsigned char> txns;
+
+    if (GENESIS_KEYS.size() == 0)
+    {
+        LOG_GENERAL(WARNING, "No genesis keys found");
+        return false;
+    }
+
+    unsigned int NUM_TXN_TO_DS = n / GENESIS_KEYS.size();
+
+    for (auto& privKeyHexStr : GENESIS_KEYS)
+    {
+        auto privKeyBytes{DataConversion::HexStrToUint8Vec(privKeyHexStr)};
+        auto privKey = PrivKey{privKeyBytes, 0};
+        auto pubKey = PubKey{privKey};
+        auto addr = Account::GetAddressFromPublicKey(pubKey);
+
+        if (nShard == 0)
+        {
+            return false;
+        }
+        auto txnShard = Transaction::GetShardIndex(addr, nShard);
+        txns.clear();
+
+        uint256_t nonce
+            = AccountStore::GetInstance().GetAccount(addr)->GetNonce();
+
+        if (!GetTxnFromFile::GetFromFile(addr, static_cast<uint32_t>(nonce) + 1,
+                                         n, txns))
+        {
+            LOG_GENERAL(WARNING, "Failed to get txns from file");
+            return false;
+        }
+
+        /*Address receiverAddr = GenOneReceiver();
+        unsigned int curr_offset = 0;
+        txns.reserve(n);
+        for (auto i = 0u; i != n; i++)
+        {
+
+            Transaction txn(0, nonce + i + 1, receiverAddr,
+                            make_pair(privKey, pubKey), 10 * i + 2, 1, 1, {},
+                            {});
+
+            curr_offset = txn.Serialize(txns, curr_offset);
+        }*/
+        //[Change back here]
+        copy(txns.begin(), txns.end(), back_inserter(mp[txnShard]));
+
+        LOG_GENERAL(INFO,
+                    "[Batching] Last Nonce sent " << nonce + n << " of Addr "
+                                                  << addr.hex());
+        txns.clear();
+
+        if (!GetTxnFromFile::GetFromFile(addr,
+                                         static_cast<uint32_t>(nonce) + n + 1,
+                                         NUM_TXN_TO_DS, txns))
+        {
+            LOG_GENERAL(WARNING, "Failed to get txns for DS");
+        }
+
+        copy(txns.begin(), txns.end(), back_inserter(mp[nShard]));
+    }
+
+    return true;
 }
 
 vector<Peer> Lookup::GetLookupNodes()
@@ -813,7 +925,7 @@ bool Lookup::ProcessGetStateFromSeed(const vector<unsigned char>& message,
     unsigned int curr_offset = MessageOffset::BODY;
     curr_offset
         += AccountStore::GetInstance().Serialize(setStateMessage, curr_offset);
-    AccountStore::GetInstance().PrintAccountState();
+    // AccountStore::GetInstance().PrintAccountState();
 
     P2PComm::GetInstance().SendMessage(requestingNode, setStateMessage);
     // #endif // IS_LOOKUP_NODE
@@ -2118,3 +2230,202 @@ bool Lookup::AlreadyJoinedNetwork()
         return false;
     }
 }
+
+#ifdef IS_LOOKUP_NODE
+
+bool Lookup::AddToTxnShardMap(const Transaction& tx, uint32_t shardId)
+{
+    lock_guard<mutex> g(m_txnShardMapMutex);
+
+    m_txnShardMap[shardId].push_back(tx);
+
+    return true;
+}
+
+bool Lookup::DeleteTxnShardMap(uint32_t shardId)
+{
+    lock_guard<mutex> g(m_txnShardMapMutex);
+
+    m_txnShardMap[shardId].clear();
+
+    return true;
+}
+
+void Lookup::SenderTxnBatchThread()
+{
+    auto main_func = [this]() mutable -> void {
+        uint32_t nShard;
+        while (true)
+        {
+            if ((m_mediator.m_currentEpochNum + 1) % NUM_FINAL_BLOCK_PER_POW
+                != 0)
+            {
+                {
+                    lock_guard<mutex> g(m_mutexShards);
+                    nShard = m_shards.size();
+                }
+                if (nShard == 0)
+                {
+                    this_thread::sleep_for(chrono::milliseconds(100));
+                    continue;
+                }
+                SendTxnPacketToNodes(nShard);
+            }
+            break;
+        }
+
+    };
+    DetachedFunction(1, main_func);
+}
+
+bool Lookup::CreateTxnPacket(vector<unsigned char>& msg, uint32_t shardId,
+                             unsigned int offset,
+                             const map<uint32_t, vector<unsigned char>>& mp)
+{
+    //[epochNum][shard_id][numTxns][txn1][txn2]...
+    //Clears msg
+    LOG_MARKER();
+
+    unsigned int size_dummy
+        = (mp.find(shardId) != mp.end()) ? mp.at(shardId).size() : 0;
+    size_dummy = size_dummy / Transaction::GetMinSerializedSize();
+    unsigned int curr_offset = offset;
+
+    Serializable::SetNumber<uint64_t>(
+        msg, curr_offset, m_mediator.m_currentEpochNum, sizeof(uint64_t));
+
+    curr_offset += sizeof(uint64_t);
+
+    {
+        lock_guard<mutex> g(m_txnShardMapMutex);
+        unsigned int size_already = m_txnShardMap[shardId].size();
+        Serializable::SetNumber<uint32_t>(msg, curr_offset, shardId,
+                                          sizeof(uint32_t));
+        curr_offset += sizeof(uint32_t);
+        uint32_t num = size_already + size_dummy;
+        Serializable::SetNumber<uint32_t>(msg, curr_offset, num,
+                                          sizeof(uint32_t));
+        LOG_GENERAL(INFO,
+                    "[Batching] Generated " << num << " txns for shard "
+                                            << shardId);
+        curr_offset += sizeof(uint32_t);
+
+        for (uint32_t i = 0; i < size_already; i++)
+        {
+            curr_offset
+                = m_txnShardMap.at(shardId)[i].Serialize(msg, curr_offset);
+        }
+    }
+
+    if (size_dummy > 0)
+    {
+        copy(mp.at(shardId).begin(), mp.at(shardId).end(), back_inserter(msg));
+    }
+
+    return true;
+}
+
+void Lookup::SendTxnPacketToNodes(uint32_t nShard)
+{
+    LOG_MARKER();
+
+    map<uint32_t, vector<unsigned char>> mp;
+
+    if (!GenTxnToSend(NUM_TXN_TO_SEND_PER_ACCOUNT, mp, nShard))
+    {
+        LOG_GENERAL(WARNING, "GenTxnToSend failed");
+        return;
+    }
+
+    for (unsigned int i = 0; i < nShard + 1; i++)
+    {
+        vector<unsigned char> msg
+            = {MessageType::NODE, NodeInstructionType::FORWARDTXNBLOCK};
+        if (!CreateTxnPacket(msg, i, MessageOffset::BODY, mp))
+        {
+            LOG_GENERAL(WARNING, "Cannot create packet for " << i << " shard");
+            continue;
+        }
+        vector<Peer> toSend;
+        if (i < nShard)
+        {
+
+            {
+                lock_guard<mutex> g(m_mutexShards);
+                auto it = m_shards.at(i).begin();
+
+                for (unsigned int j = 0;
+                     j < NUM_NODES_TO_SEND_LOOKUP && it != m_shards.at(i).end();
+                     j++, it++)
+                {
+                    toSend.push_back(it->second);
+                }
+            }
+
+            P2PComm::GetInstance().SendBroadcastMessage(toSend, msg);
+
+            LOG_GENERAL(INFO, "Packet disposed off to " << i << " shard");
+
+            DeleteTxnShardMap(i);
+        }
+        else if (i == nShard)
+        {
+            //To send DS
+            {
+                lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+                auto it = m_mediator.m_DSCommittee->begin();
+
+                for (unsigned int j = 0; j < NUM_NODES_TO_SEND_LOOKUP
+                     && it != m_mediator.m_DSCommittee->end();
+                     j++, it++)
+                {
+                    toSend.push_back(it->second);
+                }
+            }
+
+            P2PComm::GetInstance().SendBroadcastMessage(toSend, msg);
+
+            LOG_GENERAL(INFO,
+                        "[DSMB]"
+                            << " Sent DS the txns");
+        }
+    }
+}
+
+void Lookup::SetServerTrue() { m_isServer = true; }
+
+bool Lookup::GetIsServer() { return m_isServer; }
+
+unsigned int TxnSyncTimeout = 5;
+
+void Lookup::LaunchTxnSyncThread(const string& ipAddr)
+{
+    auto func = [](const string& ipAddr) {
+
+        std::string rsyncTxnCommand = "rsync -az --size-only -e \"ssh -o "
+                                      "StrictHostKeyChecking=no\" ubuntu@"
+            + ipAddr + ":" + REMOTE_TXN_DIR + "/ " + TXN_PATH;
+
+        while (true)
+        {
+            LOG_GENERAL(INFO,
+                        "[SyncTxn] "
+                            << "Starting syncing");
+            string out;
+            if (!SysCommand::ExecuteCmdWithOutput(rsyncTxnCommand, out))
+            {
+                LOG_GENERAL(WARNING,
+                            "Unable to launch command " << rsyncTxnCommand);
+            }
+            else
+            {
+                LOG_GENERAL(INFO, "Command Output " << out);
+            }
+
+            this_thread::sleep_for(chrono::seconds(TxnSyncTimeout));
+        }
+    };
+    DetachedFunction(1, func, ipAddr);
+}
+
+#endif //IS_LOOKUP_NODE

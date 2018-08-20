@@ -60,7 +60,8 @@ enum NodeInstructionType : unsigned char
     FORWARDTRANSACTION = 0x05,
     CREATETRANSACTIONFROMLOOKUP = 0x06,
     VCBLOCK = 0x07,
-    DOREJOIN = 0x08
+    DOREJOIN = 0x08,
+    FORWARDTXNBLOCK = 0x09
 };
 
 enum LookupInstructionType : unsigned char

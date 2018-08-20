@@ -111,22 +111,30 @@ bool DirectoryService::ProcessStateDelta(
     LOG_MARKER();
 
     LOG_GENERAL(INFO,
-                "Received MicroBlock State Delta root : "
+                "Received MicroBlock State Delta hash : "
                     << DataConversion::charArrToHexStr(
                            microBlockStateDeltaHash.asArray()));
+
+    if (microBlockStateDeltaHash == StateHash())
+    {
+        LOG_GENERAL(INFO,
+                    "State Delta hash received from microblock is null, "
+                    "skip processing state delta");
+        return true;
+    }
 
     vector<unsigned char> stateDeltaBytes;
     copy(message.begin() + cur_offset, message.end(),
          back_inserter(stateDeltaBytes));
 
-    LOG_GENERAL(INFO,
-                "stateDeltaBytes:"
-                    << DataConversion::CharArrayToString(stateDeltaBytes));
-
     if (stateDeltaBytes.empty())
     {
         LOG_GENERAL(INFO, "State Delta is empty");
         return true;
+    }
+    else
+    {
+        LOG_GENERAL(INFO, "State Delta size: " << stateDeltaBytes.size());
     }
 
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
@@ -155,6 +163,10 @@ bool DirectoryService::ProcessStateDelta(
                     "AccountStore::GetInstance().DeserializeDeltaTemp failed");
         return false;
     }
+
+    m_stateDeltaFromShards.clear();
+    AccountStore::GetInstance().SerializeDelta();
+    AccountStore::GetInstance().GetSerializedDelta(m_stateDeltaFromShards);
 
     return true;
 }
@@ -215,8 +227,10 @@ bool DirectoryService::ProcessMicroblockSubmissionCore(
                     << "TxRootHash: "
                     << microBlock.GetHeader().GetTxRootHash(););
 
-    lock_guard<mutex> g(m_mutexMicroBlocks);
-    m_microBlocks.emplace(microBlock);
+    {
+        lock_guard<mutex> g(m_mutexMicroBlocks);
+        m_microBlocks.emplace(microBlock);
+    }
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               m_microBlocks.size()
@@ -246,8 +260,31 @@ bool DirectoryService::ProcessMicroblockSubmissionCore(
                           << microBlock.GetHeader().GetStateDeltaHash());
         }
 
-        cv_scheduleFinalBlockConsensus.notify_all();
-        RunConsensusOnFinalBlock();
+        // m_mediator.m_node->RunConsensusOnMicroBlock();
+
+        auto func = [this]() mutable -> void {
+            cv_scheduleDSMicroBlockConsensus.notify_all();
+            m_mediator.m_node->RunConsensusOnMicroBlock();
+        };
+
+        DetachedFunction(1, func);
+
+        auto func2 = [this]() mutable -> void {
+            std::unique_lock<std::mutex> cv_lk(
+                m_MutexScheduleFinalBlockConsensus);
+            if (cv_scheduleFinalBlockConsensus.wait_for(
+                    cv_lk, std::chrono::seconds(MICROBLOCK_TIMEOUT))
+                == std::cv_status::timeout)
+            {
+                LOG_GENERAL(WARNING,
+                            "Timeout: Didn't finish DS Microblock. Proceeds "
+                            "without it");
+
+                RunConsensusOnFinalBlock(true);
+            }
+        };
+
+        DetachedFunction(1, func2);
     }
     else if ((m_microBlocks.size() == 1) && (m_mode == PRIMARY_DS))
     {

@@ -51,6 +51,12 @@ std::string ReadSmartContractConstants(std::string propertyName)
     return pt.get<std::string>("node.smart_contract." + propertyName);
 }
 
+std::string ReadTransactionDispatcher(std::string propertyName)
+{
+    auto pt = PTree::GetInstance();
+    return pt.get<std::string>("node.TransactionDispatcher." + propertyName);
+}
+
 const std::vector<std::string>
 ReadAccountsFromConstantsFile(std::string propName)
 {
@@ -122,6 +128,10 @@ const unsigned int BROADCAST_INTERVAL{
 const unsigned int BROADCAST_EXPIRY{ReadFromConstantsFile("BROADCAST_EXPIRY")};
 const unsigned int TX_DISTRIBUTE_TIME_IN_MS{
     ReadFromConstantsFile("TX_DISTRIBUTE_TIME_IN_MS")};
+const unsigned int NUM_TXN_TO_SEND_PER_ACCOUNT{
+    ReadFromConstantsFile("NUM_TXN_TO_SEND_PER_ACCOUNT")};
+const unsigned int NUM_NODES_TO_SEND_LOOKUP{
+    ReadFromConstantsFile("NUM_NODES_TO_SEND_LOOKUP")};
 
 const bool EXCLUDE_PRIV_IP{
     ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true" ? true : false};
@@ -159,3 +169,9 @@ const std::string OUTPUT_JSON{SCILLA_FILES + '/'
                               + ReadSmartContractConstants("OUTPUT_JSON")};
 const std::string INPUT_CODE{SCILLA_FILES + '/'
                              + ReadSmartContractConstants("INPUT_CODE")};
+const std::string TXN_PATH{ReadTransactionDispatcher("PATH")};
+const bool USE_REMOTE_TXN_CREATOR{
+    ReadTransactionDispatcher("USE_REMOTE_TXN_CREATOR") == "true" ? true
+                                                                  : false};
+const std::string REMOTE_TXN_CREATOR_IP{
+    ReadTransactionDispatcher("REMOTE_TXN_CREATOR_IP")};
