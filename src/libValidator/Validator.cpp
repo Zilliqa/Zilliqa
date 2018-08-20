@@ -105,8 +105,10 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx) const
         return false;
     }
 
+    TransactionReceipt receipt;
+
     return AccountStore::GetInstance().UpdateAccountsTemp(
-        m_mediator.m_currentEpochNum, tx);
+        m_mediator.m_currentEpochNum, tx, receipt);
 }
 
 bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
