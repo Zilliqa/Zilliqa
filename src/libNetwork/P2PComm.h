@@ -106,6 +106,12 @@ class P2PComm
     boost::lockfree::queue<SendJob*> m_sendQueue;
     void ProcessSendJob(SendJob* job);
 
+    static void EventCallback(struct bufferevent* bev, short events, void* ctx);
+    static void AcceptConnectionCallback(evconnlistener* listener,
+                                         evutil_socket_t cli_sock,
+                                         struct sockaddr* cli_addr, int socklen,
+                                         void* arg);
+
 public:
     /// Returns the singleton P2PComm instance.
     static P2PComm& GetInstance();
@@ -116,21 +122,10 @@ public:
     using BroadcastListFunc = std::function<std::vector<Peer>(
         unsigned char msg_type, unsigned char ins_type, const Peer&)>;
 
-    /// Receives incoming message and assigns to designated message dispatcher.
-    static void HandleAcceptedConnection(int cli_sock, Peer from);
-
 private:
     using SocketCloser = std::unique_ptr<int, void (*)(int*)>;
     static Dispatcher m_dispatcher;
     static BroadcastListFunc m_broadcast_list_retriever;
-
-    static void HandleAcceptedConnectionNormal(int cli_sock, Peer from,
-                                               uint32_t message_length,
-                                               SocketCloser cli_sock_closer);
-
-    static void HandleAcceptedConnectionBroadcast(int cli_sock, Peer from,
-                                                  uint32_t message_length,
-                                                  SocketCloser cli_sock_closer);
 
 public:
     /// Accept TCP connection for libevent usage
