@@ -272,6 +272,10 @@ bool Node::ProcessMicroblockConsensus(
         }
         else
         {
+
+            m_mediator.m_ds->SaveCoinbase(
+                m_microblock->GetB1(), m_microblock->GetB2(),
+                m_microblock->GetHeader().GetShardID());
             m_mediator.m_ds->cv_scheduleFinalBlockConsensus.notify_all();
             {
                 lock_guard<mutex> g(m_mediator.m_ds->m_mutexMicroBlocks);

@@ -92,10 +92,10 @@ bool DirectoryService::SaveCoinbaseCore(const vector<bool>& b1,
 
 bool DirectoryService::SaveCoinbase(const vector<bool>& b1,
                                     const vector<bool>& b2,
-                                    const uint32_t& shard_id)
+                                    const int32_t& shard_id)
 {
     LOG_MARKER();
-    if (shard_id == m_shards.size())
+    if (shard_id == (int32_t)m_shards.size() || shard_id == -1)
     {
         //DS
         LOG_GENERAL(INFO,

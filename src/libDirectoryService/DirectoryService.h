@@ -127,7 +127,7 @@ class DirectoryService : public Executable, public Broadcastable
 
     //Coinbase
 #ifndef IS_LOOKUP_NODE
-    std::map<uint64_t, std::unordered_map<uint32_t, std::vector<Address>>>
+    std::map<uint64_t, std::unordered_map<int32_t, std::vector<Address>>>
         m_coinbaseRewardees;
     std::mutex m_mutexCoinbaseRewardees;
 #endif //IS_LOOKUP_NODE
@@ -376,7 +376,7 @@ public:
 
     //Coinbase
     bool SaveCoinbase(const std::vector<bool>& b1, const std::vector<bool>& b2,
-                      const uint32_t& shard_id);
+                      const int32_t& shard_id);
     void InitCoinbase();
 
     template<class Container>
