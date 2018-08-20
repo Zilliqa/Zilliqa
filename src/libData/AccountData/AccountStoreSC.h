@@ -51,6 +51,7 @@ template<class MAP> class AccountStoreSC : public AccountStoreBase<MAP>
     uint256_t m_curGasCum;
     uint256_t m_curGasLimit;
     uint256_t m_curGasPrice;
+    TransactionReceipt m_curTranReceipt;
 
     bool ParseCreateContractOutput();
     bool ParseCreateContractJsonOutput(const Json::Value& _json);
@@ -85,7 +86,8 @@ public:
     void Init() override;
 
     bool UpdateAccounts(const uint64_t& blockNum,
-                        const Transaction& transaction);
+                        const Transaction& transaction,
+                        TransactionReceipt& receipt);
 };
 
 #include "AccountStoreAtomic.tpp"

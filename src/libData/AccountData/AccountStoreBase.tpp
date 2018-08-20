@@ -124,7 +124,8 @@ int AccountStoreBase<MAP>::Deserialize(const vector<unsigned char>& src,
 }
 
 template<class MAP>
-bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction)
+bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
+                                           TransactionReceipt& receipt)
 {
     const PubKey& senderPubKey = transaction.GetSenderPubKey();
     const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
@@ -193,6 +194,9 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction)
     IncreaseBalance(fromAddr, gasRefund);
 
     IncreaseNonce(fromAddr);
+
+    receipt.SetResult(true);
+    receipt.SetCumGas(NORMAL_TRAN_GAS);
 
     return true;
 }
