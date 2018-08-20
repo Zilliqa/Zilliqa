@@ -118,7 +118,14 @@ P2PComm::P2PComm()
     DetachedFunction(1, func);
 }
 
-P2PComm::~P2PComm() {}
+P2PComm::~P2PComm()
+{
+    SendJob* job = NULL;
+    while (m_sendQueue.pop(job))
+    {
+        delete job;
+    }
+}
 
 P2PComm& P2PComm::GetInstance()
 {

@@ -198,7 +198,14 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
 #endif // IS_LOOKUP_NODE
 }
 
-Zilliqa::~Zilliqa() {}
+Zilliqa::~Zilliqa()
+{
+    pair<vector<unsigned char>, Peer>* message = NULL;
+    while (m_msgQueue.pop(message))
+    {
+        delete message;
+    }
+}
 
 void Zilliqa::Dispatch(pair<vector<unsigned char>, Peer>* message)
 {
