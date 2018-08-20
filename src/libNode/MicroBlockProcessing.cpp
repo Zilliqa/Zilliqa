@@ -905,7 +905,7 @@ bool Node::RunConsensusOnMicroBlock()
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "[CNBSE]");
 
-        //m_mediator.m_ds->InitCoinbase();
+        m_mediator.m_ds->InitCoinbase();
     }
     if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
     {
