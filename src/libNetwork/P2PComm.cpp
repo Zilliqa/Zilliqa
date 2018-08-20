@@ -571,6 +571,15 @@ void P2PComm::AcceptConnectionCallback([[gnu::unused]] evconnlistener* listener,
 
     LOG_GENERAL(INFO, "Incoming message from " << *from);
 
+    if (Blacklist::GetInstance().Exist(from->m_ipAddress))
+    {
+        LOG_GENERAL(INFO,
+                    "The node "
+                        << from
+                        << " is in black list, block all message from it.");
+        return;
+    }
+
     // Set up buffer event for this new connection
     struct event_base* base = evconnlistener_get_base(listener);
     struct bufferevent* bev = bufferevent_socket_new(
