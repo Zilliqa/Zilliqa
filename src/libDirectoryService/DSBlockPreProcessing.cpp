@@ -67,7 +67,7 @@ void DirectoryService::ComposeDSBlock()
     {
         DSBlock lastBlock = m_mediator.m_dsBlockChain.GetLastBlock();
         blockNum = lastBlock.GetHeader().GetBlockNum() + 1;
-        difficulty = lastBlock.GetHeader().GetDifficulty();
+        difficulty = m_mediator.getCurrentDifficulty();
     }
 
     // Assemble DS block
@@ -248,6 +248,14 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
     lock(m_mutexPendingDSBlock, m_mutexAllPoWConns);
     lock_guard<mutex> g(m_mutexPendingDSBlock, adopt_lock);
     lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
+
+    auto newDifficulty
+        = CalculateNewDifficulty(m_mediator.getCurrentDifficulty());
+    LOG_GENERAL(INFO,
+                "Current difficulty "
+                    << std::to_string(m_mediator.getCurrentDifficulty())
+                    << ", new difficulty " << std::to_string(newDifficulty));
+    m_mediator.setCurrentDifficulty(newDifficulty);
 
     ComposeDSBlock();
 
@@ -436,6 +444,20 @@ bool DirectoryService::DSBlockValidator(
         m_allPoWConns.emplace(m_pendingDSBlock->GetHeader().GetMinerPubKey(),
                               winnerPeer);
     }
+
+    auto remoteDifficulty = m_pendingDSBlock->GetHeader().GetDifficulty();
+    auto localDifficulty
+        = CalculateNewDifficulty(m_mediator.getCurrentDifficulty());
+    if (remoteDifficulty != localDifficulty)
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "WARNING: The difficulty"
+                      << remoteDifficulty
+                      << " from leader not match with local calculated result"
+                      << localDifficulty);
+        return false;
+    }
+    m_mediator.setCurrentDifficulty(remoteDifficulty);
 
     // [Sharding structure]
     curr_offset = PopulateShardingStructure(message, curr_offset);
