@@ -197,7 +197,7 @@ bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body)
     {
         return false;
     }
-    body = TxBodySharedPtr(new Transaction(
+    body = TxBodySharedPtr(new TransactionWithReceipt(
         std::vector<unsigned char>(bodyString.begin(), bodyString.end()), 0));
 
     return true;

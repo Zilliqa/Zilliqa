@@ -31,14 +31,13 @@
 
 class TransactionReceipt : public Serializable
 {
-    Json::Value m_tranReceiptObj;
+    Json::Value m_tranReceiptObj = Json::nullValue;
     std::string m_tranReceiptStr;
-    bool m_updated = true;
     unsigned int m_serialized_size = 0;
     boost::multiprecision::uint256_t m_cumGas = 0;
 
 public:
-    TransactionReceipt() = default;
+    TransactionReceipt();
     unsigned int Serialize(std::vector<unsigned char>& dst,
                            unsigned int offset) const;
     int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
@@ -46,9 +45,11 @@ public:
     void SetResult(const bool& result);
     void SetCumGas(const boost::multiprecision::uint256_t& cumGas);
     void AddEntry(const LogEntry& entry);
-    std::string GetString();
+    const std::string& GetString() const { return m_tranReceiptStr; }
     const boost::multiprecision::uint256_t& GetCumGas() { return m_cumGas; }
     void clear();
+    const Json::Value& GetJsonValue() const { return m_tranReceiptObj; }
+    void update();
 };
 
 class TransactionWithReceipt : public Serializable
@@ -63,6 +64,11 @@ public:
         : m_transaction(tran)
         , m_tranReceipt(tranReceipt)
     {
+    }
+    TransactionWithReceipt(const std::vector<unsigned char>& src,
+                           unsigned int offset)
+    {
+        Deserialize(src, offset);
     }
 
     /// Implements the Serialize function inherited from Serializable.
@@ -100,7 +106,10 @@ public:
     }
 
     const Transaction& GetTransaction() const { return m_transaction; }
-    TransactionReceipt& GetTransactionReceipt() { return m_tranReceipt; }
+    const TransactionReceipt& GetTransactionReceipt() const
+    {
+        return m_tranReceipt;
+    }
 
     static bool ComputeTransactionReceiptsHash(
         const std::vector<TxnHash>& txnOrder,

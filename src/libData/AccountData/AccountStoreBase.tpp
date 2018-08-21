@@ -197,6 +197,7 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
 
     receipt.SetResult(true);
     receipt.SetCumGas(NORMAL_TRAN_GAS);
+    receipt.update();
 
     return true;
 }
