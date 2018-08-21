@@ -23,8 +23,6 @@ using namespace boost::multiprecision;
 unsigned int TransactionReceipt::Serialize(std::vector<unsigned char>& dst,
                                            unsigned int offset) const
 {
-    unsigned int t_offset = offset;
-
     vector<unsigned char> receiptBytes
         = DataConversion::StringToCharArray(m_tranReceiptStr);
 
@@ -37,7 +35,7 @@ unsigned int TransactionReceipt::Serialize(std::vector<unsigned char>& dst,
     copy(receiptBytes.begin(), receiptBytes.end(), dst.begin() + offset);
     offset += receiptBytes.size();
 
-    return offset - t_offset;
+    return offset;
 }
 
 int TransactionReceipt::Deserialize(const std::vector<unsigned char>& src,
@@ -99,7 +97,8 @@ void TransactionReceipt::SetResult(const bool& result)
 
 void TransactionReceipt::SetCumGas(const uint256_t& cumGas)
 {
-    m_tranReceiptObj["cumulative_gas"] = cumGas.convert_to<string>();
+    m_cumGas = cumGas;
+    m_tranReceiptObj["cumulative_gas"] = m_cumGas.convert_to<string>();
     m_updated = true;
 }
 

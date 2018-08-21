@@ -313,15 +313,14 @@ bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
                                       const unsigned int& numShards,
                                       const bool& isDS,
                                       const Transaction& transaction,
-                                      TransactionReceipt& receipt,
-                                      uint256_t& gasUsed)
+                                      TransactionReceipt& receipt)
 {
     // LOG_MARKER();
 
     lock_guard<mutex> g(m_mutexDelta);
 
     return m_accountStoreTemp->UpdateAccounts(blockNum, numShards, isDS,
-                                              transaction, receipt, gasUsed);
+                                              transaction, receipt);
 }
 
 bool AccountStore::UpdateCoinbaseTemp(const Address& rewardee,
@@ -356,14 +355,13 @@ AccountStore::GetNonceTemp(const Address& address)
 
 StateHash AccountStore::GetStateDeltaHash()
 {
-    vector<unsigned char> vec;
-    GetSerializedDelta(vec);
+    lock_guard<mutex> g(m_mutexDelta);
 
     bool isEmpty = true;
 
-    for (unsigned int i = 0; i < vec.size(); i++)
+    for (unsigned int i = 0; i < m_stateDeltaSerialized.size(); i++)
     {
-        if (vec[i] != 0)
+        if (m_stateDeltaSerialized[i] != 0)
         {
             isEmpty = false;
             break;
@@ -376,7 +374,7 @@ StateHash AccountStore::GetStateDeltaHash()
     }
 
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-    sha2.Update(vec);
+    sha2.Update(m_stateDeltaSerialized);
     return StateHash(sha2.Finalize());
 }
 

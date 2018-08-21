@@ -91,8 +91,7 @@ public:
 
     bool UpdateAccounts(const uint64_t& blockNum, const unsigned int& numShards,
                         const bool& isDS, const Transaction& transaction,
-                        TransactionReceipt& receipt,
-                        uint256_t& gasUsed = DEFAULT_GASUSED);
+                        TransactionReceipt& receipt);
 };
 
 #include "AccountStoreAtomic.tpp"
