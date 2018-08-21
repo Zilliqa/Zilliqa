@@ -34,6 +34,7 @@
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
+#include "libData/AccountData/TransactionReceipt.h"
 #include "libMediator/Mediator.h"
 #include "libPOW/pow.h"
 #include "libServer/Server.h"
@@ -101,7 +102,7 @@ void Node::StoreFinalBlock(const TxBlock& txBlock)
         + 1;
 
     // At this point, the transactions in the last Epoch is no longer useful, thus erase.
-    EraseCommittedTransactions(m_mediator.m_currentEpochNum - 2);
+    // EraseCommittedTransactions(m_mediator.m_currentEpochNum - 2);
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Storing Tx Block Number: "
@@ -352,7 +353,7 @@ bool Node::CheckMicroBlockRootHash(const TxBlock& finalBlock,
 
 #ifndef IS_LOOKUP_NODE
 void Node::BroadcastTransactionsToLookup(
-    const vector<Transaction>& txns_to_send)
+    const vector<TransactionWithReceipt>& txns_to_send)
 {
     LOG_MARKER();
 
@@ -400,19 +401,20 @@ void Node::BroadcastTransactionsToLookup(
 
         for (unsigned int i = 0; i < txns_to_send.size(); i++)
         {
-            // txn body
-            txns_to_send.at(i).Serialize(forwardtxn_message, cur_offset);
-            cur_offset += txns_to_send.at(i).GetSerializedSize();
+            // txn body and receipt
+            cur_offset
+                = txns_to_send.at(i).Serialize(forwardtxn_message, cur_offset);
         }
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "I will soon be sending the txn bodies to the lookup nodes");
+                  "I will soon be sending the txn bodies and receipts to the "
+                  "lookup nodes");
         m_mediator.m_lookup->SendMessageToLookupNodes(forwardtxn_message);
     }
     else
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "DEBUG I have no txn body to send")
+                  "DEBUG I have no txn body and receipt to send")
     }
 }
 
@@ -555,7 +557,7 @@ void Node::BeginNextConsensusRound()
 }
 
 void Node::GetMyShardsMicroBlock(const uint64_t& blocknum, uint8_t sharing_mode,
-                                 vector<Transaction>& txns_to_send)
+                                 vector<TransactionWithReceipt>& txns_to_send)
 {
     LOG_MARKER();
 
@@ -582,17 +584,17 @@ void Node::GetMyShardsMicroBlock(const uint64_t& blocknum, uint8_t sharing_mode,
     }
 }
 
-bool Node::FindTxnInProcessedTxnsList(const uint64_t& blockNum,
-                                      uint8_t sharing_mode,
-                                      vector<Transaction>& txns_to_send,
-                                      const TxnHash& tx_hash)
+bool Node::FindTxnInProcessedTxnsList(
+    const uint64_t& blockNum, uint8_t sharing_mode,
+    vector<TransactionWithReceipt>& txns_to_send, const TxnHash& tx_hash)
 {
-    lock(m_mutexProcessedTransactions, m_mutexCommittedTransactions);
-    lock_guard<mutex> g(m_mutexProcessedTransactions, adopt_lock);
-    lock_guard<mutex> g2(m_mutexCommittedTransactions, adopt_lock);
+    // lock(m_mutexProcessedTransactions, m_mutexCommittedTransactions);
+    // lock_guard<mutex> g(m_mutexProcessedTransactions, adopt_lock);
+    // lock_guard<mutex> g2(m_mutexCommittedTransactions, adopt_lock);
+    lock_guard<mutex> g(m_mutexProcessedTransactions);
 
     auto& processedTransactions = m_processedTransactions[blockNum];
-    auto& committedTransactions = m_committedTransactions[blockNum];
+    // auto& committedTransactions = m_committedTransactions[blockNum];
     const auto& txnIt = processedTransactions.find(tx_hash);
 
     // Check if transaction is part of submitted Tx list
@@ -604,7 +606,7 @@ bool Node::FindTxnInProcessedTxnsList(const uint64_t& blockNum,
         }
 
         // Move entry from submitted Tx list to committed Tx list
-        committedTransactions.push_back(txnIt->second);
+        // committedTransactions.push_back(txnIt->second);
         processedTransactions.erase(txnIt);
 
         // Move on to next transaction in block
@@ -619,7 +621,7 @@ void Node::CallActOnFinalblock()
     uint64_t blocknum
         = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
-    std::vector<Transaction> txns_to_send;
+    std::vector<TransactionWithReceipt> txns_to_send;
 
     if ((m_txnSharingIAmSender == false) && (m_txnSharingIAmForwarder == true))
     {
@@ -995,7 +997,7 @@ bool Node::ProcessStateDeltaFromFinalBlock(
 bool Node::LoadForwardedTxnsAndCheckRoot(
     const vector<unsigned char>& message, unsigned int cur_offset,
     TxnHash& microBlockTxHash, StateHash& microBlockStateDeltaHash,
-    vector<Transaction>& txnsInForwardedMessage)
+    vector<TransactionWithReceipt>& txnsInForwardedMessage)
 // vector<TxnHash> & txnHashesInForwardedMessage)
 {
     LOG_MARKER();
@@ -1026,16 +1028,17 @@ bool Node::LoadForwardedTxnsAndCheckRoot(
     {
         // reading [Transaction] from received msg
         // Transaction tx(message, cur_offset);
-        Transaction tx;
-        if (tx.Deserialize(message, cur_offset) != 0)
+        TransactionWithReceipt txr;
+        if (txr.Deserialize(message, cur_offset) != 0)
         {
             LOG_GENERAL(WARNING, "We failed to deserialize Transaction.");
             return false;
         }
-        cur_offset += tx.GetSerializedSize();
+        cur_offset += txr.GetSerializedSize();
 
-        txnsInForwardedMessage.emplace_back(tx);
-        txnHashesInForwardedMessage.emplace_back(tx.GetTranID());
+        txnsInForwardedMessage.emplace_back(txr);
+        txnHashesInForwardedMessage.emplace_back(
+            txr.GetTransaction().GetTranID());
     }
 
     return ComputeTransactionsRoot(txnHashesInForwardedMessage)
@@ -1043,45 +1046,46 @@ bool Node::LoadForwardedTxnsAndCheckRoot(
 }
 
 void Node::CommitForwardedTransactions(
-    const vector<Transaction>& txnsInForwardedMessage, const uint64_t& blocknum)
+    const vector<TransactionWithReceipt>& txnsInForwardedMessage,
+    [[gnu::unused]] const uint64_t& blocknum)
 {
     LOG_MARKER();
 
     unsigned int txn_counter = 0;
-    for (const auto& tx : txnsInForwardedMessage)
+    for (const auto& txr : txnsInForwardedMessage)
     {
-        {
-            lock_guard<mutex> g(m_mutexCommittedTransactions);
-            m_committedTransactions[blocknum].emplace_back(tx);
-            // if (!AccountStore::GetInstance().UpdateAccounts(
-            //         m_mediator.m_currentEpochNum - 1, tx))
-            // {
-            //     LOG_GENERAL(WARNING, "UpdateAccounts failed");
-            //     m_committedTransactions[blocknum].pop_back();
-            //     continue;
-            // }
-        }
+    // {
+    // lock_guard<mutex> g(m_mutexCommittedTransactions);
+    // m_committedTransactions[blocknum].emplace_back(txr);
+    // if (!AccountStore::GetInstance().UpdateAccounts(
+    //         m_mediator.m_currentEpochNum - 1, tx))
+    // {
+    //     LOG_GENERAL(WARNING, "UpdateAccounts failed");
+    //     m_committedTransactions[blocknum].pop_back();
+    //     continue;
+    // }
+    // }
 
-            // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            //              "[TXN] [" << blocknum << "] Body received = 0x" << tx.GetTranID());
+    // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    //              "[TXN] [" << blocknum << "] Body received = 0x" << tx.GetTranID());
 
-            // Update from and to accounts
-            // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "Account store updated");
+    // Update from and to accounts
+    // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "Account store updated");
 
-            // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            //              "Storing Transaction: " << tx.GetTranID() <<
-            //              " with amount: " << tx.GetAmount() <<
-            //              ", to: " << tx.GetToAddr() <<
-            //              ", from: " << tx.GetFromAddr());
+    // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    //              "Storing Transaction: " << tx.GetTranID() <<
+    //              " with amount: " << tx.GetAmount() <<
+    //              ", to: " << tx.GetToAddr() <<
+    //              ", from: " << tx.GetFromAddr());
 #ifdef IS_LOOKUP_NODE
-        Server::AddToRecentTransactions(tx.GetTranID());
+        Server::AddToRecentTransactions(txr.GetTransaction().GetTranID());
 #endif //IS_LOOKUP_NODE
 
         // Store TxBody to disk
         vector<unsigned char> serializedTxBody;
-        tx.Serialize(serializedTxBody, 0);
-        BlockStorage::GetBlockStorage().PutTxBody(tx.GetTranID(),
-                                                  serializedTxBody);
+        txr.GetTransaction().Serialize(serializedTxBody, 0);
+        BlockStorage::GetBlockStorage().PutTxBody(
+            txr.GetTransaction().GetTranID(), serializedTxBody);
 
         txn_counter++;
         if (txn_counter % 10000 == 0)
@@ -1197,7 +1201,7 @@ bool Node::ProcessForwardTransactionCore(const vector<unsigned char>& message,
 
     TxnHash microBlockTxRootHash;
     StateHash microBlockStateDeltaHash;
-    vector<Transaction> txnsInForwardedMessage;
+    vector<TransactionWithReceipt> txnsInForwardedMessage;
     // vector<TxnHash> txnHashesInForwardedMessage;
 
     if (!LoadForwardedTxnsAndCheckRoot(
