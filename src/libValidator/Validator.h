@@ -36,9 +36,8 @@ public:
     virtual void CleanVariables() = 0;
 
 #ifndef IS_LOOKUP_NODE
-    virtual bool CheckCreatedTransaction(
-        const Transaction& tx,
-        boost::multiprecision::uint256_t& gasUsed) const = 0;
+    virtual bool CheckCreatedTransaction(const Transaction& tx,
+                                         TransactionReceipt& receipt) const = 0;
     virtual bool CheckCreatedTransactionFromLookup(const Transaction& tx) = 0;
 #endif // IS_LOOKUP_NODE
 };
@@ -58,9 +57,8 @@ public:
     void CleanVariables() override;
 
 #ifndef IS_LOOKUP_NODE
-    bool CheckCreatedTransaction(
-        const Transaction& tx,
-        boost::multiprecision::uint256_t& gasUsed) const override;
+    bool CheckCreatedTransaction(const Transaction& tx,
+                                 TransactionReceipt& receipt) const override;
     bool CheckCreatedTransactionFromLookup(const Transaction& tx) override;
 #endif // IS_LOOKUP_NODE
 
