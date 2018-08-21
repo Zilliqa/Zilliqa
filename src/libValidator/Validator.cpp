@@ -50,7 +50,7 @@ void Validator::CleanVariables()
 
 #ifndef IS_LOOKUP_NODE
 bool Validator::CheckCreatedTransaction(const Transaction& tx,
-                                        uint256_t& gasUsed) const
+                                        TransactionReceipt& receipt) const
 {
     // LOG_MARKER();
 
@@ -106,12 +106,9 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx,
         return false;
     }
 
-    TransactionReceipt receipt;
-
     return AccountStore::GetInstance().UpdateAccountsTemp(
         m_mediator.m_currentEpochNum, m_mediator.m_node->getNumShards(),
-        m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE, tx, receipt,
-        gasUsed);
+        m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE, tx, receipt);
 }
 
 bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
