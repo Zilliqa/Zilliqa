@@ -18,6 +18,7 @@
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Address.h"
 #include "libData/AccountData/Transaction.h"
+#include "libData/AccountData/TransactionReceipt.h"
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/DB.h"
 #include "libUtils/TimeUtils.h"
@@ -52,11 +53,15 @@ BOOST_AUTO_TEST_CASE(testReadWriteSimpleStringToDB)
         "ERROR: return value from DB not equal to inserted value");
 }
 
-Transaction constructDummyTxBody(int instanceNum)
+TransactionWithReceipt constructDummyTxBody(int instanceNum)
 {
     Address addr;
-    return Transaction(0, instanceNum, addr,
-                       Schnorr::GetInstance().GenKeyPair(), 0, 1, 2, {}, {});
+    // return Transaction(0, instanceNum, addr,
+    //                    Schnorr::GetInstance().GenKeyPair(), 0, 1, 2, {}, {});
+    return TransactionWithReceipt(
+        Transaction(0, instanceNum, addr, Schnorr::GetInstance().GenKeyPair(),
+                    0, 1, 2, {}, {}),
+        TransactionReceipt());
 }
 
 BOOST_AUTO_TEST_CASE(testSerializationDeserialization)
@@ -67,14 +72,15 @@ BOOST_AUTO_TEST_CASE(testSerializationDeserialization)
 
     // checking if normal serialization and deserialization of blocks is working or not
 
-    Transaction body1 = constructDummyTxBody(0);
+    TransactionWithReceipt body1 = constructDummyTxBody(0);
 
     std::vector<unsigned char> serializedTxBody;
     body1.Serialize(serializedTxBody, 0);
 
-    Transaction body2(serializedTxBody, 0);
+    TransactionWithReceipt body2(serializedTxBody, 0);
 
-    BOOST_CHECK_MESSAGE(body1.GetTranID() == body2.GetTranID(),
+    BOOST_CHECK_MESSAGE(body1.GetTransaction().GetTranID()
+                            == body2.GetTransaction().GetTranID(),
                         "Error: Transaction id shouldn't change after "
                         "serailization and deserialization");
 }
@@ -159,9 +165,9 @@ BOOST_AUTO_TEST_CASE(testBlockStorage)
 
     LOG_MARKER();
 
-    Transaction body1 = constructDummyTxBody(0);
+    TransactionWithReceipt body1 = constructDummyTxBody(0);
 
-    auto tx_hash = body1.GetTranID();
+    auto tx_hash = body1.GetTransaction().GetTranID();
 
     vector<unsigned char> serializedTxBody;
     body1.Serialize(serializedTxBody, 0);
@@ -183,15 +189,15 @@ BOOST_AUTO_TEST_CASE(testRandomBlockAccesses)
 
     LOG_MARKER();
 
-    Transaction body1 = constructDummyTxBody(1);
-    Transaction body2 = constructDummyTxBody(2);
-    Transaction body3 = constructDummyTxBody(3);
-    Transaction body4 = constructDummyTxBody(4);
+    TransactionWithReceipt body1 = constructDummyTxBody(1);
+    TransactionWithReceipt body2 = constructDummyTxBody(2);
+    TransactionWithReceipt body3 = constructDummyTxBody(3);
+    TransactionWithReceipt body4 = constructDummyTxBody(4);
 
-    auto tx_hash1 = body1.GetTranID();
-    auto tx_hash2 = body2.GetTranID();
-    auto tx_hash3 = body3.GetTranID();
-    auto tx_hash4 = body4.GetTranID();
+    auto tx_hash1 = body1.GetTransaction().GetTranID();
+    auto tx_hash2 = body2.GetTransaction().GetTranID();
+    auto tx_hash3 = body3.GetTransaction().GetTranID();
+    auto tx_hash4 = body4.GetTransaction().GetTranID();
 
     std::vector<unsigned char> serializedTxBody;
 
@@ -214,23 +220,27 @@ BOOST_AUTO_TEST_CASE(testRandomBlockAccesses)
     BlockStorage::GetBlockStorage().GetTxBody(tx_hash2, blockRetrieved);
 
     BOOST_CHECK_MESSAGE(
-        body2.GetTranID() == (*blockRetrieved).GetTranID(),
+        body2.GetTransaction().GetTranID()
+            == (*blockRetrieved).GetTransaction().GetTranID(),
         "transaction id shouldn't change after writing to/ reading from disk");
 
     BlockStorage::GetBlockStorage().GetTxBody(tx_hash4, blockRetrieved);
 
     BOOST_CHECK_MESSAGE(
-        body4.GetTranID() == (*blockRetrieved).GetTranID(),
+        body4.GetTransaction().GetTranID()
+            == (*blockRetrieved).GetTransaction().GetTranID(),
         "transaction id shouldn't change after writing to/ reading from disk");
 
     BlockStorage::GetBlockStorage().GetTxBody(tx_hash1, blockRetrieved);
 
     BOOST_CHECK_MESSAGE(
-        body1.GetTranID() == (*blockRetrieved).GetTranID(),
+        body1.GetTransaction().GetTranID()
+            == (*blockRetrieved).GetTransaction().GetTranID(),
         "transaction id shouldn't change after writing to/ reading from disk");
 
     BOOST_CHECK_MESSAGE(
-        body2.GetTranID() != (*blockRetrieved).GetTranID(),
+        body2.GetTransaction().GetTranID()
+            != (*blockRetrieved).GetTransaction().GetTranID(),
         "transaction id shouldn't be same for different blocks");
 
 #ifndef IS_LOOKUP_NODE
