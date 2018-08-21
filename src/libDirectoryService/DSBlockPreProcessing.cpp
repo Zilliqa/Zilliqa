@@ -451,10 +451,10 @@ bool DirectoryService::DSBlockValidator(
     if (remoteDifficulty != localDifficulty)
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "WARNING: The difficulty"
-                      << remoteDifficulty
-                      << " from leader not match with local calculated result"
-                      << localDifficulty);
+                  "WARNING: The difficulty "
+                      << std::to_string(remoteDifficulty)
+                      << " from leader not match with local calculated result "
+                      << std::to_string(localDifficulty));
         return false;
     }
     m_mediator.setCurrentDifficulty(remoteDifficulty);
