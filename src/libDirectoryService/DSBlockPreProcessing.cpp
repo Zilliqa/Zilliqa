@@ -103,9 +103,9 @@ void DirectoryService::ComputeSharding()
         m_shards.emplace_back();
     }
 
-    map<array<unsigned char, BLOCK_HASH_SIZE>, PubKey> m_sortedPoWs;
+    map<array<unsigned char, BLOCK_HASH_SIZE>, PubKey> sortedPoWs;
 
-    for (auto& kv : m_allPoWs)
+    for (const auto& kv : m_allPoWs)
     {
         const PubKey& key = kv.first;
         const uint256_t& nonce = kv.second;
@@ -120,11 +120,11 @@ void DirectoryService::ComputeSharding()
         const vector<unsigned char>& sortHashVec = sha2.Finalize();
         array<unsigned char, BLOCK_HASH_SIZE> sortHash;
         copy(sortHashVec.begin(), sortHashVec.end(), sortHash.begin());
-        m_sortedPoWs.emplace(sortHash, key);
+        sortedPoWs.emplace(sortHash, key);
     }
 
     unsigned int i = 0;
-    for (auto& kv : m_sortedPoWs)
+    for (const auto& kv : sortedPoWs)
     {
         const PubKey& key = kv.second;
         map<PubKey, Peer>& shard = m_shards.at(i % numOfComms);
