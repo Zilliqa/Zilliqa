@@ -1052,7 +1052,7 @@ void Node::CommitForwardedTransactions(
     LOG_MARKER();
 
     unsigned int txn_counter = 0;
-    for (const auto& txr : txnsInForwardedMessage)
+    for (const auto& twr : txnsInForwardedMessage)
     {
     // {
     // lock_guard<mutex> g(m_mutexCommittedTransactions);
@@ -1078,14 +1078,14 @@ void Node::CommitForwardedTransactions(
     //              ", to: " << tx.GetToAddr() <<
     //              ", from: " << tx.GetFromAddr());
 #ifdef IS_LOOKUP_NODE
-        Server::AddToRecentTransactions(txr.GetTransaction().GetTranID());
+        Server::AddToRecentTransactions(twr.GetTransaction().GetTranID());
 #endif //IS_LOOKUP_NODE
 
         // Store TxBody to disk
         vector<unsigned char> serializedTxBody;
-        txr.GetTransaction().Serialize(serializedTxBody, 0);
+        twr.Serialize(serializedTxBody, 0);
         BlockStorage::GetBlockStorage().PutTxBody(
-            txr.GetTransaction().GetTranID(), serializedTxBody);
+            twr.GetTransaction().GetTranID(), serializedTxBody);
 
         txn_counter++;
         if (txn_counter % 10000 == 0)
