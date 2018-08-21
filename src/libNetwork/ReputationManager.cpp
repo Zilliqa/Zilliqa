@@ -17,6 +17,7 @@
 #include "ReputationManager.h"
 
 #include "Blacklist.h"
+#include "libUtils/IPConverter.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SafeMath.h"
 
@@ -45,7 +46,9 @@ void ReputationManager::PunishNode(boost::multiprecision::uint128_t IPAddress,
     UpdateReputation(IPAddress, PenaltyType);
     if (!Blacklist::GetInstance().Exist(IPAddress) and IsNodeBanned(IPAddress))
     {
-        LOG_GENERAL(INFO, "Node " << IPAddress << " banned.");
+        LOG_GENERAL(INFO,
+                    "Node " << IPConverter::ToStrFromNumericalIP(IPAddress)
+                            << " banned.");
         Blacklist::GetInstance().Add(IPAddress);
     }
 }
