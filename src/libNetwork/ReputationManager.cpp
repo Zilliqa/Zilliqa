@@ -155,29 +155,4 @@ void ReputationManager::AwardNode(boost::multiprecision::uint128_t IPAddress)
         LOG_GENERAL(INFO, "Node " << IPAddress << " unbanned.");
         Blacklist::GetInstance().Remove(IPAddress);
     }
-    SetReputation(IPAddress, NewRep);
-}
-
-std::vector<boost::multiprecision::uint128_t> ReputationManager::GetAllKnownIP()
-{
-    std::lock_guard<std::mutex> lock(m_mutexReputations);
-
-    std::vector<boost::multiprecision::uint128_t> AllKnownIPs;
-    for (const auto& node : m_Reputations)
-    {
-        AllKnownIPs.emplace_back(node.first);
-    }
-    return AllKnownIPs;
-}
-
-void ReputationManager::AwardNode(boost::multiprecision::uint128_t IPAddress)
-{
-    AddNodeIfNotKnown(IPAddress);
-    UpdateReputation(IPAddress, ScoreType::AWARD_FOR_GOOD_NODES);
-
-    if (Blacklist::GetInstance().Exist(IPAddress) and !IsNodeBanned(IPAddress))
-    {
-        LOG_GENERAL(INFO, "Node " << IPAddress << " unbanned.");
-        Blacklist::GetInstance().Remove(IPAddress);
-    }
 }
