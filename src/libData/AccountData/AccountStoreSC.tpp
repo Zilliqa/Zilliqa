@@ -43,8 +43,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                                          const unsigned int& numShards,
                                          const bool& isDS,
                                          const Transaction& transaction,
-                                         TransactionReceipt& receipt,
-                                         uint256_t& gasUsed)
+                                         TransactionReceipt& receipt)
 {
     // LOG_MARKER();
     m_curIsDS = isDS;
@@ -81,8 +80,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             }
         }
 
-        return AccountStoreBase<MAP>::UpdateAccounts(transaction, receipt,
-                                                     gasUsed);
+        return AccountStoreBase<MAP>::UpdateAccounts(transaction, receipt);
     }
 
     bool callContract = false;
@@ -190,7 +188,6 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             return false;
         }
         this->IncreaseBalance(fromAddr, gasRefund);
-        gasUsed = CONTRACT_CREATE_GAS;
         if (!ret)
         {
             this->m_addressToAccount->erase(toAddr);
@@ -308,9 +305,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             return false;
         }
         this->IncreaseBalance(fromAddr, gasRefund);
-        gasUsed = m_curGasCum;
         receipt = m_curTranReceipt;
-        receipt.SetCumGas(gasUsed);
+        receipt.SetCumGas(m_curGasCum);
         if (!ret)
         {
             return true; // Return true because the states already changed

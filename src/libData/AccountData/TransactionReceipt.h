@@ -19,30 +19,35 @@
 
 #include <boost/multiprecision/cpp_int.hpp>
 #include <json/json.h>
+#include <unordered_map>
 #include <vector>
 
 #include "LogEntry.h"
 #include "Transaction.h"
 #include "depends/common/FixedHash.h"
+#include "libCrypto/Sha2.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/Logger.h"
 
 class TransactionReceipt : public Serializable
 {
     Json::Value m_tranReceiptObj;
     std::string m_tranReceiptStr;
     bool m_updated = true;
-    unsigned int m_serialized_size;
+    unsigned int m_serialized_size = 0;
+    boost::multiprecision::uint256_t m_cumGas = 0;
 
 public:
     TransactionReceipt() = default;
     unsigned int Serialize(std::vector<unsigned char>& dst,
                            unsigned int offset) const;
     int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
-    unsigned GetSerializedSize() { return m_serialized_size; }
+    unsigned int GetSerializedSize() const { return m_serialized_size; }
     void SetResult(const bool& result);
     void SetCumGas(const boost::multiprecision::uint256_t& cumGas);
     void AddEntry(const LogEntry& entry);
     std::string GetString();
+    const boost::multiprecision::uint256_t& GetCumGas() { return m_cumGas; }
     void clear();
 };
 
@@ -52,6 +57,7 @@ class TransactionWithReceipt : public Serializable
     TransactionReceipt m_tranReceipt;
 
 public:
+    TransactionWithReceipt() = default;
     TransactionWithReceipt(const Transaction& tran,
                            const TransactionReceipt& tranReceipt)
         : m_transaction(tran)
@@ -63,12 +69,10 @@ public:
     unsigned int Serialize(std::vector<unsigned char>& dst,
                            unsigned int offset) const
     {
-        unsigned int old_offset = offset;
+        offset = m_transaction.Serialize(dst, offset);
+        offset = m_tranReceipt.Serialize(dst, offset);
 
-        offset += m_transaction.Serialize(dst, offset);
-        offset += m_tranReceipt.Serialize(dst, offset);
-
-        return offset - old_offset;
+        return offset;
     }
 
     /// Implements the Deserialize function inherited from Serializable.
@@ -96,9 +100,35 @@ public:
     }
 
     const Transaction& GetTransaction() const { return m_transaction; }
-    const TransactionReceipt GetTransactionReceipt() const
+    TransactionReceipt& GetTransactionReceipt() { return m_tranReceipt; }
+
+    static bool ComputeTransactionReceiptsHash(
+        const std::vector<TxnHash>& txnOrder,
+        std::unordered_map<TxnHash, TransactionWithReceipt>& txrs,
+        TxnHash& trHash)
     {
-        return m_tranReceipt;
+        if (txnOrder.empty())
+        {
+            trHash = TxnHash();
+            return true;
+        }
+
+        SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+        for (const auto& th : txnOrder)
+        {
+            auto it = txrs.find(th);
+            if (it == txrs.end())
+            {
+                LOG_GENERAL(WARNING,
+                            "Cannot find txnHash "
+                                << th.hex() << " from processedTransactions");
+                return false;
+            }
+            sha2.Update(DataConversion::StringToCharArray(
+                it->second.GetTransactionReceipt().GetString()));
+        }
+        trHash = TxnHash(sha2.Finalize());
+        return true;
     }
 };
 

@@ -105,8 +105,7 @@ public:
     bool UpdateAccountsTemp(const uint64_t& blockNum,
                             const unsigned int& numShards, const bool& isDS,
                             const Transaction& transaction,
-                            TransactionReceipt& receipt,
-                            boost::multiprecision::uint256_t& gasUsed);
+                            TransactionReceipt& receipt);
 
     void AddAccountTemp(const Address& address, const Account& account)
     {
