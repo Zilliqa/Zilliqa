@@ -512,12 +512,15 @@ uint8_t
 DirectoryService::CalculateNewDifficulty(const uint8_t& currentDifficulty)
 {
     const uint8_t MAX_ADJUST_STEP = 2;
-    int requiredNodes, prevSubmissions;
+    int requiredNodes = 0, prevSubmissions = 0;
     {
         lock_guard<mutex> g(m_mutexAllPOW);
         prevSubmissions = static_cast<int>(m_allPoWs.size());
 
-        requiredNodes = static_cast<int>(m_shards.size() * COMM_SIZE);
+        for (const auto& shard : m_shards)
+        {
+            requiredNodes += shard.size();
+        }
     }
 
     LOG_GENERAL(INFO,
