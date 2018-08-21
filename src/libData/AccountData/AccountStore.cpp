@@ -95,7 +95,7 @@ int AccountStore::Deserialize(const vector<unsigned char>& src,
             UpdateStateTrie(address, account);
             // MoveUpdatesToDisk();
         }
-        PrintAccountState();
+        // PrintAccountState();
     }
     catch (const std::exception& e)
     {
@@ -310,13 +310,17 @@ bool AccountStore::RetrieveFromDisk()
 }
 
 bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
-                                      const Transaction& transaction)
+                                      const unsigned int& numShards,
+                                      const bool& isDS,
+                                      const Transaction& transaction,
+                                      uint256_t& gasUsed)
 {
     // LOG_MARKER();
 
     lock_guard<mutex> g(m_mutexDelta);
 
-    return m_accountStoreTemp->UpdateAccounts(blockNum, transaction);
+    return m_accountStoreTemp->UpdateAccounts(blockNum, numShards, isDS,
+                                              transaction, gasUsed);
 }
 
 bool AccountStore::UpdateCoinbaseTemp(const Address& rewardee,
@@ -333,6 +337,20 @@ bool AccountStore::UpdateCoinbaseTemp(const Address& rewardee,
     return m_accountStoreTemp->TransferBalance(genesisAddress, rewardee,
                                                amount);
     //Should the nonce increase ??
+}
+
+boost::multiprecision::uint256_t
+AccountStore::GetNonceTemp(const Address& address)
+{
+    auto it = m_accountStoreTemp->GetAddressToAccount()->find(address);
+    if (it != m_accountStoreTemp->GetAddressToAccount()->end())
+    {
+        return m_accountStoreTemp->GetNonce(address);
+    }
+    else
+    {
+        return this->GetNonce(address);
+    }
 }
 
 StateHash AccountStore::GetStateDeltaHash()
