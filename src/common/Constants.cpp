@@ -51,6 +51,12 @@ std::string ReadSmartContractConstants(std::string propertyName)
     return pt.get<std::string>("node.smart_contract." + propertyName);
 }
 
+std::string ReadTransactionPath(std::string propertyName)
+{
+    auto pt = PTree::GetInstance();
+    return pt.get<std::string>("node.TransactionPath." + propertyName);
+}
+
 const std::vector<std::string>
 ReadAccountsFromConstantsFile(std::string propName)
 {
@@ -107,6 +113,8 @@ const unsigned int NUM_DS_KEEP_TX_BODY{
 const uint32_t MAXMESSAGE{ReadFromConstantsFile("MAXMESSAGE")};
 const unsigned int MAXSUBMITTXNPERNODE{
     ReadFromConstantsFile("MAXSUBMITTXNPERNODE")};
+const unsigned int MICROBLOCK_GAS_LIMIT{
+    ReadFromConstantsFile("MICROBLOCK_GAS_LIMIT")};
 const unsigned int TX_SHARING_CLUSTER_SIZE{
     ReadFromConstantsFile("TX_SHARING_CLUSTER_SIZE")};
 const unsigned int NEW_NODE_POW_DELAY{
@@ -114,20 +122,22 @@ const unsigned int NEW_NODE_POW_DELAY{
 const unsigned int POST_VIEWCHANGE_BUFFER{
     ReadFromConstantsFile("POST_VIEWCHANGE_BUFFER")};
 const unsigned int WAITING_FORWARD{ReadFromConstantsFile("WAITING_FORWARD")};
-const unsigned int N_PREFILLED_PER_ACCOUNT{
-    ReadFromConstantsFile("N_PREFILLED_PER_ACCOUNT")};
 const unsigned int CONTRACT_CREATE_GAS{
     ReadFromConstantsFile("CONTRACT_CREATE_GAS")};
 const unsigned int CONTRACT_INVOKE_GAS{
     ReadFromConstantsFile("CONTRACT_INVOKE_GAS")};
 const unsigned int NORMAL_TRAN_GAS{ReadFromConstantsFile("NORMAL_TRAN_GAS")};
 const unsigned int COINBASE_REWARD{ReadFromConstantsFile("COINBASE_REWARD")};
-const unsigned int TXN_SUBMISSION{ReadFromConstantsFile("TXN_SUBMISSION")};
-const unsigned int TXN_BROADCAST{ReadFromConstantsFile("TXN_BROADCAST")};
 const unsigned int DEBUG_LEVEL{ReadFromConstantsFile("DEBUG_LEVEL")};
 const unsigned int BROADCAST_INTERVAL{
     ReadFromConstantsFile("BROADCAST_INTERVAL")};
 const unsigned int BROADCAST_EXPIRY{ReadFromConstantsFile("BROADCAST_EXPIRY")};
+const unsigned int TX_DISTRIBUTE_TIME_IN_MS{
+    ReadFromConstantsFile("TX_DISTRIBUTE_TIME_IN_MS")};
+const unsigned int NUM_TXN_TO_SEND_PER_ACCOUNT{
+    ReadFromConstantsFile("NUM_TXN_TO_SEND_PER_ACCOUNT")};
+const unsigned int NUM_NODES_TO_SEND_LOOKUP{
+    ReadFromConstantsFile("NUM_NODES_TO_SEND_LOOKUP")};
 
 const bool EXCLUDE_PRIV_IP{
     ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true" ? true : false};
@@ -175,3 +185,5 @@ const unsigned int CUDA_BLOCK_SIZE{ReadGpuConstants("cuda.BLOCK_SIZE")};
 const unsigned int CUDA_GRID_SIZE{ReadGpuConstants("cuda.GRID_SIZE")};
 const unsigned int CUDA_STREAM_NUM{ReadGpuConstants("cuda.STREAM_NUM")};
 const unsigned int CUDA_SCHEDULE_FLAG{ReadGpuConstants("cuda.SCHEDULE_FLAG")};
+
+const std::string TXN_PATH{ReadTransactionPath("PATH")};

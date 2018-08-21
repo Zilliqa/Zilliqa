@@ -1,0 +1,158 @@
+/**
+* Copyright (c) 2018 Zilliqa 
+* This source code is being disclosed to you solely for the purpose of your participation in 
+* testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to 
+* the protocols and algorithms that are programmed into, and intended by, the code. You may 
+* not do anything else with the code without express permission from Zilliqa Research Pte. Ltd., 
+* including modifying or publishing the code (or any part of it), and developing or forming 
+* another public or private blockchain network. This source code is provided ‘as is’ and no 
+* warranties are given as to title or non-infringement, merchantability or fitness for purpose 
+* and, to the extent permitted by law, all liability for your use of the code is disclaimed. 
+* Some programs in this code are governed by the GNU General Public License v3.0 (available at 
+* https://www.gnu.org/licenses/gpl-3.0.en.html) (‘GPLv3’). The programs that are governed by 
+* GPLv3.0 are those programs that are located in the folders src/depends and tests/depends 
+* and which include a reference to GPLv3 in their program files.
+**/
+
+#include <array>
+#include <boost/multiprecision/cpp_int.hpp>
+#include <chrono>
+#include <functional>
+#include <thread>
+
+#include "Node.h"
+#include "common/Constants.h"
+#include "common/Messages.h"
+#include "common/Serializable.h"
+#include "depends/common/RLP.h"
+#include "depends/libDatabase/MemoryDB.h"
+#include "depends/libTrie/TrieDB.h"
+#include "depends/libTrie/TrieHash.h"
+#include "libConsensus/ConsensusUser.h"
+#include "libCrypto/Sha2.h"
+#include "libData/AccountData/Account.h"
+#include "libData/AccountData/AccountStore.h"
+#include "libData/AccountData/Transaction.h"
+#include "libMediator/Mediator.h"
+#include "libPOW/pow.h"
+#include "libUtils/DataConversion.h"
+#include "libUtils/DetachedFunction.h"
+#include "libUtils/Logger.h"
+#include "libUtils/SanityChecks.h"
+#include "libUtils/TimeLockedFunction.h"
+#include "libUtils/TimeUtils.h"
+
+using namespace std;
+using namespace boost::multiprecision;
+
+bool Node::ProcessSharding([[gnu::unused]] const vector<unsigned char>& message,
+                           [[gnu::unused]] unsigned int offset,
+                           [[gnu::unused]] const Peer& from)
+{
+#ifndef IS_LOOKUP_NODE
+
+    // Message = [8-byte DS blocknum] [4-byte shard ID] [Sharding structure] [Txn sharing assignments]
+
+    LOG_MARKER();
+
+    if (!CheckState(PROCESS_SHARDING))
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Not in MICROBLOCK_CONSENSUS_PREP state");
+        return false;
+    }
+
+    // [8-byte DS blocknum]
+    uint64_t dsBlockNum
+        = Serializable::GetNumber<uint64_t>(message, offset, sizeof(uint64_t));
+    offset += sizeof(uint64_t);
+
+    // Check block number
+    if (!CheckWhetherDSBlockNumIsLatest(dsBlockNum + 1))
+    {
+        return false;
+    }
+
+    // [4-byte shard ID]
+    m_myShardID
+        = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
+    offset += sizeof(uint32_t);
+
+    // [Sharding structure]
+    if (LoadShardingStructure(message, offset) == false)
+    {
+        return false;
+    }
+
+    // [Txn sharing assignments]
+    LoadTxnSharingInfo(message, offset);
+
+    POW::GetInstance().StopMining();
+    /// if it is a node joining after finishing pow2, commit the state into db
+    if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
+    {
+        m_mediator.m_lookup->m_syncType = SyncType::NO_SYNC;
+        AccountStore::GetInstance().MoveUpdatesToDisk();
+        m_runFromLate = false;
+    }
+    m_fromNewProcess = false;
+
+    if (m_mediator.m_selfKey.second == m_myShardMembers.front().first)
+    {
+        m_isPrimary = true;
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "I am leader of the sharded committee");
+
+        LOG_STATE("[IDENT][" << std::setw(15) << std::left
+                             << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                             << "][" << m_myShardID << "][0  ] SCLD");
+    }
+    else
+    {
+        m_isPrimary = false;
+
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "I am backup member of the sharded committee");
+
+        LOG_STATE("[SHSTU][" << setw(15) << left
+                             << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                             << "]["
+                             << m_mediator.m_txBlockChain.GetLastBlock()
+                                    .GetHeader()
+                                    .GetBlockNum()
+                      + 1 << "] RECEIVED SHARDING STRUCTURE");
+
+        LOG_STATE("[IDENT][" << std::setw(15) << std::left
+                             << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                             << "][" << m_myShardID << "][" << std::setw(3)
+                             << std::left << m_consensusMyID << "] SCBK");
+    }
+
+    // Choose 4 other node to be sender of microblock to ds committee.
+    // TODO: Randomly choose these nodes?
+    m_isMBSender = false;
+    unsigned int numOfMBSender = 5;
+    if (m_myShardMembers.size() < numOfMBSender)
+    {
+        numOfMBSender = m_myShardMembers.size();
+    }
+
+    // Shard leader will not have the flag set
+    for (unsigned int i = 1; i < numOfMBSender; i++)
+    {
+        if (m_mediator.m_selfKey.second == m_myShardMembers.at(i).first)
+        {
+            // Selected node to be sender of its shard's micrblock
+            m_isMBSender = true;
+        }
+    }
+
+    m_consensusLeaderID = 0;
+
+    auto main_func3 = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
+
+    DetachedFunction(1, main_func3);
+
+#endif // IS_LOOKUP_NODE
+    return true;
+}
