@@ -120,7 +120,7 @@ void ReputationManager::UpdateReputation(
     }
 
     // Further deduct score if node is going to be ban
-    if (NewRep && !IsNodeBanned(IPAddress))
+    if (NewRep <= REPTHRESHHOLD && !IsNodeBanned(IPAddress))
     {
         UpdateResult = SafeMath<int32_t>::sub(
             NewRep, ScoreType::BAN_MULTIPLIER * ScoreType::AWARD_FOR_GOOD_NODES,
