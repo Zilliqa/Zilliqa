@@ -20,8 +20,6 @@
 #include "Logger.h"
 #include <boost/multiprecision/cpp_int.hpp>
 
-/// Important: SafeMath ONLY support positive value!!!
-
 template<class T> class SafeMath
 {
 public:
@@ -119,4 +117,4 @@ public:
     }
 };
 
-#endif // __OVERFLOWSAFEOPS_H__
+#endif //__SafeMath_H__
