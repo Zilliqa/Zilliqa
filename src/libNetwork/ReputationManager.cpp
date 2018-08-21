@@ -109,8 +109,7 @@ void ReputationManager::SetReputation(
 void ReputationManager::UpdateReputation(
     boost::multiprecision::uint128_t IPAddress, int32_t ReputationScoreDelta)
 {
-    // TODO: check overflow
-    int32_t NewRep = GetReputation(IPAddress) + ReputationScoreDelta;
+    int32_t NewRep = GetReputation(IPAddress);
 
     // Update result with score delta
     bool UpdateResult
