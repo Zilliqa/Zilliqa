@@ -43,6 +43,11 @@ namespace
     {
         return item.m_stateDeltaHash;
     }
+
+    inline const TxnHash& GetTranReceiptID(const MicroBlockHashSet& item)
+    {
+        return item.m_tranReceiptHash;
+    }
 }; // namespace ()
 
 template<typename... Container>
@@ -65,7 +70,7 @@ TxnHash ConcatTranAndHash(const Container&... conts)
 }
 
 template<typename... Container>
-TxnHash ConcatStateAndHash(const Container&... conts)
+StateHash ConcatStateAndHash(const Container&... conts)
 {
     LOG_MARKER();
 
@@ -76,6 +81,25 @@ TxnHash ConcatStateAndHash(const Container&... conts)
             for (auto& item : list)
             {
                 sha2.Update(GetStateID(item).asBytes());
+            }
+        }(conts, sha2),
+        0)...};
+
+    return StateHash{sha2.Finalize()};
+}
+
+template<typename... Container>
+TxnHash ConcatTranReceiptAndHash(const Container&... conts)
+{
+    LOG_MARKER();
+
+    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+
+    (void)std::initializer_list<int>{(
+        [](const auto& list, decltype(sha2)& sha2) {
+            for (auto& item : list)
+            {
+                sha2.Update(GetTranReceiptID(item).asBytes());
             }
         }(conts, sha2),
         0)...};
@@ -130,4 +154,12 @@ ComputeDeltasRoot(const std::vector<MicroBlockHashSet>& microBlockHashes)
     LOG_MARKER();
 
     return ConcatStateAndHash(microBlockHashes);
+}
+
+TxnHash
+ComputeTranReceiptsRoot(const std::vector<MicroBlockHashSet>& microBlockHashes)
+{
+    LOG_MARKER();
+
+    return ConcatTranReceiptAndHash(microBlockHashes);
 }
