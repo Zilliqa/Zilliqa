@@ -20,6 +20,8 @@
 using namespace std;
 using namespace boost::multiprecision;
 
+TransactionReceipt::TransactionReceipt() { update(); }
+
 unsigned int TransactionReceipt::Serialize(std::vector<unsigned char>& dst,
                                            unsigned int offset) const
 {
@@ -32,7 +34,7 @@ unsigned int TransactionReceipt::Serialize(std::vector<unsigned char>& dst,
     offset += sizeof(uint32_t);
 
     // JsonStr
-    copy(receiptBytes.begin(), receiptBytes.end(), dst.begin() + offset);
+    copy(receiptBytes.begin(), receiptBytes.end(), back_inserter(dst));
     offset += receiptBytes.size();
 
     return offset;
@@ -52,16 +54,15 @@ int TransactionReceipt::Deserialize(const std::vector<unsigned char>& src,
         vector<unsigned char> receipt_bytes;
         if (receipt_size > 0)
         {
-            receipt_bytes.resize(receipt_size);
             copy(src.begin() + offset, src.begin() + offset + receipt_size,
-                 receipt_bytes.begin());
+                 back_inserter(receipt_bytes));
         }
         offset += receipt_size;
 
         m_serialized_size = offset - t_offset;
 
         m_tranReceiptStr.clear();
-        m_tranReceiptStr = DataConversion::CharArrayToString(receipt_bytes);
+        m_tranReceiptStr = string(receipt_bytes.begin(), receipt_bytes.end());
 
         if (!JSONUtils::convertStrtoJson(m_tranReceiptStr, m_tranReceiptObj))
         {
@@ -69,7 +70,7 @@ int TransactionReceipt::Deserialize(const std::vector<unsigned char>& src,
                         "Error with convert receipt string to json object");
             return -1;
         }
-        m_updated = true;
+        update();
     }
     catch (const std::exception& e)
     {
@@ -91,43 +92,38 @@ void TransactionReceipt::SetResult(const bool& result)
     {
         m_tranReceiptObj["success"] = "false";
     }
-
-    m_updated = true;
 }
 
 void TransactionReceipt::SetCumGas(const uint256_t& cumGas)
 {
     m_cumGas = cumGas;
     m_tranReceiptObj["cumulative_gas"] = m_cumGas.convert_to<string>();
-    m_updated = true;
 }
 
 void TransactionReceipt::AddEntry(const LogEntry& entry)
 {
     m_tranReceiptObj["event_logs"].append(entry.GetJsonObject());
-    m_updated = true;
-}
-
-string TransactionReceipt::GetString()
-{
-    if (m_updated)
-    {
-        m_tranReceiptStr = JSONUtils::convertJsontoStr(m_tranReceiptObj);
-        m_tranReceiptStr.erase(
-            std::remove(m_tranReceiptStr.begin(), m_tranReceiptStr.end(), ' '),
-            m_tranReceiptStr.end());
-        m_tranReceiptStr.erase(
-            std::remove(m_tranReceiptStr.begin(), m_tranReceiptStr.end(), '\n'),
-            m_tranReceiptStr.end());
-
-        m_updated = false;
-    }
-    return m_tranReceiptStr;
 }
 
 void TransactionReceipt::clear()
 {
-    m_updated = true;
     m_tranReceiptStr.clear();
     m_tranReceiptObj.clear();
+    update();
+}
+
+void TransactionReceipt::update()
+{
+    if (m_tranReceiptObj == Json::nullValue)
+    {
+        m_tranReceiptStr = "{}";
+        return;
+    }
+    m_tranReceiptStr = JSONUtils::convertJsontoStr(m_tranReceiptObj);
+    m_tranReceiptStr.erase(
+        std::remove(m_tranReceiptStr.begin(), m_tranReceiptStr.end(), ' '),
+        m_tranReceiptStr.end());
+    m_tranReceiptStr.erase(
+        std::remove(m_tranReceiptStr.begin(), m_tranReceiptStr.end(), '\n'),
+        m_tranReceiptStr.end());
 }
