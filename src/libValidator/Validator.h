@@ -20,6 +20,7 @@
 #include <string>
 
 #include "libData/AccountData/Transaction.h"
+#include "libData/AccountData/TransactionReceipt.h"
 
 class Mediator;
 

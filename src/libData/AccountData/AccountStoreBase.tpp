@@ -125,6 +125,7 @@ int AccountStoreBase<MAP>::Deserialize(const vector<unsigned char>& src,
 
 template<class MAP>
 bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
+                                           TransactionReceipt& receipt,
                                            uint256_t& gasUsed)
 {
     const PubKey& senderPubKey = transaction.GetSenderPubKey();
@@ -195,6 +196,9 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
     gasUsed = NORMAL_TRAN_GAS;
 
     IncreaseNonce(fromAddr);
+
+    receipt.SetResult(true);
+    receipt.SetCumGas(NORMAL_TRAN_GAS);
 
     return true;
 }

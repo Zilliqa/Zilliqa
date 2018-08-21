@@ -313,6 +313,7 @@ bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
                                       const unsigned int& numShards,
                                       const bool& isDS,
                                       const Transaction& transaction,
+                                      TransactionReceipt& receipt,
                                       uint256_t& gasUsed)
 {
     // LOG_MARKER();
@@ -320,7 +321,7 @@ bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
     lock_guard<mutex> g(m_mutexDelta);
 
     return m_accountStoreTemp->UpdateAccounts(blockNum, numShards, isDS,
-                                              transaction, gasUsed);
+                                              transaction, receipt, gasUsed);
 }
 
 bool AccountStore::UpdateCoinbaseTemp(const Address& rewardee,
