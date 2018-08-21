@@ -52,11 +52,12 @@ public:
     void AddNodeIfNotKnown(boost::multiprecision::uint128_t IPAddress);
     bool IsNodeBanned(boost::multiprecision::uint128_t IPAddress);
     void PunishNode(boost::multiprecision::uint128_t IPAddress,
-                    int32_t PenaltyType);
+                    int32_t Penalty);
     void AwardAllNodes();
     int32_t GetReputation(boost::multiprecision::uint128_t IPAddress);
     void Clear();
 
+    // To be use once hooked into core protocol
     enum PenaltyType : int32_t
     {
         PENALTY_CONN_REFUSE = -5,
