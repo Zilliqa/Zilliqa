@@ -394,175 +394,179 @@ void P2PComm::ClearBroadcastHashAsync(const vector<unsigned char>& message_hash)
 void P2PComm::EventCallback(struct bufferevent* bev, short events,
                             [[gnu::unused]] void* ctx)
 {
-    shared_ptr<Peer> from(static_cast<Peer*>(ctx));
-
     if (events & BEV_EVENT_ERROR)
     {
         LOG_GENERAL(WARNING, "Error from bufferevent");
     }
 
-    // All bytes read out
-    if (events & (BEV_EVENT_EOF | BEV_EVENT_ERROR))
+    // Not all bytes read out
+    if (!(events & (BEV_EVENT_EOF | BEV_EVENT_ERROR)))
     {
-        // Get the data stored in buffer
-        struct evbuffer* input = bufferevent_get_input(bev);
-        size_t len = evbuffer_get_length(input);
-        vector<unsigned char> message(len);
-        evbuffer_copyout(input, message.data(), len);
-        evbuffer_drain(input, len);
+        return;
+    }
 
-        // Close the socket
-        bufferevent_free(bev);
+    // Get the data stored in buffer
+    struct evbuffer* input = bufferevent_get_input(bev);
+    size_t len = evbuffer_get_length(input);
+    vector<unsigned char> message(len);
+    evbuffer_copyout(input, message.data(), len);
+    evbuffer_drain(input, len);
 
-        // Reception format:
-        // 0x01 ~ 0xFF - version, defined in constant file
-        // 0x11 - start byte
-        // 0xLL 0xLL 0xLL 0xLL - 4-byte length of message
-        // <message>
+    // Close the socket
+    bufferevent_free(bev);
 
-        // 0x01 ~ 0xFF - version, defined in constant file
-        // 0x22 - start byte (broadcast)
-        // 0xLL 0xLL 0xLL 0xLL - 4-byte length of hash + message
-        // <32-byte hash> <message>
+    // Reception format:
+    // 0x01 ~ 0xFF - version, defined in constant file
+    // 0x11 - start byte
+    // 0xLL 0xLL 0xLL 0xLL - 4-byte length of message
+    // <message>
 
-        // 0x01 ~ 0xFF - version, defined in constant file
-        // 0x33 - start byte (report)
-        // 0x00 0x00 0x00 0x01 - 4-byte length of message
-        // 0x00
+    // 0x01 ~ 0xFF - version, defined in constant file
+    // 0x22 - start byte (broadcast)
+    // 0xLL 0xLL 0xLL 0xLL - 4-byte length of hash + message
+    // <32-byte hash> <message>
 
-        // Check for minimum message size
-        if (message.size() <= HDR_LEN)
+    // 0x01 ~ 0xFF - version, defined in constant file
+    // 0x33 - start byte (report)
+    // 0x00 0x00 0x00 0x01 - 4-byte length of message
+    // 0x00
+
+    // Check for minimum message size
+    if (message.size() <= HDR_LEN)
+    {
+        LOG_GENERAL(WARNING, "Empty message received.");
+        return;
+    }
+
+    const unsigned char version = message[0];
+    const unsigned char startByte = message[1];
+
+    // Check for version requirement
+    if (version != (unsigned char)(MSG_VERSION & 0xFF))
+    {
+        LOG_GENERAL(WARNING,
+                    "Header version wrong, received ["
+                        << version - 0x00 << "] while expected [" << MSG_VERSION
+                        << "].");
+        return;
+    }
+
+    const uint32_t messageLength = (message[2] << 24) + (message[3] << 16)
+        + (message[4] << 8) + message[5];
+
+    // Check for length consistency
+    if (messageLength != message.size() - HDR_LEN)
+    {
+        LOG_GENERAL(WARNING, "Incorrect message length.");
+        return;
+    }
+
+    int fd = bufferevent_getfd(bev);
+    struct sockaddr_in cli_addr;
+    socklen_t addr_size = sizeof(struct sockaddr_in);
+    getpeername(fd, (struct sockaddr*)&cli_addr, &addr_size);
+    Peer from(cli_addr.sin_addr.s_addr, cli_addr.sin_port);
+
+    if (startByte == START_BYTE_BROADCAST)
+    {
+        if ((messageLength - HDR_LEN) <= HASH_LEN)
         {
-            LOG_GENERAL(WARNING, "Empty message received.");
+            LOG_GENERAL(
+                WARNING,
+                "Hash missing or empty broadcast message (messageLength = "
+                    << messageLength << ")");
             return;
         }
 
-        const unsigned char version = message[0];
-        const unsigned char startByte = message[1];
+        vector<unsigned char> msg_hash(message.begin() + HDR_LEN,
+                                       message.begin() + HDR_LEN + HASH_LEN);
 
-        // Check for version requirement
-        if (version != (unsigned char)(MSG_VERSION & 0xFF))
+        // Check if this message has been received before
+        bool found = false;
         {
-            LOG_GENERAL(WARNING,
-                        "Header version wrong, received ["
-                            << version - 0x00 << "] while expected ["
-                            << MSG_VERSION << "].");
-            return;
-        }
+            lock_guard<mutex> guard(
+                P2PComm::GetInstance().m_broadcastHashesMutex);
 
-        const uint32_t messageLength = (message[2] << 24) + (message[3] << 16)
-            + (message[4] << 8) + message[5];
-
-        // Check for length consistency
-        if (messageLength != message.size() - HDR_LEN)
-        {
-            LOG_GENERAL(WARNING, "Incorrect message length.");
-            return;
-        }
-
-        if (startByte == START_BYTE_BROADCAST)
-        {
-            if ((messageLength - HDR_LEN) <= HASH_LEN)
+            found = (P2PComm::GetInstance().m_broadcastHashes.find(msg_hash)
+                     != P2PComm::GetInstance().m_broadcastHashes.end());
+            // While we have the lock, we should quickly add the hash
+            if (!found)
             {
-                LOG_GENERAL(
-                    WARNING,
-                    "Hash missing or empty broadcast message (messageLength = "
-                        << messageLength << ")");
-                return;
-            }
+                SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
+                sha256.Update(message, HDR_LEN + HASH_LEN,
+                              message.size() - HDR_LEN - HASH_LEN);
+                vector<unsigned char> this_msg_hash = sha256.Finalize();
 
-            vector<unsigned char> msg_hash(message.begin() + HDR_LEN,
-                                           message.begin() + HDR_LEN
-                                               + HASH_LEN);
-
-            // Check if this message has been received before
-            bool found = false;
-            {
-                lock_guard<mutex> guard(
-                    P2PComm::GetInstance().m_broadcastHashesMutex);
-
-                found = (P2PComm::GetInstance().m_broadcastHashes.find(msg_hash)
-                         != P2PComm::GetInstance().m_broadcastHashes.end());
-                // While we have the lock, we should quickly add the hash
-                if (!found)
+                if (this_msg_hash == msg_hash)
                 {
-                    SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
-                    sha256.Update(message, HDR_LEN + HASH_LEN,
-                                  message.size() - HDR_LEN - HASH_LEN);
-                    vector<unsigned char> this_msg_hash = sha256.Finalize();
-
-                    if (this_msg_hash == msg_hash)
-                    {
-                        P2PComm::GetInstance().m_broadcastHashes.insert(
-                            this_msg_hash);
-                    }
-                    else
-                    {
-                        LOG_GENERAL(WARNING, "Incorrect message hash.");
-                        return;
-                    }
+                    P2PComm::GetInstance().m_broadcastHashes.insert(
+                        this_msg_hash);
+                }
+                else
+                {
+                    LOG_GENERAL(WARNING, "Incorrect message hash.");
+                    return;
                 }
             }
-
-            if (found)
-            {
-                // We already sent and/or received this message before -> discard
-                LOG_GENERAL(INFO, "Discarding duplicate broadcast message.");
-                return;
-            }
-
-            unsigned char msg_type = 0xFF;
-            unsigned char ins_type = 0xFF;
-            if (messageLength - HASH_LEN > MessageOffset::INST)
-            {
-                msg_type = message.at(HDR_LEN + HASH_LEN + MessageOffset::TYPE);
-                ins_type = message.at(HDR_LEN + HASH_LEN + MessageOffset::INST);
-            }
-
-            vector<Peer> broadcast_list
-                = m_broadcast_list_retriever(msg_type, ins_type, *from);
-
-            if (broadcast_list.size() > 0)
-            {
-                P2PComm::GetInstance().RebroadcastMessage(broadcast_list,
-                                                          message, msg_hash);
-            }
-
-            P2PComm::GetInstance().ClearBroadcastHashAsync(msg_hash);
-
-            LOG_STATE("[BROAD]["
-                      << std::setw(15) << std::left
-                      << P2PComm::GetInstance().m_selfPeer << "]["
-                      << DataConversion::Uint8VecToHexStr(msg_hash).substr(0, 6)
-                      << "] RECV");
-
-            // Move the shared_ptr message to raw pointer type
-            pair<vector<unsigned char>, Peer>* raw_message
-                = new pair<vector<unsigned char>, Peer>(
-                    vector<unsigned char>(message.begin() + HDR_LEN + HASH_LEN,
-                                          message.end()),
-                    *from);
-
-            // Queue the message
-            m_dispatcher(raw_message);
         }
-        else if (startByte == START_BYTE_NORMAL)
+
+        if (found)
         {
-            // Move the shared_ptr message to raw pointer type
-            pair<vector<unsigned char>, Peer>* raw_message
-                = new pair<vector<unsigned char>, Peer>(
-                    vector<unsigned char>(message.begin() + HDR_LEN,
-                                          message.end()),
-                    *from);
+            // We already sent and/or received this message before -> discard
+            LOG_GENERAL(INFO, "Discarding duplicate broadcast message.");
+            return;
+        }
 
-            // Queue the message
-            m_dispatcher(raw_message);
-        }
-        else
+        unsigned char msg_type = 0xFF;
+        unsigned char ins_type = 0xFF;
+        if (messageLength - HASH_LEN > MessageOffset::INST)
         {
-            // Unexpected start byte. Drop this message
-            LOG_GENERAL(WARNING, "Incorrect start byte.");
+            msg_type = message.at(HDR_LEN + HASH_LEN + MessageOffset::TYPE);
+            ins_type = message.at(HDR_LEN + HASH_LEN + MessageOffset::INST);
         }
+
+        vector<Peer> broadcast_list
+            = m_broadcast_list_retriever(msg_type, ins_type, from);
+
+        if (broadcast_list.size() > 0)
+        {
+            P2PComm::GetInstance().RebroadcastMessage(broadcast_list, message,
+                                                      msg_hash);
+        }
+
+        P2PComm::GetInstance().ClearBroadcastHashAsync(msg_hash);
+
+        LOG_STATE("[BROAD]["
+                  << std::setw(15) << std::left
+                  << P2PComm::GetInstance().m_selfPeer << "]["
+                  << DataConversion::Uint8VecToHexStr(msg_hash).substr(0, 6)
+                  << "] RECV");
+
+        // Move the shared_ptr message to raw pointer type
+        pair<vector<unsigned char>, Peer>* raw_message
+            = new pair<vector<unsigned char>, Peer>(
+                vector<unsigned char>(message.begin() + HDR_LEN + HASH_LEN,
+                                      message.end()),
+                from);
+
+        // Queue the message
+        m_dispatcher(raw_message);
+    }
+    else if (startByte == START_BYTE_NORMAL)
+    {
+        // Move the shared_ptr message to raw pointer type
+        pair<vector<unsigned char>, Peer>* raw_message
+            = new pair<vector<unsigned char>, Peer>(
+                vector<unsigned char>(message.begin() + HDR_LEN, message.end()),
+                from);
+
+        // Queue the message
+        m_dispatcher(raw_message);
+    }
+    else
+    {
+        // Unexpected start byte. Drop this message
+        LOG_GENERAL(WARNING, "Incorrect start byte.");
     }
 }
 
@@ -572,13 +576,12 @@ void P2PComm::AcceptConnectionCallback([[gnu::unused]] evconnlistener* listener,
                                        [[gnu::unused]] int socklen,
                                        [[gnu::unused]] void* arg)
 {
-    Peer* from
-        = new Peer(uint128_t(((struct sockaddr_in*)cli_addr)->sin_addr.s_addr),
-                   ((struct sockaddr_in*)cli_addr)->sin_port);
+    Peer from(uint128_t(((struct sockaddr_in*)cli_addr)->sin_addr.s_addr),
+              ((struct sockaddr_in*)cli_addr)->sin_port);
 
-    LOG_GENERAL(INFO, "Incoming message from " << *from);
+    LOG_GENERAL(INFO, "Incoming message from " << from);
 
-    if (Blacklist::GetInstance().Exist(from->m_ipAddress))
+    if (Blacklist::GetInstance().Exist(from.m_ipAddress))
     {
         LOG_GENERAL(INFO,
                     "The node "
@@ -591,7 +594,7 @@ void P2PComm::AcceptConnectionCallback([[gnu::unused]] evconnlistener* listener,
     struct event_base* base = evconnlistener_get_base(listener);
     struct bufferevent* bev = bufferevent_socket_new(
         base, cli_sock, BEV_OPT_CLOSE_ON_FREE | BEV_OPT_DEFER_CALLBACKS);
-    bufferevent_setcb(bev, NULL, NULL, EventCallback, from);
+    bufferevent_setcb(bev, NULL, NULL, EventCallback, NULL);
     bufferevent_enable(bev, EV_READ | EV_WRITE);
 }
 
