@@ -20,8 +20,6 @@
 #include "Logger.h"
 #include <boost/multiprecision/cpp_int.hpp>
 
-/// Important: SafeMath ONLY support positive value!!!
-
 template<class T> class SafeMath
 {
 public:
@@ -36,7 +34,7 @@ public:
         T c = a * b;
         if (c / a != b)
         {
-            LOG_GENERAL(WARNING, "Multiplication Overflow!");
+            LOG_GENERAL(WARNING, "Multiplication Underflow/Overflow!");
             return false;
         }
         result = c;
@@ -95,7 +93,14 @@ public:
 
         if (aa > 0 && bb < 0 && (c < aa || c < (0 - bb)))
         {
-            LOG_GENERAL(WARNING, "Subtraction Overflow!");
+            if (bPos)
+            {
+                LOG_GENERAL(WARNING, "Subtraction Overflow!");
+            }
+            else
+            {
+                LOG_GENERAL(WARNING, "Subtraction Underflow!");
+            }
             return false;
         }
 
@@ -107,10 +112,14 @@ public:
     {
         T c = a + b;
 
-        if ((a > 0 && b > 0 && (c < a || c < b))
-            || (a < 0 && b < 0 && (c > a || c > b)))
+        if (a > 0 && b > 0 && (c < a || c < b))
         {
             LOG_GENERAL(WARNING, "Addition Overflow!");
+            return false;
+        }
+        else if (a < 0 && b < 0 && (c > a || c > b))
+        {
+            LOG_GENERAL(WARNING, "Addition Underflow!");
             return false;
         }
 
@@ -119,4 +128,4 @@ public:
     }
 };
 
-#endif // __OVERFLOWSAFEOPS_H__
+#endif //__SafeMath_H__
