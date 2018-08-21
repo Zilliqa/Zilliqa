@@ -23,7 +23,7 @@
 class LogEntry
 {
     Json::Value m_eventObj;
-    unsigned int m_numIndexed;
+    // unsigned int m_numIndexed;
 
 public:
     LogEntry() = default;
