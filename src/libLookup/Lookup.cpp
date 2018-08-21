@@ -2001,8 +2001,7 @@ bool Lookup::ProcessGetStartPoWFromSeed(
         std::unique_lock<std::mutex> cv_lk(m_MutexCVStartPoWSubmission);
 
         if (cv_startPoWSubmission.wait_for(
-                cv_lk,
-                std::chrono::seconds(TXN_SUBMISSION + POW_WINDOW_IN_SECONDS))
+                cv_lk, std::chrono::seconds(POW_WINDOW_IN_SECONDS))
             == std::cv_status::timeout)
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
