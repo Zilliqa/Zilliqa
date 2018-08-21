@@ -49,8 +49,8 @@ void DirectoryService::StoreFinalBlockToDisk()
         + 1;
 
     // At this point, the transactions in the last Epoch is no longer useful, thus erase.
-    m_mediator.m_node->EraseCommittedTransactions(m_mediator.m_currentEpochNum
-                                                  - 2);
+    // m_mediator.m_node->EraseCommittedTransactions(m_mediator.m_currentEpochNum
+    //                                               - 2);
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Storing Tx Block Number: "
