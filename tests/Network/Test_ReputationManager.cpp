@@ -24,6 +24,7 @@
 #include <arpa/inet.h>
 #include <boost/multiprecision/cpp_int.hpp>
 #include <boost/test/unit_test.hpp>
+#include <limits.h>
 
 using namespace std;
 
@@ -91,31 +92,48 @@ BOOST_AUTO_TEST_CASE(test_fundamental)
 
     LOG_GENERAL(INFO,
                 IPConverter::ToStrFromNumericalIP(node2) + ": "
-                    << rm.GetReputation(node1));
+                    << rm.GetReputation(node2));
     BOOST_CHECK_MESSAGE(
         rm.IsNodeBanned(node2) == false,
         IPConverter::ToStrFromNumericalIP(node2)
             << " ban status after 1 round of reward) expected to be "
                "false but true was obtained.");
-    /**
-    // Test 4
-    rm.IsNodeBanned((boost::multiprecision::uint128_t)1);
-    rm.IsNodeBanned((boost::multiprecision::uint128_t)2);
-    BOOST_CHECK(rm.GetReputation((boost::multiprecision::uint128_t)1)
-                <= ScoreType::REPTHRESHHOLD + AWARD_FOR_GOOD_NODES);
 
-    // Reward lots of time. Check upper bound.
-    for (int i = 0; 1 < 1000; i++)
+    // Reward till node unban and check status of unban node
+    for (int i = 0; i < ReputationManager::ScoreType::BAN_MULTIPLIER; i++)
     {
         rm.AwardAllNodes();
     }
+    LOG_GENERAL(INFO,
+                IPConverter::ToStrFromNumericalIP(node1) + ": "
+                    << rm.GetReputation(node1));
+    result_bool = rm.IsNodeBanned(node1);
+    BOOST_CHECK_MESSAGE(result_bool == false,
+                        "Test ban for unban node. Expected: false");
 
-    // Check lower bound
-    rm.PunishNode((boost::multiprecision::uint128_t)1);
+    // Test upper bound of reputation score
+    result = rm.GetReputation(node2);
+    expected = ReputationManager::ScoreType::UPPERREPTHRESHHOLD;
+
+    BOOST_CHECK_MESSAGE(result == expected,
+                        "Upper bound of reputation test: "
+                            << result << ". Expected: " << expected);
+
+    // Check lower bound (underflow test)
+    // Expect no change in value due to underflow
+    expected = rm.GetReputation(node1);
+    rm.PunishNode(node1, std::numeric_limits<int32_t>::min());
+    LOG_GENERAL(INFO,
+                IPConverter::ToStrFromNumericalIP(node1) + ": "
+                    << rm.GetReputation(node1));
+    result = rm.GetReputation(node1);
+
+    BOOST_CHECK_MESSAGE(
+        result == expected,
+        "rep underflow test. Result: " << result << ". Expected: " << expected);
 
     // Clean up
     rm.Clear();
-    **/
 }
 
 BOOST_AUTO_TEST_SUITE_END()
