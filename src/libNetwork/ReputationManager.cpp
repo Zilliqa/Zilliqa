@@ -32,7 +32,6 @@ ReputationManager& ReputationManager::GetInstance()
 
 bool ReputationManager::IsNodeBanned(boost::multiprecision::uint128_t IPAddress)
 {
-    AddNodeIfNotKnown(IPAddress);
     if (GetReputation(IPAddress) <= REPTHRESHHOLD)
     {
         return true;
@@ -43,7 +42,6 @@ bool ReputationManager::IsNodeBanned(boost::multiprecision::uint128_t IPAddress)
 void ReputationManager::PunishNode(boost::multiprecision::uint128_t IPAddress,
                                    int32_t PenaltyType)
 {
-    AddNodeIfNotKnown(IPAddress);
     UpdateReputation(IPAddress, PenaltyType);
     if (!Blacklist::GetInstance().Exist(IPAddress) and IsNodeBanned(IPAddress))
     {
@@ -55,7 +53,6 @@ void ReputationManager::PunishNode(boost::multiprecision::uint128_t IPAddress,
 void ReputationManager::AwardAllNodes()
 {
     std::vector<boost::multiprecision::uint128_t> AllKnownIPs = GetAllKnownIP();
-
     for (const auto& ip : AllKnownIPs)
     {
         AwardNode(ip);
@@ -80,7 +77,11 @@ ReputationManager::GetReputation(boost::multiprecision::uint128_t IPAddress)
     return m_Reputations[IPAddress];
 }
 
-void ReputationManager::Clear() { m_Reputations.clear(); }
+void ReputationManager::Clear()
+{
+    LOG_MARKER();
+    m_Reputations.clear();
+}
 
 void ReputationManager::SetReputation(
     boost::multiprecision::uint128_t IPAddress, int32_t ReputationScore)
@@ -105,8 +106,6 @@ void ReputationManager::SetReputation(
 void ReputationManager::UpdateReputation(
     boost::multiprecision::uint128_t IPAddress, int32_t ReputationScoreDelta)
 {
-    AddNodeIfNotKnown(IPAddress);
-
     // TODO: check overflow
     int32_t NewRep = GetReputation(IPAddress) + ReputationScoreDelta;
 
@@ -147,7 +146,6 @@ std::vector<boost::multiprecision::uint128_t> ReputationManager::GetAllKnownIP()
 
 void ReputationManager::AwardNode(boost::multiprecision::uint128_t IPAddress)
 {
-    AddNodeIfNotKnown(IPAddress);
     UpdateReputation(IPAddress, ScoreType::AWARD_FOR_GOOD_NODES);
 
     if (Blacklist::GetInstance().Exist(IPAddress) and !IsNodeBanned(IPAddress))
