@@ -70,7 +70,6 @@ public:
         GOOD = 0,
         BAN_MULTIPLIER = 24,
         AWARD_FOR_GOOD_NODES = 50
-
     };
 
     std::mutex m_mutexReputations;
