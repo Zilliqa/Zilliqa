@@ -152,7 +152,9 @@ void ReputationManager::AwardNode(boost::multiprecision::uint128_t IPAddress)
 
     if (Blacklist::GetInstance().Exist(IPAddress) and !IsNodeBanned(IPAddress))
     {
-        LOG_GENERAL(INFO, "Node " << IPAddress << " unbanned.");
+        LOG_GENERAL(INFO,
+                    "Node " << IPConverter::ToStrFromNumericalIP(IPAddress)
+                            << " unbanned.");
         Blacklist::GetInstance().Remove(IPAddress);
     }
 }
