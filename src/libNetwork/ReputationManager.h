@@ -19,7 +19,6 @@
 
 #include "Peer.h"
 #include "common/Constants.h"
-#include "libUtils/Logger.h"
 
 #include <boost/multiprecision/cpp_int.hpp>
 #include <functional>

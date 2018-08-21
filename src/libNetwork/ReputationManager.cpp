@@ -15,9 +15,10 @@
 **/
 
 #include "ReputationManager.h"
-#include "Blacklist.h"
 
-//static const int32_t ReputationManager::GOOD = 0;
+#include "Blacklist.h"
+#include "libUtils/Logger.h"
+#include "libUtils/SafeMath.h"
 
 ReputationManager::ReputationManager() {}
 
@@ -108,9 +109,26 @@ void ReputationManager::UpdateReputation(
 
     // TODO: check overflow
     int32_t NewRep = GetReputation(IPAddress) + ReputationScoreDelta;
+
+    // Update result with score delta
+    bool UpdateResult
+        = SafeMath<int32_t>::add(NewRep, ReputationScoreDelta, NewRep);
+    if (!UpdateResult)
+    {
+        LOG_GENERAL(WARNING, "Underflow/overflow detected.");
+    }
+
+    // Further deduct score if node is going to be ban
     if (NewRep && !IsNodeBanned(IPAddress))
     {
-        NewRep -= ScoreType::BAN_MULTIPLIER * ScoreType::AWARD_FOR_GOOD_NODES;
+        UpdateResult = SafeMath<int32_t>::sub(
+            NewRep, ScoreType::BAN_MULTIPLIER * ScoreType::AWARD_FOR_GOOD_NODES,
+            NewRep);
+
+        if (!UpdateResult)
+        {
+            LOG_GENERAL(WARNING, "Underflow detected.");
+        }
     }
     SetReputation(IPAddress, NewRep);
 }
