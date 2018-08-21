@@ -55,6 +55,7 @@ template<class MAP> class AccountStoreSC : public AccountStoreBase<MAP>
     uint256_t m_curGasPrice;
     unsigned int m_curNumShards;
     bool m_curIsDS;
+    TransactionReceipt m_curTranReceipt;
 
     bool ParseCreateContractOutput();
     bool ParseCreateContractJsonOutput(const Json::Value& _json);
@@ -90,6 +91,7 @@ public:
 
     bool UpdateAccounts(const uint64_t& blockNum, const unsigned int& numShards,
                         const bool& isDS, const Transaction& transaction,
+                        TransactionReceipt& receipt,
                         uint256_t& gasUsed = DEFAULT_GASUSED);
 };
 

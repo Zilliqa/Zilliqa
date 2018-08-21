@@ -106,9 +106,12 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx,
         return false;
     }
 
+    TransactionReceipt receipt;
+
     return AccountStore::GetInstance().UpdateAccountsTemp(
         m_mediator.m_currentEpochNum, m_mediator.m_node->getNumShards(),
-        m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE, tx, gasUsed);
+        m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE, tx, receipt,
+        gasUsed);
 }
 
 bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)

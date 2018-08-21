@@ -22,6 +22,7 @@
 #include "Account.h"
 #include "Address.h"
 #include "Transaction.h"
+#include "TransactionReceipt.h"
 #include "common/Constants.h"
 #include "common/Serializable.h"
 #include "depends/common/FixedHash.h"
@@ -51,7 +52,8 @@ public:
 
     virtual Account* GetAccount(const Address& address);
 
-    bool UpdateAccounts(const Transaction& transaction, uint256_t& gasUsed);
+    bool UpdateAccounts(const Transaction& transaction,
+                        TransactionReceipt& receipt, uint256_t& gasUsed);
 
     /// Verifies existence of Account in the list.
     bool IsAccountExist(const Address& address);

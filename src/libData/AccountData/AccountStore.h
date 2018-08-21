@@ -28,6 +28,7 @@
 #include "AccountStoreSC.h"
 #include "AccountStoreTrie.h"
 #include "Address.h"
+#include "TransactionReceipt.h"
 #include "common/Constants.h"
 #include "common/Singleton.h"
 #include "depends/common/FixedHash.h"
@@ -104,6 +105,7 @@ public:
     bool UpdateAccountsTemp(const uint64_t& blockNum,
                             const unsigned int& numShards, const bool& isDS,
                             const Transaction& transaction,
+                            TransactionReceipt& receipt,
                             boost::multiprecision::uint256_t& gasUsed);
 
     void AddAccountTemp(const Address& address, const Account& account)

@@ -138,6 +138,8 @@ const unsigned int NUM_TXN_TO_SEND_PER_ACCOUNT{
     ReadFromConstantsFile("NUM_TXN_TO_SEND_PER_ACCOUNT")};
 const unsigned int NUM_NODES_TO_SEND_LOOKUP{
     ReadFromConstantsFile("NUM_NODES_TO_SEND_LOOKUP")};
+const unsigned int MAX_INDEXES_PER_TXN{
+    ReadFromConstantsFile("MAX_INDEXES_PER_TXN")};
 
 const bool EXCLUDE_PRIV_IP{
     ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true" ? true : false};
