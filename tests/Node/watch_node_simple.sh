@@ -20,7 +20,7 @@
 
 for id in {01..20}
 do
-    port=50$id
+    porta=$((5000 + $id))
     node_cmd_info=$(pgrep -f "zilliqa.*127\.0\.0\.1 $port" -a | cut -f1,5,6 -d" ")  
     node_log=$(tail -n1 local_run/node_00$id/zilliqa-00001-log.txt)
     if [[ -z $node_cmd_info ]]
