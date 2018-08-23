@@ -229,10 +229,8 @@ bool DirectoryService::ProcessMicroblockSubmissionCore(
                     << "TranReceiptHash: "
                     << microBlock.GetHeader().GetTranReceiptHash());
 
-    {
-        lock_guard<mutex> g(m_mutexMicroBlocks);
-        m_microBlocks.emplace(microBlock);
-    }
+    lock_guard<mutex> g(m_mutexMicroBlocks);
+    m_microBlocks.emplace(microBlock);
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               m_microBlocks.size()
