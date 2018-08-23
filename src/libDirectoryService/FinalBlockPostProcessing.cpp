@@ -394,7 +394,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
             {
                 LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                           "Waiting "
-                              << POW_WINDOW_IN_SECONDS
+                              << NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS
                               << " seconds, accepting PoW submissions...");
 
                 // Notify lookup that it's time to do PoW
@@ -419,12 +419,13 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
                 if (cv_DSBlockConsensus.wait_for(
                         cv_lk,
                         std::chrono::seconds(NEW_NODE_SYNC_INTERVAL
-                                             + POW_BACKUP_WINDOW_IN_SECONDS))
+                                             + POW_WINDOW_IN_SECONDS))
                     == std::cv_status::timeout)
                 {
                     LOG_GENERAL(INFO,
                                 "Woken up from the sleep of "
-                                    << POW_BACKUP_WINDOW_IN_SECONDS
+                                    << NEW_NODE_SYNC_INTERVAL
+                                        + POW_WINDOW_IN_SECONDS
                                     << " seconds");
                 }
                 else
