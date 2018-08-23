@@ -529,6 +529,13 @@ bool DirectoryService::CheckMicroBlockHashRoot()
 {
     LOG_MARKER();
 
+    LOG_GENERAL(INFO, "Microblock hashes: ")
+
+    for (const auto& i : m_finalBlock->GetMicroBlockHashes())
+    {
+        LOG_GENERAL(INFO, i);
+    }
+
     TxnHash microBlocksTxnRoot
         = ComputeTransactionsRoot(m_finalBlock->GetMicroBlockHashes());
 
