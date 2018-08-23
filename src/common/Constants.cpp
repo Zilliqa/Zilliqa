@@ -51,10 +51,10 @@ std::string ReadSmartContractConstants(std::string propertyName)
     return pt.get<std::string>("node.smart_contract." + propertyName);
 }
 
-std::string ReadTransactionPath(std::string propertyName)
+std::string ReadTransactionDispatcher(std::string propertyName)
 {
     auto pt = PTree::GetInstance();
-    return pt.get<std::string>("node.TransactionPath." + propertyName);
+    return pt.get<std::string>("node.TransactionDispatcher." + propertyName);
 }
 
 const std::vector<std::string>
@@ -188,4 +188,9 @@ const unsigned int CUDA_GRID_SIZE{ReadGpuConstants("cuda.GRID_SIZE")};
 const unsigned int CUDA_STREAM_NUM{ReadGpuConstants("cuda.STREAM_NUM")};
 const unsigned int CUDA_SCHEDULE_FLAG{ReadGpuConstants("cuda.SCHEDULE_FLAG")};
 
-const std::string TXN_PATH{ReadTransactionPath("PATH")};
+const std::string TXN_PATH{ReadTransactionDispatcher("PATH")};
+const bool USE_REMOTE_TXN_CREATOR{
+    ReadTransactionDispatcher("USE_REMOTE_TXN_CREATOR") == "true" ? true
+                                                                  : false};
+const std::string REMOTE_TXN_CREATOR_IP{
+    ReadTransactionDispatcher("REMOTE_TXN_CREATOR_IP")};

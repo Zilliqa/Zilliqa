@@ -630,6 +630,15 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
         return false;
     }
     unsigned int curr_offset = offset;
+    uint64_t epochNum = Serializable::GetNumber<uint64_t>(message, curr_offset,
+                                                          sizeof(uint64_t));
+
+    if (epochNum > m_mediator.m_currentEpochNum)
+    {
+        LOG_GENERAL(WARNING, "Recvd txns for larger epoch");
+    }
+
+    curr_offset += sizeof(uint64_t);
     uint32_t shardId = Serializable::GetNumber<uint32_t>(message, curr_offset,
                                                          sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
