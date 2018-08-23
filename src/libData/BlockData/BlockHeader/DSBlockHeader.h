@@ -66,9 +66,6 @@ public:
     /// Returns the difficulty of the PoW puzzle.
     const uint8_t& GetDifficulty() const;
 
-    /// Set the new difficulty to the header.
-    void setDifficulty(uint8_t difficulty);
-
     /// Returns the digest of the parent block header.
     const BlockHash& GetPrevHash() const;
 

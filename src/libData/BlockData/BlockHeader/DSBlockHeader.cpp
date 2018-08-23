@@ -126,11 +126,6 @@ int DSBlockHeader::Deserialize(const vector<unsigned char>& src,
 
 const uint8_t& DSBlockHeader::GetDifficulty() const { return m_difficulty; }
 
-void DSBlockHeader::setDifficulty(uint8_t difficulty)
-{
-    m_difficulty = difficulty;
-}
-
 const BlockHash& DSBlockHeader::GetPrevHash() const { return m_prevHash; }
 
 const uint256_t& DSBlockHeader::GetNonce() const { return m_nonce; }
