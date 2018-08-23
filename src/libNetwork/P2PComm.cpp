@@ -394,15 +394,8 @@ void P2PComm::ClearBroadcastHashAsync(const vector<unsigned char>& message_hash)
 void P2PComm::EventCallback(struct bufferevent* bev, short events,
                             [[gnu::unused]] void* ctx)
 {
-    // Get the IP info
-    int fd = bufferevent_getfd(bev);
-    struct sockaddr_in cli_addr;
-    socklen_t addr_size = sizeof(struct sockaddr_in);
-    getpeername(fd, (struct sockaddr*)&cli_addr, &addr_size);
-    Peer from(cli_addr.sin_addr.s_addr, cli_addr.sin_port);
-
-    // Close the socket
-    bufferevent_free(bev);
+    unique_ptr<struct bufferevent, void (*)(struct bufferevent*)> socket_closer(
+        bev, bufferevent_free);
 
     if (events & BEV_EVENT_ERROR)
     {
@@ -416,6 +409,13 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
         LOG_GENERAL(WARNING, "Unknown error from bufferevent.");
         return;
     }
+
+    // Get the IP info
+    int fd = bufferevent_getfd(bev);
+    struct sockaddr_in cli_addr;
+    socklen_t addr_size = sizeof(struct sockaddr_in);
+    getpeername(fd, (struct sockaddr*)&cli_addr, &addr_size);
+    Peer from(cli_addr.sin_addr.s_addr, cli_addr.sin_port);
 
     // Get the data stored in buffer
     struct evbuffer* input = bufferevent_get_input(bev);
