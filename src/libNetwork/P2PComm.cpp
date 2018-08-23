@@ -394,7 +394,7 @@ void P2PComm::ClearBroadcastHashAsync(const vector<unsigned char>& message_hash)
 void P2PComm::EventCallback(struct bufferevent* bev, short events,
                             [[gnu::unused]] void* ctx)
 {
-    unique_ptr<struct bufferevent, void (*)(struct bufferevent*)> socket_closer(
+    unique_ptr<struct bufferevent, decltype(&bufferevent_free)> socket_closer(
         bev, bufferevent_free);
 
     if (events & BEV_EVENT_ERROR)
