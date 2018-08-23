@@ -15,16 +15,170 @@
 **/
 
 #include "UpgradeManager.h"
+#include "libUtils/Logger.h"
 
 using namespace std;
 
-UpgradeManager::UpgradeManager()
+SWInfo::SWInfo()
+    : m_major(0)
+    , m_minor(0)
+    , m_fix(0)
+    , m_upgradeDS(0)
+    , m_commit(0)
 {
-    m_curSWInfo = (SWInfo*)malloc(sizeof(SWInfo));
-    memset(m_curSWInfo, 0, sizeof(SWInfo));
 }
 
-UpgradeManager::~UpgradeManager() { free(m_curSWInfo); }
+SWInfo::SWInfo(const uint32_t& major, const uint32_t& minor,
+               const uint32_t& fix, const uint64_t& upgradeDS,
+               const uint32_t& commit)
+    : m_major(major)
+    , m_minor(minor)
+    , m_fix(fix)
+    , m_upgradeDS(upgradeDS)
+    , m_commit(commit)
+{
+}
+
+SWInfo::SWInfo(const SWInfo& src)
+    : m_major(src.m_major)
+    , m_minor(src.m_minor)
+    , m_fix(src.m_fix)
+    , m_upgradeDS(src.m_upgradeDS)
+    , m_commit(src.m_commit)
+{
+}
+
+SWInfo::~SWInfo(){};
+
+/// Implements the Serialize function inherited from Serializable.
+unsigned int SWInfo::Serialize(std::vector<unsigned char>& dst,
+                               unsigned int offset) const
+{
+    LOG_MARKER();
+
+    unsigned int size_remaining = dst.size() - offset;
+
+    if (size_remaining < SIZE)
+    {
+        dst.resize(SIZE + offset);
+    }
+
+    unsigned int curOffset = offset;
+
+    SetNumber<uint32_t>(dst, curOffset, m_major, sizeof(uint32_t));
+    curOffset += sizeof(uint32_t);
+    SetNumber<uint32_t>(dst, curOffset, m_minor, sizeof(uint32_t));
+    curOffset += sizeof(uint32_t);
+    SetNumber<uint32_t>(dst, curOffset, m_fix, sizeof(uint32_t));
+    curOffset += sizeof(uint32_t);
+    SetNumber<uint64_t>(dst, curOffset, m_upgradeDS, sizeof(uint64_t));
+    curOffset += sizeof(uint64_t);
+    SetNumber<uint32_t>(dst, curOffset, m_commit, sizeof(uint32_t));
+    curOffset += sizeof(uint32_t);
+
+    return SIZE;
+}
+
+/// Implements the Deserialize function inherited from Serializable.
+int SWInfo::Deserialize(const std::vector<unsigned char>& src,
+                        unsigned int offset)
+{
+    LOG_MARKER();
+
+    unsigned int curOffset = offset;
+
+    try
+    {
+        m_major = GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
+        curOffset += sizeof(uint32_t);
+        m_minor = GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
+        curOffset += sizeof(uint32_t);
+        m_fix = GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
+        curOffset += sizeof(uint32_t);
+        m_upgradeDS = GetNumber<uint64_t>(src, curOffset, sizeof(uint64_t));
+        curOffset += sizeof(uint64_t);
+        m_commit = GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
+        curOffset += sizeof(uint32_t);
+    }
+    catch (const std::exception& e)
+    {
+        LOG_GENERAL(WARNING,
+                    "Error with SWInfo::Deserialize." << ' ' << e.what());
+        return -1;
+    }
+
+    return 0;
+}
+
+/// Less-than comparison operator (for sorting keys in lookup table).
+bool SWInfo::operator<(const SWInfo& r) const
+{
+    if (m_major < r.m_major)
+    {
+        return true;
+    }
+    else if (m_major > r.m_major)
+    {
+        return false;
+    }
+    else if (m_minor < r.m_minor)
+    {
+        return true;
+    }
+    else if (m_minor > r.m_minor)
+    {
+        return false;
+    }
+    else if (m_fix < r.m_fix)
+    {
+        return true;
+    }
+    else if (m_fix > r.m_fix)
+    {
+        return false;
+    }
+    else if (m_upgradeDS < r.m_upgradeDS)
+    {
+        return true;
+    }
+    else if (m_upgradeDS > r.m_upgradeDS)
+    {
+        return false;
+    }
+    else if (m_commit < r.m_commit)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+/// Greater-than comparison operator.
+bool SWInfo::operator>(const SWInfo& r) const
+{
+    return !((*this == r) || (*this < r));
+}
+
+/// Equality operator.
+bool SWInfo::operator==(const SWInfo& r) const
+{
+    return ((m_major == r.m_major) && (m_minor == r.m_minor)
+            && (m_fix == r.m_fix) && (m_upgradeDS == r.m_upgradeDS)
+            && (m_commit == r.m_commit));
+}
+
+UpgradeManager::UpgradeManager() { m_curSWInfo = nullptr; }
+
+UpgradeManager::~UpgradeManager()
+{
+    if (m_curSWInfo)
+    {
+        free(m_curSWInfo);
+        m_curSWInfo = nullptr;
+    }
+}
 
 UpgradeManager& UpgradeManager::GetInstance()
 {
@@ -32,7 +186,16 @@ UpgradeManager& UpgradeManager::GetInstance()
     return um;
 }
 
-bool UpgradeManager::HasNewSW() { return false; }
+bool UpgradeManager::HasNewSW()
+{
+    /// Check website, verify if sig is valid && SHA-256 is new
+    /// TBD
 
-/// Download SW from website, then update current SHA-256 value & curSWInfo
-void UpgradeManager::DownloadSW() {}
+    return false;
+}
+
+void UpgradeManager::DownloadSW()
+{
+    /// Download SW from website, then update current SHA-256 value & curSWInfo
+    /// TBD
+}

@@ -25,6 +25,7 @@
 #include "common/Serializable.h"
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Transaction.h"
+#include "libUtils/UpgradeManager.h"
 
 /// Stores information on the header part of the DS block.
 class DSBlockHeader : public BlockHeaderBase
@@ -37,11 +38,12 @@ class DSBlockHeader : public BlockHeaderBase
     PubKey m_leaderPubKey; // The one who proposed this DS block
     uint64_t m_blockNum; // Block index, starting from 0 in the genesis block
     boost::multiprecision::uint256_t m_timestamp;
+    SWInfo m_swInfo;
 
 public:
     static const unsigned int SIZE = sizeof(uint8_t) + BLOCK_HASH_SIZE
         + UINT256_SIZE + PUB_KEY_SIZE + PUB_KEY_SIZE + sizeof(uint64_t)
-        + UINT256_SIZE;
+        + UINT256_SIZE + SWInfo::SIZE;
 
     /// Default constructor.
     DSBlockHeader(); // creates a dummy invalid placeholder BlockHeader -- blocknum is maxsize of uint256
@@ -54,7 +56,8 @@ public:
                   const boost::multiprecision::uint256_t& nonce,
                   const PubKey& minerPubKey, const PubKey& leaderPubKey,
                   const uint64_t& blockNum,
-                  const boost::multiprecision::uint256_t& timestamp);
+                  const boost::multiprecision::uint256_t& timestamp,
+                  const SWInfo& swInfo);
 
     /// Implements the Serialize function inherited from Serializable.
     unsigned int Serialize(std::vector<unsigned char>& dst,
