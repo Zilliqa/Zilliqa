@@ -72,10 +72,11 @@ void DirectoryService::ComposeDSBlock()
 
     // Assemble DS block
     // To-do: Handle exceptions.
-    m_pendingDSBlock.reset(new DSBlock(
-        DSBlockHeader(difficulty, prevHash, winnerNonce, winnerKey,
-                      m_mediator.m_selfKey.second, blockNum, get_time_as_int()),
-        CoSignatures(m_mediator.m_DSCommittee->size())));
+    m_pendingDSBlock.reset(
+        new DSBlock(DSBlockHeader(difficulty, prevHash, winnerNonce, winnerKey,
+                                  m_mediator.m_selfKey.second, blockNum,
+                                  get_time_as_int(), SWInfo()),
+                    CoSignatures(m_mediator.m_DSCommittee->size())));
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "New DSBlock created with chosen nonce = 0x" << hex
