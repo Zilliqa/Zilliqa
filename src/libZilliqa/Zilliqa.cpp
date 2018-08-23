@@ -26,6 +26,7 @@
 #include "libData/AccountData/Address.h"
 #include "libNetwork/Whitelist.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
 
 using namespace std;
@@ -57,6 +58,44 @@ void Zilliqa::LogSelfNodeInfo(const std::pair<PrivKey, PubKey>& key,
                                  << peer.m_listenPortHost);
 }
 
+void Zilliqa::ProcessMessage(pair<vector<unsigned char>, Peer>* message)
+{
+    // For now, we spawn new thread to handle this message
+    // Eventually it will be single-threaded
+    auto funcExecute = [this, message]() mutable -> void {
+        if (message->first.size() >= MessageOffset::BODY)
+        {
+            const unsigned char msg_type
+                = message->first.at(MessageOffset::TYPE);
+
+            Executable* msg_handlers[] = {&m_pm, &m_ds, &m_n, &m_cu, &m_lookup};
+
+            const unsigned int msg_handlers_count
+                = sizeof(msg_handlers) / sizeof(Executable*);
+
+            if (msg_type < msg_handlers_count)
+            {
+                bool result = msg_handlers[msg_type]->Execute(
+                    message->first, MessageOffset::INST, message->second);
+
+                if (result == false)
+                {
+                    // To-do: Error recovery
+                }
+            }
+            else
+            {
+                LOG_GENERAL(WARNING,
+                            "Unknown message type " << std::hex
+                                                    << (unsigned int)msg_type);
+            }
+        }
+
+        delete message;
+    };
+    DetachedFunction(1, funcExecute);
+}
+
 Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
                  bool loadConfig, unsigned int syncType, bool toRetrieveHistory)
     : m_pm(key, peer, loadConfig)
@@ -65,6 +104,7 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
     , m_lookup(m_mediator)
     , m_n(m_mediator, syncType, toRetrieveHistory)
     , m_cu(key, peer)
+    , m_msgQueue(MSGQUEUE_SIZE)
 #ifdef IS_LOOKUP_NODE
     , m_httpserver(SERVER_PORT)
     , m_server(m_mediator, m_httpserver)
@@ -72,6 +112,19 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
 
 {
     LOG_MARKER();
+
+    // Launch the thread that reads messages from the queue
+    auto funcCheckMsgQueue = [this]() mutable -> void {
+        pair<vector<unsigned char>, Peer>* message = NULL;
+        while (true)
+        {
+            while (m_msgQueue.pop(message))
+            {
+                ProcessMessage(message);
+            }
+        }
+    };
+    DetachedFunction(1, funcCheckMsgQueue);
 
     if (m_mediator.m_isRetrievedHistory)
     {
@@ -145,37 +198,23 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
 #endif // IS_LOOKUP_NODE
 }
 
-Zilliqa::~Zilliqa() {}
+Zilliqa::~Zilliqa()
+{
+    pair<vector<unsigned char>, Peer>* message = NULL;
+    while (m_msgQueue.pop(message))
+    {
+        delete message;
+    }
+}
 
-void Zilliqa::Dispatch(const vector<unsigned char>& message, const Peer& from)
+void Zilliqa::Dispatch(pair<vector<unsigned char>, Peer>* message)
 {
     //LOG_MARKER();
 
-    if (message.size() >= MessageOffset::BODY)
+    // Queue message
+    while (!m_msgQueue.push(message))
     {
-        const unsigned char msg_type = message.at(MessageOffset::TYPE);
-
-        Executable* msg_handlers[] = {&m_pm, &m_ds, &m_n, &m_cu, &m_lookup};
-
-        const unsigned int msg_handlers_count
-            = sizeof(msg_handlers) / sizeof(Executable*);
-
-        if (msg_type < msg_handlers_count)
-        {
-            bool result = msg_handlers[msg_type]->Execute(
-                message, MessageOffset::INST, from);
-
-            if (result == false)
-            {
-                // To-do: Error recovery
-            }
-        }
-        else
-        {
-            LOG_GENERAL(WARNING,
-                        "Unknown message type " << std::hex
-                                                << (unsigned int)msg_type);
-        }
+        // Keep attempting to push until success
     }
 }
 

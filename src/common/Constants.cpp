@@ -128,6 +128,8 @@ const unsigned int DEBUG_LEVEL{ReadFromConstantsFile("DEBUG_LEVEL")};
 const unsigned int BROADCAST_INTERVAL{
     ReadFromConstantsFile("BROADCAST_INTERVAL")};
 const unsigned int BROADCAST_EXPIRY{ReadFromConstantsFile("BROADCAST_EXPIRY")};
+const unsigned int SENDQUEUE_SIZE{ReadFromConstantsFile("SENDQUEUE_SIZE")};
+const unsigned int MSGQUEUE_SIZE{ReadFromConstantsFile("MSGQUEUE_SIZE")};
 
 const bool EXCLUDE_PRIV_IP{
     ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true" ? true : false};
