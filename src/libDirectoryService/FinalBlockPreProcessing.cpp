@@ -279,15 +279,6 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I am the leader DS node. Creating final block.");
 
-    // LOG_GENERAL(
-    //     INFO,
-    //     "I'm going to sleep for "
-    //         << std::min(TX_DISTRIBUTE_TIME_IN_MS,
-    //                     1000 * FINALBLOCK_CONSENSUS_OBJECT_TIMEOUT)
-    //         << " ms for txn to be distributed to nodes within same epoch");
-    // std::this_thread::sleep_for(std::chrono::milliseconds(std::min(
-    //     TX_DISTRIBUTE_TIME_IN_MS, 1000 * FINALBLOCK_CONSENSUS_OBJECT_TIMEOUT)));
-
     // finalBlockMessage = serialized final block + tx-body sharing setup
     vector<unsigned char> finalBlockMessage = ComposeFinalBlockMessage();
 
