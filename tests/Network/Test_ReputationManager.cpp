@@ -61,7 +61,7 @@ BOOST_AUTO_TEST_CASE(test_fundamental)
     LOG_GENERAL(INFO,
                 IPConverter::ToStrFromNumericalIP(node1) + ": "
                     << rm.GetReputation(node1));
-    rm.PunishNode(node1, ReputationManager::ScoreType::REPTHRESHHOLD - 1);
+    rm.PunishNode(node1, ReputationManager::ScoreType::REPTHRESHOLD - 1);
     LOG_GENERAL(INFO,
                 IPConverter::ToStrFromNumericalIP(node1) + ": "
                     << rm.GetReputation(node1));
@@ -71,7 +71,7 @@ BOOST_AUTO_TEST_CASE(test_fundamental)
 
     // Check new reputation
     result = rm.GetReputation(node1);
-    expected = 0 + ReputationManager::ScoreType::REPTHRESHHOLD - 1
+    expected = 0 + ReputationManager::ScoreType::REPTHRESHOLD - 1
         - (ReputationManager::ScoreType::BAN_MULTIPLIER
            * ReputationManager::ScoreType::AWARD_FOR_GOOD_NODES);
 
@@ -113,7 +113,7 @@ BOOST_AUTO_TEST_CASE(test_fundamental)
 
     // Test upper bound of reputation score
     result = rm.GetReputation(node2);
-    expected = ReputationManager::ScoreType::UPPERREPTHRESHHOLD;
+    expected = ReputationManager::ScoreType::UPPERREPTHRESHOLD;
 
     BOOST_CHECK_MESSAGE(result == expected,
                         "Upper bound of reputation test: "
