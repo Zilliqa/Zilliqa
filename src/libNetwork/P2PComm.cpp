@@ -80,6 +80,7 @@ static bool comparePairSecond(
 
 P2PComm::P2PComm()
     : m_sendQueue(SENDQUEUE_SIZE)
+    , m_eventBase(event_base_new(), event_base_free)
 {
     auto func = [this]() -> void {
         std::vector<unsigned char> emptyHash;
@@ -642,6 +643,34 @@ void P2PComm::AcceptConnectionCallback([[gnu::unused]] evconnlistener* listener,
     bufferevent_enable(bev, EV_READ | EV_WRITE);
 }
 
+namespace
+{
+    static void OnExitingSignal([[gnu::unused]] evutil_socket_t fd,
+                                [[gnu::unused]] short event, void* arg)
+    {
+        struct event* signal = reinterpret_cast<struct event*>(arg);
+        LOG_GENERAL(INFO,
+                    "Got signal " << EVENT_SIGNAL(signal)
+                                  << ", terminating now ...");
+
+        P2PComm::GetInstance().SignalExit();
+    }
+} // anonymous
+
+void P2PComm::RegisterExitSignal(std::vector<int>&& sigs)
+{
+    for (const auto& sig : sigs)
+    {
+        auto signal_event = std::make_unique<struct event>();
+        event_assign(signal_event.get(), m_eventBase.get(), sig,
+                     EV_SIGNAL | EV_PERSIST, OnExitingSignal,
+                     signal_event.get());
+        event_add(signal_event.get(), nullptr);
+        // push it to m_sigalEvents to let P2PComm destructor to handle the deallocation
+        m_signalEvents.emplace_back(std::move(signal_event));
+    }
+}
+
 void P2PComm::StartMessagePump(uint32_t listen_port_host, Dispatcher dispatcher,
                                BroadcastListFunc broadcast_list_retriever)
 {
@@ -688,15 +717,15 @@ void P2PComm::StartMessagePump(uint32_t listen_port_host, Dispatcher dispatcher,
     serv_addr.sin_port = htons(listen_port_host);
     serv_addr.sin_addr.s_addr = INADDR_ANY;
 
-    // Create the listener
-    struct event_base* base = event_base_new();
-    struct evconnlistener* listener = evconnlistener_new_bind(
-        base, AcceptConnectionCallback, nullptr,
-        LEV_OPT_REUSEABLE | LEV_OPT_CLOSE_ON_FREE, -1,
-        (struct sockaddr*)&serv_addr, sizeof(struct sockaddr_in));
-    event_base_dispatch(base);
-    evconnlistener_free(listener);
-    event_base_free(base);
+    std::unique_ptr<struct evconnlistener, decltype(&evconnlistener_free)>
+        listener(evconnlistener_new_bind(
+                     m_eventBase.get(), AcceptConnectionCallback, nullptr,
+                     LEV_OPT_REUSEABLE | LEV_OPT_CLOSE_ON_FREE, -1,
+                     (struct sockaddr*)&serv_addr, sizeof(struct sockaddr_in)),
+                 evconnlistener_free);
+
+    event_base_dispatch(m_eventBase.get());
+    LOG_GENERAL(INFO, "Event loop exited");
 }
 
 void P2PComm::SendMessage(const vector<Peer>& peers,
@@ -871,3 +900,21 @@ void P2PComm::SendMessageNoQueue(const Peer& peer,
 }
 
 void P2PComm::SetSelfPeer(const Peer& self) { m_selfPeer = self; }
+
+void P2PComm::SignalExit()
+{
+    if (m_eventBase == nullptr)
+    {
+        LOG_GENERAL(WARNING, "Cannot exit due to uninitialized event base");
+        return;
+    }
+
+    auto ret = event_base_loopbreak(m_eventBase.get());
+    if (ret == -1)
+    {
+        LOG_GENERAL(WARNING, "Failed to break event_base_loop");
+        return;
+    }
+
+    LOG_GENERAL(INFO, "Exiting Signaled");
+}

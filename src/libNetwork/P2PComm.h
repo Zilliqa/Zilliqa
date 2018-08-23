@@ -19,6 +19,7 @@
 
 #include <boost/lockfree/queue.hpp>
 #include <deque>
+#include <event.h>
 #include <event2/util.h>
 #include <functional>
 #include <mutex>
@@ -127,6 +128,9 @@ private:
     static Dispatcher m_dispatcher;
     static BroadcastListFunc m_broadcast_list_retriever;
 
+    std::unique_ptr<struct event_base, decltype(&event_base_free)> m_eventBase;
+    std::vector<std::unique_ptr<struct event>> m_signalEvents;
+
 public:
     /// Accept TCP connection for libevent usage
     static void ConnectionAccept(evconnlistener* listener,
@@ -166,6 +170,12 @@ public:
                             const std::vector<unsigned char>& message);
 
     void SetSelfPeer(const Peer& self);
+
+    /// Register the signal num used for exiting
+    void RegisterExitSignal(std::vector<int>&& sigs);
+
+    /// Signal exit on event loop
+    void SignalExit();
 };
 
 #endif // __P2PCOMM_H__

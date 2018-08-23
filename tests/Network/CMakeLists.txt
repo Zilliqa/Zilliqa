@@ -30,3 +30,8 @@ add_executable (Test_Blacklist Test_Blacklist.cpp)
 target_include_directories (Test_Blacklist PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries (Test_Blacklist PUBLIC Network Utils)
 add_test(NAME Test_Blacklist COMMAND Test_Blacklist)
+
+add_executable (Test_Signal Test_Signal.cpp)
+target_include_directories (Test_Signal PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries (Test_Signal PUBLIC Network Utils)
+add_test(NAME Test_Signal COMMAND Test_Signal)
