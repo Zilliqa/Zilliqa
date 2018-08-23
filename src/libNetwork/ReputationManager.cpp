@@ -32,7 +32,7 @@ ReputationManager& ReputationManager::GetInstance()
 }
 
 bool ReputationManager::IsNodeBanned(
-    const boost::multiprecision::uint128_t IPAddress)
+    const boost::multiprecision::uint128_t& IPAddress)
 {
     if (GetReputation(IPAddress) <= REPTHRESHOLD)
     {
@@ -42,7 +42,7 @@ bool ReputationManager::IsNodeBanned(
 }
 
 void ReputationManager::PunishNode(
-    const boost::multiprecision::uint128_t IPAddress, int32_t Penalty)
+    const boost::multiprecision::uint128_t& IPAddress, int32_t Penalty)
 {
     UpdateReputation(IPAddress, Penalty);
     if (!Blacklist::GetInstance().Exist(IPAddress) and IsNodeBanned(IPAddress))
@@ -64,7 +64,7 @@ void ReputationManager::AwardAllNodes()
 }
 
 void ReputationManager::AddNodeIfNotKnown(
-    const boost::multiprecision::uint128_t IPAddress)
+    const boost::multiprecision::uint128_t& IPAddress)
 {
     std::lock_guard<std::mutex> lock(m_mutexReputations);
     if (m_Reputations.find(IPAddress) == m_Reputations.end())
@@ -74,7 +74,7 @@ void ReputationManager::AddNodeIfNotKnown(
 }
 
 int32_t ReputationManager::GetReputation(
-    const boost::multiprecision::uint128_t IPAddress)
+    const boost::multiprecision::uint128_t& IPAddress)
 {
     AddNodeIfNotKnown(IPAddress);
     std::lock_guard<std::mutex> lock(m_mutexReputations);
@@ -88,7 +88,7 @@ void ReputationManager::Clear()
 }
 
 void ReputationManager::SetReputation(
-    const boost::multiprecision::uint128_t IPAddress,
+    const boost::multiprecision::uint128_t& IPAddress,
     const int32_t ReputationScore)
 {
     AddNodeIfNotKnown(IPAddress);
@@ -109,7 +109,7 @@ void ReputationManager::SetReputation(
 }
 
 void ReputationManager::UpdateReputation(
-    const boost::multiprecision::uint128_t IPAddress,
+    const boost::multiprecision::uint128_t& IPAddress,
     const int32_t ReputationScoreDelta)
 {
     int32_t NewRep = GetReputation(IPAddress);
@@ -150,7 +150,7 @@ std::vector<boost::multiprecision::uint128_t> ReputationManager::GetAllKnownIP()
 }
 
 void ReputationManager::AwardNode(
-    const boost::multiprecision::uint128_t IPAddress)
+    const boost::multiprecision::uint128_t& IPAddress)
 {
     UpdateReputation(IPAddress, ScoreType::AWARD_FOR_GOOD_NODES);
 
