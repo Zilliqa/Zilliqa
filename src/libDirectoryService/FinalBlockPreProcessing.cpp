@@ -117,11 +117,9 @@ void DirectoryService::ExtractDataFromMicroblocks(
     LOG_EPOCH(
         INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
         "Proposed FinalBlock TxnTrieRootHash : "
-            << DataConversion::charArrToHexStr(microblockTxnTrieRoot.asArray())
-            << endl
-            << " DeltaTrieRootHash: "
-            << DataConversion::charArrToHexStr(
-                   microblockDeltaTrieRoot.asArray()));
+            << microblockTxnTrieRoot.hex() << endl
+            << " DeltaTrieRootHash: " << microblockDeltaTrieRoot.hex() << endl
+            << " TranReceiptRootHash: " << microblockTranReceiptRoot.hex());
 }
 
 void DirectoryService::ComposeFinalBlockCore()
@@ -200,8 +198,8 @@ void DirectoryService::ComposeFinalBlockCore()
     m_finalBlock.reset(new TxBlock(
         TxBlockHeader(type, version, allGasLimit, allGasUsed, prevHash,
                       blockNum, timestamp, microblockTxnTrieRoot, stateRoot,
-                      microblockDeltaTrieRoot, microblockTranReceiptRoot,
-                      stateDeltaHash, numTxs, numMicroBlocks,
+                      microblockDeltaTrieRoot, stateDeltaHash,
+                      microblockTranReceiptRoot, numTxs, numMicroBlocks,
                       m_mediator.m_selfKey.second, lastDSBlockNum,
                       dsBlockHeader),
         vector<bool>(isMicroBlockEmpty),
@@ -554,6 +552,15 @@ bool DirectoryService::CheckMicroBlockHashRoot()
         LOG_GENERAL(WARNING,
                     "Microblock root hash in proposed final block by "
                     "leader is incorrect");
+
+        LOG_EPOCH(
+            INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            "Received FinalBlock txnRoot : "
+                << m_finalBlock->GetHeader().GetTxRootHash().hex() << endl
+                << "stateDeltaRoot : "
+                << m_finalBlock->GetHeader().GetDeltaRootHash().hex() << endl
+                << "tranReceiptRoot : "
+                << m_finalBlock->GetHeader().GetTranReceiptRootHash().hex());
 
         m_consensusObject->SetConsensusErrorCode(
             ConsensusCommon::FINALBLOCK_INVALID_MICROBLOCK_ROOT_HASH);
