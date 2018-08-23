@@ -419,13 +419,13 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
                 if (cv_DSBlockConsensus.wait_for(
                         cv_lk,
                         std::chrono::seconds(NEW_NODE_SYNC_INTERVAL
-                                             + POW_WINDOW_IN_SECONDS))
+                                             + POW_BACKUP_WINDOW_IN_SECONDS))
                     == std::cv_status::timeout)
                 {
                     LOG_GENERAL(INFO,
                                 "Woken up from the sleep of "
                                     << NEW_NODE_SYNC_INTERVAL
-                                        + POW_WINDOW_IN_SECONDS
+                                        + POW_BACKUP_WINDOW_IN_SECONDS
                                     << " seconds");
                 }
                 else
