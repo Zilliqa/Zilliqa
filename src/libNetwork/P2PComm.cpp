@@ -394,26 +394,54 @@ void P2PComm::ClearBroadcastHashAsync(const vector<unsigned char>& message_hash)
 void P2PComm::EventCallback(struct bufferevent* bev, short events,
                             [[gnu::unused]] void* ctx)
 {
+    // Get the IP info
+    int fd = bufferevent_getfd(bev);
+    struct sockaddr_in cli_addr;
+    socklen_t addr_size = sizeof(struct sockaddr_in);
+    getpeername(fd, (struct sockaddr*)&cli_addr, &addr_size);
+    Peer from(cli_addr.sin_addr.s_addr, cli_addr.sin_port);
+
+    // Close the socket
+    bufferevent_free(bev);
+
     if (events & BEV_EVENT_ERROR)
     {
-        LOG_GENERAL(WARNING, "Error from bufferevent");
+        LOG_GENERAL(WARNING, "Error from bufferevent.");
+        return;
     }
 
     // Not all bytes read out
     if (!(events & (BEV_EVENT_EOF | BEV_EVENT_ERROR)))
     {
+        LOG_GENERAL(WARNING, "Unknown error from bufferevent.");
         return;
     }
 
     // Get the data stored in buffer
     struct evbuffer* input = bufferevent_get_input(bev);
+    if (input == NULL)
+    {
+        LOG_GENERAL(WARNING, "bufferevent_get_input failure.");
+        return;
+    }
     size_t len = evbuffer_get_length(input);
+    if (len == 0)
+    {
+        LOG_GENERAL(WARNING, "evbuffer_get_length failure.");
+        return;
+    }
     vector<unsigned char> message(len);
-    evbuffer_copyout(input, message.data(), len);
-    evbuffer_drain(input, len);
-
-    // Close the socket
-    bufferevent_free(bev);
+    if (evbuffer_copyout(input, message.data(), len)
+        != static_cast<ev_ssize_t>(len))
+    {
+        LOG_GENERAL(WARNING, "evbuffer_copyout failure.");
+        return;
+    }
+    if (evbuffer_drain(input, len) != 0)
+    {
+        LOG_GENERAL(WARNING, "evbuffer_drain failure.");
+        return;
+    }
 
     // Reception format:
     // 0x01 ~ 0xFF - version, defined in constant file
@@ -461,12 +489,6 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
         return;
     }
 
-    int fd = bufferevent_getfd(bev);
-    struct sockaddr_in cli_addr;
-    socklen_t addr_size = sizeof(struct sockaddr_in);
-    getpeername(fd, (struct sockaddr*)&cli_addr, &addr_size);
-    Peer from(cli_addr.sin_addr.s_addr, cli_addr.sin_port);
-
     if (startByte == START_BYTE_BROADCAST)
     {
         if ((messageLength - HDR_LEN) <= HASH_LEN)
@@ -481,14 +503,15 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
         vector<unsigned char> msg_hash(message.begin() + HDR_LEN,
                                        message.begin() + HDR_LEN + HASH_LEN);
 
+        P2PComm& p2p = P2PComm::GetInstance();
+
         // Check if this message has been received before
         bool found = false;
         {
-            lock_guard<mutex> guard(
-                P2PComm::GetInstance().m_broadcastHashesMutex);
+            lock_guard<mutex> guard(p2p.m_broadcastHashesMutex);
 
-            found = (P2PComm::GetInstance().m_broadcastHashes.find(msg_hash)
-                     != P2PComm::GetInstance().m_broadcastHashes.end());
+            found = (p2p.m_broadcastHashes.find(msg_hash)
+                     != p2p.m_broadcastHashes.end());
             // While we have the lock, we should quickly add the hash
             if (!found)
             {
@@ -499,8 +522,7 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
 
                 if (this_msg_hash == msg_hash)
                 {
-                    P2PComm::GetInstance().m_broadcastHashes.insert(
-                        this_msg_hash);
+                    p2p.m_broadcastHashes.insert(this_msg_hash);
                 }
                 else
                 {
@@ -530,15 +552,13 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
 
         if (broadcast_list.size() > 0)
         {
-            P2PComm::GetInstance().RebroadcastMessage(broadcast_list, message,
-                                                      msg_hash);
+            p2p.RebroadcastMessage(broadcast_list, message, msg_hash);
         }
 
-        P2PComm::GetInstance().ClearBroadcastHashAsync(msg_hash);
+        p2p.ClearBroadcastHashAsync(msg_hash);
 
         LOG_STATE("[BROAD]["
-                  << std::setw(15) << std::left
-                  << P2PComm::GetInstance().m_selfPeer << "]["
+                  << std::setw(15) << std::left << p2p.m_selfPeer << "]["
                   << DataConversion::Uint8VecToHexStr(msg_hash).substr(0, 6)
                   << "] RECV");
 
@@ -587,13 +607,37 @@ void P2PComm::AcceptConnectionCallback([[gnu::unused]] evconnlistener* listener,
                     "The node "
                         << from
                         << " is in black list, block all message from it.");
+
+        // Close the socket
+        evutil_closesocket(cli_sock);
+
         return;
     }
 
     // Set up buffer event for this new connection
     struct event_base* base = evconnlistener_get_base(listener);
+    if (base == NULL)
+    {
+        LOG_GENERAL(WARNING, "evconnlistener_get_base failure.");
+
+        // Close the socket
+        evutil_closesocket(cli_sock);
+
+        return;
+    }
+
     struct bufferevent* bev = bufferevent_socket_new(
         base, cli_sock, BEV_OPT_CLOSE_ON_FREE | BEV_OPT_DEFER_CALLBACKS);
+    if (bev == NULL)
+    {
+        LOG_GENERAL(WARNING, "bufferevent_socket_new failure.");
+
+        // Close the socket
+        evutil_closesocket(cli_sock);
+
+        return;
+    }
+
     bufferevent_setcb(bev, NULL, NULL, EventCallback, NULL);
     bufferevent_enable(bev, EV_READ | EV_WRITE);
 }
