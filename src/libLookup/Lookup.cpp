@@ -2402,8 +2402,9 @@ void Lookup::LaunchTxnSyncThread(const string& ipAddr)
 {
     auto func = [](const string& ipAddr) {
 
-        std::string rsyncTxnCommand = "rsync -az --size-only -e \"ssh -o "
-                                      "StrictHostKeyChecking=no\" ubuntu@"
+        std::string rsyncTxnCommand
+            = "rsync -az --no-whole-file --size-only -e \"ssh -o "
+              "StrictHostKeyChecking=no\" ubuntu@"
             + ipAddr + ":" + REMOTE_TXN_DIR + "/ " + TXN_PATH;
 
         while (true)
