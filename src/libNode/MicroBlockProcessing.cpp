@@ -416,8 +416,10 @@ bool Node::ComposeMicroBlock()
         numTxs = processedTransactions.size();
         if (numTxs != m_TxnOrder.size())
         {
-            LOG_GENERAL(WARNING, "Num txns and Order size not same");
-            return false;
+            LOG_GENERAL(FATAL,
+                        "Num txns and Order size not same "
+                            << " numTxs " << numTxs << " m_TxnOrder "
+                            << m_TxnOrder.size());
         }
         tranHashes = m_TxnOrder;
         m_TxnOrder.clear();

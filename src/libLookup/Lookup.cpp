@@ -2417,7 +2417,7 @@ bool Lookup::CreateTxnPacket(vector<unsigned char>& msg, uint32_t shardId,
                              unsigned int offset,
                              const map<uint32_t, vector<unsigned char>>& mp)
 {
-    //[shard_id][numTxns][txn1][txn2]...
+    //[epochNum][shard_id][numTxns][txn1][txn2]...
     //Clears msg
     LOG_MARKER();
 
@@ -2425,6 +2425,11 @@ bool Lookup::CreateTxnPacket(vector<unsigned char>& msg, uint32_t shardId,
         = (mp.find(shardId) != mp.end()) ? mp.at(shardId).size() : 0;
     size_dummy = size_dummy / Transaction::GetMinSerializedSize();
     unsigned int curr_offset = offset;
+
+    Serializable::SetNumber<uint64_t>(
+        msg, curr_offset, m_mediator.m_currentEpochNum, sizeof(uint64_t));
+
+    curr_offset += sizeof(uint64_t);
 
     {
         lock_guard<mutex> g(m_txnShardMapMutex);
@@ -2525,5 +2530,37 @@ void Lookup::SendTxnPacketToNodes(uint32_t nShard)
 void Lookup::SetServerTrue() { m_isServer = true; }
 
 bool Lookup::GetIsServer() { return m_isServer; }
+
+unsigned int TxnSyncTimeout = 5;
+
+void Lookup::LaunchTxnSyncThread(const string& ipAddr)
+{
+    auto func = [](const string& ipAddr) {
+
+        std::string rsyncTxnCommand = "rsync -az --size-only -e \"ssh -o "
+                                      "StrictHostKeyChecking=no\" ubuntu@"
+            + ipAddr + ":" + REMOTE_TXN_DIR + "/ " + TXN_PATH;
+
+        while (true)
+        {
+            LOG_GENERAL(INFO,
+                        "[SyncTxn] "
+                            << "Starting syncing");
+            string out;
+            if (!SysCommand::ExecuteCmdWithOutput(rsyncTxnCommand, out))
+            {
+                LOG_GENERAL(WARNING,
+                            "Unable to launch command " << rsyncTxnCommand);
+            }
+            else
+            {
+                LOG_GENERAL(INFO, "Command Output " << out);
+            }
+
+            this_thread::sleep_for(chrono::seconds(TxnSyncTimeout));
+        }
+    };
+    DetachedFunction(1, func, ipAddr);
+}
 
 #endif //IS_LOOKUP_NODE
