@@ -566,7 +566,8 @@ void Node::ProcessTransactionWhenShardLeader()
 
     auto appendOne = [this](const Transaction& t) {
         lock_guard<mutex> g(m_mutexProcessedTransactions);
-        auto& processedTransactions = m_processedTransactions[m_mediator.m_currentEpochNum];
+        auto& processedTransactions
+            = m_processedTransactions[m_mediator.m_currentEpochNum];
         processedTransactions.insert(make_pair(t.GetTranID(), t));
     };
 
