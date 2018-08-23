@@ -533,7 +533,7 @@ DirectoryService::CalculateNewDifficulty(const uint8_t& currentDifficulty)
     int submissionsDiff = requiredNodes - prevSubmissions;
 
     // To make the adjustment work on small network.
-    int adjustThreshold = requiredNodes * 0.1f;
+    int adjustThreshold = requiredNodes * 0.12f;
     if (adjustThreshold > 99)
     {
         adjustThreshold = 99;
