@@ -2469,7 +2469,7 @@ void Lookup::SendTxnPacketToNodes(uint32_t nShard)
     if (!GenTxnToSend(NUM_TXN_TO_SEND_PER_ACCOUNT, mp, nShard))
     {
         LOG_GENERAL(WARNING, "GenTxnToSend failed");
-        return;
+        // return;
     }
 
     for (unsigned int i = 0; i < nShard + 1; i++)
