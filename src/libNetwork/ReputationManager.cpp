@@ -31,17 +31,18 @@ ReputationManager& ReputationManager::GetInstance()
     return RM;
 }
 
-bool ReputationManager::IsNodeBanned(boost::multiprecision::uint128_t IPAddress)
+bool ReputationManager::IsNodeBanned(
+    const boost::multiprecision::uint128_t IPAddress)
 {
-    if (GetReputation(IPAddress) <= REPTHRESHHOLD)
+    if (GetReputation(IPAddress) <= REPTHRESHOLD)
     {
         return true;
     }
     return false;
 }
 
-void ReputationManager::PunishNode(boost::multiprecision::uint128_t IPAddress,
-                                   int32_t Penalty)
+void ReputationManager::PunishNode(
+    const boost::multiprecision::uint128_t IPAddress, int32_t Penalty)
 {
     UpdateReputation(IPAddress, Penalty);
     if (!Blacklist::GetInstance().Exist(IPAddress) and IsNodeBanned(IPAddress))
@@ -63,7 +64,7 @@ void ReputationManager::AwardAllNodes()
 }
 
 void ReputationManager::AddNodeIfNotKnown(
-    boost::multiprecision::uint128_t IPAddress)
+    const boost::multiprecision::uint128_t IPAddress)
 {
     std::lock_guard<std::mutex> lock(m_mutexReputations);
     if (m_Reputations.find(IPAddress) == m_Reputations.end())
@@ -72,8 +73,8 @@ void ReputationManager::AddNodeIfNotKnown(
     }
 }
 
-int32_t
-ReputationManager::GetReputation(boost::multiprecision::uint128_t IPAddress)
+int32_t ReputationManager::GetReputation(
+    const boost::multiprecision::uint128_t IPAddress)
 {
     AddNodeIfNotKnown(IPAddress);
     std::lock_guard<std::mutex> lock(m_mutexReputations);
@@ -87,19 +88,20 @@ void ReputationManager::Clear()
 }
 
 void ReputationManager::SetReputation(
-    boost::multiprecision::uint128_t IPAddress, int32_t ReputationScore)
+    const boost::multiprecision::uint128_t IPAddress,
+    const int32_t ReputationScore)
 {
     AddNodeIfNotKnown(IPAddress);
 
     std::lock_guard<std::mutex> lock(m_mutexReputations);
-    if (ReputationScore > ScoreType::UPPERREPTHRESHHOLD)
+    if (ReputationScore > ScoreType::UPPERREPTHRESHOLD)
     {
         LOG_GENERAL(
             WARNING,
             "Reputation score too high. Exceed upper bound. ReputationScore: "
                 << ReputationScore << ". Setting reputation to "
-                << ScoreType::UPPERREPTHRESHHOLD);
-        m_Reputations[IPAddress] = ScoreType::UPPERREPTHRESHHOLD;
+                << ScoreType::UPPERREPTHRESHOLD);
+        m_Reputations[IPAddress] = ScoreType::UPPERREPTHRESHOLD;
         return;
     }
 
@@ -107,7 +109,8 @@ void ReputationManager::SetReputation(
 }
 
 void ReputationManager::UpdateReputation(
-    boost::multiprecision::uint128_t IPAddress, int32_t ReputationScoreDelta)
+    const boost::multiprecision::uint128_t IPAddress,
+    const int32_t ReputationScoreDelta)
 {
     int32_t NewRep = GetReputation(IPAddress);
 
@@ -120,7 +123,7 @@ void ReputationManager::UpdateReputation(
     }
 
     // Further deduct score if node is going to be ban
-    if (NewRep <= REPTHRESHHOLD && !IsNodeBanned(IPAddress))
+    if (NewRep <= REPTHRESHOLD && !IsNodeBanned(IPAddress))
     {
         UpdateResult = SafeMath<int32_t>::sub(
             NewRep, ScoreType::BAN_MULTIPLIER * ScoreType::AWARD_FOR_GOOD_NODES,
@@ -146,7 +149,8 @@ std::vector<boost::multiprecision::uint128_t> ReputationManager::GetAllKnownIP()
     return AllKnownIPs;
 }
 
-void ReputationManager::AwardNode(boost::multiprecision::uint128_t IPAddress)
+void ReputationManager::AwardNode(
+    const boost::multiprecision::uint128_t IPAddress)
 {
     UpdateReputation(IPAddress, ScoreType::AWARD_FOR_GOOD_NODES);
 

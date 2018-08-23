@@ -49,12 +49,12 @@ class ReputationManager
 public:
     /// Returns the singleton P2PComm instance.
     static ReputationManager& GetInstance();
-    void AddNodeIfNotKnown(boost::multiprecision::uint128_t IPAddress);
-    bool IsNodeBanned(boost::multiprecision::uint128_t IPAddress);
-    void PunishNode(boost::multiprecision::uint128_t IPAddress,
-                    int32_t Penalty);
+    void AddNodeIfNotKnown(const boost::multiprecision::uint128_t IPAddress);
+    bool IsNodeBanned(const boost::multiprecision::uint128_t IPAddress);
+    void PunishNode(const boost::multiprecision::uint128_t IPAddress,
+                    const int32_t Penalty);
     void AwardAllNodes();
-    int32_t GetReputation(boost::multiprecision::uint128_t IPAddress);
+    int32_t GetReputation(const boost::multiprecision::uint128_t IPAddress);
     void Clear();
 
     // To be use once hooked into core protocol
@@ -66,8 +66,8 @@ public:
 
     enum ScoreType : int32_t
     {
-        UPPERREPTHRESHHOLD = 500,
-        REPTHRESHHOLD = -500,
+        UPPERREPTHRESHOLD = 500,
+        REPTHRESHOLD = -500,
         GOOD = 0,
         BAN_MULTIPLIER = 24,
         AWARD_FOR_GOOD_NODES = 50
@@ -80,12 +80,12 @@ private:
                        hash_str<boost::multiprecision::uint128_t>>
         m_Reputations;
 
-    void SetReputation(boost::multiprecision::uint128_t IPAddress,
-                       int32_t ReputationScore);
-    void UpdateReputation(boost::multiprecision::uint128_t IPAddress,
-                          int32_t ReputationScoreDelta);
+    void SetReputation(const boost::multiprecision::uint128_t IPAddress,
+                       const int32_t ReputationScore);
+    void UpdateReputation(const boost::multiprecision::uint128_t IPAddress,
+                          const int32_t ReputationScoreDelta);
     std::vector<boost::multiprecision::uint128_t> GetAllKnownIP();
-    void AwardNode(boost::multiprecision::uint128_t IPAddress);
+    void AwardNode(const boost::multiprecision::uint128_t IPAddress);
 };
 
 #endif // __REPUTATION_MANAGER_H__
