@@ -17,6 +17,7 @@
 #ifndef __P2PCOMM_H__
 #define __P2PCOMM_H__
 
+#include <boost/lockfree/queue.hpp>
 #include <deque>
 #include <event2/util.h>
 #include <functional>
@@ -31,6 +32,47 @@
 
 struct evconnlistener;
 
+class SendJob
+{
+protected:
+    static const uint32_t MAXRETRYCONN = 3;
+    static const uint32_t PUMPMESSAGE_MILLISECONDS = 1000;
+
+    static uint32_t writeMsg(const void* buf, int cli_sock, const Peer& from,
+                             const uint32_t message_length);
+    static bool SendMessageSocketCore(
+        const Peer& peer, const std::vector<unsigned char>& message,
+        unsigned char start_byte, const std::vector<unsigned char>& msg_hash);
+
+public:
+    Peer m_selfPeer;
+    unsigned char m_startbyte;
+    std::vector<unsigned char> m_message;
+    std::vector<unsigned char> m_hash;
+
+    static void SendMessageCore(const Peer& peer,
+                                const std::vector<unsigned char> message,
+                                unsigned char startbyte,
+                                const std::vector<unsigned char> hash);
+
+    virtual ~SendJob() {}
+    virtual void DoSend() = 0;
+};
+
+class SendJobPeer : public SendJob
+{
+public:
+    Peer m_peer;
+    void DoSend();
+};
+
+template<class T> class SendJobPeers : public SendJob
+{
+public:
+    T m_peers;
+    void DoSend();
+};
+
 /// Provides network layer functionality.
 class P2PComm
 {
@@ -40,40 +82,11 @@ class P2PComm
                          std::chrono::time_point<std::chrono::system_clock>>>
         m_broadcastToRemove;
     std::mutex m_broadcastToRemoveMutex;
-    std::mutex m_broadcastCoreMutex;
-    std::mutex m_startMessagePumpMutex;
-    std::mutex m_sendMessageMutex;
 
-    const static uint32_t MAXRETRYCONN = 3;
     const static uint32_t MAXPUMPMESSAGE = 128;
-    const static uint32_t PUMPMESSAGE_MILLISECONDS = 1000;
-
-    void SendMessageCore(const Peer& peer,
-                         const std::vector<unsigned char>& message,
-                         unsigned char start_byte,
-                         const std::vector<unsigned char>& msg_hash);
-    bool SendMessageSocketCore(const Peer& peer,
-                               const std::vector<unsigned char>& message,
-                               unsigned char start_byte,
-                               const std::vector<unsigned char>& msg_hash);
-
-    template<typename Container>
-    void
-    SendBroadcastMessageCore(const Container& peers,
-                             const std::vector<unsigned char>& message,
-                             const std::vector<unsigned char>& message_hash);
 
     void
     ClearBroadcastHashAsync(const std::vector<unsigned char>& message_hash);
-
-    template<typename Container>
-    void SendBroadcastMessageHelper(const Container& peers,
-                                    const std::vector<unsigned char>& message);
-
-    template<unsigned char START_BYTE, typename Container>
-    void SendMessagePoolHelper(const Container& peers,
-                               const std::vector<unsigned char>& message,
-                               const std::vector<unsigned char>& message_hash);
 
     P2PComm();
     ~P2PComm();
@@ -90,31 +103,29 @@ class P2PComm
     ThreadPool m_SendPool{MAXMESSAGE, "SendPool"};
     ThreadPool m_RecvPool{MAXMESSAGE, "RecvPool"};
 
+    boost::lockfree::queue<SendJob*> m_sendQueue;
+    void ProcessSendJob(SendJob* job);
+
+    static void EventCallback(struct bufferevent* bev, short events, void* ctx);
+    static void AcceptConnectionCallback(evconnlistener* listener,
+                                         evutil_socket_t cli_sock,
+                                         struct sockaddr* cli_addr, int socklen,
+                                         void* arg);
+
 public:
     /// Returns the singleton P2PComm instance.
     static P2PComm& GetInstance();
 
     using Dispatcher
-        = std::function<void(const std::vector<unsigned char>&, const Peer&)>;
+        = std::function<void(std::pair<std::vector<unsigned char>, Peer>*)>;
 
     using BroadcastListFunc = std::function<std::vector<Peer>(
         unsigned char msg_type, unsigned char ins_type, const Peer&)>;
-
-    /// Receives incoming message and assigns to designated message dispatcher.
-    static void HandleAcceptedConnection(int cli_sock, Peer from);
 
 private:
     using SocketCloser = std::unique_ptr<int, void (*)(int*)>;
     static Dispatcher m_dispatcher;
     static BroadcastListFunc m_broadcast_list_retriever;
-
-    static void HandleAcceptedConnectionNormal(int cli_sock, Peer from,
-                                               uint32_t message_length,
-                                               SocketCloser cli_sock_closer);
-
-    static void HandleAcceptedConnectionBroadcast(int cli_sock, Peer from,
-                                                  uint32_t message_length,
-                                                  SocketCloser cli_sock_closer);
 
 public:
     /// Accept TCP connection for libevent usage
@@ -146,6 +157,13 @@ public:
     /// Multicasts message of type=broadcast to specified list of peers.
     void SendBroadcastMessage(const std::deque<Peer>& peers,
                               const std::vector<unsigned char>& message);
+
+    void RebroadcastMessage(const std::vector<Peer>& peers,
+                            const std::vector<unsigned char>& message,
+                            const std::vector<unsigned char>& msg_hash);
+
+    void SendMessageNoQueue(const Peer& peer,
+                            const std::vector<unsigned char>& message);
 
     void SetSelfPeer(const Peer& self);
 };
