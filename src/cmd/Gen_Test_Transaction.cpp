@@ -86,7 +86,7 @@ int main()
     {
         toAddr.asArray().at(i) = i + 4;
     }
-    for (unsigned int i = 0; i < 5; i++)
+    for (unsigned int i = 0; i < 10000; i++)
     {
         GenTxn(NUM_TXN, toAddr, i);
     }

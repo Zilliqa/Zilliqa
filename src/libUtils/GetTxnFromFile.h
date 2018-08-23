@@ -29,7 +29,7 @@ using namespace std;
 #include "libData/AccountData/Transaction.h"
 
 unsigned int TXN_SIZE = Transaction::GetMinSerializedSize();
-unsigned int NUM_TXN = 100;
+unsigned int NUM_TXN = 100000;
 
 bool getTransactionsFromFile(fstream& f, unsigned int startNum,
                              unsigned int totalNum, vector<unsigned char>& vec)
