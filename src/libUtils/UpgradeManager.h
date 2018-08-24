@@ -19,6 +19,7 @@
 
 #include "common/Serializable.h"
 #include <cstring>
+#include <memory>
 #include <stdint.h>
 #include <string>
 
@@ -67,7 +68,7 @@ public:
 class UpgradeManager
 {
 private:
-    SWInfo* m_curSWInfo;
+    std::shared_ptr<SWInfo> m_curSWInfo;
 
     UpgradeManager();
     ~UpgradeManager();
@@ -86,7 +87,7 @@ public:
     /// Download SW from website, then update current SHA-256 value & curSWInfo
     void DownloadSW();
 
-    const SWInfo* GetSWInfo() { return m_curSWInfo; }
+    const std::shared_ptr<SWInfo> GetSWInfo() { return m_curSWInfo; }
 };
 
 #endif // __UPGRADEMANAGER_H__
