@@ -84,6 +84,7 @@ int32_t ReputationManager::GetReputation(
 void ReputationManager::Clear()
 {
     LOG_MARKER();
+    std::lock_guard<std::mutex> lock(m_mutexReputations);
     m_Reputations.clear();
 }
 
