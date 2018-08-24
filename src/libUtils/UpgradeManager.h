@@ -54,7 +54,7 @@ public:
     /// Implements the Deserialize function inherited from Serializable.
     int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
 
-    /// Less-than comparison operator (for sorting keys in lookup table).
+    /// Less-than comparison operator.
     bool operator<(const SWInfo& r) const;
 
     /// Greater-than comparison operator.

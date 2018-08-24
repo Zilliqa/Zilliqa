@@ -148,85 +148,23 @@ const uint256_t& DSBlockHeader::GetTimestamp() const { return m_timestamp; }
 
 bool DSBlockHeader::operator==(const DSBlockHeader& header) const
 {
-    return ((m_difficulty == header.m_difficulty)
-            && (m_prevHash == header.m_prevHash) && (m_nonce == header.m_nonce)
-            && (m_minerPubKey == header.m_minerPubKey)
-            && (m_leaderPubKey == header.m_leaderPubKey)
-            && (m_blockNum == header.m_blockNum)
-            && (m_timestamp == header.m_timestamp)
-            && (m_swInfo == header.m_swInfo));
+    return tie(m_difficulty, m_prevHash, m_nonce, m_minerPubKey, m_leaderPubKey,
+               m_blockNum, m_timestamp, m_swInfo)
+        == tie(header.m_difficulty, header.m_prevHash, header.m_nonce,
+               header.m_minerPubKey, header.m_leaderPubKey, header.m_blockNum,
+               header.m_timestamp, header.m_swInfo);
 }
 
-// TODO: Review this logic. It is wrong. Issue #163
 bool DSBlockHeader::operator<(const DSBlockHeader& header) const
 {
-    if (m_difficulty < header.m_difficulty)
-    {
-        return true;
-    }
-    else if (m_difficulty > header.m_difficulty)
-    {
-        return false;
-    }
-    else if (m_prevHash < header.m_prevHash)
-    {
-        return true;
-    }
-    else if (m_prevHash > header.m_prevHash)
-    {
-        return false;
-    }
-    else if (m_nonce < header.m_nonce)
-    {
-        return true;
-    }
-    else if (m_nonce > header.m_nonce)
-    {
-        return false;
-    }
-    else if (m_minerPubKey < header.m_minerPubKey)
-    {
-        return true;
-    }
-    else if (m_minerPubKey > header.m_minerPubKey)
-    {
-        return false;
-    }
-    else if (m_leaderPubKey < header.m_leaderPubKey)
-    {
-        return true;
-    }
-    else if (m_leaderPubKey > header.m_leaderPubKey)
-    {
-        return false;
-    }
-    else if (m_blockNum < header.m_blockNum)
-    {
-        return true;
-    }
-    else if (m_blockNum > header.m_blockNum)
-    {
-        return false;
-    }
-    else if (m_timestamp < header.m_timestamp)
-    {
-        return true;
-    }
-    else if (m_timestamp > header.m_timestamp)
-    {
-        return false;
-    }
-    else if (m_swInfo < header.m_swInfo)
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+    return tie(m_difficulty, m_prevHash, m_nonce, m_minerPubKey, m_leaderPubKey,
+               m_blockNum, m_timestamp, m_swInfo)
+        < tie(header.m_difficulty, header.m_prevHash, header.m_nonce,
+              header.m_minerPubKey, header.m_leaderPubKey, header.m_blockNum,
+              header.m_timestamp, header.m_swInfo);
 }
 
 bool DSBlockHeader::operator>(const DSBlockHeader& header) const
 {
-    return !((*this == header) || (*this < header));
+    return header < *this;
 }

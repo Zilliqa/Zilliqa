@@ -110,63 +110,21 @@ int SWInfo::Deserialize(const std::vector<unsigned char>& src,
     return 0;
 }
 
-/// Less-than comparison operator (for sorting keys in lookup table).
+/// Less-than comparison operator.
 bool SWInfo::operator<(const SWInfo& r) const
 {
-    if (m_major < r.m_major)
-    {
-        return true;
-    }
-    else if (m_major > r.m_major)
-    {
-        return false;
-    }
-    else if (m_minor < r.m_minor)
-    {
-        return true;
-    }
-    else if (m_minor > r.m_minor)
-    {
-        return false;
-    }
-    else if (m_fix < r.m_fix)
-    {
-        return true;
-    }
-    else if (m_fix > r.m_fix)
-    {
-        return false;
-    }
-    else if (m_upgradeDS < r.m_upgradeDS)
-    {
-        return true;
-    }
-    else if (m_upgradeDS > r.m_upgradeDS)
-    {
-        return false;
-    }
-    else if (m_commit < r.m_commit)
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+    return tie(m_major, m_minor, m_fix, m_upgradeDS, m_commit)
+        < tie(r.m_major, r.m_minor, r.m_fix, r.m_upgradeDS, r.m_commit);
 }
 
 /// Greater-than comparison operator.
-bool SWInfo::operator>(const SWInfo& r) const
-{
-    return !((*this == r) || (*this < r));
-}
+bool SWInfo::operator>(const SWInfo& r) const { return r < *this; }
 
 /// Equality operator.
 bool SWInfo::operator==(const SWInfo& r) const
 {
-    return ((m_major == r.m_major) && (m_minor == r.m_minor)
-            && (m_fix == r.m_fix) && (m_upgradeDS == r.m_upgradeDS)
-            && (m_commit == r.m_commit));
+    return tie(m_major, m_minor, m_fix, m_upgradeDS, m_commit)
+        == tie(r.m_major, r.m_minor, r.m_fix, r.m_upgradeDS, r.m_commit);
 }
 
 UpgradeManager::UpgradeManager() { m_curSWInfo = nullptr; }
@@ -175,7 +133,7 @@ UpgradeManager::~UpgradeManager()
 {
     if (m_curSWInfo)
     {
-        free(m_curSWInfo);
+        delete m_curSWInfo;
         m_curSWInfo = nullptr;
     }
 }
