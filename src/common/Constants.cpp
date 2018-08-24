@@ -130,6 +130,7 @@ const unsigned int BROADCAST_INTERVAL{
 const unsigned int BROADCAST_EXPIRY{ReadFromConstantsFile("BROADCAST_EXPIRY")};
 const unsigned int SENDQUEUE_SIZE{ReadFromConstantsFile("SENDQUEUE_SIZE")};
 const unsigned int MSGQUEUE_SIZE{ReadFromConstantsFile("MSGQUEUE_SIZE")};
+const unsigned int NUM_NETWORK_NODE{ReadFromConstantsFile("NUM_NETWORK_NODE")};
 
 const bool EXCLUDE_PRIV_IP{
     ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true" ? true : false};
