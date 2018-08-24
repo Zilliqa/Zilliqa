@@ -34,11 +34,7 @@ ReputationManager& ReputationManager::GetInstance()
 bool ReputationManager::IsNodeBanned(
     const boost::multiprecision::uint128_t& IPAddress)
 {
-    if (GetReputation(IPAddress) <= REPTHRESHOLD)
-    {
-        return true;
-    }
-    return false;
+    return (GetReputation(IPAddress) <= REPTHRESHOLD);
 }
 
 void ReputationManager::PunishNode(
