@@ -45,7 +45,7 @@ do
 done
 
 
-for port in {01..20}
+for port in {1..20}
 do
     python tests/Zilliqa/test_zilliqa_local.py sendtxn $((5000 + $port))
 done 
