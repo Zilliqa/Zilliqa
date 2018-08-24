@@ -34,4 +34,8 @@ add_test(NAME Test_Blacklist COMMAND Test_Blacklist)
 add_executable (Test_Signal Test_Signal.cpp)
 target_include_directories (Test_Signal PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries (Test_Signal PUBLIC Network Utils)
+
+# FIXME: Test_Signal is only able to run on Linux
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 add_test(NAME Test_Signal COMMAND Test_Signal)
+endif()
