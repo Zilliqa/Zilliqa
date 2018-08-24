@@ -80,6 +80,8 @@ private:
                        hash_str<boost::multiprecision::uint128_t>>
         m_Reputations;
 
+    void AddNodeIfNotKnownInternal(
+        const boost::multiprecision::uint128_t& IPAddress);
     void SetReputation(const boost::multiprecision::uint128_t& IPAddress,
                        const int32_t ReputationScore);
     void UpdateReputation(const boost::multiprecision::uint128_t& IPAddress,
