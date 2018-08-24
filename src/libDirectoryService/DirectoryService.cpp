@@ -526,38 +526,39 @@ DirectoryService::CalculateNewDifficulty(const uint8_t& currentDifficulty)
     LOG_GENERAL(INFO,
                 "requiredNodes " << requiredNodes << ", powSubmissions "
                                  << powSubmissions);
-    if (requiredNodes <= 0 || requiredNodes == powSubmissions)
-    {
-        return currentDifficulty;
-    }
 
-    if (powSubmissions > requiredNodes)
+    int adjustment = 0;
+    if (requiredNodes > 0 && requiredNodes != powSubmissions)
     {
-        requiredNodes
-            = std::min(requiredNodes, static_cast<int>(NUM_NETWORK_NODE));
-    }
-    else if (powSubmissions < requiredNodes)
-    {
-        requiredNodes
-            = std::max(requiredNodes, static_cast<int>(NUM_NETWORK_NODE));
-    }
+        int submissionsDiff = powSubmissions - requiredNodes;
 
-    int submissionsDiff = powSubmissions - requiredNodes;
+        // To make the adjustment work on small network.
+        int adjustThreshold = requiredNodes * 0.12f;
+        if (adjustThreshold > 99)
+        {
+            adjustThreshold = 99;
+        }
 
-    // To make the adjustment work on small network.
-    int adjustThreshold = requiredNodes * 0.12f;
-    if (adjustThreshold > 99)
-    {
-        adjustThreshold = 99;
+        // If the PoW submissions change not big, then adjust according to the expected whole network node number.
+        if (abs(submissionsDiff) < adjustThreshold)
+        {
+            // If the PoW submissions exceeded the expected whole network node number, then increase the difficulty.
+            if (submissionsDiff > 0
+                && powSubmissions > static_cast<int>(NUM_NETWORK_NODE))
+            {
+                adjustment = 1;
+            }
+            else if (submissionsDiff < 0
+                     && powSubmissions < static_cast<int>(NUM_NETWORK_NODE))
+            {
+                adjustment = -1;
+            }
+        }
+        else
+        {
+            adjustment = submissionsDiff / adjustThreshold;
+        }
     }
-
-    // If not over the adjust threshold, then keep the current difficulty.
-    if (abs(submissionsDiff) < adjustThreshold)
-    {
-        return currentDifficulty;
-    }
-
-    int adjustment = submissionsDiff / adjustThreshold;
 
     // Restrict the adjustment step, prevent the difficulty jump up/down dramatically.
     if (adjustment > MAX_ADJUST_STEP)
