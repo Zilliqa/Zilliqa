@@ -154,7 +154,7 @@ void ReputationManager::AwardNode(
 {
     UpdateReputation(IPAddress, ScoreType::AWARD_FOR_GOOD_NODES);
 
-    if (Blacklist::GetInstance().Exist(IPAddress) and !IsNodeBanned(IPAddress))
+    if (Blacklist::GetInstance().Exist(IPAddress) && !IsNodeBanned(IPAddress))
     {
         LOG_GENERAL(INFO,
                     "Node " << IPConverter::ToStrFromNumericalIP(IPAddress)
