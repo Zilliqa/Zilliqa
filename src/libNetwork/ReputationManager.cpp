@@ -116,9 +116,7 @@ void ReputationManager::UpdateReputation(
     int32_t NewRep = GetReputation(IPAddress);
 
     // Update result with score delta
-    bool UpdateResult
-        = SafeMath<int32_t>::add(NewRep, ReputationScoreDelta, NewRep);
-    if (!UpdateResult)
+    if (!(SafeMath<int32_t>::add(NewRep, ReputationScoreDelta, NewRep)))
     {
         LOG_GENERAL(WARNING, "Underflow/overflow detected.");
     }
@@ -126,11 +124,10 @@ void ReputationManager::UpdateReputation(
     // Further deduct score if node is going to be ban
     if (NewRep <= REPTHRESHOLD && !IsNodeBanned(IPAddress))
     {
-        UpdateResult = SafeMath<int32_t>::sub(
-            NewRep, ScoreType::BAN_MULTIPLIER * ScoreType::AWARD_FOR_GOOD_NODES,
-            NewRep);
-
-        if (!UpdateResult)
+        if (!(SafeMath<int32_t>::sub(NewRep,
+                                     ScoreType::BAN_MULTIPLIER
+                                         * ScoreType::AWARD_FOR_GOOD_NODES,
+                                     NewRep)))
         {
             LOG_GENERAL(WARNING, "Underflow detected.");
         }
