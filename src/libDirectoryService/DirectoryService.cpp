@@ -512,10 +512,10 @@ uint8_t
 DirectoryService::CalculateNewDifficulty(const uint8_t& currentDifficulty)
 {
     const uint8_t MAX_ADJUST_STEP = 2;
-    int requiredNodes = 0, prevSubmissions = 0;
+    int requiredNodes = 0, powSubmissions = 0;
     {
         lock_guard<mutex> g(m_mutexAllPOW);
-        prevSubmissions = static_cast<int>(m_allPoWs.size());
+        powSubmissions = static_cast<int>(m_allPoWs.size());
 
         for (const auto& shard : m_shards)
         {
@@ -524,13 +524,25 @@ DirectoryService::CalculateNewDifficulty(const uint8_t& currentDifficulty)
     }
 
     LOG_GENERAL(INFO,
-                "requiredNodes " << requiredNodes << ", prevSubmissions "
-                                 << prevSubmissions);
-    if (requiredNodes <= 0)
+                "requiredNodes " << requiredNodes << ", powSubmissions "
+                                 << powSubmissions);
+    if (requiredNodes <= 0 || requiredNodes == powSubmissions)
     {
         return currentDifficulty;
     }
-    int submissionsDiff = requiredNodes - prevSubmissions;
+
+    if (powSubmissions > requiredNodes)
+    {
+        requiredNodes
+            = std::min(requiredNodes, static_cast<int>(NUM_NETWORK_NODE));
+    }
+    else if (powSubmissions < requiredNodes)
+    {
+        requiredNodes
+            = std::max(requiredNodes, static_cast<int>(NUM_NETWORK_NODE));
+    }
+
+    int submissionsDiff = powSubmissions - requiredNodes;
 
     // To make the adjustment work on small network.
     int adjustThreshold = requiredNodes * 0.12f;
@@ -545,7 +557,7 @@ DirectoryService::CalculateNewDifficulty(const uint8_t& currentDifficulty)
         return currentDifficulty;
     }
 
-    int adjustment = -submissionsDiff / adjustThreshold;
+    int adjustment = submissionsDiff / adjustThreshold;
 
     // Restrict the adjustment step, prevent the difficulty jump up/down dramatically.
     if (adjustment > MAX_ADJUST_STEP)
