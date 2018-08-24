@@ -63,6 +63,12 @@ void ReputationManager::AddNodeIfNotKnown(
     const boost::multiprecision::uint128_t& IPAddress)
 {
     std::lock_guard<std::mutex> lock(m_mutexReputations);
+    AddNodeIfNotKnownInternal(IPAddress);
+}
+
+void ReputationManager::AddNodeIfNotKnownInternal(
+    const boost::multiprecision::uint128_t& IPAddress)
+{
     if (m_Reputations.find(IPAddress) == m_Reputations.end())
     {
         m_Reputations.emplace(IPAddress, ScoreType::GOOD);
@@ -72,8 +78,8 @@ void ReputationManager::AddNodeIfNotKnown(
 int32_t ReputationManager::GetReputation(
     const boost::multiprecision::uint128_t& IPAddress)
 {
-    AddNodeIfNotKnown(IPAddress);
     std::lock_guard<std::mutex> lock(m_mutexReputations);
+    AddNodeIfNotKnownInternal(IPAddress);
     return m_Reputations[IPAddress];
 }
 
@@ -88,9 +94,10 @@ void ReputationManager::SetReputation(
     const boost::multiprecision::uint128_t& IPAddress,
     const int32_t ReputationScore)
 {
-    AddNodeIfNotKnown(IPAddress);
 
     std::lock_guard<std::mutex> lock(m_mutexReputations);
+    AddNodeIfNotKnownInternal(IPAddress);
+
     if (ReputationScore > ScoreType::UPPERREPTHRESHOLD)
     {
         LOG_GENERAL(
