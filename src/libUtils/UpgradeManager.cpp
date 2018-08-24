@@ -127,16 +127,9 @@ bool SWInfo::operator==(const SWInfo& r) const
         == tie(r.m_major, r.m_minor, r.m_fix, r.m_upgradeDS, r.m_commit);
 }
 
-UpgradeManager::UpgradeManager() { m_curSWInfo = nullptr; }
+UpgradeManager::UpgradeManager() {}
 
-UpgradeManager::~UpgradeManager()
-{
-    if (m_curSWInfo)
-    {
-        delete m_curSWInfo;
-        m_curSWInfo = nullptr;
-    }
-}
+UpgradeManager::~UpgradeManager() {}
 
 UpgradeManager& UpgradeManager::GetInstance()
 {
