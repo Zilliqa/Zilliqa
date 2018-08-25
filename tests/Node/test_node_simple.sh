@@ -28,7 +28,7 @@ python tests/Zilliqa/test_zilliqa_local.py stop
 python tests/Zilliqa/test_zilliqa_local.py setup 20
 python tests/Zilliqa/test_zilliqa_local.py start 10
 
-sleep 30
+sleep 40
 echo "starting..."
 
 #set primary 
