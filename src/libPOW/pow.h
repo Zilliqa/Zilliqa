@@ -97,7 +97,7 @@ public:
 private:
     ethash_light_t ethash_light_client;
     uint64_t currentBlockNum;
-    bool m_shouldMine;
+    std::atomic<bool> m_shouldMine;
     std::unique_ptr<dev::eth::Miner> m_miner;
 
     ethash_light_t EthashLightNew(uint64_t block_number);
