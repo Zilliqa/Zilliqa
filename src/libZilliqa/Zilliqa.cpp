@@ -126,11 +126,6 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
     };
     DetachedFunction(1, funcCheckMsgQueue);
 
-    if (m_mediator.m_isRetrievedHistory)
-    {
-        m_ds.m_consensusID = 0;
-    }
-
     m_validator = make_shared<Validator>(m_mediator);
     m_mediator.RegisterColleagues(&m_ds, &m_n, &m_lookup, m_validator.get());
     m_n.Install(syncType, toRetrieveHistory);
