@@ -192,7 +192,7 @@ int AccountStore::DeserializeDelta(const vector<unsigned char>& src,
             if (oriAccount == nullptr)
             {
                 Account acc(0, 0);
-                LOG_GENERAL(INFO, "Creating new account: " << address);
+                // LOG_GENERAL(INFO, "Creating new account: " << address);
                 AddAccount(address, acc);
                 oriAccount = GetAccount(address);
                 fullCopy = true;
