@@ -189,6 +189,8 @@ bool Node::StartRetrieveHistory()
         {
             LOG_GENERAL(INFO, "RetrieveHistory Successed");
             m_mediator.m_isRetrievedHistory = true;
+            m_mediator.m_ds->m_consensusID
+                = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
             res = true;
         }
     }

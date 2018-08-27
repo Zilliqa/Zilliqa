@@ -148,6 +148,8 @@ class Node : public Executable, public Broadcastable
     std::unordered_map<uint64_t, std::vector<std::vector<unsigned char>>>
         m_forwardedTxnBuffer;
 
+    atomic<bool> m_isVacuousEpoch;
+
     bool CheckState(Action action);
 
     // To block certain types of incoming message for certain states
