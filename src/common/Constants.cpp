@@ -130,6 +130,8 @@ const unsigned int BROADCAST_INTERVAL{
 const unsigned int BROADCAST_EXPIRY{ReadFromConstantsFile("BROADCAST_EXPIRY")};
 const unsigned int SENDQUEUE_SIZE{ReadFromConstantsFile("SENDQUEUE_SIZE")};
 const unsigned int MSGQUEUE_SIZE{ReadFromConstantsFile("MSGQUEUE_SIZE")};
+const unsigned int POW_CHANGE_PERCENT_TO_ADJ_DIFF{
+    ReadFromConstantsFile("POW_CHANGE_PERCENT_TO_ADJ_DIFF")};
 const unsigned int NUM_NETWORK_NODE{ReadFromConstantsFile("NUM_NETWORK_NODE")};
 
 const bool EXCLUDE_PRIV_IP{
