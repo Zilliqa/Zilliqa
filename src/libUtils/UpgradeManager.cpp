@@ -145,8 +145,18 @@ bool UpgradeManager::HasNewSW()
     return false;
 }
 
-void UpgradeManager::DownloadSW()
+bool UpgradeManager::DownloadSW()
 {
     /// Download SW from website, then update current SHA-256 value & curSWInfo
     /// TBD
+
+    return true;
+}
+
+bool UpgradeManager::ReplaceNode()
+{
+    /// Store all the useful states into metadata, create a new node with loading the metadata, and kill current node
+    /// TBD
+
+    return true;
 }

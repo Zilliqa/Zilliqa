@@ -85,7 +85,10 @@ public:
     bool HasNewSW();
 
     /// Download SW from website, then update current SHA-256 value & curSWInfo
-    void DownloadSW();
+    bool DownloadSW();
+
+    /// Store all the useful states into metadata, create a new node with loading the metadata, and kill current node
+    bool ReplaceNode();
 
     const std::shared_ptr<SWInfo> GetSWInfo() { return m_curSWInfo; }
 };
