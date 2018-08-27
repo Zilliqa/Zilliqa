@@ -36,6 +36,7 @@
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 #include "libMediator/Mediator.h"
+#include "libMessage/Messenger.h"
 #include "libPOW/pow.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -79,49 +80,23 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t difficulty,
                   "Winning result  = 0x" << hex << winning_result.result);
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Winning mixhash = 0x" << hex << winning_result.mix_hash);
-        vector<unsigned char> result_vec
-            = DataConversion::HexStrToUint8Vec(winning_result.result);
-        vector<unsigned char> mixhash_vec
-            = DataConversion::HexStrToUint8Vec(winning_result.mix_hash);
 
         // Send PoW result
         // Message = [8-byte block number] [4-byte listening port] [33-byte public key]
         // [8-byte nonce] [32-byte resulting hash] [32-byte mixhash] [64-byte Signature]
         vector<unsigned char> powmessage
             = {MessageType::DIRECTORY, DSInstructionType::POWSUBMISSION};
-        unsigned int cur_offset = MessageOffset::BODY;
 
-        Serializable::SetNumber<uint64_t>(powmessage, cur_offset, block_num,
-                                          sizeof(uint64_t));
-        cur_offset += sizeof(uint64_t);
-
-        Serializable::SetNumber<uint32_t>(
-            powmessage, cur_offset, m_mediator.m_selfPeer.m_listenPortHost,
-            sizeof(uint32_t));
-        cur_offset += sizeof(uint32_t);
-
-        m_mediator.m_selfKey.second.Serialize(powmessage, cur_offset);
-        cur_offset += PUB_KEY_SIZE;
-
-        Serializable::SetNumber<uint64_t>(powmessage, cur_offset,
-                                          winning_result.winning_nonce,
-                                          sizeof(uint64_t));
-        cur_offset += sizeof(uint64_t);
-
-        powmessage.insert(powmessage.end(), result_vec.begin(),
-                          result_vec.end());
-        cur_offset += BLOCK_HASH_SIZE;
-        powmessage.insert(powmessage.end(), mixhash_vec.begin(),
-                          mixhash_vec.end());
-        cur_offset += BLOCK_HASH_SIZE;
-
-        Signature sign;
-        if (!Schnorr::GetInstance().Sign(powmessage, m_mediator.m_selfKey.first,
-                                         m_mediator.m_selfKey.second, sign))
+        if (!Messenger::SetDSPoWSubmission(
+                powmessage, MessageOffset::BODY, block_num,
+                m_mediator.m_selfPeer, m_mediator.m_selfKey,
+                winning_result.winning_nonce, winning_result.result,
+                winning_result.mix_hash))
         {
-            LOG_GENERAL(WARNING, "Failed to sign PoW");
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Messenger::SetDSPoWSubmission failed.");
+            return false;
         }
-        sign.Serialize(powmessage, cur_offset);
 
         deque<Peer> peerList;
 
