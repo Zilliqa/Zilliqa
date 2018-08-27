@@ -55,7 +55,9 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock)
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Storing DS Block Number: "
                   << dsblock.GetHeader().GetBlockNum() << " with Nonce: "
-                  << dsblock.GetHeader().GetNonce() << ", Difficulty: "
+                  << dsblock.GetHeader().GetNonce() << ", DS PoW Difficulty: "
+                  << to_string(dsblock.GetHeader().GetDSDifficulty())
+                  << ", Difficulty: "
                   << to_string(dsblock.GetHeader().GetDifficulty())
                   << ", Timestamp: " << dsblock.GetHeader().GetTimestamp());
 
@@ -200,6 +202,9 @@ void Node::LogReceivedDSBlockDetails([[gnu::unused]] const DSBlock& dsblock)
 #ifdef IS_LOOKUP_NODE
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I the lookup node have deserialized the DS Block");
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "dsblock.GetHeader().GetDSDifficulty(): "
+                  << (int)dsblock.GetHeader().GetDSDifficulty());
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "dsblock.GetHeader().GetDifficulty(): "
                   << (int)dsblock.GetHeader().GetDifficulty());
