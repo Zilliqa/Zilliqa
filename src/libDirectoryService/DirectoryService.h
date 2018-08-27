@@ -86,7 +86,7 @@ class DirectoryService : public Executable, public Broadcastable
     std::shared_ptr<DSBlock> m_pendingDSBlock;
     std::mutex m_mutexPendingDSBlock;
     std::mutex m_mutexDSBlockConsensus;
-    std::vector<std::pair<PubKey, boost::multiprecision::uint256_t>> m_allPoWs;
+    std::vector<std::pair<PubKey, std::vector<unsigned char>>> m_allPoWs;
     std::mutex m_mutexAllPOW;
 
     // Final block consensus variables
@@ -158,6 +158,7 @@ class DirectoryService : public Executable, public Broadcastable
     void ComposeDSBlock();
     void ComputeSharding();
     void ComputeTxnSharingAssignments(const Peer& winnerpeer);
+    bool VerifyPoWOrdering();
 
     // internal calls from RunConsensusOnDSBlock
     bool RunConsensusOnDSBlockWhenDSPrimary();
