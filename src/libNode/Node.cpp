@@ -65,10 +65,10 @@ void addBalanceToGenesisAccount()
     }
 }
 
-Node::Node(Mediator& mediator, unsigned int syncType, bool toRetrieveHistory)
+Node::Node(Mediator& mediator, [[gnu::unused]] unsigned int syncType,
+           [[gnu::unused]] bool toRetrieveHistory)
     : m_mediator(mediator)
 {
-    this->Install(syncType, toRetrieveHistory);
 }
 
 Node::~Node() {}

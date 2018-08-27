@@ -36,3 +36,10 @@ add_custom_command(TARGET zilliqa
     COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:Gen_txn> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
 target_include_directories(Gen_txn PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(Gen_txn PUBLIC AccountData)
+
+add_executable(sync_txn sync_txn.cpp)
+add_custom_command(TARGET zilliqa
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:sync_txn> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
+target_include_directories(sync_txn PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(sync_txn PUBLIC AccountData Utils)

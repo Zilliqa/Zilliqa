@@ -77,6 +77,11 @@ class Lookup : public Executable, public Broadcastable
     std::mutex m_mutexOfflineLookups;
     std::mutex m_txnShardMapMutex;
 
+    // Start PoW variables
+    bool m_receivedRaiseStartPoW = false;
+    std::mutex m_MutexCVStartPoWSubmission;
+    std::condition_variable cv_startPoWSubmission;
+
     // Rsync the lost txBodies from remote lookup nodes if this lookup are doing its recovery
     Peer GetLookupPeerToRsync();
 
@@ -196,8 +201,6 @@ public:
                          unsigned int offset,
                          const std::map<uint32_t, std::vector<unsigned char>>&);
 
-    void LaunchTxnSyncThread(const std::string& ipAddr);
-
 #endif // IS_LOOKUP_NODE
 
     bool
@@ -244,6 +247,13 @@ public:
 
     bool ProcessSetOfflineLookups(const std::vector<unsigned char>& message,
                                   unsigned int offset, const Peer& from);
+
+    bool ProcessRaiseStartPoW(const std::vector<unsigned char>& message,
+                              unsigned int offset, const Peer& from);
+    bool ProcessGetStartPoWFromSeed(const std::vector<unsigned char>& message,
+                                    unsigned int offset, const Peer& from);
+    bool ProcessSetStartPoWFromSeed(const std::vector<unsigned char>& message,
+                                    unsigned int offset, const Peer& from);
 
     bool Execute(const std::vector<unsigned char>& message, unsigned int offset,
                  const Peer& from);
