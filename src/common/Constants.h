@@ -114,6 +114,7 @@ extern const unsigned int POW_WINDOW_IN_SECONDS;
 extern const unsigned int POW_BACKUP_WINDOW_IN_SECONDS;
 extern const unsigned int NEW_NODE_SYNC_INTERVAL;
 extern const unsigned int POW_SUBMISSION_TIMEOUT;
+extern const unsigned int DS_POW_DIFFICULTY;
 extern const unsigned int POW_DIFFICULTY;
 extern const unsigned int MICROBLOCK_TIMEOUT;
 extern const unsigned int VIEWCHANGE_TIME;

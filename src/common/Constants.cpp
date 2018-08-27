@@ -86,6 +86,8 @@ const unsigned int NEW_NODE_SYNC_INTERVAL{
     ReadFromConstantsFile("NEW_NODE_SYNC_INTERVAL")};
 const unsigned int POW_SUBMISSION_TIMEOUT{
     ReadFromConstantsFile("POW_SUBMISSION_TIMEOUT")};
+const unsigned int DS_POW_DIFFICULTY{
+    ReadFromConstantsFile("DS_POW_DIFFICULTY")};
 const unsigned int POW_DIFFICULTY{ReadFromConstantsFile("POW_DIFFICULTY")};
 const unsigned int MICROBLOCK_TIMEOUT{
     ReadFromConstantsFile("MICROBLOCK_TIMEOUT")};
