@@ -396,7 +396,7 @@ bool Lookup::SetDSCommitteInfo()
 vector<map<PubKey, Peer>> Lookup::GetShardPeers()
 {
     lock_guard<mutex> g(m_mutexShards);
-    return m_shards;
+    return m_mediator.m_ds->m_shards;
 }
 
 vector<Peer> Lookup::GetNodePeers()
@@ -406,9 +406,7 @@ vector<Peer> Lookup::GetNodePeers()
 }
 #endif // IS_LOOKUP_NODE
 
-bool Lookup::ProcessEntireShardingStructure(
-    [[gnu::unused]] const vector<unsigned char>& message,
-    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
+bool Lookup::ProcessEntireShardingStructure()
 {
     LOG_MARKER();
 
@@ -420,17 +418,13 @@ bool Lookup::ProcessEntireShardingStructure(
     lock_guard<mutex> g(m_mutexShards, adopt_lock);
     lock_guard<mutex> h(m_mutexNodesInNetwork, adopt_lock);
 
-    m_shards.clear();
-
-    ShardingStructure::Deserialize(message, offset, m_shards);
-
     m_nodesInNetwork.clear();
     unordered_set<Peer> t_nodesInNetwork;
 
-    for (unsigned int i = 0; i < m_shards.size(); i++)
+    for (unsigned int i = 0; i < m_mediator.m_ds->m_shards.size(); i++)
     {
         unsigned int index = 0;
-        for (auto& j : m_shards.at(i))
+        for (auto& j : m_mediator.m_ds->m_shards.at(i))
         {
             const PubKey& key = j.first;
             const Peer& peer = j.second;
@@ -2138,7 +2132,7 @@ bool Lookup::CleanVariables()
     m_isFirstLoop = true;
     {
         std::lock_guard<mutex> lock(m_mutexShards);
-        m_shards.clear();
+        m_mediator.m_ds->m_shards.clear();
     }
     {
         std::lock_guard<mutex> lock(m_mutexNodesInNetwork);

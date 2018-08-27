@@ -1,0 +1,102 @@
+syntax = "proto2";
+
+package ZilliqaMessage;
+
+// ============================================================================
+// Primitives
+// ============================================================================
+
+message ByteArray
+{
+    required bytes data = 1;
+}
+
+message ShardingStructure
+{
+    message Member
+    {
+        required ByteArray pubkey   = 1;
+        required ByteArray peerinfo = 2;
+    }
+    message Shard
+    {
+        repeated Member members     = 1;
+    }
+    repeated Shard shards           = 1;
+}
+
+message TxSharingAssignments
+{
+    message AssignedNodes
+    {
+        repeated ByteArray receivers  = 1;
+        repeated ByteArray senders    = 2;
+    }
+    repeated ByteArray dsnodes        = 1;
+    repeated AssignedNodes shardnodes = 2;
+}
+
+// ============================================================================
+// Directory Service messages
+// ============================================================================
+
+message DSPoWSubmission
+{
+    message Data
+    {
+        required uint64 blocknumber        = 1;
+        required ByteArray submitterpeer   = 2;
+        required ByteArray submitterpubKey = 3;
+        required uint64 nonce              = 4;
+        required string resultinghash      = 5;
+        required string mixhash            = 6;
+    }
+    required Data data                     = 1;
+    required ByteArray signature           = 2;
+}
+
+message DSDSBlockAnnouncement
+{
+    required ByteArray dsblock                = 1;
+    required ByteArray powwinnerpeer          = 2;
+    required ShardingStructure sharding       = 3;
+    required TxSharingAssignments assignments = 4;
+}
+
+// ============================================================================
+// Node messages
+// ============================================================================
+
+message NodeDSBlock
+{
+    required uint32 shardid                   = 1;
+    required ByteArray dsblock                = 2;
+    required ByteArray powwinnerpeer          = 3;
+    required ShardingStructure sharding       = 4;
+    required TxSharingAssignments assignments = 5;
+}
+
+message NodeFinalBlock
+{
+    required uint64 dsblocknumber = 1;
+    required uint32 consensusid   = 2;
+    required uint32 shardid       = 3; // Only LSB used
+    required ByteArray finalblock = 4;
+}
+
+message NodeForwardTransaction
+{
+    required uint64 txblocknumber = 1;
+    required bytes txhash         = 2;
+    required bytes deltahash      = 3;
+    repeated bytes txbodies       = 4; // TODO: Define Transaction message type
+}
+
+// ============================================================================
+// Consensus messages
+// ============================================================================
+
+message ConsensusCommit
+{
+        // Format: [4-byte consensus id] [32-byte blockhash] [2-byte backup id] [33-byte commit] [64-byte signature]
+}

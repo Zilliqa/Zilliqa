@@ -28,6 +28,7 @@
 #include "depends/libTrie/TrieHash.h"
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
+#include "libMessage/Messenger.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -268,25 +269,25 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
     // DSBlock consensus announcement = [DS block] [PoW winner IP] [Sharding structure] [Txn sharing assignments]
     // Consensus cosig will be over the DS block header
 
-    m_PoWConsensusMessage.clear();
+    vector<unsigned char> PoWConsensusMessage;
 
     unsigned int curr_offset = 0;
 
     // [DS block]
     curr_offset
-        += m_pendingDSBlock->Serialize(m_PoWConsensusMessage, curr_offset);
+        += m_pendingDSBlock->Serialize(PoWConsensusMessage, curr_offset);
 
     // [PoW winner IP]
     curr_offset
-        += winnerPeer->second.Serialize(m_PoWConsensusMessage, curr_offset);
+        += winnerPeer->second.Serialize(PoWConsensusMessage, curr_offset);
 
     // [Sharding structure]
-    curr_offset = ShardingStructure::Serialize(m_shards, m_PoWConsensusMessage,
+    curr_offset = ShardingStructure::Serialize(m_shards, PoWConsensusMessage,
                                                curr_offset);
 
     // [Txn sharing assignments]
     TxnSharingAssignments::Serialize(m_DSReceivers, m_shardReceivers,
-                                     m_shardSenders, m_PoWConsensusMessage,
+                                     m_shardSenders, PoWConsensusMessage,
                                      curr_offset);
 
     // Create new consensus object
@@ -333,7 +334,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
             + 1
         << "] BGIN");
 
-    cl->StartConsensus(m_PoWConsensusMessage, DSBlockHeader::SIZE);
+    cl->StartConsensus(PoWConsensusMessage, DSBlockHeader::SIZE);
 
     return true;
 }
@@ -349,6 +350,52 @@ void DirectoryService::SaveTxnBodySharingAssignment(
                                        m_DSReceivers, m_shardReceivers,
                                        m_shardSenders);
 
+    bool i_am_forwarder = false;
+    for (uint32_t i = 0; i < m_DSReceivers.size(); i++)
+    {
+        if (m_DSReceivers.at(i) == m_mediator.m_selfPeer)
+        {
+            i_am_forwarder = true;
+            break;
+        }
+    }
+
+    unsigned int num_ds_nodes = m_DSReceivers.size();
+
+    m_sharingAssignment.clear();
+
+    if ((i_am_forwarder == true)
+        && (m_mediator.m_DSCommittee->size() > num_ds_nodes))
+    {
+        for (unsigned int i = 0; i < m_mediator.m_DSCommittee->size(); i++)
+        {
+            bool is_a_receiver = false;
+
+            if (num_ds_nodes > 0)
+            {
+                for (unsigned int j = 0; j < m_DSReceivers.size(); j++)
+                {
+                    if (m_mediator.m_DSCommittee->at(i).second
+                        == m_DSReceivers.at(j))
+                    {
+                        is_a_receiver = true;
+                        break;
+                    }
+                }
+                num_ds_nodes--;
+            }
+
+            if (is_a_receiver == false)
+            {
+                m_sharingAssignment.emplace_back(
+                    m_mediator.m_DSCommittee->at(i).second);
+            }
+        }
+    }
+}
+
+void DirectoryService::ProcessTxnBodySharingAssignment()
+{
     bool i_am_forwarder = false;
     for (uint32_t i = 0; i < m_DSReceivers.size(); i++)
     {
@@ -443,9 +490,6 @@ bool DirectoryService::DSBlockValidator(
     // [Txn sharing assignments]
     SaveTxnBodySharingAssignment(message, curr_offset);
 
-    // Save the raw announcement message to avoid having to serialize again after consensus
-    m_PoWConsensusMessage = message;
-
     return true;
 }
 
@@ -519,6 +563,41 @@ unsigned int DirectoryService::PopulateShardingStructure(
     }
 
     return offset;
+}
+
+bool DirectoryService::ProcessShardingStructure()
+{
+    m_publicKeyToShardIdMap.clear();
+
+    for (unsigned int i = 0; i < m_shards.size(); i++)
+    {
+        for (auto& j : m_shards.at(i))
+        {
+            auto storedMember = m_allPoWConns.find(j.first);
+
+            // I know the member but the member IP given by the leader is different!
+            if (storedMember != m_allPoWConns.end())
+            {
+                if (storedMember->second != j.second)
+                {
+                    LOG_EPOCH(WARNING,
+                              to_string(m_mediator.m_currentEpochNum).c_str(),
+                              "WARNING: Why is the IP of the member different "
+                              "from what I have in m_allPoWConns???");
+                    return false;
+                }
+            }
+            // I don't know the member -> store the IP given by the leader
+            else
+            {
+                m_allPoWConns.emplace(j.first, j.second);
+            }
+
+            m_publicKeyToShardIdMap.emplace(j.first, i);
+        }
+    }
+
+    return true;
 }
 
 void DirectoryService::RunConsensusOnDSBlock(bool isRejoin)

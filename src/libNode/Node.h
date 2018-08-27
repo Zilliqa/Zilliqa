@@ -435,12 +435,10 @@ public:
 #endif // IS_LOOKUP_NODE
 
     /// Used by oldest DS node to configure sharding variables as a new shard node
-    bool LoadShardingStructure(const vector<unsigned char>& message,
-                               unsigned int& cur_offset);
+    bool LoadShardingStructure();
 
     /// Used by oldest DS node to configure txn sharing assignments as a new shard node
-    void LoadTxnSharingInfo(const vector<unsigned char>& message,
-                            unsigned int cur_offset);
+    void LoadTxnSharingInfo();
 
 private:
     static std::map<NodeState, std::string> NodeStateStrings;

@@ -61,13 +61,7 @@ class DirectoryService : public Executable, public Broadcastable
     std::mutex m_mutexConsensus;
 
     // Sharding committee members
-    std::vector<std::map<PubKey, Peer>> m_shards;
     std::map<PubKey, uint32_t> m_publicKeyToShardIdMap;
-
-    // Transaction sharing assignments
-    std::vector<Peer> m_DSReceivers;
-    std::vector<std::vector<Peer>> m_shardReceivers;
-    std::vector<std::vector<Peer>> m_shardSenders;
 
     std::mutex m_MutexScheduleFinalBlockConsensus;
     std::condition_variable cv_scheduleFinalBlockConsensus;
@@ -76,7 +70,6 @@ class DirectoryService : public Executable, public Broadcastable
     std::mutex m_mutexAllPoWs;
     std::map<PubKey, Peer> m_allPoWConns;
     std::mutex m_mutexAllPoWConns;
-    std::vector<unsigned char> m_PoWConsensusMessage;
 
     // Consensus variables
     std::shared_ptr<ConsensusCommon> m_consensusObject;
@@ -165,12 +158,13 @@ class DirectoryService : public Executable, public Broadcastable
 
     // internal calls from ProcessDSBlockConsensus
     void StoreDSBlockToStorage(); // To further refactor
-    void SendDSBlockToLookupNodes();
+    void SendDSBlockToLookupNodes(const Peer& winnerpeer);
     void SendDSBlockToNewDSLeader(const Peer& winnerpeer);
     void SetupMulticastConfigForDSBlock(unsigned int& my_DS_cluster_num,
                                         unsigned int& my_shards_lo,
                                         unsigned int& my_shards_hi) const;
-    void SendDSBlockToShardNodes(unsigned int my_shards_lo,
+    void SendDSBlockToShardNodes(const Peer& winnerpeer,
+                                 unsigned int my_shards_lo,
                                  unsigned int my_shards_hi);
     void UpdateMyDSModeAndConsensusId();
     void UpdateDSCommiteeComposition(const Peer& winnerpeer); //TODO: Refactor
@@ -305,6 +299,14 @@ public:
         ERROR
     };
 
+    /// Sharding structure
+    std::vector<std::map<PubKey, Peer>> m_shards;
+
+    /// Transaction sharing assignments
+    std::vector<Peer> m_DSReceivers;
+    std::vector<std::vector<Peer>> m_shardReceivers;
+    std::vector<std::vector<Peer>> m_shardSenders;
+
     /// Sharing assignment for state delta
     std::vector<Peer> m_sharingAssignment;
 
@@ -358,10 +360,16 @@ public:
     unsigned int PopulateShardingStructure(const vector<unsigned char>& message,
                                            unsigned int offset);
 
+    /// Used by PoW winner to configure sharding variables as the next DS leader
+    bool ProcessShardingStructure();
+
     /// Used by PoW winner to configure txn sharing assignment variables as the next DS leader
     void SaveTxnBodySharingAssignment(
         const vector<unsigned char>& sharding_structure,
         unsigned int curr_offset);
+
+    /// Used by PoW winner to configure txn sharing assignment variables as the next DS leader
+    void ProcessTxnBodySharingAssignment();
 
     /// Used by PoW winner to finish setup as the next DS leader
     void StartFirstTxEpoch();
