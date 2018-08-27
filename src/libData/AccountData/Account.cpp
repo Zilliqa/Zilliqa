@@ -419,6 +419,8 @@ unsigned int Account::SerializeDelta(vector<unsigned char>& dst,
 
         // States storage
         unsigned int diffKeyHashSizeOffset = curOffset;
+        // Num of Key Hashes
+        SetNumber<uint64_t>(dst, diffKeyHashSizeOffset, 0, sizeof(uint64_t));
         curOffset += sizeof(uint64_t);
 
         uint64_t diffKeyHashSize = 0;
@@ -711,8 +713,8 @@ string Account::GetRawStorage(const h256& k_hash) const
 {
     if (!isContract())
     {
-        LOG_GENERAL(WARNING,
-                    "Not contract account, why call Account::GetRawStorage!");
+        // LOG_GENERAL(WARNING,
+        //             "Not contract account, why call Account::GetRawStorage!");
         return "";
     }
     return m_storage.at(k_hash);
