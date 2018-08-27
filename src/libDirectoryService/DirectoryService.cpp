@@ -511,27 +511,31 @@ std::string DirectoryService::GetActionString(Action action) const
 uint8_t
 DirectoryService::CalculateNewDifficulty(const uint8_t& currentDifficulty)
 {
-    const int8_t MAX_ADJUST_STEP = 2;
-    int64_t requiredNodes = 0, powSubmissions = 0;
+    constexpr int8_t MAX_ADJUST_STEP = 2;
+    constexpr unsigned int ONE_HUNDRED_PERCENT = 100;
+    constexpr unsigned int MAX_ADJUST_THRESHOLD = 99;
+    constexpr uint8_t MAX_INCREASE_DIFFICULTY_YEARS = 10;
+
+    int64_t currentNodes = 0, powSubmissions = 0;
     {
         lock_guard<mutex> g(m_mutexAllPOW);
         powSubmissions = m_allPoWs.size();
 
         for (const auto& shard : m_shards)
         {
-            requiredNodes += shard.size();
+            currentNodes += shard.size();
         }
     }
 
     LOG_GENERAL(INFO,
-                "requiredNodes " << requiredNodes << ", powSubmissions "
-                                 << powSubmissions);
+                "currentNodes " << currentNodes << ", powSubmissions "
+                                << powSubmissions);
 
     int64_t adjustment = 0;
-    if (requiredNodes > 0 && requiredNodes != powSubmissions)
+    if (currentNodes > 0 && currentNodes != powSubmissions)
     {
         int64_t submissionsDiff;
-        if (!SafeMath<int64_t>::sub(powSubmissions, requiredNodes,
+        if (!SafeMath<int64_t>::sub(powSubmissions, currentNodes,
                                     submissionsDiff))
         {
             LOG_GENERAL(WARNING,
@@ -540,11 +544,11 @@ DirectoryService::CalculateNewDifficulty(const uint8_t& currentDifficulty)
         }
 
         // To make the adjustment work on small network.
-        auto adjustThreshold
-            = requiredNodes * POW_CHANGE_PERCENT_TO_ADJ_DIFF / 100;
-        if (adjustThreshold > 99)
+        auto adjustThreshold = currentNodes * POW_CHANGE_PERCENT_TO_ADJ_DIFF
+            / ONE_HUNDRED_PERCENT;
+        if (adjustThreshold > MAX_ADJUST_THRESHOLD)
         {
-            adjustThreshold = 99;
+            adjustThreshold = MAX_ADJUST_THRESHOLD;
         }
 
         // If the PoW submissions change not so big, then adjust according to the expected whole network node number.
@@ -594,6 +598,6 @@ DirectoryService::CalculateNewDifficulty(const uint8_t& currentDifficulty)
     // After 10 years, the difficulty will not automatically increase anymore..
     newDifficulty += std::min(
         (uint8_t)(m_mediator.m_currentEpochNum / estimatedBlocksOneYear),
-        (uint8_t)10);
+        MAX_INCREASE_DIFFICULTY_YEARS);
     return newDifficulty;
 }
