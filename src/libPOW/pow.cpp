@@ -451,6 +451,13 @@ ethash_return_value_t POW::LightHash(uint64_t blockNum,
     return EthashLightCompute(ethash_light_client, header_hash, nonce);
 }
 
+bool POW::CheckSolnAgainstsTargetedDifficulty(const ethash_h256_t& result,
+                                              uint8_t difficulty)
+{
+    const ethash_h256_t diffForPoW = DifficultyLevelInInt(difficulty);
+    return ethash_check_difficulty(&result, &diffForPoW);
+}
+
 void POW::InitOpenCL()
 {
 #ifdef OPENCL_MINE
