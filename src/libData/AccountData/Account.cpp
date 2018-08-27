@@ -418,40 +418,45 @@ unsigned int Account::SerializeDelta(vector<unsigned char>& dst,
         curOffset += COMMON_HASH_SIZE;
 
         // States storage
-        // Num of Key Hashes
-        SetNumber<uint256_t>(dst, curOffset,
-                             uint256_t(newAccount.GetStorageKeyHashes().size()),
-                             UINT256_SIZE);
-        LOG_GENERAL(
-            INFO,
-            "Num of KeyHash: " << newAccount.GetStorageKeyHashes().size());
-        curOffset += UINT256_SIZE;
+        unsigned int diffKeyHashSizeOffset = curOffset;
+        curOffset += sizeof(uint64_t);
+
+        uint64_t diffKeyHashSize = 0;
         for (unsigned int i = 0; i < newAccount.GetStorageKeyHashes().size();
              i++)
         {
-            // Key Hash
             h256 keyHash = newAccount.GetStorageKeyHashes()[i];
-            copy(keyHash.asArray().begin(),
-                 keyHash.asArray().begin() + COMMON_HASH_SIZE,
-                 back_inserter(dst));
-            LOG_GENERAL(INFO, "KeyHash: " << keyHash);
-            curOffset += COMMON_HASH_SIZE;
-
-            // RLP
             string rlpStr = newAccount.GetRawStorage(keyHash);
-            LOG_GENERAL(INFO,
-                        "RLP: "
-                            << rlpStr.substr(
+
+            if (rlpStr != oldAccount->GetRawStorage(keyHash))
+            {
+                diffKeyHashSize++;
+                // Key Hash
+                copy(keyHash.asArray().begin(),
+                     keyHash.asArray().begin() + COMMON_HASH_SIZE,
+                     back_inserter(dst));
+                LOG_GENERAL(INFO, "KeyHash: " << keyHash);
+                curOffset += COMMON_HASH_SIZE;
+
+                // RLP
+                LOG_GENERAL(
+                    INFO,
+                    "RLP: " << rlpStr.substr(
                                    0, 50 > rlpStr.size() ? rlpStr.size() : 50)
                             << " ... ");
-            // RLP size
-            SetNumber<uint256_t>(dst, curOffset, uint256_t(rlpStr.size()),
-                                 UINT256_SIZE);
-            curOffset += UINT256_SIZE;
-            // RLP string
-            copy(rlpStr.begin(), rlpStr.end(), back_inserter(dst));
-            curOffset += rlpStr.size();
+                // RLP size
+                SetNumber<uint256_t>(dst, curOffset, uint256_t(rlpStr.size()),
+                                     UINT256_SIZE);
+                curOffset += UINT256_SIZE;
+                // RLP string
+                copy(rlpStr.begin(), rlpStr.end(), back_inserter(dst));
+                curOffset += rlpStr.size();
+            }
         }
+        // Num of Key Hashes
+        SetNumber<uint64_t>(dst, diffKeyHashSizeOffset, diffKeyHashSize,
+                            sizeof(uint64_t));
+        LOG_GENERAL(INFO, "Num of different KeyHash: " << diffKeyHashSize);
     }
 
     return curOffset - offset;
@@ -552,9 +557,9 @@ int Account::DeserializeDelta(const vector<unsigned char>& src,
 
                 // States storage
                 // Num of Key Hashes
-                unsigned int numKeyHashes = (unsigned int)GetNumber<uint256_t>(
-                    src, offset, UINT256_SIZE);
-                offset += UINT256_SIZE;
+                unsigned int numKeyHashes = (unsigned int)GetNumber<uint64_t>(
+                    src, offset, sizeof(uint64_t));
+                offset += sizeof(uint64_t);
                 LOG_GENERAL(INFO, "numKeyHashes:" << numKeyHashes);
 
                 for (unsigned int i = 0; i < numKeyHashes; i++)
