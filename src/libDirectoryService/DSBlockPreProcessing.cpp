@@ -62,6 +62,7 @@ void DirectoryService::ComposeDSBlock()
     const uint256_t& winnerNonce = m_allPoWs.front().second;
 
     uint64_t blockNum = 0;
+    uint8_t dsDifficulty = DS_POW_DIFFICULTY;
     uint8_t difficulty = POW_DIFFICULTY;
     if (m_mediator.m_dsBlockChain.GetBlockCount() > 0)
     {
@@ -83,15 +84,17 @@ void DirectoryService::ComposeDSBlock()
                                       .GetHeader()
                                       .GetDifficulty())
                 << ", new difficulty " << std::to_string(difficulty));
+
+        // TODO: To dynamically adjust the difficulty here
     }
 
     // Assemble DS block
     // To-do: Handle exceptions.
-    m_pendingDSBlock.reset(
-        new DSBlock(DSBlockHeader(difficulty, prevHash, winnerNonce, winnerKey,
-                                  m_mediator.m_selfKey.second, blockNum,
-                                  get_time_as_int(), SWInfo()),
-                    CoSignatures(m_mediator.m_DSCommittee->size())));
+    m_pendingDSBlock.reset(new DSBlock(
+        DSBlockHeader(dsDifficulty, difficulty, prevHash, winnerNonce,
+                      winnerKey, m_mediator.m_selfKey.second, blockNum,
+                      get_time_as_int(), SWInfo()),
+        CoSignatures(m_mediator.m_DSCommittee->size())));
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "New DSBlock created with chosen nonce = 0x" << hex
