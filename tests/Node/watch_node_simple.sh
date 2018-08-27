@@ -18,7 +18,7 @@
 #   run this script with 'watch':
 #       watch -n1 tests/Node/watch_node_simple.sh'
 
-for id in {01..20}
+for id in {1..20}
 do
     port=$((5000 + $id))
     node_cmd_info=$(pgrep -f "zilliqa.*127\.0\.0\.1 $port" -a | cut -f1,5,6 -d" ")  
