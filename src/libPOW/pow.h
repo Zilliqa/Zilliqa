@@ -93,6 +93,8 @@ public:
     ethash_return_value_t LightHash(uint64_t blockNum,
                                     ethash_h256_t const& header_hash,
                                     uint64_t nonce);
+    bool CheckSolnAgainstsTargetedDifficulty(const ethash_h256_t& result,
+                                             uint8_t difficulty);
 
 private:
     ethash_light_t ethash_light_client;
