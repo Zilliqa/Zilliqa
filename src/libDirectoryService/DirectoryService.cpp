@@ -511,11 +511,11 @@ std::string DirectoryService::GetActionString(Action action) const
 uint8_t
 DirectoryService::CalculateNewDifficulty(const uint8_t& currentDifficulty)
 {
-    const uint8_t MAX_ADJUST_STEP = 2;
-    int requiredNodes = 0, powSubmissions = 0;
+    const int8_t MAX_ADJUST_STEP = 2;
+    int64_t requiredNodes = 0, powSubmissions = 0;
     {
         lock_guard<mutex> g(m_mutexAllPOW);
-        powSubmissions = static_cast<int>(m_allPoWs.size());
+        powSubmissions = m_allPoWs.size();
 
         for (const auto& shard : m_shards)
         {
@@ -527,36 +527,48 @@ DirectoryService::CalculateNewDifficulty(const uint8_t& currentDifficulty)
                 "requiredNodes " << requiredNodes << ", powSubmissions "
                                  << powSubmissions);
 
-    int adjustment = 0;
+    int64_t adjustment = 0;
     if (requiredNodes > 0 && requiredNodes != powSubmissions)
     {
-        int submissionsDiff = powSubmissions - requiredNodes;
+        int64_t submissionsDiff;
+        if (!SafeMath<int64_t>::sub(powSubmissions, requiredNodes,
+                                    submissionsDiff))
+        {
+            LOG_GENERAL(WARNING,
+                        "Calculate PoW submission difference goes wrong");
+            submissionsDiff = 0;
+        }
 
         // To make the adjustment work on small network.
-        int adjustThreshold = requiredNodes * 0.12f;
+        auto adjustThreshold
+            = requiredNodes * POW_CHANGE_PERCENT_TO_ADJ_DIFF / 100;
         if (adjustThreshold > 99)
         {
             adjustThreshold = 99;
         }
 
-        // If the PoW submissions change not big, then adjust according to the expected whole network node number.
+        // If the PoW submissions change not so big, then adjust according to the expected whole network node number.
         if (abs(submissionsDiff) < adjustThreshold)
         {
             // If the PoW submissions exceeded the expected whole network node number, then increase the difficulty.
-            if (submissionsDiff > 0
-                && powSubmissions > static_cast<int>(NUM_NETWORK_NODE))
+            if (submissionsDiff > 0 && powSubmissions > NUM_NETWORK_NODE)
             {
                 adjustment = 1;
             }
-            else if (submissionsDiff < 0
-                     && powSubmissions < static_cast<int>(NUM_NETWORK_NODE))
+            else if (submissionsDiff < 0 && powSubmissions < NUM_NETWORK_NODE)
             {
                 adjustment = -1;
             }
         }
         else
         {
-            adjustment = submissionsDiff / adjustThreshold;
+            if (!SafeMath<int64_t>::div(submissionsDiff, adjustThreshold,
+                                        adjustment))
+            {
+                LOG_GENERAL(WARNING,
+                            "Calculate difficulty adjustment goes wrong");
+                adjustment = 0;
+            }
         }
     }
 
@@ -570,19 +582,18 @@ DirectoryService::CalculateNewDifficulty(const uint8_t& currentDifficulty)
         adjustment = -MAX_ADJUST_STEP;
     }
 
-    uint8_t newDifficulty
-        = std::max(static_cast<uint8_t>(adjustment + currentDifficulty),
-                   static_cast<uint8_t>(POW_DIFFICULTY));
+    uint8_t newDifficulty = std::max((uint8_t)(adjustment + currentDifficulty),
+                                     (uint8_t)(POW_DIFFICULTY));
 
     // Every year, always increase the difficulty by 1, to encourage miners to upgrade the hardware over time.
     // If POW_WINDOW_IN_SECONDS = 300, NUM_FINAL_BLOCK_PER_POW = 5, TXN_SUBMISSION = 4, TXN_BROADCAST = 10, estimated blocks in a year is 420480.
-    int estimatedBlocksOneYear = 365 * 24 * 3600
+    uint64_t estimatedBlocksOneYear = 365 * 24 * 3600
         / ((POW_WINDOW_IN_SECONDS / NUM_FINAL_BLOCK_PER_POW)
            + (TXN_SUBMISSION + TXN_BROADCAST));
 
     // After 10 years, the difficulty will not automatically increase anymore..
-    newDifficulty += std::min(static_cast<uint8_t>(m_mediator.m_currentEpochNum
-                                                   / estimatedBlocksOneYear),
-                              (uint8_t)10);
+    newDifficulty += std::min(
+        (uint8_t)(m_mediator.m_currentEpochNum / estimatedBlocksOneYear),
+        (uint8_t)10);
     return newDifficulty;
 }
