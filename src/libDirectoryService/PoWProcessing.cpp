@@ -204,7 +204,7 @@ bool DirectoryService::ParseMessageAndVerifyPOW(
             lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
 
             m_allPoWConns.emplace(key, peer);
-            m_allPoWs.emplace_back(key, nonce);
+            m_allPoWs.emplace_back(key, message);
         }
     }
     else

@@ -31,6 +31,7 @@
 #include "libNetwork/P2PComm.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
+#include "libUtils/HashUtils.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SanityChecks.h"
 
@@ -57,9 +58,14 @@ void DirectoryService::ComposeDSBlock()
     }
 
     // Assemble DS block header
-
+    const unsigned int nonceOffset = sizeof(uint64_t) //DSBlockNum
+        + sizeof(uint32_t) //portNo
+        + PUB_KEY_SIZE // pubKey
+        + MessageOffset::BODY;
     const PubKey& winnerKey = m_allPoWs.front().first;
-    const uint256_t& winnerNonce = m_allPoWs.front().second;
+    const vector<unsigned char>& winnerMessage = m_allPoWs.front().second;
+    const uint64_t& winnerNonce = Serializable::GetNumber<uint64_t>(
+        winnerMessage, nonceOffset, sizeof(uint64_t));
 
     uint64_t blockNum = 0;
     uint8_t difficulty = POW_DIFFICULTY;
@@ -118,20 +124,28 @@ void DirectoryService::ComputeSharding()
     {
         m_shards.emplace_back();
     }
-
     map<array<unsigned char, BLOCK_HASH_SIZE>, PubKey> sortedPoWs;
+    vector<unsigned char> lastBlockHash(BLOCK_HASH_SIZE);
 
+    if (m_mediator.m_currentEpochNum > 1)
+    {
+        lastBlockHash = HashUtils::SerializableToHash(
+            m_mediator.m_txBlockChain.GetLastBlock());
+    }
     for (const auto& kv : m_allPoWs)
     {
         const PubKey& key = kv.first;
-        const uint256_t& nonce = kv.second;
+        const vector<unsigned char>& powMessage = kv.second;
 
         // sort all PoW submissions according to H(nonce, pubkey)
         SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
         vector<unsigned char> hashVec;
-        hashVec.resize(POW_SIZE + PUB_KEY_SIZE);
-        Serializable::SetNumber<uint256_t>(hashVec, 0, nonce, UINT256_SIZE);
-        key.Serialize(hashVec, POW_SIZE);
+        hashVec.resize(BLOCK_HASH_SIZE + powMessage.size());
+        //Serializable::SetNumber<uint256_t>(hashVec, 0, nonce, UINT256_SIZE);
+        //key.Serialize(hashVec, POW_SIZE);
+        copy(lastBlockHash.begin(), lastBlockHash.end(), hashVec.begin());
+        copy(powMessage.begin(), powMessage.end(),
+             hashVec.begin() + BLOCK_HASH_SIZE);
         sha2.Update(hashVec);
         const vector<unsigned char>& sortHashVec = sha2.Finalize();
         array<unsigned char, BLOCK_HASH_SIZE> sortHash;
@@ -148,6 +162,54 @@ void DirectoryService::ComputeSharding()
         m_publicKeyToShardIdMap.emplace(key, i % numOfComms);
         i++;
     }
+}
+
+bool DirectoryService::VerifyPoWOrdering()
+{
+    //Requires mutex for m_shards
+
+    vector<unsigned char> vec(BLOCK_HASH_SIZE);
+    for (unsigned int i = 0; i < m_shards.size(); i++)
+    {
+
+        for (auto& j : m_shards.at(i))
+        {
+            const PubKey& toFind = j.first;
+            /*auto it = find_if(
+                m_allPoWs.begin(), m_allPoWs.end(),
+                [&toFind](const pair<PubKey, vector<unsigned char>>& element) {
+                    return element.first == toFind;
+                });*/
+            bool isPresent = false;
+            unsigned int ci = 0;
+            for (auto& kv : m_allPoWs)
+            {
+                LOG_GENERAL(INFO, "[DSSort] " << kv.first << "\n");
+                if (kv.first == toFind)
+                {
+                    isPresent = true;
+                    break;
+                }
+                ci++;
+            }
+
+            if (!isPresent)
+            {
+                LOG_GENERAL(WARNING,
+                            "Failed to find key in the PoW ordering "
+                                << toFind << " " << m_allPoWs.size());
+                return false;
+            }
+            if (m_allPoWs.at(ci).second < vec)
+            {
+                LOG_GENERAL(WARNING,
+                            "Failed to Verify due to bad PoW ordering");
+                return false;
+            }
+            vec = m_allPoWs.at(ci).second;
+        }
+    }
+    return true;
 }
 
 void DirectoryService::ComputeTxnSharingAssignments(const Peer& winnerpeer)
@@ -272,7 +334,8 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
     m_allPoWs.pop_back();
 
     // Add the oldest DS committee member to m_allPoWs and m_allPoWConns so it gets included in sharding structure
-    m_allPoWs.emplace_back(m_mediator.m_DSCommittee->back().first, 0);
+    m_allPoWs.emplace_back(m_mediator.m_DSCommittee->back().first,
+                           vector<unsigned char>(BLOCK_HASH_SIZE));
     m_allPoWConns.emplace(m_mediator.m_DSCommittee->back());
 
     const auto& winnerPeer
@@ -475,6 +538,11 @@ bool DirectoryService::DSBlockValidator(
 
     // [Sharding structure]
     curr_offset = PopulateShardingStructure(message, curr_offset);
+
+    if (!VerifyPoWOrdering())
+    {
+        return false;
+    }
 
     // [Txn sharing assignments]
     SaveTxnBodySharingAssignment(message, curr_offset);
