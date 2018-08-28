@@ -58,14 +58,8 @@ void DirectoryService::ComposeDSBlock()
     }
 
     // Assemble DS block header
-    const unsigned int nonceOffset = sizeof(uint64_t) //DSBlockNum
-        + sizeof(uint32_t) //portNo
-        + PUB_KEY_SIZE // pubKey
-        + MessageOffset::BODY;
     const PubKey& winnerKey = m_allPoWs.front().first;
-    const vector<unsigned char>& winnerMessage = m_allPoWs.front().second;
-    const uint64_t& winnerNonce = Serializable::GetNumber<uint64_t>(
-        winnerMessage, nonceOffset, sizeof(uint64_t));
+    const uint256_t& winnerNonce = m_allPoWs.front().second.first;
 
     uint64_t blockNum = 0;
     uint8_t difficulty = POW_DIFFICULTY;
@@ -135,17 +129,16 @@ void DirectoryService::ComputeSharding()
     for (const auto& kv : m_allPoWs)
     {
         const PubKey& key = kv.first;
-        const vector<unsigned char>& powMessage = kv.second;
+        const array<unsigned char, BLOCK_HASH_SIZE>& powHash = kv.second.second;
 
         // sort all PoW submissions according to H(nonce, pubkey)
         SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
         vector<unsigned char> hashVec;
-        hashVec.resize(BLOCK_HASH_SIZE + powMessage.size());
+        hashVec.resize(BLOCK_HASH_SIZE + BLOCK_HASH_SIZE);
         //Serializable::SetNumber<uint256_t>(hashVec, 0, nonce, UINT256_SIZE);
         //key.Serialize(hashVec, POW_SIZE);
         copy(lastBlockHash.begin(), lastBlockHash.end(), hashVec.begin());
-        copy(powMessage.begin(), powMessage.end(),
-             hashVec.begin() + BLOCK_HASH_SIZE);
+        copy(powHash.begin(), powHash.end(), hashVec.begin() + BLOCK_HASH_SIZE);
         sha2.Update(hashVec);
         const vector<unsigned char>& sortHashVec = sha2.Finalize();
         array<unsigned char, BLOCK_HASH_SIZE> sortHash;
@@ -167,6 +160,16 @@ void DirectoryService::ComputeSharding()
 bool DirectoryService::VerifyPoWOrdering()
 {
     //Requires mutex for m_shards
+    vector<unsigned char> lastBlockHash(BLOCK_HASH_SIZE);
+
+    if (m_mediator.m_currentEpochNum > 1)
+    {
+        lastBlockHash = HashUtils::SerializableToHash(
+            m_mediator.m_txBlockChain.GetLastBlock());
+    }
+
+    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+    vector<unsigned char> hashVec;
 
     vector<unsigned char> vec(BLOCK_HASH_SIZE);
     for (unsigned int i = 0; i < m_shards.size(); i++)
@@ -197,16 +200,25 @@ bool DirectoryService::VerifyPoWOrdering()
             {
                 LOG_GENERAL(WARNING,
                             "Failed to find key in the PoW ordering "
-                                << toFind << " " << m_allPoWs.size());
+                                << toFind << " " << m_allPoWs.size() << " "
+                                << i);
                 return false;
             }
-            if (m_allPoWs.at(ci).second < vec)
+            hashVec.clear();
+            hashVec.resize(BLOCK_HASH_SIZE + BLOCK_HASH_SIZE);
+            copy(lastBlockHash.begin(), lastBlockHash.end(), hashVec.begin());
+            copy(m_allPoWs.at(ci).second.second.begin(),
+                 m_allPoWs.at(ci).second.second.end(),
+                 hashVec.begin() + BLOCK_HASH_SIZE);
+            sha2.Update(hashVec);
+            const vector<unsigned char>& sortHashVec = sha2.Finalize();
+            if (sortHashVec < vec)
             {
                 LOG_GENERAL(WARNING,
                             "Failed to Verify due to bad PoW ordering");
                 return false;
             }
-            vec = m_allPoWs.at(ci).second;
+            vec = sortHashVec;
         }
     }
     return true;
@@ -334,8 +346,9 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
     m_allPoWs.pop_back();
 
     // Add the oldest DS committee member to m_allPoWs and m_allPoWConns so it gets included in sharding structure
-    m_allPoWs.emplace_back(m_mediator.m_DSCommittee->back().first,
-                           vector<unsigned char>(BLOCK_HASH_SIZE));
+    m_allPoWs.emplace_back(
+        m_mediator.m_DSCommittee->back().first,
+        make_pair(0, array<unsigned char, BLOCK_HASH_SIZE>()));
     m_allPoWConns.emplace(m_mediator.m_DSCommittee->back());
 
     const auto& winnerPeer
