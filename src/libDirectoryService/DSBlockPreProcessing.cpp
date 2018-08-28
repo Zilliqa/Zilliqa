@@ -105,7 +105,13 @@ void DirectoryService::ComputeSharding()
     m_shards.clear();
     m_publicKeyToShardIdMap.clear();
 
-    uint32_t numOfComms = m_allPoWs.size() / COMM_SIZE;
+    if (m_allPoWs.size() < COMM_SIZE)
+    {
+        LOG_GENERAL(WARNING, "PoWs recvd less than one shard size");
+    }
+
+    unsigned int numOfComms = m_allPoWs.size() / COMM_SIZE;
+    unsigned int max_shard = numOfComms - 1;
 
     if (numOfComms == 0)
     {
@@ -147,12 +153,17 @@ void DirectoryService::ComputeSharding()
     }
 
     unsigned int i = 0;
+
     for (const auto& kv : sortedPoWs)
     {
+        LOG_GENERAL(INFO,
+                    "[DSSORT] " << kv.second << " "
+                                << DataConversion::charArrToHexStr(kv.first)
+                                << endl);
         const PubKey& key = kv.second;
-        map<PubKey, Peer>& shard = m_shards.at(i % numOfComms);
+        map<PubKey, Peer>& shard = m_shards.at(min(i / COMM_SIZE, max_shard));
         shard.emplace(key, m_allPoWConns.at(key));
-        m_publicKeyToShardIdMap.emplace(key, i % numOfComms);
+        m_publicKeyToShardIdMap.emplace(key, min(i / COMM_SIZE, max_shard));
         i++;
     }
 }
@@ -167,11 +178,15 @@ bool DirectoryService::VerifyPoWOrdering()
         lastBlockHash = HashUtils::SerializableToHash(
             m_mediator.m_txBlockChain.GetLastBlock());
     }
+    //Temporarily add the old ds to check ordering
+    m_allPoWs.emplace_back(
+        m_mediator.m_DSCommittee->back().first,
+        make_pair(0, array<unsigned char, BLOCK_HASH_SIZE>()));
 
-    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
     vector<unsigned char> hashVec;
 
     vector<unsigned char> vec(BLOCK_HASH_SIZE);
+    //0 Skipped as 0 is the oldest DS leader
     for (unsigned int i = 0; i < m_shards.size(); i++)
     {
 
@@ -187,7 +202,6 @@ bool DirectoryService::VerifyPoWOrdering()
             unsigned int ci = 0;
             for (auto& kv : m_allPoWs)
             {
-                LOG_GENERAL(INFO, "[DSSort] " << kv.first << "\n");
                 if (kv.first == toFind)
                 {
                     isPresent = true;
@@ -202,8 +216,10 @@ bool DirectoryService::VerifyPoWOrdering()
                             "Failed to find key in the PoW ordering "
                                 << toFind << " " << m_allPoWs.size() << " "
                                 << i);
+                m_allPoWs.pop_back();
                 return false;
             }
+            SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
             hashVec.clear();
             hashVec.resize(BLOCK_HASH_SIZE + BLOCK_HASH_SIZE);
             copy(lastBlockHash.begin(), lastBlockHash.end(), hashVec.begin());
@@ -212,15 +228,24 @@ bool DirectoryService::VerifyPoWOrdering()
                  hashVec.begin() + BLOCK_HASH_SIZE);
             sha2.Update(hashVec);
             const vector<unsigned char>& sortHashVec = sha2.Finalize();
+            LOG_GENERAL(INFO,
+                        "[DSSORT]"
+                            << DataConversion::Uint8VecToHexStr(sortHashVec)
+                            << " " << j.first);
             if (sortHashVec < vec)
             {
-                LOG_GENERAL(WARNING,
-                            "Failed to Verify due to bad PoW ordering");
+                m_allPoWs.pop_back();
+                LOG_GENERAL(
+                    WARNING,
+                    "Failed to Verify due to bad PoW ordering "
+                        << DataConversion::Uint8VecToHexStr(vec) << " "
+                        << DataConversion::Uint8VecToHexStr(sortHashVec));
                 return false;
             }
             vec = sortHashVec;
         }
     }
+    m_allPoWs.pop_back();
     return true;
 }
 
