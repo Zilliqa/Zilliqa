@@ -68,16 +68,6 @@ void Node::SubmitMicroblockToDSCommittee() const
                                       sizeof(uint64_t));
     cur_offset += sizeof(uint64_t);
 
-    // // 4-byte consensusid
-    // Serializable::SetNumber<uint32_t>(microblock, cur_offset, m_consensusID,
-    //                                   sizeof(uint32_t));
-    // cur_offset += sizeof(uint32_t);
-
-    // // 4-byte shard ID
-    // Serializable::SetNumber<uint32_t>(microblock, cur_offset, m_myShardID,
-    //                                   sizeof(uint32_t));
-    // cur_offset += sizeof(uint32_t);
-
     // Tx microblock
     m_microblock->SerializeCore(microblock, cur_offset);
     cur_offset += m_microblock->GetSerializedCoreSize();
@@ -491,16 +481,7 @@ bool Node::OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
         // LOG_GENERAL(INFO, "Peer " << from << " : " << portNo << " missing txn " << missingTransactions[i])
 
         Transaction t;
-        // if (submittedTransactions.find(missingTransactions[i])
-        //     != submittedTransactions.end())
-        // {
-        //     t = submittedTransactions[missingTransactions[i]];
-        // }
-        // else if (receivedTransactions.find(missingTransactions[i])
-        //          != receivedTransactions.end())
-        // {
-        //     t = receivedTransactions[missingTransactions[i]];
-        // }
+
         if (processedTransactions.find(missingTransactions[i])
             != processedTransactions.end())
         {
@@ -609,11 +590,10 @@ void Node::ProcessTransactionWhenShardLeader()
         return true;
     };
 
-    uint64_t blockNum = m_mediator.m_currentEpochNum;
-
-    auto appendOne = [this, &blockNum](const Transaction& t) {
+    auto appendOne = [this](const Transaction& t) {
         lock_guard<mutex> g(m_mutexProcessedTransactions);
-        auto& processedTransactions = m_processedTransactions[blockNum];
+        auto& processedTransactions
+            = m_processedTransactions[m_mediator.m_currentEpochNum];
         processedTransactions.insert(make_pair(t.GetTranID(), t));
     };
 
@@ -1034,11 +1014,10 @@ bool Node::ProcessTransactionWhenShardBackup(const vector<TxnHash>& tranHashes,
         return false;
     }
 
-    uint64_t blockNum = m_mediator.m_currentEpochNum;
-
-    auto appendOne = [this, &blockNum](const Transaction& t) {
+    auto appendOne = [this](const Transaction& t) {
         lock_guard<mutex> g(m_mutexProcessedTransactions);
-        auto& processedTransactions = m_processedTransactions[blockNum];
+        auto& processedTransactions
+            = m_processedTransactions[m_mediator.m_currentEpochNum];
         processedTransactions.insert(make_pair(t.GetTranID(), t));
     };
 

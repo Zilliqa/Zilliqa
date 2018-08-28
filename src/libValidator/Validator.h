@@ -32,8 +32,6 @@ public:
     /// Verifies the transaction w.r.t given pubKey and signature
     virtual bool VerifyTransaction(const Transaction& tran) const = 0;
 
-    virtual void CleanVariables() = 0;
-
 #ifndef IS_LOOKUP_NODE
     virtual bool CheckCreatedTransaction(
         const Transaction& tx,
@@ -54,7 +52,6 @@ public:
     ~Validator();
     std::string name() const override { return "Validator"; }
     bool VerifyTransaction(const Transaction& tran) const override;
-    void CleanVariables() override;
 
 #ifndef IS_LOOKUP_NODE
     bool CheckCreatedTransaction(

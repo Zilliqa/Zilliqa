@@ -73,7 +73,11 @@ public:
 
         if (blockNum >= m_blocks.size())
         {
-            LOG_GENERAL(WARNING, "Block number " << blockNum << " absent");
+            LOG_GENERAL(WARNING,
+                        "Block number "
+                            << blockNum
+                            << " absent, a dummy block will be used and "
+                               "abnormal behavior may happen!");
             return T();
         }
         else if (blockNum + m_blocks.capacity() < m_blocks.size())
@@ -81,16 +85,15 @@ public:
             return GetBlockFromPersistentStorage(blockNum);
         }
 
-        // To-do: We cannot even index into a vector using uint256_t
-        // uint256_t might just be too big to begin with
-        // Consider switching to uint64_t
-        // For now we directly cast to uint64_t
-
         if (m_blocks[blockNum].GetHeader().GetBlockNum() != blockNum)
         {
-            LOG_GENERAL(FATAL,
-                        "assertion failed (" << __FILE__ << ":" << __LINE__
-                                             << ": " << __FUNCTION__ << ")");
+            LOG_GENERAL(WARNING,
+                        "BlockNum : "
+                            << blockNum << " != GetBlockNum() : "
+                            << m_blocks[blockNum].GetHeader().GetBlockNum()
+                            << ", a dummy block will be used and abnormal "
+                               "behavior may happen!");
+            return T();
         }
 
         return m_blocks[blockNum];

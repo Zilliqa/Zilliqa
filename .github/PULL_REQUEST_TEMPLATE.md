@@ -15,5 +15,13 @@
 
 ### Integration Test (Core Team)
 <!-- This is for core team only, ignore this if you are a community contributor -->
+
+<!-- append the commit digest to inform the others of the versions you have tested -->
 - [ ] local machine test
+<!-- - [ ] local machine test (commit: bbbbbbbb) -->
+<!-- - [ ] local machine test (commit: cccccccc) -->
+<!-- - [ ] local machine test (commit: dddddddd) -->
 - [ ] small-scale cloud test
+<!-- - [ ] small-scale cloud test (commit: bbbbbbbb) -->
+<!-- - [ ] small-scale cloud test (commit: cccccccc) -->
+<!-- - [ ] small-scale cloud test (commit: dddddddd) -->
