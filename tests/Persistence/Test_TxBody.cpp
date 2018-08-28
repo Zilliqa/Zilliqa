@@ -166,9 +166,9 @@ BOOST_AUTO_TEST_CASE(testBlockStorage)
 
     vector<unsigned char> serializedTxBody;
     body1.Serialize(serializedTxBody, 0);
-// #ifndef IS_LOOKUP_NODE
-//     BlockStorage::GetBlockStorage().PushBackTxBodyDB(0);
-// #endif // IS_LOOKUP_NODE
+    // #ifndef IS_LOOKUP_NODE
+    //     BlockStorage::GetBlockStorage().PushBackTxBodyDB(0);
+    // #endif // IS_LOOKUP_NODE
     BlockStorage::GetBlockStorage().PutTxBody(tx_hash, serializedTxBody);
 
     TxBodySharedPtr body2;
@@ -234,9 +234,9 @@ BOOST_AUTO_TEST_CASE(testRandomBlockAccesses)
         body2.GetTranID() != (*blockRetrieved).GetTranID(),
         "transaction id shouldn't be same for different blocks");
 
-// #ifndef IS_LOOKUP_NODE
-//     boost::filesystem::remove_all(p_txbodyDB);
-// #endif // IS_LOOKUP_NODE
+    // #ifndef IS_LOOKUP_NODE
+    //     boost::filesystem::remove_all(p_txbodyDB);
+    // #endif // IS_LOOKUP_NODE
 }
 #endif // IS_LOOKUP_NODE
 
