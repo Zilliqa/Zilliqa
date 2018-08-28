@@ -89,13 +89,7 @@ bool BlockStorage::PopFrontTxBodyDB(bool mandatory)
     return (ret == 0);
 }
 
-unsigned int BlockStorage::GetTxBodyDBSize() {
-    
-    // Disable it currently
-    return 0;
-
-    return m_txBodyDBs.size(); 
-}
+unsigned int BlockStorage::GetTxBodyDBSize() { return m_txBodyDBs.size(); }
 #endif // IS_LOOKUP_NODE
 
 bool BlockStorage::PutBlock(const uint64_t& blockNum,
