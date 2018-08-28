@@ -43,6 +43,9 @@ bool BlockStorage::PushBackTxBodyDB(const uint64_t& blockNum)
 {
     LOG_MARKER();
 
+    // Disable it currently
+    return true;
+
     if (m_txBodyDBs.size()
         >= NUM_DS_KEEP_TX_BODY + 1) // Leave one for keeping tmp txBody
     {
@@ -60,6 +63,9 @@ bool BlockStorage::PushBackTxBodyDB(const uint64_t& blockNum)
 bool BlockStorage::PopFrontTxBodyDB(bool mandatory)
 {
     LOG_MARKER();
+
+    // Disable it currently
+    return true;
 
     if (m_txBodyDBs.empty())
     {
@@ -83,7 +89,13 @@ bool BlockStorage::PopFrontTxBodyDB(bool mandatory)
     return (ret == 0);
 }
 
-unsigned int BlockStorage::GetTxBodyDBSize() { return m_txBodyDBs.size(); }
+unsigned int BlockStorage::GetTxBodyDBSize() {
+    
+    // Disable it currently
+    return 0;
+
+    return m_txBodyDBs.size(); 
+}
 #endif // IS_LOOKUP_NODE
 
 bool BlockStorage::PutBlock(const uint64_t& blockNum,
@@ -220,6 +232,11 @@ bool BlockStorage::DeleteTxBlock(const uint64_t& blocknum)
 bool BlockStorage::DeleteTxBody(const dev::h256& key)
 {
 #ifndef IS_LOOKUP_NODE
+    if (m_txBodyDBs.empty())
+    {
+        LOG_GENERAL(WARNING, "No TxBodyDB found");
+        return false;
+    }
     int ret = m_txBodyDBs.back()->DeleteKey(key);
 #else // IS_LOOKUP_NODE
     int ret = m_txBodyDB.DeleteKey(key);
