@@ -21,6 +21,7 @@ minorLine=4
 fixLine=6
 DSLine=8
 commitLine=10
+shaLine=12
 
 # Read current version information from version file
 defaultMajor="$(sed -n ${majorLine}p ${versionFile})"
@@ -59,11 +60,21 @@ echo -e "Make deb package..."
 git clean -dfx
 ./build.sh; cd build; make package; cd -
 ./build_lookup.sh; cd build_lookup; make package; cd -
+cp ${versionFile} build/; cp ${versionFile} build_lookup/
+cd build; debFile="$(ls *.deb)"; cd -
 echo -e "Deb packages are generated successfully.\n"
 
 # Make SHA-256 & multi-signature
-
 echo -e "Calculate SHA-256..."
+cd build
+sha="$(md5sum ${debFile}|cut -d ' ' -f1)"
+sed -i "${shaLine}s/.*/${sha}/" ${versionFile}
+cd -
+cd build_lookup
+sha="$(md5sum ${debFile}|cut -d ' ' -f1)"
+sed -i "${shaLine}s/.*/${sha}/" ${versionFile}
+cd -
+echo -e "SHA-256 is written into ${versionFile} successfully.\n"
 
 echo -e "Make multi-signature..."
 
