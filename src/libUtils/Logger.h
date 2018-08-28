@@ -19,6 +19,8 @@
 
 #include "g3log/g3log.hpp"
 #include "g3log/loglevels.hpp"
+#include "g3log/logworker.hpp"
+#include "libUtils/TimeUtils.h"
 #include <boost/multiprecision/cpp_int.hpp>
 #include <chrono>
 #include <fstream>
@@ -40,6 +42,7 @@ private:
     std::mutex m;
     bool m_logToFile;
     std::streampos m_maxFileSize;
+    std::unique_ptr<g3::LogWorker> logworker;
 
     Logger(const char* prefix, bool log_to_file, std::streampos max_file_size);
     ~Logger();
@@ -160,11 +163,12 @@ public:
     {                                                                          \
         if (Logger::GetLogger(NULL, true).IsG3Log())                           \
         {                                                                      \
-            std::time_t curTime = std::chrono::system_clock::to_time_t(        \
-                std::chrono::system_clock::now());                             \
+            auto cur = std::chrono::system_clock::now();                       \
+            auto cur_time_t = std::chrono::system_clock::to_time_t(cur);       \
             LOG(level) << "[TID " << PAD(Logger::GetPid(), Logger::TID_LEN)    \
-                       << "][" << std::put_time(gmtime(&curTime), "%H:%M:%S")  \
                        << "]["                                                 \
+                       << std::put_time(gmtime(&cur_time_t), "%H:%M:%S:")      \
+                       << PAD(get_ms(cur), 3) << "]["                          \
                        << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN)        \
                        << "] " << msg;                                         \
         }                                                                      \
@@ -180,11 +184,12 @@ public:
     {                                                                          \
         if (Logger::GetLogger(NULL, true).IsG3Log())                           \
         {                                                                      \
-            std::time_t curTime = std::chrono::system_clock::to_time_t(        \
-                std::chrono::system_clock::now());                             \
+            auto cur = std::chrono::system_clock::now();                       \
+            auto cur_time_t = std::chrono::system_clock::to_time_t(cur);       \
             LOG(level) << "[TID " << PAD(Logger::GetPid(), Logger::TID_LEN)    \
-                       << "][" << std::put_time(gmtime(&curTime), "%H:%M:%S")  \
                        << "]["                                                 \
+                       << std::put_time(gmtime(&cur_time_t), "%H:%M:%S:")      \
+                       << PAD(get_ms(cur), 3) << "]["                          \
                        << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN) << "]" \
                        << "[Epoch " << epoch << "] " << msg;                   \
         }                                                                      \
@@ -200,17 +205,17 @@ public:
     {                                                                          \
         if (Logger::GetLogger(NULL, true).IsG3Log())                           \
         {                                                                      \
-            std::time_t curTime = std::chrono::system_clock::to_time_t(        \
-                std::chrono::system_clock::now());                             \
             std::unique_ptr<char[]> payload_string;                            \
             Logger::GetPayloadS(payload, max_bytes_to_display,                 \
                                 payload_string);                               \
+            auto cur = std::chrono::system_clock::now();                       \
+            auto cur_time_t = std::chrono::system_clock::to_time_t(cur);       \
             if ((payload).size() > max_bytes_to_display)                       \
             {                                                                  \
                 LOG(level) << "[TID "                                          \
                            << PAD(Logger::GetPid(), Logger::TID_LEN) << "]["   \
-                           << std::put_time(gmtime(&curTime), "%H:%M:%S")      \
-                           << "]["                                             \
+                           << std::put_time(gmtime(&cur_time_t), "%H:%M:%S:")  \
+                           << PAD(get_ms(cur), 3) << "]["                      \
                            << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN)    \
                            << "] " << msg << " (Len=" << (payload).size()      \
                            << "): " << payload_string.get() << "...";          \
@@ -219,8 +224,8 @@ public:
             {                                                                  \
                 LOG(level) << "[TID "                                          \
                            << PAD(Logger::GetPid(), Logger::TID_LEN) << "]["   \
-                           << std::put_time(gmtime(&curTime), "%H:%M:%S")      \
-                           << "]["                                             \
+                           << std::put_time(gmtime(&cur_time_t), "%H:%M:%S:")  \
+                           << PAD(get_ms(cur), 3) << "]["                      \
                            << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN)    \
                            << "] " << msg << " (Len=" << (payload).size()      \
                            << "): " << payload_string.get();                   \

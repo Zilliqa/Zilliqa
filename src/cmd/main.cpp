@@ -113,9 +113,9 @@ int main(int argc, const char* argv[])
     Zilliqa zilliqa(make_pair(privkey, pubkey), my_network_info,
                     atoi(argv[5]) == 1, atoi(argv[6]), atoi(argv[7]) == 1);
 
-    auto dispatcher = [&zilliqa](const vector<unsigned char>& message,
-                                 const Peer& from) mutable -> void {
-        zilliqa.Dispatch(message, from);
+    auto dispatcher =
+        [&zilliqa](pair<vector<unsigned char>, Peer>* message) mutable -> void {
+        zilliqa.Dispatch(message);
     };
     auto broadcast_list_retriever
         = [&zilliqa](unsigned char msg_type, unsigned char ins_type,

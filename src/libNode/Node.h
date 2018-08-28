@@ -122,14 +122,6 @@ class Node : public Executable, public Broadcastable
     const static uint32_t RECVTXNDELAY_MILLISECONDS = 3000;
     const static unsigned int GOSSIP_RATE = 48;
 
-    // Transactions information
-    std::mutex m_mutexCreatedTransactions;
-    gas_txnid_comp_txns m_createdTransactions;
-
-    std::unordered_map<Address,
-                       std::map<boost::multiprecision::uint256_t, Transaction>>
-        m_addrNonceTxnMap;
-
     std::vector<TxnHash> m_txnsOrdering;
 
     std::mutex m_mutexProcessedTransactions;
@@ -145,6 +137,8 @@ class Node : public Executable, public Broadcastable
     std::mutex m_mutexForwardedTxnBuffer;
     std::unordered_map<uint64_t, std::vector<std::vector<unsigned char>>>
         m_forwardedTxnBuffer;
+
+    atomic<bool> m_isVacuousEpoch;
 
     bool CheckState(Action action);
 
@@ -357,6 +351,14 @@ public:
 
     /// The current internal state of this Node instance.
     std::atomic<NodeState> m_state;
+
+    // Transactions information
+    std::mutex m_mutexCreatedTransactions;
+    gas_txnid_comp_txns m_createdTransactions;
+
+    std::unordered_map<Address,
+                       std::map<boost::multiprecision::uint256_t, Transaction>>
+        m_addrNonceTxnMap;
 
     /// Constructor. Requires mediator reference to access DirectoryService and other global members.
     Node(Mediator& mediator, unsigned int syncType, bool toRetrieveHistory);
