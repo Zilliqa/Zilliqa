@@ -137,16 +137,15 @@ void DirectoryService::ComputeSharding()
         const PubKey& key = kv.first;
         const array<unsigned char, BLOCK_HASH_SIZE>& powHash = kv.second.second;
 
-        // sort all PoW submissions according to H(nonce, pubkey)
+        // sort all PoW submissions according to H(last_block_hash, pow_hash)
         SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
         vector<unsigned char> hashVec;
         hashVec.resize(BLOCK_HASH_SIZE + BLOCK_HASH_SIZE);
-        //Serializable::SetNumber<uint256_t>(hashVec, 0, nonce, UINT256_SIZE);
-        //key.Serialize(hashVec, POW_SIZE);
         copy(lastBlockHash.begin(), lastBlockHash.end(), hashVec.begin());
         copy(powHash.begin(), powHash.end(), hashVec.begin() + BLOCK_HASH_SIZE);
-        sha2.Update(hashVec);
-        const vector<unsigned char>& sortHashVec = sha2.Finalize();
+        ;
+        const vector<unsigned char>& sortHashVec
+            = HashUtils::BytesToHash(hashVec);
         array<unsigned char, BLOCK_HASH_SIZE> sortHash;
         copy(sortHashVec.begin(), sortHashVec.end(), sortHash.begin());
         sortedPoWs.emplace(sortHash, key);
@@ -193,24 +192,15 @@ bool DirectoryService::VerifyPoWOrdering()
         for (auto& j : m_shards.at(i))
         {
             const PubKey& toFind = j.first;
-            /*auto it = find_if(
+            auto it = find_if(
                 m_allPoWs.begin(), m_allPoWs.end(),
-                [&toFind](const pair<PubKey, vector<unsigned char>>& element) {
-                    return element.first == toFind;
-                });*/
-            bool isPresent = false;
-            unsigned int ci = 0;
-            for (auto& kv : m_allPoWs)
-            {
-                if (kv.first == toFind)
-                {
-                    isPresent = true;
-                    break;
-                }
-                ci++;
-            }
+                [&toFind](
+                    const pair<
+                        PubKey,
+                        pair<uint256_t, array<unsigned char, BLOCK_HASH_SIZE>>>&
+                        element) { return element.first == toFind; });
 
-            if (!isPresent)
+            if (it == m_allPoWs.end())
             {
                 LOG_GENERAL(WARNING,
                             "Failed to find key in the PoW ordering "
@@ -219,15 +209,13 @@ bool DirectoryService::VerifyPoWOrdering()
                 m_allPoWs.pop_back();
                 return false;
             }
-            SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
             hashVec.clear();
             hashVec.resize(BLOCK_HASH_SIZE + BLOCK_HASH_SIZE);
             copy(lastBlockHash.begin(), lastBlockHash.end(), hashVec.begin());
-            copy(m_allPoWs.at(ci).second.second.begin(),
-                 m_allPoWs.at(ci).second.second.end(),
+            copy(it->second.second.begin(), it->second.second.end(),
                  hashVec.begin() + BLOCK_HASH_SIZE);
-            sha2.Update(hashVec);
-            const vector<unsigned char>& sortHashVec = sha2.Finalize();
+            const vector<unsigned char>& sortHashVec
+                = HashUtils::BytesToHash(hashVec);
             LOG_GENERAL(INFO,
                         "[DSSORT]"
                             << DataConversion::Uint8VecToHexStr(sortHashVec)
