@@ -43,7 +43,7 @@ bool DirectoryService::VerifyPoWSubmission(
     const vector<unsigned char>& message, const Peer& from, PubKey& key,
     unsigned int curr_offset, uint32_t& portNo, uint64_t& nonce,
     array<unsigned char, 32>& rand1, array<unsigned char, 32>& rand2,
-    unsigned int& difficulty, uint64_t& block_num)
+    unsigned int& difficulty, uint64_t& block_num, string& winning_hash)
 {
     // 8-byte nonce
     nonce = Serializable::GetNumber<uint64_t>(message, curr_offset,
@@ -51,8 +51,8 @@ bool DirectoryService::VerifyPoWSubmission(
     curr_offset += sizeof(uint64_t);
 
     // 32-byte resulting hash
-    string winning_hash = DataConversion::Uint8VecToHexStr(message, curr_offset,
-                                                           BLOCK_HASH_SIZE);
+    winning_hash = DataConversion::Uint8VecToHexStr(message, curr_offset,
+                                                    BLOCK_HASH_SIZE);
     curr_offset += BLOCK_HASH_SIZE;
 
     // 32-byte mixhash
@@ -181,9 +181,10 @@ bool DirectoryService::ParseMessageAndVerifyPOW(
     array<unsigned char, 32> rand2;
     unsigned int difficulty;
     uint64_t block_num;
-    bool result
-        = VerifyPoWSubmission(message, from, key, curr_offset, portNo, nonce,
-                              rand1, rand2, difficulty, block_num);
+    string winning_hash;
+    bool result = VerifyPoWSubmission(message, from, key, curr_offset, portNo,
+                                      nonce, rand1, rand2, difficulty,
+                                      block_num, winning_hash);
 
     if (result == true)
     {
@@ -204,7 +205,10 @@ bool DirectoryService::ParseMessageAndVerifyPOW(
             lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
 
             m_allPoWConns.emplace(key, peer);
-            m_allPoWs.emplace_back(key, message);
+            m_allPoWs.emplace_back(
+                key,
+                make_pair(nonce,
+                          DataConversion::HexStrToStdArray(winning_hash)));
         }
     }
     else
