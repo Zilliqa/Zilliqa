@@ -41,7 +41,10 @@ include_directories(${OPENSSL_INCLUDE_DIR})
 
 find_package(LevelDB REQUIRED)
 
-find_package(OpenCL REQUIRED)
+if(OPENCL_MINE)
+    find_package(OpenCL REQUIRED)
+    add_definitions(-DOPENCL_MINE)
+endif()
 
 if(CUDA_MINE)
     find_package(CUDA REQUIRED)
@@ -98,8 +101,12 @@ endif()
 set_target_properties(zilliqa sendcmd sendtxn genkeypair
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-set_target_properties(Common Trie ethash NAT ethash-cl
+set_target_properties(Common Trie ethash NAT
     PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+
+if(OPENCL_MINE)
+    set_target_properties(ethash-cl PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+endif()
 
 if(CUDA_MINE)
     set_target_properties(ethash-cuda PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)

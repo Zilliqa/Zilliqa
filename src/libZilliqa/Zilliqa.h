@@ -44,6 +44,8 @@ class Zilliqa
     Node m_n;
     ConsensusUser
         m_cu; // Note: This is just a test class to demo Consensus usage
+    boost::lockfree::queue<std::pair<std::vector<unsigned char>, Peer>*>
+        m_msgQueue;
 
 #ifdef IS_LOOKUP_NODE
 
@@ -51,6 +53,8 @@ class Zilliqa
     Server m_server;
 
 #endif //IS_LOOK_UP_NODE
+
+    void ProcessMessage(std::pair<std::vector<unsigned char>, Peer>* message);
 
 public:
     /// Constructor.
@@ -65,7 +69,7 @@ public:
                          const Peer& peer);
 
     /// Forwards an incoming message for processing by the appropriate subclass.
-    void Dispatch(const std::vector<unsigned char>& message, const Peer& from);
+    void Dispatch(std::pair<std::vector<unsigned char>, Peer>* message);
 
     /// Returns a list of broadcast peers based on the specified message and instruction types.
     std::vector<Peer> RetrieveBroadcastList(unsigned char msg_type,

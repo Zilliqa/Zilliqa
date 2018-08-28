@@ -507,3 +507,97 @@ std::string DirectoryService::GetActionString(Action action) const
         ? "Unknown"
         : ActionStrings.at(action);
 }
+
+uint8_t
+DirectoryService::CalculateNewDifficulty(const uint8_t& currentDifficulty)
+{
+    constexpr int8_t MAX_ADJUST_STEP = 2;
+    constexpr unsigned int ONE_HUNDRED_PERCENT = 100;
+    constexpr unsigned int MAX_ADJUST_THRESHOLD = 99;
+    constexpr uint8_t MAX_INCREASE_DIFFICULTY_YEARS = 10;
+
+    int64_t currentNodes = 0, powSubmissions = 0;
+    {
+        lock_guard<mutex> g(m_mutexAllPOW);
+        powSubmissions = m_allPoWs.size();
+
+        for (const auto& shard : m_shards)
+        {
+            currentNodes += shard.size();
+        }
+    }
+
+    LOG_GENERAL(INFO,
+                "currentNodes " << currentNodes << ", powSubmissions "
+                                << powSubmissions);
+
+    int64_t adjustment = 0;
+    if (currentNodes > 0 && currentNodes != powSubmissions)
+    {
+        int64_t submissionsDiff;
+        if (!SafeMath<int64_t>::sub(powSubmissions, currentNodes,
+                                    submissionsDiff))
+        {
+            LOG_GENERAL(WARNING,
+                        "Calculate PoW submission difference goes wrong");
+            submissionsDiff = 0;
+        }
+
+        // To make the adjustment work on small network.
+        auto adjustThreshold = currentNodes * POW_CHANGE_PERCENT_TO_ADJ_DIFF
+            / ONE_HUNDRED_PERCENT;
+        if (adjustThreshold > MAX_ADJUST_THRESHOLD)
+        {
+            adjustThreshold = MAX_ADJUST_THRESHOLD;
+        }
+
+        // If the PoW submissions change not so big, then adjust according to the expected whole network node number.
+        if (abs(submissionsDiff) < adjustThreshold)
+        {
+            // If the PoW submissions exceeded the expected whole network node number, then increase the difficulty.
+            if (submissionsDiff > 0 && powSubmissions > NUM_NETWORK_NODE)
+            {
+                adjustment = 1;
+            }
+            else if (submissionsDiff < 0 && powSubmissions < NUM_NETWORK_NODE)
+            {
+                adjustment = -1;
+            }
+        }
+        else
+        {
+            if (!SafeMath<int64_t>::div(submissionsDiff, adjustThreshold,
+                                        adjustment))
+            {
+                LOG_GENERAL(WARNING,
+                            "Calculate difficulty adjustment goes wrong");
+                adjustment = 0;
+            }
+        }
+    }
+
+    // Restrict the adjustment step, prevent the difficulty jump up/down dramatically.
+    if (adjustment > MAX_ADJUST_STEP)
+    {
+        adjustment = MAX_ADJUST_STEP;
+    }
+    else if (adjustment < -MAX_ADJUST_STEP)
+    {
+        adjustment = -MAX_ADJUST_STEP;
+    }
+
+    uint8_t newDifficulty = std::max((uint8_t)(adjustment + currentDifficulty),
+                                     (uint8_t)(POW_DIFFICULTY));
+
+    // Every year, always increase the difficulty by 1, to encourage miners to upgrade the hardware over time.
+    // If POW_WINDOW_IN_SECONDS = 300, NUM_FINAL_BLOCK_PER_POW = 5, TXN_SUBMISSION = 4, TXN_BROADCAST = 10, estimated blocks in a year is 420480.
+    uint64_t estimatedBlocksOneYear = 365 * 24 * 3600
+        / ((POW_WINDOW_IN_SECONDS / NUM_FINAL_BLOCK_PER_POW)
+           + (TX_DISTRIBUTE_TIME_IN_MS));
+
+    // After 10 years, the difficulty will not automatically increase anymore..
+    newDifficulty += std::min(
+        (uint8_t)(m_mediator.m_currentEpochNum / estimatedBlocksOneYear),
+        MAX_INCREASE_DIFFICULTY_YEARS);
+    return newDifficulty;
+}
