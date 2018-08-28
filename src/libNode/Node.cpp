@@ -65,10 +65,10 @@ void addBalanceToGenesisAccount()
     }
 }
 
-Node::Node(Mediator& mediator, unsigned int syncType, bool toRetrieveHistory)
+Node::Node(Mediator& mediator, [[gnu::unused]] unsigned int syncType,
+           [[gnu::unused]] bool toRetrieveHistory)
     : m_mediator(mediator)
 {
-    this->Install(syncType, toRetrieveHistory);
 }
 
 Node::~Node() {}
@@ -190,6 +190,8 @@ bool Node::StartRetrieveHistory()
         {
             LOG_GENERAL(INFO, "RetrieveHistory Successed");
             m_mediator.m_isRetrievedHistory = true;
+            m_mediator.m_ds->m_consensusID
+                = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
             res = true;
         }
     }
@@ -732,6 +734,7 @@ void Node::CleanCreatedTransaction()
     std::lock_guard<mutex> lock(m_mutexCreatedTransactions);
     // m_createdTransactions.clear();
     m_createdTransactions.get<0>().clear();
+    m_addrNonceTxnMap.clear();
 }
 
 void Node::SetMyShardID(uint32_t shardID) { m_myShardID = shardID; }

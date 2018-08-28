@@ -117,6 +117,8 @@ ethash_h256_t stringToBlockhash(std::string const& _s)
 
 BOOST_AUTO_TEST_CASE(fnv_hash_check)
 {
+    INIT_FILE_LOGGER("zilliqa");
+
     uint32_t x = 1235U;
     const uint32_t y = 9999999U, expected = (FNV_PRIME * x) ^ y;
 
