@@ -206,13 +206,13 @@ bool AccountStoreBase<MAP>::CalculateGasRefund(const uint256_t& gasDeposit,
                                                uint256_t& gasRefund)
 {
     uint256_t gasFee;
-    if (!SafeMath::mul(gasUnit, gasPrice, gasFee))
+    if (!SafeMath<uint256_t>::mul(gasUnit, gasPrice, gasFee))
     {
         LOG_GENERAL(WARNING, "gasUnit * transaction.GetGasPrice() overflow!");
         return false;
     }
 
-    if (!SafeMath::sub(gasDeposit, gasFee, gasRefund))
+    if (!SafeMath<uint256_t>::sub(gasDeposit, gasFee, gasRefund))
     {
         LOG_GENERAL(WARNING, "gasDeposit - gasFee overflow!");
         return false;

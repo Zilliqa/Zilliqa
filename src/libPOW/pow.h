@@ -130,5 +130,7 @@ private:
                     uint64_t winning_nonce, ethash_h256_t& difficulty,
                     ethash_h256_t& winning_result,
                     ethash_h256_t& winning_mixhash);
+    void InitOpenCL();
+    void InitCUDA();
 };
 #endif // __POW_H__
