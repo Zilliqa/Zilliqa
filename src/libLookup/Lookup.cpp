@@ -51,9 +51,10 @@ Lookup::Lookup(Mediator& mediator)
     : m_mediator(mediator)
 {
     SetLookupNodes();
-#ifdef IS_LOOKUP_NODE
-    SetDSCommitteInfo();
-#endif // IS_LOOKUP_NODE
+    if (LOOKUP_NODE_MODE)
+    {
+        SetDSCommitteInfo();
+    }
 }
 
 Lookup::~Lookup() {}
@@ -364,9 +365,15 @@ bool Lookup::GetTxBodyFromSeedNodes(string txHashStr)
     return true;
 }
 
-#ifdef IS_LOOKUP_NODE
 bool Lookup::SetDSCommitteInfo()
 {
+    if (!LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Lookup::SetDSCommitteInfo not expected to be called from "
+                    "other than the LookUp node.");
+        return true;
+    }
     // Populate tree structure pt
     using boost::property_tree::ptree;
     ptree pt;
@@ -395,24 +402,45 @@ bool Lookup::SetDSCommitteInfo()
 
 vector<map<PubKey, Peer>> Lookup::GetShardPeers()
 {
+    if (!LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Lookup::GetShardPeers not expected to be called from "
+                    "other than the LookUp node.");
+        return vector<map<PubKey, Peer>>();
+    }
+
     lock_guard<mutex> g(m_mutexShards);
     return m_shards;
 }
 
 vector<Peer> Lookup::GetNodePeers()
 {
+    if (!LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Lookup::GetNodePeers not expected to be called from other "
+                    "than the LookUp node.");
+        return vector<Peer>();
+    }
+
     lock_guard<mutex> g(m_mutexNodesInNetwork);
     return m_nodesInNetwork;
 }
-#endif // IS_LOOKUP_NODE
 
 bool Lookup::ProcessEntireShardingStructure(
-    [[gnu::unused]] const vector<unsigned char>& message,
-    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
+    const vector<unsigned char>& message, unsigned int offset,
+    [[gnu::unused]] const Peer& from)
 {
-    LOG_MARKER();
+    if (!LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Lookup::ProcessEntireShardingStructure not expected to be "
+                    "called from other than the LookUp node.");
+        return true;
+    }
 
-#ifdef IS_LOOKUP_NODE
+    LOG_MARKER();
 
     LOG_GENERAL(INFO, "[LOOKUP received sharding structure]");
 
@@ -478,18 +506,23 @@ bool Lookup::ProcessEntireShardingStructure(
 
     l_nodesInNetwork = t_nodesInNetwork;
 
-#endif // IS_LOOKUP_NODE
-
     return true;
 }
 
-bool Lookup::ProcessGetSeedPeersFromLookup(
-    [[gnu::unused]] const vector<unsigned char>& message,
-    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
+bool Lookup::ProcessGetSeedPeersFromLookup(const vector<unsigned char>& message,
+                                           unsigned int offset,
+                                           const Peer& from)
 {
     LOG_MARKER();
 
-#ifdef IS_LOOKUP_NODE
+    if (!LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Lookup::ProcessGetSeedPeersFromLookup not expected to be "
+                    "called from other than the LookUp node.");
+        return true;
+    }
+
     // Message = [4-byte listening port]
 
     const unsigned int length_available = message.size() - offset;
@@ -574,8 +607,6 @@ bool Lookup::ProcessGetSeedPeersFromLookup(
     // ================================================
 
     P2PComm::GetInstance().SendMessage(peer, seedPeersMessage);
-
-#endif // IS_LOOKUP_NODE
 
     return true;
 }
@@ -1034,11 +1065,17 @@ bool Lookup::ProcessGetNetworkId(const vector<unsigned char>& message,
     // #endif // IS_LOOKUP_NODE
 }
 
-bool Lookup::ProcessSetSeedPeersFromLookup(
-    [[gnu::unused]] const vector<unsigned char>& message,
-    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
+bool Lookup::ProcessSetSeedPeersFromLookup(const vector<unsigned char>& message,
+                                           unsigned int offset,
+                                           [[gnu::unused]] const Peer& from)
 {
-#ifndef IS_LOOKUP_NODE
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Lookup::ProcessSetSeedPeersFromLookup not expected to be "
+                    "called from LookUp node.");
+        return true;
+    }
     // Message = [Peer info][Peer info]... SEED_PEER_LIST_SIZE times
 
     LOG_MARKER();
@@ -1063,7 +1100,6 @@ bool Lookup::ProcessSetSeedPeersFromLookup(
         LOG_GENERAL(INFO, "Peer " + to_string(i) + ": " << string(peer));
         offset += (IP_SIZE + PORT_SIZE);
     }
-#endif // IS_LOOKUP_NODE
 
     return true;
 }
@@ -1118,11 +1154,10 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "ProcessSetDSInfoFromSeed recvd peer " << i << ": " << peer);
     }
-        //    Data::GetInstance().SetDSPeers(dsPeers);
-        //#endif // IS_LOOKUP_NODE
+    //    Data::GetInstance().SetDSPeers(dsPeers);
+    //#endif // IS_LOOKUP_NODE
 
-#ifndef IS_LOOKUP_NODE
-    if (m_dsInfoWaitingNotifying
+    if (!LOOKUP_NODE_MODE && m_dsInfoWaitingNotifying
         && m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW
             == m_mediator.m_dsBlockChain.GetLastBlock()
                    .GetHeader()
@@ -1135,7 +1170,6 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
         m_fetchedDSInfo = true;
         cv_dsInfoUpdate.notify_one();
     }
-#endif // IS_LOOKUP_NODE
 
     return true;
 }
@@ -1232,9 +1266,9 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
             dsBlock.Serialize(serializedDSBlock, 0);
             BlockStorage::GetBlockStorage().PutDSBlock(
                 dsBlock.GetHeader().GetBlockNum(), serializedDSBlock);
-#ifndef IS_LOOKUP_NODE
-            if (!BlockStorage::GetBlockStorage().PushBackTxBodyDB(
-                    dsBlock.GetHeader().GetBlockNum()))
+            if (!LOOKUP_NODE_MODE
+                && !BlockStorage::GetBlockStorage().PushBackTxBodyDB(
+                       dsBlock.GetHeader().GetBlockNum()))
             {
                 if (BlockStorage::GetBlockStorage().PopFrontTxBodyDB()
                     && BlockStorage::GetBlockStorage().PushBackTxBodyDB(
@@ -1250,7 +1284,6 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
                     throw std::exception();
                 }
             }
-#endif // IS_LOOKUP_NODE
         }
 
         if (m_syncType == SyncType::DS_SYNC
@@ -1419,67 +1452,73 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
         ret = false;
     }
 
-#ifndef IS_LOOKUP_NODE
-    if (m_syncType == SyncType::NEW_SYNC || m_syncType == SyncType::NORMAL_SYNC)
+    if (!LOOKUP_NODE_MODE)
     {
-        m_dsInfoWaitingNotifying = true;
-
-        GetDSInfoFromLookupNodes();
-
+        if (m_syncType == SyncType::NEW_SYNC
+            || m_syncType == SyncType::NORMAL_SYNC)
         {
-            unique_lock<mutex> lock(m_mutexDSInfoUpdation);
-            while (!m_fetchedDSInfo)
-            {
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "Waiting for DSInfo");
+            m_dsInfoWaitingNotifying = true;
 
-                if (cv_dsInfoUpdate.wait_for(
-                        lock, chrono::seconds(NEW_NODE_SYNC_INTERVAL))
-                    == std::cv_status::timeout)
+            GetDSInfoFromLookupNodes();
+
+            {
+                unique_lock<mutex> lock(m_mutexDSInfoUpdation);
+                while (!m_fetchedDSInfo)
                 {
-                    // timed out
                     LOG_EPOCH(INFO,
                               to_string(m_mediator.m_currentEpochNum).c_str(),
-                              "Timed out waiting for DSInfo");
+                              "Waiting for DSInfo");
+
+                    if (cv_dsInfoUpdate.wait_for(
+                            lock, chrono::seconds(NEW_NODE_SYNC_INTERVAL))
+                        == std::cv_status::timeout)
+                    {
+                        // timed out
+                        LOG_EPOCH(
+                            INFO,
+                            to_string(m_mediator.m_currentEpochNum).c_str(),
+                            "Timed out waiting for DSInfo");
+                        m_dsInfoWaitingNotifying = false;
+                        return false;
+                    }
+                    LOG_EPOCH(INFO,
+                              to_string(m_mediator.m_currentEpochNum).c_str(),
+                              "Get ProcessDsInfo Notified");
                     m_dsInfoWaitingNotifying = false;
-                    return false;
                 }
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "Get ProcessDsInfo Notified");
-                m_dsInfoWaitingNotifying = false;
+                m_fetchedDSInfo = false;
             }
-            m_fetchedDSInfo = false;
+
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "DSInfo received -> Ask lookup to let me know when to "
+                      "start PoW");
+
+            // Ask lookup to inform me when it's time to do PoW
+            vector<unsigned char> getpowsubmission_message
+                = {MessageType::LOOKUP,
+                   LookupInstructionType::GETSTARTPOWFROMSEED};
+            Serializable::SetNumber<uint32_t>(
+                getpowsubmission_message, MessageOffset::BODY,
+                m_mediator.m_selfPeer.m_listenPortHost, sizeof(uint32_t));
+            m_mediator.m_lookup->SendMessageToRandomLookupNode(
+                getpowsubmission_message);
         }
-
-        LOG_EPOCH(
-            INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "DSInfo received -> Ask lookup to let me know when to start PoW");
-
-        // Ask lookup to inform me when it's time to do PoW
-        vector<unsigned char> getpowsubmission_message
-            = {MessageType::LOOKUP, LookupInstructionType::GETSTARTPOWFROMSEED};
-        Serializable::SetNumber<uint32_t>(
-            getpowsubmission_message, MessageOffset::BODY,
-            m_mediator.m_selfPeer.m_listenPortHost, sizeof(uint32_t));
-        m_mediator.m_lookup->SendMessageToRandomLookupNode(
-            getpowsubmission_message);
-    }
-    else if (m_syncType == SyncType::DS_SYNC)
-    {
-        if (!m_currDSExpired
-            && m_mediator.m_ds->m_latestActiveDSBlockNum
-                < m_mediator.m_dsBlockChain.GetLastBlock()
-                      .GetHeader()
-                      .GetBlockNum())
+        else if (m_syncType == SyncType::DS_SYNC)
         {
-            m_isFirstLoop = true;
-            m_syncType = SyncType::NO_SYNC;
-            m_mediator.m_ds->FinishRejoinAsDS();
+            if (!m_currDSExpired
+                && m_mediator.m_ds->m_latestActiveDSBlockNum
+                    < m_mediator.m_dsBlockChain.GetLastBlock()
+                          .GetHeader()
+                          .GetBlockNum())
+            {
+                m_isFirstLoop = true;
+                m_syncType = SyncType::NO_SYNC;
+                m_mediator.m_ds->FinishRejoinAsDS();
+            }
+            m_currDSExpired = false;
         }
-        m_currDSExpired = false;
     }
-#else // IS_LOOKUP_NODE
-    if (m_syncType == SyncType::LOOKUP_SYNC)
+    else if (m_syncType == SyncType::LOOKUP_SYNC)
     {
         // rsync the txbodies here
         if (RsyncTxBodies() && !m_currDSExpired)
@@ -1491,7 +1530,6 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
         }
         m_currDSExpired = false;
     }
-#endif // IS_LOOKUP_NODE
 
     return ret;
 }
@@ -1543,10 +1581,16 @@ bool Lookup::ProcessSetTxBodyFromSeed(const vector<unsigned char>& message,
     return true;
 }
 
-#ifndef IS_LOOKUP_NODE
-
 bool Lookup::CheckStateRoot()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Lookup::CheckStateRoot not expected to be called from "
+                    "LookUp node.");
+        return true;
+    }
+
     StateHash stateRoot = AccountStore::GetInstance().GetStateRootHash();
     StateHash rootInFinalBlock = m_mediator.m_txBlockChain.GetLastBlock()
                                      .GetHeader()
@@ -1570,6 +1614,14 @@ bool Lookup::CheckStateRoot()
 
 bool Lookup::InitMining()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(
+            WARNING,
+            "Lookup::InitMining not expected to be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     {
@@ -1669,14 +1721,19 @@ bool Lookup::InitMining()
 
     return true;
 }
-#endif // IS_LOOKUP_NODE
 
-bool Lookup::ProcessSetLookupOffline(
-    [[gnu::unused]] const vector<unsigned char>& message,
-    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
+bool Lookup::ProcessSetLookupOffline(const vector<unsigned char>& message,
+                                     unsigned int offset, const Peer& from)
 {
     LOG_MARKER();
-#ifdef IS_LOOKUP_NODE
+    if (!LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Lookup::ProcessSetLookupOffline not expected to be called "
+                    "from other than the LookUp node.");
+        return true;
+    }
+
     if (IsMessageSizeInappropriate(message.size(), offset, sizeof(uint32_t)))
     {
         return false;
@@ -1705,16 +1762,22 @@ bool Lookup::ProcessSetLookupOffline(
             return false;
         }
     }
-#endif // IS_LOOKUP_NODE
     return true;
 }
 
-bool Lookup::ProcessSetLookupOnline(
-    [[gnu::unused]] const vector<unsigned char>& message,
-    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
+bool Lookup::ProcessSetLookupOnline(const vector<unsigned char>& message,
+                                    unsigned int offset, const Peer& from)
 {
     LOG_MARKER();
-#ifdef IS_LOOKUP_NODE
+
+    if (!LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Lookup::ProcessSetLookupOnline not expected to be called "
+                    "from other than the LookUp node.");
+        return true;
+    }
+
     if (IsMessageSizeInappropriate(message.size(), offset, sizeof(uint32_t)))
     {
         return false;
@@ -1744,16 +1807,20 @@ bool Lookup::ProcessSetLookupOnline(
             return false;
         }
     }
-#endif // IS_LOOKUP_NODE
     return true;
 }
 
-bool Lookup::ProcessGetOfflineLookups(
-    [[gnu::unused]] const std::vector<unsigned char>& message,
-    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
+bool Lookup::ProcessGetOfflineLookups(const std::vector<unsigned char>& message,
+                                      unsigned int offset, const Peer& from)
 {
     LOG_MARKER();
-#ifdef IS_LOOKUP_NODE
+    if (!LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Lookup::ProcessGetOfflineLookups not expected to be "
+                    "called from other than the LookUp node.");
+        return true;
+    }
     if (IsMessageSizeInappropriate(message.size(), offset, sizeof(uint32_t)))
     {
         return false;
@@ -1795,17 +1862,21 @@ bool Lookup::ProcessGetOfflineLookups(
     }
 
     P2PComm::GetInstance().SendMessage(requestingNode, offlineLookupsMessage);
-#endif // IS_LOOKUP_NODE
     return true;
 }
 
-bool Lookup::ProcessSetOfflineLookups(
-    [[gnu::unused]] const std::vector<unsigned char>& message,
-    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
+bool Lookup::ProcessSetOfflineLookups(const std::vector<unsigned char>& message,
+                                      unsigned int offset, const Peer& from)
 {
     // Message = [num_offline_lookups][LookupPeer][LookupPeer]... num_offline_lookups times
     LOG_MARKER();
-#ifndef IS_LOOKUP_NODE
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Lookup::ProcessSetOfflineLookups not expected to be "
+                    "called from the LookUp node.");
+        return true;
+    }
     if (IsMessageSizeInappropriate(message.size(), offset, sizeof(uint32_t)))
     {
         return false;
@@ -1848,7 +1919,6 @@ bool Lookup::ProcessSetOfflineLookups(
         m_fetchedOfflineLookups = true;
         cv_offlineLookups.notify_one();
     }
-#endif // IS_LOOKUP_NODE
     return true;
 }
 
@@ -1860,7 +1930,14 @@ bool Lookup::ProcessRaiseStartPoW(
 
     LOG_MARKER();
 
-#ifdef IS_LOOKUP_NODE
+    if (!LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Lookup::ProcessRaiseStartPoW not expected to be called "
+                    "from other than the LookUp node.");
+        return true;
+    }
+
     // DS leader has informed me that it's time to start PoW
     m_receivedRaiseStartPoW = true;
     cv_startPoWSubmission.notify_all();
@@ -1880,20 +1957,24 @@ bool Lookup::ProcessRaiseStartPoW(
               "Threads running ProcessGetStartPoWFromSeed notified it's too "
               "late to start PoW");
 
-#endif // IS_LOOKUP_NODE
-
     return true;
 }
 
-bool Lookup::ProcessGetStartPoWFromSeed(
-    [[gnu::unused]] const vector<unsigned char>& message,
-    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
+bool Lookup::ProcessGetStartPoWFromSeed(const vector<unsigned char>& message,
+                                        unsigned int offset, const Peer& from)
 {
     // Message = [Peer listen port]
 
     LOG_MARKER();
 
-#ifdef IS_LOOKUP_NODE
+    if (!LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Lookup::ProcessGetStartPoWFromSeed not expected to be "
+                    "called from other than the LookUp node.");
+        return true;
+    }
+
     // Normally I'll get this message from new nodes at the vacuous epoch
     // Wait a while if I haven't received RAISESTARTPOW from DS leader yet
     // Wait time = time it takes to finish the vacuous epoch (or at least part of it) + actual PoW window
@@ -1927,7 +2008,6 @@ bool Lookup::ProcessGetStartPoWFromSeed(
              Serializable::GetNumber<uint32_t>(message, offset,
                                                sizeof(uint32_t))),
         setstartpow_message);
-#endif // IS_LOOKUP_NODE
 
     return true;
 }
@@ -1940,7 +2020,14 @@ bool Lookup::ProcessSetStartPoWFromSeed(
 
     LOG_MARKER();
 
-#ifndef IS_LOOKUP_NODE
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Lookup::ProcessSetStartPoWFromSeed not expected to be "
+                    "called from the LookUp node.");
+        return true;
+    }
+
     InitMining();
 
     if (m_syncType == SyncType::DS_SYNC)
@@ -1958,14 +2045,20 @@ bool Lookup::ProcessSetStartPoWFromSeed(
 
         m_currDSExpired = false;
     }
-#endif // IS_LOOKUP_NODE
 
     return true;
 }
 
-#ifdef IS_LOOKUP_NODE
 void Lookup::StartSynchronization()
 {
+    if (!LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Lookup::StartSynchronization not expected to be called "
+                    "from other than the LookUp node.");
+        return;
+    }
+
     LOG_MARKER();
 
     this->CleanVariables();
@@ -1987,6 +2080,14 @@ void Lookup::StartSynchronization()
 
 Peer Lookup::GetLookupPeerToRsync()
 {
+    if (!LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Lookup::GetLookupPeerToRsync not expected to be called "
+                    "from other than the LookUp node.");
+        return Peer();
+    }
+
     LOG_MARKER();
 
     std::vector<Peer> t_Peers;
@@ -2005,6 +2106,14 @@ Peer Lookup::GetLookupPeerToRsync()
 
 std::vector<unsigned char> Lookup::ComposeGetLookupOfflineMessage()
 {
+    if (!LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Lookup::ComposeGetLookupOfflineMessage not expected to be "
+                    "called from other than the LookUp node.");
+        return std::vector<unsigned char>();
+    }
+
     LOG_MARKER();
 
     // getLookupOfflineMessage = [Port]
@@ -2022,6 +2131,14 @@ std::vector<unsigned char> Lookup::ComposeGetLookupOfflineMessage()
 
 std::vector<unsigned char> Lookup::ComposeGetLookupOnlineMessage()
 {
+    if (!LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Lookup::ComposeGetLookupOnlineMessage not expected to be "
+                    "called from other than the LookUp node.");
+        return std::vector<unsigned char>();
+    }
+
     LOG_MARKER();
 
     // getLookupOnlineMessage = [Port]
@@ -2039,6 +2156,14 @@ std::vector<unsigned char> Lookup::ComposeGetLookupOnlineMessage()
 
 bool Lookup::GetMyLookupOffline()
 {
+    if (!LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Lookup::GetMyLookupOffline not expected to be called from "
+                    "other than the LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     // Remove selfPeerInfo from m_lookupNodes
@@ -2061,6 +2186,14 @@ bool Lookup::GetMyLookupOffline()
 
 bool Lookup::GetMyLookupOnline()
 {
+    if (!LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Lookup::GetMyLookupOnline not expected to be called from "
+                    "other than the LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     auto iter = std::find(m_lookupNodesOffline.begin(),
@@ -2081,6 +2214,14 @@ bool Lookup::GetMyLookupOnline()
 
 bool Lookup::RsyncTxBodies()
 {
+    if (!LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Lookup::RsyncTxBodies not expected to be called from "
+                    "other than the LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
     const Peer& p = GetLookupPeerToRsync();
     string ipAddr = std::string(p.GetPrintableIPAddress());
@@ -2116,6 +2257,14 @@ bool Lookup::RsyncTxBodies()
 
 void Lookup::RejoinAsLookup()
 {
+    if (!LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Lookup::RejoinAsLookup not expected to be called from "
+                    "other than the LookUp node.");
+        return;
+    }
+
     LOG_MARKER();
     if (m_syncType == SyncType::NO_SYNC)
     {
@@ -2129,10 +2278,29 @@ void Lookup::RejoinAsLookup()
     }
 }
 
-bool Lookup::FinishRejoinAsLookup() { return GetMyLookupOnline(); }
+bool Lookup::FinishRejoinAsLookup()
+{
+    if (!LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Lookup::FinishRejoinAsLookup not expected to be called "
+                    "from other than the LookUp node.");
+        return true;
+    }
+
+    return GetMyLookupOnline();
+}
 
 bool Lookup::CleanVariables()
 {
+    if (!LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Lookup::CleanVariables not expected to be called from "
+                    "other than the LookUp node.");
+        return true;
+    }
+
     m_seedNodes.clear();
     m_currDSExpired = false;
     m_isFirstLoop = true;
@@ -2151,6 +2319,14 @@ bool Lookup::CleanVariables()
 
 bool Lookup::ToBlockMessage(unsigned char ins_byte)
 {
+    if (!LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Lookup::ToBlockMessage not expected to be called from "
+                    "other than the LookUp node.");
+        return true;
+    }
+
     if (m_syncType != SyncType::NO_SYNC
         && (ins_byte != LookupInstructionType::SETDSBLOCKFROMSEED
             && ins_byte != LookupInstructionType::SETDSINFOFROMSEED
@@ -2163,11 +2339,17 @@ bool Lookup::ToBlockMessage(unsigned char ins_byte)
     }
     return false;
 }
-#endif // IS_LOOKUP_NODE
 
-#ifndef IS_LOOKUP_NODE
 std::vector<unsigned char> Lookup::ComposeGetOfflineLookupNodes()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Lookup::ComposeGetOfflineLookupNodes not expected to be "
+                    "called from the LookUp node.");
+        return std::vector<unsigned char>();
+    }
+
     LOG_MARKER();
 
     // getLookupNodesMessage
@@ -2185,13 +2367,20 @@ std::vector<unsigned char> Lookup::ComposeGetOfflineLookupNodes()
 
 bool Lookup::GetOfflineLookupNodes()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Lookup::GetOfflineLookupNodes not expected to be called "
+                    "from the LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
     // Reset m_lookupNodes/m_lookupNodesOffline
     SetLookupNodes();
     SendMessageToLookupNodesSerial(ComposeGetOfflineLookupNodes());
     return true;
 }
-#endif // IS_LOOKUP_NODE
 
 bool Lookup::Execute(const vector<unsigned char>& message, unsigned int offset,
                      const Peer& from)
@@ -2229,14 +2418,15 @@ bool Lookup::Execute(const vector<unsigned char>& message, unsigned int offset,
     const unsigned int ins_handlers_count
         = sizeof(ins_handlers) / sizeof(InstructionHandler);
 
-#ifdef IS_LOOKUP_NODE
-    if (ToBlockMessage(ins_byte))
+    if (LOOKUP_NODE_MODE)
     {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Ignore lookup message");
-        return false;
+        if (ToBlockMessage(ins_byte))
+        {
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Ignore lookup message");
+            return false;
+        }
     }
-#endif // IS_LOOKUP_NODE
 
     if (ins_byte < ins_handlers_count)
     {

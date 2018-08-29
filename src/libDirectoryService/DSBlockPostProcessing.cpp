@@ -38,9 +38,16 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-#ifndef IS_LOOKUP_NODE
 void DirectoryService::StoreDSBlockToStorage()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::StoreDSBlockToStorage not expected to "
+                    "be called from LookUp node.");
+        return;
+    }
+
     LOG_MARKER();
     lock_guard<mutex> g(m_mutexPendingDSBlock);
     int result = m_mediator.m_dsBlockChain.AddBlock(*m_pendingDSBlock);
@@ -77,6 +84,14 @@ void DirectoryService::SendDSBlockToLookupNodes()
     // Message = [DS block] [PoW winner IP] [Sharding structure] [Txn sharing assignments]
     // This is the same as the DS Block consensus announcement message
 
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::SendDSBlockToLookupNodes not expected "
+                    "to be called from LookUp node.");
+        return;
+    }
+
     vector<unsigned char> dsblock_message(MessageOffset::BODY
                                           + m_PoWConsensusMessage.size());
     dsblock_message.at(MessageOffset::TYPE) = MessageType::NODE;
@@ -95,6 +110,14 @@ void DirectoryService::SendDSBlockToNewDSLeader(const Peer& winnerpeer)
     // Message = [Shard ID] [DS block] [PoW winner IP] [Sharding structure] [Txn sharing assignments]
     // This is the same as the DS Block consensus announcement message, plus the additional Shard ID
     // [Shard ID] is dummy here since the new DS leader won't be part of the shards
+
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::SendDSBlockToNewDSLeader not expected "
+                    "to be called from LookUp node.");
+        return;
+    }
 
     vector<unsigned char> dsblock_message(MessageOffset::BODY + sizeof(uint32_t)
                                           + m_PoWConsensusMessage.size());
@@ -120,6 +143,14 @@ void DirectoryService::SetupMulticastConfigForDSBlock(
     unsigned int& my_DS_cluster_num, unsigned int& my_shards_lo,
     unsigned int& my_shards_hi) const
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::SetupMulticastConfigForDSBlock not "
+                    "expected to be called from LookUp node.");
+        return;
+    }
+
     LOG_MARKER();
 
     unsigned int num_DS_clusters
@@ -161,6 +192,14 @@ void DirectoryService::SendDSBlockToShardNodes(unsigned int my_shards_lo,
 {
     // Message = [Shard ID] [DS block] [PoW winner IP] [Sharding structure] [Txn sharing assignments]
     // This is the same as the DS Block consensus announcement message, plus the additional Shard ID
+
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::SendDSBlockToShardNodes not expected to "
+                    "be called from LookUp node.");
+        return;
+    }
 
     vector<unsigned char> dsblock_message(MessageOffset::BODY + sizeof(uint32_t)
                                           + m_PoWConsensusMessage.size());
@@ -212,6 +251,14 @@ void DirectoryService::SendDSBlockToShardNodes(unsigned int my_shards_lo,
 
 void DirectoryService::UpdateMyDSModeAndConsensusId()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::UpdateMyDSModeAndConsensusId not "
+                    "expected to be called from LookUp node.");
+        return;
+    }
+
     // If I was DS primary, now I will only be DS backup
     if (m_mode == PRIMARY_DS)
     {
@@ -255,6 +302,14 @@ void DirectoryService::UpdateMyDSModeAndConsensusId()
 
 void DirectoryService::UpdateDSCommiteeComposition(const Peer& winnerpeer)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::UpdateDSCommiteeComposition not "
+                    "expected to be called from LookUp node.");
+        return;
+    }
+
     // Update the DS committee composition
     LOG_MARKER();
 
@@ -270,6 +325,14 @@ void DirectoryService::UpdateDSCommiteeComposition(const Peer& winnerpeer)
 
 void DirectoryService::StartFirstTxEpoch()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::StartFirstTxEpoch not expected to be "
+                    "called from LookUp node.");
+        return;
+    }
+
     LOG_MARKER();
 
     {
@@ -359,6 +422,14 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     [[gnu::unused]] const vector<unsigned char>& message,
     [[gnu::unused]] unsigned int offset)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::ProcessDSBlockConsensusWhenDone not "
+                    "expected to be called from LookUp node.");
+        return;
+    }
+
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "DS block consensus is DONE!!!");
 
@@ -482,13 +553,19 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
 
     StartFirstTxEpoch();
 }
-#endif // IS_LOOKUP_NODE
 
 bool DirectoryService::ProcessDSBlockConsensus(
-    [[gnu::unused]] const vector<unsigned char>& message,
-    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
+    const vector<unsigned char>& message, unsigned int offset,
+    [[gnu::unused]] const Peer& from)
 {
-#ifndef IS_LOOKUP_NODE
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::ProcessDSBlockConsensus not expected to "
+                    "be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
     // Consensus messages must be processed in correct sequence as they come in
     // It is possible for ANNOUNCE to arrive before correct DS state
@@ -599,6 +676,6 @@ bool DirectoryService::ProcessDSBlockConsensus(
                   "Consensus state = " << m_consensusObject->GetStateString());
         cv_processConsensusMessage.notify_all();
     }
-#endif // IS_LOOKUP_NODE
+
     return true;
 }

@@ -149,6 +149,7 @@ extern const bool ENABLE_DO_REJOIN;
 extern const bool FULL_DATASET_MINE;
 extern const bool OPENCL_GPU_MINE;
 extern const bool CUDA_GPU_MINE;
+extern const bool LOOKUP_NODE_MODE;
 
 extern const std::vector<std::string> GENESIS_WALLETS;
 extern const std::vector<std::string> GENESIS_KEYS;

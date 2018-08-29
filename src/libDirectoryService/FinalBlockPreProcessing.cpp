@@ -38,7 +38,6 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-#ifndef IS_LOOKUP_NODE
 void DirectoryService::ExtractDataFromMicroblocks(
     TxnHash& microblockTxnTrieRoot, StateHash& microblockDeltaTrieRoot,
     std::vector<MicroBlockHashSet>& microblockHashes,
@@ -46,6 +45,14 @@ void DirectoryService::ExtractDataFromMicroblocks(
     uint256_t& allGasUsed, uint32_t& numTxs,
     std::vector<bool>& isMicroBlockEmpty, uint32_t& numMicroBlocks) const
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::ExtractDataFromMicroblocks not expected "
+                    "to be called from LookUp node.");
+        return;
+    }
+
     LOG_MARKER();
 
     bool isVacuousEpoch
@@ -127,6 +134,14 @@ void DirectoryService::ExtractDataFromMicroblocks(
 
 void DirectoryService::ComposeFinalBlockCore()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::ComposeFinalBlockCore not expected to "
+                    "be called from LookUp node.");
+        return;
+    }
+
     LOG_MARKER();
 
     TxnHash microblockTxnTrieRoot;
@@ -222,6 +237,14 @@ void DirectoryService::ComposeFinalBlockCore()
 
 vector<unsigned char> DirectoryService::ComposeFinalBlockMessage()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::ComposeFinalBlockMessage not expected "
+                    "to be called from LookUp node.");
+        return vector<unsigned char>();
+    }
+
     LOG_MARKER();
 
     vector<unsigned char> finalBlockMessage;
@@ -277,6 +300,14 @@ vector<unsigned char> DirectoryService::ComposeFinalBlockMessage()
 
 bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary "
+                    "not expected to be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     // Compose the final block from all the microblocks
@@ -341,6 +372,14 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
 // Check type (must be final block type)
 bool DirectoryService::CheckBlockTypeIsFinal()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::CheckBlockTypeIsFinal not expected to "
+                    "be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     if (m_finalBlock->GetHeader().GetType() != TXBLOCKTYPE::FINAL)
@@ -362,6 +401,14 @@ bool DirectoryService::CheckBlockTypeIsFinal()
 // Check version (must be most current version)
 bool DirectoryService::CheckFinalBlockVersion()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::CheckFinalBlockVersion not expected to "
+                    "be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     if (m_finalBlock->GetHeader().GetVersion() != BLOCKVERSION::VERSION1)
@@ -384,6 +431,14 @@ bool DirectoryService::CheckFinalBlockVersion()
 // Check block number (must be = 1 + block number of last Tx block header in the Tx blockchain)
 bool DirectoryService::CheckFinalBlockNumber()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::CheckFinalBlockNumber not expected to "
+                    "be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     const uint64_t& finalblockBlocknum
@@ -420,6 +475,14 @@ bool DirectoryService::CheckFinalBlockNumber()
 // Check previous hash (must be = sha2-256 digest of last Tx block header in the Tx blockchain)
 bool DirectoryService::CheckPreviousFinalBlockHash()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::CheckPreviousFinalBlockHash not "
+                    "expected to be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     const BlockHash& finalblockPrevHash
@@ -464,6 +527,14 @@ bool DirectoryService::CheckPreviousFinalBlockHash()
 // Check timestamp (must be greater than timestamp of last Tx block header in the Tx blockchain)
 bool DirectoryService::CheckFinalBlockTimestamp()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::CheckFinalBlockTimestamp not expected "
+                    "to be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     if (m_mediator.m_txBlockChain.GetBlockCount() > 0)
@@ -492,6 +563,14 @@ bool DirectoryService::CheckFinalBlockTimestamp()
 // Check microblock hashes
 bool DirectoryService::CheckMicroBlockHashes()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::CheckMicroBlockHashes not expected to "
+                    "be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     auto& hashesInMicroBlocks = m_finalBlock->GetMicroBlockHashes();
@@ -528,6 +607,14 @@ bool DirectoryService::CheckMicroBlockHashes()
 // Check microblock hashes root
 bool DirectoryService::CheckMicroBlockHashRoot()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::CheckMicroBlockHashRoot not expected to "
+                    "be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     TxnHash microBlocksTxnHash
@@ -562,6 +649,14 @@ bool DirectoryService::CheckMicroBlockHashRoot()
 
 bool DirectoryService::CheckIsMicroBlockEmpty()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::CheckIsMicroBlockEmpty not expected to "
+                    "be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     auto& hashesInMicroBlocks = m_finalBlock->GetMicroBlockHashes();
@@ -608,6 +703,14 @@ bool DirectoryService::CheckIsMicroBlockEmpty()
 // Check state root
 bool DirectoryService::CheckStateRoot()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::CheckStateRoot not expected to be "
+                    "called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     StateHash stateRoot = StateHash();
@@ -643,6 +746,14 @@ bool DirectoryService::CheckStateRoot()
 
 bool DirectoryService::CheckStateDeltaHash()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::CheckStateDeltaHash not expected to be "
+                    "called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     StateHash stateRootHash = AccountStore::GetInstance().GetStateDeltaHash();
@@ -670,6 +781,14 @@ bool DirectoryService::CheckStateDeltaHash()
 
 bool DirectoryService::CheckFinalBlockValidity()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::CheckFinalBlockValidity not expected to "
+                    "be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     if (!CheckBlockTypeIsFinal() || !CheckFinalBlockVersion()
@@ -780,6 +899,14 @@ bool DirectoryService::FinalBlockValidator(
     const vector<unsigned char>& finalblock,
     [[gnu::unused]] vector<unsigned char>& errorMsg)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::FinalBlockValidator not expected to be "
+                    "called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     unsigned int curr_offset = 0;
@@ -825,6 +952,14 @@ bool DirectoryService::FinalBlockValidator(
 
 bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::RunConsensusOnFinalBlockWhenDSBackup "
+                    "not expected to be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -859,6 +994,14 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup()
 
 void DirectoryService::RunConsensusOnFinalBlock()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::RunConsensusOnFinalBlock not expected "
+                    "to be called from LookUp node.");
+        return;
+    }
+
     LOG_MARKER();
 
     SetState(FINALBLOCK_CONSENSUS_PREP);
@@ -907,4 +1050,3 @@ void DirectoryService::RunConsensusOnFinalBlock()
         DetachedFunction(1, func);
     }
 }
-#endif // IS_LOOKUP_NODE

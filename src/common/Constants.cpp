@@ -143,6 +143,8 @@ const bool OPENCL_GPU_MINE{
     ReadFromOptionsFile("OPENCL_GPU_MINE") == "true" ? true : false};
 const bool CUDA_GPU_MINE{
     ReadFromOptionsFile("CUDA_GPU_MINE") == "true" ? true : false};
+const bool LOOKUP_NODE_MODE{
+    ReadFromOptionsFile("LOOKUP_NODE_MODE") == "true" ? true : false};
 
 const std::vector<std::string> GENESIS_WALLETS{
     ReadAccountsFromConstantsFile("wallet_address")};
