@@ -660,7 +660,6 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
 
     unsigned int txn_sent_count = 0;
     {
-        lock_guard<mutex> g(m_mutexCreatedTransactions);
         LOG_GENERAL(INFO, "Start check txn packet from lookup");
         for (unsigned int i = 0; i < num; i++)
         {
@@ -673,7 +672,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
 
             if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(tx))
             {
-
+                lock_guard<mutex> g(m_mutexCreatedTransactions);
                 auto& compIdx
                     = m_createdTransactions.get<MULTI_INDEX_KEY::ADDR_NONCE>();
                 auto it = compIdx.find(
@@ -684,19 +683,10 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
                     {
                         compIdx.replace(it, tx);
                     }
-                    else
-                    {
-                        // LOG_GENERAL(WARNING,
-                        //             "Txn with same address and nonce already "
-                        //             "exists with higher gas price");
-                    }
                 }
                 else
                 {
-                    auto& listIdx = m_createdTransactions
-                                        .get<MULTI_INDEX_KEY::GAS_PRICE>();
-                    listIdx.insert(tx);
-                    txn_sent_count++;
+                    compIdx.insert(tx);
                 }
             }
             else
