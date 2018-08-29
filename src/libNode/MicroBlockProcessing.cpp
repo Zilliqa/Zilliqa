@@ -736,7 +736,6 @@ bool Node::ProcessTransactionWhenShardBackup(const vector<TxnHash>& tranHashes,
         return true;
     }
 
-    AccountStore::GetInstance().InitTemp();
     std::list<Transaction> curTxns;
 
     if (!VerifyTxnsOrdering(tranHashes, curTxns))
@@ -751,6 +750,13 @@ bool Node::ProcessTransactionWhenShardBackup(const vector<TxnHash>& tranHashes,
         processedTransactions.insert(make_pair(t.GetTranID(), t));
     };
 
+    AccountStore::GetInstance().InitTemp();
+    if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
+    {
+        AccountStore::GetInstance().DeserializeDeltaTemp(
+            m_mediator.m_ds->m_stateDeltaFromShards, 0);
+    }
+
     for (const auto& t : curTxns)
     {
         uint256_t gasUsed = 0;
@@ -762,8 +768,6 @@ bool Node::ProcessTransactionWhenShardBackup(const vector<TxnHash>& tranHashes,
             appendOne(t);
         }
     }
-
-    AccountStore::GetInstance().SerializeDelta();
 
     return true;
 }
@@ -1226,7 +1230,7 @@ unsigned char Node::CheckLegitimacyOfTxnHashes(vector<unsigned char>& errorMsg)
         m_txnsOrdering = m_microblock->GetTranHashes();
 
         AccountStore::GetInstance().InitTemp();
-        if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE)
+        if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
         {
             LOG_GENERAL(WARNING, "Got missing txns, revert state delta");
             AccountStore::GetInstance().DeserializeDeltaTemp(
