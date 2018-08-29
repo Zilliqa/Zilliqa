@@ -28,6 +28,7 @@
 #include "libNetwork/PeerManager.h"
 #include "libNetwork/PeerStore.h"
 #include "libNode/Node.h"
+#include "libUtils/ThreadPool.h"
 
 #ifdef IS_LOOKUP_NODE
 #include "libServer/Server.h"
@@ -53,6 +54,8 @@ class Zilliqa
     Server m_server;
 
 #endif //IS_LOOK_UP_NODE
+
+    ThreadPool m_queuePool{MAXMESSAGE, "QueuePool"};
 
     void ProcessMessage(std::pair<std::vector<unsigned char>, Peer>* message);
 
