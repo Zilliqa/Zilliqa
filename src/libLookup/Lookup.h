@@ -67,7 +67,7 @@ class Lookup : public Executable, public Broadcastable
     // Sharding committee members
     std::mutex m_mutexShards;
     std::mutex m_mutexNodesInNetwork;
-    std::vector<std::map<PubKey, Peer>> m_shards;
+    std::vector<std::vector<std::pair<PubKey, Peer>>> m_shards;
     std::vector<Peer> m_nodesInNetwork;
     std::unordered_set<Peer> l_nodesInNetwork;
 
@@ -161,7 +161,7 @@ public:
 #ifdef IS_LOOKUP_NODE
     bool SetDSCommitteInfo();
 
-    std::vector<std::map<PubKey, Peer>> GetShardPeers();
+    std::vector<std::vector<std::pair<PubKey, Peer>>> GetShardPeers();
     std::vector<Peer> GetNodePeers();
 
     // Start synchronization with other lookup nodes as a lookup node

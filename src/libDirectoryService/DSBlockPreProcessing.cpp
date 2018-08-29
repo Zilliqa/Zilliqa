@@ -160,8 +160,9 @@ void DirectoryService::ComputeSharding()
                                 << DataConversion::charArrToHexStr(kv.first)
                                 << endl);
         const PubKey& key = kv.second;
-        map<PubKey, Peer>& shard = m_shards.at(min(i / COMM_SIZE, max_shard));
-        shard.emplace(key, m_allPoWConns.at(key));
+        vector<pair<PubKey, Peer>>& shard
+            = m_shards.at(min(i / COMM_SIZE, max_shard));
+        shard.emplace_back(make_pair(key, m_allPoWConns.at(key)));
         m_publicKeyToShardIdMap.emplace(key, min(i / COMM_SIZE, max_shard));
         i++;
     }
@@ -185,7 +186,6 @@ bool DirectoryService::VerifyPoWOrdering()
     vector<unsigned char> hashVec;
 
     vector<unsigned char> vec(BLOCK_HASH_SIZE);
-    //0 Skipped as 0 is the oldest DS leader
     for (unsigned int i = 0; i < m_shards.size(); i++)
     {
 
@@ -282,7 +282,7 @@ void DirectoryService::ComputeTxnSharingAssignments(const Peer& winnerpeer)
 
     for (unsigned int i = 0; i < m_shards.size(); i++)
     {
-        const map<PubKey, Peer>& shard = m_shards.at(i);
+        const vector<pair<PubKey, Peer>>& shard = m_shards.at(i);
 
         // PART 2
 
