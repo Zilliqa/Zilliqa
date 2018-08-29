@@ -36,6 +36,10 @@
         <TX_DISTRIBUTE_TIME_IN_MS>10000</TX_DISTRIBUTE_TIME_IN_MS>
         <NUM_NODES_TO_SEND_LOOKUP>3</NUM_NODES_TO_SEND_LOOKUP>
         <NUM_TXN_TO_SEND_PER_ACCOUNT>4000</NUM_TXN_TO_SEND_PER_ACCOUNT>
+        <SENDQUEUE_SIZE>128</SENDQUEUE_SIZE>
+        <MSGQUEUE_SIZE>128</MSGQUEUE_SIZE>
+        <POW_CHANGE_PERCENT_TO_ADJ_DIFF>12</POW_CHANGE_PERCENT_TO_ADJ_DIFF>
+        <NUM_NETWORK_NODE>5000</NUM_NETWORK_NODE>
     </constants>
     <options>
         <TEST_NET_MODE>false</TEST_NET_MODE>
@@ -92,4 +96,17 @@
         </peer>
     -->
     </lookups>
+    <gpu>
+        <opencl>
+            <LOCAL_WORK_SIZE>128</LOCAL_WORK_SIZE>
+            <GLOBAL_WORK_SIZE_MULTIPLIER>8192</GLOBAL_WORK_SIZE_MULTIPLIER>
+            <START_EPOCH>0</START_EPOCH>
+        </opencl>
+        <cuda>
+            <BLOCK_SIZE>128</BLOCK_SIZE>
+            <GRID_SIZE>8192</GRID_SIZE>
+            <STREAM_NUM>2</STREAM_NUM>
+            <SCHEDULE_FLAG>4</SCHEDULE_FLAG>
+        </cuda>
+    </gpu>
 </node>

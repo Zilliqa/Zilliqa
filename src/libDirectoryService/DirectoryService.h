@@ -285,6 +285,8 @@ class DirectoryService : public Executable, public Broadcastable
     bool CleanVariables();
 #endif // IS_LOOKUP_NODE
 
+    uint8_t CalculateNewDifficulty(const uint8_t& prevDifficulty);
+
 public:
     enum Mode : unsigned char
     {

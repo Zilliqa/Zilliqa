@@ -21,9 +21,12 @@
 
 #include "pow.h"
 #include "common/Serializable.h"
-#include "depends/libethash-cl/CLMiner.h"
 #include "libCrypto/Sha2.h"
 #include "libUtils/DataConversion.h"
+
+#ifdef OPENCL_MINE
+#include "depends/libethash-cl/CLMiner.h"
+#endif
 
 #ifdef CUDA_MINE
 #include "depends/libethash-cuda/CUDAMiner.h"
@@ -34,46 +37,17 @@ POW::POW()
     currentBlockNum = 0;
     ethash_light_client = EthashLightNew(
         0); // TODO: Do we still need this? Can we call it at mediator?
+
+#ifndef IS_LOOKUP_NODE
     if (OPENCL_GPU_MINE)
     {
-        using namespace dev::eth;
-        CLMiner::setCLKernel(0);
-        CLMiner::setThreadsPerHash(8);
-
-        if (!CLMiner::configureGPU(CLMiner::c_defaultLocalWorkSize,
-                                   CLMiner::c_defaultGlobalWorkSizeMultiplier,
-                                   0, 0, 0, 0, false, false))
-        {
-            LOG_GENERAL(
-                FATAL, "Failed to configure OpenCL GPU, please check hardware");
-            exit(1);
-        };
-
-        CLMiner::setNumInstances(UINT_MAX);
-        m_miner = std::make_unique<CLMiner>();
-        LOG_GENERAL(INFO, "OpenCL GPU initialized in POW");
+        InitOpenCL();
     }
     else if (CUDA_GPU_MINE)
     {
-#ifdef CUDA_MINE
-        using namespace dev::eth;
-        CUDAMiner::setNumInstances(UINT_MAX);
-        if (!CUDAMiner::configureGPU(
-                CUDAMiner::c_defaultBlockSize, CUDAMiner::c_defaultGridSize,
-                CUDAMiner::c_defaultNumStreams, 4, 0, 0, false, false))
-        {
-            LOG_GENERAL(FATAL,
-                        "Failed to configure CUDA GPU, please check hardware");
-            exit(1);
-        }
-        m_miner = std::make_unique<CUDAMiner>();
-        LOG_GENERAL(INFO, "CUDA GPU initialized in POW");
-#else
-        throw std::runtime_error(
-            "The software is not build with CUDA. Please install CUDA "
-            "and build software again");
-#endif
+        InitCUDA();
     }
+#endif // IS_LOOKUP_NODE
 }
 
 POW::~POW() { EthashLightDelete(ethash_light_client); }
@@ -189,7 +163,8 @@ bool POW::EthashConfigureLightClient(uint64_t block_number)
     {
         LOG_GENERAL(WARNING,
                     "WARNING: How come the latest block number is smaller than "
-                    "current block number.  block_number: "
+                    "current block number? block_number: "
+                        << block_number
                         << " currentBlockNum: " << currentBlockNum);
     }
 
@@ -474,4 +449,53 @@ ethash_return_value_t POW::LightHash(uint64_t blockNum,
 {
     EthashConfigureLightClient(blockNum);
     return EthashLightCompute(ethash_light_client, header_hash, nonce);
+}
+
+void POW::InitOpenCL()
+{
+#ifdef OPENCL_MINE
+    using namespace dev::eth;
+    CLMiner::setCLKernel(CLKernelName::Stable);
+
+    if (!CLMiner::configureGPU(OPENCL_LOCAL_WORK_SIZE,
+                               OPENCL_GLOBAL_WORK_SIZE_MULTIPLIER, 0,
+                               OPENCL_START_EPOCH, 0, 0, false, false))
+    {
+        LOG_GENERAL(FATAL,
+                    "Failed to configure OpenCL GPU, please check hardware");
+    }
+
+    CLMiner::setNumInstances(UINT_MAX);
+    m_miner = std::make_unique<CLMiner>();
+    LOG_GENERAL(INFO, "OpenCL GPU initialized in POW");
+#else
+    LOG_GENERAL(FATAL,
+                "The software is not build with OpenCL. Please enable the "
+                "OpenCL build option and "
+                "and build software again");
+#endif
+}
+
+void POW::InitCUDA()
+{
+#ifdef CUDA_MINE
+    using namespace dev::eth;
+
+    if (!CUDAMiner::configureGPU(CUDA_BLOCK_SIZE, CUDA_GRID_SIZE,
+                                 CUDA_STREAM_NUM, CUDA_SCHEDULE_FLAG, 0, 0,
+                                 false, false))
+    {
+        LOG_GENERAL(FATAL,
+                    "Failed to configure CUDA GPU, please check hardware");
+    }
+
+    CUDAMiner::setNumInstances(UINT_MAX);
+    m_miner = std::make_unique<CUDAMiner>();
+    LOG_GENERAL(INFO, "CUDA GPU initialized in POW");
+#else
+    LOG_GENERAL(FATAL,
+                "The software is not build with CUDA. Please enable the CUDA "
+                "build option "
+                "and build software again");
+#endif
 }

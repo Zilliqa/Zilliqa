@@ -318,8 +318,6 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
 #endif // IS_LOOKUP_NODE
     }
 
-    m_mediator.m_node->CommitForwardedMsgBuffer();
-
     m_mediator.UpdateDSBlockRand();
     m_mediator.UpdateTxBlockRand();
 
@@ -342,6 +340,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
                   "the lookup nodes");
         SendFinalBlockToLookupNodes();
     }
+
+    m_mediator.m_node->CallActOnFinalblock();
 
     // uint8_t tx_sharing_mode
     //     = (m_sharingAssignment.size() > 0) ? DS_FORWARD_ONLY : ::IDLE;
@@ -381,6 +381,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "[PoW needed]");
 
+            m_mediator.m_node->CleanCreatedTransaction();
+
             SetState(POW_SUBMISSION);
             cv_POWSubmission.notify_all();
 
@@ -396,23 +398,38 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
             {
                 LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                           "Waiting "
-                              << POW_WINDOW_IN_SECONDS
+                              << NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS
                               << " seconds, accepting PoW submissions...");
-                this_thread::sleep_for(chrono::seconds(POW_WINDOW_IN_SECONDS));
+
+                // Notify lookup that it's time to do PoW
+                vector<unsigned char> startpow_message = {
+                    MessageType::LOOKUP, LookupInstructionType::RAISESTARTPOW};
+                m_mediator.m_lookup->SendMessageToLookupNodesSerial(
+                    startpow_message);
+
+                // New nodes poll DSInfo from the lookups every NEW_NODE_SYNC_INTERVAL
+                // So let's add that to our wait time to allow new nodes to get SETSTARTPOW and submit a PoW
+                this_thread::sleep_for(chrono::seconds(
+                    NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS));
+
                 RunConsensusOnDSBlock();
             }
             else
             {
                 std::unique_lock<std::mutex> cv_lk(m_MutexCVDSBlockConsensus);
 
+                // New nodes poll DSInfo from the lookups every NEW_NODE_SYNC_INTERVAL
+                // So let's add that to our wait time to allow new nodes to get SETSTARTPOW and submit a PoW
                 if (cv_DSBlockConsensus.wait_for(
                         cv_lk,
-                        std::chrono::seconds(POW_BACKUP_WINDOW_IN_SECONDS))
+                        std::chrono::seconds(NEW_NODE_SYNC_INTERVAL
+                                             + POW_BACKUP_WINDOW_IN_SECONDS))
                     == std::cv_status::timeout)
                 {
                     LOG_GENERAL(INFO,
                                 "Woken up from the sleep of "
-                                    << POW_BACKUP_WINDOW_IN_SECONDS
+                                    << NEW_NODE_SYNC_INTERVAL
+                                        + POW_BACKUP_WINDOW_IN_SECONDS
                                     << " seconds");
                 }
                 else

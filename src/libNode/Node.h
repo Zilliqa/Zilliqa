@@ -123,7 +123,6 @@ class Node : public Executable, public Broadcastable
     std::unordered_map<Address,
                        std::map<boost::multiprecision::uint256_t, Transaction>>
         m_addrNonceTxnMap;
-
     std::vector<TxnHash> m_txnsOrdering;
 
     std::mutex m_mutexProcessedTransactions;
@@ -145,6 +144,8 @@ class Node : public Executable, public Broadcastable
     std::mutex m_mutexTxnPacketBuffer;
     std::vector<std::vector<unsigned char>> m_txnPacketBuffer;
 
+    atomic<bool> m_isVacuousEpoch;
+
     bool CheckState(Action action);
 
     // To block certain types of incoming message for certain states
@@ -160,9 +161,6 @@ class Node : public Executable, public Broadcastable
                                           array<unsigned char, 32>& rand2);
     bool ProcessSubmitMissingTxn(const vector<unsigned char>& message,
                                  unsigned int offset, const Peer& from);
-    // internal calls from ActOnMicroBlock for NODE_FORWARD_ONLY and SEND_AND_FORWARD
-    void LoadForwardingAssignment(const vector<Peer>& fellowForwarderNodes,
-                                  const uint64_t& blocknum);
 
     // internal calls from ActOnFinalBlock for NODE_FORWARD_ONLY and SEND_AND_FORWARD
     void LoadForwardingAssignmentFromFinalBlock(
@@ -299,7 +297,8 @@ class Node : public Executable, public Broadcastable
     bool CheckMicroBlockStateDeltaHash();
     bool CheckMicroBlockShardID();
 
-    bool VerifyTxnsOrdering(const list<Transaction>& txns);
+    bool VerifyTxnsOrdering(const vector<TxnHash>& tranHashes,
+                            list<Transaction>& curTxns);
 
     void ProcessTransactionWhenShardLeader();
     bool ProcessTransactionWhenShardBackup(const vector<TxnHash>& tranHashes,
@@ -428,7 +427,6 @@ public:
     void CallActOnFinalblock();
 
     void UpdateStateForNextConsensusRound();
-
 #ifndef IS_LOOKUP_NODE
 
     // Start synchronization with lookup as a shard node
