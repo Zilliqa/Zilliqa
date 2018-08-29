@@ -20,8 +20,27 @@ majorLine=2
 minorLine=4
 fixLine=6
 DSLine=8
-commitLine=10
-shaLine=12
+commitLine=12
+shaLine=14
+sigLine=16
+
+# Validate input argument
+if [ "$#" -ne 2 ]; then
+    echo "Usage: source ./release.sh privateKeyFileName publicKeyFileName"
+    return 1
+fi
+
+if [ ! -f "$1" ]
+then
+    echo "File : $1 not found!"
+    return 1
+fi
+
+if [ ! -f "$2" ]
+then
+    echo "File : $2 not found!"
+    return 1
+fi
 
 # Read current version information from version file
 defaultMajor="$(sed -n ${majorLine}p ${versionFile})"
@@ -57,7 +76,7 @@ echo -e "New software version: ${newVer} is written into ${versionFile} successf
 
 # Use cpack to making deb file
 echo -e "Make deb package..."
-git clean -dfx
+rm -rf build; rm -rf build_lookup
 ./build.sh; cd build; make package; cd -
 ./build_lookup.sh; cd build_lookup; make package; cd -
 cp ${versionFile} build/; cp ${versionFile} build_lookup/
@@ -65,16 +84,20 @@ cd build; debFile="$(ls *.deb)"; cd -
 echo -e "Deb packages are generated successfully.\n"
 
 # Make SHA-256 & multi-signature
-echo -e "Calculate SHA-256..."
+echo -e "Making SHA-256 & multi-signature..."
+privKeyFile="$(realpath $1)"
+pubKeyFile="$(realpath $2)"
 cd build
 sha="$(md5sum ${debFile}|cut -d ' ' -f1)"
 sed -i "${shaLine}s/.*/${sha}/" ${versionFile}
+signature="$(./bin/sign ${sha} ${privKeyFile} ${pubKeyFile})"
+sed -i "${sigLine}s/.*/${signature}/" ${versionFile}
 cd -
 cd build_lookup
 sha="$(md5sum ${debFile}|cut -d ' ' -f1)"
 sed -i "${shaLine}s/.*/${sha}/" ${versionFile}
+signature="$(./bin/sign ${sha} ${privKeyFile} ${pubKeyFile})"
+sed -i "${sigLine}s/.*/${signature}/" ${versionFile}
 cd -
-echo -e "SHA-256 is written into ${versionFile} successfully.\n"
-
-echo -e "Make multi-signature..."
+echo -e "SHA-256 & multi-signature are written into ${versionFile} successfully.\n"
 
