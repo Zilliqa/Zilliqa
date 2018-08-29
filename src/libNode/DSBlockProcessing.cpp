@@ -39,6 +39,7 @@
 #include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
+#include "libUtils/HashUtils.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SanityChecks.h"
 #include "libUtils/TimeLockedFunction.h"
@@ -565,32 +566,33 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
         m_mediator.m_ds->m_consensusID
             = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
 
+        uint16_t lastBlockHash = HashUtils::SerializableToHash16Bits(
+            m_mediator.m_txBlockChain.GetLastBlock());
+
         {
 
             lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
-            unsigned int ds_size = *(m_mediator.m_DSCommittee).size();
+            unsigned int ds_size = (m_mediator.m_DSCommittee)->size();
 
-            if(lastBlockHash % ds_size == 0)
+            if (lastBlockHash % ds_size == 0)
             {
                 //I am the new DS committee leader
                 m_mediator.m_ds->m_mode = DirectoryService::Mode::PRIMARY_DS;
                 LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
-                      DS_LEADER_MSG);
+                              DS_LEADER_MSG);
             }
             else
             {
                 m_mediator.m_ds->m_mode = DirectoryService::Mode::BACKUP_DS;
                 LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
-                      DS_BACKUP_MSG);
+                              DS_BACKUP_MSG);
             }
-
         }
         //m_mediator.m_ds->m_mode = DirectoryService::Mode::PRIMARY_DS;
 
         // (We're getting rid of this eventually) Clean up my txn list since I'm a DS node now
         m_mediator.m_node->CleanCreatedTransaction();
 
-        
         LOG_STATE("[IDENT][" << std::setw(15) << std::left
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
                              << "][0     ] DSLD");

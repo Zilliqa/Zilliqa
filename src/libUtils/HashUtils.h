@@ -44,6 +44,14 @@ public:
 
         return resVec;
     }
+    static uint16_t SerializableToHash16Bits(const Serializable& sz)
+    {
+        const vector<unsigned char>& vec = SerializableToHash(sz);
+
+        uint32_t size = vec.size() - 1;
+
+        return (vec.at(size - 1) << 8) | vec.at(size);
+    }
 };
 
 #endif //__HASH_UTILS__
