@@ -426,6 +426,12 @@ public:
                   const std::array<unsigned char, UINT256_SIZE>& rand1,
                   const std::array<unsigned char, UINT256_SIZE>& rand2);
 
+    /// Send PoW soln to DS Commitee
+    void SendPoWResultToDSComm(const uint64_t& block_num,
+                               const uint64_t winningNonce,
+                               const vector<unsigned char> powResultHash,
+                               const vector<unsigned char> powMixhash);
+
     /// Call when the normal node be promoted to DS
     void CleanCreatedTransaction();
 
