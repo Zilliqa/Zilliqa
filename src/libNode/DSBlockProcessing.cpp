@@ -544,14 +544,14 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
 
     POW::GetInstance().StopMining();
 
-    // If I am the next DS leader -> need to set myself up as a DS node
+    // If I am the next DS leader/backup -> need to set myself up as a DS node
     if (m_mediator.m_selfKey.second
         == m_mediator.m_dsBlockChain.GetLastBlock()
                .GetHeader()
                .GetMinerPubKey())
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "I won PoW :-) I am now the new DS committee leader!");
+                  "I won PoW :-) I am now int the DS committee !");
 
         // [Sharding structure] -> Use the loading function for DS node
         cur_offset
@@ -564,13 +564,33 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
         m_mediator.m_ds->m_consensusMyID = 0;
         m_mediator.m_ds->m_consensusID
             = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
-        m_mediator.m_ds->m_mode = DirectoryService::Mode::PRIMARY_DS;
+
+        {
+
+            lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+            unsigned int ds_size = *(m_mediator.m_DSCommittee).size();
+
+            if(lastBlockHash % ds_size == 0)
+            {
+                //I am the new DS committee leader
+                m_mediator.m_ds->m_mode = DirectoryService::Mode::PRIMARY_DS;
+                LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
+                      DS_LEADER_MSG);
+            }
+            else
+            {
+                m_mediator.m_ds->m_mode = DirectoryService::Mode::BACKUP_DS;
+                LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
+                      DS_BACKUP_MSG);
+            }
+
+        }
+        //m_mediator.m_ds->m_mode = DirectoryService::Mode::PRIMARY_DS;
 
         // (We're getting rid of this eventually) Clean up my txn list since I'm a DS node now
         m_mediator.m_node->CleanCreatedTransaction();
 
-        LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
-                      DS_LEADER_MSG);
+        
         LOG_STATE("[IDENT][" << std::setw(15) << std::left
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
                              << "][0     ] DSLD");
