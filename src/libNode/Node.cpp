@@ -661,6 +661,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
     unsigned int txn_sent_count = 0;
     {
         LOG_GENERAL(INFO, "Start check txn packet from lookup");
+        lock_guard<mutex> g(m_mutexCreatedTransactions);
         for (unsigned int i = 0; i < num; i++)
         {
             Transaction tx;
@@ -672,7 +673,6 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
 
             if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(tx))
             {
-                lock_guard<mutex> g(m_mutexCreatedTransactions);
                 auto& compIdx
                     = m_createdTransactions.get<MULTI_INDEX_KEY::ADDR_NONCE>();
                 auto it = compIdx.find(
@@ -687,6 +687,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
                 else
                 {
                     compIdx.insert(tx);
+                    txn_sent_count++;
                 }
             }
             else
