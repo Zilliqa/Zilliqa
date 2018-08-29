@@ -84,57 +84,93 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t difficulty,
         vector<unsigned char> mixhash_vec
             = DataConversion::HexStrToUint8Vec(winning_result.mix_hash);
 
-        // Send PoW result
-        // Message = [8-byte block number] [4-byte listening port] [33-byte public key]
-        // [8-byte nonce] [32-byte resulting hash] [32-byte mixhash] [64-byte Signature]
-        vector<unsigned char> powmessage
-            = {MessageType::DIRECTORY, DSInstructionType::POWSUBMISSION};
-        unsigned int cur_offset = MessageOffset::BODY;
+        SendPoWResultToDSComm(block_num, winning_result.winning_nonce,
+                              result_vec, mixhash_vec);
 
-        Serializable::SetNumber<uint64_t>(powmessage, cur_offset, block_num,
-                                          sizeof(uint64_t));
-        cur_offset += sizeof(uint64_t);
-
-        Serializable::SetNumber<uint32_t>(
-            powmessage, cur_offset, m_mediator.m_selfPeer.m_listenPortHost,
-            sizeof(uint32_t));
-        cur_offset += sizeof(uint32_t);
-
-        m_mediator.m_selfKey.second.Serialize(powmessage, cur_offset);
-        cur_offset += PUB_KEY_SIZE;
-
-        Serializable::SetNumber<uint64_t>(powmessage, cur_offset,
-                                          winning_result.winning_nonce,
-                                          sizeof(uint64_t));
-        cur_offset += sizeof(uint64_t);
-
-        powmessage.insert(powmessage.end(), result_vec.begin(),
-                          result_vec.end());
-        cur_offset += BLOCK_HASH_SIZE;
-        powmessage.insert(powmessage.end(), mixhash_vec.begin(),
-                          mixhash_vec.end());
-        cur_offset += BLOCK_HASH_SIZE;
-
-        Signature sign;
-        if (!Schnorr::GetInstance().Sign(powmessage, m_mediator.m_selfKey.first,
-                                         m_mediator.m_selfKey.second, sign))
+        /**
+        if (POW::GetInstance().CheckSolnAgainstsTargetedDifficulty(
+                winning_result.result, difficulty))
         {
-            LOG_GENERAL(WARNING, "Failed to sign PoW");
+            LOG_GENERAL(INFO,
+                        "soln does not meet ds committee criteria. Will keep "
+                        "doing more pow");
+
+            ethash_mining_result ds_pow_winning_result
+                = POW::GetInstance().PoWMine(
+                    block_num, difficulty, rand1, rand2,
+                    m_mediator.m_selfPeer.m_ipAddress,
+                    m_mediator.m_selfKey.second, FULL_DATASET_MINE);
+
+            if (ds_pow_winning_result.success)
+            {
+                result_vec
+                    = DataConversion::HexStrToUint8Vec(winning_result.result);
+                mixhash_vec
+                    = DataConversion::HexStrToUint8Vec(winning_result.mix_hash);
+            }
+
+            // Submission of PoW for ds commitee
+            SendPoWResultToDSComm(block_num,
+                                  ds_pow_winning_result.winning_nonce,
+                                  result_vec, mixhash_vec);
         }
-        sign.Serialize(powmessage, cur_offset);
-
-        deque<Peer> peerList;
-
-        for (auto const& i : *m_mediator.m_DSCommittee)
-        {
-            peerList.push_back(i.second);
-        }
-
-        P2PComm::GetInstance().SendMessage(peerList, powmessage);
+        **/
     }
 
     SetState(TX_SUBMISSION);
     return true;
+}
+
+void Node::SendPoWResultToDSComm(const uint64_t& block_num,
+                                 const uint64_t winningNonce,
+                                 const vector<unsigned char> powResultHash,
+                                 const vector<unsigned char> powMixhash)
+{
+    // Send PoW result
+    // Message = [8-byte block number] [4-byte listening port] [33-byte public key]
+    // [8-byte nonce] [32-byte resulting hash] [32-byte mixhash] [64-byte Signature]
+    vector<unsigned char> powmessage
+        = {MessageType::DIRECTORY, DSInstructionType::POWSUBMISSION};
+    unsigned int cur_offset = MessageOffset::BODY;
+
+    Serializable::SetNumber<uint64_t>(powmessage, cur_offset, block_num,
+                                      sizeof(uint64_t));
+    cur_offset += sizeof(uint64_t);
+
+    Serializable::SetNumber<uint32_t>(powmessage, cur_offset,
+                                      m_mediator.m_selfPeer.m_listenPortHost,
+                                      sizeof(uint32_t));
+    cur_offset += sizeof(uint32_t);
+
+    m_mediator.m_selfKey.second.Serialize(powmessage, cur_offset);
+    cur_offset += PUB_KEY_SIZE;
+
+    Serializable::SetNumber<uint64_t>(powmessage, cur_offset, winningNonce,
+                                      sizeof(uint64_t));
+    cur_offset += sizeof(uint64_t);
+
+    powmessage.insert(powmessage.end(), powResultHash.begin(),
+                      powResultHash.end());
+    cur_offset += BLOCK_HASH_SIZE;
+    powmessage.insert(powmessage.end(), powMixhash.begin(), powMixhash.end());
+    cur_offset += BLOCK_HASH_SIZE;
+
+    Signature sign;
+    if (!Schnorr::GetInstance().Sign(powmessage, m_mediator.m_selfKey.first,
+                                     m_mediator.m_selfKey.second, sign))
+    {
+        LOG_GENERAL(WARNING, "Failed to sign PoW");
+    }
+    sign.Serialize(powmessage, cur_offset);
+
+    deque<Peer> peerList;
+
+    for (auto const& i : *m_mediator.m_DSCommittee)
+    {
+        peerList.push_back(i.second);
+    }
+
+    P2PComm::GetInstance().SendMessage(peerList, powmessage);
 }
 
 bool Node::ReadVariablesFromStartPoWMessage(
