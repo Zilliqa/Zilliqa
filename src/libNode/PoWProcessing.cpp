@@ -53,7 +53,6 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t difficulty,
                     const array<unsigned char, UINT256_SIZE>& rand2)
 {
     LOG_MARKER();
-    // if (m_state == POW_SUBMISSION)
     if (!CheckState(STARTPOW))
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -61,11 +60,9 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t difficulty,
         return false;
     }
 
-    // SetState(POW_SUBMISSION);
-
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Current dsblock is " << block_num);
-    //POW POWClient;
+
     ethash_mining_result winning_result = POW::GetInstance().PoWMine(
         block_num, difficulty, rand1, rand2, m_mediator.m_selfPeer.m_ipAddress,
         m_mediator.m_selfKey.second, FULL_DATASET_MINE);
