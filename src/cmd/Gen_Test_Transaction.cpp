@@ -41,8 +41,7 @@ void GenTxn(unsigned int k, const Address& fromAddr, unsigned int iteration)
         auto address = Account::GetAddressFromPublicKey(pubKey);
         auto nonce = iteration * NUM_TXN;
 
-        file.open(REMOTE_TXN_DIR + "/" + address.hex() + "_" + to_string(nonce)
-                      + ".zil",
+        file.open(TXN_PATH + "/" + address.hex() + "_" + to_string(nonce) + ".zil",
                   ios ::app | ios::binary);
 
         if (!file.is_open())

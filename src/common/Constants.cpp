@@ -179,12 +179,10 @@ const std::string OUTPUT_JSON{SCILLA_FILES + '/'
 const std::string INPUT_CODE{SCILLA_FILES + '/'
                              + ReadSmartContractConstants("INPUT_CODE")};
 
-const std::string TXN_PATH{ReadTransactionDispatcher("PATH")};
+const std::string TXN_PATH{ReadTransactionDispatcher("TXN_PATH")};
 const bool USE_REMOTE_TXN_CREATOR{
     ReadTransactionDispatcher("USE_REMOTE_TXN_CREATOR") == "true" ? true
                                                                   : false};
-const std::string REMOTE_TXN_CREATOR_IP{
-    ReadTransactionDispatcher("REMOTE_TXN_CREATOR_IP")};
 
 const unsigned int OPENCL_LOCAL_WORK_SIZE{
     ReadGpuConstants("opencl.LOCAL_WORK_SIZE")};
