@@ -60,40 +60,34 @@ void Zilliqa::LogSelfNodeInfo(const std::pair<PrivKey, PubKey>& key,
 
 void Zilliqa::ProcessMessage(pair<vector<unsigned char>, Peer>* message)
 {
-    // For now, we spawn new thread to handle this message
-    // Eventually it will be single-threaded
-    auto funcExecute = [this, message]() mutable -> void {
-        if (message->first.size() >= MessageOffset::BODY)
+    if (message->first.size() >= MessageOffset::BODY)
+    {
+        const unsigned char msg_type = message->first.at(MessageOffset::TYPE);
+
+        Executable* msg_handlers[] = {&m_pm, &m_ds, &m_n, &m_cu, &m_lookup};
+
+        const unsigned int msg_handlers_count
+            = sizeof(msg_handlers) / sizeof(Executable*);
+
+        if (msg_type < msg_handlers_count)
         {
-            const unsigned char msg_type
-                = message->first.at(MessageOffset::TYPE);
+            bool result = msg_handlers[msg_type]->Execute(
+                message->first, MessageOffset::INST, message->second);
 
-            Executable* msg_handlers[] = {&m_pm, &m_ds, &m_n, &m_cu, &m_lookup};
-
-            const unsigned int msg_handlers_count
-                = sizeof(msg_handlers) / sizeof(Executable*);
-
-            if (msg_type < msg_handlers_count)
+            if (result == false)
             {
-                bool result = msg_handlers[msg_type]->Execute(
-                    message->first, MessageOffset::INST, message->second);
-
-                if (result == false)
-                {
-                    // To-do: Error recovery
-                }
-            }
-            else
-            {
-                LOG_GENERAL(WARNING,
-                            "Unknown message type " << std::hex
-                                                    << (unsigned int)msg_type);
+                // To-do: Error recovery
             }
         }
+        else
+        {
+            LOG_GENERAL(WARNING,
+                        "Unknown message type " << std::hex
+                                                << (unsigned int)msg_type);
+        }
+    }
 
-        delete message;
-    };
-    DetachedFunction(1, funcExecute);
+    delete message;
 }
 
 Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
@@ -120,7 +114,11 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
         {
             while (m_msgQueue.pop(message))
             {
-                ProcessMessage(message);
+                // For now, we use a thread pool to handle this message
+                // Eventually processing will be single-threaded
+                m_queuePool.AddJob([this, message]() mutable -> void {
+                    ProcessMessage(message);
+                });
             }
         }
     };
