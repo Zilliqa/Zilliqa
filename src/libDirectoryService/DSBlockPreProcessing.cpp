@@ -143,7 +143,7 @@ void DirectoryService::ComputeSharding()
         hashVec.resize(BLOCK_HASH_SIZE + BLOCK_HASH_SIZE);
         copy(lastBlockHash.begin(), lastBlockHash.end(), hashVec.begin());
         copy(powHash.begin(), powHash.end(), hashVec.begin() + BLOCK_HASH_SIZE);
-        ;
+        
         const vector<unsigned char>& sortHashVec
             = HashUtils::BytesToHash(hashVec);
         array<unsigned char, BLOCK_HASH_SIZE> sortHash;
@@ -172,6 +172,7 @@ bool DirectoryService::VerifyPoWOrdering()
 {
     //Requires mutex for m_shards
     vector<unsigned char> lastBlockHash(BLOCK_HASH_SIZE);
+    set<PubKey> keyset;
 
     if (m_mediator.m_currentEpochNum > 1)
     {
@@ -184,7 +185,7 @@ bool DirectoryService::VerifyPoWOrdering()
         make_pair(0, array<unsigned char, BLOCK_HASH_SIZE>()));
 
     vector<unsigned char> hashVec;
-
+    bool ret = true;
     vector<unsigned char> vec(BLOCK_HASH_SIZE);
     for (unsigned int i = 0; i < m_shards.size(); i++)
     {
@@ -206,8 +207,8 @@ bool DirectoryService::VerifyPoWOrdering()
                             "Failed to find key in the PoW ordering "
                                 << toFind << " " << m_allPoWs.size() << " "
                                 << i);
-                m_allPoWs.pop_back();
-                return false;
+                ret = false;
+                break;
             }
             hashVec.clear();
             hashVec.resize(BLOCK_HASH_SIZE + BLOCK_HASH_SIZE);
@@ -222,19 +223,33 @@ bool DirectoryService::VerifyPoWOrdering()
                             << " " << j.first);
             if (sortHashVec < vec)
             {
-                m_allPoWs.pop_back();
                 LOG_GENERAL(
                     WARNING,
                     "Failed to Verify due to bad PoW ordering "
                         << DataConversion::Uint8VecToHexStr(vec) << " "
                         << DataConversion::Uint8VecToHexStr(sortHashVec));
-                return false;
+                ret = false;
+                break;
+            }
+            auto r = keyset.insert(j.first);
+            if (!r.second)
+            {
+
+                LOG_GENERAL(WARNING,
+                            "The key is not unique in the sharding structure "
+                                << j.first);
+                ret = false;
+                break;
             }
             vec = sortHashVec;
         }
+        if (!ret)
+        {
+            break;
+        }
     }
     m_allPoWs.pop_back();
-    return true;
+    return ret;
 }
 
 void DirectoryService::ComputeTxnSharingAssignments(const Peer& winnerpeer)
