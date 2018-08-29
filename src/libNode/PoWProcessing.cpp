@@ -99,16 +99,32 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t difficulty,
 
             if (ds_pow_winning_result.success)
             {
+                LOG_GENERAL(INFO,
+                            "Founds PoW solution that meet ds commitee "
+                            "requirement. 0x"
+                                << hex << ds_pow_winning_result.result);
                 result_vec
                     = DataConversion::HexStrToUint8Vec(winning_result.result);
                 mixhash_vec
                     = DataConversion::HexStrToUint8Vec(winning_result.mix_hash);
-            }
 
-            // Submission of PoW for ds commitee
-            SendPoWResultToDSComm(block_num,
-                                  ds_pow_winning_result.winning_nonce,
-                                  result_vec, mixhash_vec);
+                // Submission of PoW for ds commitee
+                SendPoWResultToDSComm(block_num,
+                                      ds_pow_winning_result.winning_nonce,
+                                      result_vec, mixhash_vec);
+            }
+            else
+            {
+                LOG_GENERAL(INFO,
+                            "Unable to find PoW solution that meet ds commitee "
+                            "requirement");
+            }
+        }
+        else
+        {
+            LOG_GENERAL(INFO,
+                        "Found PoW solution that met requirement for both ds "
+                        "commitee and shard.");
         }
     }
 
