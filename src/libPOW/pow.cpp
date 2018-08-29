@@ -458,6 +458,14 @@ bool POW::CheckSolnAgainstsTargetedDifficulty(const ethash_h256_t& result,
     return ethash_check_difficulty(&result, &diffForPoW);
 }
 
+bool POW::CheckSolnAgainstsTargetedDifficulty(const std::string& result,
+                                              uint8_t difficulty)
+{
+    const ethash_h256_t diffForPoW = DifficultyLevelInInt(difficulty);
+    ethash_h256_t hashResult = StringToBlockhash(result);
+    return ethash_check_difficulty(&hashResult, &diffForPoW);
+}
+
 void POW::InitOpenCL()
 {
 #ifdef OPENCL_MINE
