@@ -393,7 +393,7 @@ bool Lookup::SetDSCommitteInfo()
     return true;
 }
 
-vector<map<PubKey, Peer>> Lookup::GetShardPeers()
+vector<vector<pair<PubKey, Peer>>> Lookup::GetShardPeers()
 {
     lock_guard<mutex> g(m_mutexShards);
     return m_shards;

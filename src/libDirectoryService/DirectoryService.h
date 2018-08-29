@@ -61,7 +61,7 @@ class DirectoryService : public Executable, public Broadcastable
     std::mutex m_mutexConsensus;
 
     // Sharding committee members
-    std::vector<std::map<PubKey, Peer>> m_shards;
+    std::vector<std::vector<std::pair<PubKey, Peer>>> m_shards;
     std::map<PubKey, uint32_t> m_publicKeyToShardIdMap;
 
     // Transaction sharing assignments
