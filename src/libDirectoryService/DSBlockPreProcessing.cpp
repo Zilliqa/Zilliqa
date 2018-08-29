@@ -74,7 +74,22 @@ void DirectoryService::ComposeDSBlock()
     {
         DSBlock lastBlock = m_mediator.m_dsBlockChain.GetLastBlock();
         blockNum = lastBlock.GetHeader().GetBlockNum() + 1;
-        difficulty = lastBlock.GetHeader().GetDifficulty();
+    }
+
+    // Start to adjust difficulty from second DS block.
+    if (blockNum > 1)
+    {
+        difficulty
+            = CalculateNewDifficulty(m_mediator.m_dsBlockChain.GetLastBlock()
+                                         .GetHeader()
+                                         .GetDifficulty());
+        LOG_GENERAL(
+            INFO,
+            "Current difficulty "
+                << std::to_string(m_mediator.m_dsBlockChain.GetLastBlock()
+                                      .GetHeader()
+                                      .GetDifficulty())
+                << ", new difficulty " << std::to_string(difficulty));
     }
 
     // Assemble DS block
@@ -119,9 +134,9 @@ void DirectoryService::ComputeSharding()
         m_shards.emplace_back();
     }
 
-    map<array<unsigned char, BLOCK_HASH_SIZE>, PubKey> m_sortedPoWs;
+    map<array<unsigned char, BLOCK_HASH_SIZE>, PubKey> sortedPoWs;
 
-    for (auto& kv : m_allPoWs)
+    for (const auto& kv : m_allPoWs)
     {
         const PubKey& key = kv.first;
         const uint256_t& nonce = kv.second;
@@ -136,11 +151,11 @@ void DirectoryService::ComputeSharding()
         const vector<unsigned char>& sortHashVec = sha2.Finalize();
         array<unsigned char, BLOCK_HASH_SIZE> sortHash;
         copy(sortHashVec.begin(), sortHashVec.end(), sortHash.begin());
-        m_sortedPoWs.emplace(sortHash, key);
+        sortedPoWs.emplace(sortHash, key);
     }
 
     unsigned int i = 0;
-    for (auto& kv : m_sortedPoWs)
+    for (const auto& kv : sortedPoWs)
     {
         const PubKey& key = kv.second;
         map<PubKey, Peer>& shard = m_shards.at(i % numOfComms);
@@ -483,6 +498,26 @@ bool DirectoryService::DSBlockValidator(
     {
         m_allPoWConns.emplace(m_pendingDSBlock->GetHeader().GetMinerPubKey(),
                               winnerPeer);
+    }
+
+    // Start to adjust difficulty from second DS block.
+    if (m_pendingDSBlock->GetHeader().GetBlockNum() > 1)
+    {
+        auto remoteDifficulty = m_pendingDSBlock->GetHeader().GetDifficulty();
+        auto localDifficulty
+            = CalculateNewDifficulty(m_mediator.m_dsBlockChain.GetLastBlock()
+                                         .GetHeader()
+                                         .GetDifficulty());
+        if (remoteDifficulty != localDifficulty)
+        {
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "WARNING: The difficulty "
+                          << std::to_string(remoteDifficulty)
+                          << " from leader not match with local calculated "
+                             "result "
+                          << std::to_string(localDifficulty));
+            return false;
+        }
     }
 
     // [Sharding structure]

@@ -142,6 +142,8 @@ extern const unsigned int BROADCAST_INTERVAL;
 extern const unsigned int BROADCAST_EXPIRY;
 extern const unsigned int SENDQUEUE_SIZE;
 extern const unsigned int MSGQUEUE_SIZE;
+extern const unsigned int POW_CHANGE_PERCENT_TO_ADJ_DIFF;
+extern const unsigned int NUM_NETWORK_NODE;
 
 extern const bool TEST_NET_MODE;
 extern const bool EXCLUDE_PRIV_IP;
