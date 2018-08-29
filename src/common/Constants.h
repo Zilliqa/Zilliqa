@@ -144,6 +144,10 @@ extern const unsigned int BROADCAST_EXPIRY;
 extern const unsigned int TX_DISTRIBUTE_TIME_IN_MS;
 extern const unsigned int NUM_TXN_TO_SEND_PER_ACCOUNT;
 extern const unsigned int NUM_NODES_TO_SEND_LOOKUP;
+extern const unsigned int SENDQUEUE_SIZE;
+extern const unsigned int MSGQUEUE_SIZE;
+extern const unsigned int POW_CHANGE_PERCENT_TO_ADJ_DIFF;
+extern const unsigned int NUM_NETWORK_NODE;
 
 extern const bool TEST_NET_MODE;
 extern const bool EXCLUDE_PRIV_IP;
@@ -155,4 +159,13 @@ extern const bool USE_REMOTE_TXN_CREATOR;
 
 extern const std::vector<std::string> GENESIS_WALLETS;
 extern const std::vector<std::string> GENESIS_KEYS;
+
+extern const unsigned int OPENCL_LOCAL_WORK_SIZE;
+extern const unsigned int OPENCL_GLOBAL_WORK_SIZE_MULTIPLIER;
+extern const unsigned int OPENCL_START_EPOCH;
+extern const unsigned int CUDA_BLOCK_SIZE;
+extern const unsigned int CUDA_GRID_SIZE;
+extern const unsigned int CUDA_STREAM_NUM;
+extern const unsigned int CUDA_SCHEDULE_FLAG;
+
 #endif // __CONSTANTS_H__

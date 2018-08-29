@@ -58,8 +58,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
     // FIXME: Possible integer overflow here
     uint256_t gasDeposit;
-    if (!SafeMath::mul(transaction.GetGasLimit(), transaction.GetGasPrice(),
-                       gasDeposit))
+    if (!SafeMath<uint256_t>::mul(transaction.GetGasLimit(),
+                                  transaction.GetGasPrice(), gasDeposit))
     {
         return false;
     }

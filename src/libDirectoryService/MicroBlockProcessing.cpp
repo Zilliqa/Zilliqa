@@ -227,10 +227,8 @@ bool DirectoryService::ProcessMicroblockSubmissionCore(
                     << "TxRootHash: "
                     << microBlock.GetHeader().GetTxRootHash(););
 
-    {
-        lock_guard<mutex> g(m_mutexMicroBlocks);
-        m_microBlocks.emplace(microBlock);
-    }
+    lock_guard<mutex> g(m_mutexMicroBlocks);
+    m_microBlocks.emplace(microBlock);
 
     SaveCoinbase(microBlock.GetB1(), microBlock.GetB2(),
                  microBlock.GetHeader().GetShardID());

@@ -74,6 +74,12 @@ ReadAccountsFromConstantsFile(std::string propName)
     return result;
 }
 
+unsigned int ReadGpuConstants(std::string propertyName)
+{
+    auto pt = PTree::GetInstance();
+    return pt.get<unsigned int>("node.gpu." + propertyName);
+}
+
 const unsigned int MSG_VERSION{ReadFromConstantsFile("MSG_VERSION")};
 const unsigned int DS_MULTICAST_CLUSTER_SIZE{
     ReadFromConstantsFile("DS_MULTICAST_CLUSTER_SIZE")};
@@ -132,6 +138,11 @@ const unsigned int NUM_TXN_TO_SEND_PER_ACCOUNT{
     ReadFromConstantsFile("NUM_TXN_TO_SEND_PER_ACCOUNT")};
 const unsigned int NUM_NODES_TO_SEND_LOOKUP{
     ReadFromConstantsFile("NUM_NODES_TO_SEND_LOOKUP")};
+const unsigned int SENDQUEUE_SIZE{ReadFromConstantsFile("SENDQUEUE_SIZE")};
+const unsigned int MSGQUEUE_SIZE{ReadFromConstantsFile("MSGQUEUE_SIZE")};
+const unsigned int POW_CHANGE_PERCENT_TO_ADJ_DIFF{
+    ReadFromConstantsFile("POW_CHANGE_PERCENT_TO_ADJ_DIFF")};
+const unsigned int NUM_NETWORK_NODE{ReadFromConstantsFile("NUM_NETWORK_NODE")};
 
 const bool EXCLUDE_PRIV_IP{
     ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true" ? true : false};
@@ -169,9 +180,20 @@ const std::string OUTPUT_JSON{SCILLA_FILES + '/'
                               + ReadSmartContractConstants("OUTPUT_JSON")};
 const std::string INPUT_CODE{SCILLA_FILES + '/'
                              + ReadSmartContractConstants("INPUT_CODE")};
+
 const std::string TXN_PATH{ReadTransactionDispatcher("PATH")};
 const bool USE_REMOTE_TXN_CREATOR{
     ReadTransactionDispatcher("USE_REMOTE_TXN_CREATOR") == "true" ? true
                                                                   : false};
 const std::string REMOTE_TXN_CREATOR_IP{
     ReadTransactionDispatcher("REMOTE_TXN_CREATOR_IP")};
+
+const unsigned int OPENCL_LOCAL_WORK_SIZE{
+    ReadGpuConstants("opencl.LOCAL_WORK_SIZE")};
+const unsigned int OPENCL_GLOBAL_WORK_SIZE_MULTIPLIER{
+    ReadGpuConstants("opencl.GLOBAL_WORK_SIZE_MULTIPLIER")};
+const unsigned int OPENCL_START_EPOCH{ReadGpuConstants("opencl.START_EPOCH")};
+const unsigned int CUDA_BLOCK_SIZE{ReadGpuConstants("cuda.BLOCK_SIZE")};
+const unsigned int CUDA_GRID_SIZE{ReadGpuConstants("cuda.GRID_SIZE")};
+const unsigned int CUDA_STREAM_NUM{ReadGpuConstants("cuda.STREAM_NUM")};
+const unsigned int CUDA_SCHEDULE_FLAG{ReadGpuConstants("cuda.SCHEDULE_FLAG")};
