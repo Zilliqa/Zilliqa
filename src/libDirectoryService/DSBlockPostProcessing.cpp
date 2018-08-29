@@ -212,23 +212,8 @@ void DirectoryService::SendDSBlockToShardNodes(unsigned int my_shards_lo,
 
 void DirectoryService::UpdateMyDSModeAndConsensusId()
 {
-    // If I was DS primary, now I will only be DS backup
-    if (m_mode == PRIMARY_DS)
-    {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "I am now just a backup DS");
-        LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
-                      DS_BACKUP_MSG);
-        m_mode = BACKUP_DS;
-        m_consensusMyID++;
-
-        LOG_STATE("[IDENT][" << setw(15) << left
-                             << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                             << "][" << setw(6) << left << m_consensusMyID
-                             << "] DSBK");
-    }
     // Check if I am the oldest backup DS (I will no longer be part of the DS committee)
-    else if ((uint32_t)(m_consensusMyID + 1)
+    if ((uint32_t)(m_consensusMyID + 1)
              == m_mediator.m_DSCommittee->size())
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -241,7 +226,39 @@ void DirectoryService::UpdateMyDSModeAndConsensusId()
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
                              << "][      ] IDLE");
     }
-    // Other DS nodes continue to remain DS backups
+
+    else
+    {
+        uint32_t dsIndex = lastBlockHash  %  (m_mediator.m_DSCommittee->size());
+        //if dsIndex == 0 , that means the pow Winner is the DS Leader
+        if(dsIndex > 0 && m_mediator.m_DSCommittee->at(dsIndex - 1).first == m_mediator.m_selfKey.second)
+        {
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "I am now Leader DS");
+            LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
+                      DS_LEADER_MSG);
+            m_mode = PRIMARY_DS;
+        }
+        else
+        {
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "I am now backup DS");
+            LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
+                      DS_BACKUP_MSG);
+            m_mode = BACKUP_DS;
+        }
+        
+        
+        m_consensusMyID++;
+
+        LOG_STATE("[IDENT][" << setw(15) << left
+                             << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                             << "][" << setw(6) << left << m_consensusMyID
+                             << "] DSBK");
+    }
+    
+    
+    /*// Other DS nodes continue to remain DS backups
     else
     {
         m_consensusMyID++;
@@ -250,7 +267,7 @@ void DirectoryService::UpdateMyDSModeAndConsensusId()
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
                              << "][" << setw(6) << left << m_consensusMyID
                              << "] DSBK");
-    }
+    }*/
 }
 
 void DirectoryService::UpdateDSCommiteeComposition(const Peer& winnerpeer)
