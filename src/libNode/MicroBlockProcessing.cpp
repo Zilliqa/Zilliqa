@@ -535,9 +535,9 @@ void Node::ProcessTransactionWhenShardLeader()
 {
     LOG_MARKER();
 
-    unsigned int txn_sent_count = 0;
+    lock_guard<mutex> g(m_mutexCreatedTransactions);
 
-    std::list<Transaction> curTxns;
+    unsigned int txn_sent_count = 0;
 
     auto findOneFromAddrNonceTxnMap = [this](Transaction& t) -> bool {
         for (auto it = m_addrNonceTxnMap.begin(); it != m_addrNonceTxnMap.end();
@@ -560,8 +560,6 @@ void Node::ProcessTransactionWhenShardLeader()
     };
 
     auto findSameNonceButHigherGasPrice = [this](Transaction& t) -> void {
-        lock_guard<mutex> g(m_mutexCreatedTransactions);
-
         auto& compIdx
             = m_createdTransactions.get<MULTI_INDEX_KEY::ADDR_NONCE>();
         auto it = compIdx.find(make_tuple(t.GetSenderAddr(), t.GetNonce()));
@@ -576,8 +574,6 @@ void Node::ProcessTransactionWhenShardLeader()
     };
 
     auto findOneFromCreated = [this](Transaction& t) -> bool {
-        lock_guard<mutex> g(m_mutexCreatedTransactions);
-
         auto& listIdx = m_createdTransactions.get<MULTI_INDEX_KEY::GAS_PRICE>();
         if (!listIdx.size())
         {
@@ -676,28 +672,229 @@ void Node::ProcessTransactionWhenShardLeader()
     }
 }
 
-bool Node::VerifyTxnsOrdering(const list<Transaction>& txns)
+bool Node::ProcessTransactionWhenShardBackup(const vector<TxnHash>& tranHashes,
+                                             vector<TxnHash>& missingtranHashes)
 {
-    unordered_map<Address, uint256_t> nonceMap;
+    LOG_MARKER();
 
-    for (const auto& t : txns)
-    {
-        auto it = nonceMap.find(t.GetSenderAddr());
-        if (it == nonceMap.end())
+    lock_guard<mutex> g(m_mutexCreatedTransactions);
+
+    auto findFromCreated = [this](const TxnHash& th) -> bool {
+        auto& hashIdx = m_createdTransactions.get<MULTI_INDEX_KEY::TXN_ID>();
+        if (!hashIdx.size())
         {
-            nonceMap.insert({t.GetSenderAddr(), t.GetNonce()});
+            return false;
         }
-        else
+
+        auto it = hashIdx.find(th);
+
+        if (hashIdx.end() == it)
         {
-            if (t.GetNonce() != nonceMap[t.GetSenderAddr()] + 1)
-            {
-                return false;
-            }
-            nonceMap[t.GetSenderAddr()] = t.GetNonce();
+            LOG_GENERAL(WARNING, "txn is not found");
+            return false;
+        }
+
+        return true;
+    };
+
+    for (const auto& tranHash : tranHashes)
+    {
+        if (!findFromCreated(tranHash))
+        {
+            missingtranHashes.emplace_back(tranHash);
         }
     }
 
+    if (!missingtranHashes.empty())
+    {
+        return true;
+    }
+
+    AccountStore::GetInstance().InitTemp();
+    std::list<Transaction> curTxns;
+
+    if (!VerifyTxnsOrdering(tranHashes, curTxns))
+    {
+        return false;
+    }
+
+    auto appendOne = [this](const Transaction& t) {
+        lock_guard<mutex> g(m_mutexProcessedTransactions);
+        auto& processedTransactions
+            = m_processedTransactions[m_mediator.m_currentEpochNum];
+        processedTransactions.insert(make_pair(t.GetTranID(), t));
+    };
+
+    for (const auto& t : curTxns)
+    {
+        uint256_t gasUsed = 0;
+        if (m_mediator.m_validator->CheckCreatedTransaction(t, gasUsed)
+            || (!t.GetCode().empty() && t.GetToAddr() == NullAddress)
+            || (!t.GetData().empty() && t.GetToAddr() != NullAddress
+                && t.GetCode().empty()))
+        {
+            appendOne(t);
+        }
+    }
+
+    AccountStore::GetInstance().SerializeDelta();
+
     return true;
+}
+
+bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes,
+                              list<Transaction>& curTxns)
+{
+    LOG_MARKER();
+
+    std::unordered_map<Address,
+                       std::map<boost::multiprecision::uint256_t, Transaction>>
+        t_addrNonceTxnMap = m_addrNonceTxnMap;
+    gas_txnid_comp_txns t_createdTransactions = m_createdTransactions;
+    vector<TxnHash> t_tranHashes;
+    unsigned int txn_sent_count = 0;
+
+    auto findOneFromAddrNonceTxnMap
+        = [this, &t_addrNonceTxnMap](Transaction& t) -> bool {
+        for (auto it = t_addrNonceTxnMap.begin(); it != t_addrNonceTxnMap.end();
+             it++)
+        {
+            if (it->second.begin()->first
+                == AccountStore::GetInstance().GetNonceTemp(it->first) + 1)
+            {
+                t = std::move(it->second.begin()->second);
+                it->second.erase(it->second.begin());
+
+                if (it->second.empty())
+                {
+                    t_addrNonceTxnMap.erase(it);
+                }
+                return true;
+            }
+        }
+        return false;
+    };
+
+    auto findSameNonceButHigherGasPrice
+        = [this, &t_createdTransactions](Transaction& t) -> void {
+        auto& compIdx
+            = t_createdTransactions.get<MULTI_INDEX_KEY::ADDR_NONCE>();
+        auto it = compIdx.find(make_tuple(t.GetSenderAddr(), t.GetNonce()));
+        if (it != compIdx.end())
+        {
+            if (it->GetGasPrice() > t.GetGasPrice())
+            {
+                t = std::move(*it);
+                compIdx.erase(it);
+            }
+        }
+    };
+
+    auto findOneFromCreated
+        = [this, &t_createdTransactions](Transaction& t) -> bool {
+        auto& listIdx = t_createdTransactions.get<MULTI_INDEX_KEY::GAS_PRICE>();
+        if (!listIdx.size())
+        {
+            return false;
+        }
+
+        auto it = listIdx.begin();
+        t = std::move(*it);
+        listIdx.erase(it);
+        return true;
+    };
+
+    auto appendOne = [this, &t_tranHashes, &curTxns](const Transaction& t) {
+        t_tranHashes.emplace_back(t.GetTranID());
+        curTxns.emplace_back(t);
+    };
+
+    uint256_t gasUsedTotal = 0;
+
+    while (txn_sent_count < MAXSUBMITTXNPERNODE * m_myShardMembers->size()
+           && gasUsedTotal < MICROBLOCK_GAS_LIMIT)
+    {
+        Transaction t;
+
+        // check t_addrNonceTxnMap contains any txn meets right nonce,
+        // if contains, process it withou increment the txn_sent_count as it's already
+        // incremented when inserting
+        if (findOneFromAddrNonceTxnMap(t))
+        {
+            // check whether m_createdTransaction have transaction with same Addr and nonce
+            // if has and with larger gasPrice then replace with that one. (*optional step)
+            findSameNonceButHigherGasPrice(t);
+
+            uint256_t gasUsed = 0;
+            if (m_mediator.m_validator->CheckCreatedTransaction(t, gasUsed)
+                || (!t.GetCode().empty() && t.GetToAddr() == NullAddress)
+                || (!t.GetData().empty() && t.GetToAddr() != NullAddress
+                    && t.GetCode().empty()))
+            {
+                appendOne(t);
+                gasUsedTotal += gasUsed;
+                continue;
+            }
+        }
+        // if no txn in u_map meet right nonce process new come-in transactions
+        else if (findOneFromCreated(t))
+        {
+            uint256_t gasUsed = 0;
+
+            // check nonce, if nonce larger than expected, put it into t_addrNonceTxnMap
+            if (t.GetNonce()
+                > AccountStore::GetInstance().GetNonceTemp(t.GetSenderAddr())
+                    + 1)
+            {
+                auto it1 = t_addrNonceTxnMap.find(t.GetSenderAddr());
+                if (it1 != t_addrNonceTxnMap.end())
+                {
+                    auto it2 = it1->second.find(t.GetNonce());
+                    if (it2 != it1->second.end())
+                    {
+                        // found the txn with same addr and same nonce
+                        // then compare the gasprice and remains the higher one
+                        if (t.GetGasPrice() > it2->second.GetGasPrice())
+                        {
+                            it2->second = t;
+                        }
+                        txn_sent_count++;
+                        continue;
+                    }
+                }
+                t_addrNonceTxnMap[t.GetSenderAddr()].insert({t.GetNonce(), t});
+            }
+            // if nonce too small, ignore it
+            else if (t.GetNonce() < AccountStore::GetInstance().GetNonceTemp(
+                                        t.GetSenderAddr())
+                         + 1)
+            {
+            }
+            // if nonce correct, process it
+            else if (m_mediator.m_validator->CheckCreatedTransaction(t, gasUsed)
+                     || (!t.GetCode().empty() && t.GetToAddr() == NullAddress)
+                     || (!t.GetData().empty() && t.GetToAddr() != NullAddress
+                         && t.GetCode().empty()))
+            {
+                appendOne(t);
+                gasUsedTotal += gasUsed;
+            }
+        }
+        else
+        {
+            break;
+        }
+        txn_sent_count++;
+    }
+
+    if (t_tranHashes == tranHashes)
+    {
+        m_addrNonceTxnMap = std::move(t_addrNonceTxnMap);
+        m_createdTransactions = std::move(t_createdTransactions);
+        return true;
+    }
+
+    return false;
 }
 
 bool Node::RunConsensusOnMicroBlockWhenShardLeader()
@@ -943,97 +1140,6 @@ bool Node::CheckMicroBlockTimestamp()
     }
 
     LOG_GENERAL(INFO, "Timestamp check passed");
-
-    return true;
-}
-
-bool Node::ProcessTransactionWhenShardBackup(const vector<TxnHash>& tranHashes,
-                                             vector<TxnHash>& missingtranHashes)
-{
-    LOG_MARKER();
-
-    auto findFromCreated = [this](Transaction& t, const TxnHash& th) -> bool {
-        lock_guard<mutex> g(m_mutexCreatedTransactions);
-
-        auto& hashIdx = m_createdTransactions.get<MULTI_INDEX_KEY::TXN_ID>();
-        if (!hashIdx.size())
-        {
-            return false;
-        }
-
-        // auto it = find_if(
-        //     begin(m_createdTransactions), end(m_createdTransactions),
-        //     [&th](const Transaction& t) { return t.GetTranID() == th; });
-
-        // if (m_createdTransactions.end() == it)
-        // {
-        //     LOG_GENERAL(WARNING, "txn is not found");
-        //     return false;
-        // }
-
-        // t = move(*it);
-        // m_createdTransactions.erase(it);
-
-        auto it = hashIdx.find(th);
-
-        if (hashIdx.end() == it)
-        {
-            LOG_GENERAL(WARNING, "txn is not found");
-            return false;
-        }
-
-        t = move(*it);
-        hashIdx.erase(it);
-
-        return true;
-    };
-
-    std::list<Transaction> curTxns;
-
-    for (const auto& tranHash : tranHashes)
-    {
-        Transaction t;
-
-        if (findFromCreated(t, tranHash))
-        {
-            curTxns.emplace_back(t);
-        }
-        else
-        {
-            missingtranHashes.emplace_back(tranHash);
-        }
-    }
-
-    if (!missingtranHashes.empty())
-    {
-        return true;
-    }
-
-    if (!VerifyTxnsOrdering(curTxns))
-    {
-        return false;
-    }
-
-    auto appendOne = [this](const Transaction& t) {
-        lock_guard<mutex> g(m_mutexProcessedTransactions);
-        auto& processedTransactions
-            = m_processedTransactions[m_mediator.m_currentEpochNum];
-        processedTransactions.insert(make_pair(t.GetTranID(), t));
-    };
-
-    for (const auto& t : curTxns)
-    {
-        uint256_t gasUsed = 0;
-        if (m_mediator.m_validator->CheckCreatedTransaction(t, gasUsed)
-            || (!t.GetCode().empty() && t.GetToAddr() == NullAddress)
-            || (!t.GetData().empty() && t.GetToAddr() != NullAddress
-                && t.GetCode().empty()))
-        {
-            appendOne(t);
-        }
-    }
-
-    AccountStore::GetInstance().SerializeDelta();
 
     return true;
 }

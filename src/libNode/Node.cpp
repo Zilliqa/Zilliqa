@@ -498,9 +498,8 @@ bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
         cur_offset += submittedTransaction.GetSerializedSize();
 
         lock_guard<mutex> g(m_mutexCreatedTransactions);
-        // m_createdTransactions.push_back(submittedTransaction);
-        auto& listIdx = m_createdTransactions.get<MULTI_INDEX_KEY::GAS_PRICE>();
-        listIdx.insert(submittedTransaction);
+        auto& hashIdx = m_createdTransactions.get<MULTI_INDEX_KEY::TXN_ID>();
+        hashIdx.insert(submittedTransaction);
     }
 
     vector<TxnHash> missingTxnHashes;
@@ -580,9 +579,9 @@ bool Node::ProcessCreateTransactionFromLookup(
                              << " Signature: " << tx.GetSignature()
                              << " toAddr: " << tx.GetToAddr().hex());
 
-    lock_guard<mutex> g(m_mutexCreatedTransactions);
     if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(tx))
     {
+        lock_guard<mutex> g(m_mutexCreatedTransactions);
         auto& compIdx
             = m_createdTransactions.get<MULTI_INDEX_KEY::ADDR_NONCE>();
         auto it = compIdx.find(make_tuple(tx.GetSenderAddr(), tx.GetNonce()));
@@ -601,9 +600,7 @@ bool Node::ProcessCreateTransactionFromLookup(
                 return false;
             }
         }
-
-        auto& listIdx = m_createdTransactions.get<MULTI_INDEX_KEY::GAS_PRICE>();
-        listIdx.insert(tx);
+        compIdx.insert(tx);
     }
     else
     {
