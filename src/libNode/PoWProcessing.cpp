@@ -87,9 +87,8 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t difficulty,
         SendPoWResultToDSComm(block_num, winning_result.winning_nonce,
                               result_vec, mixhash_vec);
 
-        /**
         if (POW::GetInstance().CheckSolnAgainstsTargetedDifficulty(
-                winning_result.result, difficulty))
+                (std::string)winning_result.result, difficulty))
         {
             LOG_GENERAL(INFO,
                         "soln does not meet ds committee criteria. Will keep "
@@ -114,7 +113,6 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t difficulty,
                                   ds_pow_winning_result.winning_nonce,
                                   result_vec, mixhash_vec);
         }
-        **/
     }
 
     SetState(TX_SUBMISSION);
