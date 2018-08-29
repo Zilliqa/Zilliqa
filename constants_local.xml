@@ -34,8 +34,8 @@
         <BROADCAST_INTERVAL>60</BROADCAST_INTERVAL>
         <BROADCAST_EXPIRY>600</BROADCAST_EXPIRY>
         <TX_DISTRIBUTE_TIME_IN_MS>3000</TX_DISTRIBUTE_TIME_IN_MS>
-		<NUM_NODES_TO_SEND_LOOKUP>3</NUM_NODES_TO_SEND_LOOKUP>
-		<NUM_TXN_TO_SEND_PER_ACCOUNT>4000</NUM_TXN_TO_SEND_PER_ACCOUNT>
+        <NUM_NODES_TO_SEND_LOOKUP>3</NUM_NODES_TO_SEND_LOOKUP>
+        <NUM_TXN_TO_SEND_PER_ACCOUNT>4000</NUM_TXN_TO_SEND_PER_ACCOUNT>
     </constants>
     <options>
         <TEST_NET_MODE>false</TEST_NET_MODE>
@@ -58,9 +58,11 @@
         <OUTPUT_JSON>output.json</OUTPUT_JSON>
         <INPUT_CODE>input.scilla</INPUT_CODE>
     </smart_contract>
-	<TransactionPath>
+    <TransactionDispatcher>
         <PATH></PATH>
-    </TransactionPath>
+        <USE_REMOTE_TXN_CREATOR>false</USE_REMOTE_TXN_CREATOR>
+        <REMOTE_TXN_CREATOR_IP></REMOTE_TXN_CREATOR_IP>
+    </TransactionDispatcher>
     <accounts>
         <account>
             <wallet_address>cc02a3c906612cc5bdb087a30e6093c9f0aa04fc</wallet_address>

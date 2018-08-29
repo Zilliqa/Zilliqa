@@ -196,6 +196,8 @@ public:
                          unsigned int offset,
                          const std::map<uint32_t, std::vector<unsigned char>>&);
 
+    void LaunchTxnSyncThread(const std::string& ipAddr);
+
 #endif // IS_LOOKUP_NODE
 
     bool
