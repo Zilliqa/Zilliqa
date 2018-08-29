@@ -15,6 +15,7 @@
 **/
 
 #include "Transaction.h"
+#include "Account.h"
 #include "libCrypto/Sha2.h"
 #include "libUtils/Logger.h"
 #include <algorithm>
@@ -265,6 +266,11 @@ const Address& Transaction::GetToAddr() const { return m_toAddr; }
 
 const PubKey& Transaction::GetSenderPubKey() const { return m_senderPubKey; }
 
+Address Transaction::GetSenderAddr() const
+{
+    return Account::GetAddressFromPublicKey(GetSenderPubKey());
+}
+
 const uint256_t& Transaction::GetAmount() const { return m_amount; }
 
 const uint256_t& Transaction::GetGasPrice() const { return m_gasPrice; }
@@ -309,7 +315,7 @@ unsigned int Transaction::GetShardIndex(const Address& fromAddr,
     return target_shard;
 }
 
-unsigned int Transaction::GetSerializedSize()
+unsigned int Transaction::GetSerializedSize() const
 {
     return TRAN_HASH_SIZE + TRAN_SIG_SIZE + UINT256_SIZE + UINT256_SIZE
         + ACC_ADDR_SIZE + PUB_KEY_SIZE + UINT256_SIZE + UINT256_SIZE

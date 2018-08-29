@@ -39,17 +39,9 @@ bool Validator::VerifyTransaction(const Transaction& tran) const
                                          tran.GetSenderPubKey());
 }
 
-void Validator::CleanVariables()
-{
-    // Clear m_txnNonceMap
-    {
-        lock_guard<mutex> g(m_mutexTxnNonceMap);
-        m_txnNonceMap.clear();
-    }
-}
-
 #ifndef IS_LOOKUP_NODE
-bool Validator::CheckCreatedTransaction(const Transaction& tx) const
+bool Validator::CheckCreatedTransaction(const Transaction& tx,
+                                        uint256_t& gasUsed) const
 {
     // LOG_MARKER();
 
@@ -58,22 +50,6 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx) const
     // Check if from account is sharded here
     const PubKey& senderPubKey = tx.GetSenderPubKey();
     Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
-    //    unsigned int shardID = m_mediator.m_node->getShardID();
-    //    unsigned int numShards = m_mediator.m_node->getNumShards();
-    //    unsigned int correct_shard
-    //        = Transaction::GetShardIndex(fromAddr, numShards);
-    //    if (correct_shard != shardID)
-    //    {
-    // LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-    //           "This tx is not sharded to me!"
-    //               << " From Account  = 0x" << fromAddr
-    //               << " Correct shard = " << correct_shard
-    //               << " This shard    = "
-    //               << m_mediator.m_node->getShardID());
-    // Transaction created from the GenTransactionBulk will be rejected
-    // by all shards but one. Comment the following line to avoid this
-    // return false;
-    //    }
 
     // Check if from account exists in local storage
     if (!AccountStore::GetInstance().IsAccountExist(fromAddr))
@@ -84,15 +60,6 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx) const
                                            << tx.GetTranID());
         return false;
     }
-
-    // Check if to account exists in local storage
-    //    const Address& toAddr = tx.GetToAddr();
-    //    if (!AccountStore::GetInstance().IsAccountExist(toAddr))
-    //    {
-    // FIXME: Should return false in the future
-    // LOG_GENERAL(INFO, "FIXME: New account is added: " << toAddr);
-    // AccountStore::GetInstance().AddAccount(toAddr, {0, 0});
-    //    }
 
     // Check if transaction amount is valid
     if (AccountStore::GetInstance().GetBalance(fromAddr) < tx.GetAmount())
@@ -106,7 +73,8 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx) const
     }
 
     return AccountStore::GetInstance().UpdateAccountsTemp(
-        m_mediator.m_currentEpochNum, tx);
+        m_mediator.m_currentEpochNum, m_mediator.m_node->getNumShards(),
+        m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE, tx, gasUsed);
 }
 
 bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
@@ -118,20 +86,37 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
     Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
     unsigned int shardID = m_mediator.m_node->getShardID();
     unsigned int numShards = m_mediator.m_node->getNumShards();
-    unsigned int correct_shard
+    unsigned int correct_shard_from
         = Transaction::GetShardIndex(fromAddr, numShards);
-    if (correct_shard != shardID)
+
+    if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE)
     {
-        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "This tx is not sharded to me!"
-                      << " From Account  = 0x" << fromAddr
-                      << " Correct shard = " << correct_shard
-                      << " This shard    = "
-                      << m_mediator.m_node->getShardID());
-        return false;
-        // // Transaction created from the GenTransactionBulk will be rejected
-        // // by all shards but one. Next line is commented to avoid this
-        // return false;
+        if (correct_shard_from != shardID)
+        {
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "This tx is not sharded to me!"
+                          << " From Account  = 0x" << fromAddr
+                          << " Correct shard = " << correct_shard_from
+                          << " This shard    = "
+                          << m_mediator.m_node->getShardID());
+            return false;
+            // // Transaction created from the GenTransactionBulk will be rejected
+            // // by all shards but one. Next line is commented to avoid this
+            // return false;
+        }
+
+        if (tx.GetData().size() > 0 && tx.GetToAddr() != NullAddress)
+        {
+            unsigned int correct_shard_to
+                = Transaction::GetShardIndex(tx.GetToAddr(), numShards);
+            if (correct_shard_to != correct_shard_from)
+                LOG_EPOCH(
+                    WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                    "The fromShard " << correct_shard_from << " and toShard "
+                                     << correct_shard_to
+                                     << " is different for the call SC txn");
+            return false;
+        }
     }
 
     // Check if from account exists in local storage
@@ -144,56 +129,6 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
         return false;
     }
 
-    {
-        // Check from account nonce
-        lock_guard<mutex> g(m_mutexTxnNonceMap);
-        if (m_txnNonceMap.find(fromAddr) == m_txnNonceMap.end())
-        {
-            LOG_GENERAL(INFO, "Txn from " << fromAddr << "is new.");
-
-            if (tx.GetNonce()
-                != AccountStore::GetInstance().GetNonce(fromAddr) + 1)
-            {
-                LOG_EPOCH(
-                    WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                    "Tx nonce not in line with account state!"
-                        << " From Account = 0x" << fromAddr
-                        << " Account Nonce = "
-                        << AccountStore::GetInstance().GetNonce(fromAddr)
-                        << " Expected Tx Nonce = "
-                        << AccountStore::GetInstance().GetNonce(fromAddr) + 1
-                        << " Actual Tx Nonce = " << tx.GetNonce());
-                return false;
-            }
-            m_txnNonceMap.emplace(fromAddr, tx.GetNonce());
-        }
-        else
-        {
-            if (tx.GetNonce() != m_txnNonceMap.at(fromAddr) + 1)
-            {
-                LOG_EPOCH(
-                    WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                    "Tx nonce not in line with account state!"
-                        << " From Account = 0x" << fromAddr
-                        << " Account Nonce = " << m_txnNonceMap.at(fromAddr)
-                        << " Expected Tx Nonce = "
-                        << m_txnNonceMap.at(fromAddr) + 1
-                        << " Actual Tx Nonce   = " << tx.GetNonce());
-                return false;
-            }
-            m_txnNonceMap.at(fromAddr) += 1;
-        }
-    }
-
-    // Check if to account exists in local storage
-    //    const Address& toAddr = tx.GetToAddr();
-    //    if (!AccountStore::GetInstance().IsAccountExist(toAddr))
-    //    {
-    // FIXME: Should return false in the future
-    // LOG_GENERAL(INFO, "FIXME: New account is added: " << toAddr);
-    // AccountStore::GetInstance().AddAccount(toAddr, {0, 0});
-    //    }
-
     // Check if transaction amount is valid
     if (AccountStore::GetInstance().GetBalance(fromAddr) < tx.GetAmount())
     {
@@ -205,8 +140,6 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
         return false;
     }
 
-    // return AccountStore::GetInstance().UpdateAccountsTemp(
-    //     m_mediator.m_currentEpochNum, tx);
     return true;
 }
 #endif // IS_LOOKUP_NODE

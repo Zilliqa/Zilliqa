@@ -342,8 +342,6 @@ void Node::StartFirstTxEpoch()
 {
     LOG_MARKER();
 
-    SetState(TX_SUBMISSION);
-
     // Check if I am the leader or backup of the shard
     if (m_mediator.m_selfKey.second == m_myShardMembers->front().first)
     {
@@ -398,49 +396,11 @@ void Node::StartFirstTxEpoch()
 
     m_consensusLeaderID = 0;
 
-    auto main_func = [this]() mutable -> void { SubmitTransactions(); };
-
-    {
-        lock_guard<mutex> g2(m_mutexNewRoundStarted);
-        if (!m_newRoundStarted)
-        {
-            m_newRoundStarted = true;
-            m_cvNewRoundStarted.notify_all();
-        }
-    }
-
-    DetachedFunction(1, main_func);
-
-    LOG_GENERAL(INFO, "Entering sleep for " << TXN_SUBMISSION << " seconds");
-    this_thread::sleep_for(chrono::seconds(TXN_SUBMISSION));
-    LOG_GENERAL(INFO,
-                "Woken up from the sleep of " << TXN_SUBMISSION << " seconds");
-
-    auto main_func2
-        = [this]() mutable -> void { SetState(TX_SUBMISSION_BUFFER); };
-
-    DetachedFunction(1, main_func2);
-
-    LOG_GENERAL(INFO,
-                "Using conditional variable with timeout of  "
-                    << TXN_BROADCAST << " seconds. It is ok to timeout here. ");
-    std::unique_lock<std::mutex> cv_lk(m_MutexCVMicroblockConsensus);
-    if (cv_microblockConsensus.wait_for(cv_lk,
-                                        std::chrono::seconds(TXN_BROADCAST))
-        == std::cv_status::timeout)
-    {
-        LOG_GENERAL(INFO,
-                    "Woken up from the sleep (timeout) of " << TXN_BROADCAST
-                                                            << " seconds");
-    }
-    else
-    {
-        LOG_GENERAL(
-            INFO,
-            "I have received announcement message. Time to run consensus.");
-    }
-
-    auto main_func3 = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
+    auto main_func3 = [this]() mutable -> void {
+        std::this_thread::sleep_for(
+            std::chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS));
+        RunConsensusOnMicroBlock();
+    };
 
     DetachedFunction(1, main_func3);
 }
