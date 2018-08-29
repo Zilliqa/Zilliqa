@@ -541,7 +541,11 @@ void Node::InitiatePoW()
             + 1;
         auto dsBlockRand = m_mediator.m_dsBlockRand;
         auto txBlockRand = m_mediator.m_txBlockRand;
-        StartPoW(epochNumber, POW_DIFFICULTY, dsBlockRand, txBlockRand);
+        StartPoW(epochNumber,
+                 m_mediator.m_dsBlockChain.GetLastBlock()
+                     .GetHeader()
+                     .GetDifficulty(),
+                 dsBlockRand, txBlockRand);
     };
 
     DetachedFunction(1, func);
@@ -1049,7 +1053,6 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         return false;
     }
 
-    // #ifdef IS_LOOKUP_NODE
     if (!CheckMicroBlockRootHash(txBlock, txBlock.GetHeader().GetBlockNum()))
     {
         return false;
@@ -1064,14 +1067,17 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
     if (!isVacuousEpoch)
     {
+        m_isVacuousEpoch = false;
         if (!LoadUnavailableMicroBlockHashes(
                 txBlock, txBlock.GetHeader().GetBlockNum(), toSendTxnToLookup))
         {
             return false;
         }
+        StoreFinalBlock(txBlock);
     }
     else
     {
+        m_isVacuousEpoch = true;
         LOG_GENERAL(INFO, "isVacuousEpoch now");
 
         if (!AccountStore::GetInstance().UpdateStateTrieAll())
@@ -1092,16 +1098,15 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         }
 
         StoreState();
-        BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
-                                                    {'0'});
-        if (!LOOKUP_NODE_MODE)
-            BlockStorage::GetBlockStorage().PopFrontTxBodyDB();
-        else
-            BlockStorage::GetBlockStorage().ResetDB(BlockStorage::TX_BODY_TMP);
-    }
-    // #endif // IS_LOOKUP_NODE
+        StoreFinalBlock(txBlock);
 
-    StoreFinalBlock(txBlock);
+        if (!LOOKUP_NODE_MODE)
+        {
+            BlockStorage::GetBlockStorage().PopFrontTxBodyDB();
+            BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
+                                                        {'0'});
+        }
+    }
 
     if (txBlock.GetHeader().GetNumMicroBlockHashes() == 1)
     {
@@ -1464,6 +1469,16 @@ bool Node::ProcessForwardTransactionCore(const vector<unsigned char>& message,
                 m_mediator.m_txBlockChain.GetLastBlock()
                     .GetHeader()
                     .GetBlockNum());
+
+#ifdef IS_LOOKUP_NODE
+            if (m_isVacuousEpoch)
+            {
+                BlockStorage::GetBlockStorage().PutMetadata(
+                    MetaType::DSINCOMPLETED, {'0'});
+                BlockStorage::GetBlockStorage().ResetDB(
+                    BlockStorage::TX_BODY_TMP);
+            }
+#endif // IS_LOOKUP_NODE
         }
 
         // #ifndef IS_LOOKUP_NODE

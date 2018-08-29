@@ -248,7 +248,7 @@ bool Node::ProcessStartPoW(const vector<unsigned char>& message,
                       + 1);
 
     uint64_t block_num;
-    uint8_t difficulty;
+    uint8_t difficulty = POW_DIFFICULTY;
     array<unsigned char, 32> rand1;
     array<unsigned char, 32> rand2;
 
@@ -263,7 +263,9 @@ bool Node::ProcessStartPoW(const vector<unsigned char>& message,
         block_num
             = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()
             + 1;
-        difficulty = POW_DIFFICULTY;
+        difficulty = m_mediator.m_dsBlockChain.GetLastBlock()
+                         .GetHeader()
+                         .GetDifficulty();
         rand1 = m_mediator.m_dsBlockRand;
         rand2 = m_mediator.m_txBlockRand;
     }

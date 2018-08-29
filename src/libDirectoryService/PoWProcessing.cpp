@@ -91,13 +91,24 @@ bool DirectoryService::VerifyPoWSubmission(
     rand2 = m_mediator.m_txBlockRand;
 
     difficulty
-        = POW_DIFFICULTY; // TODO: Need to get the latest blocknum, diff, rand1, rand2
+        = m_mediator.m_dsBlockChain.GetLastBlock()
+              .GetHeader()
+              .GetDifficulty(); // TODO: Need to get the latest blocknum, diff, rand1, rand2
     // Verify nonce
     block_num
         = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()
         + 1;
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "dsblock_num            = " << block_num);
+
+    difficulty = POW_DIFFICULTY;
+    if (block_num > 1)
+    {
+        difficulty
+            = m_mediator.m_dsBlockChain.GetLastBlock()
+                  .GetHeader()
+                  .GetDifficulty(); // TODO: Need to get the latest blocknum, diff, rand1, rand2
+    }
 
     m_timespec = r_timer_start();
 

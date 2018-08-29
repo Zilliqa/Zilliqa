@@ -1678,7 +1678,10 @@ bool Lookup::InitMining()
                       "Starting PoW for new ds block number "
                           << curDsBlockNum + 1);
 
-            m_mediator.m_node->StartPoW(curDsBlockNum + 1, POW_DIFFICULTY,
+            m_mediator.m_node->StartPoW(curDsBlockNum + 1,
+                                        m_mediator.m_dsBlockChain.GetLastBlock()
+                                            .GetHeader()
+                                            .GetDifficulty(),
                                         dsBlockRand, txBlockRand);
         }
         else

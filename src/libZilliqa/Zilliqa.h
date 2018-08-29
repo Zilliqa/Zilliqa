@@ -28,6 +28,7 @@
 #include "libNetwork/PeerManager.h"
 #include "libNetwork/PeerStore.h"
 #include "libNode/Node.h"
+#include "libUtils/ThreadPool.h"
 
 #include "libServer/Server.h"
 
@@ -47,6 +48,8 @@ class Zilliqa
 
     jsonrpc::HttpServer m_httpserver;
     Server m_server;
+
+    ThreadPool m_queuePool{MAXMESSAGE, "QueuePool"};
 
     void ProcessMessage(std::pair<std::vector<unsigned char>, Peer>* message);
 
