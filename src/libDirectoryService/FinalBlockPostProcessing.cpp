@@ -318,8 +318,6 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
 #endif // IS_LOOKUP_NODE
     }
 
-    m_mediator.m_node->CommitForwardedMsgBuffer();
-
     m_mediator.UpdateDSBlockRand();
     m_mediator.UpdateTxBlockRand();
 
@@ -337,6 +335,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
                   "the lookup nodes");
         SendFinalBlockToLookupNodes();
     }
+
+    m_mediator.m_node->CallActOnFinalblock();
 
     // uint8_t tx_sharing_mode
     //     = (m_sharingAssignment.size() > 0) ? DS_FORWARD_ONLY : ::IDLE;

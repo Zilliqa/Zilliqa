@@ -212,8 +212,6 @@ class Node : public Executable, public Broadcastable
     void ScheduleMicroBlockConsensus();
     void BeginNextConsensusRound();
 
-    void CallActOnFinalblock();
-
     // internal calls from ProcessForwardTransaction
     bool LoadForwardedTxnsAndCheckRoot(
         const vector<unsigned char>& message, unsigned int cur_offset,
@@ -413,6 +411,8 @@ public:
     void CommitForwardedMsgBuffer();
 
     void CleanCreatedTransaction();
+
+    void CallActOnFinalblock();
 #ifndef IS_LOOKUP_NODE
 
     // Start synchronization with lookup as a shard node
