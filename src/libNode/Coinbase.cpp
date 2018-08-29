@@ -13,7 +13,6 @@
 * GPLv3.0 are those programs that are located in the folders src/depends and tests/depends
 * and which include a reference to GPLv3 in their program files.
 **/
-#ifndef IS_LOOKUP_NODE
 #include <map>
 #include <queue>
 #include <vector>
@@ -29,6 +28,13 @@ using namespace std;
 void Reward(const vector<bool>& b1, const vector<bool>& b2,
             const deque<PubKey>& toKeys, const Address& genesisAccount)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(
+            WARNING,
+            "Coinbase->Reward not expected to be called from LookUp node.");
+        return;
+    }
     auto RewardEveryRound = [&genesisAccount, &toKeys](auto const& bits) {
         for (size_t i = 0; i < bits.size(); i++)
         {
@@ -52,6 +58,14 @@ void Reward(const vector<bool>& b1, const vector<bool>& b2,
 
 bool Node::Coinbase(const BlockBase& lastMicroBlock, const TxBlock& lastTxBlock)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(
+            WARNING,
+            "Node::Coinbase not expected to be called from LookUp node.");
+        return true;
+    }
+
     if (GENESIS_WALLETS.empty())
     {
         LOG_GENERAL(WARNING, "no genesis wallet");
@@ -117,6 +131,13 @@ bool Node::Coinbase(const BlockBase& lastMicroBlock, const TxBlock& lastTxBlock)
 
 void Node::InitCoinbase()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(
+            WARNING,
+            "Node::InitCoinbase not expected to be called from LookUp node.");
+        return;
+    }
 
     uint32_t epochModuloNum
         = (m_mediator.m_currentEpochNum + 1) % NUM_FINAL_BLOCK_PER_POW;
@@ -149,4 +170,3 @@ void Node::InitCoinbase()
         LOG_GENERAL(INFO, "Coinbase Success");
     }
 }
-#endif // IS_LOOKUP_NODE

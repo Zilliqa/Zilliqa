@@ -144,7 +144,6 @@ class DirectoryService : public Executable, public Broadcastable
     // To block certain types of incoming message for certain states
     bool ToBlockMessage(unsigned char ins_byte);
 
-#ifndef IS_LOOKUP_NODE
     bool CheckState(Action action);
     void
     SetupMulticastConfigForShardingStructure(unsigned int& my_DS_cluster_num,
@@ -282,7 +281,7 @@ class DirectoryService : public Executable, public Broadcastable
 
     // Reset certain variables to the initial state
     bool CleanVariables();
-#endif // IS_LOOKUP_NODE
+    
 
 public:
     enum Mode : unsigned char
@@ -332,7 +331,6 @@ public:
     /// Destructor.
     ~DirectoryService();
 
-#ifndef IS_LOOKUP_NODE
     /// Sets the value of m_state.
     void SetState(DirState state);
 
@@ -348,8 +346,7 @@ public:
 
     /// Post processing after the DS node successfully synchronized with the network
     bool FinishRejoinAsDS();
-#endif // IS_LOOKUP_NODE
-
+    
     /// Implements the Execute function inherited from Executable.
     bool Execute(const std::vector<unsigned char>& message, unsigned int offset,
                  const Peer& from);

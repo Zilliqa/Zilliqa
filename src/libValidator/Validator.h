@@ -34,10 +34,8 @@ public:
 
     virtual void CleanVariables() = 0;
 
-#ifndef IS_LOOKUP_NODE
     virtual bool CheckCreatedTransaction(const Transaction& tx) const = 0;
     virtual bool CheckCreatedTransactionFromLookup(const Transaction& tx) = 0;
-#endif // IS_LOOKUP_NODE
 };
 
 class Validator : public ValidatorBase
@@ -54,10 +52,8 @@ public:
     bool VerifyTransaction(const Transaction& tran) const override;
     void CleanVariables() override;
 
-#ifndef IS_LOOKUP_NODE
     bool CheckCreatedTransaction(const Transaction& tx) const override;
     bool CheckCreatedTransactionFromLookup(const Transaction& tx) override;
-#endif // IS_LOOKUP_NODE
 
     Mediator& m_mediator;
 };

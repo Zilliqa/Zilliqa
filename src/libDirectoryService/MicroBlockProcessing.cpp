@@ -38,10 +38,17 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-#ifndef IS_LOOKUP_NODE
 bool DirectoryService::VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
                                                    uint32_t shardId)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::VerifyMicroBlockCoSignature not "
+                    "expected to be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     const map<PubKey, Peer>& shard = m_shards.at(shardId);
@@ -108,6 +115,14 @@ bool DirectoryService::ProcessStateDelta(
     const vector<unsigned char>& message, unsigned int cur_offset,
     const StateHash& microBlockStateDeltaHash)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::ProcessStateDelta not expected to be "
+                    "called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     LOG_GENERAL(INFO,
@@ -159,12 +174,17 @@ bool DirectoryService::ProcessStateDelta(
     return true;
 }
 
-#endif // IS_LOOKUP_NODE
 bool DirectoryService::ProcessMicroblockSubmission(
-    [[gnu::unused]] const vector<unsigned char>& message,
-    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
+    const vector<unsigned char>& message, unsigned int offset,
+    [[gnu::unused]] const Peer& from)
 {
-#ifndef IS_LOOKUP_NODE
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::ProcessMicroblockSubmission not "
+                    "expected to be called from LookUp node.");
+        return true;
+    }
     // Message = [8-byte DS blocknum] [4-byte consensusid] [4-byte shard ID] [Tx microblock]
 
     LOG_MARKER();
@@ -302,7 +322,6 @@ bool DirectoryService::ProcessMicroblockSubmission(
                       + 1 << "] FRST");
     }
 
-        // TODO: Re-request from shard leader if microblock is not received after a certain time.
-#endif // IS_LOOKUP_NODE
+    // TODO: Re-request from shard leader if microblock is not received after a certain time.
     return true;
 }

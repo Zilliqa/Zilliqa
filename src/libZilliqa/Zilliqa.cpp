@@ -105,14 +105,10 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
     , m_n(m_mediator, syncType, toRetrieveHistory)
     , m_cu(key, peer)
     , m_msgQueue(MSGQUEUE_SIZE)
-#ifdef IS_LOOKUP_NODE
     , m_httpserver(SERVER_PORT)
     , m_server(m_mediator, m_httpserver)
-#endif // IS_LOOKUP_NODE
-
 {
     LOG_MARKER();
-
     // Launch the thread that reads messages from the queue
     auto funcCheckMsgQueue = [this]() mutable -> void {
         pair<vector<unsigned char>, Peer>* message = NULL;
@@ -145,7 +141,6 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
         LOG_GENERAL(INFO, "No Sync Needed");
         Whitelist::GetInstance().Init();
         break;
-#ifndef IS_LOOKUP_NODE
     case SyncType::NEW_SYNC:
         LOG_GENERAL(INFO, "Sync as a new node");
         if (!toRetrieveHistory)
@@ -171,31 +166,32 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
         m_mediator.m_lookup->m_syncType = SyncType::DS_SYNC;
         m_ds.StartSynchronization();
         break;
-#else // IS_LOOKUP_NODE
     case SyncType::LOOKUP_SYNC:
         LOG_GENERAL(INFO, "Sync as a lookup node");
         m_mediator.m_lookup->m_syncType = SyncType::LOOKUP_SYNC;
         m_lookup.StartSynchronization();
         break;
-#endif // IS_LOOKUP_NODE
     default:
         LOG_GENERAL(WARNING, "Invalid Sync Type");
         break;
     }
 
-#ifndef IS_LOOKUP_NODE
-    LOG_GENERAL(INFO, "I am a normal node.");
-#else // else for IS_LOOKUP_NODE
-    LOG_GENERAL(INFO, "I am a lookup node.");
-    if (m_server.StartListening())
+    if (!LOOKUP_NODE_MODE)
     {
-        LOG_GENERAL(INFO, "API Server started successfully");
+        LOG_GENERAL(INFO, "I am a normal node.");
     }
     else
     {
-        LOG_GENERAL(WARNING, "API Server couldn't start");
+        LOG_GENERAL(INFO, "I am a lookup node.");
+        if (m_server.StartListening())
+        {
+            LOG_GENERAL(INFO, "API Server started successfully");
+        }
+        else
+        {
+            LOG_GENERAL(WARNING, "API Server couldn't start");
+        }
     }
-#endif // IS_LOOKUP_NODE
 }
 
 Zilliqa::~Zilliqa()
