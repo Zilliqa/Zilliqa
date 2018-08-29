@@ -495,7 +495,11 @@ void Node::InitiatePoW()
             + 1;
         auto dsBlockRand = m_mediator.m_dsBlockRand;
         auto txBlockRand = m_mediator.m_txBlockRand;
-        StartPoW(epochNumber, POW_DIFFICULTY, dsBlockRand, txBlockRand);
+        StartPoW(epochNumber,
+                 m_mediator.m_dsBlockChain.GetLastBlock()
+                     .GetHeader()
+                     .GetDifficulty(),
+                 dsBlockRand, txBlockRand);
     };
 
     DetachedFunction(1, func);
@@ -824,14 +828,17 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         ProcessStateDeltaFromFinalBlock(
             message, cur_offset, txBlock.GetHeader().GetStateDeltaHash());
 
+        m_isVacuousEpoch = false;
         if (!LoadUnavailableMicroBlockHashes(
                 txBlock, txBlock.GetHeader().GetBlockNum(), toSendTxnToLookup))
         {
             return false;
         }
+        StoreFinalBlock(txBlock);
     }
     else
     {
+        m_isVacuousEpoch = true;
         LOG_GENERAL(INFO, "isVacuousEpoch now");
 
         // Remove because shard nodes will be shuffled in next epoch.
@@ -865,17 +872,15 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         }
 
         StoreState();
+        StoreFinalBlock(txBlock);
+
+#ifndef IS_LOOKUP_NODE
         BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
                                                     {'0'});
-#ifndef IS_LOOKUP_NODE
         BlockStorage::GetBlockStorage().PopFrontTxBodyDB();
-#else // IS_LOOKUP_NODE
-        BlockStorage::GetBlockStorage().ResetDB(BlockStorage::TX_BODY_TMP);
 #endif // IS_LOOKUP_NODE
     }
     // #endif // IS_LOOKUP_NODE
-
-    StoreFinalBlock(txBlock);
 
     if (txBlock.GetHeader().GetNumMicroBlockHashes() == 1)
     {
@@ -1245,6 +1250,16 @@ bool Node::ProcessForwardTransactionCore(const vector<unsigned char>& message,
                 m_mediator.m_txBlockChain.GetLastBlock()
                     .GetHeader()
                     .GetBlockNum());
+
+#ifdef IS_LOOKUP_NODE
+            if (m_isVacuousEpoch)
+            {
+                BlockStorage::GetBlockStorage().PutMetadata(
+                    MetaType::DSINCOMPLETED, {'0'});
+                BlockStorage::GetBlockStorage().ResetDB(
+                    BlockStorage::TX_BODY_TMP);
+            }
+#endif // IS_LOOKUP_NODE
         }
 
         // #ifndef IS_LOOKUP_NODE
