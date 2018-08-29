@@ -143,7 +143,7 @@ void DirectoryService::ComputeSharding()
         hashVec.resize(BLOCK_HASH_SIZE + BLOCK_HASH_SIZE);
         copy(lastBlockHash.begin(), lastBlockHash.end(), hashVec.begin());
         copy(powHash.begin(), powHash.end(), hashVec.begin() + BLOCK_HASH_SIZE);
-        
+
         const vector<unsigned char>& sortHashVec
             = HashUtils::BytesToHash(hashVec);
         array<unsigned char, BLOCK_HASH_SIZE> sortHash;
