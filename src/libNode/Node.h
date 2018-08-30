@@ -183,7 +183,7 @@ class Node : public Executable, public Broadcastable
                                vector<Transaction>& txns_to_send);
 
     void BroadcastTransactionsToLookup();
-    
+
     bool LoadUnavailableMicroBlockHashes(const TxBlock& finalblock,
                                          const uint64_t& blocknum,
                                          bool& toSendTxnToLookup);

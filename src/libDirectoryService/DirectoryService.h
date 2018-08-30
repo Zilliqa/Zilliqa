@@ -281,7 +281,6 @@ class DirectoryService : public Executable, public Broadcastable
 
     // Reset certain variables to the initial state
     bool CleanVariables();
-    
 
     uint8_t CalculateNewDifficulty(const uint8_t& prevDifficulty);
 
@@ -348,7 +347,7 @@ public:
 
     /// Post processing after the DS node successfully synchronized with the network
     bool FinishRejoinAsDS();
-    
+
     /// Implements the Execute function inherited from Executable.
     bool Execute(const std::vector<unsigned char>& message, unsigned int offset,
                  const Peer& from);
