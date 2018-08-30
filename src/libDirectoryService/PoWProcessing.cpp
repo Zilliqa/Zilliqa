@@ -108,7 +108,7 @@ bool DirectoryService::VerifyPoWSubmission(
                             << to_string(block_num)
                             << " Expected: " << to_string(expectedDSDiff)
                             << " or " << to_string(expectedDiff));
-                            
+
             // TODO: penalise sender in reputation manager
             return false;
         }
