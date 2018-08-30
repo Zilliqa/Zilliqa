@@ -308,6 +308,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
     StoreFinalBlockToDisk();
 
     AccountStore::GetInstance().CommitTemp();
+    m_stateDeltaFromShards.clear();
 
     bool isVacuousEpoch
         = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
