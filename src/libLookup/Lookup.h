@@ -89,7 +89,7 @@ class Lookup : public Executable, public Broadcastable
 
     // To block certain types of incoming message for certain states
     bool ToBlockMessage(unsigned char ins_byte);
-    
+
     std::mutex m_mutexSetDSBlockFromSeed;
     std::mutex m_mutexSetTxBlockFromSeed;
     std::mutex m_mutexSetTxBodyFromSeed;
@@ -155,7 +155,7 @@ public:
 
     // Get the offline lookup nodes from lookup nodes
     bool GetOfflineLookupNodes();
-    
+
     bool SetDSCommitteInfo();
 
     std::vector<std::map<PubKey, Peer>> GetShardPeers();
@@ -172,7 +172,7 @@ public:
 
     // Rejoin the network as a lookup node in case of failure happens in protocol
     void RejoinAsLookup();
-    
+
     bool
     ProcessEntireShardingStructure(const std::vector<unsigned char>& message,
                                    unsigned int offset, const Peer& from);
@@ -227,13 +227,13 @@ public:
 
     bool Execute(const std::vector<unsigned char>& message, unsigned int offset,
                  const Peer& from);
-    
+
     bool m_fetchedOfflineLookups = false;
     std::mutex m_mutexOfflineLookupsUpdation;
     std::condition_variable cv_offlineLookups;
 
     bool InitMining();
-    
+
     /// To indicate which type of synchronization is using
     unsigned int m_syncType = SyncType::NO_SYNC;
 
