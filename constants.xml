@@ -47,7 +47,7 @@
         <FULL_DATASET_MINE>false</FULL_DATASET_MINE>
         <OPENCL_GPU_MINE>false</OPENCL_GPU_MINE>
         <CUDA_GPU_MINE>false</CUDA_GPU_MINE>
-        <LOOKUP_NODE_MODE>true</LOOKUP_NODE_MODE>
+        <LOOKUP_NODE_MODE>false</LOOKUP_NODE_MODE>
     </options>
     <smart_contract>
         <SCILLA_ROOT></SCILLA_ROOT>
