@@ -48,7 +48,8 @@ using namespace std;
 using namespace boost::multiprecision;
 
 #ifndef IS_LOOKUP_NODE
-bool Node::StartPoW(const uint64_t& block_num, uint8_t difficulty,
+bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
+                    uint8_t difficulty,
                     const array<unsigned char, UINT256_SIZE>& rand1,
                     const array<unsigned char, UINT256_SIZE>& rand2)
 {
@@ -85,7 +86,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t difficulty,
                               result_vec, mixhash_vec);
 
         if (POW::GetInstance().CheckSolnAgainstsTargetedDifficulty(
-                (std::string)winning_result.result, difficulty))
+                (std::string)winning_result.result, ds_difficulty))
         {
             LOG_GENERAL(INFO,
                         "soln does not meet ds committee criteria. Will keep "
@@ -93,7 +94,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t difficulty,
 
             ethash_mining_result ds_pow_winning_result
                 = POW::GetInstance().PoWMine(
-                    block_num, difficulty, rand1, rand2,
+                    block_num, ds_difficulty, rand1, rand2,
                     m_mediator.m_selfPeer.m_ipAddress,
                     m_mediator.m_selfKey.second, FULL_DATASET_MINE);
 
@@ -186,8 +187,8 @@ void Node::SendPoWResultToDSComm(const uint64_t& block_num,
 
 bool Node::ReadVariablesFromStartPoWMessage(
     const vector<unsigned char>& message, unsigned int cur_offset,
-    uint64_t& block_num, uint8_t& difficulty, array<unsigned char, 32>& rand1,
-    array<unsigned char, 32>& rand2)
+    uint64_t& block_num, uint8_t& ds_difficulty, uint8_t& difficulty,
+    array<unsigned char, 32>& rand1, array<unsigned char, 32>& rand2)
 {
     if (IsMessageSizeInappropriate(message.size(), cur_offset,
                                    sizeof(uint64_t) + sizeof(uint8_t)
@@ -201,6 +202,16 @@ bool Node::ReadVariablesFromStartPoWMessage(
     block_num = Serializable::GetNumber<uint64_t>(message, cur_offset,
                                                   sizeof(uint64_t));
     cur_offset += sizeof(uint64_t);
+
+    // 1-byte ds difficulty
+    ds_difficulty = Serializable::GetNumber<uint8_t>(message, cur_offset,
+                                                     sizeof(uint8_t));
+    cur_offset += sizeof(uint8_t);
+
+    // 1-byte difficulty
+    difficulty = Serializable::GetNumber<uint8_t>(message, cur_offset,
+                                                  sizeof(uint8_t));
+    cur_offset += sizeof(uint8_t);
 
     // 1-byte difficulty
     difficulty = Serializable::GetNumber<uint8_t>(message, cur_offset,
@@ -264,7 +275,7 @@ bool Node::ProcessStartPoW([[gnu::unused]] const vector<unsigned char>& message,
 {
 #ifndef IS_LOOKUP_NODE
     // Note: This function should only be invoked on a new node that was not part of the sharding committees in previous epoch
-    // Message = [8-byte block num] [1-byte difficulty] [32-byte rand1] [32-byte rand2] [33-byte pubkey] [16-byte ip] [4-byte port] ... (all the DS nodes)
+    // Message = [8-byte block num] [1-byte ds difficulty]  [1-byte difficulty] [32-byte rand1] [32-byte rand2] [33-byte pubkey] [16-byte ip] [4-byte port] ... (all the DS nodes)
 
     LOG_MARKER();
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -275,11 +286,13 @@ bool Node::ProcessStartPoW([[gnu::unused]] const vector<unsigned char>& message,
 
     uint64_t block_num;
     uint8_t difficulty = POW_DIFFICULTY;
+    uint8_t dsDifficulty = DS_POW_DIFFICULTY;
+
     array<unsigned char, 32> rand1;
     array<unsigned char, 32> rand2;
 
-    if (!ReadVariablesFromStartPoWMessage(message, offset, block_num,
-                                          difficulty, rand1, rand2))
+    if (!ReadVariablesFromStartPoWMessage(
+            message, offset, block_num, dsDifficulty, difficulty, rand1, rand2))
     {
         return false;
     }
@@ -289,6 +302,9 @@ bool Node::ProcessStartPoW([[gnu::unused]] const vector<unsigned char>& message,
         block_num
             = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()
             + 1;
+        dsDifficulty = m_mediator.m_dsBlockChain.GetLastBlock()
+                           .GetHeader()
+                           .GetDSDifficulty();
         difficulty = m_mediator.m_dsBlockChain.GetLastBlock()
                          .GetHeader()
                          .GetDifficulty();
@@ -297,7 +313,7 @@ bool Node::ProcessStartPoW([[gnu::unused]] const vector<unsigned char>& message,
     }
 
     // Start mining
-    StartPoW(block_num, difficulty, rand1, rand2);
+    StartPoW(block_num, dsDifficulty, difficulty, rand1, rand2);
 #endif // IS_LOOKUP_NODE
 
     return true;
