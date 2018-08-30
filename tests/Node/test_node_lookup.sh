@@ -24,6 +24,7 @@ sudo sysctl -w net.ipv4.tcp_mem='65536 873800 1534217728';
 rm -rf lookup_local_run/node*
 
 python tests/Zilliqa/test_zilliqa_lookup.py setup 5
+python tests/Zilliqa/test_zilliqa_lookup.py gentxn
 python tests/Zilliqa/test_zilliqa_lookup.py start
 
 echo "end"
