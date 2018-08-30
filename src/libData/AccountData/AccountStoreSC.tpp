@@ -40,7 +40,8 @@ template<class MAP> void AccountStoreSC<MAP>::Init()
 
 template<class MAP>
 bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
-                                         const Transaction& transaction)
+                                         const Transaction& transaction,
+                                         uint256_t& gasUsed)
 {
     // LOG_MARKER();
 
@@ -76,7 +77,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             }
         }
 
-        return AccountStoreBase<MAP>::UpdateAccounts(transaction);
+        return AccountStoreBase<MAP>::UpdateAccounts(transaction, gasUsed);
     }
 
     bool callContract = false;
@@ -176,6 +177,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             return false;
         }
         this->IncreaseBalance(fromAddr, gasRefund);
+        gasUsed = CONTRACT_CREATE_GAS;
         if (!ret)
         {
             this->m_addressToAccount->erase(toAddr);
@@ -280,6 +282,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             return false;
         }
         this->IncreaseBalance(fromAddr, gasRefund);
+        gasUsed = m_curGasCum;
         if (!ret)
         {
             return true; // Return true because the states already changed

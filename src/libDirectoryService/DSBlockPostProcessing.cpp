@@ -281,6 +281,8 @@ void DirectoryService::StartFirstTxEpoch()
 
     if (m_mode != IDLE)
     {
+        m_mediator.m_node->m_myShardMembers = m_mediator.m_DSCommittee;
+
         if (TEST_NET_MODE)
         {
             LOG_GENERAL(INFO, "Updating shard whitelist");

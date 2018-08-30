@@ -1572,18 +1572,6 @@ bool Lookup::InitMining()
 {
     LOG_MARKER();
 
-    {
-        lock_guard<mutex> g(m_mediator.m_node->m_mutexNewRoundStarted);
-        if (!m_mediator.m_node->m_newRoundStarted)
-        {
-            LOG_GENERAL(INFO,
-                        "Started new round of rejoining, discard all blocked "
-                        "forwarded message submitted from other shard nodes");
-            m_mediator.m_node->m_newRoundStarted = true;
-            m_mediator.m_node->m_cvNewRoundStarted.notify_all();
-        }
-    }
-
     // General check
     if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0)
     {
@@ -1648,8 +1636,7 @@ bool Lookup::InitMining()
         return false;
     }
     // Check whether is the new node connected to the network. Else, initiate re-sync process again.
-    this_thread::sleep_for(chrono::seconds(POW_BACKUP_WINDOW_IN_SECONDS
-                                           + TXN_SUBMISSION + TXN_BROADCAST));
+    this_thread::sleep_for(chrono::seconds(POW_BACKUP_WINDOW_IN_SECONDS));
     m_startedPoW = false;
     if (m_syncType != SyncType::NO_SYNC)
     {
@@ -1905,8 +1892,7 @@ bool Lookup::ProcessGetStartPoWFromSeed(
         std::unique_lock<std::mutex> cv_lk(m_MutexCVStartPoWSubmission);
 
         if (cv_startPoWSubmission.wait_for(
-                cv_lk,
-                std::chrono::seconds(TXN_SUBMISSION + POW_WINDOW_IN_SECONDS))
+                cv_lk, std::chrono::seconds(POW_WINDOW_IN_SECONDS))
             == std::cv_status::timeout)
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),

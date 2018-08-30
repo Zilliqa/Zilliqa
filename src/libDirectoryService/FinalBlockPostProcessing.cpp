@@ -445,6 +445,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "[No PoW needed] Waiting for Microblock.");
 
+            CommitMBSubmissionMsgBuffer();
+
             std::unique_lock<std::mutex> cv_lk(
                 m_MutexScheduleFinalBlockConsensus);
             if (cv_scheduleFinalBlockConsensus.wait_for(

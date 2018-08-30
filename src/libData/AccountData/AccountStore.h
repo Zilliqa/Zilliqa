@@ -102,11 +102,17 @@ public:
     bool RetrieveFromDisk();
 
     bool UpdateAccountsTemp(const uint64_t& blockNum,
-                            const Transaction& transaction);
+                            const Transaction& transaction,
+                            boost::multiprecision::uint256_t& gasUsed);
 
     void AddAccountTemp(const Address& address, const Account& account)
     {
         m_accountStoreTemp->AddAccount(address, account);
+    }
+
+    boost::multiprecision::uint256_t GetNonceTemp(const Address& address)
+    {
+        return m_accountStoreTemp->GetNonce(address);
     }
 
     bool UpdateCoinbaseTemp(const Address& rewardee,
