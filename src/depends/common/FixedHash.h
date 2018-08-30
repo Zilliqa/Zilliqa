@@ -43,7 +43,7 @@ namespace dev
     /// Transparently converts to/from the corresponding arithmetic type; this will
     /// assume the data contained in the hash is big-endian.
     template <unsigned N>
-    class FixedHash
+    class FixedHash //: boost::less_than_comparable<FixedHash<N>>
     {
     public:
         /// The corresponding arithmetic type.
@@ -258,6 +258,12 @@ namespace dev
         }
 
         void clear() { m_data.fill(0); }
+
+        // needed by using boost_multi_index hash_ordered
+        friend size_t hash_value(const FixedHash& h)
+        {
+            return boost::hash_range(h.m_data.cbegin(), h.m_data.cend());
+        }
 
     private:
         std::array<byte, N> m_data;		///< The binary data.

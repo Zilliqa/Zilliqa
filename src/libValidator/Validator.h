@@ -32,10 +32,10 @@ public:
     /// Verifies the transaction w.r.t given pubKey and signature
     virtual bool VerifyTransaction(const Transaction& tran) const = 0;
 
-    virtual void CleanVariables() = 0;
-
 #ifndef IS_LOOKUP_NODE
-    virtual bool CheckCreatedTransaction(const Transaction& tx) const = 0;
+    virtual bool CheckCreatedTransaction(
+        const Transaction& tx,
+        boost::multiprecision::uint256_t& gasUsed) const = 0;
     virtual bool CheckCreatedTransactionFromLookup(const Transaction& tx) = 0;
 #endif // IS_LOOKUP_NODE
 };
@@ -44,18 +44,19 @@ class Validator : public ValidatorBase
 {
 
     // Nonce information
-    std::mutex m_mutexTxnNonceMap;
-    std::unordered_map<Address, boost::multiprecision::uint256_t> m_txnNonceMap;
+    // std::mutex m_mutexTxnNonceMap;
+    // std::unordered_map<Address, boost::multiprecision::uint256_t> m_txnNonceMap;
 
 public:
     Validator(Mediator& mediator);
     ~Validator();
     std::string name() const override { return "Validator"; }
     bool VerifyTransaction(const Transaction& tran) const override;
-    void CleanVariables() override;
 
 #ifndef IS_LOOKUP_NODE
-    bool CheckCreatedTransaction(const Transaction& tx) const override;
+    bool CheckCreatedTransaction(
+        const Transaction& tx,
+        boost::multiprecision::uint256_t& gasUsed) const override;
     bool CheckCreatedTransactionFromLookup(const Transaction& tx) override;
 #endif // IS_LOOKUP_NODE
 
