@@ -220,15 +220,15 @@ bool Node::ProcessMicroblockConsensus(
             m_newRoundStarted = false;
         }
 
+        // Update the micro block with the co-signatures from the consensus
+        m_microblock->SetCoSignatures(*m_consensusObject);
+
         if (m_isPrimary == true)
         {
             LOG_STATE("[MICON]["
                       << std::setw(15) << std::left
                       << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
                       << m_mediator.m_currentEpochNum << "] DONE");
-
-            // Update the micro block with the co-signatures from the consensus
-            m_microblock->SetCoSignatures(*m_consensusObject);
 
             // Multicast micro block to all DS nodes
             SubmitMicroblockToDSCommittee();
@@ -238,9 +238,6 @@ bool Node::ProcessMicroblockConsensus(
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Designated as Microblock sender");
-
-            // Update the micro block with the co-signature from the consensus
-            m_microblock->SetCoSignatures(*m_consensusObject);
 
             // Multicast micro block to all DS nodes
             SubmitMicroblockToDSCommittee();
@@ -262,7 +259,10 @@ bool Node::ProcessMicroblockConsensus(
         }
         else
         {
-
+            m_mediator.m_ds->m_stateDeltaFromShards.clear();
+            AccountStore::GetInstance().SerializeDelta();
+            AccountStore::GetInstance().GetSerializedDelta(
+                m_mediator.m_ds->m_stateDeltaFromShards);
             m_mediator.m_ds->SaveCoinbase(
                 m_microblock->GetB1(), m_microblock->GetB2(),
                 m_microblock->GetHeader().GetShardID());
@@ -1082,6 +1082,10 @@ bool Node::RunConsensusOnMicroBlock()
                   "[CNBSE]");
 
         m_mediator.m_ds->InitCoinbase();
+        m_mediator.m_ds->m_stateDeltaFromShards.clear();
+        AccountStore::GetInstance().SerializeDelta();
+        AccountStore::GetInstance().GetSerializedDelta(
+            m_mediator.m_ds->m_stateDeltaFromShards);
     }
     if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
     {
@@ -1197,59 +1201,69 @@ bool Node::CheckMicroBlockTimestamp()
 unsigned char Node::CheckLegitimacyOfTxnHashes(vector<unsigned char>& errorMsg)
 {
 
-    vector<TxnHash> missingTxnHashes;
-    if (!ProcessTransactionWhenShardBackup(m_microblock->GetTranHashes(),
-                                           missingTxnHashes))
+    bool isVacuousEpoch
+        = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
+    if (!isVacuousEpoch)
     {
-        return LEGITIMACYRESULT::WRONGORDER;
+        vector<TxnHash> missingTxnHashes;
+        if (!ProcessTransactionWhenShardBackup(m_microblock->GetTranHashes(),
+                                               missingTxnHashes))
+        {
+            return LEGITIMACYRESULT::WRONGORDER;
+        }
+
+        m_numOfAbsentTxnHashes = 0;
+
+        int offset = 0;
+
+        for (auto const& hash : missingTxnHashes)
+        {
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Missing txn: " << hash)
+            if (errorMsg.size() == 0)
+            {
+                errorMsg.resize(sizeof(uint32_t) + sizeof(uint64_t)
+                                + TRAN_HASH_SIZE);
+                offset += (sizeof(uint32_t) + sizeof(uint64_t));
+            }
+            else
+            {
+                errorMsg.resize(offset + TRAN_HASH_SIZE);
+            }
+            copy(hash.asArray().begin(), hash.asArray().end(),
+                 errorMsg.begin() + offset);
+            offset += TRAN_HASH_SIZE;
+            m_numOfAbsentTxnHashes++;
+        }
+
+        if (m_numOfAbsentTxnHashes > 0)
+        {
+            Serializable::SetNumber<uint32_t>(
+                errorMsg, 0, m_numOfAbsentTxnHashes, sizeof(uint32_t));
+            Serializable::SetNumber<uint64_t>(errorMsg, sizeof(uint32_t),
+                                              m_mediator.m_currentEpochNum,
+                                              sizeof(uint64_t));
+
+            m_txnsOrdering = m_microblock->GetTranHashes();
+
+            AccountStore::GetInstance().InitTemp();
+            if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
+            {
+                LOG_GENERAL(WARNING, "Got missing txns, revert state delta");
+                AccountStore::GetInstance().DeserializeDeltaTemp(
+                    m_mediator.m_ds->m_stateDeltaFromShards, 0);
+            }
+
+            return LEGITIMACYRESULT::MISSEDTXN;
+        }
+
+        AccountStore::GetInstance().SerializeDelta();
     }
-
-    m_numOfAbsentTxnHashes = 0;
-
-    int offset = 0;
-
-    for (auto const& hash : missingTxnHashes)
+    else
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Missing txn: " << hash)
-        if (errorMsg.size() == 0)
-        {
-            errorMsg.resize(sizeof(uint32_t) + sizeof(uint64_t)
-                            + TRAN_HASH_SIZE);
-            offset += (sizeof(uint32_t) + sizeof(uint64_t));
-        }
-        else
-        {
-            errorMsg.resize(offset + TRAN_HASH_SIZE);
-        }
-        copy(hash.asArray().begin(), hash.asArray().end(),
-             errorMsg.begin() + offset);
-        offset += TRAN_HASH_SIZE;
-        m_numOfAbsentTxnHashes++;
+                  "Vacuous epoch: Skipping processing transactions");
     }
-
-    if (m_numOfAbsentTxnHashes > 0)
-    {
-        Serializable::SetNumber<uint32_t>(errorMsg, 0, m_numOfAbsentTxnHashes,
-                                          sizeof(uint32_t));
-        Serializable::SetNumber<uint64_t>(errorMsg, sizeof(uint32_t),
-                                          m_mediator.m_currentEpochNum,
-                                          sizeof(uint64_t));
-
-        m_txnsOrdering = m_microblock->GetTranHashes();
-
-        AccountStore::GetInstance().InitTemp();
-        if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
-        {
-            LOG_GENERAL(WARNING, "Got missing txns, revert state delta");
-            AccountStore::GetInstance().DeserializeDeltaTemp(
-                m_mediator.m_ds->m_stateDeltaFromShards, 0);
-        }
-
-        return LEGITIMACYRESULT::MISSEDTXN;
-    }
-
-    AccountStore::GetInstance().SerializeDelta();
 
     return LEGITIMACYRESULT::SUCCESS;
 }
