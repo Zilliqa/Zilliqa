@@ -427,6 +427,7 @@ public:
 
     /// Send PoW soln to DS Commitee
     void SendPoWResultToDSComm(const uint64_t& block_num,
+                               const uint8_t& difficultyLevel,
                                const uint64_t winningNonce,
                                const vector<unsigned char> powResultHash,
                                const vector<unsigned char> powMixhash);

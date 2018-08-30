@@ -43,7 +43,7 @@ bool DirectoryService::VerifyPoWSubmission(
     const vector<unsigned char>& message, const Peer& from, PubKey& key,
     unsigned int curr_offset, uint32_t& portNo, uint64_t& nonce,
     array<unsigned char, 32>& rand1, array<unsigned char, 32>& rand2,
-    unsigned int& difficulty, uint64_t& block_num)
+    uint8_t& difficultyLevel, uint64_t& block_num)
 {
     // 8-byte nonce
     nonce = Serializable::GetNumber<uint64_t>(message, curr_offset,
@@ -83,10 +83,6 @@ bool DirectoryService::VerifyPoWSubmission(
     rand1 = m_mediator.m_dsBlockRand;
     rand2 = m_mediator.m_txBlockRand;
 
-    difficulty
-        = m_mediator.m_dsBlockChain.GetLastBlock()
-              .GetHeader()
-              .GetDifficulty(); // TODO: Need to get the latest blocknum, diff, rand1, rand2
     // Verify nonce
     block_num
         = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()
@@ -94,19 +90,50 @@ bool DirectoryService::VerifyPoWSubmission(
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "dsblock_num            = " << block_num);
 
-    difficulty = POW_DIFFICULTY;
+    // Non-gensis block
     if (block_num > 1)
     {
-        difficulty
-            = m_mediator.m_dsBlockChain.GetLastBlock()
-                  .GetHeader()
-                  .GetDifficulty(); // TODO: Need to get the latest blocknum, diff, rand1, rand2
+        uint8_t expectedDSDiff = m_mediator.m_dsBlockChain.GetLastBlock()
+                                     .GetHeader()
+                                     .GetDSDifficulty();
+        uint8_t expectedDiff = m_mediator.m_dsBlockChain.GetLastBlock()
+                                   .GetHeader()
+                                   .GetDifficulty();
+
+        if (difficultyLevel != expectedDSDiff
+            && difficultyLevel != expectedDiff)
+        {
+            LOG_GENERAL(WARNING,
+                        "Difficulty level is invalid. DifficultyLevel: "
+                            << to_string(block_num)
+                            << " Expected: " << to_string(expectedDSDiff)
+                            << " or " << to_string(expectedDiff));
+            return false;
+        }
+    }
+    else if (block_num == 1)
+    {
+        if (difficultyLevel != POW_DIFFICULTY
+            && difficultyLevel != DS_POW_DIFFICULTY)
+        {
+            LOG_GENERAL(WARNING,
+                        "Difficulty level is invalid. DifficultyLevel: "
+                            << to_string(block_num)
+                            << " Expected: " << to_string(DS_POW_DIFFICULTY)
+                            << " or " << to_string(POW_DIFFICULTY));
+            return false;
+        }
+    }
+    else
+    {
+        LOG_GENERAL(WARNING, "Block_num is invalid. block_num " << block_num);
+        return false;
     }
 
     m_timespec = r_timer_start();
 
     bool result = POW::GetInstance().PoWVerify(
-        block_num, difficulty, rand1, rand2, from.m_ipAddress, key, false,
+        block_num, difficultyLevel, rand1, rand2, from.m_ipAddress, key, false,
         nonce, winning_hash, winning_mixhash);
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -120,10 +147,15 @@ bool DirectoryService::ParseMessageAndVerifyPOW(
 {
     unsigned int curr_offset = offset;
 
-    // 8-byte block number
+    // 8-bytes block number
     uint64_t DSBlockNum = Serializable::GetNumber<uint64_t>(
         message, curr_offset, sizeof(uint64_t));
     curr_offset += sizeof(uint64_t);
+
+    // 1-byte difficultyLevel
+    uint8_t difficultyLevel = Serializable::GetNumber<uint8_t>(
+        message, curr_offset, sizeof(uint8_t));
+    curr_offset += sizeof(uint8_t);
 
     // Check block number
     if (!CheckWhetherDSBlockIsFresh(DSBlockNum))
@@ -179,13 +211,11 @@ bool DirectoryService::ParseMessageAndVerifyPOW(
     uint64_t nonce;
     array<unsigned char, 32> rand1;
     array<unsigned char, 32> rand2;
-    unsigned int difficulty;
     uint64_t block_num;
     bool result
         = VerifyPoWSubmission(message, from, key, curr_offset, portNo, nonce,
-                              rand1, rand2, difficulty, block_num);
-
-    if (result == true)
+                              rand1, rand2, difficultyLevel, block_num);
+    if (result)
     {
         // Do another check on the state before accessing m_allPoWs
         // Accept slightly late entries as we need to multicast the DSBLOCK to everyone
@@ -212,10 +242,9 @@ bool DirectoryService::ParseMessageAndVerifyPOW(
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Invalid PoW submission"
                       << "\n"
-                      << "blockNum: " << block_num
-                      << " Difficulty: " << difficulty << " nonce: " << nonce
-                      << " ip: " << peer.GetPrintableIPAddress() << ":"
-                      << portNo << "\n"
+                      << "blockNum: " << block_num << " Difficulty: "
+                      << difficultyLevel << " nonce: " << nonce << " ip: "
+                      << peer.GetPrintableIPAddress() << ":" << portNo << "\n"
                       << "rand1: " << DataConversion::charArrToHexStr(rand1)
                       << " rand2: " << DataConversion::charArrToHexStr(rand2));
     }
@@ -228,7 +257,7 @@ bool DirectoryService::ProcessPoWSubmission(
     [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
 {
 #ifndef IS_LOOKUP_NODE
-    // Message = [8-byte block number] [4-byte listening port] [33-byte public key] [8-byte nonce] [32-byte resulting hash]
+    // Message = [8-byte block number] [1 byte difficulty level] [4-byte listening port] [33-byte public key] [8-byte nonce] [32-byte resulting hash]
     //[32-byte mixhash] [64-byte Sign]
     LOG_MARKER();
 

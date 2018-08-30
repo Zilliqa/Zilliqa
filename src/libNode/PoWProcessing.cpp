@@ -82,12 +82,30 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
         vector<unsigned char> mixhash_vec
             = DataConversion::HexStrToUint8Vec(winning_result.mix_hash);
 
-        SendPoWResultToDSComm(block_num, winning_result.winning_nonce,
-                              result_vec, mixhash_vec);
-
+        // Possibles scenario
+        // 1. Found solution that meet ds difficulty and difficulty
+        // - Submit solution
+        // 2. Found solution that met only diffiulty
+        // - Submit solution and continue to do PoW till DS difficulty met or
+        //   ds block received. (stopmining())
         if (POW::GetInstance().CheckSolnAgainstsTargetedDifficulty(
                 (std::string)winning_result.result, ds_difficulty))
         {
+            LOG_GENERAL(INFO,
+                        "Found PoW solution that met requirement for both ds "
+                        "commitee and shard.");
+            SendPoWResultToDSComm(block_num, ds_difficulty,
+                                  winning_result.winning_nonce, result_vec,
+                                  mixhash_vec);
+        }
+        else
+        {
+            // If solution does not meet targeted ds difficulty, send the initial solution to
+            // ds commitee and continue to do PoW
+            SendPoWResultToDSComm(block_num, difficulty,
+                                  winning_result.winning_nonce, result_vec,
+                                  mixhash_vec);
+
             LOG_GENERAL(INFO,
                         "soln does not meet ds committee criteria. Will keep "
                         "doing more pow");
@@ -110,7 +128,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
                     = DataConversion::HexStrToUint8Vec(winning_result.mix_hash);
 
                 // Submission of PoW for ds commitee
-                SendPoWResultToDSComm(block_num,
+                SendPoWResultToDSComm(block_num, ds_difficulty,
                                       ds_pow_winning_result.winning_nonce,
                                       result_vec, mixhash_vec);
             }
@@ -121,12 +139,6 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
                             "requirement");
             }
         }
-        else
-        {
-            LOG_GENERAL(INFO,
-                        "Found PoW solution that met requirement for both ds "
-                        "commitee and shard.");
-        }
     }
 
     SetState(TX_SUBMISSION);
@@ -134,12 +146,13 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
 }
 
 void Node::SendPoWResultToDSComm(const uint64_t& block_num,
+                                 const uint8_t& difficultyLevel,
                                  const uint64_t winningNonce,
                                  const vector<unsigned char> powResultHash,
                                  const vector<unsigned char> powMixhash)
 {
     // Send PoW result
-    // Message = [8-byte block number] [4-byte listening port] [33-byte public key]
+    // Message = [8-byte block number] [1 byte difficulty level] [4-byte listening port] [33-byte public key]
     // [8-byte nonce] [32-byte resulting hash] [32-byte mixhash] [64-byte Signature]
     vector<unsigned char> powmessage
         = {MessageType::DIRECTORY, DSInstructionType::POWSUBMISSION};
@@ -148,6 +161,10 @@ void Node::SendPoWResultToDSComm(const uint64_t& block_num,
     Serializable::SetNumber<uint64_t>(powmessage, cur_offset, block_num,
                                       sizeof(uint64_t));
     cur_offset += sizeof(uint64_t);
+
+    Serializable::SetNumber<uint8_t>(powmessage, cur_offset, difficultyLevel,
+                                     sizeof(uint8_t));
+    cur_offset += sizeof(uint8_t);
 
     Serializable::SetNumber<uint32_t>(powmessage, cur_offset,
                                       m_mediator.m_selfPeer.m_listenPortHost,
