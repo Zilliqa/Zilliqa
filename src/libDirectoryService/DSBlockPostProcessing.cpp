@@ -325,6 +325,7 @@ void DirectoryService::StartFirstTxEpoch()
         // m_mediator.m_node->m_myShardID = std::numeric_limits<uint32_t>::max();
         m_mediator.m_node->m_myShardID = m_shards.size();
         m_mediator.m_node->CommitTxnPacketBuffer();
+        m_stateDeltaFromShards.clear();
 
         if (TEST_NET_MODE)
         {
