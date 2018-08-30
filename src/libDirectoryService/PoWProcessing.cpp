@@ -219,6 +219,7 @@ bool DirectoryService::ParseMessageAndVerifyPOW(
 
     if (CheckPoWSubmissionExceedsLimitsForNode(key))
     {
+        LOG_GENERAL(WARNING, peer << "  has exceeded max pow submission ");
         return false;
     }
 
