@@ -29,7 +29,7 @@ using namespace std;
 #include "libData/AccountData/Transaction.h"
 
 unsigned int TXN_SIZE = Transaction::GetMinSerializedSize();
-unsigned int NUM_TXN = 100000;
+unsigned int NUM_TXN = 1000;
 
 bool getTransactionsFromFile(fstream& f, unsigned int startNum,
                              unsigned int totalNum, vector<unsigned char>& vec)
@@ -66,7 +66,7 @@ public:
         }
 
         auto getFile = [&addr](const unsigned int& num, fstream& file) {
-            string fileString = TXN_PATH + addr.hex() + "_"
+            string fileString = TXN_PATH + "/" + addr.hex() + "_"
                 + to_string(num * NUM_TXN) + ".zil";
 
             file.open(fileString, ios::binary | ios::in);

@@ -13,17 +13,5 @@
 # GPLv3.0 are those programs that are located in the folders src/depends and tests/depends 
 # and which include a reference to GPLv3 in their program files.
 
-sudo sysctl net.core.somaxconn=102400; 
-sudo sysctl net.core.netdev_max_backlog=65536; 
-sudo sysctl net.ipv4.tcp_tw_reuse=1; 
-sudo sysctl -w net.ipv4.tcp_rmem='65536 873800 1534217728';
-sudo sysctl -w net.ipv4.tcp_wmem='65536 873800 1534217728';
-sudo sysctl -w net.ipv4.tcp_mem='65536 873800 1534217728';
+python tests/Zilliqa/test_zilliqa_lookup.py gentxn 10
 
-# clean up persistence storage
-rm -rf lookup_local_run/node*
-
-python tests/Zilliqa/test_zilliqa_lookup.py setup 5
-python tests/Zilliqa/test_zilliqa_lookup.py start
-
-echo "end"
