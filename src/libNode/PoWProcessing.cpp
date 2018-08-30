@@ -274,6 +274,7 @@ bool Node::ProcessStartPoW([[gnu::unused]] const vector<unsigned char>& message,
                            [[gnu::unused]] const Peer& from)
 {
 #ifndef IS_LOOKUP_NODE
+    // This function is only used in the bootstrapping phase.
     // Note: This function should only be invoked on a new node that was not part of the sharding committees in previous epoch
     // Message = [8-byte block num] [1-byte ds difficulty]  [1-byte difficulty] [32-byte rand1] [32-byte rand2] [33-byte pubkey] [16-byte ip] [4-byte port] ... (all the DS nodes)
 
