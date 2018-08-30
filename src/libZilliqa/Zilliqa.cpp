@@ -186,11 +186,6 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
     {
         LOG_GENERAL(INFO, "API Server started successfully");
         m_lookup.SetServerTrue();
-        if (USE_REMOTE_TXN_CREATOR)
-        {
-            LOG_GENERAL(INFO, "[SyncTxn]" << REMOTE_TXN_CREATOR_IP);
-            m_lookup.LaunchTxnSyncThread(REMOTE_TXN_CREATOR_IP);
-        }
     }
     else
     {
