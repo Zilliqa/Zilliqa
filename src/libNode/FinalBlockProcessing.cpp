@@ -497,6 +497,9 @@ void Node::InitiatePoW()
         StartPoW(epochNumber,
                  m_mediator.m_dsBlockChain.GetLastBlock()
                      .GetHeader()
+                     .GetDSDifficulty(),
+                 m_mediator.m_dsBlockChain.GetLastBlock()
+                     .GetHeader()
                      .GetDifficulty(),
                  dsBlockRand, txBlockRand);
     };

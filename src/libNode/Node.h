@@ -157,12 +157,10 @@ class Node : public Executable, public Broadcastable
 
 #ifndef IS_LOOKUP_NODE
     // internal calls from ProcessStartPoW1
-    bool ReadVariablesFromStartPoWMessage(const vector<unsigned char>& message,
-                                          unsigned int offset,
-                                          uint64_t& block_num,
-                                          uint8_t& difficulty,
-                                          array<unsigned char, 32>& rand1,
-                                          array<unsigned char, 32>& rand2);
+    bool ReadVariablesFromStartPoWMessage(
+        const vector<unsigned char>& message, unsigned int offset,
+        uint64_t& block_num, uint8_t& dsDifficulty, uint8_t& difficulty,
+        array<unsigned char, 32>& rand1, array<unsigned char, 32>& rand2);
     bool ProcessSubmitMissingTxn(const vector<unsigned char>& message,
                                  unsigned int offset, const Peer& from);
     bool ProcessSubmitTxnSharing(const vector<unsigned char>& message,
@@ -422,7 +420,8 @@ public:
     void StartSynchronization();
 
     /// Performs PoW mining and submission for DirectoryService committee membership.
-    bool StartPoW(const uint64_t& block_num, uint8_t difficulty,
+    bool StartPoW(const uint64_t& block_num, uint8_t dsDifficulty,
+                  uint8_t difficulty,
                   const std::array<unsigned char, UINT256_SIZE>& rand1,
                   const std::array<unsigned char, UINT256_SIZE>& rand2);
 
