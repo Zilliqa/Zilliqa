@@ -789,7 +789,7 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes,
     unsigned int txn_sent_count = 0;
 
     auto findOneFromAddrNonceTxnMap
-        = [this, &t_addrNonceTxnMap](Transaction& t) -> bool {
+        = [&t_addrNonceTxnMap](Transaction& t) -> bool {
         for (auto it = t_addrNonceTxnMap.begin(); it != t_addrNonceTxnMap.end();
              it++)
         {
@@ -810,7 +810,7 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes,
     };
 
     auto findSameNonceButHigherGasPrice
-        = [this, &t_createdTransactions](Transaction& t) -> void {
+        = [&t_createdTransactions](Transaction& t) -> void {
         auto& compIdx
             = t_createdTransactions.get<MULTI_INDEX_KEY::ADDR_NONCE>();
         auto it = compIdx.find(make_tuple(t.GetSenderAddr(), t.GetNonce()));
@@ -824,8 +824,7 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes,
         }
     };
 
-    auto findOneFromCreated
-        = [this, &t_createdTransactions](Transaction& t) -> bool {
+    auto findOneFromCreated = [&t_createdTransactions](Transaction& t) -> bool {
         auto& listIdx = t_createdTransactions.get<MULTI_INDEX_KEY::GAS_PRICE>();
         if (!listIdx.size())
         {
@@ -838,7 +837,7 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes,
         return true;
     };
 
-    auto appendOne = [this, &t_tranHashes, &curTxns](const Transaction& t) {
+    auto appendOne = [&t_tranHashes, &curTxns](const Transaction& t) {
         t_tranHashes.emplace_back(t.GetTranID());
         curTxns.emplace_back(t);
     };
