@@ -343,6 +343,9 @@ bool DirectoryService::CleanVariables()
         std::lock_guard<mutex> lock(m_mutexAllPOW);
         m_allPoWs.clear();
     }
+
+    ResetPoWSubmissionCounter();
+
     {
         std::lock_guard<mutex> lock(m_mutexMicroBlocks);
         m_microBlocks.clear();

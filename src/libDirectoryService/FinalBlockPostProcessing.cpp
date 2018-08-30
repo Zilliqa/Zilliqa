@@ -370,7 +370,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
         << "] AFTER SENDING FINAL BLOCK");
 
     m_allPoWConns.clear();
-
+    ResetPoWSubmissionCounter(); 
+    
     auto func = [this]() mutable -> void {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "START OF a new EPOCH");

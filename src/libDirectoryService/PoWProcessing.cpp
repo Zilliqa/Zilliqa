@@ -216,6 +216,12 @@ bool DirectoryService::ParseMessageAndVerifyPOW(
     array<unsigned char, 32> rand1;
     array<unsigned char, 32> rand2;
     uint64_t block_num;
+
+    if (CheckPoWSubmissionExceedsLimitsForNode(key))
+    {
+        return false;
+    }
+
     bool result
         = VerifyPoWSubmission(message, from, key, curr_offset, portNo, nonce,
                               rand1, rand2, difficultyLevel, block_num);
@@ -239,6 +245,7 @@ bool DirectoryService::ParseMessageAndVerifyPOW(
 
             m_allPoWConns.emplace(key, peer);
             m_allPoWs.emplace_back(key, nonce);
+            UpdatePoWSubmissionCounterforNode(key);
         }
     }
     else
@@ -254,6 +261,41 @@ bool DirectoryService::ParseMessageAndVerifyPOW(
     }
     return result;
 }
+
+bool DirectoryService::CheckPoWSubmissionExceedsLimitsForNode(const PubKey& key)
+{
+    lock_guard<mutex> g(m_mutexAllPoWCounter);
+    if (m_AllPoWCounter.find(key) == m_AllPoWCounter.end())
+    {
+        return false;
+    }
+    else if (m_AllPoWCounter[key] < POW_SUBMISSION_LIMIT)
+    {
+        return false;
+    }
+    return true;
+}
+
+void DirectoryService::UpdatePoWSubmissionCounterforNode(const PubKey& key)
+{
+    lock_guard<mutex> g(m_mutexAllPoWCounter);
+
+    if (m_AllPoWCounter.find(key) == m_AllPoWCounter.end())
+    {
+        m_AllPoWCounter.emplace(key, 1);
+    }
+    else
+    {
+        m_AllPoWCounter[key] = m_AllPoWCounter[key] + 1;
+    }
+}
+
+void DirectoryService::ResetPoWSubmissionCounter()
+{
+    lock_guard<mutex> g(m_mutexAllPoWCounter);
+    m_AllPoWCounter.clear();
+}
+
 #endif // IS_LOOKUP_NODE
 
 bool DirectoryService::ProcessPoWSubmission(

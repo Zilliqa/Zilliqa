@@ -74,9 +74,11 @@ class DirectoryService : public Executable, public Broadcastable
 
     // PoW common variables
     std::mutex m_mutexAllPoWs;
-    std::map<PubKey, Peer> m_allPoWConns;
     std::mutex m_mutexAllPoWConns;
+    std::map<PubKey, Peer> m_allPoWConns;
     std::vector<unsigned char> m_PoWConsensusMessage;
+    std::mutex m_mutexAllPoWCounter;
+    std::map<PubKey, uint8_t> m_AllPoWCounter;
 
     // Consensus variables
     std::shared_ptr<ConsensusCommon> m_consensusObject;
@@ -146,6 +148,12 @@ class DirectoryService : public Executable, public Broadcastable
 
 #ifndef IS_LOOKUP_NODE
     bool CheckState(Action action);
+
+    // For PoW submission counter
+    bool CheckPoWSubmissionExceedsLimitsForNode(const PubKey& key);
+    void UpdatePoWSubmissionCounterforNode(const PubKey& key);
+    void ResetPoWSubmissionCounter();
+
     void
     SetupMulticastConfigForShardingStructure(unsigned int& my_DS_cluster_num,
                                              unsigned int& my_shards_lo,
