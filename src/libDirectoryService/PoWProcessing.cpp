@@ -108,6 +108,8 @@ bool DirectoryService::VerifyPoWSubmission(
                             << to_string(block_num)
                             << " Expected: " << to_string(expectedDSDiff)
                             << " or " << to_string(expectedDiff));
+                            
+            // TODO: penalise sender in reputation manager
             return false;
         }
     }
@@ -121,6 +123,8 @@ bool DirectoryService::VerifyPoWSubmission(
                             << to_string(block_num)
                             << " Expected: " << to_string(DS_POW_DIFFICULTY)
                             << " or " << to_string(POW_DIFFICULTY));
+
+            // TODO: penalise sender in reputation manager
             return false;
         }
     }
