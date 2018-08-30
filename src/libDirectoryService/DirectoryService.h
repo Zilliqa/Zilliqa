@@ -203,7 +203,7 @@ class DirectoryService : public Executable, public Broadcastable
                              unsigned int curr_offset, uint32_t& portNo,
                              uint64_t& nonce, array<unsigned char, 32>& rand1,
                              array<unsigned char, 32>& rand2,
-                             unsigned int& difficulty, uint64_t& block_num);
+                             uint8_t& difficulty, uint64_t& block_num);
     void ExtractDataFromMicroblocks(
         TxnHash& microblockTxnTrieRoot, StateHash& microblockDeltaTrieRoot,
         std::vector<MicroBlockHashSet>& microblockHashes,
