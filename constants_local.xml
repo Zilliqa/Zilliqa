@@ -62,10 +62,9 @@
         <OUTPUT_JSON>output.json</OUTPUT_JSON>
         <INPUT_CODE>input.scilla</INPUT_CODE>
     </smart_contract>
-    <TransactionDispatcher>
-        <PATH></PATH>
+	<TransactionDispatcher>
         <USE_REMOTE_TXN_CREATOR>false</USE_REMOTE_TXN_CREATOR>
-        <REMOTE_TXN_CREATOR_IP></REMOTE_TXN_CREATOR_IP>
+        <TXN_PATH></TXN_PATH>
     </TransactionDispatcher>
    <accounts>
         <account>
