@@ -451,6 +451,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
             m_consensusID++;
             m_mediator.m_node->UpdateStateForNextConsensusRound();
             SetState(MICROBLOCK_SUBMISSION);
+            m_dsStartedMicroblockConsensus = false;
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "[No PoW needed] Waiting for Microblock.");
 
@@ -467,6 +468,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
                             "without it");
 
                 auto func1 = [this]() mutable -> void {
+                    m_dsStartedMicroblockConsensus = true;
                     m_mediator.m_node->RunConsensusOnMicroBlock();
                 };
 
