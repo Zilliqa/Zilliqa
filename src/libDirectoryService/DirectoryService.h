@@ -86,7 +86,6 @@ class DirectoryService : public Executable, public Broadcastable
     // PoW (DS block) consensus variables
     std::shared_ptr<DSBlock> m_pendingDSBlock;
     std::mutex m_mutexPendingDSBlock;
-    std::mutex m_mutexDSBlockConsensus;
     std::vector<std::pair<PubKey, boost::multiprecision::uint256_t>> m_allPoWs;
     std::mutex m_mutexAllPOW;
 
@@ -120,11 +119,11 @@ class DirectoryService : public Executable, public Broadcastable
     std::mutex m_MutexCVFinalBlockConsensusObject;
     std::condition_variable cv_POWSubmission;
     std::mutex m_MutexCVPOWSubmission;
-    std::mutex m_mutexProcessConsensusMessage;
     std::condition_variable cv_processConsensusMessage;
+    std::mutex m_mutexProcessConsensusMessage;
+
     // TO Remove
     Mediator& m_mediator;
-
     Synchronizer m_synchronizer;
 
     const uint32_t RESHUFFLE_INTERVAL = 500;
