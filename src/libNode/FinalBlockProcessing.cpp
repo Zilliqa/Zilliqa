@@ -757,7 +757,6 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
                   "I may have missed the micrblock consensus. However, if I "
                   "recently received a valid finalblock, I will accept it");
         // TODO: Optimize state transition.
-        AccountStore::GetInstance().InitTemp();
         SetState(WAITING_FINALBLOCK);
     }
 
@@ -950,10 +949,22 @@ bool Node::ProcessStateDeltaFromFinalBlock(
 {
     LOG_MARKER();
 
+    // Init local AccountStoreTemp first
+    AccountStore::GetInstance().InitTemp();
+
     LOG_GENERAL(INFO,
                 "Received FinalBlock State Delta root : "
                     << DataConversion::charArrToHexStr(
                            finalBlockStateDeltaHash.asArray()));
+
+    if (finalBlockStateDeltaHash == StateHash())
+    {
+        LOG_GENERAL(INFO,
+                    "State Delta hash received from finalblock is null, "
+                    "skip processing state delta");
+        return true;
+    }
+
     vector<unsigned char> stateDeltaBytes;
     copy(message.begin() + cur_offset, message.end(),
          back_inserter(stateDeltaBytes));
@@ -978,9 +989,6 @@ bool Node::ProcessStateDeltaFromFinalBlock(
     }
 
     // Deserialize State Delta
-    // Init local AccountStoreTemp first
-    AccountStore::GetInstance().InitTemp();
-
     if (finalBlockStateDeltaHash == StateHash())
     {
         LOG_GENERAL(INFO, "State Delta from finalblock is empty");
