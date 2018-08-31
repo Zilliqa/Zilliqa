@@ -13,8 +13,14 @@
 # GPLv3.0 are those programs that are located in the folders src/depends and tests/depends
 # and which include a reference to GPLv3 in their program files.
 
-# Configuration settings
+# User configuration settings
+GitHubToken=""
+repoName="PreRelease"
 packageName="D24"
+releaseTitle="D24 latest release"
+releaseDescription="This is the latest release of D24.\nThere are many new features in this release and you can refer to README for more information."
+
+# Variables indicate VERSION information
 versionFile="VERSION"
 majorLine=2
 minorLine=4
@@ -30,15 +36,18 @@ if [ "$#" -ne 2 ]; then
     return 1
 fi
 
-if [ ! -f "$1" ]
-then
+if [ ! -f "$1" ]; then
     echo "File : $1 not found!"
     return 1
 fi
 
-if [ ! -f "$2" ]
-then
+if [ ! -f "$2" ]; then
     echo "File : $2 not found!"
+    return 1
+fi
+
+if [ "$GitHubToken" = "" ]; then
+    echo "Please enter your own GitHub token in release.sh!"
     return 1
 fi
 
@@ -100,4 +109,63 @@ signature="$(./bin/sign ${sha} ${privKeyFile} ${pubKeyFile})"
 sed -i "${sigLine}s/.*/${signature}/" ${versionFile}
 cd -
 echo -e "SHA-256 & multi-signature are written into ${versionFile} successfully.\n"
+
+# Upload package onto GitHub
+echo -e "Creating new release and uploading package onto GitHub..."
+fullCommit="$(git rev-parse HEAD)"
+curl -v -s \
+  -H "Authorization: token ${GitHubToken}" \
+  -H "Content-Type:application/json" "https://api.github.com/repos/Zilliqa/${repoName}/releases" \
+  -d '{
+  "tag_name": "'"${newVer}"'", 
+  "target_commitish": "'"${fullCommit}"'",
+  "name": "'"${releaseTitle}"'",
+  "body": "'"${releaseDescription}"'",
+  "draft": false,
+  "prerelease": false
+}' > tmpReleaseFile
+
+line="$(sed '6!d' tmpReleaseFile)"
+releaseId=${line:8:8}
+echo -e "rr = ${releaseId}"
+curl -v -s \
+  -H "Authorization: token ${GitHubToken}" \
+  -H "Content-Type:application/json" \
+  --data-binary @build/${debFile} \
+  "https://uploads.github.com/repos/Zilliqa/${repoName}/releases/${releaseId}/assets?name=build_${debFile}" \
+  -d '{
+  "Content-Type": "application/vnd.debian.binary-package",
+  "name": "'"build_${debFile}"'",
+  "label": "'"${newVer}"'"
+}'
+curl -v -s \
+  -H "Authorization: token ${GitHubToken}" \
+  -H "Content-Type:application/json" \
+  --data-binary @build/${versionFile} \
+  "https://uploads.github.com/repos/Zilliqa/${repoName}/releases/${releaseId}/assets?name=build_${versionFile}" \
+  -d '{
+  "name": "'"build_${versionFile}"'",
+  "label": "'"${newVer}"'"
+}'
+curl -v -s \
+  -H "Authorization: token ${GitHubToken}" \
+  -H "Content-Type:application/json" \
+  --data-binary @build_lookup/${debFile} \
+  "https://uploads.github.com/repos/Zilliqa/${repoName}/releases/${releaseId}/assets?name=build_lookup_${debFile}" \
+  -d '{
+  "Content-Type": "application/vnd.debian.binary-package",
+  "name": "'"build_lookup_${debFile}"'",
+  "label": "'"${newVer}"'"
+}'
+curl -v -s \
+  -H "Authorization: token ${GitHubToken}" \
+  -H "Content-Type:application/json" \
+  --data-binary @build_lookup/${versionFile} \
+  "https://uploads.github.com/repos/Zilliqa/${repoName}/releases/${releaseId}/assets?name=build_lookup_${versionFile}" \
+  -d '{
+  "name": "'"build_lookup_${versionFile}"'",
+  "label": "'"${newVer}"'"
+}'
+rm tmpReleaseFile
+echo -e "\nA new release with package is created on GitHub successfully.\n"
 
