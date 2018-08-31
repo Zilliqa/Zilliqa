@@ -73,7 +73,6 @@ class DirectoryService : public Executable, public Broadcastable
     std::condition_variable cv_scheduleFinalBlockConsensus;
 
     // PoW common variables
-    std::mutex m_mutexAllPoWs;
     std::mutex m_mutexAllPoWConns;
     std::map<PubKey, Peer> m_allPoWConns;
     std::vector<unsigned char> m_PoWConsensusMessage;
