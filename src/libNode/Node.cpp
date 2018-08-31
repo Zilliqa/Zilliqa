@@ -622,6 +622,13 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
 {
     LOG_MARKER();
 
+    if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
+    {
+        LOG_GENERAL(WARNING,
+                    "This node already started rejoin, ignore txn packet");
+        return false;
+    }
+
     // core part:
     if (IsMessageSizeInappropriate(message.size(), offset,
                                    2 * sizeof(uint32_t)))
