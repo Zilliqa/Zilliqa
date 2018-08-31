@@ -1834,7 +1834,7 @@ bool Lookup::ProcessSetLookupOnline(
         lock_guard<mutex> lock(m_mutexOfflineLookups);
         auto iter = std::find(m_lookupNodesOffline.begin(),
                               m_lookupNodesOffline.end(), requestingNode);
-        if (iter != m_lookupNodes.end())
+        if (iter != m_lookupNodesOffline.end())
         {
             m_lookupNodes.emplace_back(requestingNode);
             m_lookupNodesOffline.erase(iter);
@@ -1932,6 +1932,7 @@ bool Lookup::ProcessSetOfflineLookups(
         Peer peer(message, offset);
         offset += (IP_SIZE + PORT_SIZE);
 
+        std::lock_guard<std::mutex> lock(m_mutexOfflineLookups);
         // Remove selfPeerInfo from m_lookupNodes
         auto iter = std::find(m_lookupNodes.begin(), m_lookupNodes.end(), peer);
         if (iter != m_lookupNodes.end())
@@ -2142,6 +2143,7 @@ bool Lookup::GetMyLookupOffline()
 {
     LOG_MARKER();
 
+    std::lock_guard<std::mutex> lock(m_mutexOfflineLookups);
     // Remove selfPeerInfo from m_lookupNodes
     auto iter = std::find(m_lookupNodes.begin(), m_lookupNodes.end(),
                           m_mediator.m_selfPeer);
@@ -2164,6 +2166,7 @@ bool Lookup::GetMyLookupOnline()
 {
     LOG_MARKER();
 
+    std::lock_guard<std::mutex> lock(m_mutexOfflineLookups);
     auto iter = std::find(m_lookupNodesOffline.begin(),
                           m_lookupNodesOffline.end(), m_mediator.m_selfPeer);
     if (iter != m_lookupNodesOffline.end())
