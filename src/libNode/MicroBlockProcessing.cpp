@@ -1072,24 +1072,23 @@ bool Node::RunConsensusOnMicroBlock()
 {
     LOG_MARKER();
 
-    bool isVacuousEpoch
-        = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
-    if ((m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
-        && isVacuousEpoch)
-    {
-        //Coinbase
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "[CNBSE]");
-
-        m_mediator.m_ds->InitCoinbase();
-        m_mediator.m_ds->m_stateDeltaFromShards.clear();
-        AccountStore::GetInstance().SerializeDelta();
-        AccountStore::GetInstance().GetSerializedDelta(
-            m_mediator.m_ds->m_stateDeltaFromShards);
-    }
     if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
     {
         m_mediator.m_ds->m_toSendTxnToLookup = false;
+        bool isVacuousEpoch
+            = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
+        if (isVacuousEpoch)
+        {
+            //Coinbase
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "[CNBSE]");
+
+            m_mediator.m_ds->InitCoinbase();
+            m_mediator.m_ds->m_stateDeltaFromShards.clear();
+            AccountStore::GetInstance().SerializeDelta();
+            AccountStore::GetInstance().GetSerializedDelta(
+                m_mediator.m_ds->m_stateDeltaFromShards);
+        }
     }
     if (m_isPrimary == true)
     {

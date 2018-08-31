@@ -399,4 +399,5 @@ void AccountStore::InitTemp()
     lock_guard<mutex> g(m_mutexDelta);
 
     m_accountStoreTemp->Init();
+    m_stateDeltaSerialized.clear();
 }
