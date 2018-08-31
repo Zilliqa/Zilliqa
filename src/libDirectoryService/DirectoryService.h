@@ -348,6 +348,9 @@ public:
     /// Whether to send txn from ds microblock to lookup at finalblock consensus done
     std::atomic<bool> m_toSendTxnToLookup;
 
+    /// Whether ds started microblock consensuis
+    std::atomic<bool> m_dsStartedMicroblockConsensus;
+
     std::set<MicroBlock> m_microBlocks;
     std::mutex m_mutexMicroBlocks;
 

@@ -335,6 +335,7 @@ void DirectoryService::StartFirstTxEpoch()
 
         // Start sharding work
         SetState(MICROBLOCK_SUBMISSION);
+        m_dsStartedMicroblockConsensus = false;
 
         auto func = [this]() mutable -> void {
             // Check for state change. If it get stuck at microblock submission for too long, move on to finalblock without the microblock
@@ -349,6 +350,7 @@ void DirectoryService::StartFirstTxEpoch()
                             "without it");
 
                 auto func = [this]() mutable -> void {
+                    m_dsStartedMicroblockConsensus = true;
                     m_mediator.m_node->RunConsensusOnMicroBlock();
                 };
 

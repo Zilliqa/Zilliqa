@@ -228,6 +228,15 @@ bool DirectoryService::ProcessMicroblockSubmissionCore(
                     << microBlock.GetHeader().GetTxRootHash(););
 
     lock_guard<mutex> g(m_mutexMicroBlocks);
+
+    if (m_dsStartedMicroblockConsensus)
+    {
+        LOG_GENERAL(WARNING,
+                    "DS microblock consensus already started, ignore this "
+                    "microblock submission");
+        return false;
+    }
+
     m_microBlocks.emplace(microBlock);
 
     SaveCoinbase(microBlock.GetB1(), microBlock.GetB2(),
@@ -264,6 +273,7 @@ bool DirectoryService::ProcessMicroblockSubmissionCore(
         // m_mediator.m_node->RunConsensusOnMicroBlock();
 
         auto func = [this]() mutable -> void {
+            m_dsStartedMicroblockConsensus = true;
             cv_scheduleDSMicroBlockConsensus.notify_all();
             m_mediator.m_node->RunConsensusOnMicroBlock();
         };
