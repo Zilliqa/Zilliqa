@@ -843,23 +843,23 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         // Remove because shard nodes will be shuffled in next epoch.
         CleanCreatedTransaction();
 
-        if (!AccountStore::GetInstance().UpdateStateTrieAll())
-        {
-            LOG_GENERAL(WARNING, "UpdateStateTrieAll Failed 1");
-            return false;
-        }
+        // if (!AccountStore::GetInstance().UpdateStateTrieAll())
+        // {
+        //     LOG_GENERAL(WARNING, "UpdateStateTrieAll Failed 1");
+        //     return false;
+        // }
 
-        if (!CheckStateRoot(txBlock)
-#ifndef IS_LOOKUP_NODE
-            || m_doRejoinAtStateRoot)
-        {
-            RejoinAsNormal();
-#else // IS_LOOKUP_NODE
-        )
-        {
-#endif // IS_LOOKUP_NODE
-            return false;
-        }
+        //         if (!CheckStateRoot(txBlock)
+        // #ifndef IS_LOOKUP_NODE
+        //             || m_doRejoinAtStateRoot)
+        //         {
+        //             RejoinAsNormal();
+        // #else // IS_LOOKUP_NODE
+        //         )
+        //         {
+        // #endif // IS_LOOKUP_NODE
+        //             return false;
+        //         }
 
         ProcessStateDeltaFromFinalBlock(
             message, cur_offset, txBlock.GetHeader().GetStateDeltaHash());
