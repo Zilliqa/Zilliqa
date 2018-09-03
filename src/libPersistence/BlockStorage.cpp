@@ -252,9 +252,13 @@ bool BlockStorage::DeleteTxBody(const dev::h256& key)
 {
     int ret;
     if (!LOOKUP_NODE_MODE)
+    {
         ret = m_txBodyDBs.back()->DeleteKey(key);
+    }
     else
+    {
         ret = m_txBodyDB->DeleteKey(key);
+    }
 
     return (ret == 0);
 }

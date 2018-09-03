@@ -323,17 +323,25 @@ int LevelDB::DeleteKey(const std::string & key)
 int LevelDB::DeleteDB()
 {
     if (LOOKUP_NODE_MODE)
+    {
         return DeleteDBForLookupNode();
+    }
     else
+    {
         return DeleteDBForNormalNode();
+    }
 }
 
 bool LevelDB::ResetDB()
 {
     if (LOOKUP_NODE_MODE)
+    {
         return ResetDBForLookupNode();
+    }
     else
+    {
         return ResetDBForNormalNode();
+    }
 }
 
 int LevelDB::DeleteDBForNormalNode()
