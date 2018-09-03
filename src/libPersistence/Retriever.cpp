@@ -212,7 +212,7 @@ bool Retriever::CleanExtraTxBodies()
     if (!LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
-                    "Retriever::RetrieveTxBodiesDB not expected to be called "
+                    "Retriever::CleanExtraTxBodies not expected to be called "
                     "from other than LookUp node.");
         return true;
     }

@@ -175,7 +175,9 @@ bool Node::StartRetrieveHistory()
 
     bool tx_bodies_result = true;
     if (!LOOKUP_NODE_MODE)
+    {
         tx_bodies_result = m_retriever->RetrieveTxBodiesDB();
+    }
 
     bool res = false;
     if (st_result && ds_result && tx_result && tx_bodies_result)
