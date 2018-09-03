@@ -26,6 +26,7 @@
 #include <vector>
 
 #include "Peer.h"
+#include "RumorManager.h"
 #include "common/Constants.h"
 #include "libUtils/Logger.h"
 #include "libUtils/ThreadPool.h"
@@ -82,6 +83,7 @@ class P2PComm
                          std::chrono::time_point<std::chrono::system_clock>>>
         m_broadcastToRemove;
     std::mutex m_broadcastToRemoveMutex;
+    RumorManager m_rumorManager;
 
     const static uint32_t MAXPUMPMESSAGE = 128;
 
@@ -95,12 +97,15 @@ class P2PComm
     P2PComm(P2PComm const&) = delete;
     void operator=(P2PComm const&) = delete;
 
+    friend class RumorManager;
+
     using ShaMessage = std::vector<unsigned char>;
     static ShaMessage shaMessage(const std::vector<unsigned char>& message);
 
     Peer m_selfPeer;
 
     ThreadPool m_SendPool{MAXMESSAGE, "SendPool"};
+    ThreadPool m_RecvPool{MAXMESSAGE, "RecvPool"};
 
     boost::lockfree::queue<SendJob*> m_sendQueue;
     void ProcessSendJob(SendJob* job);
@@ -165,6 +170,9 @@ public:
                             const std::vector<unsigned char>& message);
 
     void SetSelfPeer(const Peer& self);
+
+    void SpreadRumor(const std::vector<Peer>& peers,
+                     const std::vector<unsigned char>& message);
 };
 
 #endif // __P2PCOMM_H__

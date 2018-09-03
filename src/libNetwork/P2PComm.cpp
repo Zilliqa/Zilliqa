@@ -870,4 +870,11 @@ void P2PComm::SendMessageNoQueue(const Peer& peer,
     SendJob::SendMessageCore(peer, message, START_BYTE_NORMAL, {});
 }
 
+void P2PComm::SpreadRumor(const std::vector<Peer>& peers,
+                          const std::vector<unsigned char>& message)
+{
+    LOG_MARKER();
+    m_rumorManager.addRumor(peers, message);
+}
+
 void P2PComm::SetSelfPeer(const Peer& self) { m_selfPeer = self; }
