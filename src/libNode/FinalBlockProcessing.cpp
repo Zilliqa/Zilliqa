@@ -1102,9 +1102,9 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 
         if (!LOOKUP_NODE_MODE)
         {
-            BlockStorage::GetBlockStorage().PopFrontTxBodyDB();
             BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
                                                         {'0'});
+            BlockStorage::GetBlockStorage().PopFrontTxBodyDB();
         }
     }
 
@@ -1299,7 +1299,9 @@ void Node::CommitForwardedTransactions(
         //              ", to: " << tx.GetToAddr() <<
         //              ", from: " << tx.GetFromAddr());
         if (LOOKUP_NODE_MODE)
+        {
             Server::AddToRecentTransactions(tx.GetTranID());
+        }
 
         // Store TxBody to disk
         vector<unsigned char> serializedTxBody;
@@ -1470,15 +1472,13 @@ bool Node::ProcessForwardTransactionCore(const vector<unsigned char>& message,
                     .GetHeader()
                     .GetBlockNum());
 
-#ifdef IS_LOOKUP_NODE
-            if (m_isVacuousEpoch)
+            if (LOOKUP_NODE_MODE && m_isVacuousEpoch)
             {
                 BlockStorage::GetBlockStorage().PutMetadata(
                     MetaType::DSINCOMPLETED, {'0'});
                 BlockStorage::GetBlockStorage().ResetDB(
                     BlockStorage::TX_BODY_TMP);
             }
-#endif // IS_LOOKUP_NODE
         }
 
         // #ifndef IS_LOOKUP_NODE
