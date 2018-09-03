@@ -15,12 +15,7 @@
 
 dir=build
 
-if [ "$1" = "lookup" ]
-then
-    CMAKE_EXTRA_OPTIONS="-DIS_LOOKUP_NODE=1"
-    dir=build_lookup
-    echo build lookup node
-elif [ "$1" = "cuda" ]
+if [ "$1" = "cuda" ]
 then
     CMAKE_EXTRA_OPTIONS="-DCUDA_MINE=1"
     echo build normal node with cuda
