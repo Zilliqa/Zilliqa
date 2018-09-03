@@ -117,6 +117,8 @@ public:
 
     /// Reset the entire database.
     bool ResetDB();
+
+private:
     bool ResetDBForNormalNode();
     bool ResetDBForLookupNode();
 };

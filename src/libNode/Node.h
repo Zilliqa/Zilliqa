@@ -281,7 +281,6 @@ class Node : public Executable, public Broadcastable
     bool ProcessVCBlock(const vector<unsigned char>& message,
                         unsigned int cur_offset, const Peer& from);
 
-    //#ifndef IS_LOOKUP_NODE -- normal nodes specific
     // Transaction functions
     void SubmitTransactions();
 
@@ -322,7 +321,6 @@ class Node : public Executable, public Broadcastable
 
     // Rejoin the network as a shard node in case of failure happens in protocol
     void RejoinAsNormal();
-    //#endif // IS_LOOKUP_NODE
 
 public:
     enum NodeState : unsigned char
@@ -414,7 +412,6 @@ public:
     void AddBlock(const TxBlock& block);
 
     void CommitForwardedMsgBuffer();
-    //#ifndef IS_LOOKUP_NODE -- normal nodes specific
 
     // Start synchronization with lookup as a shard node
     void StartSynchronization();
@@ -432,7 +429,6 @@ public:
 
     /// Used by oldest DS node to finish setup as a new shard node
     void StartFirstTxEpoch();
-    //#endif // IS_LOOKUP_NODE
 
     /// Used by oldest DS node to configure sharding variables as a new shard node
     bool LoadShardingStructure(const vector<unsigned char>& message,

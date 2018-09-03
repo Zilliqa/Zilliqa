@@ -115,7 +115,7 @@ bool DirectoryService::CheckState(Action action)
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
-                    "DirectoryService::StartSynchronization not "
+                    "DirectoryService::CheckState not "
                     "expected to be called from LookUp node.");
         return true;
     }
@@ -165,7 +165,7 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
-                    "DirectoryService::StartSynchronization not "
+                    "DirectoryService::ProcessSetPrimary not "
                     "expected to be called from LookUp node.");
         return true;
     }

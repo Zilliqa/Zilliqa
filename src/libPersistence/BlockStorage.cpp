@@ -475,9 +475,13 @@ std::vector<std::string> BlockStorage::GetDBName(DBTYPE type)
 bool BlockStorage::ResetAll()
 {
     if (!LOOKUP_NODE_MODE)
+    {
         return ResetDB(META) && ResetDB(DS_BLOCK) && ResetDB(TX_BLOCK)
             && ResetDB(TX_BODIES);
+    }
     else // IS_LOOKUP_NODE
+    {
         return ResetDB(META) && ResetDB(DS_BLOCK) && ResetDB(TX_BLOCK)
             && ResetDB(TX_BODY) && ResetDB(TX_BODY_TMP);
+    }
 }

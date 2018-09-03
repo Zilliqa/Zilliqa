@@ -78,9 +78,13 @@ leveldb::Slice toSlice(boost::multiprecision::uint256_t num)
 string LevelDB::GetDBName() 
 {
         if (LOOKUP_NODE_MODE)
+        {
             return m_dbName;
+        }
         else
+        {
             return m_dbName + (m_subdirectory.size() > 0 ? "/" : "") + m_subdirectory; 
+        }
 }
 
 string LevelDB::Lookup(const std::string & key) const

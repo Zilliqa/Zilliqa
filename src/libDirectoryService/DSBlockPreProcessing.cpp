@@ -581,7 +581,7 @@ unsigned int DirectoryService::PopulateShardingStructure(
         LOG_GENERAL(WARNING,
                     "DirectoryService::PopulateShardingStructure not "
                     "expected to be called from LookUp node.");
-        return true;
+        return offset;
     }
 
     m_shards.clear();
