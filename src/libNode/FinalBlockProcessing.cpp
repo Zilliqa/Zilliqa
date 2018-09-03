@@ -843,12 +843,9 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         // Remove because shard nodes will be shuffled in next epoch.
         CleanCreatedTransaction();
 
-        ProcessStateDeltaFromFinalBlock(
-            message, cur_offset, txBlock.GetHeader().GetStateDeltaHash());
-
         if (!AccountStore::GetInstance().UpdateStateTrieAll())
         {
-            LOG_GENERAL(WARNING, "UpdateStateTrieAll Failed");
+            LOG_GENERAL(WARNING, "UpdateStateTrieAll Failed 1");
             return false;
         }
 
@@ -861,6 +858,15 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         )
         {
 #endif // IS_LOOKUP_NODE
+            return false;
+        }
+
+        ProcessStateDeltaFromFinalBlock(
+            message, cur_offset, txBlock.GetHeader().GetStateDeltaHash());
+
+        if (!AccountStore::GetInstance().UpdateStateTrieAll())
+        {
+            LOG_GENERAL(WARNING, "UpdateStateTrieAll Failed 2");
             return false;
         }
 
