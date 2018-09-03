@@ -35,8 +35,6 @@ enum MessageType : unsigned char
     PEER = 0x00,
     DIRECTORY = 0x01,
     NODE = 0x02,
-    CONSENSUSUSER
-    = 0x03, // Note: this is a test class only, to demonstrate consensus usage
     LOOKUP = 0x04
 };
 

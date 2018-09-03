@@ -29,10 +29,6 @@
 #include "libNetwork/PeerStore.h"
 #include "libUtils/TimeLockedFunction.h"
 
-typedef std::function<bool(const std::vector<unsigned char>& input,
-                           std::vector<unsigned char>& errorMsg)>
-    MsgContentValidatorFunc;
-
 /// Implements base functionality shared between all consensus committee members
 class ConsensusCommon
 {
@@ -122,7 +118,7 @@ protected:
     std::deque<std::pair<PubKey, Peer>> m_committee;
 
     /// The payload to be evaluated for the active consensus session.
-    std::vector<unsigned char> m_message;
+    std::vector<unsigned char> m_messageToCosign;
 
     /// The class byte value for the next consensus message to be composed.
     unsigned char m_classByte;
@@ -162,7 +158,7 @@ protected:
                     const std::vector<unsigned char>& block_hash,
                     uint16_t my_id, const PrivKey& privkey,
                     const std::deque<std::pair<PubKey, Peer>>& committee,
-                    unsigned char class_byte, unsigned char ins_byte);
+                    unsigned char class_byte, unsigned char ins_byt);
 
     /// Destructor.
     ~ConsensusCommon();

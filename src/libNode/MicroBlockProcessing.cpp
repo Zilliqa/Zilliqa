@@ -33,6 +33,7 @@
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 #include "libMediator/Mediator.h"
+#include "libMessage/Messenger.h"
 #include "libPOW/pow.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
@@ -381,9 +382,11 @@ bool Node::ComposeMicroBlock()
 }
 
 bool Node::OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
-                             unsigned int offset, const Peer& from)
+                             const Peer& from)
 {
     LOG_MARKER();
+
+    unsigned int offset = 0;
 
     if (errorMsg.size() < 2 * sizeof(uint32_t) + offset)
     {
@@ -494,6 +497,19 @@ bool Node::OnCommitFailure([
     return true;
 }
 
+bool Node::GenerateMicroBlockAnnouncement(
+    vector<unsigned char>& dst, unsigned int offset, const uint32_t consensusID,
+    const vector<unsigned char>& blockHash, const uint16_t leaderID,
+    const pair<PrivKey, PubKey>& leaderKey,
+    vector<unsigned char>& messageToCosign)
+{
+    LOG_MARKER();
+
+    return Messenger::SetNodeMicroBlockAnnouncement(
+        dst, offset, consensusID, blockHash, leaderID, leaderKey, *m_microblock,
+        messageToCosign);
+}
+
 bool Node::RunConsensusOnMicroBlockWhenShardLeader()
 {
     LOG_MARKER();
@@ -504,9 +520,6 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
 
     // composed microblock stored in m_microblock
     ComposeMicroBlock();
-
-    vector<unsigned char> microblock;
-    m_microblock->Serialize(microblock, 0);
 
     //m_consensusID = 0;
     m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
@@ -519,10 +532,9 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
                   << " Shard Leader: "
                   << (*m_myShardMembers)[m_consensusLeaderID].second);
 
-    auto nodeMissingTxnsFunc
-        = [this](const vector<unsigned char>& errorMsg, unsigned int offset,
-                 const Peer& from) mutable -> bool {
-        return OnNodeMissingTxns(errorMsg, offset, from);
+    auto nodeMissingTxnsFunc = [this](const vector<unsigned char>& errorMsg,
+                                      const Peer& from) mutable -> bool {
+        return OnNodeMissingTxns(errorMsg, from);
     };
 
     auto commitFailureFunc
@@ -556,7 +568,19 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
 
     ConsensusLeader* cl
         = dynamic_cast<ConsensusLeader*>(m_consensusObject.get());
-    cl->StartConsensus(microblock, MicroBlockHeader::SIZE);
+
+    auto announcementGeneratorFunc =
+        [this](vector<unsigned char>& dst, unsigned int offset,
+               const uint32_t consensusID,
+               const vector<unsigned char>& blockHash, const uint16_t leaderID,
+               const pair<PrivKey, PubKey>& leaderKey,
+               vector<unsigned char>& messageToCosign) mutable -> bool {
+        return GenerateMicroBlockAnnouncement(dst, offset, consensusID,
+                                              blockHash, leaderID, leaderKey,
+                                              messageToCosign);
+    };
+
+    cl->StartConsensus(announcementGeneratorFunc);
 
     return true;
 }
@@ -572,9 +596,16 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup()
     //m_consensusID = 0;
     m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
-    auto func = [this](const vector<unsigned char>& message,
-                       vector<unsigned char>& errorMsg) mutable -> bool {
-        return MicroBlockValidator(message, errorMsg);
+
+    auto func
+        = [this](const vector<unsigned char>& input, unsigned int offset,
+                 vector<unsigned char>& errorMsg, const uint32_t consensusID,
+                 const vector<unsigned char>& blockHash,
+                 const uint16_t leaderID, const PubKey& leaderKey,
+                 vector<unsigned char>& messageToCosign) mutable -> bool {
+        return MicroBlockValidator(input, offset, errorMsg, consensusID,
+                                   blockHash, leaderID, leaderKey,
+                                   messageToCosign);
     };
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -897,13 +928,29 @@ bool Node::CheckMicroBlockShardID()
     return true;
 }
 
-bool Node::MicroBlockValidator(const vector<unsigned char>& microblock,
-                               vector<unsigned char>& errorMsg)
+bool Node::MicroBlockValidator(const vector<unsigned char>& message,
+                               unsigned int offset,
+                               [[gnu::unused]] vector<unsigned char>& errorMsg,
+                               const uint32_t consensusID,
+                               const vector<unsigned char>& blockHash,
+                               const uint16_t leaderID, const PubKey& leaderKey,
+                               vector<unsigned char>& messageToCosign)
 {
     LOG_MARKER();
 
     // [TODO] To put in the logic
-    m_microblock = make_shared<MicroBlock>(MicroBlock(microblock, 0));
+    MicroBlock microBlock;
+
+    if (!Messenger::GetNodeMicroBlockAnnouncement(
+            message, offset, consensusID, blockHash, leaderID, leaderKey,
+            microBlock, messageToCosign))
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::GetNodeMicroBlockAnnouncement failed.");
+        return false;
+    }
+
+    m_microblock = make_shared<MicroBlock>(MicroBlock(microBlock));
 
     bool valid = false;
 

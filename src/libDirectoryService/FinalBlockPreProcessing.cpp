@@ -28,6 +28,7 @@
 #include "depends/libTrie/TrieHash.h"
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
+#include "libMessage/Messenger.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -220,59 +221,17 @@ void DirectoryService::ComposeFinalBlockCore()
                   << m_finalBlock->GetHeader().GetNumTxs() << " transactions.");
 }
 
-vector<unsigned char> DirectoryService::ComposeFinalBlockMessage()
+bool DirectoryService::GenerateFinalBlockAnnouncement(
+    vector<unsigned char>& dst, unsigned int offset, const uint32_t consensusID,
+    const vector<unsigned char>& blockHash, const uint16_t leaderID,
+    const pair<PrivKey, PubKey>& leaderKey,
+    vector<unsigned char>& messageToCosign)
 {
     LOG_MARKER();
 
-    vector<unsigned char> finalBlockMessage;
-    unsigned int curr_offset = 0;
-    /** To remove. Redundant code. 
-
-    bool isVacuousEpoch
-        = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
-
-    {
-        unique_lock<mutex> g(m_mediator.m_node->m_mutexUnavailableMicroBlocks,
-                             defer_lock);
-        unique_lock<mutex> g2(m_mediator.m_node->m_mutexAllMicroBlocksRecvd,
-                              defer_lock);
-        lock(g, g2);
-
-        if (isVacuousEpoch && !m_mediator.m_node->m_allMicroBlocksRecvd)
-        {
-            LOG_EPOCH(
-                INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Waiting for microblocks before composing final block. Count: "
-                    << m_mediator.m_node->m_unavailableMicroBlocks.size());
-            for (auto it : m_mediator.m_node->m_unavailableMicroBlocks)
-            {
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "Waiting for finalblock " << it.first << ". Count "
-                                                    << it.second.size());
-                for (auto it2 : it.second)
-                {
-                    LOG_EPOCH(INFO,
-                              to_string(m_mediator.m_currentEpochNum).c_str(),
-                              it2.first);
-                }
-            }
-
-            m_mediator.m_node->m_cvAllMicroBlocksRecvd.wait(
-                g, [this] { return m_mediator.m_node->m_allMicroBlocksRecvd; });
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "All microblocks recvd, moving to compose final block");
-        }
-    }
-    **/
-
-    ComposeFinalBlockCore(); // stores it in m_finalBlock
-
-    m_finalBlock->Serialize(finalBlockMessage, curr_offset);
-
-    // At this point, cosigs are still not updated inside m_finalBlockMessage
-    // Update will be done in ProcessFinalBlockConsensusWhenDone
-    m_finalBlockMessage = finalBlockMessage;
-    return finalBlockMessage;
+    return Messenger::SetDSFinalBlockAnnouncement(
+        dst, offset, consensusID, blockHash, leaderID, leaderKey, *m_finalBlock,
+        messageToCosign);
 }
 
 bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
@@ -284,9 +243,6 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I am the leader DS node. Creating final block.");
 
-    // finalBlockMessage = serialized final block + tx-body sharing setup
-    vector<unsigned char> finalBlockMessage = ComposeFinalBlockMessage();
-
     // kill first ds leader (used for view change testing)
     /**
     if (m_consensusMyID == 0 && m_viewChangeCounter < 1)
@@ -297,9 +253,10 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
     }
     **/
 
+    ComposeFinalBlockCore(); // stores it in m_finalBlock
+
     // Create new consensus object
     // Dummy values for now
-    //uint32_t consensusID = 0x0;
     m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
 
@@ -308,8 +265,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
         m_mediator.m_selfKey.first, *m_mediator.m_DSCommittee,
         static_cast<unsigned char>(DIRECTORY),
         static_cast<unsigned char>(FINALBLOCKCONSENSUS),
-        std::function<bool(const vector<unsigned char>&, unsigned int,
-                           const Peer&)>(),
+        std::function<bool(const vector<unsigned char>&, const Peer&)>(),
         std::function<bool(map<unsigned int, std::vector<unsigned char>>)>()));
 
     if (m_consensusObject == nullptr)
@@ -333,7 +289,18 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
                       + 1 << "] BGIN");
     }
 
-    cl->StartConsensus(finalBlockMessage, TxBlockHeader::SIZE);
+    auto announcementGeneratorFunc =
+        [this](vector<unsigned char>& dst, unsigned int offset,
+               const uint32_t consensusID,
+               const vector<unsigned char>& blockHash, const uint16_t leaderID,
+               const pair<PrivKey, PubKey>& leaderKey,
+               vector<unsigned char>& messageToCosign) mutable -> bool {
+        return GenerateFinalBlockAnnouncement(dst, offset, consensusID,
+                                              blockHash, leaderID, leaderKey,
+                                              messageToCosign);
+    };
+
+    cl->StartConsensus(announcementGeneratorFunc);
 
     return true;
 }
@@ -777,15 +744,25 @@ bool DirectoryService::WaitForTxnBodies()
 // }
 
 bool DirectoryService::FinalBlockValidator(
-    const vector<unsigned char>& finalblock,
-    [[gnu::unused]] vector<unsigned char>& errorMsg)
+    const vector<unsigned char>& message, unsigned int offset,
+    [[gnu::unused]] vector<unsigned char>& errorMsg, const uint32_t consensusID,
+    const vector<unsigned char>& blockHash, const uint16_t leaderID,
+    const PubKey& leaderKey, vector<unsigned char>& messageToCosign)
 {
     LOG_MARKER();
 
-    unsigned int curr_offset = 0;
+    TxBlock txBlock;
 
-    m_finalBlock.reset(new TxBlock(finalblock, curr_offset));
-    curr_offset += m_finalBlock->GetSerializedSize();
+    if (!Messenger::GetDSFinalBlockAnnouncement(message, offset, consensusID,
+                                                blockHash, leaderID, leaderKey,
+                                                txBlock, messageToCosign))
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::GetDSFinalBlockAnnouncement failed.");
+        return false;
+    }
+
+    m_finalBlock.reset(new TxBlock(txBlock));
 
     // WaitForTxnBodies();
 
@@ -818,8 +795,6 @@ bool DirectoryService::FinalBlockValidator(
                   << DataConversion::charArrToHexStr(
                          m_finalBlock->GetHeader().GetPrevHash().asArray()));
 
-    m_finalBlockMessage = finalblock;
-
     return true;
 }
 
@@ -836,9 +811,15 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup()
     m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
 
-    auto func = [this](const vector<unsigned char>& message,
-                       vector<unsigned char>& errorMsg) mutable -> bool {
-        return FinalBlockValidator(message, errorMsg);
+    auto func
+        = [this](const vector<unsigned char>& input, unsigned int offset,
+                 vector<unsigned char>& errorMsg, const uint32_t consensusID,
+                 const vector<unsigned char>& blockHash,
+                 const uint16_t leaderID, const PubKey& leaderKey,
+                 vector<unsigned char>& messageToCosign) mutable -> bool {
+        return FinalBlockValidator(input, offset, errorMsg, consensusID,
+                                   blockHash, leaderID, leaderKey,
+                                   messageToCosign);
     };
 
     m_consensusObject.reset(new ConsensusBackup(

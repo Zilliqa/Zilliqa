@@ -28,7 +28,6 @@
 #include <shared_mutex>
 #include <vector>
 
-#include "DSBlockMessage.h"
 #include "common/Broadcastable.h"
 #include "common/Executable.h"
 #include "libConsensus/Consensus.h"
@@ -86,7 +85,6 @@ class DirectoryService : public Executable, public Broadcastable
     std::set<MicroBlock> m_microBlocks;
     std::mutex m_mutexMicroBlocks;
     std::shared_ptr<TxBlock> m_finalBlock;
-    std::vector<unsigned char> m_finalBlockMessage;
 
     // View Change
     std::atomic<uint32_t> m_viewChangeCounter;
@@ -153,6 +151,21 @@ class DirectoryService : public Executable, public Broadcastable
     void ComputeTxnSharingAssignments(const Peer& winnerpeer);
 
     // internal calls from RunConsensusOnDSBlock
+    bool GenerateDSBlockAnnouncement(
+        std::vector<unsigned char>& dst, unsigned int offset,
+        const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
+        const uint16_t leaderID, const std::pair<PrivKey, PubKey>& leaderKey,
+        std::vector<unsigned char>& messageToCosign);
+    bool GenerateFinalBlockAnnouncement(
+        std::vector<unsigned char>& dst, unsigned int offset,
+        const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
+        const uint16_t leaderID, const std::pair<PrivKey, PubKey>& leaderKey,
+        std::vector<unsigned char>& messageToCosign);
+    bool GenerateVCBlockAnnouncement(
+        std::vector<unsigned char>& dst, unsigned int offset,
+        const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
+        const uint16_t leaderID, const std::pair<PrivKey, PubKey>& leaderKey,
+        std::vector<unsigned char>& messageToCosign);
     bool RunConsensusOnDSBlockWhenDSPrimary();
     bool RunConsensusOnDSBlockWhenDSBackup();
 
@@ -188,7 +201,6 @@ class DirectoryService : public Executable, public Broadcastable
     bool RunConsensusOnFinalBlockWhenDSPrimary();
     bool RunConsensusOnFinalBlockWhenDSBackup();
     void ComposeFinalBlockCore();
-    vector<unsigned char> ComposeFinalBlockMessage();
     bool ParseMessageAndVerifyPOW(const vector<unsigned char>& message,
                                   unsigned int offset, const Peer& from);
     bool CheckWhetherDSBlockIsFresh(const uint64_t dsblock_num);
@@ -229,16 +241,22 @@ class DirectoryService : public Executable, public Broadcastable
     // bool WaitForTxnBodies();
 
     // DS block consensus validator function
-    bool DSBlockValidator(const std::vector<unsigned char>& dsblock,
-                          std::vector<unsigned char>& errorMsg);
-
-    // Sharding consensus validator function
-    bool ShardingValidator(const std::vector<unsigned char>& sharding_structure,
-                           std::vector<unsigned char>& errorMsg);
+    bool DSBlockValidator(const std::vector<unsigned char>& message,
+                          unsigned int offset,
+                          std::vector<unsigned char>& errorMsg,
+                          const uint32_t consensusID,
+                          const std::vector<unsigned char>& blockHash,
+                          const uint16_t leaderID, const PubKey& leaderKey,
+                          std::vector<unsigned char>& messageToCosign);
 
     // Final block consensus validator function
-    bool FinalBlockValidator(const std::vector<unsigned char>& finalblock,
-                             std::vector<unsigned char>& errorMsg);
+    bool FinalBlockValidator(const std::vector<unsigned char>& message,
+                             unsigned int offset,
+                             std::vector<unsigned char>& errorMsg,
+                             const uint32_t consensusID,
+                             const std::vector<unsigned char>& blockHash,
+                             const uint16_t leaderID, const PubKey& leaderKey,
+                             std::vector<unsigned char>& messageToCosign);
 
     void StoreFinalBlockToDisk();
 
@@ -257,8 +275,13 @@ class DirectoryService : public Executable, public Broadcastable
     void RunConsensusOnViewChange();
     void ScheduleViewChangeTimeout();
     void ComputeNewCandidateLeader();
-    bool ViewChangeValidator(const vector<unsigned char>& vcBlock,
-                             std::vector<unsigned char>& errorMsg);
+    bool ViewChangeValidator(const std::vector<unsigned char>& message,
+                             unsigned int offset,
+                             std::vector<unsigned char>& errorMsg,
+                             const uint32_t consensusID,
+                             const std::vector<unsigned char>& blockHash,
+                             const uint16_t leaderID, const PubKey& leaderKey,
+                             std::vector<unsigned char>& messageToCosign);
     bool RunConsensusOnViewChangeWhenCandidateLeader();
     bool RunConsensusOnViewChangeWhenNotCandidateLeader();
     void ProcessViewChangeConsensusWhenDone();
@@ -357,16 +380,7 @@ public:
                  const Peer& from);
 
     /// Used by PoW winner to configure sharding variables as the next DS leader
-    unsigned int PopulateShardingStructure(const vector<unsigned char>& message,
-                                           unsigned int offset);
-
-    /// Used by PoW winner to configure sharding variables as the next DS leader
     bool ProcessShardingStructure();
-
-    /// Used by PoW winner to configure txn sharing assignment variables as the next DS leader
-    void SaveTxnBodySharingAssignment(
-        const vector<unsigned char>& sharding_structure,
-        unsigned int curr_offset);
 
     /// Used by PoW winner to configure txn sharing assignment variables as the next DS leader
     void ProcessTxnBodySharingAssignment();

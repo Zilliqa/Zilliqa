@@ -1,54 +1,295 @@
 #include "common/Serializable.h"
 #include "libCrypto/Schnorr.h"
-#include "libData/BlockData/Block/DSBlock.h"
+#include "libData/BlockData/Block.h"
 #include "libNetwork/Peer.h"
 
 class Messenger
 {
 public:
     // Directory service messages
-    static bool
-    SetDSPoWSubmission(std::vector<unsigned char>& dst, unsigned int offset,
-                       const uint64_t blockNumber, const Peer& submitterPeer,
-                       const std::pair<PrivKey, PubKey>& submitterKey,
-                       const uint64_t nonce, const std::string& resultingHash,
-                       const std::string& mixHash);
+    static bool SetDSPoWSubmission(
+        std::vector<unsigned char>& dst, const unsigned int offset,
+        const uint64_t blockNumber, const Peer& submitterPeer,
+        const std::pair<PrivKey, PubKey>& submitterKey, const uint64_t nonce,
+        const std::string& resultingHash, const std::string& mixHash);
     static bool GetDSPoWSubmission(const std::vector<unsigned char>& src,
-                                   unsigned int offset, uint64_t& blockNumber,
-                                   Peer& submitterPeer, PubKey& submitterPubKey,
-                                   uint64_t& nonce, std::string& resultingHash,
+                                   const unsigned int offset,
+                                   uint64_t& blockNumber, Peer& submitterPeer,
+                                   PubKey& submitterPubKey, uint64_t& nonce,
+                                   std::string& resultingHash,
                                    std::string& mixHash, Signature& signature);
 
     static bool SetDSDSBlockAnnouncement(
-        std::vector<unsigned char>& dst, unsigned int offset,
+        std::vector<unsigned char>& dst, const unsigned int offset,
+        const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
+        const uint16_t leaderID, const std::pair<PrivKey, PubKey>& leaderKey,
         const DSBlock& dsBlock, const Peer& powWinnerPeer,
-        const std::vector<map<PubKey, Peer>>& shards,
+        const std::vector<std::map<PubKey, Peer>>& shards,
         const std::vector<Peer>& dsReceivers,
         const std::vector<std::vector<Peer>>& shardReceivers,
-        const std::vector<std::vector<Peer>>& shardSenders);
+        const std::vector<std::vector<Peer>>& shardSenders,
+        std::vector<unsigned char>& messageToCosign);
+
     static bool GetDSDSBlockAnnouncement(
-        const std::vector<unsigned char>& src, unsigned int offset,
-        DSBlock& dsBlock, Peer& powWinnerPeer,
-        std::vector<map<PubKey, Peer>>& shards, std::vector<Peer>& dsReceivers,
+        const std::vector<unsigned char>& src, const unsigned int offset,
+        const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
+        const uint16_t leaderID, const PubKey& leaderKey, DSBlock& dsBlock,
+        Peer& powWinnerPeer, std::vector<std::map<PubKey, Peer>>& shards,
+        std::vector<Peer>& dsReceivers,
         std::vector<std::vector<Peer>>& shardReceivers,
-        std::vector<std::vector<Peer>>& shardSenders);
+        std::vector<std::vector<Peer>>& shardSenders,
+        std::vector<unsigned char>& messageToCosign);
+
+    static bool SetDSFinalBlockAnnouncement(
+        std::vector<unsigned char>& dst, const unsigned int offset,
+        const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
+        const uint16_t leaderID, const std::pair<PrivKey, PubKey>& leaderKey,
+        const TxBlock& txBlock, std::vector<unsigned char>& messageToCosign);
+
+    static bool GetDSFinalBlockAnnouncement(
+        const std::vector<unsigned char>& src, const unsigned int offset,
+        const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
+        const uint16_t leaderID, const PubKey& leaderKey, TxBlock& txBlock,
+        std::vector<unsigned char>& messageToCosign);
+
+    static bool SetDSVCBlockAnnouncement(
+        std::vector<unsigned char>& dst, const unsigned int offset,
+        const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
+        const uint16_t leaderID, const std::pair<PrivKey, PubKey>& leaderKey,
+        const VCBlock& vcBlock, std::vector<unsigned char>& messageToCosign);
+
+    static bool GetDSVCBlockAnnouncement(
+        const std::vector<unsigned char>& src, const unsigned int offset,
+        const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
+        const uint16_t leaderID, const PubKey& leaderKey, VCBlock& vcBlock,
+        std::vector<unsigned char>& messageToCosign);
 
     // Node messages
     static bool
-    SetNodeDSBlock(std::vector<unsigned char>& dst, unsigned int offset,
+    SetNodeDSBlock(std::vector<unsigned char>& dst, const unsigned int offset,
                    const uint32_t shardID, const DSBlock& dsBlock,
                    const Peer& powWinnerPeer,
-                   const std::vector<map<PubKey, Peer>>& shards,
+                   const std::vector<std::map<PubKey, Peer>>& shards,
                    const std::vector<Peer>& dsReceivers,
                    const std::vector<std::vector<Peer>>& shardReceivers,
                    const std::vector<std::vector<Peer>>& shardSenders);
+
     static bool GetNodeDSBlock(const std::vector<unsigned char>& src,
-                               unsigned int offset, uint32_t& shardID,
+                               const unsigned int offset, uint32_t& shardID,
                                DSBlock& dsBlock, Peer& powWinnerPeer,
-                               std::vector<map<PubKey, Peer>>& shards,
+                               std::vector<std::map<PubKey, Peer>>& shards,
                                std::vector<Peer>& dsReceivers,
                                std::vector<std::vector<Peer>>& shardReceivers,
                                std::vector<std::vector<Peer>>& shardSenders);
 
+    static bool SetNodeFinalBlock(std::vector<unsigned char>& dst,
+                                  const unsigned int offset,
+                                  const uint32_t shardID,
+                                  const uint64_t dsBlockNumber,
+                                  const uint32_t consensusID,
+                                  const TxBlock& txBlock,
+                                  const std::vector<unsigned char>& stateDelta);
+    static bool GetNodeFinalBlock(const std::vector<unsigned char>& src,
+                                  const unsigned int offset, uint32_t& shardID,
+                                  uint64_t& dsBlockNumber,
+                                  uint32_t& consensusID, TxBlock& txBlock,
+                                  std::vector<unsigned char>& stateDelta);
+
+    static bool SetNodeMicroBlockAnnouncement(
+        std::vector<unsigned char>& dst, const unsigned int offset,
+        const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
+        const uint16_t leaderID, const std::pair<PrivKey, PubKey>& leaderKey,
+        const MicroBlock& microBlock,
+        std::vector<unsigned char>& messageToCosign);
+
+    static bool GetNodeMicroBlockAnnouncement(
+        const std::vector<unsigned char>& src, const unsigned int offset,
+        const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
+        const uint16_t leaderID, const PubKey& leaderKey,
+        MicroBlock& microBlock, std::vector<unsigned char>& messageToCosign);
+
+    // Consensus messages
+    static bool SetConsensusCommit(std::vector<unsigned char>& dst,
+                                   const unsigned int offset,
+                                   const uint32_t consensusID,
+                                   const std::vector<unsigned char>& blockHash,
+                                   const uint16_t backupID,
+                                   const CommitPoint& commit,
+                                   const std::pair<PrivKey, PubKey>& backupKey);
+    static bool GetConsensusCommit(
+        const std::vector<unsigned char>& src, const unsigned int offset,
+        const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
+        uint16_t& backupID, CommitPoint& commit,
+        const std::deque<std::pair<PubKey, Peer>>& committeeKeys);
+
+    static bool SetConsensusChallenge(
+        std::vector<unsigned char>& dst, const unsigned int offset,
+        const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
+        const uint16_t leaderID, const CommitPoint& aggregatedCommit,
+        const PubKey& aggregatedKey, const Challenge& challenge,
+        const std::pair<PrivKey, PubKey>& leaderKey);
+    static bool GetConsensusChallenge(
+        const std::vector<unsigned char>& src, const unsigned int offset,
+        const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
+        const uint16_t leaderID, CommitPoint& aggregatedCommit,
+        PubKey& aggregatedKey, Challenge& challenge, const PubKey& leaderKey);
+
+    static bool
+    SetConsensusResponse(std::vector<unsigned char>& dst,
+                         const unsigned int offset, const uint32_t consensusID,
+                         const std::vector<unsigned char>& blockHash,
+                         const uint16_t backupID, const Response& response,
+                         const std::pair<PrivKey, PubKey>& backupKey);
+    static bool GetConsensusResponse(
+        const std::vector<unsigned char>& src, const unsigned int offset,
+        const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
+        uint16_t& backupID, Response& response,
+        const std::deque<std::pair<PubKey, Peer>>& committeeKeys);
+
+    static bool SetConsensusCollectiveSig(
+        std::vector<unsigned char>& dst, const unsigned int offset,
+        const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
+        const uint16_t leaderID, const Signature& collectiveSig,
+        const std::vector<bool>& bitmap,
+        const std::pair<PrivKey, PubKey>& leaderKey);
+    static bool GetConsensusCollectiveSig(
+        const std::vector<unsigned char>& src, const unsigned int offset,
+        const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
+        const uint16_t leaderID, std::vector<bool>& bitmap,
+        Signature& collectiveSig, const PubKey& leaderKey);
+
+    static bool SetConsensusCommitFailure(
+        std::vector<unsigned char>& dst, const unsigned int offset,
+        const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
+        const uint16_t backupID, const std::vector<unsigned char>& errorMsg,
+        const std::pair<PrivKey, PubKey>& backupKey);
+    static bool GetConsensusCommitFailure(
+        const std::vector<unsigned char>& src, const unsigned int offset,
+        const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
+        uint16_t& backupID, std::vector<unsigned char>& errorMsg,
+        const std::deque<std::pair<PubKey, Peer>>& committeeKeys);
+
     // Lookup messages
+    static bool SetLookupGetSeedPeers(std::vector<unsigned char>& dst,
+                                      const unsigned int offset,
+                                      const uint32_t listenPort);
+    static bool GetLookupGetSeedPeers(const std::vector<unsigned char>& src,
+                                      const unsigned int offset,
+                                      uint32_t& listenPort);
+    static bool SetLookupSetSeedPeers(std::vector<unsigned char>& dst,
+                                      const unsigned int offset,
+                                      const std::vector<Peer>& candidateSeeds);
+    static bool GetLookupSetSeedPeers(const std::vector<unsigned char>& src,
+                                      const unsigned int offset,
+                                      std::vector<Peer>& candidateSeeds);
+    static bool SetLookupGetDSInfoFromSeed(std::vector<unsigned char>& dst,
+                                           const unsigned int offset,
+                                           const uint32_t listenPort);
+    static bool
+    GetLookupGetDSInfoFromSeed(const std::vector<unsigned char>& src,
+                               const unsigned int offset, uint32_t& listenPort);
+    static bool SetLookupSetDSInfoFromSeed(
+        std::vector<unsigned char>& dst, const unsigned int offset,
+        const std::vector<std::pair<PubKey, Peer>>& dsNodes);
+    static bool
+    GetLookupSetDSInfoFromSeed(const std::vector<unsigned char>& src,
+                               const unsigned int offset,
+                               std::vector<std::pair<PubKey, Peer>>& dsNodes);
+    static bool SetLookupGetDSBlockFromSeed(std::vector<unsigned char>& dst,
+                                            const unsigned int offset,
+                                            const uint64_t lowBlockNum,
+                                            const uint64_t highBlockNum,
+                                            const uint32_t listenPort);
+    static bool GetLookupGetDSBlockFromSeed(
+        const std::vector<unsigned char>& src, const unsigned int offset,
+        uint64_t& lowBlockNum, uint64_t& highBlockNum, uint32_t& listenPort);
+    static bool SetLookupSetDSBlockFromSeed(
+        std::vector<unsigned char>& dst, const unsigned int offset,
+        const uint64_t lowBlockNum, const uint64_t highBlockNum,
+        const std::vector<DSBlock>& dsBlocks);
+    static bool
+    GetLookupSetDSBlockFromSeed(const std::vector<unsigned char>& src,
+                                const unsigned int offset,
+                                uint64_t& lowBlockNum, uint64_t& highBlockNum,
+                                std::vector<DSBlock>& dsBlocks);
+    static bool SetLookupGetTxBlockFromSeed(std::vector<unsigned char>& dst,
+                                            const unsigned int offset,
+                                            const uint64_t lowBlockNum,
+                                            const uint64_t highBlockNum,
+                                            const uint32_t listenPort);
+    static bool GetLookupGetTxBlockFromSeed(
+        const std::vector<unsigned char>& src, const unsigned int offset,
+        uint64_t& lowBlockNum, uint64_t& highBlockNum, uint32_t& listenPort);
+    static bool SetLookupSetTxBlockFromSeed(
+        std::vector<unsigned char>& dst, const unsigned int offset,
+        const uint64_t lowBlockNum, const uint64_t highBlockNum,
+        const std::vector<TxBlock>& txBlocks);
+    static bool
+    GetLookupSetTxBlockFromSeed(const std::vector<unsigned char>& src,
+                                const unsigned int offset,
+                                uint64_t& lowBlockNum, uint64_t& highBlockNum,
+                                std::vector<TxBlock>& txBlocks);
+    static bool SetLookupGetTxBodyFromSeed(
+        std::vector<unsigned char>& dst, const unsigned int offset,
+        const std::vector<unsigned char>& txHash, const uint32_t listenPort);
+    static bool GetLookupGetTxBodyFromSeed(
+        const std::vector<unsigned char>& src, const unsigned int offset,
+        std::vector<unsigned char>& txHash, uint32_t& listenPort);
+    static bool SetLookupSetTxBodyFromSeed(
+        std::vector<unsigned char>& dst, const unsigned int offset,
+        const std::vector<unsigned char>& txHash, const Transaction& txBody);
+    static bool GetLookupSetTxBodyFromSeed(
+        const std::vector<unsigned char>& src, const unsigned int offset,
+        std::vector<unsigned char>& txHash, Transaction& txBody);
+    static bool SetLookupSetNetworkIDFromSeed(std::vector<unsigned char>& dst,
+                                              const unsigned int offset,
+                                              const std::string& networkID);
+    static bool
+    GetLookupSetNetworkIDFromSeed(const std::vector<unsigned char>& src,
+                                  const unsigned int offset,
+                                  std::string& networkID);
+    static bool SetLookupGetStateFromSeed(std::vector<unsigned char>& dst,
+                                          const unsigned int offset,
+                                          const uint32_t listenPort);
+    static bool GetLookupGetStateFromSeed(const std::vector<unsigned char>& src,
+                                          const unsigned int offset,
+                                          uint32_t& listenPort);
+    static bool SetLookupSetStateFromSeed(std::vector<unsigned char>& dst,
+                                          const unsigned int offset,
+                                          const AccountStore& accountStore);
+    static bool GetLookupSetStateFromSeed(const std::vector<unsigned char>& src,
+                                          const unsigned int offset,
+                                          AccountStore& accountStore);
+    static bool SetLookupSetLookupOffline(std::vector<unsigned char>& dst,
+                                          const unsigned int offset,
+                                          const uint32_t listenPort);
+    static bool GetLookupSetLookupOffline(const std::vector<unsigned char>& src,
+                                          const unsigned int offset,
+                                          uint32_t& listenPort);
+    static bool SetLookupSetLookupOnline(std::vector<unsigned char>& dst,
+                                         const unsigned int offset,
+                                         const uint32_t listenPort);
+    static bool GetLookupSetLookupOnline(const std::vector<unsigned char>& src,
+                                         const unsigned int offset,
+                                         uint32_t& listenPort);
+    static bool SetLookupGetOfflineLookups(std::vector<unsigned char>& dst,
+                                           const unsigned int offset,
+                                           const uint32_t listenPort);
+    static bool
+    GetLookupGetOfflineLookups(const std::vector<unsigned char>& src,
+                               const unsigned int offset, uint32_t& listenPort);
+    static bool SetLookupSetOfflineLookups(std::vector<unsigned char>& dst,
+                                           const unsigned int offset,
+                                           const std::vector<Peer>& nodes);
+    static bool
+    GetLookupSetOfflineLookups(const std::vector<unsigned char>& src,
+                               const unsigned int offset,
+                               std::vector<Peer>& nodes);
+    static bool SetLookupGetStartPoWFromSeed(std::vector<unsigned char>& dst,
+                                             const unsigned int offset,
+                                             const uint32_t listenPort);
+    static bool
+    GetLookupGetStartPoWFromSeed(const std::vector<unsigned char>& src,
+                                 const unsigned int offset,
+                                 uint32_t& listenPort);
 };

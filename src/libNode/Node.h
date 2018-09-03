@@ -188,10 +188,9 @@ class Node : public Executable, public Broadcastable
                                          const uint64_t& blocknum,
                                          bool& toSendTxnToLookup);
 
-    bool
-    ProcessStateDeltaFromFinalBlock(const vector<unsigned char>& message,
-                                    unsigned int cur_offset,
-                                    const StateHash& finalBlockStateDeltaHash);
+    bool ProcessStateDeltaFromFinalBlock(
+        const vector<unsigned char>& stateDeltaBytes,
+        const StateHash& finalBlockStateDeltaHash);
 
     bool
     RemoveTxRootHashFromUnavailableMicroBlock(const uint64_t& blocknum,
@@ -209,10 +208,7 @@ class Node : public Executable, public Broadcastable
                                               bool& isEveryMicroBlockAvailable);
     bool IsMyShardMicroBlockInFinalBlock(const uint64_t& blocknum);
     bool IsMyShardIdInFinalBlock(const uint64_t& blocknum);
-    bool
-    ReadAuxilliaryInfoFromFinalBlockMsg(const vector<unsigned char>& message,
-                                        unsigned int& cur_offset,
-                                        uint32_t& shard_id);
+
     void StoreState();
     // void StoreMicroBlocks();
     void StoreFinalBlock(const TxBlock& txBlock);
@@ -242,6 +238,12 @@ class Node : public Executable, public Broadcastable
     void LogReceivedDSBlockDetails(const DSBlock& dsblock);
     void StoreDSBlockToDisk(const DSBlock& dsblock);
     void UpdateDSCommiteeComposition(const Peer& winnerpeer); //TODO: Refactor
+
+    bool GenerateMicroBlockAnnouncement(
+        std::vector<unsigned char>& dst, unsigned int offset,
+        const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
+        const uint16_t leaderID, const std::pair<PrivKey, PubKey>& leaderKey,
+        std::vector<unsigned char>& messageToCosign);
 
     // Message handlers
     bool ProcessStartPoW(const std::vector<unsigned char>& message,
@@ -286,7 +288,7 @@ class Node : public Executable, public Broadcastable
     void SubmitTransactions();
 
     bool OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
-                           unsigned int offset, const Peer& from);
+                           const Peer& from);
     bool
     OnCommitFailure(const std::map<unsigned int, std::vector<unsigned char>>&);
 
@@ -295,9 +297,13 @@ class Node : public Executable, public Broadcastable
     bool RunConsensusOnMicroBlock();
     bool ComposeMicroBlock();
     void SubmitMicroblockToDSCommittee() const;
-    bool
-    MicroBlockValidator(const std::vector<unsigned char>& sharding_structure,
-                        std::vector<unsigned char>& errorMsg);
+    bool MicroBlockValidator(const std::vector<unsigned char>& message,
+                             unsigned int offset,
+                             std::vector<unsigned char>& errorMsg,
+                             const uint32_t consensusID,
+                             const std::vector<unsigned char>& blockHash,
+                             const uint16_t leaderID, const PubKey& leaderKey,
+                             std::vector<unsigned char>& messageToCosign);
     bool CheckLegitimacyOfTxnHashes(std::vector<unsigned char>& errorMsg);
     bool CheckBlockTypeIsMicro();
     bool CheckMicroBlockVersion();

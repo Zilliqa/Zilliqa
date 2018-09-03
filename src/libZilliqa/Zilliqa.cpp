@@ -68,7 +68,7 @@ void Zilliqa::ProcessMessage(pair<vector<unsigned char>, Peer>* message)
             const unsigned char msg_type
                 = message->first.at(MessageOffset::TYPE);
 
-            Executable* msg_handlers[] = {&m_pm, &m_ds, &m_n, &m_cu, &m_lookup};
+            Executable* msg_handlers[] = {&m_pm, &m_ds, &m_n, NULL, &m_lookup};
 
             const unsigned int msg_handlers_count
                 = sizeof(msg_handlers) / sizeof(Executable*);
@@ -103,7 +103,6 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
     , m_ds(m_mediator)
     , m_lookup(m_mediator)
     , m_n(m_mediator, syncType, toRetrieveHistory)
-    , m_cu(key, peer)
     , m_msgQueue(MSGQUEUE_SIZE)
 #ifdef IS_LOOKUP_NODE
     , m_httpserver(SERVER_PORT)
@@ -224,7 +223,7 @@ vector<Peer> Zilliqa::RetrieveBroadcastList(unsigned char msg_type,
 {
     // LOG_MARKER();
 
-    Broadcastable* msg_handlers[] = {&m_pm, &m_ds, &m_n, &m_cu, &m_lookup};
+    Broadcastable* msg_handlers[] = {&m_pm, &m_ds, &m_n, NULL, &m_lookup};
 
     const unsigned int msg_handlers_count
         = sizeof(msg_handlers) / sizeof(Broadcastable*);
