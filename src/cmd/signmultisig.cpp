@@ -31,50 +31,26 @@ int main(int argc, const char* argv[])
     const vector<unsigned char> message
         = DataConversion::HexStrToUint8Vec(string(argv[1]));
 
-    char buf[100];
+    string line;
     vector<PrivKey> privKeys;
-    FILE* privFile = fopen(argv[2], "r");
-
-    while (fgets(buf, sizeof(buf), privFile))
     {
-        string s = buf;
+        fstream privFile(argv[2], ios::in);
 
-        if ('\n' == s.at(s.size() - 1))
+        while (getline(privFile, line))
         {
-            s = s.substr(0, s.size() - 1);
+            privKeys.emplace_back(DataConversion::HexStrToUint8Vec(line), 0);
         }
-
-        if (s.empty())
-        {
-            continue;
-        }
-
-        privKeys.emplace_back(DataConversion::HexStrToUint8Vec(s), 0);
     }
-
-    fclose(privFile);
 
     vector<PubKey> pubKeys;
-    FILE* pubFile = fopen(argv[3], "r");
-
-    while (fgets(buf, sizeof(buf), pubFile))
     {
-        string s = buf;
+        fstream pubFile(argv[3], ios::in);
 
-        if ('\n' == s.at(s.size() - 1))
+        while (getline(pubFile, line))
         {
-            s = s.substr(0, s.size() - 1);
+            pubKeys.emplace_back(DataConversion::HexStrToUint8Vec(line), 0);
         }
-
-        if (s.empty())
-        {
-            continue;
-        }
-
-        pubKeys.emplace_back(DataConversion::HexStrToUint8Vec(s), 0);
     }
-
-    fclose(pubFile);
 
     if (privKeys.size() != pubKeys.size())
     {
