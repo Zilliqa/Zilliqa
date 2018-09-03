@@ -383,13 +383,7 @@ void AccountStore::CommitTemp()
 {
     LOG_MARKER();
 
-    // LOG_GENERAL(INFO, "Before CommitTemp");
-
-    // LOG_PAYLOAD(INFO, "m_stateDeltaSerialized: ", m_stateDeltaSerialized, 2000);
     DeserializeDelta(m_stateDeltaSerialized, 0);
-
-    // LOG_GENERAL(INFO, "After CommitTemp");
-    InitTemp();
 }
 
 void AccountStore::InitTemp()
