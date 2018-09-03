@@ -359,7 +359,9 @@ void DirectoryService::StartFirstTxEpoch()
                 std::unique_lock<std::mutex> cv_lk(
                     m_MutexScheduleFinalBlockConsensus);
                 if (cv_scheduleFinalBlockConsensus.wait_for(
-                        cv_lk, std::chrono::seconds(MICROBLOCK_TIMEOUT))
+                        cv_lk,
+                        std::chrono::seconds(
+                            FINALBLOCK_CONSENSUS_OBJECT_TIMEOUT))
                     == std::cv_status::timeout)
                 {
                     LOG_GENERAL(
