@@ -223,8 +223,8 @@ bool Node::LoadUnavailableMicroBlockHashes(
                         "Failed the last microblock consensus but "
                         "still found my shard microblock, "
                         " need to Rejoin");
-            RejoinAsNormal();
-            return false;
+            // RejoinAsNormal();
+            // return false;
         }
     }
 
