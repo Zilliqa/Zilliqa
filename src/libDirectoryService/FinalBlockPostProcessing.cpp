@@ -308,7 +308,6 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
     StoreFinalBlockToDisk();
 
     AccountStore::GetInstance().CommitTemp();
-    m_stateDeltaFromShards.clear();
 
     bool isVacuousEpoch
         = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
@@ -373,6 +372,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
             + 1
         << "] AFTER SENDING FINAL BLOCK");
 
+    AccountStore::GetInstance().InitTemp();
+    m_stateDeltaFromShards.clear();
     m_allPoWConns.clear();
 
     auto func = [this]() mutable -> void {
