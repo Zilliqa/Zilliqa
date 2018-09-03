@@ -237,10 +237,13 @@ bool DirectoryService::ProcessMicroblockSubmissionCore(
         return false;
     }
 
-    m_microBlocks.emplace(microBlock);
+    if (!SaveCoinbase(microBlock.GetB1(), microBlock.GetB2(),
+                      microBlock.GetHeader().GetShardID()))
+    {
+        return false;
+    }
 
-    SaveCoinbase(microBlock.GetB1(), microBlock.GetB2(),
-                 microBlock.GetHeader().GetShardID());
+    m_microBlocks.emplace(microBlock);
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               m_microBlocks.size()
