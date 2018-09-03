@@ -702,6 +702,11 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
                 LOG_GENERAL(WARNING, "Txn is not valid.");
             }
 
+            if (i % 100 == 0)
+            {
+                LOG_GENERAL(INFO, i << " txns from packet processed");
+            }
+
             curr_offset += tx.GetSerializedSize();
         }
     }
