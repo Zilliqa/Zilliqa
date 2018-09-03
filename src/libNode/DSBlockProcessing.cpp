@@ -588,6 +588,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
                               DS_BACKUP_MSG);
             }
         }
+        m_mediator.m_ds->m_consensusLeaderID = lastBlockHash % ds_size;
         //m_mediator.m_ds->m_mode = DirectoryService::Mode::PRIMARY_DS;
 
         // (We're getting rid of this eventually) Clean up my txn list since I'm a DS node now

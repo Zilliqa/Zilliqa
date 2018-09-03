@@ -231,7 +231,9 @@ void DirectoryService::UpdateMyDSModeAndConsensusId()
 
     else
     {
+
         uint32_t dsIndex = lastBlockHash % (m_mediator.m_DSCommittee->size());
+        m_consensusLeaderID = dsIndex;
         //if dsIndex == 0 , that means the pow Winner is the DS Leader
         if (dsIndex > 0
             && m_mediator.m_DSCommittee->at(dsIndex - 1).first
