@@ -13,9 +13,9 @@
 # GPLv3.0 are those programs that are located in the folders src/depends and tests/depends
 # and which include a reference to GPLv3 in their program files.
 
-# User configuration settings
+# User configuration settings, mandatory to be filled in
 GitHubToken=""
-repoName="PreRelease"
+repoName="PreRelease"    # Change to Zilliqa after PreRelease is ok
 packageName="D24"
 releaseTitle="D24 latest release"
 releaseDescription="This is the latest release of D24.\nThere are many new features in this release and you can refer to README for more information."
@@ -37,17 +37,17 @@ if [ "$#" -ne 2 ]; then
 fi
 
 if [ ! -f "$1" ]; then
-    echo "File : $1 not found!"
+    echo "*ERROR* File : $1 not found!"
     return 1
 fi
 
 if [ ! -f "$2" ]; then
-    echo "File : $2 not found!"
+    echo "*ERROR* File : $2 not found!"
     return 1
 fi
 
 if [ "$GitHubToken" = "" ]; then
-    echo "Please enter your own GitHub token in release.sh!"
+    echo "*ERROR* Please enter your own GitHub token in release.sh!"
     return 1
 fi
 
@@ -99,13 +99,13 @@ pubKeyFile="$(realpath $2)"
 cd build
 sha="$(md5sum ${debFile}|cut -d ' ' -f1)"
 sed -i "${shaLine}s/.*/${sha}/" ${versionFile}
-signature="$(./bin/sign ${sha} ${privKeyFile} ${pubKeyFile})"
+signature="$(./bin/signmultisig ${sha} ${privKeyFile} ${pubKeyFile})"
 sed -i "${sigLine}s/.*/${signature}/" ${versionFile}
 cd -
 cd build_lookup
 sha="$(md5sum ${debFile}|cut -d ' ' -f1)"
 sed -i "${shaLine}s/.*/${sha}/" ${versionFile}
-signature="$(./bin/sign ${sha} ${privKeyFile} ${pubKeyFile})"
+signature="$(./bin/signmultisig ${sha} ${privKeyFile} ${pubKeyFile})"
 sed -i "${sigLine}s/.*/${signature}/" ${versionFile}
 cd -
 echo -e "SHA-256 & multi-signature are written into ${versionFile} successfully.\n"
@@ -113,6 +113,7 @@ echo -e "SHA-256 & multi-signature are written into ${versionFile} successfully.
 # Upload package onto GitHub
 echo -e "Creating new release and uploading package onto GitHub..."
 fullCommit="$(git rev-parse HEAD)"
+releaseLog="release.log"
 curl -v -s \
   -H "Authorization: token ${GitHubToken}" \
   -H "Content-Type:application/json" "https://api.github.com/repos/Zilliqa/${repoName}/releases" \
@@ -121,13 +122,27 @@ curl -v -s \
   "target_commitish": "'"${fullCommit}"'",
   "name": "'"${releaseTitle}"'",
   "body": "'"${releaseDescription}"'",
-  "draft": false,
+  "draft": true,
   "prerelease": false
-}' > tmpReleaseFile
+}' > ${releaseLog}
 
-line="$(sed '6!d' tmpReleaseFile)"
+line="$(sed '6!d' ${releaseLog})"
 releaseId=${line:8:8}
-echo -e "rr = ${releaseId}"
+check='^[0-9]+$'
+if ! [[ $releaseId =~ $check ]] ; then
+    echo -e "*ERROR* Create new release fail! Please check input value and ${releaseLog}, then try again."
+    return 1
+fi
+curl -v -s \
+  -H "Authorization: token ${GitHubToken}" \
+  -H "Content-Type:application/json" \
+  --data-binary @${pubKeyFile} \
+  "https://uploads.github.com/repos/Zilliqa/${repoName}/releases/${releaseId}/assets?name=$(basename {pubKeyFile})" \
+  -d '{
+  "Content-Type": "application/octet-stream",
+  "name": "'"$(basename ${pubKeyFile})"'",
+  "label": "'"${newVer}"'"
+}'
 curl -v -s \
   -H "Authorization: token ${GitHubToken}" \
   -H "Content-Type:application/json" \
@@ -144,6 +159,7 @@ curl -v -s \
   --data-binary @build/${versionFile} \
   "https://uploads.github.com/repos/Zilliqa/${repoName}/releases/${releaseId}/assets?name=build_${versionFile}" \
   -d '{
+  "Content-Type": "application/octet-stream",
   "name": "'"build_${versionFile}"'",
   "label": "'"${newVer}"'"
 }'
@@ -163,9 +179,10 @@ curl -v -s \
   --data-binary @build_lookup/${versionFile} \
   "https://uploads.github.com/repos/Zilliqa/${repoName}/releases/${releaseId}/assets?name=build_lookup_${versionFile}" \
   -d '{
+  "Content-Type": "application/octet-stream",
   "name": "'"build_lookup_${versionFile}"'",
   "label": "'"${newVer}"'"
 }'
-rm tmpReleaseFile
+rm ${releaseLog}
 echo -e "\nA new release with package is created on GitHub successfully.\n"
 

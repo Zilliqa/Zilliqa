@@ -75,8 +75,8 @@ set(CPACK_PACKAGE_NAME $ENV{ZIL_PACK_NAME})
 set(CPACK_DEBIAN_PACKAGE_NAME "zilliqa")
 set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
 set(CPACK_DEBIAN_PACKAGE_DEPENDS "clang-format-5.0, clang-tidy-5.0, clang-5.0, libboost-system-dev, libboost-filesystem-dev, libboost-test-dev, libssl-dev, libleveldb-dev, libjsoncpp-dev, libsnappy-dev, cmake, libmicrohttpd-dev, libjsonrpccpp-dev, build-essential, pkg-config, libevent-dev, libminiupnpc-dev, libprotobuf-dev, protobuf-compiler")
-set(CPACK_PACKAGE_CONTACT "enquiry@zilliqa.com")
-set(CPACK_DEBIAN_PACKAGE_MAINTAINER "members of enquiry@zilliqa.com")
+set(CPACK_PACKAGE_CONTACT "maintainers@zilliqa.com")
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Members of maintainers@zilliqa.com")
 
 # compiler and linker options
 
@@ -104,7 +104,7 @@ if(TESTS)
 endif()
 
 # installation
-set_target_properties(zilliqa sendcmd sendtxn genkeypair gentxn sign
+set_target_properties(zilliqa sendcmd sendtxn genkeypair gentxn signmultisig
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 set_target_properties(Common Trie ethash NAT
