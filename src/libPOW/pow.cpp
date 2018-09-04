@@ -420,7 +420,7 @@ bool POW::PoWVerify(uint64_t blockNum, uint8_t difficulty,
     if (!boost::iequals(check_hash_string, winning_result))
     {
         LOG_GENERAL(INFO,
-                    "Check Hash" << check_hash_string << " Result "
+                    "Check Hash " << check_hash_string << " Result "
                                  << winning_result << " did not match");
         return false;
     }

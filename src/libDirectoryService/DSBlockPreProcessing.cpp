@@ -97,7 +97,7 @@ void DirectoryService::ComposeDSBlock(
                     CoSignatures(m_mediator.m_DSCommittee->size())));
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "New DSBlock created with chosen nonce = 0x"
+              "New DSBlock created with winning PoW = 0x"
                   << DataConversion::charArrToHexStr(winnerPoW));
 }
 
