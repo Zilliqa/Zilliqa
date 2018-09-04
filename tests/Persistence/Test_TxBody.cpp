@@ -80,79 +80,80 @@ BOOST_AUTO_TEST_CASE(testSerializationDeserialization)
 }
 
 #ifndef IS_LOOKUP_NODE
-boost::filesystem::path p_txbodyDB(PERSISTENCE_PATH + "/" + TX_BODY_SUBDIR);
+// boost::filesystem::path p_txbodyDB(PERSISTENCE_PATH + "/" + TX_BODY_SUBDIR);
 
-BOOST_AUTO_TEST_CASE(testTxBodyDBPush)
-{
-    INIT_STDOUT_LOGGER();
+// BOOST_AUTO_TEST_CASE(testTxBodyDBPush)
+// {
+//     INIT_STDOUT_LOGGER();
 
-    LOG_MARKER();
+//     LOG_MARKER();
 
-    for (unsigned int i = 0; i < NUM_DS_KEEP_TX_BODY + 1; i++)
-    {
-        BlockStorage::GetBlockStorage().PushBackTxBodyDB(i);
-    }
+//     for (unsigned int i = 0; i < NUM_DS_KEEP_TX_BODY + 1; i++)
+//     {
+//         BlockStorage::GetBlockStorage().PushBackTxBodyDB(i);
+//     }
 
-    BOOST_CHECK_MESSAGE(BlockStorage::GetBlockStorage().GetTxBodyDBSize()
-                            == NUM_DS_KEEP_TX_BODY + 1,
-                        "Error: Number of created DB in memory doesn't meet "
-                        "expectation");
+//     BOOST_CHECK_MESSAGE(BlockStorage::GetBlockStorage().GetTxBodyDBSize()
+//                             == NUM_DS_KEEP_TX_BODY + 1,
+//                         "Error: Number of created DB in memory doesn't meet "
+//                         "expectation");
 
-    BOOST_CHECK_MESSAGE(boost::filesystem::exists(p_txbodyDB),
-                        "Error: TX_BODY subdirectory is not created");
+//     BOOST_CHECK_MESSAGE(boost::filesystem::exists(p_txbodyDB),
+//                         "Error: TX_BODY subdirectory is not created");
 
-    unsigned int countDB = 0;
-    for (auto& entry : boost::make_iterator_range(
-             boost::filesystem::directory_iterator(p_txbodyDB), {}))
-    {
-        (void)entry;
-        countDB++;
-    }
+//     unsigned int countDB = 0;
+//     for (auto& entry : boost::make_iterator_range(
+//              boost::filesystem::directory_iterator(p_txbodyDB), {}))
+//     {
+//         (void)entry;
+//         countDB++;
+//     }
 
-    BOOST_CHECK_MESSAGE(
-        countDB == NUM_DS_KEEP_TX_BODY + 1,
-        "Error: Didn't get the database directories as we want");
+//     BOOST_CHECK_MESSAGE(
+//         countDB == NUM_DS_KEEP_TX_BODY + 1,
+//         "Error: Didn't get the database directories as we want");
 
-    BOOST_CHECK_MESSAGE(
-        !BlockStorage::GetBlockStorage().PushBackTxBodyDB(
-            BlockStorage::GetBlockStorage().GetTxBodyDBSize()),
-        "Error: Still adding db after the txBodyDB list is full");
-}
+//     BOOST_CHECK_MESSAGE(
+//         !BlockStorage::GetBlockStorage().PushBackTxBodyDB(
+//             BlockStorage::GetBlockStorage().GetTxBodyDBSize()),
+//         "Error: Still adding db after the txBodyDB list is full");
+// }
 
-BOOST_AUTO_TEST_CASE(testTxBodyDBPop)
-{
-    INIT_STDOUT_LOGGER();
+// BOOST_AUTO_TEST_CASE(testTxBodyDBPop)
+// {
+//     INIT_STDOUT_LOGGER();
 
-    LOG_MARKER();
+//     LOG_MARKER();
 
-    BOOST_CHECK_MESSAGE(BlockStorage::GetBlockStorage().PopFrontTxBodyDB(),
-                        "Error: PopFrontTxBodyDB failed, while it shouldn't");
-    BOOST_CHECK_MESSAGE(BlockStorage::GetBlockStorage().GetTxBodyDBSize()
-                            == NUM_DS_KEEP_TX_BODY,
-                        "Error: Failed to pop the db in memory");
+//     BOOST_CHECK_MESSAGE(BlockStorage::GetBlockStorage().PopFrontTxBodyDB(),
+//                         "Error: PopFrontTxBodyDB failed, while it shouldn't");
+//     BOOST_CHECK_MESSAGE(BlockStorage::GetBlockStorage().GetTxBodyDBSize()
+//                             == NUM_DS_KEEP_TX_BODY,
+//                         "Error: Failed to pop the db in memory");
 
-    BlockStorage::GetBlockStorage().PopFrontTxBodyDB();
+//     BlockStorage::GetBlockStorage().PopFrontTxBodyDB();
 
-    BOOST_CHECK_MESSAGE(BlockStorage::GetBlockStorage().GetTxBodyDBSize()
-                            == NUM_DS_KEEP_TX_BODY,
-                        "Error: Popped the front db, while it shouldn't");
-    unsigned int countDB = 0;
-    for (auto& entry : boost::make_iterator_range(
-             boost::filesystem::directory_iterator(p_txbodyDB), {}))
-    {
-        (void)entry;
-        countDB++;
-    }
-    BOOST_CHECK_MESSAGE(countDB == NUM_DS_KEEP_TX_BODY,
-                        "Error: the number of db after popping doesn't meet"
-                        "expectation");
-    boost::filesystem::remove_all(p_txbodyDB);
+//     BOOST_CHECK_MESSAGE(BlockStorage::GetBlockStorage().GetTxBodyDBSize()
+//                             == NUM_DS_KEEP_TX_BODY,
+//                         "Error: Popped the front db, while it shouldn't");
+//     unsigned int countDB = 0;
+//     for (auto& entry : boost::make_iterator_range(
+//              boost::filesystem::directory_iterator(p_txbodyDB), {}))
+//     {
+//         (void)entry;
+//         countDB++;
+//     }
+//     BOOST_CHECK_MESSAGE(countDB == NUM_DS_KEEP_TX_BODY,
+//                         "Error: the number of db after popping doesn't meet"
+//                         "expectation");
+//     boost::filesystem::remove_all(p_txbodyDB);
 
-    BOOST_CHECK_MESSAGE(!boost::filesystem::exists(p_txbodyDB),
-                        "Error: TX_BODY subdirectory is not deleted");
-}
+//     BOOST_CHECK_MESSAGE(!boost::filesystem::exists(p_txbodyDB),
+//                         "Error: TX_BODY subdirectory is not deleted");
+// }
 #endif // IS_LOOKUP_NODE
 
+#ifdef IS_LOOKUP_NODE
 BOOST_AUTO_TEST_CASE(testBlockStorage)
 {
     INIT_STDOUT_LOGGER();
@@ -165,9 +166,9 @@ BOOST_AUTO_TEST_CASE(testBlockStorage)
 
     vector<unsigned char> serializedTxBody;
     body1.Serialize(serializedTxBody, 0);
-#ifndef IS_LOOKUP_NODE
-    BlockStorage::GetBlockStorage().PushBackTxBodyDB(0);
-#endif // IS_LOOKUP_NODE
+    // #ifndef IS_LOOKUP_NODE
+    //     BlockStorage::GetBlockStorage().PushBackTxBodyDB(0);
+    // #endif // IS_LOOKUP_NODE
     BlockStorage::GetBlockStorage().PutTxBody(tx_hash, serializedTxBody);
 
     TxBodySharedPtr body2;
@@ -233,9 +234,10 @@ BOOST_AUTO_TEST_CASE(testRandomBlockAccesses)
         body2.GetTranID() != (*blockRetrieved).GetTranID(),
         "transaction id shouldn't be same for different blocks");
 
-#ifndef IS_LOOKUP_NODE
-    boost::filesystem::remove_all(p_txbodyDB);
-#endif // IS_LOOKUP_NODE
+    // #ifndef IS_LOOKUP_NODE
+    //     boost::filesystem::remove_all(p_txbodyDB);
+    // #endif // IS_LOOKUP_NODE
 }
+#endif // IS_LOOKUP_NODE
 
 BOOST_AUTO_TEST_SUITE_END()
