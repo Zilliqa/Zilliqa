@@ -262,6 +262,7 @@ bool Node::CheckState(Action action)
 
     static const std::multimap<NodeState, Action> ACTIONS_FOR_STATE
         = {{POW_SUBMISSION, STARTPOW},
+           {POW_SUBMISSION, PROCESS_DSBLOCK},
            {TX_SUBMISSION, PROCESS_DSBLOCK},
            {TX_SUBMISSION_BUFFER, PROCESS_DSBLOCK},
            {MICROBLOCK_CONSENSUS, PROCESS_MICROBLOCKCONSENSUS},
