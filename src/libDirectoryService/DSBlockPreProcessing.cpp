@@ -144,10 +144,6 @@ void DirectoryService::ComputeTxnSharingAssignments(const Peer& winnerpeer)
 
     m_DSReceivers.clear();
 
-    LOG_GENERAL(INFO,
-                "debug " << m_mediator.m_DSCommittee->size() << " "
-                         << TX_SHARING_CLUSTER_SIZE);
-
     uint32_t num_ds_nodes
         = (m_mediator.m_DSCommittee->size() < TX_SHARING_CLUSTER_SIZE)
         ? m_mediator.m_DSCommittee->size()
