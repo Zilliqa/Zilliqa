@@ -28,6 +28,11 @@ import xml.etree.cElementTree as ET
 NODE_LISTEN_PORT = 4001
 LOCAL_RUN_FOLDER = './lookup_local_run/'
 
+GENTXN_WORKING_DIR = os.path.join(LOCAL_RUN_FOLDER, 'gentxn')
+
+# need to be an absolute path
+TXN_PATH = "/tmp/zilliqa_txns"
+
 def print_usage():
 	print ("Testing multiple Zilliqa nodes in local machine\n"
 		"===============================================\n"
@@ -35,7 +40,8 @@ def print_usage():
 		"Available commands:\n"
 		"\tTest Execution:\n"
 		"\t\tsetup [num-nodes]           - Set up the nodes\n"
-		"\t\tstart                       - Start node processes\n")
+		"\t\tstart                       - Start node processes\n"
+                "\t\tgentxn [seconds]            - generate transactions\n")
 
 def main():
 	numargs = len(sys.argv)
@@ -47,6 +53,8 @@ def main():
 			print_usage() if (numargs != 3) else run_setup(numnodes=int(sys.argv[2]), printnodes=True)
 		elif (command == 'start'):
 			print_usage() if (numargs != 2) else run_start()
+		elif (command == 'gentxn'):
+			print_usage() if (numargs != 3) else run_gentxn(sleep_seconds=int(sys.argv[2]))
 		else:
 			print_usage()
 
@@ -55,7 +63,7 @@ def main():
 # ================
 
 def get_immediate_subdirectories(a_dir):
-	subdirs = [name for name in os.listdir(a_dir) if os.path.isdir(os.path.join(a_dir, name))]
+	subdirs = [name for name in os.listdir(a_dir) if os.path.isdir(os.path.join(a_dir, name)) and name.startswith('node')]
 	subdirs.sort()
 	return subdirs
 
@@ -82,6 +90,41 @@ def run_setup(numnodes, printnodes):
 		count = len(testfolders_list)
 		for x in range(0, count):
 			print '[Node ' + str(x + 1).ljust(3) + '] [Port ' + str(NODE_LISTEN_PORT + x) + '] ' + LOCAL_RUN_FOLDER + testfolders_list[x]
+
+def patch_constants_xml(filepath, read_txn=False):
+        root = ET.parse(filepath).getroot()
+
+        td = root.find('TransactionDispatcher')
+        td.find('TXN_PATH').text = TXN_PATH
+        if read_txn:
+            td.find('USE_REMOTE_TXN_CREATOR').text='true'
+
+        tree = ET.ElementTree(root)
+        tree.write(filepath)
+
+def run_gentxn(sleep_seconds=10):
+        os.system('killall gentxn >/dev/null 2>&1')
+
+        if not os.path.exists(TXN_PATH):
+                os.makedirs(TXN_PATH)
+
+        if not os.path.exists(GENTXN_WORKING_DIR):
+                os.makedirs(GENTXN_WORKING_DIR)
+
+        print("Created gentxn working folder: " + GENTXN_WORKING_DIR)
+        shutil.copy('bin/gentxn', os.path.join(GENTXN_WORKING_DIR, 'gentxn'))
+        gentxn_constants_xml_path = os.path.join(GENTXN_WORKING_DIR, 'constants.xml')
+        shutil.copyfile('constants_local.xml', gentxn_constants_xml_path)
+
+        if os.path.exists(gentxn_constants_xml_path):
+                patch_constants_xml(gentxn_constants_xml_path)
+
+        print("Waiting gentxn for " + str(sleep_seconds) + " seconds")
+        os.system('cd ' + GENTXN_WORKING_DIR + '; ./gentxn > /dev/null 2>&1 &')
+        # FIXME: a temporary way to control the amount of txns genreated, should
+        # add the new options to gentxn to control its running
+        time.sleep(sleep_seconds)
+        os.system('killall gentxn')
 
 def run_start():
 	testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)
@@ -120,6 +163,8 @@ def run_start():
 		keys_file.write(keypairs[x] + '\n')
 		shutil.copyfile('config.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/config.xml')
 		shutil.copyfile('constants_local.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml')
+                patch_constants_xml(LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml', x == 0)
+
 	keys_file.close()
 
 	# Launch node zilliqa process

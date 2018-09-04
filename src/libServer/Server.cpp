@@ -102,13 +102,35 @@ string Server::CreateTransaction(const Json::Value& _json)
 
         const PubKey& senderPubKey = tx.GetSenderPubKey();
         const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
-        unsigned int curr_offset = 0;
+        //unsigned int curr_offset = 0;
 
         if (num_shards > 0)
         {
+
             unsigned int shard
                 = Transaction::GetShardIndex(fromAddr, num_shards);
-            vector<pair<PubKey, Peer>> shardMembers
+
+            if (tx.GetData().empty() || tx.GetToAddr() == NullAddress)
+            {
+                m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
+                return "Created A shard Txn";
+            }
+            else
+            {
+                unsigned int to_shard
+                    = Transaction::GetShardIndex(tx.GetToAddr(), num_shards);
+                if (to_shard == shard)
+                {
+                    m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
+                    return "Shards Match of the sender and reciever";
+                }
+                else
+                {
+                    m_mediator.m_lookup->AddToTxnShardMap(tx, num_shards);
+                    return "Sent to Ds for processing";
+                }
+            }
+            /*map<PubKey, Peer> shardMembe
                 = m_mediator.m_lookup->GetShardPeers().at(shard);
             LOG_GENERAL(INFO, "The Tx Belongs to " << shard << " Shard");
 
@@ -121,7 +143,7 @@ string Server::CreateTransaction(const Json::Value& _json)
 
             LOG_GENERAL(INFO, "Tx Serialized");
 
-            vector<Peer> toSend;
+            (vector<Peer> toSend;
 
             auto it = shardMembers.begin();
             for (unsigned int i = 0; i < 1 && it != shardMembers.end();
@@ -130,7 +152,7 @@ string Server::CreateTransaction(const Json::Value& _json)
                 toSend.emplace_back(it->second);
             }
 
-            P2PComm::GetInstance().SendMessage(toSend, tx_message);
+            P2PComm::GetInstance().SendMessage(toSend, tx_message);*/
         }
         else
         {

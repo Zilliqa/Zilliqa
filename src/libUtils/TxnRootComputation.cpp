@@ -87,6 +87,11 @@ TxnHash ComputeTransactionsRoot(const std::vector<TxnHash>& transactionHashes)
 {
     LOG_MARKER();
 
+    if (transactionHashes.empty())
+    {
+        return TxnHash();
+    }
+
     return ConcatTranAndHash(transactionHashes);
 }
 
@@ -97,6 +102,14 @@ ComputeTransactionsRoot(const std::list<Transaction>& receivedTransactions,
     LOG_MARKER();
 
     return ConcatTranAndHash(receivedTransactions, submittedTransactions);
+}
+
+TxnHash ComputeTransactionsRoot(
+    const std::unordered_map<TxnHash, Transaction>& processedTransactions)
+{
+    LOG_MARKER();
+
+    return ConcatTranAndHash(processedTransactions);
 }
 
 TxnHash ComputeTransactionsRoot(
