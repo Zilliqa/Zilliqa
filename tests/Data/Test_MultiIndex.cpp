@@ -82,7 +82,7 @@ BOOST_AUTO_TEST_CASE(MultiIndex_test)
 
     BOOST_CHECK_MESSAGE(*it == tx1, "txn found in hashIdx is not identical");
 
-    auto& compIdx = container.get<MULTI_INDEX_KEY::SENDER_NONCE>();
+    auto& compIdx = container.get<MULTI_INDEX_KEY::PUBKEY_NONCE>();
     auto it2 = compIdx.find(make_tuple(tx2.GetSenderPubKey(), tx2.GetNonce()));
     BOOST_CHECK_MESSAGE(compIdx.end() != it2, "txn is not found");
     BOOST_CHECK_MESSAGE(*it2 == tx2, "txn found in compIdx is not identical");
