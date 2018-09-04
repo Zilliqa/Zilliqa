@@ -301,6 +301,9 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
         - ((BlockBase)(*m_finalBlock)).GetSerializedSize();
     ((BlockBase)(*m_finalBlock)).Serialize(m_finalBlockMessage, cosigOffset);
 
+    //Coinbase
+    SaveCoinbase(m_finalBlock->GetB1(), m_finalBlock->GetB2(), -1);
+
     // StoreMicroBlocksToDisk();
     StoreFinalBlockToDisk();
 
@@ -318,12 +321,10 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
 #endif // IS_LOOKUP_NODE
     }
 
-    m_mediator.m_node->CommitForwardedMsgBuffer();
-
     m_mediator.UpdateDSBlockRand();
     m_mediator.UpdateTxBlockRand();
 
-    if (m_toSendTxnToLookup)
+    if (m_toSendTxnToLookup && !isVacuousEpoch)
     {
         m_mediator.m_node->CallActOnFinalblock();
     }
@@ -371,6 +372,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
             + 1
         << "] AFTER SENDING FINAL BLOCK");
 
+    AccountStore::GetInstance().InitTemp();
+    m_stateDeltaFromShards.clear();
     m_allPoWConns.clear();
 
     auto func = [this]() mutable -> void {
@@ -380,6 +383,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "[PoW needed]");
+
+            m_mediator.m_node->CleanCreatedTransaction();
 
             SetState(POW_SUBMISSION);
             cv_POWSubmission.notify_all();
@@ -396,7 +401,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
             {
                 LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                           "Waiting "
-                              << POW_WINDOW_IN_SECONDS
+                              << NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS
                               << " seconds, accepting PoW submissions...");
 
                 // Notify lookup that it's time to do PoW
@@ -426,7 +431,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
                 {
                     LOG_GENERAL(INFO,
                                 "Woken up from the sleep of "
-                                    << POW_BACKUP_WINDOW_IN_SECONDS
+                                    << NEW_NODE_SYNC_INTERVAL
+                                        + POW_BACKUP_WINDOW_IN_SECONDS
                                     << " seconds");
                 }
                 else
@@ -444,6 +450,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
             m_consensusID++;
             m_mediator.m_node->UpdateStateForNextConsensusRound();
             SetState(MICROBLOCK_SUBMISSION);
+            m_dsStartedMicroblockConsensus = false;
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "[No PoW needed] Waiting for Microblock.");
 
@@ -460,6 +467,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
                             "without it");
 
                 auto func1 = [this]() mutable -> void {
+                    m_dsStartedMicroblockConsensus = true;
                     m_mediator.m_node->RunConsensusOnMicroBlock();
                 };
 
@@ -468,7 +476,9 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
                 std::unique_lock<std::mutex> cv_lk(
                     m_MutexScheduleFinalBlockConsensus);
                 if (cv_scheduleFinalBlockConsensus.wait_for(
-                        cv_lk, std::chrono::seconds(MICROBLOCK_TIMEOUT))
+                        cv_lk,
+                        std::chrono::seconds(
+                            FINALBLOCK_CONSENSUS_OBJECT_TIMEOUT))
                     == std::cv_status::timeout)
                 {
                     LOG_GENERAL(

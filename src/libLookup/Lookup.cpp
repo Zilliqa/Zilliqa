@@ -1726,7 +1726,10 @@ bool Lookup::InitMining()
                       "Starting PoW for new ds block number "
                           << curDsBlockNum + 1);
 
-            m_mediator.m_node->StartPoW(curDsBlockNum + 1, POW_DIFFICULTY,
+            m_mediator.m_node->StartPoW(curDsBlockNum + 1,
+                                        m_mediator.m_dsBlockChain.GetLastBlock()
+                                            .GetHeader()
+                                            .GetDifficulty(),
                                         dsBlockRand, txBlockRand);
         }
         else
@@ -2530,37 +2533,5 @@ void Lookup::SendTxnPacketToNodes(uint32_t nShard)
 void Lookup::SetServerTrue() { m_isServer = true; }
 
 bool Lookup::GetIsServer() { return m_isServer; }
-
-unsigned int TxnSyncTimeout = 5;
-
-void Lookup::LaunchTxnSyncThread(const string& ipAddr)
-{
-    auto func = [](const string& ipAddr) {
-
-        std::string rsyncTxnCommand = "rsync -az --size-only -e \"ssh -o "
-                                      "StrictHostKeyChecking=no\" ubuntu@"
-            + ipAddr + ":" + REMOTE_TXN_DIR + "/ " + TXN_PATH;
-
-        while (true)
-        {
-            LOG_GENERAL(INFO,
-                        "[SyncTxn] "
-                            << "Starting syncing");
-            string out;
-            if (!SysCommand::ExecuteCmdWithOutput(rsyncTxnCommand, out))
-            {
-                LOG_GENERAL(WARNING,
-                            "Unable to launch command " << rsyncTxnCommand);
-            }
-            else
-            {
-                LOG_GENERAL(INFO, "Command Output " << out);
-            }
-
-            this_thread::sleep_for(chrono::seconds(TxnSyncTimeout));
-        }
-    };
-    DetachedFunction(1, func, ipAddr);
-}
 
 #endif //IS_LOOKUP_NODE

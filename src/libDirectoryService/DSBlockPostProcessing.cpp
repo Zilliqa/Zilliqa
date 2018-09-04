@@ -325,6 +325,7 @@ void DirectoryService::StartFirstTxEpoch()
         // m_mediator.m_node->m_myShardID = std::numeric_limits<uint32_t>::max();
         m_mediator.m_node->m_myShardID = m_shards.size();
         m_mediator.m_node->CommitTxnPacketBuffer();
+        m_stateDeltaFromShards.clear();
 
         if (TEST_NET_MODE)
         {
@@ -334,6 +335,7 @@ void DirectoryService::StartFirstTxEpoch()
 
         // Start sharding work
         SetState(MICROBLOCK_SUBMISSION);
+        m_dsStartedMicroblockConsensus = false;
 
         auto func = [this]() mutable -> void {
             // Check for state change. If it get stuck at microblock submission for too long, move on to finalblock without the microblock
@@ -348,6 +350,7 @@ void DirectoryService::StartFirstTxEpoch()
                             "without it");
 
                 auto func = [this]() mutable -> void {
+                    m_dsStartedMicroblockConsensus = true;
                     m_mediator.m_node->RunConsensusOnMicroBlock();
                 };
 
@@ -356,7 +359,9 @@ void DirectoryService::StartFirstTxEpoch()
                 std::unique_lock<std::mutex> cv_lk(
                     m_MutexScheduleFinalBlockConsensus);
                 if (cv_scheduleFinalBlockConsensus.wait_for(
-                        cv_lk, std::chrono::seconds(MICROBLOCK_TIMEOUT))
+                        cv_lk,
+                        std::chrono::seconds(
+                            FINALBLOCK_CONSENSUS_OBJECT_TIMEOUT))
                     == std::cv_status::timeout)
                 {
                     LOG_GENERAL(
@@ -464,6 +469,10 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
         }
     }
 
+    {
+        lock_guard<mutex> h(m_mutexCoinbaseRewardees);
+        m_coinbaseRewardees.clear();
+    }
     // Add the DS block to the chain
     StoreDSBlockToStorage();
     DSBlock lastDSBlock = m_mediator.m_dsBlockChain.GetLastBlock();

@@ -125,6 +125,13 @@ class DirectoryService : public Executable, public Broadcastable
 
     Synchronizer m_synchronizer;
 
+    //Coinbase
+#ifndef IS_LOOKUP_NODE
+    std::map<uint64_t, std::unordered_map<int32_t, std::vector<Address>>>
+        m_coinbaseRewardees;
+    std::mutex m_mutexCoinbaseRewardees;
+#endif //IS_LOOKUP_NODE
+
     const uint32_t RESHUFFLE_INTERVAL = 500;
 
     // Message handlers
@@ -286,6 +293,8 @@ class DirectoryService : public Executable, public Broadcastable
     bool CleanVariables();
 #endif // IS_LOOKUP_NODE
 
+    uint8_t CalculateNewDifficulty(const uint8_t& prevDifficulty);
+
 public:
     enum Mode : unsigned char
     {
@@ -340,6 +349,9 @@ public:
     /// Whether to send txn from ds microblock to lookup at finalblock consensus done
     std::atomic<bool> m_toSendTxnToLookup;
 
+    /// Whether ds started microblock consensuis
+    std::atomic<bool> m_dsStartedMicroblockConsensus;
+
     std::set<MicroBlock> m_microBlocks;
     std::mutex m_mutexMicroBlocks;
 
@@ -367,6 +379,15 @@ public:
     bool FinishRejoinAsDS();
 
     void RunConsensusOnFinalBlock(bool revertStateDelta = false);
+
+    //Coinbase
+    bool SaveCoinbase(const std::vector<bool>& b1, const std::vector<bool>& b2,
+                      const int32_t& shard_id);
+    void InitCoinbase();
+
+    template<class Container>
+    bool SaveCoinbaseCore(const vector<bool>& b1, const vector<bool>& b2,
+                          const Container& shard, const uint32_t& shard_id);
 #endif // IS_LOOKUP_NODE
 
     /// Implements the Execute function inherited from Executable.

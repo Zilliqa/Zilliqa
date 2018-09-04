@@ -190,6 +190,8 @@ bool Node::StartRetrieveHistory()
         {
             LOG_GENERAL(INFO, "RetrieveHistory Successed");
             m_mediator.m_isRetrievedHistory = true;
+            m_mediator.m_ds->m_consensusID
+                = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
             res = true;
         }
     }
@@ -456,9 +458,8 @@ bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
         cur_offset += submittedTransaction.GetSerializedSize();
 
         lock_guard<mutex> g(m_mutexCreatedTransactions);
-        // m_createdTransactions.push_back(submittedTransaction);
-        auto& listIdx = m_createdTransactions.get<MULTI_INDEX_KEY::GAS_PRICE>();
-        listIdx.insert(submittedTransaction);
+        auto& hashIdx = m_createdTransactions.get<MULTI_INDEX_KEY::TXN_ID>();
+        hashIdx.insert(submittedTransaction);
     }
 
     // vector<TxnHash> missingTxnHashes;
@@ -538,9 +539,9 @@ bool Node::ProcessCreateTransactionFromLookup(
                              << " Signature: " << tx.GetSignature()
                              << " toAddr: " << tx.GetToAddr().hex());
 
-    lock_guard<mutex> g(m_mutexCreatedTransactions);
     if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(tx))
     {
+        lock_guard<mutex> g(m_mutexCreatedTransactions);
         auto& compIdx
             = m_createdTransactions.get<MULTI_INDEX_KEY::ADDR_NONCE>();
         auto it = compIdx.find(make_tuple(tx.GetSenderAddr(), tx.GetNonce()));
@@ -559,9 +560,7 @@ bool Node::ProcessCreateTransactionFromLookup(
                 return false;
             }
         }
-
-        auto& listIdx = m_createdTransactions.get<MULTI_INDEX_KEY::GAS_PRICE>();
-        listIdx.insert(tx);
+        compIdx.insert(tx);
     }
     else
     {
@@ -623,6 +622,13 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
 {
     LOG_MARKER();
 
+    if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
+    {
+        LOG_GENERAL(WARNING,
+                    "This node already started rejoin, ignore txn packet");
+        return false;
+    }
+
     // core part:
     if (IsMessageSizeInappropriate(message.size(), offset,
                                    2 * sizeof(uint32_t)))
@@ -659,10 +665,23 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
         return false;
     }
 
+    // Broadcast to other shard node
+    vector<Peer> toSend;
+    for (auto it = m_myShardMembers->begin(); it != m_myShardMembers->end();
+         it++)
+    {
+        toSend.push_back(it->second);
+    }
+    LOG_GENERAL(INFO, "[Batching] Broadcast my txns to other shard members");
+    P2PComm::GetInstance().SendBroadcastMessage(toSend, message);
+
+    // Process the txns
     unsigned int txn_sent_count = 0;
     {
-        lock_guard<mutex> g(m_mutexCreatedTransactions);
         LOG_GENERAL(INFO, "Start check txn packet from lookup");
+        lock_guard<mutex> g(m_mutexCreatedTransactions);
+        auto& compIdx
+            = m_createdTransactions.get<MULTI_INDEX_KEY::ADDR_NONCE>();
         for (unsigned int i = 0; i < num; i++)
         {
             Transaction tx;
@@ -674,9 +693,6 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
 
             if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(tx))
             {
-
-                auto& compIdx
-                    = m_createdTransactions.get<MULTI_INDEX_KEY::ADDR_NONCE>();
                 auto it = compIdx.find(
                     make_tuple(tx.GetSenderAddr(), tx.GetNonce()));
                 if (it != compIdx.end())
@@ -685,18 +701,10 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
                     {
                         compIdx.replace(it, tx);
                     }
-                    else
-                    {
-                        // LOG_GENERAL(WARNING,
-                        //             "Txn with same address and nonce already "
-                        //             "exists with higher gas price");
-                    }
                 }
                 else
                 {
-                    auto& listIdx = m_createdTransactions
-                                        .get<MULTI_INDEX_KEY::GAS_PRICE>();
-                    listIdx.insert(tx);
+                    compIdx.insert(tx);
                     txn_sent_count++;
                 }
             }
@@ -705,42 +713,15 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
                 LOG_GENERAL(WARNING, "Txn is not valid.");
             }
 
+            if (i % 100 == 0)
+            {
+                LOG_GENERAL(INFO, i << " txns from packet processed");
+            }
+
             curr_offset += tx.GetSerializedSize();
         }
     }
     LOG_GENERAL(INFO, "TXN COUNT" << txn_sent_count);
-    vector<Peer> toSend;
-
-    if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE)
-    {
-        for (auto it = m_myShardMembers->begin(); it != m_myShardMembers->end();
-             it++)
-        {
-            toSend.push_back(it->second);
-        }
-        if (txn_sent_count > 0)
-        {
-            LOG_GENERAL(INFO,
-                        "[Batching] Broadcast my txns to other shard members");
-            P2PComm::GetInstance().SendBroadcastMessage(toSend, message);
-        }
-    }
-    else
-    {
-        for (auto it = m_mediator.m_DSCommittee->begin();
-             it != m_mediator.m_DSCommittee->end(); it++)
-        {
-            toSend.push_back(it->second);
-        }
-        if (txn_sent_count > 0)
-        {
-            LOG_GENERAL(INFO,
-                        "[DSMB] "
-                            << " Send to other DS committee");
-
-            P2PComm::GetInstance().SendBroadcastMessage(toSend, message);
-        }
-    }
 
     return true;
 }
@@ -830,7 +811,7 @@ bool Node::CleanVariables()
     m_isPrimary = false;
     m_isMBSender = false;
     m_myShardID = 0;
-
+    CleanCreatedTransaction();
     {
         std::lock_guard<mutex> lock(m_mutexConsensus);
         m_consensusObject.reset();
@@ -841,16 +822,6 @@ bool Node::CleanVariables()
         std::lock_guard<mutex> lock(m_mutexMicroBlock);
         m_microblock.reset();
     }
-    // {
-    //     std::lock_guard<mutex> lock(m_mutexCreatedTransactions);
-    //     m_createdTransactions.clear();
-    // }
-    m_mediator.m_validator->CleanVariables();
-    // {
-    //     std::lock_guard<mutex> lock(m_mutexPrefilledTxns);
-    //     m_nRemainingPrefilledTxns = 0;
-    //     m_prefilledTxns.clear();
-    // }
     {
         std::lock_guard<mutex> lock(m_mutexProcessedTransactions);
         m_processedTransactions.clear();
@@ -879,8 +850,8 @@ void Node::SetMyShardID(uint32_t shardID) { m_myShardID = shardID; }
 void Node::CleanCreatedTransaction()
 {
     std::lock_guard<mutex> lock(m_mutexCreatedTransactions);
-    // m_createdTransactions.clear();
-    m_createdTransactions.get<0>().clear();
+    m_createdTransactions.clear();
+    m_addrNonceTxnMap.clear();
 }
 
 bool Node::ProcessDoRejoin(
