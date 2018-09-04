@@ -188,17 +188,20 @@ int AccountStore::DeserializeDelta(const vector<unsigned char>& src,
 
             // Deserialize accountDelta
             Account* oriAccount = GetAccount(address);
+            bool fullCopy = false;
             if (oriAccount == nullptr)
             {
                 Account acc(0, 0);
                 // LOG_GENERAL(INFO, "Creating new account: " << address);
                 AddAccount(address, acc);
+                oriAccount = GetAccount(address);
+                fullCopy = true;
             }
 
             // LOG_GENERAL(INFO, "Diff account: " << address);
-            oriAccount = GetAccount(address);
             account = *oriAccount;
-            if (Account::DeserializeDelta(src, curOffset, account) < 0)
+            if (Account::DeserializeDelta(src, curOffset, account, fullCopy)
+                < 0)
             {
                 LOG_GENERAL(
                     WARNING,
