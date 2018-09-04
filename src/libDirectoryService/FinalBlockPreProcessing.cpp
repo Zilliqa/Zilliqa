@@ -921,7 +921,7 @@ bool DirectoryService::CheckStateRoot()
         m_consensusObject->SetConsensusErrorCode(
             ConsensusCommon::INVALID_FINALBLOCK_STATE_ROOT);
 
-        return false;
+        return true;
     }
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),

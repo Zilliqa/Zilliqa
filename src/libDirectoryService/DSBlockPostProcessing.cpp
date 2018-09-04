@@ -51,13 +51,16 @@ void DirectoryService::StoreDSBlockToStorage()
     LOG_MARKER();
     lock_guard<mutex> g(m_mutexPendingDSBlock);
     int result = m_mediator.m_dsBlockChain.AddBlock(*m_pendingDSBlock);
-    LOG_EPOCH(
-        INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-        "Storing DS Block Number: "
-            << m_pendingDSBlock->GetHeader().GetBlockNum() << " with Nonce: "
-            << m_pendingDSBlock->GetHeader().GetNonce() << ", Difficulty: "
-            << to_string(m_pendingDSBlock->GetHeader().GetDifficulty())
-            << ", Timestamp: " << m_pendingDSBlock->GetHeader().GetTimestamp());
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Storing DS Block Number: "
+                  << m_pendingDSBlock->GetHeader().GetBlockNum()
+                  << " with Nonce: " << m_pendingDSBlock->GetHeader().GetNonce()
+                  << ", DS PoW Difficulty: "
+                  << to_string(m_pendingDSBlock->GetHeader().GetDSDifficulty())
+                  << ", Difficulty: "
+                  << to_string(m_pendingDSBlock->GetHeader().GetDifficulty())
+                  << ", Timestamp: "
+                  << m_pendingDSBlock->GetHeader().GetTimestamp());
 
     if (result == -1)
     {
