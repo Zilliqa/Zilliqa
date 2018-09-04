@@ -571,7 +571,7 @@ void Node::ProcessTransactionWhenShardLeader()
 
     auto findSameNonceButHigherGasPrice = [this](Transaction& t) -> void {
         auto& compIdx
-            = m_createdTransactions.get<MULTI_INDEX_KEY::SENDER_NONCE>();
+            = m_createdTransactions.get<MULTI_INDEX_KEY::PUBKEY_NONCE>();
         auto it = compIdx.find(make_tuple(t.GetSenderPubKey(), t.GetNonce()));
         if (it != compIdx.end())
         {
@@ -811,7 +811,7 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes,
     auto findSameNonceButHigherGasPrice
         = [&t_createdTransactions](Transaction& t) -> void {
         auto& compIdx
-            = t_createdTransactions.get<MULTI_INDEX_KEY::SENDER_NONCE>();
+            = t_createdTransactions.get<MULTI_INDEX_KEY::PUBKEY_NONCE>();
         auto it = compIdx.find(make_tuple(t.GetSenderPubKey(), t.GetNonce()));
         if (it != compIdx.end())
         {
