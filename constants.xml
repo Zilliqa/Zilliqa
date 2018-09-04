@@ -49,7 +49,7 @@
         <OPENCL_GPU_MINE>false</OPENCL_GPU_MINE>
         <CUDA_GPU_MINE>false</CUDA_GPU_MINE>
     </options>
-   <TransactionDispatcher>
+    <TransactionDispatcher>
         <USE_REMOTE_TXN_CREATOR>false</USE_REMOTE_TXN_CREATOR>
         <TXN_PATH></TXN_PATH>
     </TransactionDispatcher>
