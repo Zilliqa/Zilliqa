@@ -90,7 +90,6 @@ const std::string RAND2_GENESIS
 const std::string REMOTE_TEST_DIR = "zilliqa-test";
 const std::string PERSISTENCE_PATH = "persistence";
 const std::string TX_BODY_SUBDIR = "txBodies";
-const std::string REMOTE_TXN_DIR = "/home/ubuntu/Dispatcher/txns";
 
 const std::string DS_KICKOUT_MSG = "KICKED OUT FROM DS";
 const std::string DS_LEADER_MSG = "DS LEADER NOW";
@@ -108,7 +107,6 @@ extern const std::string INPUT_MESSAGE_JSON;
 extern const std::string OUTPUT_JSON;
 extern const std::string INPUT_CODE;
 extern const std::string TXN_PATH;
-extern const std::string REMOTE_TXN_CREATOR_IP;
 
 extern const unsigned int MSG_VERSION;
 extern const unsigned int DS_MULTICAST_CLUSTER_SIZE;
@@ -145,6 +143,10 @@ extern const unsigned int TX_DISTRIBUTE_TIME_IN_MS;
 extern const unsigned int NUM_TXN_TO_SEND_PER_ACCOUNT;
 extern const unsigned int NUM_NODES_TO_SEND_LOOKUP;
 extern const unsigned int MAX_INDEXES_PER_TXN;
+extern const unsigned int SENDQUEUE_SIZE;
+extern const unsigned int MSGQUEUE_SIZE;
+extern const unsigned int POW_CHANGE_PERCENT_TO_ADJ_DIFF;
+extern const unsigned int NUM_NETWORK_NODE;
 
 extern const bool TEST_NET_MODE;
 extern const bool EXCLUDE_PRIV_IP;

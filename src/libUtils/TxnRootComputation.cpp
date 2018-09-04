@@ -111,6 +111,11 @@ TxnHash ComputeTransactionsRoot(const std::vector<TxnHash>& transactionHashes)
 {
     LOG_MARKER();
 
+    if (transactionHashes.empty())
+    {
+        return TxnHash();
+    }
+
     return ConcatTranAndHash(transactionHashes);
 }
 

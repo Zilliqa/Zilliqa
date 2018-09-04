@@ -230,6 +230,21 @@ bool DirectoryService::ProcessMicroblockSubmissionCore(
                     << microBlock.GetHeader().GetTranReceiptHash());
 
     lock_guard<mutex> g(m_mutexMicroBlocks);
+
+    if (m_dsStartedMicroblockConsensus)
+    {
+        LOG_GENERAL(WARNING,
+                    "DS microblock consensus already started, ignore this "
+                    "microblock submission");
+        return false;
+    }
+
+    if (!SaveCoinbase(microBlock.GetB1(), microBlock.GetB2(),
+                      microBlock.GetHeader().GetShardID()))
+    {
+        return false;
+    }
+
     m_microBlocks.emplace(microBlock);
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -263,6 +278,7 @@ bool DirectoryService::ProcessMicroblockSubmissionCore(
         // m_mediator.m_node->RunConsensusOnMicroBlock();
 
         auto func = [this]() mutable -> void {
+            m_dsStartedMicroblockConsensus = true;
             cv_scheduleDSMicroBlockConsensus.notify_all();
             m_mediator.m_node->RunConsensusOnMicroBlock();
         };
@@ -273,7 +289,8 @@ bool DirectoryService::ProcessMicroblockSubmissionCore(
             std::unique_lock<std::mutex> cv_lk(
                 m_MutexScheduleFinalBlockConsensus);
             if (cv_scheduleFinalBlockConsensus.wait_for(
-                    cv_lk, std::chrono::seconds(MICROBLOCK_TIMEOUT))
+                    cv_lk,
+                    std::chrono::seconds(FINALBLOCK_CONSENSUS_OBJECT_TIMEOUT))
                 == std::cv_status::timeout)
             {
                 LOG_GENERAL(WARNING,

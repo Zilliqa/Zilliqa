@@ -69,16 +69,6 @@ void Node::SubmitMicroblockToDSCommittee() const
                                       sizeof(uint64_t));
     cur_offset += sizeof(uint64_t);
 
-    // // 4-byte consensusid
-    // Serializable::SetNumber<uint32_t>(microblock, cur_offset, m_consensusID,
-    //                                   sizeof(uint32_t));
-    // cur_offset += sizeof(uint32_t);
-
-    // // 4-byte shard ID
-    // Serializable::SetNumber<uint32_t>(microblock, cur_offset, m_myShardID,
-    //                                   sizeof(uint32_t));
-    // cur_offset += sizeof(uint32_t);
-
     // Tx microblock
     m_microblock->SerializeCore(microblock, cur_offset);
     cur_offset += m_microblock->GetSerializedCoreSize();
@@ -231,15 +221,15 @@ bool Node::ProcessMicroblockConsensus(
             m_newRoundStarted = false;
         }
 
+        // Update the micro block with the co-signatures from the consensus
+        m_microblock->SetCoSignatures(*m_consensusObject);
+
         if (m_isPrimary == true)
         {
             LOG_STATE("[MICON]["
                       << std::setw(15) << std::left
                       << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
                       << m_mediator.m_currentEpochNum << "] DONE");
-
-            // Update the micro block with the co-signatures from the consensus
-            m_microblock->SetCoSignatures(*m_consensusObject);
 
             // Multicast micro block to all DS nodes
             SubmitMicroblockToDSCommittee();
@@ -249,9 +239,6 @@ bool Node::ProcessMicroblockConsensus(
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Designated as Microblock sender");
-
-            // Update the micro block with the co-signature from the consensus
-            m_microblock->SetCoSignatures(*m_consensusObject);
 
             // Multicast micro block to all DS nodes
             SubmitMicroblockToDSCommittee();
@@ -273,6 +260,13 @@ bool Node::ProcessMicroblockConsensus(
         }
         else
         {
+            m_mediator.m_ds->m_stateDeltaFromShards.clear();
+            AccountStore::GetInstance().SerializeDelta();
+            AccountStore::GetInstance().GetSerializedDelta(
+                m_mediator.m_ds->m_stateDeltaFromShards);
+            m_mediator.m_ds->SaveCoinbase(
+                m_microblock->GetB1(), m_microblock->GetB2(),
+                m_microblock->GetHeader().GetShardID());
             m_mediator.m_ds->cv_scheduleFinalBlockConsensus.notify_all();
             {
                 lock_guard<mutex> g(m_mediator.m_ds->m_mutexMicroBlocks);
@@ -506,16 +500,7 @@ bool Node::OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
         // LOG_GENERAL(INFO, "Peer " << from << " : " << portNo << " missing txn " << missingTransactions[i])
 
         Transaction t;
-        // if (submittedTransactions.find(missingTransactions[i])
-        //     != submittedTransactions.end())
-        // {
-        //     t = submittedTransactions[missingTransactions[i]];
-        // }
-        // else if (receivedTransactions.find(missingTransactions[i])
-        //          != receivedTransactions.end())
-        // {
-        //     t = receivedTransactions[missingTransactions[i]];
-        // }
+
         if (processedTransactions.find(missingTransactions[i])
             != processedTransactions.end())
         {
@@ -569,9 +554,9 @@ void Node::ProcessTransactionWhenShardLeader()
 {
     LOG_MARKER();
 
-    unsigned int txn_sent_count = 0;
+    lock_guard<mutex> g(m_mutexCreatedTransactions);
 
-    std::list<Transaction> curTxns;
+    unsigned int txn_sent_count = 0;
 
     auto findOneFromAddrNonceTxnMap = [this](Transaction& t) -> bool {
         for (auto it = m_addrNonceTxnMap.begin(); it != m_addrNonceTxnMap.end();
@@ -594,8 +579,6 @@ void Node::ProcessTransactionWhenShardLeader()
     };
 
     auto findSameNonceButHigherGasPrice = [this](Transaction& t) -> void {
-        lock_guard<mutex> g(m_mutexCreatedTransactions);
-
         auto& compIdx
             = m_createdTransactions.get<MULTI_INDEX_KEY::ADDR_NONCE>();
         auto it = compIdx.find(make_tuple(t.GetSenderAddr(), t.GetNonce()));
@@ -610,8 +593,6 @@ void Node::ProcessTransactionWhenShardLeader()
     };
 
     auto findOneFromCreated = [this](Transaction& t) -> bool {
-        lock_guard<mutex> g(m_mutexCreatedTransactions);
-
         auto& listIdx = m_createdTransactions.get<MULTI_INDEX_KEY::GAS_PRICE>();
 
         //LOG_GENERAL(INFO, "Size List Idx " << listIdx.size());
@@ -626,17 +607,16 @@ void Node::ProcessTransactionWhenShardLeader()
         return true;
     };
 
-    uint64_t blockNum = m_mediator.m_currentEpochNum;
-
-    auto appendOne = [this, &blockNum](const Transaction& t,
-                                       const TransactionReceipt& tr) {
-        // LOG_GENERAL(INFO, "appendOne: " << t.GetTranID().hex());
-        lock_guard<mutex> g(m_mutexProcessedTransactions);
-        auto& processedTransactions = m_processedTransactions[blockNum];
-        processedTransactions.insert(
-            make_pair(t.GetTranID(), TransactionWithReceipt(t, tr)));
-        m_TxnOrder.push_back(t.GetTranID());
-    };
+    auto appendOne
+        = [this](const Transaction& t, const TransactionReceipt& tr) {
+              // LOG_GENERAL(INFO, "appendOne: " << t.GetTranID().hex());
+              lock_guard<mutex> g(m_mutexProcessedTransactions);
+              auto& processedTransactions
+                  = m_processedTransactions[m_mediator.m_currentEpochNum];
+              processedTransactions.insert(
+                  make_pair(t.GetTranID(), TransactionWithReceipt(t, tr)));
+              m_TxnOrder.push_back(t.GetTranID());
+          };
 
     uint256_t gasUsedTotal = 0;
 
@@ -733,35 +713,232 @@ void Node::ProcessTransactionWhenShardLeader()
     }
 }
 
-bool Node::VerifyTxnsOrdering([[gnu::unused]] const list<Transaction>& txns)
+bool Node::ProcessTransactionWhenShardBackup(const vector<TxnHash>& tranHashes,
+                                             vector<TxnHash>& missingtranHashes)
 {
-
     LOG_MARKER();
-    unordered_map<Address, uint256_t> nonceMap;
 
-    for (const auto& t : txns)
-    {
-        auto it = nonceMap.find(t.GetSenderAddr());
-        if (it == nonceMap.end())
+    lock_guard<mutex> g(m_mutexCreatedTransactions);
+
+    auto findFromCreated = [this](const TxnHash& th) -> bool {
+        auto& hashIdx = m_createdTransactions.get<MULTI_INDEX_KEY::TXN_ID>();
+        if (!hashIdx.size())
         {
-
-            nonceMap.insert({t.GetSenderAddr(), t.GetNonce()});
+            return false;
         }
-        else
+
+        auto it = hashIdx.find(th);
+
+        if (hashIdx.end() == it)
         {
-            if (t.GetNonce() != nonceMap[t.GetSenderAddr()] + 1)
-            {
-                LOG_GENERAL(INFO,
-                            "Nonce of txn: "
-                                << t.GetNonce() << " Nonce Map: "
-                                << nonceMap[t.GetSenderAddr()] + 1);
-                return false;
-            }
-            nonceMap[t.GetSenderAddr()] = t.GetNonce();
+            LOG_GENERAL(WARNING, "txn is not found");
+            return false;
+        }
+
+        return true;
+    };
+
+    for (const auto& tranHash : tranHashes)
+    {
+        if (!findFromCreated(tranHash))
+        {
+            missingtranHashes.emplace_back(tranHash);
+        }
+    }
+
+    if (!missingtranHashes.empty())
+    {
+        return true;
+    }
+
+    std::list<Transaction> curTxns;
+
+    if (!VerifyTxnsOrdering(tranHashes, curTxns))
+    {
+        return false;
+    }
+
+    auto appendOne
+        = [this](const Transaction& t, const TransactionReceipt& tr) {
+              lock_guard<mutex> g(m_mutexProcessedTransactions);
+              auto& processedTransactions
+                  = m_processedTransactions[m_mediator.m_currentEpochNum];
+              processedTransactions.insert(
+                  make_pair(t.GetTranID(), TransactionWithReceipt(t, tr)));
+          };
+
+    AccountStore::GetInstance().InitTemp();
+    if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
+    {
+        AccountStore::GetInstance().DeserializeDeltaTemp(
+            m_mediator.m_ds->m_stateDeltaFromShards, 0);
+    }
+
+    for (const auto& t : curTxns)
+    {
+        TransactionReceipt tr;
+        if (m_mediator.m_validator->CheckCreatedTransaction(t, tr)
+            || (!t.GetCode().empty() && t.GetToAddr() == NullAddress)
+            || (!t.GetData().empty() && t.GetToAddr() != NullAddress
+                && t.GetCode().empty()))
+        {
+            appendOne(t, tr);
         }
     }
 
     return true;
+}
+
+bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes,
+                              list<Transaction>& curTxns)
+{
+    LOG_MARKER();
+
+    std::unordered_map<Address,
+                       std::map<boost::multiprecision::uint256_t, Transaction>>
+        t_addrNonceTxnMap = m_addrNonceTxnMap;
+    gas_txnid_comp_txns t_createdTransactions = m_createdTransactions;
+    vector<TxnHash> t_tranHashes;
+    unsigned int txn_sent_count = 0;
+
+    auto findOneFromAddrNonceTxnMap
+        = [&t_addrNonceTxnMap](Transaction& t) -> bool {
+        for (auto it = t_addrNonceTxnMap.begin(); it != t_addrNonceTxnMap.end();
+             it++)
+        {
+            if (it->second.begin()->first
+                == AccountStore::GetInstance().GetNonceTemp(it->first) + 1)
+            {
+                t = std::move(it->second.begin()->second);
+                it->second.erase(it->second.begin());
+
+                if (it->second.empty())
+                {
+                    t_addrNonceTxnMap.erase(it);
+                }
+                return true;
+            }
+        }
+        return false;
+    };
+
+    auto findSameNonceButHigherGasPrice
+        = [&t_createdTransactions](Transaction& t) -> void {
+        auto& compIdx
+            = t_createdTransactions.get<MULTI_INDEX_KEY::ADDR_NONCE>();
+        auto it = compIdx.find(make_tuple(t.GetSenderAddr(), t.GetNonce()));
+        if (it != compIdx.end())
+        {
+            if (it->GetGasPrice() > t.GetGasPrice())
+            {
+                t = std::move(*it);
+                compIdx.erase(it);
+            }
+        }
+    };
+
+    auto findOneFromCreated = [&t_createdTransactions](Transaction& t) -> bool {
+        auto& listIdx = t_createdTransactions.get<MULTI_INDEX_KEY::GAS_PRICE>();
+        if (!listIdx.size())
+        {
+            return false;
+        }
+
+        auto it = listIdx.begin();
+        t = std::move(*it);
+        listIdx.erase(it);
+        return true;
+    };
+
+    auto appendOne = [&t_tranHashes, &curTxns](const Transaction& t) {
+        t_tranHashes.emplace_back(t.GetTranID());
+        curTxns.emplace_back(t);
+    };
+
+    uint256_t gasUsedTotal = 0;
+
+    while (txn_sent_count < MAXSUBMITTXNPERNODE * m_myShardMembers->size()
+           && gasUsedTotal < MICROBLOCK_GAS_LIMIT)
+    {
+        Transaction t;
+        TransactionReceipt tr;
+
+        // check t_addrNonceTxnMap contains any txn meets right nonce,
+        // if contains, process it withou increment the txn_sent_count as it's already
+        // incremented when inserting
+        if (findOneFromAddrNonceTxnMap(t))
+        {
+            // check whether m_createdTransaction have transaction with same Addr and nonce
+            // if has and with larger gasPrice then replace with that one. (*optional step)
+            findSameNonceButHigherGasPrice(t);
+
+            if (m_mediator.m_validator->CheckCreatedTransaction(t, tr)
+                || (!t.GetCode().empty() && t.GetToAddr() == NullAddress)
+                || (!t.GetData().empty() && t.GetToAddr() != NullAddress
+                    && t.GetCode().empty()))
+            {
+                appendOne(t);
+                gasUsedTotal += tr.GetCumGas();
+                continue;
+            }
+        }
+        // if no txn in u_map meet right nonce process new come-in transactions
+        else if (findOneFromCreated(t))
+        {
+            // check nonce, if nonce larger than expected, put it into t_addrNonceTxnMap
+            if (t.GetNonce()
+                > AccountStore::GetInstance().GetNonceTemp(t.GetSenderAddr())
+                    + 1)
+            {
+                auto it1 = t_addrNonceTxnMap.find(t.GetSenderAddr());
+                if (it1 != t_addrNonceTxnMap.end())
+                {
+                    auto it2 = it1->second.find(t.GetNonce());
+                    if (it2 != it1->second.end())
+                    {
+                        // found the txn with same addr and same nonce
+                        // then compare the gasprice and remains the higher one
+                        if (t.GetGasPrice() > it2->second.GetGasPrice())
+                        {
+                            it2->second = t;
+                        }
+                        txn_sent_count++;
+                        continue;
+                    }
+                }
+                t_addrNonceTxnMap[t.GetSenderAddr()].insert({t.GetNonce(), t});
+            }
+            // if nonce too small, ignore it
+            else if (t.GetNonce() < AccountStore::GetInstance().GetNonceTemp(
+                                        t.GetSenderAddr())
+                         + 1)
+            {
+            }
+            // if nonce correct, process it
+            else if (m_mediator.m_validator->CheckCreatedTransaction(t, tr)
+                     || (!t.GetCode().empty() && t.GetToAddr() == NullAddress)
+                     || (!t.GetData().empty() && t.GetToAddr() != NullAddress
+                         && t.GetCode().empty()))
+            {
+                appendOne(t);
+                gasUsedTotal += tr.GetCumGas();
+            }
+        }
+        else
+        {
+            break;
+        }
+        txn_sent_count++;
+    }
+
+    if (t_tranHashes == tranHashes)
+    {
+        m_addrNonceTxnMap = std::move(t_addrNonceTxnMap);
+        m_createdTransactions = std::move(t_createdTransactions);
+        return true;
+    }
+
+    return false;
 }
 
 bool Node::RunConsensusOnMicroBlockWhenShardLeader()
@@ -910,15 +1087,24 @@ bool Node::RunConsensusOnMicroBlock()
 {
     LOG_MARKER();
 
-    if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE)
-    {
-        // InitCoinbase();
-    }
-    else
+    if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
     {
         m_mediator.m_ds->m_toSendTxnToLookup = false;
-    }
+        bool isVacuousEpoch
+            = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
+        if (isVacuousEpoch)
+        {
+            //Coinbase
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "[CNBSE]");
 
+            m_mediator.m_ds->InitCoinbase();
+            m_mediator.m_ds->m_stateDeltaFromShards.clear();
+            AccountStore::GetInstance().SerializeDelta();
+            AccountStore::GetInstance().GetSerializedDelta(
+                m_mediator.m_ds->m_stateDeltaFromShards);
+        }
+    }
     if (m_isPrimary == true)
     {
         if (!RunConsensusOnMicroBlockWhenShardLeader())
@@ -1051,157 +1237,72 @@ bool Node::CheckMicroBlockTimestamp()
     return true;
 }
 
-bool Node::ProcessTransactionWhenShardBackup(const vector<TxnHash>& tranHashes,
-                                             vector<TxnHash>& missingtranHashes)
-{
-    LOG_MARKER();
-
-    auto findFromCreated = [this](Transaction& t, const TxnHash& th) -> bool {
-        lock_guard<mutex> g(m_mutexCreatedTransactions);
-
-        auto& hashIdx = m_createdTransactions.get<MULTI_INDEX_KEY::TXN_ID>();
-
-        if (hashIdx.size() == 0)
-        {
-            return false;
-        }
-
-        // auto it = find_if(
-        //     begin(m_createdTransactions), end(m_createdTransactions),
-        //     [&th](const Transaction& t) { return t.GetTranID() == th; });
-
-        // if (m_createdTransactions.end() == it)
-        // {
-        //     LOG_GENERAL(WARNING, "txn is not found");
-        //     return false;
-        // }
-
-        // t = move(*it);
-        // m_createdTransactions.erase(it);
-
-        auto it = hashIdx.find(th);
-
-        if (hashIdx.end() == it)
-        {
-            // LOG_GENERAL(WARNING, "txn is not found");
-            return false;
-        }
-
-        t = move(*it);
-        hashIdx.erase(it);
-
-        return true;
-    };
-
-    std::list<Transaction> curTxns;
-
-    for (const auto& tranHash : tranHashes)
-    {
-        Transaction t;
-
-        if (findFromCreated(t, tranHash))
-        {
-
-            curTxns.emplace_back(t);
-        }
-        else
-        {
-            missingtranHashes.emplace_back(tranHash);
-        }
-    }
-
-    if (!missingtranHashes.empty())
-    {
-        return true;
-    }
-
-    if (!VerifyTxnsOrdering(curTxns))
-    {
-        return false;
-    }
-
-    uint64_t blockNum = m_mediator.m_currentEpochNum;
-
-    auto appendOne = [this, &blockNum](const Transaction& t,
-                                       const TransactionReceipt& tr) {
-        // LOG_GENERAL(INFO, "appendOne: " << t.GetTranID().hex());
-        lock_guard<mutex> g(m_mutexProcessedTransactions);
-        auto& processedTransactions = m_processedTransactions[blockNum];
-        processedTransactions.insert(
-            make_pair(t.GetTranID(), TransactionWithReceipt(t, tr)));
-    };
-
-    for (const auto& t : curTxns)
-    {
-        TransactionReceipt tr;
-        if (m_mediator.m_validator->CheckCreatedTransaction(t, tr)
-            || (!t.GetCode().empty() && t.GetToAddr() == NullAddress)
-            || (!t.GetData().empty() && t.GetToAddr() != NullAddress
-                && t.GetCode().empty()))
-        {
-            appendOne(t, tr);
-        }
-    }
-
-    return true;
-}
-
 unsigned char Node::CheckLegitimacyOfTxnHashes(vector<unsigned char>& errorMsg)
 {
 
-    vector<TxnHash> missingTxnHashes;
-    if (!ProcessTransactionWhenShardBackup(m_microblock->GetTranHashes(),
-                                           missingTxnHashes))
+    bool isVacuousEpoch
+        = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
+    if (!isVacuousEpoch)
     {
-        return LEGITIMACYRESULT::WRONGORDER;
+        vector<TxnHash> missingTxnHashes;
+        if (!ProcessTransactionWhenShardBackup(m_microblock->GetTranHashes(),
+                                               missingTxnHashes))
+        {
+            return LEGITIMACYRESULT::WRONGORDER;
+        }
+
+        m_numOfAbsentTxnHashes = 0;
+
+        int offset = 0;
+
+        for (auto const& hash : missingTxnHashes)
+        {
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Missing txn: " << hash)
+            if (errorMsg.size() == 0)
+            {
+                errorMsg.resize(sizeof(uint32_t) + sizeof(uint64_t)
+                                + TRAN_HASH_SIZE);
+                offset += (sizeof(uint32_t) + sizeof(uint64_t));
+            }
+            else
+            {
+                errorMsg.resize(offset + TRAN_HASH_SIZE);
+            }
+            copy(hash.asArray().begin(), hash.asArray().end(),
+                 errorMsg.begin() + offset);
+            offset += TRAN_HASH_SIZE;
+            m_numOfAbsentTxnHashes++;
+        }
+
+        if (m_numOfAbsentTxnHashes > 0)
+        {
+            Serializable::SetNumber<uint32_t>(
+                errorMsg, 0, m_numOfAbsentTxnHashes, sizeof(uint32_t));
+            Serializable::SetNumber<uint64_t>(errorMsg, sizeof(uint32_t),
+                                              m_mediator.m_currentEpochNum,
+                                              sizeof(uint64_t));
+
+            m_txnsOrdering = m_microblock->GetTranHashes();
+
+            AccountStore::GetInstance().InitTemp();
+            if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
+            {
+                LOG_GENERAL(WARNING, "Got missing txns, revert state delta");
+                AccountStore::GetInstance().DeserializeDeltaTemp(
+                    m_mediator.m_ds->m_stateDeltaFromShards, 0);
+            }
+
+            return LEGITIMACYRESULT::MISSEDTXN;
+        }
+
+        AccountStore::GetInstance().SerializeDelta();
     }
-
-    m_numOfAbsentTxnHashes = 0;
-
-    int offset = 0;
-
-    for (auto const& hash : missingTxnHashes)
+    else
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Missing txn: " << hash)
-        if (errorMsg.size() == 0)
-        {
-            errorMsg.resize(sizeof(uint32_t) + sizeof(uint64_t)
-                            + TRAN_HASH_SIZE);
-            offset += (sizeof(uint32_t) + sizeof(uint64_t));
-        }
-        else
-        {
-            errorMsg.resize(offset + TRAN_HASH_SIZE);
-        }
-        copy(hash.asArray().begin(), hash.asArray().end(),
-             errorMsg.begin() + offset);
-        offset += TRAN_HASH_SIZE;
-        m_numOfAbsentTxnHashes++;
+                  "Vacuous epoch: Skipping processing transactions");
     }
-
-    if (m_numOfAbsentTxnHashes > 0)
-    {
-        Serializable::SetNumber<uint32_t>(errorMsg, 0, m_numOfAbsentTxnHashes,
-                                          sizeof(uint32_t));
-        Serializable::SetNumber<uint64_t>(errorMsg, sizeof(uint32_t),
-                                          m_mediator.m_currentEpochNum,
-                                          sizeof(uint64_t));
-
-        m_txnsOrdering = m_microblock->GetTranHashes();
-
-        AccountStore::GetInstance().InitTemp();
-        if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE)
-        {
-            LOG_GENERAL(WARNING, "Got missing txns, revert state delta");
-            AccountStore::GetInstance().DeserializeDeltaTemp(
-                m_mediator.m_ds->m_stateDeltaFromShards, 0);
-        }
-
-        return LEGITIMACYRESULT::MISSEDTXN;
-    }
-
-    AccountStore::GetInstance().SerializeDelta();
 
     return LEGITIMACYRESULT::SUCCESS;
 }
