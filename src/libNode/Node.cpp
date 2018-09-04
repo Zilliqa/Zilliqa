@@ -850,8 +850,7 @@ void Node::SetMyShardID(uint32_t shardID) { m_myShardID = shardID; }
 void Node::CleanCreatedTransaction()
 {
     std::lock_guard<mutex> lock(m_mutexCreatedTransactions);
-    // m_createdTransactions.clear();
-    m_createdTransactions.get<0>().clear();
+    m_createdTransactions.clear();
     m_addrNonceTxnMap.clear();
 }
 
