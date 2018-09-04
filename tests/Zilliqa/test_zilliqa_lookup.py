@@ -94,7 +94,7 @@ def run_setup(numnodes, printnodes):
 def patch_constants_xml(filepath, read_txn=False):
         root = ET.parse(filepath).getroot()
 
-        td = root.find('TransactionDispatcher')
+        td = root.find('dispatcher')
         td.find('TXN_PATH').text = TXN_PATH
         if read_txn:
             td.find('USE_REMOTE_TXN_CREATOR').text='true'

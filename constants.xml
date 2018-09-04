@@ -51,10 +51,10 @@
         <CUDA_GPU_MINE>false</CUDA_GPU_MINE>
         <LOOKUP_NODE_MODE>false</LOOKUP_NODE_MODE>
     </options>
-    <TransactionDispatcher>
+    <dispatcher>
         <USE_REMOTE_TXN_CREATOR>false</USE_REMOTE_TXN_CREATOR>
         <TXN_PATH></TXN_PATH>
-    </TransactionDispatcher>
+    </dispatcher>
     <smart_contract>
         <SCILLA_ROOT></SCILLA_ROOT>
         <SCILLA_BINARY>bin/scilla-runner</SCILLA_BINARY>
