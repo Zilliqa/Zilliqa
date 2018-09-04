@@ -272,11 +272,10 @@ bool Node::ReadVariablesFromStartPoWMessage(
     // We'll need this if we win PoW
     m_mediator.m_DSCommittee->clear();
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "DS nodes count    = " << numDS);
+              "DS nodes count    = " << numDS + 1);
     for (unsigned int i = 0; i < numDS; i++)
     {
         PubKey pubkey(message, cur_offset);
-        LOG_GENERAL(INFO, "offset: " << cur_offset)
         cur_offset += PUB_KEY_SIZE;
 
         m_mediator.m_DSCommittee->emplace_back(
