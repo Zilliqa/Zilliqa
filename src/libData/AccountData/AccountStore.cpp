@@ -342,8 +342,8 @@ bool AccountStore::UpdateCoinbaseTemp(const Address& rewardee,
 boost::multiprecision::uint256_t
 AccountStore::GetNonceTemp(const Address& address)
 {
-    auto it = m_accountStoreTemp->GetAddressToAccount()->find(address);
-    if (it != m_accountStoreTemp->GetAddressToAccount()->end())
+    if (m_accountStoreTemp->GetAddressToAccount()->find(address)
+        != m_accountStoreTemp->GetAddressToAccount()->end())
     {
         return m_accountStoreTemp->GetNonce(address);
     }
