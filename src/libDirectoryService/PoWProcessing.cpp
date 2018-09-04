@@ -120,7 +120,7 @@ bool DirectoryService::VerifyPoWSubmission(
         {
             LOG_GENERAL(WARNING,
                         "Difficulty level is invalid. DifficultyLevel: "
-                            << to_string(block_num)
+                            << to_string(difficultyLevel)
                             << " Expected: " << to_string(DS_POW_DIFFICULTY)
                             << " or " << to_string(POW_DIFFICULTY));
 
