@@ -40,9 +40,13 @@ template<class MAP> void AccountStoreSC<MAP>::Init()
 
 template<class MAP>
 bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
-                                         const Transaction& transaction)
+                                         const unsigned int& numShards,
+                                         const bool& isDS,
+                                         const Transaction& transaction,
+                                         uint256_t& gasUsed)
 {
     // LOG_MARKER();
+    m_curIsDS = isDS;
 
     lock_guard<mutex> g(m_mutexUpdateAccounts);
 
@@ -76,12 +80,13 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             }
         }
 
-        return AccountStoreBase<MAP>::UpdateAccounts(transaction);
+        return AccountStoreBase<MAP>::UpdateAccounts(transaction, gasUsed);
     }
 
     bool callContract = false;
 
-    if (transaction.GetData().size() > 0 && toAddr != NullAddress)
+    if (transaction.GetData().size() > 0 && toAddr != NullAddress
+        && transaction.GetCode().empty())
     {
         callContract = true;
     }
@@ -101,8 +106,15 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         // return false;
     }
 
-    if (transaction.GetCode().size() > 0 && toAddr == NullAddress)
+    if (transaction.GetCode().size() > 0)
     {
+        if (toAddr != NullAddress)
+        {
+            LOG_GENERAL(WARNING,
+                        "txn has non-empty code but with valid toAddr");
+            return false;
+        }
+
         LOG_GENERAL(INFO, "Create Contract");
 
         if (transaction.GetGasLimit() < CONTRACT_CREATE_GAS)
@@ -176,6 +188,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             return false;
         }
         this->IncreaseBalance(fromAddr, gasRefund);
+        gasUsed = CONTRACT_CREATE_GAS;
         if (!ret)
         {
             this->m_addressToAccount->erase(toAddr);
@@ -183,12 +196,15 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         }
     }
 
-    if (!callContract && validToTransferBalance)
+    if (!callContract)
     {
-        if (!this->TransferBalance(fromAddr, toAddr, amount))
+        if (validToTransferBalance)
         {
-            this->IncreaseNonce(fromAddr);
-            return false;
+            if (!this->TransferBalance(fromAddr, toAddr, amount))
+            {
+                this->IncreaseNonce(fromAddr);
+                return false;
+            }
         }
     }
     else
@@ -249,6 +265,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
         m_curContractAddr = toAddr;
         m_curAmount = amount;
+        m_curNumShards = numShards;
 
         // if (!TransferBalanceAtomic(fromAddr, toAddr, amount))
         // {
@@ -280,6 +297,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             return false;
         }
         this->IncreaseBalance(fromAddr, gasRefund);
+        gasUsed = m_curGasCum;
         if (!ret)
         {
             return true; // Return true because the states already changed
@@ -593,6 +611,17 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json)
     }
 
     LOG_GENERAL(INFO, "Call another contract");
+
+    // check whether the recipient contract is in the same shard with the current contract
+    if (!m_curIsDS
+        && Transaction::GetShardIndex(m_curContractAddr, m_curNumShards)
+            != Transaction::GetShardIndex(recipient, m_curNumShards))
+    {
+        LOG_GENERAL(WARNING,
+                    "another contract doesn't belong to the same shard with "
+                    "current contract");
+        return false;
+    }
 
     Json::Value input_message;
     input_message["_sender"] = "0x" + m_curContractAddr.hex();

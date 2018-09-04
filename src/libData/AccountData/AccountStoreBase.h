@@ -51,7 +51,7 @@ public:
 
     virtual Account* GetAccount(const Address& address);
 
-    bool UpdateAccounts(const Transaction& transaction);
+    bool UpdateAccounts(const Transaction& transaction, uint256_t& gasUsed);
 
     /// Verifies existence of Account in the list.
     bool IsAccountExist(const Address& address);

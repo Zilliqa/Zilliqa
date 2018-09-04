@@ -171,6 +171,7 @@ void DirectoryService::ComputeTxnSharingAssignments(const Peer& winnerpeer)
 
     // Add the new DS leader first
     m_DSReceivers.emplace_back(winnerpeer);
+    m_mediator.m_node->m_txnSharingIAmSender = true;
     num_ds_nodes--;
 
     // Add the rest from the current DS committee
@@ -370,6 +371,7 @@ void DirectoryService::SaveTxnBodySharingAssignment(
     {
         if (m_DSReceivers.at(i) == m_mediator.m_selfPeer)
         {
+            m_mediator.m_node->m_txnSharingIAmSender = true;
             i_am_forwarder = true;
             break;
         }
@@ -582,6 +584,8 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin)
             }
         }
     }
+
+    m_mediator.m_node->m_txnSharingIAmSender = false;
 
     // Upon consensus object creation failure, one should not return from the function, but rather wait for view change.
     bool ConsensusObjCreation = true;
