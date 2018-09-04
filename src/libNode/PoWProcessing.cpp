@@ -209,7 +209,8 @@ bool Node::ReadVariablesFromStartPoWMessage(
 {
     if (IsMessageSizeInappropriate(message.size(), cur_offset,
                                    sizeof(uint64_t) + sizeof(uint8_t)
-                                       + UINT256_SIZE + UINT256_SIZE,
+                                       + sizeof(uint8_t) + UINT256_SIZE
+                                       + UINT256_SIZE,
                                    PUB_KEY_SIZE + IP_SIZE + PORT_SIZE))
     {
         return false;
@@ -223,11 +224,6 @@ bool Node::ReadVariablesFromStartPoWMessage(
     // 1-byte ds difficulty
     ds_difficulty = Serializable::GetNumber<uint8_t>(message, cur_offset,
                                                      sizeof(uint8_t));
-    cur_offset += sizeof(uint8_t);
-
-    // 1-byte difficulty
-    difficulty = Serializable::GetNumber<uint8_t>(message, cur_offset,
-                                                  sizeof(uint8_t));
     cur_offset += sizeof(uint8_t);
 
     // 1-byte difficulty
@@ -249,12 +245,24 @@ bool Node::ReadVariablesFromStartPoWMessage(
                                 << "][" << block_num << "]");
 
     // Log all values
-    // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "My IP address     = " << m_mediator.m_selfPeer.GetPrintableIPAddress());
-    // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "My Listening Port = " << m_mediator.m_selfPeer.m_listenPortHost);
-    // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "Difficulty        = " << to_string(difficulty));
-    // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "Rand1             = " << DataConversion::charArrToHexStr(rand1));
-    // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "Rand2             = " << DataConversion::charArrToHexStr(rand2));
-    // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "Pubkey            = " << DataConversion::SerializableToHexStr(m_mediator.m_selfKey.second));
+    /**
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "My IP address     = "
+                  << m_mediator.m_selfPeer.GetPrintableIPAddress());
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "My Listening Port = " << m_mediator.m_selfPeer.m_listenPortHost);
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "DS Difficulty        = " << to_string(ds_difficulty));
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Difficulty        = " << to_string(difficulty));
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Rand1             = " << DataConversion::charArrToHexStr(rand1));
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Rand2             = " << DataConversion::charArrToHexStr(rand2));
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Pubkey            = " << DataConversion::SerializableToHexStr(
+                  m_mediator.m_selfKey.second));
+    **/
 
     // DS nodes ip addr and port
     const unsigned int numDS
@@ -268,6 +276,7 @@ bool Node::ReadVariablesFromStartPoWMessage(
     for (unsigned int i = 0; i < numDS; i++)
     {
         PubKey pubkey(message, cur_offset);
+        LOG_GENERAL(INFO, "offset: " << cur_offset)
         cur_offset += PUB_KEY_SIZE;
 
         m_mediator.m_DSCommittee->emplace_back(
