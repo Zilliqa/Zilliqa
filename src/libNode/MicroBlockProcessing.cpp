@@ -639,17 +639,17 @@ void Node::ProcessTransactionWhenShardLeader()
             // LOG_GENERAL(INFO, "findOneFromCreated");
             uint256_t gasUsed = 0;
 
+            Address senderAddr = t.GetSenderAddr();
             // check nonce, if nonce larger than expected, put it into m_addrNonceTxnMap
             if (t.GetNonce()
-                > AccountStore::GetInstance().GetNonceTemp(t.GetSenderAddr())
-                    + 1)
+                > AccountStore::GetInstance().GetNonceTemp(senderAddr) + 1)
             {
                 // LOG_GENERAL(INFO,
                 //             "High nonce: "
                 //                 << t.GetNonce() << " cur sender nonce: "
                 //                 << AccountStore::GetInstance().GetNonceTemp(
-                //                        t.GetSenderAddr()));
-                auto it1 = m_addrNonceTxnMap.find(t.GetSenderAddr());
+                //                        senderAddr));
+                auto it1 = m_addrNonceTxnMap.find(senderAddr);
                 if (it1 != m_addrNonceTxnMap.end())
                 {
                     auto it2 = it1->second.find(t.GetNonce());
@@ -665,18 +665,17 @@ void Node::ProcessTransactionWhenShardLeader()
                         continue;
                     }
                 }
-                m_addrNonceTxnMap[t.GetSenderAddr()].insert({t.GetNonce(), t});
+                m_addrNonceTxnMap[senderAddr].insert({t.GetNonce(), t});
             }
             // if nonce too small, ignore it
-            else if (t.GetNonce() < AccountStore::GetInstance().GetNonceTemp(
-                                        t.GetSenderAddr())
-                         + 1)
+            else if (t.GetNonce()
+                     < AccountStore::GetInstance().GetNonceTemp(senderAddr) + 1)
             {
                 // LOG_GENERAL(INFO,
                 //             "Nonce too small"
                 //                 << " Expected "
                 //                 << AccountStore::GetInstance().GetNonceTemp(
-                //                        t.GetSenderAddr())
+                //                        senderAddr)
                 //                 << " Found " << t.GetNonce());
             }
             // if nonce correct, process it
@@ -874,12 +873,12 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes,
         {
             uint256_t gasUsed = 0;
 
+            Address senderAddr = t.GetSenderAddr();
             // check nonce, if nonce larger than expected, put it into t_addrNonceTxnMap
             if (t.GetNonce()
-                > AccountStore::GetInstance().GetNonceTemp(t.GetSenderAddr())
-                    + 1)
+                > AccountStore::GetInstance().GetNonceTemp(senderAddr) + 1)
             {
-                auto it1 = t_addrNonceTxnMap.find(t.GetSenderAddr());
+                auto it1 = t_addrNonceTxnMap.find(senderAddr);
                 if (it1 != t_addrNonceTxnMap.end())
                 {
                     auto it2 = it1->second.find(t.GetNonce());
@@ -895,12 +894,11 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes,
                         continue;
                     }
                 }
-                t_addrNonceTxnMap[t.GetSenderAddr()].insert({t.GetNonce(), t});
+                t_addrNonceTxnMap[senderAddr].insert({t.GetNonce(), t});
             }
             // if nonce too small, ignore it
-            else if (t.GetNonce() < AccountStore::GetInstance().GetNonceTemp(
-                                        t.GetSenderAddr())
-                         + 1)
+            else if (t.GetNonce()
+                     < AccountStore::GetInstance().GetNonceTemp(senderAddr) + 1)
             {
             }
             // if nonce correct, process it
