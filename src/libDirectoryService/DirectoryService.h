@@ -86,7 +86,8 @@ class DirectoryService : public Executable, public Broadcastable
     // PoW (DS block) consensus variables
     std::shared_ptr<DSBlock> m_pendingDSBlock;
     std::mutex m_mutexPendingDSBlock;
-    std::vector<std::pair<PubKey, boost::multiprecision::uint256_t>> m_allPoWs;
+    std::map<PubKey, std::array<unsigned char, 32>>
+        m_allPoWs; // map<pubkey, PoW Soln>
     std::mutex m_mutexAllPOW;
 
     // Final block consensus variables
@@ -161,8 +162,10 @@ class DirectoryService : public Executable, public Broadcastable
 
     // PoW (DS block) consensus functions
     void RunConsensusOnDSBlock(bool isRejoin = false);
-    void ComposeDSBlock();
-    void ComputeSharding();
+    void ComposeDSBlock(
+        const vector<pair<array<unsigned char, 32>, PubKey>>& sortedPoWSolns);
+    void ComputeSharding(
+        const vector<pair<array<unsigned char, 32>, PubKey>>& sortedPoWSolns);
     void ComputeTxnSharingAssignments(const Peer& winnerpeer);
 
     // internal calls from RunConsensusOnDSBlock
@@ -209,7 +212,8 @@ class DirectoryService : public Executable, public Broadcastable
                              unsigned int curr_offset, uint32_t& portNo,
                              uint64_t& nonce, array<unsigned char, 32>& rand1,
                              array<unsigned char, 32>& rand2,
-                             uint8_t& difficulty, uint64_t& block_num);
+                             uint8_t& difficulty, uint64_t& block_num,
+                             string& winning_hash);
     void ExtractDataFromMicroblocks(
         TxnHash& microblockTxnTrieRoot, StateHash& microblockDeltaTrieRoot,
         std::vector<MicroBlockHashSet>& microblockHashes,
