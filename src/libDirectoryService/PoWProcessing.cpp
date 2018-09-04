@@ -104,8 +104,8 @@ bool DirectoryService::VerifyPoWSubmission(
             && difficultyLevel != expectedDiff)
         {
             LOG_GENERAL(WARNING,
-                        "Difficulty level is invalid. DifficultyLevel: "
-                            << to_string(block_num)
+                        "Difficulty level is invalid. difficultyLevel: "
+                            << to_string(difficultyLevel)
                             << " Expected: " << to_string(expectedDSDiff)
                             << " or " << to_string(expectedDiff));
 
@@ -150,7 +150,6 @@ bool DirectoryService::ParseMessageAndVerifyPOW(
     const vector<unsigned char>& message, unsigned int offset, const Peer& from)
 {
     unsigned int curr_offset = offset;
-
     // 8-bytes block number
     uint64_t DSBlockNum = Serializable::GetNumber<uint64_t>(
         message, curr_offset, sizeof(uint64_t));
