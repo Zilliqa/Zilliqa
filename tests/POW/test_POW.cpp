@@ -907,7 +907,7 @@ BOOST_AUTO_TEST_CASE(difficulty_adjustment_small_network)
     newDifficulty = DirectoryService::CalculateNewDifficultyCore(
         currentDifficulty, minDifficulty, currentNodes, powSubmissions,
         expectedNodes, adjustThreshold, currentEpochNum, numBlocksPerYear);
-    BOOST_REQUIRE(newDifficulty == 16);
+    BOOST_REQUIRE(newDifficulty == 15);
 }
 
 BOOST_AUTO_TEST_CASE(difficulty_adjustment_large_network)
@@ -928,8 +928,9 @@ BOOST_AUTO_TEST_CASE(difficulty_adjustment_large_network)
 
     currentDifficulty = 4;
     currentEpochNum = 1971001;
-    currentNodes = 10000;
-    powSubmissions = 10001;
+    currentNodes = 10001; // The current nodes exceed expected node
+    powSubmissions
+        = 10002; // Pow submission still increase, need to increase difficulty
     newDifficulty = DirectoryService::CalculateNewDifficultyCore(
         currentDifficulty, minDifficulty, currentNodes, powSubmissions,
         expectedNodes, adjustThreshold, currentEpochNum, numBlocksPerYear);
@@ -965,12 +966,29 @@ BOOST_AUTO_TEST_CASE(difficulty_adjustment_large_network)
     BOOST_REQUIRE(newDifficulty == 16);
 }
 
-BOOST_AUTO_TEST_CASE(difficulty_adjustment_for_ds)
+BOOST_AUTO_TEST_CASE(difficulty_adjustment_for_ds_small)
+{
+    uint8_t currentDifficulty = 9;
+    uint8_t minDifficulty = 5;
+    int64_t currentNodes = 10;
+    int64_t powSubmissions = 11;
+    int64_t expectedNodes = 10;
+    uint32_t adjustThreshold = 9;
+    int64_t currentEpochNum = 80;
+    int64_t numBlocksPerYear = 1971000;
+
+    int newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+        currentDifficulty, minDifficulty, currentNodes, powSubmissions,
+        expectedNodes, adjustThreshold, currentEpochNum, numBlocksPerYear);
+    BOOST_REQUIRE(newDifficulty == 9);
+}
+
+BOOST_AUTO_TEST_CASE(difficulty_adjustment_for_ds_large)
 {
     uint8_t currentDifficulty = 5;
-    uint8_t minDifficulty = 3;
+    uint8_t minDifficulty = 5;
     int64_t currentNodes = 100;
-    int64_t powSubmissions = 101;
+    int64_t powSubmissions = 110;
     int64_t expectedNodes = 100;
     uint32_t adjustThreshold = 9;
     int64_t currentEpochNum = 200;
@@ -992,12 +1010,13 @@ BOOST_AUTO_TEST_CASE(difficulty_adjustment_for_ds)
 
     currentDifficulty = 8;
     currentEpochNum = 1971001;
-    currentNodes = 103;
-    powSubmissions = 99;
+    currentNodes = 103; // Current node number exceed expected number.
+    powSubmissions
+        = 99; // The PoW submissions drop not much, so keep difficulty.
     newDifficulty = DirectoryService::CalculateNewDifficultyCore(
         currentDifficulty, minDifficulty, currentNodes, powSubmissions,
         expectedNodes, adjustThreshold, currentEpochNum, numBlocksPerYear);
-    BOOST_REQUIRE(newDifficulty == 7);
+    BOOST_REQUIRE(newDifficulty == 8);
 
     currentDifficulty = 14;
     currentNodes = 102;

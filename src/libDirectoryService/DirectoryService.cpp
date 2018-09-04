@@ -631,7 +631,7 @@ uint8_t DirectoryService::CalculateNewDifficultyCore(
     int64_t currentEpochNum, int64_t numBlockPerYear)
 {
     constexpr int8_t MAX_ADJUST_STEP = 2;
-    constexpr float ONE_HUNDRED_PERCENT = 100;
+    constexpr float ONE_HUNDRED_PERCENT = 100.f;
     constexpr uint8_t MAX_INCREASE_DIFFICULTY_YEARS = 10;
 
     int64_t adjustment = 0;
@@ -659,11 +659,11 @@ uint8_t DirectoryService::CalculateNewDifficultyCore(
         if (abs(submissionsDiff) < adjustThreshold)
         {
             // If the PoW submissions exceeded the expected whole network node number, then increase the difficulty.
-            if (submissionsDiff > 0 && powSubmissions > expectedNodes)
+            if (submissionsDiff > 0 && currentNodes > expectedNodes)
             {
                 adjustment = 1;
             }
-            else if (submissionsDiff < 0 && powSubmissions < expectedNodes)
+            else if (submissionsDiff < 0 && currentNodes < expectedNodes)
             {
                 adjustment = -1;
             }
