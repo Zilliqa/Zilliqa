@@ -15,9 +15,13 @@
 **/
 
 #include "UpgradeManager.h"
+#include "libCrypto/Schnorr.h"
 #include "libUtils/Logger.h"
 
 using namespace std;
+
+#define RELEASE_URL                                                            \
+    "https://api.github.com/repos/Zilliqa/Zilliqa/releases/latest"
 
 SWInfo::SWInfo()
     : m_major(0)
@@ -137,24 +141,162 @@ UpgradeManager& UpgradeManager::GetInstance()
     return um;
 }
 
+bool UpgradeManager::DownloadFile(const char* fileTail)
+{
+    string cmd = string("curl -s ") + RELEASE_URL
+        + " | grep \"browser_download_url.*" + fileTail
+        + "\" | cut -d '\"' -f 4 | wget -qi -";
+    return system(cmd.c_str()) >= 0;
+}
+
 bool UpgradeManager::HasNewSW()
 {
-    /// Check website, verify if sig is valid && SHA-256 is new
-    /// TBD
+    LOG_MARKER();
 
-    return false;
+    if (!DownloadFile("pubKeyFile"))
+    {
+        LOG_GENERAL(WARNING, "Cannot download public key file!");
+        return false;
+    }
+
+    if (!DownloadFile("VERSION"))
+    {
+        LOG_GENERAL(WARNING, "Cannot download version file!");
+        return false;
+    }
+
+    vector<PubKey> pubKeys;
+    {
+        fstream pubKeyFile("pubKeyFile", ios::in);
+        string pubKey;
+
+        while (getline(pubKeyFile, pubKey))
+        {
+            pubKeys.emplace_back(DataConversion::HexStrToUint8Vec(pubKey), 0);
+        }
+    }
+
+    string shaStr, sigStr;
+    {
+        fstream versionFile("VERSION", ios::in);
+        int line_no = 0;
+
+        /// Read SHA-256 hash
+        while (line_no != 14 && getline(versionFile, shaStr))
+        {
+            ++line_no;
+        }
+
+        /// Read signature
+        while (line_no != 16 && getline(versionFile, sigStr))
+        {
+            ++line_no;
+        }
+    }
+
+    const vector<unsigned char> sha = DataConversion::HexStrToUint8Vec(shaStr);
+    const unsigned int len = sigStr.size() / pubKeys.size();
+    vector<Signature> mutliSig;
+
+    for (unsigned int i = 0; i < pubKeys.size(); ++i)
+    {
+        mutliSig.emplace_back(
+            DataConversion::HexStrToUint8Vec(sigStr.substr(i * len, len)), 0);
+    }
+
+    /// Multi-sig verification
+    for (unsigned int i = 0; i < pubKeys.size(); ++i)
+    {
+        if (!Schnorr::GetInstance().Verify(sha, mutliSig.at(i), pubKeys.at(i)))
+        {
+            LOG_GENERAL(WARNING, "Multisig verification failed!");
+            return false;
+        }
+    }
+
+    return m_latestSHA != sha;
 }
 
 bool UpgradeManager::DownloadSW()
 {
-    /// Download SW from website, then update current SHA-256 value & curSWInfo
-    /// TBD
+    LOG_MARKER();
 
+    if (!DownloadFile("VERSION"))
+    {
+        LOG_GENERAL(WARNING, "Cannot download version file!");
+        return false;
+    }
+
+    if (!DownloadFile("deb"))
+    {
+        LOG_GENERAL(WARNING, "Cannot download package (.deb) file!");
+        return false;
+    }
+
+    uint32_t major, minor, fix, commit;
+    uint64_t upgradeDS;
+    string sha;
+    {
+        fstream versionFile("VERSION", ios::in);
+        int line_no = 0;
+        string line;
+
+        /// Read major version
+        while (line_no != 2 && getline(versionFile, line))
+        {
+            ++line_no;
+        }
+
+        major = stoul(line);
+
+        /// Read minor version
+        while (line_no != 4 && getline(versionFile, line))
+        {
+            ++line_no;
+        }
+
+        minor = stoul(line);
+
+        /// Read fix version
+        while (line_no != 6 && getline(versionFile, line))
+        {
+            ++line_no;
+        }
+
+        fix = stoul(line);
+
+        /// Read expected DS epoch
+        while (line_no != 8 && getline(versionFile, line))
+        {
+            ++line_no;
+        }
+
+        upgradeDS = stoull(line);
+
+        /// Read Git commit ID
+        while (line_no != 12 && getline(versionFile, line))
+        {
+            ++line_no;
+        }
+
+        commit = stoul(line, nullptr, 16);
+
+        /// Read SHA-256 hash
+        while (line_no != 14 && getline(versionFile, sha))
+        {
+            ++line_no;
+        }
+    }
+
+    m_latestSWInfo = make_shared<SWInfo>(major, minor, fix, upgradeDS, commit);
+    m_latestSHA = DataConversion::HexStrToUint8Vec(sha);
     return true;
 }
 
 bool UpgradeManager::ReplaceNode()
 {
+    LOG_MARKER();
+
     /// Store all the useful states into metadata, create a new node with loading the metadata, and kill current node
     /// TBD
 
