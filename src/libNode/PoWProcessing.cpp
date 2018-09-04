@@ -122,10 +122,10 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
                             "Founds PoW solution that meet ds commitee "
                             "requirement. 0x"
                                 << hex << ds_pow_winning_result.result);
-                result_vec
-                    = DataConversion::HexStrToUint8Vec(winning_result.result);
-                mixhash_vec
-                    = DataConversion::HexStrToUint8Vec(winning_result.mix_hash);
+                result_vec = DataConversion::HexStrToUint8Vec(
+                    ds_pow_winning_result.result);
+                mixhash_vec = DataConversion::HexStrToUint8Vec(
+                    ds_pow_winning_result.mix_hash);
 
                 // Submission of PoW for ds commitee
                 SendPoWResultToDSComm(block_num, ds_difficulty,

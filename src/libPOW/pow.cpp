@@ -421,7 +421,7 @@ bool POW::PoWVerify(uint64_t blockNum, uint8_t difficulty,
     {
         LOG_GENERAL(INFO,
                     "Check Hash " << check_hash_string << " Result "
-                                 << winning_result << " did not match");
+                                  << winning_result << " did not match");
         return false;
     }
 
