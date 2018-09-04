@@ -79,7 +79,6 @@ void DirectoryService::ExtractDataFromMicroblocks(
             && microBlock.GetHeader().GetStateDeltaHash() == StateHash();
 
         bool isEmptyTxn = (microBlock.GetHeader().GetNumTxs() == 0);
-        //[CNBSE]
 
         if (!isVacuousEpoch && !isEmpty)
         {
@@ -87,7 +86,6 @@ void DirectoryService::ExtractDataFromMicroblocks(
                 {{{microBlock.GetHeader().GetTxRootHash(),
                    microBlock.GetHeader().GetStateDeltaHash()},
                   microBlock.GetHeader().GetShardID()},
-                 // {!isEmptyTxn, true}});
                  {false, true}});
 
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),

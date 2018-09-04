@@ -43,7 +43,7 @@ namespace dev
     /// Transparently converts to/from the corresponding arithmetic type; this will
     /// assume the data contained in the hash is big-endian.
     template <unsigned N>
-    class FixedHash //: boost::less_than_comparable<FixedHash<N>>
+    class FixedHash
     {
     public:
         /// The corresponding arithmetic type.

@@ -74,7 +74,6 @@ class Lookup : public Executable, public Broadcastable
     std::vector<Peer> m_nodesInNetwork;
     std::unordered_set<Peer> l_nodesInNetwork;
     std::map<uint32_t, std::vector<Transaction>> m_txnShardMap;
-    std::mutex m_mutexOfflineLookups;
     std::mutex m_txnShardMapMutex;
 
     // Start PoW variables
@@ -101,6 +100,7 @@ class Lookup : public Executable, public Broadcastable
     std::mutex m_mutexSetTxBlockFromSeed;
     std::mutex m_mutexSetTxBodyFromSeed;
     std::mutex m_mutexSetState;
+    std::mutex m_mutexOfflineLookups;
 
     std::vector<unsigned char> ComposeGetDSInfoMessage();
     std::vector<unsigned char> ComposeGetStateMessage();
