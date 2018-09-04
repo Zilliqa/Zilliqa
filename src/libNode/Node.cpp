@@ -665,10 +665,23 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
         return false;
     }
 
+    // Broadcast to other shard node
+    vector<Peer> toSend;
+    for (auto it = m_myShardMembers->begin(); it != m_myShardMembers->end();
+         it++)
+    {
+        toSend.push_back(it->second);
+    }
+    LOG_GENERAL(INFO, "[Batching] Broadcast my txns to other shard members");
+    P2PComm::GetInstance().SendBroadcastMessage(toSend, message);
+
+    // Process the txns
     unsigned int txn_sent_count = 0;
     {
         LOG_GENERAL(INFO, "Start check txn packet from lookup");
         lock_guard<mutex> g(m_mutexCreatedTransactions);
+        auto& compIdx
+            = m_createdTransactions.get<MULTI_INDEX_KEY::ADDR_NONCE>();
         for (unsigned int i = 0; i < num; i++)
         {
             Transaction tx;
@@ -680,8 +693,6 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
 
             if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(tx))
             {
-                auto& compIdx
-                    = m_createdTransactions.get<MULTI_INDEX_KEY::ADDR_NONCE>();
                 auto it = compIdx.find(
                     make_tuple(tx.GetSenderAddr(), tx.GetNonce()));
                 if (it != compIdx.end())
@@ -711,38 +722,6 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
         }
     }
     LOG_GENERAL(INFO, "TXN COUNT" << txn_sent_count);
-    vector<Peer> toSend;
-
-    if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE)
-    {
-        for (auto it = m_myShardMembers->begin(); it != m_myShardMembers->end();
-             it++)
-        {
-            toSend.push_back(it->second);
-        }
-        if (txn_sent_count > 0)
-        {
-            LOG_GENERAL(INFO,
-                        "[Batching] Broadcast my txns to other shard members");
-            P2PComm::GetInstance().SendBroadcastMessage(toSend, message);
-        }
-    }
-    else
-    {
-        for (auto it = m_mediator.m_DSCommittee->begin();
-             it != m_mediator.m_DSCommittee->end(); it++)
-        {
-            toSend.push_back(it->second);
-        }
-        if (txn_sent_count > 0)
-        {
-            LOG_GENERAL(INFO,
-                        "[DSMB] "
-                            << " Send to other DS committee");
-
-            P2PComm::GetInstance().SendBroadcastMessage(toSend, message);
-        }
-    }
 
     return true;
 }
