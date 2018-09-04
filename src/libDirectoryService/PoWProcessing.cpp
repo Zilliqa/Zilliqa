@@ -255,8 +255,9 @@ bool DirectoryService::ParseMessageAndVerifyPOW(
                   "Invalid PoW submission"
                       << "\n"
                       << "blockNum: " << block_num << " Difficulty: "
-                      << difficultyLevel << " nonce: " << nonce << " ip: "
-                      << peer.GetPrintableIPAddress() << ":" << portNo << "\n"
+                      << to_string(difficultyLevel) << " nonce: " << nonce
+                      << " ip: " << peer.GetPrintableIPAddress() << ":"
+                      << portNo << "\n"
                       << "rand1: " << DataConversion::charArrToHexStr(rand1)
                       << " rand2: " << DataConversion::charArrToHexStr(rand2));
     }
