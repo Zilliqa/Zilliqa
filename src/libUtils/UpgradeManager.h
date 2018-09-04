@@ -68,7 +68,8 @@ public:
 class UpgradeManager
 {
 private:
-    std::shared_ptr<SWInfo> m_curSWInfo;
+    std::shared_ptr<SWInfo> m_latestSWInfo;
+    std::vector<unsigned char> m_latestSHA;
 
     UpgradeManager();
     ~UpgradeManager();
@@ -76,6 +77,7 @@ private:
     // Singleton should not implement these
     UpgradeManager(UpgradeManager const&) = delete;
     void operator=(UpgradeManager const&) = delete;
+    bool DownloadFile(const char* fileTail);
 
 public:
     /// Returns the singleton UpgradeManager instance.
@@ -90,7 +92,7 @@ public:
     /// Store all the useful states into metadata, create a new node with loading the metadata, and kill current node
     bool ReplaceNode();
 
-    const std::shared_ptr<SWInfo> GetSWInfo() { return m_curSWInfo; }
+    const std::shared_ptr<SWInfo> GetLatestSWInfo() { return m_latestSWInfo; }
 };
 
 #endif // __UPGRADEMANAGER_H__
