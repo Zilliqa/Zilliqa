@@ -867,6 +867,7 @@ void DirectoryService::RunConsensusOnFinalBlock(bool revertStateDelta)
         AccountStore::GetInstance().DeserializeDeltaTemp(m_stateDeltaFromShards,
                                                          0);
     }
+    CommitFinalBlockConsensusBuffer();
 
     AccountStore::GetInstance().SerializeDelta();
 
