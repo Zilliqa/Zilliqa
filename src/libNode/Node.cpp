@@ -562,8 +562,8 @@ bool Node::ProcessCreateTransactionFromLookup(
     {
         lock_guard<mutex> g(m_mutexCreatedTransactions);
         auto& compIdx
-            = m_createdTransactions.get<MULTI_INDEX_KEY::ADDR_NONCE>();
-        auto it = compIdx.find(make_tuple(tx.GetSenderAddr(), tx.GetNonce()));
+            = m_createdTransactions.get<MULTI_INDEX_KEY::PUBKEY_NONCE>();
+        auto it = compIdx.find(make_tuple(tx.GetSenderPubKey(), tx.GetNonce()));
         if (it != compIdx.end())
         {
             if (it->GetGasPrice() < tx.GetGasPrice())
@@ -711,7 +711,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
         LOG_GENERAL(INFO, "Start check txn packet from lookup");
         lock_guard<mutex> g(m_mutexCreatedTransactions);
         auto& compIdx
-            = m_createdTransactions.get<MULTI_INDEX_KEY::ADDR_NONCE>();
+            = m_createdTransactions.get<MULTI_INDEX_KEY::PUBKEY_NONCE>();
         for (unsigned int i = 0; i < num; i++)
         {
             Transaction tx;
@@ -724,7 +724,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
             if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(tx))
             {
                 auto it = compIdx.find(
-                    make_tuple(tx.GetSenderAddr(), tx.GetNonce()));
+                    make_tuple(tx.GetSenderPubKey(), tx.GetNonce()));
                 if (it != compIdx.end())
                 {
                     if (it->GetGasPrice() < tx.GetGasPrice())
