@@ -85,11 +85,7 @@ echo -e "New software version: ${newVer} is written into ${versionFile} successf
 
 # Use cpack to making deb file
 echo -e "Make deb package..."
-rm -rf build; rm -rf build_lookup
-./build.sh; cd build; make package; cd -
-./build_lookup.sh; cd build_lookup; make package; cd -
-cp ${versionFile} build/; cp ${versionFile} build_lookup/
-cd build; debFile="$(ls *.deb)"; cd -
+rm -rf build; ./build.sh; cd build; make package; cp ../${versionFile} .; debFile="$(ls *.deb)"; cd -
 echo -e "Deb packages are generated successfully.\n"
 
 # Make SHA-256 & multi-signature
@@ -97,12 +93,6 @@ echo -e "Making SHA-256 & multi-signature..."
 privKeyFile="$(realpath $1)"
 pubKeyFile="$(realpath $2)"
 cd build
-sha="$(md5sum ${debFile}|cut -d ' ' -f1)"
-sed -i "${shaLine}s/.*/${sha}/" ${versionFile}
-signature="$(./bin/signmultisig ${sha} ${privKeyFile} ${pubKeyFile})"
-sed -i "${sigLine}s/.*/${signature}/" ${versionFile}
-cd -
-cd build_lookup
 sha="$(md5sum ${debFile}|cut -d ' ' -f1)"
 sed -i "${shaLine}s/.*/${sha}/" ${versionFile}
 signature="$(./bin/signmultisig ${sha} ${privKeyFile} ${pubKeyFile})"
@@ -147,40 +137,20 @@ curl -v -s \
   -H "Authorization: token ${GitHubToken}" \
   -H "Content-Type:application/json" \
   --data-binary @build/${debFile} \
-  "https://uploads.github.com/repos/Zilliqa/${repoName}/releases/${releaseId}/assets?name=build_${debFile}" \
+  "https://uploads.github.com/repos/Zilliqa/${repoName}/releases/${releaseId}/assets?name=${debFile}" \
   -d '{
   "Content-Type": "application/vnd.debian.binary-package",
-  "name": "'"build_${debFile}"'",
+  "name": "'"${debFile}"'",
   "label": "'"${newVer}"'"
 }'
 curl -v -s \
   -H "Authorization: token ${GitHubToken}" \
   -H "Content-Type:application/json" \
   --data-binary @build/${versionFile} \
-  "https://uploads.github.com/repos/Zilliqa/${repoName}/releases/${releaseId}/assets?name=build_${versionFile}" \
+  "https://uploads.github.com/repos/Zilliqa/${repoName}/releases/${releaseId}/assets?name=${versionFile}" \
   -d '{
   "Content-Type": "application/octet-stream",
-  "name": "'"build_${versionFile}"'",
-  "label": "'"${newVer}"'"
-}'
-curl -v -s \
-  -H "Authorization: token ${GitHubToken}" \
-  -H "Content-Type:application/json" \
-  --data-binary @build_lookup/${debFile} \
-  "https://uploads.github.com/repos/Zilliqa/${repoName}/releases/${releaseId}/assets?name=build_lookup_${debFile}" \
-  -d '{
-  "Content-Type": "application/vnd.debian.binary-package",
-  "name": "'"build_lookup_${debFile}"'",
-  "label": "'"${newVer}"'"
-}'
-curl -v -s \
-  -H "Authorization: token ${GitHubToken}" \
-  -H "Content-Type:application/json" \
-  --data-binary @build_lookup/${versionFile} \
-  "https://uploads.github.com/repos/Zilliqa/${repoName}/releases/${releaseId}/assets?name=build_lookup_${versionFile}" \
-  -d '{
-  "Content-Type": "application/octet-stream",
-  "name": "'"build_lookup_${versionFile}"'",
+  "name": "'"${versionFile}"'",
   "label": "'"${newVer}"'"
 }'
 rm ${releaseLog}
