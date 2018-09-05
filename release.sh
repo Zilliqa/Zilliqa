@@ -16,11 +16,12 @@
 # User configuration settings, mandatory to be filled in
 GitHubToken=""
 repoName="PreRelease"    # Change to Zilliqa after PreRelease is ok
-packageName="D24"
-releaseTitle="D24 latest release"
-releaseDescription="This is the latest release of D24.\nThere are many new features in this release and you can refer to README for more information."
+packageName=""
+releaseTitle=""
+releaseDescription=""
 
-# Variables indicate VERSION information
+# Environment variables
+releaseDir="release"
 versionFile="VERSION"
 majorLine=2
 minorLine=4
@@ -48,6 +49,16 @@ fi
 
 if [ "$GitHubToken" = "" ]; then
     echo "*ERROR* Please enter your own GitHub token in release.sh!"
+    return 1
+fi
+
+if [ "$packageName" = "" ]; then
+    echo "*ERROR* Please enter the package name in release.sh!"
+    return 1
+fi
+
+if [ "$releaseTitle" = "" ] || [ "$releaseDescription" = "" ]; then
+    echo "*ERROR* Please enter the release title and description in release.sh!"
     return 1
 fi
 
@@ -85,14 +96,17 @@ echo -e "New software version: ${newVer} is written into ${versionFile} successf
 
 # Use cpack to making deb file
 echo -e "Make deb package..."
-rm -rf build; ./build.sh; cd build; make package; cp ../${versionFile} .; debFile="$(ls *.deb)"; cd -
+rm -rf ${releaseDir}
+cmake -H. -B${releaseDir} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=/usr/local/
+cmake --build ${releaseDir} --j4
+cd ${releaseDir}; make package; cp ../${versionFile} .; debFile="$(ls *.deb)"; cd -
 echo -e "Deb packages are generated successfully.\n"
 
 # Make SHA-256 & multi-signature
 echo -e "Making SHA-256 & multi-signature..."
 privKeyFile="$(realpath $1)"
 pubKeyFile="$(realpath $2)"
-cd build
+cd ${releaseDir}
 sha="$(md5sum ${debFile}|cut -d ' ' -f1)"
 sed -i "${shaLine}s/.*/${sha}/" ${versionFile}
 signature="$(./bin/signmultisig ${sha} ${privKeyFile} ${pubKeyFile})"
@@ -136,7 +150,7 @@ curl -v -s \
 curl -v -s \
   -H "Authorization: token ${GitHubToken}" \
   -H "Content-Type:application/json" \
-  --data-binary @build/${debFile} \
+  --data-binary @${releaseDir}/${debFile} \
   "https://uploads.github.com/repos/Zilliqa/${repoName}/releases/${releaseId}/assets?name=${debFile}" \
   -d '{
   "Content-Type": "application/vnd.debian.binary-package",
@@ -146,7 +160,7 @@ curl -v -s \
 curl -v -s \
   -H "Authorization: token ${GitHubToken}" \
   -H "Content-Type:application/json" \
-  --data-binary @build/${versionFile} \
+  --data-binary @${releaseDir}/${versionFile} \
   "https://uploads.github.com/repos/Zilliqa/${repoName}/releases/${releaseId}/assets?name=${versionFile}" \
   -d '{
   "Content-Type": "application/octet-stream",
@@ -154,5 +168,5 @@ curl -v -s \
   "label": "'"${newVer}"'"
 }'
 rm ${releaseLog}
-echo -e "\nA new release with package is created on GitHub successfully.\n"
+echo -e "\nA new draft release with package is created on Github sucessfully, please proceed to publishing the draft release on Github webpage.\n"
 
