@@ -29,6 +29,7 @@
 #include "common/Broadcastable.h"
 #include "common/Executable.h"
 #include "libCrypto/Schnorr.h"
+#include "libData/AccountData/Transaction.h"
 #include "libNetwork/Peer.h"
 #include "libUtils/Logger.h"
 
@@ -60,6 +61,8 @@ class Lookup : public Executable, public Broadcastable
     // It receiving a new DS block
     bool m_currDSExpired = false;
     bool m_isFirstLoop = true;
+    //tells if server is running or not
+    bool m_isServer = false;
 
     // Sharding committee members
     std::mutex m_mutexShards;
@@ -67,8 +70,8 @@ class Lookup : public Executable, public Broadcastable
     std::vector<std::map<PubKey, Peer>> m_shards;
     std::vector<Peer> m_nodesInNetwork;
     std::unordered_set<Peer> l_nodesInNetwork;
-
-    std::mutex m_mutexOfflineLookups;
+    std::map<uint32_t, std::vector<Transaction>> m_txnShardMap;
+    std::mutex m_txnShardMapMutex;
 
     // Start PoW variables
     bool m_receivedRaiseStartPoW = false;
@@ -94,6 +97,7 @@ class Lookup : public Executable, public Broadcastable
     std::mutex m_mutexSetTxBlockFromSeed;
     std::mutex m_mutexSetTxBodyFromSeed;
     std::mutex m_mutexSetState;
+    std::mutex m_mutexOfflineLookups;
 
     std::vector<unsigned char> ComposeGetDSInfoMessage();
     std::vector<unsigned char> ComposeGetStateMessage();
@@ -125,6 +129,11 @@ public:
 
     // Getter for m_lookupNodes
     std::vector<Peer> GetLookupNodes();
+
+    //Gen n valid txns
+    bool GenTxnToSend(size_t n,
+                      std::map<uint32_t, std::vector<unsigned char>>& mp,
+                      uint32_t nShard);
 
     // Calls P2PComm::SendBroadcastMessage to Lookup Nodes
     void
@@ -172,6 +181,22 @@ public:
 
     // Rejoin the network as a lookup node in case of failure happens in protocol
     void RejoinAsLookup();
+
+    bool AddToTxnShardMap(const Transaction& tx, uint32_t shardID);
+
+    bool DeleteTxnShardMap(uint32_t shardId);
+
+    void SetServerTrue();
+
+    bool GetIsServer();
+
+    void SenderTxnBatchThread();
+
+    void SendTxnPacketToNodes(uint32_t);
+
+    bool CreateTxnPacket(std::vector<unsigned char>& msg, uint32_t shardId,
+                         unsigned int offset,
+                         const std::map<uint32_t, std::vector<unsigned char>>&);
 
     bool
     ProcessEntireShardingStructure(const std::vector<unsigned char>& message,

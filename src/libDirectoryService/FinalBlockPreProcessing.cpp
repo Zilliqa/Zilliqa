@@ -64,11 +64,6 @@ void DirectoryService::ExtractDataFromMicroblocks(
 
     for (auto& microBlock : m_microBlocks)
     {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Micro block " << i << " has "
-                                 << microBlock.GetHeader().GetNumTxs()
-                                 << " transactions.");
-
         LOG_STATE("[STATS][" << std::setw(15) << std::left
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
                              << "][" << i << "    ]["
@@ -98,7 +93,6 @@ void DirectoryService::ExtractDataFromMicroblocks(
                 {{{microBlock.GetHeader().GetTxRootHash(),
                    microBlock.GetHeader().GetStateDeltaHash()},
                   microBlock.GetHeader().GetShardID()},
-                 // {!isEmptyTxn, true}});
                  {false, true}});
 
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -719,7 +713,7 @@ bool DirectoryService::CheckStateRoot()
         = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
     if (isVacuousEpoch)
     {
-        AccountStore::GetInstance().PrintAccountState();
+        // AccountStore::GetInstance().PrintAccountState();
         stateRoot = AccountStore::GetInstance().GetStateRootHash();
     }
 
@@ -992,7 +986,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup()
     return true;
 }
 
-void DirectoryService::RunConsensusOnFinalBlock()
+void DirectoryService::RunConsensusOnFinalBlock(bool revertStateDelta)
 {
     if (LOOKUP_NODE_MODE)
     {
@@ -1005,6 +999,15 @@ void DirectoryService::RunConsensusOnFinalBlock()
     LOG_MARKER();
 
     SetState(FINALBLOCK_CONSENSUS_PREP);
+
+    if (revertStateDelta)
+    {
+        LOG_GENERAL(WARNING,
+                    "Failed DS microblock consensus, revert state delta");
+        AccountStore::GetInstance().InitTemp();
+        AccountStore::GetInstance().DeserializeDeltaTemp(m_stateDeltaFromShards,
+                                                         0);
+    }
 
     AccountStore::GetInstance().SerializeDelta();
 

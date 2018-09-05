@@ -661,7 +661,7 @@ DirectoryService::CalculateNewDifficulty(const uint8_t& currentDifficulty)
     // If POW_WINDOW_IN_SECONDS = 300, NUM_FINAL_BLOCK_PER_POW = 5, TXN_SUBMISSION = 4, TXN_BROADCAST = 10, estimated blocks in a year is 420480.
     uint64_t estimatedBlocksOneYear = 365 * 24 * 3600
         / ((POW_WINDOW_IN_SECONDS / NUM_FINAL_BLOCK_PER_POW)
-           + (TXN_SUBMISSION + TXN_BROADCAST));
+           + (TX_DISTRIBUTE_TIME_IN_MS));
 
     // After 10 years, the difficulty will not automatically increase anymore..
     newDifficulty += std::min(
