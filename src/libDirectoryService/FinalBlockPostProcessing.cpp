@@ -503,6 +503,49 @@ bool DirectoryService::ProcessFinalBlockConsensus(
 #ifndef IS_LOOKUP_NODE
     LOG_MARKER();
 
+    if ((m_state == MICROBLOCK_SUBMISSION)
+        || (m_state == FINALBLOCK_CONSENSUS_PREP)
+        || (m_state == VIEWCHANGE_CONSENSUS))
+    {
+        /*std::unique_lock<std::mutex> cv_lkObject(
+            m_MutexCVFinalBlockConsensusObject);
+
+        if (cv_finalBlockConsensusObject.wait_for(
+                cv_lkObject,
+                std::chrono::seconds(FINALBLOCK_CONSENSUS_OBJECT_TIMEOUT))
+            == std::cv_status::timeout)
+        {
+            LOG_EPOCH(WARNING,
+                      to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Time out while waiting for state transition and "
+                      "consensus object creation ");
+        }*/
+        lock_guard<mutex> h(m_mutexFinalBlockConsensusBuffer);
+
+        m_FinalBlockConsensusBuffer[m_mediator.m_currentEpochNum].push_back(
+            make_pair(from, message));
+
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Process Final block arrived earlier, saved to buffer");
+
+        return false;
+    }
+    else
+    {
+        return ProcessFinalBlockConsensusCore(message, offset, from);
+    }
+
+#endif //IS_LOOKUP_NODE
+    return true;
+}
+
+bool DirectoryService::ProcessFinalBlockConsensusCore(
+    [[gnu::unused]] const vector<unsigned char>& message,
+    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
+{
+#ifndef IS_LOOKUP_NODE
+    LOG_MARKER();
+
     // Consensus messages must be processed in correct sequence as they come in
     // It is possible for ANNOUNCE to arrive before correct DS state
     // In that case, ANNOUNCE will sleep for a second below
@@ -512,28 +555,6 @@ bool DirectoryService::ProcessFinalBlockConsensus(
         lock_guard<mutex> g(m_mutexConsensus);
 
         // Wait until in the case that primary sent announcement pretty early
-        if ((m_state == MICROBLOCK_SUBMISSION)
-            || (m_state == FINALBLOCK_CONSENSUS_PREP)
-            || (m_state == VIEWCHANGE_CONSENSUS))
-        {
-            std::unique_lock<std::mutex> cv_lkObject(
-                m_MutexCVFinalBlockConsensusObject);
-
-            if (cv_finalBlockConsensusObject.wait_for(
-                    cv_lkObject,
-                    std::chrono::seconds(FINALBLOCK_CONSENSUS_OBJECT_TIMEOUT))
-                == std::cv_status::timeout)
-            {
-                LOG_EPOCH(WARNING,
-                          to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "Time out while waiting for state transition and "
-                          "consensus object creation ");
-            }
-
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "State transition is completed and consensus object "
-                      "creation. (check for timeout)");
-        }
 
         if (!CheckState(PROCESS_FINALBLOCKCONSENSUS))
         {
@@ -611,3 +632,17 @@ bool DirectoryService::ProcessFinalBlockConsensus(
 #endif // IS_LOOKUP_NODE
     return true;
 }
+
+#ifndef IS_LOOKUP_NODE
+void DirectoryService::CommitFinalBlockConsensusBuffer()
+{
+    lock_guard<mutex> g(m_mutexFinalBlockConsensusBuffer);
+
+    for (auto& i : m_FinalBlockConsensusBuffer[m_mediator.m_currentEpochNum])
+    {
+        ProcessFinalBlockConsensusCore(i.second, MessageOffset::BODY, i.first);
+    }
+
+    m_FinalBlockConsensusBuffer.clear();
+}
+#endif //IS_LOOKUP_NODE

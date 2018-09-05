@@ -94,6 +94,11 @@ class DirectoryService : public Executable, public Broadcastable
     std::unordered_map<uint64_t, std::vector<std::vector<unsigned char>>>
         m_MBSubmissionBuffer;
 
+    std::mutex m_mutexFinalBlockConsensusBuffer;
+    std::unordered_map<uint64_t,
+                       std::vector<std::pair<Peer, std::vector<unsigned char>>>>
+        m_FinalBlockConsensusBuffer;
+
     // View Change
     std::atomic<uint32_t> m_viewChangeCounter;
     Peer m_candidateLeader;
@@ -145,6 +150,9 @@ class DirectoryService : public Executable, public Broadcastable
                                      unsigned int offset, const Peer& from);
     bool ProcessFinalBlockConsensus(const std::vector<unsigned char>& message,
                                     unsigned int offset, const Peer& from);
+    bool
+    ProcessFinalBlockConsensusCore(const std::vector<unsigned char>& message,
+                                   unsigned int offset, const Peer& from);
     bool ProcessViewChangeConsensus(const vector<unsigned char>& message,
                                     unsigned int offset, const Peer& from);
     // To block certain types of incoming message for certain states
@@ -194,6 +202,7 @@ class DirectoryService : public Executable, public Broadcastable
     void SendFinalBlockToShardNodes(unsigned int my_DS_cluster_num,
                                     unsigned int my_shards_lo,
                                     unsigned int my_shards_hi);
+    void CommitFinalBlockConsensusBuffer();
 
     // Final Block functions
     bool RunConsensusOnFinalBlockWhenDSPrimary();
