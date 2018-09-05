@@ -245,11 +245,19 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
     lock_guard<mutex> g(m_mutexPendingDSBlock, adopt_lock);
     lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
 
-    // PoW Solns, pubkey
-    vector<pair<array<unsigned char, 32>, PubKey>> sortedPoWSolns;
+    // Use a map to sort the soln according to difficulty level
+    map<array<unsigned char, 32>, PubKey> PoWOrderSorter;
     for (const auto& powsoln : m_allPoWs)
     {
-        sortedPoWSolns.emplace_back(powsoln.second, powsoln.first);
+        PoWOrderSorter[powsoln.second] = powsoln.first;
+    }
+
+    // Put it back to vector for easy manipilation and adjustment of the ordering
+    vector<pair<array<unsigned char, 32>, PubKey>> sortedPoWSolns;
+    for (const auto& kv : PoWOrderSorter)
+    {
+        sortedPoWSolns.emplace_back(kv);
+        LOG_GENERAL(INFO, "0x" << DataConversion::charArrToHexStr(kv.first));
     }
 
     ComposeDSBlock(sortedPoWSolns);
