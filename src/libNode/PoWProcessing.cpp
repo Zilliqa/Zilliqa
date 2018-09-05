@@ -140,7 +140,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t difficulty,
         P2PComm::GetInstance().SendMessage(peerList, powmessage);
     }
 
-    SetState(TX_SUBMISSION);
+    SetState(MICROBLOCK_CONSENSUS_PREP);
     return true;
 }
 

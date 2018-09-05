@@ -340,6 +340,9 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
         - ((BlockBase)(*m_finalBlock)).GetSerializedSize();
     ((BlockBase)(*m_finalBlock)).Serialize(m_finalBlockMessage, cosigOffset);
 
+    //Coinbase
+    SaveCoinbase(m_finalBlock->GetB1(), m_finalBlock->GetB2(), -1);
+
     // StoreMicroBlocksToDisk();
     StoreFinalBlockToDisk();
 
@@ -349,19 +352,22 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
         = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
     if (isVacuousEpoch)
     {
-        if (CheckStateRoot())
+        AccountStore::GetInstance().MoveUpdatesToDisk();
+        BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
+                                                    {'0'});
+        if (!LOOKUP_NODE_MODE)
         {
-            AccountStore::GetInstance().MoveUpdatesToDisk();
-            BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
-                                                        {'0'});
             BlockStorage::GetBlockStorage().PopFrontTxBodyDB();
         }
     }
 
-    m_mediator.m_node->CommitForwardedMsgBuffer();
-
     m_mediator.UpdateDSBlockRand();
     m_mediator.UpdateTxBlockRand();
+
+    if (m_toSendTxnToLookup && !isVacuousEpoch)
+    {
+        m_mediator.m_node->CallActOnFinalblock();
+    }
 
     // TODO: Refine this
     unsigned int nodeToSendToLookUpLo = COMM_SIZE / 4;
@@ -406,6 +412,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
             + 1
         << "] AFTER SENDING FINAL BLOCK");
 
+    AccountStore::GetInstance().InitTemp();
+    m_stateDeltaFromShards.clear();
     m_allPoWConns.clear();
 
     auto func = [this]() mutable -> void {
@@ -415,6 +423,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "[PoW needed]");
+
+            m_mediator.m_node->CleanCreatedTransaction();
 
             SetState(POW_SUBMISSION);
             cv_POWSubmission.notify_all();
@@ -478,13 +488,17 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
         else
         {
             m_consensusID++;
+            m_mediator.m_node->UpdateStateForNextConsensusRound();
             SetState(MICROBLOCK_SUBMISSION);
+            m_dsStartedMicroblockConsensus = false;
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "[No PoW needed] Waiting for Microblock.");
 
+            CommitMBSubmissionMsgBuffer();
+
             std::unique_lock<std::mutex> cv_lk(
-                m_MutexScheduleFinalBlockConsensus);
-            if (cv_scheduleFinalBlockConsensus.wait_for(
+                m_MutexScheduleDSMicroBlockConsensus);
+            if (cv_scheduleDSMicroBlockConsensus.wait_for(
                     cv_lk, std::chrono::seconds(MICROBLOCK_TIMEOUT))
                 == std::cv_status::timeout)
             {
@@ -492,7 +506,28 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
                             "Timeout: Didn't receive all Microblock. Proceeds "
                             "without it");
 
-                RunConsensusOnFinalBlock();
+                auto func1 = [this]() mutable -> void {
+                    m_dsStartedMicroblockConsensus = true;
+                    m_mediator.m_node->RunConsensusOnMicroBlock();
+                };
+
+                DetachedFunction(1, func1);
+
+                std::unique_lock<std::mutex> cv_lk(
+                    m_MutexScheduleFinalBlockConsensus);
+                if (cv_scheduleFinalBlockConsensus.wait_for(
+                        cv_lk,
+                        std::chrono::seconds(
+                            FINALBLOCK_CONSENSUS_OBJECT_TIMEOUT))
+                    == std::cv_status::timeout)
+                {
+                    LOG_GENERAL(
+                        WARNING,
+                        "Timeout: Didn't finish DS Microblock. Proceeds "
+                        "without it");
+
+                    RunConsensusOnFinalBlock(true);
+                }
             }
         }
     };

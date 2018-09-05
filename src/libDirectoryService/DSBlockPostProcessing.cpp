@@ -344,6 +344,52 @@ void DirectoryService::StartFirstTxEpoch()
 
     if (m_mode != IDLE)
     {
+        m_mediator.m_node->m_myShardMembers = m_mediator.m_DSCommittee;
+
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  " DS Sharding structure: ");
+
+        unsigned int index = 0;
+        for (const auto& i : *m_mediator.m_node->m_myShardMembers)
+        {
+            if (i.second.m_listenPortHost == 0)
+            {
+                LOG_GENERAL(INFO, "m_consensusMyID = " << index);
+                m_mediator.m_node->m_consensusMyID = index;
+            }
+
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      " PubKey: "
+                          << DataConversion::SerializableToHexStr(i.first)
+                          << " IP: " << i.second.GetPrintableIPAddress()
+                          << " Port: " << i.second.m_listenPortHost);
+
+            index++;
+        }
+
+        // Check if I am the leader or backup of the shard
+        if (m_mediator.m_selfKey.second
+            == m_mediator.m_node->m_myShardMembers->front().first)
+        {
+            m_mediator.m_node->m_isPrimary = true;
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "I am leader of the DS sharded committee");
+        }
+        else
+        {
+            m_mediator.m_node->m_isPrimary = false;
+
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "I am backup member of the DS sharded committee");
+        }
+
+        m_mediator.m_node->m_consensusLeaderID = 0;
+
+        // m_mediator.m_node->m_myShardID = std::numeric_limits<uint32_t>::max();
+        m_mediator.m_node->m_myShardID = m_shards.size();
+        m_mediator.m_node->CommitTxnPacketBuffer();
+        m_stateDeltaFromShards.clear();
+
         if (TEST_NET_MODE)
         {
             LOG_GENERAL(INFO, "Updating shard whitelist");
@@ -352,22 +398,45 @@ void DirectoryService::StartFirstTxEpoch()
 
         // Start sharding work
         SetState(MICROBLOCK_SUBMISSION);
+        m_dsStartedMicroblockConsensus = false;
 
-        // Check for state change. If it get stuck at microblock submission for too long, move on to finalblock without the microblock
-        std::unique_lock<std::mutex> cv_lk(m_MutexScheduleFinalBlockConsensus);
-        if (cv_scheduleFinalBlockConsensus.wait_for(
-                cv_lk, std::chrono::seconds(MICROBLOCK_TIMEOUT))
-            == std::cv_status::timeout)
-        {
-            LOG_GENERAL(
-                WARNING,
-                "Timeout: Didn't receive all Microblock. Proceeds without it");
+        auto func = [this]() mutable -> void {
+            // Check for state change. If it get stuck at microblock submission for too long, move on to finalblock without the microblock
+            std::unique_lock<std::mutex> cv_lk(
+                m_MutexScheduleDSMicroBlockConsensus);
+            if (cv_scheduleDSMicroBlockConsensus.wait_for(
+                    cv_lk, std::chrono::seconds(MICROBLOCK_TIMEOUT))
+                == std::cv_status::timeout)
+            {
+                LOG_GENERAL(WARNING,
+                            "Timeout: Didn't receive all Microblock. Proceeds "
+                            "without it");
 
-            auto func
-                = [this]() mutable -> void { RunConsensusOnFinalBlock(); };
+                auto func = [this]() mutable -> void {
+                    m_dsStartedMicroblockConsensus = true;
+                    m_mediator.m_node->RunConsensusOnMicroBlock();
+                };
 
-            DetachedFunction(1, func);
-        }
+                DetachedFunction(1, func);
+
+                std::unique_lock<std::mutex> cv_lk(
+                    m_MutexScheduleFinalBlockConsensus);
+                if (cv_scheduleFinalBlockConsensus.wait_for(
+                        cv_lk,
+                        std::chrono::seconds(
+                            FINALBLOCK_CONSENSUS_OBJECT_TIMEOUT))
+                    == std::cv_status::timeout)
+                {
+                    LOG_GENERAL(
+                        WARNING,
+                        "Timeout: Didn't finish DS Microblock. Proceeds "
+                        "without it");
+
+                    RunConsensusOnFinalBlock(true);
+                }
+            }
+        };
+        DetachedFunction(1, func);
     }
     else
     {
@@ -433,6 +502,8 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "DS block consensus is DONE!!!");
 
+    lock_guard<mutex> g(m_mediator.m_node->m_mutexDSBlock);
+
     if (m_mode == PRIMARY_DS)
     {
         LOG_STATE("[DSCON][" << setw(15) << left
@@ -469,6 +540,10 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
         }
     }
 
+    {
+        lock_guard<mutex> h(m_mutexCoinbaseRewardees);
+        m_coinbaseRewardees.clear();
+    }
     // Add the DS block to the chain
     StoreDSBlockToStorage();
     DSBlock lastDSBlock = m_mediator.m_dsBlockChain.GetLastBlock();
