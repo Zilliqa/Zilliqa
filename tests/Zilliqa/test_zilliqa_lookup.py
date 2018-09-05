@@ -54,7 +54,7 @@ def main():
 		elif (command == 'start'):
 			print_usage() if (numargs != 2) else run_start()
 		elif (command == 'gentxn'):
-			print_usage() if (numargs != 3) else run_gentxn(sleep_seconds=int(sys.argv[2]))
+			print_usage() if (numargs != 3) else run_gentxn(batch=int(sys.argv[2]))
 		else:
 			print_usage()
 
@@ -102,9 +102,7 @@ def patch_constants_xml(filepath, read_txn=False):
         tree = ET.ElementTree(root)
         tree.write(filepath)
 
-def run_gentxn(sleep_seconds=10):
-        os.system('killall gentxn >/dev/null 2>&1')
-
+def run_gentxn(batch=100):
         if not os.path.exists(TXN_PATH):
                 os.makedirs(TXN_PATH)
 
@@ -119,12 +117,8 @@ def run_gentxn(sleep_seconds=10):
         if os.path.exists(gentxn_constants_xml_path):
                 patch_constants_xml(gentxn_constants_xml_path)
 
-        print("Waiting gentxn for " + str(sleep_seconds) + " seconds")
-        os.system('cd ' + GENTXN_WORKING_DIR + '; ./gentxn > /dev/null 2>&1 &')
-        # FIXME: a temporary way to control the amount of txns genreated, should
-        # add the new options to gentxn to control its running
-        time.sleep(sleep_seconds)
-        os.system('killall gentxn')
+        print("Waiting gentxn for creating {} batches".format(batch))
+        os.system('cd ' + GENTXN_WORKING_DIR + '; ./gentxn 0 {}'.format(batch))
 
 def run_start():
 	testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)
