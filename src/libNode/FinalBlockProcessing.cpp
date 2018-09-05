@@ -160,9 +160,9 @@ bool Node::IsMicroBlockTxRootHashInFinalBlock(
     return found;
 }
 
-bool Node::LoadUnavailableMicroBlockHashes(
-    const TxBlock& finalBlock, const uint64_t& blocknum,
-    [[gnu::unused]] bool& toSendTxnToLookup)
+bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
+                                           const uint64_t& blocknum,
+                                           bool& toSendTxnToLookup)
 {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Unavailable microblock hashes in final block : ")
@@ -174,62 +174,70 @@ bool Node::LoadUnavailableMicroBlockHashes(
             || (finalBlock.GetMicroBlockHashes()[i].m_stateDeltaHash
                 != StateHash()))
         {
-            m_unavailableMicroBlocks[blocknum].insert(
-                {{finalBlock.GetMicroBlockHashes()[i],
-                  finalBlock.GetShardIDs()[i]},
-#ifdef IS_LOOKUP_NODE
-                 {!finalBlock.GetIsMicroBlockEmpty()[i]}});
-#else // IS_LOOKUP_NODE
-                 {false}});
-#endif // IS_LOOKUP_NODE
+            if (LOOKUP_NODE_MODE)
+            {
+                m_unavailableMicroBlocks[blocknum].insert(
+                    {{finalBlock.GetMicroBlockHashes()[i],
+                      finalBlock.GetShardIDs()[i]},
+                     {!finalBlock.GetIsMicroBlockEmpty()[i]}});
+            }
+            else
+            {
+                m_unavailableMicroBlocks[blocknum].insert(
+                    {{finalBlock.GetMicroBlockHashes()[i],
+                      finalBlock.GetShardIDs()[i]},
+                     {false}});
+            }
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       finalBlock.GetMicroBlockHashes()[i]);
         }
     }
 
-#ifndef IS_LOOKUP_NODE
-    if (m_unavailableMicroBlocks.find(blocknum)
-            != m_unavailableMicroBlocks.end()
-        && m_unavailableMicroBlocks[blocknum].size() > 0)
+    if (!LOOKUP_NODE_MODE)
     {
-        bool doRejoin = false;
-
-        if (IsMyShardMicroBlockInFinalBlock(blocknum))
+        if (m_unavailableMicroBlocks.find(blocknum)
+                != m_unavailableMicroBlocks.end()
+            && m_unavailableMicroBlocks[blocknum].size() > 0)
         {
-            if (m_lastMicroBlockCoSig.first != m_mediator.m_currentEpochNum)
+            bool doRejoin = false;
+
+            if (IsMyShardMicroBlockInFinalBlock(blocknum))
             {
-                LOG_GENERAL(WARNING,
-                            "Found my microblock but Cosig not updated");
-                doRejoin = true;
+                if (m_lastMicroBlockCoSig.first != m_mediator.m_currentEpochNum)
+                {
+                    LOG_GENERAL(WARNING,
+                                "Found my microblock but Cosig not updated");
+                    doRejoin = true;
+                }
+                else
+                {
+                    toSendTxnToLookup = true;
+                }
             }
             else
             {
-                toSendTxnToLookup = true;
+                if (IsMyShardIdInFinalBlock(blocknum))
+                {
+                    LOG_GENERAL(
+                        WARNING,
+                        "Didn't found my micorblock but found shard ID");
+                    doRejoin = true;
+                }
             }
-        }
-        else
-        {
-            if (IsMyShardIdInFinalBlock(blocknum))
+
+            if (doRejoin || m_doRejoinAtFinalBlock)
             {
                 LOG_GENERAL(WARNING,
-                            "Didn't found my micorblock but found shard ID");
-                doRejoin = true;
+                            "Failed the last microblock consensus but "
+                            "still found my shard microblock, "
+                            " need to Rejoin");
+                //RejoinAsNormal();
+                //return false;
             }
         }
 
-        if (doRejoin || m_doRejoinAtFinalBlock)
-        {
-            LOG_GENERAL(WARNING,
-                        "Failed the last microblock consensus but "
-                        "still found my shard microblock, "
-                        " need to Rejoin");
-            // RejoinAsNormal();
-            // return false;
-        }
+        m_unavailableMicroBlocks.clear();
     }
-
-    m_unavailableMicroBlocks.clear();
-#endif //IS_LOOKUP_NODE
     return true;
 }
 
@@ -350,10 +358,17 @@ bool Node::CheckMicroBlockRootHash(const TxBlock& finalBlock,
     return true;
 }
 
-#ifndef IS_LOOKUP_NODE
 void Node::BroadcastTransactionsToLookup(
     const vector<Transaction>& txns_to_send)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::BroadcastTransactionsToLookup not expected to be "
+                    "called from LookUp node.");
+        return;
+    }
+
     LOG_MARKER();
 
     uint64_t blocknum
@@ -419,6 +434,14 @@ void Node::BroadcastTransactionsToLookup(
 bool Node::IsMyShardMicroBlockTxRootHashInFinalBlock(
     const uint64_t& blocknum, bool& isEveryMicroBlockAvailable)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::IsMyShardMicroBlockTxRootHashInFinalBlock not "
+                    "expected to be called from LookUp node.");
+        return true;
+    }
+
     return m_microblock != nullptr
         && IsMicroBlockTxRootHashInFinalBlock(
                m_microblock->GetHeader().GetTxRootHash(),
@@ -428,6 +451,14 @@ bool Node::IsMyShardMicroBlockTxRootHashInFinalBlock(
 
 bool Node::IsMyShardMicroBlockInFinalBlock(const uint64_t& blocknum)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::IsMyShardMicroBlockInFinalBlock not expected to be "
+                    "called from LookUp node.");
+        return true;
+    }
+
     if (m_microblock == nullptr)
     {
         return false;
@@ -458,6 +489,14 @@ bool Node::IsMyShardMicroBlockInFinalBlock(const uint64_t& blocknum)
 
 bool Node::IsMyShardIdInFinalBlock(const uint64_t& blocknum)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::IsMyShardIdInFinalBlock not expected to be called "
+                    "from LookUp node.");
+        return true;
+    }
+
     auto it = m_unavailableMicroBlocks.find(blocknum);
     if (it == m_unavailableMicroBlocks.end())
     {
@@ -480,6 +519,14 @@ bool Node::IsMyShardIdInFinalBlock(const uint64_t& blocknum)
 
 void Node::InitiatePoW()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(
+            WARNING,
+            "Node::InitiatePoW not expected to be called from LookUp node.");
+        return;
+    }
+
     // reset consensusID and first consensusLeader is index 0
     m_consensusID = 0;
     m_consensusLeaderID = 0;
@@ -509,6 +556,14 @@ void Node::InitiatePoW()
 
 void Node::UpdateStateForNextConsensusRound()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::UpdateStateForNextConsensusRound not expected to be "
+                    "called from LookUp node.");
+        return;
+    }
+
     // Set state to tx submission
     if (m_isPrimary == true)
     {
@@ -544,6 +599,14 @@ void Node::UpdateStateForNextConsensusRound()
 
 void Node::ScheduleMicroBlockConsensus()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::ScheduleMicroBlockConsensus not expected to be "
+                    "called from LookUp node.");
+        return;
+    }
+
     auto main_func = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
 
     DetachedFunction(1, main_func);
@@ -551,6 +614,14 @@ void Node::ScheduleMicroBlockConsensus()
 
 void Node::BeginNextConsensusRound()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::BeginNextConsensusRound not expected to be called "
+                    "from LookUp node.");
+        return;
+    }
+
     LOG_MARKER();
 
     UpdateStateForNextConsensusRound();
@@ -561,6 +632,14 @@ void Node::BeginNextConsensusRound()
 void Node::GetMyShardsMicroBlock(const uint64_t& blocknum, uint8_t sharing_mode,
                                  vector<Transaction>& txns_to_send)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::GetMyShardsMicroBlock not expected to be called "
+                    "from LookUp node.");
+        return;
+    }
+
     LOG_MARKER();
 
     const vector<TxnHash>& tx_hashes = m_microblock->GetTranHashes();
@@ -591,6 +670,14 @@ bool Node::FindTxnInProcessedTxnsList(const uint64_t& blockNum,
                                       vector<Transaction>& txns_to_send,
                                       const TxnHash& tx_hash)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::FindTxnInSubmittedTxnsList not expected to be "
+                    "called from LookUp node.");
+        return true;
+    }
+
     lock(m_mutexProcessedTransactions, m_mutexCommittedTransactions);
     lock_guard<mutex> g(m_mutexProcessedTransactions, adopt_lock);
     lock_guard<mutex> g2(m_mutexCommittedTransactions, adopt_lock);
@@ -620,6 +707,14 @@ bool Node::FindTxnInProcessedTxnsList(const uint64_t& blockNum,
 
 void Node::CallActOnFinalblock()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::CallActOnFinalblock not expected to be called from "
+                    "LookUp node.");
+        return;
+    }
+
     uint64_t blocknum
         = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
@@ -650,41 +745,41 @@ void Node::CallActOnFinalblock()
 
     BroadcastTransactionsToLookup(txns_to_send);
 }
-#endif // IS_LOOKUP_NODE
 
 void Node::LogReceivedFinalBlockDetails([[gnu::unused]] const TxBlock& txblock)
 {
-#ifdef IS_LOOKUP_NODE
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "I the lookup node have deserialized the TxBlock");
-    LOG_EPOCH(
-        INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-        "txblock.GetHeader().GetType(): " << txblock.GetHeader().GetType());
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "txblock.GetHeader().GetVersion(): "
-                  << txblock.GetHeader().GetVersion());
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "txblock.GetHeader().GetGasLimit(): "
-                  << txblock.GetHeader().GetGasLimit());
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "txblock.GetHeader().GetGasUsed(): "
-                  << txblock.GetHeader().GetGasUsed());
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "txblock.GetHeader().GetBlockNum(): "
-                  << txblock.GetHeader().GetBlockNum());
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "txblock.GetHeader().GetNumMicroBlockHashes(): "
-                  << txblock.GetHeader().GetNumMicroBlockHashes());
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "txblock.GetHeader().GetStateRootHash(): "
-                  << txblock.GetHeader().GetStateRootHash());
-    LOG_EPOCH(
-        INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-        "txblock.GetHeader().GetNumTxs(): " << txblock.GetHeader().GetNumTxs());
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "txblock.GetHeader().GetMinerPubKey(): "
-                  << txblock.GetHeader().GetMinerPubKey());
-#endif // IS_LOOKUP_NODE
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "I the lookup node have deserialized the TxBlock");
+        LOG_EPOCH(
+            INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            "txblock.GetHeader().GetType(): " << txblock.GetHeader().GetType());
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "txblock.GetHeader().GetVersion(): "
+                      << txblock.GetHeader().GetVersion());
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "txblock.GetHeader().GetGasLimit(): "
+                      << txblock.GetHeader().GetGasLimit());
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "txblock.GetHeader().GetGasUsed(): "
+                      << txblock.GetHeader().GetGasUsed());
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "txblock.GetHeader().GetBlockNum(): "
+                      << txblock.GetHeader().GetBlockNum());
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "txblock.GetHeader().GetNumMicroBlockHashes(): "
+                      << txblock.GetHeader().GetNumMicroBlockHashes());
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "txblock.GetHeader().GetStateRootHash(): "
+                      << txblock.GetHeader().GetStateRootHash());
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "txblock.GetHeader().GetNumTxs(): "
+                      << txblock.GetHeader().GetNumTxs());
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "txblock.GetHeader().GetMinerPubKey(): "
+                      << txblock.GetHeader().GetMinerPubKey());
+    }
 }
 
 bool Node::CheckStateRoot(const TxBlock& finalBlock)
@@ -738,36 +833,38 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     //           [Final block] [Final state delta]
     LOG_MARKER();
 
-#ifndef IS_LOOKUP_NODE
-    if (m_lastMicroBlockCoSig.first != m_mediator.m_currentEpochNum)
+    if (!LOOKUP_NODE_MODE)
     {
-        std::unique_lock<mutex> cv_lk(m_MutexCVFBWaitMB);
-        if (cv_FBWaitMB.wait_for(
-                cv_lk, std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW))
-            == std::cv_status::timeout)
+        if (m_lastMicroBlockCoSig.first != m_mediator.m_currentEpochNum)
         {
-            LOG_GENERAL(WARNING,
-                        "Timeout, I didn't finish microblock consensus");
+            std::unique_lock<mutex> cv_lk(m_MutexCVFBWaitMB);
+            if (cv_FBWaitMB.wait_for(
+                    cv_lk,
+                    std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW))
+                == std::cv_status::timeout)
+            {
+                LOG_GENERAL(WARNING,
+                            "Timeout, I didn't finish microblock consensus");
+            }
+        }
+
+        if (m_state == MICROBLOCK_CONSENSUS)
+        {
+            LOG_EPOCH(
+                INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "I may have missed the micrblock consensus. However, if I "
+                "recently received a valid finalblock, I will accept it");
+            // TODO: Optimize state transition.
+            SetState(WAITING_FINALBLOCK);
+        }
+
+        if (!CheckState(PROCESS_FINALBLOCK))
+        {
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Too late - current state is " << m_state << ".");
+            return false;
         }
     }
-
-    if (m_state == MICROBLOCK_CONSENSUS)
-    {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "I may have missed the micrblock consensus. However, if I "
-                  "recently received a valid finalblock, I will accept it");
-        // TODO: Optimize state transition.
-        SetState(WAITING_FINALBLOCK);
-    }
-
-    if (!CheckState(PROCESS_FINALBLOCK))
-    {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Too late - current state is " << m_state << ".");
-        return false;
-    }
-
-#endif // IS_LOOKUP_NODE
 
     LOG_STATE(
         "[FLBLK]["
@@ -812,7 +909,6 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         return false;
     }
 
-    // #ifdef IS_LOOKUP_NODE
     if (!CheckMicroBlockRootHash(txBlock, txBlock.GetHeader().GetBlockNum()))
     {
         return false;
@@ -849,15 +945,14 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
             return false;
         }
 
-        if (!CheckStateRoot(txBlock)
-#ifndef IS_LOOKUP_NODE
-            || m_doRejoinAtStateRoot)
+        if (!LOOKUP_NODE_MODE
+            && (!CheckStateRoot(txBlock) || m_doRejoinAtStateRoot))
         {
             RejoinAsNormal();
-#else // IS_LOOKUP_NODE
-        )
+            return false;
+        }
+        else if (LOOKUP_NODE_MODE && !CheckStateRoot(txBlock))
         {
-#endif // IS_LOOKUP_NODE
             return false;
         }
 
@@ -873,13 +968,13 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         StoreState();
         StoreFinalBlock(txBlock);
 
-#ifndef IS_LOOKUP_NODE
-        BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
-                                                    {'0'});
-        BlockStorage::GetBlockStorage().PopFrontTxBodyDB();
-#endif // IS_LOOKUP_NODE
+        if (!LOOKUP_NODE_MODE)
+        {
+            BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
+                                                        {'0'});
+            BlockStorage::GetBlockStorage().PopFrontTxBodyDB();
+        }
     }
-    // #endif // IS_LOOKUP_NODE
 
     if (txBlock.GetHeader().GetNumMicroBlockHashes() == 1)
     {
@@ -889,16 +984,17 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
                              << "] LAST");
     }
 
-#ifdef IS_LOOKUP_NODE
-    // Now only forwarded txn are left, so only call in lookup
-    CommitForwardedMsgBuffer();
-
-    if (m_mediator.m_lookup->GetIsServer()
-        && m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0)
+    if (LOOKUP_NODE_MODE)
     {
-        m_mediator.m_lookup->SenderTxnBatchThread();
+        // Now only forwarded txn are left, so only call in lookup
+        CommitForwardedMsgBuffer();
+
+        if (m_mediator.m_lookup->GetIsServer()
+            && m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0)
+        {
+            m_mediator.m_lookup->SenderTxnBatchThread();
+        }
     }
-#endif // IS_LOOKUP_NODE
 
     // Assumption: New PoW done after every block committed
     // If I am not a DS committee member (and since I got this FinalBlock message,
@@ -906,39 +1002,39 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     m_mediator.UpdateDSBlockRand();
     m_mediator.UpdateTxBlockRand();
 
-    if (toSendTxnToLookup)
+    if (!LOOKUP_NODE_MODE)
     {
-#ifndef IS_LOOKUP_NODE
-        CallActOnFinalblock();
-    }
+        if (toSendTxnToLookup)
+        {
+            CallActOnFinalblock();
+        }
 
-    if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
-    {
-        InitiatePoW();
+        if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
+        {
+            InitiatePoW();
+        }
+        else
+        {
+            auto main_func
+                = [this]() mutable -> void { BeginNextConsensusRound(); };
+
+            DetachedFunction(1, main_func);
+        }
     }
     else
     {
-
-        auto main_func
-            = [this]() mutable -> void { BeginNextConsensusRound(); };
-
-        DetachedFunction(1, main_func);
+        if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
+        {
+            m_consensusID = 0;
+            m_consensusLeaderID = 0;
+        }
+        else
+        {
+            m_consensusID++;
+            m_consensusLeaderID++;
+            m_consensusLeaderID = m_consensusLeaderID % COMM_SIZE;
+        }
     }
-#else // IS_LOOKUP_NODE
-    }
-
-    if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
-    {
-        m_consensusID = 0;
-        m_consensusLeaderID = 0;
-    }
-    else
-    {
-        m_consensusID++;
-        m_consensusLeaderID++;
-        m_consensusLeaderID = m_consensusLeaderID % COMM_SIZE;
-    }
-#endif // IS_LOOKUP_NODE
 
     return true;
 }
@@ -1075,20 +1171,21 @@ void Node::CommitForwardedTransactions(
             // }
         }
 
-            // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            //              "[TXN] [" << blocknum << "] Body received = 0x" << tx.GetTranID());
+        // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        //              "[TXN] [" << blocknum << "] Body received = 0x" << tx.GetTranID());
 
-            // Update from and to accounts
-            // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "Account store updated");
+        // Update from and to accounts
+        // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "Account store updated");
 
-            // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            //              "Storing Transaction: " << tx.GetTranID() <<
-            //              " with amount: " << tx.GetAmount() <<
-            //              ", to: " << tx.GetToAddr() <<
-            //              ", from: " << tx.GetFromAddr());
-#ifdef IS_LOOKUP_NODE
-        Server::AddToRecentTransactions(tx.GetTranID());
-#endif //IS_LOOKUP_NODE
+        // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        //              "Storing Transaction: " << tx.GetTranID() <<
+        //              " with amount: " << tx.GetAmount() <<
+        //              ", to: " << tx.GetToAddr() <<
+        //              ", from: " << tx.GetFromAddr());
+        if (LOOKUP_NODE_MODE)
+        {
+            Server::AddToRecentTransactions(tx.GetTranID());
+        }
 
         // Store TxBody to disk
         vector<unsigned char> serializedTxBody;
@@ -1259,15 +1356,13 @@ bool Node::ProcessForwardTransactionCore(const vector<unsigned char>& message,
                     .GetHeader()
                     .GetBlockNum());
 
-#ifdef IS_LOOKUP_NODE
-            if (m_isVacuousEpoch)
+            if (LOOKUP_NODE_MODE && m_isVacuousEpoch)
             {
                 BlockStorage::GetBlockStorage().PutMetadata(
                     MetaType::DSINCOMPLETED, {'0'});
                 BlockStorage::GetBlockStorage().ResetDB(
                     BlockStorage::TX_BODY_TMP);
             }
-#endif // IS_LOOKUP_NODE
         }
 
         // #ifndef IS_LOOKUP_NODE

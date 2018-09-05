@@ -38,16 +38,17 @@ POW::POW()
     ethash_light_client = EthashLightNew(
         0); // TODO: Do we still need this? Can we call it at mediator?
 
-#ifndef IS_LOOKUP_NODE
-    if (OPENCL_GPU_MINE)
+    if (!LOOKUP_NODE_MODE)
     {
-        InitOpenCL();
+        if (OPENCL_GPU_MINE)
+        {
+            InitOpenCL();
+        }
+        else if (CUDA_GPU_MINE)
+        {
+            InitCUDA();
+        }
     }
-    else if (CUDA_GPU_MINE)
-    {
-        InitCUDA();
-    }
-#endif // IS_LOOKUP_NODE
 }
 
 POW::~POW() { EthashLightDelete(ethash_light_client); }

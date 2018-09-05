@@ -48,9 +48,17 @@ using namespace std;
 using namespace boost::multiprecision;
 using namespace boost::multi_index;
 
-#ifndef IS_LOOKUP_NODE
 void Node::SubmitMicroblockToDSCommittee() const
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::SubmitMicroblockToDSCommittee not expected to be "
+                    "called from LookUp node.");
+        return;
+    }
+
+    // Message = [8-byte DS blocknum] [4-byte consensusid] [4-byte shard ID] [Tx microblock]
     if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
     {
         return;
@@ -87,13 +95,18 @@ void Node::SubmitMicroblockToDSCommittee() const
 
     P2PComm::GetInstance().SendBroadcastMessage(peerList, microblock);
 }
-#endif // IS_LOOKUP_NODE
 
-bool Node::ProcessMicroblockConsensus(
-    [[gnu::unused]] const vector<unsigned char>& message,
-    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
+bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
+                                      unsigned int offset, const Peer& from)
 {
-#ifndef IS_LOOKUP_NODE
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::ProcessMicroblockConsensus not expected to be "
+                    "called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     {
@@ -365,13 +378,18 @@ bool Node::ProcessMicroblockConsensus(
 
         cv_processConsensusMessage.notify_all();
     }
-#endif // IS_LOOKUP_NODE
     return true;
 }
 
-#ifndef IS_LOOKUP_NODE
 bool Node::ComposeMicroBlock()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::ComposeMicroBlock not expected to be called from "
+                    "LookUp node.");
+        return true;
+    }
     // To-do: Replace dummy values with the required ones
     LOG_MARKER();
 
@@ -437,6 +455,14 @@ bool Node::ComposeMicroBlock()
 bool Node::OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
                              unsigned int offset, const Peer& from)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::OnNodeMissingTxns not expected to be called from "
+                    "LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     if (errorMsg.size() < 2 * sizeof(uint32_t) + offset)
@@ -518,6 +544,14 @@ bool Node::OnCommitFailure([
     [gnu::unused]] const std::map<unsigned int, std::vector<unsigned char>>&
                                commitFailureMap)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::OnCommitFailure not expected to be called from "
+                    "LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     // for(auto failureEntry: commitFailureMap)
@@ -932,6 +966,14 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes,
 
 bool Node::RunConsensusOnMicroBlockWhenShardLeader()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::RunConsensusOnMicroBlockWhenShardLeader not "
+                    "expected to be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -1022,6 +1064,14 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
 
 bool Node::RunConsensusOnMicroBlockWhenShardBackup()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::RunConsensusOnMicroBlockWhenShardBackup not "
+                    "expected to be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     LOG_EPOCH(
@@ -1070,6 +1120,14 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup()
 
 bool Node::RunConsensusOnMicroBlock()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::RunConsensusOnMicroBlock not expected to be called "
+                    "from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
@@ -1128,6 +1186,14 @@ bool Node::RunConsensusOnMicroBlock()
 
 bool Node::CheckBlockTypeIsMicro()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::CheckBlockTypeIsMicro not expected to be called "
+                    "from LookUp node.");
+        return true;
+    }
+
     // Check type (must be micro block type)
     if (m_microblock->GetHeader().GetType() != TXBLOCKTYPE::MICRO)
     {
@@ -1149,6 +1215,14 @@ bool Node::CheckBlockTypeIsMicro()
 
 bool Node::CheckMicroBlockVersion()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::CheckMicroBlockVersion not expected to be called "
+                    "from LookUp node.");
+        return true;
+    }
+
     // Check version (must be most current version)
     if (m_microblock->GetHeader().GetVersion() != BLOCKVERSION::VERSION1)
     {
@@ -1171,6 +1245,14 @@ bool Node::CheckMicroBlockVersion()
 
 bool Node::CheckMicroBlockTimestamp()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::CheckMicroBlockTimestamp not expected to be called "
+                    "from LookUp node.");
+        return true;
+    }
+
     // Check timestamp (must be greater than timestamp of last Tx block header in the Tx blockchain)
     if (m_mediator.m_txBlockChain.GetBlockCount() > 0)
     {
@@ -1199,6 +1281,13 @@ bool Node::CheckMicroBlockTimestamp()
 
 unsigned char Node::CheckLegitimacyOfTxnHashes(vector<unsigned char>& errorMsg)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::CheckLegitimacyOfTxnHashes not expected to be "
+                    "called from LookUp node.");
+        return true;
+    }
 
     bool isVacuousEpoch
         = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
@@ -1269,6 +1358,14 @@ unsigned char Node::CheckLegitimacyOfTxnHashes(vector<unsigned char>& errorMsg)
 
 bool Node::CheckMicroBlockHashes(vector<unsigned char>& errorMsg)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::CheckMicroBlockHashes not expected to be called "
+                    "from LookUp node.");
+        return true;
+    }
+
     // Check transaction hashes (number of hashes must be = Tx count field)
     uint32_t txhashessize = m_microblock->GetTranHashes().size();
     uint32_t numtxs = m_microblock->GetHeader().GetNumTxs();
@@ -1311,6 +1408,14 @@ bool Node::CheckMicroBlockHashes(vector<unsigned char>& errorMsg)
 
 bool Node::CheckMicroBlockTxnRootHash()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::CheckMicroBlockTxnRootHash not expected to be "
+                    "called from LookUp node.");
+        return true;
+    }
+
     // Check transaction root
     TxnHash expectedTxRootHash
         = ComputeTransactionsRoot(m_microblock->GetTranHashes());
@@ -1340,6 +1445,14 @@ bool Node::CheckMicroBlockTxnRootHash()
 
 bool Node::CheckMicroBlockStateDeltaHash()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::CheckMicroBlockStateDeltaHash not expected to be "
+                    "called from LookUp node.");
+        return true;
+    }
+
     StateHash expectedStateDeltaHash
         = AccountStore::GetInstance().GetStateDeltaHash();
 
@@ -1368,6 +1481,14 @@ bool Node::CheckMicroBlockStateDeltaHash()
 
 bool Node::CheckMicroBlockShardID()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::CheckMicroBlockShardID not expected to be called "
+                    "from LookUp node.");
+        return true;
+    }
+
     // Check version (must be most current version)
     if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
     {
@@ -1394,6 +1515,14 @@ bool Node::CheckMicroBlockShardID()
 bool Node::MicroBlockValidator(const vector<unsigned char>& microblock,
                                vector<unsigned char>& errorMsg)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::MicroBlockValidator not expected to be called from "
+                    "LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     // [TODO] To put in the logic
@@ -1439,4 +1568,3 @@ bool Node::MicroBlockValidator(const vector<unsigned char>& microblock,
 
     // return true;
 }
-#endif // IS_LOOKUP_NODE

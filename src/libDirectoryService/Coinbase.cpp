@@ -13,7 +13,6 @@
 * GPLv3.0 are those programs that are located in the folders src/depends and tests/depends
 * and which include a reference to GPLv3 in their program files.
 **/
-#ifndef IS_LOOKUP_NODE
 #include <map>
 #include <queue>
 #include <vector>
@@ -32,6 +31,14 @@ bool DirectoryService::SaveCoinbaseCore(const vector<bool>& b1,
                                         const Container& shard,
                                         const uint32_t& shard_id)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::SaveCoinbaseCore not "
+                    "expected to be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     auto it = m_coinbaseRewardees.find(m_mediator.m_currentEpochNum);
@@ -94,6 +101,14 @@ bool DirectoryService::SaveCoinbase(const vector<bool>& b1,
                                     const vector<bool>& b2,
                                     const int32_t& shard_id)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::SaveCoinbase not "
+                    "expected to be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
     if (shard_id == (int32_t)m_shards.size() || shard_id == -1)
     {
@@ -115,6 +130,14 @@ bool DirectoryService::SaveCoinbase(const vector<bool>& b1,
 
 void DirectoryService::InitCoinbase()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::InitCoinbase not "
+                    "expected to be called from LookUp node.");
+        return;
+    }
+
     LOG_MARKER();
     lock_guard<mutex> g(m_mutexCoinbaseRewardees);
 
@@ -161,4 +184,3 @@ void DirectoryService::InitCoinbase()
         }
     }
 }
-#endif // IS_LOOKUP_NODE

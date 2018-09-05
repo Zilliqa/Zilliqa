@@ -37,9 +37,16 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-#ifndef IS_LOOKUP_NODE
 void DirectoryService::ComposeDSBlock()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::ComposeDSBlock not expected to be "
+                    "called from LookUp node.");
+        return;
+    }
+
     LOG_MARKER();
 
     // Compute hash of previous DS block header
@@ -100,6 +107,14 @@ void DirectoryService::ComposeDSBlock()
 
 void DirectoryService::ComputeSharding()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::ComputeSharding not expected to be "
+                    "called from LookUp node.");
+        return;
+    }
+
     LOG_MARKER();
 
     m_shards.clear();
@@ -152,6 +167,14 @@ void DirectoryService::ComputeSharding()
 
 void DirectoryService::ComputeTxnSharingAssignments(const Peer& winnerpeer)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::ComputeTxnSharingAssignments not "
+                    "expected to be called from LookUp node.");
+        return;
+    }
+
     LOG_MARKER();
 
     // PART 1
@@ -257,6 +280,14 @@ void DirectoryService::ComputeTxnSharingAssignments(const Peer& winnerpeer)
 
 bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::RunConsensusOnDSBlockWhenDSPrimary not "
+                    "expected to be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -358,6 +389,14 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
 void DirectoryService::SaveTxnBodySharingAssignment(
     const vector<unsigned char>& sharding_structure, unsigned int curr_offset)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::SaveTxnBodySharingAssignment not "
+                    "expected to be called from LookUp node.");
+        return;
+    }
+
     m_DSReceivers.clear();
     m_shardReceivers.clear();
     m_shardSenders.clear();
@@ -415,6 +454,14 @@ bool DirectoryService::DSBlockValidator(
     const vector<unsigned char>& message,
     [[gnu::unused]] std::vector<unsigned char>& errorMsg)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::DSBlockValidator not "
+                    "expected to be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     // Message = [DS block] [PoW winner IP] [Sharding structure] [Txn sharing assignments]
@@ -489,6 +536,14 @@ bool DirectoryService::DSBlockValidator(
 
 bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::RunConsensusOnDSBlockWhenDSBackup not "
+                    "expected to be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -523,6 +578,14 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup()
 unsigned int DirectoryService::PopulateShardingStructure(
     const vector<unsigned char>& message, unsigned int offset)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::PopulateShardingStructure not "
+                    "expected to be called from LookUp node.");
+        return offset;
+    }
+
     m_shards.clear();
     m_publicKeyToShardIdMap.clear();
 
@@ -561,6 +624,14 @@ unsigned int DirectoryService::PopulateShardingStructure(
 
 void DirectoryService::RunConsensusOnDSBlock(bool isRejoin)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::RunConsensusOnDSBlock not "
+                    "expected to be called from LookUp node.");
+        return;
+    }
+
     LOG_MARKER();
     SetState(DSBLOCK_CONSENSUS_PREP);
 
@@ -627,5 +698,3 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin)
         DetachedFunction(1, func);
     }
 }
-
-#endif // IS_LOOKUP_NODE
