@@ -13,5 +13,7 @@
 # GPLv3.0 are those programs that are located in the folders src/depends and tests/depends 
 # and which include a reference to GPLv3 in their program files.
 
-python tests/Zilliqa/test_zilliqa_lookup.py gentxn 10
+[ -n "$1" ] && batch=$1 || batch=20
+
+python tests/Zilliqa/test_zilliqa_lookup.py gentxn $batch
 
