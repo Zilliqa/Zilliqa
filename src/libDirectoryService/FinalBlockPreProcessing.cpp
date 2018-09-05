@@ -896,7 +896,10 @@ void DirectoryService::RunConsensusOnFinalBlock(bool revertStateDelta)
         SetState(FINALBLOCK_CONSENSUS);
         cv_finalBlockConsensusObject.notify_all();
     }
-    CommitFinalBlockConsensusBuffer();
+
+    auto func1 = [this]() -> void { CommitFinalBlockConsensusBuffer(); };
+
+    DetachedFunction(1, func1);
 
     // View change will wait for timeout. If conditional variable is notified before timeout, the thread will return
     // without triggering view change.
