@@ -39,10 +39,16 @@ bool Validator::VerifyTransaction(const Transaction& tran) const
                                          tran.GetSenderPubKey());
 }
 
-#ifndef IS_LOOKUP_NODE
 bool Validator::CheckCreatedTransaction(const Transaction& tx,
                                         uint256_t& gasUsed) const
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Validator::CheckCreatedTransaction not expected to be "
+                    "called from LookUp node.");
+        return true;
+    }
     // LOG_MARKER();
 
     // LOG_GENERAL(INFO, "Tran: " << tx.GetTranID());
@@ -79,6 +85,14 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx,
 
 bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Validator::CheckCreatedTransactionFromLookup not expected "
+                    "to be called from LookUp node.");
+        return true;
+    }
+
     // LOG_MARKER();
 
     // Check if from account is sharded here
@@ -151,4 +165,3 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
 
     return true;
 }
-#endif // IS_LOOKUP_NODE

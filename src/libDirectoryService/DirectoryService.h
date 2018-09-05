@@ -126,11 +126,9 @@ class DirectoryService : public Executable, public Broadcastable
     Synchronizer m_synchronizer;
 
     //Coinbase
-#ifndef IS_LOOKUP_NODE
     std::map<uint64_t, std::unordered_map<int32_t, std::vector<Address>>>
         m_coinbaseRewardees;
     std::mutex m_mutexCoinbaseRewardees;
-#endif //IS_LOOKUP_NODE
 
     const uint32_t RESHUFFLE_INTERVAL = 500;
 
@@ -150,7 +148,6 @@ class DirectoryService : public Executable, public Broadcastable
     // To block certain types of incoming message for certain states
     bool ToBlockMessage(unsigned char ins_byte);
 
-#ifndef IS_LOOKUP_NODE
     bool CheckState(Action action);
     void
     SetupMulticastConfigForShardingStructure(unsigned int& my_DS_cluster_num,
@@ -290,7 +287,6 @@ class DirectoryService : public Executable, public Broadcastable
 
     // Reset certain variables to the initial state
     bool CleanVariables();
-#endif // IS_LOOKUP_NODE
 
     uint8_t CalculateNewDifficulty(const uint8_t& prevDifficulty);
 
@@ -360,7 +356,6 @@ public:
     /// Destructor.
     ~DirectoryService();
 
-#ifndef IS_LOOKUP_NODE
     /// Sets the value of m_state.
     void SetState(DirState state);
 
@@ -387,7 +382,6 @@ public:
     template<class Container>
     bool SaveCoinbaseCore(const vector<bool>& b1, const vector<bool>& b2,
                           const Container& shard, const uint32_t& shard_id);
-#endif // IS_LOOKUP_NODE
 
     /// Implements the Execute function inherited from Executable.
     bool Execute(const std::vector<unsigned char>& message, unsigned int offset,

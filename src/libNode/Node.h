@@ -151,7 +151,6 @@ class Node : public Executable, public Broadcastable
     // To block certain types of incoming message for certain states
     bool ToBlockMessage(unsigned char ins_byte);
 
-#ifndef IS_LOOKUP_NODE
     // internal calls from ProcessStartPoW1
     bool ReadVariablesFromStartPoWMessage(const vector<unsigned char>& message,
                                           unsigned int offset,
@@ -175,7 +174,6 @@ class Node : public Executable, public Broadcastable
                                vector<Transaction>& txns_to_send);
 
     void BroadcastTransactionsToLookup(const vector<Transaction>& txns_to_send);
-#endif // IS_LOOKUP_NODE
 
     bool LoadUnavailableMicroBlockHashes(const TxBlock& finalblock,
                                          const uint64_t& blocknum,
@@ -273,7 +271,6 @@ class Node : public Executable, public Broadcastable
     bool ProcessVCBlock(const vector<unsigned char>& message,
                         unsigned int cur_offset, const Peer& from);
 
-#ifndef IS_LOOKUP_NODE
     // Transaction functions
     bool OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
                            unsigned int offset, const Peer& from);
@@ -315,7 +312,6 @@ class Node : public Executable, public Broadcastable
 
     // Rejoin the network as a shard node in case of failure happens in protocol
     void RejoinAsNormal();
-#endif // IS_LOOKUP_NODE
 
 public:
     enum NodeState : unsigned char
@@ -423,7 +419,6 @@ public:
     void CallActOnFinalblock();
 
     void UpdateStateForNextConsensusRound();
-#ifndef IS_LOOKUP_NODE
 
     // Start synchronization with lookup as a shard node
     void StartSynchronization();
@@ -444,7 +439,6 @@ public:
 
     /// Used for commit buffered txn packet
     void CommitTxnPacketBuffer();
-#endif // IS_LOOKUP_NODE
 
     /// Used by oldest DS node to configure sharding variables as a new shard node
     bool LoadShardingStructure(const vector<unsigned char>& message,

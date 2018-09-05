@@ -48,6 +48,7 @@
         <FULL_DATASET_MINE>false</FULL_DATASET_MINE>
         <OPENCL_GPU_MINE>false</OPENCL_GPU_MINE>
         <CUDA_GPU_MINE>false</CUDA_GPU_MINE>
+        <LOOKUP_NODE_MODE>false</LOOKUP_NODE_MODE>
     </options>
     <TransactionDispatcher>
         <USE_REMOTE_TXN_CREATOR>false</USE_REMOTE_TXN_CREATOR>

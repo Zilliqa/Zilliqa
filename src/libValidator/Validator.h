@@ -32,12 +32,11 @@ public:
     /// Verifies the transaction w.r.t given pubKey and signature
     virtual bool VerifyTransaction(const Transaction& tran) const = 0;
 
-#ifndef IS_LOOKUP_NODE
     virtual bool CheckCreatedTransaction(
         const Transaction& tx,
         boost::multiprecision::uint256_t& gasUsed) const = 0;
+
     virtual bool CheckCreatedTransactionFromLookup(const Transaction& tx) = 0;
-#endif // IS_LOOKUP_NODE
 };
 
 class Validator : public ValidatorBase
@@ -53,12 +52,11 @@ public:
     std::string name() const override { return "Validator"; }
     bool VerifyTransaction(const Transaction& tran) const override;
 
-#ifndef IS_LOOKUP_NODE
     bool CheckCreatedTransaction(
         const Transaction& tx,
         boost::multiprecision::uint256_t& gasUsed) const override;
+
     bool CheckCreatedTransactionFromLookup(const Transaction& tx) override;
-#endif // IS_LOOKUP_NODE
 
     Mediator& m_mediator;
 };

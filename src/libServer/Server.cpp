@@ -14,8 +14,6 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#ifdef IS_LOOKUP_NODE
-
 #include "JSONConversion.h"
 
 #include <boost/multiprecision/cpp_dec_float.hpp>
@@ -1196,5 +1194,3 @@ string Server::GetNumTxnsDSEpoch()
         return "0";
     }
 }
-
-#endif //IS_LOOKUP_NODE

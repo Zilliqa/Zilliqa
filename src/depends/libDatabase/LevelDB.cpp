@@ -26,7 +26,6 @@
 
 using namespace std;
 
-#ifndef IS_LOOKUP_NODE
 LevelDB::LevelDB(const string & dbName, const string & subdirectory)
 {
     this->m_subdirectory = subdirectory;
@@ -67,29 +66,6 @@ LevelDB::LevelDB(const string & dbName, const string & subdirectory)
 
     m_db.reset(db);
 }
-#else // IS_LOOKUP_NODE
-LevelDB::LevelDB(const string & dbName)
-{
-    this->m_dbName = dbName;
-
-    boost::filesystem::create_directories("./" + PERSISTENCE_PATH);
-
-    leveldb::Options options;
-    options.max_open_files = 256;
-    options.create_if_missing = true;
-
-    leveldb::DB* db;
-
-    leveldb::Status status = leveldb::DB::Open(options, "./" + PERSISTENCE_PATH + "/" + this->m_dbName, &db);
-    if(!status.ok())
-    {
-        // throw exception();
-        LOG_GENERAL(WARNING, "LevelDB status is not OK.");
-    }
-
-    m_db.reset(db);
-}
-#endif // IS_LOOKUP_NODE
 
 leveldb::Slice toSlice(boost::multiprecision::uint256_t num)
 {
@@ -97,6 +73,18 @@ leveldb::Slice toSlice(boost::multiprecision::uint256_t num)
     dev::bytesRef ref(h.data(), 32);
     dev::toBigEndian(num, ref);
     return (leveldb::Slice)h.ref();
+}
+
+string LevelDB::GetDBName() 
+{
+        if (LOOKUP_NODE_MODE)
+        {
+            return m_dbName;
+        }
+        else
+        {
+            return m_dbName + (m_subdirectory.size() > 0 ? "/" : "") + m_subdirectory; 
+        }
 }
 
 string LevelDB::Lookup(const std::string & key) const
@@ -332,8 +320,31 @@ int LevelDB::DeleteKey(const std::string & key)
     return 0;
 }
 
-#ifndef IS_LOOKUP_NODE
 int LevelDB::DeleteDB()
+{
+    if (LOOKUP_NODE_MODE)
+    {
+        return DeleteDBForLookupNode();
+    }
+    else
+    {
+        return DeleteDBForNormalNode();
+    }
+}
+
+bool LevelDB::ResetDB()
+{
+    if (LOOKUP_NODE_MODE)
+    {
+        return ResetDBForLookupNode();
+    }
+    else
+    {
+        return ResetDBForNormalNode();
+    }
+}
+
+int LevelDB::DeleteDBForNormalNode()
 {
     m_db.reset();
     leveldb::Status s = leveldb::DestroyDB("./" + PERSISTENCE_PATH + 
@@ -353,9 +364,9 @@ int LevelDB::DeleteDB()
     return 0;
 }
 
-bool LevelDB::ResetDB()
+bool LevelDB::ResetDBForNormalNode()
 {
-    if(DeleteDB() == 0 && this->m_subdirectory.empty())
+    if(DeleteDBForNormalNode() == 0 && this->m_subdirectory.empty())
     {
         boost::filesystem::remove_all("./" + PERSISTENCE_PATH + "/" + this->m_dbName);
 
@@ -382,8 +393,8 @@ bool LevelDB::ResetDB()
     LOG_GENERAL(WARNING, "Didn't reset DB, investigate why!");
     return false;
 }
-#else // IS_LOOKUP_NODE
-int LevelDB::DeleteDB()
+
+int LevelDB::DeleteDBForLookupNode()
 {
     m_db.reset();
     leveldb::Status s = leveldb::DestroyDB(this->m_dbName, leveldb::Options()); 
@@ -397,9 +408,9 @@ int LevelDB::DeleteDB()
 }
 
 
-bool LevelDB::ResetDB()
+bool LevelDB::ResetDBForLookupNode()
 {
-    if(DeleteDB()==0)
+    if(DeleteDBForLookupNode()==0)
     {
         boost::filesystem::remove_all("./" + PERSISTENCE_PATH + "/" + this->m_dbName);
 
@@ -421,4 +432,3 @@ bool LevelDB::ResetDB()
     }
     return false;
 }
-#endif // IS_LOOKUP_NODE
