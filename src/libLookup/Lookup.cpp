@@ -1096,9 +1096,9 @@ bool Lookup::ProcessGetTxBodyFromSeed(const vector<unsigned char>& message,
          tranHash.asArray().begin());
     offset += TRAN_HASH_SIZE;
 
-    TxBodySharedPtr tx;
+    TxBodySharedPtr tptr;
 
-    BlockStorage::GetBlockStorage().GetTxBody(tranHash, tx);
+    BlockStorage::GetBlockStorage().GetTxBody(tranHash, tptr);
 
     // txBodyMessage = [TRAN_HASH_SIZE txHashStr][Transaction::GetSerializedSize() txBody]
     vector<unsigned char> txBodyMessage
@@ -1109,8 +1109,8 @@ bool Lookup::ProcessGetTxBodyFromSeed(const vector<unsigned char>& message,
          txBodyMessage.begin() + curr_offset);
     curr_offset += TRAN_HASH_SIZE;
 
-    tx->Serialize(txBodyMessage, curr_offset);
-    curr_offset += tx->GetSerializedSize();
+    tptr->Serialize(txBodyMessage, curr_offset);
+    curr_offset += tptr->GetSerializedSize();
 
     // 4-byte portNo
     uint32_t portNo
@@ -1673,8 +1673,8 @@ bool Lookup::ProcessSetTxBodyFromSeed(const vector<unsigned char>& message,
     offset += TRAN_HASH_SIZE;
 
     // Transaction transaction(message, offset);
-    Transaction transaction;
-    if (transaction.Deserialize(message, offset) != 0)
+    TransactionWithReceipt twr;
+    if (twr.Deserialize(message, offset) != 0)
     {
         LOG_GENERAL(WARNING, "We failed to deserialize Transaction.");
         return false;
@@ -1687,7 +1687,7 @@ bool Lookup::ProcessSetTxBodyFromSeed(const vector<unsigned char>& message,
     //     return false;
     // }
     vector<unsigned char> serializedTxBody;
-    transaction.Serialize(serializedTxBody, 0);
+    twr.Serialize(serializedTxBody, 0);
     BlockStorage::GetBlockStorage().PutTxBody(tranHash, serializedTxBody);
 
     return true;
@@ -2705,7 +2705,7 @@ void Lookup::SendTxnPacketToNodes(uint32_t nShard)
     if (!GenTxnToSend(NUM_TXN_TO_SEND_PER_ACCOUNT, mp, nShard))
     {
         LOG_GENERAL(WARNING, "GenTxnToSend failed");
-        return;
+        // return;
     }
 
     for (unsigned int i = 0; i < nShard + 1; i++)
