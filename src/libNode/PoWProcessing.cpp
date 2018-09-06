@@ -47,12 +47,24 @@
 using namespace std;
 using namespace boost::multiprecision;
 
+<<<<<<< HEAD
 #ifndef IS_LOOKUP_NODE
 bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
                     uint8_t difficulty,
+=======
+bool Node::StartPoW(const uint64_t& block_num, uint8_t difficulty,
+>>>>>>> 4657e398f16ce931f4be916efb7285329528927a
                     const array<unsigned char, UINT256_SIZE>& rand1,
                     const array<unsigned char, UINT256_SIZE>& rand2)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(
+            WARNING,
+            "Node::StartPoW not expected to be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
     if (!CheckState(STARTPOW))
     {
@@ -200,6 +212,7 @@ void Node::SendPoWResultToDSComm(const uint64_t& block_num,
     }
 
     P2PComm::GetInstance().SendMessage(peerList, powmessage);
+    SetState(MICROBLOCK_CONSENSUS_PREP);
 }
 
 bool Node::ReadVariablesFromStartPoWMessage(
@@ -207,6 +220,14 @@ bool Node::ReadVariablesFromStartPoWMessage(
     uint64_t& block_num, uint8_t& ds_difficulty, uint8_t& difficulty,
     array<unsigned char, 32>& rand1, array<unsigned char, 32>& rand2)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::ReadVariablesFromStartPoWMessage not expected to be "
+                    "called from LookUp node.");
+        return true;
+    }
+
     if (IsMessageSizeInappropriate(message.size(), cur_offset,
                                    sizeof(uint64_t) + sizeof(uint8_t)
                                        + sizeof(uint8_t) + UINT256_SIZE
@@ -292,14 +313,19 @@ bool Node::ReadVariablesFromStartPoWMessage(
 
     return true;
 }
-#endif // IS_LOOKUP_NODE
 
-bool Node::ProcessStartPoW([[gnu::unused]] const vector<unsigned char>& message,
-                           [[gnu::unused]] unsigned int offset,
+bool Node::ProcessStartPoW(const vector<unsigned char>& message,
+                           unsigned int offset,
                            [[gnu::unused]] const Peer& from)
 {
-#ifndef IS_LOOKUP_NODE
-    // This function is only used in the bootstrapping phase.
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::ProcessStartPoW not expected to be called from "
+                    "LookUp node.");
+        return true;
+    }
+
     // Note: This function should only be invoked on a new node that was not part of the sharding committees in previous epoch
     // Message = [8-byte block num] [1-byte ds difficulty]  [1-byte difficulty] [32-byte rand1] [32-byte rand2] [33-byte pubkey] [16-byte ip] [4-byte port] ... (all the DS nodes)
 
@@ -340,7 +366,6 @@ bool Node::ProcessStartPoW([[gnu::unused]] const vector<unsigned char>& message,
 
     // Start mining
     StartPoW(block_num, dsDifficulty, difficulty, rand1, rand2);
-#endif // IS_LOOKUP_NODE
 
     return true;
 }

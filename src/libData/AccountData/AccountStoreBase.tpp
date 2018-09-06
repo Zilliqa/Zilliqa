@@ -124,7 +124,8 @@ int AccountStoreBase<MAP>::Deserialize(const vector<unsigned char>& src,
 }
 
 template<class MAP>
-bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction)
+bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
+                                           uint256_t& gasUsed)
 {
     const PubKey& senderPubKey = transaction.GetSenderPubKey();
     const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
@@ -191,6 +192,7 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction)
     }
 
     IncreaseBalance(fromAddr, gasRefund);
+    gasUsed = NORMAL_TRAN_GAS;
 
     IncreaseNonce(fromAddr);
 
@@ -231,7 +233,7 @@ template<class MAP>
 void AccountStoreBase<MAP>::AddAccount(const Address& address,
                                        const Account& account)
 {
-    LOG_MARKER();
+    // LOG_MARKER();
 
     if (!IsAccountExist(address))
     {

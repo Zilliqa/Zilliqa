@@ -5,10 +5,8 @@
 
 set -e
 
-if [ "$1" = "lookup" ]
-then
-    CMAKE_EXTRA_OPTIONS="-DIS_LOOKUP_NODE=1"
-fi
+# add more options to cmake
+CMAKE_EXTRA_OPTIONS=""
 
 # set n_parallel to fully utilize the resources
 os=$(uname)

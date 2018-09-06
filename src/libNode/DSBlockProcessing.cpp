@@ -76,10 +76,11 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock)
         LATESTACTIVEDSBLOCKNUM,
         DataConversion::StringToCharArray(
             to_string(m_mediator.m_ds->m_latestActiveDSBlockNum)));
-#ifndef IS_LOOKUP_NODE
-    BlockStorage::GetBlockStorage().PushBackTxBodyDB(
-        dsblock.GetHeader().GetBlockNum());
-#endif
+    if (!LOOKUP_NODE_MODE)
+    {
+        BlockStorage::GetBlockStorage().PushBackTxBodyDB(
+            dsblock.GetHeader().GetBlockNum());
+    }
 }
 
 void Node::UpdateDSCommiteeComposition(const Peer& winnerpeer)
@@ -199,35 +200,38 @@ bool Node::VerifyDSBlockCoSignature(const DSBlock& dsblock)
 
 void Node::LogReceivedDSBlockDetails([[gnu::unused]] const DSBlock& dsblock)
 {
-#ifdef IS_LOOKUP_NODE
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "I the lookup node have deserialized the DS Block");
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "dsblock.GetHeader().GetDSDifficulty(): "
-                  << (int)dsblock.GetHeader().GetDSDifficulty());
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "dsblock.GetHeader().GetDifficulty(): "
-                  << (int)dsblock.GetHeader().GetDifficulty());
-    LOG_EPOCH(
-        INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-        "dsblock.GetHeader().GetNonce(): " << dsblock.GetHeader().GetNonce());
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "dsblock.GetHeader().GetBlockNum(): "
-                  << dsblock.GetHeader().GetBlockNum());
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "dsblock.GetHeader().GetMinerPubKey(): "
-                  << dsblock.GetHeader().GetMinerPubKey());
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "dsblock.GetHeader().GetLeaderPubKey(): "
-                  << dsblock.GetHeader().GetLeaderPubKey());
-#endif // IS_LOOKUP_NODE
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "I the lookup node have deserialized the DS Block");
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "dsblock.GetHeader().GetDifficulty(): "
+                      << (int)dsblock.GetHeader().GetDifficulty());
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "dsblock.GetHeader().GetNonce(): "
+                      << dsblock.GetHeader().GetNonce());
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "dsblock.GetHeader().GetBlockNum(): "
+                      << dsblock.GetHeader().GetBlockNum());
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "dsblock.GetHeader().GetMinerPubKey(): "
+                      << dsblock.GetHeader().GetMinerPubKey());
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "dsblock.GetHeader().GetLeaderPubKey(): "
+                      << dsblock.GetHeader().GetLeaderPubKey());
+    }
 }
 
-bool Node::LoadShardingStructure(
-    [[gnu::unused]] const vector<unsigned char>& message,
-    [[gnu::unused]] unsigned int& cur_offset)
+bool Node::LoadShardingStructure(const vector<unsigned char>& message,
+                                 unsigned int& cur_offset)
 {
-#ifndef IS_LOOKUP_NODE
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::LoadShardingStructure not expected to be called "
+                    "from LookUp node.");
+        return true;
+    }
 
     vector<map<PubKey, Peer>> shards;
     cur_offset = ShardingStructure::Deserialize(message, cur_offset, shards);
@@ -272,16 +276,19 @@ bool Node::LoadShardingStructure(
         index++;
     }
 
-#endif // IS_LOOKUP_NODE
-
     return true;
 }
 
-void Node::LoadTxnSharingInfo(
-    [[gnu::unused]] const vector<unsigned char>& message,
-    [[gnu::unused]] unsigned int cur_offset)
+void Node::LoadTxnSharingInfo(const vector<unsigned char>& message,
+                              unsigned int cur_offset)
 {
-#ifndef IS_LOOKUP_NODE
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::LoadTxnSharingInfo not expected to be called from "
+                    "LookUp node.");
+        return;
+    }
 
     LOG_MARKER();
 
@@ -338,16 +345,19 @@ void Node::LoadTxnSharingInfo(
             }
         }
     }
-
-#endif // IS_LOOKUP_NODE
 }
 
-#ifndef IS_LOOKUP_NODE
 void Node::StartFirstTxEpoch()
 {
-    LOG_MARKER();
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::StartFirstTxEpoch not expected to be called from "
+                    "LookUp node.");
+        return;
+    }
 
-    SetState(TX_SUBMISSION);
+    LOG_MARKER();
 
     // Check if I am the leader or backup of the shard
     if (m_mediator.m_selfKey.second == m_myShardMembers->front().first)
@@ -403,53 +413,12 @@ void Node::StartFirstTxEpoch()
 
     m_consensusLeaderID = 0;
 
-    auto main_func = [this]() mutable -> void { SubmitTransactions(); };
-
-    {
-        lock_guard<mutex> g2(m_mutexNewRoundStarted);
-        if (!m_newRoundStarted)
-        {
-            m_newRoundStarted = true;
-            m_cvNewRoundStarted.notify_all();
-        }
-    }
-
-    DetachedFunction(1, main_func);
-
-    LOG_GENERAL(INFO, "Entering sleep for " << TXN_SUBMISSION << " seconds");
-    this_thread::sleep_for(chrono::seconds(TXN_SUBMISSION));
-    LOG_GENERAL(INFO,
-                "Woken up from the sleep of " << TXN_SUBMISSION << " seconds");
-
-    auto main_func2
-        = [this]() mutable -> void { SetState(TX_SUBMISSION_BUFFER); };
-
-    DetachedFunction(1, main_func2);
-
-    LOG_GENERAL(INFO,
-                "Using conditional variable with timeout of  "
-                    << TXN_BROADCAST << " seconds. It is ok to timeout here. ");
-    std::unique_lock<std::mutex> cv_lk(m_MutexCVMicroblockConsensus);
-    if (cv_microblockConsensus.wait_for(cv_lk,
-                                        std::chrono::seconds(TXN_BROADCAST))
-        == std::cv_status::timeout)
-    {
-        LOG_GENERAL(INFO,
-                    "Woken up from the sleep (timeout) of " << TXN_BROADCAST
-                                                            << " seconds");
-    }
-    else
-    {
-        LOG_GENERAL(
-            INFO,
-            "I have received announcement message. Time to run consensus.");
-    }
+    CommitTxnPacketBuffer();
 
     auto main_func3 = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
 
     DetachedFunction(1, main_func3);
 }
-#endif // IS_LOOKUP_NODE
 
 bool Node::ProcessDSBlock(const vector<unsigned char>& message,
                           unsigned int cur_offset,
@@ -459,42 +428,44 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
 
     lock_guard<mutex> g(m_mutexDSBlock);
 
-#ifndef IS_LOOKUP_NODE
-    // Message = [Shard ID] [DS block] [PoW winner IP] [Sharding structure] [Txn sharing assignments]
-    // This is the same as the DS Block consensus announcement message, plus the additional Shard ID
-
-    if (!CheckState(PROCESS_DSBLOCK))
+    if (!LOOKUP_NODE_MODE)
     {
-        return false;
-    }
+        // Message = [Shard ID] [DS block] [PoW winner IP] [Sharding structure] [Txn sharing assignments]
+        // This is the same as the DS Block consensus announcement message, plus the additional Shard ID
 
-    // For running from genesis
-    if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
-    {
-        m_mediator.m_lookup->m_syncType = SyncType::NO_SYNC;
-        if (m_fromNewProcess)
+        if (!CheckState(PROCESS_DSBLOCK))
         {
-            m_fromNewProcess = false;
+            return false;
         }
 
-        // Are these necessary? Commented out for now
-        //AccountStore::GetInstance().MoveUpdatesToDisk();
-        //m_runFromLate = false;
+        // For running from genesis
+        if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
+        {
+            m_mediator.m_lookup->m_syncType = SyncType::NO_SYNC;
+            if (m_fromNewProcess)
+            {
+                m_fromNewProcess = false;
+            }
+
+            // Are these necessary? Commented out for now
+            //AccountStore::GetInstance().MoveUpdatesToDisk();
+            //m_runFromLate = false;
+        }
+
+        // [Shard ID]
+        m_myShardID = Serializable::GetNumber<uint32_t>(message, cur_offset,
+                                                        sizeof(uint32_t));
+        cur_offset += sizeof(uint32_t);
     }
+    else
+    {
+        // Message = [DS block] [PoW winner IP] [Sharding structure] [Txn sharing assignments]
+        // This is the same as the DS Block consensus announcement message
+        // Lookup node ignores Txn sharing assignments
 
-    // [Shard ID]
-    m_myShardID = Serializable::GetNumber<uint32_t>(message, cur_offset,
-                                                    sizeof(uint32_t));
-    cur_offset += sizeof(uint32_t);
-
-#else
-    // Message = [DS block] [PoW winner IP] [Sharding structure] [Txn sharing assignments]
-    // This is the same as the DS Block consensus announcement message
-    // Lookup node ignores Txn sharing assignments
-
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "I the lookup node have received the DS Block");
-#endif // IS_LOOKUP_NODE
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "I the lookup node have received the DS Block");
+    }
 
     // [DS block]
     DSBlock dsblock;
@@ -537,75 +508,82 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
             + 1
         << "] RECEIVED DSBLOCK");
 
-#ifdef IS_LOOKUP_NODE
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "I the lookup node have stored the DS Block");
-#endif // IS_LOOKUP_NODE
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "I the lookup node have stored the DS Block");
+    }
 
     m_mediator.UpdateDSBlockRand(); // Update the rand1 value for next PoW
     UpdateDSCommiteeComposition(newleaderIP);
 
-#ifndef IS_LOOKUP_NODE
-
-    POW::GetInstance().StopMining();
-
-    // If I am the next DS leader -> need to set myself up as a DS node
-    if (m_mediator.m_selfKey.second
-        == m_mediator.m_dsBlockChain.GetLastBlock()
-               .GetHeader()
-               .GetMinerPubKey())
+    if (!LOOKUP_NODE_MODE)
     {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "I won PoW :-) I am now the new DS committee leader!");
+        POW::GetInstance().StopMining();
 
-        // [Sharding structure] -> Use the loading function for DS node
-        cur_offset
-            = m_mediator.m_ds->PopulateShardingStructure(message, cur_offset);
+        // If I am the next DS leader -> need to set myself up as a DS node
+        if (m_mediator.m_selfKey.second
+            == m_mediator.m_dsBlockChain.GetLastBlock()
+                   .GetHeader()
+                   .GetMinerPubKey())
+        {
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "I won PoW :-) I am now the new DS committee leader!");
 
-        // [Txn sharing assignments] -> Use the loading function for DS node
-        m_mediator.m_ds->SaveTxnBodySharingAssignment(message, cur_offset);
+            // [Sharding structure] -> Use the loading function for DS node
+            cur_offset = m_mediator.m_ds->PopulateShardingStructure(message,
+                                                                    cur_offset);
 
-        // Update my DS mode and ID
-        m_mediator.m_ds->m_consensusMyID = 0;
-        m_mediator.m_ds->m_consensusID
-            = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
-        m_mediator.m_ds->m_mode = DirectoryService::Mode::PRIMARY_DS;
+            // [Txn sharing assignments] -> Use the loading function for DS node
+            m_mediator.m_ds->SaveTxnBodySharingAssignment(message, cur_offset);
 
-        // (We're getting rid of this eventually) Clean up my txn list since I'm a DS node now
-        m_mediator.m_node->CleanCreatedTransaction();
+            // Update my DS mode and ID
+            m_mediator.m_ds->m_consensusMyID = 0;
+            m_mediator.m_ds->m_consensusID
+                = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
+            m_mediator.m_ds->m_mode = DirectoryService::Mode::PRIMARY_DS;
 
-        LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
-                      DS_LEADER_MSG);
-        LOG_STATE("[IDENT][" << std::setw(15) << std::left
-                             << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                             << "][0     ] DSLD");
+            // (We're getting rid of this eventually) Clean up my txn list since I'm a DS node now
+            m_mediator.m_node->CleanCreatedTransaction();
 
-        // Finally, start as the DS leader
-        m_mediator.m_ds->StartFirstTxEpoch();
+            LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
+                          DS_LEADER_MSG);
+            LOG_STATE("[IDENT]["
+                      << std::setw(15) << std::left
+                      << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                      << "][0     ] DSLD");
+
+            // Finally, start as the DS leader
+            m_mediator.m_ds->StartFirstTxEpoch();
+        }
+        // If I am a shard node
+        else
+        {
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "I lost PoW :-( Better luck next time!");
+
+            // [Sharding structure] -> Use the loading function for shard node
+            if (LoadShardingStructure(message, cur_offset) == false)
+            {
+                return false;
+            }
+
+            // [Txn sharing assignments] -> Use the loading function for shard node
+            LoadTxnSharingInfo(message, cur_offset);
+
+            // Finally, start as a shard node
+            StartFirstTxEpoch();
+        }
     }
-    // If I am a shard node
     else
     {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "I lost PoW :-( Better luck next time!");
-
-        // [Sharding structure] -> Use the loading function for shard node
-        if (LoadShardingStructure(message, cur_offset) == false)
+        // [Sharding structure]
+        m_mediator.m_lookup->ProcessEntireShardingStructure(message, cur_offset,
+                                                            from);
+        if (m_mediator.m_lookup->GetIsServer())
         {
-            return false;
+            m_mediator.m_lookup->SenderTxnBatchThread();
         }
-
-        // [Txn sharing assignments] -> Use the loading function for shard node
-        LoadTxnSharingInfo(message, cur_offset);
-
-        // Finally, start as a shard node
-        StartFirstTxEpoch();
     }
-#else
-    // [Sharding structure]
-    m_mediator.m_lookup->ProcessEntireShardingStructure(message, cur_offset,
-                                                        from);
-#endif // IS_LOOKUP_NODE
-
     return true;
 }

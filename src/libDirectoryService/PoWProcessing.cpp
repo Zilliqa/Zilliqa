@@ -38,13 +38,20 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-#ifndef IS_LOOKUP_NODE
 bool DirectoryService::VerifyPoWSubmission(
     const vector<unsigned char>& message, const Peer& from, PubKey& key,
     unsigned int curr_offset, uint32_t& portNo, uint64_t& nonce,
     array<unsigned char, 32>& rand1, array<unsigned char, 32>& rand2,
     uint8_t& difficultyLevel, uint64_t& block_num, string& winning_hash)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::VerifyPoWSubmission not expected to be "
+                    "called from LookUp node.");
+        return true;
+    }
+
     // 8-byte nonce
     nonce = Serializable::GetNumber<uint64_t>(message, curr_offset,
                                               sizeof(uint64_t));
@@ -149,6 +156,14 @@ bool DirectoryService::VerifyPoWSubmission(
 bool DirectoryService::ParseMessageAndVerifyPOW(
     const vector<unsigned char>& message, unsigned int offset, const Peer& from)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::ParseMessageAndVerifyPOW not expected "
+                    "to be called from LookUp node.");
+        return true;
+    }
+
     unsigned int curr_offset = offset;
     // 8-bytes block number
     uint64_t DSBlockNum = Serializable::GetNumber<uint64_t>(
@@ -263,6 +278,7 @@ bool DirectoryService::ParseMessageAndVerifyPOW(
     }
     return result;
 }
+<<<<<<< HEAD
 
 bool DirectoryService::CheckPoWSubmissionExceedsLimitsForNode(const PubKey& key)
 {
@@ -299,13 +315,26 @@ void DirectoryService::ResetPoWSubmissionCounter()
 }
 
 #endif // IS_LOOKUP_NODE
+=======
+>>>>>>> 4657e398f16ce931f4be916efb7285329528927a
 
 bool DirectoryService::ProcessPoWSubmission(
-    [[gnu::unused]] const vector<unsigned char>& message,
-    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
+    const vector<unsigned char>& message, unsigned int offset, const Peer& from)
 {
+<<<<<<< HEAD
 #ifndef IS_LOOKUP_NODE
     // Message = [8-byte block number] [1 byte difficulty level] [4-byte listening port] [33-byte public key] [8-byte nonce] [32-byte resulting hash]
+=======
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::ProcessPoWSubmission not expected to be "
+                    "called from LookUp node.");
+        return true;
+    }
+
+    // Message = [8-byte block number] [4-byte listening port] [33-byte public key] [8-byte nonce] [32-byte resulting hash]
+>>>>>>> 4657e398f16ce931f4be916efb7285329528927a
     //[32-byte mixhash] [64-byte Sign]
     LOG_MARKER();
 
@@ -344,7 +373,4 @@ bool DirectoryService::ProcessPoWSubmission(
 
     bool result = ParseMessageAndVerifyPOW(message, offset, from);
     return result;
-#else // IS_LOOKUP_NODE
-    return true;
-#endif // IS_LOOKUP_NODE
 }
