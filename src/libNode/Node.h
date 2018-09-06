@@ -179,10 +179,9 @@ class Node : public Executable, public Broadcastable
                                          const uint64_t& blocknum,
                                          bool& toSendTxnToLookup);
 
-    bool
-    ProcessStateDeltaFromFinalBlock(const vector<unsigned char>& message,
-                                    unsigned int cur_offset,
-                                    const StateHash& finalBlockStateDeltaHash);
+    bool ProcessStateDeltaFromFinalBlock(
+        const vector<unsigned char>& stateDeltaBytes,
+        const StateHash& finalBlockStateDeltaHash);
 
     bool
     RemoveTxRootHashFromUnavailableMicroBlock(const uint64_t& blocknum,
@@ -200,10 +199,7 @@ class Node : public Executable, public Broadcastable
                                               bool& isEveryMicroBlockAvailable);
     bool IsMyShardMicroBlockInFinalBlock(const uint64_t& blocknum);
     bool IsMyShardIdInFinalBlock(const uint64_t& blocknum);
-    bool
-    ReadAuxilliaryInfoFromFinalBlockMsg(const vector<unsigned char>& message,
-                                        unsigned int& cur_offset,
-                                        uint32_t& shard_id);
+
     void StoreState();
     // void StoreMicroBlocks();
     void StoreFinalBlock(const TxBlock& txBlock);
@@ -441,12 +437,11 @@ public:
     void CommitTxnPacketBuffer();
 
     /// Used by oldest DS node to configure sharding variables as a new shard node
-    bool LoadShardingStructure(const vector<unsigned char>& message,
-                               unsigned int& cur_offset);
+    bool LoadShardingStructure();
 
     /// Used by oldest DS node to configure txn sharing assignments as a new shard node
-    void LoadTxnSharingInfo(const vector<unsigned char>& message,
-                            unsigned int cur_offset);
+
+    void LoadTxnSharingInfo();
 
 private:
     static std::map<NodeState, std::string> NodeStateStrings;
