@@ -104,6 +104,7 @@ void DirectoryService::ComposeDSBlock(
 
     // Assemble DS block
     // To-do: Handle exceptions.
+    // TODO: Revise DS block structure
     m_pendingDSBlock.reset(
         new DSBlock(DSBlockHeader(dsDifficulty, difficulty, prevHash, 0,
                                   winnerKey, m_mediator.m_selfKey.second,
