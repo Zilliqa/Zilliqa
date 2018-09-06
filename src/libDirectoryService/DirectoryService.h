@@ -99,6 +99,9 @@ class DirectoryService : public Executable, public Broadcastable
                        std::vector<std::pair<Peer, std::vector<unsigned char>>>>
         m_FinalBlockConsensusBuffer;
 
+    std::mutex m_mutexCVMissingMicroBlock;
+    std::condition_variable cv_MissingMicroBlock;
+
     // View Change
     std::atomic<uint32_t> m_viewChangeCounter;
     Peer m_candidateLeader;
@@ -129,6 +132,8 @@ class DirectoryService : public Executable, public Broadcastable
     Mediator& m_mediator;
 
     Synchronizer m_synchronizer;
+
+    uint32_t m_numOfAbsentMicroBlockHashes;
 
     //Coinbase
 #ifndef IS_LOOKUP_NODE
@@ -219,15 +224,21 @@ class DirectoryService : public Executable, public Broadcastable
                              array<unsigned char, 32>& rand2,
                              unsigned int& difficulty, uint64_t& block_num);
     void CommitMBSubmissionMsgBuffer();
-    bool ProcessMicroblockSubmissionCore(const vector<unsigned char>& message,
-                                         unsigned int curr_offset);
+    bool ProcessMicroblockSubmissionFromShard(
+        const std::vector<unsigned char>& message, unsigned int offset,
+        const Peer& from);
+    bool ProcessMicroblockSubmissionFromShardCore(
+        const vector<unsigned char>& message, unsigned int curr_offset);
+    bool ProcessMissingMicroblockSubmission(
+        const std::vector<unsigned char>& message, unsigned int offset,
+        const Peer& from);
     void ExtractDataFromMicroblocks(
         TxnHash& microblockTxnTrieRoot, StateHash& microblockDeltaTrieRoot,
         std::vector<MicroBlockHashSet>& microblockHashes,
         std::vector<uint32_t>& shardIDs,
         boost::multiprecision::uint256_t& allGasLimit,
         boost::multiprecision::uint256_t& allGasUsed, uint32_t& numTxs,
-        std::vector<bool>& isMicroBlockEmpty, uint32_t& numMicroBlocks) const;
+        std::vector<bool>& isMicroBlockEmpty, uint32_t& numMicroBlocks);
     bool VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
                                      uint32_t shardId);
     bool ProcessStateDelta(const vector<unsigned char>& message,
@@ -235,13 +246,13 @@ class DirectoryService : public Executable, public Broadcastable
                            const StateHash& microBlockStateDeltaHash);
 
     // FinalBlockValidator functions
-    bool CheckFinalBlockValidity();
+    bool CheckFinalBlockValidity(vector<unsigned char>& errorMsg);
     bool CheckBlockTypeIsFinal();
     bool CheckFinalBlockVersion();
     bool CheckPreviousFinalBlockHash();
     bool CheckFinalBlockNumber();
     bool CheckFinalBlockTimestamp();
-    bool CheckMicroBlockHashes();
+    bool CheckMicroBlockHashes(std::vector<unsigned char>& errorMsg);
     bool CheckMicroBlockHashRoot();
     bool CheckIsMicroBlockEmpty();
     bool CheckStateRoot();
@@ -264,6 +275,9 @@ class DirectoryService : public Executable, public Broadcastable
                              std::vector<unsigned char>& errorMsg);
 
     void StoreFinalBlockToDisk();
+
+    bool OnNodeMissingMicroBlocks(const std::vector<unsigned char>& errorMsg,
+                                  unsigned int offset, const Peer& from);
 
     // void StoreMicroBlocksToDisk();
 
@@ -324,6 +338,12 @@ public:
         ERROR
     };
 
+    enum SUBMITMICROBLOCKTYPE : unsigned char
+    {
+        SHARDMICROBLOCK = 0x00,
+        MISSINGMICROBLOCK = 0x01
+    };
+
     /// Sharing assignment for state delta
     std::vector<Peer> m_sharingAssignment;
 
@@ -353,6 +373,7 @@ public:
 
     /// Serialized account store temp to revert to if ds microblock consensus failed
     std::vector<unsigned char> m_stateDeltaFromShards;
+    std::vector<unsigned char> m_stateDeltaWhenRunDSMB;
 
     /// Whether to send txn from ds microblock to lookup at finalblock consensus done
     std::atomic<bool> m_toSendTxnToLookup;
@@ -360,7 +381,7 @@ public:
     /// Whether ds started microblock consensuis
     std::atomic<bool> m_dsStartedMicroblockConsensus;
 
-    std::set<MicroBlock> m_microBlocks;
+    std::unordered_map<uint64_t, std::set<MicroBlock>> m_microBlocks;
     std::mutex m_mutexMicroBlocks;
 
     /// Constructor. Requires mediator reference to access Node and other global members.

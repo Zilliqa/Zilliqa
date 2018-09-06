@@ -61,6 +61,10 @@ void Node::SubmitMicroblockToDSCommittee() const
         = {MessageType::DIRECTORY, DSInstructionType::MICROBLOCKSUBMISSION};
     unsigned int cur_offset = MessageOffset::BODY;
 
+    microblock.push_back(
+        m_mediator.m_ds->SUBMITMICROBLOCKTYPE::SHARDMICROBLOCK);
+    cur_offset += MessageOffset::INST;
+
     // 8-byte tx blocknum
     uint64_t txBlockNum
         = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
@@ -269,7 +273,8 @@ bool Node::ProcessMicroblockConsensus(
             m_mediator.m_ds->cv_scheduleFinalBlockConsensus.notify_all();
             {
                 lock_guard<mutex> g(m_mediator.m_ds->m_mutexMicroBlocks);
-                m_mediator.m_ds->m_microBlocks.emplace(*m_microblock);
+                m_mediator.m_ds->m_microBlocks[m_mediator.m_currentEpochNum]
+                    .emplace(*m_microblock);
             }
             m_mediator.m_ds->m_toSendTxnToLookup = true;
             m_mediator.m_ds->RunConsensusOnFinalBlock();
@@ -439,7 +444,7 @@ bool Node::OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
 {
     LOG_MARKER();
 
-    if (errorMsg.size() < 2 * sizeof(uint32_t) + offset)
+    if (errorMsg.size() < sizeof(uint32_t) + sizeof(uint64_t) + offset)
     {
         LOG_GENERAL(WARNING, "Malformed Message");
         return false;
@@ -757,7 +762,7 @@ bool Node::ProcessTransactionWhenShardBackup(const vector<TxnHash>& tranHashes,
     if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
     {
         AccountStore::GetInstance().DeserializeDeltaTemp(
-            m_mediator.m_ds->m_stateDeltaFromShards, 0);
+            m_mediator.m_ds->m_stateDeltaWhenRunDSMB, 0);
     }
 
     for (const auto& t : curTxns)
@@ -986,19 +991,12 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
         = [this](const map<unsigned int, vector<unsigned char>>& m) mutable
         -> bool { return OnCommitFailure(m); };
 
-    deque<pair<PubKey, Peer>> peerList;
-
-    for (auto it = m_myShardMembers->begin(); it != m_myShardMembers->end();
-         ++it)
-    {
-        peerList.emplace_back(*it);
-    }
-
-    m_consensusObject.reset(new ConsensusLeader(
-        m_consensusID, m_consensusBlockHash, m_consensusMyID,
-        m_mediator.m_selfKey.first, peerList, static_cast<unsigned char>(NODE),
-        static_cast<unsigned char>(MICROBLOCKCONSENSUS), nodeMissingTxnsFunc,
-        commitFailureFunc));
+    m_consensusObject.reset(
+        new ConsensusLeader(m_consensusID, m_consensusBlockHash,
+                            m_consensusMyID, m_mediator.m_selfKey.first,
+                            *m_myShardMembers, static_cast<unsigned char>(NODE),
+                            static_cast<unsigned char>(MICROBLOCKCONSENSUS),
+                            nodeMissingTxnsFunc, commitFailureFunc));
 
     if (m_consensusObject == nullptr)
     {
@@ -1073,6 +1071,8 @@ bool Node::RunConsensusOnMicroBlock()
     if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
     {
         m_mediator.m_ds->m_toSendTxnToLookup = false;
+        m_mediator.m_ds->m_stateDeltaWhenRunDSMB
+            = m_mediator.m_ds->m_stateDeltaFromShards;
         bool isVacuousEpoch
             = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
         if (isVacuousEpoch)
@@ -1082,10 +1082,10 @@ bool Node::RunConsensusOnMicroBlock()
                       "[CNBSE]");
 
             m_mediator.m_ds->InitCoinbase();
-            m_mediator.m_ds->m_stateDeltaFromShards.clear();
+            m_mediator.m_ds->m_stateDeltaWhenRunDSMB.clear();
             AccountStore::GetInstance().SerializeDelta();
             AccountStore::GetInstance().GetSerializedDelta(
-                m_mediator.m_ds->m_stateDeltaFromShards);
+                m_mediator.m_ds->m_stateDeltaWhenRunDSMB);
         }
     }
     if (m_isPrimary == true)
@@ -1248,7 +1248,7 @@ unsigned char Node::CheckLegitimacyOfTxnHashes(vector<unsigned char>& errorMsg)
             {
                 LOG_GENERAL(WARNING, "Got missing txns, revert state delta");
                 AccountStore::GetInstance().DeserializeDeltaTemp(
-                    m_mediator.m_ds->m_stateDeltaFromShards, 0);
+                    m_mediator.m_ds->m_stateDeltaWhenRunDSMB, 0);
             }
 
             return LEGITIMACYRESULT::MISSEDTXN;
