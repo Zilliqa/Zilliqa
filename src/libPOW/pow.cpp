@@ -15,6 +15,7 @@
 **/
 
 #include <boost/algorithm/string/predicate.hpp>
+#include <chrono>
 #include <ctime>
 #include <iomanip>
 #include <iostream>
@@ -251,39 +252,83 @@ ethash_mining_result_t POW::MineFullGPU(uint64_t blockNum,
                                         ethash_h256_t const& header_hash,
                                         uint8_t difficulty)
 {
+    std::vector<std::unique_ptr<std::thread>> vecThread;
+    std::vector<ethash_mining_result_t> vecMiningResult(NUM_DEVICE_TO_USE);
+    uint64_t nonce = std::time(0);
+    for (size_t i = 0; i < NUM_DEVICE_TO_USE; ++i)
+    {
+        int index
+            = i; // To avoid lambda capture by reference, but i changed already.
+        vecThread.push_back(std::make_unique<std::thread>([&] {
+            MineFullGPUThread(blockNum, header_hash, difficulty, index, nonce,
+                              vecMiningResult[index]);
+        }));
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    std::unique_lock<std::mutex> lk(m_mutexMineResult);
+    m_cvMineResult.wait(lk);
+    for (auto& ptrThead : vecThread)
+    {
+        ptrThead->join();
+    }
+
+    for (const auto& miningResult : vecMiningResult)
+    {
+        if (miningResult.success)
+        {
+            return miningResult;
+        }
+    }
+    return vecMiningResult[0];
+}
+
+void POW::MineFullGPUThread(uint64_t blockNum, ethash_h256_t const& header_hash,
+                            uint8_t difficulty, size_t index, uint64_t nonce,
+                            ethash_mining_result_t& mining_result)
+{
     LOG_MARKER();
+    LOG_GENERAL(INFO,
+                "difficulty : " << std::to_string(difficulty) << ", index "
+                                << index);
     dev::eth::WorkPackage wp;
     wp.blockNumber = blockNum;
     wp.boundary = (dev::h256)(dev::u256)((dev::bigint(1) << 256)
                                          / (dev::u256(1) << difficulty));
 
     wp.header = dev::h256{header_hash.b, dev::h256::ConstructFromPointer};
-    wp.startNonce = std::time(0);
+
+    constexpr uint32_t NONCE_SEGMENT_WIDTH = 40;
+    const uint64_t NONCE_SGEMENT = (uint64_t)pow(2, NONCE_SEGMENT_WIDTH);
+    wp.startNonce = nonce + index * NONCE_SGEMENT;
 
     dev::eth::Solution solution;
     while (m_shouldMine)
     {
-        if (!m_miner->mine(wp, solution))
+        if (!m_miners[index]->mine(wp, solution))
         {
-            LOG_GENERAL(
-                WARNING,
-                "GPU failed to do mine, GPU miner log: " << m_miner->getLog());
-            ethash_mining_result_t failure_result = {"", "", 0, false};
-            return failure_result;
+            LOG_GENERAL(WARNING,
+                        "GPU failed to do mine, GPU miner log: "
+                            << m_miners[index]->getLog());
+            mining_result = ethash_mining_result_t{"", "", 0, false};
+            m_cvMineResult.notify_one();
+            return;
         }
         auto hashResult = LightHash(blockNum, header_hash, solution.nonce);
         ethash_h256_t diffForPoW = DifficultyLevelInInt(difficulty);
         if (ethash_check_difficulty(&hashResult.result, &diffForPoW))
         {
-            ethash_mining_result_t winning_result
-                = {BlockhashToHexString(&hashResult.result),
-                   solution.mixHash.hex(), solution.nonce, true};
-            return winning_result;
+            mining_result = ethash_mining_result_t{
+                BlockhashToHexString(&hashResult.result),
+                solution.mixHash.hex(), solution.nonce, true};
+            m_cvMineResult.notify_one();
+            return;
         }
         wp.startNonce = solution.nonce;
     }
-    ethash_mining_result_t failure_result = {"", "", 0, false};
-    return failure_result;
+    mining_result = ethash_mining_result_t{"", "", 0, false};
+    m_cvMineResult.notify_one();
+    return;
 }
 
 bool POW::VerifyLight(ethash_light_t& light, ethash_h256_t const& header_hash,
@@ -457,6 +502,16 @@ void POW::InitOpenCL()
 {
 #ifdef OPENCL_MINE
     using namespace dev::eth;
+
+    if (CLMiner::getNumDevices() < NUM_DEVICE_TO_USE)
+    {
+        LOG_GENERAL(FATAL,
+                    "NUM_DEVICE_TO_USE "
+                        << NUM_DEVICE_TO_USE
+                        << " is more than the physical OpenCL GPU number "
+                        << CUDAMiner::getNumDevices());
+    }
+
     CLMiner::setCLKernel(CLKernelName::Stable);
 
     if (!CLMiner::configureGPU(OPENCL_LOCAL_WORK_SIZE,
@@ -468,7 +523,10 @@ void POW::InitOpenCL()
     }
 
     CLMiner::setNumInstances(UINT_MAX);
-    m_miner = std::make_unique<CLMiner>();
+    for (uint32_t i = 0; i < NUM_DEVICE_TO_USE; ++i)
+    {
+        m_miners.push_back(std::make_unique<CLMiner>(i));
+    }
     LOG_GENERAL(INFO, "OpenCL GPU initialized in POW");
 #else
     LOG_GENERAL(FATAL,
@@ -483,6 +541,15 @@ void POW::InitCUDA()
 #ifdef CUDA_MINE
     using namespace dev::eth;
 
+    if (CUDAMiner::getNumDevices() < NUM_DEVICE_TO_USE)
+    {
+        LOG_GENERAL(FATAL,
+                    "NUM_DEVICE_TO_USE "
+                        << NUM_DEVICE_TO_USE
+                        << " is more than the physical CUDA GPU number "
+                        << CUDAMiner::getNumDevices());
+    }
+
     if (!CUDAMiner::configureGPU(CUDA_BLOCK_SIZE, CUDA_GRID_SIZE,
                                  CUDA_STREAM_NUM, CUDA_SCHEDULE_FLAG, 0, 0,
                                  false, false))
@@ -492,7 +559,10 @@ void POW::InitCUDA()
     }
 
     CUDAMiner::setNumInstances(UINT_MAX);
-    m_miner = std::make_unique<CUDAMiner>();
+    for (uint32_t i = 0; i < NUM_DEVICE_TO_USE; ++i)
+    {
+        m_miners.push_back(std::make_unique<CUDAMiner>(i));
+    }
     LOG_GENERAL(INFO, "CUDA GPU initialized in POW");
 #else
     LOG_GENERAL(FATAL,
