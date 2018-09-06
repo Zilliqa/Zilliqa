@@ -20,7 +20,6 @@
 #include <string>
 #include <unistd.h>
 #include <vector>
-using namespace std;
 
 #ifndef __GetTxnFromFile_H__
 #define __GetTxnFromFile_H__
