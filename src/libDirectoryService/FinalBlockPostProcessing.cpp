@@ -280,7 +280,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
               "Final block consensus is DONE!!!");
 
     // Clear microblock(s)
-    m_microBlocks.clear();
+    // m_microBlocks.clear();
 
     if (m_mode == PRIMARY_DS)
     {
@@ -619,6 +619,47 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
     }
     else if (state == ConsensusCommon::State::ERROR)
     {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Oops, no consensus reached - what to do now???");
+
+        if (m_consensusObject->GetConsensusErrorCode()
+            == ConsensusCommon::FINALBLOCK_INVALID_MICROBLOCK_ROOT_HASH)
+        {
+            // Missing microblocks proposed by leader. Will attempt to fetch
+            // missing microblocks from leader, set to a valid state to accept cosig1 and cosig2
+            LOG_EPOCH(
+                WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Oops, no consensus reached - consensus error. "
+                "error number: "
+                    << to_string(m_consensusObject->GetConsensusErrorCode())
+                    << " error message: "
+                    << (m_consensusObject->GetConsensusErrorMsg()));
+
+            // Block till txn is fetched
+            unique_lock<mutex> lock(m_mutexCVMissingMicroBlock);
+            if (cv_MissingMicroBlock.wait_for(
+                    lock, chrono::seconds(FETCHING_MISSING_TXNS_TIMEOUT))
+                == std::cv_status::timeout)
+            {
+                LOG_EPOCH(WARNING,
+                          to_string(m_mediator.m_currentEpochNum).c_str(),
+                          "fetching missing microblocks timeout");
+            }
+            else
+            {
+                // Re-run consensus
+                m_consensusObject->RecoveryAndProcessFromANewState(
+                    ConsensusCommon::INITIAL);
+
+                auto rerunconsensus = [this, message, offset, from]() {
+                    ProcessFinalBlockConsensusCore(message, MessageOffset::BODY,
+                                                   from);
+                };
+                DetachedFunction(1, rerunconsensus);
+                return true;
+            }
+        }
+
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "No consensus reached. Wait for view change. ");
         return false;
