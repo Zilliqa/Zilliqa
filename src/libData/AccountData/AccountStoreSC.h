@@ -22,6 +22,8 @@
 
 #include "AccountStoreBase.h"
 
+static uint256_t DEFAULT_GASUSED = 0;
+
 template<class MAP> class AccountStoreSC;
 
 template<class MAP>
@@ -51,6 +53,8 @@ template<class MAP> class AccountStoreSC : public AccountStoreBase<MAP>
     uint256_t m_curGasCum;
     uint256_t m_curGasLimit;
     uint256_t m_curGasPrice;
+    unsigned int m_curNumShards;
+    bool m_curIsDS;
 
     bool ParseCreateContractOutput();
     bool ParseCreateContractJsonOutput(const Json::Value& _json);
@@ -84,8 +88,9 @@ protected:
 public:
     void Init() override;
 
-    bool UpdateAccounts(const uint64_t& blockNum,
-                        const Transaction& transaction);
+    bool UpdateAccounts(const uint64_t& blockNum, const unsigned int& numShards,
+                        const bool& isDS, const Transaction& transaction,
+                        uint256_t& gasUsed = DEFAULT_GASUSED);
 };
 
 #include "AccountStoreAtomic.tpp"

@@ -37,10 +37,22 @@
 using namespace std;
 using namespace boost::multiprecision;
 
+<<<<<<< HEAD
 #ifndef IS_LOOKUP_NODE
 void DirectoryService::ComposeDSBlock(
     const vector<pair<array<unsigned char, 32>, PubKey>>& sortedPoWSolns)
+=======
+void DirectoryService::ComposeDSBlock()
+>>>>>>> 4657e398f16ce931f4be916efb7285329528927a
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::ComposeDSBlock not expected to be "
+                    "called from LookUp node.");
+        return;
+    }
+
     LOG_MARKER();
 
     // Compute hash of previous DS block header
@@ -104,6 +116,14 @@ void DirectoryService::ComposeDSBlock(
 void DirectoryService::ComputeSharding(
     const vector<pair<array<unsigned char, 32>, PubKey>>& sortedPoWSolns)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::ComputeSharding not expected to be "
+                    "called from LookUp node.");
+        return;
+    }
+
     LOG_MARKER();
 
     m_shards.clear();
@@ -136,6 +156,14 @@ void DirectoryService::ComputeSharding(
 
 void DirectoryService::ComputeTxnSharingAssignments(const Peer& winnerpeer)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::ComputeTxnSharingAssignments not "
+                    "expected to be called from LookUp node.");
+        return;
+    }
+
     LOG_MARKER();
 
     // PART 1
@@ -151,6 +179,7 @@ void DirectoryService::ComputeTxnSharingAssignments(const Peer& winnerpeer)
 
     // Add the new DS leader first
     m_DSReceivers.emplace_back(winnerpeer);
+    m_mediator.m_node->m_txnSharingIAmSender = true;
     num_ds_nodes--;
 
     // Add the rest from the current DS committee
@@ -236,6 +265,14 @@ void DirectoryService::ComputeTxnSharingAssignments(const Peer& winnerpeer)
 
 bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::RunConsensusOnDSBlockWhenDSPrimary not "
+                    "expected to be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -353,6 +390,14 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
 void DirectoryService::SaveTxnBodySharingAssignment(
     const vector<unsigned char>& sharding_structure, unsigned int curr_offset)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::SaveTxnBodySharingAssignment not "
+                    "expected to be called from LookUp node.");
+        return;
+    }
+
     m_DSReceivers.clear();
     m_shardReceivers.clear();
     m_shardSenders.clear();
@@ -366,6 +411,7 @@ void DirectoryService::SaveTxnBodySharingAssignment(
     {
         if (m_DSReceivers.at(i) == m_mediator.m_selfPeer)
         {
+            m_mediator.m_node->m_txnSharingIAmSender = true;
             i_am_forwarder = true;
             break;
         }
@@ -409,6 +455,14 @@ bool DirectoryService::DSBlockValidator(
     const vector<unsigned char>& message,
     [[gnu::unused]] std::vector<unsigned char>& errorMsg)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::DSBlockValidator not "
+                    "expected to be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     // Message = [DS block] [PoW winner IP] [Sharding structure] [Txn sharing assignments]
@@ -499,6 +553,14 @@ bool DirectoryService::DSBlockValidator(
 
 bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::RunConsensusOnDSBlockWhenDSBackup not "
+                    "expected to be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -533,6 +595,14 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup()
 unsigned int DirectoryService::PopulateShardingStructure(
     const vector<unsigned char>& message, unsigned int offset)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::PopulateShardingStructure not "
+                    "expected to be called from LookUp node.");
+        return offset;
+    }
+
     m_shards.clear();
     m_publicKeyToShardIdMap.clear();
 
@@ -571,6 +641,14 @@ unsigned int DirectoryService::PopulateShardingStructure(
 
 void DirectoryService::RunConsensusOnDSBlock(bool isRejoin)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::RunConsensusOnDSBlock not "
+                    "expected to be called from LookUp node.");
+        return;
+    }
+
     LOG_MARKER();
     SetState(DSBLOCK_CONSENSUS_PREP);
 
@@ -594,6 +672,8 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin)
             }
         }
     }
+
+    m_mediator.m_node->m_txnSharingIAmSender = false;
 
     // Upon consensus object creation failure, one should not return from the function, but rather wait for view change.
     bool ConsensusObjCreation = true;
@@ -635,5 +715,3 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin)
         DetachedFunction(1, func);
     }
 }
-
-#endif // IS_LOOKUP_NODE

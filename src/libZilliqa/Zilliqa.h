@@ -30,9 +30,7 @@
 #include "libNode/Node.h"
 #include "libUtils/ThreadPool.h"
 
-#ifdef IS_LOOKUP_NODE
 #include "libServer/Server.h"
-#endif
 
 /// Main Zilliqa class.
 class Zilliqa
@@ -48,12 +46,8 @@ class Zilliqa
     boost::lockfree::queue<std::pair<std::vector<unsigned char>, Peer>*>
         m_msgQueue;
 
-#ifdef IS_LOOKUP_NODE
-
     jsonrpc::HttpServer m_httpserver;
     Server m_server;
-
-#endif //IS_LOOK_UP_NODE
 
     ThreadPool m_queuePool{MAXMESSAGE, "QueuePool"};
 
