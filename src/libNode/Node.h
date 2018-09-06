@@ -412,8 +412,6 @@ public:
 
     void CommitForwardedMsgBuffer();
 
-    void CleanCreatedTransaction();
-
     void CallActOnFinalblock();
 
     void UpdateStateForNextConsensusRound();

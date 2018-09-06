@@ -47,13 +47,8 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-<<<<<<< HEAD
-#ifndef IS_LOOKUP_NODE
 bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
                     uint8_t difficulty,
-=======
-bool Node::StartPoW(const uint64_t& block_num, uint8_t difficulty,
->>>>>>> 4657e398f16ce931f4be916efb7285329528927a
                     const array<unsigned char, UINT256_SIZE>& rand1,
                     const array<unsigned char, UINT256_SIZE>& rand2)
 {
@@ -153,7 +148,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t difficulty,
         }
     }
 
-    SetState(TX_SUBMISSION);
+    SetState(MICROBLOCK_CONSENSUS_PREP);
     return true;
 }
 

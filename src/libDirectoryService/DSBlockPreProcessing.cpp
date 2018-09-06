@@ -37,13 +37,8 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-<<<<<<< HEAD
-#ifndef IS_LOOKUP_NODE
 void DirectoryService::ComposeDSBlock(
     const vector<pair<array<unsigned char, 32>, PubKey>>& sortedPoWSolns)
-=======
-void DirectoryService::ComposeDSBlock()
->>>>>>> 4657e398f16ce931f4be916efb7285329528927a
 {
     if (LOOKUP_NODE_MODE)
     {
