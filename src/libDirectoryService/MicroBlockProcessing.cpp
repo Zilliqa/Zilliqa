@@ -247,8 +247,10 @@ bool DirectoryService::ProcessMicroblockSubmissionCore(
     LOG_GENERAL(INFO,
                 "MicroBlock StateDeltaHash: "
                     << microBlock.GetHeader().GetStateDeltaHash() << endl
-                    << "TxRootHash: "
-                    << microBlock.GetHeader().GetTxRootHash(););
+                    << "TxRootHash: " << microBlock.GetHeader().GetTxRootHash()
+                    << endl
+                    << "TranReceiptHash: "
+                    << microBlock.GetHeader().GetTranReceiptHash());
 
     lock_guard<mutex> g(m_mutexMicroBlocks);
 

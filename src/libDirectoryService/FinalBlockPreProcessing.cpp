@@ -40,6 +40,7 @@ using namespace boost::multiprecision;
 
 void DirectoryService::ExtractDataFromMicroblocks(
     TxnHash& microblockTxnTrieRoot, StateHash& microblockDeltaTrieRoot,
+    TxnHash& microblockTranReceiptRoot,
     std::vector<MicroBlockHashSet>& microblockHashes,
     std::vector<uint32_t>& shardIDs, uint256_t& allGasLimit,
     uint256_t& allGasUsed, uint32_t& numTxs,
@@ -74,7 +75,8 @@ void DirectoryService::ExtractDataFromMicroblocks(
 
         microblockHashes.push_back(
             {microBlock.GetHeader().GetTxRootHash(),
-             microBlock.GetHeader().GetStateDeltaHash()});
+             microBlock.GetHeader().GetStateDeltaHash(),
+             microBlock.GetHeader().GetTranReceiptHash()});
         shardIDs.push_back(microBlock.GetHeader().GetShardID());
         allGasLimit += microBlock.GetHeader().GetGasLimit();
         allGasUsed += microBlock.GetHeader().GetGasUsed();
@@ -91,7 +93,8 @@ void DirectoryService::ExtractDataFromMicroblocks(
         {
             m_mediator.m_node->m_unavailableMicroBlocks[blockNum].insert(
                 {{{microBlock.GetHeader().GetTxRootHash(),
-                   microBlock.GetHeader().GetStateDeltaHash()},
+                   microBlock.GetHeader().GetStateDeltaHash(),
+                   microBlock.GetHeader().GetTranReceiptHash()},
                   microBlock.GetHeader().GetShardID()},
                  {false, true}});
 
@@ -115,15 +118,14 @@ void DirectoryService::ExtractDataFromMicroblocks(
 
     microblockTxnTrieRoot = ComputeTransactionsRoot(microblockHashes);
     microblockDeltaTrieRoot = ComputeDeltasRoot(microblockHashes);
+    microblockTranReceiptRoot = ComputeTranReceiptsRoot(microblockHashes);
 
     LOG_EPOCH(
         INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
         "Proposed FinalBlock TxnTrieRootHash : "
-            << DataConversion::charArrToHexStr(microblockTxnTrieRoot.asArray())
-            << endl
-            << " DeltaTrieRootHash: "
-            << DataConversion::charArrToHexStr(
-                   microblockDeltaTrieRoot.asArray()));
+            << microblockTxnTrieRoot.hex() << endl
+            << " DeltaTrieRootHash: " << microblockDeltaTrieRoot.hex() << endl
+            << " TranReceiptRootHash: " << microblockTranReceiptRoot.hex());
 }
 
 void DirectoryService::ComposeFinalBlockCore()
@@ -140,6 +142,7 @@ void DirectoryService::ComposeFinalBlockCore()
 
     TxnHash microblockTxnTrieRoot;
     StateHash microblockDeltaTrieRoot;
+    TxnHash microblockTranReceiptRoot;
     std::vector<MicroBlockHashSet> microBlockHashes;
     std::vector<uint32_t> shardIDs;
     uint8_t type = TXBLOCKTYPE::FINAL;
@@ -152,9 +155,9 @@ void DirectoryService::ComposeFinalBlockCore()
     StateHash stateDeltaHash = AccountStore::GetInstance().GetStateDeltaHash();
 
     ExtractDataFromMicroblocks(microblockTxnTrieRoot, microblockDeltaTrieRoot,
-                               microBlockHashes, shardIDs, allGasLimit,
-                               allGasUsed, numTxs, isMicroBlockEmpty,
-                               numMicroBlocks);
+                               microblockTranReceiptRoot, microBlockHashes,
+                               shardIDs, allGasLimit, allGasUsed, numTxs,
+                               isMicroBlockEmpty, numMicroBlocks);
 
     BlockHash prevHash;
     uint256_t timestamp = get_time_as_int();
@@ -209,9 +212,10 @@ void DirectoryService::ComposeFinalBlockCore()
     m_finalBlock.reset(new TxBlock(
         TxBlockHeader(type, version, allGasLimit, allGasUsed, prevHash,
                       blockNum, timestamp, microblockTxnTrieRoot, stateRoot,
-                      microblockDeltaTrieRoot, stateDeltaHash, numTxs,
-                      numMicroBlocks, m_mediator.m_selfKey.second,
-                      lastDSBlockNum, dsBlockHeader),
+                      microblockDeltaTrieRoot, stateDeltaHash,
+                      microblockTranReceiptRoot, numTxs, numMicroBlocks,
+                      m_mediator.m_selfKey.second, lastDSBlockNum,
+                      dsBlockHeader),
         vector<bool>(isMicroBlockEmpty),
         vector<MicroBlockHashSet>(microBlockHashes), vector<uint32_t>(shardIDs),
         CoSignatures(m_mediator.m_DSCommittee->size())));
@@ -611,26 +615,45 @@ bool DirectoryService::CheckMicroBlockHashRoot()
 
     LOG_MARKER();
 
-    TxnHash microBlocksTxnHash
+    LOG_GENERAL(INFO, "Microblock hashes: ")
+
+    for (const auto& i : m_finalBlock->GetMicroBlockHashes())
+    {
+        LOG_GENERAL(INFO, i);
+    }
+
+    TxnHash microBlocksTxnRoot
         = ComputeTransactionsRoot(m_finalBlock->GetMicroBlockHashes());
 
-    StateHash microBlocksDeltaHash
+    StateHash microBlocksDeltaRoot
         = ComputeDeltasRoot(m_finalBlock->GetMicroBlockHashes());
 
-    LOG_EPOCH(
-        INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-        "Expected FinalBlock txnHash : "
-            << DataConversion::charArrToHexStr(microBlocksTxnHash.asArray())
-            << endl
-            << "stateDeltaHash : "
-            << DataConversion::charArrToHexStr(microBlocksDeltaHash.asArray()));
+    TxnHash microBlockTranReceiptsRoot
+        = ComputeTranReceiptsRoot(m_finalBlock->GetMicroBlockHashes());
 
-    if (m_finalBlock->GetHeader().GetTxRootHash() != microBlocksTxnHash
-        || m_finalBlock->GetHeader().GetDeltaRootHash() != microBlocksDeltaHash)
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Expected FinalBlock txnRoot : "
+                  << microBlocksTxnRoot.hex() << endl
+                  << "stateDeltaRoot : " << microBlocksDeltaRoot.hex() << endl
+                  << "tranReceiptRoot : " << microBlockTranReceiptsRoot.hex());
+
+    if (m_finalBlock->GetHeader().GetTxRootHash() != microBlocksTxnRoot
+        || m_finalBlock->GetHeader().GetDeltaRootHash() != microBlocksDeltaRoot
+        || m_finalBlock->GetHeader().GetTranReceiptRootHash()
+            != microBlockTranReceiptsRoot)
     {
         LOG_GENERAL(WARNING,
                     "Microblock root hash in proposed final block by "
                     "leader is incorrect");
+
+        LOG_EPOCH(
+            INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            "Received FinalBlock txnRoot : "
+                << m_finalBlock->GetHeader().GetTxRootHash().hex() << endl
+                << "stateDeltaRoot : "
+                << m_finalBlock->GetHeader().GetDeltaRootHash().hex() << endl
+                << "tranReceiptRoot : "
+                << m_finalBlock->GetHeader().GetTranReceiptRootHash().hex());
 
         m_consensusObject->SetConsensusErrorCode(
             ConsensusCommon::FINALBLOCK_INVALID_MICROBLOCK_ROOT_HASH);
