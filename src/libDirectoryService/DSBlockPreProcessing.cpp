@@ -68,6 +68,13 @@ void DirectoryService::ComposeDSBlock(
     const array<unsigned char, 32> winnerPoW = sortedPoWSolns.front().first;
     const PubKey& winnerKey = sortedPoWSolns.front().second;
 
+    if (!POW::GetInstance().CheckSolnAgainstsTargetedDifficulty(
+            DataConversion::charArrToHexStr(winnerPoW), DS_POW_DIFFICULTY))
+    {
+        LOG_GENERAL(WARNING, "No soln met the DS difficulty level");
+        //TODO: To handle if no PoW soln can meet DS difficulty level.
+    }
+
     uint64_t blockNum = 0;
     uint8_t dsDifficulty = DS_POW_DIFFICULTY;
     uint8_t difficulty = POW_DIFFICULTY;
