@@ -207,6 +207,13 @@ bool UpgradeManager::ReplaceNode(Mediator& mediator)
         mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
         serializedTxBlock);
 
-    /// Call a script to kill current node, deploy downloaded software, and create a new node
-    return system("./replace.sh") >= 0;
+    /// Deploy downloaded software
+    if (system("dpkg -i *.deb") < 0)
+    {
+        LOG_GENERAL(WARNING, "Cannot deploy downloaded software!");
+        return false;
+    }
+
+    /// Kill current node, then the recovery procedure will wake up node with stored data
+    return raise(SIGKILL) == 0;
 }
