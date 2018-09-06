@@ -28,7 +28,6 @@
 #include "libData/AccountData/Transaction.h"
 
 unsigned int TXN_SIZE = Transaction::GetMinSerializedSize();
-unsigned int NUM_TXN = NUM_TXN_TO_SEND_PER_ACCOUNT;
 
 bool getTransactionsFromFile(fstream& f, unsigned int startNum,
                              unsigned int totalNum, vector<unsigned char>& vec)
@@ -54,19 +53,22 @@ public:
     static bool GetFromFile(Address addr, unsigned int startNum,
                             unsigned int totalNum, vector<unsigned char>& vec)
     {
+        const auto num_txn = NUM_TXN_TO_SEND_PER_ACCOUNT;
         fstream file;
         vec.clear();
 
-        if (totalNum > NUM_TXN)
+        if (totalNum > num_txn)
         {
             LOG_GENERAL(WARNING,
-                        "A single file does not hold txns " << totalNum);
+                        "A single file is holding too many txns ("
+                            << totalNum << " > " << num_txn);
             return false;
         }
 
-        auto getFile = [&addr](const unsigned int& num, fstream& file) {
+        auto getFile = [&addr](const unsigned int& num, fstream& file,
+                               const auto num_txn) {
             string fileString = TXN_PATH + "/" + addr.hex() + "_"
-                + to_string(num * NUM_TXN) + ".zil";
+                + to_string(num * num_txn) + ".zil";
 
             file.open(fileString, ios::binary | ios::in);
 
@@ -79,16 +81,16 @@ public:
             return true;
         };
 
-        unsigned int fileNum = (startNum - 1) / NUM_TXN;
+        unsigned int fileNum = (startNum - 1) / num_txn;
         bool breakCall = false;
         bool b = false;
         vector<unsigned char> remainTxn;
-        unsigned int startNumInFile = (startNum - 1) % NUM_TXN;
-        if (startNumInFile + totalNum > NUM_TXN)
+        unsigned int startNumInFile = (startNum - 1) % num_txn;
+        if (startNumInFile + totalNum > num_txn)
         {
             breakCall = true;
-            unsigned int remainNum = totalNum + startNumInFile - NUM_TXN;
-            if (!getFile(fileNum + 1, file))
+            unsigned int remainNum = totalNum + startNumInFile - num_txn;
+            if (!getFile(fileNum + 1, file, num_txn))
             {
                 return false;
             }
@@ -105,7 +107,7 @@ public:
             totalNum -= remainNum;
         }
 
-        if (!getFile(fileNum, file))
+        if (!getFile(fileNum, file, num_txn))
         {
             return false;
         }
