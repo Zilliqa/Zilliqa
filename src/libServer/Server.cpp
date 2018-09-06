@@ -14,8 +14,6 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#ifdef IS_LOOKUP_NODE
-
 #include "JSONConversion.h"
 
 #include <boost/multiprecision/cpp_dec_float.hpp>
@@ -179,7 +177,7 @@ Json::Value Server::GetTransaction(const string& transactionHash)
     LOG_MARKER();
     try
     {
-        TxBodySharedPtr tx;
+        TxBodySharedPtr tptr;
         TxnHash tranHash(transactionHash);
         if (transactionHash.size() != TRAN_HASH_SIZE * 2)
         {
@@ -189,15 +187,14 @@ Json::Value Server::GetTransaction(const string& transactionHash)
             return _json;
         }
         bool isPresent
-            = BlockStorage::GetBlockStorage().GetTxBody(tranHash, tx);
+            = BlockStorage::GetBlockStorage().GetTxBody(tranHash, tptr);
         if (!isPresent)
         {
             Json::Value _json;
             _json["error"] = "Txn Hash not Present";
             return _json;
         }
-        Transaction txn(*tx);
-        return JSONConversion::convertTxtoJson(txn);
+        return JSONConversion::convertTxtoJson(*tptr);
     }
     catch (exception& e)
     {
@@ -1196,5 +1193,3 @@ string Server::GetNumTxnsDSEpoch()
         return "0";
     }
 }
-
-#endif //IS_LOOKUP_NODE

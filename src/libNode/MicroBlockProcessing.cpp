@@ -32,6 +32,7 @@
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
+#include "libData/AccountData/TransactionReceipt.h"
 #include "libMediator/Mediator.h"
 #include "libPOW/pow.h"
 #include "libUtils/BitVector.h"
@@ -48,9 +49,17 @@ using namespace std;
 using namespace boost::multiprecision;
 using namespace boost::multi_index;
 
-#ifndef IS_LOOKUP_NODE
 void Node::SubmitMicroblockToDSCommittee() const
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::SubmitMicroblockToDSCommittee not expected to be "
+                    "called from LookUp node.");
+        return;
+    }
+
+    // Message = [8-byte DS blocknum] [4-byte consensusid] [4-byte shard ID] [Tx microblock]
     if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
     {
         return;
@@ -91,13 +100,18 @@ void Node::SubmitMicroblockToDSCommittee() const
 
     P2PComm::GetInstance().SendBroadcastMessage(peerList, microblock);
 }
-#endif // IS_LOOKUP_NODE
 
-bool Node::ProcessMicroblockConsensus(
-    [[gnu::unused]] const vector<unsigned char>& message,
-    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
+bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
+                                      unsigned int offset, const Peer& from)
 {
-#ifndef IS_LOOKUP_NODE
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::ProcessMicroblockConsensus not expected to be "
+                    "called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     {
@@ -370,13 +384,18 @@ bool Node::ProcessMicroblockConsensus(
 
         cv_processConsensusMessage.notify_all();
     }
-#endif // IS_LOOKUP_NODE
     return true;
 }
 
-#ifndef IS_LOOKUP_NODE
 bool Node::ComposeMicroBlock()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::ComposeMicroBlock not expected to be called from "
+                    "LookUp node.");
+        return true;
+    }
     // To-do: Replace dummy values with the required ones
     LOG_MARKER();
 
@@ -390,7 +409,7 @@ bool Node::ComposeMicroBlock()
     fill(prevHash.asArray().begin(), prevHash.asArray().end(), 0x77);
     uint64_t blockNum = m_mediator.m_currentEpochNum;
     uint256_t timestamp = get_time_as_int();
-    TxnHash txRootHash;
+    TxnHash txRootHash, txReceiptHash;
     uint32_t numTxs = 0;
     const PubKey& minerPubKey = m_mediator.m_selfKey.second;
     uint64_t dsBlockNum
@@ -421,13 +440,21 @@ bool Node::ComposeMicroBlock()
         }
         tranHashes = m_TxnOrder;
         m_TxnOrder.clear();
+
+        if (!TransactionWithReceipt::ComputeTransactionReceiptsHash(
+                tranHashes, processedTransactions, txReceiptHash))
+        {
+            LOG_GENERAL(WARNING, "Cannot compute transaction receipts hash");
+            return false;
+        }
     }
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Creating new micro block.")
     m_microblock.reset(new MicroBlock(
         MicroBlockHeader(type, version, shardID, gasLimit, gasUsed, prevHash,
                          blockNum, timestamp, txRootHash, numTxs, minerPubKey,
-                         dsBlockNum, dsBlockHeader, stateDeltaHash),
+                         dsBlockNum, dsBlockHeader, stateDeltaHash,
+                         txReceiptHash),
         tranHashes, CoSignatures()));
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -442,6 +469,14 @@ bool Node::ComposeMicroBlock()
 bool Node::OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
                              unsigned int offset, const Peer& from)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::OnNodeMissingTxns not expected to be called from "
+                    "LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     if (errorMsg.size() < sizeof(uint32_t) + sizeof(uint64_t) + offset)
@@ -500,7 +535,7 @@ bool Node::OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
         if (processedTransactions.find(missingTransactions[i])
             != processedTransactions.end())
         {
-            t = processedTransactions[missingTransactions[i]];
+            t = processedTransactions[missingTransactions[i]].GetTransaction();
         }
         else
         {
@@ -523,6 +558,14 @@ bool Node::OnCommitFailure([
     [gnu::unused]] const std::map<unsigned int, std::vector<unsigned char>>&
                                commitFailureMap)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::OnCommitFailure not expected to be called from "
+                    "LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     // for(auto failureEntry: commitFailureMap)
@@ -603,13 +646,16 @@ void Node::ProcessTransactionWhenShardLeader()
         return true;
     };
 
-    auto appendOne = [this](const Transaction& t) {
-        lock_guard<mutex> g(m_mutexProcessedTransactions);
-        auto& processedTransactions
-            = m_processedTransactions[m_mediator.m_currentEpochNum];
-        processedTransactions.insert(make_pair(t.GetTranID(), t));
-        m_TxnOrder.push_back(t.GetTranID());
-    };
+    auto appendOne
+        = [this](const Transaction& t, const TransactionReceipt& tr) {
+              // LOG_GENERAL(INFO, "appendOne: " << t.GetTranID().hex());
+              lock_guard<mutex> g(m_mutexProcessedTransactions);
+              auto& processedTransactions
+                  = m_processedTransactions[m_mediator.m_currentEpochNum];
+              processedTransactions.insert(
+                  make_pair(t.GetTranID(), TransactionWithReceipt(t, tr)));
+              m_TxnOrder.push_back(t.GetTranID());
+          };
 
     uint256_t gasUsedTotal = 0;
 
@@ -617,6 +663,7 @@ void Node::ProcessTransactionWhenShardLeader()
            && gasUsedTotal < MICROBLOCK_GAS_LIMIT)
     {
         Transaction t;
+        TransactionReceipt tr;
 
         // check m_addrNonceTxnMap contains any txn meets right nonce,
         // if contains, process it withou increment the txn_sent_count as it's already
@@ -627,14 +674,13 @@ void Node::ProcessTransactionWhenShardLeader()
             // if has and with larger gasPrice then replace with that one. (*optional step)
             findSameNonceButHigherGasPrice(t);
 
-            uint256_t gasUsed = 0;
-            if (m_mediator.m_validator->CheckCreatedTransaction(t, gasUsed)
+            if (m_mediator.m_validator->CheckCreatedTransaction(t, tr)
                 || (!t.GetCode().empty() && t.GetToAddr() == NullAddress)
                 || (!t.GetData().empty() && t.GetToAddr() != NullAddress
                     && t.GetCode().empty()))
             {
-                appendOne(t);
-                gasUsedTotal += gasUsed;
+                appendOne(t, tr);
+                gasUsedTotal += tr.GetCumGas();
                 continue;
             }
         }
@@ -642,7 +688,6 @@ void Node::ProcessTransactionWhenShardLeader()
         else if (findOneFromCreated(t))
         {
             // LOG_GENERAL(INFO, "findOneFromCreated");
-            uint256_t gasUsed = 0;
 
             Address senderAddr = t.GetSenderAddr();
             // check nonce, if nonce larger than expected, put it into m_addrNonceTxnMap
@@ -684,14 +729,14 @@ void Node::ProcessTransactionWhenShardLeader()
                 //                 << " Found " << t.GetNonce());
             }
             // if nonce correct, process it
-            else if (m_mediator.m_validator->CheckCreatedTransaction(t, gasUsed)
+            else if (m_mediator.m_validator->CheckCreatedTransaction(t, tr)
                      || (!t.GetCode().empty() && t.GetToAddr() == NullAddress)
                      || (!t.GetData().empty() && t.GetToAddr() != NullAddress
                          && t.GetCode().empty()))
             {
 
-                appendOne(t);
-                gasUsedTotal += gasUsed;
+                appendOne(t, tr);
+                gasUsedTotal += tr.GetCumGas();
             }
             else
             {
@@ -751,12 +796,14 @@ bool Node::ProcessTransactionWhenShardBackup(const vector<TxnHash>& tranHashes,
         return false;
     }
 
-    auto appendOne = [this](const Transaction& t) {
-        lock_guard<mutex> g(m_mutexProcessedTransactions);
-        auto& processedTransactions
-            = m_processedTransactions[m_mediator.m_currentEpochNum];
-        processedTransactions.insert(make_pair(t.GetTranID(), t));
-    };
+    auto appendOne
+        = [this](const Transaction& t, const TransactionReceipt& tr) {
+              lock_guard<mutex> g(m_mutexProcessedTransactions);
+              auto& processedTransactions
+                  = m_processedTransactions[m_mediator.m_currentEpochNum];
+              processedTransactions.insert(
+                  make_pair(t.GetTranID(), TransactionWithReceipt(t, tr)));
+          };
 
     AccountStore::GetInstance().InitTemp();
     if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
@@ -767,13 +814,13 @@ bool Node::ProcessTransactionWhenShardBackup(const vector<TxnHash>& tranHashes,
 
     for (const auto& t : curTxns)
     {
-        uint256_t gasUsed = 0;
-        if (m_mediator.m_validator->CheckCreatedTransaction(t, gasUsed)
+        TransactionReceipt tr;
+        if (m_mediator.m_validator->CheckCreatedTransaction(t, tr)
             || (!t.GetCode().empty() && t.GetToAddr() == NullAddress)
             || (!t.GetData().empty() && t.GetToAddr() != NullAddress
                 && t.GetCode().empty()))
         {
-            appendOne(t);
+            appendOne(t, tr);
         }
     }
 
@@ -852,6 +899,7 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes,
            && gasUsedTotal < MICROBLOCK_GAS_LIMIT)
     {
         Transaction t;
+        TransactionReceipt tr;
 
         // check t_addrNonceTxnMap contains any txn meets right nonce,
         // if contains, process it withou increment the txn_sent_count as it's already
@@ -862,22 +910,19 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes,
             // if has and with larger gasPrice then replace with that one. (*optional step)
             findSameNonceButHigherGasPrice(t);
 
-            uint256_t gasUsed = 0;
-            if (m_mediator.m_validator->CheckCreatedTransaction(t, gasUsed)
+            if (m_mediator.m_validator->CheckCreatedTransaction(t, tr)
                 || (!t.GetCode().empty() && t.GetToAddr() == NullAddress)
                 || (!t.GetData().empty() && t.GetToAddr() != NullAddress
                     && t.GetCode().empty()))
             {
                 appendOne(t);
-                gasUsedTotal += gasUsed;
+                gasUsedTotal += tr.GetCumGas();
                 continue;
             }
         }
         // if no txn in u_map meet right nonce process new come-in transactions
         else if (findOneFromCreated(t))
         {
-            uint256_t gasUsed = 0;
-
             Address senderAddr = t.GetSenderAddr();
             // check nonce, if nonce larger than expected, put it into t_addrNonceTxnMap
             if (t.GetNonce()
@@ -907,13 +952,13 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes,
             {
             }
             // if nonce correct, process it
-            else if (m_mediator.m_validator->CheckCreatedTransaction(t, gasUsed)
+            else if (m_mediator.m_validator->CheckCreatedTransaction(t, tr)
                      || (!t.GetCode().empty() && t.GetToAddr() == NullAddress)
                      || (!t.GetData().empty() && t.GetToAddr() != NullAddress
                          && t.GetCode().empty()))
             {
                 appendOne(t);
-                gasUsedTotal += gasUsed;
+                gasUsedTotal += tr.GetCumGas();
             }
         }
         else
@@ -935,6 +980,14 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes,
 
 bool Node::RunConsensusOnMicroBlockWhenShardLeader()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::RunConsensusOnMicroBlockWhenShardLeader not "
+                    "expected to be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -965,7 +1018,11 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
     AccountStore::GetInstance().SerializeDelta();
 
     // composed microblock stored in m_microblock
-    ComposeMicroBlock();
+    if (!ComposeMicroBlock())
+    {
+        LOG_GENERAL(WARNING, "Unable to create microblock");
+        return false;
+    }
 
     vector<unsigned char> microblock;
     m_microblock->Serialize(microblock, 0);
@@ -1018,6 +1075,14 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
 
 bool Node::RunConsensusOnMicroBlockWhenShardBackup()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::RunConsensusOnMicroBlockWhenShardBackup not "
+                    "expected to be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     LOG_EPOCH(
@@ -1066,6 +1131,14 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup()
 
 bool Node::RunConsensusOnMicroBlock()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::RunConsensusOnMicroBlock not expected to be called "
+                    "from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
@@ -1126,6 +1199,14 @@ bool Node::RunConsensusOnMicroBlock()
 
 bool Node::CheckBlockTypeIsMicro()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::CheckBlockTypeIsMicro not expected to be called "
+                    "from LookUp node.");
+        return true;
+    }
+
     // Check type (must be micro block type)
     if (m_microblock->GetHeader().GetType() != TXBLOCKTYPE::MICRO)
     {
@@ -1147,6 +1228,14 @@ bool Node::CheckBlockTypeIsMicro()
 
 bool Node::CheckMicroBlockVersion()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::CheckMicroBlockVersion not expected to be called "
+                    "from LookUp node.");
+        return true;
+    }
+
     // Check version (must be most current version)
     if (m_microblock->GetHeader().GetVersion() != BLOCKVERSION::VERSION1)
     {
@@ -1167,8 +1256,49 @@ bool Node::CheckMicroBlockVersion()
     return true;
 }
 
+bool Node::CheckMicroBlockShardID()
+{
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::CheckMicroBlockShardID not expected to be called "
+                    "from LookUp node.");
+        return true;
+    }
+
+    // Check version (must be most current version)
+    if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
+    {
+        return true;
+    }
+    if (m_microblock->GetHeader().GetShardID() != m_myShardID)
+    {
+        LOG_GENERAL(WARNING,
+                    "ShardID check failed. Expected: "
+                        << m_myShardID << " Actual: "
+                        << m_microblock->GetHeader().GetShardID());
+
+        m_consensusObject->SetConsensusErrorCode(
+            ConsensusCommon::INVALID_MICROBLOCK_SHARD_ID);
+
+        return false;
+    }
+
+    LOG_GENERAL(INFO, "ShardID check passed");
+
+    return true;
+}
+
 bool Node::CheckMicroBlockTimestamp()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::CheckMicroBlockTimestamp not expected to be called "
+                    "from LookUp node.");
+        return true;
+    }
+
     // Check timestamp (must be greater than timestamp of last Tx block header in the Tx blockchain)
     if (m_mediator.m_txBlockChain.GetBlockCount() > 0)
     {
@@ -1197,6 +1327,13 @@ bool Node::CheckMicroBlockTimestamp()
 
 unsigned char Node::CheckLegitimacyOfTxnHashes(vector<unsigned char>& errorMsg)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::CheckLegitimacyOfTxnHashes not expected to be "
+                    "called from LookUp node.");
+        return true;
+    }
 
     bool isVacuousEpoch
         = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
@@ -1267,6 +1404,14 @@ unsigned char Node::CheckLegitimacyOfTxnHashes(vector<unsigned char>& errorMsg)
 
 bool Node::CheckMicroBlockHashes(vector<unsigned char>& errorMsg)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::CheckMicroBlockHashes not expected to be called "
+                    "from LookUp node.");
+        return true;
+    }
+
     // Check transaction hashes (number of hashes must be = Tx count field)
     uint32_t txhashessize = m_microblock->GetTranHashes().size();
     uint32_t numtxs = m_microblock->GetHeader().GetNumTxs();
@@ -1309,6 +1454,14 @@ bool Node::CheckMicroBlockHashes(vector<unsigned char>& errorMsg)
 
 bool Node::CheckMicroBlockTxnRootHash()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::CheckMicroBlockTxnRootHash not expected to be "
+                    "called from LookUp node.");
+        return true;
+    }
+
     // Check transaction root
     TxnHash expectedTxRootHash
         = ComputeTransactionsRoot(m_microblock->GetTranHashes());
@@ -1338,16 +1491,23 @@ bool Node::CheckMicroBlockTxnRootHash()
 
 bool Node::CheckMicroBlockStateDeltaHash()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::CheckMicroBlockStateDeltaHash not expected to be "
+                    "called from LookUp node.");
+        return true;
+    }
+
     StateHash expectedStateDeltaHash
         = AccountStore::GetInstance().GetStateDeltaHash();
 
     LOG_GENERAL(INFO,
                 "Microblock state delta generation done "
-                    << DataConversion::charArrToHexStr(
-                           expectedStateDeltaHash.asArray()));
+                    << expectedStateDeltaHash.hex());
     LOG_GENERAL(INFO,
-                "Expected root: " << DataConversion::charArrToHexStr(
-                    m_microblock->GetHeader().GetStateDeltaHash().asArray()));
+                "Received root: "
+                    << m_microblock->GetHeader().GetStateDeltaHash().hex());
 
     if (expectedStateDeltaHash != m_microblock->GetHeader().GetStateDeltaHash())
     {
@@ -1364,27 +1524,36 @@ bool Node::CheckMicroBlockStateDeltaHash()
     return true;
 }
 
-bool Node::CheckMicroBlockShardID()
+bool Node::CheckMicroBlockTranReceiptHash()
 {
-    // Check version (must be most current version)
-    if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
+    uint64_t blockNum = m_mediator.m_currentEpochNum;
+    auto& processedTransactions = m_processedTransactions[blockNum];
+    TxnHash expectedTranHash;
+    if (!TransactionWithReceipt::ComputeTransactionReceiptsHash(
+            m_microblock->GetTranHashes(), processedTransactions,
+            expectedTranHash))
     {
-        return true;
+        LOG_GENERAL(WARNING, "Cannot compute transaction receipts hash");
+        return false;
     }
-    if (m_microblock->GetHeader().GetShardID() != m_myShardID)
+    LOG_GENERAL(INFO,
+                "Microblock transaction receipt hash generation done "
+                    << expectedTranHash.hex());
+    LOG_GENERAL(INFO,
+                "Received hash: "
+                    << m_microblock->GetHeader().GetTranReceiptHash().hex());
+
+    if (expectedTranHash != m_microblock->GetHeader().GetTranReceiptHash())
     {
-        LOG_GENERAL(WARNING,
-                    "ShardID check failed. Expected: "
-                        << m_myShardID << " Actual: "
-                        << m_microblock->GetHeader().GetShardID());
+        LOG_GENERAL(WARNING, "Transaction receipt hash does not match");
 
         m_consensusObject->SetConsensusErrorCode(
-            ConsensusCommon::INVALID_MICROBLOCK_SHARD_ID);
+            ConsensusCommon::INVALID_MICROBLOCK_TRAN_RECEIPT_HASH);
 
         return false;
     }
 
-    LOG_GENERAL(INFO, "ShardID check passed");
+    LOG_GENERAL(INFO, "Transaction receipt hash check passed");
 
     return true;
 }
@@ -1392,6 +1561,14 @@ bool Node::CheckMicroBlockShardID()
 bool Node::MicroBlockValidator(const vector<unsigned char>& microblock,
                                vector<unsigned char>& errorMsg)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::MicroBlockValidator not expected to be called from "
+                    "LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     // [TODO] To put in the logic
@@ -1402,9 +1579,10 @@ bool Node::MicroBlockValidator(const vector<unsigned char>& microblock,
     do
     {
         if (!CheckBlockTypeIsMicro() || !CheckMicroBlockVersion()
-            || !CheckMicroBlockTimestamp() || !CheckMicroBlockHashes(errorMsg)
-            || !CheckMicroBlockTxnRootHash() || !CheckMicroBlockStateDeltaHash()
-            || !CheckMicroBlockShardID())
+            || !CheckMicroBlockShardID() || !CheckMicroBlockTimestamp()
+            || !CheckMicroBlockHashes(errorMsg) || !CheckMicroBlockTxnRootHash()
+            || !CheckMicroBlockStateDeltaHash()
+            || !CheckMicroBlockTranReceiptHash())
         {
             break;
         }
@@ -1437,4 +1615,3 @@ bool Node::MicroBlockValidator(const vector<unsigned char>& microblock,
 
     // return true;
 }
-#endif // IS_LOOKUP_NODE
