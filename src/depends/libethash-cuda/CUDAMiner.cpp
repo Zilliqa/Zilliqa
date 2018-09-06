@@ -32,7 +32,7 @@ std::vector<int> CUDAMiner::s_devices(MAX_MINERS, -1);
 #define cnote s_ssNote
 #define cllog s_ssLog
 
-CUDAMiner::CUDAMiner() : m_light(getNumDevices()) {}
+CUDAMiner::CUDAMiner(size_t _index) : Miner(_index), m_light(getNumDevices()) {}
 
 CUDAMiner::~CUDAMiner()
 {
@@ -42,11 +42,11 @@ bool CUDAMiner::init(uint64_t blockNumber)
 {
     try {
         if (s_dagLoadMode == DAG_LOAD_MODE_SEQUENTIAL)
-            while (s_dagLoadIndex < index)
+            while (s_dagLoadIndex < m_index)
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        unsigned device = s_devices[index] > -1 ? s_devices[index] : index;
+        unsigned device = s_devices[m_index] > -1 ? s_devices[m_index] : m_index;
 
-        cnote << "Initialising miner " << index;
+        cnote << "Initialising miner " << m_index;
 
         cuda_init(getNumDevices(), blockNumber, device, (s_dagLoadMode == DAG_LOAD_MODE_SINGLE),
             s_dagInHostMemory, s_dagCreateDevice);
