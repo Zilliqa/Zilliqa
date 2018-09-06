@@ -43,7 +43,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                                          const unsigned int& numShards,
                                          const bool& isDS,
                                          const Transaction& transaction,
-                                         uint256_t& gasUsed)
+                                         TransactionReceipt& receipt)
 {
     // LOG_MARKER();
     m_curIsDS = isDS;
@@ -80,7 +80,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             }
         }
 
-        return AccountStoreBase<MAP>::UpdateAccounts(transaction, gasUsed);
+        return AccountStoreBase<MAP>::UpdateAccounts(transaction, receipt);
     }
 
     bool callContract = false;
@@ -188,10 +188,14 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             return false;
         }
         this->IncreaseBalance(fromAddr, gasRefund);
-        gasUsed = CONTRACT_CREATE_GAS;
         if (!ret)
         {
             this->m_addressToAccount->erase(toAddr);
+
+            receipt.SetResult(false);
+            receipt.SetCumGas(CONTRACT_CREATE_GAS);
+            receipt.update();
+
             return true; // Return true because the states already changed
         }
     }
@@ -203,9 +207,15 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             if (!this->TransferBalance(fromAddr, toAddr, amount))
             {
                 this->IncreaseNonce(fromAddr);
-                return false;
+                receipt.SetResult(false);
+                receipt.SetCumGas(CONTRACT_CREATE_GAS);
+                receipt.update();
+
+                return true;
             }
         }
+
+        receipt.SetCumGas(CONTRACT_CREATE_GAS);
     }
     else
     {
@@ -266,6 +276,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         m_curContractAddr = toAddr;
         m_curAmount = amount;
         m_curNumShards = numShards;
+        m_curTranReceipt.clear();
 
         // if (!TransferBalanceAtomic(fromAddr, toAddr, amount))
         // {
@@ -297,14 +308,20 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             return false;
         }
         this->IncreaseBalance(fromAddr, gasRefund);
-        gasUsed = m_curGasCum;
+        receipt = m_curTranReceipt;
+        receipt.SetCumGas(m_curGasCum);
         if (!ret)
         {
+            receipt.SetResult(false);
+            receipt.update();
             return true; // Return true because the states already changed
         }
     }
 
     this->IncreaseNonce(fromAddr);
+
+    receipt.SetResult(true);
+    receipt.update();
 
     return true;
 }
@@ -526,7 +543,8 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json)
 {
     // LOG_MARKER();
 
-    if (!_json.isMember("message") || !_json.isMember("states"))
+    if (!_json.isMember("message") || !_json.isMember("states")
+        || !_json.isMember("events"))
     {
         LOG_GENERAL(WARNING, "The json output of this contract is corrupted");
         return false;
@@ -559,7 +577,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json)
         LOG_GENERAL(WARNING, "Contract refuse amount transfer");
     }
 
-    for (auto s : _json["states"])
+    for (const auto& s : _json["states"])
     {
         if (!s.isMember("vname") || !s.isMember("type") || !s.isMember("value"))
         {
@@ -580,6 +598,16 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json)
         {
             contractAccount->SetStorage(vname, type, value);
         }
+    }
+
+    for (const auto& e : _json["events"])
+    {
+        LogEntry entry;
+        if (!entry.Install(e, m_curContractAddr))
+        {
+            return false;
+        }
+        m_curTranReceipt.AddEntry(entry);
     }
 
     Address recipient = Address(_json["message"]["_recipient"].asString());

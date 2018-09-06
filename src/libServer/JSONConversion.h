@@ -47,7 +47,7 @@ public:
     //check if a Json is a valid Tx
     static bool checkJsonTx(const Json::Value& _json);
     //Convert a Tx to JSON object
-    static const Json::Value convertTxtoJson(const Transaction& tx);
+    static const Json::Value convertTxtoJson(const TransactionWithReceipt& twr);
 };
 
 #endif // __JSONCONVERSION_H__

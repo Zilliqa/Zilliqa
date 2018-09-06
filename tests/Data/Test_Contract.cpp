@@ -21,6 +21,7 @@
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
+#include "libData/AccountData/TransactionReceipt.h"
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
@@ -70,7 +71,8 @@ BOOST_AUTO_TEST_CASE(testContract)
 
     Transaction tx1(1, nonce, NullAddress, sender, 0, 1, 50, code, data);
 
-    AccountStore::GetInstance().UpdateAccounts(100, tx1);
+    TransactionReceipt tr1;
+    AccountStore::GetInstance().UpdateAccounts(100, 1, true, tx1, tr1);
 
     bool checkToAddr = true;
     Account* account = AccountStore::GetInstance().GetAccount(toAddress);
@@ -92,7 +94,8 @@ BOOST_AUTO_TEST_CASE(testContract)
                                           cfDataDonateStr.end());
 
     Transaction tx2(1, nonce, toAddress, sender, 100, 1, 10, {}, dataDonate);
-    if (AccountStore::GetInstance().UpdateAccounts(100, tx2))
+    TransactionReceipt tr2;
+    if (AccountStore::GetInstance().UpdateAccounts(100, 1, true, tx2, tr2))
     {
         nonce++;
     }
@@ -122,7 +125,8 @@ BOOST_AUTO_TEST_CASE(testContract)
                     << AccountStore::GetInstance().GetBalance(toAddress));
 
     Transaction tx3(1, nonce, toAddress, sender2, 200, 1, 10, {}, dataDonate);
-    if (AccountStore::GetInstance().UpdateAccounts(100, tx3))
+    TransactionReceipt tr3;
+    if (AccountStore::GetInstance().UpdateAccounts(100, 1, true, tx3, tr3))
     {
         nonce++;
     }
@@ -141,7 +145,8 @@ BOOST_AUTO_TEST_CASE(testContract)
                                             cfDataGetFundsStr.end());
 
     Transaction tx4(1, nonce, toAddress, sender2, 0, 1, 10, {}, dataGetFunds);
-    if (AccountStore::GetInstance().UpdateAccounts(200, tx4))
+    TransactionReceipt tr4;
+    if (AccountStore::GetInstance().UpdateAccounts(200, 1, true, tx4, tr4))
     {
         nonce++;
     }
@@ -160,7 +165,8 @@ BOOST_AUTO_TEST_CASE(testContract)
                                              cfDataClaimBackStr.end());
 
     Transaction tx5(1, nonce, toAddress, sender, 0, 1, 10, {}, dataClaimBack);
-    if (AccountStore::GetInstance().UpdateAccounts(300, tx5))
+    TransactionReceipt tr5;
+    if (AccountStore::GetInstance().UpdateAccounts(300, 1, true, tx5, tr5))
     {
         nonce++;
     }

@@ -144,6 +144,7 @@ extern const unsigned int BROADCAST_EXPIRY;
 extern const unsigned int TX_DISTRIBUTE_TIME_IN_MS;
 extern const unsigned int NUM_TXN_TO_SEND_PER_ACCOUNT;
 extern const unsigned int NUM_NODES_TO_SEND_LOOKUP;
+extern const unsigned int MAX_INDEXES_PER_TXN;
 extern const unsigned int SENDQUEUE_SIZE;
 extern const unsigned int MSGQUEUE_SIZE;
 extern const unsigned int POW_CHANGE_PERCENT_TO_ADJ_DIFF;

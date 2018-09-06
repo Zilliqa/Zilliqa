@@ -221,6 +221,7 @@ class DirectoryService : public Executable, public Broadcastable
                                          unsigned int curr_offset);
     void ExtractDataFromMicroblocks(
         TxnHash& microblockTxnTrieRoot, StateHash& microblockDeltaTrieRoot,
+        TxnHash& microblockTranReceiptRoot,
         std::vector<MicroBlockHashSet>& microblockHashes,
         std::vector<uint32_t>& shardIDs,
         boost::multiprecision::uint256_t& allGasLimit,
