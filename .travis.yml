@@ -12,7 +12,6 @@ os:
 env:
   matrix:
     - BUILD_COMMAND="./scripts/ci_build.sh"
-    - BUILD_COMMAND="./scripts/ci_build.sh lookup"
 
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then

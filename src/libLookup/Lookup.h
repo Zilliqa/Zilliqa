@@ -50,14 +50,12 @@ class Lookup : public Executable, public Broadcastable
     std::vector<Peer> m_lookupNodes;
     std::vector<Peer> m_lookupNodesOffline;
     std::vector<Peer> m_seedNodes;
-#ifndef IS_LOOKUP_NODE
     bool m_dsInfoWaitingNotifying = false;
     bool m_fetchedDSInfo = false;
     std::mutex m_mutexDSInfoUpdation;
     std::condition_variable cv_dsInfoUpdate;
 
     bool CheckStateRoot();
-#endif // IS_LOOKUP_NODE
 
     // To ensure that the confirm of DS node rejoin won't be later than
     // It receiving a new DS block
@@ -66,7 +64,6 @@ class Lookup : public Executable, public Broadcastable
     //tells if server is running or not
     bool m_isServer = false;
 
-#ifdef IS_LOOKUP_NODE
     // Sharding committee members
     std::mutex m_mutexShards;
     std::mutex m_mutexNodesInNetwork;
@@ -74,7 +71,6 @@ class Lookup : public Executable, public Broadcastable
     std::vector<Peer> m_nodesInNetwork;
     std::unordered_set<Peer> l_nodesInNetwork;
     std::map<uint32_t, std::vector<Transaction>> m_txnShardMap;
-    std::mutex m_mutexOfflineLookups;
     std::mutex m_txnShardMapMutex;
 
     // Start PoW variables
@@ -96,11 +92,12 @@ class Lookup : public Executable, public Broadcastable
 
     // To block certain types of incoming message for certain states
     bool ToBlockMessage(unsigned char ins_byte);
-#endif // IS_LOOKUP_NODE
+
     std::mutex m_mutexSetDSBlockFromSeed;
     std::mutex m_mutexSetTxBlockFromSeed;
     std::mutex m_mutexSetTxBodyFromSeed;
     std::mutex m_mutexSetState;
+    std::mutex m_mutexOfflineLookups;
 
     std::vector<unsigned char> ComposeGetDSInfoMessage();
     std::vector<unsigned char> ComposeGetStateMessage();
@@ -167,7 +164,7 @@ public:
 
     // Get the offline lookup nodes from lookup nodes
     bool GetOfflineLookupNodes();
-#ifdef IS_LOOKUP_NODE
+
     bool SetDSCommitteInfo();
 
     std::vector<std::map<PubKey, Peer>> GetShardPeers();
@@ -200,8 +197,6 @@ public:
     bool CreateTxnPacket(std::vector<unsigned char>& msg, uint32_t shardId,
                          unsigned int offset,
                          const std::map<uint32_t, std::vector<unsigned char>>&);
-
-#endif // IS_LOOKUP_NODE
 
     bool
     ProcessEntireShardingStructure(const std::vector<unsigned char>& message,
@@ -257,13 +252,12 @@ public:
 
     bool Execute(const std::vector<unsigned char>& message, unsigned int offset,
                  const Peer& from);
-#ifndef IS_LOOKUP_NODE
+
     bool m_fetchedOfflineLookups = false;
     std::mutex m_mutexOfflineLookupsUpdation;
     std::condition_variable cv_offlineLookups;
 
     bool InitMining();
-#endif // IS_LOOKUP_NODE
 
     /// To indicate which type of synchronization is using
     unsigned int m_syncType = SyncType::NO_SYNC;

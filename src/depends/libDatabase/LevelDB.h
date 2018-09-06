@@ -36,20 +36,14 @@ class LevelDB
 {
     std::string m_dbName;
     
-#ifndef IS_LOOKUP_NODE
     std::string m_subdirectory;
-#endif // IS_LOOKUP_NODE
 
     std::shared_ptr<leveldb::DB> m_db;
     
 public:
 
     /// Constructor.
-#ifndef IS_LOOKUP_NODE
     explicit LevelDB(const std::string & dbName, const std::string & subdirectory = "");
-#else //IS_LOOKUP_NODE
-    explicit LevelDB(const std::string & dbName);
-#endif //IS_LOOKUP_NODE
 
     /// Destructor.
     ~LevelDB() = default;
@@ -57,12 +51,9 @@ public:
     /// Returns the reference to the leveldb database instance.
     std::shared_ptr<leveldb::DB> GetDB();
 
-#ifndef IS_LOOKUP_NODE
-    std::string GetDBName() { return m_dbName + (m_subdirectory.size() > 0 ? "/" : "") + m_subdirectory; }
-#else //IS_LOOKUP_NODE
-    std::string GetDBName() { return m_dbName; }
-#endif //IS_LOOKUP_NODE
-
+    /// Returns the DB Name
+    std::string GetDBName();
+    
     /// Returns the value at the specified key.
     std::string Lookup(const std::string & key) const;
 
@@ -121,9 +112,15 @@ public:
 
     /// Deletes the entire database.
     int DeleteDB();
+    int DeleteDBForNormalNode();
+    int DeleteDBForLookupNode();
 
     /// Reset the entire database.
     bool ResetDB();
+
+private:
+    bool ResetDBForNormalNode();
+    bool ResetDBForLookupNode();
 };
 
 #endif // __LEVELDB_H__
