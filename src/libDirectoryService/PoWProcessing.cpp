@@ -278,7 +278,6 @@ bool DirectoryService::ParseMessageAndVerifyPOW(
     }
     return result;
 }
-<<<<<<< HEAD
 
 bool DirectoryService::CheckPoWSubmissionExceedsLimitsForNode(const PubKey& key)
 {
@@ -314,17 +313,9 @@ void DirectoryService::ResetPoWSubmissionCounter()
     m_AllPoWCounter.clear();
 }
 
-#endif // IS_LOOKUP_NODE
-=======
->>>>>>> 4657e398f16ce931f4be916efb7285329528927a
-
 bool DirectoryService::ProcessPoWSubmission(
     const vector<unsigned char>& message, unsigned int offset, const Peer& from)
 {
-<<<<<<< HEAD
-#ifndef IS_LOOKUP_NODE
-    // Message = [8-byte block number] [1 byte difficulty level] [4-byte listening port] [33-byte public key] [8-byte nonce] [32-byte resulting hash]
-=======
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
@@ -334,7 +325,6 @@ bool DirectoryService::ProcessPoWSubmission(
     }
 
     // Message = [8-byte block number] [4-byte listening port] [33-byte public key] [8-byte nonce] [32-byte resulting hash]
->>>>>>> 4657e398f16ce931f4be916efb7285329528927a
     //[32-byte mixhash] [64-byte Sign]
     LOG_MARKER();
 
