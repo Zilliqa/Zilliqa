@@ -695,8 +695,7 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
                     ConsensusCommon::INITIAL);
 
                 auto rerunconsensus = [this, message, offset, from]() {
-                    ProcessFinalBlockConsensusCore(message, MessageOffset::BODY,
-                                                   from);
+                    ProcessFinalBlockConsensusCore(message, offset, from);
                 };
                 DetachedFunction(1, rerunconsensus);
                 return true;
