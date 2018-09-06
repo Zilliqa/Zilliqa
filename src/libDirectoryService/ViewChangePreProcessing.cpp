@@ -34,11 +34,18 @@
 #include "libUtils/Logger.h"
 #include "libUtils/SanityChecks.h"
 
-#ifndef IS_LOOKUP_NODE
 bool DirectoryService::ViewChangeValidator(
     const vector<unsigned char>& vcBlock,
     [[gnu::unused]] std::vector<unsigned char>& errorMsg)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::ViewChangeValidator not expected to be "
+                    "called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
     lock_guard<mutex> g(m_mutexPendingVCBlock);
 
@@ -83,6 +90,14 @@ bool DirectoryService::ViewChangeValidator(
 bool DirectoryService::ValidateViewChangeState(DirState NodeState,
                                                DirState StatePropose)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::ValidateViewChangeState not expected to "
+                    "be called from LookUp node.");
+        return true;
+    }
+
     const std::multimap<DirState, DirState> STATE_CHECK_STATE
         = {{DSBLOCK_CONSENSUS_PREP, DSBLOCK_CONSENSUS_PREP},
            {DSBLOCK_CONSENSUS_PREP, DSBLOCK_CONSENSUS},
@@ -108,6 +123,14 @@ bool DirectoryService::ValidateViewChangeState(DirState NodeState,
 // This allows for the network to resume from where it left.
 void DirectoryService::SetLastKnownGoodState()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::SetLastKnownGoodState not expected to "
+                    "be called from LookUp node.");
+        return;
+    }
+
     switch (m_state)
     {
     case VIEWCHANGE_CONSENSUS_PREP:
@@ -121,6 +144,14 @@ void DirectoryService::SetLastKnownGoodState()
 
 void DirectoryService::RunConsensusOnViewChange()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::RunConsensusOnViewChange not expected "
+                    "to be called from LookUp node.");
+        return;
+    }
+
     LOG_MARKER();
 
     LOG_GENERAL(WARNING, "Run view change, revert state delta");
@@ -180,6 +211,14 @@ void DirectoryService::RunConsensusOnViewChange()
 
 void DirectoryService::ScheduleViewChangeTimeout()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::ScheduleViewChangeTimeout not expected "
+                    "to be called from LookUp node.");
+        return;
+    }
+
     std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeVCBlock);
     if (cv_ViewChangeVCBlock.wait_for(cv_lk,
                                       std::chrono::seconds(VIEWCHANGE_TIME))
@@ -195,6 +234,14 @@ void DirectoryService::ScheduleViewChangeTimeout()
 
 void DirectoryService::ComputeNewCandidateLeader()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::ComputeNewCandidateLeader not expected "
+                    "to be called from LookUp node.");
+        return;
+    }
+
     LOG_MARKER();
 
     // Assemble VC block header
@@ -234,6 +281,15 @@ void DirectoryService::ComputeNewCandidateLeader()
 
 bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::"
+                    "RunConsensusOnViewChangeWhenCandidateLeader not expected "
+                    "to be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     // view change testing code (for failure of candidate leader)
@@ -292,6 +348,15 @@ bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader()
 
 bool DirectoryService::RunConsensusOnViewChangeWhenNotCandidateLeader()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::"
+                    "RunConsensusOnViewChangeWhenNotCandidateLeader not "
+                    "expected to be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -322,4 +387,3 @@ bool DirectoryService::RunConsensusOnViewChangeWhenNotCandidateLeader()
 
     return true;
 }
-#endif // IS_LOOKUP_NODE

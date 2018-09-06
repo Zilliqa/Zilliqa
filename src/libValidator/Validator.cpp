@@ -39,10 +39,16 @@ bool Validator::VerifyTransaction(const Transaction& tran) const
                                          tran.GetSenderPubKey());
 }
 
-#ifndef IS_LOOKUP_NODE
 bool Validator::CheckCreatedTransaction(const Transaction& tx,
-                                        uint256_t& gasUsed) const
+                                        TransactionReceipt& receipt) const
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Validator::CheckCreatedTransaction not expected to be "
+                    "called from LookUp node.");
+        return true;
+    }
     // LOG_MARKER();
 
     // LOG_GENERAL(INFO, "Tran: " << tx.GetTranID());
@@ -74,11 +80,19 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx,
 
     return AccountStore::GetInstance().UpdateAccountsTemp(
         m_mediator.m_currentEpochNum, m_mediator.m_node->getNumShards(),
-        m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE, tx, gasUsed);
+        m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE, tx, receipt);
 }
 
 bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Validator::CheckCreatedTransactionFromLookup not expected "
+                    "to be called from LookUp node.");
+        return true;
+    }
+
     // LOG_MARKER();
 
     // Check if from account is sharded here
@@ -110,12 +124,14 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
             unsigned int correct_shard_to
                 = Transaction::GetShardIndex(tx.GetToAddr(), numShards);
             if (correct_shard_to != correct_shard_from)
+            {
                 LOG_EPOCH(
                     WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                     "The fromShard " << correct_shard_from << " and toShard "
                                      << correct_shard_to
                                      << " is different for the call SC txn");
-            return false;
+                return false;
+            }
         }
     }
 
@@ -151,4 +167,3 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
 
     return true;
 }
-#endif // IS_LOOKUP_NODE

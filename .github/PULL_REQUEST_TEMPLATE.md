@@ -1,5 +1,5 @@
 ## Description
-<!-- What is the overall goals of your pull request? -->
+<!-- What is the overall goal of your pull request? -->
 <!-- What is the context of your pull request? -->
 <!-- What are the related issues and pull requests? -->
 

@@ -37,9 +37,16 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-#ifndef IS_LOOKUP_NODE
 void DirectoryService::StoreFinalBlockToDisk()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::StoreFinalBlockToDisk not expected to "
+                    "be called from LookUp node.");
+        return;
+    }
+
     LOG_MARKER();
 
     // Add finalblock to txblockchain
@@ -49,8 +56,8 @@ void DirectoryService::StoreFinalBlockToDisk()
         + 1;
 
     // At this point, the transactions in the last Epoch is no longer useful, thus erase.
-    m_mediator.m_node->EraseCommittedTransactions(m_mediator.m_currentEpochNum
-                                                  - 2);
+    // m_mediator.m_node->EraseCommittedTransactions(m_mediator.m_currentEpochNum
+    //                                               - 2);
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Storing Tx Block Number: "
@@ -68,6 +75,14 @@ void DirectoryService::StoreFinalBlockToDisk()
 
 bool DirectoryService::SendFinalBlockToLookupNodes()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::SendFinalBlockToLookupNodes not "
+                    "expected to be called from LookUp node.");
+        return true;
+    }
+
     vector<unsigned char> finalblock_message
         = {MessageType::NODE, NodeInstructionType::FINALBLOCK};
 
@@ -120,6 +135,14 @@ void DirectoryService::DetermineShardsToSendFinalBlockTo(
     unsigned int& my_DS_cluster_num, unsigned int& my_shards_lo,
     unsigned int& my_shards_hi) const
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::DetermineShardsToSendFinalBlockTo not "
+                    "expected to be called from LookUp node.");
+        return;
+    }
+
     // Multicast final block to my assigned shard's nodes - send FINALBLOCK message
     // Message = [Final block]
 
@@ -163,6 +186,14 @@ void DirectoryService::SendFinalBlockToShardNodes(
     unsigned int my_DS_cluster_num, unsigned int my_shards_lo,
     unsigned int my_shards_hi)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::SendFinalBlockToShardNodes not expected "
+                    "to be called from LookUp node.");
+        return;
+    }
+
     // Too few target shards - avoid asking all DS clusters to send
     LOG_MARKER();
 
@@ -276,6 +307,14 @@ void DirectoryService::SendFinalBlockToShardNodes(
 
 void DirectoryService::ProcessFinalBlockConsensusWhenDone()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::ProcessFinalBlockConsensusWhenDone not "
+                    "expected to be called from LookUp node.");
+        return;
+    }
+
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Final block consensus is DONE!!!");
 
@@ -316,9 +355,10 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
         AccountStore::GetInstance().MoveUpdatesToDisk();
         BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
                                                     {'0'});
-#ifndef IS_LOOKUP_NODE
-        BlockStorage::GetBlockStorage().PopFrontTxBodyDB();
-#endif // IS_LOOKUP_NODE
+        if (!LOOKUP_NODE_MODE)
+        {
+            BlockStorage::GetBlockStorage().PopFrontTxBodyDB();
+        }
     }
 
     m_mediator.UpdateDSBlockRand();
@@ -494,13 +534,18 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
 
     DetachedFunction(1, func);
 }
-#endif // IS_LOOKUP_NODE
 
 bool DirectoryService::ProcessFinalBlockConsensus(
-    [[gnu::unused]] const vector<unsigned char>& message,
-    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
+    const vector<unsigned char>& message, unsigned int offset, const Peer& from)
 {
-#ifndef IS_LOOKUP_NODE
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::ProcessFinalBlockConsensus not expected "
+                    "to be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     if ((m_state == MICROBLOCK_SUBMISSION)
@@ -535,7 +580,6 @@ bool DirectoryService::ProcessFinalBlockConsensus(
         return ProcessFinalBlockConsensusCore(message, offset, from);
     }
 
-#endif //IS_LOOKUP_NODE
     return true;
 }
 
@@ -543,7 +587,6 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
     [[gnu::unused]] const vector<unsigned char>& message,
     [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
 {
-#ifndef IS_LOOKUP_NODE
     LOG_MARKER();
 
     // Consensus messages must be processed in correct sequence as they come in
@@ -670,11 +713,9 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
                   "Consensus state = " << m_consensusObject->GetStateString());
         cv_processConsensusMessage.notify_all();
     }
-#endif // IS_LOOKUP_NODE
     return true;
 }
 
-#ifndef IS_LOOKUP_NODE
 void DirectoryService::CommitFinalBlockConsensusBuffer()
 {
     lock_guard<mutex> g(m_mutexFinalBlockConsensusBuffer);
@@ -686,4 +727,3 @@ void DirectoryService::CommitFinalBlockConsensusBuffer()
 
     m_FinalBlockConsensusBuffer.clear();
 }
-#endif //IS_LOOKUP_NODE

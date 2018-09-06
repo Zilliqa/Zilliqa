@@ -38,10 +38,17 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-#ifndef IS_LOOKUP_NODE
 bool DirectoryService::VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
                                                    uint32_t shardId)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::VerifyMicroBlockCoSignature not "
+                    "expected to be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     const map<PubKey, Peer>& shard = m_shards.at(shardId);
@@ -108,6 +115,14 @@ bool DirectoryService::ProcessStateDelta(
     const vector<unsigned char>& message, unsigned int cur_offset,
     const StateHash& microBlockStateDeltaHash)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::ProcessStateDelta not expected to be "
+                    "called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     LOG_GENERAL(INFO,
@@ -174,6 +189,14 @@ bool DirectoryService::ProcessStateDelta(
 bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
     const vector<unsigned char>& message, unsigned int curr_offset)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::ProcessMicroblockSubmissionCore not "
+                    "expected to be called from LookUp node.");
+        return true;
+    }
+
     // 4-byte shard ID
     // uint32_t shardId = Serializable::GetNumber<uint32_t>(message, curr_offset,
     //                                                      sizeof(uint32_t));
@@ -224,8 +247,10 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
     LOG_GENERAL(INFO,
                 "MicroBlock StateDeltaHash: "
                     << microBlock.GetHeader().GetStateDeltaHash() << endl
-                    << "TxRootHash: "
-                    << microBlock.GetHeader().GetTxRootHash());
+                    << "TxRootHash: " << microBlock.GetHeader().GetTxRootHash()
+                    << endl
+                    << "TranReceiptHash: "
+                    << microBlock.GetHeader().GetTranReceiptHash());
 
     lock_guard<mutex> g(m_mutexMicroBlocks);
 
@@ -352,13 +377,10 @@ void DirectoryService::CommitMBSubmissionMsgBuffer()
     }
 }
 
-#endif // IS_LOOKUP_NODE
-
 bool DirectoryService::ProcessMicroblockSubmissionFromShard(
     [[gnu::unused]] const vector<unsigned char>& message,
     [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
 {
-#ifndef IS_LOOKUP_NODE
     // Message = [8-byte Tx blocknum] /*[4-byte shard ID]*/ [Tx microblock] [State delta]
 
     LOG_MARKER();
@@ -420,15 +442,20 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShard(
                     << " this microblock submission is too late");
 
     return false;
-#endif // IS_LOOKUP_NODE
-    return true;
 }
 
 bool DirectoryService::ProcessMicroblockSubmission(
     [[gnu::unused]] const vector<unsigned char>& message,
     [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
 {
-#ifndef IS_LOOKUP_NODE
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::ProcessMicroblockSubmission not "
+                    "expected to be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     unsigned int cur_offset = offset;
@@ -450,8 +477,6 @@ bool DirectoryService::ProcessMicroblockSubmission(
     }
 
     return false;
-#endif // IS_LOOKUP_NODE
-    return true;
 }
 
 bool DirectoryService::ProcessMissingMicroblockSubmission(

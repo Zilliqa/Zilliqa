@@ -14,34 +14,22 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#ifndef __RETRIEVER_H__
-#define __RETRIEVER_H__
+#ifndef __LOGENTRY_H__
+#define __LOGENTRY_H__
 
-#include <list>
-#include <map>
-#include <unordered_map>
+#include "Address.h"
+#include <json/json.h>
 
-#include "libData/AccountData/Account.h"
-#include "libData/AccountData/Address.h"
-#include "libMediator/Mediator.h"
-
-class Retriever
+class LogEntry
 {
+    Json::Value m_eventObj;
+    // unsigned int m_numIndexed;
+
 public:
-    Retriever(Mediator& mediator);
-
-    void RetrieveDSBlocks(bool& result);
-    void RetrieveTxBlocks(bool& result);
-    bool RetrieveStates();
-    bool ValidateStates();
-    bool RetrieveTxBodiesDB();
-    bool CleanExtraTxBodies();
-    void CleanAll();
-
-private:
-    Mediator& m_mediator;
-
-    bool hasIncompletedDS = false;
+    LogEntry() = default;
+    bool Install(const Json::Value& eventObj,
+                 const Address& address); //, unsigned int& numIndexed);
+    const Json::Value& GetJsonObject() const { return m_eventObj; }
 };
 
-#endif // __RETRIEVER_H__
+#endif // __LOGENTRY_H__

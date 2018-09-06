@@ -31,6 +31,7 @@
 #include "depends/common/FixedHash.h"
 #include "libConsensus/Consensus.h"
 #include "libData/AccountData/Transaction.h"
+#include "libData/AccountData/TransactionReceipt.h"
 #include "libData/BlockData/Block.h"
 #include "libData/BlockData/BlockHeader/UnavailableMicroBlock.h"
 #include "libData/DataStructures/MultiIndexContainer.h"
@@ -126,16 +127,17 @@ class Node : public Executable, public Broadcastable
     std::vector<TxnHash> m_txnsOrdering;
 
     std::mutex m_mutexProcessedTransactions;
-    std::unordered_map<uint64_t, std::unordered_map<TxnHash, Transaction>>
+    std::unordered_map<uint64_t,
+                       std::unordered_map<TxnHash, TransactionWithReceipt>>
         m_processedTransactions;
     //operates under m_mutexProcessedTransaction
     std::vector<TxnHash> m_TxnOrder;
 
     uint32_t m_numOfAbsentTxnHashes;
 
-    std::mutex m_mutexCommittedTransactions;
-    std::unordered_map<uint64_t, std::list<Transaction>>
-        m_committedTransactions;
+    // std::mutex m_mutexCommittedTransactions;
+    // std::unordered_map<uint64_t, std::list<TransactionWithReceipt>>
+    //     m_committedTransactions;
 
     std::mutex m_mutexForwardedTxnBuffer;
     std::unordered_map<uint64_t, std::vector<std::vector<unsigned char>>>
@@ -151,7 +153,6 @@ class Node : public Executable, public Broadcastable
     // To block certain types of incoming message for certain states
     bool ToBlockMessage(unsigned char ins_byte);
 
-#ifndef IS_LOOKUP_NODE
     // internal calls from ProcessStartPoW1
     bool ReadVariablesFromStartPoWMessage(const vector<unsigned char>& message,
                                           unsigned int offset,
@@ -166,16 +167,16 @@ class Node : public Executable, public Broadcastable
     void LoadForwardingAssignmentFromFinalBlock(
         const vector<Peer>& fellowForwarderNodes, const uint64_t& blocknum);
 
-    bool FindTxnInProcessedTxnsList(const uint64_t& blocknum,
-                                    uint8_t sharing_mode,
-                                    vector<Transaction>& txns_to_send,
-                                    const TxnHash& tx_hash);
+    bool
+    FindTxnInProcessedTxnsList(const uint64_t& blocknum, uint8_t sharing_mode,
+                               vector<TransactionWithReceipt>& txns_to_send,
+                               const TxnHash& tx_hash);
 
     void GetMyShardsMicroBlock(const uint64_t& blocknum, uint8_t sharing_mode,
-                               vector<Transaction>& txns_to_send);
+                               vector<TransactionWithReceipt>& txns_to_send);
 
-    void BroadcastTransactionsToLookup(const vector<Transaction>& txns_to_send);
-#endif // IS_LOOKUP_NODE
+    void BroadcastTransactionsToLookup(
+        const vector<TransactionWithReceipt>& txns_to_send);
 
     bool LoadUnavailableMicroBlockHashes(const TxBlock& finalblock,
                                          const uint64_t& blocknum,
@@ -217,10 +218,10 @@ class Node : public Executable, public Broadcastable
     bool LoadForwardedTxnsAndCheckRoot(
         const vector<unsigned char>& message, unsigned int cur_offset,
         TxnHash& microBlockTxHash, StateHash& microBlockStateDeltaHash,
-        vector<Transaction>& txnsInForwardedMessage);
+        vector<TransactionWithReceipt>& txnsInForwardedMessage);
     // vector<TxnHash> & txnHashesInForwardedMessage);
     void CommitForwardedTransactions(
-        const vector<Transaction>& txnsInForwardedMessage,
+        const vector<TransactionWithReceipt>& txnsInForwardedMessage,
         const uint64_t& blocknum);
 
     void
@@ -273,7 +274,6 @@ class Node : public Executable, public Broadcastable
     bool ProcessVCBlock(const vector<unsigned char>& message,
                         unsigned int cur_offset, const Peer& from);
 
-#ifndef IS_LOOKUP_NODE
     // Transaction functions
     bool OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
                            unsigned int offset, const Peer& from);
@@ -291,11 +291,12 @@ class Node : public Executable, public Broadcastable
     CheckLegitimacyOfTxnHashes(std::vector<unsigned char>& errorMsg);
     bool CheckBlockTypeIsMicro();
     bool CheckMicroBlockVersion();
+    bool CheckMicroBlockShardID();
     bool CheckMicroBlockTimestamp();
     bool CheckMicroBlockHashes(std::vector<unsigned char>& errorMsg);
     bool CheckMicroBlockTxnRootHash();
     bool CheckMicroBlockStateDeltaHash();
-    bool CheckMicroBlockShardID();
+    bool CheckMicroBlockTranReceiptHash();
 
     bool VerifyTxnsOrdering(const vector<TxnHash>& tranHashes,
                             list<Transaction>& curTxns);
@@ -315,7 +316,6 @@ class Node : public Executable, public Broadcastable
 
     // Rejoin the network as a shard node in case of failure happens in protocol
     void RejoinAsNormal();
-#endif // IS_LOOKUP_NODE
 
 public:
     enum NodeState : unsigned char
@@ -407,11 +407,11 @@ public:
     bool StartRetrieveHistory();
 
     //Erase m_committedTransactions for given epoch number
-    void EraseCommittedTransactions(uint64_t epochNum)
-    {
-        std::lock_guard<std::mutex> g(m_mutexCommittedTransactions);
-        m_committedTransactions.erase(epochNum);
-    }
+    // void EraseCommittedTransactions(uint64_t epochNum)
+    // {
+    //     std::lock_guard<std::mutex> g(m_mutexCommittedTransactions);
+    //     m_committedTransactions.erase(epochNum);
+    // }
 
     /// Add new block into tx blockchain
     void AddBlock(const TxBlock& block);
@@ -423,7 +423,6 @@ public:
     void CallActOnFinalblock();
 
     void UpdateStateForNextConsensusRound();
-#ifndef IS_LOOKUP_NODE
 
     // Start synchronization with lookup as a shard node
     void StartSynchronization();
@@ -444,7 +443,6 @@ public:
 
     /// Used for commit buffered txn packet
     void CommitTxnPacketBuffer();
-#endif // IS_LOOKUP_NODE
 
     /// Used by oldest DS node to configure sharding variables as a new shard node
     bool LoadShardingStructure(const vector<unsigned char>& message,

@@ -23,6 +23,16 @@ sudo sysctl -w net.ipv4.tcp_mem='65536 873800 1534217728';
 # clean up persistence storage
 rm -rf lookup_local_run/node*
 
+#setting the correct flag for lookup node, if not already.
+if grep -q '<LOOKUP_NODE_MODE>true</LOOKUP_NODE_MODE>' constants_local.xml ; then
+   echo "constants_local.xml was already good with LOOKUP_NODE_MODE being set"
+else
+   grep -q '<LOOKUP_NODE_MODE>false</LOOKUP_NODE_MODE>' constants_local.xml && \
+   sed -i 's/<LOOKUP_NODE_MODE>false<\/LOOKUP_NODE_MODE>/<LOOKUP_NODE_MODE>true<\/LOOKUP_NODE_MODE>/g' constants_local.xml || \
+   sed -i '/<\/options>/i \\t<LOOKUP_NODE_MODE>true<\/LOOKUP_NODE_MODE>' constants_local.xml
+   echo "constants_local.xml is now good with LOOKUP_NODE_MODE being set"
+fi
+
 python tests/Zilliqa/test_zilliqa_lookup.py setup 5
 python tests/Zilliqa/test_zilliqa_lookup.py start
 
