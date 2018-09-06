@@ -138,6 +138,8 @@ const unsigned int NUM_TXN_TO_SEND_PER_ACCOUNT{
     ReadFromConstantsFile("NUM_TXN_TO_SEND_PER_ACCOUNT")};
 const unsigned int NUM_NODES_TO_SEND_LOOKUP{
     ReadFromConstantsFile("NUM_NODES_TO_SEND_LOOKUP")};
+const unsigned int MAX_INDEXES_PER_TXN{
+    ReadFromConstantsFile("MAX_INDEXES_PER_TXN")};
 const unsigned int SENDQUEUE_SIZE{ReadFromConstantsFile("SENDQUEUE_SIZE")};
 const unsigned int MSGQUEUE_SIZE{ReadFromConstantsFile("MSGQUEUE_SIZE")};
 const unsigned int POW_CHANGE_PERCENT_TO_ADJ_DIFF{
@@ -182,12 +184,10 @@ const std::string OUTPUT_JSON{SCILLA_FILES + '/'
                               + ReadSmartContractConstants("OUTPUT_JSON")};
 const std::string INPUT_CODE{SCILLA_FILES + '/'
                              + ReadSmartContractConstants("INPUT_CODE")};
-
 const std::string TXN_PATH{ReadTransactionDispatcher("TXN_PATH")};
 const bool USE_REMOTE_TXN_CREATOR{
     ReadTransactionDispatcher("USE_REMOTE_TXN_CREATOR") == "true" ? true
                                                                   : false};
-
 const unsigned int OPENCL_LOCAL_WORK_SIZE{
     ReadGpuConstants("opencl.LOCAL_WORK_SIZE")};
 const unsigned int OPENCL_GLOBAL_WORK_SIZE_MULTIPLIER{

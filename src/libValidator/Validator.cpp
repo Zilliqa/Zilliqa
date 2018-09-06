@@ -40,7 +40,7 @@ bool Validator::VerifyTransaction(const Transaction& tran) const
 }
 
 bool Validator::CheckCreatedTransaction(const Transaction& tx,
-                                        uint256_t& gasUsed) const
+                                        TransactionReceipt& receipt) const
 {
     if (LOOKUP_NODE_MODE)
     {
@@ -80,7 +80,7 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx,
 
     return AccountStore::GetInstance().UpdateAccountsTemp(
         m_mediator.m_currentEpochNum, m_mediator.m_node->getNumShards(),
-        m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE, tx, gasUsed);
+        m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE, tx, receipt);
 }
 
 bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
@@ -124,12 +124,14 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
             unsigned int correct_shard_to
                 = Transaction::GetShardIndex(tx.GetToAddr(), numShards);
             if (correct_shard_to != correct_shard_from)
+            {
                 LOG_EPOCH(
                     WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                     "The fromShard " << correct_shard_from << " and toShard "
                                      << correct_shard_to
                                      << " is different for the call SC txn");
-            return false;
+                return false;
+            }
         }
     }
 

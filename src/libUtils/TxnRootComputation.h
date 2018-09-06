@@ -32,6 +32,9 @@
 StateHash
 ComputeDeltasRoot(const std::vector<MicroBlockHashSet>& microBlockHashes);
 
+TxnHash
+ComputeTranReceiptsRoot(const std::vector<MicroBlockHashSet>& microBlockHashes);
+
 TxnHash ComputeTransactionsRoot(const std::vector<TxnHash>& transactionHashes);
 
 TxnHash
