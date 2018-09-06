@@ -175,18 +175,17 @@ bool Node::StartRetrieveHistory()
     tTx.join();
 
     bool tx_bodies_result = true;
-#ifndef IS_LOOKUP_NODE
-    tx_bodies_result = m_retriever->RetrieveTxBodiesDB();
-#endif //IS_LOOKUP_NODE
+    if (!LOOKUP_NODE_MODE)
+    {
+        tx_bodies_result = m_retriever->RetrieveTxBodiesDB();
+    }
 
     bool res = false;
     if (st_result && ds_result && tx_result && tx_bodies_result)
     {
-#ifndef IS_LOOKUP_NODE
-        if (m_retriever->ValidateStates())
-#else // IS_LOOKUP_NODE
-        if (m_retriever->ValidateStates() && m_retriever->CleanExtraTxBodies())
-#endif // IS_LOOKUP_NODE
+        if ((!LOOKUP_NODE_MODE && m_retriever->ValidateStates())
+            || (LOOKUP_NODE_MODE && m_retriever->ValidateStates()
+                && m_retriever->CleanExtraTxBodies()))
         {
             LOG_GENERAL(INFO, "RetrieveHistory Successed");
             m_mediator.m_isRetrievedHistory = true;
@@ -198,10 +197,15 @@ bool Node::StartRetrieveHistory()
     return res;
 }
 
-#ifndef IS_LOOKUP_NODE
-
 void Node::StartSynchronization()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::StartSynchronization not expected to be called from "
+                    "LookUp node.");
+        return;
+    }
     LOG_MARKER();
 
     SetState(SYNC);
@@ -247,8 +251,6 @@ void Node::StartSynchronization()
 
     DetachedFunction(1, func);
 }
-
-#endif //IS_LOOKUP_NODE
 
 bool Node::CheckState(Action action)
 {
@@ -394,8 +396,8 @@ bool GetOneGenesisAddress(Address& oAddr)
     return true;
 }
 
-    /// generate transation from one to many random accounts
-    /*vector<Transaction> GenTransactionBulk(PrivKey& fromPrivKey, PubKey& fromPubKey,
+/// generate transation from one to many random accounts
+/*vector<Transaction> GenTransactionBulk(PrivKey& fromPrivKey, PubKey& fromPubKey,
                                        size_t n)
 {
     vector<Transaction> txns;
@@ -426,11 +428,18 @@ bool GetOneGenesisAddress(Address& oAddr)
     return txns;
 }*/
 
-#ifndef IS_LOOKUP_NODE
 bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
                                    unsigned int offset,
                                    [[gnu::unused]] const Peer& from)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::ProcessSubmitMissingTxn not expected to be called "
+                    "from LookUp node.");
+        return true;
+    }
+
     unsigned int cur_offset = offset;
 
     auto msgBlockNum
@@ -478,13 +487,18 @@ bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
     cv_MicroBlockMissingTxn.notify_all();
     return true;
 }
-#endif // IS_LOOKUP_NODE
 
-bool Node::ProcessSubmitTransaction(
-    [[gnu::unused]] const vector<unsigned char>& message,
-    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
+bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
+                                    unsigned int offset,
+                                    [[gnu::unused]] const Peer& from)
 {
-#ifndef IS_LOOKUP_NODE
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::ProcessSubmitTransaction not expected to be called "
+                    "from LookUp node.");
+        return true;
+    }
     // This message is sent by my shard peers
     // Message = [204-byte transaction]
 
@@ -506,15 +520,20 @@ bool Node::ProcessSubmitTransaction(
 
         ProcessSubmitMissingTxn(message, cur_offset, from);
     }
-#endif // IS_LOOKUP_NODE
     return true;
 }
 
 bool Node::ProcessCreateTransactionFromLookup(
-    [[gnu::unused]] const vector<unsigned char>& message,
-    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
+    const vector<unsigned char>& message, unsigned int offset,
+    [[gnu::unused]] const Peer& from)
 {
-#ifndef IS_LOOKUP_NODE
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::ProcessCreateTransactionFromLookup not expected to "
+                    "be called from LookUp node.");
+        return true;
+    }
 
     LOG_MARKER();
 
@@ -543,8 +562,8 @@ bool Node::ProcessCreateTransactionFromLookup(
     {
         lock_guard<mutex> g(m_mutexCreatedTransactions);
         auto& compIdx
-            = m_createdTransactions.get<MULTI_INDEX_KEY::ADDR_NONCE>();
-        auto it = compIdx.find(make_tuple(tx.GetSenderAddr(), tx.GetNonce()));
+            = m_createdTransactions.get<MULTI_INDEX_KEY::PUBKEY_NONCE>();
+        auto it = compIdx.find(make_tuple(tx.GetSenderPubKey(), tx.GetNonce()));
         if (it != compIdx.end())
         {
             if (it->GetGasPrice() < tx.GetGasPrice())
@@ -568,8 +587,6 @@ bool Node::ProcessCreateTransactionFromLookup(
         return false;
     }
 
-#endif //IS_LOOKUP_NOD
-
     return true;
 }
 
@@ -578,7 +595,14 @@ bool Node::ProcessTxnPacketFromLookup(
     [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
 {
     LOG_MARKER();
-#ifndef IS_LOOKUP_NODE
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::ProcessTxnPacketFromLookup not expected to "
+                    "be called from LookUp node.");
+        return true;
+    }
+
     // check it's at inappropriate timing
     // vacuous epoch -> reject
     // new ds epoch but didn't received ds block yet -> buffer
@@ -612,14 +636,20 @@ bool Node::ProcessTxnPacketFromLookup(
     {
         return ProcessTxnPacketFromLookupCore(message, offset);
     }
-#endif //IS_LOOKUP_NOD
     return true;
 }
 
-#ifndef IS_LOOKUP_NODE
 bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
                                           unsigned int offset)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::ProcessTxnPacketFromLookupCore not expected to "
+                    "be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
@@ -681,7 +711,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
         LOG_GENERAL(INFO, "Start check txn packet from lookup");
         lock_guard<mutex> g(m_mutexCreatedTransactions);
         auto& compIdx
-            = m_createdTransactions.get<MULTI_INDEX_KEY::ADDR_NONCE>();
+            = m_createdTransactions.get<MULTI_INDEX_KEY::PUBKEY_NONCE>();
         for (unsigned int i = 0; i < num; i++)
         {
             Transaction tx;
@@ -694,7 +724,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
             if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(tx))
             {
                 auto it = compIdx.find(
-                    make_tuple(tx.GetSenderAddr(), tx.GetNonce()));
+                    make_tuple(tx.GetSenderPubKey(), tx.GetNonce()));
                 if (it != compIdx.end())
                 {
                     if (it->GetGasPrice() < tx.GetGasPrice())
@@ -728,6 +758,14 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
 
 void Node::CommitTxnPacketBuffer()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::CommitTxnPacketBuffer not expected to "
+                    "be called from LookUp node.");
+        return;
+    }
+
     LOG_MARKER();
 
     lock_guard<mutex> g(m_mutexTxnPacketBuffer);
@@ -739,7 +777,6 @@ void Node::CommitTxnPacketBuffer()
 
     m_txnPacketBuffer.clear();
 }
-#endif //IS_LOOKUP_NOD
 
 // Used by Zilliqa in pow branch. This will be useful for us when doing the accounts and wallet in the future.
 // bool Node::ProcessCreateAccounts(const vector<unsigned char> & message, unsigned int offset, const Peer & from)
@@ -780,9 +817,16 @@ void Node::AddBlock(const TxBlock& block)
     m_mediator.m_txBlockChain.AddBlock(block);
 }
 
-#ifndef IS_LOOKUP_NODE
 void Node::RejoinAsNormal()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(
+            WARNING,
+            "Node::RejoinAsNormal not expected to be called from LookUp node.");
+        return;
+    }
+
     LOG_MARKER();
     if (m_mediator.m_lookup->m_syncType == SyncType::NO_SYNC)
     {
@@ -799,6 +843,14 @@ void Node::RejoinAsNormal()
 
 void Node::ResetRejoinFlags()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::ResetRejoinFlags not expected to be called from "
+                    "LookUp node.");
+        return;
+    }
+
     m_doRejoinAtNextRound = false;
     m_doRejoinAtStateRoot = false;
     m_doRejoinAtFinalBlock = false;
@@ -806,6 +858,14 @@ void Node::ResetRejoinFlags()
 
 bool Node::CleanVariables()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(
+            WARNING,
+            "Node::CleanVariables not expected to be called from LookUp node.");
+        return true;
+    }
+
     AccountStore::GetInstance().InitSoft();
     m_myShardMembers->clear();
     m_isPrimary = false;
@@ -844,8 +904,18 @@ bool Node::CleanVariables()
 
     return true;
 }
-void Node::SetMyShardID(uint32_t shardID) { m_myShardID = shardID; }
-#endif // IS_LOOKUP_NODE
+
+void Node::SetMyShardID(uint32_t shardID)
+{
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(
+            WARNING,
+            "Node::SetMyShardID not expected to be called from LookUp node.");
+        return;
+    }
+    m_myShardID = shardID;
+}
 
 void Node::CleanCreatedTransaction()
 {
@@ -854,11 +924,17 @@ void Node::CleanCreatedTransaction()
     m_addrNonceTxnMap.clear();
 }
 
-bool Node::ProcessDoRejoin(
-    [[gnu::unused]] const std::vector<unsigned char>& message,
-    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
+bool Node::ProcessDoRejoin(const std::vector<unsigned char>& message,
+                           unsigned int offset,
+                           [[gnu::unused]] const Peer& from)
 {
-#ifndef IS_LOOKUP_NODE
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::ProcessDoRejoin not expected to be called from "
+                    "LookUp node.");
+        return true;
+    }
 
     LOG_MARKER();
 
@@ -898,41 +974,43 @@ bool Node::ProcessDoRejoin(
     default:
         return false;
     }
-#endif // IS_LOOKUP_NODE
     return true;
 }
 
 bool Node::ToBlockMessage([[gnu::unused]] unsigned char ins_byte)
 {
     if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
-#ifndef IS_LOOKUP_NODE
     {
-        if (m_mediator.m_lookup->m_syncType == SyncType::DS_SYNC)
+        if (!LOOKUP_NODE_MODE)
+        {
+            if (m_mediator.m_lookup->m_syncType == SyncType::DS_SYNC)
+            {
+                return true;
+            }
+            if (!m_fromNewProcess)
+            {
+                if (ins_byte != NodeInstructionType::DSBLOCK
+                    && ins_byte
+                        != NodeInstructionType::CREATETRANSACTIONFROMLOOKUP)
+                {
+                    return true;
+                }
+            }
+            else
+            {
+                if (m_runFromLate && ins_byte != NodeInstructionType::DSBLOCK
+                    && ins_byte
+                        != NodeInstructionType::CREATETRANSACTIONFROMLOOKUP)
+                {
+                    return true;
+                }
+            }
+        }
+        else // IS_LOOKUP_NODE
         {
             return true;
         }
-        if (!m_fromNewProcess)
-        {
-            if (ins_byte != NodeInstructionType::DSBLOCK
-                && ins_byte != NodeInstructionType::CREATETRANSACTIONFROMLOOKUP)
-            {
-                return true;
-            }
-        }
-        else
-        {
-            if (m_runFromLate && ins_byte != NodeInstructionType::DSBLOCK
-                && ins_byte != NodeInstructionType::CREATETRANSACTIONFROMLOOKUP)
-            {
-                return true;
-            }
-        }
     }
-#else // IS_LOOKUP_NODE
-    {
-        return true;
-    }
-#endif // IS_LOOKUP_NODE
     return false;
 }
 

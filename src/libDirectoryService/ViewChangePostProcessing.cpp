@@ -35,8 +35,6 @@
 #include "libUtils/Logger.h"
 #include "libUtils/SanityChecks.h"
 
-#ifndef IS_LOOKUP_NODE
-
 void DirectoryService::DetermineShardsToSendVCBlockTo(
     unsigned int& my_DS_cluster_num, unsigned int& my_shards_lo,
     unsigned int& my_shards_hi) const
@@ -52,6 +50,14 @@ void DirectoryService::DetermineShardsToSendVCBlockTo(
     //    ...
     //    DS cluster 0 => Shard (num of DS clusters)
     //    DS cluster 1 => Shard (num of DS clusters + 1)
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::DetermineShardsToSendVCBlockTo not "
+                    "expected to be called from LookUp node.");
+        return;
+    }
+
     LOG_MARKER();
 
     unsigned int num_DS_clusters
@@ -84,6 +90,13 @@ void DirectoryService::SendVCBlockToShardNodes(
     unsigned int my_DS_cluster_num, unsigned int my_shards_lo,
     unsigned int my_shards_hi, vector<unsigned char>& vcblock_message)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::SendVCBlockToShardNodes not expected to "
+                    "be called from LookUp node.");
+        return;
+    }
     // Too few target shards - avoid asking all DS clusters to send
     LOG_MARKER();
 
@@ -115,6 +128,14 @@ void DirectoryService::SendVCBlockToShardNodes(
 
 void DirectoryService::ProcessViewChangeConsensusWhenDone()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::ProcessViewChangeConsensusWhenDone not "
+                    "expected to be called from LookUp node.");
+        return;
+    }
+
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "View change consensus is DONE!!!");
 
@@ -353,6 +374,14 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
 
 void DirectoryService::ProcessNextConsensus(unsigned char viewChangeState)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::ProcessNextConsensus not expected to be "
+                    "called from LookUp node.");
+        return;
+    }
+
     this_thread::sleep_for(chrono::seconds(POST_VIEWCHANGE_BUFFER));
 
     switch (viewChangeState)
@@ -378,13 +407,17 @@ void DirectoryService::ProcessNextConsensus(unsigned char viewChangeState)
     }
 }
 
-#endif // IS_LOOKUP_NODE
-
 bool DirectoryService::ProcessViewChangeConsensus(
-    [[gnu::unused]] const vector<unsigned char>& message,
-    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
+    const vector<unsigned char>& message, unsigned int offset, const Peer& from)
 {
-#ifndef IS_LOOKUP_NODE
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::ProcessViewChangeConsensus not expected "
+                    "to be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
     // Consensus messages must be processed in correct sequence as they come in
     // It is possible for ANNOUNCE to arrive before correct DS state
@@ -494,6 +527,5 @@ bool DirectoryService::ProcessViewChangeConsensus(
                   "Consensus state = " << state);
         cv_processConsensusMessage.notify_all();
     }
-#endif // IS_LOOKUP_NODE
     return true;
 }
