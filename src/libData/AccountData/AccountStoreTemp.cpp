@@ -17,6 +17,7 @@
 #include "AccountStore.h"
 
 using namespace std;
+using namespace boost::multiprecision;
 
 AccountStoreTemp::AccountStoreTemp(AccountStore& parent)
     : m_parent(parent)

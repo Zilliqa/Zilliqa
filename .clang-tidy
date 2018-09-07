@@ -1,5 +1,6 @@
 ---
-Checks:          'clang-diagnostic-*,clang-analyzer-*,modernize-*'
+# TODO: enable more checks, run 'clang-tidy -list-checks -checks="*"' to see more
+Checks:          '-*,google-global-names-in-headers'
 WarningsAsErrors: ''
 HeaderFilterRegex: ''
 AnalyzeTemporaryDtors: false
