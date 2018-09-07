@@ -203,7 +203,7 @@ std::pair<int, std::vector<Message>> RumorMember::advanceRound()
             pushMessages.emplace_back(Message(Message::Type::PUSH, it->first, it->second.age()));
             ++it;
         }
-        else if ( stateMach.age() >= stateMach.maxRoundsTotal()*2 )
+        else if ( stateMach.age() >= m_networkConfig.maxRoundsTotal()*2 )
         // Kick out the rumor if its old and old+++++ enough to be removed
         {
             it = m_rumors.erase(it);
