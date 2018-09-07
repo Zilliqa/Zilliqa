@@ -37,7 +37,10 @@ apt-get install -y \
     clang-5.0 \
     lcov \
     curl \
-    libxml2-utils
+    libxml2-utils \
+    python-pip
+
+pip install pyyaml
 }
 
 function on_osx() {

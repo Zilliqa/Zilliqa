@@ -147,14 +147,14 @@ inline std::ostream& operator<<(std::ostream& os, const TxBlockHeader& t)
        << "m_gasLimit : " << t.m_gasLimit.convert_to<std::string>() << std::endl
        << "m_gasUsed : " << t.m_gasUsed.convert_to<std::string>() << std::endl
        << "m_prevHash : " << t.m_prevHash.hex() << std::endl
-       << "m_blockNum : " << to_string(t.m_blockNum) << std::endl
+       << "m_blockNum : " << std::to_string(t.m_blockNum) << std::endl
        << "m_timestamp : " << t.m_timestamp.convert_to<std::string>()
        << std::endl
        << t.m_hash << std::endl
        << "m_numTxs : " << t.m_numTxs << std::endl
        << "m_numMicroBlockHashes : " << t.m_numMicroBlockHashes << std::endl
        << "m_minerPubKey : " << t.m_minerPubKey << std::endl
-       << "m_dsBlockNum : " << to_string(t.m_dsBlockNum) << std::endl
+       << "m_dsBlockNum : " << std::to_string(t.m_dsBlockNum) << std::endl
        << "m_dsBlockHeader : " << t.m_dsBlockHeader.hex();
     return os;
 }
