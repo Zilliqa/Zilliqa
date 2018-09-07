@@ -30,7 +30,7 @@ add_custom_command(TARGET zilliqa
 target_include_directories(genkeypair PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(genkeypair PUBLIC Crypto)
 
-add_executable(gentxn Gen_Test_Transaction.cpp)
+add_executable(gentxn gentxn.cpp)
 add_custom_command(TARGET zilliqa
     POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:gentxn> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
