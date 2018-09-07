@@ -403,3 +403,9 @@ bool DirectoryService::IsNodeSubmittedDSPoWSoln(PubKey Pubk)
     }
     return false;
 }
+
+uint32_t DirectoryService::GetNumberOfDSPoWSolns()
+{
+    lock_guard<mutex> g(m_mutexAllDSPOWs);
+    return m_allDSPoWs.size();
+}
