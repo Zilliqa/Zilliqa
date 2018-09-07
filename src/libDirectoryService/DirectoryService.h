@@ -75,6 +75,12 @@ class DirectoryService : public Executable, public Broadcastable
     std::vector<unsigned char> m_PoWConsensusMessage;
     std::mutex m_mutexAllPoWCounter;
     std::map<PubKey, uint8_t> m_AllPoWCounter;
+    std::mutex m_mutexAllPOW;
+    std::map<PubKey, std::array<unsigned char, 32>>
+        m_allPoWs; // map<pubkey, PoW Soln>
+    std::mutex m_mutexAllDSPOWs;
+    std::map<PubKey, std::array<unsigned char, 32>>
+        m_allDSPoWs; // map<pubkey, DS PoW Sol
 
     // Consensus variables
     std::shared_ptr<ConsensusCommon> m_consensusObject;
@@ -83,9 +89,6 @@ class DirectoryService : public Executable, public Broadcastable
     // PoW (DS block) consensus variables
     std::shared_ptr<DSBlock> m_pendingDSBlock;
     std::mutex m_mutexPendingDSBlock;
-    std::map<PubKey, std::array<unsigned char, 32>>
-        m_allPoWs; // map<pubkey, PoW Soln>
-    std::mutex m_mutexAllPOW;
 
     // Final block consensus variables
     std::shared_ptr<TxBlock> m_finalBlock;
@@ -416,6 +419,12 @@ private:
     static std::map<Action, std::string> ActionStrings;
     std::string GetActionString(Action action) const;
     bool ValidateViewChangeState(DirState NodeState, DirState StatePropose);
+
+    void AddDSPoWs(PubKey Pubk, std::array<unsigned char, 32> DSPOWSoln);
+    std::map<PubKey, std::array<unsigned char, 32>> GetAllDSPoWs();
+    void clearDSPoWSolns();
+    std::array<unsigned char, 32> GetDSPoWSoln(PubKey Pubk);
+    bool IsNodeSubmittedDSPoWSoln(PubKey Pubk);
 };
 
 #endif // __DIRECTORYSERVICE_H__

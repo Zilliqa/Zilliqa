@@ -393,6 +393,8 @@ bool DirectoryService::CleanVariables()
         m_allPoWs.clear();
     }
 
+    clearDSPoWSolns();
+
     ResetPoWSubmissionCounter();
 
     {
