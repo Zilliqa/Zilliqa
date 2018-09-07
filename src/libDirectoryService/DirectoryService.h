@@ -425,6 +425,7 @@ private:
     void clearDSPoWSolns();
     std::array<unsigned char, 32> GetDSPoWSoln(PubKey Pubk);
     bool IsNodeSubmittedDSPoWSoln(PubKey Pubk);
+    uint32_t GetNumberOfDSPoWSolns();
 };
 
 #endif // __DIRECTORYSERVICE_H__
