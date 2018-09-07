@@ -97,47 +97,29 @@ bool DirectoryService::VerifyPoWSubmission(
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "dsblock_num            = " << block_num);
 
+    uint8_t expectedDSDiff = DS_POW_DIFFICULTY;
+    uint8_t expectedDiff = POW_DIFFICULTY;
+
     // Non-gensis block
     if (block_num > 1)
     {
-        uint8_t expectedDSDiff = m_mediator.m_dsBlockChain.GetLastBlock()
-                                     .GetHeader()
-                                     .GetDSDifficulty();
-        uint8_t expectedDiff = m_mediator.m_dsBlockChain.GetLastBlock()
-                                   .GetHeader()
-                                   .GetDifficulty();
-
-        if (difficultyLevel != expectedDSDiff
-            && difficultyLevel != expectedDiff)
-        {
-            LOG_GENERAL(WARNING,
-                        "Difficulty level is invalid. difficultyLevel: "
-                            << to_string(difficultyLevel)
-                            << " Expected: " << to_string(expectedDSDiff)
-                            << " or " << to_string(expectedDiff));
-
-            // TODO: penalise sender in reputation manager
-            return false;
-        }
+        expectedDSDiff = m_mediator.m_dsBlockChain.GetLastBlock()
+                             .GetHeader()
+                             .GetDSDifficulty();
+        expectedDiff = m_mediator.m_dsBlockChain.GetLastBlock()
+                           .GetHeader()
+                           .GetDifficulty();
     }
-    else if (block_num == 1)
-    {
-        if (difficultyLevel != POW_DIFFICULTY
-            && difficultyLevel != DS_POW_DIFFICULTY)
-        {
-            LOG_GENERAL(WARNING,
-                        "Difficulty level is invalid. DifficultyLevel: "
-                            << to_string(difficultyLevel)
-                            << " Expected: " << to_string(DS_POW_DIFFICULTY)
-                            << " or " << to_string(POW_DIFFICULTY));
 
-            // TODO: penalise sender in reputation manager
-            return false;
-        }
-    }
-    else
+    if (difficultyLevel != expectedDSDiff && difficultyLevel != expectedDiff)
     {
-        LOG_GENERAL(WARNING, "Block_num is invalid. block_num " << block_num);
+        LOG_GENERAL(WARNING,
+                    "Difficulty level is invalid. difficultyLevel: "
+                        << to_string(difficultyLevel)
+                        << " Expected: " << to_string(expectedDSDiff) << " or "
+                        << to_string(expectedDiff));
+
+        // TODO: penalise sender in reputation manager
         return false;
     }
 
