@@ -198,9 +198,7 @@ public:
                          unsigned int offset,
                          const std::map<uint32_t, std::vector<unsigned char>>&);
 
-    bool
-    ProcessEntireShardingStructure(const std::vector<unsigned char>& message,
-                                   unsigned int offset, const Peer& from);
+    bool ProcessEntireShardingStructure();
     bool
     ProcessGetSeedPeersFromLookup(const std::vector<unsigned char>& message,
                                   unsigned int offset, const Peer& from);

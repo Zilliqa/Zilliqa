@@ -540,9 +540,7 @@ vector<Peer> Lookup::GetNodePeers()
     return m_nodesInNetwork;
 }
 
-bool Lookup::ProcessEntireShardingStructure(
-    const vector<unsigned char>& message, unsigned int offset,
-    [[gnu::unused]] const Peer& from)
+bool Lookup::ProcessEntireShardingStructure()
 {
     if (!LOOKUP_NODE_MODE)
     {
@@ -560,17 +558,13 @@ bool Lookup::ProcessEntireShardingStructure(
     lock_guard<mutex> g(m_mutexShards, adopt_lock);
     lock_guard<mutex> h(m_mutexNodesInNetwork, adopt_lock);
 
-    m_shards.clear();
-
-    ShardingStructure::Deserialize(message, offset, m_shards);
-
     m_nodesInNetwork.clear();
     unordered_set<Peer> t_nodesInNetwork;
 
-    for (unsigned int i = 0; i < m_shards.size(); i++)
+    for (unsigned int i = 0; i < m_mediator.m_ds->m_shards.size(); i++)
     {
         unsigned int index = 0;
-        for (auto& j : m_shards.at(i))
+        for (auto& j : m_mediator.m_ds->m_shards.at(i))
         {
             const PubKey& key = j.first;
             const Peer& peer = j.second;
