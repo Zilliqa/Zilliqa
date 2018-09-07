@@ -23,6 +23,7 @@
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Address.h"
 #include "libData/AccountData/Transaction.h"
+#include "libData/AccountData/TransactionReceipt.h"
 #include "libData/BlockData/Block.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
@@ -250,17 +251,21 @@ bool JSONConversion::checkJsonTx(const Json::Value& _json)
     return ret;
 }
 
-const Json::Value JSONConversion::convertTxtoJson(const Transaction& tx)
+const Json::Value
+JSONConversion::convertTxtoJson(const TransactionWithReceipt& twr)
 {
     Json::Value _json;
 
-    _json["ID"] = tx.GetTranID().hex();
-    _json["version"] = tx.GetVersion().str();
-    _json["nonce"] = tx.GetNonce().str();
-    _json["toAddr"] = tx.GetToAddr().hex();
-    _json["senderPubKey"] = static_cast<string>(tx.GetSenderPubKey());
-    _json["amount"] = tx.GetAmount().str();
-    _json["signature"] = static_cast<string>(tx.GetSignature());
+    _json["ID"] = twr.GetTransaction().GetTranID().hex();
+    _json["version"] = twr.GetTransaction().GetVersion().str();
+    _json["nonce"] = twr.GetTransaction().GetNonce().str();
+    _json["toAddr"] = twr.GetTransaction().GetToAddr().hex();
+    _json["senderPubKey"]
+        = static_cast<string>(twr.GetTransaction().GetSenderPubKey());
+    _json["amount"] = twr.GetTransaction().GetAmount().str();
+    _json["signature"]
+        = static_cast<string>(twr.GetTransaction().GetSignature());
+    _json["receipt"] = twr.GetTransactionReceipt().GetJsonValue();
 
     return _json;
 }

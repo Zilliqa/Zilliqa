@@ -69,9 +69,6 @@ class DirectoryService : public Executable, public Broadcastable
     std::vector<std::vector<Peer>> m_shardReceivers;
     std::vector<std::vector<Peer>> m_shardSenders;
 
-    std::mutex m_MutexScheduleFinalBlockConsensus;
-    std::condition_variable cv_scheduleFinalBlockConsensus;
-
     // PoW common variables
     std::mutex m_mutexAllPoWs;
     std::map<PubKey, Peer> m_allPoWConns;
@@ -90,10 +87,12 @@ class DirectoryService : public Executable, public Broadcastable
     std::mutex m_mutexAllPOW;
 
     // Final block consensus variables
-    std::set<MicroBlock> m_microBlocks;
-    std::mutex m_mutexMicroBlocks;
     std::shared_ptr<TxBlock> m_finalBlock;
     std::vector<unsigned char> m_finalBlockMessage;
+
+    std::mutex m_mutexMBSubmissionBuffer;
+    std::unordered_map<uint64_t, std::vector<std::vector<unsigned char>>>
+        m_MBSubmissionBuffer;
 
     // View Change
     std::atomic<uint32_t> m_viewChangeCounter;
@@ -126,6 +125,11 @@ class DirectoryService : public Executable, public Broadcastable
 
     Synchronizer m_synchronizer;
 
+    //Coinbase
+    std::map<uint64_t, std::unordered_map<int32_t, std::vector<Address>>>
+        m_coinbaseRewardees;
+    std::mutex m_mutexCoinbaseRewardees;
+
     const uint32_t RESHUFFLE_INTERVAL = 500;
 
     // Message handlers
@@ -144,7 +148,6 @@ class DirectoryService : public Executable, public Broadcastable
     // To block certain types of incoming message for certain states
     bool ToBlockMessage(unsigned char ins_byte);
 
-#ifndef IS_LOOKUP_NODE
     bool CheckState(Action action);
     void
     SetupMulticastConfigForShardingStructure(unsigned int& my_DS_cluster_num,
@@ -190,7 +193,6 @@ class DirectoryService : public Executable, public Broadcastable
                                     unsigned int my_shards_hi);
 
     // Final Block functions
-    void RunConsensusOnFinalBlock();
     bool RunConsensusOnFinalBlockWhenDSPrimary();
     bool RunConsensusOnFinalBlockWhenDSBackup();
     void ComposeFinalBlockCore();
@@ -204,8 +206,12 @@ class DirectoryService : public Executable, public Broadcastable
                              uint64_t& nonce, array<unsigned char, 32>& rand1,
                              array<unsigned char, 32>& rand2,
                              unsigned int& difficulty, uint64_t& block_num);
+    void CommitMBSubmissionMsgBuffer();
+    bool ProcessMicroblockSubmissionCore(const vector<unsigned char>& message,
+                                         unsigned int curr_offset);
     void ExtractDataFromMicroblocks(
         TxnHash& microblockTxnTrieRoot, StateHash& microblockDeltaTrieRoot,
+        TxnHash& microblockTranReceiptRoot,
         std::vector<MicroBlockHashSet>& microblockHashes,
         std::vector<uint32_t>& shardIDs,
         boost::multiprecision::uint256_t& allGasLimit,
@@ -282,7 +288,6 @@ class DirectoryService : public Executable, public Broadcastable
 
     // Reset certain variables to the initial state
     bool CleanVariables();
-#endif // IS_LOOKUP_NODE
 
     uint8_t CalculateNewDifficulty(const uint8_t& prevDifficulty);
 
@@ -313,6 +318,12 @@ public:
     uint32_t m_consensusID;
     uint16_t m_consensusLeaderID;
 
+    std::mutex m_MutexScheduleDSMicroBlockConsensus;
+    std::condition_variable cv_scheduleDSMicroBlockConsensus;
+
+    std::mutex m_MutexScheduleFinalBlockConsensus;
+    std::condition_variable cv_scheduleFinalBlockConsensus;
+
     /// The current role of this Zilliqa instance within the directory service committee.
     std::atomic<Mode> m_mode;
 
@@ -328,13 +339,24 @@ public:
     /// The epoch number when DS tries doing Rejoin
     uint64_t m_latestActiveDSBlockNum = 0;
 
+    /// Serialized account store temp to revert to if ds microblock consensus failed
+    std::vector<unsigned char> m_stateDeltaFromShards;
+
+    /// Whether to send txn from ds microblock to lookup at finalblock consensus done
+    std::atomic<bool> m_toSendTxnToLookup;
+
+    /// Whether ds started microblock consensuis
+    std::atomic<bool> m_dsStartedMicroblockConsensus;
+
+    std::set<MicroBlock> m_microBlocks;
+    std::mutex m_mutexMicroBlocks;
+
     /// Constructor. Requires mediator reference to access Node and other global members.
     DirectoryService(Mediator& mediator);
 
     /// Destructor.
     ~DirectoryService();
 
-#ifndef IS_LOOKUP_NODE
     /// Sets the value of m_state.
     void SetState(DirState state);
 
@@ -350,7 +372,17 @@ public:
 
     /// Post processing after the DS node successfully synchronized with the network
     bool FinishRejoinAsDS();
-#endif // IS_LOOKUP_NODE
+
+    void RunConsensusOnFinalBlock(bool revertStateDelta = false);
+
+    //Coinbase
+    bool SaveCoinbase(const std::vector<bool>& b1, const std::vector<bool>& b2,
+                      const int32_t& shard_id);
+    void InitCoinbase();
+
+    template<class Container>
+    bool SaveCoinbaseCore(const vector<bool>& b1, const vector<bool>& b2,
+                          const Container& shard, const uint32_t& shard_id);
 
     /// Implements the Execute function inherited from Executable.
     bool Execute(const std::vector<unsigned char>& message, unsigned int offset,

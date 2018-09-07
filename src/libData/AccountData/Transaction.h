@@ -89,7 +89,7 @@ public:
     int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
 
     /// Returns the size in bytes when serializing the transaction.
-    unsigned int GetSerializedSize();
+    unsigned int GetSerializedSize() const;
 
     /// Return the size of static typed variables for a minimum size check
     static unsigned int GetMinSerializedSize();
@@ -108,6 +108,9 @@ public:
 
     //// Returns the sender's Public Key.
     const PubKey& GetSenderPubKey() const;
+
+    /// Returns the sender's Address
+    Address GetSenderAddr() const;
 
     /// Returns the transaction amount.
     const boost::multiprecision::uint256_t& GetAmount() const;

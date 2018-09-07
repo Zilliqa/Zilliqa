@@ -38,14 +38,22 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-#ifndef IS_LOOKUP_NODE
 void DirectoryService::ExtractDataFromMicroblocks(
     TxnHash& microblockTxnTrieRoot, StateHash& microblockDeltaTrieRoot,
+    TxnHash& microblockTranReceiptRoot,
     std::vector<MicroBlockHashSet>& microblockHashes,
     std::vector<uint32_t>& shardIDs, uint256_t& allGasLimit,
     uint256_t& allGasUsed, uint32_t& numTxs,
     std::vector<bool>& isMicroBlockEmpty, uint32_t& numMicroBlocks) const
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::ExtractDataFromMicroblocks not expected "
+                    "to be called from LookUp node.");
+        return;
+    }
+
     LOG_MARKER();
 
     bool isVacuousEpoch
@@ -57,11 +65,6 @@ void DirectoryService::ExtractDataFromMicroblocks(
 
     for (auto& microBlock : m_microBlocks)
     {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Micro block " << i << " has "
-                                 << microBlock.GetHeader().GetNumTxs()
-                                 << " transactions.");
-
         LOG_STATE("[STATS][" << std::setw(15) << std::left
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
                              << "][" << i << "    ]["
@@ -72,7 +75,8 @@ void DirectoryService::ExtractDataFromMicroblocks(
 
         microblockHashes.push_back(
             {microBlock.GetHeader().GetTxRootHash(),
-             microBlock.GetHeader().GetStateDeltaHash()});
+             microBlock.GetHeader().GetStateDeltaHash(),
+             microBlock.GetHeader().GetTranReceiptHash()});
         shardIDs.push_back(microBlock.GetHeader().GetShardID());
         allGasLimit += microBlock.GetHeader().GetGasLimit();
         allGasUsed += microBlock.GetHeader().GetGasUsed();
@@ -89,9 +93,9 @@ void DirectoryService::ExtractDataFromMicroblocks(
         {
             m_mediator.m_node->m_unavailableMicroBlocks[blockNum].insert(
                 {{{microBlock.GetHeader().GetTxRootHash(),
-                   microBlock.GetHeader().GetStateDeltaHash()},
+                   microBlock.GetHeader().GetStateDeltaHash(),
+                   microBlock.GetHeader().GetTranReceiptHash()},
                   microBlock.GetHeader().GetShardID()},
-                 // {!isEmptyTxn, true}});
                  {false, true}});
 
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -114,23 +118,31 @@ void DirectoryService::ExtractDataFromMicroblocks(
 
     microblockTxnTrieRoot = ComputeTransactionsRoot(microblockHashes);
     microblockDeltaTrieRoot = ComputeDeltasRoot(microblockHashes);
+    microblockTranReceiptRoot = ComputeTranReceiptsRoot(microblockHashes);
 
     LOG_EPOCH(
         INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
         "Proposed FinalBlock TxnTrieRootHash : "
-            << DataConversion::charArrToHexStr(microblockTxnTrieRoot.asArray())
-            << endl
-            << " DeltaTrieRootHash: "
-            << DataConversion::charArrToHexStr(
-                   microblockDeltaTrieRoot.asArray()));
+            << microblockTxnTrieRoot.hex() << endl
+            << " DeltaTrieRootHash: " << microblockDeltaTrieRoot.hex() << endl
+            << " TranReceiptRootHash: " << microblockTranReceiptRoot.hex());
 }
 
 void DirectoryService::ComposeFinalBlockCore()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::ComposeFinalBlockCore not expected to "
+                    "be called from LookUp node.");
+        return;
+    }
+
     LOG_MARKER();
 
     TxnHash microblockTxnTrieRoot;
     StateHash microblockDeltaTrieRoot;
+    TxnHash microblockTranReceiptRoot;
     std::vector<MicroBlockHashSet> microBlockHashes;
     std::vector<uint32_t> shardIDs;
     uint8_t type = TXBLOCKTYPE::FINAL;
@@ -143,9 +155,9 @@ void DirectoryService::ComposeFinalBlockCore()
     StateHash stateDeltaHash = AccountStore::GetInstance().GetStateDeltaHash();
 
     ExtractDataFromMicroblocks(microblockTxnTrieRoot, microblockDeltaTrieRoot,
-                               microBlockHashes, shardIDs, allGasLimit,
-                               allGasUsed, numTxs, isMicroBlockEmpty,
-                               numMicroBlocks);
+                               microblockTranReceiptRoot, microBlockHashes,
+                               shardIDs, allGasLimit, allGasUsed, numTxs,
+                               isMicroBlockEmpty, numMicroBlocks);
 
     BlockHash prevHash;
     uint256_t timestamp = get_time_as_int();
@@ -200,9 +212,10 @@ void DirectoryService::ComposeFinalBlockCore()
     m_finalBlock.reset(new TxBlock(
         TxBlockHeader(type, version, allGasLimit, allGasUsed, prevHash,
                       blockNum, timestamp, microblockTxnTrieRoot, stateRoot,
-                      microblockDeltaTrieRoot, stateDeltaHash, numTxs,
-                      numMicroBlocks, m_mediator.m_selfKey.second,
-                      lastDSBlockNum, dsBlockHeader),
+                      microblockDeltaTrieRoot, stateDeltaHash,
+                      microblockTranReceiptRoot, numTxs, numMicroBlocks,
+                      m_mediator.m_selfKey.second, lastDSBlockNum,
+                      dsBlockHeader),
         vector<bool>(isMicroBlockEmpty),
         vector<MicroBlockHashSet>(microBlockHashes), vector<uint32_t>(shardIDs),
         CoSignatures(m_mediator.m_DSCommittee->size())));
@@ -222,6 +235,14 @@ void DirectoryService::ComposeFinalBlockCore()
 
 vector<unsigned char> DirectoryService::ComposeFinalBlockMessage()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::ComposeFinalBlockMessage not expected "
+                    "to be called from LookUp node.");
+        return vector<unsigned char>();
+    }
+
     LOG_MARKER();
 
     vector<unsigned char> finalBlockMessage;
@@ -277,6 +298,14 @@ vector<unsigned char> DirectoryService::ComposeFinalBlockMessage()
 
 bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary "
+                    "not expected to be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     // Compose the final block from all the microblocks
@@ -341,6 +370,14 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
 // Check type (must be final block type)
 bool DirectoryService::CheckBlockTypeIsFinal()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::CheckBlockTypeIsFinal not expected to "
+                    "be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     if (m_finalBlock->GetHeader().GetType() != TXBLOCKTYPE::FINAL)
@@ -362,6 +399,14 @@ bool DirectoryService::CheckBlockTypeIsFinal()
 // Check version (must be most current version)
 bool DirectoryService::CheckFinalBlockVersion()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::CheckFinalBlockVersion not expected to "
+                    "be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     if (m_finalBlock->GetHeader().GetVersion() != BLOCKVERSION::VERSION1)
@@ -384,6 +429,14 @@ bool DirectoryService::CheckFinalBlockVersion()
 // Check block number (must be = 1 + block number of last Tx block header in the Tx blockchain)
 bool DirectoryService::CheckFinalBlockNumber()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::CheckFinalBlockNumber not expected to "
+                    "be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     const uint64_t& finalblockBlocknum
@@ -420,6 +473,14 @@ bool DirectoryService::CheckFinalBlockNumber()
 // Check previous hash (must be = sha2-256 digest of last Tx block header in the Tx blockchain)
 bool DirectoryService::CheckPreviousFinalBlockHash()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::CheckPreviousFinalBlockHash not "
+                    "expected to be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     const BlockHash& finalblockPrevHash
@@ -464,6 +525,14 @@ bool DirectoryService::CheckPreviousFinalBlockHash()
 // Check timestamp (must be greater than timestamp of last Tx block header in the Tx blockchain)
 bool DirectoryService::CheckFinalBlockTimestamp()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::CheckFinalBlockTimestamp not expected "
+                    "to be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     if (m_mediator.m_txBlockChain.GetBlockCount() > 0)
@@ -492,6 +561,14 @@ bool DirectoryService::CheckFinalBlockTimestamp()
 // Check microblock hashes
 bool DirectoryService::CheckMicroBlockHashes()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::CheckMicroBlockHashes not expected to "
+                    "be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     auto& hashesInMicroBlocks = m_finalBlock->GetMicroBlockHashes();
@@ -528,28 +605,55 @@ bool DirectoryService::CheckMicroBlockHashes()
 // Check microblock hashes root
 bool DirectoryService::CheckMicroBlockHashRoot()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::CheckMicroBlockHashRoot not expected to "
+                    "be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
-    TxnHash microBlocksTxnHash
+    LOG_GENERAL(INFO, "Microblock hashes: ")
+
+    for (const auto& i : m_finalBlock->GetMicroBlockHashes())
+    {
+        LOG_GENERAL(INFO, i);
+    }
+
+    TxnHash microBlocksTxnRoot
         = ComputeTransactionsRoot(m_finalBlock->GetMicroBlockHashes());
 
-    StateHash microBlocksDeltaHash
+    StateHash microBlocksDeltaRoot
         = ComputeDeltasRoot(m_finalBlock->GetMicroBlockHashes());
 
-    LOG_EPOCH(
-        INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-        "Expected FinalBlock txnHash : "
-            << DataConversion::charArrToHexStr(microBlocksTxnHash.asArray())
-            << endl
-            << "stateDeltaHash : "
-            << DataConversion::charArrToHexStr(microBlocksDeltaHash.asArray()));
+    TxnHash microBlockTranReceiptsRoot
+        = ComputeTranReceiptsRoot(m_finalBlock->GetMicroBlockHashes());
 
-    if (m_finalBlock->GetHeader().GetTxRootHash() != microBlocksTxnHash
-        || m_finalBlock->GetHeader().GetDeltaRootHash() != microBlocksDeltaHash)
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Expected FinalBlock txnRoot : "
+                  << microBlocksTxnRoot.hex() << endl
+                  << "stateDeltaRoot : " << microBlocksDeltaRoot.hex() << endl
+                  << "tranReceiptRoot : " << microBlockTranReceiptsRoot.hex());
+
+    if (m_finalBlock->GetHeader().GetTxRootHash() != microBlocksTxnRoot
+        || m_finalBlock->GetHeader().GetDeltaRootHash() != microBlocksDeltaRoot
+        || m_finalBlock->GetHeader().GetTranReceiptRootHash()
+            != microBlockTranReceiptsRoot)
     {
         LOG_GENERAL(WARNING,
                     "Microblock root hash in proposed final block by "
                     "leader is incorrect");
+
+        LOG_EPOCH(
+            INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            "Received FinalBlock txnRoot : "
+                << m_finalBlock->GetHeader().GetTxRootHash().hex() << endl
+                << "stateDeltaRoot : "
+                << m_finalBlock->GetHeader().GetDeltaRootHash().hex() << endl
+                << "tranReceiptRoot : "
+                << m_finalBlock->GetHeader().GetTranReceiptRootHash().hex());
 
         m_consensusObject->SetConsensusErrorCode(
             ConsensusCommon::FINALBLOCK_INVALID_MICROBLOCK_ROOT_HASH);
@@ -562,6 +666,14 @@ bool DirectoryService::CheckMicroBlockHashRoot()
 
 bool DirectoryService::CheckIsMicroBlockEmpty()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::CheckIsMicroBlockEmpty not expected to "
+                    "be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     auto& hashesInMicroBlocks = m_finalBlock->GetMicroBlockHashes();
@@ -608,6 +720,14 @@ bool DirectoryService::CheckIsMicroBlockEmpty()
 // Check state root
 bool DirectoryService::CheckStateRoot()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::CheckStateRoot not expected to be "
+                    "called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     StateHash stateRoot = StateHash();
@@ -616,7 +736,7 @@ bool DirectoryService::CheckStateRoot()
         = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
     if (isVacuousEpoch)
     {
-        AccountStore::GetInstance().PrintAccountState();
+        // AccountStore::GetInstance().PrintAccountState();
         stateRoot = AccountStore::GetInstance().GetStateRootHash();
     }
 
@@ -643,6 +763,14 @@ bool DirectoryService::CheckStateRoot()
 
 bool DirectoryService::CheckStateDeltaHash()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::CheckStateDeltaHash not expected to be "
+                    "called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     StateHash stateRootHash = AccountStore::GetInstance().GetStateDeltaHash();
@@ -670,6 +798,14 @@ bool DirectoryService::CheckStateDeltaHash()
 
 bool DirectoryService::CheckFinalBlockValidity()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::CheckFinalBlockValidity not expected to "
+                    "be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     if (!CheckBlockTypeIsFinal() || !CheckFinalBlockVersion()
@@ -780,6 +916,14 @@ bool DirectoryService::FinalBlockValidator(
     const vector<unsigned char>& finalblock,
     [[gnu::unused]] vector<unsigned char>& errorMsg)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::FinalBlockValidator not expected to be "
+                    "called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     unsigned int curr_offset = 0;
@@ -825,6 +969,14 @@ bool DirectoryService::FinalBlockValidator(
 
 bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::RunConsensusOnFinalBlockWhenDSBackup "
+                    "not expected to be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -857,11 +1009,28 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup()
     return true;
 }
 
-void DirectoryService::RunConsensusOnFinalBlock()
+void DirectoryService::RunConsensusOnFinalBlock(bool revertStateDelta)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::RunConsensusOnFinalBlock not expected "
+                    "to be called from LookUp node.");
+        return;
+    }
+
     LOG_MARKER();
 
     SetState(FINALBLOCK_CONSENSUS_PREP);
+
+    if (revertStateDelta)
+    {
+        LOG_GENERAL(WARNING,
+                    "Failed DS microblock consensus, revert state delta");
+        AccountStore::GetInstance().InitTemp();
+        AccountStore::GetInstance().DeserializeDeltaTemp(m_stateDeltaFromShards,
+                                                         0);
+    }
 
     AccountStore::GetInstance().SerializeDelta();
 
@@ -907,4 +1076,3 @@ void DirectoryService::RunConsensusOnFinalBlock()
         DetachedFunction(1, func);
     }
 }
-#endif // IS_LOOKUP_NODE
