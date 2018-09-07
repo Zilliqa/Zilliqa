@@ -96,7 +96,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
         // - Submit solution and continue to do PoW till DS difficulty met or
         //   ds block received. (stopmining())
         if (POW::GetInstance().CheckSolnAgainstsTargetedDifficulty(
-                (std::string)winning_result.result, ds_difficulty))
+                winning_result.result, ds_difficulty))
         {
             LOG_GENERAL(INFO,
                         "Found PoW solution that met requirement for both ds "
@@ -199,7 +199,7 @@ void Node::SendPoWResultToDSComm(const uint64_t& block_num,
     }
     sign.Serialize(powmessage, cur_offset);
 
-    deque<Peer> peerList;
+    vector<Peer> peerList;
 
     for (auto const& i : *m_mediator.m_DSCommittee)
     {
