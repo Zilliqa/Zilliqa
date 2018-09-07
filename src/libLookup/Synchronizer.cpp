@@ -88,8 +88,9 @@ TxBlock Synchronizer::ConstructGenesisTxBlock()
 
     return TxBlock(TxBlockHeader(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1,
                                  1, BlockHash(), 0, 151384616955606, TxnHash(),
-                                 StateHash(), StateHash(), StateHash(), 0, 5,
-                                 keypair.second, 0, BlockHash()),
+                                 StateHash(), StateHash(), StateHash(),
+                                 TxnHash(), 0, 5, keypair.second, 0,
+                                 BlockHash()),
                    vector<bool>(1), vector<MicroBlockHashSet>(5),
                    vector<uint32_t>(5), CoSignatures());
 }
@@ -126,9 +127,16 @@ bool Synchronizer::InitializeGenesisBlocks(DSBlockChain& dsBlockChain,
     return true;
 }
 
-#ifndef IS_LOOKUP_NODE
 bool Synchronizer::FetchDSInfo(Lookup* lookup)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Synchronizer::FetchDSInfo not expected to be called from "
+                    "LookUp node.");
+        return true;
+    }
+
     lookup->GetDSInfoFromLookupNodes();
     // lookup->GetDSInfoFromSeedNodes();
     return true;
@@ -137,6 +145,14 @@ bool Synchronizer::FetchDSInfo(Lookup* lookup)
 bool Synchronizer::FetchLatestDSBlocks(Lookup* lookup,
                                        uint64_t currentBlockChainSize)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Synchronizer::FetchLatestDSBlocks not expected to be "
+                    "called from LookUp node.");
+        return true;
+    }
+
     lookup->GetDSBlockFromLookupNodes(currentBlockChainSize, 0);
     // lookup->GetDSBlockFromSeedNodes(currentBlockChainSize, 0);
     return true;
@@ -145,6 +161,14 @@ bool Synchronizer::FetchLatestDSBlocks(Lookup* lookup,
 bool Synchronizer::FetchLatestTxBlocks(Lookup* lookup,
                                        uint64_t currentBlockChainSize)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Synchronizer::FetchLatestTxBlocks not expected to be "
+                    "called from LookUp node.");
+        return true;
+    }
+
     lookup->GetTxBlockFromLookupNodes(currentBlockChainSize, 0);
     // lookup->GetTxBlockFromSeedNodes(currentBlockChainSize, 0);
     return true;
@@ -152,6 +176,14 @@ bool Synchronizer::FetchLatestTxBlocks(Lookup* lookup,
 
 bool Synchronizer::FetchLatestState(Lookup* lookup)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Synchronizer::FetchLatestState not expected to be called "
+                    "from LookUp node.");
+        return true;
+    }
+
     lookup->GetStateFromLookupNodes();
     // lookup->GetStateFromSeedNodes(currentBlockChainSize, 0);
     return true;
@@ -159,6 +191,14 @@ bool Synchronizer::FetchLatestState(Lookup* lookup)
 
 bool Synchronizer::AttemptPoW(Lookup* lookup)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Synchronizer::AttemptPoW not expected to be called from "
+                    "LookUp node.");
+        return true;
+    }
+
     if (lookup->InitMining())
     {
         LOG_GENERAL(INFO, "new node attempted pow");
@@ -173,7 +213,14 @@ bool Synchronizer::AttemptPoW(Lookup* lookup)
 
 bool Synchronizer::FetchOfflineLookups(Lookup* lookup)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Synchronizer::FetchOfflineLookups not expected to be "
+                    "called from LookUp node.");
+        return true;
+    }
+
     lookup->GetOfflineLookupNodes();
     return true;
 }
-#endif // IS_LOOKUP_NODE

@@ -23,7 +23,6 @@
 #include <mutex>
 #include <shared_mutex>
 #include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 #include "common/Broadcastable.h"
@@ -32,8 +31,10 @@
 #include "depends/common/FixedHash.h"
 #include "libConsensus/Consensus.h"
 #include "libData/AccountData/Transaction.h"
+#include "libData/AccountData/TransactionReceipt.h"
 #include "libData/BlockData/Block.h"
 #include "libData/BlockData/BlockHeader/UnavailableMicroBlock.h"
+#include "libData/DataStructures/MultiIndexContainer.h"
 #include "libLookup/Synchronizer.h"
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/PeerStore.h"
@@ -58,7 +59,6 @@ class Node : public Executable, public Broadcastable
 
     enum SUBMITTRANSACTIONTYPE : unsigned char
     {
-        TXNSHARING = 0x00,
         MISSINGTXN = 0x01
     };
 
@@ -69,24 +69,25 @@ class Node : public Executable, public Broadcastable
         ATSTATEROOT = 0x02
     };
 
+    enum LEGITIMACYRESULT : unsigned char
+    {
+        SUCCESS = 0x00,
+        MISSEDTXN,
+        WRONGORDER
+    };
+
     Mediator& m_mediator;
 
     Synchronizer m_synchronizer;
 
     // DS block information
-    std::mutex m_mutexDSBlock;
-
     std::mutex m_mutexConsensus;
 
     // Sharding information
-    std::shared_ptr<std::deque<pair<PubKey, Peer>>> m_myShardMembers;
-    std::atomic<bool> m_isPrimary;
     std::atomic<bool> m_isMBSender;
-    std::atomic<uint32_t> m_myShardID;
     std::atomic<uint32_t> m_numShards;
 
     // Transaction sharing assignments
-    std::atomic<bool> m_txnSharingIAmSender;
     std::atomic<bool> m_txnSharingIAmForwarder;
     std::vector<std::vector<Peer>> m_txnSharingAssignedNodes;
 
@@ -109,7 +110,6 @@ class Node : public Executable, public Broadcastable
     std::shared_ptr<Retriever> m_retriever;
 
     std::vector<unsigned char> m_consensusBlockHash;
-    std::atomic<uint32_t> m_consensusMyID;
     std::shared_ptr<MicroBlock> m_microblock;
     std::pair<uint64_t, BlockBase> m_lastMicroBlockCoSig;
     std::mutex m_mutexMicroBlock;
@@ -119,34 +119,32 @@ class Node : public Executable, public Broadcastable
 
     // Transactions information
     std::mutex m_mutexCreatedTransactions;
-    std::list<Transaction> m_createdTransactions;
+    gas_txnid_comp_txns m_createdTransactions;
 
-    vector<unsigned char> m_txMessage;
+    std::unordered_map<Address,
+                       std::map<boost::multiprecision::uint256_t, Transaction>>
+        m_addrNonceTxnMap;
+    std::vector<TxnHash> m_txnsOrdering;
 
-    // prefilled transactions sorted by fromAddress
-    std::mutex m_mutexPrefilledTxns;
-    std::atomic_size_t m_nRemainingPrefilledTxns{0};
-    std::unordered_map<Address, std::list<Transaction>> m_prefilledTxns{};
-
-    std::mutex m_mutexSubmittedTransactions;
-    std::unordered_map<uint64_t, std::unordered_map<TxnHash, Transaction>>
-        m_submittedTransactions;
-
-    std::mutex m_mutexReceivedTransactions;
-    std::unordered_map<uint64_t, std::unordered_map<TxnHash, Transaction>>
-        m_receivedTransactions;
+    std::mutex m_mutexProcessedTransactions;
+    std::unordered_map<uint64_t,
+                       std::unordered_map<TxnHash, TransactionWithReceipt>>
+        m_processedTransactions;
+    //operates under m_mutexProcessedTransaction
+    std::vector<TxnHash> m_TxnOrder;
 
     uint32_t m_numOfAbsentTxnHashes;
 
-    std::mutex m_mutexCommittedTransactions;
-    std::unordered_map<uint64_t, std::list<Transaction>>
-        m_committedTransactions;
-
-    std::vector<Transaction> m_txns_to_send;
+    // std::mutex m_mutexCommittedTransactions;
+    // std::unordered_map<uint64_t, std::list<TransactionWithReceipt>>
+    //     m_committedTransactions;
 
     std::mutex m_mutexForwardedTxnBuffer;
     std::unordered_map<uint64_t, std::vector<std::vector<unsigned char>>>
         m_forwardedTxnBuffer;
+
+    std::mutex m_mutexTxnPacketBuffer;
+    std::vector<std::vector<unsigned char>> m_txnPacketBuffer;
 
     atomic<bool> m_isVacuousEpoch;
 
@@ -155,7 +153,6 @@ class Node : public Executable, public Broadcastable
     // To block certain types of incoming message for certain states
     bool ToBlockMessage(unsigned char ins_byte);
 
-#ifndef IS_LOOKUP_NODE
     // internal calls from ProcessStartPoW1
     bool ReadVariablesFromStartPoWMessage(const vector<unsigned char>& message,
                                           unsigned int offset,
@@ -165,26 +162,21 @@ class Node : public Executable, public Broadcastable
                                           array<unsigned char, 32>& rand2);
     bool ProcessSubmitMissingTxn(const vector<unsigned char>& message,
                                  unsigned int offset, const Peer& from);
-    bool ProcessSubmitTxnSharing(const vector<unsigned char>& message,
-                                 unsigned int offset, const Peer& from);
 
-    // internal calls from ActOnMicroBlock for NODE_FORWARD_ONLY and SEND_AND_FORWARD
-    void LoadForwardingAssignment(const vector<Peer>& fellowForwarderNodes,
-                                  const uint64_t& blocknum);
+    // internal calls from ActOnFinalBlock for NODE_FORWARD_ONLY and SEND_AND_FORWARD
+    void LoadForwardingAssignmentFromFinalBlock(
+        const vector<Peer>& fellowForwarderNodes, const uint64_t& blocknum);
 
-    bool FindTxnInSubmittedTxnsList(const uint64_t& blockNum,
-                                    uint8_t sharing_mode,
-                                    vector<Transaction>& txns_to_send,
-                                    const TxnHash& tx_hash);
-    bool FindTxnInReceivedTxnsList(const uint64_t& blockNum,
-                                   uint8_t sharing_mode,
-                                   vector<Transaction>& txns_to_send,
-                                   const TxnHash& tx_hash);
+    bool
+    FindTxnInProcessedTxnsList(const uint64_t& blocknum, uint8_t sharing_mode,
+                               vector<TransactionWithReceipt>& txns_to_send,
+                               const TxnHash& tx_hash);
+
     void GetMyShardsMicroBlock(const uint64_t& blocknum, uint8_t sharing_mode,
-                               vector<Transaction>& txns_to_send);
+                               vector<TransactionWithReceipt>& txns_to_send);
 
-    void BroadcastTransactionsToLookup();
-#endif // IS_LOOKUP_NODE
+    void BroadcastTransactionsToLookup(
+        const vector<TransactionWithReceipt>& txns_to_send);
 
     bool LoadUnavailableMicroBlockHashes(const TxBlock& finalblock,
                                          const uint64_t& blocknum,
@@ -219,21 +211,17 @@ class Node : public Executable, public Broadcastable
     // void StoreMicroBlocks();
     void StoreFinalBlock(const TxBlock& txBlock);
     void InitiatePoW();
-    void UpdateStateForNextConsensusRound();
-    void ScheduleTxnSubmission();
     void ScheduleMicroBlockConsensus();
     void BeginNextConsensusRound();
-
-    void CallActOnFinalblock();
 
     // internal calls from ProcessForwardTransaction
     bool LoadForwardedTxnsAndCheckRoot(
         const vector<unsigned char>& message, unsigned int cur_offset,
         TxnHash& microBlockTxHash, StateHash& microBlockStateDeltaHash,
-        vector<Transaction>& txnsInForwardedMessage);
+        vector<TransactionWithReceipt>& txnsInForwardedMessage);
     // vector<TxnHash> & txnHashesInForwardedMessage);
     void CommitForwardedTransactions(
-        const vector<Transaction>& txnsInForwardedMessage,
+        const vector<TransactionWithReceipt>& txnsInForwardedMessage,
         const uint64_t& blocknum);
 
     void
@@ -250,8 +238,6 @@ class Node : public Executable, public Broadcastable
                          unsigned int offset, const Peer& from);
     bool ProcessSharding(const std::vector<unsigned char>& message,
                          unsigned int offset, const Peer& from);
-    bool ProcessCreateTransaction(const std::vector<unsigned char>& message,
-                                  unsigned int offset, const Peer& from);
     bool ProcessSubmitTransaction(const std::vector<unsigned char>& message,
                                   unsigned int offset, const Peer& from);
     bool ProcessMicroblockConsensus(const std::vector<unsigned char>& message,
@@ -266,6 +252,11 @@ class Node : public Executable, public Broadcastable
     bool ProcessCreateTransactionFromLookup(
         const std::vector<unsigned char>& message, unsigned int offset,
         const Peer& from);
+    bool ProcessTxnPacketFromLookup(const std::vector<unsigned char>& message,
+                                    unsigned int offset, const Peer& from);
+    bool ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
+                                        unsigned int offset);
+
     // bool ProcessCreateAccounts(const std::vector<unsigned char> & message, unsigned int offset, const Peer & from);
     bool ProcessDSBlock(const std::vector<unsigned char>& message,
                         unsigned int offset, const Peer& from);
@@ -283,10 +274,7 @@ class Node : public Executable, public Broadcastable
     bool ProcessVCBlock(const vector<unsigned char>& message,
                         unsigned int cur_offset, const Peer& from);
 
-#ifndef IS_LOOKUP_NODE
     // Transaction functions
-    void SubmitTransactions();
-
     bool OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
                            unsigned int offset, const Peer& from);
     bool
@@ -294,24 +282,28 @@ class Node : public Executable, public Broadcastable
 
     bool RunConsensusOnMicroBlockWhenShardLeader();
     bool RunConsensusOnMicroBlockWhenShardBackup();
-    bool RunConsensusOnMicroBlock();
     bool ComposeMicroBlock();
     void SubmitMicroblockToDSCommittee() const;
     bool
     MicroBlockValidator(const std::vector<unsigned char>& sharding_structure,
                         std::vector<unsigned char>& errorMsg);
-    bool CheckLegitimacyOfTxnHashes(std::vector<unsigned char>& errorMsg);
+    unsigned char
+    CheckLegitimacyOfTxnHashes(std::vector<unsigned char>& errorMsg);
     bool CheckBlockTypeIsMicro();
     bool CheckMicroBlockVersion();
+    bool CheckMicroBlockShardID();
     bool CheckMicroBlockTimestamp();
     bool CheckMicroBlockHashes(std::vector<unsigned char>& errorMsg);
     bool CheckMicroBlockTxnRootHash();
     bool CheckMicroBlockStateDeltaHash();
-    bool CheckMicroBlockShardID();
+    bool CheckMicroBlockTranReceiptHash();
 
-    //Coinbase txns
-    bool Coinbase(const BlockBase& lastMicroBlock, const TxBlock& lastTxBlock);
-    void InitCoinbase();
+    bool VerifyTxnsOrdering(const vector<TxnHash>& tranHashes,
+                            list<Transaction>& curTxns);
+
+    void ProcessTransactionWhenShardLeader();
+    bool ProcessTransactionWhenShardBackup(const vector<TxnHash>& tranHashes,
+                                           vector<TxnHash>& missingtranHashes);
 
     // Is Running from New Process
     bool m_fromNewProcess = true;
@@ -324,14 +316,11 @@ class Node : public Executable, public Broadcastable
 
     // Rejoin the network as a shard node in case of failure happens in protocol
     void RejoinAsNormal();
-#endif // IS_LOOKUP_NODE
 
 public:
     enum NodeState : unsigned char
     {
         POW_SUBMISSION = 0x00,
-        TX_SUBMISSION,
-        TX_SUBMISSION_BUFFER,
         MICROBLOCK_CONSENSUS_PREP,
         MICROBLOCK_CONSENSUS,
         WAITING_FINALBLOCK,
@@ -346,11 +335,16 @@ public:
     // std::mutex m_mutexAllMicroBlocksRecvd;
     // bool m_allMicroBlocksRecvd = true;
 
+    std::shared_ptr<std::deque<pair<PubKey, Peer>>> m_myShardMembers;
+
     std::condition_variable m_cvNewRoundStarted;
     std::mutex m_mutexNewRoundStarted;
-    bool m_newRoundStarted = true;
+    bool m_newRoundStarted = false;
 
     std::mutex m_mutexIsEveryMicroBlockAvailable;
+
+    // Transaction sharing assignment
+    std::atomic<bool> m_txnSharingIAmSender;
 
     // Transaction body sharing variables
     std::mutex m_mutexUnavailableMicroBlocks;
@@ -360,7 +354,14 @@ public:
 
     uint32_t m_consensusID;
 
+    /// Sharding variables
+    std::atomic<uint32_t> m_myShardID;
+    std::atomic<uint32_t> m_consensusMyID;
+    std::atomic<bool> m_isPrimary;
     std::atomic<uint32_t> m_consensusLeaderID;
+
+    // DS block information
+    std::mutex m_mutexDSBlock;
 
     /// The current internal state of this Node instance.
     std::atomic<NodeState> m_state;
@@ -406,17 +407,22 @@ public:
     bool StartRetrieveHistory();
 
     //Erase m_committedTransactions for given epoch number
-    void EraseCommittedTransactions(uint64_t epochNum)
-    {
-        std::lock_guard<std::mutex> g(m_mutexCommittedTransactions);
-        m_committedTransactions.erase(epochNum);
-    }
+    // void EraseCommittedTransactions(uint64_t epochNum)
+    // {
+    //     std::lock_guard<std::mutex> g(m_mutexCommittedTransactions);
+    //     m_committedTransactions.erase(epochNum);
+    // }
 
     /// Add new block into tx blockchain
     void AddBlock(const TxBlock& block);
 
     void CommitForwardedMsgBuffer();
-#ifndef IS_LOOKUP_NODE
+
+    void CleanCreatedTransaction();
+
+    void CallActOnFinalblock();
+
+    void UpdateStateForNextConsensusRound();
 
     // Start synchronization with lookup as a shard node
     void StartSynchronization();
@@ -426,15 +432,17 @@ public:
                   const std::array<unsigned char, UINT256_SIZE>& rand1,
                   const std::array<unsigned char, UINT256_SIZE>& rand2);
 
-    /// Call when the normal node be promoted to DS
-    void CleanCreatedTransaction();
-
     /// Used by oldest DS node to configure shard ID as a new shard node
     void SetMyShardID(uint32_t shardID);
 
     /// Used by oldest DS node to finish setup as a new shard node
     void StartFirstTxEpoch();
-#endif // IS_LOOKUP_NODE
+
+    /// Used for start consensus on microblock
+    bool RunConsensusOnMicroBlock();
+
+    /// Used for commit buffered txn packet
+    void CommitTxnPacketBuffer();
 
     /// Used by oldest DS node to configure sharding variables as a new shard node
     bool LoadShardingStructure(const vector<unsigned char>& message,

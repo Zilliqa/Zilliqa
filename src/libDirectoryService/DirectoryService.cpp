@@ -42,10 +42,11 @@ using namespace boost::multiprecision;
 DirectoryService::DirectoryService(Mediator& mediator)
     : m_mediator(mediator)
 {
-#ifndef IS_LOOKUP_NODE
-    SetState(POW_SUBMISSION);
-    cv_POWSubmission.notify_all();
-#endif // IS_LOOKUP_NODE
+    if (!LOOKUP_NODE_MODE)
+    {
+        SetState(POW_SUBMISSION);
+        cv_POWSubmission.notify_all();
+    }
     m_mode = IDLE;
     m_consensusLeaderID = 0;
     m_consensusID = 1;
@@ -54,10 +55,16 @@ DirectoryService::DirectoryService(Mediator& mediator)
 
 DirectoryService::~DirectoryService() {}
 
-#ifndef IS_LOOKUP_NODE
-
 void DirectoryService::StartSynchronization()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::StartSynchronization not "
+                    "expected to be called from LookUp node.");
+        return;
+    }
+
     LOG_MARKER();
 
     this->CleanVariables();
@@ -105,6 +112,14 @@ void DirectoryService::StartSynchronization()
 
 bool DirectoryService::CheckState(Action action)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::CheckState not "
+                    "expected to be called from LookUp node.");
+        return true;
+    }
+
     if (m_mode == Mode::IDLE)
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -142,13 +157,19 @@ bool DirectoryService::CheckState(Action action)
 
     return true;
 }
-#endif // IS_LOOKUP_NODE
 
-bool DirectoryService::ProcessSetPrimary(
-    [[gnu::unused]] const vector<unsigned char>& message,
-    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
+bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
+                                         unsigned int offset,
+                                         [[gnu::unused]] const Peer& from)
 {
-#ifndef IS_LOOKUP_NODE
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::ProcessSetPrimary not "
+                    "expected to be called from LookUp node.");
+        return true;
+    }
+
     // Note: This function should only be invoked during bootstrap sequence
     // Message = [Primary node IP] [Primary node port]
     LOG_MARKER();
@@ -274,14 +295,20 @@ bool DirectoryService::ProcessSetPrimary(
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Starting consensus on ds block");
     RunConsensusOnDSBlock();
-#endif // IS_LOOKUP_NODE
 
     return true;
 }
 
-#ifndef IS_LOOKUP_NODE
 bool DirectoryService::CheckWhetherDSBlockIsFresh(const uint64_t dsblock_num)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::CheckWhetherDSBlockIsFresh not expected "
+                    "to be called from LookUp node.");
+        return true;
+    }
+
     // uint256_t latest_block_num_in_blockchain = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
     uint64_t latest_block_num_in_blockchain
         = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
@@ -306,6 +333,14 @@ bool DirectoryService::CheckWhetherDSBlockIsFresh(const uint64_t dsblock_num)
 
 void DirectoryService::SetState(DirState state)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::SetState not expected to be called from "
+                    "LookUp node.");
+        return;
+    }
+
     m_state = state;
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "DS State is now " << GetStateString());
@@ -316,6 +351,12 @@ vector<Peer> DirectoryService::GetBroadcastList(
     [[gnu::unused]] const Peer& broadcast_originator)
 {
     // LOG_MARKER();
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::GetBroadcastList not expected to be "
+                    "called from LookUp node.");
+    }
 
     // Regardless of the instruction type, right now all our "broadcasts" are just redundant multicasts from DS nodes to non-DS nodes
     return vector<Peer>();
@@ -323,6 +364,14 @@ vector<Peer> DirectoryService::GetBroadcastList(
 
 bool DirectoryService::CleanVariables()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::CleanVariables not expected to be "
+                    "called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     m_shards.clear();
@@ -359,6 +408,14 @@ bool DirectoryService::CleanVariables()
 
 void DirectoryService::RejoinAsDS()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::RejoinAsDS not expected to be called "
+                    "from LookUp node.");
+        return;
+    }
+
     LOG_MARKER();
     if (m_mediator.m_lookup->m_syncType == SyncType::NO_SYNC
         && m_mode == BACKUP_DS)
@@ -375,6 +432,14 @@ void DirectoryService::RejoinAsDS()
 
 bool DirectoryService::FinishRejoinAsDS()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::FinishRejoinAsDS not expected to be "
+                    "called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
     m_mode = BACKUP_DS;
 
@@ -402,7 +467,6 @@ bool DirectoryService::FinishRejoinAsDS()
     RunConsensusOnDSBlock(true);
     return true;
 }
-#endif // IS_LOOKUP_NODE
 
 bool DirectoryService::ToBlockMessage([[gnu::unused]] unsigned char ins_byte)
 {
@@ -423,27 +487,31 @@ bool DirectoryService::Execute(const vector<unsigned char>& message,
     typedef bool (DirectoryService::*InstructionHandler)(
         const vector<unsigned char>&, unsigned int, const Peer&);
 
-#ifndef IS_LOOKUP_NODE
-    InstructionHandler ins_handlers[]
-        = {&DirectoryService::ProcessSetPrimary,
-           &DirectoryService::ProcessPoWSubmission,
-           &DirectoryService::ProcessDSBlockConsensus,
-           &DirectoryService::ProcessMicroblockSubmission,
-           &DirectoryService::ProcessFinalBlockConsensus,
-           &DirectoryService::ProcessViewChangeConsensus};
-#else
-    InstructionHandler ins_handlers[]
-        = {&DirectoryService::ProcessSetPrimary,
-           &DirectoryService::ProcessPoWSubmission,
-           &DirectoryService::ProcessDSBlockConsensus,
-           &DirectoryService::ProcessMicroblockSubmission,
-           &DirectoryService::ProcessFinalBlockConsensus};
-#endif // IS_LOOKUP_NODE
+    std::vector<InstructionHandler> ins_handlers;
+
+    if (!LOOKUP_NODE_MODE)
+    {
+        ins_handlers.insert(ins_handlers.end(),
+                            {&DirectoryService::ProcessSetPrimary,
+                             &DirectoryService::ProcessPoWSubmission,
+                             &DirectoryService::ProcessDSBlockConsensus,
+                             &DirectoryService::ProcessMicroblockSubmission,
+                             &DirectoryService::ProcessFinalBlockConsensus,
+                             &DirectoryService::ProcessViewChangeConsensus});
+    }
+    else
+    {
+        ins_handlers.insert(ins_handlers.end(),
+                            {&DirectoryService::ProcessSetPrimary,
+                             &DirectoryService::ProcessPoWSubmission,
+                             &DirectoryService::ProcessDSBlockConsensus,
+                             &DirectoryService::ProcessMicroblockSubmission,
+                             &DirectoryService::ProcessFinalBlockConsensus});
+    }
 
     const unsigned char ins_byte = message.at(offset);
 
-    const unsigned int ins_handlers_count
-        = sizeof(ins_handlers) / sizeof(InstructionHandler);
+    const unsigned int ins_handlers_count = ins_handlers.size();
 
     if (ToBlockMessage(ins_byte))
     {
@@ -593,7 +661,7 @@ DirectoryService::CalculateNewDifficulty(const uint8_t& currentDifficulty)
     // If POW_WINDOW_IN_SECONDS = 300, NUM_FINAL_BLOCK_PER_POW = 5, TXN_SUBMISSION = 4, TXN_BROADCAST = 10, estimated blocks in a year is 420480.
     uint64_t estimatedBlocksOneYear = 365 * 24 * 3600
         / ((POW_WINDOW_IN_SECONDS / NUM_FINAL_BLOCK_PER_POW)
-           + (TXN_SUBMISSION + TXN_BROADCAST));
+           + (TX_DISTRIBUTE_TIME_IN_MS));
 
     // After 10 years, the difficulty will not automatically increase anymore..
     newDifficulty += std::min(

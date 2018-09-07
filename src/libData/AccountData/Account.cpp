@@ -327,9 +327,12 @@ unsigned int Account::SerializeDelta(vector<unsigned char>& dst,
 
     Account acc(0, 0);
 
+    bool fullCopy = false;
+
     if (oldAccount == nullptr)
     {
         oldAccount = &acc;
+        fullCopy = true;
     }
     // unsigned int size_needed = ACCOUNT_SIZE;
     // unsigned int size_remaining = dst.size() - offset;
@@ -368,89 +371,102 @@ unsigned int Account::SerializeDelta(vector<unsigned char>& dst,
                          UINT256_SIZE);
     // LOG_GENERAL(INFO, "codeSize: " << newAccount.GetCode().size());
     curOffset += UINT256_SIZE;
+
     if (newAccount.GetCode().empty())
     {
         // non-contract account
         return curOffset - offset;
     }
-    // Code
-    copy(newAccount.GetCode().begin(), newAccount.GetCode().end(),
-         back_inserter(dst));
-    curOffset += newAccount.GetCode().size();
 
-    // Init Data Size
-    SetNumber<uint256_t>(dst, curOffset,
-                         uint256_t(newAccount.GetInitData().size()),
-                         UINT256_SIZE);
-    curOffset += UINT256_SIZE;
-    // LOG_GENERAL(INFO, "initData size: " << newAccount.GetInitData().size());
-    // Init Data
-    copy(newAccount.GetInitData().begin(), newAccount.GetInitData().end(),
-         back_inserter(dst));
-    // LOG_GENERAL(INFO, "InitData: " << newAccount.GetInitData());
-    curOffset += newAccount.GetInitData().size();
+    if (fullCopy)
+    {
+        // Code
+        copy(newAccount.GetCode().begin(), newAccount.GetCode().end(),
+             back_inserter(dst));
+        curOffset += newAccount.GetCode().size();
 
-    // Create Block Num
-    SetNumber<uint64_t>(dst, curOffset, newAccount.GetCreateBlockNum(),
-                        sizeof(uint64_t));
-    // LOG_GENERAL(INFO, "createBlockNum: " << newAccount.GetCreateBlockNum());
-    curOffset += sizeof(uint64_t);
+        // Init Data Size
+        SetNumber<uint256_t>(dst, curOffset,
+                             uint256_t(newAccount.GetInitData().size()),
+                             UINT256_SIZE);
+        curOffset += UINT256_SIZE;
+        // LOG_GENERAL(INFO, "initData size: " << newAccount.GetInitData().size());
+        // Init Data
+        copy(newAccount.GetInitData().begin(), newAccount.GetInitData().end(),
+             back_inserter(dst));
+        // LOG_GENERAL(INFO, "InitData: " << newAccount.GetInitData());
+        curOffset += newAccount.GetInitData().size();
 
-    // Storage Root
-    copy(newAccount.GetStorageRoot().asArray().begin(),
-         newAccount.GetStorageRoot().asArray().begin() + COMMON_HASH_SIZE,
-         back_inserter(dst));
-    // LOG_GENERAL(INFO,
-    //             "new StorageRoot: " << newAccount.GetStorageRoot()
-    //                                 << " old StorageRoot: "
-    //                                 << oldAccount->GetStorageRoot());
-    curOffset += COMMON_HASH_SIZE;
+        // Create Block Num
+        SetNumber<uint64_t>(dst, curOffset, newAccount.GetCreateBlockNum(),
+                            sizeof(uint64_t));
+        // LOG_GENERAL(INFO, "createBlockNum: " << newAccount.GetCreateBlockNum());
+        curOffset += sizeof(uint64_t);
+    }
+
     if (newAccount.GetStorageRoot() != oldAccount->GetStorageRoot())
     {
         // LOG_GENERAL(INFO, "StorageRoot Changed");
+        // Storage Root
+        copy(newAccount.GetStorageRoot().asArray().begin(),
+             newAccount.GetStorageRoot().asArray().begin() + COMMON_HASH_SIZE,
+             back_inserter(dst));
+        // LOG_GENERAL(INFO,
+        //             "new StorageRoot: " << newAccount.GetStorageRoot()
+        //                                 << " old StorageRoot: "
+        //                                 << oldAccount->GetStorageRoot());
+        curOffset += COMMON_HASH_SIZE;
 
         // States storage
+        unsigned int diffKeyHashSizeOffset = curOffset;
         // Num of Key Hashes
-        SetNumber<uint256_t>(dst, curOffset,
-                             uint256_t(newAccount.GetStorageKeyHashes().size()),
-                             UINT256_SIZE);
-        // LOG_GENERAL(
-        //     INFO,
-        //     "Num of KeyHash: " << newAccount.GetStorageKeyHashes().size());
-        curOffset += UINT256_SIZE;
+        SetNumber<uint64_t>(dst, diffKeyHashSizeOffset, 0, sizeof(uint64_t));
+        curOffset += sizeof(uint64_t);
+
+        uint64_t diffKeyHashSize = 0;
         for (unsigned int i = 0; i < newAccount.GetStorageKeyHashes().size();
              i++)
         {
-            // Key Hash
             h256 keyHash = newAccount.GetStorageKeyHashes()[i];
-            copy(keyHash.asArray().begin(),
-                 keyHash.asArray().begin() + COMMON_HASH_SIZE,
-                 back_inserter(dst));
-            // LOG_GENERAL(INFO, "KeyHash: " << keyHash);
-            curOffset += COMMON_HASH_SIZE;
-
-            // RLP
             string rlpStr = newAccount.GetRawStorage(keyHash);
-            // LOG_GENERAL(INFO,
-            //             "RLP: "
-            //                 << rlpStr.substr(
-            //                        0, 50 > rlpStr.size() ? rlpStr.size() : 50)
-            //                 << " ... ");
-            // RLP size
-            SetNumber<uint256_t>(dst, curOffset, uint256_t(rlpStr.size()),
-                                 UINT256_SIZE);
-            curOffset += UINT256_SIZE;
-            // RLP string
-            copy(rlpStr.begin(), rlpStr.end(), back_inserter(dst));
-            curOffset += rlpStr.size();
+
+            if (rlpStr != oldAccount->GetRawStorage(keyHash))
+            {
+                diffKeyHashSize++;
+                // Key Hash
+                copy(keyHash.asArray().begin(),
+                     keyHash.asArray().begin() + COMMON_HASH_SIZE,
+                     back_inserter(dst));
+                // LOG_GENERAL(INFO, "KeyHash: " << keyHash);
+                curOffset += COMMON_HASH_SIZE;
+
+                // RLP
+                // LOG_GENERAL(
+                //     INFO,
+                //     "RLP: " << rlpStr.substr(
+                //                    0, 50 > rlpStr.size() ? rlpStr.size() : 50)
+                //             << " ... ");
+                // RLP size
+                SetNumber<uint256_t>(dst, curOffset, uint256_t(rlpStr.size()),
+                                     UINT256_SIZE);
+                curOffset += UINT256_SIZE;
+                // RLP string
+                copy(rlpStr.begin(), rlpStr.end(), back_inserter(dst));
+                curOffset += rlpStr.size();
+            }
         }
+        // Num of Key Hashes
+        SetNumber<uint64_t>(dst, diffKeyHashSizeOffset, diffKeyHashSize,
+                            sizeof(uint64_t));
+        // LOG_GENERAL(INFO, "Num of different KeyHash: " << diffKeyHashSize);
     }
 
     return curOffset - offset;
 }
 
 int Account::DeserializeDelta(const vector<unsigned char>& src,
-                              unsigned int& offset, Account& account)
+                              unsigned int& offset, Account& account,
+                              bool fullCopy)
 {
     // LOG_MARKER();
 
@@ -482,40 +498,44 @@ int Account::DeserializeDelta(const vector<unsigned char>& src,
         // LOG_GENERAL(INFO, "codeSize: " << codeSize);
         if (codeSize > 0)
         {
-            // Code
-            vector<unsigned char> t_code;
-            copy(src.begin() + offset, src.begin() + offset + codeSize,
-                 back_inserter(t_code));
-            offset += codeSize;
-            if (t_code != account.GetCode())
-            {
-                account.SetCode(t_code);
-            }
-
-            // Init Data Size
-            unsigned int initDataSize
-                = (unsigned int)GetNumber<uint256_t>(src, offset, UINT256_SIZE);
-            offset += UINT256_SIZE;
-            // LOG_GENERAL(INFO, "InitData size: " << initDataSize);
-            // Init Data
-            vector<unsigned char> initData;
-            copy(src.begin() + offset, src.begin() + offset + initDataSize,
-                 back_inserter(initData));
-            // LOG_GENERAL(INFO, "InitData: " << initData);
-            offset += initDataSize;
             bool doInitContract = false;
-            if (!initData.empty() && account.GetInitData().empty())
-            {
-                account.SetInitData(initData);
-                doInitContract = true;
-            }
 
-            // Create Block Num
-            uint64_t createBlockNum
-                = GetNumber<uint64_t>(src, offset, sizeof(uint64_t));
-            // LOG_GENERAL(INFO, "createBlockNum: " << createBlockNum);
-            account.SetCreateBlockNum(createBlockNum);
-            offset += sizeof(uint64_t);
+            if (fullCopy)
+            {
+                // Code
+                vector<unsigned char> t_code;
+                copy(src.begin() + offset, src.begin() + offset + codeSize,
+                     back_inserter(t_code));
+                offset += codeSize;
+                if (t_code != account.GetCode())
+                {
+                    account.SetCode(t_code);
+                }
+
+                // Init Data Size
+                unsigned int initDataSize = (unsigned int)GetNumber<uint256_t>(
+                    src, offset, UINT256_SIZE);
+                offset += UINT256_SIZE;
+                // LOG_GENERAL(INFO, "InitData size: " << initDataSize);
+                // Init Data
+                vector<unsigned char> initData;
+                copy(src.begin() + offset, src.begin() + offset + initDataSize,
+                     back_inserter(initData));
+                // LOG_GENERAL(INFO, "InitData: " << initData);
+                offset += initDataSize;
+                if (!initData.empty() && account.GetInitData().empty())
+                {
+                    account.SetInitData(initData);
+                    doInitContract = true;
+                }
+
+                // Create Block Num
+                uint64_t createBlockNum
+                    = GetNumber<uint64_t>(src, offset, sizeof(uint64_t));
+                // LOG_GENERAL(INFO, "createBlockNum: " << createBlockNum);
+                account.SetCreateBlockNum(createBlockNum);
+                offset += sizeof(uint64_t);
+            }
 
             // Storage Root
             h256 t_storageRoot;
@@ -539,9 +559,9 @@ int Account::DeserializeDelta(const vector<unsigned char>& src,
 
                 // States storage
                 // Num of Key Hashes
-                unsigned int numKeyHashes = (unsigned int)GetNumber<uint256_t>(
-                    src, offset, UINT256_SIZE);
-                offset += UINT256_SIZE;
+                unsigned int numKeyHashes = (unsigned int)GetNumber<uint64_t>(
+                    src, offset, sizeof(uint64_t));
+                offset += sizeof(uint64_t);
                 // LOG_GENERAL(INFO, "numKeyHashes:" << numKeyHashes);
 
                 for (unsigned int i = 0; i < numKeyHashes; i++)
@@ -693,8 +713,8 @@ string Account::GetRawStorage(const h256& k_hash) const
 {
     if (!isContract())
     {
-        LOG_GENERAL(WARNING,
-                    "Not contract account, why call Account::GetRawStorage!");
+        // LOG_GENERAL(WARNING,
+        //             "Not contract account, why call Account::GetRawStorage!");
         return "";
     }
     return m_storage.at(k_hash);
