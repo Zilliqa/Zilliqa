@@ -40,7 +40,8 @@ TxBlockHeader::TxBlockHeader(
     const uint64_t& blockNum, const uint256_t& timestamp,
     const TxnHash& txRootHash, const StateHash& stateRootHash,
     const StateHash& deltaRootHash, const StateHash& stateDeltaHash,
-    uint32_t numTxs, uint32_t numMicroBlockHashes, const PubKey& minerPubKey,
+    const TxnHash& tranReceiptRootHash, uint32_t numTxs,
+    uint32_t numMicroBlockHashes, const PubKey& minerPubKey,
     const uint64_t& dsBlockNum, const BlockHash& dsBlockHeader)
     : m_type(type)
     , m_version(version)
@@ -49,7 +50,8 @@ TxBlockHeader::TxBlockHeader(
     , m_prevHash(prevHash)
     , m_blockNum(blockNum)
     , m_timestamp(timestamp)
-    , m_hash{txRootHash, stateRootHash, deltaRootHash, stateDeltaHash}
+    , m_hash{txRootHash, stateRootHash, deltaRootHash, stateDeltaHash,
+             tranReceiptRootHash}
     , m_numTxs(numTxs)
     , m_numMicroBlockHashes(numMicroBlockHashes)
     , m_minerPubKey(minerPubKey)
@@ -193,6 +195,11 @@ const StateHash& TxBlockHeader::GetDeltaRootHash() const
 const StateHash& TxBlockHeader::GetStateDeltaHash() const
 {
     return m_hash.m_stateDeltaHash;
+}
+
+const TxnHash& TxBlockHeader::GetTranReceiptRootHash() const
+{
+    return m_hash.m_tranReceiptRootHash;
 }
 
 const uint32_t& TxBlockHeader::GetNumTxs() const { return m_numTxs; }

@@ -130,7 +130,7 @@ void Node::Init()
         std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
         m_mediator.m_DSCommittee->clear();
     }
-    m_committedTransactions.clear();
+    // m_committedTransactions.clear();
     AccountStore::GetInstance().Init();
 
     m_synchronizer.InitializeGenesisBlocks(m_mediator.m_dsBlockChain,
@@ -886,10 +886,10 @@ bool Node::CleanVariables()
         std::lock_guard<mutex> lock(m_mutexProcessedTransactions);
         m_processedTransactions.clear();
     }
-    {
-        std::lock_guard<mutex> lock(m_mutexCommittedTransactions);
-        m_committedTransactions.clear();
-    }
+    // {
+    //     std::lock_guard<mutex> lock(m_mutexCommittedTransactions);
+    //     m_committedTransactions.clear();
+    // }
     {
         std::lock_guard<mutex> lock(m_mutexUnavailableMicroBlocks);
         m_unavailableMicroBlocks.clear();

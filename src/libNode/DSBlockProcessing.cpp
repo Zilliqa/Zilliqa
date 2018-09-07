@@ -569,7 +569,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
         // Process sharding structure as a lookup node
         m_mediator.m_lookup->ProcessEntireShardingStructure();
 
-        if (m_mediator.m_lookup->GetIsServer())
+        if (m_mediator.m_lookup->GetIsServer() && USE_REMOTE_TXN_CREATOR)
         {
             m_mediator.m_lookup->SenderTxnBatchThread();
         }
