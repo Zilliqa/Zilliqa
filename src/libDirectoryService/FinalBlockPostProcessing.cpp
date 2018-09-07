@@ -415,6 +415,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
     AccountStore::GetInstance().InitTemp();
     m_stateDeltaFromShards.clear();
     m_allPoWConns.clear();
+    clearDSPoWSolns();
     ResetPoWSubmissionCounter();
 
     auto func = [this]() mutable -> void {

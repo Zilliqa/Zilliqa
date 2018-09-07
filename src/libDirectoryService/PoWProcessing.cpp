@@ -124,11 +124,9 @@ bool DirectoryService::VerifyPoWSubmission(
     }
 
     m_timespec = r_timer_start();
-
     bool result = POW::GetInstance().PoWVerify(
         block_num, difficultyLevel, rand1, rand2, from.m_ipAddress, key, false,
         nonce, winning_hash, winning_mixhash);
-
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "[POWSTAT] pow verify (microsec): " << r_timer_end(m_timespec));
 
@@ -241,8 +239,25 @@ bool DirectoryService::ParseMessageAndVerifyPOW(
             lock_guard<mutex> g(m_mutexAllPOW, adopt_lock);
             lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
 
+            std::array<unsigned char, 32> winningHashArr
+                = DataConversion::HexStrToStdArray(winning_hash);
+
             m_allPoWConns.emplace(key, peer);
-            m_allPoWs[key] = DataConversion::HexStrToStdArray(winning_hash);
+            m_allPoWs[key] = winningHashArr;
+
+            uint8_t expectedDSDiff = DS_POW_DIFFICULTY;
+            if (block_num > 1)
+            {
+                expectedDSDiff = m_mediator.m_dsBlockChain.GetLastBlock()
+                                     .GetHeader()
+                                     .GetDSDifficulty();
+            }
+
+            if (difficultyLevel == expectedDSDiff)
+            {
+                AddDSPoWs(key, winningHashArr);
+            }
+
             UpdatePoWSubmissionCounterforNode(key);
         }
     }
@@ -345,4 +360,46 @@ bool DirectoryService::ProcessPoWSubmission(
 
     bool result = ParseMessageAndVerifyPOW(message, offset, from);
     return result;
+}
+
+void DirectoryService::AddDSPoWs(PubKey Pubk,
+                                 std::array<unsigned char, 32> DSPOWSoln)
+{
+    lock_guard<mutex> g(m_mutexAllDSPOWs);
+    m_allDSPoWs[Pubk] = DSPOWSoln;
+}
+std::map<PubKey, std::array<unsigned char, 32>> DirectoryService::GetAllDSPoWs()
+{
+    lock_guard<mutex> g(m_mutexAllDSPOWs);
+    return m_allDSPoWs;
+}
+
+void DirectoryService::clearDSPoWSolns()
+{
+    lock_guard<mutex> g(m_mutexAllDSPOWs);
+    m_allDSPoWs.clear();
+}
+
+std::array<unsigned char, 32> DirectoryService::GetDSPoWSoln(PubKey Pubk)
+{
+    lock_guard<mutex> g(m_mutexAllDSPOWs);
+    if (m_allDSPoWs.find(Pubk) != m_allDSPoWs.end())
+    {
+        return m_allDSPoWs[Pubk];
+    }
+    else
+    {
+        LOG_GENERAL(WARNING, "No such element in m_allDSPoWs");
+        return array<unsigned char, 32>();
+    }
+}
+
+bool DirectoryService::IsNodeSubmittedDSPoWSoln(PubKey Pubk)
+{
+    lock_guard<mutex> g(m_mutexAllDSPOWs);
+    if (m_allDSPoWs.find(Pubk) != m_allDSPoWs.end())
+    {
+        return true;
+    }
+    return false;
 }
