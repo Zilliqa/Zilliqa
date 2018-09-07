@@ -77,6 +77,8 @@ class RumorStateMachine {
 
     bool isOld() const;
 
+    int maxRoundsTotal() const;
+
     friend std::ostream& operator<<(std::ostream& os, const RumorStateMachine& machine);
 };
 

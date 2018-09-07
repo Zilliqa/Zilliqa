@@ -134,7 +134,7 @@ bool RumorMember::addRumor(int rumorId)
 }
 
 std::pair<int, std::vector<Message>>
-RumorMember::receivedMessage(const Message& message, int fromPeer)
+RumorMember::receivedMessage(const Message& message, int fromPeer, bool& alreadyReceived)
 {
     std::lock_guard<std::mutex> guard(m_mutex); // critical section
 
@@ -166,11 +166,14 @@ RumorMember::receivedMessage(const Message& message, int fromPeer)
     const int receivedRumorId = message.rumorId();
     const int theirRound = message.age();
     if (receivedRumorId >= 0) {
-        if (m_rumors.count(receivedRumorId) > 0) {
+        if (m_rumors.count(receivedRumorId) > 0) 
+        {
             m_rumors[receivedRumorId].rumorReceived(fromPeer, message.age());
+            alreadyReceived = true;
         }
         else {
             m_rumors[receivedRumorId] = RumorStateMachine(&m_networkConfig, fromPeer, theirRound);
+            alreadyReceived = false;
         }
     }
 
@@ -191,10 +194,20 @@ std::pair<int, std::vector<Message>> RumorMember::advanceRound()
 
     // Construct the push messages
     std::vector<Message> pushMessages;
-    for (auto& kv : m_rumors) { //[Sandip] - here we should have been got only one rumor.
-        RumorStateMachine& stateMach = kv.second;
+    for (auto it = m_rumors.begin(); it != m_rumors.end();)    
+    {
+        RumorStateMachine& stateMach = it->second;
         stateMach.advanceRound(m_peersInCurrentRound);
-        pushMessages.emplace_back(Message(Message::Type::PUSH, kv.first, kv.second.age()));
+        if (!stateMach.isOld())
+        {
+            pushMessages.emplace_back(Message(Message::Type::PUSH, it->first, it->second.age()));
+            ++it;
+        }
+        else if ( stateMach.age() >= stateMach.maxRoundsTotal()*2 )
+        // Kick out the rumor if its old and old+++++ enough to be removed
+        {
+            it = m_rumors.erase(it);
+        }
     }
     increaseStatValue(StatisticKey::NumPushMessages, pushMessages.size());
 

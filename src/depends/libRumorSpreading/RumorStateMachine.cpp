@@ -153,6 +153,11 @@ bool RumorStateMachine::isOld() const
     return m_state == State::OLD;
 }
 
+int RumorStateMachine::maxRoundsTotal() const
+{
+    return m_networkConfigPtr->maxRoundsTotal();
+}
+
 std::ostream& operator<<(std::ostream& os, const RumorStateMachine& machine)
 {
     os << "{ state: " << RumorStateMachine::s_enumKeyToString[machine.m_state]
