@@ -36,7 +36,8 @@ apt-get install -y \
     clang-tidy-5.0 \
     clang-5.0 \
     lcov \
-    curl
+    curl \
+    libxml2-utils
 }
 
 function on_osx() {
