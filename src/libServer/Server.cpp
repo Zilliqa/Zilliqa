@@ -14,8 +14,6 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#ifdef IS_LOOKUP_NODE
-
 #include "JSONConversion.h"
 
 #include <boost/multiprecision/cpp_dec_float.hpp>
@@ -102,13 +100,35 @@ string Server::CreateTransaction(const Json::Value& _json)
 
         const PubKey& senderPubKey = tx.GetSenderPubKey();
         const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
-        unsigned int curr_offset = 0;
+        //unsigned int curr_offset = 0;
 
         if (num_shards > 0)
         {
+
             unsigned int shard
                 = Transaction::GetShardIndex(fromAddr, num_shards);
-            vector<pair<PubKey, Peer>> shardMembers
+
+            if (tx.GetData().empty() || tx.GetToAddr() == NullAddress)
+            {
+                m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
+                return "Created A shard Txn";
+            }
+            else
+            {
+                unsigned int to_shard
+                    = Transaction::GetShardIndex(tx.GetToAddr(), num_shards);
+                if (to_shard == shard)
+                {
+                    m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
+                    return "Shards Match of the sender and reciever";
+                }
+                else
+                {
+                    m_mediator.m_lookup->AddToTxnShardMap(tx, num_shards);
+                    return "Sent to Ds for processing";
+                }
+            }
+            /*map<PubKey, Peer> shardMembers
                 = m_mediator.m_lookup->GetShardPeers().at(shard);
             LOG_GENERAL(INFO, "The Tx Belongs to " << shard << " Shard");
 
@@ -121,7 +141,7 @@ string Server::CreateTransaction(const Json::Value& _json)
 
             LOG_GENERAL(INFO, "Tx Serialized");
 
-            vector<Peer> toSend;
+            (vector<Peer> toSend;
 
             auto it = shardMembers.begin();
             for (unsigned int i = 0; i < 1 && it != shardMembers.end();
@@ -130,7 +150,7 @@ string Server::CreateTransaction(const Json::Value& _json)
                 toSend.emplace_back(it->second);
             }
 
-            P2PComm::GetInstance().SendMessage(toSend, tx_message);
+            P2PComm::GetInstance().SendMessage(toSend, tx_message);*/
         }
         else
         {
@@ -157,7 +177,7 @@ Json::Value Server::GetTransaction(const string& transactionHash)
     LOG_MARKER();
     try
     {
-        TxBodySharedPtr tx;
+        TxBodySharedPtr tptr;
         TxnHash tranHash(transactionHash);
         if (transactionHash.size() != TRAN_HASH_SIZE * 2)
         {
@@ -167,15 +187,14 @@ Json::Value Server::GetTransaction(const string& transactionHash)
             return _json;
         }
         bool isPresent
-            = BlockStorage::GetBlockStorage().GetTxBody(tranHash, tx);
+            = BlockStorage::GetBlockStorage().GetTxBody(tranHash, tptr);
         if (!isPresent)
         {
             Json::Value _json;
             _json["error"] = "Txn Hash not Present";
             return _json;
         }
-        Transaction txn(*tx);
-        return JSONConversion::convertTxtoJson(txn);
+        return JSONConversion::convertTxtoJson(*tptr);
     }
     catch (exception& e)
     {
@@ -1175,5 +1194,3 @@ string Server::GetNumTxnsDSEpoch()
         return "0";
     }
 }
-
-#endif //IS_LOOKUP_NODE

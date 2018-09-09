@@ -44,12 +44,6 @@ ARG JOBS=2
 RUN git clone --recursive ${REPO} ${SOURCE_DIR} && \
     git -C ${SOURCE_DIR} checkout ${COMMIT} && \
     mkdir $BUILD_DIR && cd $BUILD_DIR && \
-    cmake -DIS_LOOKUP_NODE=1 -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
-        -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} ${SOURCE_DIR} && \
-    make -j${JOBS} && make install && \
-    cd .. && rm -rf ${BUILD_DIR} && \
-    mv ${INSTALL_DIR}/bin/zilliqa ${INSTALL_DIR}/bin/zilliqa_lookup && \
-    mkdir $BUILD_DIR && cd $BUILD_DIR && \
     cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
         -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} ${SOURCE_DIR} && \
     make -j${JOBS} && make install && \

@@ -39,9 +39,16 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-#ifndef IS_LOOKUP_NODE
 void DirectoryService::StoreDSBlockToStorage()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::StoreDSBlockToStorage not expected to "
+                    "be called from LookUp node.");
+        return;
+    }
+
     LOG_MARKER();
     lock_guard<mutex> g(m_mutexPendingDSBlock);
     int result = m_mediator.m_dsBlockChain.AddBlock(*m_pendingDSBlock);
@@ -78,6 +85,14 @@ void DirectoryService::SendDSBlockToLookupNodes()
     // Message = [DS block] [PoW winner IP] [Sharding structure] [Txn sharing assignments]
     // This is the same as the DS Block consensus announcement message
 
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::SendDSBlockToLookupNodes not expected "
+                    "to be called from LookUp node.");
+        return;
+    }
+
     vector<unsigned char> dsblock_message(MessageOffset::BODY
                                           + m_PoWConsensusMessage.size());
     dsblock_message.at(MessageOffset::TYPE) = MessageType::NODE;
@@ -96,6 +111,14 @@ void DirectoryService::SendDSBlockToNewDSLeader(const Peer& winnerpeer)
     // Message = [Shard ID] [DS block] [PoW winner IP] [Sharding structure] [Txn sharing assignments]
     // This is the same as the DS Block consensus announcement message, plus the additional Shard ID
     // [Shard ID] is dummy here since the new DS leader won't be part of the shards
+
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::SendDSBlockToNewDSLeader not expected "
+                    "to be called from LookUp node.");
+        return;
+    }
 
     vector<unsigned char> dsblock_message(MessageOffset::BODY + sizeof(uint32_t)
                                           + m_PoWConsensusMessage.size());
@@ -121,6 +144,14 @@ void DirectoryService::SetupMulticastConfigForDSBlock(
     unsigned int& my_DS_cluster_num, unsigned int& my_shards_lo,
     unsigned int& my_shards_hi) const
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::SetupMulticastConfigForDSBlock not "
+                    "expected to be called from LookUp node.");
+        return;
+    }
+
     LOG_MARKER();
 
     unsigned int num_DS_clusters
@@ -162,6 +193,14 @@ void DirectoryService::SendDSBlockToShardNodes(unsigned int my_shards_lo,
 {
     // Message = [Shard ID] [DS block] [PoW winner IP] [Sharding structure] [Txn sharing assignments]
     // This is the same as the DS Block consensus announcement message, plus the additional Shard ID
+
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::SendDSBlockToShardNodes not expected to "
+                    "be called from LookUp node.");
+        return;
+    }
 
     vector<unsigned char> dsblock_message(MessageOffset::BODY + sizeof(uint32_t)
                                           + m_PoWConsensusMessage.size());
@@ -213,6 +252,14 @@ void DirectoryService::SendDSBlockToShardNodes(unsigned int my_shards_lo,
 
 void DirectoryService::UpdateMyDSModeAndConsensusId()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::UpdateMyDSModeAndConsensusId not "
+                    "expected to be called from LookUp node.");
+        return;
+    }
+
     // Check if I am the oldest backup DS (I will no longer be part of the DS committee)
     uint16_t lastBlockHash = HashUtils::SerializableToHash16Bits(
         m_mediator.m_txBlockChain.GetLastBlock());
@@ -276,6 +323,14 @@ void DirectoryService::UpdateMyDSModeAndConsensusId()
 
 void DirectoryService::UpdateDSCommiteeComposition(const Peer& winnerpeer)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::UpdateDSCommiteeComposition not "
+                    "expected to be called from LookUp node.");
+        return;
+    }
+
     // Update the DS committee composition
     LOG_MARKER();
 
@@ -291,17 +346,72 @@ void DirectoryService::UpdateDSCommiteeComposition(const Peer& winnerpeer)
 
 void DirectoryService::StartFirstTxEpoch()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::StartFirstTxEpoch not expected to be "
+                    "called from LookUp node.");
+        return;
+    }
+
     LOG_MARKER();
 
     {
         lock_guard<mutex> g(m_mutexAllPOW);
         m_allPoWs.clear();
     }
-
+    clearDSPoWSolns();
+    ResetPoWSubmissionCounter();
     m_viewChangeCounter = 0;
 
     if (m_mode != IDLE)
     {
+        m_mediator.m_node->m_myShardMembers = m_mediator.m_DSCommittee;
+
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  " DS Sharding structure: ");
+
+        unsigned int index = 0;
+        for (const auto& i : *m_mediator.m_node->m_myShardMembers)
+        {
+            if (i.second.m_listenPortHost == 0)
+            {
+                LOG_GENERAL(INFO, "m_consensusMyID = " << index);
+                m_mediator.m_node->m_consensusMyID = index;
+            }
+
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      " PubKey: "
+                          << DataConversion::SerializableToHexStr(i.first)
+                          << " IP: " << i.second.GetPrintableIPAddress()
+                          << " Port: " << i.second.m_listenPortHost);
+
+            index++;
+        }
+
+        // Check if I am the leader or backup of the shard
+        if (m_mediator.m_selfKey.second
+            == m_mediator.m_node->m_myShardMembers->front().first)
+        {
+            m_mediator.m_node->m_isPrimary = true;
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "I am leader of the DS sharded committee");
+        }
+        else
+        {
+            m_mediator.m_node->m_isPrimary = false;
+
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "I am backup member of the DS sharded committee");
+        }
+
+        m_mediator.m_node->m_consensusLeaderID = 0;
+
+        // m_mediator.m_node->m_myShardID = std::numeric_limits<uint32_t>::max();
+        m_mediator.m_node->m_myShardID = m_shards.size();
+        m_mediator.m_node->CommitTxnPacketBuffer();
+        m_stateDeltaFromShards.clear();
+
         if (TEST_NET_MODE)
         {
             LOG_GENERAL(INFO, "Updating shard whitelist");
@@ -310,22 +420,45 @@ void DirectoryService::StartFirstTxEpoch()
 
         // Start sharding work
         SetState(MICROBLOCK_SUBMISSION);
+        m_dsStartedMicroblockConsensus = false;
 
-        // Check for state change. If it get stuck at microblock submission for too long, move on to finalblock without the microblock
-        std::unique_lock<std::mutex> cv_lk(m_MutexScheduleFinalBlockConsensus);
-        if (cv_scheduleFinalBlockConsensus.wait_for(
-                cv_lk, std::chrono::seconds(MICROBLOCK_TIMEOUT))
-            == std::cv_status::timeout)
-        {
-            LOG_GENERAL(
-                WARNING,
-                "Timeout: Didn't receive all Microblock. Proceeds without it");
+        auto func = [this]() mutable -> void {
+            // Check for state change. If it get stuck at microblock submission for too long, move on to finalblock without the microblock
+            std::unique_lock<std::mutex> cv_lk(
+                m_MutexScheduleDSMicroBlockConsensus);
+            if (cv_scheduleDSMicroBlockConsensus.wait_for(
+                    cv_lk, std::chrono::seconds(MICROBLOCK_TIMEOUT))
+                == std::cv_status::timeout)
+            {
+                LOG_GENERAL(WARNING,
+                            "Timeout: Didn't receive all Microblock. Proceeds "
+                            "without it");
 
-            auto func
-                = [this]() mutable -> void { RunConsensusOnFinalBlock(); };
+                auto func = [this]() mutable -> void {
+                    m_dsStartedMicroblockConsensus = true;
+                    m_mediator.m_node->RunConsensusOnMicroBlock();
+                };
 
-            DetachedFunction(1, func);
-        }
+                DetachedFunction(1, func);
+
+                std::unique_lock<std::mutex> cv_lk(
+                    m_MutexScheduleFinalBlockConsensus);
+                if (cv_scheduleFinalBlockConsensus.wait_for(
+                        cv_lk,
+                        std::chrono::seconds(
+                            FINALBLOCK_CONSENSUS_OBJECT_TIMEOUT))
+                    == std::cv_status::timeout)
+                {
+                    LOG_GENERAL(
+                        WARNING,
+                        "Timeout: Didn't finish DS Microblock. Proceeds "
+                        "without it");
+
+                    RunConsensusOnFinalBlock(true);
+                }
+            }
+        };
+        DetachedFunction(1, func);
     }
     else
     {
@@ -380,8 +513,18 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     [[gnu::unused]] const vector<unsigned char>& message,
     [[gnu::unused]] unsigned int offset)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::ProcessDSBlockConsensusWhenDone not "
+                    "expected to be called from LookUp node.");
+        return;
+    }
+
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "DS block consensus is DONE!!!");
+
+    lock_guard<mutex> g(m_mediator.m_node->m_mutexDSBlock);
 
     if (m_mode == PRIMARY_DS)
     {
@@ -419,6 +562,10 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
         }
     }
 
+    {
+        lock_guard<mutex> h(m_mutexCoinbaseRewardees);
+        m_coinbaseRewardees.clear();
+    }
     // Add the DS block to the chain
     StoreDSBlockToStorage();
     DSBlock lastDSBlock = m_mediator.m_dsBlockChain.GetLastBlock();
@@ -503,13 +650,19 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
 
     StartFirstTxEpoch();
 }
-#endif // IS_LOOKUP_NODE
 
 bool DirectoryService::ProcessDSBlockConsensus(
-    [[gnu::unused]] const vector<unsigned char>& message,
-    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
+    const vector<unsigned char>& message, unsigned int offset,
+    [[gnu::unused]] const Peer& from)
 {
-#ifndef IS_LOOKUP_NODE
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::ProcessDSBlockConsensus not expected to "
+                    "be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
     // Consensus messages must be processed in correct sequence as they come in
     // It is possible for ANNOUNCE to arrive before correct DS state
@@ -620,6 +773,6 @@ bool DirectoryService::ProcessDSBlockConsensus(
                   "Consensus state = " << m_consensusObject->GetStateString());
         cv_processConsensusMessage.notify_all();
     }
-#endif // IS_LOOKUP_NODE
+
     return true;
 }
