@@ -523,7 +523,7 @@ vector<map<PubKey, Peer>> Lookup::GetShardPeers()
     }
 
     lock_guard<mutex> g(m_mutexShards);
-    return m_shards;
+    return m_mediator.m_ds->m_shards;
 }
 
 vector<Peer> Lookup::GetNodePeers()
@@ -540,9 +540,7 @@ vector<Peer> Lookup::GetNodePeers()
     return m_nodesInNetwork;
 }
 
-bool Lookup::ProcessEntireShardingStructure(
-    const vector<unsigned char>& message, unsigned int offset,
-    [[gnu::unused]] const Peer& from)
+bool Lookup::ProcessEntireShardingStructure()
 {
     if (!LOOKUP_NODE_MODE)
     {
@@ -560,17 +558,13 @@ bool Lookup::ProcessEntireShardingStructure(
     lock_guard<mutex> g(m_mutexShards, adopt_lock);
     lock_guard<mutex> h(m_mutexNodesInNetwork, adopt_lock);
 
-    m_shards.clear();
-
-    ShardingStructure::Deserialize(message, offset, m_shards);
-
     m_nodesInNetwork.clear();
     unordered_set<Peer> t_nodesInNetwork;
 
-    for (unsigned int i = 0; i < m_shards.size(); i++)
+    for (unsigned int i = 0; i < m_mediator.m_ds->m_shards.size(); i++)
     {
         unsigned int index = 0;
-        for (auto& j : m_shards.at(i))
+        for (auto& j : m_mediator.m_ds->m_shards.at(i))
         {
             const PubKey& key = j.first;
             const Peer& peer = j.second;
@@ -2410,7 +2404,7 @@ bool Lookup::CleanVariables()
     m_isFirstLoop = true;
     {
         std::lock_guard<mutex> lock(m_mutexShards);
-        m_shards.clear();
+        m_mediator.m_ds->m_shards.clear();
     }
     {
         std::lock_guard<mutex> lock(m_mutexNodesInNetwork);
@@ -2617,7 +2611,7 @@ void Lookup::SenderTxnBatchThread()
             {
                 {
                     lock_guard<mutex> g(m_mutexShards);
-                    nShard = m_shards.size();
+                    nShard = m_mediator.m_ds->m_shards.size();
                 }
                 if (nShard == 0)
                 {
@@ -2724,10 +2718,10 @@ void Lookup::SendTxnPacketToNodes(uint32_t nShard)
 
             {
                 lock_guard<mutex> g(m_mutexShards);
-                auto it = m_shards.at(i).begin();
+                auto it = m_mediator.m_ds->m_shards.at(i).begin();
 
-                for (unsigned int j = 0;
-                     j < NUM_NODES_TO_SEND_LOOKUP && it != m_shards.at(i).end();
+                for (unsigned int j = 0; j < NUM_NODES_TO_SEND_LOOKUP
+                     && it != m_mediator.m_ds->m_shards.at(i).end();
                      j++, it++)
                 {
                     toSend.push_back(it->second);
