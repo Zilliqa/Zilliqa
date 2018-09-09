@@ -51,7 +51,7 @@ bool DirectoryService::VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
 
     LOG_MARKER();
 
-    const vector<pair<PubKey, Peer>>& shard = m_shards.at(shardId);
+    const auto& shard = m_shards.at(shardId);
     unsigned int index = 0;
     unsigned int count = 0;
 
