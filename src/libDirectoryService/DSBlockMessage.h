@@ -40,7 +40,7 @@ class ShardingStructure
 
 public:
     static unsigned int
-    Serialize(const std::vector<std::map<PubKey, Peer>>& shards,
+    Serialize(const std::vector<std::vector<std::pair<PubKey, Peer>>>& shards,
               std::vector<unsigned char>& output, unsigned int cur_offset)
     {
         LOG_MARKER();
@@ -56,7 +56,7 @@ public:
 
         for (unsigned int i = 0; i < numOfComms; i++)
         {
-            const std::map<PubKey, Peer>& shard = shards.at(i);
+            const std::vector<std::pair<PubKey, Peer>>& shard = shards.at(i);
 
             // 4-byte committee size
             Serializable::SetNumber<uint32_t>(output, cur_offset, shard.size(),
@@ -89,9 +89,10 @@ public:
         return cur_offset;
     }
 
-    static unsigned int Deserialize(const std::vector<unsigned char>& input,
-                                    unsigned int cur_offset,
-                                    std::vector<std::map<PubKey, Peer>>& shards)
+    static unsigned int
+    Deserialize(const std::vector<unsigned char>& input,
+                unsigned int cur_offset,
+                std::vector<std::vector<std::pair<PubKey, Peer>>>& shards)
     {
         LOG_MARKER();
 
@@ -122,7 +123,8 @@ public:
                 Peer memberPeer(input, cur_offset);
                 cur_offset += IP_SIZE + PORT_SIZE;
 
-                shards.back().emplace(memberPubkey, memberPeer);
+                shards.back().emplace_back(
+                    std::make_pair(memberPubkey, memberPeer));
 
                 LOG_GENERAL(
                     INFO,

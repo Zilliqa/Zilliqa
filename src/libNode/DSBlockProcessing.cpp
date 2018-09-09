@@ -231,7 +231,7 @@ bool Node::LoadShardingStructure(const vector<unsigned char>& message,
         return true;
     }
 
-    vector<map<PubKey, Peer>> shards;
+    vector<vector<pair<PubKey, Peer>>> shards;
     cur_offset = ShardingStructure::Deserialize(message, cur_offset, shards);
     m_numShards = shards.size();
 
@@ -244,7 +244,7 @@ bool Node::LoadShardingStructure(const vector<unsigned char>& message,
         return false;
     }
 
-    const map<PubKey, Peer>& my_shard = shards.at(m_myShardID);
+    const vector<pair<PubKey, Peer>>& my_shard = shards.at(m_myShardID);
 
     // m_myShardMembers->clear();
     m_myShardMembers.reset(new std::deque<pair<PubKey, Peer>>);

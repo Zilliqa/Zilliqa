@@ -512,7 +512,7 @@ bool Lookup::SetDSCommitteInfo()
     return true;
 }
 
-vector<map<PubKey, Peer>> Lookup::GetShardPeers()
+vector<vector<pair<PubKey, Peer>>> Lookup::GetShardPeers()
 {
     if (!LOOKUP_NODE_MODE)
     {

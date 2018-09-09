@@ -61,7 +61,7 @@ class DirectoryService : public Executable, public Broadcastable
     std::mutex m_mutexConsensus;
 
     // Sharding committee members
-    std::vector<std::map<PubKey, Peer>> m_shards;
+    std::vector<std::vector<std::pair<PubKey, Peer>>> m_shards;
     std::map<PubKey, uint32_t> m_publicKeyToShardIdMap;
 
     // Transaction sharing assignments
@@ -83,7 +83,11 @@ class DirectoryService : public Executable, public Broadcastable
     std::shared_ptr<DSBlock> m_pendingDSBlock;
     std::mutex m_mutexPendingDSBlock;
     std::mutex m_mutexDSBlockConsensus;
-    std::vector<std::pair<PubKey, boost::multiprecision::uint256_t>> m_allPoWs;
+    //nonce + winning hash pair
+    std::vector<std::pair<
+        PubKey,
+        pair<boost::multiprecision::uint256_t, std::array<unsigned char, 32>>>>
+        m_allPoWs;
     std::mutex m_mutexAllPOW;
 
     // Final block consensus variables
@@ -161,6 +165,7 @@ class DirectoryService : public Executable, public Broadcastable
     void ComposeDSBlock();
     void ComputeSharding();
     void ComputeTxnSharingAssignments(const Peer& winnerpeer);
+    bool VerifyPoWOrdering();
 
     // internal calls from RunConsensusOnDSBlock
     bool RunConsensusOnDSBlockWhenDSPrimary();
@@ -205,7 +210,8 @@ class DirectoryService : public Executable, public Broadcastable
                              unsigned int curr_offset, uint32_t& portNo,
                              uint64_t& nonce, array<unsigned char, 32>& rand1,
                              array<unsigned char, 32>& rand2,
-                             unsigned int& difficulty, uint64_t& block_num);
+                             unsigned int& difficulty, uint64_t& block_num,
+                             std::string&);                           
     void CommitMBSubmissionMsgBuffer();
     bool ProcessMicroblockSubmissionCore(const vector<unsigned char>& message,
                                          unsigned int curr_offset);

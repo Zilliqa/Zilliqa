@@ -128,7 +128,7 @@ string Server::CreateTransaction(const Json::Value& _json)
                     return "Sent to Ds for processing";
                 }
             }
-            /*map<PubKey, Peer> shardMembers
+            /*map<PubKey, Peer> shardMembe
                 = m_mediator.m_lookup->GetShardPeers().at(shard);
             LOG_GENERAL(INFO, "The Tx Belongs to " << shard << " Shard");
 
@@ -1087,7 +1087,8 @@ Json::Value Server::GetShardingStructure()
     try
     {
         Json::Value _json;
-        vector<map<PubKey, Peer>> shards = m_mediator.m_lookup->GetShardPeers();
+        vector<vector<pair<PubKey, Peer>>> shards
+            = m_mediator.m_lookup->GetShardPeers();
         unsigned int num_shards = shards.size();
 
         if (num_shards == 0)
