@@ -1,0 +1,78 @@
+syntax = "proto2";
+
+package ZilliqaMessage;
+
+// ============================================================================
+// Primitives
+// ============================================================================
+
+message ByteArray
+{
+    required bytes data = 1;
+}
+
+message ShardingStructure
+{
+    message Member
+    {
+        required ByteArray pubkey   = 1;
+        required ByteArray peerinfo = 2;
+    }
+    message Shard
+    {
+        repeated Member members     = 1;
+    }
+    repeated Shard shards           = 1;
+}
+
+message TxSharingAssignments
+{
+    message AssignedNodes
+    {
+        repeated ByteArray receivers  = 1;
+        repeated ByteArray senders    = 2;
+    }
+    repeated ByteArray dsnodes        = 1;
+    repeated AssignedNodes shardnodes = 2;
+}
+
+// ============================================================================
+// Directory Service messages
+// ============================================================================
+
+message DSPoWSubmission
+{
+    message Data
+    {
+        required uint64 blocknumber        = 1;
+        required ByteArray submitterpeer   = 2;
+        required ByteArray submitterpubKey = 3;
+        required uint64 nonce              = 4;
+        required string resultinghash      = 5;
+        required string mixhash            = 6;
+    }
+    required Data data                     = 1;
+    required ByteArray signature           = 2;
+}
+
+// ============================================================================
+// Node messages
+// ============================================================================
+
+message NodeDSBlock
+{
+    required uint32 shardid                   = 1;
+    required ByteArray dsblock                = 2;
+    required ByteArray powwinnerpeer          = 3;
+    required ShardingStructure sharding       = 4;
+    required TxSharingAssignments assignments = 5;
+}
+
+message NodeFinalBlock
+{
+    required uint32 shardid       = 1;
+    required uint64 dsblocknumber = 2;
+    required uint32 consensusid   = 3;
+    required ByteArray txblock    = 4;
+    required bytes statedelta     = 5;
+}
