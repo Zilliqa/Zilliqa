@@ -69,7 +69,8 @@ public:
                      const TxnHash& txRootHash, const uint32_t numTxs,
                      const PubKey& minerPubKey, const uint64_t& dsBlockNum,
                      const BlockHash& dsBlockHeader,
-                     const StateHash& stateDeltaHash);
+                     const StateHash& stateDeltaHash,
+                     const TxnHash& tranReceiptHash);
 
     /// Implements the Serialize function inherited from Serializable.
     unsigned int Serialize(std::vector<unsigned char>& dst,
@@ -93,6 +94,7 @@ public:
     const uint64_t& GetDSBlockNum() const;
     const BlockHash& GetDSBlockHeader() const;
     const StateHash& GetStateDeltaHash() const;
+    const TxnHash& GetTranReceiptHash() const;
 
     // Operators
     bool operator==(const MicroBlockHeader& header) const;
