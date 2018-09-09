@@ -41,6 +41,9 @@
 #include "libPersistence/BlockStorage.h"
 #include "libUtils/TimeUtils.h"
 
+using Shard = std::vector<std::pair<PubKey, Peer>>;
+using VectorOfShard = std::vector<Shard>;
+
 class Mediator;
 
 /// Implements Directory Service functionality including PoW verification, DS, Tx Block Consensus and sharding management.
@@ -61,7 +64,7 @@ class DirectoryService : public Executable, public Broadcastable
     std::mutex m_mutexConsensus;
 
     // Sharding committee members
-    std::vector<std::vector<std::pair<PubKey, Peer>>> m_shards;
+    VectorOfShard m_shards; //vector<vector<pair<PubKey, Peer>>>;
     std::map<PubKey, uint32_t> m_publicKeyToShardIdMap;
 
     // Transaction sharing assignments
