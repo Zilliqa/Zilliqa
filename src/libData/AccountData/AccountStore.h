@@ -28,6 +28,7 @@
 #include "AccountStoreSC.h"
 #include "AccountStoreTrie.h"
 #include "Address.h"
+#include "TransactionReceipt.h"
 #include "common/Constants.h"
 #include "common/Singleton.h"
 #include "depends/common/FixedHash.h"
@@ -102,12 +103,16 @@ public:
     bool RetrieveFromDisk();
 
     bool UpdateAccountsTemp(const uint64_t& blockNum,
-                            const Transaction& transaction);
+                            const unsigned int& numShards, const bool& isDS,
+                            const Transaction& transaction,
+                            TransactionReceipt& receipt);
 
     void AddAccountTemp(const Address& address, const Account& account)
     {
         m_accountStoreTemp->AddAccount(address, account);
     }
+
+    boost::multiprecision::uint256_t GetNonceTemp(const Address& address);
 
     bool UpdateCoinbaseTemp(const Address& rewardee,
                             const Address& genesisAddress,

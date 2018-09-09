@@ -32,11 +32,17 @@
 StateHash
 ComputeDeltasRoot(const std::vector<MicroBlockHashSet>& microBlockHashes);
 
+TxnHash
+ComputeTranReceiptsRoot(const std::vector<MicroBlockHashSet>& microBlockHashes);
+
 TxnHash ComputeTransactionsRoot(const std::vector<TxnHash>& transactionHashes);
 
 TxnHash
 ComputeTransactionsRoot(const std::list<Transaction>& receivedTransactions,
                         const std::list<Transaction>& submittedTransactions);
+
+TxnHash ComputeTransactionsRoot(
+    const std::unordered_map<TxnHash, Transaction>& processedTransactions);
 
 TxnHash ComputeTransactionsRoot(
     const std::unordered_map<TxnHash, Transaction>& receivedTransactions,

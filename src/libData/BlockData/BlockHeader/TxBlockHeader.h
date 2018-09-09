@@ -65,7 +65,8 @@ public:
                   const boost::multiprecision::uint256_t& timestamp,
                   const TxnHash& txRootHash, const StateHash& stateRootHash,
                   const StateHash& deltaRootHash,
-                  const StateHash& stateDeltaHash, const uint32_t numTxs,
+                  const StateHash& stateDeltaHash,
+                  const TxnHash& tranReceiptRootHash, const uint32_t numTxs,
                   const uint32_t numMicroBlockHashes, const PubKey& minerPubKey,
                   const uint64_t& dsBlockNum, const BlockHash& dsBlockHeader);
 
@@ -108,6 +109,9 @@ public:
 
     /// Returns the digest that represents the hash of state delta attached to finalblock.
     const StateHash& GetStateDeltaHash() const;
+
+    /// Returns the digest that represents the root of the Merkle tree that stores all tranReceipt hash in this block.
+    const TxnHash& GetTranReceiptRootHash() const;
 
     /// Returns the number of transactions in this block.
     const uint32_t& GetNumTxs() const;
