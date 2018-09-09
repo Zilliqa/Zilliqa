@@ -37,7 +37,7 @@ MicroBlockHeader::MicroBlockHeader(
     const uint64_t& blockNum, const uint256_t& timestamp,
     const TxnHash& txRootHash, uint32_t numTxs, const PubKey& minerPubKey,
     const uint64_t& dsBlockNum, const BlockHash& dsBlockHeader,
-    const StateHash& stateDeltaHash)
+    const StateHash& stateDeltaHash, const TxnHash& tranReceiptHash)
     : m_type(type)
     , m_version(version)
     , m_shardID(shardID)
@@ -46,7 +46,7 @@ MicroBlockHeader::MicroBlockHeader(
     , m_prevHash(prevHash)
     , m_blockNum(blockNum)
     , m_timestamp(timestamp)
-    , m_hash{txRootHash, stateDeltaHash}
+    , m_hash{txRootHash, stateDeltaHash, tranReceiptHash}
     , m_numTxs(numTxs)
     , m_minerPubKey(minerPubKey)
     , m_dsBlockNum(dsBlockNum)
@@ -190,6 +190,11 @@ const BlockHash& MicroBlockHeader::GetDSBlockHeader() const
 const StateHash& MicroBlockHeader::GetStateDeltaHash() const
 {
     return m_hash.m_stateDeltaHash;
+}
+
+const TxnHash& MicroBlockHeader::GetTranReceiptHash() const
+{
+    return m_hash.m_tranReceiptHash;
 }
 
 bool MicroBlockHeader::operator==(const MicroBlockHeader& header) const
