@@ -1050,8 +1050,7 @@ bool Node::ProcessStateDeltaFromFinalBlock(
 
     LOG_GENERAL(INFO,
                 "Received FinalBlock State Delta root : "
-                    << DataConversion::charArrToHexStr(
-                           finalBlockStateDeltaHash.asArray()));
+                    << finalBlockStateDeltaHash.hex());
 
     if (finalBlockStateDeltaHash == StateHash())
     {
@@ -1067,8 +1066,8 @@ bool Node::ProcessStateDeltaFromFinalBlock(
 
     if (stateDeltaBytes.empty())
     {
-        LOG_GENERAL(INFO, "State Delta is empty");
-        return true;
+        LOG_GENERAL(WARNING, "Cannot get state delta from message");
+        return false;
     }
 
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
