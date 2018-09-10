@@ -51,10 +51,10 @@ std::string ReadSmartContractConstants(std::string propertyName)
     return pt.get<std::string>("node.smart_contract." + propertyName);
 }
 
-std::string ReadTransactionDispatcher(std::string propertyName)
+std::string ReadDispatcherConstants(std::string propertyName)
 {
     auto pt = PTree::GetInstance();
-    return pt.get<std::string>("node.TransactionDispatcher." + propertyName);
+    return pt.get<std::string>("node.dispatcher." + propertyName);
 }
 
 const std::vector<std::string>
@@ -188,10 +188,11 @@ const std::string OUTPUT_JSON{SCILLA_FILES + '/'
                               + ReadSmartContractConstants("OUTPUT_JSON")};
 const std::string INPUT_CODE{SCILLA_FILES + '/'
                              + ReadSmartContractConstants("INPUT_CODE")};
-const std::string TXN_PATH{ReadTransactionDispatcher("TXN_PATH")};
+
+const std::string TXN_PATH{ReadDispatcherConstants("TXN_PATH")};
 const bool USE_REMOTE_TXN_CREATOR{
-    ReadTransactionDispatcher("USE_REMOTE_TXN_CREATOR") == "true" ? true
-                                                                  : false};
+    ReadDispatcherConstants("USE_REMOTE_TXN_CREATOR") == "true" ? true : false};
+
 const unsigned int OPENCL_LOCAL_WORK_SIZE{
     ReadGpuConstants("opencl.LOCAL_WORK_SIZE")};
 const unsigned int OPENCL_GLOBAL_WORK_SIZE_MULTIPLIER{
