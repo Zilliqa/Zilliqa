@@ -31,8 +31,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     net-tools \
     rsyslog \
     vim \
-    curl \
-    wget \
     && rm -rf /var/lib/apt/lists/* \
     && pip install setuptools \
     && pip install kubernetes
