@@ -16,7 +16,7 @@
 
 #include "DirectoryService.h"
 
-uint32_t DirectoryService::CalculateShardSize(uint32_t numberOfNodes)
+uint32_t DirectoryService::CalculateShardSize(const uint32_t numberOfNodes)
 {
     if (numberOfNodes < 651)
     {
