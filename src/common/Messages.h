@@ -47,7 +47,7 @@ enum DSInstructionType : unsigned char
     DSBLOCKCONSENSUS = 0x02,
     MICROBLOCKSUBMISSION = 0x03,
     FINALBLOCKCONSENSUS = 0x04,
-    VIEWCHANGECONSENSUS = 0X05
+    VIEWCHANGECONSENSUS = 0x05,
 };
 
 enum NodeInstructionType : unsigned char

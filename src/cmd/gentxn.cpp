@@ -63,15 +63,16 @@ void gen_txn_file(const std::string& prefix, const KeyPairAddress& from,
     // oss << prefix << "/" << address.hex() << "_" << begin << "_" << end << ".zil";
 
     std::string txn_filename(oss.str());
-    ofstream txn_file(txn_filename, std::fstream::binary);
+    std::ofstream txn_file(txn_filename, std::fstream::binary);
 
     std::vector<unsigned char> buf;
 
     for (auto nonce = begin; nonce < end; nonce++)
     {
 
-        Transaction txn{0, nonce, toAddr, make_pair(privKey, pubKey), nonce, 1,
-                        1, {},    {}};
+        Transaction txn{0,     nonce, toAddr, std::make_pair(privKey, pubKey),
+                        nonce, 1,     1,      {},
+                        {}};
 
         txn.Serialize(buf, 0);
         txn_file.write(reinterpret_cast<char*>(buf.data()), buf.size());
@@ -89,20 +90,22 @@ void gen_txn_file(const std::string& prefix, const KeyPairAddress& from,
 
 void usage(const std::string& prog)
 {
-    cout << "Usage: " << prog << " [BEGIN [END]]\n";
-    cout << "\n";
-    cout << "Description:\n";
-    cout << "\tGenerate transactions starting from batch BEGIN (default to 0) "
-            "to batch END (default to START+10000)\n";
-    cout << "\tTransaction are generated from genesis accounts (constants.xml) "
-            "to one random wallet\n";
-    cout << "\tThe batch size is decided by NUM_TXN_TO_SEND_PER_ACCOUNT "
-            "(constants.xml)\n";
+    std::cout << "Usage: " << prog << " [BEGIN [END]]\n";
+    std::cout << "\n";
+    std::cout << "Description:\n";
+    std::cout
+        << "\tGenerate transactions starting from batch BEGIN (default to 0) "
+           "to batch END (default to START+10000)\n";
+    std::cout
+        << "\tTransaction are generated from genesis accounts (constants.xml) "
+           "to one random wallet\n";
+    std::cout << "\tThe batch size is decided by NUM_TXN_TO_SEND_PER_ACCOUNT "
+                 "(constants.xml)\n";
 }
 
 int main(int argc, char** argv)
 {
-    string prog(argv[0]);
+    std::string prog(argv[0]);
 
     const unsigned long delta = 10000;
     unsigned long begin = 0, end = delta;

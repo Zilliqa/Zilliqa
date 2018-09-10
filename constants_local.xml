@@ -1,3 +1,4 @@
+<?xml version="1.0"?>
 <!-- format guideline: non-tab four-space indentation -->
 <node>
     <constants>
@@ -52,7 +53,7 @@
         <LOOKUP_NODE_MODE>false</LOOKUP_NODE_MODE>
     </options>
     <smart_contract>
-        <SCILLA_ROOT></SCILLA_ROOT>
+        <SCILLA_ROOT/>
         <SCILLA_BINARY>bin/scilla-runner</SCILLA_BINARY>
         <SCILLA_FILES>scilla_files</SCILLA_FILES>
         <SCILLA_LOG>_build</SCILLA_LOG>
@@ -66,7 +67,7 @@
     </smart_contract>
     <dispatcher>
         <USE_REMOTE_TXN_CREATOR>false</USE_REMOTE_TXN_CREATOR>
-        <TXN_PATH></TXN_PATH>
+        <TXN_PATH/>
     </dispatcher>
     <accounts>
         <account>
