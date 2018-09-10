@@ -76,7 +76,7 @@ def make_absolute(f, directory):
 
 def get_tidy_invocation(f, clang_tidy_binary, checks, tmpdir, build_path,
                         header_filter, extra_arg, extra_arg_before, quiet,
-                        config):
+                        config, warn_as_erro):
   """Gets a command line for clang-tidy."""
   start = [clang_tidy_binary]
   if header_filter is not None:
@@ -102,6 +102,8 @@ def get_tidy_invocation(f, clang_tidy_binary, checks, tmpdir, build_path,
       start.append('-quiet')
   if config:
       start.append('-config=' + config)
+  if warn_as_erro:
+      start.append('-warnings-as-errors=' + warn_as_erro)
   start.append(f)
   return start
 
@@ -160,7 +162,8 @@ def run_tidy(args, tmpdir, build_path, queue, failed_files):
     invocation = get_tidy_invocation(name, args.clang_tidy_binary, args.checks,
                                      tmpdir, build_path, args.header_filter,
                                      args.extra_arg, args.extra_arg_before,
-                                     args.quiet, args.config)
+                                     args.quiet, args.config,
+                                     args.warnings_as_errors)
     sys.stdout.write(' '.join(invocation) + '\n')
     return_code = subprocess.call(invocation)
     if return_code != 0:
@@ -219,6 +222,9 @@ def main():
                       'command line.')
   parser.add_argument('-quiet', action='store_true',
                       help='Run clang-tidy in quiet mode')
+  parser.add_argument('-warnings-as-errors', action=None,
+                      help="Upgrades warnings to errors. Same format as    "
+                      "'-checks'.")
   args = parser.parse_args()
 
   db_path = 'compile_commands.json'

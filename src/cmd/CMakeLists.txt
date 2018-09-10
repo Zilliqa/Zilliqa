@@ -36,3 +36,10 @@ add_custom_command(TARGET zilliqa
     COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:gentxn> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
 target_include_directories(gentxn PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(gentxn PUBLIC AccountData)
+
+add_executable(signmultisig signmultisig.cpp)
+add_custom_command(TARGET zilliqa
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:signmultisig> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
+target_include_directories(signmultisig PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(signmultisig PUBLIC Crypto)

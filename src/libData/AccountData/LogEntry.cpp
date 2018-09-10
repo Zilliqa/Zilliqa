@@ -22,7 +22,7 @@ bool LogEntry::Install(const Json::Value& eventObj,
                        const Address& address) //, unsigned int& numIndexed)
 {
     m_eventObj = eventObj;
-    if (!m_eventObj.isMember("eventname") || !m_eventObj.isMember("params"))
+    if (!m_eventObj.isMember("_eventname") || !m_eventObj.isMember("params"))
     {
         LOG_GENERAL(WARNING,
                     "Address: " << address.hex()
@@ -37,7 +37,7 @@ bool LogEntry::Install(const Json::Value& eventObj,
         {
             LOG_GENERAL(WARNING,
                         "Address: " << address.hex() << " EventName: "
-                                    << m_eventObj["eventname"].asString()
+                                    << m_eventObj["_eventname"].asString()
                                     << ", The params is corrupted");
             return false;
         }

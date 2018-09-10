@@ -342,6 +342,11 @@ void DirectoryService::StartFirstTxEpoch()
 
     m_viewChangeCounter = 0;
 
+    {
+        std::lock_guard<mutex> lock(m_mutexMicroBlocks);
+        m_microBlocks.clear();
+    }
+
     if (m_mode != IDLE)
     {
         m_mediator.m_node->m_myShardMembers = m_mediator.m_DSCommittee;
