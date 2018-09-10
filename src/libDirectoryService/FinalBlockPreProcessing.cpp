@@ -721,8 +721,6 @@ bool DirectoryService::OnNodeMissingMicroBlocks(
 
     for (uint32_t i = 0; i < numOfAbsentHashes; i++)
     {
-        MicroBlock mb;
-
         bool found = false;
         // O(n^2) might be fine since number of shards is low
         // If its slow on benchmarking, may be first populate an unordered_set and then std::find
@@ -733,7 +731,8 @@ bool DirectoryService::OnNodeMissingMicroBlocks(
                 && microBlock.GetHeader().GetStateDeltaHash()
                     == missingMicroBlockHashes[i].m_stateDeltaHash)
             {
-                mb = microBlock;
+                cur_offset += microBlock.SerializeCore(mb_message, cur_offset);
+                numOfMicroblocksSent++;
                 found = true;
                 break;
             }
@@ -745,8 +744,6 @@ bool DirectoryService::OnNodeMissingMicroBlocks(
                             << missingMicroBlockHashes[i]);
             continue;
         }
-        numOfMicroblocksSent++;
-        cur_offset += mb.SerializeCore(mb_message, cur_offset);
     }
     Serializable::SetNumber<uint32_t>(mb_message, mb_num_offset,
                                       numOfMicroblocksSent, sizeof(uint32_t));
