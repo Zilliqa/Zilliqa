@@ -597,8 +597,6 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
     {
         lock_guard<mutex> g(m_mutexConsensus);
 
-        // Wait until in the case that primary sent announcement pretty early
-
         if (!CheckState(PROCESS_FINALBLOCKCONSENSUS))
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
