@@ -540,12 +540,17 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
             m_mediator.m_ds->SaveTxnBodySharingAssignment(message, cur_offset);
 
             // Update my DS mode and ID
-            m_mediator.m_ds->m_consensusMyID = 0;
             m_mediator.m_ds->m_consensusID
                 = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
 
-            uint16_t lastBlockHash = HashUtils::SerializableToHash16Bits(
-                m_mediator.m_txBlockChain.GetLastBlock());
+            m_mediator.m_node->CleanCreatedTransaction();
+
+            uint16_t lastBlockHash = 0;
+            if (m_mediator.m_currentEpochNum > 1)
+            {
+                HashUtils::SerializableToHash16Bits(
+                    m_mediator.m_txBlockChain.GetLastBlock());
+            }
 
             {
 
