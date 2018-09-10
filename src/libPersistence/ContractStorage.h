@@ -29,11 +29,9 @@
 
 #include "depends/libTrie/TrieDB.h"
 
-using namespace dev;
-
 class ContractStorage : public Singleton<ContractStorage>
 {
-    OverlayDB m_stateDB;
+    dev::OverlayDB m_stateDB;
     LevelDB m_codeDB;
 
     ContractStorage()
@@ -50,14 +48,14 @@ public:
         return cs;
     }
 
-    OverlayDB& GetStateDB() { return m_stateDB; }
+    dev::OverlayDB& GetStateDB() { return m_stateDB; }
 
     /// Adds a contract code to persistence
-    bool PutContractCode(const h160& address,
+    bool PutContractCode(const dev::h160& address,
                          const std::vector<unsigned char>& code);
 
     /// Get the desired code from persistence
-    const std::vector<unsigned char> GetContractCode(const h160& address);
+    const std::vector<unsigned char> GetContractCode(const dev::h160& address);
 };
 
 #endif // CONTRACTSTORAGE_H
