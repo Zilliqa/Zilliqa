@@ -412,7 +412,6 @@ void Node::StartFirstTxEpoch()
     }
 
     m_consensusLeaderID = 0;
-
     CommitTxnPacketBuffer();
 
     auto main_func3 = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
