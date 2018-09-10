@@ -992,7 +992,8 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         CommitForwardedMsgBuffer();
 
         if (m_mediator.m_lookup->GetIsServer()
-            && m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0)
+            && m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0
+            && USE_REMOTE_TXN_CREATOR)
         {
             m_mediator.m_lookup->SenderTxnBatchThread();
         }

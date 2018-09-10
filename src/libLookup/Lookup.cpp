@@ -2609,6 +2609,7 @@ void Lookup::SenderTxnBatchThread()
             "other than the LookUp node.");
         return;
     }
+    LOG_MARKER();
 
     auto main_func = [this]() mutable -> void {
         uint32_t nShard;
