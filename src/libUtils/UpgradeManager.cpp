@@ -17,6 +17,7 @@
 #include "UpgradeManager.h"
 #include "libCrypto/Schnorr.h"
 #include "libUtils/Logger.h"
+#include <experimental/filesystem>
 
 using namespace std;
 
@@ -178,6 +179,46 @@ bool UpgradeManager::DownloadSW()
         {
             ++line_no;
         }
+    }
+
+    /// Verify SHA-256 checksum of .deb file
+    experimental::filesystem::recursive_directory_iterator it("./"), endit;
+    string debFileName;
+
+    while (it != endit)
+    {
+        if (experimental::filesystem::is_regular_file(*it)
+            && it->path().extension() == ".deb")
+        {
+            debFileName = it->path().filename();
+            break;
+        }
+
+        ++it;
+    }
+
+    if (debFileName.empty())
+    {
+        LOG_GENERAL(WARNING, "Cannot find package (.deb) file!");
+        return false;
+    }
+
+    string downloadSha;
+    {
+        fstream debFile(debFileName, ios::in);
+
+        SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+        vector<unsigned char> vec((istreambuf_iterator<char>(debFile)),
+                                  (istreambuf_iterator<char>()));
+        sha2.Update(vec, 0, vec.size());
+        vector<unsigned char> output = sha2.Finalize();
+        downloadSha = DataConversion::Uint8VecToHexStr(output);
+    }
+
+    if (sha != downloadSha)
+    {
+        LOG_GENERAL(WARNING, "SHA-256 checksum of .deb file does not match!");
+        return false;
     }
 
     m_latestSWInfo = make_shared<SWInfo>(major, minor, fix, upgradeDS, commit);

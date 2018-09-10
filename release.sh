@@ -107,7 +107,7 @@ echo -e "Making SHA-256 & multi-signature..."
 privKeyFile="$(realpath $1)"
 pubKeyFile="$(realpath $2)"
 cd ${releaseDir}
-sha="$(md5sum ${debFile}|cut -d ' ' -f1)"
+sha="$(sha256sum ${debFile}|cut -d ' ' -f1)"
 sed -i "${shaLine}s/.*/${sha}/" ${versionFile}
 signature="$(./bin/signmultisig ${sha} ${privKeyFile} ${pubKeyFile})"
 sed -i "${sigLine}s/.*/${signature}/" ${versionFile}
