@@ -298,8 +298,7 @@ class Node : public Executable, public Broadcastable
     bool CheckMicroBlockStateDeltaHash();
     bool CheckMicroBlockTranReceiptHash();
 
-    bool VerifyTxnsOrdering(const vector<TxnHash>& tranHashes,
-                            list<Transaction>& curTxns);
+    bool VerifyTxnsOrdering(const vector<TxnHash>& tranHashes);
 
     void ProcessTransactionWhenShardLeader();
     bool ProcessTransactionWhenShardBackup(const vector<TxnHash>& tranHashes,
