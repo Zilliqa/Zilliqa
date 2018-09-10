@@ -327,6 +327,9 @@ class DirectoryService : public Executable, public Broadcastable
 
     uint8_t CalculateNewDifficulty(const uint8_t& prevDifficulty);
 
+    /// Calculate and return the min size of each for n number of nodes
+    uint32_t CalculateShardSize(uint32_t numberOfNodes);
+
 public:
     enum Mode : unsigned char
     {
