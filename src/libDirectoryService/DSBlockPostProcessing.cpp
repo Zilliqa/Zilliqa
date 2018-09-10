@@ -261,8 +261,12 @@ void DirectoryService::UpdateMyDSModeAndConsensusId()
     }
 
     // Check if I am the oldest backup DS (I will no longer be part of the DS committee)
-    uint16_t lastBlockHash = HashUtils::SerializableToHash16Bits(
-        m_mediator.m_txBlockChain.GetLastBlock());
+    uint16_t lastBlockHash = 0;
+    if (m_mediator.m_currentEpochNum > 1)
+    {
+        lastBlockHash = HashUtils::SerializableToHash16Bits(
+            m_mediator.m_txBlockChain.GetLastBlock());
+    }
     if ((uint32_t)(m_consensusMyID + 1) == m_mediator.m_DSCommittee->size())
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -390,6 +394,7 @@ void DirectoryService::StartFirstTxEpoch()
         }
 
         // Check if I am the leader or backup of the shard
+
         if (m_mediator.m_selfKey.second
             == m_mediator.m_node->m_myShardMembers->front().first)
         {
