@@ -424,6 +424,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
     // Add the oldest DS committee member to m_allPoWs and m_allPoWConns so it gets included in sharding structure
     sortedPoWSolns.emplace_back(array<unsigned char, 32>(),
                                 m_mediator.m_DSCommittee->back().first);
+    m_allPoWConns.emplace(m_mediator.m_DSCommittee->back());
 
     const auto& winnerPeer
         = m_allPoWConns.find(m_pendingDSBlock->GetHeader().GetMinerPubKey());
