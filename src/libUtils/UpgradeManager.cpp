@@ -17,12 +17,16 @@
 #include "UpgradeManager.h"
 #include "libCrypto/Schnorr.h"
 #include "libUtils/Logger.h"
-#include <experimental/filesystem>
-
+#include <boost/tokenizer.hpp>
+#include <curl/curl.h>
 using namespace std;
 
 #define RELEASE_URL                                                            \
     "https://api.github.com/repos/Zilliqa/Zilliqa/releases/latest"
+#define USER_AGENT "Zilliqa"
+#define VERSION_FILE_NAME "VERSION"
+#define PUBLIC_KEY_FILE_NAME "pubKeyFile"
+#define PACKAGE_FILE_EXTENSION "deb"
 
 UpgradeManager::UpgradeManager() {}
 
@@ -34,25 +38,161 @@ UpgradeManager& UpgradeManager::GetInstance()
     return um;
 }
 
-bool UpgradeManager::DownloadFile(const char* fileTail)
+static size_t WriteString(void* contents, size_t size, size_t nmemb,
+                          void* userp)
 {
-    string cmd = string("curl -s ") + RELEASE_URL
-        + " | grep \"browser_download_url.*" + fileTail
-        + "\" | cut -d '\"' -f 4 | wget -qi -";
-    return system(cmd.c_str()) >= 0;
+    ((string*)userp)->append((char*)contents, size * nmemb);
+    return size * nmemb;
+}
+
+static size_t WriteStream(void* ptr, size_t size, size_t nmemb, void* stream)
+{
+    size_t written = fwrite(ptr, size, nmemb, (FILE*)stream);
+    return written;
+}
+
+string UpgradeManager::DownloadFile(const char* fileTail)
+{
+    curl_global_init(CURL_GLOBAL_DEFAULT);
+    CURL* curl = curl_easy_init();
+
+    if (!curl)
+    {
+        curl_easy_cleanup(curl);
+        curl_global_cleanup();
+        return nullptr;
+    }
+
+    string curlRes;
+    curl_easy_setopt(curl, CURLOPT_URL, RELEASE_URL);
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, USER_AGENT);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteString);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &curlRes);
+    CURLcode res = curl_easy_perform(curl);
+
+    if (res != CURLE_OK)
+    {
+        LOG_GENERAL(WARNING,
+                    "curl_easy_perform() failed: " << curl_easy_strerror(res));
+        curl_easy_cleanup(curl);
+        curl_global_cleanup();
+        return nullptr;
+    }
+
+    int find = 0;
+    string cur;
+    vector<string> downloadFilePaths;
+    boost::char_separator<char> sep(",\"");
+    boost::tokenizer<boost::char_separator<char>> tokens(curlRes, sep);
+    for (boost::tokenizer<boost::char_separator<char>>::iterator tok_iter
+         = tokens.begin();
+         tok_iter != tokens.end(); ++tok_iter)
+    {
+        if (1 == find)
+        {
+            ++find;
+            continue;
+        }
+
+        if (2 == find)
+        {
+            find = 0;
+            downloadFilePaths.emplace_back(*tok_iter);
+            continue;
+        }
+
+        cur = *tok_iter;
+
+        if (cur == "browser_download_url")
+        {
+            find = 1;
+            continue;
+        }
+    }
+
+    string downloadFilePath;
+
+    for (auto s : downloadFilePaths)
+    {
+        if (string::npos != s.rfind(fileTail))
+        {
+            downloadFilePath = s;
+            break;
+        }
+    }
+
+    string fileName = downloadFilePath.substr(downloadFilePath.rfind('/') + 1);
+
+    /// Get the redirection url (if applicable)
+    curl_easy_setopt(curl, CURLOPT_URL, downloadFilePath.data());
+    res = curl_easy_perform(curl);
+
+    if (res != CURLE_OK)
+    {
+        LOG_GENERAL(WARNING,
+                    "curl_easy_perform() failed: " << curl_easy_strerror(res));
+        curl_easy_cleanup(curl);
+        curl_global_cleanup();
+        return nullptr;
+    }
+
+    long response_code;
+    res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+
+    if ((res != CURLE_OK) || ((response_code / 100) == 3))
+    {
+        char* location;
+        curl_easy_getinfo(curl, CURLINFO_REDIRECT_URL, &location);
+        downloadFilePath = location;
+    }
+
+    /// Download the file
+    curl_easy_setopt(curl, CURLOPT_URL, downloadFilePath.data());
+    curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+    curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 1L);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteStream);
+    FILE* file = fopen(fileName.data(), "wb");
+
+    if (!file)
+    {
+        curl_easy_cleanup(curl);
+        curl_global_cleanup();
+        return nullptr;
+    }
+
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, file);
+    res = curl_easy_perform(curl);
+
+    if (res != CURLE_OK)
+    {
+        LOG_GENERAL(WARNING,
+                    "curl_easy_perform() failed: " << curl_easy_strerror(res));
+        curl_easy_cleanup(curl);
+        curl_global_cleanup();
+        return nullptr;
+    }
+
+    fclose(file);
+    curl_easy_cleanup(curl);
+    curl_global_cleanup();
+    return fileName;
 }
 
 bool UpgradeManager::HasNewSW()
 {
     LOG_MARKER();
 
-    if (!DownloadFile("pubKeyFile"))
+    string pubKeyFileName = DownloadFile(PUBLIC_KEY_FILE_NAME);
+
+    if (pubKeyFileName.empty())
     {
         LOG_GENERAL(WARNING, "Cannot download public key file!");
         return false;
     }
 
-    if (!DownloadFile("VERSION"))
+    string versionName = DownloadFile(VERSION_FILE_NAME);
+
+    if (versionName.empty())
     {
         LOG_GENERAL(WARNING, "Cannot download version file!");
         return false;
@@ -60,7 +200,7 @@ bool UpgradeManager::HasNewSW()
 
     vector<PubKey> pubKeys;
     {
-        fstream pubKeyFile("pubKeyFile", ios::in);
+        fstream pubKeyFile(PUBLIC_KEY_FILE_NAME, ios::in);
         string pubKey;
 
         while (getline(pubKeyFile, pubKey))
@@ -71,7 +211,7 @@ bool UpgradeManager::HasNewSW()
 
     string shaStr, sigStr;
     {
-        fstream versionFile("VERSION", ios::in);
+        fstream versionFile(VERSION_FILE_NAME, ios::in);
         int line_no = 0;
 
         /// Read SHA-256 hash
@@ -114,13 +254,17 @@ bool UpgradeManager::DownloadSW()
 {
     LOG_MARKER();
 
-    if (!DownloadFile("VERSION"))
+    string versionName = DownloadFile(VERSION_FILE_NAME);
+
+    if (versionName.empty())
     {
         LOG_GENERAL(WARNING, "Cannot download version file!");
         return false;
     }
 
-    if (!DownloadFile("deb"))
+    m_packageFileName = DownloadFile(PACKAGE_FILE_EXTENSION);
+
+    if (m_packageFileName.empty())
     {
         LOG_GENERAL(WARNING, "Cannot download package (.deb) file!");
         return false;
@@ -130,7 +274,7 @@ bool UpgradeManager::DownloadSW()
     uint64_t upgradeDS;
     string sha;
     {
-        fstream versionFile("VERSION", ios::in);
+        fstream versionFile(VERSION_FILE_NAME, ios::in);
         int line_no = 0;
         string line;
 
@@ -182,30 +326,9 @@ bool UpgradeManager::DownloadSW()
     }
 
     /// Verify SHA-256 checksum of .deb file
-    experimental::filesystem::recursive_directory_iterator it("./"), endit;
-    string debFileName;
-
-    while (it != endit)
-    {
-        if (experimental::filesystem::is_regular_file(*it)
-            && it->path().extension() == ".deb")
-        {
-            debFileName = it->path().filename();
-            break;
-        }
-
-        ++it;
-    }
-
-    if (debFileName.empty())
-    {
-        LOG_GENERAL(WARNING, "Cannot find package (.deb) file!");
-        return false;
-    }
-
     string downloadSha;
     {
-        fstream debFile(debFileName, ios::in);
+        fstream debFile(m_packageFileName, ios::in);
 
         SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
         vector<unsigned char> vec((istreambuf_iterator<char>(debFile)),
@@ -248,8 +371,9 @@ bool UpgradeManager::ReplaceNode(Mediator& mediator)
         mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
         serializedTxBlock);
 
+    string cmd = string("dpkg -i ") + m_packageFileName;
     /// Deploy downloaded software
-    if (system("dpkg -i *.deb") < 0)
+    if (system(cmd.data()) < 0)
     {
         LOG_GENERAL(WARNING, "Cannot deploy downloaded software!");
         return false;

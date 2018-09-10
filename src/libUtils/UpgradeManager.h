@@ -28,6 +28,7 @@ class UpgradeManager
 private:
     std::shared_ptr<SWInfo> m_latestSWInfo;
     std::vector<unsigned char> m_latestSHA;
+    std::string m_packageFileName;
 
     UpgradeManager();
     ~UpgradeManager();
@@ -35,7 +36,7 @@ private:
     // Singleton should not implement these
     UpgradeManager(UpgradeManager const&) = delete;
     void operator=(UpgradeManager const&) = delete;
-    bool DownloadFile(const char* fileTail);
+    std::string DownloadFile(const char* fileTail);
 
 public:
     /// Returns the singleton UpgradeManager instance.
