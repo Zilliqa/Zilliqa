@@ -50,20 +50,21 @@ template<class MAP> class AccountStoreSC : public AccountStoreBase<MAP>
     Address m_curContractAddr;
     Address m_curSenderAddr;
     uint256_t m_curAmount;
-    uint256_t m_curGasCum;
     uint256_t m_curGasLimit;
     uint256_t m_curGasPrice;
     unsigned int m_curNumShards;
     bool m_curIsDS;
     TransactionReceipt m_curTranReceipt;
 
-    bool ParseCreateContractOutput();
-    bool ParseCreateContractJsonOutput(const Json::Value& _json);
-    bool ParseCallContractOutput();
-    bool ParseCallContractJsonOutput(const Json::Value& _json);
+    bool ParseCreateContractOutput(uint256_t& gasRemained);
+    bool ParseCreateContractJsonOutput(const Json::Value& _json,
+                                       uint256_t& gasRemained);
+    bool ParseCallContractOutput(uint256_t& gasRemained);
+    bool ParseCallContractJsonOutput(const Json::Value& _json,
+                                     uint256_t& gasRemained);
     Json::Value GetBlockStateJson(const uint64_t& BlockNum) const;
-    string GetCreateContractCmdStr();
-    string GetCallContractCmdStr();
+    string GetCreateContractCmdStr(const uint256_t& available_gas);
+    string GetCallContractCmdStr(const uint256_t& available_gas);
 
     // Generate input for interpreter to check the correctness of contract
     void ExportCreateContractFiles(const Account& contract);
@@ -78,10 +79,6 @@ template<class MAP> class AccountStoreSC : public AccountStoreBase<MAP>
                                const uint256_t& delta);
     void CommitTransferBalanceAtomic();
     void DiscardTransferBalanceAtomic();
-
-    bool CheckGasExceededLimit(const uint256_t& gas);
-
-    uint256_t CalculateGas();
 
 protected:
     AccountStoreSC();
