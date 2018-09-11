@@ -972,7 +972,8 @@ ConsensusLeader::ConsensusLeader(
 ConsensusLeader::~ConsensusLeader() {}
 
 bool ConsensusLeader::StartConsensus(const vector<unsigned char>& message,
-                                     uint32_t lengthToCosign)
+                                     uint32_t lengthToCosign,
+                                     bool useGossipProto)
 {
     LOG_MARKER();
 
@@ -1068,8 +1069,14 @@ bool ConsensusLeader::StartConsensus(const vector<unsigned char>& message,
         peer.push_back(i.second);
     }
 
-    //P2PComm::GetInstance().SendMessage(peer, announcement);
-    P2PComm::GetInstance().SpreadRumor(announcement);
+    if (useGossipProto)
+    {
+        P2PComm::GetInstance().SpreadRumor(announcement);
+    }
+    else
+    {
+        P2PComm::GetInstance().SendMessage(peer, announcement);
+    }
 
     return true;
 }
