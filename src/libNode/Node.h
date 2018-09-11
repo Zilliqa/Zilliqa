@@ -154,12 +154,10 @@ class Node : public Executable, public Broadcastable
     bool ToBlockMessage(unsigned char ins_byte);
 
     // internal calls from ProcessStartPoW1
-    bool ReadVariablesFromStartPoWMessage(const vector<unsigned char>& message,
-                                          unsigned int offset,
-                                          uint64_t& block_num,
-                                          uint8_t& difficulty,
-                                          array<unsigned char, 32>& rand1,
-                                          array<unsigned char, 32>& rand2);
+    bool ReadVariablesFromStartPoWMessage(
+        const vector<unsigned char>& message, unsigned int offset,
+        uint64_t& block_num, uint8_t& dsDifficulty, uint8_t& difficulty,
+        array<unsigned char, 32>& rand1, array<unsigned char, 32>& rand2);
     bool ProcessSubmitMissingTxn(const vector<unsigned char>& message,
                                  unsigned int offset, const Peer& from);
 
@@ -418,8 +416,6 @@ public:
 
     void CommitForwardedMsgBuffer();
 
-    void CleanCreatedTransaction();
-
     void CallActOnFinalblock();
 
     void UpdateStateForNextConsensusRound();
@@ -428,9 +424,20 @@ public:
     void StartSynchronization();
 
     /// Performs PoW mining and submission for DirectoryService committee membership.
-    bool StartPoW(const uint64_t& block_num, uint8_t difficulty,
+    bool StartPoW(const uint64_t& block_num, uint8_t dsDifficulty,
+                  uint8_t difficulty,
                   const std::array<unsigned char, UINT256_SIZE>& rand1,
                   const std::array<unsigned char, UINT256_SIZE>& rand2);
+
+    /// Send PoW soln to DS Commitee
+    void SendPoWResultToDSComm(const uint64_t& block_num,
+                               const uint8_t& difficultyLevel,
+                               const uint64_t winningNonce,
+                               const vector<unsigned char> powResultHash,
+                               const vector<unsigned char> powMixhash);
+
+    /// Call when the normal node be promoted to DS
+    void CleanCreatedTransaction();
 
     /// Used by oldest DS node to configure shard ID as a new shard node
     void SetMyShardID(uint32_t shardID);

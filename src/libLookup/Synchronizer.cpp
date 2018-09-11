@@ -17,6 +17,7 @@
 #include <vector>
 
 #include "Synchronizer.h"
+#include "common/Constants.h"
 #include "common/Messages.h"
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Transaction.h"
@@ -43,12 +44,15 @@ DSBlock Synchronizer::ConstructGenesisDSBlock()
     // FIXME: Handle exceptions.
     PrivKey privKey(tmpprivkey, 0);
     PubKey pubKey(tmppubkey, 0);
-
     std::pair<PrivKey, PubKey> keypair = make_pair(privKey, pubKey);
+    uint64_t genesisBlockNumer = 0;
+    uint256_t genesisNonce = 0;
+    uint256_t genesisTimestamp = 0;
 
     // FIXME: Handle exceptions.
-    return DSBlock(DSBlockHeader(20, prevHash, 12344, keypair.first,
-                                 keypair.second, 0, 789, SWInfo()),
+    return DSBlock(DSBlockHeader(DS_POW_DIFFICULTY, POW_DIFFICULTY, prevHash,
+                                 genesisNonce, keypair.first, keypair.second,
+                                 genesisBlockNumer, genesisTimestamp, SWInfo()),
                    CoSignatures());
 }
 
