@@ -20,6 +20,7 @@
 #include "libMediator/Mediator.h"
 #include "libUtils/SWInfo.h"
 #include <cstring>
+#include <curl/curl.h>
 #include <memory>
 #include <string>
 
@@ -28,6 +29,7 @@ class UpgradeManager
 private:
     std::shared_ptr<SWInfo> m_latestSWInfo;
     std::vector<unsigned char> m_latestSHA;
+    CURL* m_curl;
     std::string m_packageFileName;
 
     UpgradeManager();
