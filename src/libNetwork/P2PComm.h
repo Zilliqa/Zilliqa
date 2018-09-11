@@ -33,6 +33,8 @@
 
 struct evconnlistener;
 
+extern const unsigned char START_BYTE_NORMAL;
+
 class SendJob
 {
 protected:
@@ -97,8 +99,6 @@ class P2PComm
     P2PComm(P2PComm const&) = delete;
     void operator=(P2PComm const&) = delete;
 
-    friend class RumorManager;
-
     using ShaMessage = std::vector<unsigned char>;
     static ShaMessage shaMessage(const std::vector<unsigned char>& message);
 
@@ -126,6 +126,8 @@ public:
     using BroadcastListFunc = std::function<std::vector<Peer>(
         unsigned char msg_type, unsigned char ins_type, const Peer&)>;
 
+    void InitializeRumorManager(std::vector<Peer>& peers);
+
 private:
     using SocketCloser = std::unique_ptr<int, void (*)(int*)>;
     static Dispatcher m_dispatcher;
@@ -150,7 +152,7 @@ public:
     void SendMessage(const std::deque<Peer>& peers,
                      const std::vector<unsigned char>& message);
 
-    /// Sends message to specified peer.
+    /// Sends normal message to specified peer.
     void SendMessage(const Peer& peer,
                      const std::vector<unsigned char>& message);
 
@@ -167,12 +169,13 @@ public:
                             const std::vector<unsigned char>& msg_hash);
 
     void SendMessageNoQueue(const Peer& peer,
-                            const std::vector<unsigned char>& message);
+                            const std::vector<unsigned char>& message,
+                            const unsigned char& startByteType
+                            = START_BYTE_NORMAL);
 
     void SetSelfPeer(const Peer& self);
 
-    void SpreadRumor(const std::vector<Peer>& peers,
-                     const std::vector<unsigned char>& message);
+    void SpreadRumor(const std::vector<unsigned char>& message);
 };
 
 #endif // __P2PCOMM_H__

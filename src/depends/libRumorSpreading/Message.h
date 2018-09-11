@@ -12,9 +12,11 @@ class Message {
   public:
     // ENUMS
     enum class Type {
-        UNDEFINED,
-        PUSH,
-        PULL,
+        UNDEFINED = 0x00,
+        PUSH = 0x01,
+        PULL = 0x02,
+        EMPTY_PUSH = 0x03,
+        EMPTY_PULL = 0x04
     };
 
     static std::map<Type, std::string> s_enumKeyToString;

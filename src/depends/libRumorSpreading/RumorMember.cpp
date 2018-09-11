@@ -134,17 +134,17 @@ bool RumorMember::addRumor(int rumorId)
 }
 
 std::pair<int, std::vector<Message>>
-RumorMember::receivedMessage(const Message& message, int fromPeer, bool& alreadyReceived)
+RumorMember::receivedMessage(const Message& message, int fromPeer)
 {
     std::lock_guard<std::mutex> guard(m_mutex); // critical section
 
     bool isNewPeer = m_peersInCurrentRound.insert(fromPeer).second;
     increaseStatValue(StatisticKey::NumMessagesReceived, 1);
 
-    // If this is the first time 'fromPeer' sent a PUSH message in this round
+    // If this is the first time 'fromPeer' sent a PUSH/EMPTY_PUSH message in this round
     // then respond with a PULL message for each rumor
     std::vector<Message> pullMessages;
-    if (isNewPeer && message.type() == Message::Type::PUSH) {
+    if (isNewPeer && (message.type() == Message::Type::PUSH || message.type() == Message::Type::EMPTY_PUSH)) {
         for (auto& kv : m_rumors) {
             RumorStateMachine& stateMach = kv.second;
             if (stateMach.age() >= 0) {
@@ -154,7 +154,7 @@ RumorMember::receivedMessage(const Message& message, int fromPeer, bool& already
 
         // No PULL messages to sent i.e. no rumors received yet
         if (pullMessages.empty()) {
-            pullMessages.emplace_back(Message(Message::Type::PULL, -1, 0));
+            pullMessages.emplace_back(Message(Message::Type::EMPTY_PULL, -1, 0));
             increaseStatValue(StatisticKey::NumEmptyPullMessages, 1);
         }
         else {
@@ -169,11 +169,9 @@ RumorMember::receivedMessage(const Message& message, int fromPeer, bool& already
         if (m_rumors.count(receivedRumorId) > 0) 
         {
             m_rumors[receivedRumorId].rumorReceived(fromPeer, message.age());
-            alreadyReceived = true;
         }
         else {
             m_rumors[receivedRumorId] = RumorStateMachine(&m_networkConfig, fromPeer, theirRound);
-            alreadyReceived = false;
         }
     }
 
@@ -213,7 +211,7 @@ std::pair<int, std::vector<Message>> RumorMember::advanceRound()
 
     // No PUSH messages but still want to sent a response to peer.
     if (pushMessages.empty()) {
-        pushMessages.emplace_back(Message(Message::Type::PUSH, -1, 0));
+        pushMessages.emplace_back(Message(Message::Type::EMPTY_PUSH, -1, 0));
         increaseStatValue(StatisticKey::NumEmptyPushMessages, 1);
     }
 

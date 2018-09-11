@@ -9,6 +9,8 @@ std::map<Message::Type, std::string> Message::s_enumKeyToString = {
     {Type::UNDEFINED, LITERAL(UNDEFINED)},
     {Type::PUSH,      LITERAL(PUSH)},
     {Type::PULL,      LITERAL(PULL)},
+    {Type::EMPTY_PUSH,LITERAL(EMPTY_PUSH)},
+    {Type::EMPTY_PULL,LITERAL(EMPTY_PULL)}
 };
 
 // CONSTRUCTORS
