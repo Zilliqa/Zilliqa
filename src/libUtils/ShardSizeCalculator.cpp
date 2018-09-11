@@ -19,113 +19,33 @@
 
 uint32_t ShardSizeCalculator::CalculateShardSize(const uint32_t numberOfNodes)
 {
-    if (numberOfNodes < 651)
-    {
-        return 600;
-    }
-    else if (numberOfNodes >= 651)
-    {
-        return 651;
-    }
-    else if (numberOfNodes >= 1368)
-    {
-        return 684;
-    }
-    else if (numberOfNodes >= 2133)
-    {
-        return 711;
-    }
-    else if (numberOfNodes >= 2868)
-    {
-        return 717;
-    }
-    else if (numberOfNodes >= 3675)
-    {
-        return 735;
-    }
-    else if (numberOfNodes >= 4464)
-    {
-        return 744;
-    }
-    else if (numberOfNodes >= 5229)
-    {
-        return 747;
-    }
-    else if (numberOfNodes >= 6024)
-    {
-        return 753;
-    }
-    else if (numberOfNodes >= 6858)
-    {
-        return 762;
-    }
-    else if (numberOfNodes >= 7710)
-    {
-        return 771;
-    }
-    else if (numberOfNodes >= 8580)
-    {
-        return 780;
-    }
-    else if (numberOfNodes >= 9468)
-    {
-        return 789;
-    }
-    else if (numberOfNodes >= 10335)
-    {
-        return 795;
-    }
-    else if (numberOfNodes >= 11130)
-    {
-        return 795;
-    }
-    else if (numberOfNodes >= 11925)
-    {
-        return 795;
-    }
-    else if (numberOfNodes >= 12720)
-    {
-        return 795;
-    }
-    else if (numberOfNodes >= 13515)
-    {
-        return 795;
-    }
-    else if (numberOfNodes >= 14364)
-    {
-        return 798;
-    }
-    else if (numberOfNodes >= 15390)
-    {
-        return 810;
-    }
-    else if (numberOfNodes >= 16200)
-    {
-        return 810;
-    }
-    else if (numberOfNodes >= 17010)
-    {
-        return 810;
-    }
-    else if (numberOfNodes >= 17820)
-    {
-        return 810;
-    }
-    else if (numberOfNodes >= 18768)
-    {
-        return 816;
-    }
-    else if (numberOfNodes >= 19584)
-    {
-        return 816;
-    }
-    else if (numberOfNodes >= 20400)
-    {
-        return 816;
-    }
-    else
-    {
-        LOG_GENERAL(WARNING, "Number of nodes exceeded initial calculation.");
-        return 816;
-    }
+
+    static uint32_t range[]
+        = {0,     651,   1368,
+           2133,  2868,  3675,
+           4464,  5229,  6024,
+           6858,  7710,  8580,
+           9468,  10335, 11130,
+           11925, 12720, 13515,
+           14364, 15390, 16200,
+           17010, 17820, 18768,
+           19584, 20400, std::numeric_limits<uint32_t>::max()};
+
+    static uint32_t result[]
+        = {0,   651, 684, 711, 717, 735, 744, 747, 753, 762, 771, 780, 789, 795,
+           795, 795, 795, 795, 798, 810, 810, 810, 810, 816, 816, 816, 819};
+    // result[0] will never be used
+
+    auto constexpr range_size = std::extent<decltype(range)>::value;
+    auto constexpr result_size = std::extent<decltype(result)>::value;
+
+    static_assert(range_size == result_size, "nonequal size");
+
+    auto it = std::upper_bound(range, range + range_size, numberOfNodes);
+    std::size_t index = it - range;
+
+    assert(1 <= index); // should start from 1
+    assert(index < result_size);
+
+    return result[index];
 }
