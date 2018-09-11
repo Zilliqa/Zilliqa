@@ -415,6 +415,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
     AccountStore::GetInstance().InitTemp();
     m_stateDeltaFromShards.clear();
     m_allPoWConns.clear();
+    clearDSPoWSolns();
+    ResetPoWSubmissionCounter();
 
     auto func = [this]() mutable -> void {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
