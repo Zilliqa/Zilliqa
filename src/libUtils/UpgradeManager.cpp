@@ -18,7 +18,6 @@
 #include "libCrypto/Schnorr.h"
 #include "libUtils/Logger.h"
 #include <boost/tokenizer.hpp>
-#include <curl/curl.h>
 using namespace std;
 
 #define RELEASE_URL                                                            \
@@ -28,9 +27,27 @@ using namespace std;
 #define PUBLIC_KEY_FILE_NAME "pubKeyFile"
 #define PACKAGE_FILE_EXTENSION "deb"
 
-UpgradeManager::UpgradeManager() {}
+UpgradeManager::UpgradeManager()
+{
+    curl_global_init(CURL_GLOBAL_DEFAULT);
+    m_curl = curl_easy_init();
 
-UpgradeManager::~UpgradeManager() {}
+    if (!m_curl)
+    {
+        LOG_GENERAL(WARNING, "curl initialization fail!");
+        curl_global_cleanup();
+    }
+}
+
+UpgradeManager::~UpgradeManager()
+{
+    if (m_curl)
+    {
+        curl_easy_cleanup(m_curl);
+        curl_global_cleanup();
+        m_curl = nullptr;
+    }
+}
 
 UpgradeManager& UpgradeManager::GetInstance()
 {
@@ -45,38 +62,27 @@ static size_t WriteString(void* contents, size_t size, size_t nmemb,
     return size * nmemb;
 }
 
-static size_t WriteStream(void* ptr, size_t size, size_t nmemb, void* stream)
-{
-    size_t written = fwrite(ptr, size, nmemb, (FILE*)stream);
-    return written;
-}
-
 string UpgradeManager::DownloadFile(const char* fileTail)
 {
-    curl_global_init(CURL_GLOBAL_DEFAULT);
-    CURL* curl = curl_easy_init();
-
-    if (!curl)
+    if (!m_curl)
     {
-        curl_easy_cleanup(curl);
-        curl_global_cleanup();
-        return nullptr;
+        LOG_GENERAL(WARNING, "Cannot perform any curl operation!");
+        return "";
     }
 
     string curlRes;
-    curl_easy_setopt(curl, CURLOPT_URL, RELEASE_URL);
-    curl_easy_setopt(curl, CURLOPT_USERAGENT, USER_AGENT);
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteString);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &curlRes);
-    CURLcode res = curl_easy_perform(curl);
+    curl_easy_reset(m_curl);
+    curl_easy_setopt(m_curl, CURLOPT_URL, RELEASE_URL);
+    curl_easy_setopt(m_curl, CURLOPT_USERAGENT, USER_AGENT);
+    curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, WriteString);
+    curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, &curlRes);
+    CURLcode res = curl_easy_perform(m_curl);
 
     if (res != CURLE_OK)
     {
         LOG_GENERAL(WARNING,
                     "curl_easy_perform() failed: " << curl_easy_strerror(res));
-        curl_easy_cleanup(curl);
-        curl_global_cleanup();
-        return nullptr;
+        return "";
     }
 
     int find = 0;
@@ -124,57 +130,55 @@ string UpgradeManager::DownloadFile(const char* fileTail)
     string fileName = downloadFilePath.substr(downloadFilePath.rfind('/') + 1);
 
     /// Get the redirection url (if applicable)
-    curl_easy_setopt(curl, CURLOPT_URL, downloadFilePath.data());
-    res = curl_easy_perform(curl);
+    curl_easy_reset(m_curl);
+    curl_easy_setopt(m_curl, CURLOPT_URL, downloadFilePath.data());
+    res = curl_easy_perform(m_curl);
 
     if (res != CURLE_OK)
     {
         LOG_GENERAL(WARNING,
                     "curl_easy_perform() failed: " << curl_easy_strerror(res));
-        curl_easy_cleanup(curl);
-        curl_global_cleanup();
-        return nullptr;
+        return "";
     }
 
     long response_code;
-    res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+    res = curl_easy_getinfo(m_curl, CURLINFO_RESPONSE_CODE, &response_code);
 
     if ((res != CURLE_OK) || ((response_code / 100) == 3))
     {
         char* location;
-        curl_easy_getinfo(curl, CURLINFO_REDIRECT_URL, &location);
-        downloadFilePath = location;
+        curl_easy_getinfo(m_curl, CURLINFO_REDIRECT_URL, &location);
+
+        if ((res == CURLE_OK) && location)
+        {
+            downloadFilePath = location;
+        }
     }
 
     /// Download the file
-    curl_easy_setopt(curl, CURLOPT_URL, downloadFilePath.data());
-    curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
-    curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 1L);
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteStream);
+    curl_easy_reset(m_curl);
+    curl_easy_setopt(m_curl, CURLOPT_URL, downloadFilePath.data());
+    curl_easy_setopt(m_curl, CURLOPT_VERBOSE, 1L);
+    curl_easy_setopt(m_curl, CURLOPT_NOPROGRESS, 1L);
     FILE* file = fopen(fileName.data(), "wb");
 
     if (!file)
     {
-        curl_easy_cleanup(curl);
-        curl_global_cleanup();
-        return nullptr;
+        return "";
     }
 
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, file);
-    res = curl_easy_perform(curl);
+    curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, file);
+    res = curl_easy_perform(m_curl);
 
     if (res != CURLE_OK)
     {
         LOG_GENERAL(WARNING,
                     "curl_easy_perform() failed: " << curl_easy_strerror(res));
-        curl_easy_cleanup(curl);
-        curl_global_cleanup();
-        return nullptr;
+        fclose(file);
+        return "";
     }
 
     fclose(file);
-    curl_easy_cleanup(curl);
-    curl_global_cleanup();
     return fileName;
 }
 
@@ -273,6 +277,8 @@ bool UpgradeManager::DownloadSW()
     uint32_t major, minor, fix, commit;
     uint64_t upgradeDS;
     string sha;
+
+    try
     {
         fstream versionFile(VERSION_FILE_NAME, ios::in);
         int line_no = 0;
@@ -324,6 +330,13 @@ bool UpgradeManager::DownloadSW()
             ++line_no;
         }
     }
+    catch (const std::exception& e)
+    {
+        LOG_GENERAL(WARNING,
+                    "Cannot parse " << VERSION_FILE_NAME << ": " << ' '
+                                    << e.what());
+        return false;
+    }
 
     /// Verify SHA-256 checksum of .deb file
     string downloadSha;
@@ -371,7 +384,9 @@ bool UpgradeManager::ReplaceNode(Mediator& mediator)
         mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
         serializedTxBlock);
 
+    /// TBD: The system call of "dpkg" should be removed. (https://github.com/Zilliqa/Issues/issues/185)
     string cmd = string("dpkg -i ") + m_packageFileName;
+
     /// Deploy downloaded software
     if (system(cmd.data()) < 0)
     {
