@@ -274,10 +274,10 @@ bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
         m_lastMicroBlockCoSig.first = m_mediator.m_currentEpochNum;
         m_lastMicroBlockCoSig.second.SetCoSignatures(*m_consensusObject);
 
+        SetState(WAITING_FINALBLOCK);
+
         if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE)
         {
-            SetState(WAITING_FINALBLOCK);
-
             lock_guard<mutex> cv_lk(m_MutexCVFBWaitMB);
             cv_FBWaitMB.notify_all();
         }

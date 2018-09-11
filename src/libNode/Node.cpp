@@ -603,8 +603,7 @@ bool Node::ProcessTxnPacketFromLookup(
         return true;
     }
 
-    if (IsMessageSizeInappropriate(message.size(), offset,
-                                   2 * sizeof(uint32_t)))
+    if (IsMessageSizeInappropriate(message.size(), offset, sizeof(uint64_t)))
     {
         return false;
     }
@@ -612,6 +611,7 @@ bool Node::ProcessTxnPacketFromLookup(
     unsigned int curr_offset = offset;
     uint64_t epochNum = Serializable::GetNumber<uint64_t>(message, curr_offset,
                                                           sizeof(uint64_t));
+    curr_offset += sizeof(uint64_t);
 
     // check it's at inappropriate timing
     // vacuous epoch -> reject
@@ -697,14 +697,15 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
     //     LOG_GENERAL(WARNING, "Recvd txns for larger epoch");
     // }
 
-    curr_offset += sizeof(uint64_t);
     uint32_t shardId = Serializable::GetNumber<uint32_t>(message, curr_offset,
                                                          sizeof(uint32_t));
     curr_offset += sizeof(uint32_t);
 
     if (shardId != m_myShardID)
     {
-        LOG_GENERAL(WARNING, "Wrong Shard");
+        LOG_GENERAL(WARNING,
+                    "Wrong Shard (" << shardId << "), m_myShardID ("
+                                    << m_myShardID << ")");
         return false;
     }
 
