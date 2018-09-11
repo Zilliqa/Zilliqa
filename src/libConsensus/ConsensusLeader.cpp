@@ -1061,14 +1061,15 @@ bool ConsensusLeader::StartConsensus(const vector<unsigned char>& message,
     // Multicast to all nodes in the committee
     // =======================================
 
-    deque<Peer> peer;
+    std::vector<Peer> peer;
 
     for (auto const& i : m_committee)
     {
         peer.push_back(i.second);
     }
 
-    P2PComm::GetInstance().SendMessage(peer, announcement);
+    //P2PComm::GetInstance().SendMessage(peer, announcement);
+    P2PComm::GetInstance().SpreadRumor(announcement);
 
     return true;
 }

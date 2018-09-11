@@ -940,7 +940,7 @@ void P2PComm::SpreadRumor(const std::vector<unsigned char>& message)
 
 void P2PComm::SetSelfPeer(const Peer& self) { m_selfPeer = self; }
 
-void P2PComm::InitializeRumorManager(std::vector<Peer>& peers)
+void P2PComm::InitializeRumorManager(const std::vector<Peer>& peers)
 {
     LOG_MARKER();
 

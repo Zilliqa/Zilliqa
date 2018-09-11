@@ -551,6 +551,9 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
                       << m_mediator.m_selfPeer.GetPrintableIPAddress()
                       << "][0     ] DSLD");
 
+            // For now lets stop RumorSpreading protocol for Node. we dont have it for DS Node as of now.
+            P2PComm::GetInstance().InitializeRumorManager(std::vector<Peer>());
+
             // Finally, start as the DS leader
             m_mediator.m_ds->StartFirstTxEpoch();
         }
@@ -568,6 +571,16 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
 
             // [Txn sharing assignments] -> Use the loading function for shard node
             LoadTxnSharingInfo(message, cur_offset);
+
+            std::vector<Peer> peers;
+            for (auto& i : *m_myShardMembers)
+            {
+                if (i.second.m_listenPortHost != 0)
+                    peers.push_back(i.second);
+            }
+
+            // Set the peerlist for RumorSpreading protocol every start of DS Epoch
+            P2PComm::GetInstance().InitializeRumorManager(peers);
 
             // Finally, start as a shard node
             StartFirstTxEpoch();
