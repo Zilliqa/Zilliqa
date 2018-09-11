@@ -126,7 +126,7 @@ public:
     using BroadcastListFunc = std::function<std::vector<Peer>(
         unsigned char msg_type, unsigned char ins_type, const Peer&)>;
 
-    void InitializeRumorManager(std::vector<Peer>& peers);
+    void InitializeRumorManager(const std::vector<Peer>& peers);
 
 private:
     using SocketCloser = std::unique_ptr<int, void (*)(int*)>;

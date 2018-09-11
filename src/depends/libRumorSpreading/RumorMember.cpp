@@ -182,12 +182,13 @@ std::pair<int, std::vector<Message>> RumorMember::advanceRound()
 {
     std::lock_guard<std::mutex> guard(m_mutex); // critical section
 
-    if(m_rumors.empty()) {
-        return {-1, std::vector<Message>()};
+    if(m_peers.size() <= 0)
+    {
+        return std::make_pair(-1,std::vector<Message>());
     }
 
     increaseStatValue(StatisticKey::Rounds, 1);
-
+    
     int toMember = m_nextMemberCb ? m_nextMemberCb() : chooseRandomMember();
 
     // Construct the push messages
