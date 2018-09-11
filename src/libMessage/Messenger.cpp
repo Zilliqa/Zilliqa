@@ -28,9 +28,12 @@ namespace
     void SerializableToProtobufByteArray(const Serializable& serializable,
                                          ByteArray* byteArray)
     {
-        vector<unsigned char> tmp;
-        serializable.Serialize(tmp, 0);
-        byteArray->set_data(tmp.data(), tmp.size());
+        if (byteArray != NULL)
+        {
+            vector<unsigned char> tmp;
+            serializable.Serialize(tmp, 0);
+            byteArray->set_data(tmp.data(), tmp.size());
+        }
     }
 
     void ProtobufByteArrayToSerializable(const ByteArray& byteArray,
@@ -85,9 +88,8 @@ bool Messenger::SetDSPoWSubmission(
         result.data().SerializeToArray(tmp.data(), tmp.size());
 
         Signature signature;
-        if (Schnorr::GetInstance().Sign(tmp, submitterKey.first,
-                                        submitterKey.second, signature)
-            == false)
+        if (!Schnorr::GetInstance().Sign(tmp, submitterKey.first,
+                                         submitterKey.second, signature))
         {
             LOG_GENERAL(WARNING, "Failed to sign PoW.");
             return false;
@@ -101,7 +103,7 @@ bool Messenger::SetDSPoWSubmission(
         return false;
     }
 
-    if (result.IsInitialized() == false)
+    if (!result.IsInitialized())
     {
         LOG_GENERAL(WARNING, "DSPoWSubmission initialization failed.");
         return false;
@@ -123,8 +125,7 @@ bool Messenger::GetDSPoWSubmission(const vector<unsigned char>& src,
 
     result.ParseFromArray(src.data() + offset, src.size() - offset);
 
-    if ((result.IsInitialized() == false)
-        || (result.data().IsInitialized() == false))
+    if (!result.IsInitialized() || !result.data().IsInitialized())
     {
         LOG_GENERAL(WARNING, "DSPoWSubmission initialization failed.");
         return false;
@@ -212,7 +213,7 @@ bool Messenger::SetNodeDSBlock(vector<unsigned char>& dst,
         }
     }
 
-    if (result.IsInitialized() == false)
+    if (!result.IsInitialized())
     {
         LOG_GENERAL(WARNING, "NodeDSBlock initialization failed.");
         return false;
@@ -235,7 +236,7 @@ bool Messenger::GetNodeDSBlock(const vector<unsigned char>& src,
 
     result.ParseFromArray(src.data() + offset, src.size() - offset);
 
-    if (result.IsInitialized() == false)
+    if (!result.IsInitialized())
     {
         LOG_GENERAL(WARNING, "NodeDSBlock initialization failed.");
         return false;
@@ -321,7 +322,7 @@ bool Messenger::SetNodeFinalBlock(vector<unsigned char>& dst,
     SerializableToProtobufByteArray(txBlock, result.mutable_txblock());
     result.set_statedelta(stateDelta.data(), stateDelta.size());
 
-    if (result.IsInitialized() == false)
+    if (!result.IsInitialized())
     {
         LOG_GENERAL(WARNING, "NodeFinalBlock initialization failed.");
         return false;
@@ -342,7 +343,7 @@ bool Messenger::GetNodeFinalBlock(const vector<unsigned char>& src,
 
     result.ParseFromArray(src.data() + offset, src.size() - offset);
 
-    if (result.IsInitialized() == false)
+    if (!result.IsInitialized())
     {
         LOG_GENERAL(WARNING, "NodeFinalBlock initialization failed.");
         return false;
