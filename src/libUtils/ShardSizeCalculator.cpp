@@ -14,9 +14,10 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#include "DirectoryService.h"
+#include "ShardSizeCalculator.h"
+#include "libUtils/Logger.h"
 
-uint32_t DirectoryService::CalculateShardSize(const uint32_t numberOfNodes)
+uint32_t ShardSizeCalculator::CalculateShardSize(const uint32_t numberOfNodes)
 {
     if (numberOfNodes < 651)
     {
