@@ -319,7 +319,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
               "Final block consensus is DONE!!!");
 
     // Clear microblock(s)
-    m_microBlocks.clear();
+    // m_microBlocks.clear();
 
     if (m_mode == PRIMARY_DS)
     {
@@ -548,6 +548,47 @@ bool DirectoryService::ProcessFinalBlockConsensus(
 
     LOG_MARKER();
 
+    if ((m_state == MICROBLOCK_SUBMISSION)
+        || (m_state == FINALBLOCK_CONSENSUS_PREP)
+        || (m_state == VIEWCHANGE_CONSENSUS))
+    {
+        /*std::unique_lock<std::mutex> cv_lkObject(
+            m_MutexCVFinalBlockConsensusObject);
+
+        if (cv_finalBlockConsensusObject.wait_for(
+                cv_lkObject,
+                std::chrono::seconds(FINALBLOCK_CONSENSUS_OBJECT_TIMEOUT))
+            == std::cv_status::timeout)
+        {
+            LOG_EPOCH(WARNING,
+                      to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Time out while waiting for state transition and "
+                      "consensus object creation ");
+        }*/
+        lock_guard<mutex> h(m_mutexFinalBlockConsensusBuffer);
+
+        m_FinalBlockConsensusBuffer[m_mediator.m_currentEpochNum].push_back(
+            make_pair(from, message));
+
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Process Final block arrived earlier, saved to buffer");
+
+        return false;
+    }
+    else
+    {
+        return ProcessFinalBlockConsensusCore(message, offset, from);
+    }
+
+    return true;
+}
+
+bool DirectoryService::ProcessFinalBlockConsensusCore(
+    [[gnu::unused]] const vector<unsigned char>& message,
+    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
+{
+    LOG_MARKER();
+
     // Consensus messages must be processed in correct sequence as they come in
     // It is possible for ANNOUNCE to arrive before correct DS state
     // In that case, ANNOUNCE will sleep for a second below
@@ -557,28 +598,6 @@ bool DirectoryService::ProcessFinalBlockConsensus(
         lock_guard<mutex> g(m_mutexConsensus);
 
         // Wait until in the case that primary sent announcement pretty early
-        if ((m_state == MICROBLOCK_SUBMISSION)
-            || (m_state == FINALBLOCK_CONSENSUS_PREP)
-            || (m_state == VIEWCHANGE_CONSENSUS))
-        {
-            std::unique_lock<std::mutex> cv_lkObject(
-                m_MutexCVFinalBlockConsensusObject);
-
-            if (cv_finalBlockConsensusObject.wait_for(
-                    cv_lkObject,
-                    std::chrono::seconds(FINALBLOCK_CONSENSUS_OBJECT_TIMEOUT))
-                == std::cv_status::timeout)
-            {
-                LOG_EPOCH(WARNING,
-                          to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "Time out while waiting for state transition and "
-                          "consensus object creation ");
-            }
-
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "State transition is completed and consensus object "
-                      "creation. (check for timeout)");
-        }
 
         if (!CheckState(PROCESS_FINALBLOCKCONSENSUS))
         {
@@ -644,6 +663,46 @@ bool DirectoryService::ProcessFinalBlockConsensus(
     else if (state == ConsensusCommon::State::ERROR)
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Oops, no consensus reached - what to do now???");
+
+        if (m_consensusObject->GetConsensusErrorCode()
+            == ConsensusCommon::FINALBLOCK_INVALID_MICROBLOCK_ROOT_HASH)
+        {
+            // Missing microblocks proposed by leader. Will attempt to fetch
+            // missing microblocks from leader, set to a valid state to accept cosig1 and cosig2
+            LOG_EPOCH(
+                WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Oops, no consensus reached - consensus error. "
+                "error number: "
+                    << to_string(m_consensusObject->GetConsensusErrorCode())
+                    << " error message: "
+                    << (m_consensusObject->GetConsensusErrorMsg()));
+
+            // Block till txn is fetched
+            unique_lock<mutex> lock(m_mutexCVMissingMicroBlock);
+            if (cv_MissingMicroBlock.wait_for(
+                    lock, chrono::seconds(FETCHING_MISSING_TXNS_TIMEOUT))
+                == std::cv_status::timeout)
+            {
+                LOG_EPOCH(WARNING,
+                          to_string(m_mediator.m_currentEpochNum).c_str(),
+                          "fetching missing microblocks timeout");
+            }
+            else
+            {
+                // Re-run consensus
+                m_consensusObject->RecoveryAndProcessFromANewState(
+                    ConsensusCommon::INITIAL);
+
+                auto rerunconsensus = [this, message, offset, from]() {
+                    ProcessFinalBlockConsensusCore(message, offset, from);
+                };
+                DetachedFunction(1, rerunconsensus);
+                return true;
+            }
+        }
+
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "No consensus reached. Wait for view change. ");
         return false;
     }
@@ -654,4 +713,16 @@ bool DirectoryService::ProcessFinalBlockConsensus(
         cv_processConsensusMessage.notify_all();
     }
     return true;
+}
+
+void DirectoryService::CommitFinalBlockConsensusBuffer()
+{
+    lock_guard<mutex> g(m_mutexFinalBlockConsensusBuffer);
+
+    for (auto& i : m_FinalBlockConsensusBuffer[m_mediator.m_currentEpochNum])
+    {
+        ProcessFinalBlockConsensusCore(i.second, MessageOffset::BODY, i.first);
+    }
+
+    m_FinalBlockConsensusBuffer.clear();
 }
