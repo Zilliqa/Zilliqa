@@ -1068,7 +1068,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
 
     ConsensusLeader* cl
         = dynamic_cast<ConsensusLeader*>(m_consensusObject.get());
-    cl->StartConsensus(microblock, MicroBlockHeader::SIZE);
+    cl->StartConsensus(microblock, MicroBlockHeader::SIZE, true);
 
     return true;
 }

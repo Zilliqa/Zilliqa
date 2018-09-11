@@ -102,7 +102,7 @@ bool RumorManager::addRumor(const RumorManager::RawBytes& message)
 {
     std::lock_guard<std::mutex> guard(m_mutex); // critical section
 
-    if (m_peerIdSet.size() > 0)
+    if (m_peerIdSet.size() == 0)
     {
         return false;
     }
