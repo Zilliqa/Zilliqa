@@ -1,3 +1,4 @@
+<?xml version="1.0"?>
 <!-- format guideline: non-tab four-space indentation -->
 <node>
     <constants>
@@ -35,7 +36,7 @@
         <BROADCAST_EXPIRY>600</BROADCAST_EXPIRY>
         <TX_DISTRIBUTE_TIME_IN_MS>10000</TX_DISTRIBUTE_TIME_IN_MS>
         <NUM_NODES_TO_SEND_LOOKUP>3</NUM_NODES_TO_SEND_LOOKUP>
-        <NUM_TXN_TO_SEND_PER_ACCOUNT>4000</NUM_TXN_TO_SEND_PER_ACCOUNT>
+        <NUM_TXN_TO_SEND_PER_ACCOUNT>100</NUM_TXN_TO_SEND_PER_ACCOUNT>
         <MAX_INDEXES_PER_TXN>3</MAX_INDEXES_PER_TXN>
         <SENDQUEUE_SIZE>128</SENDQUEUE_SIZE>
         <MSGQUEUE_SIZE>128</MSGQUEUE_SIZE>
@@ -51,12 +52,12 @@
         <CUDA_GPU_MINE>false</CUDA_GPU_MINE>
         <LOOKUP_NODE_MODE>false</LOOKUP_NODE_MODE>
     </options>
-    <TransactionDispatcher>
+    <dispatcher>
         <USE_REMOTE_TXN_CREATOR>false</USE_REMOTE_TXN_CREATOR>
-        <TXN_PATH></TXN_PATH>
-    </TransactionDispatcher>
+        <TXN_PATH/>
+    </dispatcher>
     <smart_contract>
-        <SCILLA_ROOT></SCILLA_ROOT>
+        <SCILLA_ROOT/>
         <SCILLA_BINARY>bin/scilla-runner</SCILLA_BINARY>
         <SCILLA_FILES>scilla_files</SCILLA_FILES>
         <SCILLA_LOG>_build</SCILLA_LOG>
@@ -74,7 +75,7 @@
         </account>
     </accounts>
     <lookups>
-    <!--IP to be provided after public testnet launch.
+        <!--IP to be provided after public testnet launch.
         <peer>
             <ip></ip>
             <port>30303</port>

@@ -989,7 +989,8 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         CommitForwardedMsgBuffer();
 
         if (m_mediator.m_lookup->GetIsServer()
-            && m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0)
+            && m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0
+            && USE_REMOTE_TXN_CREATOR)
         {
             m_mediator.m_lookup->SenderTxnBatchThread();
         }
@@ -1049,8 +1050,7 @@ bool Node::ProcessStateDeltaFromFinalBlock(
 
     LOG_GENERAL(INFO,
                 "Received FinalBlock State Delta root : "
-                    << DataConversion::charArrToHexStr(
-                           finalBlockStateDeltaHash.asArray()));
+                    << finalBlockStateDeltaHash.hex());
 
     if (finalBlockStateDeltaHash == StateHash())
     {
@@ -1066,8 +1066,8 @@ bool Node::ProcessStateDeltaFromFinalBlock(
 
     if (stateDeltaBytes.empty())
     {
-        LOG_GENERAL(INFO, "State Delta is empty");
-        return true;
+        LOG_GENERAL(WARNING, "Cannot get state delta from message");
+        return false;
     }
 
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
