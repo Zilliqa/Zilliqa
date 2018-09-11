@@ -265,7 +265,7 @@ bool Node::CheckState(Action action)
 
     static const std::multimap<NodeState, Action> ACTIONS_FOR_STATE
         = {{POW_SUBMISSION, STARTPOW},
-           {MICROBLOCK_CONSENSUS_PREP, PROCESS_DSBLOCK},
+           {WAITING_DSBLOCK, PROCESS_DSBLOCK},
            {MICROBLOCK_CONSENSUS, PROCESS_MICROBLOCKCONSENSUS},
            {WAITING_FINALBLOCK, PROCESS_FINALBLOCK}};
 
@@ -603,6 +603,16 @@ bool Node::ProcessTxnPacketFromLookup(
         return true;
     }
 
+    if (IsMessageSizeInappropriate(message.size(), offset,
+                                   2 * sizeof(uint32_t)))
+    {
+        return false;
+    }
+
+    unsigned int curr_offset = offset;
+    uint64_t epochNum = Serializable::GetNumber<uint64_t>(message, curr_offset,
+                                                          sizeof(uint64_t));
+
     // check it's at inappropriate timing
     // vacuous epoch -> reject
     // new ds epoch but didn't received ds block yet -> buffer
@@ -620,21 +630,34 @@ bool Node::ProcessTxnPacketFromLookup(
     {
         // check for recieval of new ds block
         // need to wait the ProcessDSBlock finish
-        lock_guard<mutex> g(m_mutexDSBlock);
+        lock_guard<mutex> g1(m_mutexDSBlock);
         if (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()
             < (m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW) + 1)
         {
-            lock_guard<mutex> g(m_mutexTxnPacketBuffer);
-            m_txnPacketBuffer.emplace_back(message);
+            lock_guard<mutex> g2(m_mutexTxnPacketBuffer);
+            m_txnPacketBuffer.emplace(epochNum, message);
         }
         else
         {
-            return ProcessTxnPacketFromLookupCore(message, offset);
+            return ProcessTxnPacketFromLookupCore(message, curr_offset);
         }
     }
     else
     {
-        return ProcessTxnPacketFromLookupCore(message, offset);
+        if (epochNum < m_mediator.m_currentEpochNum)
+        {
+            LOG_GENERAL(WARNING, "Txn packet from older epoch, discard");
+            return false;
+        }
+        else if (epochNum == m_mediator.m_currentEpochNum)
+        {
+            return ProcessTxnPacketFromLookupCore(message, curr_offset);
+        }
+        else
+        {
+            lock_guard<mutex> g(m_mutexTxnPacketBuffer);
+            m_txnPacketBuffer.emplace(epochNum, message);
+        }
     }
     return true;
 }
@@ -666,13 +689,13 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
         return false;
     }
     unsigned int curr_offset = offset;
-    uint64_t epochNum = Serializable::GetNumber<uint64_t>(message, curr_offset,
-                                                          sizeof(uint64_t));
+    // uint64_t epochNum = Serializable::GetNumber<uint64_t>(message, curr_offset,
+    //                                                       sizeof(uint64_t));
 
-    if (epochNum > m_mediator.m_currentEpochNum)
-    {
-        LOG_GENERAL(WARNING, "Recvd txns for larger epoch");
-    }
+    // if (epochNum > m_mediator.m_currentEpochNum)
+    // {
+    //     LOG_GENERAL(WARNING, "Recvd txns for larger epoch");
+    // }
 
     curr_offset += sizeof(uint64_t);
     uint32_t shardId = Serializable::GetNumber<uint32_t>(message, curr_offset,
@@ -769,13 +792,13 @@ void Node::CommitTxnPacketBuffer()
     LOG_MARKER();
 
     lock_guard<mutex> g(m_mutexTxnPacketBuffer);
+    auto it = m_txnPacketBuffer.find(m_mediator.m_currentEpochNum);
 
-    for (const auto& msg : m_txnPacketBuffer)
+    if (it != m_txnPacketBuffer.end())
     {
-        ProcessTxnPacketFromLookupCore(msg, MessageOffset::BODY);
+        ProcessTxnPacketFromLookupCore(it->second,
+                                       MessageOffset::BODY + sizeof(uint64_t));
     }
-
-    m_txnPacketBuffer.clear();
 }
 
 // Used by Zilliqa in pow branch. This will be useful for us when doing the accounts and wallet in the future.
@@ -872,6 +895,7 @@ bool Node::CleanVariables()
     m_isMBSender = false;
     m_myShardID = 0;
     CleanCreatedTransaction();
+    CleanMicroblockConsensusBuffer();
     {
         std::lock_guard<mutex> lock(m_mutexConsensus);
         m_consensusObject.reset();
@@ -919,9 +943,15 @@ void Node::SetMyShardID(uint32_t shardID)
 
 void Node::CleanCreatedTransaction()
 {
-    std::lock_guard<mutex> lock(m_mutexCreatedTransactions);
-    m_createdTransactions.clear();
-    m_addrNonceTxnMap.clear();
+    {
+        std::lock_guard<mutex> g(m_mutexCreatedTransactions);
+        m_createdTransactions.clear();
+        m_addrNonceTxnMap.clear();
+    }
+    {
+        std::lock_guard<mutex> g(m_mutexTxnPacketBuffer);
+        m_txnPacketBuffer.clear();
+    }
 }
 
 bool Node::ProcessDoRejoin(const std::vector<unsigned char>& message,
@@ -1071,12 +1101,9 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
     }
 
 map<Node::NodeState, string> Node::NodeStateStrings
-    = {MAKE_LITERAL_PAIR(POW_SUBMISSION),
-       MAKE_LITERAL_PAIR(MICROBLOCK_CONSENSUS_PREP),
+    = {MAKE_LITERAL_PAIR(POW_SUBMISSION), MAKE_LITERAL_PAIR(WAITING_DSBLOCK),
        MAKE_LITERAL_PAIR(MICROBLOCK_CONSENSUS),
-       MAKE_LITERAL_PAIR(WAITING_FINALBLOCK),
-       MAKE_LITERAL_PAIR(ERROR),
-       MAKE_LITERAL_PAIR(SYNC)};
+       MAKE_LITERAL_PAIR(WAITING_FINALBLOCK), MAKE_LITERAL_PAIR(SYNC)};
 
 string Node::GetStateString() const
 {
