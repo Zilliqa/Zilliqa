@@ -96,7 +96,6 @@ class Node : public Executable, public Broadcastable
     std::condition_variable cv_processConsensusMessage;
     std::shared_ptr<ConsensusCommon> m_consensusObject;
     std::mutex m_MutexCVMicroblockConsensus;
-    std::condition_variable cv_microblockConsensus;
     std::mutex m_MutexCVMicroblockConsensusObject;
     std::condition_variable cv_microblockConsensusObject;
 
@@ -144,7 +143,12 @@ class Node : public Executable, public Broadcastable
         m_forwardedTxnBuffer;
 
     std::mutex m_mutexTxnPacketBuffer;
-    std::vector<std::vector<unsigned char>> m_txnPacketBuffer;
+    std::unordered_map<uint64_t, std::vector<unsigned char>> m_txnPacketBuffer;
+
+    std::mutex m_mutexMicroBlockConsensusBuffer;
+    std::unordered_map<uint32_t,
+                       std::vector<std::pair<Peer, std::vector<unsigned char>>>>
+        m_microBlockConsensusBuffer;
 
     atomic<bool> m_isVacuousEpoch;
 
@@ -224,6 +228,8 @@ class Node : public Executable, public Broadcastable
         const vector<TransactionWithReceipt>& txnsInForwardedMessage,
         const uint64_t& blocknum);
 
+    void CommitMicroBlockConsensusBuffer();
+
     void
     DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(const uint64_t& blocknum);
     void LogReceivedFinalBlockDetails(const TxBlock& txblock);
@@ -242,6 +248,8 @@ class Node : public Executable, public Broadcastable
                                   unsigned int offset, const Peer& from);
     bool ProcessMicroblockConsensus(const std::vector<unsigned char>& message,
                                     unsigned int offset, const Peer& from);
+    bool ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
+                                        unsigned int offset, const Peer& from);
     bool ProcessFinalBlock(const std::vector<unsigned char>& message,
                            unsigned int offset, const Peer& from);
     bool ProcessForwardTransaction(const std::vector<unsigned char>& message,
@@ -321,10 +329,9 @@ public:
     enum NodeState : unsigned char
     {
         POW_SUBMISSION = 0x00,
-        MICROBLOCK_CONSENSUS_PREP,
+        WAITING_DSBLOCK,
         MICROBLOCK_CONSENSUS,
         WAITING_FINALBLOCK,
-        ERROR,
         SYNC
     };
 
@@ -337,9 +344,9 @@ public:
 
     std::shared_ptr<std::deque<pair<PubKey, Peer>>> m_myShardMembers;
 
-    std::condition_variable m_cvNewRoundStarted;
-    std::mutex m_mutexNewRoundStarted;
-    bool m_newRoundStarted = false;
+    // std::condition_variable m_cvNewRoundStarted;
+    // std::mutex m_mutexNewRoundStarted;
+    // bool m_newRoundStarted = false;
 
     std::mutex m_mutexIsEveryMicroBlockAvailable;
 
@@ -419,6 +426,8 @@ public:
     void CommitForwardedMsgBuffer();
 
     void CleanCreatedTransaction();
+
+    void CleanMicroblockConsensusBuffer();
 
     void CallActOnFinalblock();
 

@@ -1245,7 +1245,6 @@ void DirectoryService::RunConsensusOnFinalBlock(bool revertStateDelta)
     if (ConsensusObjCreation)
     {
         SetState(FINALBLOCK_CONSENSUS);
-        cv_finalBlockConsensusObject.notify_all();
     }
 
     auto func1 = [this]() -> void { CommitFinalBlockConsensusBuffer(); };
