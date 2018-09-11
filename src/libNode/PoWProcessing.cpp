@@ -104,6 +104,11 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
             SendPoWResultToDSComm(block_num, ds_difficulty,
                                   winning_result.winning_nonce, result_vec,
                                   mixhash_vec);
+
+            if (m_state != MICROBLOCK_CONSENSUS)
+            {
+                SetState(MICROBLOCK_CONSENSUS_PREP);
+            }
         }
         else
         {
@@ -148,7 +153,10 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
         }
     }
 
-    SetState(MICROBLOCK_CONSENSUS_PREP);
+    if (m_state != MICROBLOCK_CONSENSUS)
+    {
+        SetState(MICROBLOCK_CONSENSUS_PREP);
+    }
     return true;
 }
 
@@ -207,11 +215,6 @@ void Node::SendPoWResultToDSComm(const uint64_t& block_num,
     }
 
     P2PComm::GetInstance().SendMessage(peerList, powmessage);
-
-    if (m_state != MICROBLOCK_CONSENSUS)
-    {
-        SetState(MICROBLOCK_CONSENSUS_PREP);
-    }
 }
 
 bool Node::ReadVariablesFromStartPoWMessage(
