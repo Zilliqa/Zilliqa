@@ -77,7 +77,7 @@ class RumorMember : public RumorSpreadingInterface {
     // METHODS
     bool addRumor(int rumorId) override;
 
-    std::pair<int, std::vector<Message>> receivedMessage(const Message& message, int fromPeer, bool& shouldUse) override;
+    std::pair<int, std::vector<Message>> receivedMessage(const Message& message, int fromPeer) override;
 
     std::pair<int, std::vector<Message>> advanceRound() override;
 

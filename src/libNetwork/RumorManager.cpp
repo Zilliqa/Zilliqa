@@ -3,23 +3,27 @@
 #include <chrono>
 #include <thread>
 
-// TODO: would be nice to decouple from this header
 #include "P2PComm.h"
 #include "common/Messages.h"
 
+const unsigned char START_BYTE_GOSSIP = 0x33;
+
 namespace
 {
-    // TODO: allow them to passed in as parameters
     const std::chrono::milliseconds ROUND_TIME(500);
 
-    Message::Type convertType(uint32_t type)
+    Message::Type convertType(uint8_t type)
     {
         switch (type)
         {
         case 1:
             return Message::Type::PUSH;
         case 2:
-            return Message::Type::PUSH;
+            return Message::Type::PULL;
+        case 3:
+            return Message::Type::EMPTY_PUSH;
+        case 4:
+            return Message::Type::EMPTY_PULL;
         default:
             return Message::Type::UNDEFINED;
         }
@@ -28,127 +32,168 @@ namespace
 } // anonymous namespace
 
 // PRIVATE METHODS
-template<typename Container>
-void RumorManager::addRumorImp(const Container& peers,
-                               const RumorManager::RawBytes& message)
-{
-    std::lock_guard<std::mutex> guard(m_mutex); // critical section
 
-    int rumorId = m_rumorIdGenerator++;
-    m_rumorIdBimap.insert(RumorBimap::value_type(rumorId, message));
-
-    int peerIdGenerator = 0;
-    std::unordered_set<int> peerSet;
-    PeerBimap peerBimap;
-    for (const auto& p : peers)
-    {
-        peerBimap.insert(PeerBimap::value_type(peerIdGenerator++, p));
-        peerSet.insert(peerIdGenerator++);
-    }
-
-    m_rumorState.insert({rumorId, {RumorMember(peerSet), peerBimap}});
-
-    scheduleRounds(rumorId);
-}
-
-void RumorManager::scheduleRounds(int rumorId)
+void RumorManager::startRounds()
 {
     // critical section
-    auto it = m_rumorState.find(rumorId);
-    if (it == m_rumorState.end())
-    {
-        return;
-    }
-    const RumorMember& member = it->second.m_member;
-    int numOfRounds = member.networkConfig().maxRoundsTotal();
-
     std::thread([&]() {
-        while (numOfRounds--)
+        std::unique_lock<std::mutex> guard(m_continueRoundMutex);
+        m_continueRound = true;
+        while (m_continueRound)
         {
             { // critical section
                 std::lock_guard<std::mutex> guard(m_mutex);
 
-                if (m_rumorState.count(rumorId) <= 0)
-                {
-                    return;
-                }
-
-                auto it = m_rumorState.find(rumorId);
-                RumorState& state = it->second;
-                RumorMember& member = state.m_member;
-
                 std::pair<int, std::vector<Message>> result
-                    = member.advanceRound();
+                    = m_member->advanceRound();
 
-                const PeerBimap peerBimap = state.m_peerIdBimap;
-                //const Peer& peer = peerBimap.left.at(result.first);
-
-                //const RawBytes& rumorMessage = m_rumorIdBimap.left.at(rumorId);
-                // TODO: add type and round
-                //P2PComm::GetInstance().SendMessageCore(
-                //    peer, rumorMessage, HeaderStartByte::GOSSIP, RawBytes());
+                // Get the corresponding Peer to which to send Push Messages if any.
+                auto l = m_peerIdPeerBimap.left.find(result.first);
+                if (l != m_peerIdPeerBimap.left.end())
+                {
+                    SendMessages(l->second, result.second);
+                }
             } // end critical section
-            std::this_thread::sleep_for(ROUND_TIME);
+            std::this_thread::sleep_for(ROUND_TIME - std::chrono::seconds(15));
+            m_condStopRound.wait_for(guard, std::chrono::seconds(15));
         }
-    })
-        .detach();
-
-    std::thread([&]() {
-        std::this_thread::sleep_for(numOfRounds * ROUND_TIME);
-        std::lock_guard<std::mutex> guard(m_mutex); // critical section
-        m_rumorState.erase(rumorId);
     })
         .detach();
 }
 
 // CONSTRUCTORS
-RumorManager::RumorManager()
-    : m_rumorIdGenerator(0)
-    , m_rumorIdBimap()
-    , m_rumorState()
-{
-}
+RumorManager::RumorManager() {}
 
 RumorManager::~RumorManager() {}
 
+void RumorManager::stopRounds()
+{
+    {
+        std::lock_guard<std::mutex> guard(m_continueRoundMutex);
+        m_continueRound = false;
+    }
+    m_condStopRound.notify_one();
+}
+
 // PUBLIC METHODS
-void RumorManager::addRumor(const std::vector<Peer>& peers,
-                            const RawBytes& message)
+void RumorManager::Initialize(const std::vector<Peer>& peers)
 {
-    addRumorImp(peers, message);
+    std::lock_guard<std::mutex> guard(m_mutex); // critical section
+
+    m_rumorIdGenerator = 0;
+    m_peerIdPeerBimap.clear();
+    m_rumorIdRumorBimap.clear();
+    m_peerIdSet.clear();
+
+    int peerIdGenerator = 0;
+    for (const auto& p : peers)
+    {
+        ++peerIdGenerator;
+        m_peerIdPeerBimap.insert(
+            PeerIdPeerBiMap::value_type(peerIdGenerator, p));
+        m_peerIdSet.insert(peerIdGenerator);
+    }
+
+    // Now create the one and only RumorMember
+    m_member.reset(new RumorMember(m_peerIdSet, 0));
 }
 
-void RumorManager::addRumor(const std::deque<Peer>& peers,
-                            const RawBytes& message)
+bool RumorManager::addRumor(const RumorManager::RawBytes& message)
 {
-    addRumorImp(peers, message);
+    std::lock_guard<std::mutex> guard(m_mutex); // critical section
+
+    if (m_peerIdSet.size() > 0)
+    {
+        return false;
+    }
+
+    m_rumorIdRumorBimap.insert(
+        RumorIdRumorBimap::value_type(++m_rumorIdGenerator, message));
+
+    m_member->addRumor(m_rumorIdGenerator);
+
+    return true;
 }
 
-void RumorManager::rumorReceived(uint8_t type, int32_t round,
+bool RumorManager::rumorReceived(uint8_t type, int32_t round,
                                  const RawBytes& message, const Peer& from)
 {
     std::lock_guard<std::mutex> guard(m_mutex);
-    int recvRumorId = m_rumorIdBimap.right.at(
-        message); //[sandip] this will throw exception if no message exists
 
-    auto it = m_rumorState.find(recvRumorId);
-    if (it == m_rumorState.end())
+    auto p = m_peerIdPeerBimap.right.find(from);
+    if (p == m_peerIdPeerBimap.right.end())
     {
-        return;
+        // I dont know this peer, missing in my peerlist.
+        return false;
     }
 
-    PeerBimap& peerBimap = it->second.m_peerIdBimap;
-    int peerId = peerBimap.right.at(from);
+    int64_t recvdRumorId = -1;
+    Message::Type t = convertType(type);
+    bool toBeDispatched = false;
+    if (t == Message::Type::EMPTY_PUSH || t == Message::Type::EMPTY_PULL)
+    {
+        /* Don't add it to local RumorMap because it's not the rumor itself */
+    }
+    else
+    {
+        auto it = m_rumorIdRumorBimap.right.find(message);
+        if (it == m_rumorIdRumorBimap.right.end())
+        {
+            recvdRumorId = ++m_rumorIdGenerator;
+            m_rumorIdRumorBimap.insert(
+                RumorIdRumorBimap::value_type(recvdRumorId, message));
+            toBeDispatched = true;
+        }
+        else // already received , pass it on to member for state calculations
+        {
+            recvdRumorId = it->second;
+        }
+    }
 
-    RumorMember& member = it->second.m_member;
+    Message recvMsg(t, recvdRumorId, round);
+    int peerId = p->second;
+    std::pair<int, std::vector<Message>> pullMsgs
+        = m_member->receivedMessage(recvMsg, peerId);
 
-    Message recvMsg(convertType(type), recvRumorId, round);
-    member.receivedMessage(recvMsg, peerId);
-    // TODO handle PULL messages
+    // Get the corresponding Peer to which to send Pull Messages if any.
+    auto l = m_peerIdPeerBimap.left.find(pullMsgs.first);
+    if (l != m_peerIdPeerBimap.left.end())
+    {
+        SendMessages(l->second, pullMsgs.second);
+    }
+
+    return toBeDispatched;
+}
+
+void RumorManager::SendMessages(const Peer& toPeer,
+                                const std::vector<Message>& messages)
+{
+    // Get the real messages based on rumor ids.
+    for (auto& k : messages)
+    {
+        // Add round and type
+        RawBytes cmd = {(unsigned char)k.type()};
+        unsigned int cur_offset = RRSMessageOffset::R_AGE;
+
+        Serializable::SetNumber<uint32_t>(cmd, cur_offset, k.age(),
+                                          sizeof(uint32_t));
+
+        //Incase of empty pull/push there won't be message body
+        auto m = m_rumorIdRumorBimap.left.find(k.rumorId());
+        if (m != m_rumorIdRumorBimap.left.end())
+        {
+            // Add raw message
+            cmd.insert(cmd.end(), m->second.begin(), m->second.end());
+        }
+
+        // Send the message to peer .
+        P2PComm::GetInstance().SendMessageNoQueue(toPeer, cmd,
+                                                  START_BYTE_GOSSIP);
+    }
 }
 
 // PUBLIC CONST METHODS
-const RumorManager::RumorBimap& RumorManager::rumors() const
+const RumorManager::RumorIdRumorBimap& RumorManager::rumors() const
 {
-    return m_rumorIdBimap;
+    return m_rumorIdRumorBimap;
 }

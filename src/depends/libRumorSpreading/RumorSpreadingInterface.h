@@ -37,7 +37,7 @@ class RumorSpreadingInterface {
     * Handle a new 'message' from peer 'fromPeer'. Ints are used to identify a member and a rumor in
     * order to abstract away the actual member and rumor types.
     */
-    virtual std::pair<int, std::vector<Message>> receivedMessage(const Message& message, int fromMember, bool& shouldUse) = 0;
+    virtual std::pair<int, std::vector<Message>> receivedMessage(const Message& message, int fromMember) = 0;
 
     /**
     *  @brief  Advance to next round.
