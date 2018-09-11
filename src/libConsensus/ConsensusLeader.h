@@ -29,8 +29,8 @@
 #include "libNetwork/PeerStore.h"
 #include "libUtils/TimeLockedFunction.h"
 
-typedef std::function<bool(const vector<unsigned char>& errorMsg, unsigned int,
-                           const Peer& from)>
+typedef std::function<bool(const std::vector<unsigned char>& errorMsg,
+                           unsigned int, const Peer& from)>
     NodeCommitFailureHandlerFunc;
 typedef std::function<bool(std::map<unsigned int, std::vector<unsigned char>>)>
     ShardCommitFailureHandlerFunc;

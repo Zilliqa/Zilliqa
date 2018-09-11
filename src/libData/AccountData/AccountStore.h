@@ -42,7 +42,7 @@ using StateHash = dev::h256;
 
 class AccountStore;
 
-class AccountStoreTemp : public AccountStoreSC<map<Address, Account>>
+class AccountStoreTemp : public AccountStoreSC<std::map<Address, Account>>
 {
     // shared_ptr<unordered_map<Address, Account>> m_superAddressToAccount;
     AccountStore& m_parent;
@@ -52,44 +52,47 @@ public:
     //     const shared_ptr<unordered_map<Address, Account>>& addressToAccount);
     AccountStoreTemp(AccountStore& parent);
 
-    int DeserializeDelta(const vector<unsigned char>& src, unsigned int offset);
+    int DeserializeDelta(const std::vector<unsigned char>& src,
+                         unsigned int offset);
 
     /// Returns the Account associated with the specified address.
     Account* GetAccount(const Address& address) override;
 
-    const shared_ptr<map<Address, Account>>& GetAddressToAccount();
+    const std::shared_ptr<std::map<Address, Account>>& GetAddressToAccount();
 };
 
 class AccountStore
-    : public AccountStoreTrie<OverlayDB, unordered_map<Address, Account>>,
+    : public AccountStoreTrie<dev::OverlayDB,
+                              std::unordered_map<Address, Account>>,
       Singleton<AccountStore>
 {
-    unique_ptr<AccountStoreTemp> m_accountStoreTemp;
+    std::unique_ptr<AccountStoreTemp> m_accountStoreTemp;
 
     std::mutex m_mutexDelta;
 
-    vector<unsigned char> m_stateDeltaSerialized;
+    std::vector<unsigned char> m_stateDeltaSerialized;
 
     AccountStore();
     ~AccountStore();
 
     /// Store the trie root to leveldb
-    void MoveRootToDisk(const h256& root);
+    void MoveRootToDisk(const dev::h256& root);
 
 public:
     /// Returns the singleton AccountStore instance.
     static AccountStore& GetInstance();
 
-    int Deserialize(const vector<unsigned char>& src,
+    int Deserialize(const std::vector<unsigned char>& src,
                     unsigned int offset) override;
 
     void SerializeDelta();
 
-    unsigned int GetSerializedDelta(vector<unsigned char>& dst);
+    unsigned int GetSerializedDelta(std::vector<unsigned char>& dst);
 
-    int DeserializeDelta(const vector<unsigned char>& src, unsigned int offset);
+    int DeserializeDelta(const std::vector<unsigned char>& src,
+                         unsigned int offset);
 
-    int DeserializeDeltaTemp(const vector<unsigned char>& src,
+    int DeserializeDeltaTemp(const std::vector<unsigned char>& src,
                              unsigned int offset);
 
     /// Empty the state trie, must be called explicitly otherwise will retrieve the historical data

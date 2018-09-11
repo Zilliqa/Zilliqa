@@ -43,14 +43,14 @@ class BlockStorage : public Singleton<BlockStorage>
     std::shared_ptr<LevelDB> m_txBodyTmpDB;
 
     BlockStorage()
-        : m_metadataDB(make_shared<LevelDB>("metadata"))
-        , m_dsBlockchainDB(make_shared<LevelDB>("dsBlocks"))
-        , m_txBlockchainDB(make_shared<LevelDB>("txBlocks"))
+        : m_metadataDB(std::make_shared<LevelDB>("metadata"))
+        , m_dsBlockchainDB(std::make_shared<LevelDB>("dsBlocks"))
+        , m_txBlockchainDB(std::make_shared<LevelDB>("txBlocks"))
     {
         if (LOOKUP_NODE_MODE)
         {
-            m_txBodyDB = make_shared<LevelDB>("txBodies");
-            m_txBodyTmpDB = make_shared<LevelDB>("txBodiesTmp");
+            m_txBodyDB = std::make_shared<LevelDB>("txBodies");
+            m_txBodyTmpDB = std::make_shared<LevelDB>("txBodiesTmp");
         }
     };
     ~BlockStorage() = default;
