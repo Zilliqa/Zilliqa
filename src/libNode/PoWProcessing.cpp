@@ -207,7 +207,11 @@ void Node::SendPoWResultToDSComm(const uint64_t& block_num,
     }
 
     P2PComm::GetInstance().SendMessage(peerList, powmessage);
-    SetState(MICROBLOCK_CONSENSUS_PREP);
+
+    if (m_state != MICROBLOCK_CONSENSUS)
+    {
+        SetState(MICROBLOCK_CONSENSUS_PREP);
+    }
 }
 
 bool Node::ReadVariablesFromStartPoWMessage(
