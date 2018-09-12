@@ -17,6 +17,8 @@
 #include "TxnRootComputation.h"
 #include "libCrypto/Sha2.h"
 
+using namespace dev;
+
 namespace
 {
     template<typename T, typename R> const R& GetTranID(const T& item);

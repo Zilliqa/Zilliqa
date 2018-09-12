@@ -18,6 +18,8 @@
 
 #include "libUtils/DataConversion.h"
 
+using namespace dev;
+
 bool ContractStorage::PutContractCode(const h160& address,
                                       const std::vector<unsigned char>& code)
 {

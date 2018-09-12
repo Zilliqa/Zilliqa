@@ -65,11 +65,12 @@ private:
 
     bool ProcessMessageAnnounce(const std::vector<unsigned char>& announcement,
                                 unsigned int offset);
-    bool GenerateCommitFailureMessage(vector<unsigned char>& commitFailure,
-                                      unsigned int offset,
-                                      const vector<unsigned char>& errorMsg);
+    bool
+    GenerateCommitFailureMessage(std::vector<unsigned char>& commitFailure,
+                                 unsigned int offset,
+                                 const std::vector<unsigned char>& errorMsg);
     bool ProcessMessageConsensusFailure(
-        [[gnu::unused]] const vector<unsigned char>& consensusFailure,
+        [[gnu::unused]] const std::vector<unsigned char>& consensusFailure,
         [[gnu::unused]] unsigned int offset);
     bool GenerateCommitMessage(std::vector<unsigned char>& commit,
                                unsigned int offset);
