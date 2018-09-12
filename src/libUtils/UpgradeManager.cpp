@@ -20,7 +20,7 @@
 #include <boost/tokenizer.hpp>
 using namespace std;
 
-#define RELEASE_URL                                                            \
+#define DEFAULT_RELEASE_URL                                                    \
     "https://api.github.com/repos/Zilliqa/Zilliqa/releases/latest"
 #define USER_AGENT "Zilliqa"
 #define VERSION_FILE_NAME "VERSION"
@@ -45,7 +45,6 @@ UpgradeManager::~UpgradeManager()
     {
         curl_easy_cleanup(m_curl);
         curl_global_cleanup();
-        m_curl = nullptr;
     }
 }
 
@@ -62,7 +61,8 @@ static size_t WriteString(void* contents, size_t size, size_t nmemb,
     return size * nmemb;
 }
 
-string UpgradeManager::DownloadFile(const char* fileTail)
+string UpgradeManager::DownloadFile(const char* fileTail,
+                                    const char* releaseUrl)
 {
     if (!m_curl)
     {
@@ -72,7 +72,8 @@ string UpgradeManager::DownloadFile(const char* fileTail)
 
     string curlRes;
     curl_easy_reset(m_curl);
-    curl_easy_setopt(m_curl, CURLOPT_URL, RELEASE_URL);
+    curl_easy_setopt(m_curl, CURLOPT_URL,
+                     releaseUrl ? releaseUrl : DEFAULT_RELEASE_URL);
     curl_easy_setopt(m_curl, CURLOPT_USERAGENT, USER_AGENT);
     curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, WriteString);
     curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, &curlRes);
@@ -80,8 +81,10 @@ string UpgradeManager::DownloadFile(const char* fileTail)
 
     if (res != CURLE_OK)
     {
-        LOG_GENERAL(WARNING,
-                    "curl_easy_perform() failed: " << curl_easy_strerror(res));
+        LOG_GENERAL(
+            WARNING,
+            "curl_easy_perform() failed to fetch data from url to string: "
+                << curl_easy_strerror(res));
         return "";
     }
 
@@ -137,7 +140,8 @@ string UpgradeManager::DownloadFile(const char* fileTail)
     if (res != CURLE_OK)
     {
         LOG_GENERAL(WARNING,
-                    "curl_easy_perform() failed: " << curl_easy_strerror(res));
+                    "curl_easy_perform() failed to fetch data from url: "
+                        << curl_easy_strerror(res));
         return "";
     }
 
@@ -146,8 +150,8 @@ string UpgradeManager::DownloadFile(const char* fileTail)
 
     if ((res != CURLE_OK) || ((response_code / 100) == 3))
     {
-        char* location;
-        curl_easy_getinfo(m_curl, CURLINFO_REDIRECT_URL, &location);
+        char* location = nullptr;
+        res = curl_easy_getinfo(m_curl, CURLINFO_REDIRECT_URL, &location);
 
         if ((res == CURLE_OK) && location)
         {
@@ -160,25 +164,25 @@ string UpgradeManager::DownloadFile(const char* fileTail)
     curl_easy_setopt(m_curl, CURLOPT_URL, downloadFilePath.data());
     curl_easy_setopt(m_curl, CURLOPT_VERBOSE, 1L);
     curl_easy_setopt(m_curl, CURLOPT_NOPROGRESS, 1L);
-    FILE* file = fopen(fileName.data(), "wb");
+    unique_ptr<FILE, decltype(&fclose)> fp(fopen(fileName.data(), "wb"),
+                                           &fclose);
 
-    if (!file)
+    if (!fp)
     {
         return "";
     }
 
-    curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, file);
+    curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, fp.get());
     res = curl_easy_perform(m_curl);
 
     if (res != CURLE_OK)
     {
         LOG_GENERAL(WARNING,
-                    "curl_easy_perform() failed: " << curl_easy_strerror(res));
-        fclose(file);
+                    "curl_easy_perform() failed to download data: "
+                        << curl_easy_strerror(res));
         return "";
     }
 
-    fclose(file);
     return fileName;
 }
 
