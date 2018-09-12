@@ -23,6 +23,10 @@
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/SysCommand.h"
 
+using namespace std;
+using namespace dev;
+using namespace boost::multiprecision;
+
 AccountStore::AccountStore()
 {
     m_accountStoreTemp = make_unique<AccountStoreTemp>(*this);

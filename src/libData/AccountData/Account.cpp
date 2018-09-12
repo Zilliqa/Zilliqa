@@ -26,6 +26,10 @@
 #include "libUtils/Logger.h"
 #include "libUtils/SafeMath.h"
 
+using namespace std;
+using namespace boost::multiprecision;
+using namespace dev;
+
 Account::Account() {}
 
 Account::Account(const vector<unsigned char>& src, unsigned int offset)
