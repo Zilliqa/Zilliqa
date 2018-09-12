@@ -182,7 +182,7 @@ bool Node::SendPoWResultToDSComm(const uint64_t& block_num,
         return false;
     }
 
-    deque<Peer> peerList;
+    vector<Peer> peerList;
 
     for (auto const& i : *m_mediator.m_DSCommittee)
     {
