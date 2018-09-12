@@ -63,9 +63,6 @@ class DirectoryService : public Executable, public Broadcastable
 
     std::mutex m_mutexConsensus;
 
-    // Sharding committee members
-    VectorOfShard m_shards; //vector<vector<pair<PubKey, Peer>>>;
-
     std::map<PubKey, uint32_t> m_publicKeyToShardIdMap;
 
     // PoW common variables
@@ -339,9 +336,6 @@ public:
         ERROR
     };
 
-    /// Sharding structure
-    std::vector<std::map<PubKey, Peer>> m_shards;
-
     /// Transaction sharing assignments
     std::vector<Peer> m_DSReceivers;
     std::vector<std::vector<Peer>> m_shardReceivers;
@@ -367,6 +361,9 @@ public:
 
     /// The current role of this Zilliqa instance within the directory service committee.
     std::atomic<Mode> m_mode;
+
+    // Sharding committee members
+    VectorOfShard m_shards; //vector<vector<pair<PubKey, Peer>>>;
 
     /// The current internal state of this DirectoryService instance.
     std::atomic<DirState> m_state;

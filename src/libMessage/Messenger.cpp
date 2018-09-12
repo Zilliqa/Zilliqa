@@ -158,7 +158,7 @@ bool Messenger::SetNodeDSBlock(vector<unsigned char>& dst,
                                const unsigned int offset,
                                const uint32_t shardID, const DSBlock& dsBlock,
                                const Peer& powWinnerPeer,
-                               const vector<map<PubKey, Peer>>& shards,
+                               const vector<vector<pair<PubKey, Peer>>>& shards,
                                const vector<Peer>& dsReceivers,
                                const vector<vector<Peer>>& shardReceivers,
                                const vector<vector<Peer>>& shardSenders)
@@ -226,7 +226,7 @@ bool Messenger::SetNodeDSBlock(vector<unsigned char>& dst,
 bool Messenger::GetNodeDSBlock(const vector<unsigned char>& src,
                                const unsigned int offset, uint32_t& shardID,
                                DSBlock& dsBlock, Peer& powWinnerPeer,
-                               vector<map<PubKey, Peer>>& shards,
+                               vector<vector<pair<PubKey, Peer>>>& shards,
                                vector<Peer>& dsReceivers,
                                vector<vector<Peer>>& shardReceivers,
                                vector<vector<Peer>>& shardSenders)
@@ -265,7 +265,7 @@ bool Messenger::GetNodeDSBlock(const vector<unsigned char>& src,
             ProtobufByteArrayToSerializable(proto_member.pubkey(), key);
             ProtobufByteArrayToSerializable(proto_member.peerinfo(), peer);
 
-            shards.back().emplace(key, peer);
+            shards.back().emplace_back(make_pair(key, peer));
         }
     }
 
