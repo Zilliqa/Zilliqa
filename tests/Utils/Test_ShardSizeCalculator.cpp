@@ -24,7 +24,7 @@
 
 using namespace std;
 
-BOOST_AUTO_TEST_SUITE(ipconverter)
+BOOST_AUTO_TEST_SUITE(shardsizecalculator)
 
 BOOST_AUTO_TEST_CASE(test_lower_bound)
 {
