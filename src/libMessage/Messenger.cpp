@@ -60,15 +60,16 @@ namespace
 
 bool Messenger::SetDSPoWSubmission(
     vector<unsigned char>& dst, const unsigned int offset,
-    const uint64_t blockNumber, const Peer& submitterPeer,
-    const pair<PrivKey, PubKey>& submitterKey, const uint64_t nonce,
-    const string& resultingHash, const string& mixHash)
+    const uint64_t blockNumber, const uint8_t difficultyLevel,
+    const Peer& submitterPeer, const pair<PrivKey, PubKey>& submitterKey,
+    const uint64_t nonce, const string& resultingHash, const string& mixHash)
 {
     LOG_MARKER();
 
     DSPoWSubmission result;
 
     result.mutable_data()->set_blocknumber(blockNumber);
+    result.mutable_data()->set_difficultylevel(difficultyLevel);
 
     SerializableToProtobufByteArray(
         submitterPeer, *result.mutable_data()->mutable_submitterpeer());
@@ -111,10 +112,11 @@ bool Messenger::SetDSPoWSubmission(
 
 bool Messenger::GetDSPoWSubmission(const vector<unsigned char>& src,
                                    const unsigned int offset,
-                                   uint64_t& blockNumber, Peer& submitterPeer,
-                                   PubKey& submitterPubKey, uint64_t& nonce,
-                                   string& resultingHash, string& mixHash,
-                                   Signature& signature)
+                                   uint64_t& blockNumber,
+                                   uint8_t& difficultyLevel,
+                                   Peer& submitterPeer, PubKey& submitterPubKey,
+                                   uint64_t& nonce, string& resultingHash,
+                                   string& mixHash, Signature& signature)
 {
     LOG_MARKER();
 
@@ -129,6 +131,7 @@ bool Messenger::GetDSPoWSubmission(const vector<unsigned char>& src,
     }
 
     blockNumber = result.data().blocknumber();
+    difficultyLevel = result.data().difficultylevel();
     ProtobufByteArrayToSerializable(result.data().submitterpeer(),
                                     submitterPeer);
     ProtobufByteArrayToSerializable(result.data().submitterpubkey(),

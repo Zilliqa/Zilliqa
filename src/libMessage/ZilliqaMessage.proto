@@ -45,11 +45,12 @@ message DSPoWSubmission
     message Data
     {
         required uint64 blocknumber        = 1;
-        required ByteArray submitterpeer   = 2;
-        required ByteArray submitterpubKey = 3;
-        required uint64 nonce              = 4;
-        required string resultinghash      = 5;
-        required string mixhash            = 6;
+        required uint32 difficultylevel    = 2; // only LSB used
+        required ByteArray submitterpeer   = 3;
+        required ByteArray submitterpubKey = 4;
+        required uint64 nonce              = 5;
+        required string resultinghash      = 6;
+        required string mixhash            = 7;
     }
     required Data data                     = 1;
     required ByteArray signature           = 2;

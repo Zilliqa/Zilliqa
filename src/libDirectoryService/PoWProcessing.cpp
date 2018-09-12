@@ -77,6 +77,7 @@ bool DirectoryService::ProcessPoWSubmission(
     }
 
     uint64_t blockNumber = 0;
+    uint8_t difficultyLevel = 0;
     Peer submitterPeer;
     PubKey submitterPubKey;
     uint64_t nonce = 0;
@@ -84,9 +85,9 @@ bool DirectoryService::ProcessPoWSubmission(
     string mixHash;
     Signature signature;
 
-    if (!Messenger::GetDSPoWSubmission(message, offset, blockNumber,
-                                       submitterPeer, submitterPubKey, nonce,
-                                       resultingHash, mixHash, signature))
+    if (!Messenger::GetDSPoWSubmission(
+            message, offset, blockNumber, difficultyLevel, submitterPeer,
+            submitterPubKey, nonce, resultingHash, mixHash, signature))
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Messenger::GetDSPoWSubmission failed.");
@@ -127,6 +128,13 @@ bool DirectoryService::ProcessPoWSubmission(
         return false;
     }
 
+    if (CheckPoWSubmissionExceedsLimitsForNode(submitterPubKey))
+    {
+        LOG_GENERAL(WARNING,
+                    submitterPeer << " has exceeded max pow submission");
+        return false;
+    }
+
     // Log all values
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Winner Public_key             = 0x"
@@ -141,19 +149,36 @@ bool DirectoryService::ProcessPoWSubmission(
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "dsblock_num            = " << blockNumber);
 
-    unsigned int difficulty = POW_DIFFICULTY;
+    uint8_t expectedDSDiff = DS_POW_DIFFICULTY;
+    uint8_t expectedDiff = POW_DIFFICULTY;
+
+    // Non-genesis block
     if (blockNumber > 1)
     {
-        difficulty
-            = m_mediator.m_dsBlockChain.GetLastBlock()
-                  .GetHeader()
-                  .GetDifficulty(); // TODO: Need to get the latest blocknum, diff, rand1, rand2
+        expectedDSDiff = m_mediator.m_dsBlockChain.GetLastBlock()
+                             .GetHeader()
+                             .GetDSDifficulty();
+        expectedDiff = m_mediator.m_dsBlockChain.GetLastBlock()
+                           .GetHeader()
+                           .GetDifficulty();
+    }
+
+    if (difficultyLevel != expectedDSDiff && difficultyLevel != expectedDiff)
+    {
+        LOG_GENERAL(WARNING,
+                    "Difficulty level is invalid. difficultyLevel: "
+                        << to_string(difficultyLevel)
+                        << " Expected: " << to_string(expectedDSDiff) << " or "
+                        << to_string(expectedDiff));
+
+        // TODO: penalise sender in reputation manager
+        return false;
     }
 
     m_timespec = r_timer_start();
 
     bool result = POW::GetInstance().PoWVerify(
-        blockNumber, difficulty, rand1, rand2, submitterPeer.m_ipAddress,
+        blockNumber, difficultyLevel, rand1, rand2, submitterPeer.m_ipAddress,
         submitterPubKey, false, nonce, resultingHash, mixHash);
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -177,8 +202,26 @@ bool DirectoryService::ProcessPoWSubmission(
             lock_guard<mutex> g(m_mutexAllPOW, adopt_lock);
             lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
 
+            std::array<unsigned char, 32> winningHashArr
+                = DataConversion::HexStrToStdArray(resultingHash);
+
             m_allPoWConns.emplace(submitterPubKey, submitterPeer);
-            m_allPoWs.emplace_back(submitterPubKey, nonce);
+            m_allPoWs[submitterPubKey] = winningHashArr;
+
+            uint8_t expectedDSDiff = DS_POW_DIFFICULTY;
+            if (blockNumber > 1)
+            {
+                expectedDSDiff = m_mediator.m_dsBlockChain.GetLastBlock()
+                                     .GetHeader()
+                                     .GetDSDifficulty();
+            }
+
+            if (difficultyLevel == expectedDSDiff)
+            {
+                AddDSPoWs(submitterPubKey, winningHashArr);
+            }
+
+            UpdatePoWSubmissionCounterforNode(submitterPubKey);
         }
     }
     else
@@ -187,11 +230,94 @@ bool DirectoryService::ProcessPoWSubmission(
                   "Invalid PoW submission"
                       << "\n"
                       << "blockNum: " << blockNumber
-                      << " Difficulty: " << difficulty << " nonce: " << nonce
-                      << " ip: " << submitterPeer
+                      << " Difficulty: " << to_string(difficultyLevel)
+                      << " nonce: " << nonce << " ip: " << submitterPeer
                       << " rand1: " << DataConversion::charArrToHexStr(rand1)
                       << " rand2: " << DataConversion::charArrToHexStr(rand2));
     }
 
     return result;
+}
+
+bool DirectoryService::CheckPoWSubmissionExceedsLimitsForNode(const PubKey& key)
+{
+    lock_guard<mutex> g(m_mutexAllPoWCounter);
+    if (m_AllPoWCounter.find(key) == m_AllPoWCounter.end())
+    {
+        return false;
+    }
+    else if (m_AllPoWCounter[key] < POW_SUBMISSION_LIMIT)
+    {
+        return false;
+    }
+    return true;
+}
+
+void DirectoryService::UpdatePoWSubmissionCounterforNode(const PubKey& key)
+{
+    lock_guard<mutex> g(m_mutexAllPoWCounter);
+
+    if (m_AllPoWCounter.find(key) == m_AllPoWCounter.end())
+    {
+        m_AllPoWCounter.emplace(key, 1);
+    }
+    else
+    {
+        m_AllPoWCounter[key] = m_AllPoWCounter[key] + 1;
+    }
+}
+
+void DirectoryService::ResetPoWSubmissionCounter()
+{
+    lock_guard<mutex> g(m_mutexAllPoWCounter);
+    m_AllPoWCounter.clear();
+}
+
+void DirectoryService::AddDSPoWs(PubKey Pubk,
+                                 std::array<unsigned char, 32> DSPOWSoln)
+{
+    lock_guard<mutex> g(m_mutexAllDSPOWs);
+    m_allDSPoWs[Pubk] = DSPOWSoln;
+}
+
+std::map<PubKey, std::array<unsigned char, 32>> DirectoryService::GetAllDSPoWs()
+{
+    lock_guard<mutex> g(m_mutexAllDSPOWs);
+    return m_allDSPoWs;
+}
+
+void DirectoryService::ClearDSPoWSolns()
+{
+    lock_guard<mutex> g(m_mutexAllDSPOWs);
+    m_allDSPoWs.clear();
+}
+
+std::array<unsigned char, 32> DirectoryService::GetDSPoWSoln(PubKey Pubk)
+{
+    lock_guard<mutex> g(m_mutexAllDSPOWs);
+    if (m_allDSPoWs.find(Pubk) != m_allDSPoWs.end())
+    {
+        return m_allDSPoWs[Pubk];
+    }
+    else
+    {
+        LOG_GENERAL(WARNING, "No such element in m_allDSPoWs");
+        return array<unsigned char, 32>();
+    }
+}
+
+bool DirectoryService::IsNodeSubmittedDSPoWSoln(PubKey Pubk)
+{
+    lock_guard<mutex> g(m_mutexAllDSPOWs);
+    if (m_allDSPoWs.find(Pubk) != m_allDSPoWs.end())
+    {
+        return true;
+    }
+    return false;
+}
+
+uint32_t DirectoryService::GetNumberOfDSPoWSolns()
+{
+    lock_guard<mutex> g(m_mutexAllDSPOWs);
+    return m_allDSPoWs.size();
 }
