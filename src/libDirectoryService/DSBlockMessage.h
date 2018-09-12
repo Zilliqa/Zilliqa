@@ -185,11 +185,11 @@ public:
             output, cur_offset, ds_receivers.size(), sizeof(uint32_t));
         cur_offset += sizeof(uint32_t);
 
-        for (unsigned int i = 0; i < ds_receivers.size(); i++)
+        for (const auto& ds_receiver : ds_receivers)
         {
             // [16-byte IP] [4-byte port]
-            ds_receivers.at(i).Serialize(output, cur_offset);
-            LOG_GENERAL(INFO, ds_receivers.at(i));
+            ds_receiver.Serialize(output, cur_offset);
+            LOG_GENERAL(INFO, ds_receiver);
             cur_offset += IP_SIZE + PORT_SIZE;
         }
 
@@ -210,13 +210,13 @@ public:
                 output, cur_offset, shard_x_receivers.size(), sizeof(uint32_t));
             cur_offset += sizeof(uint32_t);
 
-            for (unsigned int j = 0; j < shard_x_receivers.size(); j++)
+            for (const auto& shard_x_receiver : shard_x_receivers)
             {
                 // [16-byte IP] [4-byte port]
-                shard_x_receivers.at(j).Serialize(output, cur_offset);
+                shard_x_receiver.Serialize(output, cur_offset);
                 cur_offset += IP_SIZE + PORT_SIZE;
 
-                LOG_GENERAL(INFO, shard_x_receivers.at(j));
+                LOG_GENERAL(INFO, shard_x_receiver);
             }
 
             const std::vector<Peer>& shard_x_senders = shard_senders.at(i);
@@ -227,13 +227,13 @@ public:
                 output, cur_offset, shard_x_senders.size(), sizeof(uint32_t));
             cur_offset += sizeof(uint32_t);
 
-            for (unsigned int j = 0; j < shard_x_senders.size(); j++)
+            for (const auto& shard_x_sender : shard_x_senders)
             {
                 // [16-byte IP] [4-byte port]
-                shard_x_senders.at(j).Serialize(output, cur_offset);
+                shard_x_sender.Serialize(output, cur_offset);
                 cur_offset += IP_SIZE + PORT_SIZE;
 
-                LOG_GENERAL(INFO, shard_x_senders.at(j));
+                LOG_GENERAL(INFO, shard_x_sender);
             }
         }
 

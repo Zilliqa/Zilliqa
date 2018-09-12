@@ -203,13 +203,13 @@ int main(int argc, const char* argv[])
         = sizeof(message_handlers_2) / sizeof(message_handlers_2[0]);
 
     bool processed = false;
-    for (int i = 0; i < num_handlers; i++)
+    for (auto message_handler : message_handlers)
     {
-        if (!strcmp(instruction, message_handlers[i].ins))
+        if (!strcmp(instruction, message_handler.ins))
         {
-            (*message_handlers[i].func)(
-                argc - 3, argv[0], argv[2],
-                static_cast<unsigned int>(atoi(argv[1])), argv + 3);
+            (*message_handler.func)(argc - 3, argv[0], argv[2],
+                                    static_cast<unsigned int>(atoi(argv[1])),
+                                    argv + 3);
             processed = true;
             break;
         }
@@ -218,13 +218,12 @@ int main(int argc, const char* argv[])
     if (!processed)
     {
         instruction = argv[3];
-        for (int i = 0; i < num_handlers_2; i++)
+        for (auto i : message_handlers_2)
         {
-            if (!strcmp(instruction, message_handlers_2[i].ins))
+            if (!strcmp(instruction, i.ins))
             {
-                (*message_handlers_2[i].func)(
-                    argc - 4, argv[0], argv[3], argv[1],
-                    static_cast<unsigned int>(atoi(argv[2])), argv + 4);
+                (*i.func)(argc - 4, argv[0], argv[3], argv[1],
+                          static_cast<unsigned int>(atoi(argv[2])), argv + 4);
                 processed = true;
                 break;
             }

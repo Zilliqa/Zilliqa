@@ -366,9 +366,9 @@ StateHash AccountStore::GetStateDeltaHash()
 
     bool isEmpty = true;
 
-    for (unsigned int i = 0; i < m_stateDeltaSerialized.size(); i++)
+    for (unsigned char i : m_stateDeltaSerialized)
     {
-        if (m_stateDeltaSerialized[i] != 0)
+        if (i != 0)
         {
             isEmpty = false;
             break;
