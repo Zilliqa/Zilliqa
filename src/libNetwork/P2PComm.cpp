@@ -46,6 +46,7 @@ const unsigned char START_BYTE_NORMAL = 0x11;
 const unsigned char START_BYTE_BROADCAST = 0x22;
 const unsigned char START_BYTE_GOSSIP = 0x33;
 const unsigned int HDR_LEN = 6;
+const unsigned int GOSSIP_HDR_LEN = 11;
 const unsigned int HASH_LEN = 32;
 const unsigned int GOSSIP_MSGTYPE_LEN = 1;
 const unsigned int GOSSIP_AGE_LEN = 4;
@@ -601,9 +602,12 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
     }
     else if (startByte == START_BYTE_GOSSIP)
     {
+        LOG_PAYLOAD(INFO, "Incoming message from " << from, message,
+                    Logger::MAX_BYTES_TO_DISPLAY);
+
         // Check for length consistency
-        if (messageLength
-            != message.size() - HDR_LEN - GOSSIP_MSGTYPE_LEN - GOSSIP_AGE_LEN)
+
+        if (messageLength != message.size() - HDR_LEN)
         {
             LOG_GENERAL(WARNING, "Incorrect message length.");
             return;
@@ -618,9 +622,9 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
             return;
         }
 
-        vector<unsigned char> gossipMsgTyp(
-            message.begin() + HDR_LEN + GOSSIP_MSGTYPE_LEN,
-            message.begin() + HDR_LEN + GOSSIP_MSGTYPE_LEN);
+        vector<unsigned char> gossipMsgTyp(message.begin() + HDR_LEN,
+                                           message.begin() + HDR_LEN
+                                               + GOSSIP_MSGTYPE_LEN);
 
         vector<unsigned char> tmp(
             message.begin() + HDR_LEN + GOSSIP_MSGTYPE_LEN,

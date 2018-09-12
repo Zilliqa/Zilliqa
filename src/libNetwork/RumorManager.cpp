@@ -54,8 +54,9 @@ void RumorManager::startRounds()
                     SendMessages(l->second, result.second);
                 }
             } // end critical section
-            std::this_thread::sleep_for(ROUND_TIME - std::chrono::seconds(15));
-            m_condStopRound.wait_for(guard, std::chrono::seconds(15));
+            std::this_thread::sleep_for(ROUND_TIME
+                                        - std::chrono::milliseconds(15));
+            m_condStopRound.wait_for(guard, std::chrono::milliseconds(15));
         }
     })
         .detach();
