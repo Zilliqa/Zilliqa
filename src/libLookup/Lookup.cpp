@@ -1720,7 +1720,7 @@ bool Lookup::CheckStateRoot()
                         << stateRoot << ". "
                         << "StoredInBlock = " << rootInFinalBlock);
 
-        return true;
+        return false;
     }
 }
 

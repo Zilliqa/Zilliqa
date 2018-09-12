@@ -797,7 +797,7 @@ bool Node::CheckStateRoot(const TxBlock& finalBlock)
                       << stateRoot << ". "
                       << "Received = "
                       << finalBlock.GetHeader().GetStateRootHash());
-        return true;
+        return false;
     }
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
