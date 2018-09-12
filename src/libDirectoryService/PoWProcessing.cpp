@@ -184,16 +184,6 @@ bool DirectoryService::ProcessPoWSubmission(
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "[POWSTAT] pow verify (microsec): " << r_timer_end(m_timespec));
 
-    if (CheckPoWSubmissionExceedsLimitsForNode(key))
-    {
-        LOG_GENERAL(WARNING, peer << "  has exceeded max pow submission ");
-        return false;
-    }
-
-    string winning_hash;
-    bool result = VerifyPoWSubmission(message, from, key, curr_offset, portNo,
-                                      nonce, rand1, rand2, difficultyLevel,
-                                      block_num, winning_hash);
     if (result)
     {
         // Do another check on the state before accessing m_allPoWs
