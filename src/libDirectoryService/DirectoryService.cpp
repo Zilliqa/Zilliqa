@@ -232,14 +232,14 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
                                           sizeof(uint32_t));
         curr_offset += sizeof(uint32_t);
 
-        for (unsigned int i = 0; i < ds.size(); i++)
+        for (auto& d : ds)
         {
             // PubKey
-            curr_offset += ds.at(i).first.Serialize(setDSBootstrapNodeMessage,
-                                                    curr_offset);
+            curr_offset
+                += d.first.Serialize(setDSBootstrapNodeMessage, curr_offset);
             // Peer
-            curr_offset += ds.at(i).second.Serialize(setDSBootstrapNodeMessage,
-                                                     curr_offset);
+            curr_offset
+                += d.second.Serialize(setDSBootstrapNodeMessage, curr_offset);
         }
         m_mediator.m_lookup->SendMessageToLookupNodes(
             setDSBootstrapNodeMessage);

@@ -294,9 +294,9 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
         }
 
         LOG_GENERAL(INFO, "New view of ds committee: ");
-        for (unsigned i = 0; i < m_mediator.m_DSCommittee->size(); i++)
+        for (auto& i : *m_mediator.m_DSCommittee)
         {
-            LOG_GENERAL(INFO, m_mediator.m_DSCommittee->at(i).second);
+            LOG_GENERAL(INFO, i.second);
         }
 
         auto func = [this, viewChangeState]() -> void {
