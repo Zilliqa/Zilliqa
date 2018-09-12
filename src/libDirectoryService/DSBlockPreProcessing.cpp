@@ -87,19 +87,28 @@ void DirectoryService::ComposeDSBlock(
     // Start to adjust difficulty from second DS block.
     if (blockNum > 1)
     {
+        dsDifficulty
+            = CalculateNewDSDifficulty(m_mediator.m_dsBlockChain.GetLastBlock()
+                                           .GetHeader()
+                                           .GetDSDifficulty());
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Current DS difficulty "
+                      << std::to_string(m_mediator.m_dsBlockChain.GetLastBlock()
+                                            .GetHeader()
+                                            .GetDSDifficulty())
+                      << ", new DS difficulty "
+                      << std::to_string(dsDifficulty));
+
         difficulty
             = CalculateNewDifficulty(m_mediator.m_dsBlockChain.GetLastBlock()
                                          .GetHeader()
                                          .GetDifficulty());
-        LOG_GENERAL(
-            INFO,
-            "Current difficulty "
-                << std::to_string(m_mediator.m_dsBlockChain.GetLastBlock()
-                                      .GetHeader()
-                                      .GetDifficulty())
-                << ", new difficulty " << std::to_string(difficulty));
-
-        // TODO: To dynamically adjust the difficulty here
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Current difficulty "
+                      << std::to_string(m_mediator.m_dsBlockChain.GetLastBlock()
+                                            .GetHeader()
+                                            .GetDifficulty())
+                      << ", new difficulty " << std::to_string(difficulty));
     }
 
     // Assemble DS block
@@ -512,12 +521,15 @@ bool DirectoryService::DSBlockValidator(
         auto remoteDSDifficulty
             = m_pendingDSBlock->GetHeader().GetDSDifficulty();
         auto localDSDifficulty
-            = DS_POW_DIFFICULTY; // TODO: Change to dynamic difficutly
-
-        if (remoteDSDifficulty != localDSDifficulty)
+            = CalculateNewDSDifficulty(m_mediator.m_dsBlockChain.GetLastBlock()
+                                           .GetHeader()
+                                           .GetDSDifficulty());
+        constexpr uint8_t DIFFICULTY_TOL = 1;
+        if (remoteDSDifficulty < localDSDifficulty
+            || (remoteDSDifficulty - localDSDifficulty > DIFFICULTY_TOL))
         {
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "WARNING: The difficulty "
+                      "WARNING: The ds difficulty "
                           << std::to_string(remoteDSDifficulty)
                           << " from leader not match with local calculated "
                              "result "
@@ -530,7 +542,8 @@ bool DirectoryService::DSBlockValidator(
             = CalculateNewDifficulty(m_mediator.m_dsBlockChain.GetLastBlock()
                                          .GetHeader()
                                          .GetDifficulty());
-        if (remoteDifficulty != localDifficulty)
+        if (remoteDifficulty < localDifficulty
+            || (remoteDifficulty - localDifficulty > DIFFICULTY_TOL))
         {
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "WARNING: The difficulty "
