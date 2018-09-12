@@ -38,7 +38,6 @@ private:
     // Singleton should not implement these
     UpgradeManager(UpgradeManager const&) = delete;
     void operator=(UpgradeManager const&) = delete;
-    std::string DownloadFile(const char* fileTail);
 
 public:
     /// Returns the singleton UpgradeManager instance.
@@ -54,6 +53,10 @@ public:
     bool ReplaceNode(Mediator& mediator);
 
     const std::shared_ptr<SWInfo> GetLatestSWInfo() { return m_latestSWInfo; }
+
+    /// Should be only called internally, put in public just for testing
+    std::string DownloadFile(const char* fileTail,
+                             const char* releaseUrl = nullptr);
 };
 
 #endif // __UPGRADEMANAGER_H__
