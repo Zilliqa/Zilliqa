@@ -26,14 +26,11 @@ using namespace ZilliqaMessage;
 namespace
 {
     void SerializableToProtobufByteArray(const Serializable& serializable,
-                                         ByteArray* byteArray)
+                                         ByteArray& byteArray)
     {
-        if (byteArray != NULL)
-        {
-            vector<unsigned char> tmp;
-            serializable.Serialize(tmp, 0);
-            byteArray->set_data(tmp.data(), tmp.size());
-        }
+        vector<unsigned char> tmp;
+        serializable.Serialize(tmp, 0);
+        byteArray.set_data(tmp.data(), tmp.size());
     }
 
     void ProtobufByteArrayToSerializable(const ByteArray& byteArray,
@@ -74,9 +71,9 @@ bool Messenger::SetDSPoWSubmission(
     result.mutable_data()->set_blocknumber(blockNumber);
 
     SerializableToProtobufByteArray(
-        submitterPeer, result.mutable_data()->mutable_submitterpeer());
+        submitterPeer, *result.mutable_data()->mutable_submitterpeer());
     SerializableToProtobufByteArray(
-        submitterKey.second, result.mutable_data()->mutable_submitterpubkey());
+        submitterKey.second, *result.mutable_data()->mutable_submitterpubkey());
 
     result.mutable_data()->set_nonce(nonce);
     result.mutable_data()->set_resultinghash(resultingHash);
@@ -95,7 +92,7 @@ bool Messenger::SetDSPoWSubmission(
             return false;
         }
 
-        SerializableToProtobufByteArray(signature, result.mutable_signature());
+        SerializableToProtobufByteArray(signature, *result.mutable_signature());
     }
     else
     {
@@ -168,9 +165,9 @@ bool Messenger::SetNodeDSBlock(vector<unsigned char>& dst,
     NodeDSBlock result;
 
     result.set_shardid(shardID);
-    SerializableToProtobufByteArray(dsBlock, result.mutable_dsblock());
+    SerializableToProtobufByteArray(dsBlock, *result.mutable_dsblock());
     SerializableToProtobufByteArray(powWinnerPeer,
-                                    result.mutable_powwinnerpeer());
+                                    *result.mutable_powwinnerpeer());
 
     for (const auto& shard : shards)
     {
@@ -183,9 +180,9 @@ bool Messenger::SetNodeDSBlock(vector<unsigned char>& dst,
                 = proto_shard->add_members();
 
             SerializableToProtobufByteArray(node.first,
-                                            proto_member->mutable_pubkey());
+                                            *proto_member->mutable_pubkey());
             SerializableToProtobufByteArray(node.second,
-                                            proto_member->mutable_peerinfo());
+                                            *proto_member->mutable_peerinfo());
         }
     }
 
@@ -194,7 +191,7 @@ bool Messenger::SetNodeDSBlock(vector<unsigned char>& dst,
     for (const auto& dsnode : dsReceivers)
     {
         SerializableToProtobufByteArray(dsnode,
-                                        proto_assignments->add_dsnodes());
+                                        *proto_assignments->add_dsnodes());
     }
 
     for (unsigned int i = 0; i < shardReceivers.size(); i++)
@@ -205,11 +202,12 @@ bool Messenger::SetNodeDSBlock(vector<unsigned char>& dst,
         for (const auto& receiver : shardReceivers.at(i))
         {
             SerializableToProtobufByteArray(receiver,
-                                            proto_shard->add_receivers());
+                                            *proto_shard->add_receivers());
         }
         for (const auto& sender : shardSenders.at(i))
         {
-            SerializableToProtobufByteArray(sender, proto_shard->add_senders());
+            SerializableToProtobufByteArray(sender,
+                                            *proto_shard->add_senders());
         }
     }
 
@@ -319,7 +317,7 @@ bool Messenger::SetNodeFinalBlock(vector<unsigned char>& dst,
     result.set_shardid(shardID);
     result.set_dsblocknumber(dsBlockNumber);
     result.set_consensusid(consensusID);
-    SerializableToProtobufByteArray(txBlock, result.mutable_txblock());
+    SerializableToProtobufByteArray(txBlock, *result.mutable_txblock());
     result.set_statedelta(stateDelta.data(), stateDelta.size());
 
     if (!result.IsInitialized())
