@@ -27,17 +27,20 @@ class Messenger
 public:
     // Directory service messages
 
-    static bool SetDSPoWSubmission(
-        std::vector<unsigned char>& dst, const unsigned int offset,
-        const uint64_t blockNumber, const Peer& submitterPeer,
-        const std::pair<PrivKey, PubKey>& submitterKey, const uint64_t nonce,
-        const std::string& resultingHash, const std::string& mixHash);
+    static bool
+    SetDSPoWSubmission(std::vector<unsigned char>& dst,
+                       const unsigned int offset, const uint64_t blockNumber,
+                       const uint8_t difficultyLevel, const Peer& submitterPeer,
+                       const std::pair<PrivKey, PubKey>& submitterKey,
+                       const uint64_t nonce, const std::string& resultingHash,
+                       const std::string& mixHash);
 
     static bool GetDSPoWSubmission(const std::vector<unsigned char>& src,
                                    const unsigned int offset,
-                                   uint64_t& blockNumber, Peer& submitterPeer,
-                                   PubKey& submitterPubKey, uint64_t& nonce,
-                                   std::string& resultingHash,
+                                   uint64_t& blockNumber,
+                                   uint8_t& difficultyLevel,
+                                   Peer& submitterPeer, PubKey& submitterPubKey,
+                                   uint64_t& nonce, std::string& resultingHash,
                                    std::string& mixHash, Signature& signature);
 
     // Node messages

@@ -1775,6 +1775,9 @@ bool Lookup::InitMining()
             m_mediator.m_node->StartPoW(curDsBlockNum + 1,
                                         m_mediator.m_dsBlockChain.GetLastBlock()
                                             .GetHeader()
+                                            .GetDSDifficulty(),
+                                        m_mediator.m_dsBlockChain.GetLastBlock()
+                                            .GetHeader()
                                             .GetDifficulty(),
                                         dsBlockRand, txBlockRand);
         }
