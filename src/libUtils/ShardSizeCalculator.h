@@ -19,7 +19,6 @@
 
 #include <boost/algorithm/hex.hpp>
 
-/// Utility class for data conversion operations.
 class ShardSizeCalculator
 {
 public:
