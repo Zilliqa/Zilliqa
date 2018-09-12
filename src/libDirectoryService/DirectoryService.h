@@ -61,18 +61,12 @@ class DirectoryService : public Executable, public Broadcastable
     std::mutex m_mutexConsensus;
 
     // Sharding committee members
-    std::vector<std::map<PubKey, Peer>> m_shards;
     std::map<PubKey, uint32_t> m_publicKeyToShardIdMap;
-
-    // Transaction sharing assignments
-    std::vector<Peer> m_DSReceivers;
-    std::vector<std::vector<Peer>> m_shardReceivers;
-    std::vector<std::vector<Peer>> m_shardSenders;
 
     // PoW common variables
     std::mutex m_mutexAllPoWConns;
     std::map<PubKey, Peer> m_allPoWConns;
-    std::vector<unsigned char> m_PoWConsensusMessage;
+
     std::mutex m_mutexAllPoWCounter;
     std::map<PubKey, uint8_t> m_AllPoWCounter;
     std::mutex m_mutexAllPOW;
@@ -92,7 +86,6 @@ class DirectoryService : public Executable, public Broadcastable
 
     // Final block consensus variables
     std::shared_ptr<TxBlock> m_finalBlock;
-    std::vector<unsigned char> m_finalBlockMessage;
 
     std::mutex m_mutexMBSubmissionBuffer;
     std::unordered_map<uint64_t, std::vector<std::vector<unsigned char>>>
@@ -193,12 +186,13 @@ class DirectoryService : public Executable, public Broadcastable
 
     // internal calls from ProcessDSBlockConsensus
     void StoreDSBlockToStorage(); // To further refactor
-    void SendDSBlockToLookupNodes();
+    void SendDSBlockToLookupNodes(const Peer& winnerpeer);
     void SendDSBlockToNewDSLeader(const Peer& winnerpeer);
     void SetupMulticastConfigForDSBlock(unsigned int& my_DS_cluster_num,
                                         unsigned int& my_shards_lo,
                                         unsigned int& my_shards_hi) const;
-    void SendDSBlockToShardNodes(unsigned int my_shards_lo,
+    void SendDSBlockToShardNodes(const Peer& winnerpeer,
+                                 unsigned int my_shards_lo,
                                  unsigned int my_shards_hi);
     void UpdateMyDSModeAndConsensusId();
     void UpdateDSCommiteeComposition(const Peer& winnerpeer); //TODO: Refactor
@@ -223,16 +217,7 @@ class DirectoryService : public Executable, public Broadcastable
     bool RunConsensusOnFinalBlockWhenDSBackup();
     void ComposeFinalBlockCore();
     vector<unsigned char> ComposeFinalBlockMessage();
-    bool ParseMessageAndVerifyPOW(const vector<unsigned char>& message,
-                                  unsigned int offset, const Peer& from);
     bool CheckWhetherDSBlockIsFresh(const uint64_t dsblock_num);
-    bool VerifyPoWSubmission(const vector<unsigned char>& message,
-                             const Peer& from, PubKey& key,
-                             unsigned int curr_offset, uint32_t& portNo,
-                             uint64_t& nonce, array<unsigned char, 32>& rand1,
-                             array<unsigned char, 32>& rand2,
-                             uint8_t& difficulty, uint64_t& block_num,
-                             string& winning_hash);
     void CommitMBSubmissionMsgBuffer();
     bool ProcessMicroblockSubmissionFromShard(
         const std::vector<unsigned char>& message, unsigned int offset,
@@ -348,6 +333,14 @@ public:
         ERROR
     };
 
+    /// Sharding structure
+    std::vector<std::map<PubKey, Peer>> m_shards;
+
+    /// Transaction sharing assignments
+    std::vector<Peer> m_DSReceivers;
+    std::vector<std::vector<Peer>> m_shardReceivers;
+    std::vector<std::vector<Peer>> m_shardSenders;
+
     enum SUBMITMICROBLOCKTYPE : unsigned char
     {
         SHARDMICROBLOCK = 0x00,
@@ -432,10 +425,16 @@ public:
                  const Peer& from);
 
     /// Used by PoW winner to configure sharding variables as the next DS leader
+    bool ProcessShardingStructure();
+
+    // This version will be removed when DSBlock announcement is protobuf-ed
     unsigned int PopulateShardingStructure(const vector<unsigned char>& message,
                                            unsigned int offset);
 
     /// Used by PoW winner to configure txn sharing assignment variables as the next DS leader
+    void ProcessTxnBodySharingAssignment();
+
+    // This version will be removed when DSBlock announcement is protobuf-ed
     void SaveTxnBodySharingAssignment(
         const vector<unsigned char>& sharding_structure,
         unsigned int curr_offset);
@@ -452,7 +451,7 @@ private:
 
     void AddDSPoWs(PubKey Pubk, std::array<unsigned char, 32> DSPOWSoln);
     std::map<PubKey, std::array<unsigned char, 32>> GetAllDSPoWs();
-    void clearDSPoWSolns();
+    void ClearDSPoWSolns();
     std::array<unsigned char, 32> GetDSPoWSoln(PubKey Pubk);
     bool IsNodeSubmittedDSPoWSoln(PubKey Pubk);
     uint32_t GetNumberOfDSPoWSolns();

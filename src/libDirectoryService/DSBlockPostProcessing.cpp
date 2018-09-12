@@ -28,6 +28,7 @@
 #include "depends/libTrie/TrieHash.h"
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
+#include "libMessage/Messenger.h"
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/Whitelist.h"
 #include "libUtils/DataConversion.h"
@@ -79,11 +80,8 @@ void DirectoryService::StoreDSBlockToStorage()
         DataConversion::StringToCharArray(to_string(m_latestActiveDSBlockNum)));
 }
 
-void DirectoryService::SendDSBlockToLookupNodes()
+void DirectoryService::SendDSBlockToLookupNodes(const Peer& winnerpeer)
 {
-    // Message = [DS block] [PoW winner IP] [Sharding structure] [Txn sharing assignments]
-    // This is the same as the DS Block consensus announcement message
-
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
@@ -92,12 +90,17 @@ void DirectoryService::SendDSBlockToLookupNodes()
         return;
     }
 
-    vector<unsigned char> dsblock_message(MessageOffset::BODY
-                                          + m_PoWConsensusMessage.size());
-    dsblock_message.at(MessageOffset::TYPE) = MessageType::NODE;
-    dsblock_message.at(MessageOffset::INST) = NodeInstructionType::DSBLOCK;
-    copy(m_PoWConsensusMessage.begin(), m_PoWConsensusMessage.end(),
-         dsblock_message.begin() + MessageOffset::BODY);
+    vector<unsigned char> dsblock_message
+        = {MessageType::NODE, NodeInstructionType::DSBLOCK};
+    if (!Messenger::SetNodeDSBlock(dsblock_message, MessageOffset::BODY, 0,
+                                   *m_pendingDSBlock, winnerpeer, m_shards,
+                                   m_DSReceivers, m_shardReceivers,
+                                   m_shardSenders))
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::SetNodeDSBlock failed.");
+        return;
+    }
 
     m_mediator.m_lookup->SendMessageToLookupNodes(dsblock_message);
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -107,10 +110,6 @@ void DirectoryService::SendDSBlockToLookupNodes()
 
 void DirectoryService::SendDSBlockToNewDSLeader(const Peer& winnerpeer)
 {
-    // Message = [Shard ID] [DS block] [PoW winner IP] [Sharding structure] [Txn sharing assignments]
-    // This is the same as the DS Block consensus announcement message, plus the additional Shard ID
-    // [Shard ID] is dummy here since the new DS leader won't be part of the shards
-
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
@@ -119,18 +118,17 @@ void DirectoryService::SendDSBlockToNewDSLeader(const Peer& winnerpeer)
         return;
     }
 
-    vector<unsigned char> dsblock_message(MessageOffset::BODY + sizeof(uint32_t)
-                                          + m_PoWConsensusMessage.size());
-    dsblock_message.at(MessageOffset::TYPE) = MessageType::NODE;
-    dsblock_message.at(MessageOffset::INST) = NodeInstructionType::DSBLOCK;
-
-    // [Shard ID]
-    Serializable::SetNumber<uint32_t>(dsblock_message, MessageOffset::BODY, 0,
-                                      sizeof(uint32_t));
-
-    // [DS block] [PoW winner IP] [Sharding structure] [Txn sharing assignments]
-    copy(m_PoWConsensusMessage.begin(), m_PoWConsensusMessage.end(),
-         dsblock_message.begin() + MessageOffset::BODY + sizeof(uint32_t));
+    vector<unsigned char> dsblock_message
+        = {MessageType::NODE, NodeInstructionType::DSBLOCK};
+    if (!Messenger::SetNodeDSBlock(dsblock_message, MessageOffset::BODY, 0,
+                                   *m_pendingDSBlock, winnerpeer, m_shards,
+                                   m_DSReceivers, m_shardReceivers,
+                                   m_shardSenders))
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::SetNodeDSBlock failed.");
+        return;
+    }
 
     P2PComm::GetInstance().SendMessage(winnerpeer, dsblock_message);
 
@@ -187,12 +185,10 @@ void DirectoryService::SetupMulticastConfigForDSBlock(
                                       << m_shards.size());
 }
 
-void DirectoryService::SendDSBlockToShardNodes(unsigned int my_shards_lo,
+void DirectoryService::SendDSBlockToShardNodes(const Peer& winnerpeer,
+                                               unsigned int my_shards_lo,
                                                unsigned int my_shards_hi)
 {
-    // Message = [Shard ID] [DS block] [PoW winner IP] [Sharding structure] [Txn sharing assignments]
-    // This is the same as the DS Block consensus announcement message, plus the additional Shard ID
-
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
@@ -201,21 +197,25 @@ void DirectoryService::SendDSBlockToShardNodes(unsigned int my_shards_lo,
         return;
     }
 
-    vector<unsigned char> dsblock_message(MessageOffset::BODY + sizeof(uint32_t)
-                                          + m_PoWConsensusMessage.size());
-    dsblock_message.at(MessageOffset::TYPE) = MessageType::NODE;
-    dsblock_message.at(MessageOffset::INST) = NodeInstructionType::DSBLOCK;
-    copy(m_PoWConsensusMessage.begin(), m_PoWConsensusMessage.end(),
-         dsblock_message.begin() + MessageOffset::BODY + sizeof(uint32_t));
-
     auto p = m_shards.begin();
     advance(p, my_shards_lo);
     for (unsigned int i = my_shards_lo; i <= my_shards_hi; i++)
     {
-        // [Shard ID] -> get from the leader's info in m_publicKeyToShardIdMap
-        Serializable::SetNumber<uint32_t>(
-            dsblock_message, MessageOffset::BODY,
-            m_publicKeyToShardIdMap.at(p->begin()->first), sizeof(uint32_t));
+        // Get the shard ID from the leader's info in m_publicKeyToShardIdMap
+        uint32_t shardID = m_publicKeyToShardIdMap.at(p->begin()->first);
+
+        // Generate the message
+        vector<unsigned char> dsblock_message
+            = {MessageType::NODE, NodeInstructionType::DSBLOCK};
+        if (!Messenger::SetNodeDSBlock(dsblock_message, MessageOffset::BODY,
+                                       shardID, *m_pendingDSBlock, winnerpeer,
+                                       m_shards, m_DSReceivers,
+                                       m_shardReceivers, m_shardSenders))
+        {
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Messenger::SetNodeDSBlock failed.");
+            return;
+        }
 
         // Send the message
         SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
@@ -339,7 +339,9 @@ void DirectoryService::StartFirstTxEpoch()
         lock_guard<mutex> g(m_mutexAllPOW);
         m_allPoWs.clear();
     }
-    clearDSPoWSolns();
+
+    ClearDSPoWSolns();
+
     ResetPoWSubmissionCounter();
     m_viewChangeCounter = 0;
 
@@ -470,23 +472,14 @@ void DirectoryService::StartFirstTxEpoch()
             return;
         }
 
-        // Populate my sharding structure and txn sharing assignments as a shard node
-
-        unsigned int cur_offset
-            = m_mediator.m_dsBlockChain.GetLastBlock().GetSerializedSize()
-            + (IP_SIZE + PORT_SIZE);
-
-        // [Sharding structure] -> Use the loading function for shard node
-        if (m_mediator.m_node->LoadShardingStructure(m_PoWConsensusMessage,
-                                                     cur_offset)
-            == false)
+        // Process sharding structure as a shard node
+        if (m_mediator.m_node->LoadShardingStructure() == false)
         {
             return;
         }
 
-        // [Txn sharing assignments] -> Use the loading function for shard node
-        m_mediator.m_node->LoadTxnSharingInfo(m_PoWConsensusMessage,
-                                              cur_offset);
+        // Process txn sharing assignments as a shard node
+        m_mediator.m_node->LoadTxnSharingInfo();
 
         // Finally, start as a shard node
         m_mediator.m_node->StartFirstTxEpoch();
@@ -534,9 +527,6 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
         // Update the DS Block with the co-signatures from the consensus
         m_pendingDSBlock->SetCoSignatures(*m_consensusObject);
 
-        // Re-serialize the DS Block part of the cached DS Block consensus announcement message so we get the updated co-signatures
-        m_pendingDSBlock->Serialize(m_PoWConsensusMessage, 0);
-
         if (m_pendingDSBlock->GetHeader().GetBlockNum()
             > m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()
                 + 1)
@@ -576,7 +566,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "I the DS folks that will soon be sending the DSBlock to the "
                   "lookup nodes");
-        SendDSBlockToLookupNodes();
+        SendDSBlockToLookupNodes(winnerpeer);
     }
 
     // Let's reuse the same DS nodes to send the DS Block to the new DS leader
@@ -617,7 +607,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     // Too few target nodes - avoid asking all DS clusters to send
     if ((my_DS_cluster_num + 1) <= m_shards.size())
     {
-        SendDSBlockToShardNodes(my_shards_lo, my_shards_hi);
+        SendDSBlockToShardNodes(winnerpeer, my_shards_lo, my_shards_hi);
     }
 
     LOG_STATE(
