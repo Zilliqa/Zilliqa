@@ -66,6 +66,7 @@ class DirectoryService : public Executable, public Broadcastable
     // PoW common variables
     std::mutex m_mutexAllPoWConns;
     std::map<PubKey, Peer> m_allPoWConns;
+
     std::mutex m_mutexAllPoWCounter;
     std::map<PubKey, uint8_t> m_AllPoWCounter;
     std::mutex m_mutexAllPOW;

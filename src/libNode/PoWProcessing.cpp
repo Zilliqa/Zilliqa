@@ -87,10 +87,10 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Winning mixhash = 0x" << hex << winning_result.mix_hash);
 
-        // Possibles scenario
-        // 1. Found solution that meet ds difficulty and difficulty
+        // Possible scenarios
+        // 1. Found solution that meets ds difficulty and difficulty
         // - Submit solution
-        // 2. Found solution that met only diffiulty
+        // 2. Found solution that meets only diffiulty
         // - Submit solution and continue to do PoW till DS difficulty met or
         //   ds block received. (stopmining())
         if (POW::GetInstance().CheckSolnAgainstsTargetedDifficulty(
