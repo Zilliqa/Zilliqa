@@ -44,8 +44,9 @@ UpgradeManager::~UpgradeManager()
     if (m_curl)
     {
         curl_easy_cleanup(m_curl);
-        curl_global_cleanup();
     }
+
+    curl_global_cleanup();
 }
 
 UpgradeManager& UpgradeManager::GetInstance()
@@ -75,6 +76,7 @@ string UpgradeManager::DownloadFile(const char* fileTail,
     curl_easy_setopt(m_curl, CURLOPT_URL,
                      releaseUrl ? releaseUrl : DEFAULT_RELEASE_URL);
     curl_easy_setopt(m_curl, CURLOPT_USERAGENT, USER_AGENT);
+    curl_easy_setopt(m_curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
     curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, WriteString);
     curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, &curlRes);
     CURLcode res = curl_easy_perform(m_curl);
@@ -134,6 +136,7 @@ string UpgradeManager::DownloadFile(const char* fileTail,
 
     /// Get the redirection url (if applicable)
     curl_easy_reset(m_curl);
+    curl_easy_setopt(m_curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
     curl_easy_setopt(m_curl, CURLOPT_URL, downloadFilePath.data());
     res = curl_easy_perform(m_curl);
 
@@ -161,6 +164,7 @@ string UpgradeManager::DownloadFile(const char* fileTail,
 
     /// Download the file
     curl_easy_reset(m_curl);
+    curl_easy_setopt(m_curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
     curl_easy_setopt(m_curl, CURLOPT_URL, downloadFilePath.data());
     curl_easy_setopt(m_curl, CURLOPT_VERBOSE, 1L);
     curl_easy_setopt(m_curl, CURLOPT_NOPROGRESS, 1L);
@@ -388,11 +392,10 @@ bool UpgradeManager::ReplaceNode(Mediator& mediator)
         mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
         serializedTxBlock);
 
-    /// TBD: The system call of "dpkg" should be removed. (https://github.com/Zilliqa/Issues/issues/185)
-    string cmd = string("dpkg -i ") + m_packageFileName;
-
     /// Deploy downloaded software
-    if (system(cmd.data()) < 0)
+    /// TBD: The call of "dpkg" should be removed. (https://github.com/Zilliqa/Issues/issues/185)
+    if (execl("/usr/bin/dpkg", "dpkg", "-i", m_packageFileName.data(), nullptr)
+        < 0)
     {
         LOG_GENERAL(WARNING, "Cannot deploy downloaded software!");
         return false;
