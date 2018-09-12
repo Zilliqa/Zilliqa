@@ -360,3 +360,836 @@ bool Messenger::GetNodeFinalBlock(const vector<unsigned char>& src,
 
     return true;
 }
+
+bool Messenger::SetLookupGetSeedPeers(vector<unsigned char>& dst,
+                                      const unsigned int offset,
+                                      const uint32_t listenPort)
+{
+    LOG_MARKER();
+
+    LookupGetSeedPeers result;
+
+    result.set_listenport(listenPort);
+
+    if (result.IsInitialized() == false)
+    {
+        LOG_GENERAL(WARNING, "LookupGetSeedPeers initialization failed.");
+        return false;
+    }
+
+    return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupGetSeedPeers(const vector<unsigned char>& src,
+                                      const unsigned int offset,
+                                      uint32_t& listenPort)
+{
+    LOG_MARKER();
+
+    LookupGetSeedPeers result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (result.IsInitialized() == false)
+    {
+        LOG_GENERAL(WARNING, "LookupGetSeedPeers initialization failed.");
+        return false;
+    }
+
+    listenPort = result.listenport();
+
+    return true;
+}
+
+bool Messenger::SetLookupSetSeedPeers(vector<unsigned char>& dst,
+                                      const unsigned int offset,
+                                      const vector<Peer>& candidateSeeds)
+{
+    LOG_MARKER();
+
+    LookupSetSeedPeers result;
+
+    unordered_set<uint32_t> indicesAlreadyAdded;
+
+    random_device rd;
+    mt19937 gen(rd());
+    uniform_int_distribution<> dis(0, candidateSeeds.size() - 1);
+
+    for (unsigned int i = 0; i < candidateSeeds.size(); i++)
+    {
+        uint32_t index = dis(gen);
+        while (indicesAlreadyAdded.find(index) != indicesAlreadyAdded.end())
+        {
+            index = dis(gen);
+        }
+        indicesAlreadyAdded.insert(index);
+
+        SerializableToProtobufByteArray(candidateSeeds.at(index),
+                                        *result.add_candidateseeds());
+    }
+
+    if (result.IsInitialized() == false)
+    {
+        LOG_GENERAL(WARNING, "LookupSetSeedPeers initialization failed.");
+        return false;
+    }
+
+    return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupSetSeedPeers(const vector<unsigned char>& src,
+                                      const unsigned int offset,
+                                      vector<Peer>& candidateSeeds)
+{
+    LOG_MARKER();
+
+    LookupSetSeedPeers result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (result.IsInitialized() == false)
+    {
+        LOG_GENERAL(WARNING, "LookupSetSeedPeers initialization failed.");
+        return false;
+    }
+
+    for (int i = 0; i < result.candidateseeds_size(); i++)
+    {
+        Peer seedPeer;
+        ProtobufByteArrayToSerializable(result.candidateseeds(i), seedPeer);
+        candidateSeeds.emplace_back(seedPeer);
+    }
+
+    return true;
+}
+
+bool Messenger::SetLookupGetDSInfoFromSeed(vector<unsigned char>& dst,
+                                           const unsigned int offset,
+                                           const uint32_t listenPort)
+{
+    LOG_MARKER();
+
+    LookupGetDSInfoFromSeed result;
+
+    result.set_listenport(listenPort);
+
+    if (result.IsInitialized() == false)
+    {
+        LOG_GENERAL(WARNING, "LookupGetDSInfoFromSeed initialization failed.");
+        return false;
+    }
+
+    return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupGetDSInfoFromSeed(const vector<unsigned char>& src,
+                                           const unsigned int offset,
+                                           uint32_t& listenPort)
+{
+    LOG_MARKER();
+
+    LookupGetDSInfoFromSeed result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (result.IsInitialized() == false)
+    {
+        LOG_GENERAL(WARNING, "LookupGetDSInfoFromSeed initialization failed.");
+        return false;
+    }
+
+    listenPort = result.listenport();
+
+    return true;
+}
+
+bool Messenger::SetLookupSetDSInfoFromSeed(
+    vector<unsigned char>& dst, const unsigned int offset,
+    const vector<pair<PubKey, Peer>>& dsNodes)
+{
+    LOG_MARKER();
+
+    LookupSetDSInfoFromSeed result;
+
+    for (const auto& node : dsNodes)
+    {
+        LookupSetDSInfoFromSeed::DSNode* protodsnode = result.add_dsnodes();
+        SerializableToProtobufByteArray(node.first,
+                                        *protodsnode->mutable_pubkey());
+        SerializableToProtobufByteArray(node.second,
+                                        *protodsnode->mutable_peer());
+    }
+
+    if (result.IsInitialized() == false)
+    {
+        LOG_GENERAL(WARNING, "LookupSetDSInfoFromSeed initialization failed.");
+        return false;
+    }
+
+    return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupSetDSInfoFromSeed(const vector<unsigned char>& src,
+                                           const unsigned int offset,
+                                           vector<pair<PubKey, Peer>>& dsNodes)
+{
+    LOG_MARKER();
+
+    LookupSetDSInfoFromSeed result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (result.IsInitialized() == false)
+    {
+        LOG_GENERAL(WARNING, "LookupSetDSInfoFromSeed initialization failed.");
+        return false;
+    }
+
+    for (int i = 0; i < result.dsnodes_size(); i++)
+    {
+        PubKey pubkey;
+        Peer peer;
+
+        ProtobufByteArrayToSerializable(result.dsnodes(i).pubkey(), pubkey);
+        ProtobufByteArrayToSerializable(result.dsnodes(i).peer(), peer);
+        dsNodes.emplace_back(make_pair(pubkey, peer));
+    }
+
+    return true;
+}
+
+bool Messenger::SetLookupGetDSBlockFromSeed(vector<unsigned char>& dst,
+                                            const unsigned int offset,
+                                            const uint64_t lowBlockNum,
+                                            const uint64_t highBlockNum,
+                                            const uint32_t listenPort)
+{
+    LOG_MARKER();
+
+    LookupGetDSBlockFromSeed result;
+
+    result.set_lowblocknum(lowBlockNum);
+    result.set_highblocknum(highBlockNum);
+    result.set_listenport(listenPort);
+
+    if (result.IsInitialized() == false)
+    {
+        LOG_GENERAL(WARNING, "LookupGetDSBlockFromSeed initialization failed.");
+        return false;
+    }
+
+    return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupGetDSBlockFromSeed(const vector<unsigned char>& src,
+                                            const unsigned int offset,
+                                            uint64_t& lowBlockNum,
+                                            uint64_t& highBlockNum,
+                                            uint32_t& listenPort)
+{
+    LOG_MARKER();
+
+    LookupGetDSBlockFromSeed result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (result.IsInitialized() == false)
+    {
+        LOG_GENERAL(WARNING, "LookupGetDSBlockFromSeed initialization failed.");
+        return false;
+    }
+
+    lowBlockNum = result.lowblocknum();
+    highBlockNum = result.highblocknum();
+    listenPort = result.listenport();
+
+    return true;
+}
+
+bool Messenger::SetLookupSetDSBlockFromSeed(vector<unsigned char>& dst,
+                                            const unsigned int offset,
+                                            const uint64_t lowBlockNum,
+                                            const uint64_t highBlockNum,
+                                            const vector<DSBlock>& dsBlocks)
+{
+    LOG_MARKER();
+
+    LookupSetDSBlockFromSeed result;
+
+    result.set_lowblocknum(lowBlockNum);
+    result.set_highblocknum(highBlockNum);
+
+    for (const auto& dsblock : dsBlocks)
+    {
+        SerializableToProtobufByteArray(
+            dsblock, *result.add_dsblocks()->mutable_dsblock());
+    }
+
+    if (result.IsInitialized() == false)
+    {
+        LOG_GENERAL(WARNING, "LookupSetDSBlockFromSeed initialization failed.");
+        return false;
+    }
+
+    return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupSetDSBlockFromSeed(const vector<unsigned char>& src,
+                                            const unsigned int offset,
+                                            uint64_t& lowBlockNum,
+                                            uint64_t& highBlockNum,
+                                            vector<DSBlock>& dsBlocks)
+{
+    LOG_MARKER();
+
+    LookupSetDSBlockFromSeed result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (result.IsInitialized() == false)
+    {
+        LOG_GENERAL(WARNING, "LookupSetDSBlockFromSeed initialization failed.");
+        return false;
+    }
+
+    lowBlockNum = result.lowblocknum();
+    highBlockNum = result.highblocknum();
+
+    for (int i = 0; i < result.dsblocks_size(); i++)
+    {
+        DSBlock dsblock;
+        ProtobufByteArrayToSerializable(result.dsblocks(i).dsblock(), dsblock);
+        dsBlocks.emplace_back(dsblock);
+    }
+
+    return true;
+}
+
+bool Messenger::SetLookupGetTxBlockFromSeed(vector<unsigned char>& dst,
+                                            const unsigned int offset,
+                                            const uint64_t lowBlockNum,
+                                            const uint64_t highBlockNum,
+                                            const uint32_t listenPort)
+{
+    LOG_MARKER();
+
+    LookupGetTxBlockFromSeed result;
+
+    result.set_lowblocknum(lowBlockNum);
+    result.set_highblocknum(highBlockNum);
+    result.set_listenport(listenPort);
+
+    if (result.IsInitialized() == false)
+    {
+        LOG_GENERAL(WARNING, "LookupGetTxBlockFromSeed initialization failed.");
+        return false;
+    }
+
+    return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupGetTxBlockFromSeed(const vector<unsigned char>& src,
+                                            const unsigned int offset,
+                                            uint64_t& lowBlockNum,
+                                            uint64_t& highBlockNum,
+                                            uint32_t& listenPort)
+{
+    LOG_MARKER();
+
+    LookupGetTxBlockFromSeed result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (result.IsInitialized() == false)
+    {
+        LOG_GENERAL(WARNING, "LookupGetTxBlockFromSeed initialization failed.");
+        return false;
+    }
+
+    lowBlockNum = result.lowblocknum();
+    highBlockNum = result.highblocknum();
+    listenPort = result.listenport();
+
+    return true;
+}
+
+bool Messenger::SetLookupSetTxBlockFromSeed(vector<unsigned char>& dst,
+                                            const unsigned int offset,
+                                            const uint64_t lowBlockNum,
+                                            const uint64_t highBlockNum,
+                                            const vector<TxBlock>& txBlocks)
+{
+    LOG_MARKER();
+
+    LookupSetTxBlockFromSeed result;
+
+    result.set_lowblocknum(lowBlockNum);
+    result.set_highblocknum(highBlockNum);
+
+    for (const auto& txblock : txBlocks)
+    {
+        SerializableToProtobufByteArray(
+            txblock, *result.add_txblocks()->mutable_txblock());
+    }
+
+    if (result.IsInitialized() == false)
+    {
+        LOG_GENERAL(WARNING, "LookupSetTxBlockFromSeed initialization failed.");
+        return false;
+    }
+
+    return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupSetTxBlockFromSeed(const vector<unsigned char>& src,
+                                            const unsigned int offset,
+                                            uint64_t& lowBlockNum,
+                                            uint64_t& highBlockNum,
+                                            vector<TxBlock>& txBlocks)
+{
+    LOG_MARKER();
+
+    LookupSetTxBlockFromSeed result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (result.IsInitialized() == false)
+    {
+        LOG_GENERAL(WARNING, "LookupSetTxBlockFromSeed initialization failed.");
+        return false;
+    }
+
+    lowBlockNum = result.lowblocknum();
+    highBlockNum = result.highblocknum();
+
+    for (int i = 0; i < result.txblocks_size(); i++)
+    {
+        TxBlock txblock;
+        ProtobufByteArrayToSerializable(result.txblocks(i).txblock(), txblock);
+        txBlocks.emplace_back(txblock);
+    }
+
+    return true;
+}
+
+bool Messenger::SetLookupGetTxBodyFromSeed(vector<unsigned char>& dst,
+                                           const unsigned int offset,
+                                           const vector<unsigned char>& txHash,
+                                           const uint32_t listenPort)
+{
+    LOG_MARKER();
+
+    LookupGetTxBodyFromSeed result;
+
+    result.set_txhash(txHash.data(), txHash.size());
+    result.set_listenport(listenPort);
+
+    if (result.IsInitialized() == false)
+    {
+        LOG_GENERAL(WARNING, "LookupGetTxBodyFromSeed initialization failed.");
+        return false;
+    }
+
+    return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupGetTxBodyFromSeed(const vector<unsigned char>& src,
+                                           const unsigned int offset,
+                                           vector<unsigned char>& txHash,
+                                           uint32_t& listenPort)
+{
+    LOG_MARKER();
+
+    LookupGetTxBodyFromSeed result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (result.IsInitialized() == false)
+    {
+        LOG_GENERAL(WARNING, "LookupGetTxBodyFromSeed initialization failed.");
+        return false;
+    }
+
+    txHash.resize(result.txhash().size());
+    copy(result.txhash().begin(), result.txhash().end(), txHash.begin());
+    listenPort = result.listenport();
+
+    return true;
+}
+
+bool Messenger::SetLookupSetTxBodyFromSeed(vector<unsigned char>& dst,
+                                           const unsigned int offset,
+                                           const vector<unsigned char>& txHash,
+                                           const Transaction& txBody)
+{
+    LOG_MARKER();
+
+    LookupSetTxBodyFromSeed result;
+
+    result.set_txhash(txHash.data(), txHash.size());
+    SerializableToProtobufByteArray(txBody, *result.mutable_txbody());
+
+    if (result.IsInitialized() == false)
+    {
+        LOG_GENERAL(WARNING, "LookupSetTxBodyFromSeed initialization failed.");
+        return false;
+    }
+
+    return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupSetTxBodyFromSeed(const vector<unsigned char>& src,
+                                           const unsigned int offset,
+                                           vector<unsigned char>& txHash,
+                                           Transaction& txBody)
+{
+    LOG_MARKER();
+
+    LookupSetTxBodyFromSeed result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (result.IsInitialized() == false)
+    {
+        LOG_GENERAL(WARNING, "LookupSetTxBodyFromSeed initialization failed.");
+        return false;
+    }
+
+    txHash.resize(result.txhash().size());
+    copy(result.txhash().begin(), result.txhash().end(), txHash.begin());
+    ProtobufByteArrayToSerializable(result.txbody(), txBody);
+
+    return true;
+}
+
+bool Messenger::SetLookupSetNetworkIDFromSeed(vector<unsigned char>& dst,
+                                              const unsigned int offset,
+                                              const string& networkID)
+{
+    LOG_MARKER();
+
+    LookupSetNetworkIDFromSeed result;
+
+    result.set_networkid(networkID);
+
+    if (result.IsInitialized() == false)
+    {
+        LOG_GENERAL(WARNING,
+                    "LookupSetNetworkIDFromSeed initialization failed.");
+        return false;
+    }
+
+    return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupSetNetworkIDFromSeed(const vector<unsigned char>& src,
+                                              const unsigned int offset,
+                                              string& networkID)
+{
+    LOG_MARKER();
+
+    LookupSetNetworkIDFromSeed result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (result.IsInitialized() == false)
+    {
+        LOG_GENERAL(WARNING,
+                    "LookupSetNetworkIDFromSeed initialization failed.");
+        return false;
+    }
+
+    networkID = result.networkid();
+
+    return true;
+}
+
+bool Messenger::SetLookupGetStateFromSeed(vector<unsigned char>& dst,
+                                          const unsigned int offset,
+                                          const uint32_t listenPort)
+{
+    LOG_MARKER();
+
+    LookupGetStateFromSeed result;
+
+    result.set_listenport(listenPort);
+
+    if (result.IsInitialized() == false)
+    {
+        LOG_GENERAL(WARNING, "LookupGetStateFromSeed initialization failed.");
+        return false;
+    }
+
+    return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupGetStateFromSeed(const vector<unsigned char>& src,
+                                          const unsigned int offset,
+                                          uint32_t& listenPort)
+{
+    LOG_MARKER();
+
+    LookupGetStateFromSeed result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (result.IsInitialized() == false)
+    {
+        LOG_GENERAL(WARNING, "LookupGetStateFromSeed initialization failed.");
+        return false;
+    }
+
+    listenPort = result.listenport();
+
+    return true;
+}
+
+bool Messenger::SetLookupSetStateFromSeed(vector<unsigned char>& dst,
+                                          const unsigned int offset,
+                                          const AccountStore& accountStore)
+{
+    LOG_MARKER();
+
+    LookupSetStateFromSeed result;
+
+    SerializableToProtobufByteArray(accountStore, *result.mutable_accounts());
+
+    if (result.IsInitialized() == false)
+    {
+        LOG_GENERAL(WARNING, "LookupSetStateFromSeed initialization failed.");
+        return false;
+    }
+
+    return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupSetStateFromSeed(const vector<unsigned char>& src,
+                                          const unsigned int offset,
+                                          AccountStore& accountStore)
+{
+    LOG_MARKER();
+
+    LookupSetStateFromSeed result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (result.IsInitialized() == false)
+    {
+        LOG_GENERAL(WARNING, "LookupSetStateFromSeed initialization failed.");
+        return false;
+    }
+
+    ProtobufByteArrayToSerializable(result.accounts(), accountStore);
+
+    return true;
+}
+
+bool Messenger::SetLookupSetLookupOffline(vector<unsigned char>& dst,
+                                          const unsigned int offset,
+                                          const uint32_t listenPort)
+{
+    LOG_MARKER();
+
+    LookupSetLookupOffline result;
+
+    result.set_listenport(listenPort);
+
+    if (result.IsInitialized() == false)
+    {
+        LOG_GENERAL(WARNING, "LookupSetLookupOffline initialization failed.");
+        return false;
+    }
+
+    return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupSetLookupOffline(const vector<unsigned char>& src,
+                                          const unsigned int offset,
+                                          uint32_t& listenPort)
+{
+    LOG_MARKER();
+
+    LookupSetLookupOffline result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (result.IsInitialized() == false)
+    {
+        LOG_GENERAL(WARNING, "LookupSetLookupOffline initialization failed.");
+        return false;
+    }
+
+    listenPort = result.listenport();
+
+    return true;
+}
+
+bool Messenger::SetLookupSetLookupOnline(vector<unsigned char>& dst,
+                                         const unsigned int offset,
+                                         const uint32_t listenPort)
+{
+    LOG_MARKER();
+
+    LookupSetLookupOnline result;
+
+    result.set_listenport(listenPort);
+
+    if (result.IsInitialized() == false)
+    {
+        LOG_GENERAL(WARNING, "LookupSetLookupOnline initialization failed.");
+        return false;
+    }
+
+    return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupSetLookupOnline(const vector<unsigned char>& src,
+                                         const unsigned int offset,
+                                         uint32_t& listenPort)
+{
+    LOG_MARKER();
+
+    LookupSetLookupOnline result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (result.IsInitialized() == false)
+    {
+        LOG_GENERAL(WARNING, "LookupSetLookupOnline initialization failed.");
+        return false;
+    }
+
+    listenPort = result.listenport();
+
+    return true;
+}
+
+bool Messenger::SetLookupGetOfflineLookups(vector<unsigned char>& dst,
+                                           const unsigned int offset,
+                                           const uint32_t listenPort)
+{
+    LOG_MARKER();
+
+    LookupGetOfflineLookups result;
+
+    result.set_listenport(listenPort);
+
+    if (result.IsInitialized() == false)
+    {
+        LOG_GENERAL(WARNING, "LookupGetOfflineLookups initialization failed.");
+        return false;
+    }
+
+    return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupGetOfflineLookups(const vector<unsigned char>& src,
+                                           const unsigned int offset,
+                                           uint32_t& listenPort)
+{
+    LOG_MARKER();
+
+    LookupGetOfflineLookups result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (result.IsInitialized() == false)
+    {
+        LOG_GENERAL(WARNING, "LookupGetOfflineLookups initialization failed.");
+        return false;
+    }
+
+    listenPort = result.listenport();
+
+    return true;
+}
+
+bool Messenger::SetLookupSetOfflineLookups(vector<unsigned char>& dst,
+                                           const unsigned int offset,
+                                           const vector<Peer>& nodes)
+{
+    LOG_MARKER();
+
+    LookupSetOfflineLookups result;
+
+    for (const auto& node : nodes)
+    {
+        SerializableToProtobufByteArray(node, *result.add_nodes());
+    }
+
+    if (result.IsInitialized() == false)
+    {
+        LOG_GENERAL(WARNING, "LookupSetOfflineLookups initialization failed.");
+        return false;
+    }
+
+    return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupSetOfflineLookups(const vector<unsigned char>& src,
+                                           const unsigned int offset,
+                                           vector<Peer>& nodes)
+{
+    LOG_MARKER();
+
+    LookupSetOfflineLookups result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (result.IsInitialized() == false)
+    {
+        LOG_GENERAL(WARNING, "LookupSetOfflineLookups initialization failed.");
+        return false;
+    }
+
+    for (int i = 0; i < result.nodes_size(); i++)
+    {
+        Peer node;
+        ProtobufByteArrayToSerializable(result.nodes(i), node);
+        nodes.emplace_back(node);
+    }
+
+    return true;
+}
+
+bool Messenger::SetLookupGetStartPoWFromSeed(vector<unsigned char>& dst,
+                                             const unsigned int offset,
+                                             const uint32_t listenPort)
+{
+    LOG_MARKER();
+
+    LookupGetStartPoWFromSeed result;
+
+    result.set_listenport(listenPort);
+
+    if (result.IsInitialized() == false)
+    {
+        LOG_GENERAL(WARNING,
+                    "LookupGetStartPoWFromSeed initialization failed.");
+        return false;
+    }
+
+    return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupGetStartPoWFromSeed(const vector<unsigned char>& src,
+                                             const unsigned int offset,
+                                             uint32_t& listenPort)
+{
+    LOG_MARKER();
+
+    LookupGetStartPoWFromSeed result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (result.IsInitialized() == false)
+    {
+        LOG_GENERAL(WARNING,
+                    "LookupGetStartPoWFromSeed initialization failed.");
+        return false;
+    }
+
+    listenPort = result.listenport();
+
+    return true;
+}
