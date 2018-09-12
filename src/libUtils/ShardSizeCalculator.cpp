@@ -19,7 +19,6 @@
 
 uint32_t ShardSizeCalculator::CalculateShardSize(const uint32_t numberOfNodes)
 {
-
     static uint32_t range[]
         = {0,     651,   1368,
            2133,  2868,  3675,
@@ -39,10 +38,26 @@ uint32_t ShardSizeCalculator::CalculateShardSize(const uint32_t numberOfNodes)
     auto constexpr range_size = std::extent<decltype(range)>::value;
     auto constexpr result_size = std::extent<decltype(result)>::value;
 
+    if (range_size != result_size)
+    {
+        LOG_GENERAL(FATAL, "non equal size");
+    }
     static_assert(range_size == result_size, "nonequal size");
 
     auto it = std::upper_bound(range, range + range_size, numberOfNodes);
     std::size_t index = it - range;
+
+    if (index < 1)
+    {
+        LOG_GENERAL(WARNING, "Index index. Shard is too small.");
+    }
+
+    if (index >= result_size)
+    {
+        LOG_GENERAL(WARNING,
+                    "Index index. Number of total shards node exceeded initial "
+                    "calculation.");
+    }
 
     assert(1 <= index); // should start from 1
     assert(index < result_size);
