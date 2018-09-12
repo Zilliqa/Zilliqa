@@ -397,9 +397,9 @@ void DirectoryService::ProcessTxnBodySharingAssignment()
     }
 
     bool i_am_forwarder = false;
-    for (uint32_t i = 0; i < m_DSReceivers.size(); i++)
+    for (const auto& receiver : m_DSReceivers)
     {
-        if (m_DSReceivers.at(i) == m_mediator.m_selfPeer)
+        if (receiver == m_mediator.m_selfPeer)
         {
             m_mediator.m_node->m_txnSharingIAmSender = true;
             i_am_forwarder = true;
@@ -414,16 +414,15 @@ void DirectoryService::ProcessTxnBodySharingAssignment()
     if ((i_am_forwarder == true)
         && (m_mediator.m_DSCommittee->size() > num_ds_nodes))
     {
-        for (unsigned int i = 0; i < m_mediator.m_DSCommittee->size(); i++)
+        for (const auto& ds : *m_mediator.m_DSCommittee)
         {
             bool is_a_receiver = false;
 
             if (num_ds_nodes > 0)
             {
-                for (unsigned int j = 0; j < m_DSReceivers.size(); j++)
+                for (const auto& receiver : m_DSReceivers)
                 {
-                    if (m_mediator.m_DSCommittee->at(i).second
-                        == m_DSReceivers.at(j))
+                    if (ds.second == receiver)
                     {
                         is_a_receiver = true;
                         break;
@@ -434,8 +433,7 @@ void DirectoryService::ProcessTxnBodySharingAssignment()
 
             if (is_a_receiver == false)
             {
-                m_sharingAssignment.emplace_back(
-                    m_mediator.m_DSCommittee->at(i).second);
+                m_sharingAssignment.emplace_back(ds.second);
             }
         }
     }
@@ -642,7 +640,7 @@ bool DirectoryService::ProcessShardingStructure()
 
     for (unsigned int i = 0; i < m_shards.size(); i++)
     {
-        for (auto& j : m_shards.at(i))
+        for (const auto& j : m_shards.at(i))
         {
             auto storedMember = m_allPoWConns.find(j.first);
 
