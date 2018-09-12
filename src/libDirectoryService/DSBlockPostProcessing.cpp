@@ -339,7 +339,8 @@ void DirectoryService::StartFirstTxEpoch()
         lock_guard<mutex> g(m_mutexAllPOW);
         m_allPoWs.clear();
     }
-
+    clearDSPoWSolns();
+    ResetPoWSubmissionCounter();
     m_viewChangeCounter = 0;
 
     {
