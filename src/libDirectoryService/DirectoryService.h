@@ -70,10 +70,17 @@ class DirectoryService : public Executable, public Broadcastable
     std::vector<std::vector<Peer>> m_shardSenders;
 
     // PoW common variables
-    std::mutex m_mutexAllPoWs;
-    std::map<PubKey, Peer> m_allPoWConns;
     std::mutex m_mutexAllPoWConns;
+    std::map<PubKey, Peer> m_allPoWConns;
     std::vector<unsigned char> m_PoWConsensusMessage;
+    std::mutex m_mutexAllPoWCounter;
+    std::map<PubKey, uint8_t> m_AllPoWCounter;
+    std::mutex m_mutexAllPOW;
+    std::map<PubKey, std::array<unsigned char, 32>>
+        m_allPoWs; // map<pubkey, PoW Soln>
+    std::mutex m_mutexAllDSPOWs;
+    std::map<PubKey, std::array<unsigned char, 32>>
+        m_allDSPoWs; // map<pubkey, DS PoW Sol
 
     // Consensus variables
     std::shared_ptr<ConsensusCommon> m_consensusObject;
@@ -82,9 +89,6 @@ class DirectoryService : public Executable, public Broadcastable
     // PoW (DS block) consensus variables
     std::shared_ptr<DSBlock> m_pendingDSBlock;
     std::mutex m_mutexPendingDSBlock;
-    std::mutex m_mutexDSBlockConsensus;
-    std::vector<std::pair<PubKey, boost::multiprecision::uint256_t>> m_allPoWs;
-    std::mutex m_mutexAllPOW;
 
     // Final block consensus variables
     std::shared_ptr<TxBlock> m_finalBlock;
@@ -124,11 +128,11 @@ class DirectoryService : public Executable, public Broadcastable
     std::mutex m_MutexCVDSBlockConsensusObject;
     std::condition_variable cv_POWSubmission;
     std::mutex m_MutexCVPOWSubmission;
-    std::mutex m_mutexProcessConsensusMessage;
     std::condition_variable cv_processConsensusMessage;
+    std::mutex m_mutexProcessConsensusMessage;
+
     // TO Remove
     Mediator& m_mediator;
-
     Synchronizer m_synchronizer;
 
     uint32_t m_numOfAbsentMicroBlockHashes;
@@ -160,6 +164,12 @@ class DirectoryService : public Executable, public Broadcastable
     bool ToBlockMessage(unsigned char ins_byte);
 
     bool CheckState(Action action);
+
+    // For PoW submission counter
+    bool CheckPoWSubmissionExceedsLimitsForNode(const PubKey& key);
+    void UpdatePoWSubmissionCounterforNode(const PubKey& key);
+    void ResetPoWSubmissionCounter();
+
     void
     SetupMulticastConfigForShardingStructure(unsigned int& my_DS_cluster_num,
                                              unsigned int& my_shards_lo,
@@ -169,8 +179,10 @@ class DirectoryService : public Executable, public Broadcastable
 
     // PoW (DS block) consensus functions
     void RunConsensusOnDSBlock(bool isRejoin = false);
-    void ComposeDSBlock();
-    void ComputeSharding();
+    void ComposeDSBlock(
+        const vector<pair<array<unsigned char, 32>, PubKey>>& sortedPoWSolns);
+    void ComputeSharding(
+        const vector<pair<array<unsigned char, 32>, PubKey>>& sortedPoWSolns);
     void ComputeTxnSharingAssignments(const Peer& winnerpeer);
 
     // internal calls from RunConsensusOnDSBlock
@@ -217,7 +229,8 @@ class DirectoryService : public Executable, public Broadcastable
                              unsigned int curr_offset, uint32_t& portNo,
                              uint64_t& nonce, array<unsigned char, 32>& rand1,
                              array<unsigned char, 32>& rand2,
-                             unsigned int& difficulty, uint64_t& block_num);
+                             uint8_t& difficulty, uint64_t& block_num,
+                             string& winning_hash);
     void CommitMBSubmissionMsgBuffer();
     bool ProcessMicroblockSubmissionFromShard(
         const std::vector<unsigned char>& message, unsigned int offset,
@@ -436,6 +449,13 @@ private:
     static std::map<Action, std::string> ActionStrings;
     std::string GetActionString(Action action) const;
     bool ValidateViewChangeState(DirState NodeState, DirState StatePropose);
+
+    void AddDSPoWs(PubKey Pubk, std::array<unsigned char, 32> DSPOWSoln);
+    std::map<PubKey, std::array<unsigned char, 32>> GetAllDSPoWs();
+    void clearDSPoWSolns();
+    std::array<unsigned char, 32> GetDSPoWSoln(PubKey Pubk);
+    bool IsNodeSubmittedDSPoWSoln(PubKey Pubk);
+    uint32_t GetNumberOfDSPoWSolns();
 };
 
 #endif // __DIRECTORYSERVICE_H__

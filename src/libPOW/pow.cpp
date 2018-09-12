@@ -59,7 +59,7 @@ POW& POW::GetInstance()
     return pow;
 }
 
-void POW::StopMining() { shouldMine = false; }
+void POW::StopMining() { m_shouldMine = false; }
 
 std::string POW::BytesToHexString(const uint8_t* str, const uint64_t s)
 {
@@ -206,7 +206,7 @@ ethash_mining_result_t POW::MineLight(ethash_light_t& light,
                                       ethash_h256_t& difficulty)
 {
     uint64_t nonce = std::time(0);
-    while (shouldMine)
+    while (m_shouldMine)
     {
         ethash_return_value_t mineResult
             = EthashLightCompute(light, header_hash, nonce);
@@ -229,7 +229,7 @@ ethash_mining_result_t POW::MineFull(ethash_full_t& full,
                                      ethash_h256_t& difficulty)
 {
     uint64_t nonce = std::time(0);
-    while (shouldMine)
+    while (m_shouldMine)
     {
         ethash_return_value_t mineResult
             = EthashFullCompute(full, header_hash, nonce);
@@ -261,7 +261,7 @@ ethash_mining_result_t POW::MineFullGPU(uint64_t blockNum,
     wp.startNonce = std::time(0);
 
     dev::eth::Solution solution;
-    while (shouldMine)
+    while (m_shouldMine)
     {
         if (!m_miner->mine(wp, solution))
         {
@@ -358,7 +358,7 @@ POW::PoWMine(uint64_t blockNum, uint8_t difficulty,
              const PubKey& pubKey, bool fullDataset)
 {
     LOG_MARKER();
-    // mutex required to prevent a new mining to begin before previous mining operation has ended(ie. shouldMine=false
+    // mutex required to prevent a new mining to begin before previous mining operation has ended(ie. m_shouldMine=false
     // has been processed) and result.success has been returned)
     std::lock_guard<std::mutex> g(m_mutexPoWMine);
     EthashConfigureLightClient(blockNum);
@@ -371,7 +371,7 @@ POW::PoWMine(uint64_t blockNum, uint8_t difficulty,
         = StringToBlockhash(DataConversion::Uint8VecToHexStr(sha3_result));
     ethash_mining_result_t result;
 
-    shouldMine = true;
+    m_shouldMine = true;
 
     if (fullDataset)
     {
@@ -421,8 +421,8 @@ bool POW::PoWVerify(uint64_t blockNum, uint8_t difficulty,
     if (!boost::iequals(check_hash_string, winning_result))
     {
         LOG_GENERAL(INFO,
-                    "Check Hash" << check_hash_string << " Result "
-                                 << winning_result << " did not match");
+                    "Check Hash " << check_hash_string << " Result "
+                                  << winning_result << " did not match");
         return false;
     }
 
@@ -450,6 +450,21 @@ ethash_return_value_t POW::LightHash(uint64_t blockNum,
 {
     EthashConfigureLightClient(blockNum);
     return EthashLightCompute(ethash_light_client, header_hash, nonce);
+}
+
+bool POW::CheckSolnAgainstsTargetedDifficulty(const ethash_h256_t& result,
+                                              uint8_t difficulty)
+{
+    const ethash_h256_t diffForPoW = DifficultyLevelInInt(difficulty);
+    return ethash_check_difficulty(&result, &diffForPoW);
+}
+
+bool POW::CheckSolnAgainstsTargetedDifficulty(const std::string& result,
+                                              uint8_t difficulty)
+{
+    const ethash_h256_t diffForPoW = DifficultyLevelInInt(difficulty);
+    ethash_h256_t hashResult = StringToBlockhash(result);
+    return ethash_check_difficulty(&hashResult, &diffForPoW);
 }
 
 void POW::InitOpenCL()
