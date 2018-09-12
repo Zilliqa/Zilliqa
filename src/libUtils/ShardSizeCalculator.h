@@ -17,12 +17,7 @@
 #ifndef __SHARD_SIZE_CALCULATOR_H__
 #define __SHARD_SIZE_CALCULATOR_H__
 
-#include <array>
 #include <boost/algorithm/hex.hpp>
-#include <string>
-#include <vector>
-
-#include "common/Serializable.h"
 
 /// Utility class for data conversion operations.
 class ShardSizeCalculator
