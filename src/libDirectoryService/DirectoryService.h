@@ -21,7 +21,6 @@
 #include <boost/multiprecision/cpp_int.hpp>
 #include <condition_variable>
 #include <deque>
-#include <libCrypto/Sha2.h>
 #include <list>
 #include <map>
 #include <set>
@@ -326,6 +325,8 @@ class DirectoryService : public Executable, public Broadcastable
     bool CleanVariables();
 
     uint8_t CalculateNewDifficulty(const uint8_t& prevDifficulty);
+    uint8_t CalculateNewDSDifficulty(const uint8_t& preDifficulty);
+    uint64_t CalculateNumberOfBlocksPerYear() const;
 
 public:
     enum Mode : unsigned char
@@ -442,6 +443,12 @@ public:
 
     /// Used by PoW winner to finish setup as the next DS leader
     void StartFirstTxEpoch();
+
+    static uint8_t CalculateNewDifficultyCore(
+        uint8_t currentDifficulty, uint8_t minDifficulty, int64_t currentNodes,
+        int64_t powSubmissions, int64_t expectedNodes,
+        uint32_t maxAdjustThreshold, int64_t currentEpochNum,
+        int64_t numBlockPerYear);
 
 private:
     static std::map<DirState, std::string> DirStateStrings;
