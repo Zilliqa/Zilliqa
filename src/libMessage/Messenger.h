@@ -45,22 +45,23 @@ public:
 
     // Node messages
 
-    static bool
-    SetNodeDSBlock(std::vector<unsigned char>& dst, const unsigned int offset,
-                   const uint32_t shardID, const DSBlock& dsBlock,
-                   const Peer& powWinnerPeer,
-                   const std::vector<std::map<PubKey, Peer>>& shards,
-                   const std::vector<Peer>& dsReceivers,
-                   const std::vector<std::vector<Peer>>& shardReceivers,
-                   const std::vector<std::vector<Peer>>& shardSenders);
+    static bool SetNodeDSBlock(
+        std::vector<unsigned char>& dst, const unsigned int offset,
+        const uint32_t shardID, const DSBlock& dsBlock,
+        const Peer& powWinnerPeer,
+        const std::vector<std::vector<std::pair<PubKey, Peer>>>& shards,
+        const std::vector<Peer>& dsReceivers,
+        const std::vector<std::vector<Peer>>& shardReceivers,
+        const std::vector<std::vector<Peer>>& shardSenders);
 
-    static bool GetNodeDSBlock(const std::vector<unsigned char>& src,
-                               const unsigned int offset, uint32_t& shardID,
-                               DSBlock& dsBlock, Peer& powWinnerPeer,
-                               std::vector<std::map<PubKey, Peer>>& shards,
-                               std::vector<Peer>& dsReceivers,
-                               std::vector<std::vector<Peer>>& shardReceivers,
-                               std::vector<std::vector<Peer>>& shardSenders);
+    static bool
+    GetNodeDSBlock(const std::vector<unsigned char>& src,
+                   const unsigned int offset, uint32_t& shardID,
+                   DSBlock& dsBlock, Peer& powWinnerPeer,
+                   std::vector<std::vector<std::pair<PubKey, Peer>>>& shards,
+                   std::vector<Peer>& dsReceivers,
+                   std::vector<std::vector<Peer>>& shardReceivers,
+                   std::vector<std::vector<Peer>>& shardSenders);
 
     static bool SetNodeFinalBlock(std::vector<unsigned char>& dst,
                                   const unsigned int offset,
