@@ -62,3 +62,8 @@ add_executable(Test_SafeMath Test_SafeMath.cpp)
 target_include_directories(Test_SafeMath PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries (Test_SafeMath PUBLIC Utils)
 add_test(NAME Test_SafeMath COMMAND Test_SafeMath)
+
+add_executable(Test_ShardSizeCalculator Test_ShardSizeCalculator.cpp)
+target_include_directories(Test_ShardSizeCalculator PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries (Test_ShardSizeCalculator PUBLIC Utils)
+add_test(NAME Test_ShardSizeCalculator COMMAND Test_ShardSizeCalculator)
