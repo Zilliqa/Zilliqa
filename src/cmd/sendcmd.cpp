@@ -196,12 +196,6 @@ int main(int argc, const char* argv[])
     const message_handler_2 message_handlers_2[]
         = {{"remotecmd", &process_remote_cmd}};
 
-    const int num_handlers
-        = sizeof(message_handlers) / sizeof(message_handlers[0]);
-
-    const int num_handlers_2
-        = sizeof(message_handlers_2) / sizeof(message_handlers_2[0]);
-
     bool processed = false;
     for (auto message_handler : message_handlers)
     {
