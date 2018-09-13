@@ -393,7 +393,7 @@ bool DirectoryService::CleanVariables()
         m_allPoWs.clear();
     }
 
-    clearDSPoWSolns();
+    ClearDSPoWSolns();
 
     ResetPoWSubmissionCounter();
 
@@ -404,7 +404,6 @@ bool DirectoryService::CleanVariables()
     CleanFinalblockConsensusBuffer();
 
     m_finalBlock.reset();
-    m_finalBlockMessage.clear();
     m_sharingAssignment.clear();
     m_viewChangeCounter = 0;
     m_mode = IDLE;

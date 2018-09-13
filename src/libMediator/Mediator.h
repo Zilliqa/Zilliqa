@@ -77,6 +77,9 @@ public:
     /// To determine if the node successfully recovered from persistence
     bool m_isRetrievedHistory;
 
+    /// Record current software information which already downloaded to this node
+    SWInfo m_curSWInfo;
+
     /// Constructor.
     Mediator(const pair<PrivKey, PubKey>& key, const Peer& peer);
 
