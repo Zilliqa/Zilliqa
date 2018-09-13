@@ -1082,7 +1082,7 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
     if (ins_byte < ins_handlers_count)
     {
         result = (this->*ins_handlers[ins_byte])(message, offset + 1, from);
-        if (result == false)
+        if (!result)
         {
             // To-do: Error recovery
         }

@@ -487,11 +487,7 @@ bool DirectoryService::FinishRejoinAsDS()
 
 bool DirectoryService::ToBlockMessage([[gnu::unused]] unsigned char ins_byte)
 {
-    if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
-    {
-        return true;
-    }
-    return false;
+    return m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC;
 }
 
 bool DirectoryService::Execute(const vector<unsigned char>& message,
@@ -541,7 +537,7 @@ bool DirectoryService::Execute(const vector<unsigned char>& message,
     {
         result = (this->*ins_handlers[ins_byte])(message, offset + 1, from);
 
-        if (result == false)
+        if (!result)
         {
             // To-do: Error recovery
         }

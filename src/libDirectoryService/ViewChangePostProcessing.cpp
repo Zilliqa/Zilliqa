@@ -149,7 +149,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
     vector<PubKey> keys;
     for (auto const& kv : *m_mediator.m_DSCommittee)
     {
-        if (m_pendingVCBlock->GetB2().at(index) == true)
+        if (m_pendingVCBlock->GetB2().at(index))
         {
             keys.emplace_back(kv.first);
             count++;

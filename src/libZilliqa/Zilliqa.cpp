@@ -74,7 +74,7 @@ void Zilliqa::ProcessMessage(pair<vector<unsigned char>, Peer>* message)
             bool result = msg_handlers[msg_type]->Execute(
                 message->first, MessageOffset::INST, message->second);
 
-            if (result == false)
+            if (!result)
             {
                 // To-do: Error recovery
             }

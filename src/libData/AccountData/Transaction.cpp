@@ -123,9 +123,8 @@ Transaction::Transaction(uint256_t version, const uint256_t& nonce,
     copy(output.begin(), output.end(), m_tranID.asArray().begin());
 
     // Generate the signature
-    if (Schnorr::GetInstance().Sign(txnData, senderKeyPair.first,
-                                    m_senderPubKey, m_signature)
-        == false)
+    if (!Schnorr::GetInstance().Sign(txnData, senderKeyPair.first,
+                                     m_senderPubKey, m_signature))
     {
         LOG_GENERAL(WARNING, "We failed to generate m_signature.");
     }
@@ -164,8 +163,7 @@ Transaction::Transaction(uint256_t version, const uint256_t& nonce,
     copy(output.begin(), output.end(), m_tranID.asArray().begin());
 
     // Verify the signature
-    if (Schnorr::GetInstance().Verify(txnData, m_signature, m_senderPubKey)
-        == false)
+    if (!Schnorr::GetInstance().Verify(txnData, m_signature, m_senderPubKey))
     {
         LOG_GENERAL(WARNING, "We failed to verify the input signature.");
     }

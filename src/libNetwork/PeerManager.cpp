@@ -254,7 +254,7 @@ bool PeerManager::Execute(const vector<unsigned char>& message,
     {
         result = (this->*ins_handlers[ins_byte])(message, offset + 1, from);
 
-        if (result == false)
+        if (!result)
         {
             // To-do: Error recovery
         }

@@ -117,7 +117,7 @@ bool Node::VerifyVCBlockCoSignature(const VCBlock& vcblock)
 
     for (auto const& kv : *m_mediator.m_DSCommittee)
     {
-        if (B2.at(index) == true)
+        if (B2.at(index))
         {
             keys.emplace_back(kv.first);
             count++;
@@ -144,9 +144,8 @@ bool Node::VerifyVCBlockCoSignature(const VCBlock& vcblock)
     vcblock.GetCS1().Serialize(message, VCBlockHeader::SIZE);
     BitVector::SetBitVector(message, VCBlockHeader::SIZE + BLOCK_SIG_SIZE,
                             vcblock.GetB1());
-    if (Schnorr::GetInstance().Verify(message, 0, message.size(),
-                                      vcblock.GetCS2(), *aggregatedKey)
-        == false)
+    if (!Schnorr::GetInstance().Verify(message, 0, message.size(),
+                                       vcblock.GetCS2(), *aggregatedKey))
     {
         LOG_GENERAL(WARNING, "Cosig verification failed. Pubkeys");
         for (auto& kv : keys)

@@ -2427,17 +2427,13 @@ bool Lookup::ToBlockMessage(unsigned char ins_byte)
         return true;
     }
 
-    if (m_syncType != SyncType::NO_SYNC
+    return m_syncType != SyncType::NO_SYNC
         && (ins_byte != LookupInstructionType::SETDSBLOCKFROMSEED
             && ins_byte != LookupInstructionType::SETDSINFOFROMSEED
             && ins_byte != LookupInstructionType::SETTXBLOCKFROMSEED
             && ins_byte != LookupInstructionType::SETSTATEFROMSEED
             && ins_byte != LookupInstructionType::SETLOOKUPOFFLINE
-            && ins_byte != LookupInstructionType::SETLOOKUPONLINE))
-    {
-        return true;
-    }
-    return false;
+            && ins_byte != LookupInstructionType::SETLOOKUPONLINE);
 }
 
 std::vector<unsigned char> Lookup::ComposeGetOfflineLookupNodes()
@@ -2531,7 +2527,7 @@ bool Lookup::Execute(const vector<unsigned char>& message, unsigned int offset,
     if (ins_byte < ins_handlers_count)
     {
         result = (this->*ins_handlers[ins_byte])(message, offset + 1, from);
-        if (result == false)
+        if (!result)
         {
             // To-do: Error recovery
         }
@@ -2546,17 +2542,7 @@ bool Lookup::Execute(const vector<unsigned char>& message, unsigned int offset,
     return result;
 }
 
-bool Lookup::AlreadyJoinedNetwork()
-{
-    if (m_syncType == SyncType::NO_SYNC)
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-}
+bool Lookup::AlreadyJoinedNetwork() { return m_syncType == SyncType::NO_SYNC; }
 
 bool Lookup::AddToTxnShardMap(const Transaction& tx, uint32_t shardId)
 {
