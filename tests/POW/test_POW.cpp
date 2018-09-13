@@ -16,12 +16,12 @@
 * Test cases obtained from https://github.com/ethereum/ethash
 **/
 
-#include "libCrypto/Sha3.h"
 #include <depends/libethash/ethash.h>
 #include <depends/libethash/fnv.h>
 #include <depends/libethash/internal.h>
 #include <depends/libethash/io.h>
 #include <iomanip>
+#include <libDirectoryService/DirectoryService.h>
 #include <libPOW/pow.h>
 
 #ifdef _WIN32
@@ -866,6 +866,166 @@ BOOST_AUTO_TEST_CASE(gpu_mining_and_verification_2)
         blockToUse, difficultyToUse, rand1, rand2, ipAddr, pubKey, false,
         winning_nonce, winning_result.result, winning_result.mix_hash);
     BOOST_REQUIRE(!verifyWinningNonce);
+}
+
+BOOST_AUTO_TEST_CASE(difficulty_adjustment_small_network)
+{
+    uint8_t currentDifficulty = 3;
+    uint8_t minDifficulty = 3;
+    int64_t currentNodes = 20;
+    int64_t powSubmissions = 23;
+    int64_t expectedNodes = 200;
+    uint32_t adjustThreshold = 99;
+    int64_t currentEpochNum = 200;
+    int64_t numBlocksPerYear = 10000;
+
+    int newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+        currentDifficulty, minDifficulty, currentNodes, powSubmissions,
+        expectedNodes, adjustThreshold, currentEpochNum, numBlocksPerYear);
+    BOOST_REQUIRE(newDifficulty == 4);
+
+    currentEpochNum = 10000;
+    newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+        currentDifficulty, minDifficulty, currentNodes, powSubmissions,
+        expectedNodes, adjustThreshold, currentEpochNum, numBlocksPerYear);
+    BOOST_REQUIRE(newDifficulty == 5);
+
+    currentDifficulty = 6;
+    currentEpochNum = 10001;
+    currentNodes = 20;
+    powSubmissions
+        = 19; // Node number is droping and number of pow submissions is less than expected node, so expect difficulty will drop.
+    newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+        currentDifficulty, minDifficulty, currentNodes, powSubmissions,
+        expectedNodes, adjustThreshold, currentEpochNum, numBlocksPerYear);
+    BOOST_REQUIRE(newDifficulty == 5);
+
+    currentDifficulty = 14;
+    currentEpochNum = 100000;
+    currentNodes = 200;
+    powSubmissions = 201;
+    newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+        currentDifficulty, minDifficulty, currentNodes, powSubmissions,
+        expectedNodes, adjustThreshold, currentEpochNum, numBlocksPerYear);
+    BOOST_REQUIRE(newDifficulty == 15);
+}
+
+BOOST_AUTO_TEST_CASE(difficulty_adjustment_large_network)
+{
+    uint8_t currentDifficulty = 3;
+    uint8_t minDifficulty = 3;
+    int64_t currentNodes = 5000;
+    int64_t powSubmissions = 5100;
+    int64_t expectedNodes = 10000;
+    uint32_t adjustThreshold = 99;
+    int64_t currentEpochNum = 200;
+    int64_t numBlocksPerYear = 1971000;
+
+    int newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+        currentDifficulty, minDifficulty, currentNodes, powSubmissions,
+        expectedNodes, adjustThreshold, currentEpochNum, numBlocksPerYear);
+    BOOST_REQUIRE(newDifficulty == 4);
+
+    currentDifficulty = 4;
+    currentEpochNum = 1971001;
+    currentNodes = 10001; // The current nodes exceed expected node
+    powSubmissions
+        = 10002; // Pow submission still increase, need to increase difficulty
+    newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+        currentDifficulty, minDifficulty, currentNodes, powSubmissions,
+        expectedNodes, adjustThreshold, currentEpochNum, numBlocksPerYear);
+    BOOST_REQUIRE(newDifficulty == 5);
+
+    currentDifficulty = 10;
+    currentEpochNum = 1971005;
+    currentNodes = 8000;
+    powSubmissions
+        = 7999; // Node number is droping and number of pow submissions is less than expected node, so expect difficulty will drop.
+    newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+        currentDifficulty, minDifficulty, currentNodes, powSubmissions,
+        expectedNodes, adjustThreshold, currentEpochNum, numBlocksPerYear);
+    BOOST_REQUIRE(newDifficulty == 9);
+
+    currentDifficulty = 5;
+    currentEpochNum = 1971009;
+    currentNodes = 8000;
+    powSubmissions = 8000;
+    newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+        currentDifficulty, minDifficulty, currentNodes, powSubmissions,
+        expectedNodes, adjustThreshold, currentEpochNum, numBlocksPerYear);
+    BOOST_REQUIRE(newDifficulty
+                  == 5); // nothing changes, expect keep the same difficulty
+
+    currentDifficulty = 14;
+    currentNodes = 10002;
+    powSubmissions = 10005;
+    currentEpochNum = 19710000;
+    newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+        currentDifficulty, minDifficulty, currentNodes, powSubmissions,
+        expectedNodes, adjustThreshold, currentEpochNum, numBlocksPerYear);
+    BOOST_REQUIRE(newDifficulty == 16);
+}
+
+BOOST_AUTO_TEST_CASE(difficulty_adjustment_for_ds_small)
+{
+    uint8_t currentDifficulty = 9;
+    uint8_t minDifficulty = 5;
+    int64_t currentNodes = 10;
+    int64_t powSubmissions = 11;
+    int64_t expectedNodes = 10;
+    uint32_t adjustThreshold = 9;
+    int64_t currentEpochNum = 80;
+    int64_t numBlocksPerYear = 1971000;
+
+    int newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+        currentDifficulty, minDifficulty, currentNodes, powSubmissions,
+        expectedNodes, adjustThreshold, currentEpochNum, numBlocksPerYear);
+    BOOST_REQUIRE(newDifficulty == 9);
+}
+
+BOOST_AUTO_TEST_CASE(difficulty_adjustment_for_ds_large)
+{
+    uint8_t currentDifficulty = 5;
+    uint8_t minDifficulty = 5;
+    int64_t currentNodes = 100;
+    int64_t powSubmissions = 110;
+    int64_t expectedNodes = 100;
+    uint32_t adjustThreshold = 9;
+    int64_t currentEpochNum = 200;
+    int64_t numBlocksPerYear = 1971000;
+
+    int newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+        currentDifficulty, minDifficulty, currentNodes, powSubmissions,
+        expectedNodes, adjustThreshold, currentEpochNum, numBlocksPerYear);
+    BOOST_REQUIRE(newDifficulty == 6);
+
+    currentDifficulty = 6;
+    currentEpochNum = 1971000;
+    currentNodes = 102;
+    powSubmissions = 103;
+    newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+        currentDifficulty, minDifficulty, currentNodes, powSubmissions,
+        expectedNodes, adjustThreshold, currentEpochNum, numBlocksPerYear);
+    BOOST_REQUIRE(newDifficulty == 8);
+
+    currentDifficulty = 8;
+    currentEpochNum = 1971001;
+    currentNodes = 103; // Current node number exceed expected number.
+    powSubmissions
+        = 99; // The PoW submissions drop not much, so keep difficulty.
+    newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+        currentDifficulty, minDifficulty, currentNodes, powSubmissions,
+        expectedNodes, adjustThreshold, currentEpochNum, numBlocksPerYear);
+    BOOST_REQUIRE(newDifficulty == 8);
+
+    currentDifficulty = 14;
+    currentNodes = 102;
+    powSubmissions = 102;
+    currentEpochNum = 19710000;
+    newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+        currentDifficulty, minDifficulty, currentNodes, powSubmissions,
+        expectedNodes, adjustThreshold, currentEpochNum, numBlocksPerYear);
+    BOOST_REQUIRE(newDifficulty == 15);
 }
 
 #if 0 
