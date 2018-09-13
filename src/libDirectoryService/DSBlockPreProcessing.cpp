@@ -867,6 +867,10 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin)
         return;
     }
 
+    LOG_GENERAL(INFO,
+                "Number of PoW recvd " << m_allPoWs.size() << " "
+                                       << m_allDSPoWs.size());
+
     LOG_MARKER();
     SetState(DSBLOCK_CONSENSUS_PREP);
 
