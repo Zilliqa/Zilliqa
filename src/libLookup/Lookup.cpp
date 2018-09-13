@@ -735,13 +735,13 @@ bool Lookup::ProcessGetDSInfoFromSeed(const vector<unsigned char>& message,
                                           sizeof(uint32_t));
         curr_offset += sizeof(uint32_t);
 
-        for (unsigned int i = 0; i < m_mediator.m_DSCommittee->size(); i++)
+        for (auto& i : *m_mediator.m_DSCommittee)
         {
-            PubKey& pubKey = m_mediator.m_DSCommittee->at(i).first;
+            PubKey& pubKey = i.first;
             pubKey.Serialize(dsInfoMessage, curr_offset);
             curr_offset += (PUB_KEY_SIZE);
 
-            Peer& peer = m_mediator.m_DSCommittee->at(i).second;
+            Peer& peer = i.second;
             peer.Serialize(dsInfoMessage, curr_offset);
             curr_offset += (IP_SIZE + PORT_SIZE);
 
@@ -1949,9 +1949,8 @@ bool Lookup::ProcessGetOfflineLookups(const std::vector<unsigned char>& message,
                                           sizeof(uint32_t));
         curr_offset += sizeof(uint32_t);
 
-        for (unsigned int i = 0; i < m_lookupNodesOffline.size(); i++)
+        for (auto& peer : m_lookupNodesOffline)
         {
-            Peer& peer = m_lookupNodesOffline.at(i);
             peer.Serialize(offlineLookupsMessage, curr_offset);
             curr_offset += (IP_SIZE + PORT_SIZE);
 
