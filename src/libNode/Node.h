@@ -158,12 +158,11 @@ class Node : public Executable, public Broadcastable
     bool ToBlockMessage(unsigned char ins_byte);
 
     // internal calls from ProcessStartPoW1
-    bool
-    ReadVariablesFromStartPoWMessage(const std::vector<unsigned char>& message,
-                                     unsigned int offset, uint64_t& block_num,
-                                     uint8_t& dsDifficulty, uint8_t& difficulty,
-                                     std::array<unsigned char, 32>& rand1,
-                                     std::array<unsigned char, 32>& rand2);
+    bool ReadVariablesFromStartPoWMessage(
+        const std::vector<unsigned char>& message, unsigned int cur_offset,
+        uint64_t& block_num, uint8_t& ds_difficulty, uint8_t& difficulty,
+        std::array<unsigned char, 32>& rand1,
+        std::array<unsigned char, 32>& rand2);
     bool ProcessSubmitMissingTxn(const std::vector<unsigned char>& message,
                                  unsigned int offset, const Peer& from);
 
@@ -173,7 +172,7 @@ class Node : public Executable, public Broadcastable
         const uint64_t& blocknum);
 
     bool FindTxnInProcessedTxnsList(
-        const uint64_t& blocknum, uint8_t sharing_mode,
+        const uint64_t& blockNum, uint8_t sharing_mode,
         std::vector<TransactionWithReceipt>& txns_to_send,
         const TxnHash& tx_hash);
 
@@ -184,7 +183,7 @@ class Node : public Executable, public Broadcastable
     void BroadcastTransactionsToLookup(
         const std::vector<TransactionWithReceipt>& txns_to_send);
 
-    bool LoadUnavailableMicroBlockHashes(const TxBlock& finalblock,
+    bool LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
                                          const uint64_t& blocknum,
                                          bool& toSendTxnToLookup);
 
@@ -252,10 +251,10 @@ class Node : public Executable, public Broadcastable
     bool ProcessFinalBlock(const std::vector<unsigned char>& message,
                            unsigned int offset, const Peer& from);
     bool ProcessForwardTransaction(const std::vector<unsigned char>& message,
-                                   unsigned int offset, const Peer& from);
+                                   unsigned int cur_offset, const Peer& from);
     bool
     ProcessForwardTransactionCore(const std::vector<unsigned char>& message,
-                                  unsigned int offset);
+                                  unsigned int cur_offset);
     bool ProcessCreateTransactionFromLookup(
         const std::vector<unsigned char>& message, unsigned int offset,
         const Peer& from);
@@ -267,14 +266,14 @@ class Node : public Executable, public Broadcastable
 
     // bool ProcessCreateAccounts(const std::vector<unsigned char> & message, unsigned int offset, const Peer & from);
     bool ProcessDSBlock(const std::vector<unsigned char>& message,
-                        unsigned int offset, const Peer& from);
+                        unsigned int cur_offset, const Peer& from);
     bool ProcessDoRejoin(const std::vector<unsigned char>& message,
                          unsigned int offset, const Peer& from);
 
-    bool CheckWhetherDSBlockNumIsLatest(const uint64_t dsblock_num);
+    bool CheckWhetherDSBlockNumIsLatest(const uint64_t dsblockNum);
     bool VerifyDSBlockCoSignature(const DSBlock& dsblock);
     bool VerifyFinalBlockCoSignature(const TxBlock& txblock);
-    bool CheckStateRoot(const TxBlock& finalblock);
+    bool CheckStateRoot(const TxBlock& finalBlock);
 
     // View change
     void UpdateDSCommiteeComposition();
@@ -292,9 +291,8 @@ class Node : public Executable, public Broadcastable
     bool RunConsensusOnMicroBlockWhenShardBackup();
     bool ComposeMicroBlock();
     void SubmitMicroblockToDSCommittee() const;
-    bool
-    MicroBlockValidator(const std::vector<unsigned char>& sharding_structure,
-                        std::vector<unsigned char>& errorMsg);
+    bool MicroBlockValidator(const std::vector<unsigned char>& microblock,
+                             std::vector<unsigned char>& errorMsg);
     unsigned char
     CheckLegitimacyOfTxnHashes(std::vector<unsigned char>& errorMsg);
     bool CheckBlockTypeIsMicro();
@@ -438,7 +436,7 @@ public:
     void StartSynchronization();
 
     /// Performs PoW mining and submission for DirectoryService committee membership.
-    bool StartPoW(const uint64_t& block_num, uint8_t dsDifficulty,
+    bool StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
                   uint8_t difficulty,
                   const std::array<unsigned char, UINT256_SIZE>& rand1,
                   const std::array<unsigned char, UINT256_SIZE>& rand2);

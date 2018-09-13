@@ -101,8 +101,7 @@ public:
                               size_t max_bytes_to_display,
                               const char* function);
     /// Outputs the specified message and function name to the epoch info log.
-    void LogEpochInfo(const char* msg, const char* function,
-                      const char* blockNum);
+    void LogEpochInfo(const char* msg, const char* function, const char* epoch);
 
     void LogPayload(LEVELS level, const char* msg,
                     const std::vector<unsigned char>& payload,
