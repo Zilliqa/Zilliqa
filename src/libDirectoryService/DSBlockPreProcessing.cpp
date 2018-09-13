@@ -35,6 +35,7 @@
 #include "libUtils/HashUtils.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SanityChecks.h"
+#include "libUtils/UpgradeManager.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -113,15 +114,21 @@ void DirectoryService::ComposeDSBlock(
                       << ", new difficulty " << std::to_string(difficulty));
     }
 
+    if (UpgradeManager::GetInstance().HasNewSW())
+    {
+        UpgradeManager::GetInstance().DownloadSW();
+        m_mediator.m_curSWInfo
+            = *UpgradeManager::GetInstance().GetLatestSWInfo();
+    }
+
     // Assemble DS block
     // To-do: Handle exceptions.
     // TODO: Revise DS block structure
-    m_pendingDSBlock.reset(
-        new DSBlock(DSBlockHeader(dsDifficulty, difficulty, prevHash, 0,
-                                  winnerKey, m_mediator.m_selfKey.second,
-                                  blockNum, get_time_as_int(), SWInfo()),
-                    CoSignatures(m_mediator.m_DSCommittee->size())));
-
+    m_pendingDSBlock.reset(new DSBlock(
+        DSBlockHeader(dsDifficulty, difficulty, prevHash, 0, winnerKey,
+                      m_mediator.m_selfKey.second, blockNum, get_time_as_int(),
+                      *UpgradeManager::GetInstance().GetLatestSWInfo()),
+        CoSignatures(m_mediator.m_DSCommittee->size())));
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "New DSBlock created with winning PoW = 0x"
                   << DataConversion::charArrToHexStr(winnerPoW));
@@ -664,6 +671,16 @@ bool DirectoryService::DSBlockValidator(
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Messenger::GetDSDSBlockAnnouncement failed.");
         return false;
+    }
+
+    if (m_mediator.m_curSWInfo != m_pendingDSBlock->GetHeader().GetSWInfo())
+    {
+        auto func = [this]() -> void {
+            UpgradeManager::GetInstance().DownloadSW();
+            m_mediator.m_curSWInfo
+                = *UpgradeManager::GetInstance().GetLatestSWInfo();
+        };
+        DetachedFunction(1, func);
     }
 
     // To-do: Put in the logic here for checking the proposed DS block

@@ -45,6 +45,7 @@
 #include "libUtils/SanityChecks.h"
 #include "libUtils/TimeLockedFunction.h"
 #include "libUtils/TimeUtils.h"
+#include "libUtils/UpgradeManager.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -459,6 +460,16 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Messenger::GetNodeDSBlock failed.");
         return false;
+    }
+
+    if (m_mediator.m_curSWInfo != dsblock.GetHeader().GetSWInfo())
+    {
+        auto func = [this]() -> void {
+            UpgradeManager::GetInstance().DownloadSW();
+            m_mediator.m_curSWInfo
+                = *UpgradeManager::GetInstance().GetLatestSWInfo();
+        };
+        DetachedFunction(1, func);
     }
 
     m_myShardID = shardID;
