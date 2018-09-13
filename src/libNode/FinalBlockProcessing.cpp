@@ -36,6 +36,7 @@
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
 #include "libMediator/Mediator.h"
+#include "libMessage/Messenger.h"
 #include "libPOW/pow.h"
 #include "libServer/Server.h"
 #include "libUtils/BitVector.h"
@@ -49,44 +50,6 @@
 
 using namespace std;
 using namespace boost::multiprecision;
-
-bool Node::ReadAuxilliaryInfoFromFinalBlockMsg(
-    const vector<unsigned char>& message, unsigned int& cur_offset,
-    uint32_t& shard_id)
-{
-    // 8-byte block number
-    uint64_t dsBlockNum = Serializable::GetNumber<uint64_t>(message, cur_offset,
-                                                            sizeof(uint64_t));
-    cur_offset += sizeof(uint64_t);
-
-    // Check block number
-    if (!CheckWhetherDSBlockNumIsLatest(dsBlockNum + 1))
-    {
-        return false;
-    }
-
-    // 4-byte consensus id
-    uint32_t consensusID = Serializable::GetNumber<uint32_t>(
-        message, cur_offset, sizeof(uint32_t));
-    cur_offset += sizeof(uint32_t);
-
-    if (consensusID != m_consensusID)
-    {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Consensus ID is not correct. Expected ID: "
-                      << consensusID << " My Consensus ID: " << m_consensusID);
-        return false;
-    }
-
-    shard_id = Serializable::GetNumber<uint32_t>(message, cur_offset,
-                                                 sizeof(uint32_t));
-    cur_offset += sizeof(uint32_t);
-
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "DEBUG shard id is " << (unsigned int)shard_id)
-
-    return true;
-}
 
 void Node::StoreState()
 {
@@ -832,8 +795,6 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
                              unsigned int offset,
                              [[gnu::unused]] const Peer& from)
 {
-    // Message = [8-byte DS blocknum] [4-byte consensusid] [1-byte shard id]
-    //           [Final block] [Final state delta]
     LOG_MARKER();
 
     if (!LOOKUP_NODE_MODE)
@@ -877,25 +838,36 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
             + 1
         << "] RECEIVED FINAL BLOCK");
 
-    unsigned int cur_offset = offset;
-
-    // Initialize it with maximum number
-    uint32_t shard_id = std::numeric_limits<uint32_t>::max();
-
-    // Reads and checks DS Block number, consensus ID and Shard ID
-    if (!ReadAuxilliaryInfoFromFinalBlockMsg(message, cur_offset, shard_id))
-    {
-        return false;
-    }
-
-    // TxBlock txBlock(message, cur_offset);
+    uint32_t shardID = std::numeric_limits<uint32_t>::max();
+    uint64_t dsBlockNumber = 0;
+    uint32_t consensusID = 0;
     TxBlock txBlock;
-    if (txBlock.Deserialize(message, cur_offset) != 0)
+    vector<unsigned char> stateDelta;
+
+    if (!Messenger::GetNodeFinalBlock(message, offset, shardID, dsBlockNumber,
+                                      consensusID, txBlock, stateDelta))
     {
-        LOG_GENERAL(WARNING, "We failed to deserialize TxBlock.");
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::GetNodeFinalBlock failed.");
         return false;
     }
-    cur_offset += txBlock.GetSerializedSize();
+
+    // Check block number
+    if (!CheckWhetherDSBlockNumIsLatest(dsBlockNumber + 1))
+    {
+        return false;
+    }
+
+    if (consensusID != m_consensusID)
+    {
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Consensus ID is not correct. Expected ID: "
+                      << consensusID << " My Consensus ID: " << m_consensusID);
+        return false;
+    }
+
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "DEBUG shard id is " << (unsigned int)shardID)
 
     LogReceivedFinalBlockDetails(txBlock);
 
@@ -924,7 +896,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     if (!isVacuousEpoch)
     {
         ProcessStateDeltaFromFinalBlock(
-            message, cur_offset, txBlock.GetHeader().GetStateDeltaHash());
+            stateDelta, txBlock.GetHeader().GetStateDeltaHash());
 
         m_isVacuousEpoch = false;
         if (!LoadUnavailableMicroBlockHashes(
@@ -962,7 +934,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         }
 
         ProcessStateDeltaFromFinalBlock(
-            message, cur_offset, txBlock.GetHeader().GetStateDeltaHash());
+            stateDelta, txBlock.GetHeader().GetStateDeltaHash());
 
         if (!AccountStore::GetInstance().UpdateStateTrieAll())
         {
@@ -1046,7 +1018,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 }
 
 bool Node::ProcessStateDeltaFromFinalBlock(
-    const vector<unsigned char>& message, unsigned int cur_offset,
+    const vector<unsigned char>& stateDeltaBytes,
     const StateHash& finalBlockStateDeltaHash)
 {
     LOG_MARKER();
@@ -1065,10 +1037,6 @@ bool Node::ProcessStateDeltaFromFinalBlock(
                     "skip processing state delta");
         return true;
     }
-
-    vector<unsigned char> stateDeltaBytes;
-    copy(message.begin() + cur_offset, message.end(),
-         back_inserter(stateDeltaBytes));
 
     if (stateDeltaBytes.empty())
     {
