@@ -716,7 +716,7 @@ bool DirectoryService::DSBlockValidator(
 
     if (!VerifyPoWOrdering())
     {
-        return false;
+        LOG_GENERAL(INFO, "Failed to verify ordering");
     }
 
     // [Txn sharing assignments]
