@@ -182,7 +182,7 @@ public:
     // Rejoin the network as a lookup node in case of failure happens in protocol
     void RejoinAsLookup();
 
-    bool AddToTxnShardMap(const Transaction& tx, uint32_t shardID);
+    bool AddToTxnShardMap(const Transaction& tx, uint32_t shardId);
 
     bool DeleteTxnShardMap(uint32_t shardId);
 

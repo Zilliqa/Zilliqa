@@ -262,7 +262,7 @@ class DirectoryService : public Executable, public Broadcastable
     // bool WaitForTxnBodies();
 
     // DS block consensus validator function
-    bool DSBlockValidator(const std::vector<unsigned char>& dsblock,
+    bool DSBlockValidator(const std::vector<unsigned char>& message,
                           std::vector<unsigned char>& errorMsg);
 
     // Sharding consensus validator function
@@ -315,8 +315,8 @@ class DirectoryService : public Executable, public Broadcastable
 
     void CleanFinalblockConsensusBuffer();
 
-    uint8_t CalculateNewDifficulty(const uint8_t& prevDifficulty);
-    uint8_t CalculateNewDSDifficulty(const uint8_t& preDifficulty);
+    uint8_t CalculateNewDifficulty(const uint8_t& currentDifficulty);
+    uint8_t CalculateNewDSDifficulty(const uint8_t& dsDifficulty);
     uint64_t CalculateNumberOfBlocksPerYear() const;
 
 public:
