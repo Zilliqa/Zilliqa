@@ -20,11 +20,17 @@
 #include <boost/tokenizer.hpp>
 using namespace std;
 
+#if 1 //clark
+#define DEFAULT_RELEASE_URL                                                    \
+    "https://api.github.com/repos/ckyang/Zilliqa/releases/latest"
+#else
 #define DEFAULT_RELEASE_URL                                                    \
     "https://api.github.com/repos/Zilliqa/Zilliqa/releases/latest"
+#endif
 #define USER_AGENT "Zilliqa"
 #define VERSION_FILE_NAME "VERSION"
 #define PUBLIC_KEY_FILE_NAME "pubKeyFile"
+#define PUBLIC_KEY_LENGTH 66
 #define PACKAGE_FILE_EXTENSION "deb"
 
 UpgradeManager::UpgradeManager()
@@ -83,10 +89,11 @@ string UpgradeManager::DownloadFile(const char* fileTail,
 
     if (res != CURLE_OK)
     {
-        LOG_GENERAL(
-            WARNING,
-            "curl_easy_perform() failed to fetch data from url to string: "
-                << curl_easy_strerror(res));
+        LOG_GENERAL(WARNING,
+                    "curl_easy_perform() failed to get latest release "
+                    "information from url ["
+                        << (releaseUrl ? releaseUrl : DEFAULT_RELEASE_URL)
+                        << "]: " << curl_easy_strerror(res));
         return "";
     }
 
@@ -143,8 +150,9 @@ string UpgradeManager::DownloadFile(const char* fileTail,
     if (res != CURLE_OK)
     {
         LOG_GENERAL(WARNING,
-                    "curl_easy_perform() failed to fetch data from url: "
-                        << curl_easy_strerror(res));
+                    "curl_easy_perform() failed to get redirect url from url ["
+                        << downloadFilePath
+                        << "]: " << curl_easy_strerror(res));
         return "";
     }
 
@@ -182,8 +190,9 @@ string UpgradeManager::DownloadFile(const char* fileTail,
     if (res != CURLE_OK)
     {
         LOG_GENERAL(WARNING,
-                    "curl_easy_perform() failed to download data: "
-                        << curl_easy_strerror(res));
+                    "curl_easy_perform() failed to download file from url["
+                        << downloadFilePath
+                        << "]: " << curl_easy_strerror(res));
         return "";
     }
 
@@ -202,6 +211,8 @@ bool UpgradeManager::HasNewSW()
         return false;
     }
 
+    LOG_GENERAL(INFO, "public key file has been downloaded successfully.");
+
     string versionName = DownloadFile(VERSION_FILE_NAME);
 
     if (versionName.empty())
@@ -210,16 +221,21 @@ bool UpgradeManager::HasNewSW()
         return false;
     }
 
+    LOG_GENERAL(INFO, "Version file has been downloaded successfully.");
+
     vector<PubKey> pubKeys;
     {
         fstream pubKeyFile(PUBLIC_KEY_FILE_NAME, ios::in);
         string pubKey;
 
-        while (getline(pubKeyFile, pubKey))
+        while (getline(pubKeyFile, pubKey)
+               && PUBLIC_KEY_LENGTH == pubKey.size())
         {
             pubKeys.emplace_back(DataConversion::HexStrToUint8Vec(pubKey), 0);
         }
     }
+
+    LOG_GENERAL(INFO, "Parsing public key file completed.");
 
     string shaStr, sigStr;
     {
@@ -238,6 +254,8 @@ bool UpgradeManager::HasNewSW()
             ++line_no;
         }
     }
+
+    LOG_GENERAL(INFO, "Parsing version key file completed.");
 
     const vector<unsigned char> sha = DataConversion::HexStrToUint8Vec(shaStr);
     const unsigned int len = sigStr.size() / pubKeys.size();
@@ -274,6 +292,8 @@ bool UpgradeManager::DownloadSW()
         return false;
     }
 
+    LOG_GENERAL(INFO, "Version file has been downloaded successfully.");
+
     m_packageFileName = DownloadFile(PACKAGE_FILE_EXTENSION);
 
     if (m_packageFileName.empty())
@@ -281,6 +301,8 @@ bool UpgradeManager::DownloadSW()
         LOG_GENERAL(WARNING, "Cannot download package (.deb) file!");
         return false;
     }
+
+    LOG_GENERAL(INFO, "Package (.deb) file has been downloaded successfully.");
 
     uint32_t major, minor, fix, commit;
     uint64_t upgradeDS;
@@ -359,11 +381,15 @@ bool UpgradeManager::DownloadSW()
         downloadSha = DataConversion::Uint8VecToHexStr(output);
     }
 
+    /*
+    /// Temporarily comment out, cause GitHub would attach extra information in the tail of every file.
+    /// (https://github.com/Zilliqa/Issues/issues/185)
     if (sha != downloadSha)
     {
         LOG_GENERAL(WARNING, "SHA-256 checksum of .deb file does not match!");
         return false;
     }
+*/
 
     m_latestSWInfo = make_shared<SWInfo>(major, minor, fix, upgradeDS, commit);
     m_latestSHA = DataConversion::HexStrToUint8Vec(sha);

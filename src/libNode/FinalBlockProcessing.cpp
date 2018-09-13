@@ -47,6 +47,7 @@
 #include "libUtils/TimeLockedFunction.h"
 #include "libUtils/TimeUtils.h"
 #include "libUtils/TxnRootComputation.h"
+#include "libUtils/UpgradeManager.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -928,6 +929,13 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         {
             BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
                                                         {'0'});
+        }
+
+        if (m_mediator.m_curSWInfo.GetUpgradeDS()
+            == (((m_mediator.m_currentEpochNum + 1) / NUM_FINAL_BLOCK_PER_POW)
+                + 2))
+        {
+            UpgradeManager::GetInstance().ReplaceNode(m_mediator);
         }
     }
 
