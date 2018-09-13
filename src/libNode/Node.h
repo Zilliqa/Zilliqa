@@ -180,10 +180,9 @@ class Node : public Executable, public Broadcastable
                                          const uint64_t& blocknum,
                                          bool& toSendTxnToLookup);
 
-    bool
-    ProcessStateDeltaFromFinalBlock(const vector<unsigned char>& message,
-                                    unsigned int cur_offset,
-                                    const StateHash& finalBlockStateDeltaHash);
+    bool ProcessStateDeltaFromFinalBlock(
+        const vector<unsigned char>& stateDeltaBytes,
+        const StateHash& finalBlockStateDeltaHash);
 
     bool
     RemoveTxRootHashFromUnavailableMicroBlock(const uint64_t& blocknum,
@@ -201,10 +200,7 @@ class Node : public Executable, public Broadcastable
                                               bool& isEveryMicroBlockAvailable);
     bool IsMyShardMicroBlockInFinalBlock(const uint64_t& blocknum);
     bool IsMyShardIdInFinalBlock(const uint64_t& blocknum);
-    bool
-    ReadAuxilliaryInfoFromFinalBlockMsg(const vector<unsigned char>& message,
-                                        unsigned int& cur_offset,
-                                        uint32_t& shard_id);
+
     void StoreState();
     // void StoreMicroBlocks();
     void StoreFinalBlock(const TxBlock& txBlock);
@@ -430,11 +426,11 @@ public:
                   const std::array<unsigned char, UINT256_SIZE>& rand2);
 
     /// Send PoW soln to DS Commitee
-    void SendPoWResultToDSComm(const uint64_t& block_num,
+    bool SendPoWResultToDSComm(const uint64_t& block_num,
                                const uint8_t& difficultyLevel,
                                const uint64_t winningNonce,
-                               const vector<unsigned char> powResultHash,
-                               const vector<unsigned char> powMixhash);
+                               const std::string& powResultHash,
+                               const std::string& powMixhash);
 
     /// Call when the normal node be promoted to DS
     void CleanCreatedTransaction();
@@ -452,12 +448,11 @@ public:
     void CommitTxnPacketBuffer();
 
     /// Used by oldest DS node to configure sharding variables as a new shard node
-    bool LoadShardingStructure(const vector<unsigned char>& message,
-                               unsigned int& cur_offset);
+    bool LoadShardingStructure();
 
     /// Used by oldest DS node to configure txn sharing assignments as a new shard node
-    void LoadTxnSharingInfo(const vector<unsigned char>& message,
-                            unsigned int cur_offset);
+
+    void LoadTxnSharingInfo();
 
 private:
     static std::map<NodeState, std::string> NodeStateStrings;
