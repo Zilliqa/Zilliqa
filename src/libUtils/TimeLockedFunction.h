@@ -25,17 +25,15 @@
 
 #include "libUtils/Logger.h"
 
-using namespace std;
-
 /// Utility class for executing a primary function and a subsequent expiry function in separate join-able threads.
 class TimeLockedFunction
 {
 private:
-    shared_ptr<promise<int>> result_promise;
-    future<int> result_future;
+    std::shared_ptr<std::promise<int>> result_promise;
+    std::future<int> result_future;
 
-    unique_ptr<thread> thread_main;
-    unique_ptr<thread> thread_timer;
+    std::unique_ptr<std::thread> thread_main;
+    std::unique_ptr<std::thread> thread_timer;
 
 public:
     /// Template constructor.
@@ -43,16 +41,18 @@ public:
     TimeLockedFunction(unsigned int expiration_in_seconds,
                        callable1&& main_func, callable2&& expiration_func,
                        bool call_expiry_always)
-        : result_promise(new promise<int>)
+        : result_promise(new std::promise<int>)
     {
-        function<typename result_of<callable1()>::type()> task_main(main_func);
-        function<typename result_of<callable2()>::type()> task_expiry(
+        std::function<typename std::result_of<callable1()>::type()> task_main(
+            main_func);
+        std::function<typename std::result_of<callable2()>::type()> task_expiry(
             expiration_func);
 
         result_future = result_promise->get_future();
 
-        auto func_main = [task_main, task_expiry, call_expiry_always](
-                             shared_ptr<promise<int>> result_promise) -> void {
+        auto func_main
+            = [task_main, task_expiry, call_expiry_always](
+                  std::shared_ptr<std::promise<int>> result_promise) -> void {
             try
             {
                 task_main();
@@ -62,37 +62,40 @@ public:
                     task_expiry();
                 }
             }
-            catch (future_error&)
+            catch (std::future_error&)
             {
                 // Function returned too late
             }
         };
 
-        thread_main = make_unique<thread>(func_main, result_promise);
+        thread_main = std::make_unique<std::thread>(func_main, result_promise);
 
-        auto func_timer = [expiration_in_seconds, task_expiry](
-                              shared_ptr<promise<int>> result_promise) -> void {
+        auto func_timer
+            = [expiration_in_seconds, task_expiry](
+                  std::shared_ptr<std::promise<int>> result_promise) -> void {
             try
             {
                 LOG_GENERAL(INFO,
                             "Entering sleep for "
-                                + to_string(expiration_in_seconds)
+                                + std::to_string(expiration_in_seconds)
                                 + " seconds");
-                this_thread::sleep_for(chrono::seconds(expiration_in_seconds));
+                std::this_thread::sleep_for(
+                    std::chrono::seconds(expiration_in_seconds));
                 LOG_GENERAL(INFO,
                             "Woken up from the sleep of "
-                                + to_string(expiration_in_seconds)
+                                + std::to_string(expiration_in_seconds)
                                 + " seconds");
                 result_promise->set_value(-1);
                 task_expiry();
             }
-            catch (future_error&)
+            catch (std::future_error&)
             {
                 // Function returned on time
             }
         };
 
-        thread_timer = make_unique<thread>(func_timer, result_promise);
+        thread_timer
+            = std::make_unique<std::thread>(func_timer, result_promise);
     }
 
     /// Destructor. Joins both launched threads.

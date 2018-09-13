@@ -14,48 +14,16 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#ifndef CONTRACTSTORAGE_H
-#define CONTRACTSTORAGE_H
+#ifndef __SHARD_SIZE_CALCULATOR_H__
+#define __SHARD_SIZE_CALCULATOR_H__
 
-#include <leveldb/db.h>
+#include <boost/algorithm/hex.hpp>
 
-#include "common/Singleton.h"
-#include "depends/libDatabase/LevelDB.h"
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include "depends/libDatabase/OverlayDB.h"
-#pragma GCC diagnostic pop
-
-#include "depends/libTrie/TrieDB.h"
-
-class ContractStorage : public Singleton<ContractStorage>
+class ShardSizeCalculator
 {
-    dev::OverlayDB m_stateDB;
-    LevelDB m_codeDB;
-
-    ContractStorage()
-        : m_stateDB("contractState")
-        , m_codeDB("contractCode"){};
-
-    ~ContractStorage() = default;
-
 public:
-    /// Returns the singleton ContractStorage instance.
-    static ContractStorage& GetContractStorage()
-    {
-        static ContractStorage cs;
-        return cs;
-    }
-
-    dev::OverlayDB& GetStateDB() { return m_stateDB; }
-
-    /// Adds a contract code to persistence
-    bool PutContractCode(const dev::h160& address,
-                         const std::vector<unsigned char>& code);
-
-    /// Get the desired code from persistence
-    const std::vector<unsigned char> GetContractCode(const dev::h160& address);
+    /// Calculate and return the min size of required each shard for a specifc number of total nodes
+    static uint32_t CalculateShardSize(const uint32_t numberOfNodes);
 };
 
-#endif // CONTRACTSTORAGE_H
+#endif // __SHARD_SIZE_CALCULATOR_H__
