@@ -371,7 +371,7 @@ bool Messenger::SetLookupGetSeedPeers(vector<unsigned char>& dst,
 
     result.set_listenport(listenPort);
 
-    if (result.IsInitialized() == false)
+    if (!result.IsInitialized())
     {
         LOG_GENERAL(WARNING, "LookupGetSeedPeers initialization failed.");
         return false;
@@ -390,7 +390,7 @@ bool Messenger::GetLookupGetSeedPeers(const vector<unsigned char>& src,
 
     result.ParseFromArray(src.data() + offset, src.size() - offset);
 
-    if (result.IsInitialized() == false)
+    if (!result.IsInitialized())
     {
         LOG_GENERAL(WARNING, "LookupGetSeedPeers initialization failed.");
         return false;
@@ -428,7 +428,7 @@ bool Messenger::SetLookupSetSeedPeers(vector<unsigned char>& dst,
                                         *result.add_candidateseeds());
     }
 
-    if (result.IsInitialized() == false)
+    if (!result.IsInitialized())
     {
         LOG_GENERAL(WARNING, "LookupSetSeedPeers initialization failed.");
         return false;
@@ -447,7 +447,7 @@ bool Messenger::GetLookupSetSeedPeers(const vector<unsigned char>& src,
 
     result.ParseFromArray(src.data() + offset, src.size() - offset);
 
-    if (result.IsInitialized() == false)
+    if (!result.IsInitialized())
     {
         LOG_GENERAL(WARNING, "LookupSetSeedPeers initialization failed.");
         return false;
@@ -473,7 +473,7 @@ bool Messenger::SetLookupGetDSInfoFromSeed(vector<unsigned char>& dst,
 
     result.set_listenport(listenPort);
 
-    if (result.IsInitialized() == false)
+    if (!result.IsInitialized())
     {
         LOG_GENERAL(WARNING, "LookupGetDSInfoFromSeed initialization failed.");
         return false;
@@ -492,7 +492,7 @@ bool Messenger::GetLookupGetDSInfoFromSeed(const vector<unsigned char>& src,
 
     result.ParseFromArray(src.data() + offset, src.size() - offset);
 
-    if (result.IsInitialized() == false)
+    if (!result.IsInitialized())
     {
         LOG_GENERAL(WARNING, "LookupGetDSInfoFromSeed initialization failed.");
         return false;
@@ -520,7 +520,7 @@ bool Messenger::SetLookupSetDSInfoFromSeed(
                                         *protodsnode->mutable_peer());
     }
 
-    if (result.IsInitialized() == false)
+    if (!result.IsInitialized())
     {
         LOG_GENERAL(WARNING, "LookupSetDSInfoFromSeed initialization failed.");
         return false;
@@ -539,7 +539,7 @@ bool Messenger::GetLookupSetDSInfoFromSeed(const vector<unsigned char>& src,
 
     result.ParseFromArray(src.data() + offset, src.size() - offset);
 
-    if (result.IsInitialized() == false)
+    if (!result.IsInitialized())
     {
         LOG_GENERAL(WARNING, "LookupSetDSInfoFromSeed initialization failed.");
         return false;
@@ -552,7 +552,7 @@ bool Messenger::GetLookupSetDSInfoFromSeed(const vector<unsigned char>& src,
 
         ProtobufByteArrayToSerializable(result.dsnodes(i).pubkey(), pubkey);
         ProtobufByteArrayToSerializable(result.dsnodes(i).peer(), peer);
-        dsNodes.emplace_back(make_pair(pubkey, peer));
+        dsNodes.emplace_back(pubkey, peer);
     }
 
     return true;
@@ -572,7 +572,7 @@ bool Messenger::SetLookupGetDSBlockFromSeed(vector<unsigned char>& dst,
     result.set_highblocknum(highBlockNum);
     result.set_listenport(listenPort);
 
-    if (result.IsInitialized() == false)
+    if (!result.IsInitialized())
     {
         LOG_GENERAL(WARNING, "LookupGetDSBlockFromSeed initialization failed.");
         return false;
@@ -593,7 +593,7 @@ bool Messenger::GetLookupGetDSBlockFromSeed(const vector<unsigned char>& src,
 
     result.ParseFromArray(src.data() + offset, src.size() - offset);
 
-    if (result.IsInitialized() == false)
+    if (!result.IsInitialized())
     {
         LOG_GENERAL(WARNING, "LookupGetDSBlockFromSeed initialization failed.");
         return false;
@@ -625,7 +625,7 @@ bool Messenger::SetLookupSetDSBlockFromSeed(vector<unsigned char>& dst,
             dsblock, *result.add_dsblocks()->mutable_dsblock());
     }
 
-    if (result.IsInitialized() == false)
+    if (!result.IsInitialized())
     {
         LOG_GENERAL(WARNING, "LookupSetDSBlockFromSeed initialization failed.");
         return false;
@@ -646,7 +646,7 @@ bool Messenger::GetLookupSetDSBlockFromSeed(const vector<unsigned char>& src,
 
     result.ParseFromArray(src.data() + offset, src.size() - offset);
 
-    if (result.IsInitialized() == false)
+    if (!result.IsInitialized())
     {
         LOG_GENERAL(WARNING, "LookupSetDSBlockFromSeed initialization failed.");
         return false;
@@ -679,7 +679,7 @@ bool Messenger::SetLookupGetTxBlockFromSeed(vector<unsigned char>& dst,
     result.set_highblocknum(highBlockNum);
     result.set_listenport(listenPort);
 
-    if (result.IsInitialized() == false)
+    if (!result.IsInitialized())
     {
         LOG_GENERAL(WARNING, "LookupGetTxBlockFromSeed initialization failed.");
         return false;
@@ -700,7 +700,7 @@ bool Messenger::GetLookupGetTxBlockFromSeed(const vector<unsigned char>& src,
 
     result.ParseFromArray(src.data() + offset, src.size() - offset);
 
-    if (result.IsInitialized() == false)
+    if (!result.IsInitialized())
     {
         LOG_GENERAL(WARNING, "LookupGetTxBlockFromSeed initialization failed.");
         return false;
@@ -732,7 +732,7 @@ bool Messenger::SetLookupSetTxBlockFromSeed(vector<unsigned char>& dst,
             txblock, *result.add_txblocks()->mutable_txblock());
     }
 
-    if (result.IsInitialized() == false)
+    if (!result.IsInitialized())
     {
         LOG_GENERAL(WARNING, "LookupSetTxBlockFromSeed initialization failed.");
         return false;
@@ -753,7 +753,7 @@ bool Messenger::GetLookupSetTxBlockFromSeed(const vector<unsigned char>& src,
 
     result.ParseFromArray(src.data() + offset, src.size() - offset);
 
-    if (result.IsInitialized() == false)
+    if (!result.IsInitialized())
     {
         LOG_GENERAL(WARNING, "LookupSetTxBlockFromSeed initialization failed.");
         return false;
@@ -784,7 +784,7 @@ bool Messenger::SetLookupGetTxBodyFromSeed(vector<unsigned char>& dst,
     result.set_txhash(txHash.data(), txHash.size());
     result.set_listenport(listenPort);
 
-    if (result.IsInitialized() == false)
+    if (!result.IsInitialized())
     {
         LOG_GENERAL(WARNING, "LookupGetTxBodyFromSeed initialization failed.");
         return false;
@@ -804,7 +804,7 @@ bool Messenger::GetLookupGetTxBodyFromSeed(const vector<unsigned char>& src,
 
     result.ParseFromArray(src.data() + offset, src.size() - offset);
 
-    if (result.IsInitialized() == false)
+    if (!result.IsInitialized())
     {
         LOG_GENERAL(WARNING, "LookupGetTxBodyFromSeed initialization failed.");
         return false;
@@ -829,7 +829,7 @@ bool Messenger::SetLookupSetTxBodyFromSeed(vector<unsigned char>& dst,
     result.set_txhash(txHash.data(), txHash.size());
     SerializableToProtobufByteArray(txBody, *result.mutable_txbody());
 
-    if (result.IsInitialized() == false)
+    if (!result.IsInitialized())
     {
         LOG_GENERAL(WARNING, "LookupSetTxBodyFromSeed initialization failed.");
         return false;
@@ -849,7 +849,7 @@ bool Messenger::GetLookupSetTxBodyFromSeed(const vector<unsigned char>& src,
 
     result.ParseFromArray(src.data() + offset, src.size() - offset);
 
-    if (result.IsInitialized() == false)
+    if (!result.IsInitialized())
     {
         LOG_GENERAL(WARNING, "LookupSetTxBodyFromSeed initialization failed.");
         return false;
@@ -872,7 +872,7 @@ bool Messenger::SetLookupSetNetworkIDFromSeed(vector<unsigned char>& dst,
 
     result.set_networkid(networkID);
 
-    if (result.IsInitialized() == false)
+    if (!result.IsInitialized())
     {
         LOG_GENERAL(WARNING,
                     "LookupSetNetworkIDFromSeed initialization failed.");
@@ -892,7 +892,7 @@ bool Messenger::GetLookupSetNetworkIDFromSeed(const vector<unsigned char>& src,
 
     result.ParseFromArray(src.data() + offset, src.size() - offset);
 
-    if (result.IsInitialized() == false)
+    if (!result.IsInitialized())
     {
         LOG_GENERAL(WARNING,
                     "LookupSetNetworkIDFromSeed initialization failed.");
@@ -914,7 +914,7 @@ bool Messenger::SetLookupGetStateFromSeed(vector<unsigned char>& dst,
 
     result.set_listenport(listenPort);
 
-    if (result.IsInitialized() == false)
+    if (!result.IsInitialized())
     {
         LOG_GENERAL(WARNING, "LookupGetStateFromSeed initialization failed.");
         return false;
@@ -933,7 +933,7 @@ bool Messenger::GetLookupGetStateFromSeed(const vector<unsigned char>& src,
 
     result.ParseFromArray(src.data() + offset, src.size() - offset);
 
-    if (result.IsInitialized() == false)
+    if (!result.IsInitialized())
     {
         LOG_GENERAL(WARNING, "LookupGetStateFromSeed initialization failed.");
         return false;
@@ -954,7 +954,7 @@ bool Messenger::SetLookupSetStateFromSeed(vector<unsigned char>& dst,
 
     SerializableToProtobufByteArray(accountStore, *result.mutable_accounts());
 
-    if (result.IsInitialized() == false)
+    if (!result.IsInitialized())
     {
         LOG_GENERAL(WARNING, "LookupSetStateFromSeed initialization failed.");
         return false;
@@ -973,7 +973,7 @@ bool Messenger::GetLookupSetStateFromSeed(const vector<unsigned char>& src,
 
     result.ParseFromArray(src.data() + offset, src.size() - offset);
 
-    if (result.IsInitialized() == false)
+    if (!result.IsInitialized())
     {
         LOG_GENERAL(WARNING, "LookupSetStateFromSeed initialization failed.");
         return false;
@@ -994,7 +994,7 @@ bool Messenger::SetLookupSetLookupOffline(vector<unsigned char>& dst,
 
     result.set_listenport(listenPort);
 
-    if (result.IsInitialized() == false)
+    if (!result.IsInitialized())
     {
         LOG_GENERAL(WARNING, "LookupSetLookupOffline initialization failed.");
         return false;
@@ -1013,7 +1013,7 @@ bool Messenger::GetLookupSetLookupOffline(const vector<unsigned char>& src,
 
     result.ParseFromArray(src.data() + offset, src.size() - offset);
 
-    if (result.IsInitialized() == false)
+    if (!result.IsInitialized())
     {
         LOG_GENERAL(WARNING, "LookupSetLookupOffline initialization failed.");
         return false;
@@ -1034,7 +1034,7 @@ bool Messenger::SetLookupSetLookupOnline(vector<unsigned char>& dst,
 
     result.set_listenport(listenPort);
 
-    if (result.IsInitialized() == false)
+    if (!result.IsInitialized())
     {
         LOG_GENERAL(WARNING, "LookupSetLookupOnline initialization failed.");
         return false;
@@ -1053,7 +1053,7 @@ bool Messenger::GetLookupSetLookupOnline(const vector<unsigned char>& src,
 
     result.ParseFromArray(src.data() + offset, src.size() - offset);
 
-    if (result.IsInitialized() == false)
+    if (!result.IsInitialized())
     {
         LOG_GENERAL(WARNING, "LookupSetLookupOnline initialization failed.");
         return false;
@@ -1074,7 +1074,7 @@ bool Messenger::SetLookupGetOfflineLookups(vector<unsigned char>& dst,
 
     result.set_listenport(listenPort);
 
-    if (result.IsInitialized() == false)
+    if (!result.IsInitialized())
     {
         LOG_GENERAL(WARNING, "LookupGetOfflineLookups initialization failed.");
         return false;
@@ -1093,7 +1093,7 @@ bool Messenger::GetLookupGetOfflineLookups(const vector<unsigned char>& src,
 
     result.ParseFromArray(src.data() + offset, src.size() - offset);
 
-    if (result.IsInitialized() == false)
+    if (!result.IsInitialized())
     {
         LOG_GENERAL(WARNING, "LookupGetOfflineLookups initialization failed.");
         return false;
@@ -1117,7 +1117,7 @@ bool Messenger::SetLookupSetOfflineLookups(vector<unsigned char>& dst,
         SerializableToProtobufByteArray(node, *result.add_nodes());
     }
 
-    if (result.IsInitialized() == false)
+    if (!result.IsInitialized())
     {
         LOG_GENERAL(WARNING, "LookupSetOfflineLookups initialization failed.");
         return false;
@@ -1136,7 +1136,7 @@ bool Messenger::GetLookupSetOfflineLookups(const vector<unsigned char>& src,
 
     result.ParseFromArray(src.data() + offset, src.size() - offset);
 
-    if (result.IsInitialized() == false)
+    if (!result.IsInitialized())
     {
         LOG_GENERAL(WARNING, "LookupSetOfflineLookups initialization failed.");
         return false;
@@ -1162,7 +1162,7 @@ bool Messenger::SetLookupGetStartPoWFromSeed(vector<unsigned char>& dst,
 
     result.set_listenport(listenPort);
 
-    if (result.IsInitialized() == false)
+    if (!result.IsInitialized())
     {
         LOG_GENERAL(WARNING,
                     "LookupGetStartPoWFromSeed initialization failed.");
@@ -1182,7 +1182,7 @@ bool Messenger::GetLookupGetStartPoWFromSeed(const vector<unsigned char>& src,
 
     result.ParseFromArray(src.data() + offset, src.size() - offset);
 
-    if (result.IsInitialized() == false)
+    if (!result.IsInitialized())
     {
         LOG_GENERAL(WARNING,
                     "LookupGetStartPoWFromSeed initialization failed.");
