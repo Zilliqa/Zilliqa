@@ -515,10 +515,11 @@ bool Messenger::SetDSDSBlockAnnouncement(
             ShardingStructure::Member* proto_member
                 = proto_shard->add_members();
 
-            SerializableToProtobufByteArray(node.first,
+            SerializableToProtobufByteArray(std::get<SHARD_NODE_PUBKEY>(node),
                                             *proto_member->mutable_pubkey());
-            SerializableToProtobufByteArray(node.second,
+            SerializableToProtobufByteArray(std::get<SHARD_NODE_PEER>(node),
                                             *proto_member->mutable_peerinfo());
+            proto_member->set_reputation(std::get<SHARD_NODE_REP>(node));
         }
     }
 
@@ -637,7 +638,8 @@ bool Messenger::GetDSDSBlockAnnouncement(
             ProtobufByteArrayToSerializable(proto_member.pubkey(), key);
             ProtobufByteArrayToSerializable(proto_member.peerinfo(), peer);
 
-            shards.back().emplace_back(key, peer);
+            shards.back().emplace_back(
+                std::make_tuple(key, peer, proto_member.reputation()));
         }
     }
 
@@ -911,10 +913,11 @@ bool Messenger::SetNodeDSBlock(vector<unsigned char>& dst,
             ShardingStructure::Member* proto_member
                 = proto_shard->add_members();
 
-            SerializableToProtobufByteArray(node.first,
+            SerializableToProtobufByteArray(std::get<SHARD_NODE_PUBKEY>(node),
                                             *proto_member->mutable_pubkey());
-            SerializableToProtobufByteArray(node.second,
+            SerializableToProtobufByteArray(std::get<SHARD_NODE_PEER>(node),
                                             *proto_member->mutable_peerinfo());
+            proto_member->set_reputation(std::get<SHARD_NODE_REP>(node));
         }
     }
 
@@ -993,7 +996,7 @@ bool Messenger::GetNodeDSBlock(const vector<unsigned char>& src,
             ProtobufByteArrayToSerializable(proto_member.pubkey(), key);
             ProtobufByteArrayToSerializable(proto_member.peerinfo(), peer);
 
-            shards.back().emplace_back(key, peer);
+            shards.back().emplace_back(key, peer, proto_member.reputation());
         }
     }
 
@@ -2082,10 +2085,11 @@ bool Messenger::SetLookupSetShardsFromSeed(vector<unsigned char>& dst,
             ShardingStructure::Member* proto_member
                 = proto_shard->add_members();
 
-            SerializableToProtobufByteArray(node.first,
+            SerializableToProtobufByteArray(std::get<SHARD_NODE_PUBKEY>(node),
                                             *proto_member->mutable_pubkey());
-            SerializableToProtobufByteArray(node.second,
+            SerializableToProtobufByteArray(std::get<SHARD_NODE_PEER>(node),
                                             *proto_member->mutable_peerinfo());
+            proto_member->set_reputation(std::get<SHARD_NODE_REP>(node));
         }
     }
 
@@ -2126,7 +2130,7 @@ bool Messenger::GetLookupSetShardsFromSeed(const vector<unsigned char>& src,
             ProtobufByteArrayToSerializable(proto_member.pubkey(), key);
             ProtobufByteArrayToSerializable(proto_member.peerinfo(), peer);
 
-            shards.back().emplace_back(key, peer);
+            shards.back().emplace_back(key, peer, proto_member.reputation());
         }
     }
 

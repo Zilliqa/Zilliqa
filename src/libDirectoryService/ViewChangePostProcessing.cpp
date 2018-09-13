@@ -111,14 +111,18 @@ void DirectoryService::SendVCBlockToShardNodes(
         {
             vector<Peer> shard_peers;
 
-            for (auto& kv : *p)
+            for (const auto& kv : *p)
             {
-                shard_peers.emplace_back(kv.second);
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          " PubKey: "
-                              << DataConversion::SerializableToHexStr(kv.first)
-                              << " IP: " << kv.second.GetPrintableIPAddress()
-                              << " Port: " << kv.second.m_listenPortHost);
+                shard_peers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
+                LOG_EPOCH(
+                    INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                    " PubKey: "
+                        << DataConversion::SerializableToHexStr(
+                               std::get<SHARD_NODE_PUBKEY>(kv))
+                        << " IP: "
+                        << std::get<SHARD_NODE_PEER>(kv).GetPrintableIPAddress()
+                        << " Port: "
+                        << std::get<SHARD_NODE_PEER>(kv).m_listenPortHost);
             }
 
             P2PComm::GetInstance().SendBroadcastMessage(shard_peers,

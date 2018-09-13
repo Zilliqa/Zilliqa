@@ -17,7 +17,7 @@
 #include "common/Serializable.h"
 #include "libCrypto/Schnorr.h"
 #include "libData/BlockData/Block.h"
-#include "libDirectoryService/DirectoryService.h"
+#include "libDirectoryService/ShardStruct.h"
 #include "libNetwork/Peer.h"
 
 #ifndef __MESSENGER_H__
