@@ -1107,10 +1107,9 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup()
 
     deque<pair<PubKey, Peer>> peerList;
 
-    for (auto it = m_myShardMembers->begin(); it != m_myShardMembers->end();
-         ++it)
+    for (auto& it : *m_myShardMembers)
     {
-        peerList.emplace_back(*it);
+        peerList.emplace_back(it);
     }
 
     m_consensusObject.reset(new ConsensusBackup(

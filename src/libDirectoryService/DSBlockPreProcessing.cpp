@@ -214,10 +214,8 @@ void DirectoryService::ComputeTxnSharingAssignments(const Peer& winnerpeer)
     m_shardReceivers.clear();
     m_shardSenders.clear();
 
-    for (unsigned int i = 0; i < m_shards.size(); i++)
+    for (const auto& shard : m_shards)
     {
-        const map<PubKey, Peer>& shard = m_shards.at(i);
-
         // PART 2
 
         m_shardReceivers.emplace_back();
@@ -473,9 +471,9 @@ void DirectoryService::SaveTxnBodySharingAssignment(
                                        m_shardSenders);
 
     bool i_am_forwarder = false;
-    for (uint32_t i = 0; i < m_DSReceivers.size(); i++)
+    for (auto& m_DSReceiver : m_DSReceivers)
     {
-        if (m_DSReceivers.at(i) == m_mediator.m_selfPeer)
+        if (m_DSReceiver == m_mediator.m_selfPeer)
         {
             m_mediator.m_node->m_txnSharingIAmSender = true;
             i_am_forwarder = true;
@@ -490,16 +488,15 @@ void DirectoryService::SaveTxnBodySharingAssignment(
     if ((i_am_forwarder == true)
         && (m_mediator.m_DSCommittee->size() > num_ds_nodes))
     {
-        for (unsigned int i = 0; i < m_mediator.m_DSCommittee->size(); i++)
+        for (auto& i : *m_mediator.m_DSCommittee)
         {
             bool is_a_receiver = false;
 
             if (num_ds_nodes > 0)
             {
-                for (unsigned int j = 0; j < m_DSReceivers.size(); j++)
+                for (const auto& m_DSReceiver : m_DSReceivers)
                 {
-                    if (m_mediator.m_DSCommittee->at(i).second
-                        == m_DSReceivers.at(j))
+                    if (i.second == m_DSReceiver)
                     {
                         is_a_receiver = true;
                         break;
@@ -510,8 +507,7 @@ void DirectoryService::SaveTxnBodySharingAssignment(
 
             if (is_a_receiver == false)
             {
-                m_sharingAssignment.emplace_back(
-                    m_mediator.m_DSCommittee->at(i).second);
+                m_sharingAssignment.emplace_back(i.second);
             }
         }
     }
