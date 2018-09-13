@@ -698,10 +698,9 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
 
     // Broadcast to other shard node
     vector<Peer> toSend;
-    for (auto it = m_myShardMembers->begin(); it != m_myShardMembers->end();
-         it++)
+    for (auto& it : *m_myShardMembers)
     {
-        toSend.push_back(it->second);
+        toSend.push_back(it.second);
     }
     LOG_GENERAL(INFO, "[Batching] Broadcast my txns to other shard members");
     P2PComm::GetInstance().SendBroadcastMessage(toSend, message);

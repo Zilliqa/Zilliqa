@@ -170,9 +170,9 @@ void DirectoryService::RunConsensusOnViewChange()
                 "The new consensus leader is at index "
                     << to_string(m_viewChangeCounter));
 
-    for (unsigned i = 0; i < m_mediator.m_DSCommittee->size(); i++)
+    for (auto& i : *m_mediator.m_DSCommittee)
     {
-        LOG_GENERAL(INFO, m_mediator.m_DSCommittee->at(i).second);
+        LOG_GENERAL(INFO, i.second);
     }
 
     // Upon consensus object creation failure, one should not return from the function, but rather wait for view change.

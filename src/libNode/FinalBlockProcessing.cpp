@@ -377,11 +377,10 @@ void Node::BroadcastTransactionsToLookup(
              back_inserter(forwardtxn_message));
         cur_offset += STATE_HASH_SIZE;
 
-        for (unsigned int i = 0; i < txns_to_send.size(); i++)
+        for (const auto& i : txns_to_send)
         {
             // txn body and receipt
-            cur_offset
-                = txns_to_send.at(i).Serialize(forwardtxn_message, cur_offset);
+            cur_offset = i.Serialize(forwardtxn_message, cur_offset);
         }
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -435,12 +434,11 @@ bool Node::IsMyShardMicroBlockInFinalBlock(const uint64_t& blocknum)
         return false;
     }
 
-    for (auto it2 = m_unavailableMicroBlocks[blocknum].begin();
-         it2 != m_unavailableMicroBlocks[blocknum].end(); it2++)
+    for (auto& it2 : m_unavailableMicroBlocks[blocknum])
     {
-        if (it2->first.m_hash.m_stateDeltaHash
+        if (it2.first.m_hash.m_stateDeltaHash
                 == m_microblock->GetHeader().GetStateDeltaHash()
-            && it2->first.m_hash.m_txRootHash
+            && it2.first.m_hash.m_txRootHash
                 == m_microblock->GetHeader().GetTxRootHash())
         {
             LOG_GENERAL(INFO, "Found my shard microblock in finalblock");
@@ -468,10 +466,9 @@ bool Node::IsMyShardIdInFinalBlock(const uint64_t& blocknum)
         return false;
     }
 
-    for (auto it2 = m_unavailableMicroBlocks[blocknum].begin();
-         it2 != m_unavailableMicroBlocks[blocknum].end(); it2++)
+    for (auto& it2 : m_unavailableMicroBlocks[blocknum])
     {
-        if (it2->first.m_shardID == m_myShardID)
+        if (it2.first.m_shardID == m_myShardID)
         {
             LOG_GENERAL(INFO, "Found my shard ID in finalblock");
             return true;
@@ -611,10 +608,8 @@ void Node::GetMyShardsMicroBlock(const uint64_t& blocknum, uint8_t sharing_mode,
     LOG_MARKER();
 
     const vector<TxnHash>& tx_hashes = m_microblock->GetTranHashes();
-    for (unsigned i = 0; i < tx_hashes.size(); i++)
+    for (const auto& tx_hash : tx_hashes)
     {
-        const TxnHash& tx_hash = tx_hashes.at(i);
-
         if (!FindTxnInProcessedTxnsList(blocknum, sharing_mode, txns_to_send,
                                         tx_hash))
         {
