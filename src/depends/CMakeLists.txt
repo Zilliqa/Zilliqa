@@ -5,7 +5,6 @@ add_subdirectory (libTrie)
 add_subdirectory (minilzo)
 add_subdirectory (Sha3)
 add_subdirectory (NAT)
-add_subdirectory (libRumorSpreading)
 
 if(OPENCL_MINE)
     add_subdirectory (libethash-cl)
