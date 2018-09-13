@@ -36,7 +36,7 @@ public:
             task(std::bind(std::forward<callable>(f),
                            std::forward<arguments>(args)...));
 
-        int attemp_flag = false;
+        bool attemp_flag = false;
 
         for (int i = 0; i < num_threads; i++)
         {
