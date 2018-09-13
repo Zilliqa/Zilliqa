@@ -147,7 +147,8 @@ extern const unsigned int MAX_INDEXES_PER_TXN;
 extern const unsigned int SENDQUEUE_SIZE;
 extern const unsigned int MSGQUEUE_SIZE;
 extern const unsigned int POW_CHANGE_PERCENT_TO_ADJ_DIFF;
-extern const unsigned int NUM_NETWORK_NODE;
+extern const unsigned int NUM_NODE_INCR_DIFFICULTY;
+extern const unsigned int MAX_SHARD_NODE_NUM;
 
 extern const bool TEST_NET_MODE;
 extern const bool EXCLUDE_PRIV_IP;

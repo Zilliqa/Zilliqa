@@ -206,7 +206,8 @@ void DirectoryService::SendDSBlockToShardNodes(const Peer& winnerpeer,
     for (unsigned int i = my_shards_lo; i <= my_shards_hi; i++)
     {
         // Get the shard ID from the leader's info in m_publicKeyToShardIdMap
-        uint32_t shardID = m_publicKeyToShardIdMap.at(p->begin()->first);
+        uint32_t shardID = m_publicKeyToShardIdMap.at(
+            std::get<SHARD_NODE_PUBKEY>(p->front()));
 
         // Generate the message
         vector<unsigned char> dsblock_message
@@ -242,9 +243,9 @@ void DirectoryService::SendDSBlockToShardNodes(const Peer& winnerpeer,
             << "] SHMSG");
 
         vector<Peer> shard_peers;
-        for (auto& kv : *p)
+        for (const auto& kv : *p)
         {
-            shard_peers.emplace_back(kv.second);
+            shard_peers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
         }
 
         P2PComm::GetInstance().SendBroadcastMessage(shard_peers,
@@ -349,6 +350,12 @@ void DirectoryService::UpdateDSCommiteeComposition(const Peer& winnerpeer)
     // Remove the new winner of pow from m_allpowconn. He is the new ds leader and do not need to do pow anymore
     m_allPoWConns.erase(
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetMinerPubKey());
+}
+
+/// Calculate node priority to determine which node has the priority to join the network.
+uint8_t DirectoryService::CalculateNodePriority(uint16_t reputation)
+{
+    return log2(reputation);
 }
 
 void DirectoryService::StartFirstTxEpoch()
@@ -483,9 +490,10 @@ void DirectoryService::StartFirstTxEpoch()
         bool found = false;
         for (unsigned int i = 0; i < m_shards.size() && !found; i++)
         {
-            for (const auto& j : m_shards.at(i))
+            for (const auto& shardNode : m_shards.at(i))
             {
-                if (j.first == m_mediator.m_selfKey.second)
+                if (std::get<SHARD_NODE_PUBKEY>(shardNode)
+                    == m_mediator.m_selfKey.second)
                 {
                     m_mediator.m_node->SetMyShardID(i);
                     found = true;
