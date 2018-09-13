@@ -57,8 +57,9 @@ bool Peer::operator!=(const Peer& r) const
 
 bool Peer::operator<(const Peer& r) const
 {
-    return (m_ipAddress <= r.m_ipAddress)
-        && (m_listenPortHost <= r.m_listenPortHost);
+    return (m_ipAddress < r.m_ipAddress)
+        || ((m_ipAddress == r.m_ipAddress)
+            && (m_listenPortHost < r.m_listenPortHost));
 }
 
 const char* Peer::GetPrintableIPAddress() const

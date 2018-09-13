@@ -46,10 +46,10 @@ const unsigned char START_BYTE_NORMAL = 0x11;
 const unsigned char START_BYTE_BROADCAST = 0x22;
 const unsigned char START_BYTE_GOSSIP = 0x33;
 const unsigned int HDR_LEN = 6;
-const unsigned int GOSSIP_HDR_LEN = 11;
 const unsigned int HASH_LEN = 32;
 const unsigned int GOSSIP_MSGTYPE_LEN = 1;
 const unsigned int GOSSIP_AGE_LEN = 4;
+const unsigned int GOSSIP_SNDR_LISTNR_PORT = 4;
 
 P2PComm::Dispatcher P2PComm::m_dispatcher;
 P2PComm::BroadcastListFunc P2PComm::m_broadcast_list_retriever;
@@ -613,28 +613,41 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
             return;
         }
 
-        if (messageLength - HDR_LEN < GOSSIP_MSGTYPE_LEN + GOSSIP_AGE_LEN)
+        if (messageLength
+            < GOSSIP_MSGTYPE_LEN + GOSSIP_AGE_LEN + GOSSIP_SNDR_LISTNR_PORT)
         {
-            LOG_GENERAL(
-                WARNING,
-                "Gossip Msg Type and/or Gossip Age is missing (messageLength = "
-                    << messageLength << ")");
+            LOG_GENERAL(WARNING,
+                        "Gossip Msg Type and/or Gossip Age and/or SNDR LISTNR "
+                        "Port is missing (messageLength = "
+                            << messageLength << ")");
             return;
         }
 
-        vector<unsigned char> gossipMsgTyp(message.begin() + HDR_LEN,
-                                           message.begin() + HDR_LEN
-                                               + GOSSIP_MSGTYPE_LEN);
+        std::vector<unsigned char> gossipMsgTyp(message.begin() + HDR_LEN,
+                                                message.begin() + HDR_LEN
+                                                    + GOSSIP_MSGTYPE_LEN);
 
-        vector<unsigned char> tmp(
+        std::vector<unsigned char> tmp(
             message.begin() + HDR_LEN + GOSSIP_MSGTYPE_LEN,
             message.begin() + HDR_LEN + GOSSIP_MSGTYPE_LEN + GOSSIP_AGE_LEN);
 
         const uint32_t gossipMsgAge
             = (tmp[0] << 24) + (tmp[1] << 16) + (tmp[2] << 8) + tmp[3];
 
+        tmp.clear();
+        tmp.insert(tmp.end(),
+                   message.begin() + HDR_LEN + GOSSIP_MSGTYPE_LEN
+                       + GOSSIP_AGE_LEN,
+                   message.begin() + HDR_LEN + GOSSIP_MSGTYPE_LEN
+                       + GOSSIP_AGE_LEN + GOSSIP_SNDR_LISTNR_PORT);
+
+        const uint32_t gossipSenderPort
+            = (tmp[0] << 24) + (tmp[1] << 16) + (tmp[2] << 8) + tmp[3];
+        from.m_listenPortHost = gossipSenderPort;
+
         RumorManager::RawBytes rumor_message(
-            message.begin() + HDR_LEN + GOSSIP_MSGTYPE_LEN + GOSSIP_AGE_LEN,
+            message.begin() + HDR_LEN + GOSSIP_MSGTYPE_LEN + GOSSIP_AGE_LEN
+                + GOSSIP_SNDR_LISTNR_PORT,
             message.end());
 
         P2PComm& p2p = P2PComm::GetInstance();
@@ -949,6 +962,6 @@ void P2PComm::InitializeRumorManager(const std::vector<Peer>& peers)
     LOG_MARKER();
 
     m_rumorManager.stopRounds();
-    m_rumorManager.Initialize(peers);
+    m_rumorManager.Initialize(peers, m_selfPeer);
     m_rumorManager.startRounds();
 }

@@ -575,7 +575,9 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
             for (auto& i : *m_myShardMembers)
             {
                 if (i.second.m_listenPortHost != 0)
+                {
                     peers.push_back(i.second);
+                }
             }
 
             // Set the peerlist for RumorSpreading protocol every start of DS Epoch

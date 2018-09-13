@@ -8,7 +8,7 @@
 #include <mutex>
 #include <unordered_map>
 
-#include "depends/libRumorSpreading/RumorMember.h"
+#include "libRumorSpreading/RumorHolder.h"
 
 #include "Peer.h"
 
@@ -32,10 +32,11 @@ private:
     typedef boost::bimap<int, RawBytes> RumorIdRumorBimap;
 
     // MEMBERS
-    std::shared_ptr<RumorMember> m_member;
+    std::shared_ptr<RumorHolder> m_rumorHolder;
     PeerIdPeerBiMap m_peerIdPeerBimap;
     std::unordered_set<int> m_peerIdSet;
     RumorIdRumorBimap m_rumorIdRumorBimap;
+    Peer m_selfPeer;
 
     int64_t m_rumorIdGenerator;
     std::mutex m_mutex;
@@ -51,7 +52,7 @@ public:
     ~RumorManager();
 
     // METHODS
-    void Initialize(const std::vector<Peer>& peers);
+    void Initialize(const std::vector<Peer>& peers, const Peer& myself);
 
     bool addRumor(const RawBytes& message);
 

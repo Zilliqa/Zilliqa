@@ -1,21 +1,23 @@
 #ifndef RANDOMIZEDRUMORSPREADING_RUMORSPREADINGINTERFACE_H
 #define RANDOMIZEDRUMORSPREADING_RUMORSPREADINGINTERFACE_H
 
+#include "Message.h"
+#include <functional>
+#include <memory>
 #include <set>
 #include <vector>
-#include <memory>
-#include <functional>
-#include "Message.h"
 
-namespace RRS {
+namespace RRS
+{
 
-class RumorSpreadingInterface {
-  public:
-    // DESTRUCTOR
-    virtual ~RumorSpreadingInterface();
+    class RumorSpreadingInterface
+    {
+    public:
+        // DESTRUCTOR
+        virtual ~RumorSpreadingInterface();
 
-    // METHODS
-    /**
+        // METHODS
+        /**
     *  @brief  Start spreading a new rumor.
     *  @param  rumorId The id corresponding to the rumor.
     *  @return Return true if the rumor was successfully added.
@@ -26,9 +28,9 @@ class RumorSpreadingInterface {
     * A maximum number of O(F) uniformed nodes is expected, where F is the number of disconnected
     * nodes.
     */
-    virtual bool addRumor(int rumorId) = 0;
+        virtual bool addRumor(int rumorId) = 0;
 
-    /**
+        /**
     *  @brief  Handle a new message.
     *  @param  message The received message
     *  @param  fromMember  The member id of the sender.
@@ -37,9 +39,10 @@ class RumorSpreadingInterface {
     * Handle a new 'message' from peer 'fromPeer'. Ints are used to identify a member and a rumor in
     * order to abstract away the actual member and rumor types.
     */
-    virtual std::pair<int, std::vector<Message>> receivedMessage(const Message& message, int fromMember) = 0;
+        virtual std::pair<int, std::vector<Message>>
+        receivedMessage(const Message& message, int fromMember) = 0;
 
-    /**
+        /**
     *  @brief  Advance to next round.
     *  @return Return a pair with the target member id and a vector of PUSH messages.
     *
@@ -47,8 +50,8 @@ class RumorSpreadingInterface {
     * element is the randomly selected member id and the second element is the vector of PUSH
     * messages that will be sent to the selected member.
     */
-    virtual std::pair<int, std::vector<Message>> advanceRound() = 0;
-};
+        virtual std::pair<int, std::vector<Message>> advanceRound() = 0;
+    };
 
 } // project namespace
 
