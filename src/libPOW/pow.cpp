@@ -293,14 +293,7 @@ bool POW::VerifyLight(ethash_light_t& light, ethash_h256_t const& header_hash,
 {
     ethash_return_value_t mineResult
         = EthashLightCompute(light, header_hash, winning_nonce);
-    if (ethash_check_difficulty(&mineResult.result, &difficulty))
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+    return ethash_check_difficulty(&mineResult.result, &difficulty);
 }
 
 bool POW::VerifyFull(ethash_full_t& full, ethash_h256_t const& header_hash,
@@ -310,14 +303,7 @@ bool POW::VerifyFull(ethash_full_t& full, ethash_h256_t const& header_hash,
 {
     ethash_return_value_t mineResult
         = EthashFullCompute(full, header_hash, winning_nonce);
-    if (ethash_check_difficulty(&mineResult.result, &difficulty))
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+    return ethash_check_difficulty(&mineResult.result, &difficulty);
 }
 
 std::vector<unsigned char>

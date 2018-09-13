@@ -247,7 +247,7 @@ bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
         // Update the micro block with the co-signatures from the consensus
         m_microblock->SetCoSignatures(*m_consensusObject);
 
-        if (m_isPrimary == true)
+        if (m_isPrimary)
         {
             LOG_STATE("[MICON]["
                       << std::setw(15) << std::left
@@ -258,7 +258,7 @@ bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
             SubmitMicroblockToDSCommittee();
         }
 
-        if (m_isMBSender == true)
+        if (m_isMBSender)
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Designated as Microblock sender");
@@ -1160,7 +1160,7 @@ bool Node::RunConsensusOnMicroBlock()
                 m_mediator.m_ds->m_stateDeltaWhenRunDSMB);
         }
     }
-    if (m_isPrimary == true)
+    if (m_isPrimary)
     {
         if (!RunConsensusOnMicroBlockWhenShardLeader())
         {

@@ -539,8 +539,7 @@ void DirectoryService::ProcessTxnBodySharingAssignment()
 
     m_sharingAssignment.clear();
 
-    if ((i_am_forwarder == true)
-        && (m_mediator.m_DSCommittee->size() > num_ds_nodes))
+    if ((i_am_forwarder) && (m_mediator.m_DSCommittee->size() > num_ds_nodes))
     {
         for (const auto& ds : *m_mediator.m_DSCommittee)
         {
@@ -559,7 +558,7 @@ void DirectoryService::ProcessTxnBodySharingAssignment()
                 num_ds_nodes--;
             }
 
-            if (is_a_receiver == false)
+            if (!is_a_receiver)
             {
                 m_sharingAssignment.emplace_back(ds.second);
             }
@@ -602,8 +601,7 @@ void DirectoryService::SaveTxnBodySharingAssignment(
 
     m_sharingAssignment.clear();
 
-    if ((i_am_forwarder == true)
-        && (m_mediator.m_DSCommittee->size() > num_ds_nodes))
+    if ((i_am_forwarder) && (m_mediator.m_DSCommittee->size() > num_ds_nodes))
     {
         for (auto& i : *m_mediator.m_DSCommittee)
         {
@@ -622,7 +620,7 @@ void DirectoryService::SaveTxnBodySharingAssignment(
                 num_ds_nodes--;
             }
 
-            if (is_a_receiver == false)
+            if (!is_a_receiver)
             {
                 m_sharingAssignment.emplace_back(i.second);
             }

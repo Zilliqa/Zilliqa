@@ -44,7 +44,7 @@ public:
             {
                 try
                 {
-                    if (attemp_flag == false)
+                    if (!attemp_flag)
                     {
                         std::thread(task)
                             .detach(); // attempt to detach a non-thread

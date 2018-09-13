@@ -309,11 +309,7 @@ std::array<unsigned char, 32> DirectoryService::GetDSPoWSoln(PubKey Pubk)
 bool DirectoryService::IsNodeSubmittedDSPoWSoln(PubKey Pubk)
 {
     lock_guard<mutex> g(m_mutexAllDSPOWs);
-    if (m_allDSPoWs.find(Pubk) != m_allDSPoWs.end())
-    {
-        return true;
-    }
-    return false;
+    return m_allDSPoWs.find(Pubk) != m_allDSPoWs.end();
 }
 
 uint32_t DirectoryService::GetNumberOfDSPoWSolns()

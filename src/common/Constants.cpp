@@ -150,20 +150,14 @@ const unsigned int POW_CHANGE_PERCENT_TO_ADJ_DIFF{
     ReadFromConstantsFile("POW_CHANGE_PERCENT_TO_ADJ_DIFF")};
 const unsigned int NUM_NETWORK_NODE{ReadFromConstantsFile("NUM_NETWORK_NODE")};
 
-const bool EXCLUDE_PRIV_IP{
-    ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true" ? true : false};
-const bool TEST_NET_MODE{
-    ReadFromOptionsFile("TEST_NET_MODE") == "true" ? true : false};
-const bool ENABLE_DO_REJOIN{
-    ReadFromOptionsFile("ENABLE_DO_REJOIN") == "true" ? true : false};
-const bool FULL_DATASET_MINE{
-    ReadFromOptionsFile("FULL_DATASET_MINE") == "true" ? true : false};
-const bool OPENCL_GPU_MINE{
-    ReadFromOptionsFile("OPENCL_GPU_MINE") == "true" ? true : false};
-const bool CUDA_GPU_MINE{
-    ReadFromOptionsFile("CUDA_GPU_MINE") == "true" ? true : false};
-const bool LOOKUP_NODE_MODE{
-    ReadFromOptionsFile("LOOKUP_NODE_MODE") == "true" ? true : false};
+const bool EXCLUDE_PRIV_IP{ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true"};
+const bool TEST_NET_MODE{ReadFromOptionsFile("TEST_NET_MODE") == "true"};
+const bool ENABLE_DO_REJOIN{ReadFromOptionsFile("ENABLE_DO_REJOIN") == "true"};
+const bool FULL_DATASET_MINE{ReadFromOptionsFile("FULL_DATASET_MINE")
+                             == "true"};
+const bool OPENCL_GPU_MINE{ReadFromOptionsFile("OPENCL_GPU_MINE") == "true"};
+const bool CUDA_GPU_MINE{ReadFromOptionsFile("CUDA_GPU_MINE") == "true"};
+const bool LOOKUP_NODE_MODE{ReadFromOptionsFile("LOOKUP_NODE_MODE") == "true"};
 
 const std::vector<std::string> GENESIS_WALLETS{
     ReadAccountsFromConstantsFile("wallet_address")};
@@ -191,7 +185,7 @@ const std::string INPUT_CODE{SCILLA_FILES + '/'
 
 const std::string TXN_PATH{ReadDispatcherConstants("TXN_PATH")};
 const bool USE_REMOTE_TXN_CREATOR{
-    ReadDispatcherConstants("USE_REMOTE_TXN_CREATOR") == "true" ? true : false};
+    ReadDispatcherConstants("USE_REMOTE_TXN_CREATOR") == "true"};
 
 const unsigned int OPENCL_LOCAL_WORK_SIZE{
     ReadGpuConstants("opencl.LOCAL_WORK_SIZE")};
