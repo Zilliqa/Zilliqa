@@ -34,6 +34,8 @@
 #include "libUtils/Logger.h"
 #include "libUtils/SanityChecks.h"
 
+using namespace std;
+
 bool DirectoryService::ViewChangeValidator(
     const vector<unsigned char>& vcBlock,
     [[gnu::unused]] std::vector<unsigned char>& errorMsg)
