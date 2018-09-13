@@ -77,3 +77,135 @@ message NodeFinalBlock
     required ByteArray txblock    = 4;
     required bytes statedelta     = 5;
 }
+
+// ============================================================================
+// Lookup messages
+// ============================================================================
+
+message LookupGetSeedPeers
+{
+    required uint32 listenport = 1;
+}
+
+message LookupSetSeedPeers
+{
+    repeated ByteArray candidateseeds = 1;
+}
+
+message LookupGetDSInfoFromSeed
+{
+    required uint32 listenport = 1;
+}
+
+message LookupSetDSInfoFromSeed
+{
+    message DSNode
+    {
+        required ByteArray pubkey = 1;
+        required ByteArray peer   = 2;
+    }
+    repeated DSNode dsnodes       = 1;
+}
+
+message LookupGetDSBlockFromSeed
+{
+    required uint64 lowblocknum  = 1;
+    required uint64 highblocknum = 2;
+    required uint32 listenport   = 3;
+}
+
+message LookupSetDSBlockFromSeed
+{
+    message DSBlock
+    {
+        required ByteArray dsblock = 1;
+    }
+    required uint64 lowblocknum    = 1;
+    required uint64 highblocknum   = 2;
+    repeated DSBlock dsblocks      = 3;
+}
+
+message LookupGetTxBlockFromSeed
+{
+    required uint64 lowblocknum  = 1;
+    required uint64 highblocknum = 2;
+    required uint32 listenport   = 3;
+}
+
+message LookupSetTxBlockFromSeed
+{
+    message TxBlock
+    {
+        required ByteArray txblock = 1;
+    }
+    required uint64 lowblocknum    = 1;
+    required uint64 highblocknum   = 2;
+    repeated TxBlock txblocks      = 3;
+}
+
+message LookupGetTxBodyFromSeed
+{
+    required bytes txhash      = 1;
+    required uint32 listenport = 2;
+}
+
+message LookupSetTxBodyFromSeed
+{
+    required bytes txhash     = 1;
+    required ByteArray txbody = 2;
+}
+
+message LookupGetNetworkIDFromSeed
+{
+    // Unused
+}
+
+message LookupSetNetworkIDFromSeed
+{
+    required string networkid = 1;
+}
+
+message LookupGetStateFromSeed
+{
+    required uint32 listenport = 1;
+}
+
+message LookupSetStateFromSeed
+{
+    required ByteArray accounts = 1;
+}
+
+message LookupSetLookupOffline
+{
+    required uint32 listenport = 1;
+}
+
+message LookupSetLookupOnline
+{
+    required uint32 listenport = 1;
+}
+
+message LookupGetOfflineLookups
+{
+    required uint32 listenport = 1;
+}
+
+message LookupSetOfflineLookups
+{
+    repeated ByteArray nodes = 1;
+}
+
+message LookupRaiseStartPoW
+{
+    // Empty
+}
+
+message LookupGetStartPoWFromSeed
+{
+    required uint32 listenport = 1;
+}
+
+message LookupSetStartPoWFromSeed
+{
+    // Empty
+}
