@@ -24,6 +24,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ocl-icd-opencl-dev \
     libprotobuf-dev \
     protobuf-compiler \
+    libcurl4-openssl-dev \
     python python-pip \
     && rm -rf /var/lib/apt/lists/* \
     && pip install netaddr

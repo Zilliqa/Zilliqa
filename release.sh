@@ -13,7 +13,12 @@
 # GPLv3.0 are those programs that are located in the folders src/depends and tests/depends
 # and which include a reference to GPLv3 in their program files.
 
-# User configuration settings, mandatory to be filled in
+#######################################################################################
+# This script should be only used by Zilliqa Research,                                #
+# for releasing a draft version binary with relative version information onto GitHub. #
+#######################################################################################
+
+# [MUST BE FILLED IN] User configuration settings
 GitHubToken=""
 repoName="PreRelease"    # Change to Zilliqa after PreRelease is ok
 packageName=""
@@ -107,7 +112,7 @@ echo -e "Making SHA-256 & multi-signature..."
 privKeyFile="$(realpath $1)"
 pubKeyFile="$(realpath $2)"
 cd ${releaseDir}
-sha="$(md5sum ${debFile}|cut -d ' ' -f1)"
+sha="$(sha256sum ${debFile}|cut -d ' ' -f1)"
 sed -i "${shaLine}s/.*/${sha}/" ${versionFile}
 signature="$(./bin/signmultisig ${sha} ${privKeyFile} ${pubKeyFile})"
 sed -i "${sigLine}s/.*/${signature}/" ${versionFile}
