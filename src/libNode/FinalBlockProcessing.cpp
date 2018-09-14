@@ -557,7 +557,6 @@ void Node::UpdateStateForNextConsensusRound()
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "MS: Next non-ds epoch begins");
 
-    SetState(MICROBLOCK_CONSENSUS_PREP);
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "[No PoW needed] MS: Start submit txn stage again.");
 }
@@ -592,6 +591,8 @@ void Node::BeginNextConsensusRound()
     UpdateStateForNextConsensusRound();
 
     ScheduleMicroBlockConsensus();
+
+    CommitTxnPacketBuffer();
 }
 
 void Node::GetMyShardsMicroBlock(const uint64_t& blocknum, uint8_t sharing_mode,
@@ -907,6 +908,8 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 
         // Remove because shard nodes will be shuffled in next epoch.
         CleanCreatedTransaction();
+
+        CleanMicroblockConsensusBuffer();
 
         if (!AccountStore::GetInstance().UpdateStateTrieAll())
         {
