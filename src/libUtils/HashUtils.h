@@ -28,24 +28,24 @@ public:
     static const std::vector<unsigned char>
     SerializableToHash(const Serializable& sz)
     {
-        vector<unsigned char> vec;
+        std::vector<unsigned char> vec;
         sz.Serialize(vec, 0);
         return BytesToHash(vec);
     }
 
     static const std::vector<unsigned char>
-    BytesToHash(const vector<unsigned char>& vec)
+    BytesToHash(const std::vector<unsigned char>& vec)
     {
         SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
 
         sha2.Update(vec);
-        const vector<unsigned char>& resVec = sha2.Finalize();
+        const std::vector<unsigned char>& resVec = sha2.Finalize();
 
         return resVec;
     }
     static uint16_t SerializableToHash16Bits(const Serializable& sz)
     {
-        const vector<unsigned char>& vec = SerializableToHash(sz);
+        const std::vector<unsigned char>& vec = SerializableToHash(sz);
 
         uint32_t lsb = vec.size() - 1;
 
