@@ -36,7 +36,7 @@ public:
             task(std::bind(std::forward<callable>(f),
                            std::forward<arguments>(args)...));
 
-        int attemp_flag = false;
+        bool attemp_flag = false;
 
         for (int i = 0; i < num_threads; i++)
         {
@@ -44,7 +44,7 @@ public:
             {
                 try
                 {
-                    if (attemp_flag == false)
+                    if (!attemp_flag)
                     {
                         std::thread(task)
                             .detach(); // attempt to detach a non-thread

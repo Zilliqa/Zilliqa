@@ -86,7 +86,7 @@ Signature ConsensusCommon::SignMessage(const vector<unsigned char>& msg,
     bool result
         = Schnorr::GetInstance().Sign(msg, offset, size, m_myPrivKey,
                                       m_committee.at(m_myID).first, signature);
-    if (result == false)
+    if (!result)
     {
         return Signature();
     }
@@ -101,7 +101,7 @@ bool ConsensusCommon::VerifyMessage(const vector<unsigned char>& msg,
     bool result = Schnorr::GetInstance().Verify(msg, offset, size, toverify,
                                                 m_committee.at(peer_id).first);
 
-    if (result == false)
+    if (!result)
     {
         LOG_GENERAL(INFO,
                     "Peer id: " << peer_id << " pubkey: 0x"
@@ -120,7 +120,7 @@ PubKey ConsensusCommon::AggregateKeys(const vector<bool> peer_map)
     deque<pair<PubKey, Peer>>::const_iterator j = m_committee.begin();
     for (unsigned int i = 0; i < peer_map.size(); i++, j++)
     {
-        if (peer_map.at(i) == true)
+        if (peer_map.at(i))
         {
             keys.emplace_back(j->first);
         }

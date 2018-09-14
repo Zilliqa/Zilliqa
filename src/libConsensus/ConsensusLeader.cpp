@@ -115,9 +115,8 @@ bool ConsensusLeader::ProcessMessageCommitCore(
     // 32-byte blockhash
 
     // Check the block hash
-    if (equal(m_blockHash.begin(), m_blockHash.end(),
-              commit.begin() + curr_offset)
-        == false)
+    if (!equal(m_blockHash.begin(), m_blockHash.end(),
+               commit.begin() + curr_offset))
     {
         LOG_GENERAL(WARNING,
                     "Block hash in commitment does not match instance "
@@ -137,7 +136,7 @@ bool ConsensusLeader::ProcessMessageCommitCore(
         LOG_GENERAL(WARNING, "Backup ID beyond backup count");
         return false;
     }
-    if (m_commitMap.at(backup_id) == true)
+    if (m_commitMap.at(backup_id))
     {
         LOG_GENERAL(WARNING, "Backup has already sent validated commit");
         return false;
@@ -158,7 +157,7 @@ bool ConsensusLeader::ProcessMessageCommitCore(
     // Check the signature
     bool sig_valid = VerifyMessage(commit, offset, curr_offset - offset,
                                    signature, backup_id);
-    if (sig_valid == false)
+    if (!sig_valid)
     {
         LOG_GENERAL(WARNING, "Invalid signature in commit message");
         return false;
@@ -207,7 +206,7 @@ bool ConsensusLeader::ProcessMessageCommitCore(
                    static_cast<unsigned char>(returnmsgtype)};
             result = GenerateChallengeMessage(
                 challenge, MessageOffset::BODY + sizeof(unsigned char));
-            if (result == true)
+            if (result)
             {
                 // Update internal state
                 // =====================
@@ -230,7 +229,7 @@ bool ConsensusLeader::ProcessMessageCommitCore(
 
                 for (unsigned int i = 0; i < m_commitMap.size(); i++, j++)
                 {
-                    if ((m_commitMap.at(i) == true) && (i != m_myID))
+                    if ((m_commitMap.at(i)) && (i != m_myID))
                     {
                         commit_peers.emplace_back(j->second);
                     }
@@ -421,9 +420,8 @@ bool ConsensusLeader::ProcessMessageCommitFailure(
     // 32-byte blockhash
 
     // Check the block hash
-    if (equal(m_blockHash.begin(), m_blockHash.end(),
-              commitFailureMsg.begin() + curr_offset)
-        == false)
+    if (!equal(m_blockHash.begin(), m_blockHash.end(),
+               commitFailureMsg.begin() + curr_offset))
     {
         LOG_GENERAL(WARNING,
                     "Block hash in commitment does not match instance "
@@ -516,7 +514,7 @@ bool ConsensusLeader::GenerateChallengeMessage(vector<unsigned char>& challenge,
 
     // Aggregate commits
     CommitPoint aggregated_commit = AggregateCommits(m_commitPoints);
-    if (aggregated_commit.Initialized() == false)
+    if (!aggregated_commit.Initialized())
     {
         LOG_GENERAL(WARNING, "AggregateCommits failed");
         m_state = ERROR;
@@ -525,7 +523,7 @@ bool ConsensusLeader::GenerateChallengeMessage(vector<unsigned char>& challenge,
 
     // Aggregate keys
     PubKey aggregated_key = AggregateKeys(m_commitMap);
-    if (aggregated_key.Initialized() == false)
+    if (!aggregated_key.Initialized())
     {
         LOG_GENERAL(WARNING, "Aggregated key generation failed");
         m_state = ERROR;
@@ -535,7 +533,7 @@ bool ConsensusLeader::GenerateChallengeMessage(vector<unsigned char>& challenge,
     // Generate the challenge
     m_challenge = GetChallenge(m_message, 0, m_lengthToCosign,
                                aggregated_commit, aggregated_key);
-    if (m_challenge.Initialized() == false)
+    if (!m_challenge.Initialized())
     {
         LOG_GENERAL(WARNING, "Challenge generation failed");
         m_state = ERROR;
@@ -579,7 +577,7 @@ bool ConsensusLeader::GenerateChallengeMessage(vector<unsigned char>& challenge,
 
     // 64-byte signature
     Signature signature = SignMessage(challenge, offset, curr_offset - offset);
-    if (signature.Initialized() == false)
+    if (!signature.Initialized())
     {
         LOG_GENERAL(WARNING, "Message signing failed");
         m_state = ERROR;
@@ -641,9 +639,8 @@ bool ConsensusLeader::ProcessMessageResponseCore(
     // 32-byte blockhash
 
     // Check the block hash
-    if (equal(m_blockHash.begin(), m_blockHash.end(),
-              response.begin() + curr_offset)
-        == false)
+    if (!equal(m_blockHash.begin(), m_blockHash.end(),
+               response.begin() + curr_offset))
     {
         LOG_GENERAL(
             WARNING,
@@ -663,12 +660,12 @@ bool ConsensusLeader::ProcessMessageResponseCore(
         LOG_GENERAL(WARNING, "Backup ID beyond backup count");
         return false;
     }
-    if (m_commitMap.at(backup_id) == false)
+    if (!m_commitMap.at(backup_id))
     {
         LOG_GENERAL(WARNING, "Backup has not participated in the commit phase");
         return false;
     }
-    if (m_responseMap.at(backup_id) == true)
+    if (m_responseMap.at(backup_id))
     {
         LOG_GENERAL(WARNING, "Backup has already sent validated response");
         return false;
@@ -678,10 +675,9 @@ bool ConsensusLeader::ProcessMessageResponseCore(
     Response tmp_response = Response(response, curr_offset);
     curr_offset += RESPONSE_SIZE;
 
-    if (MultiSig::VerifyResponse(tmp_response, m_challenge,
-                                 m_committee.at(backup_id).first,
-                                 m_commitPointMap.at(backup_id))
-        == false)
+    if (!MultiSig::VerifyResponse(tmp_response, m_challenge,
+                                  m_committee.at(backup_id).first,
+                                  m_commitPointMap.at(backup_id)))
     {
         LOG_GENERAL(WARNING, "Invalid response for this backup");
         return false;
@@ -699,7 +695,7 @@ bool ConsensusLeader::ProcessMessageResponseCore(
     // Check the signature
     bool sig_valid = VerifyMessage(response, offset, curr_offset - offset,
                                    signature, backup_id);
-    if (sig_valid == false)
+    if (!sig_valid)
     {
         LOG_GENERAL(WARNING, "Invalid signature in response message");
         return false;
@@ -735,7 +731,7 @@ bool ConsensusLeader::ProcessMessageResponseCore(
         result = GenerateCollectiveSigMessage(
             collectivesig, MessageOffset::BODY + sizeof(unsigned char));
 
-        if (result == true)
+        if (result)
         {
             // Update internal state
             // =====================
@@ -826,7 +822,7 @@ bool ConsensusLeader::GenerateCollectiveSigMessage(
 
     // Aggregate responses
     Response aggregated_response = AggregateResponses(m_responseData);
-    if (aggregated_response.Initialized() == false)
+    if (!aggregated_response.Initialized())
     {
         LOG_GENERAL(WARNING, "AggregateCommits failed");
         m_state = ERROR;
@@ -835,7 +831,7 @@ bool ConsensusLeader::GenerateCollectiveSigMessage(
 
     // Aggregate keys
     PubKey aggregated_key = AggregateKeys(m_responseMap);
-    if (aggregated_key.Initialized() == false)
+    if (!aggregated_key.Initialized())
     {
         LOG_GENERAL(WARNING, "Aggregated key generation failed");
         m_state = ERROR;
@@ -844,7 +840,7 @@ bool ConsensusLeader::GenerateCollectiveSigMessage(
 
     // Generate the collective signature
     m_collectiveSig = AggregateSign(m_challenge, aggregated_response);
-    if (m_collectiveSig.Initialized() == false)
+    if (!m_collectiveSig.Initialized())
     {
         LOG_GENERAL(WARNING, "Collective sig generation failed");
         m_state = ERROR;
@@ -852,9 +848,8 @@ bool ConsensusLeader::GenerateCollectiveSigMessage(
     }
 
     // Verify the collective signature
-    if (Schnorr::GetInstance().Verify(m_message, 0, m_lengthToCosign,
-                                      m_collectiveSig, aggregated_key)
-        == false)
+    if (!Schnorr::GetInstance().Verify(m_message, 0, m_lengthToCosign,
+                                       m_collectiveSig, aggregated_key))
     {
         LOG_GENERAL(WARNING, "Collective sig verification failed");
         m_state = ERROR;
@@ -901,7 +896,7 @@ bool ConsensusLeader::GenerateCollectiveSigMessage(
     // 64-byte signature
     Signature signature
         = SignMessage(collectivesig, offset, curr_offset - offset);
-    if (signature.Initialized() == false)
+    if (!signature.Initialized())
     {
         LOG_GENERAL(WARNING, "Message signing failed");
         m_state = ERROR;
@@ -1041,7 +1036,7 @@ bool ConsensusLeader::StartConsensus(const vector<unsigned char>& message,
     Signature signature = SignMessage(
         announcement, MessageOffset::BODY + sizeof(unsigned char),
         curr_offset - MessageOffset::BODY - sizeof(unsigned char));
-    if (signature.Initialized() == false)
+    if (!signature.Initialized())
     {
         LOG_GENERAL(WARNING, "Message signing failed");
         m_state = ERROR;
