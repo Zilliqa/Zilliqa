@@ -427,6 +427,9 @@ bool UpgradeManager::ReplaceNode(Mediator& mediator)
         return false;
     }
 
+    LOG_GENERAL(INFO, "Waiting for termination...");
+    this_thread::sleep_for(std::chrono::seconds(10));
+
     /// Kill current node, then the recovery procedure will wake up node with stored data
     return raise(SIGKILL) == 0;
 }
