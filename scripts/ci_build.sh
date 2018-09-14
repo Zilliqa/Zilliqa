@@ -41,7 +41,7 @@ make clang-format
 if [ "$os" = "Linux" ]
 then
     # this target already include "ctest" command, see cmake/CodeCoverage.cmake
-    make clang-tidy || exit 1
+    make clang-tidy 2>/dev/null || exit 1
     make Zilliqa_coverage || exit 1
 else
     ctest --output-on-failure -j${n_parallel} || exit 1
