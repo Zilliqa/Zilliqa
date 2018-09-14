@@ -401,6 +401,8 @@ bool DirectoryService::CleanVariables()
         std::lock_guard<mutex> lock(m_mutexMicroBlocks);
         m_microBlocks.clear();
     }
+    CleanFinalblockConsensusBuffer();
+
     m_finalBlock.reset();
     m_sharingAssignment.clear();
     m_viewChangeCounter = 0;

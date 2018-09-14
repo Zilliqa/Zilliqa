@@ -114,70 +114,82 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
 
     LOG_MARKER();
 
+    // check size
+    if (IsMessageSizeInappropriate(message.size(), offset,
+                                   sizeof(unsigned char) + sizeof(uint32_t)
+                                       + BLOCK_HASH_SIZE + sizeof(uint16_t)))
     {
-        unique_lock<mutex> g(m_mutexNewRoundStarted);
-        if (!m_newRoundStarted)
-        {
-            // LOG_GENERAL(INFO, "Wait for new consensus round started");
-            if (m_cvNewRoundStarted.wait_for(
-                    g, std::chrono::seconds(CONSENSUS_OBJECT_TIMEOUT))
-                == std::cv_status::timeout)
-            {
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "Waiting for new round started timeout, ignore");
-                return false;
-            }
+        return false;
+    }
 
+    uint32_t consensus_id = Serializable::GetNumber<uint32_t>(
+        message, offset + sizeof(unsigned char), sizeof(uint32_t));
+
+    if (m_state != MICROBLOCK_CONSENSUS)
+    {
+        lock_guard<mutex> h(m_mutexMicroBlockConsensusBuffer);
+
+        m_microBlockConsensusBuffer[consensus_id].push_back(
+            make_pair(from, message));
+
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Process micro block arrived earlier, saved to buffer");
+    }
+    else
+    {
+        if (consensus_id < m_consensusID)
+        {
+            LOG_GENERAL(WARNING,
+                        "Consensus ID in message ("
+                            << consensus_id << ") is smaller than current ("
+                            << m_consensusID << ")");
+            return false;
+        }
+        else if (consensus_id > m_consensusID)
+        {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "New consensus round started, moving to "
-                      "ProcessSubmitTxnSharing");
-            if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
-            {
-                LOG_GENERAL(WARNING, "The node started rejoin, ignore");
-                return false;
-            }
+                      "Buffer micro block with larger consensus ID ("
+                          << consensus_id << "), current (" << m_consensusID
+                          << ")");
+
+            lock_guard<mutex> h(m_mutexMicroBlockConsensusBuffer);
+
+            m_microBlockConsensusBuffer[consensus_id].push_back(
+                make_pair(from, message));
         }
         else
         {
-            // LOG_GENERAL(INFO, "No need to wait for newRoundStarted");
+            return ProcessMicroblockConsensusCore(message, offset, from);
         }
     }
 
+    return true;
+}
+
+void Node::CommitMicroBlockConsensusBuffer()
+{
+    lock_guard<mutex> g(m_mutexMicroBlockConsensusBuffer);
+
+    for (const auto& i : m_microBlockConsensusBuffer[m_consensusID])
     {
-        lock_guard<mutex> g(m_mutexConsensus);
-
-        // Consensus messages must be processed in correct sequence as they come in
-        // It is possible for ANNOUNCE to arrive before correct DS state
-        // In that case, state transition will occurs and ANNOUNCE will be processed.
-
-        if (m_state == MICROBLOCK_CONSENSUS_PREP)
-        {
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Received microblock announcement from shard leader. I "
-                      "will move on to consensus");
-            cv_microblockConsensus.notify_all();
-
-            std::unique_lock<std::mutex> cv_lk(
-                m_MutexCVMicroblockConsensusObject);
-
-            if (cv_microblockConsensusObject.wait_for(
-                    cv_lk, std::chrono::seconds(CONSENSUS_OBJECT_TIMEOUT),
-                    [this] { return (m_state == MICROBLOCK_CONSENSUS); }))
-            {
-                // condition passed without timeout
-            }
-            else
-            {
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "Time out while waiting for state transition and "
-                          "consensus object creation ");
-            }
-
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "State transition is completed and consensus object "
-                      "creation.");
-        }
+        auto runconsensus = [this, i]() {
+            ProcessMicroblockConsensusCore(i.second, MessageOffset::BODY,
+                                           i.first);
+        };
+        DetachedFunction(1, runconsensus);
     }
+}
+
+void Node::CleanMicroblockConsensusBuffer()
+{
+    lock_guard<mutex> g(m_mutexMicroBlockConsensusBuffer);
+    m_microBlockConsensusBuffer.clear();
+}
+
+bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
+                                          unsigned int offset, const Peer& from)
+{
+    LOG_MARKER();
 
     if (!CheckState(PROCESS_MICROBLOCKCONSENSUS))
     {
@@ -187,7 +199,6 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
     }
 
     // Consensus message must be processed in order. The following will block till it is the right order.
-
     std::unique_lock<mutex> cv_lk(m_mutexProcessConsensusMessage);
     if (cv_processConsensusMessage.wait_for(
             cv_lk, std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW),
@@ -233,11 +244,6 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
 
     if (state == ConsensusCommon::State::DONE)
     {
-        {
-            lock_guard<mutex> g2(m_mutexNewRoundStarted);
-            m_newRoundStarted = false;
-        }
-
         // Update the micro block with the co-signatures from the consensus
         m_microblock->SetCoSignatures(*m_consensusObject);
 
@@ -268,10 +274,10 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
         m_lastMicroBlockCoSig.first = m_mediator.m_currentEpochNum;
         m_lastMicroBlockCoSig.second.SetCoSignatures(*m_consensusObject);
 
+        SetState(WAITING_FINALBLOCK);
+
         if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE)
         {
-            SetState(WAITING_FINALBLOCK);
-
             lock_guard<mutex> cv_lk(m_MutexCVFBWaitMB);
             cv_FBWaitMB.notify_all();
         }
@@ -351,15 +357,9 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
         LOG_GENERAL(WARNING,
                     "ConsensusCommon::State::ERROR here, but we move on.");
 
-        {
-            lock_guard<mutex> g2(m_mutexNewRoundStarted);
-            m_newRoundStarted = false;
-        }
-
+        SetState(WAITING_FINALBLOCK); // Move on to next Epoch.
         if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE)
         {
-            // SetState(WAITING_FINALBLOCK); // Move on to next Epoch.
-
             LOG_EPOCH(
                 INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "If I received a new Finalblock from DS committee. I will "
@@ -1183,16 +1183,8 @@ bool Node::RunConsensusOnMicroBlock()
 
     SetState(MICROBLOCK_CONSENSUS);
 
-    {
-        lock_guard<mutex> g2(m_mutexNewRoundStarted);
-        if (!m_newRoundStarted)
-        {
-            m_newRoundStarted = true;
-            m_cvNewRoundStarted.notify_all();
-        }
-    }
+    CommitMicroBlockConsensusBuffer();
 
-    cv_microblockConsensusObject.notify_all();
     return true;
 }
 
