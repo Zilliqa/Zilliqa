@@ -255,7 +255,7 @@ bool Node::VerifyFinalBlockCoSignature(const TxBlock& txblock)
     vector<PubKey> keys;
     for (auto const& kv : *m_mediator.m_DSCommittee)
     {
-        if (B2.at(index) == true)
+        if (B2.at(index))
         {
             keys.emplace_back(kv.first);
             count++;
@@ -282,9 +282,8 @@ bool Node::VerifyFinalBlockCoSignature(const TxBlock& txblock)
     txblock.GetCS1().Serialize(message, TxBlockHeader::SIZE);
     BitVector::SetBitVector(message, TxBlockHeader::SIZE + BLOCK_SIG_SIZE,
                             txblock.GetB1());
-    if (Schnorr::GetInstance().Verify(message, 0, message.size(),
-                                      txblock.GetCS2(), *aggregatedKey)
-        == false)
+    if (!Schnorr::GetInstance().Verify(message, 0, message.size(),
+                                       txblock.GetCS2(), *aggregatedKey))
     {
         LOG_GENERAL(WARNING, "Cosig verification failed");
         for (auto& kv : keys)
@@ -530,7 +529,7 @@ void Node::UpdateStateForNextConsensusRound()
     }
 
     // Set state to tx submission
-    if (m_isPrimary == true)
+    if (m_isPrimary)
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "I am no longer the shard leader ");
@@ -681,20 +680,18 @@ void Node::CallActOnFinalblock()
 
     std::vector<TransactionWithReceipt> txns_to_send;
 
-    if ((m_txnSharingIAmSender == false) && (m_txnSharingIAmForwarder == true))
+    if ((!m_txnSharingIAmSender) && (m_txnSharingIAmForwarder))
     {
         GetMyShardsMicroBlock(blocknum, TxSharingMode::NODE_FORWARD_ONLY,
                               txns_to_send);
     }
-    else if (((m_txnSharingIAmSender == true)
-              && (m_txnSharingIAmForwarder == false))
-             || ((m_txnSharingIAmSender == true)
+    else if (((m_txnSharingIAmSender) && (!m_txnSharingIAmForwarder))
+             || ((m_txnSharingIAmSender)
                  && (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE)))
     {
         GetMyShardsMicroBlock(blocknum, TxSharingMode::SEND_ONLY, txns_to_send);
     }
-    else if ((m_txnSharingIAmSender == true)
-             && (m_txnSharingIAmForwarder == true))
+    else if ((m_txnSharingIAmSender) && (m_txnSharingIAmForwarder))
     {
         GetMyShardsMicroBlock(blocknum, TxSharingMode::SEND_AND_FORWARD,
                               txns_to_send);

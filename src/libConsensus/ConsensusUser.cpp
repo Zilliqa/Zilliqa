@@ -84,7 +84,7 @@ bool ConsensusUser::ProcessSetLeader(const vector<unsigned char>& message,
 
     m_leaderOrBackup = (leader_id != my_id);
 
-    if (m_leaderOrBackup == false) // Leader
+    if (!m_leaderOrBackup) // Leader
     {
         m_consensus.reset(new ConsensusLeader(
             dummy_consensus_id, dummy_block_hash, my_id, m_selfKey.first,
@@ -232,7 +232,7 @@ bool ConsensusUser::Execute(const vector<unsigned char>& message,
     {
         result = (this->*ins_handlers[ins_byte])(message, offset + 1, from);
 
-        if (result == false)
+        if (!result)
         {
             // To-do: Error recovery
         }

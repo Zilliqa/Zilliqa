@@ -158,7 +158,7 @@ bool Node::VerifyDSBlockCoSignature(const DSBlock& dsblock)
     vector<PubKey> keys;
     for (auto const& kv : *m_mediator.m_DSCommittee)
     {
-        if (B2.at(index) == true)
+        if (B2.at(index))
         {
             keys.emplace_back(kv.first);
             count++;
@@ -185,9 +185,8 @@ bool Node::VerifyDSBlockCoSignature(const DSBlock& dsblock)
     dsblock.GetCS1().Serialize(message, DSBlockHeader::SIZE);
     BitVector::SetBitVector(message, DSBlockHeader::SIZE + BLOCK_SIG_SIZE,
                             dsblock.GetB1());
-    if (Schnorr::GetInstance().Verify(message, 0, message.size(),
-                                      dsblock.GetCS2(), *aggregatedKey)
-        == false)
+    if (!Schnorr::GetInstance().Verify(message, 0, message.size(),
+                                       dsblock.GetCS2(), *aggregatedKey))
     {
         LOG_GENERAL(WARNING, "Cosig verification failed");
         for (auto& kv : keys)
@@ -579,7 +578,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
                       "I lost PoW :-( Better luck next time!");
 
             // Process sharding structure as a shard node
-            if (LoadShardingStructure() == false)
+            if (!LoadShardingStructure())
             {
                 return false;
             }

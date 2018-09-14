@@ -73,7 +73,7 @@ bool ConsensusBackup::ProcessMessageAnnounce(
     // Initial checks
     // ==============
 
-    if (CheckState(PROCESS_ANNOUNCE) == false)
+    if (!CheckState(PROCESS_ANNOUNCE))
     {
         return false;
     }
@@ -115,9 +115,8 @@ bool ConsensusBackup::ProcessMessageAnnounce(
     // 32-byte blockhash
 
     // Check the block hash
-    if (equal(m_blockHash.begin(), m_blockHash.end(),
-              announcement.begin() + curr_offset)
-        == false)
+    if (!equal(m_blockHash.begin(), m_blockHash.end(),
+               announcement.begin() + curr_offset))
     {
         LOG_GENERAL(WARNING,
                     "Block hash in announcement does not match instance "
@@ -165,7 +164,7 @@ bool ConsensusBackup::ProcessMessageAnnounce(
     // Check the message
     std::vector<unsigned char> errorMsg;
     bool msg_valid = m_msgContentValidator(m_message, errorMsg);
-    if (msg_valid == false)
+    if (!msg_valid)
     {
         LOG_GENERAL(WARNING, "Message validation failed");
 
@@ -180,7 +179,7 @@ bool ConsensusBackup::ProcessMessageAnnounce(
                 commitFailureMsg, MessageOffset::BODY + sizeof(unsigned char),
                 errorMsg);
 
-            if (result == true)
+            if (result)
             {
                 // Update internal state
                 // =====================
@@ -211,7 +210,7 @@ bool ConsensusBackup::ProcessMessageAnnounce(
     // Check the signature
     bool sig_valid = VerifyMessage(announcement, offset, curr_offset - offset,
                                    signature, m_leaderID);
-    if (sig_valid == false)
+    if (!sig_valid)
     {
         LOG_GENERAL(WARNING, "Invalid signature in announce message");
         m_state = ERROR;
@@ -227,7 +226,7 @@ bool ConsensusBackup::ProcessMessageAnnounce(
 
     bool result = GenerateCommitMessage(
         commit, MessageOffset::BODY + sizeof(unsigned char));
-    if (result == true)
+    if (result)
     {
         // Update internal state
         // =====================
@@ -317,7 +316,7 @@ bool ConsensusBackup::GenerateCommitMessage(vector<unsigned char>& commit,
     curr_offset += COMMIT_POINT_SIZE;
     // 64-byte signature
     Signature signature = SignMessage(commit, offset, curr_offset - offset);
-    if (signature.Initialized() == false)
+    if (!signature.Initialized())
     {
         LOG_GENERAL(WARNING, "Message signing failed");
         m_state = ERROR;
@@ -336,7 +335,7 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
     // Initial checks
     // ==============
 
-    if (CheckState(action) == false)
+    if (!CheckState(action))
     {
         return false;
     }
@@ -378,9 +377,8 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
     // 32-byte blockhash
 
     // Check the block hash
-    if (equal(m_blockHash.begin(), m_blockHash.end(),
-              challenge.begin() + curr_offset)
-        == false)
+    if (!equal(m_blockHash.begin(), m_blockHash.end(),
+               challenge.begin() + curr_offset))
     {
         LOG_GENERAL(WARNING,
                     "Block hash in challenge does not match instance "
@@ -406,7 +404,7 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
     curr_offset += COMMIT_POINT_SIZE;
 
     // Check the aggregated commit
-    if (aggregated_commit.Initialized() == false)
+    if (!aggregated_commit.Initialized())
     {
         LOG_GENERAL(WARNING, "Invalid aggregated commit received");
         m_state = ERROR;
@@ -418,7 +416,7 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
     curr_offset += PUB_KEY_SIZE;
 
     // Check the aggregated key
-    if (aggregated_key.Initialized() == false)
+    if (!aggregated_key.Initialized())
     {
         LOG_GENERAL(WARNING, "Invalid aggregated key received");
         m_state = ERROR;
@@ -435,7 +433,7 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
     curr_offset += CHALLENGE_SIZE;
 
     // Check the challenge
-    if (m_challenge.Initialized() == false)
+    if (!m_challenge.Initialized())
     {
         LOG_GENERAL(WARNING, "Invalid challenge received");
         m_state = ERROR;
@@ -463,7 +461,7 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
     // Check the signature
     bool sig_valid = VerifyMessage(challenge, offset, curr_offset - offset,
                                    signature, m_leaderID);
-    if (sig_valid == false)
+    if (!sig_valid)
     {
         LOG_GENERAL(WARNING, "Invalid signature in challenge message");
         m_state = ERROR;
@@ -477,7 +475,7 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
         = {m_classByte, m_insByte, static_cast<unsigned char>(returnmsgtype)};
     bool result = GenerateResponseMessage(
         response, MessageOffset::BODY + sizeof(unsigned char));
-    if (result == true)
+    if (result)
     {
 
         // Update internal state
@@ -538,7 +536,7 @@ bool ConsensusBackup::GenerateResponseMessage(vector<unsigned char>& response,
 
     // 64-byte signature
     Signature signature = SignMessage(response, offset, curr_offset - offset);
-    if (signature.Initialized() == false)
+    if (!signature.Initialized())
     {
         LOG_GENERAL(WARNING, "Message signing failed");
         m_state = ERROR;
@@ -557,7 +555,7 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
 
     // Initial checks
     // ==============
-    if (CheckState(action) == false)
+    if (!CheckState(action))
     {
         return false;
     }
@@ -602,9 +600,8 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
     // 32-byte blockhash
 
     // Check the block hash
-    if (equal(m_blockHash.begin(), m_blockHash.end(),
-              collectivesig.begin() + curr_offset)
-        == false)
+    if (!equal(m_blockHash.begin(), m_blockHash.end(),
+               collectivesig.begin() + curr_offset))
     {
         LOG_GENERAL(WARNING,
                     "Block hash in challenge does not match instance "
@@ -649,16 +646,15 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
 
     // Aggregate keys
     PubKey aggregated_key = AggregateKeys(m_responseMap);
-    if (aggregated_key.Initialized() == false)
+    if (!aggregated_key.Initialized())
     {
         LOG_GENERAL(WARNING, "Aggregated key generation failed");
         m_state = ERROR;
         return false;
     }
 
-    if (Schnorr::GetInstance().Verify(m_message, 0, m_lengthToCosign,
-                                      m_collectiveSig, aggregated_key)
-        == false)
+    if (!Schnorr::GetInstance().Verify(m_message, 0, m_lengthToCosign,
+                                       m_collectiveSig, aggregated_key))
     {
         LOG_GENERAL(WARNING, "Collective signature verification failed");
         m_state = ERROR;
@@ -677,7 +673,7 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
     // Check the signature
     bool sig_valid = VerifyMessage(collectivesig, offset, curr_offset - offset,
                                    signature, m_leaderID);
-    if (sig_valid == false)
+    if (!sig_valid)
     {
         LOG_GENERAL(WARNING, "Invalid signature in challenge message");
         m_state = ERROR;
@@ -704,7 +700,7 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
                static_cast<unsigned char>(ConsensusMessageType::FINALCOMMIT)};
         result = GenerateCommitMessage(
             finalcommit, MessageOffset::BODY + sizeof(unsigned char));
-        if (result == true)
+        if (result)
         {
             // Update internal state
             // =====================

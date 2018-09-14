@@ -502,7 +502,7 @@ void DirectoryService::StartFirstTxEpoch()
         }
 
         // Process sharding structure as a shard node
-        if (m_mediator.m_node->LoadShardingStructure() == false)
+        if (!m_mediator.m_node->LoadShardingStructure())
         {
             return;
         }
