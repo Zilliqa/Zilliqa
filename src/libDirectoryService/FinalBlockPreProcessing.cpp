@@ -212,9 +212,6 @@ void DirectoryService::ComposeFinalBlockCore()
         stateRoot = AccountStore::GetInstance().GetStateRootHash();
     }
 
-    // Make sure signature placeholders are of the expected size (in particular, the bitmaps)
-    // This is because backups will save the final block before consensus inside m_finalBlockMessage
-    // Then, m_finalBlockMessage will be updated after consensus (for the cosig values)
     m_finalBlock.reset(new TxBlock(
         TxBlockHeader(type, version, allGasLimit, allGasUsed, prevHash,
                       blockNum, timestamp, microblockTxnTrieRoot, stateRoot,
@@ -296,9 +293,6 @@ vector<unsigned char> DirectoryService::ComposeFinalBlockMessage()
 
     m_finalBlock->Serialize(finalBlockMessage, curr_offset);
 
-    // At this point, cosigs are still not updated inside m_finalBlockMessage
-    // Update will be done in ProcessFinalBlockConsensusWhenDone
-    m_finalBlockMessage = finalBlockMessage;
     return finalBlockMessage;
 }
 
@@ -1147,8 +1141,6 @@ bool DirectoryService::FinalBlockValidator(
                   << DataConversion::charArrToHexStr(
                          m_finalBlock->GetHeader().GetPrevHash().asArray()));
 
-    m_finalBlockMessage = finalblock;
-
     return true;
 }
 
@@ -1245,7 +1237,6 @@ void DirectoryService::RunConsensusOnFinalBlock(bool revertStateDelta)
     if (ConsensusObjCreation)
     {
         SetState(FINALBLOCK_CONSENSUS);
-        cv_finalBlockConsensusObject.notify_all();
     }
 
     auto func1 = [this]() -> void { CommitFinalBlockConsensusBuffer(); };

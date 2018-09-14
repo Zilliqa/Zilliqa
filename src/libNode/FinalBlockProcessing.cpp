@@ -36,6 +36,7 @@
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
 #include "libMediator/Mediator.h"
+#include "libMessage/Messenger.h"
 #include "libPOW/pow.h"
 #include "libServer/Server.h"
 #include "libUtils/BitVector.h"
@@ -49,44 +50,6 @@
 
 using namespace std;
 using namespace boost::multiprecision;
-
-bool Node::ReadAuxilliaryInfoFromFinalBlockMsg(
-    const vector<unsigned char>& message, unsigned int& cur_offset,
-    uint32_t& shard_id)
-{
-    // 8-byte block number
-    uint64_t dsBlockNum = Serializable::GetNumber<uint64_t>(message, cur_offset,
-                                                            sizeof(uint64_t));
-    cur_offset += sizeof(uint64_t);
-
-    // Check block number
-    if (!CheckWhetherDSBlockNumIsLatest(dsBlockNum + 1))
-    {
-        return false;
-    }
-
-    // 4-byte consensus id
-    uint32_t consensusID = Serializable::GetNumber<uint32_t>(
-        message, cur_offset, sizeof(uint32_t));
-    cur_offset += sizeof(uint32_t);
-
-    if (consensusID != m_consensusID)
-    {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Consensus ID is not correct. Expected ID: "
-                      << consensusID << " My Consensus ID: " << m_consensusID);
-        return false;
-    }
-
-    shard_id = Serializable::GetNumber<uint32_t>(message, cur_offset,
-                                                 sizeof(uint32_t));
-    cur_offset += sizeof(uint32_t);
-
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "DEBUG shard id is " << (unsigned int)shard_id)
-
-    return true;
-}
 
 void Node::StoreState()
 {
@@ -414,11 +377,10 @@ void Node::BroadcastTransactionsToLookup(
              back_inserter(forwardtxn_message));
         cur_offset += STATE_HASH_SIZE;
 
-        for (unsigned int i = 0; i < txns_to_send.size(); i++)
+        for (const auto& i : txns_to_send)
         {
             // txn body and receipt
-            cur_offset
-                = txns_to_send.at(i).Serialize(forwardtxn_message, cur_offset);
+            cur_offset = i.Serialize(forwardtxn_message, cur_offset);
         }
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -472,12 +434,11 @@ bool Node::IsMyShardMicroBlockInFinalBlock(const uint64_t& blocknum)
         return false;
     }
 
-    for (auto it2 = m_unavailableMicroBlocks[blocknum].begin();
-         it2 != m_unavailableMicroBlocks[blocknum].end(); it2++)
+    for (auto& it2 : m_unavailableMicroBlocks[blocknum])
     {
-        if (it2->first.m_hash.m_stateDeltaHash
+        if (it2.first.m_hash.m_stateDeltaHash
                 == m_microblock->GetHeader().GetStateDeltaHash()
-            && it2->first.m_hash.m_txRootHash
+            && it2.first.m_hash.m_txRootHash
                 == m_microblock->GetHeader().GetTxRootHash())
         {
             LOG_GENERAL(INFO, "Found my shard microblock in finalblock");
@@ -505,10 +466,9 @@ bool Node::IsMyShardIdInFinalBlock(const uint64_t& blocknum)
         return false;
     }
 
-    for (auto it2 = m_unavailableMicroBlocks[blocknum].begin();
-         it2 != m_unavailableMicroBlocks[blocknum].end(); it2++)
+    for (auto& it2 : m_unavailableMicroBlocks[blocknum])
     {
-        if (it2->first.m_shardID == m_myShardID)
+        if (it2.first.m_shardID == m_myShardID)
         {
             LOG_GENERAL(INFO, "Found my shard ID in finalblock");
             return true;
@@ -545,6 +505,9 @@ void Node::InitiatePoW()
         auto dsBlockRand = m_mediator.m_dsBlockRand;
         auto txBlockRand = m_mediator.m_txBlockRand;
         StartPoW(epochNumber,
+                 m_mediator.m_dsBlockChain.GetLastBlock()
+                     .GetHeader()
+                     .GetDSDifficulty(),
                  m_mediator.m_dsBlockChain.GetLastBlock()
                      .GetHeader()
                      .GetDifficulty(),
@@ -594,7 +557,6 @@ void Node::UpdateStateForNextConsensusRound()
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "MS: Next non-ds epoch begins");
 
-    SetState(MICROBLOCK_CONSENSUS_PREP);
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "[No PoW needed] MS: Start submit txn stage again.");
 }
@@ -629,6 +591,8 @@ void Node::BeginNextConsensusRound()
     UpdateStateForNextConsensusRound();
 
     ScheduleMicroBlockConsensus();
+
+    CommitTxnPacketBuffer();
 }
 
 void Node::GetMyShardsMicroBlock(const uint64_t& blocknum, uint8_t sharing_mode,
@@ -645,10 +609,8 @@ void Node::GetMyShardsMicroBlock(const uint64_t& blocknum, uint8_t sharing_mode,
     LOG_MARKER();
 
     const vector<TxnHash>& tx_hashes = m_microblock->GetTranHashes();
-    for (unsigned i = 0; i < tx_hashes.size(); i++)
+    for (const auto& tx_hash : tx_hashes)
     {
-        const TxnHash& tx_hash = tx_hashes.at(i);
-
         if (!FindTxnInProcessedTxnsList(blocknum, sharing_mode, txns_to_send,
                                         tx_hash))
         {
@@ -828,8 +790,6 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
                              unsigned int offset,
                              [[gnu::unused]] const Peer& from)
 {
-    // Message = [8-byte DS blocknum] [4-byte consensusid] [1-byte shard id]
-    //           [Final block] [Final state delta]
     LOG_MARKER();
 
     if (!LOOKUP_NODE_MODE)
@@ -873,25 +833,36 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
             + 1
         << "] RECEIVED FINAL BLOCK");
 
-    unsigned int cur_offset = offset;
-
-    // Initialize it with maximum number
-    uint32_t shard_id = std::numeric_limits<uint32_t>::max();
-
-    // Reads and checks DS Block number, consensus ID and Shard ID
-    if (!ReadAuxilliaryInfoFromFinalBlockMsg(message, cur_offset, shard_id))
-    {
-        return false;
-    }
-
-    // TxBlock txBlock(message, cur_offset);
+    uint32_t shardID = std::numeric_limits<uint32_t>::max();
+    uint64_t dsBlockNumber = 0;
+    uint32_t consensusID = 0;
     TxBlock txBlock;
-    if (txBlock.Deserialize(message, cur_offset) != 0)
+    vector<unsigned char> stateDelta;
+
+    if (!Messenger::GetNodeFinalBlock(message, offset, shardID, dsBlockNumber,
+                                      consensusID, txBlock, stateDelta))
     {
-        LOG_GENERAL(WARNING, "We failed to deserialize TxBlock.");
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::GetNodeFinalBlock failed.");
         return false;
     }
-    cur_offset += txBlock.GetSerializedSize();
+
+    // Check block number
+    if (!CheckWhetherDSBlockNumIsLatest(dsBlockNumber + 1))
+    {
+        return false;
+    }
+
+    if (consensusID != m_consensusID)
+    {
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Consensus ID is not correct. Expected ID: "
+                      << consensusID << " My Consensus ID: " << m_consensusID);
+        return false;
+    }
+
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "DEBUG shard id is " << (unsigned int)shardID)
 
     LogReceivedFinalBlockDetails(txBlock);
 
@@ -920,7 +891,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     if (!isVacuousEpoch)
     {
         ProcessStateDeltaFromFinalBlock(
-            message, cur_offset, txBlock.GetHeader().GetStateDeltaHash());
+            stateDelta, txBlock.GetHeader().GetStateDeltaHash());
 
         m_isVacuousEpoch = false;
         if (!LoadUnavailableMicroBlockHashes(
@@ -937,6 +908,8 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 
         // Remove because shard nodes will be shuffled in next epoch.
         CleanCreatedTransaction();
+
+        CleanMicroblockConsensusBuffer();
 
         if (!AccountStore::GetInstance().UpdateStateTrieAll())
         {
@@ -956,7 +929,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         }
 
         ProcessStateDeltaFromFinalBlock(
-            message, cur_offset, txBlock.GetHeader().GetStateDeltaHash());
+            stateDelta, txBlock.GetHeader().GetStateDeltaHash());
 
         if (!AccountStore::GetInstance().UpdateStateTrieAll())
         {
@@ -1040,7 +1013,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 }
 
 bool Node::ProcessStateDeltaFromFinalBlock(
-    const vector<unsigned char>& message, unsigned int cur_offset,
+    const vector<unsigned char>& stateDeltaBytes,
     const StateHash& finalBlockStateDeltaHash)
 {
     LOG_MARKER();
@@ -1059,10 +1032,6 @@ bool Node::ProcessStateDeltaFromFinalBlock(
                     "skip processing state delta");
         return true;
     }
-
-    vector<unsigned char> stateDeltaBytes;
-    copy(message.begin() + cur_offset, message.end(),
-         back_inserter(stateDeltaBytes));
 
     if (stateDeltaBytes.empty())
     {

@@ -96,7 +96,6 @@ class Node : public Executable, public Broadcastable
     std::condition_variable cv_processConsensusMessage;
     std::shared_ptr<ConsensusCommon> m_consensusObject;
     std::mutex m_MutexCVMicroblockConsensus;
-    std::condition_variable cv_microblockConsensus;
     std::mutex m_MutexCVMicroblockConsensusObject;
     std::condition_variable cv_microblockConsensusObject;
 
@@ -144,7 +143,12 @@ class Node : public Executable, public Broadcastable
         m_forwardedTxnBuffer;
 
     std::mutex m_mutexTxnPacketBuffer;
-    std::vector<std::vector<unsigned char>> m_txnPacketBuffer;
+    std::unordered_map<uint64_t, std::vector<unsigned char>> m_txnPacketBuffer;
+
+    std::mutex m_mutexMicroBlockConsensusBuffer;
+    std::unordered_map<uint32_t,
+                       std::vector<std::pair<Peer, std::vector<unsigned char>>>>
+        m_microBlockConsensusBuffer;
 
     atomic<bool> m_isVacuousEpoch;
 
@@ -154,12 +158,10 @@ class Node : public Executable, public Broadcastable
     bool ToBlockMessage(unsigned char ins_byte);
 
     // internal calls from ProcessStartPoW1
-    bool ReadVariablesFromStartPoWMessage(const vector<unsigned char>& message,
-                                          unsigned int offset,
-                                          uint64_t& block_num,
-                                          uint8_t& difficulty,
-                                          array<unsigned char, 32>& rand1,
-                                          array<unsigned char, 32>& rand2);
+    bool ReadVariablesFromStartPoWMessage(
+        const vector<unsigned char>& message, unsigned int offset,
+        uint64_t& block_num, uint8_t& dsDifficulty, uint8_t& difficulty,
+        array<unsigned char, 32>& rand1, array<unsigned char, 32>& rand2);
     bool ProcessSubmitMissingTxn(const vector<unsigned char>& message,
                                  unsigned int offset, const Peer& from);
 
@@ -182,10 +184,9 @@ class Node : public Executable, public Broadcastable
                                          const uint64_t& blocknum,
                                          bool& toSendTxnToLookup);
 
-    bool
-    ProcessStateDeltaFromFinalBlock(const vector<unsigned char>& message,
-                                    unsigned int cur_offset,
-                                    const StateHash& finalBlockStateDeltaHash);
+    bool ProcessStateDeltaFromFinalBlock(
+        const vector<unsigned char>& stateDeltaBytes,
+        const StateHash& finalBlockStateDeltaHash);
 
     bool
     RemoveTxRootHashFromUnavailableMicroBlock(const uint64_t& blocknum,
@@ -203,10 +204,7 @@ class Node : public Executable, public Broadcastable
                                               bool& isEveryMicroBlockAvailable);
     bool IsMyShardMicroBlockInFinalBlock(const uint64_t& blocknum);
     bool IsMyShardIdInFinalBlock(const uint64_t& blocknum);
-    bool
-    ReadAuxilliaryInfoFromFinalBlockMsg(const vector<unsigned char>& message,
-                                        unsigned int& cur_offset,
-                                        uint32_t& shard_id);
+
     void StoreState();
     // void StoreMicroBlocks();
     void StoreFinalBlock(const TxBlock& txBlock);
@@ -223,6 +221,8 @@ class Node : public Executable, public Broadcastable
     void CommitForwardedTransactions(
         const vector<TransactionWithReceipt>& txnsInForwardedMessage,
         const uint64_t& blocknum);
+
+    void CommitMicroBlockConsensusBuffer();
 
     void
     DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(const uint64_t& blocknum);
@@ -242,6 +242,8 @@ class Node : public Executable, public Broadcastable
                                   unsigned int offset, const Peer& from);
     bool ProcessMicroblockConsensus(const std::vector<unsigned char>& message,
                                     unsigned int offset, const Peer& from);
+    bool ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
+                                        unsigned int offset, const Peer& from);
     bool ProcessFinalBlock(const std::vector<unsigned char>& message,
                            unsigned int offset, const Peer& from);
     bool ProcessForwardTransaction(const std::vector<unsigned char>& message,
@@ -321,10 +323,9 @@ public:
     enum NodeState : unsigned char
     {
         POW_SUBMISSION = 0x00,
-        MICROBLOCK_CONSENSUS_PREP,
+        WAITING_DSBLOCK,
         MICROBLOCK_CONSENSUS,
         WAITING_FINALBLOCK,
-        ERROR,
         SYNC
     };
 
@@ -337,9 +338,9 @@ public:
 
     std::shared_ptr<std::deque<pair<PubKey, Peer>>> m_myShardMembers;
 
-    std::condition_variable m_cvNewRoundStarted;
-    std::mutex m_mutexNewRoundStarted;
-    bool m_newRoundStarted = false;
+    // std::condition_variable m_cvNewRoundStarted;
+    // std::mutex m_mutexNewRoundStarted;
+    // bool m_newRoundStarted = false;
 
     std::mutex m_mutexIsEveryMicroBlockAvailable;
 
@@ -420,6 +421,8 @@ public:
 
     void CleanCreatedTransaction();
 
+    void CleanMicroblockConsensusBuffer();
+
     void CallActOnFinalblock();
 
     void UpdateStateForNextConsensusRound();
@@ -428,9 +431,17 @@ public:
     void StartSynchronization();
 
     /// Performs PoW mining and submission for DirectoryService committee membership.
-    bool StartPoW(const uint64_t& block_num, uint8_t difficulty,
+    bool StartPoW(const uint64_t& block_num, uint8_t dsDifficulty,
+                  uint8_t difficulty,
                   const std::array<unsigned char, UINT256_SIZE>& rand1,
                   const std::array<unsigned char, UINT256_SIZE>& rand2);
+
+    /// Send PoW soln to DS Commitee
+    bool SendPoWResultToDSComm(const uint64_t& block_num,
+                               const uint8_t& difficultyLevel,
+                               const uint64_t winningNonce,
+                               const std::string& powResultHash,
+                               const std::string& powMixhash);
 
     /// Used by oldest DS node to configure shard ID as a new shard node
     void SetMyShardID(uint32_t shardID);
@@ -445,12 +456,11 @@ public:
     void CommitTxnPacketBuffer();
 
     /// Used by oldest DS node to configure sharding variables as a new shard node
-    bool LoadShardingStructure(const vector<unsigned char>& message,
-                               unsigned int& cur_offset);
+    bool LoadShardingStructure();
 
     /// Used by oldest DS node to configure txn sharing assignments as a new shard node
-    void LoadTxnSharingInfo(const vector<unsigned char>& message,
-                            unsigned int cur_offset);
+
+    void LoadTxnSharingInfo();
 
 private:
     static std::map<NodeState, std::string> NodeStateStrings;

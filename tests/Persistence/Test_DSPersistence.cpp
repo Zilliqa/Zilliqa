@@ -61,7 +61,7 @@ DSBlock constructDummyDSBlock(int instanceNum)
 
     std::pair<PrivKey, PubKey> pubKey1 = Schnorr::GetInstance().GenKeyPair();
 
-    return DSBlock(DSBlockHeader(20, prevHash1, 12345 + instanceNum,
+    return DSBlock(DSBlockHeader(50, 20, prevHash1, 12345 + instanceNum,
                                  pubKey1.first, pubKey1.second, 10, 789,
                                  SWInfo()),
                    CoSignatures());
@@ -354,9 +354,9 @@ BOOST_AUTO_TEST_CASE(testThreadSafety)
     std::cout << "Launched from the main\n";
 
     //Join the threads with the main thread
-    for (int i = 0; i < num_threads; ++i)
+    for (auto& i : t)
     {
-        t[i].join();
+        i.join();
     }
 }
 
