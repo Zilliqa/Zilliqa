@@ -464,10 +464,12 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
 
     if (m_mediator.m_curSWInfo != dsblock.GetHeader().GetSWInfo())
     {
-        auto func = [this]() -> void {
-            UpgradeManager::GetInstance().DownloadSW();
-            m_mediator.m_curSWInfo
-                = *UpgradeManager::GetInstance().GetLatestSWInfo();
+        auto func = [this]() mutable -> void {
+            if (UpgradeManager::GetInstance().DownloadSW())
+            {
+                m_mediator.m_curSWInfo
+                    = *UpgradeManager::GetInstance().GetLatestSWInfo();
+            }
         };
         DetachedFunction(1, func);
     }

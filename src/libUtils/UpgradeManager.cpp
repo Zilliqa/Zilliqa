@@ -283,7 +283,7 @@ bool UpgradeManager::HasNewSW()
 bool UpgradeManager::DownloadSW()
 {
     LOG_MARKER();
-
+    lock_guard<mutex> guard(m_downloadMutex);
     string versionName = DownloadFile(VERSION_FILE_NAME);
 
     if (versionName.empty())

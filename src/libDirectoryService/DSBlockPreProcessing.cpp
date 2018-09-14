@@ -116,9 +116,11 @@ void DirectoryService::ComposeDSBlock(
 
     if (UpgradeManager::GetInstance().HasNewSW())
     {
-        UpgradeManager::GetInstance().DownloadSW();
-        m_mediator.m_curSWInfo
-            = *UpgradeManager::GetInstance().GetLatestSWInfo();
+        if (UpgradeManager::GetInstance().DownloadSW())
+        {
+            m_mediator.m_curSWInfo
+                = *UpgradeManager::GetInstance().GetLatestSWInfo();
+        }
     }
 
     // Assemble DS block
@@ -127,7 +129,7 @@ void DirectoryService::ComposeDSBlock(
     m_pendingDSBlock.reset(new DSBlock(
         DSBlockHeader(dsDifficulty, difficulty, prevHash, 0, winnerKey,
                       m_mediator.m_selfKey.second, blockNum, get_time_as_int(),
-                      *UpgradeManager::GetInstance().GetLatestSWInfo()),
+                      m_mediator.m_curSWInfo),
         CoSignatures(m_mediator.m_DSCommittee->size())));
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "New DSBlock created with winning PoW = 0x"
@@ -675,10 +677,12 @@ bool DirectoryService::DSBlockValidator(
 
     if (m_mediator.m_curSWInfo != m_pendingDSBlock->GetHeader().GetSWInfo())
     {
-        auto func = [this]() -> void {
-            UpgradeManager::GetInstance().DownloadSW();
-            m_mediator.m_curSWInfo
-                = *UpgradeManager::GetInstance().GetLatestSWInfo();
+        auto func = [this]() mutable -> void {
+            if (UpgradeManager::GetInstance().DownloadSW())
+            {
+                m_mediator.m_curSWInfo
+                    = *UpgradeManager::GetInstance().GetLatestSWInfo();
+            }
         };
         DetachedFunction(1, func);
     }
