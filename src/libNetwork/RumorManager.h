@@ -12,8 +12,6 @@
 
 #include "Peer.h"
 
-using namespace RRS;
-
 enum RRSMessageOffset : unsigned int
 {
     R_TYPE = 0,
@@ -32,7 +30,7 @@ private:
     typedef boost::bimap<int, RawBytes> RumorIdRumorBimap;
 
     // MEMBERS
-    std::shared_ptr<RumorHolder> m_rumorHolder;
+    std::shared_ptr<RRS::RumorHolder> m_rumorHolder;
     PeerIdPeerBiMap m_peerIdPeerBimap;
     std::unordered_set<int> m_peerIdSet;
     RumorIdRumorBimap m_rumorIdRumorBimap;
@@ -44,7 +42,8 @@ private:
     bool m_continueRound;
     std::condition_variable m_condStopRound;
 
-    void SendMessages(const Peer& peer, const std::vector<Message>& messages);
+    void SendMessages(const Peer& peer,
+                      const std::vector<RRS::Message>& messages);
 
 public:
     // CREATORS

@@ -218,14 +218,14 @@ namespace RRS
 
         // Construct the push messages
         std::vector<Message> pushMessages;
-        for (auto it = m_rumors.begin(); it != m_rumors.end(); ++it)
+        for (auto& r : m_rumors)
         {
-            RumorStateMachine& stateMach = it->second;
+            RumorStateMachine& stateMach = r.second;
             stateMach.advanceRound(m_peersInCurrentRound);
             if (!stateMach.isOld())
             {
                 pushMessages.emplace_back(
-                    Message(Message::Type::PUSH, it->first, it->second.age()));
+                    Message(Message::Type::PUSH, r.first, r.second.age()));
             }
         }
         increaseStatValue(StatisticKey::NumPushMessages, pushMessages.size());
