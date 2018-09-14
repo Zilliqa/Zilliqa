@@ -314,6 +314,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
             == (((m_mediator.m_currentEpochNum + 1) / NUM_FINAL_BLOCK_PER_POW)
                 + 2))
         {
+            m_mediator.UpdateDSBlockRand();
+            m_mediator.UpdateTxBlockRand();
             UpgradeManager::GetInstance().ReplaceNode(m_mediator);
         }
     }
