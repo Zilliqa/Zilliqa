@@ -937,7 +937,10 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         {
             m_mediator.UpdateDSBlockRand();
             m_mediator.UpdateTxBlockRand();
-            UpgradeManager::GetInstance().ReplaceNode(m_mediator);
+            auto func = [this]() mutable -> void {
+                UpgradeManager::GetInstance().ReplaceNode(m_mediator);
+            };
+            DetachedFunction(1, func);
         }
     }
 
