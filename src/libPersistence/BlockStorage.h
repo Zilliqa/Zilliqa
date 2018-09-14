@@ -55,7 +55,7 @@ class BlockStorage : public Singleton<BlockStorage>
     };
     ~BlockStorage() = default;
     bool PutBlock(const uint64_t& blockNum,
-                  const std::vector<unsigned char>& block,
+                  const std::vector<unsigned char>& body,
                   const BlockType& blockType);
 
 public:
@@ -83,11 +83,11 @@ public:
 
     /// Adds a DS block to storage.
     bool PutDSBlock(const uint64_t& blockNum,
-                    const std::vector<unsigned char>& block);
+                    const std::vector<unsigned char>& body);
 
     /// Adds a Tx block to storage.
     bool PutTxBlock(const uint64_t& blockNum,
-                    const std::vector<unsigned char>& block);
+                    const std::vector<unsigned char>& body);
 
     // /// Adds a micro block to storage.
     // bool PutMicroBlock(const dev::h256 & key, const std::vector<unsigned char> & block);
@@ -97,10 +97,10 @@ public:
                    const std::vector<unsigned char>& body);
 
     /// Retrieves the requested DS block.
-    bool GetDSBlock(const uint64_t& blocknum, DSBlockSharedPtr& block);
+    bool GetDSBlock(const uint64_t& blockNum, DSBlockSharedPtr& block);
 
     /// Retrieves the requested Tx block.
-    bool GetTxBlock(const uint64_t& blocknum, TxBlockSharedPtr& block);
+    bool GetTxBlock(const uint64_t& blockNum, TxBlockSharedPtr& block);
 
     // /// Retrieves the requested Micro block
     // bool GetMicroBlock(const dev::h256 & key, MicroBlockSharedPtr & block);

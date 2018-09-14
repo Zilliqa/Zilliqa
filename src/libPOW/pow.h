@@ -112,7 +112,7 @@ private:
                                              ethash_h256_t const& header_hash,
                                              uint64_t nonce);
     ethash_full_t EthashFullNew(ethash_light_t& light,
-                                ethash_callback_t& callback);
+                                ethash_callback_t& CallBack);
     void EthashFullDelete(ethash_full_t& full);
     ethash_return_value_t EthashFullCompute(ethash_full_t& full,
                                             ethash_h256_t const& header_hash,
@@ -128,12 +128,10 @@ private:
                                        uint8_t difficulty);
     bool VerifyLight(ethash_light_t& light, ethash_h256_t const& header_hash,
                      uint64_t winning_nonce, ethash_h256_t& difficulty,
-                     ethash_h256_t& winning_result,
-                     ethash_h256_t& winning_mixhash);
+                     ethash_h256_t& result, ethash_h256_t& mixhash);
     bool VerifyFull(ethash_full_t& full, ethash_h256_t const& header_hash,
                     uint64_t winning_nonce, ethash_h256_t& difficulty,
-                    ethash_h256_t& winning_result,
-                    ethash_h256_t& winning_mixhash);
+                    ethash_h256_t& result, ethash_h256_t& mixhash);
     void InitOpenCL();
     void InitCUDA();
 };
