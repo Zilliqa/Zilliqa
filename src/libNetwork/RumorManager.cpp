@@ -12,20 +12,20 @@ namespace
 {
     const std::chrono::milliseconds ROUND_TIME(500);
 
-    Message::Type convertType(uint8_t type)
+    RRS::Message::Type convertType(uint8_t type)
     {
         switch (type)
         {
         case 1:
-            return Message::Type::PUSH;
+            return RRS::Message::Type::PUSH;
         case 2:
-            return Message::Type::PULL;
+            return RRS::Message::Type::PULL;
         case 3:
-            return Message::Type::EMPTY_PUSH;
+            return RRS::Message::Type::EMPTY_PUSH;
         case 4:
-            return Message::Type::EMPTY_PULL;
+            return RRS::Message::Type::EMPTY_PULL;
         default:
-            return Message::Type::UNDEFINED;
+            return RRS::Message::Type::UNDEFINED;
         }
     }
 
@@ -60,7 +60,7 @@ void RumorManager::startRounds()
             { // critical section
                 std::lock_guard<std::mutex> guard(m_mutex);
                 LOG_MARKER();
-                std::pair<int, std::vector<Message>> result
+                std::pair<int, std::vector<RRS::Message>> result
                     = m_rumorHolder->advanceRound();
 
                 // Get the corresponding Peer to which to send Push Messages if any.
@@ -114,7 +114,7 @@ void RumorManager::Initialize(const std::vector<Peer>& peers,
     }
 
     // Now create the one and only RumorHolder
-    m_rumorHolder.reset(new RumorHolder(m_peerIdSet, 0));
+    m_rumorHolder.reset(new RRS::RumorHolder(m_peerIdSet, 0));
 }
 
 bool RumorManager::addRumor(const RumorManager::RawBytes& message)
@@ -154,14 +154,15 @@ bool RumorManager::rumorReceived(uint8_t type, int32_t round,
     }
 
     int64_t recvdRumorId = -1;
-    Message::Type t = convertType(type);
+    RRS::Message::Type t = convertType(type);
     bool toBeDispatched = false;
-    if (t == Message::Type::EMPTY_PUSH || t == Message::Type::EMPTY_PULL)
+    if (t == RRS::Message::Type::EMPTY_PUSH
+        || t == RRS::Message::Type::EMPTY_PULL)
     {
         /* Don't add it to local RumorMap because it's not the rumor itself */
         LOG_GENERAL(INFO,
                     "Received empty message of type: "
-                        << Message::s_enumKeyToString[t]);
+                        << RRS::Message::s_enumKeyToString[t]);
     }
     else
     {
@@ -185,10 +186,10 @@ bool RumorManager::rumorReceived(uint8_t type, int32_t round,
         }
     }
 
-    Message recvMsg(t, recvdRumorId, round);
+    RRS::Message recvMsg(t, recvdRumorId, round);
 
     int peerId = p->second;
-    std::pair<int, std::vector<Message>> pullMsgs
+    std::pair<int, std::vector<RRS::Message>> pullMsgs
         = m_rumorHolder->receivedMessage(recvMsg, peerId);
 
     // Get the corresponding Peer to which to send Pull Messages if any.
@@ -204,7 +205,7 @@ bool RumorManager::rumorReceived(uint8_t type, int32_t round,
 }
 
 void RumorManager::SendMessages(const Peer& toPeer,
-                                const std::vector<Message>& messages)
+                                const std::vector<RRS::Message>& messages)
 {
     LOG_MARKER();
 
