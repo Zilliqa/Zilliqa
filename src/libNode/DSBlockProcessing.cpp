@@ -299,10 +299,9 @@ void Node::LoadTxnSharingInfo()
 
     m_txnSharingAssignedNodes.emplace_back();
 
-    for (unsigned int i = 0; i < m_mediator.m_ds->m_DSReceivers.size(); i++)
+    for (auto& m_DSReceiver : m_mediator.m_ds->m_DSReceivers)
     {
-        m_txnSharingAssignedNodes.back().emplace_back(
-            m_mediator.m_ds->m_DSReceivers.at(i));
+        m_txnSharingAssignedNodes.back().emplace_back(m_DSReceiver);
     }
 
     for (unsigned int i = 0; i < m_mediator.m_ds->m_shardReceivers.size(); i++)
