@@ -40,7 +40,7 @@ class ShardingStructure
 
 public:
     static unsigned int
-    Serialize(const std::vector<std::map<PubKey, Peer>>& shards,
+    Serialize(const std::vector<std::vector<std::pair<PubKey, Peer>>>& shards,
               std::vector<unsigned char>& output, unsigned int cur_offset)
     {
         LOG_MARKER();
@@ -56,7 +56,7 @@ public:
 
         for (unsigned int i = 0; i < numOfComms; i++)
         {
-            const std::map<PubKey, Peer>& shard = shards.at(i);
+            const std::vector<std::pair<PubKey, Peer>>& shard = shards.at(i);
 
             // 4-byte committee size
             Serializable::SetNumber<uint32_t>(output, cur_offset, shard.size(),
@@ -89,9 +89,10 @@ public:
         return cur_offset;
     }
 
-    static unsigned int Deserialize(const std::vector<unsigned char>& input,
-                                    unsigned int cur_offset,
-                                    std::vector<std::map<PubKey, Peer>>& shards)
+    static unsigned int
+    Deserialize(const std::vector<unsigned char>& input,
+                unsigned int cur_offset,
+                std::vector<std::vector<std::pair<PubKey, Peer>>>& shards)
     {
         LOG_MARKER();
 
@@ -122,7 +123,8 @@ public:
                 Peer memberPeer(input, cur_offset);
                 cur_offset += IP_SIZE + PORT_SIZE;
 
-                shards.back().emplace(memberPubkey, memberPeer);
+                shards.back().emplace_back(
+                    std::make_pair(memberPubkey, memberPeer));
 
                 LOG_GENERAL(
                     INFO,
@@ -185,11 +187,11 @@ public:
             output, cur_offset, ds_receivers.size(), sizeof(uint32_t));
         cur_offset += sizeof(uint32_t);
 
-        for (unsigned int i = 0; i < ds_receivers.size(); i++)
+        for (const auto& ds_receiver : ds_receivers)
         {
             // [16-byte IP] [4-byte port]
-            ds_receivers.at(i).Serialize(output, cur_offset);
-            LOG_GENERAL(INFO, ds_receivers.at(i));
+            ds_receiver.Serialize(output, cur_offset);
+            LOG_GENERAL(INFO, ds_receiver);
             cur_offset += IP_SIZE + PORT_SIZE;
         }
 
@@ -210,13 +212,13 @@ public:
                 output, cur_offset, shard_x_receivers.size(), sizeof(uint32_t));
             cur_offset += sizeof(uint32_t);
 
-            for (unsigned int j = 0; j < shard_x_receivers.size(); j++)
+            for (const auto& shard_x_receiver : shard_x_receivers)
             {
                 // [16-byte IP] [4-byte port]
-                shard_x_receivers.at(j).Serialize(output, cur_offset);
+                shard_x_receiver.Serialize(output, cur_offset);
                 cur_offset += IP_SIZE + PORT_SIZE;
 
-                LOG_GENERAL(INFO, shard_x_receivers.at(j));
+                LOG_GENERAL(INFO, shard_x_receiver);
             }
 
             const std::vector<Peer>& shard_x_senders = shard_senders.at(i);
@@ -227,13 +229,13 @@ public:
                 output, cur_offset, shard_x_senders.size(), sizeof(uint32_t));
             cur_offset += sizeof(uint32_t);
 
-            for (unsigned int j = 0; j < shard_x_senders.size(); j++)
+            for (const auto& shard_x_sender : shard_x_senders)
             {
                 // [16-byte IP] [4-byte port]
-                shard_x_senders.at(j).Serialize(output, cur_offset);
+                shard_x_sender.Serialize(output, cur_offset);
                 cur_offset += IP_SIZE + PORT_SIZE;
 
-                LOG_GENERAL(INFO, shard_x_senders.at(j));
+                LOG_GENERAL(INFO, shard_x_sender);
             }
         }
 

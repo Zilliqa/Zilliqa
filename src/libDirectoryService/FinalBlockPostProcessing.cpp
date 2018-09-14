@@ -28,6 +28,7 @@
 #include "depends/libTrie/TrieHash.h"
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
+#include "libMessage/Messenger.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -86,45 +87,20 @@ bool DirectoryService::SendFinalBlockToLookupNodes()
     vector<unsigned char> finalblock_message
         = {MessageType::NODE, NodeInstructionType::FINALBLOCK};
 
-    unsigned int curr_offset = MessageOffset::BODY;
+    const uint64_t dsBlockNumber
+        = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
     vector<unsigned char> stateDelta;
     AccountStore::GetInstance().GetSerializedDelta(stateDelta);
 
-    finalblock_message.resize(finalblock_message.size() + sizeof(uint64_t)
-                              + sizeof(uint32_t) + sizeof(uint32_t)
-                              + m_finalBlockMessage.size() + stateDelta.size());
-
-    // Finalblock
-    copy(m_finalBlockMessage.begin(), m_finalBlockMessage.end(),
-         finalblock_message.begin() + MessageOffset::BODY + sizeof(uint64_t)
-             + sizeof(uint32_t) + sizeof(uint32_t));
-
-    // State delta
-    copy(stateDelta.begin(), stateDelta.end(),
-         finalblock_message.begin() + MessageOffset::BODY + sizeof(uint64_t)
-             + sizeof(uint32_t) + sizeof(uint32_t)
-             + m_finalBlockMessage.size());
-
-    // 8-byte DS blocknum
-    uint64_t dsBlockNum
-        = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
-    Serializable::SetNumber<uint64_t>(finalblock_message, curr_offset,
-                                      dsBlockNum, sizeof(uint64_t));
-    curr_offset += sizeof(uint64_t);
-
-    // 4-byte consensusid
-    Serializable::SetNumber<uint32_t>(finalblock_message, curr_offset,
-                                      m_consensusID, sizeof(uint32_t));
-    curr_offset += sizeof(uint32_t);
-
-    // always setting shard id to 0 -- shouldn't matter
-    Serializable::SetNumber<uint32_t>(finalblock_message, curr_offset,
-                                      (uint32_t)0, sizeof(uint32_t));
-    curr_offset += sizeof(uint32_t);
-
-    // copy(m_finalBlockMessage.begin(), m_finalBlockMessage.end(),
-    //      finalblock_message.begin() + curr_offset);
+    if (!Messenger::SetNodeFinalBlock(finalblock_message, MessageOffset::BODY,
+                                      0, dsBlockNumber, m_consensusID,
+                                      *m_finalBlock, stateDelta))
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::SetNodeFinalBlock failed.");
+        return false;
+    }
 
     m_mediator.m_lookup->SendMessageToLookupNodes(finalblock_message);
 
@@ -197,92 +173,70 @@ void DirectoryService::SendFinalBlockToShardNodes(
     // Too few target shards - avoid asking all DS clusters to send
     LOG_MARKER();
 
-    if ((my_DS_cluster_num + 1) <= m_shards.size())
+    if ((my_DS_cluster_num + 1) > m_shards.size())
     {
+        return;
+    }
+
+    const uint64_t dsBlockNumber
+        = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+
+    vector<unsigned char> stateDelta;
+    AccountStore::GetInstance().GetSerializedDelta(stateDelta);
+
+    auto p = m_shards.begin();
+    advance(p, my_shards_lo);
+
+    for (unsigned int shardID = my_shards_lo; shardID <= my_shards_hi;
+         shardID++)
+    {
+        vector<Peer> shard_peers;
+
+        for (auto& kv : *p)
+        {
+            shard_peers.emplace_back(kv.second);
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      " PubKey: "
+                          << DataConversion::SerializableToHexStr(kv.first)
+                          << " IP: " << kv.second.GetPrintableIPAddress()
+                          << " Port: " << kv.second.m_listenPortHost);
+        }
+
         vector<unsigned char> finalblock_message
             = {MessageType::NODE, NodeInstructionType::FINALBLOCK};
 
-        unsigned int curr_offset = MessageOffset::BODY;
-
-        vector<unsigned char> stateDelta;
-        AccountStore::GetInstance().GetSerializedDelta(stateDelta);
-
-        finalblock_message.resize(finalblock_message.size() + sizeof(uint64_t)
-                                  + sizeof(uint32_t) + sizeof(uint32_t)
-                                  + m_finalBlockMessage.size()
-                                  + stateDelta.size());
-
-        // Finalblock
-        copy(m_finalBlockMessage.begin(), m_finalBlockMessage.end(),
-             finalblock_message.begin() + MessageOffset::BODY + sizeof(uint64_t)
-                 + sizeof(uint32_t) + sizeof(uint32_t));
-
-        // State delta
-        copy(stateDelta.begin(), stateDelta.end(),
-             finalblock_message.begin() + MessageOffset::BODY + sizeof(uint64_t)
-                 + sizeof(uint32_t) + sizeof(uint32_t)
-                 + m_finalBlockMessage.size());
-
-        // 8-byte DS blocknum
-        uint64_t DSBlockNum = m_mediator.m_dsBlockChain.GetLastBlock()
-                                  .GetHeader()
-                                  .GetBlockNum();
-        Serializable::SetNumber<uint64_t>(finalblock_message, curr_offset,
-                                          DSBlockNum, sizeof(uint64_t));
-        curr_offset += sizeof(uint64_t);
-
-        // 4-byte consensusid
-        Serializable::SetNumber<uint32_t>(finalblock_message, curr_offset,
-                                          m_consensusID, sizeof(uint32_t));
-        curr_offset += sizeof(uint32_t);
-
-        auto p = m_shards.begin();
-        advance(p, my_shards_lo);
-
-        for (unsigned int i = my_shards_lo; i <= my_shards_hi; i++)
+        if (!Messenger::SetNodeFinalBlock(
+                finalblock_message, MessageOffset::BODY, shardID, dsBlockNumber,
+                m_consensusID, *m_finalBlock, stateDelta))
         {
-            vector<Peer> shard_peers;
-
-            for (auto& kv : *p)
-            {
-                shard_peers.emplace_back(kv.second);
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          " PubKey: "
-                              << DataConversion::SerializableToHexStr(kv.first)
-                              << " IP: " << kv.second.GetPrintableIPAddress()
-                              << " Port: " << kv.second.m_listenPortHost);
-            }
-
-            // Modify the shard id part of the message
-            Serializable::SetNumber<uint32_t>(finalblock_message, curr_offset,
-                                              (uint32_t)i, sizeof(uint32_t));
-
-            SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
-            sha256.Update(finalblock_message);
-            vector<unsigned char> this_msg_hash = sha256.Finalize();
-            LOG_STATE(
-                "[INFOR]["
-                << setw(15) << left
-                << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-                << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6)
-                << "]["
-                << DataConversion::charArrToHexStr(m_mediator.m_dsBlockRand)
-                       .substr(0, 6)
-                << "]["
-                << m_mediator.m_txBlockChain.GetLastBlock()
-                        .GetHeader()
-                        .GetBlockNum()
-                    + 1
-                << "] FBBLKGEN");
-
-            P2PComm::GetInstance().SendBroadcastMessage(shard_peers,
-                                                        finalblock_message);
-
-            p++;
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Messenger::SetNodeFinalBlock failed.");
+            return;
         }
-    }
 
-    m_finalBlockMessage.clear();
+        SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
+        sha256.Update(finalblock_message);
+        vector<unsigned char> this_msg_hash = sha256.Finalize();
+        LOG_STATE(
+            "[INFOR]["
+            << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
+            << "]["
+            << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6)
+            << "]["
+            << DataConversion::charArrToHexStr(m_mediator.m_dsBlockRand)
+                   .substr(0, 6)
+            << "]["
+            << m_mediator.m_txBlockChain.GetLastBlock()
+                    .GetHeader()
+                    .GetBlockNum()
+                + 1
+            << "] FBBLKGEN");
+
+        P2PComm::GetInstance().SendBroadcastMessage(shard_peers,
+                                                    finalblock_message);
+
+        p++;
+    }
 }
 
 // void DirectoryService::StoreMicroBlocksToDisk()
@@ -334,11 +288,6 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
 
     // Update the final block with the co-signatures from the consensus
     m_finalBlock->SetCoSignatures(*m_consensusObject);
-
-    // Update m_finalBlockMessage too
-    unsigned int cosigOffset = m_finalBlock->GetSerializedSize()
-        - ((BlockBase)(*m_finalBlock)).GetSerializedSize();
-    ((BlockBase)(*m_finalBlock)).Serialize(m_finalBlockMessage, cosigOffset);
 
     //Coinbase
     SaveCoinbase(m_finalBlock->GetB1(), m_finalBlock->GetB2(), -1);
@@ -415,6 +364,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
     AccountStore::GetInstance().InitTemp();
     m_stateDeltaFromShards.clear();
     m_allPoWConns.clear();
+    ClearDSPoWSolns();
+    ResetPoWSubmissionCounter();
 
     auto func = [this]() mutable -> void {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -424,7 +375,11 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "[PoW needed]");
 
+            CleanFinalblockConsensusBuffer();
+
             m_mediator.m_node->CleanCreatedTransaction();
+
+            m_mediator.m_node->CleanMicroblockConsensusBuffer();
 
             SetState(POW_SUBMISSION);
             cv_POWSubmission.notify_all();
@@ -494,6 +449,11 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "[No PoW needed] Waiting for Microblock.");
 
+            auto func1 = [this]() mutable -> void {
+                m_mediator.m_node->CommitTxnPacketBuffer();
+            };
+            DetachedFunction(1, func1);
+
             CommitMBSubmissionMsgBuffer();
 
             std::unique_lock<std::mutex> cv_lk(
@@ -506,12 +466,12 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
                             "Timeout: Didn't receive all Microblock. Proceeds "
                             "without it");
 
-                auto func1 = [this]() mutable -> void {
+                auto func2 = [this]() mutable -> void {
                     m_dsStartedMicroblockConsensus = true;
                     m_mediator.m_node->RunConsensusOnMicroBlock();
                 };
 
-                DetachedFunction(1, func1);
+                DetachedFunction(1, func2);
 
                 std::unique_lock<std::mutex> cv_lk(
                     m_MutexScheduleFinalBlockConsensus);
@@ -548,39 +508,76 @@ bool DirectoryService::ProcessFinalBlockConsensus(
 
     LOG_MARKER();
 
-    if ((m_state == MICROBLOCK_SUBMISSION)
-        || (m_state == FINALBLOCK_CONSENSUS_PREP)
-        || (m_state == VIEWCHANGE_CONSENSUS))
+    // check size
+    if (IsMessageSizeInappropriate(message.size(), offset,
+                                   sizeof(unsigned char) + sizeof(uint32_t)
+                                       + BLOCK_HASH_SIZE + sizeof(uint16_t)))
     {
-        /*std::unique_lock<std::mutex> cv_lkObject(
-            m_MutexCVFinalBlockConsensusObject);
+        return false;
+    }
 
-        if (cv_finalBlockConsensusObject.wait_for(
-                cv_lkObject,
-                std::chrono::seconds(FINALBLOCK_CONSENSUS_OBJECT_TIMEOUT))
-            == std::cv_status::timeout)
-        {
-            LOG_EPOCH(WARNING,
-                      to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Time out while waiting for state transition and "
-                      "consensus object creation ");
-        }*/
+    uint32_t consensus_id = Serializable::GetNumber<uint32_t>(
+        message, offset + sizeof(unsigned char), sizeof(uint32_t));
+
+    if (m_state != FINALBLOCK_CONSENSUS)
+    {
         lock_guard<mutex> h(m_mutexFinalBlockConsensusBuffer);
 
-        m_FinalBlockConsensusBuffer[m_mediator.m_currentEpochNum].push_back(
+        m_finalBlockConsensusBuffer[consensus_id].push_back(
             make_pair(from, message));
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Process Final block arrived earlier, saved to buffer");
-
-        return false;
+                  "Process final block arrived earlier, saved to buffer");
     }
     else
     {
-        return ProcessFinalBlockConsensusCore(message, offset, from);
+        if (consensus_id < m_consensusID)
+        {
+            LOG_GENERAL(WARNING,
+                        "Consensus ID in message ("
+                            << consensus_id << ") is smaller than current ("
+                            << m_consensusID << ")");
+            return false;
+        }
+        else if (consensus_id > m_consensusID)
+        {
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Buffer final block with larger consensus ID ("
+                          << consensus_id << "), current (" << m_consensusID
+                          << ")");
+
+            lock_guard<mutex> h(m_mutexFinalBlockConsensusBuffer);
+
+            m_finalBlockConsensusBuffer[consensus_id].push_back(
+                make_pair(from, message));
+        }
+        else
+        {
+            return ProcessFinalBlockConsensusCore(message, offset, from);
+        }
     }
 
     return true;
+}
+
+void DirectoryService::CommitFinalBlockConsensusBuffer()
+{
+    lock_guard<mutex> g(m_mutexFinalBlockConsensusBuffer);
+
+    for (const auto& i : m_finalBlockConsensusBuffer[m_consensusID])
+    {
+        auto runconsensus = [this, i]() {
+            ProcessFinalBlockConsensusCore(i.second, MessageOffset::BODY,
+                                           i.first);
+        };
+        DetachedFunction(1, runconsensus);
+    }
+}
+
+void DirectoryService::CleanFinalblockConsensusBuffer()
+{
+    lock_guard<mutex> g(m_mutexFinalBlockConsensusBuffer);
+    m_finalBlockConsensusBuffer.clear();
 }
 
 bool DirectoryService::ProcessFinalBlockConsensusCore(
@@ -589,22 +586,11 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
 {
     LOG_MARKER();
 
-    // Consensus messages must be processed in correct sequence as they come in
-    // It is possible for ANNOUNCE to arrive before correct DS state
-    // In that case, ANNOUNCE will sleep for a second below
-    // If COLLECTIVESIG also comes in, it's then possible COLLECTIVESIG will be processed before ANNOUNCE!
-    // So, ANNOUNCE should acquire a lock here
+    if (!CheckState(PROCESS_FINALBLOCKCONSENSUS))
     {
-        lock_guard<mutex> g(m_mutexConsensus);
-
-        // Wait until in the case that primary sent announcement pretty early
-
-        if (!CheckState(PROCESS_FINALBLOCKCONSENSUS))
-        {
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Ignoring consensus message. I am at state " << m_state);
-            return false;
-        }
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Ignoring consensus message. I am at state " << m_state);
+        return false;
     }
 
     // Consensus messages must be processed in correct sequence as they come in
@@ -713,16 +699,4 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
         cv_processConsensusMessage.notify_all();
     }
     return true;
-}
-
-void DirectoryService::CommitFinalBlockConsensusBuffer()
-{
-    lock_guard<mutex> g(m_mutexFinalBlockConsensusBuffer);
-
-    for (auto& i : m_FinalBlockConsensusBuffer[m_mediator.m_currentEpochNum])
-    {
-        ProcessFinalBlockConsensusCore(i.second, MessageOffset::BODY, i.first);
-    }
-
-    m_FinalBlockConsensusBuffer.clear();
 }

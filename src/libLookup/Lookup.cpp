@@ -512,18 +512,18 @@ bool Lookup::SetDSCommitteInfo()
     return true;
 }
 
-vector<map<PubKey, Peer>> Lookup::GetShardPeers()
+vector<vector<pair<PubKey, Peer>>> Lookup::GetShardPeers()
 {
     if (!LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
                     "Lookup::GetShardPeers not expected to be called from "
                     "other than the LookUp node.");
-        return vector<map<PubKey, Peer>>();
+        return vector<vector<pair<PubKey, Peer>>>();
     }
 
     lock_guard<mutex> g(m_mutexShards);
-    return m_shards;
+    return m_mediator.m_ds->m_shards;
 }
 
 vector<Peer> Lookup::GetNodePeers()
@@ -540,9 +540,7 @@ vector<Peer> Lookup::GetNodePeers()
     return m_nodesInNetwork;
 }
 
-bool Lookup::ProcessEntireShardingStructure(
-    const vector<unsigned char>& message, unsigned int offset,
-    [[gnu::unused]] const Peer& from)
+bool Lookup::ProcessEntireShardingStructure()
 {
     if (!LOOKUP_NODE_MODE)
     {
@@ -560,17 +558,13 @@ bool Lookup::ProcessEntireShardingStructure(
     lock_guard<mutex> g(m_mutexShards, adopt_lock);
     lock_guard<mutex> h(m_mutexNodesInNetwork, adopt_lock);
 
-    m_shards.clear();
-
-    ShardingStructure::Deserialize(message, offset, m_shards);
-
     m_nodesInNetwork.clear();
     unordered_set<Peer> t_nodesInNetwork;
 
-    for (unsigned int i = 0; i < m_shards.size(); i++)
+    for (unsigned int i = 0; i < m_mediator.m_ds->m_shards.size(); i++)
     {
         unsigned int index = 0;
-        for (auto& j : m_shards.at(i))
+        for (auto& j : m_mediator.m_ds->m_shards.at(i))
         {
             const PubKey& key = j.first;
             const Peer& peer = j.second;
@@ -741,13 +735,13 @@ bool Lookup::ProcessGetDSInfoFromSeed(const vector<unsigned char>& message,
                                           sizeof(uint32_t));
         curr_offset += sizeof(uint32_t);
 
-        for (unsigned int i = 0; i < m_mediator.m_DSCommittee->size(); i++)
+        for (auto& i : *m_mediator.m_DSCommittee)
         {
-            PubKey& pubKey = m_mediator.m_DSCommittee->at(i).first;
+            PubKey& pubKey = i.first;
             pubKey.Serialize(dsInfoMessage, curr_offset);
             curr_offset += (PUB_KEY_SIZE);
 
-            Peer& peer = m_mediator.m_DSCommittee->at(i).second;
+            Peer& peer = i.second;
             peer.Serialize(dsInfoMessage, curr_offset);
             curr_offset += (IP_SIZE + PORT_SIZE);
 
@@ -1781,6 +1775,9 @@ bool Lookup::InitMining()
             m_mediator.m_node->StartPoW(curDsBlockNum + 1,
                                         m_mediator.m_dsBlockChain.GetLastBlock()
                                             .GetHeader()
+                                            .GetDSDifficulty(),
+                                        m_mediator.m_dsBlockChain.GetLastBlock()
+                                            .GetHeader()
                                             .GetDifficulty(),
                                         dsBlockRand, txBlockRand);
         }
@@ -1952,9 +1949,8 @@ bool Lookup::ProcessGetOfflineLookups(const std::vector<unsigned char>& message,
                                           sizeof(uint32_t));
         curr_offset += sizeof(uint32_t);
 
-        for (unsigned int i = 0; i < m_lookupNodesOffline.size(); i++)
+        for (auto& peer : m_lookupNodesOffline)
         {
-            Peer& peer = m_lookupNodesOffline.at(i);
             peer.Serialize(offlineLookupsMessage, curr_offset);
             curr_offset += (IP_SIZE + PORT_SIZE);
 
@@ -2410,7 +2406,7 @@ bool Lookup::CleanVariables()
     m_isFirstLoop = true;
     {
         std::lock_guard<mutex> lock(m_mutexShards);
-        m_shards.clear();
+        m_mediator.m_ds->m_shards.clear();
     }
     {
         std::lock_guard<mutex> lock(m_mutexNodesInNetwork);
@@ -2617,7 +2613,7 @@ void Lookup::SenderTxnBatchThread()
             {
                 {
                     lock_guard<mutex> g(m_mutexShards);
-                    nShard = m_shards.size();
+                    nShard = m_mediator.m_ds->m_shards.size();
                 }
                 if (nShard == 0)
                 {
@@ -2724,10 +2720,10 @@ void Lookup::SendTxnPacketToNodes(uint32_t nShard)
 
             {
                 lock_guard<mutex> g(m_mutexShards);
-                auto it = m_shards.at(i).begin();
+                auto it = m_mediator.m_ds->m_shards.at(i).begin();
 
-                for (unsigned int j = 0;
-                     j < NUM_NODES_TO_SEND_LOOKUP && it != m_shards.at(i).end();
+                for (unsigned int j = 0; j < NUM_NODES_TO_SEND_LOOKUP
+                     && it != m_mediator.m_ds->m_shards.at(i).end();
                      j++, it++)
                 {
                     toSend.push_back(it->second);

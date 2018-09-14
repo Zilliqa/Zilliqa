@@ -25,11 +25,12 @@
 #include "common/Serializable.h"
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Transaction.h"
-#include "libUtils/UpgradeManager.h"
+#include "libUtils/SWInfo.h"
 
 /// Stores information on the header part of the DS block.
 class DSBlockHeader : public BlockHeaderBase
 {
+    uint8_t m_dsDifficulty; // Number of PoW leading zeros
     uint8_t m_difficulty; // Number of PoW leading zeros
     BlockHash m_prevHash; // Hash of the previous block
     boost::multiprecision::uint256_t
@@ -41,18 +42,19 @@ class DSBlockHeader : public BlockHeaderBase
     SWInfo m_swInfo;
 
 public:
-    static const unsigned int SIZE = sizeof(uint8_t) + BLOCK_HASH_SIZE
-        + UINT256_SIZE + PUB_KEY_SIZE + PUB_KEY_SIZE + sizeof(uint64_t)
-        + UINT256_SIZE + SWInfo::SIZE;
+    static const unsigned int SIZE = sizeof(uint8_t) + sizeof(uint8_t)
+        + BLOCK_HASH_SIZE + UINT256_SIZE + PUB_KEY_SIZE + PUB_KEY_SIZE
+        + sizeof(uint64_t) + UINT256_SIZE + SWInfo::SIZE;
 
     /// Default constructor.
-    DSBlockHeader(); // creates a dummy invalid placeholder BlockHeader -- blocknum is maxsize of uint256
+    DSBlockHeader(); // creates a dummy invalid placeholder BlockHeader
 
     /// Constructor for loading DS block header information from a byte stream.
     DSBlockHeader(const std::vector<unsigned char>& src, unsigned int offset);
 
     /// Constructor with specified DS block header parameters.
-    DSBlockHeader(const uint8_t difficulty, const BlockHash& prevHash,
+    DSBlockHeader(const uint8_t dsDifficulty, const uint8_t difficulty,
+                  const BlockHash& prevHash,
                   const boost::multiprecision::uint256_t& nonce,
                   const PubKey& minerPubKey, const PubKey& leaderPubKey,
                   const uint64_t& blockNum,
@@ -65,6 +67,9 @@ public:
 
     /// Implements the Deserialize function inherited from Serializable.
     int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+
+    /// Returns the difficulty of the PoW puzzle.
+    const uint8_t& GetDSDifficulty() const;
 
     /// Returns the difficulty of the PoW puzzle.
     const uint8_t& GetDifficulty() const;

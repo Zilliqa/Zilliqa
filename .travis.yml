@@ -30,8 +30,6 @@ install:
 script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
       docker exec -t ci /bin/sh -c "$BUILD_COMMAND";
-      docker exec -t ci /bin/sh -c "./scripts/ci_xml_checker.sh constants.xml";
-      docker exec -t ci /bin/sh -c "./scripts/ci_xml_checker.sh constants_local.xml";
     else
       $BUILD_COMMAND;
     fi
