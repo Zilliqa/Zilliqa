@@ -88,8 +88,9 @@ class ConsensusLeader : public ConsensusCommon
                                   State nextstate);
     bool ProcessMessageCommit(const std::vector<unsigned char>& commit,
                               unsigned int offset);
-    bool ProcessMessageCommitFailure(const std::vector<unsigned char>& commit,
-                                     unsigned int offset, const Peer& from);
+    bool ProcessMessageCommitFailure(
+        const std::vector<unsigned char>& commitFailureMsg, unsigned int offset,
+        const Peer& from);
     bool GenerateChallengeMessage(std::vector<unsigned char>& challenge,
                                   unsigned int offset);
     bool ProcessMessageResponseCore(const std::vector<unsigned char>& response,
