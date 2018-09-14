@@ -93,9 +93,9 @@ class DirectoryService : public Executable, public Broadcastable
         m_MBSubmissionBuffer;
 
     std::mutex m_mutexFinalBlockConsensusBuffer;
-    std::unordered_map<uint64_t,
+    std::unordered_map<uint32_t,
                        std::vector<std::pair<Peer, std::vector<unsigned char>>>>
-        m_FinalBlockConsensusBuffer;
+        m_finalBlockConsensusBuffer;
 
     std::mutex m_mutexCVMissingMicroBlock;
     std::condition_variable cv_MissingMicroBlock;
@@ -120,8 +120,6 @@ class DirectoryService : public Executable, public Broadcastable
     std::mutex m_MutexCVDSBlockConsensus;
     std::condition_variable cv_DSBlockConsensusObject;
     std::mutex m_MutexCVDSBlockConsensusObject;
-    std::condition_variable cv_finalBlockConsensusObject;
-    std::mutex m_MutexCVFinalBlockConsensusObject;
     std::condition_variable cv_POWSubmission;
     std::mutex m_MutexCVPOWSubmission;
     std::condition_variable cv_processConsensusMessage;
@@ -311,6 +309,8 @@ class DirectoryService : public Executable, public Broadcastable
 
     // Reset certain variables to the initial state
     bool CleanVariables();
+
+    void CleanFinalblockConsensusBuffer();
 
     uint8_t CalculateNewDifficulty(const uint8_t& prevDifficulty);
     uint8_t CalculateNewDSDifficulty(const uint8_t& preDifficulty);

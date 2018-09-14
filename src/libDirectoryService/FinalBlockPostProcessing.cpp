@@ -375,7 +375,11 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "[PoW needed]");
 
+            CleanFinalblockConsensusBuffer();
+
             m_mediator.m_node->CleanCreatedTransaction();
+
+            m_mediator.m_node->CleanMicroblockConsensusBuffer();
 
             SetState(POW_SUBMISSION);
             cv_POWSubmission.notify_all();
@@ -445,6 +449,11 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "[No PoW needed] Waiting for Microblock.");
 
+            auto func1 = [this]() mutable -> void {
+                m_mediator.m_node->CommitTxnPacketBuffer();
+            };
+            DetachedFunction(1, func1);
+
             CommitMBSubmissionMsgBuffer();
 
             std::unique_lock<std::mutex> cv_lk(
@@ -457,12 +466,12 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
                             "Timeout: Didn't receive all Microblock. Proceeds "
                             "without it");
 
-                auto func1 = [this]() mutable -> void {
+                auto func2 = [this]() mutable -> void {
                     m_dsStartedMicroblockConsensus = true;
                     m_mediator.m_node->RunConsensusOnMicroBlock();
                 };
 
-                DetachedFunction(1, func1);
+                DetachedFunction(1, func2);
 
                 std::unique_lock<std::mutex> cv_lk(
                     m_MutexScheduleFinalBlockConsensus);
@@ -499,39 +508,76 @@ bool DirectoryService::ProcessFinalBlockConsensus(
 
     LOG_MARKER();
 
-    if ((m_state == MICROBLOCK_SUBMISSION)
-        || (m_state == FINALBLOCK_CONSENSUS_PREP)
-        || (m_state == VIEWCHANGE_CONSENSUS))
+    // check size
+    if (IsMessageSizeInappropriate(message.size(), offset,
+                                   sizeof(unsigned char) + sizeof(uint32_t)
+                                       + BLOCK_HASH_SIZE + sizeof(uint16_t)))
     {
-        /*std::unique_lock<std::mutex> cv_lkObject(
-            m_MutexCVFinalBlockConsensusObject);
+        return false;
+    }
 
-        if (cv_finalBlockConsensusObject.wait_for(
-                cv_lkObject,
-                std::chrono::seconds(FINALBLOCK_CONSENSUS_OBJECT_TIMEOUT))
-            == std::cv_status::timeout)
-        {
-            LOG_EPOCH(WARNING,
-                      to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Time out while waiting for state transition and "
-                      "consensus object creation ");
-        }*/
+    uint32_t consensus_id = Serializable::GetNumber<uint32_t>(
+        message, offset + sizeof(unsigned char), sizeof(uint32_t));
+
+    if (m_state != FINALBLOCK_CONSENSUS)
+    {
         lock_guard<mutex> h(m_mutexFinalBlockConsensusBuffer);
 
-        m_FinalBlockConsensusBuffer[m_mediator.m_currentEpochNum].push_back(
+        m_finalBlockConsensusBuffer[consensus_id].push_back(
             make_pair(from, message));
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Process Final block arrived earlier, saved to buffer");
-
-        return false;
+                  "Process final block arrived earlier, saved to buffer");
     }
     else
     {
-        return ProcessFinalBlockConsensusCore(message, offset, from);
+        if (consensus_id < m_consensusID)
+        {
+            LOG_GENERAL(WARNING,
+                        "Consensus ID in message ("
+                            << consensus_id << ") is smaller than current ("
+                            << m_consensusID << ")");
+            return false;
+        }
+        else if (consensus_id > m_consensusID)
+        {
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Buffer final block with larger consensus ID ("
+                          << consensus_id << "), current (" << m_consensusID
+                          << ")");
+
+            lock_guard<mutex> h(m_mutexFinalBlockConsensusBuffer);
+
+            m_finalBlockConsensusBuffer[consensus_id].push_back(
+                make_pair(from, message));
+        }
+        else
+        {
+            return ProcessFinalBlockConsensusCore(message, offset, from);
+        }
     }
 
     return true;
+}
+
+void DirectoryService::CommitFinalBlockConsensusBuffer()
+{
+    lock_guard<mutex> g(m_mutexFinalBlockConsensusBuffer);
+
+    for (const auto& i : m_finalBlockConsensusBuffer[m_consensusID])
+    {
+        auto runconsensus = [this, i]() {
+            ProcessFinalBlockConsensusCore(i.second, MessageOffset::BODY,
+                                           i.first);
+        };
+        DetachedFunction(1, runconsensus);
+    }
+}
+
+void DirectoryService::CleanFinalblockConsensusBuffer()
+{
+    lock_guard<mutex> g(m_mutexFinalBlockConsensusBuffer);
+    m_finalBlockConsensusBuffer.clear();
 }
 
 bool DirectoryService::ProcessFinalBlockConsensusCore(
@@ -540,22 +586,11 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
 {
     LOG_MARKER();
 
-    // Consensus messages must be processed in correct sequence as they come in
-    // It is possible for ANNOUNCE to arrive before correct DS state
-    // In that case, ANNOUNCE will sleep for a second below
-    // If COLLECTIVESIG also comes in, it's then possible COLLECTIVESIG will be processed before ANNOUNCE!
-    // So, ANNOUNCE should acquire a lock here
+    if (!CheckState(PROCESS_FINALBLOCKCONSENSUS))
     {
-        lock_guard<mutex> g(m_mutexConsensus);
-
-        // Wait until in the case that primary sent announcement pretty early
-
-        if (!CheckState(PROCESS_FINALBLOCKCONSENSUS))
-        {
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Ignoring consensus message. I am at state " << m_state);
-            return false;
-        }
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Ignoring consensus message. I am at state " << m_state);
+        return false;
     }
 
     // Consensus messages must be processed in correct sequence as they come in
@@ -664,16 +699,4 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
         cv_processConsensusMessage.notify_all();
     }
     return true;
-}
-
-void DirectoryService::CommitFinalBlockConsensusBuffer()
-{
-    lock_guard<mutex> g(m_mutexFinalBlockConsensusBuffer);
-
-    for (auto& i : m_FinalBlockConsensusBuffer[m_mediator.m_currentEpochNum])
-    {
-        ProcessFinalBlockConsensusCore(i.second, MessageOffset::BODY, i.first);
-    }
-
-    m_FinalBlockConsensusBuffer.clear();
 }
