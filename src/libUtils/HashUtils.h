@@ -17,7 +17,6 @@
 #ifndef __HASH_UTILS__
 #define __HASH_UTILS__
 
-#include "DataConversion.h"
 #include "common/Serializable.h"
 #include "libCrypto/Sha2.h"
 #include <string>
@@ -48,9 +47,9 @@ public:
     {
         const vector<unsigned char>& vec = SerializableToHash(sz);
 
-        uint32_t size = vec.size() - 1;
+        uint32_t lsb = vec.size() - 1;
 
-        return (vec.at(size - 1) << 8) | vec.at(size);
+        return (vec.at(lsb - 1) << 8) | vec.at(lsb);
     }
 };
 
