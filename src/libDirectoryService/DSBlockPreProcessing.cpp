@@ -153,8 +153,11 @@ void DirectoryService::ComputeSharding(
     if (numOfComms == 0)
     {
         LOG_GENERAL(WARNING,
-                    "Zero Pow collected, numOfComms is temporarlly set to 1");
+                    "Cannot form even one committee "
+                        << " number of Pows " << sortedPoWSolns.size()
+                        << " Setting numOfcomms to be 1");
         numOfComms = 1;
+        max_shard = 0;
     }
 
     for (unsigned int i = 0; i < numOfComms; i++)
@@ -176,7 +179,7 @@ void DirectoryService::ComputeSharding(
 
         // sort all PoW submissions according to H(last_block_hash, pow_hash)
         vector<unsigned char> hashVec;
-        hashVec.resize(BLOCK_HASH_SIZE + BLOCK_HASH_SIZE);
+        hashVec.resize(BLOCK_HASH_SIZE + POW_SIZE);
         copy(lastBlockHash.begin(), lastBlockHash.end(), hashVec.begin());
         copy(powHash.begin(), powHash.end(), hashVec.begin() + BLOCK_HASH_SIZE);
 
@@ -207,7 +210,7 @@ void DirectoryService::ComputeSharding(
 bool DirectoryService::VerifyPoWOrdering()
 {
     //Requires mutex for m_shards
-    vector<unsigned char> lastBlockHash(BLOCK_HASH_SIZE);
+    vector<unsigned char> lastBlockHash(BLOCK_HASH_SIZE, 0);
     set<PubKey> keyset;
 
     if (m_mediator.m_currentEpochNum > 1)
@@ -222,10 +225,10 @@ bool DirectoryService::VerifyPoWOrdering()
     vector<unsigned char> hashVec;
     bool ret = true;
     vector<unsigned char> vec(BLOCK_HASH_SIZE);
-    for (unsigned int i = 0; i < m_shards.size(); i++)
+    for (const auto& shard : m_shards)
     {
 
-        for (auto& j : m_shards.at(i))
+        for (const auto& j : shard)
         {
             const PubKey& toFind = j.first;
             auto it = m_allPoWs.find(toFind);
@@ -234,8 +237,7 @@ bool DirectoryService::VerifyPoWOrdering()
             {
                 LOG_GENERAL(WARNING,
                             "Failed to find key in the PoW ordering "
-                                << toFind << " " << m_allPoWs.size() << " "
-                                << i);
+                                << toFind << " " << m_allPoWs.size());
                 ret = false;
                 break;
             }

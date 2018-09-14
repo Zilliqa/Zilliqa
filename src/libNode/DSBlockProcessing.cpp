@@ -533,6 +533,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
             m_mediator.m_ds->m_consensusID
                 = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
 
+            //(We're getting rid of this eventually Clean up my txns coz I am DS)
             m_mediator.m_node->CleanCreatedTransaction();
 
             uint16_t lastBlockHash = 0;
@@ -555,6 +556,10 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
                     LOG_EPOCHINFO(
                         to_string(m_mediator.m_currentEpochNum).c_str(),
                         DS_LEADER_MSG);
+                    LOG_STATE("[IDENT]["
+                              << std::setw(15) << std::left
+                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                              << "][0     ] DSLD");
                 }
                 else
                 {
