@@ -728,6 +728,7 @@ bool DirectoryService::DSBlockValidator(
     if (!VerifyPoWOrdering())
     {
         LOG_GENERAL(INFO, "Failed to verify ordering");
+        //return false; [TODO] Enable this check after fixing the PoW order issue.
     }
 
     // [Txn sharing assignments]
