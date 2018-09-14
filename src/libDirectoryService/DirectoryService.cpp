@@ -32,6 +32,7 @@
 #include "libNetwork/Whitelist.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
+#include "libUtils/HashUtils.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SanityChecks.h"
 #include "libUtils/TxnRootComputation.h"
@@ -268,6 +269,16 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
         m_consensusMyID++;
     }
     m_consensusLeaderID = 0;
+    if (m_mediator.m_currentEpochNum > 1)
+    {
+        LOG_GENERAL(WARNING,
+                    "ProcessSetPrimary called in epoch "
+                        << m_mediator.m_currentEpochNum);
+        m_consensusLeaderID = HashUtils::SerializableToHash16Bits(
+                                  m_mediator.m_txBlockChain.GetLastBlock())
+            % m_mediator.m_DSCommittee->size();
+    }
+
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "START OF EPOCH " << m_mediator.m_dsBlockChain.GetLastBlock()
                                        .GetHeader()

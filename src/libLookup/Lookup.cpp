@@ -512,14 +512,14 @@ bool Lookup::SetDSCommitteInfo()
     return true;
 }
 
-vector<map<PubKey, Peer>> Lookup::GetShardPeers()
+vector<vector<pair<PubKey, Peer>>> Lookup::GetShardPeers()
 {
     if (!LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
                     "Lookup::GetShardPeers not expected to be called from "
                     "other than the LookUp node.");
-        return vector<map<PubKey, Peer>>();
+        return vector<vector<pair<PubKey, Peer>>>();
     }
 
     lock_guard<mutex> g(m_mutexShards);
