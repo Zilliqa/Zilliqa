@@ -31,6 +31,7 @@
 #include "libNetwork/P2PComm.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
+#include "libUtils/HashUtils.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SanityChecks.h"
 
@@ -141,29 +142,145 @@ void DirectoryService::ComputeSharding(
     m_shards.clear();
     m_publicKeyToShardIdMap.clear();
 
+    if (m_allPoWs.size() < COMM_SIZE)
+    {
+        LOG_GENERAL(WARNING, "PoWs recvd less than one shard size");
+    }
+
     uint32_t numOfComms = sortedPoWSolns.size() / COMM_SIZE;
+    uint32_t max_shard = numOfComms - 1;
 
     if (numOfComms == 0)
     {
         LOG_GENERAL(WARNING,
-                    "Zero Pow collected, numOfComms is temporarlly set to 1");
+                    "Cannot form even one committee "
+                        << " number of Pows " << sortedPoWSolns.size()
+                        << " Setting numOfcomms to be 1");
         numOfComms = 1;
+        max_shard = 0;
     }
 
     for (unsigned int i = 0; i < numOfComms; i++)
     {
         m_shards.emplace_back();
     }
+    map<array<unsigned char, BLOCK_HASH_SIZE>, PubKey> sortedPoWs;
+    vector<unsigned char> lastBlockHash(BLOCK_HASH_SIZE);
 
-    unsigned int i = 0;
+    if (m_mediator.m_currentEpochNum > 1)
+    {
+        lastBlockHash = HashUtils::SerializableToHash(
+            m_mediator.m_txBlockChain.GetLastBlock());
+    }
     for (const auto& kv : sortedPoWSolns)
     {
         const PubKey& key = kv.second;
-        map<PubKey, Peer>& shard = m_shards.at(i % numOfComms);
-        shard.emplace(key, m_allPoWConns.at(key));
-        m_publicKeyToShardIdMap.emplace(key, i % numOfComms);
+        const array<unsigned char, BLOCK_HASH_SIZE>& powHash = kv.first;
+
+        // sort all PoW submissions according to H(last_block_hash, pow_hash)
+        vector<unsigned char> hashVec;
+        hashVec.resize(BLOCK_HASH_SIZE + POW_SIZE);
+        copy(lastBlockHash.begin(), lastBlockHash.end(), hashVec.begin());
+        copy(powHash.begin(), powHash.end(), hashVec.begin() + BLOCK_HASH_SIZE);
+
+        const vector<unsigned char>& sortHashVec
+            = HashUtils::BytesToHash(hashVec);
+        array<unsigned char, BLOCK_HASH_SIZE> sortHash;
+        copy(sortHashVec.begin(), sortHashVec.end(), sortHash.begin());
+        sortedPoWs.emplace(sortHash, key);
+    }
+
+    unsigned int i = 0;
+
+    for (const auto& kv : sortedPoWs)
+    {
+        LOG_GENERAL(INFO,
+                    "[DSSORT] " << kv.second << " "
+                                << DataConversion::charArrToHexStr(kv.first)
+                                << endl);
+        const PubKey& key = kv.second;
+        vector<pair<PubKey, Peer>>& shard
+            = m_shards.at(min(i / COMM_SIZE, max_shard));
+        shard.emplace_back(make_pair(key, m_allPoWConns.at(key)));
+        m_publicKeyToShardIdMap.emplace(key, min(i / COMM_SIZE, max_shard));
         i++;
     }
+}
+
+bool DirectoryService::VerifyPoWOrdering()
+{
+    //Requires mutex for m_shards
+    vector<unsigned char> lastBlockHash(BLOCK_HASH_SIZE, 0);
+    set<PubKey> keyset;
+
+    if (m_mediator.m_currentEpochNum > 1)
+    {
+        lastBlockHash = HashUtils::SerializableToHash(
+            m_mediator.m_txBlockChain.GetLastBlock());
+    }
+    //Temporarily add the old ds to check ordering
+    m_allPoWs[m_mediator.m_DSCommittee->back().first]
+        = array<unsigned char, BLOCK_HASH_SIZE>();
+
+    vector<unsigned char> hashVec;
+    bool ret = true;
+    vector<unsigned char> vec(BLOCK_HASH_SIZE);
+    for (const auto& shard : m_shards)
+    {
+
+        for (const auto& j : shard)
+        {
+            const PubKey& toFind = j.first;
+            auto it = m_allPoWs.find(toFind);
+
+            if (it == m_allPoWs.end())
+            {
+                LOG_GENERAL(WARNING,
+                            "Failed to find key in the PoW ordering "
+                                << toFind << " " << m_allPoWs.size());
+                ret = false;
+                break;
+            }
+            hashVec.clear();
+            hashVec.resize(BLOCK_HASH_SIZE + BLOCK_HASH_SIZE);
+            copy(lastBlockHash.begin(), lastBlockHash.end(), hashVec.begin());
+            copy(it->second.begin(), it->second.end(),
+                 hashVec.begin() + BLOCK_HASH_SIZE);
+            const vector<unsigned char>& sortHashVec
+                = HashUtils::BytesToHash(hashVec);
+            LOG_GENERAL(INFO,
+                        "[DSSORT]"
+                            << DataConversion::Uint8VecToHexStr(sortHashVec)
+                            << " " << j.first);
+            if (sortHashVec < vec)
+            {
+                LOG_GENERAL(
+                    WARNING,
+                    "Failed to Verify due to bad PoW ordering "
+                        << DataConversion::Uint8VecToHexStr(vec) << " "
+                        << DataConversion::Uint8VecToHexStr(sortHashVec));
+                ret = false;
+                break;
+            }
+            auto r = keyset.insert(j.first);
+            if (!r.second)
+            {
+
+                LOG_GENERAL(WARNING,
+                            "The key is not unique in the sharding structure "
+                                << j.first);
+                ret = false;
+                break;
+            }
+            vec = sortHashVec;
+        }
+        if (!ret)
+        {
+            break;
+        }
+    }
+    m_allPoWs.erase(m_mediator.m_DSCommittee->back().first);
+    return ret;
 }
 
 void DirectoryService::ComputeTxnSharingAssignments(const Peer& winnerpeer)
@@ -608,6 +725,12 @@ bool DirectoryService::DSBlockValidator(
     // [Sharding structure]
     curr_offset = PopulateShardingStructure(message, curr_offset);
 
+    if (!VerifyPoWOrdering())
+    {
+        LOG_GENERAL(INFO, "Failed to verify ordering");
+        //return false; [TODO] Enable this check after fixing the PoW order issue.
+    }
+
     // [Txn sharing assignments]
     SaveTxnBodySharingAssignment(message, curr_offset);
 
@@ -755,6 +878,10 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin)
                     "expected to be called from LookUp node.");
         return;
     }
+
+    LOG_GENERAL(INFO,
+                "Number of PoW recvd " << m_allPoWs.size() << " "
+                                       << m_allDSPoWs.size());
 
     LOG_MARKER();
     SetState(DSBLOCK_CONSENSUS_PREP);

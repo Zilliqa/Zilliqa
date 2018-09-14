@@ -40,6 +40,7 @@
 #include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
+#include "libUtils/HashUtils.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SanityChecks.h"
 #include "libUtils/TimeLockedFunction.h"
@@ -244,7 +245,7 @@ bool Node::LoadShardingStructure()
         return false;
     }
 
-    const map<PubKey, Peer>& my_shard
+    const vector<pair<PubKey, Peer>>& my_shard
         = m_mediator.m_ds->m_shards.at(m_myShardID);
 
     // m_myShardMembers->clear();
@@ -507,6 +508,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
 
     if (!LOOKUP_NODE_MODE)
     {
+        uint32_t ds_size = m_mediator.m_DSCommittee->size();
         POW::GetInstance().StopMining();
 
         // If I am the next DS leader -> need to set myself up as a DS node
@@ -516,7 +518,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
                    .GetMinerPubKey())
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "I won PoW :-) I am now the new DS committee leader!");
+                      "I won PoW :-) I am now in the DS committee !");
 
             // Process sharding structure as a DS node
             if (!m_mediator.m_ds->ProcessShardingStructure())
@@ -528,23 +530,48 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
             m_mediator.m_ds->ProcessTxnBodySharingAssignment();
 
             // Update my DS mode and ID
-            m_mediator.m_ds->m_consensusMyID = 0;
             m_mediator.m_ds->m_consensusID
                 = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
-            m_mediator.m_ds->m_mode = DirectoryService::Mode::PRIMARY_DS;
 
-            // (We're getting rid of this eventually) Clean up my txn list since I'm a DS node now
+            //(We're getting rid of this eventually Clean up my txns coz I am DS)
             m_mediator.m_node->CleanCreatedTransaction();
 
-            LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
-                          DS_LEADER_MSG);
-            LOG_STATE("[IDENT]["
-                      << std::setw(15) << std::left
-                      << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                      << "][0     ] DSLD");
+            uint16_t lastBlockHash = 0;
+            if (m_mediator.m_currentEpochNum > 1)
+            {
+                HashUtils::SerializableToHash16Bits(
+                    m_mediator.m_txBlockChain.GetLastBlock());
+            }
 
-            // Finally, start as the DS leader
+            {
+
+                lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+                unsigned int ds_size = (m_mediator.m_DSCommittee)->size();
+
+                if (lastBlockHash % ds_size == 0)
+                {
+                    //I am the new DS committee leader
+                    m_mediator.m_ds->m_mode
+                        = DirectoryService::Mode::PRIMARY_DS;
+                    LOG_EPOCHINFO(
+                        to_string(m_mediator.m_currentEpochNum).c_str(),
+                        DS_LEADER_MSG);
+                    LOG_STATE("[IDENT]["
+                              << std::setw(15) << std::left
+                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                              << "][0     ] DSLD");
+                }
+                else
+                {
+                    m_mediator.m_ds->m_mode = DirectoryService::Mode::BACKUP_DS;
+                    LOG_EPOCHINFO(
+                        to_string(m_mediator.m_currentEpochNum).c_str(),
+                        DS_BACKUP_MSG);
+                }
+            }
+            m_mediator.m_ds->m_consensusLeaderID = lastBlockHash % ds_size;
             m_mediator.m_ds->StartFirstTxEpoch();
+            //m_mediator.m_ds->m_mode = DirectoryService::Mode::PRIMARY_DS;
         }
         // If I am a shard node
         else

@@ -40,6 +40,9 @@
 #include "libPersistence/BlockStorage.h"
 #include "libUtils/TimeUtils.h"
 
+using Shard = std::vector<std::pair<PubKey, Peer>>;
+using VectorOfShard = std::vector<Shard>;
+
 class Mediator;
 
 /// Implements Directory Service functionality including PoW verification, DS, Tx Block Consensus and sharding management.
@@ -59,7 +62,6 @@ class DirectoryService : public Executable, public Broadcastable
 
     std::mutex m_mutexConsensus;
 
-    // Sharding committee members
     std::map<PubKey, uint32_t> m_publicKeyToShardIdMap;
 
     // PoW common variables
@@ -176,6 +178,7 @@ class DirectoryService : public Executable, public Broadcastable
     void ComputeSharding(
         const vector<pair<array<unsigned char, 32>, PubKey>>& sortedPoWSolns);
     void ComputeTxnSharingAssignments(const Peer& winnerpeer);
+    bool VerifyPoWOrdering();
 
     // internal calls from RunConsensusOnDSBlock
     bool RunConsensusOnDSBlockWhenDSPrimary();
@@ -334,9 +337,6 @@ public:
         ERROR
     };
 
-    /// Sharding structure
-    std::vector<std::map<PubKey, Peer>> m_shards;
-
     /// Transaction sharing assignments
     std::vector<Peer> m_DSReceivers;
     std::vector<std::vector<Peer>> m_shardReceivers;
@@ -362,6 +362,9 @@ public:
 
     /// The current role of this Zilliqa instance within the directory service committee.
     std::atomic<Mode> m_mode;
+
+    // Sharding committee members
+    VectorOfShard m_shards; //vector<vector<pair<PubKey, Peer>>>;
 
     /// The current internal state of this DirectoryService instance.
     std::atomic<DirState> m_state;
