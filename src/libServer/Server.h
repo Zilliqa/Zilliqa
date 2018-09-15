@@ -519,7 +519,7 @@ public:
     virtual Json::Value GetSmartContracts(const std::string& address);
     virtual std::string GetBlockTransactionCount(const std::string& blockHash);
     virtual std::string
-    GetContractAddressFromTransactionID(const std::string& address);
+    GetContractAddressFromTransactionID(const std::string& tranID);
     virtual std::string CreateMessage(const Json::Value& _json);
     virtual std::string GetGasEstimate(const Json::Value& _json);
     virtual Json::Value
