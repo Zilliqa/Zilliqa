@@ -2248,9 +2248,9 @@ bool Messenger::SetConsensusCollectiveSig(
     result.mutable_data()->set_leaderid(leaderID);
     SerializableToProtobufByteArray(
         collectiveSig, *result.mutable_data()->mutable_collectivesig());
-    for (unsigned int i = 0; i < bitmap.size(); i++)
+    for (bool i : bitmap)
     {
-        result.mutable_data()->add_bitmap(bitmap.at(i));
+        result.mutable_data()->add_bitmap(i);
     }
 
     if (!result.data().IsInitialized())
