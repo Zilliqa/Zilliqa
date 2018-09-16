@@ -56,7 +56,203 @@ namespace
         return protoMessage.SerializeToArray(dst.data() + offset,
                                              protoMessage.ByteSize());
     }
+
+    bool SetConsensusAnnouncementCore(
+        ZilliqaMessage::ConsensusAnnouncement& announcement,
+        const uint32_t consensusID, const vector<unsigned char>& blockHash,
+        const uint16_t leaderID, const pair<PrivKey, PubKey>& leaderKey)
+    {
+        LOG_MARKER();
+
+        // Set the consensus parameters
+
+        announcement.mutable_data()->set_consensusid(consensusID);
+        announcement.mutable_data()->set_blockhash(blockHash.data(),
+                                                   blockHash.size());
+        announcement.mutable_data()->set_leaderid(leaderID);
+
+        if (!announcement.data().IsInitialized())
+        {
+            LOG_GENERAL(
+                WARNING,
+                "ConsensusAnnouncement.ConsensusInfo initialization failed.");
+            return false;
+        }
+
+        // Sign the announcement
+
+        vector<unsigned char> tmp;
+
+        if (announcement.has_dsblock()
+            && announcement.dsblock().IsInitialized())
+        {
+            tmp.resize(announcement.data().ByteSize()
+                       + announcement.dsblock().ByteSize());
+            announcement.data().SerializeToArray(
+                tmp.data(), announcement.data().ByteSize());
+            announcement.dsblock().SerializeToArray(
+                tmp.data() + announcement.data().ByteSize(),
+                announcement.dsblock().ByteSize());
+        }
+        else if (announcement.has_microblock()
+                 && announcement.microblock().IsInitialized())
+        {
+            tmp.resize(announcement.data().ByteSize()
+                       + announcement.microblock().ByteSize());
+            announcement.data().SerializeToArray(
+                tmp.data(), announcement.data().ByteSize());
+            announcement.microblock().SerializeToArray(
+                tmp.data() + announcement.data().ByteSize(),
+                announcement.microblock().ByteSize());
+        }
+        else if (announcement.has_finalblock()
+                 && announcement.finalblock().IsInitialized())
+        {
+            tmp.resize(announcement.data().ByteSize()
+                       + announcement.finalblock().ByteSize());
+            announcement.data().SerializeToArray(
+                tmp.data(), announcement.data().ByteSize());
+            announcement.finalblock().SerializeToArray(
+                tmp.data() + announcement.data().ByteSize(),
+                announcement.finalblock().ByteSize());
+        }
+        else if (announcement.has_vcblock()
+                 && announcement.vcblock().IsInitialized())
+        {
+            tmp.resize(announcement.data().ByteSize()
+                       + announcement.vcblock().ByteSize());
+            announcement.data().SerializeToArray(
+                tmp.data(), announcement.data().ByteSize());
+            announcement.vcblock().SerializeToArray(
+                tmp.data() + announcement.data().ByteSize(),
+                announcement.vcblock().ByteSize());
+        }
+        else
+        {
+            LOG_GENERAL(WARNING, "Announcement content not set.");
+            return false;
+        }
+
+        Signature signature;
+        if (!Schnorr::GetInstance().Sign(tmp, leaderKey.first, leaderKey.second,
+                                         signature))
+        {
+            LOG_GENERAL(WARNING, "Failed to sign announcement.");
+            return false;
+        }
+
+        SerializableToProtobufByteArray(signature,
+                                        *announcement.mutable_signature());
+
+        return announcement.IsInitialized();
+    }
+
+    bool GetConsensusAnnouncementCore(
+        const ZilliqaMessage::ConsensusAnnouncement& announcement,
+        const uint32_t consensusID, const vector<unsigned char>& blockHash,
+        const uint16_t leaderID, const PubKey& leaderKey)
+    {
+        LOG_MARKER();
+
+        // Check the consensus parameters
+
+        if (announcement.data().consensusid() != consensusID)
+        {
+            LOG_GENERAL(WARNING,
+                        "Consensus ID mismatch. Expected: "
+                            << consensusID << " Actual: "
+                            << announcement.data().consensusid());
+            return false;
+        }
+
+        if ((announcement.data().blockhash().size() != blockHash.size())
+            || !equal(blockHash.begin(), blockHash.end(),
+                      announcement.data().blockhash().begin()))
+        {
+            LOG_GENERAL(WARNING, "Block hash mismatch.");
+            return false;
+        }
+
+        if (announcement.data().leaderid() != leaderID)
+        {
+            LOG_GENERAL(WARNING,
+                        "Leader ID mismatch. Expected: "
+                            << leaderID
+                            << " Actual: " << announcement.data().leaderid());
+            return false;
+        }
+
+        // Verify the signature
+
+        vector<unsigned char> tmp;
+
+        if (announcement.has_dsblock()
+            && announcement.dsblock().IsInitialized())
+        {
+            tmp.resize(announcement.data().ByteSize()
+                       + announcement.dsblock().ByteSize());
+            announcement.data().SerializeToArray(
+                tmp.data(), announcement.data().ByteSize());
+            announcement.dsblock().SerializeToArray(
+                tmp.data() + announcement.data().ByteSize(),
+                announcement.dsblock().ByteSize());
+        }
+        else if (announcement.has_microblock()
+                 && announcement.microblock().IsInitialized())
+        {
+            tmp.resize(announcement.data().ByteSize()
+                       + announcement.microblock().ByteSize());
+            announcement.data().SerializeToArray(
+                tmp.data(), announcement.data().ByteSize());
+            announcement.microblock().SerializeToArray(
+                tmp.data() + announcement.data().ByteSize(),
+                announcement.microblock().ByteSize());
+        }
+        else if (announcement.has_finalblock()
+                 && announcement.finalblock().IsInitialized())
+        {
+            tmp.resize(announcement.data().ByteSize()
+                       + announcement.finalblock().ByteSize());
+            announcement.data().SerializeToArray(
+                tmp.data(), announcement.data().ByteSize());
+            announcement.finalblock().SerializeToArray(
+                tmp.data() + announcement.data().ByteSize(),
+                announcement.finalblock().ByteSize());
+        }
+        else if (announcement.has_vcblock()
+                 && announcement.vcblock().IsInitialized())
+        {
+            tmp.resize(announcement.data().ByteSize()
+                       + announcement.vcblock().ByteSize());
+            announcement.data().SerializeToArray(
+                tmp.data(), announcement.data().ByteSize());
+            announcement.vcblock().SerializeToArray(
+                tmp.data() + announcement.data().ByteSize(),
+                announcement.vcblock().ByteSize());
+        }
+        else
+        {
+            LOG_GENERAL(WARNING, "Announcement content not set.");
+            return false;
+        }
+
+        Signature signature;
+
+        ProtobufByteArrayToSerializable(announcement.signature(), signature);
+
+        if (!Schnorr::GetInstance().Verify(tmp, signature, leaderKey))
+        {
+            LOG_GENERAL(WARNING, "Invalid signature in announcement.");
+            return false;
+        }
+
+        return true;
+    }
 }
+
+// ============================================================================
+// Directory Service messages
+// ============================================================================
 
 bool Messenger::SetDSPoWSubmission(
     vector<unsigned char>& dst, const unsigned int offset,
@@ -154,11 +350,411 @@ bool Messenger::GetDSPoWSubmission(const vector<unsigned char>& src,
     return true;
 }
 
+bool Messenger::SetDSDSBlockAnnouncement(
+    vector<unsigned char>& dst, const unsigned int offset,
+    const uint32_t consensusID, const vector<unsigned char>& blockHash,
+    const uint16_t leaderID, const pair<PrivKey, PubKey>& leaderKey,
+    const DSBlock& dsBlock, const Peer& powWinnerPeer,
+    const VectorOfShard& shards, const vector<Peer>& dsReceivers,
+    const vector<vector<Peer>>& shardReceivers,
+    const vector<vector<Peer>>& shardSenders,
+    vector<unsigned char>& messageToCosign)
+{
+    LOG_MARKER();
+
+    ConsensusAnnouncement announcement;
+
+    // Set the DSBlock announcement parameters
+
+    DSDSBlockAnnouncement* dsblock = announcement.mutable_dsblock();
+
+    SerializableToProtobufByteArray(dsBlock, *dsblock->mutable_dsblock());
+    SerializableToProtobufByteArray(powWinnerPeer,
+                                    *dsblock->mutable_powwinnerpeer());
+
+    for (const auto& shard : shards)
+    {
+        ShardingStructure::Shard* proto_shard
+            = dsblock->mutable_sharding()->add_shards();
+
+        for (const auto& node : shard)
+        {
+            ShardingStructure::Member* proto_member
+                = proto_shard->add_members();
+
+            SerializableToProtobufByteArray(node.first,
+                                            *proto_member->mutable_pubkey());
+            SerializableToProtobufByteArray(node.second,
+                                            *proto_member->mutable_peerinfo());
+        }
+    }
+
+    TxSharingAssignments* proto_assignments = dsblock->mutable_assignments();
+
+    for (const auto& dsnode : dsReceivers)
+    {
+        SerializableToProtobufByteArray(dsnode,
+                                        *proto_assignments->add_dsnodes());
+    }
+
+    for (unsigned int i = 0; i < shardReceivers.size(); i++)
+    {
+        TxSharingAssignments::AssignedNodes* proto_shard
+            = proto_assignments->add_shardnodes();
+
+        for (const auto& receiver : shardReceivers.at(i))
+        {
+            SerializableToProtobufByteArray(receiver,
+                                            *proto_shard->add_receivers());
+        }
+        for (const auto& sender : shardSenders.at(i))
+        {
+            SerializableToProtobufByteArray(sender,
+                                            *proto_shard->add_senders());
+        }
+    }
+
+    if (!dsblock->IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "DSDSBlockAnnouncement initialization failed.");
+        return false;
+    }
+
+    // Set the common consensus announcement parameters
+
+    if (!SetConsensusAnnouncementCore(announcement, consensusID, blockHash,
+                                      leaderID, leaderKey))
+    {
+        LOG_GENERAL(WARNING, "SetConsensusAnnouncementCore failed.");
+        return false;
+    }
+
+    // Serialize the part of the announcement that should be co-signed during the first round of consensus
+
+    messageToCosign.clear();
+    if (dsBlock.GetHeader().Serialize(messageToCosign, 0)
+        != DSBlockHeader::SIZE)
+    {
+        LOG_GENERAL(WARNING, "DSBlockHeader serialization failed.");
+        return false;
+    }
+
+    // Serialize the announcement
+
+    return SerializeToArray(announcement, dst, offset);
+}
+
+bool Messenger::GetDSDSBlockAnnouncement(
+    const vector<unsigned char>& src, const unsigned int offset,
+    const uint32_t consensusID, const vector<unsigned char>& blockHash,
+    const uint16_t leaderID, const PubKey& leaderKey, DSBlock& dsBlock,
+    Peer& powWinnerPeer, VectorOfShard& shards, vector<Peer>& dsReceivers,
+    vector<vector<Peer>>& shardReceivers, vector<vector<Peer>>& shardSenders,
+    vector<unsigned char>& messageToCosign)
+{
+    LOG_MARKER();
+
+    ConsensusAnnouncement announcement;
+
+    announcement.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (!announcement.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "ConsensusAnnouncement initialization failed.");
+        return false;
+    }
+
+    if (!announcement.has_dsblock())
+    {
+        LOG_GENERAL(WARNING, "DSDSBlockAnnouncement initialization failed.");
+        return false;
+    }
+
+    // Check the common consensus announcement parameters
+
+    if (!GetConsensusAnnouncementCore(announcement, consensusID, blockHash,
+                                      leaderID, leaderKey))
+    {
+        LOG_GENERAL(WARNING, "GetConsensusAnnouncementCore failed.");
+        return false;
+    }
+
+    // Get the DSBlock announcement parameters
+
+    const DSDSBlockAnnouncement& dsblock = announcement.dsblock();
+
+    ProtobufByteArrayToSerializable(dsblock.dsblock(), dsBlock);
+    ProtobufByteArrayToSerializable(dsblock.powwinnerpeer(), powWinnerPeer);
+
+    for (int i = 0; i < dsblock.sharding().shards_size(); i++)
+    {
+        shards.emplace_back();
+
+        const ShardingStructure::Shard& proto_shard
+            = dsblock.sharding().shards(i);
+
+        for (int j = 0; j < proto_shard.members_size(); j++)
+        {
+            const ShardingStructure::Member& proto_member
+                = proto_shard.members(j);
+
+            PubKey key;
+            Peer peer;
+
+            ProtobufByteArrayToSerializable(proto_member.pubkey(), key);
+            ProtobufByteArrayToSerializable(proto_member.peerinfo(), peer);
+
+            shards.back().emplace_back(key, peer);
+        }
+    }
+
+    const TxSharingAssignments& proto_assignments = dsblock.assignments();
+
+    for (int i = 0; i < proto_assignments.dsnodes_size(); i++)
+    {
+        Peer peer;
+        ProtobufByteArrayToSerializable(proto_assignments.dsnodes(i), peer);
+        dsReceivers.emplace_back(peer);
+    }
+
+    for (int i = 0; i < proto_assignments.shardnodes_size(); i++)
+    {
+        const TxSharingAssignments::AssignedNodes& proto_shard
+            = dsblock.assignments().shardnodes(i);
+
+        shardReceivers.emplace_back();
+
+        for (int j = 0; j < proto_shard.receivers_size(); j++)
+        {
+            Peer peer;
+            ProtobufByteArrayToSerializable(proto_shard.receivers(j), peer);
+            shardReceivers.back().emplace_back(peer);
+        }
+
+        shardSenders.emplace_back();
+
+        for (int j = 0; j < proto_shard.senders_size(); j++)
+        {
+            Peer peer;
+            ProtobufByteArrayToSerializable(proto_shard.senders(j), peer);
+            shardSenders.back().emplace_back(peer);
+        }
+    }
+
+    // Get the part of the announcement that should be co-signed during the first round of consensus
+
+    messageToCosign.clear();
+    if (dsBlock.GetHeader().Serialize(messageToCosign, 0)
+        != DSBlockHeader::SIZE)
+    {
+        LOG_GENERAL(WARNING, "DSBlockHeader serialization failed.");
+        return false;
+    }
+
+    return true;
+}
+
+bool Messenger::SetDSFinalBlockAnnouncement(
+    vector<unsigned char>& dst, const unsigned int offset,
+    const uint32_t consensusID, const vector<unsigned char>& blockHash,
+    const uint16_t leaderID, const pair<PrivKey, PubKey>& leaderKey,
+    const TxBlock& txBlock, vector<unsigned char>& messageToCosign)
+{
+    LOG_MARKER();
+
+    ConsensusAnnouncement announcement;
+
+    // Set the FinalBlock announcement parameters
+
+    DSFinalBlockAnnouncement* finalblock = announcement.mutable_finalblock();
+    SerializableToProtobufByteArray(txBlock, *finalblock->mutable_txblock());
+
+    if (!finalblock->IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "DSFinalBlockAnnouncement initialization failed.");
+        return false;
+    }
+
+    // Set the common consensus announcement parameters
+
+    if (!SetConsensusAnnouncementCore(announcement, consensusID, blockHash,
+                                      leaderID, leaderKey))
+    {
+        LOG_GENERAL(WARNING, "SetConsensusAnnouncementCore failed.");
+        return false;
+    }
+
+    // Serialize the part of the announcement that should be co-signed during the first round of consensus
+
+    messageToCosign.clear();
+    if (txBlock.GetHeader().Serialize(messageToCosign, 0)
+        != TxBlockHeader::SIZE)
+    {
+        LOG_GENERAL(WARNING, "DSBlockHeader serialization failed.");
+        return false;
+    }
+
+    // Serialize the announcement
+
+    return SerializeToArray(announcement, dst, offset);
+}
+
+bool Messenger::GetDSFinalBlockAnnouncement(
+    const vector<unsigned char>& src, const unsigned int offset,
+    const uint32_t consensusID, const vector<unsigned char>& blockHash,
+    const uint16_t leaderID, const PubKey& leaderKey, TxBlock& txBlock,
+    vector<unsigned char>& messageToCosign)
+{
+    LOG_MARKER();
+
+    ConsensusAnnouncement announcement;
+
+    announcement.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (!announcement.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "ConsensusAnnouncement initialization failed.");
+        return false;
+    }
+
+    if (!announcement.has_finalblock())
+    {
+        LOG_GENERAL(WARNING, "DSFinalBlockAnnouncement initialization failed.");
+        return false;
+    }
+
+    // Check the common consensus announcement parameters
+
+    if (!GetConsensusAnnouncementCore(announcement, consensusID, blockHash,
+                                      leaderID, leaderKey))
+    {
+        LOG_GENERAL(WARNING, "GetConsensusAnnouncementCore failed.");
+        return false;
+    }
+
+    // Get the FinalBlock announcement parameters
+
+    const DSFinalBlockAnnouncement& finalblock = announcement.finalblock();
+    ProtobufByteArrayToSerializable(finalblock.txblock(), txBlock);
+
+    // Get the part of the announcement that should be co-signed during the first round of consensus
+
+    messageToCosign.clear();
+    if (txBlock.GetHeader().Serialize(messageToCosign, 0)
+        != TxBlockHeader::SIZE)
+    {
+        LOG_GENERAL(WARNING, "TxBlockHeader serialization failed.");
+        return false;
+    }
+
+    return true;
+}
+
+bool Messenger::SetDSVCBlockAnnouncement(
+    vector<unsigned char>& dst, const unsigned int offset,
+    const uint32_t consensusID, const vector<unsigned char>& blockHash,
+    const uint16_t leaderID, const pair<PrivKey, PubKey>& leaderKey,
+    const VCBlock& vcBlock, vector<unsigned char>& messageToCosign)
+{
+    LOG_MARKER();
+
+    ConsensusAnnouncement announcement;
+
+    // Set the VCBlock announcement parameters
+
+    DSVCBlockAnnouncement* vcblock = announcement.mutable_vcblock();
+    SerializableToProtobufByteArray(vcBlock, *vcblock->mutable_vcblock());
+
+    if (!vcblock->IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "DSVCBlockAnnouncement initialization failed.");
+        return false;
+    }
+
+    // Set the common consensus announcement parameters
+
+    if (!SetConsensusAnnouncementCore(announcement, consensusID, blockHash,
+                                      leaderID, leaderKey))
+    {
+        LOG_GENERAL(WARNING, "SetConsensusAnnouncementCore failed.");
+        return false;
+    }
+
+    // Serialize the part of the announcement that should be co-signed during the first round of consensus
+
+    messageToCosign.clear();
+    if (vcBlock.GetHeader().Serialize(messageToCosign, 0)
+        != VCBlockHeader::SIZE)
+    {
+        LOG_GENERAL(WARNING, "VCBlockHeader serialization failed.");
+        return false;
+    }
+
+    // Serialize the announcement
+
+    return SerializeToArray(announcement, dst, offset);
+}
+
+bool Messenger::GetDSVCBlockAnnouncement(
+    const vector<unsigned char>& src, const unsigned int offset,
+    const uint32_t consensusID, const vector<unsigned char>& blockHash,
+    const uint16_t leaderID, const PubKey& leaderKey, VCBlock& vcBlock,
+    vector<unsigned char>& messageToCosign)
+{
+    LOG_MARKER();
+
+    ConsensusAnnouncement announcement;
+
+    announcement.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (!announcement.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "ConsensusAnnouncement initialization failed.");
+        return false;
+    }
+
+    if (!announcement.has_vcblock())
+    {
+        LOG_GENERAL(WARNING, "DSVCBlockAnnouncement initialization failed.");
+        return false;
+    }
+
+    // Check the common consensus announcement parameters
+
+    if (!GetConsensusAnnouncementCore(announcement, consensusID, blockHash,
+                                      leaderID, leaderKey))
+    {
+        LOG_GENERAL(WARNING, "GetConsensusAnnouncementCore failed.");
+        return false;
+    }
+
+    // Get the VCBlock announcement parameters
+
+    const DSVCBlockAnnouncement& vcblock = announcement.vcblock();
+    ProtobufByteArrayToSerializable(vcblock.vcblock(), vcBlock);
+
+    // Get the part of the announcement that should be co-signed during the first round of consensus
+
+    messageToCosign.clear();
+    if (vcBlock.GetHeader().Serialize(messageToCosign, 0)
+        != VCBlockHeader::SIZE)
+    {
+        LOG_GENERAL(WARNING, "VCBlockHeader serialization failed.");
+        return false;
+    }
+
+    return true;
+}
+
+// ============================================================================
+// Node messages
+// ============================================================================
+
 bool Messenger::SetNodeDSBlock(vector<unsigned char>& dst,
                                const unsigned int offset,
                                const uint32_t shardID, const DSBlock& dsBlock,
                                const Peer& powWinnerPeer,
-                               const vector<vector<pair<PubKey, Peer>>>& shards,
+                               const VectorOfShard& shards,
                                const vector<Peer>& dsReceivers,
                                const vector<vector<Peer>>& shardReceivers,
                                const vector<vector<Peer>>& shardSenders)
@@ -226,8 +822,7 @@ bool Messenger::SetNodeDSBlock(vector<unsigned char>& dst,
 bool Messenger::GetNodeDSBlock(const vector<unsigned char>& src,
                                const unsigned int offset, uint32_t& shardID,
                                DSBlock& dsBlock, Peer& powWinnerPeer,
-                               vector<vector<pair<PubKey, Peer>>>& shards,
-                               vector<Peer>& dsReceivers,
+                               VectorOfShard& shards, vector<Peer>& dsReceivers,
                                vector<vector<Peer>>& shardReceivers,
                                vector<vector<Peer>>& shardSenders)
 {
@@ -265,7 +860,7 @@ bool Messenger::GetNodeDSBlock(const vector<unsigned char>& src,
             ProtobufByteArrayToSerializable(proto_member.pubkey(), key);
             ProtobufByteArrayToSerializable(proto_member.peerinfo(), peer);
 
-            shards.back().emplace_back(make_pair(key, peer));
+            shards.back().emplace_back(key, peer);
         }
     }
 
@@ -360,6 +955,109 @@ bool Messenger::GetNodeFinalBlock(const vector<unsigned char>& src,
 
     return true;
 }
+
+bool Messenger::SetNodeMicroBlockAnnouncement(
+    vector<unsigned char>& dst, const unsigned int offset,
+    const uint32_t consensusID, const vector<unsigned char>& blockHash,
+    const uint16_t leaderID, const pair<PrivKey, PubKey>& leaderKey,
+    const MicroBlock& microBlock, vector<unsigned char>& messageToCosign)
+{
+    LOG_MARKER();
+
+    ConsensusAnnouncement announcement;
+
+    // Set the MicroBlock announcement parameters
+
+    NodeMicroBlockAnnouncement* microblock = announcement.mutable_microblock();
+    SerializableToProtobufByteArray(microBlock,
+                                    *microblock->mutable_microblock());
+
+    if (!microblock->IsInitialized())
+    {
+        LOG_GENERAL(WARNING,
+                    "NodeMicroBlockAnnouncement initialization failed.");
+        return false;
+    }
+
+    // Set the common consensus announcement parameters
+
+    if (!SetConsensusAnnouncementCore(announcement, consensusID, blockHash,
+                                      leaderID, leaderKey))
+    {
+        LOG_GENERAL(WARNING, "SetConsensusAnnouncementCore failed.");
+        return false;
+    }
+
+    // Serialize the part of the announcement that should be co-signed during the first round of consensus
+
+    messageToCosign.clear();
+    if (microBlock.GetHeader().Serialize(messageToCosign, 0)
+        != MicroBlockHeader::SIZE)
+    {
+        LOG_GENERAL(WARNING, "MicroBlockHeader serialization failed.");
+        return false;
+    }
+
+    // Serialize the announcement
+
+    return SerializeToArray(announcement, dst, offset);
+}
+
+bool Messenger::GetNodeMicroBlockAnnouncement(
+    const vector<unsigned char>& src, const unsigned int offset,
+    const uint32_t consensusID, const vector<unsigned char>& blockHash,
+    const uint16_t leaderID, const PubKey& leaderKey, MicroBlock& microBlock,
+    vector<unsigned char>& messageToCosign)
+{
+    LOG_MARKER();
+
+    ConsensusAnnouncement announcement;
+
+    announcement.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (!announcement.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "ConsensusAnnouncement initialization failed.");
+        return false;
+    }
+
+    if (!announcement.has_microblock())
+    {
+        LOG_GENERAL(WARNING,
+                    "NodeMicroBlockAnnouncement initialization failed.");
+        return false;
+    }
+
+    // Check the common consensus announcement parameters
+
+    if (!GetConsensusAnnouncementCore(announcement, consensusID, blockHash,
+                                      leaderID, leaderKey))
+    {
+        LOG_GENERAL(WARNING, "GetConsensusAnnouncementCore failed.");
+        return false;
+    }
+
+    // Get the MicroBlock announcement parameters
+
+    const NodeMicroBlockAnnouncement& microblock = announcement.microblock();
+    ProtobufByteArrayToSerializable(microblock.microblock(), microBlock);
+
+    // Get the part of the announcement that should be co-signed during the first round of consensus
+
+    messageToCosign.clear();
+    if (microBlock.GetHeader().Serialize(messageToCosign, 0)
+        != MicroBlockHeader::SIZE)
+    {
+        LOG_GENERAL(WARNING, "MicroBlockHeader serialization failed.");
+        return false;
+    }
+
+    return true;
+}
+
+// ============================================================================
+// Lookup messages
+// ============================================================================
 
 bool Messenger::SetLookupGetSeedPeers(vector<unsigned char>& dst,
                                       const unsigned int offset,
@@ -1190,6 +1888,575 @@ bool Messenger::GetLookupGetStartPoWFromSeed(const vector<unsigned char>& src,
     }
 
     listenPort = result.listenport();
+
+    return true;
+}
+
+// ============================================================================
+// Consensus messages
+// ============================================================================
+
+bool Messenger::SetConsensusCommit(vector<unsigned char>& dst,
+                                   const unsigned int offset,
+                                   const uint32_t consensusID,
+                                   const vector<unsigned char>& blockHash,
+                                   const uint16_t backupID,
+                                   const CommitPoint& commit,
+                                   const pair<PrivKey, PubKey>& backupKey)
+{
+    LOG_MARKER();
+
+    ConsensusCommit result;
+
+    result.mutable_data()->set_consensusid(consensusID);
+    result.mutable_data()->set_blockhash(blockHash.data(), blockHash.size());
+    result.mutable_data()->set_backupid(backupID);
+    SerializableToProtobufByteArray(commit,
+                                    *result.mutable_data()->mutable_commit());
+
+    if (!result.data().IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "ConsensusCommit.Data initialization failed.");
+        return false;
+    }
+
+    vector<unsigned char> tmp(result.data().ByteSize());
+    result.data().SerializeToArray(tmp.data(), tmp.size());
+
+    Signature signature;
+
+    if (!Schnorr::GetInstance().Sign(tmp, backupKey.first, backupKey.second,
+                                     signature))
+    {
+        LOG_GENERAL(WARNING, "Failed to sign commit.");
+        return false;
+    }
+
+    SerializableToProtobufByteArray(signature, *result.mutable_signature());
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "ConsensusCommit initialization failed.");
+        return false;
+    }
+
+    return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetConsensusCommit(
+    const vector<unsigned char>& src, const unsigned int offset,
+    const uint32_t consensusID, const vector<unsigned char>& blockHash,
+    uint16_t& backupID, CommitPoint& commit,
+    const deque<pair<PubKey, Peer>>& committeeKeys)
+{
+    LOG_MARKER();
+
+    ConsensusCommit result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "ConsensusCommit initialization failed.");
+        return false;
+    }
+
+    if (result.data().consensusid() != consensusID)
+    {
+        LOG_GENERAL(WARNING,
+                    "Consensus ID mismatch. Expected: "
+                        << consensusID
+                        << " Actual: " << result.data().consensusid());
+        return false;
+    }
+
+    if ((result.data().blockhash().size() != blockHash.size())
+        || !equal(blockHash.begin(), blockHash.end(),
+                  result.data().blockhash().begin()))
+    {
+        LOG_GENERAL(WARNING, "Block hash mismatch.");
+        return false;
+    }
+
+    backupID = result.data().backupid();
+
+    if (backupID >= committeeKeys.size())
+    {
+        LOG_GENERAL(WARNING,
+                    "Backup ID beyond shard size. Backup ID: "
+                        << backupID << " Shard size: " << committeeKeys.size());
+        return false;
+    }
+
+    ProtobufByteArrayToSerializable(result.data().commit(), commit);
+
+    vector<unsigned char> tmp(result.data().ByteSize());
+    result.data().SerializeToArray(tmp.data(), tmp.size());
+
+    Signature signature;
+
+    ProtobufByteArrayToSerializable(result.signature(), signature);
+
+    if (!Schnorr::GetInstance().Verify(tmp, signature,
+                                       committeeKeys.at(backupID).first))
+    {
+        LOG_GENERAL(WARNING, "Invalid signature in commit.");
+        return false;
+    }
+
+    return true;
+}
+
+bool Messenger::SetConsensusChallenge(
+    vector<unsigned char>& dst, const unsigned int offset,
+    const uint32_t consensusID, const vector<unsigned char>& blockHash,
+    const uint16_t leaderID, const CommitPoint& aggregatedCommit,
+    const PubKey& aggregatedKey, const Challenge& challenge,
+    const pair<PrivKey, PubKey>& leaderKey)
+{
+    LOG_MARKER();
+
+    ConsensusChallenge result;
+
+    result.mutable_data()->set_consensusid(consensusID);
+    result.mutable_data()->set_blockhash(blockHash.data(), blockHash.size());
+    result.mutable_data()->set_leaderid(leaderID);
+    SerializableToProtobufByteArray(
+        aggregatedCommit, *result.mutable_data()->mutable_aggregatedcommit());
+    SerializableToProtobufByteArray(
+        aggregatedKey, *result.mutable_data()->mutable_aggregatedkey());
+    SerializableToProtobufByteArray(
+        challenge, *result.mutable_data()->mutable_challenge());
+
+    if (!result.data().IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "ConsensusChallenge.Data initialization failed.");
+        return false;
+    }
+
+    vector<unsigned char> tmp(result.data().ByteSize());
+    result.data().SerializeToArray(tmp.data(), tmp.size());
+
+    Signature signature;
+
+    if (!Schnorr::GetInstance().Sign(tmp, leaderKey.first, leaderKey.second,
+                                     signature))
+    {
+        LOG_GENERAL(WARNING, "Failed to sign commit.");
+        return false;
+    }
+
+    SerializableToProtobufByteArray(signature, *result.mutable_signature());
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "ConsensusChallenge initialization failed.");
+        return false;
+    }
+
+    return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetConsensusChallenge(
+    const vector<unsigned char>& src, const unsigned int offset,
+    const uint32_t consensusID, const vector<unsigned char>& blockHash,
+    const uint16_t leaderID, CommitPoint& aggregatedCommit,
+    PubKey& aggregatedKey, Challenge& challenge, const PubKey& leaderKey)
+{
+    LOG_MARKER();
+
+    ConsensusChallenge result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "ConsensusChallenge initialization failed.");
+        return false;
+    }
+
+    if (result.data().consensusid() != consensusID)
+    {
+        LOG_GENERAL(WARNING,
+                    "Consensus ID mismatch. Expected: "
+                        << consensusID
+                        << " Actual: " << result.data().consensusid());
+        return false;
+    }
+
+    if ((result.data().blockhash().size() != blockHash.size())
+        || !equal(blockHash.begin(), blockHash.end(),
+                  result.data().blockhash().begin()))
+    {
+        LOG_GENERAL(WARNING, "Block hash mismatch.");
+        return false;
+    }
+
+    if (result.data().leaderid() != leaderID)
+    {
+        LOG_GENERAL(WARNING,
+                    "Leader ID mismatch. Expected: "
+                        << leaderID << " Actual: " << result.data().leaderid());
+        return false;
+    }
+
+    ProtobufByteArrayToSerializable(result.data().aggregatedcommit(),
+                                    aggregatedCommit);
+    ProtobufByteArrayToSerializable(result.data().aggregatedkey(),
+                                    aggregatedKey);
+    ProtobufByteArrayToSerializable(result.data().challenge(), challenge);
+
+    vector<unsigned char> tmp(result.data().ByteSize());
+    result.data().SerializeToArray(tmp.data(), tmp.size());
+
+    Signature signature;
+
+    ProtobufByteArrayToSerializable(result.signature(), signature);
+
+    if (!Schnorr::GetInstance().Verify(tmp, signature, leaderKey))
+    {
+        LOG_GENERAL(WARNING, "Invalid signature in challenge.");
+        return false;
+    }
+
+    return true;
+}
+
+bool Messenger::SetConsensusResponse(vector<unsigned char>& dst,
+                                     const unsigned int offset,
+                                     const uint32_t consensusID,
+                                     const vector<unsigned char>& blockHash,
+                                     const uint16_t backupID,
+                                     const Response& response,
+                                     const pair<PrivKey, PubKey>& backupKey)
+{
+    LOG_MARKER();
+
+    ConsensusResponse result;
+
+    result.mutable_data()->set_consensusid(consensusID);
+    result.mutable_data()->set_blockhash(blockHash.data(), blockHash.size());
+    result.mutable_data()->set_backupid(backupID);
+    SerializableToProtobufByteArray(response,
+                                    *result.mutable_data()->mutable_response());
+
+    if (!result.data().IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "ConsensusResponse.Data initialization failed.");
+        return false;
+    }
+
+    vector<unsigned char> tmp(result.data().ByteSize());
+    result.data().SerializeToArray(tmp.data(), tmp.size());
+
+    Signature signature;
+
+    if (!Schnorr::GetInstance().Sign(tmp, backupKey.first, backupKey.second,
+                                     signature))
+    {
+        LOG_GENERAL(WARNING, "Failed to sign response.");
+        return false;
+    }
+
+    SerializableToProtobufByteArray(signature, *result.mutable_signature());
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "ConsensusResponse initialization failed.");
+        return false;
+    }
+
+    return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetConsensusResponse(
+    const vector<unsigned char>& src, const unsigned int offset,
+    const uint32_t consensusID, const vector<unsigned char>& blockHash,
+    uint16_t& backupID, Response& response,
+    const deque<pair<PubKey, Peer>>& committeeKeys)
+{
+    LOG_MARKER();
+
+    ConsensusResponse result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "ConsensusResponse initialization failed.");
+        return false;
+    }
+
+    if (result.data().consensusid() != consensusID)
+    {
+        LOG_GENERAL(WARNING,
+                    "Consensus ID mismatch. Expected: "
+                        << consensusID
+                        << " Actual: " << result.data().consensusid());
+        return false;
+    }
+
+    if ((result.data().blockhash().size() != blockHash.size())
+        || !equal(blockHash.begin(), blockHash.end(),
+                  result.data().blockhash().begin()))
+    {
+        LOG_GENERAL(WARNING, "Block hash mismatch.");
+        return false;
+    }
+
+    backupID = result.data().backupid();
+
+    if (backupID >= committeeKeys.size())
+    {
+        LOG_GENERAL(WARNING,
+                    "Backup ID beyond shard size. Backup ID: "
+                        << backupID << " Shard size: " << committeeKeys.size());
+        return false;
+    }
+
+    ProtobufByteArrayToSerializable(result.data().response(), response);
+
+    vector<unsigned char> tmp(result.data().ByteSize());
+    result.data().SerializeToArray(tmp.data(), tmp.size());
+
+    Signature signature;
+
+    ProtobufByteArrayToSerializable(result.signature(), signature);
+
+    if (!Schnorr::GetInstance().Verify(tmp, signature,
+                                       committeeKeys.at(backupID).first))
+    {
+        LOG_GENERAL(WARNING, "Invalid signature in response.");
+        return false;
+    }
+
+    return true;
+}
+
+bool Messenger::SetConsensusCollectiveSig(
+    vector<unsigned char>& dst, const unsigned int offset,
+    const uint32_t consensusID, const vector<unsigned char>& blockHash,
+    const uint16_t leaderID, const Signature& collectiveSig,
+    const vector<bool>& bitmap, const pair<PrivKey, PubKey>& leaderKey)
+{
+    LOG_MARKER();
+
+    ConsensusCollectiveSig result;
+
+    result.mutable_data()->set_consensusid(consensusID);
+    result.mutable_data()->set_blockhash(blockHash.data(), blockHash.size());
+    result.mutable_data()->set_leaderid(leaderID);
+    SerializableToProtobufByteArray(
+        collectiveSig, *result.mutable_data()->mutable_collectivesig());
+    for (unsigned int i = 0; i < bitmap.size(); i++)
+    {
+        result.mutable_data()->add_bitmap(bitmap.at(i));
+    }
+
+    if (!result.data().IsInitialized())
+    {
+        LOG_GENERAL(WARNING,
+                    "ConsensusCollectiveSig.Data initialization failed.");
+        return false;
+    }
+
+    vector<unsigned char> tmp(result.data().ByteSize());
+    result.data().SerializeToArray(tmp.data(), tmp.size());
+
+    Signature signature;
+
+    if (!Schnorr::GetInstance().Sign(tmp, leaderKey.first, leaderKey.second,
+                                     signature))
+    {
+        LOG_GENERAL(WARNING, "Failed to sign collectivesig.");
+        return false;
+    }
+
+    SerializableToProtobufByteArray(signature, *result.mutable_signature());
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "ConsensusCollectiveSig initialization failed.");
+        return false;
+    }
+
+    return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetConsensusCollectiveSig(
+    const vector<unsigned char>& src, const unsigned int offset,
+    const uint32_t consensusID, const vector<unsigned char>& blockHash,
+    const uint16_t leaderID, vector<bool>& bitmap, Signature& collectiveSig,
+    const PubKey& leaderKey)
+{
+    LOG_MARKER();
+
+    ConsensusCollectiveSig result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "ConsensusCollectiveSig initialization failed.");
+        return false;
+    }
+
+    if (result.data().consensusid() != consensusID)
+    {
+        LOG_GENERAL(WARNING,
+                    "Consensus ID mismatch. Expected: "
+                        << consensusID
+                        << " Actual: " << result.data().consensusid());
+        return false;
+    }
+
+    if ((result.data().blockhash().size() != blockHash.size())
+        || !equal(blockHash.begin(), blockHash.end(),
+                  result.data().blockhash().begin()))
+    {
+        LOG_GENERAL(WARNING, "Block hash mismatch.");
+        return false;
+    }
+
+    if (result.data().leaderid() != leaderID)
+    {
+        LOG_GENERAL(WARNING,
+                    "Leader ID mismatch. Expected: "
+                        << leaderID << " Actual: " << result.data().leaderid());
+        return false;
+    }
+
+    ProtobufByteArrayToSerializable(result.data().collectivesig(),
+                                    collectiveSig);
+
+    for (int i = 0; i < result.data().bitmap().size(); i++)
+    {
+        bitmap.emplace_back(result.data().bitmap(i));
+    }
+
+    vector<unsigned char> tmp(result.data().ByteSize());
+    result.data().SerializeToArray(tmp.data(), tmp.size());
+
+    Signature signature;
+
+    ProtobufByteArrayToSerializable(result.signature(), signature);
+
+    if (!Schnorr::GetInstance().Verify(tmp, signature, leaderKey))
+    {
+        LOG_GENERAL(WARNING, "Invalid signature in collectivesig.");
+        return false;
+    }
+
+    return true;
+}
+
+bool Messenger::SetConsensusCommitFailure(
+    vector<unsigned char>& dst, const unsigned int offset,
+    const uint32_t consensusID, const vector<unsigned char>& blockHash,
+    const uint16_t backupID, const vector<unsigned char>& errorMsg,
+    const pair<PrivKey, PubKey>& backupKey)
+{
+    LOG_MARKER();
+
+    ConsensusCommitFailure result;
+
+    result.mutable_data()->set_consensusid(consensusID);
+    result.mutable_data()->set_blockhash(blockHash.data(), blockHash.size());
+    result.mutable_data()->set_backupid(backupID);
+    result.mutable_data()->set_errormsg(errorMsg.data(), errorMsg.size());
+
+    if (!result.data().IsInitialized())
+    {
+        LOG_GENERAL(WARNING,
+                    "ConsensusCommitFailure.Data initialization failed.");
+        return false;
+    }
+
+    vector<unsigned char> tmp(result.data().ByteSize());
+    result.data().SerializeToArray(tmp.data(), tmp.size());
+
+    Signature signature;
+
+    if (!Schnorr::GetInstance().Sign(tmp, backupKey.first, backupKey.second,
+                                     signature))
+    {
+        LOG_GENERAL(WARNING, "Failed to sign commit failure.");
+        return false;
+    }
+
+    SerializableToProtobufByteArray(signature, *result.mutable_signature());
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "ConsensusCommitFailure initialization failed.");
+        return false;
+    }
+
+    return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetConsensusCommitFailure(
+    const vector<unsigned char>& src, const unsigned int offset,
+    const uint32_t consensusID, const vector<unsigned char>& blockHash,
+    uint16_t& backupID, vector<unsigned char>& errorMsg,
+    const deque<pair<PubKey, Peer>>& committeeKeys)
+{
+    LOG_MARKER();
+
+    ConsensusCommitFailure result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "ConsensusCommitFailure initialization failed.");
+        return false;
+    }
+
+    if (result.data().consensusid() != consensusID)
+    {
+        LOG_GENERAL(WARNING,
+                    "Consensus ID mismatch. Expected: "
+                        << consensusID
+                        << " Actual: " << result.data().consensusid());
+        return false;
+    }
+
+    if ((result.data().blockhash().size() != blockHash.size())
+        || !equal(blockHash.begin(), blockHash.end(),
+                  result.data().blockhash().begin()))
+    {
+        LOG_GENERAL(WARNING, "Block hash mismatch.");
+        return false;
+    }
+
+    backupID = result.data().backupid();
+
+    if (backupID >= committeeKeys.size())
+    {
+        LOG_GENERAL(WARNING,
+                    "Backup ID beyond shard size. Backup ID: "
+                        << backupID << " Shard size: " << committeeKeys.size());
+        return false;
+    }
+
+    errorMsg.resize(result.data().errormsg().size());
+    copy(result.data().errormsg().begin(), result.data().errormsg().end(),
+         errorMsg.begin());
+
+    vector<unsigned char> tmp(result.data().ByteSize());
+    result.data().SerializeToArray(tmp.data(), tmp.size());
+
+    Signature signature;
+
+    ProtobufByteArrayToSerializable(result.signature(), signature);
+
+    if (!Schnorr::GetInstance().Verify(tmp, signature,
+                                       committeeKeys.at(backupID).first))
+    {
+        LOG_GENERAL(WARNING, "Invalid signature in commit failure.");
+        return false;
+    }
 
     return true;
 }

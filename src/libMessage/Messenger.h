@@ -17,6 +17,7 @@
 #include "common/Serializable.h"
 #include "libCrypto/Schnorr.h"
 #include "libData/BlockData/Block.h"
+#include "libDirectoryService/DirectoryService.h"
 #include "libNetwork/Peer.h"
 
 #ifndef __MESSENGER_H__
@@ -25,7 +26,9 @@
 class Messenger
 {
 public:
-    // Directory service messages
+    // ============================================================================
+    // Directory Service messages
+    // ============================================================================
 
     static bool
     SetDSPoWSubmission(std::vector<unsigned char>& dst,
@@ -43,25 +46,69 @@ public:
                                    uint64_t& nonce, std::string& resultingHash,
                                    std::string& mixHash, Signature& signature);
 
-    // Node messages
-
-    static bool SetNodeDSBlock(
+    static bool SetDSDSBlockAnnouncement(
         std::vector<unsigned char>& dst, const unsigned int offset,
-        const uint32_t shardID, const DSBlock& dsBlock,
-        const Peer& powWinnerPeer,
-        const std::vector<std::vector<std::pair<PubKey, Peer>>>& shards,
-        const std::vector<Peer>& dsReceivers,
+        const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
+        const uint16_t leaderID, const std::pair<PrivKey, PubKey>& leaderKey,
+        const DSBlock& dsBlock, const Peer& powWinnerPeer,
+        const VectorOfShard& shards, const std::vector<Peer>& dsReceivers,
         const std::vector<std::vector<Peer>>& shardReceivers,
-        const std::vector<std::vector<Peer>>& shardSenders);
+        const std::vector<std::vector<Peer>>& shardSenders,
+        std::vector<unsigned char>& messageToCosign);
+
+    static bool GetDSDSBlockAnnouncement(
+        const std::vector<unsigned char>& src, const unsigned int offset,
+        const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
+        const uint16_t leaderID, const PubKey& leaderKey, DSBlock& dsBlock,
+        Peer& powWinnerPeer, VectorOfShard& shards,
+        std::vector<Peer>& dsReceivers,
+        std::vector<std::vector<Peer>>& shardReceivers,
+        std::vector<std::vector<Peer>>& shardSenders,
+        std::vector<unsigned char>& messageToCosign);
+
+    static bool SetDSFinalBlockAnnouncement(
+        std::vector<unsigned char>& dst, const unsigned int offset,
+        const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
+        const uint16_t leaderID, const std::pair<PrivKey, PubKey>& leaderKey,
+        const TxBlock& txBlock, std::vector<unsigned char>& messageToCosign);
+
+    static bool GetDSFinalBlockAnnouncement(
+        const std::vector<unsigned char>& src, const unsigned int offset,
+        const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
+        const uint16_t leaderID, const PubKey& leaderKey, TxBlock& txBlock,
+        std::vector<unsigned char>& messageToCosign);
+
+    static bool SetDSVCBlockAnnouncement(
+        std::vector<unsigned char>& dst, const unsigned int offset,
+        const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
+        const uint16_t leaderID, const std::pair<PrivKey, PubKey>& leaderKey,
+        const VCBlock& vcBlock, std::vector<unsigned char>& messageToCosign);
+
+    static bool GetDSVCBlockAnnouncement(
+        const std::vector<unsigned char>& src, const unsigned int offset,
+        const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
+        const uint16_t leaderID, const PubKey& leaderKey, VCBlock& vcBlock,
+        std::vector<unsigned char>& messageToCosign);
+
+    // ============================================================================
+    // Node messages
+    // ============================================================================
 
     static bool
-    GetNodeDSBlock(const std::vector<unsigned char>& src,
-                   const unsigned int offset, uint32_t& shardID,
-                   DSBlock& dsBlock, Peer& powWinnerPeer,
-                   std::vector<std::vector<std::pair<PubKey, Peer>>>& shards,
-                   std::vector<Peer>& dsReceivers,
-                   std::vector<std::vector<Peer>>& shardReceivers,
-                   std::vector<std::vector<Peer>>& shardSenders);
+    SetNodeDSBlock(std::vector<unsigned char>& dst, const unsigned int offset,
+                   const uint32_t shardID, const DSBlock& dsBlock,
+                   const Peer& powWinnerPeer, const VectorOfShard& shards,
+                   const std::vector<Peer>& dsReceivers,
+                   const std::vector<std::vector<Peer>>& shardReceivers,
+                   const std::vector<std::vector<Peer>>& shardSenders);
+
+    static bool GetNodeDSBlock(const std::vector<unsigned char>& src,
+                               const unsigned int offset, uint32_t& shardID,
+                               DSBlock& dsBlock, Peer& powWinnerPeer,
+                               VectorOfShard& shards,
+                               std::vector<Peer>& dsReceivers,
+                               std::vector<std::vector<Peer>>& shardReceivers,
+                               std::vector<std::vector<Peer>>& shardSenders);
 
     static bool SetNodeFinalBlock(std::vector<unsigned char>& dst,
                                   const unsigned int offset,
@@ -77,7 +124,22 @@ public:
                                   uint32_t& consensusID, TxBlock& txBlock,
                                   std::vector<unsigned char>& stateDelta);
 
+    static bool SetNodeMicroBlockAnnouncement(
+        std::vector<unsigned char>& dst, const unsigned int offset,
+        const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
+        const uint16_t leaderID, const std::pair<PrivKey, PubKey>& leaderKey,
+        const MicroBlock& microBlock,
+        std::vector<unsigned char>& messageToCosign);
+
+    static bool GetNodeMicroBlockAnnouncement(
+        const std::vector<unsigned char>& src, const unsigned int offset,
+        const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
+        const uint16_t leaderID, const PubKey& leaderKey,
+        MicroBlock& microBlock, std::vector<unsigned char>& messageToCosign);
+
+    // ============================================================================
     // Lookup messages
+    // ============================================================================
 
     static bool SetLookupGetSeedPeers(std::vector<unsigned char>& dst,
                                       const unsigned int offset,
@@ -201,6 +263,92 @@ public:
     GetLookupGetStartPoWFromSeed(const std::vector<unsigned char>& src,
                                  const unsigned int offset,
                                  uint32_t& listenPort);
+
+    // ============================================================================
+    // Consensus messages
+    // ============================================================================
+
+    template<class T>
+    static bool GetConsensusID(const std::vector<unsigned char>& src,
+                               const unsigned int offset, uint32_t& consensusID)
+    {
+        LOG_MARKER();
+
+        T consensus_message;
+
+        consensus_message.ParseFromArray(src.data() + offset,
+                                         src.size() - offset);
+
+        if (!consensus_message.IsInitialized())
+        {
+            LOG_GENERAL(WARNING, "Consensus message initialization failed.");
+            return false;
+        }
+
+        consensusID = consensus_message.data().consensusid();
+
+        return true;
+    }
+
+    static bool SetConsensusCommit(std::vector<unsigned char>& dst,
+                                   const unsigned int offset,
+                                   const uint32_t consensusID,
+                                   const std::vector<unsigned char>& blockHash,
+                                   const uint16_t backupID,
+                                   const CommitPoint& commit,
+                                   const std::pair<PrivKey, PubKey>& backupKey);
+    static bool GetConsensusCommit(
+        const std::vector<unsigned char>& src, const unsigned int offset,
+        const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
+        uint16_t& backupID, CommitPoint& commit,
+        const std::deque<std::pair<PubKey, Peer>>& committeeKeys);
+
+    static bool SetConsensusChallenge(
+        std::vector<unsigned char>& dst, const unsigned int offset,
+        const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
+        const uint16_t leaderID, const CommitPoint& aggregatedCommit,
+        const PubKey& aggregatedKey, const Challenge& challenge,
+        const std::pair<PrivKey, PubKey>& leaderKey);
+    static bool GetConsensusChallenge(
+        const std::vector<unsigned char>& src, const unsigned int offset,
+        const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
+        const uint16_t leaderID, CommitPoint& aggregatedCommit,
+        PubKey& aggregatedKey, Challenge& challenge, const PubKey& leaderKey);
+
+    static bool
+    SetConsensusResponse(std::vector<unsigned char>& dst,
+                         const unsigned int offset, const uint32_t consensusID,
+                         const std::vector<unsigned char>& blockHash,
+                         const uint16_t backupID, const Response& response,
+                         const std::pair<PrivKey, PubKey>& backupKey);
+    static bool GetConsensusResponse(
+        const std::vector<unsigned char>& src, const unsigned int offset,
+        const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
+        uint16_t& backupID, Response& response,
+        const std::deque<std::pair<PubKey, Peer>>& committeeKeys);
+
+    static bool SetConsensusCollectiveSig(
+        std::vector<unsigned char>& dst, const unsigned int offset,
+        const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
+        const uint16_t leaderID, const Signature& collectiveSig,
+        const std::vector<bool>& bitmap,
+        const std::pair<PrivKey, PubKey>& leaderKey);
+    static bool GetConsensusCollectiveSig(
+        const std::vector<unsigned char>& src, const unsigned int offset,
+        const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
+        const uint16_t leaderID, std::vector<bool>& bitmap,
+        Signature& collectiveSig, const PubKey& leaderKey);
+
+    static bool SetConsensusCommitFailure(
+        std::vector<unsigned char>& dst, const unsigned int offset,
+        const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
+        const uint16_t backupID, const std::vector<unsigned char>& errorMsg,
+        const std::pair<PrivKey, PubKey>& backupKey);
+    static bool GetConsensusCommitFailure(
+        const std::vector<unsigned char>& src, const unsigned int offset,
+        const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
+        uint16_t& backupID, std::vector<unsigned char>& errorMsg,
+        const std::deque<std::pair<PubKey, Peer>>& committeeKeys);
 };
 
 #endif // __MESSENGER_H__
