@@ -527,9 +527,10 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
             // Process txn sharing assignments as a DS node
             m_mediator.m_ds->ProcessTxnBodySharingAssignment();
 
-            // Update my DS mode and ID
+            // Update my ID
             m_mediator.m_ds->m_consensusID
                 = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
+            m_mediator.m_ds->m_consensusMyID = 0;
 
             //(We're getting rid of this eventually Clean up my txns coz I am DS)
             m_mediator.m_node->CleanCreatedTransaction();
