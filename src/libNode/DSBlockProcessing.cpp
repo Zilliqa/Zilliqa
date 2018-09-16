@@ -538,7 +538,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
             uint16_t lastBlockHash = 0;
             if (m_mediator.m_currentEpochNum > 1)
             {
-                HashUtils::SerializableToHash16Bits(
+                lastBlockHash = HashUtils::SerializableToHash16Bits(
                     m_mediator.m_txBlockChain.GetLastBlock());
             }
 
