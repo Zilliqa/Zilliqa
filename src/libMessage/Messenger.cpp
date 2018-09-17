@@ -66,12 +66,12 @@ namespace
 
         // Set the consensus parameters
 
-        announcement.mutable_data()->set_consensusid(consensusID);
-        announcement.mutable_data()->set_blockhash(blockHash.data(),
-                                                   blockHash.size());
-        announcement.mutable_data()->set_leaderid(leaderID);
+        announcement.mutable_consensusinfo()->set_consensusid(consensusID);
+        announcement.mutable_consensusinfo()->set_blockhash(blockHash.data(),
+                                                            blockHash.size());
+        announcement.mutable_consensusinfo()->set_leaderid(leaderID);
 
-        if (!announcement.data().IsInitialized())
+        if (!announcement.consensusinfo().IsInitialized())
         {
             LOG_GENERAL(
                 WARNING,
@@ -81,61 +81,79 @@ namespace
 
         // Sign the announcement
 
-        vector<unsigned char> tmp;
+        vector<unsigned char> inputToSigning;
 
-        if (announcement.has_dsblock()
-            && announcement.dsblock().IsInitialized())
+        switch (announcement.announcement_case())
         {
-            tmp.resize(announcement.data().ByteSize()
-                       + announcement.dsblock().ByteSize());
-            announcement.data().SerializeToArray(
-                tmp.data(), announcement.data().ByteSize());
+        case ConsensusAnnouncement::AnnouncementCase::kDsblock:
+            if (!announcement.dsblock().IsInitialized())
+            {
+                LOG_GENERAL(WARNING,
+                            "Announcement dsblock content not initialized.");
+                return false;
+            }
+            inputToSigning.resize(announcement.consensusinfo().ByteSize()
+                                  + announcement.dsblock().ByteSize());
+            announcement.consensusinfo().SerializeToArray(
+                inputToSigning.data(), announcement.consensusinfo().ByteSize());
             announcement.dsblock().SerializeToArray(
-                tmp.data() + announcement.data().ByteSize(),
+                inputToSigning.data() + announcement.consensusinfo().ByteSize(),
                 announcement.dsblock().ByteSize());
-        }
-        else if (announcement.has_microblock()
-                 && announcement.microblock().IsInitialized())
-        {
-            tmp.resize(announcement.data().ByteSize()
-                       + announcement.microblock().ByteSize());
-            announcement.data().SerializeToArray(
-                tmp.data(), announcement.data().ByteSize());
+            break;
+        case ConsensusAnnouncement::AnnouncementCase::kMicroblock:
+            if (!announcement.microblock().IsInitialized())
+            {
+                LOG_GENERAL(WARNING,
+                            "Announcement microblock content not initialized.");
+                return false;
+            }
+            inputToSigning.resize(announcement.consensusinfo().ByteSize()
+                                  + announcement.microblock().ByteSize());
+            announcement.consensusinfo().SerializeToArray(
+                inputToSigning.data(), announcement.consensusinfo().ByteSize());
             announcement.microblock().SerializeToArray(
-                tmp.data() + announcement.data().ByteSize(),
+                inputToSigning.data() + announcement.consensusinfo().ByteSize(),
                 announcement.microblock().ByteSize());
-        }
-        else if (announcement.has_finalblock()
-                 && announcement.finalblock().IsInitialized())
-        {
-            tmp.resize(announcement.data().ByteSize()
-                       + announcement.finalblock().ByteSize());
-            announcement.data().SerializeToArray(
-                tmp.data(), announcement.data().ByteSize());
+            break;
+        case ConsensusAnnouncement::AnnouncementCase::kFinalblock:
+            if (!announcement.finalblock().IsInitialized())
+            {
+                LOG_GENERAL(WARNING,
+                            "Announcement finalblock content not initialized.");
+                return false;
+            }
+            inputToSigning.resize(announcement.consensusinfo().ByteSize()
+                                  + announcement.finalblock().ByteSize());
+            announcement.consensusinfo().SerializeToArray(
+                inputToSigning.data(), announcement.consensusinfo().ByteSize());
             announcement.finalblock().SerializeToArray(
-                tmp.data() + announcement.data().ByteSize(),
+                inputToSigning.data() + announcement.consensusinfo().ByteSize(),
                 announcement.finalblock().ByteSize());
-        }
-        else if (announcement.has_vcblock()
-                 && announcement.vcblock().IsInitialized())
-        {
-            tmp.resize(announcement.data().ByteSize()
-                       + announcement.vcblock().ByteSize());
-            announcement.data().SerializeToArray(
-                tmp.data(), announcement.data().ByteSize());
+            break;
+        case ConsensusAnnouncement::AnnouncementCase::kVcblock:
+            if (!announcement.vcblock().IsInitialized())
+            {
+                LOG_GENERAL(WARNING,
+                            "Announcement vcblock content not initialized.");
+                return false;
+            }
+            inputToSigning.resize(announcement.consensusinfo().ByteSize()
+                                  + announcement.vcblock().ByteSize());
+            announcement.consensusinfo().SerializeToArray(
+                inputToSigning.data(), announcement.consensusinfo().ByteSize());
             announcement.vcblock().SerializeToArray(
-                tmp.data() + announcement.data().ByteSize(),
+                inputToSigning.data() + announcement.consensusinfo().ByteSize(),
                 announcement.vcblock().ByteSize());
-        }
-        else
-        {
+            break;
+        case ConsensusAnnouncement::AnnouncementCase::ANNOUNCEMENT_NOT_SET:
+        default:
             LOG_GENERAL(WARNING, "Announcement content not set.");
             return false;
         }
 
         Signature signature;
-        if (!Schnorr::GetInstance().Sign(tmp, leaderKey.first, leaderKey.second,
-                                         signature))
+        if (!Schnorr::GetInstance().Sign(inputToSigning, leaderKey.first,
+                                         leaderKey.second, signature))
         {
             LOG_GENERAL(WARNING, "Failed to sign announcement.");
             return false;
@@ -156,29 +174,30 @@ namespace
 
         // Check the consensus parameters
 
-        if (announcement.data().consensusid() != consensusID)
+        if (announcement.consensusinfo().consensusid() != consensusID)
         {
             LOG_GENERAL(WARNING,
                         "Consensus ID mismatch. Expected: "
                             << consensusID << " Actual: "
-                            << announcement.data().consensusid());
+                            << announcement.consensusinfo().consensusid());
             return false;
         }
 
-        if ((announcement.data().blockhash().size() != blockHash.size())
+        if ((announcement.consensusinfo().blockhash().size()
+             != blockHash.size())
             || !equal(blockHash.begin(), blockHash.end(),
-                      announcement.data().blockhash().begin()))
+                      announcement.consensusinfo().blockhash().begin()))
         {
             LOG_GENERAL(WARNING, "Block hash mismatch.");
             return false;
         }
 
-        if (announcement.data().leaderid() != leaderID)
+        if (announcement.consensusinfo().leaderid() != leaderID)
         {
             LOG_GENERAL(WARNING,
                         "Leader ID mismatch. Expected: "
-                            << leaderID
-                            << " Actual: " << announcement.data().leaderid());
+                            << leaderID << " Actual: "
+                            << announcement.consensusinfo().leaderid());
             return false;
         }
 
@@ -189,45 +208,45 @@ namespace
         if (announcement.has_dsblock()
             && announcement.dsblock().IsInitialized())
         {
-            tmp.resize(announcement.data().ByteSize()
+            tmp.resize(announcement.consensusinfo().ByteSize()
                        + announcement.dsblock().ByteSize());
-            announcement.data().SerializeToArray(
-                tmp.data(), announcement.data().ByteSize());
+            announcement.consensusinfo().SerializeToArray(
+                tmp.data(), announcement.consensusinfo().ByteSize());
             announcement.dsblock().SerializeToArray(
-                tmp.data() + announcement.data().ByteSize(),
+                tmp.data() + announcement.consensusinfo().ByteSize(),
                 announcement.dsblock().ByteSize());
         }
         else if (announcement.has_microblock()
                  && announcement.microblock().IsInitialized())
         {
-            tmp.resize(announcement.data().ByteSize()
+            tmp.resize(announcement.consensusinfo().ByteSize()
                        + announcement.microblock().ByteSize());
-            announcement.data().SerializeToArray(
-                tmp.data(), announcement.data().ByteSize());
+            announcement.consensusinfo().SerializeToArray(
+                tmp.data(), announcement.consensusinfo().ByteSize());
             announcement.microblock().SerializeToArray(
-                tmp.data() + announcement.data().ByteSize(),
+                tmp.data() + announcement.consensusinfo().ByteSize(),
                 announcement.microblock().ByteSize());
         }
         else if (announcement.has_finalblock()
                  && announcement.finalblock().IsInitialized())
         {
-            tmp.resize(announcement.data().ByteSize()
+            tmp.resize(announcement.consensusinfo().ByteSize()
                        + announcement.finalblock().ByteSize());
-            announcement.data().SerializeToArray(
-                tmp.data(), announcement.data().ByteSize());
+            announcement.consensusinfo().SerializeToArray(
+                tmp.data(), announcement.consensusinfo().ByteSize());
             announcement.finalblock().SerializeToArray(
-                tmp.data() + announcement.data().ByteSize(),
+                tmp.data() + announcement.consensusinfo().ByteSize(),
                 announcement.finalblock().ByteSize());
         }
         else if (announcement.has_vcblock()
                  && announcement.vcblock().IsInitialized())
         {
-            tmp.resize(announcement.data().ByteSize()
+            tmp.resize(announcement.consensusinfo().ByteSize()
                        + announcement.vcblock().ByteSize());
-            announcement.data().SerializeToArray(
-                tmp.data(), announcement.data().ByteSize());
+            announcement.consensusinfo().SerializeToArray(
+                tmp.data(), announcement.consensusinfo().ByteSize());
             announcement.vcblock().SerializeToArray(
-                tmp.data() + announcement.data().ByteSize(),
+                tmp.data() + announcement.consensusinfo().ByteSize(),
                 announcement.vcblock().ByteSize());
         }
         else
@@ -1908,20 +1927,21 @@ bool Messenger::SetConsensusCommit(vector<unsigned char>& dst,
 
     ConsensusCommit result;
 
-    result.mutable_data()->set_consensusid(consensusID);
-    result.mutable_data()->set_blockhash(blockHash.data(), blockHash.size());
-    result.mutable_data()->set_backupid(backupID);
-    SerializableToProtobufByteArray(commit,
-                                    *result.mutable_data()->mutable_commit());
+    result.mutable_consensusinfo()->set_consensusid(consensusID);
+    result.mutable_consensusinfo()->set_blockhash(blockHash.data(),
+                                                  blockHash.size());
+    result.mutable_consensusinfo()->set_backupid(backupID);
+    SerializableToProtobufByteArray(
+        commit, *result.mutable_consensusinfo()->mutable_commit());
 
-    if (!result.data().IsInitialized())
+    if (!result.consensusinfo().IsInitialized())
     {
         LOG_GENERAL(WARNING, "ConsensusCommit.Data initialization failed.");
         return false;
     }
 
-    vector<unsigned char> tmp(result.data().ByteSize());
-    result.data().SerializeToArray(tmp.data(), tmp.size());
+    vector<unsigned char> tmp(result.consensusinfo().ByteSize());
+    result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
     Signature signature;
 
@@ -1961,24 +1981,24 @@ bool Messenger::GetConsensusCommit(
         return false;
     }
 
-    if (result.data().consensusid() != consensusID)
+    if (result.consensusinfo().consensusid() != consensusID)
     {
         LOG_GENERAL(WARNING,
                     "Consensus ID mismatch. Expected: "
                         << consensusID
-                        << " Actual: " << result.data().consensusid());
+                        << " Actual: " << result.consensusinfo().consensusid());
         return false;
     }
 
-    if ((result.data().blockhash().size() != blockHash.size())
+    if ((result.consensusinfo().blockhash().size() != blockHash.size())
         || !equal(blockHash.begin(), blockHash.end(),
-                  result.data().blockhash().begin()))
+                  result.consensusinfo().blockhash().begin()))
     {
         LOG_GENERAL(WARNING, "Block hash mismatch.");
         return false;
     }
 
-    backupID = result.data().backupid();
+    backupID = result.consensusinfo().backupid();
 
     if (backupID >= committeeKeys.size())
     {
@@ -1988,10 +2008,10 @@ bool Messenger::GetConsensusCommit(
         return false;
     }
 
-    ProtobufByteArrayToSerializable(result.data().commit(), commit);
+    ProtobufByteArrayToSerializable(result.consensusinfo().commit(), commit);
 
-    vector<unsigned char> tmp(result.data().ByteSize());
-    result.data().SerializeToArray(tmp.data(), tmp.size());
+    vector<unsigned char> tmp(result.consensusinfo().ByteSize());
+    result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
     Signature signature;
 
@@ -2018,24 +2038,27 @@ bool Messenger::SetConsensusChallenge(
 
     ConsensusChallenge result;
 
-    result.mutable_data()->set_consensusid(consensusID);
-    result.mutable_data()->set_blockhash(blockHash.data(), blockHash.size());
-    result.mutable_data()->set_leaderid(leaderID);
+    result.mutable_consensusinfo()->set_consensusid(consensusID);
+    result.mutable_consensusinfo()->set_blockhash(blockHash.data(),
+                                                  blockHash.size());
+    result.mutable_consensusinfo()->set_leaderid(leaderID);
     SerializableToProtobufByteArray(
-        aggregatedCommit, *result.mutable_data()->mutable_aggregatedcommit());
+        aggregatedCommit,
+        *result.mutable_consensusinfo()->mutable_aggregatedcommit());
     SerializableToProtobufByteArray(
-        aggregatedKey, *result.mutable_data()->mutable_aggregatedkey());
+        aggregatedKey,
+        *result.mutable_consensusinfo()->mutable_aggregatedkey());
     SerializableToProtobufByteArray(
-        challenge, *result.mutable_data()->mutable_challenge());
+        challenge, *result.mutable_consensusinfo()->mutable_challenge());
 
-    if (!result.data().IsInitialized())
+    if (!result.consensusinfo().IsInitialized())
     {
         LOG_GENERAL(WARNING, "ConsensusChallenge.Data initialization failed.");
         return false;
     }
 
-    vector<unsigned char> tmp(result.data().ByteSize());
-    result.data().SerializeToArray(tmp.data(), tmp.size());
+    vector<unsigned char> tmp(result.consensusinfo().ByteSize());
+    result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
     Signature signature;
 
@@ -2075,39 +2098,41 @@ bool Messenger::GetConsensusChallenge(
         return false;
     }
 
-    if (result.data().consensusid() != consensusID)
+    if (result.consensusinfo().consensusid() != consensusID)
     {
         LOG_GENERAL(WARNING,
                     "Consensus ID mismatch. Expected: "
                         << consensusID
-                        << " Actual: " << result.data().consensusid());
+                        << " Actual: " << result.consensusinfo().consensusid());
         return false;
     }
 
-    if ((result.data().blockhash().size() != blockHash.size())
+    if ((result.consensusinfo().blockhash().size() != blockHash.size())
         || !equal(blockHash.begin(), blockHash.end(),
-                  result.data().blockhash().begin()))
+                  result.consensusinfo().blockhash().begin()))
     {
         LOG_GENERAL(WARNING, "Block hash mismatch.");
         return false;
     }
 
-    if (result.data().leaderid() != leaderID)
+    if (result.consensusinfo().leaderid() != leaderID)
     {
         LOG_GENERAL(WARNING,
                     "Leader ID mismatch. Expected: "
-                        << leaderID << " Actual: " << result.data().leaderid());
+                        << leaderID
+                        << " Actual: " << result.consensusinfo().leaderid());
         return false;
     }
 
-    ProtobufByteArrayToSerializable(result.data().aggregatedcommit(),
+    ProtobufByteArrayToSerializable(result.consensusinfo().aggregatedcommit(),
                                     aggregatedCommit);
-    ProtobufByteArrayToSerializable(result.data().aggregatedkey(),
+    ProtobufByteArrayToSerializable(result.consensusinfo().aggregatedkey(),
                                     aggregatedKey);
-    ProtobufByteArrayToSerializable(result.data().challenge(), challenge);
+    ProtobufByteArrayToSerializable(result.consensusinfo().challenge(),
+                                    challenge);
 
-    vector<unsigned char> tmp(result.data().ByteSize());
-    result.data().SerializeToArray(tmp.data(), tmp.size());
+    vector<unsigned char> tmp(result.consensusinfo().ByteSize());
+    result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
     Signature signature;
 
@@ -2134,20 +2159,21 @@ bool Messenger::SetConsensusResponse(vector<unsigned char>& dst,
 
     ConsensusResponse result;
 
-    result.mutable_data()->set_consensusid(consensusID);
-    result.mutable_data()->set_blockhash(blockHash.data(), blockHash.size());
-    result.mutable_data()->set_backupid(backupID);
-    SerializableToProtobufByteArray(response,
-                                    *result.mutable_data()->mutable_response());
+    result.mutable_consensusinfo()->set_consensusid(consensusID);
+    result.mutable_consensusinfo()->set_blockhash(blockHash.data(),
+                                                  blockHash.size());
+    result.mutable_consensusinfo()->set_backupid(backupID);
+    SerializableToProtobufByteArray(
+        response, *result.mutable_consensusinfo()->mutable_response());
 
-    if (!result.data().IsInitialized())
+    if (!result.consensusinfo().IsInitialized())
     {
         LOG_GENERAL(WARNING, "ConsensusResponse.Data initialization failed.");
         return false;
     }
 
-    vector<unsigned char> tmp(result.data().ByteSize());
-    result.data().SerializeToArray(tmp.data(), tmp.size());
+    vector<unsigned char> tmp(result.consensusinfo().ByteSize());
+    result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
     Signature signature;
 
@@ -2187,24 +2213,24 @@ bool Messenger::GetConsensusResponse(
         return false;
     }
 
-    if (result.data().consensusid() != consensusID)
+    if (result.consensusinfo().consensusid() != consensusID)
     {
         LOG_GENERAL(WARNING,
                     "Consensus ID mismatch. Expected: "
                         << consensusID
-                        << " Actual: " << result.data().consensusid());
+                        << " Actual: " << result.consensusinfo().consensusid());
         return false;
     }
 
-    if ((result.data().blockhash().size() != blockHash.size())
+    if ((result.consensusinfo().blockhash().size() != blockHash.size())
         || !equal(blockHash.begin(), blockHash.end(),
-                  result.data().blockhash().begin()))
+                  result.consensusinfo().blockhash().begin()))
     {
         LOG_GENERAL(WARNING, "Block hash mismatch.");
         return false;
     }
 
-    backupID = result.data().backupid();
+    backupID = result.consensusinfo().backupid();
 
     if (backupID >= committeeKeys.size())
     {
@@ -2214,10 +2240,11 @@ bool Messenger::GetConsensusResponse(
         return false;
     }
 
-    ProtobufByteArrayToSerializable(result.data().response(), response);
+    ProtobufByteArrayToSerializable(result.consensusinfo().response(),
+                                    response);
 
-    vector<unsigned char> tmp(result.data().ByteSize());
-    result.data().SerializeToArray(tmp.data(), tmp.size());
+    vector<unsigned char> tmp(result.consensusinfo().ByteSize());
+    result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
     Signature signature;
 
@@ -2243,25 +2270,27 @@ bool Messenger::SetConsensusCollectiveSig(
 
     ConsensusCollectiveSig result;
 
-    result.mutable_data()->set_consensusid(consensusID);
-    result.mutable_data()->set_blockhash(blockHash.data(), blockHash.size());
-    result.mutable_data()->set_leaderid(leaderID);
+    result.mutable_consensusinfo()->set_consensusid(consensusID);
+    result.mutable_consensusinfo()->set_blockhash(blockHash.data(),
+                                                  blockHash.size());
+    result.mutable_consensusinfo()->set_leaderid(leaderID);
     SerializableToProtobufByteArray(
-        collectiveSig, *result.mutable_data()->mutable_collectivesig());
+        collectiveSig,
+        *result.mutable_consensusinfo()->mutable_collectivesig());
     for (bool i : bitmap)
     {
-        result.mutable_data()->add_bitmap(i);
+        result.mutable_consensusinfo()->add_bitmap(i);
     }
 
-    if (!result.data().IsInitialized())
+    if (!result.consensusinfo().IsInitialized())
     {
         LOG_GENERAL(WARNING,
                     "ConsensusCollectiveSig.Data initialization failed.");
         return false;
     }
 
-    vector<unsigned char> tmp(result.data().ByteSize());
-    result.data().SerializeToArray(tmp.data(), tmp.size());
+    vector<unsigned char> tmp(result.consensusinfo().ByteSize());
+    result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
     Signature signature;
 
@@ -2301,41 +2330,42 @@ bool Messenger::GetConsensusCollectiveSig(
         return false;
     }
 
-    if (result.data().consensusid() != consensusID)
+    if (result.consensusinfo().consensusid() != consensusID)
     {
         LOG_GENERAL(WARNING,
                     "Consensus ID mismatch. Expected: "
                         << consensusID
-                        << " Actual: " << result.data().consensusid());
+                        << " Actual: " << result.consensusinfo().consensusid());
         return false;
     }
 
-    if ((result.data().blockhash().size() != blockHash.size())
+    if ((result.consensusinfo().blockhash().size() != blockHash.size())
         || !equal(blockHash.begin(), blockHash.end(),
-                  result.data().blockhash().begin()))
+                  result.consensusinfo().blockhash().begin()))
     {
         LOG_GENERAL(WARNING, "Block hash mismatch.");
         return false;
     }
 
-    if (result.data().leaderid() != leaderID)
+    if (result.consensusinfo().leaderid() != leaderID)
     {
         LOG_GENERAL(WARNING,
                     "Leader ID mismatch. Expected: "
-                        << leaderID << " Actual: " << result.data().leaderid());
+                        << leaderID
+                        << " Actual: " << result.consensusinfo().leaderid());
         return false;
     }
 
-    ProtobufByteArrayToSerializable(result.data().collectivesig(),
+    ProtobufByteArrayToSerializable(result.consensusinfo().collectivesig(),
                                     collectiveSig);
 
-    for (int i = 0; i < result.data().bitmap().size(); i++)
+    for (int i = 0; i < result.consensusinfo().bitmap().size(); i++)
     {
-        bitmap.emplace_back(result.data().bitmap(i));
+        bitmap.emplace_back(result.consensusinfo().bitmap(i));
     }
 
-    vector<unsigned char> tmp(result.data().ByteSize());
-    result.data().SerializeToArray(tmp.data(), tmp.size());
+    vector<unsigned char> tmp(result.consensusinfo().ByteSize());
+    result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
     Signature signature;
 
@@ -2360,20 +2390,22 @@ bool Messenger::SetConsensusCommitFailure(
 
     ConsensusCommitFailure result;
 
-    result.mutable_data()->set_consensusid(consensusID);
-    result.mutable_data()->set_blockhash(blockHash.data(), blockHash.size());
-    result.mutable_data()->set_backupid(backupID);
-    result.mutable_data()->set_errormsg(errorMsg.data(), errorMsg.size());
+    result.mutable_consensusinfo()->set_consensusid(consensusID);
+    result.mutable_consensusinfo()->set_blockhash(blockHash.data(),
+                                                  blockHash.size());
+    result.mutable_consensusinfo()->set_backupid(backupID);
+    result.mutable_consensusinfo()->set_errormsg(errorMsg.data(),
+                                                 errorMsg.size());
 
-    if (!result.data().IsInitialized())
+    if (!result.consensusinfo().IsInitialized())
     {
         LOG_GENERAL(WARNING,
                     "ConsensusCommitFailure.Data initialization failed.");
         return false;
     }
 
-    vector<unsigned char> tmp(result.data().ByteSize());
-    result.data().SerializeToArray(tmp.data(), tmp.size());
+    vector<unsigned char> tmp(result.consensusinfo().ByteSize());
+    result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
     Signature signature;
 
@@ -2413,24 +2445,24 @@ bool Messenger::GetConsensusCommitFailure(
         return false;
     }
 
-    if (result.data().consensusid() != consensusID)
+    if (result.consensusinfo().consensusid() != consensusID)
     {
         LOG_GENERAL(WARNING,
                     "Consensus ID mismatch. Expected: "
                         << consensusID
-                        << " Actual: " << result.data().consensusid());
+                        << " Actual: " << result.consensusinfo().consensusid());
         return false;
     }
 
-    if ((result.data().blockhash().size() != blockHash.size())
+    if ((result.consensusinfo().blockhash().size() != blockHash.size())
         || !equal(blockHash.begin(), blockHash.end(),
-                  result.data().blockhash().begin()))
+                  result.consensusinfo().blockhash().begin()))
     {
         LOG_GENERAL(WARNING, "Block hash mismatch.");
         return false;
     }
 
-    backupID = result.data().backupid();
+    backupID = result.consensusinfo().backupid();
 
     if (backupID >= committeeKeys.size())
     {
@@ -2440,12 +2472,12 @@ bool Messenger::GetConsensusCommitFailure(
         return false;
     }
 
-    errorMsg.resize(result.data().errormsg().size());
-    copy(result.data().errormsg().begin(), result.data().errormsg().end(),
-         errorMsg.begin());
+    errorMsg.resize(result.consensusinfo().errormsg().size());
+    copy(result.consensusinfo().errormsg().begin(),
+         result.consensusinfo().errormsg().end(), errorMsg.begin());
 
-    vector<unsigned char> tmp(result.data().ByteSize());
-    result.data().SerializeToArray(tmp.data(), tmp.size());
+    vector<unsigned char> tmp(result.consensusinfo().ByteSize());
+    result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
     Signature signature;
 

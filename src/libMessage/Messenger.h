@@ -285,7 +285,7 @@ public:
             return false;
         }
 
-        consensusID = consensus_message.data().consensusid();
+        consensusID = consensus_message.consensusinfo().consensusid();
 
         return true;
     }
