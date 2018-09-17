@@ -125,7 +125,6 @@ const unsigned int NEW_NODE_POW_DELAY{
     ReadFromConstantsFile("NEW_NODE_POW_DELAY")};
 const unsigned int POST_VIEWCHANGE_BUFFER{
     ReadFromConstantsFile("POST_VIEWCHANGE_BUFFER")};
-const unsigned int WAITING_FORWARD{ReadFromConstantsFile("WAITING_FORWARD")};
 const unsigned int CONTRACT_CREATE_GAS{
     ReadFromConstantsFile("CONTRACT_CREATE_GAS")};
 const unsigned int CONTRACT_INVOKE_GAS{
