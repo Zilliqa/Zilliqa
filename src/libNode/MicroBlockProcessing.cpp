@@ -1594,32 +1594,11 @@ bool Node::MicroBlockValidator(const vector<unsigned char>& message,
         return false;
     }
 
-    bool valid = false;
-
-    do
-    {
-        if (!CheckBlockTypeIsMicro() || !CheckMicroBlockVersion()
-            || !CheckMicroBlockShardID() || !CheckMicroBlockTimestamp()
-            || !CheckMicroBlockHashes(errorMsg) || !CheckMicroBlockTxnRootHash()
-            || !CheckMicroBlockStateDeltaHash()
-            || !CheckMicroBlockTranReceiptHash())
-        {
-            break;
-        }
-
-        // Check gas limit (must satisfy some equations)
-        // Check gas used (must be <= gas limit)
-        // Check state root (TBD)
-        // Check pubkey (must be valid and = shard leader)
-        // Check parent DS hash (must be = digest of last DS block header in the DS blockchain)
-        // Need some rework to be able to access DS blockchain (or we switch to using the persistent storage lib)
-        // Check parent DS block number (must be = block number of last DS block header in the DS blockchain)
-        // Need some rework to be able to access DS blockchain (or we switch to using the persistent storage lib)
-
-        valid = true;
-    } while (false);
-
-    if (!valid)
+    if (!CheckBlockTypeIsMicro() || !CheckMicroBlockVersion()
+        || !CheckMicroBlockShardID() || !CheckMicroBlockTimestamp()
+        || !CheckMicroBlockHashes(errorMsg) || !CheckMicroBlockTxnRootHash()
+        || !CheckMicroBlockStateDeltaHash()
+        || !CheckMicroBlockTranReceiptHash())
     {
         m_microblock = nullptr;
         Serializable::SetNumber<uint32_t>(
@@ -1629,5 +1608,14 @@ bool Node::MicroBlockValidator(const vector<unsigned char>& message,
         return false;
     }
 
-    return valid;
+    // Check gas limit (must satisfy some equations)
+    // Check gas used (must be <= gas limit)
+    // Check state root (TBD)
+    // Check pubkey (must be valid and = shard leader)
+    // Check parent DS hash (must be = digest of last DS block header in the DS blockchain)
+    // Need some rework to be able to access DS blockchain (or we switch to using the persistent storage lib)
+    // Check parent DS block number (must be = block number of last DS block header in the DS blockchain)
+    // Need some rework to be able to access DS blockchain (or we switch to using the persistent storage lib)
+
+    return true;
 }

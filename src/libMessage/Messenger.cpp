@@ -2277,7 +2277,7 @@ bool Messenger::SetConsensusCollectiveSig(
     SerializableToProtobufByteArray(
         collectiveSig,
         *result.mutable_consensusinfo()->mutable_collectivesig());
-    for (bool i : bitmap)
+    for (const auto& i : bitmap)
     {
         result.mutable_consensusinfo()->add_bitmap(i);
     }
@@ -2359,9 +2359,9 @@ bool Messenger::GetConsensusCollectiveSig(
     ProtobufByteArrayToSerializable(result.consensusinfo().collectivesig(),
                                     collectiveSig);
 
-    for (int i = 0; i < result.consensusinfo().bitmap().size(); i++)
+    for (const auto& i : result.consensusinfo().bitmap())
     {
-        bitmap.emplace_back(result.consensusinfo().bitmap(i));
+        bitmap.emplace_back(i);
     }
 
     vector<unsigned char> tmp(result.consensusinfo().ByteSize());
