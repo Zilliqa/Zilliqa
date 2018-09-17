@@ -283,7 +283,7 @@ class Node : public Executable, public Broadcastable
 
     // Transaction functions
     bool OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
-                           unsigned int offset, const Peer& from);
+                           const Peer& from);
     bool
     OnCommitFailure(const std::map<unsigned int, std::vector<unsigned char>>&);
 
@@ -291,8 +291,13 @@ class Node : public Executable, public Broadcastable
     bool RunConsensusOnMicroBlockWhenShardBackup();
     bool ComposeMicroBlock();
     void SubmitMicroblockToDSCommittee() const;
-    bool MicroBlockValidator(const std::vector<unsigned char>& microblock,
-                             std::vector<unsigned char>& errorMsg);
+    bool MicroBlockValidator(const std::vector<unsigned char>& message,
+                             unsigned int offset,
+                             std::vector<unsigned char>& errorMsg,
+                             const uint32_t consensusID,
+                             const std::vector<unsigned char>& blockHash,
+                             const uint16_t leaderID, const PubKey& leaderKey,
+                             std::vector<unsigned char>& messageToCosign);
     unsigned char
     CheckLegitimacyOfTxnHashes(std::vector<unsigned char>& errorMsg);
     bool CheckBlockTypeIsMicro();

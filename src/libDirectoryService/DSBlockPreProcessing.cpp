@@ -28,6 +28,7 @@
 #include "depends/libTrie/TrieHash.h"
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
+#include "libMessage/Messenger.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -392,6 +393,8 @@ void DirectoryService::ComputeTxnSharingAssignments(const Peer& winnerpeer)
 
 bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
 {
+    LOG_MARKER();
+
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
@@ -399,8 +402,6 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
                     "expected to be called from LookUp node.");
         return true;
     }
-
-    LOG_MARKER();
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I am the leader DS node. Creating DS block.");
@@ -441,30 +442,6 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
     ComputeSharding(sortedPoWSolns);
     ComputeTxnSharingAssignments(winnerPeer->second);
 
-    // DSBlock consensus announcement = [DS block] [PoW winner IP] [Sharding structure] [Txn sharing assignments]
-    // Consensus cosig will be over the DS block header
-
-    vector<unsigned char> PoWConsensusMessage;
-
-    unsigned int curr_offset = 0;
-
-    // [DS block]
-    curr_offset
-        += m_pendingDSBlock->Serialize(PoWConsensusMessage, curr_offset);
-
-    // [PoW winner IP]
-    curr_offset
-        += winnerPeer->second.Serialize(PoWConsensusMessage, curr_offset);
-
-    // [Sharding structure]
-    curr_offset = ShardingStructure::Serialize(m_shards, PoWConsensusMessage,
-                                               curr_offset);
-
-    // [Txn sharing assignments]
-    TxnSharingAssignments::Serialize(m_DSReceivers, m_shardReceivers,
-                                     m_shardSenders, PoWConsensusMessage,
-                                     curr_offset);
-
     // Create new consensus object
     // Dummy values for now
     uint32_t consensusID = 0;
@@ -487,9 +464,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
         m_mediator.m_selfKey.first, *m_mediator.m_DSCommittee,
         static_cast<unsigned char>(DIRECTORY),
         static_cast<unsigned char>(DSBLOCKCONSENSUS),
-        std::function<bool(const vector<unsigned char>&, unsigned int,
-                           const Peer&)>(),
-        std::function<bool(map<unsigned int, vector<unsigned char>>)>()));
+        NodeCommitFailureHandlerFunc(), ShardCommitFailureHandlerFunc()));
 
     if (m_consensusObject == nullptr)
     {
@@ -509,7 +484,21 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
             + 1
         << "] BGIN");
 
-    cl->StartConsensus(PoWConsensusMessage, DSBlockHeader::SIZE);
+    auto announcementGeneratorFunc =
+        [this](vector<unsigned char>& dst, unsigned int offset,
+               const uint32_t consensusID,
+               const vector<unsigned char>& blockHash, const uint16_t leaderID,
+               const pair<PrivKey, PubKey>& leaderKey,
+               vector<unsigned char>& messageToCosign) mutable -> bool {
+        const auto& winnerPeer = m_allPoWConns.find(
+            m_pendingDSBlock->GetHeader().GetMinerPubKey());
+        return Messenger::SetDSDSBlockAnnouncement(
+            dst, offset, consensusID, blockHash, leaderID, leaderKey,
+            *m_pendingDSBlock, winnerPeer->second, m_shards, m_DSReceivers,
+            m_shardReceivers, m_shardSenders, messageToCosign);
+    };
+
+    cl->StartConsensus(announcementGeneratorFunc);
 
     return true;
 }
@@ -566,72 +555,14 @@ void DirectoryService::ProcessTxnBodySharingAssignment()
     }
 }
 
-// This version will be removed when DSBlock announcement is protobuf-ed
-void DirectoryService::SaveTxnBodySharingAssignment(
-    const vector<unsigned char>& sharding_structure, unsigned int curr_offset)
-{
-    if (LOOKUP_NODE_MODE)
-    {
-        LOG_GENERAL(WARNING,
-                    "DirectoryService::SaveTxnBodySharingAssignment not "
-                    "expected to be called from LookUp node.");
-        return;
-    }
-
-    m_DSReceivers.clear();
-    m_shardReceivers.clear();
-    m_shardSenders.clear();
-
-    TxnSharingAssignments::Deserialize(sharding_structure, curr_offset,
-                                       m_DSReceivers, m_shardReceivers,
-                                       m_shardSenders);
-
-    bool i_am_forwarder = false;
-    for (auto& m_DSReceiver : m_DSReceivers)
-    {
-        if (m_DSReceiver == m_mediator.m_selfPeer)
-        {
-            m_mediator.m_node->m_txnSharingIAmSender = true;
-            i_am_forwarder = true;
-            break;
-        }
-    }
-
-    unsigned int num_ds_nodes = m_DSReceivers.size();
-
-    m_sharingAssignment.clear();
-
-    if ((i_am_forwarder) && (m_mediator.m_DSCommittee->size() > num_ds_nodes))
-    {
-        for (auto& i : *m_mediator.m_DSCommittee)
-        {
-            bool is_a_receiver = false;
-
-            if (num_ds_nodes > 0)
-            {
-                for (const auto& m_DSReceiver : m_DSReceivers)
-                {
-                    if (i.second == m_DSReceiver)
-                    {
-                        is_a_receiver = true;
-                        break;
-                    }
-                }
-                num_ds_nodes--;
-            }
-
-            if (!is_a_receiver)
-            {
-                m_sharingAssignment.emplace_back(i.second);
-            }
-        }
-    }
-}
-
 bool DirectoryService::DSBlockValidator(
-    const vector<unsigned char>& message,
-    [[gnu::unused]] std::vector<unsigned char>& errorMsg)
+    const vector<unsigned char>& message, unsigned int offset,
+    [[gnu::unused]] vector<unsigned char>& errorMsg, const uint32_t consensusID,
+    const vector<unsigned char>& blockHash, const uint16_t leaderID,
+    const PubKey& leaderKey, vector<unsigned char>& messageToCosign)
 {
+    LOG_MARKER();
+
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
@@ -640,24 +571,30 @@ bool DirectoryService::DSBlockValidator(
         return true;
     }
 
-    LOG_MARKER();
+    Peer winnerPeer;
 
-    // Message = [DS block] [PoW winner IP] [Sharding structure] [Txn sharing assignments]
+    m_shards.clear();
+    m_DSReceivers.clear();
+    m_shardReceivers.clear();
+    m_shardSenders.clear();
 
-    // To-do: Put in the logic here for checking the proposed DS block
     lock(m_mutexPendingDSBlock, m_mutexAllPoWConns);
     lock_guard<mutex> g(m_mutexPendingDSBlock, adopt_lock);
     lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
 
-    unsigned int curr_offset = 0;
+    m_pendingDSBlock.reset(new DSBlock);
 
-    // [DS block]
-    m_pendingDSBlock.reset(new DSBlock(message, curr_offset));
-    curr_offset += m_pendingDSBlock->GetSerializedSize();
+    if (!Messenger::GetDSDSBlockAnnouncement(
+            message, offset, consensusID, blockHash, leaderID, leaderKey,
+            *m_pendingDSBlock, winnerPeer, m_shards, m_DSReceivers,
+            m_shardReceivers, m_shardSenders, messageToCosign))
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::GetDSDSBlockAnnouncement failed.");
+        return false;
+    }
 
-    // [PoW winner IP]
-    Peer winnerPeer(message, curr_offset);
-    curr_offset += IP_SIZE + PORT_SIZE;
+    // To-do: Put in the logic here for checking the proposed DS block
 
     auto storedMember
         = m_allPoWConns.find(m_pendingDSBlock->GetHeader().GetMinerPubKey());
@@ -720,8 +657,10 @@ bool DirectoryService::DSBlockValidator(
         }
     }
 
-    // [Sharding structure]
-    curr_offset = PopulateShardingStructure(message, curr_offset);
+    if (!ProcessShardingStructure())
+    {
+        return false;
+    }
 
     if (!VerifyPoWOrdering())
     {
@@ -729,14 +668,15 @@ bool DirectoryService::DSBlockValidator(
         //return false; [TODO] Enable this check after fixing the PoW order issue.
     }
 
-    // [Txn sharing assignments]
-    SaveTxnBodySharingAssignment(message, curr_offset);
+    ProcessTxnBodySharingAssignment();
 
     return true;
 }
 
 bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup()
 {
+    LOG_MARKER();
+
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
@@ -744,8 +684,6 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup()
                     "expected to be called from LookUp node.");
         return true;
     }
-
-    LOG_MARKER();
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I am a backup DS node. Waiting for DS block announcement.");
@@ -755,9 +693,14 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup()
     m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
 
-    auto func = [this](const vector<unsigned char>& message,
-                       vector<unsigned char>& errorMsg) mutable -> bool {
-        return DSBlockValidator(message, errorMsg);
+    auto func
+        = [this](const vector<unsigned char>& input, unsigned int offset,
+                 vector<unsigned char>& errorMsg, const uint32_t consensusID,
+                 const vector<unsigned char>& blockHash,
+                 const uint16_t leaderID, const PubKey& leaderKey,
+                 vector<unsigned char>& messageToCosign) mutable -> bool {
+        return DSBlockValidator(input, offset, errorMsg, consensusID, blockHash,
+                                leaderID, leaderKey, messageToCosign);
     };
 
     m_consensusObject.reset(new ConsensusBackup(
@@ -817,54 +760,6 @@ bool DirectoryService::ProcessShardingStructure()
     }
 
     return true;
-}
-
-// This version will be removed when DSBlock announcement is protobuf-ed
-unsigned int DirectoryService::PopulateShardingStructure(
-    const vector<unsigned char>& message, unsigned int offset)
-{
-    if (LOOKUP_NODE_MODE)
-    {
-        LOG_GENERAL(WARNING,
-                    "DirectoryService::PopulateShardingStructure not "
-                    "expected to be called from LookUp node.");
-        return offset;
-    }
-
-    m_shards.clear();
-    m_publicKeyToShardIdMap.clear();
-
-    offset = ShardingStructure::Deserialize(message, offset, m_shards);
-
-    for (unsigned int i = 0; i < m_shards.size(); i++)
-    {
-        for (auto& j : m_shards.at(i))
-        {
-            auto storedMember = m_allPoWConns.find(j.first);
-
-            // I know the member but the member IP given by the leader is different!
-            if (storedMember != m_allPoWConns.end())
-            {
-                if (storedMember->second != j.second)
-                {
-                    LOG_EPOCH(WARNING,
-                              to_string(m_mediator.m_currentEpochNum).c_str(),
-                              "WARNING: Why is the IP of the member different "
-                              "from what I have in m_allPoWConns???");
-                    return false;
-                }
-            }
-            // I don't know the member -> store the IP given by the leader
-            else
-            {
-                m_allPoWConns.emplace(j.first, j.second);
-            }
-
-            m_publicKeyToShardIdMap.emplace(j.first, i);
-        }
-    }
-
-    return offset;
 }
 
 void DirectoryService::RunConsensusOnDSBlock(bool isRejoin)

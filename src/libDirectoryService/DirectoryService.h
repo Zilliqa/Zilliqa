@@ -27,7 +27,6 @@
 #include <shared_mutex>
 #include <vector>
 
-#include "DSBlockMessage.h"
 #include "common/Broadcastable.h"
 #include "common/Executable.h"
 #include "libConsensus/Consensus.h"
@@ -218,8 +217,7 @@ class DirectoryService : public Executable, public Broadcastable
     // Final Block functions
     bool RunConsensusOnFinalBlockWhenDSPrimary();
     bool RunConsensusOnFinalBlockWhenDSBackup();
-    void ComposeFinalBlockCore();
-    std::vector<unsigned char> ComposeFinalBlockMessage();
+    void ComposeFinalBlock();
     bool CheckWhetherDSBlockIsFresh(const uint64_t dsblock_num);
     void CommitMBSubmissionMsgBuffer();
     bool ProcessMicroblockSubmissionFromShard(
@@ -263,20 +261,39 @@ class DirectoryService : public Executable, public Broadcastable
 
     // DS block consensus validator function
     bool DSBlockValidator(const std::vector<unsigned char>& message,
-                          std::vector<unsigned char>& errorMsg);
+                          unsigned int offset,
+                          std::vector<unsigned char>& errorMsg,
+                          const uint32_t consensusID,
+                          const std::vector<unsigned char>& blockHash,
+                          const uint16_t leaderID, const PubKey& leaderKey,
+                          std::vector<unsigned char>& messageToCosign);
 
     // Sharding consensus validator function
     bool ShardingValidator(const std::vector<unsigned char>& sharding_structure,
                            std::vector<unsigned char>& errorMsg);
 
     // Final block consensus validator function
-    bool FinalBlockValidator(const std::vector<unsigned char>& finalblock,
-                             std::vector<unsigned char>& errorMsg);
+    bool FinalBlockValidator(const std::vector<unsigned char>& message,
+                             unsigned int offset,
+                             std::vector<unsigned char>& errorMsg,
+                             const uint32_t consensusID,
+                             const std::vector<unsigned char>& blockHash,
+                             const uint16_t leaderID, const PubKey& leaderKey,
+                             std::vector<unsigned char>& messageToCosign);
+
+    // View change consensus validator function
+    bool ViewChangeValidator(const std::vector<unsigned char>& message,
+                             unsigned int offset,
+                             std::vector<unsigned char>& errorMsg,
+                             const uint32_t consensusID,
+                             const std::vector<unsigned char>& blockHash,
+                             const uint16_t leaderID, const PubKey& leaderKey,
+                             std::vector<unsigned char>& messageToCosign);
 
     void StoreFinalBlockToDisk();
 
     bool OnNodeMissingMicroBlocks(const std::vector<unsigned char>& errorMsg,
-                                  unsigned int offset, const Peer& from);
+                                  const Peer& from);
 
     // void StoreMicroBlocksToDisk();
 
@@ -293,8 +310,6 @@ class DirectoryService : public Executable, public Broadcastable
     void RunConsensusOnViewChange();
     void ScheduleViewChangeTimeout();
     void ComputeNewCandidateLeader();
-    bool ViewChangeValidator(const std::vector<unsigned char>& vcBlock,
-                             std::vector<unsigned char>& errorMsg);
     bool RunConsensusOnViewChangeWhenCandidateLeader();
     bool RunConsensusOnViewChangeWhenNotCandidateLeader();
     void ProcessViewChangeConsensusWhenDone();
@@ -435,18 +450,8 @@ public:
     /// Used by PoW winner to configure sharding variables as the next DS leader
     bool ProcessShardingStructure();
 
-    // This version will be removed when DSBlock announcement is protobuf-ed
-    unsigned int
-    PopulateShardingStructure(const std::vector<unsigned char>& message,
-                              unsigned int offset);
-
     /// Used by PoW winner to configure txn sharing assignment variables as the next DS leader
     void ProcessTxnBodySharingAssignment();
-
-    // This version will be removed when DSBlock announcement is protobuf-ed
-    void SaveTxnBodySharingAssignment(
-        const std::vector<unsigned char>& sharding_structure,
-        unsigned int curr_offset);
 
     /// Used by PoW winner to finish setup as the next DS leader
     void StartFirstTxEpoch();
