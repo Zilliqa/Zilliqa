@@ -46,10 +46,12 @@ bool BlockStorage::PutBlock(const uint64_t& blockNum,
     if (blockType == BlockType::DS)
     {
         ret = m_dsBlockchainDB->Insert(blockNum, body);
+        LOG_GENERAL(INFO, "Stored DsBlock  Num:" << blockNum);
     }
     else if (blockType == BlockType::Tx)
     {
         ret = m_txBlockchainDB->Insert(blockNum, body);
+        LOG_GENERAL(INFO, "Stored TxBlock  Num:" << blockNum);
     }
     return (ret == 0);
 }
@@ -208,7 +210,6 @@ bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr>& blocks)
     for (it->SeekToFirst(); it->Valid(); it->Next())
     {
         string bns = it->key().ToString();
-        LOG_GENERAL(INFO, "blockNum: " << bns);
         string blockString = it->value().ToString();
         if (blockString.empty())
         {
@@ -221,6 +222,7 @@ bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr>& blocks)
             std::vector<unsigned char>(blockString.begin(), blockString.end()),
             0));
         blocks.emplace_back(block);
+        LOG_GENERAL(INFO, "Retrievd DsBlock Num:" << bns);
     }
 
     delete it;
@@ -243,7 +245,6 @@ bool BlockStorage::GetAllTxBlocks(std::list<TxBlockSharedPtr>& blocks)
     for (it->SeekToFirst(); it->Valid(); it->Next())
     {
         string bns = it->key().ToString();
-        LOG_GENERAL(INFO, "blockNum: " << bns);
         string blockString = it->value().ToString();
         if (blockString.empty())
         {
@@ -255,6 +256,7 @@ bool BlockStorage::GetAllTxBlocks(std::list<TxBlockSharedPtr>& blocks)
             std::vector<unsigned char>(blockString.begin(), blockString.end()),
             0));
         blocks.emplace_back(block);
+        LOG_GENERAL(INFO, "Retrievd TxBlock Num:" << bns);
     }
 
     delete it;

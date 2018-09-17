@@ -300,13 +300,17 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
     // StoreMicroBlocksToDisk();
     StoreFinalBlockToDisk();
 
-    AccountStore::GetInstance().CommitTemp();
-
     bool isVacuousEpoch
         = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
     if (isVacuousEpoch)
     {
         AccountStore::GetInstance().MoveUpdatesToDisk();
+    }
+
+    AccountStore::GetInstance().CommitTemp();
+
+    if (isVacuousEpoch)
+    {
         BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
                                                     {'0'});
 

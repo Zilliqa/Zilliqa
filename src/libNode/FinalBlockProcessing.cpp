@@ -913,6 +913,8 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
             return false;
         }
 
+        StoreState();
+
         ProcessStateDeltaFromFinalBlock(
             stateDelta, txBlock.GetHeader().GetStateDeltaHash());
 
@@ -922,7 +924,6 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
             return false;
         }
 
-        StoreState();
         StoreFinalBlock(txBlock);
 
         if (!LOOKUP_NODE_MODE)
