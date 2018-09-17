@@ -913,6 +913,8 @@ bool DirectoryService::CheckStateDeltaHash()
 
 bool DirectoryService::CheckFinalBlockValidity(vector<unsigned char>& errorMsg)
 {
+    LOG_MARKER();
+
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
@@ -921,31 +923,11 @@ bool DirectoryService::CheckFinalBlockValidity(vector<unsigned char>& errorMsg)
         return true;
     }
 
-    LOG_MARKER();
-
-    bool valid = false;
-
-    do
-    {
-        if (!CheckBlockTypeIsFinal() || !CheckFinalBlockVersion()
-            || !CheckFinalBlockNumber() || !CheckPreviousFinalBlockHash()
-            || !CheckFinalBlockTimestamp() || !CheckMicroBlockHashes(errorMsg)
-            || !CheckMicroBlockHashRoot() || !CheckIsMicroBlockEmpty()
-            || !CheckStateRoot() || !CheckStateDeltaHash())
-        {
-            break;
-        }
-
-        // TODO: Check gas limit (must satisfy some equations)
-        // TODO: Check gas used (must be <= gas limit)
-        // TODO: Check pubkey (must be valid and = shard leader)
-        // TODO: Check parent DS hash (must be = digest of last DS block header in the DS blockchain)
-        // TODO: Check parent DS block number (must be = block number of last DS block header in the DS blockchain)
-
-        valid = true;
-    } while (false);
-
-    if (!valid)
+    if (!CheckBlockTypeIsFinal() || !CheckFinalBlockVersion()
+        || !CheckFinalBlockNumber() || !CheckPreviousFinalBlockHash()
+        || !CheckFinalBlockTimestamp() || !CheckMicroBlockHashes(errorMsg)
+        || !CheckMicroBlockHashRoot() || !CheckIsMicroBlockEmpty()
+        || !CheckStateRoot() || !CheckStateDeltaHash())
     {
         Serializable::SetNumber<uint32_t>(
             errorMsg, errorMsg.size(), m_mediator.m_selfPeer.m_listenPortHost,
@@ -953,7 +935,13 @@ bool DirectoryService::CheckFinalBlockValidity(vector<unsigned char>& errorMsg)
         return false;
     }
 
-    return valid;
+    // TODO: Check gas limit (must satisfy some equations)
+    // TODO: Check gas used (must be <= gas limit)
+    // TODO: Check pubkey (must be valid and = shard leader)
+    // TODO: Check parent DS hash (must be = digest of last DS block header in the DS blockchain)
+    // TODO: Check parent DS block number (must be = block number of last DS block header in the DS blockchain)
+
+    return true;
 }
 
 /** To remove. Redundant code. 
