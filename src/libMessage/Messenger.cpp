@@ -872,7 +872,7 @@ bool Messenger::SetDSDSBlockAnnouncement(
 
     messageToCosign.clear();
     if (dsBlock.GetHeader().Serialize(messageToCosign, 0)
-        != DSBlockHeader::SIZE)
+        != dsBlock.GetHeader().GetSize())
     {
         LOG_GENERAL(WARNING, "DSBlockHeader serialization failed.");
         return false;
@@ -975,7 +975,7 @@ bool Messenger::GetDSDSBlockAnnouncement(
 
     messageToCosign.clear();
     if (dsBlock.GetHeader().Serialize(messageToCosign, 0)
-        != DSBlockHeader::SIZE)
+        != dsBlock.GetHeader().GetSize())
     {
         LOG_GENERAL(WARNING, "DSBlockHeader serialization failed.");
         return false;
