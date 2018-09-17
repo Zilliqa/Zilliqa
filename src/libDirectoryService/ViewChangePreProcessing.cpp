@@ -53,20 +53,18 @@ bool DirectoryService::ViewChangeValidator(
         return true;
     }
 
-    VCBlock vcBlock;
+    lock_guard<mutex> g(m_mutexPendingVCBlock);
 
-    if (!Messenger::GetDSVCBlockAnnouncement(message, offset, consensusID,
-                                             blockHash, leaderID, leaderKey,
-                                             vcBlock, messageToCosign))
+    m_pendingVCBlock.reset(new VCBlock);
+
+    if (!Messenger::GetDSVCBlockAnnouncement(
+            message, offset, consensusID, blockHash, leaderID, leaderKey,
+            *m_pendingVCBlock, messageToCosign))
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Messenger::GetDSVCBlockAnnouncement failed.");
         return false;
     }
-
-    lock_guard<mutex> g(m_mutexPendingVCBlock);
-
-    m_pendingVCBlock.reset(new VCBlock(vcBlock));
 
     if (m_mediator.m_DSCommittee->at(m_viewChangeCounter).second
         != m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo())

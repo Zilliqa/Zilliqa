@@ -571,7 +571,6 @@ bool DirectoryService::DSBlockValidator(
         return true;
     }
 
-    DSBlock dsBlock;
     Peer winnerPeer;
 
     m_shards.clear();
@@ -579,21 +578,21 @@ bool DirectoryService::DSBlockValidator(
     m_shardReceivers.clear();
     m_shardSenders.clear();
 
+    lock(m_mutexPendingDSBlock, m_mutexAllPoWConns);
+    lock_guard<mutex> g(m_mutexPendingDSBlock, adopt_lock);
+    lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
+
+    m_pendingDSBlock.reset(new DSBlock);
+
     if (!Messenger::GetDSDSBlockAnnouncement(
             message, offset, consensusID, blockHash, leaderID, leaderKey,
-            dsBlock, winnerPeer, m_shards, m_DSReceivers, m_shardReceivers,
-            m_shardSenders, messageToCosign))
+            *m_pendingDSBlock, winnerPeer, m_shards, m_DSReceivers,
+            m_shardReceivers, m_shardSenders, messageToCosign))
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Messenger::GetDSDSBlockAnnouncement failed.");
         return false;
     }
-
-    lock(m_mutexPendingDSBlock, m_mutexAllPoWConns);
-    lock_guard<mutex> g(m_mutexPendingDSBlock, adopt_lock);
-    lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
-
-    m_pendingDSBlock.reset(new DSBlock(dsBlock));
 
     // To-do: Put in the logic here for checking the proposed DS block
 

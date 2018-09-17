@@ -1058,18 +1058,16 @@ bool DirectoryService::FinalBlockValidator(
         return true;
     }
 
-    TxBlock txBlock;
+    m_finalBlock.reset(new TxBlock);
 
     if (!Messenger::GetDSFinalBlockAnnouncement(message, offset, consensusID,
                                                 blockHash, leaderID, leaderKey,
-                                                txBlock, messageToCosign))
+                                                *m_finalBlock, messageToCosign))
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Messenger::GetDSFinalBlockAnnouncement failed.");
         return false;
     }
-
-    m_finalBlock.reset(new TxBlock(txBlock));
 
     // WaitForTxnBodies();
 

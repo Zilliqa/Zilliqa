@@ -1583,18 +1583,16 @@ bool Node::MicroBlockValidator(const vector<unsigned char>& message,
         return true;
     }
 
-    MicroBlock microBlock;
+    m_microblock.reset(new MicroBlock);
 
     if (!Messenger::GetNodeMicroBlockAnnouncement(
             message, offset, consensusID, blockHash, leaderID, leaderKey,
-            microBlock, messageToCosign))
+            *m_microblock, messageToCosign))
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Messenger::GetNodeMicroBlockAnnouncement failed.");
         return false;
     }
-
-    m_microblock.reset(new MicroBlock(microBlock));
 
     bool valid = false;
 
