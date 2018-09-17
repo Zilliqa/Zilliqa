@@ -498,6 +498,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
 bool DirectoryService::ProcessFinalBlockConsensus(
     const vector<unsigned char>& message, unsigned int offset, const Peer& from)
 {
+    LOG_MARKER();
+
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
@@ -506,18 +508,14 @@ bool DirectoryService::ProcessFinalBlockConsensus(
         return true;
     }
 
-    LOG_MARKER();
+    uint32_t consensus_id = 0;
 
-    // check size
-    if (IsMessageSizeInappropriate(message.size(), offset,
-                                   sizeof(unsigned char) + sizeof(uint32_t)
-                                       + BLOCK_HASH_SIZE + sizeof(uint16_t)))
+    if (!m_consensusObject->GetConsensusID(message, offset, consensus_id))
     {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "GetConsensusID failed.");
         return false;
     }
-
-    uint32_t consensus_id = Serializable::GetNumber<uint32_t>(
-        message, offset + sizeof(unsigned char), sizeof(uint32_t));
 
     if (m_state != FINALBLOCK_CONSENSUS)
     {

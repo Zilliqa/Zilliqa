@@ -28,6 +28,7 @@
 #include "depends/libTrie/TrieHash.h"
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
+#include "libMessage/Messenger.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -134,17 +135,17 @@ void DirectoryService::ExtractDataFromMicroblocks(
             << " TranReceiptRootHash: " << microblockTranReceiptRoot.hex());
 }
 
-void DirectoryService::ComposeFinalBlockCore()
+void DirectoryService::ComposeFinalBlock()
 {
+    LOG_MARKER();
+
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
-                    "DirectoryService::ComposeFinalBlockCore not expected to "
+                    "DirectoryService::ComposeFinalBlock not expected to "
                     "be called from LookUp node.");
         return;
     }
-
-    LOG_MARKER();
 
     TxnHash microblockTxnTrieRoot;
     StateHash microblockDeltaTrieRoot;
@@ -236,68 +237,10 @@ void DirectoryService::ComposeFinalBlockCore()
                   << m_finalBlock->GetHeader().GetNumTxs() << " transactions.");
 }
 
-vector<unsigned char> DirectoryService::ComposeFinalBlockMessage()
-{
-    if (LOOKUP_NODE_MODE)
-    {
-        LOG_GENERAL(WARNING,
-                    "DirectoryService::ComposeFinalBlockMessage not expected "
-                    "to be called from LookUp node.");
-        return vector<unsigned char>();
-    }
-
-    LOG_MARKER();
-
-    vector<unsigned char> finalBlockMessage;
-    unsigned int curr_offset = 0;
-    /** To remove. Redundant code. 
-
-    bool isVacuousEpoch
-        = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
-
-    {
-        unique_lock<mutex> g(m_mediator.m_node->m_mutexUnavailableMicroBlocks,
-                             defer_lock);
-        unique_lock<mutex> g2(m_mediator.m_node->m_mutexAllMicroBlocksRecvd,
-                              defer_lock);
-        lock(g, g2);
-
-        if (isVacuousEpoch && !m_mediator.m_node->m_allMicroBlocksRecvd)
-        {
-            LOG_EPOCH(
-                INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Waiting for microblocks before composing final block. Count: "
-                    << m_mediator.m_node->m_unavailableMicroBlocks.size());
-            for (auto it : m_mediator.m_node->m_unavailableMicroBlocks)
-            {
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "Waiting for finalblock " << it.first << ". Count "
-                                                    << it.second.size());
-                for (auto it2 : it.second)
-                {
-                    LOG_EPOCH(INFO,
-                              to_string(m_mediator.m_currentEpochNum).c_str(),
-                              it2.first);
-                }
-            }
-
-            m_mediator.m_node->m_cvAllMicroBlocksRecvd.wait(
-                g, [this] { return m_mediator.m_node->m_allMicroBlocksRecvd; });
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "All microblocks recvd, moving to compose final block");
-        }
-    }
-    **/
-
-    ComposeFinalBlockCore(); // stores it in m_finalBlock
-
-    m_finalBlock->Serialize(finalBlockMessage, curr_offset);
-
-    return finalBlockMessage;
-}
-
 bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
 {
+    LOG_MARKER();
+
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
@@ -306,15 +249,12 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
         return true;
     }
 
-    LOG_MARKER();
-
     // Compose the final block from all the microblocks
     // I guess only the leader has to do this
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I am the leader DS node. Creating final block.");
 
-    // finalBlockMessage = serialized final block + tx-body sharing setup
-    vector<unsigned char> finalBlockMessage = ComposeFinalBlockMessage();
+    ComposeFinalBlock(); // stores it in m_finalBlock
 
     // kill first ds leader (used for view change testing)
     /**
@@ -333,9 +273,9 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
 
     auto nodeMissingMicroBlocksFunc
-        = [this](const vector<unsigned char>& errorMsg, unsigned int offset,
+        = [this](const vector<unsigned char>& errorMsg,
                  const Peer& from) mutable -> bool {
-        return OnNodeMissingMicroBlocks(errorMsg, offset, from);
+        return OnNodeMissingMicroBlocks(errorMsg, from);
     };
 
     m_consensusObject.reset(new ConsensusLeader(
@@ -343,8 +283,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
         m_mediator.m_selfKey.first, *m_mediator.m_DSCommittee,
         static_cast<unsigned char>(DIRECTORY),
         static_cast<unsigned char>(FINALBLOCKCONSENSUS),
-        nodeMissingMicroBlocksFunc,
-        std::function<bool(map<unsigned int, std::vector<unsigned char>>)>()));
+        nodeMissingMicroBlocksFunc, ShardCommitFailureHandlerFunc()));
 
     if (m_consensusObject == nullptr)
     {
@@ -367,7 +306,18 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
                       + 1 << "] BGIN");
     }
 
-    cl->StartConsensus(finalBlockMessage, TxBlockHeader::SIZE);
+    auto announcementGeneratorFunc =
+        [this](vector<unsigned char>& dst, unsigned int offset,
+               const uint32_t consensusID,
+               const vector<unsigned char>& blockHash, const uint16_t leaderID,
+               const pair<PrivKey, PubKey>& leaderKey,
+               vector<unsigned char>& messageToCosign) mutable -> bool {
+        return Messenger::SetDSFinalBlockAnnouncement(
+            dst, offset, consensusID, blockHash, leaderID, leaderKey,
+            *m_finalBlock, messageToCosign);
+    };
+
+    cl->StartConsensus(announcementGeneratorFunc);
 
     return true;
 }
@@ -654,10 +604,11 @@ bool DirectoryService::CheckMicroBlockHashes(
 }
 
 bool DirectoryService::OnNodeMissingMicroBlocks(
-    const std::vector<unsigned char>& errorMsg, unsigned int offset,
-    const Peer& from)
+    const std::vector<unsigned char>& errorMsg, const Peer& from)
 {
     LOG_MARKER();
+
+    unsigned int offset = 0;
 
     if (errorMsg.size() < sizeof(uint32_t) + sizeof(uint64_t) + offset)
     {
@@ -962,6 +913,8 @@ bool DirectoryService::CheckStateDeltaHash()
 
 bool DirectoryService::CheckFinalBlockValidity(vector<unsigned char>& errorMsg)
 {
+    LOG_MARKER();
+
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
@@ -970,31 +923,11 @@ bool DirectoryService::CheckFinalBlockValidity(vector<unsigned char>& errorMsg)
         return true;
     }
 
-    LOG_MARKER();
-
-    bool valid = false;
-
-    do
-    {
-        if (!CheckBlockTypeIsFinal() || !CheckFinalBlockVersion()
-            || !CheckFinalBlockNumber() || !CheckPreviousFinalBlockHash()
-            || !CheckFinalBlockTimestamp() || !CheckMicroBlockHashes(errorMsg)
-            || !CheckMicroBlockHashRoot() || !CheckIsMicroBlockEmpty()
-            || !CheckStateRoot() || !CheckStateDeltaHash())
-        {
-            break;
-        }
-
-        // TODO: Check gas limit (must satisfy some equations)
-        // TODO: Check gas used (must be <= gas limit)
-        // TODO: Check pubkey (must be valid and = shard leader)
-        // TODO: Check parent DS hash (must be = digest of last DS block header in the DS blockchain)
-        // TODO: Check parent DS block number (must be = block number of last DS block header in the DS blockchain)
-
-        valid = true;
-    } while (false);
-
-    if (!valid)
+    if (!CheckBlockTypeIsFinal() || !CheckFinalBlockVersion()
+        || !CheckFinalBlockNumber() || !CheckPreviousFinalBlockHash()
+        || !CheckFinalBlockTimestamp() || !CheckMicroBlockHashes(errorMsg)
+        || !CheckMicroBlockHashRoot() || !CheckIsMicroBlockEmpty()
+        || !CheckStateRoot() || !CheckStateDeltaHash())
     {
         Serializable::SetNumber<uint32_t>(
             errorMsg, errorMsg.size(), m_mediator.m_selfPeer.m_listenPortHost,
@@ -1002,7 +935,13 @@ bool DirectoryService::CheckFinalBlockValidity(vector<unsigned char>& errorMsg)
         return false;
     }
 
-    return valid;
+    // TODO: Check gas limit (must satisfy some equations)
+    // TODO: Check gas used (must be <= gas limit)
+    // TODO: Check pubkey (must be valid and = shard leader)
+    // TODO: Check parent DS hash (must be = digest of last DS block header in the DS blockchain)
+    // TODO: Check parent DS block number (must be = block number of last DS block header in the DS blockchain)
+
+    return true;
 }
 
 /** To remove. Redundant code. 
@@ -1092,9 +1031,13 @@ bool DirectoryService::WaitForTxnBodies()
 // }
 
 bool DirectoryService::FinalBlockValidator(
-    const vector<unsigned char>& finalblock,
-    [[gnu::unused]] vector<unsigned char>& errorMsg)
+    const vector<unsigned char>& message, unsigned int offset,
+    [[gnu::unused]] vector<unsigned char>& errorMsg, const uint32_t consensusID,
+    const vector<unsigned char>& blockHash, const uint16_t leaderID,
+    const PubKey& leaderKey, vector<unsigned char>& messageToCosign)
 {
+    LOG_MARKER();
+
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
@@ -1103,12 +1046,16 @@ bool DirectoryService::FinalBlockValidator(
         return true;
     }
 
-    LOG_MARKER();
+    m_finalBlock.reset(new TxBlock);
 
-    unsigned int curr_offset = 0;
-
-    m_finalBlock.reset(new TxBlock(finalblock, curr_offset));
-    curr_offset += m_finalBlock->GetSerializedSize();
+    if (!Messenger::GetDSFinalBlockAnnouncement(message, offset, consensusID,
+                                                blockHash, leaderID, leaderKey,
+                                                *m_finalBlock, messageToCosign))
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::GetDSFinalBlockAnnouncement failed.");
+        return false;
+    }
 
     // WaitForTxnBodies();
 
@@ -1146,6 +1093,8 @@ bool DirectoryService::FinalBlockValidator(
 
 bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup()
 {
+    LOG_MARKER();
+
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
@@ -1153,8 +1102,6 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup()
                     "not expected to be called from LookUp node.");
         return true;
     }
-
-    LOG_MARKER();
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I am a backup DS node. Waiting for final block announcement.");
@@ -1165,9 +1112,15 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup()
     m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
 
-    auto func = [this](const vector<unsigned char>& message,
-                       vector<unsigned char>& errorMsg) mutable -> bool {
-        return FinalBlockValidator(message, errorMsg);
+    auto func
+        = [this](const vector<unsigned char>& input, unsigned int offset,
+                 vector<unsigned char>& errorMsg, const uint32_t consensusID,
+                 const vector<unsigned char>& blockHash,
+                 const uint16_t leaderID, const PubKey& leaderKey,
+                 vector<unsigned char>& messageToCosign) mutable -> bool {
+        return FinalBlockValidator(input, offset, errorMsg, consensusID,
+                                   blockHash, leaderID, leaderKey,
+                                   messageToCosign);
     };
 
     m_consensusObject.reset(new ConsensusBackup(
