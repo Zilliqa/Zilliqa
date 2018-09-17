@@ -43,8 +43,6 @@ DSBlock::DSBlock(DSBlockHeader&& header, CoSignatures&& cosigs)
 unsigned int DSBlock::Serialize(vector<unsigned char>& dst,
                                 unsigned int offset) const
 {
-    // LOG_MARKER();
-
     unsigned int size_needed = GetSerializedSize();
     unsigned int size_remaining = dst.size() - offset;
 
@@ -55,15 +53,13 @@ unsigned int DSBlock::Serialize(vector<unsigned char>& dst,
 
     m_header.Serialize(dst, offset);
 
-    BlockBase::Serialize(dst, offset + DSBlockHeader::SIZE);
+    BlockBase::Serialize(dst, offset + m_header.GetSize());
 
     return size_needed;
 }
 
 int DSBlock::Deserialize(const vector<unsigned char>& src, unsigned int offset)
 {
-    // LOG_MARKER();
-
     try
     {
         DSBlockHeader header;
@@ -74,7 +70,7 @@ int DSBlock::Deserialize(const vector<unsigned char>& src, unsigned int offset)
         }
         m_header = move(header);
 
-        BlockBase::Deserialize(src, offset + DSBlockHeader::SIZE);
+        BlockBase::Deserialize(src, offset + header.GetSize());
     }
     catch (const std::exception& e)
     {
@@ -87,12 +83,12 @@ int DSBlock::Deserialize(const vector<unsigned char>& src, unsigned int offset)
 
 unsigned int DSBlock::GetSerializedSize() const
 {
-    return DSBlockHeader::SIZE + BlockBase::GetSerializedSize();
+    return m_header.GetSize() + BlockBase::GetSerializedSize();
 }
 
 unsigned int DSBlock::GetMinSize()
 {
-    return DSBlockHeader::SIZE + BlockBase::GetMinSize();
+    return m_header.GetSize() + BlockBase::GetMinSize();
 }
 
 const DSBlockHeader& DSBlock::GetHeader() const { return m_header; }
