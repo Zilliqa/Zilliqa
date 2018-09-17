@@ -19,12 +19,14 @@
 
 #include <array>
 #include <boost/multiprecision/cpp_int.hpp>
+#include <map>
 
 #include "BlockHeaderBase.h"
 #include "common/Constants.h"
 #include "common/Serializable.h"
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Transaction.h"
+#include "libNetwork/Peer.h"
 #include "libUtils/SWInfo.h"
 
 /// Stores information on the header part of the DS block.
@@ -33,19 +35,13 @@ class DSBlockHeader : public BlockHeaderBase
     uint8_t m_dsDifficulty; // Number of PoW leading zeros
     uint8_t m_difficulty; // Number of PoW leading zeros
     BlockHash m_prevHash; // Hash of the previous block
-    boost::multiprecision::uint256_t
-        m_nonce; // Nonce value of the winning miner for PoW
-    PubKey m_minerPubKey; // Public key of the winning miner for PoW
     PubKey m_leaderPubKey; // The one who proposed this DS block
     uint64_t m_blockNum; // Block index, starting from 0 in the genesis block
     boost::multiprecision::uint256_t m_timestamp;
     SWInfo m_swInfo;
+    std::map<PubKey, Peer> m_PoWDSWinners;
 
 public:
-    static const unsigned int SIZE = sizeof(uint8_t) + sizeof(uint8_t)
-        + BLOCK_HASH_SIZE + UINT256_SIZE + PUB_KEY_SIZE + PUB_KEY_SIZE
-        + sizeof(uint64_t) + UINT256_SIZE + SWInfo::SIZE;
-
     /// Default constructor.
     DSBlockHeader(); // creates a dummy invalid placeholder BlockHeader
 
@@ -54,9 +50,7 @@ public:
 
     /// Constructor with specified DS block header parameters.
     DSBlockHeader(const uint8_t dsDifficulty, const uint8_t difficulty,
-                  const BlockHash& prevHash,
-                  const boost::multiprecision::uint256_t& nonce,
-                  const PubKey& minerPubKey, const PubKey& leaderPubKey,
+                  const BlockHash& prevHash, const PubKey& leaderPubKey,
                   const uint64_t& blockNum,
                   const boost::multiprecision::uint256_t& timestamp,
                   const SWInfo& swInfo);
@@ -77,17 +71,14 @@ public:
     /// Returns the digest of the parent block header.
     const BlockHash& GetPrevHash() const;
 
-    /// Returns the PoW solution nonce value.
-    const boost::multiprecision::uint256_t& GetNonce() const;
-
-    /// Returns the public key of the miner who did PoW on this header.
-    const PubKey& GetMinerPubKey() const;
-
     /// Returns the public key of the leader of the DS committee that composed this block.
     const PubKey& GetLeaderPubKey() const;
 
     /// Returns the number of ancestor blocks.
     const uint64_t& GetBlockNum() const;
+
+    /// Return size of this DS block
+    uint32_t GetSize() const;
 
     /// Returns the Unix time at the time of creation of this block.
     const boost::multiprecision::uint256_t& GetTimestamp() const;

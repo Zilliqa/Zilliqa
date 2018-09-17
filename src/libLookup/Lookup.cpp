@@ -1343,14 +1343,8 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
                       "dsblock.GetHeader().GetDifficulty(): "
                           << (int)dsBlock.GetHeader().GetDifficulty());
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "dsblock.GetHeader().GetNonce(): "
-                          << dsBlock.GetHeader().GetNonce());
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "dsblock.GetHeader().GetBlockNum(): "
                           << dsBlock.GetHeader().GetBlockNum());
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "dsblock.GetHeader().GetMinerPubKey().hex(): "
-                          << dsBlock.GetHeader().GetMinerPubKey());
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "dsblock.GetHeader().GetLeaderPubKey().hex(): "
                           << dsBlock.GetHeader().GetLeaderPubKey());

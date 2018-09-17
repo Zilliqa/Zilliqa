@@ -53,7 +53,7 @@ public:
     unsigned int GetSerializedSize() const;
 
     /// Returns the minimum required size in bytes for obtaining a DS block from a byte stream.
-    static unsigned int GetMinSize();
+    unsigned int GetMinSize();
 
     /// Returns the reference to the DSBlockHeader part of the DS block.
     const DSBlockHeader& GetHeader() const;

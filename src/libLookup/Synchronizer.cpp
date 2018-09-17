@@ -46,13 +46,12 @@ DSBlock Synchronizer::ConstructGenesisDSBlock()
     PubKey pubKey(tmppubkey, 0);
     std::pair<PrivKey, PubKey> keypair = make_pair(privKey, pubKey);
     uint64_t genesisBlockNumer = 0;
-    uint256_t genesisNonce = 0;
     uint256_t genesisTimestamp = 0;
 
     // FIXME: Handle exceptions.
     return DSBlock(DSBlockHeader(DS_POW_DIFFICULTY, POW_DIFFICULTY, prevHash,
-                                 genesisNonce, keypair.first, keypair.second,
-                                 genesisBlockNumer, genesisTimestamp, SWInfo()),
+                                 keypair.second, genesisBlockNumer,
+                                 genesisTimestamp, SWInfo()),
                    CoSignatures());
 }
 

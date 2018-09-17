@@ -33,16 +33,13 @@ DSBlockHeader::DSBlockHeader(const vector<unsigned char>& src,
 
 DSBlockHeader::DSBlockHeader(const uint8_t dsDifficulty,
                              const uint8_t difficulty,
-                             const BlockHash& prevHash, const uint256_t& nonce,
-                             const PubKey& minerPubKey,
+                             const BlockHash& prevHash,
                              const PubKey& leaderPubKey,
                              const uint64_t& blockNum,
                              const uint256_t& timestamp, const SWInfo& swInfo)
     : m_dsDifficulty(dsDifficulty)
     , m_difficulty(difficulty)
     , m_prevHash(prevHash)
-    , m_nonce(nonce)
-    , m_minerPubKey(minerPubKey)
     , m_leaderPubKey(leaderPubKey)
     , m_blockNum(blockNum)
     , m_timestamp(timestamp)
@@ -54,13 +51,14 @@ unsigned int DSBlockHeader::Serialize(vector<unsigned char>& dst,
                                       unsigned int offset) const
 {
     LOG_MARKER();
-
+    // TODO add this back
+    /**
     unsigned int size_remaining = dst.size() - offset;
-
     if (size_remaining < SIZE)
     {
         dst.resize(SIZE + offset);
     }
+    **/
 
     unsigned int curOffset = offset;
 
@@ -71,10 +69,6 @@ unsigned int DSBlockHeader::Serialize(vector<unsigned char>& dst,
     copy(m_prevHash.asArray().begin(), m_prevHash.asArray().end(),
          dst.begin() + curOffset);
     curOffset += BLOCK_HASH_SIZE;
-    SetNumber<uint256_t>(dst, curOffset, m_nonce, UINT256_SIZE);
-    curOffset += UINT256_SIZE;
-    m_minerPubKey.Serialize(dst, curOffset);
-    curOffset += PUB_KEY_SIZE;
     m_leaderPubKey.Serialize(dst, curOffset);
     curOffset += PUB_KEY_SIZE;
     SetNumber<uint64_t>(dst, curOffset, m_blockNum, sizeof(uint64_t));
@@ -83,7 +77,7 @@ unsigned int DSBlockHeader::Serialize(vector<unsigned char>& dst,
     curOffset += UINT256_SIZE;
     curOffset += m_swInfo.Serialize(dst, curOffset);
 
-    return SIZE;
+    return GetSize();
 }
 
 int DSBlockHeader::Deserialize(const vector<unsigned char>& src,
@@ -101,16 +95,6 @@ int DSBlockHeader::Deserialize(const vector<unsigned char>& src,
         copy(src.begin() + curOffset, src.begin() + curOffset + BLOCK_HASH_SIZE,
              m_prevHash.asArray().begin());
         curOffset += BLOCK_HASH_SIZE;
-        m_nonce = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
-        curOffset += UINT256_SIZE;
-        // m_minerPubKey.Deserialize(src, curOffset);
-        if (m_minerPubKey.Deserialize(src, curOffset) != 0)
-        {
-            LOG_GENERAL(WARNING, "We failed to init m_minerPubKey.");
-            return -1;
-        }
-        curOffset += PUB_KEY_SIZE;
-        // m_leaderPubKey.Deserialize(src, curOffset);
         if (m_leaderPubKey.Deserialize(src, curOffset) != 0)
         {
             LOG_GENERAL(WARNING, "We failed to init m_minerPubKey.");
@@ -144,13 +128,19 @@ const uint8_t& DSBlockHeader::GetDifficulty() const { return m_difficulty; }
 
 const BlockHash& DSBlockHeader::GetPrevHash() const { return m_prevHash; }
 
-const uint256_t& DSBlockHeader::GetNonce() const { return m_nonce; }
-
-const PubKey& DSBlockHeader::GetMinerPubKey() const { return m_minerPubKey; }
-
 const PubKey& DSBlockHeader::GetLeaderPubKey() const { return m_leaderPubKey; }
 
 const uint64_t& DSBlockHeader::GetBlockNum() const { return m_blockNum; }
+
+uint32_t DSBlockHeader::GetSize() const
+{
+    uint32_t dsBlockSize1 = sizeof(uint8_t) + sizeof(uint8_t) + BLOCK_HASH_SIZE
+        + UINT256_SIZE + PUB_KEY_SIZE + sizeof(uint64_t) + UINT256_SIZE
+        + SWInfo::SIZE;
+    dsBlockSize1
+        += m_PoWDSWinners.size() * (PUB_KEY_SIZE + IP_SIZE + PORT_SIZE);
+    return dsBlockSize1;
+}
 
 const uint256_t& DSBlockHeader::GetTimestamp() const { return m_timestamp; }
 
@@ -158,20 +148,20 @@ const SWInfo& DSBlockHeader::GetSWInfo() const { return m_swInfo; }
 
 bool DSBlockHeader::operator==(const DSBlockHeader& header) const
 {
-    return tie(m_dsDifficulty, m_difficulty, m_prevHash, m_nonce, m_minerPubKey,
-               m_leaderPubKey, m_blockNum, m_timestamp, m_swInfo)
+    return tie(m_dsDifficulty, m_difficulty, m_prevHash, m_leaderPubKey,
+               m_blockNum, m_timestamp, m_swInfo)
         == tie(header.m_dsDifficulty, header.m_difficulty, header.m_prevHash,
-               header.m_nonce, header.m_minerPubKey, header.m_leaderPubKey,
-               header.m_blockNum, header.m_timestamp, header.m_swInfo);
+               header.m_leaderPubKey, header.m_blockNum, header.m_timestamp,
+               header.m_swInfo);
 }
 
 bool DSBlockHeader::operator<(const DSBlockHeader& header) const
 {
-    return tie(m_dsDifficulty, m_difficulty, m_prevHash, m_nonce, m_minerPubKey,
-               m_leaderPubKey, m_blockNum, m_timestamp, m_swInfo)
+    return tie(m_dsDifficulty, m_difficulty, m_prevHash, m_leaderPubKey,
+               m_blockNum, m_timestamp, m_swInfo)
         < tie(header.m_dsDifficulty, header.m_difficulty, header.m_prevHash,
-              header.m_nonce, header.m_minerPubKey, header.m_leaderPubKey,
-              header.m_blockNum, header.m_timestamp, header.m_swInfo);
+              header.m_leaderPubKey, header.m_blockNum, header.m_timestamp,
+              header.m_swInfo);
 }
 
 bool DSBlockHeader::operator>(const DSBlockHeader& header) const

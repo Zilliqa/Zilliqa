@@ -57,7 +57,7 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock)
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Storing DS Block Number: "
                   << dsblock.GetHeader().GetBlockNum() << " with Nonce: "
-                  << dsblock.GetHeader().GetNonce() << ", DS PoW Difficulty: "
+                  << ", DS PoW Difficulty: "
                   << to_string(dsblock.GetHeader().GetDSDifficulty())
                   << ", Difficulty: "
                   << to_string(dsblock.GetHeader().GetDifficulty())
@@ -177,9 +177,9 @@ bool Node::VerifyDSBlockCoSignature(const DSBlock& dsblock)
     // Verify the collective signature
     vector<unsigned char> message;
     dsblock.GetHeader().Serialize(message, 0);
-    dsblock.GetCS1().Serialize(message, DSBlockHeader::SIZE);
-    BitVector::SetBitVector(message, DSBlockHeader::SIZE + BLOCK_SIG_SIZE,
-                            dsblock.GetB1());
+    dsblock.GetCS1().Serialize(message, dsblock.GetHeader().GetSize());
+    BitVector::SetBitVector(message, dsblock.GetHeader(),
+                            GetSize() + BLOCK_SIG_SIZE.dsblock.GetB1());
     if (!Schnorr::GetInstance().Verify(message, 0, message.size(),
                                        dsblock.GetCS2(), *aggregatedKey))
     {
@@ -204,14 +204,8 @@ void Node::LogReceivedDSBlockDetails([[gnu::unused]] const DSBlock& dsblock)
                   "dsblock.GetHeader().GetDifficulty(): "
                       << (int)dsblock.GetHeader().GetDifficulty());
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "dsblock.GetHeader().GetNonce(): "
-                      << dsblock.GetHeader().GetNonce());
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "dsblock.GetHeader().GetBlockNum(): "
                       << dsblock.GetHeader().GetBlockNum());
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "dsblock.GetHeader().GetMinerPubKey(): "
-                      << dsblock.GetHeader().GetMinerPubKey());
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "dsblock.GetHeader().GetLeaderPubKey(): "
                       << dsblock.GetHeader().GetLeaderPubKey());
