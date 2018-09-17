@@ -136,7 +136,6 @@ extern const unsigned int POST_VIEWCHANGE_BUFFER;
 extern const unsigned int CONTRACT_CREATE_GAS;
 extern const unsigned int CONTRACT_INVOKE_GAS;
 extern const unsigned int NORMAL_TRAN_GAS;
-extern const unsigned int WAITING_FORWARD;
 extern const unsigned int COINBASE_REWARD;
 extern const unsigned int DEBUG_LEVEL;
 extern const unsigned int BROADCAST_INTERVAL;
