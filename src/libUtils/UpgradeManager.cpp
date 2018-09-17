@@ -400,16 +400,21 @@ bool UpgradeManager::ReplaceNode(Mediator& mediator)
 {
     LOG_MARKER();
 
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "For LookUp node, temporarily disable upgrading protocol.");
+        return true;
+    }
+
+#if 1 //clark
+    uint64_t curDsBlockNum
+        = mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+    LOG_GENERAL(INFO, "Current ds block num:" << curDsBlockNum);
+#else
     /// Store states
     AccountStore::GetInstance().UpdateStateTrieAll();
     AccountStore::GetInstance().MoveUpdatesToDisk();
-
-    /// Store DS block
-    vector<unsigned char> serializedDSBlock;
-    mediator.m_dsBlockChain.GetLastBlock().Serialize(serializedDSBlock, 0);
-    BlockStorage::GetBlockStorage().PutDSBlock(
-        mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
-        serializedDSBlock);
 
     /// Store final block
     vector<unsigned char> serializedTxBlock;
@@ -417,6 +422,7 @@ bool UpgradeManager::ReplaceNode(Mediator& mediator)
     BlockStorage::GetBlockStorage().PutTxBlock(
         mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
         serializedTxBlock);
+#endif
 
     /// Deploy downloaded software
     /// TBD: The call of "dpkg" should be removed. (https://github.com/Zilliqa/Issues/issues/185)
