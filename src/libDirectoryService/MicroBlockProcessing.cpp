@@ -69,7 +69,7 @@ bool DirectoryService::VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
     vector<PubKey> keys;
     for (auto& kv : shard)
     {
-        if (B2.at(index) == true)
+        if (B2.at(index))
         {
             keys.emplace_back(kv.first);
             count++;
@@ -96,9 +96,8 @@ bool DirectoryService::VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
     microBlock.GetCS1().Serialize(message, MicroBlockHeader::SIZE);
     BitVector::SetBitVector(message, MicroBlockHeader::SIZE + BLOCK_SIG_SIZE,
                             microBlock.GetB1());
-    if (Schnorr::GetInstance().Verify(message, 0, message.size(),
-                                      microBlock.GetCS2(), *aggregatedKey)
-        == false)
+    if (!Schnorr::GetInstance().Verify(message, 0, message.size(),
+                                       microBlock.GetCS2(), *aggregatedKey))
     {
         LOG_GENERAL(WARNING, "Cosig verification failed");
         for (auto& kv : keys)

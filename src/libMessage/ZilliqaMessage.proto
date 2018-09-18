@@ -56,6 +56,24 @@ message DSPoWSubmission
     required ByteArray signature           = 2;
 }
 
+message DSDSBlockAnnouncement
+{
+    required ByteArray dsblock                = 1;
+    required ByteArray powwinnerpeer          = 2;
+    required ShardingStructure sharding       = 3;
+    required TxSharingAssignments assignments = 4;
+}
+
+message DSFinalBlockAnnouncement
+{
+    required ByteArray txblock = 1;
+}
+
+message DSVCBlockAnnouncement
+{
+    required ByteArray vcblock = 1;
+}
+
 // ============================================================================
 // Node messages
 // ============================================================================
@@ -76,6 +94,11 @@ message NodeFinalBlock
     required uint32 consensusid   = 3;
     required ByteArray txblock    = 4;
     required bytes statedelta     = 5;
+}
+
+message NodeMicroBlockAnnouncement
+{
+    required ByteArray microblock = 1;
 }
 
 // ============================================================================
@@ -208,4 +231,95 @@ message LookupGetStartPoWFromSeed
 message LookupSetStartPoWFromSeed
 {
     // Empty
+}
+
+// ============================================================================
+// Consensus messages
+// ============================================================================
+
+message ConsensusAnnouncement
+{
+    message ConsensusInfo
+    {
+        required uint32 consensusid           = 1;
+        required bytes blockhash              = 2; // 32 bytes
+        required uint32 leaderid              = 3; // only lower 2 bytes used    
+    }
+    required ConsensusInfo consensusinfo      = 1;
+    oneof announcement
+    {
+        DSDSBlockAnnouncement dsblock         = 2;
+        NodeMicroBlockAnnouncement microblock = 3;
+        DSFinalBlockAnnouncement finalblock   = 4;
+        DSVCBlockAnnouncement vcblock         = 5;
+    }
+    required ByteArray signature              = 6;
+}
+
+message ConsensusCommit
+{
+    message ConsensusInfo
+    {
+        required uint32 consensusid      = 1;
+        required bytes blockhash         = 2; // 32 bytes
+        required uint32 backupid         = 3; // only lower 2 bytes used
+        required ByteArray commit        = 4;
+    }
+    required ConsensusInfo consensusinfo = 1;
+    required ByteArray signature         = 2;
+}
+
+message ConsensusChallenge
+{
+    message ConsensusInfo
+    {
+        required uint32 consensusid         = 1;
+        required bytes blockhash            = 2; // 32 bytes
+        required uint32 leaderid            = 3; // only lower 2 bytes used
+        required ByteArray aggregatedcommit = 4;
+        required ByteArray aggregatedkey    = 5;
+        required ByteArray challenge        = 6;
+    }
+    required ConsensusInfo consensusinfo    = 1;
+    required ByteArray signature            = 2;
+}
+
+message ConsensusResponse
+{
+    message ConsensusInfo
+    {
+        required uint32 consensusid      = 1;
+        required bytes blockhash         = 2; // 32 bytes
+        required uint32 backupid         = 3; // only lower 2 bytes used
+        required ByteArray response      = 4;
+    }
+    required ConsensusInfo consensusinfo = 1;
+    required ByteArray signature         = 2;
+}
+
+message ConsensusCollectiveSig
+{
+    message ConsensusInfo
+    {
+        required uint32 consensusid      = 1;
+        required bytes blockhash         = 2; // 32 bytes
+        required uint32 leaderid         = 3; // only lower 2 bytes used
+        required ByteArray collectivesig = 4;
+        repeated bool bitmap             = 5 [packed=true];
+    }
+    required ConsensusInfo consensusinfo = 1;
+    required ByteArray signature         = 2;
+}
+
+message ConsensusCommitFailure
+{
+    message ConsensusInfo
+    {
+        required uint32 consensusid      = 1;
+        required bytes blockhash         = 2; // 32 bytes
+        required uint32 backupid         = 3; // only lower 2 bytes used
+        required bytes errormsg          = 4;
+    }
+    required ConsensusInfo consensusinfo = 1;
+    required ByteArray signature         = 2;
 }

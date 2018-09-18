@@ -261,7 +261,7 @@ bool Retriever::ValidateStates()
                         << m_mediator.m_txBlockChain.GetLastBlock()
                                .GetHeader()
                                .GetStateRootHash()
-                        << endl
+                        << '\n'
                         << "Retrieved StateRoot: "
                         << AccountStore::GetInstance().GetStateRootHash());
         return false;

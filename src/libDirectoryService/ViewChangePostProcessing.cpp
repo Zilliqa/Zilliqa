@@ -35,6 +35,8 @@
 #include "libUtils/Logger.h"
 #include "libUtils/SanityChecks.h"
 
+using namespace std;
+
 void DirectoryService::DetermineShardsToSendVCBlockTo(
     unsigned int& my_DS_cluster_num, unsigned int& my_shards_lo,
     unsigned int& my_shards_hi) const
@@ -147,7 +149,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
     vector<PubKey> keys;
     for (auto const& kv : *m_mediator.m_DSCommittee)
     {
-        if (m_pendingVCBlock->GetB2().at(index) == true)
+        if (m_pendingVCBlock->GetB2().at(index))
         {
             keys.emplace_back(kv.first);
             count++;

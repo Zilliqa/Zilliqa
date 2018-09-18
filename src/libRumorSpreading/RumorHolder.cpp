@@ -135,7 +135,6 @@ namespace RRS
     // PUBLIC METHODS
     bool RumorHolder::addRumor(int rumorId)
     {
-        LOG_MARKER();
         std::lock_guard<std::mutex> guard(m_mutex); // critical section
         return m_rumors.insert(std::make_pair(rumorId, &m_networkConfig))
             .second;
@@ -144,7 +143,6 @@ namespace RRS
     std::pair<int, std::vector<Message>>
     RumorHolder::receivedMessage(const Message& message, int fromPeer)
     {
-        LOG_MARKER();
         std::lock_guard<std::mutex> guard(m_mutex); // critical section
 
         bool isNewPeer = m_peersInCurrentRound.insert(fromPeer).second;
