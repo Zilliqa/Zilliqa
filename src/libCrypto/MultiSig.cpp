@@ -56,7 +56,7 @@ CommitSecret::CommitSecret()
         }
     } while (BN_is_zero(m_s.get()) || BN_is_one(m_s.get()));
 
-    m_initialized = (err == false);
+    m_initialized = (!err);
 }
 
 CommitSecret::CommitSecret(const vector<unsigned char>& src,

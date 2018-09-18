@@ -209,7 +209,7 @@ static std::string ethCLErrorHelper(const char *msg, cl::Error const &clerr) {
 namespace
 {
 
-void addDefinition(string& _source, char const* _id, unsigned _value)
+void addDefinition(std::string& _source, char const* _id, unsigned _value)
 {
     char buf[256];
     sprintf(buf, "#define %s %uu\n", _id, _value);
@@ -218,7 +218,7 @@ void addDefinition(string& _source, char const* _id, unsigned _value)
 
 std::vector<cl::Platform> getPlatforms()
 {
-    vector<cl::Platform> platforms;
+    std::vector<cl::Platform> platforms;
     try
     {
         cl::Platform::get(&platforms);
@@ -237,8 +237,8 @@ std::vector<cl::Platform> getPlatforms()
 
 std::vector<cl::Device> getDevices(std::vector<cl::Platform> const& _platforms, unsigned _platformId)
 {
-    vector<cl::Device> devices;
-    size_t platform_num = min<size_t>(_platformId, _platforms.size() - 1);
+    std::vector<cl::Device> devices;
+    size_t platform_num = std::min<size_t>(_platformId, _platforms.size() - 1);
     try
     {
         _platforms[platform_num].getDevices(
@@ -262,7 +262,7 @@ std::vector<cl::Device> getDevices(std::vector<cl::Platform> const& _platforms, 
 
 unsigned CLMiner::s_platformId = 0;
 unsigned CLMiner::s_numInstances = 0;
-vector<int> CLMiner::s_devices(MAX_MINERS, -1);
+std::vector<int> CLMiner::s_devices(MAX_MINERS, -1);
 
 CLMiner::~CLMiner()
 {
@@ -289,7 +289,7 @@ bool CLMiner::mine(const WorkPackage &w, Solution &solution)
                 if (s_dagLoadMode == DAG_LOAD_MODE_SEQUENTIAL)
                 {
                     while (s_dagLoadIndex < index)
-                        this_thread::sleep_for(chrono::seconds(1));
+                        std::this_thread::sleep_for(std::chrono::seconds(1));
                     ++s_dagLoadIndex;
                 }
 
@@ -362,11 +362,11 @@ bool CLMiner::mine(const WorkPackage &w, Solution &solution)
 
 unsigned CLMiner::getNumDevices()
 {
-    vector<cl::Platform> platforms = getPlatforms();
+    std::vector<cl::Platform> platforms = getPlatforms();
     if (platforms.empty())
         return 0;
 
-    vector<cl::Device> devices = getDevices(platforms, s_platformId);
+    std::vector<cl::Device> devices = getDevices(platforms, s_platformId);
     if (devices.empty())
     {
         cwarn << "No OpenCL devices found.";
@@ -377,19 +377,19 @@ unsigned CLMiner::getNumDevices()
 
 void CLMiner::listDevices()
 {
-    string outString ="\nListing OpenCL devices.\nFORMAT: [platformID] [deviceID] deviceName\n";
+    std::string outString ="\nListing OpenCL devices.\nFORMAT: [platformID] [deviceID] deviceName\n";
     unsigned int i = 0;
 
-    vector<cl::Platform> platforms = getPlatforms();
+    std::vector<cl::Platform> platforms = getPlatforms();
     if (platforms.empty())
         return;
     for (unsigned j = 0; j < platforms.size(); ++j)
     {
         i = 0;
-        vector<cl::Device> devices = getDevices(platforms, j);
+        std::vector<cl::Device> devices = getDevices(platforms, j);
         for (auto const& device: devices)
         {
-            outString += "[" + to_string(j) + "] [" + to_string(i) + "] " + device.getInfo<CL_DEVICE_NAME>() + "\n";
+            outString += "[" + std::to_string(j) + "] [" + std::to_string(i) + "] " + device.getInfo<CL_DEVICE_NAME>() + "\n";
             outString += "\tCL_DEVICE_TYPE: ";
             switch (device.getInfo<CL_DEVICE_TYPE>())
             {
@@ -406,9 +406,9 @@ void CLMiner::listDevices()
                 outString += "DEFAULT\n";
                 break;
             }
-            outString += "\tCL_DEVICE_GLOBAL_MEM_SIZE: " + to_string(device.getInfo<CL_DEVICE_GLOBAL_MEM_SIZE>()) + "\n";
-            outString += "\tCL_DEVICE_MAX_MEM_ALLOC_SIZE: " + to_string(device.getInfo<CL_DEVICE_MAX_MEM_ALLOC_SIZE>()) + "\n";
-            outString += "\tCL_DEVICE_MAX_WORK_GROUP_SIZE: " + to_string(device.getInfo<CL_DEVICE_MAX_WORK_GROUP_SIZE>()) + "\n";
+            outString += "\tCL_DEVICE_GLOBAL_MEM_SIZE: " + std::to_string(device.getInfo<CL_DEVICE_GLOBAL_MEM_SIZE>()) + "\n";
+            outString += "\tCL_DEVICE_MAX_MEM_ALLOC_SIZE: " + std::to_string(device.getInfo<CL_DEVICE_MAX_MEM_ALLOC_SIZE>()) + "\n";
+            outString += "\tCL_DEVICE_MAX_WORK_GROUP_SIZE: " + std::to_string(device.getInfo<CL_DEVICE_MAX_WORK_GROUP_SIZE>()) + "\n";
             ++i;
         }
     }
@@ -443,13 +443,13 @@ bool CLMiner::configureGPU(
 
     auto dagSize = ethash_get_datasize(epoch); //ethash::get_full_dataset_size(ethash::calculate_full_dataset_num_items(epoch));
 
-    vector<cl::Platform> platforms = getPlatforms();
+    std::vector<cl::Platform> platforms = getPlatforms();
     if (platforms.empty())
         return false;
     if (_platformId >= platforms.size())
         return false;
 
-    vector<cl::Device> devices = getDevices(platforms, _platformId);
+    std::vector<cl::Device> devices = getDevices(platforms, _platformId);
     bool foundSuitableDevice = false;
     for (auto const& device: devices)
     {
@@ -474,7 +474,7 @@ bool CLMiner::configureGPU(
     {
         return true;
     }
-    cout << "No GPU device with sufficient memory was found" << endl;
+    std::cout << "No GPU device with sufficient memory was found" << std::endl;
     return false;
 }
 
@@ -483,14 +483,14 @@ bool CLMiner::init(uint64_t blockNumber)
     // get all platforms
     try
     {
-        vector<cl::Platform> platforms = getPlatforms();
+        std::vector<cl::Platform> platforms = getPlatforms();
         if (platforms.empty())
             return false;
 
         // use selected platform
-        unsigned platformIdx = min<unsigned>(s_platformId, platforms.size() - 1);
+        unsigned platformIdx = std::min<unsigned>(s_platformId, platforms.size() - 1);
 
-        string platformName = platforms[platformIdx].getInfo<CL_PLATFORM_NAME>();
+        std::string platformName = platforms[platformIdx].getInfo<CL_PLATFORM_NAME>();
         ETHCL_LOG("Platform: " << platformName);
 
         int platformId = OPENCL_PLATFORM_UNKNOWN;
@@ -518,7 +518,7 @@ bool CLMiner::init(uint64_t blockNumber)
         }
 
         // get GPU device of the default platform
-        vector<cl::Device> devices = getDevices(platforms, platformIdx);
+        std::vector<cl::Device> devices = getDevices(platforms, platformIdx);
         if (devices.empty())
         {
             ETHCL_LOG("No OpenCL devices found.");
@@ -530,10 +530,10 @@ bool CLMiner::init(uint64_t blockNumber)
         unsigned deviceId = s_devices[idx] > -1 ? s_devices[idx] : index;
         m_hwmoninfo.deviceIndex = deviceId % devices.size();
         cl::Device& device = devices[deviceId % devices.size()];
-        string device_version = device.getInfo<CL_DEVICE_VERSION>();
+        std::string device_version = device.getInfo<CL_DEVICE_VERSION>();
         ETHCL_LOG("Device:   " << device.getInfo<CL_DEVICE_NAME>() << " / " << device_version);
 
-        string clVer = device_version.substr(7, 3);
+        std::string clVer = device_version.substr(7, 3);
         if (clVer == "1.0" || clVer == "1.1")
         {
             if (platformId == OPENCL_PLATFORM_CLOVER)
@@ -563,7 +563,7 @@ bool CLMiner::init(uint64_t blockNumber)
             sprintf(options, "%s", "");
         }
         // create context
-        m_context = cl::Context(vector<cl::Device>(&device, &device + 1));
+        m_context = cl::Context(std::vector<cl::Device>(&device, &device + 1));
         m_queue = cl::CommandQueue(m_context, device);
 
         m_workgroupSize = s_workgroupSize;
@@ -593,11 +593,11 @@ bool CLMiner::init(uint64_t blockNumber)
         // into a byte array by bin2h.cmake. There is no need to load the file by hand in runtime
         // See libethash-cl/CMakeLists.txt: add_custom_command()
         // TODO: Just use C++ raw string literal.
-        string code;
+        std::string code;
 
         if ( s_clKernelName == CLKernelName::Experimental ) {
             cllog << "OpenCL kernel: Experimental kernel";
-            code = string(CLMiner_kernel_experimental, CLMiner_kernel_experimental + sizeof(CLMiner_kernel_experimental));
+            code = std::string(CLMiner_kernel_experimental, CLMiner_kernel_experimental + sizeof(CLMiner_kernel_experimental));
         }
         else { //if(s_clKernelName == CLKernelName::Stable)
             cllog << "OpenCL kernel: Stable kernel";
@@ -607,7 +607,7 @@ bool CLMiner::init(uint64_t blockNumber)
                 cwarn << "The current stable OpenCL kernel only supports exactly 8 threads. Thread parameter will be ignored.";
             }
 
-            code = string(CLMiner_kernel_stable, CLMiner_kernel_stable + sizeof(CLMiner_kernel_stable));
+            code = std::string(CLMiner_kernel_stable, CLMiner_kernel_stable + sizeof(CLMiner_kernel_stable));
         }
         addDefinition(code, "GROUP_SIZE", m_workgroupSize);
         addDefinition(code, "DAG_SIZE", dagNumItems);

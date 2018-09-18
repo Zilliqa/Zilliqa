@@ -64,7 +64,8 @@ void Zilliqa::ProcessMessage(pair<vector<unsigned char>, Peer>* message)
     {
         const unsigned char msg_type = message->first.at(MessageOffset::TYPE);
 
-        Executable* msg_handlers[] = {&m_pm, &m_ds, &m_n, &m_cu, &m_lookup};
+        // To-do: Remove consensus user placeholder
+        Executable* msg_handlers[] = {&m_pm, &m_ds, &m_n, NULL, &m_lookup};
 
         const unsigned int msg_handlers_count
             = sizeof(msg_handlers) / sizeof(Executable*);
@@ -74,7 +75,7 @@ void Zilliqa::ProcessMessage(pair<vector<unsigned char>, Peer>* message)
             bool result = msg_handlers[msg_type]->Execute(
                 message->first, MessageOffset::INST, message->second);
 
-            if (result == false)
+            if (!result)
             {
                 // To-do: Error recovery
             }
@@ -97,7 +98,7 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
     , m_ds(m_mediator)
     , m_lookup(m_mediator)
     , m_n(m_mediator, syncType, toRetrieveHistory)
-    , m_cu(key, peer)
+    //    , m_cu(key, peer)
     , m_msgQueue(MSGQUEUE_SIZE)
     , m_httpserver(SERVER_PORT)
     , m_server(m_mediator, m_httpserver)
@@ -214,7 +215,8 @@ vector<Peer> Zilliqa::RetrieveBroadcastList(unsigned char msg_type,
 {
     // LOG_MARKER();
 
-    Broadcastable* msg_handlers[] = {&m_pm, &m_ds, &m_n, &m_cu, &m_lookup};
+    // To-do: Remove consensus user placeholder
+    Broadcastable* msg_handlers[] = {&m_pm, &m_ds, &m_n, NULL, &m_lookup};
 
     const unsigned int msg_handlers_count
         = sizeof(msg_handlers) / sizeof(Broadcastable*);

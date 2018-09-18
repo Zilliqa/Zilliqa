@@ -180,7 +180,7 @@ public:
     friend inline std::ostream& operator<<(std::ostream& out,
                                            Account const& account);
 
-    static unsigned int SerializeDelta(std::vector<unsigned char>& src,
+    static unsigned int SerializeDelta(std::vector<unsigned char>& dst,
                                        unsigned int offset, Account* oldAccount,
                                        const Account& newAccount);
 

@@ -158,7 +158,7 @@ bool Node::VerifyDSBlockCoSignature(const DSBlock& dsblock)
     vector<PubKey> keys;
     for (auto const& kv : *m_mediator.m_DSCommittee)
     {
-        if (B2.at(index) == true)
+        if (B2.at(index))
         {
             keys.emplace_back(kv.first);
             count++;
@@ -185,9 +185,8 @@ bool Node::VerifyDSBlockCoSignature(const DSBlock& dsblock)
     dsblock.GetCS1().Serialize(message, DSBlockHeader::SIZE);
     BitVector::SetBitVector(message, DSBlockHeader::SIZE + BLOCK_SIG_SIZE,
                             dsblock.GetB1());
-    if (Schnorr::GetInstance().Verify(message, 0, message.size(),
-                                      dsblock.GetCS2(), *aggregatedKey)
-        == false)
+    if (!Schnorr::GetInstance().Verify(message, 0, message.size(),
+                                       dsblock.GetCS2(), *aggregatedKey))
     {
         LOG_GENERAL(WARNING, "Cosig verification failed");
         for (auto& kv : keys)
@@ -540,9 +539,10 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
             // Process txn sharing assignments as a DS node
             m_mediator.m_ds->ProcessTxnBodySharingAssignment();
 
-            // Update my DS mode and ID
+            // Update my ID
             m_mediator.m_ds->m_consensusID
                 = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
+            m_mediator.m_ds->m_consensusMyID = 0;
 
             //(We're getting rid of this eventually Clean up my txns coz I am DS)
             m_mediator.m_node->CleanCreatedTransaction();
@@ -550,7 +550,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
             uint16_t lastBlockHash = 0;
             if (m_mediator.m_currentEpochNum > 1)
             {
-                HashUtils::SerializableToHash16Bits(
+                lastBlockHash = HashUtils::SerializableToHash16Bits(
                     m_mediator.m_txBlockChain.GetLastBlock());
             }
 
@@ -592,7 +592,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
                       "I lost PoW :-( Better luck next time!");
 
             // Process sharding structure as a shard node
-            if (LoadShardingStructure() == false)
+            if (!LoadShardingStructure())
             {
                 return false;
             }
