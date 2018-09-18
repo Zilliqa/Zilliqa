@@ -40,7 +40,7 @@ using namespace std;
 using namespace boost::multiprecision;
 
 void DirectoryService::ComposeDSBlock(
-    const vector<pair<array<unsigned char, 32>, PubKey>>& sortedPoWSolns)
+    const vector<pair<array<unsigned char, 32>, PubKey>>& sortedDSPoWSolns)
 {
     if (LOOKUP_NODE_MODE)
     {
@@ -67,14 +67,11 @@ void DirectoryService::ComposeDSBlock(
     }
 
     // Assemble DS block header
-    const array<unsigned char, 32> winnerPoW = sortedPoWSolns.front().first;
-    const PubKey& winnerKey = sortedPoWSolns.front().second;
-
-    uint16_t numOfElectedDSMembers
-        = max(sortedPoWSolns.size(), NUM_DS_ELECTION);
-    uint16_t counter = 0;
+    unsigned int numOfElectedDSMembers
+        = max(sortedDSPoWSolns.size(), NUM_DS_ELECTION);
+    unsigned int counter = 0;
     std::map<PubKey, Peer> powDSWinners;
-    for (auto const& submitter : sortedPoWSolns)
+    for (auto const& submitter : sortedDSPoWSolns)
     {
         if (counter >= numOfElectedDSMembers)
         {
@@ -85,8 +82,7 @@ void DirectoryService::ComposeDSBlock(
         counter++;
     }
 
-    if (!POW::GetInstance().CheckSolnAgainstsTargetedDifficulty(
-            DataConversion::charArrToHexStr(winnerPoW), DS_POW_DIFFICULTY))
+    if (sortedDSPoWSolns.size() == 0)
     {
         LOG_GENERAL(WARNING, "No soln met the DS difficulty level");
         //TODO: To handle if no PoW soln can meet DS difficulty level.
@@ -138,8 +134,8 @@ void DirectoryService::ComposeDSBlock(
                     CoSignatures(m_mediator.m_DSCommittee->size())));
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "New DSBlock created with winning PoW = 0x"
-                  << DataConversion::charArrToHexStr(winnerPoW));
+              "New DSBlock created with ds difficulty "
+                  << dsDifficulty << " and difficulty " << difficulty);
 }
 
 void DirectoryService::ComputeSharding(
@@ -488,6 +484,23 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
     lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
 
     // Use a map to sort the soln according to difficulty level
+    map<array<unsigned char, 32>, PubKey> DSPoWOrderSorter;
+    for (const auto& powsoln : m_allDSPoWs)
+    {
+        DSPoWOrderSorter[powsoln.second] = powsoln.first;
+    }
+
+    // Put it back to vector for easy manipilation and adjustment of the ordering
+    vector<pair<array<unsigned char, 32>, PubKey>> sortedDSPoWSolns;
+    for (const auto& kv : DSPoWOrderSorter)
+    {
+        sortedDSPoWSolns.emplace_back(kv);
+        LOG_GENERAL(INFO, "0x" << DataConversion::charArrToHexStr(kv.first));
+    }
+
+    ComposeDSBlock(sortedDSPoWSolns);
+
+    // Use a map to sort the soln according to difficulty level
     map<array<unsigned char, 32>, PubKey> PoWOrderSorter;
     for (const auto& powsoln : m_allPoWs)
     {
@@ -501,8 +514,6 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
         sortedPoWSolns.emplace_back(kv);
         LOG_GENERAL(INFO, "0x" << DataConversion::charArrToHexStr(kv.first));
     }
-
-    ComposeDSBlock(sortedPoWSolns);
 
     // Remove the PoW winner from m_allPoWs so it doesn't get included in sharding structure
     swap(sortedPoWSolns.front(), sortedPoWSolns.back());

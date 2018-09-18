@@ -193,7 +193,7 @@ class DirectoryService : public Executable, public Broadcastable
     void RunConsensusOnDSBlock(bool isRejoin = false);
     void ComposeDSBlock(
         const std::vector<std::pair<std::array<unsigned char, 32>, PubKey>>&
-            sortedPoWSolns);
+            sortedDSPoWSolns);
     void ComputeSharding(
         const std::vector<std::pair<std::array<unsigned char, 32>, PubKey>>&
             sortedPoWSolns);
