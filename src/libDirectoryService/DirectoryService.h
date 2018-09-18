@@ -191,15 +191,20 @@ class DirectoryService : public Executable, public Broadcastable
 
     // PoW (DS block) consensus functions
     void RunConsensusOnDSBlock(bool isRejoin = false);
-    void ComposeDSBlock(
+    unsigned int ComposeDSBlock(
         const std::vector<std::pair<std::array<unsigned char, 32>, PubKey>>&
-            sortedDSPoWSolns);
+            sortedDSPoWSolns,
+        std::vector<std::pair<std::array<unsigned char, 32>, PubKey>>&
+            sortedPoWSolns);
     void ComputeSharding(
         const std::vector<std::pair<std::array<unsigned char, 32>, PubKey>>&
             sortedPoWSolns);
-    void ComputeTxnSharingAssignments(const Peer& winnerpeer);
+    void
+    ComputeTxnSharingAssignments(const std::vector<Peer>& proposedDSMembers);
     bool VerifyPoWOrdering(const VectorOfShard& shards);
     bool VerifyNodePriority(const VectorOfShard& shards);
+    void
+    ComputeTxnSharingAssignments(const std::vector<Peer>& proposedDSMembers);
 
     // internal calls from RunConsensusOnDSBlock
     bool RunConsensusOnDSBlockWhenDSPrimary();
