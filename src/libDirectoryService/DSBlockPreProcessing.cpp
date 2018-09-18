@@ -39,8 +39,10 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-void DirectoryService::ComposeDSBlock(
-    const vector<pair<array<unsigned char, 32>, PubKey>>& sortedDSPoWSolns)
+unsigned int DirectoryService::ComposeDSBlock(
+    const vector<pair<array<unsigned char, 32>, PubKey>>& sortedDSPoWSolns,
+    std::vector<std::pair<std::array<unsigned char, 32>, PubKey>>&
+        sortedPoWSolns)
 {
     if (LOOKUP_NODE_MODE)
     {
@@ -79,6 +81,7 @@ void DirectoryService::ComposeDSBlock(
         }
 
         powDSWinners[submitter.second] = m_allPoWConns[submitter.second];
+        sortedPoWSolns.erase(submitter.second);
         counter++;
     }
 
@@ -136,6 +139,7 @@ void DirectoryService::ComposeDSBlock(
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "New DSBlock created with ds difficulty "
                   << dsDifficulty << " and difficulty " << difficulty);
+    return numOfElectedDSMembers;
 }
 
 void DirectoryService::ComputeSharding(
@@ -355,7 +359,8 @@ bool DirectoryService::VerifyNodePriority(const VectorOfShard& shards)
     return true;
 }
 
-void DirectoryService::ComputeTxnSharingAssignments(const Peer& winnerpeer)
+void DirectoryService::ComputeTxnSharingAssignments(
+    const vector<Peer>& proposedDSMembers)
 {
     if (LOOKUP_NODE_MODE)
     {
@@ -379,7 +384,11 @@ void DirectoryService::ComputeTxnSharingAssignments(const Peer& winnerpeer)
         : TX_SHARING_CLUSTER_SIZE;
 
     // Add the new DS leader first
-    m_DSReceivers.emplace_back(winnerpeer);
+    for (const auto& proposedMember : proposedDSMembers)
+    {
+        m_DSReceivers.emplace_back(proposedMember);
+    }
+
     m_mediator.m_node->m_txnSharingIAmSender = true;
     num_ds_nodes--;
 
@@ -498,8 +507,6 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
         LOG_GENERAL(INFO, "0x" << DataConversion::charArrToHexStr(kv.first));
     }
 
-    ComposeDSBlock(sortedDSPoWSolns);
-
     // Use a map to sort the soln according to difficulty level
     map<array<unsigned char, 32>, PubKey> PoWOrderSorter;
     for (const auto& powsoln : m_allPoWs)
@@ -532,13 +539,27 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
     {
         m_allPoWConns.emplace(m_mediator.m_DSCommittee->back());
     }
+    unsigned int numOfProposedDSMembers
+        = ComposeDSBlock(sortedDSPoWSolns, sortedPoWSolns);
 
-    const auto& winnerPeer
-        = m_allPoWConns.find(m_pendingDSBlock->GetHeader().GetMinerPubKey());
+    // Add the oldest n DS committee member to m_allPoWs and m_allPoWConns so it gets included in sharding structure
+    for (unsigned int i = 0; i < numOfProposedDSMembers; i++)
+    {
+        sortedPoWSolns.emplace_back(array<unsigned char, 32>(),
+                                    m_mediator.m_DSCommittee->back().first);
+        m_allPoWConns.emplace(m_mediator.m_DSCommittee->back());
+    }
 
     ClearReputationOfNodeWithoutPoW();
     ComputeSharding(sortedPoWSolns);
-    ComputeTxnSharingAssignments(winnerPeer->second);
+
+    vector<Peer> proposedDSMembersInfo;
+    for (const auto& proposedMember : DSPoWOrderSorter)
+    {
+        proposedDSMembersInfo.emplace(m_allPoWConns[proposedMember.second]);
+    }
+
+    ComputeTxnSharingAssignments(proposedDSMembersInfo);
 
     // Create new consensus object
     // Dummy values for now
