@@ -352,12 +352,6 @@ void DirectoryService::UpdateDSCommiteeComposition(const Peer& winnerpeer)
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetMinerPubKey());
 }
 
-/// Calculate node priority to determine which node has the priority to join the network.
-uint8_t DirectoryService::CalculateNodePriority(uint16_t reputation)
-{
-    return log2(reputation);
-}
-
 void DirectoryService::StartFirstTxEpoch()
 {
     if (LOOKUP_NODE_MODE)
