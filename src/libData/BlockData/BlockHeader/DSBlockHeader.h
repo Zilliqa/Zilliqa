@@ -53,7 +53,8 @@ public:
                   const BlockHash& prevHash, const PubKey& leaderPubKey,
                   const uint64_t& blockNum,
                   const boost::multiprecision::uint256_t& timestamp,
-                  const SWInfo& swInfo);
+                  const SWInfo& swInfo,
+                  const std::map<PubKey, Peer>& powDSWinners);
 
     /// Implements the Serialize function inherited from Serializable.
     unsigned int Serialize(std::vector<unsigned char>& dst,
@@ -85,6 +86,8 @@ public:
 
     /// Returns the software version information used during creation of this block.
     const SWInfo& GetSWInfo() const;
+    
+    const std::map<PubKey, Peer>& GetDSPoWWinners() const;
 
     /// Equality operator.
     bool operator==(const DSBlockHeader& header) const;
