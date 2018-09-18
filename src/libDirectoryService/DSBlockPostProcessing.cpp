@@ -581,6 +581,17 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
         winnerpeer = m_allPoWConns.at(lastDSBlock.GetHeader().GetMinerPubKey());
     }
 
+    // Now we can update the sharding structure and transaction sharing assignments
+    if (m_mode == BACKUP_DS)
+    {
+        m_DSReceivers = move(m_tempDSReceivers);
+        m_shardReceivers = move(m_tempShardReceivers);
+        m_shardSenders = move(m_tempShardSenders);
+        m_shards = move(m_tempShards);
+        m_publicKeyToShardIdMap = move(m_tempPublicKeyToShardIdMap);
+        ProcessTxnBodySharingAssignment();
+    }
+
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "DSBlock to be sent to the lookup nodes");
 
