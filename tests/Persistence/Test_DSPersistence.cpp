@@ -61,9 +61,10 @@ DSBlock constructDummyDSBlock()
 
     std::pair<PrivKey, PubKey> pubKey1 = Schnorr::GetInstance().GenKeyPair();
 
-    return DSBlock(
-        DSBlockHeader(50, 20, prevHash1, pubKey1.second, 10, 789, SWInfo()),
-        CoSignatures());
+    std::map<PubKey, Peer> powDSWinners;
+    return DSBlock(DSBlockHeader(50, 20, prevHash1, pubKey1.second, 10, 789,
+                                 SWInfo(), powDSWinners),
+                   CoSignatures());
 }
 
 BOOST_AUTO_TEST_CASE(testSerializationDeserialization)

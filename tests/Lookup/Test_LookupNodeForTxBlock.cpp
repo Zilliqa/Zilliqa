@@ -58,10 +58,10 @@ void SendDSBlockFirstToMatchDSBlockNum(Peer& lookup_node)
     }
 
     std::pair<PrivKey, PubKey> pubKey1 = Schnorr::GetInstance().GenKeyPair();
-
-    DSBlock dsblock(
-        DSBlockHeader(50, 20, prevHash1, pubKey1.second, 0, 0, SWInfo()),
-        CoSignatures());
+    std::map<PubKey, Peer> powDSWinners;
+    DSBlock dsblock(DSBlockHeader(50, 20, prevHash1, pubKey1.second, 0, 0,
+                                  SWInfo(), powDSWinners),
+                    CoSignatures());
 
     curr_offset += dsblock.Serialize(dsblockmsg, curr_offset);
 
