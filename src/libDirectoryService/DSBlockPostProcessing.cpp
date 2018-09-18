@@ -433,6 +433,17 @@ void DirectoryService::StartFirstTxEpoch()
             Whitelist::GetInstance().UpdateShardWhitelist();
         }
 
+        std::vector<Peer> peers;
+        for (const auto& i : *m_mediator.m_node->m_myShardMembers)
+        {
+            if (i.second.m_listenPortHost != 0)
+            {
+                peers.push_back(i.second);
+            }
+        }
+        // ReInitialize RumorManager for this epoch.
+        P2PComm::GetInstance().InitializeRumorManager(peers);
+
         // Start sharding work
         SetState(MICROBLOCK_SUBMISSION);
         m_dsStartedMicroblockConsensus = false;
