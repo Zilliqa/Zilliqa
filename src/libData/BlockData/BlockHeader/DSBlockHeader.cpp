@@ -164,11 +164,7 @@ bool DSBlockHeader::operator==(const DSBlockHeader& header) const
 
 bool DSBlockHeader::operator<(const DSBlockHeader& header) const
 {
-    return tie(m_dsDifficulty, m_difficulty, m_prevHash, m_leaderPubKey,
-               m_blockNum, m_timestamp, m_swInfo)
-        < tie(header.m_dsDifficulty, header.m_difficulty, header.m_prevHash,
-              header.m_leaderPubKey, header.m_blockNum, header.m_timestamp,
-              header.m_swInfo);
+    return m_blockNum < header.m_blockNum;
 }
 
 bool DSBlockHeader::operator>(const DSBlockHeader& header) const
