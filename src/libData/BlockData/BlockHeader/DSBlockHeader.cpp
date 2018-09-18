@@ -36,7 +36,8 @@ DSBlockHeader::DSBlockHeader(const uint8_t dsDifficulty,
                              const BlockHash& prevHash,
                              const PubKey& leaderPubKey,
                              const uint64_t& blockNum,
-                             const uint256_t& timestamp, const SWInfo& swInfo)
+                             const uint256_t& timestamp, const SWInfo& swInfo,
+                             const map<PubKey, Peer>& powDSWinners)
     : m_dsDifficulty(dsDifficulty)
     , m_difficulty(difficulty)
     , m_prevHash(prevHash)
@@ -44,6 +45,7 @@ DSBlockHeader::DSBlockHeader(const uint8_t dsDifficulty,
     , m_blockNum(blockNum)
     , m_timestamp(timestamp)
     , m_swInfo(swInfo)
+    , m_PoWDSWinners(powDSWinners)
 {
 }
 
@@ -145,6 +147,11 @@ uint32_t DSBlockHeader::GetSize() const
 const uint256_t& DSBlockHeader::GetTimestamp() const { return m_timestamp; }
 
 const SWInfo& DSBlockHeader::GetSWInfo() const { return m_swInfo; }
+
+const map<PubKey, Peer>& DSBlockHeader::GetDSPoWWinners() const
+{
+    return m_PoWDSWinners;
+}
 
 bool DSBlockHeader::operator==(const DSBlockHeader& header) const
 {
