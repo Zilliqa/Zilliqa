@@ -155,6 +155,11 @@ const map<PubKey, Peer>& DSBlockHeader::GetDSPoWWinners() const
 
 bool DSBlockHeader::operator==(const DSBlockHeader& header) const
 {
+    if (m_PoWDSWinners != header.m_PoWDSWinners)
+    {
+        return false;
+    }
+
     return tie(m_dsDifficulty, m_difficulty, m_prevHash, m_leaderPubKey,
                m_blockNum, m_timestamp, m_swInfo)
         == tie(header.m_dsDifficulty, header.m_difficulty, header.m_prevHash,
