@@ -408,6 +408,18 @@ void Node::StartFirstTxEpoch()
     m_consensusLeaderID = 0;
     CommitTxnPacketBuffer();
 
+    std::vector<Peer> peers;
+    for (const auto& i : *m_myShardMembers)
+    {
+        if (i.second.m_listenPortHost != 0)
+        {
+            peers.push_back(i.second);
+        }
+    }
+
+    // Set the peerlist for RumorSpreading protocol every start of DS Epoch
+    P2PComm::GetInstance().InitializeRumorManager(peers);
+
     auto main_func3 = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
 
     DetachedFunction(1, main_func3);
@@ -569,9 +581,6 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
             }
             m_mediator.m_ds->m_consensusLeaderID = lastBlockHash % ds_size;
 
-            // For now lets stop RumorSpreading protocol for Node. we dont have it for DS Node as of now.
-            P2PComm::GetInstance().InitializeRumorManager(std::vector<Peer>());
-
             // Finally, start as the DS leader
             m_mediator.m_ds->StartFirstTxEpoch();
             //m_mediator.m_ds->m_mode = DirectoryService::Mode::PRIMARY_DS;
@@ -590,18 +599,6 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
 
             // Process txn sharing assignments as a shard node
             LoadTxnSharingInfo();
-
-            std::vector<Peer> peers;
-            for (auto& i : *m_myShardMembers)
-            {
-                if (i.second.m_listenPortHost != 0)
-                {
-                    peers.push_back(i.second);
-                }
-            }
-
-            // Set the peerlist for RumorSpreading protocol every start of DS Epoch
-            P2PComm::GetInstance().InitializeRumorManager(peers);
 
             // Finally, start as a shard node
             StartFirstTxEpoch();

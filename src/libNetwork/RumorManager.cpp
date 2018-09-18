@@ -55,7 +55,7 @@ void RumorManager::startRounds()
     std::thread([&]() {
         std::unique_lock<std::mutex> guard(m_continueRoundMutex);
         m_continueRound = true;
-        while (m_continueRound)
+        while (true)
         {
             { // critical section
                 std::lock_guard<std::mutex> guard(m_mutex);
@@ -75,7 +75,12 @@ void RumorManager::startRounds()
             } // end critical section
             std::this_thread::sleep_for(ROUND_TIME
                                         - std::chrono::milliseconds(15));
-            m_condStopRound.wait_for(guard, std::chrono::milliseconds(15));
+            if (m_condStopRound.wait_for(
+                    guard, std::chrono::milliseconds(15),
+                    [&] { return m_continueRound == false; }))
+            {
+                return;
+            }
         }
     })
         .detach();
@@ -88,14 +93,24 @@ void RumorManager::stopRounds()
         std::lock_guard<std::mutex> guard(m_continueRoundMutex);
         m_continueRound = false;
     }
-    m_condStopRound.notify_one();
+    m_condStopRound.notify_all();
+    std::this_thread::sleep_for(ROUND_TIME);
 }
 
 // PUBLIC METHODS
-void RumorManager::Initialize(const std::vector<Peer>& peers,
+bool RumorManager::Initialize(const std::vector<Peer>& peers,
                               const Peer& myself)
 {
     LOG_MARKER();
+    {
+        std::lock_guard<std::mutex> guard(m_continueRoundMutex);
+        if (m_continueRound == true)
+        {
+            // Seems logical error. Round should have been already Stopped.
+            return false;
+        }
+    }
+
     std::lock_guard<std::mutex> guard(m_mutex); // critical section
 
     m_rumorIdGenerator = 0;
@@ -107,19 +122,33 @@ void RumorManager::Initialize(const std::vector<Peer>& peers,
     int peerIdGenerator = 0;
     for (const auto& p : peers)
     {
-        ++peerIdGenerator;
-        m_peerIdPeerBimap.insert(
-            PeerIdPeerBiMap::value_type(peerIdGenerator, p));
-        m_peerIdSet.insert(peerIdGenerator);
+        if (p.m_listenPortHost != 0)
+        {
+            ++peerIdGenerator;
+            m_peerIdPeerBimap.insert(
+                PeerIdPeerBiMap::value_type(peerIdGenerator, p));
+            m_peerIdSet.insert(peerIdGenerator);
+        }
     }
 
     // Now create the one and only RumorHolder
     m_rumorHolder.reset(new RRS::RumorHolder(m_peerIdSet, 0));
+
+    return true;
 }
 
 bool RumorManager::addRumor(const RumorManager::RawBytes& message)
 {
     LOG_MARKER();
+    {
+        std::lock_guard<std::mutex> guard(m_continueRoundMutex);
+        if (m_continueRound == false)
+        {
+            // Seems logical error. Round should have started.
+            return false;
+        }
+    }
+
     std::lock_guard<std::mutex> guard(m_mutex); // critical section
 
     if (m_peerIdSet.size() == 0)
@@ -139,6 +168,14 @@ bool RumorManager::rumorReceived(uint8_t type, int32_t round,
                                  const RawBytes& message, const Peer& from)
 {
     LOG_MARKER();
+    {
+        std::lock_guard<std::mutex> guard(m_continueRoundMutex);
+        if (m_continueRound == false)
+        {
+            return false;
+        }
+    }
+
     std::lock_guard<std::mutex> guard(m_mutex);
 
     LOG_GENERAL(INFO, "Received message from " << from);

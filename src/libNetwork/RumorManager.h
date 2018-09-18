@@ -51,7 +51,7 @@ public:
     ~RumorManager();
 
     // METHODS
-    void Initialize(const std::vector<Peer>& peers, const Peer& myself);
+    bool Initialize(const std::vector<Peer>& peers, const Peer& myself);
 
     bool addRumor(const RawBytes& message);
 

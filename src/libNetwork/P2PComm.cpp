@@ -962,6 +962,11 @@ void P2PComm::InitializeRumorManager(const std::vector<Peer>& peers)
     LOG_MARKER();
 
     m_rumorManager.stopRounds();
-    m_rumorManager.Initialize(peers, m_selfPeer);
-    m_rumorManager.startRounds();
+    if (m_rumorManager.Initialize(peers, m_selfPeer) == true)
+    {
+        if (peers.size() != 0)
+        {
+            m_rumorManager.startRounds();
+        }
+    }
 }
