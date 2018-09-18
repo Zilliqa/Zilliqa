@@ -70,6 +70,21 @@ void DirectoryService::ComposeDSBlock(
     const array<unsigned char, 32> winnerPoW = sortedPoWSolns.front().first;
     const PubKey& winnerKey = sortedPoWSolns.front().second;
 
+    uint16_t numOfElectedDSMembers
+        = max(sortedPoWSolns.size(), NUM_DS_ELECTION);
+    uint16_t counter = 0;
+    std::map<PubKey, Peer> powDSWinners;
+    for (auto const& submitter : sortedPoWSolns)
+    {
+        if (counter >= numOfElectedDSMembers)
+        {
+            break;
+        }
+
+        powDSWinners[submitter.second] = m_allPoWConns[submitter.second];
+        counter++;
+    }
+
     if (!POW::GetInstance().CheckSolnAgainstsTargetedDifficulty(
             DataConversion::charArrToHexStr(winnerPoW), DS_POW_DIFFICULTY))
     {
@@ -117,9 +132,9 @@ void DirectoryService::ComposeDSBlock(
     // To-do: Handle exceptions.
     // TODO: Revise DS block structure
     m_pendingDSBlock.reset(
-        new DSBlock(DSBlockHeader(dsDifficulty, difficulty, prevHash, 0,
-                                  winnerKey, m_mediator.m_selfKey.second,
-                                  blockNum, get_time_as_int(), SWInfo()),
+        new DSBlock(DSBlockHeader(dsDifficulty, difficulty, prevHash,
+                                  m_mediator.m_selfKey.second, blockNum,
+                                  get_time_as_int(), SWInfo(), powDSWinners),
                     CoSignatures(m_mediator.m_DSCommittee->size())));
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
