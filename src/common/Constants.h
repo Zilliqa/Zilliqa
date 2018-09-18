@@ -111,6 +111,7 @@ extern const std::string TXN_PATH;
 extern const unsigned int MSG_VERSION;
 extern const unsigned int DS_MULTICAST_CLUSTER_SIZE;
 extern const unsigned int COMM_SIZE;
+extern const unsigned int NUM_DS_ELECTION;
 extern const unsigned int POW_WINDOW_IN_SECONDS;
 extern const unsigned int POW_BACKUP_WINDOW_IN_SECONDS;
 extern const unsigned int NEW_NODE_SYNC_INTERVAL;
