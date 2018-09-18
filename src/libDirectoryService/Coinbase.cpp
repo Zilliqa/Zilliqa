@@ -75,13 +75,21 @@ bool DirectoryService::SaveCoinbaseCore(const vector<bool>& b1,
         {
             m_coinbaseRewardees[m_mediator.m_currentEpochNum][shard_id]
                 .push_back(Account::GetAddressFromPublicKey(pubKey));
-            ++m_mapNodeReputation[pubKey];
+            if (m_mapNodeReputation[pubKey]
+                < std::numeric_limits<uint16_t>::max())
+            {
+                ++m_mapNodeReputation[pubKey];
+            }
         }
         if (b2.at(i))
         {
             m_coinbaseRewardees[m_mediator.m_currentEpochNum][shard_id]
                 .push_back(Account::GetAddressFromPublicKey(pubKey));
-            ++m_mapNodeReputation[pubKey];
+            if (m_mapNodeReputation[pubKey]
+                < std::numeric_limits<uint16_t>::max())
+            {
+                ++m_mapNodeReputation[pubKey];
+            }
         }
         i++;
     }

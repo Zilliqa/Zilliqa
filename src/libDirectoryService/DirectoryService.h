@@ -464,9 +464,6 @@ public:
     /// Used by PoW winner to configure txn sharing assignment variables as the next DS leader
     void ProcessTxnBodySharingAssignment();
 
-    /// Calculate node priority to determine which node has the priority to join the network.
-    static uint8_t CalculateNodePriority(uint16_t reputation);
-
     /// Used by PoW winner to finish setup as the next DS leader
     void StartFirstTxEpoch();
 
@@ -475,6 +472,9 @@ public:
         int64_t powSubmissions, int64_t expectedNodes,
         uint32_t maxAdjustThreshold, int64_t currentEpochNum,
         int64_t numBlockPerYear);
+
+    /// Calculate node priority to determine which node has the priority to join the network.
+    static uint8_t CalculateNodePriority(uint16_t reputation);
 
 private:
     static std::map<DirState, std::string> DirStateStrings;
