@@ -183,8 +183,8 @@ bool SendJob::SendMessageSocketCore(const Peer& peer,
                                     const vector<unsigned char>& msg_hash)
 {
     // LOG_MARKER();
-    LOG_PAYLOAD(INFO, "Sending message to " << peer, message,
-                Logger::MAX_BYTES_TO_DISPLAY);
+    //LOG_PAYLOAD(INFO, "Sending message to " << peer, message,
+    //            Logger::MAX_BYTES_TO_DISPLAY);
 
     if (peer.m_ipAddress == 0 && peer.m_listenPortHost == 0)
     {
@@ -587,8 +587,8 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
     }
     else if (startByte == START_BYTE_NORMAL)
     {
-        LOG_PAYLOAD(INFO, "Incoming normal message from " << from, message,
-                    Logger::MAX_BYTES_TO_DISPLAY);
+        //LOG_PAYLOAD(INFO, "Incoming normal message from " << from, message,
+        //            Logger::MAX_BYTES_TO_DISPLAY);
 
         // Check for length consistency
         if (messageLength != message.size() - HDR_LEN)
@@ -608,8 +608,8 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
     }
     else if (startByte == START_BYTE_GOSSIP)
     {
-        LOG_PAYLOAD(INFO, "Incoming  gossip message from " << from, message,
-                    Logger::MAX_BYTES_TO_DISPLAY);
+        //LOG_PAYLOAD(INFO, "Incoming  gossip message from " << from, message,
+        //            Logger::MAX_BYTES_TO_DISPLAY);
 
         // Check for length consistency
 
@@ -941,7 +941,7 @@ void P2PComm::SendMessageNoQueue(const Peer& peer,
                                  const std::vector<unsigned char>& message,
                                  const unsigned char& startByteType)
 {
-    LOG_MARKER();
+    //LOG_MARKER();
 
     if (Blacklist::GetInstance().Exist(peer.m_ipAddress))
     {
