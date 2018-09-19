@@ -437,8 +437,8 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
 
     if (m_mediator.m_DSCommittee->back().first == m_mediator.m_selfKey.second)
     {
-        m_allPoWConns.emplace(make_pair(m_mediator.m_DSCommittee->back().first,
-                                        m_mediator.m_selfPeer));
+        m_allPoWConns.emplace(
+            make_pair(m_mediator.m_selfKey.second, m_mediator.m_selfPeer));
     }
     else
     {
