@@ -931,18 +931,6 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
             BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
                                                         {'0'});
         }
-
-        if (m_mediator.m_curSWInfo.GetUpgradeDS()
-            == (((m_mediator.m_currentEpochNum + 1) / NUM_FINAL_BLOCK_PER_POW)
-                + 2))
-        {
-            m_mediator.UpdateDSBlockRand();
-            m_mediator.UpdateTxBlockRand();
-            auto func = [this]() mutable -> void {
-                UpgradeManager::GetInstance().ReplaceNode(m_mediator);
-            };
-            DetachedFunction(1, func);
-        }
     }
 
     if (txBlock.GetHeader().GetNumMicroBlockHashes() == 1)
@@ -971,6 +959,15 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     // then I know I'm not), I can start doing PoW again
     m_mediator.UpdateDSBlockRand();
     m_mediator.UpdateTxBlockRand();
+
+    if (m_mediator.m_curSWInfo.GetUpgradeDS()
+        == (((m_mediator.m_currentEpochNum) / NUM_FINAL_BLOCK_PER_POW) + 2))
+    {
+        auto func = [this]() mutable -> void {
+            UpgradeManager::GetInstance().ReplaceNode(m_mediator);
+        };
+        DetachedFunction(1, func);
+    }
 
     if (!LOOKUP_NODE_MODE)
     {

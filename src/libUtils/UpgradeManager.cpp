@@ -407,22 +407,7 @@ bool UpgradeManager::ReplaceNode(Mediator& mediator)
         return true;
     }
 
-#if 1 //clark
-    uint64_t curDsBlockNum
-        = mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
-    LOG_GENERAL(INFO, "Current ds block num:" << curDsBlockNum);
-#else
-    /// Store states
-    AccountStore::GetInstance().UpdateStateTrieAll();
-    AccountStore::GetInstance().MoveUpdatesToDisk();
-
-    /// Store final block
-    vector<unsigned char> serializedTxBlock;
-    mediator.m_txBlockChain.GetLastBlock().Serialize(serializedTxBlock, 0);
-    BlockStorage::GetBlockStorage().PutTxBlock(
-        mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
-        serializedTxBlock);
-#endif
+    BlockStorage::GetBlockStorage().PutDSCommittee(mediator.m_DSCommittee);
 
     /// Deploy downloaded software
     /// TBD: The call of "dpkg" should be removed. (https://github.com/Zilliqa/Issues/issues/185)
@@ -433,8 +418,22 @@ bool UpgradeManager::ReplaceNode(Mediator& mediator)
         return false;
     }
 
-    LOG_GENERAL(INFO, "Waiting for termination...");
-    this_thread::sleep_for(std::chrono::seconds(10));
+#if 0 //clark
+    if (DirectoryService::IDLE == mediator.m_ds->m_mode)
+    {
+        LOG_GENERAL(INFO, "Shard node, upgrade after 10 seconds...");
+        this_thread::sleep_for(chrono::seconds(10));
+    }
+    else if (DirectoryService::BACKUP_DS == mediator.m_ds->m_mode)
+    {
+        LOG_GENERAL(INFO, "DS backup node, upgrade after 5 seconds...");
+        this_thread::sleep_for(chrono::seconds(5));
+    }
+    else
+    {
+        LOG_GENERAL(INFO, "DS leader node, upgrade immediately...");
+    }
+#endif
 
     /// Kill current node, then the recovery procedure will wake up node with stored data
     return raise(SIGKILL) == 0;
