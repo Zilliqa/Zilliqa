@@ -43,13 +43,13 @@ bool ArchiveDB::InsertTxn(const Transaction& tx)
 
 bool ArchiveDB::InsertTxBlock(const TxBlock& txblock)
 {
-    string index = txblock.GetHeader().GetBlockNum().str();
+    string index = to_string(txblock.GetHeader().GetBlockNum());
     return InsertSerializable(txblock, index, m_txBlockCollectionName);
 }
 
 bool ArchiveDB::InsertDSBlock(const DSBlock& dsblock)
 {
-    string index = dsblock.GetHeader().GetBlockNum().str();
+    string index = to_string(dsblock.GetHeader().GetBlockNum());
     return InsertSerializable(dsblock, index, m_dsBlockCollectionName);
 }
 

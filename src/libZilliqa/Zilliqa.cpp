@@ -26,6 +26,7 @@
 #include "libData/AccountData/Address.h"
 #include "libNetwork/Whitelist.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
 
 using namespace std;
@@ -57,6 +58,39 @@ void Zilliqa::LogSelfNodeInfo(const std::pair<PrivKey, PubKey>& key,
                                  << peer.m_listenPortHost);
 }
 
+void Zilliqa::ProcessMessage(pair<vector<unsigned char>, Peer>* message)
+{
+    if (message->first.size() >= MessageOffset::BODY)
+    {
+        const unsigned char msg_type = message->first.at(MessageOffset::TYPE);
+
+        // To-do: Remove consensus user placeholder
+        Executable* msg_handlers[] = {&m_pm, &m_ds, &m_n, NULL, &m_lookup};
+
+        const unsigned int msg_handlers_count
+            = sizeof(msg_handlers) / sizeof(Executable*);
+
+        if (msg_type < msg_handlers_count)
+        {
+            bool result = msg_handlers[msg_type]->Execute(
+                message->first, MessageOffset::INST, message->second);
+
+            if (!result)
+            {
+                // To-do: Error recovery
+            }
+        }
+        else
+        {
+            LOG_GENERAL(WARNING,
+                        "Unknown message type " << std::hex
+                                                << (unsigned int)msg_type);
+        }
+    }
+
+    delete message;
+}
+
 Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
                  bool loadConfig, unsigned int syncType, bool toRetrieveHistory)
     : m_pm(key, peer, loadConfig)
@@ -64,22 +98,32 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
     , m_ds(m_mediator)
     , m_lookup(m_mediator)
     , m_n(m_mediator, syncType, toRetrieveHistory)
-    , m_cu(key, peer)
-#ifdef IS_LOOKUP_NODE
+    //    , m_cu(key, peer)
+    , m_msgQueue(MSGQUEUE_SIZE)
     , m_httpserver(SERVER_PORT)
     , m_server(m_mediator, m_httpserver)
-#endif // IS_LOOKUP_NODE
-
 {
     LOG_MARKER();
-
-    if (m_mediator.m_isRetrievedHistory)
-    {
-        m_ds.m_consensusID = 0;
-    }
+    // Launch the thread that reads messages from the queue
+    auto funcCheckMsgQueue = [this]() mutable -> void {
+        pair<vector<unsigned char>, Peer>* message = NULL;
+        while (true)
+        {
+            while (m_msgQueue.pop(message))
+            {
+                // For now, we use a thread pool to handle this message
+                // Eventually processing will be single-threaded
+                m_queuePool.AddJob([this, message]() mutable -> void {
+                    ProcessMessage(message);
+                });
+            }
+        }
+    };
+    DetachedFunction(1, funcCheckMsgQueue);
 
     m_validator = make_shared<Validator>(m_mediator);
     m_mediator.RegisterColleagues(&m_ds, &m_n, &m_lookup, m_validator.get());
+    m_n.Install(syncType, toRetrieveHistory);
 
     LogSelfNodeInfo(key, peer);
 
@@ -91,7 +135,6 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
         LOG_GENERAL(INFO, "No Sync Needed");
         Whitelist::GetInstance().Init();
         break;
-#ifndef IS_LOOKUP_NODE
     case SyncType::NEW_SYNC:
         LOG_GENERAL(INFO, "Sync as a new node");
         if (!toRetrieveHistory)
@@ -117,64 +160,52 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
         m_mediator.m_lookup->m_syncType = SyncType::DS_SYNC;
         m_ds.StartSynchronization();
         break;
-#else // IS_LOOKUP_NODE
     case SyncType::LOOKUP_SYNC:
         LOG_GENERAL(INFO, "Sync as a lookup node");
         m_mediator.m_lookup->m_syncType = SyncType::LOOKUP_SYNC;
         m_lookup.StartSynchronization();
         break;
-#endif // IS_LOOKUP_NODE
     default:
         LOG_GENERAL(WARNING, "Invalid Sync Type");
         break;
     }
 
-#ifndef IS_LOOKUP_NODE
-    LOG_GENERAL(INFO, "I am a normal node.");
-#else // else for IS_LOOKUP_NODE
-    LOG_GENERAL(INFO, "I am a lookup node.");
-    if (m_server.StartListening())
+    if (!LOOKUP_NODE_MODE)
     {
-        LOG_GENERAL(INFO, "API Server started successfully");
+        LOG_GENERAL(INFO, "I am a normal node.");
     }
     else
     {
-        LOG_GENERAL(WARNING, "API Server couldn't start");
-    }
-#endif // IS_LOOKUP_NODE
-}
-
-Zilliqa::~Zilliqa() {}
-
-void Zilliqa::Dispatch(const vector<unsigned char>& message, const Peer& from)
-{
-    //LOG_MARKER();
-
-    if (message.size() >= MessageOffset::BODY)
-    {
-        const unsigned char msg_type = message.at(MessageOffset::TYPE);
-
-        Executable* msg_handlers[] = {&m_pm, &m_ds, &m_n, &m_cu, &m_lookup};
-
-        const unsigned int msg_handlers_count
-            = sizeof(msg_handlers) / sizeof(Executable*);
-
-        if (msg_type < msg_handlers_count)
+        LOG_GENERAL(INFO, "I am a lookup node.");
+        if (m_server.StartListening())
         {
-            bool result = msg_handlers[msg_type]->Execute(
-                message, MessageOffset::INST, from);
-
-            if (result == false)
-            {
-                // To-do: Error recovery
-            }
+            LOG_GENERAL(INFO, "API Server started successfully");
+            m_lookup.SetServerTrue();
         }
         else
         {
-            LOG_GENERAL(WARNING,
-                        "Unknown message type " << std::hex
-                                                << (unsigned int)msg_type);
+            LOG_GENERAL(WARNING, "API Server couldn't start");
         }
+    }
+}
+
+Zilliqa::~Zilliqa()
+{
+    pair<vector<unsigned char>, Peer>* message = NULL;
+    while (m_msgQueue.pop(message))
+    {
+        delete message;
+    }
+}
+
+void Zilliqa::Dispatch(pair<vector<unsigned char>, Peer>* message)
+{
+    //LOG_MARKER();
+
+    // Queue message
+    while (!m_msgQueue.push(message))
+    {
+        // Keep attempting to push until success
     }
 }
 
@@ -184,7 +215,8 @@ vector<Peer> Zilliqa::RetrieveBroadcastList(unsigned char msg_type,
 {
     // LOG_MARKER();
 
-    Broadcastable* msg_handlers[] = {&m_pm, &m_ds, &m_n, &m_cu, &m_lookup};
+    // To-do: Remove consensus user placeholder
+    Broadcastable* msg_handlers[] = {&m_pm, &m_ds, &m_n, NULL, &m_lookup};
 
     const unsigned int msg_handlers_count
         = sizeof(msg_handlers) / sizeof(Broadcastable*);

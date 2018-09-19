@@ -30,33 +30,32 @@ typedef std::shared_ptr<DSBlock> DSBlockSharedPtr;
 typedef std::shared_ptr<TxBlock> TxBlockSharedPtr;
 typedef std::shared_ptr<VCBlock> VCBlockSharedPtr;
 typedef std::shared_ptr<MicroBlock> MicroBlockSharedPtr;
-typedef std::shared_ptr<Transaction> TxBodySharedPtr;
+typedef std::shared_ptr<TransactionWithReceipt> TxBodySharedPtr;
 
 /// Manages persistent storage of DS and Tx blocks.
 class BlockStorage : public Singleton<BlockStorage>
 {
-    LevelDB m_metadataDB;
-    LevelDB m_dsBlockchainDB;
-    LevelDB m_txBlockchainDB;
-#ifndef IS_LOOKUP_NODE
+    std::shared_ptr<LevelDB> m_metadataDB;
+    std::shared_ptr<LevelDB> m_dsBlockchainDB;
+    std::shared_ptr<LevelDB> m_txBlockchainDB;
     std::list<std::shared_ptr<LevelDB>> m_txBodyDBs;
-#else // IS_LOOKUP_NODE
-    LevelDB m_txBodyDB;
-    LevelDB m_txBodyTmpDB;
-#endif // IS_LOOKUP_NODE
+    std::shared_ptr<LevelDB> m_txBodyDB;
+    std::shared_ptr<LevelDB> m_txBodyTmpDB;
 
     BlockStorage()
-        : m_metadataDB("metadata")
-        , m_dsBlockchainDB("dsBlocks")
-        , m_txBlockchainDB("txBlocks")
-#ifdef IS_LOOKUP_NODE
-        , m_txBodyDB("txBodies")
-        , m_txBodyTmpDB("txBodiesTmp")
-#endif // IS_LOOKUP_NODE
-              {};
+        : m_metadataDB(std::make_shared<LevelDB>("metadata"))
+        , m_dsBlockchainDB(std::make_shared<LevelDB>("dsBlocks"))
+        , m_txBlockchainDB(std::make_shared<LevelDB>("txBlocks"))
+    {
+        if (LOOKUP_NODE_MODE)
+        {
+            m_txBodyDB = std::make_shared<LevelDB>("txBodies");
+            m_txBodyTmpDB = std::make_shared<LevelDB>("txBodiesTmp");
+        }
+    };
     ~BlockStorage() = default;
-    bool PutBlock(const boost::multiprecision::uint256_t& blockNum,
-                  const std::vector<unsigned char>& block,
+    bool PutBlock(const uint64_t& blockNum,
+                  const std::vector<unsigned char>& body,
                   const BlockType& blockType);
 
 public:
@@ -65,35 +64,30 @@ public:
         META = 0x00,
         DS_BLOCK,
         TX_BLOCK,
-#ifndef IS_LOOKUP_NODE
         TX_BODIES,
-#else // IS_LOOKUP_NODE
         TX_BODY,
         TX_BODY_TMP,
-#endif // IS_LOOKUP_NODE
     };
 
     /// Returns the singleton BlockStorage instance.
     static BlockStorage& GetBlockStorage();
 
-#ifndef IS_LOOKUP_NODE
     /// Adds a txBody database for a new DSEpoch.
-    bool PushBackTxBodyDB(const boost::multiprecision::uint256_t& blockNum);
+    bool PushBackTxBodyDB(const uint64_t& blockNum);
 
     /// Pop the txBody database at front.
     bool PopFrontTxBodyDB(bool mandatory = false);
 
     /// Get the size of current TxBodyDB
     unsigned int GetTxBodyDBSize();
-#endif // IS_LOOKUP_NODE
 
     /// Adds a DS block to storage.
-    bool PutDSBlock(const boost::multiprecision::uint256_t& blockNum,
-                    const std::vector<unsigned char>& block);
+    bool PutDSBlock(const uint64_t& blockNum,
+                    const std::vector<unsigned char>& body);
 
     /// Adds a Tx block to storage.
-    bool PutTxBlock(const boost::multiprecision::uint256_t& blockNum,
-                    const std::vector<unsigned char>& block);
+    bool PutTxBlock(const uint64_t& blockNum,
+                    const std::vector<unsigned char>& body);
 
     // /// Adds a micro block to storage.
     // bool PutMicroBlock(const dev::h256 & key, const std::vector<unsigned char> & block);
@@ -103,12 +97,10 @@ public:
                    const std::vector<unsigned char>& body);
 
     /// Retrieves the requested DS block.
-    bool GetDSBlock(const boost::multiprecision::uint256_t& blocknum,
-                    DSBlockSharedPtr& block);
+    bool GetDSBlock(const uint64_t& blockNum, DSBlockSharedPtr& block);
 
     /// Retrieves the requested Tx block.
-    bool GetTxBlock(const boost::multiprecision::uint256_t& blocknum,
-                    TxBlockSharedPtr& block);
+    bool GetTxBlock(const uint64_t& blockNum, TxBlockSharedPtr& block);
 
     // /// Retrieves the requested Micro block
     // bool GetMicroBlock(const dev::h256 & key, MicroBlockSharedPtr & block);
@@ -117,10 +109,10 @@ public:
     bool GetTxBody(const dev::h256& key, TxBodySharedPtr& body);
 
     /// Deletes the requested DS block
-    bool DeleteDSBlock(const boost::multiprecision::uint256_t& blocknum);
+    bool DeleteDSBlock(const uint64_t& blocknum);
 
     /// Deletes the requested Tx block
-    bool DeleteTxBlock(const boost::multiprecision::uint256_t& blocknum);
+    bool DeleteTxBlock(const uint64_t& blocknum);
 
     // /// Deletes the requested Micro block
     // bool DeleteMicroBlock(const dev::h256 & key);
@@ -140,10 +132,8 @@ public:
     /// Retrieves all the TxBlocks
     bool GetAllTxBlocks(std::list<TxBlockSharedPtr>& blocks);
 
-#ifdef IS_LOOKUP_NODE
     /// Retrieves all the TxBodiesTmp
     bool GetAllTxBodiesTmp(std::list<TxnHash>& txnHashes);
-#endif // IS_LOOKUP_NODE
 
     /// Save Last Transactions Trie Root Hash
     bool PutMetadata(MetaType type, const std::vector<unsigned char>& data);

@@ -14,8 +14,6 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#ifdef IS_LOOKUP_NODE
-
 #include "JSONConversion.h"
 
 #include <boost/multiprecision/cpp_dec_float.hpp>
@@ -102,13 +100,35 @@ string Server::CreateTransaction(const Json::Value& _json)
 
         const PubKey& senderPubKey = tx.GetSenderPubKey();
         const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
-        unsigned int curr_offset = 0;
+        //unsigned int curr_offset = 0;
 
         if (num_shards > 0)
         {
+
             unsigned int shard
                 = Transaction::GetShardIndex(fromAddr, num_shards);
-            map<PubKey, Peer> shardMembers
+
+            if (tx.GetData().empty() || tx.GetToAddr() == NullAddress)
+            {
+                m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
+                return "Created A shard Txn";
+            }
+            else
+            {
+                unsigned int to_shard
+                    = Transaction::GetShardIndex(tx.GetToAddr(), num_shards);
+                if (to_shard == shard)
+                {
+                    m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
+                    return "Shards Match of the sender and reciever";
+                }
+                else
+                {
+                    m_mediator.m_lookup->AddToTxnShardMap(tx, num_shards);
+                    return "Sent to Ds for processing";
+                }
+            }
+            /*map<PubKey, Peer> shardMembers
                 = m_mediator.m_lookup->GetShardPeers().at(shard);
             LOG_GENERAL(INFO, "The Tx Belongs to " << shard << " Shard");
 
@@ -121,16 +141,16 @@ string Server::CreateTransaction(const Json::Value& _json)
 
             LOG_GENERAL(INFO, "Tx Serialized");
 
-            vector<Peer> toSend;
+            (vector<Peer> toSend;
 
             auto it = shardMembers.begin();
             for (unsigned int i = 0; i < 1 && it != shardMembers.end();
                  i++, it++)
             {
-                toSend.push_back(it->second);
+                toSend.emplace_back(it->second);
             }
 
-            P2PComm::GetInstance().SendMessage(toSend, tx_message);
+            P2PComm::GetInstance().SendMessage(toSend, tx_message);*/
         }
         else
         {
@@ -157,7 +177,7 @@ Json::Value Server::GetTransaction(const string& transactionHash)
     LOG_MARKER();
     try
     {
-        TxBodySharedPtr tx;
+        TxBodySharedPtr tptr;
         TxnHash tranHash(transactionHash);
         if (transactionHash.size() != TRAN_HASH_SIZE * 2)
         {
@@ -167,15 +187,14 @@ Json::Value Server::GetTransaction(const string& transactionHash)
             return _json;
         }
         bool isPresent
-            = BlockStorage::GetBlockStorage().GetTxBody(tranHash, tx);
+            = BlockStorage::GetBlockStorage().GetTxBody(tranHash, tptr);
         if (!isPresent)
         {
             Json::Value _json;
             _json["error"] = "Txn Hash not Present";
             return _json;
         }
-        Transaction txn(*tx);
-        return JSONConversion::convertTxtoJson(txn);
+        return JSONConversion::convertTxtoJson(*tptr);
     }
     catch (exception& e)
     {
@@ -192,7 +211,7 @@ Json::Value Server::GetDsBlock(const string& blockNum)
 
     try
     {
-        boost::multiprecision::uint256_t BlockNum(blockNum);
+        uint64_t BlockNum = stoull(blockNum);
         return JSONConversion::convertDSblocktoJson(
             m_mediator.m_dsBlockChain.GetBlock(BlockNum));
     }
@@ -209,6 +228,20 @@ Json::Value Server::GetDsBlock(const string& blockNum)
         _json["Error"] = "String not numeric";
         return _json;
     }
+    catch (invalid_argument& e)
+    {
+        Json::Value _json;
+        LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
+        _json["Error"] = "Invalid arugment";
+        return _json;
+    }
+    catch (out_of_range& e)
+    {
+        Json::Value _json;
+        LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
+        _json["Error"] = "Out of range";
+        return _json;
+    }
     catch (exception& e)
     {
         Json::Value _json;
@@ -223,7 +256,7 @@ Json::Value Server::GetTxBlock(const string& blockNum)
 
     try
     {
-        boost::multiprecision::uint256_t BlockNum(blockNum);
+        uint64_t BlockNum = stoull(blockNum);
         return JSONConversion::convertTxBlocktoJson(
             m_mediator.m_txBlockChain.GetBlock(BlockNum));
     }
@@ -238,6 +271,20 @@ Json::Value Server::GetTxBlock(const string& blockNum)
         Json::Value _json;
         LOG_GENERAL(INFO, "Error " << e.what());
         _json["Error"] = "String not numeric";
+        return _json;
+    }
+    catch (invalid_argument& e)
+    {
+        Json::Value _json;
+        LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
+        _json["Error"] = "Invalid arugment";
+        return _json;
+    }
+    catch (out_of_range& e)
+    {
+        Json::Value _json;
+        LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
+        _json["Error"] = "Out of range";
         return _json;
     }
     catch (exception& e)
@@ -257,7 +304,7 @@ Json::Value Server::GetLatestDsBlock()
     DSBlock Latest = m_mediator.m_dsBlockChain.GetLastBlock();
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "BlockNum " << Latest.GetHeader().GetBlockNum().str()
+              "BlockNum " << Latest.GetHeader().GetBlockNum()
                           << "  Timestamp:        "
                           << Latest.GetHeader().GetTimestamp().str());
 
@@ -270,7 +317,7 @@ Json::Value Server::GetLatestTxBlock()
     TxBlock Latest = m_mediator.m_txBlockChain.GetLastBlock();
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "BlockNum " << Latest.GetHeader().GetBlockNum().str()
+              "BlockNum " << Latest.GetHeader().GetBlockNum()
                           << "  Timestamp:        "
                           << Latest.GetHeader().GetTimestamp().str());
 
@@ -443,7 +490,8 @@ Json::Value Server::GetSmartContractCode(const string& address)
     }
 }
 
-string Server::GetStorageAt(const string& address, const string& position)
+string Server::GetStorageAt([[gnu::unused]] const string& address,
+                            [[gnu::unused]] const string& position)
 {
     return "Hello";
 }
@@ -507,18 +555,28 @@ Json::Value Server::GetSmartContracts(const string& address)
     }
 }
 
-string Server::GetBlockTransactionCount(const string& blockHash)
+string Server::GetBlockTransactionCount([[gnu::unused]] const string& blockHash)
 {
     return "Hello";
 }
 
-string Server::GetCode(const string& address) { return "Hello"; }
+string Server::GetCode([[gnu::unused]] const string& address)
+{
+    return "Hello";
+}
 
-string Server::CreateMessage(const Json::Value& _json) { return "Hello"; }
+string Server::CreateMessage([[gnu::unused]] const Json::Value& _json)
+{
+    return "Hello";
+}
 
-string Server::GetGasEstimate(const Json::Value& _json) { return "Hello"; }
+string Server::GetGasEstimate([[gnu::unused]] const Json::Value& _json)
+{
+    return "Hello";
+}
 
-Json::Value Server::GetTransactionReceipt(const string& transactionHash)
+Json::Value Server::GetTransactionReceipt([
+    [gnu::unused]] const string& transactionHash)
 {
     return "Hello";
 }
@@ -534,33 +592,32 @@ unsigned int Server::GetNumPeers()
     LOG_MARKER();
     unsigned int numPeers = m_mediator.m_lookup->GetNodePeers().size();
     lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
-    return numPeers + m_mediator.m_DSCommittee.size();
+    return numPeers + m_mediator.m_DSCommittee->size();
 }
 
 string Server::GetNumTxBlocks()
 {
     LOG_MARKER();
 
-    return m_mediator.m_txBlockChain.GetBlockCount().str();
+    return to_string(m_mediator.m_txBlockChain.GetBlockCount());
 }
 
 string Server::GetNumDSBlocks()
 {
     LOG_MARKER();
 
-    return m_mediator.m_dsBlockChain.GetBlockCount().str();
+    return to_string(m_mediator.m_dsBlockChain.GetBlockCount());
 }
 
 string Server::GetNumTransactions()
 {
     LOG_MARKER();
 
-    boost::multiprecision::uint256_t currBlock
-        = m_mediator.m_txBlockChain.GetBlockCount() - 1;
+    uint64_t currBlock
+        = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
     if (m_BlockTxPair.first < currBlock)
     {
-        for (boost::multiprecision::uint256_t i = m_BlockTxPair.first + 1;
-             i <= currBlock; i++)
+        for (uint64_t i = m_BlockTxPair.first + 1; i <= currBlock; i++)
         {
             m_BlockTxPair.second += m_mediator.m_txBlockChain.GetBlock(i)
                                         .GetHeader()
@@ -572,18 +629,17 @@ string Server::GetNumTransactions()
     return m_BlockTxPair.second.str();
 }
 
-boost::multiprecision::uint256_t
-Server::GetNumTransactions(boost::multiprecision::uint256_t blockNum)
+boost::multiprecision::uint256_t Server::GetNumTransactions(uint64_t blockNum)
 {
-    boost::multiprecision::uint256_t currBlockNum
-        = m_mediator.m_txBlockChain.GetBlockCount() - 1;
+    uint64_t currBlockNum
+        = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
     if (blockNum >= currBlockNum)
     {
         return 0;
     }
 
-    boost::multiprecision::uint256_t i, res = 0;
+    uint64_t i, res = 0;
 
     for (i = blockNum + 1; i <= currBlockNum; i++)
     {
@@ -597,9 +653,10 @@ double Server::GetTransactionRate()
 {
     LOG_MARKER();
 
-    boost::multiprecision::uint256_t refBlockNum
-        = m_mediator.m_txBlockChain.GetBlockCount() - 1,
-        refTimeTx = 0;
+    uint64_t refBlockNum
+        = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+
+    boost::multiprecision::uint256_t refTimeTx = 0;
 
     if (refBlockNum <= REF_BLOCK_DIFF)
     {
@@ -662,7 +719,7 @@ double Server::GetDSBlockRate()
 {
     LOG_MARKER();
 
-    string numDSblockStr = m_mediator.m_dsBlockChain.GetBlockCount().str();
+    string numDSblockStr = to_string(m_mediator.m_dsBlockChain.GetBlockCount());
     boost::multiprecision::cpp_dec_float_50 numDs(numDSblockStr);
 
     if (m_StartTimeDs == 0) //case when m_StartTime has not been set
@@ -703,7 +760,7 @@ double Server::GetTxBlockRate()
 {
     LOG_MARKER();
 
-    string numTxblockStr = m_mediator.m_txBlockChain.GetBlockCount().str();
+    string numTxblockStr = to_string(m_mediator.m_txBlockChain.GetBlockCount());
     boost::multiprecision::cpp_dec_float_50 numTx(numTxblockStr);
 
     if (m_StartTimeTx == 0)
@@ -750,10 +807,8 @@ string Server::GetCurrentDSEpoch()
 {
     LOG_MARKER();
 
-    return m_mediator.m_dsBlockChain.GetLastBlock()
-        .GetHeader()
-        .GetBlockNum()
-        .str();
+    return to_string(
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum());
 }
 
 Json::Value Server::DSBlockListing(unsigned int page)
@@ -761,8 +816,8 @@ Json::Value Server::DSBlockListing(unsigned int page)
 
     LOG_MARKER();
 
-    boost::multiprecision::uint256_t currBlockNum
-        = m_mediator.m_dsBlockChain.GetBlockCount() - 1;
+    uint64_t currBlockNum
+        = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
     Json::Value _json;
 
     auto maxPages = (currBlockNum / PAGE_SIZE) + 1;
@@ -800,8 +855,7 @@ Json::Value Server::DSBlockListing(unsigned int page)
 
     if (currBlockNum > m_DSBlockCache.first)
     {
-        for (boost::multiprecision::uint256_t i = m_DSBlockCache.first + 1;
-             i < currBlockNum; i++)
+        for (uint64_t i = m_DSBlockCache.first + 1; i < currBlockNum; i++)
         {
             m_DSBlockCache.second.insert_new(
                 m_DSBlockCache.second.size(),
@@ -837,7 +891,7 @@ Json::Value Server::DSBlockListing(unsigned int page)
             cacheSize = m_DSBlockCache.second.size();
         }
 
-        boost::multiprecision::uint256_t size = m_DSBlockCache.second.size();
+        uint64_t size = m_DSBlockCache.second.size();
 
         for (unsigned int i = offset; i < PAGE_SIZE + offset && i < cacheSize;
              i++)
@@ -850,8 +904,8 @@ Json::Value Server::DSBlockListing(unsigned int page)
     }
     else
     {
-        for (boost::multiprecision::uint256_t i = offset;
-             i < PAGE_SIZE + offset && i <= currBlockNum; i++)
+        for (uint64_t i = offset; i < PAGE_SIZE + offset && i <= currBlockNum;
+             i++)
         {
             tmpJson.clear();
             tmpJson["Hash"]
@@ -871,8 +925,8 @@ Json::Value Server::TxBlockListing(unsigned int page)
 {
     LOG_MARKER();
 
-    boost::multiprecision::uint256_t currBlockNum
-        = m_mediator.m_txBlockChain.GetBlockCount() - 1;
+    uint64_t currBlockNum
+        = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
     Json::Value _json;
 
     auto maxPages = (currBlockNum / PAGE_SIZE) + 1;
@@ -911,8 +965,7 @@ Json::Value Server::TxBlockListing(unsigned int page)
 
     if (currBlockNum > m_TxBlockCache.first)
     {
-        for (boost::multiprecision::uint256_t i = m_TxBlockCache.first + 1;
-             i < currBlockNum; i++)
+        for (uint64_t i = m_TxBlockCache.first + 1; i < currBlockNum; i++)
         {
             m_TxBlockCache.second.insert_new(
                 m_TxBlockCache.second.size(),
@@ -949,7 +1002,7 @@ Json::Value Server::TxBlockListing(unsigned int page)
             cacheSize = m_TxBlockCache.second.size();
         }
 
-        boost::multiprecision::uint256_t size = m_TxBlockCache.second.size();
+        uint64_t size = m_TxBlockCache.second.size();
 
         for (unsigned int i = offset; i < PAGE_SIZE + offset && i < cacheSize;
              i++)
@@ -963,8 +1016,8 @@ Json::Value Server::TxBlockListing(unsigned int page)
     else
     {
 
-        for (boost::multiprecision::uint256_t i = offset;
-             i < PAGE_SIZE + offset && i <= currBlockNum; i++)
+        for (uint64_t i = offset; i < PAGE_SIZE + offset && i <= currBlockNum;
+             i++)
         {
             tmpJson.clear();
             tmpJson["Hash"]
@@ -1006,16 +1059,15 @@ Json::Value Server::GetRecentTransactions()
 
     lock_guard<mutex> g(m_mutexRecentTxns);
     Json::Value _json;
-    boost::multiprecision::uint256_t actualSize(
-        m_RecentTransactions.capacity());
+    uint64_t actualSize(m_RecentTransactions.capacity());
     if (actualSize > m_RecentTransactions.size())
     {
         actualSize = m_RecentTransactions.size();
     }
-    boost::multiprecision::uint256_t size = m_RecentTransactions.size();
+    uint64_t size = m_RecentTransactions.size();
     _json["number"] = int(actualSize);
     _json["TxnHashes"] = Json::Value(Json::arrayValue);
-    for (boost::multiprecision::uint256_t i = 0; i < actualSize; i++)
+    for (uint64_t i = 0; i < actualSize; i++)
     {
         _json["TxnHashes"].append(m_RecentTransactions[size - i - 1]);
     }
@@ -1035,7 +1087,8 @@ Json::Value Server::GetShardingStructure()
     try
     {
         Json::Value _json;
-        vector<map<PubKey, Peer>> shards = m_mediator.m_lookup->GetShardPeers();
+        vector<vector<pair<PubKey, Peer>>> shards
+            = m_mediator.m_lookup->GetShardPeers();
         unsigned int num_shards = shards.size();
 
         if (num_shards == 0)
@@ -1141,5 +1194,3 @@ string Server::GetNumTxnsDSEpoch()
         return "0";
     }
 }
-
-#endif //IS_LOOKUP_NODE

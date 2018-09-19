@@ -23,6 +23,10 @@
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/SysCommand.h"
 
+using namespace std;
+using namespace dev;
+using namespace boost::multiprecision;
+
 AccountStore::AccountStore()
 {
     m_accountStoreTemp = make_unique<AccountStoreTemp>(*this);
@@ -95,7 +99,7 @@ int AccountStore::Deserialize(const vector<unsigned char>& src,
             UpdateStateTrie(address, account);
             // MoveUpdatesToDisk();
         }
-        PrintAccountState();
+        // PrintAccountState();
     }
     catch (const std::exception& e)
     {
@@ -188,17 +192,20 @@ int AccountStore::DeserializeDelta(const vector<unsigned char>& src,
 
             // Deserialize accountDelta
             Account* oriAccount = GetAccount(address);
+            bool fullCopy = false;
             if (oriAccount == nullptr)
             {
                 Account acc(0, 0);
                 // LOG_GENERAL(INFO, "Creating new account: " << address);
                 AddAccount(address, acc);
+                oriAccount = GetAccount(address);
+                fullCopy = true;
             }
 
             // LOG_GENERAL(INFO, "Diff account: " << address);
-            oriAccount = GetAccount(address);
             account = *oriAccount;
-            if (Account::DeserializeDelta(src, curOffset, account) < 0)
+            if (Account::DeserializeDelta(src, curOffset, account, fullCopy)
+                < 0)
             {
                 LOG_GENERAL(
                     WARNING,
@@ -218,6 +225,13 @@ int AccountStore::DeserializeDelta(const vector<unsigned char>& src,
         return -1;
     }
     return 0;
+}
+
+int AccountStore::DeserializeDeltaTemp(const vector<unsigned char>& src,
+                                       unsigned int offset)
+{
+    lock_guard<mutex> g(m_mutexDelta);
+    return m_accountStoreTemp->DeserializeDelta(src, offset);
 }
 
 void AccountStore::MoveRootToDisk(const h256& root)
@@ -303,13 +317,17 @@ bool AccountStore::RetrieveFromDisk()
 }
 
 bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
-                                      const Transaction& transaction)
+                                      const unsigned int& numShards,
+                                      const bool& isDS,
+                                      const Transaction& transaction,
+                                      TransactionReceipt& receipt)
 {
     // LOG_MARKER();
 
     lock_guard<mutex> g(m_mutexDelta);
 
-    return m_accountStoreTemp->UpdateAccounts(blockNum, transaction);
+    return m_accountStoreTemp->UpdateAccounts(blockNum, numShards, isDS,
+                                              transaction, receipt);
 }
 
 bool AccountStore::UpdateCoinbaseTemp(const Address& rewardee,
@@ -328,16 +346,29 @@ bool AccountStore::UpdateCoinbaseTemp(const Address& rewardee,
     //Should the nonce increase ??
 }
 
+boost::multiprecision::uint256_t
+AccountStore::GetNonceTemp(const Address& address)
+{
+    if (m_accountStoreTemp->GetAddressToAccount()->find(address)
+        != m_accountStoreTemp->GetAddressToAccount()->end())
+    {
+        return m_accountStoreTemp->GetNonce(address);
+    }
+    else
+    {
+        return this->GetNonce(address);
+    }
+}
+
 StateHash AccountStore::GetStateDeltaHash()
 {
-    vector<unsigned char> vec;
-    GetSerializedDelta(vec);
+    lock_guard<mutex> g(m_mutexDelta);
 
     bool isEmpty = true;
 
-    for (unsigned int i = 0; i < vec.size(); i++)
+    for (unsigned char i : m_stateDeltaSerialized)
     {
-        if (vec[i] != 0)
+        if (i != 0)
         {
             isEmpty = false;
             break;
@@ -350,7 +381,7 @@ StateHash AccountStore::GetStateDeltaHash()
     }
 
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-    sha2.Update(vec);
+    sha2.Update(m_stateDeltaSerialized);
     return StateHash(sha2.Finalize());
 }
 
@@ -358,13 +389,7 @@ void AccountStore::CommitTemp()
 {
     LOG_MARKER();
 
-    // LOG_GENERAL(INFO, "Before CommitTemp");
-
-    // LOG_PAYLOAD(INFO, "m_stateDeltaSerialized: ", m_stateDeltaSerialized, 2000);
     DeserializeDelta(m_stateDeltaSerialized, 0);
-
-    // LOG_GENERAL(INFO, "After CommitTemp");
-    InitTemp();
 }
 
 void AccountStore::InitTemp()
@@ -374,4 +399,5 @@ void AccountStore::InitTemp()
     lock_guard<mutex> g(m_mutexDelta);
 
     m_accountStoreTemp->Init();
+    m_stateDeltaSerialized.clear();
 }

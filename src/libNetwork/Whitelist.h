@@ -18,6 +18,9 @@
 * as member of DS committee.
 **/
 
+#ifndef __WHITELIST_H__
+#define __WHITELIST_H__
+
 #include <boost/multiprecision/cpp_int.hpp>
 #include <mutex>
 #include <unordered_map>
@@ -71,3 +74,5 @@ public:
     //Intialize
     void Init();
 };
+
+#endif // __WHITELIST_H__

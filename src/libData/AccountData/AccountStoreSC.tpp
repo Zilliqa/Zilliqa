@@ -23,12 +23,12 @@
 
 template<class MAP> AccountStoreSC<MAP>::AccountStoreSC()
 {
-    m_accountStoreAtomic = make_unique<AccountStoreAtomic<MAP>>(*this);
+    m_accountStoreAtomic = std::make_unique<AccountStoreAtomic<MAP>>(*this);
 }
 
 template<class MAP> void AccountStoreSC<MAP>::Init()
 {
-    lock_guard<mutex> g(m_mutexUpdateAccounts);
+    std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
     AccountStoreBase<MAP>::Init();
     m_curContractAddr.clear();
     m_curSenderAddr.clear();
@@ -40,22 +40,26 @@ template<class MAP> void AccountStoreSC<MAP>::Init()
 
 template<class MAP>
 bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
-                                         const Transaction& transaction)
+                                         const unsigned int& numShards,
+                                         const bool& isDS,
+                                         const Transaction& transaction,
+                                         TransactionReceipt& receipt)
 {
     // LOG_MARKER();
+    m_curIsDS = isDS;
 
-    lock_guard<mutex> g(m_mutexUpdateAccounts);
+    std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
 
     const PubKey& senderPubKey = transaction.GetSenderPubKey();
     const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
     Address toAddr = transaction.GetToAddr();
 
-    const uint256_t& amount = transaction.GetAmount();
+    const boost::multiprecision::uint256_t& amount = transaction.GetAmount();
 
     // FIXME: Possible integer overflow here
-    uint256_t gasDeposit;
-    if (!SafeMath::mul(transaction.GetGasLimit(), transaction.GetGasPrice(),
-                       gasDeposit))
+    boost::multiprecision::uint256_t gasDeposit;
+    if (!SafeMath<boost::multiprecision::uint256_t>::mul(
+            transaction.GetGasLimit(), transaction.GetGasPrice(), gasDeposit))
     {
         return false;
     }
@@ -76,12 +80,13 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             }
         }
 
-        return AccountStoreBase<MAP>::UpdateAccounts(transaction);
+        return AccountStoreBase<MAP>::UpdateAccounts(transaction, receipt);
     }
 
     bool callContract = false;
 
-    if (transaction.GetData().size() > 0 && toAddr != NullAddress)
+    if (transaction.GetData().size() > 0 && toAddr != NullAddress
+        && transaction.GetCode().empty())
     {
         callContract = true;
     }
@@ -101,8 +106,15 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         // return false;
     }
 
-    if (transaction.GetCode().size() > 0 && toAddr == NullAddress)
+    if (transaction.GetCode().size() > 0)
     {
+        if (toAddr != NullAddress)
+        {
+            LOG_GENERAL(WARNING,
+                        "txn has non-empty code but with valid toAddr");
+            return false;
+        }
+
         LOG_GENERAL(INFO, "Create Contract");
 
         if (transaction.GetGasLimit() < CONTRACT_CREATE_GAS)
@@ -167,7 +179,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         {
             ret = false;
         }
-        uint256_t gasRefund;
+        boost::multiprecision::uint256_t gasRefund;
         if (!AccountStoreBase<MAP>::CalculateGasRefund(
                 gasDeposit, CONTRACT_CREATE_GAS, transaction.GetGasPrice(),
                 gasRefund))
@@ -179,17 +191,31 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         if (!ret)
         {
             this->m_addressToAccount->erase(toAddr);
+
+            receipt.SetResult(false);
+            receipt.SetCumGas(CONTRACT_CREATE_GAS);
+            receipt.update();
+
             return true; // Return true because the states already changed
         }
     }
 
-    if (!callContract && validToTransferBalance)
+    if (!callContract)
     {
-        if (!this->TransferBalance(fromAddr, toAddr, amount))
+        if (validToTransferBalance)
         {
-            this->IncreaseNonce(fromAddr);
-            return false;
+            if (!this->TransferBalance(fromAddr, toAddr, amount))
+            {
+                this->IncreaseNonce(fromAddr);
+                receipt.SetResult(false);
+                receipt.SetCumGas(CONTRACT_CREATE_GAS);
+                receipt.update();
+
+                return true;
+            }
         }
+
+        receipt.SetCumGas(CONTRACT_CREATE_GAS);
     }
     else
     {
@@ -249,6 +275,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
         m_curContractAddr = toAddr;
         m_curAmount = amount;
+        m_curNumShards = numShards;
+        m_curTranReceipt.clear();
 
         // if (!TransferBalanceAtomic(fromAddr, toAddr, amount))
         // {
@@ -273,20 +301,27 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             CommitTransferBalanceAtomic();
         }
 
-        uint256_t gasRefund;
+        boost::multiprecision::uint256_t gasRefund;
         if (!AccountStoreBase<MAP>::CalculateGasRefund(
                 gasDeposit, m_curGasCum, m_curGasPrice, gasRefund))
         {
             return false;
         }
         this->IncreaseBalance(fromAddr, gasRefund);
+        receipt = m_curTranReceipt;
+        receipt.SetCumGas(m_curGasCum);
         if (!ret)
         {
+            receipt.SetResult(false);
+            receipt.update();
             return true; // Return true because the states already changed
         }
     }
 
     this->IncreaseNonce(fromAddr);
+
+    receipt.SetResult(true);
+    receipt.update();
 
     return true;
 }
@@ -299,7 +334,7 @@ AccountStoreSC<MAP>::GetBlockStateJson(const uint64_t& BlockNum) const
     Json::Value blockItem;
     blockItem["vname"] = "BLOCKNUMBER";
     blockItem["type"] = "BNum";
-    blockItem["value"] = to_string(BlockNum);
+    blockItem["value"] = std::to_string(BlockNum);
     root.append(blockItem);
 
     return root;
@@ -371,16 +406,17 @@ bool AccountStoreSC<MAP>::ExportCallContractFiles(
     ExportContractFiles(contract);
 
     // Message Json
-    string dataStr(transaction.GetData().begin(), transaction.GetData().end());
+    std::string dataStr(transaction.GetData().begin(),
+                        transaction.GetData().end());
     Json::Value msgObj;
     if (!JSONUtils::convertStrtoJson(dataStr, msgObj))
     {
         return false;
     }
-    string prepend = "0x";
+    std::string prepend = "0x";
     msgObj["_sender"] = prepend
         + Account::GetAddressFromPublicKey(transaction.GetSenderPubKey()).hex();
-    msgObj["_amount"] = transaction.GetAmount().convert_to<string>();
+    msgObj["_amount"] = transaction.GetAmount().convert_to<std::string>();
 
     JSONUtils::writeJsontoFile(INPUT_MESSAGE_JSON, msgObj);
 
@@ -398,18 +434,18 @@ void AccountStoreSC<MAP>::ExportCallContractFiles(
     JSONUtils::writeJsontoFile(INPUT_MESSAGE_JSON, contractData);
 }
 
-template<class MAP> string AccountStoreSC<MAP>::GetCreateContractCmdStr()
+template<class MAP> std::string AccountStoreSC<MAP>::GetCreateContractCmdStr()
 {
-    string ret = SCILLA_BINARY + " -init " + INIT_JSON + " -iblockchain "
+    std::string ret = SCILLA_BINARY + " -init " + INIT_JSON + " -iblockchain "
         + INPUT_BLOCKCHAIN_JSON + " -o " + OUTPUT_JSON + " -i " + INPUT_CODE
         + " -libdir " + SCILLA_LIB;
     LOG_GENERAL(INFO, ret);
     return ret;
 }
 
-template<class MAP> string AccountStoreSC<MAP>::GetCallContractCmdStr()
+template<class MAP> std::string AccountStoreSC<MAP>::GetCallContractCmdStr()
 {
-    string ret = SCILLA_BINARY + " -init " + INIT_JSON + " -istate "
+    std::string ret = SCILLA_BINARY + " -init " + INIT_JSON + " -istate "
         + INPUT_STATE_JSON + " -iblockchain " + INPUT_BLOCKCHAIN_JSON
         + " -imessage " + INPUT_MESSAGE_JSON + " -o " + OUTPUT_JSON + " -i "
         + INPUT_CODE + " -libdir " + SCILLA_LIB;
@@ -421,7 +457,7 @@ template<class MAP> bool AccountStoreSC<MAP>::ParseCreateContractOutput()
 {
     // LOG_MARKER();
 
-    ifstream in(OUTPUT_JSON, ios::binary);
+    std::ifstream in(OUTPUT_JSON, std::ios::binary);
 
     if (!in.is_open())
     {
@@ -429,12 +465,13 @@ template<class MAP> bool AccountStoreSC<MAP>::ParseCreateContractOutput()
                     "Error opening output file or no output file generated");
         return false;
     }
-    string outStr{istreambuf_iterator<char>(in), istreambuf_iterator<char>()};
-    LOG_GENERAL(INFO, "Output: " << endl << outStr);
+    std::string outStr{std::istreambuf_iterator<char>(in),
+                       std::istreambuf_iterator<char>()};
+    LOG_GENERAL(INFO, "Output: " << std::endl << outStr);
     Json::CharReaderBuilder builder;
     std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
     Json::Value root;
-    string errors;
+    std::string errors;
     if (reader->parse(outStr.c_str(), outStr.c_str() + outStr.size(), &root,
                       &errors))
     {
@@ -476,7 +513,7 @@ template<class MAP> bool AccountStoreSC<MAP>::ParseCallContractOutput()
 {
     // LOG_MARKER();
 
-    ifstream in(OUTPUT_JSON, ios::binary);
+    std::ifstream in(OUTPUT_JSON, std::ios::binary);
 
     if (!in.is_open())
     {
@@ -484,12 +521,13 @@ template<class MAP> bool AccountStoreSC<MAP>::ParseCallContractOutput()
                     "Error opening output file or no output file generated");
         return false;
     }
-    string outStr{istreambuf_iterator<char>(in), istreambuf_iterator<char>()};
-    LOG_GENERAL(INFO, "Output: " << endl << outStr);
+    std::string outStr{std::istreambuf_iterator<char>(in),
+                       std::istreambuf_iterator<char>()};
+    LOG_GENERAL(INFO, "Output: " << std::endl << outStr);
     Json::CharReaderBuilder builder;
     std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
     Json::Value root;
-    string errors;
+    std::string errors;
     if (reader->parse(outStr.c_str(), outStr.c_str() + outStr.size(), &root,
                       &errors))
     {
@@ -508,7 +546,8 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json)
 {
     // LOG_MARKER();
 
-    if (!_json.isMember("message") || !_json.isMember("states"))
+    if (!_json.isMember("message") || !_json.isMember("states")
+        || !_json.isMember("events"))
     {
         LOG_GENERAL(WARNING, "The json output of this contract is corrupted");
         return false;
@@ -541,7 +580,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json)
         LOG_GENERAL(WARNING, "Contract refuse amount transfer");
     }
 
-    for (auto s : _json["states"])
+    for (const auto& s : _json["states"])
     {
         if (!s.isMember("vname") || !s.isMember("type") || !s.isMember("value"))
         {
@@ -551,15 +590,27 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json)
                             << ", The json output of states is corrupted");
             continue;
         }
-        string vname = s["vname"].asString();
-        string type = s["type"].asString();
-        string value = JSONUtils::convertJsontoStr(s["value"]);
+        std::string vname = s["vname"].asString();
+        std::string type = s["type"].asString();
+        std::string value = s["value"].isString()
+            ? s["value"].asString()
+            : JSONUtils::convertJsontoStr(s["value"]);
 
         Account* contractAccount = this->GetAccount(m_curContractAddr);
         if (vname != "_balance")
         {
             contractAccount->SetStorage(vname, type, value);
         }
+    }
+
+    for (const auto& e : _json["events"])
+    {
+        LogEntry entry;
+        if (!entry.Install(e, m_curContractAddr))
+        {
+            return false;
+        }
+        m_curTranReceipt.AddEntry(entry);
     }
 
     Address recipient = Address(_json["message"]["_recipient"].asString());
@@ -591,6 +642,17 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json)
     }
 
     LOG_GENERAL(INFO, "Call another contract");
+
+    // check whether the recipient contract is in the same shard with the current contract
+    if (!m_curIsDS
+        && Transaction::GetShardIndex(m_curContractAddr, m_curNumShards)
+            != Transaction::GetShardIndex(recipient, m_curNumShards))
+    {
+        LOG_GENERAL(WARNING,
+                    "another contract doesn't belong to the same shard with "
+                    "current contract");
+        return false;
+    }
 
     Json::Value input_message;
     input_message["_sender"] = "0x" + m_curContractAddr.hex();
@@ -636,9 +698,9 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json)
 }
 
 template<class MAP>
-bool AccountStoreSC<MAP>::TransferBalanceAtomic(const Address& from,
-                                                const Address& to,
-                                                const uint256_t& delta)
+bool AccountStoreSC<MAP>::TransferBalanceAtomic(
+    const Address& from, const Address& to,
+    const boost::multiprecision::uint256_t& delta)
 {
     // LOG_MARKER();
     return m_accountStoreAtomic->TransferBalance(from, to, delta);
@@ -656,7 +718,7 @@ template<class MAP> void AccountStoreSC<MAP>::CommitTransferBalanceAtomic()
         }
         else
         {
-            // this->m_addressToAccount.insert(make_pair(entry.first, entry.second));
+            // this->m_addressToAccount.emplace(std::make_pair(entry.first, entry.second));
             this->AddAccount(entry.first, entry.second);
         }
     }
@@ -668,14 +730,16 @@ template<class MAP> void AccountStoreSC<MAP>::DiscardTransferBalanceAtomic()
     m_accountStoreAtomic->Init();
 }
 
-template<class MAP> uint256_t AccountStoreSC<MAP>::CalculateGas()
+template<class MAP>
+boost::multiprecision::uint256_t AccountStoreSC<MAP>::CalculateGas()
 {
     // TODO: return gas based on calculation of customed situations
-    return uint256_t(CONTRACT_INVOKE_GAS);
+    return boost::multiprecision::uint256_t(CONTRACT_INVOKE_GAS);
 }
 
 template<class MAP>
-bool AccountStoreSC<MAP>::CheckGasExceededLimit(const uint256_t& gas)
+bool AccountStoreSC<MAP>::CheckGasExceededLimit(
+    const boost::multiprecision::uint256_t& gas)
 {
     return m_curGasCum + gas > m_curGasLimit;
 }

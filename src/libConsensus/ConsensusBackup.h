@@ -30,6 +30,13 @@
 #include "libNetwork/PeerStore.h"
 #include "libUtils/TimeLockedFunction.h"
 
+typedef std::function<bool(
+    const std::vector<unsigned char>& input, unsigned int offset,
+    std::vector<unsigned char>& errorMsg, const uint32_t consensusID,
+    const std::vector<unsigned char>& blockHash, const uint16_t leaderID,
+    const PubKey& leaderKey, std::vector<unsigned char>& messageToCosign)>
+    MsgContentValidatorFunc;
+
 /// Implements the functionality for the consensus committee backup.
 class ConsensusBackup : public ConsensusCommon
 {
@@ -65,11 +72,13 @@ private:
 
     bool ProcessMessageAnnounce(const std::vector<unsigned char>& announcement,
                                 unsigned int offset);
-    bool GenerateCommitFailureMessage(vector<unsigned char>& commitFailure,
-                                      unsigned int offset,
-                                      const vector<unsigned char>& errorMsg);
+    bool
+    GenerateCommitFailureMessage(std::vector<unsigned char>& commitFailure,
+                                 unsigned int offset,
+                                 const std::vector<unsigned char>& errorMsg);
     bool ProcessMessageConsensusFailure(
-        const vector<unsigned char>& consensusFailure, unsigned int offset);
+        [[gnu::unused]] const std::vector<unsigned char>& announcement,
+        [[gnu::unused]] unsigned int offset);
     bool GenerateCommitMessage(std::vector<unsigned char>& commit,
                                unsigned int offset);
     bool ProcessMessageChallengeCore(
@@ -119,6 +128,10 @@ public:
     /// Function to process any consensus message received.
     bool ProcessMessage(const std::vector<unsigned char>& message,
                         unsigned int offset, const Peer& from);
+
+private:
+    static std::map<Action, std::string> ActionStrings;
+    std::string GetActionString(Action action) const;
 };
 
 #endif // __CONSENSUSBACKUP_H__

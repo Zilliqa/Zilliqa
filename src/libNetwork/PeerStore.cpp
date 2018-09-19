@@ -68,9 +68,9 @@ vector<Peer> PeerStore::GetAllPeers() const
     vector<Peer> result;
 
     lock_guard<mutex> g(m_mutexStore);
-    for (auto it = m_store.begin(); it != m_store.end(); it++)
+    for (const auto& it : m_store)
     {
-        result.push_back(it->second);
+        result.emplace_back(it.second);
     }
 
     return result;
@@ -81,9 +81,9 @@ vector<PubKey> PeerStore::GetAllKeys() const
     vector<PubKey> result;
 
     lock_guard<mutex> g(m_mutexStore);
-    for (auto it = m_store.begin(); it != m_store.end(); it++)
+    for (const auto& it : m_store)
     {
-        result.push_back(it->first);
+        result.emplace_back(it.first);
     }
 
     return result;

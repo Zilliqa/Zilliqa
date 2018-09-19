@@ -41,6 +41,20 @@ include_directories(${OPENSSL_INCLUDE_DIR})
 
 find_package(LevelDB REQUIRED)
 
+if(OPENCL_MINE)
+    find_package(OpenCL REQUIRED)
+    add_definitions(-DOPENCL_MINE)
+endif()
+
+if(CUDA_MINE)
+    find_package(CUDA REQUIRED)
+    add_definitions(-DCUDA_MINE)
+endif()
+
+include(FindProtobuf)
+find_package(Protobuf REQUIRED)
+include_directories(${PROTOBUF_INCLUDE_DIR})
+
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
@@ -54,22 +68,32 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# compiler and linker options
+# pack related variables
+set(CPACK_GENERATOR "DEB")
+set(CPACK_PACKAGE_VERSION $ENV{ZIL_VER})
+set(CPACK_PACKAGE_NAME $ENV{ZIL_PACK_NAME})
+set(CPACK_DEBIAN_PACKAGE_NAME "zilliqa")
+set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "libboost-system-dev, libboost-filesystem-dev, libboost-test-dev, libssl-dev, libleveldb-dev, libjsoncpp-dev, libsnappy-dev, cmake, libmicrohttpd-dev, libjsonrpccpp-dev, build-essential, pkg-config, libevent-dev, libminiupnpc-dev, libprotobuf-dev, protobuf-compiler")
+set(CPACK_PACKAGE_CONTACT "maintainers@zilliqa.com")
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Members of maintainers@zilliqa.com")
 
-if(IS_LOOKUP_NODE)
-    add_definitions(-DIS_LOOKUP_NODE)
-endif(IS_LOOKUP_NODE)
+# compiler and linker options
 
 add_compile_options(-Wall)
 add_compile_options(-Werror)
-# add_compile_options(-Wextra) #TODO: enable it
+add_compile_options(-Wextra)
 
 if (ENABLE_COVERAGE AND CMAKE_COMPILER_IS_GNUCXX)
+    if (NOT TESTS)
+        message(FATAL_ERROR "TESTS is not ON")
+    endif()
     include(CodeCoverage)
     add_compile_options(--coverage)
     link_libraries(--coverage)
     add_custom_target(ctest COMMAND ${CMAKE_CTEST_COMMAND})
-    setup_target_for_coverage(${PROJECT_NAME}_coverage ctest coverage)
+    # TODO: remove the hardcoded number in -j option
+    setup_target_for_coverage(${PROJECT_NAME}_coverage ctest coverage "-j2;--output-on-failure")
 endif()
 
 add_subdirectory (src)
@@ -80,11 +104,19 @@ if(TESTS)
 endif()
 
 # installation
-set_target_properties(zilliqa sendcmd sendtxn genkeypair
+set_target_properties(zilliqa sendcmd sendtxn genkeypair gentxn signmultisig
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 set_target_properties(Common Trie ethash NAT
     PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+
+if(OPENCL_MINE)
+    set_target_properties(ethash-cl PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+endif()
+
+if(CUDA_MINE)
+    set_target_properties(ethash-cuda PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+endif()
 
 install(
     DIRECTORY ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib
@@ -94,3 +126,5 @@ install(
 
 # add clang-format and clang-tidy targets lastly
 include(LLVMExtraTools)
+
+include(CPack)

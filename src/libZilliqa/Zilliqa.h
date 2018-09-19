@@ -28,10 +28,9 @@
 #include "libNetwork/PeerManager.h"
 #include "libNetwork/PeerStore.h"
 #include "libNode/Node.h"
+#include "libUtils/ThreadPool.h"
 
-#ifdef IS_LOOKUP_NODE
 #include "libServer/Server.h"
-#endif
 
 /// Main Zilliqa class.
 class Zilliqa
@@ -40,17 +39,18 @@ class Zilliqa
     Mediator m_mediator;
     DirectoryService m_ds;
     Lookup m_lookup;
-    shared_ptr<ValidatorBase> m_validator;
+    std::shared_ptr<ValidatorBase> m_validator;
     Node m_n;
-    ConsensusUser
-        m_cu; // Note: This is just a test class to demo Consensus usage
-
-#ifdef IS_LOOKUP_NODE
+    //ConsensusUser m_cu; // Note: This is just a test class to demo Consensus usage
+    boost::lockfree::queue<std::pair<std::vector<unsigned char>, Peer>*>
+        m_msgQueue;
 
     jsonrpc::HttpServer m_httpserver;
     Server m_server;
 
-#endif //IS_LOOK_UP_NODE
+    ThreadPool m_queuePool{MAXMESSAGE, "QueuePool"};
+
+    void ProcessMessage(std::pair<std::vector<unsigned char>, Peer>* message);
 
 public:
     /// Constructor.
@@ -65,7 +65,7 @@ public:
                          const Peer& peer);
 
     /// Forwards an incoming message for processing by the appropriate subclass.
-    void Dispatch(const std::vector<unsigned char>& message, const Peer& from);
+    void Dispatch(std::pair<std::vector<unsigned char>, Peer>* message);
 
     /// Returns a list of broadcast peers based on the specified message and instruction types.
     std::vector<Peer> RetrieveBroadcastList(unsigned char msg_type,

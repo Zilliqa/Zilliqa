@@ -26,6 +26,7 @@
 #include <vector>
 
 #include "common/Constants.h"
+#include "depends/common/Miner.h"
 #include "depends/libethash/ethash.h"
 #include "depends/libethash/internal.h"
 #include "libCrypto/Schnorr.h"
@@ -67,8 +68,7 @@ public:
 
     /// Triggers the proof-of-work mining.
     ethash_mining_result_t
-    PoWMine(const boost::multiprecision::uint256_t& blockNum,
-            uint8_t difficulty,
+    PoWMine(uint64_t blockNum, uint8_t difficulty,
             const std::array<unsigned char, UINT256_SIZE>& rand1,
             const std::array<unsigned char, UINT256_SIZE>& rand2,
             const boost::multiprecision::uint128_t& ipAddr,
@@ -78,19 +78,31 @@ public:
     void StopMining();
 
     /// Verifies a proof-of-work submission.
-    bool PoWVerify(const boost::multiprecision::uint256_t& blockNum,
-                   uint8_t difficulty,
+    bool PoWVerify(uint64_t blockNum, uint8_t difficulty,
                    const std::array<unsigned char, UINT256_SIZE>& rand1,
                    const std::array<unsigned char, UINT256_SIZE>& rand2,
                    const boost::multiprecision::uint128_t& ipAddr,
                    const PubKey& pubKey, bool fullDataset,
                    uint64_t winning_nonce, std::string& winning_result,
                    std::string& winning_mixhash);
+    std::vector<unsigned char>
+    ConcatAndhash(const std::array<unsigned char, UINT256_SIZE>& rand1,
+                  const std::array<unsigned char, UINT256_SIZE>& rand2,
+                  const boost::multiprecision::uint128_t& ipAddr,
+                  const PubKey& pubKey);
+    ethash_return_value_t LightHash(uint64_t blockNum,
+                                    ethash_h256_t const& header_hash,
+                                    uint64_t nonce);
+    bool CheckSolnAgainstsTargetedDifficulty(const ethash_h256_t& result,
+                                             uint8_t difficulty);
+    bool CheckSolnAgainstsTargetedDifficulty(const std::string& result,
+                                             uint8_t difficulty);
 
 private:
     ethash_light_t ethash_light_client;
     uint64_t currentBlockNum;
-    bool shouldMine;
+    std::atomic<bool> m_shouldMine;
+    std::unique_ptr<dev::eth::Miner> m_miner;
 
     ethash_light_t EthashLightNew(uint64_t block_number);
     ethash_light_t EthashLightReuse(ethash_light_t ethashLight,
@@ -100,7 +112,7 @@ private:
                                              ethash_h256_t const& header_hash,
                                              uint64_t nonce);
     ethash_full_t EthashFullNew(ethash_light_t& light,
-                                ethash_callback_t& callback);
+                                ethash_callback_t& CallBack);
     void EthashFullDelete(ethash_full_t& full);
     ethash_return_value_t EthashFullCompute(ethash_full_t& full,
                                             ethash_h256_t const& header_hash,
@@ -111,18 +123,16 @@ private:
     ethash_mining_result_t MineFull(ethash_full_t& full,
                                     ethash_h256_t const& header_hash,
                                     ethash_h256_t& difficulty);
-    std::vector<unsigned char>
-    ConcatAndhash(const std::array<unsigned char, UINT256_SIZE>& rand1,
-                  const std::array<unsigned char, UINT256_SIZE>& rand2,
-                  const boost::multiprecision::uint128_t& ipAddr,
-                  const PubKey& pubKey);
+    ethash_mining_result_t MineFullGPU(uint64_t blockNum,
+                                       ethash_h256_t const& header_hash,
+                                       uint8_t difficulty);
     bool VerifyLight(ethash_light_t& light, ethash_h256_t const& header_hash,
                      uint64_t winning_nonce, ethash_h256_t& difficulty,
-                     ethash_h256_t& winning_result,
-                     ethash_h256_t& winning_mixhash);
+                     ethash_h256_t& result, ethash_h256_t& mixhash);
     bool VerifyFull(ethash_full_t& full, ethash_h256_t const& header_hash,
                     uint64_t winning_nonce, ethash_h256_t& difficulty,
-                    ethash_h256_t& winning_result,
-                    ethash_h256_t& winning_mixhash);
+                    ethash_h256_t& result, ethash_h256_t& mixhash);
+    void InitOpenCL();
+    void InitCUDA();
 };
 #endif // __POW_H__

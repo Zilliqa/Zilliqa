@@ -1,0 +1,325 @@
+syntax = "proto2";
+
+package ZilliqaMessage;
+
+// ============================================================================
+// Primitives
+// ============================================================================
+
+message ByteArray
+{
+    required bytes data = 1;
+}
+
+message ShardingStructure
+{
+    message Member
+    {
+        required ByteArray pubkey   = 1;
+        required ByteArray peerinfo = 2;
+    }
+    message Shard
+    {
+        repeated Member members     = 1;
+    }
+    repeated Shard shards           = 1;
+}
+
+message TxSharingAssignments
+{
+    message AssignedNodes
+    {
+        repeated ByteArray receivers  = 1;
+        repeated ByteArray senders    = 2;
+    }
+    repeated ByteArray dsnodes        = 1;
+    repeated AssignedNodes shardnodes = 2;
+}
+
+// ============================================================================
+// Directory Service messages
+// ============================================================================
+
+message DSPoWSubmission
+{
+    message Data
+    {
+        required uint64 blocknumber        = 1;
+        required uint32 difficultylevel    = 2; // only LSB used
+        required ByteArray submitterpeer   = 3;
+        required ByteArray submitterpubKey = 4;
+        required uint64 nonce              = 5;
+        required string resultinghash      = 6;
+        required string mixhash            = 7;
+    }
+    required Data data                     = 1;
+    required ByteArray signature           = 2;
+}
+
+message DSDSBlockAnnouncement
+{
+    required ByteArray dsblock                = 1;
+    required ByteArray powwinnerpeer          = 2;
+    required ShardingStructure sharding       = 3;
+    required TxSharingAssignments assignments = 4;
+}
+
+message DSFinalBlockAnnouncement
+{
+    required ByteArray txblock = 1;
+}
+
+message DSVCBlockAnnouncement
+{
+    required ByteArray vcblock = 1;
+}
+
+// ============================================================================
+// Node messages
+// ============================================================================
+
+message NodeDSBlock
+{
+    required uint32 shardid                   = 1;
+    required ByteArray dsblock                = 2;
+    required ByteArray powwinnerpeer          = 3;
+    required ShardingStructure sharding       = 4;
+    required TxSharingAssignments assignments = 5;
+}
+
+message NodeFinalBlock
+{
+    required uint32 shardid       = 1;
+    required uint64 dsblocknumber = 2;
+    required uint32 consensusid   = 3;
+    required ByteArray txblock    = 4;
+    required bytes statedelta     = 5;
+}
+
+message NodeMicroBlockAnnouncement
+{
+    required ByteArray microblock = 1;
+}
+
+// ============================================================================
+// Lookup messages
+// ============================================================================
+
+message LookupGetSeedPeers
+{
+    required uint32 listenport = 1;
+}
+
+message LookupSetSeedPeers
+{
+    repeated ByteArray candidateseeds = 1;
+}
+
+message LookupGetDSInfoFromSeed
+{
+    required uint32 listenport = 1;
+}
+
+message LookupSetDSInfoFromSeed
+{
+    message DSNode
+    {
+        required ByteArray pubkey = 1;
+        required ByteArray peer   = 2;
+    }
+    repeated DSNode dsnodes       = 1;
+}
+
+message LookupGetDSBlockFromSeed
+{
+    required uint64 lowblocknum  = 1;
+    required uint64 highblocknum = 2;
+    required uint32 listenport   = 3;
+}
+
+message LookupSetDSBlockFromSeed
+{
+    message DSBlock
+    {
+        required ByteArray dsblock = 1;
+    }
+    required uint64 lowblocknum    = 1;
+    required uint64 highblocknum   = 2;
+    repeated DSBlock dsblocks      = 3;
+}
+
+message LookupGetTxBlockFromSeed
+{
+    required uint64 lowblocknum  = 1;
+    required uint64 highblocknum = 2;
+    required uint32 listenport   = 3;
+}
+
+message LookupSetTxBlockFromSeed
+{
+    message TxBlock
+    {
+        required ByteArray txblock = 1;
+    }
+    required uint64 lowblocknum    = 1;
+    required uint64 highblocknum   = 2;
+    repeated TxBlock txblocks      = 3;
+}
+
+message LookupGetTxBodyFromSeed
+{
+    required bytes txhash      = 1;
+    required uint32 listenport = 2;
+}
+
+message LookupSetTxBodyFromSeed
+{
+    required bytes txhash     = 1;
+    required ByteArray txbody = 2;
+}
+
+message LookupGetNetworkIDFromSeed
+{
+    // Unused
+}
+
+message LookupSetNetworkIDFromSeed
+{
+    required string networkid = 1;
+}
+
+message LookupGetStateFromSeed
+{
+    required uint32 listenport = 1;
+}
+
+message LookupSetStateFromSeed
+{
+    required ByteArray accounts = 1;
+}
+
+message LookupSetLookupOffline
+{
+    required uint32 listenport = 1;
+}
+
+message LookupSetLookupOnline
+{
+    required uint32 listenport = 1;
+}
+
+message LookupGetOfflineLookups
+{
+    required uint32 listenport = 1;
+}
+
+message LookupSetOfflineLookups
+{
+    repeated ByteArray nodes = 1;
+}
+
+message LookupRaiseStartPoW
+{
+    // Empty
+}
+
+message LookupGetStartPoWFromSeed
+{
+    required uint32 listenport = 1;
+}
+
+message LookupSetStartPoWFromSeed
+{
+    // Empty
+}
+
+// ============================================================================
+// Consensus messages
+// ============================================================================
+
+message ConsensusAnnouncement
+{
+    message ConsensusInfo
+    {
+        required uint32 consensusid           = 1;
+        required bytes blockhash              = 2; // 32 bytes
+        required uint32 leaderid              = 3; // only lower 2 bytes used    
+    }
+    required ConsensusInfo consensusinfo      = 1;
+    oneof announcement
+    {
+        DSDSBlockAnnouncement dsblock         = 2;
+        NodeMicroBlockAnnouncement microblock = 3;
+        DSFinalBlockAnnouncement finalblock   = 4;
+        DSVCBlockAnnouncement vcblock         = 5;
+    }
+    required ByteArray signature              = 6;
+}
+
+message ConsensusCommit
+{
+    message ConsensusInfo
+    {
+        required uint32 consensusid      = 1;
+        required bytes blockhash         = 2; // 32 bytes
+        required uint32 backupid         = 3; // only lower 2 bytes used
+        required ByteArray commit        = 4;
+    }
+    required ConsensusInfo consensusinfo = 1;
+    required ByteArray signature         = 2;
+}
+
+message ConsensusChallenge
+{
+    message ConsensusInfo
+    {
+        required uint32 consensusid         = 1;
+        required bytes blockhash            = 2; // 32 bytes
+        required uint32 leaderid            = 3; // only lower 2 bytes used
+        required ByteArray aggregatedcommit = 4;
+        required ByteArray aggregatedkey    = 5;
+        required ByteArray challenge        = 6;
+    }
+    required ConsensusInfo consensusinfo    = 1;
+    required ByteArray signature            = 2;
+}
+
+message ConsensusResponse
+{
+    message ConsensusInfo
+    {
+        required uint32 consensusid      = 1;
+        required bytes blockhash         = 2; // 32 bytes
+        required uint32 backupid         = 3; // only lower 2 bytes used
+        required ByteArray response      = 4;
+    }
+    required ConsensusInfo consensusinfo = 1;
+    required ByteArray signature         = 2;
+}
+
+message ConsensusCollectiveSig
+{
+    message ConsensusInfo
+    {
+        required uint32 consensusid      = 1;
+        required bytes blockhash         = 2; // 32 bytes
+        required uint32 leaderid         = 3; // only lower 2 bytes used
+        required ByteArray collectivesig = 4;
+        repeated bool bitmap             = 5 [packed=true];
+    }
+    required ConsensusInfo consensusinfo = 1;
+    required ByteArray signature         = 2;
+}
+
+message ConsensusCommitFailure
+{
+    message ConsensusInfo
+    {
+        required uint32 consensusid      = 1;
+        required bytes blockhash         = 2; // 32 bytes
+        required uint32 backupid         = 3; // only lower 2 bytes used
+        required bytes errormsg          = 4;
+    }
+    required ConsensusInfo consensusinfo = 1;
+    required ByteArray signature         = 2;
+}

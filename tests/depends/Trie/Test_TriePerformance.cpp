@@ -23,10 +23,13 @@
 #include <boost/test/unit_test.hpp>
 
 #include "depends/common/RLP.h"
-#include "depends/libDatabase/MemoryDB.h"
-#include "depends/libTrie/TrieDB.h"
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#include "depends/libDatabase/MemoryDB.h"
 #include "depends/libDatabase/OverlayDB.h"
+#include "depends/libTrie/TrieDB.h"
+#pragma GCC diagnostic pop
 #include "libData/AccountData/Address.h"
 #include "libUtils/Logger.h"
 #include <time.h>

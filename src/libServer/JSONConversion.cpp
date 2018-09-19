@@ -23,6 +23,7 @@
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Address.h"
 #include "libData/AccountData/Transaction.h"
+#include "libData/AccountData/TransactionReceipt.h"
 #include "libData/BlockData/Block.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
@@ -95,7 +96,7 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock)
     ret_head["GasUsed"] = txheader.GetGasUsed().str();
 
     ret_head["prevBlockHash"] = txheader.GetPrevHash().hex();
-    ret_head["BlockNum"] = txheader.GetBlockNum().str();
+    ret_head["BlockNum"] = to_string(txheader.GetBlockNum());
     ret_head["Timestamp"] = txheader.GetTimestamp().str();
 
     ret_head["TxnHash"] = txheader.GetTxRootHash().hex();
@@ -104,7 +105,7 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock)
     ret_head["NumMicroBlocks"] = txheader.GetNumMicroBlockHashes();
 
     ret_head["MinerPubKey"] = static_cast<string>(txheader.GetMinerPubKey());
-    ret_head["DSBlockNum"] = txheader.GetDSBlockNum().str();
+    ret_head["DSBlockNum"] = to_string(txheader.GetDSBlockNum());
 
     ret_body["HeaderSign"]
         = DataConversion::SerializableToHexStr(txblock.GetCS2());
@@ -137,7 +138,7 @@ const Json::Value JSONConversion::convertDSblocktoJson(const DSBlock& dsblock)
     ret_header["nonce"] = dshead.GetNonce().str();
     ret_header["minerPubKey"] = static_cast<string>(dshead.GetMinerPubKey());
     ret_header["leaderPubKey"] = static_cast<string>(dshead.GetLeaderPubKey());
-    ret_header["blockNum"] = dshead.GetBlockNum().str();
+    ret_header["blockNum"] = to_string(dshead.GetBlockNum());
     ret_header["timestamp"] = dshead.GetTimestamp().str();
 
     ret["header"] = ret_header;
@@ -188,7 +189,7 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json)
     return tx1;
 }
 
-const bool JSONConversion::checkJsonTx(const Json::Value& _json)
+bool JSONConversion::checkJsonTx(const Json::Value& _json)
 {
     bool ret = true;
 
@@ -250,17 +251,21 @@ const bool JSONConversion::checkJsonTx(const Json::Value& _json)
     return ret;
 }
 
-const Json::Value JSONConversion::convertTxtoJson(const Transaction& tx)
+const Json::Value
+JSONConversion::convertTxtoJson(const TransactionWithReceipt& twr)
 {
     Json::Value _json;
 
-    _json["ID"] = tx.GetTranID().hex();
-    _json["version"] = tx.GetVersion().str();
-    _json["nonce"] = tx.GetNonce().str();
-    _json["toAddr"] = tx.GetToAddr().hex();
-    _json["senderPubKey"] = static_cast<string>(tx.GetSenderPubKey());
-    _json["amount"] = tx.GetAmount().str();
-    _json["signature"] = static_cast<string>(tx.GetSignature());
+    _json["ID"] = twr.GetTransaction().GetTranID().hex();
+    _json["version"] = twr.GetTransaction().GetVersion().str();
+    _json["nonce"] = twr.GetTransaction().GetNonce().str();
+    _json["toAddr"] = twr.GetTransaction().GetToAddr().hex();
+    _json["senderPubKey"]
+        = static_cast<string>(twr.GetTransaction().GetSenderPubKey());
+    _json["amount"] = twr.GetTransaction().GetAmount().str();
+    _json["signature"]
+        = static_cast<string>(twr.GetTransaction().GetSignature());
+    _json["receipt"] = twr.GetTransactionReceipt().GetJsonValue();
 
     return _json;
 }

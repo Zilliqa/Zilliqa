@@ -26,6 +26,14 @@ using namespace boost::multiprecision;
 unsigned int MicroBlock::Serialize(vector<unsigned char>& dst,
                                    unsigned int offset) const
 {
+    if (m_header.GetNumTxs() != m_tranHashes.size())
+    {
+        LOG_GENERAL(WARNING,
+                    "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
+                                         << __FUNCTION__ << ")");
+        return 0;
+    }
+
     unsigned int size_core = SerializeCore(dst, offset);
 
     offset += size_core;
@@ -73,7 +81,7 @@ int MicroBlock::Deserialize(const vector<unsigned char>& src,
                  src.begin() + curOffset + TRAN_HASH_SIZE,
                  tranHash.asArray().begin());
             curOffset += TRAN_HASH_SIZE;
-            m_tranHashes.push_back(tranHash);
+            m_tranHashes.emplace_back(tranHash);
         }
 
         if (m_header.GetNumTxs() != m_tranHashes.size())
@@ -106,14 +114,6 @@ unsigned int MicroBlock::GetSerializedTxnHashesSize() const
 unsigned int MicroBlock::SerializeCore(vector<unsigned char>& dst,
                                        unsigned int offset) const
 {
-    if (m_header.GetNumTxs() != m_tranHashes.size())
-    {
-        LOG_GENERAL(WARNING,
-                    "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
-                                         << __FUNCTION__ << ")");
-        return 0;
-    }
-
     unsigned int size_needed = GetSerializedCoreSize();
 
     unsigned int size_remaining = dst.size() - offset;

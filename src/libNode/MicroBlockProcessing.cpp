@@ -32,7 +32,9 @@
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
+#include "libData/AccountData/TransactionReceipt.h"
 #include "libMediator/Mediator.h"
+#include "libMessage/Messenger.h"
 #include "libPOW/pow.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
@@ -46,90 +48,147 @@
 
 using namespace std;
 using namespace boost::multiprecision;
+using namespace boost::multi_index;
 
-#ifndef IS_LOOKUP_NODE
 void Node::SubmitMicroblockToDSCommittee() const
 {
-    // Message = [32-byte DS blocknum] [4-byte consensusid] [4-byte shard ID] [Tx microblock]
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::SubmitMicroblockToDSCommittee not expected to be "
+                    "called from LookUp node.");
+        return;
+    }
+
+    // Message = [8-byte DS blocknum] [4-byte consensusid] [4-byte shard ID] [Tx microblock]
+    if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
+    {
+        return;
+    }
+
+    // Message = [8-byte Tx blocknum] [Tx microblock core] [State Delta]
     vector<unsigned char> microblock
         = {MessageType::DIRECTORY, DSInstructionType::MICROBLOCKSUBMISSION};
     unsigned int cur_offset = MessageOffset::BODY;
 
-    // 32-byte DS blocknum
-    uint256_t DSBlockNum = m_mediator.m_dsBlockChain.GetBlockCount() - 1;
-    Serializable::SetNumber<uint256_t>(microblock, cur_offset, DSBlockNum,
-                                       UINT256_SIZE);
-    cur_offset += UINT256_SIZE;
+    microblock.push_back(
+        m_mediator.m_ds->SUBMITMICROBLOCKTYPE::SHARDMICROBLOCK);
+    cur_offset += MessageOffset::INST;
 
-    // 4-byte consensusid
-    Serializable::SetNumber<uint32_t>(microblock, cur_offset, m_consensusID,
-                                      sizeof(uint32_t));
-    cur_offset += sizeof(uint32_t);
-
-    // // 4-byte shard ID
-    // Serializable::SetNumber<uint32_t>(microblock, cur_offset, m_myShardID,
-    //                                   sizeof(uint32_t));
-    // cur_offset += sizeof(uint32_t);
+    // 8-byte tx blocknum
+    uint64_t txBlockNum
+        = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+    Serializable::SetNumber<uint64_t>(microblock, cur_offset, txBlockNum,
+                                      sizeof(uint64_t));
+    cur_offset += sizeof(uint64_t);
 
     // Tx microblock
     m_microblock->SerializeCore(microblock, cur_offset);
+    cur_offset += m_microblock->GetSerializedCoreSize();
+
+    // Append State Delta
+    AccountStore::GetInstance().GetSerializedDelta(microblock);
 
     LOG_STATE("[MICRO][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
                          << "][" << m_mediator.m_currentEpochNum << "] SENT");
     deque<Peer> peerList;
 
-    for (auto const& i : m_mediator.m_DSCommittee)
+    for (auto const& i : *m_mediator.m_DSCommittee)
     {
         peerList.push_back(i.second);
     }
 
     P2PComm::GetInstance().SendBroadcastMessage(peerList, microblock);
 }
-#endif // IS_LOOKUP_NODE
 
 bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
                                       unsigned int offset, const Peer& from)
 {
-#ifndef IS_LOOKUP_NODE
     LOG_MARKER();
 
+    if (LOOKUP_NODE_MODE)
     {
-        lock_guard<mutex> g(m_mutexConsensus);
+        LOG_GENERAL(WARNING,
+                    "Node::ProcessMicroblockConsensus not expected to be "
+                    "called from LookUp node.");
+        return true;
+    }
 
-        // Consensus messages must be processed in correct sequence as they come in
-        // It is possible for ANNOUNCE to arrive before correct DS state
-        // In that case, state transition will occurs and ANNOUNCE will be processed.
+    uint32_t consensus_id = 0;
 
-        if ((m_state == TX_SUBMISSION) || (m_state == TX_SUBMISSION_BUFFER)
-            || (m_state == MICROBLOCK_CONSENSUS_PREP))
+    if (!m_consensusObject->GetConsensusID(message, offset, consensus_id))
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "GetConsensusID failed.");
+        return false;
+    }
+
+    if (m_state != MICROBLOCK_CONSENSUS)
+    {
+        lock_guard<mutex> h(m_mutexMicroBlockConsensusBuffer);
+
+        m_microBlockConsensusBuffer[consensus_id].push_back(
+            make_pair(from, message));
+
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Process micro block arrived earlier, saved to buffer");
+    }
+    else
+    {
+        if (consensus_id < m_consensusID)
+        {
+            LOG_GENERAL(WARNING,
+                        "Consensus ID in message ("
+                            << consensus_id << ") is smaller than current ("
+                            << m_consensusID << ")");
+            return false;
+        }
+        else if (consensus_id > m_consensusID)
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Received microblock announcement from shard leader. I "
-                      "will move on to consensus");
-            cv_microblockConsensus.notify_all();
+                      "Buffer micro block with larger consensus ID ("
+                          << consensus_id << "), current (" << m_consensusID
+                          << ")");
 
-            std::unique_lock<std::mutex> cv_lk(
-                m_MutexCVMicroblockConsensusObject);
+            lock_guard<mutex> h(m_mutexMicroBlockConsensusBuffer);
 
-            if (cv_microblockConsensusObject.wait_for(
-                    cv_lk, std::chrono::seconds(CONSENSUS_OBJECT_TIMEOUT),
-                    [this] { return (m_state == MICROBLOCK_CONSENSUS); }))
-            {
-                // condition passed without timeout
-            }
-            else
-            {
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "Time out while waiting for state transition and "
-                          "consensus object creation ");
-            }
-
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "State transition is completed and consensus object "
-                      "creation.");
+            m_microBlockConsensusBuffer[consensus_id].push_back(
+                make_pair(from, message));
+        }
+        else
+        {
+            return ProcessMicroblockConsensusCore(message, offset, from);
         }
     }
+
+    return true;
+}
+
+void Node::CommitMicroBlockConsensusBuffer()
+{
+    lock_guard<mutex> g(m_mutexMicroBlockConsensusBuffer);
+
+    for (const auto& i : m_microBlockConsensusBuffer[m_consensusID])
+    {
+        auto runconsensus = [this, i]() {
+            ProcessMicroblockConsensusCore(i.second, MessageOffset::BODY,
+                                           i.first);
+        };
+        DetachedFunction(1, runconsensus);
+    }
+}
+
+void Node::CleanMicroblockConsensusBuffer()
+{
+    lock_guard<mutex> g(m_mutexMicroBlockConsensusBuffer);
+    m_microBlockConsensusBuffer.clear();
+}
+
+bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
+                                          unsigned int offset, const Peer& from)
+{
+    LOG_MARKER();
 
     if (!CheckState(PROCESS_MICROBLOCKCONSENSUS))
     {
@@ -139,7 +198,6 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
     }
 
     // Consensus message must be processed in order. The following will block till it is the right order.
-
     std::unique_lock<mutex> cv_lk(m_mutexProcessConsensusMessage);
     if (cv_processConsensusMessage.wait_for(
             cv_lk, std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW),
@@ -176,39 +234,38 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
 
     lock_guard<mutex> g(m_mutexConsensus);
 
-    bool result = m_consensusObject->ProcessMessage(message, offset, from);
+    if (!m_consensusObject->ProcessMessage(message, offset, from))
+    {
+        return false;
+    }
 
     ConsensusCommon::State state = m_consensusObject->GetState();
 
     if (state == ConsensusCommon::State::DONE)
     {
-        if (m_isPrimary == true)
+        // Update the micro block with the co-signatures from the consensus
+        m_microblock->SetCoSignatures(*m_consensusObject);
+
+        if (m_isPrimary)
         {
             LOG_STATE("[MICON]["
                       << std::setw(15) << std::left
                       << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
                       << m_mediator.m_currentEpochNum << "] DONE");
 
-            // Update the micro block with the co-signatures from the consensus
-            m_microblock->SetCoSignatures(*m_consensusObject);
-
             // Multicast micro block to all DS nodes
             SubmitMicroblockToDSCommittee();
         }
 
-        if (m_isMBSender == true)
+        if (m_isMBSender)
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Designated as Microblock sender");
 
-            // Update the micro block with the co-signature from the consensus
-            m_microblock->SetCoSignatures(*m_consensusObject);
-
             // Multicast micro block to all DS nodes
             SubmitMicroblockToDSCommittee();
         }
 
-        SetState(WAITING_FINALBLOCK);
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Micro block consensus "
                       << "is DONE!!! (Epoch " << m_mediator.m_currentEpochNum
@@ -216,8 +273,31 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
         m_lastMicroBlockCoSig.first = m_mediator.m_currentEpochNum;
         m_lastMicroBlockCoSig.second.SetCoSignatures(*m_consensusObject);
 
-        lock_guard<mutex> cv_lk(m_MutexCVFBWaitMB);
-        cv_FBWaitMB.notify_all();
+        SetState(WAITING_FINALBLOCK);
+
+        if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE)
+        {
+            lock_guard<mutex> cv_lk(m_MutexCVFBWaitMB);
+            cv_FBWaitMB.notify_all();
+        }
+        else
+        {
+            m_mediator.m_ds->m_stateDeltaFromShards.clear();
+            AccountStore::GetInstance().SerializeDelta();
+            AccountStore::GetInstance().GetSerializedDelta(
+                m_mediator.m_ds->m_stateDeltaFromShards);
+            m_mediator.m_ds->SaveCoinbase(
+                m_microblock->GetB1(), m_microblock->GetB2(),
+                m_microblock->GetHeader().GetShardID());
+            m_mediator.m_ds->cv_scheduleFinalBlockConsensus.notify_all();
+            {
+                lock_guard<mutex> g(m_mediator.m_ds->m_mutexMicroBlocks);
+                m_mediator.m_ds->m_microBlocks[m_mediator.m_currentEpochNum]
+                    .emplace(*m_microblock);
+            }
+            m_mediator.m_ds->m_toSendTxnToLookup = true;
+            m_mediator.m_ds->RunConsensusOnFinalBlock();
+        }
     }
     else if (state == ConsensusCommon::State::ERROR)
     {
@@ -277,10 +357,24 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
                     "ConsensusCommon::State::ERROR here, but we move on.");
 
         SetState(WAITING_FINALBLOCK); // Move on to next Epoch.
+        if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE)
+        {
+            LOG_EPOCH(
+                INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "If I received a new Finalblock from DS committee. I will "
+                "still process it");
 
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "If I received a new Finalblock from DS committee. I will "
-                  "still process it");
+            lock_guard<mutex> cv_lk(m_MutexCVFBWaitMB);
+            cv_FBWaitMB.notify_all();
+        }
+        else
+        {
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "DS Microblock failed, discard changes on microblock and "
+                      "proceed to finalblock consensus");
+            m_mediator.m_ds->cv_scheduleFinalBlockConsensus.notify_all();
+            m_mediator.m_ds->RunConsensusOnFinalBlock(true);
+        }
     }
     else
     {
@@ -289,16 +383,18 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
 
         cv_processConsensusMessage.notify_all();
     }
-
-    return result;
-#else // IS_LOOKUP_NODE
     return true;
-#endif // IS_LOOKUP_NODE
 }
 
-#ifndef IS_LOOKUP_NODE
 bool Node::ComposeMicroBlock()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::ComposeMicroBlock not expected to be called from "
+                    "LookUp node.");
+        return true;
+    }
     // To-do: Replace dummy values with the required ones
     LOG_MARKER();
 
@@ -306,16 +402,17 @@ bool Node::ComposeMicroBlock()
     uint8_t type = TXBLOCKTYPE::MICRO;
     uint32_t version = BLOCKVERSION::VERSION1;
     uint32_t shardID = m_myShardID;
-    uint256_t gasLimit = 100;
+    uint256_t gasLimit = MICROBLOCK_GAS_LIMIT;
     uint256_t gasUsed = 1;
     BlockHash prevHash;
     fill(prevHash.asArray().begin(), prevHash.asArray().end(), 0x77);
-    uint256_t blockNum = (uint256_t)m_mediator.m_currentEpochNum;
+    uint64_t blockNum = m_mediator.m_currentEpochNum;
     uint256_t timestamp = get_time_as_int();
-    TxnHash txRootHash;
+    TxnHash txRootHash, txReceiptHash;
     uint32_t numTxs = 0;
     const PubKey& minerPubKey = m_mediator.m_selfKey.second;
-    uint256_t dsBlockNum = (uint256_t)m_mediator.m_currentEpochNum;
+    uint64_t dsBlockNum
+        = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
     BlockHash dsBlockHeader;
     fill(dsBlockHeader.asArray().begin(), dsBlockHeader.asArray().end(), 0x11);
     StateHash stateDeltaHash = AccountStore::GetInstance().GetStateDeltaHash();
@@ -323,34 +420,31 @@ bool Node::ComposeMicroBlock()
     // TxBlock
     vector<TxnHash> tranHashes;
 
-    unsigned int index = 0;
+    //unsigned int index = 0;
     {
-        lock(m_mutexReceivedTransactions, m_mutexSubmittedTransactions);
-        lock_guard<mutex> g(m_mutexReceivedTransactions, adopt_lock);
-        lock_guard<mutex> g2(m_mutexSubmittedTransactions, adopt_lock);
 
-        auto& receivedTransactions = m_receivedTransactions[blockNum];
-        auto& submittedTransactions = m_submittedTransactions[blockNum];
+        lock_guard<mutex> g(m_mutexProcessedTransactions);
 
-        txRootHash = ComputeTransactionsRoot(receivedTransactions,
-                                             submittedTransactions);
+        auto& processedTransactions = m_processedTransactions[blockNum];
 
-        numTxs = receivedTransactions.size() + submittedTransactions.size();
-        tranHashes.resize(numTxs);
-        for (const auto& tx : receivedTransactions)
+        txRootHash = ComputeTransactionsRoot(m_TxnOrder);
+
+        numTxs = processedTransactions.size();
+        if (numTxs != m_TxnOrder.size())
         {
-            const auto& txid = tx.first.asArray();
-            copy(txid.begin(), txid.end(),
-                 tranHashes.at(index).asArray().begin());
-            index++;
+            LOG_GENERAL(FATAL,
+                        "Num txns and Order size not same "
+                            << " numTxs " << numTxs << " m_TxnOrder "
+                            << m_TxnOrder.size());
         }
+        tranHashes = m_TxnOrder;
+        m_TxnOrder.clear();
 
-        for (const auto& tx : submittedTransactions)
+        if (!TransactionWithReceipt::ComputeTransactionReceiptsHash(
+                tranHashes, processedTransactions, txReceiptHash))
         {
-            const auto& txid = tx.first.asArray();
-            copy(txid.begin(), txid.end(),
-                 tranHashes.at(index).asArray().begin());
-            index++;
+            LOG_GENERAL(WARNING, "Cannot compute transaction receipts hash");
+            return false;
         }
     }
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -358,7 +452,8 @@ bool Node::ComposeMicroBlock()
     m_microblock.reset(new MicroBlock(
         MicroBlockHeader(type, version, shardID, gasLimit, gasUsed, prevHash,
                          blockNum, timestamp, txRootHash, numTxs, minerPubKey,
-                         dsBlockNum, dsBlockHeader, stateDeltaHash),
+                         dsBlockNum, dsBlockHeader, stateDeltaHash,
+                         txReceiptHash),
         tranHashes, CoSignatures()));
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -371,11 +466,21 @@ bool Node::ComposeMicroBlock()
 }
 
 bool Node::OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
-                             unsigned int offset, const Peer& from)
+                             const Peer& from)
 {
     LOG_MARKER();
 
-    if (errorMsg.size() < 2 * sizeof(uint32_t) + offset)
+    unsigned int offset = 0;
+
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::OnNodeMissingTxns not expected to be called from "
+                    "LookUp node.");
+        return true;
+    }
+
+    if (errorMsg.size() < sizeof(uint32_t) + sizeof(uint64_t) + offset)
     {
         LOG_GENERAL(WARNING, "Malformed Message");
         return false;
@@ -399,7 +504,7 @@ bool Node::OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
              txnHash.asArray().begin());
         offset += TRAN_HASH_SIZE;
 
-        missingTransactions.push_back(txnHash);
+        missingTransactions.emplace_back(txnHash);
     }
 
     uint32_t portNo
@@ -408,12 +513,9 @@ bool Node::OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
     uint128_t ipAddr = from.m_ipAddress;
     Peer peer(ipAddr, portNo);
 
-    lock(m_mutexReceivedTransactions, m_mutexSubmittedTransactions);
-    lock_guard<mutex> g(m_mutexReceivedTransactions, adopt_lock);
-    lock_guard<mutex> g2(m_mutexSubmittedTransactions, adopt_lock);
+    lock_guard<mutex> g(m_mutexProcessedTransactions);
 
-    auto& receivedTransactions = m_receivedTransactions[blockNum];
-    auto& submittedTransactions = m_submittedTransactions[blockNum];
+    auto& processedTransactions = m_processedTransactions[blockNum];
 
     unsigned int cur_offset = 0;
     vector<unsigned char> tx_message
@@ -430,15 +532,11 @@ bool Node::OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
         // LOG_GENERAL(INFO, "Peer " << from << " : " << portNo << " missing txn " << missingTransactions[i])
 
         Transaction t;
-        if (submittedTransactions.find(missingTransactions[i])
-            != submittedTransactions.end())
+
+        if (processedTransactions.find(missingTransactions[i])
+            != processedTransactions.end())
         {
-            t = submittedTransactions[missingTransactions[i]];
-        }
-        else if (receivedTransactions.find(missingTransactions[i])
-                 != receivedTransactions.end())
-        {
-            t = receivedTransactions[missingTransactions[i]];
+            t = processedTransactions[missingTransactions[i]].GetTransaction();
         }
         else
         {
@@ -457,9 +555,18 @@ bool Node::OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
     return true;
 }
 
-bool Node::OnCommitFailure(
-    const std::map<unsigned int, std::vector<unsigned char>>& commitFailureMap)
+bool Node::OnCommitFailure([
+    [gnu::unused]] const std::map<unsigned int, std::vector<unsigned char>>&
+                               commitFailureMap)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::OnCommitFailure not expected to be called from "
+                    "LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     // for(auto failureEntry: commitFailureMap)
@@ -483,19 +590,440 @@ bool Node::OnCommitFailure(
     return true;
 }
 
+void Node::ProcessTransactionWhenShardLeader()
+{
+    LOG_MARKER();
+
+    lock_guard<mutex> g(m_mutexCreatedTransactions);
+
+    unsigned int txn_sent_count = 0;
+
+    auto findOneFromAddrNonceTxnMap = [this](Transaction& t) -> bool {
+        for (auto it = m_addrNonceTxnMap.begin(); it != m_addrNonceTxnMap.end();
+             it++)
+        {
+            if (it->second.begin()->first
+                == AccountStore::GetInstance().GetNonceTemp(it->first) + 1)
+            {
+                t = std::move(it->second.begin()->second);
+                it->second.erase(it->second.begin());
+
+                if (it->second.empty())
+                {
+                    m_addrNonceTxnMap.erase(it);
+                }
+                return true;
+            }
+        }
+        return false;
+    };
+
+    auto findSameNonceButHigherGasPrice = [this](Transaction& t) -> void {
+        auto& compIdx
+            = m_createdTransactions.get<MULTI_INDEX_KEY::PUBKEY_NONCE>();
+        auto it = compIdx.find(make_tuple(t.GetSenderPubKey(), t.GetNonce()));
+        if (it != compIdx.end())
+        {
+            if (it->GetGasPrice() > t.GetGasPrice())
+            {
+                t = std::move(*it);
+                compIdx.erase(it);
+            }
+        }
+    };
+
+    auto findOneFromCreated = [this](Transaction& t) -> bool {
+        auto& listIdx = m_createdTransactions.get<MULTI_INDEX_KEY::GAS_PRICE>();
+
+        //LOG_GENERAL(INFO, "Size List Idx " << listIdx.size());
+        if (listIdx.size() == 0)
+        {
+            return false;
+        }
+
+        auto it = listIdx.begin();
+        t = std::move(*it);
+        listIdx.erase(it);
+        return true;
+    };
+
+    auto appendOne
+        = [this](const Transaction& t, const TransactionReceipt& tr) {
+              // LOG_GENERAL(INFO, "appendOne: " << t.GetTranID().hex());
+              lock_guard<mutex> g(m_mutexProcessedTransactions);
+              auto& processedTransactions
+                  = m_processedTransactions[m_mediator.m_currentEpochNum];
+              processedTransactions.insert(
+                  make_pair(t.GetTranID(), TransactionWithReceipt(t, tr)));
+              m_TxnOrder.push_back(t.GetTranID());
+          };
+
+    uint256_t gasUsedTotal = 0;
+
+    while (txn_sent_count < MAXSUBMITTXNPERNODE * m_myShardMembers->size()
+           && gasUsedTotal < MICROBLOCK_GAS_LIMIT)
+    {
+        Transaction t;
+        TransactionReceipt tr;
+
+        // check m_addrNonceTxnMap contains any txn meets right nonce,
+        // if contains, process it withou increment the txn_sent_count as it's already
+        // incremented when inserting
+        if (findOneFromAddrNonceTxnMap(t))
+        {
+            // check whether m_createdTransaction have transaction with same Addr and nonce
+            // if has and with larger gasPrice then replace with that one. (*optional step)
+            findSameNonceButHigherGasPrice(t);
+
+            if (m_mediator.m_validator->CheckCreatedTransaction(t, tr)
+                || (!t.GetCode().empty() && t.GetToAddr() == NullAddress)
+                || (!t.GetData().empty() && t.GetToAddr() != NullAddress
+                    && t.GetCode().empty()))
+            {
+                appendOne(t, tr);
+                gasUsedTotal += tr.GetCumGas();
+                continue;
+            }
+        }
+        // if no txn in u_map meet right nonce process new come-in transactions
+        else if (findOneFromCreated(t))
+        {
+            // LOG_GENERAL(INFO, "findOneFromCreated");
+
+            Address senderAddr = t.GetSenderAddr();
+            // check nonce, if nonce larger than expected, put it into m_addrNonceTxnMap
+            if (t.GetNonce()
+                > AccountStore::GetInstance().GetNonceTemp(senderAddr) + 1)
+            {
+                // LOG_GENERAL(INFO,
+                //             "High nonce: "
+                //                 << t.GetNonce() << " cur sender nonce: "
+                //                 << AccountStore::GetInstance().GetNonceTemp(
+                //                        senderAddr));
+                auto it1 = m_addrNonceTxnMap.find(senderAddr);
+                if (it1 != m_addrNonceTxnMap.end())
+                {
+                    auto it2 = it1->second.find(t.GetNonce());
+                    if (it2 != it1->second.end())
+                    {
+                        // found the txn with same addr and same nonce
+                        // then compare the gasprice and remains the higher one
+                        if (t.GetGasPrice() > it2->second.GetGasPrice())
+                        {
+                            it2->second = t;
+                        }
+                        txn_sent_count++;
+                        continue;
+                    }
+                }
+                m_addrNonceTxnMap[senderAddr].insert({t.GetNonce(), t});
+            }
+            // if nonce too small, ignore it
+            else if (t.GetNonce()
+                     < AccountStore::GetInstance().GetNonceTemp(senderAddr) + 1)
+            {
+                // LOG_GENERAL(INFO,
+                //             "Nonce too small"
+                //                 << " Expected "
+                //                 << AccountStore::GetInstance().GetNonceTemp(
+                //                        senderAddr)
+                //                 << " Found " << t.GetNonce());
+            }
+            // if nonce correct, process it
+            else if (m_mediator.m_validator->CheckCreatedTransaction(t, tr)
+                     || (!t.GetCode().empty() && t.GetToAddr() == NullAddress)
+                     || (!t.GetData().empty() && t.GetToAddr() != NullAddress
+                         && t.GetCode().empty()))
+            {
+
+                appendOne(t, tr);
+                gasUsedTotal += tr.GetCumGas();
+            }
+            else
+            {
+                // LOG_GENERAL(WARNING, "CheckCreatedTransaction failed");
+            }
+        }
+        else
+        {
+            break;
+        }
+        txn_sent_count++;
+    }
+}
+
+bool Node::ProcessTransactionWhenShardBackup(const vector<TxnHash>& tranHashes,
+                                             vector<TxnHash>& missingtranHashes)
+{
+    LOG_MARKER();
+
+    lock_guard<mutex> g(m_mutexCreatedTransactions);
+
+    auto findFromCreated = [this](const TxnHash& th) -> bool {
+        auto& hashIdx = m_createdTransactions.get<MULTI_INDEX_KEY::TXN_ID>();
+        if (!hashIdx.size())
+        {
+            return false;
+        }
+
+        auto it = hashIdx.find(th);
+
+        if (hashIdx.end() == it)
+        {
+            LOG_GENERAL(WARNING, "txn is not found");
+            return false;
+        }
+
+        return true;
+    };
+
+    for (const auto& tranHash : tranHashes)
+    {
+        if (!findFromCreated(tranHash))
+        {
+            missingtranHashes.emplace_back(tranHash);
+        }
+    }
+
+    if (!missingtranHashes.empty())
+    {
+        return true;
+    }
+
+    std::list<Transaction> curTxns;
+
+    if (!VerifyTxnsOrdering(tranHashes, curTxns))
+    {
+        return false;
+    }
+
+    auto appendOne
+        = [this](const Transaction& t, const TransactionReceipt& tr) {
+              lock_guard<mutex> g(m_mutexProcessedTransactions);
+              auto& processedTransactions
+                  = m_processedTransactions[m_mediator.m_currentEpochNum];
+              processedTransactions.insert(
+                  make_pair(t.GetTranID(), TransactionWithReceipt(t, tr)));
+          };
+
+    AccountStore::GetInstance().InitTemp();
+    if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
+    {
+        AccountStore::GetInstance().DeserializeDeltaTemp(
+            m_mediator.m_ds->m_stateDeltaWhenRunDSMB, 0);
+    }
+
+    for (const auto& t : curTxns)
+    {
+        TransactionReceipt tr;
+        if (m_mediator.m_validator->CheckCreatedTransaction(t, tr)
+            || (!t.GetCode().empty() && t.GetToAddr() == NullAddress)
+            || (!t.GetData().empty() && t.GetToAddr() != NullAddress
+                && t.GetCode().empty()))
+        {
+            appendOne(t, tr);
+        }
+    }
+
+    return true;
+}
+
+bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes,
+                              list<Transaction>& curTxns)
+{
+    LOG_MARKER();
+
+    std::unordered_map<Address,
+                       std::map<boost::multiprecision::uint256_t, Transaction>>
+        t_addrNonceTxnMap = m_addrNonceTxnMap;
+    gas_txnid_comp_txns t_createdTransactions = m_createdTransactions;
+    vector<TxnHash> t_tranHashes;
+    unsigned int txn_sent_count = 0;
+
+    auto findOneFromAddrNonceTxnMap
+        = [&t_addrNonceTxnMap](Transaction& t) -> bool {
+        for (auto it = t_addrNonceTxnMap.begin(); it != t_addrNonceTxnMap.end();
+             it++)
+        {
+            if (it->second.begin()->first
+                == AccountStore::GetInstance().GetNonceTemp(it->first) + 1)
+            {
+                t = std::move(it->second.begin()->second);
+                it->second.erase(it->second.begin());
+
+                if (it->second.empty())
+                {
+                    t_addrNonceTxnMap.erase(it);
+                }
+                return true;
+            }
+        }
+        return false;
+    };
+
+    auto findSameNonceButHigherGasPrice
+        = [&t_createdTransactions](Transaction& t) -> void {
+        auto& compIdx
+            = t_createdTransactions.get<MULTI_INDEX_KEY::PUBKEY_NONCE>();
+        auto it = compIdx.find(make_tuple(t.GetSenderPubKey(), t.GetNonce()));
+        if (it != compIdx.end())
+        {
+            if (it->GetGasPrice() > t.GetGasPrice())
+            {
+                t = std::move(*it);
+                compIdx.erase(it);
+            }
+        }
+    };
+
+    auto findOneFromCreated = [&t_createdTransactions](Transaction& t) -> bool {
+        auto& listIdx = t_createdTransactions.get<MULTI_INDEX_KEY::GAS_PRICE>();
+        if (!listIdx.size())
+        {
+            return false;
+        }
+
+        auto it = listIdx.begin();
+        t = std::move(*it);
+        listIdx.erase(it);
+        return true;
+    };
+
+    auto appendOne = [&t_tranHashes, &curTxns](const Transaction& t) {
+        t_tranHashes.emplace_back(t.GetTranID());
+        curTxns.emplace_back(t);
+    };
+
+    uint256_t gasUsedTotal = 0;
+
+    while (txn_sent_count < MAXSUBMITTXNPERNODE * m_myShardMembers->size()
+           && gasUsedTotal < MICROBLOCK_GAS_LIMIT)
+    {
+        Transaction t;
+        TransactionReceipt tr;
+
+        // check t_addrNonceTxnMap contains any txn meets right nonce,
+        // if contains, process it withou increment the txn_sent_count as it's already
+        // incremented when inserting
+        if (findOneFromAddrNonceTxnMap(t))
+        {
+            // check whether m_createdTransaction have transaction with same Addr and nonce
+            // if has and with larger gasPrice then replace with that one. (*optional step)
+            findSameNonceButHigherGasPrice(t);
+
+            if (m_mediator.m_validator->CheckCreatedTransaction(t, tr)
+                || (!t.GetCode().empty() && t.GetToAddr() == NullAddress)
+                || (!t.GetData().empty() && t.GetToAddr() != NullAddress
+                    && t.GetCode().empty()))
+            {
+                appendOne(t);
+                gasUsedTotal += tr.GetCumGas();
+                continue;
+            }
+        }
+        // if no txn in u_map meet right nonce process new come-in transactions
+        else if (findOneFromCreated(t))
+        {
+            Address senderAddr = t.GetSenderAddr();
+            // check nonce, if nonce larger than expected, put it into t_addrNonceTxnMap
+            if (t.GetNonce()
+                > AccountStore::GetInstance().GetNonceTemp(senderAddr) + 1)
+            {
+                auto it1 = t_addrNonceTxnMap.find(senderAddr);
+                if (it1 != t_addrNonceTxnMap.end())
+                {
+                    auto it2 = it1->second.find(t.GetNonce());
+                    if (it2 != it1->second.end())
+                    {
+                        // found the txn with same addr and same nonce
+                        // then compare the gasprice and remains the higher one
+                        if (t.GetGasPrice() > it2->second.GetGasPrice())
+                        {
+                            it2->second = t;
+                        }
+                        txn_sent_count++;
+                        continue;
+                    }
+                }
+                t_addrNonceTxnMap[senderAddr].insert({t.GetNonce(), t});
+            }
+            // if nonce too small, ignore it
+            else if (t.GetNonce()
+                     < AccountStore::GetInstance().GetNonceTemp(senderAddr) + 1)
+            {
+            }
+            // if nonce correct, process it
+            else if (m_mediator.m_validator->CheckCreatedTransaction(t, tr)
+                     || (!t.GetCode().empty() && t.GetToAddr() == NullAddress)
+                     || (!t.GetData().empty() && t.GetToAddr() != NullAddress
+                         && t.GetCode().empty()))
+            {
+                appendOne(t);
+                gasUsedTotal += tr.GetCumGas();
+            }
+        }
+        else
+        {
+            break;
+        }
+        txn_sent_count++;
+    }
+
+    if (t_tranHashes == tranHashes)
+    {
+        m_addrNonceTxnMap = std::move(t_addrNonceTxnMap);
+        m_createdTransactions = std::move(t_createdTransactions);
+        return true;
+    }
+
+    return false;
+}
+
 bool Node::RunConsensusOnMicroBlockWhenShardLeader()
 {
     LOG_MARKER();
 
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::RunConsensusOnMicroBlockWhenShardLeader not "
+                    "expected to be called from LookUp node.");
+        return true;
+    }
+
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "I am shard leader. Creating microblock for epoch"
+              "I am shard leader. Creating microblock for epoch "
                   << m_mediator.m_currentEpochNum);
 
-    // composed microblock stored in m_microblock
-    ComposeMicroBlock();
+    if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE)
+    {
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "going to sleep for " << TX_DISTRIBUTE_TIME_IN_MS
+                                        << " milliseconds");
+        std::this_thread::sleep_for(
+            chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS));
+    }
 
-    vector<unsigned char> microblock;
-    m_microblock->Serialize(microblock, 0);
+    bool isVacuousEpoch
+        = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
+    if (!isVacuousEpoch)
+    {
+        ProcessTransactionWhenShardLeader();
+    }
+    else
+    {
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Vacuous epoch: Skipping submit transactions");
+    }
+
+    AccountStore::GetInstance().SerializeDelta();
+
+    // composed microblock stored in m_microblock
+    if (!ComposeMicroBlock())
+    {
+        LOG_GENERAL(WARNING, "Unable to create microblock");
+        return false;
+    }
 
     //m_consensusID = 0;
     m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
@@ -506,34 +1034,23 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
                   << " m_consensusMyID: " << m_consensusMyID
                   << " m_consensusLeaderID: " << m_consensusLeaderID
                   << " Shard Leader: "
-                  << m_myShardMembersNetworkInfo[m_consensusLeaderID]);
+                  << (*m_myShardMembers)[m_consensusLeaderID].second);
 
-    auto nodeMissingTxnsFunc
-        = [this](const vector<unsigned char>& errorMsg, unsigned int offset,
-                 const Peer& from) mutable -> bool {
-        return OnNodeMissingTxns(errorMsg, offset, from);
+    auto nodeMissingTxnsFunc = [this](const vector<unsigned char>& errorMsg,
+                                      const Peer& from) mutable -> bool {
+        return OnNodeMissingTxns(errorMsg, from);
     };
 
     auto commitFailureFunc
         = [this](const map<unsigned int, vector<unsigned char>>& m) mutable
         -> bool { return OnCommitFailure(m); };
 
-    deque<pair<PubKey, Peer>> peerList;
-    auto it1 = m_myShardMembersPubKeys.begin();
-    auto it2 = m_myShardMembersNetworkInfo.begin();
-
-    while (it1 != m_myShardMembersPubKeys.end())
-    {
-        peerList.push_back(make_pair(*it1, *it2));
-        ++it1;
-        ++it2;
-    }
-
-    m_consensusObject.reset(new ConsensusLeader(
-        m_consensusID, m_consensusBlockHash, m_consensusMyID,
-        m_mediator.m_selfKey.first, peerList, static_cast<unsigned char>(NODE),
-        static_cast<unsigned char>(MICROBLOCKCONSENSUS), nodeMissingTxnsFunc,
-        commitFailureFunc));
+    m_consensusObject.reset(
+        new ConsensusLeader(m_consensusID, m_consensusBlockHash,
+                            m_consensusMyID, m_mediator.m_selfKey.first,
+                            *m_myShardMembers, static_cast<unsigned char>(NODE),
+                            static_cast<unsigned char>(MICROBLOCKCONSENSUS),
+                            nodeMissingTxnsFunc, commitFailureFunc));
 
     if (m_consensusObject == nullptr)
     {
@@ -548,7 +1065,19 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
 
     ConsensusLeader* cl
         = dynamic_cast<ConsensusLeader*>(m_consensusObject.get());
-    cl->StartConsensus(microblock, MicroBlockHeader::SIZE);
+
+    auto announcementGeneratorFunc =
+        [this](vector<unsigned char>& dst, unsigned int offset,
+               const uint32_t consensusID,
+               const vector<unsigned char>& blockHash, const uint16_t leaderID,
+               const pair<PrivKey, PubKey>& leaderKey,
+               vector<unsigned char>& messageToCosign) mutable -> bool {
+        return Messenger::SetNodeMicroBlockAnnouncement(
+            dst, offset, consensusID, blockHash, leaderID, leaderKey,
+            *m_microblock, messageToCosign);
+    };
+
+    cl->StartConsensus(announcementGeneratorFunc);
 
     return true;
 }
@@ -557,6 +1086,14 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup()
 {
     LOG_MARKER();
 
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::RunConsensusOnMicroBlockWhenShardBackup not "
+                    "expected to be called from LookUp node.");
+        return true;
+    }
+
     LOG_EPOCH(
         INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
         "I am a backup node. Waiting for microblock announcement for epoch "
@@ -564,9 +1101,16 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup()
     //m_consensusID = 0;
     m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
-    auto func = [this](const vector<unsigned char>& message,
-                       vector<unsigned char>& errorMsg) mutable -> bool {
-        return MicroBlockValidator(message, errorMsg);
+
+    auto func
+        = [this](const vector<unsigned char>& input, unsigned int offset,
+                 vector<unsigned char>& errorMsg, const uint32_t consensusID,
+                 const vector<unsigned char>& blockHash,
+                 const uint16_t leaderID, const PubKey& leaderKey,
+                 vector<unsigned char>& messageToCosign) mutable -> bool {
+        return MicroBlockValidator(input, offset, errorMsg, consensusID,
+                                   blockHash, leaderID, leaderKey,
+                                   messageToCosign);
     };
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -575,17 +1119,13 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup()
                   << " m_consensusMyID: " << m_consensusMyID
                   << " m_consensusLeaderID: " << m_consensusLeaderID
                   << " Shard Leader: "
-                  << m_myShardMembersNetworkInfo[m_consensusLeaderID]);
+                  << (*m_myShardMembers)[m_consensusLeaderID].second);
 
     deque<pair<PubKey, Peer>> peerList;
-    auto it1 = m_myShardMembersPubKeys.begin();
-    auto it2 = m_myShardMembersNetworkInfo.begin();
 
-    while (it1 != m_myShardMembersPubKeys.end())
+    for (auto& it : *m_myShardMembers)
     {
-        peerList.push_back(make_pair(*it1, *it2));
-        ++it1;
-        ++it2;
+        peerList.emplace_back(it);
     }
 
     m_consensusObject.reset(new ConsensusBackup(
@@ -606,23 +1146,37 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup()
 
 bool Node::RunConsensusOnMicroBlock()
 {
-    LOG_MARKER();
-
-    // set state first and then take writer lock so that SubmitTransactions
-    // if it takes reader lock later breaks out of loop
-
-    InitCoinbase();
-
-    SetState(MICROBLOCK_CONSENSUS_PREP);
-
-    AccountStore::GetInstance().SerializeDelta();
-
+    if (LOOKUP_NODE_MODE)
     {
-        lock_guard<mutex> g2(m_mutexNewRoundStarted);
-        m_newRoundStarted = false;
+        LOG_GENERAL(WARNING,
+                    "Node::RunConsensusOnMicroBlock not expected to be called "
+                    "from LookUp node.");
+        return true;
     }
 
-    if (m_isPrimary == true)
+    LOG_MARKER();
+
+    if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
+    {
+        m_mediator.m_ds->m_toSendTxnToLookup = false;
+        m_mediator.m_ds->m_stateDeltaWhenRunDSMB
+            = m_mediator.m_ds->m_stateDeltaFromShards;
+        bool isVacuousEpoch
+            = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
+        if (isVacuousEpoch)
+        {
+            //Coinbase
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "[CNBSE]");
+
+            m_mediator.m_ds->InitCoinbase();
+            m_mediator.m_ds->m_stateDeltaWhenRunDSMB.clear();
+            AccountStore::GetInstance().SerializeDelta();
+            AccountStore::GetInstance().GetSerializedDelta(
+                m_mediator.m_ds->m_stateDeltaWhenRunDSMB);
+        }
+    }
+    if (m_isPrimary)
     {
         if (!RunConsensusOnMicroBlockWhenShardLeader())
         {
@@ -644,12 +1198,22 @@ bool Node::RunConsensusOnMicroBlock()
     }
 
     SetState(MICROBLOCK_CONSENSUS);
-    cv_microblockConsensusObject.notify_all();
+
+    CommitMicroBlockConsensusBuffer();
+
     return true;
 }
 
 bool Node::CheckBlockTypeIsMicro()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::CheckBlockTypeIsMicro not expected to be called "
+                    "from LookUp node.");
+        return true;
+    }
+
     // Check type (must be micro block type)
     if (m_microblock->GetHeader().GetType() != TXBLOCKTYPE::MICRO)
     {
@@ -671,6 +1235,14 @@ bool Node::CheckBlockTypeIsMicro()
 
 bool Node::CheckMicroBlockVersion()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::CheckMicroBlockVersion not expected to be called "
+                    "from LookUp node.");
+        return true;
+    }
+
     // Check version (must be most current version)
     if (m_microblock->GetHeader().GetVersion() != BLOCKVERSION::VERSION1)
     {
@@ -691,8 +1263,49 @@ bool Node::CheckMicroBlockVersion()
     return true;
 }
 
+bool Node::CheckMicroBlockShardID()
+{
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::CheckMicroBlockShardID not expected to be called "
+                    "from LookUp node.");
+        return true;
+    }
+
+    // Check version (must be most current version)
+    if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
+    {
+        return true;
+    }
+    if (m_microblock->GetHeader().GetShardID() != m_myShardID)
+    {
+        LOG_GENERAL(WARNING,
+                    "ShardID check failed. Expected: "
+                        << m_myShardID << " Actual: "
+                        << m_microblock->GetHeader().GetShardID());
+
+        m_consensusObject->SetConsensusErrorCode(
+            ConsensusCommon::INVALID_MICROBLOCK_SHARD_ID);
+
+        return false;
+    }
+
+    LOG_GENERAL(INFO, "ShardID check passed");
+
+    return true;
+}
+
 bool Node::CheckMicroBlockTimestamp()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::CheckMicroBlockTimestamp not expected to be called "
+                    "from LookUp node.");
+        return true;
+    }
+
     // Check timestamp (must be greater than timestamp of last Tx block header in the Tx blockchain)
     if (m_mediator.m_txBlockChain.GetBlockCount() > 0)
     {
@@ -719,31 +1332,32 @@ bool Node::CheckMicroBlockTimestamp()
     return true;
 }
 
-bool Node::CheckLegitimacyOfTxnHashes(vector<unsigned char>& errorMsg)
+unsigned char Node::CheckLegitimacyOfTxnHashes(vector<unsigned char>& errorMsg)
 {
-    lock(m_mutexReceivedTransactions, m_mutexSubmittedTransactions);
-    lock_guard<mutex> g(m_mutexReceivedTransactions, adopt_lock);
-    lock_guard<mutex> g2(m_mutexSubmittedTransactions, adopt_lock);
-
-    auto const& receivedTransactions
-        = m_receivedTransactions[m_mediator.m_currentEpochNum];
-    auto const& submittedTransactions
-        = m_submittedTransactions[m_mediator.m_currentEpochNum];
-
-    m_numOfAbsentTxnHashes = 0;
-
-    int offset = 0;
-
-    for (auto const& hash : m_microblock->GetTranHashes())
+    if (LOOKUP_NODE_MODE)
     {
-        // Check if transaction is part of submitted Tx list
-        if (submittedTransactions.find(hash) != submittedTransactions.end())
+        LOG_GENERAL(WARNING,
+                    "Node::CheckLegitimacyOfTxnHashes not expected to be "
+                    "called from LookUp node.");
+        return true;
+    }
+
+    bool isVacuousEpoch
+        = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
+    if (!isVacuousEpoch)
+    {
+        vector<TxnHash> missingTxnHashes;
+        if (!ProcessTransactionWhenShardBackup(m_microblock->GetTranHashes(),
+                                               missingTxnHashes))
         {
-            continue;
+            return LEGITIMACYRESULT::WRONGORDER;
         }
 
-        // Check if transaction is part of received Tx list
-        if (receivedTransactions.find(hash) == receivedTransactions.end())
+        m_numOfAbsentTxnHashes = 0;
+
+        int offset = 0;
+
+        for (auto const& hash : missingTxnHashes)
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Missing txn: " << hash)
@@ -762,23 +1376,49 @@ bool Node::CheckLegitimacyOfTxnHashes(vector<unsigned char>& errorMsg)
             offset += TRAN_HASH_SIZE;
             m_numOfAbsentTxnHashes++;
         }
-    }
 
-    if (m_numOfAbsentTxnHashes)
+        if (m_numOfAbsentTxnHashes > 0)
+        {
+            Serializable::SetNumber<uint32_t>(
+                errorMsg, 0, m_numOfAbsentTxnHashes, sizeof(uint32_t));
+            Serializable::SetNumber<uint64_t>(errorMsg, sizeof(uint32_t),
+                                              m_mediator.m_currentEpochNum,
+                                              sizeof(uint64_t));
+
+            m_txnsOrdering = m_microblock->GetTranHashes();
+
+            AccountStore::GetInstance().InitTemp();
+            if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
+            {
+                LOG_GENERAL(WARNING, "Got missing txns, revert state delta");
+                AccountStore::GetInstance().DeserializeDeltaTemp(
+                    m_mediator.m_ds->m_stateDeltaWhenRunDSMB, 0);
+            }
+
+            return LEGITIMACYRESULT::MISSEDTXN;
+        }
+
+        AccountStore::GetInstance().SerializeDelta();
+    }
+    else
     {
-        Serializable::SetNumber<uint32_t>(errorMsg, 0, m_numOfAbsentTxnHashes,
-                                          sizeof(uint32_t));
-        Serializable::SetNumber<uint64_t>(errorMsg, sizeof(uint32_t),
-                                          m_mediator.m_currentEpochNum,
-                                          sizeof(uint64_t));
-        return false;
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Vacuous epoch: Skipping processing transactions");
     }
 
-    return true;
+    return LEGITIMACYRESULT::SUCCESS;
 }
 
 bool Node::CheckMicroBlockHashes(vector<unsigned char>& errorMsg)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::CheckMicroBlockHashes not expected to be called "
+                    "from LookUp node.");
+        return true;
+    }
+
     // Check transaction hashes (number of hashes must be = Tx count field)
     uint32_t txhashessize = m_microblock->GetTranHashes().size();
     uint32_t numtxs = m_microblock->GetHeader().GetNumTxs();
@@ -796,14 +1436,21 @@ bool Node::CheckMicroBlockHashes(vector<unsigned char>& errorMsg)
 
     LOG_GENERAL(INFO, "Hash count check passed");
 
-    // Check if I have the txn bodies corresponding to the hashes included in the microblock
-    if (!CheckLegitimacyOfTxnHashes(errorMsg))
+    switch (CheckLegitimacyOfTxnHashes(errorMsg))
     {
+    case LEGITIMACYRESULT::SUCCESS:
+        break;
+    case LEGITIMACYRESULT::MISSEDTXN:
         LOG_GENERAL(WARNING,
                     "Missing a txn hash included in proposed microblock");
-
         m_consensusObject->SetConsensusErrorCode(ConsensusCommon::MISSING_TXN);
-
+        return false;
+    case LEGITIMACYRESULT::WRONGORDER:
+        LOG_GENERAL(WARNING, "Order of txns proposed by leader is wrong");
+        m_consensusObject->SetConsensusErrorCode(
+            ConsensusCommon::WRONG_TXN_ORDER);
+        return false;
+    default:
         return false;
     }
 
@@ -814,6 +1461,14 @@ bool Node::CheckMicroBlockHashes(vector<unsigned char>& errorMsg)
 
 bool Node::CheckMicroBlockTxnRootHash()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::CheckMicroBlockTxnRootHash not expected to be "
+                    "called from LookUp node.");
+        return true;
+    }
+
     // Check transaction root
     TxnHash expectedTxRootHash
         = ComputeTransactionsRoot(m_microblock->GetTranHashes());
@@ -843,16 +1498,23 @@ bool Node::CheckMicroBlockTxnRootHash()
 
 bool Node::CheckMicroBlockStateDeltaHash()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::CheckMicroBlockStateDeltaHash not expected to be "
+                    "called from LookUp node.");
+        return true;
+    }
+
     StateHash expectedStateDeltaHash
         = AccountStore::GetInstance().GetStateDeltaHash();
 
     LOG_GENERAL(INFO,
                 "Microblock state delta generation done "
-                    << DataConversion::charArrToHexStr(
-                           expectedStateDeltaHash.asArray()));
+                    << expectedStateDeltaHash.hex());
     LOG_GENERAL(INFO,
-                "Expected root: " << DataConversion::charArrToHexStr(
-                    m_microblock->GetHeader().GetStateDeltaHash().asArray()));
+                "Received root: "
+                    << m_microblock->GetHeader().GetStateDeltaHash().hex());
 
     if (expectedStateDeltaHash != m_microblock->GetHeader().GetStateDeltaHash())
     {
@@ -869,60 +1531,74 @@ bool Node::CheckMicroBlockStateDeltaHash()
     return true;
 }
 
-bool Node::CheckMicroBlockShardID()
+bool Node::CheckMicroBlockTranReceiptHash()
 {
-    // Check version (must be most current version)
-    if (m_microblock->GetHeader().GetShardID() != m_myShardID)
+    uint64_t blockNum = m_mediator.m_currentEpochNum;
+    auto& processedTransactions = m_processedTransactions[blockNum];
+    TxnHash expectedTranHash;
+    if (!TransactionWithReceipt::ComputeTransactionReceiptsHash(
+            m_microblock->GetTranHashes(), processedTransactions,
+            expectedTranHash))
     {
-        LOG_GENERAL(WARNING,
-                    "ShardID check failed. Expected: "
-                        << m_myShardID << " Actual: "
-                        << m_microblock->GetHeader().GetShardID());
+        LOG_GENERAL(WARNING, "Cannot compute transaction receipts hash");
+        return false;
+    }
+    LOG_GENERAL(INFO,
+                "Microblock transaction receipt hash generation done "
+                    << expectedTranHash.hex());
+    LOG_GENERAL(INFO,
+                "Received hash: "
+                    << m_microblock->GetHeader().GetTranReceiptHash().hex());
+
+    if (expectedTranHash != m_microblock->GetHeader().GetTranReceiptHash())
+    {
+        LOG_GENERAL(WARNING, "Transaction receipt hash does not match");
 
         m_consensusObject->SetConsensusErrorCode(
-            ConsensusCommon::INVALID_MICROBLOCK_SHARD_ID);
+            ConsensusCommon::INVALID_MICROBLOCK_TRAN_RECEIPT_HASH);
 
         return false;
     }
 
-    LOG_GENERAL(INFO, "ShardID check passed");
+    LOG_GENERAL(INFO, "Transaction receipt hash check passed");
 
     return true;
 }
 
-bool Node::MicroBlockValidator(const vector<unsigned char>& microblock,
-                               vector<unsigned char>& errorMsg)
+bool Node::MicroBlockValidator(const vector<unsigned char>& message,
+                               unsigned int offset,
+                               vector<unsigned char>& errorMsg,
+                               const uint32_t consensusID,
+                               const vector<unsigned char>& blockHash,
+                               const uint16_t leaderID, const PubKey& leaderKey,
+                               vector<unsigned char>& messageToCosign)
 {
     LOG_MARKER();
 
-    // [TODO] To put in the logic
-    m_microblock = make_shared<MicroBlock>(MicroBlock(microblock, 0));
-
-    bool valid = false;
-
-    do
+    if (LOOKUP_NODE_MODE)
     {
-        if (!CheckBlockTypeIsMicro() || !CheckMicroBlockVersion()
-            || !CheckMicroBlockTimestamp() || !CheckMicroBlockHashes(errorMsg)
-            || !CheckMicroBlockTxnRootHash() || !CheckMicroBlockStateDeltaHash()
-            || !CheckMicroBlockShardID())
-        {
-            break;
-        }
+        LOG_GENERAL(WARNING,
+                    "Node::MicroBlockValidator not expected to be called from "
+                    "LookUp node.");
+        return true;
+    }
 
-        // Check gas limit (must satisfy some equations)
-        // Check gas used (must be <= gas limit)
-        // Check state root (TBD)
-        // Check pubkey (must be valid and = shard leader)
-        // Check parent DS hash (must be = digest of last DS block header in the DS blockchain)
-        // Need some rework to be able to access DS blockchain (or we switch to using the persistent storage lib)
-        // Check parent DS block number (must be = block number of last DS block header in the DS blockchain)
-        // Need some rework to be able to access DS blockchain (or we switch to using the persistent storage lib)
+    m_microblock.reset(new MicroBlock);
 
-        valid = true;
-    } while (false);
+    if (!Messenger::GetNodeMicroBlockAnnouncement(
+            message, offset, consensusID, blockHash, leaderID, leaderKey,
+            *m_microblock, messageToCosign))
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::GetNodeMicroBlockAnnouncement failed.");
+        return false;
+    }
 
-    if (!valid)
+    if (!CheckBlockTypeIsMicro() || !CheckMicroBlockVersion()
+        || !CheckMicroBlockShardID() || !CheckMicroBlockTimestamp()
+        || !CheckMicroBlockHashes(errorMsg) || !CheckMicroBlockTxnRootHash()
+        || !CheckMicroBlockStateDeltaHash()
+        || !CheckMicroBlockTranReceiptHash())
     {
         m_microblock = nullptr;
         Serializable::SetNumber<uint32_t>(
@@ -932,10 +1608,14 @@ bool Node::MicroBlockValidator(const vector<unsigned char>& microblock,
         return false;
     }
 
-    return valid;
+    // Check gas limit (must satisfy some equations)
+    // Check gas used (must be <= gas limit)
+    // Check state root (TBD)
+    // Check pubkey (must be valid and = shard leader)
+    // Check parent DS hash (must be = digest of last DS block header in the DS blockchain)
+    // Need some rework to be able to access DS blockchain (or we switch to using the persistent storage lib)
+    // Check parent DS block number (must be = block number of last DS block header in the DS blockchain)
+    // Need some rework to be able to access DS blockchain (or we switch to using the persistent storage lib)
 
-    // #else // IS_LOOKUP_NODE
-
-    // return true;
+    return true;
 }
-#endif // IS_LOOKUP_NODE

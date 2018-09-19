@@ -16,12 +16,12 @@
 * Test cases obtained from https://github.com/ethereum/ethash
 **/
 
-#include "libCrypto/Sha3.h"
 #include <depends/libethash/ethash.h>
 #include <depends/libethash/fnv.h>
 #include <depends/libethash/internal.h>
 #include <depends/libethash/io.h>
 #include <iomanip>
+#include <libDirectoryService/DirectoryService.h>
 #include <libPOW/pow.h>
 
 #ifdef _WIN32
@@ -89,20 +89,20 @@ bytes hexStringToBytes(std::string const& _s)
     if (_s.size() % 2)
         try
         {
-            ret.push_back(fromHex(_s[s++]));
+            ret.emplace_back(fromHex(_s[s++]));
         }
         catch (...)
         {
-            ret.push_back(0);
+            ret.emplace_back(0);
         }
     for (unsigned i = s; i < _s.size(); i += 2)
         try
         {
-            ret.push_back((byte)(fromHex(_s[i]) * 16 + fromHex(_s[i + 1])));
+            ret.emplace_back((byte)(fromHex(_s[i]) * 16 + fromHex(_s[i + 1])));
         }
         catch (...)
         {
-            ret.push_back(0);
+            ret.emplace_back(0);
         }
     return ret;
 }
@@ -117,6 +117,8 @@ ethash_h256_t stringToBlockhash(std::string const& _s)
 
 BOOST_AUTO_TEST_CASE(fnv_hash_check)
 {
+    INIT_FILE_LOGGER("zilliqa");
+
     uint32_t x = 1235U;
     const uint32_t y = 9999999U, expected = (FNV_PRIME * x) ^ y;
 
@@ -564,7 +566,10 @@ static int test_full_callback(unsigned _progress)
     return 0;
 }
 
-static int test_full_callback_that_fails(unsigned _progress) { return 1; }
+static int test_full_callback_that_fails([[gnu::unused]] unsigned _progress)
+{
+    return 1;
+}
 
 static int test_full_callback_create_incomplete_dag(unsigned _progress)
 {
@@ -735,6 +740,292 @@ BOOST_AUTO_TEST_CASE(mining_and_verification)
         blockToUse, difficultyToUse, rand1, rand2, ipAddr, pubKey, false,
         winning_nonce, winning_result.result, winning_result.mix_hash);
     BOOST_REQUIRE(!verifyWinningNonce);
+}
+
+// Please enable the OPENCL_GPU_MINE option in constants.xml to run this test case
+BOOST_AUTO_TEST_CASE(gpu_mining_and_verification_1)
+{
+    if (!OPENCL_GPU_MINE && !CUDA_GPU_MINE)
+    {
+        std::cout << "OPENCL_GPU_MINE and CUDA_GPU_MINE option are not "
+                     "enabled, skip test case "
+                     "gpu_mining_and_verification_1"
+                  << std::endl;
+        return;
+    }
+
+    if (OPENCL_GPU_MINE)
+    {
+        std::cout << "OPENCL_GPU_MINE enabled, test with OpenCL GPU"
+                  << std::endl;
+    }
+    else if (CUDA_GPU_MINE)
+    {
+        std::cout << "CUDA_GPU_MINE enabled, test with CUDA GPU" << std::endl;
+    }
+
+    POW& POWClient = POW::GetInstance();
+    std::array<unsigned char, 32> rand1 = {{'0', '1'}};
+    std::array<unsigned char, 32> rand2 = {{'0', '2'}};
+    boost::multiprecision::uint128_t ipAddr = 2307193356;
+    PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
+
+    // Light client mine and verify
+    uint8_t difficultyToUse = 10;
+    uint8_t blockToUse = 0;
+    ethash_mining_result_t winning_result = POWClient.PoWMine(
+        blockToUse, difficultyToUse, rand1, rand2, ipAddr, pubKey, true);
+    bool verifyLight
+        = POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
+                              pubKey, false, winning_result.winning_nonce,
+                              winning_result.result, winning_result.mix_hash);
+    BOOST_REQUIRE(verifyLight);
+
+    rand1 = {{'0', '3'}};
+    bool verifyRand
+        = POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
+                              pubKey, false, winning_result.winning_nonce,
+                              winning_result.result, winning_result.mix_hash);
+    BOOST_REQUIRE(!verifyRand);
+
+    // Now let's adjust the difficulty expectation during verification
+    rand1 = {{'0', '1'}};
+    difficultyToUse = 30;
+    bool verifyDifficulty
+        = POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
+                              pubKey, false, winning_result.winning_nonce,
+                              winning_result.result, winning_result.mix_hash);
+    BOOST_REQUIRE(!verifyDifficulty);
+
+    difficultyToUse = 10;
+    uint64_t winning_nonce = 0;
+    bool verifyWinningNonce = POWClient.PoWVerify(
+        blockToUse, difficultyToUse, rand1, rand2, ipAddr, pubKey, false,
+        winning_nonce, winning_result.result, winning_result.mix_hash);
+    BOOST_REQUIRE(!verifyWinningNonce);
+}
+
+// Please enable the OPENCL_GPU_MINE or CUDA_GPU_MINE option in constants.xml to run this test case
+BOOST_AUTO_TEST_CASE(gpu_mining_and_verification_2)
+{
+    if (!OPENCL_GPU_MINE && !CUDA_GPU_MINE)
+    {
+        std::cout << "OPENCL_GPU_MINE and CUDA_GPU_MINE option are not "
+                     "enabled, skip test case "
+                     "gpu_mining_and_verification_2"
+                  << std::endl;
+        return;
+    }
+
+    if (OPENCL_GPU_MINE)
+    {
+        std::cout << "OPENCL_GPU_MINE enabled, test with OpenCL GPU"
+                  << std::endl;
+    }
+    else if (CUDA_GPU_MINE)
+    {
+        std::cout << "CUDA_GPU_MINE enabled, test with CUDA GPU" << std::endl;
+    }
+
+    POW& POWClient = POW::GetInstance();
+    std::array<unsigned char, 32> rand1 = {{'0', '1'}};
+    std::array<unsigned char, 32> rand2 = {{'0', '2'}};
+    boost::multiprecision::uint128_t ipAddr = 2307193356;
+    PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
+
+    // Light client mine and verify
+    uint8_t difficultyToUse = 20;
+    uint64_t blockToUse = 1234567;
+    ethash_mining_result_t winning_result = POWClient.PoWMine(
+        blockToUse, difficultyToUse, rand1, rand2, ipAddr, pubKey, true);
+    bool verifyLight
+        = POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
+                              pubKey, false, winning_result.winning_nonce,
+                              winning_result.result, winning_result.mix_hash);
+    BOOST_REQUIRE(verifyLight);
+
+    rand1 = {{'0', '3'}};
+    bool verifyRand
+        = POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
+                              pubKey, false, winning_result.winning_nonce,
+                              winning_result.result, winning_result.mix_hash);
+    BOOST_REQUIRE(!verifyRand);
+
+    // Now let's adjust the difficulty expectation during verification
+    rand1 = {{'0', '1'}};
+    difficultyToUse = 30;
+    bool verifyDifficulty
+        = POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
+                              pubKey, false, winning_result.winning_nonce,
+                              winning_result.result, winning_result.mix_hash);
+    BOOST_REQUIRE(!verifyDifficulty);
+
+    difficultyToUse = 10;
+    uint64_t winning_nonce = 0;
+    bool verifyWinningNonce = POWClient.PoWVerify(
+        blockToUse, difficultyToUse, rand1, rand2, ipAddr, pubKey, false,
+        winning_nonce, winning_result.result, winning_result.mix_hash);
+    BOOST_REQUIRE(!verifyWinningNonce);
+}
+
+BOOST_AUTO_TEST_CASE(difficulty_adjustment_small_network)
+{
+    uint8_t currentDifficulty = 3;
+    uint8_t minDifficulty = 3;
+    int64_t currentNodes = 20;
+    int64_t powSubmissions = 23;
+    int64_t expectedNodes = 200;
+    uint32_t adjustThreshold = 99;
+    int64_t currentEpochNum = 200;
+    int64_t numBlocksPerYear = 10000;
+
+    int newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+        currentDifficulty, minDifficulty, currentNodes, powSubmissions,
+        expectedNodes, adjustThreshold, currentEpochNum, numBlocksPerYear);
+    BOOST_REQUIRE(newDifficulty == 4);
+
+    currentEpochNum = 10000;
+    newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+        currentDifficulty, minDifficulty, currentNodes, powSubmissions,
+        expectedNodes, adjustThreshold, currentEpochNum, numBlocksPerYear);
+    BOOST_REQUIRE(newDifficulty == 5);
+
+    currentDifficulty = 6;
+    currentEpochNum = 10001;
+    currentNodes = 20;
+    powSubmissions
+        = 19; // Node number is droping and number of pow submissions is less than expected node, so expect difficulty will drop.
+    newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+        currentDifficulty, minDifficulty, currentNodes, powSubmissions,
+        expectedNodes, adjustThreshold, currentEpochNum, numBlocksPerYear);
+    BOOST_REQUIRE(newDifficulty == 5);
+
+    currentDifficulty = 14;
+    currentEpochNum = 100000;
+    currentNodes = 200;
+    powSubmissions = 201;
+    newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+        currentDifficulty, minDifficulty, currentNodes, powSubmissions,
+        expectedNodes, adjustThreshold, currentEpochNum, numBlocksPerYear);
+    BOOST_REQUIRE(newDifficulty == 15);
+}
+
+BOOST_AUTO_TEST_CASE(difficulty_adjustment_large_network)
+{
+    uint8_t currentDifficulty = 3;
+    uint8_t minDifficulty = 3;
+    int64_t currentNodes = 5000;
+    int64_t powSubmissions = 5100;
+    int64_t expectedNodes = 10000;
+    uint32_t adjustThreshold = 99;
+    int64_t currentEpochNum = 200;
+    int64_t numBlocksPerYear = 1971000;
+
+    int newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+        currentDifficulty, minDifficulty, currentNodes, powSubmissions,
+        expectedNodes, adjustThreshold, currentEpochNum, numBlocksPerYear);
+    BOOST_REQUIRE(newDifficulty == 4);
+
+    currentDifficulty = 4;
+    currentEpochNum = 1971001;
+    currentNodes = 10001; // The current nodes exceed expected node
+    powSubmissions
+        = 10002; // Pow submission still increase, need to increase difficulty
+    newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+        currentDifficulty, minDifficulty, currentNodes, powSubmissions,
+        expectedNodes, adjustThreshold, currentEpochNum, numBlocksPerYear);
+    BOOST_REQUIRE(newDifficulty == 5);
+
+    currentDifficulty = 10;
+    currentEpochNum = 1971005;
+    currentNodes = 8000;
+    powSubmissions
+        = 7999; // Node number is droping and number of pow submissions is less than expected node, so expect difficulty will drop.
+    newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+        currentDifficulty, minDifficulty, currentNodes, powSubmissions,
+        expectedNodes, adjustThreshold, currentEpochNum, numBlocksPerYear);
+    BOOST_REQUIRE(newDifficulty == 9);
+
+    currentDifficulty = 5;
+    currentEpochNum = 1971009;
+    currentNodes = 8000;
+    powSubmissions = 8000;
+    newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+        currentDifficulty, minDifficulty, currentNodes, powSubmissions,
+        expectedNodes, adjustThreshold, currentEpochNum, numBlocksPerYear);
+    BOOST_REQUIRE(newDifficulty
+                  == 5); // nothing changes, expect keep the same difficulty
+
+    currentDifficulty = 14;
+    currentNodes = 10002;
+    powSubmissions = 10005;
+    currentEpochNum = 19710000;
+    newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+        currentDifficulty, minDifficulty, currentNodes, powSubmissions,
+        expectedNodes, adjustThreshold, currentEpochNum, numBlocksPerYear);
+    BOOST_REQUIRE(newDifficulty == 16);
+}
+
+BOOST_AUTO_TEST_CASE(difficulty_adjustment_for_ds_small)
+{
+    uint8_t currentDifficulty = 9;
+    uint8_t minDifficulty = 5;
+    int64_t currentNodes = 10;
+    int64_t powSubmissions = 11;
+    int64_t expectedNodes = 10;
+    uint32_t adjustThreshold = 9;
+    int64_t currentEpochNum = 80;
+    int64_t numBlocksPerYear = 1971000;
+
+    int newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+        currentDifficulty, minDifficulty, currentNodes, powSubmissions,
+        expectedNodes, adjustThreshold, currentEpochNum, numBlocksPerYear);
+    BOOST_REQUIRE(newDifficulty == 9);
+}
+
+BOOST_AUTO_TEST_CASE(difficulty_adjustment_for_ds_large)
+{
+    uint8_t currentDifficulty = 5;
+    uint8_t minDifficulty = 5;
+    int64_t currentNodes = 100;
+    int64_t powSubmissions = 110;
+    int64_t expectedNodes = 100;
+    uint32_t adjustThreshold = 9;
+    int64_t currentEpochNum = 200;
+    int64_t numBlocksPerYear = 1971000;
+
+    int newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+        currentDifficulty, minDifficulty, currentNodes, powSubmissions,
+        expectedNodes, adjustThreshold, currentEpochNum, numBlocksPerYear);
+    BOOST_REQUIRE(newDifficulty == 6);
+
+    currentDifficulty = 6;
+    currentEpochNum = 1971000;
+    currentNodes = 102;
+    powSubmissions = 103;
+    newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+        currentDifficulty, minDifficulty, currentNodes, powSubmissions,
+        expectedNodes, adjustThreshold, currentEpochNum, numBlocksPerYear);
+    BOOST_REQUIRE(newDifficulty == 8);
+
+    currentDifficulty = 8;
+    currentEpochNum = 1971001;
+    currentNodes = 103; // Current node number exceed expected number.
+    powSubmissions
+        = 99; // The PoW submissions drop not much, so keep difficulty.
+    newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+        currentDifficulty, minDifficulty, currentNodes, powSubmissions,
+        expectedNodes, adjustThreshold, currentEpochNum, numBlocksPerYear);
+    BOOST_REQUIRE(newDifficulty == 8);
+
+    currentDifficulty = 14;
+    currentNodes = 102;
+    powSubmissions = 102;
+    currentEpochNum = 19710000;
+    newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+        currentDifficulty, minDifficulty, currentNodes, powSubmissions,
+        expectedNodes, adjustThreshold, currentEpochNum, numBlocksPerYear);
+    BOOST_REQUIRE(newDifficulty == 15);
 }
 
 #if 0 

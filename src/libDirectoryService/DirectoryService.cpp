@@ -32,6 +32,7 @@
 #include "libNetwork/Whitelist.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
+#include "libUtils/HashUtils.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SanityChecks.h"
 #include "libUtils/TxnRootComputation.h"
@@ -42,12 +43,12 @@ using namespace boost::multiprecision;
 DirectoryService::DirectoryService(Mediator& mediator)
     : m_mediator(mediator)
 {
-#ifndef IS_LOOKUP_NODE
-    SetState(POW1_SUBMISSION);
-    cv_POW1Submission.notify_all();
-#endif // IS_LOOKUP_NODE
+    if (!LOOKUP_NODE_MODE)
+    {
+        SetState(POW_SUBMISSION);
+        cv_POWSubmission.notify_all();
+    }
     m_mode = IDLE;
-    m_requesting_last_ds_block = false;
     m_consensusLeaderID = 0;
     m_consensusID = 1;
     m_viewChangeCounter = 0;
@@ -55,10 +56,16 @@ DirectoryService::DirectoryService(Mediator& mediator)
 
 DirectoryService::~DirectoryService() {}
 
-#ifndef IS_LOOKUP_NODE
-
 void DirectoryService::StartSynchronization()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::StartSynchronization not "
+                    "expected to be called from LookUp node.");
+        return;
+    }
+
     LOG_MARKER();
 
     this->CleanVariables();
@@ -72,9 +79,7 @@ void DirectoryService::StartSynchronization()
             while (!m_mediator.m_lookup->m_fetchedOfflineLookups)
             {
                 if (m_mediator.m_lookup->cv_offlineLookups.wait_for(
-                        lock,
-                        chrono::seconds(POW1_WINDOW_IN_SECONDS
-                                        + BACKUP_POW2_WINDOW_IN_SECONDS))
+                        lock, chrono::seconds(POW_WINDOW_IN_SECONDS))
                     == std::cv_status::timeout)
                 {
                     LOG_GENERAL(WARNING, "FetchOfflineLookups Timeout...");
@@ -88,9 +93,17 @@ void DirectoryService::StartSynchronization()
         while (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
         {
             m_synchronizer.FetchLatestDSBlocks(
-                m_mediator.m_lookup, m_mediator.m_dsBlockChain.GetBlockCount());
+                m_mediator.m_lookup,
+                m_mediator.m_dsBlockChain.GetLastBlock()
+                        .GetHeader()
+                        .GetBlockNum()
+                    + 1);
             m_synchronizer.FetchLatestTxBlocks(
-                m_mediator.m_lookup, m_mediator.m_txBlockChain.GetBlockCount());
+                m_mediator.m_lookup,
+                m_mediator.m_txBlockChain.GetLastBlock()
+                        .GetHeader()
+                        .GetBlockNum()
+                    + 1);
             this_thread::sleep_for(chrono::seconds(NEW_NODE_SYNC_INTERVAL));
         }
     };
@@ -100,6 +113,14 @@ void DirectoryService::StartSynchronization()
 
 bool DirectoryService::CheckState(Action action)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::CheckState not "
+                    "expected to be called from LookUp node.");
+        return true;
+    }
+
     if (m_mode == Mode::IDLE)
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -107,716 +128,49 @@ bool DirectoryService::CheckState(Action action)
         return false;
     }
 
-    bool result = true;
+    static const std::multimap<DirState, Action> ACTIONS_FOR_STATE
+        = {{POW_SUBMISSION, PROCESS_POWSUBMISSION},
+           {POW_SUBMISSION, VERIFYPOW},
+           {DSBLOCK_CONSENSUS, PROCESS_DSBLOCKCONSENSUS},
+           {MICROBLOCK_SUBMISSION, PROCESS_MICROBLOCKSUBMISSION},
+           {FINALBLOCK_CONSENSUS, PROCESS_FINALBLOCKCONSENSUS},
+           {VIEWCHANGE_CONSENSUS, PROCESS_VIEWCHANGECONSENSUS}};
 
-    switch (action)
+    bool found = false;
+
+    for (auto pos = ACTIONS_FOR_STATE.lower_bound(m_state);
+         pos != ACTIONS_FOR_STATE.upper_bound(m_state); pos++)
     {
-    case PROCESS_POW1SUBMISSION:
-        switch (m_state)
+        if (pos->second == action)
         {
-        case POW1_SUBMISSION:
-            break;
-        case DSBLOCK_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_POW1SUBMISSION but already in "
-                      "DSBLOCK_CONSENSUS_PREP");
-            result = false;
-            break;
-        case DSBLOCK_CONSENSUS:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_POW1SUBMISSION but already in "
-                      "DSBLOCK_CONSENSUS");
-            result = false;
-            break;
-        case POW2_SUBMISSION:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_POW1SUBMISSION but already in "
-                      "POW2_SUBMISSION");
-            result = false;
-            break;
-        case SHARDING_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_POW1SUBMISSION but already in "
-                      "SHARDING_CONSENSUS_PREP");
-            result = false;
-            break;
-        case SHARDING_CONSENSUS:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_POW1SUBMISSION but already in "
-                      "SHARDING_CONSENSUS");
-            result = false;
-            break;
-        case MICROBLOCK_SUBMISSION:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_POW1SUBMISSION but already in "
-                      "MICROBLOCK_SUBMISSION");
-            result = false;
-            break;
-        case FINALBLOCK_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_POW1SUBMISSION but already in "
-                      "FINALBLOCK_CONSENSUS_PREP");
-            result = false;
-            break;
-        case FINALBLOCK_CONSENSUS:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_POW1SUBMISSION but already in "
-                      "FINALBLOCK_CONSENSUS");
-            result = false;
-            break;
-        case VIEWCHANGE_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_POW1SUBMISSION but already in "
-                      "VIEWCHANGE_CONSENSUS_PREP");
-            result = false;
-            break;
-        case VIEWCHANGE_CONSENSUS:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_POW1SUBMISSION but already in "
-                      "VIEWCHANGE_CONSENSUS");
-            result = false;
-            break;
-        case ERROR:
-            LOG_GENERAL(WARNING,
-                        "Doing PROCESS_POW1SUBMISSION but receiving "
-                        "ERROR message");
-            result = false;
-            break;
-        default:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Unrecognized or error state");
-            result = false;
+            found = true;
             break;
         }
-        break;
-    case VERIFYPOW1:
-        switch (m_state)
-        {
-        case POW1_SUBMISSION:
-            break;
-        case DSBLOCK_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing VERIFYPOW1 but already in "
-                      "DSBLOCK_CONSENSUS_PREP");
-            result = false;
-            break;
-        case DSBLOCK_CONSENSUS:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing VERIFYPOW1 but already in DSBLOCK_CONSENSUS");
-            result = false;
-            break;
-        case POW2_SUBMISSION:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing VERIFYPOW1 but already in POW2_SUBMISSION");
-            result = false;
-            break;
-        case SHARDING_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing VERIFYPOW1 but already in "
-                      "SHARDING_CONSENSUS_PREP");
-            result = false;
-            break;
-        case SHARDING_CONSENSUS:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing VERIFYPOW1 but already in SHARDING_CONSENSUS");
-            result = false;
-            break;
-        case MICROBLOCK_SUBMISSION:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing VERIFYPOW1 but already in MICROBLOCK_SUBMISSION");
-            result = false;
-            break;
-        case FINALBLOCK_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing VERIFYPOW1 but already in "
-                      "FINALBLOCK_CONSENSUS_PREP");
-            result = false;
-            break;
-        case FINALBLOCK_CONSENSUS:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing VERIFYPOW1 but already in FINALBLOCK_CONSENSUS");
-            result = false;
-            break;
-        case VIEWCHANGE_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing VERIFYPOW1 but already in "
-                      "VIEWCHANGE_CONSENSUS_PREP");
-            result = false;
-            break;
-        case VIEWCHANGE_CONSENSUS:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing VERIFYPOW1 but already in "
-                      "VIEWCHANGE_CONSENSUS");
-            result = false;
-            break;
-        case ERROR:
-            LOG_GENERAL(WARNING,
-                        "Doing VERIFYPOW1 but receiving ERROR message");
-            result = false;
-            break;
-        default:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Unrecognized or error state");
-            result = false;
-            break;
-        }
-        break;
-    case PROCESS_DSBLOCKCONSENSUS:
-        switch (m_state)
-        {
-        case POW1_SUBMISSION:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_DSBLOCKCONSENSUS but already in "
-                      "POW1_SUBMISSION");
-            result = false;
-            break;
-        case DSBLOCK_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_DSBLOCKCONSENSUS but already in "
-                      "DSBLOCK_CONSENSUS_PREP");
-            result = false;
-            break;
-        case DSBLOCK_CONSENSUS:
-            break;
-        case POW2_SUBMISSION:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_DSBLOCKCONSENSUS but already in "
-                      "POW2_SUBMISSION");
-            result = false;
-            break;
-        case SHARDING_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_DSBLOCKCONSENSUS but already in "
-                      "SHARDING_CONSENSUS_PREP");
-            result = false;
-            break;
-        case SHARDING_CONSENSUS:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_DSBLOCKCONSENSUS but already in "
-                      "SHARDING_CONSENSUS");
-            result = false;
-            break;
-        case MICROBLOCK_SUBMISSION:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_DSBLOCKCONSENSUS but already in "
-                      "MICROBLOCK_SUBMISSION");
-            result = false;
-            break;
-        case FINALBLOCK_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_DSBLOCKCONSENSUS but already in "
-                      "FINALBLOCK_CONSENSUS_PREP");
-            result = false;
-            break;
-        case FINALBLOCK_CONSENSUS:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_DSBLOCKCONSENSUS but already in "
-                      "FINALBLOCK_CONSENSUS");
-            result = false;
-            break;
-        case VIEWCHANGE_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_DSBLOCKCONSENSUS but already in "
-                      "VIEWCHANGE_CONSENSUS_PREP");
-            result = false;
-            break;
-        case VIEWCHANGE_CONSENSUS:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_DSBLOCKCONSENSUS but already in "
-                      "VIEWCHANGE_CONSENSUS");
-            result = false;
-            break;
-        case ERROR:
-            LOG_GENERAL(WARNING,
-                        "Doing PROCESS_DSBLOCKCONSENSUS but receiving "
-                        "ERROR message");
-            result = false;
-            break;
-        default:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Unrecognized or error state");
-            result = false;
-            break;
-        }
-        break;
-    case PROCESS_POW2SUBMISSION:
-        switch (m_state)
-        {
-        case POW1_SUBMISSION:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_POW2SUBMISSION but already in "
-                      "POW1_SUBMISSION");
-            result = false;
-            break;
-        case DSBLOCK_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_POW2SUBMISSION but already in "
-                      "DSBLOCK_CONSENSUS_PREP");
-            result = false;
-            break;
-        case DSBLOCK_CONSENSUS:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_POW2SUBMISSION but already in "
-                      "DSBLOCK_CONSENSUS");
-            result = false;
-            break;
-        case POW2_SUBMISSION:
-            break;
-        case SHARDING_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_POW2SUBMISSION but already in "
-                      "SHARDING_CONSENSUS_PREP");
-            result = false;
-            break;
-        case SHARDING_CONSENSUS:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_POW2SUBMISSION but already in "
-                      "SHARDING_CONSENSUS");
-            result = false;
-            break;
-        case MICROBLOCK_SUBMISSION:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_POW2SUBMISSION but already in "
-                      "MICROBLOCK_SUBMISSION");
-            result = false;
-            break;
-        case FINALBLOCK_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_POW2SUBMISSION but already in "
-                      "FINALBLOCK_CONSENSUS_PREP");
-            result = false;
-            break;
-        case FINALBLOCK_CONSENSUS:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_POW2SUBMISSION but already in "
-                      "FINALBLOCK_CONSENSUS");
-            result = false;
-            break;
-        case VIEWCHANGE_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_POW2SUBMISSION but already in "
-                      "VIEWCHANGE_CONSENSUS_PREP");
-            result = false;
-            break;
-        case VIEWCHANGE_CONSENSUS:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_POW2SUBMISSION but already in "
-                      "VIEWCHANGE_CONSENSUS");
-            result = false;
-            break;
-        case ERROR:
-            LOG_GENERAL(WARNING,
-                        "Doing PROCESS_POW2SUBMISSION but receiving "
-                        "ERROR message");
-            result = false;
-            break;
-        default:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Unrecognized or error state");
-            result = false;
-            break;
-        }
-        break;
-    case VERIFYPOW2:
-        switch (m_state)
-        {
-        case POW1_SUBMISSION:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing VERIFYPOW2 but already in POW1_SUBMISSION");
-            result = false;
-            break;
-        case DSBLOCK_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing VERIFYPOW2 but already in "
-                      "DSBLOCK_CONSENSUS_PREP");
-            result = false;
-            break;
-        case DSBLOCK_CONSENSUS:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing VERIFYPOW2 but already in DSBLOCK_CONSENSUS");
-            result = false;
-            break;
-        case POW2_SUBMISSION:
-            break;
-        case SHARDING_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing VERIFYPOW2 but already in "
-                      "SHARDING_CONSENSUS_PREP");
-            result = false;
-            break;
-        case SHARDING_CONSENSUS:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing VERIFYPOW2 but already in SHARDING_CONSENSUS");
-            result = false;
-            break;
-        case MICROBLOCK_SUBMISSION:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing VERIFYPOW2 but already in MICROBLOCK_SUBMISSION");
-            result = false;
-            break;
-        case FINALBLOCK_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing VERIFYPOW2 but already in "
-                      "FINALBLOCK_CONSENSUS_PREP");
-            result = false;
-            break;
-        case FINALBLOCK_CONSENSUS:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing VERIFYPOW2 but already in FINALBLOCK_CONSENSUS");
-            result = false;
-            break;
-        case VIEWCHANGE_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing VERIFYPOW2 but already in "
-                      "VIEWCHANGE_CONSENSUS_PREP");
-            result = false;
-            break;
-        case VIEWCHANGE_CONSENSUS:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing VERIFYPOW2 but already in "
-                      "VIEWCHANGE_CONSENSUS");
-            result = false;
-            break;
-        case ERROR:
-            LOG_GENERAL(WARNING,
-                        "Doing VERIFYPOW2 but receiving ERROR message");
-            result = false;
-            break;
-        default:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Unrecognized or error state");
-            result = false;
-            break;
-        }
-        break;
-    case PROCESS_SHARDINGCONSENSUS:
-        switch (m_state)
-        {
-        case POW1_SUBMISSION:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_SHARDINGCONSENSUS but already "
-                      "in POW1_SUBMISSION");
-            result = false;
-            break;
-        case DSBLOCK_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_SHARDINGCONSENSUS but already "
-                      "in DSBLOCK_CONSENSUS_PREP");
-            result = false;
-            break;
-        case DSBLOCK_CONSENSUS:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_SHARDINGCONSENSUS but already "
-                      "in DSBLOCK_CONSENSUS");
-            result = false;
-            break;
-        case POW2_SUBMISSION:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_SHARDINGCONSENSUS but already "
-                      "in POW2_SUBMISSION");
-            result = false;
-            break;
-        case SHARDING_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_SHARDINGCONSENSUS but already "
-                      "in SHARDING_CONSENSUS_PREP");
-            result = false;
-            break;
-        case SHARDING_CONSENSUS:
-            break;
-        case MICROBLOCK_SUBMISSION:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_SHARDINGCONSENSUS but already "
-                      "in MICROBLOCK_SUBMISSION");
-            result = false;
-            break;
-        case FINALBLOCK_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_SHARDINGCONSENSUS but already "
-                      "in FINALBLOCK_CONSENSUS_PREP");
-            result = false;
-            break;
-        case FINALBLOCK_CONSENSUS:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_SHARDINGCONSENSUS but already "
-                      "in FINALBLOCK_CONSENSUS");
-            result = false;
-            break;
-        case VIEWCHANGE_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_SHARDINGCONSENSUS but already in "
-                      "VIEWCHANGE_CONSENSUS_PREP");
-            result = false;
-            break;
-        case VIEWCHANGE_CONSENSUS:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_SHARDINGCONSENSUS but already in "
-                      "VIEWCHANGE_CONSENSUS");
-            result = false;
-            break;
-        case ERROR:
-            LOG_GENERAL(WARNING,
-                        "Doing PROCESS_SHARDINGCONSENSUS but receiving "
-                        "ERROR message");
-            result = false;
-            break;
-        default:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Unrecognized or error state");
-            result = false;
-            break;
-        }
-        break;
-    case PROCESS_MICROBLOCKSUBMISSION:
-        switch (m_state)
-        {
-        case POW1_SUBMISSION:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_MICROBLOCKSUBMISSION but "
-                      "already in POW1_SUBMISSION");
-            result = false;
-            break;
-        case DSBLOCK_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_MICROBLOCKSUBMISSION but "
-                      "already in DSBLOCK_CONSENSUS_PREP");
-            result = false;
-            break;
-        case DSBLOCK_CONSENSUS:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_MICROBLOCKSUBMISSION but "
-                      "already in DSBLOCK_CONSENSUS");
-            result = false;
-            break;
-        case POW2_SUBMISSION:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_MICROBLOCKSUBMISSION but "
-                      "already in POW2_SUBMISSION");
-            result = false;
-            break;
-        case SHARDING_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_MICROBLOCKSUBMISSION but "
-                      "already in SHARDING_CONSENSUS_PREP");
-            result = false;
-            break;
-        case SHARDING_CONSENSUS:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_MICROBLOCKSUBMISSION but "
-                      "already in SHARDING_CONSENSUS");
-            result = false;
-            break;
-        case MICROBLOCK_SUBMISSION:
-            break;
-        case FINALBLOCK_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_MICROBLOCKSUBMISSION but "
-                      "already in FINALBLOCK_CONSENSUS_PREP");
-            result = false;
-            break;
-        case FINALBLOCK_CONSENSUS:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_MICROBLOCKSUBMISSION but "
-                      "already in FINALBLOCK_CONSENSUS");
-            result = false;
-            break;
-        case VIEWCHANGE_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_MICROBLOCKSUBMISSION but already in "
-                      "VIEWCHANGE_CONSENSUS_PREP");
-            result = false;
-            break;
-        case VIEWCHANGE_CONSENSUS:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_MICROBLOCKSUBMISSION but already in "
-                      "VIEWCHANGE_CONSENSUS");
-            result = false;
-            break;
-        case ERROR:
-            LOG_GENERAL(WARNING,
-                        "Doing PROCESS_MICROBLOCKSUBMISSION but "
-                        "receiving ERROR message");
-            result = false;
-            break;
-        default:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Unrecognized or error state");
-            result = false;
-            break;
-        }
-        break;
-    case PROCESS_FINALBLOCKCONSENSUS:
-        switch (m_state)
-        {
-        case POW1_SUBMISSION:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_FINALBLOCKCONSENSUS but already "
-                      "in POW1_SUBMISSION");
-            result = false;
-            break;
-        case DSBLOCK_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_FINALBLOCKCONSENSUS but already "
-                      "in DSBLOCK_CONSENSUS_PREP");
-            result = false;
-            break;
-        case DSBLOCK_CONSENSUS:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_FINALBLOCKCONSENSUS but already "
-                      "in DSBLOCK_CONSENSUS");
-            result = false;
-            break;
-        case POW2_SUBMISSION:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_FINALBLOCKCONSENSUS but already "
-                      "in POW2_SUBMISSION");
-            result = false;
-            break;
-        case SHARDING_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_FINALBLOCKCONSENSUS but already "
-                      "in SHARDING_CONSENSUS_PREP");
-            result = false;
-            break;
-        case SHARDING_CONSENSUS:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_FINALBLOCKCONSENSUS but already "
-                      "in SHARDING_CONSENSUS");
-            result = false;
-            break;
-        case MICROBLOCK_SUBMISSION:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_FINALBLOCKCONSENSUS but already "
-                      "in MICROBLOCK_SUBMISSION");
-            result = false;
-            break;
-        case FINALBLOCK_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_FINALBLOCKCONSENSUS but already "
-                      "in FINALBLOCK_CONSENSUS_PREP");
-            result = false;
-            break;
-        case FINALBLOCK_CONSENSUS:
-            break;
-        case VIEWCHANGE_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_FINALBLOCKCONSENSUS but already in "
-                      "VIEWCHANGE_CONSENSUS_PREP");
-            result = false;
-            break;
-        case VIEWCHANGE_CONSENSUS:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_FINALBLOCKCONSENSUS but already in "
-                      "VIEWCHANGE_CONSENSUS");
-            result = false;
-            break;
-        case ERROR:
-            LOG_GENERAL(WARNING,
-                        "Doing PROCESS_FINALBLOCKCONSENSUS but "
-                        "receiving ERROR message");
-            result = false;
-            break;
-        default:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Unrecognized or error state");
-            result = false;
-            break;
-        }
-        break;
-    case PROCESS_VIEWCHANGECONSENSUS:
-        switch (m_state)
-        {
-        case POW1_SUBMISSION:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_VIEWCHANGECONSENSUS but already "
-                      "in POW1_SUBMISSION");
-            result = false;
-            break;
-        case DSBLOCK_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_VIEWCHANGECONSENSUS but already "
-                      "in DSBLOCK_CONSENSUS_PREP");
-            result = false;
-            break;
-        case DSBLOCK_CONSENSUS:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_VIEWCHANGECONSENSUS but already "
-                      "in DSBLOCK_CONSENSUS");
-            result = false;
-            break;
-        case POW2_SUBMISSION:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_VIEWCHANGECONSENSUS but already "
-                      "in POW2_SUBMISSION");
-            result = false;
-            break;
-        case SHARDING_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_VIEWCHANGECONSENSUS but already "
-                      "in SHARDING_CONSENSUS_PREP");
-            result = false;
-            break;
-        case SHARDING_CONSENSUS:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_VIEWCHANGECONSENSUS but already "
-                      "in SHARDING_CONSENSUS");
-            result = false;
-            break;
-        case MICROBLOCK_SUBMISSION:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_VIEWCHANGECONSENSUS but already "
-                      "in MICROBLOCK_SUBMISSION");
-            result = false;
-            break;
-        case FINALBLOCK_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_VIEWCHANGECONSENSUS but already "
-                      "in FINALBLOCK_CONSENSUS_PREP");
-            result = false;
-            break;
-        case FINALBLOCK_CONSENSUS:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_VIEWCHANGECONSENSUS but already "
-                      "in FINALBLOCK_CONSENSUS");
-            result = false;
-            break;
-            ;
-        case VIEWCHANGE_CONSENSUS_PREP:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Doing PROCESS_VIEWCHANGECONSENSUS but still in "
-                      "VIEWCHANGE_CONSENSUS_PREP");
-            result = false;
-            break;
-        case VIEWCHANGE_CONSENSUS:
-            break;
-        case ERROR:
-            LOG_GENERAL(WARNING,
-                        "Doing PROCESS_VIEWCHANGECONSENSUS but "
-                        "receiving ERROR message");
-            result = false;
-            break;
-        default:
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Unrecognized or error state");
-            result = false;
-            break;
-        }
-        break;
-    default:
-        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Unrecognized action");
-        result = false;
-        break;
     }
 
-    return result;
+    if (!found)
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Action " << GetActionString(action)
+                            << " not allowed in state " << GetStateString());
+        return false;
+    }
+
+    return true;
 }
-#endif // IS_LOOKUP_NODE
 
 bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
-                                         unsigned int offset, const Peer& from)
+                                         unsigned int offset,
+                                         [[gnu::unused]] const Peer& from)
 {
-#ifndef IS_LOOKUP_NODE
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::ProcessSetPrimary not "
+                    "expected to be called from LookUp node.");
+        return true;
+    }
+
     // Note: This function should only be invoked during bootstrap sequence
     // Message = [Primary node IP] [Primary node port]
     LOG_MARKER();
@@ -867,8 +221,8 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
             m_mediator.m_selfKey.second,
             m_mediator.m_selfPeer); // Add myself, but with dummy IP info
         vector<pair<PubKey, Peer>> ds = dsstore.GetAllPeerPairs();
-        m_mediator.m_DSCommittee.resize(ds.size());
-        copy(ds.begin(), ds.end(), m_mediator.m_DSCommittee.begin());
+        m_mediator.m_DSCommittee->resize(ds.size());
+        copy(ds.begin(), ds.end(), m_mediator.m_DSCommittee->begin());
         // Message = [numDSPeers][DSPeer][DSPeer]... numDSPeers times
         vector<unsigned char> setDSBootstrapNodeMessage
             = {MessageType::LOOKUP, LookupInstructionType::SETDSINFOFROMSEED};
@@ -879,14 +233,14 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
                                           sizeof(uint32_t));
         curr_offset += sizeof(uint32_t);
 
-        for (unsigned int i = 0; i < ds.size(); i++)
+        for (auto& d : ds)
         {
             // PubKey
-            curr_offset += ds.at(i).first.Serialize(setDSBootstrapNodeMessage,
-                                                    curr_offset);
+            curr_offset
+                += d.first.Serialize(setDSBootstrapNodeMessage, curr_offset);
             // Peer
-            curr_offset += ds.at(i).second.Serialize(setDSBootstrapNodeMessage,
-                                                     curr_offset);
+            curr_offset
+                += d.second.Serialize(setDSBootstrapNodeMessage, curr_offset);
         }
         m_mediator.m_lookup->SendMessageToLookupNodes(
             setDSBootstrapNodeMessage);
@@ -897,26 +251,39 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
                           Peer()); // Add myself, but with dummy IP info
 
     vector<pair<PubKey, Peer>> tmp1 = peerstore.GetAllPeerPairs();
-    m_mediator.m_DSCommittee.resize(tmp1.size());
-    copy(tmp1.begin(), tmp1.end(), m_mediator.m_DSCommittee.begin());
+    m_mediator.m_DSCommittee->resize(tmp1.size());
+    copy(tmp1.begin(), tmp1.end(), m_mediator.m_DSCommittee->begin());
     peerstore.RemovePeer(m_mediator.m_selfKey.second); // Remove myself
 
     // Now I need to find my index in the sorted list (this will be my ID for the consensus)
     m_consensusMyID = 0;
-    for (auto const& i : m_mediator.m_DSCommittee)
+    for (auto const& i : *m_mediator.m_DSCommittee)
     {
         if (i.first == m_mediator.m_selfKey.second)
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "My node ID for this PoW1 consensus is "
+                      "My node ID for this PoW consensus is "
                           << m_consensusMyID);
             break;
         }
         m_consensusMyID++;
     }
     m_consensusLeaderID = 0;
+    if (m_mediator.m_currentEpochNum > 1)
+    {
+        LOG_GENERAL(WARNING,
+                    "ProcessSetPrimary called in epoch "
+                        << m_mediator.m_currentEpochNum);
+        m_consensusLeaderID = HashUtils::SerializableToHash16Bits(
+                                  m_mediator.m_txBlockChain.GetLastBlock())
+            % m_mediator.m_DSCommittee->size();
+    }
+
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "START OF EPOCH " << m_mediator.m_dsBlockChain.GetBlockCount());
+              "START OF EPOCH " << m_mediator.m_dsBlockChain.GetLastBlock()
+                                       .GetHeader()
+                                       .GetBlockNum()
+                      + 1);
 
     if (primary == m_mediator.m_selfPeer)
     {
@@ -933,31 +300,37 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
     }
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Waiting " << POW1_WINDOW_IN_SECONDS
-                         << " seconds, accepting PoW1 submissions...");
-    this_thread::sleep_for(chrono::seconds(POW1_WINDOW_IN_SECONDS));
+              "Waiting " << POW_WINDOW_IN_SECONDS
+                         << " seconds, accepting PoW submissions...");
+    this_thread::sleep_for(chrono::seconds(POW_WINDOW_IN_SECONDS));
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Starting consensus on ds block");
     RunConsensusOnDSBlock();
-#endif // IS_LOOKUP_NODE
 
     return true;
 }
 
-#ifndef IS_LOOKUP_NODE
-bool DirectoryService::CheckWhetherDSBlockIsFresh(const uint256_t dsblock_num)
+bool DirectoryService::CheckWhetherDSBlockIsFresh(const uint64_t dsblock_num)
 {
-    // uint256_t latest_block_num_in_blockchain = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
-    uint256_t latest_block_num_in_blockchain
-        = m_mediator.m_dsBlockChain.GetBlockCount();
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::CheckWhetherDSBlockIsFresh not expected "
+                    "to be called from LookUp node.");
+        return true;
+    }
 
-    if (dsblock_num < latest_block_num_in_blockchain)
+    // uint256_t latest_block_num_in_blockchain = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+    uint64_t latest_block_num_in_blockchain
+        = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+
+    if (dsblock_num < latest_block_num_in_blockchain + 1)
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "We are processing duplicated blocks");
         return false;
     }
-    else if (dsblock_num > latest_block_num_in_blockchain)
+    else if (dsblock_num > latest_block_num_in_blockchain + 1)
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Warning: We are missing of some DS blocks. Cur: "
@@ -971,272 +344,47 @@ bool DirectoryService::CheckWhetherDSBlockIsFresh(const uint256_t dsblock_num)
 
 void DirectoryService::SetState(DirState state)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::SetState not expected to be called from "
+                    "LookUp node.");
+        return;
+    }
+
     m_state = state;
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "DS State is now " << GetStateString());
 }
 
-vector<Peer>
-DirectoryService::GetBroadcastList(unsigned char ins_type,
-                                   const Peer& broadcast_originator)
+vector<Peer> DirectoryService::GetBroadcastList(
+    [[gnu::unused]] unsigned char ins_type,
+    [[gnu::unused]] const Peer& broadcast_originator)
 {
     // LOG_MARKER();
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::GetBroadcastList not expected to be "
+                    "called from LookUp node.");
+    }
 
     // Regardless of the instruction type, right now all our "broadcasts" are just redundant multicasts from DS nodes to non-DS nodes
     return vector<Peer>();
 }
 
-void DirectoryService::RequestAllPoWConn()
-{
-    LOG_MARKER();
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "I am requeesting AllPowConn");
-    // message: [listening port]
-
-    // In this implementation, we are only requesting it from ds leader only.
-    vector<unsigned char> requestAllPoWConnMsg
-        = {MessageType::DIRECTORY, DSInstructionType::AllPoWConnRequest};
-    unsigned int cur_offset = MessageOffset::BODY;
-
-    Serializable::SetNumber<uint32_t>(requestAllPoWConnMsg, cur_offset,
-                                      m_mediator.m_selfPeer.m_listenPortHost,
-                                      sizeof(uint32_t));
-    cur_offset += sizeof(uint32_t);
-
-    P2PComm::GetInstance().SendMessage(m_mediator.m_DSCommittee.front().second,
-                                       requestAllPoWConnMsg);
-
-    // TODO: Request from a total of 20 ds members
-}
-
-#endif // IS_LOOKUP_NODE
-
-// Current this is only used by ds. But ideally, 20 ds nodes should
-bool DirectoryService::ProcessAllPoWConnRequest(
-    const vector<unsigned char>& message, unsigned int offset, const Peer& from)
-{
-    LOG_MARKER();
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "I am sending AllPowConn to requester");
-
-    uint32_t requesterListeningPort
-        = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
-
-    //  Contruct the message and send to the requester
-    //  Message: [size of m_allPowConn] [pub key, peer][pub key, peer] ....
-    vector<unsigned char> allPowConnMsg
-        = {MessageType::DIRECTORY, DSInstructionType::AllPoWConnResponse};
-    unsigned int cur_offset = MessageOffset::BODY;
-
-    Serializable::SetNumber<uint32_t>(allPowConnMsg, cur_offset,
-                                      m_allPoWConns.size(), sizeof(uint32_t));
-    cur_offset += sizeof(uint32_t);
-
-    unsigned int offset_to_increment;
-    for (auto& kv : m_allPoWConns)
-    {
-        if (kv.first == m_mediator.m_selfKey.second)
-        {
-            m_mediator.m_selfKey.second.Serialize(allPowConnMsg, cur_offset);
-            cur_offset += PUB_KEY_SIZE;
-            offset_to_increment
-                = m_mediator.m_selfPeer.Serialize(allPowConnMsg, cur_offset);
-            cur_offset += offset_to_increment;
-        }
-        else
-        {
-            kv.first.Serialize(allPowConnMsg, cur_offset);
-            cur_offset += PUB_KEY_SIZE;
-            offset_to_increment
-                = kv.second.Serialize(allPowConnMsg, cur_offset);
-            cur_offset += offset_to_increment;
-        }
-    }
-
-    Peer peer(from.m_ipAddress, requesterListeningPort);
-    P2PComm::GetInstance().SendMessage(peer, allPowConnMsg);
-    return true;
-}
-
-bool DirectoryService::ProcessAllPoWConnResponse(
-    const vector<unsigned char>& message, unsigned int offset, const Peer& from)
-{
-    LOG_MARKER();
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Updating AllPowConn");
-
-    unsigned int cur_offset = offset;
-    // 32-byte block number
-    uint32_t sizeeOfAllPowConn = Serializable::GetNumber<uint32_t>(
-        message, cur_offset, sizeof(uint32_t));
-    cur_offset += sizeof(uint32_t);
-
-    std::map<PubKey, Peer> allPowConn;
-
-    for (uint32_t i = 0; i < sizeeOfAllPowConn; i++)
-    {
-        // PubKey key(message, cur_offset);
-        PubKey key;
-        if (key.Deserialize(message, cur_offset) != 0)
-        {
-            LOG_GENERAL(WARNING, "We failed to deserialize PubKey.");
-            return false;
-        }
-        cur_offset += PUB_KEY_SIZE;
-
-        // Peer peer(message, cur_offset);
-        Peer peer;
-        if (peer.Deserialize(message, cur_offset) != 0)
-        {
-            LOG_GENERAL(WARNING, "We failed to deserialize Peer.");
-            return false;
-        }
-
-        cur_offset += IP_SIZE + PORT_SIZE;
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "updating = " << peer.GetPrintableIPAddress() << ":"
-                                << peer.m_listenPortHost);
-
-        if (m_allPoWConns.find(key) == m_allPoWConns.end())
-        {
-            m_allPoWConns.insert(make_pair(key, peer));
-        }
-    }
-
-    {
-        std::unique_lock<std::mutex> lk(m_MutexCVAllPowConn);
-        m_hasAllPoWconns = true;
-    }
-    cv_allPowConns.notify_all();
-    return true;
-}
-
-#ifndef IS_LOOKUP_NODE
-
-void DirectoryService::LastDSBlockRequest()
-{
-    LOG_MARKER();
-    if (m_requesting_last_ds_block)
-    {
-        // Already requesting for last ds block. Should re-request again.
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "DEBUG: I am already waiting for the last ds block from "
-                  "ds leader.");
-    }
-
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "DEBUG: I am requesting the last ds block from ds leader.");
-
-    // message: [listening port]
-    // In this implementation, we are only requesting it from ds leader only.
-    vector<unsigned char> requestAllPoWConnMsg
-        = {MessageType::DIRECTORY, DSInstructionType::LastDSBlockRequest};
-    unsigned int cur_offset = MessageOffset::BODY;
-
-    Serializable::SetNumber<uint32_t>(requestAllPoWConnMsg, cur_offset,
-                                      m_mediator.m_selfPeer.m_listenPortHost,
-                                      sizeof(uint32_t));
-    cur_offset += sizeof(uint32_t);
-
-    P2PComm::GetInstance().SendMessage(m_mediator.m_DSCommittee.front().second,
-                                       requestAllPoWConnMsg);
-    // TODO: Request from a total of 20 ds members
-}
-
-bool DirectoryService::ProcessLastDSBlockRequest(
-    const vector<unsigned char>& message, unsigned int offset, const Peer& from)
-{
-    LOG_MARKER();
-
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "DEBUG: I am sending the last ds block to the requester.");
-
-    // Deserialize the message and get the port
-    uint32_t requesterListeningPort
-        = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
-
-    // Craft the last block message
-    vector<unsigned char> lastDSBlockMsg
-        = {MessageType::DIRECTORY, DSInstructionType::LastDSBlockResponse};
-    unsigned int cur_offset = MessageOffset::BODY;
-
-    m_mediator.m_dsBlockChain.GetLastBlock().Serialize(lastDSBlockMsg,
-                                                       cur_offset);
-
-    Peer peer(from.m_ipAddress, requesterListeningPort);
-    P2PComm::GetInstance().SendMessage(peer, lastDSBlockMsg);
-
-    return true;
-}
-
-bool DirectoryService::ProcessLastDSBlockResponse(
-    const vector<unsigned char>& message, unsigned int offset, const Peer& from)
-{
-    LOG_MARKER();
-
-    if (m_state != DirectoryService::DSBLOCK_CONSENSUS
-        and m_requesting_last_ds_block)
-    {
-        // This recovery stage is meant for nodes that may get stuck in ds block consensus only.
-        // Only proceed if I still need the last ds block
-        return false;
-    }
-
-    // TODO: Should check whether ds block chain contain this block or not.
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "DEBUG: I received the last ds block from ds leader.");
-    m_requesting_last_ds_block = false;
-    unsigned int cur_offset = offset;
-
-    DSBlock dsblock;
-    if (dsblock.Deserialize(message, cur_offset) != 0)
-    {
-        LOG_GENERAL(WARNING, "We failed to deserialize dsblock.");
-        return false;
-    }
-    int result = m_mediator.m_dsBlockChain.AddBlock(dsblock);
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Storing DS Block Number: "
-                  << dsblock.GetHeader().GetBlockNum()
-                  << " with Nonce: " << dsblock.GetHeader().GetNonce()
-                  << ", Difficulty: " << dsblock.GetHeader().GetDifficulty()
-                  << ", Timestamp: " << dsblock.GetHeader().GetTimestamp());
-
-    if (result == -1)
-    {
-        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "We failed to add dsblock to dsblockchain.");
-        return false;
-    }
-
-    vector<unsigned char> serializedDSBlock;
-    dsblock.Serialize(serializedDSBlock, 0);
-    BlockStorage::GetBlockStorage().PutDSBlock(
-        dsblock.GetHeader().GetBlockNum(), serializedDSBlock);
-    BlockStorage::GetBlockStorage().PushBackTxBodyDB(
-        dsblock.GetHeader().GetBlockNum());
-
-    if (TEST_NET_MODE)
-    {
-        LOG_GENERAL(INFO, "Updating shard whitelist");
-        Whitelist::GetInstance().UpdateShardWhitelist();
-    }
-
-    SetState(POW2_SUBMISSION);
-    NotifyPOW2Submission();
-    ScheduleShardingConsensus(BACKUP_POW2_WINDOW_IN_SECONDS
-                              - BUFFER_TIME_BEFORE_DS_BLOCK_REQUEST);
-    return true;
-}
-
 bool DirectoryService::CleanVariables()
 {
-    LOG_MARKER();
-    m_requesting_last_ds_block = false;
+    if (LOOKUP_NODE_MODE)
     {
-        std::lock_guard<mutex> lock(m_MutexCVAllPowConn);
-        m_hasAllPoWconns = true;
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::CleanVariables not expected to be "
+                    "called from LookUp node.");
+        return true;
     }
+
+    LOG_MARKER();
+
     m_shards.clear();
     m_publicKeyToShardIdMap.clear();
     m_allPoWConns.clear();
@@ -1252,20 +400,21 @@ bool DirectoryService::CleanVariables()
         m_pendingDSBlock.reset();
     }
     {
-        std::lock_guard<mutex> lock(m_mutexAllPOW1);
-        m_allPoW1s.clear();
+        std::lock_guard<mutex> lock(m_mutexAllPOW);
+        m_allPoWs.clear();
     }
-    {
-        std::lock_guard<mutex> lock(m_mutexAllPOW2);
-        m_allPoW2s.clear();
-        m_sortedPoW2s.clear();
-    }
+
+    ClearDSPoWSolns();
+
+    ResetPoWSubmissionCounter();
+
     {
         std::lock_guard<mutex> lock(m_mutexMicroBlocks);
         m_microBlocks.clear();
     }
+    CleanFinalblockConsensusBuffer();
+
     m_finalBlock.reset();
-    m_finalBlockMessage.clear();
     m_sharingAssignment.clear();
     m_viewChangeCounter = 0;
     m_mode = IDLE;
@@ -1276,6 +425,14 @@ bool DirectoryService::CleanVariables()
 
 void DirectoryService::RejoinAsDS()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::RejoinAsDS not expected to be called "
+                    "from LookUp node.");
+        return;
+    }
+
     LOG_MARKER();
     if (m_mediator.m_lookup->m_syncType == SyncType::NO_SYNC
         && m_mode == BACKUP_DS)
@@ -1292,22 +449,29 @@ void DirectoryService::RejoinAsDS()
 
 bool DirectoryService::FinishRejoinAsDS()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::FinishRejoinAsDS not expected to be "
+                    "called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
     m_mode = BACKUP_DS;
 
     m_consensusMyID = 0;
     {
         std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
-        LOG_GENERAL(
-            INFO,
-            "m_DSCommitteePubKeys size: " << m_mediator.m_DSCommittee.size());
-        for (auto const& i : m_mediator.m_DSCommittee)
+        LOG_GENERAL(INFO,
+                    "m_DSCommittee size: " << m_mediator.m_DSCommittee->size());
+        for (auto const& i : *m_mediator.m_DSCommittee)
         {
-            LOG_GENERAL(INFO, "Loop of m_DSCommitteePubKeys");
+            LOG_GENERAL(INFO, "Loop of m_DSCommittee");
             if (i.first == m_mediator.m_selfKey.second)
             {
                 LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "My node ID for this PoW1 consensus is "
+                          "My node ID for this PoW consensus is "
                               << m_consensusMyID);
                 break;
             }
@@ -1320,15 +484,10 @@ bool DirectoryService::FinishRejoinAsDS()
     RunConsensusOnDSBlock(true);
     return true;
 }
-#endif // IS_LOOKUP_NODE
 
-bool DirectoryService::ToBlockMessage(unsigned char ins_byte)
+bool DirectoryService::ToBlockMessage([[gnu::unused]] unsigned char ins_byte)
 {
-    if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
-    {
-        return true;
-    }
-    return false;
+    return m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC;
 }
 
 bool DirectoryService::Execute(const vector<unsigned char>& message,
@@ -1341,37 +500,31 @@ bool DirectoryService::Execute(const vector<unsigned char>& message,
     typedef bool (DirectoryService::*InstructionHandler)(
         const vector<unsigned char>&, unsigned int, const Peer&);
 
-#ifndef IS_LOOKUP_NODE
-    InstructionHandler ins_handlers[]
-        = {&DirectoryService::ProcessSetPrimary,
-           &DirectoryService::ProcessPoW1Submission,
-           &DirectoryService::ProcessDSBlockConsensus,
-           &DirectoryService::ProcessPoW2Submission,
-           &DirectoryService::ProcessShardingConsensus,
-           &DirectoryService::ProcessMicroblockSubmission,
-           &DirectoryService::ProcessFinalBlockConsensus,
-           &DirectoryService::ProcessAllPoWConnRequest,
-           &DirectoryService::ProcessAllPoWConnResponse,
-           &DirectoryService::ProcessLastDSBlockRequest,
-           &DirectoryService::ProcessLastDSBlockResponse,
-           &DirectoryService::ProcessViewChangeConsensus};
-#else
-    InstructionHandler ins_handlers[]
-        = {&DirectoryService::ProcessSetPrimary,
-           &DirectoryService::ProcessPoW1Submission,
-           &DirectoryService::ProcessDSBlockConsensus,
-           &DirectoryService::ProcessPoW2Submission,
-           &DirectoryService::ProcessShardingConsensus,
-           &DirectoryService::ProcessMicroblockSubmission,
-           &DirectoryService::ProcessFinalBlockConsensus,
-           &DirectoryService::ProcessAllPoWConnRequest,
-           &DirectoryService::ProcessAllPoWConnResponse};
-#endif // IS_LOOKUP_NODE
+    std::vector<InstructionHandler> ins_handlers;
+
+    if (!LOOKUP_NODE_MODE)
+    {
+        ins_handlers.insert(ins_handlers.end(),
+                            {&DirectoryService::ProcessSetPrimary,
+                             &DirectoryService::ProcessPoWSubmission,
+                             &DirectoryService::ProcessDSBlockConsensus,
+                             &DirectoryService::ProcessMicroblockSubmission,
+                             &DirectoryService::ProcessFinalBlockConsensus,
+                             &DirectoryService::ProcessViewChangeConsensus});
+    }
+    else
+    {
+        ins_handlers.insert(ins_handlers.end(),
+                            {&DirectoryService::ProcessSetPrimary,
+                             &DirectoryService::ProcessPoWSubmission,
+                             &DirectoryService::ProcessDSBlockConsensus,
+                             &DirectoryService::ProcessMicroblockSubmission,
+                             &DirectoryService::ProcessFinalBlockConsensus});
+    }
 
     const unsigned char ins_byte = message.at(offset);
 
-    const unsigned int ins_handlers_count
-        = sizeof(ins_handlers) / sizeof(InstructionHandler);
+    const unsigned int ins_handlers_count = ins_handlers.size();
 
     if (ToBlockMessage(ins_byte))
     {
@@ -1384,7 +537,7 @@ bool DirectoryService::Execute(const vector<unsigned char>& message,
     {
         result = (this->*ins_handlers[ins_byte])(message, offset + 1, from);
 
-        if (result == false)
+        if (!result)
         {
             // To-do: Error recovery
         }
@@ -1404,12 +557,9 @@ bool DirectoryService::Execute(const vector<unsigned char>& message,
     }
 
 map<DirectoryService::DirState, string> DirectoryService::DirStateStrings
-    = {MAKE_LITERAL_PAIR(POW1_SUBMISSION),
+    = {MAKE_LITERAL_PAIR(POW_SUBMISSION),
        MAKE_LITERAL_PAIR(DSBLOCK_CONSENSUS_PREP),
        MAKE_LITERAL_PAIR(DSBLOCK_CONSENSUS),
-       MAKE_LITERAL_PAIR(POW2_SUBMISSION),
-       MAKE_LITERAL_PAIR(SHARDING_CONSENSUS_PREP),
-       MAKE_LITERAL_PAIR(SHARDING_CONSENSUS),
        MAKE_LITERAL_PAIR(MICROBLOCK_SUBMISSION),
        MAKE_LITERAL_PAIR(FINALBLOCK_CONSENSUS_PREP),
        MAKE_LITERAL_PAIR(FINALBLOCK_CONSENSUS),
@@ -1419,12 +569,160 @@ map<DirectoryService::DirState, string> DirectoryService::DirStateStrings
 
 string DirectoryService::GetStateString() const
 {
-    if (DirStateStrings.find(m_state) == DirStateStrings.end())
+    return (DirStateStrings.find(m_state) == DirStateStrings.end())
+        ? "Unknown"
+        : DirStateStrings.at(m_state);
+}
+
+map<DirectoryService::Action, string> DirectoryService::ActionStrings
+    = {MAKE_LITERAL_PAIR(PROCESS_POWSUBMISSION),
+       MAKE_LITERAL_PAIR(VERIFYPOW),
+       MAKE_LITERAL_PAIR(PROCESS_DSBLOCKCONSENSUS),
+       MAKE_LITERAL_PAIR(PROCESS_MICROBLOCKSUBMISSION),
+       MAKE_LITERAL_PAIR(PROCESS_FINALBLOCKCONSENSUS),
+       MAKE_LITERAL_PAIR(PROCESS_VIEWCHANGECONSENSUS)};
+
+std::string DirectoryService::GetActionString(Action action) const
+{
+    return (ActionStrings.find(action) == ActionStrings.end())
+        ? "Unknown"
+        : ActionStrings.at(action);
+}
+
+uint8_t
+DirectoryService::CalculateNewDifficulty(const uint8_t& currentDifficulty)
+{
+    constexpr unsigned int MAX_ADJUST_THRESHOLD = 99;
+
+    int64_t currentNodes = 0, powSubmissions = 0;
     {
-        return "Unknown";
+        lock_guard<mutex> g(m_mutexAllPOW);
+        powSubmissions = m_allPoWs.size();
+
+        for (const auto& shard : m_shards)
+        {
+            currentNodes += shard.size();
+        }
     }
-    else
+
+    LOG_EPOCH(INFO, std::to_string(m_mediator.m_currentEpochNum).c_str(),
+              "currentDifficulty " << std::to_string(currentDifficulty)
+                                   << ", currentNodes " << currentNodes
+                                   << ", powSubmissions " << powSubmissions);
+    return CalculateNewDifficultyCore(
+        currentDifficulty, POW_DIFFICULTY, currentNodes, powSubmissions,
+        NUM_NETWORK_NODE, MAX_ADJUST_THRESHOLD, m_mediator.m_currentEpochNum,
+        CalculateNumberOfBlocksPerYear());
+}
+
+uint8_t DirectoryService::CalculateNewDSDifficulty(const uint8_t& dsDifficulty)
+{
+    constexpr unsigned int MAX_ADJUST_THRESHOLD = 9;
+
+    int64_t currentDSNodes = m_mediator.m_DSCommittee->size();
+    int64_t dsPowSubmissions = GetNumberOfDSPoWSolns();
+
+    LOG_EPOCH(INFO, std::to_string(m_mediator.m_currentEpochNum).c_str(),
+              "dsDifficulty " << std::to_string(dsDifficulty)
+                              << ", currentDSNodes " << currentDSNodes
+                              << ", dsPowSubmissions " << dsPowSubmissions);
+
+    return CalculateNewDifficultyCore(
+        dsDifficulty, DS_POW_DIFFICULTY, currentDSNodes, dsPowSubmissions,
+        currentDSNodes, MAX_ADJUST_THRESHOLD, m_mediator.m_currentEpochNum,
+        CalculateNumberOfBlocksPerYear());
+}
+
+uint8_t DirectoryService::CalculateNewDifficultyCore(
+    uint8_t currentDifficulty, uint8_t minDifficulty, int64_t currentNodes,
+    int64_t powSubmissions, int64_t expectedNodes, uint32_t maxAdjustThreshold,
+    int64_t currentEpochNum, int64_t numBlockPerYear)
+{
+    constexpr int8_t MAX_ADJUST_STEP = 2;
+    constexpr float ONE_HUNDRED_PERCENT = 100.f;
+    constexpr uint8_t MAX_INCREASE_DIFFICULTY_YEARS = 10;
+
+    int64_t adjustment = 0;
+    if (currentNodes > 0 && currentNodes != powSubmissions)
     {
-        return DirStateStrings.at(m_state);
+        int64_t submissionsDiff;
+        if (!SafeMath<int64_t>::sub(powSubmissions, currentNodes,
+                                    submissionsDiff))
+        {
+            LOG_GENERAL(WARNING,
+                        "Calculate PoW submission difference goes wrong");
+            submissionsDiff = 0;
+        }
+
+        // To make the adjustment work on small network.
+        int64_t adjustThreshold
+            = std::ceil(currentNodes * POW_CHANGE_PERCENT_TO_ADJ_DIFF
+                        / ONE_HUNDRED_PERCENT);
+        if (adjustThreshold > maxAdjustThreshold)
+        {
+            adjustThreshold = maxAdjustThreshold;
+        }
+
+        // If the PoW submissions change not so big, then adjust according to the expected whole network node number.
+        if (abs(submissionsDiff) < adjustThreshold)
+        {
+            // If the PoW submissions exceeded the expected whole network node number, then increase the difficulty.
+            if (submissionsDiff > 0 && currentNodes > expectedNodes)
+            {
+                adjustment = 1;
+            }
+            else if (submissionsDiff < 0 && currentNodes < expectedNodes)
+            {
+                adjustment = -1;
+            }
+        }
+        else
+        {
+            if (!SafeMath<int64_t>::div(submissionsDiff, adjustThreshold,
+                                        adjustment))
+            {
+                LOG_GENERAL(WARNING,
+                            "Calculate difficulty adjustment goes wrong");
+                adjustment = 0;
+            }
+        }
     }
+
+    // Restrict the adjustment step, prevent the difficulty jump up/down dramatically.
+    if (adjustment > MAX_ADJUST_STEP)
+    {
+        adjustment = MAX_ADJUST_STEP;
+    }
+    else if (adjustment < -MAX_ADJUST_STEP)
+    {
+        adjustment = -MAX_ADJUST_STEP;
+    }
+
+    uint8_t newDifficulty = std::max((uint8_t)(adjustment + currentDifficulty),
+                                     (uint8_t)(minDifficulty));
+
+    // Within 10 years, every year increase the difficulty by one.
+    if (currentEpochNum / numBlockPerYear <= MAX_INCREASE_DIFFICULTY_YEARS
+        && currentEpochNum % numBlockPerYear == 0)
+    {
+        LOG_GENERAL(INFO,
+                    "At one year epoch " << currentEpochNum
+                                         << ", increase difficulty by 1.");
+        ++newDifficulty;
+    }
+    return newDifficulty;
+}
+
+uint64_t DirectoryService::CalculateNumberOfBlocksPerYear() const
+{
+    // Every year, always increase the difficulty by 1, to encourage miners to upgrade the hardware over time.
+    // If POW_WINDOW_IN_SECONDS = 300, NUM_FINAL_BLOCK_PER_POW = 50, TX_DISTRIBUTE_TIME_IN_MS = 10000, estimated blocks in a year is 1971000.
+    uint64_t estimatedBlocksOneYear = 365 * 24 * 3600
+        / ((POW_WINDOW_IN_SECONDS / NUM_FINAL_BLOCK_PER_POW)
+           + (TX_DISTRIBUTE_TIME_IN_MS / 1000));
+
+    // Round to integral multiple of NUM_FINAL_BLOCK_PER_POW
+    estimatedBlocksOneYear = (estimatedBlocksOneYear / NUM_FINAL_BLOCK_PER_POW)
+        * NUM_FINAL_BLOCK_PER_POW;
+    return estimatedBlocksOneYear;
 }

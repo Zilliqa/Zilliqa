@@ -26,7 +26,7 @@ public:
         : BaseDB(dbname, txn, txBlock, dsBlock, accountState)
     {
     }
-    bool InsertTxn(const Transaction& txn);
+    bool InsertTxn(const TransactionWithReceipt& txn);
     bool InsertTxBlock(const TxBlock& txblock);
     bool InsertDSBlock(const DSBlock& dsblock);
     bool InsertJson(const Json::Value& _json,

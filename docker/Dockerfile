@@ -21,6 +21,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libjsonrpccpp-dev \
     libevent-dev \
     libminiupnpc-dev \
+    ocl-icd-opencl-dev \
+    libprotobuf-dev \
+    protobuf-compiler \
+    libcurl4-openssl-dev \
     python python-pip \
     && rm -rf /var/lib/apt/lists/* \
     && pip install netaddr
@@ -40,12 +44,6 @@ ARG JOBS=2
 # FIXME: see issue https://github.com/Zilliqa/Zilliqa/issues/240
 RUN git clone --recursive ${REPO} ${SOURCE_DIR} && \
     git -C ${SOURCE_DIR} checkout ${COMMIT} && \
-    mkdir $BUILD_DIR && cd $BUILD_DIR && \
-    cmake -DIS_LOOKUP_NODE=1 -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
-        -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} ${SOURCE_DIR} && \
-    make -j${JOBS} && make install && \
-    cd .. && rm -rf ${BUILD_DIR} && \
-    mv ${INSTALL_DIR}/bin/zilliqa ${INSTALL_DIR}/bin/zilliqa_lookup && \
     mkdir $BUILD_DIR && cd $BUILD_DIR && \
     cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
         -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} ${SOURCE_DIR} && \
