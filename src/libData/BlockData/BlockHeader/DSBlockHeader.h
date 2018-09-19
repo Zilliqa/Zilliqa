@@ -92,6 +92,9 @@ public:
     /// Returns the Unix time at the time of creation of this block.
     const boost::multiprecision::uint256_t& GetTimestamp() const;
 
+    /// Returns the software version information used during creation of this block.
+    const SWInfo& GetSWInfo() const;
+
     /// Equality operator.
     bool operator==(const DSBlockHeader& header) const;
 
