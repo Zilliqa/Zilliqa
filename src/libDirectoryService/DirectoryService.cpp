@@ -194,6 +194,13 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
         return false;
     }
 
+    return SetDSNode(primary);
+}
+
+bool DirectoryService::SetDSNode(const Peer& primary)
+{
+    LOG_MARKER();
+
     if (primary == m_mediator.m_selfPeer)
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),

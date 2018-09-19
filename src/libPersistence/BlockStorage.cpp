@@ -325,6 +325,66 @@ bool BlockStorage::GetMetadata(MetaType type, std::vector<unsigned char>& data)
     return true;
 }
 
+bool BlockStorage::PutDSCommittee(
+    const shared_ptr<deque<pair<PubKey, Peer>>>& dsCommittee)
+{
+    LOG_MARKER();
+
+    vector<unsigned char> data;
+    unsigned int index = 0;
+
+    for (const auto& ds : *dsCommittee)
+    {
+        int pubKeySize = ds.first.Serialize(data, 0);
+        ds.second.Serialize(data, pubKeySize);
+
+        /// Store index as key, to guarantee the sequence of DS committee after retrieval
+        /// Because first DS committee is DS leader
+        if (0 != m_dsCommitteeDB->Insert(index++, data))
+        {
+            LOG_GENERAL(WARNING,
+                        "Failed to store DS committee:" << ds.first << ", "
+                                                        << ds.second);
+            return false;
+        }
+
+        LOG_GENERAL(INFO,
+                    "Stored DS committee:" << ds.first << ", " << ds.second);
+    }
+
+    return true;
+}
+
+bool BlockStorage::GetDSCommittee(
+    shared_ptr<deque<pair<PubKey, Peer>>>& dsCommittee)
+{
+    LOG_MARKER();
+
+    leveldb::Iterator* it
+        = m_dsCommitteeDB->GetDB()->NewIterator(leveldb::ReadOptions());
+    string indexStr, dataStr;
+
+    for (it->SeekToFirst(); it->Valid(); it->Next())
+    {
+        indexStr = it->key().ToString();
+        dataStr = it->value().ToString();
+        dsCommittee->emplace_back(
+            PubKey(vector<unsigned char>(dataStr.begin(),
+                                         dataStr.begin() + PUB_KEY_SIZE),
+                   0),
+            Peer(vector<unsigned char>(dataStr.begin() + PUB_KEY_SIZE,
+                                       dataStr.end()),
+                 0));
+        LOG_GENERAL(INFO,
+                    "Retrieved DS committee:"
+                        << indexStr << ", " << dsCommittee->back().first << ", "
+                        << dsCommittee->back().second);
+    }
+
+    delete it;
+    return true;
+}
+
 bool BlockStorage::ResetDB(DBTYPE type)
 {
     bool ret = false;
@@ -344,6 +404,9 @@ bool BlockStorage::ResetDB(DBTYPE type)
         break;
     case TX_BODY_TMP:
         ret = m_txBodyTmpDB->ResetDB();
+        break;
+    case DS_COMMITTEE:
+        ret = m_dsCommitteeDB->ResetDB();
         break;
     }
     if (!ret)
@@ -373,6 +436,9 @@ std::vector<std::string> BlockStorage::GetDBName(DBTYPE type)
     case TX_BODY_TMP:
         ret.push_back(m_txBodyTmpDB->GetDBName());
         break;
+    case DS_COMMITTEE:
+        ret.push_back(m_dsCommitteeDB->GetDBName());
+        break;
     }
 
     return ret;
@@ -382,11 +448,13 @@ bool BlockStorage::ResetAll()
 {
     if (!LOOKUP_NODE_MODE)
     {
-        return ResetDB(META) && ResetDB(DS_BLOCK) && ResetDB(TX_BLOCK);
+        return ResetDB(META) && ResetDB(DS_BLOCK) && ResetDB(TX_BLOCK)
+            && ResetDB(DS_COMMITTEE);
     }
     else // IS_LOOKUP_NODE
     {
         return ResetDB(META) && ResetDB(DS_BLOCK) && ResetDB(TX_BLOCK)
-            && ResetDB(TX_BODY) && ResetDB(TX_BODY_TMP);
+            && ResetDB(TX_BODY) && ResetDB(TX_BODY_TMP)
+            && ResetDB(DS_COMMITTEE);
     }
 }

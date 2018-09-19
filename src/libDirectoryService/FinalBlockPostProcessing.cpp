@@ -378,6 +378,15 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
             + 1
         << "] AFTER SENDING FINAL BLOCK");
 
+    if (m_mediator.m_curSWInfo.GetUpgradeDS()
+        == (((m_mediator.m_currentEpochNum) / NUM_FINAL_BLOCK_PER_POW) + 2))
+    {
+        auto func = [this]() mutable -> void {
+            UpgradeManager::GetInstance().ReplaceNode(m_mediator);
+        };
+        DetachedFunction(1, func);
+    }
+
     AccountStore::GetInstance().InitTemp();
     m_stateDeltaFromShards.clear();
     m_allPoWConns.clear();

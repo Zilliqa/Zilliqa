@@ -496,6 +496,9 @@ public:
     /// Calculate node priority to determine which node has the priority to join the network.
     static uint8_t CalculateNodePriority(uint16_t reputation);
 
+    /// Set this node as DS node, used in bootstrap and upgrading protocol
+    bool SetDSNode(const Peer& primary);
+
 private:
     static std::map<DirState, std::string> DirStateStrings;
     std::string GetStateString() const;

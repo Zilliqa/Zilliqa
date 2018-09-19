@@ -189,7 +189,6 @@ bool Node::SendPoWResultToDSComm(const uint64_t& block_num,
     }
 
     P2PComm::GetInstance().SendMessage(peerList, powmessage);
-
     return true;
 }
 

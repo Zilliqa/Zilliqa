@@ -76,6 +76,8 @@ Node::~Node() {}
 
 void Node::Install(unsigned int syncType, bool toRetrieveHistory)
 {
+    LOG_MARKER();
+
     // m_state = IDLE;
     bool runInitializeGenesisBlocks = true;
 
@@ -91,6 +93,70 @@ void Node::Install(unsigned int syncType, bool toRetrieveHistory)
             m_consensusID = 0;
             m_consensusLeaderID = 0;
             runInitializeGenesisBlocks = false;
+
+            BlockStorage::GetBlockStorage().GetDSCommittee(
+                m_mediator.m_DSCommittee);
+
+            LOG_GENERAL(INFO,
+                        "Current public key: " << m_mediator.m_selfKey.second);
+
+            /// If this node is inside ds committee, mark it as DS node
+            for (const auto& ds : *m_mediator.m_DSCommittee)
+            {
+                LOG_GENERAL(INFO, "DS public key: " << ds.first);
+
+                if (ds.first == m_mediator.m_selfKey.second)
+                {
+                    SetState(POW_SUBMISSION);
+
+                    if (m_mediator.m_DSCommittee->front().first
+                        == m_mediator.m_selfKey.second)
+                    {
+                        LOG_GENERAL(INFO, "Set as DS leader.");
+                        auto func = [this]() mutable -> void {
+                            m_mediator.m_ds->SetDSNode(m_mediator.m_selfPeer);
+                        };
+                        DetachedFunction(1, func);
+                    }
+                    else
+                    {
+                        LOG_GENERAL(INFO, "Set as DS backup.");
+                        auto func = [this]() mutable -> void {
+                            m_mediator.m_ds->SetDSNode(
+                                m_mediator.m_DSCommittee->front().second);
+                        };
+                        DetachedFunction(1, func);
+                    }
+#if 1 //clark
+                    this_thread::sleep_for(chrono::seconds(1));
+#endif
+                    break;
+                }
+            }
+
+            /// If this node is shard node, start pow
+            if (DirectoryService::IDLE == m_mediator.m_ds->m_mode)
+            {
+                LOG_GENERAL(INFO, "Set as shard node.");
+#if 1 //clark
+                this_thread::sleep_for(chrono::seconds(10));
+#endif
+                uint64_t block_num = m_mediator.m_dsBlockChain.GetLastBlock()
+                                         .GetHeader()
+                                         .GetBlockNum()
+                    + 1;
+                uint8_t dsDifficulty = m_mediator.m_dsBlockChain.GetLastBlock()
+                                           .GetHeader()
+                                           .GetDSDifficulty();
+                uint8_t difficulty = m_mediator.m_dsBlockChain.GetLastBlock()
+                                         .GetHeader()
+                                         .GetDifficulty();
+                SetState(POW_SUBMISSION);
+                m_mediator.UpdateDSBlockRand();
+                m_mediator.UpdateTxBlockRand();
+                StartPoW(block_num, dsDifficulty, difficulty,
+                         m_mediator.m_dsBlockRand, m_mediator.m_txBlockRand);
+            }
         }
         else
         {
