@@ -2024,6 +2024,115 @@ bool Messenger::GetLookupGetStartPoWFromSeed(const vector<unsigned char>& src,
     return true;
 }
 
+bool Messenger::SetLookupGetShardsFromSeed(vector<unsigned char>& dst,
+                                           const unsigned int offset,
+                                           const uint32_t listenPort)
+{
+    LOG_MARKER();
+
+    LookupGetShardsFromSeed result;
+
+    result.set_listenport(listenPort);
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "LookupGetShardsFromSeed initialization failed.");
+        return false;
+    }
+
+    return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupGetShardsFromSeed(const vector<unsigned char>& src,
+                                           const unsigned int offset,
+                                           uint32_t& listenPort)
+{
+    LOG_MARKER();
+
+    LookupGetShardsFromSeed result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "LookupGetShardsFromSeed initialization failed.");
+        return false;
+    }
+
+    listenPort = result.listenport();
+
+    return true;
+}
+
+bool Messenger::SetLookupSetShardsFromSeed(vector<unsigned char>& dst,
+                                           const unsigned int offset,
+                                           const VectorOfShard& shards)
+{
+    LOG_MARKER();
+
+    LookupSetShardsFromSeed result;
+
+    for (const auto& shard : shards)
+    {
+        ShardingStructure::Shard* proto_shard
+            = result.mutable_sharding()->add_shards();
+
+        for (const auto& node : shard)
+        {
+            ShardingStructure::Member* proto_member
+                = proto_shard->add_members();
+
+            SerializableToProtobufByteArray(node.first,
+                                            *proto_member->mutable_pubkey());
+            SerializableToProtobufByteArray(node.second,
+                                            *proto_member->mutable_peerinfo());
+        }
+    }
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "LookupSetShardsFromSeed initialization failed.");
+        return false;
+    }
+
+    return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupSetShardsFromSeed(const vector<unsigned char>& src,
+                                           const unsigned int offset,
+                                           VectorOfShard& shards)
+{
+    LOG_MARKER();
+
+    LookupSetShardsFromSeed result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "LookupSetShardsFromSeed initialization failed.");
+        return false;
+    }
+
+    for (const auto& proto_shard : result.sharding().shards())
+    {
+        shards.emplace_back();
+
+        for (const auto& proto_member : proto_shard.members())
+        {
+            PubKey key;
+            Peer peer;
+
+            ProtobufByteArrayToSerializable(proto_member.pubkey(), key);
+            ProtobufByteArrayToSerializable(proto_member.peerinfo(), peer);
+
+            shards.back().emplace_back(key, peer);
+        }
+    }
+
+    return true;
+}
+
 // ============================================================================
 // Consensus messages
 // ============================================================================

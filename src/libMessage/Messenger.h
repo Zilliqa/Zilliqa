@@ -264,6 +264,23 @@ public:
                                  const unsigned int offset,
                                  uint32_t& listenPort);
 
+    static bool SetLookupGetShardsFromSeed(std::vector<unsigned char>& dst,
+                                           const unsigned int offset,
+                                           const uint32_t listenPort);
+
+    static bool
+    GetLookupGetShardsFromSeed(const std::vector<unsigned char>& src,
+                               const unsigned int offset, uint32_t& listenPort);
+
+    static bool SetLookupSetShardsFromSeed(std::vector<unsigned char>& dst,
+                                           const unsigned int offset,
+                                           const VectorOfShard& shards);
+
+    static bool
+    GetLookupSetShardsFromSeed(const std::vector<unsigned char>& src,
+                               const unsigned int offset,
+                               VectorOfShard& shards);
+
     // ============================================================================
     // Consensus messages
     // ============================================================================
