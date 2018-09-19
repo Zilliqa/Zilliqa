@@ -105,7 +105,6 @@ class P2PComm
     Peer m_selfPeer;
 
     ThreadPool m_SendPool{MAXMESSAGE, "SendPool"};
-    ThreadPool m_RecvPool{MAXMESSAGE, "RecvPool"};
 
     boost::lockfree::queue<SendJob*> m_sendQueue;
     void ProcessSendJob(SendJob* job);

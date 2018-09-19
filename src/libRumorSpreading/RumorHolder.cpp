@@ -178,6 +178,8 @@ namespace RRS
                 increaseStatValue(StatisticKey::NumPullMessages,
                                   pullMessages.size());
             }
+
+            m_nonPriorPeers.insert(fromPeer);
         }
 
         // An empty response from a peer that was sent a PULL
@@ -212,7 +214,26 @@ namespace RRS
 
         increaseStatValue(StatisticKey::Rounds, 1);
 
-        int toMember = m_nextMemberCb ? m_nextMemberCb() : chooseRandomMember();
+        int toMember;
+        if (m_nonPriorPeers.size() < m_peers.size())
+        {
+            int retryCount = 0;
+            while (retryCount < 3)
+            {
+                toMember
+                    = m_nextMemberCb ? m_nextMemberCb() : chooseRandomMember();
+                if (m_nonPriorPeers.count(toMember) == 0)
+                {
+                    break;
+                }
+                retryCount++;
+            }
+        }
+        else
+        {
+            toMember = m_nextMemberCb ? m_nextMemberCb() : chooseRandomMember();
+        }
+        m_nonPriorPeers.clear();
 
         // Construct the push messages
         std::vector<Message> pushMessages;

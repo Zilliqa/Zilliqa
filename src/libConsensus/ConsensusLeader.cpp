@@ -627,19 +627,19 @@ bool ConsensusLeader::StartConsensus(
     // Multicast to all nodes in the committee
     // =======================================
 
-    std::vector<Peer> peer;
-
-    for (auto const& i : m_committee)
-    {
-        peer.push_back(i.second);
-    }
-
     if (useGossipProto)
     {
         P2PComm::GetInstance().SpreadRumor(announcement_message);
     }
     else
     {
+        std::deque<Peer> peer;
+
+        for (auto const& i : m_committee)
+        {
+            peer.push_back(i.second);
+        }
+
         P2PComm::GetInstance().SendMessage(peer, announcement_message);
     }
 

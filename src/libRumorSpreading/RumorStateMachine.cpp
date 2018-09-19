@@ -19,7 +19,7 @@ namespace RRS
         const std::unordered_set<int>& membersInRound)
     {
         m_roundsInB++;
-        if (m_age >= m_networkConfigPtr->maxRoundsTotal())
+        if (m_age > m_networkConfigPtr->maxRoundsTotal())
         {
             advanceToOld();
             return;
@@ -41,7 +41,7 @@ namespace RRS
             {
                 numLess++;
             }
-            else if (theirRound >= m_networkConfigPtr->maxRoundsInB())
+            else if (theirRound > m_networkConfigPtr->maxRoundsInB())
             {
                 m_state = State::KNOWN;
             }
@@ -56,7 +56,7 @@ namespace RRS
             m_roundsInB++;
         }
 
-        if (m_roundsInB >= m_networkConfigPtr->maxRoundsInB())
+        if (m_roundsInB > m_networkConfigPtr->maxRoundsInB())
         {
             m_state = State::KNOWN;
         }
@@ -66,8 +66,8 @@ namespace RRS
     void RumorStateMachine::advanceFromKnown()
     {
         m_roundsInC++;
-        if (m_age >= m_networkConfigPtr->maxRoundsTotal()
-            || m_roundsInC >= m_networkConfigPtr->maxRoundsInC())
+        if (m_age > m_networkConfigPtr->maxRoundsTotal()
+            || m_roundsInC > m_networkConfigPtr->maxRoundsInC())
         {
             advanceToOld();
         }

@@ -433,6 +433,10 @@ void DirectoryService::StartFirstTxEpoch()
             Whitelist::GetInstance().UpdateShardWhitelist();
         }
 
+        // Start sharding work
+        SetState(MICROBLOCK_SUBMISSION);
+        m_dsStartedMicroblockConsensus = false;
+
         std::vector<Peer> peers;
         for (const auto& i : *m_mediator.m_node->m_myShardMembers)
         {
@@ -443,10 +447,6 @@ void DirectoryService::StartFirstTxEpoch()
         }
         // ReInitialize RumorManager for this epoch.
         P2PComm::GetInstance().InitializeRumorManager(peers);
-
-        // Start sharding work
-        SetState(MICROBLOCK_SUBMISSION);
-        m_dsStartedMicroblockConsensus = false;
 
         auto func = [this]() mutable -> void {
             // Check for state change. If it get stuck at microblock submission for too long, move on to finalblock without the microblock
@@ -522,7 +522,7 @@ void DirectoryService::StartFirstTxEpoch()
         m_mediator.m_node->LoadTxnSharingInfo();
 
         std::vector<Peer> peers;
-        for (auto& i : *(m_mediator.m_node->m_myShardMembers))
+        for (const auto& i : *m_mediator.m_node->m_myShardMembers)
         {
             if (i.second.m_listenPortHost != 0)
             {

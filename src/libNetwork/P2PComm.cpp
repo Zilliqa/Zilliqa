@@ -494,6 +494,9 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
 
     if (startByte == START_BYTE_BROADCAST)
     {
+        LOG_PAYLOAD(INFO, "Incoming broadcast message from " << from, message,
+                    Logger::MAX_BYTES_TO_DISPLAY);
+
         // Check for length consistency
         if (messageLength != message.size() - HDR_LEN)
         {
@@ -584,6 +587,9 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
     }
     else if (startByte == START_BYTE_NORMAL)
     {
+        LOG_PAYLOAD(INFO, "Incoming normal message from " << from, message,
+                    Logger::MAX_BYTES_TO_DISPLAY);
+
         // Check for length consistency
         if (messageLength != message.size() - HDR_LEN)
         {
@@ -602,7 +608,7 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
     }
     else if (startByte == START_BYTE_GOSSIP)
     {
-        LOG_PAYLOAD(INFO, "Incoming message from " << from, message,
+        LOG_PAYLOAD(INFO, "Incoming  gossip message from " << from, message,
                     Logger::MAX_BYTES_TO_DISPLAY);
 
         // Check for length consistency
@@ -962,7 +968,7 @@ void P2PComm::InitializeRumorManager(const std::vector<Peer>& peers)
     LOG_MARKER();
 
     m_rumorManager.stopRounds();
-    if (m_rumorManager.Initialize(peers, m_selfPeer) == true)
+    if (m_rumorManager.Initialize(peers, m_selfPeer))
     {
         if (peers.size() != 0)
         {
