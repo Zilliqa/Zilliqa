@@ -25,37 +25,41 @@
 #include "common/Serializable.h"
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Transaction.h"
+#include "libUtils/SWInfo.h"
 
 /// Stores information on the header part of the DS block.
 class DSBlockHeader : public BlockHeaderBase
 {
-    uint8_t m_difficulty; // Number of PoW1 leading zeros
+    uint8_t m_dsDifficulty; // Number of PoW leading zeros
+    uint8_t m_difficulty; // Number of PoW leading zeros
     BlockHash m_prevHash; // Hash of the previous block
     boost::multiprecision::uint256_t
-        m_nonce; // Nonce value of the winning miner for PoW1
-    PubKey m_minerPubKey; // Public key of the winning miner for PoW1
+        m_nonce; // Nonce value of the winning miner for PoW
+    PubKey m_minerPubKey; // Public key of the winning miner for PoW
     PubKey m_leaderPubKey; // The one who proposed this DS block
-    boost::multiprecision::uint256_t
-        m_blockNum; // Block index, starting from 0 in the genesis block
+    uint64_t m_blockNum; // Block index, starting from 0 in the genesis block
     boost::multiprecision::uint256_t m_timestamp;
+    SWInfo m_swInfo;
 
 public:
-    static const unsigned int SIZE = sizeof(uint8_t) + BLOCK_HASH_SIZE
-        + UINT256_SIZE + PUB_KEY_SIZE + PUB_KEY_SIZE + UINT256_SIZE
-        + UINT256_SIZE;
+    static const unsigned int SIZE = sizeof(uint8_t) + sizeof(uint8_t)
+        + BLOCK_HASH_SIZE + UINT256_SIZE + PUB_KEY_SIZE + PUB_KEY_SIZE
+        + sizeof(uint64_t) + UINT256_SIZE + SWInfo::SIZE;
 
     /// Default constructor.
-    DSBlockHeader(); // creates a dummy invalid placeholder BlockHeader -- blocknum is maxsize of uint256
+    DSBlockHeader(); // creates a dummy invalid placeholder BlockHeader
 
     /// Constructor for loading DS block header information from a byte stream.
     DSBlockHeader(const std::vector<unsigned char>& src, unsigned int offset);
 
     /// Constructor with specified DS block header parameters.
-    DSBlockHeader(const uint8_t difficulty, const BlockHash& prevHash,
+    DSBlockHeader(const uint8_t dsDifficulty, const uint8_t difficulty,
+                  const BlockHash& prevHash,
                   const boost::multiprecision::uint256_t& nonce,
                   const PubKey& minerPubKey, const PubKey& leaderPubKey,
-                  const boost::multiprecision::uint256_t& blockNum,
-                  const boost::multiprecision::uint256_t& timestamp);
+                  const uint64_t& blockNum,
+                  const boost::multiprecision::uint256_t& timestamp,
+                  const SWInfo& swInfo);
 
     /// Implements the Serialize function inherited from Serializable.
     unsigned int Serialize(std::vector<unsigned char>& dst,
@@ -63,6 +67,9 @@ public:
 
     /// Implements the Deserialize function inherited from Serializable.
     int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+
+    /// Returns the difficulty of the PoW puzzle.
+    const uint8_t& GetDSDifficulty() const;
 
     /// Returns the difficulty of the PoW puzzle.
     const uint8_t& GetDifficulty() const;
@@ -80,7 +87,7 @@ public:
     const PubKey& GetLeaderPubKey() const;
 
     /// Returns the number of ancestor blocks.
-    const boost::multiprecision::uint256_t& GetBlockNum() const;
+    const uint64_t& GetBlockNum() const;
 
     /// Returns the Unix time at the time of creation of this block.
     const boost::multiprecision::uint256_t& GetTimestamp() const;

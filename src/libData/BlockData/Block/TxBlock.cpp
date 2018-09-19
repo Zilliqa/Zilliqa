@@ -64,16 +64,7 @@ unsigned int TxBlock::Serialize(vector<unsigned char>& dst,
         SetNumber<uint32_t>(dst, curOffset, shardID, sizeof(uint32_t));
         curOffset += sizeof(uint32_t);
 
-        const TxnHash& microBlockTxHash = m_microBlockHashes.at(i).m_txRootHash;
-        copy(microBlockTxHash.asArray().begin(),
-             microBlockTxHash.asArray().end(), dst.begin() + curOffset);
-        curOffset += TRAN_HASH_SIZE;
-
-        const StateHash& microBlockDeltaHash
-            = m_microBlockHashes.at(i).m_stateDeltaHash;
-        copy(microBlockDeltaHash.asArray().begin(),
-             microBlockDeltaHash.asArray().end(), dst.begin() + curOffset);
-        curOffset += STATE_HASH_SIZE;
+        curOffset = m_microBlockHashes.at(i).Serialize(dst, curOffset);
     }
 
     BlockBase::Serialize(dst, curOffset);
@@ -86,7 +77,7 @@ vector<bool> TxBlock::DeserializeIsMicroBlockEmpty(uint32_t arg)
     vector<bool> ret;
     for (uint i = 0; i < m_header.GetNumMicroBlockHashes(); ++i)
     {
-        ret.push_back((bool)(arg % 2));
+        ret.push_back(arg % 2);
         arg /= 2;
     }
     return ret;
@@ -116,21 +107,13 @@ int TxBlock::Deserialize(const vector<unsigned char>& src, unsigned int offset)
                 = GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
             curOffset += sizeof(uint32_t);
 
-            m_shardIDs.emplace_back(shardID);
+            m_shardIDs.push_back(shardID);
 
             MicroBlockHashSet microBlockHash;
+            microBlockHash.Deserialize(src, curOffset);
+            curOffset += microBlockHash.size();
 
-            copy(src.begin() + curOffset,
-                 src.begin() + curOffset + TRAN_HASH_SIZE,
-                 microBlockHash.m_txRootHash.asArray().begin());
-            curOffset += TRAN_HASH_SIZE;
-
-            copy(src.begin() + curOffset,
-                 src.begin() + curOffset + TRAN_HASH_SIZE,
-                 microBlockHash.m_stateDeltaHash.asArray().begin());
-            curOffset += STATE_HASH_SIZE;
-
-            m_microBlockHashes.push_back(microBlockHash);
+            m_microBlockHashes.emplace_back(microBlockHash);
         }
         if (m_header.GetNumMicroBlockHashes() != m_microBlockHashes.size())
         {
@@ -154,7 +137,7 @@ unsigned int TxBlock::GetSerializedSize() const
 {
     return TxBlockHeader::SIZE + sizeof(uint32_t)
         + (m_microBlockHashes.size()
-           * (TRAN_HASH_SIZE + STATE_HASH_SIZE + sizeof(uint32_t)))
+           * (MicroBlockHashSet::size() + sizeof(uint32_t)))
         + BlockBase::GetSerializedSize();
     ;
 }

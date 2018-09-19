@@ -15,6 +15,7 @@
 **/
 
 #include "Transaction.h"
+#include "Account.h"
 #include "libCrypto/Sha2.h"
 #include "libUtils/Logger.h"
 #include <algorithm>
@@ -35,10 +36,9 @@ unsigned int Transaction::SerializeCoreFields(std::vector<unsigned char>& dst,
         + PUB_KEY_SIZE /*m_senderPubKey*/ + UINT256_SIZE /*m_amount*/
         + UINT256_SIZE /*m_gasPrice*/ + UINT256_SIZE /*m_gasLimit*/
         + sizeof(uint32_t) + m_code.size() /*m_code*/
-        + sizeof(uint32_t) + m_data.size() /*m_data*/;
-    unsigned int size_remaining = dst.size() - offset;
+        + sizeof(uint32_t) + m_data.size(); /*m_data*/
 
-    if (size_remaining < size_needed)
+    if (dst.size() < size_needed + offset)
     {
         dst.resize(size_needed + offset);
     }
@@ -123,9 +123,8 @@ Transaction::Transaction(uint256_t version, const uint256_t& nonce,
     copy(output.begin(), output.end(), m_tranID.asArray().begin());
 
     // Generate the signature
-    if (Schnorr::GetInstance().Sign(txnData, senderKeyPair.first,
-                                    m_senderPubKey, m_signature)
-        == false)
+    if (!Schnorr::GetInstance().Sign(txnData, senderKeyPair.first,
+                                     m_senderPubKey, m_signature))
     {
         LOG_GENERAL(WARNING, "We failed to generate m_signature.");
     }
@@ -164,8 +163,7 @@ Transaction::Transaction(uint256_t version, const uint256_t& nonce,
     copy(output.begin(), output.end(), m_tranID.asArray().begin());
 
     // Verify the signature
-    if (Schnorr::GetInstance().Verify(txnData, m_signature, m_senderPubKey)
-        == false)
+    if (!Schnorr::GetInstance().Verify(txnData, m_signature, m_senderPubKey))
     {
         LOG_GENERAL(WARNING, "We failed to verify the input signature.");
     }
@@ -265,6 +263,11 @@ const Address& Transaction::GetToAddr() const { return m_toAddr; }
 
 const PubKey& Transaction::GetSenderPubKey() const { return m_senderPubKey; }
 
+Address Transaction::GetSenderAddr() const
+{
+    return Account::GetAddressFromPublicKey(GetSenderPubKey());
+}
+
 const uint256_t& Transaction::GetAmount() const { return m_amount; }
 
 const uint256_t& Transaction::GetGasPrice() const { return m_gasPrice; }
@@ -309,7 +312,7 @@ unsigned int Transaction::GetShardIndex(const Address& fromAddr,
     return target_shard;
 }
 
-unsigned int Transaction::GetSerializedSize()
+unsigned int Transaction::GetSerializedSize() const
 {
     return TRAN_HASH_SIZE + TRAN_SIG_SIZE + UINT256_SIZE + UINT256_SIZE
         + ACC_ADDR_SIZE + PUB_KEY_SIZE + UINT256_SIZE + UINT256_SIZE
@@ -321,7 +324,7 @@ unsigned int Transaction::GetMinSerializedSize()
 {
     return TRAN_HASH_SIZE + TRAN_SIG_SIZE + UINT256_SIZE + UINT256_SIZE
         + ACC_ADDR_SIZE + PUB_KEY_SIZE + UINT256_SIZE + UINT256_SIZE
-        + UINT256_SIZE;
+        + UINT256_SIZE + sizeof(uint32_t) + sizeof(uint32_t);
 }
 
 bool Transaction::operator==(const Transaction& tran) const

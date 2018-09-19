@@ -25,7 +25,10 @@ apt-get install -y \
     libmicrohttpd-dev \
     libjsonrpccpp-dev \
     libminiupnpc-dev \
-    libevent-dev
+    libevent-dev \
+    libprotobuf-dev \
+    libcurl4-openssl-dev \
+    protobuf-compiler
 
 # install development dependencies
 apt-get install -y \
@@ -34,7 +37,11 @@ apt-get install -y \
     clang-tidy-5.0 \
     clang-5.0 \
     lcov \
-    curl
+    curl \
+    libxml2-utils \
+    python-pip
+
+pip install pyyaml
 }
 
 function on_osx() {
@@ -50,6 +57,7 @@ brew install \
     libjson-rpc-cpp \
     miniupnpc \
     libevent \
+    protobuf
 
 # install developement deps
 brew install \

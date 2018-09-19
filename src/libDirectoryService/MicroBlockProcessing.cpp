@@ -38,13 +38,20 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-#ifndef IS_LOOKUP_NODE
 bool DirectoryService::VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
                                                    uint32_t shardId)
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::VerifyMicroBlockCoSignature not "
+                    "expected to be called from LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
 
-    const map<PubKey, Peer>& shard = m_shards.at(shardId);
+    const auto& shard = m_shards.at(shardId);
     unsigned int index = 0;
     unsigned int count = 0;
 
@@ -62,9 +69,9 @@ bool DirectoryService::VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
     vector<PubKey> keys;
     for (auto& kv : shard)
     {
-        if (B2.at(index) == true)
+        if (B2.at(index))
         {
-            keys.push_back(kv.first);
+            keys.emplace_back(kv.first);
             count++;
         }
         index++;
@@ -89,9 +96,8 @@ bool DirectoryService::VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
     microBlock.GetCS1().Serialize(message, MicroBlockHeader::SIZE);
     BitVector::SetBitVector(message, MicroBlockHeader::SIZE + BLOCK_SIG_SIZE,
                             microBlock.GetB1());
-    if (Schnorr::GetInstance().Verify(message, 0, message.size(),
-                                      microBlock.GetCS2(), *aggregatedKey)
-        == false)
+    if (!Schnorr::GetInstance().Verify(message, 0, message.size(),
+                                       microBlock.GetCS2(), *aggregatedKey))
     {
         LOG_GENERAL(WARNING, "Cosig verification failed");
         for (auto& kv : keys)
@@ -103,54 +109,91 @@ bool DirectoryService::VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
 
     return true;
 }
-#endif // IS_LOOKUP_NODE
-bool DirectoryService::ProcessMicroblockSubmission(
-    const vector<unsigned char>& message, unsigned int offset, const Peer& from)
+
+bool DirectoryService::ProcessStateDelta(
+    const vector<unsigned char>& message, unsigned int cur_offset,
+    const StateHash& microBlockStateDeltaHash)
 {
-#ifndef IS_LOOKUP_NODE
-    // Message = [32-byte DS blocknum] [4-byte consensusid] [4-byte shard ID] [Tx microblock]
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::ProcessStateDelta not expected to be "
+                    "called from LookUp node.");
+        return true;
+    }
 
     LOG_MARKER();
 
-    if (!CheckState(PROCESS_MICROBLOCKSUBMISSION))
+    LOG_GENERAL(INFO,
+                "Received MicroBlock State Delta hash : "
+                    << DataConversion::charArrToHexStr(
+                           microBlockStateDeltaHash.asArray()));
+
+    if (microBlockStateDeltaHash == StateHash())
     {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Not at MICROBLOCK_SUBMISSION. Current state is " << m_state);
+        LOG_GENERAL(INFO,
+                    "State Delta hash received from microblock is null, "
+                    "skip processing state delta");
+        return true;
+    }
+
+    vector<unsigned char> stateDeltaBytes;
+    copy(message.begin() + cur_offset, message.end(),
+         back_inserter(stateDeltaBytes));
+
+    if (stateDeltaBytes.empty())
+    {
+        LOG_GENERAL(INFO, "State Delta is empty");
+        return true;
+    }
+    else
+    {
+        LOG_GENERAL(INFO, "State Delta size: " << stateDeltaBytes.size());
+    }
+
+    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+    sha2.Update(stateDeltaBytes);
+    StateHash stateDeltaHash(sha2.Finalize());
+
+    LOG_GENERAL(INFO, "Calculated StateHash: " << stateDeltaHash);
+
+    if (stateDeltaHash != microBlockStateDeltaHash)
+    {
+        LOG_GENERAL(WARNING,
+                    "State delta hash calculated does not match microblock");
         return false;
     }
 
-    if (IsMessageSizeInappropriate(message.size(), offset,
-                                   UINT256_SIZE + sizeof(uint32_t)
-                                       + sizeof(uint32_t)
-                                       + MicroBlock::GetMinSize()))
+    if (microBlockStateDeltaHash == StateHash())
     {
+        LOG_GENERAL(INFO, "State Delta from microblock is empty");
         return false;
     }
 
-    unsigned int curr_offset = offset;
-
-    // 32-byte block number
-    uint256_t DSBlockNum = Serializable::GetNumber<uint256_t>(
-        message, curr_offset, UINT256_SIZE);
-    curr_offset += UINT256_SIZE;
-
-    // Check block number
-    if (!CheckWhetherDSBlockIsFresh(DSBlockNum + 1))
+    if (AccountStore::GetInstance().DeserializeDeltaTemp(stateDeltaBytes, 0)
+        != 0)
     {
+        LOG_GENERAL(WARNING,
+                    "AccountStore::GetInstance().DeserializeDeltaTemp failed");
         return false;
     }
 
-    // 4-byte consensus id
-    uint32_t consensusID = Serializable::GetNumber<uint32_t>(
-        message, curr_offset, sizeof(uint32_t));
-    curr_offset += sizeof(uint32_t);
+    m_stateDeltaFromShards.clear();
+    AccountStore::GetInstance().SerializeDelta();
+    AccountStore::GetInstance().GetSerializedDelta(m_stateDeltaFromShards);
 
-    if (consensusID != m_consensusID)
+    return true;
+}
+
+bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
+    const vector<unsigned char>& message, unsigned int curr_offset)
+{
+    if (LOOKUP_NODE_MODE)
     {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Consensus ID is not correct. Expected ID: "
-                      << consensusID << " My Consensus ID: " << m_consensusID);
-        return false;
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::ProcessMicroblockSubmissionCore not "
+                    "expected to be called from LookUp node.");
+        return true;
     }
 
     // 4-byte shard ID
@@ -168,6 +211,7 @@ bool DirectoryService::ProcessMicroblockSubmission(
         LOG_GENERAL(WARNING, "We failed to deserialize MicroBlock.");
         return false;
     }
+    curr_offset += microBlock.GetSerializedCoreSize();
 
     uint32_t shardId = microBlock.GetHeader().GetShardID();
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -199,23 +243,54 @@ bool DirectoryService::ProcessMicroblockSubmission(
         return false;
     }
 
+    LOG_GENERAL(INFO,
+                "MicroBlock StateDeltaHash: "
+                    << microBlock.GetHeader().GetStateDeltaHash() << endl
+                    << "TxRootHash: " << microBlock.GetHeader().GetTxRootHash()
+                    << endl
+                    << "TranReceiptHash: "
+                    << microBlock.GetHeader().GetTranReceiptHash());
+
     lock_guard<mutex> g(m_mutexMicroBlocks);
-    m_microBlocks.insert(microBlock);
+
+    if (m_dsStartedMicroblockConsensus)
+    {
+        LOG_GENERAL(WARNING,
+                    "DS microblock consensus already started, ignore this "
+                    "microblock submission");
+        return false;
+    }
+
+    if (!SaveCoinbase(microBlock.GetB1(), microBlock.GetB2(),
+                      microBlock.GetHeader().GetShardID()))
+    {
+        return false;
+    }
+
+    auto& microBlocks = m_microBlocks[m_mediator.m_currentEpochNum];
+    microBlocks.emplace(microBlock);
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              m_microBlocks.size()
+              microBlocks.size()
                   << " of " << m_shards.size() << " microblocks received");
 
-    if (m_microBlocks.size() == m_shards.size())
+    ProcessStateDelta(message, curr_offset,
+                      microBlock.GetHeader().GetStateDeltaHash());
+
+    if (microBlocks.size() == m_shards.size())
     {
         if (m_mode == PRIMARY_DS)
         {
             LOG_STATE("[MICRO]["
                       << std::setw(15) << std::left
                       << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-                      << m_mediator.m_txBlockChain.GetBlockCount() << "] LAST");
+                      << m_mediator.m_txBlockChain.GetLastBlock()
+                              .GetHeader()
+                              .GetBlockNum()
+                          + 1
+                      << "] LAST");
         }
-        for (auto& microBlock : m_microBlocks)
+        for (auto& microBlock : microBlocks)
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Timestamp: "
@@ -223,18 +298,336 @@ bool DirectoryService::ProcessMicroblockSubmission(
                           << microBlock.GetHeader().GetStateDeltaHash());
         }
 
-        cv_scheduleFinalBlockConsensus.notify_all();
-        RunConsensusOnFinalBlock();
+        // m_mediator.m_node->RunConsensusOnMicroBlock();
+
+        auto func = [this]() mutable -> void {
+            m_dsStartedMicroblockConsensus = true;
+            cv_scheduleDSMicroBlockConsensus.notify_all();
+            m_mediator.m_node->RunConsensusOnMicroBlock();
+        };
+
+        DetachedFunction(1, func);
+
+        auto func2 = [this]() mutable -> void {
+            std::unique_lock<std::mutex> cv_lk(
+                m_MutexScheduleFinalBlockConsensus);
+            if (cv_scheduleFinalBlockConsensus.wait_for(
+                    cv_lk,
+                    std::chrono::seconds(FINALBLOCK_CONSENSUS_OBJECT_TIMEOUT))
+                == std::cv_status::timeout)
+            {
+                LOG_GENERAL(WARNING,
+                            "Timeout: Didn't finish DS Microblock. Proceeds "
+                            "without it");
+
+                RunConsensusOnFinalBlock(true);
+            }
+        };
+
+        DetachedFunction(1, func2);
     }
-    else if ((m_microBlocks.size() == 1) && (m_mode == PRIMARY_DS))
+    else if ((microBlocks.size() == 1) && (m_mode == PRIMARY_DS))
     {
-        LOG_STATE("[MICRO]["
-                  << std::setw(15) << std::left
-                  << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-                  << m_mediator.m_txBlockChain.GetBlockCount() << "] FRST");
+        LOG_STATE("[MICRO][" << std::setw(15) << std::left
+                             << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                             << "]["
+                             << m_mediator.m_txBlockChain.GetLastBlock()
+                                    .GetHeader()
+                                    .GetBlockNum()
+                      + 1 << "] FRST");
     }
 
-        // TODO: Re-request from shard leader if microblock is not received after a certain time.
-#endif // IS_LOOKUP_NODE
+    // TODO: Re-request from shard leader if microblock is not received after a certain time.
+    return true;
+}
+
+void DirectoryService::CommitMBSubmissionMsgBuffer()
+{
+    LOG_MARKER();
+
+    lock_guard<mutex> g(m_mutexMBSubmissionBuffer);
+
+    for (auto it = m_MBSubmissionBuffer.begin();
+         it != m_MBSubmissionBuffer.end();)
+    {
+        if (it->first < m_mediator.m_txBlockChain.GetLastBlock()
+                            .GetHeader()
+                            .GetBlockNum())
+        {
+            it = m_MBSubmissionBuffer.erase(it);
+        }
+        else if (it->first
+                 == m_mediator.m_txBlockChain.GetLastBlock()
+                        .GetHeader()
+                        .GetBlockNum())
+        {
+            for (const auto& msg : it->second)
+            {
+                ProcessMicroblockSubmissionFromShardCore(
+                    msg, MessageOffset::BODY + sizeof(uint64_t));
+            }
+            m_MBSubmissionBuffer.erase(it);
+            break;
+        }
+        else
+        {
+            it++;
+        }
+    }
+}
+
+bool DirectoryService::ProcessMicroblockSubmissionFromShard(
+    [[gnu::unused]] const vector<unsigned char>& message,
+    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
+{
+    // Message = [8-byte Tx blocknum] /*[4-byte shard ID]*/ [Tx microblock] [State delta]
+
+    LOG_MARKER();
+
+    // if (!CheckState(PROCESS_MICROBLOCKSUBMISSION))
+    // {
+    //     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    //               "Not at MICROBLOCK_SUBMISSION. Current state is " << m_state);
+    //     return false;
+    // }
+
+    if (IsMessageSizeInappropriate(message.size(), offset,
+                                   sizeof(uint64_t) + MicroBlock::GetMinSize()))
+    {
+        return false;
+    }
+
+    unsigned int curr_offset = offset;
+
+    // 8-byte Tx block number
+    uint64_t latestSubmitTxBlockNum = Serializable::GetNumber<uint64_t>(
+        message, curr_offset, sizeof(uint64_t));
+    curr_offset += sizeof(uint64_t);
+
+    LOG_GENERAL(INFO,
+                "Received microblock submission for block number "
+                    << latestSubmitTxBlockNum);
+
+    if (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
+        < latestSubmitTxBlockNum)
+    {
+        lock_guard<mutex> g(m_mutexMBSubmissionBuffer);
+        m_MBSubmissionBuffer[latestSubmitTxBlockNum].push_back(message);
+
+        return true;
+    }
+    else if (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
+             == latestSubmitTxBlockNum)
+    {
+        if (CheckState(PROCESS_MICROBLOCKSUBMISSION))
+        {
+            return ProcessMicroblockSubmissionFromShardCore(message,
+                                                            curr_offset);
+        }
+        else
+        {
+            lock_guard<mutex> g(m_mutexMBSubmissionBuffer);
+            m_MBSubmissionBuffer[latestSubmitTxBlockNum].push_back(message);
+
+            return true;
+        }
+    }
+
+    LOG_GENERAL(WARNING,
+                "Current block num: "
+                    << m_mediator.m_txBlockChain.GetLastBlock()
+                           .GetHeader()
+                           .GetBlockNum()
+                    << " this microblock submission is too late");
+
+    return false;
+}
+
+bool DirectoryService::ProcessMicroblockSubmission(
+    [[gnu::unused]] const vector<unsigned char>& message,
+    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
+{
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::ProcessMicroblockSubmission not "
+                    "expected to be called from LookUp node.");
+        return true;
+    }
+
+    LOG_MARKER();
+
+    unsigned int cur_offset = offset;
+
+    unsigned char submitMBType = message[cur_offset];
+    cur_offset += MessageOffset::INST;
+
+    if (submitMBType == SUBMITMICROBLOCKTYPE::SHARDMICROBLOCK)
+    {
+        return ProcessMicroblockSubmissionFromShard(message, cur_offset, from);
+    }
+    else if (submitMBType == SUBMITMICROBLOCKTYPE::SHARDMICROBLOCK)
+    {
+        return ProcessMissingMicroblockSubmission(message, cur_offset, from);
+    }
+    else
+    {
+        LOG_GENERAL(WARNING, "Malformed message");
+    }
+
+    return false;
+}
+
+bool DirectoryService::ProcessMissingMicroblockSubmission(
+    [[gnu::unused]] const vector<unsigned char>& message,
+    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer&)
+{
+    unsigned int cur_offset = offset;
+
+    auto blockNum = Serializable::GetNumber<uint64_t>(message, cur_offset,
+                                                      sizeof(uint64_t));
+    cur_offset += sizeof(uint64_t);
+
+    if (blockNum != m_mediator.m_currentEpochNum)
+    {
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "untimely delivery of "
+                      << "missing microblocks. received: " << blockNum
+                      << " , local: " << m_mediator.m_currentEpochNum);
+    }
+
+    auto microblocksNum = Serializable::GetNumber<uint32_t>(message, cur_offset,
+                                                            sizeof(uint32_t));
+    cur_offset += sizeof(uint32_t);
+
+    {
+        lock_guard<mutex> g(m_mutexMicroBlocks);
+        auto& microBlocks = m_microBlocks[blockNum];
+
+        for (uint32_t i = 0; i < microblocksNum; i++)
+        {
+            MicroBlock microBlock;
+            if (microBlock.DeserializeCore(message, cur_offset) != 0)
+            {
+                LOG_GENERAL(
+                    WARNING,
+                    "Deserialize microblock failed, stop at the previous "
+                    "successful one");
+                return false;
+            }
+            cur_offset += microBlock.GetSerializedCoreSize();
+
+            uint32_t shardId = microBlock.GetHeader().GetShardID();
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "shard_id " << shardId);
+
+            const PubKey& pubKey = microBlock.GetHeader().GetMinerPubKey();
+
+            // Check public key - shard ID mapping
+            const auto& minerEntry = m_publicKeyToShardIdMap.find(pubKey);
+            if (minerEntry == m_publicKeyToShardIdMap.end())
+            {
+                LOG_EPOCH(WARNING,
+                          to_string(m_mediator.m_currentEpochNum).c_str(),
+                          "Cannot find the miner key: "
+                              << DataConversion::SerializableToHexStr(pubKey));
+                continue;
+            }
+            if (minerEntry->second != shardId)
+            {
+                LOG_EPOCH(WARNING,
+                          to_string(m_mediator.m_currentEpochNum).c_str(),
+                          "Microblock shard ID mismatch");
+                continue;
+            }
+
+            // Verify the co-signature
+            if (!VerifyMicroBlockCoSignature(microBlock, shardId))
+            {
+                LOG_EPOCH(WARNING,
+                          to_string(m_mediator.m_currentEpochNum).c_str(),
+                          "Microblock co-sig verification failed");
+                continue;
+            }
+
+            LOG_GENERAL(INFO,
+                        "MicroBlock StateDeltaHash: "
+                            << microBlock.GetHeader().GetStateDeltaHash()
+                            << endl
+                            << "TxRootHash: "
+                            << microBlock.GetHeader().GetTxRootHash());
+
+            if (!SaveCoinbase(microBlock.GetB1(), microBlock.GetB2(),
+                              microBlock.GetHeader().GetShardID()))
+            {
+                continue;
+            }
+
+            microBlocks.emplace(microBlock);
+
+            LOG_GENERAL(INFO,
+                        microBlocks.size()
+                            << " of " << m_shards.size()
+                            << " microblocks received for Epoch " << blockNum);
+        }
+    }
+
+    // TODO: Check if every microblock is obtained
+    std::vector<unsigned char> errorMsg;
+    if (!CheckMicroBlockHashes(errorMsg))
+    {
+        LOG_GENERAL(WARNING, "Still have missing microblocks after fetching");
+        return false;
+    }
+
+    // State delta
+    AccountStore::GetInstance().InitTemp();
+
+    LOG_GENERAL(INFO,
+                "Received FinalBlock State Delta root : "
+                    << m_finalBlock->GetHeader().GetStateDeltaHash().hex());
+
+    if (m_finalBlock->GetHeader().GetStateDeltaHash() != StateHash())
+    {
+        vector<unsigned char> stateDeltaBytes;
+        copy(message.begin() + cur_offset, message.end(),
+             back_inserter(stateDeltaBytes));
+
+        if (stateDeltaBytes.empty())
+        {
+            LOG_GENERAL(WARNING, "Cannot get state delta from message");
+            return false;
+        }
+
+        SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+        sha2.Update(stateDeltaBytes);
+        StateHash stateDeltaHash(sha2.Finalize());
+
+        LOG_GENERAL(INFO, "Calculated StateHash: " << stateDeltaHash);
+
+        if (stateDeltaHash != m_finalBlock->GetHeader().GetStateDeltaHash())
+        {
+            LOG_GENERAL(
+                WARNING,
+                "State delta hash calculated does not match finalblock");
+            return false;
+        }
+
+        if (AccountStore::GetInstance().DeserializeDelta(stateDeltaBytes, 0)
+            != 0)
+        {
+            LOG_GENERAL(WARNING,
+                        "AccountStore::GetInstance().DeserializeDelta failed");
+            return false;
+        }
+    }
+    else
+    {
+        LOG_GENERAL(
+            INFO,
+            "State Delta Hash is empty, skip processing final state delta");
+    }
+
+    cv_MissingMicroBlock.notify_all();
     return true;
 }

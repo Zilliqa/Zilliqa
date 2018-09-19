@@ -51,6 +51,12 @@ std::string ReadSmartContractConstants(std::string propertyName)
     return pt.get<std::string>("node.smart_contract." + propertyName);
 }
 
+std::string ReadDispatcherConstants(std::string propertyName)
+{
+    auto pt = PTree::GetInstance();
+    return pt.get<std::string>("node.dispatcher." + propertyName);
+}
+
 const std::vector<std::string>
 ReadAccountsFromConstantsFile(std::string propName)
 {
@@ -68,33 +74,34 @@ ReadAccountsFromConstantsFile(std::string propName)
     return result;
 }
 
+unsigned int ReadGpuConstants(std::string propertyName)
+{
+    auto pt = PTree::GetInstance();
+    return pt.get<unsigned int>("node.gpu." + propertyName);
+}
+
 const unsigned int MSG_VERSION{ReadFromConstantsFile("MSG_VERSION")};
 const unsigned int DS_MULTICAST_CLUSTER_SIZE{
     ReadFromConstantsFile("DS_MULTICAST_CLUSTER_SIZE")};
 const unsigned int COMM_SIZE{ReadFromConstantsFile("COMM_SIZE")};
-const unsigned int MAX_POW1_WINNERS{ReadFromConstantsFile("MAX_POW1_WINNERS")};
-const unsigned int POW1_WINDOW_IN_SECONDS{
-    ReadFromConstantsFile("POW1_WINDOW_IN_SECONDS")};
-const unsigned int POW1_BACKUP_WINDOW_IN_SECONDS{
-    ReadFromConstantsFile("POW1_BACKUP_WINDOW_IN_SECONDS")};
-const unsigned int LEADER_SHARDING_PREPARATION_IN_SECONDS{
-    ReadFromConstantsFile("LEADER_SHARDING_PREPARATION_IN_SECONDS")};
-const unsigned int LEADER_POW2_WINDOW_IN_SECONDS{
-    ReadFromConstantsFile("LEADER_POW2_WINDOW_IN_SECONDS")};
-const unsigned int BACKUP_POW2_WINDOW_IN_SECONDS{
-    ReadFromConstantsFile("BACKUP_POW2_WINDOW_IN_SECONDS")};
+const unsigned int POW_WINDOW_IN_SECONDS{
+    ReadFromConstantsFile("POW_WINDOW_IN_SECONDS")};
+const unsigned int POW_BACKUP_WINDOW_IN_SECONDS{
+    ReadFromConstantsFile("POW_BACKUP_WINDOW_IN_SECONDS")};
 const unsigned int NEW_NODE_SYNC_INTERVAL{
     ReadFromConstantsFile("NEW_NODE_SYNC_INTERVAL")};
 const unsigned int POW_SUBMISSION_TIMEOUT{
     ReadFromConstantsFile("POW_SUBMISSION_TIMEOUT")};
-const unsigned int POW1_DIFFICULTY{ReadFromConstantsFile("POW1_DIFFICULTY")};
-const unsigned int POW2_DIFFICULTY{ReadFromConstantsFile("POW2_DIFFICULTY")};
+const unsigned int DS_POW_DIFFICULTY{
+    ReadFromConstantsFile("DS_POW_DIFFICULTY")};
+const unsigned int POW_DIFFICULTY{ReadFromConstantsFile("POW_DIFFICULTY")};
+const unsigned int POW_SUBMISSION_LIMIT{
+    ReadFromConstantsFile("POW_SUBMISSION_LIMIT")};
 const unsigned int MICROBLOCK_TIMEOUT{
     ReadFromConstantsFile("MICROBLOCK_TIMEOUT")};
 const unsigned int VIEWCHANGE_TIME{ReadFromConstantsFile("VIEWCHANGE_TIME")};
 const unsigned int VIEWCHANGE_EXTRA_TIME{
     ReadFromConstantsFile("VIEWCHANGE_EXTRA_TIME")};
-const unsigned int SHARDING_TIMEOUT{ReadFromConstantsFile("SHARDING_TIMEOUT")};
 const unsigned int CONSENSUS_MSG_ORDER_BLOCK_WINDOW{
     ReadFromConstantsFile("CONSENSUS_MSG_ORDER_BLOCK_WINDOW")};
 const unsigned int CONSENSUS_OBJECT_TIMEOUT{
@@ -110,36 +117,46 @@ const unsigned int NUM_DS_KEEP_TX_BODY{
 const uint32_t MAXMESSAGE{ReadFromConstantsFile("MAXMESSAGE")};
 const unsigned int MAXSUBMITTXNPERNODE{
     ReadFromConstantsFile("MAXSUBMITTXNPERNODE")};
+const unsigned int MICROBLOCK_GAS_LIMIT{
+    ReadFromConstantsFile("MICROBLOCK_GAS_LIMIT")};
 const unsigned int TX_SHARING_CLUSTER_SIZE{
     ReadFromConstantsFile("TX_SHARING_CLUSTER_SIZE")};
 const unsigned int NEW_NODE_POW_DELAY{
     ReadFromConstantsFile("NEW_NODE_POW_DELAY")};
 const unsigned int POST_VIEWCHANGE_BUFFER{
     ReadFromConstantsFile("POST_VIEWCHANGE_BUFFER")};
-const unsigned int WAITING_FORWARD{ReadFromConstantsFile("WAITING_FORWARD")};
-const unsigned int N_PREFILLED_PER_ACCOUNT{
-    ReadFromConstantsFile("N_PREFILLED_PER_ACCOUNT")};
 const unsigned int CONTRACT_CREATE_GAS{
     ReadFromConstantsFile("CONTRACT_CREATE_GAS")};
 const unsigned int CONTRACT_INVOKE_GAS{
     ReadFromConstantsFile("CONTRACT_INVOKE_GAS")};
 const unsigned int NORMAL_TRAN_GAS{ReadFromConstantsFile("NORMAL_TRAN_GAS")};
 const unsigned int COINBASE_REWARD{ReadFromConstantsFile("COINBASE_REWARD")};
-const unsigned int TXN_SUBMISSION{ReadFromConstantsFile("TXN_SUBMISSION")};
-const unsigned int TXN_BROADCAST{ReadFromConstantsFile("TXN_BROADCAST")};
 const unsigned int DEBUG_LEVEL{ReadFromConstantsFile("DEBUG_LEVEL")};
 const unsigned int BROADCAST_INTERVAL{
     ReadFromConstantsFile("BROADCAST_INTERVAL")};
 const unsigned int BROADCAST_EXPIRY{ReadFromConstantsFile("BROADCAST_EXPIRY")};
+const unsigned int TX_DISTRIBUTE_TIME_IN_MS{
+    ReadFromConstantsFile("TX_DISTRIBUTE_TIME_IN_MS")};
+const unsigned int NUM_TXN_TO_SEND_PER_ACCOUNT{
+    ReadFromConstantsFile("NUM_TXN_TO_SEND_PER_ACCOUNT")};
+const unsigned int NUM_NODES_TO_SEND_LOOKUP{
+    ReadFromConstantsFile("NUM_NODES_TO_SEND_LOOKUP")};
+const unsigned int MAX_INDEXES_PER_TXN{
+    ReadFromConstantsFile("MAX_INDEXES_PER_TXN")};
+const unsigned int SENDQUEUE_SIZE{ReadFromConstantsFile("SENDQUEUE_SIZE")};
+const unsigned int MSGQUEUE_SIZE{ReadFromConstantsFile("MSGQUEUE_SIZE")};
+const unsigned int POW_CHANGE_PERCENT_TO_ADJ_DIFF{
+    ReadFromConstantsFile("POW_CHANGE_PERCENT_TO_ADJ_DIFF")};
+const unsigned int NUM_NETWORK_NODE{ReadFromConstantsFile("NUM_NETWORK_NODE")};
 
-const bool EXCLUDE_PRIV_IP{
-    ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true" ? true : false};
-const bool TEST_NET_MODE{
-    ReadFromOptionsFile("TEST_NET_MODE") == "true" ? true : false};
-const bool ENABLE_DO_REJOIN{
-    ReadFromOptionsFile("ENABLE_DO_REJOIN") == "true" ? true : false};
-const bool FULL_DATASET_MINE{
-    ReadFromOptionsFile("FULL_DATASET_MINE") == "true" ? true : false};
+const bool EXCLUDE_PRIV_IP{ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true"};
+const bool TEST_NET_MODE{ReadFromOptionsFile("TEST_NET_MODE") == "true"};
+const bool ENABLE_DO_REJOIN{ReadFromOptionsFile("ENABLE_DO_REJOIN") == "true"};
+const bool FULL_DATASET_MINE{ReadFromOptionsFile("FULL_DATASET_MINE")
+                             == "true"};
+const bool OPENCL_GPU_MINE{ReadFromOptionsFile("OPENCL_GPU_MINE") == "true"};
+const bool CUDA_GPU_MINE{ReadFromOptionsFile("CUDA_GPU_MINE") == "true"};
+const bool LOOKUP_NODE_MODE{ReadFromOptionsFile("LOOKUP_NODE_MODE") == "true"};
 
 const std::vector<std::string> GENESIS_WALLETS{
     ReadAccountsFromConstantsFile("wallet_address")};
@@ -164,3 +181,17 @@ const std::string OUTPUT_JSON{SCILLA_FILES + '/'
                               + ReadSmartContractConstants("OUTPUT_JSON")};
 const std::string INPUT_CODE{SCILLA_FILES + '/'
                              + ReadSmartContractConstants("INPUT_CODE")};
+
+const std::string TXN_PATH{ReadDispatcherConstants("TXN_PATH")};
+const bool USE_REMOTE_TXN_CREATOR{
+    ReadDispatcherConstants("USE_REMOTE_TXN_CREATOR") == "true"};
+
+const unsigned int OPENCL_LOCAL_WORK_SIZE{
+    ReadGpuConstants("opencl.LOCAL_WORK_SIZE")};
+const unsigned int OPENCL_GLOBAL_WORK_SIZE_MULTIPLIER{
+    ReadGpuConstants("opencl.GLOBAL_WORK_SIZE_MULTIPLIER")};
+const unsigned int OPENCL_START_EPOCH{ReadGpuConstants("opencl.START_EPOCH")};
+const unsigned int CUDA_BLOCK_SIZE{ReadGpuConstants("cuda.BLOCK_SIZE")};
+const unsigned int CUDA_GRID_SIZE{ReadGpuConstants("cuda.GRID_SIZE")};
+const unsigned int CUDA_STREAM_NUM{ReadGpuConstants("cuda.STREAM_NUM")};
+const unsigned int CUDA_SCHEDULE_FLAG{ReadGpuConstants("cuda.SCHEDULE_FLAG")};

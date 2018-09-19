@@ -61,8 +61,9 @@ DSBlock constructDummyDSBlock(int instanceNum)
 
     std::pair<PrivKey, PubKey> pubKey1 = Schnorr::GetInstance().GenKeyPair();
 
-    return DSBlock(DSBlockHeader(20, prevHash1, 12345 + instanceNum,
-                                 pubKey1.first, pubKey1.second, 10, 789),
+    return DSBlock(DSBlockHeader(50, 20, prevHash1, 12345 + instanceNum,
+                                 pubKey1.first, pubKey1.second, 10, 789,
+                                 SWInfo()),
                    CoSignatures());
 }
 
@@ -353,9 +354,9 @@ BOOST_AUTO_TEST_CASE(testThreadSafety)
     std::cout << "Launched from the main\n";
 
     //Join the threads with the main thread
-    for (int i = 0; i < num_threads; ++i)
+    for (auto& i : t)
     {
-        t[i].join();
+        i.join();
     }
 }
 
@@ -420,7 +421,7 @@ BOOST_AUTO_TEST_CASE(testRetrieveAllTheDSBlocksInDB)
             block.Serialize(serializedDSBlock, 0);
 
             BlockStorage::GetBlockStorage().PutDSBlock(i, serializedDSBlock);
-            in_blocks.push_back(block);
+            in_blocks.emplace_back(block);
         }
 
         std::list<DSBlockSharedPtr> ref_blocks;
@@ -431,7 +432,7 @@ BOOST_AUTO_TEST_CASE(testRetrieveAllTheDSBlocksInDB)
         for (auto i : ref_blocks)
         {
             LOG_GENERAL(INFO, i->GetHeader().GetNonce());
-            out_blocks.push_back(*i);
+            out_blocks.emplace_back(*i);
         }
         BOOST_CHECK_MESSAGE(
             in_blocks == out_blocks,

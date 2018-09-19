@@ -61,11 +61,11 @@ public:
     // DS committee members
     // Fixed-sized double-ended queue depending on size of DS committee at bootstrap
     // Leader is at head of queue
-    // PoW1 winner will be pushed in at head of queue (new leader)
+    // PoW winner will be pushed in at head of queue (new leader)
     // Oldest member will be pushed out from tail of queue
 
     /// The public keys and current members of the DS committee.
-    std::deque<pair<PubKey, Peer>> m_DSCommittee;
+    std::shared_ptr<std::deque<std::pair<PubKey, Peer>>> m_DSCommittee;
     std::mutex m_mutexDSCommittee;
 
     /// The current epoch randomness from the DS blockchain.
@@ -77,8 +77,11 @@ public:
     /// To determine if the node successfully recovered from persistence
     bool m_isRetrievedHistory;
 
+    /// Record current software information which already downloaded to this node
+    SWInfo m_curSWInfo;
+
     /// Constructor.
-    Mediator(const pair<PrivKey, PubKey>& key, const Peer& peer);
+    Mediator(const std::pair<PrivKey, PubKey>& key, const Peer& peer);
 
     /// Destructor.
     ~Mediator();

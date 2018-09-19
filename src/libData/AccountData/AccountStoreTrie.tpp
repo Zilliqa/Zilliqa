@@ -20,7 +20,7 @@
 
 template<class DB, class MAP>
 AccountStoreTrie<DB, MAP>::AccountStoreTrie()
-    : m_db(is_same<DB, OverlayDB>::value ? "state" : "")
+    : m_db(std::is_same<DB, dev::OverlayDB>::value ? "state" : "")
 {
     m_state = dev::SpecificTrieDB<dev::GenericTrieDB<DB>, Address>(&m_db);
 }
@@ -35,13 +35,15 @@ template<class DB, class MAP> void AccountStoreTrie<DB, MAP>::Init()
 template<class DB, class MAP>
 Account* AccountStoreTrie<DB, MAP>::GetAccount(const Address& address)
 {
+    using namespace boost::multiprecision;
+
     Account* account = AccountStoreBase<MAP>::GetAccount(address);
     if (account != nullptr)
     {
         return account;
     }
 
-    string accountDataString = m_state.at(address);
+    std::string accountDataString = m_state.at(address);
     if (accountDataString.empty())
     {
         return nullptr;
@@ -60,19 +62,20 @@ Account* AccountStoreTrie<DB, MAP>::GetAccount(const Address& address)
                               accountDataRLP[1].toInt<uint256_t>()));
 
     // Code Hash
-    if (accountDataRLP[3].toHash<h256>() != h256())
+    if (accountDataRLP[3].toHash<dev::h256>() != dev::h256())
     {
         // Extract Code Content
         it2.first->second.SetCode(
             ContractStorage::GetContractStorage().GetContractCode(address));
-        if (accountDataRLP[3].toHash<h256>() != it2.first->second.GetCodeHash())
+        if (accountDataRLP[3].toHash<dev::h256>()
+            != it2.first->second.GetCodeHash())
         {
             LOG_GENERAL(WARNING, "Account Code Content doesn't match Code Hash")
             this->m_addressToAccount->erase(it2.first);
             return nullptr;
         }
         // Storage Root
-        it2.first->second.SetStorageRoot(accountDataRLP[2].toHash<h256>());
+        it2.first->second.SetStorageRoot(accountDataRLP[2].toHash<dev::h256>());
     }
 
     return &it2.first->second;
@@ -92,7 +95,7 @@ bool AccountStoreTrie<DB, MAP>::UpdateStateTrie(const Address& address,
 }
 
 template<class DB, class MAP>
-h256 AccountStoreTrie<DB, MAP>::GetStateRootHash() const
+dev::h256 AccountStoreTrie<DB, MAP>::GetStateRootHash() const
 {
     LOG_MARKER();
 

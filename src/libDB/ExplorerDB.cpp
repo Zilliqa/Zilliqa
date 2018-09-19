@@ -26,7 +26,7 @@ using namespace std;
 using bsoncxx::builder::basic::kvp;
 using bsoncxx::builder::basic::make_document;
 
-bool ExplorerDB::InsertTxn(const Transaction& txn)
+bool ExplorerDB::InsertTxn(const TransactionWithReceipt& txn)
 {
     Json::Value tx_json = JSONConversion::convertTxtoJson(txn);
     return InsertJson(tx_json, m_txCollectionName);
@@ -35,14 +35,16 @@ bool ExplorerDB::InsertTxn(const Transaction& txn)
 bool ExplorerDB::InsertTxBlock(const TxBlock& txblock)
 {
     Json::Value txblock_json = JSONConversion::convertTxBlocktoJson(txblock);
-    txblock_json["hash"] = HashUtils::SerializableToHash(txblock);
+    txblock_json["hash"] = DataConversion::Uint8VecToHexStr(
+        HashUtils::SerializableToHash(txblock));
     return InsertJson(txblock_json, m_txBlockCollectionName);
 }
 
 bool ExplorerDB::InsertDSBlock(const DSBlock& dsblock)
 {
     Json::Value dsblock_json = JSONConversion::convertDSblocktoJson(dsblock);
-    dsblock_json["hash"] = HashUtils::SerializableToHash(dsblock);
+    dsblock_json["hash"] = DataConversion::Uint8VecToHexStr(
+        HashUtils::SerializableToHash(dsblock));
     return InsertJson(dsblock_json, m_dsBlockCollectionName);
 }
 

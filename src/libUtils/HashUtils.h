@@ -17,7 +17,6 @@
 #ifndef __HASH_UTILS__
 #define __HASH_UTILS__
 
-#include "DataConversion.h"
 #include "common/Serializable.h"
 #include "libCrypto/Sha2.h"
 #include <string>
@@ -26,15 +25,31 @@
 class HashUtils
 {
 public:
-    static const std::string SerializableToHash(const Serializable& sz)
+    static const std::vector<unsigned char>
+    SerializableToHash(const Serializable& sz)
+    {
+        std::vector<unsigned char> vec;
+        sz.Serialize(vec, 0);
+        return BytesToHash(vec);
+    }
+
+    static const std::vector<unsigned char>
+    BytesToHash(const std::vector<unsigned char>& vec)
     {
         SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-        vector<unsigned char> vec;
-        sz.Serialize(vec, 0);
-        sha2.Update(vec);
-        const vector<unsigned char>& resVec = sha2.Finalize();
 
-        return DataConversion::Uint8VecToHexStr(resVec);
+        sha2.Update(vec);
+        const std::vector<unsigned char>& resVec = sha2.Finalize();
+
+        return resVec;
+    }
+    static uint16_t SerializableToHash16Bits(const Serializable& sz)
+    {
+        const std::vector<unsigned char>& vec = SerializableToHash(sz);
+
+        uint32_t lsb = vec.size() - 1;
+
+        return (vec.at(lsb - 1) << 8) | vec.at(lsb);
     }
 };
 

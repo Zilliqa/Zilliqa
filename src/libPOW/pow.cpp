@@ -20,16 +20,35 @@
 #include <iostream>
 
 #include "pow.h"
-//#include "libCrypto/Sha3.h"
 #include "common/Serializable.h"
 #include "libCrypto/Sha2.h"
 #include "libUtils/DataConversion.h"
+
+#ifdef OPENCL_MINE
+#include "depends/libethash-cl/CLMiner.h"
+#endif
+
+#ifdef CUDA_MINE
+#include "depends/libethash-cuda/CUDAMiner.h"
+#endif
 
 POW::POW()
 {
     currentBlockNum = 0;
     ethash_light_client = EthashLightNew(
         0); // TODO: Do we still need this? Can we call it at mediator?
+
+    if (!LOOKUP_NODE_MODE)
+    {
+        if (OPENCL_GPU_MINE)
+        {
+            InitOpenCL();
+        }
+        else if (CUDA_GPU_MINE)
+        {
+            InitCUDA();
+        }
+    }
 }
 
 POW::~POW() { EthashLightDelete(ethash_light_client); }
@@ -40,7 +59,7 @@ POW& POW::GetInstance()
     return pow;
 }
 
-void POW::StopMining() { shouldMine = false; }
+void POW::StopMining() { m_shouldMine = false; }
 
 std::string POW::BytesToHexString(const uint8_t* str, const uint64_t s)
 {
@@ -145,7 +164,8 @@ bool POW::EthashConfigureLightClient(uint64_t block_number)
     {
         LOG_GENERAL(WARNING,
                     "WARNING: How come the latest block number is smaller than "
-                    "current block number.  block_number: "
+                    "current block number? block_number: "
+                        << block_number
                         << " currentBlockNum: " << currentBlockNum);
     }
 
@@ -186,7 +206,7 @@ ethash_mining_result_t POW::MineLight(ethash_light_t& light,
                                       ethash_h256_t& difficulty)
 {
     uint64_t nonce = std::time(0);
-    while (shouldMine)
+    while (m_shouldMine)
     {
         ethash_return_value_t mineResult
             = EthashLightCompute(light, header_hash, nonce);
@@ -209,7 +229,7 @@ ethash_mining_result_t POW::MineFull(ethash_full_t& full,
                                      ethash_h256_t& difficulty)
 {
     uint64_t nonce = std::time(0);
-    while (shouldMine)
+    while (m_shouldMine)
     {
         ethash_return_value_t mineResult
             = EthashFullCompute(full, header_hash, nonce);
@@ -227,36 +247,63 @@ ethash_mining_result_t POW::MineFull(ethash_full_t& full,
     return failure_result;
 }
 
+ethash_mining_result_t POW::MineFullGPU(uint64_t blockNum,
+                                        ethash_h256_t const& header_hash,
+                                        uint8_t difficulty)
+{
+    LOG_MARKER();
+    dev::eth::WorkPackage wp;
+    wp.blockNumber = blockNum;
+    wp.boundary = (dev::h256)(dev::u256)((dev::bigint(1) << 256)
+                                         / (dev::u256(1) << difficulty));
+
+    wp.header = dev::h256{header_hash.b, dev::h256::ConstructFromPointer};
+    wp.startNonce = std::time(0);
+
+    dev::eth::Solution solution;
+    while (m_shouldMine)
+    {
+        if (!m_miner->mine(wp, solution))
+        {
+            LOG_GENERAL(
+                WARNING,
+                "GPU failed to do mine, GPU miner log: " << m_miner->getLog());
+            ethash_mining_result_t failure_result = {"", "", 0, false};
+            return failure_result;
+        }
+        auto hashResult = LightHash(blockNum, header_hash, solution.nonce);
+        ethash_h256_t diffForPoW = DifficultyLevelInInt(difficulty);
+        if (ethash_check_difficulty(&hashResult.result, &diffForPoW))
+        {
+            ethash_mining_result_t winning_result
+                = {BlockhashToHexString(&hashResult.result),
+                   solution.mixHash.hex(), solution.nonce, true};
+            return winning_result;
+        }
+        wp.startNonce = solution.nonce;
+    }
+    ethash_mining_result_t failure_result = {"", "", 0, false};
+    return failure_result;
+}
+
 bool POW::VerifyLight(ethash_light_t& light, ethash_h256_t const& header_hash,
                       uint64_t winning_nonce, ethash_h256_t& difficulty,
-                      ethash_h256_t& result, ethash_h256_t& mixhash)
+                      [[gnu::unused]] ethash_h256_t& result,
+                      [[gnu::unused]] ethash_h256_t& mixhash)
 {
     ethash_return_value_t mineResult
         = EthashLightCompute(light, header_hash, winning_nonce);
-    if (ethash_check_difficulty(&mineResult.result, &difficulty))
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+    return ethash_check_difficulty(&mineResult.result, &difficulty);
 }
 
 bool POW::VerifyFull(ethash_full_t& full, ethash_h256_t const& header_hash,
                      uint64_t winning_nonce, ethash_h256_t& difficulty,
-                     ethash_h256_t& result, ethash_h256_t& mixhash)
+                     [[gnu::unused]] ethash_h256_t& result,
+                     [[gnu::unused]] ethash_h256_t& mixhash)
 {
     ethash_return_value_t mineResult
         = EthashFullCompute(full, header_hash, winning_nonce);
-    if (ethash_check_difficulty(&mineResult.result, &difficulty))
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+    return ethash_check_difficulty(&mineResult.result, &difficulty);
 }
 
 std::vector<unsigned char>
@@ -290,18 +337,17 @@ POW::ConcatAndhash(const std::array<unsigned char, UINT256_SIZE>& rand1,
 }
 
 ethash_mining_result_t
-POW::PoWMine(const boost::multiprecision::uint256_t& blockNum,
-             uint8_t difficulty,
+POW::PoWMine(uint64_t blockNum, uint8_t difficulty,
              const std::array<unsigned char, UINT256_SIZE>& rand1,
              const std::array<unsigned char, UINT256_SIZE>& rand2,
              const boost::multiprecision::uint128_t& ipAddr,
              const PubKey& pubKey, bool fullDataset)
 {
     LOG_MARKER();
-    // mutex required to prevent a new mining to begin before previous mining operation has ended(ie. shouldMine=false
+    // mutex required to prevent a new mining to begin before previous mining operation has ended(ie. m_shouldMine=false
     // has been processed) and result.success has been returned)
     std::lock_guard<std::mutex> g(m_mutexPoWMine);
-    EthashConfigureLightClient((uint64_t)blockNum);
+    EthashConfigureLightClient(blockNum);
     ethash_h256_t diffForPoW = DifficultyLevelInInt(difficulty);
     std::vector<unsigned char> sha3_result
         = ConcatAndhash(rand1, rand2, ipAddr, pubKey);
@@ -311,15 +357,22 @@ POW::PoWMine(const boost::multiprecision::uint256_t& blockNum,
         = StringToBlockhash(DataConversion::Uint8VecToHexStr(sha3_result));
     ethash_mining_result_t result;
 
-    shouldMine = true;
+    m_shouldMine = true;
 
     if (fullDataset)
     {
-        ethash_callback_t CallBack = NULL;
-        ethash_full_t fullClient
-            = POW::EthashFullNew(ethash_light_client, CallBack);
-        result = MineFull(fullClient, headerHash, diffForPoW);
-        EthashFullDelete(fullClient);
+        if (OPENCL_GPU_MINE || CUDA_GPU_MINE)
+        {
+            result = MineFullGPU(blockNum, headerHash, difficulty);
+        }
+        else
+        {
+            ethash_callback_t CallBack = NULL;
+            ethash_full_t fullClient
+                = POW::EthashFullNew(ethash_light_client, CallBack);
+            result = MineFull(fullClient, headerHash, diffForPoW);
+            EthashFullDelete(fullClient);
+        }
     }
     else
     {
@@ -328,8 +381,7 @@ POW::PoWMine(const boost::multiprecision::uint256_t& blockNum,
     return result;
 }
 
-bool POW::PoWVerify(const boost::multiprecision::uint256_t& blockNum,
-                    uint8_t difficulty,
+bool POW::PoWVerify(uint64_t blockNum, uint8_t difficulty,
                     const std::array<unsigned char, UINT256_SIZE>& rand1,
                     const std::array<unsigned char, UINT256_SIZE>& rand2,
                     const boost::multiprecision::uint128_t& ipAddr,
@@ -338,7 +390,7 @@ bool POW::PoWVerify(const boost::multiprecision::uint256_t& blockNum,
                     std::string& winning_mixhash)
 {
     LOG_MARKER();
-    EthashConfigureLightClient((uint64_t)blockNum);
+    EthashConfigureLightClient(blockNum);
     ethash_h256_t diffForPoW = DifficultyLevelInInt(difficulty);
     std::vector<unsigned char> sha3_result
         = ConcatAndhash(rand1, rand2, ipAddr, pubKey);
@@ -355,8 +407,8 @@ bool POW::PoWVerify(const boost::multiprecision::uint256_t& blockNum,
     if (!boost::iequals(check_hash_string, winning_result))
     {
         LOG_GENERAL(INFO,
-                    "Check Hash" << check_hash_string << " Result "
-                                 << winning_result << " did not match");
+                    "Check Hash " << check_hash_string << " Result "
+                                  << winning_result << " did not match");
         return false;
     }
 
@@ -376,4 +428,76 @@ bool POW::PoWVerify(const boost::multiprecision::uint256_t& blockNum,
                              diffForPoW, winnning_result, winnning_mixhash);
     }
     return result;
+}
+
+ethash_return_value_t POW::LightHash(uint64_t blockNum,
+                                     ethash_h256_t const& header_hash,
+                                     uint64_t nonce)
+{
+    EthashConfigureLightClient(blockNum);
+    return EthashLightCompute(ethash_light_client, header_hash, nonce);
+}
+
+bool POW::CheckSolnAgainstsTargetedDifficulty(const ethash_h256_t& result,
+                                              uint8_t difficulty)
+{
+    const ethash_h256_t diffForPoW = DifficultyLevelInInt(difficulty);
+    return ethash_check_difficulty(&result, &diffForPoW);
+}
+
+bool POW::CheckSolnAgainstsTargetedDifficulty(const std::string& result,
+                                              uint8_t difficulty)
+{
+    const ethash_h256_t diffForPoW = DifficultyLevelInInt(difficulty);
+    ethash_h256_t hashResult = StringToBlockhash(result);
+    return ethash_check_difficulty(&hashResult, &diffForPoW);
+}
+
+void POW::InitOpenCL()
+{
+#ifdef OPENCL_MINE
+    using namespace dev::eth;
+    CLMiner::setCLKernel(CLKernelName::Stable);
+
+    if (!CLMiner::configureGPU(OPENCL_LOCAL_WORK_SIZE,
+                               OPENCL_GLOBAL_WORK_SIZE_MULTIPLIER, 0,
+                               OPENCL_START_EPOCH, 0, 0, false, false))
+    {
+        LOG_GENERAL(FATAL,
+                    "Failed to configure OpenCL GPU, please check hardware");
+    }
+
+    CLMiner::setNumInstances(UINT_MAX);
+    m_miner = std::make_unique<CLMiner>();
+    LOG_GENERAL(INFO, "OpenCL GPU initialized in POW");
+#else
+    LOG_GENERAL(FATAL,
+                "The software is not build with OpenCL. Please enable the "
+                "OpenCL build option and "
+                "and build software again");
+#endif
+}
+
+void POW::InitCUDA()
+{
+#ifdef CUDA_MINE
+    using namespace dev::eth;
+
+    if (!CUDAMiner::configureGPU(CUDA_BLOCK_SIZE, CUDA_GRID_SIZE,
+                                 CUDA_STREAM_NUM, CUDA_SCHEDULE_FLAG, 0, 0,
+                                 false, false))
+    {
+        LOG_GENERAL(FATAL,
+                    "Failed to configure CUDA GPU, please check hardware");
+    }
+
+    CUDAMiner::setNumInstances(UINT_MAX);
+    m_miner = std::make_unique<CUDAMiner>();
+    LOG_GENERAL(INFO, "CUDA GPU initialized in POW");
+#else
+    LOG_GENERAL(FATAL,
+                "The software is not build with CUDA. Please enable the CUDA "
+                "build option "
+                "and build software again");
+#endif
 }

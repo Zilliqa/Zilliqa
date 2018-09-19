@@ -97,6 +97,10 @@ find_program(
     PATHS "${CMAKE_SOURCE_DIR}/scripts/"
 )
 
+# a workaround to exclude the third-party headers in 'src/depends'
+# This is a known issue https://reviews.llvm.org/D34654
+set(HEADER_DIR_REGEX "^${CMAKE_SOURCE_DIR}/\"(src/(common|lib)|tests)\"")
+
 if(CLANG_TIDY)
     execute_process(
         COMMAND "${CLANG_TIDY}" --version
@@ -113,8 +117,11 @@ if(CLANG_TIDY)
             clang-tidy
             COMMAND "${RUN_CLANG_TIDY}"
             -clang-tidy-binary ${CLANG_TIDY}
+            -quiet
             -config=''
+            -header-filter ${HEADER_DIR_REGEX}
             -style='file'
+            -warnings-as-errors='*'
             ${ALL_CXX_SOURCES}
         )
         if(CLANG_APPLY_REPLACEMENTS)
@@ -123,9 +130,11 @@ if(CLANG_TIDY)
                 COMMAND "${RUN_CLANG_TIDY}"
                 -clang-tidy-binary ${CLANG_TIDY}
                 -clang-apply-replacements-binary ${CLANG_APPLY_REPLACEMENTS}
+                -quiet
                 -fix
                 -format
                 -config=''
+                -header-filter ${HEADER_DIR_REGEX}
                 -style='file'
                 ${ALL_CXX_SOURCES}
             )

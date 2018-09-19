@@ -57,8 +57,9 @@ TxBlock constructDummyTxBlock(int instanceNum)
 
     return TxBlock(TxBlockHeader(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1,
                                  1, BlockHash(), instanceNum, get_time_as_int(),
-                                 TxnHash(), StateHash(), StateHash(), 5, 6,
-                                 pubKey1.second, instanceNum, BlockHash()),
+                                 TxnHash(), StateHash(), StateHash(),
+                                 StateHash(), TxnHash(), 5, 6, pubKey1.second,
+                                 instanceNum, BlockHash()),
                    vector<bool>(), vector<MicroBlockHashSet>(6),
                    vector<uint32_t>(6), CoSignatures());
 }
@@ -204,13 +205,13 @@ void readBlock(int id)
 {
     TxBlockSharedPtr block;
     BlockStorage::GetBlockStorage().GetTxBlock(id, block);
-    if ((*block).GetHeader().GetBlockNum() != id)
+    if ((*block).GetHeader().GetBlockNum() != (uint64_t)id)
     {
         LOG_GENERAL(INFO,
                     "GetBlockNum is " << (*block).GetHeader().GetBlockNum()
                                       << ", id is " << id);
 
-        if ((*block).GetHeader().GetBlockNum() != id)
+        if ((*block).GetHeader().GetBlockNum() != (uint64_t)id)
         {
             LOG_GENERAL(FATAL,
                         "assertion failed (" << __FILE__ << ":" << __LINE__
@@ -274,9 +275,9 @@ BOOST_AUTO_TEST_CASE(testThreadSafety)
     std::cout << "Launched from the main\n";
 
     //Join the threads with the main thread
-    for (int i = 0; i < num_threads; ++i)
+    for (auto& i : t)
     {
-        t[i].join();
+        i.join();
     }
 }
 
@@ -336,7 +337,7 @@ BOOST_AUTO_TEST_CASE(testRetrieveAllTheTxBlocksInDB)
             block.Serialize(serializedTxBlock, 0);
 
             BlockStorage::GetBlockStorage().PutTxBlock(i, serializedTxBlock);
-            in_blocks.push_back(block);
+            in_blocks.emplace_back(block);
         }
 
         std::list<TxBlockSharedPtr> ref_blocks;
@@ -347,7 +348,7 @@ BOOST_AUTO_TEST_CASE(testRetrieveAllTheTxBlocksInDB)
         for (auto i : ref_blocks)
         {
             LOG_GENERAL(INFO, i->GetHeader().GetDSBlockNum());
-            out_blocks.push_back(*i);
+            out_blocks.emplace_back(*i);
         }
         BOOST_CHECK_MESSAGE(
             in_blocks == out_blocks,

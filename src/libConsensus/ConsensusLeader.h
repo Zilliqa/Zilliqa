@@ -29,11 +29,17 @@
 #include "libNetwork/PeerStore.h"
 #include "libUtils/TimeLockedFunction.h"
 
-typedef std::function<bool(const vector<unsigned char>& errorMsg, unsigned int,
+typedef std::function<bool(const std::vector<unsigned char>& errorMsg,
                            const Peer& from)>
     NodeCommitFailureHandlerFunc;
 typedef std::function<bool(std::map<unsigned int, std::vector<unsigned char>>)>
     ShardCommitFailureHandlerFunc;
+typedef std::function<bool(
+    std::vector<unsigned char>& dst, unsigned int offset,
+    const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
+    const uint16_t leaderID, const std::pair<PrivKey, PubKey>& leaderKey,
+    std::vector<unsigned char>& messageToCosign)>
+    AnnouncementGeneratorFunc;
 
 /// Implements the functionality for the consensus committee leader.
 class ConsensusLeader : public ConsensusCommon
@@ -88,8 +94,9 @@ class ConsensusLeader : public ConsensusCommon
                                   State nextstate);
     bool ProcessMessageCommit(const std::vector<unsigned char>& commit,
                               unsigned int offset);
-    bool ProcessMessageCommitFailure(const std::vector<unsigned char>& commit,
-                                     unsigned int offset, const Peer& from);
+    bool ProcessMessageCommitFailure(
+        const std::vector<unsigned char>& commitFailureMsg, unsigned int offset,
+        const Peer& from);
     bool GenerateChallengeMessage(std::vector<unsigned char>& challenge,
                                   unsigned int offset);
     bool ProcessMessageResponseCore(const std::vector<unsigned char>& response,
@@ -129,12 +136,15 @@ public:
     ~ConsensusLeader();
 
     /// Triggers the start of consensus on a particular message (e.g., DS block).
-    bool StartConsensus(const std::vector<unsigned char>& message,
-                        uint32_t lengthToCosign);
+    bool StartConsensus(AnnouncementGeneratorFunc announcementGeneratorFunc);
 
     /// Function to process any consensus message received.
     bool ProcessMessage(const std::vector<unsigned char>& message,
                         unsigned int offset, const Peer& from);
+
+private:
+    static std::map<Action, std::string> ActionStrings;
+    std::string GetActionString(Action action) const;
 };
 
 #endif // __CONSENSUSLEADER_H__

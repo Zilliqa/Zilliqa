@@ -22,11 +22,13 @@
 
 #include "AccountStoreBase.h"
 
+static boost::multiprecision::uint256_t DEFAULT_GASUSED = 0;
+
 template<class MAP> class AccountStoreSC;
 
 template<class MAP>
 class AccountStoreAtomic
-    : public AccountStoreBase<unordered_map<Address, Account>>
+    : public AccountStoreBase<std::unordered_map<Address, Account>>
 {
     AccountStoreSC<MAP>& m_parent;
 
@@ -35,30 +37,34 @@ public:
 
     Account* GetAccount(const Address& address) override;
 
-    const shared_ptr<unordered_map<Address, Account>>& GetAddressToAccount();
+    const std::shared_ptr<std::unordered_map<Address, Account>>&
+    GetAddressToAccount();
 };
 
 template<class MAP> class AccountStoreSC : public AccountStoreBase<MAP>
 {
-    unique_ptr<AccountStoreAtomic<MAP>> m_accountStoreAtomic;
+    std::unique_ptr<AccountStoreAtomic<MAP>> m_accountStoreAtomic;
 
     std::mutex m_mutexUpdateAccounts;
 
     uint64_t m_curBlockNum;
     Address m_curContractAddr;
     Address m_curSenderAddr;
-    uint256_t m_curAmount;
-    uint256_t m_curGasCum;
-    uint256_t m_curGasLimit;
-    uint256_t m_curGasPrice;
+    boost::multiprecision::uint256_t m_curAmount;
+    boost::multiprecision::uint256_t m_curGasCum;
+    boost::multiprecision::uint256_t m_curGasLimit;
+    boost::multiprecision::uint256_t m_curGasPrice;
+    unsigned int m_curNumShards;
+    bool m_curIsDS;
+    TransactionReceipt m_curTranReceipt;
 
     bool ParseCreateContractOutput();
     bool ParseCreateContractJsonOutput(const Json::Value& _json);
     bool ParseCallContractOutput();
     bool ParseCallContractJsonOutput(const Json::Value& _json);
     Json::Value GetBlockStateJson(const uint64_t& BlockNum) const;
-    string GetCreateContractCmdStr();
-    string GetCallContractCmdStr();
+    std::string GetCreateContractCmdStr();
+    std::string GetCallContractCmdStr();
 
     // Generate input for interpreter to check the correctness of contract
     void ExportCreateContractFiles(const Account& contract);
@@ -70,13 +76,13 @@ template<class MAP> class AccountStoreSC : public AccountStoreBase<MAP>
                                  const Json::Value& contractData);
 
     bool TransferBalanceAtomic(const Address& from, const Address& to,
-                               const uint256_t& delta);
+                               const boost::multiprecision::uint256_t& delta);
     void CommitTransferBalanceAtomic();
     void DiscardTransferBalanceAtomic();
 
-    bool CheckGasExceededLimit(const uint256_t& gas);
+    bool CheckGasExceededLimit(const boost::multiprecision::uint256_t& gas);
 
-    uint256_t CalculateGas();
+    boost::multiprecision::uint256_t CalculateGas();
 
 protected:
     AccountStoreSC();
@@ -84,8 +90,9 @@ protected:
 public:
     void Init() override;
 
-    bool UpdateAccounts(const uint64_t& blockNum,
-                        const Transaction& transaction);
+    bool UpdateAccounts(const uint64_t& blockNum, const unsigned int& numShards,
+                        const bool& isDS, const Transaction& transaction,
+                        TransactionReceipt& receipt);
 };
 
 #include "AccountStoreAtomic.tpp"

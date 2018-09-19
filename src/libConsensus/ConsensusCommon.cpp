@@ -18,6 +18,8 @@
 #include "ConsensusCommon.h"
 #include "common/Constants.h"
 #include "common/Messages.h"
+#include "libMessage/Messenger.h"
+#include "libMessage/ZilliqaMessage.pb.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
@@ -48,12 +50,14 @@ map<ConsensusCommon::ConsensusErrorCode, std::string>
        MAKE_LITERAL_PAIR(INVALID_BLOCK_HASH),
        MAKE_LITERAL_PAIR(INVALID_MICROBLOCK_ROOT_HASH),
        MAKE_LITERAL_PAIR(MISSING_TXN),
+       MAKE_LITERAL_PAIR(WRONG_TXN_ORDER),
        MAKE_LITERAL_PAIR(FINALBLOCK_MISSING_HASH),
        MAKE_LITERAL_PAIR(FINALBLOCK_INVALID_MICROBLOCK_ROOT_HASH),
        MAKE_LITERAL_PAIR(FINALBLOCK_MICROBLOCK_EMPTY_ERROR),
        MAKE_LITERAL_PAIR(INVALID_MICROBLOCK_STATE_DELTA_HASH),
        MAKE_LITERAL_PAIR(INVALID_MICROBLOCK_SHARD_ID),
-       MAKE_LITERAL_PAIR(INVALID_FINALBLOCK_STATE_ROOT)};
+       MAKE_LITERAL_PAIR(INVALID_FINALBLOCK_STATE_ROOT),
+       MAKE_LITERAL_PAIR(INVALID_FINALBLOCK_STATE_DELTA_HASH)};
 
 ConsensusCommon::ConsensusCommon(uint32_t consensus_id,
                                  const vector<unsigned char>& block_hash,
@@ -84,7 +88,7 @@ Signature ConsensusCommon::SignMessage(const vector<unsigned char>& msg,
     bool result
         = Schnorr::GetInstance().Sign(msg, offset, size, m_myPrivKey,
                                       m_committee.at(m_myID).first, signature);
-    if (result == false)
+    if (!result)
     {
         return Signature();
     }
@@ -99,7 +103,7 @@ bool ConsensusCommon::VerifyMessage(const vector<unsigned char>& msg,
     bool result = Schnorr::GetInstance().Verify(msg, offset, size, toverify,
                                                 m_committee.at(peer_id).first);
 
-    if (result == false)
+    if (!result)
     {
         LOG_GENERAL(INFO,
                     "Peer id: " << peer_id << " pubkey: 0x"
@@ -118,9 +122,9 @@ PubKey ConsensusCommon::AggregateKeys(const vector<bool> peer_map)
     deque<pair<PubKey, Peer>>::const_iterator j = m_committee.begin();
     for (unsigned int i = 0; i < peer_map.size(); i++, j++)
     {
-        if (peer_map.at(i) == true)
+        if (peer_map.at(i))
         {
-            keys.push_back(j->first);
+            keys.emplace_back(j->first);
         }
     }
     shared_ptr<PubKey> result = MultiSig::AggregatePubKeys(keys);
@@ -177,16 +181,54 @@ Signature ConsensusCommon::AggregateSign(const Challenge& challenge,
 }
 
 Challenge ConsensusCommon::GetChallenge(const vector<unsigned char>& msg,
-                                        unsigned int offset, unsigned int size,
                                         const CommitPoint& aggregated_commit,
                                         const PubKey& aggregated_key)
 {
     LOG_MARKER();
 
-    return Challenge(aggregated_commit, aggregated_key, msg, offset, size);
+    return Challenge(aggregated_commit, aggregated_key, msg);
 }
 
 ConsensusCommon::State ConsensusCommon::GetState() const { return m_state; }
+
+bool ConsensusCommon::GetConsensusID(const std::vector<unsigned char>& message,
+                                     const unsigned int offset,
+                                     uint32_t& consensusID) const
+{
+    switch (message.at(offset))
+    {
+    case ConsensusMessageType::ANNOUNCE:
+        return Messenger::GetConsensusID<ZilliqaMessage::ConsensusAnnouncement>(
+            message, offset + 1, consensusID);
+    case ConsensusMessageType::CONSENSUSFAILURE:
+        return true;
+    case ConsensusMessageType::COMMIT:
+    case ConsensusMessageType::FINALCOMMIT:
+        return Messenger::GetConsensusID<ZilliqaMessage::ConsensusCommit>(
+            message, offset + 1, consensusID);
+    case ConsensusMessageType::COMMITFAILURE:
+        return Messenger::GetConsensusID<
+            ZilliqaMessage::ConsensusCommitFailure>(message, offset + 1,
+                                                    consensusID);
+    case ConsensusMessageType::CHALLENGE:
+    case ConsensusMessageType::FINALCHALLENGE:
+        return Messenger::GetConsensusID<ZilliqaMessage::ConsensusChallenge>(
+            message, offset + 1, consensusID);
+    case ConsensusMessageType::RESPONSE:
+    case ConsensusMessageType::FINALRESPONSE:
+        return Messenger::GetConsensusID<ZilliqaMessage::ConsensusResponse>(
+            message, offset + 1, consensusID);
+    case ConsensusMessageType::COLLECTIVESIG:
+    case ConsensusMessageType::FINALCOLLECTIVESIG:
+        return Messenger::GetConsensusID<
+            ZilliqaMessage::ConsensusCollectiveSig>(message, offset + 1,
+                                                    consensusID);
+    default:
+        LOG_GENERAL(WARNING, "Unknown consensus message received");
+        break;
+    }
+    return false;
+}
 
 ConsensusCommon::ConsensusErrorCode
 ConsensusCommon::GetConsensusErrorCode() const

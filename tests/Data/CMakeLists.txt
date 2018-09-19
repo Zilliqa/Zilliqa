@@ -1,10 +1,4 @@
-if(CMAKE_CONFIGURATION_TYPES)
-    foreach(config ${CMAKE_CONFIGURATION_TYPES})
-        configure_file(${CMAKE_SOURCE_DIR}/constants.xml ${config}/constants.xml COPYONLY)
-    endforeach(config)
-else(CMAKE_CONFIGURATION_TYPES)
-    configure_file(${CMAKE_SOURCE_DIR}/constants.xml constants.xml COPYONLY)
-endif(CMAKE_CONFIGURATION_TYPES)
+configure_file(${CMAKE_SOURCE_DIR}/constants.xml constants.xml COPYONLY)
 
 link_directories(${CMAKE_BINARY_DIR}/lib)
 
@@ -23,6 +17,11 @@ target_include_directories(Test_CircularArray PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(Test_CircularArray PUBLIC Utils)
 add_test(NAME Test_CircularArray COMMAND Test_CircularArray)
 
+add_executable(Test_MultiIndex Test_MultiIndex.cpp)
+target_include_directories(Test_MultiIndex PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(Test_MultiIndex PUBLIC Utils AccountData Crypto)
+add_test(NAME Test_MultiIndex COMMAND Test_MultiIndex)
+
 add_executable(Test_Transaction Test_Transaction.cpp)
 target_include_directories(Test_Transaction PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(Test_Transaction PUBLIC AccountData Utils Validator)
@@ -32,6 +31,11 @@ add_executable(Test_TransactionPerformance Test_TransactionPerformance.cpp)
 target_include_directories(Test_TransactionPerformance PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(Test_TransactionPerformance PUBLIC AccountData Utils)
 add_test(NAME Test_TransactionPerformance COMMAND Test_TransactionPerformance)
+
+#add_executable(Test_Get_Txn Test_Get_Txn.cpp)
+#target_include_directories(Test_Get_Txn PUBLIC ${CMAKE_SOURCE_DIR}/src)
+#target_link_libraries(Test_Get_Txn PUBLIC AccountData Utils)
+#add_test(NAME Test_Get_Txn COMMAND Test_Get_Txn)
 
 #add_executable(Test_Contract Test_Contract.cpp)
 #target_include_directories(Test_Contract PUBLIC ${CMAKE_SOURCE_DIR}/src)

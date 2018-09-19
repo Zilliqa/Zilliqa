@@ -20,40 +20,36 @@
 #include "Logger.h"
 #include <boost/multiprecision/cpp_int.hpp>
 
-class SafeMath
+template<class T> class SafeMath
 {
 public:
-    static const bool mul(const boost::multiprecision::uint256_t& a,
-                          const boost::multiprecision::uint256_t& b,
-                          boost::multiprecision::uint256_t& result)
+    static bool mul(const T& a, const T& b, T& result)
     {
-        if (a == 0)
+        if (a == 0 || b == 0)
         {
             result = 0;
             return true;
         }
 
-        boost::multiprecision::uint256_t c = a * b;
+        T c = a * b;
         if (c / a != b)
         {
-            LOG_GENERAL(WARNING, "Multiplication Overflow!");
+            LOG_GENERAL(WARNING, "Multiplication Underflow/Overflow!");
             return false;
         }
         result = c;
         return true;
     }
 
-    static const bool div(const boost::multiprecision::uint256_t& a,
-                          const boost::multiprecision::uint256_t& b,
-                          boost::multiprecision::uint256_t& result)
+    static bool div(const T& a, const T& b, T& result)
     {
-        if (b <= 0)
+        if (b == 0)
         {
             LOG_GENERAL(WARNING, "Denominator cannot be zero!");
             return false;
         }
 
-        boost::multiprecision::uint256_t c = a / b;
+        T c = a / b;
         if (a != b * c + a % b)
         {
             return false;
@@ -63,28 +59,67 @@ public:
         return true;
     }
 
-    static const bool sub(const boost::multiprecision::uint256_t& a,
-                          const boost::multiprecision::uint256_t& b,
-                          boost::multiprecision::uint256_t& result)
+    static bool sub(const T& a, const T& b, T& result)
     {
-        if (b > a)
+        if (a == b)
         {
-            LOG_GENERAL(WARNING, "Invalid Subtraction for Unsigned Integer!");
+            result = 0;
+            return true;
+        }
+
+        T aa = a, bb = b;
+        bool bPos = true;
+
+        if (a < b)
+        {
+            bPos = false;
+            aa = b;
+            bb = a;
+        }
+
+        if (aa == 0)
+        {
+            result = bPos ? (0 - bb) : bb;
+            return true;
+        }
+
+        if (bb == 0)
+        {
+            result = bPos ? aa : (0 - aa);
+            return true;
+        }
+
+        T c = aa - bb;
+
+        if (aa > 0 && bb < 0 && (c < aa || c < (0 - bb)))
+        {
+            if (bPos)
+            {
+                LOG_GENERAL(WARNING, "Subtraction Overflow!");
+            }
+            else
+            {
+                LOG_GENERAL(WARNING, "Subtraction Underflow!");
+            }
             return false;
         }
 
-        result = a - b;
+        result = bPos ? c : (0 - c);
         return true;
     }
 
-    static const bool add(const boost::multiprecision::uint256_t& a,
-                          const boost::multiprecision::uint256_t& b,
-                          boost::multiprecision::uint256_t& result)
+    static bool add(const T& a, const T& b, T& result)
     {
-        boost::multiprecision::uint256_t c = a + b;
-        if (c - a != b)
+        T c = a + b;
+
+        if (a > 0 && b > 0 && (c < a || c < b))
         {
             LOG_GENERAL(WARNING, "Addition Overflow!");
+            return false;
+        }
+        else if (a < 0 && b < 0 && (c > a || c > b))
+        {
+            LOG_GENERAL(WARNING, "Addition Underflow!");
             return false;
         }
 
@@ -93,4 +128,4 @@ public:
     }
 };
 
-#endif // __OVERFLOWSAFEOPS_H__
+#endif //__SafeMath_H__

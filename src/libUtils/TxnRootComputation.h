@@ -21,18 +21,28 @@
 #include <unordered_map>
 #include <vector>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "depends/libDatabase/MemoryDB.h"
+#pragma GCC diagnostic pop
+
 #include "depends/libTrie/TrieDB.h"
 #include "libData/BlockData/BlockHeader/BlockHashSet.h"
 
 StateHash
 ComputeDeltasRoot(const std::vector<MicroBlockHashSet>& microBlockHashes);
 
+TxnHash
+ComputeTranReceiptsRoot(const std::vector<MicroBlockHashSet>& microBlockHashes);
+
 TxnHash ComputeTransactionsRoot(const std::vector<TxnHash>& transactionHashes);
 
 TxnHash
 ComputeTransactionsRoot(const std::list<Transaction>& receivedTransactions,
                         const std::list<Transaction>& submittedTransactions);
+
+TxnHash ComputeTransactionsRoot(
+    const std::unordered_map<TxnHash, Transaction>& processedTransactions);
 
 TxnHash ComputeTransactionsRoot(
     const std::unordered_map<TxnHash, Transaction>& receivedTransactions,

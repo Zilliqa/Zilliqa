@@ -97,7 +97,7 @@ void process_addpeers(int numargs, const char* progname, const char* cmdname,
                 static_cast<unsigned int>(atoi(args[i++])), sizeof(uint32_t));
 
             // Send the ADDNODE message to the local node
-            P2PComm::GetInstance().SendMessage(my_port, addnode_message);
+            P2PComm::GetInstance().SendMessageNoQueue(my_port, addnode_message);
         }
     }
 }
@@ -127,7 +127,7 @@ void process_broadcast(int numargs, const char* progname, const char* cmdname,
         broadcast_message.at(MessageOffset::BODY) = MessageType::PEER;
 
         // Send the BROADCAST message to the local node
-        P2PComm::GetInstance().SendMessage(my_port, broadcast_message);
+        P2PComm::GetInstance().SendMessageNoQueue(my_port, broadcast_message);
     }
 }
 
@@ -149,7 +149,7 @@ void process_cmd(int numargs, const char* progname, const char* cmdname,
 
         // Send the generic message to the local node
         vector<unsigned char> tmp = DataConversion::HexStrToUint8Vec(args[0]);
-        P2PComm::GetInstance().SendMessage(my_port, tmp);
+        P2PComm::GetInstance().SendMessageNoQueue(my_port, tmp);
     }
 }
 
@@ -172,7 +172,7 @@ void process_remote_cmd(int numargs, const char* progname, const char* cmdname,
         Peer my_port((uint128_t)ip_addr.s_addr, listen_port);
 
         vector<unsigned char> tmp = DataConversion::HexStrToUint8Vec(args[0]);
-        P2PComm::GetInstance().SendMessage(my_port, tmp);
+        P2PComm::GetInstance().SendMessageNoQueue(my_port, tmp);
     }
 }
 
@@ -196,20 +196,14 @@ int main(int argc, const char* argv[])
     const message_handler_2 message_handlers_2[]
         = {{"remotecmd", &process_remote_cmd}};
 
-    const int num_handlers
-        = sizeof(message_handlers) / sizeof(message_handlers[0]);
-
-    const int num_handlers_2
-        = sizeof(message_handlers_2) / sizeof(message_handlers_2[0]);
-
     bool processed = false;
-    for (int i = 0; i < num_handlers; i++)
+    for (auto message_handler : message_handlers)
     {
-        if (!strcmp(instruction, message_handlers[i].ins))
+        if (!strcmp(instruction, message_handler.ins))
         {
-            (*message_handlers[i].func)(
-                argc - 3, argv[0], argv[2],
-                static_cast<unsigned int>(atoi(argv[1])), argv + 3);
+            (*message_handler.func)(argc - 3, argv[0], argv[2],
+                                    static_cast<unsigned int>(atoi(argv[1])),
+                                    argv + 3);
             processed = true;
             break;
         }
@@ -218,13 +212,12 @@ int main(int argc, const char* argv[])
     if (!processed)
     {
         instruction = argv[3];
-        for (int i = 0; i < num_handlers_2; i++)
+        for (auto i : message_handlers_2)
         {
-            if (!strcmp(instruction, message_handlers_2[i].ins))
+            if (!strcmp(instruction, i.ins))
             {
-                (*message_handlers_2[i].func)(
-                    argc - 4, argv[0], argv[3], argv[1],
-                    static_cast<unsigned int>(atoi(argv[2])), argv + 4);
+                (*i.func)(argc - 4, argv[0], argv[3], argv[1],
+                          static_cast<unsigned int>(atoi(argv[2])), argv + 4);
                 processed = true;
                 break;
             }

@@ -29,10 +29,6 @@
 #include "libNetwork/PeerStore.h"
 #include "libUtils/TimeLockedFunction.h"
 
-typedef std::function<bool(const std::vector<unsigned char>& input,
-                           std::vector<unsigned char>& errorMsg)>
-    MsgContentValidatorFunc;
-
 /// Implements base functionality shared between all consensus committee members
 class ConsensusCommon
 {
@@ -70,12 +66,15 @@ public:
         INVALID_BLOCK_HASH,
         INVALID_MICROBLOCK_ROOT_HASH,
         MISSING_TXN,
+        WRONG_TXN_ORDER,
         FINALBLOCK_MISSING_HASH,
         FINALBLOCK_INVALID_MICROBLOCK_ROOT_HASH,
         FINALBLOCK_MICROBLOCK_EMPTY_ERROR,
         INVALID_MICROBLOCK_STATE_DELTA_HASH,
         INVALID_MICROBLOCK_SHARD_ID,
-        INVALID_FINALBLOCK_STATE_ROOT
+        INVALID_MICROBLOCK_TRAN_RECEIPT_HASH,
+        INVALID_FINALBLOCK_STATE_ROOT,
+        INVALID_FINALBLOCK_STATE_DELTA_HASH
     };
 
     static std::map<ConsensusErrorCode, std::string> CONSENSUSERRORMSG;
@@ -120,8 +119,8 @@ protected:
     /// List of <public keys, peers> for the committee.
     std::deque<std::pair<PubKey, Peer>> m_committee;
 
-    /// The payload to be evaluated for the active consensus session.
-    std::vector<unsigned char> m_message;
+    /// The payload segment to be co-signed by the committee.
+    std::vector<unsigned char> m_messageToCosign;
 
     /// The class byte value for the next consensus message to be composed.
     unsigned char m_classByte;
@@ -146,9 +145,6 @@ protected:
 
     /// Co-sig bitmap for second round
     std::vector<bool> m_B2;
-
-    /// Length of the part of the message to co-sign
-    uint32_t m_lengthToCosign;
 
     /// Generated commit secret
     std::shared_ptr<CommitSecret> m_commitSecret;
@@ -190,14 +186,14 @@ protected:
 
     /// Generates the challenge according to the aggregated commit and key.
     Challenge GetChallenge(const std::vector<unsigned char>& msg,
-                           unsigned int offset, unsigned int size,
                            const CommitPoint& aggregated_commit,
                            const PubKey& aggregated_key);
 
 public:
     /// Consensus message processing function
-    virtual bool ProcessMessage(const std::vector<unsigned char>& message,
-                                unsigned int offset, const Peer& from)
+    virtual bool ProcessMessage(
+        [[gnu::unused]] const std::vector<unsigned char>& message,
+        [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
     {
         return false; // Should be implemented by ConsensusLeader and ConsensusBackup
     }
@@ -205,10 +201,14 @@ public:
     /// Returns the state of the active consensus session
     State GetState() const;
 
-    /// Return the consensus error code
+    /// Returns the consensus ID indicated in the message
+    bool GetConsensusID(const std::vector<unsigned char>& message,
+                        const unsigned int offset, uint32_t& consensusID) const;
+
+    /// Returns the consensus error code
     ConsensusErrorCode GetConsensusErrorCode() const;
 
-    /// Return the consensus error message
+    /// Returns the consensus error message
     std::string GetConsensusErrorMsg() const;
 
     /// Set consensus error code

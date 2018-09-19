@@ -148,12 +148,12 @@ const uint64_t& VCBlockHeader::GetViewChangeEpochNo() const
     return m_VieWChangeEpochNo;
 }
 
-const unsigned char VCBlockHeader::GetViewChangeState() const
+unsigned char VCBlockHeader::GetViewChangeState() const
 {
     return m_ViewChangeState;
 }
 
-const uint32_t VCBlockHeader::GetCandidateLeaderIndex() const
+uint32_t VCBlockHeader::GetCandidateLeaderIndex() const
 {
     return m_CandidateLeaderIndex;
 }
@@ -168,10 +168,7 @@ const PubKey& VCBlockHeader::GetCandidateLeaderPubKey() const
     return m_CandidateLeaderPubKey;
 }
 
-const uint32_t VCBlockHeader::GetViewChangeCounter() const
-{
-    return m_VCCounter;
-}
+uint32_t VCBlockHeader::GetViewChangeCounter() const { return m_VCCounter; }
 
 const boost::multiprecision::uint256_t& VCBlockHeader::GetTimeStamp() const
 {
@@ -194,37 +191,19 @@ bool VCBlockHeader::operator==(const VCBlockHeader& header) const
 bool VCBlockHeader::operator<(const VCBlockHeader& header) const
 {
     // To compare, first they must be of identical epochno and state
-    if ((m_VieWChangeDSEpochNo == header.m_VieWChangeDSEpochNo)
+    return (m_VieWChangeDSEpochNo == header.m_VieWChangeDSEpochNo)
         && (m_VieWChangeEpochNo == header.m_VieWChangeEpochNo)
         && (m_ViewChangeState == header.m_ViewChangeState)
         && (m_Timestamp == header.m_Timestamp)
-        && (m_VCCounter < header.m_VCCounter))
-    {
-        return true;
-    }
-    else
-    {
-        // Cannot compare different header or
-        // it is not smaller than the header we are comparing
-        return false;
-    }
+        && (m_VCCounter < header.m_VCCounter);
 }
 
 bool VCBlockHeader::operator>(const VCBlockHeader& header) const
 {
     // To compare, first they must be of identical epochno and state
-    if ((m_VieWChangeDSEpochNo == header.m_VieWChangeDSEpochNo)
+    return (m_VieWChangeDSEpochNo == header.m_VieWChangeDSEpochNo)
         && (m_VieWChangeEpochNo == header.m_VieWChangeEpochNo)
         && (m_ViewChangeState == header.m_ViewChangeState)
         && (m_Timestamp == header.m_Timestamp)
-        && (m_VCCounter > header.m_VCCounter))
-    {
-        return true;
-    }
-    else
-    {
-        // Cannot compare different header or
-        // it is not bigger than the header we are comparing
-        return false;
-    }
+        && (m_VCCounter > header.m_VCCounter);
 }

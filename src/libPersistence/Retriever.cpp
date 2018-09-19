@@ -132,9 +132,16 @@ void Retriever::RetrieveTxBlocks(bool& result)
     result = true;
 }
 
-#ifndef IS_LOOKUP_NODE
 bool Retriever::RetrieveTxBodiesDB()
 {
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Retriever::RetrieveTxBodiesDB not expected to be called "
+                    "from LookUp node.");
+        return true;
+    }
+
     filesys::path p("./" + PERSISTENCE_PATH + "/" + TX_BODY_SUBDIR);
     if (filesys::exists(p))
     {
@@ -159,7 +166,7 @@ bool Retriever::RetrieveTxBodiesDB()
                  i++)
             {
                 if (!BlockStorage::GetBlockStorage().PushBackTxBodyDB(
-                        std::stoi(dbNames[i])))
+                        std::stoull(dbNames[i])))
                 {
                     LOG_GENERAL(WARNING,
                                 "PushBackTxBodyDB Failed, investigate why!");
@@ -199,9 +206,17 @@ bool Retriever::RetrieveTxBodiesDB()
 
     return true;
 }
-#else // IS_LOOKUP_NODE
+
 bool Retriever::CleanExtraTxBodies()
 {
+    if (!LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Retriever::CleanExtraTxBodies not expected to be called "
+                    "from other than LookUp node.");
+        return true;
+    }
+
     LOG_MARKER();
     std::list<TxnHash> txnHashes;
     if (BlockStorage::GetBlockStorage().GetAllTxBodiesTmp(txnHashes))
@@ -217,7 +232,6 @@ bool Retriever::CleanExtraTxBodies()
     }
     return BlockStorage::GetBlockStorage().ResetDB(BlockStorage::TX_BODY_TMP);
 }
-#endif // IS_LOOKUP_NODE
 
 bool Retriever::RetrieveStates()
 {
@@ -247,7 +261,7 @@ bool Retriever::ValidateStates()
                         << m_mediator.m_txBlockChain.GetLastBlock()
                                .GetHeader()
                                .GetStateRootHash()
-                        << endl
+                        << '\n'
                         << "Retrieved StateRoot: "
                         << AccountStore::GetInstance().GetStateRootHash());
         return false;

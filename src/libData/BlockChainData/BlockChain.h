@@ -36,9 +36,7 @@ protected:
     /// Constructor.
     BlockChain() { Reset(); }
 
-    virtual T GetBlockFromPersistentStorage(
-        const boost::multiprecision::uint256_t& blockNum)
-        = 0;
+    virtual T GetBlockFromPersistentStorage(const uint64_t& blockNum) = 0;
 
 public:
     /// Destructor.
@@ -48,16 +46,16 @@ public:
     void Reset() { m_blocks.resize(BLOCKCHAIN_SIZE); }
 
     /// Returns the number of blocks.
-    boost::multiprecision::uint256_t GetBlockCount()
+    uint64_t GetBlockCount()
     {
-        lock_guard<mutex> g(m_mutexBlocks);
+        std::lock_guard<std::mutex> g(m_mutexBlocks);
         return m_blocks.size();
     }
 
     /// Returns the last stored block.
     T GetLastBlock()
     {
-        lock_guard<mutex> g(m_mutexBlocks);
+        std::lock_guard<std::mutex> g(m_mutexBlocks);
         try
         {
             return m_blocks.back();
@@ -69,13 +67,17 @@ public:
     }
 
     /// Returns the block at the specified block number.
-    T GetBlock(const boost::multiprecision::uint256_t& blockNum)
+    T GetBlock(const uint64_t& blockNum)
     {
-        lock_guard<mutex> g(m_mutexBlocks);
+        std::lock_guard<std::mutex> g(m_mutexBlocks);
 
         if (blockNum >= m_blocks.size())
         {
-            LOG_GENERAL(WARNING, "Block number " << blockNum << " absent");
+            LOG_GENERAL(WARNING,
+                        "Block number "
+                            << blockNum
+                            << " absent, a dummy block will be used and "
+                               "abnormal behavior may happen!");
             return T();
         }
         else if (blockNum + m_blocks.capacity() < m_blocks.size())
@@ -83,16 +85,15 @@ public:
             return GetBlockFromPersistentStorage(blockNum);
         }
 
-        // To-do: We cannot even index into a vector using uint256_t
-        // uint256_t might just be too big to begin with
-        // Consider switching to uint64_t
-        // For now we directly cast to uint64_t
-
         if (m_blocks[blockNum].GetHeader().GetBlockNum() != blockNum)
         {
-            LOG_GENERAL(FATAL,
-                        "assertion failed (" << __FILE__ << ":" << __LINE__
-                                             << ": " << __FUNCTION__ << ")");
+            LOG_GENERAL(WARNING,
+                        "BlockNum : "
+                            << blockNum << " != GetBlockNum() : "
+                            << m_blocks[blockNum].GetHeader().GetBlockNum()
+                            << ", a dummy block will be used and abnormal "
+                               "behavior may happen!");
+            return T();
         }
 
         return m_blocks[blockNum];
@@ -101,16 +102,15 @@ public:
     /// Adds a block to the chain.
     int AddBlock(const T& block)
     {
-        boost::multiprecision::uint256_t blockNumOfNewBlock
-            = block.GetHeader().GetBlockNum();
+        uint64_t blockNumOfNewBlock = block.GetHeader().GetBlockNum();
 
-        lock_guard<mutex> g(m_mutexBlocks);
+        std::lock_guard<std::mutex> g(m_mutexBlocks);
 
-        boost::multiprecision::uint256_t blockNumOfExistingBlock
+        uint64_t blockNumOfExistingBlock
             = m_blocks[blockNumOfNewBlock].GetHeader().GetBlockNum();
 
         if (blockNumOfExistingBlock < blockNumOfNewBlock
-            || blockNumOfExistingBlock == (boost::multiprecision::uint256_t)-1)
+            || blockNumOfExistingBlock == (uint64_t)-1)
         {
             m_blocks.insert_new(blockNumOfNewBlock, block);
         }
@@ -126,8 +126,7 @@ public:
 class DSBlockChain : public BlockChain<DSBlock>
 {
 public:
-    DSBlock GetBlockFromPersistentStorage(
-        const boost::multiprecision::uint256_t& blockNum)
+    DSBlock GetBlockFromPersistentStorage(const uint64_t& blockNum)
     {
         DSBlockSharedPtr block;
         BlockStorage::GetBlockStorage().GetDSBlock(blockNum, block);
@@ -138,8 +137,7 @@ public:
 class TxBlockChain : public BlockChain<TxBlock>
 {
 public:
-    TxBlock GetBlockFromPersistentStorage(
-        const boost::multiprecision::uint256_t& blockNum)
+    TxBlock GetBlockFromPersistentStorage(const uint64_t& blockNum)
     {
         TxBlockSharedPtr block;
         BlockStorage::GetBlockStorage().GetTxBlock(blockNum, block);
@@ -150,8 +148,8 @@ public:
 class VCBlockChain : public BlockChain<VCBlock>
 {
 public:
-    VCBlock GetBlockFromPersistentStorage(
-        const boost::multiprecision::uint256_t& blockNum)
+    VCBlock GetBlockFromPersistentStorage([
+        [gnu::unused]] const uint64_t& blockNum)
     {
         throw "vc block persistent storage not supported";
     }
