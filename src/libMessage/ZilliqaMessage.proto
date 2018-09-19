@@ -254,6 +254,16 @@ message LookupSetStartPoWFromSeed
     // Empty
 }
 
+message LookupGetShardsFromSeed
+{
+    required uint32 listenport = 1;
+}
+
+message LookupSetShardsFromSeed
+{
+    required ShardingStructure sharding = 1;
+}
+
 // ============================================================================
 // Consensus messages
 // ============================================================================
