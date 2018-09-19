@@ -86,7 +86,7 @@ public:
 
     /// Returns the software version information used during creation of this block.
     const SWInfo& GetSWInfo() const;
-    
+
     const std::map<PubKey, Peer>& GetDSPoWWinners() const;
 
     /// Equality operator.
