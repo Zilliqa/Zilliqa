@@ -519,7 +519,9 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
                       "I won PoW :-) I am now in the DS committee !");
 
             // Process sharding structure as a DS node
-            if (!m_mediator.m_ds->ProcessShardingStructure())
+            if (!m_mediator.m_ds->ProcessShardingStructure(
+                    m_mediator.m_ds->m_shards,
+                    m_mediator.m_ds->m_publicKeyToShardIdMap))
             {
                 return false;
             }
