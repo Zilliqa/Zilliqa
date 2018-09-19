@@ -364,7 +364,9 @@ void DirectoryService::CommitMBSubmissionMsgBuffer()
             for (const auto& msg : it->second)
             {
                 ProcessMicroblockSubmissionFromShardCore(
-                    msg, MessageOffset::BODY + sizeof(uint64_t));
+                    msg,
+                    MessageOffset::BODY + MessageOffset::INST //mbtype
+                        + sizeof(uint64_t));
             }
             m_MBSubmissionBuffer.erase(it);
             break;

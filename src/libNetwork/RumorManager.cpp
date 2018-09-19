@@ -10,7 +10,7 @@ const unsigned char START_BYTE_GOSSIP = 0x33;
 
 namespace
 {
-    const std::chrono::milliseconds ROUND_TIME(500);
+    const std::chrono::milliseconds ROUND_TIME(100);
 
     RRS::Message::Type convertType(uint8_t type)
     {
@@ -67,17 +67,17 @@ void RumorManager::startRounds()
                 auto l = m_peerIdPeerBimap.left.find(result.first);
                 if (l != m_peerIdPeerBimap.left.end())
                 {
-                    LOG_GENERAL(INFO,
+                    /*LOG_GENERAL(INFO,
                                 "Sending " << result.second.size()
-                                           << " push messages")
+                                           << " push messages")*/
                     SendMessages(l->second, result.second);
                 }
             } // end critical section
-            std::this_thread::sleep_for(ROUND_TIME
-                                        - std::chrono::milliseconds(15));
-            if (m_condStopRound.wait_for(
-                    guard, std::chrono::milliseconds(15),
-                    [&] { return m_continueRound == false; }))
+            //std::this_thread::sleep_for(ROUND_TIME
+            //                            - std::chrono::milliseconds(15));
+            if (m_condStopRound.wait_for(guard,
+                                         std::chrono::milliseconds(ROUND_TIME),
+                                         [&] { return !m_continueRound; }))
             {
                 return;
             }
@@ -104,9 +104,12 @@ bool RumorManager::Initialize(const std::vector<Peer>& peers,
     LOG_MARKER();
     {
         std::lock_guard<std::mutex> guard(m_continueRoundMutex);
-        if (m_continueRound == true)
+        if (m_continueRound)
         {
             // Seems logical error. Round should have been already Stopped.
+            LOG_GENERAL(WARNING,
+                        "Round is still running.. So won't re-initialize the "
+                        "rumor mamager.");
             return false;
         }
     }
@@ -142,9 +145,12 @@ bool RumorManager::addRumor(const RumorManager::RawBytes& message)
     LOG_MARKER();
     {
         std::lock_guard<std::mutex> guard(m_continueRoundMutex);
-        if (m_continueRound == false)
+        if (!m_continueRound)
         {
             // Seems logical error. Round should have started.
+            LOG_GENERAL(
+                WARNING,
+                "Round is not running.. So won't add the rumor mamager.");
             return false;
         }
     }
@@ -170,8 +176,11 @@ bool RumorManager::rumorReceived(uint8_t type, int32_t round,
     LOG_MARKER();
     {
         std::lock_guard<std::mutex> guard(m_continueRoundMutex);
-        if (m_continueRound == false)
+        if (!m_continueRound)
         {
+            LOG_GENERAL(WARNING,
+                        "Round is not running.. So won't accept the rumor "
+                        "receivied. Will ignore..");
             return false;
         }
     }
@@ -197,9 +206,9 @@ bool RumorManager::rumorReceived(uint8_t type, int32_t round,
         || t == RRS::Message::Type::EMPTY_PULL)
     {
         /* Don't add it to local RumorMap because it's not the rumor itself */
-        LOG_GENERAL(INFO,
+        /*LOG_GENERAL(INFO,
                     "Received empty message of type: "
-                        << RRS::Message::s_enumKeyToString[t]);
+                        << RRS::Message::s_enumKeyToString[t]);*/
     }
     else
     {
@@ -233,8 +242,8 @@ bool RumorManager::rumorReceived(uint8_t type, int32_t round,
     auto l = m_peerIdPeerBimap.left.find(pullMsgs.first);
     if (l != m_peerIdPeerBimap.left.end())
     {
-        LOG_GENERAL(INFO,
-                    "Sending " << pullMsgs.second.size() << " PULL Messages");
+        /*LOG_GENERAL(INFO,
+                    "Sending " << pullMsgs.second.size() << " PULL Messages");*/
         SendMessages(l->second, pullMsgs.second);
     }
 
@@ -266,9 +275,12 @@ void RumorManager::SendMessages(const Peer& toPeer,
         {
             // Add raw message to outgoing message
             cmd.insert(cmd.end(), m->second.begin(), m->second.end());
+            LOG_GENERAL(INFO,
+                        "Sending Non Empty - Message - "
+                            << k << " To Peer : " << toPeer);
         }
 
-        LOG_GENERAL(INFO, "Sending Message - " << k << " To Peer : " << toPeer);
+        //LOG_GENERAL(INFO, "Sending Message - " << k << " To Peer : " << toPeer);
 
         // Send the message to peer .
         P2PComm::GetInstance().SendMessageNoQueue(toPeer, cmd,

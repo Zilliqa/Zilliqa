@@ -42,7 +42,7 @@ private:
     bool m_continueRound;
     std::condition_variable m_condStopRound;
 
-    void SendMessages(const Peer& peer,
+    void SendMessages(const Peer& toPeer,
                       const std::vector<RRS::Message>& messages);
 
 public:

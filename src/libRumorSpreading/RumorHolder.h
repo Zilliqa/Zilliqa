@@ -44,6 +44,7 @@ namespace RRS
         std::unordered_map<int, RumorStateMachine> m_rumors;
         mutable std::mutex m_mutex;
         NextMemberCb m_nextMemberCb;
+        std::unordered_set<int> m_nonPriorPeers;
         std::map<StatisticKey, double> m_statistics;
 
         // METHODS
