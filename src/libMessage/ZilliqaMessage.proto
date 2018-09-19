@@ -36,6 +36,31 @@ message TxSharingAssignments
     repeated AssignedNodes shardnodes = 2;
 }
 
+message ProtoDSBlock
+{
+    message DSBlockHeader
+    {
+        required uint32 dsdifficulty    = 1; // only LSB used
+        required uint32 difficulty      = 2; // only LSB used
+        required bytes prevhash         = 3; // 32 bytes
+        required ByteArray nonce        = 4;
+        required ByteArray minerpubkey  = 5;
+        required ByteArray leaderpubkey = 6;
+        required uint64 blocknum        = 7;
+        required ByteArray timestamp    = 8;
+        required ByteArray swinfo       = 9;
+    }
+    message CoSignatures
+    {
+        required ByteArray cs1          = 1;
+        repeated bool b1                = 2;
+        required ByteArray cs2          = 3;
+        repeated bool b2                = 4;
+    }
+    required DSBlockHeader header       = 1;
+    required CoSignatures cosigs        = 2;
+}
+
 // ============================================================================
 // Directory Service messages
 // ============================================================================
@@ -58,7 +83,7 @@ message DSPoWSubmission
 
 message DSDSBlockAnnouncement
 {
-    required ByteArray dsblock                = 1;
+    required ProtoDSBlock dsblock             = 1;
     required ByteArray powwinnerpeer          = 2;
     required ShardingStructure sharding       = 3;
     required TxSharingAssignments assignments = 4;
@@ -81,7 +106,7 @@ message DSVCBlockAnnouncement
 message NodeDSBlock
 {
     required uint32 shardid                   = 1;
-    required ByteArray dsblock                = 2;
+    required ProtoDSBlock dsblock             = 2;
     required ByteArray powwinnerpeer          = 3;
     required ShardingStructure sharding       = 4;
     required TxSharingAssignments assignments = 5;
@@ -139,13 +164,9 @@ message LookupGetDSBlockFromSeed
 
 message LookupSetDSBlockFromSeed
 {
-    message DSBlock
-    {
-        required ByteArray dsblock = 1;
-    }
     required uint64 lowblocknum    = 1;
     required uint64 highblocknum   = 2;
-    repeated DSBlock dsblocks      = 3;
+    repeated ProtoDSBlock dsblocks = 3;
 }
 
 message LookupGetTxBlockFromSeed
@@ -231,6 +252,16 @@ message LookupGetStartPoWFromSeed
 message LookupSetStartPoWFromSeed
 {
     // Empty
+}
+
+message LookupGetShardsFromSeed
+{
+    required uint32 listenport = 1;
+}
+
+message LookupSetShardsFromSeed
+{
+    required ShardingStructure sharding = 1;
 }
 
 // ============================================================================
