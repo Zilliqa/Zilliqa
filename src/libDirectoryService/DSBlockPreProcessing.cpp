@@ -522,23 +522,6 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
         LOG_GENERAL(INFO, "0x" << DataConversion::charArrToHexStr(kv.first));
     }
 
-    // Remove the PoW winner from m_allPoWs so it doesn't get included in sharding structure
-    swap(sortedPoWSolns.front(), sortedPoWSolns.back());
-    sortedPoWSolns.pop_back();
-
-    // Add the oldest DS committee member to m_allPoWs and m_allPoWConns so it gets included in sharding structure
-    sortedPoWSolns.emplace_back(array<unsigned char, 32>(),
-                                m_mediator.m_DSCommittee->back().first);
-
-    if (m_mediator.m_DSCommittee->back().first == m_mediator.m_selfKey.second)
-    {
-        m_allPoWConns.emplace(
-            make_pair(m_mediator.m_selfKey.second, m_mediator.m_selfPeer));
-    }
-    else
-    {
-        m_allPoWConns.emplace(m_mediator.m_DSCommittee->back());
-    }
     unsigned int numOfProposedDSMembers
         = ComposeDSBlock(sortedDSPoWSolns, sortedPoWSolns);
 
