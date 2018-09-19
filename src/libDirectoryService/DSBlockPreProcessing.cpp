@@ -308,14 +308,14 @@ bool DirectoryService::VerifyPoWOrdering(const VectorOfShard& shards)
     return ret;
 }
 
-bool DirectoryService::VerifyNodePriority()
+bool DirectoryService::VerifyNodePriority(const VectorOfShard& shards)
 {
     // If the PoW submissions less than the max number of nodes, then all nodes can join, no need to verify.
     if (m_allPoWs.size() <= MAX_SHARD_NODE_NUM)
         return true;
 
     auto setTopPriorityNodes = FindTopPriorityNodes();
-    for (const auto& shard : m_shards)
+    for (const auto& shard : shards)
     {
         for (const auto& shardNode : shard)
         {
@@ -727,7 +727,7 @@ bool DirectoryService::DSBlockValidator(
         //return false; [TODO] Enable this check after fixing the PoW order issue.
     }
 
-    if (!VerifyNodePriority())
+    if (!VerifyNodePriority(m_tempShards))
     {
         LOG_GENERAL(WARNING, "Failed to verify node priority");
         return false;
@@ -795,15 +795,16 @@ bool DirectoryService::ProcessShardingStructure(
     }
 
     publicKeyToShardIdMap.clear();
-    m_mapNodeReputation.clear();
+    m_tempMapNodeReputation.clear();
 
     for (unsigned int i = 0; i < shards.size(); i++)
     {
-        for (const auto& shardNode : m_shards.at(i))
+        for (const auto& shardNode : shards.at(i))
         {
             const auto& pubKey = std::get<SHARD_NODE_PUBKEY>(shardNode);
 
-            m_mapNodeReputation[pubKey] = std::get<SHARD_NODE_REP>(shardNode);
+            m_tempMapNodeReputation[pubKey]
+                = std::get<SHARD_NODE_REP>(shardNode);
 
             auto storedMember = m_allPoWConns.find(pubKey);
 

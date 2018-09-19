@@ -586,11 +586,12 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     // Now we can update the sharding structure and transaction sharing assignments
     if (m_mode == BACKUP_DS)
     {
-        m_DSReceivers = move(m_tempDSReceivers);
-        m_shardReceivers = move(m_tempShardReceivers);
-        m_shardSenders = move(m_tempShardSenders);
-        m_shards = move(m_tempShards);
-        m_publicKeyToShardIdMap = move(m_tempPublicKeyToShardIdMap);
+        m_DSReceivers = std::move(m_tempDSReceivers);
+        m_shardReceivers = std::move(m_tempShardReceivers);
+        m_shardSenders = std::move(m_tempShardSenders);
+        m_shards = std::move(m_tempShards);
+        m_publicKeyToShardIdMap = std::move(m_tempPublicKeyToShardIdMap);
+        m_mapNodeReputation = std::move(m_tempMapNodeReputation);
         ProcessTxnBodySharingAssignment();
     }
 

@@ -65,6 +65,7 @@ class DirectoryService : public Executable, public Broadcastable
     std::vector<std::vector<Peer>> m_tempShardSenders;
     VectorOfShard m_tempShards; //vector<vector<pair<PubKey, Peer>>>;
     std::map<PubKey, uint32_t> m_tempPublicKeyToShardIdMap;
+    std::map<PubKey, uint16_t> m_tempMapNodeReputation;
 
     // PoW common variables
     std::mutex m_mutexAllPoWConns;
@@ -187,7 +188,7 @@ class DirectoryService : public Executable, public Broadcastable
             sortedPoWSolns);
     void ComputeTxnSharingAssignments(const Peer& winnerpeer);
     bool VerifyPoWOrdering(const VectorOfShard& shards);
-    bool VerifyNodePriority();
+    bool VerifyNodePriority(const VectorOfShard& shards);
 
     // internal calls from RunConsensusOnDSBlock
     bool RunConsensusOnDSBlockWhenDSPrimary();
