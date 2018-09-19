@@ -61,7 +61,12 @@ class DirectoryService : public Executable, public Broadcastable
 
     std::mutex m_mutexConsensus;
 
-    std::map<PubKey, uint32_t> m_publicKeyToShardIdMap;
+    // Temporary buffers for sharding committee members and transaction sharing assignments during DSBlock consensus
+    std::vector<Peer> m_tempDSReceivers;
+    std::vector<std::vector<Peer>> m_tempShardReceivers;
+    std::vector<std::vector<Peer>> m_tempShardSenders;
+    VectorOfShard m_tempShards; //vector<vector<pair<PubKey, Peer>>>;
+    std::map<PubKey, uint32_t> m_tempPublicKeyToShardIdMap;
 
     // PoW common variables
     std::mutex m_mutexAllPoWConns;
@@ -179,7 +184,7 @@ class DirectoryService : public Executable, public Broadcastable
         const std::vector<std::pair<std::array<unsigned char, 32>, PubKey>>&
             sortedPoWSolns);
     void ComputeTxnSharingAssignments(const Peer& winnerpeer);
-    bool VerifyPoWOrdering();
+    bool VerifyPoWOrdering(const VectorOfShard& shards);
 
     // internal calls from RunConsensusOnDSBlock
     bool RunConsensusOnDSBlockWhenDSPrimary();
@@ -383,6 +388,7 @@ public:
 
     // Sharding committee members
     VectorOfShard m_shards; //vector<vector<pair<PubKey, Peer>>>;
+    std::map<PubKey, uint32_t> m_publicKeyToShardIdMap;
 
     /// The current internal state of this DirectoryService instance.
     std::atomic<DirState> m_state;
@@ -448,7 +454,9 @@ public:
                  const Peer& from);
 
     /// Used by PoW winner to configure sharding variables as the next DS leader
-    bool ProcessShardingStructure();
+    bool
+    ProcessShardingStructure(const VectorOfShard& shards,
+                             std::map<PubKey, uint32_t>& publicKeyToShardIdMap);
 
     /// Used by PoW winner to configure txn sharing assignment variables as the next DS leader
     void ProcessTxnBodySharingAssignment();
