@@ -58,7 +58,7 @@ namespace RRS
     // CONSTRUCTORS
     RumorHolder::RumorHolder(const std::unordered_set<int>& peers, int id)
         : m_id(id)
-        , m_networkConfig(peers.size())
+        , m_networkConfig(peers.size(), 1, 1, 2)
         , m_peers()
         , m_rumors()
         , m_mutex()
@@ -204,7 +204,7 @@ namespace RRS
 
     std::pair<int, std::vector<Message>> RumorHolder::advanceRound()
     {
-        LOG_MARKER();
+        //LOG_MARKER();
         std::lock_guard<std::mutex> guard(m_mutex); // critical section
 
         if (m_peers.size() <= 0)

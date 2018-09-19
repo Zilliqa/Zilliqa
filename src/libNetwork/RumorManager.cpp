@@ -59,7 +59,7 @@ void RumorManager::startRounds()
         {
             { // critical section
                 std::lock_guard<std::mutex> guard(m_mutex);
-                LOG_MARKER();
+                //LOG_MARKER();
                 std::pair<int, std::vector<RRS::Message>> result
                     = m_rumorHolder->advanceRound();
 
@@ -173,7 +173,7 @@ bool RumorManager::addRumor(const RumorManager::RawBytes& message)
 bool RumorManager::rumorReceived(uint8_t type, int32_t round,
                                  const RawBytes& message, const Peer& from)
 {
-    LOG_MARKER();
+    //LOG_MARKER();
     {
         std::lock_guard<std::mutex> guard(m_continueRoundMutex);
         if (!m_continueRound)
@@ -187,7 +187,7 @@ bool RumorManager::rumorReceived(uint8_t type, int32_t round,
 
     std::lock_guard<std::mutex> guard(m_mutex);
 
-    LOG_GENERAL(INFO, "Received message from " << from);
+    //LOG_GENERAL(INFO, "Received message from " << from);
 
     auto p = m_peerIdPeerBimap.right.find(from);
     if (p == m_peerIdPeerBimap.right.end())
@@ -253,7 +253,7 @@ bool RumorManager::rumorReceived(uint8_t type, int32_t round,
 void RumorManager::SendMessages(const Peer& toPeer,
                                 const std::vector<RRS::Message>& messages)
 {
-    LOG_MARKER();
+    //LOG_MARKER();
 
     for (auto& k : messages)
     {
@@ -265,7 +265,7 @@ void RumorManager::SendMessages(const Peer& toPeer,
                                           sizeof(uint32_t));
 
         cur_offset += sizeof(uint32_t);
-        LOG_GENERAL(INFO, "My port is : " << m_selfPeer.m_listenPortHost);
+        //LOG_GENERAL(INFO, "My port is : " << m_selfPeer.m_listenPortHost);
         Serializable::SetNumber<uint32_t>(
             cmd, cur_offset, m_selfPeer.m_listenPortHost, sizeof(uint32_t));
 
