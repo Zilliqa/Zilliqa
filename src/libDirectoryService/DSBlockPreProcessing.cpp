@@ -208,7 +208,7 @@ void DirectoryService::ComputeSharding(
     }
 }
 
-bool DirectoryService::VerifyPoWOrdering()
+bool DirectoryService::VerifyPoWOrdering(const VectorOfShard& shards)
 {
     //Requires mutex for m_shards
     vector<unsigned char> lastBlockHash(BLOCK_HASH_SIZE, 0);
@@ -226,7 +226,7 @@ bool DirectoryService::VerifyPoWOrdering()
     vector<unsigned char> hashVec;
     bool ret = true;
     vector<unsigned char> vec(BLOCK_HASH_SIZE);
-    for (const auto& shard : m_shards)
+    for (const auto& shard : shards)
     {
 
         for (const auto& j : shard)
@@ -582,10 +582,10 @@ bool DirectoryService::DSBlockValidator(
 
     Peer winnerPeer;
 
-    m_shards.clear();
-    m_DSReceivers.clear();
-    m_shardReceivers.clear();
-    m_shardSenders.clear();
+    m_tempDSReceivers.clear();
+    m_tempShardReceivers.clear();
+    m_tempShardSenders.clear();
+    m_tempShards.clear();
 
     lock(m_mutexPendingDSBlock, m_mutexAllPoWConns);
     lock_guard<mutex> g(m_mutexPendingDSBlock, adopt_lock);
@@ -595,8 +595,8 @@ bool DirectoryService::DSBlockValidator(
 
     if (!Messenger::GetDSDSBlockAnnouncement(
             message, offset, consensusID, blockHash, leaderID, leaderKey,
-            *m_pendingDSBlock, winnerPeer, m_shards, m_DSReceivers,
-            m_shardReceivers, m_shardSenders, messageToCosign))
+            *m_pendingDSBlock, winnerPeer, m_tempShards, m_tempDSReceivers,
+            m_tempShardReceivers, m_tempShardSenders, messageToCosign))
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Messenger::GetDSDSBlockAnnouncement failed.");
@@ -666,18 +666,18 @@ bool DirectoryService::DSBlockValidator(
         }
     }
 
-    if (!ProcessShardingStructure())
+    if (!ProcessShardingStructure(m_tempShards, m_tempPublicKeyToShardIdMap))
     {
         return false;
     }
 
-    if (!VerifyPoWOrdering())
+    if (!VerifyPoWOrdering(m_tempShards))
     {
         LOG_GENERAL(INFO, "Failed to verify ordering");
         //return false; [TODO] Enable this check after fixing the PoW order issue.
     }
 
-    ProcessTxnBodySharingAssignment();
+    //ProcessTxnBodySharingAssignment();
 
     return true;
 }
@@ -728,7 +728,8 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup()
     return true;
 }
 
-bool DirectoryService::ProcessShardingStructure()
+bool DirectoryService::ProcessShardingStructure(
+    const VectorOfShard& shards, map<PubKey, uint32_t>& publicKeyToShardIdMap)
 {
     if (LOOKUP_NODE_MODE)
     {
@@ -738,11 +739,11 @@ bool DirectoryService::ProcessShardingStructure()
         return true;
     }
 
-    m_publicKeyToShardIdMap.clear();
+    publicKeyToShardIdMap.clear();
 
-    for (unsigned int i = 0; i < m_shards.size(); i++)
+    for (unsigned int i = 0; i < shards.size(); i++)
     {
-        for (const auto& j : m_shards.at(i))
+        for (const auto& j : shards.at(i))
         {
             auto storedMember = m_allPoWConns.find(j.first);
 
@@ -764,7 +765,7 @@ bool DirectoryService::ProcessShardingStructure()
                 m_allPoWConns.emplace(j.first, j.second);
             }
 
-            m_publicKeyToShardIdMap.emplace(j.first, i);
+            publicKeyToShardIdMap.emplace(j.first, i);
         }
     }
 
