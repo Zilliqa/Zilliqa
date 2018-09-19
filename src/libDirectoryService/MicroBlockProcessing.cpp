@@ -364,7 +364,9 @@ void DirectoryService::CommitMBSubmissionMsgBuffer()
             for (const auto& msg : it->second)
             {
                 ProcessMicroblockSubmissionFromShardCore(
-                    msg, MessageOffset::BODY + sizeof(uint64_t));
+                    msg,
+                    MessageOffset::BODY + sizeof(unsigned char) //mbtype
+                        + sizeof(uint64_t));
             }
             m_MBSubmissionBuffer.erase(it);
             break;
@@ -460,7 +462,7 @@ bool DirectoryService::ProcessMicroblockSubmission(
     unsigned int cur_offset = offset;
 
     unsigned char submitMBType = message[cur_offset];
-    cur_offset += MessageOffset::INST;
+    cur_offset += sizeof(unsigned char);
 
     if (submitMBType == SUBMITMICROBLOCKTYPE::SHARDMICROBLOCK)
     {
