@@ -20,6 +20,7 @@
 #include <random>
 #include <unordered_set>
 
+using namespace boost::multiprecision;
 using namespace std;
 using namespace ZilliqaMessage;
 
@@ -40,6 +41,119 @@ namespace
         copy(byteArray.data().begin(), byteArray.data().end(),
              back_inserter(tmp));
         serializable.Deserialize(tmp, 0);
+    }
+
+    template<class T, size_t S>
+    void NumberToProtobufByteArray(const T& number, ByteArray& byteArray)
+    {
+        vector<unsigned char> tmp;
+        Serializable::SetNumber<T>(tmp, 0, number, S);
+        byteArray.set_data(tmp.data(), tmp.size());
+    }
+
+    template<class T, size_t S>
+    void ProtobufByteArrayToNumber(const ByteArray& byteArray, T& number)
+    {
+        vector<unsigned char> tmp;
+        copy(byteArray.data().begin(), byteArray.data().end(),
+             back_inserter(tmp));
+        number = Serializable::GetNumber<T>(tmp, 0, S);
+    }
+
+    void DSBlockToProtobuf(const DSBlock& dsBlock, ProtoDSBlock& protoDSBlock)
+    {
+        // Serialize header
+
+        ZilliqaMessage::ProtoDSBlock::DSBlockHeader* protoHeader
+            = protoDSBlock.mutable_header();
+
+        const DSBlockHeader& header = dsBlock.GetHeader();
+
+        protoHeader->set_dsdifficulty(header.GetDSDifficulty());
+        protoHeader->set_difficulty(header.GetDifficulty());
+        protoHeader->set_prevhash(header.GetPrevHash().data(),
+                                  header.GetPrevHash().size);
+        NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
+            header.GetNonce(), *protoHeader->mutable_nonce());
+        SerializableToProtobufByteArray(header.GetMinerPubKey(),
+                                        *protoHeader->mutable_minerpubkey());
+        SerializableToProtobufByteArray(header.GetLeaderPubKey(),
+                                        *protoHeader->mutable_leaderpubkey());
+        protoHeader->set_blocknum(header.GetBlockNum());
+        NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
+            header.GetTimestamp(), *protoHeader->mutable_timestamp());
+        SerializableToProtobufByteArray(header.GetSWInfo(),
+                                        *protoHeader->mutable_swinfo());
+
+        // Serialize cosigs
+
+        ZilliqaMessage::ProtoDSBlock::CoSignatures* cosigs
+            = protoDSBlock.mutable_cosigs();
+
+        SerializableToProtobufByteArray(dsBlock.GetCS1(),
+                                        *cosigs->mutable_cs1());
+        for (const auto& i : dsBlock.GetB1())
+        {
+            cosigs->add_b1(i);
+        }
+        SerializableToProtobufByteArray(dsBlock.GetCS2(),
+                                        *cosigs->mutable_cs2());
+        for (const auto& i : dsBlock.GetB2())
+        {
+            cosigs->add_b2(i);
+        }
+    }
+
+    void ProtobufToDSBlock(const ProtoDSBlock& protoDSBlock, DSBlock& dsBlock)
+    {
+        // Deserialize header
+
+        const ZilliqaMessage::ProtoDSBlock::DSBlockHeader& protoHeader
+            = protoDSBlock.header();
+
+        BlockHash prevHash;
+        uint256_t nonce;
+        PubKey minerPubKey;
+        PubKey leaderPubKey;
+        uint256_t timestamp;
+        SWInfo swInfo;
+
+        unsigned int size = min((unsigned int)protoHeader.prevhash().size(),
+                                (unsigned int)prevHash.size);
+
+        copy(protoHeader.prevhash().begin(),
+             protoHeader.prevhash().begin() + size, prevHash.asArray().begin());
+        ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(protoHeader.nonce(),
+                                                           nonce);
+        ProtobufByteArrayToSerializable(protoHeader.minerpubkey(), minerPubKey);
+        ProtobufByteArrayToSerializable(protoHeader.leaderpubkey(),
+                                        leaderPubKey);
+        ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
+            protoHeader.timestamp(), timestamp);
+        ProtobufByteArrayToSerializable(protoHeader.swinfo(), swInfo);
+
+        // Deserialize cosigs
+
+        CoSignatures cosigs;
+        cosigs.m_B1.resize(protoDSBlock.cosigs().b1().size());
+        cosigs.m_B2.resize(protoDSBlock.cosigs().b2().size());
+
+        ProtobufByteArrayToSerializable(protoDSBlock.cosigs().cs1(),
+                                        cosigs.m_CS1);
+        copy(protoDSBlock.cosigs().b1().begin(),
+             protoDSBlock.cosigs().b1().end(), cosigs.m_B1.begin());
+        ProtobufByteArrayToSerializable(protoDSBlock.cosigs().cs2(),
+                                        cosigs.m_CS2);
+        copy(protoDSBlock.cosigs().b2().begin(),
+             protoDSBlock.cosigs().b2().end(), cosigs.m_B2.begin());
+
+        // Generate the new DSBlock
+
+        dsBlock = DSBlock(
+            DSBlockHeader(protoHeader.dsdifficulty(), protoHeader.difficulty(),
+                          prevHash, nonce, minerPubKey, leaderPubKey,
+                          protoHeader.blocknum(), timestamp, swInfo),
+            CoSignatures(cosigs));
     }
 
     template<class T>
@@ -387,7 +501,7 @@ bool Messenger::SetDSDSBlockAnnouncement(
 
     DSDSBlockAnnouncement* dsblock = announcement.mutable_dsblock();
 
-    SerializableToProtobufByteArray(dsBlock, *dsblock->mutable_dsblock());
+    DSBlockToProtobuf(dsBlock, *dsblock->mutable_dsblock());
     SerializableToProtobufByteArray(powWinnerPeer,
                                     *dsblock->mutable_powwinnerpeer());
 
@@ -502,7 +616,7 @@ bool Messenger::GetDSDSBlockAnnouncement(
 
     const DSDSBlockAnnouncement& dsblock = announcement.dsblock();
 
-    ProtobufByteArrayToSerializable(dsblock.dsblock(), dsBlock);
+    ProtobufToDSBlock(dsblock.dsblock(), dsBlock);
     ProtobufByteArrayToSerializable(dsblock.powwinnerpeer(), powWinnerPeer);
 
     for (int i = 0; i < dsblock.sharding().shards_size(); i++)
@@ -783,7 +897,7 @@ bool Messenger::SetNodeDSBlock(vector<unsigned char>& dst,
     NodeDSBlock result;
 
     result.set_shardid(shardID);
-    SerializableToProtobufByteArray(dsBlock, *result.mutable_dsblock());
+    DSBlockToProtobuf(dsBlock, *result.mutable_dsblock());
     SerializableToProtobufByteArray(powWinnerPeer,
                                     *result.mutable_powwinnerpeer());
 
@@ -858,7 +972,7 @@ bool Messenger::GetNodeDSBlock(const vector<unsigned char>& src,
     }
 
     shardID = result.shardid();
-    ProtobufByteArrayToSerializable(result.dsblock(), dsBlock);
+    ProtobufToDSBlock(result.dsblock(), dsBlock);
     ProtobufByteArrayToSerializable(result.powwinnerpeer(), powWinnerPeer);
 
     for (int i = 0; i < result.sharding().shards_size(); i++)
@@ -1338,8 +1452,7 @@ bool Messenger::SetLookupSetDSBlockFromSeed(vector<unsigned char>& dst,
 
     for (const auto& dsblock : dsBlocks)
     {
-        SerializableToProtobufByteArray(
-            dsblock, *result.add_dsblocks()->mutable_dsblock());
+        DSBlockToProtobuf(dsblock, *result.add_dsblocks());
     }
 
     if (!result.IsInitialized())
@@ -1375,7 +1488,7 @@ bool Messenger::GetLookupSetDSBlockFromSeed(const vector<unsigned char>& src,
     for (int i = 0; i < result.dsblocks_size(); i++)
     {
         DSBlock dsblock;
-        ProtobufByteArrayToSerializable(result.dsblocks(i).dsblock(), dsblock);
+        ProtobufToDSBlock(result.dsblocks(i), dsblock);
         dsBlocks.emplace_back(dsblock);
     }
 
