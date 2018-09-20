@@ -121,6 +121,14 @@ message NodeFinalBlock
     required bytes statedelta     = 5;
 }
 
+message NodeForwardTransaction
+{
+    required uint64 blocknum           = 1;
+    required bytes microblocktxhash    = 2;
+    required bytes microblockdeltahash = 3;
+    repeated ByteArray txnswithreceipt = 4;
+}
+
 message NodeForwardTxnBlock
 {
     required uint64 epochnumber     = 1;
