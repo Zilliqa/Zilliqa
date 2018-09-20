@@ -619,18 +619,12 @@ bool Messenger::GetDSDSBlockAnnouncement(
     ProtobufToDSBlock(dsblock.dsblock(), dsBlock);
     ProtobufByteArrayToSerializable(dsblock.powwinnerpeer(), powWinnerPeer);
 
-    for (int i = 0; i < dsblock.sharding().shards_size(); i++)
+    for (const auto& proto_shard : dsblock.sharding().shards())
     {
         shards.emplace_back();
 
-        const ShardingStructure::Shard& proto_shard
-            = dsblock.sharding().shards(i);
-
-        for (int j = 0; j < proto_shard.members_size(); j++)
+        for (const auto& proto_member : proto_shard.members())
         {
-            const ShardingStructure::Member& proto_member
-                = proto_shard.members(j);
-
             PubKey key;
             Peer peer;
 
@@ -643,33 +637,30 @@ bool Messenger::GetDSDSBlockAnnouncement(
 
     const TxSharingAssignments& proto_assignments = dsblock.assignments();
 
-    for (int i = 0; i < proto_assignments.dsnodes_size(); i++)
+    for (const auto& dsnode : proto_assignments.dsnodes())
     {
         Peer peer;
-        ProtobufByteArrayToSerializable(proto_assignments.dsnodes(i), peer);
+        ProtobufByteArrayToSerializable(dsnode, peer);
         dsReceivers.emplace_back(peer);
     }
 
-    for (int i = 0; i < proto_assignments.shardnodes_size(); i++)
+    for (const auto& proto_shard : proto_assignments.shardnodes())
     {
-        const TxSharingAssignments::AssignedNodes& proto_shard
-            = dsblock.assignments().shardnodes(i);
-
         shardReceivers.emplace_back();
 
-        for (int j = 0; j < proto_shard.receivers_size(); j++)
+        for (const auto& receiver : proto_shard.receivers())
         {
             Peer peer;
-            ProtobufByteArrayToSerializable(proto_shard.receivers(j), peer);
+            ProtobufByteArrayToSerializable(receiver, peer);
             shardReceivers.back().emplace_back(peer);
         }
 
         shardSenders.emplace_back();
 
-        for (int j = 0; j < proto_shard.senders_size(); j++)
+        for (const auto& sender : proto_shard.senders())
         {
             Peer peer;
-            ProtobufByteArrayToSerializable(proto_shard.senders(j), peer);
+            ProtobufByteArrayToSerializable(sender, peer);
             shardSenders.back().emplace_back(peer);
         }
     }
@@ -975,18 +966,12 @@ bool Messenger::GetNodeDSBlock(const vector<unsigned char>& src,
     ProtobufToDSBlock(result.dsblock(), dsBlock);
     ProtobufByteArrayToSerializable(result.powwinnerpeer(), powWinnerPeer);
 
-    for (int i = 0; i < result.sharding().shards_size(); i++)
+    for (const auto& proto_shard : result.sharding().shards())
     {
         shards.emplace_back();
 
-        const ShardingStructure::Shard& proto_shard
-            = result.sharding().shards(i);
-
-        for (int j = 0; j < proto_shard.members_size(); j++)
+        for (const auto& proto_member : proto_shard.members())
         {
-            const ShardingStructure::Member& proto_member
-                = proto_shard.members(j);
-
             PubKey key;
             Peer peer;
 
@@ -999,33 +984,30 @@ bool Messenger::GetNodeDSBlock(const vector<unsigned char>& src,
 
     const TxSharingAssignments& proto_assignments = result.assignments();
 
-    for (int i = 0; i < proto_assignments.dsnodes_size(); i++)
+    for (const auto& dsnode : proto_assignments.dsnodes())
     {
         Peer peer;
-        ProtobufByteArrayToSerializable(proto_assignments.dsnodes(i), peer);
+        ProtobufByteArrayToSerializable(dsnode, peer);
         dsReceivers.emplace_back(peer);
     }
 
-    for (int i = 0; i < proto_assignments.shardnodes_size(); i++)
+    for (const auto& proto_shard : proto_assignments.shardnodes())
     {
-        const TxSharingAssignments::AssignedNodes& proto_shard
-            = result.assignments().shardnodes(i);
-
         shardReceivers.emplace_back();
 
-        for (int j = 0; j < proto_shard.receivers_size(); j++)
+        for (const auto& receiver : proto_shard.receivers())
         {
             Peer peer;
-            ProtobufByteArrayToSerializable(proto_shard.receivers(j), peer);
+            ProtobufByteArrayToSerializable(receiver, peer);
             shardReceivers.back().emplace_back(peer);
         }
 
         shardSenders.emplace_back();
 
-        for (int j = 0; j < proto_shard.senders_size(); j++)
+        for (const auto& sender : proto_shard.senders())
         {
             Peer peer;
-            ProtobufByteArrayToSerializable(proto_shard.senders(j), peer);
+            ProtobufByteArrayToSerializable(sender, peer);
             shardSenders.back().emplace_back(peer);
         }
     }
@@ -1085,6 +1067,79 @@ bool Messenger::GetNodeFinalBlock(const vector<unsigned char>& src,
     stateDelta.resize(result.statedelta().size());
     copy(result.statedelta().begin(), result.statedelta().end(),
          stateDelta.begin());
+
+    return true;
+}
+
+bool Messenger::SetNodeForwardTxnBlock(
+    std::vector<unsigned char>& dst, const unsigned int offset,
+    const uint64_t epochNumber, const uint32_t shardID,
+    const std::vector<Transaction>& txnsCurrent,
+    const std::vector<unsigned char>& txnsGenerated)
+{
+    LOG_MARKER();
+
+    NodeForwardTxnBlock result;
+
+    result.set_epochnumber(epochNumber);
+    result.set_shardid(shardID);
+
+    for (const auto& txn : txnsCurrent)
+    {
+        SerializableToProtobufByteArray(txn, *result.add_transactions());
+    }
+
+    unsigned int txnStreamOffset = 0;
+    while (txnStreamOffset < txnsGenerated.size())
+    {
+        Transaction txn;
+        if (txn.Deserialize(txnsGenerated, txnStreamOffset) != 0)
+        {
+            LOG_GENERAL(WARNING,
+                        "Failed to deserialize generated transaction.");
+            return false;
+        }
+
+        SerializableToProtobufByteArray(txn, *result.add_transactions());
+
+        txnStreamOffset += txn.GetSerializedSize();
+    }
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "NodeForwardTxnBlock initialization failed.");
+        return false;
+    }
+
+    return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetNodeForwardTxnBlock(const std::vector<unsigned char>& src,
+                                       const unsigned int offset,
+                                       uint64_t& epochNumber, uint32_t& shardID,
+                                       std::vector<Transaction>& txns)
+{
+    LOG_MARKER();
+
+    NodeForwardTxnBlock result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "NodeForwardTxnBlock initialization failed.");
+        return false;
+    }
+
+    epochNumber = result.epochnumber();
+    shardID = result.shardid();
+
+    for (const auto& txn : result.transactions())
+    {
+        Transaction t;
+        ProtobufByteArrayToSerializable(txn, t);
+        txns.emplace_back(t);
+    }
 
     return true;
 }
@@ -1284,10 +1339,10 @@ bool Messenger::GetLookupSetSeedPeers(const vector<unsigned char>& src,
         return false;
     }
 
-    for (int i = 0; i < result.candidateseeds_size(); i++)
+    for (const auto& peer : result.candidateseeds())
     {
         Peer seedPeer;
-        ProtobufByteArrayToSerializable(result.candidateseeds(i), seedPeer);
+        ProtobufByteArrayToSerializable(peer, seedPeer);
         candidateSeeds.emplace_back(seedPeer);
     }
 
@@ -1376,13 +1431,13 @@ bool Messenger::GetLookupSetDSInfoFromSeed(const vector<unsigned char>& src,
         return false;
     }
 
-    for (int i = 0; i < result.dsnodes_size(); i++)
+    for (const auto& dsnode : result.dsnodes())
     {
         PubKey pubkey;
         Peer peer;
 
-        ProtobufByteArrayToSerializable(result.dsnodes(i).pubkey(), pubkey);
-        ProtobufByteArrayToSerializable(result.dsnodes(i).peer(), peer);
+        ProtobufByteArrayToSerializable(dsnode.pubkey(), pubkey);
+        ProtobufByteArrayToSerializable(dsnode.peer(), peer);
         dsNodes.emplace_back(pubkey, peer);
     }
 
@@ -1485,10 +1540,10 @@ bool Messenger::GetLookupSetDSBlockFromSeed(const vector<unsigned char>& src,
     lowBlockNum = result.lowblocknum();
     highBlockNum = result.highblocknum();
 
-    for (int i = 0; i < result.dsblocks_size(); i++)
+    for (const auto& proto_dsblock : result.dsblocks())
     {
         DSBlock dsblock;
-        ProtobufToDSBlock(result.dsblocks(i), dsblock);
+        ProtobufToDSBlock(proto_dsblock, dsblock);
         dsBlocks.emplace_back(dsblock);
     }
 
@@ -1592,11 +1647,11 @@ bool Messenger::GetLookupSetTxBlockFromSeed(const vector<unsigned char>& src,
     lowBlockNum = result.lowblocknum();
     highBlockNum = result.highblocknum();
 
-    for (int i = 0; i < result.txblocks_size(); i++)
+    for (const auto& txblock : result.txblocks())
     {
-        TxBlock txblock;
-        ProtobufByteArrayToSerializable(result.txblocks(i).txblock(), txblock);
-        txBlocks.emplace_back(txblock);
+        TxBlock block;
+        ProtobufByteArrayToSerializable(txblock.txblock(), block);
+        txBlocks.emplace_back(block);
     }
 
     return true;
@@ -1972,10 +2027,10 @@ bool Messenger::GetLookupSetOfflineLookups(const vector<unsigned char>& src,
         return false;
     }
 
-    for (int i = 0; i < result.nodes_size(); i++)
+    for (const auto& lookup : result.nodes())
     {
         Peer node;
-        ProtobufByteArrayToSerializable(result.nodes(i), node);
+        ProtobufByteArrayToSerializable(lookup, node);
         nodes.emplace_back(node);
     }
 
