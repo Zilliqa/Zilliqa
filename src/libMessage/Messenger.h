@@ -124,6 +124,12 @@ public:
                                   uint32_t& consensusID, TxBlock& txBlock,
                                   std::vector<unsigned char>& stateDelta);
 
+    static bool SetNodeVCBlock(std::vector<unsigned char>& dst,
+                               const unsigned int offset,
+                               const VCBlock& vcBlock);
+    static bool GetNodeVCBlock(const std::vector<unsigned char>& src,
+                               const unsigned int offset, VCBlock& vcBlock);
+
     static bool
     SetNodeForwardTxnBlock(std::vector<unsigned char>& dst,
                            const unsigned int offset,
