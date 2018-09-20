@@ -576,7 +576,7 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
 
     // TODO: Check if every microblock is obtained
     std::vector<unsigned char> errorMsg;
-    if (!CheckMicroBlockHashes(errorMsg))
+    if (!CheckMicroBlocks(errorMsg))
     {
         LOG_GENERAL(
             WARNING,

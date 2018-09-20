@@ -514,13 +514,13 @@ bool DirectoryService::CheckFinalBlockTimestamp()
 }
 
 // Check microblock hashes
-bool DirectoryService::CheckMicroBlockHashes(
+bool DirectoryService::CheckMicroBlocks(
     std::vector<unsigned char>& errorMsg)
 {
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
-                    "DirectoryService::CheckMicroBlockHashes not expected to "
+                    "DirectoryService::CheckMicroBlocks not expected to "
                     "be called from LookUp node.");
         return true;
     }
@@ -943,7 +943,7 @@ bool DirectoryService::CheckFinalBlockValidity(vector<unsigned char>& errorMsg)
 
     if (!CheckBlockTypeIsFinal() || !CheckFinalBlockVersion()
         || !CheckFinalBlockNumber() || !CheckPreviousFinalBlockHash()
-        || !CheckFinalBlockTimestamp() || !CheckMicroBlockHashes(errorMsg)
+        || !CheckFinalBlockTimestamp() || !CheckMicroBlocks(errorMsg)
         || !CheckMicroBlockHashRoot() || !CheckIsMicroBlockEmpty()
         || !CheckStateRoot() || !CheckStateDeltaHash())
     {
