@@ -260,9 +260,9 @@ class Node : public Executable, public Broadcastable
         const Peer& from);
     bool ProcessTxnPacketFromLookup(const std::vector<unsigned char>& message,
                                     unsigned int offset, const Peer& from);
-    bool
-    ProcessTxnPacketFromLookupCore(const std::vector<unsigned char>& message,
-                                   unsigned int offset);
+    bool ProcessTxnPacketFromLookupCore(
+        const std::vector<unsigned char>& message, const uint32_t shardID,
+        const std::vector<Transaction>& transactions);
 
     // bool ProcessCreateAccounts(const std::vector<unsigned char> & message, unsigned int offset, const Peer & from);
     bool ProcessDSBlock(const std::vector<unsigned char>& message,
