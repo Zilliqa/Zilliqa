@@ -1071,6 +1071,91 @@ bool Messenger::GetNodeFinalBlock(const vector<unsigned char>& src,
     return true;
 }
 
+bool Messenger::SetNodeForwardTransaction(
+    vector<unsigned char>& dst, const unsigned int offset,
+    const uint64_t blockNum, const TxnHash& txHash, const StateHash& stateHash,
+    const vector<TransactionWithReceipt>& txns)
+{
+    LOG_MARKER();
+
+    NodeForwardTransaction result;
+
+    result.set_blocknum(blockNum);
+    result.set_microblocktxhash(txHash.asArray().data(),
+                                txHash.asArray().size());
+    result.set_microblockdeltahash(stateHash.asArray().data(),
+                                   stateHash.asArray().size());
+
+    unsigned int txnsCount = 0;
+
+    for (const auto& txn : txns)
+    {
+        SerializableToProtobufByteArray(txn, *result.add_txnswithreceipt());
+        txnsCount++;
+    }
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "NodeForwardTransaction initialization failed.");
+        return false;
+    }
+
+    LOG_GENERAL(INFO,
+                "BlockNum: "
+                    << blockNum << " TxHash: "
+                    << DataConversion::charArrToHexStr(txHash.asArray())
+                    << " StateHash: "
+                    << DataConversion::charArrToHexStr(stateHash.asArray())
+                    << " Txns: " << txnsCount);
+
+    return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetNodeForwardTransaction(const vector<unsigned char>& src,
+                                          const unsigned int offset,
+                                          uint64_t& blockNum, TxnHash& txHash,
+                                          StateHash& stateHash,
+                                          vector<TransactionWithReceipt>& txns)
+{
+    LOG_MARKER();
+
+    NodeForwardTransaction result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "NodeForwardTransaction initialization failed.");
+        return false;
+    }
+
+    blockNum = result.blocknum();
+    copy(result.microblocktxhash().begin(), result.microblocktxhash().end(),
+         txHash.asArray().begin());
+    copy(result.microblockdeltahash().begin(),
+         result.microblockdeltahash().end(), stateHash.asArray().begin());
+
+    unsigned int txnsCount = 0;
+
+    for (const auto& txn : result.txnswithreceipt())
+    {
+        TransactionWithReceipt txr;
+        ProtobufByteArrayToSerializable(txn, txr);
+        txns.emplace_back(txr);
+        txnsCount++;
+    }
+
+    LOG_GENERAL(INFO,
+                "BlockNum: "
+                    << blockNum << " TxHash: "
+                    << DataConversion::charArrToHexStr(txHash.asArray())
+                    << " StateHash: "
+                    << DataConversion::charArrToHexStr(stateHash.asArray())
+                    << " Txns: " << txnsCount);
+
+    return true;
+}
+
 bool Messenger::SetNodeForwardTxnBlock(
     std::vector<unsigned char>& dst, const unsigned int offset,
     const uint64_t epochNumber, const uint32_t shardID,

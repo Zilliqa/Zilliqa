@@ -125,6 +125,18 @@ public:
                                   std::vector<unsigned char>& stateDelta);
 
     static bool
+    SetNodeForwardTransaction(std::vector<unsigned char>& dst,
+                              const unsigned int offset,
+                              const uint64_t blockNum, const TxnHash& txHash,
+                              const StateHash& stateHash,
+                              const std::vector<TransactionWithReceipt>& txns);
+    static bool
+    GetNodeForwardTransaction(const std::vector<unsigned char>& src,
+                              const unsigned int offset, uint64_t& blockNum,
+                              TxnHash& txHash, StateHash& stateHash,
+                              std::vector<TransactionWithReceipt>& txns);
+
+    static bool
     SetNodeForwardTxnBlock(std::vector<unsigned char>& dst,
                            const unsigned int offset,
                            const uint64_t epochNumber, const uint32_t shardID,
