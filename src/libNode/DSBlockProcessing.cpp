@@ -175,8 +175,9 @@ bool Node::VerifyDSBlockCoSignature(const DSBlock& dsblock)
     vector<unsigned char> message;
     dsblock.GetHeader().Serialize(message, 0);
     dsblock.GetCS1().Serialize(message, dsblock.GetHeader().GetSize());
-    BitVector::SetBitVector(message, dsblock.GetHeader(),
-                            GetSize() + BLOCK_SIG_SIZE.dsblock.GetB1());
+    BitVector::SetBitVector(message,
+                            dsblock.GetHeader().GetSize() + BLOCK_SIG_SIZE,
+                            dsblock.GetB1());
     if (!Schnorr::GetInstance().Verify(message, 0, message.size(),
                                        dsblock.GetCS2(), *aggregatedKey))
     {
