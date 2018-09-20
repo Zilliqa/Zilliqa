@@ -30,7 +30,6 @@
 class BlockHeaderBase : public Serializable
 {
 protected:
-    BlockHash m_prevHash; // Hash of the previous block
     // TODO: pull out all common code from ds, micro and tx block header
 
 public:
