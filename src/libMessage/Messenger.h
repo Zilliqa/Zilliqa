@@ -124,6 +124,17 @@ public:
                                   uint32_t& consensusID, TxBlock& txBlock,
                                   std::vector<unsigned char>& stateDelta);
 
+    static bool
+    SetNodeForwardTxnBlock(std::vector<unsigned char>& dst,
+                           const unsigned int offset,
+                           const uint64_t epochNumber, const uint32_t shardID,
+                           const std::vector<Transaction>& txnsCurrent,
+                           const std::vector<unsigned char>& txnsGenerated);
+    static bool GetNodeForwardTxnBlock(const std::vector<unsigned char>& src,
+                                       const unsigned int offset,
+                                       uint64_t& epochNumber, uint32_t& shardID,
+                                       std::vector<Transaction>& txns);
+
     static bool SetNodeMicroBlockAnnouncement(
         std::vector<unsigned char>& dst, const unsigned int offset,
         const uint32_t consensusID, const std::vector<unsigned char>& blockHash,

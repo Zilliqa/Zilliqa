@@ -53,9 +53,9 @@ message ProtoDSBlock
     message CoSignatures
     {
         required ByteArray cs1          = 1;
-        repeated bool b1                = 2;
+        repeated bool b1                = 2 [packed=true];
         required ByteArray cs2          = 3;
-        repeated bool b2                = 4;
+        repeated bool b2                = 4 [packed=true];
     }
     required DSBlockHeader header       = 1;
     required CoSignatures cosigs        = 2;
@@ -119,6 +119,13 @@ message NodeFinalBlock
     required uint32 consensusid   = 3;
     required ByteArray txblock    = 4;
     required bytes statedelta     = 5;
+}
+
+message NodeForwardTxnBlock
+{
+    required uint64 epochnumber     = 1;
+    required uint32 shardid         = 2;
+    repeated ByteArray transactions = 3;
 }
 
 message NodeMicroBlockAnnouncement

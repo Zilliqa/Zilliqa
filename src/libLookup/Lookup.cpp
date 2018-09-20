@@ -37,6 +37,7 @@
 #include "libData/BlockChainData/BlockChain.h"
 #include "libData/BlockData/Block.h"
 #include "libMediator/Mediator.h"
+#include "libMessage/Messenger.h"
 #include "libNetwork/P2PComm.h"
 #include "libPersistence/BlockStorage.h"
 #include "libUtils/DataConversion.h"
@@ -2615,63 +2616,10 @@ void Lookup::SenderTxnBatchThread()
     DetachedFunction(1, main_func);
 }
 
-bool Lookup::CreateTxnPacket(vector<unsigned char>& msg, uint32_t shardId,
-                             unsigned int offset,
-                             const map<uint32_t, vector<unsigned char>>& mp)
-{
-    if (!LOOKUP_NODE_MODE)
-    {
-        LOG_GENERAL(WARNING,
-                    "Lookup::CreateTxnPacket not expected to be called from "
-                    "other than the LookUp node.");
-        return true;
-    }
-
-    //[epochNum][shard_id][numTxns][txn1][txn2]...
-    //Clears msg
-    LOG_MARKER();
-
-    unsigned int size_dummy
-        = (mp.find(shardId) != mp.end()) ? mp.at(shardId).size() : 0;
-    size_dummy = size_dummy / Transaction::GetMinSerializedSize();
-    unsigned int curr_offset = offset;
-
-    Serializable::SetNumber<uint64_t>(
-        msg, curr_offset, m_mediator.m_currentEpochNum, sizeof(uint64_t));
-
-    curr_offset += sizeof(uint64_t);
-
-    {
-        lock_guard<mutex> g(m_txnShardMapMutex);
-        unsigned int size_already = m_txnShardMap[shardId].size();
-        Serializable::SetNumber<uint32_t>(msg, curr_offset, shardId,
-                                          sizeof(uint32_t));
-        curr_offset += sizeof(uint32_t);
-        uint32_t num = size_already + size_dummy;
-        Serializable::SetNumber<uint32_t>(msg, curr_offset, num,
-                                          sizeof(uint32_t));
-        LOG_GENERAL(INFO,
-                    "[Batching] Generated " << num << " txns for shard "
-                                            << shardId);
-        curr_offset += sizeof(uint32_t);
-
-        for (uint32_t i = 0; i < size_already; i++)
-        {
-            curr_offset
-                = m_txnShardMap.at(shardId)[i].Serialize(msg, curr_offset);
-        }
-    }
-
-    if (size_dummy > 0)
-    {
-        copy(mp.at(shardId).begin(), mp.at(shardId).end(), back_inserter(msg));
-    }
-
-    return true;
-}
-
 void Lookup::SendTxnPacketToNodes(uint32_t nShard)
 {
+    LOG_MARKER();
+
     if (!LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(
@@ -2680,8 +2628,6 @@ void Lookup::SendTxnPacketToNodes(uint32_t nShard)
             "other than the LookUp node.");
         return;
     }
-
-    LOG_MARKER();
 
     map<uint32_t, vector<unsigned char>> mp;
 
@@ -2695,8 +2641,33 @@ void Lookup::SendTxnPacketToNodes(uint32_t nShard)
     {
         vector<unsigned char> msg
             = {MessageType::NODE, NodeInstructionType::FORWARDTXNBLOCK};
-        if (!CreateTxnPacket(msg, i, MessageOffset::BODY, mp))
+        bool result = false;
+
         {
+            lock_guard<mutex> g(m_txnShardMapMutex);
+
+            unsigned int size_dummy
+                = (mp.find(i) != mp.end()) ? mp.at(i).size() : 0;
+            size_dummy = size_dummy / Transaction::GetMinSerializedSize();
+
+            if (size_dummy > 0)
+            {
+                result = Messenger::SetNodeForwardTxnBlock(
+                    msg, MessageOffset::BODY, m_mediator.m_currentEpochNum, i,
+                    m_txnShardMap[i], mp.at(i));
+            }
+            else
+            {
+                result = Messenger::SetNodeForwardTxnBlock(
+                    msg, MessageOffset::BODY, m_mediator.m_currentEpochNum, i,
+                    m_txnShardMap[i], {});
+            }
+        }
+
+        if (!result)
+        {
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Messenger::SetNodeForwardTxnBlock failed.");
             LOG_GENERAL(WARNING, "Cannot create packet for " << i << " shard");
             continue;
         }
