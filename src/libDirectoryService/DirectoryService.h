@@ -212,16 +212,15 @@ class DirectoryService : public Executable, public Broadcastable
 
     // internal calls from ProcessDSBlockConsensus
     void StoreDSBlockToStorage(); // To further refactor
-    void SendDSBlockToLookupNodes(const Peer& winnerpeer);
-    void SendDSBlockToNewDSLeader(const Peer& winnerpeer);
+    void SendDSBlockToLookupNodes();
+    void SendDSBlockToNewDSLeader();
     void SetupMulticastConfigForDSBlock(unsigned int& my_DS_cluster_num,
                                         unsigned int& my_shards_lo,
                                         unsigned int& my_shards_hi) const;
-    void SendDSBlockToShardNodes(const Peer& winnerpeer,
-                                 unsigned int my_shards_lo,
+    void SendDSBlockToShardNodes(unsigned int my_shards_lo,
                                  unsigned int my_shards_hi);
     void UpdateMyDSModeAndConsensusId();
-    void UpdateDSCommiteeComposition(const Peer& winnerpeer); //TODO: Refactor
+    void UpdateDSCommiteeComposition();
 
     void
     ProcessDSBlockConsensusWhenDone(const std::vector<unsigned char>& message,

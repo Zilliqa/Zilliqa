@@ -61,8 +61,8 @@ public:
         std::vector<unsigned char>& dst, const unsigned int offset,
         const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
         const uint16_t leaderID, const std::pair<PrivKey, PubKey>& leaderKey,
-        const DSBlock& dsBlock, const Peer& powWinnerPeer,
-        const VectorOfShard& shards, const std::vector<Peer>& dsReceivers,
+        const DSBlock& dsBlock, const VectorOfShard& shards,
+        const std::vector<Peer>& dsReceivers,
         const std::vector<std::vector<Peer>>& shardReceivers,
         const std::vector<std::vector<Peer>>& shardSenders,
         std::vector<unsigned char>& messageToCosign);
@@ -71,8 +71,7 @@ public:
         const std::vector<unsigned char>& src, const unsigned int offset,
         const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
         const uint16_t leaderID, const PubKey& leaderKey, DSBlock& dsBlock,
-        Peer& powWinnerPeer, VectorOfShard& shards,
-        std::vector<Peer>& dsReceivers,
+        VectorOfShard& shards, std::vector<Peer>& dsReceivers,
         std::vector<std::vector<Peer>>& shardReceivers,
         std::vector<std::vector<Peer>>& shardSenders,
         std::vector<unsigned char>& messageToCosign);
@@ -108,15 +107,14 @@ public:
     static bool
     SetNodeDSBlock(std::vector<unsigned char>& dst, const unsigned int offset,
                    const uint32_t shardID, const DSBlock& dsBlock,
-                   const Peer& powWinnerPeer, const VectorOfShard& shards,
+                   const VectorOfShard& shards,
                    const std::vector<Peer>& dsReceivers,
                    const std::vector<std::vector<Peer>>& shardReceivers,
                    const std::vector<std::vector<Peer>>& shardSenders);
 
     static bool GetNodeDSBlock(const std::vector<unsigned char>& src,
                                const unsigned int offset, uint32_t& shardID,
-                               DSBlock& dsBlock, Peer& powWinnerPeer,
-                               VectorOfShard& shards,
+                               DSBlock& dsBlock, VectorOfShard& shards,
                                std::vector<Peer>& dsReceivers,
                                std::vector<std::vector<Peer>>& shardReceivers,
                                std::vector<std::vector<Peer>>& shardSenders);

@@ -82,7 +82,7 @@ void DirectoryService::StoreDSBlockToStorage()
         DataConversion::StringToCharArray(to_string(m_latestActiveDSBlockNum)));
 }
 
-void DirectoryService::SendDSBlockToLookupNodes(const Peer& winnerpeer)
+void DirectoryService::SendDSBlockToLookupNodes()
 {
     if (LOOKUP_NODE_MODE)
     {
@@ -110,7 +110,7 @@ void DirectoryService::SendDSBlockToLookupNodes(const Peer& winnerpeer)
               "DSBlock to the lookup nodes");
 }
 
-void DirectoryService::SendDSBlockToNewDSLeader(const Peer& winnerpeer)
+void DirectoryService::SendDSBlockToNewDSLeader()
 {
     if (LOOKUP_NODE_MODE)
     {
@@ -610,7 +610,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "I the DS folks that will soon be sending the DSBlock to the "
                   "lookup nodes");
-        SendDSBlockToLookupNodes(winnerpeer);
+        SendDSBlockToLookupNodes();
     }
 
     // Let's reuse the same DS nodes to send the DS Block to the new DS leader
@@ -623,7 +623,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "I the DS folks that will soon be sending the DSBlock to the "
                   "new DS leader");
-        SendDSBlockToNewDSLeader(winnerpeer);
+        SendDSBlockToNewDSLeader();
     }
 
     LOG_EPOCH(
