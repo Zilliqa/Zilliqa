@@ -122,9 +122,8 @@ void DirectoryService::SendDSBlockToNewDSLeader()
     vector<unsigned char> dsblock_message
         = {MessageType::NODE, NodeInstructionType::DSBLOCK};
     if (!Messenger::SetNodeDSBlock(dsblock_message, MessageOffset::BODY, 0,
-                                   *m_pendingDSBlock, winnerpeer, m_shards,
-                                   m_DSReceivers, m_shardReceivers,
-                                   m_shardSenders))
+                                   *m_pendingDSBlock, m_shards, m_DSReceivers,
+                                   m_shardReceivers, m_shardSenders))
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Messenger::SetNodeDSBlock failed.");
@@ -632,8 +631,8 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
             << m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetNonce()
             << "\n"
             << "New DSBlock hash is                     = 0x"
-            << DataConversion::charArrToHexStr(m_mediator.m_dsBlockRand) << "\n"
-            << "New DS member          = " << winnerpeer);
+            << DataConversion::charArrToHexStr(m_mediator.m_dsBlockRand)
+            << "\n");
 
     unsigned int my_DS_cluster_num, my_shards_lo, my_shards_hi;
     SetupMulticastConfigForDSBlock(my_DS_cluster_num, my_shards_lo,
@@ -663,7 +662,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
 
     UpdateMyDSModeAndConsensusId();
 
-    UpdateDSCommiteeComposition(winnerpeer);
+    UpdateDSCommiteeComposition();
 
     LOG_GENERAL(
         INFO,
