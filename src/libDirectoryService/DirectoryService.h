@@ -80,9 +80,6 @@ class DirectoryService : public Executable, public Broadcastable
     std::map<PubKey, std::array<unsigned char, 32>>
         m_allDSPoWs; // map<pubkey, DS PoW Sol
 
-    // Proof of Reputation(PoR) variables.
-    std::map<PubKey, uint16_t> m_mapNodeReputation;
-
     // Consensus variables
     std::shared_ptr<ConsensusCommon> m_consensusObject;
     std::vector<unsigned char> m_consensusBlockHash;
@@ -391,8 +388,11 @@ public:
     std::atomic<Mode> m_mode;
 
     // Sharding committee members
-    VectorOfShard m_shards; //vector<vector<pair<PubKey, Peer>>>;
+    VectorOfShard m_shards;
     std::map<PubKey, uint32_t> m_publicKeyToShardIdMap;
+
+    // Proof of Reputation(PoR) variables.
+    std::map<PubKey, uint16_t> m_mapNodeReputation;
 
     /// The current internal state of this DirectoryService instance.
     std::atomic<DirState> m_state;
@@ -460,7 +460,8 @@ public:
     /// Used by PoW winner to configure sharding variables as the next DS leader
     bool
     ProcessShardingStructure(const VectorOfShard& shards,
-                             std::map<PubKey, uint32_t>& publicKeyToShardIdMap);
+                             std::map<PubKey, uint32_t>& publicKeyToShardIdMap,
+                             std::map<PubKey, uint16_t>& mapNodeReputation);
 
     /// Used by PoW winner to configure txn sharing assignment variables as the next DS leader
     void ProcessTxnBodySharingAssignment();

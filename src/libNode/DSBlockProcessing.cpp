@@ -521,7 +521,8 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
             // Process sharding structure as a DS node
             if (!m_mediator.m_ds->ProcessShardingStructure(
                     m_mediator.m_ds->m_shards,
-                    m_mediator.m_ds->m_publicKeyToShardIdMap))
+                    m_mediator.m_ds->m_publicKeyToShardIdMap,
+                    m_mediator.m_ds->m_mapNodeReputation))
             {
                 return false;
             }

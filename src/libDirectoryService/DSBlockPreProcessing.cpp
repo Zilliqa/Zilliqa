@@ -224,8 +224,8 @@ void DirectoryService::ComputeSharding(
                                 << endl);
         const PubKey& key = kv.second;
         auto& shard = m_shards.at(min(i / COMM_SIZE, max_shard));
-        shard.emplace_back(std::make_tuple(key, m_allPoWConns.at(key),
-                                           m_mapNodeReputation[key]));
+        shard.emplace_back(key, m_allPoWConns.at(key),
+                           m_mapNodeReputation[key]);
         m_publicKeyToShardIdMap.emplace(key, min(i / COMM_SIZE, max_shard));
         i++;
     }
@@ -716,7 +716,8 @@ bool DirectoryService::DSBlockValidator(
         }
     }
 
-    if (!ProcessShardingStructure(m_tempShards, m_tempPublicKeyToShardIdMap))
+    if (!ProcessShardingStructure(m_tempShards, m_tempPublicKeyToShardIdMap,
+                                  m_tempMapNodeReputation))
     {
         return false;
     }
@@ -784,7 +785,9 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup()
 }
 
 bool DirectoryService::ProcessShardingStructure(
-    const VectorOfShard& shards, map<PubKey, uint32_t>& publicKeyToShardIdMap)
+    const VectorOfShard& shards,
+    std::map<PubKey, uint32_t>& publicKeyToShardIdMap,
+    std::map<PubKey, uint16_t>& mapNodeReputation)
 {
     if (LOOKUP_NODE_MODE)
     {
@@ -795,7 +798,7 @@ bool DirectoryService::ProcessShardingStructure(
     }
 
     publicKeyToShardIdMap.clear();
-    m_tempMapNodeReputation.clear();
+    mapNodeReputation.clear();
 
     for (unsigned int i = 0; i < shards.size(); i++)
     {
@@ -803,8 +806,7 @@ bool DirectoryService::ProcessShardingStructure(
         {
             const auto& pubKey = std::get<SHARD_NODE_PUBKEY>(shardNode);
 
-            m_tempMapNodeReputation[pubKey]
-                = std::get<SHARD_NODE_REP>(shardNode);
+            mapNodeReputation[pubKey] = std::get<SHARD_NODE_REP>(shardNode);
 
             auto storedMember = m_allPoWConns.find(pubKey);
 
