@@ -235,7 +235,7 @@ class Node : public Executable, public Broadcastable
     // internal calls from ProcessDSBlock
     void LogReceivedDSBlockDetails(const DSBlock& dsblock);
     void StoreDSBlockToDisk(const DSBlock& dsblock);
-    void UpdateDSCommiteeComposition(const std::map<PubKey, Peer> winners);
+    void UpdateDSCommiteeComposition();
 
     // Message handlers
     bool ProcessStartPoW(const std::vector<unsigned char>& message,
