@@ -254,7 +254,7 @@ class DirectoryService : public Executable, public Broadcastable
     bool CheckPreviousFinalBlockHash();
     bool CheckFinalBlockNumber();
     bool CheckFinalBlockTimestamp();
-    bool CheckMicroBlockHashes(std::vector<unsigned char>& errorMsg);
+    bool CheckMicroBlocks(std::vector<unsigned char>& errorMsg);
     bool CheckMicroBlockHashRoot();
     bool CheckIsMicroBlockEmpty();
     bool CheckStateRoot();
