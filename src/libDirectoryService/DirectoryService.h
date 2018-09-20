@@ -133,7 +133,7 @@ class DirectoryService : public Executable, public Broadcastable
     Mediator& m_mediator;
     Synchronizer m_synchronizer;
 
-    uint32_t m_numOfAbsentMicroBlockHashes;
+    uint32_t m_numOfAbsentMicroBlocks;
 
     //Coinbase
     std::map<uint64_t, std::unordered_map<int32_t, std::vector<Address>>>
