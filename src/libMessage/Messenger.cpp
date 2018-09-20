@@ -156,6 +156,93 @@ namespace
             CoSignatures(cosigs));
     }
 
+    void VCBlockToProtobuf(const VCBlock& vcBlock, ProtoVCBlock& protoVCBlock)
+    {
+        // Serialize header
+
+        ZilliqaMessage::ProtoVCBlock::VCBlockHeader* protoHeader
+            = protoVCBlock.mutable_header();
+
+        const VCBlockHeader& header = vcBlock.GetHeader();
+
+        protoHeader->set_viewchangedsepochno(header.GetVieWChangeDSEpochNo());
+        protoHeader->set_viewchangeepochno(header.GetViewChangeEpochNo());
+        protoHeader->set_viewchangestate(header.GetViewChangeState());
+        protoHeader->set_candidateleaderindex(header.GetCandidateLeaderIndex());
+        SerializableToProtobufByteArray(
+            header.GetCandidateLeaderNetworkInfo(),
+            *protoHeader->mutable_candidateleadernetworkinfo());
+        SerializableToProtobufByteArray(
+            header.GetCandidateLeaderPubKey(),
+            *protoHeader->mutable_candidateleaderpubkey());
+        protoHeader->set_vccounter(header.GetViewChangeCounter());
+        NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
+            header.GetTimeStamp(), *protoHeader->mutable_timestamp());
+
+        // Serialize cosigs
+
+        ZilliqaMessage::ProtoVCBlock::CoSignatures* cosigs
+            = protoVCBlock.mutable_cosigs();
+
+        SerializableToProtobufByteArray(vcBlock.GetCS1(),
+                                        *cosigs->mutable_cs1());
+        for (const auto& i : vcBlock.GetB1())
+        {
+            cosigs->add_b1(i);
+        }
+        SerializableToProtobufByteArray(vcBlock.GetCS2(),
+                                        *cosigs->mutable_cs2());
+        for (const auto& i : vcBlock.GetB2())
+        {
+            cosigs->add_b2(i);
+        }
+    }
+
+    void ProtobufToVCBlock(const ProtoVCBlock& protoVCBlock, VCBlock& vcBlock)
+    {
+        // Deserialize header
+
+        const ZilliqaMessage::ProtoVCBlock::VCBlockHeader& protoHeader
+            = protoVCBlock.header();
+
+        Peer candidateLeaderNetworkInfo;
+        PubKey candidateLeaderPubKey;
+        uint256_t timestamp;
+
+        ProtobufByteArrayToSerializable(
+            protoHeader.candidateleadernetworkinfo(),
+            candidateLeaderNetworkInfo);
+        ProtobufByteArrayToSerializable(protoHeader.candidateleaderpubkey(),
+                                        candidateLeaderPubKey);
+        ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
+            protoHeader.timestamp(), timestamp);
+
+        // Deserialize cosigs
+
+        CoSignatures cosigs;
+        cosigs.m_B1.resize(protoVCBlock.cosigs().b1().size());
+        cosigs.m_B2.resize(protoVCBlock.cosigs().b2().size());
+
+        ProtobufByteArrayToSerializable(protoVCBlock.cosigs().cs1(),
+                                        cosigs.m_CS1);
+        copy(protoVCBlock.cosigs().b1().begin(),
+             protoVCBlock.cosigs().b1().end(), cosigs.m_B1.begin());
+        ProtobufByteArrayToSerializable(protoVCBlock.cosigs().cs2(),
+                                        cosigs.m_CS2);
+        copy(protoVCBlock.cosigs().b2().begin(),
+             protoVCBlock.cosigs().b2().end(), cosigs.m_B2.begin());
+
+        // Generate the new VCBlock
+
+        vcBlock = VCBlock(
+            VCBlockHeader(
+                protoHeader.viewchangedsepochno(),
+                protoHeader.viewchangeepochno(), protoHeader.viewchangestate(),
+                protoHeader.candidateleaderindex(), candidateLeaderNetworkInfo,
+                candidateLeaderPubKey, protoHeader.vccounter(), timestamp),
+            CoSignatures(cosigs));
+    }
+
     template<class T>
     bool SerializeToArray(const T& protoMessage, vector<unsigned char>& dst,
                           const unsigned int offset)
@@ -1067,6 +1154,45 @@ bool Messenger::GetNodeFinalBlock(const vector<unsigned char>& src,
     stateDelta.resize(result.statedelta().size());
     copy(result.statedelta().begin(), result.statedelta().end(),
          stateDelta.begin());
+
+    return true;
+}
+
+bool Messenger::SetNodeVCBlock(vector<unsigned char>& dst,
+                               const unsigned int offset,
+                               const VCBlock& vcBlock)
+{
+    LOG_MARKER();
+
+    NodeVCBlock result;
+
+    VCBlockToProtobuf(vcBlock, *result.mutable_vcblock());
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "NodeVCBlock initialization failed.");
+        return false;
+    }
+
+    return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetNodeVCBlock(const vector<unsigned char>& src,
+                               const unsigned int offset, VCBlock& vcBlock)
+{
+    LOG_MARKER();
+
+    NodeVCBlock result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "NodeVCBlock initialization failed.");
+        return false;
+    }
+
+    ProtobufToVCBlock(result.vcblock(), vcBlock);
 
     return true;
 }
