@@ -527,24 +527,28 @@ bool DirectoryService::CheckMicroBlockHashes(
 
     LOG_MARKER();
 
-    auto& hashesInMicroBlocks = m_finalBlock->GetMicroBlockHashes();
-
-    std::vector<MicroBlockHashSet> missingMicroBlocks;
+    std::vector<std::pair<uint32_t, MicroBlockHashSet>> missingMicroBlocks;
 
     {
         lock_guard<mutex> g(m_mutexMicroBlocks);
         // O(n^2) might be fine since number of shards is low
         // If its slow on benchmarking, may be first populate an unordered_set and then std::find
-        for (auto& microBlockHash : hashesInMicroBlocks)
+        auto& hashesInMicroBlocks = m_finalBlock->GetMicroBlockHashes();
+        auto& shardIDsInMicroBlocks = m_finalBlock->GetShardIDs();
+
+        for (unsigned int i = 0;
+             i < m_finalBlock->GetHeader().GetNumMicroBlockHashes(); i++)
         {
             bool found = false;
             auto& microBlocks = m_microBlocks[m_mediator.m_currentEpochNum];
             for (auto& microBlock : microBlocks)
             {
-                if (microBlock.GetHeader().GetTxRootHash()
-                        == microBlockHash.m_txRootHash
+                if (microBlock.GetHeader().GetShardID()
+                        == shardIDsInMicroBlocks[i]
+                    && microBlock.GetHeader().GetTxRootHash()
+                        == hashesInMicroBlocks[i].m_txRootHash
                     && microBlock.GetHeader().GetStateDeltaHash()
-                        == microBlockHash.m_stateDeltaHash)
+                        == hashesInMicroBlocks[i].m_stateDeltaHash)
                 {
                     found = true;
                     break;
@@ -552,38 +556,45 @@ bool DirectoryService::CheckMicroBlockHashes(
             }
             if (!found)
             {
-                LOG_GENERAL(WARNING, "cannot find hashes. " << microBlockHash)
-                missingMicroBlocks.emplace_back(microBlockHash);
+                LOG_GENERAL(WARNING,
+                            "cannot find microblock with shard id: "
+                                << shardIDsInMicroBlocks[i]
+                                << " and hashes: " << hashesInMicroBlocks[i]);
+                missingMicroBlocks.push_back(
+                    {shardIDsInMicroBlocks[i], hashesInMicroBlocks[i]});
             }
         }
     }
 
-    m_numOfAbsentMicroBlockHashes = 0;
+    m_numOfAbsentMicroBlocks = 0;
     int offset = 0;
 
     if (!missingMicroBlocks.empty())
     {
-        for (auto const& hash : missingMicroBlocks)
+        for (auto const& mb : missingMicroBlocks)
         {
             if (errorMsg.empty())
             {
                 errorMsg.resize(sizeof(uint32_t) + sizeof(uint64_t)
-                                + hash.size());
+                                + sizeof(uint32_t) + mb.second.size());
                 offset += (sizeof(uint32_t) + sizeof(uint64_t));
             }
             else
             {
-                errorMsg.resize(offset + hash.size());
+                errorMsg.resize(offset + sizeof(uint32_t) + mb.second.size());
             }
-            offset = hash.Serialize(errorMsg, offset);
+            Serializable::SetNumber<uint32_t>(errorMsg, offset, mb.first,
+                                              sizeof(uint32_t));
+            offset += sizeof(uint32_t);
+            offset = mb.second.Serialize(errorMsg, offset);
 
-            m_numOfAbsentMicroBlockHashes++;
+            m_numOfAbsentMicroBlocks++;
         }
 
-        if (m_numOfAbsentMicroBlockHashes > 0)
+        if (m_numOfAbsentMicroBlocks > 0)
         {
             Serializable::SetNumber<uint32_t>(
-                errorMsg, 0, m_numOfAbsentMicroBlockHashes, sizeof(uint32_t));
+                errorMsg, 0, m_numOfAbsentMicroBlocks, sizeof(uint32_t));
             Serializable::SetNumber<uint64_t>(errorMsg, sizeof(uint32_t),
                                               m_mediator.m_currentEpochNum,
                                               sizeof(uint64_t));
@@ -624,10 +635,14 @@ bool DirectoryService::OnNodeMissingMicroBlocks(
         = Serializable::GetNumber<uint64_t>(errorMsg, offset, sizeof(uint64_t));
     offset += sizeof(uint64_t);
 
-    vector<MicroBlockHashSet> missingMicroBlockHashes;
+    vector<std::pair<uint32_t, MicroBlockHashSet>> missingMicroBlocks;
 
     for (uint32_t i = 0; i < numOfAbsentHashes; i++)
     {
+        uint32_t shard_id = Serializable::GetNumber<uint32_t>(errorMsg, offset,
+                                                              sizeof(uint32_t));
+        offset += sizeof(uint32_t);
+
         MicroBlockHashSet mbHash;
         if (mbHash.Deserialize(errorMsg, offset) != 0)
         {
@@ -636,7 +651,7 @@ bool DirectoryService::OnNodeMissingMicroBlocks(
         }
         offset += mbHash.size();
 
-        missingMicroBlockHashes.emplace_back(mbHash);
+        missingMicroBlocks.push_back({shard_id, mbHash});
     }
 
     uint32_t portNo
@@ -673,10 +688,12 @@ bool DirectoryService::OnNodeMissingMicroBlocks(
         // If its slow on benchmarking, may be first populate an unordered_set and then std::find
         for (const auto& microBlock : microBlocks)
         {
-            if (microBlock.GetHeader().GetTxRootHash()
-                    == missingMicroBlockHashes[i].m_txRootHash
+            if (microBlock.GetHeader().GetShardID()
+                    == missingMicroBlocks[i].first
+                && microBlock.GetHeader().GetTxRootHash()
+                    == missingMicroBlocks[i].second.m_txRootHash
                 && microBlock.GetHeader().GetStateDeltaHash()
-                    == missingMicroBlockHashes[i].m_stateDeltaHash)
+                    == missingMicroBlocks[i].second.m_stateDeltaHash)
             {
                 mb = microBlock;
                 found = true;
@@ -686,8 +703,9 @@ bool DirectoryService::OnNodeMissingMicroBlocks(
         if (!found)
         {
             LOG_GENERAL(WARNING,
-                        "cannot find missing microblock: "
-                            << missingMicroBlockHashes[i]);
+                        "cannot find missing microblock: (shardID)"
+                            << missingMicroBlocks[i].first << " (hashes)"
+                            << missingMicroBlocks[i].second);
             continue;
         }
         numOfMicroblocksSent++;

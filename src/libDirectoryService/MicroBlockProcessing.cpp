@@ -578,7 +578,9 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
     std::vector<unsigned char> errorMsg;
     if (!CheckMicroBlockHashes(errorMsg))
     {
-        LOG_GENERAL(WARNING, "Still have missing microblocks after fetching");
+        LOG_GENERAL(
+            WARNING,
+            "Still have missing microblocks after fetching, what to do???");
         return false;
     }
 
