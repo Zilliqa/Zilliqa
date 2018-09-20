@@ -50,7 +50,8 @@ namespace RRS
     * element is the randomly selected member id and the second element is the vector of PUSH
     * messages that will be sent to the selected member.
     */
-        virtual std::pair<int, std::vector<Message>> advanceRound() = 0;
+        virtual std::pair<std::vector<int>, std::vector<Message>> advanceRound()
+            = 0;
     };
 
 } // project namespace

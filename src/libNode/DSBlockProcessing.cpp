@@ -407,17 +407,20 @@ void Node::StartFirstTxEpoch()
     m_consensusLeaderID = 0;
     CommitTxnPacketBuffer();
 
-    std::vector<Peer> peers;
-    for (const auto& i : *m_myShardMembers)
+    if (BROADCAST_GOSSIP_MODE)
     {
-        if (i.second.m_listenPortHost != 0)
+        std::vector<Peer> peers;
+        for (const auto& i : *m_myShardMembers)
         {
-            peers.push_back(i.second);
+            if (i.second.m_listenPortHost != 0)
+            {
+                peers.push_back(i.second);
+            }
         }
-    }
 
-    // Set the peerlist for RumorSpreading protocol every start of DS Epoch
-    P2PComm::GetInstance().InitializeRumorManager(peers);
+        // Set the peerlist for RumorSpreading protocol every start of DS Epoch
+        P2PComm::GetInstance().InitializeRumorManager(peers);
+    }
 
     auto main_func3 = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
 

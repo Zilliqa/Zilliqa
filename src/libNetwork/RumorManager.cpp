@@ -10,8 +10,6 @@ const unsigned char START_BYTE_GOSSIP = 0x33;
 
 namespace
 {
-    const std::chrono::milliseconds ROUND_TIME(100);
-
     RRS::Message::Type convertType(uint8_t type)
     {
         switch (type)
@@ -51,6 +49,7 @@ RumorManager::~RumorManager() {}
 
 void RumorManager::startRounds()
 {
+    LOG_MARKER();
     // critical section
     std::thread([&]() {
         std::unique_lock<std::mutex> guard(m_continueRoundMutex);
@@ -60,24 +59,25 @@ void RumorManager::startRounds()
             { // critical section
                 std::lock_guard<std::mutex> guard(m_mutex);
                 //LOG_MARKER();
-                std::pair<int, std::vector<RRS::Message>> result
+                std::pair<std::vector<int>, std::vector<RRS::Message>> result
                     = m_rumorHolder->advanceRound();
 
                 // Get the corresponding Peer to which to send Push Messages if any.
-                auto l = m_peerIdPeerBimap.left.find(result.first);
-                if (l != m_peerIdPeerBimap.left.end())
+                for (const auto& i : result.first)
                 {
-                    /*LOG_GENERAL(INFO,
-                                "Sending " << result.second.size()
-                                           << " push messages")*/
-                    SendMessages(l->second, result.second);
+                    auto l = m_peerIdPeerBimap.left.find(i);
+                    if (l != m_peerIdPeerBimap.left.end())
+                    {
+                        /*LOG_GENERAL(INFO,
+                                    "Sending " << result.second.size()
+                                            << " push messages")*/
+                        SendMessages(l->second, result.second);
+                    }
                 }
             } // end critical section
-            //std::this_thread::sleep_for(ROUND_TIME
-            //                            - std::chrono::milliseconds(15));
-            if (m_condStopRound.wait_for(guard,
-                                         std::chrono::milliseconds(ROUND_TIME),
-                                         [&] { return !m_continueRound; }))
+            if (m_condStopRound.wait_for(
+                    guard, std::chrono::milliseconds(ROUND_TIME_IN_MS),
+                    [&] { return !m_continueRound; }))
             {
                 return;
             }
@@ -94,7 +94,7 @@ void RumorManager::stopRounds()
         m_continueRound = false;
     }
     m_condStopRound.notify_all();
-    std::this_thread::sleep_for(ROUND_TIME);
+    std::this_thread::sleep_for(std::chrono::milliseconds(ROUND_TIME_IN_MS));
 }
 
 // PUBLIC METHODS
@@ -135,7 +135,16 @@ bool RumorManager::Initialize(const std::vector<Peer>& peers,
     }
 
     // Now create the one and only RumorHolder
-    m_rumorHolder.reset(new RRS::RumorHolder(m_peerIdSet, 0));
+    if (GOSSIP_CUSTOM_ROUNDS_SETTINGS)
+    {
+        m_rumorHolder.reset(new RRS::RumorHolder(
+            m_peerIdSet, MAX_ROUNDS_IN_BSTATE, MAX_ROUNDS_IN_CSTATE,
+            MAX_TOTAL_ROUNDS, MAX_NEIGHBORS_PER_ROUND, 0));
+    }
+    else
+    {
+        m_rumorHolder.reset(new RRS::RumorHolder(m_peerIdSet, 0));
+    }
 
     return true;
 }
@@ -148,9 +157,8 @@ bool RumorManager::addRumor(const RumorManager::RawBytes& message)
         if (!m_continueRound)
         {
             // Seems logical error. Round should have started.
-            LOG_GENERAL(
-                WARNING,
-                "Round is not running.. So won't add the rumor mamager.");
+            LOG_GENERAL(WARNING,
+                        "Round is not running.. So won't add the rumor.");
             return false;
         }
     }
@@ -180,7 +188,7 @@ bool RumorManager::rumorReceived(uint8_t type, int32_t round,
         {
             LOG_GENERAL(WARNING,
                         "Round is not running.. So won't accept the rumor "
-                        "receivied. Will ignore..");
+                        "received. Will ignore..");
             return false;
         }
     }
@@ -193,9 +201,10 @@ bool RumorManager::rumorReceived(uint8_t type, int32_t round,
     if (p == m_peerIdPeerBimap.right.end())
     {
         // I dont know this peer, missing in my peerlist.
-        LOG_GENERAL(INFO,
-                    "Received Rumor from peer which does not exist in peerlist "
-                        << from);
+        LOG_GENERAL(
+            INFO,
+            "Received Rumor from peer which does not exist in my peerlist "
+                << from);
         return false;
     }
 

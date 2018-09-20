@@ -46,6 +46,7 @@ namespace RRS
         NextMemberCb m_nextMemberCb;
         std::unordered_set<int> m_nonPriorPeers;
         std::map<StatisticKey, double> m_statistics;
+        int m_maxNeighborPerRound;
 
         // METHODS
         // Copy the member ids into a vector
@@ -72,6 +73,9 @@ namespace RRS
         RumorHolder(const std::unordered_set<int>& peers,
                     const NetworkConfig& networkConfig, const NextMemberCb& cb,
                     int id = MemberID::next());
+        RumorHolder(const std::unordered_set<int>& peers, int maxRoundsInB,
+                    int maxRoundsInC, int maxTotalRounds,
+                    int maxNeighborPerRound, int id);
 
         RumorHolder(const RumorHolder& other);
 
@@ -83,7 +87,8 @@ namespace RRS
         std::pair<int, std::vector<Message>>
         receivedMessage(const Message& message, int fromPeer) override;
 
-        std::pair<int, std::vector<Message>> advanceRound() override;
+        std::pair<std::vector<int>, std::vector<Message>>
+        advanceRound() override;
 
         // CONST METHODS
         int id() const;
