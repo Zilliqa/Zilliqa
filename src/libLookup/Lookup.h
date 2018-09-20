@@ -194,10 +194,6 @@ public:
 
     void SendTxnPacketToNodes(uint32_t);
 
-    bool CreateTxnPacket(std::vector<unsigned char>& msg, uint32_t shardId,
-                         unsigned int offset,
-                         const std::map<uint32_t, std::vector<unsigned char>>&);
-
     bool ProcessEntireShardingStructure();
     bool
     ProcessGetSeedPeersFromLookup(const std::vector<unsigned char>& message,
