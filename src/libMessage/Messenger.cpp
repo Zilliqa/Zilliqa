@@ -17,6 +17,9 @@
 #include "Messenger.h"
 #include "libMessage/ZilliqaMessage.pb.h"
 #include "libUtils/Logger.h"
+
+#include <algorithm>
+#include <map>
 #include <random>
 #include <unordered_set>
 
@@ -73,10 +76,6 @@ namespace
         protoHeader->set_difficulty(header.GetDifficulty());
         protoHeader->set_prevhash(header.GetPrevHash().data(),
                                   header.GetPrevHash().size);
-        NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
-            header.GetNonce(), *protoHeader->mutable_nonce());
-        SerializableToProtobufByteArray(header.GetMinerPubKey(),
-                                        *protoHeader->mutable_minerpubkey());
         SerializableToProtobufByteArray(header.GetLeaderPubKey(),
                                         *protoHeader->mutable_leaderpubkey());
         protoHeader->set_blocknum(header.GetBlockNum());
@@ -84,6 +83,17 @@ namespace
             header.GetTimestamp(), *protoHeader->mutable_timestamp());
         SerializableToProtobufByteArray(header.GetSWInfo(),
                                         *protoHeader->mutable_swinfo());
+
+        ZilliqaMessage::ProtoDSBlock::DSBlockHeader::PowDSWinners* powdswinner;
+
+        for (const auto& winner : header.GetDSPoWWinners())
+        {
+            powdswinner = protoDSBlock.mutable_header()->add_dswinners();
+            SerializableToProtobufByteArray(winner.first,
+                                            *powdswinner->mutable_key());
+            SerializableToProtobufByteArray(winner.second,
+                                            *powdswinner->mutable_val());
+        }
 
         // Serialize cosigs
 
@@ -112,8 +122,6 @@ namespace
             = protoDSBlock.header();
 
         BlockHash prevHash;
-        uint256_t nonce;
-        PubKey minerPubKey;
         PubKey leaderPubKey;
         uint256_t timestamp;
         SWInfo swInfo;
@@ -123,17 +131,25 @@ namespace
 
         copy(protoHeader.prevhash().begin(),
              protoHeader.prevhash().begin() + size, prevHash.asArray().begin());
-        ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(protoHeader.nonce(),
-                                                           nonce);
-        ProtobufByteArrayToSerializable(protoHeader.minerpubkey(), minerPubKey);
         ProtobufByteArrayToSerializable(protoHeader.leaderpubkey(),
                                         leaderPubKey);
         ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
             protoHeader.timestamp(), timestamp);
         ProtobufByteArrayToSerializable(protoHeader.swinfo(), swInfo);
 
-        // Deserialize cosigs
+        // Deserialize powDSWinners
+        map<PubKey, Peer> powDSWinners;
+        PubKey tempPubKey;
+        Peer tempWinnerNetworkInfo;
+        for (const auto& dswinner : protoHeader.dswinners())
+        {
+            ProtobufByteArrayToSerializable(dswinner.key(), leaderPubKey);
+            ProtobufByteArrayToSerializable(dswinner.val(),
+                                            tempWinnerNetworkInfo);
+            powDSWinners[leaderPubKey] = tempWinnerNetworkInfo;
+        }
 
+        // Deserialize cosigs
         CoSignatures cosigs;
         cosigs.m_B1.resize(protoDSBlock.cosigs().b1().size());
         cosigs.m_B2.resize(protoDSBlock.cosigs().b2().size());
@@ -149,11 +165,11 @@ namespace
 
         // Generate the new DSBlock
 
-        dsBlock = DSBlock(
-            DSBlockHeader(protoHeader.dsdifficulty(), protoHeader.difficulty(),
-                          prevHash, nonce, minerPubKey, leaderPubKey,
-                          protoHeader.blocknum(), timestamp, swInfo),
-            CoSignatures(cosigs));
+        dsBlock = DSBlock(DSBlockHeader(protoHeader.dsdifficulty(),
+                                        protoHeader.difficulty(), prevHash,
+                                        leaderPubKey, protoHeader.blocknum(),
+                                        timestamp, swInfo, powDSWinners),
+                          CoSignatures(cosigs));
     }
 
     void MicroBlockToProtobuf(const MicroBlock& microBlock,
