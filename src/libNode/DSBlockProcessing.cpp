@@ -443,9 +443,9 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
     m_mediator.m_ds->m_shardSenders.clear();
 
     if (!Messenger::GetNodeDSBlock(
-            message, cur_offset, shardID, dsblock, newleaderIP,
-            m_mediator.m_ds->m_shards, m_mediator.m_ds->m_DSReceivers,
-            m_mediator.m_ds->m_shardReceivers, m_mediator.m_ds->m_shardSenders))
+            message, cur_offset, shardID, dsblock, m_mediator.m_ds->m_shards,
+            m_mediator.m_ds->m_DSReceivers, m_mediator.m_ds->m_shardReceivers,
+            m_mediator.m_ds->m_shardSenders))
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Messenger::GetNodeDSBlock failed.");
