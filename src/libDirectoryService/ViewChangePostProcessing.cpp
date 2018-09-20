@@ -28,6 +28,7 @@
 #include "depends/libTrie/TrieHash.h"
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
+#include "libMessage/Messenger.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
@@ -319,10 +320,14 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
 
     vector<unsigned char> vcblock_message
         = {MessageType::NODE, NodeInstructionType::VCBLOCK};
-    unsigned int curr_offset = MessageOffset::BODY;
 
-    m_pendingVCBlock->Serialize(vcblock_message, MessageOffset::BODY);
-    curr_offset += m_pendingVCBlock->GetSerializedSize();
+    if (!Messenger::SetNodeVCBlock(vcblock_message, MessageOffset::BODY,
+                                   *m_pendingVCBlock))
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::SetNodeVCBlock failed.");
+        return;
+    }
 
     unsigned int nodeToSendToLookUpLo = COMM_SIZE / 4;
     unsigned int nodeToSendToLookUpHi
