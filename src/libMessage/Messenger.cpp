@@ -1084,9 +1084,13 @@ bool Messenger::SetNodeForwardTxnBlock(
     result.set_epochnumber(epochNumber);
     result.set_shardid(shardID);
 
+    unsigned int txnsCurrentCount = 0;
+    unsigned int txnsGeneratedCount = 0;
+
     for (const auto& txn : txnsCurrent)
     {
         SerializableToProtobufByteArray(txn, *result.add_transactions());
+        txnsCurrentCount++;
     }
 
     unsigned int txnStreamOffset = 0;
@@ -1103,6 +1107,7 @@ bool Messenger::SetNodeForwardTxnBlock(
         SerializableToProtobufByteArray(txn, *result.add_transactions());
 
         txnStreamOffset += txn.GetSerializedSize();
+        txnsGeneratedCount++;
     }
 
     if (!result.IsInitialized())
@@ -1110,6 +1115,11 @@ bool Messenger::SetNodeForwardTxnBlock(
         LOG_GENERAL(WARNING, "NodeForwardTxnBlock initialization failed.");
         return false;
     }
+
+    LOG_GENERAL(INFO,
+                "Epoch: " << epochNumber << " Shard: " << shardID
+                          << " Current txns: " << txnsCurrentCount
+                          << " Generated txns: " << txnsGeneratedCount);
 
     return SerializeToArray(result, dst, offset);
 }
@@ -1140,6 +1150,10 @@ bool Messenger::GetNodeForwardTxnBlock(const std::vector<unsigned char>& src,
         ProtobufByteArrayToSerializable(txn, t);
         txns.emplace_back(t);
     }
+
+    LOG_GENERAL(INFO,
+                "Epoch: " << epochNumber << " Shard: " << shardID
+                          << " Received txns: " << txns.size());
 
     return true;
 }
