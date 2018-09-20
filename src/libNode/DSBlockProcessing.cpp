@@ -495,15 +495,26 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
         uint32_t ds_size = m_mediator.m_DSCommittee->size();
         POW::GetInstance().StopMining();
 
-        // If I am the next DS leader -> need to set myself up as a DS node
-        if (m_mediator.m_selfKey.second
-            == m_mediator.m_dsBlockChain.GetLastBlock()
-                   .GetHeader()
-                   .GetMinerPubKey())
+        unsigned int newDSMemberIndex = 0;
+        bool isNewDSMember = false;
+        for (const auto& newDSMember : m_mediator.m_dsBlockChain.GetLastBlock()
+                                           .GetHeader()
+                                           .GetDSPoWWinners())
         {
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "I won PoW :-) I am now in the DS committee !");
+            newDSMemberIndex++;
+            if (m_mediator.m_selfKey.second == newDSMember.first)
+            {
+                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                          "I won DS PoW. Currently, one of the new ds "
+                          "committee member with cons");
+                isNewDSMember = true;
+                m_mediator.m_ds->m_consensusMyID = newDSMemberIndex;
+            }
+        }
 
+        // If I am the next DS leader -> need to set myself up as a DS node
+        if (isNewDSMember)
+        {
             // Process sharding structure as a DS node
             if (!m_mediator.m_ds->ProcessShardingStructure(
                     m_mediator.m_ds->m_shards,
@@ -519,7 +530,6 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
             // Update my ID
             m_mediator.m_ds->m_consensusID
                 = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
-            m_mediator.m_ds->m_consensusMyID = 0;
 
             //(We're getting rid of this eventually Clean up my txns coz I am DS)
             m_mediator.m_node->CleanCreatedTransaction();
