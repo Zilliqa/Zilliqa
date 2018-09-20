@@ -49,7 +49,7 @@ const unsigned int HDR_LEN = 6;
 const unsigned int HASH_LEN = 32;
 const unsigned int GOSSIP_MSGTYPE_LEN = 1;
 const unsigned int GOSSIP_AGE_LEN = 4;
-const unsigned int GOSSIP_SNDR_LISTNR_PORT = 4;
+const unsigned int GOSSIP_SNDR_LISTNR_PORT_LEN = 4;
 
 P2PComm::Dispatcher P2PComm::m_dispatcher;
 P2PComm::BroadcastListFunc P2PComm::m_broadcast_list_retriever;
@@ -587,8 +587,8 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
     }
     else if (startByte == START_BYTE_NORMAL)
     {
-        //LOG_PAYLOAD(INFO, "Incoming normal message from " << from, message,
-        //            Logger::MAX_BYTES_TO_DISPLAY);
+        LOG_PAYLOAD(INFO, "Incoming normal message from " << from, message,
+                    Logger::MAX_BYTES_TO_DISPLAY);
 
         // Check for length consistency
         if (messageLength != message.size() - HDR_LEN)
@@ -608,9 +608,6 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
     }
     else if (startByte == START_BYTE_GOSSIP)
     {
-        //LOG_PAYLOAD(INFO, "Incoming  gossip message from " << from, message,
-        //            Logger::MAX_BYTES_TO_DISPLAY);
-
         // Check for length consistency
 
         if (messageLength != message.size() - HDR_LEN)
@@ -620,7 +617,7 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
         }
 
         if (messageLength
-            < GOSSIP_MSGTYPE_LEN + GOSSIP_AGE_LEN + GOSSIP_SNDR_LISTNR_PORT)
+            < GOSSIP_MSGTYPE_LEN + GOSSIP_AGE_LEN + GOSSIP_SNDR_LISTNR_PORT_LEN)
         {
             LOG_GENERAL(WARNING,
                         "Gossip Msg Type and/or Gossip Age and/or SNDR LISTNR "
@@ -645,7 +642,7 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
                    message.begin() + HDR_LEN + GOSSIP_MSGTYPE_LEN
                        + GOSSIP_AGE_LEN,
                    message.begin() + HDR_LEN + GOSSIP_MSGTYPE_LEN
-                       + GOSSIP_AGE_LEN + GOSSIP_SNDR_LISTNR_PORT);
+                       + GOSSIP_AGE_LEN + GOSSIP_SNDR_LISTNR_PORT_LEN);
 
         const uint32_t gossipSenderPort
             = (tmp[0] << 24) + (tmp[1] << 16) + (tmp[2] << 8) + tmp[3];
@@ -653,7 +650,7 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
 
         RumorManager::RawBytes rumor_message(
             message.begin() + HDR_LEN + GOSSIP_MSGTYPE_LEN + GOSSIP_AGE_LEN
-                + GOSSIP_SNDR_LISTNR_PORT,
+                + GOSSIP_SNDR_LISTNR_PORT_LEN,
             message.end());
 
         P2PComm& p2p = P2PComm::GetInstance();
@@ -683,7 +680,7 @@ void P2PComm::AcceptConnectionCallback([[gnu::unused]] evconnlistener* listener,
     Peer from(uint128_t(((struct sockaddr_in*)cli_addr)->sin_addr.s_addr),
               ((struct sockaddr_in*)cli_addr)->sin_port);
 
-    LOG_GENERAL(INFO, "Incoming message from " << from);
+    //LOG_GENERAL(INFO, "Incoming message from " << from);
 
     if (Blacklist::GetInstance().Exist(from.m_ipAddress))
     {

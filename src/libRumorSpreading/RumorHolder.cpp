@@ -58,11 +58,12 @@ namespace RRS
     // CONSTRUCTORS
     RumorHolder::RumorHolder(const std::unordered_set<int>& peers, int id)
         : m_id(id)
-        , m_networkConfig(peers.size(), 1, 1, 2)
+        , m_networkConfig(peers.size())
         , m_peers()
         , m_rumors()
         , m_mutex()
         , m_nextMemberCb()
+        , m_maxNeighborPerRound(1)
     {
         toVector(peers);
     }
@@ -75,6 +76,7 @@ namespace RRS
         , m_rumors()
         , m_mutex()
         , m_nextMemberCb(cb)
+        , m_maxNeighborPerRound(1)
     {
         toVector(peers);
     }
@@ -88,8 +90,26 @@ namespace RRS
         , m_mutex()
         , m_nextMemberCb()
         , m_statistics()
+        , m_maxNeighborPerRound(1)
     {
         assert(networkConfig.networkSize() == peers.size());
+        toVector(peers);
+    }
+
+    RumorHolder::RumorHolder(const std::unordered_set<int>& peers,
+                             int maxRoundsInB, int maxRoundsInC,
+                             int maxTotalRounds, int maxNeighborPerRound,
+                             int id)
+        : m_id(id)
+        , m_networkConfig(peers.size(), maxRoundsInB, maxRoundsInC,
+                          maxTotalRounds)
+        , m_peers()
+        , m_rumors()
+        , m_mutex()
+        , m_nextMemberCb()
+        , m_statistics()
+        , m_maxNeighborPerRound(maxNeighborPerRound)
+    {
         toVector(peers);
     }
 
@@ -177,9 +197,8 @@ namespace RRS
             {
                 increaseStatValue(StatisticKey::NumPullMessages,
                                   pullMessages.size());
+                m_nonPriorPeers.insert(fromPeer);
             }
-
-            m_nonPriorPeers.insert(fromPeer);
         }
 
         // An empty response from a peer that was sent a PULL
@@ -202,36 +221,46 @@ namespace RRS
         return std::make_pair(fromPeer, pullMessages);
     }
 
-    std::pair<int, std::vector<Message>> RumorHolder::advanceRound()
+    std::pair<std::vector<int>, std::vector<Message>>
+    RumorHolder::advanceRound()
     {
         //LOG_MARKER();
         std::lock_guard<std::mutex> guard(m_mutex); // critical section
 
         if (m_peers.size() <= 0)
         {
-            return std::make_pair(-1, std::vector<Message>());
+            m_nonPriorPeers.clear();
+            m_peersInCurrentRound.clear();
+            return std::make_pair(std::vector<int>{-1}, std::vector<Message>());
         }
 
         increaseStatValue(StatisticKey::Rounds, 1);
 
+        std::vector<int> toMembers;
         int toMember;
-        if (m_nonPriorPeers.size() < m_peers.size())
+        int retryCount = 0;
+        int neighborC = 0;
+
+        if (m_nonPriorPeers.size() >= m_peers.size() - m_maxNeighborPerRound)
         {
-            int retryCount = 0;
-            while (retryCount < 3)
-            {
-                toMember
-                    = m_nextMemberCb ? m_nextMemberCb() : chooseRandomMember();
-                if (m_nonPriorPeers.count(toMember) == 0)
-                {
-                    break;
-                }
-                retryCount++;
-            }
+            m_nonPriorPeers.clear();
         }
-        else
+
+        while (neighborC < m_maxNeighborPerRound && retryCount < 3)
         {
             toMember = m_nextMemberCb ? m_nextMemberCb() : chooseRandomMember();
+            if (m_nonPriorPeers.count(toMember) == 0)
+            {
+                m_nonPriorPeers.insert(toMember);
+                neighborC++;
+                retryCount = 0;
+                toMembers.push_back(toMember);
+            }
+            else
+            {
+                // retry again
+                retryCount++;
+            }
         }
         m_nonPriorPeers.clear();
 
@@ -260,7 +289,7 @@ namespace RRS
         // Clear round state
         m_peersInCurrentRound.clear();
 
-        return std::make_pair(toMember, pushMessages);
+        return std::make_pair(toMembers, pushMessages);
     }
 
     // PUBLIC CONST METHODS
