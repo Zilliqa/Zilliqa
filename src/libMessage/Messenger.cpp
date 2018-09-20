@@ -808,9 +808,8 @@ bool Messenger::SetDSDSBlockAnnouncement(
     vector<unsigned char>& dst, const unsigned int offset,
     const uint32_t consensusID, const vector<unsigned char>& blockHash,
     const uint16_t leaderID, const pair<PrivKey, PubKey>& leaderKey,
-    const DSBlock& dsBlock, const Peer& powWinnerPeer,
-    const VectorOfShard& shards, const vector<Peer>& dsReceivers,
-    const vector<vector<Peer>>& shardReceivers,
+    const DSBlock& dsBlock, const VectorOfShard& shards,
+    const vector<Peer>& dsReceivers, const vector<vector<Peer>>& shardReceivers,
     const vector<vector<Peer>>& shardSenders,
     vector<unsigned char>& messageToCosign)
 {
@@ -823,8 +822,6 @@ bool Messenger::SetDSDSBlockAnnouncement(
     DSDSBlockAnnouncement* dsblock = announcement.mutable_dsblock();
 
     DSBlockToProtobuf(dsBlock, *dsblock->mutable_dsblock());
-    SerializableToProtobufByteArray(powWinnerPeer,
-                                    *dsblock->mutable_powwinnerpeer());
 
     for (const auto& shard : shards)
     {
@@ -903,7 +900,7 @@ bool Messenger::GetDSDSBlockAnnouncement(
     const vector<unsigned char>& src, const unsigned int offset,
     const uint32_t consensusID, const vector<unsigned char>& blockHash,
     const uint16_t leaderID, const PubKey& leaderKey, DSBlock& dsBlock,
-    Peer& powWinnerPeer, VectorOfShard& shards, vector<Peer>& dsReceivers,
+    VectorOfShard& shards, vector<Peer>& dsReceivers,
     vector<vector<Peer>>& shardReceivers, vector<vector<Peer>>& shardSenders,
     vector<unsigned char>& messageToCosign)
 {
@@ -939,7 +936,6 @@ bool Messenger::GetDSDSBlockAnnouncement(
     const DSDSBlockAnnouncement& dsblock = announcement.dsblock();
 
     ProtobufToDSBlock(dsblock.dsblock(), dsBlock);
-    ProtobufByteArrayToSerializable(dsblock.powwinnerpeer(), powWinnerPeer);
 
     for (const auto& proto_shard : dsblock.sharding().shards())
     {
@@ -1199,7 +1195,6 @@ bool Messenger::GetDSVCBlockAnnouncement(
 bool Messenger::SetNodeDSBlock(vector<unsigned char>& dst,
                                const unsigned int offset,
                                const uint32_t shardID, const DSBlock& dsBlock,
-                               const Peer& powWinnerPeer,
                                const VectorOfShard& shards,
                                const vector<Peer>& dsReceivers,
                                const vector<vector<Peer>>& shardReceivers,
@@ -1211,8 +1206,6 @@ bool Messenger::SetNodeDSBlock(vector<unsigned char>& dst,
 
     result.set_shardid(shardID);
     DSBlockToProtobuf(dsBlock, *result.mutable_dsblock());
-    SerializableToProtobufByteArray(powWinnerPeer,
-                                    *result.mutable_powwinnerpeer());
 
     for (const auto& shard : shards)
     {
@@ -1268,8 +1261,8 @@ bool Messenger::SetNodeDSBlock(vector<unsigned char>& dst,
 
 bool Messenger::GetNodeDSBlock(const vector<unsigned char>& src,
                                const unsigned int offset, uint32_t& shardID,
-                               DSBlock& dsBlock, Peer& powWinnerPeer,
-                               VectorOfShard& shards, vector<Peer>& dsReceivers,
+                               DSBlock& dsBlock, VectorOfShard& shards,
+                               vector<Peer>& dsReceivers,
                                vector<vector<Peer>>& shardReceivers,
                                vector<vector<Peer>>& shardSenders)
 {
@@ -1287,7 +1280,6 @@ bool Messenger::GetNodeDSBlock(const vector<unsigned char>& src,
 
     shardID = result.shardid();
     ProtobufToDSBlock(result.dsblock(), dsBlock);
-    ProtobufByteArrayToSerializable(result.powwinnerpeer(), powWinnerPeer);
 
     for (const auto& proto_shard : result.sharding().shards())
     {
