@@ -514,8 +514,7 @@ bool DirectoryService::CheckFinalBlockTimestamp()
 }
 
 // Check microblock hashes
-bool DirectoryService::CheckMicroBlocks(
-    std::vector<unsigned char>& errorMsg)
+bool DirectoryService::CheckMicroBlocks(std::vector<unsigned char>& errorMsg)
 {
     if (LOOKUP_NODE_MODE)
     {
