@@ -51,6 +51,7 @@
         <OPENCL_GPU_MINE>false</OPENCL_GPU_MINE>
         <CUDA_GPU_MINE>false</CUDA_GPU_MINE>
         <LOOKUP_NODE_MODE>false</LOOKUP_NODE_MODE>
+        <ARCHIVAL_NODE>false</ARCHIVAL_NODE>
     </options>
     <dispatcher>
         <USE_REMOTE_TXN_CREATOR>false</USE_REMOTE_TXN_CREATOR>

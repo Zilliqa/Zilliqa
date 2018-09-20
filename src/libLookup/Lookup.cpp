@@ -1170,6 +1170,7 @@ bool Lookup::ProcessGetShardFromSeed(const vector<unsigned char>& message,
 bool Lookup::ProcessSetShardFromSeed(const vector<unsigned char>& message,
                                      unsigned int offset, const Peer& from)
 {
+    LOG_MARKER();
     VectorOfShard shards;
 
     if (!Messenger::GetLookupSetShardsFromSeed(message, offset, shards))
@@ -1177,7 +1178,14 @@ bool Lookup::ProcessSetShardFromSeed(const vector<unsigned char>& message,
         LOG_GENERAL(WARNING, "Failed to Process");
         return false;
     }
-    LOG_GENERAL(INFO, "Request from " << from);
+    LOG_GENERAL(INFO, "Sharding Structure Recvd from " << from);
+
+    uint32_t i = 0;
+    for (const auto& shard : shards)
+    {
+        LOG_GENERAL(INFO, "Size of shard " << i << " " << shard.size());
+        i++;
+    }
     lock_guard<mutex> g(m_mutexShards);
 
     m_mediator.m_ds->m_shards = shards;
@@ -1187,6 +1195,7 @@ bool Lookup::ProcessSetShardFromSeed(const vector<unsigned char>& message,
 
 bool Lookup::GetShardFromLookup()
 {
+    LOG_MARKER();
     vector<unsigned char> msg
         = {MessageType::LOOKUP, LookupInstructionType::GETSHARDSFROMSEED};
 
@@ -1645,6 +1654,7 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
 
     if (ARCHIVAL_NODE)
     {
+        LOG_GENERAL(INFO, "Succesfull state change");
         return ret;
     }
 

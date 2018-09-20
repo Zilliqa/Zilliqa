@@ -13,7 +13,10 @@
 * GPLv3.0 are those programs that are located in the folders src/depends and tests/depends 
 * and which include a reference to GPLv3 in their program files.
 **/
+#ifndef __BASEDB_H__
+#define __BASEDB_H__
 
+#include "libData/AccountData/Account.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/BlockData/Block/DSBlock.h"
 #include "libData/BlockData/Block/TxBlock.h"
@@ -45,8 +48,11 @@ public:
 
     {
     }
-    void Init(unsigned int port = 27017);
-    virtual bool InsertTxn(const Transaction& txn) = 0;
+    virtual void Init(unsigned int port = 27017);
+    virtual bool InsertTxn(const TransactionWithReceipt& txn) = 0;
     virtual bool InsertTxBlock(const TxBlock& txblock) = 0;
     virtual bool InsertDSBlock(const DSBlock& dsblock) = 0;
+    virtual bool InsertAccount(const Address& addr, const Account& acc) = 0;
 };
+
+#endif //__BASEDB_H__

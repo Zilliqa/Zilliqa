@@ -35,9 +35,9 @@ using bsoncxx::builder::basic::make_document;
 
 using namespace std;
 
-bool ArchiveDB::InsertTxn(const Transaction& tx)
+bool ArchiveDB::InsertTxn(const TransactionWithReceipt& tx)
 {
-    string index = tx.GetTranID().hex();
+    string index = tx.GetTransaction().GetTranID().hex();
     return InsertSerializable(tx, index, m_txCollectionName);
 }
 
@@ -51,6 +51,12 @@ bool ArchiveDB::InsertDSBlock(const DSBlock& dsblock)
 {
     string index = to_string(dsblock.GetHeader().GetBlockNum());
     return InsertSerializable(dsblock, index, m_dsBlockCollectionName);
+}
+
+bool ArchiveDB::InsertAccount(const Address& addr, const Account& acc)
+{
+    string index = addr.hex();
+    return InsertSerializable(acc, index, m_accountStateCollectionName);
 }
 
 bool ArchiveDB::InsertSerializable(const Serializable& sz, const string& index,

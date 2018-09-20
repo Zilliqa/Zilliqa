@@ -26,11 +26,12 @@ public:
         : BaseDB(dbname, txn, txBlock, dsBlock, accountState)
     {
     }
-    bool InsertTxn(const Transaction& txn);
+    bool InsertTxn(const TransactionWithReceipt& txn);
     bool InsertTxBlock(const TxBlock& txblock);
     bool InsertDSBlock(const DSBlock& dsblock);
     bool InsertSerializable(const Serializable& sz, const std::string& index,
                             const std::string& collectionName);
+    bool InsertAccount(const Address& addr, const Account& acc);
     bool GetSerializable(std::vector<unsigned char>& vec,
                          const std::string& index,
                          const std::string& collectionName);

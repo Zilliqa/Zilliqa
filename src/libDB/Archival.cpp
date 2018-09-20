@@ -22,7 +22,7 @@
 
 using namespace std;
 
-unsigned int REFRESH_DELAY = 3;
+unsigned int REFRESH_DELAY = 5;
 
 void Archival::InitSync()
 {
@@ -39,20 +39,36 @@ void Archival::InitSync()
             }
             if (m_mediator.m_txBlockChain.GetBlockCount() != 1)
             {
-                txBlockNum = m_mediator.m_dsBlockChain.GetBlockCount();
+                txBlockNum = m_mediator.m_txBlockChain.GetBlockCount();
             }
+            LOG_GENERAL(INFO,
+                        "TxBlockNum " << txBlockNum
+                                      << " DSBlockNum: " << dsBlockNum);
             m_synchronizer.FetchLatestDSBlocks(m_mediator.m_lookup, dsBlockNum);
             m_synchronizer.FetchLatestTxBlocks(m_mediator.m_lookup, txBlockNum);
             m_synchronizer.FetchLatestState(m_mediator.m_lookup);
-            if (!m_mediator.m_lookup->CheckStateRoot())
+
+            if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
             {
-                LOG_GENERAL(WARNING, "Archival State Root mis-match");
+                if (!m_mediator.m_lookup->CheckStateRoot())
+                {
+                    LOG_GENERAL(WARNING, "Archival State Root mis-match");
+                }
             }
             m_mediator.m_lookup->GetShardFromLookup();
             this_thread::sleep_for(chrono::seconds(REFRESH_DELAY));
         }
     };
     DetachedFunction(1, func);
+}
+
+bool
+    Archival::Execute([[gnu::unused]] const std::vector<unsigned char>& message,
+                      [[gnu::unused]] unsigned int offset,
+                      [[gnu::unused]] const Peer& from)
+{
+    LOG_MARKER();
+    return true;
 }
 
 void Archival::Init()
@@ -73,3 +89,5 @@ Archival::Archival(Mediator& mediator)
     : m_mediator(mediator)
 {
 }
+
+Archival::~Archival() {}

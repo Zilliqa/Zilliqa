@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "libConsensus/ConsensusUser.h"
+#include "libDB/ArchiveDB.h"
 #include "libDirectoryService/DirectoryService.h"
 #include "libLookup/Lookup.h"
 #include "libMediator/Mediator.h"
@@ -40,6 +41,7 @@ class Zilliqa
     Lookup m_lookup;
     std::shared_ptr<ValidatorBase> m_validator;
     Node m_n;
+    ArchiveDB m_db;
     //ConsensusUser m_cu; // Note: This is just a test class to demo Consensus usage
     boost::lockfree::queue<std::pair<std::vector<unsigned char>, Peer>*>
         m_msgQueue;
