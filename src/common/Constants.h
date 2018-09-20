@@ -157,6 +157,7 @@ extern const bool OPENCL_GPU_MINE;
 extern const bool CUDA_GPU_MINE;
 extern const bool LOOKUP_NODE_MODE;
 extern const bool USE_REMOTE_TXN_CREATOR;
+extern const bool ARCHIVAL_NODE;
 
 extern const std::vector<std::string> GENESIS_WALLETS;
 extern const std::vector<std::string> GENESIS_KEYS;

@@ -20,6 +20,7 @@
 #include <deque>
 
 #include "libCrypto/Schnorr.h"
+#include "libDB/BaseDB.h"
 #include "libData/BlockChainData/BlockChain.h"
 #include "libDirectoryService/DirectoryService.h"
 #include "libLookup/Lookup.h"
@@ -48,6 +49,9 @@ public:
 
     /// Pointer to the Validator instance.
     ValidatorBase* m_validator;
+
+    //Archive DB pointer
+    BaseDB* m_archDB;
 
     /// The transient DS blockchain.
     DSBlockChain m_dsBlockChain;
@@ -88,7 +92,7 @@ public:
 
     /// Sets the references to the subclass instances.
     void RegisterColleagues(DirectoryService* ds, Node* node, Lookup* lookup,
-                            ValidatorBase* validator);
+                            ValidatorBase* validator, BaseDB* archDB = nullptr);
 
     /// Updates the DS blockchain random for PoW.
     void UpdateDSBlockRand(bool isGenesis = false);

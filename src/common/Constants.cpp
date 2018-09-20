@@ -185,6 +185,7 @@ const std::string INPUT_CODE{SCILLA_FILES + '/'
 const std::string TXN_PATH{ReadDispatcherConstants("TXN_PATH")};
 const bool USE_REMOTE_TXN_CREATOR{
     ReadDispatcherConstants("USE_REMOTE_TXN_CREATOR") == "true"};
+const bool ARCHIVAL_NODE{ReadFromOptionsFile("ARCHIVAL_NODE") == "true"};
 
 const unsigned int OPENCL_LOCAL_WORK_SIZE{
     ReadGpuConstants("opencl.LOCAL_WORK_SIZE")};

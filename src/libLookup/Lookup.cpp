@@ -37,6 +37,7 @@
 #include "libData/BlockChainData/BlockChain.h"
 #include "libData/BlockData/Block.h"
 #include "libMediator/Mediator.h"
+#include "libMessage/Messenger.h"
 #include "libNetwork/P2PComm.h"
 #include "libPersistence/BlockStorage.h"
 #include "libUtils/DataConversion.h"
@@ -811,6 +812,10 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
                           .GetHeader()
                           .GetBlockNum();
     }
+    else if (lowBlockNum == 0)
+    {
+        lowBlockNum = 1;
+    }
 
     if (highBlockNum == 0)
     {
@@ -989,6 +994,10 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
                           .GetHeader()
                           .GetBlockNum();
     }
+    else if (lowBlockNum == 0)
+    {
+        lowBlockNum = 1;
+    }
 
     if (highBlockNum == 0)
     {
@@ -1128,6 +1137,67 @@ bool Lookup::ProcessGetTxBodyFromSeed(const vector<unsigned char>& message,
     P2PComm::GetInstance().SendMessage(requestingNode, txBodyMessage);
 
     // #endif // IS_LOOKUP_NODE
+
+    return true;
+}
+
+bool Lookup::ProcessGetShardFromSeed(const vector<unsigned char>& message,
+                                     unsigned int offset, const Peer& from)
+{
+    //Message = [Port]
+    uint32_t port;
+    if (!Messenger::GetLookupGetShardsFromSeed(message, offset, port))
+    {
+        LOG_GENERAL(WARNING, "Failed to process");
+        return false;
+    }
+    Peer requestingNode(from.m_ipAddress, port);
+    vector<unsigned char> msg
+        = {MessageType::LOOKUP, LookupInstructionType::SETSHARDSFROMSEED};
+    lock_guard<mutex> g(m_mutexShards);
+    if (!Messenger::SetLookupSetShardsFromSeed(msg, MessageOffset::BODY,
+                                               m_mediator.m_ds->m_shards))
+    {
+        LOG_GENERAL(WARNING, "Failed to Process");
+        return false;
+    }
+
+    P2PComm::GetInstance().SendMessage(requestingNode, msg);
+
+    return true;
+}
+
+bool Lookup::ProcessSetShardFromSeed(const vector<unsigned char>& message,
+                                     unsigned int offset, const Peer& from)
+{
+    VectorOfShard shards;
+
+    if (!Messenger::GetLookupSetShardsFromSeed(message, offset, shards))
+    {
+        LOG_GENERAL(WARNING, "Failed to Process");
+        return false;
+    }
+    LOG_GENERAL(INFO, "Request from " << from);
+    lock_guard<mutex> g(m_mutexShards);
+
+    m_mediator.m_ds->m_shards = shards;
+
+    return true;
+}
+
+bool Lookup::GetShardFromLookup()
+{
+    vector<unsigned char> msg
+        = {MessageType::LOOKUP, LookupInstructionType::GETSHARDSFROMSEED};
+
+    if (!Messenger::SetLookupGetShardsFromSeed(
+            msg, MessageOffset::BODY, m_mediator.m_selfPeer.m_listenPortHost))
+    {
+        LOG_GENERAL(WARNING, "Failed to process");
+        return false;
+    }
+
+    SendMessageToRandomLookupNode(msg);
 
     return true;
 }
@@ -1368,27 +1438,34 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
             m_mediator.m_dsBlockChain.AddBlock(dsBlock);
 
             // Store DS Block to disk
-            vector<unsigned char> serializedDSBlock;
-            dsBlock.Serialize(serializedDSBlock, 0);
-            BlockStorage::GetBlockStorage().PutDSBlock(
-                dsBlock.GetHeader().GetBlockNum(), serializedDSBlock);
-            if (!LOOKUP_NODE_MODE
-                && !BlockStorage::GetBlockStorage().PushBackTxBodyDB(
-                       dsBlock.GetHeader().GetBlockNum()))
+            if (!ARCHIVAL_NODE)
             {
-                if (BlockStorage::GetBlockStorage().PopFrontTxBodyDB()
-                    && BlockStorage::GetBlockStorage().PushBackTxBodyDB(
+                vector<unsigned char> serializedDSBlock;
+                dsBlock.Serialize(serializedDSBlock, 0);
+                BlockStorage::GetBlockStorage().PutDSBlock(
+                    dsBlock.GetHeader().GetBlockNum(), serializedDSBlock);
+                if (!LOOKUP_NODE_MODE
+                    && !BlockStorage::GetBlockStorage().PushBackTxBodyDB(
                            dsBlock.GetHeader().GetBlockNum()))
                 {
-                    // Do nothing
+                    if (BlockStorage::GetBlockStorage().PopFrontTxBodyDB()
+                        && BlockStorage::GetBlockStorage().PushBackTxBodyDB(
+                               dsBlock.GetHeader().GetBlockNum()))
+                    {
+                        // Do nothing
+                    }
+                    else
+                    {
+                        LOG_GENERAL(WARNING,
+                                    "Cannot push txBodyDB even after pop, "
+                                    "investigate why!");
+                        throw std::exception();
+                    }
                 }
-                else
-                {
-                    LOG_GENERAL(WARNING,
-                                "Cannot push txBodyDB even after pop, "
-                                "investigate why!");
-                    throw std::exception();
-                }
+            }
+            else
+            {
+                m_mediator.m_archDB->InsertDSBlock(dsBlock);
             }
         }
 
@@ -1496,10 +1573,17 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
             m_mediator.m_node->AddBlock(txBlock);
 
             // Store Tx Block to disk
-            vector<unsigned char> serializedTxBlock;
-            txBlock.Serialize(serializedTxBlock, 0);
-            BlockStorage::GetBlockStorage().PutTxBlock(
-                txBlock.GetHeader().GetBlockNum(), serializedTxBlock);
+            if (!ARCHIVAL_NODE)
+            {
+                vector<unsigned char> serializedTxBlock;
+                txBlock.Serialize(serializedTxBlock, 0);
+                BlockStorage::GetBlockStorage().PutTxBlock(
+                    txBlock.GetHeader().GetBlockNum(), serializedTxBlock);
+            }
+            else
+            {
+                m_mediator.m_archDB->InsertTxBlock(txBlock);
+            }
         }
 
         m_mediator.m_currentEpochNum
@@ -1508,7 +1592,8 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
 
         m_mediator.UpdateTxBlockRand();
 
-        if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
+        if ((m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
+            && !ARCHIVAL_NODE)
         {
             GetStateFromLookupNodes();
         }
@@ -1556,6 +1641,11 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
     {
         LOG_GENERAL(WARNING, "We failed to deserialize AccountStore.");
         ret = false;
+    }
+
+    if (ARCHIVAL_NODE)
+    {
+        return ret;
     }
 
     if (!LOOKUP_NODE_MODE)
@@ -2508,7 +2598,9 @@ bool Lookup::Execute(const vector<unsigned char>& message, unsigned int offset,
                                          &Lookup::ProcessSetOfflineLookups,
                                          &Lookup::ProcessRaiseStartPoW,
                                          &Lookup::ProcessGetStartPoWFromSeed,
-                                         &Lookup::ProcessSetStartPoWFromSeed};
+                                         &Lookup::ProcessSetStartPoWFromSeed,
+                                         &Lookup::ProcessGetShardFromSeed,
+                                         &Lookup::ProcessSetShardFromSeed};
 
     const unsigned char ins_byte = message.at(offset);
     const unsigned int ins_handlers_count
@@ -2542,7 +2634,14 @@ bool Lookup::Execute(const vector<unsigned char>& message, unsigned int offset,
     return result;
 }
 
-bool Lookup::AlreadyJoinedNetwork() { return m_syncType == SyncType::NO_SYNC; }
+bool Lookup::AlreadyJoinedNetwork()
+{
+    if (ARCHIVAL_NODE)
+    {
+        return false;
+    }
+    return m_syncType == SyncType::NO_SYNC;
+}
 
 bool Lookup::AddToTxnShardMap(const Transaction& tx, uint32_t shardId)
 {

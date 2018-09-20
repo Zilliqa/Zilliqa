@@ -28,9 +28,8 @@
 #include "libNetwork/PeerManager.h"
 #include "libNetwork/PeerStore.h"
 #include "libNode/Node.h"
-#include "libUtils/ThreadPool.h"
-
 #include "libServer/Server.h"
+#include "libUtils/ThreadPool.h"
 
 /// Main Zilliqa class.
 class Zilliqa

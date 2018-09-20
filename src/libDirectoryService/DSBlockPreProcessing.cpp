@@ -435,7 +435,6 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
     sortedPoWSolns.emplace_back(array<unsigned char, 32>(),
                                 m_mediator.m_DSCommittee->back().first);
 
-
     if (m_mediator.m_DSCommittee->back().first == m_mediator.m_selfKey.second)
     {
         m_allPoWConns.emplace(
