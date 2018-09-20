@@ -651,7 +651,7 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
     else if (state == ConsensusCommon::State::ERROR)
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Oops, no consensus reached - what to do now???");
+                  "Oops,     - what to do now???");
 
         if (m_consensusObject->GetConsensusErrorCode()
             == ConsensusCommon::FINALBLOCK_INVALID_MICROBLOCK_ROOT_HASH)
