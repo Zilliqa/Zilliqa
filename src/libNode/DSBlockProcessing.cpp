@@ -80,28 +80,25 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock)
             to_string(m_mediator.m_ds->m_latestActiveDSBlockNum)));
 }
 
-void Node::UpdateDSCommiteeComposition(const map<PubKey, Peer> winners)
+void Node::UpdateDSCommiteeComposition()
 {
     LOG_MARKER();
-
-    // Update my view of the DS committee
-    // 1. Insert new leader at the head of the queue
-    // 2. Pop out the oldest backup from the tail of the queue
-    // Note: If I am the primary, push a placeholder with ip=0 and port=0 in place of my real port
-    Peer peer;
-
-    if (!(m_mediator.m_selfKey.second
-          == m_mediator.m_dsBlockChain.GetLastBlock()
-                 .GetHeader()
-                 .GetMinerPubKey()))
+    map<PubKey, Peer> NewDSMembers = m_mediator.m_dsBlockChain.GetLastBlock()
+                                         .GetHeader()
+                                         .GetDSPoWWinners();
+    for (const auto& DSPowWinner : NewDSMembers)
     {
-        peer = winnerpeer;
+        if (m_mediator.m_selfKey.second == DSPowWinner.first)
+        {
+            m_mediator.m_DSCommittee->emplace_front(
+                make_pair(m_mediator.m_selfKey.second, Peer()));
+        }
+        else
+        {
+            m_mediator.m_DSCommittee->emplace_front(DSPowWinner);
+        }
+        m_mediator.m_DSCommittee->pop_back();
     }
-
-    m_mediator.m_DSCommittee->emplace_front(make_pair(
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetMinerPubKey(),
-        peer));
-    m_mediator.m_DSCommittee->pop_back();
 }
 
 bool Node::CheckWhetherDSBlockNumIsLatest(const uint64_t dsblockNum)
@@ -491,7 +488,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
     }
 
     m_mediator.UpdateDSBlockRand(); // Update the rand1 value for next PoW
-    UpdateDSCommiteeComposition(dsblock.GetHeader().GetDSPoWWinners());
+    UpdateDSCommiteeComposition();
 
     if (!LOOKUP_NODE_MODE)
     {
