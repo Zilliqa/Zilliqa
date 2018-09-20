@@ -38,6 +38,8 @@ public:
 
     void Init();
     void InitSync();
+    bool Execute(const std::vector<unsigned char>& message, unsigned int offset,
+                 const Peer& from);
 };
 
 #endif //__ARCHIVAL_H__

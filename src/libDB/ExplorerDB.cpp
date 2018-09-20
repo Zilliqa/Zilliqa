@@ -48,9 +48,15 @@ bool ExplorerDB::InsertDSBlock(const DSBlock& dsblock)
     return InsertJson(dsblock_json, m_dsBlockCollectionName);
 }
 
-void ExplorerDB::AddOptionsAndInit()
+bool ExplorerDB::InsertAccount([[gnu::unused]] const Address& addr,
+                               [[gnu::unused]] const Account& acc)
 {
-    Init();
+    return true;
+}
+
+void ExplorerDB::Init()
+{
+    BaseDB::Init();
     mongocxx::options::index index_options;
     index_options.unique(true);
     //ID is unique in txn and from is also an index but not unique

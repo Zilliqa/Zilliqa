@@ -38,6 +38,7 @@ void BaseDB::Init(unsigned int port)
         mongocxx::uri URI(uri);
         mongocxx::client client(URI);
         m_client = move(client);
+        m_client[m_dbname].drop();
         m_isInitialized = true;
     }
     catch (exception& e)

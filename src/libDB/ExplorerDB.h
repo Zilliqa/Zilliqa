@@ -31,5 +31,6 @@ public:
     bool InsertDSBlock(const DSBlock& dsblock);
     bool InsertJson(const Json::Value& _json,
                     const std::string& collectionName);
-    void AddOptionsAndInit();
+    bool InsertAccount(const Address& addr, const Account& acc);
+    void Init();
 };
