@@ -49,7 +49,7 @@ unsigned int DirectoryService::ComposeDSBlock(
         LOG_GENERAL(WARNING,
                     "DirectoryService::ComposeDSBlock not expected to be "
                     "called from LookUp node.");
-        return;
+        return 0;
     }
 
     LOG_MARKER();
