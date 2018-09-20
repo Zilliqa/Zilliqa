@@ -60,9 +60,9 @@ void ExplorerDB::AddOptionsAndInit()
         make_document(kvp("toAddr", 1)), {});
     //blockNum is unique in txBlock and DSBlock
     m_client[m_dbname][m_txBlockCollectionName].create_index(
-        make_document(kvp("blockNum", 1)), index_options);
+        make_document(kvp("header.blockNum", 1)), index_options);
     m_client[m_dbname][m_dsBlockCollectionName].create_index(
-        make_document(kvp("blockNum", 1)), index_options);
+        make_document(kvp("header.blockNum", 1)), index_options);
 }
 
 bool ExplorerDB::InsertJson(const Json::Value& _json,

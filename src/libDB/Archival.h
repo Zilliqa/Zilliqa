@@ -19,8 +19,8 @@
 
 #include "common/Broadcastable.h"
 #include "common/Executable.h"
-#include "libCrypto/Schnorr.h"
-#include "libData/AccountData/Transaction.h"
+#include "libLookup/Synchronizer.h"
+#include "libMediator/Mediator.h"
 #include "libNetwork/Peer.h"
 #include "libUtils/Logger.h"
 
@@ -29,16 +29,15 @@ class Synchronizer;
 
 class Archival : public Executable, public Broadcastable
 {
-	Mediator& m_mediator;
-	Synchronizer m_synchronizer;
+    Mediator& m_mediator;
+    Synchronizer m_synchronizer;
 
 public:
+    Archival(Mediator& mediator);
+    ~Archival();
 
-	Archival(Mediator& Mediator);
-	~Archival();
+    void Init();
+    void InitSync();
+};
 
-	bool InitSync();
-
-}
-
-#endif __ARCHIVAL_H__
+#endif //__ARCHIVAL_H__

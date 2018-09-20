@@ -39,12 +39,14 @@ Mediator::Mediator(const pair<PrivKey, PubKey>& key, const Peer& peer)
 Mediator::~Mediator() {}
 
 void Mediator::RegisterColleagues(DirectoryService* ds, Node* node,
-                                  Lookup* lookup, ValidatorBase* validator)
+                                  Lookup* lookup, ValidatorBase* validator,
+                                  BaseDB* archDB)
 {
     m_ds = ds;
     m_node = node;
     m_lookup = lookup;
     m_validator = validator;
+    m_archDB = archDB;
 }
 
 void Mediator::UpdateDSBlockRand(bool isGenesis)
