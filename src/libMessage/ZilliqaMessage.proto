@@ -50,7 +50,14 @@ message ProtoDSBlock
         required uint64 blocknum        = 7;
         required ByteArray timestamp    = 8;
         required ByteArray swinfo       = 9;
+        message PowDSWinners
+        {
+            required ByteArray key = 1;
+            required ByteArray val = 2;
+        }
+        repeated PowDSWinners dswinners = 10;
     }
+
     message CoSignatures
     {
         required ByteArray cs1          = 1;
