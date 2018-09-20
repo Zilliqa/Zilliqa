@@ -166,6 +166,7 @@ class DirectoryService : public Executable, public Broadcastable
     bool CheckPoWSubmissionExceedsLimitsForNode(const PubKey& key);
     void UpdatePoWSubmissionCounterforNode(const PubKey& key);
     void ResetPoWSubmissionCounter();
+    void ClearReputationOfNodeWithoutPoW();
     std::set<PubKey> FindTopPriorityNodes();
 
     void

@@ -314,6 +314,7 @@ bool DirectoryService::VerifyNodePriority(const VectorOfShard& shards)
     if (m_allPoWs.size() <= MAX_SHARD_NODE_NUM)
         return true;
 
+    uint32_t numOutOfMyPriorityList = 0;
     auto setTopPriorityNodes = FindTopPriorityNodes();
     for (const auto& shard : shards)
     {
@@ -322,12 +323,24 @@ bool DirectoryService::VerifyNodePriority(const VectorOfShard& shards)
             const PubKey& toFind = std::get<SHARD_NODE_PUBKEY>(shardNode);
             if (setTopPriorityNodes.find(toFind) == setTopPriorityNodes.end())
             {
+                ++numOutOfMyPriorityList;
                 LOG_GENERAL(WARNING,
                             "Node " << toFind
                                     << " is not in my top priority list");
-                return false;
             }
         }
+    }
+
+    constexpr float tolerance = 0.02f;
+    const uint32_t MAX_NODE_OUT_OF_LIST
+        = std::ceil(MAX_SHARD_NODE_NUM * tolerance);
+    if (numOutOfMyPriorityList > MAX_NODE_OUT_OF_LIST)
+    {
+        LOG_GENERAL(WARNING,
+                    "Number of node not in my priority "
+                        << numOutOfMyPriorityList << " exceed tolerance "
+                        << MAX_NODE_OUT_OF_LIST);
+        return false;
     }
     return true;
 }
@@ -498,6 +511,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
     const auto& winnerPeer
         = m_allPoWConns.find(m_pendingDSBlock->GetHeader().GetMinerPubKey());
 
+    ClearReputationOfNodeWithoutPoW();
     ComputeSharding(sortedPoWSolns);
     ComputeTxnSharingAssignments(winnerPeer->second);
 
@@ -728,6 +742,7 @@ bool DirectoryService::DSBlockValidator(
         //return false; [TODO] Enable this check after fixing the PoW order issue.
     }
 
+    ClearReputationOfNodeWithoutPoW();
     if (!VerifyNodePriority(m_tempShards))
     {
         LOG_GENERAL(WARNING, "Failed to verify node priority");

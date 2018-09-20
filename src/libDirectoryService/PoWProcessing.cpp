@@ -328,6 +328,17 @@ uint8_t DirectoryService::CalculateNodePriority(uint16_t reputation)
     return log2(reputation);
 }
 
+void DirectoryService::ClearReputationOfNodeWithoutPoW()
+{
+    for (auto& kv : m_mapNodeReputation)
+    {
+        if (m_allPoWs.find(kv.first) == m_allPoWs.end())
+        {
+            kv.second = 0;
+        }
+    }
+}
+
 std::set<PubKey> DirectoryService::FindTopPriorityNodes()
 {
     std::vector<std::pair<PubKey, uint8_t>> vecNodePriority;
