@@ -638,8 +638,7 @@ bool Messenger::GetDSDSBlockAnnouncement(
             ProtobufByteArrayToSerializable(proto_member.pubkey(), key);
             ProtobufByteArrayToSerializable(proto_member.peerinfo(), peer);
 
-            shards.back().emplace_back(
-                std::make_tuple(key, peer, proto_member.reputation()));
+            shards.back().emplace_back(key, peer, proto_member.reputation());
         }
     }
 
