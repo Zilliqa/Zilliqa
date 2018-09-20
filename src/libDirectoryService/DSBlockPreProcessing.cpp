@@ -70,7 +70,7 @@ unsigned int DirectoryService::ComposeDSBlock(
 
     // Assemble DS block header
     unsigned int numOfElectedDSMembers
-        = max(sortedDSPoWSolns.size(), NUM_DS_ELECTION);
+        = max(sortedDSPoWSolns.size(), (size_t)NUM_DS_ELECTION);
     unsigned int counter = 0;
     std::map<PubKey, Peer> powDSWinners;
     for (auto const& submitter : sortedDSPoWSolns)
@@ -592,12 +592,10 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
                const vector<unsigned char>& blockHash, const uint16_t leaderID,
                const pair<PrivKey, PubKey>& leaderKey,
                vector<unsigned char>& messageToCosign) mutable -> bool {
-        const auto& winnerPeer = m_allPoWConns.find(
-            m_pendingDSBlock->GetHeader().GetMinerPubKey());
         return Messenger::SetDSDSBlockAnnouncement(
             dst, offset, consensusID, blockHash, leaderID, leaderKey,
-            *m_pendingDSBlock, winnerPeer->second, m_shards, m_DSReceivers,
-            m_shardReceivers, m_shardSenders, messageToCosign);
+            *m_pendingDSBlock, m_shards, m_DSReceivers, m_shardReceivers,
+            m_shardSenders, messageToCosign);
     };
 
     cl->StartConsensus(announcementGeneratorFunc);
@@ -688,7 +686,7 @@ bool DirectoryService::DSBlockValidator(
 
     if (!Messenger::GetDSDSBlockAnnouncement(
             message, offset, consensusID, blockHash, leaderID, leaderKey,
-            *m_pendingDSBlock, winnerPeer, m_tempShards, m_tempDSReceivers,
+            *m_pendingDSBlock, m_tempShards, m_tempDSReceivers,
             m_tempShardReceivers, m_tempShardSenders, messageToCosign))
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
