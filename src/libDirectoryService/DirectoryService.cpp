@@ -388,6 +388,7 @@ bool DirectoryService::CleanVariables()
     m_shards.clear();
     m_publicKeyToShardIdMap.clear();
     m_allPoWConns.clear();
+    m_mapNodeReputation.clear();
 
     {
         std::lock_guard<mutex> lock(m_mutexConsensus);
@@ -611,8 +612,8 @@ DirectoryService::CalculateNewDifficulty(const uint8_t& currentDifficulty)
                                    << ", powSubmissions " << powSubmissions);
     return CalculateNewDifficultyCore(
         currentDifficulty, POW_DIFFICULTY, currentNodes, powSubmissions,
-        NUM_NETWORK_NODE, MAX_ADJUST_THRESHOLD, m_mediator.m_currentEpochNum,
-        CalculateNumberOfBlocksPerYear());
+        NUM_NODE_INCR_DIFFICULTY, MAX_ADJUST_THRESHOLD,
+        m_mediator.m_currentEpochNum, CalculateNumberOfBlocksPerYear());
 }
 
 uint8_t DirectoryService::CalculateNewDSDifficulty(const uint8_t& dsDifficulty)
@@ -716,10 +717,10 @@ uint8_t DirectoryService::CalculateNewDifficultyCore(
 uint64_t DirectoryService::CalculateNumberOfBlocksPerYear() const
 {
     // Every year, always increase the difficulty by 1, to encourage miners to upgrade the hardware over time.
-    // If POW_WINDOW_IN_SECONDS = 300, NUM_FINAL_BLOCK_PER_POW = 50, TX_DISTRIBUTE_TIME_IN_MS = 10000, estimated blocks in a year is 1971000.
+    // If POW_WINDOW_IN_SECONDS = 300, NUM_FINAL_BLOCK_PER_POW = 50, TX_DISTRIBUTE_TIME_IN_MS = 10000, FINALBLOCK_DELAY_IN_MS = 3000, estimated blocks in a year is 1971000.
     uint64_t estimatedBlocksOneYear = 365 * 24 * 3600
         / ((POW_WINDOW_IN_SECONDS / NUM_FINAL_BLOCK_PER_POW)
-           + (TX_DISTRIBUTE_TIME_IN_MS / 1000));
+           + ((TX_DISTRIBUTE_TIME_IN_MS + FINALBLOCK_DELAY_IN_MS) / 1000));
 
     // Round to integral multiple of NUM_FINAL_BLOCK_PER_POW
     estimatedBlocksOneYear = (estimatedBlocksOneYear / NUM_FINAL_BLOCK_PER_POW)

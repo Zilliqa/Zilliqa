@@ -14,27 +14,22 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#ifndef __BLOCKHEADERBASE_H__
-#define __BLOCKHEADERBASE_H__
+#ifndef __SHARD_STRUCT__
+#define __SHARD_STRUCT__
 
-#include <array>
-#include <boost/multiprecision/cpp_int.hpp>
+#include <tuple>
 
-#include "BlockHeaderBase.h"
-#include "common/Constants.h"
-#include "common/Serializable.h"
 #include "libCrypto/Schnorr.h"
-#include "libData/AccountData/Transaction.h"
+#include "libNetwork/Peer.h"
 
-/// [TODO] Base class for all supported block header types
-class BlockHeaderBase : public Serializable
+enum ShardData
 {
-protected:
-    // TODO: pull out all common code from ds, micro and tx block header
-
-public:
-    // Constructors
-    BlockHeaderBase();
+    SHARD_NODE_PUBKEY,
+    SHARD_NODE_PEER,
+    SHARD_NODE_REP,
 };
 
-#endif // __BLOCKHEADERBASE_H__
+using Shard = std::vector<std::tuple<PubKey, Peer, uint16_t>>;
+using VectorOfShard = std::vector<Shard>;
+
+#endif /*__SHARD_STRUCT__*/

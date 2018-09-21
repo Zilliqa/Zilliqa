@@ -192,14 +192,18 @@ void DirectoryService::SendFinalBlockToShardNodes(
     {
         vector<Peer> shard_peers;
 
-        for (auto& kv : *p)
+        for (const auto& kv : *p)
         {
-            shard_peers.emplace_back(kv.second);
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      " PubKey: "
-                          << DataConversion::SerializableToHexStr(kv.first)
-                          << " IP: " << kv.second.GetPrintableIPAddress()
-                          << " Port: " << kv.second.m_listenPortHost);
+            shard_peers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
+            LOG_EPOCH(
+                INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                " PubKey: "
+                    << DataConversion::SerializableToHexStr(
+                           std::get<SHARD_NODE_PUBKEY>(kv))
+                    << " IP: "
+                    << std::get<SHARD_NODE_PEER>(kv).GetPrintableIPAddress()
+                    << " Port: "
+                    << std::get<SHARD_NODE_PEER>(kv).m_listenPortHost);
         }
 
         vector<unsigned char> finalblock_message
@@ -467,8 +471,11 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
                             "without it");
 
                 auto func2 = [this]() mutable -> void {
-                    m_dsStartedMicroblockConsensus = true;
-                    m_mediator.m_node->RunConsensusOnMicroBlock();
+                    if (!m_dsStartedMicroblockConsensus)
+                    {
+                        m_dsStartedMicroblockConsensus = true;
+                        m_mediator.m_node->RunConsensusOnMicroBlock();
+                    }
                 };
 
                 DetachedFunction(1, func2);
@@ -478,7 +485,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
                 if (cv_scheduleFinalBlockConsensus.wait_for(
                         cv_lk,
                         std::chrono::seconds(
-                            FINALBLOCK_CONSENSUS_OBJECT_TIMEOUT))
+                            DS_MICROBLOCK_CONSENSUS_OBJECT_TIMEOUT))
                     == std::cv_status::timeout)
                 {
                     LOG_GENERAL(
@@ -519,13 +526,26 @@ bool DirectoryService::ProcessFinalBlockConsensus(
 
     if (m_state != FINALBLOCK_CONSENSUS)
     {
-        lock_guard<mutex> h(m_mutexFinalBlockConsensusBuffer);
-
-        m_finalBlockConsensusBuffer[consensus_id].push_back(
-            make_pair(from, message));
+        {
+            lock_guard<mutex> h(m_mutexFinalBlockConsensusBuffer);
+            m_finalBlockConsensusBuffer[consensus_id].push_back(
+                make_pair(from, message));
+        }
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Process final block arrived earlier, saved to buffer");
+                  "Process final block arrived early, saved to buffer");
+
+        if (consensus_id == m_consensusID)
+        {
+            lock_guard<mutex> g(m_mutexPrepareRunFinalblockConsensus);
+            cv_scheduleDSMicroBlockConsensus.notify_all();
+            if (!m_dsStartedMicroblockConsensus)
+            {
+                m_dsStartedMicroblockConsensus = true;
+            }
+            cv_scheduleFinalBlockConsensus.notify_all();
+            RunConsensusOnFinalBlock(true);
+        }
     }
     else
     {
@@ -544,10 +564,11 @@ bool DirectoryService::ProcessFinalBlockConsensus(
                           << consensus_id << "), current (" << m_consensusID
                           << ")");
 
-            lock_guard<mutex> h(m_mutexFinalBlockConsensusBuffer);
-
-            m_finalBlockConsensusBuffer[consensus_id].push_back(
-                make_pair(from, message));
+            {
+                lock_guard<mutex> h(m_mutexFinalBlockConsensusBuffer);
+                m_finalBlockConsensusBuffer[consensus_id].push_back(
+                    make_pair(from, message));
+            }
         }
         else
         {
@@ -647,10 +668,10 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
     else if (state == ConsensusCommon::State::ERROR)
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Oops, no consensus reached - what to do now???");
+                  "Oops,     - what to do now???");
 
         if (m_consensusObject->GetConsensusErrorCode()
-            == ConsensusCommon::FINALBLOCK_INVALID_MICROBLOCK_ROOT_HASH)
+            == ConsensusCommon::FINALBLOCK_MISSING_MICROBLOCKS)
         {
             // Missing microblocks proposed by leader. Will attempt to fetch
             // missing microblocks from leader, set to a valid state to accept cosig1 and cosig2

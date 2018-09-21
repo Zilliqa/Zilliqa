@@ -244,17 +244,17 @@ bool Node::LoadShardingStructure()
         return false;
     }
 
-    const vector<pair<PubKey, Peer>>& my_shard
-        = m_mediator.m_ds->m_shards.at(m_myShardID);
+    const auto& my_shard = m_mediator.m_ds->m_shards.at(m_myShardID);
 
     // m_myShardMembers->clear();
     m_myShardMembers.reset(new std::deque<pair<PubKey, Peer>>);
 
     // All nodes; first entry is leader
     unsigned int index = 0;
-    for (const auto& i : my_shard)
+    for (const auto& shardNode : my_shard)
     {
-        m_myShardMembers->emplace_back(i);
+        m_myShardMembers->emplace_back(std::get<SHARD_NODE_PUBKEY>(shardNode),
+                                       std::get<SHARD_NODE_PEER>(shardNode));
 
         // Zero out my IP to avoid sending to myself
         if (m_mediator.m_selfPeer == m_myShardMembers->back().second)
@@ -521,7 +521,8 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
             // Process sharding structure as a DS node
             if (!m_mediator.m_ds->ProcessShardingStructure(
                     m_mediator.m_ds->m_shards,
-                    m_mediator.m_ds->m_publicKeyToShardIdMap))
+                    m_mediator.m_ds->m_publicKeyToShardIdMap,
+                    m_mediator.m_ds->m_mapNodeReputation))
             {
                 return false;
             }

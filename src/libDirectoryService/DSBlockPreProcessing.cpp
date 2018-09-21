@@ -148,7 +148,21 @@ void DirectoryService::ComputeSharding(
         LOG_GENERAL(WARNING, "PoWs recvd less than one shard size");
     }
 
-    uint32_t numOfComms = sortedPoWSolns.size() / COMM_SIZE;
+    std::set<PubKey> setTopPriorityNodes;
+    if (m_allPoWs.size() > MAX_SHARD_NODE_NUM)
+    {
+        LOG_GENERAL(INFO,
+                    "PoWs recvd " << m_allPoWs.size()
+                                  << " more than max node number "
+                                  << MAX_SHARD_NODE_NUM);
+        setTopPriorityNodes = FindTopPriorityNodes();
+    }
+
+    auto numShardNodes = sortedPoWSolns.size() > MAX_SHARD_NODE_NUM
+        ? MAX_SHARD_NODE_NUM
+        : sortedPoWSolns.size();
+
+    uint32_t numOfComms = numShardNodes / COMM_SIZE;
     uint32_t max_shard = numOfComms - 1;
 
     if (numOfComms == 0)
@@ -176,6 +190,15 @@ void DirectoryService::ComputeSharding(
     for (const auto& kv : sortedPoWSolns)
     {
         const PubKey& key = kv.second;
+        if (!setTopPriorityNodes.empty()
+            && setTopPriorityNodes.find(key) == setTopPriorityNodes.end())
+        {
+            LOG_GENERAL(INFO,
+                        "Node "
+                            << key
+                            << " failed to join because priority not enough.");
+            continue;
+        }
         const array<unsigned char, BLOCK_HASH_SIZE>& powHash = kv.first;
 
         // sort all PoW submissions according to H(last_block_hash, pow_hash)
@@ -200,9 +223,9 @@ void DirectoryService::ComputeSharding(
                                 << DataConversion::charArrToHexStr(kv.first)
                                 << endl);
         const PubKey& key = kv.second;
-        vector<pair<PubKey, Peer>>& shard
-            = m_shards.at(min(i / COMM_SIZE, max_shard));
-        shard.emplace_back(make_pair(key, m_allPoWConns.at(key)));
+        auto& shard = m_shards.at(min(i / COMM_SIZE, max_shard));
+        shard.emplace_back(key, m_allPoWConns.at(key),
+                           m_mapNodeReputation[key]);
         m_publicKeyToShardIdMap.emplace(key, min(i / COMM_SIZE, max_shard));
         i++;
     }
@@ -229,9 +252,10 @@ bool DirectoryService::VerifyPoWOrdering(const VectorOfShard& shards)
     for (const auto& shard : shards)
     {
 
-        for (const auto& j : shard)
+        for (const auto& shardNode : shard)
         {
-            const PubKey& toFind = j.first;
+            const PubKey& toFind = std::get<SHARD_NODE_PUBKEY>(shardNode);
+            ;
             auto it = m_allPoWs.find(toFind);
 
             if (it == m_allPoWs.end())
@@ -252,7 +276,7 @@ bool DirectoryService::VerifyPoWOrdering(const VectorOfShard& shards)
             LOG_GENERAL(INFO,
                         "[DSSORT]"
                             << DataConversion::Uint8VecToHexStr(sortHashVec)
-                            << " " << j.first);
+                            << " " << std::get<SHARD_NODE_PUBKEY>(shardNode));
             if (sortHashVec < vec)
             {
                 LOG_GENERAL(
@@ -263,13 +287,13 @@ bool DirectoryService::VerifyPoWOrdering(const VectorOfShard& shards)
                 ret = false;
                 break;
             }
-            auto r = keyset.insert(j.first);
+            auto r = keyset.insert(std::get<SHARD_NODE_PUBKEY>(shardNode));
             if (!r.second)
             {
 
                 LOG_GENERAL(WARNING,
                             "The key is not unique in the sharding structure "
-                                << j.first);
+                                << std::get<SHARD_NODE_PUBKEY>(shardNode));
                 ret = false;
                 break;
             }
@@ -282,6 +306,45 @@ bool DirectoryService::VerifyPoWOrdering(const VectorOfShard& shards)
     }
     m_allPoWs.erase(m_mediator.m_DSCommittee->back().first);
     return ret;
+}
+
+bool DirectoryService::VerifyNodePriority(const VectorOfShard& shards)
+{
+    // If the PoW submissions less than the max number of nodes, then all nodes can join, no need to verify.
+    if (m_allPoWs.size() <= MAX_SHARD_NODE_NUM)
+    {
+        return true;
+    }
+
+    uint32_t numOutOfMyPriorityList = 0;
+    auto setTopPriorityNodes = FindTopPriorityNodes();
+    for (const auto& shard : shards)
+    {
+        for (const auto& shardNode : shard)
+        {
+            const PubKey& toFind = std::get<SHARD_NODE_PUBKEY>(shardNode);
+            if (setTopPriorityNodes.find(toFind) == setTopPriorityNodes.end())
+            {
+                ++numOutOfMyPriorityList;
+                LOG_GENERAL(WARNING,
+                            "Node " << toFind
+                                    << " is not in my top priority list");
+            }
+        }
+    }
+
+    constexpr float tolerance = 0.02f;
+    const uint32_t MAX_NODE_OUT_OF_LIST
+        = std::ceil(MAX_SHARD_NODE_NUM * tolerance);
+    if (numOutOfMyPriorityList > MAX_NODE_OUT_OF_LIST)
+    {
+        LOG_GENERAL(WARNING,
+                    "Number of node not in my priority "
+                        << numOutOfMyPriorityList << " exceed tolerance "
+                        << MAX_NODE_OUT_OF_LIST);
+        return false;
+    }
+    return true;
 }
 
 void DirectoryService::ComputeTxnSharingAssignments(const Peer& winnerpeer)
@@ -351,7 +414,8 @@ void DirectoryService::ComputeTxnSharingAssignments(const Peer& winnerpeer)
         auto node_peer = shard.begin();
         for (unsigned int j = 0; j < num_nodes; j++)
         {
-            m_shardReceivers.back().emplace_back(node_peer->second);
+            m_shardReceivers.back().emplace_back(
+                std::get<SHARD_NODE_PEER>(*node_peer));
             node_peer++;
         }
 
@@ -385,7 +449,8 @@ void DirectoryService::ComputeTxnSharingAssignments(const Peer& winnerpeer)
 
         for (unsigned int j = 0; j < num_nodes; j++)
         {
-            m_shardSenders.back().emplace_back(node_peer->second);
+            m_shardSenders.back().emplace_back(
+                std::get<SHARD_NODE_PEER>(*node_peer));
             node_peer++;
         }
     }
@@ -448,6 +513,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
     const auto& winnerPeer
         = m_allPoWConns.find(m_pendingDSBlock->GetHeader().GetMinerPubKey());
 
+    ClearReputationOfNodeWithoutPoW();
     ComputeSharding(sortedPoWSolns);
     ComputeTxnSharingAssignments(winnerPeer->second);
 
@@ -666,7 +732,8 @@ bool DirectoryService::DSBlockValidator(
         }
     }
 
-    if (!ProcessShardingStructure(m_tempShards, m_tempPublicKeyToShardIdMap))
+    if (!ProcessShardingStructure(m_tempShards, m_tempPublicKeyToShardIdMap,
+                                  m_tempMapNodeReputation))
     {
         return false;
     }
@@ -677,6 +744,12 @@ bool DirectoryService::DSBlockValidator(
         //return false; [TODO] Enable this check after fixing the PoW order issue.
     }
 
+    ClearReputationOfNodeWithoutPoW();
+    if (!VerifyNodePriority(m_tempShards))
+    {
+        LOG_GENERAL(WARNING, "Failed to verify node priority");
+        return false;
+    }
     //ProcessTxnBodySharingAssignment();
 
     return true;
@@ -729,7 +802,9 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup()
 }
 
 bool DirectoryService::ProcessShardingStructure(
-    const VectorOfShard& shards, map<PubKey, uint32_t>& publicKeyToShardIdMap)
+    const VectorOfShard& shards,
+    std::map<PubKey, uint32_t>& publicKeyToShardIdMap,
+    std::map<PubKey, uint16_t>& mapNodeReputation)
 {
     if (LOOKUP_NODE_MODE)
     {
@@ -740,17 +815,23 @@ bool DirectoryService::ProcessShardingStructure(
     }
 
     publicKeyToShardIdMap.clear();
+    mapNodeReputation.clear();
 
     for (unsigned int i = 0; i < shards.size(); i++)
     {
-        for (const auto& j : shards.at(i))
+        for (const auto& shardNode : shards.at(i))
         {
-            auto storedMember = m_allPoWConns.find(j.first);
+            const auto& pubKey = std::get<SHARD_NODE_PUBKEY>(shardNode);
+
+            mapNodeReputation[pubKey] = std::get<SHARD_NODE_REP>(shardNode);
+
+            auto storedMember = m_allPoWConns.find(pubKey);
 
             // I know the member but the member IP given by the leader is different!
             if (storedMember != m_allPoWConns.end())
             {
-                if (storedMember->second != j.second)
+                if (storedMember->second
+                    != std::get<SHARD_NODE_PEER>(shardNode))
                 {
                     LOG_EPOCH(WARNING,
                               to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -762,10 +843,12 @@ bool DirectoryService::ProcessShardingStructure(
             // I don't know the member -> store the IP given by the leader
             else
             {
-                m_allPoWConns.emplace(j.first, j.second);
+                m_allPoWConns.emplace(std::get<SHARD_NODE_PUBKEY>(shardNode),
+                                      std::get<SHARD_NODE_PEER>(shardNode));
             }
 
-            publicKeyToShardIdMap.emplace(j.first, i);
+            publicKeyToShardIdMap.emplace(
+                std::get<SHARD_NODE_PUBKEY>(shardNode), i);
         }
     }
 
