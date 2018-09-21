@@ -55,8 +55,6 @@ class Lookup : public Executable, public Broadcastable
     std::mutex m_mutexDSInfoUpdation;
     std::condition_variable cv_dsInfoUpdate;
 
-    bool CheckStateRoot();
-
     // To ensure that the confirm of DS node rejoin won't be later than
     // It receiving a new DS block
     bool m_currDSExpired = false;
@@ -127,6 +125,8 @@ public:
     // Hardcoded for now -- to be called by constructor
     void SetLookupNodes();
 
+    bool CheckStateRoot();
+
     // Getter for m_lookupNodes
     std::vector<Peer> GetLookupNodes();
 
@@ -162,6 +162,12 @@ public:
     bool GetTxBodyFromSeedNodes(std::string txHashStr);
     bool GetStateFromLookupNodes();
 
+    bool ProcessGetShardFromSeed(const std::vector<unsigned char>& message,
+                                 unsigned int offset, const Peer& from);
+
+    bool ProcessSetShardFromSeed(const std::vector<unsigned char>& message,
+                                 unsigned int offset, const Peer& from);
+    bool GetShardFromLookup();
     // Get the offline lookup nodes from lookup nodes
     bool GetOfflineLookupNodes();
 
