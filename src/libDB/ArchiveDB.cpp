@@ -35,10 +35,10 @@ using bsoncxx::builder::basic::make_document;
 
 using namespace std;
 
-bool ArchiveDB::InsertTxn(const TransactionWithReceipt& tx)
+bool ArchiveDB::InsertTxn(const TransactionWithReceipt& txn)
 {
-    string index = tx.GetTransaction().GetTranID().hex();
-    return InsertSerializable(tx, index, m_txCollectionName);
+    string index = txn.GetTransaction().GetTranID().hex();
+    return InsertSerializable(txn, index, m_txCollectionName);
 }
 
 bool ArchiveDB::InsertTxBlock(const TxBlock& txblock)
