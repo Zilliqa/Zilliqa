@@ -80,15 +80,6 @@ namespace RRS
     }
 
     // CONSTRUCTORS
-    RumorStateMachine::RumorStateMachine()
-        : m_state(State::UNKNOWN)
-        , m_networkConfigPtr(nullptr)
-        , m_age(-1)
-        , m_roundsInB(-1)
-        , m_roundsInC(-1)
-        , m_memberRounds()
-    {
-    }
 
     RumorStateMachine::RumorStateMachine(const NetworkConfig* networkConfigPtr)
         : m_state(State::NEW)

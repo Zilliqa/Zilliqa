@@ -213,13 +213,14 @@ namespace RRS
         {
             if (m_rumors.count(receivedRumorId) > 0)
             {
-                m_rumors[receivedRumorId].rumorReceived(fromPeer,
-                                                        message.age());
+                m_rumors.at(receivedRumorId)
+                    .rumorReceived(fromPeer, message.age());
             }
             else
             {
-                m_rumors[receivedRumorId]
-                    = RumorStateMachine(&m_networkConfig, fromPeer, theirRound);
+                m_rumors.insert(std::make_pair(
+                    receivedRumorId,
+                    RumorStateMachine(&m_networkConfig, fromPeer, theirRound)));
             }
         }
 
