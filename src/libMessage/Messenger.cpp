@@ -570,6 +570,73 @@ bool Messenger::GetDSPoWSubmission(const vector<unsigned char>& src,
     return true;
 }
 
+bool Messenger::SetDSMicroBlockSubmission(
+    vector<unsigned char>& dst, const unsigned int offset,
+    const unsigned char microBlockType, const uint64_t blockNumber,
+    const vector<MicroBlock>& microBlocks,
+    const vector<unsigned char>& stateDelta)
+{
+    LOG_MARKER();
+
+    DSMicroBlockSubmission result;
+
+    result.set_microblocktype(microBlockType);
+    result.set_blocknumber(blockNumber);
+    for (const auto& microBlock : microBlocks)
+    {
+        SerializableToProtobufByteArray(microBlock, *result.add_microblocks());
+    }
+    if (stateDelta.size() > 0)
+    {
+        result.set_statedelta(stateDelta.data(), stateDelta.size());
+    }
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "DSMicroBlockSubmission initialization failed.");
+        return false;
+    }
+
+    return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetDSMicroBlockSubmission(const vector<unsigned char>& src,
+                                          const unsigned int offset,
+                                          unsigned char& microBlockType,
+                                          uint64_t& blockNumber,
+                                          vector<MicroBlock>& microBlocks,
+                                          vector<unsigned char>& stateDelta)
+{
+    LOG_MARKER();
+
+    DSMicroBlockSubmission result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "DSMicroBlockSubmission initialization failed.");
+        return false;
+    }
+
+    microBlockType = result.microblocktype();
+    blockNumber = result.blocknumber();
+    for (const auto& proto_mb : result.microblocks())
+    {
+        MicroBlock microBlock;
+        ProtobufByteArrayToSerializable(proto_mb, microBlock);
+        microBlocks.emplace_back(move(microBlock));
+    }
+    if (result.has_statedelta())
+    {
+        stateDelta.resize(result.statedelta().size());
+        copy(result.statedelta().begin(), result.statedelta().end(),
+             stateDelta.begin());
+    }
+
+    return true;
+}
+
 bool Messenger::SetDSDSBlockAnnouncement(
     vector<unsigned char>& dst, const unsigned int offset,
     const uint32_t consensusID, const vector<unsigned char>& blockHash,
