@@ -1242,7 +1242,7 @@ bool Messenger::GetNodeForwardTransaction(const vector<unsigned char>& src,
 
     return true;
 }
-  
+
 bool Messenger::SetNodeVCBlock(vector<unsigned char>& dst,
                                const unsigned int offset,
                                const VCBlock& vcBlock)
