@@ -17,6 +17,7 @@ message ShardingStructure
     {
         required ByteArray pubkey   = 1;
         required ByteArray peerinfo = 2;
+        required uint32 reputation  = 3;
     }
     message Shard
     {
@@ -53,12 +54,36 @@ message ProtoDSBlock
     message CoSignatures
     {
         required ByteArray cs1          = 1;
-        repeated bool b1                = 2;
+        repeated bool b1                = 2 [packed=true];
         required ByteArray cs2          = 3;
-        repeated bool b2                = 4;
+        repeated bool b2                = 4 [packed=true];
     }
     required DSBlockHeader header       = 1;
     required CoSignatures cosigs        = 2;
+}
+
+message ProtoVCBlock
+{
+    message VCBlockHeader
+    {
+        required uint64 viewchangedsepochno           = 1;
+        required uint64 viewchangeepochno             = 2;
+        required uint32 viewchangestate               = 3; // only LSB used
+        required uint32 candidateleaderindex          = 4;
+        required ByteArray candidateleadernetworkinfo = 5;
+        required ByteArray candidateleaderpubkey      = 6;
+        required uint32 vccounter                     = 7;
+        required ByteArray timestamp                  = 8;
+    }
+    message CoSignatures
+    {
+        required ByteArray cs1                        = 1;
+        repeated bool b1                              = 2 [packed=true];
+        required ByteArray cs2                        = 3;
+        repeated bool b2                              = 4 [packed=true];
+    }
+    required VCBlockHeader header                     = 1;
+    required CoSignatures cosigs                      = 2;
 }
 
 // ============================================================================
@@ -119,6 +144,26 @@ message NodeFinalBlock
     required uint32 consensusid   = 3;
     required ByteArray txblock    = 4;
     required bytes statedelta     = 5;
+}
+
+message NodeForwardTransaction
+{
+    required uint64 blocknum           = 1;
+    required bytes microblocktxhash    = 2;
+    required bytes microblockdeltahash = 3;
+    repeated ByteArray txnswithreceipt = 4;
+}
+
+message NodeVCBlock
+{
+    required ProtoVCBlock vcblock = 1;
+}
+
+message NodeForwardTxnBlock
+{
+    required uint64 epochnumber     = 1;
+    required uint32 shardid         = 2;
+    repeated ByteArray transactions = 3;
 }
 
 message NodeMicroBlockAnnouncement

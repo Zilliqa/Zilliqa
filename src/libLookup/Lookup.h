@@ -30,6 +30,7 @@
 #include "common/Executable.h"
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Transaction.h"
+#include "libDirectoryService/ShardStruct.h"
 #include "libNetwork/Peer.h"
 #include "libUtils/Logger.h"
 
@@ -55,8 +56,6 @@ class Lookup : public Executable, public Broadcastable
     std::mutex m_mutexDSInfoUpdation;
     std::condition_variable cv_dsInfoUpdate;
 
-    bool CheckStateRoot();
-
     // To ensure that the confirm of DS node rejoin won't be later than
     // It receiving a new DS block
     bool m_currDSExpired = false;
@@ -67,7 +66,6 @@ class Lookup : public Executable, public Broadcastable
     // Sharding committee members
     std::mutex m_mutexShards;
     std::mutex m_mutexNodesInNetwork;
-    std::vector<std::vector<std::pair<PubKey, Peer>>> m_shards;
     std::vector<Peer> m_nodesInNetwork;
     std::unordered_set<Peer> l_nodesInNetwork;
     std::map<uint32_t, std::vector<Transaction>> m_txnShardMap;
@@ -127,6 +125,8 @@ public:
     // Hardcoded for now -- to be called by constructor
     void SetLookupNodes();
 
+    bool CheckStateRoot();
+
     // Getter for m_lookupNodes
     std::vector<Peer> GetLookupNodes();
 
@@ -162,12 +162,18 @@ public:
     bool GetTxBodyFromSeedNodes(std::string txHashStr);
     bool GetStateFromLookupNodes();
 
+    bool ProcessGetShardFromSeed(const std::vector<unsigned char>& message,
+                                 unsigned int offset, const Peer& from);
+
+    bool ProcessSetShardFromSeed(const std::vector<unsigned char>& message,
+                                 unsigned int offset, const Peer& from);
+    bool GetShardFromLookup();
     // Get the offline lookup nodes from lookup nodes
     bool GetOfflineLookupNodes();
 
     bool SetDSCommitteInfo();
 
-    std::vector<std::vector<std::pair<PubKey, Peer>>> GetShardPeers();
+    VectorOfShard GetShardPeers();
     std::vector<Peer> GetNodePeers();
 
     // Start synchronization with other lookup nodes as a lookup node
@@ -193,10 +199,6 @@ public:
     void SenderTxnBatchThread();
 
     void SendTxnPacketToNodes(uint32_t);
-
-    bool CreateTxnPacket(std::vector<unsigned char>& msg, uint32_t shardId,
-                         unsigned int offset,
-                         const std::map<uint32_t, std::vector<unsigned char>>&);
 
     bool ProcessEntireShardingStructure();
     bool

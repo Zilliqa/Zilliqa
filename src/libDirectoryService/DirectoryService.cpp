@@ -388,6 +388,7 @@ bool DirectoryService::CleanVariables()
     m_shards.clear();
     m_publicKeyToShardIdMap.clear();
     m_allPoWConns.clear();
+    m_mapNodeReputation.clear();
 
     {
         std::lock_guard<mutex> lock(m_mutexConsensus);
@@ -611,8 +612,8 @@ DirectoryService::CalculateNewDifficulty(const uint8_t& currentDifficulty)
                                    << ", powSubmissions " << powSubmissions);
     return CalculateNewDifficultyCore(
         currentDifficulty, POW_DIFFICULTY, currentNodes, powSubmissions,
-        NUM_NETWORK_NODE, MAX_ADJUST_THRESHOLD, m_mediator.m_currentEpochNum,
-        CalculateNumberOfBlocksPerYear());
+        NUM_NODE_INCR_DIFFICULTY, MAX_ADJUST_THRESHOLD,
+        m_mediator.m_currentEpochNum, CalculateNumberOfBlocksPerYear());
 }
 
 uint8_t DirectoryService::CalculateNewDSDifficulty(const uint8_t& dsDifficulty)
