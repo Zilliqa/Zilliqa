@@ -151,6 +151,8 @@ bool RumorManager::Initialize(const std::vector<Peer>& peers,
 bool RumorManager::addRumor(const RumorManager::RawBytes& message)
 {
     LOG_MARKER();
+    LOG_PAYLOAD(INFO, "New Gossip message initiated by me:" << m_selfPeer,
+                message, Logger::MAX_BYTES_TO_DISPLAY);
     {
         std::lock_guard<std::mutex> guard(m_continueRoundMutex);
         if (!m_continueRound)
@@ -193,8 +195,6 @@ bool RumorManager::rumorReceived(uint8_t type, int32_t round,
 
     std::lock_guard<std::mutex> guard(m_mutex);
 
-    //LOG_GENERAL(INFO, "Received message from " << from);
-
     auto p = m_peerIdPeerBimap.right.find(from);
     if (p == m_peerIdPeerBimap.right.end())
     {
@@ -224,8 +224,8 @@ bool RumorManager::rumorReceived(uint8_t type, int32_t round,
         {
             recvdRumorId = ++m_rumorIdGenerator;
             LOG_GENERAL(INFO,
-                        "We have received a new rumor. And new RumorId is "
-                            << recvdRumorId);
+                        "New Gossip message received from: "
+                            << from << ". And new RumorId is " << recvdRumorId);
             m_rumorIdRumorBimap.insert(
                 RumorIdRumorBimap::value_type(recvdRumorId, message));
             toBeDispatched = true;
@@ -234,8 +234,8 @@ bool RumorManager::rumorReceived(uint8_t type, int32_t round,
         {
             recvdRumorId = it->second;
             LOG_GENERAL(INFO,
-                        "We have received old rumor. And old RumorId is "
-                            << recvdRumorId);
+                        "Old Gossip message from "
+                            << from << ". And old RumorId is " << recvdRumorId);
         }
     }
 
@@ -270,8 +270,6 @@ void RumorManager::SendMessages(const Peer& toPeer,
                                           sizeof(uint32_t));
 
         cur_offset += sizeof(uint32_t);
-
-        LOG_GENERAL(DEBUG, "My port is : " << m_selfPeer.m_listenPortHost);
 
         Serializable::SetNumber<uint32_t>(
             cmd, cur_offset, m_selfPeer.m_listenPortHost, sizeof(uint32_t));
