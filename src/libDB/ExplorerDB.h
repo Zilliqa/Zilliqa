@@ -26,11 +26,11 @@ public:
         : BaseDB(dbname, txn, txBlock, dsBlock, accountState)
     {
     }
-    bool InsertTxn(const TransactionWithReceipt& txn);
-    bool InsertTxBlock(const TxBlock& txblock);
-    bool InsertDSBlock(const DSBlock& dsblock);
+    bool InsertTxn(const TransactionWithReceipt& txn) override;
+    bool InsertTxBlock(const TxBlock& txblock) override;
+    bool InsertDSBlock(const DSBlock& dsblock) override;
     bool InsertJson(const Json::Value& _json,
                     const std::string& collectionName);
-    bool InsertAccount(const Address& addr, const Account& acc);
+    bool InsertAccount(const Address& addr, const Account& acc) override;
     void Init(unsigned int port = 27017) override;
 };

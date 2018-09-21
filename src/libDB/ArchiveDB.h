@@ -32,7 +32,7 @@ public:
     bool InsertSerializable(const Serializable& sz, const std::string& index,
                             const std::string& collectionName);
     bool InsertAccount(const Address& addr, const Account& acc);
-    bool GetSerializable(std::vector<unsigned char>& vec,
+    bool GetSerializable(std::vector<unsigned char>& retVec,
                          const std::string& index,
                          const std::string& collectionName);
 };
