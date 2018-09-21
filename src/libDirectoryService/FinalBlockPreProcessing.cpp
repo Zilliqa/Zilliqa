@@ -78,6 +78,17 @@ void DirectoryService::ExtractDataFromMicroblocks(
 
             i++;
 
+            LOG_GENERAL(INFO,
+                        "Pushback microblock shard ID: "
+                            << microBlock.GetHeader().GetShardID() << endl
+                            << "TxnRoot hash: "
+                            << microBlock.GetHeader().GetTxRootHash() << endl
+                            << "StateDelta hash: "
+                            << microBlock.GetHeader().GetStateDeltaHash()
+                            << endl
+                            << "TxnReceipt hash: "
+                            << microBlock.GetHeader().GetStateDeltaHash());
+
             microblockHashes.push_back(
                 {microBlock.GetHeader().GetTxRootHash(),
                  microBlock.GetHeader().GetStateDeltaHash(),
@@ -538,6 +549,9 @@ bool DirectoryService::CheckMicroBlocks(std::vector<unsigned char>& errorMsg)
         for (unsigned int i = 0;
              i < m_finalBlock->GetHeader().GetNumMicroBlockHashes(); i++)
         {
+            LOG_GENERAL(INFO,
+                        "shardID: " << shardIDsInMicroBlocks[i] << endl
+                                    << "hashes: " << hashesInMicroBlocks[i]);
             bool found = false;
             auto& microBlocks = m_microBlocks[m_mediator.m_currentEpochNum];
             for (auto& microBlock : microBlocks)
@@ -547,18 +561,21 @@ bool DirectoryService::CheckMicroBlocks(std::vector<unsigned char>& errorMsg)
                     && microBlock.GetHeader().GetTxRootHash()
                         == hashesInMicroBlocks[i].m_txRootHash
                     && microBlock.GetHeader().GetStateDeltaHash()
-                        == hashesInMicroBlocks[i].m_stateDeltaHash)
+                        == hashesInMicroBlocks[i].m_stateDeltaHash
+                    && microBlock.GetHeader().GetTranReceiptHash()
+                        == hashesInMicroBlocks[i].m_tranReceiptHash)
                 {
                     found = true;
                     break;
                 }
             }
+
             if (!found)
             {
                 LOG_GENERAL(WARNING,
                             "cannot find microblock with shard id: "
-                                << shardIDsInMicroBlocks[i]
-                                << " and hashes: " << hashesInMicroBlocks[i]);
+                                << shardIDsInMicroBlocks[i] << endl
+                                << "hashes: " << hashesInMicroBlocks[i]);
                 missingMicroBlocks.push_back(
                     {shardIDsInMicroBlocks[i], hashesInMicroBlocks[i]});
             }
@@ -599,13 +616,15 @@ bool DirectoryService::CheckMicroBlocks(std::vector<unsigned char>& errorMsg)
                                               sizeof(uint64_t));
         }
 
+        LOG_PAYLOAD(INFO, "ErrorMsg generated:", errorMsg, 200);
+
         // AccountStore::GetInstance().InitTemp();
         // LOG_GENERAL(WARNING, "Got missing microblocks, revert state delta");
         // AccountStore::GetInstance().DeserializeDeltaTemp(
         //     m_mediator.m_ds->m_stateDeltaFromShards, 0);
 
         m_consensusObject->SetConsensusErrorCode(
-            ConsensusCommon::FINALBLOCK_MISSING_HASH);
+            ConsensusCommon::FINALBLOCK_MISSING_MICROBLOCKS);
 
         return false;
     }
@@ -623,6 +642,12 @@ bool DirectoryService::OnNodeMissingMicroBlocks(
     if (errorMsg.size() < sizeof(uint32_t) + sizeof(uint64_t) + offset)
     {
         LOG_GENERAL(WARNING, "Malformed Message");
+        LOG_PAYLOAD(INFO, "errorMsg from " << from, errorMsg, 200);
+        LOG_GENERAL(INFO,
+                    "MsgSize: "
+                        << errorMsg.size() << " expected size: "
+                        << sizeof(uint32_t) + sizeof(uint64_t) + offset);
+
         return false;
     }
 
@@ -1166,52 +1191,65 @@ void DirectoryService::RunConsensusOnFinalBlock(bool revertStateDelta)
         return;
     }
 
-    LOG_MARKER();
-
-    SetState(FINALBLOCK_CONSENSUS_PREP);
-
-    if (revertStateDelta)
     {
-        LOG_GENERAL(WARNING,
-                    "Failed DS microblock consensus, revert state delta");
-        AccountStore::GetInstance().InitTemp();
-        AccountStore::GetInstance().DeserializeDeltaTemp(m_stateDeltaFromShards,
-                                                         0);
-    }
+        lock_guard<mutex> g(m_mutexRunConsensusOnFinalBlock);
 
-    AccountStore::GetInstance().SerializeDelta();
+        if (CheckState(PROCESS_FINALBLOCKCONSENSUS))
+        {
+            return;
+        }
 
-    // Upon consensus object creation failure, one should not return from the function, but rather wait for view change.
-    bool ConsensusObjCreation = true;
-    if (m_mode == PRIMARY_DS)
-    {
-        ConsensusObjCreation = RunConsensusOnFinalBlockWhenDSPrimary();
-        if (!ConsensusObjCreation)
+        LOG_MARKER();
+
+        SetState(FINALBLOCK_CONSENSUS_PREP);
+
+        if (revertStateDelta)
         {
             LOG_GENERAL(WARNING,
-                        "Consensus failed at "
-                        "RunConsensusOnFinalBlockWhenDSPrimary");
+                        "Failed DS microblock consensus, revert state delta");
+            AccountStore::GetInstance().InitTemp();
+            AccountStore::GetInstance().DeserializeDeltaTemp(
+                m_stateDeltaFromShards, 0);
         }
-    }
-    else
-    {
-        ConsensusObjCreation = RunConsensusOnFinalBlockWhenDSBackup();
-        if (!ConsensusObjCreation)
+
+        AccountStore::GetInstance().SerializeDelta();
+
+        // Upon consensus object creation failure, one should not return from the function, but rather wait for view change.
+        bool ConsensusObjCreation = true;
+        if (m_mode == PRIMARY_DS)
         {
-            LOG_GENERAL(WARNING,
-                        "Consensus failed at "
-                        "RunConsensusOnFinalBlockWhenDSBackup");
+            this_thread::sleep_for(
+                chrono::milliseconds(FINALBLOCK_DELAY_IN_MS));
+            ConsensusObjCreation = RunConsensusOnFinalBlockWhenDSPrimary();
+            if (!ConsensusObjCreation)
+            {
+                LOG_GENERAL(WARNING,
+                            "Consensus failed at "
+                            "RunConsensusOnFinalBlockWhenDSPrimary");
+            }
         }
+        else
+        {
+            ConsensusObjCreation = RunConsensusOnFinalBlockWhenDSBackup();
+            if (!ConsensusObjCreation)
+            {
+                LOG_GENERAL(WARNING,
+                            "Consensus failed at "
+                            "RunConsensusOnFinalBlockWhenDSBackup");
+            }
+        }
+
+        if (ConsensusObjCreation)
+        {
+            SetState(FINALBLOCK_CONSENSUS);
+        }
+
+        m_startedRunFinalblockConsensus = true;
+
+        auto func1 = [this]() -> void { CommitFinalBlockConsensusBuffer(); };
+
+        DetachedFunction(1, func1);
     }
-
-    if (ConsensusObjCreation)
-    {
-        SetState(FINALBLOCK_CONSENSUS);
-    }
-
-    auto func1 = [this]() -> void { CommitFinalBlockConsensusBuffer(); };
-
-    DetachedFunction(1, func1);
 
     // View change will wait for timeout. If conditional variable is notified before timeout, the thread will return
     // without triggering view change.
