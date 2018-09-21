@@ -325,9 +325,6 @@ class Node : public Executable, public Broadcastable
 
     void ResetRejoinFlags();
 
-    // Rejoin the network as a shard node in case of failure happens in protocol
-    void RejoinAsNormal();
-
 public:
     enum NodeState : unsigned char
     {
@@ -470,6 +467,9 @@ public:
     /// Used by oldest DS node to configure txn sharing assignments as a new shard node
 
     void LoadTxnSharingInfo();
+
+    // Rejoin the network as a shard node in case of failure happens in protocol
+    void RejoinAsNormal();
 
 private:
     static std::map<NodeState, std::string> NodeStateStrings;

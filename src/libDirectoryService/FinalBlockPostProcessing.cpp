@@ -40,6 +40,8 @@ using namespace boost::multiprecision;
 
 void DirectoryService::StoreFinalBlockToDisk()
 {
+    LOG_MARKER();
+
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
@@ -48,7 +50,7 @@ void DirectoryService::StoreFinalBlockToDisk()
         return;
     }
 
-    LOG_MARKER();
+    m_mediator.HeartBeatPulse();
 
     // Add finalblock to txblockchain
     m_mediator.m_node->AddBlock(*m_finalBlock);

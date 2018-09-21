@@ -23,6 +23,10 @@ elif [ "$1" = "opencl" ]
 then
     CMAKE_EXTRA_OPTIONS="-DOPENCL_MINE=1"
     echo build normal node with opencl
+elif [ "$1" = "heartbeattest" ]
+then
+    CMAKE_EXTRA_OPTIONS="-DHEARTBEATTEST=1"
+    echo build normal node with heartbeat test
 fi
 
 cmake -H. -B${dir} ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTESTS=ON -DCMAKE_INSTALL_PREFIX=..

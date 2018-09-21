@@ -149,6 +149,7 @@ extern const unsigned int MSGQUEUE_SIZE;
 extern const unsigned int POW_CHANGE_PERCENT_TO_ADJ_DIFF;
 extern const unsigned int NUM_NODE_INCR_DIFFICULTY;
 extern const unsigned int MAX_SHARD_NODE_NUM;
+extern const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS;
 
 extern const bool TEST_NET_MODE;
 extern const bool EXCLUDE_PRIV_IP;
