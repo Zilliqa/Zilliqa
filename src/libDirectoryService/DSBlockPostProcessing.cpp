@@ -590,12 +590,6 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
 
     m_mediator.UpdateDSBlockRand();
 
-    Peer winnerpeer;
-    {
-        lock_guard<mutex> g(m_mutexAllPoWConns);
-        winnerpeer = m_allPoWConns.at(lastDSBlock.GetHeader().GetMinerPubKey());
-    }
-
     // Now we can update the sharding structure and transaction sharing assignments
     if (m_mode == BACKUP_DS)
     {
@@ -638,15 +632,13 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
         SendDSBlockToNewDSLeader();
     }
 
-    LOG_EPOCH(
-        INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-        "New DSBlock created with chosen nonce   = 0x"
-            << hex << "\n"
-            << m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetNonce()
-            << "\n"
-            << "New DSBlock hash is                     = 0x"
-            << DataConversion::charArrToHexStr(m_mediator.m_dsBlockRand)
-            << "\n");
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "New DSBlock created with chosen nonce   = 0x"
+                  << hex << "\n"
+                  << "\n"
+                  << "New DSBlock hash is                     = 0x"
+                  << DataConversion::charArrToHexStr(m_mediator.m_dsBlockRand)
+                  << "\n");
 
     unsigned int my_DS_cluster_num, my_shards_lo, my_shards_hi;
     SetupMulticastConfigForDSBlock(my_DS_cluster_num, my_shards_lo,
