@@ -138,8 +138,14 @@ class Node : public Executable, public Broadcastable
     // std::unordered_map<uint64_t, std::list<TransactionWithReceipt>>
     //     m_committedTransactions;
 
+    struct ForwardedTxnBufferEntry
+    {
+        TxnHash m_txnHash;
+        StateHash m_stateHash;
+        std::vector<TransactionWithReceipt> m_transactions;
+    };
     std::mutex m_mutexForwardedTxnBuffer;
-    std::unordered_map<uint64_t, std::vector<std::vector<unsigned char>>>
+    std::unordered_map<uint64_t, std::vector<ForwardedTxnBufferEntry>>
         m_forwardedTxnBuffer;
 
     std::mutex m_mutexTxnPacketBuffer;
@@ -216,11 +222,6 @@ class Node : public Executable, public Broadcastable
     void BeginNextConsensusRound();
 
     // internal calls from ProcessForwardTransaction
-    bool LoadForwardedTxnsAndCheckRoot(
-        const std::vector<unsigned char>& message, unsigned int cur_offset,
-        TxnHash& microBlockTxHash, StateHash& microBlockStateDeltaHash,
-        std::vector<TransactionWithReceipt>& txnsInForwardedMessage);
-    // std::vector<TxnHash> & txnHashesInForwardedMessage);
     void CommitForwardedTransactions(
         const std::vector<TransactionWithReceipt>& txnsInForwardedMessage,
         const uint64_t& blocknum);
@@ -252,17 +253,15 @@ class Node : public Executable, public Broadcastable
                            unsigned int offset, const Peer& from);
     bool ProcessForwardTransaction(const std::vector<unsigned char>& message,
                                    unsigned int cur_offset, const Peer& from);
-    bool
-    ProcessForwardTransactionCore(const std::vector<unsigned char>& message,
-                                  unsigned int cur_offset);
+    bool ProcessForwardTransactionCore(const ForwardedTxnBufferEntry& entry);
     bool ProcessCreateTransactionFromLookup(
         const std::vector<unsigned char>& message, unsigned int offset,
         const Peer& from);
     bool ProcessTxnPacketFromLookup(const std::vector<unsigned char>& message,
                                     unsigned int offset, const Peer& from);
-    bool
-    ProcessTxnPacketFromLookupCore(const std::vector<unsigned char>& message,
-                                   unsigned int offset);
+    bool ProcessTxnPacketFromLookupCore(
+        const std::vector<unsigned char>& message, const uint32_t shardID,
+        const std::vector<Transaction>& transactions);
 
     // bool ProcessCreateAccounts(const std::vector<unsigned char> & message, unsigned int offset, const Peer & from);
     bool ProcessDSBlock(const std::vector<unsigned char>& message,

@@ -91,11 +91,11 @@ bool DirectoryService::VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
         }
 
         // Generate the aggregated key
-        for (auto& kv : shard)
+        for (const auto& kv : shard)
         {
             if (B2.at(index))
             {
-                keys.emplace_back(kv.first);
+                keys.emplace_back(std::get<SHARD_NODE_PUBKEY>(kv));
                 count++;
             }
             index++;

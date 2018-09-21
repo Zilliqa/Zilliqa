@@ -28,6 +28,7 @@
 #include "depends/libTrie/TrieHash.h"
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
+#include "libMessage/Messenger.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
@@ -111,14 +112,18 @@ void DirectoryService::SendVCBlockToShardNodes(
         {
             vector<Peer> shard_peers;
 
-            for (auto& kv : *p)
+            for (const auto& kv : *p)
             {
-                shard_peers.emplace_back(kv.second);
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          " PubKey: "
-                              << DataConversion::SerializableToHexStr(kv.first)
-                              << " IP: " << kv.second.GetPrintableIPAddress()
-                              << " Port: " << kv.second.m_listenPortHost);
+                shard_peers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
+                LOG_EPOCH(
+                    INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                    " PubKey: "
+                        << DataConversion::SerializableToHexStr(
+                               std::get<SHARD_NODE_PUBKEY>(kv))
+                        << " IP: "
+                        << std::get<SHARD_NODE_PEER>(kv).GetPrintableIPAddress()
+                        << " Port: "
+                        << std::get<SHARD_NODE_PEER>(kv).m_listenPortHost);
             }
 
             P2PComm::GetInstance().SendBroadcastMessage(shard_peers,
@@ -319,10 +324,14 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
 
     vector<unsigned char> vcblock_message
         = {MessageType::NODE, NodeInstructionType::VCBLOCK};
-    unsigned int curr_offset = MessageOffset::BODY;
 
-    m_pendingVCBlock->Serialize(vcblock_message, MessageOffset::BODY);
-    curr_offset += m_pendingVCBlock->GetSerializedSize();
+    if (!Messenger::SetNodeVCBlock(vcblock_message, MessageOffset::BODY,
+                                   *m_pendingVCBlock))
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::SetNodeVCBlock failed.");
+        return;
+    }
 
     unsigned int nodeToSendToLookUpLo = COMM_SIZE / 4;
     unsigned int nodeToSendToLookUpHi

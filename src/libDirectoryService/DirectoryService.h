@@ -27,6 +27,7 @@
 #include <shared_mutex>
 #include <vector>
 
+#include "ShardStruct.h"
 #include "common/Broadcastable.h"
 #include "common/Executable.h"
 #include "libConsensus/Consensus.h"
@@ -38,9 +39,6 @@
 #include "libPOW/pow.h"
 #include "libPersistence/BlockStorage.h"
 #include "libUtils/TimeUtils.h"
-
-using Shard = std::vector<std::pair<PubKey, Peer>>;
-using VectorOfShard = std::vector<Shard>;
 
 class Mediator;
 
@@ -67,6 +65,7 @@ class DirectoryService : public Executable, public Broadcastable
     std::vector<std::vector<Peer>> m_tempShardSenders;
     VectorOfShard m_tempShards; //vector<vector<pair<PubKey, Peer>>>;
     std::map<PubKey, uint32_t> m_tempPublicKeyToShardIdMap;
+    std::map<PubKey, uint16_t> m_tempMapNodeReputation;
 
     // PoW common variables
     std::mutex m_mutexAllPoWConns;
@@ -169,6 +168,8 @@ class DirectoryService : public Executable, public Broadcastable
     bool CheckPoWSubmissionExceedsLimitsForNode(const PubKey& key);
     void UpdatePoWSubmissionCounterforNode(const PubKey& key);
     void ResetPoWSubmissionCounter();
+    void ClearReputationOfNodeWithoutPoW();
+    std::set<PubKey> FindTopPriorityNodes();
 
     void
     SetupMulticastConfigForShardingStructure(unsigned int& my_DS_cluster_num,
@@ -187,6 +188,7 @@ class DirectoryService : public Executable, public Broadcastable
             sortedPoWSolns);
     void ComputeTxnSharingAssignments(const Peer& winnerpeer);
     bool VerifyPoWOrdering(const VectorOfShard& shards);
+    bool VerifyNodePriority(const VectorOfShard& shards);
 
     // internal calls from RunConsensusOnDSBlock
     bool RunConsensusOnDSBlockWhenDSPrimary();
@@ -389,8 +391,11 @@ public:
     std::atomic<Mode> m_mode;
 
     // Sharding committee members
-    VectorOfShard m_shards; //vector<vector<pair<PubKey, Peer>>>;
+    VectorOfShard m_shards;
     std::map<PubKey, uint32_t> m_publicKeyToShardIdMap;
+
+    // Proof of Reputation(PoR) variables.
+    std::map<PubKey, uint16_t> m_mapNodeReputation;
 
     /// The current internal state of this DirectoryService instance.
     std::atomic<DirState> m_state;
@@ -462,7 +467,8 @@ public:
     /// Used by PoW winner to configure sharding variables as the next DS leader
     bool
     ProcessShardingStructure(const VectorOfShard& shards,
-                             std::map<PubKey, uint32_t>& publicKeyToShardIdMap);
+                             std::map<PubKey, uint32_t>& publicKeyToShardIdMap,
+                             std::map<PubKey, uint16_t>& mapNodeReputation);
 
     /// Used by PoW winner to configure txn sharing assignment variables as the next DS leader
     void ProcessTxnBodySharingAssignment();
@@ -475,6 +481,9 @@ public:
         int64_t powSubmissions, int64_t expectedNodes,
         uint32_t maxAdjustThreshold, int64_t currentEpochNum,
         int64_t numBlockPerYear);
+
+    /// Calculate node priority to determine which node has the priority to join the network.
+    static uint8_t CalculateNodePriority(uint16_t reputation);
 
 private:
     static std::map<DirState, std::string> DirStateStrings;

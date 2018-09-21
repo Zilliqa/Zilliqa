@@ -37,6 +37,7 @@
 #include "libData/BlockChainData/BlockChain.h"
 #include "libData/BlockData/Block.h"
 #include "libMediator/Mediator.h"
+#include "libMessage/Messenger.h"
 #include "libNetwork/P2PComm.h"
 #include "libPersistence/BlockStorage.h"
 #include "libUtils/DataConversion.h"
@@ -512,14 +513,14 @@ bool Lookup::SetDSCommitteInfo()
     return true;
 }
 
-vector<vector<pair<PubKey, Peer>>> Lookup::GetShardPeers()
+VectorOfShard Lookup::GetShardPeers()
 {
     if (!LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
                     "Lookup::GetShardPeers not expected to be called from "
                     "other than the LookUp node.");
-        return vector<vector<pair<PubKey, Peer>>>();
+        return VectorOfShard();
     }
 
     lock_guard<mutex> g(m_mutexShards);
@@ -564,10 +565,10 @@ bool Lookup::ProcessEntireShardingStructure()
     for (unsigned int i = 0; i < m_mediator.m_ds->m_shards.size(); i++)
     {
         unsigned int index = 0;
-        for (auto& j : m_mediator.m_ds->m_shards.at(i))
+        for (const auto& shardNode : m_mediator.m_ds->m_shards.at(i))
         {
-            const PubKey& key = j.first;
-            const Peer& peer = j.second;
+            const PubKey& key = std::get<SHARD_NODE_PUBKEY>(shardNode);
+            const Peer& peer = std::get<SHARD_NODE_PEER>(shardNode);
 
             m_nodesInNetwork.emplace_back(peer);
             t_nodesInNetwork.emplace(peer);
@@ -811,6 +812,11 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
                           .GetHeader()
                           .GetBlockNum();
     }
+    else if (lowBlockNum == 0)
+    {
+        //give all the blocks in the ds blockchain
+        lowBlockNum = 1;
+    }
 
     if (highBlockNum == 0)
     {
@@ -989,6 +995,11 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
                           .GetHeader()
                           .GetBlockNum();
     }
+    else if (lowBlockNum == 0)
+    {
+        //give all the blocks till now in blockchain
+        lowBlockNum = 1;
+    }
 
     if (highBlockNum == 0)
     {
@@ -1128,6 +1139,76 @@ bool Lookup::ProcessGetTxBodyFromSeed(const vector<unsigned char>& message,
     P2PComm::GetInstance().SendMessage(requestingNode, txBodyMessage);
 
     // #endif // IS_LOOKUP_NODE
+
+    return true;
+}
+
+bool Lookup::ProcessGetShardFromSeed(const vector<unsigned char>& message,
+                                     unsigned int offset, const Peer& from)
+{
+    //Message = [Port]
+    uint32_t port;
+    if (!Messenger::GetLookupGetShardsFromSeed(message, offset, port))
+    {
+        LOG_GENERAL(WARNING, "Failed to process");
+        return false;
+    }
+    Peer requestingNode(from.m_ipAddress, port);
+    vector<unsigned char> msg
+        = {MessageType::LOOKUP, LookupInstructionType::SETSHARDSFROMSEED};
+    lock_guard<mutex> g(m_mutexShards);
+    if (!Messenger::SetLookupSetShardsFromSeed(msg, MessageOffset::BODY,
+                                               m_mediator.m_ds->m_shards))
+    {
+        LOG_GENERAL(WARNING, "Failed to Process");
+        return false;
+    }
+
+    P2PComm::GetInstance().SendMessage(requestingNode, msg);
+
+    return true;
+}
+
+bool Lookup::ProcessSetShardFromSeed(const vector<unsigned char>& message,
+                                     unsigned int offset, const Peer& from)
+{
+    LOG_MARKER();
+    VectorOfShard shards;
+
+    if (!Messenger::GetLookupSetShardsFromSeed(message, offset, shards))
+    {
+        LOG_GENERAL(WARNING, "Failed to Process");
+        return false;
+    }
+    LOG_GENERAL(INFO, "Sharding Structure Recvd from " << from);
+
+    uint32_t i = 0;
+    for (const auto& shard : shards)
+    {
+        LOG_GENERAL(INFO, "Size of shard " << i << " " << shard.size());
+        i++;
+    }
+    lock_guard<mutex> g(m_mutexShards);
+
+    m_mediator.m_ds->m_shards = move(shards);
+
+    return true;
+}
+
+bool Lookup::GetShardFromLookup()
+{
+    LOG_MARKER();
+    vector<unsigned char> msg
+        = {MessageType::LOOKUP, LookupInstructionType::GETSHARDSFROMSEED};
+
+    if (!Messenger::SetLookupGetShardsFromSeed(
+            msg, MessageOffset::BODY, m_mediator.m_selfPeer.m_listenPortHost))
+    {
+        LOG_GENERAL(WARNING, "Failed to process");
+        return false;
+    }
+
+    SendMessageToRandomLookupNode(msg);
 
     return true;
 }
@@ -1508,7 +1589,7 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
 
         m_mediator.UpdateTxBlockRand();
 
-        if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
+        if ((m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0))
         {
             GetStateFromLookupNodes();
         }
@@ -2508,7 +2589,9 @@ bool Lookup::Execute(const vector<unsigned char>& message, unsigned int offset,
                                          &Lookup::ProcessSetOfflineLookups,
                                          &Lookup::ProcessRaiseStartPoW,
                                          &Lookup::ProcessGetStartPoWFromSeed,
-                                         &Lookup::ProcessSetStartPoWFromSeed};
+                                         &Lookup::ProcessSetStartPoWFromSeed,
+                                         &Lookup::ProcessGetShardFromSeed,
+                                         &Lookup::ProcessSetShardFromSeed};
 
     const unsigned char ins_byte = message.at(offset);
     const unsigned int ins_handlers_count
@@ -2615,63 +2698,10 @@ void Lookup::SenderTxnBatchThread()
     DetachedFunction(1, main_func);
 }
 
-bool Lookup::CreateTxnPacket(vector<unsigned char>& msg, uint32_t shardId,
-                             unsigned int offset,
-                             const map<uint32_t, vector<unsigned char>>& mp)
-{
-    if (!LOOKUP_NODE_MODE)
-    {
-        LOG_GENERAL(WARNING,
-                    "Lookup::CreateTxnPacket not expected to be called from "
-                    "other than the LookUp node.");
-        return true;
-    }
-
-    //[epochNum][shard_id][numTxns][txn1][txn2]...
-    //Clears msg
-    LOG_MARKER();
-
-    unsigned int size_dummy
-        = (mp.find(shardId) != mp.end()) ? mp.at(shardId).size() : 0;
-    size_dummy = size_dummy / Transaction::GetMinSerializedSize();
-    unsigned int curr_offset = offset;
-
-    Serializable::SetNumber<uint64_t>(
-        msg, curr_offset, m_mediator.m_currentEpochNum, sizeof(uint64_t));
-
-    curr_offset += sizeof(uint64_t);
-
-    {
-        lock_guard<mutex> g(m_txnShardMapMutex);
-        unsigned int size_already = m_txnShardMap[shardId].size();
-        Serializable::SetNumber<uint32_t>(msg, curr_offset, shardId,
-                                          sizeof(uint32_t));
-        curr_offset += sizeof(uint32_t);
-        uint32_t num = size_already + size_dummy;
-        Serializable::SetNumber<uint32_t>(msg, curr_offset, num,
-                                          sizeof(uint32_t));
-        LOG_GENERAL(INFO,
-                    "[Batching] Generated " << num << " txns for shard "
-                                            << shardId);
-        curr_offset += sizeof(uint32_t);
-
-        for (uint32_t i = 0; i < size_already; i++)
-        {
-            curr_offset
-                = m_txnShardMap.at(shardId)[i].Serialize(msg, curr_offset);
-        }
-    }
-
-    if (size_dummy > 0)
-    {
-        copy(mp.at(shardId).begin(), mp.at(shardId).end(), back_inserter(msg));
-    }
-
-    return true;
-}
-
 void Lookup::SendTxnPacketToNodes(uint32_t nShard)
 {
+    LOG_MARKER();
+
     if (!LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(
@@ -2680,8 +2710,6 @@ void Lookup::SendTxnPacketToNodes(uint32_t nShard)
             "other than the LookUp node.");
         return;
     }
-
-    LOG_MARKER();
 
     map<uint32_t, vector<unsigned char>> mp;
 
@@ -2695,15 +2723,39 @@ void Lookup::SendTxnPacketToNodes(uint32_t nShard)
     {
         vector<unsigned char> msg
             = {MessageType::NODE, NodeInstructionType::FORWARDTXNBLOCK};
-        if (!CreateTxnPacket(msg, i, MessageOffset::BODY, mp))
+        bool result = false;
+
         {
+            lock_guard<mutex> g(m_txnShardMapMutex);
+
+            unsigned int size_dummy
+                = (mp.find(i) != mp.end()) ? mp.at(i).size() : 0;
+            size_dummy = size_dummy / Transaction::GetMinSerializedSize();
+
+            if (size_dummy > 0)
+            {
+                result = Messenger::SetNodeForwardTxnBlock(
+                    msg, MessageOffset::BODY, m_mediator.m_currentEpochNum, i,
+                    m_txnShardMap[i], mp.at(i));
+            }
+            else
+            {
+                result = Messenger::SetNodeForwardTxnBlock(
+                    msg, MessageOffset::BODY, m_mediator.m_currentEpochNum, i,
+                    m_txnShardMap[i], {});
+            }
+        }
+
+        if (!result)
+        {
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Messenger::SetNodeForwardTxnBlock failed.");
             LOG_GENERAL(WARNING, "Cannot create packet for " << i << " shard");
             continue;
         }
         vector<Peer> toSend;
         if (i < nShard)
         {
-
             {
                 lock_guard<mutex> g(m_mutexShards);
                 auto it = m_mediator.m_ds->m_shards.at(i).begin();
@@ -2712,7 +2764,7 @@ void Lookup::SendTxnPacketToNodes(uint32_t nShard)
                      && it != m_mediator.m_ds->m_shards.at(i).end();
                      j++, it++)
                 {
-                    toSend.push_back(it->second);
+                    toSend.push_back(std::get<SHARD_NODE_PEER>(*it));
                 }
             }
 
