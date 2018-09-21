@@ -17,6 +17,7 @@ message ShardingStructure
     {
         required ByteArray pubkey   = 1;
         required ByteArray peerinfo = 2;
+        required uint32 reputation  = 3;
     }
     message Shard
     {

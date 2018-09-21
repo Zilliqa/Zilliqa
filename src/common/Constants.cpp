@@ -147,7 +147,10 @@ const unsigned int SENDQUEUE_SIZE{ReadFromConstantsFile("SENDQUEUE_SIZE")};
 const unsigned int MSGQUEUE_SIZE{ReadFromConstantsFile("MSGQUEUE_SIZE")};
 const unsigned int POW_CHANGE_PERCENT_TO_ADJ_DIFF{
     ReadFromConstantsFile("POW_CHANGE_PERCENT_TO_ADJ_DIFF")};
-const unsigned int NUM_NETWORK_NODE{ReadFromConstantsFile("NUM_NETWORK_NODE")};
+const unsigned int NUM_NODE_INCR_DIFFICULTY{
+    ReadFromConstantsFile("NUM_NODE_INCR_DIFFICULTY")};
+const unsigned int MAX_SHARD_NODE_NUM{
+    ReadFromConstantsFile("MAX_SHARD_NODE_NUM")};
 
 const bool EXCLUDE_PRIV_IP{ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true"};
 const bool TEST_NET_MODE{ReadFromOptionsFile("TEST_NET_MODE") == "true"};
