@@ -108,8 +108,8 @@ const unsigned int CONSENSUS_OBJECT_TIMEOUT{
     ReadFromConstantsFile("CONSENSUS_OBJECT_TIMEOUT")};
 const unsigned int FETCHING_MISSING_TXNS_TIMEOUT{
     ReadFromConstantsFile("FETCHING_MISSING_TXNS_TIMEOUT")};
-const unsigned int FINALBLOCK_CONSENSUS_OBJECT_TIMEOUT{
-    ReadFromConstantsFile("FINALBLOCK_CONSENSUS_OBJECT_TIMEOUT")};
+const unsigned int DS_MICROBLOCK_CONSENSUS_OBJECT_TIMEOUT{
+    ReadFromConstantsFile("DS_MICROBLOCK_CONSENSUS_OBJECT_TIMEOUT")};
 const unsigned int NUM_FINAL_BLOCK_PER_POW{
     ReadFromConstantsFile("NUM_FINAL_BLOCK_PER_POW")};
 const unsigned int NUM_DS_KEEP_TX_BODY{
@@ -137,6 +137,8 @@ const unsigned int BROADCAST_INTERVAL{
 const unsigned int BROADCAST_EXPIRY{ReadFromConstantsFile("BROADCAST_EXPIRY")};
 const unsigned int TX_DISTRIBUTE_TIME_IN_MS{
     ReadFromConstantsFile("TX_DISTRIBUTE_TIME_IN_MS")};
+const unsigned int FINALBLOCK_DELAY_IN_MS{
+    ReadFromConstantsFile("FINALBLOCK_DELAY_IN_MS")};
 const unsigned int NUM_TXN_TO_SEND_PER_ACCOUNT{
     ReadFromConstantsFile("NUM_TXN_TO_SEND_PER_ACCOUNT")};
 const unsigned int NUM_NODES_TO_SEND_LOOKUP{
@@ -147,7 +149,10 @@ const unsigned int SENDQUEUE_SIZE{ReadFromConstantsFile("SENDQUEUE_SIZE")};
 const unsigned int MSGQUEUE_SIZE{ReadFromConstantsFile("MSGQUEUE_SIZE")};
 const unsigned int POW_CHANGE_PERCENT_TO_ADJ_DIFF{
     ReadFromConstantsFile("POW_CHANGE_PERCENT_TO_ADJ_DIFF")};
-const unsigned int NUM_NETWORK_NODE{ReadFromConstantsFile("NUM_NETWORK_NODE")};
+const unsigned int NUM_NODE_INCR_DIFFICULTY{
+    ReadFromConstantsFile("NUM_NODE_INCR_DIFFICULTY")};
+const unsigned int MAX_SHARD_NODE_NUM{
+    ReadFromConstantsFile("MAX_SHARD_NODE_NUM")};
 
 const bool EXCLUDE_PRIV_IP{ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true"};
 const bool TEST_NET_MODE{ReadFromOptionsFile("TEST_NET_MODE") == "true"};
