@@ -129,6 +129,8 @@ class DirectoryService : public Executable, public Broadcastable
     std::condition_variable cv_processConsensusMessage;
     std::mutex m_mutexProcessConsensusMessage;
 
+    std::mutex m_mutexRunConsensusOnFinalBlock;
+
     // TO Remove
     Mediator& m_mediator;
     Synchronizer m_synchronizer;
@@ -409,8 +411,12 @@ public:
     /// Whether to send txn from ds microblock to lookup at finalblock consensus done
     std::atomic<bool> m_toSendTxnToLookup;
 
-    /// Whether ds started microblock consensuis
+    /// Whether ds started microblock consensus
     std::atomic<bool> m_dsStartedMicroblockConsensus;
+
+    /// Whether ds started finalblock consensus
+    std::mutex m_mutexPrepareRunFinalblockConsensus;
+    std::atomic<bool> m_startedRunFinalblockConsensus;
 
     std::unordered_map<uint64_t, std::set<MicroBlock>> m_microBlocks;
     std::mutex m_mutexMicroBlocks;

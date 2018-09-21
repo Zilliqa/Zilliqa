@@ -461,7 +461,7 @@ void DirectoryService::StartFirstTxEpoch()
                 if (cv_scheduleFinalBlockConsensus.wait_for(
                         cv_lk,
                         std::chrono::seconds(
-                            FINALBLOCK_CONSENSUS_OBJECT_TIMEOUT))
+                            DS_MICROBLOCK_CONSENSUS_OBJECT_TIMEOUT))
                     == std::cv_status::timeout)
                 {
                     LOG_GENERAL(

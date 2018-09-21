@@ -51,30 +51,55 @@ bool DirectoryService::VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
 
     LOG_MARKER();
 
-    const auto& shard = m_shards.at(shardId);
+    const vector<bool>& B2 = microBlock.GetB2();
+    vector<PubKey> keys;
     unsigned int index = 0;
     unsigned int count = 0;
 
-    const vector<bool>& B2 = microBlock.GetB2();
-    if (shard.size() != B2.size())
+    if (shardId == m_shards.size())
     {
-        LOG_GENERAL(WARNING,
-                    "Mismatch: Shard size = " << shard.size()
-                                              << ", co-sig bitmap size = "
-                                              << B2.size());
-        return false;
-    }
-
-    // Generate the aggregated key
-    vector<PubKey> keys;
-    for (auto& kv : shard)
-    {
-        if (B2.at(index))
+        if (m_mediator.m_DSCommittee->size() != B2.size())
         {
-            keys.emplace_back(kv.first);
-            count++;
+            LOG_GENERAL(WARNING,
+                        "Mismatch: Shard(DS) size = "
+                            << m_mediator.m_DSCommittee->size()
+                            << ", co-sig bitmap size = " << B2.size());
+            return false;
         }
-        index++;
+
+        for (const auto& ds : *m_mediator.m_DSCommittee)
+        {
+            if (B2.at(index))
+            {
+                keys.emplace_back(ds.first);
+                count++;
+            }
+            index++;
+        }
+    }
+    else
+    {
+        const auto& shard = m_shards.at(shardId);
+
+        if (shard.size() != B2.size())
+        {
+            LOG_GENERAL(WARNING,
+                        "Mismatch: Shard size = " << shard.size()
+                                                  << ", co-sig bitmap size = "
+                                                  << B2.size());
+            return false;
+        }
+
+        // Generate the aggregated key
+        for (auto& kv : shard)
+        {
+            if (B2.at(index))
+            {
+                keys.emplace_back(kv.first);
+                count++;
+            }
+            index++;
+        }
     }
 
     if (count != ConsensusCommon::NumForConsensus(B2.size()))
@@ -313,7 +338,8 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
                 m_MutexScheduleFinalBlockConsensus);
             if (cv_scheduleFinalBlockConsensus.wait_for(
                     cv_lk,
-                    std::chrono::seconds(FINALBLOCK_CONSENSUS_OBJECT_TIMEOUT))
+                    std::chrono::seconds(
+                        DS_MICROBLOCK_CONSENSUS_OBJECT_TIMEOUT))
                 == std::cv_status::timeout)
             {
                 LOG_GENERAL(WARNING,
@@ -468,7 +494,7 @@ bool DirectoryService::ProcessMicroblockSubmission(
     {
         return ProcessMicroblockSubmissionFromShard(message, cur_offset, from);
     }
-    else if (submitMBType == SUBMITMICROBLOCKTYPE::SHARDMICROBLOCK)
+    else if (submitMBType == SUBMITMICROBLOCKTYPE::MISSINGMICROBLOCK)
     {
         return ProcessMissingMicroblockSubmission(message, cur_offset, from);
     }
@@ -526,21 +552,48 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
             const PubKey& pubKey = microBlock.GetHeader().GetMinerPubKey();
 
             // Check public key - shard ID mapping
-            const auto& minerEntry = m_publicKeyToShardIdMap.find(pubKey);
-            if (minerEntry == m_publicKeyToShardIdMap.end())
+            if (shardId == m_shards.size())
             {
-                LOG_EPOCH(WARNING,
-                          to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "Cannot find the miner key: "
-                              << DataConversion::SerializableToHexStr(pubKey));
-                continue;
+                // DS shard
+                bool found = false;
+                for (const auto& ds : *m_mediator.m_DSCommittee)
+                {
+                    if (ds.first == pubKey)
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found)
+                {
+                    LOG_EPOCH(
+                        WARNING,
+                        to_string(m_mediator.m_currentEpochNum).c_str(),
+                        "Cannot find the miner key in DS committee: "
+                            << DataConversion::SerializableToHexStr(pubKey));
+                    continue;
+                }
             }
-            if (minerEntry->second != shardId)
+            else
             {
-                LOG_EPOCH(WARNING,
-                          to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "Microblock shard ID mismatch");
-                continue;
+                // normal shard
+                const auto& minerEntry = m_publicKeyToShardIdMap.find(pubKey);
+                if (minerEntry == m_publicKeyToShardIdMap.end())
+                {
+                    LOG_EPOCH(
+                        WARNING,
+                        to_string(m_mediator.m_currentEpochNum).c_str(),
+                        "Cannot find the miner key in normal shard: "
+                            << DataConversion::SerializableToHexStr(pubKey));
+                    continue;
+                }
+                if (minerEntry->second != shardId)
+                {
+                    LOG_EPOCH(WARNING,
+                              to_string(m_mediator.m_currentEpochNum).c_str(),
+                              "Microblock shard ID mismatch");
+                    continue;
+                }
             }
 
             // Verify the co-signature
@@ -569,7 +622,7 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
 
             LOG_GENERAL(INFO,
                         microBlocks.size()
-                            << " of " << m_shards.size()
+                            << " of " << m_shards.size() + 1
                             << " microblocks received for Epoch " << blockNum);
         }
     }
@@ -617,13 +670,14 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
             return false;
         }
 
-        if (AccountStore::GetInstance().DeserializeDelta(stateDeltaBytes, 0)
+        if (AccountStore::GetInstance().DeserializeDeltaTemp(stateDeltaBytes, 0)
             != 0)
         {
             LOG_GENERAL(WARNING,
                         "AccountStore::GetInstance().DeserializeDelta failed");
             return false;
         }
+        AccountStore::GetInstance().SerializeDelta();
     }
     else
     {
