@@ -1190,7 +1190,7 @@ bool Lookup::ProcessSetShardFromSeed(const vector<unsigned char>& message,
     }
     lock_guard<mutex> g(m_mutexShards);
 
-    m_mediator.m_ds->m_shards = shards;
+    m_mediator.m_ds->m_shards = move(shards);
 
     return true;
 }
