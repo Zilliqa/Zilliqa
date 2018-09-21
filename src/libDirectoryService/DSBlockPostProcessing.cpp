@@ -206,7 +206,8 @@ void DirectoryService::SendDSBlockToShardNodes(const Peer& winnerpeer,
     for (unsigned int i = my_shards_lo; i <= my_shards_hi; i++)
     {
         // Get the shard ID from the leader's info in m_publicKeyToShardIdMap
-        uint32_t shardID = m_publicKeyToShardIdMap.at(p->begin()->first);
+        uint32_t shardID = m_publicKeyToShardIdMap.at(
+            std::get<SHARD_NODE_PUBKEY>(p->front()));
 
         // Generate the message
         vector<unsigned char> dsblock_message
@@ -242,9 +243,9 @@ void DirectoryService::SendDSBlockToShardNodes(const Peer& winnerpeer,
             << "] SHMSG");
 
         vector<Peer> shard_peers;
-        for (auto& kv : *p)
+        for (const auto& kv : *p)
         {
-            shard_peers.emplace_back(kv.second);
+            shard_peers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
         }
 
         P2PComm::GetInstance().SendBroadcastMessage(shard_peers,
@@ -483,9 +484,10 @@ void DirectoryService::StartFirstTxEpoch()
         bool found = false;
         for (unsigned int i = 0; i < m_shards.size() && !found; i++)
         {
-            for (const auto& j : m_shards.at(i))
+            for (const auto& shardNode : m_shards.at(i))
             {
-                if (j.first == m_mediator.m_selfKey.second)
+                if (std::get<SHARD_NODE_PUBKEY>(shardNode)
+                    == m_mediator.m_selfKey.second)
                 {
                     m_mediator.m_node->SetMyShardID(i);
                     found = true;
@@ -584,11 +586,12 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     // Now we can update the sharding structure and transaction sharing assignments
     if (m_mode == BACKUP_DS)
     {
-        m_DSReceivers = move(m_tempDSReceivers);
-        m_shardReceivers = move(m_tempShardReceivers);
-        m_shardSenders = move(m_tempShardSenders);
-        m_shards = move(m_tempShards);
-        m_publicKeyToShardIdMap = move(m_tempPublicKeyToShardIdMap);
+        m_DSReceivers = std::move(m_tempDSReceivers);
+        m_shardReceivers = std::move(m_tempShardReceivers);
+        m_shardSenders = std::move(m_tempShardSenders);
+        m_shards = std::move(m_tempShards);
+        m_publicKeyToShardIdMap = std::move(m_tempPublicKeyToShardIdMap);
+        m_mapNodeReputation = std::move(m_tempMapNodeReputation);
         ProcessTxnBodySharingAssignment();
     }
 

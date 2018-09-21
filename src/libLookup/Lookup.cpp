@@ -513,14 +513,14 @@ bool Lookup::SetDSCommitteInfo()
     return true;
 }
 
-vector<vector<pair<PubKey, Peer>>> Lookup::GetShardPeers()
+VectorOfShard Lookup::GetShardPeers()
 {
     if (!LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
                     "Lookup::GetShardPeers not expected to be called from "
                     "other than the LookUp node.");
-        return vector<vector<pair<PubKey, Peer>>>();
+        return VectorOfShard();
     }
 
     lock_guard<mutex> g(m_mutexShards);
@@ -565,10 +565,10 @@ bool Lookup::ProcessEntireShardingStructure()
     for (unsigned int i = 0; i < m_mediator.m_ds->m_shards.size(); i++)
     {
         unsigned int index = 0;
-        for (auto& j : m_mediator.m_ds->m_shards.at(i))
+        for (const auto& shardNode : m_mediator.m_ds->m_shards.at(i))
         {
-            const PubKey& key = j.first;
-            const Peer& peer = j.second;
+            const PubKey& key = std::get<SHARD_NODE_PUBKEY>(shardNode);
+            const Peer& peer = std::get<SHARD_NODE_PEER>(shardNode);
 
             m_nodesInNetwork.emplace_back(peer);
             t_nodesInNetwork.emplace(peer);
@@ -2756,7 +2756,6 @@ void Lookup::SendTxnPacketToNodes(uint32_t nShard)
         vector<Peer> toSend;
         if (i < nShard)
         {
-
             {
                 lock_guard<mutex> g(m_mutexShards);
                 auto it = m_mediator.m_ds->m_shards.at(i).begin();
@@ -2765,7 +2764,7 @@ void Lookup::SendTxnPacketToNodes(uint32_t nShard)
                      && it != m_mediator.m_ds->m_shards.at(i).end();
                      j++, it++)
                 {
-                    toSend.push_back(it->second);
+                    toSend.push_back(std::get<SHARD_NODE_PEER>(*it));
                 }
             }
 
