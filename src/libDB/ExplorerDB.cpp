@@ -14,8 +14,6 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-using namespace std;
-
 #include "ExplorerDB.h"
 #include "libServer/JSONConversion.h"
 #include "libUtils/HashUtils.h"
@@ -23,6 +21,7 @@ using namespace std;
 #include <bsoncxx/builder/basic/kvp.hpp>
 #include <bsoncxx/json.hpp>
 
+using namespace std;
 using bsoncxx::builder::basic::kvp;
 using bsoncxx::builder::basic::make_document;
 
@@ -54,9 +53,9 @@ bool ExplorerDB::InsertAccount([[gnu::unused]] const Address& addr,
     return true;
 }
 
-void ExplorerDB::Init()
+void ExplorerDB::Init(unsigned int port)
 {
-    BaseDB::Init();
+    BaseDB::Init(port);
     mongocxx::options::index index_options;
     index_options.unique(true);
     //ID is unique in txn and from is also an index but not unique

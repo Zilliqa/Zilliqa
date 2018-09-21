@@ -1191,11 +1191,7 @@ bool Lookup::ProcessSetShardFromSeed(const vector<unsigned char>& message,
     }
     lock_guard<mutex> g(m_mutexShards);
 
-<<<<<<< HEAD
-    m_mediator.m_ds->m_shards = shards;
-=======
     m_mediator.m_ds->m_shards = move(shards);
->>>>>>> 52be43fcb2b5a8814c3ae0cae15781f9c89545da
 
     return true;
 }
@@ -1608,12 +1604,8 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
 
         m_mediator.UpdateTxBlockRand();
 
-<<<<<<< HEAD
         if ((m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
             && !ARCHIVAL_NODE)
-=======
-        if ((m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0))
->>>>>>> 52be43fcb2b5a8814c3ae0cae15781f9c89545da
         {
             GetStateFromLookupNodes();
         }

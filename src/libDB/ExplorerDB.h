@@ -32,5 +32,5 @@ public:
     bool InsertJson(const Json::Value& _json,
                     const std::string& collectionName);
     bool InsertAccount(const Address& addr, const Account& acc);
-    void Init();
+    void Init(unsigned int port = 27017) override;
 };
