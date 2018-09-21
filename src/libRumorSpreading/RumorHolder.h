@@ -46,7 +46,9 @@ namespace RRS
         NextMemberCb m_nextMemberCb;
         std::unordered_set<int> m_nonPriorPeers;
         std::map<StatisticKey, double> m_statistics;
-        int m_maxNeighborPerRound;
+        int m_maxNeighborsPerRounds;
+
+        static const int MAXRETRY = 3;
 
         // METHODS
         // Copy the member ids into a vector
@@ -75,7 +77,7 @@ namespace RRS
                     int id = MemberID::next());
         RumorHolder(const std::unordered_set<int>& peers, int maxRoundsInB,
                     int maxRoundsInC, int maxTotalRounds,
-                    int maxNeighborPerRound, int id);
+                    int maxNeighborsPerRound, int id);
 
         RumorHolder(const RumorHolder& other);
 
@@ -106,12 +108,6 @@ namespace RRS
         std::ostream& printStatistics(std::ostream& outStream) const;
 
         bool operator==(const RumorHolder& other) const;
-    };
-
-    // Required by std::unordered_set
-    struct MemberHash
-    {
-        int operator()(const RumorHolder& obj) const;
     };
 
 } // project namespace

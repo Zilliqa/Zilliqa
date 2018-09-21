@@ -50,7 +50,7 @@ RumorManager::~RumorManager() {}
 void RumorManager::startRounds()
 {
     LOG_MARKER();
-    // critical section
+
     std::thread([&]() {
         std::unique_lock<std::mutex> guard(m_continueRoundMutex);
         m_continueRound = true;
@@ -58,7 +58,6 @@ void RumorManager::startRounds()
         {
             { // critical section
                 std::lock_guard<std::mutex> guard(m_mutex);
-                //LOG_MARKER();
                 std::pair<std::vector<int>, std::vector<RRS::Message>> result
                     = m_rumorHolder->advanceRound();
 
@@ -68,9 +67,9 @@ void RumorManager::startRounds()
                     auto l = m_peerIdPeerBimap.left.find(i);
                     if (l != m_peerIdPeerBimap.left.end())
                     {
-                        /*LOG_GENERAL(INFO,
+                        LOG_GENERAL(DEBUG,
                                     "Sending " << result.second.size()
-                                            << " push messages")*/
+                                               << " push messages");
                         SendMessages(l->second, result.second);
                     }
                 }
@@ -181,7 +180,6 @@ bool RumorManager::addRumor(const RumorManager::RawBytes& message)
 bool RumorManager::rumorReceived(uint8_t type, int32_t round,
                                  const RawBytes& message, const Peer& from)
 {
-    //LOG_MARKER();
     {
         std::lock_guard<std::mutex> guard(m_continueRoundMutex);
         if (!m_continueRound)
@@ -215,9 +213,9 @@ bool RumorManager::rumorReceived(uint8_t type, int32_t round,
         || t == RRS::Message::Type::EMPTY_PULL)
     {
         /* Don't add it to local RumorMap because it's not the rumor itself */
-        /*LOG_GENERAL(INFO,
+        LOG_GENERAL(DEBUG,
                     "Received empty message of type: "
-                        << RRS::Message::s_enumKeyToString[t]);*/
+                        << RRS::Message::s_enumKeyToString[t]);
     }
     else
     {
@@ -251,8 +249,8 @@ bool RumorManager::rumorReceived(uint8_t type, int32_t round,
     auto l = m_peerIdPeerBimap.left.find(pullMsgs.first);
     if (l != m_peerIdPeerBimap.left.end())
     {
-        /*LOG_GENERAL(INFO,
-                    "Sending " << pullMsgs.second.size() << " PULL Messages");*/
+        LOG_GENERAL(DEBUG,
+                    "Sending " << pullMsgs.second.size() << " PULL Messages");
         SendMessages(l->second, pullMsgs.second);
     }
 
@@ -262,8 +260,6 @@ bool RumorManager::rumorReceived(uint8_t type, int32_t round,
 void RumorManager::SendMessages(const Peer& toPeer,
                                 const std::vector<RRS::Message>& messages)
 {
-    //LOG_MARKER();
-
     for (auto& k : messages)
     {
         // Add round and type to outgoing message
@@ -274,7 +270,9 @@ void RumorManager::SendMessages(const Peer& toPeer,
                                           sizeof(uint32_t));
 
         cur_offset += sizeof(uint32_t);
-        //LOG_GENERAL(INFO, "My port is : " << m_selfPeer.m_listenPortHost);
+
+        LOG_GENERAL(DEBUG, "My port is : " << m_selfPeer.m_listenPortHost);
+
         Serializable::SetNumber<uint32_t>(
             cmd, cur_offset, m_selfPeer.m_listenPortHost, sizeof(uint32_t));
 
@@ -284,12 +282,10 @@ void RumorManager::SendMessages(const Peer& toPeer,
         {
             // Add raw message to outgoing message
             cmd.insert(cmd.end(), m->second.begin(), m->second.end());
-            LOG_GENERAL(INFO,
-                        "Sending Non Empty - Message - "
+            LOG_GENERAL(DEBUG,
+                        "Sending Non Empty - Gossip Message - "
                             << k << " To Peer : " << toPeer);
         }
-
-        //LOG_GENERAL(INFO, "Sending Message - " << k << " To Peer : " << toPeer);
 
         // Send the message to peer .
         P2PComm::GetInstance().SendMessageNoQueue(toPeer, cmd,
