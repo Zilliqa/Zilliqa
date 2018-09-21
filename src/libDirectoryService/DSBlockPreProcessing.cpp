@@ -312,7 +312,9 @@ bool DirectoryService::VerifyNodePriority(const VectorOfShard& shards)
 {
     // If the PoW submissions less than the max number of nodes, then all nodes can join, no need to verify.
     if (m_allPoWs.size() <= MAX_SHARD_NODE_NUM)
+    {
         return true;
+    }
 
     uint32_t numOutOfMyPriorityList = 0;
     auto setTopPriorityNodes = FindTopPriorityNodes();
