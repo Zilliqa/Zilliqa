@@ -130,7 +130,14 @@ void DirectoryService::SendDSBlockToNewDSLeader()
         return;
     }
 
-    P2PComm::GetInstance().SendMessage(winnerpeer, dsblock_message);
+    vector<Peer> newDSmembers;
+    for (const auto& newDSmember :
+         m_pendingDSBlock->GetHeader().GetDSPoWWinners())
+    {
+        newDSmembers.emplace_back(newDSmember.second);
+    }
+
+    P2PComm::GetInstance().SendMessage(newDSmembers, dsblock_message);
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I the part of the subset of the DS committee that have sent the "
@@ -185,8 +192,7 @@ void DirectoryService::SetupMulticastConfigForDSBlock(
                                       << m_shards.size());
 }
 
-void DirectoryService::SendDSBlockToShardNodes(const Peer& winnerpeer,
-                                               unsigned int my_shards_lo,
+void DirectoryService::SendDSBlockToShardNodes(unsigned int my_shards_lo,
                                                unsigned int my_shards_hi)
 {
     if (LOOKUP_NODE_MODE)
@@ -209,9 +215,9 @@ void DirectoryService::SendDSBlockToShardNodes(const Peer& winnerpeer,
         vector<unsigned char> dsblock_message
             = {MessageType::NODE, NodeInstructionType::DSBLOCK};
         if (!Messenger::SetNodeDSBlock(dsblock_message, MessageOffset::BODY,
-                                       shardID, *m_pendingDSBlock, winnerpeer,
-                                       m_shards, m_DSReceivers,
-                                       m_shardReceivers, m_shardSenders))
+                                       shardID, *m_pendingDSBlock, m_shards,
+                                       m_DSReceivers, m_shardReceivers,
+                                       m_shardSenders))
         {
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Messenger::SetNodeDSBlock failed.");
@@ -649,7 +655,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     // Too few target nodes - avoid asking all DS clusters to send
     if ((my_DS_cluster_num + 1) <= m_shards.size())
     {
-        SendDSBlockToShardNodes(winnerpeer, my_shards_lo, my_shards_hi);
+        SendDSBlockToShardNodes(my_shards_lo, my_shards_hi);
     }
 
     LOG_STATE(
