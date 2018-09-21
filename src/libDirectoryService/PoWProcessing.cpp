@@ -317,3 +317,58 @@ uint32_t DirectoryService::GetNumberOfDSPoWSolns()
     lock_guard<mutex> g(m_mutexAllDSPOWs);
     return m_allDSPoWs.size();
 }
+
+/// Calculate node priority to determine which node has the priority to join the network.
+uint8_t DirectoryService::CalculateNodePriority(uint16_t reputation)
+{
+    if (0 == reputation)
+    {
+        return 0;
+    }
+    return log2(reputation);
+}
+
+void DirectoryService::ClearReputationOfNodeWithoutPoW()
+{
+    for (auto& kv : m_mapNodeReputation)
+    {
+        if (m_allPoWs.find(kv.first) == m_allPoWs.end())
+        {
+            kv.second = 0;
+        }
+    }
+}
+
+std::set<PubKey> DirectoryService::FindTopPriorityNodes()
+{
+    std::vector<std::pair<PubKey, uint8_t>> vecNodePriority;
+    vecNodePriority.reserve(m_allPoWs.size());
+    for (const auto& kv : m_allPoWs)
+    {
+        const auto& pubKey = kv.first;
+        auto reputation = m_mapNodeReputation[pubKey];
+        auto priority = CalculateNodePriority(reputation);
+        vecNodePriority.emplace_back(pubKey, priority);
+        LOG_GENERAL(INFO,
+                    "Node " << pubKey << " reputation " << reputation
+                            << " priority " << std::to_string(priority));
+    }
+
+    std::sort(vecNodePriority.begin(), vecNodePriority.end(),
+              [](const std::pair<PubKey, uint8_t>& kv1,
+                 const std::pair<PubKey, uint8_t>& kv2) {
+                  return kv1.second > kv2.second;
+              });
+
+    std::set<PubKey> setTopPriorityNodes;
+    for (size_t i = 0; i < MAX_SHARD_NODE_NUM && i < vecNodePriority.size();
+         ++i)
+    {
+        setTopPriorityNodes.insert(vecNodePriority[i].first);
+    }
+
+    // Because the oldest DS commitee member still need to keep in the network as shard node even it didn't do PoW,
+    // so also put it into the priority node list.
+    setTopPriorityNodes.insert(m_mediator.m_DSCommittee->back().first);
+    return setTopPriorityNodes;
+}
