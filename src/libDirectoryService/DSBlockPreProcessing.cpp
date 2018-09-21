@@ -73,7 +73,7 @@ unsigned int DirectoryService::ComposeDSBlock(
         = max(sortedDSPoWSolns.size(), (size_t)NUM_DS_ELECTION);
     unsigned int counter = 0;
     std::map<PubKey, Peer> powDSWinners;
-    for (auto const& submitter : sortedDSPoWSolns)
+    for (const auto& submitter : sortedDSPoWSolns)
     {
         if (counter >= numOfElectedDSMembers)
         {
@@ -81,10 +81,11 @@ unsigned int DirectoryService::ComposeDSBlock(
         }
 
         powDSWinners[submitter.second] = m_allPoWConns[submitter.second];
-        sortedPoWSolns.erase(submitter);
+        sortedPoWSolns.erase(
+            remove(sortedPoWSolns.begin(), sortedPoWSolns.end(), submitter),
+            sortedPoWSolns.end());
         counter++;
     }
-
     if (sortedDSPoWSolns.size() == 0)
     {
         LOG_GENERAL(WARNING, "No soln met the DS difficulty level");
@@ -539,7 +540,8 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
     vector<Peer> proposedDSMembersInfo;
     for (const auto& proposedMember : DSPoWOrderSorter)
     {
-        proposedDSMembersInfo.emplace(m_allPoWConns[proposedMember.second]);
+        proposedDSMembersInfo.emplace_back(
+            m_allPoWConns[proposedMember.second]);
     }
 
     ComputeTxnSharingAssignments(proposedDSMembersInfo);
