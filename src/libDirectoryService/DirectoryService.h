@@ -91,8 +91,19 @@ class DirectoryService : public Executable, public Broadcastable
     // Final block consensus variables
     std::shared_ptr<TxBlock> m_finalBlock;
 
+    struct MBSubmissionBufferEntry
+    {
+        std::vector<MicroBlock> m_microBlocks;
+        std::vector<unsigned char> m_stateDelta;
+        MBSubmissionBufferEntry(const std::vector<MicroBlock>& microBlocks,
+                                const std::vector<unsigned char>& stateDelta)
+            : m_microBlocks(microBlocks)
+            , m_stateDelta(stateDelta)
+        {
+        }
+    };
     std::mutex m_mutexMBSubmissionBuffer;
-    std::unordered_map<uint64_t, std::vector<std::vector<unsigned char>>>
+    std::unordered_map<uint64_t, std::vector<MBSubmissionBufferEntry>>
         m_MBSubmissionBuffer;
 
     std::mutex m_mutexFinalBlockConsensusBuffer;
@@ -230,13 +241,14 @@ class DirectoryService : public Executable, public Broadcastable
     bool CheckWhetherDSBlockIsFresh(const uint64_t dsblock_num);
     void CommitMBSubmissionMsgBuffer();
     bool ProcessMicroblockSubmissionFromShard(
-        const std::vector<unsigned char>& message, unsigned int offset,
-        const Peer& from);
+        const uint64_t blockNumber, const std::vector<MicroBlock>& microBlocks,
+        const std::vector<unsigned char>& stateDelta);
     bool ProcessMicroblockSubmissionFromShardCore(
-        const std::vector<unsigned char>& message, unsigned int curr_offset);
+        const std::vector<MicroBlock>& microBlocks,
+        const std::vector<unsigned char>& stateDelta);
     bool ProcessMissingMicroblockSubmission(
-        const std::vector<unsigned char>& message, unsigned int offset,
-        const Peer& from);
+        const uint64_t blockNumber, const std::vector<MicroBlock>& microBlocks,
+        const std::vector<unsigned char>& stateDelta);
     void ExtractDataFromMicroblocks(
         TxnHash& microblockTxnTrieRoot, StateHash& microblockDeltaTrieRoot,
         TxnHash& microblockTranReceiptRoot,
@@ -247,8 +259,7 @@ class DirectoryService : public Executable, public Broadcastable
         std::vector<bool>& isMicroBlockEmpty, uint32_t& numMicroBlocks);
     bool VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
                                      uint32_t shardId);
-    bool ProcessStateDelta(const std::vector<unsigned char>& message,
-                           unsigned int cur_offset,
+    bool ProcessStateDelta(const std::vector<unsigned char>& stateDelta,
                            const StateHash& microBlockStateDeltaHash);
 
     // FinalBlockValidator functions
