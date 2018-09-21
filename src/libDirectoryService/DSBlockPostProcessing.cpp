@@ -57,7 +57,6 @@ void DirectoryService::StoreDSBlockToStorage()
         INFO, std::to_string(m_mediator.m_currentEpochNum).c_str(),
         "Storing DS Block Number: "
             << m_pendingDSBlock->GetHeader().GetBlockNum()
-            << " with Nonce: " << m_pendingDSBlock->GetHeader().GetNonce()
             << ", DS PoW Difficulty: "
             << std::to_string(m_pendingDSBlock->GetHeader().GetDSDifficulty())
             << ", Difficulty: "
