@@ -46,7 +46,7 @@ namespace RRS
     public:
         // CONSTRUCTORS
         // Default constructor. The returned state machine instance will be in an invalid state.
-        RumorStateMachine();
+        RumorStateMachine() = delete;
 
         // Construct a new instance using the specified 'networkConfigPtr'.
         RumorStateMachine(const NetworkConfig* networkConfigPtr);
