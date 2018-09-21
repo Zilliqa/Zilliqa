@@ -61,7 +61,10 @@ enum NodeInstructionType : unsigned char
     CREATETRANSACTIONFROMLOOKUP = 0x06,
     VCBLOCK = 0x07,
     DOREJOIN = 0x08,
-    FORWARDTXNBLOCK = 0x09
+    FORWARDTXNBLOCK = 0x09,
+#ifdef HEARTBEAT_TEST
+    HEARTBEATKILLPULSE = 0x0A,
+#endif // HEARTBEAT_TEST
 };
 
 enum LookupInstructionType : unsigned char

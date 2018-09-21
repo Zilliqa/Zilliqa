@@ -130,7 +130,6 @@ class DirectoryService : public Executable, public Broadcastable
 
     // TO Remove
     Mediator& m_mediator;
-    Synchronizer m_synchronizer;
 
     uint32_t m_numOfAbsentMicroBlockHashes;
 
@@ -329,9 +328,6 @@ class DirectoryService : public Executable, public Broadcastable
                                  unsigned int my_shards_hi,
                                  std::vector<unsigned char>& vcblock_message);
 
-    // Rejoin the network as a DS node in case of failure happens in protocol
-    void RejoinAsDS();
-
     // Reset certain variables to the initial state
     bool CleanVariables();
 
@@ -420,6 +416,8 @@ public:
     std::unordered_map<uint64_t, std::set<MicroBlock>> m_microBlocks;
     std::mutex m_mutexMicroBlocks;
 
+    Synchronizer m_synchronizer;
+
     /// Constructor. Requires mediator reference to access Node and other global members.
     DirectoryService(Mediator& mediator);
 
@@ -438,6 +436,9 @@ public:
 
     /// Launches separate thread to execute sharding consensus after wait_window seconds.
     void ScheduleShardingConsensus(const unsigned int wait_window);
+
+    /// Rejoin the network as a DS node in case of failure happens in protocol
+    void RejoinAsDS();
 
     /// Post processing after the DS node successfully synchronized with the network
     bool FinishRejoinAsDS();
