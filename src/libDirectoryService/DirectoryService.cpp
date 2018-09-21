@@ -388,6 +388,7 @@ bool DirectoryService::CleanVariables()
     m_shards.clear();
     m_publicKeyToShardIdMap.clear();
     m_allPoWConns.clear();
+    m_mapNodeReputation.clear();
 
     {
         std::lock_guard<mutex> lock(m_mutexConsensus);
