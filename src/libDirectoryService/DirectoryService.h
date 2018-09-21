@@ -203,8 +203,6 @@ class DirectoryService : public Executable, public Broadcastable
     ComputeTxnSharingAssignments(const std::vector<Peer>& proposedDSMembers);
     bool VerifyPoWOrdering(const VectorOfShard& shards);
     bool VerifyNodePriority(const VectorOfShard& shards);
-    void
-    ComputeTxnSharingAssignments(const std::vector<Peer>& proposedDSMembers);
 
     // internal calls from RunConsensusOnDSBlock
     bool RunConsensusOnDSBlockWhenDSPrimary();
