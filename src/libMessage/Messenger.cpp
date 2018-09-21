@@ -602,10 +602,11 @@ bool Messenger::SetDSDSBlockAnnouncement(
             ShardingStructure::Member* proto_member
                 = proto_shard->add_members();
 
-            SerializableToProtobufByteArray(node.first,
+            SerializableToProtobufByteArray(std::get<SHARD_NODE_PUBKEY>(node),
                                             *proto_member->mutable_pubkey());
-            SerializableToProtobufByteArray(node.second,
+            SerializableToProtobufByteArray(std::get<SHARD_NODE_PEER>(node),
                                             *proto_member->mutable_peerinfo());
+            proto_member->set_reputation(std::get<SHARD_NODE_REP>(node));
         }
     }
 
@@ -718,7 +719,7 @@ bool Messenger::GetDSDSBlockAnnouncement(
             ProtobufByteArrayToSerializable(proto_member.pubkey(), key);
             ProtobufByteArrayToSerializable(proto_member.peerinfo(), peer);
 
-            shards.back().emplace_back(key, peer);
+            shards.back().emplace_back(key, peer, proto_member.reputation());
         }
     }
 
@@ -989,10 +990,11 @@ bool Messenger::SetNodeDSBlock(vector<unsigned char>& dst,
             ShardingStructure::Member* proto_member
                 = proto_shard->add_members();
 
-            SerializableToProtobufByteArray(node.first,
+            SerializableToProtobufByteArray(std::get<SHARD_NODE_PUBKEY>(node),
                                             *proto_member->mutable_pubkey());
-            SerializableToProtobufByteArray(node.second,
+            SerializableToProtobufByteArray(std::get<SHARD_NODE_PEER>(node),
                                             *proto_member->mutable_peerinfo());
+            proto_member->set_reputation(std::get<SHARD_NODE_REP>(node));
         }
     }
 
@@ -1065,7 +1067,7 @@ bool Messenger::GetNodeDSBlock(const vector<unsigned char>& src,
             ProtobufByteArrayToSerializable(proto_member.pubkey(), key);
             ProtobufByteArrayToSerializable(proto_member.peerinfo(), peer);
 
-            shards.back().emplace_back(key, peer);
+            shards.back().emplace_back(key, peer, proto_member.reputation());
         }
     }
 
@@ -1154,6 +1156,91 @@ bool Messenger::GetNodeFinalBlock(const vector<unsigned char>& src,
     stateDelta.resize(result.statedelta().size());
     copy(result.statedelta().begin(), result.statedelta().end(),
          stateDelta.begin());
+
+    return true;
+}
+
+bool Messenger::SetNodeForwardTransaction(
+    vector<unsigned char>& dst, const unsigned int offset,
+    const uint64_t blockNum, const TxnHash& txHash, const StateHash& stateHash,
+    const vector<TransactionWithReceipt>& txns)
+{
+    LOG_MARKER();
+
+    NodeForwardTransaction result;
+
+    result.set_blocknum(blockNum);
+    result.set_microblocktxhash(txHash.asArray().data(),
+                                txHash.asArray().size());
+    result.set_microblockdeltahash(stateHash.asArray().data(),
+                                   stateHash.asArray().size());
+
+    unsigned int txnsCount = 0;
+
+    for (const auto& txn : txns)
+    {
+        SerializableToProtobufByteArray(txn, *result.add_txnswithreceipt());
+        txnsCount++;
+    }
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "NodeForwardTransaction initialization failed.");
+        return false;
+    }
+
+    LOG_GENERAL(INFO,
+                "BlockNum: "
+                    << blockNum << " TxHash: "
+                    << DataConversion::charArrToHexStr(txHash.asArray())
+                    << " StateHash: "
+                    << DataConversion::charArrToHexStr(stateHash.asArray())
+                    << " Txns: " << txnsCount);
+
+    return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetNodeForwardTransaction(const vector<unsigned char>& src,
+                                          const unsigned int offset,
+                                          uint64_t& blockNum, TxnHash& txHash,
+                                          StateHash& stateHash,
+                                          vector<TransactionWithReceipt>& txns)
+{
+    LOG_MARKER();
+
+    NodeForwardTransaction result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "NodeForwardTransaction initialization failed.");
+        return false;
+    }
+
+    blockNum = result.blocknum();
+    copy(result.microblocktxhash().begin(), result.microblocktxhash().end(),
+         txHash.asArray().begin());
+    copy(result.microblockdeltahash().begin(),
+         result.microblockdeltahash().end(), stateHash.asArray().begin());
+
+    unsigned int txnsCount = 0;
+
+    for (const auto& txn : result.txnswithreceipt())
+    {
+        TransactionWithReceipt txr;
+        ProtobufByteArrayToSerializable(txn, txr);
+        txns.emplace_back(txr);
+        txnsCount++;
+    }
+
+    LOG_GENERAL(INFO,
+                "BlockNum: "
+                    << blockNum << " TxHash: "
+                    << DataConversion::charArrToHexStr(txHash.asArray())
+                    << " StateHash: "
+                    << DataConversion::charArrToHexStr(stateHash.asArray())
+                    << " Txns: " << txnsCount);
 
     return true;
 }
@@ -2277,10 +2364,11 @@ bool Messenger::SetLookupSetShardsFromSeed(vector<unsigned char>& dst,
             ShardingStructure::Member* proto_member
                 = proto_shard->add_members();
 
-            SerializableToProtobufByteArray(node.first,
+            SerializableToProtobufByteArray(std::get<SHARD_NODE_PUBKEY>(node),
                                             *proto_member->mutable_pubkey());
-            SerializableToProtobufByteArray(node.second,
+            SerializableToProtobufByteArray(std::get<SHARD_NODE_PEER>(node),
                                             *proto_member->mutable_peerinfo());
+            proto_member->set_reputation(std::get<SHARD_NODE_REP>(node));
         }
     }
 
@@ -2321,7 +2409,7 @@ bool Messenger::GetLookupSetShardsFromSeed(const vector<unsigned char>& src,
             ProtobufByteArrayToSerializable(proto_member.pubkey(), key);
             ProtobufByteArrayToSerializable(proto_member.peerinfo(), peer);
 
-            shards.back().emplace_back(key, peer);
+            shards.back().emplace_back(key, peer, proto_member.reputation());
         }
     }
 

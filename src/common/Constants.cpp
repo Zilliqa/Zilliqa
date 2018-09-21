@@ -156,6 +156,10 @@ const unsigned int MAX_TOTAL_ROUNDS{ReadFromConstantsFile("MAX_TOTAL_ROUNDS")};
 const unsigned int ROUND_TIME_IN_MS{ReadFromConstantsFile("ROUND_TIME_IN_MS")};
 const unsigned int MAX_NEIGHBORS_PER_ROUND{
     ReadFromConstantsFile("MAX_NEIGHBORS_PER_ROUND")};
+const unsigned int NUM_NODE_INCR_DIFFICULTY{
+    ReadFromConstantsFile("NUM_NODE_INCR_DIFFICULTY")};
+const unsigned int MAX_SHARD_NODE_NUM{
+    ReadFromConstantsFile("MAX_SHARD_NODE_NUM")};
 
 const bool EXCLUDE_PRIV_IP{ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true"};
 const bool TEST_NET_MODE{ReadFromOptionsFile("TEST_NET_MODE") == "true"};
