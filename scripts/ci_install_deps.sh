@@ -1,9 +1,34 @@
 #!/bin/bash
 #
-# The script is dedicated for CI use
+# The script is dedicated for CI use, do not run it on your machine
 #
 
 set -e
+
+function install_libmongoc() {
+# install libmongoc-1.13.0
+# see http://mongoc.org/libmongoc/current/installing.html
+curl -OL https://github.com/mongodb/mongo-c-driver/releases/download/1.13.0/mongo-c-driver-1.13.0.tar.gz
+tar xzf mongo-c-driver-1.13.0.tar.gz
+cd mongo-c-driver-1.13.0
+mkdir cmake-build
+cd cmake-build
+cmake -DENABLE_AUTOMATIC_INIT_AND_CLEANUP=OFF ..
+make
+make install
+}
+
+function install_libongocxx() {
+# install libmongocxx-3.3.1
+# see https://mongodb.github.io/mongo-cxx-driver/mongocxx-v3/installation/
+curl -OL https://github.com/mongodb/mongo-cxx-driver/archive/r3.3.1.tar.gz
+tar -xzf r3.3.1.tar.gz
+cd mongo-cxx-driver-r3.3.1/build
+cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local ..
+make EP_mnmlstc_core
+make -j -l4
+make install
+}
 
 # presently a docker version ubuntu 16.04 is used
 function on_sudoless_ubuntu() {
@@ -28,7 +53,8 @@ apt-get install -y \
     libevent-dev \
     libprotobuf-dev \
     libcurl4-openssl-dev \
-    protobuf-compiler
+    protobuf-compiler \
+    libsasl2-dev
 
 # install development dependencies
 apt-get install -y \
@@ -39,7 +65,8 @@ apt-get install -y \
     lcov \
     curl \
     libxml2-utils \
-    python-pip
+    python-pip \
+    git
 
 pip install pyyaml
 }
@@ -85,11 +112,15 @@ os=$(uname)
 case $os in
     'Linux')
         echo "Installing dependencies on Linux ..."
-        on_sudoless_ubuntu || echo "Hint: Try re-run with sudo right, if failed"
+        on_sudoless_ubuntu
+        install_libmongoc
+        install_libongocxx
         ;;
     'Darwin')
         echo "Installing dependencies on OSX ..."
         on_osx
+        install_libmongoc
+        install_libongocxx
         ;;
     *)
         echo "Error: Unknown OS, no dependencies installed"
