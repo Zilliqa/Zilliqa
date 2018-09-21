@@ -471,8 +471,11 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
                             "without it");
 
                 auto func2 = [this]() mutable -> void {
-                    m_dsStartedMicroblockConsensus = true;
-                    m_mediator.m_node->RunConsensusOnMicroBlock();
+                    if (!m_dsStartedMicroblockConsensus)
+                    {
+                        m_dsStartedMicroblockConsensus = true;
+                        m_mediator.m_node->RunConsensusOnMicroBlock();
+                    }
                 };
 
                 DetachedFunction(1, func2);
@@ -482,7 +485,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
                 if (cv_scheduleFinalBlockConsensus.wait_for(
                         cv_lk,
                         std::chrono::seconds(
-                            FINALBLOCK_CONSENSUS_OBJECT_TIMEOUT))
+                            DS_MICROBLOCK_CONSENSUS_OBJECT_TIMEOUT))
                     == std::cv_status::timeout)
                 {
                     LOG_GENERAL(
@@ -523,13 +526,26 @@ bool DirectoryService::ProcessFinalBlockConsensus(
 
     if (m_state != FINALBLOCK_CONSENSUS)
     {
-        lock_guard<mutex> h(m_mutexFinalBlockConsensusBuffer);
-
-        m_finalBlockConsensusBuffer[consensus_id].push_back(
-            make_pair(from, message));
+        {
+            lock_guard<mutex> h(m_mutexFinalBlockConsensusBuffer);
+            m_finalBlockConsensusBuffer[consensus_id].push_back(
+                make_pair(from, message));
+        }
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Process final block arrived earlier, saved to buffer");
+                  "Process final block arrived early, saved to buffer");
+
+        if (consensus_id == m_consensusID)
+        {
+            lock_guard<mutex> g(m_mutexPrepareRunFinalblockConsensus);
+            cv_scheduleDSMicroBlockConsensus.notify_all();
+            if (!m_dsStartedMicroblockConsensus)
+            {
+                m_dsStartedMicroblockConsensus = true;
+            }
+            cv_scheduleFinalBlockConsensus.notify_all();
+            RunConsensusOnFinalBlock(true);
+        }
     }
     else
     {
@@ -548,10 +564,11 @@ bool DirectoryService::ProcessFinalBlockConsensus(
                           << consensus_id << "), current (" << m_consensusID
                           << ")");
 
-            lock_guard<mutex> h(m_mutexFinalBlockConsensusBuffer);
-
-            m_finalBlockConsensusBuffer[consensus_id].push_back(
-                make_pair(from, message));
+            {
+                lock_guard<mutex> h(m_mutexFinalBlockConsensusBuffer);
+                m_finalBlockConsensusBuffer[consensus_id].push_back(
+                    make_pair(from, message));
+            }
         }
         else
         {
@@ -654,7 +671,7 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
                   "Oops,     - what to do now???");
 
         if (m_consensusObject->GetConsensusErrorCode()
-            == ConsensusCommon::FINALBLOCK_INVALID_MICROBLOCK_ROOT_HASH)
+            == ConsensusCommon::FINALBLOCK_MISSING_MICROBLOCKS)
         {
             // Missing microblocks proposed by leader. Will attempt to fetch
             // missing microblocks from leader, set to a valid state to accept cosig1 and cosig2
