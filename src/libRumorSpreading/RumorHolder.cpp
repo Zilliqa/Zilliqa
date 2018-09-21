@@ -63,7 +63,7 @@ namespace RRS
         , m_rumors()
         , m_mutex()
         , m_nextMemberCb()
-        , m_maxNeighborPerRound(1)
+        , m_maxNeighborsPerRounds(1)
     {
         toVector(peers);
     }
@@ -76,7 +76,7 @@ namespace RRS
         , m_rumors()
         , m_mutex()
         , m_nextMemberCb(cb)
-        , m_maxNeighborPerRound(1)
+        , m_maxNeighborsPerRounds(1)
     {
         toVector(peers);
     }
@@ -90,7 +90,7 @@ namespace RRS
         , m_mutex()
         , m_nextMemberCb()
         , m_statistics()
-        , m_maxNeighborPerRound(1)
+        , m_maxNeighborsPerRounds(1)
     {
         assert(networkConfig.networkSize() == peers.size());
         toVector(peers);
@@ -98,7 +98,7 @@ namespace RRS
 
     RumorHolder::RumorHolder(const std::unordered_set<int>& peers,
                              int maxRoundsInB, int maxRoundsInC,
-                             int maxTotalRounds, int maxNeighborPerRound,
+                             int maxTotalRounds, int maxNeighborsPerRound,
                              int id)
         : m_id(id)
         , m_networkConfig(peers.size(), maxRoundsInB, maxRoundsInC,
@@ -108,8 +108,12 @@ namespace RRS
         , m_mutex()
         , m_nextMemberCb()
         , m_statistics()
-        , m_maxNeighborPerRound(maxNeighborPerRound)
+        , m_maxNeighborsPerRounds(maxNeighborsPerRound)
     {
+        if (maxNeighborsPerRound > (int)peers.size())
+        {
+            maxNeighborsPerRound = peers.size();
+        }
         toVector(peers);
     }
 
@@ -123,6 +127,7 @@ namespace RRS
         , m_mutex()
         , m_nextMemberCb(cb)
         , m_statistics()
+        , m_maxNeighborsPerRounds(1)
     {
         assert(networkConfig.networkSize() == peers.size());
         toVector(peers);
@@ -227,7 +232,7 @@ namespace RRS
         //LOG_MARKER();
         std::lock_guard<std::mutex> guard(m_mutex); // critical section
 
-        if (m_peers.size() <= 0)
+        if (m_peers.size() == 0)
         {
             m_nonPriorPeers.clear();
             m_peersInCurrentRound.clear();
@@ -241,12 +246,12 @@ namespace RRS
         int retryCount = 0;
         int neighborC = 0;
 
-        if (m_nonPriorPeers.size() >= m_peers.size() - m_maxNeighborPerRound)
+        if (m_nonPriorPeers.size() >= m_peers.size() - m_maxNeighborsPerRounds)
         {
             m_nonPriorPeers.clear();
         }
 
-        while (neighborC < m_maxNeighborPerRound && retryCount < 3)
+        while (neighborC < m_maxNeighborsPerRounds && retryCount < MAXRETRY)
         {
             toMember = m_nextMemberCb ? m_nextMemberCb() : chooseRandomMember();
             if (m_nonPriorPeers.count(toMember) == 0)
@@ -335,12 +340,6 @@ namespace RRS
     bool RumorHolder::operator==(const RumorHolder& other) const
     {
         return m_id == other.m_id;
-    }
-
-    // FREE OPERATORS
-    int MemberHash::operator()(const RRS::RumorHolder& obj) const
-    {
-        return obj.id();
     }
 
 } // project namespace
