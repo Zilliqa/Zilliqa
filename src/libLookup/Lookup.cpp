@@ -812,6 +812,10 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
                           .GetHeader()
                           .GetBlockNum();
     }
+    else if (lowBlockNum == 0)
+    {
+        lowBlockNum = 1;
+    }
 
     if (highBlockNum == 0)
     {
@@ -990,6 +994,10 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
                           .GetHeader()
                           .GetBlockNum();
     }
+    else if (lowBlockNum == 0)
+    {
+        lowBlockNum = 1;
+    }
 
     if (highBlockNum == 0)
     {
@@ -1129,6 +1137,76 @@ bool Lookup::ProcessGetTxBodyFromSeed(const vector<unsigned char>& message,
     P2PComm::GetInstance().SendMessage(requestingNode, txBodyMessage);
 
     // #endif // IS_LOOKUP_NODE
+
+    return true;
+}
+
+bool Lookup::ProcessGetShardFromSeed(const vector<unsigned char>& message,
+                                     unsigned int offset, const Peer& from)
+{
+    //Message = [Port]
+    uint32_t port;
+    if (!Messenger::GetLookupGetShardsFromSeed(message, offset, port))
+    {
+        LOG_GENERAL(WARNING, "Failed to process");
+        return false;
+    }
+    Peer requestingNode(from.m_ipAddress, port);
+    vector<unsigned char> msg
+        = {MessageType::LOOKUP, LookupInstructionType::SETSHARDSFROMSEED};
+    lock_guard<mutex> g(m_mutexShards);
+    if (!Messenger::SetLookupSetShardsFromSeed(msg, MessageOffset::BODY,
+                                               m_mediator.m_ds->m_shards))
+    {
+        LOG_GENERAL(WARNING, "Failed to Process");
+        return false;
+    }
+
+    P2PComm::GetInstance().SendMessage(requestingNode, msg);
+
+    return true;
+}
+
+bool Lookup::ProcessSetShardFromSeed(const vector<unsigned char>& message,
+                                     unsigned int offset, const Peer& from)
+{
+    LOG_MARKER();
+    VectorOfShard shards;
+
+    if (!Messenger::GetLookupSetShardsFromSeed(message, offset, shards))
+    {
+        LOG_GENERAL(WARNING, "Failed to Process");
+        return false;
+    }
+    LOG_GENERAL(INFO, "Sharding Structure Recvd from " << from);
+
+    uint32_t i = 0;
+    for (const auto& shard : shards)
+    {
+        LOG_GENERAL(INFO, "Size of shard " << i << " " << shard.size());
+        i++;
+    }
+    lock_guard<mutex> g(m_mutexShards);
+
+    m_mediator.m_ds->m_shards = shards;
+
+    return true;
+}
+
+bool Lookup::GetShardFromLookup()
+{
+    LOG_MARKER();
+    vector<unsigned char> msg
+        = {MessageType::LOOKUP, LookupInstructionType::GETSHARDSFROMSEED};
+
+    if (!Messenger::SetLookupGetShardsFromSeed(
+            msg, MessageOffset::BODY, m_mediator.m_selfPeer.m_listenPortHost))
+    {
+        LOG_GENERAL(WARNING, "Failed to process");
+        return false;
+    }
+
+    SendMessageToRandomLookupNode(msg);
 
     return true;
 }
@@ -1369,6 +1447,7 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
             m_mediator.m_dsBlockChain.AddBlock(dsBlock);
 
             // Store DS Block to disk
+
             vector<unsigned char> serializedDSBlock;
             dsBlock.Serialize(serializedDSBlock, 0);
             BlockStorage::GetBlockStorage().PutDSBlock(
@@ -1509,7 +1588,7 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
 
         m_mediator.UpdateTxBlockRand();
 
-        if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
+        if ((m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0))
         {
             GetStateFromLookupNodes();
         }
@@ -2509,7 +2588,9 @@ bool Lookup::Execute(const vector<unsigned char>& message, unsigned int offset,
                                          &Lookup::ProcessSetOfflineLookups,
                                          &Lookup::ProcessRaiseStartPoW,
                                          &Lookup::ProcessGetStartPoWFromSeed,
-                                         &Lookup::ProcessSetStartPoWFromSeed};
+                                         &Lookup::ProcessSetStartPoWFromSeed,
+                                         &Lookup::ProcessGetShardFromSeed,
+                                         &Lookup::ProcessSetShardFromSeed};
 
     const unsigned char ins_byte = message.at(offset);
     const unsigned int ins_handlers_count
