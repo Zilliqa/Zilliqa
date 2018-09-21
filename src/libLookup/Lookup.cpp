@@ -814,6 +814,7 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
     }
     else if (lowBlockNum == 0)
     {
+        //give all the blocks in the ds blockchain
         lowBlockNum = 1;
     }
 
@@ -996,6 +997,7 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
     }
     else if (lowBlockNum == 0)
     {
+        //give all the blocks till now in blockchain
         lowBlockNum = 1;
     }
 
@@ -1447,7 +1449,6 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
             m_mediator.m_dsBlockChain.AddBlock(dsBlock);
 
             // Store DS Block to disk
-
             vector<unsigned char> serializedDSBlock;
             dsBlock.Serialize(serializedDSBlock, 0);
             BlockStorage::GetBlockStorage().PutDSBlock(
