@@ -81,7 +81,7 @@ unsigned int DirectoryService::ComposeDSBlock(
         }
 
         powDSWinners[submitter.second] = m_allPoWConns[submitter.second];
-        sortedPoWSolns.erase(submitter.second);
+        sortedPoWSolns.erase(submitter);
         counter++;
     }
 
@@ -374,7 +374,7 @@ void DirectoryService::ComputeTxnSharingAssignments(
 
     // PART 1
     // First version: We just take the first X nodes in DS committee
-    // Take note that this is the OLD DS committee -> we must consider that winnerpeer is the new DS leader (and the last node in the committee will no longer be a DS node)
+    // Take note that this is the OLD DS committee -> we must consider that winnerpeer is the new DS member (and the last node in the committee will no longer be a DS node)
 
     m_DSReceivers.clear();
 
@@ -671,8 +671,6 @@ bool DirectoryService::DSBlockValidator(
         return true;
     }
 
-    Peer winnerPeer;
-
     m_tempDSReceivers.clear();
     m_tempShardReceivers.clear();
     m_tempShardSenders.clear();
@@ -695,26 +693,27 @@ bool DirectoryService::DSBlockValidator(
     }
 
     // To-do: Put in the logic here for checking the proposed DS block
-
-    auto storedMember
-        = m_allPoWConns.find(m_pendingDSBlock->GetHeader().GetMinerPubKey());
-
-    // I know the winner but the winner IP given by the leader is different!
-    if (storedMember != m_allPoWConns.end())
+    map<PubKey, Peer> NewDSMembers = m_mediator.m_dsBlockChain.GetLastBlock()
+                                         .GetHeader()
+                                         .GetDSPoWWinners();
+    for (const auto& DSPowWinner : NewDSMembers)
     {
-        if (storedMember->second != winnerPeer)
+        if (m_allPoWConns.find(DSPowWinner.first) != m_allPoWConns.end())
         {
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "WARNING: Why is the IP of the winner different from "
-                      "what I have in m_allPoWConns???");
-            return false;
+            if (m_allPoWConns[DSPowWinner.first] != DSPowWinner.second)
+            {
+                LOG_EPOCH(WARNING,
+                          to_string(m_mediator.m_currentEpochNum).c_str(),
+                          "WARNING: Why is the IP of the winner different from "
+                          "what I have in m_allPoWConns???");
+                return false;
+            }
         }
-    }
-    // I don't know the winner -> store the IP given by the leader
-    else
-    {
-        m_allPoWConns.emplace(m_pendingDSBlock->GetHeader().GetMinerPubKey(),
-                              winnerPeer);
+        else
+        {
+            // I don't know the winner -> store the IP given by the leader
+            m_allPoWConns.emplace(DSPowWinner.first, DSPowWinner.second);
+        }
     }
 
     // Start to adjust difficulty from second DS block.
