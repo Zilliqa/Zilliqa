@@ -334,7 +334,7 @@ void DirectoryService::UpdateMyDSModeAndConsensusId()
     }*/
 }
 
-void DirectoryService::UpdateDSCommiteeComposition(const Peer& winnerpeer)
+void DirectoryService::UpdateDSCommiteeComposition()
 {
     if (LOOKUP_NODE_MODE)
     {
@@ -347,14 +347,23 @@ void DirectoryService::UpdateDSCommiteeComposition(const Peer& winnerpeer)
     // Update the DS committee composition
     LOG_MARKER();
 
-    m_mediator.m_DSCommittee->emplace_front(make_pair(
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetMinerPubKey(),
-        winnerpeer));
-    m_mediator.m_DSCommittee->pop_back();
-
-    // Remove the new winner of pow from m_allpowconn. He is the new ds leader and do not need to do pow anymore
-    m_allPoWConns.erase(
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetMinerPubKey());
+    map<PubKey, Peer> NewDSMembers = m_mediator.m_dsBlockChain.GetLastBlock()
+                                         .GetHeader()
+                                         .GetDSPoWWinners();
+    for (const auto& DSPowWinner : NewDSMembers)
+    {
+        m_allPoWConns.erase(DSPowWinner.first);
+        if (m_mediator.m_selfKey.second == DSPowWinner.first)
+        {
+            m_mediator.m_DSCommittee->emplace_front(
+                make_pair(m_mediator.m_selfKey.second, Peer()));
+        }
+        else
+        {
+            m_mediator.m_DSCommittee->emplace_front(DSPowWinner);
+        }
+        m_mediator.m_DSCommittee->pop_back();
+    }
 }
 
 void DirectoryService::StartFirstTxEpoch()
