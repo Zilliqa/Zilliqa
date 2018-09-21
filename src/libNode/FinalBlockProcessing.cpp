@@ -352,34 +352,17 @@ void Node::BroadcastTransactionsToLookup(
     if (txns_to_send.size() > 0)
     {
         // Transaction body sharing
-        unsigned int cur_offset = MessageOffset::BODY;
         vector<unsigned char> forwardtxn_message
             = {MessageType::NODE, NodeInstructionType::FORWARDTRANSACTION};
 
-        // block num
-        Serializable::SetNumber<uint64_t>(forwardtxn_message, cur_offset,
-                                          blocknum, sizeof(uint64_t));
-        cur_offset += sizeof(uint64_t);
-
-        // microblock tx hash
-        TxnHash microBlockTxHash = m_microblock->GetHeader().GetTxRootHash();
-        copy(microBlockTxHash.asArray().begin(),
-             microBlockTxHash.asArray().end(),
-             back_inserter(forwardtxn_message));
-        cur_offset += TRAN_HASH_SIZE;
-
-        // microblock state delta hash
-        StateHash microBlockDeltaHash
-            = m_microblock->GetHeader().GetStateDeltaHash();
-        copy(microBlockDeltaHash.asArray().begin(),
-             microBlockDeltaHash.asArray().end(),
-             back_inserter(forwardtxn_message));
-        cur_offset += STATE_HASH_SIZE;
-
-        for (const auto& i : txns_to_send)
+        if (!Messenger::SetNodeForwardTransaction(
+                forwardtxn_message, MessageOffset::BODY, blocknum,
+                m_microblock->GetHeader().GetTxRootHash(),
+                m_microblock->GetHeader().GetStateDeltaHash(), txns_to_send))
         {
-            // txn body and receipt
-            cur_offset = i.Serialize(forwardtxn_message, cur_offset);
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Messenger::SetNodeForwardTransaction failed.");
+            return;
         }
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -1066,57 +1049,6 @@ bool Node::ProcessStateDeltaFromFinalBlock(
     return true;
 }
 
-bool Node::LoadForwardedTxnsAndCheckRoot(
-    const vector<unsigned char>& message, unsigned int cur_offset,
-    TxnHash& microBlockTxHash, StateHash& microBlockStateDeltaHash,
-    vector<TransactionWithReceipt>& txnsInForwardedMessage)
-// vector<TxnHash> & txnHashesInForwardedMessage)
-{
-    LOG_MARKER();
-
-    copy(message.begin() + cur_offset,
-         message.begin() + cur_offset + TRAN_HASH_SIZE,
-         microBlockTxHash.asArray().begin());
-    cur_offset += TRAN_HASH_SIZE;
-
-    LOG_GENERAL(
-        INFO,
-        "Received MicroBlock TxHash root : "
-            << DataConversion::charArrToHexStr(microBlockTxHash.asArray()));
-
-    copy(message.begin() + cur_offset,
-         message.begin() + cur_offset + STATE_HASH_SIZE,
-         microBlockStateDeltaHash.asArray().begin());
-    cur_offset += STATE_HASH_SIZE;
-
-    LOG_GENERAL(INFO,
-                "Received MicroBlock StateDelta root : "
-                    << DataConversion::charArrToHexStr(
-                           microBlockStateDeltaHash.asArray()));
-
-    vector<TxnHash> txnHashesInForwardedMessage;
-
-    while (cur_offset < message.size())
-    {
-        // reading [Transaction] from received msg
-        // Transaction tx(message, cur_offset);
-        TransactionWithReceipt txr;
-        if (txr.Deserialize(message, cur_offset) != 0)
-        {
-            LOG_GENERAL(WARNING, "We failed to deserialize Transaction.");
-            return false;
-        }
-        cur_offset += txr.GetSerializedSize();
-
-        txnsInForwardedMessage.emplace_back(txr);
-        txnHashesInForwardedMessage.emplace_back(
-            txr.GetTransaction().GetTranID());
-    }
-
-    return ComputeTransactionsRoot(txnHashesInForwardedMessage)
-        == microBlockTxHash;
-}
-
 void Node::CommitForwardedTransactions(
     const vector<TransactionWithReceipt>& txnsInForwardedMessage,
     [[gnu::unused]] const uint64_t& blocknum)
@@ -1198,15 +1130,19 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
                                      unsigned int cur_offset,
                                      [[gnu::unused]] const Peer& from)
 {
-    // Message = [block number] [microblocktxhash] [microblockdeltahash] [Transaction] [Transaction] [Transaction] ....
-    // Received from other shards
-
     LOG_MARKER();
 
-    // reading [block number] from received msg
-    uint64_t latestForwardBlockNum = Serializable::GetNumber<uint64_t>(
-        message, cur_offset, sizeof(uint64_t));
-    cur_offset += sizeof(uint64_t);
+    uint64_t latestForwardBlockNum = 0;
+    ForwardedTxnBufferEntry entry;
+
+    if (!Messenger::GetNodeForwardTransaction(
+            message, cur_offset, latestForwardBlockNum, entry.m_txnHash,
+            entry.m_stateHash, entry.m_transactions))
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::GetNodeForwardTransaction failed.");
+        return false;
+    }
 
     LOG_STATE(
         "[TXBOD]["
@@ -1224,14 +1160,14 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
         < latestForwardBlockNum)
     {
         lock_guard<mutex> g(m_mutexForwardedTxnBuffer);
-        m_forwardedTxnBuffer[latestForwardBlockNum].push_back(message);
+        m_forwardedTxnBuffer[latestForwardBlockNum].push_back(entry);
 
         return true;
     }
     else if (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
              == latestForwardBlockNum)
     {
-        return ProcessForwardTransactionCore(message, cur_offset);
+        return ProcessForwardTransactionCore(entry);
     }
 
     LOG_GENERAL(WARNING,
@@ -1244,21 +1180,31 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
     return false;
 }
 
-bool Node::ProcessForwardTransactionCore(const vector<unsigned char>& message,
-                                         unsigned int cur_offset)
+bool Node::ProcessForwardTransactionCore(const ForwardedTxnBufferEntry& entry)
 {
     LOG_MARKER();
 
-    TxnHash microBlockTxRootHash;
-    StateHash microBlockStateDeltaHash;
-    vector<TransactionWithReceipt> txnsInForwardedMessage;
-    // vector<TxnHash> txnHashesInForwardedMessage;
+    LOG_GENERAL(
+        INFO,
+        "Received MicroBlock TxHash root : "
+            << DataConversion::charArrToHexStr(entry.m_txnHash.asArray()));
 
-    if (!LoadForwardedTxnsAndCheckRoot(
-            message, cur_offset, microBlockTxRootHash, microBlockStateDeltaHash,
-            txnsInForwardedMessage /*, txnHashesInForwardedMessage*/))
+    LOG_GENERAL(
+        INFO,
+        "Received MicroBlock StateDelta root : "
+            << DataConversion::charArrToHexStr(entry.m_stateHash.asArray()));
+
+    vector<TxnHash> txnHashesInForwardedMessage;
+
+    for (const auto& txr : entry.m_transactions)
     {
-        LOG_GENERAL(WARNING, "LoadForwardedTxnsAndCheckRoot FAILED");
+        txnHashesInForwardedMessage.emplace_back(
+            txr.GetTransaction().GetTranID());
+    }
+
+    if (ComputeTransactionsRoot(txnHashesInForwardedMessage) != entry.m_txnHash)
+    {
+        LOG_GENERAL(WARNING, "ComputeTransactionsRoot FAILED");
         return false;
     }
 
@@ -1267,7 +1213,7 @@ bool Node::ProcessForwardTransactionCore(const vector<unsigned char>& message,
         bool isEveryMicroBlockAvailable;
 
         if (!IsMicroBlockTxRootHashInFinalBlock(
-                microBlockTxRootHash, microBlockStateDeltaHash,
+                entry.m_txnHash, entry.m_stateHash,
                 m_mediator.m_txBlockChain.GetLastBlock()
                     .GetHeader()
                     .GetBlockNum(),
@@ -1280,7 +1226,7 @@ bool Node::ProcessForwardTransactionCore(const vector<unsigned char>& message,
         // StoreTxInMicroBlock(microBlockTxRootHash, txnHashesInForwardedMessage)
 
         CommitForwardedTransactions(
-            txnsInForwardedMessage,
+            entry.m_transactions,
             m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum());
 
         // #ifndef IS_LOOKUP_NODE
@@ -1342,10 +1288,9 @@ void Node::CommitForwardedMsgBuffer()
                         .GetHeader()
                         .GetBlockNum())
         {
-            for (const auto& msg : it->second)
+            for (const auto& entry : it->second)
             {
-                ProcessForwardTransactionCore(
-                    msg, MessageOffset::BODY + sizeof(uint64_t));
+                ProcessForwardTransactionCore(entry);
             }
             m_forwardedTxnBuffer.erase(it);
             break;
