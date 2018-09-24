@@ -613,7 +613,7 @@ bool Messenger::GetDSMicroBlockSubmission(const vector<unsigned char>& src,
 
     result.ParseFromArray(src.data() + offset, src.size() - offset);
 
-    if (result.IsInitialized())
+    if (!result.IsInitialized())
     {
         LOG_GENERAL(WARNING, "DSMicroBlockSubmission initialization failed.");
         return false;
