@@ -137,8 +137,7 @@ const uint64_t& DSBlockHeader::GetBlockNum() const { return m_blockNum; }
 uint32_t DSBlockHeader::GetSize() const
 {
     uint32_t dsBlockSize1 = sizeof(uint8_t) + sizeof(uint8_t) + BLOCK_HASH_SIZE
-        + UINT256_SIZE + PUB_KEY_SIZE + sizeof(uint64_t) + UINT256_SIZE
-        + SWInfo::SIZE;
+        + PUB_KEY_SIZE + sizeof(uint64_t) + UINT256_SIZE + SWInfo::SIZE;
     dsBlockSize1
         += m_PoWDSWinners.size() * (PUB_KEY_SIZE + IP_SIZE + PORT_SIZE);
     return dsBlockSize1;
