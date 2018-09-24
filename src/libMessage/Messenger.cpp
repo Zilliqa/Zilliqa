@@ -868,7 +868,9 @@ bool Messenger::SetDSDSBlockAnnouncement(
 
     if (!dsblock->IsInitialized())
     {
-        LOG_GENERAL(WARNING, "DSDSBlockAnnouncement initialization failed.");
+        LOG_GENERAL(WARNING,
+                    "DSDSBlockAnnouncement initialization failed. Debug: "
+                        << announcement.DebugString());
         return false;
     }
 
@@ -877,7 +879,9 @@ bool Messenger::SetDSDSBlockAnnouncement(
     if (!SetConsensusAnnouncementCore(announcement, consensusID, blockHash,
                                       leaderID, leaderKey))
     {
-        LOG_GENERAL(WARNING, "SetConsensusAnnouncementCore failed.");
+        LOG_GENERAL(WARNING,
+                    "SetConsensusAnnouncementCore failed. Debug: "
+                        << announcement.DebugString());
         return false;
     }
 
@@ -912,13 +916,18 @@ bool Messenger::GetDSDSBlockAnnouncement(
 
     if (!announcement.IsInitialized())
     {
-        LOG_GENERAL(WARNING, "ConsensusAnnouncement initialization failed.");
+        LOG_GENERAL(WARNING,
+                    "ConsensusAnnouncement initialization failed. Debug: "
+                        << announcement.DebugString());
         return false;
     }
 
     if (!announcement.has_dsblock())
     {
-        LOG_GENERAL(WARNING, "DSDSBlockAnnouncement initialization failed.");
+        LOG_GENERAL(
+            WARNING,
+            "DSDSBlockAnnouncement initialization failed (no ds block). Debug: "
+                << announcement.DebugString());
         return false;
     }
 
