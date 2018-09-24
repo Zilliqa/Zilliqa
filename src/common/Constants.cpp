@@ -149,7 +149,6 @@ const unsigned int SENDQUEUE_SIZE{ReadFromConstantsFile("SENDQUEUE_SIZE")};
 const unsigned int MSGQUEUE_SIZE{ReadFromConstantsFile("MSGQUEUE_SIZE")};
 const unsigned int POW_CHANGE_PERCENT_TO_ADJ_DIFF{
     ReadFromConstantsFile("POW_CHANGE_PERCENT_TO_ADJ_DIFF")};
-const unsigned int NUM_NETWORK_NODE{ReadFromConstantsFile("NUM_NETWORK_NODE")};
 const unsigned int MAX_ROUNDS_IN_BSTATE{
     ReadFromConstantsFile("MAX_ROUNDS_IN_BSTATE")};
 const unsigned int MAX_ROUNDS_IN_CSTATE{

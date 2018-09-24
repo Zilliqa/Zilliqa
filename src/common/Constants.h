@@ -148,8 +148,6 @@ extern const unsigned int MAX_INDEXES_PER_TXN;
 extern const unsigned int SENDQUEUE_SIZE;
 extern const unsigned int MSGQUEUE_SIZE;
 extern const unsigned int POW_CHANGE_PERCENT_TO_ADJ_DIFF;
-extern const unsigned int NUM_NETWORK_NODE;
-extern const unsigned int NUM_NETWORK_NODE;
 extern const unsigned int MAX_ROUNDS_IN_BSTATE;
 extern const unsigned int MAX_ROUNDS_IN_CSTATE;
 extern const unsigned int MAX_TOTAL_ROUNDS;
