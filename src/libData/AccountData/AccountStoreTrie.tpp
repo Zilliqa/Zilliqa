@@ -29,7 +29,7 @@ template<class DB, class MAP> void AccountStoreTrie<DB, MAP>::Init()
 {
     AccountStoreSC<MAP>::Init();
     m_state.init();
-    prevRoot = m_state.root();
+    m_prevRoot = m_state.root();
 }
 
 template<class DB, class MAP>
@@ -121,7 +121,7 @@ void AccountStoreTrie<DB, MAP>::RepopulateStateTrie()
 {
     LOG_MARKER();
     m_state.init();
-    prevRoot = m_state.root();
+    m_prevRoot = m_state.root();
     UpdateStateTrieAll();
 }
 
