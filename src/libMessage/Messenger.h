@@ -190,11 +190,11 @@ public:
                                const unsigned int offset, uint32_t& listenPort);
     static bool SetLookupSetDSInfoFromSeed(
         std::vector<unsigned char>& dst, const unsigned int offset,
-        const std::vector<std::pair<PubKey, Peer>>& dsNodes);
+        const std::deque<std::pair<PubKey, Peer>>& dsNodes);
     static bool
     GetLookupSetDSInfoFromSeed(const std::vector<unsigned char>& src,
                                const unsigned int offset,
-                               std::vector<std::pair<PubKey, Peer>>& dsNodes);
+                               std::deque<std::pair<PubKey, Peer>>& dsNodes);
     static bool SetLookupGetDSBlockFromSeed(std::vector<unsigned char>& dst,
                                             const unsigned int offset,
                                             const uint64_t lowBlockNum,
@@ -232,15 +232,18 @@ public:
     static bool SetLookupGetTxBodyFromSeed(
         std::vector<unsigned char>& dst, const unsigned int offset,
         const std::vector<unsigned char>& txHash, const uint32_t listenPort);
-    static bool GetLookupGetTxBodyFromSeed(
-        const std::vector<unsigned char>& src, const unsigned int offset,
-        std::vector<unsigned char>& txHash, uint32_t& listenPort);
-    static bool SetLookupSetTxBodyFromSeed(
-        std::vector<unsigned char>& dst, const unsigned int offset,
-        const std::vector<unsigned char>& txHash, const Transaction& txBody);
-    static bool GetLookupSetTxBodyFromSeed(
-        const std::vector<unsigned char>& src, const unsigned int offset,
-        std::vector<unsigned char>& txHash, Transaction& txBody);
+    static bool
+    GetLookupGetTxBodyFromSeed(const std::vector<unsigned char>& src,
+                               const unsigned int offset, TxnHash& txHash,
+                               uint32_t& listenPort);
+    static bool
+    SetLookupSetTxBodyFromSeed(std::vector<unsigned char>& dst,
+                               const unsigned int offset, const TxnHash& txHash,
+                               const TransactionWithReceipt& txBody);
+    static bool
+    GetLookupSetTxBodyFromSeed(const std::vector<unsigned char>& src,
+                               const unsigned int offset, TxnHash& txHash,
+                               TransactionWithReceipt& txBody);
     static bool SetLookupSetNetworkIDFromSeed(std::vector<unsigned char>& dst,
                                               const unsigned int offset,
                                               const std::string& networkID);
