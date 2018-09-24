@@ -54,13 +54,11 @@ unsigned int DSBlockHeader::Serialize(vector<unsigned char>& dst,
 {
     LOG_MARKER();
     // TODO add this back
-    /**
     unsigned int size_remaining = dst.size() - offset;
-    if (size_remaining < SIZE)
+    if (size_remaining < GetSize())
     {
-        dst.resize(SIZE + offset);
+        dst.resize(GetSize() + offset);
     }
-    **/
 
     unsigned int curOffset = offset;
 
@@ -78,6 +76,20 @@ unsigned int DSBlockHeader::Serialize(vector<unsigned char>& dst,
     SetNumber<uint256_t>(dst, curOffset, m_timestamp, UINT256_SIZE);
     curOffset += UINT256_SIZE;
     curOffset += m_swInfo.Serialize(dst, curOffset);
+    for (const auto& DSWinner : m_PoWDSWinners)
+    {
+        // Pubkey
+        DSWinner.first.Serialize(dst, curOffset);
+        curOffset += PUB_KEY_SIZE;
+        // IP address
+        Serializable::SetNumber<uint128_t>(
+            dst, curOffset, DSWinner.second.m_ipAddress, sizeof(uint128_t));
+        curOffset += sizeof(uint32_t);
+        // Port
+        Serializable::SetNumber<uint32_t>(
+            dst, curOffset, DSWinner.second.m_listenPortHost, sizeof(uint32_t));
+        curOffset += sizeof(uint32_t);
+    }
 
     return GetSize();
 }
