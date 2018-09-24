@@ -118,6 +118,7 @@ public:
     {
         if (txnOrder.empty())
         {
+            LOG_GENERAL(INFO, "TxnOrder is empty");
             trHash = TxnHash();
             return true;
         }
