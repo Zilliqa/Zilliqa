@@ -688,38 +688,23 @@ bool DirectoryService::OnNodeMissingMicroBlocks(
 
     auto& microBlocks = m_microBlocks[blockNum];
 
-    unsigned int cur_offset = 0;
-    vector<unsigned char> mb_message
-        = {MessageType::DIRECTORY, DSInstructionType::MICROBLOCKSUBMISSION};
-    cur_offset += MessageOffset::BODY;
-    mb_message.push_back(SUBMITMICROBLOCKTYPE::MISSINGMICROBLOCK);
-    cur_offset += MessageOffset::INST;
-    Serializable::SetNumber<uint64_t>(mb_message, cur_offset, blockNum,
-                                      sizeof(uint64_t));
-    cur_offset += sizeof(uint64_t);
-    mb_message.resize(cur_offset + sizeof(uint32_t));
-    unsigned int mb_num_offset = cur_offset;
-    cur_offset += sizeof(uint32_t);
-
-    uint32_t numOfMicroblocksSent = 0;
+    vector<MicroBlock> microBlocksSent;
 
     for (uint32_t i = 0; i < numOfAbsentHashes; i++)
     {
-        MicroBlock mb;
-
         bool found = false;
         // O(n^2) might be fine since number of shards is low
         // If its slow on benchmarking, may be first populate an unordered_set and then std::find
-        for (const auto& microBlock : microBlocks)
+        auto microBlockIter = microBlocks.begin();
+        for (; microBlockIter != microBlocks.end(); microBlockIter++)
         {
-            if (microBlock.GetHeader().GetShardID()
+            if (microBlockIter->GetHeader().GetShardID()
                     == missingMicroBlocks[i].first
-                && microBlock.GetHeader().GetTxRootHash()
+                && microBlockIter->GetHeader().GetTxRootHash()
                     == missingMicroBlocks[i].second.m_txRootHash
-                && microBlock.GetHeader().GetStateDeltaHash()
+                && microBlockIter->GetHeader().GetStateDeltaHash()
                     == missingMicroBlocks[i].second.m_stateDeltaHash)
             {
-                mb = microBlock;
                 found = true;
                 break;
             }
@@ -732,25 +717,32 @@ bool DirectoryService::OnNodeMissingMicroBlocks(
                             << missingMicroBlocks[i].second);
             continue;
         }
-        numOfMicroblocksSent++;
-        cur_offset += mb.SerializeCore(mb_message, cur_offset);
+        microBlocksSent.emplace_back(*microBlockIter);
     }
-    Serializable::SetNumber<uint32_t>(mb_message, mb_num_offset,
-                                      numOfMicroblocksSent, sizeof(uint32_t));
 
     // Final state delta
+    vector<unsigned char> stateDelta;
     if (m_finalBlock->GetHeader().GetStateDeltaHash() != StateHash())
     {
-        vector<unsigned char> stateDelta;
         AccountStore::GetInstance().GetSerializedDelta(stateDelta);
-
-        copy(stateDelta.begin(), stateDelta.end(), back_inserter(mb_message));
-        cur_offset += stateDelta.size();
     }
     else
     {
         LOG_GENERAL(
             INFO, "State Delta Hash is empty, skip sharing final state delta");
+    }
+
+    vector<unsigned char> mb_message
+        = {MessageType::DIRECTORY, DSInstructionType::MICROBLOCKSUBMISSION};
+
+    if (!Messenger::SetDSMicroBlockSubmission(
+            mb_message, MessageOffset::BODY,
+            DirectoryService::SUBMITMICROBLOCKTYPE::MISSINGMICROBLOCK, blockNum,
+            microBlocksSent, stateDelta))
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::SetDSMicroBlockSubmission failed.");
+        return false;
     }
 
     P2PComm::GetInstance().SendMessage(peer, mb_message);

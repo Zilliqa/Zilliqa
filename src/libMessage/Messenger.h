@@ -46,6 +46,17 @@ public:
                                    uint64_t& nonce, std::string& resultingHash,
                                    std::string& mixHash, Signature& signature);
 
+    static bool SetDSMicroBlockSubmission(
+        std::vector<unsigned char>& dst, const unsigned int offset,
+        const unsigned char microBlockType, const uint64_t blockNumber,
+        const std::vector<MicroBlock>& microBlocks,
+        const std::vector<unsigned char>& stateDelta);
+    static bool GetDSMicroBlockSubmission(
+        const std::vector<unsigned char>& src, const unsigned int offset,
+        unsigned char& microBlockType, uint64_t& blockNumber,
+        std::vector<MicroBlock>& microBlocks,
+        std::vector<unsigned char>& stateDelta);
+
     static bool SetDSDSBlockAnnouncement(
         std::vector<unsigned char>& dst, const unsigned int offset,
         const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
