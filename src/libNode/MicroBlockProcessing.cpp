@@ -282,20 +282,25 @@ bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
         }
         else
         {
-            m_mediator.m_ds->m_stateDeltaFromShards.clear();
-            AccountStore::GetInstance().SerializeDelta();
-            AccountStore::GetInstance().GetSerializedDelta(
-                m_mediator.m_ds->m_stateDeltaFromShards);
-            m_mediator.m_ds->SaveCoinbase(
-                m_microblock->GetB1(), m_microblock->GetB2(),
-                m_microblock->GetHeader().GetShardID());
-            m_mediator.m_ds->cv_scheduleFinalBlockConsensus.notify_all();
+            lock_guard<mutex> g(
+                m_mediator.m_ds->m_mutexPrepareRunFinalblockConsensus);
+            if (!m_mediator.m_ds->m_startedRunFinalblockConsensus)
             {
-                lock_guard<mutex> g(m_mediator.m_ds->m_mutexMicroBlocks);
-                m_mediator.m_ds->m_microBlocks[m_mediator.m_currentEpochNum]
-                    .emplace(*m_microblock);
+                m_mediator.m_ds->m_stateDeltaFromShards.clear();
+                AccountStore::GetInstance().SerializeDelta();
+                AccountStore::GetInstance().GetSerializedDelta(
+                    m_mediator.m_ds->m_stateDeltaFromShards);
+                m_mediator.m_ds->SaveCoinbase(
+                    m_microblock->GetB1(), m_microblock->GetB2(),
+                    m_microblock->GetHeader().GetShardID());
+                m_mediator.m_ds->cv_scheduleFinalBlockConsensus.notify_all();
+                {
+                    lock_guard<mutex> g(m_mediator.m_ds->m_mutexMicroBlocks);
+                    m_mediator.m_ds->m_microBlocks[m_mediator.m_currentEpochNum]
+                        .emplace(*m_microblock);
+                }
+                m_mediator.m_ds->m_toSendTxnToLookup = true;
             }
-            m_mediator.m_ds->m_toSendTxnToLookup = true;
             m_mediator.m_ds->RunConsensusOnFinalBlock();
         }
     }
@@ -1159,6 +1164,7 @@ bool Node::RunConsensusOnMicroBlock()
     if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
     {
         m_mediator.m_ds->m_toSendTxnToLookup = false;
+        m_mediator.m_ds->m_startedRunFinalblockConsensus = false;
         m_mediator.m_ds->m_stateDeltaWhenRunDSMB
             = m_mediator.m_ds->m_stateDeltaFromShards;
         bool isVacuousEpoch
