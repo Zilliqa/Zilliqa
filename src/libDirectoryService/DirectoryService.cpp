@@ -175,6 +175,16 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
     // Message = [Primary node IP] [Primary node port]
     LOG_MARKER();
 
+    if (m_mediator.m_currentEpochNum > 1)
+    {
+        // TODO: Get the IP address of who send this message, and deduct its reputation.
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::ProcessSetPrimary is a bootstrap "
+                    "function, it shouldn't be called after blockchain "
+                    "started.");
+        return false;
+    }
+
     // Peer primary(message, offset);
     Peer primary;
     if (primary.Deserialize(message, offset) != 0)
@@ -215,7 +225,6 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
     // TODO: Refactor this code
     if (primary == m_mediator.m_selfPeer)
     {
-
         PeerStore& dsstore = PeerStore::GetStore();
         dsstore.AddPeerPair(
             m_mediator.m_selfKey.second,
