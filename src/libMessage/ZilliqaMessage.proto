@@ -106,6 +106,14 @@ message DSPoWSubmission
     required ByteArray signature           = 2;
 }
 
+message DSMicroBlockSubmission
+{
+    required uint32 microblocktype = 1; // only LSB used
+    required uint64 blocknumber    = 2;
+    repeated ByteArray microblocks = 3;
+    optional bytes statedelta      = 4;
+}
+
 message DSDSBlockAnnouncement
 {
     required ProtoDSBlock dsblock             = 1;
