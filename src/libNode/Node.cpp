@@ -735,8 +735,8 @@ bool Node::ProcessTxnPacketFromLookupCore(
                 else
                 {
                     compIdx.insert(tx);
-                    txn_sent_count++;
                 }
+                txn_sent_count++;
             }
             else
             {
@@ -752,7 +752,7 @@ bool Node::ProcessTxnPacketFromLookupCore(
             }
         }
     }
-    LOG_GENERAL(INFO, "TXN COUNT" << txn_sent_count);
+    LOG_GENERAL(INFO, "INSERTED TXN COUNT" << txn_sent_count);
 
     return true;
 }
