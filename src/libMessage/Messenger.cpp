@@ -78,6 +78,7 @@ namespace
                                   header.GetPrevHash().size);
         SerializableToProtobufByteArray(header.GetLeaderPubKey(),
                                         *protoHeader->mutable_leaderpubkey());
+
         protoHeader->set_blocknum(header.GetBlockNum());
         NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
             header.GetTimestamp(), *protoHeader->mutable_timestamp());
@@ -146,7 +147,7 @@ namespace
             ProtobufByteArrayToSerializable(dswinner.key(), tempPubKey);
             ProtobufByteArrayToSerializable(dswinner.val(),
                                             tempWinnerNetworkInfo);
-            powDSWinners[leaderPubKey] = tempWinnerNetworkInfo;
+            powDSWinners[tempPubKey] = tempWinnerNetworkInfo;
         }
 
         // Deserialize cosigs
