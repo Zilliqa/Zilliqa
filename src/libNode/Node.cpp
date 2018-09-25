@@ -743,6 +743,8 @@ bool Node::ProcessTxnPacketFromLookupCore(
                 LOG_GENERAL(WARNING, "Txn is not valid.");
             }
 
+            processed_count++;
+
             if (processed_count % 100 == 0)
             {
                 LOG_GENERAL(INFO,
