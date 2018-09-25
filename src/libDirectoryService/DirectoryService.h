@@ -189,8 +189,6 @@ class DirectoryService : public Executable, public Broadcastable
     void SendEntireShardingStructureToShardNodes(unsigned int my_shards_lo,
                                                  unsigned int my_shards_hi);
 
-    // PoW (DS block) consensus functions
-    void RunConsensusOnDSBlock(bool isRejoin = false);
     void ComposeDSBlock(
         const std::vector<std::pair<std::array<unsigned char, 32>, PubKey>>&
             sortedPoWSolns);
@@ -498,6 +496,9 @@ public:
 
     /// Set this node as DS node, used in bootstrap and upgrading protocol
     bool SetDSNode(const Peer& primary);
+
+    /// PoW (DS block) consensus functions
+    void RunConsensusOnDSBlock(bool isRejoin = false);
 
 private:
     static std::map<DirState, std::string> DirStateStrings;

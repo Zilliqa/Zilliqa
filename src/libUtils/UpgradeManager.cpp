@@ -407,7 +407,8 @@ bool UpgradeManager::ReplaceNode(Mediator& mediator)
         return true;
     }
 
-    BlockStorage::GetBlockStorage().PutDSCommittee(mediator.m_DSCommittee);
+    BlockStorage::GetBlockStorage().PutDSCommittee(
+        mediator.m_DSCommittee, mediator.m_ds->m_consensusLeaderID);
 
     /// Deploy downloaded software
     /// TBD: The call of "dpkg" should be removed. (https://github.com/Zilliqa/Issues/issues/185)
@@ -418,7 +419,18 @@ bool UpgradeManager::ReplaceNode(Mediator& mediator)
         return false;
     }
 
-#if 0 //clark
+#if 1 //clark
+    if (DirectoryService::IDLE == mediator.m_ds->m_mode)
+    {
+        LOG_GENERAL(INFO, "Shard node, upgrade after 20 seconds...");
+        this_thread::sleep_for(chrono::seconds(20));
+    }
+    else
+    {
+        LOG_GENERAL(INFO, "DS node, upgrade after 15 seconds...");
+        this_thread::sleep_for(chrono::seconds(15));
+    }
+#else
     if (DirectoryService::IDLE == mediator.m_ds->m_mode)
     {
         LOG_GENERAL(INFO, "Shard node, upgrade after 10 seconds...");

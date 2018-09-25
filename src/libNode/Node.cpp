@@ -95,8 +95,7 @@ void Node::Install(unsigned int syncType, bool toRetrieveHistory)
             runInitializeGenesisBlocks = false;
 
             BlockStorage::GetBlockStorage().GetDSCommittee(
-                m_mediator.m_DSCommittee);
-
+                m_mediator.m_DSCommittee, m_consensusLeaderID);
             LOG_GENERAL(INFO,
                         "Current public key: " << m_mediator.m_selfKey.second);
 
@@ -108,28 +107,71 @@ void Node::Install(unsigned int syncType, bool toRetrieveHistory)
                 if (ds.first == m_mediator.m_selfKey.second)
                 {
                     SetState(POW_SUBMISSION);
-
-                    if (m_mediator.m_DSCommittee->front().first
+                    if (m_mediator.m_DSCommittee->at(m_consensusLeaderID).first
                         == m_mediator.m_selfKey.second)
                     {
-                        LOG_GENERAL(INFO, "Set as DS leader.");
-                        auto func = [this]() mutable -> void {
-                            m_mediator.m_ds->SetDSNode(m_mediator.m_selfPeer);
-                        };
-                        DetachedFunction(1, func);
+                        LOG_GENERAL(
+                            INFO,
+                            "Set as DS leader: "
+                                << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                                << ":"
+                                << m_mediator.m_selfPeer.m_listenPortHost);
+                        m_mediator.m_ds->m_mode = DirectoryService::PRIMARY_DS;
+                        LOG_EPOCH(
+                            INFO,
+                            to_string(m_mediator.m_currentEpochNum).c_str(),
+                            "START OF EPOCH "
+                                << m_mediator.m_dsBlockChain.GetLastBlock()
+                                        .GetHeader()
+                                        .GetBlockNum()
+                                    + 1);
+                        LOG_STATE(
+                            "[IDENT]["
+                            << std::setw(15) << std::left
+                            << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                            << "][0     ] DSLD");
                     }
                     else
                     {
-                        LOG_GENERAL(INFO, "Set as DS backup.");
-                        auto func = [this]() mutable -> void {
-                            m_mediator.m_ds->SetDSNode(
-                                m_mediator.m_DSCommittee->front().second);
-                        };
-                        DetachedFunction(1, func);
+                        LOG_GENERAL(
+                            INFO,
+                            "Set as DS backup: "
+                                << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                                << ":"
+                                << m_mediator.m_selfPeer.m_listenPortHost);
+                        m_mediator.m_ds->m_mode = DirectoryService::BACKUP_DS;
+                        LOG_EPOCH(
+                            INFO,
+                            to_string(m_mediator.m_currentEpochNum).c_str(),
+                            "START OF EPOCH "
+                                << m_mediator.m_dsBlockChain.GetLastBlock()
+                                        .GetHeader()
+                                        .GetBlockNum()
+                                    + 1);
+                        LOG_STATE(
+                            "[IDENT]["
+                            << std::setw(15) << std::left
+                            << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                            << "][" << std::setw(6) << std::left
+                            << m_consensusMyID << "] DSBK");
                     }
-#if 1 //clark
-                    this_thread::sleep_for(chrono::seconds(1));
-#endif
+
+                    auto func = [this]() mutable -> void {
+                        LOG_EPOCH(
+                            INFO,
+                            to_string(m_mediator.m_currentEpochNum).c_str(),
+                            "Waiting "
+                                << POW_WINDOW_IN_SECONDS
+                                << " seconds, accepting PoW submissions...");
+                        this_thread::sleep_for(
+                            chrono::seconds(POW_WINDOW_IN_SECONDS));
+                        LOG_EPOCH(
+                            INFO,
+                            to_string(m_mediator.m_currentEpochNum).c_str(),
+                            "Starting consensus on ds block");
+                        m_mediator.m_ds->RunConsensusOnDSBlock();
+                    };
+                    DetachedFunction(1, func);
                     break;
                 }
             }
@@ -137,8 +179,12 @@ void Node::Install(unsigned int syncType, bool toRetrieveHistory)
             /// If this node is shard node, start pow
             if (DirectoryService::IDLE == m_mediator.m_ds->m_mode)
             {
-                LOG_GENERAL(INFO, "Set as shard node.");
-#if 1 //clark
+                LOG_GENERAL(INFO,
+                            "Set as shard node: "
+                                << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                                << ":"
+                                << m_mediator.m_selfPeer.m_listenPortHost);
+#if 0 //clark
                 this_thread::sleep_for(chrono::seconds(10));
 #endif
                 uint64_t block_num = m_mediator.m_dsBlockChain.GetLastBlock()

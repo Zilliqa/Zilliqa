@@ -326,12 +326,27 @@ bool BlockStorage::GetMetadata(MetaType type, std::vector<unsigned char>& data)
 }
 
 bool BlockStorage::PutDSCommittee(
-    const shared_ptr<deque<pair<PubKey, Peer>>>& dsCommittee)
+    const shared_ptr<deque<pair<PubKey, Peer>>>& dsCommittee,
+    const atomic<uint32_t>& consensusLeaderID)
 {
     LOG_MARKER();
 
-    vector<unsigned char> data;
     unsigned int index = 0;
+    string leaderId = to_string(consensusLeaderID);
+
+    if (0
+        != m_dsCommitteeDB->Insert(
+               index++,
+               vector<unsigned char>(leaderId.begin(), leaderId.end())))
+    {
+        LOG_GENERAL(WARNING,
+                    "Failed to store DS leader ID:" << consensusLeaderID);
+        return false;
+    }
+
+    LOG_GENERAL(INFO, "Stored DS leader ID:" << consensusLeaderID);
+
+    vector<unsigned char> data;
 
     for (const auto& ds : *dsCommittee)
     {
@@ -356,18 +371,19 @@ bool BlockStorage::PutDSCommittee(
 }
 
 bool BlockStorage::GetDSCommittee(
-    shared_ptr<deque<pair<PubKey, Peer>>>& dsCommittee)
+    shared_ptr<deque<pair<PubKey, Peer>>>& dsCommittee,
+    atomic<uint32_t>& consensusLeaderID)
 {
     LOG_MARKER();
 
-    leveldb::Iterator* it
-        = m_dsCommitteeDB->GetDB()->NewIterator(leveldb::ReadOptions());
-    string indexStr, dataStr;
+    unsigned int index = 0;
+    consensusLeaderID = stoul(m_dsCommitteeDB->Lookup(index++));
+    LOG_GENERAL(INFO, "Retrieved DS leader ID: " << consensusLeaderID);
+    string dataStr;
 
-    for (it->SeekToFirst(); it->Valid(); it->Next())
+    while (m_dsCommitteeDB->Lookup(index) != "")
     {
-        indexStr = it->key().ToString();
-        dataStr = it->value().ToString();
+        dataStr = m_dsCommitteeDB->Lookup(index);
         dsCommittee->emplace_back(
             PubKey(vector<unsigned char>(dataStr.begin(),
                                          dataStr.begin() + PUB_KEY_SIZE),
@@ -376,12 +392,12 @@ bool BlockStorage::GetDSCommittee(
                                        dataStr.end()),
                  0));
         LOG_GENERAL(INFO,
-                    "Retrieved DS committee:"
-                        << indexStr << ", " << dsCommittee->back().first << ", "
-                        << dsCommittee->back().second);
+                    "Retrieved DS committee: " << dsCommittee->back().first
+                                               << ", "
+                                               << dsCommittee->back().second);
+        ++index;
     }
 
-    delete it;
     return true;
 }
 
