@@ -143,7 +143,7 @@ namespace
         Peer tempWinnerNetworkInfo;
         for (const auto& dswinner : protoHeader.dswinners())
         {
-            ProtobufByteArrayToSerializable(dswinner.key(), leaderPubKey);
+            ProtobufByteArrayToSerializable(dswinner.key(), tempPubKey);
             ProtobufByteArrayToSerializable(dswinner.val(),
                                             tempWinnerNetworkInfo);
             powDSWinners[leaderPubKey] = tempWinnerNetworkInfo;
