@@ -3064,3 +3064,61 @@ bool Messenger::GetConsensusCommitFailure(
 
     return true;
 }
+
+bool Messenger::SetLookupGetMicroBlockFromLookup(
+    vector<unsigned char>& dest, unsigned int offset,
+    const map<uint64_t, vector<uint32_t>>& microBlockInfo, uint32_t portNo)
+{
+    LOG_MARKER();
+
+    LookupGetMicroBlockFromLookup result;
+
+    result.set_portno(portNo);
+
+    for (const auto& mb : microBlockInfo)
+    {
+        MicroBlockInfo& res_mb = *result.add_blocknums();
+        res_mb.set_blocknum(mb.first);
+
+        for (uint32_t shard_id : mb.second)
+        {
+            res_mb.add_shards(shard_id);
+        }
+    }
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "initialization failed.");
+        return false;
+    }
+    return SerializeToArray(result, dest, offset);
+}
+
+bool Messenger::GetLookupGetMicroBlockFromLookup(vector<unsigned char>& src, unsigned int offset, map<uint64_t, vector<uint32_t>>& microBlockInfo, uint32_t portNo)
+{
+    LOG_MARKER();
+
+    LookupGetMicroBlockFromLookup result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "initialization failed.");
+        return false;
+    }
+
+    portNo = result.portno();
+
+    for(const auto& blocknum : result.blockums() )
+    {
+        vector<uint32_t> tempVec;
+        for(const auto& id : blockums.shards())
+        {
+            tempVec.emplace_back(id);
+        }
+        microBlockInfo.insert(make_pair(blockum, tempVec));
+        
+    }
+    return true;
+}

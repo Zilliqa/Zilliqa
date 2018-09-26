@@ -407,3 +407,15 @@ message ConsensusCommitFailure
     required ConsensusInfo consensusinfo = 1;
     required ByteArray signature         = 2;
 }
+
+message MicroBlockInfo
+{
+    required uint64 blocknum      = 1;
+    repeated uint32 shards        = 2;
+}
+
+message LookupGetMicroBlockFromLookup
+{
+    required uint32 portno            = 1;
+    repeated MicroBlockInfo blocknums = 2;
+}
