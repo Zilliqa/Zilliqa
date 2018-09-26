@@ -41,6 +41,10 @@ include_directories(${OPENSSL_INCLUDE_DIR})
 
 find_package(LevelDB REQUIRED)
 
+if(OPENCL_MINE AND CUDA_MINE)
+    message(FATAL_ERROR "Cannot support OpenCL (OPENCL_MINE=ON) and CUDA (CUDA=ON) at the same time")
+endif()
+
 if(OPENCL_MINE)
     find_package(OpenCL REQUIRED)
     add_definitions(-DOPENCL_MINE)
