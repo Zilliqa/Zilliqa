@@ -90,20 +90,22 @@ BOOST_AUTO_TEST_CASE(testBlockStorage)
     INIT_STDOUT_LOGGER();
 
     LOG_MARKER();
+    if (LOOKUP_NODE_MODE)
+    {
+        TransactionWithReceipt body1 = constructDummyTxBody(0);
 
-    TransactionWithReceipt body1 = constructDummyTxBody(0);
+        auto tx_hash = body1.GetTransaction().GetTranID();
 
-    auto tx_hash = body1.GetTransaction().GetTranID();
+        vector<unsigned char> serializedTxBody;
+        body1.Serialize(serializedTxBody, 0);
+        BlockStorage::GetBlockStorage().PutTxBody(tx_hash, serializedTxBody);
 
-    vector<unsigned char> serializedTxBody;
-    body1.Serialize(serializedTxBody, 0);
-    BlockStorage::GetBlockStorage().PutTxBody(tx_hash, serializedTxBody);
+        TxBodySharedPtr body2;
+        BlockStorage::GetBlockStorage().GetTxBody(tx_hash, body2);
 
-    TxBodySharedPtr body2;
-    BlockStorage::GetBlockStorage().GetTxBody(tx_hash, body2);
-
-    // BOOST_CHECK_MESSAGE(body1 == *body2,
-    //     "block shouldn't change after writing to/ reading from disk");
+        // BOOST_CHECK_MESSAGE(body1 == *body2,
+        //     "block shouldn't change after writing to/ reading from disk");
+    }
 }
 
 BOOST_AUTO_TEST_CASE(testRandomBlockAccesses)
@@ -111,60 +113,65 @@ BOOST_AUTO_TEST_CASE(testRandomBlockAccesses)
     INIT_STDOUT_LOGGER();
 
     LOG_MARKER();
+    if (LOOKUP_NODE_MODE)
+    {
+        TransactionWithReceipt body1 = constructDummyTxBody(1);
+        TransactionWithReceipt body2 = constructDummyTxBody(2);
+        TransactionWithReceipt body3 = constructDummyTxBody(3);
+        TransactionWithReceipt body4 = constructDummyTxBody(4);
 
-    TransactionWithReceipt body1 = constructDummyTxBody(1);
-    TransactionWithReceipt body2 = constructDummyTxBody(2);
-    TransactionWithReceipt body3 = constructDummyTxBody(3);
-    TransactionWithReceipt body4 = constructDummyTxBody(4);
+        auto tx_hash1 = body1.GetTransaction().GetTranID();
+        auto tx_hash2 = body2.GetTransaction().GetTranID();
+        auto tx_hash3 = body3.GetTransaction().GetTranID();
+        auto tx_hash4 = body4.GetTransaction().GetTranID();
 
-    auto tx_hash1 = body1.GetTransaction().GetTranID();
-    auto tx_hash2 = body2.GetTransaction().GetTranID();
-    auto tx_hash3 = body3.GetTransaction().GetTranID();
-    auto tx_hash4 = body4.GetTransaction().GetTranID();
+        std::vector<unsigned char> serializedTxBody;
 
-    std::vector<unsigned char> serializedTxBody;
+        body1.Serialize(serializedTxBody, 0);
+        BlockStorage::GetBlockStorage().PutTxBody(tx_hash1, serializedTxBody);
 
-    body1.Serialize(serializedTxBody, 0);
-    BlockStorage::GetBlockStorage().PutTxBody(tx_hash1, serializedTxBody);
+        serializedTxBody.clear();
+        body2.Serialize(serializedTxBody, 0);
+        BlockStorage::GetBlockStorage().PutTxBody(tx_hash2, serializedTxBody);
 
-    serializedTxBody.clear();
-    body2.Serialize(serializedTxBody, 0);
-    BlockStorage::GetBlockStorage().PutTxBody(tx_hash2, serializedTxBody);
+        serializedTxBody.clear();
+        body3.Serialize(serializedTxBody, 0);
+        BlockStorage::GetBlockStorage().PutTxBody(tx_hash3, serializedTxBody);
 
-    serializedTxBody.clear();
-    body3.Serialize(serializedTxBody, 0);
-    BlockStorage::GetBlockStorage().PutTxBody(tx_hash3, serializedTxBody);
+        serializedTxBody.clear();
+        body4.Serialize(serializedTxBody, 0);
+        BlockStorage::GetBlockStorage().PutTxBody(tx_hash4, serializedTxBody);
 
-    serializedTxBody.clear();
-    body4.Serialize(serializedTxBody, 0);
-    BlockStorage::GetBlockStorage().PutTxBody(tx_hash4, serializedTxBody);
+        TxBodySharedPtr blockRetrieved;
+        BlockStorage::GetBlockStorage().GetTxBody(tx_hash2, blockRetrieved);
 
-    TxBodySharedPtr blockRetrieved;
-    BlockStorage::GetBlockStorage().GetTxBody(tx_hash2, blockRetrieved);
+        BOOST_CHECK_MESSAGE(
+            body2.GetTransaction().GetTranID()
+                == (*blockRetrieved).GetTransaction().GetTranID(),
+            "transaction id shouldn't change after writing to/ reading from "
+            "disk");
 
-    BOOST_CHECK_MESSAGE(
-        body2.GetTransaction().GetTranID()
-            == (*blockRetrieved).GetTransaction().GetTranID(),
-        "transaction id shouldn't change after writing to/ reading from disk");
+        BlockStorage::GetBlockStorage().GetTxBody(tx_hash4, blockRetrieved);
 
-    BlockStorage::GetBlockStorage().GetTxBody(tx_hash4, blockRetrieved);
+        BOOST_CHECK_MESSAGE(
+            body4.GetTransaction().GetTranID()
+                == (*blockRetrieved).GetTransaction().GetTranID(),
+            "transaction id shouldn't change after writing to/ reading from "
+            "disk");
 
-    BOOST_CHECK_MESSAGE(
-        body4.GetTransaction().GetTranID()
-            == (*blockRetrieved).GetTransaction().GetTranID(),
-        "transaction id shouldn't change after writing to/ reading from disk");
+        BlockStorage::GetBlockStorage().GetTxBody(tx_hash1, blockRetrieved);
 
-    BlockStorage::GetBlockStorage().GetTxBody(tx_hash1, blockRetrieved);
+        BOOST_CHECK_MESSAGE(
+            body1.GetTransaction().GetTranID()
+                == (*blockRetrieved).GetTransaction().GetTranID(),
+            "transaction id shouldn't change after writing to/ reading from "
+            "disk");
 
-    BOOST_CHECK_MESSAGE(
-        body1.GetTransaction().GetTranID()
-            == (*blockRetrieved).GetTransaction().GetTranID(),
-        "transaction id shouldn't change after writing to/ reading from disk");
-
-    BOOST_CHECK_MESSAGE(
-        body2.GetTransaction().GetTranID()
-            != (*blockRetrieved).GetTransaction().GetTranID(),
-        "transaction id shouldn't be same for different blocks");
+        BOOST_CHECK_MESSAGE(
+            body2.GetTransaction().GetTranID()
+                != (*blockRetrieved).GetTransaction().GetTranID(),
+            "transaction id shouldn't be same for different blocks");
+    }
 }
 
 BOOST_AUTO_TEST_SUITE_END()
