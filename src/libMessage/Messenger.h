@@ -406,6 +406,11 @@ public:
         const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
         uint16_t& backupID, std::vector<unsigned char>& errorMsg,
         const std::deque<std::pair<PubKey, Peer>>& committeeKeys);
+
+    static bool SetLookupGetMicroBlockFromLookup(
+        std::vector<unsigned char>& dest, unsigned int offset,
+        const std::map<uint64_t, std::vector<uint32_t>>& microBlockInfo,
+        uint32_t portNo);
 };
 
 #endif // __MESSENGER_H__
